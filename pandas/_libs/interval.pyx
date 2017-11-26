@@ -13,6 +13,7 @@ from cpython.object cimport (Py_EQ, Py_NE, Py_GT, Py_LT, Py_GE, Py_LE,
 import numbers
 _VALID_CLOSED = frozenset(['left', 'right', 'both', 'neither'])
 
+
 cdef class IntervalMixin:
     property closed_left:
         def __get__(self):
@@ -51,13 +52,35 @@ cdef class Interval(IntervalMixin):
 
     .. versionadded:: 0.20.0
 
-    Attributes
+    Parameters
     ----------
-    left, right : values
-        Left and right bounds for each interval.
+    left : value
+        Left bound for interval.
+    right : value
+        Right bound for interval.
     closed : {'left', 'right', 'both', 'neither'}
         Whether the interval is closed on the left-side, right-side, both or
         neither. Defaults to 'right'.
+
+    Examples
+    --------
+    >>> iv = pd.Interval(left=0, right=5)
+    >>> iv
+    Interval(0, 5, closed='right')
+    >>> 2.5 in iv
+    True
+
+    >>> year_2017 = pd.Interval(pd.Timestamp('2017-01-01'),
+    ...                         pd.Timestamp('2017-12-31'), closed='both')
+    >>> pd.Timestamp('2017-01-01 00:00') in year_2017
+    True
+
+    See Also
+    --------
+    IntervalIndex : an Index of ``interval`` s that are all closed on the same
+                    side.
+    cut, qcut : convert arrays of continuous data into categoricals/series of
+                ``Interval``.
     """
 
     cdef readonly object left, right
@@ -188,8 +211,8 @@ cpdef intervals_to_interval_bounds(ndarray intervals):
         int64_t n = len(intervals)
         ndarray left, right
 
-    left = np.empty(n, dtype=object)
-    right = np.empty(n, dtype=object)
+    left = np.empty(n, dtype=intervals.dtype)
+    right = np.empty(n, dtype=intervals.dtype)
 
     for i in range(len(intervals)):
         interval = intervals[i]

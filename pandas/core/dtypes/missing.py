@@ -2,7 +2,7 @@
 missing types & inference
 """
 import numpy as np
-from pandas._libs import lib
+from pandas._libs import lib, missing as libmissing
 from pandas._libs.tslib import NaT, iNaT
 from .generic import (ABCMultiIndex, ABCSeries,
                       ABCIndexClass, ABCGeneric)
@@ -21,6 +21,9 @@ from .common import (is_string_dtype, is_datetimelike,
                      _TD_DTYPE,
                      _NS_DTYPE)
 from .inference import is_list_like
+
+isposinf_scalar = libmissing.isposinf_scalar
+isneginf_scalar = libmissing.isneginf_scalar
 
 
 def isna(obj):
@@ -50,7 +53,7 @@ isnull = isna
 
 def _isna_new(obj):
     if is_scalar(obj):
-        return lib.checknull(obj)
+        return libmissing.checknull(obj)
     # hack (for now) because MI registers as ndarray
     elif isinstance(obj, ABCMultiIndex):
         raise NotImplementedError("isna is not defined for MultiIndex")
@@ -76,7 +79,7 @@ def _isna_old(obj):
     boolean ndarray or boolean
     """
     if is_scalar(obj):
-        return lib.checknull_old(obj)
+        return libmissing.checknull_old(obj)
     # hack (for now) because MI registers as ndarray
     elif isinstance(obj, ABCMultiIndex):
         raise NotImplementedError("isna is not defined for MultiIndex")
@@ -143,7 +146,7 @@ def _isna_ndarraylike(obj):
                 result = np.zeros(values.shape, dtype=bool)
             else:
                 result = np.empty(shape, dtype=bool)
-                vec = lib.isnaobj(values.ravel())
+                vec = libmissing.isnaobj(values.ravel())
                 result[...] = vec.reshape(shape)
 
     elif needs_i8_conversion(obj):
@@ -172,7 +175,7 @@ def _isna_ndarraylike_old(obj):
             result = np.zeros(values.shape, dtype=bool)
         else:
             result = np.empty(shape, dtype=bool)
-            vec = lib.isnaobj_old(values.ravel())
+            vec = libmissing.isnaobj_old(values.ravel())
             result[:] = vec.reshape(shape)
 
     elif is_datetime64_dtype(dtype):
@@ -327,6 +330,12 @@ def array_equivalent(left, right, strict_nan=False):
         left = left.view('i8')
         right = right.view('i8')
 
+    # if we have structured dtypes, compare first
+    if (left.dtype.type is np.void or
+            right.dtype.type is np.void):
+        if left.dtype != right.dtype:
+            return False
+
     return np.array_equal(left, right)
 
 
@@ -360,13 +369,14 @@ def _maybe_fill(arr, fill_value=np.nan):
     return arr
 
 
-def na_value_for_dtype(dtype):
+def na_value_for_dtype(dtype, compat=True):
     """
     Return a dtype compat na value
 
     Parameters
     ----------
     dtype : string / dtype
+    compat : boolean, default True
 
     Returns
     -------
@@ -380,7 +390,9 @@ def na_value_for_dtype(dtype):
     elif is_float_dtype(dtype):
         return np.nan
     elif is_integer_dtype(dtype):
-        return 0
+        if compat:
+            return 0
+        return np.nan
     elif is_bool_dtype(dtype):
         return False
     return np.nan

@@ -180,6 +180,15 @@ class TestNumpy(TestPackers):
         x_rec = self.encode_decode(x)
         tm.assert_almost_equal(x, x_rec)
 
+    def test_scalar_bool(self):
+        x = np.bool_(1)
+        x_rec = self.encode_decode(x)
+        tm.assert_almost_equal(x, x_rec)
+
+        x = np.bool_(0)
+        x_rec = self.encode_decode(x)
+        tm.assert_almost_equal(x, x_rec)
+
     def test_scalar_complex(self):
         x = np.random.rand() + 1j * np.random.rand()
         x_rec = self.encode_decode(x)
@@ -263,7 +272,7 @@ class TestNumpy(TestPackers):
                 x.dtype == x_rec.dtype)
 
     def test_list_mixed(self):
-        x = [1.0, np.float32(3.5), np.complex128(4.25), u('foo')]
+        x = [1.0, np.float32(3.5), np.complex128(4.25), u('foo'), np.bool_(1)]
         x_rec = self.encode_decode(x)
         # current msgpack cannot distinguish list/tuple
         tm.assert_almost_equal(tuple(x), x_rec)
@@ -401,6 +410,7 @@ class TestSeries(TestPackers):
             'G': [Timestamp('20130102', tz='US/Eastern')] * 5,
             'H': Categorical([1, 2, 3, 4, 5]),
             'I': Categorical([1, 2, 3, 4, 5], ordered=True),
+            'J': (np.bool_(1), 2, 3, 4, 5),
         }
 
         self.d['float'] = Series(data['A'])
@@ -410,6 +420,7 @@ class TestSeries(TestPackers):
         self.d['dt_tz'] = Series(data['G'])
         self.d['cat_ordered'] = Series(data['H'])
         self.d['cat_unordered'] = Series(data['I'])
+        self.d['numpy_bool_mixed'] = Series(data['J'])
 
     def test_basic(self):
 
@@ -607,8 +618,8 @@ class TestCompression(TestPackers):
             'E': [datetime.timedelta(days=x) for x in range(1000)],
         }
         self.frame = {
-            'float': DataFrame(dict((k, data[k]) for k in ['A', 'A'])),
-            'int': DataFrame(dict((k, data[k]) for k in ['B', 'B'])),
+            'float': DataFrame({k: data[k] for k in ['A', 'A']}),
+            'int': DataFrame({k: data[k] for k in ['B', 'B']}),
             'mixed': DataFrame(data),
         }
 
@@ -794,8 +805,8 @@ class TestEncoding(TestPackers):
             'G': [400] * 1000
         }
         self.frame = {
-            'float': DataFrame(dict((k, data[k]) for k in ['A', 'A'])),
-            'int': DataFrame(dict((k, data[k]) for k in ['B', 'B'])),
+            'float': DataFrame({k: data[k] for k in ['A', 'A']}),
+            'int': DataFrame({k: data[k] for k in ['B', 'B']}),
             'mixed': DataFrame(data),
         }
         self.utf_encodings = ['utf8', 'utf16', 'utf32']

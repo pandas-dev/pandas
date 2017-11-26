@@ -1,6 +1,20 @@
 from .pandas_vb_common import *
 import string
 
+#----------------------------------------------------------------------
+# get_numeric_data
+
+class frame_get_numeric_data(object):
+    goal_time = 0.2
+
+    def setup(self):
+        self.df = DataFrame(np.random.randn(10000, 25))
+        self.df['foo'] = 'bar'
+        self.df['bar'] = 'baz'
+        self.df = self.df.consolidate()
+
+    def time_frame_get_numeric_data(self):
+        self.df._get_numeric_data()
 
 #----------------------------------------------------------------------
 # lookup

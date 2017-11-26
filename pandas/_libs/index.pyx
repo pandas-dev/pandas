@@ -13,31 +13,18 @@ cimport util
 
 import numpy as np
 
-cimport tslib
+from tslibs.conversion cimport maybe_datetimelike_to_i8
 
 from hashtable cimport HashTable
 
-from tslibs.timezones cimport is_utc, get_utcoffset
-from pandas._libs import tslib, algos, hashtable as _hash
+from pandas._libs import algos, period as periodlib, hashtable as _hash
 from pandas._libs.tslib import Timestamp, Timedelta
-from datetime import datetime, timedelta
-
-from datetime cimport (get_datetime64_value, _pydatetime_to_dts,
-                       pandas_datetimestruct)
+from datetime import datetime, timedelta, date
 
 from cpython cimport PyTuple_Check, PyList_Check
-
-cdef extern from "datetime.h":
-    bint PyDateTime_Check(object o)
-    void PyDateTime_IMPORT()
+from cpython.slice cimport PySlice_Check
 
 cdef int64_t iNaT = util.get_nat()
-
-
-PyDateTime_IMPORT
-
-cdef extern from "Python.h":
-    int PySlice_Check(object)
 
 
 cdef inline is_definitely_invalid_key(object val):
@@ -58,6 +45,31 @@ def get_value_at(ndarray arr, object loc):
     elif arr.descr.type_num == NPY_TIMEDELTA:
         return Timedelta(util.get_value_at(arr, loc))
     return util.get_value_at(arr, loc)
+
+
+cpdef object get_value_box(ndarray arr, object loc):
+    cdef:
+        Py_ssize_t i, sz
+
+    if util.is_float_object(loc):
+        casted = int(loc)
+        if casted == loc:
+            loc = casted
+    i = <Py_ssize_t> loc
+    sz = cnp.PyArray_SIZE(arr)
+
+    if i < 0 and sz > 0:
+        i += sz
+
+    if i >= sz or sz == 0 or i < 0:
+        raise IndexError('index out of bounds')
+
+    if arr.descr.type_num == NPY_DATETIME:
+        return Timestamp(util.get_value_1d(arr, i))
+    elif arr.descr.type_num == NPY_TIMEDELTA:
+        return Timedelta(util.get_value_1d(arr, i))
+    else:
+        return util.get_value_1d(arr, i)
 
 
 def set_value_at(ndarray arr, object loc, object val):
@@ -132,7 +144,7 @@ cdef class IndexEngine:
             if not self.is_unique:
                 return self._get_loc_duplicates(val)
             values = self._get_index_values()
-            loc = _bin_search(values, val) # .searchsorted(val, side='left')
+            loc = _bin_search(values, val)  # .searchsorted(val, side='left')
             if loc >= len(values):
                 raise KeyError(val)
             if util.get_value_at(values, loc) != val:
@@ -280,12 +292,15 @@ cdef class IndexEngine:
 
             values = self._get_index_values()
             self.mapping = self._make_hash_table(len(values))
-            self.mapping.map_locations(values)
+            self._call_map_locations(values)
 
             if len(self.mapping) == len(values):
                 self.unique = 1
 
         self.need_unique_check = 0
+
+    cpdef _call_map_locations(self, values):
+        self.mapping.map_locations(values)
 
     def clear_mapping(self):
         self.mapping = None
@@ -415,12 +430,12 @@ cdef class DatetimeEngine(Int64Engine):
             if not self.is_unique:
                 return self._get_loc_duplicates(val)
             values = self._get_index_values()
-            conv = _to_i8(val)
+            conv = maybe_datetimelike_to_i8(val)
             loc = values.searchsorted(conv, side='left')
             return util.get_value_at(values, loc) == conv
 
         self._ensure_mapping_populated()
-        return _to_i8(val) in self.mapping
+        return maybe_datetimelike_to_i8(val) in self.mapping
 
     cdef _get_index_values(self):
         return self.vgetter().view('i8')
@@ -435,12 +450,12 @@ cdef class DatetimeEngine(Int64Engine):
         # Welcome to the spaghetti factory
         if self.over_size_threshold and self.is_monotonic_increasing:
             if not self.is_unique:
-                val = _to_i8(val)
+                val = maybe_datetimelike_to_i8(val)
                 return self._get_loc_duplicates(val)
             values = self._get_index_values()
 
             try:
-                conv = _to_i8(val)
+                conv = maybe_datetimelike_to_i8(val)
                 loc = values.searchsorted(conv, side='left')
             except TypeError:
                 self._date_check_type(val)
@@ -452,7 +467,7 @@ cdef class DatetimeEngine(Int64Engine):
 
         self._ensure_mapping_populated()
         if not self.unique:
-            val = _to_i8(val)
+            val = maybe_datetimelike_to_i8(val)
             return self._get_loc_duplicates(val)
 
         try:
@@ -463,7 +478,7 @@ cdef class DatetimeEngine(Int64Engine):
             pass
 
         try:
-            val = _to_i8(val)
+            val = maybe_datetimelike_to_i8(val)
             return self.mapping.get_item(val)
         except (TypeError, ValueError):
             self._date_check_type(val)
@@ -485,21 +500,67 @@ cdef class DatetimeEngine(Int64Engine):
         if other.dtype != self._get_box_dtype():
             return np.repeat(-1, len(other)).astype('i4')
         other = np.asarray(other).view('i8')
-        return algos.pad_int64(self._get_index_values(), other,
-                                limit=limit)
+        return algos.pad_int64(self._get_index_values(), other, limit=limit)
 
     def get_backfill_indexer(self, other, limit=None):
         if other.dtype != self._get_box_dtype():
             return np.repeat(-1, len(other)).astype('i4')
         other = np.asarray(other).view('i8')
         return algos.backfill_int64(self._get_index_values(), other,
-                                     limit=limit)
+                                    limit=limit)
 
 
 cdef class TimedeltaEngine(DatetimeEngine):
 
     cdef _get_box_dtype(self):
         return 'm8[ns]'
+
+
+cdef class PeriodEngine(Int64Engine):
+
+    cdef _get_index_values(self):
+        return super(PeriodEngine, self).vgetter()
+
+    cpdef _call_map_locations(self, values):
+        super(PeriodEngine, self)._call_map_locations(values.view('i8'))
+
+    def _call_monotonic(self, values):
+        return super(PeriodEngine, self)._call_monotonic(values.view('i8'))
+
+    def get_indexer(self, values):
+        cdef ndarray[int64_t, ndim=1] ordinals
+
+        super(PeriodEngine, self)._ensure_mapping_populated()
+
+        freq = super(PeriodEngine, self).vgetter().freq
+        ordinals = periodlib.extract_ordinals(values, freq)
+
+        return self.mapping.lookup(ordinals)
+
+    def get_pad_indexer(self, other, limit=None):
+        freq = super(PeriodEngine, self).vgetter().freq
+        ordinal = periodlib.extract_ordinals(other, freq)
+
+        return algos.pad_int64(self._get_index_values(),
+                               np.asarray(ordinal), limit=limit)
+
+    def get_backfill_indexer(self, other, limit=None):
+        freq = super(PeriodEngine, self).vgetter().freq
+        ordinal = periodlib.extract_ordinals(other, freq)
+
+        return algos.backfill_int64(self._get_index_values(),
+                                    np.asarray(ordinal), limit=limit)
+
+    def get_indexer_non_unique(self, targets):
+        freq = super(PeriodEngine, self).vgetter().freq
+        ordinal = periodlib.extract_ordinals(targets, freq)
+        ordinal_array = np.asarray(ordinal)
+
+        return super(PeriodEngine, self).get_indexer_non_unique(ordinal_array)
+
+    cdef _get_index_values_for_bool_indexer(self):
+        return self._get_index_values().view('i8')
+
 
 cpdef convert_scalar(ndarray arr, object value):
     # we don't turn integers
@@ -510,7 +571,7 @@ cpdef convert_scalar(ndarray arr, object value):
     if arr.descr.type_num == NPY_DATETIME:
         if isinstance(value, np.ndarray):
             pass
-        elif isinstance(value, datetime):
+        elif isinstance(value, (datetime, np.datetime64, date)):
             return Timestamp(value).value
         elif value is None or value != value:
             return iNaT
@@ -539,23 +600,6 @@ cpdef convert_scalar(ndarray arr, object value):
             raise ValueError('Cannot assign nan to integer series')
 
     return value
-
-cdef inline _to_i8(object val):
-    cdef pandas_datetimestruct dts
-    try:
-        return val.value
-    except AttributeError:
-        if util.is_datetime64_object(val):
-            return get_datetime64_value(val)
-        elif PyDateTime_Check(val):
-            tzinfo = getattr(val, 'tzinfo', None)
-            # Save the original date value so we can get the utcoffset from it.
-            ival = _pydatetime_to_dts(val, &dts)
-            if tzinfo is not None and not is_utc(tzinfo):
-                offset = get_utcoffset(tzinfo, val)
-                ival -= tslib._delta_to_nanoseconds(offset)
-            return ival
-        return val
 
 
 cdef class MultiIndexObjectEngine(ObjectEngine):

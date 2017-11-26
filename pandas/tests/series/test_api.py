@@ -195,6 +195,11 @@ class SharedWithSparse(object):
         )
         self._assert_series_equal(result, expected)
 
+    def test_from_array_deprecated(self):
+
+        with tm.assert_produces_warning(FutureWarning):
+            self.series_klass.from_array([1, 2, 3])
+
 
 class TestSeriesMisc(TestData, SharedWithSparse):
 
@@ -334,6 +339,10 @@ class TestSeriesMisc(TestData, SharedWithSparse):
         assert s._get_axis_number('rows') == 0
         assert s._get_axis_name('rows') == 'index'
 
+    def test_class_axis(self):
+        # https://github.com/pandas-dev/pandas/issues/18147
+        Series.index  # no exception!
+
     def test_numpy_unique(self):
         # it works!
         np.unique(self.ts)
@@ -345,7 +354,7 @@ class TestSeriesMisc(TestData, SharedWithSparse):
                          index=date_range('1/1/2000', periods=1000))
 
         def f(x):
-            return x[x.argmax()]
+            return x[x.idxmax()]
 
         result = tsdf.apply(f)
         expected = tsdf.max()
@@ -407,3 +416,14 @@ class TestSeriesMisc(TestData, SharedWithSparse):
 
         for full_series in [pd.Series([1]), pd.Series(index=[1])]:
             assert not full_series.empty
+
+    def test_tab_complete_warning(self, ip):
+        # https://github.com/pandas-dev/pandas/issues/16409
+        pytest.importorskip('IPython', minversion="6.0.0")
+        from IPython.core.completer import provisionalcompleter
+
+        code = "import pandas as pd; s = pd.Series()"
+        ip.run_code(code)
+        with tm.assert_produces_warning(None):
+            with provisionalcompleter('ignore'):
+                list(ip.Completer.completions('s.', 1))

@@ -1,5 +1,8 @@
 # -*- coding: utf-8 -*-
 # cython: profile=False
+# cython: linetrace=False
+# distutils: define_macros=CYTHON_TRACE=0
+# distutils: define_macros=CYTHON_TRACE_NOGIL=0
 
 cimport cython
 from cython cimport Py_ssize_t
@@ -153,8 +156,9 @@ cdef inline object tz_cache_key(object tz):
         return None
 
 
-#----------------------------------------------------------------------
+# ----------------------------------------------------------------------
 # UTC Offsets
+
 
 cpdef get_utcoffset(tzinfo, obj):
     try:
@@ -171,7 +175,7 @@ cdef inline bint is_fixed_offset(object tz):
             return 0
     elif treat_tz_as_pytz(tz):
         if (len(tz._transition_info) == 0
-            and len(tz._utc_transition_times) == 0):
+                and len(tz._utc_transition_times) == 0):
             return 1
         else:
             return 0
@@ -243,7 +247,7 @@ cdef object get_dst_info(object tz):
                 # get utc trans times
                 trans_list = get_utc_trans_times_from_dateutil_tz(tz)
                 trans = np.hstack([
-                    np.array([0], dtype='M8[s]'), # place holder for first item
+                    np.array([0], dtype='M8[s]'),  # place holder for 1st item
                     np.array(trans_list, dtype='M8[s]')]).astype(
                     'M8[ns]')  # all trans listed
                 trans = trans.view('i8')
@@ -275,3 +279,18 @@ cdef object get_dst_info(object tz):
         dst_cache[cache_key] = (trans, deltas, typ)
 
     return dst_cache[cache_key]
+
+
+def infer_tzinfo(start, end):
+    if start is not None and end is not None:
+        tz = start.tzinfo
+        if not (get_timezone(tz) == get_timezone(end.tzinfo)):
+            msg = 'Inputs must both have the same timezone, {tz1} != {tz2}'
+            raise AssertionError(msg.format(tz1=tz, tz2=end.tzinfo))
+    elif start is not None:
+        tz = start.tzinfo
+    elif end is not None:
+        tz = end.tzinfo
+    else:
+        tz = None
+    return tz

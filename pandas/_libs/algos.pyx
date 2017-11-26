@@ -20,7 +20,7 @@ from numpy cimport (ndarray,
                     NPY_FLOAT32, NPY_FLOAT64,
                     NPY_OBJECT,
                     int8_t, int16_t, int32_t, int64_t, uint8_t, uint16_t,
-                    uint32_t, uint64_t, float16_t, float32_t, float64_t,
+                    uint32_t, uint64_t, float32_t, float64_t,
                     double_t)
 
 
@@ -32,8 +32,7 @@ from libc.math cimport sqrt, fabs
 # this is our util.pxd
 from util cimport numeric, get_nat
 
-cimport lib
-from pandas._libs import lib
+import missing
 
 cdef int64_t iNaT = get_nat()
 
@@ -87,7 +86,7 @@ class NegInfinity(object):
 @cython.boundscheck(False)
 def is_lexsorted(list list_of_arrays):
     cdef:
-        int i
+        Py_ssize_t i
         Py_ssize_t n, nlevels
         int64_t k, cur, pre
         ndarray arr
@@ -99,11 +98,12 @@ def is_lexsorted(list list_of_arrays):
     cdef int64_t **vecs = <int64_t**> malloc(nlevels * sizeof(int64_t*))
     for i in range(nlevels):
         arr = list_of_arrays[i]
+        assert arr.dtype.name == 'int64'
         vecs[i] = <int64_t*> arr.data
 
     # Assume uniqueness??
     with nogil:
-        for i in range(n):
+        for i in range(1, n):
             for k in range(nlevels):
                 cur = vecs[k][i]
                 pre = vecs[k][i -1]
@@ -257,7 +257,7 @@ def min_subseq(ndarray[double_t] arr):
 
     return (s, e, -m)
 
-#----------------------------------------------------------------------
+# ----------------------------------------------------------------------
 # Pairwise correlation/covariance
 
 
@@ -321,7 +321,7 @@ def nancorr(ndarray[float64_t, ndim=2] mat, bint cov=0, minp=None):
 
     return result
 
-#----------------------------------------------------------------------
+# ----------------------------------------------------------------------
 # Pairwise Spearman correlation
 
 
@@ -384,6 +384,7 @@ def nancorr_spearman(ndarray[float64_t, ndim=2] mat, Py_ssize_t minp=1):
                     result[xi, yi] = result[yi, xi] = NaN
 
     return result
+
 
 # generated from template
 include "algos_common_helper.pxi"

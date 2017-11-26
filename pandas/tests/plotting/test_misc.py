@@ -204,7 +204,6 @@ class TestDataFramePlots(TestPlotBase):
     def test_parallel_coordinates_with_sorted_labels(self):
         """ For #15908 """
         from pandas.plotting import parallel_coordinates
-
         df = DataFrame({"feat": [i for i in range(30)],
                         "class": [2 for _ in range(10)] +
                         [3 for _ in range(10)] +
@@ -284,3 +283,20 @@ class TestDataFramePlots(TestPlotBase):
                                                   title=title[:-1])
         title_list = [ax.get_title() for sublist in plot for ax in sublist]
         assert title_list == title[:3] + ['']
+
+    def test_get_standard_colors_random_seed(self):
+        # GH17525
+        df = DataFrame(np.zeros((10, 10)))
+
+        # Make sure that the random seed isn't reset by _get_standard_colors
+        plotting.parallel_coordinates(df, 0)
+        rand1 = random.random()
+        plotting.parallel_coordinates(df, 0)
+        rand2 = random.random()
+        assert rand1 != rand2
+
+        # Make sure it produces the same colors every time it's called
+        from pandas.plotting._style import _get_standard_colors
+        color1 = _get_standard_colors(1, color_type='random')
+        color2 = _get_standard_colors(1, color_type='random')
+        assert color1 == color2

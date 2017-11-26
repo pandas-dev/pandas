@@ -9,8 +9,7 @@ import numpy as np
 
 from pandas import (Series, Index, Float64Index, Int64Index, UInt64Index,
                     RangeIndex, MultiIndex, CategoricalIndex, DatetimeIndex,
-                    TimedeltaIndex, PeriodIndex, IntervalIndex,
-                    notna, isna)
+                    TimedeltaIndex, PeriodIndex, IntervalIndex, isna)
 from pandas.core.indexes.base import InvalidIndexError
 from pandas.core.indexes.datetimelike import DatetimeIndexOpsMixin
 from pandas.core.dtypes.common import needs_i8_conversion
@@ -50,6 +49,21 @@ class Base(object):
         assert s.values is not idx.values
         assert s.index is not idx
         assert s.name == idx.name
+
+    def test_to_frame(self):
+        # see gh-15230
+        idx = self.create_index()
+        name = idx.name or 0
+
+        df = idx.to_frame()
+
+        assert df.index is idx
+        assert len(df.columns) == 1
+        assert df.columns[0] == name
+        assert df[name].values is not idx.values
+
+        df = idx.to_frame(index=False)
+        assert df.index is not idx
 
     def test_shift(self):
 
@@ -314,6 +328,27 @@ class Base(object):
         assert not idx.is_unique
         assert idx.has_duplicates
 
+    def test_unique(self, indices):
+        # don't test a MultiIndex here (as its tested separated)
+        # don't test a CategoricalIndex because categories change (GH 18291)
+        if isinstance(indices, (MultiIndex, CategoricalIndex)):
+            return
+
+        # GH 17896
+        expected = indices.drop_duplicates()
+        for level in 0, indices.name, None:
+            result = indices.unique(level=level)
+            tm.assert_index_equal(result, expected)
+
+        for level in 3, 'wrong':
+            pytest.raises((IndexError, KeyError), indices.unique, level=level)
+
+    def test_unique_na(self):
+        idx = pd.Index([2, np.nan, 2, 1], name='my_index')
+        expected = pd.Index([2, np.nan, 1], name='my_index')
+        result = idx.unique()
+        tm.assert_index_equal(result, expected)
+
     def test_get_unique_index(self, indices):
         # MultiIndex tested separately
         if not len(indices) or isinstance(indices, MultiIndex):
@@ -493,30 +528,19 @@ class Base(object):
         tm.assert_raises_regex(ValueError, msg, np.repeat,
                                i, rep, axis=0)
 
-    def test_where(self):
+    @pytest.mark.parametrize('klass', [list, tuple, np.array, Series])
+    def test_where(self, klass):
         i = self.create_index()
-        result = i.where(notna(i))
+
+        cond = [True] * len(i)
+        result = i.where(klass(cond))
         expected = i
         tm.assert_index_equal(result, expected)
 
-        _nan = i._na_value
         cond = [False] + [True] * len(i[1:])
-        expected = pd.Index([_nan] + i[1:].tolist(), dtype=i.dtype)
-
-        result = i.where(cond)
+        expected = pd.Index([i._na_value] + i[1:].tolist(), dtype=i.dtype)
+        result = i.where(klass(cond))
         tm.assert_index_equal(result, expected)
-
-    def test_where_array_like(self):
-        i = self.create_index()
-
-        _nan = i._na_value
-        cond = [False] + [True] * (len(i) - 1)
-        klasses = [list, tuple, np.array, pd.Series]
-        expected = pd.Index([_nan] + i[1:].tolist(), dtype=i.dtype)
-
-        for klass in klasses:
-            result = i.where(klass(cond))
-            tm.assert_index_equal(result, expected)
 
     def test_setops_errorcases(self):
         for name, idx in compat.iteritems(self.indices):
@@ -981,3 +1005,45 @@ class Base(object):
             # non-monotonic should raise.
             with pytest.raises(ValueError):
                 indices._searchsorted_monotonic(value, side='left')
+
+    def test_map(self):
+        # callable
+        index = self.create_index()
+        expected = index
+        result = index.map(lambda x: x)
+        tm.assert_index_equal(result, expected)
+
+    @pytest.mark.parametrize(
+        "mapper",
+        [
+            lambda values, index: {i: e for e, i in zip(values, index)},
+            lambda values, index: pd.Series(values, index)])
+    def test_map_dictlike(self, mapper):
+
+        index = self.create_index()
+        if isinstance(index, (pd.CategoricalIndex, pd.IntervalIndex)):
+            pytest.skip("skipping tests for {}".format(type(index)))
+
+        expected = index
+
+        identity = mapper(index.values, index)
+        result = index.map(identity)
+        tm.assert_index_equal(result, expected)
+
+        # empty mappable
+        expected = pd.Index([np.nan] * len(index))
+        result = index.map(mapper(expected, index))
+        tm.assert_index_equal(result, expected)
+
+    def test_putmask_with_wrong_mask(self):
+        # GH18368
+        index = self.create_index()
+
+        with pytest.raises(ValueError):
+            index.putmask(np.ones(len(index) + 1, np.bool), 1)
+
+        with pytest.raises(ValueError):
+            index.putmask(np.ones(len(index) - 1, np.bool), 1)
+
+        with pytest.raises(ValueError):
+            index.putmask('foo', 1)

@@ -12,13 +12,12 @@ from dateutil.tz import tzlocal, tzoffset
 from datetime import datetime, timedelta, tzinfo, date
 
 import pandas.util.testing as tm
-import pandas.core.tools.datetimes as tools
 import pandas.tseries.offsets as offsets
-from pandas.compat import lrange, zip
+from pandas.compat import lrange, zip, PY3
 from pandas.core.indexes.datetimes import bdate_range, date_range
 from pandas.core.dtypes.dtypes import DatetimeTZDtype
 from pandas._libs import tslib
-from pandas._libs.tslibs import timezones
+from pandas._libs.tslibs import timezones, conversion
 from pandas import (Index, Series, DataFrame, isna, Timestamp, NaT,
                     DatetimeIndex, to_datetime)
 from pandas.util.testing import (assert_frame_equal, assert_series_equal,
@@ -71,7 +70,7 @@ class TestTimeZoneSupportPytz(object):
         rng_eastern = rng.tz_convert(self.tzstr('US/Eastern'))
 
         # Values are unmodified
-        assert np.array_equal(rng.asi8, rng_eastern.asi8)
+        tm.assert_numpy_array_equal(rng.asi8, rng_eastern.asi8)
 
         assert self.cmptz(rng_eastern.tz, self.tz('US/Eastern'))
 
@@ -109,7 +108,7 @@ class TestTimeZoneSupportPytz(object):
         rng = date_range('3/10/2012', '3/11/2012', freq='30T')
         converted = rng.tz_localize(self.tz('US/Eastern'))
         expected_naive = rng + offsets.Hour(5)
-        assert np.array_equal(converted.asi8, expected_naive.asi8)
+        tm.assert_numpy_array_equal(converted.asi8, expected_naive.asi8)
 
         # DST ambiguity, this should fail
         rng = date_range('3/11/2012', '3/12/2012', freq='30T')
@@ -425,7 +424,7 @@ class TestTimeZoneSupportPytz(object):
 
         # datetimes with tzinfo set
         dr = bdate_range(datetime(2005, 1, 1, tzinfo=pytz.utc),
-                         '1/1/2009', tz=pytz.utc)
+                         datetime(2009, 1, 1, tzinfo=pytz.utc))
 
         pytest.raises(Exception, bdate_range,
                       datetime(2005, 1, 1, tzinfo=pytz.utc), '1/1/2009',
@@ -646,20 +645,20 @@ class TestTimeZoneSupportPytz(object):
 
         start = self.localize(eastern, _start)
         end = self.localize(eastern, _end)
-        assert (tools._infer_tzinfo(start, end) is self.localize(
-            eastern, _start).tzinfo)
-        assert (tools._infer_tzinfo(start, None) is self.localize(
-            eastern, _start).tzinfo)
-        assert (tools._infer_tzinfo(None, end) is self.localize(eastern,
-                                                                _end).tzinfo)
+        assert (timezones.infer_tzinfo(start, end) is
+                self.localize(eastern, _start).tzinfo)
+        assert (timezones.infer_tzinfo(start, None) is
+                self.localize(eastern, _start).tzinfo)
+        assert (timezones.infer_tzinfo(None, end) is
+                self.localize(eastern, _end).tzinfo)
 
         start = utc.localize(_start)
         end = utc.localize(_end)
-        assert (tools._infer_tzinfo(start, end) is utc)
+        assert (timezones.infer_tzinfo(start, end) is utc)
 
         end = self.localize(eastern, _end)
-        pytest.raises(Exception, tools._infer_tzinfo, start, end)
-        pytest.raises(Exception, tools._infer_tzinfo, end, start)
+        pytest.raises(Exception, timezones.infer_tzinfo, start, end)
+        pytest.raises(Exception, timezones.infer_tzinfo, end, start)
 
     def test_tz_string(self):
         result = date_range('1/1/2000', periods=10,
@@ -1279,16 +1278,22 @@ class TestTimeZones(object):
         result_dt = dt.replace(tzinfo=tzinfo)
         result_pd = Timestamp(dt).replace(tzinfo=tzinfo)
 
-        if hasattr(result_dt, 'timestamp'):  # New method in Py 3.3
-            assert result_dt.timestamp() == result_pd.timestamp()
+        if PY3:
+            # datetime.timestamp() converts in the local timezone
+            with tm.set_timezone('UTC'):
+                assert result_dt.timestamp() == result_pd.timestamp()
+
         assert result_dt == result_pd
         assert result_dt == result_pd.to_pydatetime()
 
         result_dt = dt.replace(tzinfo=tzinfo).replace(tzinfo=None)
         result_pd = Timestamp(dt).replace(tzinfo=tzinfo).replace(tzinfo=None)
 
-        if hasattr(result_dt, 'timestamp'):  # New method in Py 3.3
-            assert result_dt.timestamp() == result_pd.timestamp()
+        if PY3:
+            # datetime.timestamp() converts in the local timezone
+            with tm.set_timezone('UTC'):
+                assert result_dt.timestamp() == result_pd.timestamp()
+
         assert result_dt == result_pd
         assert result_dt == result_pd.to_pydatetime()
 
@@ -1733,14 +1738,14 @@ class TestTslib(object):
 
     def test_tslib_tz_convert(self):
         def compare_utc_to_local(tz_didx, utc_didx):
-            f = lambda x: tslib.tz_convert_single(x, 'UTC', tz_didx.tz)
-            result = tslib.tz_convert(tz_didx.asi8, 'UTC', tz_didx.tz)
+            f = lambda x: conversion.tz_convert_single(x, 'UTC', tz_didx.tz)
+            result = conversion.tz_convert(tz_didx.asi8, 'UTC', tz_didx.tz)
             result_single = np.vectorize(f)(tz_didx.asi8)
             tm.assert_numpy_array_equal(result, result_single)
 
         def compare_local_to_utc(tz_didx, utc_didx):
-            f = lambda x: tslib.tz_convert_single(x, tz_didx.tz, 'UTC')
-            result = tslib.tz_convert(utc_didx.asi8, tz_didx.tz, 'UTC')
+            f = lambda x: conversion.tz_convert_single(x, tz_didx.tz, 'UTC')
+            result = conversion.tz_convert(utc_didx.asi8, tz_didx.tz, 'UTC')
             result_single = np.vectorize(f)(utc_didx.asi8)
             tm.assert_numpy_array_equal(result, result_single)
 
@@ -1765,14 +1770,14 @@ class TestTslib(object):
             compare_local_to_utc(tz_didx, utc_didx)
 
         # Check empty array
-        result = tslib.tz_convert(np.array([], dtype=np.int64),
-                                  timezones.maybe_get_tz('US/Eastern'),
-                                  timezones.maybe_get_tz('Asia/Tokyo'))
+        result = conversion.tz_convert(np.array([], dtype=np.int64),
+                                       timezones.maybe_get_tz('US/Eastern'),
+                                       timezones.maybe_get_tz('Asia/Tokyo'))
         tm.assert_numpy_array_equal(result, np.array([], dtype=np.int64))
 
         # Check all-NaT array
-        result = tslib.tz_convert(np.array([tslib.iNaT], dtype=np.int64),
-                                  timezones.maybe_get_tz('US/Eastern'),
-                                  timezones.maybe_get_tz('Asia/Tokyo'))
+        result = conversion.tz_convert(np.array([tslib.iNaT], dtype=np.int64),
+                                       timezones.maybe_get_tz('US/Eastern'),
+                                       timezones.maybe_get_tz('Asia/Tokyo'))
         tm.assert_numpy_array_equal(result, np.array(
             [tslib.iNaT], dtype=np.int64))

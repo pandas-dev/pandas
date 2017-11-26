@@ -88,7 +88,7 @@ NaN,nan
 
             return buf
 
-        data = StringIO('\n'.join([f(i, v) for i, v in enumerate(_NA_VALUES)]))
+        data = StringIO('\n'.join(f(i, v) for i, v in enumerate(_NA_VALUES)))
         expected = DataFrame(np.nan, columns=range(nv), index=range(nv))
         df = self.read_csv(data, header=None)
         tm.assert_frame_equal(df, expected)
@@ -311,4 +311,22 @@ nan,B
         expected = DataFrame({'1': [2]}, index=Index(["b"], name="a"))
         out = self.read_csv(StringIO(data), keep_default_na=False, index_col=0)
 
+        tm.assert_frame_equal(out, expected)
+
+    def test_no_na_filter_on_index(self):
+        # see gh-5239
+        data = "a,b,c\n1,,3\n4,5,6"
+
+        # Don't parse NA-values in index when na_filter=False.
+        out = self.read_csv(StringIO(data), index_col=[1], na_filter=False)
+
+        expected = DataFrame({"a": [1, 4], "c": [3, 6]},
+                             index=Index(["", "5"], name="b"))
+        tm.assert_frame_equal(out, expected)
+
+        # Parse NA-values in index when na_filter=True.
+        out = self.read_csv(StringIO(data), index_col=[1], na_filter=True)
+
+        expected = DataFrame({"a": [1, 4], "c": [3, 6]},
+                             index=Index([np.nan, 5.0], name="b"))
         tm.assert_frame_equal(out, expected)

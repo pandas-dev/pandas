@@ -10,7 +10,7 @@ np.import_array()
 
 from numpy cimport (ndarray,
                     int8_t, int16_t, int32_t, int64_t, uint8_t, uint16_t,
-                    uint32_t, uint64_t, float16_t, float32_t, float64_t)
+                    uint32_t, uint64_t, float32_t, float64_t)
 
 cdef double NaN = <double> np.NaN
 cdef double nan = NaN
@@ -147,7 +147,7 @@ def left_outer_join(ndarray[int64_t] left, ndarray[int64_t] right,
 
 
 def full_outer_join(ndarray[int64_t] left, ndarray[int64_t] right,
-                          Py_ssize_t max_groups):
+                    Py_ssize_t max_groups):
     cdef:
         Py_ssize_t i, j, k, count = 0
         ndarray[int64_t] left_count, right_count, left_sorter, right_sorter

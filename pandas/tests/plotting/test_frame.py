@@ -1162,14 +1162,13 @@ class TestDataFramePlots(TestPlotBase):
             if kind == 'bar':
                 axis = ax.xaxis
                 ax_min, ax_max = ax.get_xlim()
-                min_edge = min([p.get_x() for p in ax.patches])
-                max_edge = max([p.get_x() + p.get_width() for p in ax.patches])
+                min_edge = min(p.get_x() for p in ax.patches)
+                max_edge = max(p.get_x() + p.get_width() for p in ax.patches)
             elif kind == 'barh':
                 axis = ax.yaxis
                 ax_min, ax_max = ax.get_ylim()
-                min_edge = min([p.get_y() for p in ax.patches])
-                max_edge = max([p.get_y() + p.get_height() for p in ax.patches
-                                ])
+                min_edge = min(p.get_y() for p in ax.patches)
+                max_edge = max(p.get_y() + p.get_height() for p in ax.patches)
             else:
                 raise ValueError
 
@@ -2835,7 +2834,7 @@ class TestDataFramePlots(TestPlotBase):
         Series(rand(10)).plot(ax=cax)
 
         fig, ax = self.plt.subplots()
-        from mpl_toolkits.axes_grid.inset_locator import inset_axes
+        from mpl_toolkits.axes_grid1.inset_locator import inset_axes
         iax = inset_axes(ax, width="30%", height=1., loc=3)
         Series(rand(10)).plot(ax=ax)
         Series(rand(10)).plot(ax=iax)

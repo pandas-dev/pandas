@@ -34,9 +34,25 @@ from pandas.core.tools.timedeltas import (
 from pandas.tseries.offsets import Tick, DateOffset
 from pandas._libs import (lib, index as libindex, tslib as libts,
                           join as libjoin, Timedelta, NaT, iNaT)
+from pandas._libs.tslibs.timedeltas import array_to_timedelta64
+from pandas._libs.tslibs.fields import get_timedelta_field
 
 
-def _td_index_cmp(opname, nat_result=False):
+def _field_accessor(name, alias, docstring=None):
+    def f(self):
+        values = self.asi8
+        result = get_timedelta_field(values, alias)
+        if self.hasnans:
+            result = self._maybe_mask_results(result, convert='float64')
+
+        return Index(result, name=self.name)
+
+    f.__name__ = name
+    f.__doc__ = docstring
+    return property(f)
+
+
+def _td_index_cmp(opname, cls, nat_result=False):
     """
     Wrap comparison operations to convert timedelta-like to timedelta64
     """
@@ -77,7 +93,7 @@ def _td_index_cmp(opname, nat_result=False):
             return result
         return Index(result)
 
-    return wrapper
+    return compat.set_function_name(wrapper, opname, cls)
 
 
 class TimedeltaIndex(DatetimeIndexOpsMixin, TimelikeOps, Int64Index):
@@ -114,6 +130,31 @@ class TimedeltaIndex(DatetimeIndexOpsMixin, TimelikeOps, Int64Index):
 
     To learn more about the frequency strings, please see `this link
     <http://pandas.pydata.org/pandas-docs/stable/timeseries.html#offset-aliases>`__.
+
+    See Also
+    ---------
+    Index : The base pandas Index type
+    Timedelta : Represents a duration between two dates or times.
+    DatetimeIndex : Index of datetime64 data
+    PeriodIndex : Index of Period data
+
+    Attributes
+    ----------
+    days
+    seconds
+    microseconds
+    nanoseconds
+    components
+    inferred_freq
+
+    Methods
+    -------
+    to_pytimedelta
+    to_series
+    round
+    floor
+    ceil
+    to_frame
     """
 
     _typ = 'timedeltaindex'
@@ -139,12 +180,15 @@ class TimedeltaIndex(DatetimeIndexOpsMixin, TimelikeOps, Int64Index):
     _datetimelike_methods = ["to_pytimedelta", "total_seconds",
                              "round", "floor", "ceil"]
 
-    __eq__ = _td_index_cmp('__eq__')
-    __ne__ = _td_index_cmp('__ne__', nat_result=True)
-    __lt__ = _td_index_cmp('__lt__')
-    __gt__ = _td_index_cmp('__gt__')
-    __le__ = _td_index_cmp('__le__')
-    __ge__ = _td_index_cmp('__ge__')
+    @classmethod
+    def _add_comparison_methods(cls):
+        """ add in comparison methods """
+        cls.__eq__ = _td_index_cmp('__eq__', cls)
+        cls.__ne__ = _td_index_cmp('__ne__', cls, nat_result=True)
+        cls.__lt__ = _td_index_cmp('__lt__', cls)
+        cls.__gt__ = _td_index_cmp('__gt__', cls)
+        cls.__le__ = _td_index_cmp('__le__', cls)
+        cls.__ge__ = _td_index_cmp('__ge__', cls)
 
     _engine_type = libindex.TimedeltaEngine
 
@@ -279,7 +323,7 @@ class TimedeltaIndex(DatetimeIndexOpsMixin, TimelikeOps, Int64Index):
     def _simple_new(cls, values, name=None, freq=None, **kwargs):
         values = np.array(values, copy=False)
         if values.dtype == np.object_:
-            values = libts.array_to_timedelta64(values)
+            values = array_to_timedelta64(values)
         if values.dtype != _TD_DTYPE:
             values = _ensure_int64(values).view(_TD_DTYPE)
 
@@ -354,7 +398,8 @@ class TimedeltaIndex(DatetimeIndexOpsMixin, TimelikeOps, Int64Index):
         else:
             other = Timestamp(other)
             i8 = self.asi8
-            result = checked_add_with_arr(i8, other.value)
+            result = checked_add_with_arr(i8, other.value,
+                                          arr_mask=self._isnan)
             result = self._maybe_mask_results(result, fill_value=iNaT)
         return DatetimeIndex(result, name=self.name, copy=False)
 
@@ -373,46 +418,17 @@ class TimedeltaIndex(DatetimeIndexOpsMixin, TimelikeOps, Int64Index):
                                     nat_rep=na_rep,
                                     justify='all').get_result()
 
-    def _get_field(self, m):
-
-        values = self.asi8
-        hasnans = self.hasnans
-        if hasnans:
-            result = np.empty(len(self), dtype='float64')
-            mask = self._isnan
-            imask = ~mask
-            result.flat[imask] = np.array(
-                [getattr(Timedelta(val), m) for val in values[imask]])
-            result[mask] = np.nan
-        else:
-            result = np.array([getattr(Timedelta(val), m)
-                               for val in values], dtype='int64')
-        return Index(result, name=self.name)
-
-    @property
-    def days(self):
-        """ Number of days for each element. """
-        return self._get_field('days')
-
-    @property
-    def seconds(self):
-        """ Number of seconds (>= 0 and less than 1 day) for each element. """
-        return self._get_field('seconds')
-
-    @property
-    def microseconds(self):
-        """
-        Number of microseconds (>= 0 and less than 1 second) for each
-        element. """
-        return self._get_field('microseconds')
-
-    @property
-    def nanoseconds(self):
-        """
-        Number of nanoseconds (>= 0 and less than 1 microsecond) for each
-        element.
-        """
-        return self._get_field('nanoseconds')
+    days = _field_accessor("days", "days",
+                           " Number of days for each element. ")
+    seconds = _field_accessor("seconds", "seconds",
+                              " Number of seconds (>= 0 and less than 1 day) "
+                              "for each element. ")
+    microseconds = _field_accessor("microseconds", "microseconds",
+                                   "\nNumber of microseconds (>= 0 and less "
+                                   "than 1 second) for each\nelement. ")
+    nanoseconds = _field_accessor("nanoseconds", "nanoseconds",
+                                  "\nNumber of nanoseconds (>= 0 and less "
+                                  "than 1 microsecond) for each\nelement.\n")
 
     @property
     def components(self):
@@ -447,8 +463,6 @@ class TimedeltaIndex(DatetimeIndexOpsMixin, TimelikeOps, Int64Index):
     def total_seconds(self):
         """
         Total duration of each element expressed in seconds.
-
-        .. versionadded:: 0.17.0
         """
         return Index(self._maybe_mask_results(1e-9 * self.asi8),
                      name=self.name)
@@ -484,7 +498,7 @@ class TimedeltaIndex(DatetimeIndexOpsMixin, TimelikeOps, Int64Index):
         elif is_integer_dtype(dtype):
             return Index(self.values.astype('i8', copy=copy), dtype='i8',
                          name=self.name)
-        raise ValueError('Cannot cast TimedeltaIndex to dtype %s' % dtype)
+        raise TypeError('Cannot cast TimedeltaIndex to dtype %s' % dtype)
 
     def union(self, other):
         """
@@ -692,7 +706,7 @@ class TimedeltaIndex(DatetimeIndexOpsMixin, TimelikeOps, Int64Index):
         if tolerance is not None:
             # try converting tolerance now, so errors don't get swallowed by
             # the try/except clauses below
-            tolerance = self._convert_tolerance(tolerance)
+            tolerance = self._convert_tolerance(tolerance, np.asarray(key))
 
         if _is_convertible_to_td(key):
             key = Timedelta(key)
@@ -838,16 +852,18 @@ class TimedeltaIndex(DatetimeIndexOpsMixin, TimelikeOps, Int64Index):
         -------
         new_index : Index
         """
-
         # try to convert if possible
         if _is_convertible_to_td(item):
             try:
                 item = Timedelta(item)
-            except:
+            except Exception:
                 pass
+        elif is_scalar(item) and isna(item):
+            # GH 18295
+            item = self._na_value
 
         freq = None
-        if isinstance(item, Timedelta) or item is NaT:
+        if isinstance(item, Timedelta) or (is_scalar(item) and isna(item)):
 
             # check freq can be preserved on edge cases
             if self.freq is not None:
@@ -901,6 +917,7 @@ class TimedeltaIndex(DatetimeIndexOpsMixin, TimelikeOps, Int64Index):
         return TimedeltaIndex(new_tds, name=self.name, freq=freq)
 
 
+TimedeltaIndex._add_comparison_methods()
 TimedeltaIndex._add_numeric_methods()
 TimedeltaIndex._add_logical_methods_disabled()
 TimedeltaIndex._add_datetimelike_methods()
