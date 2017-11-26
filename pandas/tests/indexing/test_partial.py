@@ -659,7 +659,7 @@ class TestPartialSetting(object):
 
         tm.assert_frame_equal(result, expected)
 
-    def test_access_timezoned_datetimeindex_with_timezoned_label_in_other_timezone(self):
+    def test_access_timezoned_datetimeindex_with_timezoned_label_in_cet(self):
 
         # GH 6785
         # timezone was ignored when string was provided as a label
