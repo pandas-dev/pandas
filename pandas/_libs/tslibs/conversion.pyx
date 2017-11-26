@@ -40,7 +40,7 @@ from timezones cimport (
 from parsing import parse_datetime_string
 
 from nattype import nat_strings, NaT
-from nattype cimport NPY_NAT, _checknull_with_nat
+from nattype cimport NPY_NAT, checknull_with_nat
 
 # ----------------------------------------------------------------------
 # Constants
@@ -104,13 +104,16 @@ def ensure_datetime64ns(ndarray arr):
         return result
 
     unit = get_datetime64_unit(arr.flat[0])
-    for i in range(n):
-        if ivalues[i] != NPY_NAT:
-            pandas_datetime_to_datetimestruct(ivalues[i], unit, &dts)
-            iresult[i] = dtstruct_to_dt64(&dts)
-            check_dts_bounds(&dts)
-        else:
-            iresult[i] = NPY_NAT
+    if unit == PANDAS_FR_ns:
+        result = arr
+    else:
+        for i in range(n):
+            if ivalues[i] != NPY_NAT:
+                pandas_datetime_to_datetimestruct(ivalues[i], unit, &dts)
+                iresult[i] = dtstruct_to_dt64(&dts)
+                check_dts_bounds(&dts)
+            else:
+                iresult[i] = NPY_NAT
 
     return result
 
@@ -140,7 +143,7 @@ def datetime_to_datetime64(ndarray[object] values):
     iresult = result.view('i8')
     for i in range(n):
         val = values[i]
-        if _checknull_with_nat(val):
+        if checknull_with_nat(val):
             iresult[i] = NPY_NAT
         elif PyDateTime_Check(val):
             if val.tzinfo is not None:

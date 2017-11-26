@@ -13,7 +13,6 @@ from pandas.compat import range, u, set_function_name
 from pandas.compat.numpy import function as nv
 from pandas import compat
 
-
 from pandas.core.dtypes.generic import (
     ABCSeries,
     ABCMultiIndex,
@@ -251,7 +250,7 @@ class Index(IndexOpsMixin, PandasObject):
                             # then coerce to integer.
                             try:
                                 return cls._try_convert_to_int_index(
-                                    data, copy, name)
+                                    data, copy, name, dtype)
                             except ValueError:
                                 pass
 
@@ -307,7 +306,7 @@ class Index(IndexOpsMixin, PandasObject):
                 if inferred == 'integer':
                     try:
                         return cls._try_convert_to_int_index(
-                            subarr, copy, name)
+                            subarr, copy, name, dtype)
                     except ValueError:
                         pass
 
@@ -664,7 +663,7 @@ class Index(IndexOpsMixin, PandasObject):
 
     # construction helpers
     @classmethod
-    def _try_convert_to_int_index(cls, data, copy, name):
+    def _try_convert_to_int_index(cls, data, copy, name, dtype):
         """
         Attempt to convert an array of data into an integer index.
 
@@ -685,15 +684,18 @@ class Index(IndexOpsMixin, PandasObject):
         """
 
         from .numeric import Int64Index, UInt64Index
-        try:
-            res = data.astype('i8', copy=False)
-            if (res == data).all():
-                return Int64Index(res, copy=copy, name=name)
-        except (OverflowError, TypeError, ValueError):
-            pass
+        if not is_unsigned_integer_dtype(dtype):
+            # skip int64 conversion attempt if uint-like dtype is passed, as
+            # this could return Int64Index when UInt64Index is what's desrired
+            try:
+                res = data.astype('i8', copy=False)
+                if (res == data).all():
+                    return Int64Index(res, copy=copy, name=name)
+            except (OverflowError, TypeError, ValueError):
+                pass
 
-        # Conversion to int64 failed (possibly due to
-        # overflow), so let's try now with uint64.
+        # Conversion to int64 failed (possibly due to overflow) or was skipped,
+        # so let's try now with uint64.
         try:
             res = data.astype('u8', copy=False)
             if (res == data).all():
@@ -732,7 +734,7 @@ class Index(IndexOpsMixin, PandasObject):
 
     def _get_attributes_dict(self):
         """ return an attributes dict for my class """
-        return dict((k, getattr(self, k, None)) for k in self._attributes)
+        return {k: getattr(self, k, None) for k in self._attributes}
 
     def view(self, cls=None):
 
@@ -1784,7 +1786,7 @@ class Index(IndexOpsMixin, PandasObject):
             if not isinstance(obj, Index):
                 raise TypeError('all inputs must be Index')
 
-        names = set(obj.name for obj in to_concat)
+        names = {obj.name for obj in to_concat}
         name = None if len(names) > 1 else self.name
 
         return self._concat(to_concat, name)
@@ -1937,7 +1939,10 @@ class Index(IndexOpsMixin, PandasObject):
         try:
             np.putmask(values, mask, self._convert_for_op(value))
             return self._shallow_copy(values)
-        except (ValueError, TypeError):
+        except (ValueError, TypeError) as err:
+            if is_object_dtype(self):
+                raise err
+
             # coerces to object
             return self.astype(object).putmask(mask, value)
 
@@ -2824,6 +2829,27 @@ class Index(IndexOpsMixin, PandasObject):
         indexer, _ = self.get_indexer_non_unique(target, **kwargs)
         return indexer
 
+    _index_shared_docs['_get_values_from_dict'] = """
+        Return the values of the input dictionary in the order the keys are
+        in the index. np.nan is returned for index values not in the
+        dictionary.
+
+        Parameters
+        ----------
+        data : dict
+            The dictionary from which to extract the values
+
+        Returns
+        -------
+        np.array
+
+        """
+
+    @Appender(_index_shared_docs['_get_values_from_dict'])
+    def _get_values_from_dict(self, data):
+        return lib.fast_multiget(data, self.values,
+                                 default=np.nan)
+
     def _maybe_promote(self, other):
         # A hack, but it works
         from pandas.core.indexes.datetimes import DatetimeIndex
@@ -2862,13 +2888,15 @@ class Index(IndexOpsMixin, PandasObject):
 
         return result
 
-    def map(self, mapper):
-        """Apply mapper function to an index.
+    def map(self, mapper, na_action=None):
+        """Map values of Series using input correspondence
 
         Parameters
         ----------
-        mapper : callable
-            Function to be applied.
+        mapper : function, dict, or Series
+        na_action : {None, 'ignore'}
+            If 'ignore', propagate NA values, without passing them to the
+            mapping function
 
         Returns
         -------
@@ -2878,15 +2906,46 @@ class Index(IndexOpsMixin, PandasObject):
             a MultiIndex will be returned.
 
         """
+
         from .multi import MultiIndex
-        mapped_values = self._arrmap(self.values, mapper)
+        new_values = super(Index, self)._map_values(
+            mapper, na_action=na_action)
+
         attributes = self._get_attributes_dict()
-        if mapped_values.size and isinstance(mapped_values[0], tuple):
-            return MultiIndex.from_tuples(mapped_values,
-                                          names=attributes.get('name'))
+
+        # we can return a MultiIndex
+        if new_values.size and isinstance(new_values[0], tuple):
+            if isinstance(self, MultiIndex):
+                names = self.names
+            elif attributes.get('name'):
+                names = [attributes.get('name')] * len(new_values[0])
+            else:
+                names = None
+            return MultiIndex.from_tuples(new_values,
+                                          names=names)
 
         attributes['copy'] = False
-        return Index(mapped_values, **attributes)
+
+        # we want to try to return our original dtype
+        # ints infer to integer, but if we have
+        # uints, would prefer to return these
+        if is_unsigned_integer_dtype(self.dtype):
+            inferred = lib.infer_dtype(new_values)
+            if inferred == 'integer':
+                attributes['dtype'] = self.dtype
+
+        elif not new_values.size:
+            # empty
+            attributes['dtype'] = self.dtype
+        elif isna(new_values).all():
+            # all nan
+            inferred = lib.infer_dtype(self)
+            if inferred in ['datetime', 'datetime64',
+                            'timedelta', 'timedelta64',
+                            'period']:
+                new_values = [libts.NaT] * len(new_values)
+
+        return Index(new_values, **attributes)
 
     def isin(self, values, level=None):
         """
@@ -3731,6 +3790,10 @@ class Index(IndexOpsMixin, PandasObject):
         -------
         new_index : Index
         """
+        if is_scalar(item) and isna(item):
+            # GH 18295
+            item = self._na_value
+
         _self = np.asarray(self)
         item = self._coerce_scalar_to_index(item)._values
         idx = np.concatenate((_self[:loc], item, _self[loc:]))

@@ -3,10 +3,10 @@ from __future__ import division
 import pytest
 import numpy as np
 from datetime import timedelta
-from pandas import (Interval, IntervalIndex, Index, isna,
-                    interval_range, Timestamp, Timedelta,
-                    compat, date_range, timedelta_range, DateOffset)
-from pandas.compat import zip
+from pandas import (
+    Interval, IntervalIndex, Index, isna, notna, interval_range, Timestamp,
+    Timedelta, compat, date_range, timedelta_range, DateOffset)
+from pandas.compat import lzip
 from pandas.tseries.offsets import Day
 from pandas._libs.interval import IntervalTree
 from pandas.tests.indexes.common import Base
@@ -16,6 +16,11 @@ import pandas as pd
 
 @pytest.fixture(scope='class', params=['left', 'right', 'both', 'neither'])
 def closed(request):
+    return request.param
+
+
+@pytest.fixture(scope='class', params=[None, 'foo'])
+def name(request):
     return request.param
 
 
@@ -29,16 +34,17 @@ class TestIntervalIndex(Base):
         self.indices = dict(intervalIndex=tm.makeIntervalIndex(10))
 
     def create_index(self, closed='right'):
-        return IntervalIndex.from_breaks(np.arange(3), closed=closed)
+        return IntervalIndex.from_breaks(range(11), closed=closed)
 
     def create_index_with_nan(self, closed='right'):
-        return IntervalIndex.from_tuples(
-            [(0, 1), np.nan, (1, 2)], closed=closed)
+        mask = [True, False] + [True] * 8
+        return IntervalIndex.from_arrays(
+            np.where(mask, np.arange(10), np.nan),
+            np.where(mask, np.arange(1, 11), np.nan), closed=closed)
 
-    @pytest.mark.parametrize('name', [None, 'foo'])
     def test_constructors(self, closed, name):
         left, right = Index([0, 1, 2, 3]), Index([1, 2, 3, 4])
-        ivs = [Interval(l, r, closed=closed) for l, r in zip(left, right)]
+        ivs = [Interval(l, r, closed=closed) for l, r in lzip(left, right)]
         expected = IntervalIndex._simple_new(
             left=left, right=right, closed=closed, name=name)
 
@@ -57,7 +63,7 @@ class TestIntervalIndex(Base):
         tm.assert_index_equal(result, expected)
 
         result = IntervalIndex.from_tuples(
-            zip(left, right), closed=closed, name=name)
+            lzip(left, right), closed=closed, name=name)
         tm.assert_index_equal(result, expected)
 
         result = Index(ivs, name=name)
@@ -67,6 +73,9 @@ class TestIntervalIndex(Base):
         # idempotent
         tm.assert_index_equal(Index(expected), expected)
         tm.assert_index_equal(IntervalIndex(expected), expected)
+
+        result = IntervalIndex.from_intervals(expected)
+        tm.assert_index_equal(result, expected)
 
         result = IntervalIndex.from_intervals(
             expected.values, name=expected.name)
@@ -86,63 +95,118 @@ class TestIntervalIndex(Base):
             breaks, closed=expected.closed, name=expected.name)
         tm.assert_index_equal(result, expected)
 
-    def test_constructors_other(self):
+    @pytest.mark.parametrize('data', [[np.nan], [np.nan] * 2, [np.nan] * 50])
+    def test_constructors_nan(self, closed, data):
+        # GH 18421
+        expected_values = np.array(data, dtype=object)
+        expected_idx = IntervalIndex(data, closed=closed)
 
-        # all-nan
-        result = IntervalIndex.from_intervals([np.nan])
-        expected = np.array([np.nan], dtype=object)
-        tm.assert_numpy_array_equal(result.values, expected)
+        # validate the expected index
+        assert expected_idx.closed == closed
+        tm.assert_numpy_array_equal(expected_idx.values, expected_values)
 
-        # empty
-        result = IntervalIndex.from_intervals([])
-        expected = np.array([], dtype=object)
-        tm.assert_numpy_array_equal(result.values, expected)
+        result = IntervalIndex.from_tuples(data, closed=closed)
+        tm.assert_index_equal(result, expected_idx)
+        tm.assert_numpy_array_equal(result.values, expected_values)
+
+        result = IntervalIndex.from_breaks([np.nan] + data, closed=closed)
+        tm.assert_index_equal(result, expected_idx)
+        tm.assert_numpy_array_equal(result.values, expected_values)
+
+        result = IntervalIndex.from_arrays(data, data, closed=closed)
+        tm.assert_index_equal(result, expected_idx)
+        tm.assert_numpy_array_equal(result.values, expected_values)
+
+        if closed == 'right':
+            # Can't specify closed for IntervalIndex.from_intervals
+            result = IntervalIndex.from_intervals(data)
+            tm.assert_index_equal(result, expected_idx)
+            tm.assert_numpy_array_equal(result.values, expected_values)
+
+    @pytest.mark.parametrize('data', [
+        [],
+        np.array([], dtype='int64'),
+        np.array([], dtype='float64'),
+        np.array([], dtype=object)])
+    def test_constructors_empty(self, data, closed):
+        # GH 18421
+        expected_dtype = data.dtype if isinstance(data, np.ndarray) else object
+        expected_values = np.array([], dtype=object)
+        expected_index = IntervalIndex(data, closed=closed)
+
+        # validate the expected index
+        assert expected_index.empty
+        assert expected_index.closed == closed
+        assert expected_index.dtype.subtype == expected_dtype
+        tm.assert_numpy_array_equal(expected_index.values, expected_values)
+
+        result = IntervalIndex.from_tuples(data, closed=closed)
+        tm.assert_index_equal(result, expected_index)
+        tm.assert_numpy_array_equal(result.values, expected_values)
+
+        result = IntervalIndex.from_breaks(data, closed=closed)
+        tm.assert_index_equal(result, expected_index)
+        tm.assert_numpy_array_equal(result.values, expected_values)
+
+        result = IntervalIndex.from_arrays(data, data, closed=closed)
+        tm.assert_index_equal(result, expected_index)
+        tm.assert_numpy_array_equal(result.values, expected_values)
+
+        if closed == 'right':
+            # Can't specify closed for IntervalIndex.from_intervals
+            result = IntervalIndex.from_intervals(data)
+            tm.assert_index_equal(result, expected_index)
+            tm.assert_numpy_array_equal(result.values, expected_values)
 
     def test_constructors_errors(self):
 
         # scalar
-        msg = ('IntervalIndex(...) must be called with a collection of '
+        msg = ('IntervalIndex\(...\) must be called with a collection of '
                'some kind, 5 was passed')
-        with pytest.raises(TypeError, message=msg):
+        with tm.assert_raises_regex(TypeError, msg):
             IntervalIndex(5)
 
         # not an interval
-        msg = "type <class 'numpy.int32'> with value 0 is not an interval"
-        with pytest.raises(TypeError, message=msg):
+        msg = ("type <(class|type) 'numpy.int64'> with value 0 "
+               "is not an interval")
+        with tm.assert_raises_regex(TypeError, msg):
             IntervalIndex([0, 1])
 
-        with pytest.raises(TypeError, message=msg):
+        with tm.assert_raises_regex(TypeError, msg):
             IntervalIndex.from_intervals([0, 1])
 
         # invalid closed
         msg = "invalid options for 'closed': invalid"
-        with pytest.raises(ValueError, message=msg):
+        with tm.assert_raises_regex(ValueError, msg):
             IntervalIndex.from_arrays([0, 1], [1, 2], closed='invalid')
 
-        # mismatched closed
+        # mismatched closed within intervals
         msg = 'intervals must all be closed on the same side'
-        with pytest.raises(ValueError, message=msg):
+        with tm.assert_raises_regex(ValueError, msg):
             IntervalIndex.from_intervals([Interval(0, 1),
                                           Interval(1, 2, closed='left')])
 
-        with pytest.raises(ValueError, message=msg):
-            IntervalIndex.from_arrays([0, 10], [3, 5])
-
-        with pytest.raises(ValueError, message=msg):
+        with tm.assert_raises_regex(ValueError, msg):
             Index([Interval(0, 1), Interval(2, 3, closed='left')])
+
+        # mismatched closed inferred from intervals vs constructor.
+        msg = 'conflicting values for closed'
+        with tm.assert_raises_regex(ValueError, msg):
+            iv = [Interval(0, 1, closed='both'), Interval(1, 2, closed='both')]
+            IntervalIndex(iv, closed='neither')
 
         # no point in nesting periods in an IntervalIndex
         msg = 'Period dtypes are not supported, use a PeriodIndex instead'
-        with pytest.raises(ValueError, message=msg):
+        with tm.assert_raises_regex(ValueError, msg):
             IntervalIndex.from_breaks(
                 pd.period_range('2000-01-01', periods=3))
 
         # decreasing breaks/arrays
         msg = 'left side of interval must be <= right side'
-        with pytest.raises(ValueError, message=msg):
+        with tm.assert_raises_regex(ValueError, msg):
             IntervalIndex.from_breaks(range(10, -1, -1))
 
-        with pytest.raises(ValueError, message=msg):
+        with tm.assert_raises_regex(ValueError, msg):
             IntervalIndex.from_arrays(range(10, -1, -1), range(9, -2, -1))
 
     def test_constructors_datetimelike(self, closed):
@@ -168,55 +232,67 @@ class TestIntervalIndex(Base):
 
     def test_properties(self, closed):
         index = self.create_index(closed=closed)
-        assert len(index) == 2
-        assert index.size == 2
-        assert index.shape == (2, )
+        assert len(index) == 10
+        assert index.size == 10
+        assert index.shape == (10, )
 
-        tm.assert_index_equal(index.left, Index([0, 1]))
-        tm.assert_index_equal(index.right, Index([1, 2]))
-        tm.assert_index_equal(index.mid, Index([0.5, 1.5]))
+        tm.assert_index_equal(index.left, Index(np.arange(10)))
+        tm.assert_index_equal(index.right, Index(np.arange(1, 11)))
+        tm.assert_index_equal(index.mid, Index(np.arange(0.5, 10.5)))
 
         assert index.closed == closed
 
-        expected = np.array([Interval(0, 1, closed=closed),
-                             Interval(1, 2, closed=closed)], dtype=object)
+        ivs = [Interval(l, r, closed) for l, r in zip(range(10), range(1, 11))]
+        expected = np.array(ivs, dtype=object)
         tm.assert_numpy_array_equal(np.asarray(index), expected)
         tm.assert_numpy_array_equal(index.values, expected)
 
         # with nans
         index = self.create_index_with_nan(closed=closed)
-        assert len(index) == 3
-        assert index.size == 3
-        assert index.shape == (3, )
+        assert len(index) == 10
+        assert index.size == 10
+        assert index.shape == (10, )
 
-        tm.assert_index_equal(index.left, Index([0, np.nan, 1]))
-        tm.assert_index_equal(index.right, Index([1, np.nan, 2]))
-        tm.assert_index_equal(index.mid, Index([0.5, np.nan, 1.5]))
+        expected_left = Index([0, np.nan, 2, 3, 4, 5, 6, 7, 8, 9])
+        expected_right = expected_left + 1
+        expected_mid = expected_left + 0.5
+        tm.assert_index_equal(index.left, expected_left)
+        tm.assert_index_equal(index.right, expected_right)
+        tm.assert_index_equal(index.mid, expected_mid)
 
         assert index.closed == closed
 
-        expected = np.array([Interval(0, 1, closed=closed), np.nan,
-                             Interval(1, 2, closed=closed)], dtype=object)
+        ivs = [Interval(l, r, closed) if notna(l) else np.nan
+               for l, r in zip(expected_left, expected_right)]
+        expected = np.array(ivs, dtype=object)
         tm.assert_numpy_array_equal(np.asarray(index), expected)
         tm.assert_numpy_array_equal(index.values, expected)
 
     def test_with_nans(self, closed):
         index = self.create_index(closed=closed)
         assert not index.hasnans
-        tm.assert_numpy_array_equal(index.isna(),
-                                    np.array([False, False]))
-        tm.assert_numpy_array_equal(index.notna(),
-                                    np.array([True, True]))
+
+        result = index.isna()
+        expected = np.repeat(False, len(index))
+        tm.assert_numpy_array_equal(result, expected)
+
+        result = index.notna()
+        expected = np.repeat(True, len(index))
+        tm.assert_numpy_array_equal(result, expected)
 
         index = self.create_index_with_nan(closed=closed)
         assert index.hasnans
-        tm.assert_numpy_array_equal(index.notna(),
-                                    np.array([True, False, True]))
-        tm.assert_numpy_array_equal(index.isna(),
-                                    np.array([False, True, False]))
+
+        result = index.isna()
+        expected = np.array([False, True] + [False] * (len(index) - 2))
+        tm.assert_numpy_array_equal(result, expected)
+
+        result = index.notna()
+        expected = np.array([True, False] + [True] * (len(index) - 2))
+        tm.assert_numpy_array_equal(result, expected)
 
     def test_copy(self, closed):
-        expected = IntervalIndex.from_breaks(np.arange(5), closed=closed)
+        expected = self.create_index(closed=closed)
 
         result = expected.copy()
         assert result.equals(expected)
@@ -290,44 +366,79 @@ class TestIntervalIndex(Base):
         expected = pd.Categorical(idx, ordered=True)
         tm.assert_categorical_equal(result, expected)
 
-    def test_where(self, closed):
-        expected = self.create_index(closed=closed)
-        result = expected.where(expected.notna())
+    @pytest.mark.parametrize('klass', [list, tuple, np.array, pd.Series])
+    def test_where(self, closed, klass):
+        idx = self.create_index(closed=closed)
+        cond = [True] * len(idx)
+        expected = idx
+        result = expected.where(klass(cond))
         tm.assert_index_equal(result, expected)
 
-        idx = IntervalIndex.from_breaks([1, 2], closed=closed)
-        result = idx.where([True, False])
-        expected = IntervalIndex.from_intervals(
-            [Interval(1.0, 2.0, closed=closed), np.nan])
+        cond = [False] + [True] * len(idx[1:])
+        expected = IntervalIndex([np.nan] + idx[1:].tolist())
+        result = idx.where(klass(cond))
         tm.assert_index_equal(result, expected)
-
-    def test_where_array_like(self):
-        pass
 
     def test_delete(self, closed):
-        expected = IntervalIndex.from_breaks([1, 2], closed=closed)
+        expected = IntervalIndex.from_breaks(np.arange(1, 11), closed=closed)
         result = self.create_index(closed=closed).delete(0)
         tm.assert_index_equal(result, expected)
 
-    def test_insert(self):
-        expected = IntervalIndex.from_breaks(range(4))
-        actual = self.index.insert(2, Interval(2, 3))
-        assert expected.equals(actual)
+    @pytest.mark.parametrize('data', [
+        interval_range(0, periods=10, closed='neither'),
+        interval_range(1.7, periods=8, freq=2.5, closed='both'),
+        interval_range(Timestamp('20170101'), periods=12, closed='left'),
+        interval_range(Timedelta('1 day'), periods=6, closed='right'),
+        IntervalIndex.from_tuples([('a', 'd'), ('e', 'j'), ('w', 'z')]),
+        IntervalIndex.from_tuples([(1, 2), ('a', 'z'), (3.14, 6.28)])])
+    def test_insert(self, data):
+        item = data[0]
+        idx_item = IntervalIndex([item])
 
-        pytest.raises(ValueError, self.index.insert, 0, 1)
-        pytest.raises(ValueError, self.index.insert, 0,
-                      Interval(2, 3, closed='left'))
+        # start
+        expected = idx_item.append(data)
+        result = data.insert(0, item)
+        tm.assert_index_equal(result, expected)
+
+        # end
+        expected = data.append(idx_item)
+        result = data.insert(len(data), item)
+        tm.assert_index_equal(result, expected)
+
+        # mid
+        expected = data[:3].append(idx_item).append(data[3:])
+        result = data.insert(3, item)
+        tm.assert_index_equal(result, expected)
+
+        # invalid type
+        msg = 'can only insert Interval objects and NA into an IntervalIndex'
+        with tm.assert_raises_regex(ValueError, msg):
+            data.insert(1, 'foo')
+
+        # invalid closed
+        msg = 'inserted item must be closed on the same side as the index'
+        for closed in {'left', 'right', 'both', 'neither'} - {item.closed}:
+            with tm.assert_raises_regex(ValueError, msg):
+                bad_item = Interval(item.left, item.right, closed=closed)
+                data.insert(1, bad_item)
+
+        # GH 18295 (test missing)
+        na_idx = IntervalIndex([np.nan], closed=data.closed)
+        for na in (np.nan, pd.NaT, None):
+            expected = data[:1].append(na_idx).append(data[1:])
+            result = data.insert(1, na)
+            tm.assert_index_equal(result, expected)
 
     def test_take(self, closed):
         index = self.create_index(closed=closed)
 
-        actual = index.take([0, 1])
-        tm.assert_index_equal(actual, index)
+        result = index.take(range(10))
+        tm.assert_index_equal(result, index)
 
+        result = index.take([0, 0, 1])
         expected = IntervalIndex.from_arrays(
             [0, 0, 1], [1, 1, 2], closed=closed)
-        actual = index.take([0, 0, 1])
-        tm.assert_index_equal(actual, expected)
+        tm.assert_index_equal(result, expected)
 
     def test_unique(self, closed):
         # unique non-overlapping
@@ -683,50 +794,85 @@ class TestIntervalIndex(Base):
         assert 1.5 not in index
 
     def test_union(self, closed):
-        idx = self.create_index(closed=closed)
-        other = IntervalIndex.from_arrays([2], [3], closed=closed)
-        expected = IntervalIndex.from_arrays(
-            range(3), range(1, 4), closed=closed)
-        actual = idx.union(other)
-        assert expected.equals(actual)
+        index = self.create_index(closed=closed)
+        other = IntervalIndex.from_breaks(range(5, 13), closed=closed)
 
-        actual = other.union(idx)
-        assert expected.equals(actual)
-
-        tm.assert_index_equal(idx.union(idx), idx)
-        tm.assert_index_equal(idx.union(idx[:1]), idx)
-
-    def test_intersection(self, closed):
-        idx = self.create_index(closed=closed)
-        other = IntervalIndex.from_breaks([1, 2, 3], closed=closed)
-        expected = IntervalIndex.from_breaks([1, 2], closed=closed)
-        actual = idx.intersection(other)
-        assert expected.equals(actual)
-
-        tm.assert_index_equal(idx.intersection(idx), idx)
-
-    def test_difference(self, closed):
-        idx = self.create_index(closed=closed)
-        tm.assert_index_equal(idx.difference(idx[:1]), idx[1:])
-
-    def test_symmetric_difference(self):
-        result = self.index[:1].symmetric_difference(self.index[1:])
-        expected = self.index
+        expected = IntervalIndex.from_breaks(range(13), closed=closed)
+        result = index.union(other)
         tm.assert_index_equal(result, expected)
 
-    def test_set_operation_errors(self):
-        pytest.raises(ValueError, self.index.union, self.index.left)
+        result = other.union(index)
+        tm.assert_index_equal(result, expected)
 
-        other = IntervalIndex.from_breaks([0, 1, 2], closed='neither')
-        pytest.raises(ValueError, self.index.union, other)
+        tm.assert_index_equal(index.union(index), index)
+        tm.assert_index_equal(index.union(index[:1]), index)
+
+    def test_intersection(self, closed):
+        index = self.create_index(closed=closed)
+        other = IntervalIndex.from_breaks(range(5, 13), closed=closed)
+
+        expected = IntervalIndex.from_breaks(range(5, 11), closed=closed)
+        result = index.intersection(other)
+        tm.assert_index_equal(result, expected)
+
+        result = other.intersection(index)
+        tm.assert_index_equal(result, expected)
+
+        tm.assert_index_equal(index.intersection(index), index)
+
+    def test_difference(self, closed):
+        index = self.create_index(closed=closed)
+        tm.assert_index_equal(index.difference(index[:1]), index[1:])
+
+    def test_symmetric_difference(self, closed):
+        idx = self.create_index(closed=closed)
+        result = idx[1:].symmetric_difference(idx[:-1])
+        expected = IntervalIndex([idx[0], idx[-1]])
+        tm.assert_index_equal(result, expected)
+
+    @pytest.mark.parametrize('op_name', [
+        'union', 'intersection', 'difference', 'symmetric_difference'])
+    def test_set_operation_errors(self, closed, op_name):
+        index = self.create_index(closed=closed)
+        set_op = getattr(index, op_name)
+
+        # test errors
+        msg = ('can only do set operations between two IntervalIndex objects '
+               'that are closed on the same side')
+        with tm.assert_raises_regex(ValueError, msg):
+            set_op(Index([1, 2, 3]))
+
+        for other_closed in {'right', 'left', 'both', 'neither'} - {closed}:
+            other = self.create_index(closed=other_closed)
+            with tm.assert_raises_regex(ValueError, msg):
+                set_op(other)
 
     def test_isin(self, closed):
-        idx = self.create_index(closed=closed)
-        actual = idx.isin(idx)
-        tm.assert_numpy_array_equal(np.array([True, True]), actual)
+        index = self.create_index(closed=closed)
 
-        actual = idx.isin(idx[:1])
-        tm.assert_numpy_array_equal(np.array([True, False]), actual)
+        expected = np.array([True] + [False] * (len(index) - 1))
+        result = index.isin(index[:1])
+        tm.assert_numpy_array_equal(result, expected)
+
+        result = index.isin([index[0]])
+        tm.assert_numpy_array_equal(result, expected)
+
+        other = IntervalIndex.from_breaks(np.arange(-2, 10), closed=closed)
+        expected = np.array([True] * (len(index) - 1) + [False])
+        result = index.isin(other)
+        tm.assert_numpy_array_equal(result, expected)
+
+        result = index.isin(other.tolist())
+        tm.assert_numpy_array_equal(result, expected)
+
+        for other_closed in {'right', 'left', 'both', 'neither'}:
+            other = self.create_index(closed=other_closed)
+            expected = np.repeat(closed == other_closed, len(index))
+            result = index.isin(other)
+            tm.assert_numpy_array_equal(result, expected)
+
+            result = index.isin(other.tolist())
+            tm.assert_numpy_array_equal(result, expected)
 
     def test_comparison(self):
         actual = Interval(0, 1) < self.index
@@ -799,23 +945,24 @@ class TestIntervalIndex(Base):
                                     np.array([True, False, False]))
 
     def test_sort_values(self, closed):
-        expected = IntervalIndex.from_breaks([1, 2, 3, 4], closed=closed)
-        actual = IntervalIndex.from_tuples(
-            [(3, 4), (1, 2), (2, 3)], closed=closed).sort_values()
-        tm.assert_index_equal(expected, actual)
+        index = self.create_index(closed=closed)
 
-        # nan
-        idx = self.create_index_with_nan(closed=closed)
-        mask = idx.isna()
-        tm.assert_numpy_array_equal(mask, np.array([False, True, False]))
+        result = index.sort_values()
+        tm.assert_index_equal(result, index)
 
-        result = idx.sort_values()
-        mask = result.isna()
-        tm.assert_numpy_array_equal(mask, np.array([False, False, True]))
+        result = index.sort_values(ascending=False)
+        tm.assert_index_equal(result, index[::-1])
 
-        result = idx.sort_values(ascending=False)
-        mask = result.isna()
-        tm.assert_numpy_array_equal(mask, np.array([True, False, False]))
+        # with nan
+        index = IntervalIndex([Interval(1, 2), np.nan, Interval(0, 1)])
+
+        result = index.sort_values()
+        expected = IntervalIndex([Interval(0, 1), Interval(1, 2), np.nan])
+        tm.assert_index_equal(result, expected)
+
+        result = index.sort_values(ascending=False)
+        expected = IntervalIndex([np.nan, Interval(1, 2), Interval(0, 1)])
+        tm.assert_index_equal(result, expected)
 
     def test_datetime(self):
         dates = date_range('2000', periods=3)
@@ -865,7 +1012,7 @@ class TestIntervalIndex(Base):
         idx = IntervalIndex.from_tuples(tpls, closed=closed)
         assert idx.is_non_overlapping_monotonic is True
 
-        idx = IntervalIndex.from_tuples(reversed(tpls), closed=closed)
+        idx = IntervalIndex.from_tuples(tpls[::-1], closed=closed)
         assert idx.is_non_overlapping_monotonic is True
 
         # Should be False in all cases (overlapping)
@@ -873,7 +1020,7 @@ class TestIntervalIndex(Base):
         idx = IntervalIndex.from_tuples(tpls, closed=closed)
         assert idx.is_non_overlapping_monotonic is False
 
-        idx = IntervalIndex.from_tuples(reversed(tpls), closed=closed)
+        idx = IntervalIndex.from_tuples(tpls[::-1], closed=closed)
         assert idx.is_non_overlapping_monotonic is False
 
         # Should be False in all cases (non-monotonic)
@@ -881,7 +1028,7 @@ class TestIntervalIndex(Base):
         idx = IntervalIndex.from_tuples(tpls, closed=closed)
         assert idx.is_non_overlapping_monotonic is False
 
-        idx = IntervalIndex.from_tuples(reversed(tpls), closed=closed)
+        idx = IntervalIndex.from_tuples(tpls[::-1], closed=closed)
         assert idx.is_non_overlapping_monotonic is False
 
         # Should be False for closed='both', overwise True (GH16560)
@@ -895,58 +1042,58 @@ class TestIntervalIndex(Base):
 
 class TestIntervalRange(object):
 
-    def test_construction_from_numeric(self, closed):
+    def test_construction_from_numeric(self, closed, name):
         # combinations of start/end/periods without freq
         expected = IntervalIndex.from_breaks(
-            np.arange(0, 6), name='foo', closed=closed)
+            np.arange(0, 6), name=name, closed=closed)
 
-        result = interval_range(start=0, end=5, name='foo', closed=closed)
+        result = interval_range(start=0, end=5, name=name, closed=closed)
         tm.assert_index_equal(result, expected)
 
-        result = interval_range(start=0, periods=5, name='foo', closed=closed)
+        result = interval_range(start=0, periods=5, name=name, closed=closed)
         tm.assert_index_equal(result, expected)
 
-        result = interval_range(end=5, periods=5, name='foo', closed=closed)
+        result = interval_range(end=5, periods=5, name=name, closed=closed)
         tm.assert_index_equal(result, expected)
 
         # combinations of start/end/periods with freq
         expected = IntervalIndex.from_tuples([(0, 2), (2, 4), (4, 6)],
-                                             name='foo', closed=closed)
+                                             name=name, closed=closed)
 
-        result = interval_range(start=0, end=6, freq=2, name='foo',
+        result = interval_range(start=0, end=6, freq=2, name=name,
                                 closed=closed)
         tm.assert_index_equal(result, expected)
 
-        result = interval_range(start=0, periods=3, freq=2, name='foo',
+        result = interval_range(start=0, periods=3, freq=2, name=name,
                                 closed=closed)
         tm.assert_index_equal(result, expected)
 
-        result = interval_range(end=6, periods=3, freq=2, name='foo',
+        result = interval_range(end=6, periods=3, freq=2, name=name,
                                 closed=closed)
         tm.assert_index_equal(result, expected)
 
         # output truncates early if freq causes end to be skipped.
         expected = IntervalIndex.from_tuples([(0.0, 1.5), (1.5, 3.0)],
-                                             name='foo', closed=closed)
-        result = interval_range(start=0, end=4, freq=1.5, name='foo',
+                                             name=name, closed=closed)
+        result = interval_range(start=0, end=4, freq=1.5, name=name,
                                 closed=closed)
         tm.assert_index_equal(result, expected)
 
-    def test_construction_from_timestamp(self, closed):
+    def test_construction_from_timestamp(self, closed, name):
         # combinations of start/end/periods without freq
         start, end = Timestamp('2017-01-01'), Timestamp('2017-01-06')
         breaks = date_range(start=start, end=end)
-        expected = IntervalIndex.from_breaks(breaks, name='foo', closed=closed)
+        expected = IntervalIndex.from_breaks(breaks, name=name, closed=closed)
 
-        result = interval_range(start=start, end=end, name='foo',
+        result = interval_range(start=start, end=end, name=name,
                                 closed=closed)
         tm.assert_index_equal(result, expected)
 
-        result = interval_range(start=start, periods=5, name='foo',
+        result = interval_range(start=start, periods=5, name=name,
                                 closed=closed)
         tm.assert_index_equal(result, expected)
 
-        result = interval_range(end=end, periods=5, name='foo',
+        result = interval_range(end=end, periods=5, name=name,
                                 closed=closed)
         tm.assert_index_equal(result, expected)
 
@@ -954,23 +1101,23 @@ class TestIntervalRange(object):
         freq = '2D'
         start, end = Timestamp('2017-01-01'), Timestamp('2017-01-07')
         breaks = date_range(start=start, end=end, freq=freq)
-        expected = IntervalIndex.from_breaks(breaks, name='foo', closed=closed)
+        expected = IntervalIndex.from_breaks(breaks, name=name, closed=closed)
 
-        result = interval_range(start=start, end=end, freq=freq, name='foo',
+        result = interval_range(start=start, end=end, freq=freq, name=name,
                                 closed=closed)
         tm.assert_index_equal(result, expected)
 
-        result = interval_range(start=start, periods=3, freq=freq, name='foo',
+        result = interval_range(start=start, periods=3, freq=freq, name=name,
                                 closed=closed)
         tm.assert_index_equal(result, expected)
 
-        result = interval_range(end=end, periods=3, freq=freq, name='foo',
+        result = interval_range(end=end, periods=3, freq=freq, name=name,
                                 closed=closed)
         tm.assert_index_equal(result, expected)
 
         # output truncates early if freq causes end to be skipped.
         end = Timestamp('2017-01-08')
-        result = interval_range(start=start, end=end, freq=freq, name='foo',
+        result = interval_range(start=start, end=end, freq=freq, name=name,
                                 closed=closed)
         tm.assert_index_equal(result, expected)
 
@@ -978,41 +1125,41 @@ class TestIntervalRange(object):
         freq = 'M'
         start, end = Timestamp('2017-01-01'), Timestamp('2017-12-31')
         breaks = date_range(start=start, end=end, freq=freq)
-        expected = IntervalIndex.from_breaks(breaks, name='foo', closed=closed)
+        expected = IntervalIndex.from_breaks(breaks, name=name, closed=closed)
 
-        result = interval_range(start=start, end=end, freq=freq, name='foo',
+        result = interval_range(start=start, end=end, freq=freq, name=name,
                                 closed=closed)
         tm.assert_index_equal(result, expected)
 
-        result = interval_range(start=start, periods=11, freq=freq, name='foo',
+        result = interval_range(start=start, periods=11, freq=freq, name=name,
                                 closed=closed)
         tm.assert_index_equal(result, expected)
 
-        result = interval_range(end=end, periods=11, freq=freq, name='foo',
+        result = interval_range(end=end, periods=11, freq=freq, name=name,
                                 closed=closed)
         tm.assert_index_equal(result, expected)
 
         # output truncates early if freq causes end to be skipped.
         end = Timestamp('2018-01-15')
-        result = interval_range(start=start, end=end, freq=freq, name='foo',
+        result = interval_range(start=start, end=end, freq=freq, name=name,
                                 closed=closed)
         tm.assert_index_equal(result, expected)
 
-    def test_construction_from_timedelta(self, closed):
+    def test_construction_from_timedelta(self, closed, name):
         # combinations of start/end/periods without freq
         start, end = Timedelta('1 day'), Timedelta('6 days')
         breaks = timedelta_range(start=start, end=end)
-        expected = IntervalIndex.from_breaks(breaks, name='foo', closed=closed)
+        expected = IntervalIndex.from_breaks(breaks, name=name, closed=closed)
 
-        result = interval_range(start=start, end=end, name='foo',
+        result = interval_range(start=start, end=end, name=name,
                                 closed=closed)
         tm.assert_index_equal(result, expected)
 
-        result = interval_range(start=start, periods=5, name='foo',
+        result = interval_range(start=start, periods=5, name=name,
                                 closed=closed)
         tm.assert_index_equal(result, expected)
 
-        result = interval_range(end=end, periods=5, name='foo',
+        result = interval_range(end=end, periods=5, name=name,
                                 closed=closed)
         tm.assert_index_equal(result, expected)
 
@@ -1020,23 +1167,23 @@ class TestIntervalRange(object):
         freq = '2D'
         start, end = Timedelta('1 day'), Timedelta('7 days')
         breaks = timedelta_range(start=start, end=end, freq=freq)
-        expected = IntervalIndex.from_breaks(breaks, name='foo', closed=closed)
+        expected = IntervalIndex.from_breaks(breaks, name=name, closed=closed)
 
-        result = interval_range(start=start, end=end, freq=freq, name='foo',
+        result = interval_range(start=start, end=end, freq=freq, name=name,
                                 closed=closed)
         tm.assert_index_equal(result, expected)
 
-        result = interval_range(start=start, periods=3, freq=freq, name='foo',
+        result = interval_range(start=start, periods=3, freq=freq, name=name,
                                 closed=closed)
         tm.assert_index_equal(result, expected)
 
-        result = interval_range(end=end, periods=3, freq=freq, name='foo',
+        result = interval_range(end=end, periods=3, freq=freq, name=name,
                                 closed=closed)
         tm.assert_index_equal(result, expected)
 
         # output truncates early if freq causes end to be skipped.
         end = Timedelta('7 days 1 hour')
-        result = interval_range(start=start, end=end, freq=freq, name='foo',
+        result = interval_range(start=start, end=end, freq=freq, name=name,
                                 closed=closed)
         tm.assert_index_equal(result, expected)
 
@@ -1052,10 +1199,6 @@ class TestIntervalRange(object):
 
         result = pd.interval_range(start=start.to_pydatetime(),
                                    end=end.to_pydatetime())
-        tm.assert_index_equal(result, expected)
-
-        result = pd.interval_range(start=start.tz_localize('UTC'),
-                                   end=end.tz_localize('UTC'))
         tm.assert_index_equal(result, expected)
 
         result = pd.interval_range(start=start.asm8, end=end.asm8)

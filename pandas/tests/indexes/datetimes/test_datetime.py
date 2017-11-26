@@ -230,15 +230,6 @@ class TestDatetimeIndex(object):
                                     type(index).__name__):
             hash(index)
 
-    def test_stringified_slice_with_tz(self):
-        # GH2658
-        import datetime
-        start = datetime.datetime.now()
-        idx = DatetimeIndex(start=start, freq="1d", periods=10)
-        df = DataFrame(lrange(10), index=idx)
-        with tm.assert_produces_warning(UserWarning):
-            df["2013-01-14 23:44:34.437768-05:00":]  # no exception here
-
     def test_append_join_nondatetimeindex(self):
         rng = date_range('1/1/2000', periods=10)
         idx = Index(['a', 'b', 'c', 'd'])

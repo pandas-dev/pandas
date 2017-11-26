@@ -235,10 +235,10 @@ class NDFrame(PandasObject, SelectionMixin):
         """
 
         cls._AXIS_ORDERS = axes
-        cls._AXIS_NUMBERS = dict((a, i) for i, a in enumerate(axes))
+        cls._AXIS_NUMBERS = {a: i for i, a in enumerate(axes)}
         cls._AXIS_LEN = len(axes)
         cls._AXIS_ALIASES = aliases or dict()
-        cls._AXIS_IALIASES = dict((v, k) for k, v in cls._AXIS_ALIASES.items())
+        cls._AXIS_IALIASES = {v: k for k, v in cls._AXIS_ALIASES.items()}
         cls._AXIS_NAMES = dict(enumerate(axes))
         cls._AXIS_SLICEMAP = slicers or None
         cls._AXIS_REVERSED = axes_are_reversed
@@ -279,21 +279,21 @@ class NDFrame(PandasObject, SelectionMixin):
 
     def _construct_axes_dict(self, axes=None, **kwargs):
         """Return an axes dictionary for myself."""
-        d = dict((a, self._get_axis(a)) for a in (axes or self._AXIS_ORDERS))
+        d = {a: self._get_axis(a) for a in (axes or self._AXIS_ORDERS)}
         d.update(kwargs)
         return d
 
     @staticmethod
     def _construct_axes_dict_from(self, axes, **kwargs):
         """Return an axes dictionary for the passed axes."""
-        d = dict((a, ax) for a, ax in zip(self._AXIS_ORDERS, axes))
+        d = {a: ax for a, ax in zip(self._AXIS_ORDERS, axes)}
         d.update(kwargs)
         return d
 
     def _construct_axes_dict_for_slice(self, axes=None, **kwargs):
         """Return an axes dictionary for myself."""
-        d = dict((self._AXIS_SLICEMAP[a], self._get_axis(a))
-                 for a in (axes or self._AXIS_ORDERS))
+        d = {self._AXIS_SLICEMAP[a]: self._get_axis(a)
+             for a in (axes or self._AXIS_ORDERS)}
         d.update(kwargs)
         return d
 
@@ -329,7 +329,7 @@ class NDFrame(PandasObject, SelectionMixin):
                         raise TypeError("not enough/duplicate arguments "
                                         "specified!")
 
-        axes = dict((a, kwargs.pop(a, None)) for a in self._AXIS_ORDERS)
+        axes = {a: kwargs.pop(a, None) for a in self._AXIS_ORDERS}
         return axes, kwargs
 
     @classmethod
@@ -1172,7 +1172,7 @@ class NDFrame(PandasObject, SelectionMixin):
     # Picklability
 
     def __getstate__(self):
-        meta = dict((k, getattr(self, k, None)) for k in self._metadata)
+        meta = {k: getattr(self, k, None) for k in self._metadata}
         return dict(_data=self._data, _typ=self._typ, _metadata=self._metadata,
                     **meta)
 
@@ -3735,6 +3735,9 @@ class NDFrame(PandasObject, SelectionMixin):
 
     def as_matrix(self, columns=None):
         """
+        DEPRECATED: as_matrix will be removed in a future version.
+        Use :meth:`DataFrame.values` instead.
+
         Convert the frame to its Numpy-array representation.
 
         Parameters
@@ -3770,10 +3773,11 @@ class NDFrame(PandasObject, SelectionMixin):
         --------
         pandas.DataFrame.values
         """
+        warnings.warn("Method .as_matrix will be removed in a future version. "
+                      "Use .values instead.", FutureWarning, stacklevel=2)
         self._consolidate_inplace()
-        if self._AXIS_REVERSED:
-            return self._data.as_matrix(columns).T
-        return self._data.as_matrix(columns)
+        return self._data.as_array(transpose=self._AXIS_REVERSED,
+                                   items=columns)
 
     @property
     def values(self):
@@ -3791,7 +3795,8 @@ class NDFrame(PandasObject, SelectionMixin):
         int32. By numpy.find_common_type convention, mixing int64 and uint64
         will result in a flot64 dtype.
         """
-        return self.as_matrix()
+        self._consolidate_inplace()
+        return self._data.as_array(transpose=self._AXIS_REVERSED)
 
     @property
     def _values(self):
@@ -3801,11 +3806,11 @@ class NDFrame(PandasObject, SelectionMixin):
     @property
     def _get_values(self):
         # compat
-        return self.as_matrix()
+        return self.values
 
     def get_values(self):
         """same as values (but handles sparseness conversions)"""
-        return self.as_matrix()
+        return self.values
 
     def get_dtype_counts(self):
         """Return the counts of dtypes in this object."""
@@ -4277,8 +4282,8 @@ class NDFrame(PandasObject, SelectionMixin):
             elif self.ndim == 3:
 
                 # fill in 2d chunks
-                result = dict((col, s.fillna(method=method, value=value))
-                              for col, s in self.iteritems())
+                result = {col: s.fillna(method=method, value=value)
+                          for col, s in self.iteritems()}
                 new_obj = self._constructor.\
                     from_dict(result).__finalize__(self)
                 new_data = new_obj._data
@@ -5681,7 +5686,7 @@ class NDFrame(PandasObject, SelectionMixin):
                 # this means other is a DataFrame, and we need to broadcast
                 # self
                 cons = self._constructor_expanddim
-                df = cons(dict((c, self) for c in other.columns),
+                df = cons({c: self for c in other.columns},
                           **other._construct_axes_dict())
                 return df._align_frame(other, join=join, axis=axis,
                                        level=level, copy=copy,
@@ -5691,7 +5696,7 @@ class NDFrame(PandasObject, SelectionMixin):
                 # this means self is a DataFrame, and we need to broadcast
                 # other
                 cons = other._constructor_expanddim
-                df = cons(dict((c, other) for c in self.columns),
+                df = cons({c: other for c in self.columns},
                           **self._construct_axes_dict())
                 return self._align_frame(df, join=join, axis=axis, level=level,
                                          copy=copy, fill_value=fill_value,

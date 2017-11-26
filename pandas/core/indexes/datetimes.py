@@ -926,7 +926,7 @@ class DatetimeIndex(DatelikeOps, TimelikeOps, DatetimeIndexOpsMixin,
         values = self.asi8
         if self.tz is not None and self.tz is not utc:
             values = self._local_timestamps()
-        return libts.get_time_micros(values)
+        return fields.get_time_micros(values)
 
     def to_series(self, keep_tz=False):
         """
@@ -1471,6 +1471,17 @@ class DatetimeIndex(DatelikeOps, TimelikeOps, DatetimeIndexOpsMixin,
                                         key, tz=self.tz)
         return _maybe_box(self, values, series, key)
 
+    @Appender(_index_shared_docs['_get_values_from_dict'])
+    def _get_values_from_dict(self, data):
+        if len(data):
+            # coerce back to datetime objects for lookup
+            data = com._dict_compat(data)
+            return lib.fast_multiget(data,
+                                     self.asobject.values,
+                                     default=np.nan)
+
+        return np.array([np.nan])
+
     def get_loc(self, key, method=None, tolerance=None):
         """
         Get integer location for requested label
@@ -1771,6 +1782,9 @@ class DatetimeIndex(DatelikeOps, TimelikeOps, DatetimeIndexOpsMixin,
         -------
         new_index : Index
         """
+        if is_scalar(item) and isna(item):
+            # GH 18295
+            item = self._na_value
 
         freq = None
 
@@ -1787,6 +1801,7 @@ class DatetimeIndex(DatelikeOps, TimelikeOps, DatetimeIndexOpsMixin,
                 elif (loc == len(self)) and item - self.freq == self[-1]:
                     freq = self.freq
             item = _to_m8(item, tz=self.tz)
+
         try:
             new_dates = np.concatenate((self[:loc].asi8, [item.view(np.int64)],
                                         self[loc:].asi8))
@@ -1794,7 +1809,6 @@ class DatetimeIndex(DatelikeOps, TimelikeOps, DatetimeIndexOpsMixin,
                 new_dates = conversion.tz_convert(new_dates, 'UTC', self.tz)
             return DatetimeIndex(new_dates, name=self.name, freq=freq,
                                  tz=self.tz)
-
         except (AttributeError, TypeError):
 
             # fall back to object index

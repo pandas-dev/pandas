@@ -672,14 +672,30 @@ class TestMultiIndex(Base):
         for lev, lab in zip(self.index.levels, self.index.labels):
             arrays.append(np.asarray(lev).take(lab))
 
-        result = MultiIndex.from_arrays(arrays)
-        assert list(result) == list(self.index)
+        # list of arrays as input
+        result = MultiIndex.from_arrays(arrays, names=self.index.names)
+        tm.assert_index_equal(result, self.index)
 
         # infer correctly
         result = MultiIndex.from_arrays([[pd.NaT, Timestamp('20130101')],
                                          ['a', 'b']])
         assert result.levels[0].equals(Index([Timestamp('20130101')]))
         assert result.levels[1].equals(Index(['a', 'b']))
+
+    def test_from_arrays_iterator(self):
+        # GH 18434
+        arrays = []
+        for lev, lab in zip(self.index.levels, self.index.labels):
+            arrays.append(np.asarray(lev).take(lab))
+
+        # iterator as input
+        result = MultiIndex.from_arrays(iter(arrays), names=self.index.names)
+        tm.assert_index_equal(result, self.index)
+
+        # invalid iterator input
+        with tm.assert_raises_regex(
+                TypeError, "Input must be a list / sequence of array-likes."):
+            MultiIndex.from_arrays(0)
 
     def test_from_arrays_index_series_datetimetz(self):
         idx1 = pd.date_range('2015-01-01 10:00', freq='D', periods=3,
@@ -825,7 +841,25 @@ class TestMultiIndex(Base):
         expected = MultiIndex.from_tuples(tuples, names=names)
 
         tm.assert_index_equal(result, expected)
-        assert result.names == names
+
+    def test_from_product_iterator(self):
+        # GH 18434
+        first = ['foo', 'bar', 'buz']
+        second = ['a', 'b', 'c']
+        names = ['first', 'second']
+        tuples = [('foo', 'a'), ('foo', 'b'), ('foo', 'c'), ('bar', 'a'),
+                  ('bar', 'b'), ('bar', 'c'), ('buz', 'a'), ('buz', 'b'),
+                  ('buz', 'c')]
+        expected = MultiIndex.from_tuples(tuples, names=names)
+
+        # iterator as input
+        result = MultiIndex.from_product(iter([first, second]), names=names)
+        tm.assert_index_equal(result, expected)
+
+        # Invalid non-iterable input
+        with tm.assert_raises_regex(
+                TypeError, "Input must be a list / sequence of iterables."):
+            MultiIndex.from_product(0)
 
     def test_from_product_empty(self):
         # 0 levels
@@ -1725,8 +1759,28 @@ class TestMultiIndex(Base):
                                'from empty list',
                                MultiIndex.from_tuples, [])
 
-        idx = MultiIndex.from_tuples(((1, 2), (3, 4)), names=['a', 'b'])
-        assert len(idx) == 2
+        expected = MultiIndex(levels=[[1, 3], [2, 4]],
+                              labels=[[0, 1], [0, 1]],
+                              names=['a', 'b'])
+
+        # input tuples
+        result = MultiIndex.from_tuples(((1, 2), (3, 4)), names=['a', 'b'])
+        tm.assert_index_equal(result, expected)
+
+    def test_from_tuples_iterator(self):
+        # GH 18434
+        # input iterator for tuples
+        expected = MultiIndex(levels=[[1, 3], [2, 4]],
+                              labels=[[0, 1], [0, 1]],
+                              names=['a', 'b'])
+
+        result = MultiIndex.from_tuples(zip([1, 3], [2, 4]), names=['a', 'b'])
+        tm.assert_index_equal(result, expected)
+
+        # input non-iterables
+        with tm.assert_raises_regex(
+                TypeError, 'Input must be a list / sequence of tuple-likes.'):
+            MultiIndex.from_tuples(0)
 
     def test_from_tuples_empty(self):
         # GH 16777
@@ -2178,7 +2232,7 @@ class TestMultiIndex(Base):
 
             if with_nulls:  # inject some null values
                 labels[500] = -1  # common nan value
-                labels = list(labels.copy() for i in range(nlevels))
+                labels = [labels.copy() for i in range(nlevels)]
                 for i in range(nlevels):
                     labels[i][500 + i - nlevels // 2] = -1
 
@@ -2773,7 +2827,7 @@ class TestMultiIndex(Base):
 
         # GH5620
         groups = self.index.groupby(self.index)
-        exp = dict((key, [key]) for key in self.index)
+        exp = {key: [key] for key in self.index}
         tm.assert_dict_equal(groups, exp)
 
     def test_index_name_retained(self):

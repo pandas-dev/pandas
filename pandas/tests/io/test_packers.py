@@ -618,8 +618,8 @@ class TestCompression(TestPackers):
             'E': [datetime.timedelta(days=x) for x in range(1000)],
         }
         self.frame = {
-            'float': DataFrame(dict((k, data[k]) for k in ['A', 'A'])),
-            'int': DataFrame(dict((k, data[k]) for k in ['B', 'B'])),
+            'float': DataFrame({k: data[k] for k in ['A', 'A']}),
+            'int': DataFrame({k: data[k] for k in ['B', 'B']}),
             'mixed': DataFrame(data),
         }
 
@@ -805,8 +805,8 @@ class TestEncoding(TestPackers):
             'G': [400] * 1000
         }
         self.frame = {
-            'float': DataFrame(dict((k, data[k]) for k in ['A', 'A'])),
-            'int': DataFrame(dict((k, data[k]) for k in ['B', 'B'])),
+            'float': DataFrame({k: data[k] for k in ['A', 'A']}),
+            'int': DataFrame({k: data[k] for k in ['B', 'B']}),
             'mixed': DataFrame(data),
         }
         self.utf_encodings = ['utf8', 'utf16', 'utf32']
