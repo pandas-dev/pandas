@@ -83,7 +83,7 @@ cpdef monthrange(int64_t year, Py_ssize_t month):
 @cython.wraparound(False)
 @cython.boundscheck(False)
 @cython.cdivision
-cdef int dayofweek(int year, int month, int day) nogil:
+cdef int dayofweek(int y, int m, int d) nogil:
     """Find the day of week for the date described by the Y/M/D triple y, m, d
     using Sakamoto's method, from wikipedia.
 
@@ -92,9 +92,9 @@ cdef int dayofweek(int year, int month, int day) nogil:
 
     Parameters
     ----------
-    year : int
-    month : int
-    day : int
+    y : int
+    m : int
+    d : int
 
     Returns
     -------

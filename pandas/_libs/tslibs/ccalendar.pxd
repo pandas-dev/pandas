@@ -8,6 +8,6 @@ from numpy cimport int64_t, int32_t
 
 cpdef monthrange(int64_t year, Py_ssize_t month)
 
-cdef int dayofweek(int year, int month, int day) nogil
+cdef int dayofweek(int y, int m, int m) nogil
 cdef int is_leapyear(int64_t year) nogil
 cdef int32_t get_days_in_month(int year, Py_ssize_t month) nogil
