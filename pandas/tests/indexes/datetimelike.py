@@ -1,7 +1,6 @@
 """ generic datetimelike tests """
 import pytest
 import pandas as pd
-import numpy as np
 from .common import Base
 import pandas.util.testing as tm
 
@@ -73,6 +72,6 @@ class DatetimeLike(Base):
 
         # empty map; these map to np.nan because we cannot know
         # to re-infer things
-        expected = pd.Index([np.nan] * len(self.index))
+        expected = pd.Index([pd.NaT] * len(self.index))
         result = self.index.map(mapper([], []))
         tm.assert_index_equal(result, expected)
