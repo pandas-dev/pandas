@@ -148,7 +148,7 @@ how : {'left', 'right', 'outer', 'inner'}, default 'inner'
       join; preserve the order of the left keys
 on : label or list
     Column or index level names to join on. These must be found in both
-    DataFrames. If `on` is None and not merging on indexes then this defaults 
+    DataFrames. If `on` is None and not merging on indexes then this defaults
     to the intersection of the columns in both DataFrames.
 left_on : label or list, or array-like
     Column or index level names to join on in the left DataFrame. Can also
