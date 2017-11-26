@@ -1,9 +1,8 @@
 import numpy as np
 import pandas.util.testing as tm
-from pandas import DataFrame, Series, MultiIndex
-from pandas import *
+from pandas import DataFrame, Series, MultiIndex, Timestamp, date_range
 try:
-    from pandas.tseries.offsets import *
+    from pandas.tseries import offsets
 except:
     from pandas.core.datetools import *
 
