@@ -88,7 +88,7 @@ I/O
 - :func:`read_parquet` now allows to specify kwargs which are passed to the respective engine (:issue:`18216`)
 - Bug in parsing integer datetime-like columns with specified format in ``read_sql`` (:issue:`17855`).
 - Bug in :meth:`DataFrame.to_msgpack` when serializing data of the numpy.bool_ datatype (:issue:`18390`)
-
+- Bug in :func:`read_json` not decoding when reading line deliminted JSON from S3 (:issue:`17200`)
 
 Plotting
 ^^^^^^^^
