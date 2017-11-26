@@ -985,6 +985,162 @@ class BusinessMonthBegin(MonthOffset):
     _day_opt = 'business_start'
 
 
+class CustomBusinessMonthEnd(BusinessMixin, MonthOffset):
+    """
+    DateOffset subclass representing one custom business month, incrementing
+    between end of month dates
+
+    Parameters
+    ----------
+    n : int, default 1
+    offset : timedelta, default timedelta(0)
+    normalize : bool, default False
+        Normalize start/end dates to midnight before generating date range
+    weekmask : str, Default 'Mon Tue Wed Thu Fri'
+        weekmask of valid business days, passed to ``numpy.busdaycalendar``
+    holidays : list
+        list/array of dates to exclude from the set of valid business days,
+        passed to ``numpy.busdaycalendar``
+    calendar : pd.HolidayCalendar or np.busdaycalendar
+    """
+
+    _cacheable = False
+    _prefix = 'CBM'
+
+    onOffset = DateOffset.onOffset  # override MonthOffset method
+
+    def __init__(self, n=1, normalize=False, weekmask='Mon Tue Wed Thu Fri',
+                 holidays=None, calendar=None, offset=timedelta(0)):
+        self.n = self._validate_n(n)
+        self.normalize = normalize
+        self._offset = offset
+        self.kwds = {}
+
+        calendar, holidays = _get_calendar(weekmask=weekmask,
+                                           holidays=holidays,
+                                           calendar=calendar)
+        self.kwds['weekmask'] = self.weekmask = weekmask
+        self.kwds['holidays'] = self.holidays = holidays
+        self.kwds['calendar'] = self.calendar = calendar
+        self.kwds['offset'] = offset
+
+    @cache_readonly
+    def cbday(self):
+        kwds = self.kwds
+        return CustomBusinessDay(n=self.n, normalize=self.normalize, **kwds)
+
+    @cache_readonly
+    def m_offset(self):
+        kwds = self.kwds
+        kwds = {key: kwds[key] for key in kwds
+                if key not in ['calendar', 'weekmask', 'holidays', 'offset']}
+        return MonthEnd(n=1, normalize=self.normalize, **kwds)
+
+    @apply_wraps
+    def apply(self, other):
+        n = self.n
+
+        # First move to month offset
+        cur_mend = self.m_offset.rollforward(other)
+
+        # Find this custom month offset
+        cur_cmend = self.cbday.rollback(cur_mend)
+
+        # handle zero case. arbitrarily rollforward
+        if n == 0 and other != cur_cmend:
+            n += 1
+
+        if other < cur_cmend and n >= 1:
+            n -= 1
+        elif other > cur_cmend and n <= -1:
+            n += 1
+
+        new = cur_mend + n * self.m_offset
+        result = self.cbday.rollback(new)
+        return result
+
+
+class CustomBusinessMonthBegin(BusinessMixin, MonthOffset):
+    """
+    DateOffset subclass representing one custom business month, incrementing
+    between beginning of month dates
+
+    Parameters
+    ----------
+    n : int, default 1
+    offset : timedelta, default timedelta(0)
+    normalize : bool, default False
+        Normalize start/end dates to midnight before generating date range
+    weekmask : str, Default 'Mon Tue Wed Thu Fri'
+        weekmask of valid business days, passed to ``numpy.busdaycalendar``
+    holidays : list
+        list/array of dates to exclude from the set of valid business days,
+        passed to ``numpy.busdaycalendar``
+    calendar : pd.HolidayCalendar or np.busdaycalendar
+    """
+
+    _cacheable = False
+    _prefix = 'CBMS'
+
+    onOffset = DateOffset.onOffset  # override MonthOffset method
+
+    def __init__(self, n=1, normalize=False, weekmask='Mon Tue Wed Thu Fri',
+                 holidays=None, calendar=None, offset=timedelta(0)):
+        self.n = self._validate_n(n)
+        self.normalize = normalize
+        self._offset = offset
+        self.kwds = {}
+
+        # _get_calendar does validation and possible transformation
+        # of calendar and holidays.
+        calendar, holidays = _get_calendar(weekmask=weekmask,
+                                           holidays=holidays,
+                                           calendar=calendar)
+        self.kwds['calendar'] = self.calendar = calendar
+        self.kwds['weekmask'] = self.weekmask = weekmask
+        self.kwds['holidays'] = self.holidays = holidays
+        self.kwds['offset'] = offset
+
+    @cache_readonly
+    def cbday(self):
+        kwds = self.kwds
+        return CustomBusinessDay(n=self.n, normalize=self.normalize, **kwds)
+
+    @cache_readonly
+    def m_offset(self):
+        kwds = self.kwds
+        kwds = {key: kwds[key] for key in kwds
+                if key not in ['calendar', 'weekmask', 'holidays', 'offset']}
+        return MonthBegin(n=1, normalize=self.normalize, **kwds)
+
+    @apply_wraps
+    def apply(self, other):
+        n = self.n
+        dt_in = other
+
+        # First move to month offset
+        cur_mbegin = self.m_offset.rollback(dt_in)
+
+        # Find this custom month offset
+        cur_cmbegin = self.cbday.rollforward(cur_mbegin)
+
+        # handle zero case. arbitrarily rollforward
+        if n == 0 and dt_in != cur_cmbegin:
+            n += 1
+
+        if dt_in > cur_cmbegin and n <= -1:
+            n += 1
+        elif dt_in < cur_cmbegin and n >= 1:
+            n -= 1
+
+        new = cur_mbegin + n * self.m_offset
+        result = self.cbday.rollforward(new)
+        return result
+
+
+# ---------------------------------------------------------------------
+# Semi-Month Based Offset Classes
+
 class SemiMonthOffset(DateOffset):
     _adjust_dst = True
     _default_day_of_month = 15
@@ -1183,155 +1339,6 @@ class SemiMonthBegin(SemiMonthOffset):
 
     def _apply_index_days(self, i, roll):
         return i + (roll % 2) * Timedelta(days=self.day_of_month - 1).value
-
-
-class CustomBusinessMonthEnd(BusinessMixin, MonthOffset):
-    """
-    DateOffset subclass representing one custom business month, incrementing
-    between end of month dates
-
-    Parameters
-    ----------
-    n : int, default 1
-    offset : timedelta, default timedelta(0)
-    normalize : bool, default False
-        Normalize start/end dates to midnight before generating date range
-    weekmask : str, Default 'Mon Tue Wed Thu Fri'
-        weekmask of valid business days, passed to ``numpy.busdaycalendar``
-    holidays : list
-        list/array of dates to exclude from the set of valid business days,
-        passed to ``numpy.busdaycalendar``
-    calendar : pd.HolidayCalendar or np.busdaycalendar
-    """
-
-    _cacheable = False
-    _prefix = 'CBM'
-
-    onOffset = DateOffset.onOffset  # override MonthOffset method
-
-    def __init__(self, n=1, normalize=False, weekmask='Mon Tue Wed Thu Fri',
-                 holidays=None, calendar=None, offset=timedelta(0)):
-        self.n = self._validate_n(n)
-        self.normalize = normalize
-        self._offset = offset
-        self.kwds = {}
-
-        calendar, holidays = _get_calendar(weekmask=weekmask,
-                                           holidays=holidays,
-                                           calendar=calendar)
-        self.kwds['weekmask'] = self.weekmask = weekmask
-        self.kwds['holidays'] = self.holidays = holidays
-        self.kwds['calendar'] = self.calendar = calendar
-        self.kwds['offset'] = offset
-
-    @cache_readonly
-    def cbday(self):
-        kwds = self.kwds
-        return CustomBusinessDay(n=self.n, normalize=self.normalize, **kwds)
-
-    @cache_readonly
-    def m_offset(self):
-        kwds = self.kwds
-        kwds = {key: kwds[key] for key in kwds
-                if key not in ['calendar', 'weekmask', 'holidays', 'offset']}
-        return MonthEnd(n=1, normalize=self.normalize, **kwds)
-
-    @apply_wraps
-    def apply(self, other):
-        n = self.n
-        # First move to month offset
-        cur_mend = self.m_offset.rollforward(other)
-        # Find this custom month offset
-        cur_cmend = self.cbday.rollback(cur_mend)
-
-        # handle zero case. arbitrarily rollforward
-        if n == 0 and other != cur_cmend:
-            n += 1
-
-        if other < cur_cmend and n >= 1:
-            n -= 1
-        elif other > cur_cmend and n <= -1:
-            n += 1
-
-        new = cur_mend + n * self.m_offset
-        result = self.cbday.rollback(new)
-        return result
-
-
-class CustomBusinessMonthBegin(BusinessMixin, MonthOffset):
-    """
-    DateOffset subclass representing one custom business month, incrementing
-    between beginning of month dates
-
-    Parameters
-    ----------
-    n : int, default 1
-    offset : timedelta, default timedelta(0)
-    normalize : bool, default False
-        Normalize start/end dates to midnight before generating date range
-    weekmask : str, Default 'Mon Tue Wed Thu Fri'
-        weekmask of valid business days, passed to ``numpy.busdaycalendar``
-    holidays : list
-        list/array of dates to exclude from the set of valid business days,
-        passed to ``numpy.busdaycalendar``
-    calendar : pd.HolidayCalendar or np.busdaycalendar
-    """
-
-    _cacheable = False
-    _prefix = 'CBMS'
-
-    onOffset = DateOffset.onOffset  # override MonthOffset method
-
-    def __init__(self, n=1, normalize=False, weekmask='Mon Tue Wed Thu Fri',
-                 holidays=None, calendar=None, offset=timedelta(0)):
-        self.n = self._validate_n(n)
-        self.normalize = normalize
-        self._offset = offset
-        self.kwds = {}
-
-        # _get_calendar does validation and possible transformation
-        # of calendar and holidays.
-        calendar, holidays = _get_calendar(weekmask=weekmask,
-                                           holidays=holidays,
-                                           calendar=calendar)
-        self.kwds['calendar'] = self.calendar = calendar
-        self.kwds['weekmask'] = self.weekmask = weekmask
-        self.kwds['holidays'] = self.holidays = holidays
-        self.kwds['offset'] = offset
-
-    @cache_readonly
-    def cbday(self):
-        kwds = self.kwds
-        return CustomBusinessDay(n=self.n, normalize=self.normalize, **kwds)
-
-    @cache_readonly
-    def m_offset(self):
-        kwds = self.kwds
-        kwds = {key: kwds[key] for key in kwds
-                if key not in ['calendar', 'weekmask', 'holidays', 'offset']}
-        return MonthBegin(n=1, normalize=self.normalize, **kwds)
-
-    @apply_wraps
-    def apply(self, other):
-        n = self.n
-        dt_in = other
-        # First move to month offset
-        cur_mbegin = self.m_offset.rollback(dt_in)
-        # Find this custom month offset
-        cur_cmbegin = self.cbday.rollforward(cur_mbegin)
-
-        # handle zero case. arbitrarily rollforward
-        if n == 0 and dt_in != cur_cmbegin:
-            n += 1
-
-        if dt_in > cur_cmbegin and n <= -1:
-            n += 1
-        elif dt_in < cur_cmbegin and n >= 1:
-            n -= 1
-
-        new = cur_mbegin + n * self.m_offset
-        result = self.cbday.rollforward(new)
-        return result
 
 
 # ---------------------------------------------------------------------
