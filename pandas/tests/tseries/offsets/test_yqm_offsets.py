@@ -33,7 +33,6 @@ def test_quarterly_dont_normalize():
         assert (result.time() == date.time())
 
 
-
 @pytest.mark.parametrize('offset', [MonthBegin(), MonthEnd(),
                                     BMonthBegin(), BMonthEnd()])
 def test_apply_index(offset):
