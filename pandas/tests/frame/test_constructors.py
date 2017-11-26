@@ -1207,12 +1207,12 @@ class TestDataFrameConstructors(TestData):
 
     def test_constructor_from_items_scalars(self):
         # GH 17312
-        with tm.assert_raises_regex(TypeError,
+        with tm.assert_raises_regex(ValueError,
                                     'The value in each \(key, value\) '
                                     'pair must be an array, Series, or dict'):
             DataFrame.from_items([('A', 1), ('B', 4)])
 
-        with tm.assert_raises_regex(TypeError,
+        with tm.assert_raises_regex(ValueError,
                                     'The value in each \(key, value\) '
                                     'pair must be an array, Series, or dict'):
             DataFrame.from_items([('A', 1), ('B', 2)], columns=['col1'],

@@ -1279,7 +1279,7 @@ class DataFrame(NDFrame):
 
             except ValueError:
                 if not is_nested_list_like(values):
-                    raise TypeError('The value in each (key, value) pair must '
+                    raise ValueError('The value in each (key, value) pair must '
                                     'be an array, Series, or dict')
 
         elif orient == 'index':
@@ -1297,7 +1297,7 @@ class DataFrame(NDFrame):
 
             except TypeError:
                 if not is_nested_list_like(values):
-                    raise TypeError('The value in each (key, value) pair must '
+                    raise ValueError('The value in each (key, value) pair must '
                                     'be an array, Series, or dict')
 
         else:  # pragma: no cover
