@@ -169,7 +169,7 @@ Plotting
 Groupby/Resample/Rolling
 ^^^^^^^^^^^^^^^^^^^^^^^^
 
--
+- Bug when grouping by a single column and aggregating with a class like ``list`` or ``tuple`` (:issue:`18079`)
 -
 -
 
