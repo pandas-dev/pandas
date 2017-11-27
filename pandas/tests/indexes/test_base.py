@@ -885,9 +885,7 @@ class TestIndex(Base):
             expected = Index(np.arange(len(index), 0, -1))
 
             # to match proper result coercion for uints
-            if name == 'uintIndex':
-                expected = expected.astype('uint64')
-            elif name == 'empty':
+            if name == 'empty':
                 expected = Index([])
 
             result = index.map(mapper(expected, index))
