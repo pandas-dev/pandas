@@ -3416,3 +3416,11 @@ class TestTimeGrouper(object):
 
             # if NaT is included, 'var', 'std', 'mean', 'first','last'
             # and 'nth' doesn't work yet
+
+    def test_repr(self):
+        # GH18203
+        result = repr(TimeGrouper(key='A', freq='H'))
+        expected = ("TimeGrouper(key='A', freq=<Hour>, axis=0, sort=True, "
+                    "closed='left', label='left', how='mean', "
+                    "convention='e', base=0)")
+        assert result == expected

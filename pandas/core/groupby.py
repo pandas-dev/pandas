@@ -206,12 +206,13 @@ class Grouper(object):
     sort : boolean, default to False
         whether to sort the resulting labels
 
-    additional kwargs to control time-like groupers (when freq is passed)
+    additional kwargs to control time-like groupers (when ``freq`` is passed)
 
-    closed : closed end of interval; left or right
-    label : interval boundary to use for labeling; left or right
+    closed : closed end of interval; 'left' or 'right'
+    label : interval boundary to use for labeling; 'left' or 'right'
     convention : {'start', 'end', 'e', 's'}
         If grouper is PeriodIndex
+    base, loffset
 
     Returns
     -------
@@ -233,6 +234,7 @@ class Grouper(object):
 
     >>> df.groupby(Grouper(level='date', freq='60s', axis=1))
     """
+    _attributes = ('key', 'level', 'freq', 'axis', 'sort')
 
     def __new__(cls, *args, **kwargs):
         if kwargs.get('freq') is not None:
@@ -332,6 +334,14 @@ class Grouper(object):
     @property
     def groups(self):
         return self.grouper.groups
+
+    def __repr__(self):
+        attrs_list = ["{}={!r}".format(attr_name, getattr(self, attr_name))
+                      for attr_name in self._attributes
+                      if getattr(self, attr_name) is not None]
+        attrs = ", ".join(attrs_list)
+        cls_name = self.__class__.__name__
+        return "{}({})".format(cls_name, attrs)
 
 
 class GroupByPlot(PandasObject):

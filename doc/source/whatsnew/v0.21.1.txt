@@ -22,7 +22,7 @@ Other Enhancements
 ^^^^^^^^^^^^^^^^^^
 
 - :meth:`Timestamp.timestamp` is now available in Python 2.7. (:issue:`17329`)
--
+- :class:`Grouper` and :class:`TimeGrouper` now have a friendly repr output (:issue:`18203`).
 -
 
 .. _whatsnew_0211.deprecations:
