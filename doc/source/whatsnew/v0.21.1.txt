@@ -137,6 +137,7 @@ Categorical
 - Error messages in the testing module have been improved when items have different ``CategoricalDtype`` (:issue:`18069`)
 - ``CategoricalIndex`` can now correctly take a ``pd.api.types.CategoricalDtype`` as its dtype (:issue:`18116`)
 - Bug in ``Categorical.unique()`` returning read-only ``codes``  array when all categories were ``NaN`` (:issue:`18051`)
+- Bug in ``DataFrame.groupby(axis=1)`` with a ``CategoricalIndex`` (:issue:`18432`)
 
 String
 ^^^^^^
