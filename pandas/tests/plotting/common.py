@@ -12,6 +12,7 @@ from pandas.core.dtypes.api import is_list_like
 import pandas.util.testing as tm
 from pandas.util.testing import (ensure_clean,
                                  assert_is_valid_plot_return_object)
+import pandas.util._test_decorators as td
 
 import numpy as np
 from numpy import random
@@ -22,8 +23,6 @@ from pandas.plotting._tools import _flatten
 """
 This is a common base class used for various plotting tests
 """
-
-tm._skip_if_no_mpl()
 
 
 def _skip_if_no_scipy_gaussian_kde():
@@ -43,6 +42,7 @@ def _ok_for_gaussian_kde(kind):
     return plotting._compat._mpl_ge_1_5_0()
 
 
+@td.skip_if_no_mpl
 class TestPlotBase(object):
 
     def setup_method(self, method):

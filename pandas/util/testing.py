@@ -325,13 +325,6 @@ def _skip_if_32bit():
         pytest.skip("skipping for 32 bit")
 
 
-def _skip_if_no_mpl():
-    import pytest
-
-    mpl = pytest.importorskip("matplotlib")
-    mpl.use("Agg", warn=False)
-
-
 def _skip_if_mpl_1_5():
     import matplotlib as mpl
 

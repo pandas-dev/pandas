@@ -4,6 +4,7 @@ import string
 
 import pandas as pd
 import pandas.util.testing as tm
+import pandas.util._test_decorators as td
 import pytest
 
 from numpy.random import randn
@@ -18,9 +19,8 @@ Test cases for plot functions imported from deprecated
 pandas.tools.plotting
 """
 
-tm._skip_if_no_mpl()
 
-
+@td.skip_if_no_mpl
 class TestDeprecatedNameSpace(TestPlotBase):
 
     @pytest.mark.slow

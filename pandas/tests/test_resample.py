@@ -13,6 +13,7 @@ import numpy as np
 import pandas as pd
 import pandas.tseries.offsets as offsets
 import pandas.util.testing as tm
+import pandas.util._test_decorators as td
 from pandas import (Series, DataFrame, Panel, Index, isna,
                     notna, Timestamp)
 
@@ -234,9 +235,8 @@ class TestResampleAPI(object):
         result = df.groupby('key').resample('D', on='dates').mean()
         assert_frame_equal(result, expected)
 
+    @td.skip_if_no_mpl
     def test_plot_api(self):
-        tm._skip_if_no_mpl()
-
         # .resample(....).plot(...)
         # hitting warnings
         # GH 12448

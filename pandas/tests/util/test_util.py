@@ -16,6 +16,7 @@ from pandas.util._validators import (validate_args, validate_kwargs,
                                      validate_bool_kwarg)
 
 import pandas.util.testing as tm
+from pandas.util._test_decorators import safe_import
 
 
 class TestDecorators(object):
@@ -482,3 +483,20 @@ def test_make_signature():
     assert sig == (['old_arg_name', 'new_arg_name',
                     'mapping=None', 'stacklevel=2'],
                    ['old_arg_name', 'new_arg_name', 'mapping', 'stacklevel'])
+
+
+def test_safe_import(monkeypatch):
+    assert not safe_import("foo")
+    assert not safe_import("pandas", min_version="99.99.99")
+
+    # Create dummy module to be imported
+    import types
+    import sys
+    mod_name = "hello123"
+    mod = types.ModuleType(mod_name)
+    mod.__version__ = "1.5"
+
+    assert not safe_import(mod_name)
+    monkeypatch.setitem(sys.modules, mod_name, mod)
+    assert not safe_import(mod_name, min_version="2.0")
+    assert safe_import(mod_name, min_version="1.0")
