@@ -557,8 +557,8 @@ def shift_quarters(int64_t[:] dtindex, int quarters,
                 months_since = (dts.month - q1start_month) % modby
                 compare_month = dts.month - months_since
                 compare_month = compare_month or 12
-                ## compare_day is only relevant for comparison in the case
-                ## where months_since == 0.
+                # compare_day is only relevant for comparison in the case
+                # where months_since == 0.
                 compare_day = get_firstbday(dts.year, compare_month)
 
                 if n <= 0 and (months_since != 0 or
