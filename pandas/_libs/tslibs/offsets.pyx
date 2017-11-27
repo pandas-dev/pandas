@@ -554,8 +554,58 @@ def shift_months(int64_t[:] dtindex, int months, object day=None):
 
                 dts.day = get_days_in_month(dts.year, dts.month)
                 out[i] = dtstruct_to_dt64(&dts)
+
+    elif day == 'business_start':
+        for i in range(count):
+            if dtindex[i] == NPY_NAT:
+                out[i] = NPY_NAT
+                continue
+
+            dt64_to_dtstruct(dtindex[i], &dts)
+            months_to_roll = months
+            wkday, days_in_month = monthrange(dts.year, dts.month)
+            compare_day = get_firstbday(wkday, days_in_month)
+
+            if months_to_roll > 0 and dts.day < compare_day:
+                months_to_roll -= 1
+            elif months_to_roll <= 0 and dts.day > compare_day:
+                # as if rolled forward already
+                months_to_roll += 1
+
+            dts.year = year_add_months(dts, months_to_roll)
+            dts.month = month_add_months(dts, months_to_roll)
+
+            wkday, days_in_month = monthrange(dts.year, dts.month)
+            dts.day = get_firstbday(wkday, days_in_month)
+            out[i] = dtstruct_to_dt64(&dts)
+
+    elif day == 'business_end':
+        for i in range(count):
+            if dtindex[i] == NPY_NAT:
+                out[i] = NPY_NAT
+                continue
+
+            dt64_to_dtstruct(dtindex[i], &dts)
+            months_to_roll = months
+            wkday, days_in_month = monthrange(dts.year, dts.month)
+            compare_day = get_lastbday(wkday, days_in_month)
+
+            if months_to_roll > 0 and dts.day < compare_day:
+                months_to_roll -= 1
+            elif months_to_roll <= 0 and dts.day > compare_day:
+                # as if rolled forward already
+                months_to_roll += 1
+
+            dts.year = year_add_months(dts, months_to_roll)
+            dts.month = month_add_months(dts, months_to_roll)
+
+            wkday, days_in_month = monthrange(dts.year, dts.month)
+            dts.day = get_lastbday(wkday, days_in_month)
+            out[i] = dtstruct_to_dt64(&dts)
+
     else:
-        raise ValueError("day must be None, 'start' or 'end'")
+        raise ValueError("day must be None, 'start', 'end', "
+                         "'business_start', or 'business_end'")
 
     return np.asarray(out)
 

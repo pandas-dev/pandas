@@ -116,6 +116,7 @@ Performance Improvements
 - ``Series`` construction will reduce the number of copies made of the input data in certain cases (:issue:`17449`)
 - Improved performance of :func:`Series.dt.date` and :func:`DatetimeIndex.date` (:issue:`18058`)
 - Improved performance of ``IntervalIndex.symmetric_difference()`` (:issue:`18475`)
+- Improved performance of ``DatetimeIndex`` and ``Series`` arithmetic operations with Business-Month and Business-Quarter frequencies (:issue:`18489`)
 
 .. _whatsnew_0220.docs:
 
