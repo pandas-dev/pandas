@@ -929,8 +929,9 @@ class MonthOffset(SingleConstructorOffset):
         if self.isAnchored:
             return self.rule_code
         else:
+            month = liboffsets._int_to_month[self.n]
             return "{code}-{month}".format(code=self.rule_code,
-                                           month=_int_to_month[self.n])
+                                           month=month)
 
     def onOffset(self, dt):
         if self.normalize and not _is_normalized(dt):
@@ -950,27 +951,22 @@ class MonthOffset(SingleConstructorOffset):
 
         return shift_month(other, n, self._day_opt)
 
+    @apply_index_wraps
+    def apply_index(self, i):
+        shifted = liboffsets.shift_months(i.asi8, self.n, self._day_opt)
+        return i._shallow_copy(shifted)
+
 
 class MonthEnd(MonthOffset):
     """DateOffset of one month end"""
     _prefix = 'M'
     _day_opt = 'end'
 
-    @apply_index_wraps
-    def apply_index(self, i):
-        shifted = liboffsets.shift_months(i.asi8, self.n, self._day_opt)
-        return i._shallow_copy(shifted)
-
 
 class MonthBegin(MonthOffset):
     """DateOffset of one month at beginning"""
     _prefix = 'MS'
     _day_opt = 'start'
-
-    @apply_index_wraps
-    def apply_index(self, i):
-        shifted = liboffsets.shift_months(i.asi8, self.n, self._day_opt)
-        return i._shallow_copy(shifted)
 
 
 class BusinessMonthEnd(MonthOffset):
@@ -1008,6 +1004,7 @@ class CustomBusinessMonthEnd(BusinessMixin, MonthOffset):
     _prefix = 'CBM'
 
     onOffset = DateOffset.onOffset  # override MonthOffset method
+    apply_index = DateOffset.apply_index  # override MonthOffset method
 
     def __init__(self, n=1, normalize=False, weekmask='Mon Tue Wed Thu Fri',
                  holidays=None, calendar=None, offset=timedelta(0)):
@@ -1083,6 +1080,7 @@ class CustomBusinessMonthBegin(BusinessMixin, MonthOffset):
     _prefix = 'CBMS'
 
     onOffset = DateOffset.onOffset  # override MonthOffset method
+    apply_index = DateOffset.apply_index  # override MonthOffset method
 
     def __init__(self, n=1, normalize=False, weekmask='Mon Tue Wed Thu Fri',
                  holidays=None, calendar=None, offset=timedelta(0)):
@@ -1603,7 +1601,7 @@ class QuarterOffset(DateOffset):
     def _from_name(cls, suffix=None):
         kwargs = {}
         if suffix:
-            kwargs['startingMonth'] = _month_to_int[suffix]
+            kwargs['startingMonth'] = liboffsets._month_to_int[suffix]
         else:
             if cls._from_name_startingMonth is not None:
                 kwargs['startingMonth'] = cls._from_name_startingMonth
@@ -1611,7 +1609,7 @@ class QuarterOffset(DateOffset):
 
     @property
     def rule_code(self):
-        month = _int_to_month[self.startingMonth]
+        month = liboffsets._int_to_month[self.startingMonth]
         return '{prefix}-{month}'.format(prefix=self._prefix, month=month)
 
     @apply_wraps
@@ -1631,6 +1629,12 @@ class QuarterOffset(DateOffset):
 
         return shift_month(other, 3 * n - months_since, self._day_opt)
 
+    def onOffset(self, dt):
+        if self.normalize and not _is_normalized(dt):
+            return False
+        modMonth = (dt.month - self.startingMonth) % 3
+        return modMonth == 0 and dt.day == self._get_offset_day(dt)
+
 
 class BQuarterEnd(QuarterOffset):
     """DateOffset increments between business Quarter dates
@@ -1643,16 +1647,6 @@ class BQuarterEnd(QuarterOffset):
     _from_name_startingMonth = 12
     _prefix = 'BQ'
     _day_opt = 'business_end'
-
-    def onOffset(self, dt):
-        if self.normalize and not _is_normalized(dt):
-            return False
-        modMonth = (dt.month - self.startingMonth) % 3
-        return modMonth == 0 and dt.day == self._get_offset_day(dt)
-
-
-_int_to_month = tslib._MONTH_ALIASES
-_month_to_int = {v: k for k, v in _int_to_month.items()}
 
 
 # TODO: This is basically the same as BQuarterEnd
@@ -1680,12 +1674,6 @@ class QuarterEnd(EndMixin, QuarterOffset):
     def apply_index(self, i):
         return self._end_apply_index(i, self.freqstr)
 
-    def onOffset(self, dt):
-        if self.normalize and not _is_normalized(dt):
-            return False
-        modMonth = (dt.month - self.startingMonth) % 3
-        return modMonth == 0 and dt.day == self._get_offset_day(dt)
-
 
 class QuarterBegin(BeginMixin, QuarterOffset):
     _outputName = 'QuarterBegin'
@@ -1697,7 +1685,8 @@ class QuarterBegin(BeginMixin, QuarterOffset):
     @apply_index_wraps
     def apply_index(self, i):
         freq_month = 12 if self.startingMonth == 1 else self.startingMonth - 1
-        freqstr = 'Q-{month}'.format(month=_int_to_month[freq_month])
+        month = liboffsets._int_to_month[freq_month]
+        freqstr = 'Q-{month}'.format(month=month)
         return self._beg_apply_index(i, freqstr)
 
 
@@ -1738,12 +1727,12 @@ class YearOffset(DateOffset):
     def _from_name(cls, suffix=None):
         kwargs = {}
         if suffix:
-            kwargs['month'] = _month_to_int[suffix]
+            kwargs['month'] = liboffsets._month_to_int[suffix]
         return cls(**kwargs)
 
     @property
     def rule_code(self):
-        month = _int_to_month[self.month]
+        month = liboffsets._int_to_month[self.month]
         return '{prefix}-{month}'.format(prefix=self._prefix, month=month)
 
 
@@ -1784,7 +1773,8 @@ class YearBegin(BeginMixin, YearOffset):
     @apply_index_wraps
     def apply_index(self, i):
         freq_month = 12 if self.month == 1 else self.month - 1
-        freqstr = 'A-{month}'.format(month=_int_to_month[freq_month])
+        month = liboffsets._int_to_month[freq_month]
+        freqstr = 'A-{month}'.format(month=month)
         return self._beg_apply_index(i, freqstr)
 
 
@@ -1969,7 +1959,7 @@ class FY5253(DateOffset):
 
     def get_rule_code_suffix(self):
         prefix = self._get_suffix_prefix()
-        month = _int_to_month[self.startingMonth]
+        month = liboffsets._int_to_month[self.startingMonth]
         weekday = _int_to_weekday[self.weekday]
         return '{prefix}-{month}-{weekday}'.format(prefix=prefix, month=month,
                                                    weekday=weekday)
@@ -1984,7 +1974,7 @@ class FY5253(DateOffset):
             raise ValueError("Unable to parse varion_code: "
                              "{code}".format(code=varion_code))
 
-        startingMonth = _month_to_int[startingMonth_code]
+        startingMonth = liboffsets._month_to_int[startingMonth_code]
         weekday = _weekday_to_int[weekday_code]
 
         return {"weekday": weekday,
