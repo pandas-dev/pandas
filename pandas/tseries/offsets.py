@@ -7,8 +7,7 @@ from pandas.compat import range
 from pandas import compat
 import numpy as np
 
-from pandas.core.dtypes.generic import (ABCSeries, ABCDatetimeIndex, ABCPeriod,
-                                        ABCIndexClass)
+from pandas.core.dtypes.generic import ABCSeries, ABCDatetimeIndex, ABCPeriod
 from pandas.core.tools.datetimes import to_datetime, normalize_date
 from pandas.core.common import AbstractMethodError
 
@@ -2177,32 +2176,11 @@ class Easter(DateOffset):
 # Ticks
 
 
-def _tick_comp(cls, op):
+def _tick_comp(op):
     def f(self, other):
-        if isinstance(other, (Tick, timedelta, np.timedelta64)):
-            other_delta = delta_to_nanoseconds(other)
-            return op(self.nanos, other_delta)
+        return op(self.delta, other.delta)
 
-        elif isinstance(other, Week) and other.weekday is None:
-            other_delta = int(timedelta(weeks=other.n).total_seconds() * 1e9)
-            return op(self.nanos, other_delta)
-
-        elif isinstance(other, compat.string_types):
-            from pandas.tseries.frequencies import to_offset
-            other = to_offset(other)
-            if isinstance(other, DateOffset):
-                return f(self, other)
-
-        elif isinstance(other, (np.ndarray, ABCIndexClass)):
-            # TODO: element-wise comparison
-            # defer to Timedelta implementation
-            return op(self.delta, other)
-
-        raise TypeError('Cannot compare type {self} with type '
-                        '{other}'.format(self=type(self), other=type(other)))
-
-    opname = '__{name}__'.format(name=op.__name__)
-    return compat.set_function_name(f, opname, cls)
+    return f
 
 
 class Tick(SingleConstructorOffset):
@@ -2215,12 +2193,12 @@ class Tick(SingleConstructorOffset):
         self.normalize = normalize
         self.kwds = {}
 
-    @classmethod
-    def _make_comp_methods(cls):
-        cls.__gt__ = _tick_comp(cls, operator.gt)
-        cls.__ge__ = _tick_comp(cls, operator.ge)
-        cls.__lt__ = _tick_comp(cls, operator.lt)
-        cls.__le__ = _tick_comp(cls, operator.le)
+    __gt__ = _tick_comp(operator.gt)
+    __ge__ = _tick_comp(operator.ge)
+    __lt__ = _tick_comp(operator.lt)
+    __le__ = _tick_comp(operator.le)
+    __eq__ = _tick_comp(operator.eq)
+    __ne__ = _tick_comp(operator.ne)
 
     def __add__(self, other):
         if isinstance(other, Tick):
@@ -2302,9 +2280,6 @@ class Tick(SingleConstructorOffset):
 
     def isAnchored(self):
         return False
-
-
-Tick._make_comp_methods()
 
 
 def _delta_to_tick(delta):
