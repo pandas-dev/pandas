@@ -4269,7 +4269,7 @@ class TestHDFStore(Base):
                           ['df1', 'df3'], where=['A>0', 'B>0'],
                           selector='df1')
 
-    @pytest.mark.skipf(
+    @pytest.mark.skipif(
         LooseVersion(tables.__version__) < '3.1.0',
         "tables version does not support fix for nan selection bug: GH 4858")
     def test_nan_selection_bug_4858(self):
