@@ -625,6 +625,21 @@ class TestSeriesConstructors(TestData):
         expected.iloc[1] = 1
         assert_series_equal(result, expected)
 
+    @pytest.mark.parametrize("value", [2, np.nan, None, float('nan')])
+    def test_constructor_dict_nan_key(self, value):
+        # GH 18480
+        d = {1: 'a', value: 'b', float('nan'): 'c', 4: 'd'}
+        result = Series(d).sort_values()
+        expected = Series(['a', 'b', 'c', 'd'], index=[1, value, np.nan, 4])
+        assert_series_equal(result, expected)
+
+        # MultiIndex:
+        d = {(1, 1): 'a', (2, np.nan): 'b', (3, value): 'c'}
+        result = Series(d).sort_values()
+        expected = Series(['a', 'b', 'c'],
+                          index=Index([(1, 1), (2, np.nan), (3, value)]))
+        assert_series_equal(result, expected)
+
     def test_constructor_dict_datetime64_index(self):
         # GH 9456
 
@@ -658,8 +673,6 @@ class TestSeriesConstructors(TestData):
         s = Series(data)
         assert tuple(s) == data
 
-    @pytest.mark.xfail(reason='GH 18480 (Series initialization from dict with '
-                              'NaN keys')
     def test_constructor_dict_of_tuples(self):
         data = {(1, 2): 3,
                 (None, 5): 6}

@@ -422,6 +422,7 @@ class TestSeriesMap(TestData):
         converted to a multi-index, preventing tuple values
         from being mapped properly.
         """
+        # GH 18496
         df = pd.DataFrame({'a': [(1, ), (2, ), (3, 4), (5, 6)]})
         label_mappings = {(1, ): 'A', (2, ): 'B', (3, 4): 'A', (5, 6): 'B'}
 
