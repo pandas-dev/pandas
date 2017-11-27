@@ -1047,13 +1047,18 @@ class TestMethods(object):
         ts = pd.Timestamp('2017')
         per = pd.Period('2017', freq='M')
 
-        with pytest.raises(TypeError):
+        # We may get a different message depending on which class raises
+        # the error.
+        msg = (r"cannot add|unsupported operand|"
+               r"can only operate on a|incompatible type|"
+               r"ufunc add cannot use operands")
+        with tm.assert_raises_regex(TypeError, msg):
             lbox(ts) + rbox(per)
 
-        with pytest.raises(TypeError):
+        with tm.assert_raises_regex(TypeError, msg):
             lbox(per) + rbox(ts)
 
-        with pytest.raises(TypeError):
+        with tm.assert_raises_regex(TypeError, msg):
             lbox(per) + rbox(per)
 
     def test_sub(self):
