@@ -1529,7 +1529,8 @@ def _get_join_keys(llab, rlab, shape, sort):
     rkey = stride * rlab[0].astype('i8', subok=False, copy=False)
 
     for i in range(1, nlev):
-        stride //= shape[i]
+        with np.errstate(divide='ignore'):
+            stride //= shape[i]
         lkey += llab[i] * stride
         rkey += rlab[i] * stride
 
