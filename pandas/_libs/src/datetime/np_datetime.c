@@ -24,20 +24,7 @@ This file is derived from NumPy 1.7. See NUMPY_LICENSE.txt
 #include "np_datetime.h"
 
 #if PY_MAJOR_VERSION >= 3
-#define PyIntObject PyLongObject
-#define PyInt_Type PyLong_Type
-#define PyInt_Check(op) PyLong_Check(op)
-#define PyInt_CheckExact(op) PyLong_CheckExact(op)
-#define PyInt_FromString PyLong_FromString
-#define PyInt_FromUnicode PyLong_FromUnicode
-#define PyInt_FromLong PyLong_FromLong
-#define PyInt_FromSize_t PyLong_FromSize_t
-#define PyInt_FromSsize_t PyLong_FromSsize_t
 #define PyInt_AsLong PyLong_AsLong
-#define PyInt_AS_LONG PyLong_AS_LONG
-#define PyInt_AsSsize_t PyLong_AsSsize_t
-#define PyInt_AsUnsignedLongMask PyLong_AsUnsignedLongMask
-#define PyInt_AsUnsignedLongLongMask PyLong_AsUnsignedLongLongMask
 #endif
 
 const pandas_datetimestruct _NS_MIN_DTS = {
@@ -690,44 +677,6 @@ int convert_datetimestruct_to_datetime(pandas_datetime_metadata *meta,
     *out = ret;
 
     return 0;
-}
-
-/*
- * This provides the casting rules for the TIMEDELTA data type units.
- *
- * Notably, there is a barrier between the nonlinear years and
- * months units, and all the other units.
- */
-npy_bool can_cast_timedelta64_units(PANDAS_DATETIMEUNIT src_unit,
-                                    PANDAS_DATETIMEUNIT dst_unit,
-                                    NPY_CASTING casting) {
-    switch (casting) {
-        /* Allow anything with unsafe casting */
-        case NPY_UNSAFE_CASTING:
-            return 1;
-
-        /*
-         * Only enforce the 'date units' vs 'time units' barrier with
-         * 'same_kind' casting.
-         */
-        case NPY_SAME_KIND_CASTING:
-            return (src_unit <= PANDAS_FR_M && dst_unit <= PANDAS_FR_M) ||
-                   (src_unit > PANDAS_FR_M && dst_unit > PANDAS_FR_M);
-
-        /*
-         * Enforce the 'date units' vs 'time units' barrier and that
-         * casting is only allowed towards more precise units with
-         * 'safe' casting.
-         */
-        case NPY_SAFE_CASTING:
-            return (src_unit <= dst_unit) &&
-                   ((src_unit <= PANDAS_FR_M && dst_unit <= PANDAS_FR_M) ||
-                    (src_unit > PANDAS_FR_M && dst_unit > PANDAS_FR_M));
-
-        /* Enforce equality with 'no' or 'equiv' casting */
-        default:
-            return src_unit == dst_unit;
-    }
 }
 
 /*
