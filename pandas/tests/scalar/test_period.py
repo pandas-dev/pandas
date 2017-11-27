@@ -1038,6 +1038,24 @@ class TestMethods(object):
         with tm.assert_raises_regex(TypeError, msg):
             dt1 + dt2
 
+    boxes = [lambda x: x, lambda x: pd.Series([x]), lambda x: pd.Index([x])]
+
+    @pytest.mark.parametrize('lbox', boxes)
+    @pytest.mark.parametrize('rbox', boxes)
+    def test_add_timestamp_raises(self, rbox, lbox):
+        # GH # 17983
+        ts = pd.Timestamp('2017')
+        per = pd.Period('2017', freq='M')
+
+        with pytest.raises(TypeError):
+            lbox(ts) + rbox(per)
+
+        with pytest.raises(TypeError):
+            lbox(per) + rbox(ts)
+
+        with pytest.raises(TypeError):
+            lbox(per) + rbox(per)
+
     def test_sub(self):
         dt1 = Period('2011-01-01', freq='D')
         dt2 = Period('2011-01-15', freq='D')
