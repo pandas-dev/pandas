@@ -335,7 +335,6 @@ class CheckSDist(sdist_class):
                  'pandas/_libs/index.pyx',
                  'pandas/_libs/algos.pyx',
                  'pandas/_libs/join.pyx',
-                 'pandas/_libs/khash.pyx',
                  'pandas/_libs/indexing.pyx',
                  'pandas/_libs/interval.pyx',
                  'pandas/_libs/hashing.pyx',
@@ -497,7 +496,7 @@ ext_data = {
         'pyxfile': '_libs/hashing'},
     '_libs.hashtable': {
         'pyxfile': '_libs/hashtable',
-        'pxdfiles': ['_libs/hashtable', '_libs/missing'],
+        'pxdfiles': ['_libs/hashtable', '_libs/missing', '_libs/khash'],
         'depends': (['pandas/_libs/src/klib/khash_python.h'] +
                     _pxi_dep['hashtable'])},
     '_libs.index': {
@@ -515,9 +514,6 @@ ext_data = {
         'pyxfile': '_libs/join',
         'pxdfiles': ['_libs/src/util', '_libs/hashtable'],
         'depends': _pxi_dep['join']},
-    '_libs.khash': {
-        'pyxfile': '_libs/khash',
-        'depends': ['pandas/_libs/src/klib/khash_python.h']},
     '_libs.lib': {
         'pyxfile': '_libs/lib',
         'pxdfiles': ['_libs/src/util', '_libs/missing'],
