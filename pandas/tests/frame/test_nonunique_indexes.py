@@ -217,7 +217,7 @@ class TestDataFrameNonuniqueIndexes(TestData):
             expected_df = DataFrame({'A': expected_ser,
                                      'B': this_df['B'],
                                      'A': expected_ser},
-                                     columns=['A', 'B', 'A'])
+                                    columns=['A', 'B', 'A'])
             this_df['A'] = index
             check(this_df, expected_df)
 
@@ -328,8 +328,8 @@ class TestDataFrameNonuniqueIndexes(TestData):
 
         df1r = df1.reindex_like(df2)
         result = df1r == df2
-        expected = DataFrame([[False, True], [True, False], [False, False], [
-                             True, False]], columns=['A', 'A'])
+        expected = DataFrame([[False, True], [True, False], [False, False],
+                             [True, False]], columns=['A', 'A'])
         assert_frame_equal(result, expected)
 
         # mixed column selection

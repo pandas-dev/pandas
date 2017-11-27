@@ -323,9 +323,10 @@ class ReadingTestsBase(SharedItems):
             # GH5394 - this is why convert_float isn't vectorized
             "Str2Col": ["a", 3, "c", "d", "e"],
             "DateCol": [datetime(2013, 10, 30), datetime(2013, 10, 31),
-                         datetime(1905, 1, 1), datetime(2013, 12, 14),
-                         datetime(2015, 3, 14)]
-        }, columns=["IntCol", "FloatCol", "BoolCol", "StrCol", "Str2Col", "DateCol"])
+                        datetime(1905, 1, 1), datetime(2013, 12, 14),
+                        datetime(2015, 3, 14)]
+        }, columns=["IntCol", "FloatCol", "BoolCol",
+                    "StrCol", "Str2Col", "DateCol"])
 
         basename = 'test_types'
 
