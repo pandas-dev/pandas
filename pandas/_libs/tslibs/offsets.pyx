@@ -474,6 +474,8 @@ cdef inline int month_add_months(pandas_datetimestruct dts, int months) nogil:
 def shift_quarters(int64_t[:] dtindex, int quarters,
                    int q1start_month, object day, int modby=3):
     """
+    Given an int64 array representing nanosecond timestamps, shift all elements
+    by the specified number of quarters using DateOffset semantics.
 
     Parameters
     ----------
@@ -481,7 +483,11 @@ def shift_quarters(int64_t[:] dtindex, int quarters,
     quarters : int number of quarters to shift
     q1start_month : int month in which Q1 begins by convention
     day : {'start', 'end', 'business_start', 'business_end'}
+    modby : int (3 for quarters, 12 for years)
 
+    Returns
+    -------
+    out : ndarray[int64_t]
     """
     cdef:
         Py_ssize_t i
