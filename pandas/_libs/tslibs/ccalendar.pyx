@@ -24,6 +24,8 @@ cdef int32_t* days_per_month_array = [
     31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31, 
     31, 29, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31]
 
+cdef int* sakamoto_arr = [0, 3, 2, 5, 0, 3, 5, 1, 4, 6, 2, 4]
+
 # ----------------------------------------------------------------------
 
 
@@ -106,7 +108,6 @@ cdef int dayofweek(int y, int m, int d) nogil:
     """
     cdef:
         int day
-        int* sakamoto_arr = [0, 3, 2, 5, 0, 3, 5, 1, 4, 6, 2, 4]
 
     y -= m < 3
     day = (y + y / 4 - y / 100 + y / 400 + sakamoto_arr[m - 1] + d) % 7
