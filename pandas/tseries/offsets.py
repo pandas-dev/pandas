@@ -28,7 +28,7 @@ from pandas._libs.tslibs.offsets import (
     apply_index_wraps,
     roll_yearday,
     shift_month,
-    BeginMixin, EndMixin,
+    EndMixin,
     BaseOffset)
 
 
@@ -1656,7 +1656,7 @@ class BQuarterBegin(QuarterOffset):
     _day_opt = 'business_start'
 
 
-class QuarterEnd(EndMixin, QuarterOffset):
+class QuarterEnd(QuarterOffset):
     """DateOffset increments between business Quarter dates
     startingMonth = 1 corresponds to dates like 1/31/2007, 4/30/2007, ...
     startingMonth = 2 corresponds to dates like 2/28/2007, 5/31/2007, ...
@@ -1668,7 +1668,7 @@ class QuarterEnd(EndMixin, QuarterOffset):
     _day_opt = 'end'
 
 
-class QuarterBegin(BeginMixin, QuarterOffset):
+class QuarterBegin(QuarterOffset):
     _outputName = 'QuarterBegin'
     _default_startingMonth = 3
     _from_name_startingMonth = 1
@@ -1745,14 +1745,14 @@ class BYearBegin(YearOffset):
     _day_opt = 'business_start'
 
 
-class YearEnd(EndMixin, YearOffset):
+class YearEnd(YearOffset):
     """DateOffset increments between calendar year ends"""
     _default_month = 12
     _prefix = 'A'
     _day_opt = 'end'
 
 
-class YearBegin(BeginMixin, YearOffset):
+class YearBegin(YearOffset):
     """DateOffset increments between calendar year begin dates"""
     _default_month = 1
     _prefix = 'AS'
