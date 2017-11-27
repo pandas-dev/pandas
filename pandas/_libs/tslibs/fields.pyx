@@ -17,11 +17,12 @@ from numpy cimport ndarray, int64_t, int32_t, int8_t
 np.import_array()
 
 
-from ccalendar cimport is_leapyear
+from ccalendar cimport get_days_in_month
+# from ccalendar cimport is_leapyear
 # from ccalendar cimport dayofweek
 from np_datetime cimport (pandas_datetimestruct, pandas_timedeltastruct,
                           dt64_to_dtstruct, td64_to_tdstruct,
-                          days_per_month_table, dayofweek)
+                          days_per_month_table, dayofweek, is_leapyearv)
 from nattype cimport NPY_NAT
 
 
@@ -553,7 +554,8 @@ def get_date_field(ndarray[int64_t] dtindex, object field):
                     continue
 
                 dt64_to_dtstruct(dtindex[i], &dts)
-                out[i] = days_in_month(dts)
+                out[i] = get_days_in_month(dts.year, dts.day)
+                # out[i] = days_in_month(dts)
         return out
     elif field == 'is_leap_year':
         return isleapyear_arr(get_date_field(dtindex, 'Y'))
