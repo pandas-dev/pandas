@@ -38,6 +38,25 @@ class ApplyIndex(object):
         self.ser + self.offset
 
 
+class OnOffset(object):
+    goal_time = 0.2
+
+    params = [pd.offsets.QuarterBegin(), pd.offsets.QuarterEnd(),
+              pd.offsets.BQuarterBegin(), pd.offsets.BQuarterEnd()]
+    param_names = ['offset']
+
+    def setup(self, offset):
+        self.offset = offset
+        self.dates = [datetime(2016, m, d)
+                      for m in [10, 11, 12]
+                      for d in [1, 2, 3, 28, 29, 30, 31]
+                      if not (m == 11 and d == 31)]
+
+    def time_on_offset(self, offset):
+        for date in self.dates:
+            self.offset.onOffset(date)
+
+
 class DatetimeIndexArithmetic(object):
     goal_time = 0.2
 
