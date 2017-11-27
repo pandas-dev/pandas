@@ -4,7 +4,6 @@ import pytest
 from pandas.compat import (range, lrange, StringIO,
                            OrderedDict, is_platform_32bit)
 import os
-
 import numpy as np
 from pandas import (Series, DataFrame, DatetimeIndex, Timestamp,
                     read_json, compat)
@@ -1031,6 +1030,70 @@ DataFrame\\.index values are different \\(100\\.0 %\\)
         assert dumps(dti, iso_dates=True) == exp
         df = DataFrame({'DT': dti})
         assert dumps(df, iso_dates=True) == dfexp
+
+    def test_read_inline_jsonl(self):
+        # GH9180
+        result = read_json('{"a": 1, "b": 2}\n{"b":2, "a" :1}\n', lines=True)
+        expected = DataFrame([[1, 2], [1, 2]], columns=['a', 'b'])
+        assert_frame_equal(result, expected)
+
+    def test_read_s3_jsonl(self, s3_resource):
+        pytest.importorskip('s3fs')
+        # GH17200
+
+        result = read_json('s3n://pandas-test/items.jsonl', lines=True)
+        expected = DataFrame([[1, 2], [1, 2]], columns=['a', 'b'])
+        assert_frame_equal(result, expected)
+
+    def test_read_local_jsonl(self):
+        # GH17200
+        with ensure_clean('tmp_items.json') as path:
+            with open(path, 'w') as infile:
+                infile.write('{"a": 1, "b": 2}\n{"b":2, "a" :1}\n')
+            result = read_json(path, lines=True)
+            expected = DataFrame([[1, 2], [1, 2]], columns=['a', 'b'])
+            assert_frame_equal(result, expected)
+
+    def test_read_jsonl_unicode_chars(self):
+        # GH15132: non-ascii unicode characters
+        # \u201d == RIGHT DOUBLE QUOTATION MARK
+
+        # simulate file handle
+        json = '{"a": "foo”", "b": "bar"}\n{"a": "foo", "b": "bar"}\n'
+        json = StringIO(json)
+        result = read_json(json, lines=True)
+        expected = DataFrame([[u"foo\u201d", "bar"], ["foo", "bar"]],
+                             columns=['a', 'b'])
+        assert_frame_equal(result, expected)
+
+        # simulate string
+        json = '{"a": "foo”", "b": "bar"}\n{"a": "foo", "b": "bar"}\n'
+        result = read_json(json, lines=True)
+        expected = DataFrame([[u"foo\u201d", "bar"], ["foo", "bar"]],
+                             columns=['a', 'b'])
+        assert_frame_equal(result, expected)
+
+    def test_to_jsonl(self):
+        # GH9180
+        df = DataFrame([[1, 2], [1, 2]], columns=['a', 'b'])
+        result = df.to_json(orient="records", lines=True)
+        expected = '{"a":1,"b":2}\n{"a":1,"b":2}'
+        assert result == expected
+
+        df = DataFrame([["foo}", "bar"], ['foo"', "bar"]], columns=['a', 'b'])
+        result = df.to_json(orient="records", lines=True)
+        expected = '{"a":"foo}","b":"bar"}\n{"a":"foo\\"","b":"bar"}'
+        assert result == expected
+        assert_frame_equal(pd.read_json(result, lines=True), df)
+
+        # GH15096: escaped characters in columns and data
+        df = DataFrame([["foo\\", "bar"], ['foo"', "bar"]],
+                       columns=["a\\", 'b'])
+        result = df.to_json(orient="records", lines=True)
+        expected = ('{"a\\\\":"foo\\\\","b":"bar"}\n'
+                    '{"a\\\\":"foo\\"","b":"bar"}')
+        assert result == expected
+        assert_frame_equal(pd.read_json(result, lines=True), df)
 
     def test_latin_encoding(self):
         if compat.PY2:

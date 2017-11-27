@@ -4,60 +4,12 @@
 Tests parsers ability to read and parse non-local files
 and hence require a network connection to be read.
 """
-import os
-
 import pytest
-import moto
 
 import pandas.util.testing as tm
 from pandas import DataFrame
 from pandas.io.parsers import read_csv, read_table
 from pandas.compat import BytesIO
-
-
-@pytest.fixture(scope='module')
-def tips_file():
-    return os.path.join(tm.get_data_path(), 'tips.csv')
-
-
-@pytest.fixture(scope='module')
-def salaries_table():
-    path = os.path.join(tm.get_data_path(), 'salaries.csv')
-    return read_table(path)
-
-
-@pytest.fixture(scope='module')
-def s3_resource(tips_file):
-    pytest.importorskip('s3fs')
-    moto.mock_s3().start()
-
-    test_s3_files = [
-        ('tips.csv', tips_file),
-        ('tips.csv.gz', tips_file + '.gz'),
-        ('tips.csv.bz2', tips_file + '.bz2'),
-    ]
-
-    def add_tips_files(bucket_name):
-        for s3_key, file_name in test_s3_files:
-            with open(file_name, 'rb') as f:
-                conn.Bucket(bucket_name).put_object(
-                    Key=s3_key,
-                    Body=f)
-
-    boto3 = pytest.importorskip('boto3')
-    # see gh-16135
-    bucket = 'pandas-test'
-
-    conn = boto3.resource("s3", region_name="us-east-1")
-    conn.create_bucket(Bucket=bucket)
-    add_tips_files(bucket)
-
-    conn.create_bucket(Bucket='cant_get_it', ACL='private')
-    add_tips_files('cant_get_it')
-
-    yield conn
-
-    moto.mock_s3().stop()
 
 
 @pytest.mark.network
