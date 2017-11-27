@@ -17,12 +17,9 @@ from numpy cimport ndarray, int64_t, int32_t, int8_t
 np.import_array()
 
 
-from ccalendar cimport get_days_in_month
-# from ccalendar cimport is_leapyear
-# from ccalendar cimport dayofweek
+from ccalendar cimport get_days_in_month, is_leapyear, dayofweek
 from np_datetime cimport (pandas_datetimestruct, pandas_timedeltastruct,
-                          dt64_to_dtstruct, td64_to_tdstruct,
-                          days_per_month_table, dayofweek, is_leapyear)
+                          dt64_to_dtstruct, td64_to_tdstruct)
 from nattype cimport NPY_NAT
 
 
@@ -555,7 +552,6 @@ def get_date_field(ndarray[int64_t] dtindex, object field):
 
                 dt64_to_dtstruct(dtindex[i], &dts)
                 out[i] = get_days_in_month(dts.year, dts.day)
-                # out[i] = days_in_month(dts)
         return out
     elif field == 'is_leap_year':
         return isleapyear_arr(get_date_field(dtindex, 'Y'))
@@ -678,10 +674,6 @@ def get_timedelta_field(ndarray[int64_t] tdindex, object field):
         return out
 
     raise ValueError("Field %s not supported" % field)
-
-
-cdef inline int days_in_month(pandas_datetimestruct dts) nogil:
-    return days_per_month_table[is_leapyear(dts.year)][dts.month - 1]
 
 
 cpdef isleapyear_arr(ndarray years):
