@@ -27,7 +27,7 @@ from pandas._libs.tslibs.offsets import (
     apply_index_wraps,
     roll_yearday,
     shift_month,
-    BeginMixin, EndMixin,
+    EndMixin,
     BaseOffset)
 
 
@@ -1028,10 +1028,7 @@ class CustomBusinessMonthEnd(BusinessMixin, MonthOffset):
 
     @cache_readonly
     def m_offset(self):
-        kwds = self.kwds
-        kwds = {key: kwds[key] for key in kwds
-                if key not in ['calendar', 'weekmask', 'holidays', 'offset']}
-        return MonthEnd(n=1, normalize=self.normalize, **kwds)
+        return MonthEnd(n=1, normalize=self.normalize)
 
     @apply_wraps
     def apply(self, other):
@@ -1106,10 +1103,7 @@ class CustomBusinessMonthBegin(BusinessMixin, MonthOffset):
 
     @cache_readonly
     def m_offset(self):
-        kwds = self.kwds
-        kwds = {key: kwds[key] for key in kwds
-                if key not in ['calendar', 'weekmask', 'holidays', 'offset']}
-        return MonthBegin(n=1, normalize=self.normalize, **kwds)
+        return MonthBegin(n=1, normalize=self.normalize)
 
     @apply_wraps
     def apply(self, other):
@@ -1254,12 +1248,9 @@ class SemiMonthEnd(SemiMonthOffset):
 
     def _apply(self, n, other):
         # if other.day is not day_of_month move to day_of_month and update n
-        if other.day < self.day_of_month:
-            other = other.replace(day=self.day_of_month)
-            if n > 0:
-                n -= 1
+        if n > 0 and other.day < self.day_of_month:
+            n -= 1
         elif other.day > self.day_of_month:
-            other = other.replace(day=self.day_of_month)
             n += 1
 
         months = n // 2
@@ -1309,12 +1300,9 @@ class SemiMonthBegin(SemiMonthOffset):
     def _apply(self, n, other):
         # if other.day is not day_of_month move to day_of_month and update n
         if other.day < self.day_of_month:
-            other = other.replace(day=self.day_of_month)
             n -= 1
-        elif other.day > self.day_of_month:
-            other = other.replace(day=self.day_of_month)
-            if n <= 0:
-                n += 1
+        elif n <= 0 and other.day > self.day_of_month:
+            n += 1
 
         months = n // 2 + n % 2
         day = 1 if n % 2 else self.day_of_month
@@ -1471,6 +1459,7 @@ class WeekOfMonth(DateOffset):
     def getOffsetOfMonth(self, dt):
         w = Week(weekday=self.weekday)
         d = datetime(dt.year, dt.month, 1, tzinfo=dt.tzinfo)
+        # TODO: Is this DST-safe?
         d = w.rollforward(d)
         return d + timedelta(weeks=self.week)
 
@@ -1550,6 +1539,7 @@ class LastWeekOfMonth(DateOffset):
         d = datetime(dt.year, dt.month, 1, dt.hour, dt.minute,
                      dt.second, dt.microsecond, tzinfo=dt.tzinfo)
         eom = m.rollforward(d)
+        # TODO: Is this DST-safe?
         w = Week(weekday=self.weekday)
         return w.rollback(eom)
 
@@ -1635,6 +1625,12 @@ class QuarterOffset(DateOffset):
         modMonth = (dt.month - self.startingMonth) % 3
         return modMonth == 0 and dt.day == self._get_offset_day(dt)
 
+    @apply_index_wraps
+    def apply_index(self, dtindex):
+        shifted = liboffsets.shift_quarters(dtindex.asi8, self.n,
+                                            self.startingMonth, self._day_opt)
+        return dtindex._shallow_copy(shifted)
+
 
 class BQuarterEnd(QuarterOffset):
     """DateOffset increments between business Quarter dates
@@ -1659,7 +1655,7 @@ class BQuarterBegin(QuarterOffset):
     _day_opt = 'business_start'
 
 
-class QuarterEnd(EndMixin, QuarterOffset):
+class QuarterEnd(QuarterOffset):
     """DateOffset increments between business Quarter dates
     startingMonth = 1 corresponds to dates like 1/31/2007, 4/30/2007, ...
     startingMonth = 2 corresponds to dates like 2/28/2007, 5/31/2007, ...
@@ -1670,24 +1666,13 @@ class QuarterEnd(EndMixin, QuarterOffset):
     _prefix = 'Q'
     _day_opt = 'end'
 
-    @apply_index_wraps
-    def apply_index(self, i):
-        return self._end_apply_index(i, self.freqstr)
 
-
-class QuarterBegin(BeginMixin, QuarterOffset):
+class QuarterBegin(QuarterOffset):
     _outputName = 'QuarterBegin'
     _default_startingMonth = 3
     _from_name_startingMonth = 1
     _prefix = 'QS'
     _day_opt = 'start'
-
-    @apply_index_wraps
-    def apply_index(self, i):
-        freq_month = 12 if self.startingMonth == 1 else self.startingMonth - 1
-        month = liboffsets._int_to_month[freq_month]
-        freqstr = 'Q-{month}'.format(month=month)
-        return self._beg_apply_index(i, freqstr)
 
 
 # ---------------------------------------------------------------------
@@ -1708,6 +1693,13 @@ class YearOffset(DateOffset):
         years = roll_yearday(other, self.n, self.month, self._day_opt)
         months = years * 12 + (self.month - other.month)
         return shift_month(other, months, self._day_opt)
+
+    @apply_index_wraps
+    def apply_index(self, dtindex):
+        shifted = liboffsets.shift_quarters(dtindex.asi8, self.n,
+                                            self.month, self._day_opt,
+                                            modby=12)
+        return dtindex._shallow_copy(shifted)
 
     def onOffset(self, dt):
         if self.normalize and not _is_normalized(dt):
@@ -1752,30 +1744,18 @@ class BYearBegin(YearOffset):
     _day_opt = 'business_start'
 
 
-class YearEnd(EndMixin, YearOffset):
+class YearEnd(YearOffset):
     """DateOffset increments between calendar year ends"""
     _default_month = 12
     _prefix = 'A'
     _day_opt = 'end'
 
-    @apply_index_wraps
-    def apply_index(self, i):
-        # convert month anchor to annual period tuple
-        return self._end_apply_index(i, self.freqstr)
 
-
-class YearBegin(BeginMixin, YearOffset):
+class YearBegin(YearOffset):
     """DateOffset increments between calendar year begin dates"""
     _default_month = 1
     _prefix = 'AS'
     _day_opt = 'start'
-
-    @apply_index_wraps
-    def apply_index(self, i):
-        freq_month = 12 if self.month == 1 else self.month - 1
-        month = liboffsets._int_to_month[freq_month]
-        freqstr = 'A-{month}'.format(month=month)
-        return self._beg_apply_index(i, freqstr)
 
 
 # ---------------------------------------------------------------------
@@ -2245,7 +2225,8 @@ class Tick(SingleConstructorOffset):
         if isinstance(other, Tick):
             return self.delta == other.delta
         else:
-            return DateOffset.__eq__(self, other)
+            # TODO: Are there cases where this should raise TypeError?
+            return False
 
     # This is identical to DateOffset.__hash__, but has to be redefined here
     # for Python 3, because we've redefined __eq__.
@@ -2261,7 +2242,8 @@ class Tick(SingleConstructorOffset):
         if isinstance(other, Tick):
             return self.delta != other.delta
         else:
-            return DateOffset.__ne__(self, other)
+            # TODO: Are there cases where this should raise TypeError?
+            return True
 
     @property
     def delta(self):
