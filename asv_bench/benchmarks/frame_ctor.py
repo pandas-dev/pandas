@@ -2,8 +2,8 @@ import numpy as np
 import pandas.util.testing as tm
 from pandas import DataFrame, Series, MultiIndex, Timestamp, date_range
 try:
-    from pandas.tseries.offset import Nano, Hour
-except:
+    from pandas.tseries.offsets import Nano, Hour
+except ImportError:
     # For compatability with older versions(?)
     from pandas.core.datetools import *
 
