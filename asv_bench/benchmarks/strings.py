@@ -105,3 +105,15 @@ class StringEncode(object):
 
     def time_encode_decode(self):
         self.ser.str.encode('utf-8').str.decode('utf-8')
+
+
+class StringSlice(object):
+
+    goal_time = 0.2
+
+    def setup(self):
+        self.s = Series(['abcdefg', np.nan] * 500000)
+
+    def time_series_string_vector_slice(self):
+        # GH 2602
+        self.s.str[:5]
