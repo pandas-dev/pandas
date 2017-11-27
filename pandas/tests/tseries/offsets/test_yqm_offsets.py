@@ -34,7 +34,11 @@ def test_quarterly_dont_normalize():
 
 
 @pytest.mark.parametrize('offset', [MonthBegin(), MonthEnd(),
-                                    BMonthBegin(), BMonthEnd()])
+                                    BMonthBegin(), BMonthEnd(),
+                                    QuarterBegin(), QuarterEnd(),
+                                    BQuarterBegin(), BQuarterEnd(),
+                                    YearBegin(), YearEnd(),
+                                    BYearBegin(), BYearEnd()])
 def test_apply_index(offset):
     rng = pd.date_range(start='1/1/2000', periods=100000, freq='T')
     ser = pd.Series(rng)
