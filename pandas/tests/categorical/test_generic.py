@@ -5,17 +5,14 @@ from distutils.version import LooseVersion
 
 import numpy as np
 
-import pandas as pd
 import pandas.util.testing as tm
 from pandas import (Categorical, Index, Series, DataFrame, CategoricalIndex)
 from pandas.core.dtypes.dtypes import CategoricalDtype
+from pandas.tests.categorical.common import (TestCategorical,
+                                             TestCategoricalBlock)
 
 
-class TestCategoricalGeneric(object):
-
-    def setup_method(self, method):
-        self.factor = Categorical(['a', 'b', 'b', 'a', 'a', 'c', 'c', 'c'],
-                                  ordered=True)
+class TestCategoricalGeneric(TestCategorical):
 
     def test_categories_none(self):
         factor = Categorical(['a', 'b', 'b', 'a',
@@ -65,38 +62,6 @@ class TestCategoricalGeneric(object):
                                                     categories=[1, 2],
                                                     name='categories'))
         tm.assert_frame_equal(desc, expected)
-
-    def test_getitem(self):
-        assert self.factor[0] == 'a'
-        assert self.factor[-1] == 'c'
-
-        subf = self.factor[[0, 1, 2]]
-        tm.assert_numpy_array_equal(subf._codes,
-                                    np.array([0, 1, 1], dtype=np.int8))
-
-        subf = self.factor[np.asarray(self.factor) == 'c']
-        tm.assert_numpy_array_equal(subf._codes,
-                                    np.array([2, 2, 2], dtype=np.int8))
-
-    def test_setitem(self):
-
-        # int/positional
-        c = self.factor.copy()
-        c[0] = 'b'
-        assert c[0] == 'b'
-        c[-1] = 'a'
-        assert c[-1] == 'a'
-
-        # boolean
-        c = self.factor.copy()
-        indexer = np.zeros(len(c), dtype='bool')
-        indexer[0] = True
-        indexer[-1] = True
-        c[indexer] = 'c'
-        expected = Categorical(['c', 'b', 'b', 'a', 'a', 'c', 'c', 'c'],
-                               ordered=True)
-
-        tm.assert_categorical_equal(c, expected)
 
     def test_set_categories_inplace(self):
         cat = self.factor.copy()
@@ -212,81 +177,8 @@ class TestCategoricalGeneric(object):
         res = cat_rev > "b"
         tm.assert_numpy_array_equal(res, exp)
 
-    def test_print(self):
-        expected = ["[a, b, b, a, a, c, c, c]",
-                    "Categories (3, object): [a < b < c]"]
-        expected = "\n".join(expected)
-        actual = repr(self.factor)
-        assert actual == expected
 
-
-class TestCategoricalGenericBlock(object):
-
-    def setup_method(self, method):
-        self.factor = Categorical(['a', 'b', 'b', 'a', 'a', 'c', 'c', 'c'])
-
-        df = DataFrame({'value': np.random.randint(0, 10000, 100)})
-        labels = ["{0} - {1}".format(i, i + 499) for i in range(0, 10000, 500)]
-        cat_labels = Categorical(labels, labels)
-
-        df = df.sort_values(by=['value'], ascending=True)
-        df['value_group'] = pd.cut(df.value, range(0, 10500, 500),
-                                   right=False, labels=cat_labels)
-        self.cat = df
-
-    def test_basic(self):
-
-        # test basic creation / coercion of categoricals
-        s = Series(self.factor, name='A')
-        assert s.dtype == 'category'
-        assert len(s) == len(self.factor)
-        str(s.values)
-        str(s)
-
-        # in a frame
-        df = DataFrame({'A': self.factor})
-        result = df['A']
-        tm.assert_series_equal(result, s)
-        result = df.iloc[:, 0]
-        tm.assert_series_equal(result, s)
-        assert len(df) == len(self.factor)
-        str(df.values)
-        str(df)
-
-        df = DataFrame({'A': s})
-        result = df['A']
-        tm.assert_series_equal(result, s)
-        assert len(df) == len(self.factor)
-        str(df.values)
-        str(df)
-
-        # multiples
-        df = DataFrame({'A': s, 'B': s, 'C': 1})
-        result1 = df['A']
-        result2 = df['B']
-        tm.assert_series_equal(result1, s)
-        tm.assert_series_equal(result2, s, check_names=False)
-        assert result2.name == 'B'
-        assert len(df) == len(self.factor)
-        str(df.values)
-        str(df)
-
-        # GH8623
-        x = DataFrame([[1, 'John P. Doe'], [2, 'Jane Dove'],
-                       [1, 'John P. Doe']],
-                      columns=['person_id', 'person_name'])
-        x['person_name'] = Categorical(x.person_name
-                                       )  # doing this breaks transform
-
-        expected = x.iloc[0].person_name
-        result = x.person_name.iloc[0]
-        assert result == expected
-
-        result = x.person_name[0]
-        assert result == expected
-
-        result = x.person_name.loc[0]
-        assert result == expected
+class TestCategoricalGenericBlock(TestCategoricalBlock):
 
     def test_describe(self):
 
@@ -309,18 +201,6 @@ class TestCategoricalGenericBlock(object):
         df3 = DataFrame({"cat": cat, "s": ["a", "b", "c", "c"]})
         res = df3.describe()
         tm.assert_numpy_array_equal(res["cat"].values, res["s"].values)
-
-    def test_groupby_sort(self):
-
-        # http://stackoverflow.com/questions/23814368/sorting-pandas-categorical-labels-after-groupby
-        # This should result in a properly sorted Series so that the plot
-        # has a sorted x axis
-        # self.cat.groupby(['value_group'])['value_group'].count().plot(kind='bar')
-
-        res = self.cat.groupby(['value_group'])['value_group'].count()
-        exp = res[sorted(res.index, key=lambda x: float(x.split()[0]))]
-        exp.index = CategoricalIndex(exp.index, name=exp.index.name)
-        tm.assert_series_equal(res, exp)
 
     def test_astype_to_other(self):
 

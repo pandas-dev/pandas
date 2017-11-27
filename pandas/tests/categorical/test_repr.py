@@ -6,6 +6,16 @@ from pandas import (Categorical, Series, CategoricalIndex, date_range,
                     period_range, timedelta_range)
 from pandas.compat import u, PY3
 from pandas.core.config import option_context
+from pandas.tests.categorical.common import TestCategorical
+
+
+class TestCategoricalReprWithFactor(TestCategorical):
+    def test_print(self):
+        expected = ["[a, b, b, a, a, c, c, c]",
+                    "Categories (3, object): [a < b < c]"]
+        expected = "\n".join(expected)
+        actual = repr(self.factor)
+        assert actual == expected
 
 
 class TestCategoricalRepr(object):

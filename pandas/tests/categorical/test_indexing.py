@@ -8,10 +8,44 @@ import pandas as pd
 import pandas.compat as compat
 import pandas.util.testing as tm
 from pandas.core.dtypes.dtypes import CategoricalDtype
-from pandas import (Categorical, Index, Series, DataFrame, PeriodIndex,
-                    Interval)
-from pandas.core.dtypes.common import (
-    is_categorical_dtype)
+from pandas import Categorical, Index, Series, DataFrame, PeriodIndex, Interval
+from pandas.core.dtypes.common import is_categorical_dtype
+from pandas.tests.categorical.common import TestCategorical
+
+
+class TestCategoricalIndexingWithFactor(TestCategorical):
+
+    def test_getitem(self):
+        assert self.factor[0] == 'a'
+        assert self.factor[-1] == 'c'
+
+        subf = self.factor[[0, 1, 2]]
+        tm.assert_numpy_array_equal(subf._codes,
+                                    np.array([0, 1, 1], dtype=np.int8))
+
+        subf = self.factor[np.asarray(self.factor) == 'c']
+        tm.assert_numpy_array_equal(subf._codes,
+                                    np.array([2, 2, 2], dtype=np.int8))
+
+    def test_setitem(self):
+
+        # int/positional
+        c = self.factor.copy()
+        c[0] = 'b'
+        assert c[0] == 'b'
+        c[-1] = 'a'
+        assert c[-1] == 'a'
+
+        # boolean
+        c = self.factor.copy()
+        indexer = np.zeros(len(c), dtype='bool')
+        indexer[0] = True
+        indexer[-1] = True
+        c[indexer] = 'c'
+        expected = Categorical(['c', 'b', 'b', 'a', 'a', 'c', 'c', 'c'],
+                               ordered=True)
+
+        tm.assert_categorical_equal(c, expected)
 
 
 class TestCategoricalIndexing(object):

@@ -44,64 +44,66 @@ class TestCategoricalOps(object):
 
 class TestCategoricalBlockOps(object):
 
-    def test_comparisons(self):
-        tests_data = [(list("abc"), list("cba"), list("bbb")),
-                      ([1, 2, 3], [3, 2, 1], [2, 2, 2])]
-        for data, reverse, base in tests_data:
-            cat_rev = Series(
-                Categorical(data, categories=reverse, ordered=True))
-            cat_rev_base = Series(
-                Categorical(base, categories=reverse, ordered=True))
-            cat = Series(Categorical(data, ordered=True))
-            cat_base = Series(
-                Categorical(base, categories=cat.cat.categories, ordered=True))
-            s = Series(base)
-            a = np.array(base)
+    @pytest.mark.parametrize('data,reverse,base', [
+        (list("abc"), list("cba"), list("bbb")),
+        ([1, 2, 3], [3, 2, 1], [2, 2, 2])]
+    )
+    def test_comparisons(self, data, reverse, base):
+        cat_rev = Series(
+            Categorical(data, categories=reverse, ordered=True))
+        cat_rev_base = Series(
+            Categorical(base, categories=reverse, ordered=True))
+        cat = Series(Categorical(data, ordered=True))
+        cat_base = Series(
+            Categorical(base, categories=cat.cat.categories, ordered=True))
+        s = Series(base)
+        a = np.array(base)
 
-            # comparisons need to take categories ordering into account
-            res_rev = cat_rev > cat_rev_base
-            exp_rev = Series([True, False, False])
-            tm.assert_series_equal(res_rev, exp_rev)
+        # comparisons need to take categories ordering into account
+        res_rev = cat_rev > cat_rev_base
+        exp_rev = Series([True, False, False])
+        tm.assert_series_equal(res_rev, exp_rev)
 
-            res_rev = cat_rev < cat_rev_base
-            exp_rev = Series([False, False, True])
-            tm.assert_series_equal(res_rev, exp_rev)
+        res_rev = cat_rev < cat_rev_base
+        exp_rev = Series([False, False, True])
+        tm.assert_series_equal(res_rev, exp_rev)
 
-            res = cat > cat_base
-            exp = Series([False, False, True])
-            tm.assert_series_equal(res, exp)
+        res = cat > cat_base
+        exp = Series([False, False, True])
+        tm.assert_series_equal(res, exp)
 
-            scalar = base[1]
-            res = cat > scalar
-            exp = Series([False, False, True])
-            exp2 = cat.values > scalar
-            tm.assert_series_equal(res, exp)
-            tm.assert_numpy_array_equal(res.values, exp2)
-            res_rev = cat_rev > scalar
-            exp_rev = Series([True, False, False])
-            exp_rev2 = cat_rev.values > scalar
-            tm.assert_series_equal(res_rev, exp_rev)
-            tm.assert_numpy_array_equal(res_rev.values, exp_rev2)
+        scalar = base[1]
+        res = cat > scalar
+        exp = Series([False, False, True])
+        exp2 = cat.values > scalar
+        tm.assert_series_equal(res, exp)
+        tm.assert_numpy_array_equal(res.values, exp2)
+        res_rev = cat_rev > scalar
+        exp_rev = Series([True, False, False])
+        exp_rev2 = cat_rev.values > scalar
+        tm.assert_series_equal(res_rev, exp_rev)
+        tm.assert_numpy_array_equal(res_rev.values, exp_rev2)
 
-            # Only categories with same categories can be compared
-            def f():
-                cat > cat_rev
+        # Only categories with same categories can be compared
+        def f():
+            cat > cat_rev
 
-            pytest.raises(TypeError, f)
+        pytest.raises(TypeError, f)
 
-            # categorical cannot be compared to Series or numpy array, and also
-            # not the other way around
-            pytest.raises(TypeError, lambda: cat > s)
-            pytest.raises(TypeError, lambda: cat_rev > s)
-            pytest.raises(TypeError, lambda: cat > a)
-            pytest.raises(TypeError, lambda: cat_rev > a)
+        # categorical cannot be compared to Series or numpy array, and also
+        # not the other way around
+        pytest.raises(TypeError, lambda: cat > s)
+        pytest.raises(TypeError, lambda: cat_rev > s)
+        pytest.raises(TypeError, lambda: cat > a)
+        pytest.raises(TypeError, lambda: cat_rev > a)
 
-            pytest.raises(TypeError, lambda: s < cat)
-            pytest.raises(TypeError, lambda: s < cat_rev)
+        pytest.raises(TypeError, lambda: s < cat)
+        pytest.raises(TypeError, lambda: s < cat_rev)
 
-            pytest.raises(TypeError, lambda: a < cat)
-            pytest.raises(TypeError, lambda: a < cat_rev)
+        pytest.raises(TypeError, lambda: a < cat)
+        pytest.raises(TypeError, lambda: a < cat_rev)
 
+    def test_unequal_comparison_raises_type_error(self):
         # unequal comparison should raise for unordered cats
         cat = Series(Categorical(list("abc")))
 
@@ -129,7 +131,7 @@ class TestCategoricalBlockOps(object):
         tm.assert_series_equal(cat == "d", Series([False, False, False]))
         tm.assert_series_equal(cat != "d", Series([True, True, True]))
 
-        # And test NaN handling...
+    def test_nan_equality(self):
         cat = Series(Categorical(["a", "b", "c", np.nan]))
         exp = Series([True, True, True, False])
         res = (cat == cat)

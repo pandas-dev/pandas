@@ -11,9 +11,8 @@ from pandas import (Categorical, Index, Series, DataFrame, Timestamp,
                     period_range, timedelta_range, NaT,
                     Interval, IntervalIndex)
 from pandas.core.dtypes.dtypes import CategoricalDtype
-from pandas.core.dtypes.common import (
-    is_float_dtype,
-    is_integer_dtype)
+from pandas.core.dtypes.common import is_float_dtype, is_integer_dtype
+from pandas.tests.categorical.common import TestCategoricalBlock
 
 
 class TestCategoricalConstructors(object):
@@ -509,6 +508,63 @@ class TestCategoricalConstructors(object):
         assert not cat.ordered
         cat = Categorical([0, 1, 2], ordered=True)
         assert cat.ordered
+
+
+class TestCategoricalBlockConstructorsWithFactor(TestCategoricalBlock):
+
+    def test_basic(self):
+
+        # test basic creation / coercion of categoricals
+        s = Series(self.factor, name='A')
+        assert s.dtype == 'category'
+        assert len(s) == len(self.factor)
+        str(s.values)
+        str(s)
+
+        # in a frame
+        df = DataFrame({'A': self.factor})
+        result = df['A']
+        tm.assert_series_equal(result, s)
+        result = df.iloc[:, 0]
+        tm.assert_series_equal(result, s)
+        assert len(df) == len(self.factor)
+        str(df.values)
+        str(df)
+
+        df = DataFrame({'A': s})
+        result = df['A']
+        tm.assert_series_equal(result, s)
+        assert len(df) == len(self.factor)
+        str(df.values)
+        str(df)
+
+        # multiples
+        df = DataFrame({'A': s, 'B': s, 'C': 1})
+        result1 = df['A']
+        result2 = df['B']
+        tm.assert_series_equal(result1, s)
+        tm.assert_series_equal(result2, s, check_names=False)
+        assert result2.name == 'B'
+        assert len(df) == len(self.factor)
+        str(df.values)
+        str(df)
+
+        # GH8623
+        x = DataFrame([[1, 'John P. Doe'], [2, 'Jane Dove'],
+                       [1, 'John P. Doe']],
+                      columns=['person_id', 'person_name'])
+        x['person_name'] = Categorical(x.person_name
+                                       )  # doing this breaks transform
+
+        expected = x.iloc[0].person_name
+        result = x.person_name.iloc[0]
+        assert result == expected
+
+        result = x.person_name[0]
+        assert result == expected
+
+        result = x.person_name.loc[0]
+        assert result == expected
 
 
 class TestCategoricalBlockConstructors(object):
