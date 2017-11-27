@@ -192,9 +192,9 @@ class TimeFormatter(Formatter):
     def __call__(self, x, pos=0):
         fmt = '%H:%M:%S.%f'
         s = int(x)
-        ms = int((x - s) * 1e3)
-        us = int((x - s) * 1e6 - ms * 1e3)
-        msus = int((x - s) * 1e6)
+        msus = int(round((x - s) * 1e6))
+        ms = int(msus / 1e3)
+        us = int(msus - ms * 1e3)
         m, s = divmod(s, 60)
         h, m = divmod(m, 60)
         _, h = divmod(h, 24)
