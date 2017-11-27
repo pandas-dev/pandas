@@ -341,6 +341,7 @@ class CheckSDist(sdist_class):
                  'pandas/_libs/missing.pyx',
                  'pandas/_libs/testing.pyx',
                  'pandas/_libs/window.pyx',
+                 'pandas/_libs/skiplist.pyx',
                  'pandas/_libs/sparse.pyx',
                  'pandas/_libs/parsers.pyx',
                  'pandas/_libs/tslibs/strptime.pyx',
@@ -544,6 +545,9 @@ ext_data = {
     '_libs.reshape': {
         'pyxfile': '_libs/reshape',
         'depends': _pxi_dep['reshape']},
+    '_libs.skiplist': {
+        'pyxfile': '_libs/skiplist',
+        'depends': ['pandas/_libs/src/skiplist.h']},
     '_libs.sparse': {
         'pyxfile': '_libs/sparse',
         'depends': _pxi_dep['sparse']},
@@ -629,9 +633,7 @@ ext_data = {
         'pyxfile': '_libs/testing'},
     '_libs.window': {
         'pyxfile': '_libs/window',
-        'pxdfiles': ['_libs/src/skiplist', '_libs/src/util'],
-        'depends': ['pandas/_libs/src/skiplist.pyx',
-                    'pandas/_libs/src/skiplist.h']},
+        'pxdfiles': ['_libs/skiplist', '_libs/src/util']},
     'io.sas._sas': {
         'pyxfile': 'io/sas/sas'}}
 
