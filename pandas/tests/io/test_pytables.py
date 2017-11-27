@@ -4271,7 +4271,8 @@ class TestHDFStore(Base):
 
     @pytest.mark.skipif(
         LooseVersion(tables.__version__) < '3.1.0',
-        "tables version does not support fix for nan selection bug: GH 4858")
+        reason=("tables version does not support fix for nan selection "
+                "bug: GH 4858"))
     def test_nan_selection_bug_4858(self):
 
         with ensure_clean_store(self.path) as store:
