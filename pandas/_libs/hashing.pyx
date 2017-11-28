@@ -105,11 +105,6 @@ cdef inline void u32to8_le(uint8_t* p, uint32_t v) nogil:
     p[3] = <uint8_t>(v >> 24)
 
 
-cdef inline void u64to8_le(uint8_t* p, uint64_t v) nogil:
-    u32to8_le(p, <uint32_t>v)
-    u32to8_le(p + 4, <uint32_t>(v >> 32))
-
-
 cdef inline uint64_t u8to64_le(uint8_t* p) nogil:
     return (<uint64_t>p[0] |
             <uint64_t>p[1] << 8 |

@@ -212,51 +212,6 @@ cpdef numeric median(numeric[:] arr):
                 kth_smallest(arr, n // 2 - 1)) / 2
 
 
-# -------------- Min, Max subsequence
-
-@cython.boundscheck(False)
-@cython.wraparound(False)
-def max_subseq(ndarray[double_t] arr):
-    cdef:
-        Py_ssize_t i=0, s=0, e=0, T, n
-        double m, S
-
-    n = len(arr)
-
-    if len(arr) == 0:
-        return (-1, -1, None)
-
-    m = arr[0]
-    S = m
-    T = 0
-
-    with nogil:
-        for i in range(1, n):
-            # S = max { S + A[i], A[i] )
-            if (S > 0):
-                S = S + arr[i]
-            else:
-                S = arr[i]
-                T = i
-            if S > m:
-                s = T
-                e = i
-                m = S
-
-    return (s, e, m)
-
-
-@cython.boundscheck(False)
-@cython.wraparound(False)
-def min_subseq(ndarray[double_t] arr):
-    cdef:
-        Py_ssize_t s, e
-        double m
-
-    (s, e, m) = max_subseq(-arr)
-
-    return (s, e, -m)
-
 # ----------------------------------------------------------------------
 # Pairwise correlation/covariance
 

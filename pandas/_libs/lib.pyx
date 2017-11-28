@@ -76,27 +76,6 @@ def values_from_object(object o):
     return o
 
 
-cpdef map_indices_list(list index):
-    """
-    Produce a dict mapping the values of the input array to their respective
-    locations.
-
-    Example:
-        array(['hi', 'there']) --> {'hi' : 0 , 'there' : 1}
-
-    Better to do this with Cython because of the enormous speed boost.
-    """
-    cdef Py_ssize_t i, length
-    cdef dict result = {}
-
-    length = len(index)
-
-    for i from 0 <= i < length:
-        result[index[i]] = i
-
-    return result
-
-
 @cython.wraparound(False)
 @cython.boundscheck(False)
 def memory_usage_of_objects(ndarray[object, ndim=1] arr):
@@ -1094,27 +1073,6 @@ def get_level_sorter(ndarray[int64_t, ndim=1] label,
     return out
 
 
-def group_count(ndarray[int64_t] values, Py_ssize_t size):
-    cdef:
-        Py_ssize_t i, n = len(values)
-        ndarray[int64_t] counts
-
-    counts = np.zeros(size, dtype=np.int64)
-    for i in range(n):
-        counts[values[i]] += 1
-    return counts
-
-
-def lookup_values(ndarray[object] values, dict mapping):
-    cdef:
-        Py_ssize_t i, n = len(values)
-
-    result = np.empty(n, dtype='O')
-    for i in range(n):
-        result[i] = mapping[values[i]]
-    return maybe_convert_objects(result)
-
-
 @cython.boundscheck(False)
 @cython.wraparound(False)
 def count_level_2d(ndarray[uint8_t, ndim=2, cast=True] mask,
@@ -1143,70 +1101,6 @@ def count_level_2d(ndarray[uint8_t, ndim=2, cast=True] mask,
                     counts[i, labels[j]] += mask[i, j]
 
     return counts
-
-
-cdef class _PandasNull:
-
-    def __richcmp__(_PandasNull self, object other, int op):
-        if op == 2:    # ==
-            return isinstance(other, _PandasNull)
-        elif op == 3:  # !=
-            return not isinstance(other, _PandasNull)
-        else:
-            return False
-
-    def __hash__(self):
-        return 0
-
-pandas_null = _PandasNull()
-
-
-def fast_zip_fillna(list ndarrays, fill_value=pandas_null):
-    """
-    For zipping multiple ndarrays into an ndarray of tuples
-    """
-    cdef:
-        Py_ssize_t i, j, k, n
-        ndarray[object] result
-        flatiter it
-        object val, tup
-
-    k = len(ndarrays)
-    n = len(ndarrays[0])
-
-    result = np.empty(n, dtype=object)
-
-    # initialize tuples on first pass
-    arr = ndarrays[0]
-    it = <flatiter> PyArray_IterNew(arr)
-    for i in range(n):
-        val = PyArray_GETITEM(arr, PyArray_ITER_DATA(it))
-        tup = PyTuple_New(k)
-
-        if val != val:
-            val = fill_value
-
-        PyTuple_SET_ITEM(tup, 0, val)
-        Py_INCREF(val)
-        result[i] = tup
-        PyArray_ITER_NEXT(it)
-
-    for j in range(1, k):
-        arr = ndarrays[j]
-        it = <flatiter> PyArray_IterNew(arr)
-        if len(arr) != n:
-            raise ValueError('all arrays must be same length')
-
-        for i in range(n):
-            val = PyArray_GETITEM(arr, PyArray_ITER_DATA(it))
-            if val != val:
-                val = fill_value
-
-            PyTuple_SET_ITEM(result[i], j, val)
-            Py_INCREF(val)
-            PyArray_ITER_NEXT(it)
-
-    return result
 
 
 def generate_slices(ndarray[int64_t] labels, Py_ssize_t ngroups):
