@@ -138,7 +138,7 @@ cdef bint is_leapyear(int64_t year) nogil:
 @cython.wraparound(False)
 @cython.boundscheck(False)
 cpdef int32_t get_week_of_year(int year, int month, int day) nogil:
-    """Return the ordinal week-of-year for the given day
+    """Return the ordinal week-of-year for the given day.
 
     Parameters
     ----------
