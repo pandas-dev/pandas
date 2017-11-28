@@ -18,8 +18,8 @@ from pandas.compat import PY2
 cimport cython
 
 from pandas._libs.tslibs.np_datetime cimport (pandas_datetimestruct,
-                                 dtstruct_to_dt64, dt64_to_dtstruct,
-                                 is_leapyear)
+                                              dtstruct_to_dt64,
+                                              dt64_to_dtstruct, is_leapyear)
 
 
 cimport util

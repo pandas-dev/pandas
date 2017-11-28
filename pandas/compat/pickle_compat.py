@@ -108,7 +108,7 @@ _class_locations_map = {
 
     # 18543 moving period
     ('pandas._libs.period', 'Period'):
-        ('pandas._libs.tslibs.period', 'Period'),
+        ('pandas._libs.tslibs.period', 'Period')
 }
 
 
