@@ -1338,28 +1338,28 @@ class DatetimeIndex(DatelikeOps, TimelikeOps, DatetimeIndexOpsMixin,
                                        59, 999999), tz=self.tz))
         elif reso == 'day':
             st = datetime(parsed.year, parsed.month, parsed.day)
+            nanos_end = Timestamp(st + offsets.Day(), tz=self.tz).value - 1
             return (Timestamp(st, tz=self.tz),
-                    Timestamp(Timestamp(st + offsets.Day(),
-                                        tz=self.tz).value - 1))
+                    Timestamp(nanos_end, tz=self.tz))
         elif reso == 'hour':
             st = datetime(parsed.year, parsed.month, parsed.day,
                           hour=parsed.hour)
+            nanos_end = Timestamp(st + offsets.Hour(), tz=self.tz).value - 1
             return (Timestamp(st, tz=self.tz),
-                    Timestamp(Timestamp(st + offsets.Hour(),
-                                        tz=self.tz).value - 1))
+                    Timestamp(nanos_end, tz=self.tz))
         elif reso == 'minute':
             st = datetime(parsed.year, parsed.month, parsed.day,
                           hour=parsed.hour, minute=parsed.minute)
+            nanos_end = Timestamp(st + offsets.Minute(), tz=self.tz).value - 1
             return (Timestamp(st, tz=self.tz),
-                    Timestamp(Timestamp(st + offsets.Minute(),
-                                        tz=self.tz).value - 1))
+                    Timestamp(nanos_end, tz=self.tz))
         elif reso == 'second':
             st = datetime(parsed.year, parsed.month, parsed.day,
                           hour=parsed.hour, minute=parsed.minute,
                           second=parsed.second)
+            nanos_end = Timestamp(st + offsets.Second(), tz=self.tz).value - 1
             return (Timestamp(st, tz=self.tz),
-                    Timestamp(Timestamp(st + offsets.Second(),
-                                        tz=self.tz).value - 1))
+                    Timestamp(nanos_end, tz=self.tz))
         elif reso == 'microsecond':
             st = datetime(parsed.year, parsed.month, parsed.day,
                           parsed.hour, parsed.minute, parsed.second,
