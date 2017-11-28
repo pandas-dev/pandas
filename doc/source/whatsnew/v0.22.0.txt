@@ -147,6 +147,7 @@ Indexing
 - Bug in :func:`DataFrame.groupby` where tuples were interpreted as lists of keys rather than as keys (:issue:`17979`, :issue:`18249`)
 - Bug in :func:`MultiIndex.remove_unused_levels`` which would fill nan values (:issue:`18417`)
 - Bug in :func:`MultiIndex.from_tuples`` which would fail to take zipped tuples in python3 (:issue:`18434`)
+- Bug in :class:`Index`` construction from list of mixed type tuples (:issue:`18505`)
 - Bug in :class:`IntervalIndex` where empty and purely NA data was constructed inconsistently depending on the construction method (:issue:`18421`)
 - Bug in ``IntervalIndex.symmetric_difference()`` where the symmetric difference with a non-``IntervalIndex`` did not raise (:issue:`18475`)
 

@@ -106,6 +106,15 @@ class TestIndex(Base):
         assert isinstance(idx2, Index)
         assert not isinstance(idx2, MultiIndex)
 
+    @pytest.mark.parametrize('na_value', [None, np.nan])
+    @pytest.mark.parametrize('vtype', [list, tuple, iter])
+    def test_construction_list_tuples_nan(self, na_value, vtype):
+        # GH 18505 : valid tuples containing NaN
+        values = [(1, 'two'), (3., na_value)]
+        result = Index(vtype(values))
+        expected = MultiIndex.from_tuples(values)
+        tm.assert_index_equal(result, expected)
+
     def test_constructor_from_index_datetimetz(self):
         idx = pd.date_range('2015-01-01 10:00', freq='D', periods=3,
                             tz='US/Eastern')
