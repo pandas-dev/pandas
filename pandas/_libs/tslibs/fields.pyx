@@ -380,7 +380,7 @@ def get_date_field(ndarray[int64_t] dtindex, object field):
         ndarray[int32_t, ndim=2] _month_offset
         int isleap, isleap_prev
         pandas_datetimestruct dts
-        int mo_off, doy, dow, woy
+        int mo_off, doy, dow
 
     _month_offset = np.array(
         [[ 0, 31, 59, 90, 120, 151, 181, 212, 243, 273, 304, 334, 365 ],

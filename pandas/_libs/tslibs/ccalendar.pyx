@@ -38,7 +38,7 @@ cdef int32_t* _month_offset = [
 
 @cython.wraparound(False)
 @cython.boundscheck(False)
-cdef inline int32_t get_days_in_month(int year, Py_ssize_t month) nogil:
+cpdef inline int32_t get_days_in_month(int year, Py_ssize_t month) nogil:
     """Return the number of days in the given month of the given year.
 
     Parameters
@@ -158,13 +158,14 @@ cpdef int32_t get_week_of_year(int year, int month, int day) nogil:
     """
     cdef:
         bint isleap, isleap_prev
-        int32_t mo_off, woy
-        int doy, dow
+        int32_t mo_off
+        int32_t doy, dow
+        int woy
 
     isleap = is_leapyear(year)
     isleap_prev = is_leapyear(year - 1)
 
-    mo_off = _month_offset[isleap * 12 +  month - 1]
+    mo_off = _month_offset[isleap * 13 + month - 1]
 
     doy = mo_off + day
     dow = dayofweek(year, month, day)
