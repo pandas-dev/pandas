@@ -624,6 +624,7 @@ ext_data = {
     '_libs.tslibs.timestamps': {
         'pyxfile': '_libs/tslibs/timestamps',
         'pxdfiles': ['_libs/src/util',
+                     '_libs/tslibs/ccalendar',
                      '_libs/tslibs/conversion',
                      '_libs/tslibs/nattype',
                      '_libs/tslibs/timedeltas',
