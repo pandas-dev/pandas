@@ -50,9 +50,19 @@ typedef struct {
 } pandas_datetimestruct;
 
 typedef struct {
+        npy_int64 days;
+        npy_int32 hrs, min, sec, ms, us, ns, seconds, microseconds, nanoseconds;
+} pandas_timedeltastruct;
+
+typedef struct {
     PANDAS_DATETIMEUNIT base;
     int num;
 } pandas_datetime_metadata;
+
+typedef pandas_datetime_metadata pandas_timedelta_metadata;
+
+extern const pandas_datetimestruct _NS_MIN_DTS;
+extern const pandas_datetimestruct _NS_MAX_DTS;
 
 // stuff pandas needs
 // ----------------------------------------------------------------------------
@@ -67,6 +77,10 @@ npy_datetime pandas_datetimestruct_to_datetime(PANDAS_DATETIMEUNIT fr,
 
 void pandas_datetime_to_datetimestruct(npy_datetime val, PANDAS_DATETIMEUNIT fr,
                                        pandas_datetimestruct *result);
+
+void pandas_timedelta_to_timedeltastruct(npy_timedelta val,
+                                         PANDAS_DATETIMEUNIT fr,
+                                         pandas_timedeltastruct *result);
 
 int dayofweek(int y, int m, int d);
 
@@ -96,6 +110,14 @@ convert_datetimestruct_to_datetime(pandas_datetime_metadata *meta,
 npy_int64
 get_datetimestruct_days(const pandas_datetimestruct *dts);
 
+
+/*
+ * Compares two pandas_datetimestruct objects chronologically
+ */
+int cmp_pandas_datetimestruct(const pandas_datetimestruct *a,
+                              const pandas_datetimestruct *b);
+
+
 /*
  * Adjusts a datetimestruct based on a minutes offset. Assumes
  * the current values are valid.
@@ -120,8 +142,10 @@ convert_datetime_to_datetimestruct(pandas_datetime_metadata *meta,
                                    npy_datetime dt,
                                    pandas_datetimestruct *out);
 
-
-PANDAS_DATETIMEUNIT get_datetime64_unit(PyObject *obj);
+int
+convert_timedelta_to_timedeltastruct(pandas_timedelta_metadata *meta,
+                                     npy_timedelta td,
+                                     pandas_timedeltastruct *out);
 
 
 #endif  // PANDAS__LIBS_SRC_DATETIME_NP_DATETIME_H_

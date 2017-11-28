@@ -213,17 +213,18 @@ the rows, applying our ``integrate_f_typed``, and putting this in the zeros arra
 
 .. warning::
 
-   In 0.13.0 since ``Series`` has internaly been refactored to no longer sub-class ``ndarray``
-   but instead subclass ``NDFrame``, you can **not pass** a ``Series`` directly as a ``ndarray`` typed parameter
-   to a cython function. Instead pass the actual ``ndarray`` using the ``.values`` attribute of the Series.
+   You can **not pass** a ``Series`` directly as a ``ndarray`` typed parameter
+   to a cython function. Instead pass the actual ``ndarray`` using the
+   ``.values`` attribute of the Series. The reason is that the cython
+   definition is specific to an ndarray and not the passed Series.
 
-   Prior to 0.13.0
+   So, do not do this:
 
    .. code-block:: python
 
         apply_integrate_f(df['a'], df['b'], df['N'])
 
-   Use ``.values`` to get the underlying ``ndarray``
+   But rather, use ``.values`` to get the underlying ``ndarray``
 
    .. code-block:: python
 
@@ -399,10 +400,8 @@ Read more in the `numba docs <http://numba.pydata.org/>`__.
 
 .. _enhancingperf.eval:
 
-Expression Evaluation via :func:`~pandas.eval` (Experimental)
--------------------------------------------------------------
-
-.. versionadded:: 0.13
+Expression Evaluation via :func:`~pandas.eval`
+-----------------------------------------------
 
 The top-level function :func:`pandas.eval` implements expression evaluation of
 :class:`~pandas.Series` and :class:`~pandas.DataFrame` objects.
@@ -539,10 +538,8 @@ Now let's do the same thing but with comparisons:
    of type ``bool`` or ``np.bool_``. Again, you should perform these kinds of
    operations in plain Python.
 
-The ``DataFrame.eval`` method (Experimental)
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-.. versionadded:: 0.13
+The ``DataFrame.eval`` method
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 In addition to the top level :func:`pandas.eval` function you can also
 evaluate an expression in the "context" of a :class:`~pandas.DataFrame`.
@@ -646,19 +643,6 @@ whether the query modifies the original frame.
 Local Variables
 ~~~~~~~~~~~~~~~
 
-In pandas version 0.14 the local variable API has changed. In pandas 0.13.x,
-you could refer to local variables the same way you would in standard Python.
-For example,
-
-.. code-block:: python
-
-   df = pd.DataFrame(np.random.randn(5, 2), columns=['a', 'b'])
-   newcol = np.random.randn(len(df))
-   df.eval('b + newcol')
-
-   UndefinedVariableError: name 'newcol' is not defined
-
-As you can see from the exception generated, this syntax is no longer allowed.
 You must *explicitly reference* any local variable that you want to use in an
 expression by placing the ``@`` character in front of the name. For example,
 

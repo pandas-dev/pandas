@@ -18,7 +18,7 @@ Instructions for installing from source,
 Python version support
 ----------------------
 
-Officially Python 2.7, 3.4, 3.5, and 3.6
+Officially Python 2.7, 3.5, and 3.6.
 
 Installing pandas
 -----------------
@@ -107,7 +107,7 @@ following command::
 
 To install a specific pandas version::
 
-    conda install pandas=0.13.1
+    conda install pandas=0.20.3
 
 To install other packages, IPython for example::
 
@@ -183,27 +183,23 @@ installed), make sure you have `pytest
 
     >>> import pandas as pd
     >>> pd.test()
-    Running unit tests for pandas
-    pandas version 0.18.0
-    numpy version 1.10.2
-    pandas is installed in pandas
-    Python version 2.7.11 |Continuum Analytics, Inc.|
-       (default, Dec  6 2015, 18:57:58) [GCC 4.2.1 (Apple Inc. build 5577)]
-    nose version 1.3.7
+    running: pytest --skip-slow --skip-network C:\Users\TP\Anaconda3\envs\py36\lib\site-packages\pandas
+    ============================= test session starts =============================
+    platform win32 -- Python 3.6.2, pytest-3.2.1, py-1.4.34, pluggy-0.4.0
+    rootdir: C:\Users\TP\Documents\Python\pandasdev\pandas, inifile: setup.cfg
+    collected 12145 items / 3 skipped
+
     ..................................................................S......
     ........S................................................................
     .........................................................................
 
-    ----------------------------------------------------------------------
-    Ran 9252 tests in 368.339s
-
-    OK (SKIP=117)
+    ==================== 12130 passed, 12 skipped in 368.339 seconds =====================
 
 Dependencies
 ------------
 
 * `setuptools <https://setuptools.readthedocs.io/en/latest/>`__
-* `NumPy <http://www.numpy.org>`__: 1.7.1 or higher
+* `NumPy <http://www.numpy.org>`__: 1.9.0 or higher
 * `python-dateutil <http://labix.org/python-dateutil>`__: 1.5 or higher
 * `pytz <http://pytz.sourceforge.net/>`__: Needed for time zone support
 
@@ -233,7 +229,7 @@ Optional Dependencies
 
 * `Cython <http://www.cython.org>`__: Only necessary to build development
   version. Version 0.23 or higher.
-* `SciPy <http://www.scipy.org>`__: miscellaneous statistical functions
+* `SciPy <http://www.scipy.org>`__: miscellaneous statistical functions, Version 0.14.0 or higher
 * `xarray <http://xarray.pydata.org>`__: pandas like handling for > 2 dims, needed for converting Panels to xarray objects. Version 0.7.0 or higher is recommended.
 * `PyTables <http://www.pytables.org>`__: necessary for HDF5-based storage. Version 3.0.0 or higher required, Version 3.2.1 or higher highly recommended.
 * `Feather Format <https://github.com/wesm/feather>`__: necessary for feather-based storage, version 0.3.1 or higher.
@@ -244,7 +240,7 @@ Optional Dependencies
   * `pymysql <https://github.com/PyMySQL/PyMySQL>`__: for MySQL.
   * `SQLite <https://docs.python.org/3.5/library/sqlite3.html>`__: for SQLite, this is included in Python's standard library by default.
 
-* `matplotlib <http://matplotlib.org/>`__: for plotting
+* `matplotlib <http://matplotlib.org/>`__: for plotting, Version 1.4.3 or higher.
 * For Excel I/O:
 
   * `xlrd/xlwt <http://www.python-excel.org/>`__: Excel reading (xlrd) and writing (xlwt)
@@ -255,12 +251,13 @@ Optional Dependencies
 * `Jinja2 <http://jinja.pocoo.org/>`__: Template engine for conditional HTML formatting.
 * `s3fs <http://s3fs.readthedocs.io/>`__: necessary for Amazon S3 access (s3fs >= 0.0.7).
 * `blosc <https://pypi.python.org/pypi/blosc>`__: for msgpack compression using ``blosc``
-* One of `PyQt4
-  <http://www.riverbankcomputing.com/software/pyqt/download>`__, `PySide
-  <http://qt-project.org/wiki/Category:LanguageBindings::PySide>`__, `pygtk
-  <http://www.pygtk.org/>`__, `xsel
-  <http://www.vergenet.net/~conrad/software/xsel/>`__, or `xclip
-  <https://github.com/astrand/xclip/>`__: necessary to use
+* One of
+  `qtpy  <https://github.com/spyder-ide/qtpy>`__ (requires PyQt or PySide),
+  `PyQt5 <https://www.riverbankcomputing.com/software/pyqt/download5>`__,
+  `PyQt4 <http://www.riverbankcomputing.com/software/pyqt/download>`__,
+  `pygtk <http://www.pygtk.org/>`__,
+  `xsel <http://www.vergenet.net/~conrad/software/xsel/>`__, or
+  `xclip <https://github.com/astrand/xclip/>`__: necessary to use
   :func:`~pandas.read_clipboard`. Most package managers on Linux distributions will have ``xclip`` and/or ``xsel`` immediately available for installation.
 * For Google BigQuery I/O - see `here <https://pandas-gbq.readthedocs.io/en/latest/install.html#dependencies>`__
 

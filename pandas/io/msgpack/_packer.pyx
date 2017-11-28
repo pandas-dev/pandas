@@ -1,5 +1,5 @@
 # coding: utf-8
-#cython: embedsignature=True
+# cython: embedsignature=True
 
 from cpython cimport *
 from libc.stdlib cimport *
@@ -8,6 +8,7 @@ from libc.limits cimport *
 
 from pandas.io.msgpack.exceptions import PackValueError
 from pandas.io.msgpack import ExtType
+import numpy as np
 
 
 cdef extern from "../../src/msgpack/pack.h":
@@ -133,7 +134,7 @@ cdef class Packer(object):
         while True:
             if o is None:
                 ret = msgpack_pack_nil(&self.pk)
-            elif isinstance(o, bool):
+            elif isinstance(o, (bool, np.bool_)):
                 if o:
                     ret = msgpack_pack_true(&self.pk)
                 else:
@@ -224,7 +225,7 @@ cdef class Packer(object):
                 default_used = 1
                 continue
             else:
-                raise TypeError("can't serialize %r" % (o,))
+                raise TypeError("can't serialize {thing!r}".format(thing=o))
             return ret
 
     cpdef pack(self, object obj):

@@ -195,6 +195,11 @@ class SharedWithSparse(object):
         )
         self._assert_series_equal(result, expected)
 
+    def test_from_array_deprecated(self):
+
+        with tm.assert_produces_warning(FutureWarning):
+            self.series_klass.from_array([1, 2, 3])
+
 
 class TestSeriesMisc(TestData, SharedWithSparse):
 
@@ -244,43 +249,6 @@ class TestSeriesMisc(TestData, SharedWithSparse):
 
         for i, val in enumerate(self.ts):
             assert val == self.ts[i]
-
-    def test_iter_box(self):
-        vals = [pd.Timestamp('2011-01-01'), pd.Timestamp('2011-01-02')]
-        s = pd.Series(vals)
-        assert s.dtype == 'datetime64[ns]'
-        for res, exp in zip(s, vals):
-            assert isinstance(res, pd.Timestamp)
-            assert res.tz is None
-            assert res == exp
-
-        vals = [pd.Timestamp('2011-01-01', tz='US/Eastern'),
-                pd.Timestamp('2011-01-02', tz='US/Eastern')]
-        s = pd.Series(vals)
-
-        assert s.dtype == 'datetime64[ns, US/Eastern]'
-        for res, exp in zip(s, vals):
-            assert isinstance(res, pd.Timestamp)
-            assert res.tz == exp.tz
-            assert res == exp
-
-        # timedelta
-        vals = [pd.Timedelta('1 days'), pd.Timedelta('2 days')]
-        s = pd.Series(vals)
-        assert s.dtype == 'timedelta64[ns]'
-        for res, exp in zip(s, vals):
-            assert isinstance(res, pd.Timedelta)
-            assert res == exp
-
-        # period (object dtype, not boxed)
-        vals = [pd.Period('2011-01-01', freq='M'),
-                pd.Period('2011-01-02', freq='M')]
-        s = pd.Series(vals)
-        assert s.dtype == 'object'
-        for res, exp in zip(s, vals):
-            assert isinstance(res, pd.Period)
-            assert res.freq == 'M'
-            assert res == exp
 
     def test_keys(self):
         # HACK: By doing this in two stages, we avoid 2to3 wrapping the call
@@ -371,6 +339,10 @@ class TestSeriesMisc(TestData, SharedWithSparse):
         assert s._get_axis_number('rows') == 0
         assert s._get_axis_name('rows') == 'index'
 
+    def test_class_axis(self):
+        # https://github.com/pandas-dev/pandas/issues/18147
+        Series.index  # no exception!
+
     def test_numpy_unique(self):
         # it works!
         np.unique(self.ts)
@@ -382,7 +354,7 @@ class TestSeriesMisc(TestData, SharedWithSparse):
                          index=date_range('1/1/2000', periods=1000))
 
         def f(x):
-            return x[x.argmax()]
+            return x[x.idxmax()]
 
         result = tsdf.apply(f)
         expected = tsdf.max()
@@ -444,3 +416,14 @@ class TestSeriesMisc(TestData, SharedWithSparse):
 
         for full_series in [pd.Series([1]), pd.Series(index=[1])]:
             assert not full_series.empty
+
+    def test_tab_complete_warning(self, ip):
+        # https://github.com/pandas-dev/pandas/issues/16409
+        pytest.importorskip('IPython', minversion="6.0.0")
+        from IPython.core.completer import provisionalcompleter
+
+        code = "import pandas as pd; s = pd.Series()"
+        ip.run_code(code)
+        with tm.assert_produces_warning(None):
+            with provisionalcompleter('ignore'):
+                list(ip.Completer.completions('s.', 1))

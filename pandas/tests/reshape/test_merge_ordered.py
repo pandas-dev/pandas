@@ -6,7 +6,7 @@ from pandas.util.testing import assert_frame_equal
 from numpy import nan
 
 
-class TestOrderedMerge(object):
+class TestMergeOrdered(object):
 
     def setup_method(self, method):
         self.left = DataFrame({'key': ['a', 'c', 'e'],
@@ -14,13 +14,6 @@ class TestOrderedMerge(object):
 
         self.right = DataFrame({'key': ['b', 'c', 'd', 'f'],
                                 'rvalue': [1, 2, 3., 4]})
-
-    def test_deprecation(self):
-
-        with tm.assert_produces_warning(FutureWarning):
-            pd.ordered_merge(self.left, self.right, on='key')
-
-    # GH #813
 
     def test_basic(self):
         result = merge_ordered(self.left, self.right, on='key')

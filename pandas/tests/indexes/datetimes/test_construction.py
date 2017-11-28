@@ -7,8 +7,9 @@ from datetime import timedelta
 import pandas as pd
 from pandas import offsets
 import pandas.util.testing as tm
-from pandas._libs import tslib, lib
+from pandas._libs import lib
 from pandas._libs.tslib import OutOfBoundsDatetime
+from pandas._libs.tslibs import conversion
 from pandas import (DatetimeIndex, Index, Timestamp, datetime, date_range,
                     to_datetime)
 
@@ -307,8 +308,9 @@ class TestDatetimeIndex(object):
         exp = date_range('1/1/2000', periods=10)
         tm.assert_index_equal(rng, exp)
 
-        pytest.raises(ValueError, DatetimeIndex, start='1/1/2000',
-                      periods='foo', freq='D')
+        msg = 'periods must be a number, got foo'
+        with tm.assert_raises_regex(TypeError, msg):
+            DatetimeIndex(start='1/1/2000', periods='foo', freq='D')
 
         pytest.raises(ValueError, DatetimeIndex, start='1/1/2000',
                       end='1/10/2000')
@@ -495,7 +497,7 @@ class TestTimeSeries(object):
         arr = np.arange(0, 100, 10, dtype=np.int64).view('M8[D]')
         idx = Index(arr)
 
-        assert (idx.values == tslib.cast_to_nanoseconds(arr)).all()
+        assert (idx.values == conversion.ensure_datetime64ns(arr)).all()
 
     def test_constructor_int64_nocopy(self):
         # #1624

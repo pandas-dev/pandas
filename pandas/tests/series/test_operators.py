@@ -14,8 +14,7 @@ import numpy as np
 import pandas as pd
 
 from pandas import (Index, Series, DataFrame, isna, bdate_range,
-                    NaT, date_range, timedelta_range,
-                    _np_version_under1p8)
+                    NaT, date_range, timedelta_range)
 from pandas.core.indexes.datetimes import Timestamp
 from pandas.core.indexes.timedeltas import Timedelta
 import pandas.core.nanops as nanops
@@ -123,7 +122,7 @@ class TestSeriesOperators(TestData):
             assert_series_equal(result, p['first'].astype('float64'),
                                 check_names=False)
             assert result.name is None
-            assert not np.array_equal(result, p['second'] / p['first'])
+            assert not result.equals(p['second'] / p['first'])
 
             # inf signing
             s = Series([np.nan, 1., -1.])
@@ -687,14 +686,13 @@ class TestSeriesOperators(TestData):
         assert_series_equal(result, exp)
 
         # odd numpy behavior with scalar timedeltas
-        if not _np_version_under1p8:
-            result = td1[0] + dt1
-            exp = (dt1.dt.tz_localize(None) + td1[0]).dt.tz_localize(tz)
-            assert_series_equal(result, exp)
+        result = td1[0] + dt1
+        exp = (dt1.dt.tz_localize(None) + td1[0]).dt.tz_localize(tz)
+        assert_series_equal(result, exp)
 
-            result = td2[0] + dt2
-            exp = (dt2.dt.tz_localize(None) + td2[0]).dt.tz_localize(tz)
-            assert_series_equal(result, exp)
+        result = td2[0] + dt2
+        exp = (dt2.dt.tz_localize(None) + td2[0]).dt.tz_localize(tz)
+        assert_series_equal(result, exp)
 
         result = dt1 - td1[0]
         exp = (dt1.dt.tz_localize(None) - td1[0]).dt.tz_localize(tz)
@@ -1874,33 +1872,33 @@ class TestSeriesOperators(TestData):
             ),
         ]
     )
-    def test_assert_argminmax_raises(self, test_input, error_type):
+    def test_assert_idxminmax_raises(self, test_input, error_type):
         """
         Cases where ``Series.argmax`` and related should raise an exception
         """
         with pytest.raises(error_type):
-            test_input.argmin()
+            test_input.idxmin()
         with pytest.raises(error_type):
-            test_input.argmin(skipna=False)
+            test_input.idxmin(skipna=False)
         with pytest.raises(error_type):
-            test_input.argmax()
+            test_input.idxmax()
         with pytest.raises(error_type):
-            test_input.argmax(skipna=False)
+            test_input.idxmax(skipna=False)
 
-    def test_argminmax_with_inf(self):
+    def test_idxminmax_with_inf(self):
         # For numeric data with NA and Inf (GH #13595)
         s = pd.Series([0, -np.inf, np.inf, np.nan])
 
-        assert s.argmin() == 1
-        assert np.isnan(s.argmin(skipna=False))
+        assert s.idxmin() == 1
+        assert np.isnan(s.idxmin(skipna=False))
 
-        assert s.argmax() == 2
-        assert np.isnan(s.argmax(skipna=False))
+        assert s.idxmax() == 2
+        assert np.isnan(s.idxmax(skipna=False))
 
         # Using old-style behavior that treats floating point nan, -inf, and
         # +inf as missing
         with pd.option_context('mode.use_inf_as_na', True):
-            assert s.argmin() == 0
-            assert np.isnan(s.argmin(skipna=False))
-            assert s.argmax() == 0
-            np.isnan(s.argmax(skipna=False))
+            assert s.idxmin() == 0
+            assert np.isnan(s.idxmin(skipna=False))
+            assert s.idxmax() == 0
+            np.isnan(s.idxmax(skipna=False))

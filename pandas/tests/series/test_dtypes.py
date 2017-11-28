@@ -12,7 +12,12 @@ import warnings
 from numpy import nan
 import numpy as np
 
-from pandas import Series, Timestamp, Timedelta, DataFrame, date_range
+from pandas import (
+    Series, Timestamp, Timedelta, DataFrame, date_range,
+    Categorical, Index
+)
+from pandas.api.types import CategoricalDtype
+import pandas._libs.tslib as tslib
 
 from pandas.compat import lrange, range, u
 from pandas import compat
@@ -65,8 +70,7 @@ class TestSeriesDtypes(TestData):
 
         tm.assert_series_equal(result, Series(np.arange(1, 5)))
 
-    def test_astype_datetimes(self):
-        import pandas._libs.tslib as tslib
+    def test_astype_datetime(self):
         s = Series(tslib.iNaT, dtype='M8[ns]', index=lrange(5))
 
         s = s.astype('O')
@@ -84,6 +88,33 @@ class TestSeriesDtypes(TestData):
 
         s = s.astype('O')
         assert s.dtype == np.object_
+
+    def test_astype_datetime64tz(self):
+        s = Series(date_range('20130101', periods=3, tz='US/Eastern'))
+
+        # astype
+        result = s.astype(object)
+        expected = Series(s.astype(object), dtype=object)
+        tm.assert_series_equal(result, expected)
+
+        result = Series(s.values).dt.tz_localize('UTC').dt.tz_convert(s.dt.tz)
+        tm.assert_series_equal(result, s)
+
+        # astype - object, preserves on construction
+        result = Series(s.astype(object))
+        expected = s.astype(object)
+        tm.assert_series_equal(result, expected)
+
+        # astype - datetime64[ns, tz]
+        result = Series(s.values).astype('datetime64[ns, US/Eastern]')
+        tm.assert_series_equal(result, s)
+
+        result = Series(s.values).astype(s.dtype)
+        tm.assert_series_equal(result, s)
+
+        result = s.astype('datetime64[ns, CET]')
+        expected = Series(date_range('20130101 06:00:00', periods=3, tz='CET'))
+        tm.assert_series_equal(result, expected)
 
     @pytest.mark.parametrize("dtype", [compat.text_type, np.str_])
     @pytest.mark.parametrize("series", [Series([string.digits * 10,
@@ -182,6 +213,44 @@ class TestSeriesDtypes(TestData):
         with pytest.raises(KeyError):
             s.astype(dt5)
 
+    def test_astype_categories_deprecation(self):
+
+        # deprecated 17636
+        s = Series(['a', 'b', 'a'])
+        expected = s.astype(CategoricalDtype(['a', 'b'], ordered=True))
+        with tm.assert_produces_warning(FutureWarning,
+                                        check_stacklevel=False):
+            result = s.astype('category', categories=['a', 'b'], ordered=True)
+        tm.assert_series_equal(result, expected)
+
+    def test_astype_categoricaldtype(self):
+        s = Series(['a', 'b', 'a'])
+        result = s.astype(CategoricalDtype(['a', 'b'], ordered=True))
+        expected = Series(Categorical(['a', 'b', 'a'], ordered=True))
+        tm.assert_series_equal(result, expected)
+
+        result = s.astype(CategoricalDtype(['a', 'b'], ordered=False))
+        expected = Series(Categorical(['a', 'b', 'a'], ordered=False))
+        tm.assert_series_equal(result, expected)
+
+        result = s.astype(CategoricalDtype(['a', 'b', 'c'], ordered=False))
+        expected = Series(Categorical(['a', 'b', 'a'],
+                                      categories=['a', 'b', 'c'],
+                                      ordered=False))
+        tm.assert_series_equal(result, expected)
+        tm.assert_index_equal(result.cat.categories, Index(['a', 'b', 'c']))
+
+    def test_astype_categoricaldtype_with_args(self):
+        s = Series(['a', 'b'])
+        type_ = CategoricalDtype(['a', 'b'])
+
+        with pytest.raises(TypeError):
+            s.astype(type_, ordered=True)
+        with pytest.raises(TypeError):
+            s.astype(type_, categories=['a', 'b'])
+        with pytest.raises(TypeError):
+            s.astype(type_, categories=['a', 'b'], ordered=False)
+
     def test_astype_generic_timestamp_deprecated(self):
         # see gh-15524
         data = [1]
@@ -279,7 +348,7 @@ class TestSeriesDtypes(TestData):
         expected = Series([1., 2., 3., np.nan])
         tm.assert_series_equal(actual, expected)
 
-        # only soft conversions, uncovertable pass thru unchanged
+        # only soft conversions, unconvertable pass thru unchanged
         actual = (Series(np.array([1, 2, 3, None, 'a'], dtype='O'))
                   .infer_objects())
         expected = Series([1, 2, 3, None, 'a'])
