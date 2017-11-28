@@ -531,7 +531,7 @@ def get_date_field(ndarray[int64_t] dtindex, object field):
                     continue
 
                 dt64_to_dtstruct(dtindex[i], &dts)
-                out[i] = get_days_in_month(dts.year, dts.day)
+                out[i] = get_days_in_month(dts.year, dts.month)
         return out
     elif field == 'is_leap_year':
         return isleapyear_arr(get_date_field(dtindex, 'Y'))
