@@ -8,6 +8,7 @@ import sys
 import warnings
 from datetime import datetime
 from distutils.version import LooseVersion
+from collections import OrderedDict
 
 import numpy as np
 import pandas as pd
@@ -945,7 +946,7 @@ class TestStata(object):
                 cols.append((col, pd.Categorical.from_codes(codes, labels)))
             else:
                 cols.append((col, pd.Series(labels, dtype=np.float32)))
-        expected = DataFrame(dict(cols), columns=dict(cols).keys())
+        expected = DataFrame(dict(cols), columns=OrderedDict(cols).keys())
 
         # Read with and with out categoricals, ensure order is identical
         file = getattr(self, file)
