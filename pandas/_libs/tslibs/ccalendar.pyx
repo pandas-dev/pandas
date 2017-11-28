@@ -21,7 +21,7 @@ np.import_array()
 # The first 12 entries correspond to month lengths for non-leap years.
 # The remaining 12 entries give month lengths for leap years
 cdef int32_t* days_per_month_array = [
-    31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31, 
+    31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31,
     31, 29, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31]
 
 cdef int* sakamoto_arr = [0, 3, 2, 5, 0, 3, 5, 1, 4, 6, 2, 4]
