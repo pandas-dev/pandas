@@ -353,22 +353,15 @@ class Index(IndexOpsMixin, PandasObject):
         elif data is None or is_scalar(data):
             cls._scalar_data_error(data)
         else:
-            if (tupleize_cols and isinstance(data, list) and data and
-                    isinstance(data[0], tuple)):
-
+            if tupleize_cols and is_list_like(data) and data:
+                if is_iterator(data):
+                    data = list(data)
                 # we must be all tuples, otherwise don't construct
                 # 10697
                 if all(isinstance(e, tuple) for e in data):
-                    try:
-                        # must be orderable in py3
-                        if compat.PY3:
-                            sorted(data)
-                        from .multi import MultiIndex
-                        return MultiIndex.from_tuples(
-                            data, names=name or kwargs.get('names'))
-                    except (TypeError, KeyError):
-                        # python2 - MultiIndex fails on mixed types
-                        pass
+                    from .multi import MultiIndex
+                    return MultiIndex.from_tuples(
+                        data, names=name or kwargs.get('names'))
             # other iterable of some kind
             subarr = _asarray_tuplesafe(data, dtype=object)
             return Index(subarr, dtype=dtype, copy=copy, name=name, **kwargs)
