@@ -96,8 +96,7 @@ cdef int dayofweek(int y, int m, int d) nogil:
     """Find the day of week for the date described by the Y/M/D triple y, m, d
     using Sakamoto's method, from wikipedia.
 
-    https://en.wikipedia.org/wiki/\
-    Determination_of_the_day_of_the_week#Sakamoto.27s_methods
+    0 represents Monday.  See [1]_.
 
     Parameters
     ----------
@@ -112,6 +111,13 @@ cdef int dayofweek(int y, int m, int d) nogil:
     Notes
     -----
     Assumes that y, m, d, represents a valid date.
+
+    See Also
+    --------
+    [1] https://docs.python.org/3.6/library/calendar.html#calendar.weekday
+
+    [2] https://en.wikipedia.org/wiki/\
+    Determination_of_the_day_of_the_week#Sakamoto.27s_methods
     """
     cdef:
         int day
