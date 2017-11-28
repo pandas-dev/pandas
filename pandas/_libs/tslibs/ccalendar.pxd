@@ -11,3 +11,4 @@ cpdef monthrange(int64_t year, Py_ssize_t month)
 cdef int dayofweek(int y, int m, int m) nogil
 cdef bint is_leapyear(int64_t year) nogil
 cdef int32_t get_days_in_month(int year, Py_ssize_t month) nogil
+cpdef int32_t get_week_of_year(int year, int month, int day) nogil

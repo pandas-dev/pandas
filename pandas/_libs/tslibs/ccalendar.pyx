@@ -26,6 +26,11 @@ cdef int32_t* days_per_month_array = [
 
 cdef int* sakamoto_arr = [0, 3, 2, 5, 0, 3, 5, 1, 4, 6, 2, 4]
 
+
+cdef int32_t* _month_offset = [
+    0, 31, 59, 90, 120, 151, 181, 212, 243, 273, 304, 334, 365,
+    0, 31, 60, 91, 121, 152, 182, 213, 244, 274, 305, 335, 366]
+
 # ----------------------------------------------------------------------
 
 
@@ -128,3 +133,53 @@ cdef bint is_leapyear(int64_t year) nogil:
     """
     return ((year & 0x3) == 0 and  # year % 4 == 0
             ((year % 100) != 0 or (year % 400) == 0))
+
+
+@cython.wraparound(False)
+@cython.boundscheck(False)
+cpdef int32_t get_week_of_year(int year, int month, int day) nogil:
+    """Return the ordinal week-of-year for the given day
+
+    Parameters
+    ----------
+    year : int
+    month : int
+    day : int
+
+    Returns
+    -------
+    week_of_year : int32_t
+
+    Notes
+    -----
+    Assumes the inputs describe a valid date.
+    """
+    cdef:
+        bint isleap, isleap_prev
+        int32_t mo_off, woy
+        int doy, dow
+
+    isleap = is_leapyear(year)
+    isleap_prev = is_leapyear(year - 1)
+
+    mo_off = _month_offset[isleap * 12 +  month - 1]
+
+    doy = mo_off + day
+    dow = dayofweek(year, month, day)
+
+    # estimate
+    woy = (doy - 1) - dow + 3
+    if woy >= 0:
+        woy = woy / 7 + 1
+
+    # verify
+    if woy < 0:
+        if (woy > -2) or (woy == -2 and isleap_prev):
+            woy = 53
+        else:
+            woy = 52
+    elif woy == 53:
+        if 31 - day + dow < 3:
+            woy = 1
+
+    return woy
