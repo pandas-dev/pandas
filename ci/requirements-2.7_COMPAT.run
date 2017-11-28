@@ -1,6 +1,6 @@
 numpy=1.9.2
 python-dateutil=2.5.0
-pytz=2016.1
+pytz=2013b
 scipy=0.14.0
 xlwt=0.7.5
 xlrd=0.9.2

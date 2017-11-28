@@ -201,7 +201,7 @@ Dependencies
 * `setuptools <https://setuptools.readthedocs.io/en/latest/>`__
 * `NumPy <http://www.numpy.org>`__: 1.9.0 or higher
 * `python-dateutil <//https://dateutil.readthedocs.io/en/stable/>`__: 2.5 or higher
-* `pytz <http://pytz.sourceforge.net/>`__: 2016.1 or higher.
+* `pytz <http://pytz.sourceforge.net/>`__
 
 .. _install.recommended_dependencies:
 

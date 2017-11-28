@@ -21,7 +21,7 @@ requirements:
     - python
     - numpy x.x
     - python-dateutil >=2.5.0
-    - pytz >=2016.1
+    - pytz
 
 test:
   imports:

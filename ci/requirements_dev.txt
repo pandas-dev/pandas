@@ -5,6 +5,6 @@ NumPy
 moto
 pytest>=3.1
 python-dateutil>=2.5.0
-pytz>=2016.1
+pytz
 setuptools
 sphinx

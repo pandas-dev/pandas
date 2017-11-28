@@ -1,5 +1,5 @@
 python-dateutil=2.5.0
-pytz=2016.1
+pytz=2013b
 numpy
 xlwt=0.7.5
 numexpr
