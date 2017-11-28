@@ -736,6 +736,9 @@ class Timestamp(_Timestamp):
 
     @property
     def is_month_end(self):
+        if self.freq is None:
+            # fast-path for non-business frequencies
+            return self.day == self.days_in_month
         return self._get_start_end_field('is_month_end')
 
     @property
@@ -747,6 +750,9 @@ class Timestamp(_Timestamp):
 
     @property
     def is_quarter_end(self):
+        if self.freq is None:
+            # fast-path for non-business frequencies
+            return (self.month % 3) == 0 and self.day == self.days_in_month
         return self._get_start_end_field('is_quarter_end')
 
     @property
