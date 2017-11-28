@@ -33,8 +33,8 @@ import pandas.tseries.offsets as offsets
 from pandas._libs.lib import infer_dtype
 from pandas._libs import tslib, index as libindex
 from pandas._libs.tslibs.period import (Period, IncompatibleFrequency,
-                                 get_period_field_arr, _validate_end_alias,
-                                 _quarter_to_myear)
+                                        get_period_field_arr,
+                                        _validate_end_alias, _quarter_to_myear)
 from pandas._libs.tslibs.fields import isleapyear_arr
 from pandas._libs.tslibs import resolution, period
 from pandas._libs.tslibs.timedeltas import delta_to_nanoseconds

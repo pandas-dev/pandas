@@ -107,7 +107,8 @@ _class_locations_map = {
         ('pandas.core.indexes.period', 'PeriodIndex'),
 
     # 18543 moving period
-    ('pandas._libs.period', 'Period'): ('pandas._libs.tslibs.period', 'Period'),
+    ('pandas._libs.period', 'Period'):
+        ('pandas._libs.tslibs.period', 'Period'),
 }
 
 
