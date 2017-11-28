@@ -1876,12 +1876,12 @@ class FY5253(DateOffset):
             else:
                 assert False
         else:
-            if other > next_year:
+            if next_year < other:
                 n += 2
                 # TODO: Not hit in tests; UPDATE: looks impossible
-            elif other > cur_year:
+            elif cur_year < other < next_year:
                 n += 1
-            elif other > prev_year:
+            elif prev_year < other < cur_year:
                 pass
             elif (other.year == prev_year.year and other < prev_year and
                   prev_year - other <= timedelta(6)):
