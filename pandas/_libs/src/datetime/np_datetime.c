@@ -680,44 +680,6 @@ int convert_datetimestruct_to_datetime(pandas_datetime_metadata *meta,
 }
 
 /*
- * This provides the casting rules for the DATETIME data type units.
- *
- * Notably, there is a barrier between 'date units' and 'time units'
- * for all but 'unsafe' casting.
- */
-npy_bool can_cast_datetime64_units(PANDAS_DATETIMEUNIT src_unit,
-                                   PANDAS_DATETIMEUNIT dst_unit,
-                                   NPY_CASTING casting) {
-    switch (casting) {
-        /* Allow anything with unsafe casting */
-        case NPY_UNSAFE_CASTING:
-            return 1;
-
-        /*
-         * Only enforce the 'date units' vs 'time units' barrier with
-         * 'same_kind' casting.
-         */
-        case NPY_SAME_KIND_CASTING:
-            return (src_unit <= PANDAS_FR_D && dst_unit <= PANDAS_FR_D) ||
-                   (src_unit > PANDAS_FR_D && dst_unit > PANDAS_FR_D);
-
-        /*
-         * Enforce the 'date units' vs 'time units' barrier and that
-         * casting is only allowed towards more precise units with
-         * 'safe' casting.
-         */
-        case NPY_SAFE_CASTING:
-            return (src_unit <= dst_unit) &&
-                   ((src_unit <= PANDAS_FR_D && dst_unit <= PANDAS_FR_D) ||
-                    (src_unit > PANDAS_FR_D && dst_unit > PANDAS_FR_D));
-
-        /* Enforce equality with 'no' or 'equiv' casting */
-        default:
-            return src_unit == dst_unit;
-    }
-}
-
-/*
  * Converts a datetime based on the given metadata into a datetimestruct
  */
 int convert_datetime_to_datetimestruct(pandas_datetime_metadata *meta,

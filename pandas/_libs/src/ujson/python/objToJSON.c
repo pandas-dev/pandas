@@ -456,7 +456,7 @@ static void *PandasDateTimeStructToJSON(pandas_datetimestruct *dts,
         }
 
         if (!make_iso_8601_datetime(dts, GET_TC(tc)->cStr, *_outLen, 0, base,
-                                    -1, NPY_UNSAFE_CASTING)) {
+                                    -1)) {
             PRINTMARK();
             *_outLen = strlen(GET_TC(tc)->cStr);
             return GET_TC(tc)->cStr;
