@@ -77,6 +77,119 @@ _doc_template = """
         pandas.Panel.%(name)s
 """
 
+_apply_docs = dict(
+    template="""
+    Apply function ``func``  group-wise and combine the results together.
+
+    The function passed to ``apply`` must take a {input} as its first
+    argument and return a dataframe, a series or a scalar. ``apply`` will
+    then take care of combining the results back together into a single
+    dataframe or series. ``apply`` is therefore a highly flexible
+    grouping method.
+
+    While ``apply`` is a very flexible method, its downside is that
+    using it can be quite a bit slower than using more specific methods.
+    Pandas offers a wide range of method that will be much faster
+    than using ``apply`` for their specific purposes, so try to use them
+    before reaching for ``apply``.
+
+    Parameters
+    ----------
+    func : function
+        A callable that takes a {input} as its first argument, and
+        returns a dataframe, a series or a scalar. In addition the
+        callable may take positional and keyword arguments
+    args, kwargs : tuple and dict
+        Optional positional and keyword arguments to pass to ``func``
+
+    Returns
+    -------
+    applied : Series or DataFrame
+
+    Notes
+    -----
+    In the current implementation ``apply`` calls func twice on the
+    first group to decide whether it can take a fast or slow code
+    path. This can lead to unexpected behavior if func has
+    side-effects, as they will take effect twice for the first
+    group.
+
+    Examples
+    --------
+    {examples}
+
+    See also
+    --------
+    pipe : Apply function to the full GroupBy object instead of to each
+        group.
+    aggregate, transform
+    """,
+    dataframe_examples="""
+    >>> df = pd.DataFrame({'A': 'a a b'.split(), 'B': [1,2,3], 'C': [4,6, 5]})
+    >>> g = df.groupby('A')
+
+    From ``df`` above we can see that ``g`` has two groups, ``a``, ``b``.
+    Calling ``apply`` in various ways, we can get different grouping results:
+
+    Example 1: below the function passed to ``apply`` takes a dataframe as
+    its argument and returns a dataframe. ``apply`` combines the result for
+    each group together into a new dataframe:
+
+    >>> g.apply(lambda x: x / x.sum())
+              B    C
+    0  0.333333  0.4
+    1  0.666667  0.6
+    2  1.000000  1.0
+
+    Example 2: The function passed to ``apply`` takes a dataframe as
+    its argument and returns a series.  ``apply`` combines the result for
+    each group together into a new dataframe:
+
+    >>> g.apply(lambda x: x.max() - x.min())
+       B  C
+    A
+    a  1  2
+    b  0  0
+
+    Example 3: The function passed to ``apply`` takes a dataframe as
+    its argument and returns a scalar. ``apply`` combines the result for
+    each group together into a series, including setting the index as
+    appropriate:
+
+    >>> g.apply(lambda x: x.C.max() - x.B.min())
+    A
+    a    5
+    b    2
+    dtype: int64
+    """,
+    series_examples="""
+    >>> ser = pd.Series([0, 1, 2], index='a a b'.split())
+    >>> g = ser.groupby(ser.index)
+
+    From ``ser`` above we can see that ``g`` has two groups, ``a``, ``b``.
+    Calling ``apply`` in various ways, we can get different grouping results:
+
+    Example 1: The function passed to ``apply`` takes a series as
+    its argument and returns a series.  ``apply`` combines the result for
+    each group together into a new series:
+
+    >>> g.apply(lambda x:  x*2 if x.name == 'b' else x/2)
+    0    0.0
+    1    0.5
+    2    4.0
+    dtype: float64
+
+    Example 2: The function passed to ``apply`` takes a series as
+    its argument and returns a scalar. ``apply`` combines the result for
+    each group together into a series, including setting the index as
+    appropriate:
+
+    >>> g.apply(lambda x: x.max() - x.min())
+    a    1
+    b    0
+    dtype: int64
+    """)
+
 _transform_template = """
 Call function producing a like-indexed %(klass)s on each group and
 return a %(klass)s having the same indexes as the original object
@@ -143,6 +256,7 @@ Examples
 5  3  8.0
 
 """
+
 
 # special case to prevent duplicate plots when catching exceptions when
 # forwarding methods from NDFrames
@@ -663,50 +777,10 @@ class _GroupBy(PandasObject, SelectionMixin):
         """
         return self.grouper.get_iterator(self.obj, axis=self.axis)
 
-    @Substitution(name='groupby')
+    @Appender(_apply_docs['template']
+              .format(input="dataframe",
+                      examples=_apply_docs['dataframe_examples']))
     def apply(self, func, *args, **kwargs):
-        """
-        Apply function and combine results together in an intelligent way.
-
-        The split-apply-combine combination rules attempt to be as common
-        sense based as possible. For example:
-
-        case 1:
-        group DataFrame
-        apply aggregation function (f(chunk) -> Series)
-        yield DataFrame, with group axis having group labels
-
-        case 2:
-        group DataFrame
-        apply transform function ((f(chunk) -> DataFrame with same indexes)
-        yield DataFrame with resulting chunks glued together
-
-        case 3:
-        group Series
-        apply function with f(chunk) -> DataFrame
-        yield DataFrame with result of chunks glued together
-
-        Parameters
-        ----------
-        func : function
-
-        Notes
-        -----
-        See online documentation for full exposition on how to use apply.
-
-        In the current implementation apply calls func twice on the
-        first group to decide whether it can take a fast or slow code
-        path. This can lead to unexpected behavior if func has
-        side-effects, as they will take effect twice for the first
-        group.
-
-
-        See also
-        --------
-        pipe : Apply function to the full GroupBy object instead of to each
-            group.
-        aggregate, transform
-        """
 
         func = self._is_builtin_func(func)
 
@@ -3021,6 +3095,12 @@ class SeriesGroupBy(GroupBy):
     pandas.Series.aggregate
 
     """)
+
+    @Appender(_apply_docs['template']
+              .format(input='series',
+                      examples=_apply_docs['series_examples']))
+    def apply(self, func, *args, **kwargs):
+        return super(SeriesGroupBy, self).apply(func, *args, **kwargs)
 
     @Appender(_agg_doc)
     @Appender(_shared_docs['aggregate'] % dict(
