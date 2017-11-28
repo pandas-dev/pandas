@@ -26,6 +26,9 @@ cdef int32_t* days_per_month_array = [
 
 cdef int* sakamoto_arr = [0, 3, 2, 5, 0, 3, 5, 1, 4, 6, 2, 4]
 
+# The first 12 entries give the month days elapsed as of the first of month N
+# in non-leap years.  The remaining 12 entries give the days elapsed in leap
+# years.
 cdef int32_t* _month_offset = [
     0, 31, 59, 90, 120, 151, 181, 212, 243, 273, 304, 334, 365,
     0, 31, 60, 91, 121, 152, 182, 213, 244, 274, 305, 335, 366]
