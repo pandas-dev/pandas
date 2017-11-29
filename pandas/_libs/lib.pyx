@@ -62,7 +62,10 @@ cdef int64_t NPY_NAT = util.get_nat()
 cimport util
 from util cimport is_array, _checknull
 
-from libc.math cimport sqrt, fabs
+from libc.math cimport fabs
+cdef extern from "src/headers/math.h":
+    # use this version instead of `from libc.math cimport sqrt`; see GH#18420
+    double sqrt(double x) nogil
 
 
 def values_from_object(object o):

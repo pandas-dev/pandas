@@ -37,6 +37,7 @@ from util cimport numeric
 cdef extern from "../src/headers/math.h":
     int signbit(double) nogil
     double sqrt(double x) nogil
+    # use this version instead of `from libc.math cimport sqrt`; see GH#18420
 
 
 # Cython implementations of rolling sum, mean, variance, skewness,
