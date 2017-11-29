@@ -1,3 +1,5 @@
+# -*- coding: utf-8 -*-
+# cython: profile=False
 from cpython cimport PyObject
 from numpy cimport int64_t, uint64_t, int32_t, uint32_t, float64_t
 
