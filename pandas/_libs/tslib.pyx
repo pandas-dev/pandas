@@ -5,8 +5,9 @@
 # distutils: define_macros=CYTHON_TRACE_NOGIL=0
 
 cimport numpy as np
-from numpy cimport int64_t, import_array, ndarray, float64_t
+from numpy cimport int64_t, ndarray, float64_t
 import numpy as np
+np.import_array()
 
 
 from cpython cimport PyTypeObject, PyFloat_Check
@@ -38,14 +39,11 @@ from tslibs.np_datetime import OutOfBoundsDatetime
 from .tslibs.parsing import parse_datetime_string
 
 cimport cython
+from cython cimport Py_ssize_t
 
-import warnings
 
 import pytz
 UTC = pytz.utc
-
-# initialize numpy
-import_array()
 
 
 from tslibs.timedeltas cimport cast_from_unit
