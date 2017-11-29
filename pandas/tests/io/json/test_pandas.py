@@ -1147,3 +1147,80 @@ DataFrame\\.index values are different \\(100\\.0 %\\)
         size_after = df.memory_usage(index=True, deep=True).sum()
 
         assert size_before == size_after
+
+    def test_index_false_to_json(self):
+        # GH 17394
+        # Testing index parameter in to_json
+        import json
+        df = pd.DataFrame([[1, 2], [4, 5]], columns=['a', 'b'])
+
+        result = df.to_json(orient='split', index=False)
+        result = json.loads(result)
+
+        expected = {
+            'columns': ['a', 'b'],
+            'data': [[1, 2], [4, 5]]
+        }
+
+        assert result == expected
+
+        result = df.to_json(orient='table', index=False)
+        result = json.loads(result)
+
+        schema = {
+            'fields': [{'name': 'a', 'type': 'integer'},
+                       {'name': 'b', 'type': 'integer'}],
+            'pandas_version': '0.20.0'
+        }
+
+        expected = {
+            'schema': schema,
+            'data': [{'a': 1, 'b': 2}, {'a': 4, 'b': 5}]
+        }
+
+        assert result == expected
+
+        s = pd.Series([1, 2, 3], name='A')
+
+        result = s.to_json(orient='split', index=False)
+        result = json.loads(result)
+
+        expected = {
+            'name': 'A',
+            'data': [1, 2, 3]
+        }
+
+        assert result == expected
+
+        result = s.to_json(orient='table', index=False)
+        result = json.loads(result)
+
+        fields = [{'name': 'A', 'type': 'integer'}]
+
+        schema = {
+            'fields': fields,
+            'pandas_version': '0.20.0'
+        }
+
+        expected = {
+            'schema': schema,
+            'data': [{'A': 1}, {'A': 2}, {'A': 3}]
+        }
+
+        assert result == expected
+
+    @pytest.mark.parametrize('orient', [
+        ('records'),
+        ('index'),
+        ('columns'),
+        ('values'),
+    ])
+    def test_index_false_error_to_json(self, orient):
+        # GH 17394
+        # Testing error message from to_json with index=False
+        df = pd.DataFrame([[1, 2], [4, 5]], columns=['a', 'b'])
+
+        with tm.assert_raises_regex(ValueError, "'index=False' is only "
+                                                "valid when 'orient' is "
+                                                "'split' or 'table'"):
+            df.to_json(orient=orient, index=False)
