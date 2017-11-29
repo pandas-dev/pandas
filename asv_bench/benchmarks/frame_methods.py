@@ -3,6 +3,7 @@ import numpy as np
 import pandas.util.testing as tm
 from pandas import (DataFrame, Series, MultiIndex, date_range, period_range,
                     isnull, NaT)
+from .pandas_vb_common import setup
 
 
 class GetNumericData(object):
@@ -10,7 +11,6 @@ class GetNumericData(object):
     goal_time = 0.2
 
     def setup(self):
-        np.random.seed(1234)
         self.df = DataFrame(np.random.randn(10000, 25))
         self.df['foo'] = 'bar'
         self.df['bar'] = 'baz'
@@ -25,7 +25,6 @@ class Lookup(object):
     goal_time = 0.2
 
     def setup(self):
-        np.random.seed(1234)
         self.df = DataFrame(np.random.randn(10000, 8),
                             columns=list('abcdefgh'))
         self.df['foo'] = 'bar'
@@ -49,7 +48,6 @@ class Reindex(object):
 
     def setup(self):
         N = 10**3
-        np.random.seed(1234)
         self.df = DataFrame(np.random.randn(N * 10, N))
         self.idx = np.arange(4 * N, 7 * N)
         self.df2 = DataFrame(
@@ -72,7 +70,6 @@ class Reindex(object):
         self.df.ix[self.idx, self.idx]
 
     def time_reindex_upcast(self):
-        np.random.seed(1234)
         self.df2.reindex(np.random.permutation(range(1200)))
 
 
@@ -82,7 +79,6 @@ class Iteration(object):
 
     def setup(self):
         N = 1000
-        np.random.seed(1234)
         self.df = DataFrame(np.random.randn(N * 10, N))
         self.df2 = DataFrame(np.random.randn(N * 50, 10))
         self.df3 = DataFrame(np.random.randn(N, 5 * N),
@@ -107,13 +103,16 @@ class Iteration(object):
         for row in self.df2.itertuples():
             pass
 
+    def time_iterrows(self):
+        for row in self.df.iterrows():
+            pass
+
 
 class ToString(object):
 
     goal_time = 0.2
 
     def setup(self):
-        np.random.seed(1234)
         self.df = DataFrame(np.random.randn(100, 10))
 
     def time_to_string_floats(self):
@@ -166,7 +165,6 @@ class MaskBool(object):
     goal_time = 0.2
 
     def setup(self):
-        np.random.seed(1234)
         data = np.random.randn(1000, 500)
         df = DataFrame(data)
         df = df.where(df > 0)
@@ -186,7 +184,6 @@ class Isnull(object):
 
     def setup(self):
         N = 10**3
-        np.random.seed(1234)
         self.df_no_null = DataFrame(np.random.randn(N, N))
 
         sample = np.array([np.nan, 1.0])
@@ -222,7 +219,6 @@ class Fillna(object):
     param_names = ['inplace', 'method']
 
     def setup(self, inplace, method):
-        np.random.seed(1234)
         values = np.random.randn(10000, 100)
         values[::2] = np.nan
         self.df = DataFrame(values)
@@ -238,7 +234,6 @@ class Dropna(object):
     param_names = ['how', 'axis']
 
     def setup(self, how, axis):
-        np.random.seed(1234)
         self.df = DataFrame(np.random.randn(10000, 1000))
         self.df.ix[50:1000, 20:50] = np.nan
         self.df.ix[2000:3000] = np.nan
@@ -261,7 +256,6 @@ class Count(object):
     param_names = ['axis']
 
     def setup(self, axis):
-        np.random.seed(1234)
         self.df = DataFrame(np.random.randn(10000, 1000))
         self.df.ix[50:1000, 20:50] = np.nan
         self.df.ix[2000:3000] = np.nan
@@ -289,7 +283,6 @@ class Apply(object):
     goal_time = 0.2
 
     def setup(self):
-        np.random.seed(1234)
         self.df = DataFrame(np.random.randn(1000, 100))
 
         self.s = Series(np.arange(1028.0))
@@ -320,7 +313,6 @@ class Dtypes(object):
     goal_time = 0.2
 
     def setup(self):
-        np.random.seed(1234)
         self.df = DataFrame(np.random.randn(1000, 1000))
 
     def time_frame_dtypes(self):
@@ -333,7 +325,6 @@ class Equals(object):
 
     def setup(self):
         N = 10**3
-        np.random.seed(1234)
         self.float_df = DataFrame(np.random.randn(N, N))
         self.float_df_nan = self.float_df.copy()
         self.float_df_nan.iloc[-1, -1] = np.nan
@@ -374,7 +365,6 @@ class Interpolate(object):
 
     def setup(self, downcast):
         N = 10000
-        np.random.seed(1234)
         # this is the worst case, where every column has NaNs.
         self.df = DataFrame(np.random.randn(N, 100))
         self.df.values[::2] = np.nan
@@ -400,32 +390,15 @@ class Shift(object):
     param_names = ['axis']
 
     def setup(self, axis):
-        np.random.seed(1234)
         self.df = DataFrame(np.random.rand(10000, 500))
 
     def time_shift(self, axis):
         self.df.shift(1, axis=axis)
 
 
-class FromRecords(object):
-
-    goal_time = 0.2
-    params = [None, 1000]
-    param_names = ['nrows']
-
-    def setup(self, nrows):
-        N = 100000
-        self.gen = ((x, (x * 20), (x * 100)) for x in range(N))
-
-    def time_frame_from_records_generator(self, nrows):
-        # issue-6700
-        self.df = DataFrame.from_records(self.gen, nrows=nrows)
-
-
 class Nunique(object):
 
     def setup(self):
-        np.random.seed(1234)
         self.df = DataFrame(np.random.randn(10000, 1000))
 
     def time_frame_nunique(self):
@@ -437,7 +410,6 @@ class Duplicated(object):
     goal_time = 0.2
 
     def setup(self):
-        np.random.seed(1234)
         n = (1 << 20)
         t = date_range('2015-01-01', freq='S', periods=(n // 64))
         xs = np.random.randn(n // 64).round(2)
@@ -460,7 +432,6 @@ class XS(object):
     param_names = ['axis']
 
     def setup(self, axis):
-        np.random.seed(1234)
         self.N = 10**4
         self.df = DataFrame(np.random.randn(self.N, self.N))
 
@@ -468,18 +439,17 @@ class XS(object):
         self.df.xs(self.N / 2, axis=axis)
 
 
-class SortIndex(object):
+class SortValues(object):
 
     goal_time = 0.2
     params = [True, False]
     param_names = ['ascending']
 
     def setup(self, ascending):
-        np.random.seed(1234)
         self.df = DataFrame(np.random.randn(1000000, 2), columns=list('AB'))
 
-    def time_frame_sort_index(self, ascending):
-        self.df.sort_index(ascending=ascending)
+    def time_frame_sort_values(self, ascending):
+        self.df.sort_values(by='A', ascending=ascending)
 
 
 class SortIndexByColumns(object):
@@ -487,15 +457,14 @@ class SortIndexByColumns(object):
     goal_time = 0.2
 
     def setup(self):
-        np.random.seed(1234)
         N = 10000
         K = 10
         self.df = DataFrame({'key1': tm.makeStringIndex(N).values.repeat(K),
                              'key2': tm.makeStringIndex(N).values.repeat(K),
                              'value': np.random.randn(N * K)})
 
-    def time_frame_sort_index_by_columns(self):
-        self.df.sort_index(by=['key1', 'key2'])
+    def time_frame_sort_values_by_columns(self):
+        self.df.sort_values(by=['key1', 'key2'])
 
 
 class Quantile(object):
@@ -505,7 +474,6 @@ class Quantile(object):
     param_names = ['axis']
 
     def setup(self, axis):
-        np.random.seed(1234)
         self.df = DataFrame(np.random.randn(1000, 3), columns=list('ABC'))
 
     def time_frame_quantile(self, axis):
@@ -517,7 +485,6 @@ class GetDtypeCounts(object):
     goal_time = 0.2
 
     def setup(self):
-        np.random.seed(1234)
         self.df = DataFrame(np.random.randn(10, 10000))
 
     def time_frame_get_dtype_counts(self):
@@ -527,13 +494,17 @@ class GetDtypeCounts(object):
         self.df.info()
 
 
-class Nlargest(object):
+class NSort(object):
 
     goal_time = 0.2
+    params = ['first', 'last']
+    param_names = ['keep']
 
-    def setup(self):
-        np.random.seed(1234)
+    def setup(self, keep):
         self.df = DataFrame(np.random.randn(1000, 3), columns=list('ABC'))
 
-    def time_frame_nlargest(self):
-        self.df.nlargest(100, 'A')
+    def time_nlargest(self, keep):
+        self.df.nlargest(100, 'A', keep=keep)
+
+    def time_nsmallest(self, keep):
+        self.df.nsmallest(100, 'A', keep=keep)
