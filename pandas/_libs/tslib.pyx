@@ -36,7 +36,7 @@ from tslibs.np_datetime cimport (check_dts_bounds,
                                  dayofweek, is_leapyear)
 from tslibs.np_datetime import OutOfBoundsDatetime
 
-from .tslibs.parsing import parse_datetime_string
+from tslibs.parsing import parse_datetime_string
 
 cimport cython
 from cython cimport Py_ssize_t
