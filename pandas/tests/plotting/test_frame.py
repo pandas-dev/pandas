@@ -15,6 +15,7 @@ from pandas.core.dtypes.api import is_list_like
 from pandas.compat import range, lrange, lmap, lzip, u, zip, PY3
 from pandas.io.formats.printing import pprint_thing
 import pandas.util.testing as tm
+import pandas.util._test_decorators as td
 
 import numpy as np
 from numpy.random import rand, randn
@@ -24,9 +25,8 @@ from pandas.tests.plotting.common import (TestPlotBase, _check_plot_works,
                                           _skip_if_no_scipy_gaussian_kde,
                                           _ok_for_gaussian_kde)
 
-tm._skip_if_no_mpl()
 
-
+@td.skip_if_no_mpl
 class TestDataFramePlots(TestPlotBase):
 
     def setup_method(self, method):
@@ -1162,14 +1162,13 @@ class TestDataFramePlots(TestPlotBase):
             if kind == 'bar':
                 axis = ax.xaxis
                 ax_min, ax_max = ax.get_xlim()
-                min_edge = min([p.get_x() for p in ax.patches])
-                max_edge = max([p.get_x() + p.get_width() for p in ax.patches])
+                min_edge = min(p.get_x() for p in ax.patches)
+                max_edge = max(p.get_x() + p.get_width() for p in ax.patches)
             elif kind == 'barh':
                 axis = ax.yaxis
                 ax_min, ax_max = ax.get_ylim()
-                min_edge = min([p.get_y() for p in ax.patches])
-                max_edge = max([p.get_y() + p.get_height() for p in ax.patches
-                                ])
+                min_edge = min(p.get_y() for p in ax.patches)
+                max_edge = max(p.get_y() + p.get_height() for p in ax.patches)
             else:
                 raise ValueError
 

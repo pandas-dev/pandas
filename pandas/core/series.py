@@ -18,7 +18,7 @@ from pandas.core.dtypes.common import (
     is_bool,
     is_integer, is_integer_dtype,
     is_float_dtype,
-    is_extension_type, is_datetimetz,
+    is_extension_type,
     is_datetime64tz_dtype,
     is_timedelta64_dtype,
     is_list_like,
@@ -29,11 +29,13 @@ from pandas.core.dtypes.common import (
     _is_unorderable_exception,
     _ensure_platform_int,
     pandas_dtype)
-from pandas.core.dtypes.generic import ABCSparseArray, ABCDataFrame
+from pandas.core.dtypes.generic import (
+    ABCSparseArray, ABCDataFrame, ABCIndexClass)
 from pandas.core.dtypes.cast import (
     maybe_upcast, infer_dtype_from_scalar,
     maybe_convert_platform,
-    maybe_cast_to_datetime, maybe_castable)
+    maybe_cast_to_datetime, maybe_castable,
+    construct_1d_arraylike_from_scalar)
 from pandas.core.dtypes.missing import isna, notna, remove_na_arraylike
 
 from pandas.core.common import (is_bool_indexer,
@@ -44,7 +46,6 @@ from pandas.core.common import (is_bool_indexer,
                                 _maybe_match_name,
                                 SettingWithCopyError,
                                 _maybe_box_datetimelike,
-                                _dict_compat,
                                 standardize_mapping,
                                 _any_none)
 from pandas.core.index import (Index, MultiIndex, InvalidIndexError,
@@ -184,8 +185,8 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
                 if name is None:
                     name = data.name
 
-                data = data._to_embed(keep_tz=True)
-                copy = True
+                data = data._to_embed(keep_tz=True, dtype=dtype)
+                copy = False
             elif isinstance(data, np.ndarray):
                 pass
             elif isinstance(data, Series):
@@ -202,23 +203,9 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
                         index = Index(data)
                     else:
                         index = Index(_try_sort(data))
+
                 try:
-                    if isinstance(index, DatetimeIndex):
-                        if len(data):
-                            # coerce back to datetime objects for lookup
-                            data = _dict_compat(data)
-                            data = lib.fast_multiget(data,
-                                                     index.asobject.values,
-                                                     default=np.nan)
-                        else:
-                            data = np.nan
-                    # GH #12169
-                    elif isinstance(index, (PeriodIndex, TimedeltaIndex)):
-                        data = ([data.get(i, np.nan) for i in index]
-                                if data else np.nan)
-                    else:
-                        data = lib.fast_multiget(data, index.values,
-                                                 default=np.nan)
+                    data = index._get_values_from_dict(data)
                 except TypeError:
                     data = ([data.get(i, np.nan) for i in index]
                             if data else np.nan)
@@ -273,6 +260,25 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
     @classmethod
     def from_array(cls, arr, index=None, name=None, dtype=None, copy=False,
                    fastpath=False):
+        """
+        DEPRECATED: use the pd.Series(..) constructor instead.
+
+        """
+        warnings.warn("'from_array' is deprecated and will be removed in a "
+                      "future version. Please use the pd.Series(..) "
+                      "constructor instead.", FutureWarning, stacklevel=2)
+        return cls._from_array(arr, index=index, name=name, dtype=dtype,
+                               copy=copy, fastpath=fastpath)
+
+    @classmethod
+    def _from_array(cls, arr, index=None, name=None, dtype=None, copy=False,
+                    fastpath=False):
+        """
+        Internal method used in DataFrame.__setitem__/__getitem__.
+        Difference with Series(..) is that this method checks if a sparse
+        array is passed.
+
+        """
         # return a sparse series here
         if isinstance(arr, ABCSparseArray):
             from pandas.core.sparse.series import SparseSeries
@@ -1306,7 +1312,13 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         Parameters
         ----------
         skipna : boolean, default True
-            Exclude NA/null values
+            Exclude NA/null values. If the entire Series is NA, the result
+            will be NA.
+
+        Raises
+        ------
+        ValueError
+            * If the Series is empty
 
         Returns
         -------
@@ -1336,7 +1348,13 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         Parameters
         ----------
         skipna : boolean, default True
-            Exclude NA/null values
+            Exclude NA/null values. If the entire Series is NA, the result
+            will be NA.
+
+        Raises
+        ------
+        ValueError
+            * If the Series is empty
 
         Returns
         -------
@@ -1361,13 +1379,13 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
 
     # ndarray compat
     argmin = deprecate('argmin', idxmin,
-                       msg="'argmin' is deprecated. Use 'idxmin' instead. "
+                       msg="'argmin' is deprecated, use 'idxmin' instead. "
                            "The behavior of 'argmin' will be corrected to "
                            "return the positional minimum in the future. "
                            "Use 'series.values.argmin' to get the position of "
                            "the minimum now.")
     argmax = deprecate('argmax', idxmax,
-                       msg="'argmax' is deprecated. Use 'idxmax' instead. "
+                       msg="'argmax' is deprecated, use 'idxmax' instead. "
                            "The behavior of 'argmax' will be corrected to "
                            "return the positional maximum in the future. "
                            "Use 'series.values.argmax' to get the position of "
@@ -1594,7 +1612,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         ignore_index : boolean, default False
             If True, do not use the index labels.
 
-            .. versionadded: 0.19.0
+            .. versionadded:: 0.19.0
 
         verify_integrity : boolean, default False
             If True, raise Exception on creating index with duplicates
@@ -1731,11 +1749,26 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         ----------
         other : Series or scalar value
         func : function
+            Function that takes two scalars as inputs and return a scalar
         fill_value : scalar value
 
         Returns
         -------
         result : Series
+
+        Examples
+        --------
+        >>> s1 = Series([1, 2])
+        >>> s2 = Series([0, 3])
+        >>> s1.combine(s2, lambda x1, x2: x1 if x1 < x2 else x2)
+        0    0
+        1    2
+        dtype: int64
+
+        See Also
+        --------
+        Series.combine_first : Combine Series values, choosing the calling
+            Series's values first
         """
         if isinstance(other, Series):
             new_index = self.index.union(other.index)
@@ -1764,7 +1797,21 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
 
         Returns
         -------
-        y : Series
+        combined : Series
+
+        Examples
+        --------
+        >>> s1 = pd.Series([1, np.nan])
+        >>> s2 = pd.Series([3, 4])
+        >>> s1.combine_first(s2)
+        0    1.0
+        1    4.0
+        dtype: float64
+
+        See Also
+        --------
+        Series.combine : Perform elementwise operation on two Series
+            using a given function
         """
         new_index = self.index.union(other.index)
         this = self.reindex(new_index, copy=False)
@@ -2152,7 +2199,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         fill_value : replace NaN with this value if the unstack produces
             missing values
 
-            .. versionadded: 0.18.0
+            .. versionadded:: 0.18.0
 
         Examples
         --------
@@ -2277,41 +2324,8 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         3    0
         dtype: int64
         """
-
-        if is_extension_type(self.dtype):
-            values = self._values
-            if na_action is not None:
-                raise NotImplementedError
-            map_f = lambda values, f: values.map(f)
-        else:
-            values = self.asobject
-
-            if na_action == 'ignore':
-                def map_f(values, f):
-                    return lib.map_infer_mask(values, f,
-                                              isna(values).view(np.uint8))
-            else:
-                map_f = lib.map_infer
-
-        if isinstance(arg, dict):
-            if hasattr(arg, '__missing__'):
-                # If a dictionary subclass defines a default value method,
-                # convert arg to a lookup function (GH #15999).
-                dict_with_default = arg
-                arg = lambda x: dict_with_default[x]
-            else:
-                # Dictionary does not have a default. Thus it's safe to
-                # convert to an indexed series for efficiency.
-                arg = self._constructor(arg, index=arg.keys())
-
-        if isinstance(arg, Series):
-            # arg is a Series
-            indexer = arg.index.get_indexer(values)
-            new_values = algorithms.take_1d(arg._values, indexer)
-        else:
-            # arg is a function
-            new_values = map_f(values, arg)
-
+        new_values = super(Series, self)._map_values(
+            arg, na_action=na_action)
         return self._constructor(new_values,
                                  index=self.index).__finalize__(self)
 
@@ -3079,7 +3093,9 @@ def _sanitize_index(data, index, copy=False):
     if len(data) != len(index):
         raise ValueError('Length of values does not match length of ' 'index')
 
-    if isinstance(data, PeriodIndex):
+    if isinstance(data, ABCIndexClass) and not copy:
+        pass
+    elif isinstance(data, PeriodIndex):
         data = data.asobject
     elif isinstance(data, DatetimeIndex):
         data = data._to_embed(keep_tz=True)
@@ -3149,12 +3165,11 @@ def _sanitize_array(data, index, dtype=None, copy=False,
             # e.g. indexes can have different conversions (so don't fast path
             # them)
             # GH 6140
-            subarr = _sanitize_index(data, index, copy=True)
+            subarr = _sanitize_index(data, index, copy=copy)
         else:
-            subarr = _try_cast(data, True)
 
-        if copy:
-            subarr = data.copy()
+            # we will try to copy be-definition here
+            subarr = _try_cast(data, True)
 
     elif isinstance(data, Categorical):
         subarr = data
@@ -3186,21 +3201,6 @@ def _sanitize_array(data, index, dtype=None, copy=False,
     else:
         subarr = _try_cast(data, False)
 
-    def create_from_value(value, index, dtype):
-        # return a new empty value suitable for the dtype
-
-        if is_datetimetz(dtype):
-            subarr = DatetimeIndex([value] * len(index), dtype=dtype)
-        elif is_categorical_dtype(dtype):
-            subarr = Categorical([value] * len(index))
-        else:
-            if not isinstance(dtype, (np.dtype, type(np.dtype))):
-                dtype = dtype.dtype
-            subarr = np.empty(len(index), dtype=dtype)
-            subarr.fill(value)
-
-        return subarr
-
     # scalar like, GH
     if getattr(subarr, 'ndim', 0) == 0:
         if isinstance(data, list):  # pragma: no cover
@@ -3215,7 +3215,8 @@ def _sanitize_array(data, index, dtype=None, copy=False,
                 # need to possibly convert the value here
                 value = maybe_cast_to_datetime(value, dtype)
 
-            subarr = create_from_value(value, index, dtype)
+            subarr = construct_1d_arraylike_from_scalar(
+                value, len(index), dtype)
 
         else:
             return subarr.item()
@@ -3226,8 +3227,8 @@ def _sanitize_array(data, index, dtype=None, copy=False,
 
             # a 1-element ndarray
             if len(subarr) != len(index) and len(subarr) == 1:
-                subarr = create_from_value(subarr[0], index,
-                                           subarr.dtype)
+                subarr = construct_1d_arraylike_from_scalar(
+                    subarr[0], len(index), subarr.dtype)
 
     elif subarr.ndim > 1:
         if isinstance(data, np.ndarray):

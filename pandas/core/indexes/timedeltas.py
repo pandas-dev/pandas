@@ -52,7 +52,7 @@ def _field_accessor(name, alias, docstring=None):
     return property(f)
 
 
-def _td_index_cmp(opname, nat_result=False):
+def _td_index_cmp(opname, cls, nat_result=False):
     """
     Wrap comparison operations to convert timedelta-like to timedelta64
     """
@@ -93,7 +93,7 @@ def _td_index_cmp(opname, nat_result=False):
             return result
         return Index(result)
 
-    return wrapper
+    return compat.set_function_name(wrapper, opname, cls)
 
 
 class TimedeltaIndex(DatetimeIndexOpsMixin, TimelikeOps, Int64Index):
@@ -137,6 +137,24 @@ class TimedeltaIndex(DatetimeIndexOpsMixin, TimelikeOps, Int64Index):
     Timedelta : Represents a duration between two dates or times.
     DatetimeIndex : Index of datetime64 data
     PeriodIndex : Index of Period data
+
+    Attributes
+    ----------
+    days
+    seconds
+    microseconds
+    nanoseconds
+    components
+    inferred_freq
+
+    Methods
+    -------
+    to_pytimedelta
+    to_series
+    round
+    floor
+    ceil
+    to_frame
     """
 
     _typ = 'timedeltaindex'
@@ -162,12 +180,15 @@ class TimedeltaIndex(DatetimeIndexOpsMixin, TimelikeOps, Int64Index):
     _datetimelike_methods = ["to_pytimedelta", "total_seconds",
                              "round", "floor", "ceil"]
 
-    __eq__ = _td_index_cmp('__eq__')
-    __ne__ = _td_index_cmp('__ne__', nat_result=True)
-    __lt__ = _td_index_cmp('__lt__')
-    __gt__ = _td_index_cmp('__gt__')
-    __le__ = _td_index_cmp('__le__')
-    __ge__ = _td_index_cmp('__ge__')
+    @classmethod
+    def _add_comparison_methods(cls):
+        """ add in comparison methods """
+        cls.__eq__ = _td_index_cmp('__eq__', cls)
+        cls.__ne__ = _td_index_cmp('__ne__', cls, nat_result=True)
+        cls.__lt__ = _td_index_cmp('__lt__', cls)
+        cls.__gt__ = _td_index_cmp('__gt__', cls)
+        cls.__le__ = _td_index_cmp('__le__', cls)
+        cls.__ge__ = _td_index_cmp('__ge__', cls)
 
     _engine_type = libindex.TimedeltaEngine
 
@@ -477,7 +498,7 @@ class TimedeltaIndex(DatetimeIndexOpsMixin, TimelikeOps, Int64Index):
         elif is_integer_dtype(dtype):
             return Index(self.values.astype('i8', copy=copy), dtype='i8',
                          name=self.name)
-        raise ValueError('Cannot cast TimedeltaIndex to dtype %s' % dtype)
+        raise TypeError('Cannot cast TimedeltaIndex to dtype %s' % dtype)
 
     def union(self, other):
         """
@@ -831,16 +852,18 @@ class TimedeltaIndex(DatetimeIndexOpsMixin, TimelikeOps, Int64Index):
         -------
         new_index : Index
         """
-
         # try to convert if possible
         if _is_convertible_to_td(item):
             try:
                 item = Timedelta(item)
             except Exception:
                 pass
+        elif is_scalar(item) and isna(item):
+            # GH 18295
+            item = self._na_value
 
         freq = None
-        if isinstance(item, Timedelta) or item is NaT:
+        if isinstance(item, Timedelta) or (is_scalar(item) and isna(item)):
 
             # check freq can be preserved on edge cases
             if self.freq is not None:
@@ -894,6 +917,7 @@ class TimedeltaIndex(DatetimeIndexOpsMixin, TimelikeOps, Int64Index):
         return TimedeltaIndex(new_tds, name=self.name, freq=freq)
 
 
+TimedeltaIndex._add_comparison_methods()
 TimedeltaIndex._add_numeric_methods()
 TimedeltaIndex._add_logical_methods_disabled()
 TimedeltaIndex._add_datetimelike_methods()

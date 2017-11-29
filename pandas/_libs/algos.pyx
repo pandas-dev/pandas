@@ -20,7 +20,7 @@ from numpy cimport (ndarray,
                     NPY_FLOAT32, NPY_FLOAT64,
                     NPY_OBJECT,
                     int8_t, int16_t, int32_t, int64_t, uint8_t, uint16_t,
-                    uint32_t, uint64_t, float16_t, float32_t, float64_t,
+                    uint32_t, uint64_t, float32_t, float64_t,
                     double_t)
 
 
@@ -32,8 +32,7 @@ from libc.math cimport sqrt, fabs
 # this is our util.pxd
 from util cimport numeric, get_nat
 
-cimport lib
-from pandas._libs import lib
+import missing
 
 cdef int64_t iNaT = get_nat()
 
@@ -212,51 +211,6 @@ cpdef numeric median(numeric[:] arr):
         return (kth_smallest(arr, n // 2) +
                 kth_smallest(arr, n // 2 - 1)) / 2
 
-
-# -------------- Min, Max subsequence
-
-@cython.boundscheck(False)
-@cython.wraparound(False)
-def max_subseq(ndarray[double_t] arr):
-    cdef:
-        Py_ssize_t i=0, s=0, e=0, T, n
-        double m, S
-
-    n = len(arr)
-
-    if len(arr) == 0:
-        return (-1, -1, None)
-
-    m = arr[0]
-    S = m
-    T = 0
-
-    with nogil:
-        for i in range(1, n):
-            # S = max { S + A[i], A[i] )
-            if (S > 0):
-                S = S + arr[i]
-            else:
-                S = arr[i]
-                T = i
-            if S > m:
-                s = T
-                e = i
-                m = S
-
-    return (s, e, m)
-
-
-@cython.boundscheck(False)
-@cython.wraparound(False)
-def min_subseq(ndarray[double_t] arr):
-    cdef:
-        Py_ssize_t s, e
-        double m
-
-    (s, e, m) = max_subseq(-arr)
-
-    return (s, e, -m)
 
 # ----------------------------------------------------------------------
 # Pairwise correlation/covariance

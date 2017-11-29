@@ -30,12 +30,10 @@ from np_datetime cimport (cmp_scalar, reverse_ops, td64_to_tdstruct,
                           pandas_timedeltastruct)
 
 from nattype import nat_strings, NaT
-from nattype cimport _checknull_with_nat
+from nattype cimport checknull_with_nat, NPY_NAT
 
 # ----------------------------------------------------------------------
 # Constants
-
-cdef int64_t NPY_NAT = util.get_nat()
 
 cdef int64_t DAY_NS = 86400000000000LL
 
@@ -113,7 +111,7 @@ cpdef convert_to_timedelta64(object ts, object unit):
     # kludgy here until we have a timedelta scalar
     # handle the numpy < 1.7 case
     """
-    if _checknull_with_nat(ts):
+    if checknull_with_nat(ts):
         return np.timedelta64(NPY_NAT)
     elif isinstance(ts, Timedelta):
         # already in the proper format
@@ -152,7 +150,7 @@ cpdef convert_to_timedelta64(object ts, object unit):
         ts = np.timedelta64(delta_to_nanoseconds(ts), 'ns')
     elif not is_timedelta64_object(ts):
         raise ValueError("Invalid type for timedelta "
-                         "scalar: %s" % type(ts))
+                         "scalar: {ts_type}".format(ts_type=type(ts)))
     return ts.astype('timedelta64[ns]')
 
 
@@ -445,7 +443,7 @@ cdef inline timedelta_from_spec(object number, object frac, object unit):
 
 cdef bint _validate_ops_compat(other):
     # return True if we are compat with operating
-    if _checknull_with_nat(other):
+    if checknull_with_nat(other):
         return True
     elif PyDelta_Check(other) or is_timedelta64_object(other):
         return True
@@ -528,7 +526,7 @@ cdef class _Timedelta(timedelta):
         int64_t value      # nanoseconds
         object freq        # frequency reference
         bint is_populated  # are my components populated
-        int64_t _sign, _d, _h, _m, _s, _ms, _us, _ns
+        int64_t _d, _h, _m, _s, _ms, _us, _ns
 
     # higher than np.ndarray and np.matrix
     __array_priority__ = 100
@@ -562,9 +560,9 @@ cdef class _Timedelta(timedelta):
                             return True
 
                         # only allow ==, != ops
-                        raise TypeError('Cannot compare type %r with type %r' %
-                                        (type(self).__name__,
-                                         type(other).__name__))
+                        raise TypeError('Cannot compare type {!r} with type ' \
+                                        '{!r}'.format(type(self).__name__,
+                                                      type(other).__name__))
                 if util.is_array(other):
                     return PyObject_RichCompare(np.array([self]), other, op)
                 return PyObject_RichCompare(other, self, reverse_ops[op])
@@ -573,8 +571,9 @@ cdef class _Timedelta(timedelta):
                     return False
                 elif op == Py_NE:
                     return True
-                raise TypeError('Cannot compare type %r with type %r' %
-                                (type(self).__name__, type(other).__name__))
+                raise TypeError('Cannot compare type {!r} with type ' \
+                                '{!r}'.format(type(self).__name__,
+                                              type(other).__name__))
 
         return cmp_scalar(self.value, ots.value, op)
 
@@ -593,10 +592,6 @@ cdef class _Timedelta(timedelta):
 
         td64_to_tdstruct(self.value, &tds)
         self._d = tds.days
-        if self._d < 0:
-            self._sign = -1
-        else:
-            self._sign = 1
         self._h = tds.hrs
         self._m = tds.min
         self._s = tds.sec
@@ -668,36 +663,6 @@ cdef class _Timedelta(timedelta):
             return "D"
 
     @property
-    def days(self):
-        """
-        Number of Days
-
-        .components will return the shown components
-        """
-        self._ensure_components()
-        return self._d
-
-    @property
-    def seconds(self):
-        """
-        Number of seconds (>= 0 and less than 1 day).
-
-        .components will return the shown components
-        """
-        self._ensure_components()
-        return self._seconds
-
-    @property
-    def microseconds(self):
-        """
-        Number of microseconds (>= 0 and less than 1 second).
-
-        .components will return the shown components
-        """
-        self._ensure_components()
-        return self._microseconds
-
-    @property
     def nanoseconds(self):
         """
         Number of nanoseconds (>= 0 and less than 1 microsecond).
@@ -712,60 +677,47 @@ cdef class _Timedelta(timedelta):
 
         Parameters
         ----------
-        format : None|all|even_day|sub_day|long
+        format : None|all|sub_day|long
 
         Returns
         -------
         converted : string of a Timedelta
 
         """
-        cdef object sign_pretty, sign2_pretty, seconds_pretty, subs
+        cdef object sign, seconds_pretty, subs, fmt, comp_dict
 
         self._ensure_components()
 
-        if self._sign < 0:
-            sign_pretty = "-"
-            sign2_pretty = " +"
+        if self._d < 0:
+            sign = " +"
         else:
-            sign_pretty = ""
-            sign2_pretty = " "
+            sign = " "
 
-        # show everything
         if format == 'all':
-            seconds_pretty = "%02d.%03d%03d%03d" % (
-                self._s, self._ms, self._us, self._ns)
-            return "%d days%s%02d:%02d:%s" % (self._d,
-                                              sign2_pretty, self._h,
-                                              self._m, seconds_pretty)
-
-        # by default not showing nano
-        if self._ms or self._us or self._ns:
-            seconds_pretty = "%02d.%03d%03d" % (self._s, self._ms, self._us)
+            fmt = "{days} days{sign}{hours:02}:{minutes:02}:{seconds:02}." \
+                  "{milliseconds:03}{microseconds:03}{nanoseconds:03}"
         else:
-            seconds_pretty = "%02d" % self._s
+            # if we have a partial day
+            subs = (self._h or self._m or self._s or
+                    self._ms or self._us or self._ns)
 
-        # if we have a partial day
-        subs = (self._h or self._m or self._s or
-                self._ms or self._us or self._ns)
+            # by default not showing nano
+            if self._ms or self._us or self._ns:
+                seconds_fmt = "{seconds:02}.{milliseconds:03}{microseconds:03}"
+            else:
+                seconds_fmt = "{seconds:02}"
 
-        if format == 'even_day':
-            if not subs:
-                return "%d days" % (self._d)
+            if format == 'sub_day' and not self._d:
+                fmt = "{hours:02}:{minutes:02}:" + seconds_fmt
+            elif subs or format == 'long':
+                fmt = "{days} days{sign}{hours:02}:{minutes:02}:" + seconds_fmt
+            else:
+                fmt = "{days} days"
 
-        elif format == 'sub_day':
-            if not self._d:
+        comp_dict = self.components._asdict()
+        comp_dict['sign'] = sign
 
-                # degenerate, don't need the extra space
-                if self._sign > 0:
-                    sign2_pretty = ""
-                return "%s%s%02d:%02d:%s" % (sign_pretty, sign2_pretty,
-                                             self._h, self._m, seconds_pretty)
-
-        if subs or format=='long':
-            return "%d days%s%02d:%02d:%s" % (self._d,
-                                              sign2_pretty, self._h,
-                                              self._m, seconds_pretty)
-        return "%d days" % (self._d)
+        return fmt.format(**comp_dict)
 
     def __repr__(self):
         return "Timedelta('{0}')".format(self._repr_base(format='long'))
@@ -872,7 +824,7 @@ class Timedelta(_Timedelta):
 
         if isinstance(value, Timedelta):
             value = value.value
-        elif util.is_string_object(value):
+        elif is_string_object(value):
             value = np.timedelta64(parse_timedelta_string(value))
         elif PyDelta_Check(value):
             value = convert_to_timedelta64(value, 'ns')
@@ -882,10 +834,10 @@ class Timedelta(_Timedelta):
             value = value.astype('timedelta64[ns]')
         elif hasattr(value, 'delta'):
             value = np.timedelta64(delta_to_nanoseconds(value.delta), 'ns')
-        elif is_integer_object(value) or util.is_float_object(value):
+        elif is_integer_object(value) or is_float_object(value):
             # unit=None is de-facto 'ns'
             value = convert_to_timedelta64(value, unit)
-        elif _checknull_with_nat(value):
+        elif checknull_with_nat(value):
             return NaT
         else:
             raise ValueError(

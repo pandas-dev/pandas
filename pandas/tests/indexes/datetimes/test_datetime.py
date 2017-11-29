@@ -1,7 +1,7 @@
 import pytest
 
 import numpy as np
-from datetime import date, timedelta, time
+from datetime import date, timedelta, time, datetime
 
 import dateutil
 import pandas as pd
@@ -9,11 +9,36 @@ import pandas.util.testing as tm
 from pandas.compat import lrange
 from pandas.compat.numpy import np_datetime64_compat
 from pandas import (DatetimeIndex, Index, date_range, DataFrame,
-                    Timestamp, datetime, offsets)
+                    Timestamp, offsets)
 
 from pandas.util.testing import assert_almost_equal
 
 randn = np.random.randn
+
+
+class TestDatetimeIndexLikeTimestamp(object):
+    # Tests for DatetimeIndex behaving like a vectorized Timestamp
+
+    def test_dti_date_out_of_range(self):
+        # see gh-1475
+        pytest.raises(ValueError, DatetimeIndex, ['1400-01-01'])
+        pytest.raises(ValueError, DatetimeIndex, [datetime(1400, 1, 1)])
+
+    def test_timestamp_fields(self):
+        # extra fields from DatetimeIndex like quarter and week
+        idx = tm.makeDateIndex(100)
+
+        fields = ['dayofweek', 'dayofyear', 'week', 'weekofyear', 'quarter',
+                  'days_in_month', 'is_month_start', 'is_month_end',
+                  'is_quarter_start', 'is_quarter_end', 'is_year_start',
+                  'is_year_end', 'weekday_name']
+        for f in fields:
+            expected = getattr(idx, f)[-1]
+            result = getattr(Timestamp(idx[-1]), f)
+            assert result == expected
+
+        assert idx.freq == Timestamp(idx[-1], idx.freq).freq
+        assert idx.freqstr == Timestamp(idx[-1], idx.freq).freqstr
 
 
 class TestDatetimeIndex(object):

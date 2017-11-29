@@ -48,6 +48,10 @@ class RangeIndex(Int64Index):
     --------
     Index : The base pandas Index type
     Int64Index : Index of int64 data
+
+    Methods
+    -------
+    from_range
     """
 
     _typ = 'rangeindex'
@@ -193,8 +197,8 @@ class RangeIndex(Int64Index):
         On implementations where this is undetermined (PyPy)
         assume 24 bytes for each value
         """
-        return sum([getsizeof(getattr(self, v), 24) for v in
-                    ['_start', '_stop', '_step']])
+        return sum(getsizeof(getattr(self, v), 24) for v in
+                   ['_start', '_stop', '_step'])
 
     def memory_usage(self, deep=False):
         """
@@ -613,8 +617,8 @@ class RangeIndex(Int64Index):
                     # for compat with numpy / Int64Index
                     # even if we can represent as a RangeIndex, return
                     # as a Float64Index if we have float-like descriptors
-                    if not all([is_integer(x) for x in
-                                [rstart, rstop, rstep]]):
+                    if not all(is_integer(x) for x in
+                               [rstart, rstop, rstep]):
                         result = result.astype('float64')
 
                     return result
