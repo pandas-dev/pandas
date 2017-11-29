@@ -32,22 +32,6 @@ This file implements string parsing and creation for NumPy datetime.
 #include "np_datetime.h"
 #include "np_datetime_strings.h"
 
-NPY_NO_EXPORT const char *npy_casting_to_string(NPY_CASTING casting) {
-    switch (casting) {
-        case NPY_NO_CASTING:
-            return "'no'";
-        case NPY_EQUIV_CASTING:
-            return "'equiv'";
-        case NPY_SAFE_CASTING:
-            return "'safe'";
-        case NPY_SAME_KIND_CASTING:
-            return "'same_kind'";
-        case NPY_UNSAFE_CASTING:
-            return "'unsafe'";
-        default:
-            return "<unknown>";
-    }
-}
 
 /* Platform-specific time_t typedef */
 typedef time_t NPY_TIME_T;
@@ -115,51 +99,6 @@ fail:
     return -1;
 }
 
-#if 0
-/*
- * Wraps `gmtime` functionality for multiple platforms. This
- * converts a time value to a time structure in UTC.
- *
- * Returns 0 on success, -1 on failure.
- */
-static int
-get_gmtime(NPY_TIME_T *ts, struct tm *tms) {
-    char *func_name = "<unknown>";
-#if defined(_WIN32)
-#if defined(_MSC_VER) && (_MSC_VER >= 1400)
-    if (gmtime_s(tms, ts) != 0) {
-        func_name = "gmtime_s";
-        goto fail;
-    }
-#elif defined(__GNUC__) && defined(NPY_MINGW_USE_CUSTOM_MSVCR)
-    if (_gmtime64_s(tms, ts) != 0) {
-        func_name = "_gmtime64_s";
-        goto fail;
-    }
-#else
-    struct tm *tms_tmp;
-    gmtime_r(ts, tms_tmp);
-    if (tms_tmp == NULL) {
-        func_name = "gmtime";
-        goto fail;
-    }
-    memcpy(tms, tms_tmp, sizeof(struct tm));
-#endif
-#else
-    if (gmtime_r(ts, tms) == NULL) {
-        func_name = "gmtime_r";
-        goto fail;
-    }
-#endif
-
-    return 0;
-
-fail:
-    PyErr_Format(PyExc_OSError, "Failed to use '%s' to convert "
-                                "to a UTC time", func_name);
-    return -1;
-}
-#endif
 
 /*
  * Converts a datetimestruct in UTC to a datetimestruct in local time,
@@ -226,115 +165,6 @@ static int convert_datetimestruct_utc_to_local(
     return 0;
 }
 
-#if 0
-/*
- * Converts a datetimestruct in local time to a datetimestruct in UTC.
- *
- * Returns 0 on success, -1 on failure.
- */
-static int
-convert_datetimestruct_local_to_utc(pandas_datetimestruct *out_dts_utc,
-                const pandas_datetimestruct *dts_local) {
-    npy_int64 year_correction = 0;
-
-    /* Make a copy of the input 'dts' to modify */
-    *out_dts_utc = *dts_local;
-
-    /* HACK: Use a year < 2038 for later years for small time_t */
-    if (sizeof(NPY_TIME_T) == 4 && out_dts_utc->year >= 2038) {
-        if (is_leapyear(out_dts_utc->year)) {
-            /* 2036 is a leap year */
-            year_correction = out_dts_utc->year - 2036;
-            out_dts_utc->year -= year_correction;
-        } else {
-            /* 2037 is not a leap year */
-            year_correction = out_dts_utc->year - 2037;
-            out_dts_utc->year -= year_correction;
-        }
-    }
-
-    /*
-     * ISO 8601 states to treat date-times without a timezone offset
-     * or 'Z' for UTC as local time. The C standard libary functions
-     * mktime and gmtime allow us to do this conversion.
-     *
-     * Only do this timezone adjustment for recent and future years.
-     * In this case, "recent" is defined to be 1970 and later, because
-     * on MS Windows, mktime raises an error when given an earlier date.
-     */
-    if (out_dts_utc->year >= 1970) {
-        NPY_TIME_T rawtime = 0;
-        struct tm tm_;
-
-        tm_.tm_sec = out_dts_utc->sec;
-        tm_.tm_min = out_dts_utc->min;
-        tm_.tm_hour = out_dts_utc->hour;
-        tm_.tm_mday = out_dts_utc->day;
-        tm_.tm_mon = out_dts_utc->month - 1;
-        tm_.tm_year = out_dts_utc->year - 1900;
-        tm_.tm_isdst = -1;
-
-        /* mktime converts a local 'struct tm' into a time_t */
-        rawtime = mktime(&tm_);
-        if (rawtime == -1) {
-            PyErr_SetString(PyExc_OSError, "Failed to use mktime to "
-                                        "convert local time to UTC");
-            return -1;
-        }
-
-        /* gmtime converts a 'time_t' into a UTC 'struct tm' */
-        if (get_gmtime(&rawtime, &tm_) < 0) {
-            return -1;
-        }
-        out_dts_utc->sec = tm_.tm_sec;
-        out_dts_utc->min = tm_.tm_min;
-        out_dts_utc->hour = tm_.tm_hour;
-        out_dts_utc->day = tm_.tm_mday;
-        out_dts_utc->month = tm_.tm_mon + 1;
-        out_dts_utc->year = tm_.tm_year + 1900;
-    }
-
-    /* Reapply the year 2038 year correction HACK */
-    out_dts_utc->year += year_correction;
-
-    return 0;
-}
-#endif
-
-/* int */
-/* parse_python_string(PyObject* obj, pandas_datetimestruct *dts) { */
-/*     PyObject *bytes = NULL; */
-/*     char *str = NULL; */
-/*     Py_ssize_t len = 0; */
-/*     PANDAS_DATETIMEUNIT bestunit = -1; */
-
-/*     /\* Convert to an ASCII string for the date parser *\/ */
-/*     if (PyUnicode_Check(obj)) { */
-/*         bytes = PyUnicode_AsASCIIString(obj); */
-/*         if (bytes == NULL) { */
-/*             return -1; */
-/*         } */
-/*     } */
-/*     else { */
-/*         bytes = obj; */
-/*         Py_INCREF(bytes); */
-/*     } */
-/*     if (PyBytes_AsStringAndSize(bytes, &str, &len) == -1) { */
-/*         Py_DECREF(bytes); */
-/*         return -1; */
-/*     } */
-
-/*     /\* Parse the ISO date *\/ */
-/*     if (parse_iso_8601_datetime(str, len, PANDAS_FR_us, NPY_UNSAFE_CASTING,
- */
-/*                             dts, NULL, &bestunit, NULL) < 0) { */
-/*         Py_DECREF(bytes); */
-/*         return -1; */
-/*     } */
-/*     Py_DECREF(bytes); */
-
-/*     return 0; */
-/* } */
 
 /*
  * Parses (almost) standard ISO 8601 date strings. The differences are:
@@ -354,8 +184,6 @@ convert_datetimestruct_local_to_utc(pandas_datetimestruct *out_dts_utc,
  * 'str' must be a NULL-terminated string, and 'len' must be its length.
  * 'unit' should contain -1 if the unit is unknown, or the unit
  *      which will be used if it is.
- * 'casting' controls how the detected unit from the string is allowed
- *           to be cast to the 'unit' parameter.
  *
  * 'out' gets filled with the parsed date-time.
  * 'out_local' gets set to 1 if the parsed time contains timezone,
@@ -375,7 +203,7 @@ convert_datetimestruct_local_to_utc(pandas_datetimestruct *out_dts_utc,
  * Returns 0 on success, -1 on failure.
  */
 int parse_iso_8601_datetime(char *str, int len, PANDAS_DATETIMEUNIT unit,
-                            NPY_CASTING casting, pandas_datetimestruct *out,
+                            pandas_datetimestruct *out,
                             int *out_local, int *out_tzoffset,
                             PANDAS_DATETIMEUNIT *out_bestunit,
                             npy_bool *out_special) {
@@ -444,16 +272,6 @@ int parse_iso_8601_datetime(char *str, int len, PANDAS_DATETIMEUNIT unit,
             *out_special = 1;
         }
 
-        /* Check the casting rule */
-        if (!can_cast_datetime64_units(bestunit, unit, casting)) {
-            PyErr_Format(PyExc_TypeError,
-                         "Cannot parse \"%s\" as unit "
-                         "'%s' using casting rule %s",
-                         str, _datetime_strings[unit],
-                         npy_casting_to_string(casting));
-            return -1;
-        }
-
         return 0;
     }
 
@@ -484,16 +302,6 @@ int parse_iso_8601_datetime(char *str, int len, PANDAS_DATETIMEUNIT unit,
         }
         if (out_special != NULL) {
             *out_special = 1;
-        }
-
-        /* Check the casting rule */
-        if (!can_cast_datetime64_units(bestunit, unit, casting)) {
-            PyErr_Format(PyExc_TypeError,
-                         "Cannot parse \"%s\" as unit "
-                         "'%s' using casting rule %s",
-                         str, _datetime_strings[unit],
-                         npy_casting_to_string(casting));
-            return -1;
         }
 
         return convert_datetime_to_datetimestruct(&meta, rawtime, out);
@@ -941,16 +749,6 @@ finish:
         *out_bestunit = bestunit;
     }
 
-    /* Check the casting rule */
-    if (!can_cast_datetime64_units(bestunit, unit, casting)) {
-        PyErr_Format(PyExc_TypeError,
-                     "Cannot parse \"%s\" as unit "
-                     "'%s' using casting rule %s",
-                     str, _datetime_strings[unit],
-                     npy_casting_to_string(casting));
-        return -1;
-    }
-
     return 0;
 
 parse_error:
@@ -1018,38 +816,6 @@ int get_datetime_iso_8601_strlen(int local, PANDAS_DATETIMEUNIT base) {
     return len;
 }
 
-/*
- * Finds the largest unit whose value is nonzero, and for which
- * the remainder for the rest of the units is zero.
- */
-static PANDAS_DATETIMEUNIT lossless_unit_from_datetimestruct(
-    pandas_datetimestruct *dts) {
-    if (dts->as % 1000 != 0) {
-        return PANDAS_FR_as;
-    } else if (dts->as != 0) {
-        return PANDAS_FR_fs;
-    } else if (dts->ps % 1000 != 0) {
-        return PANDAS_FR_ps;
-    } else if (dts->ps != 0) {
-        return PANDAS_FR_ns;
-    } else if (dts->us % 1000 != 0) {
-        return PANDAS_FR_us;
-    } else if (dts->us != 0) {
-        return PANDAS_FR_ms;
-    } else if (dts->sec != 0) {
-        return PANDAS_FR_s;
-    } else if (dts->min != 0) {
-        return PANDAS_FR_m;
-    } else if (dts->hour != 0) {
-        return PANDAS_FR_h;
-    } else if (dts->day != 1) {
-        return PANDAS_FR_D;
-    } else if (dts->month != 1) {
-        return PANDAS_FR_M;
-    } else {
-        return PANDAS_FR_Y;
-    }
-}
 
 /*
  * Converts an pandas_datetimestruct to an (almost) ISO 8601
@@ -1069,17 +835,11 @@ static PANDAS_DATETIMEUNIT lossless_unit_from_datetimestruct(
  *  set to a value other than -1. This is a manual override for
  *  the local time zone to use, as an offset in minutes.
  *
- *  'casting' controls whether data loss is allowed by truncating
- *  the data to a coarser unit. This interacts with 'local', slightly,
- *  in order to form a date unit string as a local time, the casting
- *  must be unsafe.
- *
  *  Returns 0 on success, -1 on failure (for example if the output
  *  string was too short).
  */
 int make_iso_8601_datetime(pandas_datetimestruct *dts, char *outstr, int outlen,
-                           int local, PANDAS_DATETIMEUNIT base, int tzoffset,
-                           NPY_CASTING casting) {
+                           int local, PANDAS_DATETIMEUNIT base, int tzoffset) {
     pandas_datetimestruct dts_local;
     int timezone_offset = 0;
 
@@ -1119,38 +879,6 @@ int make_iso_8601_datetime(pandas_datetimestruct *dts, char *outstr, int outlen,
         /* Set and apply the required timezone offset */
         timezone_offset = tzoffset;
         add_minutes_to_datetimestruct(dts, timezone_offset);
-    }
-
-    /*
-     * Now the datetimestruct data is in the final form for
-     * the string representation, so ensure that the data
-     * is being cast according to the casting rule.
-     */
-    if (casting != NPY_UNSAFE_CASTING) {
-        /* Producing a date as a local time is always 'unsafe' */
-        if (base <= PANDAS_FR_D && local) {
-            PyErr_SetString(PyExc_TypeError,
-                            "Cannot create a local "
-                            "timezone-based date string from a NumPy "
-                            "datetime without forcing 'unsafe' casting");
-            return -1;
-        } else {
-            /* Only 'unsafe' and 'same_kind' allow data loss */
-            PANDAS_DATETIMEUNIT unitprec;
-
-            unitprec = lossless_unit_from_datetimestruct(dts);
-            if (casting != NPY_SAME_KIND_CASTING && unitprec > base) {
-                PyErr_Format(PyExc_TypeError,
-                             "Cannot create a "
-                             "string with unit precision '%s' "
-                             "from the NumPy datetime, which has data at "
-                             "unit precision '%s', "
-                             "requires 'unsafe' or 'same_kind' casting",
-                             _datetime_strings[base],
-                             _datetime_strings[unitprec]);
-                return -1;
-            }
-        }
     }
 
 /* YEAR */
