@@ -40,8 +40,6 @@ This file implements string parsing and creation for NumPy datetime.
  * 'str' must be a NULL-terminated string, and 'len' must be its length.
  * 'unit' should contain -1 if the unit is unknown, or the unit
  *      which will be used if it is.
- * 'casting' controls how the detected unit from the string is allowed
- *           to be cast to the 'unit' parameter.
  *
  * 'out' gets filled with the parsed date-time.
  * 'out_local' gets whether returned value contains timezone. 0 for UTC, 1 for local time.
@@ -62,7 +60,6 @@ This file implements string parsing and creation for NumPy datetime.
 int
 parse_iso_8601_datetime(char *str, int len,
                     PANDAS_DATETIMEUNIT unit,
-                    NPY_CASTING casting,
                     pandas_datetimestruct *out,
                     int *out_local,
                     int *out_tzoffset,
@@ -90,17 +87,11 @@ get_datetime_iso_8601_strlen(int local, PANDAS_DATETIMEUNIT base);
  *  set to a value other than -1. This is a manual override for
  *  the local time zone to use, as an offset in minutes.
  *
- *  'casting' controls whether data loss is allowed by truncating
- *  the data to a coarser unit. This interacts with 'local', slightly,
- *  in order to form a date unit string as a local time, the casting
- *  must be unsafe.
- *
  *  Returns 0 on success, -1 on failure (for example if the output
  *  string was too short).
  */
 int
 make_iso_8601_datetime(pandas_datetimestruct *dts, char *outstr, int outlen,
-                    int local, PANDAS_DATETIMEUNIT base, int tzoffset,
-                    NPY_CASTING casting);
+                    int local, PANDAS_DATETIMEUNIT base, int tzoffset);
 
 #endif  // PANDAS__LIBS_SRC_DATETIME_NP_DATETIME_STRINGS_H_
