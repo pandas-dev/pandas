@@ -22,7 +22,7 @@ Other Enhancements
 ^^^^^^^^^^^^^^^^^^
 
 - :meth:`Timestamp.timestamp` is now available in Python 2.7. (:issue:`17329`)
--
+- :class:`Grouper` and :class:`TimeGrouper` now have a friendly repr output (:issue:`18203`).
 -
 
 .. _whatsnew_0211.deprecations:
@@ -88,7 +88,7 @@ I/O
 - :func:`read_parquet` now allows to specify kwargs which are passed to the respective engine (:issue:`18216`)
 - Bug in parsing integer datetime-like columns with specified format in ``read_sql`` (:issue:`17855`).
 - Bug in :meth:`DataFrame.to_msgpack` when serializing data of the numpy.bool_ datatype (:issue:`18390`)
-
+- Bug in :func:`read_json` not decoding when reading line deliminted JSON from S3 (:issue:`17200`)
 
 Plotting
 ^^^^^^^^
@@ -120,7 +120,7 @@ Reshaping
 - Error message in ``pd.merge_asof()`` for key datatype mismatch now includes datatype of left and right key (:issue:`18068`)
 - Bug in ``pd.concat`` when empty and non-empty DataFrames or Series are concatenated (:issue:`18178` :issue:`18187`)
 - Bug in ``DataFrame.filter(...)`` when :class:`unicode` is passed as a condition in Python 2 (:issue:`13101`)
--
+- Bug when merging empty DataFrames when ``np.seterr(divide='raise')`` is set (:issue:`17776`)
 
 Numeric
 ^^^^^^^

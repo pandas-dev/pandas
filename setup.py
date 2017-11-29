@@ -341,6 +341,7 @@ class CheckSDist(sdist_class):
                  'pandas/_libs/missing.pyx',
                  'pandas/_libs/testing.pyx',
                  'pandas/_libs/window.pyx',
+                 'pandas/_libs/skiplist.pyx',
                  'pandas/_libs/sparse.pyx',
                  'pandas/_libs/parsers.pyx',
                  'pandas/_libs/tslibs/strptime.pyx',
@@ -496,7 +497,7 @@ ext_data = {
         'pyxfile': '_libs/hashing'},
     '_libs.hashtable': {
         'pyxfile': '_libs/hashtable',
-        'pxdfiles': ['_libs/hashtable', '_libs/missing'],
+        'pxdfiles': ['_libs/hashtable', '_libs/missing', '_libs/khash'],
         'depends': (['pandas/_libs/src/klib/khash_python.h'] +
                     _pxi_dep['hashtable'])},
     '_libs.index': {
@@ -544,13 +545,15 @@ ext_data = {
     '_libs.reshape': {
         'pyxfile': '_libs/reshape',
         'depends': _pxi_dep['reshape']},
+    '_libs.skiplist': {
+        'pyxfile': '_libs/skiplist',
+        'depends': ['pandas/_libs/src/skiplist.h']},
     '_libs.sparse': {
         'pyxfile': '_libs/sparse',
         'depends': _pxi_dep['sparse']},
     '_libs.tslib': {
         'pyxfile': '_libs/tslib',
         'pxdfiles': ['_libs/src/util',
-                     '_libs/src/khash',
                      '_libs/tslibs/conversion',
                      '_libs/tslibs/timedeltas',
                      '_libs/tslibs/timestamps',
@@ -591,12 +594,11 @@ ext_data = {
         'sources': np_datetime_sources},
     '_libs.tslibs.parsing': {
         'pyxfile': '_libs/tslibs/parsing',
-        'pxdfiles': ['_libs/src/util',
-                     '_libs/src/khash']},
+        'pxdfiles': ['_libs/src/util']},
     '_libs.tslibs.resolution': {
         'pyxfile': '_libs/tslibs/resolution',
         'pxdfiles': ['_libs/src/util',
-                     '_libs/src/khash',
+                     '_libs/khash',
                      '_libs/tslibs/frequencies',
                      '_libs/tslibs/timezones'],
         'depends': tseries_depends,
@@ -629,9 +631,7 @@ ext_data = {
         'pyxfile': '_libs/testing'},
     '_libs.window': {
         'pyxfile': '_libs/window',
-        'pxdfiles': ['_libs/src/skiplist', '_libs/src/util'],
-        'depends': ['pandas/_libs/src/skiplist.pyx',
-                    'pandas/_libs/src/skiplist.h']},
+        'pxdfiles': ['_libs/skiplist', '_libs/src/util']},
     'io.sas._sas': {
         'pyxfile': 'io/sas/sas'}}
 

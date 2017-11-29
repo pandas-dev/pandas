@@ -303,3 +303,69 @@ class IndexerLookup(object):
 
     def time_lookup_loc(self):
         self.s.loc
+
+
+class BooleanRowSelect(object):
+
+    goal_time = 0.2
+
+    def setup(self):
+        N = 10000
+        np.random.seed(1234)
+        self.df = DataFrame(np.random.randn(N, 100))
+        self.bool_arr = np.zeros(N, dtype=bool)
+        self.bool_arr[:1000] = True
+
+    def time_frame_boolean_row_select(self):
+        self.df[self.bool_arr]
+
+
+class GetItemSingleColumn(object):
+
+    goal_time = 0.2
+
+    def setup(self):
+        np.random.seed(1234)
+        self.df2 = DataFrame(np.random.randn(3000, 1), columns=['A'])
+        self.df3 = DataFrame(np.random.randn(3000, 1))
+
+    def time_frame_getitem_single_column_label(self):
+        self.df2['A']
+
+    def time_frame_getitem_single_column_int(self):
+        self.df3[0]
+
+
+class AssignTimeseriesIndex(object):
+
+    goal_time = 0.2
+
+    def setup(self):
+        N = 100000
+        np.random.seed(1234)
+        dx = date_range('1/1/2000', periods=N, freq='H')
+        self.df = DataFrame(np.random.randn(N, 1), columns=['A'], index=idx)
+
+    def time_frame_assign_timeseries_index(self):
+        self.df['date'] = self.df.index
+
+
+class InsertColumns(object):
+
+    goal_time = 0.2
+
+    def setup(self):
+        self.N = 10**3
+        self.df = DataFrame(index=range(N))
+
+    def time_insert(self):
+        np.random.seed(1234)
+        for i in range(100):
+            self.df.insert(0, i, np.random.randn(self.N))
+
+    def time_assign_with_setitem(self):
+        np.random.seed(1234)
+        for i in range(100):
+            self.df[i] = np.random.randn(self.N)
+
+
