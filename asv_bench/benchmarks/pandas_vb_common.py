@@ -13,7 +13,11 @@ try:
 except ImportError:
     pass
 
-np.random.seed(1234)
+# This function just needs to be imported into each benchmark file in order to 
+# sets up the random seed before each function. 
+# http://asv.readthedocs.io/en/latest/writing_benchmarks.html
+def setup(*args, **kwargs):
+    np.random.seed(1234)
 
 # try em until it works!
 for imp in ['pandas._libs.lib', 'pandas.lib', 'pandas_tseries']:

@@ -124,3 +124,18 @@ class FromDictwithTimestampOffsets(object):
 
     def time_frame_ctor(self, offset, n_steps):
         DataFrame(self.d)
+
+
+class FromRecords(object):
+
+    goal_time = 0.2
+    params = [None, 1000]
+    param_names = ['nrows']
+
+    def setup(self, nrows):
+        N = 100000
+        self.gen = ((x, (x * 20), (x * 100)) for x in range(N))
+
+    def time_frame_from_records_generator(self, nrows):
+        # issue-6700
+        self.df = DataFrame.from_records(self.gen, nrows=nrows)
