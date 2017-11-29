@@ -1457,17 +1457,6 @@ class DatetimeIndex(DatelikeOps, TimelikeOps, DatetimeIndexOpsMixin,
                                         key, tz=self.tz)
         return _maybe_box(self, values, series, key)
 
-    @Appender(_index_shared_docs['_get_values_from_dict'])
-    def _get_values_from_dict(self, data):
-        if len(data):
-            # coerce back to datetime objects for lookup
-            data = com._dict_compat(data)
-            return lib.fast_multiget(data,
-                                     self.asobject.values,
-                                     default=np.nan)
-
-        return np.array([np.nan])
-
     def get_loc(self, key, method=None, tolerance=None):
         """
         Get integer location for requested label
