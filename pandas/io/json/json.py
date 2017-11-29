@@ -5,7 +5,7 @@ import numpy as np
 
 import pandas._libs.json as json
 from pandas._libs.tslib import iNaT
-from pandas.compat import StringIO, long, u
+from pandas.compat import StringIO, long, u, to_str
 from pandas import compat, isna
 from pandas import Series, DataFrame, to_datetime, MultiIndex
 from pandas.io.common import (get_filepath_or_buffer, _get_handle,
@@ -458,8 +458,10 @@ class JsonReader(BaseIterator):
         if self.lines and self.chunksize:
             obj = concat(self)
         elif self.lines:
+
+            data = to_str(self.data)
             obj = self._get_object_parser(
-                self._combine_lines(self.data.split('\n'))
+                self._combine_lines(data.split('\n'))
             )
         else:
             obj = self._get_object_parser(self.data)
@@ -612,7 +614,7 @@ class Parser(object):
                     try:
                         dtype = np.dtype(dtype)
                         return data.astype(dtype), True
-                    except:
+                    except (TypeError, ValueError):
                         return data, False
 
         if convert_dates:
@@ -628,7 +630,7 @@ class Parser(object):
             try:
                 data = data.astype('float64')
                 result = True
-            except:
+            except (TypeError, ValueError):
                 pass
 
         if data.dtype.kind == 'f':
@@ -639,7 +641,7 @@ class Parser(object):
                 try:
                     data = data.astype('float64')
                     result = True
-                except:
+                except (TypeError, ValueError):
                     pass
 
         # do't coerce 0-len data
@@ -651,7 +653,7 @@ class Parser(object):
                 if (new_data == data).all():
                     data = new_data
                     result = True
-            except:
+            except (TypeError, ValueError):
                 pass
 
         # coerce ints to 64
@@ -661,7 +663,7 @@ class Parser(object):
             try:
                 data = data.astype('int64')
                 result = True
-            except:
+            except (TypeError, ValueError):
                 pass
 
         return data, result
@@ -680,7 +682,7 @@ class Parser(object):
         if new_data.dtype == 'object':
             try:
                 new_data = data.astype('int64')
-            except:
+            except (TypeError, ValueError):
                 pass
 
         # ignore numbers that are out of range
@@ -697,7 +699,7 @@ class Parser(object):
                                        unit=date_unit)
             except ValueError:
                 continue
-            except:
+            except Exception:
                 break
             return new_data, True
         return data, False
@@ -715,10 +717,8 @@ class SeriesParser(Parser):
         json = self.json
         orient = self.orient
         if orient == "split":
-            decoded = dict((str(k), v)
-                           for k, v in compat.iteritems(loads(
-                               json,
-                               precise_float=self.precise_float)))
+            decoded = {str(k): v for k, v in compat.iteritems(
+                loads(json, precise_float=self.precise_float))}
             self.check_keys_split(decoded)
             self.obj = Series(dtype=None, **decoded)
         else:
@@ -732,7 +732,7 @@ class SeriesParser(Parser):
         if orient == "split":
             decoded = loads(json, dtype=None, numpy=True,
                             precise_float=self.precise_float)
-            decoded = dict((str(k), v) for k, v in compat.iteritems(decoded))
+            decoded = {str(k): v for k, v in compat.iteritems(decoded)}
             self.check_keys_split(decoded)
             self.obj = Series(**decoded)
         elif orient == "columns" or orient == "index":
@@ -770,7 +770,7 @@ class FrameParser(Parser):
         elif orient == "split":
             decoded = loads(json, dtype=None, numpy=True,
                             precise_float=self.precise_float)
-            decoded = dict((str(k), v) for k, v in compat.iteritems(decoded))
+            decoded = {str(k): v for k, v in compat.iteritems(decoded)}
             self.check_keys_split(decoded)
             self.obj = DataFrame(**decoded)
         elif orient == "values":
@@ -790,10 +790,8 @@ class FrameParser(Parser):
             self.obj = DataFrame(
                 loads(json, precise_float=self.precise_float), dtype=None)
         elif orient == "split":
-            decoded = dict((str(k), v)
-                           for k, v in compat.iteritems(loads(
-                               json,
-                               precise_float=self.precise_float)))
+            decoded = {str(k): v for k, v in compat.iteritems(
+                loads(json, precise_float=self.precise_float))}
             self.check_keys_split(decoded)
             self.obj = DataFrame(dtype=None, **decoded)
         elif orient == "index":

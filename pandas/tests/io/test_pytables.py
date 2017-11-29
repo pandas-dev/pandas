@@ -1391,7 +1391,7 @@ class TestHDFStore(Base):
             with catch_warnings(record=True):
                 wp = tm.makePanel()
                 wp2 = wp.rename_axis(
-                    dict((x, "%s_extra" % x) for x in wp.minor_axis), axis=2)
+                    {x: "%s_extra" % x for x in wp.minor_axis}, axis=2)
 
                 def check_col(key, name, size):
                     assert getattr(store.get_storer(key)
@@ -4269,9 +4269,10 @@ class TestHDFStore(Base):
                           ['df1', 'df3'], where=['A>0', 'B>0'],
                           selector='df1')
 
-    @pytest.mark.skipf(
+    @pytest.mark.skipif(
         LooseVersion(tables.__version__) < '3.1.0',
-        "tables version does not support fix for nan selection bug: GH 4858")
+        reason=("tables version does not support fix for nan selection "
+                "bug: GH 4858"))
     def test_nan_selection_bug_4858(self):
 
         with ensure_clean_store(self.path) as store:

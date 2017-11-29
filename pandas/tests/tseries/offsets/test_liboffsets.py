@@ -6,7 +6,6 @@ from datetime import datetime
 
 import pytest
 
-from pandas._libs import tslib
 from pandas import Timestamp
 
 import pandas._libs.tslibs.offsets as liboffsets
@@ -15,25 +14,21 @@ import pandas._libs.tslibs.offsets as liboffsets
 def test_get_lastbday():
     dt = datetime(2017, 11, 30)
     assert dt.weekday() == 3  # i.e. this is a business day
-    wkday, days_in_month = tslib.monthrange(dt.year, dt.month)
-    assert liboffsets.get_lastbday(wkday, days_in_month) == 30
+    assert liboffsets.get_lastbday(dt.year, dt.month) == 30
 
     dt = datetime(1993, 10, 31)
     assert dt.weekday() == 6  # i.e. this is not a business day
-    wkday, days_in_month = tslib.monthrange(dt.year, dt.month)
-    assert liboffsets.get_lastbday(wkday, days_in_month) == 29
+    assert liboffsets.get_lastbday(dt.year, dt.month) == 29
 
 
 def test_get_firstbday():
     dt = datetime(2017, 4, 1)
     assert dt.weekday() == 5  # i.e. not a weekday
-    wkday, days_in_month = tslib.monthrange(dt.year, dt.month)
-    assert liboffsets.get_firstbday(wkday, days_in_month) == 3
+    assert liboffsets.get_firstbday(dt.year, dt.month) == 3
 
     dt = datetime(1993, 10, 1)
     assert dt.weekday() == 4  # i.e. a business day
-    wkday, days_in_month = tslib.monthrange(dt.year, dt.month)
-    assert liboffsets.get_firstbday(wkday, days_in_month) == 1
+    assert liboffsets.get_firstbday(dt.year, dt.month) == 1
 
 
 def test_shift_month():

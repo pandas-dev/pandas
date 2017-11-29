@@ -66,10 +66,10 @@ class TestTimedeltaIndex(DatetimeLike):
         # GH 13149, GH 13209
         idx = TimedeltaIndex([1e14, 'NaT', pd.NaT, np.NaN])
 
-        pytest.raises(ValueError, idx.astype, float)
-        pytest.raises(ValueError, idx.astype, str)
-        pytest.raises(ValueError, idx.astype, 'datetime64')
-        pytest.raises(ValueError, idx.astype, 'datetime64[ns]')
+        pytest.raises(TypeError, idx.astype, float)
+        pytest.raises(TypeError, idx.astype, str)
+        pytest.raises(TypeError, idx.astype, 'datetime64')
+        pytest.raises(TypeError, idx.astype, 'datetime64[ns]')
 
     def test_pickle_compat_construction(self):
         pass

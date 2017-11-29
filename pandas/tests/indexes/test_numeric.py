@@ -7,7 +7,7 @@ from pandas.compat import range, PY3
 
 import numpy as np
 
-from pandas import (date_range, notna, Series, Index, Float64Index,
+from pandas import (date_range, Series, Index, Float64Index,
                     Int64Index, UInt64Index, RangeIndex)
 
 import pandas.util.testing as tm
@@ -174,6 +174,25 @@ class Numeric(Base):
         index = self.create_index()
         expected = Index(index.values % 2)
         tm.assert_index_equal(index % 2, expected)
+
+    @pytest.mark.parametrize('klass', [list, tuple, np.array, Series])
+    def test_where(self, klass):
+        i = self.create_index()
+        cond = [True] * len(i)
+        expected = i
+        result = i.where(klass(cond))
+
+        cond = [False] + [True] * (len(i) - 1)
+        expected = Float64Index([i._na_value] + i[1:].tolist())
+        result = i.where(klass(cond))
+        tm.assert_index_equal(result, expected)
+
+    def test_insert(self):
+        # GH 18295 (test missing)
+        expected = Float64Index([0, np.nan, 1, 2, 3, 4])
+        for na in (np.nan, pd.NaT, None):
+            result = self.create_index().insert(1, na)
+            tm.assert_index_equal(result, expected)
 
 
 class TestFloat64Index(Numeric):
@@ -725,31 +744,6 @@ class TestInt64Index(NumericInt):
         # but not if explicit dtype passed
         arr = Index([1, 2, 3, 4], dtype=object)
         assert isinstance(arr, Index)
-
-    def test_where(self):
-        i = self.create_index()
-        result = i.where(notna(i))
-        expected = i
-        tm.assert_index_equal(result, expected)
-
-        _nan = i._na_value
-        cond = [False] + [True] * len(i[1:])
-        expected = pd.Index([_nan] + i[1:].tolist())
-
-        result = i.where(cond)
-        tm.assert_index_equal(result, expected)
-
-    def test_where_array_like(self):
-        i = self.create_index()
-
-        _nan = i._na_value
-        cond = [False] + [True] * (len(i) - 1)
-        klasses = [list, tuple, np.array, pd.Series]
-        expected = pd.Index([_nan] + i[1:].tolist())
-
-        for klass in klasses:
-            result = i.where(klass(cond))
-            tm.assert_index_equal(result, expected)
 
     def test_get_indexer(self):
         target = Int64Index(np.arange(10))

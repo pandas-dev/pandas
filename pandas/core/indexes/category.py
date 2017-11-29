@@ -12,7 +12,7 @@ from pandas.core.dtypes.common import (
     is_scalar)
 from pandas.core.common import (_asarray_tuplesafe,
                                 _values_from_object)
-from pandas.core.dtypes.missing import array_equivalent
+from pandas.core.dtypes.missing import array_equivalent, isna
 from pandas.core.algorithms import take_1d
 
 
@@ -690,7 +690,7 @@ class CategoricalIndex(Index, accessor.PandasDelegate):
 
         """
         code = self.categories.get_indexer([item])
-        if (code == -1):
+        if (code == -1) and not (is_scalar(item) and isna(item)):
             raise TypeError("cannot insert an item into a CategoricalIndex "
                             "that is not already an existing category")
 
@@ -722,7 +722,7 @@ class CategoricalIndex(Index, accessor.PandasDelegate):
     def _add_comparison_methods(cls):
         """ add in comparison methods """
 
-        def _make_compare(op):
+        def _make_compare(opname):
             def _evaluate_compare(self, other):
 
                 # if we have a Categorical type, then must have the same
@@ -745,9 +745,9 @@ class CategoricalIndex(Index, accessor.PandasDelegate):
                                         "have the same categories and ordered "
                                         "attributes")
 
-                return getattr(self.values, op)(other)
+                return getattr(self.values, opname)(other)
 
-            return _evaluate_compare
+            return compat.set_function_name(_evaluate_compare, opname, cls)
 
         cls.__eq__ = _make_compare('__eq__')
         cls.__ne__ = _make_compare('__ne__')

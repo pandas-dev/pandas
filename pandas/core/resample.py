@@ -1014,22 +1014,18 @@ class TimeGrouper(Grouper):
     Parameters
     ----------
     freq : pandas date offset or offset alias for identifying bin edges
-    closed : closed end of interval; left or right
-    label : interval boundary to use for labeling; left or right
-    nperiods : optional, integer
+    closed : closed end of interval; 'left' or 'right'
+    label : interval boundary to use for labeling; 'left' or 'right'
     convention : {'start', 'end', 'e', 's'}
         If axis is PeriodIndex
-
-    Notes
-    -----
-    Use begin, end, nperiods to generate intervals that cannot be derived
-    directly from the associated object
     """
+    _attributes = Grouper._attributes + ('closed', 'label', 'how',
+                                         'loffset', 'kind', 'convention',
+                                         'base')
 
     def __init__(self, freq='Min', closed=None, label=None, how='mean',
-                 nperiods=None, axis=0,
-                 fill_method=None, limit=None, loffset=None, kind=None,
-                 convention=None, base=0, **kwargs):
+                 axis=0, fill_method=None, limit=None, loffset=None,
+                 kind=None, convention=None, base=0, **kwargs):
         freq = to_offset(freq)
 
         end_types = set(['M', 'A', 'Q', 'BM', 'BA', 'BQ', 'W'])
@@ -1048,7 +1044,6 @@ class TimeGrouper(Grouper):
 
         self.closed = closed
         self.label = label
-        self.nperiods = nperiods
         self.kind = kind
 
         self.convention = convention or 'E'
@@ -1140,6 +1135,16 @@ class TimeGrouper(Grouper):
                                         end=last,
                                         tz=tz,
                                         name=ax.name)
+
+        # GH 15549
+        # In edge case of tz-aware resapmling binner last index can be
+        # less than the last variable in data object, this happens because of
+        # DST time change
+        if len(binner) > 1 and binner[-1] < last:
+            extra_date_range = pd.date_range(binner[-1], last + self.freq,
+                                             freq=self.freq, tz=tz,
+                                             name=ax.name)
+            binner = labels = binner.append(extra_date_range[1:])
 
         # a little hack
         trimmed = False

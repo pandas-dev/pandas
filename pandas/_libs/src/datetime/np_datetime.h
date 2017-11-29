@@ -125,17 +125,6 @@ int cmp_pandas_datetimestruct(const pandas_datetimestruct *a,
 void
 add_minutes_to_datetimestruct(pandas_datetimestruct *dts, int minutes);
 
-/*
- * This provides the casting rules for the TIMEDELTA data type units.
- *
- * Notably, there is a barrier between the nonlinear years and
- * months units, and all the other units.
- */
-npy_bool
-can_cast_datetime64_units(PANDAS_DATETIMEUNIT src_unit,
-                          PANDAS_DATETIMEUNIT dst_unit,
-                          NPY_CASTING casting);
-
 
 int
 convert_datetime_to_datetimestruct(pandas_datetime_metadata *meta,
@@ -146,9 +135,6 @@ int
 convert_timedelta_to_timedeltastruct(pandas_timedelta_metadata *meta,
                                      npy_timedelta td,
                                      pandas_timedeltastruct *out);
-
-
-PANDAS_DATETIMEUNIT get_datetime64_unit(PyObject *obj);
 
 
 #endif  // PANDAS__LIBS_SRC_DATETIME_NP_DATETIME_H_
