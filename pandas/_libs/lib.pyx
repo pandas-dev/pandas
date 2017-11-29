@@ -65,12 +65,9 @@ from missing cimport checknull
 
 cimport util
 cdef int64_t NPY_NAT = util.get_nat()
-from util cimport is_array, _checknull
+from util cimport is_array, _checknull, sqrt
 
 from libc.math cimport fabs
-cdef extern from "src/headers/math.h":
-    # use this version instead of `from libc.math cimport sqrt`; see GH#18420
-    double sqrt(double x) nogil
 
 
 def values_from_object(object o):

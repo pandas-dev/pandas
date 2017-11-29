@@ -28,12 +28,9 @@ cdef double NaN = <double> np.NaN
 cdef double nan = NaN
 
 from libc.math cimport fabs
-cdef extern from "src/headers/math.h":
-    # use this version instead of `from libc.math cimport sqrt`; see GH#18420
-    double sqrt(double x) nogil
 
 # this is our util.pxd
-from util cimport numeric, get_nat
+from util cimport numeric, get_nat, sqrt
 
 import missing
 
