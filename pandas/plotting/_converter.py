@@ -35,6 +35,7 @@ from pandas.tseries.frequencies import FreqGroup
 from pandas.core.indexes.period import Period, PeriodIndex
 
 from pandas.plotting._compat import _mpl_le_2_0_0
+from pandas.plotting._compat import _mpl_ge_2_2_0
 
 # constants
 HOURS_PER_DAY = 24.
@@ -51,7 +52,7 @@ _mpl_units = {}
 
 
 def get_pairs():
-    return [
+    pairs = [
         (lib.Timestamp, DatetimeConverter),
         (Period, PeriodConverter),
         (pydt.datetime, DatetimeConverter),
@@ -59,6 +60,9 @@ def get_pairs():
         (pydt.time, TimeConverter),
         (np.datetime64, DatetimeConverter),
     ]
+    if _mpl_ge_2_2_0():
+        pairs = pairs[:2]
+    return pairs
 
 
 def register(warn=False):
@@ -84,7 +88,9 @@ def register(warn=False):
     if not warn:
         _WARN = False
 
-    for type_, cls in get_pairs():
+    pairs = get_pairs()
+    print(pairs)
+    for type_, cls in pairs:
         converter = cls()
         if type_ in units.registry:
             previous = units.registry[type_]
