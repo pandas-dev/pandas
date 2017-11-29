@@ -60,37 +60,6 @@ cpdef inline int32_t get_days_in_month(int year, Py_ssize_t month) nogil:
 
 @cython.wraparound(False)
 @cython.boundscheck(False)
-cpdef monthrange(int64_t year, Py_ssize_t month):
-    """
-    Return tuple containing the weekday of the first day of the month and
-    the number of days in the month.
-
-    Parameters
-    ----------
-    year : int
-    month : int
-
-    Returns
-    -------
-    weekday : int
-    days_in_month : int
-
-    Raises
-    ------
-    ValueError if month is invalid
-    """
-    cdef:
-        int32_t days
-
-    if month < 1 or month > 12:
-        raise ValueError("bad month number 0; must be 1-12")
-
-    days = get_days_in_month(year, month)
-    return (dayofweek(year, month, 1), days)
-
-
-@cython.wraparound(False)
-@cython.boundscheck(False)
 @cython.cdivision
 cdef int dayofweek(int y, int m, int d) nogil:
     """Find the day of week for the date described by the Y/M/D triple y, m, d
