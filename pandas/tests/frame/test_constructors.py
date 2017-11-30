@@ -501,8 +501,8 @@ class TestDataFrameConstructors(TestData):
         assert df['b'].dtype == 'object'
 
         # list of periods
-        df = pd.DataFrame({'a': a.asobject.tolist(),
-                           'b': b.asobject.tolist()})
+        df = pd.DataFrame({'a': a.astype(object).tolist(),
+                           'b': b.astype(object).tolist()})
         assert df['a'].dtype == 'object'
         assert df['b'].dtype == 'object'
 
