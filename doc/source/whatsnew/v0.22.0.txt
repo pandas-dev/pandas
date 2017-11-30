@@ -335,5 +335,7 @@ Categorical
 Other
 ^^^^^
 
-- Improved error message when attempting to use a Python keyword as an identifier in a ``numexpr`` backed query (:issue:`18221`)
--
+- Improved error message when attempting to use a Python keyword as an identifier in a numexpr query (:issue:`18221`)
+- Fixed a bug where creating a Series from an array that contains both tz-naive and tz-aware values will result in a Series whose dtype is tz-aware instead of object (:issue:`16406`)
+- Adding a ``Period`` object to a ``datetime`` or ``Timestamp`` object will now correctly raise a ``TypeError`` (:issue:`17983`)
+- Bug in :func:`Series.rank` where ``Series`` containing ``NaT`` modifies the ``Series`` inplace (:issue:`18521`)
