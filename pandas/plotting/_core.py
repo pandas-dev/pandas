@@ -47,7 +47,7 @@ except ImportError:
     pass
 else:
     if get_option('plotting.matplotlib.register_converters'):
-        _converter.register(warn=True)
+        _converter.register(explicit=True)
 
 
 def _get_standard_kind(kind):

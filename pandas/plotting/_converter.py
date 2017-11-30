@@ -35,7 +35,6 @@ from pandas.tseries.frequencies import FreqGroup
 from pandas.core.indexes.period import Period, PeriodIndex
 
 from pandas.plotting._compat import _mpl_le_2_0_0
-from pandas.plotting._compat import _mpl_ge_2_2_0
 
 # constants
 HOURS_PER_DAY = 24.
@@ -47,8 +46,8 @@ SEC_PER_DAY = SEC_PER_HOUR * HOURS_PER_DAY
 
 MUSEC_PER_DAY = 1e6 * SEC_PER_DAY
 
-_WARN = True
-_mpl_units = {}
+_WARN = True  # Global for whether pandas has registered the units explicitly
+_mpl_units = {}  # Cache for units overwritten by us
 
 
 def get_pairs():
@@ -60,12 +59,10 @@ def get_pairs():
         (pydt.time, TimeConverter),
         (np.datetime64, DatetimeConverter),
     ]
-    if _mpl_ge_2_2_0():
-        pairs = pairs[:2]
     return pairs
 
 
-def register(warn=False):
+def register(explicit=False):
     """Register Pandas Formatters and Converters with matplotlib
 
     This function modifies the global ``matplotlib.units.registry``
@@ -85,11 +82,10 @@ def register(warn=False):
     # Renamed in pandas.plotting.__init__
     global _WARN
 
-    if not warn:
+    if explicit:
         _WARN = False
 
     pairs = get_pairs()
-    print(pairs)
     for type_, cls in pairs:
         converter = cls()
         if type_ in units.registry:

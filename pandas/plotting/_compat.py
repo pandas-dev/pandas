@@ -73,11 +73,3 @@ def _mpl_ge_2_1_0():
         return matplotlib.__version__ >= LooseVersion('2.1')
     except ImportError:
         return False
-
-
-def _mpl_ge_2_2_0():
-    try:
-        import matplotlib
-        return matplotlib.__version__ > LooseVersion('2.1')
-    except ImportError:
-        return False

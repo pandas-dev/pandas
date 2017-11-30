@@ -109,7 +109,7 @@ class TestRegistration(object):
             units.registry[date] = date_converter
 
             register_matplotlib_converters()
-            assert not units.registry[date] is date_converter
+            assert units.registry[date] is date_converter
             deregister_matplotlib_converters()
             assert units.registry[date] is date_converter
 
