@@ -108,10 +108,10 @@ header : int or list of ints, default ``'infer'``
   passed the behavior is identical to ``header=0`` and column names
   are inferred from the first line of the file, if column names are
   passed explicitly then the behavior is identical to
-  ``header=None``.
+  ``header=None``. Explicitly pass ``header=0`` to be able to replace
+  existing names.
 
-  Explicitly pass ``header=0`` to be able to replace existing
-  names. The header can be a list of ints that specify row locations
+  The header can be a list of ints that specify row locations
   for a multi-index on the columns e.g. ``[0,1,3]``. Intervening rows
   that are not specified will be skipped (e.g. 2 in this example is
   skipped). Note that this parameter ignores commented lines and empty
@@ -562,11 +562,9 @@ If the header is in a row other than the first, pass the row number to
 
   Default behavior is to infer the column names: if no names are
   passed the behavior is identical to ``header=0`` and column names
-  are inferred from the first line of the file, if column names are
-  passed explicitly then the behavior is identical to
+  are inferred from the first nonblank line of the file, if column
+  names are passed explicitly then the behavior is identical to
   ``header=None``.
-   The default behavior of ``read_csv`` is to use ``header='infer'``,
-   which will use the first nonblank row of the file as a header row.
 
 .. _io.dupe_names:
 
