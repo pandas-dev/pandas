@@ -9,6 +9,7 @@ from sqlalchemy import create_engine
 import numpy as np
 from random import randrange
 
+
 class _Packers(object):
     goal_time = 0.2
 
@@ -17,19 +18,22 @@ class _Packers(object):
         self.N = 100000
         self.C = 5
         self.index = date_range('20000101', periods=self.N, freq='H')
-        self.df = DataFrame(dict(('float{0}'.format(i), randn(self.N)) for i in range(self.C)), index=self.index)
+        self.df = DataFrame({'float{0}'.format(i): randn(self.N) for i in range(self.C)}, index=self.index)
         self.df2 = self.df.copy()
         self.df2['object'] = [('%08x' % randrange((16 ** 8))) for _ in range(self.N)]
         self.remove(self.f)
 
     def remove(self, f):
         try:
-            os.remove(self.f)
+            os.remove(f)
         except:
             pass
 
+    def teardown(self):
+        self.remove(self.f)
+
+
 class Packers(_Packers):
-    goal_time = 0.2
 
     def setup(self):
         self._setup()
@@ -38,8 +42,8 @@ class Packers(_Packers):
     def time_packers_read_csv(self):
         pd.read_csv(self.f)
 
+
 class packers_read_excel(_Packers):
-    goal_time = 0.2
 
     def setup(self):
         self._setup()
@@ -54,7 +58,6 @@ class packers_read_excel(_Packers):
 
 
 class packers_read_hdf_store(_Packers):
-    goal_time = 0.2
 
     def setup(self):
         self._setup()
@@ -114,6 +117,7 @@ class packers_read_pickle(_Packers):
 
     def time_packers_read_pickle(self):
         pd.read_pickle(self.f)
+
 
 class packers_read_sql(_Packers):
 
@@ -177,9 +181,6 @@ class CSV(_Packers):
     def time_write_csv(self):
         self.df.to_csv(self.f)
 
-    def teardown(self):
-        self.remove(self.f)
-
 
 class Excel(_Packers):
 
@@ -217,8 +218,6 @@ class HDF(_Packers):
     def time_write_hdf_table(self):
         self.df2.to_hdf(self.f, 'df', table=True)
 
-    def teardown(self):
-        self.remove(self.f)
 
 class JSON(_Packers):
 
@@ -259,9 +258,6 @@ class JSON(_Packers):
     def time_write_json_lines(self):
         self.df.to_json(self.f, orient="records", lines=True)
 
-    def teardown(self):
-        self.remove(self.f)
-
 
 class MsgPack(_Packers):
 
@@ -271,9 +267,6 @@ class MsgPack(_Packers):
     def time_write_msgpack(self):
         self.df2.to_msgpack(self.f)
 
-    def teardown(self):
-        self.remove(self.f)
-
 
 class Pickle(_Packers):
 
@@ -282,9 +275,6 @@ class Pickle(_Packers):
 
     def time_write_pickle(self):
         self.df2.to_pickle(self.f)
-
-    def teardown(self):
-        self.remove(self.f)
 
 
 class SQL(_Packers):
@@ -313,6 +303,3 @@ class STATA(_Packers):
 
     def time_write_stata_with_validation(self):
         self.df3.to_stata(self.f, {'index': 'tc', })
-
-    def teardown(self):
-        self.remove(self.f)

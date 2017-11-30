@@ -4,7 +4,10 @@ import pytest
 
 from datetime import datetime, timedelta
 
+from collections import defaultdict
+
 import pandas.util.testing as tm
+from pandas.core.dtypes.common import is_unsigned_integer_dtype
 from pandas.core.indexes.api import Index, MultiIndex
 from pandas.tests.indexes.common import Base
 
@@ -14,7 +17,7 @@ import operator
 import numpy as np
 
 from pandas import (period_range, date_range, Series,
-                    DataFrame, Float64Index, Int64Index,
+                    DataFrame, Float64Index, Int64Index, UInt64Index,
                     CategoricalIndex, DatetimeIndex, TimedeltaIndex,
                     PeriodIndex, isna)
 from pandas.core.index import _get_combined_index, _ensure_index_from_sequences
@@ -102,6 +105,15 @@ class TestIndex(Base):
         idx2 = Index(['B', ('A', 1)])
         assert isinstance(idx2, Index)
         assert not isinstance(idx2, MultiIndex)
+
+    @pytest.mark.parametrize('na_value', [None, np.nan])
+    @pytest.mark.parametrize('vtype', [list, tuple, iter])
+    def test_construction_list_tuples_nan(self, na_value, vtype):
+        # GH 18505 : valid tuples containing NaN
+        values = [(1, 'two'), (3., na_value)]
+        result = Index(vtype(values))
+        expected = MultiIndex.from_tuples(values)
+        tm.assert_index_equal(result, expected)
 
     def test_constructor_from_index_datetimetz(self):
         idx = pd.date_range('2015-01-01 10:00', freq='D', periods=3,
@@ -200,6 +212,20 @@ class TestIndex(Base):
             expected = pd.Index(array)
             result = pd.Index(ArrayLike(array))
             tm.assert_index_equal(result, expected)
+
+    @pytest.mark.parametrize('dtype', [
+        int, 'int64', 'int32', 'int16', 'int8', 'uint64', 'uint32',
+        'uint16', 'uint8'])
+    def test_constructor_int_dtype_float(self, dtype):
+        # GH 18400
+        if is_unsigned_integer_dtype(dtype):
+            index_type = UInt64Index
+        else:
+            index_type = Int64Index
+
+        expected = index_type([0, 1, 2, 3])
+        result = Index([0., 1., 2., 3.], dtype=dtype)
+        tm.assert_index_equal(result, expected)
 
     def test_constructor_int_dtype_nan(self):
         # see gh-15187
@@ -441,6 +467,12 @@ class TestIndex(Base):
         # test empty
         null_index = Index([])
         tm.assert_index_equal(Index(['a']), null_index.insert(0, 'a'))
+
+        # GH 18295 (test missing)
+        expected = Index(['a', np.nan, 'b', 'c'])
+        for na in (np.nan, pd.NaT, None):
+            result = Index(list('abc')).insert(1, na)
+            tm.assert_index_equal(result, expected)
 
     def test_delete(self):
         idx = Index(['a', 'b', 'c', 'd'], name='idx')
@@ -835,6 +867,63 @@ class TestIndex(Base):
         date_index = tm.makeDateIndex(24, freq='h', name='hourly')
         exp = Index(range(24), name='hourly')
         tm.assert_index_equal(exp, date_index.map(lambda x: x.hour))
+
+    @pytest.mark.parametrize(
+        "mapper",
+        [
+            lambda values, index: {i: e for e, i in zip(values, index)},
+            lambda values, index: pd.Series(values, index)])
+    def test_map_dictlike(self, mapper):
+        # GH 12756
+        expected = Index(['foo', 'bar', 'baz'])
+        result = tm.makeIntIndex(3).map(mapper(expected.values, [0, 1, 2]))
+        tm.assert_index_equal(result, expected)
+
+        for name in self.indices.keys():
+            if name == 'catIndex':
+                # Tested in test_categorical
+                continue
+            elif name == 'repeats':
+                # Cannot map duplicated index
+                continue
+
+            index = self.indices[name]
+            expected = Index(np.arange(len(index), 0, -1))
+
+            # to match proper result coercion for uints
+            if name == 'uintIndex':
+                expected = expected.astype('uint64')
+            elif name == 'empty':
+                expected = Index([])
+
+            result = index.map(mapper(expected, index))
+            tm.assert_index_equal(result, expected)
+
+    def test_map_with_non_function_missing_values(self):
+        # GH 12756
+        expected = Index([2., np.nan, 'foo'])
+        input = Index([2, 1, 0])
+
+        mapper = Series(['foo', 2., 'baz'], index=[0, 2, -1])
+        tm.assert_index_equal(expected, input.map(mapper))
+
+        mapper = {0: 'foo', 2: 2.0, -1: 'baz'}
+        tm.assert_index_equal(expected, input.map(mapper))
+
+    def test_map_na_exclusion(self):
+        idx = Index([1.5, np.nan, 3, np.nan, 5])
+
+        result = idx.map(lambda x: x * 2, na_action='ignore')
+        exp = idx * 2
+        tm.assert_index_equal(result, exp)
+
+    def test_map_defaultdict(self):
+        idx = Index([1, 2, 3])
+        default_dict = defaultdict(lambda: 'blank')
+        default_dict[1] = 'stuff'
+        result = idx.map(default_dict)
+        expected = Index(['stuff', 'blank', 'blank'])
+        tm.assert_index_equal(result, expected)
 
     def test_append_multiple(self):
         index = Index(['a', 'b', 'c', 'd', 'e', 'f'])
@@ -2181,3 +2270,11 @@ class TestIndexUtils(object):
     def test_ensure_index_from_sequences(self, data, names, expected):
         result = _ensure_index_from_sequences(data, names)
         tm.assert_index_equal(result, expected)
+
+
+@pytest.mark.parametrize('opname', ['eq', 'ne', 'le', 'lt', 'ge', 'gt'])
+def test_generated_op_names(opname, indices):
+    index = indices
+    opname = '__{name}__'.format(name=opname)
+    method = getattr(index, opname)
+    assert method.__name__ == opname

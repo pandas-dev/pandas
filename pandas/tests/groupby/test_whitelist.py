@@ -238,7 +238,7 @@ def test_groupby_blacklist(df_letters):
 
 def test_tab_completion(mframe):
     grp = mframe.groupby(level='second')
-    results = set(v for v in dir(grp) if not v.startswith('_'))
+    results = {v for v in dir(grp) if not v.startswith('_')}
     expected = {
         'A', 'B', 'C', 'agg', 'aggregate', 'apply', 'boxplot', 'filter',
         'first', 'get_group', 'groups', 'hist', 'indices', 'last', 'max',

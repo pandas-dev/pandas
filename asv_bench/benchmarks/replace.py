@@ -23,7 +23,7 @@ class replace_large_dict(object):
     def setup(self):
         self.n = (10 ** 6)
         self.start_value = (10 ** 5)
-        self.to_rep = dict(((i, (self.start_value + i)) for i in range(self.n)))
+        self.to_rep = {i: self.start_value + i for i in range(self.n)}
         self.s = Series(np.random.randint(self.n, size=(10 ** 3)))
 
     def time_replace_large_dict(self):
@@ -35,8 +35,8 @@ class replace_convert(object):
 
     def setup(self):
         self.n = (10 ** 3)
-        self.to_ts = dict(((i, pd.Timestamp(i)) for i in range(self.n)))
-        self.to_td = dict(((i, pd.Timedelta(i)) for i in range(self.n)))
+        self.to_ts = {i: pd.Timestamp(i) for i in range(self.n)}
+        self.to_td = {i: pd.Timedelta(i) for i in range(self.n)}
         self.s = Series(np.random.randint(self.n, size=(10 ** 3)))
         self.df = DataFrame({'A': np.random.randint(self.n, size=(10 ** 3)),
                              'B': np.random.randint(self.n, size=(10 ** 3))})

@@ -3,7 +3,7 @@
 """ Test cases for Series.plot """
 
 
-import itertools
+from itertools import chain
 import pytest
 
 from datetime import datetime
@@ -12,6 +12,7 @@ import pandas as pd
 from pandas import Series, DataFrame, date_range
 from pandas.compat import range, lrange
 import pandas.util.testing as tm
+import pandas.util._test_decorators as td
 
 import numpy as np
 from numpy.random import randn
@@ -21,9 +22,8 @@ from pandas.tests.plotting.common import (TestPlotBase, _check_plot_works,
                                           _skip_if_no_scipy_gaussian_kde,
                                           _ok_for_gaussian_kde)
 
-tm._skip_if_no_mpl()
 
-
+@td.skip_if_no_mpl
 class TestSeriesPlots(TestPlotBase):
 
     def setup_method(self, method):
@@ -333,8 +333,7 @@ class TestSeriesPlots(TestPlotBase):
                                autopct='%.2f', fontsize=7)
         pcts = ['{0:.2f}'.format(s * 100)
                 for s in series.values / float(series.sum())]
-        iters = [iter(series.index), iter(pcts)]
-        expected_texts = list(next(it) for it in itertools.cycle(iters))
+        expected_texts = list(chain.from_iterable(zip(series.index, pcts)))
         self._check_text_labels(ax.texts, expected_texts)
         for t in ax.texts:
             assert t.get_fontsize() == 7

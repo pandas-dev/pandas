@@ -25,6 +25,15 @@ import pandas as pd
 from .common import MixIn
 
 
+class TestGrouper(object):
+
+    def test_repr(self):
+        # GH18203
+        result = repr(pd.Grouper(key='A', level='B'))
+        expected = "Grouper(key='A', level='B', axis=0, sort=False)"
+        assert result == expected
+
+
 class TestGroupBy(MixIn):
 
     def test_basic(self):
@@ -257,7 +266,7 @@ class TestGroupBy(MixIn):
         assert len(grouped) == len(df)
 
         grouped = df.groupby([lambda x: x.year, lambda x: x.month])
-        expected = len(set((x.year, x.month) for x in df.index))
+        expected = len({(x.year, x.month) for x in df.index})
         assert len(grouped) == expected
 
         # issue 11016

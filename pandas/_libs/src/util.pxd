@@ -111,16 +111,6 @@ cdef inline bint _checknull(object val):
     except ValueError:
         return False
 
-cdef inline bint _checknull_old(object val):
-    import numpy as np
-    cdef double INF = <double> np.inf
-    cdef double NEGINF = -INF
-    try:
-        return val is None or (cpython.PyFloat_Check(val) and
-                               (val != val or val == INF or val == NEGINF))
-    except ValueError:
-        return False
-
 cdef inline bint _checknan(object val):
     return not cnp.PyArray_Check(val) and val != val
 

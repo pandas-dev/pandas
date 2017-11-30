@@ -139,19 +139,6 @@ def _groupby_and_merge(by, on, left, right, _merge_pieces,
     return result, lby
 
 
-def ordered_merge(left, right, on=None,
-                  left_on=None, right_on=None,
-                  left_by=None, right_by=None,
-                  fill_method=None, suffixes=('_x', '_y')):
-
-    warnings.warn("ordered_merge is deprecated and replaced by merge_ordered",
-                  FutureWarning, stacklevel=2)
-    return merge_ordered(left, right, on=on,
-                         left_on=left_on, right_on=right_on,
-                         left_by=left_by, right_by=right_by,
-                         fill_method=fill_method, suffixes=suffixes)
-
-
 def merge_ordered(left, right, on=None,
                   left_on=None, right_on=None,
                   left_by=None, right_by=None,
@@ -204,7 +191,7 @@ def merge_ordered(left, right, on=None,
     4   c       2     b
     5   e       3     b
 
-    >>> ordered_merge(A, B, fill_method='ffill', left_by='group')
+    >>> merge_ordered(A, B, fill_method='ffill', left_by='group')
        key  lvalue group  rvalue
     0    a       1     a     NaN
     1    b       1     a       1
@@ -251,9 +238,6 @@ def merge_ordered(left, right, on=None,
     else:
         result = _merger(left, right)
     return result
-
-
-ordered_merge.__doc__ = merge_ordered.__doc__
 
 
 def merge_asof(left, right, on=None,
@@ -906,16 +890,31 @@ class _MergeOperation(object):
                 continue
 
             # if we are numeric, then allow differing
-            # kinds to proceed, eg. int64 and int8
+            # kinds to proceed, eg. int64 and int8, int and float
             # further if we are object, but we infer to
             # the same, then proceed
             if is_numeric_dtype(lk) and is_numeric_dtype(rk):
                 if lk.dtype.kind == rk.dtype.kind:
-                    continue
+                    pass
+
+                # check whether ints and floats
+                elif is_integer_dtype(rk) and is_float_dtype(lk):
+                    if not (lk == lk.astype(rk.dtype)).all():
+                        warnings.warn('You are merging on int and float '
+                                      'columns where the float values '
+                                      'are not equal to their int '
+                                      'representation', UserWarning)
+
+                elif is_float_dtype(rk) and is_integer_dtype(lk):
+                    if not (rk == rk.astype(lk.dtype)).all():
+                        warnings.warn('You are merging on int and float '
+                                      'columns where the float values '
+                                      'are not equal to their int '
+                                      'representation', UserWarning)
 
                 # let's infer and see if we are ok
-                if lib.infer_dtype(lk) == lib.infer_dtype(rk):
-                    continue
+                elif lib.infer_dtype(lk) == lib.infer_dtype(rk):
+                    pass
 
             # Houston, we have a problem!
             # let's coerce to object if the dtypes aren't
@@ -924,14 +923,15 @@ class _MergeOperation(object):
             # then we would lose type information on some
             # columns, and end up trying to merge
             # incompatible dtypes. See GH 16900.
-            if name in self.left.columns:
-                typ = lk.categories.dtype if lk_is_cat else object
-                self.left = self.left.assign(
-                    **{name: self.left[name].astype(typ)})
-            if name in self.right.columns:
-                typ = rk.categories.dtype if rk_is_cat else object
-                self.right = self.right.assign(
-                    **{name: self.right[name].astype(typ)})
+            else:
+                if name in self.left.columns:
+                    typ = lk.categories.dtype if lk_is_cat else object
+                    self.left = self.left.assign(
+                        **{name: self.left[name].astype(typ)})
+                if name in self.right.columns:
+                    typ = rk.categories.dtype if rk_is_cat else object
+                    self.right = self.right.assign(
+                        **{name: self.right[name].astype(typ)})
 
     def _validate_specification(self):
         # Hm, any way to make this logic less complicated??
@@ -1529,7 +1529,8 @@ def _get_join_keys(llab, rlab, shape, sort):
     rkey = stride * rlab[0].astype('i8', subok=False, copy=False)
 
     for i in range(1, nlev):
-        stride //= shape[i]
+        with np.errstate(divide='ignore'):
+            stride //= shape[i]
         lkey += llab[i] * stride
         rkey += rlab[i] * stride
 

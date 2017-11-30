@@ -13,6 +13,21 @@ from pandas.util import testing as tm
 
 
 class TestSlicing(object):
+    def test_dti_slicing(self):
+        dti = DatetimeIndex(start='1/1/2005', end='12/1/2005', freq='M')
+        dti2 = dti[[1, 3, 5]]
+
+        v1 = dti2[0]
+        v2 = dti2[1]
+        v3 = dti2[2]
+
+        assert v1 == Timestamp('2/28/2005')
+        assert v2 == Timestamp('4/30/2005')
+        assert v3 == Timestamp('6/30/2005')
+
+        # don't carry freq through irregular slicing
+        assert dti2.freq is None
+
     def test_slice_keeps_name(self):
         # GH4226
         st = pd.Timestamp('2013-07-01 00:00:00', tz='America/Los_Angeles')
