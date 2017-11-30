@@ -74,15 +74,19 @@ delim_whitespace : boolean, default False
     .. versionadded:: 0.18.1 support for the Python parser.
 
 header : int or list of ints, default 'infer'
-    Row number(s) to use as the column names, and the start of the data.
-    Default behavior is as if set to 0 if no ``names`` passed, otherwise
-    ``None``. Explicitly pass ``header=0`` to be able to replace existing
-    names. The header can be a list of integers that specify row locations for
-    a multi-index on the columns e.g. [0,1,3]. Intervening rows that are not
-    specified will be skipped (e.g. 2 in this example is skipped). Note that
-    this parameter ignores commented lines and empty lines if
-    ``skip_blank_lines=True``, so header=0 denotes the first line of data
-    rather than the first line of the file.
+    Row number(s) to use as the column names, and the start of the
+    data.  Default behavior is to infer the column names: if no names
+    are passed the behavior is identical to ``header=0`` and column
+    names are inferred from the first line of the file, if column
+    names are passed explicitly then the behavior is identical to
+    ``header=None``. Explicitly pass ``header=0`` to be able to
+    replace existing names. The header can be a list of integers that
+    specify row locations for a multi-index on the columns
+    e.g. [0,1,3]. Intervening rows that are not specified will be
+    skipped (e.g. 2 in this example is skipped). Note that this
+    parameter ignores commented lines and empty lines if
+    ``skip_blank_lines=True``, so header=0 denotes the first line of
+    data rather than the first line of the file.
 names : array-like, default None
     List of column names to use. If file contains no header row, then you
     should explicitly pass header=None. Duplicates in this list will cause
