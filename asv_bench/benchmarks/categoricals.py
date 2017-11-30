@@ -9,6 +9,8 @@ except ImportError:
     except ImportError:
         pass
 
+from .pandas_vb_common import setup # noqa
+
 
 class Concat(object):
 
@@ -76,7 +78,6 @@ class ValueCounts(object):
 
     def setup(self, dropna):
         n = 5 * 10**5
-        np.random.seed(2718281)
         arr = ['s%04d' % i for i in np.random.randint(0, n // 10, size=n)]
         self.ts = pd.Series(arr).astype('category')
 
@@ -101,7 +102,6 @@ class SetCategories(object):
 
     def setup(self):
         n = 5 * 10**5
-        np.random.seed(2718281)
         arr = ['s%04d' % i for i in np.random.randint(0, n // 10, size=n)]
         self.ts = pd.Series(arr).astype('category')
 
@@ -116,7 +116,6 @@ class Rank(object):
     def setup(self):
         N = 10**5
         ncats = 100
-        np.random.seed(1234)
 
         self.s_str = pd.Series(tm.makeCategoricalIndex(N, ncats)).astype(str)
         self.s_str_cat = self.s_str.astype('category')
