@@ -623,13 +623,7 @@ class TestIndex(Base):
             # Index.
             pytest.raises(IndexError, idx.__getitem__, empty_farr)
 
-    def test_getitem(self, indices):
-
-        if indices.size != 100:
-            return
-
-        exp = getattr(indices, '_box_func', lambda x: x)(indices._values[0])
-        assert indices[0] == exp
+    def test_getitem_error(self, indices):
 
         with pytest.raises(IndexError):
             indices[101]
