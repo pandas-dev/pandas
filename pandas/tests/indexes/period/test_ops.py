@@ -290,27 +290,27 @@ Freq: Q-DEC"""
                                pd.Period('2011-01-03')])
         right = pd.PeriodIndex([pd.NaT, pd.NaT, pd.Period('2011-01-03')])
 
-        for l, r in [(left, right),
+        for lhs, rhs in [(left, right),
                      (left.astype(object), right.astype(object))]:
-            result = r == l
+            result = lhs == rhs
             expected = np.array([False, False, True])
             tm.assert_numpy_array_equal(result, expected)
 
-            result = l != r
+            result = lhs != rhs
             expected = np.array([True, True, False])
             tm.assert_numpy_array_equal(result, expected)
 
             expected = np.array([False, False, False])
-            tm.assert_numpy_array_equal(l == pd.NaT, expected)
-            tm.assert_numpy_array_equal(pd.NaT == r, expected)
+            tm.assert_numpy_array_equal(lhs == pd.NaT, expected)
+            tm.assert_numpy_array_equal(pd.NaT == rhs, expected)
 
             expected = np.array([True, True, True])
-            tm.assert_numpy_array_equal(l != pd.NaT, expected)
-            tm.assert_numpy_array_equal(pd.NaT != l, expected)
+            tm.assert_numpy_array_equal(lhs != pd.NaT, expected)
+            tm.assert_numpy_array_equal(pd.NaT != lhs, expected)
 
             expected = np.array([False, False, False])
-            tm.assert_numpy_array_equal(l < pd.NaT, expected)
-            tm.assert_numpy_array_equal(pd.NaT > l, expected)
+            tm.assert_numpy_array_equal(lhs < pd.NaT, expected)
+            tm.assert_numpy_array_equal(pd.NaT > lhs, expected)
 
     def test_value_counts_unique(self):
         # GH 7735

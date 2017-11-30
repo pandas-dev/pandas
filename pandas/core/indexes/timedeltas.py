@@ -482,7 +482,7 @@ class TimedeltaIndex(DatetimeIndexOpsMixin, TimelikeOps, Int64Index):
         dtype = np.dtype(dtype)
 
         if is_object_dtype(dtype):
-            return self._asobject
+            return self._box_values_as_index()
         elif is_timedelta64_ns_dtype(dtype):
             if copy is True:
                 return self.copy()

@@ -78,15 +78,8 @@ class DatetimeLike(Base):
         tm.assert_index_equal(result, expected)
 
     def test_asobject_deprecated(self):
-        d = pd.date_range('2010-01-1', periods=3)
+        # GH18572
+        d = self.create_index()
         with tm.assert_produces_warning(FutureWarning):
             i = d.asobject
-        assert isinstance(i, pd.Index)
-        p = pd.period_range('2010-01-1', periods=3)
-        with tm.assert_produces_warning(FutureWarning):
-            i = p.asobject
-        assert isinstance(i, pd.Index)
-        t = pd.timedelta_range('1 day', periods=3)
-        with tm.assert_produces_warning(FutureWarning):
-            i = t.asobject
         assert isinstance(i, pd.Index)

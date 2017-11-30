@@ -51,7 +51,7 @@ class TestDatetimeIndexOps(Ops):
         assert s.day == 10
         pytest.raises(AttributeError, lambda: s.weekday)
 
-    def test_astype(self):
+    def test_astype_object(self):
         idx = pd.date_range(start='2013-01-01', periods=4, freq='M',
                             name='idx')
         expected_list = [Timestamp('2013-01-31'),

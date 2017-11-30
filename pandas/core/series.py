@@ -149,7 +149,8 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
     _metadata = ['name']
     _accessors = frozenset(['dt', 'cat', 'str'])
     _deprecations = generic.NDFrame._deprecations | frozenset(
-        ['sortlevel', 'reshape', 'get_value', 'set_value', 'from_csv'])
+        ['asobject', 'sortlevel', 'reshape', 'get_value', 'set_value',
+         'from_csv'])
     _allow_index_ops = True
 
     def __init__(self, data=None, index=None, dtype=None, name=None,
@@ -449,13 +450,13 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
 
     @property
     def asobject(self):
-        """DEPRECATED: Use ``astype(object).values`` instead.
+        """DEPRECATED: Use ``astype(object)`` instead.
 
         return object Series which contains boxed values
 
         *this is an internal non-public method*
         """
-        warnings.warn("'asobject' is deprecated. Use 'astype(object).values'"
+        warnings.warn("'asobject' is deprecated. Use 'astype(object)'"
                       " instead", FutureWarning, stacklevel=2)
         return self.astype(object).values
 

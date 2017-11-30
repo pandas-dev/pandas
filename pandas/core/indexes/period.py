@@ -506,7 +506,7 @@ class PeriodIndex(DatelikeOps, DatetimeIndexOpsMixin, Int64Index):
     def astype(self, dtype, copy=True, how='start'):
         dtype = pandas_dtype(dtype)
         if is_object_dtype(dtype):
-            return self._asobject
+            return self._box_values_as_index()
         elif is_integer_dtype(dtype):
             if copy:
                 return self._int64index.copy()

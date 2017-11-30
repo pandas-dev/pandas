@@ -242,6 +242,13 @@ class DatetimeIndexOpsMixin(object):
         """
         return lib.map_infer(values, self._box_func)
 
+    def _box_values_as_index(self):
+        """
+        return object Index which contains boxed values
+        """
+        from pandas.core.index import Index
+        return Index(self._box_values(self.asi8), name=self.name, dtype=object)
+
     def _format_with_header(self, header, **kwargs):
         return header + list(self._format_native_types(**kwargs))
 
@@ -421,14 +428,6 @@ class DatetimeIndexOpsMixin(object):
     def _isnan(self):
         """ return if each value is nan"""
         return (self.asi8 == iNaT)
-
-    @property
-    def _asobject(self):
-        """
-        return object Index which contains boxed values
-        """
-        from pandas.core.index import Index
-        return Index(self._box_values(self.asi8), name=self.name, dtype=object)
 
     @property
     def asobject(self):
