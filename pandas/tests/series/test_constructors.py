@@ -4,6 +4,7 @@
 import pytest
 
 from datetime import datetime, timedelta
+from collections import OrderedDict
 
 from numpy import nan
 import numpy as np
@@ -79,17 +80,42 @@ class TestSeriesConstructors(TestData):
         m = MultiIndex.from_arrays([[1, 2], [3, 4]])
         pytest.raises(NotImplementedError, Series, m)
 
-    def test_constructor_empty(self):
+    @pytest.mark.parametrize('input_class', [list, dict, OrderedDict])
+    def test_constructor_empty(self, input_class):
         empty = Series()
-        empty2 = Series([])
+        empty2 = Series(input_class())
 
-        # the are Index() and RangeIndex() which don't compare type equal
+        # these are Index() and RangeIndex() which don't compare type equal
         # but are just .equals
         assert_series_equal(empty, empty2, check_index_type=False)
 
-        empty = Series(index=lrange(10))
-        empty2 = Series(np.nan, index=lrange(10))
-        assert_series_equal(empty, empty2)
+        # With explicit dtype:
+        empty = Series(dtype='float64')
+        empty2 = Series(input_class(), dtype='float64')
+        assert_series_equal(empty, empty2, check_index_type=False)
+
+        # GH 18515 : with dtype=category:
+        empty = Series(dtype='category')
+        empty2 = Series(input_class(), dtype='category')
+        assert_series_equal(empty, empty2, check_index_type=False)
+
+        if input_class is not list:
+            # With index:
+            empty = Series(index=lrange(10))
+            empty2 = Series(input_class(), index=lrange(10))
+            assert_series_equal(empty, empty2)
+
+            # With index and dtype float64:
+            empty = Series(np.nan, index=lrange(10))
+            empty2 = Series(input_class(), index=lrange(10), dtype='float64')
+            assert_series_equal(empty, empty2)
+
+    @pytest.mark.parametrize('input_arg', [np.nan, float('nan')])
+    def test_constructor_nan(self, input_arg):
+        empty = Series(dtype='float64', index=lrange(10))
+        empty2 = Series(input_arg, index=lrange(10))
+
+        assert_series_equal(empty, empty2, check_index_type=False)
 
     def test_constructor_series(self):
         index1 = ['d', 'b', 'a', 'c']
