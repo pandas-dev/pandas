@@ -30,10 +30,7 @@ def read_gbq(query, project_id=None, index_col=None, col_order=None,
     and read results into a pandas DataFrame.
 
     This function requires the `pandas-gbq package
-    <https://pandas-gbq.readthedocs.io>`__ which uses the `Google Cloud
-    BigQuery Client Library for Python
-    <https://googlecloudplatform.github.io/google-cloud-python/latest/bigquery/usage.html>`__
-    as of version 0.3.0 of the ``pandas-gbq`` library.
+    <https://pandas-gbq.readthedocs.io>`__.
 
     Authentication to the Google BigQuery service is via OAuth 2.0.
 
