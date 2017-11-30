@@ -6,6 +6,8 @@ try:
 except ImportError:
     import pandas.computation.expressions as expr
 
+from .pandas_vb_common import setup # noqa
+
 
 class Ops(object):
 
@@ -15,7 +17,6 @@ class Ops(object):
     param_names = ['use_numexpr', 'threads']
 
     def setup(self, use_numexpr, threads):
-        np.random.seed(1234)
         self.df = DataFrame(np.random.randn(20000, 100))
         self.df2 = DataFrame(np.random.randn(20000, 100))
 
@@ -47,7 +48,6 @@ class Ops2(object):
 
     def setup(self):
         N = 10**3
-        np.random.seed(1234)
         self.df = DataFrame(np.random.randn(N, N))
         self.df2 = DataFrame(np.random.randn(N, N))
 
@@ -89,14 +89,12 @@ class Timeseries(object):
     param_names = ['tz']
 
     def setup(self, tz):
-        self.N = 10**6
-        self.halfway = ((self.N // 2) - 1)
-        self.s = Series(date_range('20010101', periods=self.N, freq='T',
-                                   tz=tz))
-        self.ts = self.s[self.halfway]
+        N = 10**6
+        halfway = (N // 2) - 1
+        self.s = Series(date_range('20010101', periods=N, freq='T', tz=tz))
+        self.ts = self.s[halfway]
 
-        self.s2 = Series(date_range('20010101', periods=self.N, freq='s',
-                                    tz=tz))
+        self.s2 = Series(date_range('20010101', periods=N, freq='s', tz=tz))
 
     def time_series_timestamp_compare(self, tz):
         self.s <= self.ts
@@ -131,7 +129,6 @@ class AddOverflowArray(object):
     goal_time = 0.2
 
     def setup(self):
-        np.random.seed(1234)
         N = 10**6
         self.arr = np.arange(N)
         self.arr_rev = np.arange(-N, 0)

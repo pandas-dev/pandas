@@ -5,6 +5,8 @@ try:
 except ImportError:
     import pandas.computation.expressions as expr
 
+from .pandas_vb_common import setup # noqa
+
 
 class Eval(object):
 
@@ -14,7 +16,6 @@ class Eval(object):
     param_names = ['engine', 'threads']
 
     def setup(self, engine, threads):
-        np.random.seed(1234)
         self.df = pd.DataFrame(np.random.randn(20000, 100))
         self.df2 = pd.DataFrame(np.random.randn(20000, 100))
         self.df3 = pd.DataFrame(np.random.randn(20000, 100))
@@ -45,17 +46,16 @@ class Query(object):
     goal_time = 0.2
 
     def setup(self):
-        np.random.seed(1234)
-        self.N = 10**6
-        self.halfway = (self.N // 2) - 1
-        self.index = pd.date_range('20010101', periods=self.N, freq='T')
-        self.s = pd.Series(self.index)
-        self.ts = self.s.iloc[self.halfway]
-        self.df = pd.DataFrame({'a': np.random.randn(self.N), 'dates': self.s},
-                               index=self.index)
-        self.data = np.random.randn(self.N)
-        self.min_val = self.data.min()
-        self.max_val = self.data.max()
+        N = 10**6
+        halfway = (N // 2) - 1
+        index = pd.date_range('20010101', periods=N, freq='T')
+        s = pd.Series(index)
+        self.ts = s.iloc[halfway]
+        self.df = pd.DataFrame({'a': np.random.randn(N), 'dates': s},
+                               index=index)
+        data = np.random.randn(N)
+        self.min_val = data.min()
+        self.max_val = data.max()
 
     def time_query_datetime_index(self):
         self.df.query('index < @self.ts')

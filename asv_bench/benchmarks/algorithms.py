@@ -11,6 +11,8 @@ for imp in ['pandas.util', 'pandas.tools.hashing']:
     except:
         pass
 
+from .pandas_vb_common import setup # noqa
+
 
 class Factorize(object):
 
@@ -21,7 +23,6 @@ class Factorize(object):
 
     def setup(self, sort):
         N = 10**5
-        np.random.seed(1234)
         self.int_idx = pd.Int64Index(np.arange(N).repeat(5))
         self.float_idx = pd.Float64Index(np.random.randn(N).repeat(5))
         self.string_idx = tm.makeStringIndex(N)
@@ -45,7 +46,6 @@ class Duplicated(object):
 
     def setup(self, keep):
         N = 10**5
-        np.random.seed(1234)
         self.int_idx = pd.Int64Index(np.arange(N).repeat(5))
         self.float_idx = pd.Float64Index(np.random.randn(N).repeat(5))
         self.string_idx = tm.makeStringIndex(N)
@@ -79,7 +79,6 @@ class Match(object):
     goal_time = 0.2
 
     def setup(self):
-        np.random.seed(1234)
         self.uniques = tm.makeStringIndex(1000).values
         self.all = self.uniques.repeat(10)
 
@@ -92,7 +91,6 @@ class Hashing(object):
     goal_time = 0.2
 
     def setup_cache(self):
-        np.random.seed(1234)
         N = 10**5
 
         df = pd.DataFrame(

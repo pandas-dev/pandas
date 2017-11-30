@@ -3,7 +3,8 @@ import numpy as np
 import pandas.util.testing as tm
 from pandas import (DataFrame, Series, MultiIndex, date_range, period_range,
                     isnull, NaT)
-from .pandas_vb_common import setup
+
+from .pandas_vb_common import setup # noqa
 
 
 class GetNumericData(object):
