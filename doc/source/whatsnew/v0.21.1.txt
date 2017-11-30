@@ -23,33 +23,16 @@ the converter.
    >>> from pandas.plotting import register_matplotlib_converters
    >>> register_matplotlib_converters()
 
-This caused problems for some users, so we're temporarily reverting that change;
-pandas will again register the converters on import. Using the converters
-without explicitly registering them will cause a ``FutureWarning``:
-
-.. code-block:: python
-
-   >>> import pandas as pd
-   >>> import matplotlib.pyplot as plt
-   >>> fig, ax = plt.subplots()
-   >>> ax.plot(pd.Series(range(12), index=pd.date_range('2017', periods=12)))
-   FutureWarning: Using an implicitly registered datetime converter for a
-   matplotlib plotting method. The converter was registered by pandas on import.
-   Future versions of pandas will require you to explicitly register matplotlib
-   converters.
- 
-   To register the converters:
-           >>> from pandas.plotting import register_matplotlib_converters
-           >>> register_matplotlib_converters()
-
-As the error message says, you'll need to register the converters if you intend
-to use them with matplotlib plotting functions. Pandas plotting functions, such
-as ``Series.plot``, will register them for you; calling ``register_converters``
-first is not necessary.
+This caused problems for some users who relied on those converters being present
+for regular ``matplotlib.pyplot`` plotting methods, so we're temporarily
+reverting that change; pandas will again register the converters on import.
+Pandas plotting functions, such as ``Series.plot``, will continue to register
+them for you.
 
 We've added a new option to control the converters,
 ``pd.options.plotting.matplotlib.register_converters``. By default, they are
-registered. Toggling this to ``False`` removes pandas' formatters (:issue:`18301`)
+registered. Toggling this to ``False`` removes pandas' formatters and restore
+any converters we overwrote when registering them (:issue:`18301`).
 
 We're working with the matplotlib developers to make this easier. We're trying
 to balance user convenience (automatically registering the converters) with
@@ -80,9 +63,8 @@ Other Enhancements
 Deprecations
 ~~~~~~~~~~~~
 
--
--
--
+- ``pandas.tseries.register`` has been renamed to
+  :func:`pandas.plotting.register_matplotlib_converters`` (:issue:`18301`)
 
 .. _whatsnew_0211.performance:
 
