@@ -509,7 +509,9 @@ class Styler(object):
         subset = _non_reducing_slice(subset)
         data = self.data.loc[subset]
         if axis is not None:
-            result = data.apply(func, axis=axis, **kwargs)
+            result = data.apply(func, axis=axis,
+                                result_type='infer', **kwargs)
+            result.columns = data.columns
         else:
             result = func(data, **kwargs)
             if not isinstance(result, pd.DataFrame):

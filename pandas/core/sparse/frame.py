@@ -835,7 +835,8 @@ class SparseDataFrame(DataFrame):
         return self._apply_columns(lambda x: x.notna())
     notnull = notna
 
-    def apply(self, func, axis=0, broadcast=False, reduce=False):
+    def apply(self, func, axis=0, broadcast=None, reduce=False,
+              result_type=None):
         """
         Analogous to DataFrame.apply, for SparseDataFrame
 
@@ -847,6 +848,20 @@ class SparseDataFrame(DataFrame):
         broadcast : bool, default False
             For aggregation functions, return object of same size with values
             propagated
+
+            .. deprecated:: 0.23.0
+               This argument will be removed in a future version, replaced
+               by result_type='broadcast'.
+
+        result_type : {'infer', 'broadcast, None}
+            These only act when axis=1 {columns}
+            * infer : list-like results will be turned into columns
+            * broadcast : scalar results will be broadcast to all rows
+            * None : list-like results will be returned as a list
+              in a single column. However if the apply function
+              returns a Series these are expanded to columns.
+
+            .. versionadded:: 0.23.0
 
         Returns
         -------
@@ -871,12 +886,10 @@ class SparseDataFrame(DataFrame):
         op = frame_apply(self,
                          func=func,
                          axis=axis,
-                         reduce=reduce)
-
-        if broadcast:
-            return op.apply_broadcast()
-
-        return op.apply_standard()
+                         reduce=reduce,
+                         broadcast=broadcast,
+                         result_type=result_type)
+        return op.get_result()
 
     def applymap(self, func):
         """
