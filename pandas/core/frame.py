@@ -148,16 +148,17 @@ how : {'left', 'right', 'outer', 'inner'}, default 'inner'
     * inner: use intersection of keys from both frames, similar to a SQL inner
       join; preserve the order of the left keys
 on : label or list
-    Field names to join on. Must be found in both DataFrames. If on is
-    None and not merging on indexes, then it merges on the intersection of
-    the columns by default.
+    Column or index level names to join on. These must be found in both
+    DataFrames. If `on` is None and not merging on indexes then this defaults
+    to the intersection of the columns in both DataFrames.
 left_on : label or list, or array-like
-    Field names to join on in left DataFrame. Can be a vector or list of
-    vectors of the length of the DataFrame to use a particular vector as
-    the join key instead of columns
+    Column or index level names to join on in the left DataFrame. Can also
+    be an array or list of arrays of the length of the left DataFrame.
+    These arrays are treated as if they are columns.
 right_on : label or list, or array-like
-    Field names to join on in right DataFrame or vector/list of vectors per
-    left_on docs
+    Column or index level names to join on in the right DataFrame. Can also
+    be an array or list of arrays of the length of the right DataFrame.
+    These arrays are treated as if they are columns.
 left_index : boolean, default False
     Use the index from the left DataFrame as the join key(s). If it is a
     MultiIndex, the number of keys in the other DataFrame (either the index
@@ -195,6 +196,11 @@ validate : string, default None
     * "many_to_many" or "m:m": allowed, but does not result in checks.
 
     .. versionadded:: 0.21.0
+
+Notes
+-----
+Support for specifying index levels as the `on`, `left_on`, and
+`right_on` parameters was added in version 0.22.0
 
 Examples
 --------
@@ -5214,12 +5220,12 @@ class DataFrame(NDFrame):
             Index should be similar to one of the columns in this one. If a
             Series is passed, its name attribute must be set, and that will be
             used as the column name in the resulting joined DataFrame
-        on : column name, tuple/list of column names, or array-like
-            Column(s) in the caller to join on the index in other,
-            otherwise joins index-on-index. If multiples
-            columns given, the passed DataFrame must have a MultiIndex. Can
-            pass an array as the join key if not already contained in the
-            calling DataFrame. Like an Excel VLOOKUP operation
+        on : name, tuple/list of names, or array-like
+            Column or index level name(s) in the caller to join on the index
+            in `other`, otherwise joins index-on-index. If multiple
+            values given, the `other` DataFrame must have a MultiIndex. Can
+            pass an array as the join key if it is not already contained in
+            the calling DataFrame. Like an Excel VLOOKUP operation
         how : {'left', 'right', 'outer', 'inner'}, default: 'left'
             How to handle the operation of the two objects.
 
@@ -5243,6 +5249,9 @@ class DataFrame(NDFrame):
         -----
         on, lsuffix, and rsuffix options are not supported when passing a list
         of DataFrame objects
+
+        Support for specifying index levels as the `on` parameter was added
+        in version 0.22.0
 
         Examples
         --------

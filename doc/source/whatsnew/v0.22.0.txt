@@ -32,6 +32,37 @@ The :func:`get_dummies` now accepts a ``dtype`` argument, which specifies a dtyp
    pd.get_dummies(df, columns=['c'], dtype=bool).dtypes
 
 
+.. _whatsnew_0220.enhancements.merge_on_columns_and_levels:
+
+Merging on a combination of columns and index levels
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+Strings passed to :meth:`DataFrame.merge` as the ``on``, ``left_on``, and ``right_on``
+parameters may now refer to either column names or index level names.
+This enables merging ``DataFrame`` instances on a combination of index levels
+and columns without resetting indexes. See the :ref:`Merge on columns and
+levels <merging.merge_on_columns_and_levels>` documentation section.
+(:issue:`14355`)
+
+.. ipython:: python
+
+   left_index = pd.Index(['K0', 'K0', 'K1', 'K2'], name='key1')
+
+   left = pd.DataFrame({'A': ['A0', 'A1', 'A2', 'A3'],
+                        'B': ['B0', 'B1', 'B2', 'B3'],
+                        'key2': ['K0', 'K1', 'K0', 'K1']},
+                       index=left_index)
+
+   right_index = pd.Index(['K0', 'K1', 'K2', 'K2'], name='key1')
+
+   right = pd.DataFrame({'C': ['C0', 'C1', 'C2', 'C3'],
+                         'D': ['D0', 'D1', 'D2', 'D3'],
+                         'key2': ['K0', 'K0', 'K0', 'K1']},
+                        index=right_index)
+
+   left.merge(right, on=['key1', 'key2'])
+
+
 .. _whatsnew_0220.enhancements.other:
 
 Other Enhancements
