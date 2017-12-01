@@ -518,14 +518,16 @@ standard database join operations between DataFrame objects:
 
 - ``left``: A DataFrame object
 - ``right``: Another DataFrame object
-- ``on``: Columns (names) to join on. Must be found in both the left and
-  right DataFrame objects. If not passed and ``left_index`` and
+- ``on``: Column or index level names to join on. Must be found in both the left
+  and right DataFrame objects. If not passed and ``left_index`` and
   ``right_index`` are ``False``, the intersection of the columns in the
   DataFrames will be inferred to be the join keys
-- ``left_on``: Columns from the left DataFrame to use as keys. Can either be
-  column names or arrays with length equal to the length of the DataFrame
-- ``right_on``: Columns from the right DataFrame to use as keys. Can either be
-  column names or arrays with length equal to the length of the DataFrame
+- ``left_on``: Columns or index levels from the left DataFrame to use as
+  keys. Can either be column names, index level names, or arrays with length
+  equal to the length of the DataFrame
+- ``right_on``: Columns or index levels from the right DataFrame to use as
+  keys. Can either be column names, index level names, or arrays with length
+  equal to the length of the DataFrame
 - ``left_index``: If ``True``, use the index (row labels) from the left
   DataFrame as its join key(s). In the case of a DataFrame with a MultiIndex
   (hierarchical), the number of levels must match the number of join keys
@@ -563,6 +565,10 @@ standard database join operations between DataFrame objects:
 
   .. versionadded:: 0.21.0
 
+.. note::
+
+   Support for specifying index levels as the ``on``, ``left_on``, and
+   ``right_on`` parameters was added in version 0.22.0.
 
 The return type will be the same as ``left``. If ``left`` is a ``DataFrame``
 and ``right`` is a subclass of DataFrame, the return type will still be
@@ -1120,6 +1126,56 @@ This is not Implemented via ``join`` at-the-moment, however it can be done using
    p.plot([left, right], result,
           labels=['left', 'right'], vertical=False);
    plt.close('all');
+
+.. _merging.merge_on_columns_and_levels:
+
+Merging on a combination of columns and index levels
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+.. versionadded:: 0.22
+
+Strings passed as the ``on``, ``left_on``, and ``right_on`` parameters
+may refer to either column names or index level names.  This enables merging
+``DataFrame`` instances on a combination of index levels and columns without
+resetting indexes.
+
+.. ipython:: python
+
+   left_index = pd.Index(['K0', 'K0', 'K1', 'K2'], name='key1')
+
+   left = pd.DataFrame({'A': ['A0', 'A1', 'A2', 'A3'],
+                        'B': ['B0', 'B1', 'B2', 'B3'],
+                        'key2': ['K0', 'K1', 'K0', 'K1']},
+                       index=left_index)
+
+   right_index = pd.Index(['K0', 'K1', 'K2', 'K2'], name='key1')
+
+   right = pd.DataFrame({'C': ['C0', 'C1', 'C2', 'C3'],
+                         'D': ['D0', 'D1', 'D2', 'D3'],
+                         'key2': ['K0', 'K0', 'K0', 'K1']},
+                        index=right_index)
+
+   result = left.merge(right, on=['key1', 'key2'])
+
+.. ipython:: python
+   :suppress:
+
+   @savefig merge_on_index_and_column.png
+   p.plot([left, right], result,
+          labels=['left', 'right'], vertical=False);
+   plt.close('all');
+
+.. note::
+
+   When DataFrames are merged on a string that matches an index level in both
+   frames, the index level is preserved as an index level in the resulting
+   DataFrame.
+
+.. note::
+
+   If a string matches both a column name and an index level name, then a
+   warning is issued and the column takes precedence. This will result in an
+   ambiguity error in a future version.
 
 Overlapping value columns
 ~~~~~~~~~~~~~~~~~~~~~~~~~

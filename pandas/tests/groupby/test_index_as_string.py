@@ -108,7 +108,7 @@ def test_grouper_column_index_level_precedence(frame,
 
     assert_frame_equal(result, expected)
 
-    # Grouping with level Grouper should produce a difference result but
+    # Grouping with level Grouper should produce a different result but
     # still no warning
     with tm.assert_produces_warning(False):
         not_expected = frame.groupby(level_groupers).mean()
