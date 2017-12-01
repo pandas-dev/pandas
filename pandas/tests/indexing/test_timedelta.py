@@ -2,6 +2,7 @@ import pytest
 
 import pandas as pd
 from pandas.util import testing as tm
+from numpy import nan
 
 
 class TestTimedeltaIndexing(object):
@@ -47,3 +48,14 @@ class TestTimedeltaIndexing(object):
         expected = df.iloc[0]
         sliced = df.loc['0 days']
         tm.assert_series_equal(sliced, expected)
+
+    @pytest.mark.parametrize(
+        "value, expected",
+        [(None, [pd.NaT, 1, 2]),
+         (pd.NaT, [pd.NaT, 1, 2]),
+         (nan, [pd.NaT, 1, 2])])
+    def test_nan(self, value, expected):
+        series = pd.Series([0, 1, 2], dtype='timedelta64[ns]')
+        series[series == series[0]] = value
+        expected = pd.Series([pd.NaT, 1, 2], dtype='timedelta64[ns]')
+        tm.assert_series_equal(series, expected)
