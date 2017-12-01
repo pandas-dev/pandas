@@ -17,8 +17,6 @@ np.import_array()
 
 from util cimport is_string_object, is_integer_object
 
-from pandas._libs.tslib import monthrange
-
 from conversion cimport tz_convert_single, pydt_to_i8
 from frequencies cimport get_freq_code
 from nattype cimport NPY_NAT
@@ -469,6 +467,160 @@ cdef inline int month_add_months(pandas_datetimestruct dts, int months) nogil:
     """
     cdef int new_month = (dts.month + months) % 12
     return 12 if new_month == 0 else new_month
+
+
+@cython.wraparound(False)
+@cython.boundscheck(False)
+def shift_quarters(int64_t[:] dtindex, int quarters,
+                   int q1start_month, object day, int modby=3):
+    """
+    Given an int64 array representing nanosecond timestamps, shift all elements
+    by the specified number of quarters using DateOffset semantics.
+
+    Parameters
+    ----------
+    dtindex : int64_t[:] timestamps for input dates
+    quarters : int number of quarters to shift
+    q1start_month : int month in which Q1 begins by convention
+    day : {'start', 'end', 'business_start', 'business_end'}
+    modby : int (3 for quarters, 12 for years)
+
+    Returns
+    -------
+    out : ndarray[int64_t]
+    """
+    cdef:
+        Py_ssize_t i
+        pandas_datetimestruct dts
+        int count = len(dtindex)
+        int months_to_roll, months_since, n, compare_day
+        bint roll_check
+        int64_t[:] out = np.empty(count, dtype='int64')
+
+    if day == 'start':
+        with nogil:
+            for i in range(count):
+                if dtindex[i] == NPY_NAT:
+                    out[i] = NPY_NAT
+                    continue
+
+                dt64_to_dtstruct(dtindex[i], &dts)
+                n = quarters
+
+                months_since = (dts.month - q1start_month) % modby
+
+                # offset semantics - if on the anchor point and going backwards
+                # shift to next
+                if n <= 0 and (months_since != 0 or
+                               (months_since == 0 and dts.day > 1)):
+                    n += 1
+
+                dts.year = year_add_months(dts, modby * n - months_since)
+                dts.month = month_add_months(dts, modby * n - months_since)
+                dts.day = 1
+
+                out[i] = dtstruct_to_dt64(&dts)
+
+    elif day == 'end':
+        with nogil:
+            for i in range(count):
+                if dtindex[i] == NPY_NAT:
+                    out[i] = NPY_NAT
+                    continue
+
+                dt64_to_dtstruct(dtindex[i], &dts)
+                n = quarters
+
+                months_since = (dts.month - q1start_month) % modby
+
+                if n <= 0 and months_since != 0:
+                    # The general case of this condition would be
+                    # `months_since != 0 or (months_since == 0 and
+                    #    dts.day > get_days_in_month(dts.year, dts.month))`
+                    # but the get_days_in_month inequality would never hold.
+                    n += 1
+                elif n > 0 and (months_since == 0 and
+                                dts.day < get_days_in_month(dts.year,
+                                                            dts.month)):
+                    n -= 1
+
+                dts.year = year_add_months(dts, modby * n - months_since)
+                dts.month = month_add_months(dts, modby * n - months_since)
+                dts.day = get_days_in_month(dts.year, dts.month)
+
+                out[i] = dtstruct_to_dt64(&dts)
+
+    elif day == 'business_start':
+        with nogil:
+            for i in range(count):
+                if dtindex[i] == NPY_NAT:
+                    out[i] = NPY_NAT
+                    continue
+
+                dt64_to_dtstruct(dtindex[i], &dts)
+                n = quarters
+
+                months_since = (dts.month - q1start_month) % modby
+                compare_month = dts.month - months_since
+                compare_month = compare_month or 12
+                # compare_day is only relevant for comparison in the case
+                # where months_since == 0.
+                compare_day = get_firstbday(dts.year, compare_month)
+
+                if n <= 0 and (months_since != 0 or
+                               (months_since == 0 and dts.day > compare_day)):
+                    # make sure to roll forward, so negate
+                    n += 1
+                elif n > 0 and (months_since == 0 and dts.day < compare_day):
+                    # pretend to roll back if on same month but
+                    # before compare_day
+                    n -= 1
+
+                dts.year = year_add_months(dts, modby * n - months_since)
+                dts.month = month_add_months(dts, modby * n - months_since)
+
+                dts.day = get_firstbday(dts.year, dts.month)
+
+                out[i] = dtstruct_to_dt64(&dts)
+
+    elif day == 'business_end':
+        with nogil:
+            for i in range(count):
+                if dtindex[i] == NPY_NAT:
+                    out[i] = NPY_NAT
+                    continue
+
+                dt64_to_dtstruct(dtindex[i], &dts)
+                n = quarters
+
+                months_since = (dts.month - q1start_month) % modby
+                compare_month = dts.month - months_since
+                compare_month = compare_month or 12
+                # compare_day is only relevant for comparison in the case
+                # where months_since == 0.
+                compare_day = get_lastbday(dts.year, compare_month)
+
+                if n <= 0 and (months_since != 0 or
+                               (months_since == 0 and dts.day > compare_day)):
+                    # make sure to roll forward, so negate
+                    n += 1
+                elif n > 0 and (months_since == 0 and dts.day < compare_day):
+                    # pretend to roll back if on same month but
+                    # before compare_day
+                    n -= 1
+
+                dts.year = year_add_months(dts, modby * n - months_since)
+                dts.month = month_add_months(dts, modby * n - months_since)
+
+                dts.day = get_lastbday(dts.year, dts.month)
+
+                out[i] = dtstruct_to_dt64(&dts)
+
+    else:
+        raise ValueError("day must be None, 'start', 'end', "
+                         "'business_start', or 'business_end'")
+
+    return np.asarray(out)
 
 
 @cython.wraparound(False)

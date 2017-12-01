@@ -7,6 +7,7 @@ import pytest
 from pandas import DataFrame
 from pandas.compat import lmap
 import pandas.util.testing as tm
+import pandas.util._test_decorators as td
 
 import numpy as np
 from numpy import random
@@ -15,9 +16,8 @@ from numpy.random import randn
 import pandas.plotting as plotting
 from pandas.tests.plotting.common import TestPlotBase, _check_plot_works
 
-tm._skip_if_no_mpl()
 
-
+@td.skip_if_no_mpl
 class TestSeriesPlots(TestPlotBase):
 
     def setup_method(self, method):
@@ -49,6 +49,7 @@ class TestSeriesPlots(TestPlotBase):
         _check_plot_works(bootstrap_plot, series=self.ts, size=10)
 
 
+@td.skip_if_no_mpl
 class TestDataFramePlots(TestPlotBase):
 
     def test_scatter_matrix_axis(self):

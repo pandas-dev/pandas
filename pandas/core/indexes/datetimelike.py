@@ -263,7 +263,9 @@ class DatetimeIndexOpsMixin(object):
 
         is_int = is_integer(key)
         if is_scalar(key) and not is_int:
-            raise ValueError
+            raise IndexError("only integers, slices (`:`), ellipsis (`...`), "
+                             "numpy.newaxis (`None`) and integer or boolean "
+                             "arrays are valid indices")
 
         getitem = self._data.__getitem__
         if is_int:

@@ -33,9 +33,15 @@ def test_quarterly_dont_normalize():
         assert (result.time() == date.time())
 
 
-@pytest.mark.parametrize('offset', [MonthBegin(), MonthEnd(),
-                                    BMonthBegin(), BMonthEnd()])
-def test_apply_index(offset):
+@pytest.mark.parametrize('n', [-2, 1])
+@pytest.mark.parametrize('cls', [MonthBegin, MonthEnd,
+                                 BMonthBegin, BMonthEnd,
+                                 QuarterBegin, QuarterEnd,
+                                 BQuarterBegin, BQuarterEnd,
+                                 YearBegin, YearEnd,
+                                 BYearBegin, BYearEnd])
+def test_apply_index(cls, n):
+    offset = cls(n=n)
     rng = pd.date_range(start='1/1/2000', periods=100000, freq='T')
     ser = pd.Series(rng)
 

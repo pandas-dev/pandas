@@ -5,7 +5,9 @@ try:
     from pandas.tseries.offsets import Nano, Hour
 except ImportError:
     # For compatability with older versions(?)
-    from pandas.core.datetools import *
+    from pandas.core.datetools import * # noqa
+
+from .pandas_vb_common import setup # noqa
 
 
 class FromDicts(object):
@@ -13,7 +15,6 @@ class FromDicts(object):
     goal_time = 0.2
 
     def setup(self):
-        np.random.seed(1234)
         N, K = 5000, 50
         index = tm.makeStringIndex(N)
         columns = tm.makeStringIndex(K)
@@ -65,3 +66,18 @@ class FromDictwithTimestamp(object):
 
     def time_dict_with_timestamp_offsets(self, offset):
         DataFrame(self.d)
+
+
+class FromRecords(object):
+
+    goal_time = 0.2
+    params = [None, 1000]
+    param_names = ['nrows']
+
+    def setup(self, nrows):
+        N = 100000
+        self.gen = ((x, (x * 20), (x * 100)) for x in range(N))
+
+    def time_frame_from_records_generator(self, nrows):
+        # issue-6700
+        self.df = DataFrame.from_records(self.gen, nrows=nrows)
