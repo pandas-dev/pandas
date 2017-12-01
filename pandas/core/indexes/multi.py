@@ -1320,19 +1320,19 @@ class MultiIndex(Index):
 
         for lev, lab in zip(self.levels, self.labels):
 
-            if lev.is_monotonic:
-                new_levels.append(lev)
-                new_labels.append(lab)
-                continue
+            if not lev.is_monotonic:
+                try:
+                    # indexer to reorder the levels
+                    indexer = lev.argsort()
+                except TypeError:
+                    pass
+                else:
+                    lev = lev.take(indexer)
 
-            # indexer to reorder the levels
-            indexer = lev.argsort()
-            lev = lev.take(indexer)
-
-            # indexer to reorder the labels
-            indexer = _ensure_int64(indexer)
-            ri = lib.get_reverse_indexer(indexer, len(indexer))
-            lab = algos.take_1d(ri, lab)
+                    # indexer to reorder the labels
+                    indexer = _ensure_int64(indexer)
+                    ri = lib.get_reverse_indexer(indexer, len(indexer))
+                    lab = algos.take_1d(ri, lab)
 
             new_levels.append(lev)
             new_labels.append(lab)
