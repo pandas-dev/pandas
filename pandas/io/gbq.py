@@ -29,9 +29,8 @@ def read_gbq(query, project_id=None, index_col=None, col_order=None,
     The main method a user calls to execute a Query in Google BigQuery
     and read results into a pandas DataFrame.
 
-    Google BigQuery API Client Library v2 for Python is used.
-    Documentation is available `here
-    <https://developers.google.com/api-client-library/python/apis/bigquery/v2>`__
+    This function requires the `pandas-gbq package
+    <https://pandas-gbq.readthedocs.io>`__.
 
     Authentication to the Google BigQuery service is via OAuth 2.0.
 
@@ -70,7 +69,7 @@ def read_gbq(query, project_id=None, index_col=None, col_order=None,
 
     dialect : {'legacy', 'standard'}, default 'legacy'
         'legacy' : Use BigQuery's legacy SQL dialect.
-        'standard' : Use BigQuery's standard SQL (beta), which is
+        'standard' : Use BigQuery's standard SQL, which is
         compliant with the SQL 2011 standard. For more information
         see `BigQuery SQL Reference
         <https://cloud.google.com/bigquery/sql-reference/>`__
