@@ -62,7 +62,7 @@ def get_pairs():
     return pairs
 
 
-def register(explicit=False):
+def register(explicit=True):
     """Register Pandas Formatters and Converters with matplotlib
 
     This function modifies the global ``matplotlib.units.registry``
