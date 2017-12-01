@@ -1,3 +1,4 @@
+import subprocess
 import pytest
 from datetime import datetime, date
 
@@ -19,6 +20,15 @@ def test_timtetonum_accepts_unicode():
 
 
 class TestRegistration(object):
+
+    def test_register_by_default(self):
+        # Run in subprocess to ensure a clean state
+        code = ("'import matplotlib.units; "
+                "import pandas as pd; "
+                "units = dict(matplotlib.units.registry); "
+                "assert pd.Timestamp in units)'")
+        call = ['python', '-c', code]
+        assert subprocess.check_call(call) == 0
 
     def test_warns(self):
         plt = pytest.importorskip("matplotlib.pyplot")
