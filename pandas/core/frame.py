@@ -196,8 +196,8 @@ validate : string, default None
 
     .. versionadded:: 0.21.0
 
-Note
-----
+Notes
+-----
 Support for specifying index levels as the `on`, `left_on`, and
 `right_on` parameters was added in version 0.22.0
 
