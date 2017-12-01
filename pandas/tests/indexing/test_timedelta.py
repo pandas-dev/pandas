@@ -2,7 +2,7 @@ import pytest
 
 import pandas as pd
 from pandas.util import testing as tm
-from numpy import nan
+import numpy as np
 
 
 class TestTimedeltaIndexing(object):
@@ -50,12 +50,21 @@ class TestTimedeltaIndexing(object):
         tm.assert_series_equal(sliced, expected)
 
     @pytest.mark.parametrize(
-        "value, expected",
-        [(None, [pd.NaT, 1, 2]),
-         (pd.NaT, [pd.NaT, 1, 2]),
-         (nan, [pd.NaT, 1, 2])])
-    def test_nan(self, value, expected):
+        "value",
+        [None, pd.NaT, np.nan])
+    def test_masked_setitem(self, value):
+        # issue (#18586)
         series = pd.Series([0, 1, 2], dtype='timedelta64[ns]')
         series[series == series[0]] = value
+        expected = pd.Series([pd.NaT, 1, 2], dtype='timedelta64[ns]')
+        tm.assert_series_equal(series, expected)
+
+    @pytest.mark.parametrize(
+        "value",
+        [None, pd.NaT, np.nan])
+    def test_listlike_setitem(self, value):
+        # issue (#18586)
+        series = pd.Series([0, 1, 2], dtype='timedelta64[ns]')
+        series.iloc[0] = value
         expected = pd.Series([pd.NaT, 1, 2], dtype='timedelta64[ns]')
         tm.assert_series_equal(series, expected)
