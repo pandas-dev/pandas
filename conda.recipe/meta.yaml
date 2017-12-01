@@ -14,12 +14,14 @@ requirements:
   build:
     - python
     - cython
-    - numpy x.x
+    - {{ pin_compatible('numpy') }}
     - setuptools >=3.3
+    - python-dateutil >=2.5.0
+    - pytz
 
   run:
     - python
-    - numpy x.x
+    - {{ pin_compatible('numpy') }}
     - python-dateutil >=2.5.0
     - pytz
 
