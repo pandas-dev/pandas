@@ -46,7 +46,6 @@ class TestDescribe(MixIn):
         result = grouped.agg(lambda x: x.mean())
         assert result.index.name == 'A'
 
-
     def test_frame_describe_multikey(self):
         grouped = self.tsframe.groupby([lambda x: x.year, lambda x: x.month])
         result = grouped.describe()
