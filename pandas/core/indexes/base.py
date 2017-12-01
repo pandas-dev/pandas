@@ -2822,27 +2822,6 @@ class Index(IndexOpsMixin, PandasObject):
         indexer, _ = self.get_indexer_non_unique(target, **kwargs)
         return indexer
 
-    _index_shared_docs['_get_values_from_dict'] = """
-        Return the values of the input dictionary in the order the keys are
-        in the index. np.nan is returned for index values not in the
-        dictionary.
-
-        Parameters
-        ----------
-        data : dict
-            The dictionary from which to extract the values
-
-        Returns
-        -------
-        np.array
-
-        """
-
-    @Appender(_index_shared_docs['_get_values_from_dict'])
-    def _get_values_from_dict(self, data):
-        return lib.fast_multiget(data, self.values,
-                                 default=np.nan)
-
     def _maybe_promote(self, other):
         # A hack, but it works
         from pandas.core.indexes.datetimes import DatetimeIndex
