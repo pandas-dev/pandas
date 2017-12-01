@@ -1129,7 +1129,13 @@ class DatetimeIndex(DatelikeOps, TimelikeOps, DatetimeIndexOpsMixin,
 
     def _tz_compare(self, other):
         """
-        Compare time zones of DatetimeIndex.
+        Compare string representations of timezones of two DatetimeIndex as
+        directly comparing equality is broken. The same timezone can be
+        represented as different instances of timezones. For example
+        `<DstTzInfo 'Europe/Paris' LMT+0:09:00 STD>` and
+        `<DstTzInfo 'Europe/Paris' CET+1:00:00 STD>` are essentially same
+        timezones but aren't evaluted such, but the string representation
+        for both of these is `'Europe/Paris'`.
 
         Parameters
         ----------
@@ -1140,6 +1146,7 @@ class DatetimeIndex(DatelikeOps, TimelikeOps, DatetimeIndexOpsMixin,
         compare : Boolean
 
         """
+        # GH 18523
         return str(self.tzinfo) == str(other.tzinfo)
 
     def _maybe_utc_convert(self, other):

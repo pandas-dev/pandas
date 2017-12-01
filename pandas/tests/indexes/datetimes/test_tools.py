@@ -892,7 +892,7 @@ class TestToDatetimeMisc(object):
         xp = bdate_range('2000-1-1', periods=10, tz='UTC')
         rs = xp.to_datetime()
         assert xp.freq == rs.freq
-        assert xp.tzinfo == rs.tzinfo
+        assert xp._tz_compare(rs)
 
     def test_to_datetime_overflow(self):
         # gh-17637
