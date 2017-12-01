@@ -14,6 +14,7 @@ requirements:
   build:
     - python
     - cython
+<<<<<<< HEAD
     - numpy x.x
     - setuptools >=3.3
 
@@ -21,6 +22,17 @@ requirements:
     - python
     - numpy x.x
     - python-dateutil >=2.5.0
+=======
+    - numpy
+    - setuptools
+    - pytz
+    - python-dateutil
+
+  run:
+    - python
+    - {{ pin_compatible('numpy') }}
+    - python-dateutil
+>>>>>>> conda recipe update
     - pytz
 
 test:
