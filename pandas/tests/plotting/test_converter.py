@@ -125,7 +125,8 @@ class TestRegistration(object):
             converter.register()
 
         assert len(w)
-        assert 'pandas.plotting.register_converters' in str(w[0].message)
+        assert ('pandas.plotting.register_matplotlib_converters' in
+                str(w[0].message))
 
 
 class TestDateTimeConverter(object):

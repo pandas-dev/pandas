@@ -15,6 +15,6 @@ from pandas.plotting._converter import (time2num,
 def register():
     from pandas.plotting._converter import register as register_
     msg = ("'pandas.tseries.converter.register' has been moved and renamed to "
-           "'pandas.plotting.register_converters'. ")
+           "'pandas.plotting.register_matplotlib_converters'. ")
     warnings.warn(msg, FutureWarning, stacklevel=2)
     register_()
