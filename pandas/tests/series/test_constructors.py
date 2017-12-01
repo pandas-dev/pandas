@@ -4,6 +4,7 @@
 import pytest
 
 from datetime import datetime, timedelta
+from collections import OrderedDict
 
 from numpy import nan
 import numpy as np
@@ -79,17 +80,42 @@ class TestSeriesConstructors(TestData):
         m = MultiIndex.from_arrays([[1, 2], [3, 4]])
         pytest.raises(NotImplementedError, Series, m)
 
-    def test_constructor_empty(self):
+    @pytest.mark.parametrize('input_class', [list, dict, OrderedDict])
+    def test_constructor_empty(self, input_class):
         empty = Series()
-        empty2 = Series([])
+        empty2 = Series(input_class())
 
-        # the are Index() and RangeIndex() which don't compare type equal
+        # these are Index() and RangeIndex() which don't compare type equal
         # but are just .equals
         assert_series_equal(empty, empty2, check_index_type=False)
 
-        empty = Series(index=lrange(10))
-        empty2 = Series(np.nan, index=lrange(10))
-        assert_series_equal(empty, empty2)
+        # With explicit dtype:
+        empty = Series(dtype='float64')
+        empty2 = Series(input_class(), dtype='float64')
+        assert_series_equal(empty, empty2, check_index_type=False)
+
+        # GH 18515 : with dtype=category:
+        empty = Series(dtype='category')
+        empty2 = Series(input_class(), dtype='category')
+        assert_series_equal(empty, empty2, check_index_type=False)
+
+        if input_class is not list:
+            # With index:
+            empty = Series(index=lrange(10))
+            empty2 = Series(input_class(), index=lrange(10))
+            assert_series_equal(empty, empty2)
+
+            # With index and dtype float64:
+            empty = Series(np.nan, index=lrange(10))
+            empty2 = Series(input_class(), index=lrange(10), dtype='float64')
+            assert_series_equal(empty, empty2)
+
+    @pytest.mark.parametrize('input_arg', [np.nan, float('nan')])
+    def test_constructor_nan(self, input_arg):
+        empty = Series(dtype='float64', index=lrange(10))
+        empty2 = Series(input_arg, index=lrange(10))
+
+        assert_series_equal(empty, empty2, check_index_type=False)
 
     def test_constructor_series(self):
         index1 = ['d', 'b', 'a', 'c']
@@ -625,6 +651,21 @@ class TestSeriesConstructors(TestData):
         expected.iloc[1] = 1
         assert_series_equal(result, expected)
 
+    @pytest.mark.parametrize("value", [2, np.nan, None, float('nan')])
+    def test_constructor_dict_nan_key(self, value):
+        # GH 18480
+        d = {1: 'a', value: 'b', float('nan'): 'c', 4: 'd'}
+        result = Series(d).sort_values()
+        expected = Series(['a', 'b', 'c', 'd'], index=[1, value, np.nan, 4])
+        assert_series_equal(result, expected)
+
+        # MultiIndex:
+        d = {(1, 1): 'a', (2, np.nan): 'b', (3, value): 'c'}
+        result = Series(d).sort_values()
+        expected = Series(['a', 'b', 'c'],
+                          index=Index([(1, 1), (2, np.nan), (3, value)]))
+        assert_series_equal(result, expected)
+
     def test_constructor_dict_datetime64_index(self):
         # GH 9456
 
@@ -658,8 +699,6 @@ class TestSeriesConstructors(TestData):
         s = Series(data)
         assert tuple(s) == data
 
-    @pytest.mark.xfail(reason='GH 18480 (Series initialization from dict with '
-                              'NaN keys')
     def test_constructor_dict_of_tuples(self):
         data = {(1, 2): 3,
                 (None, 5): 6}

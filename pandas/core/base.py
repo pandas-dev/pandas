@@ -874,9 +874,8 @@ class IndexOpsMixin(object):
                 # convert to an Series for efficiency.
                 # we specify the keys here to handle the
                 # possibility that they are tuples
-                from pandas import Series, Index
-                index = Index(mapper, tupleize_cols=False)
-                mapper = Series(mapper, index=index)
+                from pandas import Series
+                mapper = Series(mapper)
 
         if isinstance(mapper, ABCSeries):
             # Since values were input this means we came from either
