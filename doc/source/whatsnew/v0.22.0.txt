@@ -218,7 +218,8 @@ Sparse
 Reshaping
 ^^^^^^^^^
 
--
+- Bug in :func:`DataFrame.stack` which fails trying to sort mixed type levels under Python 3 (:issue:`18310`)
+
 -
 -
 
