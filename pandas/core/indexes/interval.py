@@ -29,7 +29,7 @@ from pandas._libs.interval import (
     Interval, IntervalMixin, IntervalTree,
     intervals_to_interval_bounds)
 
-from pandas.core.indexes.datetimes import DatetimeIndex, date_range
+from pandas.core.indexes.datetimes import date_range
 from pandas.core.indexes.timedeltas import timedelta_range
 from pandas.core.indexes.multi import MultiIndex
 from pandas.compat.numpy import function as nv
@@ -239,7 +239,8 @@ class IntervalIndex(IntervalMixin, Index):
         elif isinstance(left, ABCPeriodIndex):
             msg = 'Period dtypes are not supported, use a PeriodIndex instead'
             raise ValueError(msg)
-        elif isinstance(left, ABCDatetimeIndex) and left.tz != right.tz:
+        elif (isinstance(left, ABCDatetimeIndex) and
+                str(left.tz) != str(right.tz)):
             msg = ("left and right must have the same time zone, got "
                    "'{left_tz}' and '{right_tz}'")
             raise ValueError(msg.format(left_tz=left.tz, right_tz=right.tz))
@@ -663,7 +664,6 @@ class IntervalIndex(IntervalMixin, Index):
         except TypeError:
             # datetime safe version
             tz = self.right.tz
-            freq = self.right.freq
             delta = self.right.values - self.left.values
 
             # handle tz aware
@@ -673,7 +673,7 @@ class IntervalIndex(IntervalMixin, Index):
             else:
                 data = self.left + 0.5 * delta
 
-            return DatetimeIndex(data, freq=freq, tz=tz)
+            return data
 
     @cache_readonly
     def is_monotonic(self):
