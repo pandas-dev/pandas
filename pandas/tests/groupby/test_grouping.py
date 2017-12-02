@@ -6,7 +6,7 @@ import pytest
 
 from warnings import catch_warnings
 from pandas import (date_range, Timestamp,
-                    Index, MultiIndex, DataFrame, Series)
+                    Index, MultiIndex, DataFrame, Series, CategoricalIndex)
 from pandas.util.testing import (assert_panel_equal, assert_frame_equal,
                                  assert_series_equal, assert_almost_equal)
 from pandas.compat import lrange, long
@@ -250,6 +250,29 @@ class TestGrouping(MixIn):
 
         by_columns.columns = pd.Index(by_columns.columns, dtype=np.int64)
         tm.assert_frame_equal(by_levels, by_columns)
+
+    def test_groupby_categorical_index_and_columns(self):
+        # GH18432
+        columns = ['A', 'B', 'A', 'B']
+        categories = ['B', 'A']
+        data = np.ones((5, 4), int)
+        cat_columns = CategoricalIndex(columns,
+                                       categories=categories,
+                                       ordered=True)
+        df = DataFrame(data=data, columns=cat_columns)
+        result = df.groupby(axis=1, level=0).sum()
+        expected_data = 2 * np.ones((5, 2), int)
+        expected_columns = CategoricalIndex(categories,
+                                            categories=categories,
+                                            ordered=True)
+        expected = DataFrame(data=expected_data, columns=expected_columns)
+        assert_frame_equal(result, expected)
+
+        # test transposed version
+        df = DataFrame(data.T, index=cat_columns)
+        result = df.groupby(axis=0, level=0).sum()
+        expected = DataFrame(data=expected_data.T, index=expected_columns)
+        assert_frame_equal(result, expected)
 
     def test_grouper_getting_correct_binner(self):
 

@@ -304,10 +304,12 @@ cdef class _Timestamp(datetime):
         out = get_date_field(np.array([val], dtype=np.int64), field)
         return int(out[0])
 
-    cpdef _get_start_end_field(self, field):
+    cpdef bint _get_start_end_field(self, str field):
         cdef:
             int64_t val
             dict kwds
+            ndarray out
+            int month_kw
 
         freq = self.freq
         if freq:
@@ -713,7 +715,7 @@ class Timestamp(_Timestamp):
 
     @property
     def quarter(self):
-        return self._get_field('q')
+        return ((self.month - 1) // 3) + 1
 
     @property
     def days_in_month(self):
@@ -727,26 +729,44 @@ class Timestamp(_Timestamp):
 
     @property
     def is_month_start(self):
+        if self.freq is None:
+            # fast-path for non-business frequencies
+            return self.day == 1
         return self._get_start_end_field('is_month_start')
 
     @property
     def is_month_end(self):
+        if self.freq is None:
+            # fast-path for non-business frequencies
+            return self.day == self.days_in_month
         return self._get_start_end_field('is_month_end')
 
     @property
     def is_quarter_start(self):
+        if self.freq is None:
+            # fast-path for non-business frequencies
+            return self.day == 1 and self.month % 3 == 1
         return self._get_start_end_field('is_quarter_start')
 
     @property
     def is_quarter_end(self):
+        if self.freq is None:
+            # fast-path for non-business frequencies
+            return (self.month % 3) == 0 and self.day == self.days_in_month
         return self._get_start_end_field('is_quarter_end')
 
     @property
     def is_year_start(self):
+        if self.freq is None:
+            # fast-path for non-business frequencies
+            return self.day == self.month == 1
         return self._get_start_end_field('is_year_start')
 
     @property
     def is_year_end(self):
+        if self.freq is None:
+            # fast-path for non-business frequencies
+            return self.month == 12 and self.day == 31
         return self._get_start_end_field('is_year_end')
 
     @property
