@@ -9,6 +9,7 @@ from pandas import (Series, DataFrame, DatetimeIndex, Timestamp,
                     read_json, compat)
 from datetime import timedelta
 import pandas as pd
+import json
 
 from pandas.util.testing import (assert_almost_equal, assert_frame_equal,
                                  assert_series_equal, network,
@@ -1151,7 +1152,8 @@ DataFrame\\.index values are different \\(100\\.0 %\\)
     def test_index_false_to_json(self):
         # GH 17394
         # Testing index parameter in to_json
-        import json
+
+        # Testing DataFrame.to_json(orient='split', index=False)
         df = pd.DataFrame([[1, 2], [4, 5]], columns=['a', 'b'])
 
         result = df.to_json(orient='split', index=False)
@@ -1164,6 +1166,7 @@ DataFrame\\.index values are different \\(100\\.0 %\\)
 
         assert result == expected
 
+        # Testing DataFrame.to_json(orient='table', index=False)
         result = df.to_json(orient='table', index=False)
         result = json.loads(result)
 
@@ -1180,6 +1183,7 @@ DataFrame\\.index values are different \\(100\\.0 %\\)
 
         assert result == expected
 
+        # Testing Series.to_json(orient='split', index=False)
         s = pd.Series([1, 2, 3], name='A')
 
         result = s.to_json(orient='split', index=False)
@@ -1192,6 +1196,7 @@ DataFrame\\.index values are different \\(100\\.0 %\\)
 
         assert result == expected
 
+        # Testing Series.to_json(orient='table', index=False)
         result = s.to_json(orient='table', index=False)
         result = json.loads(result)
 
