@@ -17,26 +17,24 @@ from pandas.compat import PY2
 
 cimport cython
 
-from pandas._libs.tslibs.np_datetime cimport (pandas_datetimestruct,
-                                              dtstruct_to_dt64,
-                                              dt64_to_dtstruct, is_leapyear)
-
+from np_datetime cimport (pandas_datetimestruct, dtstruct_to_dt64,
+                          dt64_to_dtstruct, is_leapyear)
 
 cimport util
 from util cimport is_period_object, is_string_object, INT32_MIN
 
 from pandas._libs.missing cimport is_null_datetimelike
 from pandas._libs.tslib import Timestamp
-from pandas._libs.tslibs.timezones cimport (
+from timezones cimport (
     is_utc, is_tzlocal, get_utcoffset, get_dst_info)
-from pandas._libs.tslibs.timedeltas cimport delta_to_nanoseconds
+from timedeltas cimport delta_to_nanoseconds
 
-from pandas._libs.tslibs.parsing import (parse_time_string, NAT_SENTINEL,
+from parsing import (parse_time_string, NAT_SENTINEL,
                                          _get_rule_month, _MONTH_NUMBERS)
-from pandas._libs.tslibs.frequencies cimport get_freq_code
-from pandas._libs.tslibs.resolution import resolution, Resolution
-from pandas._libs.tslibs.nattype import nat_strings, NaT, iNaT
-from pandas._libs.tslibs.nattype cimport _nat_scalar_rules, NPY_NAT
+from frequencies cimport get_freq_code
+from resolution import resolution, Resolution
+from nattype import nat_strings, NaT, iNaT
+from nattype cimport _nat_scalar_rules, NPY_NAT
 
 from pandas.tseries import offsets
 from pandas.tseries import frequencies
