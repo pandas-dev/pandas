@@ -1009,7 +1009,13 @@ class Base(object):
     def test_map(self):
         # callable
         index = self.create_index()
-        expected = index
+
+        # we don't infer UInt64
+        if isinstance(index, pd.UInt64Index):
+            expected = index.astype('int64')
+        else:
+            expected = index
+
         result = index.map(lambda x: x)
         tm.assert_index_equal(result, expected)
 
@@ -1024,9 +1030,14 @@ class Base(object):
         if isinstance(index, (pd.CategoricalIndex, pd.IntervalIndex)):
             pytest.skip("skipping tests for {}".format(type(index)))
 
-        expected = index
-
         identity = mapper(index.values, index)
+
+        # we don't infer to UInt64 for a dict
+        if isinstance(index, pd.UInt64Index) and isinstance(identity, dict):
+            expected = index.astype('int64')
+        else:
+            expected = index
+
         result = index.map(identity)
         tm.assert_index_equal(result, expected)
 
