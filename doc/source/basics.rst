@@ -1738,11 +1738,6 @@ description.
 Sorting
 -------
 
-.. warning::
-
-   The sorting API is substantially changed in 0.17.0, see :ref:`here <whatsnew_0170.api_breaking.sorting>` for these changes.
-   In particular, all sorting methods now return a new object by default, and **DO NOT** operate in-place (except by passing ``inplace=True``).
-
 Pandas supports three kinds of sorting: sorting by labels (indexes), sorting
 by values (columns), and sorting by a combination of both.
 
@@ -1773,8 +1768,7 @@ labels (indexes) are the ``Series.sort_index()`` and the ``DataFrame.sort_index(
 By Values
 ~~~~~~~~~
 
-The :meth:`Series.sort_values` and :meth:`DataFrame.sort_values` methods are
-the entry points for **value** sorting (that is the values in a column or row).
+The :meth:`Series.sort_values` and :meth:`DataFrame.sort_values` are the entry points for **value** sorting (that is the values in a column or row).
 :meth:`DataFrame.sort_values` can accept an optional ``by`` argument for ``axis=0``
 which will use an arbitrary vector or a column name of the DataFrame to
 determine the sort order:
@@ -1801,7 +1795,7 @@ argument:
 
 By Indexes and Values
 ~~~~~~~~~~~~~~~~~~~~~
-.. versionadded:: 0.21
+.. versionadded:: 0.22
 Strings passed as the ``by`` argument to :meth:`DataFrame.sort_values` may
 refer to either columns or index levels.
 
