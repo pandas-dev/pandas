@@ -1695,7 +1695,8 @@ def all_index_generator(k=10):
     """
     all_make_index_funcs = [makeIntIndex, makeFloatIndex, makeStringIndex,
                             makeUnicodeIndex, makeDateIndex, makePeriodIndex,
-                            makeTimedeltaIndex, makeBoolIndex,
+                            makeTimedeltaIndex, makeBoolIndex, makeRangeIndex,
+                            makeIntervalIndex,
                             makeCategoricalIndex]
     for make_index_func in all_make_index_funcs:
         yield make_index_func(k=k)

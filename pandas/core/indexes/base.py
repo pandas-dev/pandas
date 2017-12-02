@@ -2897,25 +2897,9 @@ class Index(IndexOpsMixin, PandasObject):
                                           names=names)
 
         attributes['copy'] = False
-
-        # we want to try to return our original dtype
-        # ints infer to integer, but if we have
-        # uints, would prefer to return these
-        if is_unsigned_integer_dtype(self.dtype):
-            inferred = lib.infer_dtype(new_values)
-            if inferred == 'integer':
-                attributes['dtype'] = self.dtype
-
-        elif not new_values.size:
+        if not new_values.size:
             # empty
             attributes['dtype'] = self.dtype
-        elif isna(new_values).all():
-            # all nan
-            inferred = lib.infer_dtype(self)
-            if inferred in ['datetime', 'datetime64',
-                            'timedelta', 'timedelta64',
-                            'period']:
-                new_values = [libts.NaT] * len(new_values)
 
         return Index(new_values, **attributes)
 
