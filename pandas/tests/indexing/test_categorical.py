@@ -8,6 +8,7 @@ from pandas import (Series, DataFrame, Timestamp,
                     Categorical, CategoricalIndex)
 from pandas.util.testing import assert_series_equal, assert_frame_equal
 from pandas.util import testing as tm
+from pandas.api.types import CategoricalDtype as CDT
 
 
 class TestCategoricalIndex(object):
@@ -16,27 +17,24 @@ class TestCategoricalIndex(object):
 
         self.df = DataFrame({'A': np.arange(6, dtype='int64'),
                              'B': Series(list('aabbca')).astype(
-                                 'category', categories=list(
-                                     'cab'))}).set_index('B')
+                                 CDT(list('cab')))}).set_index('B')
         self.df2 = DataFrame({'A': np.arange(6, dtype='int64'),
                               'B': Series(list('aabbca')).astype(
-                                  'category', categories=list(
-                                      'cabe'))}).set_index('B')
+                                  CDT(list('cabe')))}).set_index('B')
         self.df3 = DataFrame({'A': np.arange(6, dtype='int64'),
                               'B': (Series([1, 1, 2, 1, 3, 2])
-                                    .astype('category', categories=[3, 2, 1],
-                                            ordered=True))}).set_index('B')
+                                    .astype(CDT([3, 2, 1], ordered=True)))
+                              }).set_index('B')
         self.df4 = DataFrame({'A': np.arange(6, dtype='int64'),
                               'B': (Series([1, 1, 2, 1, 3, 2])
-                                    .astype('category', categories=[3, 2, 1],
-                                            ordered=False))}).set_index('B')
+                                    .astype(CDT([3, 2, 1], ordered=False)))
+                              }).set_index('B')
 
     def test_loc_scalar(self):
         result = self.df.loc['a']
         expected = (DataFrame({'A': [0, 1, 5],
                                'B': (Series(list('aaa'))
-                                     .astype('category',
-                                             categories=list('cab')))})
+                                     .astype(CDT(list('cab'))))})
                     .set_index('B'))
         assert_frame_equal(result, expected)
 
@@ -44,8 +42,7 @@ class TestCategoricalIndex(object):
         df.loc['a'] = 20
         expected = (DataFrame({'A': [20, 20, 2, 3, 4, 20],
                                'B': (Series(list('aabbca'))
-                                     .astype('category',
-                                             categories=list('cab')))})
+                                     .astype(CDT(list('cab'))))})
                     .set_index('B'))
         assert_frame_equal(df, expected)
 
@@ -111,7 +108,8 @@ class TestCategoricalIndex(object):
         assert_frame_equal(result, expected, check_index_type=True)
 
         # not all labels in the categories
-        pytest.raises(KeyError, lambda: self.df2.loc[['a', 'd']])
+        with pytest.raises(KeyError):
+            self.df2.loc[['a', 'd']]
 
     def test_loc_listlike_dtypes(self):
         # GH 11586
@@ -319,13 +317,13 @@ class TestCategoricalIndex(object):
         result = self.df2.reindex(Categorical(['a', 'd'], categories=cats))
         expected = DataFrame({'A': [0, 1, 5, np.nan],
                               'B': Series(list('aaad')).astype(
-                                  'category', categories=cats)}).set_index('B')
+                                  CDT(cats))}).set_index('B')
         assert_frame_equal(result, expected, check_index_type=True)
 
         result = self.df2.reindex(Categorical(['a'], categories=cats))
         expected = DataFrame({'A': [0, 1, 5],
                               'B': Series(list('aaa')).astype(
-                                  'category', categories=cats)}).set_index('B')
+                                  CDT(cats))}).set_index('B')
         assert_frame_equal(result, expected, check_index_type=True)
 
         result = self.df2.reindex(['a', 'b', 'e'])
@@ -348,16 +346,15 @@ class TestCategoricalIndex(object):
             ['a', 'd'], categories=cats, ordered=True))
         expected = DataFrame(
             {'A': [0, 1, 5, np.nan],
-             'B': Series(list('aaad')).astype('category', categories=cats,
-                                              ordered=True)}).set_index('B')
+             'B': Series(list('aaad')).astype(
+                 CDT(cats, ordered=True))}).set_index('B')
         assert_frame_equal(result, expected, check_index_type=True)
 
         result = self.df2.reindex(Categorical(
             ['a', 'd'], categories=['a', 'd']))
         expected = DataFrame({'A': [0, 1, 5, np.nan],
                               'B': Series(list('aaad')).astype(
-                                  'category', categories=['a', 'd'
-                                                          ])}).set_index('B')
+                                  CDT(['a', 'd']))}).set_index('B')
         assert_frame_equal(result, expected, check_index_type=True)
 
         # passed duplicate indexers are not allowed
@@ -442,3 +439,21 @@ class TestCategoricalIndex(object):
 
         res = (cat[['A']] == 'foo')
         tm.assert_frame_equal(res, exp)
+
+    def test_map_with_dict_or_series(self):
+        orig_values = ['a', 'B', 1, 'a']
+        new_values = ['one', 2, 3.0, 'one']
+        cur_index = pd.CategoricalIndex(orig_values, name='XXX')
+        expected = pd.CategoricalIndex(new_values,
+                                       name='XXX', categories=[3.0, 2, 'one'])
+
+        mapper = pd.Series(new_values[:-1], index=orig_values[:-1])
+        output = cur_index.map(mapper)
+        # Order of categories in output can be different
+        tm.assert_index_equal(expected, output)
+
+        mapper = {o: n for o, n in
+                  zip(orig_values[:-1], new_values[:-1])}
+        output = cur_index.map(mapper)
+        # Order of categories in output can be different
+        tm.assert_index_equal(expected, output)

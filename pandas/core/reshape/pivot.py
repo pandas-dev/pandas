@@ -101,14 +101,14 @@ def pivot_table(data, values=None, index=None, columns=None, aggfunc='mean',
         try:
             m = MultiIndex.from_arrays(cartesian_product(table.index.levels),
                                        names=table.index.names)
-            table = table.reindex_axis(m, axis=0)
+            table = table.reindex(m, axis=0)
         except AttributeError:
             pass  # it's a single level
 
         try:
             m = MultiIndex.from_arrays(cartesian_product(table.columns.levels),
                                        names=table.columns.names)
-            table = table.reindex_axis(m, axis=1)
+            table = table.reindex(m, axis=1)
         except AttributeError:
             pass  # it's a single level or a series
 
@@ -145,7 +145,7 @@ def _add_margins(table, data, values, rows, cols, aggfunc,
     if not isinstance(margins_name, compat.string_types):
         raise ValueError('margins_name argument must be a string')
 
-    msg = 'Conflicting name "{name}" in margins'.format(name=margins_name)
+    msg = u'Conflicting name "{name}" in margins'.format(name=margins_name)
     for level in table.index.names:
         if margins_name in table.index.get_level_values(level):
             raise ValueError(msg)

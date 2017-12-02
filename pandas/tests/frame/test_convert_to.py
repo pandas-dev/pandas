@@ -1,10 +1,14 @@
 # -*- coding: utf-8 -*-
 
+from datetime import datetime
+
 import pytest
+import pytz
 import collections
 import numpy as np
 
 from pandas import compat
+from pandas.compat import long
 from pandas import (DataFrame, Series, MultiIndex, Timestamp,
                     date_range)
 
@@ -135,11 +139,11 @@ class TestDataFrameConvertTo(TestData):
     def test_to_records_with_unicode_column_names(self):
         # xref issue: https://github.com/numpy/numpy/issues/2407
         # Issue #11879. to_records used to raise an exception when used
-        # with column names containing non ascii caracters in Python 2
+        # with column names containing non-ascii characters in Python 2
         result = DataFrame(data={u"accented_name_é": [1.0]}).to_records()
 
         # Note that numpy allows for unicode field names but dtypes need
-        # to be specified using dictionnary intsead of list of tuples.
+        # to be specified using dictionary instead of list of tuples.
         expected = np.rec.array(
             [(0, 1.0)],
             dtype={"names": ["index", u"accented_name_é"],
@@ -236,3 +240,30 @@ class TestDataFrameConvertTo(TestData):
 
         # both converted to UTC, so they are equal
         tm.assert_numpy_array_equal(result, expected)
+
+    def test_to_dict_box_scalars(self):
+        # 14216
+        # make sure that we are boxing properly
+        d = {'a': [1], 'b': ['b']}
+
+        result = DataFrame(d).to_dict()
+        assert isinstance(list(result['a'])[0], (int, long))
+        assert isinstance(list(result['b'])[0], (int, long))
+
+        result = DataFrame(d).to_dict(orient='records')
+        assert isinstance(result[0]['a'], (int, long))
+
+    def test_frame_to_dict_tz(self):
+        # GH18372 When converting to dict with orient='records' columns of
+        # datetime that are tz-aware were not converted to required arrays
+        data = [(datetime(2017, 11, 18, 21, 53, 0, 219225, tzinfo=pytz.utc),),
+                (datetime(2017, 11, 18, 22, 6, 30, 61810, tzinfo=pytz.utc,),)]
+        df = DataFrame(list(data), columns=["d", ])
+
+        result = df.to_dict(orient='records')
+        expected = [
+            {'d': Timestamp('2017-11-18 21:53:00.219225+0000', tz=pytz.utc)},
+            {'d': Timestamp('2017-11-18 22:06:30.061810+0000', tz=pytz.utc)},
+        ]
+        tm.assert_dict_equal(result[0], expected[0])
+        tm.assert_dict_equal(result[1], expected[1])

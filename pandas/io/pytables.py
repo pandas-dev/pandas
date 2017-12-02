@@ -25,7 +25,7 @@ from pandas.core.dtypes.missing import array_equivalent
 
 import numpy as np
 from pandas import (Series, DataFrame, Panel, Panel4D, Index,
-                    MultiIndex, Int64Index, isna, concat,
+                    MultiIndex, Int64Index, isna, concat, to_datetime,
                     SparseSeries, SparseDataFrame, PeriodIndex,
                     DatetimeIndex, TimedeltaIndex)
 from pandas.core import config
@@ -34,7 +34,7 @@ from pandas.core.sparse.array import BlockIndex, IntIndex
 from pandas.core.base import StringMixin
 from pandas.io.formats.printing import adjoin, pprint_thing
 from pandas.errors import PerformanceWarning
-from pandas.core.common import _asarray_tuplesafe
+from pandas.core.common import _asarray_tuplesafe, _all_none
 from pandas.core.algorithms import match, unique
 from pandas.core.categorical import Categorical, _factorize_from_iterables
 from pandas.core.internals import (BlockManager, make_block,
@@ -46,7 +46,8 @@ from pandas.compat import u_safe as u, PY3, range, lrange, string_types, filter
 from pandas.core.config import get_option
 from pandas.core.computation.pytables import Expr, maybe_expression
 
-from pandas._libs import tslib, algos, lib
+from pandas._libs import algos, lib
+from pandas._libs.tslibs import timezones
 
 from distutils.version import LooseVersion
 
@@ -605,7 +606,7 @@ class HDFStore(StringMixin):
 
         except (Exception) as e:
 
-            # trying to read from a non-existant file causes an error which
+            # trying to read from a non-existent file causes an error which
             # is not part of IOError, make it one
             if self._mode == 'r' and 'Unable to open/create file' in str(e):
                 raise IOError(str(e))
@@ -814,7 +815,7 @@ class HDFStore(StringMixin):
                     "all tables must have exactly the same nrows!")
 
         # axis is the concentation axes
-        axis = list(set([t.non_index_axes[0][0] for t in tbls]))[0]
+        axis = list({t.non_index_axes[0][0] for t in tbls})[0]
 
         def func(_start, _stop, _where):
 
@@ -904,7 +905,7 @@ class HDFStore(StringMixin):
             raise KeyError('No object named %s in the file' % key)
 
         # remove the node
-        if where is None and start is None and stop is None:
+        if _all_none(where, start, stop):
             s.group._f_remove(recursive=True)
 
         # delete from the table
@@ -1039,7 +1040,7 @@ class HDFStore(StringMixin):
             dc = data_columns if k == selector else None
 
             # compute the val
-            val = value.reindex_axis(v, axis=axis)
+            val = value.reindex(v, axis=axis)
 
             self.append(k, val, data_columns=dc, **kwargs)
 
@@ -1538,8 +1539,8 @@ class IndexCol(StringMixin):
 
     def __eq__(self, other):
         """ compare 2 col items """
-        return all([getattr(self, a, None) == getattr(other, a, None)
-                    for a in ['name', 'cname', 'axis', 'pos']])
+        return all(getattr(self, a, None) == getattr(other, a, None)
+                   for a in ['name', 'cname', 'axis', 'pos'])
 
     def __ne__(self, other):
         return not self.__eq__(other)
@@ -1621,7 +1622,7 @@ class IndexCol(StringMixin):
 
     def maybe_set_size(self, min_itemsize=None, **kwargs):
         """ maybe set a string col itemsize:
-               min_itemsize can be an interger or a dict with this columns name
+               min_itemsize can be an integer or a dict with this columns name
                with an integer size """
         if _ensure_decoded(self.kind) == u('string'):
 
@@ -1712,11 +1713,11 @@ class IndexCol(StringMixin):
             self.__dict__.update(idx)
 
     def get_attr(self):
-        """ set the kind for this colummn """
+        """ set the kind for this column """
         self.kind = getattr(self.attrs, self.kind_attr, None)
 
     def set_attr(self):
-        """ set the kind for this colummn """
+        """ set the kind for this column """
         setattr(self.attrs, self.kind_attr, self.kind)
 
     def read_metadata(self, handler):
@@ -1823,8 +1824,8 @@ class DataCol(IndexCol):
 
     def __eq__(self, other):
         """ compare 2 col items """
-        return all([getattr(self, a, None) == getattr(other, a, None)
-                    for a in ['name', 'cname', 'dtype', 'pos']])
+        return all(getattr(self, a, None) == getattr(other, a, None)
+                   for a in ['name', 'cname', 'dtype', 'pos'])
 
     def set_data(self, data, dtype=None):
         self.data = data
@@ -2160,14 +2161,14 @@ class DataCol(IndexCol):
         return self
 
     def get_attr(self):
-        """ get the data for this colummn """
+        """ get the data for this column """
         self.values = getattr(self.attrs, self.kind_attr, None)
         self.dtype = getattr(self.attrs, self.dtype_attr, None)
         self.meta = getattr(self.attrs, self.meta_attr, None)
         self.set_kind()
 
     def set_attr(self):
-        """ set the data for this colummn """
+        """ set the data for this column """
         setattr(self.attrs, self.kind_attr, self.values)
         setattr(self.attrs, self.meta_attr, self.meta)
         if self.dtype is not None:
@@ -2237,7 +2238,7 @@ class Fixed(StringMixin):
         version = _ensure_decoded(
             getattr(self.group._v_attrs, 'pandas_version', None))
         try:
-            self.version = tuple([int(x) for x in version.split('.')])
+            self.version = tuple(int(x) for x in version.split('.'))
             if len(self.version) == 2:
                 self.version = self.version + (0,)
         except:
@@ -2258,7 +2259,7 @@ class Fixed(StringMixin):
         s = self.shape
         if s is not None:
             if isinstance(s, (list, tuple)):
-                s = "[%s]" % ','.join([pprint_thing(x) for x in s])
+                s = "[%s]" % ','.join(pprint_thing(x) for x in s)
             return "%-12.12s (shape->%s)" % (self.pandas_type, s)
         return self.pandas_type
 
@@ -2362,7 +2363,7 @@ class Fixed(StringMixin):
         support fully deleting the node in its entirety (only) - where
         specification must be None
         """
-        if where is None and start is None and stop is None:
+        if _all_none(where, start, stop):
             self._handle.remove_node(self.group, recursive=True)
             return None
 
@@ -2373,8 +2374,7 @@ class GenericFixed(Fixed):
 
     """ a generified fixed version """
     _index_type_map = {DatetimeIndex: 'datetime', PeriodIndex: 'period'}
-    _reverse_index_map = dict([(v, k)
-                               for k, v in compat.iteritems(_index_type_map)])
+    _reverse_index_map = {v: k for k, v in compat.iteritems(_index_type_map)}
     attributes = []
 
     # indexer helpders
@@ -2390,8 +2390,11 @@ class GenericFixed(Fixed):
     def _get_index_factory(self, klass):
         if klass == DatetimeIndex:
             def f(values, freq=None, tz=None):
-                return DatetimeIndex._simple_new(values, None, freq=freq,
-                                                 tz=tz)
+                # data are already in UTC, localize and convert if tz present
+                result = DatetimeIndex._simple_new(values, None, freq=freq)
+                if tz is not None:
+                    result = result.tz_localize('UTC').tz_convert(tz)
+                return result
             return f
         elif klass == PeriodIndex:
             def f(values, freq=None, tz=None):
@@ -2440,13 +2443,12 @@ class GenericFixed(Fixed):
         """ read an array for the specified node (off of group """
         import tables
         node = getattr(self.group, key)
-        data = node[start:stop]
         attrs = node._v_attrs
 
         transposed = getattr(attrs, 'transposed', False)
 
         if isinstance(node, tables.VLArray):
-            ret = data[0]
+            ret = node[0][start:stop]
         else:
             dtype = getattr(attrs, 'value_type', None)
             shape = getattr(attrs, 'shape', None)
@@ -2455,7 +2457,7 @@ class GenericFixed(Fixed):
                 # length 0 axis
                 ret = np.empty(shape, dtype=dtype)
             else:
-                ret = data
+                ret = node[start:stop]
 
             if dtype == u('datetime64'):
 
@@ -2994,11 +2996,11 @@ class Table(Fixed):
 
         ver = ''
         if self.is_old_version:
-            ver = "[%s]" % '.'.join([str(x) for x in self.version])
+            ver = "[%s]" % '.'.join(str(x) for x in self.version)
 
         return "%-12.12s%s (typ->%s,nrows->%s,ncols->%s,indexers->[%s]%s)" % (
             self.pandas_type, ver, self.table_type_short, self.nrows,
-            self.ncols, ','.join([a.name for a in self.index_axes]), dc
+            self.ncols, ','.join(a.name for a in self.index_axes), dc
         )
 
     def __getitem__(self, c):
@@ -3091,7 +3093,7 @@ class Table(Fixed):
     @property
     def ncols(self):
         """ the number of total columns in the values axes """
-        return sum([len(a.values) for a in self.values_axes])
+        return sum(len(a.values) for a in self.values_axes)
 
     @property
     def is_transposed(self):
@@ -3493,7 +3495,7 @@ class Table(Fixed):
             data_columns = self.validate_data_columns(
                 data_columns, min_itemsize)
             if len(data_columns):
-                mgr = block_obj.reindex_axis(
+                mgr = block_obj.reindex(
                     Index(axis_labels).difference(Index(data_columns)),
                     axis=axis
                 )._data
@@ -3501,14 +3503,14 @@ class Table(Fixed):
                 blocks = list(mgr.blocks)
                 blk_items = get_blk_items(mgr, blocks)
                 for c in data_columns:
-                    mgr = block_obj.reindex_axis([c], axis=axis)._data
+                    mgr = block_obj.reindex([c], axis=axis)._data
                     blocks.extend(mgr.blocks)
                     blk_items.extend(get_blk_items(mgr, mgr.blocks))
 
         # reorder the blocks in the same order as the existing_table if we can
         if existing_table is not None:
-            by_items = dict([(tuple(b_items.tolist()), (b, b_items))
-                             for b, b_items in zip(blocks, blk_items)])
+            by_items = {tuple(b_items.tolist()): (b, b_items)
+                        for b, b_items in zip(blocks, blk_items)}
             new_blocks = []
             new_blk_items = []
             for ea in existing_table.values_axes:
@@ -3656,7 +3658,7 @@ class Table(Fixed):
         d = dict(name='table', expectedrows=expectedrows)
 
         # description from the axes & values
-        d['description'] = dict([(a.cname, a.typ) for a in self.axes])
+        d['description'] = {a.cname: a.typ for a in self.axes}
 
         if complib:
             if complevel is None:
@@ -4379,7 +4381,7 @@ def _get_info(info, name):
 
 def _get_tz(tz):
     """ for a tz-aware type, return an encoded zone """
-    zone = tslib.get_timezone(tz)
+    zone = timezones.get_timezone(tz)
     if zone is None:
         zone = tz.utcoffset().total_seconds()
     return zone
@@ -4401,7 +4403,7 @@ def _set_tz(values, tz, preserve_UTC=False, coerce=False):
     if tz is not None:
         name = getattr(values, 'name', None)
         values = values.ravel()
-        tz = tslib.get_timezone(_ensure_decoded(tz))
+        tz = timezones.get_timezone(_ensure_decoded(tz))
         values = DatetimeIndex(values, name=name)
         if values.tz is None:
             values = values.tz_localize('UTC').tz_convert(tz)
@@ -4529,7 +4531,7 @@ def _unconvert_index(data, kind, encoding=None):
 def _unconvert_index_legacy(data, kind, legacy=False, encoding=None):
     kind = _ensure_decoded(kind)
     if kind == u('datetime'):
-        index = lib.time64_to_datetime(data)
+        index = to_datetime(data)
     elif kind in (u('integer')):
         index = np.asarray(data, dtype=object)
     elif kind in (u('string')):

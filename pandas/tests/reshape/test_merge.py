@@ -13,9 +13,13 @@ from pandas.core.reshape.concat import concat
 from pandas.core.reshape.merge import merge, MergeError
 from pandas.util.testing import assert_frame_equal, assert_series_equal
 from pandas.core.dtypes.dtypes import CategoricalDtype
-from pandas.core.dtypes.common import is_categorical_dtype, is_object_dtype
+from pandas.core.dtypes.common import (
+    is_categorical_dtype,
+    is_object_dtype,
+)
 from pandas import DataFrame, Index, MultiIndex, Series, Categorical
 import pandas.util.testing as tm
+from pandas.api.types import CategoricalDtype as CDT
 
 
 N = 50
@@ -67,6 +71,15 @@ class TestMerge(object):
         joined = merge(self.df, self.df2)
         exp = merge(self.df, self.df2, on=['key1', 'key2'])
         tm.assert_frame_equal(joined, exp)
+
+    def test_merge_index_as_on_arg(self):
+        # GH14355
+
+        left = self.df.set_index('key1')
+        right = self.df2.set_index('key1')
+        result = merge(left, right, on='key1')
+        expected = merge(self.df, self.df2, on='key1').set_index('key1')
+        assert_frame_equal(result, expected)
 
     def test_merge_index_singlekey_right_vs_left(self):
         left = DataFrame({'key': ['a', 'b', 'c', 'd', 'e', 'e', 'a'],
@@ -860,6 +873,12 @@ class TestMerge(object):
         result = merge(left, right, on=['a', 'b'], validate='1:1')
         assert_frame_equal(result, expected_multi)
 
+    def test_merge_two_empty_df_no_division_error(self):
+        # GH17776, PR #17846
+        a = pd.DataFrame({'a': [], 'b': [], 'c': []})
+        with np.errstate(divide='raise'):
+            merge(a, a, on=('a', 'b'))
+
 
 def _check_merge(x, y):
     for how in ['inner', 'left', 'outer']:
@@ -1407,6 +1426,42 @@ class TestMergeDtypes(object):
         expected.sort_values(['k1', 'k2'], kind='mergesort', inplace=True)
         tm.assert_frame_equal(result, expected)
 
+    @pytest.mark.parametrize('int_vals, float_vals, exp_vals', [
+        ([1, 2, 3], [1.0, 2.0, 3.0], {'X': [1, 2, 3], 'Y': [1.0, 2.0, 3.0]}),
+        ([1, 2, 3], [1.0, 3.0], {'X': [1, 3], 'Y': [1.0, 3.0]}),
+        ([1, 2], [1.0, 2.0, 3.0], {'X': [1, 2], 'Y': [1.0, 2.0]}),
+    ])
+    def test_merge_on_ints_floats(self, int_vals, float_vals, exp_vals):
+        # GH 16572
+        # Check that float column is not cast to object if
+        # merging on float and int columns
+        A = DataFrame({'X': int_vals})
+        B = DataFrame({'Y': float_vals})
+        expected = DataFrame(exp_vals)
+
+        result = A.merge(B, left_on='X', right_on='Y')
+        assert_frame_equal(result, expected)
+
+        result = B.merge(A, left_on='Y', right_on='X')
+        assert_frame_equal(result, expected[['Y', 'X']])
+
+    def test_merge_on_ints_floats_warning(self):
+        # GH 16572
+        # merge will produce a warning when merging on int and
+        # float columns where the float values are not exactly
+        # equal to their int representation
+        A = DataFrame({'X': [1, 2, 3]})
+        B = DataFrame({'Y': [1.1, 2.5, 3.0]})
+        expected = DataFrame({'X': [3], 'Y': [3.0]})
+
+        with tm.assert_produces_warning(UserWarning):
+            result = A.merge(B, left_on='X', right_on='Y')
+            assert_frame_equal(result, expected)
+
+        with tm.assert_produces_warning(UserWarning):
+            result = B.merge(A, left_on='Y', right_on='X')
+            assert_frame_equal(result, expected[['Y', 'X']])
+
 
 @pytest.fixture
 def left():
@@ -1414,7 +1469,7 @@ def left():
     return DataFrame(
         {'X': Series(np.random.choice(
             ['foo', 'bar'],
-            size=(10,))).astype('category', categories=['foo', 'bar']),
+            size=(10,))).astype(CDT(['foo', 'bar'])),
          'Y': np.random.choice(['one', 'two', 'three'], size=(10,))})
 
 
@@ -1422,8 +1477,7 @@ def left():
 def right():
     np.random.seed(1234)
     return DataFrame(
-        {'X': Series(['foo', 'bar']).astype('category',
-                                            categories=['foo', 'bar']),
+        {'X': Series(['foo', 'bar']).astype(CDT(['foo', 'bar'])),
          'Z': [1, 2]})
 
 
@@ -1468,11 +1522,8 @@ class TestMergeCategorical(object):
 
     @pytest.mark.parametrize(
         'change', [lambda x: x,
-                   lambda x: x.astype('category',
-                                      categories=['bar', 'foo']),
-                   lambda x: x.astype('category',
-                                      categories=['foo', 'bar', 'bah']),
-                   lambda x: x.astype('category', ordered=True)])
+                   lambda x: x.astype(CDT(['foo', 'bar', 'bah'])),
+                   lambda x: x.astype(CDT(ordered=True))])
     @pytest.mark.parametrize('how', ['inner', 'outer', 'left', 'right'])
     def test_dtype_on_merged_different(self, change, how, left, right):
         # our merging columns, X now has 2 different dtypes
@@ -1481,7 +1532,7 @@ class TestMergeCategorical(object):
         X = change(right.X.astype('object'))
         right = right.assign(X=X)
         assert is_categorical_dtype(left.X.values)
-        assert not left.X.values.is_dtype_equal(right.X.values)
+        # assert not left.X.values.is_dtype_equal(right.X.values)
 
         merged = pd.merge(left, right, on='X', how=how)
 
@@ -1548,6 +1599,30 @@ class TestMergeCategorical(object):
         )
         result_inner = pd.merge(df, df2, how='inner', on=['date'])
         assert_frame_equal(result_inner, expected_inner)
+
+    @pytest.mark.parametrize('ordered', [True, False])
+    @pytest.mark.parametrize('category_column,categories,expected_categories',
+                             [([False, True, True, False], [True, False],
+                               [True, False]),
+                              ([2, 1, 1, 2], [1, 2], [1, 2]),
+                              (['False', 'True', 'True', 'False'],
+                               ['True', 'False'], ['True', 'False'])])
+    def test_merging_with_bool_or_int_cateorical_column(self, category_column,
+                                                        categories,
+                                                        expected_categories,
+                                                        ordered):
+        # GH 17187
+        # merging with a boolean/int categorical column
+        df1 = pd.DataFrame({'id': [1, 2, 3, 4],
+                            'cat': category_column})
+        df1['cat'] = df1['cat'].astype(CDT(categories, ordered=ordered))
+        df2 = pd.DataFrame({'id': [2, 4], 'num': [1, 9]})
+        result = df1.merge(df2)
+        expected = pd.DataFrame({'id': [2, 4], 'cat': expected_categories,
+                                 'num': [1, 9]})
+        expected['cat'] = expected['cat'].astype(
+            CDT(categories, ordered=ordered))
+        assert_frame_equal(expected, result)
 
 
 @pytest.fixture

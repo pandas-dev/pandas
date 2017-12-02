@@ -4,6 +4,7 @@ from __future__ import print_function
 import pytest
 from pandas.compat import range, lrange
 import numpy as np
+from pandas.compat import PY36
 
 from pandas import DataFrame, Series, Index, MultiIndex
 
@@ -61,18 +62,28 @@ class TestDataFrameMutateColumns(TestData):
                               [3, 6, 9, 3, 6]], columns=list('ABCDE'))
         assert_frame_equal(result, expected)
 
-    def test_assign_alphabetical(self):
+    def test_assign_order(self):
         # GH 9818
         df = DataFrame([[1, 2], [3, 4]], columns=['A', 'B'])
         result = df.assign(D=df.A + df.B, C=df.A - df.B)
-        expected = DataFrame([[1, 2, -1, 3], [3, 4, -1, 7]],
-                             columns=list('ABCD'))
+
+        if PY36:
+            expected = DataFrame([[1, 2, 3, -1], [3, 4, 7, -1]],
+                                 columns=list('ABDC'))
+        else:
+            expected = DataFrame([[1, 2, -1, 3], [3, 4, -1, 7]],
+                                 columns=list('ABCD'))
         assert_frame_equal(result, expected)
         result = df.assign(C=df.A - df.B, D=df.A + df.B)
+
+        expected = DataFrame([[1, 2, -1, 3], [3, 4, -1, 7]],
+                             columns=list('ABCD'))
+
         assert_frame_equal(result, expected)
 
     def test_assign_bad(self):
         df = DataFrame({'A': [1, 2, 3], 'B': [4, 5, 6]})
+
         # non-keyword argument
         with pytest.raises(TypeError):
             df.assign(lambda x: x.A)

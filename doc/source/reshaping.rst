@@ -156,7 +156,7 @@ the level numbers:
    stacked.unstack('second')
 
 Notice that the ``stack`` and ``unstack`` methods implicitly sort the index
-levels involved. Hence a call to ``stack`` and then ``unstack``, or viceversa,
+levels involved. Hence a call to ``stack`` and then ``unstack``, or vice versa,
 will result in a **sorted** copy of the original DataFrame or Series:
 
 .. ipython:: python
@@ -240,7 +240,7 @@ values will be set to ``NaN``.
    df3
    df3.unstack()
 
-.. versionadded: 0.18.0
+.. versionadded:: 0.18.0
 
 Alternatively, unstack takes an optional ``fill_value`` argument, for specifying
 the value of missing data.
@@ -569,8 +569,6 @@ This function is often used along with discretization functions like ``cut``:
 
 See also :func:`Series.str.get_dummies <pandas.Series.str.get_dummies>`.
 
-.. versionadded:: 0.15.0
-
 :func:`get_dummies` also accepts a DataFrame. By default all categorical
 variables (categorical in the statistical sense,
 those with `object` or `categorical` dtype) are encoded as dummy variables.
@@ -636,6 +634,17 @@ When a column contains only one level, it will be omitted in the result.
 
     pd.get_dummies(df, drop_first=True)
 
+By default new columns will have ``np.uint8`` dtype. To choose another dtype use ``dtype`` argument:
+
+.. ipython:: python
+
+    df = pd.DataFrame({'A': list('abc'), 'B': [1.1, 2.2, 3.3]})
+
+    pd.get_dummies(df, dtype=bool).dtypes
+
+.. versionadded:: 0.22.0
+
+
 .. _reshaping.factorize:
 
 Factorizing values
@@ -675,4 +684,4 @@ handling of NaN:
     you can use  ``df["cat_col"] = pd.Categorical(df["col"])`` or
     ``df["cat_col"] = df["col"].astype("category")``. For full docs on :class:`~pandas.Categorical`,
     see the :ref:`Categorical introduction <categorical>` and the
-    :ref:`API documentation <api.categorical>`. This feature was introduced in version 0.15.
+    :ref:`API documentation <api.categorical>`.

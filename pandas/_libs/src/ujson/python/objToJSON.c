@@ -162,7 +162,7 @@ void initObjToJSON(void)
 #endif
 {
     PyObject *mod_pandas;
-    PyObject *mod_tslib;
+    PyObject *mod_nattype;
     PyObject *mod_decimal = PyImport_ImportModule("decimal");
     type_decimal = PyObject_GetAttrString(mod_decimal, "Decimal");
     Py_INCREF(type_decimal);
@@ -180,10 +180,11 @@ void initObjToJSON(void)
         Py_DECREF(mod_pandas);
     }
 
-    mod_tslib = PyImport_ImportModule("pandas._libs.tslib");
-    if (mod_tslib) {
-        cls_nat = (PyTypeObject *)PyObject_GetAttrString(mod_tslib, "NaTType");
-        Py_DECREF(mod_tslib);
+    mod_nattype = PyImport_ImportModule("pandas._libs.tslibs.nattype");
+    if (mod_nattype) {
+        cls_nat = (PyTypeObject *)PyObject_GetAttrString(mod_nattype,
+                                                         "NaTType");
+        Py_DECREF(mod_nattype);
     }
 
     /* Initialise numpy API and use 2/3 compatible return */
@@ -329,7 +330,7 @@ static Py_ssize_t get_attr_length(PyObject *obj, char *attr) {
     return ret;
 }
 
-npy_int64 get_long_attr(PyObject *o, const char *attr) {
+static npy_int64 get_long_attr(PyObject *o, const char *attr) {
   npy_int64 long_val;
   PyObject *value = PyObject_GetAttrString(o, attr);
   long_val = (PyLong_Check(value) ?
@@ -338,15 +339,12 @@ npy_int64 get_long_attr(PyObject *o, const char *attr) {
   return long_val;
 }
 
-npy_float64 total_seconds(PyObject *td) {
-  // Python 2.6 compat
-  // TODO(anyone): remove this legacy workaround with a more
-  // direct td.total_seconds()
-  npy_int64 microseconds = get_long_attr(td, "microseconds");
-  npy_int64 seconds = get_long_attr(td, "seconds");
-  npy_int64 days = get_long_attr(td, "days");
-  npy_int64 days_in_seconds = days * 24LL * 3600LL;
-  return (microseconds + (seconds + days_in_seconds) * 1000000.0) / 1000000.0;
+static npy_float64 total_seconds(PyObject *td) {
+  npy_float64 double_val;
+  PyObject *value = PyObject_CallMethod(td, "total_seconds", NULL);
+  double_val = PyFloat_AS_DOUBLE(value);
+  Py_DECREF(value);
+  return double_val;
 }
 
 static PyObject *get_item(PyObject *obj, Py_ssize_t i) {
@@ -458,7 +456,7 @@ static void *PandasDateTimeStructToJSON(pandas_datetimestruct *dts,
         }
 
         if (!make_iso_8601_datetime(dts, GET_TC(tc)->cStr, *_outLen, 0, base,
-                                    -1, NPY_UNSAFE_CASTING)) {
+                                    -1)) {
             PRINTMARK();
             *_outLen = strlen(GET_TC(tc)->cStr);
             return GET_TC(tc)->cStr;
@@ -786,6 +784,7 @@ static void NpyArr_getLabel(JSOBJ obj, JSONTypeContext *tc, size_t *outLen,
     JSONObjectEncoder *enc = (JSONObjectEncoder *)tc->encoder;
     PRINTMARK();
     *outLen = strlen(labels[idx]);
+    Buffer_Reserve(enc, *outLen);
     memcpy(enc->offset, labels[idx], sizeof(char) * (*outLen));
     enc->offset += *outLen;
     *outLen = 0;
@@ -882,7 +881,7 @@ int PdBlock_iterNext(JSOBJ obj, JSONTypeContext *tc) {
     NpyArrContext *npyarr;
     PRINTMARK();
 
-    if (PyErr_Occurred()) {
+    if (PyErr_Occurred() || ((JSONObjectEncoder *)tc->encoder)->errorMsg) {
         return 0;
     }
 
@@ -1226,6 +1225,10 @@ int Dir_iterNext(JSOBJ _obj, JSONTypeContext *tc) {
     PyObject *attr;
     PyObject *attrName;
     char *attrStr;
+
+    if (PyErr_Occurred() || ((JSONObjectEncoder *)tc->encoder)->errorMsg) {
+        return 0;
+    }
 
     if (itemValue) {
         Py_DECREF(GET_TC(tc)->itemValue);

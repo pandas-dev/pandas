@@ -317,9 +317,9 @@ class TestSeriesAggregate(TestData):
 
         # test when mixed w/ callable reducers
         result = s.agg(['size', 'count', 'mean'])
-        expected = Series(OrderedDict({'size': 3.0,
-                                       'count': 2.0,
-                                       'mean': 1.5}))
+        expected = Series(OrderedDict([('size', 3.0),
+                                       ('count', 2.0),
+                                       ('mean', 1.5)]))
         assert_series_equal(result[expected.index], expected)
 
 
@@ -422,8 +422,10 @@ class TestSeriesMap(TestData):
         converted to a multi-index, preventing tuple values
         from being mapped properly.
         """
+        # GH 18496
         df = pd.DataFrame({'a': [(1, ), (2, ), (3, 4), (5, 6)]})
         label_mappings = {(1, ): 'A', (2, ): 'B', (3, 4): 'A', (5, 6): 'B'}
+
         df['labels'] = df['a'].map(label_mappings)
         df['expected_labels'] = pd.Series(['A', 'B', 'A', 'B'], index=df.index)
         # All labels should be filled now

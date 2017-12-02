@@ -132,7 +132,7 @@ dtype, ``fill_value`` default changes:
    s.to_sparse()
 
 You can change the dtype using ``.astype()``, the result is also sparse. Note that
-``.astype()`` also affects to the ``fill_value`` to keep its dense represantation.
+``.astype()`` also affects to the ``fill_value`` to keep its dense representation.
 
 
 .. ipython:: python
@@ -215,8 +215,6 @@ To convert a ``SparseDataFrame`` back to sparse SciPy matrix in COO format, you 
 
 SparseSeries
 ~~~~~~~~~~~~
-
-.. versionadded:: 0.16.0
 
 A :meth:`SparseSeries.to_coo` method is implemented for transforming a ``SparseSeries`` indexed by a ``MultiIndex`` to a ``scipy.sparse.coo_matrix``.
 

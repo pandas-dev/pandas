@@ -5,7 +5,7 @@ import numpy as np
 import pandas as pd
 import pandas.util.testing as tm
 from pandas import (TimedeltaIndex, timedelta_range, Int64Index, Float64Index,
-                    Index, Timedelta, Series)
+                    Index, Timedelta)
 
 from ..datetimelike import DatetimeLike
 
@@ -13,6 +13,11 @@ from ..datetimelike import DatetimeLike
 class TestTimedeltaIndex(DatetimeLike):
     _holder = TimedeltaIndex
     _multiprocess_can_split_ = True
+
+    def test_numeric_compat(self):
+        # Dummy method to override super's version; this test is now done
+        # in test_arithmetic.py
+        pass
 
     def setup_method(self, method):
         self.indices = dict(index=tm.makeTimedeltaIndex(10))
@@ -61,10 +66,10 @@ class TestTimedeltaIndex(DatetimeLike):
         # GH 13149, GH 13209
         idx = TimedeltaIndex([1e14, 'NaT', pd.NaT, np.NaN])
 
-        pytest.raises(ValueError, idx.astype, float)
-        pytest.raises(ValueError, idx.astype, str)
-        pytest.raises(ValueError, idx.astype, 'datetime64')
-        pytest.raises(ValueError, idx.astype, 'datetime64[ns]')
+        pytest.raises(TypeError, idx.astype, float)
+        pytest.raises(TypeError, idx.astype, str)
+        pytest.raises(TypeError, idx.astype, 'datetime64')
+        pytest.raises(TypeError, idx.astype, 'datetime64[ns]')
 
     def test_pickle_compat_construction(self):
         pass
@@ -86,38 +91,3 @@ class TestTimedeltaIndex(DatetimeLike):
                                    '8 days 01:00:03', '9 days 01:00:03',
                                    '10 days 01:00:03'], freq='D')
         tm.assert_index_equal(result, expected)
-
-    def test_numeric_compat(self):
-
-        idx = self._holder(np.arange(5, dtype='int64'))
-        didx = self._holder(np.arange(5, dtype='int64') ** 2)
-        result = idx * 1
-        tm.assert_index_equal(result, idx)
-
-        result = 1 * idx
-        tm.assert_index_equal(result, idx)
-
-        result = idx / 1
-        tm.assert_index_equal(result, idx)
-
-        result = idx // 1
-        tm.assert_index_equal(result, idx)
-
-        result = idx * np.array(5, dtype='int64')
-        tm.assert_index_equal(result,
-                              self._holder(np.arange(5, dtype='int64') * 5))
-
-        result = idx * np.arange(5, dtype='int64')
-        tm.assert_index_equal(result, didx)
-
-        result = idx * Series(np.arange(5, dtype='int64'))
-        tm.assert_index_equal(result, didx)
-
-        result = idx * Series(np.arange(5, dtype='float64') + 0.1)
-        tm.assert_index_equal(result, self._holder(np.arange(
-            5, dtype='float64') * (np.arange(5, dtype='float64') + 0.1)))
-
-        # invalid
-        pytest.raises(TypeError, lambda: idx * idx)
-        pytest.raises(ValueError, lambda: idx * self._holder(np.arange(3)))
-        pytest.raises(ValueError, lambda: idx * np.array([1, 2]))

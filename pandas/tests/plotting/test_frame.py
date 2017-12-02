@@ -15,6 +15,7 @@ from pandas.core.dtypes.api import is_list_like
 from pandas.compat import range, lrange, lmap, lzip, u, zip, PY3
 from pandas.io.formats.printing import pprint_thing
 import pandas.util.testing as tm
+import pandas.util._test_decorators as td
 
 import numpy as np
 from numpy.random import rand, randn
@@ -24,9 +25,8 @@ from pandas.tests.plotting.common import (TestPlotBase, _check_plot_works,
                                           _skip_if_no_scipy_gaussian_kde,
                                           _ok_for_gaussian_kde)
 
-tm._skip_if_no_mpl()
 
-
+@td.skip_if_no_mpl
 class TestDataFramePlots(TestPlotBase):
 
     def setup_method(self, method):
@@ -304,6 +304,29 @@ class TestDataFramePlots(TestPlotBase):
         rs = Series(rs[:, 1], rs[:, 0], dtype=np.int64, name='y')
         tm.assert_series_equal(rs, df.y)
 
+    def test_unsorted_index_lims(self):
+        df = DataFrame({'y': [0., 1., 2., 3.]}, index=[1., 0., 3., 2.])
+        ax = df.plot()
+        xmin, xmax = ax.get_xlim()
+        lines = ax.get_lines()
+        assert xmin <= np.nanmin(lines[0].get_data()[0])
+        assert xmax >= np.nanmax(lines[0].get_data()[0])
+
+        df = DataFrame({'y': [0., 1., np.nan, 3., 4., 5., 6.]},
+                       index=[1., 0., 3., 2., np.nan, 3., 2.])
+        ax = df.plot()
+        xmin, xmax = ax.get_xlim()
+        lines = ax.get_lines()
+        assert xmin <= np.nanmin(lines[0].get_data()[0])
+        assert xmax >= np.nanmax(lines[0].get_data()[0])
+
+        df = DataFrame({'y': [0., 1., 2., 3.], 'z': [91., 90., 93., 92.]})
+        ax = df.plot(x='z', y='y')
+        xmin, xmax = ax.get_xlim()
+        lines = ax.get_lines()
+        assert xmin <= np.nanmin(lines[0].get_data()[0])
+        assert xmax >= np.nanmax(lines[0].get_data()[0])
+
     @pytest.mark.slow
     def test_subplots(self):
         df = DataFrame(np.random.rand(10, 3),
@@ -379,6 +402,82 @@ class TestDataFramePlots(TestPlotBase):
                 self._check_visible(ax.get_yticklabels())
                 self._check_ticks_props(ax, xlabelsize=7, xrot=45,
                                         ylabelsize=7)
+
+    def test_subplots_timeseries_y_axis(self):
+        # GH16953
+        data = {"numeric": np.array([1, 2, 5]),
+                "timedelta": [pd.Timedelta(-10, unit="s"),
+                              pd.Timedelta(10, unit="m"),
+                              pd.Timedelta(10, unit="h")],
+                "datetime_no_tz": [pd.to_datetime("2017-08-01 00:00:00"),
+                                   pd.to_datetime("2017-08-01 02:00:00"),
+                                   pd.to_datetime("2017-08-02 00:00:00")],
+                "datetime_all_tz": [pd.to_datetime("2017-08-01 00:00:00",
+                                                   utc=True),
+                                    pd.to_datetime("2017-08-01 02:00:00",
+                                                   utc=True),
+                                    pd.to_datetime("2017-08-02 00:00:00",
+                                                   utc=True)],
+                "text": ["This", "should", "fail"]}
+        testdata = DataFrame(data)
+
+        ax_numeric = testdata.plot(y="numeric")
+        assert (ax_numeric.get_lines()[0].get_data()[1] ==
+                testdata["numeric"].values).all()
+        ax_timedelta = testdata.plot(y="timedelta")
+        assert (ax_timedelta.get_lines()[0].get_data()[1] ==
+                testdata["timedelta"].values).all()
+        ax_datetime_no_tz = testdata.plot(y="datetime_no_tz")
+        assert (ax_datetime_no_tz.get_lines()[0].get_data()[1] ==
+                testdata["datetime_no_tz"].values).all()
+        ax_datetime_all_tz = testdata.plot(y="datetime_all_tz")
+        assert (ax_datetime_all_tz.get_lines()[0].get_data()[1] ==
+                testdata["datetime_all_tz"].values).all()
+        with pytest.raises(TypeError):
+            testdata.plot(y="text")
+
+    @pytest.mark.xfail(reason='not support for period, categorical, '
+                       'datetime_mixed_tz')
+    def test_subplots_timeseries_y_axis_not_supported(self):
+        """
+        This test will fail for:
+            period:
+                since period isn't yet implemented in ``select_dtypes``
+                and because it will need a custom value converter +
+                tick formater (as was done for x-axis plots)
+
+            categorical:
+                 because it will need a custom value converter +
+                 tick formater (also doesn't work for x-axis, as of now)
+
+            datetime_mixed_tz:
+                because of the way how pandas handels ``Series`` of
+                ``datetime`` objects with different timezone,
+                generally converting ``datetime`` objects in a tz-aware
+                form could help with this problem
+        """
+        data = {"numeric": np.array([1, 2, 5]),
+                "period": [pd.Period('2017-08-01 00:00:00', freq='H'),
+                           pd.Period('2017-08-01 02:00', freq='H'),
+                           pd.Period('2017-08-02 00:00:00', freq='H')],
+                "categorical": pd.Categorical(["c", "b", "a"],
+                                              categories=["a", "b", "c"],
+                                              ordered=False),
+                "datetime_mixed_tz": [pd.to_datetime("2017-08-01 00:00:00",
+                                                     utc=True),
+                                      pd.to_datetime("2017-08-01 02:00:00"),
+                                      pd.to_datetime("2017-08-02 00:00:00")]}
+        testdata = pd.DataFrame(data)
+        ax_period = testdata.plot(x="numeric", y="period")
+        assert (ax_period.get_lines()[0].get_data()[1] ==
+                testdata["period"].values).all()
+        ax_categorical = testdata.plot(x="numeric", y="categorical")
+        assert (ax_categorical.get_lines()[0].get_data()[1] ==
+                testdata["categorical"].values).all()
+        ax_datetime_mixed_tz = testdata.plot(x="numeric",
+                                             y="datetime_mixed_tz")
+        assert (ax_datetime_mixed_tz.get_lines()[0].get_data()[1] ==
+                testdata["datetime_mixed_tz"].values).all()
 
     @pytest.mark.slow
     def test_subplots_layout(self):
@@ -659,14 +758,14 @@ class TestDataFramePlots(TestPlotBase):
         ax = df.plot()
         xmin, xmax = ax.get_xlim()
         lines = ax.get_lines()
-        assert xmin == lines[0].get_data()[0][0]
-        assert xmax == lines[0].get_data()[0][-1]
+        assert xmin <= lines[0].get_data()[0][0]
+        assert xmax >= lines[0].get_data()[0][-1]
 
         ax = df.plot(secondary_y=True)
         xmin, xmax = ax.get_xlim()
         lines = ax.get_lines()
-        assert xmin == lines[0].get_data()[0][0]
-        assert xmax == lines[0].get_data()[0][-1]
+        assert xmin <= lines[0].get_data()[0][0]
+        assert xmax >= lines[0].get_data()[0][-1]
 
         axes = df.plot(secondary_y=True, subplots=True)
         self._check_axes_shape(axes, axes_num=3, layout=(3, 1))
@@ -675,8 +774,8 @@ class TestDataFramePlots(TestPlotBase):
             assert not hasattr(ax, 'right_ax')
             xmin, xmax = ax.get_xlim()
             lines = ax.get_lines()
-            assert xmin == lines[0].get_data()[0][0]
-            assert xmax == lines[0].get_data()[0][-1]
+            assert xmin <= lines[0].get_data()[0][0]
+            assert xmax >= lines[0].get_data()[0][-1]
 
     def test_area_lim(self):
         df = DataFrame(rand(6, 4), columns=['x', 'y', 'z', 'four'])
@@ -687,8 +786,8 @@ class TestDataFramePlots(TestPlotBase):
             xmin, xmax = ax.get_xlim()
             ymin, ymax = ax.get_ylim()
             lines = ax.get_lines()
-            assert xmin == lines[0].get_data()[0][0]
-            assert xmax == lines[0].get_data()[0][-1]
+            assert xmin <= lines[0].get_data()[0][0]
+            assert xmax >= lines[0].get_data()[0][-1]
             assert ymin == 0
 
             ax = _check_plot_works(neg_df.plot.area, stacked=stacked)
@@ -730,6 +829,20 @@ class TestDataFramePlots(TestPlotBase):
         ax = df.plot(kind='bar', color='green')
         self._check_colors(ax.patches[::5], facecolors=['green'] * 5)
         tm.close()
+
+    def test_bar_user_colors(self):
+        df = pd.DataFrame({"A": range(4),
+                           "B": range(1, 5),
+                           "color": ['red', 'blue', 'blue', 'red']})
+        # This should *only* work when `y` is specified, else
+        # we use one color per column
+        ax = df.plot.bar(y='A', color=df['color'])
+        result = [p.get_facecolor() for p in ax.patches]
+        expected = [(1., 0., 0., 1.),
+                    (0., 0., 1., 1.),
+                    (0., 0., 1., 1.),
+                    (1., 0., 0., 1.)]
+        assert result == expected
 
     @pytest.mark.slow
     def test_bar_linewidth(self):
@@ -1049,14 +1162,13 @@ class TestDataFramePlots(TestPlotBase):
             if kind == 'bar':
                 axis = ax.xaxis
                 ax_min, ax_max = ax.get_xlim()
-                min_edge = min([p.get_x() for p in ax.patches])
-                max_edge = max([p.get_x() + p.get_width() for p in ax.patches])
+                min_edge = min(p.get_x() for p in ax.patches)
+                max_edge = max(p.get_x() + p.get_width() for p in ax.patches)
             elif kind == 'barh':
                 axis = ax.yaxis
                 ax_min, ax_max = ax.get_ylim()
-                min_edge = min([p.get_y() for p in ax.patches])
-                max_edge = max([p.get_y() + p.get_height() for p in ax.patches
-                                ])
+                min_edge = min(p.get_y() for p in ax.patches)
+                max_edge = max(p.get_y() + p.get_height() for p in ax.patches)
             else:
                 raise ValueError
 
@@ -2722,7 +2834,7 @@ class TestDataFramePlots(TestPlotBase):
         Series(rand(10)).plot(ax=cax)
 
         fig, ax = self.plt.subplots()
-        from mpl_toolkits.axes_grid.inset_locator import inset_axes
+        from mpl_toolkits.axes_grid1.inset_locator import inset_axes
         iax = inset_axes(ax, width="30%", height=1., loc=3)
         Series(rand(10)).plot(ax=ax)
         Series(rand(10)).plot(ax=iax)

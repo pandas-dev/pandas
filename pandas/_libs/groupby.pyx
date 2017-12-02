@@ -1,17 +1,17 @@
+# -*- coding: utf-8 -*-
 # cython: profile=False
 
-from numpy cimport *
-cimport numpy as np
+cimport numpy as cnp
 import numpy as np
 
 cimport cython
 
-import_array()
+cnp.import_array()
 
-cimport util
-
-from numpy cimport (int8_t, int16_t, int32_t, int64_t, uint8_t, uint16_t,
-                    uint32_t, uint64_t, float16_t, float32_t, float64_t)
+from numpy cimport (ndarray,
+                    double_t,
+                    int8_t, int16_t, int32_t, int64_t, uint8_t, uint16_t,
+                    uint32_t, uint64_t, float32_t, float64_t)
 
 from libc.stdlib cimport malloc, free
 
@@ -26,7 +26,7 @@ cdef double nan = NaN
 
 
 # TODO: aggregate multiple columns in single pass
-#----------------------------------------------------------------------
+# ----------------------------------------------------------------------
 # first, nth, last
 
 
@@ -77,57 +77,6 @@ def group_nth_object(ndarray[object, ndim=2] out,
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
-def group_nth_bin_object(ndarray[object, ndim=2] out,
-                         ndarray[int64_t] counts,
-                         ndarray[object, ndim=2] values,
-                         ndarray[int64_t] bins, int64_t rank):
-    """
-    Only aggregates on axis=0
-    """
-    cdef:
-        Py_ssize_t i, j, N, K, ngroups, b
-        object val
-        float64_t count
-        ndarray[object, ndim=2] resx
-        ndarray[float64_t, ndim=2] nobs
-
-    nobs = np.zeros((<object> out).shape, dtype=np.float64)
-    resx = np.empty((<object> out).shape, dtype=object)
-
-    if len(bins) == 0:
-        return
-    if bins[len(bins) - 1] == len(values):
-        ngroups = len(bins)
-    else:
-        ngroups = len(bins) + 1
-
-    N, K = (<object> values).shape
-
-    b = 0
-    for i in range(N):
-        while b < ngroups - 1 and i >= bins[b]:
-            b += 1
-
-        counts[b] += 1
-        for j in range(K):
-            val = values[i, j]
-
-            # not nan
-            if val == val:
-                nobs[b, j] += 1
-                if nobs[b, j] == rank:
-                    resx[b, j] = val
-
-    for i in range(ngroups):
-        for j in range(K):
-            if nobs[i, j] == 0:
-                out[i, j] = nan
-            else:
-                out[i, j] = resx[i, j]
-
-
-@cython.boundscheck(False)
-@cython.wraparound(False)
 def group_last_object(ndarray[object, ndim=2] out,
                       ndarray[int64_t] counts,
                       ndarray[object, ndim=2] values,
@@ -162,56 +111,6 @@ def group_last_object(ndarray[object, ndim=2] out,
                 resx[lab, j] = val
 
     for i in range(len(counts)):
-        for j in range(K):
-            if nobs[i, j] == 0:
-                out[i, j] = nan
-            else:
-                out[i, j] = resx[i, j]
-
-
-@cython.boundscheck(False)
-@cython.wraparound(False)
-def group_last_bin_object(ndarray[object, ndim=2] out,
-                          ndarray[int64_t] counts,
-                          ndarray[object, ndim=2] values,
-                          ndarray[int64_t] bins):
-    """
-    Only aggregates on axis=0
-    """
-    cdef:
-        Py_ssize_t i, j, N, K, ngroups, b
-        object val
-        float64_t count
-        ndarray[object, ndim=2] resx
-        ndarray[float64_t, ndim=2] nobs
-
-    nobs = np.zeros((<object> out).shape, dtype=np.float64)
-    resx = np.empty((<object> out).shape, dtype=object)
-
-    if len(bins) == 0:
-        return
-    if bins[len(bins) - 1] == len(values):
-        ngroups = len(bins)
-    else:
-        ngroups = len(bins) + 1
-
-    N, K = (<object> values).shape
-
-    b = 0
-    for i in range(N):
-        while b < ngroups - 1 and i >= bins[b]:
-            b += 1
-
-        counts[b] += 1
-        for j in range(K):
-            val = values[i, j]
-
-            # not nan
-            if val == val:
-                nobs[b, j] += 1
-                resx[b, j] = val
-
-    for i in range(ngroups):
         for j in range(K):
             if nobs[i, j] == 0:
                 out[i, j] = nan
