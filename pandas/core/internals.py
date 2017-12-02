@@ -1956,7 +1956,8 @@ class TimeDeltaBlock(DatetimeLikeBlockMixin, IntBlock):
         tipo = maybe_infer_dtype_type(element)
         if tipo is not None:
             return issubclass(tipo.type, np.timedelta64)
-        return isinstance(element, (timedelta, np.timedelta64))
+        return is_integer(element) or isinstance(
+            element, (timedelta, np.timedelta64))
 
     def fillna(self, value, **kwargs):
 
