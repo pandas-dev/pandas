@@ -150,6 +150,8 @@ Removal of prior version deprecations/changes
 - The ``SparseList`` class has been removed (:issue:`14007`)
 - The ``pandas.io.wb`` and ``pandas.io.data`` stub modules have been removed (:issue:`13735`)
 - ``Categorical.from_array`` has been removed (:issue:`13854`)
+- The ``freq`` parameter has been removed from the ``rolling``/``expanding``/``ewm`` methods of DataFrame
+  and Series (deprecated since v0.18). Instead, resample before calling the methods. (:issue:18601)
 
 .. _whatsnew_0220.performance:
 
