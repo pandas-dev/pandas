@@ -22,16 +22,22 @@ from pandas.plotting._converter import (TimeSeries_DateLocator,
 
 def tsplot(series, plotf, ax=None, **kwargs):
     """
-    Plots a Series on the given Matplotlib axes or the current axes
+    Plots a Series on the given Matplotlib axes or the current axes.
 
     Parameters
     ----------
-    axes : Axes
     series : Series
+    plotf : function
+        Function to plot the given Series.
+    ax : matplotlib axes object, optional, default=None
+        Axes to plot upon. If none, plots on current axis.
+    kwargs
+        Additional keyword arguments passed to plotf.
 
-    Notes
-    _____
-    Supports same kwargs as Axes.plot
+    Returns
+    -------
+    lines : list of matplotlib.lines.Line2D object
+        Resultant figure.
 
     """
     # Used inferred freq is possible, need a test case for inferred
