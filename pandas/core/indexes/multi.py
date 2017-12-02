@@ -199,9 +199,10 @@ class MultiIndex(Index):
                                  " inconsistent state" % (i, label.max(),
                                                           len(level)))
             if not level.is_unique:
-                raise ValueError("Level values must be unique: {0}"
-                                 " on level {1}".format(
-                                     [value for value in level], i))
+                raise ValueError("Level values must be unique: {values} on "
+                                 "level {level}".format(
+                                     values=[value for value in level],
+                                     level=i))
 
     @property
     def levels(self):
