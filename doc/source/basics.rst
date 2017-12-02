@@ -1738,14 +1738,16 @@ description.
 Sorting
 -------
 
-Pandas supports three kinds of sorting: sorting by labels (indexes), sorting
-by values (columns), and sorting by a combination of both.
+Pandas supports three kinds of sorting: sorting by index levels,
+sorting by column values, and sorting by a combination of both.
+
+.. _basics.sort_index:
 
 By Index
 ~~~~~~~~
 
-The primary method for sorting axis
-labels (indexes) are the ``Series.sort_index()`` and the ``DataFrame.sort_index()`` methods.
+The :meth:`Series.sort_index` and :meth:`DataFrame.sort_index` methods are
+used to sort a pandas object by its index levels.
 
 .. ipython:: python
 
@@ -1765,20 +1767,22 @@ labels (indexes) are the ``Series.sort_index()`` and the ``DataFrame.sort_index(
    # Series
    unsorted_df['three'].sort_index()
 
+.. _basics.sort_values:
+
 By Values
 ~~~~~~~~~
 
-The :meth:`Series.sort_values` and :meth:`DataFrame.sort_values` are the entry points for **value** sorting (that is the values in a column or row).
-:meth:`DataFrame.sort_values` can accept an optional ``by`` argument for ``axis=0``
-which will use an arbitrary vector or a column name of the DataFrame to
-determine the sort order:
+The :meth:`Series.sort_values` and :meth:`DataFrame.sort_values` methods are
+used to sort a pandas object by its values.  The optional ``by`` parameter to
+:meth:`DataFrame.sort_values` may used to specify one or more columns to
+use to determine the sorted order.
 
 .. ipython:: python
 
    df1 = pd.DataFrame({'one':[2,1,1,1],'two':[1,3,2,4],'three':[5,4,3,2]})
    df1.sort_values(by='two')
 
-The ``by`` argument can take a list of column names, e.g.:
+The ``by`` parameter can take a list of column names, e.g.:
 
 .. ipython:: python
 
@@ -1793,22 +1797,26 @@ argument:
    s.sort_values()
    s.sort_values(na_position='first')
 
+.. _basics.sort_indexes_and_values:
+
 By Indexes and Values
 ~~~~~~~~~~~~~~~~~~~~~
-.. versionadded:: 0.22
-Strings passed as the ``by`` argument to :meth:`DataFrame.sort_values` may
+
+.. versionadded:: 0.22.0
+
+Strings passed as the ``by`` parameter to :meth:`DataFrame.sort_values` may
 refer to either columns or index levels.
 
 .. ipython:: python
 
    # Build MultiIndex
    idx = pd.MultiIndex.from_tuples([('a', 1), ('a', 2), ('a', 2),
-                                 ('b', 2), ('b', 1), ('b', 1)])
+                                   ('b', 2), ('b', 1), ('b', 1)])
    idx.names = ['first', 'second']
 
    # Build DataFrame
    df_multi = pd.DataFrame({'A': np.arange(6, 0, -1)},
-                        index=idx)
+                           index=idx)
    df_multi
 
    # Sort by 'second' (index) and 'A' (column)

@@ -69,7 +69,7 @@ _shared_doc_kwargs = dict(
     args_transpose='axes to permute (int or label for object)',
     optional_by="""
         by : str or list of str
-            Name or list of names matching axis labels or levels.""")
+            Name or list of names matching axis levels or off-axis labels.""")
 
 
 def _single_replace(self, to_replace, method, inplace, limit):
@@ -2932,7 +2932,7 @@ class NDFrame(PandasObject, SelectionMixin):
         Parameters
         ----------%(optional_by)s
         axis : %(axes_single_arg)s, default 0
-            Axis to direct sorting
+             Axis to be sorted
         ascending : bool or list of bool, default True
              Sort ascending vs. descending. Specify list for multiple sort
              orders.  If this is a list of bools, must match the length of

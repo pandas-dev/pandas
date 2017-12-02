@@ -65,6 +65,31 @@ levels <merging.merge_on_columns_and_levels>` documentation section.
 
 .. _whatsnew_0220.enhancements.other:
 
+Sorting by a combination of columns and index levels
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+Strings passed to :meth:`DataFrame.sort_values` as the ``by`` parameter may
+now refer to either column names or index level names.  This enables sorting
+``DataFrame`` instances by a combination of index levels and columns without
+resetting indexes. See the :ref:`Sorting by Indexes and Values
+<basics.sort_indexes_and_values>` documentation section.
+(:issue:`14353`)
+
+.. ipython:: python
+
+   # Build MultiIndex
+   idx = pd.MultiIndex.from_tuples([('a', 1), ('a', 2), ('a', 2),
+                                    ('b', 2), ('b', 1), ('b', 1)])
+   idx.names = ['first', 'second']
+
+   # Build DataFrame
+   df_multi = pd.DataFrame({'A': np.arange(6, 0, -1)},
+                           index=idx)
+   df_multi
+
+   # Sort by 'second' (index) and 'A' (column)
+   df_multi.sort_values(by=['second', 'A'])
+
 Other Enhancements
 ^^^^^^^^^^^^^^^^^^
 
@@ -75,7 +100,6 @@ Other Enhancements
 - :class:`pandas.io.formats.style.Styler` now has method ``hide_columns()`` to determine whether columns will be hidden in output (:issue:`14194`)
 - Improved wording of ``ValueError`` raised in :func:`to_datetime` when ``unit=`` is passed with a non-convertible value (:issue:`14350`)
 - :func:`Series.fillna` now accepts a Series or a dict as a ``value`` for a categorical dtype (:issue:`17033`)
-- :func:`DataFrame.sort_values` now accepts index level names as well as column names as the `by` parameter (:issue`14353`)
 - :func:`pandas.read_clipboard` updated to use qtpy, falling back to PyQt5 and then PyQt4, adding compatibility with Python3 and multiple python-qt bindings (:issue:`17722`)
 
 .. _whatsnew_0220.api_breaking:
