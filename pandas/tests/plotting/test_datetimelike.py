@@ -1042,9 +1042,12 @@ class TestTSPlot(TestPlotBase):
         for t, l in zip(ticks, labels):
             m, s = divmod(int(t), 60)
             h, m = divmod(m, 60)
-            xp = l.get_text()
-            if len(xp) > 0:
-                rs = time(h, m, s).strftime('%H:%M:%S')
+            rs = l.get_text()
+            if len(rs) > 0:
+                if s != 0:
+                    xp = time(h, m, s).strftime('%H:%M:%S')
+                else:
+                    xp = time(h, m, s).strftime('%H:%M')
                 assert xp == rs
 
         # change xlim
@@ -1057,9 +1060,12 @@ class TestTSPlot(TestPlotBase):
         for t, l in zip(ticks, labels):
             m, s = divmod(int(t), 60)
             h, m = divmod(m, 60)
-            xp = l.get_text()
-            if len(xp) > 0:
-                rs = time(h, m, s).strftime('%H:%M:%S')
+            rs = l.get_text()
+            if len(rs) > 0:
+                if s != 0:
+                    xp = time(h, m, s).strftime('%H:%M:%S')
+                else:
+                    xp = time(h, m, s).strftime('%H:%M')
                 assert xp == rs
 
     @pytest.mark.slow
@@ -1081,13 +1087,19 @@ class TestTSPlot(TestPlotBase):
         for t, l in zip(ticks, labels):
             m, s = divmod(int(t), 60)
 
-            # TODO: unused?
-            # us = int((t - int(t)) * 1e6)
+            us = int(round((t - int(t)) * 1e6))
 
             h, m = divmod(m, 60)
-            xp = l.get_text()
-            if len(xp) > 0:
-                rs = time(h, m, s).strftime('%H:%M:%S.%f')
+            rs = l.get_text()
+            if len(rs) > 0:
+                if (us % 1000) != 0:
+                    xp = time(h, m, s, us).strftime('%H:%M:%S.%f')
+                elif (us // 1000) != 0:
+                    xp = time(h, m, s, us).strftime('%H:%M:%S.%f')[:-3]
+                elif s != 0:
+                    xp = time(h, m, s, us).strftime('%H:%M:%S')
+                else:
+                    xp = time(h, m, s, us).strftime('%H:%M')
                 assert xp == rs
 
     @pytest.mark.slow
