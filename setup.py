@@ -497,7 +497,7 @@ ext_data = {
         'pyxfile': '_libs/hashing'},
     '_libs.hashtable': {
         'pyxfile': '_libs/hashtable',
-        'pxdfiles': ['_libs/hashtable', '_libs/missing'],
+        'pxdfiles': ['_libs/hashtable', '_libs/missing', '_libs/khash'],
         'depends': (['pandas/_libs/src/klib/khash_python.h'] +
                     _pxi_dep['hashtable'])},
     '_libs.index': {
@@ -554,7 +554,6 @@ ext_data = {
     '_libs.tslib': {
         'pyxfile': '_libs/tslib',
         'pxdfiles': ['_libs/src/util',
-                     '_libs/src/khash',
                      '_libs/tslibs/conversion',
                      '_libs/tslibs/timedeltas',
                      '_libs/tslibs/timestamps',
@@ -595,12 +594,11 @@ ext_data = {
         'sources': np_datetime_sources},
     '_libs.tslibs.parsing': {
         'pyxfile': '_libs/tslibs/parsing',
-        'pxdfiles': ['_libs/src/util',
-                     '_libs/src/khash']},
+        'pxdfiles': ['_libs/src/util']},
     '_libs.tslibs.resolution': {
         'pyxfile': '_libs/tslibs/resolution',
         'pxdfiles': ['_libs/src/util',
-                     '_libs/src/khash',
+                     '_libs/khash',
                      '_libs/tslibs/frequencies',
                      '_libs/tslibs/timezones'],
         'depends': tseries_depends,

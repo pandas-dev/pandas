@@ -27,6 +27,7 @@ from pandas.core.dtypes.common import (
     is_re_compilable,
     pandas_dtype)
 from pandas.core.dtypes.cast import maybe_promote, maybe_upcast_putmask
+from pandas.core.dtypes.inference import is_hashable
 from pandas.core.dtypes.missing import isna, notna
 from pandas.core.dtypes.generic import ABCSeries, ABCPanel, ABCDataFrame
 from pandas.core.common import (_count_not_none,
@@ -36,7 +37,7 @@ from pandas.core.common import (_count_not_none,
 
 from pandas.core.base import PandasObject, SelectionMixin
 from pandas.core.index import (Index, MultiIndex, _ensure_index,
-                               InvalidIndexError)
+                               InvalidIndexError, RangeIndex)
 import pandas.core.indexing as indexing
 from pandas.core.indexing import maybe_convert_indices
 from pandas.core.indexes.datetimes import DatetimeIndex
@@ -1037,6 +1038,313 @@ class NDFrame(PandasObject, SelectionMixin):
         if not isinstance(other, self._constructor):
             return False
         return self._data.equals(other._data)
+
+    # -------------------------------------------------------------------------
+    # Label or Level Combination Helpers
+    #
+    # A collection of helper methods for DataFrame/Series operations that
+    # accept a combination of column/index labels and levels.  All such
+    # operations should utilize/extend these methods when possible so that we
+    # have consistent precedence and validation logic throughout the library.
+
+    def _is_level_reference(self, key, axis=0):
+        """
+        Test whether a key is a level reference for a given axis.
+
+        To be considered a level reference, `key` must be a string that:
+          - (axis=0): Matches the name of an index level and does NOT match
+            a column label.
+          - (axis=1): Matches the name of a column level and does NOT match
+            an index label.
+
+        Parameters
+        ----------
+        key: str
+            Potential level name for the given axis
+        axis: int, default 0
+            Axis that levels are associated with (0 for index, 1 for columns)
+
+        Returns
+        -------
+        is_level: bool
+        """
+        axis = self._get_axis_number(axis)
+
+        if self.ndim > 2:
+            raise NotImplementedError(
+                "_is_level_reference is not implemented for {type}"
+                .format(type=type(self)))
+
+        return (key is not None and
+                is_hashable(key) and
+                key in self.axes[axis].names and
+                not self._is_label_reference(key, axis=axis))
+
+    def _is_label_reference(self, key, axis=0):
+        """
+        Test whether a key is a label reference for a given axis.
+
+        To be considered a label reference, `key` must be a string that:
+          - (axis=0): Matches a column label
+          - (axis=1): Matches an index label
+
+        Parameters
+        ----------
+        key: str
+            Potential label name
+        axis: int, default 0
+            Axis perpendicular to the axis that labels are associated with
+            (0 means search for column labels, 1 means search for index labels)
+
+        Returns
+        -------
+        is_label: bool
+        """
+        axis = self._get_axis_number(axis)
+        other_axes = [ax for ax in range(self._AXIS_LEN) if ax != axis]
+
+        if self.ndim > 2:
+            raise NotImplementedError(
+                "_is_label_reference is not implemented for {type}"
+                .format(type=type(self)))
+
+        return (key is not None and
+                is_hashable(key) and
+                any(key in self.axes[ax] for ax in other_axes))
+
+    def _is_label_or_level_reference(self, key, axis=0):
+        """
+        Test whether a key is a label or level reference for a given axis.
+
+        To be considered either a label or a level reference, `key` must be a
+        string that:
+          - (axis=0): Matches a column label or an index level
+          - (axis=1): Matches an index label or a column level
+
+        Parameters
+        ----------
+        key: str
+            Potential label or level name
+        axis: int, default 0
+            Axis that levels are associated with (0 for index, 1 for columns)
+
+        Returns
+        -------
+        is_label_or_level: bool
+        """
+
+        if self.ndim > 2:
+            raise NotImplementedError(
+                "_is_label_or_level_reference is not implemented for {type}"
+                .format(type=type(self)))
+
+        return (self._is_level_reference(key, axis=axis) or
+                self._is_label_reference(key, axis=axis))
+
+    def _check_label_or_level_ambiguity(self, key, axis=0):
+        """
+        Check whether `key` matches both a level of the input `axis` and a
+        label of the other axis and raise a ``FutureWarning`` if this is the
+        case.
+
+        Note: This method will be altered to raise an ambiguity exception in
+        a future version.
+
+        Parameters
+        ----------
+        key: str or object
+            label or level name
+
+        axis: int, default 0
+            Axis that levels are associated with (0 for index, 1 for columns)
+
+        Returns
+        -------
+        ambiguous: bool
+
+        Raises
+        ------
+        FutureWarning
+            if `key` is ambiguous. This will become an ambiguity error in a
+            future version
+        """
+
+        axis = self._get_axis_number(axis)
+        other_axes = [ax for ax in range(self._AXIS_LEN) if ax != axis]
+
+        if self.ndim > 2:
+            raise NotImplementedError(
+                "_check_label_or_level_ambiguity is not implemented for {type}"
+                .format(type=type(self)))
+
+        if (key is not None and
+                is_hashable(key) and
+                key in self.axes[axis].names and
+                any(key in self.axes[ax] for ax in other_axes)):
+
+            # Build an informative and grammatical warning
+            level_article, level_type = (('an', 'index')
+                                         if axis == 0 else
+                                         ('a', 'column'))
+
+            label_article, label_type = (('a', 'column')
+                                         if axis == 0 else
+                                         ('an', 'index'))
+
+            msg = ("'{key}' is both {level_article} {level_type} level and "
+                   "{label_article} {label_type} label.\n"
+                   "Defaulting to {label_type}, but this will raise an "
+                   "ambiguity error in a future version"
+                   ).format(key=key,
+                            level_article=level_article,
+                            level_type=level_type,
+                            label_article=label_article,
+                            label_type=label_type)
+
+            warnings.warn(msg, FutureWarning, stacklevel=2)
+            return True
+        else:
+            return False
+
+    def _get_label_or_level_values(self, key, axis=0):
+        """
+        Return a 1-D array of values associated with `key`, a label or level
+        from the given `axis`.
+
+        Retrieval logic:
+          - (axis=0): Return column values if `key` matches a column label.
+            Otherwise return index level values if `key` matches an index
+            level.
+          - (axis=1): Return row values if `key` matches an index label.
+            Otherwise return column level values if 'key' matches a column
+            level
+
+        Parameters
+        ----------
+        key: str
+            Label or level name.
+        axis: int, default 0
+            Axis that levels are associated with (0 for index, 1 for columns)
+
+        Returns
+        -------
+        values: np.ndarray
+
+        Raises
+        ------
+        KeyError
+            if `key` matches neither a label nor a level
+        ValueError
+            if `key` matches multiple labels
+        """
+
+        axis = self._get_axis_number(axis)
+        other_axes = [ax for ax in range(self._AXIS_LEN) if ax != axis]
+
+        if self.ndim > 2:
+            raise NotImplementedError(
+                "_get_label_or_level_values is not implemented for {type}"
+                .format(type=type(self)))
+
+        if self._is_label_reference(key, axis=axis):
+            self._check_label_or_level_ambiguity(key, axis=axis)
+            values = self.xs(key, axis=other_axes[0])._values
+        elif self._is_level_reference(key, axis=axis):
+            values = self.axes[axis].get_level_values(key)._values
+        else:
+            raise KeyError(key)
+
+        # Check for duplicates
+        if values.ndim > 1:
+            label_axis_name = 'column' if axis == 0 else 'index'
+            raise ValueError(("The {label_axis_name} label '{key}' "
+                              "is not unique")
+                             .format(key=key,
+                                     label_axis_name=label_axis_name))
+
+        return values
+
+    def _drop_labels_or_levels(self, keys, axis=0):
+        """
+        Drop labels and/or levels for the given `axis`.
+
+        For each key in `keys`:
+          - (axis=0): If key matches a column label then drop the column.
+            Otherwise if key matches an index level then drop the level.
+          - (axis=1): If key matches an index label then drop the row.
+            Otherwise if key matches a column level then drop the level.
+
+        Parameters
+        ----------
+        keys: str or list of str
+            labels or levels to drop
+        axis: int, default 0
+            Axis that levels are associated with (0 for index, 1 for columns)
+
+        Returns
+        -------
+        dropped: DataFrame
+
+        Raises
+        ------
+        ValueError
+            if any `keys` match neither a label nor a level
+        """
+
+        axis = self._get_axis_number(axis)
+
+        if self.ndim > 2:
+            raise NotImplementedError(
+                "_drop_labels_or_levels is not implemented for {type}"
+                .format(type=type(self)))
+
+        # Validate keys
+        keys = com._maybe_make_list(keys)
+        invalid_keys = [k for k in keys if not
+                        self._is_label_or_level_reference(k, axis=axis)]
+
+        if invalid_keys:
+            raise ValueError(("The following keys are not valid labels or "
+                              "levels for axis {axis}: {invalid_keys}")
+                             .format(axis=axis,
+                                     invalid_keys=invalid_keys))
+
+        # Compute levels and labels to drop
+        levels_to_drop = [k for k in keys
+                          if self._is_level_reference(k, axis=axis)]
+
+        labels_to_drop = [k for k in keys
+                          if not self._is_level_reference(k, axis=axis)]
+
+        # Perform copy upfront and then use inplace operations below.
+        # This ensures that we always perform exactly one copy.
+        # ``copy`` and/or ``inplace`` options could be added in the future.
+        dropped = self.copy()
+
+        if axis == 0:
+            # Handle dropping index levels
+            if levels_to_drop:
+                dropped.reset_index(levels_to_drop, drop=True, inplace=True)
+
+            # Handle dropping columns labels
+            if labels_to_drop:
+                dropped.drop(labels_to_drop, axis=1, inplace=True)
+        else:
+            # Handle dropping column levels
+            if levels_to_drop:
+                if isinstance(dropped.columns, MultiIndex):
+                    # Drop the specified levels from the MultiIndex
+                    dropped.columns = dropped.columns.droplevel(levels_to_drop)
+                else:
+                    # Drop the last level of Index by replacing with
+                    # a RangeIndex
+                    dropped.columns = RangeIndex(dropped.columns.size)
+
+            # Handle dropping index labels
+            if labels_to_drop:
+                dropped.drop(labels_to_drop, axis=0, inplace=True)
+
+        return dropped
 
     # ----------------------------------------------------------------------
     # Iteration
