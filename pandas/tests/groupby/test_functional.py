@@ -67,7 +67,6 @@ class TestDescribe(MixIn):
                                          'C': 1, 'D': 1}, axis=1)
         result = groupedT.describe()
         expected = self.tsframe.describe().T
-        # GH 17464 - Remove duplicate MultiIndex levels
         expected.index = pd.MultiIndex(
             levels=[[0, 1], expected.index],
             labels=[[0, 0, 1, 1], range(len(expected.index))])
