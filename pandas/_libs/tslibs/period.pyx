@@ -29,12 +29,11 @@ from util cimport is_period_object, is_string_object, INT32_MIN
 
 from pandas._libs.missing cimport is_null_datetimelike
 from pandas._libs.tslib import Timestamp
-from timezones cimport (
-    is_utc, is_tzlocal, get_utcoffset, get_dst_info)
+from timezones cimport is_utc, is_tzlocal, get_utcoffset, get_dst_info
 from timedeltas cimport delta_to_nanoseconds
 
 from parsing import (parse_time_string, NAT_SENTINEL,
-                                         _get_rule_month, _MONTH_NUMBERS)
+                     _get_rule_month, _MONTH_NUMBERS)
 from frequencies cimport get_freq_code
 from resolution import resolution, Resolution
 from nattype import nat_strings, NaT, iNaT
