@@ -225,6 +225,9 @@ def read_excel(io, sheet_name=0, header=0, skiprows=None, skip_footer=0,
     elif 'sheetname' in kwds:
         raise TypeError("Cannot specify both `sheet_name` and `sheetname`. "
                         "Use just `sheet_name`")
+    if 'sheet' in kwds:
+        raise TypeError("read_excel() got an unexpected keyword argument "
+                        "`sheet`")
 
     if not isinstance(io, ExcelFile):
         io = ExcelFile(io, engine=engine)
