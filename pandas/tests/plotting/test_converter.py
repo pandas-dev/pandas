@@ -236,14 +236,18 @@ class TestDateTimeConverter(object):
         assert rs == xp
 
     def test_time_formatter(self):
+        # issue 18478
+
         # time2num(datetime.time.min)
         rs = self.tc(0)
         xp = '00:00'
         assert rs == xp
+
         # time2num(datetime.time.max)
         rs = self.tc(86399.999999)
         xp = '23:59:59.999999'
         assert rs == xp
+
         # some other times
         rs = self.tc(90000)
         xp = '01:00'
