@@ -3612,7 +3612,6 @@ class DataFrame(NDFrame):
                     kind='quicksort', na_position='last'):
         inplace = validate_bool_kwarg(inplace, 'inplace')
         axis = self._get_axis_number(axis)
-        other_axis = 0 if axis == 1 else 1
 
         if not isinstance(by, list):
             by = [by]
