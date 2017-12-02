@@ -816,21 +816,23 @@ class Base(object):
 
             # test size for GH13212 (currently stays as df)
 
-    def test_resample_empty_dtypes(self):
+    @pytest.mark.parametrize("index", tm.all_timeseries_index_generator(0))
+    @pytest.mark.parametrize(
+        "dtype",
+        [np.float, np.int, np.object, 'datetime64[ns]'])
+    def test_resample_empty_dtypes(self, index, dtype):
 
         # Empty series were sometimes causing a segfault (for the functions
         # with Cython bounds-checking disabled) or an IndexError.  We just run
         # them to ensure they no longer do.  (GH #10228)
-        for index in tm.all_timeseries_index_generator(0):
-            for dtype in (np.float, np.int, np.object, 'datetime64[ns]'):
-                for how in downsample_methods + upsample_methods:
-                    empty_series = Series([], index, dtype)
-                    try:
-                        getattr(empty_series.resample('d'), how)()
-                    except DataError:
-                        # Ignore these since some combinations are invalid
-                        # (ex: doing mean with dtype of np.object)
-                        pass
+        for how in downsample_methods + upsample_methods:
+            empty_series = Series([], index, dtype)
+            try:
+                getattr(empty_series.resample('d'), how)()
+            except DataError:
+                # Ignore these since some combinations are invalid
+                # (ex: doing mean with dtype of np.object)
+                pass
 
     def test_resample_loffset_arg_type(self):
         # GH 13218, 15002
