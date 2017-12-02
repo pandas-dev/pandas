@@ -2,10 +2,11 @@
 
 import pytest
 
+import pandas as pd
 import numpy as np
 
 import pandas.util.testing as tm
-from pandas import (Categorical, Series, date_range)
+from pandas import Categorical, Series, DataFrame, date_range
 
 
 class TestCategoricalOps(object):
@@ -40,9 +41,6 @@ class TestCategoricalOps(object):
                                     np.array([False, False, False]))
         tm.assert_numpy_array_equal(cat != 4,
                                     np.array([True, True, True]))
-
-
-class TestCategoricalBlockOps(object):
 
     @pytest.mark.parametrize('data,reverse,base', [
         (list("abc"), list("cba"), list("bbb")),
@@ -103,92 +101,6 @@ class TestCategoricalBlockOps(object):
         pytest.raises(TypeError, lambda: a < cat)
         pytest.raises(TypeError, lambda: a < cat_rev)
 
-    def test_unequal_comparison_raises_type_error(self):
-        # unequal comparison should raise for unordered cats
-        cat = Series(Categorical(list("abc")))
-
-        def f():
-            cat > "b"
-
-        pytest.raises(TypeError, f)
-        cat = Series(Categorical(list("abc"), ordered=False))
-
-        def f():
-            cat > "b"
-
-        pytest.raises(TypeError, f)
-
-        # https://github.com/pandas-dev/pandas/issues/9836#issuecomment-92123057
-        # and following comparisons with scalars not in categories should raise
-        # for unequal comps, but not for equal/not equal
-        cat = Series(Categorical(list("abc"), ordered=True))
-
-        pytest.raises(TypeError, lambda: cat < "d")
-        pytest.raises(TypeError, lambda: cat > "d")
-        pytest.raises(TypeError, lambda: "d" < cat)
-        pytest.raises(TypeError, lambda: "d" > cat)
-
-        tm.assert_series_equal(cat == "d", Series([False, False, False]))
-        tm.assert_series_equal(cat != "d", Series([True, True, True]))
-
-    def test_nan_equality(self):
-        cat = Series(Categorical(["a", "b", "c", np.nan]))
-        exp = Series([True, True, True, False])
-        res = (cat == cat)
-        tm.assert_series_equal(res, exp)
-
-    def test_cat_equality(self):
-
-        # GH 8938
-        # allow equality comparisons
-        a = Series(list('abc'), dtype="category")
-        b = Series(list('abc'), dtype="object")
-        c = Series(['a', 'b', 'cc'], dtype="object")
-        d = Series(list('acb'), dtype="object")
-        e = Categorical(list('abc'))
-        f = Categorical(list('acb'))
-
-        # vs scalar
-        assert not (a == 'a').all()
-        assert ((a != 'a') == ~(a == 'a')).all()
-
-        assert not ('a' == a).all()
-        assert (a == 'a')[0]
-        assert ('a' == a)[0]
-        assert not ('a' != a)[0]
-
-        # vs list-like
-        assert (a == a).all()
-        assert not (a != a).all()
-
-        assert (a == list(a)).all()
-        assert (a == b).all()
-        assert (b == a).all()
-        assert ((~(a == b)) == (a != b)).all()
-        assert ((~(b == a)) == (b != a)).all()
-
-        assert not (a == c).all()
-        assert not (c == a).all()
-        assert not (a == d).all()
-        assert not (d == a).all()
-
-        # vs a cat-like
-        assert (a == e).all()
-        assert (e == a).all()
-        assert not (a == f).all()
-        assert not (f == a).all()
-
-        assert ((~(a == e) == (a != e)).all())
-        assert ((~(e == a) == (e != a)).all())
-        assert ((~(a == f) == (a != f)).all())
-        assert ((~(f == a) == (f != a)).all())
-
-        # non-equality is not comparable
-        pytest.raises(TypeError, lambda: a < b)
-        pytest.raises(TypeError, lambda: b < a)
-        pytest.raises(TypeError, lambda: a > b)
-        pytest.raises(TypeError, lambda: b > a)
-
     @pytest.mark.parametrize('ctor', [
         lambda *args, **kwargs: Categorical(*args, **kwargs),
         lambda *args, **kwargs: Series(Categorical(*args, **kwargs)),
@@ -225,3 +137,38 @@ class TestCategoricalBlockOps(object):
         msg = "Categories are different lengths"
         with tm.assert_raises_regex(TypeError, msg):
             c1 == c2
+
+    def test_numeric_like_ops(self):
+
+        df = DataFrame({'value': np.random.randint(0, 10000, 100)})
+        labels = ["{0} - {1}".format(i, i + 499) for i in range(0, 10000, 500)]
+        cat_labels = Categorical(labels, labels)
+
+        df = df.sort_values(by=['value'], ascending=True)
+        df['value_group'] = pd.cut(df.value, range(0, 10500, 500),
+                                   right=False, labels=cat_labels)
+
+        # numeric ops should not succeed
+        for op in ['__add__', '__sub__', '__mul__', '__truediv__']:
+            pytest.raises(TypeError,
+                          lambda: getattr(df, op)(df))
+
+        # reduction ops should not succeed (unless specifically defined, e.g.
+        # min/max)
+        s = df['value_group']
+        for op in ['kurt', 'skew', 'var', 'std', 'mean', 'sum', 'median']:
+            pytest.raises(TypeError,
+                          lambda: getattr(s, op)(numeric_only=False))
+
+        # mad technically works because it takes always the numeric data
+
+        # numpy ops
+        s = Series(Categorical([1, 2, 3, 4]))
+        pytest.raises(TypeError, lambda: np.sum(s))
+
+        # numeric ops on a Series
+        for op in ['__add__', '__sub__', '__mul__', '__truediv__']:
+            pytest.raises(TypeError, lambda: getattr(s, op)(2))
+
+        # invalid ufunc
+        pytest.raises(TypeError, lambda: np.log(s))

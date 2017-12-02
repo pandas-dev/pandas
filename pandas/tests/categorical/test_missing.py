@@ -3,7 +3,7 @@
 import numpy as np
 
 import pandas.util.testing as tm
-from pandas import (Categorical, Index, Series, CategoricalIndex, isna)
+from pandas import (Categorical, Index, isna)
 from pandas.compat import lrange
 from pandas.core.dtypes.dtypes import CategoricalDtype
 
@@ -60,51 +60,3 @@ class TestCategoricalMissing(object):
 
         exp = Categorical([1, np.nan, 3], categories=[1, 2, 3])
         tm.assert_categorical_equal(cat, exp)
-
-
-class TestCategoricalBlockMissing(object):
-
-    def test_value_counts_with_nan(self):
-        # see gh-9443
-
-        # sanity check
-        s = Series(["a", "b", "a"], dtype="category")
-        exp = Series([2, 1], index=CategoricalIndex(["a", "b"]))
-
-        res = s.value_counts(dropna=True)
-        tm.assert_series_equal(res, exp)
-
-        res = s.value_counts(dropna=True)
-        tm.assert_series_equal(res, exp)
-
-        # same Series via two different constructions --> same behaviour
-        series = [
-            Series(["a", "b", None, "a", None, None], dtype="category"),
-            Series(Categorical(["a", "b", None, "a", None, None],
-                               categories=["a", "b"]))
-        ]
-
-        for s in series:
-            # None is a NaN value, so we exclude its count here
-            exp = Series([2, 1], index=CategoricalIndex(["a", "b"]))
-            res = s.value_counts(dropna=True)
-            tm.assert_series_equal(res, exp)
-
-            # we don't exclude the count of None and sort by counts
-            exp = Series([3, 2, 1], index=CategoricalIndex([np.nan, "a", "b"]))
-            res = s.value_counts(dropna=False)
-            tm.assert_series_equal(res, exp)
-
-            # When we aren't sorting by counts, and np.nan isn't a
-            # category, it should be last.
-            exp = Series([2, 1, 3], index=CategoricalIndex(["a", "b", np.nan]))
-            res = s.value_counts(dropna=False, sort=False)
-            tm.assert_series_equal(res, exp)
-
-    def test_nan_handling(self):
-
-        # NaNs are represented as -1 in labels
-        s = Series(Categorical(["a", "b", np.nan, "a"]))
-        tm.assert_index_equal(s.cat.categories, Index(["a", "b"]))
-        tm.assert_numpy_array_equal(s.values.codes,
-                                    np.array([0, 1, -1, 0], dtype=np.int8))

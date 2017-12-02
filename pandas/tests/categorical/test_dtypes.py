@@ -2,10 +2,9 @@
 
 import pytest
 
-import pandas as pd
 import pandas.util.testing as tm
 from pandas.core.dtypes.dtypes import CategoricalDtype
-from pandas import (Categorical, Index, Series, DataFrame, CategoricalIndex)
+from pandas import Categorical, Index, CategoricalIndex
 
 
 class TestCategoricalDtypes(object):
@@ -76,30 +75,6 @@ class TestCategoricalDtypes(object):
         expected = Categorical([None, None, None], categories=['a', 'b'])
         tm.assert_categorical_equal(result, expected)
 
-
-class TestCategoricalBlockDtypes(object):
-
-    def test_dtypes(self):
-
-        # GH8143
-        index = ['cat', 'obj', 'num']
-        cat = Categorical(['a', 'b', 'c'])
-        obj = Series(['a', 'b', 'c'])
-        num = Series([1, 2, 3])
-        df = pd.concat([Series(cat), obj, num], axis=1, keys=index)
-
-        result = df.dtypes == 'object'
-        expected = Series([False, True, False], index=index)
-        tm.assert_series_equal(result, expected)
-
-        result = df.dtypes == 'int64'
-        expected = Series([False, False, True], index=index)
-        tm.assert_series_equal(result, expected)
-
-        result = df.dtypes == 'category'
-        expected = Series([True, False, False], index=index)
-        tm.assert_series_equal(result, expected)
-
     def test_codes_dtypes(self):
 
         # GH 8453
@@ -121,10 +96,3 @@ class TestCategoricalBlockDtypes(object):
         # removing cats
         result = result.remove_categories(['foo%05d' % i for i in range(300)])
         assert result.codes.dtype == 'int8'
-
-    @pytest.mark.parametrize('columns', [['x'], ['x', 'y'], ['x', 'y', 'z']])
-    def test_empty_astype(self, columns):
-        # GH 18004
-        msg = '> 1 ndim Categorical are not supported at this time'
-        with tm.assert_raises_regex(NotImplementedError, msg):
-            DataFrame(columns=columns).astype('category')

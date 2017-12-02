@@ -1,15 +1,12 @@
 # -*- coding: utf-8 -*-
 
 import pytest
-from distutils.version import LooseVersion
 
 import numpy as np
 
 import pandas.util.testing as tm
 from pandas import (Categorical, Index, Series, DataFrame, CategoricalIndex)
-from pandas.core.dtypes.dtypes import CategoricalDtype
-from pandas.tests.categorical.common import (TestCategorical,
-                                             TestCategoricalBlock)
+from pandas.tests.categorical.common import TestCategorical
 
 
 class TestCategoricalGeneric(TestCategorical):
@@ -163,12 +160,6 @@ class TestCategoricalGeneric(TestCategorical):
         pytest.raises(TypeError, lambda: cat > a)
         pytest.raises(TypeError, lambda: cat_rev > a)
 
-        # The following work via '__array_priority__ = 1000'
-        # works only on numpy >= 1.7.1
-        if LooseVersion(np.__version__) > "1.7.1":
-            pytest.raises(TypeError, lambda: a < cat)
-            pytest.raises(TypeError, lambda: a < cat_rev)
-
         # Make sure that unequal comparison take the categories order in
         # account
         cat_rev = Categorical(
@@ -176,101 +167,3 @@ class TestCategoricalGeneric(TestCategorical):
         exp = np.array([True, False, False])
         res = cat_rev > "b"
         tm.assert_numpy_array_equal(res, exp)
-
-
-class TestCategoricalGenericBlock(TestCategoricalBlock):
-
-    def test_describe(self):
-
-        # Categoricals should not show up together with numerical columns
-        result = self.cat.describe()
-        assert len(result.columns) == 1
-
-        # In a frame, describe() for the cat should be the same as for string
-        # arrays (count, unique, top, freq)
-
-        cat = Categorical(["a", "b", "b", "b"], categories=['a', 'b', 'c'],
-                          ordered=True)
-        s = Series(cat)
-        result = s.describe()
-        expected = Series([4, 2, "b", 3],
-                          index=['count', 'unique', 'top', 'freq'])
-        tm.assert_series_equal(result, expected)
-
-        cat = Series(Categorical(["a", "b", "c", "c"]))
-        df3 = DataFrame({"cat": cat, "s": ["a", "b", "c", "c"]})
-        res = df3.describe()
-        tm.assert_numpy_array_equal(res["cat"].values, res["s"].values)
-
-    def test_astype_to_other(self):
-
-        s = self.cat['value_group']
-        expected = s
-        tm.assert_series_equal(s.astype('category'), expected)
-        tm.assert_series_equal(s.astype(CategoricalDtype()), expected)
-        pytest.raises(ValueError, lambda: s.astype('float64'))
-
-        cat = Series(Categorical(['a', 'b', 'b', 'a', 'a', 'c', 'c', 'c']))
-        exp = Series(['a', 'b', 'b', 'a', 'a', 'c', 'c', 'c'])
-        tm.assert_series_equal(cat.astype('str'), exp)
-        s2 = Series(Categorical(['1', '2', '3', '4']))
-        exp2 = Series([1, 2, 3, 4]).astype(int)
-        tm.assert_series_equal(s2.astype('int'), exp2)
-
-        # object don't sort correctly, so just compare that we have the same
-        # values
-        def cmp(a, b):
-            tm.assert_almost_equal(
-                np.sort(np.unique(a)), np.sort(np.unique(b)))
-
-        expected = Series(np.array(s.values), name='value_group')
-        cmp(s.astype('object'), expected)
-        cmp(s.astype(np.object_), expected)
-
-        # array conversion
-        tm.assert_almost_equal(np.array(s), np.array(s.values))
-
-        # valid conversion
-        for valid in [lambda x: x.astype('category'),
-                      lambda x: x.astype(CategoricalDtype()),
-                      lambda x: x.astype('object').astype('category'),
-                      lambda x: x.astype('object').astype(
-                          CategoricalDtype())
-                      ]:
-
-            result = valid(s)
-            # compare series values
-            # internal .categories can't be compared because it is sorted
-            tm.assert_series_equal(result, s, check_categorical=False)
-
-        # invalid conversion (these are NOT a dtype)
-        for invalid in [lambda x: x.astype(Categorical),
-                        lambda x: x.astype('object').astype(Categorical)]:
-            pytest.raises(TypeError, lambda: invalid(s))
-
-    def test_numeric_like_ops(self):
-
-        # numeric ops should not succeed
-        for op in ['__add__', '__sub__', '__mul__', '__truediv__']:
-            pytest.raises(TypeError,
-                          lambda: getattr(self.cat, op)(self.cat))
-
-        # reduction ops should not succeed (unless specifically defined, e.g.
-        # min/max)
-        s = self.cat['value_group']
-        for op in ['kurt', 'skew', 'var', 'std', 'mean', 'sum', 'median']:
-            pytest.raises(TypeError,
-                          lambda: getattr(s, op)(numeric_only=False))
-
-        # mad technically works because it takes always the numeric data
-
-        # numpy ops
-        s = Series(Categorical([1, 2, 3, 4]))
-        pytest.raises(TypeError, lambda: np.sum(s))
-
-        # numeric ops on a Series
-        for op in ['__add__', '__sub__', '__mul__', '__truediv__']:
-            pytest.raises(TypeError, lambda: getattr(s, op)(2))
-
-        # invalid ufunc
-        pytest.raises(TypeError, lambda: np.log(s))

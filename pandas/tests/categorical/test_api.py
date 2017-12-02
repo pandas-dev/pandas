@@ -1,19 +1,12 @@
 # -*- coding: utf-8 -*-
 
-from warnings import catch_warnings
 import pytest
 import sys
 
 import numpy as np
 
-import pandas as pd
-import pandas.compat as compat
 import pandas.util.testing as tm
-from pandas import (Categorical, Index, Series, DataFrame, Timestamp,
-                    CategoricalIndex, DatetimeIndex, date_range,
-                    period_range, PeriodIndex, timedelta_range,
-                    TimedeltaIndex)
-from pandas.core.dtypes.dtypes import CategoricalDtype
+from pandas import Categorical, Index, Series
 
 from pandas.compat import PYPY
 from pandas.core.categorical import _recode_for_categories
@@ -302,6 +295,122 @@ class TestCategoricalAPI(object):
         tm.assert_categorical_equal(res, expected)
         res = cat.add_categories(["d", "e"])
         tm.assert_categorical_equal(res, expected)
+
+    def test_set_categories(self):
+        cat = Categorical(["a", "b", "c", "a"], ordered=True)
+        exp_categories = Index(["c", "b", "a"])
+        exp_values = np.array(["a", "b", "c", "a"], dtype=np.object_)
+
+        res = cat.set_categories(["c", "b", "a"], inplace=True)
+        tm.assert_index_equal(cat.categories, exp_categories)
+        tm.assert_numpy_array_equal(cat.__array__(), exp_values)
+        assert res is None
+
+        res = cat.set_categories(["a", "b", "c"])
+        # cat must be the same as before
+        tm.assert_index_equal(cat.categories, exp_categories)
+        tm.assert_numpy_array_equal(cat.__array__(), exp_values)
+        # only res is changed
+        exp_categories_back = Index(["a", "b", "c"])
+        tm.assert_index_equal(res.categories, exp_categories_back)
+        tm.assert_numpy_array_equal(res.__array__(), exp_values)
+
+        # not all "old" included in "new" -> all not included ones are now
+        # np.nan
+        cat = Categorical(["a", "b", "c", "a"], ordered=True)
+        res = cat.set_categories(["a"])
+        tm.assert_numpy_array_equal(res.codes, np.array([0, -1, -1, 0],
+                                                        dtype=np.int8))
+
+        # still not all "old" in "new"
+        res = cat.set_categories(["a", "b", "d"])
+        tm.assert_numpy_array_equal(res.codes, np.array([0, 1, -1, 0],
+                                                        dtype=np.int8))
+        tm.assert_index_equal(res.categories, Index(["a", "b", "d"]))
+
+        # all "old" included in "new"
+        cat = cat.set_categories(["a", "b", "c", "d"])
+        exp_categories = Index(["a", "b", "c", "d"])
+        tm.assert_index_equal(cat.categories, exp_categories)
+
+        # internals...
+        c = Categorical([1, 2, 3, 4, 1], categories=[1, 2, 3, 4], ordered=True)
+        tm.assert_numpy_array_equal(c._codes, np.array([0, 1, 2, 3, 0],
+                                                       dtype=np.int8))
+        tm.assert_index_equal(c.categories, Index([1, 2, 3, 4]))
+
+        exp = np.array([1, 2, 3, 4, 1], dtype=np.int64)
+        tm.assert_numpy_array_equal(c.get_values(), exp)
+
+        # all "pointers" to '4' must be changed from 3 to 0,...
+        c = c.set_categories([4, 3, 2, 1])
+
+        # positions are changed
+        tm.assert_numpy_array_equal(c._codes, np.array([3, 2, 1, 0, 3],
+                                                       dtype=np.int8))
+
+        # categories are now in new order
+        tm.assert_index_equal(c.categories, Index([4, 3, 2, 1]))
+
+        # output is the same
+        exp = np.array([1, 2, 3, 4, 1], dtype=np.int64)
+        tm.assert_numpy_array_equal(c.get_values(), exp)
+        assert c.min() == 4
+        assert c.max() == 1
+
+        # set_categories should set the ordering if specified
+        c2 = c.set_categories([4, 3, 2, 1], ordered=False)
+        assert not c2.ordered
+
+        tm.assert_numpy_array_equal(c.get_values(), c2.get_values())
+
+        # set_categories should pass thru the ordering
+        c2 = c.set_ordered(False).set_categories([4, 3, 2, 1])
+        assert not c2.ordered
+
+        tm.assert_numpy_array_equal(c.get_values(), c2.get_values())
+
+    @pytest.mark.parametrize('values, categories, new_categories', [
+        # No NaNs, same cats, same order
+        (['a', 'b', 'a'], ['a', 'b'], ['a', 'b'],),
+        # No NaNs, same cats, different order
+        (['a', 'b', 'a'], ['a', 'b'], ['b', 'a'],),
+        # Same, unsorted
+        (['b', 'a', 'a'], ['a', 'b'], ['a', 'b'],),
+        # No NaNs, same cats, different order
+        (['b', 'a', 'a'], ['a', 'b'], ['b', 'a'],),
+        # NaNs
+        (['a', 'b', 'c'], ['a', 'b'], ['a', 'b']),
+        (['a', 'b', 'c'], ['a', 'b'], ['b', 'a']),
+        (['b', 'a', 'c'], ['a', 'b'], ['a', 'b']),
+        (['b', 'a', 'c'], ['a', 'b'], ['a', 'b']),
+        # Introduce NaNs
+        (['a', 'b', 'c'], ['a', 'b'], ['a']),
+        (['a', 'b', 'c'], ['a', 'b'], ['b']),
+        (['b', 'a', 'c'], ['a', 'b'], ['a']),
+        (['b', 'a', 'c'], ['a', 'b'], ['a']),
+        # No overlap
+        (['a', 'b', 'c'], ['a', 'b'], ['d', 'e']),
+    ])
+    @pytest.mark.parametrize('ordered', [True, False])
+    def test_set_categories_many(self, values, categories, new_categories,
+                                 ordered):
+        c = Categorical(values, categories)
+        expected = Categorical(values, new_categories, ordered)
+        result = c.set_categories(new_categories, ordered=ordered)
+        tm.assert_categorical_equal(result, expected)
+
+    def test_set_categories_private(self):
+        cat = Categorical(['a', 'b', 'c'], categories=['a', 'b', 'c', 'd'])
+        cat._set_categories(['a', 'c', 'd', 'e'])
+        expected = Categorical(['a', 'c', 'd'], categories=list('acde'))
+        tm.assert_categorical_equal(cat, expected)
+
+        # fastpath
+        cat = Categorical(['a', 'b', 'c'], categories=['a', 'b', 'c', 'd'])
+        cat._set_categories(['a', 'c', 'd', 'e'], fastpath=True)
+        expected = Categorical(['a', 'c', 'd'], categories=list('acde'))
+        tm.assert_categorical_equal(cat, expected)
 
     def test_remove_categories(self):
         cat = Categorical(["a", "b", "c", "a"], ordered=True)
@@ -672,101 +781,6 @@ class TestCategoricalAPI(object):
         tm.assert_index_equal(c1.categories, Index(values))
         tm.assert_numpy_array_equal(np.array(c1), np.array(values))
 
-
-class TestBlockCategoricalAPI(object):
-
-    def test_reshaping(self):
-
-        with catch_warnings(record=True):
-            p = tm.makePanel()
-            p['str'] = 'foo'
-            df = p.to_frame()
-
-        df['category'] = df['str'].astype('category')
-        result = df['category'].unstack()
-
-        c = Categorical(['foo'] * len(p.major_axis))
-        expected = DataFrame({'A': c.copy(),
-                              'B': c.copy(),
-                              'C': c.copy(),
-                              'D': c.copy()},
-                             columns=Index(list('ABCD'), name='minor'),
-                             index=p.major_axis.set_names('major'))
-        tm.assert_frame_equal(result, expected)
-
-    def test_sideeffects_free(self):
-        # Passing a categorical to a Series and then changing values in either
-        # the series or the categorical should not change the values in the
-        # other one, IF you specify copy!
-        cat = Categorical(["a", "b", "c", "a"])
-        s = Series(cat, copy=True)
-        assert s.cat is not cat
-        s.cat.categories = [1, 2, 3]
-        exp_s = np.array([1, 2, 3, 1], dtype=np.int64)
-        exp_cat = np.array(["a", "b", "c", "a"], dtype=np.object_)
-        tm.assert_numpy_array_equal(s.__array__(), exp_s)
-        tm.assert_numpy_array_equal(cat.__array__(), exp_cat)
-
-        # setting
-        s[0] = 2
-        exp_s2 = np.array([2, 2, 3, 1], dtype=np.int64)
-        tm.assert_numpy_array_equal(s.__array__(), exp_s2)
-        tm.assert_numpy_array_equal(cat.__array__(), exp_cat)
-
-        # however, copy is False by default
-        # so this WILL change values
-        cat = Categorical(["a", "b", "c", "a"])
-        s = Series(cat)
-        assert s.values is cat
-        s.cat.categories = [1, 2, 3]
-        exp_s = np.array([1, 2, 3, 1], dtype=np.int64)
-        tm.assert_numpy_array_equal(s.__array__(), exp_s)
-        tm.assert_numpy_array_equal(cat.__array__(), exp_s)
-
-        s[0] = 2
-        exp_s2 = np.array([2, 2, 3, 1], dtype=np.int64)
-        tm.assert_numpy_array_equal(s.__array__(), exp_s2)
-        tm.assert_numpy_array_equal(cat.__array__(), exp_s2)
-
-    def test_cat_accessor(self):
-        s = Series(Categorical(["a", "b", np.nan, "a"]))
-        tm.assert_index_equal(s.cat.categories, Index(["a", "b"]))
-        assert not s.cat.ordered, False
-
-        exp = Categorical(["a", "b", np.nan, "a"], categories=["b", "a"])
-        s.cat.set_categories(["b", "a"], inplace=True)
-        tm.assert_categorical_equal(s.values, exp)
-
-        res = s.cat.set_categories(["b", "a"])
-        tm.assert_categorical_equal(res.values, exp)
-
-        s[:] = "a"
-        s = s.cat.remove_unused_categories()
-        tm.assert_index_equal(s.cat.categories, Index(["a"]))
-
-    def test_sequence_like(self):
-
-        # GH 7839
-        # make sure can iterate
-        df = DataFrame({"id": [1, 2, 3, 4, 5, 6],
-                        "raw_grade": ['a', 'b', 'b', 'a', 'a', 'e']})
-        df['grade'] = Categorical(df['raw_grade'])
-
-        # basic sequencing testing
-        result = list(df.grade.values)
-        expected = np.array(df.grade.values).tolist()
-        tm.assert_almost_equal(result, expected)
-
-        # iteration
-        for t in df.itertuples(index=False):
-            str(t)
-
-        for row, s in df.iterrows():
-            str(s)
-
-        for c, col in df.iteritems():
-            str(s)
-
     def test_repeat(self):
         # GH10183
         cat = Categorical(["a", "b"], categories=["a", "b"])
@@ -781,41 +795,6 @@ class TestBlockCategoricalAPI(object):
 
         msg = "the 'axis' parameter is not supported"
         tm.assert_raises_regex(ValueError, msg, np.repeat, cat, 2, axis=1)
-
-    def test_reshape(self):
-        cat = Categorical([], categories=["a", "b"])
-        tm.assert_produces_warning(FutureWarning, cat.reshape, 0)
-
-        with tm.assert_produces_warning(FutureWarning):
-            cat = Categorical([], categories=["a", "b"])
-            tm.assert_categorical_equal(cat.reshape(0), cat)
-
-        with tm.assert_produces_warning(FutureWarning):
-            cat = Categorical([], categories=["a", "b"])
-            tm.assert_categorical_equal(cat.reshape((5, -1)), cat)
-
-        with tm.assert_produces_warning(FutureWarning):
-            cat = Categorical(["a", "b"], categories=["a", "b"])
-            tm.assert_categorical_equal(cat.reshape(cat.shape), cat)
-
-        with tm.assert_produces_warning(FutureWarning):
-            cat = Categorical(["a", "b"], categories=["a", "b"])
-            tm.assert_categorical_equal(cat.reshape(cat.size), cat)
-
-        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
-            msg = "can only specify one unknown dimension"
-            cat = Categorical(["a", "b"], categories=["a", "b"])
-            tm.assert_raises_regex(ValueError, msg, cat.reshape, (-2, -1))
-
-    def test_numpy_reshape(self):
-        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
-            cat = Categorical(["a", "b"], categories=["a", "b"])
-            tm.assert_categorical_equal(np.reshape(cat, cat.shape), cat)
-
-        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
-            msg = "the 'order' parameter is not supported"
-            tm.assert_raises_regex(ValueError, msg, np.reshape,
-                                   cat, cat.shape, order='F')
 
     def test_astype_categorical(self):
 
@@ -839,841 +818,3 @@ class TestBlockCategoricalAPI(object):
         s = Series(list('aabbcde')).astype('category')
         results = get_dir(s)
         tm.assert_almost_equal(results, list(sorted(set(ok_for_cat))))
-
-    @pytest.mark.parametrize(
-        "dtype",
-        ["int_", "uint", "float_", "unicode_", "timedelta64[h]",
-         pytest.param("datetime64[D]",
-                      marks=pytest.mark.xfail(reason="issue7996"))]
-    )
-    @pytest.mark.parametrize("is_ordered", [True, False])
-    def test_drop_duplicates_non_bool(self, dtype, is_ordered):
-        cat_array = np.array([1, 2, 3, 4, 5], dtype=np.dtype(dtype))
-
-        # Test case 1
-        input1 = np.array([1, 2, 3, 3], dtype=np.dtype(dtype))
-        tc1 = Series(Categorical(input1, categories=cat_array,
-                                 ordered=is_ordered))
-
-        expected = Series([False, False, False, True])
-        tm.assert_series_equal(tc1.duplicated(), expected)
-        tm.assert_series_equal(tc1.drop_duplicates(), tc1[~expected])
-        sc = tc1.copy()
-        sc.drop_duplicates(inplace=True)
-        tm.assert_series_equal(sc, tc1[~expected])
-
-        expected = Series([False, False, True, False])
-        tm.assert_series_equal(tc1.duplicated(keep='last'), expected)
-        tm.assert_series_equal(tc1.drop_duplicates(keep='last'),
-                               tc1[~expected])
-        sc = tc1.copy()
-        sc.drop_duplicates(keep='last', inplace=True)
-        tm.assert_series_equal(sc, tc1[~expected])
-
-        expected = Series([False, False, True, True])
-        tm.assert_series_equal(tc1.duplicated(keep=False), expected)
-        tm.assert_series_equal(tc1.drop_duplicates(keep=False), tc1[~expected])
-        sc = tc1.copy()
-        sc.drop_duplicates(keep=False, inplace=True)
-        tm.assert_series_equal(sc, tc1[~expected])
-
-        # Test case 2
-        input2 = np.array([1, 2, 3, 5, 3, 2, 4], dtype=np.dtype(dtype))
-        tc2 = Series(Categorical(
-            input2, categories=cat_array, ordered=is_ordered)
-        )
-
-        expected = Series([False, False, False, False, True, True, False])
-        tm.assert_series_equal(tc2.duplicated(), expected)
-        tm.assert_series_equal(tc2.drop_duplicates(), tc2[~expected])
-        sc = tc2.copy()
-        sc.drop_duplicates(inplace=True)
-        tm.assert_series_equal(sc, tc2[~expected])
-
-        expected = Series([False, True, True, False, False, False, False])
-        tm.assert_series_equal(tc2.duplicated(keep='last'), expected)
-        tm.assert_series_equal(tc2.drop_duplicates(keep='last'),
-                               tc2[~expected])
-        sc = tc2.copy()
-        sc.drop_duplicates(keep='last', inplace=True)
-        tm.assert_series_equal(sc, tc2[~expected])
-
-        expected = Series([False, True, True, False, True, True, False])
-        tm.assert_series_equal(tc2.duplicated(keep=False), expected)
-        tm.assert_series_equal(tc2.drop_duplicates(keep=False), tc2[~expected])
-        sc = tc2.copy()
-        sc.drop_duplicates(keep=False, inplace=True)
-        tm.assert_series_equal(sc, tc2[~expected])
-
-    @pytest.mark.parametrize("is_ordered", [True, False])
-    def test_drop_duplicates_bool(self, is_ordered):
-        tc = Series(Categorical([True, False, True, False],
-                                categories=[True, False], ordered=is_ordered))
-
-        expected = Series([False, False, True, True])
-        tm.assert_series_equal(tc.duplicated(), expected)
-        tm.assert_series_equal(tc.drop_duplicates(), tc[~expected])
-        sc = tc.copy()
-        sc.drop_duplicates(inplace=True)
-        tm.assert_series_equal(sc, tc[~expected])
-
-        expected = Series([True, True, False, False])
-        tm.assert_series_equal(tc.duplicated(keep='last'), expected)
-        tm.assert_series_equal(tc.drop_duplicates(keep='last'), tc[~expected])
-        sc = tc.copy()
-        sc.drop_duplicates(keep='last', inplace=True)
-        tm.assert_series_equal(sc, tc[~expected])
-
-        expected = Series([True, True, True, True])
-        tm.assert_series_equal(tc.duplicated(keep=False), expected)
-        tm.assert_series_equal(tc.drop_duplicates(keep=False), tc[~expected])
-        sc = tc.copy()
-        sc.drop_duplicates(keep=False, inplace=True)
-        tm.assert_series_equal(sc, tc[~expected])
-
-    def test_reindex(self):
-
-        index = date_range('20000101', periods=3)
-
-        # reindexing to an invalid Categorical
-        s = Series(['a', 'b', 'c'], dtype='category')
-        result = s.reindex(index)
-        expected = Series(Categorical(values=[np.nan, np.nan, np.nan],
-                                      categories=['a', 'b', 'c']))
-        expected.index = index
-        tm.assert_series_equal(result, expected)
-
-        # partial reindexing
-        expected = Series(Categorical(values=['b', 'c'], categories=['a', 'b',
-                                                                     'c']))
-        expected.index = [1, 2]
-        result = s.reindex([1, 2])
-        tm.assert_series_equal(result, expected)
-
-        expected = Series(Categorical(
-            values=['c', np.nan], categories=['a', 'b', 'c']))
-        expected.index = [2, 3]
-        result = s.reindex([2, 3])
-        tm.assert_series_equal(result, expected)
-
-    def test_series_delegations(self):
-
-        # invalid accessor
-        pytest.raises(AttributeError, lambda: Series([1, 2, 3]).cat)
-        tm.assert_raises_regex(
-            AttributeError,
-            r"Can only use .cat accessor with a 'category' dtype",
-            lambda: Series([1, 2, 3]).cat)
-        pytest.raises(AttributeError, lambda: Series(['a', 'b', 'c']).cat)
-        pytest.raises(AttributeError, lambda: Series(np.arange(5.)).cat)
-        pytest.raises(AttributeError,
-                      lambda: Series([Timestamp('20130101')]).cat)
-
-        # Series should delegate calls to '.categories', '.codes', '.ordered'
-        # and the methods '.set_categories()' 'drop_unused_categories()' to the
-        # categorical
-        s = Series(Categorical(["a", "b", "c", "a"], ordered=True))
-        exp_categories = Index(["a", "b", "c"])
-        tm.assert_index_equal(s.cat.categories, exp_categories)
-        s.cat.categories = [1, 2, 3]
-        exp_categories = Index([1, 2, 3])
-        tm.assert_index_equal(s.cat.categories, exp_categories)
-
-        exp_codes = Series([0, 1, 2, 0], dtype='int8')
-        tm.assert_series_equal(s.cat.codes, exp_codes)
-
-        assert s.cat.ordered
-        s = s.cat.as_unordered()
-        assert not s.cat.ordered
-        s.cat.as_ordered(inplace=True)
-        assert s.cat.ordered
-
-        # reorder
-        s = Series(Categorical(["a", "b", "c", "a"], ordered=True))
-        exp_categories = Index(["c", "b", "a"])
-        exp_values = np.array(["a", "b", "c", "a"], dtype=np.object_)
-        s = s.cat.set_categories(["c", "b", "a"])
-        tm.assert_index_equal(s.cat.categories, exp_categories)
-        tm.assert_numpy_array_equal(s.values.__array__(), exp_values)
-        tm.assert_numpy_array_equal(s.__array__(), exp_values)
-
-        # remove unused categories
-        s = Series(Categorical(["a", "b", "b", "a"], categories=["a", "b", "c"
-                                                                 ]))
-        exp_categories = Index(["a", "b"])
-        exp_values = np.array(["a", "b", "b", "a"], dtype=np.object_)
-        s = s.cat.remove_unused_categories()
-        tm.assert_index_equal(s.cat.categories, exp_categories)
-        tm.assert_numpy_array_equal(s.values.__array__(), exp_values)
-        tm.assert_numpy_array_equal(s.__array__(), exp_values)
-
-        # This method is likely to be confused, so test that it raises an error
-        # on wrong inputs:
-        def f():
-            s.set_categories([4, 3, 2, 1])
-
-        pytest.raises(Exception, f)
-        # right: s.cat.set_categories([4,3,2,1])
-
-    def test_series_functions_no_warnings(self):
-        df = DataFrame({'value': np.random.randint(0, 100, 20)})
-        labels = ["{0} - {1}".format(i, i + 9) for i in range(0, 100, 10)]
-        with tm.assert_produces_warning(False):
-            df['group'] = pd.cut(df.value, range(0, 105, 10), right=False,
-                                 labels=labels)
-
-    def test_assignment_to_dataframe(self):
-        # assignment
-        df = DataFrame({'value': np.array(
-            np.random.randint(0, 10000, 100), dtype='int32')})
-        labels = Categorical(["{0} - {1}".format(i, i + 499)
-                              for i in range(0, 10000, 500)])
-
-        df = df.sort_values(by=['value'], ascending=True)
-        s = pd.cut(df.value, range(0, 10500, 500), right=False, labels=labels)
-        d = s.values
-        df['D'] = d
-        str(df)
-
-        result = df.dtypes
-        expected = Series(
-            [np.dtype('int32'), CategoricalDtype(categories=labels,
-                                                 ordered=False)],
-            index=['value', 'D'])
-        tm.assert_series_equal(result, expected)
-
-        df['E'] = s
-        str(df)
-
-        result = df.dtypes
-        expected = Series([np.dtype('int32'),
-                           CategoricalDtype(categories=labels, ordered=False),
-                           CategoricalDtype(categories=labels, ordered=False)],
-                          index=['value', 'D', 'E'])
-        tm.assert_series_equal(result, expected)
-
-        result1 = df['D']
-        result2 = df['E']
-        tm.assert_categorical_equal(result1._data._block.values, d)
-
-        # sorting
-        s.name = 'E'
-        tm.assert_series_equal(result2.sort_index(), s.sort_index())
-
-        cat = Categorical([1, 2, 3, 10], categories=[1, 2, 3, 4, 10])
-        df = DataFrame(Series(cat))
-
-    def test_categorical_frame(self):
-        # normal DataFrame
-        dt = date_range('2011-01-01 09:00', freq='H', periods=5,
-                        tz='US/Eastern')
-        p = period_range('2011-01', freq='M', periods=5)
-        df = DataFrame({'dt': dt, 'p': p})
-        exp = """                         dt       p
-0 2011-01-01 09:00:00-05:00 2011-01
-1 2011-01-01 10:00:00-05:00 2011-02
-2 2011-01-01 11:00:00-05:00 2011-03
-3 2011-01-01 12:00:00-05:00 2011-04
-4 2011-01-01 13:00:00-05:00 2011-05"""
-
-        df = DataFrame({'dt': Categorical(dt), 'p': Categorical(p)})
-        assert repr(df) == exp
-
-    def test_info(self):
-
-        # make sure it works
-        n = 2500
-        df = DataFrame({'int64': np.random.randint(100, size=n)})
-        df['category'] = Series(np.array(list('abcdefghij')).take(
-            np.random.randint(0, 10, size=n))).astype('category')
-        df.isna()
-        buf = compat.StringIO()
-        df.info(buf=buf)
-
-        df2 = df[df['category'] == 'd']
-        buf = compat.StringIO()
-        df2.info(buf=buf)
-
-    def test_min_max(self):
-        # unordered cats have no min/max
-        cat = Series(Categorical(["a", "b", "c", "d"], ordered=False))
-        pytest.raises(TypeError, lambda: cat.min())
-        pytest.raises(TypeError, lambda: cat.max())
-
-        cat = Series(Categorical(["a", "b", "c", "d"], ordered=True))
-        _min = cat.min()
-        _max = cat.max()
-        assert _min == "a"
-        assert _max == "d"
-
-        cat = Series(Categorical(["a", "b", "c", "d"], categories=[
-                     'd', 'c', 'b', 'a'], ordered=True))
-        _min = cat.min()
-        _max = cat.max()
-        assert _min == "d"
-        assert _max == "a"
-
-        cat = Series(Categorical(
-            [np.nan, "b", "c", np.nan], categories=['d', 'c', 'b', 'a'
-                                                    ], ordered=True))
-        _min = cat.min()
-        _max = cat.max()
-        assert np.isnan(_min)
-        assert _max == "b"
-
-        cat = Series(Categorical(
-            [np.nan, 1, 2, np.nan], categories=[5, 4, 3, 2, 1], ordered=True))
-        _min = cat.min()
-        _max = cat.max()
-        assert np.isnan(_min)
-        assert _max == 1
-
-    def test_mode(self):
-        s = Series(Categorical([1, 1, 2, 4, 5, 5, 5],
-                               categories=[5, 4, 3, 2, 1], ordered=True))
-        res = s.mode()
-        exp = Series(Categorical([5], categories=[
-                     5, 4, 3, 2, 1], ordered=True))
-        tm.assert_series_equal(res, exp)
-        s = Series(Categorical([1, 1, 1, 4, 5, 5, 5],
-                               categories=[5, 4, 3, 2, 1], ordered=True))
-        res = s.mode()
-        exp = Series(Categorical([5, 1], categories=[
-                     5, 4, 3, 2, 1], ordered=True))
-        tm.assert_series_equal(res, exp)
-        s = Series(Categorical([1, 2, 3, 4, 5], categories=[5, 4, 3, 2, 1],
-                               ordered=True))
-        res = s.mode()
-        exp = Series(Categorical([5, 4, 3, 2, 1], categories=[5, 4, 3, 2, 1],
-                                 ordered=True))
-        tm.assert_series_equal(res, exp)
-
-    def test_value_counts(self):
-        # GH 12835
-        cats = Categorical(list('abcccb'), categories=list('cabd'))
-        s = Series(cats, name='xxx')
-        res = s.value_counts(sort=False)
-
-        exp_index = CategoricalIndex(list('cabd'), categories=cats.categories)
-        exp = Series([3, 1, 2, 0], name='xxx', index=exp_index)
-        tm.assert_series_equal(res, exp)
-
-        res = s.value_counts(sort=True)
-
-        exp_index = CategoricalIndex(list('cbad'), categories=cats.categories)
-        exp = Series([3, 2, 1, 0], name='xxx', index=exp_index)
-        tm.assert_series_equal(res, exp)
-
-        # check object dtype handles the Series.name as the same
-        # (tested in test_base.py)
-        s = Series(["a", "b", "c", "c", "c", "b"], name='xxx')
-        res = s.value_counts()
-        exp = Series([3, 2, 1], name='xxx', index=["c", "b", "a"])
-        tm.assert_series_equal(res, exp)
-
-    def test_groupby(self):
-
-        cats = Categorical(["a", "a", "a", "b", "b", "b", "c", "c", "c"],
-                           categories=["a", "b", "c", "d"], ordered=True)
-        data = DataFrame({"a": [1, 1, 1, 2, 2, 2, 3, 4, 5], "b": cats})
-
-        exp_index = CategoricalIndex(list('abcd'), name='b', ordered=True)
-        expected = DataFrame({'a': [1, 2, 4, np.nan]}, index=exp_index)
-        result = data.groupby("b").mean()
-        tm.assert_frame_equal(result, expected)
-
-        raw_cat1 = Categorical(["a", "a", "b", "b"],
-                               categories=["a", "b", "z"], ordered=True)
-        raw_cat2 = Categorical(["c", "d", "c", "d"],
-                               categories=["c", "d", "y"], ordered=True)
-        df = DataFrame({"A": raw_cat1, "B": raw_cat2, "values": [1, 2, 3, 4]})
-
-        # single grouper
-        gb = df.groupby("A")
-        exp_idx = CategoricalIndex(['a', 'b', 'z'], name='A', ordered=True)
-        expected = DataFrame({'values': Series([3, 7, np.nan], index=exp_idx)})
-        result = gb.sum()
-        tm.assert_frame_equal(result, expected)
-
-        # multiple groupers
-        gb = df.groupby(['A', 'B'])
-        exp_index = pd.MultiIndex.from_product(
-            [Categorical(["a", "b", "z"], ordered=True),
-             Categorical(["c", "d", "y"], ordered=True)],
-            names=['A', 'B'])
-        expected = DataFrame({'values': [1, 2, np.nan, 3, 4, np.nan,
-                                         np.nan, np.nan, np.nan]},
-                             index=exp_index)
-        result = gb.sum()
-        tm.assert_frame_equal(result, expected)
-
-        # multiple groupers with a non-cat
-        df = df.copy()
-        df['C'] = ['foo', 'bar'] * 2
-        gb = df.groupby(['A', 'B', 'C'])
-        exp_index = pd.MultiIndex.from_product(
-            [Categorical(["a", "b", "z"], ordered=True),
-             Categorical(["c", "d", "y"], ordered=True),
-             ['foo', 'bar']],
-            names=['A', 'B', 'C'])
-        expected = DataFrame({'values': Series(
-            np.nan, index=exp_index)}).sort_index()
-        expected.iloc[[1, 2, 7, 8], 0] = [1, 2, 3, 4]
-        result = gb.sum()
-        tm.assert_frame_equal(result, expected)
-
-        # GH 8623
-        x = DataFrame([[1, 'John P. Doe'], [2, 'Jane Dove'],
-                       [1, 'John P. Doe']],
-                      columns=['person_id', 'person_name'])
-        x['person_name'] = Categorical(x.person_name)
-
-        g = x.groupby(['person_id'])
-        result = g.transform(lambda x: x)
-        tm.assert_frame_equal(result, x[['person_name']])
-
-        result = x.drop_duplicates('person_name')
-        expected = x.iloc[[0, 1]]
-        tm.assert_frame_equal(result, expected)
-
-        def f(x):
-            return x.drop_duplicates('person_name').iloc[0]
-
-        result = g.apply(f)
-        expected = x.iloc[[0, 1]].copy()
-        expected.index = Index([1, 2], name='person_id')
-        expected['person_name'] = expected['person_name'].astype('object')
-        tm.assert_frame_equal(result, expected)
-
-        # GH 9921
-        # Monotonic
-        df = DataFrame({"a": [5, 15, 25]})
-        c = pd.cut(df.a, bins=[0, 10, 20, 30, 40])
-
-        result = df.a.groupby(c).transform(sum)
-        tm.assert_series_equal(result, df['a'])
-
-        tm.assert_series_equal(
-            df.a.groupby(c).transform(lambda xs: np.sum(xs)), df['a'])
-        tm.assert_frame_equal(df.groupby(c).transform(sum), df[['a']])
-        tm.assert_frame_equal(
-            df.groupby(c).transform(lambda xs: np.max(xs)), df[['a']])
-
-        # Filter
-        tm.assert_series_equal(df.a.groupby(c).filter(np.all), df['a'])
-        tm.assert_frame_equal(df.groupby(c).filter(np.all), df)
-
-        # Non-monotonic
-        df = DataFrame({"a": [5, 15, 25, -5]})
-        c = pd.cut(df.a, bins=[-10, 0, 10, 20, 30, 40])
-
-        result = df.a.groupby(c).transform(sum)
-        tm.assert_series_equal(result, df['a'])
-
-        tm.assert_series_equal(
-            df.a.groupby(c).transform(lambda xs: np.sum(xs)), df['a'])
-        tm.assert_frame_equal(df.groupby(c).transform(sum), df[['a']])
-        tm.assert_frame_equal(
-            df.groupby(c).transform(lambda xs: np.sum(xs)), df[['a']])
-
-        # GH 9603
-        df = DataFrame({'a': [1, 0, 0, 0]})
-        c = pd.cut(df.a, [0, 1, 2, 3, 4], labels=Categorical(list('abcd')))
-        result = df.groupby(c).apply(len)
-
-        exp_index = CategoricalIndex(
-            c.values.categories, ordered=c.values.ordered)
-        expected = Series([1, 0, 0, 0], index=exp_index)
-        expected.index.name = 'a'
-        tm.assert_series_equal(result, expected)
-
-    def test_pivot_table(self):
-
-        raw_cat1 = Categorical(["a", "a", "b", "b"],
-                               categories=["a", "b", "z"], ordered=True)
-        raw_cat2 = Categorical(["c", "d", "c", "d"],
-                               categories=["c", "d", "y"], ordered=True)
-        df = DataFrame({"A": raw_cat1, "B": raw_cat2, "values": [1, 2, 3, 4]})
-        result = pd.pivot_table(df, values='values', index=['A', 'B'])
-
-        exp_index = pd.MultiIndex.from_product(
-            [Categorical(["a", "b", "z"], ordered=True),
-             Categorical(["c", "d", "y"], ordered=True)],
-            names=['A', 'B'])
-        expected = DataFrame(
-            {'values': [1, 2, np.nan, 3, 4, np.nan, np.nan, np.nan, np.nan]},
-            index=exp_index)
-        tm.assert_frame_equal(result, expected)
-
-    def test_count(self):
-
-        s = Series(Categorical([np.nan, 1, 2, np.nan],
-                               categories=[5, 4, 3, 2, 1], ordered=True))
-        result = s.count()
-        assert result == 2
-
-    def test_concat_append(self):
-        cat = Categorical(["a", "b"], categories=["a", "b"])
-        vals = [1, 2]
-        df = DataFrame({"cats": cat, "vals": vals})
-        cat2 = Categorical(["a", "b", "a", "b"], categories=["a", "b"])
-        vals2 = [1, 2, 1, 2]
-        exp = DataFrame({"cats": cat2, "vals": vals2},
-                        index=Index([0, 1, 0, 1]))
-
-        tm.assert_frame_equal(pd.concat([df, df]), exp)
-        tm.assert_frame_equal(df.append(df), exp)
-
-        # GH 13524 can concat different categories
-        cat3 = Categorical(["a", "b"], categories=["a", "b", "c"])
-        vals3 = [1, 2]
-        df_different_categories = DataFrame({"cats": cat3, "vals": vals3})
-
-        res = pd.concat([df, df_different_categories], ignore_index=True)
-        exp = DataFrame({"cats": list('abab'), "vals": [1, 2, 1, 2]})
-        tm.assert_frame_equal(res, exp)
-
-        res = df.append(df_different_categories, ignore_index=True)
-        tm.assert_frame_equal(res, exp)
-
-    def test_concat_append_gh7864(self):
-        # GH 7864
-        # make sure ordering is preserverd
-        df = DataFrame({"id": [1, 2, 3, 4, 5, 6], "raw_grade": list('abbaae')})
-        df["grade"] = Categorical(df["raw_grade"])
-        df['grade'].cat.set_categories(['e', 'a', 'b'])
-
-        df1 = df[0:3]
-        df2 = df[3:]
-
-        tm.assert_index_equal(df['grade'].cat.categories,
-                              df1['grade'].cat.categories)
-        tm.assert_index_equal(df['grade'].cat.categories,
-                              df2['grade'].cat.categories)
-
-        dfx = pd.concat([df1, df2])
-        tm.assert_index_equal(df['grade'].cat.categories,
-                              dfx['grade'].cat.categories)
-
-        dfa = df1.append(df2)
-        tm.assert_index_equal(df['grade'].cat.categories,
-                              dfa['grade'].cat.categories)
-
-    def test_concat_preserve(self):
-
-        # GH 8641  series concat not preserving category dtype
-        # GH 13524 can concat different categories
-        s = Series(list('abc'), dtype='category')
-        s2 = Series(list('abd'), dtype='category')
-
-        exp = Series(list('abcabd'))
-        res = pd.concat([s, s2], ignore_index=True)
-        tm.assert_series_equal(res, exp)
-
-        exp = Series(list('abcabc'), dtype='category')
-        res = pd.concat([s, s], ignore_index=True)
-        tm.assert_series_equal(res, exp)
-
-        exp = Series(list('abcabc'), index=[0, 1, 2, 0, 1, 2],
-                     dtype='category')
-        res = pd.concat([s, s])
-        tm.assert_series_equal(res, exp)
-
-        a = Series(np.arange(6, dtype='int64'))
-        b = Series(list('aabbca'))
-
-        df2 = DataFrame({'A': a,
-                         'B': b.astype(CategoricalDtype(list('cab')))})
-        res = pd.concat([df2, df2])
-        exp = DataFrame(
-            {'A': pd.concat([a, a]),
-             'B': pd.concat([b, b]).astype(CategoricalDtype(list('cab')))})
-        tm.assert_frame_equal(res, exp)
-
-    def test_categorical_index_preserver(self):
-
-        a = Series(np.arange(6, dtype='int64'))
-        b = Series(list('aabbca'))
-
-        df2 = DataFrame({'A': a,
-                         'B': b.astype(CategoricalDtype(list('cab')))
-                         }).set_index('B')
-        result = pd.concat([df2, df2])
-        expected = DataFrame(
-            {'A': pd.concat([a, a]),
-             'B': pd.concat([b, b]).astype(CategoricalDtype(list('cab')))
-             }).set_index('B')
-        tm.assert_frame_equal(result, expected)
-
-        # wrong catgories
-        df3 = DataFrame({'A': a, 'B': Categorical(b, categories=list('abe'))
-                         }).set_index('B')
-        pytest.raises(TypeError, lambda: pd.concat([df2, df3]))
-
-    def test_merge(self):
-        # GH 9426
-
-        right = DataFrame({'c': {0: 'a',
-                                 1: 'b',
-                                 2: 'c',
-                                 3: 'd',
-                                 4: 'e'},
-                           'd': {0: 'null',
-                                 1: 'null',
-                                 2: 'null',
-                                 3: 'null',
-                                 4: 'null'}})
-        left = DataFrame({'a': {0: 'f',
-                                1: 'f',
-                                2: 'f',
-                                3: 'f',
-                                4: 'f'},
-                          'b': {0: 'g',
-                                1: 'g',
-                                2: 'g',
-                                3: 'g',
-                                4: 'g'}})
-        df = pd.merge(left, right, how='left', left_on='b', right_on='c')
-
-        # object-object
-        expected = df.copy()
-
-        # object-cat
-        # note that we propagate the category
-        # because we don't have any matching rows
-        cright = right.copy()
-        cright['d'] = cright['d'].astype('category')
-        result = pd.merge(left, cright, how='left', left_on='b', right_on='c')
-        expected['d'] = expected['d'].astype(CategoricalDtype(['null']))
-        tm.assert_frame_equal(result, expected)
-
-        # cat-object
-        cleft = left.copy()
-        cleft['b'] = cleft['b'].astype('category')
-        result = pd.merge(cleft, cright, how='left', left_on='b', right_on='c')
-        tm.assert_frame_equal(result, expected)
-
-        # cat-cat
-        cright = right.copy()
-        cright['d'] = cright['d'].astype('category')
-        cleft = left.copy()
-        cleft['b'] = cleft['b'].astype('category')
-        result = pd.merge(cleft, cright, how='left', left_on='b', right_on='c')
-        tm.assert_frame_equal(result, expected)
-
-    def test_to_records(self):
-
-        # GH8626
-
-        # dict creation
-        df = DataFrame({'A': list('abc')}, dtype='category')
-        expected = Series(list('abc'), dtype='category', name='A')
-        tm.assert_series_equal(df['A'], expected)
-
-        # list-like creation
-        df = DataFrame(list('abc'), dtype='category')
-        expected = Series(list('abc'), dtype='category', name=0)
-        tm.assert_series_equal(df[0], expected)
-
-        # to record array
-        # this coerces
-        result = df.to_records()
-        expected = np.rec.array([(0, 'a'), (1, 'b'), (2, 'c')],
-                                dtype=[('index', '=i8'), ('0', 'O')])
-        tm.assert_almost_equal(result, expected)
-
-    def test_cat_accessor_api(self):
-        # GH 9322
-        from pandas.core.categorical import CategoricalAccessor
-        assert Series.cat is CategoricalAccessor
-        s = Series(list('aabbcde')).astype('category')
-        assert isinstance(s.cat, CategoricalAccessor)
-
-        invalid = Series([1])
-        with tm.assert_raises_regex(AttributeError,
-                                    "only use .cat accessor"):
-            invalid.cat
-        assert not hasattr(invalid, 'cat')
-
-    def test_cat_accessor_no_new_attributes(self):
-        # https://github.com/pandas-dev/pandas/issues/10673
-        c = Series(list('aabbcde')).astype('category')
-        with tm.assert_raises_regex(AttributeError,
-                                    "You cannot add any new attribute"):
-            c.cat.xlabel = "a"
-
-    def test_str_accessor_api_for_categorical(self):
-        # https://github.com/pandas-dev/pandas/issues/10661
-        from pandas.core.strings import StringMethods
-        s = Series(list('aabb'))
-        s = s + " " + s
-        c = s.astype('category')
-        assert isinstance(c.str, StringMethods)
-
-        # str functions, which need special arguments
-        special_func_defs = [
-            ('cat', (list("zyxw"),), {"sep": ","}),
-            ('center', (10,), {}),
-            ('contains', ("a",), {}),
-            ('count', ("a",), {}),
-            ('decode', ("UTF-8",), {}),
-            ('encode', ("UTF-8",), {}),
-            ('endswith', ("a",), {}),
-            ('extract', ("([a-z]*) ",), {"expand": False}),
-            ('extract', ("([a-z]*) ",), {"expand": True}),
-            ('extractall', ("([a-z]*) ",), {}),
-            ('find', ("a",), {}),
-            ('findall', ("a",), {}),
-            ('index', (" ",), {}),
-            ('ljust', (10,), {}),
-            ('match', ("a"), {}),  # deprecated...
-            ('normalize', ("NFC",), {}),
-            ('pad', (10,), {}),
-            ('partition', (" ",), {"expand": False}),  # not default
-            ('partition', (" ",), {"expand": True}),  # default
-            ('repeat', (3,), {}),
-            ('replace', ("a", "z"), {}),
-            ('rfind', ("a",), {}),
-            ('rindex', (" ",), {}),
-            ('rjust', (10,), {}),
-            ('rpartition', (" ",), {"expand": False}),  # not default
-            ('rpartition', (" ",), {"expand": True}),  # default
-            ('slice', (0, 1), {}),
-            ('slice_replace', (0, 1, "z"), {}),
-            ('split', (" ",), {"expand": False}),  # default
-            ('split', (" ",), {"expand": True}),  # not default
-            ('startswith', ("a",), {}),
-            ('wrap', (2,), {}),
-            ('zfill', (10,), {})
-        ]
-        _special_func_names = [f[0] for f in special_func_defs]
-
-        # * get, join: they need a individual elements of type lists, but
-        #   we can't make a categorical with lists as individual categories.
-        #   -> `s.str.split(" ").astype("category")` will error!
-        # * `translate` has different interfaces for py2 vs. py3
-        _ignore_names = ["get", "join", "translate"]
-
-        str_func_names = [f for f in dir(s.str) if not (
-            f.startswith("_") or
-            f in _special_func_names or
-            f in _ignore_names)]
-
-        func_defs = [(f, (), {}) for f in str_func_names]
-        func_defs.extend(special_func_defs)
-
-        for func, args, kwargs in func_defs:
-            res = getattr(c.str, func)(*args, **kwargs)
-            exp = getattr(s.str, func)(*args, **kwargs)
-
-            if isinstance(res, DataFrame):
-                tm.assert_frame_equal(res, exp)
-            else:
-                tm.assert_series_equal(res, exp)
-
-        invalid = Series([1, 2, 3]).astype('category')
-        with tm.assert_raises_regex(AttributeError,
-                                    "Can only use .str "
-                                    "accessor with string"):
-            invalid.str
-        assert not hasattr(invalid, 'str')
-
-    def test_dt_accessor_api_for_categorical(self):
-        # https://github.com/pandas-dev/pandas/issues/10661
-        from pandas.core.indexes.accessors import Properties
-
-        s_dr = Series(date_range('1/1/2015', periods=5, tz="MET"))
-        c_dr = s_dr.astype("category")
-
-        s_pr = Series(period_range('1/1/2015', freq='D', periods=5))
-        c_pr = s_pr.astype("category")
-
-        s_tdr = Series(timedelta_range('1 days', '10 days'))
-        c_tdr = s_tdr.astype("category")
-
-        # only testing field (like .day)
-        # and bool (is_month_start)
-        get_ops = lambda x: x._datetimelike_ops
-
-        test_data = [
-            ("Datetime", get_ops(DatetimeIndex), s_dr, c_dr),
-            ("Period", get_ops(PeriodIndex), s_pr, c_pr),
-            ("Timedelta", get_ops(TimedeltaIndex), s_tdr, c_tdr)]
-
-        assert isinstance(c_dr.dt, Properties)
-
-        special_func_defs = [
-            ('strftime', ("%Y-%m-%d",), {}),
-            ('tz_convert', ("EST",), {}),
-            ('round', ("D",), {}),
-            ('floor', ("D",), {}),
-            ('ceil', ("D",), {}),
-            ('asfreq', ("D",), {}),
-            # ('tz_localize', ("UTC",), {}),
-        ]
-        _special_func_names = [f[0] for f in special_func_defs]
-
-        # the series is already localized
-        _ignore_names = ['tz_localize', 'components']
-
-        for name, attr_names, s, c in test_data:
-            func_names = [f
-                          for f in dir(s.dt)
-                          if not (f.startswith("_") or f in attr_names or f in
-                                  _special_func_names or f in _ignore_names)]
-
-            func_defs = [(f, (), {}) for f in func_names]
-            for f_def in special_func_defs:
-                if f_def[0] in dir(s.dt):
-                    func_defs.append(f_def)
-
-            for func, args, kwargs in func_defs:
-                res = getattr(c.dt, func)(*args, **kwargs)
-                exp = getattr(s.dt, func)(*args, **kwargs)
-
-                if isinstance(res, DataFrame):
-                    tm.assert_frame_equal(res, exp)
-                elif isinstance(res, Series):
-                    tm.assert_series_equal(res, exp)
-                else:
-                    tm.assert_almost_equal(res, exp)
-
-            for attr in attr_names:
-                try:
-                    res = getattr(c.dt, attr)
-                    exp = getattr(s.dt, attr)
-                except Exception as e:
-                    print(name, attr)
-                    raise e
-
-            if isinstance(res, DataFrame):
-                tm.assert_frame_equal(res, exp)
-            elif isinstance(res, Series):
-                tm.assert_series_equal(res, exp)
-            else:
-                tm.assert_almost_equal(res, exp)
-
-        invalid = Series([1, 2, 3]).astype('category')
-        with tm.assert_raises_regex(
-                AttributeError, "Can only use .dt accessor with datetimelike"):
-            invalid.dt
-        assert not hasattr(invalid, 'str')
-
-    def test_concat_categorical(self):
-        # See GH 10177
-        df1 = DataFrame(np.arange(18, dtype='int64').reshape(6, 3),
-                        columns=["a", "b", "c"])
-
-        df2 = DataFrame(np.arange(14, dtype='int64').reshape(7, 2),
-                        columns=["a", "c"])
-
-        cat_values = ["one", "one", "two", "one", "two", "two", "one"]
-        df2['h'] = Series(Categorical(cat_values))
-
-        res = pd.concat((df1, df2), axis=0, ignore_index=True)
-        exp = DataFrame({'a': [0, 3, 6, 9, 12, 15, 0, 2, 4, 6, 8, 10, 12],
-                         'b': [1, 4, 7, 10, 13, 16, np.nan, np.nan, np.nan,
-                               np.nan, np.nan, np.nan, np.nan],
-                         'c': [2, 5, 8, 11, 14, 17, 1, 3, 5, 7, 9, 11, 13],
-                         'h': [None] * 6 + cat_values})
-        tm.assert_frame_equal(res, exp)
