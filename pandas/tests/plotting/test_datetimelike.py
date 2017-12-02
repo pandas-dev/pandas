@@ -1032,10 +1032,11 @@ class TestTSPlot(TestPlotBase):
         df = DataFrame({'a': np.random.randn(len(ts)),
                         'b': np.random.randn(len(ts))},
                        index=ts)
-        _, ax = self.plt.subplots()
+        fig, ax = self.plt.subplots()
         df.plot(ax=ax)
 
         # verify tick labels
+        fig.canvas.draw()
         ticks = ax.get_xticks()
         labels = ax.get_xticklabels()
         for t, l in zip(ticks, labels):
@@ -1050,6 +1051,7 @@ class TestTSPlot(TestPlotBase):
         ax.set_xlim('1:30', '5:00')
 
         # check tick labels again
+        fig.canvas.draw()
         ticks = ax.get_xticks()
         labels = ax.get_xticklabels()
         for t, l in zip(ticks, labels):
@@ -1069,10 +1071,11 @@ class TestTSPlot(TestPlotBase):
         df = DataFrame({'a': np.random.randn(len(ts)),
                         'b': np.random.randn(len(ts))},
                        index=ts)
-        _, ax = self.plt.subplots()
+        fig, ax = self.plt.subplots()
         ax = df.plot(ax=ax)
 
         # verify tick labels
+        fig.canvas.draw()
         ticks = ax.get_xticks()
         labels = ax.get_xticklabels()
         for t, l in zip(ticks, labels):
