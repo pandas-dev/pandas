@@ -495,8 +495,9 @@ a,b,c
         with tm.assert_raises_regex(ValueError, msg.format(missing="\['f'\]")):
             self.read_csv(StringIO(data), usecols=usecols)
 
-        usecols = ['a', 'b', 'f']
-        with tm.assert_raises_regex(ValueError, msg.format(missing="\['f'\]")):
+        usecols = ['a', 'b', 'f', 'g']
+        with tm.assert_raises_regex(
+                ValueError, msg.format(missing="\[('f', 'g'|'g', 'f')\]")):
             self.read_csv(StringIO(data), usecols=usecols)
 
         names = ['A', 'B', 'C', 'D']
