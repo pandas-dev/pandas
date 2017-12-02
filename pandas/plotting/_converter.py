@@ -190,6 +190,15 @@ class TimeFormatter(Formatter):
         self.locs = locs
 
     def __call__(self, x, pos=0):
+        """
+        Return the time of day as a formatted string.
+
+        The time of day is specified by `x` as seconds since 00:00
+        (midnight), with upto microsecond precision.
+
+        In the returned HH:MM:SS.mmmuuu string, microseconds,
+        milliseconds and seconds are only displayed if non-zero.
+        """
         fmt = '%H:%M:%S.%f'
         s = int(x)
         msus = int(round((x - s) * 1e6))
