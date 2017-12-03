@@ -70,6 +70,7 @@ sheet_name : string, int, mixed list of strings/ints, or None, default 0
     * None -> All sheets as a dictionary of DataFrames
 
 sheetname : string, int, mixed list of strings/ints, or None, default 0
+
     .. deprecated:: 0.21.0
        Use `sheet_name` instead
 
@@ -87,6 +88,7 @@ index_col : int, list of ints, default None
     subset of data is selected with ``usecols``, index_col
     is based on the subset.
 parse_cols : int or list, default None
+
     .. deprecated:: 0.21.0
        Pass in `usecols` instead.
 
