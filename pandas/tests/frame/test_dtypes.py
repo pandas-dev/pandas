@@ -676,13 +676,13 @@ class TestDataFrameDataTypes(TestData):
     def test_assert_list_and_bool_coerce(self, num, dtype):
         #issue 18549
         df = pd.DataFrame([True]) * num
-        assert df.dtypes[0] == type
+        assert df.dtypes[0] == dtype
         df = pd.DataFrame([False]) + num
-        assert df.dtypes[0] == type
-        df = pd.DataFrame([True]) - num
-        assert df.dtypes[0] == type
-        df = pd.DataFrame([False]) / num
-        assert df.dtypes[0] == type
+        assert df.dtypes[0] == dtype
+        ser = pd.Series([True]) - num
+        assert ser.dtype == dtype
+        ser = pd.Series([False]) / num
+        assert ser.dtype == 'float64'
 
 
 class TestDataFrameDatetimeWithTZ(TestData):
