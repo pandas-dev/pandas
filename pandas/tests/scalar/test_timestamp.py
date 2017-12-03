@@ -16,12 +16,11 @@ from pytz.exceptions import AmbiguousTimeError, NonExistentTimeError
 
 import pandas.util.testing as tm
 
-from pandas._libs import period
-from pandas._libs.tslibs import conversion
+from pandas.tseries import offsets
+
+from pandas._libs.tslibs import conversion, period
 from pandas._libs.tslibs.timezones import get_timezone
 from pandas._libs.tslibs.frequencies import _INVALID_FREQ_ERROR
-
-from pandas.tseries import offsets
 
 from pandas.compat import long, PY3
 from pandas.util.testing import assert_series_equal

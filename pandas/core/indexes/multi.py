@@ -177,8 +177,8 @@ class MultiIndex(Index):
         Raises
         ------
         ValueError
-            * if length of levels and labels don't match or any label would
-            exceed level bounds
+            If length of levels and labels don't match, if any label would
+            exceed level bounds, or there are any duplicate levels.
         """
         # NOTE: Currently does not check, among other things, that cached
         # nlevels matches nor that sortorder matches actually sortorder.
@@ -198,6 +198,11 @@ class MultiIndex(Index):
                                  " level  (%d). NOTE: this index is in an"
                                  " inconsistent state" % (i, label.max(),
                                                           len(level)))
+            if not level.is_unique:
+                raise ValueError("Level values must be unique: {values} on "
+                                 "level {level}".format(
+                                     values=[value for value in level],
+                                     level=i))
 
     @property
     def levels(self):
@@ -1320,19 +1325,19 @@ class MultiIndex(Index):
 
         for lev, lab in zip(self.levels, self.labels):
 
-            if lev.is_monotonic:
-                new_levels.append(lev)
-                new_labels.append(lab)
-                continue
+            if not lev.is_monotonic:
+                try:
+                    # indexer to reorder the levels
+                    indexer = lev.argsort()
+                except TypeError:
+                    pass
+                else:
+                    lev = lev.take(indexer)
 
-            # indexer to reorder the levels
-            indexer = lev.argsort()
-            lev = lev.take(indexer)
-
-            # indexer to reorder the labels
-            indexer = _ensure_int64(indexer)
-            ri = lib.get_reverse_indexer(indexer, len(indexer))
-            lab = algos.take_1d(ri, lab)
+                    # indexer to reorder the labels
+                    indexer = _ensure_int64(indexer)
+                    ri = lib.get_reverse_indexer(indexer, len(indexer))
+                    lab = algos.take_1d(ri, lab)
 
             new_levels.append(lev)
             new_labels.append(lab)

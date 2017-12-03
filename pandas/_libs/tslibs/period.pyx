@@ -21,29 +21,26 @@ from cpython.datetime cimport PyDateTime_Check, PyDateTime_IMPORT
 # import datetime C API
 PyDateTime_IMPORT
 
-from tslibs.np_datetime cimport (pandas_datetimestruct,
-                                 dtstruct_to_dt64, dt64_to_dtstruct,
-                                 is_leapyear)
-
+from np_datetime cimport (pandas_datetimestruct, dtstruct_to_dt64,
+                          dt64_to_dtstruct, is_leapyear)
 
 cimport util
 from util cimport is_period_object, is_string_object, INT32_MIN
 
-from missing cimport is_null_datetimelike
-from pandas._libs.tslib import Timestamp
-from tslibs.timezones cimport (
-    is_utc, is_tzlocal, get_utcoffset, get_dst_info)
-from tslibs.timedeltas cimport delta_to_nanoseconds
+from pandas._libs.missing cimport is_null_datetimelike
 
-from tslibs.frequencies cimport (get_freq_code, get_base_alias,
-                                 get_to_timestamp_base, get_freq_str,
-                                 _get_rule_month)
-from tslibs.frequencies import _MONTH_NUMBERS
-from tslibs.parsing import parse_time_string, NAT_SENTINEL
+from timestamps import Timestamp
+from timezones cimport is_utc, is_tzlocal, get_utcoffset, get_dst_info
+from timedeltas cimport delta_to_nanoseconds
 
-from tslibs.resolution import resolution, Resolution
-from tslibs.nattype import nat_strings, NaT, iNaT
-from tslibs.nattype cimport _nat_scalar_rules, NPY_NAT
+from frequencies cimport (get_freq_code, get_base_alias,
+                          get_to_timestamp_base, get_freq_str,
+                          _get_rule_month)
+from frequencies import _MONTH_NUMBERS
+from parsing import parse_time_string, NAT_SENTINEL
+from resolution import resolution, Resolution
+from nattype import nat_strings, NaT, iNaT
+from nattype cimport _nat_scalar_rules, NPY_NAT
 
 from pandas.tseries import offsets
 from pandas.tseries import frequencies

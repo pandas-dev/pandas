@@ -2913,16 +2913,11 @@ def _get_grouper(obj, key=None, axis=0, level=None, sort=True,
 
         elif is_in_axis(gpr):  # df.groupby('name')
             if gpr in obj:
-                if validate and gpr in obj.index.names:
-                    warnings.warn(
-                        ("'%s' is both a column name and an index level.\n"
-                         "Defaulting to column but "
-                         "this will raise an ambiguity error in a "
-                         "future version") % gpr,
-                        FutureWarning, stacklevel=5)
+                if validate:
+                    obj._check_label_or_level_ambiguity(gpr)
                 in_axis, name, gpr = True, gpr, obj[gpr]
                 exclusions.append(name)
-            elif gpr in obj.index.names:
+            elif obj._is_level_reference(gpr):
                 in_axis, name, level, gpr = False, None, gpr, None
             else:
                 raise KeyError(gpr)
@@ -2933,9 +2928,11 @@ def _get_grouper(obj, key=None, axis=0, level=None, sort=True,
         else:
             in_axis, name = False, None
 
-        if is_categorical_dtype(gpr) and len(gpr) != len(obj):
-            raise ValueError("Categorical dtype grouper must "
-                             "have len(grouper) == len(data)")
+        if is_categorical_dtype(gpr) and len(gpr) != obj.shape[axis]:
+            raise ValueError(
+                ("Length of grouper ({len_gpr}) and axis ({len_axis})"
+                 " must be same length"
+                 .format(len_gpr=len(gpr), len_axis=obj.shape[axis])))
 
         # create the Grouping
         # allow us to passing the actual Grouping as the gpr

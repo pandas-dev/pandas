@@ -31,12 +31,12 @@ from pandas.core.tools.datetimes import parse_time_string
 import pandas.tseries.offsets as offsets
 
 from pandas._libs.lib import infer_dtype
-from pandas._libs import tslib, period, index as libindex
-from pandas._libs.period import (Period, IncompatibleFrequency,
-                                 get_period_field_arr, _validate_end_alias,
-                                 _quarter_to_myear)
+from pandas._libs import tslib, index as libindex
+from pandas._libs.tslibs.period import (Period, IncompatibleFrequency,
+                                        get_period_field_arr,
+                                        _validate_end_alias, _quarter_to_myear)
 from pandas._libs.tslibs.fields import isleapyear_arr
-from pandas._libs.tslibs import resolution
+from pandas._libs.tslibs import resolution, period
 from pandas._libs.tslibs.timedeltas import delta_to_nanoseconds
 
 from pandas.core.base import _shared_docs

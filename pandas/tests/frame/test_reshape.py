@@ -133,6 +133,30 @@ class TestDataFrameReshape(TestData):
         assert_frame_equal(unstacked_cols.T, df)
         assert_frame_equal(unstacked_cols_df['bar'].T, df)
 
+    def test_stack_mixed_level(self):
+        # GH 18310
+        levels = [range(3), [3, 'a', 'b'], [1, 2]]
+
+        # flat columns:
+        df = DataFrame(1, index=levels[0], columns=levels[1])
+        result = df.stack()
+        expected = Series(1, index=MultiIndex.from_product(levels[:2]))
+        assert_series_equal(result, expected)
+
+        # MultiIndex columns:
+        df = DataFrame(1, index=levels[0],
+                       columns=MultiIndex.from_product(levels[1:]))
+        result = df.stack(1)
+        expected = DataFrame(1, index=MultiIndex.from_product([levels[0],
+                                                               levels[2]]),
+                             columns=levels[1])
+        assert_frame_equal(result, expected)
+
+        # as above, but used labels in level are actually of homogeneous type
+        result = df[['a', 'b']].stack(1)
+        expected = expected[['a', 'b']]
+        assert_frame_equal(result, expected)
+
     def test_unstack_fill(self):
 
         # GH #9746: fill_value keyword argument for Series

@@ -7,7 +7,8 @@ import pandas.core.indexes.period as period
 from pandas.compat import lrange
 
 from pandas._libs.tslibs.frequencies import get_freq, _MONTHS
-from pandas._libs.period import period_ordinal, period_asfreq
+from pandas._libs.tslibs.period import period_ordinal, period_asfreq
+
 from pandas import (PeriodIndex, Period, DatetimeIndex, Timestamp, Series,
                     date_range, to_datetime, period_range)
 

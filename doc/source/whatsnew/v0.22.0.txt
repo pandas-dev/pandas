@@ -32,6 +32,37 @@ The :func:`get_dummies` now accepts a ``dtype`` argument, which specifies a dtyp
    pd.get_dummies(df, columns=['c'], dtype=bool).dtypes
 
 
+.. _whatsnew_0220.enhancements.merge_on_columns_and_levels:
+
+Merging on a combination of columns and index levels
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+Strings passed to :meth:`DataFrame.merge` as the ``on``, ``left_on``, and ``right_on``
+parameters may now refer to either column names or index level names.
+This enables merging ``DataFrame`` instances on a combination of index levels
+and columns without resetting indexes. See the :ref:`Merge on columns and
+levels <merging.merge_on_columns_and_levels>` documentation section.
+(:issue:`14355`)
+
+.. ipython:: python
+
+   left_index = pd.Index(['K0', 'K0', 'K1', 'K2'], name='key1')
+
+   left = pd.DataFrame({'A': ['A0', 'A1', 'A2', 'A3'],
+                        'B': ['B0', 'B1', 'B2', 'B3'],
+                        'key2': ['K0', 'K1', 'K0', 'K1']},
+                       index=left_index)
+
+   right_index = pd.Index(['K0', 'K1', 'K2', 'K2'], name='key1')
+
+   right = pd.DataFrame({'C': ['C0', 'C1', 'C2', 'C3'],
+                         'D': ['D0', 'D1', 'D2', 'D3'],
+                         'key2': ['K0', 'K0', 'K0', 'K1']},
+                        index=right_index)
+
+   left.merge(right, on=['key1', 'key2'])
+
+
 .. _whatsnew_0220.enhancements.other:
 
 Other Enhancements
@@ -45,6 +76,7 @@ Other Enhancements
 - Improved wording of ``ValueError`` raised in :func:`to_datetime` when ``unit=`` is passed with a non-convertible value (:issue:`14350`)
 - :func:`Series.fillna` now accepts a Series or a dict as a ``value`` for a categorical dtype (:issue:`17033`)
 - :func:`pandas.read_clipboard` updated to use qtpy, falling back to PyQt5 and then PyQt4, adding compatibility with Python3 and multiple python-qt bindings (:issue:`17722`)
+- Improved wording of ``ValueError`` raised in :func:`read_csv` when the ``usecols`` argument cannot match all columns. (:issue:`17301`)
 
 .. _whatsnew_0220.api_breaking:
 
@@ -68,6 +100,7 @@ Other API Changes
 
 - :func:`Series.astype` and :func:`Index.astype` with an incompatible dtype will now raise a ``TypeError`` rather than a ``ValueError`` (:issue:`18231`)
 - ``Series`` construction with an ``object`` dtyped tz-aware datetime and ``dtype=object`` specified, will now return an ``object`` dtyped ``Series``, previously this would infer the datetime dtype (:issue:`18231`)
+- A :class:`Series` of ``dtype=category`` constructed from an empty ``dict`` will now have categories of ``dtype=object`` rather than ``dtype=float64``, consistently with the case in which an empty list is passed (:issue:`18515`)
 - ``NaT`` division with :class:`datetime.timedelta` will now return ``NaN`` instead of raising (:issue:`17876`)
 - All-NaN levels in a ``MultiIndex`` are now assigned ``float`` rather than ``object`` dtype, promoting consistency with ``Index`` (:issue:`17929`).
 - :class:`Timestamp` will no longer silently ignore unused or invalid ``tz`` or ``tzinfo`` keyword arguments (:issue:`17690`)
@@ -75,12 +108,14 @@ Other API Changes
 - :class:`CacheableOffset` and :class:`WeekDay` are no longer available in the ``pandas.tseries.offsets`` module (:issue:`17830`)
 - `tseries.frequencies.get_freq_group()` and `tseries.frequencies.DAYS` are removed from the public API (:issue:`18034`)
 - :func:`Series.truncate` and :func:`DataFrame.truncate` will raise a ``ValueError`` if the index is not sorted instead of an unhelpful ``KeyError`` (:issue:`17935`)
-- :func:`Index.map` can now accept ``Series`` and dictionary input objects (:issue:`12756`, :issue:`18482`).
+- :func:`Index.map` can now accept ``Series`` and dictionary input objects (:issue:`12756`, :issue:`18482`, :issue:`18509`).
 - :func:`Dataframe.unstack` will now default to filling with ``np.nan`` for ``object`` columns. (:issue:`12815`)
 - :class:`IntervalIndex` constructor will raise if the ``closed`` parameter conflicts with how the input data is inferred to be closed (:issue:`18421`)
 - Inserting missing values into indexes will work for all types of indexes and automatically insert the correct type of missing value (``NaN``, ``NaT``, etc.) regardless of the type passed in (:issue:`18295`)
 - Restricted ``DateOffset`` keyword arguments. Previously, ``DateOffset`` subclasses allowed arbitrary keyword arguments which could lead to unexpected behavior. Now, only valid arguments will be accepted. (:issue:`17176`, :issue:`18226`).
 - :func:`DataFrame.from_items` provides a more informative error message when passed scalar values (:issue:`17312`)
+- When created with duplicate labels, ``MultiIndex`` now raises a ``ValueError``. (:issue:`17464`)
+- Building from source now explicity requires ``setuptools`` in ``setup.py`` (:issue:`18113`)
 
 .. _whatsnew_0220.deprecations:
 
@@ -150,6 +185,8 @@ Indexing
 - Bug in :class:`Index`` construction from list of mixed type tuples (:issue:`18505`)
 - Bug in :class:`IntervalIndex` where empty and purely NA data was constructed inconsistently depending on the construction method (:issue:`18421`)
 - Bug in ``IntervalIndex.symmetric_difference()`` where the symmetric difference with a non-``IntervalIndex`` did not raise (:issue:`18475`)
+- Bug in indexing a datetimelike ``Index`` that raised ``ValueError`` instead of ``IndexError`` (:issue:`18386`).
+
 
 I/O
 ^^^
@@ -185,7 +222,8 @@ Sparse
 Reshaping
 ^^^^^^^^^
 
--
+- Bug in :func:`DataFrame.stack` which fails trying to sort mixed type levels under Python 3 (:issue:`18310`)
+
 -
 -
 
@@ -208,5 +246,6 @@ Other
 
 - Improved error message when attempting to use a Python keyword as an identifier in a numexpr query (:issue:`18221`)
 - Fixed a bug where creating a Series from an array that contains both tz-naive and tz-aware values will result in a Series whose dtype is tz-aware instead of object (:issue:`16406`)
+- Fixed construction of a :class:`Series` from a ``dict`` containing ``NaN`` as key (:issue:`18480`)
 - Adding a ``Period`` object to a ``datetime`` or ``Timestamp`` object will now correctly raise a ``TypeError`` (:issue:`17983`)
 -
