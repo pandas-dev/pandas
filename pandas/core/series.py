@@ -657,12 +657,11 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         try:
             result = self.index.get_value(self, key)
 
-            if not is_scalar(result):
+            if (not is_scalar(result)) and (key in self.index):
                 if is_list_like(result) and not isinstance(result, Series):
-
                     # we need to box if we have a non-unique index here
                     # otherwise have inline ndarray/lists
-                    if not self.index.is_unique:
+                    if not is_scalar(self.index.get_loc(key)):
                         result = self._constructor(
                             result, index=[key] * len(result),
                             dtype=self.dtype).__finalize__(self)
