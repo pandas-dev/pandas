@@ -87,7 +87,7 @@ class TestCategoricalIndex(object):
         tm.assert_numpy_array_equal(sliced._codes, expected._codes)
         tm.assert_index_equal(sliced.categories, expected.categories)
 
-    def test_block_slicing(self):
+    def test_slicing(self):
         cat = Series(Categorical([1, 2, 3, 4]))
         reversed = cat[::-1]
         exp = np.array([4, 3, 2, 1], dtype=np.int64)
@@ -110,7 +110,7 @@ class TestCategoricalIndex(object):
         result = df.loc[8]
         tm.assert_series_equal(result, expected)
 
-    def test_block_slicing_and_getting_ops(self):
+    def test_slicing_and_getting_ops(self):
 
         # systematically test the slicing operations:
         #  for all slicing ops:
@@ -249,7 +249,7 @@ class TestCategoricalIndex(object):
         tm.assert_frame_equal(res_df, df)
         assert is_categorical_dtype(res_df["cats"])
 
-    def test_block_slicing_doc_examples(self):
+    def test_slicing_doc_examples(self):
 
         # GH 7918
         cats = Categorical(["a", "b", "b", "b", "c", "c", "c"],

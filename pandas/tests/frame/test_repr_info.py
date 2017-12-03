@@ -10,7 +10,7 @@ from numpy import nan
 import numpy as np
 import pytest
 
-from pandas import (DataFrame, compat, option_context)
+from pandas import (DataFrame, Series, compat, option_context)
 from pandas.compat import StringIO, lrange, u, PYPY
 import pandas.io.formats.format as fmt
 import pandas as pd
@@ -471,3 +471,18 @@ class TestDataFrameReprInfoEtc(TestData):
 
         buf = StringIO()
         df.info(buf=buf)
+
+    def test_info_categorical_column(self):
+
+        # make sure it works
+        n = 2500
+        df = DataFrame({'int64': np.random.randint(100, size=n)})
+        df['category'] = Series(np.array(list('abcdefghij')).take(
+            np.random.randint(0, 10, size=n))).astype('category')
+        df.isna()
+        buf = StringIO()
+        df.info(buf=buf)
+
+        df2 = df[df['category'] == 'd']
+        buf = compat.StringIO()
+        df2.info(buf=buf)

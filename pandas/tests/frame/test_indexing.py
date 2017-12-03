@@ -3079,7 +3079,7 @@ class TestDataFrameIndexingUInt64(TestData):
         assert_frame_equal(result, expected)
 
 
-class DataFrameIndexingCategorical(object):
+class TestDataFrameIndexingCategorical(object):
 
     def test_assignment(self):
         # assignment
