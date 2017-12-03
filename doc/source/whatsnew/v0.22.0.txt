@@ -76,6 +76,7 @@ Other Enhancements
 - Improved wording of ``ValueError`` raised in :func:`to_datetime` when ``unit=`` is passed with a non-convertible value (:issue:`14350`)
 - :func:`Series.fillna` now accepts a Series or a dict as a ``value`` for a categorical dtype (:issue:`17033`)
 - :func:`pandas.read_clipboard` updated to use qtpy, falling back to PyQt5 and then PyQt4, adding compatibility with Python3 and multiple python-qt bindings (:issue:`17722`)
+- Improved wording of ``ValueError`` raised in :func:`read_csv` when the ``usecols`` argument cannot match all columns. (:issue:`17301`)
 
 .. _whatsnew_0220.api_breaking:
 
