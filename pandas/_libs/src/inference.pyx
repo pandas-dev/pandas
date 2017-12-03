@@ -3,7 +3,7 @@ from decimal import Decimal
 cimport util
 cimport cython
 from tslibs.nattype import NaT
-from tslib cimport convert_to_tsobject
+from tslibs.conversion cimport convert_to_tsobject
 from tslibs.timedeltas cimport convert_to_timedelta64
 from tslibs.timezones cimport get_timezone
 from datetime import datetime, timedelta
