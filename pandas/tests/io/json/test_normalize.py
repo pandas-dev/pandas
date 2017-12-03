@@ -174,6 +174,7 @@ class TestJSONNormalize(object):
             assert val in result
 
     def test_meta_parameter_not_modified(self):
+        # GH 18610
         data = [{'foo': 'hello',
                  'bar': 'there',
                  'data': [{'foo': 'something', 'bar': 'else'},
