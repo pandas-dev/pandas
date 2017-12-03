@@ -74,9 +74,9 @@ _class_locations_map = {
         ('pandas._libs.sparse', 'BlockIndex'),
     ('pandas.tslib', 'Timestamp'):
         ('pandas._libs.tslib', 'Timestamp'),
-    ('pandas._period', 'Period'): ('pandas._libs.tslibs.period', 'Period'),
 
     # 18543 moving period
+    ('pandas._period', 'Period'): ('pandas._libs.tslibs.period', 'Period'),
     ('pandas._libs.period', 'Period'):
         ('pandas._libs.tslibs.period', 'Period'),
 

@@ -28,7 +28,7 @@ cimport util
 from util cimport is_period_object, is_string_object, INT32_MIN
 
 from pandas._libs.missing cimport is_null_datetimelike
-from pandas._libs.tslib import Timestamp
+from timestamps import Timestamp
 from timezones cimport is_utc, is_tzlocal, get_utcoffset, get_dst_info
 from timedeltas cimport delta_to_nanoseconds
 
