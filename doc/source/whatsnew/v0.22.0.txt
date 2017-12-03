@@ -132,7 +132,7 @@ Conversion
 ^^^^^^^^^^
 
 - Bug in :class:`Index` constructor with `dtype='uint64'` where int-like floats were not coerced to :class:`UInt64Index` (:issue:`18400`)
--
+- Bug in :class:`Block` where math operations on a `DataFrame` containing `bool` as elements are coerced to `bool` in :meth:`coerce_to_target_dtype`.
 -
 
 Indexing
