@@ -177,8 +177,8 @@ class MultiIndex(Index):
         Raises
         ------
         ValueError
-            * if length of levels and labels don't match or any label would
-            exceed level bounds
+            If length of levels and labels don't match, if any label would
+            exceed level bounds, or there are any duplicate levels.
         """
         # NOTE: Currently does not check, among other things, that cached
         # nlevels matches nor that sortorder matches actually sortorder.
@@ -198,6 +198,11 @@ class MultiIndex(Index):
                                  " level  (%d). NOTE: this index is in an"
                                  " inconsistent state" % (i, label.max(),
                                                           len(level)))
+            if not level.is_unique:
+                raise ValueError("Level values must be unique: {values} on "
+                                 "level {level}".format(
+                                     values=[value for value in level],
+                                     level=i))
 
     @property
     def levels(self):
