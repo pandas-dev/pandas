@@ -41,23 +41,17 @@ except ImportError:
     _CYTHON_INSTALLED = False
 
 
-setuptools_kwargs = {}
 min_numpy_ver = '1.9.0'
-if sys.version_info[0] >= 3:
+setuptools_kwargs = {
+    'install_requires': [
+        'python-dateutil >= 2' if sys.version_info[0] >= 3 else 'python-dateutil',
+        'pytz >= 2011k',
+        'numpy >= %s' % min_numpy_ver,
+    ],
+    'setup_requires': ['numpy >= %s' % min_numpy_ver],
+    'zip_safe': False,
+}
 
-    setuptools_kwargs = {'zip_safe': False,
-                         'install_requires': ['python-dateutil >= 2',
-                                              'pytz >= 2011k',
-                                              'numpy >= %s' % min_numpy_ver],
-                         'setup_requires': ['numpy >= %s' % min_numpy_ver]}
-else:
-    setuptools_kwargs = {
-        'install_requires': ['python-dateutil',
-                             'pytz >= 2011k',
-                             'numpy >= %s' % min_numpy_ver],
-        'setup_requires': ['numpy >= %s' % min_numpy_ver],
-        'zip_safe': False,
-    }
 
 from distutils.extension import Extension  # noqa:E402
 from distutils.command.build import build  # noqa:E402
@@ -708,8 +702,6 @@ _move_ext = Extension('pandas.util._move',
                       depends=[],
                       sources=['pandas/util/move.c'])
 extensions.append(_move_ext)
-
-setuptools_kwargs["test_suite"] = "nose.collector"
 
 # The build cache system does string matching below this point.
 # if you change something, be careful.
