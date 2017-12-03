@@ -623,12 +623,13 @@ class TestIndex(Base):
             # Index.
             pytest.raises(IndexError, idx.__getitem__, empty_farr)
 
-    def test_getitem(self):
-        arr = np.array(self.dateIndex)
-        exp = self.dateIndex[5]
-        exp = _to_m8(exp)
+    def test_getitem_error(self, indices):
 
-        assert exp == arr[5]
+        with pytest.raises(IndexError):
+            indices[101]
+
+        with pytest.raises(IndexError):
+            indices['no_int']
 
     def test_intersection(self):
         first = self.strIndex[:20]
@@ -884,9 +885,7 @@ class TestIndex(Base):
             expected = Index(np.arange(len(index), 0, -1))
 
             # to match proper result coercion for uints
-            if name == 'uintIndex':
-                expected = expected.astype('uint64')
-            elif name == 'empty':
+            if name == 'empty':
                 expected = Index([])
 
             result = index.map(mapper(expected, index))

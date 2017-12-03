@@ -54,8 +54,9 @@ import pandas.core.tools.datetimes as tools
 
 from pandas._libs import (lib, index as libindex, tslib as libts,
                           algos as libalgos, join as libjoin,
-                          Timestamp, period as libperiod)
-from pandas._libs.tslibs import timezones, conversion, fields
+                          Timestamp)
+from pandas._libs.tslibs import (timezones, conversion, fields,
+                                 period as libperiod)
 
 # -------- some conversion wrapper functions
 
@@ -1456,17 +1457,6 @@ class DatetimeIndex(DatelikeOps, TimelikeOps, DatetimeIndexOpsMixin,
         values = self._engine.get_value(_values_from_object(series),
                                         key, tz=self.tz)
         return _maybe_box(self, values, series, key)
-
-    @Appender(_index_shared_docs['_get_values_from_dict'])
-    def _get_values_from_dict(self, data):
-        if len(data):
-            # coerce back to datetime objects for lookup
-            data = com._dict_compat(data)
-            return lib.fast_multiget(data,
-                                     self.asobject.values,
-                                     default=np.nan)
-
-        return np.array([np.nan])
 
     def get_loc(self, key, method=None, tolerance=None):
         """
