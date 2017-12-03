@@ -1067,8 +1067,10 @@ class Block(PandasObject):
             return self
 
         if self.is_bool or is_object_dtype(dtype) or is_bool_dtype(dtype):
-            # we don't upcast to bool
-            return self.astype(object)
+            if is_float_dtype(dtype) or is_integer_dtype(dtype):
+                return self.astype(dtype)
+            else:
+                return self.astype(object)
 
         elif ((self.is_float or self.is_complex) and
               (is_integer_dtype(dtype) or is_float_dtype(dtype))):
