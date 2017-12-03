@@ -17,7 +17,8 @@ from tslibs.conversion cimport maybe_datetimelike_to_i8
 
 from hashtable cimport HashTable
 
-from pandas._libs import algos, period as periodlib, hashtable as _hash
+from pandas._libs import algos, hashtable as _hash
+from pandas._libs.tslibs import period as periodlib
 from pandas._libs.tslib import Timestamp, Timedelta
 from datetime import datetime, timedelta, date
 

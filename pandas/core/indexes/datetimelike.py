@@ -25,7 +25,7 @@ from pandas.core.common import AbstractMethodError
 
 import pandas.io.formats.printing as printing
 from pandas._libs import lib, iNaT, NaT
-from pandas._libs.period import Period
+from pandas._libs.tslibs.period import Period
 from pandas._libs.tslibs.timedeltas import delta_to_nanoseconds
 
 from pandas.core.indexes.base import Index, _index_shared_docs

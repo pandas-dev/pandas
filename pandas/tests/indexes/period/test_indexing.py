@@ -9,7 +9,7 @@ from pandas.compat import lrange
 from pandas._libs import tslib, tslibs
 from pandas import (PeriodIndex, Series, DatetimeIndex,
                     period_range, Period)
-from pandas._libs import period as libperiod
+from pandas._libs.tslibs import period as libperiod
 
 
 class TestGetItem(object):
