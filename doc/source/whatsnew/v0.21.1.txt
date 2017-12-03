@@ -56,7 +56,7 @@ Documentation Changes
 
 Bug Fixes
 ~~~~~~~~~
-- Bug in :meth:`fillna` where maximum recursion depth gets exceeded in comparison (:issue:`18159`).
+- Bug in :meth:`Series.fillna` which was raising RuntimeError when got large integer (:issue:`18159`).
 
 
 Conversion

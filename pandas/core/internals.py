@@ -1898,7 +1898,7 @@ class ComplexBlock(FloatOrComplexBlock):
             return issubclass(tipo.type,
                               (np.floating, np.integer, np.complexfloating))
         return (isinstance(element,
-                           (float, int, complex, np.float_, np.int_)) and
+                           (float, int, complex, np.float_, np.int_, compat.long)) and
                 not isinstance(element, (bool, np.bool_)))
 
     def should_store(self, value):
