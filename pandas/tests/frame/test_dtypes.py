@@ -675,13 +675,12 @@ class TestDataFrameDataTypes(TestData):
     @pytest.mark.parametrize("struct", [pd.Series, pd.DataFrame])
     @pytest.mark.parametrize('op', [add, mul, floordiv, sub])
     def test_assert_list_and_bool_coerce(self, num, struct, op):
-        #issue 18549
+        # issue 18549
         target_type = np.array([op(num, num)]).dtype
         res = op(struct([True]), num).dtypes
         if isinstance(res, pd.Series):
             res = res[0]
         assert target_type == res
-
 
 
 class TestDataFrameDatetimeWithTZ(TestData):
