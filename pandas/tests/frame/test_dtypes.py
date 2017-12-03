@@ -669,6 +669,21 @@ class TestDataFrameDataTypes(TestData):
 
         df.astype(np.int8, errors='ignore')
 
+    @pytest.mark.parametrize("num, dtype", [
+        (1.0, 'float64'),
+        (1, 'int64')
+    ])
+    def test_assert_list_and_bool_coerce(self, num, dtype):
+        #issue 18549
+        df = pd.DataFrame([True]) * num
+        assert df.dtypes[0] == type
+        df = pd.DataFrame([False]) + num
+        assert df.dtypes[0] == type
+        df = pd.DataFrame([True]) - num
+        assert df.dtypes[0] == type
+        df = pd.DataFrame([False]) / num
+        assert df.dtypes[0] == type
+
 
 class TestDataFrameDatetimeWithTZ(TestData):
 
