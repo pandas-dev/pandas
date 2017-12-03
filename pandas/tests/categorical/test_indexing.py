@@ -5,7 +5,7 @@ import pytest
 import numpy as np
 
 import pandas.util.testing as tm
-from pandas import Categorical, Index, Series, PeriodIndex
+from pandas import Categorical, Index, PeriodIndex
 from pandas.tests.categorical.common import TestCategorical
 
 
@@ -55,25 +55,6 @@ class TestCategoricalIndexing(object):
         result = c.codes[np.array([100000]).astype(np.int64)]
         expected = c[np.array([100000]).astype(np.int64)].codes
         tm.assert_numpy_array_equal(result, expected)
-
-    @pytest.mark.parametrize(
-        "method",
-        [
-            lambda x: x.cat.set_categories([1, 2, 3]),
-            lambda x: x.cat.reorder_categories([2, 3, 1], ordered=True),
-            lambda x: x.cat.rename_categories([1, 2, 3]),
-            lambda x: x.cat.remove_unused_categories(),
-            lambda x: x.cat.remove_categories([2]),
-            lambda x: x.cat.add_categories([4]),
-            lambda x: x.cat.as_ordered(),
-            lambda x: x.cat.as_unordered(),
-        ])
-    def test_getname_categorical_accessor(self, method):
-        # GH 17509
-        s = Series([1, 2, 3], name='A').astype('category')
-        expected = 'A'
-        result = method(s).name
-        assert result == expected
 
     def test_periodindex(self):
         idx1 = PeriodIndex(['2014-01', '2014-01', '2014-02', '2014-02',

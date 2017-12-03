@@ -235,6 +235,21 @@ class TestSeriesMisc(TestData, SharedWithSparse):
         assert 'str' not in dir(s)
         assert 'dt' in dir(s)  # as it is a datetime categorical
 
+    def test_tab_completion_with_categorical(self):
+        # test the tab completion display
+        ok_for_cat = ['categories', 'codes', 'ordered', 'set_categories',
+                      'add_categories', 'remove_categories',
+                      'rename_categories', 'reorder_categories',
+                      'remove_unused_categories', 'as_ordered', 'as_unordered']
+
+        def get_dir(s):
+            results = [r for r in s.cat.__dir__() if not r.startswith('_')]
+            return list(sorted(set(results)))
+
+        s = Series(list('aabbcde')).astype('category')
+        results = get_dir(s)
+        tm.assert_almost_equal(results, list(sorted(set(ok_for_cat))))
+
     def test_not_hashable(self):
         s_empty = Series()
         s = Series([1])
@@ -431,6 +446,25 @@ class TestSeriesMisc(TestData, SharedWithSparse):
 
 
 class TestCategoricalSeries(object):
+
+    @pytest.mark.parametrize(
+        "method",
+        [
+            lambda x: x.cat.set_categories([1, 2, 3]),
+            lambda x: x.cat.reorder_categories([2, 3, 1], ordered=True),
+            lambda x: x.cat.rename_categories([1, 2, 3]),
+            lambda x: x.cat.remove_unused_categories(),
+            lambda x: x.cat.remove_categories([2]),
+            lambda x: x.cat.add_categories([4]),
+            lambda x: x.cat.as_ordered(),
+            lambda x: x.cat.as_unordered(),
+        ])
+    def test_getname_categorical_accessor(self, method):
+        # GH 17509
+        s = Series([1, 2, 3], name='A').astype('category')
+        expected = 'A'
+        result = method(s).name
+        assert result == expected
 
     def test_cat_accessor(self):
         s = Series(Categorical(["a", "b", np.nan, "a"]))

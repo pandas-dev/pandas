@@ -47,13 +47,6 @@ class TestCategoricalMissing(object):
         tm.assert_numpy_array_equal(result.codes, np.array([0, -1, -1],
                                                            dtype='int8'))
 
-    def test_isna(self):
-        exp = np.array([False, False, True])
-        c = Categorical(["a", "b", np.nan])
-        res = c.isna()
-
-        tm.assert_numpy_array_equal(res, exp)
-
     def test_set_item_nan(self):
         cat = Categorical([1, 2, 3])
         cat[1] = np.nan

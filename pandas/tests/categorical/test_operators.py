@@ -7,6 +7,118 @@ import numpy as np
 
 import pandas.util.testing as tm
 from pandas import Categorical, Series, DataFrame, date_range
+from pandas.tests.categorical.common import TestCategorical
+
+
+class TestCategoricalOpsWithFactor(TestCategorical):
+
+    def test_categories_none_comparisons(self):
+        factor = Categorical(['a', 'b', 'b', 'a',
+                              'a', 'c', 'c', 'c'], ordered=True)
+        tm.assert_categorical_equal(factor, self.factor)
+
+    def test_comparisons(self):
+
+        result = self.factor[self.factor == 'a']
+        expected = self.factor[np.asarray(self.factor) == 'a']
+        tm.assert_categorical_equal(result, expected)
+
+        result = self.factor[self.factor != 'a']
+        expected = self.factor[np.asarray(self.factor) != 'a']
+        tm.assert_categorical_equal(result, expected)
+
+        result = self.factor[self.factor < 'c']
+        expected = self.factor[np.asarray(self.factor) < 'c']
+        tm.assert_categorical_equal(result, expected)
+
+        result = self.factor[self.factor > 'a']
+        expected = self.factor[np.asarray(self.factor) > 'a']
+        tm.assert_categorical_equal(result, expected)
+
+        result = self.factor[self.factor >= 'b']
+        expected = self.factor[np.asarray(self.factor) >= 'b']
+        tm.assert_categorical_equal(result, expected)
+
+        result = self.factor[self.factor <= 'b']
+        expected = self.factor[np.asarray(self.factor) <= 'b']
+        tm.assert_categorical_equal(result, expected)
+
+        n = len(self.factor)
+
+        other = self.factor[np.random.permutation(n)]
+        result = self.factor == other
+        expected = np.asarray(self.factor) == np.asarray(other)
+        tm.assert_numpy_array_equal(result, expected)
+
+        result = self.factor == 'd'
+        expected = np.repeat(False, len(self.factor))
+        tm.assert_numpy_array_equal(result, expected)
+
+        # comparisons with categoricals
+        cat_rev = Categorical(
+            ["a", "b", "c"], categories=["c", "b", "a"], ordered=True)
+        cat_rev_base = Categorical(
+            ["b", "b", "b"], categories=["c", "b", "a"], ordered=True)
+        cat = Categorical(["a", "b", "c"], ordered=True)
+        cat_base = Categorical(
+            ["b", "b", "b"], categories=cat.categories, ordered=True)
+
+        # comparisons need to take categories ordering into account
+        res_rev = cat_rev > cat_rev_base
+        exp_rev = np.array([True, False, False])
+        tm.assert_numpy_array_equal(res_rev, exp_rev)
+
+        res_rev = cat_rev < cat_rev_base
+        exp_rev = np.array([False, False, True])
+        tm.assert_numpy_array_equal(res_rev, exp_rev)
+
+        res = cat > cat_base
+        exp = np.array([False, False, True])
+        tm.assert_numpy_array_equal(res, exp)
+
+        # Only categories with same categories can be compared
+        def f():
+            cat > cat_rev
+
+        pytest.raises(TypeError, f)
+
+        cat_rev_base2 = Categorical(
+            ["b", "b", "b"], categories=["c", "b", "a", "d"])
+
+        def f():
+            cat_rev > cat_rev_base2
+
+        pytest.raises(TypeError, f)
+
+        # Only categories with same ordering information can be compared
+        cat_unorderd = cat.set_ordered(False)
+        assert not (cat > cat).any()
+
+        def f():
+            cat > cat_unorderd
+
+        pytest.raises(TypeError, f)
+
+        # comparison (in both directions) with Series will raise
+        s = Series(["b", "b", "b"])
+        pytest.raises(TypeError, lambda: cat > s)
+        pytest.raises(TypeError, lambda: cat_rev > s)
+        pytest.raises(TypeError, lambda: s < cat)
+        pytest.raises(TypeError, lambda: s < cat_rev)
+
+        # comparison with numpy.array will raise in both direction, but only on
+        # newer numpy versions
+        a = np.array(["b", "b", "b"])
+        pytest.raises(TypeError, lambda: cat > a)
+        pytest.raises(TypeError, lambda: cat_rev > a)
+
+        # Make sure that unequal comparison take the categories order in
+        # account
+        cat_rev = Categorical(
+            list("abc"), categories=list("cba"), ordered=True)
+        exp = np.array([True, False, False])
+        res = cat_rev > "b"
+        tm.assert_numpy_array_equal(res, exp)
 
 
 class TestCategoricalOps(object):

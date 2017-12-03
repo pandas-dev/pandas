@@ -6,10 +6,11 @@ import sys
 import numpy as np
 
 import pandas.util.testing as tm
-from pandas import Categorical, Index, Series
+from pandas import Categorical, CategoricalIndex, Index, Series, DataFrame
 
 from pandas.compat import PYPY
 from pandas.core.categorical import _recode_for_categories
+from pandas.tests.categorical.common import TestCategorical
 
 
 class TestCategoricalAPI(object):
@@ -511,47 +512,6 @@ class TestCategoricalAPI(object):
         exp = np.array([0, 1, 2, 0, 2], dtype='int8')
         tm.assert_numpy_array_equal(c.codes, exp)
 
-    def test_min_max(self):
-
-        # unordered cats have no min/max
-        cat = Categorical(["a", "b", "c", "d"], ordered=False)
-        pytest.raises(TypeError, lambda: cat.min())
-        pytest.raises(TypeError, lambda: cat.max())
-        cat = Categorical(["a", "b", "c", "d"], ordered=True)
-        _min = cat.min()
-        _max = cat.max()
-        assert _min == "a"
-        assert _max == "d"
-        cat = Categorical(["a", "b", "c", "d"],
-                          categories=['d', 'c', 'b', 'a'], ordered=True)
-        _min = cat.min()
-        _max = cat.max()
-        assert _min == "d"
-        assert _max == "a"
-        cat = Categorical([np.nan, "b", "c", np.nan],
-                          categories=['d', 'c', 'b', 'a'], ordered=True)
-        _min = cat.min()
-        _max = cat.max()
-        assert np.isnan(_min)
-        assert _max == "b"
-
-        _min = cat.min(numeric_only=True)
-        assert _min == "c"
-        _max = cat.max(numeric_only=True)
-        assert _max == "b"
-
-        cat = Categorical([np.nan, 1, 2, np.nan], categories=[5, 4, 3, 2, 1],
-                          ordered=True)
-        _min = cat.min()
-        _max = cat.max()
-        assert np.isnan(_min)
-        assert _max == 1
-
-        _min = cat.min(numeric_only=True)
-        assert _min == 2
-        _max = cat.max(numeric_only=True)
-        assert _max == 1
-
     def test_unique(self):
         # categories are reordered based on value when ordered=False
         cat = Categorical(["a", "b"])
@@ -632,40 +592,6 @@ class TestCategoricalAPI(object):
 
         tm.assert_index_equal(Index(c).unique(), Index(exp))
         tm.assert_categorical_equal(Series(c).unique(), exp)
-
-    def test_mode(self):
-        s = Categorical([1, 1, 2, 4, 5, 5, 5], categories=[5, 4, 3, 2, 1],
-                        ordered=True)
-        res = s.mode()
-        exp = Categorical([5], categories=[5, 4, 3, 2, 1], ordered=True)
-        tm.assert_categorical_equal(res, exp)
-        s = Categorical([1, 1, 1, 4, 5, 5, 5], categories=[5, 4, 3, 2, 1],
-                        ordered=True)
-        res = s.mode()
-        exp = Categorical([5, 1], categories=[5, 4, 3, 2, 1], ordered=True)
-        tm.assert_categorical_equal(res, exp)
-        s = Categorical([1, 2, 3, 4, 5], categories=[5, 4, 3, 2, 1],
-                        ordered=True)
-        res = s.mode()
-        exp = Categorical([5, 4, 3, 2, 1],
-                          categories=[5, 4, 3, 2, 1], ordered=True)
-        tm.assert_categorical_equal(res, exp)
-        # NaN should not become the mode!
-        s = Categorical([np.nan, np.nan, np.nan, 4, 5],
-                        categories=[5, 4, 3, 2, 1], ordered=True)
-        res = s.mode()
-        exp = Categorical([5, 4], categories=[5, 4, 3, 2, 1], ordered=True)
-        tm.assert_categorical_equal(res, exp)
-        s = Categorical([np.nan, np.nan, np.nan, 4, 5, 4],
-                        categories=[5, 4, 3, 2, 1], ordered=True)
-        res = s.mode()
-        exp = Categorical([4], categories=[5, 4, 3, 2, 1], ordered=True)
-        tm.assert_categorical_equal(res, exp)
-        s = Categorical([np.nan, np.nan, 4, 5, 4], categories=[5, 4, 3, 2, 1],
-                        ordered=True)
-        res = s.mode()
-        exp = Categorical([4], categories=[5, 4, 3, 2, 1], ordered=True)
-        tm.assert_categorical_equal(res, exp)
 
     def test_shift(self):
         # GH 9416
@@ -774,13 +700,6 @@ class TestCategoricalAPI(object):
             with pytest.raises(ValueError):
                 cat.sort_values(inplace=value)
 
-    @pytest.mark.xfail(reason="Imaginary values not supported in Categorical")
-    def test_imaginary(self):
-        values = [1, 2, 3 + 1j]
-        c1 = Categorical(values)
-        tm.assert_index_equal(c1.categories, Index(values))
-        tm.assert_numpy_array_equal(np.array(c1), np.array(values))
-
     def test_repeat(self):
         # GH10183
         cat = Categorical(["a", "b"], categories=["a", "b"])
@@ -804,17 +723,61 @@ class TestCategoricalAPI(object):
 
         pytest.raises(ValueError, lambda: cat.astype(float))
 
-    def test_cat_tab_completition(self):
-        # test the tab completion display
-        ok_for_cat = ['categories', 'codes', 'ordered', 'set_categories',
-                      'add_categories', 'remove_categories',
-                      'rename_categories', 'reorder_categories',
-                      'remove_unused_categories', 'as_ordered', 'as_unordered']
+    def test_isna(self):
+        exp = np.array([False, False, True])
+        c = Categorical(["a", "b", np.nan])
+        res = c.isna()
 
-        def get_dir(s):
-            results = [r for r in s.cat.__dir__() if not r.startswith('_')]
-            return list(sorted(set(results)))
+        tm.assert_numpy_array_equal(res, exp)
 
-        s = Series(list('aabbcde')).astype('category')
-        results = get_dir(s)
-        tm.assert_almost_equal(results, list(sorted(set(ok_for_cat))))
+
+class TestCategoricalAPIWithFactor(TestCategorical):
+
+    def test_describe(self):
+        # string type
+        desc = self.factor.describe()
+        assert self.factor.ordered
+        exp_index = CategoricalIndex(['a', 'b', 'c'], name='categories',
+                                     ordered=self.factor.ordered)
+        expected = DataFrame({'counts': [3, 2, 3],
+                              'freqs': [3 / 8., 2 / 8., 3 / 8.]},
+                             index=exp_index)
+        tm.assert_frame_equal(desc, expected)
+
+        # check unused categories
+        cat = self.factor.copy()
+        cat.set_categories(["a", "b", "c", "d"], inplace=True)
+        desc = cat.describe()
+
+        exp_index = CategoricalIndex(
+            list('abcd'), ordered=self.factor.ordered, name='categories')
+        expected = DataFrame({'counts': [3, 2, 3, 0],
+                              'freqs': [3 / 8., 2 / 8., 3 / 8., 0]},
+                             index=exp_index)
+        tm.assert_frame_equal(desc, expected)
+
+        # check an integer one
+        cat = Categorical([1, 2, 3, 1, 2, 3, 3, 2, 1, 1, 1])
+        desc = cat.describe()
+        exp_index = CategoricalIndex([1, 2, 3], ordered=cat.ordered,
+                                     name='categories')
+        expected = DataFrame({'counts': [5, 3, 3],
+                              'freqs': [5 / 11., 3 / 11., 3 / 11.]},
+                             index=exp_index)
+        tm.assert_frame_equal(desc, expected)
+
+        # https://github.com/pandas-dev/pandas/issues/3678
+        # describe should work with NaN
+        cat = Categorical([np.nan, 1, 2, 2])
+        desc = cat.describe()
+        expected = DataFrame({'counts': [1, 2, 1],
+                              'freqs': [1 / 4., 2 / 4., 1 / 4.]},
+                             index=CategoricalIndex([1, 2, np.nan],
+                                                    categories=[1, 2],
+                                                    name='categories'))
+        tm.assert_frame_equal(desc, expected)
+
+    def test_set_categories_inplace(self):
+        cat = self.factor.copy()
+        cat.set_categories(['a', 'b', 'c', 'd'], inplace=True)
+        tm.assert_index_equal(cat.categories, Index(['a', 'b', 'c', 'd']))

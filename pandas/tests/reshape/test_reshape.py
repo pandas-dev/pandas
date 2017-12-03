@@ -454,6 +454,9 @@ class TestGetDummies(object):
 
             tm.assert_frame_equal(result, expected)
 
+
+class TestCategoricalReshape(object):
+
     def test_reshaping_panel_categorical(self):
 
         with catch_warnings(record=True):

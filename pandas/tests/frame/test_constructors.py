@@ -19,7 +19,7 @@ from pandas.compat import (lmap, long, zip, range, lrange, lzip,
 from pandas import compat
 from pandas import (DataFrame, Index, Series, isna,
                     MultiIndex, Timedelta, Timestamp,
-                    date_range, Categorical, period_range)
+                    date_range, Categorical)
 import pandas as pd
 import pandas._libs.lib as lib
 import pandas.util.testing as tm
@@ -1635,22 +1635,6 @@ class TestDataFrameConstructors(TestData):
             {'x': Series(['a', 'b', 'c'], dtype='category')}, index=index)
         tm.assert_frame_equal(df, expected)
 
-    def test_constructor_categorical_dates_periods(self):
-        # normal DataFrame
-        dt = date_range('2011-01-01 09:00', freq='H', periods=5,
-                        tz='US/Eastern')
-        p = period_range('2011-01', freq='M', periods=5)
-        df = DataFrame({'dt': dt, 'p': p})
-        exp = """                         dt       p
-0 2011-01-01 09:00:00-05:00 2011-01
-1 2011-01-01 10:00:00-05:00 2011-02
-2 2011-01-01 11:00:00-05:00 2011-03
-3 2011-01-01 12:00:00-05:00 2011-04
-4 2011-01-01 13:00:00-05:00 2011-05"""
-
-        df = DataFrame({'dt': Categorical(dt), 'p': Categorical(p)})
-        assert repr(df) == exp
-
     def test_from_records_to_records(self):
         # from numpy documentation
         arr = np.zeros((2,), dtype=('i4,f4,a10'))
@@ -2108,24 +2092,3 @@ class TestDataFrameConstructorWithDatetimeTZ(TestData):
         result['index'].dtype == 'M8[ns]'
 
         result = df.to_records(index=False)
-
-    def test_frame_categorical_to_records(self):
-
-        # GH8626
-
-        # dict creation
-        df = DataFrame({'A': list('abc')}, dtype='category')
-        expected = Series(list('abc'), dtype='category', name='A')
-        tm.assert_series_equal(df['A'], expected)
-
-        # list-like creation
-        df = DataFrame(list('abc'), dtype='category')
-        expected = Series(list('abc'), dtype='category', name=0)
-        tm.assert_series_equal(df[0], expected)
-
-        # to record array
-        # this coerces
-        result = df.to_records()
-        expected = np.rec.array([(0, 'a'), (1, 'b'), (2, 'c')],
-                                dtype=[('index', '=i8'), ('0', 'O')])
-        tm.assert_almost_equal(result, expected)
