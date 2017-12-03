@@ -25,7 +25,7 @@ from pandas.core.common import AbstractMethodError
 
 import pandas.io.formats.printing as printing
 from pandas._libs import lib, iNaT, NaT
-from pandas._libs.period import Period
+from pandas._libs.tslibs.period import Period
 from pandas._libs.tslibs.timedeltas import delta_to_nanoseconds
 
 from pandas.core.indexes.base import Index, _index_shared_docs
@@ -263,7 +263,9 @@ class DatetimeIndexOpsMixin(object):
 
         is_int = is_integer(key)
         if is_scalar(key) and not is_int:
-            raise ValueError
+            raise IndexError("only integers, slices (`:`), ellipsis (`...`), "
+                             "numpy.newaxis (`None`) and integer or boolean "
+                             "arrays are valid indices")
 
         getitem = self._data.__getitem__
         if is_int:
@@ -697,14 +699,6 @@ class DatetimeIndexOpsMixin(object):
 
     def _add_delta(self, other):
         return NotImplemented
-
-    @Appender(_index_shared_docs['_get_values_from_dict'])
-    def _get_values_from_dict(self, data):
-        if len(data):
-            return np.array([data.get(i, np.nan)
-                             for i in self.asobject.values])
-
-        return np.array([np.nan])
 
     def _add_delta_td(self, other):
         # add a delta of a timedeltalike

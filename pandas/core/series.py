@@ -42,7 +42,6 @@ from pandas.core.common import (is_bool_indexer,
                                 _default_index,
                                 _asarray_tuplesafe,
                                 _values_from_object,
-                                _try_sort,
                                 _maybe_match_name,
                                 SettingWithCopyError,
                                 _maybe_box_datetimelike,
@@ -198,18 +197,9 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
                     data = data.reindex(index, copy=copy)
                 data = data._data
             elif isinstance(data, dict):
-                if index is None:
-                    if isinstance(data, OrderedDict):
-                        index = Index(data)
-                    else:
-                        index = Index(_try_sort(data))
-
-                try:
-                    data = index._get_values_from_dict(data)
-                except TypeError:
-                    data = ([data.get(i, np.nan) for i in index]
-                            if data else np.nan)
-
+                data, index = self._init_dict(data, index, dtype)
+                dtype = None
+                copy = False
             elif isinstance(data, SingleBlockManager):
                 if index is None:
                     index = data.index
@@ -256,6 +246,45 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
 
         self.name = name
         self._set_axis(0, index, fastpath=True)
+
+    def _init_dict(self, data, index=None, dtype=None):
+        """
+        Derive the "_data" and "index" attributes of a new Series from a
+        dictionary input.
+
+        Parameters
+        ----------
+        data : dict or dict-like
+            Data used to populate the new Series
+        index : Index or index-like, default None
+            index for the new Series: if None, use dict keys
+        dtype : dtype, default None
+            dtype for the new Series: if None, infer from data
+
+        Returns
+        -------
+        _data : BlockManager for the new Series
+        index : index for the new Series
+        """
+        # Looking for NaN in dict doesn't work ({np.nan : 1}[float('nan')]
+        # raises KeyError), so we iterate the entire dict, and align
+        if data:
+            keys, values = zip(*compat.iteritems(data))
+        else:
+            keys, values = [], []
+
+        # Input is now list-like, so rely on "standard" construction:
+        s = Series(values, index=keys, dtype=dtype)
+
+        # Now we just make sure the order is respected, if any
+        if index is not None:
+            s = s.reindex(index, copy=False)
+        elif not isinstance(data, OrderedDict):
+            try:
+                s = s.sort_index()
+            except TypeError:
+                pass
+        return s._data, s.index
 
     @classmethod
     def from_array(cls, arr, index=None, name=None, dtype=None, copy=False,
