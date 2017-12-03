@@ -9,13 +9,17 @@ BSD license. Parts are from lxml (https://github.com/lxml/lxml)
 import os
 from os.path import join as pjoin
 
+import pkg_resources
 import sys
 import shutil
 from distutils.version import LooseVersion
+from setuptools import setup, Command
 
 # versioning
 import versioneer
 cmdclass = versioneer.get_cmdclass()
+
+PY3 = sys.version_info[0] >= 3
 
 
 def is_platform_windows():
@@ -38,46 +42,18 @@ try:
 except ImportError:
     _CYTHON_INSTALLED = False
 
-try:
-    import pkg_resources
-    from setuptools import setup, Command
-    _have_setuptools = True
-except ImportError:
-    # no setuptools installed
-    from distutils.core import setup, Command
-    _have_setuptools = False
 
-setuptools_kwargs = {}
 min_numpy_ver = '1.9.0'
-if sys.version_info[0] >= 3:
+setuptools_kwargs = {
+    'install_requires': [
+        'python-dateutil >= 2' if PY3 else 'python-dateutil',
+        'pytz >= 2011k',
+        'numpy >= %s' % min_numpy_ver,
+    ],
+    'setup_requires': ['numpy >= %s' % min_numpy_ver],
+    'zip_safe': False,
+}
 
-    setuptools_kwargs = {'zip_safe': False,
-                         'install_requires': ['python-dateutil >= 2',
-                                              'pytz >= 2011k',
-                                              'numpy >= %s' % min_numpy_ver],
-                         'setup_requires': ['numpy >= %s' % min_numpy_ver]}
-    if not _have_setuptools:
-        sys.exit("need setuptools/distribute for Py3k"
-                 "\n$ pip install distribute")
-
-else:
-    setuptools_kwargs = {
-        'install_requires': ['python-dateutil',
-                             'pytz >= 2011k',
-                             'numpy >= %s' % min_numpy_ver],
-        'setup_requires': ['numpy >= %s' % min_numpy_ver],
-        'zip_safe': False,
-    }
-
-    if not _have_setuptools:
-        try:
-            import numpy  # noqa:F401
-            import dateutil  # noqa:F401
-            setuptools_kwargs = {}
-        except ImportError:
-            sys.exit("install requires: 'python-dateutil < 2','numpy'."
-                     "  use pip or easy_install."
-                     "\n   $ pip install 'python-dateutil < 2' 'numpy'")
 
 from distutils.extension import Extension  # noqa:E402
 from distutils.command.build import build  # noqa:E402
@@ -695,7 +671,7 @@ extensions.append(unpacker_ext)
 # ----------------------------------------------------------------------
 # ujson
 
-if suffix == '.pyx' and 'setuptools' in sys.modules:
+if suffix == '.pyx':
     # undo dumb setuptools bug clobbering .pyx sources back to .c
     for ext in extensions:
         if ext.sources[0].endswith(('.c', '.cpp')):
@@ -728,10 +704,6 @@ _move_ext = Extension('pandas.util._move',
                       depends=[],
                       sources=['pandas/util/move.c'])
 extensions.append(_move_ext)
-
-
-if _have_setuptools:
-    setuptools_kwargs["test_suite"] = "nose.collector"
 
 # The build cache system does string matching below this point.
 # if you change something, be careful.

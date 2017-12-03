@@ -115,6 +115,7 @@ Other API Changes
 - Restricted ``DateOffset`` keyword arguments. Previously, ``DateOffset`` subclasses allowed arbitrary keyword arguments which could lead to unexpected behavior. Now, only valid arguments will be accepted. (:issue:`17176`, :issue:`18226`).
 - :func:`DataFrame.from_items` provides a more informative error message when passed scalar values (:issue:`17312`)
 - When created with duplicate labels, ``MultiIndex`` now raises a ``ValueError``. (:issue:`17464`)
+- Building from source now explicity requires ``setuptools`` in ``setup.py`` (:issue:`18113`)
 
 .. _whatsnew_0220.deprecations:
 
