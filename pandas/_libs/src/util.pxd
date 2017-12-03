@@ -3,11 +3,6 @@ cimport numpy as cnp
 cimport cpython
 
 
-cdef extern from "headers/math.h":
-    # use this version instead of `from libc.math cimport sqrt`; see GH#18420
-    double sqrt(double x) nogil
-
-
 cdef extern from "numpy_helper.h":
     void set_array_not_contiguous(ndarray ao)
 

@@ -32,10 +32,11 @@ cdef double NaN = <double> np.NaN
 cdef inline int int_max(int a, int b): return a if a >= b else b
 cdef inline int int_min(int a, int b): return a if a <= b else b
 
-from util cimport numeric, sqrt
+from util cimport numeric
 
 cdef extern from "../src/headers/math.h":
     int signbit(double) nogil
+    double sqrt(double x) nogil
 
 
 # Cython implementations of rolling sum, mean, variance, skewness,

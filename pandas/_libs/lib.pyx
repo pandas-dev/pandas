@@ -65,9 +65,9 @@ from missing cimport checknull
 
 cimport util
 cdef int64_t NPY_NAT = util.get_nat()
-from util cimport is_array, _checknull, sqrt
+from util cimport is_array, _checknull
 
-from libc.math cimport fabs
+from libc.math cimport fabs, sqrt
 
 
 def values_from_object(object o):

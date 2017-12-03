@@ -27,10 +27,10 @@ from numpy cimport (ndarray,
 cdef double NaN = <double> np.NaN
 cdef double nan = NaN
 
-from libc.math cimport fabs
+from libc.math cimport fabs, sqrt
 
 # this is our util.pxd
-from util cimport numeric, get_nat, sqrt
+from util cimport numeric, get_nat
 
 import missing
 
