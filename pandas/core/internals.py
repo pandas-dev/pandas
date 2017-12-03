@@ -1026,7 +1026,7 @@ class Block(PandasObject):
 
         return [self.make_block(new_values, fastpath=True)]
 
-    def coerce_to_target_dtype(self, other):
+    def coerce_to_target_dtype(self, other, force_coericion=False):
         """
         coerce the current block to a dtype compat for other
         we will return a block, possibly object, and not raise
@@ -1042,7 +1042,7 @@ class Block(PandasObject):
             return self
 
         if self.is_bool or is_object_dtype(dtype) or is_bool_dtype(dtype):
-            if is_float_dtype(dtype) or is_integer_dtype(dtype):
+            if force_coericion and is_float_dtype(dtype) or is_integer_dtype(dtype):
                 return self.astype(dtype)
             else:
                 return self.astype(object)
@@ -1326,7 +1326,7 @@ class Block(PandasObject):
             values, values_mask, other, other_mask = self._try_coerce_args(
                 transf(values), other)
         except TypeError:
-            block = self.coerce_to_target_dtype(orig_other)
+            block = self.coerce_to_target_dtype(orig_other, True)
             return block.eval(func, orig_other,
                               errors=errors,
                               try_cast=try_cast, mgr=mgr)
