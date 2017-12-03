@@ -494,7 +494,9 @@ ext_data = {
         'depends': _pxi_dep['join']},
     '_libs.lib': {
         'pyxfile': '_libs/lib',
-        'pxdfiles': ['_libs/src/util', '_libs/missing'],
+        'pxdfiles': ['_libs/src/util',
+                     '_libs/missing',
+                     '_libs/tslibs/conversion'],
         'depends': lib_depends + tseries_depends},
     '_libs.missing': {
         'pyxfile': '_libs/missing',
