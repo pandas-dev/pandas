@@ -114,6 +114,7 @@ Other API Changes
 - Inserting missing values into indexes will work for all types of indexes and automatically insert the correct type of missing value (``NaN``, ``NaT``, etc.) regardless of the type passed in (:issue:`18295`)
 - Restricted ``DateOffset`` keyword arguments. Previously, ``DateOffset`` subclasses allowed arbitrary keyword arguments which could lead to unexpected behavior. Now, only valid arguments will be accepted. (:issue:`17176`, :issue:`18226`).
 - :func:`DataFrame.from_items` provides a more informative error message when passed scalar values (:issue:`17312`)
+- When created with duplicate labels, ``MultiIndex`` now raises a ``ValueError``. (:issue:`17464`)
 
 .. _whatsnew_0220.deprecations:
 
