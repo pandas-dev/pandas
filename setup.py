@@ -48,9 +48,9 @@ setuptools_kwargs = {
     'install_requires': [
         'python-dateutil >= 2' if PY3 else 'python-dateutil',
         'pytz >= 2011k',
-        'numpy >= %s' % min_numpy_ver,
+        'numpy >= {numpy_ver}'.format(numpy_ver=min_numpy_ver),
     ],
-    'setup_requires': ['numpy >= %s' % min_numpy_ver],
+    'setup_requires': ['numpy >= {numpy_ver}'.format(numpy_ver=min_numpy_ver)],
     'zip_safe': False,
 }
 
@@ -342,8 +342,9 @@ class CheckSDist(sdist_class):
         else:
             for pyxfile in self._pyxfiles:
                 cfile = pyxfile[:-3] + 'c'
-                msg = "C-source file '%s' not found." % (cfile) +\
-                    " Run 'setup.py cython' before sdist."
+                msg = ("C-source file '{source}' not found.\n"
+                       "Run 'setup.py cython' before sdist.".format(
+                           source=cfile))
                 assert os.path.isfile(cfile), msg
         sdist_class.run(self)
 
@@ -359,10 +360,10 @@ class CheckingBuildExt(build_ext):
             for src in ext.sources:
                 if not os.path.exists(src):
                     print("{}: -> [{}]".format(ext.name, ext.sources))
-                    raise Exception("""Cython-generated file '%s' not found.
+                    raise Exception("""Cython-generated file '{src}' not found.
                 Cython is required to compile pandas from a development branch.
                 Please install Cython or download a release package of pandas.
-                """ % src)
+                """.format(src=src))
 
     def build_extensions(self):
         self.check_cython_extensions(self.extensions)
@@ -623,7 +624,7 @@ for name, data in ext_data.items():
 
     include = data.get('include', common_include)
 
-    obj = Extension('pandas.%s' % name,
+    obj = Extension('pandas.{name}'.format(name=name),
                     sources=sources,
                     depends=data.get('depends', []),
                     include_dirs=include,
