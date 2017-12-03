@@ -54,8 +54,9 @@ import pandas.core.tools.datetimes as tools
 
 from pandas._libs import (lib, index as libindex, tslib as libts,
                           algos as libalgos, join as libjoin,
-                          Timestamp, period as libperiod)
-from pandas._libs.tslibs import timezones, conversion, fields
+                          Timestamp)
+from pandas._libs.tslibs import (timezones, conversion, fields,
+                                 period as libperiod)
 
 # -------- some conversion wrapper functions
 

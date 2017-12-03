@@ -331,7 +331,6 @@ class CheckSDist(sdist_class):
     _pyxfiles = ['pandas/_libs/lib.pyx',
                  'pandas/_libs/hashtable.pyx',
                  'pandas/_libs/tslib.pyx',
-                 'pandas/_libs/period.pyx',
                  'pandas/_libs/index.pyx',
                  'pandas/_libs/algos.pyx',
                  'pandas/_libs/join.pyx',
@@ -344,6 +343,7 @@ class CheckSDist(sdist_class):
                  'pandas/_libs/skiplist.pyx',
                  'pandas/_libs/sparse.pyx',
                  'pandas/_libs/parsers.pyx',
+                 'pandas/_libs/tslibs/period.pyx',
                  'pandas/_libs/tslibs/strptime.pyx',
                  'pandas/_libs/tslibs/np_datetime.pyx',
                  'pandas/_libs/tslibs/timedeltas.pyx',
@@ -530,8 +530,8 @@ ext_data = {
                     'pandas/_libs/src/numpy_helper.h'],
         'sources': ['pandas/_libs/src/parser/tokenizer.c',
                     'pandas/_libs/src/parser/io.c']},
-    '_libs.period': {
-        'pyxfile': '_libs/period',
+    '_libs.tslibs.period': {
+        'pyxfile': '_libs/tslibs/period',
         'pxdfiles': ['_libs/src/util',
                      '_libs/lib',
                      '_libs/tslibs/timedeltas',
