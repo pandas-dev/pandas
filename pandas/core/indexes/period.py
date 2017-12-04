@@ -418,7 +418,7 @@ class PeriodIndex(DatelikeOps, DatetimeIndexOpsMixin, Int64Index):
 
     @property
     def values(self):
-        return self.asobject.values
+        return self.astype(object).values
 
     @property
     def _values(self):
@@ -428,7 +428,7 @@ class PeriodIndex(DatelikeOps, DatetimeIndexOpsMixin, Int64Index):
         if is_integer_dtype(dtype):
             return self.asi8
         else:
-            return self.asobject.values
+            return self.astype(object).values
 
     def __array_wrap__(self, result, context=None):
         """
@@ -476,7 +476,7 @@ class PeriodIndex(DatelikeOps, DatetimeIndexOpsMixin, Int64Index):
         if dtype is not None:
             return self.astype(dtype)._to_embed(keep_tz=keep_tz)
 
-        return self.asobject.values
+        return self.astype(object).values
 
     @property
     def _formatter_func(self):
@@ -506,7 +506,7 @@ class PeriodIndex(DatelikeOps, DatetimeIndexOpsMixin, Int64Index):
     def astype(self, dtype, copy=True, how='start'):
         dtype = pandas_dtype(dtype)
         if is_object_dtype(dtype):
-            return self.asobject
+            return self._box_values_as_index()
         elif is_integer_dtype(dtype):
             if copy:
                 return self._int64index.copy()
@@ -656,7 +656,7 @@ class PeriodIndex(DatelikeOps, DatetimeIndexOpsMixin, Int64Index):
 
     def _mpl_repr(self):
         # how to represent ourselves to matplotlib
-        return self.asobject.values
+        return self.astype(object).values
 
     def to_timestamp(self, freq=None, how='start'):
         """
@@ -971,7 +971,7 @@ class PeriodIndex(DatelikeOps, DatetimeIndexOpsMixin, Int64Index):
 
     def insert(self, loc, item):
         if not isinstance(item, Period) or self.freq != item.freq:
-            return self.asobject.insert(loc, item)
+            return self.astype(object).insert(loc, item)
 
         idx = np.concatenate((self[:loc].asi8, np.array([item.ordinal]),
                               self[loc:].asi8))
@@ -1018,7 +1018,7 @@ class PeriodIndex(DatelikeOps, DatetimeIndexOpsMixin, Int64Index):
     def _format_native_types(self, na_rep=u('NaT'), date_format=None,
                              **kwargs):
 
-        values = self.asobject.values
+        values = self.astype(object).values
 
         if date_format:
             formatter = lambda dt: dt.strftime(date_format)

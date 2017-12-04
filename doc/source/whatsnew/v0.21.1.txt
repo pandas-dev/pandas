@@ -90,6 +90,7 @@ I/O
 - Bug in parsing integer datetime-like columns with specified format in ``read_sql`` (:issue:`17855`).
 - Bug in :meth:`DataFrame.to_msgpack` when serializing data of the numpy.bool_ datatype (:issue:`18390`)
 - Bug in :func:`read_json` not decoding when reading line deliminted JSON from S3 (:issue:`17200`)
+- Bug in :func:`pandas.io.json.json_normalize` to avoid modification of ``meta`` (:issue:`18610`)
 
 Plotting
 ^^^^^^^^

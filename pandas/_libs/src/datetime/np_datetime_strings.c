@@ -176,13 +176,8 @@ int parse_iso_8601_datetime(char *str, int len,
     if (len == 3 && tolower(str[0]) == 'n' && tolower(str[1]) == 'o' &&
         tolower(str[2]) == 'w') {
         NPY_TIME_T rawtime = 0;
-        pandas_datetime_metadata meta;
 
         time(&rawtime);
-
-        /* Set up a dummy metadata for the conversion */
-        meta.base = PANDAS_FR_s;
-        meta.num = 1;
 
         /*
          * Indicate that this was a special value, and
@@ -193,7 +188,7 @@ int parse_iso_8601_datetime(char *str, int len,
             *out_local = 0;
         }
 
-        return convert_datetime_to_datetimestruct(&meta, rawtime, out);
+        return convert_datetime_to_datetimestruct(PANDAS_FR_s, rawtime, out);
     }
 
     substr = str;
