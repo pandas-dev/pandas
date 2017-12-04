@@ -729,7 +729,7 @@ class TestCategorical(object):
 
         # The following work via '__array_priority__ = 1000'
         # works only on numpy >= 1.7.1
-        if LooseVersion(np.__version__) > "1.7.1":
+        if LooseVersion(np.__version__) > LooseVersion("1.7.1"):
             pytest.raises(TypeError, lambda: a < cat)
             pytest.raises(TypeError, lambda: a < cat_rev)
 
