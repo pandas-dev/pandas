@@ -26,16 +26,16 @@ class TestTimedeltaArithmetic(object):
         # GH 13624
         td = Timedelta('1 day')
 
-        for l, r in [(td, 'a'), ('a', td)]:
+        for left, right in [(td, 'a'), ('a', td)]:
 
             with pytest.raises(TypeError):
-                l + r
+                left + right
 
             with pytest.raises(TypeError):
-                l > r
+                left > right
 
-            assert not l == r
-            assert l != r
+            assert not left == right
+            assert left != right
 
     def test_to_timedelta_on_nanoseconds(self):
         # GH 9273
