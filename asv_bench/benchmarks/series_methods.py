@@ -1,4 +1,9 @@
-from .pandas_vb_common import *
+from datetime import datetime
+
+import numpy as np
+
+import pandas as pd
+from pandas import Series
 
 
 class series_constructor_no_data_datetime_index(object):
@@ -6,8 +11,8 @@ class series_constructor_no_data_datetime_index(object):
 
     def setup(self):
         self.dr = pd.date_range(
-            start=datetime(2015,10,26),
-            end=datetime(2016,1,1),
+            start=datetime(2015, 10, 26),
+            end=datetime(2016, 1, 1),
             freq='50s'
         )  # ~100k long
 

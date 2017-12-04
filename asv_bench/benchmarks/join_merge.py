@@ -291,11 +291,11 @@ class MergeOrdered(object):
         groups = tm.makeStringIndex(10).values
 
         self.left = pd.DataFrame({'group': groups.repeat(5000),
-                                  'key' : np.tile(np.arange(0, 10000, 2), 10),
+                                  'key': np.tile(np.arange(0, 10000, 2), 10),
                                   'lvalue': np.random.randn(50000)})
 
-        self.right = pd.DataFrame({'key' : np.arange(10000),
-                                   'rvalue' : np.random.randn(10000)})
+        self.right = pd.DataFrame({'key': np.arange(10000),
+                                   'rvalue': np.random.randn(10000)})
 
     def time_merge_ordered(self):
         merge_ordered(self.left, self.right, on='key', left_by='group')

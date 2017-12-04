@@ -107,7 +107,7 @@ class DataFrameIndexing(object):
 
         # duptes
         self.idx_dupe = (np.array(range(30)) * 99)
-        self.df3 = DataFrame({'A': ([0.1] * 1000), 'B': ([1] * 1000),})
+        self.df3 = DataFrame({'A': ([0.1] * 1000), 'B': ([1] * 1000)})
         self.df3 = concat([self.df3, (2 * self.df3), (3 * self.df3)])
 
         self.df_big = DataFrame(dict(A=(['foo'] * 1000000)))
@@ -343,7 +343,7 @@ class AssignTimeseriesIndex(object):
     def setup(self):
         N = 100000
         np.random.seed(1234)
-        dx = date_range('1/1/2000', periods=N, freq='H')
+        idx = date_range('1/1/2000', periods=N, freq='H')
         self.df = DataFrame(np.random.randn(N, 1), columns=['A'], index=idx)
 
     def time_frame_assign_timeseries_index(self):
@@ -367,5 +367,3 @@ class InsertColumns(object):
         np.random.seed(1234)
         for i in range(100):
             self.df[i] = np.random.randn(self.N)
-
-

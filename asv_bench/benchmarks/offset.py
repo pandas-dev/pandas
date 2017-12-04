@@ -7,7 +7,7 @@ import pandas as pd
 from pandas import date_range
 
 try:
-    import pandas.tseries.holiday
+    import pandas.tseries.holiday  # noqa:F401
 except ImportError:
     pass
 

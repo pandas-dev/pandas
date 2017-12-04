@@ -3,7 +3,7 @@ from numpy.random import randint
 import pandas as pd
 from collections import OrderedDict
 from pandas.compat import BytesIO
-import sqlite3
+
 import os
 from sqlalchemy import create_engine
 import numpy as np
@@ -292,7 +292,7 @@ class STATA(_Packers):
     def setup(self):
         self._setup()
 
-        self.df3=self.df.copy()
+        self.df3 = self.df.copy()
         self.df3['int8_'] = [randint(np.iinfo(np.int8).min, (np.iinfo(np.int8).max - 27)) for _ in range(self.N)]
         self.df3['int16_'] = [randint(np.iinfo(np.int16).min, (np.iinfo(np.int16).max - 27)) for _ in range(self.N)]
         self.df3['int32_'] = [randint(np.iinfo(np.int32).min, (np.iinfo(np.int32).max - 27)) for _ in range(self.N)]

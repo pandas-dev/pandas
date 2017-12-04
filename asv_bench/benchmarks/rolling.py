@@ -1,6 +1,5 @@
-from .pandas_vb_common import *
-import pandas as pd
 import numpy as np
+import pandas as pd
 
 
 class DataframeRolling(object):
@@ -55,7 +54,7 @@ class DataframeRolling(object):
 
     def time_rolling_cov(self):
         (self.dfs.rolling(self.wins).cov())
-        
+
     def time_rolling_quantile_0_l(self):
         (self.df.rolling(self.winl).quantile(0.0))
 
@@ -147,7 +146,7 @@ class SeriesRolling(object):
 
     def time_rolling_cov(self):
         (self.srs.rolling(self.wins).cov())
-        
+
     def time_rolling_quantile_0_l(self):
         (self.sr.rolling(self.winl).quantile(0.0))
 
