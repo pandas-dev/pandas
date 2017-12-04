@@ -443,6 +443,26 @@ class TestDatetimeIndex(object):
 
         assert idx.nanosecond[0] == t1.nanosecond
 
+    def test_concat(self):
+        idx1 = pd.date_range('2011-01-01', periods=3, freq='H',
+                             tz='Europe/Paris')
+        idx2 = pd.date_range(start=idx1[0], end=idx1[-1], freq='H')
+        df1 = pd.DataFrame({'a': [1, 2, 3]}, index=idx1)
+        df2 = pd.DataFrame({'b': [1, 2, 3]}, index=idx2)
+        res = pd.concat([df1, df2], axis=1)
+
+        assert str(res.index.tzinfo) == str(df1.index.tzinfo)
+        assert str(res.index.tzinfo) == str(df2.index.tzinfo)
+
+        idx3 = pd.date_range('2011-01-01', periods=3,
+                             freq='H', tz='Asia/Tokyo')
+        df3 = pd.DataFrame({'b': [1, 2, 3]}, index=idx3)
+        res = pd.concat([df1, df3], axis=1)
+
+        assert str(res.index.tzinfo) == 'UTC'
+        assert str(res.index.tzinfo) != str(df1.index.tzinfo)
+        assert str(res.index.tzinfo) != str(df3.index.tzinfo)
+
 
 class TestTimeSeries(object):
 
