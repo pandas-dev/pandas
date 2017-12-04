@@ -1173,6 +1173,26 @@ class TestTimestampComparison(object):
         assert stamp < datetime(2700, 1, 1)
         assert stamp <= datetime(2700, 1, 1)
 
+    def test_replace(self):
+        # GH#18319
+        tz = pytz.timezone('US/Eastern')
+
+        ts_naive = Timestamp('2017-12-03 16:03:30')
+        ts_aware = tz.localize(ts_naive)
+
+        # Preliminary sanity-check
+        assert ts_aware == ts_aware.tzinfo.normalize(ts_aware)
+
+        # Replace across DST boundary
+        ts2 = ts_aware.replace(month=6)
+
+        # Check that `replace` preserves hour literal
+        assert (ts2.hour, ts2.minute) == (ts_aware.hour, ts_aware.minute)
+
+        # Check that post-replace object is appropriately normalized
+        ts2b = ts2.tzinfo.normalize(ts2)
+        assert ts2 == ts2b
+
 
 class TestTimestampNsOperations(object):
 
