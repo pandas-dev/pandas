@@ -603,10 +603,10 @@ class BusinessHourMixin(BusinessMixin):
             nb_offset = -1
         if self._prefix.startswith('C'):
             # CustomBusinessHour
-            return return CustomBusinessDay(n=nb_offset,
-                                            weekmask=self.weekmask,
-                                            holidays=self.holidays,
-                                            calendar=self.calendar)
+            return CustomBusinessDay(n=nb_offset,
+                                     weekmask=self.weekmask,
+                                     holidays=self.holidays,
+                                     calendar=self.calendar)
         else:
             return BusinessDay(n=nb_offset)
 
@@ -908,8 +908,7 @@ class CustomBusinessHour(_CustomMixin, BusinessHourMixin,
                  start='09:00', end='17:00', offset=timedelta(0)):
         self.n = self._validate_n(n)
         self.normalize = normalize
-        super(CustomBusinessHour, self).__init__(start=start,
-                                                 end=end, offset=offset)
+        BusinessHourMixin.__init__(self, start=start, end=end, offset=offset)
 
         # Note: `self.kwds` gets defined in BusinessHourMixin.__init__
         _CustomMixin.__init__(self, weekmask, holidays, calendar)
@@ -1023,7 +1022,7 @@ class _CustomBusinessMonth(_CustomMixin, BusinessMixin, MonthOffset):
 
     @cache_readonly
     def m_offset(self):
-        if self._prefix.endwith('S'):
+        if self._prefix.endswith('S'):
             # MonthBegin:
             return MonthBegin(n=1, normalize=self.normalize)
         else:
