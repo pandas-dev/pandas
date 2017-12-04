@@ -135,7 +135,8 @@ class TestDataFrameApply(TestData):
 
         # scalars
         result = self.frame.apply(np.mean, result_type='broadcast')
-        expected = DataFrame([self.frame.mean()], index=self.frame.index)
+        expected = DataFrame([self.frame.mean()] * len(self.frame.index),
+                             index=self.frame.index)
         tm.assert_frame_equal(result, expected)
 
         result = self.frame.apply(np.mean, axis=1, result_type='broadcast')

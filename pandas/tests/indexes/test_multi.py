@@ -3215,8 +3215,7 @@ class TestMultiIndex(Base):
         assert pd.isna(idx0.get_level_values(1)).all()
         # the following failed in 0.14.1
         assert pd.isna(idxm.get_level_values(1)[:-1]).all()
-
-        df0 = pd.DataFrame([[1, 2]], index=idx0)
+        df0 = pd.DataFrame([[1, 2]] * 2, index=idx0)
         df1 = pd.DataFrame([[3, 4]], index=idx1)
         dfm = df0 - df1
         assert pd.isna(df0.index.get_level_values(1)).all()
