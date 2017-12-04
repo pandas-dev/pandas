@@ -149,7 +149,8 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
     _metadata = ['name']
     _accessors = frozenset(['dt', 'cat', 'str'])
     _deprecations = generic.NDFrame._deprecations | frozenset(
-        ['sortlevel', 'reshape', 'get_value', 'set_value', 'from_csv'])
+        ['asobject', 'sortlevel', 'reshape', 'get_value', 'set_value',
+         'from_csv'])
     _allow_index_ops = True
 
     def __init__(self, data=None, index=None, dtype=None, name=None,
@@ -449,12 +450,15 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
 
     @property
     def asobject(self):
-        """
+        """DEPRECATED: Use ``astype(object)`` instead.
+
         return object Series which contains boxed values
 
         *this is an internal non-public method*
         """
-        return self._data.asobject
+        warnings.warn("'asobject' is deprecated. Use 'astype(object)'"
+                      " instead", FutureWarning, stacklevel=2)
+        return self.astype(object).values
 
     # ops
     def ravel(self, order='C'):
@@ -1322,7 +1326,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
             # to return an object array of tz-aware Timestamps
 
             # TODO: it must return DatetimeArray with tz in pandas 2.0
-            result = result.asobject.values
+            result = result.astype(object).values
 
         return result
 
@@ -2549,7 +2553,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
             if is_extension_type(self.dtype):
                 mapped = self._values.map(f)
             else:
-                values = self.asobject
+                values = self.astype(object).values
                 mapped = lib.map_infer(values, f, convert=convert_dtype)
 
         if len(mapped) and isinstance(mapped[0], Series):
@@ -3125,7 +3129,7 @@ def _sanitize_index(data, index, copy=False):
     if isinstance(data, ABCIndexClass) and not copy:
         pass
     elif isinstance(data, PeriodIndex):
-        data = data.asobject
+        data = data.astype(object).values
     elif isinstance(data, DatetimeIndex):
         data = data._to_embed(keep_tz=True)
     elif isinstance(data, np.ndarray):
