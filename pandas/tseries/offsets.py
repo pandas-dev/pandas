@@ -1707,13 +1707,16 @@ class YearOffset(DateOffset):
         return dt.month == self.month and dt.day == self._get_offset_day(dt)
 
     def __init__(self, n=1, normalize=False, month=None):
+        self.n = self._validate_n(n)
+        self.normalize = normalize
+
         month = month if month is not None else self._default_month
         self.month = month
 
         if self.month < 1 or self.month > 12:
             raise ValueError('Month must go from 1 to 12')
 
-        DateOffset.__init__(self, n=n, normalize=normalize, month=month)
+        self.kwds = {'month': month}
 
     @classmethod
     def _from_name(cls, suffix=None):
