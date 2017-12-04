@@ -32,7 +32,7 @@ def is_platform_mac():
     return sys.platform == 'darwin'
 
 
-min_cython_ver = '0.23'
+min_cython_ver = '0.24'
 try:
     import Cython
     ver = Cython.__version__
