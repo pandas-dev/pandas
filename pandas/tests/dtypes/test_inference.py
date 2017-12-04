@@ -388,6 +388,12 @@ class TestInference(object):
         result = lib.maybe_convert_numeric(case, set(), coerce_numeric=coerce)
         tm.assert_almost_equal(result, expected)
 
+    def test_convert_uint64_overflow(self):
+        # see gh-18584
+        arr = np.array([2**64], dtype=object)
+        result = lib.maybe_convert_objects(arr)
+        tm.assert_numpy_array_equal(arr, result)
+
     def test_maybe_convert_objects_uint64(self):
         # see gh-4471
         arr = np.array([2**63], dtype=object)
