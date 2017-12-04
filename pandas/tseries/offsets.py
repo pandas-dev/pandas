@@ -413,6 +413,25 @@ class SingleConstructorOffset(DateOffset):
         return cls()
 
 
+class _CustomMixin(object):
+    """
+    mixin for classes that define and validate calendar, holidays,
+    and weekdays attributes
+    """
+    def __init__(self, weekmask, holidays, calendar):
+        calendar, holidays = _get_calendar(weekmask=weekmask,
+                                           holidays=holidays,
+                                           calendar=calendar)
+        # Custom offset instances are identified by the
+        # following two attributes. See DateOffset._params()
+        # holidays, weekmask
+
+        # assumes self.kwds already exists
+        self.kwds['weekmask'] = self.weekmask = weekmask
+        self.kwds['holidays'] = self.holidays = holidays
+        self.kwds['calendar'] = self.calendar = calendar
+
+
 class BusinessMixin(object):
     """ mixin to business types to provide related functions """
 
@@ -575,6 +594,7 @@ class BusinessHourMixin(BusinessMixin):
         self.kwds = kwds
         self._offset = offset
 
+    # TODO: Cache this once offsets are immutable
     def _get_daytime_flag(self):
         if self.start == self.end:
             raise ValueError('start and end must not be the same')
@@ -616,6 +636,7 @@ class BusinessHourMixin(BusinessMixin):
         return datetime(other.year, other.month, other.day,
                         self.start.hour, self.start.minute)
 
+    # TODO: cache this once offsets are immutable
     def _get_business_hours_by_sec(self):
         """
         Return business hours in a day by seconds.
@@ -796,7 +817,7 @@ class BusinessHour(BusinessHourMixin, SingleConstructorOffset):
         return BusinessDay(n=nb_offset)
 
 
-class CustomBusinessDay(BusinessDay):
+class CustomBusinessDay(_CustomMixin, BusinessDay):
     """
     DateOffset subclass representing possibly n custom business days,
     excluding holidays
@@ -822,19 +843,9 @@ class CustomBusinessDay(BusinessDay):
         self.n = self._validate_n(n)
         self.normalize = normalize
         self._offset = offset
-        self.kwds = {}
+        self.kwds = {'offset': offset}
 
-        calendar, holidays = _get_calendar(weekmask=weekmask,
-                                           holidays=holidays,
-                                           calendar=calendar)
-        # CustomBusinessDay instances are identified by the
-        # following two attributes. See DateOffset._params()
-        # holidays, weekmask
-
-        self.kwds['weekmask'] = self.weekmask = weekmask
-        self.kwds['holidays'] = self.holidays = holidays
-        self.kwds['calendar'] = self.calendar = calendar
-        self.kwds['offset'] = offset
+        _CustomMixin.__init__(self, weekmask, holidays, calendar)
 
     @apply_wraps
     def apply(self, other):
@@ -874,7 +885,8 @@ class CustomBusinessDay(BusinessDay):
         return np.is_busday(day64, busdaycal=self.calendar)
 
 
-class CustomBusinessHour(BusinessHourMixin, SingleConstructorOffset):
+class CustomBusinessHour(_CustomMixin, BusinessHourMixin,
+                         SingleConstructorOffset):
     """
     DateOffset subclass representing possibly n custom business days
 
@@ -892,12 +904,8 @@ class CustomBusinessHour(BusinessHourMixin, SingleConstructorOffset):
         super(CustomBusinessHour, self).__init__(start=start,
                                                  end=end, offset=offset)
 
-        calendar, holidays = _get_calendar(weekmask=weekmask,
-                                           holidays=holidays,
-                                           calendar=calendar)
-        self.kwds['weekmask'] = self.weekmask = weekmask
-        self.kwds['holidays'] = self.holidays = holidays
-        self.kwds['calendar'] = self.calendar = calendar
+        # Note: `self.kwds` gets defined in BusinessHourMixin.__init__
+        _CustomMixin.__init__(self, weekmask, holidays, calendar)
 
     @cache_readonly
     def next_bday(self):
@@ -981,7 +989,7 @@ class BusinessMonthBegin(MonthOffset):
     _day_opt = 'business_start'
 
 
-class CustomBusinessMonthEnd(BusinessMixin, MonthOffset):
+class CustomBusinessMonthEnd(_CustomMixin, BusinessMixin, MonthOffset):
     """
     DateOffset subclass representing one custom business month, incrementing
     between end of month dates
@@ -1011,15 +1019,9 @@ class CustomBusinessMonthEnd(BusinessMixin, MonthOffset):
         self.n = self._validate_n(n)
         self.normalize = normalize
         self._offset = offset
-        self.kwds = {}
+        self.kwds = {'offset': offset}
 
-        calendar, holidays = _get_calendar(weekmask=weekmask,
-                                           holidays=holidays,
-                                           calendar=calendar)
-        self.kwds['weekmask'] = self.weekmask = weekmask
-        self.kwds['holidays'] = self.holidays = holidays
-        self.kwds['calendar'] = self.calendar = calendar
-        self.kwds['offset'] = offset
+        _CustomMixin.__init__(self, weekmask, holidays, calendar)
 
     @cache_readonly
     def cbday(self):
@@ -1054,7 +1056,7 @@ class CustomBusinessMonthEnd(BusinessMixin, MonthOffset):
         return result
 
 
-class CustomBusinessMonthBegin(BusinessMixin, MonthOffset):
+class CustomBusinessMonthBegin(_CustomMixin, BusinessMixin, MonthOffset):
     """
     DateOffset subclass representing one custom business month, incrementing
     between beginning of month dates
@@ -1084,17 +1086,9 @@ class CustomBusinessMonthBegin(BusinessMixin, MonthOffset):
         self.n = self._validate_n(n)
         self.normalize = normalize
         self._offset = offset
-        self.kwds = {}
+        self.kwds = {'offset': offset}
 
-        # _get_calendar does validation and possible transformation
-        # of calendar and holidays.
-        calendar, holidays = _get_calendar(weekmask=weekmask,
-                                           holidays=holidays,
-                                           calendar=calendar)
-        self.kwds['calendar'] = self.calendar = calendar
-        self.kwds['weekmask'] = self.weekmask = weekmask
-        self.kwds['holidays'] = self.holidays = holidays
-        self.kwds['offset'] = offset
+        _CustomMixin.__init__(self, weekmask, holidays, calendar)
 
     @cache_readonly
     def cbday(self):
