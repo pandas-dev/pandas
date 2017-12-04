@@ -173,6 +173,21 @@ class TestJSONNormalize(object):
         for val in ['metafoo', 'metabar', 'foo', 'bar']:
             assert val in result
 
+    def test_meta_parameter_not_modified(self):
+        # GH 18610
+        data = [{'foo': 'hello',
+                 'bar': 'there',
+                 'data': [{'foo': 'something', 'bar': 'else'},
+                          {'foo': 'something2', 'bar': 'else2'}]}]
+
+        COLUMNS = ['foo', 'bar']
+        result = json_normalize(data, 'data', meta=COLUMNS,
+                                meta_prefix='meta')
+
+        assert COLUMNS == ['foo', 'bar']
+        for val in ['metafoo', 'metabar', 'foo', 'bar']:
+            assert val in result
+
     def test_record_prefix(self, state_data):
         result = json_normalize(state_data[0], 'counties')
         expected = DataFrame(state_data[0]['counties'])
