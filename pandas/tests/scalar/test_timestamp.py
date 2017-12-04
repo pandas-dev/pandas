@@ -16,7 +16,7 @@ from pytz.exceptions import AmbiguousTimeError, NonExistentTimeError
 
 import pandas.util.testing as tm
 from pandas.tseries import offsets, frequencies
-from pandas._libs.tslibs.timezones import get_timezone
+from pandas._libs.tslibs.timezones import get_timezone, dateutil_gettz as gettz
 from pandas._libs.tslibs import conversion, period
 
 from pandas.compat import long, PY3
@@ -359,9 +359,7 @@ class TestTimestamp(object):
                                       '2014-01-01 00:00:00.000000001'])
     def test_repr(self, date, freq):
         # dateutil zone change (only matters for repr)
-        if (dateutil.__version__ >= LooseVersion('2.3') and
-            (dateutil.__version__ <= LooseVersion('2.4.0') or
-             dateutil.__version__ >= LooseVersion('2.6.0'))):
+        if dateutil.__version__ >= LooseVersion('2.6.0'):
             timezones = ['UTC', 'Asia/Tokyo', 'US/Eastern',
                          'dateutil/US/Pacific']
         else:
@@ -1381,7 +1379,6 @@ class TestTimestampConversion(object):
     def test_timestamp_to_datetime_explicit_dateutil(self):
         tm._skip_if_windows_python_3()
 
-        from pandas._libs.tslibs.timezones import dateutil_gettz as gettz
         stamp = Timestamp('20090415', tz=gettz('US/Eastern'), freq='D')
         dtval = stamp.to_pydatetime()
         assert stamp == dtval

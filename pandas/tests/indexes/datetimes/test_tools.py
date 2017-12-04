@@ -1160,9 +1160,9 @@ class TestDatetimeParsingWrappers(object):
     @pytest.mark.parametrize('cache', [True, False])
     def test_parsers(self, cache):
 
+        # dateutil >= 2.5.0 defaults to yearfirst=True
         # https://github.com/dateutil/dateutil/issues/217
-        import dateutil
-        yearfirst = dateutil.__version__ >= LooseVersion('2.5.0')
+        yearfirst = True
 
         cases = {'2011-01-01': datetime(2011, 1, 1),
                  '2Q2005': datetime(2005, 4, 1),
