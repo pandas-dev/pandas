@@ -3769,7 +3769,7 @@ class DataFrame(NDFrame):
             Number of items to retrieve
         columns : list or str
             Column name or names to order by
-        keep : {'first', 'last', False}, default 'first'
+        keep : {'first', 'last'}, default 'first'
             Where there are duplicate values:
             - ``first`` : take the first occurrence.
             - ``last`` : take the last occurrence.
@@ -3804,7 +3804,7 @@ class DataFrame(NDFrame):
             Number of items to retrieve
         columns : list or str
             Column name or names to order by
-        keep : {'first', 'last', False}, default 'first'
+        keep : {'first', 'last'}, default 'first'
             Where there are duplicate values:
             - ``first`` : take the first occurrence.
             - ``last`` : take the last occurrence.
