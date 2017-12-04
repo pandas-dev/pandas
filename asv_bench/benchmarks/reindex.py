@@ -1,5 +1,11 @@
-from .pandas_vb_common import *
+import random
 from random import shuffle
+
+import numpy as np
+from pandas import (Index, MultiIndex, DatetimeIndex,
+                    DataFrame, Series, date_range)
+from pandas._libs import lib
+import pandas.util.testing as tm
 
 
 class Reindexing(object):
@@ -34,7 +40,7 @@ class Reindexing(object):
         self.s1.reindex(self.s2.index)
 
 
-#----------------------------------------------------------------------
+# ----------------------------------------------------------------------
 # Pad / backfill
 
 
@@ -79,7 +85,7 @@ class FillMethod(object):
         self.ts4.fillna(method='pad')
 
 
-#----------------------------------------------------------------------
+# ----------------------------------------------------------------------
 # align on level
 
 
@@ -105,7 +111,7 @@ class LevelAlign(object):
         self.df_level.reindex(self.df.index, level=1)
 
 
-#----------------------------------------------------------------------
+# ----------------------------------------------------------------------
 # drop_duplicates
 
 
@@ -118,7 +124,7 @@ class Duplicates(object):
         self.key1 = tm.makeStringIndex(self.N).values.repeat(self.K)
         self.key2 = tm.makeStringIndex(self.N).values.repeat(self.K)
         self.df = DataFrame({'key1': self.key1, 'key2': self.key2,
-                             'value': np.random.randn((self.N * self.K)),})
+                             'value': np.random.randn((self.N * self.K))})
         self.col_array_list = list(self.df.values.T)
 
         self.df2 = self.df.copy()
@@ -160,7 +166,7 @@ class Duplicates(object):
     def time_frame_drop_dups_bool(self):
         self.df_bool.drop_duplicates()
 
-#----------------------------------------------------------------------
+# ----------------------------------------------------------------------
 # blog "pandas escaped the zoo"
 
 

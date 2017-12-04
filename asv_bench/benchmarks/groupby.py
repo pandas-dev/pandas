@@ -1,3 +1,5 @@
+import numpy as np
+
 from .pandas_vb_common import *
 from string import ascii_letters, digits
 from itertools import product
@@ -17,7 +19,8 @@ class groupby_agg_builtins(object):
     def time_groupby_agg_builtins2(self):
         self.df.groupby(['jim', 'joe']).agg([sum, min, max])
 
-#----------------------------------------------------------------------
+
+# ----------------------------------------------------------------------
 # dict return values
 
 class groupby_apply_dict_return(object):
@@ -32,7 +35,7 @@ class groupby_apply_dict_return(object):
         self.data.groupby(self.labels).apply(self.f)
 
 
-#----------------------------------------------------------------------
+# ----------------------------------------------------------------------
 # groups
 
 class Groups(object):
@@ -41,7 +44,7 @@ class Groups(object):
     size = 2 ** 22
     data = {
         'int64_small': Series(np.random.randint(0, 100, size=size)),
-        'int64_large' : Series(np.random.randint(0, 10000, size=size)),
+        'int64_large': Series(np.random.randint(0, 10000, size=size)),
         'object_small': Series(tm.makeStringIndex(100).take(np.random.randint(0, 100, size=size))),
         'object_large': Series(tm.makeStringIndex(10000).take(np.random.randint(0, 10000, size=size)))
     }
@@ -56,7 +59,7 @@ class Groups(object):
         self.df.groupby(self.df).groups
 
 
-#----------------------------------------------------------------------
+# ----------------------------------------------------------------------
 # First / last functions
 
 class FirstLast(object):
@@ -72,7 +75,7 @@ class FirstLast(object):
         if dtype == 'datetime':
             self.df = DataFrame(
                 {'values': date_range('1/1/2011', periods=100000, freq='s'),
-                 'key': range(100000),})
+                 'key': range(100000)})
         elif dtype == 'object':
             self.df = DataFrame(
                 {'values': (['foo'] * 100000),
@@ -98,7 +101,7 @@ class FirstLast(object):
         self.df.groupby('key').nth(0)
 
 
-#----------------------------------------------------------------------
+# ----------------------------------------------------------------------
 # DataFrame Apply overhead
 
 class groupby_frame_apply(object):
@@ -138,7 +141,7 @@ class groupby_frame_apply(object):
         self.df.groupby('key').apply(self.df_copy_function)
 
 
-#----------------------------------------------------------------------
+# ----------------------------------------------------------------------
 # 2d grouping, aggregate many columns
 
 class groupby_frame_cython_many_columns(object):
@@ -152,7 +155,7 @@ class groupby_frame_cython_many_columns(object):
         self.df.groupby(self.labels).sum()
 
 
-#----------------------------------------------------------------------
+# ----------------------------------------------------------------------
 # single key, long, integer key
 
 class groupby_frame_singlekey_integer(object):
@@ -167,7 +170,7 @@ class groupby_frame_singlekey_integer(object):
         self.df.groupby(self.labels).sum()
 
 
-#----------------------------------------------------------------------
+# ----------------------------------------------------------------------
 # DataFrame nth
 
 class groupby_nth(object):
@@ -189,7 +192,7 @@ class groupby_nth(object):
         self.df[1].groupby(self.df[0]).nth(0)
 
 
-#----------------------------------------------------------------------
+# ----------------------------------------------------------------------
 # groupby_indices replacement, chop up Series
 
 class groupby_indices(object):
@@ -226,7 +229,7 @@ class groupby_int64_overflow(object):
         self.df.groupby(list('abcde')).max()
 
 
-#----------------------------------------------------------------------
+# ----------------------------------------------------------------------
 # count() speed
 
 class groupby_multi_count(object):
@@ -269,7 +272,7 @@ class groupby_int_count(object):
         self.df.groupby(['key1', 'key2']).count()
 
 
-#----------------------------------------------------------------------
+# ----------------------------------------------------------------------
 # nunique() speed
 
 class groupby_nunique(object):
@@ -285,7 +288,7 @@ class groupby_nunique(object):
         self.df.groupby(['key1', 'key2']).nunique()
 
 
-#----------------------------------------------------------------------
+# ----------------------------------------------------------------------
 # group with different functions per column
 
 class groupby_agg_multi(object):
@@ -356,7 +359,7 @@ class groupby_multi(object):
         self.df.groupby('key1').rank(pct=True)
 
 
-#----------------------------------------------------------------------
+# ----------------------------------------------------------------------
 # size() speed
 
 class groupby_size(object):
@@ -386,8 +389,7 @@ class groupby_size(object):
         self.draws.groupby(self.cats).size()
 
 
-
-#----------------------------------------------------------------------
+# ----------------------------------------------------------------------
 # groupby with a variable value for ngroups
 
 class GroupBySuite(object):
@@ -582,7 +584,8 @@ class groupby_datetimetz(groupby_period):
         return pd.date_range('1900-01-01', freq='D', periods=N,
                              tz='US/Central')
 
-#----------------------------------------------------------------------
+
+# ----------------------------------------------------------------------
 # Series.value_counts
 
 class series_value_counts(object):
@@ -607,7 +610,7 @@ class series_value_counts(object):
         self.s.value_counts()
 
 
-#----------------------------------------------------------------------
+# ----------------------------------------------------------------------
 # pivot_table
 
 class groupby_pivot_table(object):
@@ -624,7 +627,7 @@ class groupby_pivot_table(object):
         self.df.pivot_table(index='key1', columns=['key2', 'key3'])
 
 
-#----------------------------------------------------------------------
+# ----------------------------------------------------------------------
 # Sum booleans #2692
 
 class groupby_sum_booleans(object):
@@ -638,7 +641,7 @@ class groupby_sum_booleans(object):
         self.df.groupby('ii').sum()
 
 
-#----------------------------------------------------------------------
+# ----------------------------------------------------------------------
 # multi-indexed group sum #9049
 
 class groupby_sum_multiindex(object):
@@ -652,7 +655,7 @@ class groupby_sum_multiindex(object):
         self.df.groupby(level=[0, 1]).sum()
 
 
-#-------------------------------------------------------------------------------
+# ----------------------------------------------------------------------
 # Transform testing
 
 class Transform(object):
@@ -710,8 +713,6 @@ class Transform(object):
         self.df4.groupby(['jim', 'joe'])['jolie'].transform('max')
 
 
-
-
 np.random.seed(0)
 N = 120000
 N_TRANSITIONS = 1400
@@ -721,9 +722,6 @@ transitions = np.zeros((N,), dtype=np.bool)
 transitions[transition_points] = True
 g = transitions.cumsum()
 df = DataFrame({'signal': np.random.rand(N), })
-
-
-
 
 
 class groupby_transform_series(object):

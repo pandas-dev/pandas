@@ -1,10 +1,10 @@
-import sqlalchemy
+import sqlalchemy  # noqa:F401
 from .pandas_vb_common import *
 import sqlite3
 from sqlalchemy import create_engine
 
 
-#-------------------------------------------------------------------------------
+# ------------------------------------------------------------------------------
 # to_sql
 
 class WriteSQL(object):
@@ -23,7 +23,7 @@ class WriteSQL(object):
         self.df.to_sql('test1', self.engine, if_exists='replace')
 
 
-#-------------------------------------------------------------------------------
+# ------------------------------------------------------------------------------
 # read_sql
 
 class ReadSQL(object):
@@ -47,7 +47,7 @@ class ReadSQL(object):
         read_sql_table('test2', self.engine)
 
 
-#-------------------------------------------------------------------------------
+# ------------------------------------------------------------------------------
 # type specific write
 
 class WriteSQLTypes(object):
@@ -75,7 +75,7 @@ class WriteSQLTypes(object):
         self.df[['datetime']].to_sql('test_datetime', self.engine, if_exists='replace')
 
 
-#-------------------------------------------------------------------------------
+# ------------------------------------------------------------------------------
 # type specific read
 
 class ReadSQLTypes(object):

@@ -1,19 +1,29 @@
-from .pandas_vb_common import *
 import string
-import itertools as IT
+import itertools
+
+import numpy as np
+
 import pandas.util.testing as testing
+from pandas import Series
 
 
 class StringMethods(object):
     goal_time = 0.2
 
     def make_series(self, letters, strlen, size):
-        return Series([str(x) for x in np.fromiter(IT.cycle(letters), count=(size * strlen), dtype='|S1').view('|S{}'.format(strlen))])
+        return Series([str(x) for x in
+                       np.fromiter(itertools.cycle(letters),
+                                   count=(size * strlen),
+                                   dtype='|S1').view('|S{}'.format(strlen))])
 
     def setup(self):
-        self.many = self.make_series(('matchthis' + string.ascii_uppercase), strlen=19, size=10000)
-        self.few = self.make_series(('matchthis' + (string.ascii_uppercase * 42)), strlen=19, size=10000)
-        self.s = self.make_series(string.ascii_uppercase, strlen=10, size=10000).str.join('|')
+        upper = string.ascii_uppercase
+        self.many = self.make_series(('matchthis' + upper),
+                                     strlen=19, size=10000)
+        self.few = self.make_series(('matchthis' + (upper * 42)),
+                                    strlen=19, size=10000)
+        self.s = self.make_series(upper,
+                                  strlen=10, size=10000).str.join('|')
 
     def time_cat(self):
         self.many.str.cat(sep=',')
@@ -64,7 +74,8 @@ class StringMethods(object):
         self.many.str.pad(100, side='both')
 
     def time_repeat(self):
-        self.many.str.repeat(list(IT.islice(IT.cycle(range(1, 4)), len(self.many))))
+        cycle = itertools.cycle(range(1, 4))
+        self.many.str.repeat(list(itertools.islice(cycle, len(self.many))))
 
     def time_replace(self):
         self.many.str.replace('(matchthis)', '\x01\x01')

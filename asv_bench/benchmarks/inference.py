@@ -88,8 +88,7 @@ class to_numeric_downcast(object):
                                          dtype='datetime64[D]'), N),
         'string-float': (['1.1'] * N2) + ([2] * N2),
         'int-list': ([1] * N2) + ([2] * N2),
-        'int32': np.repeat(np.int32(1), N)
-        }
+        'int32': np.repeat(np.int32(1), N)}
 
     def setup(self, dtype, downcast):
         self.data = self.data_dict[dtype]
@@ -104,7 +103,7 @@ class MaybeConvertNumeric(object):
         n = 1000000
         arr = np.repeat([2**63], n)
         arr = arr + np.arange(n).astype('uint64')
-        arr = np.array([arr[i] if i%2 == 0 else
+        arr = np.array([arr[i] if i % 2 == 0 else
                         str(arr[i]) for i in range(n)],
                        dtype=object)
 

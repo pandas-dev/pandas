@@ -3,9 +3,9 @@ from .pandas_vb_common import *
 from pandas.core.algorithms import take_1d
 
 try:
-    from cStringIO import StringIO
+    from cStringIO import StringIO  # noqa:F401
 except ImportError:
-    from io import StringIO
+    from io import StringIO  # noqa:F401
 
 try:
     from pandas._libs import algos
@@ -18,7 +18,6 @@ try:
     have_real_test_parallel = True
 except ImportError:
     have_real_test_parallel = False
-
 
     def test_parallel(num_threads=1):
 
@@ -151,7 +150,6 @@ class NoGilGroupby(object):
 
     def time_groups_8(self):
         self._pg8_groups()
-
 
 
 class nogil_take1d_float64(object):

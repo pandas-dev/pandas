@@ -1,4 +1,13 @@
-from .pandas_vb_common import *
+import random
+import numpy as np
+
+import pandas as pd
+from pandas import DataFrame, Series, MultiIndex
+
+from .pandas_vb_common import (rolling_min, rolling_mean, rolling_median,
+                               rolling_max, rolling_sum,
+                               rolling_var, rolling_std,
+                               rolling_kurt, rolling_skew)
 
 
 def _set_use_bottleneck_False():
@@ -37,7 +46,14 @@ class stat_ops_level_frame_sum(object):
     goal_time = 0.2
 
     def setup(self):
-        self.index = MultiIndex(levels=[np.arange(10), np.arange(100), np.arange(100)], labels=[np.arange(10).repeat(10000), np.tile(np.arange(100).repeat(100), 10), np.tile(np.tile(np.arange(100), 100), 10)])
+        self.index = MultiIndex(levels=[np.arange(10),
+                                        np.arange(100),
+                                        np.arange(100)],
+                                labels=[np.arange(10).repeat(10000),
+                                        np.tile(np.arange(100).repeat(100),
+                                                10),
+                                        np.tile(np.tile(np.arange(100), 100),
+                                                10)])
         random.shuffle(self.index.values)
         self.df = DataFrame(np.random.randn(len(self.index), 4), index=self.index)
         self.df_level = DataFrame(np.random.randn(100, 4), index=self.index.levels[1])
@@ -50,10 +66,19 @@ class stat_ops_level_frame_sum_multiple(object):
     goal_time = 0.2
 
     def setup(self):
-        self.index = MultiIndex(levels=[np.arange(10), np.arange(100), np.arange(100)], labels=[np.arange(10).repeat(10000), np.tile(np.arange(100).repeat(100), 10), np.tile(np.tile(np.arange(100), 100), 10)])
+        self.index = MultiIndex(levels=[np.arange(10),
+                                        np.arange(100),
+                                        np.arange(100)],
+                                labels=[np.arange(10).repeat(10000),
+                                        np.tile(np.arange(100).repeat(100),
+                                                10),
+                                        np.tile(np.tile(np.arange(100),
+                                                        100), 10)])
         random.shuffle(self.index.values)
-        self.df = DataFrame(np.random.randn(len(self.index), 4), index=self.index)
-        self.df_level = DataFrame(np.random.randn(100, 4), index=self.index.levels[1])
+        self.df = DataFrame(np.random.randn(len(self.index), 4),
+                            index=self.index)
+        self.df_level = DataFrame(np.random.randn(100, 4),
+                                  index=self.index.levels[1])
 
     def time_stat_ops_level_frame_sum_multiple(self):
         self.df.sum(level=[0, 1])
@@ -63,10 +88,19 @@ class stat_ops_level_series_sum(object):
     goal_time = 0.2
 
     def setup(self):
-        self.index = MultiIndex(levels=[np.arange(10), np.arange(100), np.arange(100)], labels=[np.arange(10).repeat(10000), np.tile(np.arange(100).repeat(100), 10), np.tile(np.tile(np.arange(100), 100), 10)])
+        self.index = MultiIndex(levels=[np.arange(10),
+                                        np.arange(100),
+                                        np.arange(100)],
+                                labels=[np.arange(10).repeat(10000),
+                                        np.tile(np.arange(100).repeat(100),
+                                                10),
+                                        np.tile(np.tile(np.arange(100), 100),
+                                                10)])
         random.shuffle(self.index.values)
-        self.df = DataFrame(np.random.randn(len(self.index), 4), index=self.index)
-        self.df_level = DataFrame(np.random.randn(100, 4), index=self.index.levels[1])
+        self.df = DataFrame(np.random.randn(len(self.index), 4),
+                            index=self.index)
+        self.df_level = DataFrame(np.random.randn(100, 4),
+                                  index=self.index.levels[1])
 
     def time_stat_ops_level_series_sum(self):
         self.df[1].sum(level=1)
@@ -76,10 +110,19 @@ class stat_ops_level_series_sum_multiple(object):
     goal_time = 0.2
 
     def setup(self):
-        self.index = MultiIndex(levels=[np.arange(10), np.arange(100), np.arange(100)], labels=[np.arange(10).repeat(10000), np.tile(np.arange(100).repeat(100), 10), np.tile(np.tile(np.arange(100), 100), 10)])
+        self.index = MultiIndex(levels=[np.arange(10),
+                                        np.arange(100),
+                                        np.arange(100)],
+                                labels=[np.arange(10).repeat(10000),
+                                        np.tile(np.arange(100).repeat(100),
+                                                10),
+                                        np.tile(np.tile(np.arange(100),
+                                                        100), 10)])
         random.shuffle(self.index.values)
-        self.df = DataFrame(np.random.randn(len(self.index), 4), index=self.index)
-        self.df_level = DataFrame(np.random.randn(100, 4), index=self.index.levels[1])
+        self.df = DataFrame(np.random.randn(len(self.index), 4),
+                            index=self.index)
+        self.df_level = DataFrame(np.random.randn(100, 4),
+                                  index=self.index.levels[1])
 
     def time_stat_ops_level_series_sum_multiple(self):
         self.df[1].sum(level=[0, 1])
@@ -130,7 +173,9 @@ class stats_rank_average(object):
     goal_time = 0.2
 
     def setup(self):
-        self.values = np.concatenate([np.arange(100000), np.random.randn(100000), np.arange(100000)])
+        self.values = np.concatenate([np.arange(100000),
+                                      np.random.randn(100000),
+                                      np.arange(100000)])
         self.s = Series(self.values)
 
     def time_stats_rank_average(self):
@@ -152,7 +197,9 @@ class stats_rank_pct_average(object):
     goal_time = 0.2
 
     def setup(self):
-        self.values = np.concatenate([np.arange(100000), np.random.randn(100000), np.arange(100000)])
+        self.values = np.concatenate([np.arange(100000),
+                                      np.random.randn(100000),
+                                      np.arange(100000)])
         self.s = Series(self.values)
 
     def time_stats_rank_pct_average(self):
@@ -163,7 +210,9 @@ class stats_rank_pct_average_old(object):
     goal_time = 0.2
 
     def setup(self):
-        self.values = np.concatenate([np.arange(100000), np.random.randn(100000), np.arange(100000)])
+        self.values = np.concatenate([np.arange(100000),
+                                      np.random.randn(100000),
+                                      np.arange(100000)])
         self.s = Series(self.values)
 
     def time_stats_rank_pct_average_old(self):

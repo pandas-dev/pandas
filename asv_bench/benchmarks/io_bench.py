@@ -200,7 +200,7 @@ class read_csv_from_s3(object):
             # The Python 2 C parser can't read bz2 from open files.
             raise NotImplementedError
         try:
-            import s3fs
+            import s3fs  # noqa:F401
         except ImportError:
             # Skip these benchmarks if `boto` is not installed.
             raise NotImplementedError
@@ -226,16 +226,16 @@ class read_json_lines(_BenchTeardown):
         self.N = 100000
         self.C = 5
         self.df = DataFrame({('float{0}'.format(i), randn(self.N)) for i in range(self.C)})
-        self.df.to_json(self.fname,orient="records",lines=True)
+        self.df.to_json(self.fname, orient="records", lines=True)
 
     def time_read_json_lines(self):
         pd.read_json(self.fname, lines=True)
 
     def time_read_json_lines_chunk(self):
-        pd.concat(pd.read_json(self.fname, lines=True, chunksize=self.N//4))
+        pd.concat(pd.read_json(self.fname, lines=True, chunksize=self.N // 4))
 
     def peakmem_read_json_lines(self):
         pd.read_json(self.fname, lines=True)
 
     def peakmem_read_json_lines_chunk(self):
-        pd.concat(pd.read_json(self.fname, lines=True, chunksize=self.N//4))
+        pd.concat(pd.read_json(self.fname, lines=True, chunksize=self.N // 4))

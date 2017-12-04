@@ -111,7 +111,6 @@ class AssignToSelf(ast.NodeTransformer):
 
 def translate_module(target_module):
     g_vars = {}
-    l_vars = {}
     exec('import ' + target_module) in g_vars
 
     print(target_module)

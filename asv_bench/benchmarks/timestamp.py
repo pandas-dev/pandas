@@ -1,4 +1,4 @@
-from pandas import to_timedelta, Timestamp
+from pandas import Timestamp
 import pytz
 import datetime
 

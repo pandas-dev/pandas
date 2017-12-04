@@ -1,8 +1,10 @@
 import itertools
 
-from .pandas_vb_common import *
+import numpy as np
 import scipy.sparse
-from pandas import SparseSeries, SparseDataFrame, SparseArray
+
+import pandas as pd
+from pandas import SparseSeries, SparseDataFrame, SparseArray, date_range
 
 
 class sparse_series_to_frame(object):
@@ -167,7 +169,6 @@ class sparse_arithmetic_int(object):
 
     def time_sparse_division_1percent(self):
         self.a_1percent / self.b_1percent
-
 
 
 class sparse_arithmetic_block(object):
