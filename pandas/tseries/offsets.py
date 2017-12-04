@@ -594,6 +594,22 @@ class BusinessHourMixin(BusinessMixin):
         self.kwds = kwds
         self._offset = offset
 
+    @cache_readonly
+    def next_bday(self):
+        # used for moving to next businessday
+        if self.n >= 0:
+            nb_offset = 1
+        else:
+            nb_offset = -1
+        if self._prefix.startswith('C'):
+            # CustomBusinessHour
+            return return CustomBusinessDay(n=nb_offset,
+                                            weekmask=self.weekmask,
+                                            holidays=self.holidays,
+                                            calendar=self.calendar)
+        else:
+            return BusinessDay(n=nb_offset)
+
     # TODO: Cache this once offsets are immutable
     def _get_daytime_flag(self):
         if self.start == self.end:
@@ -807,15 +823,6 @@ class BusinessHour(BusinessHourMixin, SingleConstructorOffset):
         self.normalize = normalize
         super(BusinessHour, self).__init__(start=start, end=end, offset=offset)
 
-    @cache_readonly
-    def next_bday(self):
-        # used for moving to next businessday
-        if self.n >= 0:
-            nb_offset = 1
-        else:
-            nb_offset = -1
-        return BusinessDay(n=nb_offset)
-
 
 class CustomBusinessDay(_CustomMixin, BusinessDay):
     """
@@ -906,18 +913,6 @@ class CustomBusinessHour(_CustomMixin, BusinessHourMixin,
 
         # Note: `self.kwds` gets defined in BusinessHourMixin.__init__
         _CustomMixin.__init__(self, weekmask, holidays, calendar)
-
-    @cache_readonly
-    def next_bday(self):
-        # used for moving to next businessday
-        if self.n >= 0:
-            nb_offset = 1
-        else:
-            nb_offset = -1
-        return CustomBusinessDay(n=nb_offset,
-                                 weekmask=self.weekmask,
-                                 holidays=self.holidays,
-                                 calendar=self.calendar)
 
 
 # ---------------------------------------------------------------------
