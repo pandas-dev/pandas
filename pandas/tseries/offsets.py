@@ -591,7 +591,7 @@ class BusinessHourMixin(BusinessMixin):
         kwds = {'offset': offset}
         self.start = kwds['start'] = _validate_business_time(start)
         self.end = kwds['end'] = _validate_business_time(end)
-        self.kwds = kwds
+        self.kwds.update(kwds)
         self._offset = offset
 
     @cache_readonly
@@ -821,6 +821,7 @@ class BusinessHour(BusinessHourMixin, SingleConstructorOffset):
                  end='17:00', offset=timedelta(0)):
         self.n = self._validate_n(n)
         self.normalize = normalize
+        self.kwds = {}
         super(BusinessHour, self).__init__(start=start, end=end, offset=offset)
 
 
@@ -908,10 +909,11 @@ class CustomBusinessHour(_CustomMixin, BusinessHourMixin,
                  start='09:00', end='17:00', offset=timedelta(0)):
         self.n = self._validate_n(n)
         self.normalize = normalize
-        BusinessHourMixin.__init__(self, start=start, end=end, offset=offset)
+        self._offset = offset
+        self.kwds = {'offset': offset}
 
-        # Note: `self.kwds` gets defined in BusinessHourMixin.__init__
         _CustomMixin.__init__(self, weekmask, holidays, calendar)
+        BusinessHourMixin.__init__(self, start=start, end=end, offset=offset)
 
 
 # ---------------------------------------------------------------------
