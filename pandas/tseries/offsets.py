@@ -989,10 +989,10 @@ class BusinessMonthBegin(MonthOffset):
     _day_opt = 'business_start'
 
 
-class CustomBusinessMonthEnd(_CustomMixin, BusinessMixin, MonthOffset):
+class _CustomBusinessMonth(_CustomMixin, BusinessMixin, MonthOffset):
     """
     DateOffset subclass representing one custom business month, incrementing
-    between end of month dates
+    between [BEGIN/END] of month dates
 
     Parameters
     ----------
@@ -1007,11 +1007,9 @@ class CustomBusinessMonthEnd(_CustomMixin, BusinessMixin, MonthOffset):
         passed to ``numpy.busdaycalendar``
     calendar : pd.HolidayCalendar or np.busdaycalendar
     """
-
     _cacheable = False
-    _prefix = 'CBM'
 
-    onOffset = DateOffset.onOffset  # override MonthOffset method
+    onOffset = DateOffset.onOffset        # override MonthOffset method
     apply_index = DateOffset.apply_index  # override MonthOffset method
 
     def __init__(self, n=1, normalize=False, weekmask='Mon Tue Wed Thu Fri',
@@ -1030,7 +1028,17 @@ class CustomBusinessMonthEnd(_CustomMixin, BusinessMixin, MonthOffset):
 
     @cache_readonly
     def m_offset(self):
-        return MonthEnd(n=1, normalize=self.normalize)
+        if self._prefix.endwith('S'):
+            # MonthBegin:
+            return MonthBegin(n=1, normalize=self.normalize)
+        else:
+            # MonthEnd
+            return MonthEnd(n=1, normalize=self.normalize)
+
+
+class CustomBusinessMonthEnd(_CustomBusinessMonth):
+    __doc__ = _CustomBusinessMonth.__doc__.replace('[BEGIN/END]', 'end')
+    _prefix = 'CBM'
 
     @apply_wraps
     def apply(self, other):
@@ -1056,48 +1064,9 @@ class CustomBusinessMonthEnd(_CustomMixin, BusinessMixin, MonthOffset):
         return result
 
 
-class CustomBusinessMonthBegin(_CustomMixin, BusinessMixin, MonthOffset):
-    """
-    DateOffset subclass representing one custom business month, incrementing
-    between beginning of month dates
-
-    Parameters
-    ----------
-    n : int, default 1
-    offset : timedelta, default timedelta(0)
-    normalize : bool, default False
-        Normalize start/end dates to midnight before generating date range
-    weekmask : str, Default 'Mon Tue Wed Thu Fri'
-        weekmask of valid business days, passed to ``numpy.busdaycalendar``
-    holidays : list
-        list/array of dates to exclude from the set of valid business days,
-        passed to ``numpy.busdaycalendar``
-    calendar : pd.HolidayCalendar or np.busdaycalendar
-    """
-
-    _cacheable = False
+class CustomBusinessMonthBegin(_CustomBusinessMonth):
+    __doc__ = _CustomBusinessMonth.__doc__.replace('[BEGIN/END]', 'beginning')
     _prefix = 'CBMS'
-
-    onOffset = DateOffset.onOffset  # override MonthOffset method
-    apply_index = DateOffset.apply_index  # override MonthOffset method
-
-    def __init__(self, n=1, normalize=False, weekmask='Mon Tue Wed Thu Fri',
-                 holidays=None, calendar=None, offset=timedelta(0)):
-        self.n = self._validate_n(n)
-        self.normalize = normalize
-        self._offset = offset
-        self.kwds = {'offset': offset}
-
-        _CustomMixin.__init__(self, weekmask, holidays, calendar)
-
-    @cache_readonly
-    def cbday(self):
-        kwds = self.kwds
-        return CustomBusinessDay(n=self.n, normalize=self.normalize, **kwds)
-
-    @cache_readonly
-    def m_offset(self):
-        return MonthBegin(n=1, normalize=self.normalize)
 
     @apply_wraps
     def apply(self, other):
