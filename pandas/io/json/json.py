@@ -55,7 +55,7 @@ def to_json(path_or_buf, obj, orient=None, date_format='epoch',
         obj, orient=orient, date_format=date_format,
         double_precision=double_precision, ensure_ascii=force_ascii,
         date_unit=date_unit, default_handler=default_handler,
-        index=index)._write()
+        index=index).write()
 
     if lines:
         s = _convert_to_line_delimits(s)
@@ -95,15 +95,21 @@ class Writer(object):
     def _format_axes(self):
         raise AbstractMethodError(self)
 
-    def _write(self):
+    def write(self):
+        return self._write(self.obj, self.orient, self.double_precision,
+                           self.ensure_ascii, self.date_unit,
+                           self.date_format == 'iso', self.default_handler)
+
+    def _write(self, obj, orient, double_precision, ensure_ascii,
+               date_unit, iso_dates, default_handler):
         return dumps(
-            self.obj,
-            orient=self.orient,
-            double_precision=self.double_precision,
-            ensure_ascii=self.ensure_ascii,
-            date_unit=self.date_unit,
-            iso_dates=self.date_format == 'iso',
-            default_handler=self.default_handler
+            obj,
+            orient=orient,
+            double_precision=double_precision,
+            ensure_ascii=ensure_ascii,
+            date_unit=date_unit,
+            iso_dates=iso_dates,
+            default_handler=default_handler
         )
 
 
@@ -115,10 +121,14 @@ class SeriesWriter(Writer):
             raise ValueError("Series index must be unique for orient="
                              "'{orient}'".format(orient=self.orient))
 
-    def _write(self):
-        if not self.index and self.orient == 'split':
-            self.obj = {"name": self.obj.name, "data": self.obj.values}
-        return super(SeriesWriter, self)._write()
+    def _write(self, obj, orient, double_precision, ensure_ascii,
+               date_unit, iso_dates, default_handler):
+        if not self.index and orient == 'split':
+            obj = {"name": obj.name, "data": obj.values}
+        return super(SeriesWriter, self)._write(obj, orient,
+                                                double_precision,
+                                                ensure_ascii, date_unit,
+                                                iso_dates, default_handler)
 
 
 class FrameWriter(Writer):
@@ -135,11 +145,15 @@ class FrameWriter(Writer):
             raise ValueError("DataFrame columns must be unique for orient="
                              "'{orient}'.".format(orient=self.orient))
 
-    def _write(self):
-        if not self.index and self.orient == 'split':
-            self.obj = self.obj.to_dict(orient='split')
-            del self.obj["index"]
-        return super(FrameWriter, self)._write()
+    def _write(self, obj, orient, double_precision, ensure_ascii,
+               date_unit, iso_dates, default_handler):
+        if not self.index and orient == 'split':
+            obj = obj.to_dict(orient='split')
+            del obj["index"]
+        return super(FrameWriter, self)._write(obj, orient,
+                                               double_precision,
+                                               ensure_ascii, date_unit,
+                                               iso_dates, default_handler)
 
 
 class JSONTableWriter(FrameWriter):
@@ -191,10 +205,15 @@ class JSONTableWriter(FrameWriter):
         self.orient = 'records'
         self.index = index
 
-    def _write(self):
+    def _write(self, obj, orient, double_precision, ensure_ascii,
+               date_unit, iso_dates, default_handler):
         if not self.index:
-            self.obj = self.obj.drop('index', axis=1)
-        data = super(JSONTableWriter, self)._write()
+            obj = obj.drop('index', axis=1)
+        data = super(JSONTableWriter, self)._write(obj, orient,
+                                                   double_precision,
+                                                   ensure_ascii, date_unit,
+                                                   iso_dates,
+                                                   default_handler)
         serialized = '{{"schema": {schema}, "data": {data}}}'.format(
                      schema=dumps(self.schema), data=data)
         return serialized
