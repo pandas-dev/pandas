@@ -493,7 +493,7 @@ static void *PyDateTimeToJSON(JSOBJ _obj, JSONTypeContext *tc, void *outValue,
 
     PRINTMARK();
 
-    if (!convert_pydatetime_to_datetimestruct(obj, &dts, NULL, 1)) {
+    if (!convert_pydatetime_to_datetimestruct(obj, &dts)) {
         PRINTMARK();
         return PandasDateTimeStructToJSON(&dts, tc, outValue, _outLen);
     } else {
