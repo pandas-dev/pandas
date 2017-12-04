@@ -77,15 +77,12 @@ Other Enhancements
 - :func:`Series.fillna` now accepts a Series or a dict as a ``value`` for a categorical dtype (:issue:`17033`)
 - :func:`pandas.read_clipboard` updated to use qtpy, falling back to PyQt5 and then PyQt4, adding compatibility with Python3 and multiple python-qt bindings (:issue:`17722`)
 - Improved wording of ``ValueError`` raised in :func:`read_csv` when the ``usecols`` argument cannot match all columns. (:issue:`17301`)
+- :func:`DataFrame.pivot` now accepts a list of values (:issue:`17160`).
 
 .. _whatsnew_0220.api_breaking:
 
 Backwards incompatible API changes
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-- :func:`Series.fillna` now raises a ``TypeError`` instead of a ``ValueError`` when passed a list, tuple or DataFrame as a ``value`` (:issue:`18293`)
-- :func:`pandas.DataFrame.merge` no longer casts a ``float`` column to ``object`` when merging on ``int`` and ``float`` columns (:issue:`16572`)
-- The default NA value for :class:`UInt64Index` has changed from 0 to ``NaN``, which impacts methods that mask with NA, such as ``UInt64Index.where()`` (:issue:`18398`)
 
 .. _whatsnew_0220.api_breaking.deps:
 
@@ -102,8 +99,6 @@ If installed, we now require:
    +-----------------+-----------------+----------+
    | openpyxl        | 2.4.0           |          |
    +-----------------+-----------------+----------+
-
-
 
 
 .. _whatsnew_0220.api:
@@ -129,6 +124,10 @@ Other API Changes
 - :func:`DataFrame.from_items` provides a more informative error message when passed scalar values (:issue:`17312`)
 - When created with duplicate labels, ``MultiIndex`` now raises a ``ValueError``. (:issue:`17464`)
 - Building from source now explicity requires ``setuptools`` in ``setup.py`` (:issue:`18113`)
+- :func:`Series.fillna` now raises a ``TypeError`` instead of a ``ValueError`` when passed a list, tuple or DataFrame as a ``value`` (:issue:`18293`)
+- :func:`pandas.DataFrame.merge` no longer casts a ``float`` column to ``object`` when merging on ``int`` and ``float`` columns (:issue:`16572`)
+- The default NA value for :class:`UInt64Index` has changed from 0 to ``NaN``, which impacts methods that mask with NA, such as ``UInt64Index.where()`` (:issue:`18398`)
+- Building pandas for development now requires ``cython >= 0.24`` (:issue:`18613`)
 
 .. _whatsnew_0220.deprecations:
 
