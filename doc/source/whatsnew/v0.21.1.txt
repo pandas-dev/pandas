@@ -65,7 +65,6 @@ Conversion
 - Bug in :meth:`IntervalIndex.copy` when copying and ``IntervalIndex`` with non-default ``closed`` (:issue:`18339`)
 - Bug in :func:`DataFrame.to_dict` where columns of datetime that are tz-aware were not converted to required arrays when used with ``orient='records'``, raising``TypeError` (:issue:`18372`)
 - Bug in :class:`DateTimeIndex` and :meth:`date_range` where mismatching tz-aware ``start`` and ``end`` timezones would not raise an err if ``end.tzinfo`` is None (:issue:`18431`)
-- Bug in :func:`pandas.io.json.json_normalize` Make code more Pythonic and avoid modification of meta if mutable (:issue:`18610`)
 -
 
 Indexing
@@ -91,6 +90,7 @@ I/O
 - Bug in parsing integer datetime-like columns with specified format in ``read_sql`` (:issue:`17855`).
 - Bug in :meth:`DataFrame.to_msgpack` when serializing data of the numpy.bool_ datatype (:issue:`18390`)
 - Bug in :func:`read_json` not decoding when reading line deliminted JSON from S3 (:issue:`17200`)
+- Bug in :func:`pandas.io.json.json_normalize` to avoid modification of ``meta`` (:issue:`18610`)
 
 Plotting
 ^^^^^^^^
