@@ -374,15 +374,17 @@ def pivot(self, index=None, columns=None, values=None):
         cols = [columns] if index is None else [index, columns]
         append = index is None
         indexed = self.set_index(cols, append=append)
-        return indexed.unstack(columns)
     else:
-        if index is None:
-            index = self.index
+        index = self.index if index is None else self[index]
+        index = MultiIndex.from_arrays([index, self[columns]])
+        if isinstance(values, list):
+            indexed = DataFrame(self[values].values,
+                                index=index,
+                                columns=values)
         else:
-            index = self[index]
-        indexed = Series(self[values].values,
-                         index=MultiIndex.from_arrays([index, self[columns]]))
-        return indexed.unstack(columns)
+            indexed = Series(self[values].values,
+                             index=index)
+    return indexed.unstack(columns)
 
 
 def pivot_simple(index, columns, values):

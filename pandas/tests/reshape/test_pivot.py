@@ -353,6 +353,29 @@ class TestPivotTable(object):
         pv = df.pivot(index='p1', columns='p2', values='data1')
         tm.assert_frame_equal(pv, expected)
 
+    def test_pivot_with_multi_values(self):
+        df = pd.DataFrame({'foo': ['one', 'one', 'one', 'two', 'two', 'two'],
+                           'bar': ['A', 'B', 'C', 'A', 'B', 'C'],
+                           'baz': [1, 2, 3, 4, 5, 6],
+                           'zoo': ['x', 'y', 'z', 'q', 'w', 't']})
+
+        results = df.pivot(index='zoo', columns='foo', values=['bar', 'baz'])
+
+        data = [[None, 'A', None, 4],
+                [None, 'C', None, 6],
+                [None, 'B', None, 5],
+                ['A', None, 1, None],
+                ['B', None, 2, None],
+                ['C', None, 3, None]]
+        index = Index(data=['q', 't', 'w', 'x', 'y', 'z'], name='zoo')
+        columns = MultiIndex(levels=[['bar', 'baz'], ['one', 'two']],
+                             labels=[[0, 0, 1, 1], [0, 1, 0, 1]],
+                             names=[None, 'foo'])
+        expected = DataFrame(data=data, index=index,
+                             columns=columns, dtype='object')
+
+        tm.assert_frame_equal(results, expected)
+
     def test_margins(self):
         def _check_output(result, values_col, index=['A', 'B'],
                           columns=['C'],
