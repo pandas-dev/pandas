@@ -52,7 +52,7 @@ class TestPDApi(Base):
 
     # these are already deprecated; awaiting removal
     deprecated_classes = ['WidePanel', 'Panel4D', 'TimeGrouper',
-                          'SparseList', 'Expr', 'Term']
+                          'Expr', 'Term']
 
     # these should be deprecated in the future
     deprecated_classes_in_future = ['Panel']

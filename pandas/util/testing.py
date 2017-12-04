@@ -1582,13 +1582,6 @@ def assert_sp_frame_equal(left, right, check_dtype=True, exact_indices=True,
     for col in right:
         assert (col in left)
 
-
-def assert_sp_list_equal(left, right):
-    assert isinstance(left, pd.SparseList)
-    assert isinstance(right, pd.SparseList)
-
-    assert_sp_array_equal(left.to_array(), right.to_array())
-
 # -----------------------------------------------------------------------------
 # Others
 

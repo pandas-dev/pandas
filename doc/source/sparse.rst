@@ -85,15 +85,6 @@ can be converted back to a regular ndarray by calling ``to_dense``:
 
    sparr.to_dense()
 
-.. _sparse.list:
-
-SparseList
-----------
-
-The ``SparseList`` class has been deprecated and will be removed in a future version.
-See the `docs of a previous version <http://pandas.pydata.org/pandas-docs/version/0.18.1/sparse.html#sparselist>`__
-for documentation on ``SparseList``.
-
 
 SparseIndex objects
 -------------------

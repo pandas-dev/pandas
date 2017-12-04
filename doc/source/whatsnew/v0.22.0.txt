@@ -136,6 +136,7 @@ Removal of prior version deprecations/changes
 - ``pd.tseries.util.pivot_annual`` has been  removed (deprecated since v0.19). Use ``pivot_table`` instead (:issue:`18370`)
 - ``pd.tseries.util.isleapyear`` has been removed (deprecated since v0.19). Use ``.is_leap_year`` property in Datetime-likes instead (:issue:`18370`)
 - ``pd.ordered_merge`` has been removed (deprecated since v0.19). Use ``pd.merge_ordered`` instead (:issue:`18459`)
+- The ``SparseList`` class has been removed (:issue:`14007`)
 
 .. _whatsnew_0220.performance:
 
