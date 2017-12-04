@@ -58,25 +58,27 @@ class Apply(object):
 
 class Groups(object):
 
-    goal_time = 0.1
+    goal_time = 0.2
 
-    size = 10**6
-    data = {'int64_small': Series(np.random.randint(0, 100, size=size)),
-            'int64_large': Series(np.random.randint(0, 10000, size=size)),
-            'object_small': Series(
-                tm.makeStringIndex(100).take(
-                    np.random.randint(0, 100, size=size))),
-            'object_large': Series(
-                tm.makeStringIndex(10000).take(
-                    np.random.randint(0, 10000, size=size)))}
-
-    param_names = ['ser']
+    param_names = ['key']
     params = ['int64_small', 'int64_large', 'object_small', 'object_large']
 
-    def setup(self, ser):
-        self.ser = self.data[ser]
+    def setup_cache(self):
+        size = 10**6
+        data = {'int64_small': Series(np.random.randint(0, 100, size=size)),
+                'int64_large': Series(np.random.randint(0, 10000, size=size)),
+                'object_small': Series(
+                    tm.makeStringIndex(100).take(
+                        np.random.randint(0, 100, size=size))),
+                'object_large': Series(
+                    tm.makeStringIndex(10000).take(
+                        np.random.randint(0, 10000, size=size)))}
+        return data
 
-    def time_series_groups(self, ser):
+    def setup(self, data, key):
+        self.ser = data[key]
+
+    def time_series_groups(self, data, key):
         self.ser.groupby(self.ser).groups
 
 
