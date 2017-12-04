@@ -295,6 +295,17 @@ class TestTimestampConstructors(object):
         assert Timestamp('2000-01-01', tz='US/Eastern') == ts
         assert base.toordinal() == ts.toordinal()
 
+        # GH#3042
+        dt = datetime(2011, 4, 16, 0, 0)
+        ts = Timestamp.fromordinal(dt.toordinal())
+        assert ts.to_pydatetime() == dt
+
+        # with a tzinfo
+        stamp = Timestamp('2011-4-16', tz='US/Eastern')
+        dt_tz = stamp.to_pydatetime()
+        ts = Timestamp.fromordinal(dt_tz.toordinal(), tz='US/Eastern')
+        assert ts.to_pydatetime() == dt_tz
+
     def test_constructor_offset_depr(self):
         # see gh-12160
         with tm.assert_produces_warning(FutureWarning,
@@ -400,6 +411,16 @@ class TestTimestamp(object):
         expr = repr(date_with_utc_offset).replace("'pytz.FixedOffset(-240)'",
                                                   'pytz.FixedOffset(-240)')
         assert date_with_utc_offset == eval(expr)
+
+    def test_timestamp_repr_pre1900(self):
+        # pre-1900
+        stamp = Timestamp('1850-01-01', tz='US/Eastern')
+        repr(stamp)
+
+        iso8601 = '1850-01-01 01:23:45.012345'
+        stamp = Timestamp(iso8601, tz='US/Eastern')
+        result = repr(stamp)
+        assert iso8601 in result
 
     def test_bounds_with_different_units(self):
         out_of_bounds_dates = ('1677-09-21', '2262-04-12', )
@@ -1139,6 +1160,21 @@ class TestTimestampComparison(object):
             result = right_f(Timestamp('nat'), s_nat)
             tm.assert_series_equal(result, expected)
 
+    def test_timestamp_compare_with_early_datetime(self):
+        # e.g. datetime.min
+        stamp = Timestamp('2012-01-01')
+
+        assert not stamp == datetime.min
+        assert not stamp == datetime(1600, 1, 1)
+        assert not stamp == datetime(2700, 1, 1)
+        assert stamp != datetime.min
+        assert stamp != datetime(1600, 1, 1)
+        assert stamp != datetime(2700, 1, 1)
+        assert stamp > datetime(1600, 1, 1)
+        assert stamp >= datetime(1600, 1, 1)
+        assert stamp < datetime(2700, 1, 1)
+        assert stamp <= datetime(2700, 1, 1)
+
 
 class TestTimestampNsOperations(object):
 
@@ -1323,8 +1359,7 @@ class TestTimestampToJulianDate(object):
         assert r == 2451769.0416666666666666
 
 
-class TestTimeSeries(object):
-
+class TestTimestampConversion(object):
     def test_timestamp_to_datetime(self):
         stamp = Timestamp('20090415', tz='US/Eastern', freq='D')
         dtval = stamp.to_pydatetime()
@@ -1352,47 +1387,25 @@ class TestTimeSeries(object):
         assert stamp == dtval
         assert stamp.tzinfo == dtval.tzinfo
 
+    def test_to_datetime_bijective(self):
+        # Ensure that converting to datetime and back only loses precision
+        # by going from nanoseconds to microseconds.
+        exp_warning = None if Timestamp.max.nanosecond == 0 else UserWarning
+        with tm.assert_produces_warning(exp_warning, check_stacklevel=False):
+            assert (Timestamp(Timestamp.max.to_pydatetime()).value / 1000 ==
+                    Timestamp.max.value / 1000)
+
+        exp_warning = None if Timestamp.min.nanosecond == 0 else UserWarning
+        with tm.assert_produces_warning(exp_warning, check_stacklevel=False):
+            assert (Timestamp(Timestamp.min.to_pydatetime()).value / 1000 ==
+                    Timestamp.min.value / 1000)
+
+
+class TestTimeSeries(object):
+
     def test_timestamp_date_out_of_range(self):
         pytest.raises(ValueError, Timestamp, '1676-01-01')
         pytest.raises(ValueError, Timestamp, '2263-01-01')
-
-    def test_timestamp_repr(self):
-        # pre-1900
-        stamp = Timestamp('1850-01-01', tz='US/Eastern')
-        repr(stamp)
-
-        iso8601 = '1850-01-01 01:23:45.012345'
-        stamp = Timestamp(iso8601, tz='US/Eastern')
-        result = repr(stamp)
-        assert iso8601 in result
-
-    def test_timestamp_from_ordinal(self):
-
-        # GH 3042
-        dt = datetime(2011, 4, 16, 0, 0)
-        ts = Timestamp.fromordinal(dt.toordinal())
-        assert ts.to_pydatetime() == dt
-
-        # with a tzinfo
-        stamp = Timestamp('2011-4-16', tz='US/Eastern')
-        dt_tz = stamp.to_pydatetime()
-        ts = Timestamp.fromordinal(dt_tz.toordinal(), tz='US/Eastern')
-        assert ts.to_pydatetime() == dt_tz
-
-    def test_timestamp_compare_with_early_datetime(self):
-        # e.g. datetime.min
-        stamp = Timestamp('2012-01-01')
-
-        assert not stamp == datetime.min
-        assert not stamp == datetime(1600, 1, 1)
-        assert not stamp == datetime(2700, 1, 1)
-        assert stamp != datetime.min
-        assert stamp != datetime(1600, 1, 1)
-        assert stamp != datetime(2700, 1, 1)
-        assert stamp > datetime(1600, 1, 1)
-        assert stamp >= datetime(1600, 1, 1)
-        assert stamp < datetime(2700, 1, 1)
-        assert stamp <= datetime(2700, 1, 1)
 
     def test_timestamp_equality(self):
 
@@ -1485,16 +1498,3 @@ class TestTsUtil(object):
     def test_max_valid(self):
         # Ensure that Timestamp.max is a valid Timestamp
         Timestamp(Timestamp.max)
-
-    def test_to_datetime_bijective(self):
-        # Ensure that converting to datetime and back only loses precision
-        # by going from nanoseconds to microseconds.
-        exp_warning = None if Timestamp.max.nanosecond == 0 else UserWarning
-        with tm.assert_produces_warning(exp_warning, check_stacklevel=False):
-            assert (Timestamp(Timestamp.max.to_pydatetime()).value / 1000 ==
-                    Timestamp.max.value / 1000)
-
-        exp_warning = None if Timestamp.min.nanosecond == 0 else UserWarning
-        with tm.assert_produces_warning(exp_warning, check_stacklevel=False):
-            assert (Timestamp(Timestamp.min.to_pydatetime()).value / 1000 ==
-                    Timestamp.min.value / 1000)
