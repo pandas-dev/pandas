@@ -27,7 +27,7 @@ class TestPeriodIndexOps(Ops):
         self.check_ops_properties(PeriodIndex._object_ops, f)
         self.check_ops_properties(PeriodIndex._bool_ops, f)
 
-    def test_astype(self):
+    def test_astype_object(self):
         idx = pd.period_range(start='2013-01-01', periods=4, freq='M',
                               name='idx')
         expected_list = [pd.Period('2013-01-31', freq='M'),
@@ -291,7 +291,7 @@ Freq: Q-DEC"""
         right = pd.PeriodIndex([pd.NaT, pd.NaT, pd.Period('2011-01-03')])
 
         for lhs, rhs in [(left, right),
-                     (left.astype(object), right.astype(object))]:
+                         (left.astype(object), right.astype(object))]:
             result = lhs == rhs
             expected = np.array([False, False, True])
             tm.assert_numpy_array_equal(result, expected)

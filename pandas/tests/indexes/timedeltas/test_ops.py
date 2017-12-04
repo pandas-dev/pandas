@@ -25,7 +25,7 @@ class TestTimedeltaIndexOps(Ops):
         self.check_ops_properties(TimedeltaIndex._field_ops, f)
         self.check_ops_properties(TimedeltaIndex._object_ops, f)
 
-    def test_astype(self):
+    def test_astype_object(self):
         idx = timedelta_range(start='1 days', periods=4, freq='D', name='idx')
         expected_list = [Timedelta('1 days'), Timedelta('2 days'),
                          Timedelta('3 days'), Timedelta('4 days')]
@@ -217,27 +217,27 @@ dtype: timedelta64[ns]"""
                                   pd.Timedelta('3 days')])
         right = pd.TimedeltaIndex([pd.NaT, pd.NaT, pd.Timedelta('3 days')])
 
-        for l, r in [(left, right),
-                     (left.astype(object), right.astype(object))]:
-            result = r == l
+        for lhs, rhs in [(left, right),
+                         (left.astype(object), right.astype(object))]:
+            result = rhs == lhs
             expected = np.array([False, False, True])
             tm.assert_numpy_array_equal(result, expected)
 
-            result = r != l
+            result = rhs != lhs
             expected = np.array([True, True, False])
             tm.assert_numpy_array_equal(result, expected)
 
             expected = np.array([False, False, False])
-            tm.assert_numpy_array_equal(l == pd.NaT, expected)
-            tm.assert_numpy_array_equal(pd.NaT == r, expected)
+            tm.assert_numpy_array_equal(lhs == pd.NaT, expected)
+            tm.assert_numpy_array_equal(pd.NaT == rhs, expected)
 
             expected = np.array([True, True, True])
-            tm.assert_numpy_array_equal(l != pd.NaT, expected)
-            tm.assert_numpy_array_equal(pd.NaT != l, expected)
+            tm.assert_numpy_array_equal(lhs != pd.NaT, expected)
+            tm.assert_numpy_array_equal(pd.NaT != lhs, expected)
 
             expected = np.array([False, False, False])
-            tm.assert_numpy_array_equal(l < pd.NaT, expected)
-            tm.assert_numpy_array_equal(pd.NaT > l, expected)
+            tm.assert_numpy_array_equal(lhs < pd.NaT, expected)
+            tm.assert_numpy_array_equal(pd.NaT > lhs, expected)
 
     def test_value_counts_unique(self):
         # GH 7735

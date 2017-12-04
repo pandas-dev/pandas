@@ -380,7 +380,7 @@ class TestPeriodIndex(DatetimeLike):
         tm.assert_numpy_array_equal(arr, exp_arr)
         tm.assert_index_equal(idx, exp_idx)
 
-    def test_astype(self):
+    def test_astype_object(self):
         idx = pd.PeriodIndex([], freq='M')
 
         exp = np.array([], dtype=object)
