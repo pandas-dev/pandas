@@ -50,6 +50,11 @@ class TestSeriesConstructors(TestData):
         assert int(Series([1.])) == 1
         assert long(Series([1.])) == 1
 
+    @pytest.mark.parametrize('scalar', [1, 'abc', {2, 3}])
+    @pytest.mark.parametrize('index', [range(2), ['a', 'b']])
+    def test_invalid_1_dimensional(self, scalar, index):
+        pytest.raises(ValueError, Series, [scalar], index=index)
+
     def test_constructor(self):
         assert self.ts.index.is_all_dates
 
