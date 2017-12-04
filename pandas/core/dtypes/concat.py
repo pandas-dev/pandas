@@ -401,7 +401,7 @@ def _concat_datetime(to_concat, axis=0, typs=None):
         # if dtype is of datetimetz or timezone
         if x.dtype.kind == _NS_DTYPE.kind:
             if getattr(x, 'tz', None) is not None:
-                x = x.asobject.values
+                x = x.astype(object).values
             else:
                 shape = x.shape
                 x = tslib.ints_to_pydatetime(x.view(np.int64).ravel(),
@@ -479,7 +479,7 @@ def _concat_index_asobject(to_concat, name=None):
     """
 
     klasses = ABCDatetimeIndex, ABCTimedeltaIndex, ABCPeriodIndex
-    to_concat = [x.asobject if isinstance(x, klasses) else x
+    to_concat = [x.astype(object) if isinstance(x, klasses) else x
                  for x in to_concat]
 
     from pandas import Index

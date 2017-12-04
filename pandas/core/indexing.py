@@ -405,7 +405,8 @@ class _NDFrameIndexer(_NDFrameIndexerBase):
                             new_values = np.concatenate([self.obj._values,
                                                          new_values])
                         except TypeError:
-                            new_values = np.concatenate([self.obj.asobject,
+                            as_obj = self.obj.astype(object)
+                            new_values = np.concatenate([as_obj,
                                                          new_values])
                     self.obj._data = self.obj._constructor(
                         new_values, index=new_index, name=self.obj.name)._data

@@ -2231,7 +2231,7 @@ class Datetime64TZFormatter(Datetime64Formatter):
     def _format_strings(self):
         """ we by definition have a TZ """
 
-        values = self.values.asobject
+        values = self.values.astype(object)
         is_dates_only = _is_dates_only(values)
         formatter = (self.formatter or
                      _get_format_datetime64(is_dates_only,

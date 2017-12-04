@@ -24,7 +24,7 @@ class TestPeriodIndex(DatetimeLike):
     def create_index(self):
         return period_range('20130101', periods=5, freq='D')
 
-    def test_astype(self):
+    def test_astype_conversion(self):
         # GH 13149, GH 13209
         idx = PeriodIndex(['2016-05-16', 'NaT', NaT, np.NaN], freq='D')
 
@@ -380,23 +380,23 @@ class TestPeriodIndex(DatetimeLike):
         tm.assert_numpy_array_equal(arr, exp_arr)
         tm.assert_index_equal(idx, exp_idx)
 
-    def test_asobject_like(self):
+    def test_astype_object(self):
         idx = pd.PeriodIndex([], freq='M')
 
         exp = np.array([], dtype=object)
-        tm.assert_numpy_array_equal(idx.asobject.values, exp)
+        tm.assert_numpy_array_equal(idx.astype(object).values, exp)
         tm.assert_numpy_array_equal(idx._mpl_repr(), exp)
 
         idx = pd.PeriodIndex(['2011-01', pd.NaT], freq='M')
 
         exp = np.array([pd.Period('2011-01', freq='M'), pd.NaT], dtype=object)
-        tm.assert_numpy_array_equal(idx.asobject.values, exp)
+        tm.assert_numpy_array_equal(idx.astype(object).values, exp)
         tm.assert_numpy_array_equal(idx._mpl_repr(), exp)
 
         exp = np.array([pd.Period('2011-01-01', freq='D'), pd.NaT],
                        dtype=object)
         idx = pd.PeriodIndex(['2011-01-01', pd.NaT], freq='D')
-        tm.assert_numpy_array_equal(idx.asobject.values, exp)
+        tm.assert_numpy_array_equal(idx.astype(object).values, exp)
         tm.assert_numpy_array_equal(idx._mpl_repr(), exp)
 
     def test_is_(self):

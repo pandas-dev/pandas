@@ -850,7 +850,7 @@ def _comp_method_SERIES(op, name, str_rep, masker=False):
                 # tested in test_nat_comparisons
                 # (pandas.tests.series.test_operators.TestSeriesOperators)
                 return self._constructor(na_op(self.values,
-                                               other.asobject.values),
+                                               other.astype(object).values),
                                          index=self.index)
 
             return self._constructor(na_op(self.values, np.asarray(other)),

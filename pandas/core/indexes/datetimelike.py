@@ -242,6 +242,13 @@ class DatetimeIndexOpsMixin(object):
         """
         return lib.map_infer(values, self._box_func)
 
+    def _box_values_as_index(self):
+        """
+        return object Index which contains boxed values
+        """
+        from pandas.core.index import Index
+        return Index(self._box_values(self.asi8), name=self.name, dtype=object)
+
     def _format_with_header(self, header, **kwargs):
         return header + list(self._format_native_types(**kwargs))
 
@@ -360,7 +367,7 @@ class DatetimeIndexOpsMixin(object):
                 raise TypeError('The map function must return an Index object')
             return result
         except Exception:
-            return self.asobject.map(f)
+            return self.astype(object).map(f)
 
     def sort_values(self, return_indexer=False, ascending=True):
         """
@@ -424,13 +431,15 @@ class DatetimeIndexOpsMixin(object):
 
     @property
     def asobject(self):
-        """
+        """DEPRECATED: Use ``astype(object)`` instead.
+
         return object Index which contains boxed values
 
         *this is an internal non-public method*
         """
-        from pandas.core.index import Index
-        return Index(self._box_values(self.asi8), name=self.name, dtype=object)
+        warnings.warn("'asobject' is deprecated. Use 'astype(object)'"
+                      " instead", FutureWarning, stacklevel=2)
+        return self.astype(object)
 
     def _convert_tolerance(self, tolerance, target):
         tolerance = np.asarray(to_timedelta(tolerance, box=False))
@@ -468,7 +477,7 @@ class DatetimeIndexOpsMixin(object):
         """
         return a list of the underlying data
         """
-        return list(self.asobject)
+        return list(self.astype(object))
 
     def min(self, axis=None, *args, **kwargs):
         """
@@ -746,7 +755,7 @@ class DatetimeIndexOpsMixin(object):
             try:
                 values = type(self)(values)
             except ValueError:
-                return self.asobject.isin(values)
+                return self.astype(object).isin(values)
 
         return algorithms.isin(self.asi8, values.asi8)
 

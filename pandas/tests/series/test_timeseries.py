@@ -134,13 +134,13 @@ class TestTimeSeries(TestData):
         assert res.dtype == 'datetime64[ns, US/Eastern]'
 
         res = s.shift(1)
-        exp_vals = [NaT] + dates.asobject.values.tolist()[:9]
+        exp_vals = [NaT] + dates.astype(object).values.tolist()[:9]
         exp = Series(exp_vals)
         tm.assert_series_equal(res, exp)
         assert res.dtype == 'datetime64[ns, US/Eastern]'
 
         res = s.shift(-2)
-        exp_vals = dates.asobject.values.tolist()[2:] + [NaT, NaT]
+        exp_vals = dates.astype(object).values.tolist()[2:] + [NaT, NaT]
         exp = Series(exp_vals)
         tm.assert_series_equal(res, exp)
         assert res.dtype == 'datetime64[ns, US/Eastern]'

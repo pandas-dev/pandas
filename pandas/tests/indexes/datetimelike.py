@@ -76,3 +76,10 @@ class DatetimeLike(Base):
         expected = pd.Index([np.nan] * len(self.index))
         result = self.index.map(mapper([], []))
         tm.assert_index_equal(result, expected)
+
+    def test_asobject_deprecated(self):
+        # GH18572
+        d = self.create_index()
+        with tm.assert_produces_warning(FutureWarning):
+            i = d.asobject
+        assert isinstance(i, pd.Index)

@@ -688,7 +688,7 @@ class TestTimeZoneSupportPytz(object):
         # dates around a dst transition
         rng = date_range('2/13/2010', '5/6/2010', tz=self.tzstr('US/Eastern'))
 
-        objs = rng.asobject
+        objs = rng.astype(object)
         for i, x in enumerate(objs):
             exval = rng[i]
             assert x == exval
@@ -1552,8 +1552,8 @@ class TestTimeZones(object):
         ts2 = Series(np.random.randn(len(rng2)), index=rng2)
         ts_result = ts1.append(ts2)
 
-        assert ts_result.index.equals(ts1.index.asobject.append(
-            ts2.index.asobject))
+        assert ts_result.index.equals(ts1.index.astype(object).append(
+            ts2.index.astype(object)))
 
         # mixed
         rng1 = date_range('1/1/2011 01:00', periods=1, freq='H')
@@ -1561,7 +1561,7 @@ class TestTimeZones(object):
         ts1 = Series(np.random.randn(len(rng1)), index=rng1)
         ts2 = Series(np.random.randn(len(rng2)), index=rng2)
         ts_result = ts1.append(ts2)
-        assert ts_result.index.equals(ts1.index.asobject.append(
+        assert ts_result.index.equals(ts1.index.astype(object).append(
             ts2.index))
 
     def test_equal_join_ensure_utc(self):

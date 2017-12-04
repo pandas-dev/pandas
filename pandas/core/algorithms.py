@@ -369,7 +369,7 @@ def unique(values):
         # to return an object array of tz-aware Timestamps
 
         # TODO: it must return DatetimeArray with tz in pandas 2.0
-        uniques = uniques.asobject.values
+        uniques = uniques.astype(object).values
 
     return uniques
 

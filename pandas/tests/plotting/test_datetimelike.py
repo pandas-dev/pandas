@@ -272,7 +272,7 @@ class TestTSPlot(TestPlotBase):
 
         _, ax = self.plt.subplots()
         df2 = df.copy()
-        df2.index = df.index.asobject
+        df2.index = df.index.astype(object)
         df2.plot(ax=ax)
         diffs = Series(ax.get_lines()[0].get_xydata()[:, 0]).diff()
         assert (np.fabs(diffs[1:] - sec) < 1e-8).all()
@@ -712,9 +712,9 @@ class TestTSPlot(TestPlotBase):
         assert not hasattr(ax, 'freq')
         lines = ax.get_lines()
         x1 = lines[0].get_xdata()
-        tm.assert_numpy_array_equal(x1, s2.index.asobject.values)
+        tm.assert_numpy_array_equal(x1, s2.index.astype(object).values)
         x2 = lines[1].get_xdata()
-        tm.assert_numpy_array_equal(x2, s1.index.asobject.values)
+        tm.assert_numpy_array_equal(x2, s1.index.astype(object).values)
 
     def test_mixed_freq_regular_first_df(self):
         # GH 9852
@@ -744,9 +744,9 @@ class TestTSPlot(TestPlotBase):
         assert not hasattr(ax, 'freq')
         lines = ax.get_lines()
         x1 = lines[0].get_xdata()
-        tm.assert_numpy_array_equal(x1, s2.index.asobject.values)
+        tm.assert_numpy_array_equal(x1, s2.index.astype(object).values)
         x2 = lines[1].get_xdata()
-        tm.assert_numpy_array_equal(x2, s1.index.asobject.values)
+        tm.assert_numpy_array_equal(x2, s1.index.astype(object).values)
 
     def test_mixed_freq_hf_first(self):
         idxh = date_range('1/1/1999', periods=365, freq='D')
@@ -1019,7 +1019,7 @@ class TestTSPlot(TestPlotBase):
 
         # np.datetime64
         idx = date_range('1/1/2000', periods=10)
-        idx = idx[[0, 2, 5, 9]].asobject
+        idx = idx[[0, 2, 5, 9]].astype(object)
         df = DataFrame(np.random.randn(len(idx), 3), idx)
         _, ax = self.plt.subplots()
         _check_plot_works(df.plot, ax=ax)

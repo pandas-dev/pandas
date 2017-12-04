@@ -122,7 +122,7 @@ class TestIndex(Base):
         tm.assert_index_equal(result, idx)
         assert result.tz == idx.tz
 
-        result = pd.Index(idx.asobject)
+        result = pd.Index(idx.astype(object))
         tm.assert_index_equal(result, idx)
         assert result.tz == idx.tz
 
@@ -131,7 +131,7 @@ class TestIndex(Base):
         result = pd.Index(idx)
         tm.assert_index_equal(result, idx)
 
-        result = pd.Index(idx.asobject)
+        result = pd.Index(idx.astype(object))
         tm.assert_index_equal(result, idx)
 
     def test_constructor_from_index_period(self):
@@ -139,7 +139,7 @@ class TestIndex(Base):
         result = pd.Index(idx)
         tm.assert_index_equal(result, idx)
 
-        result = pd.Index(idx.asobject)
+        result = pd.Index(idx.astype(object))
         tm.assert_index_equal(result, idx)
 
     def test_constructor_from_series_datetimetz(self):

@@ -720,15 +720,15 @@ class TestFrequencyInference(object):
 
     def test_infer_freq(self):
         rng = period_range('1959Q2', '2009Q3', freq='Q')
-        rng = Index(rng.to_timestamp('D', how='e').asobject)
+        rng = Index(rng.to_timestamp('D', how='e').astype(object))
         assert rng.inferred_freq == 'Q-DEC'
 
         rng = period_range('1959Q2', '2009Q3', freq='Q-NOV')
-        rng = Index(rng.to_timestamp('D', how='e').asobject)
+        rng = Index(rng.to_timestamp('D', how='e').astype(object))
         assert rng.inferred_freq == 'Q-NOV'
 
         rng = period_range('1959Q2', '2009Q3', freq='Q-OCT')
-        rng = Index(rng.to_timestamp('D', how='e').asobject)
+        rng = Index(rng.to_timestamp('D', how='e').astype(object))
         assert rng.inferred_freq == 'Q-OCT'
 
     def test_infer_freq_tz(self):
