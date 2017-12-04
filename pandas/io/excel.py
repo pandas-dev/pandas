@@ -28,7 +28,6 @@ from pandas.compat import (map, zip, reduce, range, lrange, u, add_metaclass,
 from pandas.core import config
 from pandas.io.formats.printing import pprint_thing
 import pandas.compat as compat
-import pandas.compat.openpyxl_compat as openpyxl_compat
 from warnings import warn
 from distutils.version import LooseVersion
 from pandas.util._decorators import Appender, deprecate_kwarg
@@ -185,22 +184,6 @@ def _get_default_writer(ext):
 
 
 def get_writer(engine_name):
-    if engine_name == 'openpyxl':
-        try:
-            import openpyxl
-
-            # with version-less openpyxl engine
-            # make sure we make the intelligent choice for the user
-            if LooseVersion(openpyxl.__version__) < '2.0.0':
-                return _writers['openpyxl1']
-            elif LooseVersion(openpyxl.__version__) < '2.2.0':
-                return _writers['openpyxl20']
-            else:
-                return _writers['openpyxl22']
-        except ImportError:
-            # fall through to normal exception handling below
-            pass
-
     try:
         return _writers[engine_name]
     except KeyError:
@@ -828,20 +811,15 @@ class ExcelWriter(object):
         return self.save()
 
 
-class _Openpyxl1Writer(ExcelWriter):
-    engine = 'openpyxl1'
+class _OpenpyxlWriter(ExcelWriter):
+    engine = 'openpyxl'
     supported_extensions = ('.xlsx', '.xlsm')
-    openpyxl_majorver = 1
 
     def __init__(self, path, engine=None, **engine_kwargs):
-        if not openpyxl_compat.is_compat(major_ver=self.openpyxl_majorver):
-            raise ValueError('Installed openpyxl is not supported at this '
-                             'time. Use {majorver}.x.y.'
-                             .format(majorver=self.openpyxl_majorver))
         # Use the openpyxl module as the Excel writer.
         from openpyxl.workbook import Workbook
 
-        super(_Openpyxl1Writer, self).__init__(path, **engine_kwargs)
+        super(_OpenpyxlWriter, self).__init__(path, **engine_kwargs)
 
         # Create workbook object with default optimized_write=True.
         self.book = Workbook()
@@ -860,72 +838,6 @@ class _Openpyxl1Writer(ExcelWriter):
         Save workbook to disk.
         """
         return self.book.save(self.path)
-
-    def write_cells(self, cells, sheet_name=None, startrow=0, startcol=0,
-                    freeze_panes=None):
-        # Write the frame cells using openpyxl.
-        from openpyxl.cell import get_column_letter
-
-        sheet_name = self._get_sheet_name(sheet_name)
-
-        if sheet_name in self.sheets:
-            wks = self.sheets[sheet_name]
-        else:
-            wks = self.book.create_sheet()
-            wks.title = sheet_name
-            self.sheets[sheet_name] = wks
-
-        for cell in cells:
-            colletter = get_column_letter(startcol + cell.col + 1)
-            xcell = wks.cell("{col}{row}".format(col=colletter,
-                                                 row=startrow + cell.row + 1))
-            if (isinstance(cell.val, compat.string_types) and
-                    xcell.data_type_for_value(cell.val) != xcell.TYPE_STRING):
-                xcell.set_value_explicit(cell.val)
-            else:
-                xcell.value = _conv_value(cell.val)
-            style = None
-            if cell.style:
-                style = self._convert_to_style(cell.style)
-                for field in style.__fields__:
-                    xcell.style.__setattr__(field,
-                                            style.__getattribute__(field))
-
-            if isinstance(cell.val, datetime):
-                xcell.style.number_format.format_code = self.datetime_format
-            elif isinstance(cell.val, date):
-                xcell.style.number_format.format_code = self.date_format
-
-            if cell.mergestart is not None and cell.mergeend is not None:
-                cletterstart = get_column_letter(startcol + cell.col + 1)
-                cletterend = get_column_letter(startcol + cell.mergeend + 1)
-
-                wks.merge_cells('{start}{row}:{end}{mergestart}'
-                                .format(start=cletterstart,
-                                        row=startrow + cell.row + 1,
-                                        end=cletterend,
-                                        mergestart=startrow +
-                                        cell.mergestart + 1))
-
-                # Excel requires that the format of the first cell in a merged
-                # range is repeated in the rest of the merged range.
-                if style:
-                    first_row = startrow + cell.row + 1
-                    last_row = startrow + cell.mergestart + 1
-                    first_col = startcol + cell.col + 1
-                    last_col = startcol + cell.mergeend + 1
-
-                    for row in range(first_row, last_row + 1):
-                        for col in range(first_col, last_col + 1):
-                            if row == first_row and col == first_col:
-                                # Ignore first cell. It is already handled.
-                                continue
-                            colletter = get_column_letter(col)
-                            xcell = wks.cell("{col}{row}"
-                                             .format(col=colletter, row=row))
-                            for field in style.__fields__:
-                                xcell.style.__setattr__(
-                                    field, style.__getattribute__(field))
 
     @classmethod
     def _convert_to_style(cls, style_dict):
@@ -947,88 +859,6 @@ class _Openpyxl1Writer(ExcelWriter):
                     xls_style.__getattribute__(key).__setattr__(nk, nv)
 
         return xls_style
-
-
-register_writer(_Openpyxl1Writer)
-
-
-class _OpenpyxlWriter(_Openpyxl1Writer):
-    engine = 'openpyxl'
-
-
-register_writer(_OpenpyxlWriter)
-
-
-class _Openpyxl20Writer(_Openpyxl1Writer):
-    """
-    Note: Support for OpenPyxl v2 is currently EXPERIMENTAL (GH7565).
-    """
-    engine = 'openpyxl20'
-    openpyxl_majorver = 2
-
-    def write_cells(self, cells, sheet_name=None, startrow=0, startcol=0,
-                    freeze_panes=None):
-        # Write the frame cells using openpyxl.
-        from openpyxl.cell import get_column_letter
-
-        sheet_name = self._get_sheet_name(sheet_name)
-
-        if sheet_name in self.sheets:
-            wks = self.sheets[sheet_name]
-        else:
-            wks = self.book.create_sheet()
-            wks.title = sheet_name
-            self.sheets[sheet_name] = wks
-
-        for cell in cells:
-            colletter = get_column_letter(startcol + cell.col + 1)
-            xcell = wks["{col}{row}"
-                        .format(col=colletter, row=startrow + cell.row + 1)]
-            xcell.value = _conv_value(cell.val)
-            style_kwargs = {}
-
-            # Apply format codes before cell.style to allow override
-            if isinstance(cell.val, datetime):
-                style_kwargs.update(self._convert_to_style_kwargs({
-                    'number_format': {'format_code': self.datetime_format}}))
-            elif isinstance(cell.val, date):
-                style_kwargs.update(self._convert_to_style_kwargs({
-                    'number_format': {'format_code': self.date_format}}))
-
-            if cell.style:
-                style_kwargs.update(self._convert_to_style_kwargs(cell.style))
-
-            if style_kwargs:
-                xcell.style = xcell.style.copy(**style_kwargs)
-
-            if cell.mergestart is not None and cell.mergeend is not None:
-                cletterstart = get_column_letter(startcol + cell.col + 1)
-                cletterend = get_column_letter(startcol + cell.mergeend + 1)
-
-                wks.merge_cells('{start}{row}:{end}{mergestart}'
-                                .format(start=cletterstart,
-                                        row=startrow + cell.row + 1,
-                                        end=cletterend,
-                                        mergestart=startrow +
-                                        cell.mergestart + 1))
-
-                # Excel requires that the format of the first cell in a merged
-                # range is repeated in the rest of the merged range.
-                if style_kwargs:
-                    first_row = startrow + cell.row + 1
-                    last_row = startrow + cell.mergestart + 1
-                    first_col = startcol + cell.col + 1
-                    last_col = startcol + cell.mergeend + 1
-
-                    for row in range(first_row, last_row + 1):
-                        for col in range(first_col, last_col + 1):
-                            if row == first_row and col == first_col:
-                                # Ignore first cell. It is already handled.
-                                continue
-                            colletter = get_column_letter(col)
-                            xcell = wks["{col}{row}"
-                                        .format(col=colletter, row=row)]
-                            xcell.style = xcell.style.copy(**style_kwargs)
 
     @classmethod
     def _convert_to_style_kwargs(cls, style_dict):
@@ -1341,13 +1171,7 @@ class _Openpyxl20Writer(_Openpyxl1Writer):
         -------
         number_format : str
         """
-        try:
-            # >= 2.0.0 < 2.1.0
-            from openpyxl.styles import NumberFormat
-            return NumberFormat(**number_format_dict)
-        except:
-            # >= 2.1.0
-            return number_format_dict['format_code']
+        return number_format_dict['format_code']
 
     @classmethod
     def _convert_to_protection(cls, protection_dict):
@@ -1366,17 +1190,6 @@ class _Openpyxl20Writer(_Openpyxl1Writer):
         from openpyxl.styles import Protection
 
         return Protection(**protection_dict)
-
-
-register_writer(_Openpyxl20Writer)
-
-
-class _Openpyxl22Writer(_Openpyxl20Writer):
-    """
-    Note: Support for OpenPyxl v2.2 is currently EXPERIMENTAL (GH7565).
-    """
-    engine = 'openpyxl22'
-    openpyxl_majorver = 2
 
     def write_cells(self, cells, sheet_name=None, startrow=0, startcol=0,
                     freeze_panes=None):
@@ -1443,7 +1256,7 @@ class _Openpyxl22Writer(_Openpyxl20Writer):
                                 setattr(xcell, k, v)
 
 
-register_writer(_Openpyxl22Writer)
+register_writer(_OpenpyxlWriter)
 
 
 class _XlwtWriter(ExcelWriter):

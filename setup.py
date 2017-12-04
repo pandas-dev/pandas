@@ -19,8 +19,6 @@ from setuptools import setup, Command
 import versioneer
 cmdclass = versioneer.get_cmdclass()
 
-PY3 = sys.version_info[0] >= 3
-
 
 def is_platform_windows():
     return sys.platform == 'win32' or sys.platform == 'cygwin'
@@ -46,7 +44,7 @@ except ImportError:
 min_numpy_ver = '1.9.0'
 setuptools_kwargs = {
     'install_requires': [
-        'python-dateutil >= 2' if PY3 else 'python-dateutil',
+        'python-dateutil >= 2.5.0',
         'pytz >= 2011k',
         'numpy >= {numpy_ver}'.format(numpy_ver=min_numpy_ver),
     ],
