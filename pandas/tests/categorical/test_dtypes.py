@@ -2,6 +2,8 @@
 
 import pytest
 
+import numpy as np
+
 import pandas.util.testing as tm
 from pandas.core.dtypes.dtypes import CategoricalDtype
 from pandas import Categorical, Index, CategoricalIndex
@@ -96,3 +98,11 @@ class TestCategoricalDtypes(object):
         # removing cats
         result = result.remove_categories(['foo%05d' % i for i in range(300)])
         assert result.codes.dtype == 'int8'
+
+    def test_astype_categorical(self):
+
+        cat = Categorical(['a', 'b', 'b', 'a', 'a', 'c', 'c', 'c'])
+        tm.assert_categorical_equal(cat, cat.astype('category'))
+        tm.assert_almost_equal(np.array(cat), cat.astype('object'))
+
+        pytest.raises(ValueError, lambda: cat.astype(float))

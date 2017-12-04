@@ -1504,7 +1504,7 @@ class TestMergeCategorical(object):
                           index=['X', 'Y', 'Z'])
         assert_series_equal(result, expected)
 
-    def test_merge(self):
+    def test_merge_categorical(self):
         # GH 9426
 
         right = DataFrame({'c': {0: 'a',

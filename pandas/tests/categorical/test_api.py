@@ -1,72 +1,17 @@
 # -*- coding: utf-8 -*-
 
 import pytest
-import sys
 
 import numpy as np
 
 import pandas.util.testing as tm
 from pandas import Categorical, CategoricalIndex, Index, Series, DataFrame
 
-from pandas.compat import PYPY
 from pandas.core.categorical import _recode_for_categories
 from pandas.tests.categorical.common import TestCategorical
 
 
 class TestCategoricalAPI(object):
-
-    def test_searchsorted(self):
-        # https://github.com/pandas-dev/pandas/issues/8420
-        # https://github.com/pandas-dev/pandas/issues/14522
-
-        c1 = Categorical(['cheese', 'milk', 'apple', 'bread', 'bread'],
-                         categories=['cheese', 'milk', 'apple', 'bread'],
-                         ordered=True)
-        s1 = Series(c1)
-        c2 = Categorical(['cheese', 'milk', 'apple', 'bread', 'bread'],
-                         categories=['cheese', 'milk', 'apple', 'bread'],
-                         ordered=False)
-        s2 = Series(c2)
-
-        # Searching for single item argument, side='left' (default)
-        res_cat = c1.searchsorted('apple')
-        res_ser = s1.searchsorted('apple')
-        exp = np.array([2], dtype=np.intp)
-        tm.assert_numpy_array_equal(res_cat, exp)
-        tm.assert_numpy_array_equal(res_ser, exp)
-
-        # Searching for single item array, side='left' (default)
-        res_cat = c1.searchsorted(['bread'])
-        res_ser = s1.searchsorted(['bread'])
-        exp = np.array([3], dtype=np.intp)
-        tm.assert_numpy_array_equal(res_cat, exp)
-        tm.assert_numpy_array_equal(res_ser, exp)
-
-        # Searching for several items array, side='right'
-        res_cat = c1.searchsorted(['apple', 'bread'], side='right')
-        res_ser = s1.searchsorted(['apple', 'bread'], side='right')
-        exp = np.array([3, 5], dtype=np.intp)
-        tm.assert_numpy_array_equal(res_cat, exp)
-        tm.assert_numpy_array_equal(res_ser, exp)
-
-        # Searching for a single value that is not from the Categorical
-        pytest.raises(ValueError, lambda: c1.searchsorted('cucumber'))
-        pytest.raises(ValueError, lambda: s1.searchsorted('cucumber'))
-
-        # Searching for multiple values one of each is not from the Categorical
-        pytest.raises(ValueError,
-                      lambda: c1.searchsorted(['bread', 'cucumber']))
-        pytest.raises(ValueError,
-                      lambda: s1.searchsorted(['bread', 'cucumber']))
-
-        # searchsorted call for unordered Categorical
-        pytest.raises(ValueError, lambda: c2.searchsorted('apple'))
-        pytest.raises(ValueError, lambda: s2.searchsorted('apple'))
-
-        with tm.assert_produces_warning(FutureWarning):
-            res = c1.searchsorted(v=['bread'])
-            exp = np.array([3], dtype=np.intp)
-            tm.assert_numpy_array_equal(res, exp)
 
     def test_ordered_api(self):
         # GH 9347
@@ -187,37 +132,6 @@ class TestCategoricalAPI(object):
 
         expected = Index(['a', 'b', 'c', 'd'])
         tm.assert_index_equal(res.categories, expected)
-
-    @pytest.mark.parametrize('codes, old, new, expected', [
-        ([0, 1], ['a', 'b'], ['a', 'b'], [0, 1]),
-        ([0, 1], ['b', 'a'], ['b', 'a'], [0, 1]),
-        ([0, 1], ['a', 'b'], ['b', 'a'], [1, 0]),
-        ([0, 1], ['b', 'a'], ['a', 'b'], [1, 0]),
-        ([0, 1, 0, 1], ['a', 'b'], ['a', 'b', 'c'], [0, 1, 0, 1]),
-        ([0, 1, 2, 2], ['a', 'b', 'c'], ['a', 'b'], [0, 1, -1, -1]),
-        ([0, 1, -1], ['a', 'b', 'c'], ['a', 'b', 'c'], [0, 1, -1]),
-        ([0, 1, -1], ['a', 'b', 'c'], ['b'], [-1, 0, -1]),
-        ([0, 1, -1], ['a', 'b', 'c'], ['d'], [-1, -1, -1]),
-        ([0, 1, -1], ['a', 'b', 'c'], [], [-1, -1, -1]),
-        ([-1, -1], [], ['a', 'b'], [-1, -1]),
-        ([1, 0], ['b', 'a'], ['a', 'b'], [0, 1]),
-    ])
-    def test_recode_to_categories(self, codes, old, new, expected):
-        codes = np.asanyarray(codes, dtype=np.int8)
-        expected = np.asanyarray(expected, dtype=np.int8)
-        old = Index(old)
-        new = Index(new)
-        result = _recode_for_categories(codes, old, new)
-        tm.assert_numpy_array_equal(result, expected)
-
-    def test_recode_to_categories_large(self):
-        N = 1000
-        codes = np.arange(N)
-        old = Index(codes)
-        expected = np.arange(N - 1, -1, -1, dtype=np.int16)
-        new = Index(expected)
-        result = _recode_for_categories(codes, old, new)
-        tm.assert_numpy_array_equal(result, expected)
 
     def test_reorder_categories(self):
         cat = Categorical(["a", "b", "c", "a"], ordered=True)
@@ -481,159 +395,6 @@ class TestCategoricalAPI(object):
         out = cat.remove_unused_categories()
         assert out.get_values().tolist() == val.tolist()
 
-    def test_codes_immutable(self):
-
-        # Codes should be read only
-        c = Categorical(["a", "b", "c", "a", np.nan])
-        exp = np.array([0, 1, 2, 0, -1], dtype='int8')
-        tm.assert_numpy_array_equal(c.codes, exp)
-
-        # Assignments to codes should raise
-        def f():
-            c.codes = np.array([0, 1, 2, 0, 1], dtype='int8')
-
-        pytest.raises(ValueError, f)
-
-        # changes in the codes array should raise
-        # np 1.6.1 raises RuntimeError rather than ValueError
-        codes = c.codes
-
-        def f():
-            codes[4] = 1
-
-        pytest.raises(ValueError, f)
-
-        # But even after getting the codes, the original array should still be
-        # writeable!
-        c[4] = "a"
-        exp = np.array([0, 1, 2, 0, 0], dtype='int8')
-        tm.assert_numpy_array_equal(c.codes, exp)
-        c._codes[4] = 2
-        exp = np.array([0, 1, 2, 0, 2], dtype='int8')
-        tm.assert_numpy_array_equal(c.codes, exp)
-
-    def test_unique(self):
-        # categories are reordered based on value when ordered=False
-        cat = Categorical(["a", "b"])
-        exp = Index(["a", "b"])
-        res = cat.unique()
-        tm.assert_index_equal(res.categories, exp)
-        tm.assert_categorical_equal(res, cat)
-
-        cat = Categorical(["a", "b", "a", "a"], categories=["a", "b", "c"])
-        res = cat.unique()
-        tm.assert_index_equal(res.categories, exp)
-        tm.assert_categorical_equal(res, Categorical(exp))
-
-        cat = Categorical(["c", "a", "b", "a", "a"],
-                          categories=["a", "b", "c"])
-        exp = Index(["c", "a", "b"])
-        res = cat.unique()
-        tm.assert_index_equal(res.categories, exp)
-        exp_cat = Categorical(exp, categories=['c', 'a', 'b'])
-        tm.assert_categorical_equal(res, exp_cat)
-
-        # nan must be removed
-        cat = Categorical(["b", np.nan, "b", np.nan, "a"],
-                          categories=["a", "b", "c"])
-        res = cat.unique()
-        exp = Index(["b", "a"])
-        tm.assert_index_equal(res.categories, exp)
-        exp_cat = Categorical(["b", np.nan, "a"], categories=["b", "a"])
-        tm.assert_categorical_equal(res, exp_cat)
-
-    def test_unique_ordered(self):
-        # keep categories order when ordered=True
-        cat = Categorical(['b', 'a', 'b'], categories=['a', 'b'], ordered=True)
-        res = cat.unique()
-        exp_cat = Categorical(['b', 'a'], categories=['a', 'b'], ordered=True)
-        tm.assert_categorical_equal(res, exp_cat)
-
-        cat = Categorical(['c', 'b', 'a', 'a'], categories=['a', 'b', 'c'],
-                          ordered=True)
-        res = cat.unique()
-        exp_cat = Categorical(['c', 'b', 'a'], categories=['a', 'b', 'c'],
-                              ordered=True)
-        tm.assert_categorical_equal(res, exp_cat)
-
-        cat = Categorical(['b', 'a', 'a'], categories=['a', 'b', 'c'],
-                          ordered=True)
-        res = cat.unique()
-        exp_cat = Categorical(['b', 'a'], categories=['a', 'b'], ordered=True)
-        tm.assert_categorical_equal(res, exp_cat)
-
-        cat = Categorical(['b', 'b', np.nan, 'a'], categories=['a', 'b', 'c'],
-                          ordered=True)
-        res = cat.unique()
-        exp_cat = Categorical(['b', np.nan, 'a'], categories=['a', 'b'],
-                              ordered=True)
-        tm.assert_categorical_equal(res, exp_cat)
-
-    def test_unique_index_series(self):
-        c = Categorical([3, 1, 2, 2, 1], categories=[3, 2, 1])
-        # Categorical.unique sorts categories by appearance order
-        # if ordered=False
-        exp = Categorical([3, 1, 2], categories=[3, 1, 2])
-        tm.assert_categorical_equal(c.unique(), exp)
-
-        tm.assert_index_equal(Index(c).unique(), Index(exp))
-        tm.assert_categorical_equal(Series(c).unique(), exp)
-
-        c = Categorical([1, 1, 2, 2], categories=[3, 2, 1])
-        exp = Categorical([1, 2], categories=[1, 2])
-        tm.assert_categorical_equal(c.unique(), exp)
-        tm.assert_index_equal(Index(c).unique(), Index(exp))
-        tm.assert_categorical_equal(Series(c).unique(), exp)
-
-        c = Categorical([3, 1, 2, 2, 1], categories=[3, 2, 1], ordered=True)
-        # Categorical.unique keeps categories order if ordered=True
-        exp = Categorical([3, 1, 2], categories=[3, 2, 1], ordered=True)
-        tm.assert_categorical_equal(c.unique(), exp)
-
-        tm.assert_index_equal(Index(c).unique(), Index(exp))
-        tm.assert_categorical_equal(Series(c).unique(), exp)
-
-    def test_shift(self):
-        # GH 9416
-        cat = Categorical(['a', 'b', 'c', 'd', 'a'])
-
-        # shift forward
-        sp1 = cat.shift(1)
-        xp1 = Categorical([np.nan, 'a', 'b', 'c', 'd'])
-        tm.assert_categorical_equal(sp1, xp1)
-        tm.assert_categorical_equal(cat[:-1], sp1[1:])
-
-        # shift back
-        sn2 = cat.shift(-2)
-        xp2 = Categorical(['c', 'd', 'a', np.nan, np.nan],
-                          categories=['a', 'b', 'c', 'd'])
-        tm.assert_categorical_equal(sn2, xp2)
-        tm.assert_categorical_equal(cat[2:], sn2[:-2])
-
-        # shift by zero
-        tm.assert_categorical_equal(cat, cat.shift(0))
-
-    def test_nbytes(self):
-        cat = Categorical([1, 2, 3])
-        exp = 3 + 3 * 8  # 3 int8s for values + 3 int64s for categories
-        assert cat.nbytes == exp
-
-    def test_memory_usage(self):
-        cat = Categorical([1, 2, 3])
-
-        # .categories is an index, so we include the hashtable
-        assert 0 < cat.nbytes <= cat.memory_usage()
-        assert 0 < cat.nbytes <= cat.memory_usage(deep=True)
-
-        cat = Categorical(['foo', 'foo', 'bar'])
-        assert cat.memory_usage(deep=True) > cat.nbytes
-
-        if not PYPY:
-            # sys.getsizeof will call the .memory_usage with
-            # deep=True, and add on some GC overhead
-            diff = cat.memory_usage(deep=True) - sys.getsizeof(cat)
-            assert abs(diff) < 100
-
     def test_deprecated_labels(self):
         # TODO: labels is deprecated and should be removed in 0.18 or 2017,
         # whatever is earlier
@@ -647,88 +408,6 @@ class TestCategoricalAPI(object):
         # GH13854, `.from_array` is deprecated
         with tm.assert_produces_warning(FutureWarning):
             Categorical.from_array([0, 1])
-
-    def test_map(self):
-        c = Categorical(list('ABABC'), categories=list('CBA'), ordered=True)
-        result = c.map(lambda x: x.lower())
-        exp = Categorical(list('ababc'), categories=list('cba'), ordered=True)
-        tm.assert_categorical_equal(result, exp)
-
-        c = Categorical(list('ABABC'), categories=list('ABC'), ordered=False)
-        result = c.map(lambda x: x.lower())
-        exp = Categorical(list('ababc'), categories=list('abc'), ordered=False)
-        tm.assert_categorical_equal(result, exp)
-
-        result = c.map(lambda x: 1)
-        # GH 12766: Return an index not an array
-        tm.assert_index_equal(result, Index(np.array([1] * 5, dtype=np.int64)))
-
-    def test_validate_inplace(self):
-        cat = Categorical(['A', 'B', 'B', 'C', 'A'])
-        invalid_values = [1, "True", [1, 2, 3], 5.0]
-
-        for value in invalid_values:
-            with pytest.raises(ValueError):
-                cat.set_ordered(value=True, inplace=value)
-
-            with pytest.raises(ValueError):
-                cat.as_ordered(inplace=value)
-
-            with pytest.raises(ValueError):
-                cat.as_unordered(inplace=value)
-
-            with pytest.raises(ValueError):
-                cat.set_categories(['X', 'Y', 'Z'], rename=True, inplace=value)
-
-            with pytest.raises(ValueError):
-                cat.rename_categories(['X', 'Y', 'Z'], inplace=value)
-
-            with pytest.raises(ValueError):
-                cat.reorder_categories(
-                    ['X', 'Y', 'Z'], ordered=True, inplace=value)
-
-            with pytest.raises(ValueError):
-                cat.add_categories(
-                    new_categories=['D', 'E', 'F'], inplace=value)
-
-            with pytest.raises(ValueError):
-                cat.remove_categories(removals=['D', 'E', 'F'], inplace=value)
-
-            with pytest.raises(ValueError):
-                cat.remove_unused_categories(inplace=value)
-
-            with pytest.raises(ValueError):
-                cat.sort_values(inplace=value)
-
-    def test_repeat(self):
-        # GH10183
-        cat = Categorical(["a", "b"], categories=["a", "b"])
-        exp = Categorical(["a", "a", "b", "b"], categories=["a", "b"])
-        res = cat.repeat(2)
-        tm.assert_categorical_equal(res, exp)
-
-    def test_numpy_repeat(self):
-        cat = Categorical(["a", "b"], categories=["a", "b"])
-        exp = Categorical(["a", "a", "b", "b"], categories=["a", "b"])
-        tm.assert_categorical_equal(np.repeat(cat, 2), exp)
-
-        msg = "the 'axis' parameter is not supported"
-        tm.assert_raises_regex(ValueError, msg, np.repeat, cat, 2, axis=1)
-
-    def test_astype_categorical(self):
-
-        cat = Categorical(['a', 'b', 'b', 'a', 'a', 'c', 'c', 'c'])
-        tm.assert_categorical_equal(cat, cat.astype('category'))
-        tm.assert_almost_equal(np.array(cat), cat.astype('object'))
-
-        pytest.raises(ValueError, lambda: cat.astype(float))
-
-    def test_isna(self):
-        exp = np.array([False, False, True])
-        c = Categorical(["a", "b", np.nan])
-        res = c.isna()
-
-        tm.assert_numpy_array_equal(res, exp)
 
 
 class TestCategoricalAPIWithFactor(TestCategorical):
@@ -781,3 +460,68 @@ class TestCategoricalAPIWithFactor(TestCategorical):
         cat = self.factor.copy()
         cat.set_categories(['a', 'b', 'c', 'd'], inplace=True)
         tm.assert_index_equal(cat.categories, Index(['a', 'b', 'c', 'd']))
+
+
+class TestPrivateCategoricalAPI(object):
+
+    def test_codes_immutable(self):
+
+        # Codes should be read only
+        c = Categorical(["a", "b", "c", "a", np.nan])
+        exp = np.array([0, 1, 2, 0, -1], dtype='int8')
+        tm.assert_numpy_array_equal(c.codes, exp)
+
+        # Assignments to codes should raise
+        def f():
+            c.codes = np.array([0, 1, 2, 0, 1], dtype='int8')
+
+        pytest.raises(ValueError, f)
+
+        # changes in the codes array should raise
+        # np 1.6.1 raises RuntimeError rather than ValueError
+        codes = c.codes
+
+        def f():
+            codes[4] = 1
+
+        pytest.raises(ValueError, f)
+
+        # But even after getting the codes, the original array should still be
+        # writeable!
+        c[4] = "a"
+        exp = np.array([0, 1, 2, 0, 0], dtype='int8')
+        tm.assert_numpy_array_equal(c.codes, exp)
+        c._codes[4] = 2
+        exp = np.array([0, 1, 2, 0, 2], dtype='int8')
+        tm.assert_numpy_array_equal(c.codes, exp)
+
+    @pytest.mark.parametrize('codes, old, new, expected', [
+        ([0, 1], ['a', 'b'], ['a', 'b'], [0, 1]),
+        ([0, 1], ['b', 'a'], ['b', 'a'], [0, 1]),
+        ([0, 1], ['a', 'b'], ['b', 'a'], [1, 0]),
+        ([0, 1], ['b', 'a'], ['a', 'b'], [1, 0]),
+        ([0, 1, 0, 1], ['a', 'b'], ['a', 'b', 'c'], [0, 1, 0, 1]),
+        ([0, 1, 2, 2], ['a', 'b', 'c'], ['a', 'b'], [0, 1, -1, -1]),
+        ([0, 1, -1], ['a', 'b', 'c'], ['a', 'b', 'c'], [0, 1, -1]),
+        ([0, 1, -1], ['a', 'b', 'c'], ['b'], [-1, 0, -1]),
+        ([0, 1, -1], ['a', 'b', 'c'], ['d'], [-1, -1, -1]),
+        ([0, 1, -1], ['a', 'b', 'c'], [], [-1, -1, -1]),
+        ([-1, -1], [], ['a', 'b'], [-1, -1]),
+        ([1, 0], ['b', 'a'], ['a', 'b'], [0, 1]),
+    ])
+    def test_recode_to_categories(self, codes, old, new, expected):
+        codes = np.asanyarray(codes, dtype=np.int8)
+        expected = np.asanyarray(expected, dtype=np.int8)
+        old = Index(old)
+        new = Index(new)
+        result = _recode_for_categories(codes, old, new)
+        tm.assert_numpy_array_equal(result, expected)
+
+    def test_recode_to_categories_large(self):
+        N = 1000
+        codes = np.arange(N)
+        old = Index(codes)
+        expected = np.arange(N - 1, -1, -1, dtype=np.int16)
+        new = Index(expected)
+        result = _recode_for_categories(codes, old, new)
+        tm.assert_numpy_array_equal(result, expected)
