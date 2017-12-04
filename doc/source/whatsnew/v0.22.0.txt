@@ -103,9 +103,6 @@ If installed, we now require:
    | openpyxl        | 2.4.0           |          |
    +-----------------+-----------------+----------+
 
-- :func:`Series.fillna` now raises a ``TypeError`` instead of a ``ValueError`` when passed a list, tuple or DataFrame as a ``value`` (:issue:`18293`)
-
-
 
 
 
