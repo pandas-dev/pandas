@@ -8,7 +8,7 @@ from pandas import compat
 import numpy as np
 
 from pandas.core.dtypes.generic import ABCSeries, ABCDatetimeIndex, ABCPeriod
-from pandas.core.tools.datetimes import to_datetime, normalize_date
+from pandas.core.tools.datetimes import to_datetime
 from pandas.core.common import AbstractMethodError
 
 # import after tools, dateutil check
@@ -103,7 +103,7 @@ def apply_wraps(func):
 
             if self.normalize:
                 # normalize_date returns normal datetime
-                result = normalize_date(result)
+                result = tslib.normalize_date(result)
 
             if tz is not None and result.tzinfo is None:
                 result = tslib._localize_pydatetime(result, tz)
