@@ -1229,6 +1229,26 @@ class TestTimeZones(object):
         dt = Timestamp('2013-11-03 01:59:59.999999-0400', tz='US/Eastern')
         assert dt.tz_localize(None) == dt.replace(tzinfo=None)
 
+    def test_replace_across_dst(self):
+        # GH#18319
+        tz = pytz.timezone('US/Eastern')
+
+        ts_naive = Timestamp('2017-12-03 16:03:30')
+        ts_aware = tz.localize(ts_naive)
+
+        # Preliminary sanity-check
+        assert ts_aware == ts_aware.tzinfo.normalize(ts_aware)
+
+        # Replace across DST boundary
+        ts2 = ts_aware.replace(month=6)
+
+        # Check that `replace` preserves hour literal
+        assert (ts2.hour, ts2.minute) == (ts_aware.hour, ts_aware.minute)
+
+        # Check that post-replace object is appropriately normalized
+        ts2b = ts2.tzinfo.normalize(ts2)
+        assert ts2 == ts2b
+
     def test_ambiguous_compat(self):
         # validate that pytz and dateutil are compat for dst
         # when the transition happens

@@ -928,7 +928,8 @@ class Timestamp(_Timestamp):
 
         # reconstruct & check bounds
         if _tzinfo is not None and treat_tz_as_pytz(_tzinfo):
-            # be careful about DST transition, #18319
+            # replacing across a DST boundary may induce a new tzinfo object
+            # see GH#18319
             ts_input = _tzinfo.localize(datetime(dts.year, dts.month, dts.day,
                                                  dts.hour, dts.min, dts.sec,
                                                  dts.us))
