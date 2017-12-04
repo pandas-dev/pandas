@@ -279,13 +279,8 @@ int parse_iso_8601_datetime(char *str, int len, PANDAS_DATETIMEUNIT unit,
     if (len == 3 && tolower(str[0]) == 'n' && tolower(str[1]) == 'o' &&
         tolower(str[2]) == 'w') {
         NPY_TIME_T rawtime = 0;
-        pandas_datetime_metadata meta;
 
         time(&rawtime);
-
-        /* Set up a dummy metadata for the conversion */
-        meta.base = PANDAS_FR_s;
-        meta.num = 1;
 
         bestunit = PANDAS_FR_s;
 
@@ -304,7 +299,7 @@ int parse_iso_8601_datetime(char *str, int len, PANDAS_DATETIMEUNIT unit,
             *out_special = 1;
         }
 
-        return convert_datetime_to_datetimestruct(&meta, rawtime, out);
+        return convert_datetime_to_datetimestruct(PANDAS_FR_s, rawtime, out);
     }
 
     /* Anything else isn't a special value */
