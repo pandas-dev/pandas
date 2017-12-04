@@ -43,8 +43,7 @@ from pandas.core.indexes.datetimelike import (
     DatelikeOps, TimelikeOps, DatetimeIndexOpsMixin)
 from pandas.tseries.offsets import (
     DateOffset, generate_range, Tick, CDay, prefix_mapping)
-from pandas.core.tools.datetimes import (
-    parse_time_string, normalize_date, to_time)
+
 from pandas.core.tools.timedeltas import to_timedelta
 from pandas.util._decorators import (Appender, cache_readonly,
                                      deprecate_kwarg, Substitution)
@@ -55,7 +54,7 @@ import pandas.core.tools.datetimes as tools
 from pandas._libs import (lib, index as libindex, tslib as libts,
                           algos as libalgos, join as libjoin,
                           Timestamp)
-from pandas._libs.tslibs import (timezones, conversion, fields,
+from pandas._libs.tslibs import (timezones, conversion, fields, parsing,
                                  period as libperiod)
 
 # -------- some conversion wrapper functions
@@ -524,14 +523,14 @@ class DatetimeIndex(DatelikeOps, TimelikeOps, DatetimeIndexOpsMixin,
 
         if start is not None:
             if normalize:
-                start = normalize_date(start)
+                start = libts.normalize_date(start)
                 _normalized = True
             else:
                 _normalized = _normalized and start.time() == _midnight
 
         if end is not None:
             if normalize:
-                end = normalize_date(end)
+                end = libts.normalize_date(end)
                 _normalized = True
             else:
                 _normalized = _normalized and end.time() == _midnight
@@ -1529,7 +1528,7 @@ class DatetimeIndex(DatelikeOps, TimelikeOps, DatetimeIndexOpsMixin,
         if isinstance(label, compat.string_types):
             freq = getattr(self, 'freqstr',
                            getattr(self, 'inferred_freq', None))
-            _, parsed, reso = parse_time_string(label, freq)
+            _, parsed, reso = parsing.parse_time_string(label, freq)
             lower, upper = self._parsed_string_to_bounds(reso, parsed)
             # lower, upper form the half-open interval:
             #   [parsed, parsed + 1 freq)
@@ -1546,7 +1545,7 @@ class DatetimeIndex(DatelikeOps, TimelikeOps, DatetimeIndexOpsMixin,
     def _get_string_slice(self, key, use_lhs=True, use_rhs=True):
         freq = getattr(self, 'freqstr',
                        getattr(self, 'inferred_freq', None))
-        _, parsed, reso = parse_time_string(key, freq)
+        _, parsed, reso = parsing.parse_time_string(key, freq)
         loc = self._partial_date_slice(reso, parsed, use_lhs=use_lhs,
                                        use_rhs=use_rhs)
         return loc
@@ -1965,8 +1964,8 @@ class DatetimeIndex(DatelikeOps, TimelikeOps, DatetimeIndexOpsMixin,
         -------
         values_between_time : TimeSeries
         """
-        start_time = to_time(start_time)
-        end_time = to_time(end_time)
+        start_time = tools.to_time(start_time)
+        end_time = tools.to_time(end_time)
         time_micros = self._get_time_micros()
         start_micros = _time_to_micros(start_time)
         end_micros = _time_to_micros(end_time)

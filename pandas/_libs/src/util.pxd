@@ -2,6 +2,7 @@ from numpy cimport ndarray
 cimport numpy as cnp
 cimport cpython
 
+
 cdef extern from "numpy_helper.h":
     void set_array_not_contiguous(ndarray ao)
 
