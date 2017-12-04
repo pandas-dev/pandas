@@ -2023,7 +2023,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         ----------
         n : int
             Return this many descending sorted values
-        keep : {'first', 'last', False}, default 'first'
+        keep : {'first', 'last'}, default 'first'
             Where there are duplicate values:
             - ``first`` : take the first occurrence.
             - ``last`` : take the last occurrence.
@@ -2070,7 +2070,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         ----------
         n : int
             Return this many ascending sorted values
-        keep : {'first', 'last', False}, default 'first'
+        keep : {'first', 'last'}, default 'first'
             Where there are duplicate values:
             - ``first`` : take the first occurrence.
             - ``last`` : take the last occurrence.
