@@ -155,3 +155,25 @@ class series_clip(object):
 
     def time_series_dropna_datetime(self):
         self.s.clip(0, 1)
+
+
+class series_value_counts(object):
+    goal_time = 0.2
+
+    def setup(self):
+        self.s = Series(np.random.randint(0, 1000, size=100000))
+        self.s2 = self.s.astype(float)
+
+        self.K = 1000
+        self.N = 100000
+        self.uniques = tm.makeStringIndex(self.K).values
+        self.s3 = Series(np.tile(self.uniques, (self.N // self.K)))
+
+    def time_value_counts_int64(self):
+        self.s.value_counts()
+
+    def time_value_counts_float64(self):
+        self.s2.value_counts()
+
+    def time_value_counts_strings(self):
+        self.s.value_counts()

@@ -117,3 +117,23 @@ class wide_to_long_big(object):
     def time_wide_to_long_big(self):
         self.df['id'] = self.df.index
         wide_to_long(self.df, list(self.vars), i='id', j='year')
+
+
+class PivotTable(object):
+    goal_time = 0.2
+
+    def setup(self):
+        N = 100000
+        fac1 = np.array(['A', 'B', 'C'], dtype='O')
+        fac2 = np.array(['one', 'two'], dtype='O')
+        ind1 = np.random.randint(0, 3, size=N)
+        ind2 = np.random.randint(0, 2, size=N)
+        self.df = DataFrame({'key1': fac1.take(ind1),
+                             'key2': fac2.take(ind2),
+                             'key3': fac2.take(ind2),
+                             'value1': np.random.randn(N),
+                             'value2': np.random.randn(N),
+                             'value3': np.random.randn(N)})
+
+    def time_pivot_table(self):
+        self.df.pivot_table(index='key1', columns=['key2', 'key3'])
