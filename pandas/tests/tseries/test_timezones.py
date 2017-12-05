@@ -1230,7 +1230,8 @@ class TestTimeZones(object):
         assert dt.tz_localize(None) == dt.replace(tzinfo=None)
 
     def test_replace_across_dst(self):
-        # GH#18319
+        # GH#18319 check that 1) timezone is correctly normalized and
+        # 2) that hour is not incorrectly changed by this normalization
         tz = pytz.timezone('US/Eastern')
 
         ts_naive = Timestamp('2017-12-03 16:03:30')
