@@ -377,7 +377,8 @@ def pivot(self, index=None, columns=None, values=None):
     else:
         index = self.index if index is None else self[index]
         index = MultiIndex.from_arrays([index, self[columns]])
-        if isinstance(values, list):
+        if is_list_like(values):
+            # use DF in case of list like (Iterable) values (e.g: lists, tuples, sets, NumPy arrays, and Pandas Series)
             indexed = DataFrame(self[values].values,
                                 index=index,
                                 columns=values)

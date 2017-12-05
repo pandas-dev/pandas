@@ -353,20 +353,25 @@ class TestPivotTable(object):
         pv = df.pivot(index='p1', columns='p2', values='data1')
         tm.assert_frame_equal(pv, expected)
 
-    def test_pivot_with_multi_values(self):
+    def test_pivot_with_list_like_values(self):
+        # issue #17160: Make `DataFrame.pivot` accepts a list of column names as values
         df = pd.DataFrame({'foo': ['one', 'one', 'one', 'two', 'two', 'two'],
                            'bar': ['A', 'B', 'C', 'A', 'B', 'C'],
                            'baz': [1, 2, 3, 4, 5, 6],
                            'zoo': ['x', 'y', 'z', 'q', 'w', 't']})
 
-        results = df.pivot(index='zoo', columns='foo', values=['bar', 'baz'])
+        result_list = df.pivot(index='zoo', columns='foo', values=['bar', 'baz'])
+        result_tuple = df.pivot(index='zoo', columns='foo', values=('bar', 'baz'))
+        result_array = df.pivot(index='zoo', columns='foo', values=np.array(['bar', 'baz']))
+        result_series = df.pivot(index='zoo', columns='foo', values=pd.Series(['bar', 'baz']))
+        result_index = df.pivot(index='zoo', columns='foo', values=pd.Index(['bar', 'baz']))
 
-        data = [[None, 'A', None, 4],
-                [None, 'C', None, 6],
-                [None, 'B', None, 5],
-                ['A', None, 1, None],
-                ['B', None, 2, None],
-                ['C', None, 3, None]]
+        data = [[np.nan, 'A', np.nan, 4],
+                [np.nan, 'C', np.nan, 6],
+                [np.nan, 'B', np.nan, 5],
+                ['A', np.nan, 1, np.nan],
+                ['B', np.nan, 2, np.nan],
+                ['C', np.nan, 3, np.nan]]
         index = Index(data=['q', 't', 'w', 'x', 'y', 'z'], name='zoo')
         columns = MultiIndex(levels=[['bar', 'baz'], ['one', 'two']],
                              labels=[[0, 0, 1, 1], [0, 1, 0, 1]],
@@ -374,7 +379,12 @@ class TestPivotTable(object):
         expected = DataFrame(data=data, index=index,
                              columns=columns, dtype='object')
 
-        tm.assert_frame_equal(results, expected)
+        tm.assert_frame_equal(result_list, expected)
+        tm.assert_frame_equal(result_tuple, expected)
+        tm.assert_frame_equal(result_array, expected)
+        tm.assert_frame_equal(result_series, expected)
+        tm.assert_frame_equal(result_index, expected)
+
 
     def test_margins(self):
         def _check_output(result, values_col, index=['A', 'B'],
