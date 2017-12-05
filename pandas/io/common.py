@@ -197,7 +197,7 @@ def gen_session(http_params):
         if http_params.get('auth', None) and not s.auth:
             s.auth = http_params.get('auth')
         if http_params.get('verify', True) is False and s.verify is not False:
-            s.verify = http_params.get('verify')
+            s.verify = False
     return s
 
 
