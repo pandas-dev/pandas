@@ -37,7 +37,6 @@ class HDF5(object):
                                columns=['C%03d' % i for i in range(10)])
 
         self.f = '__test__.h5'
-        self.remove(self.f)
 
         self.store = HDFStore(self.f)
         self.store.put('fixed', self.df)
@@ -49,13 +48,7 @@ class HDF5(object):
 
     def teardown(self):
         self.store.close()
-        self.remove(self.f)
-
-    def remove(self, f):
-        try:
-            os.remove(f)
-        except:
-            pass
+        os.remove(self.f)
 
     def time_read_store(self):
         self.store.get('fixed')
@@ -118,19 +111,12 @@ class HDF5Panel(object):
                        items=['Item%03d' % i for i in range(20)],
                        major_axis=date_range('1/1/2000', periods=1000),
                        minor_axis=['E%03d' % i for i in range(25)])
-        self.remove(self.f)
         self.store = HDFStore(self.f)
         self.store.append('p1', self.p)
 
     def teardown(self):
         self.store.close()
-        self.remove(self.f)
-
-    def remove(self, f):
-        try:
-            os.remove(f)
-        except:
-            pass
+        os.remove(self.f)
 
     def time_read_store_table_panel(self):
         self.store.select('p1')
