@@ -415,7 +415,7 @@ class SingleConstructorOffset(DateOffset):
 
 class _CustomMixin(object):
     """
-    mixin for classes that define and validate calendar, holidays,
+    Mixin for classes that define and validate calendar, holidays,
     and weekdays attributes
     """
     def __init__(self, weekmask, holidays, calendar):
@@ -433,7 +433,7 @@ class _CustomMixin(object):
 
 
 class BusinessMixin(object):
-    """ mixin to business types to provide related functions """
+    """ Mixin to business types to provide related functions """
 
     @property
     def offset(self):
@@ -596,7 +596,7 @@ class BusinessHourMixin(BusinessMixin):
 
     @cache_readonly
     def next_bday(self):
-        # used for moving to next businessday
+        """used for moving to next businessday"""
         if self.n >= 0:
             nb_offset = 1
         else:
