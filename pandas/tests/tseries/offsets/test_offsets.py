@@ -2173,7 +2173,7 @@ class TestWeek(Base):
     def test_corner(self):
         pytest.raises(ValueError, Week, weekday=7)
         tm.assert_raises_regex(
-            ValueError, "Day must be", Week, weekday=-1)
+            ValueError, "weekday must be", Week, weekday=-1)
 
     def test_isAnchored(self):
         assert Week(weekday=0).isAnchored()
@@ -2248,9 +2248,9 @@ class TestWeekOfMonth(Base):
                                n=1, week=4, weekday=0)
         tm.assert_raises_regex(ValueError, "^Week", WeekOfMonth,
                                n=1, week=-1, weekday=0)
-        tm.assert_raises_regex(ValueError, "^Day", WeekOfMonth,
+        tm.assert_raises_regex(ValueError, "^weekday", WeekOfMonth,
                                n=1, week=0, weekday=-1)
-        tm.assert_raises_regex(ValueError, "^Day", WeekOfMonth,
+        tm.assert_raises_regex(ValueError, "^weekday", WeekOfMonth,
                                n=1, week=0, weekday=7)
 
     def test_repr(self):
@@ -2330,10 +2330,10 @@ class TestLastWeekOfMonth(Base):
         tm.assert_raises_regex(ValueError, "^N cannot be 0",
                                LastWeekOfMonth, n=0, weekday=1)
 
-        tm.assert_raises_regex(ValueError, "^Day", LastWeekOfMonth, n=1,
+        tm.assert_raises_regex(ValueError, "^weekday", LastWeekOfMonth, n=1,
                                weekday=-1)
         tm.assert_raises_regex(
-            ValueError, "^Day", LastWeekOfMonth, n=1, weekday=7)
+            ValueError, "^weekday", LastWeekOfMonth, n=1, weekday=7)
 
     def test_offset(self):
         # Saturday

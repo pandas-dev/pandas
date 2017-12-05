@@ -248,11 +248,64 @@ def _validate_business_time(t_input):
             raise ValueError("time data must match '%H:%M' format")
     elif isinstance(t_input, dt_time):
         if t_input.second != 0 or t_input.microsecond != 0:
-            raise ValueError(
-                "time data must be specified only with hour and minute")
+            raise ValueError("time data must be specified only with "
+                             "hour and minute")
         return t_input
     else:
         raise ValueError("time data must be string or datetime.time")
+
+
+def _validate_n(n):
+    """
+    Require that `n` be a nonzero integer.
+
+    Parameters
+    ----------
+    n : int
+
+    Raises
+    ------
+    ValueError
+    """
+    if n == 0 or not isinstance(n, int):
+        raise ValueError("N cannot be 0")
+
+
+def _validate_month(month):
+    """
+    Require that `month` be an integer between 1 and 12 inclusive.
+
+    Parameters
+    ----------
+    month : int
+
+    Raises
+    ------
+    ValueError
+    """
+    if not isinstance(month, int) or not 1 <= month <= 12:
+        raise ValueError("Month must go from 1 to 12")
+
+
+def _validate_weekday(weekday, allow_none=False):
+    """
+    Require that `weekday` be an integer between 0 and 6, inclusive, or that
+    None be explicitly allowed.
+
+    Parameters
+    ----------
+    weekday : int (or None)
+    allow_none : bool, default False
+
+    Raises
+    ------
+    ValueError
+    """
+    if allow_none and weekday is None:
+        pass
+    elif not isinstance(weekday, int) or not 0 <= weekday <= 6:
+        raise ValueError("weekday must be 0<=weekday<=6, got "
+                         "{day}".format(day=weekday))
 
 
 # ---------------------------------------------------------------------
