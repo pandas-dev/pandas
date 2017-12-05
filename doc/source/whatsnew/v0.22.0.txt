@@ -186,7 +186,7 @@ Conversion
 ^^^^^^^^^^
 
 - Bug in :class:`Index` constructor with `dtype='uint64'` where int-like floats were not coerced to :class:`UInt64Index` (:issue:`18400`)
-- Bug in the :class:`DataFrame` constructor in which data containing very large positive numbers was causing ``OverflowError`` (:issue:`18584`)
+- Bug in the :class:`DataFrame` constructor in which data containing very large positive or very large negative numbers was causing ``OverflowError`` (:issue:`18584`)
 -
 
 Indexing

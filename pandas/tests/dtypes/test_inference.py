@@ -388,9 +388,10 @@ class TestInference(object):
         result = lib.maybe_convert_numeric(case, set(), coerce_numeric=coerce)
         tm.assert_almost_equal(result, expected)
 
-    def test_convert_uint64_overflow(self):
+    @pytest.mark.parametrize("value", [-2**63 - 1, 2**64])
+    def test_convert_int_overflow(self, value):
         # see gh-18584
-        arr = np.array([2**64], dtype=object)
+        arr = np.array([value], dtype=object)
         result = lib.maybe_convert_objects(arr)
         tm.assert_numpy_array_equal(arr, result)
 

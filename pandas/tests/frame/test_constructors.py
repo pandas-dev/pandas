@@ -196,8 +196,10 @@ class TestDataFrameConstructors(TestData):
         assert df_crawls['uid'].dtype == np.uint64
 
     @pytest.mark.parametrize("values", [np.array([2**64], dtype=object),
-                                        np.array([2**64]), [2**64]])
-    def test_constructor_overflow_uint64(self, values):
+                                        np.array([2**65]), [2**64 + 1],
+                                        np.array([-2**63 - 4], dtype=object),
+                                        np.array([-2**64 - 1]), [-2**65 - 2]])
+    def test_constructor_int_overflow(self, values):
         # see gh-18584
         value = values[0]
         result = DataFrame(values)

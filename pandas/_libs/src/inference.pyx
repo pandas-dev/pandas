@@ -184,9 +184,10 @@ cdef class Seen(object):
         In addition to setting a flag that an integer was seen, we
         also set two flags depending on the type of integer seen:
 
-        1) sint_ : a negative (signed) number was encountered
-        2) uint_ : a positive number in the range of [2**63, 2**64)
-                   was encountered
+        1) sint_ : a negative (signed) number in the
+                   range of [-2**63, 0) was encountered
+        2) uint_ : a positive number in the range of
+                   [2**63, 2**64) was encountered
 
         Parameters
         ----------
@@ -194,7 +195,7 @@ cdef class Seen(object):
             Value with which to set the flags.
         """
         self.int_ = 1
-        self.sint_ = self.sint_ or (val < 0)
+        self.sint_ = self.sint_ or (oINT64_MIN <= val < 0)
         self.uint_ = self.uint_ or (oINT64_MAX < val <= oUINT64_MAX)
 
     @property
@@ -1270,7 +1271,8 @@ def maybe_convert_objects(ndarray[object] objects, bint try_float=0,
             if not seen.null_:
                 seen.saw_int(int(val))
 
-                if (seen.uint_ and seen.sint_) or val > oUINT64_MAX:
+                if ((seen.uint_ and seen.sint_) or
+                        val > oUINT64_MAX or val < oINT64_MIN):
                     seen.object_ = 1
                     break
 
