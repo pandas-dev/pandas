@@ -182,7 +182,8 @@ class JSONTableWriter(FrameWriter):
 def read_json(path_or_buf=None, orient=None, typ='frame', dtype=True,
               convert_axes=True, convert_dates=True, keep_default_dates=True,
               numpy=False, precise_float=False, date_unit=None, encoding=None,
-              lines=False, chunksize=None, compression='infer'):
+              lines=False, chunksize=None, compression='infer',
+              http_params=None):
     """
     Convert a JSON string to pandas object
 
@@ -290,6 +291,18 @@ def read_json(path_or_buf=None, orient=None, typ='frame', dtype=True,
 
         .. versionadded:: 0.21.0
 
+    http_params : dict or requests.Session(), default None
+        A python dict containing:
+            'auth': tuple (str, str) eg (unae, pwd)
+            'auth': Any other auth object accepted by requests
+            'verify': boolean, Default True
+                 If False, allow self signed and invalid SSL certs for https
+        or
+        A python requests.Session object if http(s) path to enable basic auth
+        and many other scenarios that requests allows
+
+        .. versionadded:: 0.22.0
+
     Returns
     -------
     result : Series or DataFrame, depending on the value of `typ`.
@@ -350,6 +363,7 @@ def read_json(path_or_buf=None, orient=None, typ='frame', dtype=True,
     compression = _infer_compression(path_or_buf, compression)
     filepath_or_buffer, _, compression = get_filepath_or_buffer(
         path_or_buf, encoding=encoding, compression=compression,
+        http_params=http_params
     )
 
     json_reader = JsonReader(

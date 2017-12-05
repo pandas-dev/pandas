@@ -15,10 +15,11 @@ from pandas.core.dtypes.common import (
     is_integer, is_float,
     is_bool, is_list_like)
 
+from pandas.compat import BytesIO
 from pandas.core.frame import DataFrame
 from pandas.io.parsers import TextParser
 from pandas.errors import EmptyDataError
-from pandas.io.common import (_is_url, _urlopen, _validate_header_arg,
+from pandas.io.common import (_is_url, fetch_url, _validate_header_arg,
                               get_filepath_or_buffer, _NA_VALUES,
                               _stringify_path)
 from pandas.core.indexes.period import Period
@@ -263,7 +264,9 @@ class ExcelFile(object):
         # If io is a url, want to keep the data as bytes so can't pass
         # to get_filepath_or_buffer()
         if _is_url(self._io):
-            io = _urlopen(self._io)
+            rs = kwds.get('http_params', None)
+            req, content = fetch_url(self._io, http_params=rs)
+            io = BytesIO(content)
         elif not isinstance(self.io, (ExcelFile, xlrd.Book)):
             io, _, _ = get_filepath_or_buffer(self._io)
 

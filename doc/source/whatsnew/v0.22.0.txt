@@ -63,6 +63,56 @@ levels <merging.merge_on_columns_and_levels>` documentation section.
    left.merge(right, on=['key1', 'key2'])
 
 
+.. _whatsnew_0220.enhancements.read_csv:
+
+``read_csv`` use `python-requests` (if installed) to support basic auth and much more
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+If `python-requests` library is installed try to use it first. If not, continue using urllib
+The :meth:`DataFrame.read_csv`, :meth:`DataFrame.read_html`, :meth:`DataFrame.read_json`,
+:meth:`DataFrame.read_excel` now allow optional param of ``http_params`` to pass in 
+parameters for basic auth, disable ssl strict check or even a requests.Session() object
+
+
+.. ipython:: python
+  import pandas as pd
+
+  # http_params is optional parameter. If it is non-empty, it attempts to use python-requests library
+  df = pd.read_csv('https://uname:pwd@aa.com/bb.csv', http_params= {'auth': None} ) # now url can contain username and pwd
+  # Note - all basic auth scenarios require python-requests library
+
+  # Basic Auth
+  df = pd.read_csv('https://aa.com/bb.csv', http_params={ 'auth': ('john', 'pwd') } ) # now url can contain username and pwd
+  
+  # Basic Auth And disable verification of SSL certificate eg: testing
+  up = { 'auth': ('john', 'pwd') , 'verify' : False}
+  df = pd.read_csv('https://aa.com/bb.csv', http_params=up ) # now url can contain username and pwd
+
+  # Optionally, A requests.Session() can also be passed into http_params
+  import requests
+  s = requests.Session()
+  s.auth = MyAuthProvider('secret-key') # custom auth provider supported by requests
+  df = pd.read_csv(url, http_params=s)
+
+  # For advanced users, this may provide extensibility. However, testing on pandas side is limited to basic scenarios
+  # here is an example of advanced scenario
+  s = Session()
+  s.auth = ('darth', 'l0rd')  # if user wants to perform basic auth Skip if url itself contains username and pwd
+  s.timeout = (3.05, 27)                           # if user wants to modify timeout
+  s.verify = False                                      # if user wants to disable ssl cert verification
+  s.headers.update( {'User-Agent': 'Custom user agent'} )  # extensible to set any custom header needed
+  s.proxies = { 'http': 'http://a.com:100'}  # if user has proxies 
+  s.cert = '/path/client.cert'                     # if custom cert is needed
+  df = pd.read_csv( 'https://aa.com/bbb.csv', http_params=s)
+
+  def print_http_status(r, *args, **kwargs):
+      print(r.status_code)
+      print(r.headers['Content-Length'])
+  s = Session()
+  s.hooks = dict(response=print_http_status)
+  df = pd.read_csv( 'https://aa.com/bbb.csv', http_params=s)
+
+
 .. _whatsnew_0220.enhancements.other:
 
 Other Enhancements
