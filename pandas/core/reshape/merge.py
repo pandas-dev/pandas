@@ -27,6 +27,7 @@ from pandas.core.dtypes.common import (
     is_dtype_equal,
     is_bool,
     is_list_like,
+    is_datetimelike,
     _ensure_int64,
     _ensure_float64,
     _ensure_object,
@@ -962,14 +963,30 @@ class _MergeOperation(object):
                 elif lib.infer_dtype(lk) == lib.infer_dtype(rk):
                     pass
 
-            # Houston, we have a problem!
-            # let's coerce to object if the dtypes aren't
-            # categorical, otherwise coerce to the category
-            # dtype. If we coerced categories to object,
-            # then we would lose type information on some
-            # columns, and end up trying to merge
-            # incompatible dtypes. See GH 16900.
             else:
+
+                # Check if we are trying to merge on obviously
+                # incompatible dtypes GH 9780
+                msg = ("You are trying to merge on {lk_dtype} and "
+                       "{rk_dtype} columns. If you wish to proceed "
+                       "you should use pd.concat".format(lk_dtype=lk.dtype,
+                                                         rk_dtype=rk.dtype))
+                if is_numeric_dtype(lk) and not is_numeric_dtype(rk):
+                    raise ValueError(msg)
+                elif not is_numeric_dtype(lk) and is_numeric_dtype(rk):
+                    raise ValueError(msg)
+                elif is_datetimelike(lk) and not is_datetimelike(rk):
+                    raise ValueError(msg)
+                elif not is_datetimelike(lk) and is_datetimelike(rk):
+                    raise ValueError(msg)
+
+                # Houston, we have a problem!
+                # let's coerce to object if the dtypes aren't
+                # categorical, otherwise coerce to the category
+                # dtype. If we coerced categories to object,
+                # then we would lose type information on some
+                # columns, and end up trying to merge
+                # incompatible dtypes. See GH 16900.
                 if name in self.left.columns:
                     typ = lk.categories.dtype if lk_is_cat else object
                     self.left = self.left.assign(
