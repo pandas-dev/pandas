@@ -15,7 +15,8 @@ def vbench_to_asv_source(bench, kinds=None):
     output += tab + 'goal_time = 0.2\n\n'
 
     if bench.setup:
-        indented_setup = [tab * 2 + '{}\n'.format(x) for x in bench.setup.splitlines()]
+        indented_setup = [tab * 2 + '{}\n'.format(x)
+                          for x in bench.setup.splitlines()]
         output += tab + 'def setup(self):\n' + ''.join(indented_setup) + '\n'
 
     for kind in kinds:
@@ -77,7 +78,9 @@ class AssignToSelf(ast.NodeTransformer):
 
     def visit_Assign(self, node):
         for target in node.targets:
-            if isinstance(target, ast.Name) and not isinstance(target.ctx, ast.Param) and not self.in_class_define:
+            if (isinstance(target, ast.Name) and
+                    not isinstance(target.ctx, ast.Param) and
+                    not self.in_class_define):
                 self.transforms[target.id] = 'self.' + target.id
         self.generic_visit(node)
 
@@ -87,7 +90,9 @@ class AssignToSelf(ast.NodeTransformer):
         new_node = node
         if node.id in self.transforms:
             if not isinstance(node.ctx, ast.Param):
-                new_node = ast.Attribute(value=ast.Name(id='self', ctx=node.ctx), attr=node.id, ctx=node.ctx)
+                new_node = ast.Attribute(value=ast.Name(id='self',
+                                                        ctx=node.ctx),
+                                         attr=node.id, ctx=node.ctx)
 
         self.generic_visit(node)
 
@@ -111,7 +116,6 @@ class AssignToSelf(ast.NodeTransformer):
 
 def translate_module(target_module):
     g_vars = {}
-    l_vars = {}
     exec('import ' + target_module) in g_vars
 
     print(target_module)
@@ -138,9 +142,11 @@ def translate_module(target_module):
     transformer = AssignToSelf()
     transformed_module = transformer.visit(ast_module)
 
-    unique_imports = {astor.to_source(node): node for node in transformer.imports}
+    unique_imports = {astor.to_source(node): node
+                      for node in transformer.imports}
 
-    transformed_module.body = unique_imports.values() + transformed_module.body
+    transformed_module.body = (unique_imports.values() +
+                               transformed_module.body)
 
     transformed_source = astor.to_source(transformed_module)
 
@@ -155,7 +161,9 @@ if __name__ == '__main__':
 
     for module in glob.glob(os.path.join(new_dir, '*.py')):
         mod = os.path.basename(module)
-        if mod in ['make.py', 'measure_memory_consumption.py', 'perf_HEAD.py', 'run_suite.py', 'test_perf.py', 'generate_rst_files.py', 'test.py', 'suite.py']:
+        if mod in ['make.py', 'measure_memory_consumption.py', 'perf_HEAD.py',
+                   'run_suite.py', 'test_perf.py', 'generate_rst_files.py',
+                   'test.py', 'suite.py']:
             continue
         print('')
         print(mod)
