@@ -371,8 +371,9 @@ class TestSeriesRank(TestData):
 
     def test_rank_modify_inplace(self):
         # GH 18521
-        df = Series([Timestamp('2017-01-05 10:20:27.569000'), NaT])
-        pre_rank_df = df.copy()
+        s = Series([Timestamp('2017-01-05 10:20:27.569000'), NaT])
+        expected = s.copy()
 
-        df.rank()
-        assert_series_equal(df, pre_rank_df)
+        s.rank()
+        result = s
+        assert_series_equal(result, expected)

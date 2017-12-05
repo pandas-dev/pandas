@@ -5940,7 +5940,7 @@ class NDFrame(PandasObject, SelectionMixin):
             raise NotImplementedError(msg)
 
         def ranker(data):
-            ranks = algos.rank(data.values.copy(), axis=axis, method=method,
+            ranks = algos.rank(data.values, axis=axis, method=method,
                                ascending=ascending, na_option=na_option,
                                pct=pct)
             ranks = self._constructor(ranks, **data._construct_axes_dict())
