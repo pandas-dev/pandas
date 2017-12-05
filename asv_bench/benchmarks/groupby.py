@@ -159,7 +159,7 @@ class Nth(object):
         df[1].groupby(df[0]).nth(0)
 
 
-class Incidies(object):
+class DateAttributes(object):
 
     goal_time = 0.2
 
@@ -168,8 +168,8 @@ class Incidies(object):
         self.year, self.month, self.day = rng.year, rng.month, rng.day
         self.ts = Series(np.random.randn(len(rng)), index=rng)
 
-    def time_datetime_indicies(self):
-        self.ts.groupby([self.year, self.month, self.day])
+    def time_len_groupby_object(self):
+        len(self.ts.groupby([self.year, self.month, self.day]))
 
 
 class Int64(object):
@@ -194,7 +194,7 @@ class CountMultiDtype(object):
 
     goal_time = 0.2
 
-    def setup(self):
+    def setup_cache(self):
         n = 10000
         offsets = np.random.randint(n, size=n).astype('timedelta64[ns]')
         dates = np.datetime64('now') + offsets
@@ -203,18 +203,19 @@ class CountMultiDtype(object):
         value2 = np.random.randn(n)
         value2[np.random.rand(n) > 0.5] = np.nan
         obj = np.random.choice(list('ab'), size=n).astype(object)
-        obj[(np.random.randn(n) > 0.5)] = np.nan
-        self.df = DataFrame({'key1': np.random.randint(0, 500, size=n),
-                             'key2': np.random.randint(0, 100, size=n),
-                             'dates': dates,
-                             'value2': value2,
-                             'value3': np.random.randn(n),
-                             'ints': np.random.randint(0, 1000, size=n),
-                             'obj': obj,
-                             'offsets': offsets})
+        obj[np.random.randn(n) > 0.5] = np.nan
+        df = DataFrame({'key1': np.random.randint(0, 500, size=n),
+                        'key2': np.random.randint(0, 100, size=n),
+                        'dates': dates,
+                        'value2': value2,
+                        'value3': np.random.randn(n),
+                        'ints': np.random.randint(0, 1000, size=n),
+                        'obj': obj,
+                        'offsets': offsets})
+        return df
 
-    def time_multi_count(self):
-        self.df.groupby(['key1', 'key2']).count()
+    def time_multi_count(self, df):
+        df.groupby(['key1', 'key2']).count()
 
 
 class CountInt(object):
@@ -236,7 +237,7 @@ class CountInt(object):
         df.groupby(['key1', 'key2']).nunique()
 
 
-class AggMultiColFuncs(object):
+class AggFunctions(object):
 
     goal_time = 0.2
 
@@ -261,22 +262,11 @@ class AggMultiColFuncs(object):
                                           'value2': np.var,
                                           'value3': np.sum})
 
+    def time_different_python_functions_multicol(self, df):
+        df.groupby(['key1', 'key2']).agg([sum, min, max])
 
-class AggBuiltins(object):
-
-    goal_time = 0.2
-
-    def setup_cache(self):
-        n = 10**5
-        df = DataFrame(np.random.randint(1, n / 100, (n, 3)),
-                       columns=['jim', 'joe', 'jolie'])
-        return df
-
-    def time_agg_builtin_single_col(self, df):
-        df.groupby('jim').agg([sum, min, max])
-
-    def time_agg_builtins_multi_col(self, df):
-        df.groupby(['jim', 'joe']).agg([sum, min, max])
+    def time_different_python_functions_singlecol(self, df):
+        df.groupby('key1').agg([sum, min, max])
 
 
 class GroupStrings(object):
@@ -532,36 +522,19 @@ class Categories(object):
 class Datelike(object):
     # GH 14338
     goal_time = 0.2
-    params = [period_range, date_range, partial(date_range, tz='US/Central')]
+    params = ['period_range', 'date_range', 'date_range_tz']
     param_names = ['grouper']
 
     def setup(self, grouper):
         N = 10**4
-        self.grouper = grouper('1900-01-01', freq='D', periods=N)
+        rng_map = {'period_range': period_range,
+                   'date_range': date_range,
+                   'date_range_tz': partial(date_range, tz='US/Central')}
+        self.grouper = rng_map[grouper]('1900-01-01', freq='D', periods=N)
         self.df = DataFrame(np.random.randn(10**4, 2))
 
     def time_sum(self, grouper):
         self.df.groupby(self.grouper).sum()
-
-
-class PivotTable(object):
-    goal_time = 0.2
-
-    def setup(self):
-        N = 100000
-        fac1 = np.array(['A', 'B', 'C'], dtype='O')
-        fac2 = np.array(['one', 'two'], dtype='O')
-        ind1 = np.random.randint(0, 3, size=N)
-        ind2 = np.random.randint(0, 2, size=N)
-        self.df = DataFrame({'key1': fac1.take(ind1),
-                             'key2': fac2.take(ind2),
-                             'key3': fac2.take(ind2),
-                             'value1': np.random.randn(N),
-                             'value2': np.random.randn(N),
-                             'value3': np.random.randn(N)})
-
-    def time_pivot_table(self):
-        self.df.pivot_table(index='key1', columns=['key2', 'key3'])
 
 
 class SumBools(object):
