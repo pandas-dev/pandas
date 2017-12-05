@@ -553,26 +553,6 @@ class Categorical(PandasObject):
         return cls(codes, dtype=dtype, fastpath=True)
 
     @classmethod
-    def from_array(cls, data, **kwargs):
-        """
-        .. deprecated:: 0.19.0
-           Use ``Categorical`` instead.
-
-        Make a Categorical type from a single array-like object.
-
-        For internal compatibility with numpy arrays.
-
-        Parameters
-        ----------
-        data : array-like
-            Can be an Index or array-like. The categories are assumed to be
-            the unique values of `data`.
-        """
-        warn("Categorical.from_array is deprecated, use Categorical instead",
-             FutureWarning, stacklevel=2)
-        return cls(data, **kwargs)
-
-    @classmethod
     def from_codes(cls, codes, categories, ordered=False):
         """
         Make a Categorical type from codes and categories arrays.

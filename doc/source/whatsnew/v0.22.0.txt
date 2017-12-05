@@ -149,6 +149,7 @@ Removal of prior version deprecations/changes
 - ``pd.ordered_merge`` has been removed (deprecated since v0.19). Use ``pd.merge_ordered`` instead (:issue:`18459`)
 - The ``SparseList`` class has been removed (:issue:`14007`)
 - The ``pandas.io.wb`` and ``pandas.io.data`` stub modules have been removed (:issue:`13735`)
+- ``Categorical.from_array`` has been removed (:issue:`13854`)
 
 .. _whatsnew_0220.performance:
 
