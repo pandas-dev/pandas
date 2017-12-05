@@ -354,17 +354,22 @@ class TestPivotTable(object):
         tm.assert_frame_equal(pv, expected)
 
     def test_pivot_with_list_like_values(self):
-        # issue #17160: Make `DataFrame.pivot` accepts a list of column names as values
+        # issue #17160
         df = pd.DataFrame({'foo': ['one', 'one', 'one', 'two', 'two', 'two'],
                            'bar': ['A', 'B', 'C', 'A', 'B', 'C'],
                            'baz': [1, 2, 3, 4, 5, 6],
                            'zoo': ['x', 'y', 'z', 'q', 'w', 't']})
 
-        result_list = df.pivot(index='zoo', columns='foo', values=['bar', 'baz'])
-        result_tuple = df.pivot(index='zoo', columns='foo', values=('bar', 'baz'))
-        result_array = df.pivot(index='zoo', columns='foo', values=np.array(['bar', 'baz']))
-        result_series = df.pivot(index='zoo', columns='foo', values=pd.Series(['bar', 'baz']))
-        result_index = df.pivot(index='zoo', columns='foo', values=pd.Index(['bar', 'baz']))
+        result_list = df.pivot(index='zoo', columns='foo',
+                               values=['bar', 'baz'])
+        result_tuple = df.pivot(index='zoo', columns='foo',
+                                values=('bar', 'baz'))
+        result_array = df.pivot(index='zoo', columns='foo',
+                                values=np.array(['bar', 'baz']))
+        result_series = df.pivot(index='zoo', columns='foo',
+                                 values=pd.Series(['bar', 'baz']))
+        result_index = df.pivot(index='zoo', columns='foo',
+                                values=pd.Index(['bar', 'baz']))
 
         data = [[np.nan, 'A', np.nan, 4],
                 [np.nan, 'C', np.nan, 6],
@@ -384,7 +389,6 @@ class TestPivotTable(object):
         tm.assert_frame_equal(result_array, expected)
         tm.assert_frame_equal(result_series, expected)
         tm.assert_frame_equal(result_index, expected)
-
 
     def test_margins(self):
         def _check_output(result, values_col, index=['A', 'B'],
