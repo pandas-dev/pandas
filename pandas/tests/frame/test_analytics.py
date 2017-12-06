@@ -241,6 +241,7 @@ class TestDataFrameAnalytics(TestData):
         assert c1 < 1
 
     def test_corrwith_mixed_dtypes(self):
+        # GH 18570
         df = pd.DataFrame({'a': [1, 4, 3, 2], 'b': [4, 6, 7, 3],
                            'c': ['a', 'b', 'c', 'd']})
         s = pd.Series([0, 6, 7, 3])

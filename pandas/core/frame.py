@@ -5577,7 +5577,7 @@ class DataFrame(NDFrame):
 
         Parameters
         ----------
-        other : DataFrame
+        other : DataFrame, Series
         axis : {0 or 'index', 1 or 'columns'}, default 0
             0 or 'index' to compute column-wise, 1 or 'columns' for row-wise
         drop : boolean, default False
