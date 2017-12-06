@@ -90,6 +90,25 @@ def df_cross_compat():
     return df
 
 
+@pytest.fixture
+def df_full():
+    return pd.DataFrame(
+        {'string': list('abc'),
+         'string_with_nan': ['a', np.nan, 'c'],
+         'string_with_none': ['a', None, 'c'],
+         'bytes': [b'foo', b'bar', b'baz'],
+         'unicode': [u'foo', u'bar', u'baz'],
+         'int': list(range(1, 4)),
+         'uint': np.arange(3, 6).astype('u1'),
+         'float': np.arange(4.0, 7.0, dtype='float64'),
+         'float_with_nan': [2., np.nan, 3.],
+         'bool': [True, False, True],
+         'datetime': pd.date_range('20130101', periods=3),
+         'datetime_with_nat': [pd.Timestamp('20130101'),
+                               pd.NaT,
+                               pd.Timestamp('20130103')]})
+
+
 def test_invalid_engine(df_compat):
 
     with pytest.raises(ValueError):
@@ -300,26 +319,28 @@ class TestBasic(Base):
 
 class TestParquetPyArrow(Base):
 
-    def test_basic(self, pa):
+    def test_basic(self, pa, df_full):
 
-        df = pd.DataFrame({'string': list('abc'),
-                           'string_with_nan': ['a', np.nan, 'c'],
-                           'string_with_none': ['a', None, 'c'],
-                           'bytes': [b'foo', b'bar', b'baz'],
-                           'unicode': [u'foo', u'bar', u'baz'],
-                           'int': list(range(1, 4)),
-                           'uint': np.arange(3, 6).astype('u1'),
-                           'float': np.arange(4.0, 7.0, dtype='float64'),
-                           'float_with_nan': [2., np.nan, 3.],
-                           'bool': [True, False, True],
-                           'bool_with_none': [True, None, True],
-                           'datetime_ns': pd.date_range('20130101', periods=3),
-                           'datetime_with_nat': [pd.Timestamp('20130101'),
-                                                 pd.NaT,
-                                                 pd.Timestamp('20130103')]
-                           })
+        df = df_full
+
+        # additional supported types for pyarrow
+        df['datetime_tz'] = pd.date_range('20130101', periods=3,
+                                          tz='Europe/Brussels')
+        df['bool_with_none'] = [True, None, True]
 
         self.check_round_trip(df, pa)
+
+    @pytest.mark.xfail(reason="pyarrow fails on this (ARROW-1883)")
+    def test_basic_subset_columns(self, pa, df_full):
+        # GH18628
+
+        df = df_full
+        # additional supported types for pyarrow
+        df['datetime_tz'] = pd.date_range('20130101', periods=3,
+                                          tz='Europe/Brussels')
+
+        self.check_round_trip(df, pa, expected=df[['string', 'int']],
+                              read_kwargs={'columns': ['string', 'int']})
 
     def test_duplicate_columns(self, pa):
 
@@ -363,25 +384,12 @@ class TestParquetPyArrow(Base):
 
 class TestParquetFastParquet(Base):
 
-    def test_basic(self, fp):
+    def test_basic(self, fp, df_full):
 
-        df = pd.DataFrame(
-            {'string': list('abc'),
-             'string_with_nan': ['a', np.nan, 'c'],
-             'string_with_none': ['a', None, 'c'],
-             'bytes': [b'foo', b'bar', b'baz'],
-             'unicode': [u'foo', u'bar', u'baz'],
-             'int': list(range(1, 4)),
-             'uint': np.arange(3, 6).astype('u1'),
-             'float': np.arange(4.0, 7.0, dtype='float64'),
-             'float_with_nan': [2., np.nan, 3.],
-             'bool': [True, False, True],
-             'datetime': pd.date_range('20130101', periods=3),
-             'datetime_with_nat': [pd.Timestamp('20130101'),
-                                   pd.NaT,
-                                   pd.Timestamp('20130103')],
-             'timedelta': pd.timedelta_range('1 day', periods=3),
-             })
+        df = df_full
+
+        # additional supported types for fastparquet
+        df['timedelta'] = pd.timedelta_range('1 day', periods=3)
 
         self.check_round_trip(df, fp, write_kwargs={'compression': None})
 
