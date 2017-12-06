@@ -10,8 +10,7 @@ import numpy as np
 np.import_array()
 
 
-from cpython cimport (PyTypeObject, PyFloat_Check,
-                      PyUnicode_Check, PyUnicode_AsASCIIString)
+from cpython cimport PyTypeObject, PyFloat_Check
 
 cdef extern from "Python.h":
     cdef PyTypeObject *Py_TYPE(object)
@@ -224,12 +223,9 @@ def _test_parse_iso8601(object ts):
 
     obj = _TSObject()
 
-    if PyUnicode_Check(ts):
-        ts = PyUnicode_AsASCIIString(ts)
-
-    if ts == b'now':
+    if ts == 'now':
         return Timestamp.utcnow()
-    elif ts == b'today':
+    elif ts == 'today':
         return Timestamp.utcnow().normalize()
 
     _string_to_dts(ts, &obj.dts, &out_local, &out_tzoffset)
@@ -618,14 +614,11 @@ cpdef array_to_datetime(ndarray[object] values, errors='raise',
 
                 seen_string = 1
 
-                if PyUnicode_Check(val):
-                    val = PyUnicode_AsASCIIString(val)
-
-                if val == b'now':
+                if val == 'now':
                     # Note: this is *not* the same as Timestamp('now')
                     iresult[i] = Timestamp.utcnow().value
                     continue
-                elif val == b'today':
+                elif val == 'today':
                     # Note: this is *not* the same as Timestamp('today')
                     iresult[i] = Timestamp.utcnow().normalize().value
                     continue
