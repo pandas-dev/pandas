@@ -910,8 +910,8 @@ class SelectN(object):
         self.n = n
         self.keep = keep
 
-        if self.keep not in ('first', 'last'):
-            raise ValueError('keep must be either "first", "last"')
+        if self.keep not in ('first', 'last', False):
+            raise ValueError('keep must be either "first", "last", or False')
 
     def nlargest(self):
         return self.compute('nlargest')
@@ -979,7 +979,11 @@ class SelectNSeries(SelectN):
 
         kth_val = algos.kth_smallest(arr.copy(), n - 1)
         ns, = np.nonzero(arr <= kth_val)
-        inds = ns[arr[ns].argsort(kind='mergesort')][:n]
+        inds = ns[arr[ns].argsort(kind='mergesort')]
+
+        if self.keep is not False:
+            inds = inds[:n]
+
         if self.keep == 'last':
             # reverse indices
             inds = narr - 1 - inds
