@@ -2142,7 +2142,7 @@ class DataCol(IndexCol):
                     # the categories are an empty array; when this is stored,
                     # pytables cannot write a zero-len array, so on readback
                     # the categories would be None and `read_hdf()` would fail.
-                    categories = []
+                    categories = Index([], dtype=np.float64)
                 else:
                     mask = isna(categories)
                     if mask.any():

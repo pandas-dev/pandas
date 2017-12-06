@@ -4942,8 +4942,6 @@ class TestHDFStore(Base):
         with ensure_clean_path(self.path) as path:
             df.to_hdf(path, 'df', format='table', data_columns=True)
             result = read_hdf(path, 'df')
-            print 'result', result.dtypes
-            print 'expected', expected.dtypes
             tm.assert_frame_equal(result, expected)
 
     def test_duplicate_column_name(self):
