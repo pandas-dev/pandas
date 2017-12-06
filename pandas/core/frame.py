@@ -5588,10 +5588,11 @@ class DataFrame(NDFrame):
         correls : Series
         """
         axis = self._get_axis_number(axis)
-        if isinstance(other, Series):
-            return self.apply(other.corr, axis=axis)
-
         this = self._get_numeric_data()
+
+        if isinstance(other, Series):
+            return this.apply(other.corr, axis=axis)
+
         other = other._get_numeric_data()
 
         left, right = this.align(other, join='inner', copy=False)
