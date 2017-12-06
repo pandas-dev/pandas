@@ -1618,7 +1618,9 @@ class TestMultiIndex(Base):
         # shouldn't change
         assert mi2.is_(mi)
         mi4 = mi3.view()
-        mi4.set_levels([[1 for _ in range(10)], lrange(10)], inplace=True)
+
+        # GH 17464 - Remove duplicate MultiIndex levels
+        mi4.set_levels([lrange(10), lrange(10)], inplace=True)
         assert not mi4.is_(mi3)
         mi5 = mi.view()
         mi5.set_levels(mi5.levels, inplace=True)
@@ -2450,13 +2452,11 @@ class TestMultiIndex(Base):
             pd.isna(self.index)
 
     def test_level_setting_resets_attributes(self):
-        ind = MultiIndex.from_arrays([
+        ind = pd.MultiIndex.from_arrays([
             ['A', 'A', 'B', 'B', 'B'], [1, 2, 1, 2, 3]
         ])
         assert ind.is_monotonic
-        ind.set_levels([['A', 'B', 'A', 'A', 'B'], [2, 1, 3, -2, 5]],
-                       inplace=True)
-
+        ind.set_levels([['A', 'B'], [1, 3, 2]], inplace=True)
         # if this fails, probably didn't reset the cache correctly.
         assert not ind.is_monotonic
 
@@ -3083,3 +3083,16 @@ class TestMultiIndex(Base):
         with tm.assert_raises_regex(AttributeError,
                                     "'Series' object has no attribute 'foo'"):
             df['a'].foo()
+
+    def test_duplicate_multiindex_labels(self):
+        # GH 17464
+        # Make sure that a MultiIndex with duplicate levels throws a ValueError
+        with pytest.raises(ValueError):
+            ind = pd.MultiIndex([['A'] * 10, range(10)], [[0] * 10, range(10)])
+
+        # And that using set_levels with duplicate levels fails
+        ind = MultiIndex.from_arrays([['A', 'A', 'B', 'B', 'B'],
+                                      [1, 2, 1, 2, 3]])
+        with pytest.raises(ValueError):
+            ind.set_levels([['A', 'B', 'A', 'A', 'B'], [2, 1, 3, -2, 5]],
+                           inplace=True)

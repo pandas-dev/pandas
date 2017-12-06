@@ -72,6 +72,15 @@ class TestMerge(object):
         exp = merge(self.df, self.df2, on=['key1', 'key2'])
         tm.assert_frame_equal(joined, exp)
 
+    def test_merge_index_as_on_arg(self):
+        # GH14355
+
+        left = self.df.set_index('key1')
+        right = self.df2.set_index('key1')
+        result = merge(left, right, on='key1')
+        expected = merge(self.df, self.df2, on='key1').set_index('key1')
+        assert_frame_equal(result, expected)
+
     def test_merge_index_singlekey_right_vs_left(self):
         left = DataFrame({'key': ['a', 'b', 'c', 'd', 'e', 'e', 'a'],
                           'v1': np.random.randn(7)})
@@ -863,6 +872,12 @@ class TestMerge(object):
 
         result = merge(left, right, on=['a', 'b'], validate='1:1')
         assert_frame_equal(result, expected_multi)
+
+    def test_merge_two_empty_df_no_division_error(self):
+        # GH17776, PR #17846
+        a = pd.DataFrame({'a': [], 'b': [], 'c': []})
+        with np.errstate(divide='raise'):
+            merge(a, a, on=('a', 'b'))
 
 
 def _check_merge(x, y):

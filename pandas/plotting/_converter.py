@@ -363,7 +363,8 @@ class MilliSecondLocator(dates.DateLocator):
         tz = self.tz.tzname(None)
         st = _from_ordinal(dates.date2num(dmin))  # strip tz
         ed = _from_ordinal(dates.date2num(dmax))
-        all_dates = date_range(start=st, end=ed, freq=freq, tz=tz).asobject
+        all_dates = date_range(start=st, end=ed,
+                               freq=freq, tz=tz).astype(object)
 
         try:
             if len(all_dates) > 0:

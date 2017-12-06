@@ -6,8 +6,7 @@
 
 # Cython version: Wes McKinney
 
-cdef extern from "math.h":
-    double log(double x)
+from libc.math cimport log
 
 # MSVC does not have log2!
 
@@ -16,6 +15,7 @@ cdef double Log2(double x):
 
 cimport numpy as np
 import numpy as np
+from numpy cimport double_t
 
 from random import random
 
@@ -25,10 +25,10 @@ np.import_array()
 # TODO: optimize this, make less messy
 
 cdef class Node:
-    cdef public:
-        double_t value
-        list next
-        list width
+    # cdef public:
+    #    double_t value
+    #    list next
+    #    list width
 
     def __init__(self, double_t value, list next, list width):
         self.value = value
@@ -43,9 +43,9 @@ cdef class IndexableSkiplist:
     Sorted collection supporting O(lg n) insertion, removal, and
     lookup by rank.
     """
-    cdef:
-        Py_ssize_t size, maxlevels
-        Node head
+    # cdef:
+    #    Py_ssize_t size, maxlevels
+    #    Node head
 
     def __init__(self, expected_size=100):
         self.size = 0

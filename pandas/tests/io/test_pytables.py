@@ -36,8 +36,8 @@ from pandas.io.pytables import (TableIterator,  # noqa:E402
                                 PossibleDataLossError, ClosedFileError)
 
 
-_default_compressor = ('blosc' if LooseVersion(tables.__version__) >= '2.2'
-                       else 'zlib')
+_default_compressor = ('blosc' if LooseVersion(tables.__version__) >=
+                       LooseVersion('2.2') else 'zlib')
 
 
 # testing on windows/py3 seems to fault
@@ -4269,9 +4269,10 @@ class TestHDFStore(Base):
                           ['df1', 'df3'], where=['A>0', 'B>0'],
                           selector='df1')
 
-    @pytest.mark.skipf(
-        LooseVersion(tables.__version__) < '3.1.0',
-        "tables version does not support fix for nan selection bug: GH 4858")
+    @pytest.mark.skipif(
+        LooseVersion(tables.__version__) < LooseVersion('3.1.0'),
+        reason=("tables version does not support fix for nan selection "
+                "bug: GH 4858"))
     def test_nan_selection_bug_4858(self):
 
         with ensure_clean_store(self.path) as store:

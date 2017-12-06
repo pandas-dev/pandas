@@ -17,7 +17,8 @@ from tslibs.conversion cimport maybe_datetimelike_to_i8
 
 from hashtable cimport HashTable
 
-from pandas._libs import algos, period as periodlib, hashtable as _hash
+from pandas._libs import algos, hashtable as _hash
+from pandas._libs.tslibs import period as periodlib
 from pandas._libs.tslib import Timestamp, Timedelta
 from datetime import datetime, timedelta, date
 
@@ -219,34 +220,31 @@ cdef class IndexEngine:
     def __sizeof__(self):
         return self.sizeof()
 
-    property is_unique:
+    @property
+    def is_unique(self):
+        if self.need_unique_check:
+            self._do_unique_check()
 
-        def __get__(self):
-            if self.need_unique_check:
-                self._do_unique_check()
-
-            return self.unique == 1
+        return self.unique == 1
 
     cdef inline _do_unique_check(self):
 
         # this de-facto the same
         self._ensure_mapping_populated()
 
-    property is_monotonic_increasing:
+    @property
+    def is_monotonic_increasing(self):
+        if self.need_monotonic_check:
+            self._do_monotonic_check()
 
-        def __get__(self):
-            if self.need_monotonic_check:
-                self._do_monotonic_check()
+        return self.monotonic_inc == 1
 
-            return self.monotonic_inc == 1
+    @property
+    def is_monotonic_decreasing(self):
+        if self.need_monotonic_check:
+            self._do_monotonic_check()
 
-    property is_monotonic_decreasing:
-
-        def __get__(self):
-            if self.need_monotonic_check:
-                self._do_monotonic_check()
-
-            return self.monotonic_dec == 1
+        return self.monotonic_dec == 1
 
     cdef inline _do_monotonic_check(self):
         cdef object is_unique
@@ -278,10 +276,9 @@ cdef class IndexEngine:
     cdef _check_type(self, object val):
         hash(val)
 
-    property is_mapping_populated:
-
-        def __get__(self):
-            return self.mapping is not None
+    @property
+    def is_mapping_populated(self):
+        return self.mapping is not None
 
     cdef inline _ensure_mapping_populated(self):
         # this populates the mapping

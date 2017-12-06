@@ -4,27 +4,23 @@ from pandas import DataFrame, Series, MultiIndex, Timestamp, date_range
 try:
     from pandas.tseries import offsets
 except:
-    from pandas.core.datetools import *
+    from pandas.core.datetools import * # noqa
 
+from .pandas_vb_common import setup # noqa
 
-# ----------------------------------------------------------------------
-# Creation from nested dict
 
 class FromDicts(object):
 
     goal_time = 0.2
 
     def setup(self):
-        np.random.seed(1234)
         N, K = 5000, 50
-        self.index = tm.makeStringIndex(N)
-        self.columns = tm.makeStringIndex(K)
-        self.frame = DataFrame(np.random.randn(N, K),
-                               index=self.index,
-                               columns=self.columns)
-        self.data = self.frame.to_dict()
+        index = tm.makeStringIndex(N)
+        columns = tm.makeStringIndex(K)
+        frame = DataFrame(np.random.randn(N, K), index=index, columns=columns)
+        self.data = frame.to_dict()
         self.some_dict = list(self.data.values())[0]
-        self.dict_list = self.frame.to_dict(orient='records')
+        self.dict_list = frame.to_dict(orient='records')
         self.data2 = {i: {j: float(j) for j in range(100)}
                       for i in range(2000)}
 
@@ -42,14 +38,13 @@ class FromDicts(object):
         DataFrame(self.data2)
 
 
-# from a mi-series
-
 class FromSeries(object):
+
     goal_time = 0.2
 
     def setup(self):
-        self.mi = MultiIndex.from_product([range(100), range(100)])
-        self.s = Series(np.random.randn(10000), index=self.mi)
+        mi = MultiIndex.from_product([range(100), range(100)])
+        self.s = Series(np.random.randn(10000), index=mi)
 
     def time_frame_from_mi_series(self):
         DataFrame(self.s)
@@ -124,3 +119,18 @@ class FromDictwithTimestampOffsets(object):
 
     def time_frame_ctor(self, offset, n_steps):
         DataFrame(self.d)
+
+
+class FromRecords(object):
+
+    goal_time = 0.2
+    params = [None, 1000]
+    param_names = ['nrows']
+
+    def setup(self, nrows):
+        N = 100000
+        self.gen = ((x, (x * 20), (x * 100)) for x in range(N))
+
+    def time_frame_from_records_generator(self, nrows):
+        # issue-6700
+        self.df = DataFrame.from_records(self.gen, nrows=nrows)

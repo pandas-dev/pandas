@@ -181,16 +181,6 @@ cdef class _Timestamp(datetime):
         elif other.tzinfo is None:
             raise TypeError('Cannot compare tz-naive and tz-aware timestamps')
 
-    cpdef datetime to_datetime(_Timestamp self):
-        """
-        DEPRECATED: use :meth:`to_pydatetime` instead.
-
-        Convert a Timestamp object to a native Python datetime object.
-        """
-        warnings.warn("to_datetime is deprecated. Use self.to_pydatetime()",
-                      FutureWarning, stacklevel=2)
-        return self.to_pydatetime(warn=False)
-
     cpdef datetime to_pydatetime(_Timestamp self, warn=True):
         """
         Convert a Timestamp object to a native Python datetime object.
@@ -304,10 +294,12 @@ cdef class _Timestamp(datetime):
         out = get_date_field(np.array([val], dtype=np.int64), field)
         return int(out[0])
 
-    cpdef _get_start_end_field(self, field):
+    cpdef bint _get_start_end_field(self, str field):
         cdef:
             int64_t val
             dict kwds
+            ndarray out
+            int month_kw
 
         freq = self.freq
         if freq:
@@ -713,7 +705,7 @@ class Timestamp(_Timestamp):
 
     @property
     def quarter(self):
-        return self._get_field('q')
+        return ((self.month - 1) // 3) + 1
 
     @property
     def days_in_month(self):
@@ -727,26 +719,44 @@ class Timestamp(_Timestamp):
 
     @property
     def is_month_start(self):
+        if self.freq is None:
+            # fast-path for non-business frequencies
+            return self.day == 1
         return self._get_start_end_field('is_month_start')
 
     @property
     def is_month_end(self):
+        if self.freq is None:
+            # fast-path for non-business frequencies
+            return self.day == self.days_in_month
         return self._get_start_end_field('is_month_end')
 
     @property
     def is_quarter_start(self):
+        if self.freq is None:
+            # fast-path for non-business frequencies
+            return self.day == 1 and self.month % 3 == 1
         return self._get_start_end_field('is_quarter_start')
 
     @property
     def is_quarter_end(self):
+        if self.freq is None:
+            # fast-path for non-business frequencies
+            return (self.month % 3) == 0 and self.day == self.days_in_month
         return self._get_start_end_field('is_quarter_end')
 
     @property
     def is_year_start(self):
+        if self.freq is None:
+            # fast-path for non-business frequencies
+            return self.day == self.month == 1
         return self._get_start_end_field('is_year_start')
 
     @property
     def is_year_end(self):
+        if self.freq is None:
+            # fast-path for non-business frequencies
+            return self.month == 12 and self.day == 31
         return self._get_start_end_field('is_year_end')
 
     @property

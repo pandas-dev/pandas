@@ -13,6 +13,7 @@ import numpy as np
 import pandas as pd
 import pandas.tseries.offsets as offsets
 import pandas.util.testing as tm
+import pandas.util._test_decorators as td
 from pandas import (Series, DataFrame, Panel, Index, isna,
                     notna, Timestamp)
 
@@ -32,7 +33,7 @@ from pandas.core.resample import (DatetimeIndex, TimeGrouper,
 from pandas.core.indexes.timedeltas import timedelta_range, TimedeltaIndex
 from pandas.util.testing import (assert_series_equal, assert_almost_equal,
                                  assert_frame_equal, assert_index_equal)
-from pandas._libs.period import IncompatibleFrequency
+from pandas._libs.tslibs.period import IncompatibleFrequency
 
 bday = BDay()
 
@@ -234,9 +235,8 @@ class TestResampleAPI(object):
         result = df.groupby('key').resample('D', on='dates').mean()
         assert_frame_equal(result, expected)
 
+    @td.skip_if_no_mpl
     def test_plot_api(self):
-        tm._skip_if_no_mpl()
-
         # .resample(....).plot(...)
         # hitting warnings
         # GH 12448
@@ -816,21 +816,23 @@ class Base(object):
 
             # test size for GH13212 (currently stays as df)
 
-    def test_resample_empty_dtypes(self):
+    @pytest.mark.parametrize("index", tm.all_timeseries_index_generator(0))
+    @pytest.mark.parametrize(
+        "dtype",
+        [np.float, np.int, np.object, 'datetime64[ns]'])
+    def test_resample_empty_dtypes(self, index, dtype):
 
         # Empty series were sometimes causing a segfault (for the functions
         # with Cython bounds-checking disabled) or an IndexError.  We just run
         # them to ensure they no longer do.  (GH #10228)
-        for index in tm.all_timeseries_index_generator(0):
-            for dtype in (np.float, np.int, np.object, 'datetime64[ns]'):
-                for how in downsample_methods + upsample_methods:
-                    empty_series = Series([], index, dtype)
-                    try:
-                        getattr(empty_series.resample('d'), how)()
-                    except DataError:
-                        # Ignore these since some combinations are invalid
-                        # (ex: doing mean with dtype of np.object)
-                        pass
+        for how in downsample_methods + upsample_methods:
+            empty_series = Series([], index, dtype)
+            try:
+                getattr(empty_series.resample('d'), how)()
+            except DataError:
+                # Ignore these since some combinations are invalid
+                # (ex: doing mean with dtype of np.object)
+                pass
 
     def test_resample_loffset_arg_type(self):
         # GH 13218, 15002
@@ -3416,3 +3418,11 @@ class TestTimeGrouper(object):
 
             # if NaT is included, 'var', 'std', 'mean', 'first','last'
             # and 'nth' doesn't work yet
+
+    def test_repr(self):
+        # GH18203
+        result = repr(TimeGrouper(key='A', freq='H'))
+        expected = ("TimeGrouper(key='A', freq=<Hour>, axis=0, sort=True, "
+                    "closed='left', label='left', how='mean', "
+                    "convention='e', base=0)")
+        assert result == expected

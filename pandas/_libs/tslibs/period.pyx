@@ -17,26 +17,27 @@ from pandas.compat import PY2
 
 cimport cython
 
-from tslibs.np_datetime cimport (pandas_datetimestruct,
-                                 dtstruct_to_dt64, dt64_to_dtstruct,
-                                 is_leapyear)
+from cpython.datetime cimport PyDateTime_Check, PyDateTime_IMPORT
+# import datetime C API
+PyDateTime_IMPORT
 
+from np_datetime cimport (pandas_datetimestruct, dtstruct_to_dt64,
+                          dt64_to_dtstruct, is_leapyear)
 
 cimport util
 from util cimport is_period_object, is_string_object, INT32_MIN
 
-from missing cimport is_null_datetimelike
-from pandas._libs.tslib import Timestamp
-from tslibs.timezones cimport (
-    is_utc, is_tzlocal, get_utcoffset, get_dst_info)
-from tslibs.timedeltas cimport delta_to_nanoseconds
+from pandas._libs.missing cimport is_null_datetimelike
+from timestamps import Timestamp
+from timezones cimport is_utc, is_tzlocal, get_utcoffset, get_dst_info
+from timedeltas cimport delta_to_nanoseconds
 
-from tslibs.parsing import (parse_time_string, NAT_SENTINEL,
-                            _get_rule_month, _MONTH_NUMBERS)
-from tslibs.frequencies cimport get_freq_code
-from tslibs.resolution import resolution, Resolution
-from tslibs.nattype import nat_strings, NaT, iNaT
-from tslibs.nattype cimport _nat_scalar_rules, NPY_NAT
+from parsing import (parse_time_string, NAT_SENTINEL,
+                     _get_rule_month, _MONTH_NUMBERS)
+from frequencies cimport get_freq_code
+from resolution import resolution, Resolution
+from nattype import nat_strings, NaT, iNaT
+from nattype cimport _nat_scalar_rules, NPY_NAT
 
 from pandas.tseries import offsets
 from pandas.tseries import frequencies
@@ -647,9 +648,19 @@ cdef class _Period(object):
             elif util.is_integer_object(other):
                 ordinal = self.ordinal + other * self.freq.n
                 return Period(ordinal=ordinal, freq=self.freq)
+            elif (PyDateTime_Check(other) or
+                  is_period_object(other) or util.is_datetime64_object(other)):
+                # can't add datetime-like
+                # GH#17983
+                sname = type(self).__name__
+                oname = type(other).__name__
+                raise TypeError("unsupported operand type(s) for +: '{self}' "
+                                "and '{other}'".format(self=sname,
+                                                       other=oname))
             else:  # pragma: no cover
                 return NotImplemented
         elif is_period_object(other):
+            # this can be reached via __radd__ because of cython rules
             return other + self
         else:
             return NotImplemented

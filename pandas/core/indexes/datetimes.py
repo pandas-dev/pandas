@@ -43,8 +43,7 @@ from pandas.core.indexes.datetimelike import (
     DatelikeOps, TimelikeOps, DatetimeIndexOpsMixin)
 from pandas.tseries.offsets import (
     DateOffset, generate_range, Tick, CDay, prefix_mapping)
-from pandas.core.tools.datetimes import (
-    parse_time_string, normalize_date, to_time)
+
 from pandas.core.tools.timedeltas import to_timedelta
 from pandas.util._decorators import (Appender, cache_readonly,
                                      deprecate_kwarg, Substitution)
@@ -54,8 +53,9 @@ import pandas.core.tools.datetimes as tools
 
 from pandas._libs import (lib, index as libindex, tslib as libts,
                           algos as libalgos, join as libjoin,
-                          Timestamp, period as libperiod)
-from pandas._libs.tslibs import timezones, conversion, fields
+                          Timestamp)
+from pandas._libs.tslibs import (timezones, conversion, fields, parsing,
+                                 period as libperiod)
 
 # -------- some conversion wrapper functions
 
@@ -250,7 +250,6 @@ class DatetimeIndex(DatelikeOps, TimelikeOps, DatetimeIndexOpsMixin,
     round
     floor
     ceil
-    to_datetime
     to_period
     to_perioddelta
     to_pydatetime
@@ -529,14 +528,14 @@ class DatetimeIndex(DatelikeOps, TimelikeOps, DatetimeIndexOpsMixin,
 
         if start is not None:
             if normalize:
-                start = normalize_date(start)
+                start = libts.normalize_date(start)
                 _normalized = True
             else:
                 _normalized = _normalized and start.time() == _midnight
 
         if end is not None:
             if normalize:
-                end = normalize_date(end)
+                end = libts.normalize_date(end)
                 _normalized = True
             else:
                 _normalized = _normalized and end.time() == _midnight
@@ -919,14 +918,11 @@ class DatetimeIndex(DatelikeOps, TimelikeOps, DatetimeIndexOpsMixin,
                                                 format=format,
                                                 na_rep=na_rep)
 
-    def to_datetime(self, dayfirst=False):
-        return self.copy()
-
     @Appender(_index_shared_docs['astype'])
     def astype(self, dtype, copy=True):
         dtype = pandas_dtype(dtype)
         if is_object_dtype(dtype):
-            return self.asobject
+            return self._box_values_as_index()
         elif is_integer_dtype(dtype):
             return Index(self.values.astype('i8', copy=copy), name=self.name,
                          dtype='i8')
@@ -1477,17 +1473,6 @@ class DatetimeIndex(DatelikeOps, TimelikeOps, DatetimeIndexOpsMixin,
                                         key, tz=self.tz)
         return _maybe_box(self, values, series, key)
 
-    @Appender(_index_shared_docs['_get_values_from_dict'])
-    def _get_values_from_dict(self, data):
-        if len(data):
-            # coerce back to datetime objects for lookup
-            data = com._dict_compat(data)
-            return lib.fast_multiget(data,
-                                     self.asobject.values,
-                                     default=np.nan)
-
-        return np.array([np.nan])
-
     def get_loc(self, key, method=None, tolerance=None):
         """
         Get integer location for requested label
@@ -1559,7 +1544,7 @@ class DatetimeIndex(DatelikeOps, TimelikeOps, DatetimeIndexOpsMixin,
         if isinstance(label, compat.string_types):
             freq = getattr(self, 'freqstr',
                            getattr(self, 'inferred_freq', None))
-            _, parsed, reso = parse_time_string(label, freq)
+            _, parsed, reso = parsing.parse_time_string(label, freq)
             lower, upper = self._parsed_string_to_bounds(reso, parsed)
             # lower, upper form the half-open interval:
             #   [parsed, parsed + 1 freq)
@@ -1576,7 +1561,7 @@ class DatetimeIndex(DatelikeOps, TimelikeOps, DatetimeIndexOpsMixin,
     def _get_string_slice(self, key, use_lhs=True, use_rhs=True):
         freq = getattr(self, 'freqstr',
                        getattr(self, 'inferred_freq', None))
-        _, parsed, reso = parse_time_string(key, freq)
+        _, parsed, reso = parsing.parse_time_string(key, freq)
         loc = self._partial_date_slice(reso, parsed, use_lhs=use_lhs,
                                        use_rhs=use_rhs)
         return loc
@@ -1709,7 +1694,7 @@ class DatetimeIndex(DatelikeOps, TimelikeOps, DatetimeIndexOpsMixin,
         Returns numpy array of datetime.time. The time part of the Timestamps.
         """
         return self._maybe_mask_results(libalgos.arrmap_object(
-            self.asobject.values,
+            self.astype(object).values,
             lambda x: np.nan if x is libts.NaT else x.time()))
 
     @property
@@ -1819,7 +1804,7 @@ class DatetimeIndex(DatelikeOps, TimelikeOps, DatetimeIndexOpsMixin,
 
             # fall back to object index
             if isinstance(item, compat.string_types):
-                return self.asobject.insert(loc, item)
+                return self.astype(object).insert(loc, item)
             raise TypeError(
                 "cannot insert DatetimeIndex with incompatible label")
 
@@ -1995,8 +1980,8 @@ class DatetimeIndex(DatelikeOps, TimelikeOps, DatetimeIndexOpsMixin,
         -------
         values_between_time : TimeSeries
         """
-        start_time = to_time(start_time)
-        end_time = to_time(end_time)
+        start_time = tools.to_time(start_time)
+        end_time = tools.to_time(end_time)
         time_micros = self._get_time_micros()
         start_micros = _time_to_micros(start_time)
         end_micros = _time_to_micros(end_time)

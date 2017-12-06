@@ -106,6 +106,15 @@ class TestIndex(Base):
         assert isinstance(idx2, Index)
         assert not isinstance(idx2, MultiIndex)
 
+    @pytest.mark.parametrize('na_value', [None, np.nan])
+    @pytest.mark.parametrize('vtype', [list, tuple, iter])
+    def test_construction_list_tuples_nan(self, na_value, vtype):
+        # GH 18505 : valid tuples containing NaN
+        values = [(1, 'two'), (3., na_value)]
+        result = Index(vtype(values))
+        expected = MultiIndex.from_tuples(values)
+        tm.assert_index_equal(result, expected)
+
     def test_constructor_from_index_datetimetz(self):
         idx = pd.date_range('2015-01-01 10:00', freq='D', periods=3,
                             tz='US/Eastern')
@@ -113,7 +122,7 @@ class TestIndex(Base):
         tm.assert_index_equal(result, idx)
         assert result.tz == idx.tz
 
-        result = pd.Index(idx.asobject)
+        result = pd.Index(idx.astype(object))
         tm.assert_index_equal(result, idx)
         assert result.tz == idx.tz
 
@@ -122,7 +131,7 @@ class TestIndex(Base):
         result = pd.Index(idx)
         tm.assert_index_equal(result, idx)
 
-        result = pd.Index(idx.asobject)
+        result = pd.Index(idx.astype(object))
         tm.assert_index_equal(result, idx)
 
     def test_constructor_from_index_period(self):
@@ -130,7 +139,7 @@ class TestIndex(Base):
         result = pd.Index(idx)
         tm.assert_index_equal(result, idx)
 
-        result = pd.Index(idx.asobject)
+        result = pd.Index(idx.astype(object))
         tm.assert_index_equal(result, idx)
 
     def test_constructor_from_series_datetimetz(self):
@@ -614,12 +623,13 @@ class TestIndex(Base):
             # Index.
             pytest.raises(IndexError, idx.__getitem__, empty_farr)
 
-    def test_getitem(self):
-        arr = np.array(self.dateIndex)
-        exp = self.dateIndex[5]
-        exp = _to_m8(exp)
+    def test_getitem_error(self, indices):
 
-        assert exp == arr[5]
+        with pytest.raises(IndexError):
+            indices[101]
+
+        with pytest.raises(IndexError):
+            indices['no_int']
 
     def test_intersection(self):
         first = self.strIndex[:20]
@@ -875,9 +885,7 @@ class TestIndex(Base):
             expected = Index(np.arange(len(index), 0, -1))
 
             # to match proper result coercion for uints
-            if name == 'uintIndex':
-                expected = expected.astype('uint64')
-            elif name == 'empty':
+            if name == 'empty':
                 expected = Index([])
 
             result = index.map(mapper(expected, index))

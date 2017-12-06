@@ -6,6 +6,7 @@ from datetime import datetime
 
 import pytest
 
+import pandas as pd
 from pandas import Timestamp
 from pandas import compat
 
@@ -30,6 +31,41 @@ def test_quarterly_dont_normalize():
     for klass in offsets:
         result = date + klass()
         assert (result.time() == date.time())
+
+
+@pytest.mark.parametrize('n', [-2, 1])
+@pytest.mark.parametrize('cls', [MonthBegin, MonthEnd,
+                                 BMonthBegin, BMonthEnd,
+                                 QuarterBegin, QuarterEnd,
+                                 BQuarterBegin, BQuarterEnd,
+                                 YearBegin, YearEnd,
+                                 BYearBegin, BYearEnd])
+def test_apply_index(cls, n):
+    offset = cls(n=n)
+    rng = pd.date_range(start='1/1/2000', periods=100000, freq='T')
+    ser = pd.Series(rng)
+
+    res = rng + offset
+    res_v2 = offset.apply_index(rng)
+    assert (res == res_v2).all()
+    assert res[0] == rng[0] + offset
+    assert res[-1] == rng[-1] + offset
+    res2 = ser + offset
+    # apply_index is only for indexes, not series, so no res2_v2
+    assert res2.iloc[0] == ser.iloc[0] + offset
+    assert res2.iloc[-1] == ser.iloc[-1] + offset
+
+
+@pytest.mark.parametrize('offset', [QuarterBegin(), QuarterEnd(),
+                                    BQuarterBegin(), BQuarterEnd()])
+def test_on_offset(offset):
+    dates = [datetime(2016, m, d)
+             for m in [10, 11, 12]
+             for d in [1, 2, 3, 28, 29, 30, 31] if not (m == 11 and d == 31)]
+    for date in dates:
+        res = offset.onOffset(date)
+        slow_version = date == (date + offset) - offset
+        assert res == slow_version
 
 
 # --------------------------------------------------------------------
