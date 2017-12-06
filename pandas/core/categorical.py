@@ -25,6 +25,7 @@ from pandas.core.dtypes.common import (
     is_timedelta64_dtype,
     is_categorical,
     is_categorical_dtype,
+    is_integer_dtype,
     is_list_like, is_sequence,
     is_scalar,
     is_dict_like)
@@ -249,49 +250,16 @@ class Categorical(PandasObject):
     def __init__(self, values, categories=None, ordered=None, dtype=None,
                  fastpath=False):
 
-        # Ways of specifying the dtype (prioritized ordered)
-        # 1. dtype is a CategoricalDtype
-        #    a.) with known categories, use dtype.categories
-        #    b.) else with Categorical values, use values.dtype
-        #    c.) else, infer from values
-        #    d.) specifying dtype=CategoricalDtype and categories is an error
-        # 2. dtype is a string 'category'
-        #    a.) use categories, ordered
-        #    b.) use values.dtype
-        #    c.) infer from values
-        # 3. dtype is None
-        #    a.) use categories, ordered
-        #    b.) use values.dtype
-        #    c.) infer from values
-
-        if dtype is not None:
-            # The dtype argument takes precedence over values.dtype (if any)
-            if isinstance(dtype, compat.string_types):
-                if dtype == 'category':
-                    dtype = CategoricalDtype(categories, ordered)
-                else:
-                    msg = "Unknown `dtype` {dtype}"
-                    raise ValueError(msg.format(dtype=dtype))
-            elif categories is not None or ordered is not None:
-                raise ValueError("Cannot specify both `dtype` and `categories`"
-                                 " or `ordered`.")
-
-            categories = dtype.categories
-            ordered = dtype.ordered
-
-        elif is_categorical(values):
-            # If no "dtype" was passed, use the one from "values", but honor
-            # the "ordered" and "categories" arguments
-            dtype = values.dtype._from_categorical_dtype(values.dtype,
-                                                         categories, ordered)
-        else:
-            # If dtype=None and values is not categorical, create a new dtype
-            dtype = CategoricalDtype(categories, ordered)
+        categories, ordered, dtype = validate_dtype(values, categories,
+                                                    ordered, dtype)
 
         # At this point, dtype is always a CategoricalDtype
         # if dtype.categories is None, we are inferring
 
         if fastpath:
+            warn("`fastpath` parameter is deprecated. Use `dtype` parameter "
+                 "to construct or pass `CategorialDtype` instance instead.",
+                 DeprecationWarning, stacklevel=2)
             self._codes = coerce_indexer_dtype(values, categories)
             self._dtype = dtype
             return
@@ -349,6 +317,13 @@ class Categorical(PandasObject):
                                            dtype.categories)
 
         else:
+            # there were two ways if categories are present
+            # - the old one, where each value is a int pointer to the levels
+            #   array -> not anymore possible, but code outside of pandas could
+            #   call us like that, so make some checks
+            # - the new one, where each value is also in the categories array
+            #   (or np.nan)
+
             codes = _get_codes_for_values(values, dtype.categories)
 
         if null_mask.any():
@@ -418,7 +393,7 @@ class Categorical(PandasObject):
         return self._constructor(values=self._codes.copy(),
                                  categories=self.categories,
                                  ordered=self.ordered,
-                                 fastpath=True)
+                                 dtype=self.dtype)
 
     def astype(self, dtype, copy=True):
         """
@@ -550,7 +525,7 @@ class Categorical(PandasObject):
             dtype = CategoricalDtype(cats, ordered=False)
             codes = inferred_codes
 
-        return cls(codes, dtype=dtype, fastpath=True)
+        return cls(codes, dtype=dtype)
 
     @classmethod
     def from_codes(cls, codes, categories, ordered=False):
@@ -625,13 +600,15 @@ class Categorical(PandasObject):
 
     labels = property(fget=_get_labels, fset=_set_codes)
 
-    def _set_categories(self, categories, fastpath=False):
+    def _set_categories(self, categories=None, dtype=None):
         """ Sets new categories inplace
 
         Parameters
         ----------
-        fastpath : boolean (default: False)
-           Don't perform validation of the categories for uniqueness or nulls
+        categories : Index-like (unique)
+           Unique new categories
+        dtype : CategorialDtype or string (Default: None)
+           An instance of ``CategorialDtype``.
 
         Examples
         --------
@@ -646,13 +623,35 @@ class Categorical(PandasObject):
         Categories (2, object): [a, c]
         """
 
-        if fastpath:
-            new_dtype = CategoricalDtype._from_fastpath(categories,
-                                                        self.ordered)
+        if dtype is None and categories is None:
+            raise ValueError("categories and dtype both cannot be None")
+
+        if dtype is not None:
+            if isinstance(dtype, compat.string_types):
+                if dtype == 'category':
+                    new_dtype = CategorialDtype(categories, self.ordered)
+
+                else:
+                    msg = "Unknown `dtype` {dtype}"
+                    raise ValueError(msg.format(dtype=dtype))
+
+            elif categories is not None:
+                raise ValueError("Cannot specify both categories and dtype")
+            
+
+            else:
+                if not(isinstance(dtype, CategorialDtype)):
+                    raise ValueError("dtype must be an instance of "
+                                     "CategorialDtype")
+                else:
+                    new_dtype = dtype
+
         else:
-            new_dtype = CategoricalDtype(categories, ordered=self.ordered)
-        if (not fastpath and self.dtype.categories is not None and
-                len(new_dtype.categories) != len(self.dtype.categories)):
+            new_dtype = CategorialDtype(categories, self.ordered)
+
+        
+        if (self.dtype.categories is not None and
+            len(new_dtype.categories) != len(self.dtype.categories)):
             raise ValueError("new categories need to have the same number of "
                              "items than the old categories!")
 
@@ -833,6 +832,11 @@ class Categorical(PandasObject):
     def rename_categories(self, new_categories, inplace=False):
         """ Renames categories.
 
+        The new categories can be either a list-like dict-like object.
+        If it is list-like, all items must be unique and the number of items
+        in the new categories must be the same as the number of items in the
+        old categories.
+
         Raises
         ------
         ValueError
@@ -873,32 +877,9 @@ class Categorical(PandasObject):
         remove_categories
         remove_unused_categories
         set_categories
-
-        Examples
-        --------
-        >>> c = Categorical(['a', 'a', 'b'])
-        >>> c.rename_categories([0, 1])
-        [0, 0, 1]
-        Categories (2, int64): [0, 1]
-
-        For dict-like ``new_categories``, extra keys are ignored and
-        categories not in the dictionary are passed through
-
-        >>> c.rename_categories({'a': 'A', 'c': 'C'})
-        [A, A, b]
-        Categories (2, object): [A, b]
         """
         inplace = validate_bool_kwarg(inplace, 'inplace')
         cat = self if inplace else self.copy()
-
-        if isinstance(new_categories, ABCSeries):
-            msg = ("Treating Series 'new_categories' as a list-like and using "
-                   "the values. In a future version, 'rename_categories' will "
-                   "treat Series like a dictionary.\n"
-                   "For dict-like, use 'new_categories.to_dict()'\n"
-                   "For list-like, use 'new_categories.values'.")
-            warn(msg, FutureWarning, stacklevel=2)
-            new_categories = list(new_categories)
 
         if is_dict_like(new_categories):
             cat.categories = [new_categories.get(item, item)
