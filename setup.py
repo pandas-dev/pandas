@@ -453,8 +453,7 @@ np_datetime_headers = ['pandas/_libs/src/datetime/np_datetime.h',
                        'pandas/_libs/src/datetime/np_datetime_strings.h']
 np_datetime_sources = ['pandas/_libs/src/datetime/np_datetime.c',
                        'pandas/_libs/src/datetime/np_datetime_strings.c']
-tseries_depends = np_datetime_headers + ['pandas/_libs/src/datetime.pxd',
-                                         'pandas/_libs/tslibs/np_datetime.pxd']
+tseries_depends = np_datetime_headers + ['pandas/_libs/tslibs/np_datetime.pxd']
 
 # some linux distros require it
 libraries = ['m'] if not is_platform_windows() else []
