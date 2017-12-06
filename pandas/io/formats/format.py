@@ -967,7 +967,7 @@ class LatexFormatter(TableFormatter):
                          .replace('#', '\\#').replace('{', '\\{')
                          .replace('}', '\\}').replace('~', '\\textasciitilde')
                          .replace('^', '\\textasciicircum').replace('&', '\\&')
-                         if x else '{}') for x in row]
+                         if (x and x != '{}') else '{}') for x in row]
             else:
                 crow = [x if x else '{}' for x in row]
             if self.bold_rows and self.fmt.index:
