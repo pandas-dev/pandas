@@ -20,7 +20,6 @@ cdef extern from "numpy_helper.h":
     object char_to_string(char*)
     void transfer_object_column(char *dst, char *src, size_t stride,
                                        size_t length)
-    object sarr_from_data(cnp.dtype, int length, void* data)
     object unbox_if_zerodim(object arr)
 
 ctypedef fused numeric:
@@ -100,8 +99,6 @@ cdef inline set_value_at(ndarray arr, object loc, object value):
 
     set_value_at_unsafe(arr, loc, value)
 
-cdef inline int is_contiguous(ndarray arr):
-    return cnp.PyArray_CHKFLAGS(arr, cnp.NPY_C_CONTIGUOUS)
 
 cdef inline is_array(object o):
     return cnp.PyArray_Check(o)
