@@ -299,7 +299,7 @@ class TestBasic(TestPackers):
 
         # fails under 2.6/win32 (np.datetime64 seems broken)
 
-        if LooseVersion(sys.version) < '2.7':
+        if LooseVersion(sys.version) < LooseVersion('2.7'):
             pytest.skip('2.6 with np.datetime64 is broken')
 
         for i in [datetime.datetime(2013, 1, 1),
@@ -864,7 +864,7 @@ TestPackers
 
     def compare(self, current_data, all_data, vf, version):
         # GH12277 encoding default used to be latin-1, now utf-8
-        if LooseVersion(version) < '0.18.0':
+        if LooseVersion(version) < LooseVersion('0.18.0'):
             data = read_msgpack(vf, encoding='latin-1')
         else:
             data = read_msgpack(vf)
@@ -895,7 +895,7 @@ TestPackers
     def compare_series_dt_tz(self, result, expected, typ, version):
         # 8260
         # dtype is object < 0.17.0
-        if LooseVersion(version) < '0.17.0':
+        if LooseVersion(version) < LooseVersion('0.17.0'):
             expected = expected.astype(object)
             tm.assert_series_equal(result, expected)
         else:
@@ -904,7 +904,7 @@ TestPackers
     def compare_frame_dt_mixed_tzs(self, result, expected, typ, version):
         # 8260
         # dtype is object < 0.17.0
-        if LooseVersion(version) < '0.17.0':
+        if LooseVersion(version) < LooseVersion('0.17.0'):
             expected = expected.astype(object)
             tm.assert_frame_equal(result, expected)
         else:

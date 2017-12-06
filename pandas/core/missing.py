@@ -347,7 +347,7 @@ def _from_derivatives(xi, yi, x, order=None, der=0, extrapolate=False):
     import scipy
     from scipy import interpolate
 
-    if LooseVersion(scipy.__version__) < '0.18.0':
+    if LooseVersion(scipy.__version__) < LooseVersion('0.18.0'):
         try:
             method = interpolate.piecewise_polynomial_interpolate
             return method(xi, yi.reshape(-1, 1), x,

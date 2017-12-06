@@ -1269,7 +1269,7 @@ class TestDatetimeParsingWrappers(object):
         # 2.5.2 20/12/21   [dayfirst=1, yearfirst=0] -> 2021-12-20 00:00:00
         # 2.5.3 20/12/21   [dayfirst=1, yearfirst=0] -> 2021-12-20 00:00:00
 
-        is_lt_253 = dateutil.__version__ < LooseVersion('2.5.3')
+        is_lt_253 = LooseVersion(dateutil.__version__) < LooseVersion('2.5.3')
 
         # str : dayfirst, yearfirst, expected
         cases = {'10-11-12': [(False, False,

@@ -553,11 +553,11 @@ class TestTimeZoneSupportPytz(object):
         assert times[0] == Timestamp('2013-10-26 23:00', tz=tz, freq="H")
 
         if str(tz).startswith('dateutil'):
-            if dateutil.__version__ < LooseVersion('2.6.0'):
+            if LooseVersion(dateutil.__version__) < LooseVersion('2.6.0'):
                 # see gh-14621
                 assert times[-1] == Timestamp('2013-10-27 01:00:00+0000',
                                               tz=tz, freq="H")
-            elif dateutil.__version__ > LooseVersion('2.6.0'):
+            elif LooseVersion(dateutil.__version__) > LooseVersion('2.6.0'):
                 # fixed ambiguous behavior
                 assert times[-1] == Timestamp('2013-10-27 01:00:00+0100',
                                               tz=tz, freq="H")
@@ -1242,14 +1242,14 @@ class TestTimeZones(object):
         assert result_pytz.value == result_dateutil.value
         assert result_pytz.value == 1382835600000000000
 
-        if dateutil.__version__ < LooseVersion('2.6.0'):
+        if LooseVersion(dateutil.__version__) < LooseVersion('2.6.0'):
             # dateutil 2.6 buggy w.r.t. ambiguous=0
             # see gh-14621
             # see https://github.com/dateutil/dateutil/issues/321
             assert (result_pytz.to_pydatetime().tzname() ==
                     result_dateutil.to_pydatetime().tzname())
             assert str(result_pytz) == str(result_dateutil)
-        elif dateutil.__version__ > LooseVersion('2.6.0'):
+        elif LooseVersion(dateutil.__version__) > LooseVersion('2.6.0'):
             # fixed ambiguous behavior
             assert result_pytz.to_pydatetime().tzname() == 'GMT'
             assert result_dateutil.to_pydatetime().tzname() == 'BST'
@@ -1264,7 +1264,7 @@ class TestTimeZones(object):
         assert result_pytz.value == 1382832000000000000
 
         # dateutil < 2.6 is buggy w.r.t. ambiguous timezones
-        if dateutil.__version__ > LooseVersion('2.5.3'):
+        if LooseVersion(dateutil.__version__) > LooseVersion('2.5.3'):
             # see gh-14621
             assert str(result_pytz) == str(result_dateutil)
             assert (result_pytz.to_pydatetime().tzname() ==

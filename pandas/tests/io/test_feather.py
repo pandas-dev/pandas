@@ -61,7 +61,7 @@ class TestFeather(object):
         assert df.dttz.dtype.tz.zone == 'US/Eastern'
         self.check_round_trip(df)
 
-    @pytest.mark.skipif(fv >= '0.4.0', reason='fixed in 0.4.0')
+    @pytest.mark.skipif(fv >= LooseVersion('0.4.0'), reason='fixed in 0.4.0')
     def test_strided_data_issues(self):
 
         # strided data issuehttps://github.com/wesm/feather/issues/97
@@ -81,7 +81,7 @@ class TestFeather(object):
         df = pd.DataFrame(np.arange(12).reshape(4, 3)).copy()
         self.check_error_on_write(df, ValueError)
 
-    @pytest.mark.skipif(fv >= '0.4.0', reason='fixed in 0.4.0')
+    @pytest.mark.skipif(fv >= LooseVersion('0.4.0'), reason='fixed in 0.4.0')
     def test_unsupported(self):
 
         # timedelta
@@ -98,7 +98,7 @@ class TestFeather(object):
         df = pd.DataFrame({'a': pd.period_range('2013', freq='M', periods=3)})
         self.check_error_on_write(df, ValueError)
 
-    @pytest.mark.skipif(fv < '0.4.0', reason='new in 0.4.0')
+    @pytest.mark.skipif(fv < LooseVersion('0.4.0'), reason='new in 0.4.0')
     def test_rw_nthreads(self):
 
         df = pd.DataFrame({'A': np.arange(100000)})

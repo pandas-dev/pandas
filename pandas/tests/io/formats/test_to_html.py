@@ -16,7 +16,7 @@ import pandas.io.formats.format as fmt
 div_style = ''
 try:
     import IPython
-    if IPython.__version__ < LooseVersion('3.0.0'):
+    if LooseVersion(IPython.__version__) < LooseVersion('3.0.0'):
         div_style = ' style="max-width:1500px;overflow:auto;"'
 except (ImportError, AttributeError):
     pass

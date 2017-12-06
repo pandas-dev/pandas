@@ -70,8 +70,8 @@ def ip():
 
 
 is_dateutil_le_261 = pytest.mark.skipif(
-    LooseVersion(dateutil.__version__) > '2.6.1',
+    LooseVersion(dateutil.__version__) > LooseVersion('2.6.1'),
     reason="dateutil api change version")
 is_dateutil_gt_261 = pytest.mark.skipif(
-    LooseVersion(dateutil.__version__) <= '2.6.1',
+    LooseVersion(dateutil.__version__) <= LooseVersion('2.6.1'),
     reason="dateutil stable version")

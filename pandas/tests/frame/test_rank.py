@@ -212,7 +212,8 @@ class TestRank(TestData):
                     sprank = sprank.astype(np.float64)
                     expected = DataFrame(sprank, columns=cols)
 
-                    if LooseVersion(scipy.__version__) >= '0.17.0':
+                    if (LooseVersion(scipy.__version__) >=
+                            LooseVersion('0.17.0')):
                         expected = expected.astype('float64')
                     tm.assert_frame_equal(result, expected)
 

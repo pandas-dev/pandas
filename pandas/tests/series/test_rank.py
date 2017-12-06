@@ -244,7 +244,7 @@ class TestSeriesRank(TestData):
                 sprank = rankdata(vals, m if m != 'first' else 'ordinal')
                 expected = Series(sprank, index=index)
 
-                if LooseVersion(scipy.__version__) >= '0.17.0':
+                if LooseVersion(scipy.__version__) >= LooseVersion('0.17.0'):
                     expected = expected.astype('float64')
                 tm.assert_series_equal(result, expected)
 

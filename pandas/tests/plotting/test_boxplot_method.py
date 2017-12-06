@@ -26,7 +26,7 @@ def _skip_if_mpl_14_or_dev_boxplot():
     # Boxplot failures on 1.4 and 1.4.1
     # Don't need try / except since that's done at class level
     import matplotlib
-    if str(matplotlib.__version__) >= LooseVersion('1.4'):
+    if LooseVersion(matplotlib.__version__) >= LooseVersion('1.4'):
         pytest.skip("Matplotlib Regression in 1.4 and current dev.")
 
 

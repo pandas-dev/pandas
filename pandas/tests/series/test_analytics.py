@@ -757,7 +757,7 @@ class TestSeriesAnalytics(TestData):
         tm.assert_almost_equal(result, expected)
 
         # these methods got rewritten in 0.8
-        if scipy.__version__ < LooseVersion('0.9'):
+        if LooseVersion(scipy.__version__) < LooseVersion('0.9'):
             pytest.skip("skipping corr rank because of scipy version "
                         "{0}".format(scipy.__version__))
 

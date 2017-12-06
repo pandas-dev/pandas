@@ -222,7 +222,7 @@ class SharedWithSparse(object):
 
         tup = next(df.itertuples(name='TestName'))
 
-        if sys.version >= LooseVersion('2.7'):
+        if LooseVersion(sys.version) >= LooseVersion('2.7'):
             assert tup._fields == ('Index', 'a', 'b')
             assert (tup.Index, tup.a, tup.b) == tup
             assert type(tup).__name__ == 'TestName'
@@ -231,7 +231,7 @@ class SharedWithSparse(object):
         tup2 = next(df.itertuples(name='TestName'))
         assert tup2 == (0, 1, 4)
 
-        if sys.version >= LooseVersion('2.7'):
+        if LooseVersion(sys.version) >= LooseVersion('2.7'):
             assert tup2._fields == ('Index', '_1', '_2')
 
         df3 = DataFrame({'f' + str(i): [i] for i in range(1024)})

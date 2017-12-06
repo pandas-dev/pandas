@@ -270,7 +270,7 @@ KORD6,19990127, 23:00:00, 22:56:00, -0.5900, 1.7100, 4.6000, 0.0000, 280.0000"""
 
         # See gh-217
         import dateutil
-        if dateutil.__version__ >= LooseVersion('2.5.0'):
+        if LooseVersion(dateutil.__version__) >= LooseVersion('2.5.0'):
             pytest.skip("testing yearfirst=True not-support"
                         "on datetutil < 2.5.0 this works but"
                         "is wrong")

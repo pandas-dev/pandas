@@ -399,7 +399,7 @@ If traceback is not passed, uses sys.exc_info() to get traceback."""
 # dateutil minimum version
 import dateutil
 
-if LooseVersion(dateutil.__version__) < '2.5':
+if LooseVersion(dateutil.__version__) < LooseVersion('2.5'):
     raise ImportError('dateutil 2.5.0 is the minimum required version')
 from dateutil import parser as _date_parser
 parse_date = _date_parser.parse

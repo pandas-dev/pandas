@@ -50,7 +50,7 @@ class PyArrowImpl(object):
                               "\nor via pip\n"
                               "pip install -U pyarrow\n")
 
-        if LooseVersion(pyarrow.__version__) < '0.4.1':
+        if LooseVersion(pyarrow.__version__) < LooseVersion('0.4.1'):
             raise ImportError("pyarrow >= 0.4.1 is required for parquet"
                               "support\n\n"
                               "you can install via conda\n"
@@ -58,8 +58,10 @@ class PyArrowImpl(object):
                               "\nor via pip\n"
                               "pip install -U pyarrow\n")
 
-        self._pyarrow_lt_050 = LooseVersion(pyarrow.__version__) < '0.5.0'
-        self._pyarrow_lt_060 = LooseVersion(pyarrow.__version__) < '0.6.0'
+        self._pyarrow_lt_050 = (LooseVersion(pyarrow.__version__) <
+                                LooseVersion('0.5.0'))
+        self._pyarrow_lt_060 = (LooseVersion(pyarrow.__version__) <
+                                LooseVersion('0.6.0'))
         self.api = pyarrow
 
     def write(self, df, path, compression='snappy',
@@ -97,7 +99,7 @@ class FastParquetImpl(object):
                               "\nor via pip\n"
                               "pip install -U fastparquet")
 
-        if LooseVersion(fastparquet.__version__) < '0.1.0':
+        if LooseVersion(fastparquet.__version__) < LooseVersion('0.1.0'):
             raise ImportError("fastparquet >= 0.1.0 is required for parquet "
                               "support\n\n"
                               "you can install via conda\n"
