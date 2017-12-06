@@ -637,3 +637,66 @@ class TestPartialSetting(object):
         df.loc[0, 'x'] = 1
         expected = DataFrame(dict(x=[1], y=[np.nan]))
         tm.assert_frame_equal(df, expected, check_dtype=False)
+
+    def test_access_timezoned_datetimeindex_with_timezoned_label_utc(self):
+
+        # GH 6785
+        # timezone was ignored when string was provided as a label
+
+        first_january = pd.date_range('2016-01-01T00:00', '2016-01-01T23:59',
+                                      freq='T', tz="UTC")
+        df = pd.DataFrame(index=first_january, data=np.arange(len(
+                          first_january)))
+
+        result = df[
+            "2016-01-01T00:00-02:00":"2016-01-01T02:03"
+        ]
+
+        expected = df[
+            pd.Timestamp("2016-01-01T00:00-02:00"):
+            pd.Timestamp("2016-01-01T02:03")
+        ]
+
+        tm.assert_frame_equal(result, expected)
+
+    def test_access_timezoned_datetimeindex_with_timezoned_label_in_cet(self):
+
+        # GH 6785
+        # timezone was ignored when string was provided as a label
+
+        first_january = pd.date_range('2016-01-01T00:00', '2016-01-01T23:59',
+                                      freq='T', tz="CET")
+        df = pd.DataFrame(index=first_january, data=np.arange(len(
+                          first_january)))
+
+        result = df[
+            "2016-01-01T01:00-02:00":"2016-01-01T04:03"
+        ]
+
+        expected = df[
+            pd.Timestamp("2016-01-01T01:00-02:00"):
+            pd.Timestamp("2016-01-01T04:03")
+        ]
+
+        tm.assert_frame_equal(result, expected)
+
+    def test_access_naive_datetimeindex_with_timezoned_label(self):
+
+        # GH 6785
+        # timezone was ignored when string was provided as a label
+        # this test is for completeness
+
+        first_january = pd.date_range('2016-01-01T00:00', '2016-01-01T23:59',
+                                      freq='T')
+        df = pd.DataFrame(index=first_january, data=np.arange(len(
+                          first_january)))
+
+        with tm.assert_produces_warning(UserWarning):
+            result = df["2016-01-01T00:00-02:00":"2016-01-01T02:03"]
+
+        expected = df[
+            pd.Timestamp("2016-01-01T00:00-02:00"):
+            pd.Timestamp("2016-01-01T02:03")
+        ]
+
+        tm.assert_frame_equal(expected, result)

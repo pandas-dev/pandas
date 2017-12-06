@@ -1307,7 +1307,7 @@ class DatetimeIndex(DatelikeOps, TimelikeOps, DatetimeIndexOpsMixin,
         ----------
         reso : Resolution
             Resolution provided by parsed string.
-        parsed : datetime
+        parsed : datetime or object
             Datetime from parsed string.
 
         Returns
@@ -1315,6 +1315,20 @@ class DatetimeIndex(DatelikeOps, TimelikeOps, DatetimeIndexOpsMixin,
         lower, upper: pd.Timestamp
 
         """
+        parsed = Timestamp(parsed)
+        if self.tz is None:
+            if parsed.tz is None:  # both are naive, nothing to do
+                pass
+            else:  # naive datetime index but label provides timezone
+                warnings.warn("Access naive datetime index with a label "
+                              "containing a timezone, assume UTC")
+                parsed = parsed.tz_convert(utc)
+        else:
+            if parsed.tz is None:  # treat like in same timezone
+                parsed = parsed.tz_localize(self.tz)
+            else:  # actual timezone of the label should be considered
+                parsed = parsed.tz_convert(tz=self.tz)
+
         if reso == 'year':
             return (Timestamp(datetime(parsed.year, 1, 1), tz=self.tz),
                     Timestamp(datetime(parsed.year, 12, 31, 23,
@@ -1360,7 +1374,7 @@ class DatetimeIndex(DatelikeOps, TimelikeOps, DatetimeIndexOpsMixin,
             st = datetime(parsed.year, parsed.month, parsed.day,
                           parsed.hour, parsed.minute, parsed.second,
                           parsed.microsecond)
-            return (Timestamp(st, tz=self.tz), Timestamp(st, tz=self.tz))
+            return Timestamp(st, tz=self.tz), Timestamp(st, tz=self.tz)
         else:
             raise KeyError
 
