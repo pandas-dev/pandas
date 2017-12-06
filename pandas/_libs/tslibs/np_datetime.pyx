@@ -179,9 +179,23 @@ cdef inline int _string_to_dts(object val, pandas_datetimestruct* dts,
         val = PyUnicode_AsASCIIString(val)
 
     tmp = val
-    result = parse_iso_8601_datetime(tmp, len(val),
-                                     dts, out_local, out_tzoffset)
+    result = _cstring_to_dts(tmp, len(val), dts, out_local, out_tzoffset)
 
     if result == -1:
         raise ValueError('Unable to parse %s' % str(val))
+    return result
+
+
+cdef inline int _cstring_to_dts(char *val, int length,
+                                pandas_datetimestruct* dts,
+                                int* out_local, int* out_tzoffset) except? -1:
+    # Note: without this "extra layer" between _string_to_dts
+    # and parse_iso_8601_datetime, calling _string_to_dts raises
+    # `SystemError: <class 'str'> returned a result with an error set`
+    # in Python3
+    cdef:
+        int result
+
+    result = parse_iso_8601_datetime(val, length,
+                                     dts, out_local, out_tzoffset)
     return result
