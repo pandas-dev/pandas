@@ -524,9 +524,8 @@ class TestDataFrameIndexing(TestData):
         values[values == 2] = 3
         assert_almost_equal(df.values, values)
 
-        with tm.assert_raises_regex(TypeError, 'Must pass '
-                                    'DataFrame with '
-                                    'boolean values only'):
+        msg = "Must pass DataFrame or 2-d ndarray with boolean values only"
+        with tm.assert_raises_regex(TypeError, msg):
             df[df * 0] = 2
 
         # index with DataFrame
@@ -541,6 +540,16 @@ class TestDataFrameIndexing(TestData):
         df[df > np.abs(df)] = df * 2
         np.putmask(expected.values, mask.values, df.values * 2)
         assert_frame_equal(df, expected)
+
+    def test_setitem_boolean_ndarary(self):
+        df = self.frame.copy()
+        mask = df > np.abs(df)
+        expected = df.copy()
+        expected.values[mask.values] = nan
+        # index with 2-d boolean ndarray
+        actual = df.copy()
+        actual[mask.values] = nan
+        assert_frame_equal(actual, expected)
 
     def test_setitem_cast(self):
         self.frame['D'] = self.frame['D'].astype('i8')
