@@ -8,7 +8,7 @@ import warnings
 import numpy as np
 from pandas.core.dtypes.common import is_scalar
 from pandas.core.api import DataFrame, Series
-from pandas.util._decorators import Substitution, Appender
+from pandas.util._decorators import Appender
 
 __all__ = ['rolling_count', 'rolling_max', 'rolling_min',
            'rolling_sum', 'rolling_mean', 'rolling_std', 'rolling_cov',
@@ -29,15 +29,15 @@ __all__ = ['rolling_count', 'rolling_max', 'rolling_min',
 # (header, args, kwargs, returns, notes)
 
 _doc_template = """
-%s
+{header}
 
 Parameters
 ----------
-%s%s
+{args}{kwargs}
 Returns
 -------
-%s
-%s
+{returns}
+{notes}
 """
 
 _roll_kw = """window : int
@@ -51,7 +51,7 @@ freq : string or DateOffset object, optional (default None)
     as a frequency string or DateOffset object.
 center : boolean, default False
     Set the labels at the center of the window.
-how : string, default '%s'
+how : string, default '{how}'
     Method for down- or re-sampling
 """
 
@@ -280,10 +280,11 @@ def rolling_count(arg, window, **kwargs):
     return ensure_compat('rolling', 'count', arg, window=window, **kwargs)
 
 
-@Substitution("Unbiased moving covariance.", _binary_arg_flex,
-              _roll_kw % 'None' + _pairwise_kw + _ddof_kw, _flex_retval,
-              _roll_notes)
-@Appender(_doc_template)
+@Appender(_doc_template
+          .format(header="Unbiased moving covariance.",
+                  args=_binary_arg_flex,
+                  kwargs=_roll_kw.format(how='None' + _pairwise_kw + _ddof_kw),
+                  returns=_flex_retval, notes=_roll_notes))
 def rolling_cov(arg1, arg2=None, window=None, pairwise=None, **kwargs):
     if window is None and isinstance(arg2, (int, float)):
         window = arg2
@@ -302,9 +303,10 @@ def rolling_cov(arg1, arg2=None, window=None, pairwise=None, **kwargs):
                          **kwargs)
 
 
-@Substitution("Moving sample correlation.", _binary_arg_flex,
-              _roll_kw % 'None' + _pairwise_kw, _flex_retval, _roll_notes)
-@Appender(_doc_template)
+@Appender(_doc_template
+          .format(header="Moving sample correlation.", args=_binary_arg_flex,
+                  kwargs=_roll_kw.format(how='None' + _pairwise_kw),
+                  returns=_flex_retval, notes=_roll_notes))
 def rolling_corr(arg1, arg2=None, window=None, pairwise=None, **kwargs):
     if window is None and isinstance(arg2, (int, float)):
         window = arg2
@@ -327,9 +329,10 @@ def rolling_corr(arg1, arg2=None, window=None, pairwise=None, **kwargs):
 # Exponential moving moments
 
 
-@Substitution("Exponentially-weighted moving average", _unary_arg, _ewm_kw,
-              _type_of_input_retval, _ewm_notes)
-@Appender(_doc_template)
+@Appender(_doc_template
+          .format(header="Exponentially-weighted moving average",
+                  args=_unary_arg, kwargs=_ewm_kw,
+                  returns=_type_of_input_retval, notes=_ewm_notes))
 def ewma(arg, com=None, span=None, halflife=None, alpha=None, min_periods=0,
          freq=None, adjust=True, how=None, ignore_na=False):
     return ensure_compat('ewm',
@@ -346,9 +349,10 @@ def ewma(arg, com=None, span=None, halflife=None, alpha=None, min_periods=0,
                          ignore_na=ignore_na)
 
 
-@Substitution("Exponentially-weighted moving variance", _unary_arg,
-              _ewm_kw + _bias_kw, _type_of_input_retval, _ewm_notes)
-@Appender(_doc_template)
+@Appender(_doc_template
+          .format(header="Exponentially-weighted moving variance",
+                  args=_unary_arg, kwargs=_ewm_kw + _bias_kw,
+                  returns=_type_of_input_retval, notes=_ewm_notes))
 def ewmvar(arg, com=None, span=None, halflife=None, alpha=None, min_periods=0,
            bias=False, freq=None, how=None, ignore_na=False, adjust=True):
     return ensure_compat('ewm',
@@ -367,9 +371,10 @@ def ewmvar(arg, com=None, span=None, halflife=None, alpha=None, min_periods=0,
                          func_kw=['bias'])
 
 
-@Substitution("Exponentially-weighted moving std", _unary_arg,
-              _ewm_kw + _bias_kw, _type_of_input_retval, _ewm_notes)
-@Appender(_doc_template)
+@Appender(_doc_template
+          .format(header="Exponentially-weighted moving std",
+                  args=_unary_arg, kwargs=_ewm_kw + _bias_kw,
+                  returns=_type_of_input_retval, notes=_ewm_notes))
 def ewmstd(arg, com=None, span=None, halflife=None, alpha=None, min_periods=0,
            bias=False, freq=None, how=None, ignore_na=False, adjust=True):
     return ensure_compat('ewm',
@@ -391,9 +396,10 @@ def ewmstd(arg, com=None, span=None, halflife=None, alpha=None, min_periods=0,
 ewmvol = ewmstd
 
 
-@Substitution("Exponentially-weighted moving covariance", _binary_arg_flex,
-              _ewm_kw + _pairwise_kw, _type_of_input_retval, _ewm_notes)
-@Appender(_doc_template)
+@Appender(_doc_template
+          .format(header="Exponentially-weighted moving covariance",
+                  args=_binary_arg_flex, kwargs=_ewm_kw + _pairwise_kw,
+                  returns=_type_of_input_retval, notes=_ewm_notes))
 def ewmcov(arg1, arg2=None, com=None, span=None, halflife=None, alpha=None,
            min_periods=0, bias=False, freq=None, pairwise=None, how=None,
            ignore_na=False, adjust=True):
@@ -423,9 +429,10 @@ def ewmcov(arg1, arg2=None, com=None, span=None, halflife=None, alpha=None,
                          func_kw=['other', 'pairwise', 'bias'])
 
 
-@Substitution("Exponentially-weighted moving correlation", _binary_arg_flex,
-              _ewm_kw + _pairwise_kw, _type_of_input_retval, _ewm_notes)
-@Appender(_doc_template)
+@Appender(_doc_template
+          .format(header="Exponentially-weighted moving correlation",
+                  args=_binary_arg_flex, kwargs=_ewm_kw + _pairwise_kw,
+                  returns=_type_of_input_retval, notes=_ewm_notes))
 def ewmcorr(arg1, arg2=None, com=None, span=None, halflife=None, alpha=None,
             min_periods=0, freq=None, pairwise=None, how=None, ignore_na=False,
             adjust=True):
@@ -462,9 +469,10 @@ def _rolling_func(name, desc, how=None, func_kw=None, additional_kw=''):
     else:
         how_arg_str = "'{how}".format(how=how)
 
-    @Substitution(desc, _unary_arg, _roll_kw % how_arg_str + additional_kw,
-                  _type_of_input_retval, _roll_notes)
-    @Appender(_doc_template)
+    @Appender(_doc_template
+              .format(header=desc, args=_unary_arg,
+                      kwargs=_roll_kw.format(how=how_arg_str + additional_kw),
+                      returns=_type_of_input_retval, notes=_roll_notes))
     def f(arg, window, min_periods=None, freq=None, center=False,
           **kwargs):
 
@@ -674,9 +682,10 @@ def rolling_window(arg, window=None, win_type=None, min_periods=None,
 
 
 def _expanding_func(name, desc, func_kw=None, additional_kw=''):
-    @Substitution(desc, _unary_arg, _expanding_kw + additional_kw,
-                  _type_of_input_retval, "")
-    @Appender(_doc_template)
+    @Appender(_doc_template
+              .format(header=desc, args=_unary_arg,
+                      kwargs=_expanding_kw + additional_kw,
+                      returns=_type_of_input_retval, notes=""))
     def f(arg, min_periods=1, freq=None, **kwargs):
         return ensure_compat('expanding',
                              name,
@@ -767,9 +776,11 @@ def expanding_quantile(arg, quantile, min_periods=1, freq=None):
                          quantile=quantile)
 
 
-@Substitution("Unbiased expanding covariance.", _binary_arg_flex,
-              _expanding_kw + _pairwise_kw + _ddof_kw, _flex_retval, "")
-@Appender(_doc_template)
+@Appender(_doc_template
+          .format(header="Unbiased expanding covariance.",
+                  args=_binary_arg_flex,
+                  kwargs=_expanding_kw + _pairwise_kw + _ddof_kw,
+                  returns=_flex_retval, notes=""))
 def expanding_cov(arg1, arg2=None, min_periods=1, freq=None,
                   pairwise=None, ddof=1):
     if arg2 is None:
@@ -790,9 +801,10 @@ def expanding_cov(arg1, arg2=None, min_periods=1, freq=None,
                          func_kw=['other', 'pairwise', 'ddof'])
 
 
-@Substitution("Expanding sample correlation.", _binary_arg_flex,
-              _expanding_kw + _pairwise_kw, _flex_retval, "")
-@Appender(_doc_template)
+@Appender(_doc_template
+          .format(header="Expanding sample correlation.",
+                  args=_binary_arg_flex, kwargs=_expanding_kw + _pairwise_kw,
+                  returns=_flex_retval, notes=""))
 def expanding_corr(arg1, arg2=None, min_periods=1, freq=None, pairwise=None):
     if arg2 is None:
         arg2 = arg1
