@@ -1390,7 +1390,7 @@ class TestMergeDtypes(object):
         for col in df.columns:
             right = DataFrame({'A': df[col]})
             # GH 9780
-            # We allow merging on object and categorical cols and cast 
+            # We allow merging on object and categorical cols and cast
             # categorical cols to object
             if (is_categorical_dtype(right['A'].dtype) or
                is_object_dtype(right['A'].dtype)):
