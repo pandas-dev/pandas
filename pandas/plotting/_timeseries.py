@@ -1,5 +1,7 @@
 # TODO: Use the fact that axis can have units to simplify the process
 
+import functools
+
 import numpy as np
 
 from matplotlib import pylab
@@ -293,6 +295,10 @@ def format_timedelta_ticks(x, pos, n_decimals):
     return s
 
 
+def _format_coord(freq, t, y):
+    return "t = {0}  y = {1:8f}".format(Period(ordinal=int(t), freq=freq), y)
+
+
 def format_dateaxis(subplot, freq, index):
     """
     Pretty-formats the date axis (x-axis).
@@ -327,8 +333,7 @@ def format_dateaxis(subplot, freq, index):
         subplot.xaxis.set_minor_formatter(minformatter)
 
         # x and y coord info
-        subplot.format_coord = lambda t, y: (
-            "t = {0}  y = {1:8f}".format(Period(ordinal=int(t), freq=freq), y))
+        subplot.format_coord = functools.partial(_format_coord, freq)
 
     elif isinstance(index, TimedeltaIndex):
         subplot.xaxis.set_major_formatter(

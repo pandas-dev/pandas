@@ -1,13 +1,14 @@
 """ Test cases for time series specific (freq conversion, etc) """
 
 from datetime import datetime, timedelta, date, time
+import pickle
 
 import pytest
 from pandas.compat import lrange, zip
 
 import numpy as np
 from pandas import Index, Series, DataFrame, NaT
-from pandas.compat import is_platform_mac
+from pandas.compat import is_platform_mac, PY3
 from pandas.core.indexes.datetimes import date_range, bdate_range
 from pandas.core.indexes.timedeltas import timedelta_range
 from pandas.tseries.offsets import DateOffset
@@ -1470,5 +1471,12 @@ def _check_plot_works(f, freq=None, series=None, *args, **kwargs):
 
         with ensure_clean(return_filelike=True) as path:
             plt.savefig(path)
+
+        # GH18439
+        # this is supported only in Python 3 pickle since
+        # pickle in Python2 doesn't support instancemethod pickling
+        if PY3:
+            with ensure_clean(return_filelike=True) as path:
+                pickle.dump(fig, path)
     finally:
         plt.close(fig)
