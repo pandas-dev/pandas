@@ -323,8 +323,10 @@ class TestParquetPyArrow(Base):
         df = df_full
 
         # additional supported types for pyarrow
-        df['datetime_tz'] = pd.date_range('20130101', periods=3,
-                                          tz='Europe/Brussels')
+        import pyarrow
+        if LooseVersion(pyarrow.__version__) >= LooseVersion('0.7.0'):
+            df['datetime_tz'] = pd.date_range('20130101', periods=3,
+                                              tz='Europe/Brussels')
         df['bool_with_none'] = [True, None, True]
 
         self.check_round_trip(df, pa)
