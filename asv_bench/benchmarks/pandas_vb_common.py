@@ -1,3 +1,4 @@
+import os
 from pandas import *
 import pandas as pd
 from numpy.random import randn
@@ -18,6 +19,25 @@ except ImportError:
 # http://asv.readthedocs.io/en/latest/writing_benchmarks.html
 def setup(*args, **kwargs):
     np.random.seed(1234)
+
+
+class BaseIO(object):
+    """
+    Base class for IO benchmarks
+    """
+    fname = None
+
+    def remove(self, f):
+        """Remove created files"""
+        try:
+            os.remove(f)
+        except:
+            # On Windows, attempting to remove a file that is in use 
+            # causes an exception to be raised
+            pass
+
+    def teardown(self):
+        self.remove(self.fname)
 
 # try em until it works!
 for imp in ['pandas._libs.lib', 'pandas.lib', 'pandas_tseries']:

@@ -1,34 +1,40 @@
-from .pandas_vb_common import *
-import os
+import numpy as np
+from pandas import DataFrame, Panel, date_range, HDFStore
+import pandas.util.testing as tm
+
+from .pandas_vb_common import BaseIO, setup  # noqa
 
 
-class HDF5(object):
+class HDF5(BaseIO):
+
     goal_time = 0.2
 
     def setup(self):
-        self.index = tm.makeStringIndex(25000)
-        self.df = DataFrame({'float1': randn(25000), 'float2': randn(25000),},
-                            index=self.index)
-
-        self.df_mixed = DataFrame(
-            {'float1': randn(25000), 'float2': randn(25000),
-             'string1': (['foo'] * 25000),
-             'bool1': ([True] * 25000),
-             'int1': np.random.randint(0, 250000, size=25000),},
-            index=self.index)
-
-        self.df_wide = DataFrame(np.random.randn(25000, 100))
-
-        self.df2 = DataFrame({'float1': randn(25000), 'float2': randn(25000)},
-                             index=date_range('1/1/2000', periods=25000))
-        self.df_wide2 = DataFrame(np.random.randn(25000, 100),
-                                  index=date_range('1/1/2000', periods=25000))
-
-        self.df_dc = DataFrame(np.random.randn(10000, 10),
-                               columns=[('C%03d' % i) for i in range(10)])
+        N = 25000
+        index = tm.makeStringIndex(N)
+        self.df = DataFrame({'float1': np.random.randn(N),
+                             'float2': np.random.randn(N)},
+                            index=index)
+        self.df_mixed = DataFrame({'float1': np.random.randn(N),
+                                   'float2': np.random.randn(N),
+                                   'string1': ['foo'] * N,
+                                   'bool1': [True] * N,
+                                   'int1': np.random.randint(0, N, size=N)},
+                                  index=index)
+        self.df_wide = DataFrame(np.random.randn(N, 100))
+        self.start_wide = self.df_wide.index[10000]
+        self.stop_wide = self.df_wide.index[15000]
+        self.df2 = DataFrame({'float1': np.random.randn(N),
+                              'float2': np.random.randn(N)},
+                             index=date_range('1/1/2000', periods=N))
+        self.start = self.df2.index[10000]
+        self.stop = self.df2.index[15000]
+        self.df_wide2 = DataFrame(np.random.randn(N, 100),
+                                  index=date_range('1/1/2000', periods=N))
+        self.df_dc = DataFrame(np.random.randn(N, 10),
+                               columns=['C%03d' % i for i in range(10)])
 
         self.f = '__test__.h5'
-        self.remove(self.f)
 
         self.store = HDFStore(self.f)
         self.store.put('fixed', self.df)
@@ -41,12 +47,6 @@ class HDF5(object):
     def teardown(self):
         self.store.close()
         self.remove(self.f)
-
-    def remove(self, f):
-        try:
-            os.remove(f)
-        except:
-            pass
 
     def time_read_store(self):
         self.store.get('fixed')
@@ -82,14 +82,12 @@ class HDF5(object):
         self.store.append('table_dc_write', self.df_dc, data_columns=True)
 
     def time_query_store_table_wide(self):
-        start = self.df_wide2.index[10000]
-        stop = self.df_wide2.index[15000]
-        self.store.select('table_wide', where="index > start and index < stop")
+        self.store.select('table_wide', where="index > self.start_wide and "
+                                              "index < self.stop_wide")
 
     def time_query_store_table(self):
-        start = self.df2.index[10000]
-        stop = self.df2.index[15000]
-        self.store.select('table', where="index > start and index < stop")
+        self.store.select('table', where="index > self.start and "
+                                         "index < self.stop")
 
     def time_store_repr(self):
         repr(self.store)
@@ -101,28 +99,22 @@ class HDF5(object):
         self.store.info()
 
 
-class HDF5Panel(object):
+class HDF5Panel(BaseIO):
+
     goal_time = 0.2
 
     def setup(self):
         self.f = '__test__.h5'
-        self.p = Panel(randn(20, 1000, 25),
-                       items=[('Item%03d' % i) for i in range(20)],
+        self.p = Panel(np.random.randn(20, 1000, 25),
+                       items=['Item%03d' % i for i in range(20)],
                        major_axis=date_range('1/1/2000', periods=1000),
-                       minor_axis=[('E%03d' % i) for i in range(25)])
-        self.remove(self.f)
+                       minor_axis=['E%03d' % i for i in range(25)])
         self.store = HDFStore(self.f)
         self.store.append('p1', self.p)
 
     def teardown(self):
         self.store.close()
         self.remove(self.f)
-
-    def remove(self, f):
-        try:
-            os.remove(f)
-        except:
-            pass
 
     def time_read_store_table_panel(self):
         self.store.select('p1')
