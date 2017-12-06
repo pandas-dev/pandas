@@ -38,8 +38,6 @@ This file implements string parsing and creation for NumPy datetime.
  *   day according to local time) and "Now" (current time in UTC).
  *
  * 'str' must be a NULL-terminated string, and 'len' must be its length.
- * 'unit' should contain -1 if the unit is unknown, or the unit
- *      which will be used if it is.
  *
  * 'out' gets filled with the parsed date-time.
  * 'out_local' gets whether returned value contains timezone. 0 for UTC, 1 for local time.
@@ -48,23 +46,14 @@ This file implements string parsing and creation for NumPy datetime.
  *      to 0 otherwise. The values 'now' and 'today' don't get counted
  *      as local, and neither do UTC +/-#### timezone offsets, because
  *      they aren't using the computer's local timezone offset.
- * 'out_bestunit' gives a suggested unit based on the amount of
- *      resolution provided in the string, or -1 for NaT.
- * 'out_special' gets set to 1 if the parsed time was 'today',
- *      'now', or ''/'NaT'. For 'today', the unit recommended is
- *      'D', for 'now', the unit recommended is 's', and for 'NaT'
- *      the unit recommended is 'Y'.
  *
  * Returns 0 on success, -1 on failure.
  */
 int
 parse_iso_8601_datetime(char *str, int len,
-                    PANDAS_DATETIMEUNIT unit,
                     pandas_datetimestruct *out,
                     int *out_local,
-                    int *out_tzoffset,
-                    PANDAS_DATETIMEUNIT *out_bestunit,
-                    npy_bool *out_special);
+                    int *out_tzoffset);
 
 /*
  * Provides a string length to use for converting datetime
@@ -75,23 +64,16 @@ get_datetime_iso_8601_strlen(int local, PANDAS_DATETIMEUNIT base);
 
 /*
  * Converts an pandas_datetimestruct to an (almost) ISO 8601
- * NULL-terminated string.
- *
- * If 'local' is non-zero, it produces a string in local time with
- * a +-#### timezone offset, otherwise it uses timezone Z (UTC).
+ * NULL-terminated string using timezone Z (UTC).
  *
  * 'base' restricts the output to that unit. Set 'base' to
  * -1 to auto-detect a base after which all the values are zero.
- *
- *  'tzoffset' is used if 'local' is enabled, and 'tzoffset' is
- *  set to a value other than -1. This is a manual override for
- *  the local time zone to use, as an offset in minutes.
  *
  *  Returns 0 on success, -1 on failure (for example if the output
  *  string was too short).
  */
 int
 make_iso_8601_datetime(pandas_datetimestruct *dts, char *outstr, int outlen,
-                    int local, PANDAS_DATETIMEUNIT base, int tzoffset);
+                       PANDAS_DATETIMEUNIT base);
 
 #endif  // PANDAS__LIBS_SRC_DATETIME_NP_DATETIME_STRINGS_H_
