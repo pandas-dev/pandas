@@ -1,13 +1,11 @@
-import os
-
 import numpy as np
 from pandas import DataFrame, Panel, date_range, HDFStore
 import pandas.util.testing as tm
 
-from .pandas_vb_common import setup  # noqa
+from .pandas_vb_common import BaseIO, setup  # noqa
 
 
-class HDF5(object):
+class HDF5(BaseIO):
 
     goal_time = 0.2
 
@@ -48,7 +46,7 @@ class HDF5(object):
 
     def teardown(self):
         self.store.close()
-        os.remove(self.f)
+        self.remove(self.f)
 
     def time_read_store(self):
         self.store.get('fixed')
@@ -101,7 +99,7 @@ class HDF5(object):
         self.store.info()
 
 
-class HDF5Panel(object):
+class HDF5Panel(BaseIO):
 
     goal_time = 0.2
 
@@ -116,7 +114,7 @@ class HDF5Panel(object):
 
     def teardown(self):
         self.store.close()
-        os.remove(self.f)
+        self.remove(self.f)
 
     def time_read_store_table_panel(self):
         self.store.select('p1')
