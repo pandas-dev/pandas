@@ -16,7 +16,7 @@ from pandas.conftest import is_dateutil_le_261, is_dateutil_gt_261
 from pandas._libs import tslib
 from pandas._libs.tslibs import parsing
 from pandas.core.tools import datetimes as tools
-from pandas.core.tools.datetimes import normalize_date
+
 from pandas.compat import lmap
 from pandas.compat.numpy import np_array_datetime64_compat
 from pandas.core.dtypes.common import is_datetime64_ns_dtype
@@ -1160,9 +1160,9 @@ class TestDatetimeParsingWrappers(object):
     @pytest.mark.parametrize('cache', [True, False])
     def test_parsers(self, cache):
 
+        # dateutil >= 2.5.0 defaults to yearfirst=True
         # https://github.com/dateutil/dateutil/issues/217
-        import dateutil
-        yearfirst = dateutil.__version__ >= LooseVersion('2.5.0')
+        yearfirst = True
 
         cases = {'2011-01-01': datetime(2011, 1, 1),
                  '2Q2005': datetime(2005, 4, 1),
@@ -1576,12 +1576,12 @@ class TestArrayToDatetime(object):
 def test_normalize_date():
     value = date(2012, 9, 7)
 
-    result = normalize_date(value)
+    result = tslib.normalize_date(value)
     assert (result == datetime(2012, 9, 7))
 
     value = datetime(2012, 9, 7, 12)
 
-    result = normalize_date(value)
+    result = tslib.normalize_date(value)
     assert (result == datetime(2012, 9, 7))
 
 

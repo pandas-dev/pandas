@@ -10,7 +10,7 @@ from pandas.core.common import AbstractMethodError
 
 class DirNamesMixin(object):
     _accessors = frozenset([])
-    _deprecations = frozenset([])
+    _deprecations = frozenset(['asobject'])
 
     def _dir_deletions(self):
         """ delete unwanted __dir__ for this object """
