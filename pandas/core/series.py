@@ -4111,9 +4111,6 @@ def _sanitize_array(data, index, dtype=None, copy=False,
         subarr = _try_cast(data, False)
 
     if subarr.ndim == 0 or is_scalar(data):
-        if index is None:
-            return subarr.item()
-
         if subarr.ndim == 1:
             # a scalar upcasted to 1-dimensional by maybe_cast_to_datetime()
             value = subarr[0]
