@@ -386,14 +386,6 @@ class TestPeriodIndex(object):
         result = index.to_timestamp()
         assert result[0] == Timestamp('1/1/2012')
 
-    def test_to_datetime_depr(self):
-        index = period_range('1/1/2012', periods=4, freq='D')
-
-        with tm.assert_produces_warning(FutureWarning,
-                                        check_stacklevel=False):
-            result = index.to_datetime()
-            assert result[0] == Timestamp('1/1/2012')
-
     def test_combine_first(self):
         # GH 3367
         didx = pd.DatetimeIndex(start='1950-01-31', end='1950-07-31', freq='M')

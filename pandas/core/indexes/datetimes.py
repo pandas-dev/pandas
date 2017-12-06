@@ -244,7 +244,6 @@ class DatetimeIndex(DatelikeOps, TimelikeOps, DatetimeIndexOpsMixin,
     round
     floor
     ceil
-    to_datetime
     to_period
     to_perioddelta
     to_pydatetime
@@ -898,9 +897,6 @@ class DatetimeIndex(DatelikeOps, TimelikeOps, DatetimeIndexOpsMixin,
                                                 tz=self.tz,
                                                 format=format,
                                                 na_rep=na_rep)
-
-    def to_datetime(self, dayfirst=False):
-        return self.copy()
 
     @Appender(_index_shared_docs['astype'])
     def astype(self, dtype, copy=True):

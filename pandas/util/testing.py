@@ -329,7 +329,7 @@ def _skip_if_mpl_1_5():
     import matplotlib as mpl
 
     v = mpl.__version__
-    if v > LooseVersion('1.4.3') or v[0] == '0':
+    if LooseVersion(v) > LooseVersion('1.4.3') or str(v)[0] == '0':
         import pytest
         pytest.skip("matplotlib 1.5")
     else:
@@ -362,7 +362,7 @@ def _skip_if_no_xarray():
     xarray = pytest.importorskip("xarray")
     v = xarray.__version__
 
-    if v < LooseVersion('0.7.0'):
+    if LooseVersion(v) < LooseVersion('0.7.0'):
         import pytest
         pytest.skip("xarray version is too low: {version}".format(version=v))
 

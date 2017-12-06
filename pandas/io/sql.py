@@ -67,11 +67,11 @@ def _is_sqlalchemy_connectable(con):
             _SQLALCHEMY_INSTALLED = True
 
             from distutils.version import LooseVersion
-            ver = LooseVersion(sqlalchemy.__version__)
+            ver = sqlalchemy.__version__
             # For sqlalchemy versions < 0.8.2, the BIGINT type is recognized
             # for a sqlite engine, which results in a warning when trying to
             # read/write a DataFrame with int64 values. (GH7433)
-            if ver < '0.8.2':
+            if LooseVersion(ver) < LooseVersion('0.8.2'):
                 from sqlalchemy import BigInteger
                 from sqlalchemy.ext.compiler import compiles
 

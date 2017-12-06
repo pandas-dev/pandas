@@ -63,6 +63,91 @@ levels <merging.merge_on_columns_and_levels>` documentation section.
    left.merge(right, on=['key1', 'key2'])
 
 
+.. _whatsnew_0220.enhancements.ran_inf:
+
+handle ``inf`` values properly when ``NaN`` are present
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+In previous version, ``inf`` elements were assigned ``NaN`` as their ranks. Now ranks are calculated properly. (:issue:`6945`)
+
+.. ipython:: python
+
+    In [9]: s = pd.Series([-np.inf, 0, 1, np.nan, np.inf])
+
+    In [10]: s
+    Out[10]:
+    0        -inf
+    1    0.000000
+    2    1.000000
+    3         NaN
+    4         inf
+    dtype: float64
+
+Previous Behavior:
+
+.. code-block:: ipython
+
+    In [11]: s.rank()
+    Out[11]:
+    0    1.0
+    1    2.0
+    2    3.0
+    3    NaN
+    4    NaN
+    dtype: float64
+
+Current Behavior
+
+.. ipython:: python
+
+    In [4]: s.rank()
+    Out[4]:
+    0    1.0
+    1    2.0
+    2    3.0
+    3    NaN
+    4    4.0
+    dtype: float64
+
+Furthermore, previously if you rank ``inf`` or ``-inf`` values together with ``NaN`` values, the calculation won't distinguish ``NaN`` from infinity when using 'top' or 'bottom' argument.
+
+.. ipython:: python
+
+    In [14]: s = pd.Series([np.nan, np.nan, -np.inf, -np.inf])
+
+    In [15]: s
+    Out[15]:
+    0    NaN
+    1    NaN
+    2   -inf
+    3   -inf
+    dtype: float64
+
+Previous Behavior:
+
+.. code-block:: ipython
+
+    In [15]: s.rank(na_option='top')
+    Out[15]:
+    0    2.5
+    1    2.5
+    2    2.5
+    3    2.5
+    dtype: float64
+
+Current Behavior
+
+.. ipython:: python
+
+    In [4]: s.rank(na_option='top')
+    Out[4]:
+    0    1.5
+    1    1.5
+    2    3.5
+    3    3.5
+    dtype: float64
+
+
 .. _whatsnew_0220.enhancements.other:
 
 Other Enhancements
@@ -77,6 +162,8 @@ Other Enhancements
 - :func:`Series.fillna` now accepts a Series or a dict as a ``value`` for a categorical dtype (:issue:`17033`)
 - :func:`pandas.read_clipboard` updated to use qtpy, falling back to PyQt5 and then PyQt4, adding compatibility with Python3 and multiple python-qt bindings (:issue:`17722`)
 - Improved wording of ``ValueError`` raised in :func:`read_csv` when the ``usecols`` argument cannot match all columns. (:issue:`17301`)
+- :func:`DataFrame.corrwith` now silently drops non-numeric columns when passed a Series. Before, an exception was raised (:issue:`18570`).
+
 
 .. _whatsnew_0220.api_breaking:
 
@@ -152,6 +239,7 @@ Removal of prior version deprecations/changes
 - ``Categorical.from_array`` has been removed (:issue:`13854`)
 - The ``freq`` parameter has been removed from the ``rolling``/``expanding``/``ewm`` methods of DataFrame
   and Series (deprecated since v0.18). Instead, resample before calling the methods. (:issue:18601)
+- ``DatetimeIndex.to_datetime``, ``Timestamp.to_datetime``, ``PeriodIndex.to_datetime``, and ``Index.to_datetime`` have been removed (:issue:`8254`, :issue:`14096`, :issue:`14113`)
 
 .. _whatsnew_0220.performance:
 
@@ -189,7 +277,10 @@ Conversion
 
 - Bug in :class:`Index` constructor with `dtype='uint64'` where int-like floats were not coerced to :class:`UInt64Index` (:issue:`18400`)
 - Bug in the :class:`DataFrame` constructor in which data containing very large positive or very large negative numbers was causing ``OverflowError`` (:issue:`18584`)
--
+- Fixed a bug where creating a Series from an array that contains both tz-naive and tz-aware values will result in a Series whose dtype is tz-aware instead of object (:issue:`16406`)
+- Adding a ``Period`` object to a ``datetime`` or ``Timestamp`` object will now correctly raise a ``TypeError`` (:issue:`17983`)
+- Fixed a bug where ``FY5253`` date offsets could incorrectly raise an ``AssertionError`` in arithmetic operatons (:issue:`14774`)
+
 
 Indexing
 ^^^^^^^^
@@ -239,8 +330,8 @@ Reshaping
 ^^^^^^^^^
 
 - Bug in :func:`DataFrame.stack` which fails trying to sort mixed type levels under Python 3 (:issue:`18310`)
+- Fixed construction of a :class:`Series` from a ``dict`` containing ``NaN`` as key (:issue:`18480`)
 
--
 -
 
 Numeric
@@ -261,6 +352,4 @@ Other
 ^^^^^
 
 - Improved error message when attempting to use a Python keyword as an identifier in a numexpr query (:issue:`18221`)
-- Fixed a bug where creating a Series from an array that contains both tz-naive and tz-aware values will result in a Series whose dtype is tz-aware instead of object (:issue:`16406`)
-- Fixed construction of a :class:`Series` from a ``dict`` containing ``NaN`` as key (:issue:`18480`)
-- Adding a ``Period`` object to a ``datetime`` or ``Timestamp`` object will now correctly raise a ``TypeError`` (:issue:`17983`)
+-
