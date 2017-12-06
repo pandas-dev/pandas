@@ -482,7 +482,7 @@ class TimedeltaIndex(DatetimeIndexOpsMixin, TimelikeOps, Int64Index):
         dtype = np.dtype(dtype)
 
         if is_object_dtype(dtype):
-            return self.asobject
+            return self._box_values_as_index()
         elif is_timedelta64_ns_dtype(dtype):
             if copy is True:
                 return self.copy()
@@ -883,7 +883,7 @@ class TimedeltaIndex(DatetimeIndexOpsMixin, TimelikeOps, Int64Index):
 
             # fall back to object index
             if isinstance(item, compat.string_types):
-                return self.asobject.insert(loc, item)
+                return self.astype(object).insert(loc, item)
             raise TypeError(
                 "cannot insert TimedeltaIndex with incompatible label")
 
