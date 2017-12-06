@@ -203,9 +203,9 @@ cdef class _TSObject:
     #    int64_t value               # numpy dt64
     #    object tzinfo
 
-    property value:
-        def __get__(self):
-            return self.value
+    @property
+    def value(self):
+        return self.value
 
 
 cpdef int64_t pydt_to_i8(object pydt) except? -1:

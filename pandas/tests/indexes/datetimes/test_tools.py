@@ -16,15 +16,14 @@ from pandas.conftest import is_dateutil_le_261, is_dateutil_gt_261
 from pandas._libs import tslib
 from pandas._libs.tslibs import parsing
 from pandas.core.tools import datetimes as tools
-from pandas.core.tools.datetimes import normalize_date
+
 from pandas.compat import lmap
 from pandas.compat.numpy import np_array_datetime64_compat
 from pandas.core.dtypes.common import is_datetime64_ns_dtype
 from pandas.util import testing as tm
 from pandas.util.testing import assert_series_equal, _skip_if_has_locale
 from pandas import (isna, to_datetime, Timestamp, Series, DataFrame,
-                    Index, DatetimeIndex, NaT, date_range, bdate_range,
-                    compat)
+                    Index, DatetimeIndex, NaT, date_range, compat)
 
 
 class TestTimeConversionFormats(object):
@@ -736,24 +735,6 @@ class TestToDatetimeUnit(object):
 class TestToDatetimeMisc(object):
 
     @pytest.mark.parametrize('cache', [True, False])
-    def test_index_to_datetime(self, cache):
-        idx = Index(['1/1/2000', '1/2/2000', '1/3/2000'])
-
-        with tm.assert_produces_warning(FutureWarning,
-                                        check_stacklevel=False):
-            result = idx.to_datetime()
-            expected = DatetimeIndex(pd.to_datetime(idx.values, cache=cache))
-            tm.assert_index_equal(result, expected)
-
-        with tm.assert_produces_warning(FutureWarning,
-                                        check_stacklevel=False):
-            today = datetime.today()
-            idx = Index([today], dtype=object)
-            result = idx.to_datetime()
-            expected = DatetimeIndex([today])
-            tm.assert_index_equal(result, expected)
-
-    @pytest.mark.parametrize('cache', [True, False])
     def test_to_datetime_iso8601(self, cache):
         result = to_datetime(["2012-01-01 00:00:00"], cache=cache)
         exp = Timestamp("2012-01-01 00:00:00")
@@ -887,12 +868,6 @@ class TestToDatetimeMisc(object):
         result = DatetimeIndex(ints)
 
         tm.assert_index_equal(rng, result)
-
-    def test_to_datetime_freq(self):
-        xp = bdate_range('2000-1-1', periods=10, tz='UTC')
-        rs = xp.to_datetime()
-        assert xp.freq == rs.freq
-        assert xp.tzinfo == rs.tzinfo
 
     def test_to_datetime_overflow(self):
         # gh-17637
@@ -1160,9 +1135,9 @@ class TestDatetimeParsingWrappers(object):
     @pytest.mark.parametrize('cache', [True, False])
     def test_parsers(self, cache):
 
+        # dateutil >= 2.5.0 defaults to yearfirst=True
         # https://github.com/dateutil/dateutil/issues/217
-        import dateutil
-        yearfirst = dateutil.__version__ >= LooseVersion('2.5.0')
+        yearfirst = True
 
         cases = {'2011-01-01': datetime(2011, 1, 1),
                  '2Q2005': datetime(2005, 4, 1),
@@ -1294,7 +1269,7 @@ class TestDatetimeParsingWrappers(object):
         # 2.5.2 20/12/21   [dayfirst=1, yearfirst=0] -> 2021-12-20 00:00:00
         # 2.5.3 20/12/21   [dayfirst=1, yearfirst=0] -> 2021-12-20 00:00:00
 
-        is_lt_253 = dateutil.__version__ < LooseVersion('2.5.3')
+        is_lt_253 = LooseVersion(dateutil.__version__) < LooseVersion('2.5.3')
 
         # str : dayfirst, yearfirst, expected
         cases = {'10-11-12': [(False, False,
@@ -1576,12 +1551,12 @@ class TestArrayToDatetime(object):
 def test_normalize_date():
     value = date(2012, 9, 7)
 
-    result = normalize_date(value)
+    result = tslib.normalize_date(value)
     assert (result == datetime(2012, 9, 7))
 
     value = datetime(2012, 9, 7, 12)
 
-    result = normalize_date(value)
+    result = tslib.normalize_date(value)
     assert (result == datetime(2012, 9, 7))
 
 

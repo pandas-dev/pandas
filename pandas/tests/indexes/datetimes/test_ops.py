@@ -51,7 +51,7 @@ class TestDatetimeIndexOps(Ops):
         assert s.day == 10
         pytest.raises(AttributeError, lambda: s.weekday)
 
-    def test_asobject_tolist(self):
+    def test_astype_object(self):
         idx = pd.date_range(start='2013-01-01', periods=4, freq='M',
                             name='idx')
         expected_list = [Timestamp('2013-01-31'),
@@ -59,7 +59,7 @@ class TestDatetimeIndexOps(Ops):
                          Timestamp('2013-03-31'),
                          Timestamp('2013-04-30')]
         expected = pd.Index(expected_list, dtype=object, name='idx')
-        result = idx.asobject
+        result = idx.astype(object)
         assert isinstance(result, Index)
 
         assert result.dtype == object
@@ -74,7 +74,7 @@ class TestDatetimeIndexOps(Ops):
                          Timestamp('2013-03-31', tz='Asia/Tokyo'),
                          Timestamp('2013-04-30', tz='Asia/Tokyo')]
         expected = pd.Index(expected_list, dtype=object, name='idx')
-        result = idx.asobject
+        result = idx.astype(object)
         assert isinstance(result, Index)
         assert result.dtype == object
         tm.assert_index_equal(result, expected)
@@ -87,7 +87,7 @@ class TestDatetimeIndexOps(Ops):
                          Timestamp('2013-01-02'), pd.NaT,
                          Timestamp('2013-01-04')]
         expected = pd.Index(expected_list, dtype=object, name='idx')
-        result = idx.asobject
+        result = idx.astype(object)
         assert isinstance(result, Index)
         assert result.dtype == object
         tm.assert_index_equal(result, expected)
@@ -389,26 +389,27 @@ class TestDatetimeIndexOps(Ops):
                                  pd.Timestamp('2011-01-03')])
         right = pd.DatetimeIndex([pd.NaT, pd.NaT, pd.Timestamp('2011-01-03')])
 
-        for l, r in [(left, right), (left.asobject, right.asobject)]:
-            result = l == r
+        for lhs, rhs in [(left, right),
+                         (left.astype(object), right.astype(object))]:
+            result = rhs == lhs
             expected = np.array([False, False, True])
             tm.assert_numpy_array_equal(result, expected)
 
-            result = l != r
+            result = lhs != rhs
             expected = np.array([True, True, False])
             tm.assert_numpy_array_equal(result, expected)
 
             expected = np.array([False, False, False])
-            tm.assert_numpy_array_equal(l == pd.NaT, expected)
-            tm.assert_numpy_array_equal(pd.NaT == r, expected)
+            tm.assert_numpy_array_equal(lhs == pd.NaT, expected)
+            tm.assert_numpy_array_equal(pd.NaT == rhs, expected)
 
             expected = np.array([True, True, True])
-            tm.assert_numpy_array_equal(l != pd.NaT, expected)
-            tm.assert_numpy_array_equal(pd.NaT != l, expected)
+            tm.assert_numpy_array_equal(lhs != pd.NaT, expected)
+            tm.assert_numpy_array_equal(pd.NaT != lhs, expected)
 
             expected = np.array([False, False, False])
-            tm.assert_numpy_array_equal(l < pd.NaT, expected)
-            tm.assert_numpy_array_equal(pd.NaT > l, expected)
+            tm.assert_numpy_array_equal(lhs < pd.NaT, expected)
+            tm.assert_numpy_array_equal(pd.NaT > lhs, expected)
 
     def test_value_counts_unique(self):
         # GH 7735
@@ -636,9 +637,9 @@ class TestDatetimeIndexOps(Ops):
             idx = pd.DatetimeIndex(['2011-01-01', '2011-01-02', 'NaT'])
             assert idx.equals(idx)
             assert idx.equals(idx.copy())
-            assert idx.equals(idx.asobject)
-            assert idx.asobject.equals(idx)
-            assert idx.asobject.equals(idx.asobject)
+            assert idx.equals(idx.astype(object))
+            assert idx.astype(object).equals(idx)
+            assert idx.astype(object).equals(idx.astype(object))
             assert not idx.equals(list(idx))
             assert not idx.equals(pd.Series(idx))
 
@@ -646,8 +647,8 @@ class TestDatetimeIndexOps(Ops):
                                     tz='US/Pacific')
             assert not idx.equals(idx2)
             assert not idx.equals(idx2.copy())
-            assert not idx.equals(idx2.asobject)
-            assert not idx.asobject.equals(idx2)
+            assert not idx.equals(idx2.astype(object))
+            assert not idx.astype(object).equals(idx2)
             assert not idx.equals(list(idx2))
             assert not idx.equals(pd.Series(idx2))
 
@@ -656,8 +657,8 @@ class TestDatetimeIndexOps(Ops):
             tm.assert_numpy_array_equal(idx.asi8, idx3.asi8)
             assert not idx.equals(idx3)
             assert not idx.equals(idx3.copy())
-            assert not idx.equals(idx3.asobject)
-            assert not idx.asobject.equals(idx3)
+            assert not idx.equals(idx3.astype(object))
+            assert not idx.astype(object).equals(idx3)
             assert not idx.equals(list(idx3))
             assert not idx.equals(pd.Series(idx3))
 

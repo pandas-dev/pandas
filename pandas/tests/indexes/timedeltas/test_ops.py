@@ -25,12 +25,12 @@ class TestTimedeltaIndexOps(Ops):
         self.check_ops_properties(TimedeltaIndex._field_ops, f)
         self.check_ops_properties(TimedeltaIndex._object_ops, f)
 
-    def test_asobject_tolist(self):
+    def test_astype_object(self):
         idx = timedelta_range(start='1 days', periods=4, freq='D', name='idx')
         expected_list = [Timedelta('1 days'), Timedelta('2 days'),
                          Timedelta('3 days'), Timedelta('4 days')]
         expected = pd.Index(expected_list, dtype=object, name='idx')
-        result = idx.asobject
+        result = idx.astype(object)
         assert isinstance(result, Index)
 
         assert result.dtype == object
@@ -43,7 +43,7 @@ class TestTimedeltaIndexOps(Ops):
         expected_list = [Timedelta('1 days'), Timedelta('2 days'), pd.NaT,
                          Timedelta('4 days')]
         expected = pd.Index(expected_list, dtype=object, name='idx')
-        result = idx.asobject
+        result = idx.astype(object)
         assert isinstance(result, Index)
         assert result.dtype == object
         tm.assert_index_equal(result, expected)
@@ -217,26 +217,27 @@ dtype: timedelta64[ns]"""
                                   pd.Timedelta('3 days')])
         right = pd.TimedeltaIndex([pd.NaT, pd.NaT, pd.Timedelta('3 days')])
 
-        for l, r in [(left, right), (left.asobject, right.asobject)]:
-            result = l == r
+        for lhs, rhs in [(left, right),
+                         (left.astype(object), right.astype(object))]:
+            result = rhs == lhs
             expected = np.array([False, False, True])
             tm.assert_numpy_array_equal(result, expected)
 
-            result = l != r
+            result = rhs != lhs
             expected = np.array([True, True, False])
             tm.assert_numpy_array_equal(result, expected)
 
             expected = np.array([False, False, False])
-            tm.assert_numpy_array_equal(l == pd.NaT, expected)
-            tm.assert_numpy_array_equal(pd.NaT == r, expected)
+            tm.assert_numpy_array_equal(lhs == pd.NaT, expected)
+            tm.assert_numpy_array_equal(pd.NaT == rhs, expected)
 
             expected = np.array([True, True, True])
-            tm.assert_numpy_array_equal(l != pd.NaT, expected)
-            tm.assert_numpy_array_equal(pd.NaT != l, expected)
+            tm.assert_numpy_array_equal(lhs != pd.NaT, expected)
+            tm.assert_numpy_array_equal(pd.NaT != lhs, expected)
 
             expected = np.array([False, False, False])
-            tm.assert_numpy_array_equal(l < pd.NaT, expected)
-            tm.assert_numpy_array_equal(pd.NaT > l, expected)
+            tm.assert_numpy_array_equal(lhs < pd.NaT, expected)
+            tm.assert_numpy_array_equal(pd.NaT > lhs, expected)
 
     def test_value_counts_unique(self):
         # GH 7735
@@ -473,18 +474,18 @@ dtype: timedelta64[ns]"""
         idx = pd.TimedeltaIndex(['1 days', '2 days', 'NaT'])
         assert idx.equals(idx)
         assert idx.equals(idx.copy())
-        assert idx.equals(idx.asobject)
-        assert idx.asobject.equals(idx)
-        assert idx.asobject.equals(idx.asobject)
+        assert idx.equals(idx.astype(object))
+        assert idx.astype(object).equals(idx)
+        assert idx.astype(object).equals(idx.astype(object))
         assert not idx.equals(list(idx))
         assert not idx.equals(pd.Series(idx))
 
         idx2 = pd.TimedeltaIndex(['2 days', '1 days', 'NaT'])
         assert not idx.equals(idx2)
         assert not idx.equals(idx2.copy())
-        assert not idx.equals(idx2.asobject)
-        assert not idx.asobject.equals(idx2)
-        assert not idx.asobject.equals(idx2.asobject)
+        assert not idx.equals(idx2.astype(object))
+        assert not idx.astype(object).equals(idx2)
+        assert not idx.astype(object).equals(idx2.astype(object))
         assert not idx.equals(list(idx2))
         assert not idx.equals(pd.Series(idx2))
 

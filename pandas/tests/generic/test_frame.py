@@ -173,7 +173,8 @@ class TestDataFrame(Generic):
         assert_series_equal(df['y'], Series([2, 4, 6], name='y'))
 
     @pytest.mark.skipif(not _XARRAY_INSTALLED or _XARRAY_INSTALLED and
-                        LooseVersion(xarray.__version__) < '0.10.0',
+                        LooseVersion(xarray.__version__) <
+                        LooseVersion('0.10.0'),
                         reason='xarray >= 0.10.0 required')
     @pytest.mark.parametrize(
         "index", ['FloatIndex', 'IntIndex',
