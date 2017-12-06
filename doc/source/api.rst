@@ -1489,7 +1489,6 @@ Conversion
    Index.map
    Index.ravel
    Index.tolist
-   Index.to_datetime
    Index.to_native_types
    Index.to_series
    Index.to_frame
@@ -1757,7 +1756,6 @@ Conversion
 .. autosummary::
    :toctree: generated/
 
-   DatetimeIndex.to_datetime
    DatetimeIndex.to_period
    DatetimeIndex.to_perioddelta
    DatetimeIndex.to_pydatetime
