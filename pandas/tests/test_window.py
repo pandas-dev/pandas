@@ -7,7 +7,6 @@ from warnings import catch_warnings
 from datetime import datetime, timedelta
 from numpy.random import randn
 import numpy as np
-from distutils.version import LooseVersion
 
 import pandas as pd
 from pandas import (Series, DataFrame, bdate_range, isna,
@@ -283,33 +282,6 @@ class TestApi(Base):
         s3 = s.rolling(20).sum()
         assert s2.name == 'foo'
         assert s3.name == 'foo'
-
-    def test_how_compat(self):
-        # in prior versions, we would allow how to be used in the resample
-        # now that its deprecated, we need to handle this in the actual
-        # aggregation functions
-        s = Series(np.random.randn(20),
-                   index=pd.date_range('1/1/2000', periods=20, freq='12H'))
-
-        for how in ['min', 'max', 'median']:
-            for op in ['mean', 'sum', 'std', 'var', 'kurt', 'skew']:
-                for t in ['rolling', 'expanding']:
-
-                    with catch_warnings(record=True):
-
-                        dfunc = getattr(pd, "{0}_{1}".format(t, op))
-                        if dfunc is None:
-                            continue
-
-                        if t == 'rolling':
-                            kwargs = {'window': 5}
-                        else:
-                            kwargs = {}
-                        result = dfunc(s, freq='D', how=how, **kwargs)
-
-                        expected = getattr(
-                            getattr(s, t)(freq='D', **kwargs), op)(how=how)
-                        tm.assert_series_equal(result, expected)
 
 
 class TestWindow(Base):
@@ -1452,22 +1424,18 @@ class TestMoments(Base):
     def _check_structures(self, f, static_comp, name=None,
                           has_min_periods=True, has_time_rule=True,
                           has_center=True, fill_value=None, **kwargs):
-        def get_result(obj, window, min_periods=None, freq=None, center=False):
+        def get_result(obj, window, min_periods=None, center=False):
 
             # check via the API calls if name is provided
             if name is not None:
-
-                # catch a freq deprecation warning if freq is provided and not
-                # None
-                with catch_warnings(record=True):
-                    r = obj.rolling(window=window, min_periods=min_periods,
-                                    freq=freq, center=center)
+                r = obj.rolling(window=window, min_periods=min_periods,
+                                center=center)
                 return getattr(r, name)(**kwargs)
 
             # check via the moments API
             with catch_warnings(record=True):
                 return f(obj, window=window, min_periods=min_periods,
-                         freq=freq, center=center, **kwargs)
+                         center=center, **kwargs)
 
         series_result = get_result(self.series, window=50)
         frame_result = get_result(self.frame, window=50)
@@ -1479,17 +1447,17 @@ class TestMoments(Base):
         if has_time_rule:
             win = 25
             minp = 10
+            series = self.series[::2].resample('B').mean()
+            frame = self.frame[::2].resample('B').mean()
 
             if has_min_periods:
-                series_result = get_result(self.series[::2], window=win,
-                                           min_periods=minp, freq='B')
-                frame_result = get_result(self.frame[::2], window=win,
-                                          min_periods=minp, freq='B')
+                series_result = get_result(series, window=win,
+                                           min_periods=minp)
+                frame_result = get_result(frame, window=win,
+                                          min_periods=minp)
             else:
-                series_result = get_result(self.series[::2], window=win,
-                                           freq='B')
-                frame_result = get_result(self.frame[::2], window=win,
-                                          freq='B')
+                series_result = get_result(series, window=win)
+                frame_result = get_result(frame, window=win)
 
             last_date = series_result.index[-1]
             prev_date = last_date - 24 * offsets.BDay()
@@ -2035,15 +2003,11 @@ class TestMomentsConsistency(Base):
         (np.nanmax, 1, 'max'),
         (np.nanmin, 1, 'min'),
         (np.nansum, 1, 'sum'),
+        (np.nanmean, 1, 'mean'),
+        (lambda v: np.nanstd(v, ddof=1), 1, 'std'),
+        (lambda v: np.nanvar(v, ddof=1), 1, 'var'),
+        (np.nanmedian, 1, 'median'),
     ]
-    if np.__version__ >= LooseVersion('1.8.0'):
-        base_functions += [
-            (np.nanmean, 1, 'mean'),
-            (lambda v: np.nanstd(v, ddof=1), 1, 'std'),
-            (lambda v: np.nanvar(v, ddof=1), 1, 'var'),
-        ]
-    if np.__version__ >= LooseVersion('1.9.0'):
-        base_functions += [(np.nanmedian, 1, 'median'), ]
     no_nan_functions = [
         (np.max, None, 'max'),
         (np.min, None, 'min'),
@@ -2597,9 +2561,9 @@ class TestMomentsConsistency(Base):
         ser = Series([])
         tm.assert_series_equal(ser, ser.expanding().apply(lambda x: x.mean()))
 
-        def expanding_mean(x, min_periods=1, freq=None):
+        def expanding_mean(x, min_periods=1):
             return mom.expanding_apply(x, lambda x: x.mean(),
-                                       min_periods=min_periods, freq=freq)
+                                       min_periods=min_periods)
 
         self._check_expanding(expanding_mean, np.mean)
 
@@ -3052,8 +3016,7 @@ class TestMomentsConsistency(Base):
 
         expected = Series([1.0, 2.0, 6.0, 4.0, 5.0],
                           index=[datetime(1975, 1, i, 0) for i in range(1, 6)])
-        with catch_warnings(record=True):
-            x = series.rolling(window=1, freq='D').max()
+        x = series.resample('D').max().rolling(window=1).max()
         tm.assert_series_equal(expected, x)
 
     def test_rolling_max_how_resample(self):
@@ -3071,24 +3034,21 @@ class TestMomentsConsistency(Base):
         # Default how should be max
         expected = Series([0.0, 1.0, 2.0, 3.0, 20.0],
                           index=[datetime(1975, 1, i, 0) for i in range(1, 6)])
-        with catch_warnings(record=True):
-            x = series.rolling(window=1, freq='D').max()
+        x = series.resample('D').max().rolling(window=1).max()
         tm.assert_series_equal(expected, x)
 
         # Now specify median (10.0)
         expected = Series([0.0, 1.0, 2.0, 3.0, 10.0],
                           index=[datetime(1975, 1, i, 0) for i in range(1, 6)])
-        with catch_warnings(record=True):
-            x = series.rolling(window=1, freq='D').max(how='median')
+        x = series.resample('D').median().rolling(window=1).max(how='median')
         tm.assert_series_equal(expected, x)
 
         # Now specify mean (4+10+20)/3
         v = (4.0 + 10.0 + 20.0) / 3.0
         expected = Series([0.0, 1.0, 2.0, 3.0, v],
                           index=[datetime(1975, 1, i, 0) for i in range(1, 6)])
-        with catch_warnings(record=True):
-            x = series.rolling(window=1, freq='D').max(how='mean')
-            tm.assert_series_equal(expected, x)
+        x = series.resample('D').mean().rolling(window=1).max(how='mean')
+        tm.assert_series_equal(expected, x)
 
     def test_rolling_min_how_resample(self):
 
@@ -3105,9 +3065,8 @@ class TestMomentsConsistency(Base):
         # Default how should be min
         expected = Series([0.0, 1.0, 2.0, 3.0, 4.0],
                           index=[datetime(1975, 1, i, 0) for i in range(1, 6)])
-        with catch_warnings(record=True):
-            r = series.rolling(window=1, freq='D')
-            tm.assert_series_equal(expected, r.min())
+        r = series.resample('D').min().rolling(window=1)
+        tm.assert_series_equal(expected, r.min())
 
     def test_rolling_median_how_resample(self):
 
@@ -3124,9 +3083,8 @@ class TestMomentsConsistency(Base):
         # Default how should be median
         expected = Series([0.0, 1.0, 2.0, 3.0, 10],
                           index=[datetime(1975, 1, i, 0) for i in range(1, 6)])
-        with catch_warnings(record=True):
-            x = series.rolling(window=1, freq='D').median()
-            tm.assert_series_equal(expected, x)
+        x = series.resample('D').median().rolling(window=1).median()
+        tm.assert_series_equal(expected, x)
 
     def test_rolling_median_memory_error(self):
         # GH11722
