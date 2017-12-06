@@ -23,8 +23,7 @@ from pandas.core.dtypes.common import is_datetime64_ns_dtype
 from pandas.util import testing as tm
 from pandas.util.testing import assert_series_equal, _skip_if_has_locale
 from pandas import (isna, to_datetime, Timestamp, Series, DataFrame,
-                    Index, DatetimeIndex, NaT, date_range, bdate_range,
-                    compat)
+                    Index, DatetimeIndex, NaT, date_range, compat)
 
 
 class TestTimeConversionFormats(object):
@@ -736,24 +735,6 @@ class TestToDatetimeUnit(object):
 class TestToDatetimeMisc(object):
 
     @pytest.mark.parametrize('cache', [True, False])
-    def test_index_to_datetime(self, cache):
-        idx = Index(['1/1/2000', '1/2/2000', '1/3/2000'])
-
-        with tm.assert_produces_warning(FutureWarning,
-                                        check_stacklevel=False):
-            result = idx.to_datetime()
-            expected = DatetimeIndex(pd.to_datetime(idx.values, cache=cache))
-            tm.assert_index_equal(result, expected)
-
-        with tm.assert_produces_warning(FutureWarning,
-                                        check_stacklevel=False):
-            today = datetime.today()
-            idx = Index([today], dtype=object)
-            result = idx.to_datetime()
-            expected = DatetimeIndex([today])
-            tm.assert_index_equal(result, expected)
-
-    @pytest.mark.parametrize('cache', [True, False])
     def test_to_datetime_iso8601(self, cache):
         result = to_datetime(["2012-01-01 00:00:00"], cache=cache)
         exp = Timestamp("2012-01-01 00:00:00")
@@ -887,12 +868,6 @@ class TestToDatetimeMisc(object):
         result = DatetimeIndex(ints)
 
         tm.assert_index_equal(rng, result)
-
-    def test_to_datetime_freq(self):
-        xp = bdate_range('2000-1-1', periods=10, tz='UTC')
-        rs = xp.to_datetime()
-        assert xp.freq == rs.freq
-        assert xp.tzinfo == rs.tzinfo
 
     def test_to_datetime_overflow(self):
         # gh-17637
