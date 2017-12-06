@@ -200,6 +200,12 @@ class TestCategorical(object):
             CategoricalIndex(c1, categories=list('cab'))))
         assert not c1.is_dtype_equal(CategoricalIndex(c1, ordered=True))
 
+        # GH 16659
+        s1 = pd.Series(c1)
+        assert c1.is_dtype_equal(s1)
+        assert not c2.is_dtype_equal(s1)
+        assert not c3.is_dtype_equal(s1)
+
     def test_constructor(self):
 
         exp_arr = np.array(["a", "b", "c", "a", "b", "c"], dtype=np.object_)

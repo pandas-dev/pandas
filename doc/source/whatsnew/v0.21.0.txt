@@ -1168,6 +1168,7 @@ PyPy
 - Fix :func:`DataFrame.memory_usage` to support PyPy. Objects on PyPy do not have a fixed size,
   so an approximation is used instead (:issue:`17228`)
 
+
 Other
 ^^^^^
 - Bug where some inplace operators were not being wrapped and produced a copy when invoked (:issue:`12962`)
