@@ -1162,3 +1162,28 @@ def construct_1d_arraylike_from_scalar(value, length, dtype):
         subarr.fill(value)
 
     return subarr
+
+
+def construct_1d_array_from_listlike(values, dtype='object'):
+    """
+    Transform any list-like object in a 1-dimensional numpy array.
+
+    Parameters
+    ----------
+    values : any iterable which has a len()
+    dtype : dtype, default 'object'
+
+    Raises
+    ------
+    TypeError
+        * If `values` does not have a len()
+
+    Returns
+    -------
+    1-dimensional numpy array of dtype "dtype"
+    """
+    # numpy will try to interpret nested lists as further dimensions, hence
+    # making a 1D array that contains list-likes is a bit tricky:
+    result = np.empty(len(values), dtype=dtype)
+    result[:] = values
+    return result
