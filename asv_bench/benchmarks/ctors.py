@@ -1,6 +1,8 @@
 import numpy as np
 from pandas import DataFrame, Series, Index, DatetimeIndex, Timestamp
 
+from .pandas_vb_common import setup # noqa
+
 
 class Constructors(object):
 
@@ -8,7 +10,6 @@ class Constructors(object):
 
     def setup(self):
         N = 10**2
-        np.random.seed(1234)
         self.arr = np.random.randn(N, N)
         self.arr_str = np.array(['foo', 'bar', 'baz'], dtype=object)
 

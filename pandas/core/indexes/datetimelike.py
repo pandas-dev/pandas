@@ -25,7 +25,7 @@ from pandas.core.common import AbstractMethodError
 
 import pandas.io.formats.printing as printing
 from pandas._libs import lib, iNaT, NaT
-from pandas._libs.period import Period
+from pandas._libs.tslibs.period import Period
 from pandas._libs.tslibs.timedeltas import delta_to_nanoseconds
 
 from pandas.core.indexes.base import Index, _index_shared_docs
@@ -242,6 +242,13 @@ class DatetimeIndexOpsMixin(object):
         """
         return lib.map_infer(values, self._box_func)
 
+    def _box_values_as_index(self):
+        """
+        return object Index which contains boxed values
+        """
+        from pandas.core.index import Index
+        return Index(self._box_values(self.asi8), name=self.name, dtype=object)
+
     def _format_with_header(self, header, **kwargs):
         return header + list(self._format_native_types(**kwargs))
 
@@ -263,7 +270,9 @@ class DatetimeIndexOpsMixin(object):
 
         is_int = is_integer(key)
         if is_scalar(key) and not is_int:
-            raise ValueError
+            raise IndexError("only integers, slices (`:`), ellipsis (`...`), "
+                             "numpy.newaxis (`None`) and integer or boolean "
+                             "arrays are valid indices")
 
         getitem = self._data.__getitem__
         if is_int:
@@ -358,7 +367,7 @@ class DatetimeIndexOpsMixin(object):
                 raise TypeError('The map function must return an Index object')
             return result
         except Exception:
-            return self.asobject.map(f)
+            return self.astype(object).map(f)
 
     def sort_values(self, return_indexer=False, ascending=True):
         """
@@ -422,13 +431,15 @@ class DatetimeIndexOpsMixin(object):
 
     @property
     def asobject(self):
-        """
+        """DEPRECATED: Use ``astype(object)`` instead.
+
         return object Index which contains boxed values
 
         *this is an internal non-public method*
         """
-        from pandas.core.index import Index
-        return Index(self._box_values(self.asi8), name=self.name, dtype=object)
+        warnings.warn("'asobject' is deprecated. Use 'astype(object)'"
+                      " instead", FutureWarning, stacklevel=2)
+        return self.astype(object)
 
     def _convert_tolerance(self, tolerance, target):
         tolerance = np.asarray(to_timedelta(tolerance, box=False))
@@ -466,7 +477,7 @@ class DatetimeIndexOpsMixin(object):
         """
         return a list of the underlying data
         """
-        return list(self.asobject)
+        return list(self.astype(object))
 
     def min(self, axis=None, *args, **kwargs):
         """
@@ -698,14 +709,6 @@ class DatetimeIndexOpsMixin(object):
     def _add_delta(self, other):
         return NotImplemented
 
-    @Appender(_index_shared_docs['_get_values_from_dict'])
-    def _get_values_from_dict(self, data):
-        if len(data):
-            return np.array([data.get(i, np.nan)
-                             for i in self.asobject.values])
-
-        return np.array([np.nan])
-
     def _add_delta_td(self, other):
         # add a delta of a timedeltalike
         # return the i8 result view
@@ -752,7 +755,7 @@ class DatetimeIndexOpsMixin(object):
             try:
                 values = type(self)(values)
             except ValueError:
-                return self.asobject.isin(values)
+                return self.astype(object).isin(values)
 
         return algorithms.isin(self.asi8, values.asi8)
 

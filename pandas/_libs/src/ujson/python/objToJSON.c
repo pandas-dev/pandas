@@ -455,8 +455,7 @@ static void *PandasDateTimeStructToJSON(pandas_datetimestruct *dts,
             return NULL;
         }
 
-        if (!make_iso_8601_datetime(dts, GET_TC(tc)->cStr, *_outLen, 0, base,
-                                    -1, NPY_UNSAFE_CASTING)) {
+        if (!make_iso_8601_datetime(dts, GET_TC(tc)->cStr, *_outLen, base)) {
             PRINTMARK();
             *_outLen = strlen(GET_TC(tc)->cStr);
             return GET_TC(tc)->cStr;
@@ -493,7 +492,7 @@ static void *PyDateTimeToJSON(JSOBJ _obj, JSONTypeContext *tc, void *outValue,
 
     PRINTMARK();
 
-    if (!convert_pydatetime_to_datetimestruct(obj, &dts, NULL, 1)) {
+    if (!convert_pydatetime_to_datetimestruct(obj, &dts)) {
         PRINTMARK();
         return PandasDateTimeStructToJSON(&dts, tc, outValue, _outLen);
     } else {

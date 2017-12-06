@@ -77,57 +77,6 @@ def group_nth_object(ndarray[object, ndim=2] out,
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
-def group_nth_bin_object(ndarray[object, ndim=2] out,
-                         ndarray[int64_t] counts,
-                         ndarray[object, ndim=2] values,
-                         ndarray[int64_t] bins, int64_t rank):
-    """
-    Only aggregates on axis=0
-    """
-    cdef:
-        Py_ssize_t i, j, N, K, ngroups, b
-        object val
-        float64_t count
-        ndarray[object, ndim=2] resx
-        ndarray[float64_t, ndim=2] nobs
-
-    nobs = np.zeros((<object> out).shape, dtype=np.float64)
-    resx = np.empty((<object> out).shape, dtype=object)
-
-    if len(bins) == 0:
-        return
-    if bins[len(bins) - 1] == len(values):
-        ngroups = len(bins)
-    else:
-        ngroups = len(bins) + 1
-
-    N, K = (<object> values).shape
-
-    b = 0
-    for i in range(N):
-        while b < ngroups - 1 and i >= bins[b]:
-            b += 1
-
-        counts[b] += 1
-        for j in range(K):
-            val = values[i, j]
-
-            # not nan
-            if val == val:
-                nobs[b, j] += 1
-                if nobs[b, j] == rank:
-                    resx[b, j] = val
-
-    for i in range(ngroups):
-        for j in range(K):
-            if nobs[i, j] == 0:
-                out[i, j] = nan
-            else:
-                out[i, j] = resx[i, j]
-
-
-@cython.boundscheck(False)
-@cython.wraparound(False)
 def group_last_object(ndarray[object, ndim=2] out,
                       ndarray[int64_t] counts,
                       ndarray[object, ndim=2] values,
@@ -162,56 +111,6 @@ def group_last_object(ndarray[object, ndim=2] out,
                 resx[lab, j] = val
 
     for i in range(len(counts)):
-        for j in range(K):
-            if nobs[i, j] == 0:
-                out[i, j] = nan
-            else:
-                out[i, j] = resx[i, j]
-
-
-@cython.boundscheck(False)
-@cython.wraparound(False)
-def group_last_bin_object(ndarray[object, ndim=2] out,
-                          ndarray[int64_t] counts,
-                          ndarray[object, ndim=2] values,
-                          ndarray[int64_t] bins):
-    """
-    Only aggregates on axis=0
-    """
-    cdef:
-        Py_ssize_t i, j, N, K, ngroups, b
-        object val
-        float64_t count
-        ndarray[object, ndim=2] resx
-        ndarray[float64_t, ndim=2] nobs
-
-    nobs = np.zeros((<object> out).shape, dtype=np.float64)
-    resx = np.empty((<object> out).shape, dtype=object)
-
-    if len(bins) == 0:
-        return
-    if bins[len(bins) - 1] == len(values):
-        ngroups = len(bins)
-    else:
-        ngroups = len(bins) + 1
-
-    N, K = (<object> values).shape
-
-    b = 0
-    for i in range(N):
-        while b < ngroups - 1 and i >= bins[b]:
-            b += 1
-
-        counts[b] += 1
-        for j in range(K):
-            val = values[i, j]
-
-            # not nan
-            if val == val:
-                nobs[b, j] += 1
-                resx[b, j] = val
-
-    for i in range(ngroups):
         for j in range(K):
             if nobs[i, j] == 0:
                 out[i, j] = nan

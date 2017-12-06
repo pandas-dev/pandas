@@ -200,8 +200,8 @@ Dependencies
 
 * `setuptools <https://setuptools.readthedocs.io/en/latest/>`__
 * `NumPy <http://www.numpy.org>`__: 1.9.0 or higher
-* `python-dateutil <http://labix.org/python-dateutil>`__: 1.5 or higher
-* `pytz <http://pytz.sourceforge.net/>`__: Needed for time zone support
+* `python-dateutil <//https://dateutil.readthedocs.io/en/stable/>`__: 2.5.0 or higher
+* `pytz <http://pytz.sourceforge.net/>`__
 
 .. _install.recommended_dependencies:
 
@@ -228,7 +228,7 @@ Optional Dependencies
 ~~~~~~~~~~~~~~~~~~~~~
 
 * `Cython <http://www.cython.org>`__: Only necessary to build development
-  version. Version 0.23 or higher.
+  version. Version 0.24 or higher.
 * `SciPy <http://www.scipy.org>`__: miscellaneous statistical functions, Version 0.14.0 or higher
 * `xarray <http://xarray.pydata.org>`__: pandas like handling for > 2 dims, needed for converting Panels to xarray objects. Version 0.7.0 or higher is recommended.
 * `PyTables <http://www.pytables.org>`__: necessary for HDF5-based storage. Version 3.0.0 or higher required, Version 3.2.1 or higher highly recommended.
@@ -244,8 +244,8 @@ Optional Dependencies
 * For Excel I/O:
 
   * `xlrd/xlwt <http://www.python-excel.org/>`__: Excel reading (xlrd) and writing (xlwt)
-  * `openpyxl <http://packages.python.org/openpyxl/>`__: openpyxl version 1.6.1
-    or higher (but lower than 2.0.0), or version 2.2 or higher, for writing .xlsx files (xlrd >= 0.9.0)
+  * `openpyxl <http://https://openpyxl.readthedocs.io/en/default/>`__: openpyxl version 2.4.0
+    for writing .xlsx files (xlrd >= 0.9.0)
   * `XlsxWriter <https://pypi.python.org/pypi/XlsxWriter>`__: Alternative Excel writer
 
 * `Jinja2 <http://jinja.pocoo.org/>`__: Template engine for conditional HTML formatting.
@@ -259,7 +259,8 @@ Optional Dependencies
   `xsel <http://www.vergenet.net/~conrad/software/xsel/>`__, or
   `xclip <https://github.com/astrand/xclip/>`__: necessary to use
   :func:`~pandas.read_clipboard`. Most package managers on Linux distributions will have ``xclip`` and/or ``xsel`` immediately available for installation.
-* For Google BigQuery I/O - see `here <https://pandas-gbq.readthedocs.io/en/latest/install.html#dependencies>`__
+* `pandas-gbq <https://pandas-gbq.readthedocs.io/en/latest/install.html#dependencies>`__: for Google BigQuery I/O.
+
 
 * `Backports.lzma <https://pypi.python.org/pypi/backports.lzma/>`__: Only for Python 2, for writing to and/or reading from an xz compressed DataFrame in CSV; Python 3 support is built into the standard library.
 * One of the following combinations of libraries is needed to use the

@@ -74,15 +74,19 @@ delim_whitespace : boolean, default False
     .. versionadded:: 0.18.1 support for the Python parser.
 
 header : int or list of ints, default 'infer'
-    Row number(s) to use as the column names, and the start of the data.
-    Default behavior is as if set to 0 if no ``names`` passed, otherwise
-    ``None``. Explicitly pass ``header=0`` to be able to replace existing
-    names. The header can be a list of integers that specify row locations for
-    a multi-index on the columns e.g. [0,1,3]. Intervening rows that are not
-    specified will be skipped (e.g. 2 in this example is skipped). Note that
-    this parameter ignores commented lines and empty lines if
-    ``skip_blank_lines=True``, so header=0 denotes the first line of data
-    rather than the first line of the file.
+    Row number(s) to use as the column names, and the start of the
+    data.  Default behavior is to infer the column names: if no names
+    are passed the behavior is identical to ``header=0`` and column
+    names are inferred from the first line of the file, if column
+    names are passed explicitly then the behavior is identical to
+    ``header=None``. Explicitly pass ``header=0`` to be able to
+    replace existing names. The header can be a list of integers that
+    specify row locations for a multi-index on the columns
+    e.g. [0,1,3]. Intervening rows that are not specified will be
+    skipped (e.g. 2 in this example is skipped). Note that this
+    parameter ignores commented lines and empty lines if
+    ``skip_blank_lines=True``, so header=0 denotes the first line of
+    data rather than the first line of the file.
 names : array-like, default None
     List of column names to use. If file contains no header row, then you
     should explicitly pass header=None. Duplicates in this list will cause
@@ -1137,6 +1141,38 @@ def _evaluate_usecols(usecols, names):
     return usecols
 
 
+def _validate_usecols_names(usecols, names):
+    """
+    Validates that all usecols are present in a given
+    list of names. If not, raise a ValueError that
+    shows what usecols are missing.
+
+    Parameters
+    ----------
+    usecols : iterable of usecols
+        The columns to validate are present in names.
+    names : iterable of names
+        The column names to check against.
+
+    Returns
+    -------
+    usecols : iterable of usecols
+        The `usecols` parameter if the validation succeeds.
+
+    Raises
+    ------
+    ValueError : Columns were missing. Error message will list them.
+    """
+    missing = [c for c in usecols if c not in names]
+    if len(missing) > 0:
+        raise ValueError(
+            "Usecols do not match columns, "
+            "columns expected but not found: {missing}".format(missing=missing)
+        )
+
+    return usecols
+
+
 def _validate_skipfooter_arg(skipfooter):
     """
     Validate the 'skipfooter' parameter.
@@ -1749,14 +1785,14 @@ class CParserWrapper(ParserBase):
             # GH 14671
             if (self.usecols_dtype == 'string' and
                     not set(usecols).issubset(self.orig_names)):
-                raise ValueError("Usecols do not match names.")
+                _validate_usecols_names(usecols, self.orig_names)
 
             if len(self.names) > len(usecols):
                 self.names = [n for i, n in enumerate(self.names)
                               if (i in usecols or n in usecols)]
 
             if len(self.names) < len(usecols):
-                raise ValueError("Usecols do not match names.")
+                _validate_usecols_names(usecols, self.names)
 
         self._set_noconvert_columns()
 
@@ -2528,9 +2564,13 @@ class PythonParser(ParserBase):
                     raise ValueError("If using multiple headers, usecols must "
                                      "be integers.")
                 col_indices = []
+
                 for col in self.usecols:
                     if isinstance(col, string_types):
-                        col_indices.append(usecols_key.index(col))
+                        try:
+                            col_indices.append(usecols_key.index(col))
+                        except ValueError:
+                            _validate_usecols_names(self.usecols, usecols_key)
                     else:
                         col_indices.append(col)
             else:

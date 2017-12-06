@@ -353,22 +353,15 @@ class Index(IndexOpsMixin, PandasObject):
         elif data is None or is_scalar(data):
             cls._scalar_data_error(data)
         else:
-            if (tupleize_cols and isinstance(data, list) and data and
-                    isinstance(data[0], tuple)):
-
+            if tupleize_cols and is_list_like(data) and data:
+                if is_iterator(data):
+                    data = list(data)
                 # we must be all tuples, otherwise don't construct
                 # 10697
                 if all(isinstance(e, tuple) for e in data):
-                    try:
-                        # must be orderable in py3
-                        if compat.PY3:
-                            sorted(data)
-                        from .multi import MultiIndex
-                        return MultiIndex.from_tuples(
-                            data, names=name or kwargs.get('names'))
-                    except (TypeError, KeyError):
-                        # python2 - MultiIndex fails on mixed types
-                        pass
+                    from .multi import MultiIndex
+                    return MultiIndex.from_tuples(
+                        data, names=name or kwargs.get('names'))
             # other iterable of some kind
             subarr = _asarray_tuplesafe(data, dtype=object)
             return Index(subarr, dtype=dtype, copy=copy, name=name, **kwargs)
@@ -2829,27 +2822,6 @@ class Index(IndexOpsMixin, PandasObject):
         indexer, _ = self.get_indexer_non_unique(target, **kwargs)
         return indexer
 
-    _index_shared_docs['_get_values_from_dict'] = """
-        Return the values of the input dictionary in the order the keys are
-        in the index. np.nan is returned for index values not in the
-        dictionary.
-
-        Parameters
-        ----------
-        data : dict
-            The dictionary from which to extract the values
-
-        Returns
-        -------
-        np.array
-
-        """
-
-    @Appender(_index_shared_docs['_get_values_from_dict'])
-    def _get_values_from_dict(self, data):
-        return lib.fast_multiget(data, self.values,
-                                 default=np.nan)
-
     def _maybe_promote(self, other):
         # A hack, but it works
         from pandas.core.indexes.datetimes import DatetimeIndex
@@ -2925,25 +2897,9 @@ class Index(IndexOpsMixin, PandasObject):
                                           names=names)
 
         attributes['copy'] = False
-
-        # we want to try to return our original dtype
-        # ints infer to integer, but if we have
-        # uints, would prefer to return these
-        if is_unsigned_integer_dtype(self.dtype):
-            inferred = lib.infer_dtype(new_values)
-            if inferred == 'integer':
-                attributes['dtype'] = self.dtype
-
-        elif not new_values.size:
+        if not new_values.size:
             # empty
             attributes['dtype'] = self.dtype
-        elif isna(new_values).all():
-            # all nan
-            inferred = lib.infer_dtype(self)
-            if inferred in ['datetime', 'datetime64',
-                            'timedelta', 'timedelta64',
-                            'period']:
-                new_values = [libts.NaT] * len(new_values)
 
         return Index(new_values, **attributes)
 

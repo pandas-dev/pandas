@@ -629,8 +629,6 @@ def _attempt_YYYYMMDD(arg, errors):
     return None
 
 
-normalize_date = tslib.normalize_date
-
 # Fixed time formats for time parsing
 _time_formats = ["%H:%M", "%H%M", "%I:%M%p", "%I%M%p",
                  "%H:%M:%S", "%H%M%S", "%I:%M:%S%p", "%I%M%S%p"]
