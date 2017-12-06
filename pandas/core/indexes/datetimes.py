@@ -13,6 +13,7 @@ from pandas.core.dtypes.common import (
     _NS_DTYPE, _INT64_DTYPE,
     is_object_dtype, is_datetime64_dtype,
     is_datetimetz, is_dtype_equal,
+    is_timedelta64_dtype,
     is_integer, is_float,
     is_integer_dtype,
     is_datetime64_ns_dtype,
@@ -858,10 +859,13 @@ class DatetimeIndex(DatelikeOps, TimelikeOps, DatetimeIndexOpsMixin,
 
         if isinstance(delta, (Tick, timedelta, np.timedelta64)):
             new_values = self._add_delta_td(delta)
-        elif isinstance(delta, TimedeltaIndex):
+        elif is_timedelta64_dtype(delta):
+            if not isinstance(delta, TimedeltaIndex):
+                delta = TimedeltaIndex(delta)
+            else:
+                # update name when delta is Index
+                name = com._maybe_match_name(self, delta)
             new_values = self._add_delta_tdi(delta)
-            # update name when delta is Index
-            name = com._maybe_match_name(self, delta)
         elif isinstance(delta, DateOffset):
             new_values = self._add_offset(delta).asi8
         else:

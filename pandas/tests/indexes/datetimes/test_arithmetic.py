@@ -122,6 +122,58 @@ class TestDatetimeIndexArithmetic(object):
         tm.assert_index_equal(rng, expected)
 
     # -------------------------------------------------------------
+    # Binary operations DatetimeIndex and TimedeltaIndex/array
+    def test_dti_add_tdi(self, tz):
+        # GH 17558
+        dti = DatetimeIndex([Timestamp('2017-01-01', tz=tz)] * 10)
+        tdi = pd.timedelta_range('0 days', periods=10)
+        expected = pd.date_range('2017-01-01', periods=10, tz=tz)
+
+        result = dti + tdi
+        tm.assert_index_equal(result, expected)
+
+        result = dti + tdi.values
+        tm.assert_index_equal(result, expected)
+
+    def test_dti_iadd_tdi(self, tz):
+        # GH 17558
+        tdi = pd.timedelta_range('0 days', periods=10)
+        expected = pd.date_range('2017-01-01', periods=10, tz=tz)
+
+        result = DatetimeIndex([Timestamp('2017-01-01', tz=tz)] * 10)
+        result += tdi
+        tm.assert_index_equal(result, expected)
+
+        result = DatetimeIndex([Timestamp('2017-01-01', tz=tz)] * 10)
+        result += tdi.values
+        tm.assert_index_equal(result, expected)
+
+    def test_dti_sub_tdi(self, tz):
+        # GH 17558
+        dti = DatetimeIndex([Timestamp('2017-01-01', tz=tz)] * 10)
+        tdi = pd.timedelta_range('0 days', periods=10)
+        expected = pd.date_range('2017-01-01', periods=10, tz=tz, freq='-1D')
+
+        result = dti - tdi
+        tm.assert_index_equal(result, expected)
+
+        result = dti - tdi.values
+        tm.assert_index_equal(result, expected)
+
+    def test_dti_isub_tdi(self, tz):
+        # GH 17558
+        tdi = pd.timedelta_range('0 days', periods=10)
+        expected = pd.date_range('2017-01-01', periods=10, tz=tz, freq='-1D')
+
+        result = DatetimeIndex([Timestamp('2017-01-01', tz=tz)] * 10)
+        result -= tdi
+        tm.assert_index_equal(result, expected)
+
+        result = DatetimeIndex([Timestamp('2017-01-01', tz=tz)] * 10)
+        result -= tdi.values
+        tm.assert_index_equal(result, expected)
+
+    # -------------------------------------------------------------
     # Binary Operations DatetimeIndex and datetime-like
     # TODO: A couple other tests belong in this section.  Move them in
     # A PR where there isn't already a giant diff.
