@@ -413,8 +413,27 @@ class SingleConstructorOffset(DateOffset):
         return cls()
 
 
+class _CustomMixin(object):
+    """
+    Mixin for classes that define and validate calendar, holidays,
+    and weekdays attributes
+    """
+    def __init__(self, weekmask, holidays, calendar):
+        calendar, holidays = _get_calendar(weekmask=weekmask,
+                                           holidays=holidays,
+                                           calendar=calendar)
+        # Custom offset instances are identified by the
+        # following two attributes. See DateOffset._params()
+        # holidays, weekmask
+
+        # assumes self.kwds already exists
+        self.kwds['weekmask'] = self.weekmask = weekmask
+        self.kwds['holidays'] = self.holidays = holidays
+        self.kwds['calendar'] = self.calendar = calendar
+
+
 class BusinessMixin(object):
-    """ mixin to business types to provide related functions """
+    """ Mixin to business types to provide related functions """
 
     @property
     def offset(self):
@@ -572,9 +591,26 @@ class BusinessHourMixin(BusinessMixin):
         kwds = {'offset': offset}
         self.start = kwds['start'] = _validate_business_time(start)
         self.end = kwds['end'] = _validate_business_time(end)
-        self.kwds = kwds
+        self.kwds.update(kwds)
         self._offset = offset
 
+    @cache_readonly
+    def next_bday(self):
+        """used for moving to next businessday"""
+        if self.n >= 0:
+            nb_offset = 1
+        else:
+            nb_offset = -1
+        if self._prefix.startswith('C'):
+            # CustomBusinessHour
+            return CustomBusinessDay(n=nb_offset,
+                                     weekmask=self.weekmask,
+                                     holidays=self.holidays,
+                                     calendar=self.calendar)
+        else:
+            return BusinessDay(n=nb_offset)
+
+    # TODO: Cache this once offsets are immutable
     def _get_daytime_flag(self):
         if self.start == self.end:
             raise ValueError('start and end must not be the same')
@@ -616,6 +652,7 @@ class BusinessHourMixin(BusinessMixin):
         return datetime(other.year, other.month, other.day,
                         self.start.hour, self.start.minute)
 
+    # TODO: cache this once offsets are immutable
     def _get_business_hours_by_sec(self):
         """
         Return business hours in a day by seconds.
@@ -784,19 +821,11 @@ class BusinessHour(BusinessHourMixin, SingleConstructorOffset):
                  end='17:00', offset=timedelta(0)):
         self.n = self._validate_n(n)
         self.normalize = normalize
+        self.kwds = {}
         super(BusinessHour, self).__init__(start=start, end=end, offset=offset)
 
-    @cache_readonly
-    def next_bday(self):
-        # used for moving to next businessday
-        if self.n >= 0:
-            nb_offset = 1
-        else:
-            nb_offset = -1
-        return BusinessDay(n=nb_offset)
 
-
-class CustomBusinessDay(BusinessDay):
+class CustomBusinessDay(_CustomMixin, BusinessDay):
     """
     DateOffset subclass representing possibly n custom business days,
     excluding holidays
@@ -822,19 +851,9 @@ class CustomBusinessDay(BusinessDay):
         self.n = self._validate_n(n)
         self.normalize = normalize
         self._offset = offset
-        self.kwds = {}
+        self.kwds = {'offset': offset}
 
-        calendar, holidays = _get_calendar(weekmask=weekmask,
-                                           holidays=holidays,
-                                           calendar=calendar)
-        # CustomBusinessDay instances are identified by the
-        # following two attributes. See DateOffset._params()
-        # holidays, weekmask
-
-        self.kwds['weekmask'] = self.weekmask = weekmask
-        self.kwds['holidays'] = self.holidays = holidays
-        self.kwds['calendar'] = self.calendar = calendar
-        self.kwds['offset'] = offset
+        _CustomMixin.__init__(self, weekmask, holidays, calendar)
 
     @apply_wraps
     def apply(self, other):
@@ -874,7 +893,8 @@ class CustomBusinessDay(BusinessDay):
         return np.is_busday(day64, busdaycal=self.calendar)
 
 
-class CustomBusinessHour(BusinessHourMixin, SingleConstructorOffset):
+class CustomBusinessHour(_CustomMixin, BusinessHourMixin,
+                         SingleConstructorOffset):
     """
     DateOffset subclass representing possibly n custom business days
 
@@ -889,27 +909,11 @@ class CustomBusinessHour(BusinessHourMixin, SingleConstructorOffset):
                  start='09:00', end='17:00', offset=timedelta(0)):
         self.n = self._validate_n(n)
         self.normalize = normalize
-        super(CustomBusinessHour, self).__init__(start=start,
-                                                 end=end, offset=offset)
+        self._offset = offset
+        self.kwds = {'offset': offset}
 
-        calendar, holidays = _get_calendar(weekmask=weekmask,
-                                           holidays=holidays,
-                                           calendar=calendar)
-        self.kwds['weekmask'] = self.weekmask = weekmask
-        self.kwds['holidays'] = self.holidays = holidays
-        self.kwds['calendar'] = self.calendar = calendar
-
-    @cache_readonly
-    def next_bday(self):
-        # used for moving to next businessday
-        if self.n >= 0:
-            nb_offset = 1
-        else:
-            nb_offset = -1
-        return CustomBusinessDay(n=nb_offset,
-                                 weekmask=self.weekmask,
-                                 holidays=self.holidays,
-                                 calendar=self.calendar)
+        _CustomMixin.__init__(self, weekmask, holidays, calendar)
+        BusinessHourMixin.__init__(self, start=start, end=end, offset=offset)
 
 
 # ---------------------------------------------------------------------
@@ -981,10 +985,10 @@ class BusinessMonthBegin(MonthOffset):
     _day_opt = 'business_start'
 
 
-class CustomBusinessMonthEnd(BusinessMixin, MonthOffset):
+class _CustomBusinessMonth(_CustomMixin, BusinessMixin, MonthOffset):
     """
     DateOffset subclass representing one custom business month, incrementing
-    between end of month dates
+    between [BEGIN/END] of month dates
 
     Parameters
     ----------
@@ -999,11 +1003,9 @@ class CustomBusinessMonthEnd(BusinessMixin, MonthOffset):
         passed to ``numpy.busdaycalendar``
     calendar : pd.HolidayCalendar or np.busdaycalendar
     """
-
     _cacheable = False
-    _prefix = 'CBM'
 
-    onOffset = DateOffset.onOffset  # override MonthOffset method
+    onOffset = DateOffset.onOffset        # override MonthOffset method
     apply_index = DateOffset.apply_index  # override MonthOffset method
 
     def __init__(self, n=1, normalize=False, weekmask='Mon Tue Wed Thu Fri',
@@ -1011,15 +1013,9 @@ class CustomBusinessMonthEnd(BusinessMixin, MonthOffset):
         self.n = self._validate_n(n)
         self.normalize = normalize
         self._offset = offset
-        self.kwds = {}
+        self.kwds = {'offset': offset}
 
-        calendar, holidays = _get_calendar(weekmask=weekmask,
-                                           holidays=holidays,
-                                           calendar=calendar)
-        self.kwds['weekmask'] = self.weekmask = weekmask
-        self.kwds['holidays'] = self.holidays = holidays
-        self.kwds['calendar'] = self.calendar = calendar
-        self.kwds['offset'] = offset
+        _CustomMixin.__init__(self, weekmask, holidays, calendar)
 
     @cache_readonly
     def cbday(self):
@@ -1028,7 +1024,17 @@ class CustomBusinessMonthEnd(BusinessMixin, MonthOffset):
 
     @cache_readonly
     def m_offset(self):
-        return MonthEnd(n=1, normalize=self.normalize)
+        if self._prefix.endswith('S'):
+            # MonthBegin:
+            return MonthBegin(n=1, normalize=self.normalize)
+        else:
+            # MonthEnd
+            return MonthEnd(n=1, normalize=self.normalize)
+
+
+class CustomBusinessMonthEnd(_CustomBusinessMonth):
+    __doc__ = _CustomBusinessMonth.__doc__.replace('[BEGIN/END]', 'end')
+    _prefix = 'CBM'
 
     @apply_wraps
     def apply(self, other):
@@ -1054,56 +1060,9 @@ class CustomBusinessMonthEnd(BusinessMixin, MonthOffset):
         return result
 
 
-class CustomBusinessMonthBegin(BusinessMixin, MonthOffset):
-    """
-    DateOffset subclass representing one custom business month, incrementing
-    between beginning of month dates
-
-    Parameters
-    ----------
-    n : int, default 1
-    offset : timedelta, default timedelta(0)
-    normalize : bool, default False
-        Normalize start/end dates to midnight before generating date range
-    weekmask : str, Default 'Mon Tue Wed Thu Fri'
-        weekmask of valid business days, passed to ``numpy.busdaycalendar``
-    holidays : list
-        list/array of dates to exclude from the set of valid business days,
-        passed to ``numpy.busdaycalendar``
-    calendar : pd.HolidayCalendar or np.busdaycalendar
-    """
-
-    _cacheable = False
+class CustomBusinessMonthBegin(_CustomBusinessMonth):
+    __doc__ = _CustomBusinessMonth.__doc__.replace('[BEGIN/END]', 'beginning')
     _prefix = 'CBMS'
-
-    onOffset = DateOffset.onOffset  # override MonthOffset method
-    apply_index = DateOffset.apply_index  # override MonthOffset method
-
-    def __init__(self, n=1, normalize=False, weekmask='Mon Tue Wed Thu Fri',
-                 holidays=None, calendar=None, offset=timedelta(0)):
-        self.n = self._validate_n(n)
-        self.normalize = normalize
-        self._offset = offset
-        self.kwds = {}
-
-        # _get_calendar does validation and possible transformation
-        # of calendar and holidays.
-        calendar, holidays = _get_calendar(weekmask=weekmask,
-                                           holidays=holidays,
-                                           calendar=calendar)
-        self.kwds['calendar'] = self.calendar = calendar
-        self.kwds['weekmask'] = self.weekmask = weekmask
-        self.kwds['holidays'] = self.holidays = holidays
-        self.kwds['offset'] = offset
-
-    @cache_readonly
-    def cbday(self):
-        kwds = self.kwds
-        return CustomBusinessDay(n=self.n, normalize=self.normalize, **kwds)
-
-    @cache_readonly
-    def m_offset(self):
-        return MonthBegin(n=1, normalize=self.normalize)
 
     @apply_wraps
     def apply(self, other):
@@ -1707,13 +1666,16 @@ class YearOffset(DateOffset):
         return dt.month == self.month and dt.day == self._get_offset_day(dt)
 
     def __init__(self, n=1, normalize=False, month=None):
+        self.n = self._validate_n(n)
+        self.normalize = normalize
+
         month = month if month is not None else self._default_month
         self.month = month
 
         if self.month < 1 or self.month > 12:
             raise ValueError('Month must go from 1 to 12')
 
-        DateOffset.__init__(self, n=n, normalize=normalize, month=month)
+        self.kwds = {'month': month}
 
     @classmethod
     def _from_name(cls, suffix=None):
