@@ -28,6 +28,13 @@ _NA_VALUES = set([
 ])
 
 
+try:
+    import requests
+    _REQUESTS_INSTALLED = True
+except ImportError:
+    _REQUESTS_INSTALLED = False
+
+
 if compat.PY3:
     from urllib.request import urlopen, pathname2url
     _urlopen = urlopen
@@ -168,8 +175,87 @@ def _stringify_path(filepath_or_buffer):
     return filepath_or_buffer
 
 
+def _is_handled_by_requests(o):
+    return _is_url(o) and parse_url(o).scheme in ['http', 'https']
+
+
+def gen_session(http_params):
+    """
+    Generate python-requests session from http_params dict
+    """
+    s = None
+    if http_params and type(http_params) is requests.sessions.Session:
+        s = http_params
+    else:
+        s = requests.Session()
+        s.stream = True
+        # Setting accept-encoding to None for backwards compatibility with
+        # urlopen. ideally we want to allow gzip download
+        # urlopen doesnt decompress automatically, requests does.
+        s.headers.update({'Accept-Encoding': None})
+    if http_params and type(http_params) is dict:
+        if http_params.get('auth', None) and not s.auth:
+            s.auth = http_params.get('auth')
+        if http_params.get('verify', True) is False and s.verify is not False:
+            s.verify = False
+    return s
+
+
+def fetch_url(url, http_params=None, skip_requests=False):
+    """
+    If url is url, first try python-requests else try urllib.
+    Note if requests library is used, auto gunzip is
+    disabled for backwards compatibility of code with urlopen
+
+    Parameters
+    ----------
+    url : str
+        Could be:
+            'http://cnn.com'
+            'file:///home/sky/aaa.csv'
+
+    http_params : dict or requests.Session(), default None
+        A python dict containing:
+            'auth': tuple (str, str) eg (username, password)
+            'auth': Any other auth object accepted by requests
+            'verify': boolean, default True
+                 If False, allow self signed and invalid SSL cert for https
+        or
+        A python requests.Session object if http(s) path to enable basic auth
+        and many other scenarios that requests allows
+
+        .. versionadded:: 0.22.0
+
+   skip_requests : boolean, default False
+       for testing - disable `requests` library Internal use only
+
+        .. versionadded:: 0.22.0
+    Raises
+    ------
+    ValueError if http_params specified without installed python-requests pkg
+    """
+    if not http_params:
+        skip_requests = True
+    if (not skip_requests) and \
+            _REQUESTS_INSTALLED and \
+            _is_handled_by_requests(url):
+        s = gen_session(http_params)
+        resp = s.get(url)
+        resp.raise_for_status()
+        content_bytes = resp.content
+    else:
+        if http_params and (skip_requests or not _REQUESTS_INSTALLED):
+            msg = 'To utilize http_params, python-requests library is ' + \
+                  'required but not detected'
+            raise ValueError(msg)
+        resp = _urlopen(url)
+        content_bytes = resp.read()
+    return resp, content_bytes
+
+
 def get_filepath_or_buffer(filepath_or_buffer, encoding=None,
-                           compression=None):
+                           compression=None, http_params=None,
+                           skip_requests=False):
     """
     If the filepath_or_buffer is a url, translate and return the buffer.
     Otherwise passthrough.
@@ -180,19 +266,45 @@ def get_filepath_or_buffer(filepath_or_buffer, encoding=None,
                          or buffer
     encoding : the encoding to use to decode py3 bytes, default is 'utf-8'
 
+    compression : str, default None
+        indicate the compression such as 'gzip'.
+
+    http_params : dict or requests.Session(), default None
+        A python dict containing:
+            'auth': tuple (str, str) eg (unae, pwd)
+            'auth': Any other auth object accepted by requests
+            'verify': boolean, default True
+                 If False, allow self signed and invalid SSL cert for https
+        or
+        A python requests.Session object if http(s) path to enable basic auth
+        and many other scenarios that requests allows
+
+        .. versionadded:: 0.22.0
+
+   skip_requests : boolean, default False
+       for testing - disable `requests` library Internal use only
+
+        .. versionadded:: 0.22.0
+
     Returns
     -------
     a filepath_or_buffer, the encoding, the compression
+
+    Raises
+    ------
+    ValueError if http_params specified without installed python-requests pkg
     """
     filepath_or_buffer = _stringify_path(filepath_or_buffer)
 
     if _is_url(filepath_or_buffer):
-        req = _urlopen(filepath_or_buffer)
+        req, content_bytes = fetch_url(filepath_or_buffer,
+                                       http_params,
+                                       skip_requests)
+        reader = BytesIO(content_bytes)
         content_encoding = req.headers.get('Content-Encoding', None)
         if content_encoding == 'gzip':
             # Override compression based on Content-Encoding header
             compression = 'gzip'
-        reader = BytesIO(req.read())
         return reader, encoding, compression
 
     if _is_s3_url(filepath_or_buffer):

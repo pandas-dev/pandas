@@ -14,7 +14,7 @@ import numpy as np
 
 from pandas.core.dtypes.common import is_list_like
 from pandas.errors import EmptyDataError
-from pandas.io.common import (_is_url, urlopen,
+from pandas.io.common import (_is_url, fetch_url,
                               parse_url, _validate_header_arg)
 from pandas.io.parsers import TextParser
 from pandas.compat import (lrange, lmap, u, string_types, iteritems,
@@ -116,20 +116,31 @@ def _get_skiprows(skiprows):
                     type(skiprows).__name__)
 
 
-def _read(obj):
+def _read(obj, http_params=None):
     """Try to read from a url, file or string.
 
     Parameters
     ----------
     obj : str, unicode, or file-like
 
+    http_params : dict or requests.Session(), default None
+        A python dict containing:
+            'auth': tuple (str, str) eg (unae, pwd)
+            'auth': Any other auth object accepted by requests
+            'verify': boolean, default True
+                 If False, allow self signed and invalid SSL certs for https
+        or
+        A python requests.Session object if http(s) path to enable basic auth
+        and many other scenarios that requests allows
+
+        .. versionadded:: 0.22.0
+
     Returns
     -------
     raw_text : str
     """
     if _is_url(obj):
-        with urlopen(obj) as url:
-            text = url.read()
+        req, text = fetch_url(obj, http_params)
     elif hasattr(obj, 'read'):
         text = obj.read()
     elif isinstance(obj, char_types):
@@ -172,6 +183,24 @@ class _HtmlFrameParser(object):
         A dictionary of valid table attributes to use to search for table
         elements.
 
+    encoding : str or None, optional
+        The encoding used to decode the web page. Defaults to ``None``.``None``
+        preserves the previous encoding behavior, which depends on the
+        underlying parser library (e.g., the parser library will try to use
+        the encoding provided by the document).
+
+    http_params : dict or requests.Session(), default None
+        A python dict containing:
+            'auth': tuple (str, str) eg (username, password)
+            'auth': Any other auth object accepted by requests
+            'verify': boolean, default True
+                 If False, allow self signed and invalid SSL cert for https
+        or
+        A python requests.Session object if http(s) path to enable basic auth
+        and many other scenarios that requests allows
+
+        .. versionadded:: 0.22.0
+
     Notes
     -----
     To subclass this class effectively you must override the following methods:
@@ -187,11 +216,12 @@ class _HtmlFrameParser(object):
     functionality.
     """
 
-    def __init__(self, io, match, attrs, encoding):
+    def __init__(self, io, match, attrs, encoding, http_params=None):
         self.io = io
         self.match = match
         self.attrs = attrs
         self.encoding = encoding
+        self.http_params = http_params
 
     def parse_tables(self):
         tables = self._parse_tables(self._build_doc(), self.match, self.attrs)
@@ -444,7 +474,7 @@ class _BeautifulSoupHtml5LibFrameParser(_HtmlFrameParser):
         return result
 
     def _setup_build_doc(self):
-        raw_text = _read(self.io)
+        raw_text = _read(self.io, self.http_params)
         if not raw_text:
             raise ValueError('No text parsed from document: {doc}'
                              .format(doc=self.io))
@@ -737,7 +767,8 @@ def _parse(flavor, io, match, attrs, encoding, **kwargs):
     retained = None
     for flav in flavor:
         parser = _parser_dispatch(flav)
-        p = parser(io, compiled_match, attrs, encoding)
+        p = parser(io, compiled_match, attrs, encoding,
+                   http_params=kwargs.get('http_params', None))
 
         try:
             tables = p.parse_tables()
@@ -773,7 +804,7 @@ def read_html(io, match='.+', flavor=None, header=None, index_col=None,
               skiprows=None, attrs=None, parse_dates=False,
               tupleize_cols=None, thousands=',', encoding=None,
               decimal='.', converters=None, na_values=None,
-              keep_default_na=True):
+              keep_default_na=True, http_params=None):
     r"""Read HTML tables into a ``list`` of ``DataFrame`` objects.
 
     Parameters
@@ -877,6 +908,12 @@ def read_html(io, match='.+', flavor=None, header=None, index_col=None,
 
         .. versionadded:: 0.19.0
 
+    http_params : requests.Session(), default None
+        A python requests.Session object if http(s) path to enable basic auth
+        and many other scenarios that requests allows
+
+        .. versionadded:: 0.22.0
+
     Returns
     -------
     dfs : list of DataFrames
@@ -924,4 +961,4 @@ def read_html(io, match='.+', flavor=None, header=None, index_col=None,
                   parse_dates=parse_dates, tupleize_cols=tupleize_cols,
                   thousands=thousands, attrs=attrs, encoding=encoding,
                   decimal=decimal, converters=converters, na_values=na_values,
-                  keep_default_na=keep_default_na)
+                  keep_default_na=keep_default_na, http_params=http_params)

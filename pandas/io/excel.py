@@ -15,10 +15,11 @@ from pandas.core.dtypes.common import (
     is_integer, is_float,
     is_bool, is_list_like)
 
+from pandas.compat import BytesIO
 from pandas.core.frame import DataFrame
 from pandas.io.parsers import TextParser
 from pandas.errors import EmptyDataError
-from pandas.io.common import (_is_url, _urlopen, _validate_header_arg,
+from pandas.io.common import (_is_url, fetch_url, _validate_header_arg,
                               get_filepath_or_buffer, _NA_VALUES,
                               _stringify_path)
 from pandas.core.indexes.period import Period
@@ -148,6 +149,19 @@ convert_float : boolean, default True
     data will be read in as floats: Excel stores all numbers as floats
     internally
 
+http_params : dict or requests.Session(), default None
+    A python dict containing:
+        'auth': tuple (str, str) eg (unae, pwd)
+        'auth': Any other auth object accepted by requests
+        'verify': boolean, Default True
+             If False, allow self signed and invalid SSL certs for https
+    or
+    A python requests.Session object if http(s) path to enable basic auth
+    and many other scenarios that requests allows
+
+    .. versionadded:: 0.22.0
+
+
 Returns
 -------
 parsed : DataFrame or Dict of DataFrames
@@ -199,7 +213,6 @@ def read_excel(io, sheet_name=0, header=0, skiprows=None, skip_footer=0,
                convert_float=True, converters=None, dtype=None,
                true_values=None, false_values=None, engine=None,
                squeeze=False, **kwds):
-
     # Can't use _deprecate_kwarg since sheetname=None has a special meaning
     if is_integer(sheet_name) and sheet_name == 0 and 'sheetname' in kwds:
         warnings.warn("The `sheetname` keyword is deprecated, use "
@@ -210,7 +223,10 @@ def read_excel(io, sheet_name=0, header=0, skiprows=None, skip_footer=0,
                         "Use just `sheet_name`")
 
     if not isinstance(io, ExcelFile):
-        io = ExcelFile(io, engine=engine)
+        ukwds = {}
+        if kwds.get('http_params', None) is not None:
+            ukwds['http_params'] = kwds.get('http_params')
+        io = ExcelFile(io, engine=engine, **ukwds)
 
     return io._parse_excel(
         sheetname=sheet_name, header=header, skiprows=skiprows, names=names,
@@ -263,7 +279,9 @@ class ExcelFile(object):
         # If io is a url, want to keep the data as bytes so can't pass
         # to get_filepath_or_buffer()
         if _is_url(self._io):
-            io = _urlopen(self._io)
+            hp = kwds.get('http_params', None)
+            req, content = fetch_url(self._io, http_params=hp)
+            io = BytesIO(content)
         elif not isinstance(self.io, (ExcelFile, xlrd.Book)):
             io, _, _ = get_filepath_or_buffer(self._io)
 

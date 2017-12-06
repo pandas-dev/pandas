@@ -427,10 +427,11 @@ def _read(filepath_or_buffer, kwds):
         encoding = re.sub('_', '-', encoding).lower()
         kwds['encoding'] = encoding
 
+    http_params = kwds.get('http_params', None)
     compression = kwds.get('compression')
     compression = _infer_compression(filepath_or_buffer, compression)
     filepath_or_buffer, _, compression = get_filepath_or_buffer(
-        filepath_or_buffer, encoding, compression)
+        filepath_or_buffer, encoding, compression, http_params)
     kwds['compression'] = compression
 
     if kwds.get('date_parser', None) is not None:
@@ -624,7 +625,11 @@ def _make_parser_function(name, sep=','):
                  low_memory=_c_parser_defaults['low_memory'],
                  buffer_lines=None,
                  memory_map=False,
-                 float_precision=None):
+                 float_precision=None,
+
+                 # python requests session
+                 http_params=None,
+                 ):
 
         # Alias sep -> delimiter.
         if delimiter is None:
@@ -704,7 +709,8 @@ def _make_parser_function(name, sep=','):
                     mangle_dupe_cols=mangle_dupe_cols,
                     tupleize_cols=tupleize_cols,
                     infer_datetime_format=infer_datetime_format,
-                    skip_blank_lines=skip_blank_lines)
+                    skip_blank_lines=skip_blank_lines,
+                    http_params=http_params)
 
         return _read(filepath_or_buffer, kwds)
 
