@@ -4938,7 +4938,7 @@ class TestHDFStore(Base):
         })
         df['a'] = df.a.astype('category')
         df['b'] = df.b.astype('category')
-        expected = df.copy()
+        expected = df
         with ensure_clean_path(self.path) as path:
             df.to_hdf(path, 'df', format='table', data_columns=True)
             result = read_hdf(path, 'df')
