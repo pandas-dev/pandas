@@ -13,7 +13,7 @@ from pandas import DataFrame, MultiIndex, Series, Index, merge, concat
 
 from pandas._libs import join as libjoin
 import pandas.util.testing as tm
-from pandas.tests.reshape.test_merge import get_test_data, N, NGROUPS
+from pandas.tests.reshape.merge.test_merge import get_test_data, N, NGROUPS
 
 
 a_ = np.array
