@@ -9,6 +9,7 @@ import pytest
 
 import pandas.util.testing as tm
 
+from pandas import Timestamp
 from pandas.tseries.frequencies import get_offset, _INVALID_FREQ_ERROR
 from pandas.tseries.offsets import FY5253Quarter, FY5253
 from pandas._libs.tslibs.offsets import WeekDay
@@ -604,3 +605,23 @@ class TestFY5253NearestEndMonthQuarter(Base):
         assert_offset_equal(offset2,
                             datetime(2013, 1, 15),
                             datetime(2013, 3, 30))
+
+
+def test_bunched_yearends():
+    # GH#14774 cases with two fiscal year-ends in the same calendar-year
+    fy = FY5253(n=1, weekday=5, startingMonth=12, variation='nearest')
+    dt = Timestamp('2004-01-01')
+    assert fy.rollback(dt) == Timestamp('2002-12-28')
+    assert (-fy).apply(dt) == Timestamp('2002-12-28')
+    assert dt - fy == Timestamp('2002-12-28')
+
+    assert fy.rollforward(dt) == Timestamp('2004-01-03')
+    assert fy.apply(dt) == Timestamp('2004-01-03')
+    assert fy + dt == Timestamp('2004-01-03')
+    assert dt + fy == Timestamp('2004-01-03')
+
+    # Same thing, but starting from a Timestamp in the previous year.
+    dt = Timestamp('2003-12-31')
+    assert fy.rollback(dt) == Timestamp('2002-12-28')
+    assert (-fy).apply(dt) == Timestamp('2002-12-28')
+    assert dt - fy == Timestamp('2002-12-28')
