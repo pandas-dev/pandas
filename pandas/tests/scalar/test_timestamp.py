@@ -359,7 +359,7 @@ class TestTimestamp(object):
                                       '2014-01-01 00:00:00.000000001'])
     def test_repr(self, date, freq):
         # dateutil zone change (only matters for repr)
-        if dateutil.__version__ >= LooseVersion('2.6.0'):
+        if LooseVersion(dateutil.__version__) >= LooseVersion('2.6.0'):
             timezones = ['UTC', 'Asia/Tokyo', 'US/Eastern',
                          'dateutil/US/Pacific']
         else:

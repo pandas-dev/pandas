@@ -21,7 +21,8 @@ from pandas.tests.frame.common import TestData, _check_mixed_float
 
 try:
     import scipy
-    _is_scipy_ge_0190 = scipy.__version__ >= LooseVersion('0.19.0')
+    _is_scipy_ge_0190 = (LooseVersion(scipy.__version__) >=
+                         LooseVersion('0.19.0'))
 except:
     _is_scipy_ge_0190 = False
 
@@ -717,7 +718,7 @@ class TestDataFrameInterpolate(TestData):
         result = df.interpolate(method='pchip')
         expected.loc[2, 'A'] = 3
 
-        if LooseVersion(scipy.__version__) >= '0.17.0':
+        if LooseVersion(scipy.__version__) >= LooseVersion('0.17.0'):
             expected.loc[5, 'A'] = 6.0
         else:
             expected.loc[5, 'A'] = 6.125

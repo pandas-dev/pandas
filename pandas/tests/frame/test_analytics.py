@@ -1752,7 +1752,7 @@ class TestDataFrameAnalytics(TestData):
             'col1': [1.123, 2.123, 3.123],
             'col2': [1.2, 2.2, 3.2]})
 
-        if sys.version < LooseVersion('2.7'):
+        if LooseVersion(sys.version) < LooseVersion('2.7'):
             # Rounding with decimal is a ValueError in Python < 2.7
             with pytest.raises(ValueError):
                 df.round(nan_round_Series)

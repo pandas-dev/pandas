@@ -1186,7 +1186,7 @@ def test_nan_to_nat_conversions():
 
     # numpy < 1.7.0 is wrong
     from distutils.version import LooseVersion
-    if LooseVersion(np.__version__) >= '1.7.0':
+    if LooseVersion(np.__version__) >= LooseVersion('1.7.0'):
         assert (s[8].value == np.datetime64('NaT').astype(np.int64))
 
 
