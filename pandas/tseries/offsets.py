@@ -1831,21 +1831,26 @@ class FY5253(DateOffset):
         elif n > 0:
             if other < prev_year:
                 n -= 2
-                # TODO: Not hit in tests
-            elif other < cur_year:
+            elif prev_year < other < cur_year:
                 n -= 1
-            elif other < next_year:
+            elif cur_year < other < next_year:
                 pass
             else:
                 assert False
         else:
-            if other > next_year:
+            if next_year < other:
                 n += 2
-                # TODO: Not hit in tests
-            elif other > cur_year:
+                # TODO: Not hit in tests; UPDATE: looks impossible
+            elif cur_year < other < next_year:
                 n += 1
-            elif other > prev_year:
+            elif prev_year < other < cur_year:
                 pass
+            elif (other.year == prev_year.year and other < prev_year and
+                  prev_year - other <= timedelta(6)):
+                # GH#14774, error when next_year.year == cur_year.year
+                # e.g. prev_year == datetime(2004, 1, 3),
+                # other == datetime(2004, 1, 1)
+                n -= 1
             else:
                 assert False
 

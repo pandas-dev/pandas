@@ -417,7 +417,7 @@ class TestUltraJSONTests(object):
 
     def test_npy_nat(self):
         from distutils.version import LooseVersion
-        if LooseVersion(np.__version__) < '1.7.0':
+        if LooseVersion(np.__version__) < LooseVersion('1.7.0'):
             pytest.skip("numpy version < 1.7.0, is "
                         "{0}".format(np.__version__))
 
