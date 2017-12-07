@@ -23,12 +23,11 @@ from cpython.datetime cimport (PyDateTime_Check, PyDate_Check,
                                timedelta, datetime, date)
 # import datetime C API
 PyDateTime_IMPORT
-# this is our datetime.pxd
-from datetime cimport _string_to_dts
 
 
 from tslibs.np_datetime cimport (check_dts_bounds,
                                  pandas_datetimestruct,
+                                 _string_to_dts,
                                  dt64_to_dtstruct, dtstruct_to_dt64,
                                  pydatetime_to_dt64, pydate_to_dt64,
                                  get_datetime64_value,
