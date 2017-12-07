@@ -262,7 +262,7 @@ Indexing
 - Bug in :class:`IntervalIndex` where empty and purely NA data was constructed inconsistently depending on the construction method (:issue:`18421`)
 - Bug in :func:`IntervalIndex.symmetric_difference` where the symmetric difference with a non-``IntervalIndex`` did not raise (:issue:`18475`)
 - Bug in indexing a datetimelike ``Index`` that raised ``ValueError`` instead of ``IndexError`` (:issue:`18386`).
-
+- Bug in tz-aware :class:`DatetimeIndex` where addition/subtraction with a :class:`TimedeltaIndex` or array with ``dtype='timedelta64[ns]'`` was incorrect (:issue:`17558`)
 
 I/O
 ^^^

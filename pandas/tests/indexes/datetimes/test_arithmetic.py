@@ -122,6 +122,99 @@ class TestDatetimeIndexArithmetic(object):
         tm.assert_index_equal(rng, expected)
 
     # -------------------------------------------------------------
+    # Binary operations DatetimeIndex and TimedeltaIndex/array
+    def test_dti_add_tdi(self, tz):
+        # GH 17558
+        dti = DatetimeIndex([Timestamp('2017-01-01', tz=tz)] * 10)
+        tdi = pd.timedelta_range('0 days', periods=10)
+        expected = pd.date_range('2017-01-01', periods=10, tz=tz)
+
+        # add with TimdeltaIndex
+        result = dti + tdi
+        tm.assert_index_equal(result, expected)
+
+        result = tdi + dti
+        tm.assert_index_equal(result, expected)
+
+        # add with timedelta64 array
+        result = dti + tdi.values
+        tm.assert_index_equal(result, expected)
+
+        result = tdi.values + dti
+        tm.assert_index_equal(result, expected)
+
+    def test_dti_iadd_tdi(self, tz):
+        # GH 17558
+        dti = DatetimeIndex([Timestamp('2017-01-01', tz=tz)] * 10)
+        tdi = pd.timedelta_range('0 days', periods=10)
+        expected = pd.date_range('2017-01-01', periods=10, tz=tz)
+
+        # iadd with TimdeltaIndex
+        result = DatetimeIndex([Timestamp('2017-01-01', tz=tz)] * 10)
+        result += tdi
+        tm.assert_index_equal(result, expected)
+
+        result = pd.timedelta_range('0 days', periods=10)
+        result += dti
+        tm.assert_index_equal(result, expected)
+
+        # iadd with timedelta64 array
+        result = DatetimeIndex([Timestamp('2017-01-01', tz=tz)] * 10)
+        result += tdi.values
+        tm.assert_index_equal(result, expected)
+
+        result = pd.timedelta_range('0 days', periods=10)
+        result += dti
+        tm.assert_index_equal(result, expected)
+
+    def test_dti_sub_tdi(self, tz):
+        # GH 17558
+        dti = DatetimeIndex([Timestamp('2017-01-01', tz=tz)] * 10)
+        tdi = pd.timedelta_range('0 days', periods=10)
+        expected = pd.date_range('2017-01-01', periods=10, tz=tz, freq='-1D')
+
+        # sub with TimedeltaIndex
+        result = dti - tdi
+        tm.assert_index_equal(result, expected)
+
+        msg = 'cannot subtract TimedeltaIndex and DatetimeIndex'
+        with tm.assert_raises_regex(TypeError, msg):
+            tdi - dti
+
+        # sub with timedelta64 array
+        result = dti - tdi.values
+        tm.assert_index_equal(result, expected)
+
+        msg = 'cannot perform __neg__ with this index type:'
+        with tm.assert_raises_regex(TypeError, msg):
+            tdi.values - dti
+
+    def test_dti_isub_tdi(self, tz):
+        # GH 17558
+        dti = DatetimeIndex([Timestamp('2017-01-01', tz=tz)] * 10)
+        tdi = pd.timedelta_range('0 days', periods=10)
+        expected = pd.date_range('2017-01-01', periods=10, tz=tz, freq='-1D')
+
+        # isub with TimedeltaIndex
+        result = DatetimeIndex([Timestamp('2017-01-01', tz=tz)] * 10)
+        result -= tdi
+        tm.assert_index_equal(result, expected)
+
+        msg = 'cannot subtract TimedeltaIndex and DatetimeIndex'
+        with tm.assert_raises_regex(TypeError, msg):
+            tdi -= dti
+
+        # isub with timedelta64 array
+        result = DatetimeIndex([Timestamp('2017-01-01', tz=tz)] * 10)
+        result -= tdi.values
+        tm.assert_index_equal(result, expected)
+
+        msg = '|'.join(['cannot perform __neg__ with this index type:',
+                        'ufunc subtract cannot use operands with types'])
+        with tm.assert_raises_regex(TypeError, msg):
+            tdi.values -= dti
+
+    # -------------------------------------------------------------
     # Binary Operations DatetimeIndex and datetime-like
     # TODO: A couple other tests belong in this section.  Move them in
     # A PR where there isn't already a giant diff.

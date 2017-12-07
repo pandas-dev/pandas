@@ -14,7 +14,7 @@ from pandas.core.dtypes.common import (
     is_integer, is_float,
     is_bool_dtype, _ensure_int64,
     is_scalar, is_dtype_equal,
-    is_list_like)
+    is_list_like, is_timedelta64_dtype)
 from pandas.core.dtypes.generic import (
     ABCIndex, ABCSeries,
     ABCPeriodIndex, ABCIndexClass)
@@ -651,14 +651,14 @@ class DatetimeIndexOpsMixin(object):
             from pandas.core.index import Index
             from pandas.core.indexes.timedeltas import TimedeltaIndex
             from pandas.tseries.offsets import DateOffset
-            if isinstance(other, TimedeltaIndex):
+            if is_timedelta64_dtype(other):
                 return self._add_delta(other)
             elif isinstance(self, TimedeltaIndex) and isinstance(other, Index):
                 if hasattr(other, '_add_delta'):
                     return other._add_delta(self)
                 raise TypeError("cannot add TimedeltaIndex and {typ}"
                                 .format(typ=type(other)))
-            elif isinstance(other, (DateOffset, timedelta, np.timedelta64)):
+            elif isinstance(other, (DateOffset, timedelta)):
                 return self._add_delta(other)
             elif is_integer(other):
                 return self.shift(other)
@@ -674,7 +674,7 @@ class DatetimeIndexOpsMixin(object):
             from pandas.core.indexes.datetimes import DatetimeIndex
             from pandas.core.indexes.timedeltas import TimedeltaIndex
             from pandas.tseries.offsets import DateOffset
-            if isinstance(other, TimedeltaIndex):
+            if is_timedelta64_dtype(other):
                 return self._add_delta(-other)
             elif isinstance(self, TimedeltaIndex) and isinstance(other, Index):
                 if not isinstance(other, TimedeltaIndex):
@@ -687,7 +687,7 @@ class DatetimeIndexOpsMixin(object):
                 raise TypeError("cannot subtract {typ1} and {typ2}"
                                 .format(typ1=type(self).__name__,
                                         typ2=type(other).__name__))
-            elif isinstance(other, (DateOffset, timedelta, np.timedelta64)):
+            elif isinstance(other, (DateOffset, timedelta)):
                 return self._add_delta(-other)
             elif is_integer(other):
                 return self.shift(-other)
@@ -736,7 +736,7 @@ class DatetimeIndexOpsMixin(object):
         if self.hasnans or other.hasnans:
             mask = (self._isnan) | (other._isnan)
             new_values[mask] = iNaT
-        return new_values.view(self.dtype)
+        return new_values.view('i8')
 
     def isin(self, values):
         """
