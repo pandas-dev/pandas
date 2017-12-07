@@ -2373,6 +2373,17 @@ Style Export and Import
    Styler.use
    Styler.to_excel
 
+Plotting
+~~~~~~~~
+
+.. currentmodule:: pandas
+
+.. autosummary::
+   :toctree: generated/
+
+   plotting.register_matplotlib_converters
+   plotting.deregister_matplotlib_converters
+
 .. currentmodule:: pandas
 
 General utility functions

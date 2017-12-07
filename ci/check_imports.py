@@ -9,7 +9,6 @@ blacklist = {
     'ipython',
     'jinja2'
     'lxml',
-    'matplotlib',
     'numexpr',
     'openpyxl',
     'py',

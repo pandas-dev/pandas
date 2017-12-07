@@ -11,6 +11,7 @@ import numpy as np
 
 from pandas.util._decorators import cache_readonly
 from pandas.core.base import PandasObject
+from pandas.core.config import get_option
 from pandas.core.dtypes.missing import isna, notna, remove_na_arraylike
 from pandas.core.dtypes.common import (
     is_list_like,
@@ -40,16 +41,13 @@ from pandas.plotting._tools import (_subplots, _flatten, table,
                                     _get_xlim, _set_ticks_props,
                                     format_date_labels)
 
-_registered = False
-
-
-def _setup():
-    # delay the import of matplotlib until nescessary
-    global _registered
-    if not _registered:
-        from pandas.plotting import _converter
-        _converter.register()
-        _registered = True
+try:
+    from pandas.plotting import _converter
+except ImportError:
+    pass
+else:
+    if get_option('plotting.matplotlib.register_converters'):
+        _converter.register(explicit=True)
 
 
 def _get_standard_kind(kind):
@@ -99,7 +97,7 @@ class MPLPlot(object):
                  secondary_y=False, colormap=None,
                  table=False, layout=None, **kwds):
 
-        _setup()
+        _converter._WARN = False
         self.data = data
         self.by = by
 
@@ -2064,7 +2062,7 @@ def boxplot_frame(self, column=None, by=None, ax=None, fontsize=None, rot=0,
                   grid=True, figsize=None, layout=None,
                   return_type=None, **kwds):
     import matplotlib.pyplot as plt
-    _setup()
+    _converter._WARN = False
     ax = boxplot(self, column=column, by=by, ax=ax, fontsize=fontsize,
                  grid=grid, rot=rot, figsize=figsize, layout=layout,
                  return_type=return_type, **kwds)
@@ -2160,7 +2158,7 @@ def hist_frame(data, column=None, by=None, grid=True, xlabelsize=None,
     `**kwds` : other plotting keyword arguments
         To be passed to hist function
     """
-    _setup()
+    _converter._WARN = False
     if by is not None:
         axes = grouped_hist(data, column=column, by=by, ax=ax, grid=grid,
                             figsize=figsize, sharex=sharex, sharey=sharey,
@@ -2294,6 +2292,8 @@ def grouped_hist(data, column=None, by=None, ax=None, bins=50, figsize=None,
     -------
     axes: collection of Matplotlib Axes
     """
+    _converter._WARN = False
+
     def plot_group(group, ax):
         ax.hist(group.dropna().values, bins=bins, **kwargs)
 
@@ -2358,7 +2358,7 @@ def boxplot_frame_groupby(grouped, subplots=True, column=None, fontsize=None,
     >>> grouped = df.unstack(level='lvl1').groupby(level=0, axis=1)
     >>> boxplot_frame_groupby(grouped, subplots=False)
     """
-    _setup()
+    _converter._WARN = False
     if subplots is True:
         naxes = len(grouped)
         fig, axes = _subplots(naxes=naxes, squeeze=False,
