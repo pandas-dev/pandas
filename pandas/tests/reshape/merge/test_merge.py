@@ -1371,42 +1371,46 @@ class TestMergeMulti(object):
         pytest.raises(NotImplementedError, f)
 
 
-@pytest.fixture
-def df():
-    return DataFrame(
-        {'A': ['foo', 'bar'],
-         'B': Series(['foo', 'bar']).astype('category'),
-         'C': [1, 2],
-         'D': [1.0, 2.0],
-         'E': Series([1, 2], dtype='uint64'),
-         'F': Series([1, 2], dtype='int32')})
-
-
 class TestMergeDtypes(object):
 
-    def test_different(self, df):
+    @pytest.mark.parametrize('right_vals', [
+        ['foo', 'bar'],
+        Series(['foo', 'bar']).astype('category'),
+        [1, 2],
+        [1.0, 2.0],
+        Series([1, 2], dtype='uint64'),
+        Series([1, 2], dtype='int32')
+    ]
+    )
+    def test_different(self, right_vals):
 
-        left = df
-        for col in df.columns:
-            right = DataFrame({'A': df[col]})
-            # GH 9780
-            # We allow merging on object and categorical cols and cast
-            # categorical cols to object
-            if (is_categorical_dtype(right['A'].dtype) or
-               is_object_dtype(right['A'].dtype)):
-                result = pd.merge(left, right, on='A')
-                assert is_object_dtype(result.A.dtype)
-            # GH 9780
-            # We raise for merging on object col and int/float col and
-            # merging on categorical col and int/float col
-            else:
-                msg = ("You are trying to merge on "
-                       "{lk_dtype} and {rk_dtype} columns. "
-                       "If you wish to proceed you should use "
-                       "pd.concat".format(lk_dtype=left['A'].dtype,
-                                          rk_dtype=right['A'].dtype))
-                with tm.assert_raises_regex(ValueError, msg):
-                    pd.merge(left, right, on='A')
+        left = DataFrame({'A': ['foo', 'bar'],
+                          'B': Series(['foo', 'bar']).astype('category'),
+                          'C': [1, 2],
+                          'D': [1.0, 2.0],
+                          'E': Series([1, 2], dtype='uint64'),
+                          'F': Series([1, 2], dtype='int32')})
+        right = DataFrame({'A': right_vals})
+
+        # GH 9780
+        # We allow merging on object and categorical cols and cast
+        # categorical cols to object
+        if (is_categorical_dtype(right['A'].dtype) or
+           is_object_dtype(right['A'].dtype)):
+            result = pd.merge(left, right, on='A')
+            assert is_object_dtype(result.A.dtype)
+
+        # GH 9780
+        # We raise for merging on object col and int/float col and
+        # merging on categorical col and int/float col
+        else:
+            msg = ("You are trying to merge on "
+                   "{lk_dtype} and {rk_dtype} columns. "
+                   "If you wish to proceed you should use "
+                   "pd.concat".format(lk_dtype=left['A'].dtype,
+                                      rk_dtype=right['A'].dtype))
+            with tm.assert_raises_regex(ValueError, msg):
+                pd.merge(left, right, on='A')
 
     @pytest.mark.parametrize('d1', [np.int64, np.int32,
                                     np.int16, np.int8, np.uint8])
