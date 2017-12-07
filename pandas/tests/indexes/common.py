@@ -13,6 +13,7 @@ from pandas import (Series, Index, Float64Index, Int64Index, UInt64Index,
 from pandas.core.indexes.base import InvalidIndexError
 from pandas.core.indexes.datetimelike import DatetimeIndexOpsMixin
 from pandas.core.dtypes.common import needs_i8_conversion
+from pandas.core.dtypes.dtypes import CategoricalDtype
 from pandas._libs.tslib import iNaT
 
 import pandas.util.testing as tm
@@ -1058,3 +1059,20 @@ class Base(object):
 
         with pytest.raises(ValueError):
             index.putmask('foo', 1)
+
+    def test_astype_category(self):
+        # GH 18630
+        index = self.create_index()
+
+        expected = CategoricalIndex(index.values)
+        result = index.astype('category', copy=True)
+        tm.assert_index_equal(result, expected)
+
+        expected = CategoricalIndex(index.values, name='foo')
+        result = index.rename('foo').astype('category', copy=False)
+        tm.assert_index_equal(result, expected)
+
+        dtype = CategoricalDtype(index.unique()[:-1], ordered=True)
+        expected = CategoricalIndex(index.values, dtype=dtype)
+        result = index.astype(dtype)
+        tm.assert_index_equal(result, expected)

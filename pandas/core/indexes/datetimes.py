@@ -20,6 +20,7 @@ from pandas.core.dtypes.common import (
     is_period_dtype,
     is_bool_dtype,
     is_string_dtype,
+    is_categorical_dtype,
     is_string_like,
     is_list_like,
     is_scalar,
@@ -915,6 +916,10 @@ class DatetimeIndex(DatelikeOps, TimelikeOps, DatetimeIndexOpsMixin,
             elif copy is True:
                 return self.copy()
             return self
+        elif is_categorical_dtype(dtype):
+            from pandas.core.indexes.category import CategoricalIndex
+            return CategoricalIndex(self.values, name=self.name, dtype=dtype,
+                                    copy=copy)
         elif is_string_dtype(dtype):
             return Index(self.format(), name=self.name, dtype=object)
         elif is_period_dtype(dtype):

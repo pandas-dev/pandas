@@ -16,6 +16,7 @@ from pandas.core.dtypes.common import (
     is_timedelta64_dtype,
     is_period_dtype,
     is_bool_dtype,
+    is_categorical_dtype,
     pandas_dtype,
     _ensure_object)
 from pandas.core.dtypes.dtypes import PeriodDtype
@@ -517,6 +518,10 @@ class PeriodIndex(DatelikeOps, DatetimeIndexOpsMixin, Int64Index):
             return self.to_timestamp(how=how).tz_localize(dtype.tz)
         elif is_period_dtype(dtype):
             return self.asfreq(freq=dtype.freq)
+        elif is_categorical_dtype(dtype):
+            from pandas.core.indexes.category import CategoricalIndex
+            return CategoricalIndex(self.values, name=self.name, dtype=dtype,
+                                    copy=copy)
         raise TypeError('Cannot cast PeriodIndex to dtype %s' % dtype)
 
     @Substitution(klass='PeriodIndex')

@@ -17,6 +17,7 @@ from pandas.core.dtypes.common import (
     is_object_dtype,
     is_iterator,
     is_list_like,
+    pandas_dtype,
     is_scalar)
 from pandas.core.dtypes.missing import isna, array_equivalent
 from pandas.errors import PerformanceWarning, UnsortedIndexError
@@ -2715,7 +2716,7 @@ class MultiIndex(Index):
 
     @Appender(_index_shared_docs['astype'])
     def astype(self, dtype, copy=True):
-        if not is_object_dtype(np.dtype(dtype)):
+        if not is_object_dtype(pandas_dtype(dtype)):
             raise TypeError('Setting %s dtype to anything other than object '
                             'is not supported' % self.__class__)
         elif copy is True:

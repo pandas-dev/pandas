@@ -7,6 +7,7 @@ from pandas.core.dtypes.common import (
     is_float_dtype,
     is_object_dtype,
     is_integer_dtype,
+    is_categorical_dtype,
     is_bool,
     is_bool_dtype,
     is_scalar)
@@ -321,10 +322,14 @@ class Float64Index(NumericIndex):
             values = self._values.astype(dtype, copy=copy)
         elif is_object_dtype(dtype):
             values = self._values.astype('object', copy=copy)
+        elif is_categorical_dtype(dtype):
+            from pandas.core.indexes.category import CategoricalIndex
+            return CategoricalIndex(self, name=self.name, dtype=dtype,
+                                    copy=copy)
         else:
-            raise TypeError('Setting %s dtype to anything other than '
-                            'float64 or object is not supported' %
-                            self.__class__)
+            raise TypeError('Setting {cls} dtype to anything other than '
+                            'float64, object, or category is not supported'
+                            .format(cls=self.__class__))
         return Index(values, name=self.name, dtype=dtype)
 
     @Appender(_index_shared_docs['_convert_scalar_indexer'])

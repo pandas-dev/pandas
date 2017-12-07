@@ -6,6 +6,7 @@ from datetime import timedelta
 from pandas import (
     Interval, IntervalIndex, Index, isna, notna, interval_range, Timestamp,
     Timedelta, compat, date_range, timedelta_range, DateOffset)
+from pandas.core.dtypes.dtypes import CategoricalDtype
 from pandas.compat import lzip
 from pandas.tseries.offsets import Day
 from pandas._libs.interval import IntervalTree
@@ -376,8 +377,15 @@ class TestIntervalIndex(Base):
         tm.assert_index_equal(result, idx)
         assert result.equals(idx)
 
-        result = idx.astype('category')
+    def test_astype_category(self, closed):
+        # GH 18630
+        idx = self.create_index(closed=closed)
         expected = pd.Categorical(idx, ordered=True)
+
+        result = idx.astype('category')
+        tm.assert_categorical_equal(result, expected)
+
+        result = idx.astype(CategoricalDtype())
         tm.assert_categorical_equal(result, expected)
 
     @pytest.mark.parametrize('klass', [list, tuple, np.array, pd.Series])
