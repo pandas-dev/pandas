@@ -130,7 +130,7 @@ As an example of fully-formed metadata:
    {'index_columns': ['__index_level_0__'],
     'column_indexes': [
         {'name': None,
-         'field_name': None,
+         'field_name': 'None',
          'pandas_type': 'unicode',
          'numpy_type': 'object',
          'metadata': {'encoding': 'UTF-8'}}
@@ -161,8 +161,8 @@ As an example of fully-formed metadata:
          'pandas_type': 'object',
          'numpy_type': 'object',
          'metadata': {'encoding': 'pickle'}},
-        {'name': '__index_level_0__',
-         'field_name': None,
+        {'name': None,
+         'field_name': '__index_level_0__',
          'pandas_type': 'int64',
          'numpy_type': 'int64',
          'metadata': None}
