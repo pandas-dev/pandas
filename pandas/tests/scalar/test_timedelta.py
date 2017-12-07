@@ -15,6 +15,28 @@ from pandas._libs.tslib import iNaT, NaT
 class TestTimedeltaArithmetic(object):
     _multiprocess_can_split_ = True
 
+    def test_arithmetic_overflow(self):
+        with pytest.raises(OverflowError):
+            pd.Timestamp('1700-01-01') + pd.Timedelta(13 * 19999, unit='D')
+
+        with pytest.raises(OverflowError):
+            pd.Timestamp('1700-01-01') + timedelta(days=13 * 19999)
+
+    def test_ops_error_str(self):
+        # GH 13624
+        td = Timedelta('1 day')
+
+        for left, right in [(td, 'a'), ('a', td)]:
+
+            with pytest.raises(TypeError):
+                left + right
+
+            with pytest.raises(TypeError):
+                left > right
+
+            assert not left == right
+            assert left != right
+
     def test_to_timedelta_on_nanoseconds(self):
         # GH 9273
         result = Timedelta(nanoseconds=100)
@@ -93,37 +115,52 @@ class TestTimedeltaArithmetic(object):
         assert Timedelta(239, unit='h') == td - pd.offsets.Hour(1)
         assert Timedelta(-239, unit='h') == pd.offsets.Hour(1) - td
 
-    # TODO: Split by op, better name
-    def test_ops(self):
+    def test_unary_ops(self):
         td = Timedelta(10, unit='d')
+
+        # __neg__, __pos__
         assert -td == Timedelta(-10, unit='d')
+        assert -td == Timedelta('-10d')
         assert +td == Timedelta(10, unit='d')
-        assert td - td == Timedelta(0, unit='ns')
-        assert (td - pd.NaT) is pd.NaT
-        assert td + td == Timedelta(20, unit='d')
-        assert (td + pd.NaT) is pd.NaT
-        assert td * 2 == Timedelta(20, unit='d')
-        assert (td * pd.NaT) is pd.NaT
-        assert td / 2 == Timedelta(5, unit='d')
-        assert td // 2 == Timedelta(5, unit='d')
+
+        # __abs__, __abs__(__neg__)
         assert abs(td) == td
         assert abs(-td) == td
-        assert td / td == 1
+        assert abs(-td) == Timedelta('10d')
+
+    def test_binary_ops_nat(self):
+        td = Timedelta(10, unit='d')
+
+        assert (td - pd.NaT) is pd.NaT
+        assert (td + pd.NaT) is pd.NaT
+        assert (td * pd.NaT) is pd.NaT
         assert (td / pd.NaT) is np.nan
         assert (td // pd.NaT) is np.nan
 
+    def test_binary_ops_integers(self):
+        td = Timedelta(10, unit='d')
+
+        assert td * 2 == Timedelta(20, unit='d')
+        assert td / 2 == Timedelta(5, unit='d')
+        assert td // 2 == Timedelta(5, unit='d')
+
         # invert
-        assert -td == Timedelta('-10d')
         assert td * -1 == Timedelta('-10d')
         assert -1 * td == Timedelta('-10d')
-        assert abs(-td) == Timedelta('10d')
-
-        # invalid multiply with another timedelta
-        pytest.raises(TypeError, lambda: td * td)
 
         # can't operate with integers
         pytest.raises(TypeError, lambda: td + 2)
         pytest.raises(TypeError, lambda: td - 2)
+
+    def test_binary_ops_with_timedelta(self):
+        td = Timedelta(10, unit='d')
+
+        assert td - td == Timedelta(0, unit='ns')
+        assert td + td == Timedelta(20, unit='d')
+        assert td / td == 1
+
+        # invalid multiply with another timedelta
+        pytest.raises(TypeError, lambda: td * td)
 
 
 class TestTimedeltas(object):
@@ -733,14 +770,6 @@ class TestTimedeltas(object):
             tm.assert_series_equal(result_operator, expected)
             tm.assert_series_equal(result_method, expected)
 
-    def test_arithmetic_overflow(self):
-
-        with pytest.raises(OverflowError):
-            pd.Timestamp('1700-01-01') + pd.Timedelta(13 * 19999, unit='D')
-
-        with pytest.raises(OverflowError):
-            pd.Timestamp('1700-01-01') + timedelta(days=13 * 19999)
-
     def test_apply_to_timedelta(self):
         timedelta_NaT = pd.to_timedelta('NaT')
 
@@ -803,18 +832,3 @@ class TestTimedeltas(object):
         result = Timedelta(minutes=1).isoformat()
         expected = 'P0DT0H1M0S'
         assert result == expected
-
-    def test_ops_error_str(self):
-        # GH 13624
-        td = Timedelta('1 day')
-
-        for l, r in [(td, 'a'), ('a', td)]:
-
-            with pytest.raises(TypeError):
-                l + r
-
-            with pytest.raises(TypeError):
-                l > r
-
-            assert not l == r
-            assert l != r

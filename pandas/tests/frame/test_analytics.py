@@ -240,6 +240,16 @@ class TestDataFrameAnalytics(TestData):
         tm.assert_almost_equal(c1, c2)
         assert c1 < 1
 
+    def test_corrwith_mixed_dtypes(self):
+        # GH 18570
+        df = pd.DataFrame({'a': [1, 4, 3, 2], 'b': [4, 6, 7, 3],
+                           'c': ['a', 'b', 'c', 'd']})
+        s = pd.Series([0, 6, 7, 3])
+        result = df.corrwith(s)
+        corrs = [df['a'].corr(s), df['b'].corr(s)]
+        expected = pd.Series(data=corrs, index=['a', 'b'])
+        tm.assert_series_equal(result, expected)
+
     def test_bool_describe_in_mixed_frame(self):
         df = DataFrame({
             'string_data': ['a', 'b', 'c', 'd', 'e'],
@@ -1742,7 +1752,7 @@ class TestDataFrameAnalytics(TestData):
             'col1': [1.123, 2.123, 3.123],
             'col2': [1.2, 2.2, 3.2]})
 
-        if sys.version < LooseVersion('2.7'):
+        if LooseVersion(sys.version) < LooseVersion('2.7'):
             # Rounding with decimal is a ValueError in Python < 2.7
             with pytest.raises(ValueError):
                 df.round(nan_round_Series)

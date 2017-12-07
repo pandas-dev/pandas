@@ -14,7 +14,7 @@ from pandas.core.dtypes.common import (
     is_integer, is_float,
     is_bool_dtype, _ensure_int64,
     is_scalar, is_dtype_equal,
-    is_list_like)
+    is_list_like, is_timedelta64_dtype)
 from pandas.core.dtypes.generic import (
     ABCIndex, ABCSeries,
     ABCPeriodIndex, ABCIndexClass)
@@ -242,6 +242,13 @@ class DatetimeIndexOpsMixin(object):
         """
         return lib.map_infer(values, self._box_func)
 
+    def _box_values_as_index(self):
+        """
+        return object Index which contains boxed values
+        """
+        from pandas.core.index import Index
+        return Index(self._box_values(self.asi8), name=self.name, dtype=object)
+
     def _format_with_header(self, header, **kwargs):
         return header + list(self._format_native_types(**kwargs))
 
@@ -360,7 +367,7 @@ class DatetimeIndexOpsMixin(object):
                 raise TypeError('The map function must return an Index object')
             return result
         except Exception:
-            return self.asobject.map(f)
+            return self.astype(object).map(f)
 
     def sort_values(self, return_indexer=False, ascending=True):
         """
@@ -424,13 +431,15 @@ class DatetimeIndexOpsMixin(object):
 
     @property
     def asobject(self):
-        """
+        """DEPRECATED: Use ``astype(object)`` instead.
+
         return object Index which contains boxed values
 
         *this is an internal non-public method*
         """
-        from pandas.core.index import Index
-        return Index(self._box_values(self.asi8), name=self.name, dtype=object)
+        warnings.warn("'asobject' is deprecated. Use 'astype(object)'"
+                      " instead", FutureWarning, stacklevel=2)
+        return self.astype(object)
 
     def _convert_tolerance(self, tolerance, target):
         tolerance = np.asarray(to_timedelta(tolerance, box=False))
@@ -468,7 +477,7 @@ class DatetimeIndexOpsMixin(object):
         """
         return a list of the underlying data
         """
-        return list(self.asobject)
+        return list(self.astype(object))
 
     def min(self, axis=None, *args, **kwargs):
         """
@@ -642,14 +651,14 @@ class DatetimeIndexOpsMixin(object):
             from pandas.core.index import Index
             from pandas.core.indexes.timedeltas import TimedeltaIndex
             from pandas.tseries.offsets import DateOffset
-            if isinstance(other, TimedeltaIndex):
+            if is_timedelta64_dtype(other):
                 return self._add_delta(other)
             elif isinstance(self, TimedeltaIndex) and isinstance(other, Index):
                 if hasattr(other, '_add_delta'):
                     return other._add_delta(self)
                 raise TypeError("cannot add TimedeltaIndex and {typ}"
                                 .format(typ=type(other)))
-            elif isinstance(other, (DateOffset, timedelta, np.timedelta64)):
+            elif isinstance(other, (DateOffset, timedelta)):
                 return self._add_delta(other)
             elif is_integer(other):
                 return self.shift(other)
@@ -665,7 +674,7 @@ class DatetimeIndexOpsMixin(object):
             from pandas.core.indexes.datetimes import DatetimeIndex
             from pandas.core.indexes.timedeltas import TimedeltaIndex
             from pandas.tseries.offsets import DateOffset
-            if isinstance(other, TimedeltaIndex):
+            if is_timedelta64_dtype(other):
                 return self._add_delta(-other)
             elif isinstance(self, TimedeltaIndex) and isinstance(other, Index):
                 if not isinstance(other, TimedeltaIndex):
@@ -678,7 +687,7 @@ class DatetimeIndexOpsMixin(object):
                 raise TypeError("cannot subtract {typ1} and {typ2}"
                                 .format(typ1=type(self).__name__,
                                         typ2=type(other).__name__))
-            elif isinstance(other, (DateOffset, timedelta, np.timedelta64)):
+            elif isinstance(other, (DateOffset, timedelta)):
                 return self._add_delta(-other)
             elif is_integer(other):
                 return self.shift(-other)
@@ -727,7 +736,7 @@ class DatetimeIndexOpsMixin(object):
         if self.hasnans or other.hasnans:
             mask = (self._isnan) | (other._isnan)
             new_values[mask] = iNaT
-        return new_values.view(self.dtype)
+        return new_values.view('i8')
 
     def isin(self, values):
         """
@@ -746,7 +755,7 @@ class DatetimeIndexOpsMixin(object):
             try:
                 values = type(self)(values)
             except ValueError:
-                return self.asobject.isin(values)
+                return self.astype(object).isin(values)
 
         return algorithms.isin(self.asi8, values.asi8)
 

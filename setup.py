@@ -19,8 +19,6 @@ from setuptools import setup, Command
 import versioneer
 cmdclass = versioneer.get_cmdclass()
 
-PY3 = sys.version_info[0] >= 3
-
 
 def is_platform_windows():
     return sys.platform == 'win32' or sys.platform == 'cygwin'
@@ -34,7 +32,7 @@ def is_platform_mac():
     return sys.platform == 'darwin'
 
 
-min_cython_ver = '0.23'
+min_cython_ver = '0.24'
 try:
     import Cython
     ver = Cython.__version__
@@ -46,7 +44,7 @@ except ImportError:
 min_numpy_ver = '1.9.0'
 setuptools_kwargs = {
     'install_requires': [
-        'python-dateutil >= 2' if PY3 else 'python-dateutil',
+        'python-dateutil >= 2.5.0',
         'pytz >= 2011k',
         'numpy >= {numpy_ver}'.format(numpy_ver=min_numpy_ver),
     ],
@@ -456,8 +454,7 @@ np_datetime_headers = ['pandas/_libs/src/datetime/np_datetime.h',
                        'pandas/_libs/src/datetime/np_datetime_strings.h']
 np_datetime_sources = ['pandas/_libs/src/datetime/np_datetime.c',
                        'pandas/_libs/src/datetime/np_datetime_strings.c']
-tseries_depends = np_datetime_headers + ['pandas/_libs/src/datetime.pxd',
-                                         'pandas/_libs/tslibs/np_datetime.pxd']
+tseries_depends = np_datetime_headers + ['pandas/_libs/tslibs/np_datetime.pxd']
 
 # some linux distros require it
 libraries = ['m'] if not is_platform_windows() else []
@@ -768,6 +765,7 @@ setup(name=DISTNAME,
                 'pandas.tests.io.formats',
                 'pandas.tests.groupby',
                 'pandas.tests.reshape',
+                'pandas.tests.reshape.merge',
                 'pandas.tests.series',
                 'pandas.tests.scalar',
                 'pandas.tests.tseries',
@@ -807,6 +805,7 @@ setup(name=DISTNAME,
                     'pandas.tests.io.formats': ['data/*.csv'],
                     'pandas.tests.io.msgpack': ['data/*.mp'],
                     'pandas.tests.reshape': ['data/*.csv'],
+                    'pandas.tests.reshape.merge': ['data/*.csv'],
                     'pandas.tests.tseries.offsets': ['data/*.pickle'],
                     'pandas.io.formats': ['templates/*.tpl']
                     },

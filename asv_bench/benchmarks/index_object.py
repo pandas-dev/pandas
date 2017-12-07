@@ -12,7 +12,7 @@ class SetOperations(object):
         if (self.rng.dtype == object):
             self.idx_rng = self.rng.view(Index)
         else:
-            self.idx_rng = self.rng.asobject
+            self.idx_rng = self.rng.astype(object)
         self.idx_rng2 = self.idx_rng[:(-1)]
 
         # other datetime

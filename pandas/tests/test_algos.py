@@ -1269,11 +1269,15 @@ def test_infinity_sort():
     assert all(Inf > x or x is Inf for x in ref_nums)
     assert Inf >= Inf and Inf == Inf
     assert not Inf < Inf and not Inf > Inf
+    assert libalgos.Infinity() == libalgos.Infinity()
+    assert not libalgos.Infinity() != libalgos.Infinity()
 
     assert all(NegInf <= x for x in ref_nums)
     assert all(NegInf < x or x is NegInf for x in ref_nums)
     assert NegInf <= NegInf and NegInf == NegInf
     assert not NegInf < NegInf and not NegInf > NegInf
+    assert libalgos.NegInfinity() == libalgos.NegInfinity()
+    assert not libalgos.NegInfinity() != libalgos.NegInfinity()
 
     for perm in permutations(ref_nums):
         assert sorted(perm) == ref_nums
@@ -1281,6 +1285,25 @@ def test_infinity_sort():
     # smoke tests
     np.array([libalgos.Infinity()] * 32).argsort()
     np.array([libalgos.NegInfinity()] * 32).argsort()
+
+
+def test_infinity_against_nan():
+    Inf = libalgos.Infinity()
+    NegInf = libalgos.NegInfinity()
+
+    assert not Inf > np.nan
+    assert not Inf >= np.nan
+    assert not Inf < np.nan
+    assert not Inf <= np.nan
+    assert not Inf == np.nan
+    assert Inf != np.nan
+
+    assert not NegInf > np.nan
+    assert not NegInf >= np.nan
+    assert not NegInf < np.nan
+    assert not NegInf <= np.nan
+    assert not NegInf == np.nan
+    assert NegInf != np.nan
 
 
 def test_ensure_platform_int():
