@@ -404,11 +404,6 @@ class TestCategoricalAPI(object):
             res = cat.labels
         tm.assert_numpy_array_equal(res, exp)
 
-    def test_deprecated_from_array(self):
-        # GH13854, `.from_array` is deprecated
-        with tm.assert_produces_warning(FutureWarning):
-            Categorical.from_array([0, 1])
-
 
 class TestCategoricalAPIWithFactor(TestCategorical):
 

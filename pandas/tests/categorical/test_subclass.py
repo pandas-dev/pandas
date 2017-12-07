@@ -12,7 +12,7 @@ class TestCategoricalSubclassing(object):
         assert isinstance(sc, tm.SubclassedCategorical)
         tm.assert_categorical_equal(sc, Categorical(['a', 'b', 'c']))
 
-    def test_from_array(self):
+    def test_from_codes(self):
         sc = tm.SubclassedCategorical.from_codes([1, 0, 2], ['a', 'b', 'c'])
         assert isinstance(sc, tm.SubclassedCategorical)
         exp = Categorical.from_codes([1, 0, 2], ['a', 'b', 'c'])
