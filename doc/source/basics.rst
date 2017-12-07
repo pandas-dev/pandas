@@ -1738,7 +1738,7 @@ description.
 Sorting
 -------
 
-Pandas supports three kinds of sorting: sorting by index levels,
+Pandas supports three kinds of sorting: sorting by index labels,
 sorting by column values, and sorting by a combination of both.
 
 .. _basics.sort_index:
@@ -1772,10 +1772,10 @@ used to sort a pandas object by its index levels.
 By Values
 ~~~~~~~~~
 
-The :meth:`Series.sort_values` and :meth:`DataFrame.sort_values` methods are
-used to sort a pandas object by its values.  The optional ``by`` parameter to
-:meth:`DataFrame.sort_values` may used to specify one or more columns to
-use to determine the sorted order.
+The :meth:`Series.sort_values` method is used to sort a `Series` by its values. The
+:meth:`DataFrame.sort_values` method is used to sort a `DataFrame` by its column or row values.
+The optional ``by`` parameter to :meth:`DataFrame.sort_values` may used to specify one or more columns
+to use to determine the sorted order.
 
 .. ipython:: python
 
@@ -1805,7 +1805,7 @@ By Indexes and Values
 .. versionadded:: 0.22.0
 
 Strings passed as the ``by`` parameter to :meth:`DataFrame.sort_values` may
-refer to either columns or index levels.
+refer to either columns or index level names.
 
 .. ipython:: python
 
@@ -1819,7 +1819,10 @@ refer to either columns or index levels.
                            index=idx)
    df_multi
 
-   # Sort by 'second' (index) and 'A' (column)
+Sort by 'second' (index) and 'A' (column)
+
+.. ipython:: python
+
    df_multi.sort_values(by=['second', 'A'])
 
 .. note::

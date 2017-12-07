@@ -113,15 +113,15 @@ _shared_doc_kwargs = dict(
     axes_single_arg="{0 or 'index', 1 or 'columns'}",
     optional_by="""
         by : str or list of str
-            Name or list of names matching axis levels or off-axis labels.
+            Name or list of names to sort by.
 
             - if `axis` is 0 or `'index'` then `by` may contain index
               levels and/or column labels
             - if `axis` is 1 or `'columns'` then `by` may contain column
               levels and/or index labels
 
-            Support for specify index/column levels was added in
-            version 0.22.0""",
+        .. versionmodified:: 0.22.0
+           Allow specifying index or column level names.""",
     versionadded_to_excel='',
     optional_labels="""labels : array-like, optional
             New labels / index to conform the axis specified by 'axis' to.""",

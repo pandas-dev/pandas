@@ -69,7 +69,7 @@ _shared_doc_kwargs = dict(
     args_transpose='axes to permute (int or label for object)',
     optional_by="""
         by : str or list of str
-            Name or list of names matching axis levels or off-axis labels.""")
+            Name or list of names to sort by""")
 
 
 def _single_replace(self, to_replace, method, inplace, limit):
