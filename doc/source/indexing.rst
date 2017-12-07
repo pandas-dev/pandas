@@ -1833,15 +1833,27 @@ that you've done this:
 
 Yikes!
 
+.. _indexing.evaluation_order:
+
 Evaluation order matters
 ~~~~~~~~~~~~~~~~~~~~~~~~
 
-Furthermore, in chained expressions, the order may determine whether a copy is returned or not.
-If an expression will set values on a copy of a slice, then a ``SettingWithCopy``
-warning will be issued.
+When you use chained indexing, the order and type of the indexing operation
+partially determine whether the result is a slice into the original object, or
+a copy of the slice.
 
-You can control the action of a chained assignment via the option ``mode.chained_assignment``,
-which can take the values ``['raise','warn',None]``, where showing a warning is the default.
+Pandas has the ``SettingWithCopyWarning`` because assigning to a copy of a
+slice is frequently not intentional, but a mistake caused by chained indexing
+returning a copy where a slice was expected.
+
+If you would like pandas to be more or less trusting about assignment to a
+chained indexing expression, you can set the :ref:`option <options>`
+``mode.chained_assignment`` to one of these values:
+
+* ``'warn'``, the default, means a ``SettingWithCopyWarning`` is printed.
+* ``'raise'`` means pandas will raise a ``SettingWithCopyException``
+  you have to deal with.
+* ``None`` will suppress the warnings entirely.
 
 .. ipython:: python
    :okwarning:

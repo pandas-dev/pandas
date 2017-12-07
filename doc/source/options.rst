@@ -417,9 +417,10 @@ io.hdf.dropna_table                     True         drop ALL nan rows when appe
 io.parquet.engine                       None         The engine to use as a default for
                                                      parquet reading and writing. If None
                                                      then try 'pyarrow' and 'fastparquet'
-mode.chained_assignment                 warn         Raise an exception, warn, or no
-                                                     action if trying to use chained
-                                                     assignment, The default is warn
+mode.chained_assignment                 warn         Controls ``SettingWithCopyWarning``: 
+                                                     'raise', 'warn', or None. Raise an
+                                                     exception, warn, or no action if
+                                                     trying to use :ref:`chained assignment <indexing.evaluation_order>`.
 mode.sim_interactive                    False        Whether to simulate interactive mode
                                                      for purposes of testing.
 mode.use_inf_as_na                      False        True means treat None, NaN, -INF,
