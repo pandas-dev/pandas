@@ -18,8 +18,6 @@ cdef extern from "numpy_helper.h":
     object get_value_1d(ndarray, Py_ssize_t)
     char *get_c_string(object) except NULL
     object char_to_string(char*)
-    void transfer_object_column(char *dst, char *src, size_t stride,
-                                       size_t length)
     object unbox_if_zerodim(object arr)
 
 ctypedef fused numeric:
