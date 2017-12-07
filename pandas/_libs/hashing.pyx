@@ -42,7 +42,8 @@ def hash_object_array(ndarray[object] arr, object key, object encoding='utf8'):
         bytes data, k
         uint8_t *kb
         uint64_t *lens
-        char **vecs, *cdata
+        char **vecs
+        char *cdata
         object val
 
     k = <bytes>key.encode(encoding)
