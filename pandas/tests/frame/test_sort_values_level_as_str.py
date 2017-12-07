@@ -104,7 +104,7 @@ def test_sort_values_column_index_level_precedence():
 
     # Sorting by 'idx' should sort by the idx column and raise a
     # FutureWarning
-    with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
+    with tm.assert_produces_warning(FutureWarning):
         result = df.sort_values(by='idx')
 
     # This should be equivalent to sorting by the 'idx' index level in
@@ -115,7 +115,7 @@ def test_sort_values_column_index_level_precedence():
     # Perform same test with MultiIndex
     df_multi = df.set_index('A', append=True)
 
-    with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
+    with tm.assert_produces_warning(FutureWarning):
         result = df_multi.sort_values(by='idx')
 
     expected = df_multi.sort_index(level='idx', ascending=False)
