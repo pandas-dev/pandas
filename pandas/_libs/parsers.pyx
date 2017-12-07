@@ -10,6 +10,7 @@ from csv import QUOTE_MINIMAL, QUOTE_NONNUMERIC, QUOTE_NONE
 from libc.stdio cimport fopen, fclose
 from libc.stdlib cimport malloc, free
 from libc.string cimport strncpy, strlen, strcmp, strcasecmp
+cimport libc.stdio as stdio
 
 cimport cython
 from cython cimport Py_ssize_t
