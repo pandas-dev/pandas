@@ -1311,8 +1311,8 @@ class TestReplaceSeriesCoercion(CoercionBase):
         for to_key in self.rep:
             self._assert_replace_conversion(from_key, to_key, how='series')
 
-    # GH #18376, tzawareness-compat bug in BlockManager.replace_list
-    @pytest.mark.xfail
+    @pytest.mark.xfail('GH #18376, tzawareness-compat bug '
+                       'in BlockManager.replace_list')
     def test_replace_series_datetime64tz(self):
         from_key = 'datetime64[ns, US/Eastern]'
         for to_key in self.rep:
