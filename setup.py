@@ -317,6 +317,7 @@ class CheckSDist(sdist_class):
                  'pandas/_libs/skiplist.pyx',
                  'pandas/_libs/sparse.pyx',
                  'pandas/_libs/parsers.pyx',
+                 'pandas/_libs/tslibs/ccalendar.pyx',
                  'pandas/_libs/tslibs/period.pyx',
                  'pandas/_libs/tslibs/strptime.pyx',
                  'pandas/_libs/tslibs/np_datetime.pyx',
@@ -453,8 +454,7 @@ np_datetime_headers = ['pandas/_libs/src/datetime/np_datetime.h',
                        'pandas/_libs/src/datetime/np_datetime_strings.h']
 np_datetime_sources = ['pandas/_libs/src/datetime/np_datetime.c',
                        'pandas/_libs/src/datetime/np_datetime_strings.c']
-tseries_depends = np_datetime_headers + ['pandas/_libs/src/datetime.pxd',
-                                         'pandas/_libs/tslibs/np_datetime.pxd']
+tseries_depends = np_datetime_headers + ['pandas/_libs/tslibs/np_datetime.pxd']
 
 # some linux distros require it
 libraries = ['m'] if not is_platform_windows() else []
@@ -538,6 +538,8 @@ ext_data = {
                      '_libs/tslibs/nattype'],
         'depends': tseries_depends,
         'sources': np_datetime_sources},
+    '_libs.tslibs.ccalendar': {
+        'pyxfile': '_libs/tslibs/ccalendar'},
     '_libs.tslibs.conversion': {
         'pyxfile': '_libs/tslibs/conversion',
         'pxdfiles': ['_libs/src/util',
@@ -548,7 +550,8 @@ ext_data = {
         'sources': np_datetime_sources},
     '_libs.tslibs.fields': {
         'pyxfile': '_libs/tslibs/fields',
-        'pxdfiles': ['_libs/tslibs/nattype'],
+        'pxdfiles': ['_libs/tslibs/ccalendar',
+                     '_libs/tslibs/nattype'],
         'depends': tseries_depends,
         'sources': np_datetime_sources},
     '_libs.tslibs.frequencies': {
@@ -595,6 +598,7 @@ ext_data = {
     '_libs.tslibs.timestamps': {
         'pyxfile': '_libs/tslibs/timestamps',
         'pxdfiles': ['_libs/src/util',
+                     '_libs/tslibs/ccalendar',
                      '_libs/tslibs/conversion',
                      '_libs/tslibs/nattype',
                      '_libs/tslibs/timedeltas',

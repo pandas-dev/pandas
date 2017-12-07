@@ -3,7 +3,6 @@ from datetime import datetime, timedelta
 import numpy as np
 import warnings
 
-
 from pandas.core import common as com
 from pandas.core.dtypes.common import (
     is_integer,
@@ -611,17 +610,6 @@ class PeriodIndex(DatelikeOps, DatetimeIndexOpsMixin, Int64Index):
 
         return self._simple_new(new_data, self.name, freq=freq)
 
-    def to_datetime(self, dayfirst=False):
-        """
-        .. deprecated:: 0.19.0
-           Use :meth:`to_timestamp` instead.
-
-        Cast to DatetimeIndex.
-        """
-        warnings.warn("to_datetime is deprecated. Use self.to_timestamp(...)",
-                      FutureWarning, stacklevel=2)
-        return self.to_timestamp()
-
     year = _field_accessor('year', 0, "The year of the period")
     month = _field_accessor('month', 3, "The month as January=1, December=12")
     day = _field_accessor('day', 4, "The days of the period")
@@ -1214,8 +1202,6 @@ def _make_field_arrays(*fields):
 
 def pnow(freq=None):
     # deprecation, xref #13790
-    import warnings
-
     warnings.warn("pd.pnow() and pandas.core.indexes.period.pnow() "
                   "are deprecated. Please use Period.now()",
                   FutureWarning, stacklevel=2)

@@ -50,7 +50,7 @@ def pa():
 def pa_lt_070():
     if not _HAVE_PYARROW:
         pytest.skip("pyarrow is not installed")
-    if LooseVersion(pyarrow.__version__) >= '0.7.0':
+    if LooseVersion(pyarrow.__version__) >= LooseVersion('0.7.0'):
         pytest.skip("pyarrow is >= 0.7.0")
     return 'pyarrow'
 
@@ -59,7 +59,7 @@ def pa_lt_070():
 def pa_ge_070():
     if not _HAVE_PYARROW:
         pytest.skip("pyarrow is not installed")
-    if LooseVersion(pyarrow.__version__) < '0.7.0':
+    if LooseVersion(pyarrow.__version__) < LooseVersion('0.7.0'):
         pytest.skip("pyarrow is < 0.7.0")
     return 'pyarrow'
 

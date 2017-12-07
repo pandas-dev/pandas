@@ -8,23 +8,7 @@ except ImportError:
 import timeit
 
 
-class _BenchTeardown(object):
-    """
-    base class for teardown method implementation
-    """
-    fname = None
-
-    def remove(self, f):
-        try:
-            os.remove(f)
-        except:
-            pass
-
-    def teardown(self):
-        self.remove(self.fname)
-
-
-class frame_to_csv(_BenchTeardown):
+class frame_to_csv(BaseIO):
     goal_time = 0.2
     fname = '__test__.csv'
 
@@ -35,7 +19,7 @@ class frame_to_csv(_BenchTeardown):
         self.df.to_csv(self.fname)
 
 
-class frame_to_csv2(_BenchTeardown):
+class frame_to_csv2(BaseIO):
     goal_time = 0.2
     fname = '__test__.csv'
 
@@ -49,7 +33,7 @@ class frame_to_csv2(_BenchTeardown):
         self.df.to_csv(self.fname)
 
 
-class frame_to_csv_date_formatting(_BenchTeardown):
+class frame_to_csv_date_formatting(BaseIO):
     goal_time = 0.2
     fname = '__test__.csv'
 
@@ -61,7 +45,7 @@ class frame_to_csv_date_formatting(_BenchTeardown):
         self.data.to_csv(self.fname, date_format='%Y%m%d')
 
 
-class frame_to_csv_mixed(_BenchTeardown):
+class frame_to_csv_mixed(BaseIO):
     goal_time = 0.2
     fname = '__test__.csv'
 
@@ -114,7 +98,7 @@ class read_csv_infer_datetime_format_ymd(object):
         read_csv(StringIO(self.data), header=None, names=['foo'], parse_dates=['foo'], infer_datetime_format=True)
 
 
-class read_csv_skiprows(_BenchTeardown):
+class read_csv_skiprows(BaseIO):
     goal_time = 0.2
     fname = '__test__.csv'
 
@@ -127,7 +111,7 @@ class read_csv_skiprows(_BenchTeardown):
         read_csv(self.fname, skiprows=10000)
 
 
-class read_csv_standard(_BenchTeardown):
+class read_csv_standard(BaseIO):
     goal_time = 0.2
     fname = '__test__.csv'
 
@@ -174,7 +158,7 @@ class read_uint64_integers(object):
         read_csv(StringIO(self.data1), header=None, na_values=self.na_values)
 
 
-class write_csv_standard(_BenchTeardown):
+class write_csv_standard(BaseIO):
     goal_time = 0.2
     fname = '__test__.csv'
 
@@ -218,14 +202,14 @@ class read_csv_from_s3(object):
                     compression=compression, engine=engine)
 
 
-class read_json_lines(_BenchTeardown):
+class read_json_lines(BaseIO):
     goal_time = 0.2
     fname = "__test__.json"
 
     def setup(self):
         self.N = 100000
         self.C = 5
-        self.df = DataFrame({('float{0}'.format(i), randn(self.N)) for i in range(self.C)})
+        self.df = DataFrame({'float{0}'.format(i): randn(self.N) for i in range(self.C)})
         self.df.to_json(self.fname,orient="records",lines=True)
 
     def time_read_json_lines(self):

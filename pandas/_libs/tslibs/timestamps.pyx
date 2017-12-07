@@ -20,6 +20,7 @@ from util cimport (is_datetime64_object, is_timedelta64_object,
                    is_integer_object, is_string_object,
                    INT64_MAX)
 
+cimport ccalendar
 from conversion import tz_localize_to_utc, date_normalize
 from conversion cimport (tz_convert_single, _TSObject,
                          convert_to_tsobject, convert_datetime_to_tsobject)
@@ -180,16 +181,6 @@ cdef class _Timestamp(datetime):
                                 'timestamps')
         elif other.tzinfo is None:
             raise TypeError('Cannot compare tz-naive and tz-aware timestamps')
-
-    cpdef datetime to_datetime(_Timestamp self):
-        """
-        DEPRECATED: use :meth:`to_pydatetime` instead.
-
-        Convert a Timestamp object to a native Python datetime object.
-        """
-        warnings.warn("to_datetime is deprecated. Use self.to_pydatetime()",
-                      FutureWarning, stacklevel=2)
-        return self.to_pydatetime(warn=False)
 
     cpdef datetime to_pydatetime(_Timestamp self, warn=True):
         """
@@ -709,6 +700,9 @@ class Timestamp(_Timestamp):
 
     @property
     def week(self):
+        if self.freq is None:
+            # fastpath for non-business
+            return ccalendar.get_week_of_year(self.year, self.month, self.day)
         return self._get_field('woy')
 
     weekofyear = week
@@ -719,7 +713,7 @@ class Timestamp(_Timestamp):
 
     @property
     def days_in_month(self):
-        return self._get_field('dim')
+        return ccalendar.get_days_in_month(self.year, self.month)
 
     daysinmonth = days_in_month
 
