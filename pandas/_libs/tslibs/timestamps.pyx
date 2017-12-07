@@ -20,6 +20,7 @@ from util cimport (is_datetime64_object, is_timedelta64_object,
                    is_integer_object, is_string_object,
                    INT64_MAX)
 
+cimport ccalendar
 from conversion import tz_localize_to_utc, date_normalize
 from conversion cimport (tz_convert_single, _TSObject,
                          convert_to_tsobject, convert_datetime_to_tsobject)
@@ -699,6 +700,9 @@ class Timestamp(_Timestamp):
 
     @property
     def week(self):
+        if self.freq is None:
+            # fastpath for non-business
+            return ccalendar.get_week_of_year(self.year, self.month, self.day)
         return self._get_field('woy')
 
     weekofyear = week
@@ -709,7 +713,7 @@ class Timestamp(_Timestamp):
 
     @property
     def days_in_month(self):
-        return self._get_field('dim')
+        return ccalendar.get_days_in_month(self.year, self.month)
 
     daysinmonth = days_in_month
 
