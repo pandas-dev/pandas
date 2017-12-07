@@ -7,6 +7,36 @@ This is a minor release from 0.21.1 and includes a number of deprecations, new
 features, enhancements, and performance improvements along with a large number
 of bug fixes. We recommend that all users upgrade to this version.
 
+.. _whatsnew_0211.special:
+
+Restore Matplotlib datetime Converter Registration
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Pandas implements some matplotlib converters for nicely formatting the axis
+labels on plots with ``datetime`` or ``Period`` values. Prior to pandas 0.21.0,
+these were implicitly registered with matplotlib, as a side effect of ``import
+pandas``.
+
+In pandas 0.21.0, we required users to explicitly register the
+converter. This caused problems for some users who relied on those converters
+being present for regular ``matplotlib.pyplot`` plotting methods, so we're
+temporarily reverting that change; pandas will again register the converters on
+import.
+
+We've added a new option to control the converters:
+``pd.options.plotting.matplotlib.register_converters``. By default, they are
+registered. Toggling this to ``False`` removes pandas' formatters and restore
+any converters we overwrote when registering them (:issue:`18301`).
+
+We're working with the matplotlib developers to make this easier. We're trying
+to balance user convenience (automatically registering the converters) with
+import performance and best practices (importing pandas shouldn't have the side
+effect of overwriting any custom converters you've already set). In the future
+we hope to have most of the datetime formatting functionality in matplotlib,
+with just the pandas-specific converters in pandas. We'll then gracefully
+deprecate the automatic registration of converters in favor of users explicitly
+registering them when they want them.
+
 .. _whatsnew_0211.enhancements:
 
 New features
@@ -30,9 +60,8 @@ Other Enhancements
 Deprecations
 ~~~~~~~~~~~~
 
--
--
--
+- ``pandas.tseries.register`` has been renamed to
+  :func:`pandas.plotting.register_matplotlib_converters`` (:issue:`18301`)
 
 .. _whatsnew_0211.performance:
 

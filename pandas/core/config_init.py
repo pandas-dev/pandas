@@ -479,3 +479,29 @@ with cf.config_prefix('io.parquet'):
     cf.register_option(
         'engine', 'auto', parquet_engine_doc,
         validator=is_one_of_factory(['auto', 'pyarrow', 'fastparquet']))
+
+# --------
+# Plotting
+# ---------
+
+register_converter_doc = """
+: bool
+    Whether to register converters with matplotlib's units registry for
+    dates, times, datetimes, and Periods. Toggling to False will remove
+    the converters, restoring any converters that pandas overwrote.
+"""
+
+
+def register_converter_cb(key):
+    from pandas.plotting import register_matplotlib_converters
+    from pandas.plotting import deregister_matplotlib_converters
+
+    if cf.get_option(key):
+        register_matplotlib_converters()
+    else:
+        deregister_matplotlib_converters()
+
+
+with cf.config_prefix("plotting.matplotlib"):
+    cf.register_option("register_converters", True, register_converter_doc,
+                       validator=bool, cb=register_converter_cb)
