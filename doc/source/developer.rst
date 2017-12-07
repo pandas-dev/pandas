@@ -55,6 +55,7 @@ for each column, *including the index columns*. This has JSON form:
 .. code-block:: text
 
    {'name': column_name,
+    'field_name': arrow_table_column_name,
     'pandas_type': pandas_type,
     'numpy_type': numpy_type,
     'metadata': metadata}
@@ -129,32 +130,39 @@ As an example of fully-formed metadata:
    {'index_columns': ['__index_level_0__'],
     'column_indexes': [
         {'name': None,
-         'pandas_type': 'string',
+         'field_name': None,
+         'pandas_type': 'unicode',
          'numpy_type': 'object',
-         'metadata': None}
+         'metadata': {'encoding': 'UTF-8'}}
     ],
     'columns': [
         {'name': 'c0',
+         'field_name': 'c0',
          'pandas_type': 'int8',
          'numpy_type': 'int8',
          'metadata': None},
         {'name': 'c1',
+         'field_name': 'c1',
          'pandas_type': 'bytes',
          'numpy_type': 'object',
          'metadata': None},
         {'name': 'c2',
+         'field_name': 'c2',
          'pandas_type': 'categorical',
          'numpy_type': 'int16',
          'metadata': {'num_categories': 1000, 'ordered': False}},
         {'name': 'c3',
+         'field_name': 'c3',
          'pandas_type': 'datetimetz',
          'numpy_type': 'datetime64[ns]',
          'metadata': {'timezone': 'America/Los_Angeles'}},
         {'name': 'c4',
+         'field_name': 'c4',
          'pandas_type': 'object',
          'numpy_type': 'object',
          'metadata': {'encoding': 'pickle'}},
         {'name': '__index_level_0__',
+         'field_name': None,
          'pandas_type': 'int64',
          'numpy_type': 'int64',
          'metadata': None}
