@@ -1263,11 +1263,22 @@ class NDFrame(PandasObject, SelectionMixin):
 
         # Check for duplicates
         if values.ndim > 1:
+
+            if other_axes and isinstance(
+                    self._get_axis(other_axes[0]), MultiIndex):
+                multi_message = ('\n'
+                                 'For a multi-index, the label must be a '
+                                 'tuple with elements corresponding to '
+                                 'each level.')
+            else:
+                multi_message = ''
+
             label_axis_name = 'column' if axis == 0 else 'index'
             raise ValueError(("The {label_axis_name} label '{key}' "
-                              "is not unique")
+                              "is not unique.{multi_message}")
                              .format(key=key,
-                                     label_axis_name=label_axis_name))
+                                     label_axis_name=label_axis_name,
+                                     multi_message=multi_message))
 
         return values
 

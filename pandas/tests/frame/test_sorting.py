@@ -482,11 +482,11 @@ class TestDataFrameSortIndexKinds(TestData):
         # GH4370
         df = DataFrame(np.random.randn(4, 2),
                        columns=MultiIndex.from_tuples([('a', 0), ('a', 1)]))
-        with tm.assert_raises_regex(ValueError, 'not unique'):
+        with tm.assert_raises_regex(ValueError, 'level'):
             # use .sort_values #9816
             with tm.assert_produces_warning(FutureWarning):
                 df.sort_index(by='a')
-        with tm.assert_raises_regex(ValueError, 'not unique'):
+        with tm.assert_raises_regex(ValueError, 'level'):
             df.sort_values(by='a')
 
         # convert tuples to a list of tuples
