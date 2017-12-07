@@ -17,7 +17,6 @@ from pandas.tseries.offsets import DateOffset
 from pandas.util._decorators import deprecate_kwarg
 import pandas.tseries.offsets as offsets
 
-from pandas._libs import tslib
 from pandas._libs.tslib import Timedelta
 from pandas._libs.tslibs.frequencies import (  # noqa
     get_freq_code, _base_and_stride, _period_str_to_code,
