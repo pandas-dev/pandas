@@ -55,20 +55,21 @@ for each column, *including the index columns*. This has JSON form:
 .. code-block:: text
 
    {'name': column_name,
-    'field_name': arrow_table_column_name,
+    'field_name': parquet_column_name,
     'pandas_type': pandas_type,
     'numpy_type': numpy_type,
     'metadata': metadata}
 
 .. note::
 
-   The last ``N`` values of ``metadata['columns']``, where ``N =
-   len(metadata['index_columns'])``, contain information about the row indexes,
-   including the name of the index level and type information.
-
    Every index column is stored with a name matching the pattern
    ``__index_level_\d+__`` and its corresponding column information is can be
    found with the following code snippet.
+
+   Following this naming convention isn't strictly necessary, but strongly
+   suggested for compatibility with Arrow.
+
+   Here's an example of how the index metadata is structured in pyarrow:
 
     .. code-block:: python
 
