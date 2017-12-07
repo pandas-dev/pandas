@@ -65,14 +65,15 @@ levels <merging.merge_on_columns_and_levels>` documentation section.
 
 .. _whatsnew_0220.enhancements.ran_inf:
 
-handle ``inf`` values properly when ``NaN`` are present
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+``.rank()`` handles ``inf`` values when ``NaN`` are present
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-In previous version, ``inf`` elements were assigned ``NaN`` as their ranks. Now ranks are calculated properly. (:issue:`6945`)
+In previous versions, ``.rank()`` would assign ``inf`` elements ``NaN`` as their ranks. Now ranks are calculated properly. (:issue:`6945`)
 
 .. ipython:: python
 
     s = pd.Series([-np.inf, 0, 1, np.nan, np.inf])
+    s
 
 Previous Behavior:
 
@@ -98,6 +99,7 @@ Furthermore, previously if you rank ``inf`` or ``-inf`` values together with ``N
 .. ipython:: python
 
     s = pd.Series([np.nan, np.nan, -np.inf, -np.inf])
+    s
 
 Previous Behavior:
 
@@ -156,6 +158,9 @@ If installed, we now require:
    +-----------------+-----------------+----------+
 
 
+- Building pandas for development now requires ``cython >= 0.24`` (:issue:`18613`)
+- Building from source now explicity requires ``setuptools`` in ``setup.py`` (:issue:`18113`)
+
 .. _whatsnew_0220.api:
 
 Other API Changes
@@ -169,7 +174,7 @@ Other API Changes
 - :class:`Timestamp` will no longer silently ignore unused or invalid ``tz`` or ``tzinfo`` keyword arguments (:issue:`17690`)
 - :class:`Timestamp` will no longer silently ignore invalid ``freq`` arguments (:issue:`5168`)
 - :class:`CacheableOffset` and :class:`WeekDay` are no longer available in the ``pandas.tseries.offsets`` module (:issue:`17830`)
-- `tseries.frequencies.get_freq_group()` and `tseries.frequencies.DAYS` are removed from the public API (:issue:`18034`)
+- ``pandas.tseries.frequencies.get_freq_group()`` and ``pandas.tseries.frequencies.DAYS`` are removed from the public API (:issue:`18034`)
 - :func:`Series.truncate` and :func:`DataFrame.truncate` will raise a ``ValueError`` if the index is not sorted instead of an unhelpful ``KeyError`` (:issue:`17935`)
 - :func:`Index.map` can now accept ``Series`` and dictionary input objects (:issue:`12756`, :issue:`18482`, :issue:`18509`).
 - :func:`Dataframe.unstack` will now default to filling with ``np.nan`` for ``object`` columns. (:issue:`12815`)
@@ -178,11 +183,9 @@ Other API Changes
 - Restricted ``DateOffset`` keyword arguments. Previously, ``DateOffset`` subclasses allowed arbitrary keyword arguments which could lead to unexpected behavior. Now, only valid arguments will be accepted. (:issue:`17176`, :issue:`18226`).
 - :func:`DataFrame.from_items` provides a more informative error message when passed scalar values (:issue:`17312`)
 - When created with duplicate labels, ``MultiIndex`` now raises a ``ValueError``. (:issue:`17464`)
-- Building from source now explicity requires ``setuptools`` in ``setup.py`` (:issue:`18113`)
 - :func:`Series.fillna` now raises a ``TypeError`` instead of a ``ValueError`` when passed a list, tuple or DataFrame as a ``value`` (:issue:`18293`)
 - :func:`pandas.DataFrame.merge` no longer casts a ``float`` column to ``object`` when merging on ``int`` and ``float`` columns (:issue:`16572`)
 - The default NA value for :class:`UInt64Index` has changed from 0 to ``NaN``, which impacts methods that mask with NA, such as ``UInt64Index.where()`` (:issue:`18398`)
-- Building pandas for development now requires ``cython >= 0.24`` (:issue:`18613`)
 
 .. _whatsnew_0220.deprecations:
 
