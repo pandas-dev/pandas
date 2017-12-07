@@ -329,7 +329,7 @@ def _skip_if_mpl_1_5():
     import matplotlib as mpl
 
     v = mpl.__version__
-    if v > LooseVersion('1.4.3') or v[0] == '0':
+    if LooseVersion(v) > LooseVersion('1.4.3') or str(v)[0] == '0':
         import pytest
         pytest.skip("matplotlib 1.5")
     else:
@@ -362,7 +362,7 @@ def _skip_if_no_xarray():
     xarray = pytest.importorskip("xarray")
     v = xarray.__version__
 
-    if v < LooseVersion('0.7.0'):
+    if LooseVersion(v) < LooseVersion('0.7.0'):
         import pytest
         pytest.skip("xarray version is too low: {version}".format(version=v))
 
@@ -1582,13 +1582,6 @@ def assert_sp_frame_equal(left, right, check_dtype=True, exact_indices=True,
     for col in right:
         assert (col in left)
 
-
-def assert_sp_list_equal(left, right):
-    assert isinstance(left, pd.SparseList)
-    assert isinstance(right, pd.SparseList)
-
-    assert_sp_array_equal(left.to_array(), right.to_array())
-
 # -----------------------------------------------------------------------------
 # Others
 
@@ -1695,7 +1688,8 @@ def all_index_generator(k=10):
     """
     all_make_index_funcs = [makeIntIndex, makeFloatIndex, makeStringIndex,
                             makeUnicodeIndex, makeDateIndex, makePeriodIndex,
-                            makeTimedeltaIndex, makeBoolIndex,
+                            makeTimedeltaIndex, makeBoolIndex, makeRangeIndex,
+                            makeIntervalIndex,
                             makeCategoricalIndex]
     for make_index_func in all_make_index_funcs:
         yield make_index_func(k=k)

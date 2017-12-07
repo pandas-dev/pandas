@@ -3338,7 +3338,7 @@ class DataFrame(NDFrame):
 
         def _maybe_casted_values(index, labels=None):
             if isinstance(index, PeriodIndex):
-                values = index.asobject.values
+                values = index.astype(object).values
             elif isinstance(index, DatetimeIndex) and index.tz is not None:
                 values = index
             else:
@@ -3767,7 +3767,7 @@ class DataFrame(NDFrame):
             Number of items to retrieve
         columns : list or str
             Column name or names to order by
-        keep : {'first', 'last', False}, default 'first'
+        keep : {'first', 'last'}, default 'first'
             Where there are duplicate values:
             - ``first`` : take the first occurrence.
             - ``last`` : take the last occurrence.
@@ -3802,7 +3802,7 @@ class DataFrame(NDFrame):
             Number of items to retrieve
         columns : list or str
             Column name or names to order by
-        keep : {'first', 'last', False}, default 'first'
+        keep : {'first', 'last'}, default 'first'
             Where there are duplicate values:
             - ``first`` : take the first occurrence.
             - ``last`` : take the last occurrence.
@@ -5075,7 +5075,7 @@ class DataFrame(NDFrame):
         def infer(x):
             if x.empty:
                 return lib.map_infer(x, func)
-            return lib.map_infer(x.asobject, func)
+            return lib.map_infer(x.astype(object).values, func)
 
         return self.apply(infer)
 
@@ -5575,7 +5575,7 @@ class DataFrame(NDFrame):
 
         Parameters
         ----------
-        other : DataFrame
+        other : DataFrame, Series
         axis : {0 or 'index', 1 or 'columns'}, default 0
             0 or 'index' to compute column-wise, 1 or 'columns' for row-wise
         drop : boolean, default False
@@ -5586,10 +5586,11 @@ class DataFrame(NDFrame):
         correls : Series
         """
         axis = self._get_axis_number(axis)
-        if isinstance(other, Series):
-            return self.apply(other.corr, axis=axis)
-
         this = self._get_numeric_data()
+
+        if isinstance(other, Series):
+            return this.apply(other.corr, axis=axis)
+
         other = other._get_numeric_data()
 
         left, right = this.align(other, join='inner', copy=False)

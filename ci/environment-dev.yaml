@@ -6,8 +6,8 @@ dependencies:
   - Cython
   - NumPy
   - moto
-  - pytest
-  - python-dateutil
+  - pytest>=3.1
+  - python-dateutil>=2.5.0
   - python=3
   - pytz
   - setuptools

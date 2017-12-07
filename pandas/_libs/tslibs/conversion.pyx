@@ -20,13 +20,12 @@ PyDateTime_IMPORT
 
 from np_datetime cimport (check_dts_bounds,
                           pandas_datetimestruct,
+                          pandas_datetime_to_datetimestruct, _string_to_dts,
                           PANDAS_DATETIMEUNIT, PANDAS_FR_ns,
                           npy_datetime,
                           dt64_to_dtstruct, dtstruct_to_dt64,
                           get_datetime64_unit, get_datetime64_value,
                           pydatetime_to_dt64)
-
-from datetime cimport pandas_datetime_to_datetimestruct, _string_to_dts
 
 from util cimport (is_string_object,
                    is_datetime64_object,
@@ -203,9 +202,9 @@ cdef class _TSObject:
     #    int64_t value               # numpy dt64
     #    object tzinfo
 
-    property value:
-        def __get__(self):
-            return self.value
+    @property
+    def value(self):
+        return self.value
 
 
 cpdef int64_t pydt_to_i8(object pydt) except? -1:

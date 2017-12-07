@@ -1141,6 +1141,38 @@ def _evaluate_usecols(usecols, names):
     return usecols
 
 
+def _validate_usecols_names(usecols, names):
+    """
+    Validates that all usecols are present in a given
+    list of names. If not, raise a ValueError that
+    shows what usecols are missing.
+
+    Parameters
+    ----------
+    usecols : iterable of usecols
+        The columns to validate are present in names.
+    names : iterable of names
+        The column names to check against.
+
+    Returns
+    -------
+    usecols : iterable of usecols
+        The `usecols` parameter if the validation succeeds.
+
+    Raises
+    ------
+    ValueError : Columns were missing. Error message will list them.
+    """
+    missing = [c for c in usecols if c not in names]
+    if len(missing) > 0:
+        raise ValueError(
+            "Usecols do not match columns, "
+            "columns expected but not found: {missing}".format(missing=missing)
+        )
+
+    return usecols
+
+
 def _validate_skipfooter_arg(skipfooter):
     """
     Validate the 'skipfooter' parameter.
@@ -1753,14 +1785,14 @@ class CParserWrapper(ParserBase):
             # GH 14671
             if (self.usecols_dtype == 'string' and
                     not set(usecols).issubset(self.orig_names)):
-                raise ValueError("Usecols do not match names.")
+                _validate_usecols_names(usecols, self.orig_names)
 
             if len(self.names) > len(usecols):
                 self.names = [n for i, n in enumerate(self.names)
                               if (i in usecols or n in usecols)]
 
             if len(self.names) < len(usecols):
-                raise ValueError("Usecols do not match names.")
+                _validate_usecols_names(usecols, self.names)
 
         self._set_noconvert_columns()
 
@@ -2532,9 +2564,13 @@ class PythonParser(ParserBase):
                     raise ValueError("If using multiple headers, usecols must "
                                      "be integers.")
                 col_indices = []
+
                 for col in self.usecols:
                     if isinstance(col, string_types):
-                        col_indices.append(usecols_key.index(col))
+                        try:
+                            col_indices.append(usecols_key.index(col))
+                        except ValueError:
+                            _validate_usecols_names(self.usecols, usecols_key)
                     else:
                         col_indices.append(col)
             else:
