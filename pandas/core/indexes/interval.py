@@ -663,17 +663,8 @@ class IntervalIndex(IntervalMixin, Index):
             return Index(0.5 * (self.left.values + self.right.values))
         except TypeError:
             # datetime safe version
-            tz = self.right.tz
-            delta = self.right.values - self.left.values
-
-            # handle tz aware
-            if tz:
-                data = self.left.tz_localize(None) + 0.5 * delta
-                data = data.tz_localize(tz)
-            else:
-                data = self.left + 0.5 * delta
-
-            return data
+            delta = self.right - self.left
+            return self.left + 0.5 * delta
 
     @cache_readonly
     def is_monotonic(self):
