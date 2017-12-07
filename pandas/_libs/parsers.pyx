@@ -10,7 +10,6 @@ from csv import QUOTE_MINIMAL, QUOTE_NONNUMERIC, QUOTE_NONE
 from libc.stdio cimport fopen, fclose
 from libc.stdlib cimport malloc, free
 from libc.string cimport strncpy, strlen, strcmp, strcasecmp
-cimport libc.stdio as stdio
 
 cimport cython
 from cython cimport Py_ssize_t
@@ -76,6 +75,15 @@ cdef double NEGINF = -INF
 
 cdef extern from "errno.h":
     int errno
+
+cdef extern from "headers/portable.h":
+    # I *think* this is here so that strcasecmp is defined on Windows
+    # so we don't get
+    # `parsers.obj : error LNK2001: unresolved external symbol strcasecmp`
+    # in Appveyor.
+    # In a sane world, the `from libc.string cimport` above would fail
+    # loudly.
+    pass
 
 try:
     basestring
