@@ -323,7 +323,6 @@ Categorical
 Other
 ^^^^^
 
-- Improved error message when attempting to use a Python keyword as an identifier in a numexpr query (:issue:`18221`)
 - Fixed bug where comparing :class:`DatetimeIndex` failed to raise ``TypeError`` when attempting to compare timezone-aware and timezone-naive datetimelike objects (:issue:`18162`)
 - Improved error message when attempting to use a Python keyword as an identifier in a ``numexpr`` backed query (:issue:`18221`)
 -
