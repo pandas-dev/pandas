@@ -46,7 +46,6 @@ from pandas.core.indexes.period import PeriodIndex
 import pandas as pd
 import numpy as np
 
-import itertools
 import csv
 from functools import partial
 
@@ -903,6 +902,7 @@ class LatexFormatter(TableFormatter):
             name = any(self.frame.index.names)
             cname = any(self.frame.columns.names)
             lastcol = self.frame.index.nlevels - 1
+            previous_lev3 = None
             for i, lev in enumerate(self.frame.index.levels):
                 lev2 = lev.format()
                 blank = ' ' * len(lev2[0])
@@ -913,11 +913,19 @@ class LatexFormatter(TableFormatter):
                     lev3 = [blank] * clevels
                 if name:
                     lev3.append(lev.name)
-                for level_idx, group in itertools.groupby(
-                        self.frame.index.labels[i]):
-                    count = len(list(group))
-                    lev3.extend([lev2[level_idx]] + [blank] * (count - 1))
+                current_idx_val = None
+                for level_idx in self.frame.index.labels[i]:
+                    if ((previous_lev3 is None or
+                        previous_lev3[len(lev3)].isspace()) and
+                            lev2[level_idx] == current_idx_val):
+                        # same index as above row and left index was the same
+                        lev3.append(blank)
+                    else:
+                        # different value than above or left index different
+                        lev3.append(lev2[level_idx])
+                        current_idx_val = lev2[level_idx]
                 strcols.insert(i, lev3)
+                previous_lev3 = lev3
 
         column_format = self.column_format
         if column_format is None:

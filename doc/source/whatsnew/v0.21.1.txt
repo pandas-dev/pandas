@@ -120,6 +120,7 @@ I/O
 - Bug in :meth:`DataFrame.to_msgpack` when serializing data of the numpy.bool_ datatype (:issue:`18390`)
 - Bug in :func:`read_json` not decoding when reading line deliminted JSON from S3 (:issue:`17200`)
 - Bug in :func:`pandas.io.json.json_normalize` to avoid modification of ``meta`` (:issue:`18610`)
+- Bug in :func:`to_latex` where repeated multi-index values were not printed even though a higher level index differed from the previous row (:issue:`14484`)
 
 Plotting
 ^^^^^^^^
