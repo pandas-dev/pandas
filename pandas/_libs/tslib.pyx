@@ -1,8 +1,5 @@
 # -*- coding: utf-8 -*-
 # cython: profile=False
-# cython: linetrace=False
-# distutils: define_macros=CYTHON_TRACE=0
-# distutils: define_macros=CYTHON_TRACE_NOGIL=0
 
 cimport numpy as np
 from numpy cimport int64_t, ndarray, float64_t
@@ -10,15 +7,13 @@ import numpy as np
 np.import_array()
 
 
-from cpython cimport PyTypeObject, PyFloat_Check
-
-cdef extern from "Python.h":
-    cdef PyTypeObject *Py_TYPE(object)
+from cpython cimport PyFloat_Check
 
 from util cimport (is_integer_object, is_float_object, is_string_object,
                    is_datetime64_object)
 
 from cpython.datetime cimport (PyDateTime_Check, PyDate_Check,
+                               PyDateTime_CheckExact,
                                PyDateTime_IMPORT,
                                timedelta, datetime, date)
 # import datetime C API
@@ -47,10 +42,8 @@ UTC = pytz.utc
 
 from tslibs.timedeltas cimport cast_from_unit
 from tslibs.timedeltas import Timedelta
-from tslibs.timezones cimport (
-    is_utc, is_tzlocal, is_fixed_offset,
-    treat_tz_as_pytz,
-    get_dst_info)
+from tslibs.timezones cimport (is_utc, is_tzlocal, is_fixed_offset,
+                               treat_tz_as_pytz, get_dst_info)
 from tslibs.conversion cimport (tz_convert_single, _TSObject,
                                 convert_datetime_to_tsobject,
                                 get_datetime64_nanos)
@@ -204,13 +197,6 @@ def ints_to_pytimedelta(ndarray[int64_t] arr, box=False):
     return result
 
 
-cdef PyTypeObject* ts_type = <PyTypeObject*> Timestamp
-
-
-cdef inline bint is_timestamp(object o):
-    return Py_TYPE(o) == ts_type  # isinstance(o, Timestamp)
-
-
 def _test_parse_iso8601(object ts):
     """
     TESTING ONLY: Parse string into Timestamp using iso8601 parser. Used
@@ -333,14 +319,6 @@ def format_array_from_datetime(ndarray[int64_t] values, object tz=None,
     return result
 
 
-# const for parsers
-
-_MONTHS = ['JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN', 'JUL',
-           'AUG', 'SEP', 'OCT', 'NOV', 'DEC']
-_MONTH_NUMBERS = {k: i for i, k in enumerate(_MONTHS)}
-_MONTH_ALIASES = {(k + 1): v for k, v in enumerate(_MONTHS)}
-
-
 cpdef array_with_unit_to_datetime(ndarray values, unit, errors='coerce'):
     """
     convert the ndarray according to the unit
@@ -360,7 +338,7 @@ cpdef array_with_unit_to_datetime(ndarray values, unit, errors='coerce'):
         bint is_ignore = errors=='ignore'
         bint is_coerce = errors=='coerce'
         bint is_raise = errors=='raise'
-        bint need_to_iterate=True
+        bint need_to_iterate = True
         ndarray[int64_t] iresult
         ndarray[object] oresult
 
@@ -383,7 +361,7 @@ cpdef array_with_unit_to_datetime(ndarray values, unit, errors='coerce'):
             mask = iresult == iNaT
             iresult[mask] = 0
             fvalues = iresult.astype('f8') * m
-            need_to_iterate=False
+            need_to_iterate = False
         except:
             pass
 
@@ -394,7 +372,7 @@ cpdef array_with_unit_to_datetime(ndarray values, unit, errors='coerce'):
                     or (fvalues > _NS_UPPER_BOUND).any()):
                 raise OutOfBoundsDatetime(
                     "cannot convert input with unit '{0}'".format(unit))
-            result = (iresult *m).astype('M8[ns]')
+            result = (iresult * m).astype('M8[ns]')
             iresult = result.view('i8')
             iresult[mask] = iNaT
             return result
@@ -545,7 +523,8 @@ cpdef array_to_datetime(ndarray[object] values, errors='raise',
                                          'utc=True')
                 else:
                     iresult[i] = pydatetime_to_dt64(val, &dts)
-                    if is_timestamp(val):
+                    if not PyDateTime_CheckExact(val):
+                        # i.e. a Timestamp object
                         iresult[i] += val.nanosecond
                     try:
                         check_dts_bounds(&dts)
@@ -752,11 +731,15 @@ cpdef normalize_date(object dt):
     -------
     normalized : datetime.datetime or Timestamp
     """
-    if is_timestamp(dt):
-        return dt.replace(hour=0, minute=0, second=0, microsecond=0,
-                          nanosecond=0)
-    elif PyDateTime_Check(dt):
-        return dt.replace(hour=0, minute=0, second=0, microsecond=0)
+    if PyDateTime_Check(dt):
+        if not PyDateTime_CheckExact(dt):
+            # i.e. a Timestamp object
+            return dt.replace(hour=0, minute=0, second=0, microsecond=0,
+                              nanosecond=0)
+        else:
+            # regular datetime object
+            return dt.replace(hour=0, minute=0, second=0, microsecond=0)
+            # TODO: Make sure DST crossing is handled correctly here
     elif PyDate_Check(dt):
         return datetime(dt.year, dt.month, dt.day)
     else:
