@@ -1,24 +1,25 @@
 # Copyright (c) 2012, Lambda Foundry, Inc.
 # See LICENSE for the license
+import os
+import sys
+import time
+import warnings
+
+from csv import QUOTE_MINIMAL, QUOTE_NONNUMERIC, QUOTE_NONE
 
 from libc.stdio cimport fopen, fclose
 from libc.stdlib cimport malloc, free
 from libc.string cimport strncpy, strlen, strcmp, strcasecmp
-cimport libc.stdio as stdio
-import warnings
 
-from csv import QUOTE_MINIMAL, QUOTE_NONNUMERIC, QUOTE_NONE
+cimport cython
+from cython cimport Py_ssize_t
+
 from cpython cimport (PyObject, PyBytes_FromString,
                       PyBytes_AsString, PyBytes_Check,
                       PyUnicode_Check, PyUnicode_AsUTF8String,
                       PyErr_Occurred, PyErr_Fetch)
 from cpython.ref cimport Py_XDECREF
-from pandas.errors import (ParserError, DtypeWarning,
-                           EmptyDataError, ParserWarning)
 
-# Import CParserError as alias of ParserError for backwards compatibility.
-# Ultimately, we want to remove this import. See gh-12665 and gh-14479.
-CParserError = ParserError
 
 cdef extern from "Python.h":
     object PyUnicode_FromString(char *v)
@@ -29,31 +30,14 @@ cdef extern from "Python.h":
 cdef extern from "stdlib.h":
     void memcpy(void *dst, void *src, size_t n)
 
-cimport cython
-cimport numpy as cnp
-
-from numpy cimport ndarray, uint8_t, uint64_t, int64_t
 
 import numpy as np
-cimport util
-
-import pandas._libs.lib as lib
-import pandas.compat as compat
-from pandas.core.dtypes.common import (
-    is_categorical_dtype, CategoricalDtype,
-    is_integer_dtype, is_float_dtype,
-    is_bool_dtype, is_object_dtype,
-    is_datetime64_dtype,
-    pandas_dtype)
-from pandas.core.categorical import Categorical
-from pandas.core.dtypes.concat import union_categoricals
-
-import pandas.io.common as com
-
-import time
-import os
-
+cimport numpy as cnp
+from numpy cimport ndarray, uint8_t, uint64_t, int64_t
 cnp.import_array()
+
+from util cimport UINT64_MAX, INT64_MAX, INT64_MIN
+import lib
 
 from khash cimport (
     khiter_t,
@@ -64,37 +48,52 @@ from khash cimport (
     kh_strbox_t, kh_put_strbox, kh_get_strbox, kh_init_strbox,
     kh_destroy_strbox)
 
-import sys
+import pandas.compat as compat
+from pandas.core.dtypes.common import (
+    is_categorical_dtype, CategoricalDtype,
+    is_integer_dtype, is_float_dtype,
+    is_bool_dtype, is_object_dtype,
+    is_datetime64_dtype,
+    pandas_dtype)
+from pandas.core.categorical import Categorical
+from pandas.core.dtypes.concat import union_categoricals
+import pandas.io.common as com
+
+from pandas.errors import (ParserError, DtypeWarning,
+                           EmptyDataError, ParserWarning)
+
+# Import CParserError as alias of ParserError for backwards compatibility.
+# Ultimately, we want to remove this import. See gh-12665 and gh-14479.
+CParserError = ParserError
+
 
 cdef bint PY3 = (sys.version_info[0] >= 3)
 
 cdef double INF = <double> np.inf
 cdef double NEGINF = -INF
 
-cdef extern from "headers/stdint.h":
-    enum: UINT8_MAX
-    enum: UINT16_MAX
-    enum: UINT32_MAX
-    enum: UINT64_MAX
-    enum: INT8_MIN
-    enum: INT8_MAX
-    enum: INT16_MIN
-    enum: INT16_MAX
-    enum: INT32_MAX
-    enum: INT32_MIN
-    enum: INT64_MAX
-    enum: INT64_MIN
-
-cdef extern from "headers/portable.h":
-    pass
 
 cdef extern from "errno.h":
     int errno
+
+cdef extern from "headers/portable.h":
+    # I *think* this is here so that strcasecmp is defined on Windows
+    # so we don't get
+    # `parsers.obj : error LNK2001: unresolved external symbol strcasecmp`
+    # in Appveyor.
+    # In a sane world, the `from libc.string cimport` above would fail
+    # loudly.
+    pass
 
 try:
     basestring
 except NameError:
     basestring = str
+
+cdef extern from "src/numpy_helper.h":
+    object sarr_from_data(cnp.dtype, int length, void* data)
+    void transfer_object_column(char *dst, char *src, size_t stride,
+                                size_t length)
 
 cdef extern from "parser/tokenizer.h":
 
@@ -2360,7 +2359,7 @@ def _to_structured_array(dict columns, object names, object usecols):
     # We own the data.
     buf = <char*> malloc(length * stride)
 
-    recs = util.sarr_from_data(dt, length, buf)
+    recs = sarr_from_data(dt, length, buf)
     assert(recs.flags.owndata)
 
     for i in range(nfields):
@@ -2385,7 +2384,7 @@ cdef _fill_structured_column(char *dst, char* src, int64_t elsize,
         int64_t i
 
     if incref:
-        util.transfer_object_column(dst, src, stride, length)
+        transfer_object_column(dst, src, stride, length)
     else:
         for i in range(length):
             memcpy(dst, src, elsize)

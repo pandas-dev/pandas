@@ -32,10 +32,10 @@ from util cimport (is_string_object,
                    is_integer_object, is_float_object)
 
 from timedeltas cimport cast_from_unit
-from timezones cimport (
-    is_utc, is_tzlocal, is_fixed_offset,
-    treat_tz_as_dateutil, treat_tz_as_pytz,
-    get_utcoffset, get_dst_info, get_timezone, maybe_get_tz)
+from timezones cimport (is_utc, is_tzlocal, is_fixed_offset,
+                        treat_tz_as_dateutil, treat_tz_as_pytz,
+                        get_utcoffset, get_dst_info,
+                        get_timezone, maybe_get_tz)
 from parsing import parse_datetime_string
 
 from nattype import nat_strings, NaT

@@ -10,20 +10,18 @@ np.import_array()
 
 from util cimport is_string_object, get_nat
 
-from pandas._libs.khash cimport (
-    khiter_t,
-    kh_destroy_int64, kh_put_int64,
-    kh_init_int64, kh_int64_t,
-    kh_resize_int64, kh_get_int64)
+from pandas._libs.khash cimport (khiter_t,
+                                 kh_destroy_int64, kh_put_int64,
+                                 kh_init_int64, kh_int64_t,
+                                 kh_resize_int64, kh_get_int64)
 
 from cpython.datetime cimport datetime
 
 from np_datetime cimport (pandas_datetimestruct,
                           dtstruct_to_dt64, dt64_to_dtstruct)
 from frequencies cimport get_freq_code
-from timezones cimport (
-    is_utc, is_tzlocal,
-    maybe_get_tz, get_dst_info, get_utcoffset)
+from timezones cimport (is_utc, is_tzlocal,
+                        maybe_get_tz, get_dst_info, get_utcoffset)
 from fields import build_field_sarray
 from conversion import tz_convert
 
