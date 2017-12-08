@@ -1195,6 +1195,8 @@ class TestFillnaSeriesCoercion(CoercionBase):
         pass
 
 
+@td.skip_if_windows
+@td.skip_if_32bit
 class TestReplaceSeriesCoercion(CoercionBase):
 
     # not indexing, but place here for consisntency
@@ -1221,8 +1223,6 @@ class TestReplaceSeriesCoercion(CoercionBase):
         self.rep['timedelta64[ns]'] = [pd.Timedelta('1 day'),
                                        pd.Timedelta('2 day')]
 
-    @td.skip_if_windows
-    @td.skip_if_32bit
     def _assert_replace_conversion(self, from_key, to_key, how):
         index = pd.Index([3, 4], name='xxx')
         obj = pd.Series(self.rep[from_key], index=index, name='yyy')
