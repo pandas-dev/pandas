@@ -200,15 +200,17 @@ class JSONTableWriter(FrameWriter):
         if is_period_dtype(obj.index):
             obj.index = obj.index.to_timestamp()
 
-        self.obj = obj.reset_index()
+        # exclude index from obj if index=False
+        if not self.index:
+            self.obj = obj.reset_index(drop=True)
+        else:
+            self.obj = obj.reset_index(drop=False)
         self.date_format = 'iso'
         self.orient = 'records'
         self.index = index
 
     def _write(self, obj, orient, double_precision, ensure_ascii,
                date_unit, iso_dates, default_handler):
-        if not self.index:
-            obj = obj.drop('index', axis=1)
         data = super(JSONTableWriter, self)._write(obj, orient,
                                                    double_precision,
                                                    ensure_ascii, date_unit,

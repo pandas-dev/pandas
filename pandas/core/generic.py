@@ -1673,9 +1673,9 @@ class NDFrame(PandasObject, SelectionMixin):
             .. versionadded:: 0.21.0
 
         index : boolean, default True
-            Whether to include the index values in the JSON string. A
-            ValueError will be thrown if index is False when orient is not
-            'split' or 'table'.
+            Whether to include the index values in the JSON string. Not
+            including the index (``index=False``) is only supported when
+            orient is 'split' or 'table'.
 
             .. versionadded:: 0.22.0
 

@@ -1149,80 +1149,60 @@ DataFrame\\.index values are different \\(100\\.0 %\\)
 
         assert size_before == size_after
 
-    def test_index_false_to_json(self):
+    @pytest.mark.parametrize('data, expected', [
+        (DataFrame([[1, 2], [4, 5]], columns=['a', 'b']),
+            {'columns': ['a', 'b'], 'data': [[1, 2], [4, 5]]}),
+        (DataFrame([[1, 2], [4, 5]], columns=['a', 'b']).rename_axis('foo'),
+            {'columns': ['a', 'b'], 'data': [[1, 2], [4, 5]]}),
+        (DataFrame([[1, 2], [4, 5]], columns=['a', 'b'],
+                   index=[['a', 'b'], ['c', 'd']]),
+            {'columns': ['a', 'b'], 'data': [[1, 2], [4, 5]]}),
+        (Series([1, 2, 3], name='A'),
+            {'name': 'A', 'data': [1, 2, 3]}),
+        (Series([1, 2, 3], name='A').rename_axis('foo'),
+            {'name': 'A', 'data': [1, 2, 3]}),
+        (Series([1, 2], name='A', index=[['a', 'b'], ['c', 'd']]),
+            {'name': 'A', 'data': [1, 2]}),
+    ])
+    def test_index_false_to_json_split(self, data, expected):
         # GH 17394
-        # Testing index parameter in to_json
+        # Testing index=False in to_json with orient='split'
 
-        # Testing DataFrame.to_json(orient='split', index=False)
-        df = pd.DataFrame([[1, 2], [4, 5]], columns=['a', 'b'])
-
-        result = df.to_json(orient='split', index=False)
+        result = data.to_json(orient='split', index=False)
         result = json.loads(result)
-
-        expected = {
-            'columns': ['a', 'b'],
-            'data': [[1, 2], [4, 5]]
-        }
 
         assert result == expected
 
-        # Testing DataFrame.to_json(orient='table', index=False)
-        result = df.to_json(orient='table', index=False)
-        result = json.loads(result)
+    @pytest.mark.parametrize('data', [
+        (DataFrame([[1, 2], [4, 5]], columns=['a', 'b'])),
+        (DataFrame([[1, 2], [4, 5]], columns=['a', 'b']).rename_axis('foo')),
+        (DataFrame([[1, 2], [4, 5]], columns=['a', 'b'],
+                   index=[['a', 'b'], ['c', 'd']])),
+        (Series([1, 2, 3], name='A')),
+        (Series([1, 2, 3], name='A').rename_axis('foo')),
+        (Series([1, 2], name='A', index=[['a', 'b'], ['c', 'd']])),
+    ])
+    def test_index_false_to_json_table(self, data):
+        # GH 17394
+        # Testing index=False in to_json with orient='table'
 
-        schema = {
-            'fields': [{'name': 'a', 'type': 'integer'},
-                       {'name': 'b', 'type': 'integer'}],
-            'pandas_version': '0.20.0'
-        }
-
-        expected = {
-            'schema': schema,
-            'data': [{'a': 1, 'b': 2}, {'a': 4, 'b': 5}]
-        }
-
-        assert result == expected
-
-        # Testing Series.to_json(orient='split', index=False)
-        s = pd.Series([1, 2, 3], name='A')
-
-        result = s.to_json(orient='split', index=False)
+        result = data.to_json(orient='table', index=False)
         result = json.loads(result)
 
         expected = {
-            'name': 'A',
-            'data': [1, 2, 3]
-        }
-
-        assert result == expected
-
-        # Testing Series.to_json(orient='table', index=False)
-        result = s.to_json(orient='table', index=False)
-        result = json.loads(result)
-
-        fields = [{'name': 'A', 'type': 'integer'}]
-
-        schema = {
-            'fields': fields,
-            'pandas_version': '0.20.0'
-        }
-
-        expected = {
-            'schema': schema,
-            'data': [{'A': 1}, {'A': 2}, {'A': 3}]
+            'schema': pd.io.json.build_table_schema(data, index=False),
+            'data': DataFrame(data).to_dict(orient='records')
         }
 
         assert result == expected
 
     @pytest.mark.parametrize('orient', [
-        ('records'),
-        ('index'),
-        ('columns'),
-        ('values'),
+        'records', 'index', 'columns', 'values'
     ])
     def test_index_false_error_to_json(self, orient):
         # GH 17394
         # Testing error message from to_json with index=False
+
         df = pd.DataFrame([[1, 2], [4, 5]], columns=['a', 'b'])
 
         with tm.assert_raises_regex(ValueError, "'index=False' is only "
