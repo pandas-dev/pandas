@@ -15,7 +15,7 @@ requirements:
     - python
     - cython
     - numpy x.x
-    - setuptools
+    - setuptools >=3.3
 
   run:
     - python
