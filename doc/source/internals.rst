@@ -89,6 +89,46 @@ not check (or care) whether the levels themselves are sorted. Fortunately, the
 constructors ``from_tuples`` and ``from_arrays`` ensure that this is true, but
 if you compute the levels and labels yourself, please be careful.
 
+.. _register-accessors:
+
+Registering Custom Accessors
+----------------------------
+
+Libraries can use the decorators :func:`register_dataframe_accessor`,
+:func:`register_series_accessor`, and :func:`register_index_accessor`, to add
+additional "namespaces" to pandas objects. All of these follow a similar
+convention: you decorate a class, providing the name of attribute to add. The
+class's `__init__` method gets the object being decorated. For example:
+
+.. ipython:: python
+
+   @pd.register_dataframe_accessor("geo")
+   class GeoAccessor(object):
+       def __init__(self, pandas_obj):
+           self._obj = pandas_obj
+
+       @property
+       def center(self):
+           # return the geographic center point of this DataFarme
+           lon = self._obj.latitude
+           lat = self._obj.longitude
+           return (float(lon.mean()), float(lat.mean()))
+
+       def plot(self):
+           # plot this array's data on a map, e.g., using Cartopy
+           pass
+
+Now users can access your methods using the `geo` namespace:
+
+      >>> ds = pd.DataFrame({'longitude': np.linspace(0, 10),
+      ...                    'latitude': np.linspace(0, 20)})
+      >>> ds.geo.center
+      (5.0, 10.0)
+      >>> ds.geo.plot()
+      # plots data on a map
+
+This can be a convenient way to extend pandas objects without subclassing them.
+
 .. _ref-subclassing-pandas:
 
 Subclassing pandas Data Structures
@@ -99,6 +139,8 @@ Subclassing pandas Data Structures
   1. Extensible method chains with :ref:`pipe <basics.pipe>`
 
   2. Use *composition*. See `here <http://en.wikipedia.org/wiki/Composition_over_inheritance>`_.
+
+  3. Extending by :ref:`registering an accessor <internals.register-accessors>`
 
 This section describes how to subclass ``pandas`` data structures to meet more specific needs. There are 2 points which need attention:
 

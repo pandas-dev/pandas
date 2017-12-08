@@ -70,7 +70,10 @@ class TestPDApi(Base):
              'period_range',
              'pivot', 'pivot_table', 'qcut',
              'show_versions', 'timedelta_range', 'unique',
-             'value_counts', 'wide_to_long']
+             'value_counts', 'wide_to_long',
+             'register_series_accessor',
+             'register_dataframe_accessor',
+             'register_index_accessor']
 
     # top-level option funcs
     funcs_option = ['reset_option', 'describe_option', 'get_option',

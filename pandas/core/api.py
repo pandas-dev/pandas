@@ -5,6 +5,9 @@
 import numpy as np
 
 from pandas.core.algorithms import factorize, unique, value_counts
+from pandas.core.accessor import (register_dataframe_accessor,
+                                  register_index_accessor,
+                                  register_series_accessor)
 from pandas.core.dtypes.missing import isna, isnull, notna, notnull
 from pandas.core.categorical import Categorical
 from pandas.core.groupby import Grouper
