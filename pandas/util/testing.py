@@ -38,9 +38,7 @@ from pandas.core.common import _all_not_none
 import pandas.compat as compat
 from pandas.compat import (
     filter, map, zip, range, unichr, lrange, lmap, lzip, u, callable, Counter,
-    raise_with_traceback, httplib, is_platform_windows, is_platform_32bit,
-    StringIO, PY3
-)
+    raise_with_traceback, httplib, StringIO, PY3)
 
 from pandas import (bdate_range, CategoricalIndex, Categorical, IntervalIndex,
                     DatetimeIndex, TimedeltaIndex, PeriodIndex, RangeIndex,
@@ -319,12 +317,6 @@ def close(fignum=None):
         _close(fignum)
 
 
-def _skip_if_32bit():
-    if is_platform_32bit():
-        import pytest
-        pytest.skip("skipping for 32 bit")
-
-
 def _skip_if_mpl_1_5():
     import matplotlib as mpl
 
@@ -365,18 +357,6 @@ def _skip_if_no_xarray():
     if LooseVersion(v) < LooseVersion('0.7.0'):
         import pytest
         pytest.skip("xarray version is too low: {version}".format(version=v))
-
-
-def _skip_if_windows_python_3():
-    if PY3 and is_platform_windows():
-        import pytest
-        pytest.skip("not used on python 3/win32")
-
-
-def _skip_if_windows():
-    if is_platform_windows():
-        import pytest
-        pytest.skip("Running on Windows")
 
 
 def _skip_if_no_pathlib():
@@ -2825,9 +2805,6 @@ def set_timezone(tz):
     ...
     'EDT'
     """
-    if is_platform_windows():
-        import pytest
-        pytest.skip("timezone setting not supported on windows")
 
     import os
     import time

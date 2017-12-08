@@ -5,6 +5,7 @@ import numpy as np
 
 import pandas as pd
 import pandas.util.testing as tm
+import pandas.util._test_decorators as td
 import pandas.compat as compat
 
 
@@ -1220,6 +1221,8 @@ class TestReplaceSeriesCoercion(CoercionBase):
         self.rep['timedelta64[ns]'] = [pd.Timedelta('1 day'),
                                        pd.Timedelta('2 day')]
 
+    @td.skip_if_windows
+    @td.skip_if_32bit
     def _assert_replace_conversion(self, from_key, to_key, how):
         index = pd.Index([3, 4], name='xxx')
         obj = pd.Series(self.rep[from_key], index=index, name='yyy')
@@ -1241,11 +1244,6 @@ class TestReplaceSeriesCoercion(CoercionBase):
         if ((from_key == 'float64' and to_key in ('int64')) or
             (from_key == 'complex128' and
              to_key in ('int64', 'float64'))):
-
-            # buggy on 32-bit / window
-            if compat.is_platform_32bit() or compat.is_platform_windows():
-                pytest.skip("32-bit platform buggy: {0} -> {1}".format
-                            (from_key, to_key))
 
             # Expected: do not downcast by replacement
             exp = pd.Series(self.rep[to_key], index=index,
