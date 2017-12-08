@@ -137,7 +137,6 @@ See the package overview for more detail about what's in the library.
     visualization
     style
     io
-    remote_data
     enhancingperf
     sparse
     gotchas

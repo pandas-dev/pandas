@@ -3,4 +3,4 @@ python-dateutil=2.5.0
 pytz=2013b
 nomkl
 numpy
-cython=0.23
+cython=0.24

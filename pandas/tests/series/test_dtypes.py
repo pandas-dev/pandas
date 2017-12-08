@@ -10,6 +10,7 @@ import string
 import warnings
 
 from numpy import nan
+import pandas as pd
 import numpy as np
 
 from pandas import (
@@ -228,6 +229,98 @@ class TestSeriesDtypes(TestData):
                                         check_stacklevel=False):
             result = s.astype('category', categories=['a', 'b'], ordered=True)
         tm.assert_series_equal(result, expected)
+
+    def test_astype_from_categorical(self):
+        l = ["a", "b", "c", "a"]
+        s = Series(l)
+        exp = Series(Categorical(l))
+        res = s.astype('category')
+        tm.assert_series_equal(res, exp)
+
+        l = [1, 2, 3, 1]
+        s = Series(l)
+        exp = Series(Categorical(l))
+        res = s.astype('category')
+        tm.assert_series_equal(res, exp)
+
+        df = DataFrame({"cats": [1, 2, 3, 4, 5, 6],
+                        "vals": [1, 2, 3, 4, 5, 6]})
+        cats = Categorical([1, 2, 3, 4, 5, 6])
+        exp_df = DataFrame({"cats": cats, "vals": [1, 2, 3, 4, 5, 6]})
+        df["cats"] = df["cats"].astype("category")
+        tm.assert_frame_equal(exp_df, df)
+
+        df = DataFrame({"cats": ['a', 'b', 'b', 'a', 'a', 'd'],
+                        "vals": [1, 2, 3, 4, 5, 6]})
+        cats = Categorical(['a', 'b', 'b', 'a', 'a', 'd'])
+        exp_df = DataFrame({"cats": cats, "vals": [1, 2, 3, 4, 5, 6]})
+        df["cats"] = df["cats"].astype("category")
+        tm.assert_frame_equal(exp_df, df)
+
+        # with keywords
+        l = ["a", "b", "c", "a"]
+        s = Series(l)
+        exp = Series(Categorical(l, ordered=True))
+        res = s.astype(CategoricalDtype(None, ordered=True))
+        tm.assert_series_equal(res, exp)
+
+        exp = Series(Categorical(l, categories=list('abcdef'), ordered=True))
+        res = s.astype(CategoricalDtype(list('abcdef'), ordered=True))
+        tm.assert_series_equal(res, exp)
+
+    def test_astype_categorical_to_other(self):
+
+        df = DataFrame({'value': np.random.randint(0, 10000, 100)})
+        labels = ["{0} - {1}".format(i, i + 499) for i in range(0, 10000, 500)]
+        cat_labels = Categorical(labels, labels)
+
+        df = df.sort_values(by=['value'], ascending=True)
+        df['value_group'] = pd.cut(df.value, range(0, 10500, 500),
+                                   right=False, labels=cat_labels)
+
+        s = df['value_group']
+        expected = s
+        tm.assert_series_equal(s.astype('category'), expected)
+        tm.assert_series_equal(s.astype(CategoricalDtype()), expected)
+        pytest.raises(ValueError, lambda: s.astype('float64'))
+
+        cat = Series(Categorical(['a', 'b', 'b', 'a', 'a', 'c', 'c', 'c']))
+        exp = Series(['a', 'b', 'b', 'a', 'a', 'c', 'c', 'c'])
+        tm.assert_series_equal(cat.astype('str'), exp)
+        s2 = Series(Categorical(['1', '2', '3', '4']))
+        exp2 = Series([1, 2, 3, 4]).astype(int)
+        tm.assert_series_equal(s2.astype('int'), exp2)
+
+        # object don't sort correctly, so just compare that we have the same
+        # values
+        def cmp(a, b):
+            tm.assert_almost_equal(
+                np.sort(np.unique(a)), np.sort(np.unique(b)))
+
+        expected = Series(np.array(s.values), name='value_group')
+        cmp(s.astype('object'), expected)
+        cmp(s.astype(np.object_), expected)
+
+        # array conversion
+        tm.assert_almost_equal(np.array(s), np.array(s.values))
+
+        # valid conversion
+        for valid in [lambda x: x.astype('category'),
+                      lambda x: x.astype(CategoricalDtype()),
+                      lambda x: x.astype('object').astype('category'),
+                      lambda x: x.astype('object').astype(
+                          CategoricalDtype())
+                      ]:
+
+            result = valid(s)
+            # compare series values
+            # internal .categories can't be compared because it is sorted
+            tm.assert_series_equal(result, s, check_categorical=False)
+
+        # invalid conversion (these are NOT a dtype)
+        for invalid in [lambda x: x.astype(Categorical),
+                        lambda x: x.astype('object').astype(Categorical)]:
+            pytest.raises(TypeError, lambda: invalid(s))
 
     def test_astype_categoricaldtype(self):
         s = Series(['a', 'b', 'a'])
