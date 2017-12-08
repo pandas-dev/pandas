@@ -13,7 +13,8 @@ import pandas._libs.index as _index
 from pandas.core.dtypes.common import is_integer, is_scalar
 from pandas import (Index, Series, DataFrame, isna,
                     date_range, NaT, MultiIndex,
-                    Timestamp, DatetimeIndex, Timedelta)
+                    Timestamp, DatetimeIndex, Timedelta,
+                    Categorical)
 from pandas.core.indexing import IndexingError
 from pandas.tseries.offsets import BDay
 from pandas._libs import tslib, lib
@@ -2237,6 +2238,31 @@ class TestSeriesIndexing(TestData):
         expected = Series([False, True, False], index=[1, 2, 3])
         assert_series_equal(result, expected)
 
+    def test_reindex_categorical(self):
+
+        index = date_range('20000101', periods=3)
+
+        # reindexing to an invalid Categorical
+        s = Series(['a', 'b', 'c'], dtype='category')
+        result = s.reindex(index)
+        expected = Series(Categorical(values=[np.nan, np.nan, np.nan],
+                                      categories=['a', 'b', 'c']))
+        expected.index = index
+        tm.assert_series_equal(result, expected)
+
+        # partial reindexing
+        expected = Series(Categorical(values=['b', 'c'], categories=['a', 'b',
+                                                                     'c']))
+        expected.index = [1, 2]
+        result = s.reindex([1, 2])
+        tm.assert_series_equal(result, expected)
+
+        expected = Series(Categorical(
+            values=['c', np.nan], categories=['a', 'b', 'c']))
+        expected.index = [2, 3]
+        result = s.reindex([2, 3])
+        tm.assert_series_equal(result, expected)
+
     def test_rename(self):
 
         # GH 17407
@@ -2336,6 +2362,41 @@ class TestSeriesIndexing(TestData):
             series[1:3] = 1
 
         assert not array.any()
+
+    def test_categorial_assigning_ops(self):
+        orig = Series(Categorical(["b", "b"], categories=["a", "b"]))
+        s = orig.copy()
+        s[:] = "a"
+        exp = Series(Categorical(["a", "a"], categories=["a", "b"]))
+        tm.assert_series_equal(s, exp)
+
+        s = orig.copy()
+        s[1] = "a"
+        exp = Series(Categorical(["b", "a"], categories=["a", "b"]))
+        tm.assert_series_equal(s, exp)
+
+        s = orig.copy()
+        s[s.index > 0] = "a"
+        exp = Series(Categorical(["b", "a"], categories=["a", "b"]))
+        tm.assert_series_equal(s, exp)
+
+        s = orig.copy()
+        s[[False, True]] = "a"
+        exp = Series(Categorical(["b", "a"], categories=["a", "b"]))
+        tm.assert_series_equal(s, exp)
+
+        s = orig.copy()
+        s.index = ["x", "y"]
+        s["y"] = "a"
+        exp = Series(Categorical(["b", "a"], categories=["a", "b"]),
+                     index=["x", "y"])
+        tm.assert_series_equal(s, exp)
+
+        # ensure that one can set something to np.nan
+        s = Series(Categorical([1, 2, 3]))
+        exp = Series(Categorical([1, np.nan, 3], categories=[1, 2, 3]))
+        s[1] = np.nan
+        tm.assert_series_equal(s, exp)
 
 
 class TestTimeSeriesDuplicates(object):
