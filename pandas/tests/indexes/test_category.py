@@ -437,10 +437,9 @@ class TestCategoricalIndex(Base):
         tm.assert_index_equal(result, expected)
 
         if dtype_ordered is False:
-            # dtype='category' defaults to ordered=False, so only test once
+            # dtype='category' can't specify ordered, so only test once
             result = index.astype('category', copy=copy)
-            expected = CategoricalIndex(
-                index.tolist(), categories=index.categories, name=name)
+            expected = index
             tm.assert_index_equal(result, expected)
 
     def test_reindex_base(self):
