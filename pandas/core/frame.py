@@ -4320,7 +4320,7 @@ class DataFrame(NDFrame):
         return valid_indices[0] if len(valid_indices) else None
 
     @Appender(_shared_docs['valid_index'] % {
-        'position': 'first', 'klass': 'DataFrame'})
+        'position': 'last', 'klass': 'DataFrame'})
     def last_valid_index(self):
         if len(self) == 0:
             return None
