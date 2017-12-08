@@ -1848,7 +1848,8 @@ class FloatBlock(FloatOrComplexBlock):
             return (issubclass(tipo.type, (np.floating, np.integer)) and
                     not issubclass(tipo.type, (np.datetime64, np.timedelta64)))
         return (
-            isinstance(element, (float, int, np.floating, np.int_, compat.long))
+            isinstance(
+                element, (float, int, np.floating, np.int_, compat.long))
             and not isinstance(element, (bool, np.bool_, datetime, timedelta,
                                          np.datetime64, np.timedelta64)))
 
@@ -1897,9 +1898,11 @@ class ComplexBlock(FloatOrComplexBlock):
         if tipo is not None:
             return issubclass(tipo.type,
                               (np.floating, np.integer, np.complexfloating))
-        return (isinstance(element,
-                           (float, int, complex, np.float_, np.int_, compat.long)) and
-                not isinstance(element, (bool, np.bool_)))
+        return (
+            isinstance(
+                element,
+                (float, int, complex, np.float_, np.int_, compat.long))
+            and not isinstance(element, (bool, np.bool_)))
 
     def should_store(self, value):
         return issubclass(value.dtype.type, np.complexfloating)
