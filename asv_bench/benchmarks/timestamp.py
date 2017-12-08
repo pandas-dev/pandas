@@ -5,6 +5,7 @@ import datetime
 
 class TimestampProperties(object):
     goal_time = 0.2
+    sample_time = 0.2
 
     _tzs = [None, pytz.timezone('Europe/Amsterdam')]
     _freqs = [None, 'B']
