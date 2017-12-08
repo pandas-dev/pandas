@@ -1680,7 +1680,7 @@ def _plot(data, x=None, y=None, subplots=False,
     else:
         raise ValueError("%r is not a valid plot kind" % kind)
 
-    from pandas import DataFrame
+    from pandas import DataFrame, Series
     if kind in _dataframe_kinds:
         if isinstance(data, DataFrame):
             plot_obj = klass(data, x=x, y=y, subplots=subplots, ax=ax,
@@ -1706,11 +1706,15 @@ def _plot(data, x=None, y=None, subplots=False,
             if x is not None:
                 if is_integer(x) and not data.columns.holds_integer():
                     x = data.columns[x]
+                elif not isinstance(data[x], Series):
+                    raise ValueError("x must be a label or position")
                 data = data.set_index(x)
 
             if y is not None:
                 if is_integer(y) and not data.columns.holds_integer():
                     y = data.columns[y]
+                elif not isinstance(data[y], Series):
+                    raise ValueError("y must be a label or position")
                 label = kwds['label'] if 'label' in kwds else y
                 series = data[y].copy()  # Don't modify
                 series.name = label

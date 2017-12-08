@@ -2170,6 +2170,15 @@ class TestDataFramePlots(TestPlotBase):
         with pytest.raises(ValueError):
             df.plot(kind='aasdf')
 
+    def test_invalid_xy_args(self):
+        df = DataFrame({"A": [1, 2], 'B': [3, 4], 'C': [5, 6]})
+        bad_arg = ['B', 'C']
+        valid_arg = 'A'
+        with pytest.raises(ValueError):
+            df.plot(x=bad_arg, y=valid_arg)
+        with pytest.raises(ValueError):
+            df.plot(x=valid_arg, y=bad_arg)
+
     @pytest.mark.slow
     def test_hexbin_basic(self):
         df = self.hexbin_df
