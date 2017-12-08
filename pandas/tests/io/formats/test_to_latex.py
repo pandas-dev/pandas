@@ -91,6 +91,29 @@ class TestToLatex(object):
 
         assert withindex_result == withindex_expected
 
+    def test_to_latex_empty(self):
+        df = DataFrame()
+        result = df.to_latex()
+        expected = r"""\begin{tabular}{l}
+\toprule
+Empty DataFrame
+Columns: Index([], dtype='object')
+Index: Index([], dtype='object') \\
+\bottomrule
+\end{tabular}
+"""
+        assert result == expected
+
+        result = df.to_latex(longtable=True)
+        expected = r"""\begin{longtable}{l}
+\toprule
+Empty DataFrame
+Columns: Index([], dtype='object')
+Index: Index([], dtype='object') \\
+\end{longtable}
+"""
+        assert result == expected
+
     def test_to_latex_with_formatters(self):
         df = DataFrame({'int': [1, 2, 3],
                         'float': [1.0, 2.0, 3.0],
@@ -367,7 +390,7 @@ b &       b &     b \\
 \midrule
 \endhead
 \midrule
-\multicolumn{2}{r}{{Continued on next page}} \\
+\multicolumn{3}{r}{{Continued on next page}} \\
 \midrule
 \endfoot
 
@@ -377,7 +400,7 @@ b &       b &     b \\
 1 &  2 &  b2 \\
 \end{longtable}
 """
-
+        open("expected.txt", "w").write(withindex_result)
         assert withindex_result == withindex_expected
 
         withoutindex_result = df.to_latex(index=False, longtable=True)
@@ -387,7 +410,7 @@ b &       b &     b \\
 \midrule
 \endhead
 \midrule
-\multicolumn{3}{r}{{Continued on next page}} \\
+\multicolumn{2}{r}{{Continued on next page}} \\
 \midrule
 \endfoot
 

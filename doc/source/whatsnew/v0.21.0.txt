@@ -1089,7 +1089,6 @@ I/O
 - Bug in :meth:`DataFrame.to_html` in which there was no validation of the ``justify`` parameter (:issue:`17527`)
 - Bug in :func:`HDFStore.select` when reading a contiguous mixed-data table featuring VLArray (:issue:`17021`)
 - Bug in :func:`to_json` where several conditions (including objects with unprintable symbols, objects with deep recursion, overlong labels) caused segfaults instead of raising the appropriate exception (:issue:`14256`)
-- Bug in :meth:`DataFrame.to_latex` with ``longtable=True`` where a latex multicolumn always spanned over three columns (:issue:`17959`)
 
 Plotting
 ^^^^^^^^
