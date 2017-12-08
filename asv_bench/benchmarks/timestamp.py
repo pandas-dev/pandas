@@ -2,6 +2,24 @@ from pandas import to_timedelta, Timestamp
 import pytz
 import datetime
 
+class TimestampConstruction(object):
+    # TODO: classmethod constructors: fromordinal, fromtimestamp...
+
+    def time_parse_iso8601_no_tz(self):
+        Timestamp('2017-08-25 08:16:14')
+
+    def time_parse_iso8601_tz(self):
+        Timestamp('2017-08-25 08:16:14-0500')
+
+    def time_parse_dateutil(self):
+        Timestamp('2017/08/25 08:16:14 AM')
+
+    def time_parse_today(self):
+        Timestamp('today')
+
+    def time_parse_now(self):
+        Timestamp('now')
+
 
 class TimestampProperties(object):
     goal_time = 0.2
