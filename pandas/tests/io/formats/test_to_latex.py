@@ -221,13 +221,14 @@ a &       &      &           &      &       &      &       &      \\
 
         assert result == expected
 
-        # GH 14484
+    def test_to_latex_multiindex_dupe_level(self):
+        # see gh-14484
+        #
         # If an index is repeated in subsequent rows, it should be
-        # replaced with a blank in the created table.
-        # This should ONLY happen if all higher order indicies
-        # (to the left) are equal, too.
-        # In this test, 'c' has to be printed both times, because
-        # the higher order index 'A' != 'B'
+        # replaced with a blank in the created table. This should
+        # ONLY happen if all higher order indices (to the left) are
+        # equal too. In this test, 'c' has to be printed both times
+        # because the higher order index 'A' != 'B'.
         df = pd.DataFrame(index=pd.MultiIndex.from_tuples(
             [('A', 'c'), ('B', 'c')]), columns=['col'])
         result = df.to_latex()
@@ -240,7 +241,6 @@ B & c &  NaN \\
 \bottomrule
 \end{tabular}
 """
-
         assert result == expected
 
     def test_to_latex_multicolumnrow(self):
