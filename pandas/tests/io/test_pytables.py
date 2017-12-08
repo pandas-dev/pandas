@@ -4935,10 +4935,12 @@ class TestHDFStore(Base):
         df = pd.DataFrame({
             'a': ['a', 'b', 'c', np.nan],
             'b': [np.nan, np.nan, np.nan, np.nan],
-            'c': [1, 2, 3, 4]
+            'c': [1, 2, 3, 4],
+            'd': pd.Series([None]* 4, dtype=object)
         })
         df['a'] = df.a.astype('category')
         df['b'] = df.b.astype('category')
+        df['d'] = df.b.astype('category')
         expected = df
         with ensure_clean_path(self.path) as path:
             df.to_hdf(path, 'df', format='table', data_columns=True)
