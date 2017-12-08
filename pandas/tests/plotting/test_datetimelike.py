@@ -519,6 +519,7 @@ class TestTSPlot(TestPlotBase):
             xp = Period('1/1/1999', freq='H').ordinal
         assert rs == xp
 
+    @td.skip_if_mpl_1_5
     @pytest.mark.slow
     def test_gaps(self):
         ts = tm.makeTimeSeries()
@@ -526,7 +527,6 @@ class TestTSPlot(TestPlotBase):
         _, ax = self.plt.subplots()
         ts.plot(ax=ax)
         lines = ax.get_lines()
-        tm._skip_if_mpl_1_5()
         assert len(lines) == 1
         l = lines[0]
         data = l.get_xydata()
@@ -564,6 +564,7 @@ class TestTSPlot(TestPlotBase):
         mask = data.mask
         assert mask[2:5, 1].all()
 
+    @td.skip_if_mpl_1_5
     @pytest.mark.slow
     def test_gap_upsample(self):
         low = tm.makeTimeSeries()
@@ -579,8 +580,6 @@ class TestTSPlot(TestPlotBase):
         assert len(ax.right_ax.get_lines()) == 1
         l = lines[0]
         data = l.get_xydata()
-
-        tm._skip_if_mpl_1_5()
 
         assert isinstance(data, np.ma.core.MaskedArray)
         mask = data.mask
