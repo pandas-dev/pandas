@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 # pylint: disable-msg=W0612,E1101
 
+from warnings import catch_warnings
 import pytest
 
 from pandas import DataFrame, Series
@@ -11,7 +12,7 @@ import numpy as np
 
 from pandas.util.testing import assert_frame_equal
 
-from pandas import get_dummies
+from pandas import get_dummies, Categorical, Index
 import pandas.util.testing as tm
 from pandas.compat import u
 
@@ -452,6 +453,63 @@ class TestGetDummies(object):
                                  dtype=self.effective_dtype(dtype))
 
             tm.assert_frame_equal(result, expected)
+
+
+class TestCategoricalReshape(object):
+
+    def test_reshaping_panel_categorical(self):
+
+        with catch_warnings(record=True):
+            p = tm.makePanel()
+            p['str'] = 'foo'
+            df = p.to_frame()
+
+        df['category'] = df['str'].astype('category')
+        result = df['category'].unstack()
+
+        c = Categorical(['foo'] * len(p.major_axis))
+        expected = DataFrame({'A': c.copy(),
+                              'B': c.copy(),
+                              'C': c.copy(),
+                              'D': c.copy()},
+                             columns=Index(list('ABCD'), name='minor'),
+                             index=p.major_axis.set_names('major'))
+        tm.assert_frame_equal(result, expected)
+
+    def test_reshape_categorical(self):
+        cat = Categorical([], categories=["a", "b"])
+        tm.assert_produces_warning(FutureWarning, cat.reshape, 0)
+
+        with tm.assert_produces_warning(FutureWarning):
+            cat = Categorical([], categories=["a", "b"])
+            tm.assert_categorical_equal(cat.reshape(0), cat)
+
+        with tm.assert_produces_warning(FutureWarning):
+            cat = Categorical([], categories=["a", "b"])
+            tm.assert_categorical_equal(cat.reshape((5, -1)), cat)
+
+        with tm.assert_produces_warning(FutureWarning):
+            cat = Categorical(["a", "b"], categories=["a", "b"])
+            tm.assert_categorical_equal(cat.reshape(cat.shape), cat)
+
+        with tm.assert_produces_warning(FutureWarning):
+            cat = Categorical(["a", "b"], categories=["a", "b"])
+            tm.assert_categorical_equal(cat.reshape(cat.size), cat)
+
+        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
+            msg = "can only specify one unknown dimension"
+            cat = Categorical(["a", "b"], categories=["a", "b"])
+            tm.assert_raises_regex(ValueError, msg, cat.reshape, (-2, -1))
+
+    def test_reshape_categorical_numpy(self):
+        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
+            cat = Categorical(["a", "b"], categories=["a", "b"])
+            tm.assert_categorical_equal(np.reshape(cat, cat.shape), cat)
+
+        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
+            msg = "the 'order' parameter is not supported"
+            tm.assert_raises_regex(ValueError, msg, np.reshape,
+                                   cat, cat.shape, order='F')
 
 
 class TestMakeAxisDummies(object):

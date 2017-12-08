@@ -17,7 +17,7 @@ from pandas.core.dtypes.common import (
     is_datetime64tz_dtype)
 from pandas import (Index, Series, isna, date_range, Timestamp,
                     NaT, period_range, timedelta_range, MultiIndex,
-                    IntervalIndex)
+                    IntervalIndex, Categorical, DataFrame)
 
 from pandas._libs import lib
 from pandas._libs.tslib import iNaT
@@ -184,6 +184,60 @@ class TestSeriesConstructors(TestData):
         assert is_categorical_dtype(s)
         assert is_categorical_dtype(s.dtype)
 
+    def test_constructor_categorical_with_coercion(self):
+        factor = Categorical(['a', 'b', 'b', 'a', 'a', 'c', 'c', 'c'])
+        # test basic creation / coercion of categoricals
+        s = Series(factor, name='A')
+        assert s.dtype == 'category'
+        assert len(s) == len(factor)
+        str(s.values)
+        str(s)
+
+        # in a frame
+        df = DataFrame({'A': factor})
+        result = df['A']
+        tm.assert_series_equal(result, s)
+        result = df.iloc[:, 0]
+        tm.assert_series_equal(result, s)
+        assert len(df) == len(factor)
+        str(df.values)
+        str(df)
+
+        df = DataFrame({'A': s})
+        result = df['A']
+        tm.assert_series_equal(result, s)
+        assert len(df) == len(factor)
+        str(df.values)
+        str(df)
+
+        # multiples
+        df = DataFrame({'A': s, 'B': s, 'C': 1})
+        result1 = df['A']
+        result2 = df['B']
+        tm.assert_series_equal(result1, s)
+        tm.assert_series_equal(result2, s, check_names=False)
+        assert result2.name == 'B'
+        assert len(df) == len(factor)
+        str(df.values)
+        str(df)
+
+        # GH8623
+        x = DataFrame([[1, 'John P. Doe'], [2, 'Jane Dove'],
+                       [1, 'John P. Doe']],
+                      columns=['person_id', 'person_name'])
+        x['person_name'] = Categorical(x.person_name
+                                       )  # doing this breaks transform
+
+        expected = x.iloc[0].person_name
+        result = x.person_name.iloc[0]
+        assert result == expected
+
+        result = x.person_name[0]
+        assert result == expected
+
+        result = x.person_name.loc[0]
+        assert result == expected
+
     def test_constructor_categorical_dtype(self):
         result = pd.Series(['a', 'b'],
                            dtype=CategoricalDtype(['a', 'b', 'c'],
@@ -196,6 +250,40 @@ class TestSeriesConstructors(TestData):
         assert is_categorical_dtype(result)
         tm.assert_index_equal(result.cat.categories, pd.Index(['b', 'a']))
         assert result.cat.ordered is False
+
+    def test_categorical_sideeffects_free(self):
+        # Passing a categorical to a Series and then changing values in either
+        # the series or the categorical should not change the values in the
+        # other one, IF you specify copy!
+        cat = Categorical(["a", "b", "c", "a"])
+        s = Series(cat, copy=True)
+        assert s.cat is not cat
+        s.cat.categories = [1, 2, 3]
+        exp_s = np.array([1, 2, 3, 1], dtype=np.int64)
+        exp_cat = np.array(["a", "b", "c", "a"], dtype=np.object_)
+        tm.assert_numpy_array_equal(s.__array__(), exp_s)
+        tm.assert_numpy_array_equal(cat.__array__(), exp_cat)
+
+        # setting
+        s[0] = 2
+        exp_s2 = np.array([2, 2, 3, 1], dtype=np.int64)
+        tm.assert_numpy_array_equal(s.__array__(), exp_s2)
+        tm.assert_numpy_array_equal(cat.__array__(), exp_cat)
+
+        # however, copy is False by default
+        # so this WILL change values
+        cat = Categorical(["a", "b", "c", "a"])
+        s = Series(cat)
+        assert s.values is cat
+        s.cat.categories = [1, 2, 3]
+        exp_s = np.array([1, 2, 3, 1], dtype=np.int64)
+        tm.assert_numpy_array_equal(s.__array__(), exp_s)
+        tm.assert_numpy_array_equal(cat.__array__(), exp_s)
+
+        s[0] = 2
+        exp_s2 = np.array([2, 2, 3, 1], dtype=np.int64)
+        tm.assert_numpy_array_equal(s.__array__(), exp_s2)
+        tm.assert_numpy_array_equal(cat.__array__(), exp_s2)
 
     def test_unordered_compare_equal(self):
         left = pd.Series(['a', 'b', 'c'],

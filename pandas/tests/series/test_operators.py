@@ -14,7 +14,7 @@ import numpy as np
 import pandas as pd
 
 from pandas import (Index, Series, DataFrame, isna, bdate_range,
-                    NaT, date_range, timedelta_range)
+                    NaT, date_range, timedelta_range, Categorical)
 from pandas.core.indexes.datetimes import Timestamp
 from pandas.core.indexes.timedeltas import Timedelta
 import pandas.core.nanops as nanops
@@ -931,6 +931,58 @@ class TestSeriesOperators(TestData):
         expected = -(s == 'a')
         assert_series_equal(result, expected)
 
+    def test_categorical_comparisons(self):
+
+        # GH 8938
+        # allow equality comparisons
+        a = Series(list('abc'), dtype="category")
+        b = Series(list('abc'), dtype="object")
+        c = Series(['a', 'b', 'cc'], dtype="object")
+        d = Series(list('acb'), dtype="object")
+        e = Categorical(list('abc'))
+        f = Categorical(list('acb'))
+
+        # vs scalar
+        assert not (a == 'a').all()
+        assert ((a != 'a') == ~(a == 'a')).all()
+
+        assert not ('a' == a).all()
+        assert (a == 'a')[0]
+        assert ('a' == a)[0]
+        assert not ('a' != a)[0]
+
+        # vs list-like
+        assert (a == a).all()
+        assert not (a != a).all()
+
+        assert (a == list(a)).all()
+        assert (a == b).all()
+        assert (b == a).all()
+        assert ((~(a == b)) == (a != b)).all()
+        assert ((~(b == a)) == (b != a)).all()
+
+        assert not (a == c).all()
+        assert not (c == a).all()
+        assert not (a == d).all()
+        assert not (d == a).all()
+
+        # vs a cat-like
+        assert (a == e).all()
+        assert (e == a).all()
+        assert not (a == f).all()
+        assert not (f == a).all()
+
+        assert ((~(a == e) == (a != e)).all())
+        assert ((~(e == a) == (e != a)).all())
+        assert ((~(a == f) == (a != f)).all())
+        assert ((~(f == a) == (f != a)).all())
+
+        # non-equality is not comparable
+        pytest.raises(TypeError, lambda: a < b)
+        pytest.raises(TypeError, lambda: b < a)
+        pytest.raises(TypeError, lambda: a > b)
+        pytest.raises(TypeError, lambda: b > a)
+
     def test_comparison_tuples(self):
         # GH11339
         # comparisons vs tuple
@@ -1035,6 +1087,34 @@ class TestSeriesOperators(TestData):
             pytest.raises(TypeError, lambda: x > y)
             pytest.raises(TypeError, lambda: x < y)
             pytest.raises(TypeError, lambda: x <= y)
+
+    def test_unequal_categorical_comparison_raises_type_error(self):
+        # unequal comparison should raise for unordered cats
+        cat = Series(Categorical(list("abc")))
+
+        def f():
+            cat > "b"
+
+        pytest.raises(TypeError, f)
+        cat = Series(Categorical(list("abc"), ordered=False))
+
+        def f():
+            cat > "b"
+
+        pytest.raises(TypeError, f)
+
+        # https://github.com/pandas-dev/pandas/issues/9836#issuecomment-92123057
+        # and following comparisons with scalars not in categories should raise
+        # for unequal comps, but not for equal/not equal
+        cat = Series(Categorical(list("abc"), ordered=True))
+
+        pytest.raises(TypeError, lambda: cat < "d")
+        pytest.raises(TypeError, lambda: cat > "d")
+        pytest.raises(TypeError, lambda: "d" < cat)
+        pytest.raises(TypeError, lambda: "d" > cat)
+
+        tm.assert_series_equal(cat == "d", Series([False, False, False]))
+        tm.assert_series_equal(cat != "d", Series([True, True, True]))
 
     def test_more_na_comparisons(self):
         for dtype in [None, object]:

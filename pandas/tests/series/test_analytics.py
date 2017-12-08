@@ -11,7 +11,8 @@ import numpy as np
 import pandas as pd
 
 from pandas import (Series, Categorical, DataFrame, isna, notna,
-                    bdate_range, date_range, _np_version_under1p10)
+                    bdate_range, date_range, _np_version_under1p10,
+                    CategoricalIndex)
 from pandas.core.index import MultiIndex
 from pandas.core.indexes.datetimes import Timestamp
 from pandas.core.indexes.timedeltas import Timedelta
@@ -1865,3 +1866,218 @@ class TestNLargestNSmallest(object):
         result = s.nsmallest(n)
         expected = s.sort_values().head(n)
         assert_series_equal(result, expected)
+
+
+class TestCategoricalSeriesAnalytics(object):
+
+    def test_count(self):
+
+        s = Series(Categorical([np.nan, 1, 2, np.nan],
+                               categories=[5, 4, 3, 2, 1], ordered=True))
+        result = s.count()
+        assert result == 2
+
+    def test_min_max(self):
+        # unordered cats have no min/max
+        cat = Series(Categorical(["a", "b", "c", "d"], ordered=False))
+        pytest.raises(TypeError, lambda: cat.min())
+        pytest.raises(TypeError, lambda: cat.max())
+
+        cat = Series(Categorical(["a", "b", "c", "d"], ordered=True))
+        _min = cat.min()
+        _max = cat.max()
+        assert _min == "a"
+        assert _max == "d"
+
+        cat = Series(Categorical(["a", "b", "c", "d"], categories=[
+                     'd', 'c', 'b', 'a'], ordered=True))
+        _min = cat.min()
+        _max = cat.max()
+        assert _min == "d"
+        assert _max == "a"
+
+        cat = Series(Categorical(
+            [np.nan, "b", "c", np.nan], categories=['d', 'c', 'b', 'a'
+                                                    ], ordered=True))
+        _min = cat.min()
+        _max = cat.max()
+        assert np.isnan(_min)
+        assert _max == "b"
+
+        cat = Series(Categorical(
+            [np.nan, 1, 2, np.nan], categories=[5, 4, 3, 2, 1], ordered=True))
+        _min = cat.min()
+        _max = cat.max()
+        assert np.isnan(_min)
+        assert _max == 1
+
+    def test_mode(self):
+        s = Series(Categorical([1, 1, 2, 4, 5, 5, 5],
+                               categories=[5, 4, 3, 2, 1], ordered=True))
+        res = s.mode()
+        exp = Series(Categorical([5], categories=[
+                     5, 4, 3, 2, 1], ordered=True))
+        tm.assert_series_equal(res, exp)
+        s = Series(Categorical([1, 1, 1, 4, 5, 5, 5],
+                               categories=[5, 4, 3, 2, 1], ordered=True))
+        res = s.mode()
+        exp = Series(Categorical([5, 1], categories=[
+                     5, 4, 3, 2, 1], ordered=True))
+        tm.assert_series_equal(res, exp)
+        s = Series(Categorical([1, 2, 3, 4, 5], categories=[5, 4, 3, 2, 1],
+                               ordered=True))
+        res = s.mode()
+        exp = Series(Categorical([5, 4, 3, 2, 1], categories=[5, 4, 3, 2, 1],
+                                 ordered=True))
+        tm.assert_series_equal(res, exp)
+
+    def test_value_counts(self):
+        # GH 12835
+        cats = Categorical(list('abcccb'), categories=list('cabd'))
+        s = Series(cats, name='xxx')
+        res = s.value_counts(sort=False)
+
+        exp_index = CategoricalIndex(list('cabd'), categories=cats.categories)
+        exp = Series([3, 1, 2, 0], name='xxx', index=exp_index)
+        tm.assert_series_equal(res, exp)
+
+        res = s.value_counts(sort=True)
+
+        exp_index = CategoricalIndex(list('cbad'), categories=cats.categories)
+        exp = Series([3, 2, 1, 0], name='xxx', index=exp_index)
+        tm.assert_series_equal(res, exp)
+
+        # check object dtype handles the Series.name as the same
+        # (tested in test_base.py)
+        s = Series(["a", "b", "c", "c", "c", "b"], name='xxx')
+        res = s.value_counts()
+        exp = Series([3, 2, 1], name='xxx', index=["c", "b", "a"])
+        tm.assert_series_equal(res, exp)
+
+    def test_value_counts_with_nan(self):
+        # see gh-9443
+
+        # sanity check
+        s = Series(["a", "b", "a"], dtype="category")
+        exp = Series([2, 1], index=CategoricalIndex(["a", "b"]))
+
+        res = s.value_counts(dropna=True)
+        tm.assert_series_equal(res, exp)
+
+        res = s.value_counts(dropna=True)
+        tm.assert_series_equal(res, exp)
+
+        # same Series via two different constructions --> same behaviour
+        series = [
+            Series(["a", "b", None, "a", None, None], dtype="category"),
+            Series(Categorical(["a", "b", None, "a", None, None],
+                               categories=["a", "b"]))
+        ]
+
+        for s in series:
+            # None is a NaN value, so we exclude its count here
+            exp = Series([2, 1], index=CategoricalIndex(["a", "b"]))
+            res = s.value_counts(dropna=True)
+            tm.assert_series_equal(res, exp)
+
+            # we don't exclude the count of None and sort by counts
+            exp = Series([3, 2, 1], index=CategoricalIndex([np.nan, "a", "b"]))
+            res = s.value_counts(dropna=False)
+            tm.assert_series_equal(res, exp)
+
+            # When we aren't sorting by counts, and np.nan isn't a
+            # category, it should be last.
+            exp = Series([2, 1, 3], index=CategoricalIndex(["a", "b", np.nan]))
+            res = s.value_counts(dropna=False, sort=False)
+            tm.assert_series_equal(res, exp)
+
+    @pytest.mark.parametrize(
+        "dtype",
+        ["int_", "uint", "float_", "unicode_", "timedelta64[h]",
+         pytest.param("datetime64[D]",
+                      marks=pytest.mark.xfail(reason="issue7996"))]
+    )
+    @pytest.mark.parametrize("is_ordered", [True, False])
+    def test_drop_duplicates_categorical_non_bool(self, dtype, is_ordered):
+        cat_array = np.array([1, 2, 3, 4, 5], dtype=np.dtype(dtype))
+
+        # Test case 1
+        input1 = np.array([1, 2, 3, 3], dtype=np.dtype(dtype))
+        tc1 = Series(Categorical(input1, categories=cat_array,
+                                 ordered=is_ordered))
+
+        expected = Series([False, False, False, True])
+        tm.assert_series_equal(tc1.duplicated(), expected)
+        tm.assert_series_equal(tc1.drop_duplicates(), tc1[~expected])
+        sc = tc1.copy()
+        sc.drop_duplicates(inplace=True)
+        tm.assert_series_equal(sc, tc1[~expected])
+
+        expected = Series([False, False, True, False])
+        tm.assert_series_equal(tc1.duplicated(keep='last'), expected)
+        tm.assert_series_equal(tc1.drop_duplicates(keep='last'),
+                               tc1[~expected])
+        sc = tc1.copy()
+        sc.drop_duplicates(keep='last', inplace=True)
+        tm.assert_series_equal(sc, tc1[~expected])
+
+        expected = Series([False, False, True, True])
+        tm.assert_series_equal(tc1.duplicated(keep=False), expected)
+        tm.assert_series_equal(tc1.drop_duplicates(keep=False), tc1[~expected])
+        sc = tc1.copy()
+        sc.drop_duplicates(keep=False, inplace=True)
+        tm.assert_series_equal(sc, tc1[~expected])
+
+        # Test case 2
+        input2 = np.array([1, 2, 3, 5, 3, 2, 4], dtype=np.dtype(dtype))
+        tc2 = Series(Categorical(
+            input2, categories=cat_array, ordered=is_ordered)
+        )
+
+        expected = Series([False, False, False, False, True, True, False])
+        tm.assert_series_equal(tc2.duplicated(), expected)
+        tm.assert_series_equal(tc2.drop_duplicates(), tc2[~expected])
+        sc = tc2.copy()
+        sc.drop_duplicates(inplace=True)
+        tm.assert_series_equal(sc, tc2[~expected])
+
+        expected = Series([False, True, True, False, False, False, False])
+        tm.assert_series_equal(tc2.duplicated(keep='last'), expected)
+        tm.assert_series_equal(tc2.drop_duplicates(keep='last'),
+                               tc2[~expected])
+        sc = tc2.copy()
+        sc.drop_duplicates(keep='last', inplace=True)
+        tm.assert_series_equal(sc, tc2[~expected])
+
+        expected = Series([False, True, True, False, True, True, False])
+        tm.assert_series_equal(tc2.duplicated(keep=False), expected)
+        tm.assert_series_equal(tc2.drop_duplicates(keep=False), tc2[~expected])
+        sc = tc2.copy()
+        sc.drop_duplicates(keep=False, inplace=True)
+        tm.assert_series_equal(sc, tc2[~expected])
+
+    @pytest.mark.parametrize("is_ordered", [True, False])
+    def test_drop_duplicates_categorical_bool(self, is_ordered):
+        tc = Series(Categorical([True, False, True, False],
+                                categories=[True, False], ordered=is_ordered))
+
+        expected = Series([False, False, True, True])
+        tm.assert_series_equal(tc.duplicated(), expected)
+        tm.assert_series_equal(tc.drop_duplicates(), tc[~expected])
+        sc = tc.copy()
+        sc.drop_duplicates(inplace=True)
+        tm.assert_series_equal(sc, tc[~expected])
+
+        expected = Series([True, True, False, False])
+        tm.assert_series_equal(tc.duplicated(keep='last'), expected)
+        tm.assert_series_equal(tc.drop_duplicates(keep='last'), tc[~expected])
+        sc = tc.copy()
+        sc.drop_duplicates(keep='last', inplace=True)
+        tm.assert_series_equal(sc, tc[~expected])
+
+        expected = Series([True, True, True, True])
+        tm.assert_series_equal(tc.duplicated(keep=False), expected)
+        tm.assert_series_equal(tc.drop_duplicates(keep=False), tc[~expected])
+        sc = tc.copy()
+        sc.drop_duplicates(keep=False, inplace=True)
+        tm.assert_series_equal(sc, tc[~expected])

@@ -9,7 +9,7 @@ import numpy as np
 from collections import OrderedDict
 import pandas as pd
 from pandas import (DataFrame, Series, Index, MultiIndex,
-                    Grouper, date_range, concat)
+                    Grouper, date_range, concat, Categorical)
 from pandas.core.reshape.pivot import pivot_table, crosstab
 from pandas.compat import range, product
 import pandas.util.testing as tm
@@ -90,6 +90,24 @@ class TestPivotTable(object):
                                    names=['customer', 'product'])
         tm.assert_index_equal(pv_col.columns, m)
         tm.assert_index_equal(pv_ind.index, m)
+
+    def test_pivot_table_categorical(self):
+
+        raw_cat1 = Categorical(["a", "a", "b", "b"],
+                               categories=["a", "b", "z"], ordered=True)
+        raw_cat2 = Categorical(["c", "d", "c", "d"],
+                               categories=["c", "d", "y"], ordered=True)
+        df = DataFrame({"A": raw_cat1, "B": raw_cat2, "values": [1, 2, 3, 4]})
+        result = pd.pivot_table(df, values='values', index=['A', 'B'])
+
+        exp_index = pd.MultiIndex.from_product(
+            [Categorical(["a", "b", "z"], ordered=True),
+             Categorical(["c", "d", "y"], ordered=True)],
+            names=['A', 'B'])
+        expected = DataFrame(
+            {'values': [1, 2, np.nan, 3, 4, np.nan, np.nan, np.nan, np.nan]},
+            index=exp_index)
+        tm.assert_frame_equal(result, expected)
 
     def test_pivot_table_dropna_categoricals(self):
         # GH 15193

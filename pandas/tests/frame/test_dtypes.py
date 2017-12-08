@@ -619,6 +619,13 @@ class TestDataFrameDataTypes(TestData):
         expected = concat([a1_str, b, a2_str], axis=1)
         assert_frame_equal(result, expected)
 
+    @pytest.mark.parametrize('columns', [['x'], ['x', 'y'], ['x', 'y', 'z']])
+    def test_categorical_astype_ndim_raises(self, columns):
+        # GH 18004
+        msg = '> 1 ndim Categorical are not supported at this time'
+        with tm.assert_raises_regex(NotImplementedError, msg):
+            DataFrame(columns=columns).astype('category')
+
     @pytest.mark.parametrize("cls", [
         pd.api.types.CategoricalDtype,
         pd.api.types.DatetimeTZDtype,
