@@ -6,6 +6,7 @@ cimport cython
 import cython
 from numpy cimport ndarray
 from tslib import Timestamp
+from tslibs.timezones cimport get_timezone
 
 from cpython.object cimport (Py_EQ, Py_NE, Py_GT, Py_LT, Py_GE, Py_LE,
                              PyObject_RichCompare)
@@ -119,6 +120,13 @@ cdef class Interval(IntervalMixin):
             raise ValueError(msg)
         if not left <= right:
             raise ValueError('left side of interval must be <= right side')
+        if (isinstance(left, Timestamp) and
+                get_timezone(left.tzinfo) != get_timezone(right.tzinfo)):
+            # GH 18538
+            msg = ("left and right must have the same time zone, got "
+                   "'{left_tz}' and '{right_tz}'")
+            raise ValueError(msg.format(left_tz=left.tzinfo,
+                                        right_tz=right.tzinfo))
         self.left = left
         self.right = right
         self.closed = closed
