@@ -186,6 +186,9 @@ def test_cross_engine_pa_fp(df_cross_compat, pa, fp):
         result = read_parquet(path, engine=fp)
         tm.assert_frame_equal(result, df)
 
+        result = read_parquet(path, engine=fp, columns=['a', 'd'])
+        tm.assert_frame_equal(result, df[['a', 'd']])
+
 
 def test_cross_engine_fp_pa(df_cross_compat, pa, fp):
     # cross-compat with differing reading/writing engines
@@ -196,6 +199,9 @@ def test_cross_engine_fp_pa(df_cross_compat, pa, fp):
 
         result = read_parquet(path, engine=pa)
         tm.assert_frame_equal(result, df)
+
+        result = read_parquet(path, engine=pa, columns=['a', 'd'])
+        tm.assert_frame_equal(result, df[['a', 'd']])
 
 
 class Base(object):
