@@ -6,10 +6,9 @@ import datetime
 class TimestampProperties(object):
     goal_time = 0.2
 
-    params = [(None, None),
-              (pytz.timezone('Europe/Amsterdam'), None),
-              (None, 'B'),
-              (pytz.timezone('Europe/Amsterdam'), 'B')]
+    _tzs = [None, pytz.timezone('Europe/Amsterdam')]
+    _freqs = [None, 'B']
+    params = [_tzs, _freqs]
     param_names = ['tz', 'freq']
 
     def setup(self, tz, freq):
