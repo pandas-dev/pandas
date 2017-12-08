@@ -592,15 +592,6 @@ cpdef array_to_datetime(ndarray[object] values, errors='raise',
 
                 seen_string = 1
 
-                if val == 'now':
-                    # Note: this is *not* the same as Timestamp('now')
-                    iresult[i] = Timestamp.utcnow().value
-                    continue
-                elif val == 'today':
-                    # Note: this is *not* the same as Timestamp('today')
-                    iresult[i] = Timestamp.utcnow().normalize().value
-                    continue
-
                 try:
                     _string_to_dts(val, &dts, &out_local, &out_tzoffset)
                     value = dtstruct_to_dt64(&dts)
@@ -612,6 +603,8 @@ cpdef array_to_datetime(ndarray[object] values, errors='raise',
                 except ValueError:
                     # if requiring iso8601 strings, skip trying other formats
                     if require_iso8601:
+                        if _parse_today_now(val, &iresult[i]):
+                            continue
                         if is_coerce:
                             iresult[i] = NPY_NAT
                             continue
@@ -626,6 +619,8 @@ cpdef array_to_datetime(ndarray[object] values, errors='raise',
                         py_dt = parse_datetime_string(val, dayfirst=dayfirst,
                                                       yearfirst=yearfirst)
                     except Exception:
+                        if _parse_today_now(val, &iresult[i]):
+                            continue
                         if is_coerce:
                             iresult[i] = NPY_NAT
                             continue
@@ -720,6 +715,19 @@ cpdef array_to_datetime(ndarray[object] values, errors='raise',
 
         return oresult
 
+
+cdef inline bint _parse_today_now(str val, int64_t* iresult):
+    # We delay this check for as long as possible
+    # because it catches relatively rare cases
+    if val == 'now':
+        # Note: this is *not* the same as Timestamp('now')
+        iresult[0] = Timestamp.utcnow().value
+        return True
+    elif val == 'today':
+        # Note: this is *not* the same as Timestamp('today')
+        iresult[0] = Timestamp.utcnow().normalize().value
+        return True
+    return False
 
 # ----------------------------------------------------------------------
 # Some general helper functions
