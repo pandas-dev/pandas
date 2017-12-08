@@ -16,10 +16,10 @@ class ApplyDictReturn(object):
     def setup(self):
         self.labels = np.arange(1000).repeat(10)
         self.data = Series(np.random.randn(len(self.labels)))
-        self.f = lambda x: {'first': x.values[0], 'last': x.values[(-1)]}
 
     def time_groupby_apply_dict_return(self):
-        self.data.groupby(self.labels).apply(self.f)
+        self.data.groupby(self.labels).apply(lambda x: {'first': x.values[0],
+                                                        'last': x.values[-1]})
 
 
 class Apply(object):
