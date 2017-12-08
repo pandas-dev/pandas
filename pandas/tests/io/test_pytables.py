@@ -2888,8 +2888,7 @@ class TestHDFStore(Base):
             pytest.skip('known failer on some windows platforms')
 
     @pytest.mark.parametrize("compression", [
-        (False,),
-        td.skip_if_windows_python_3()(True,)
+        False, pytest.param(True, marks=td.skip_if_windows_python_3)
     ])
     def test_frame(self, compression):
 
@@ -3014,8 +3013,7 @@ class TestHDFStore(Base):
             tm.assert_series_equal(recons, series)
 
     @pytest.mark.parametrize("compression", [
-        (False,),
-        td.skip_if_windows_python_3()(True,)
+        False, pytest.param(True, marks=td.skip_if_windows_python_3)
     ])
     def test_store_mixed(self, compression):
 

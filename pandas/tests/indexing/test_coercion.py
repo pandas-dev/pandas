@@ -1195,35 +1195,38 @@ class TestFillnaSeriesCoercion(CoercionBase):
         pass
 
 
-@td.skip_if_windows
-@td.skip_if_32bit
-class TestReplaceSeriesCoercion(CoercionBase):
+@pytest.mark.parametrize('how', ['dict', 'series'])
+@pytest.mark.parametrize('to_key', [
+    'object', 'int64', 'float64', 'complex128', 'bool', 'datetime64[ns]',
+    'datetime64[ns, UTC]', 'datetime64[ns, US/Eastern]', 'timedelta64[ns]'])
+@pytest.mark.parametrize('from_key', [
+    'object', 'int64', 'float64', 'complex128', 'bool', 'datetime64[ns]',
+    'datetime64[ns, UTC]', 'datetime64[ns, US/Eastern]', 'timedelta64[ns]'])
+class TestReplaceSeriesCoercion(object):
 
-    # not indexing, but place here for consisntency
+    rep = {}
+    rep['object'] = ['a', 'b']
+    rep['int64'] = [4, 5]
+    rep['float64'] = [1.1, 2.2]
+    rep['complex128'] = [1 + 1j, 2 + 2j]
+    rep['bool'] = [True, False]
+    rep['datetime64[ns]'] = [pd.Timestamp('2011-01-01'),
+                             pd.Timestamp('2011-01-03')]
 
-    klasses = ['series']
-    method = 'replace'
+    for tz in ['UTC', 'US/Eastern']:
+        # to test tz => different tz replacement
+        key = 'datetime64[ns, {0}]'.format(tz)
+        rep[key] = [pd.Timestamp('2011-01-01', tz=tz),
+                    pd.Timestamp('2011-01-03', tz=tz)]
 
-    def setup_method(self, method):
-        self.rep = {}
-        self.rep['object'] = ['a', 'b']
-        self.rep['int64'] = [4, 5]
-        self.rep['float64'] = [1.1, 2.2]
-        self.rep['complex128'] = [1 + 1j, 2 + 2j]
-        self.rep['bool'] = [True, False]
-        self.rep['datetime64[ns]'] = [pd.Timestamp('2011-01-01'),
-                                      pd.Timestamp('2011-01-03')]
+    rep['timedelta64[ns]'] = [pd.Timedelta('1 day'),
+                              pd.Timedelta('2 day')]
 
-        for tz in ['UTC', 'US/Eastern']:
-            # to test tz => different tz replacement
-            key = 'datetime64[ns, {0}]'.format(tz)
-            self.rep[key] = [pd.Timestamp('2011-01-01', tz=tz),
-                             pd.Timestamp('2011-01-03', tz=tz)]
+    def test_replace_series(self, how, to_key, from_key):
+        if from_key == 'bool' and how == 'series' and compat.PY3:
+            # doesn't work in PY3, though ...dict_from_bool works fine
+            pytest.skip("doesn't work as in PY3")
 
-        self.rep['timedelta64[ns]'] = [pd.Timedelta('1 day'),
-                                       pd.Timedelta('2 day')]
-
-    def _assert_replace_conversion(self, from_key, to_key, how):
         index = pd.Index([3, 4], name='xxx')
         obj = pd.Series(self.rep[from_key], index=index, name='yyy')
         assert obj.dtype == from_key
@@ -1245,6 +1248,9 @@ class TestReplaceSeriesCoercion(CoercionBase):
             (from_key == 'complex128' and
              to_key in ('int64', 'float64'))):
 
+            td.skip_if_32bit()
+            td.skip_if_windows()
+
             # Expected: do not downcast by replacement
             exp = pd.Series(self.rep[to_key], index=index,
                             name='yyy', dtype=from_key)
@@ -1254,78 +1260,3 @@ class TestReplaceSeriesCoercion(CoercionBase):
             assert exp.dtype == to_key
 
         tm.assert_series_equal(result, exp)
-
-    def test_replace_series_object(self):
-        from_key = 'object'
-        for to_key in self.rep:
-            self._assert_replace_conversion(from_key, to_key, how='dict')
-
-        for to_key in self.rep:
-            self._assert_replace_conversion(from_key, to_key, how='series')
-
-    def test_replace_series_int64(self):
-        from_key = 'int64'
-        for to_key in self.rep:
-            self._assert_replace_conversion(from_key, to_key, how='dict')
-
-        for to_key in self.rep:
-            self._assert_replace_conversion(from_key, to_key, how='series')
-
-    def test_replace_series_float64(self):
-        from_key = 'float64'
-        for to_key in self.rep:
-            self._assert_replace_conversion(from_key, to_key, how='dict')
-
-        for to_key in self.rep:
-            self._assert_replace_conversion(from_key, to_key, how='series')
-
-    def test_replace_series_complex128(self):
-        from_key = 'complex128'
-        for to_key in self.rep:
-            self._assert_replace_conversion(from_key, to_key, how='dict')
-
-        for to_key in self.rep:
-            self._assert_replace_conversion(from_key, to_key, how='series')
-
-    def test_replace_series_bool(self):
-        from_key = 'bool'
-        for to_key in self.rep:
-            self._assert_replace_conversion(from_key, to_key, how='dict')
-
-        for to_key in self.rep:
-
-            if compat.PY3:
-                # doesn't work in PY3, though ...dict_from_bool works fine
-                pytest.skip("doesn't work as in PY3")
-
-            self._assert_replace_conversion(from_key, to_key, how='series')
-
-    def test_replace_series_datetime64(self):
-        from_key = 'datetime64[ns]'
-        for to_key in self.rep:
-            self._assert_replace_conversion(from_key, to_key, how='dict')
-
-        from_key = 'datetime64[ns]'
-        for to_key in self.rep:
-            self._assert_replace_conversion(from_key, to_key, how='series')
-
-    def test_replace_series_datetime64tz(self):
-        from_key = 'datetime64[ns, US/Eastern]'
-        for to_key in self.rep:
-            self._assert_replace_conversion(from_key, to_key, how='dict')
-
-        from_key = 'datetime64[ns, US/Eastern]'
-        for to_key in self.rep:
-            self._assert_replace_conversion(from_key, to_key, how='series')
-
-    def test_replace_series_timedelta64(self):
-        from_key = 'timedelta64[ns]'
-        for to_key in self.rep:
-            self._assert_replace_conversion(from_key, to_key, how='dict')
-
-        from_key = 'timedelta64[ns]'
-        for to_key in self.rep:
-            self._assert_replace_conversion(from_key, to_key, how='series')
-
-    def test_replace_series_period(self):
-        pass
