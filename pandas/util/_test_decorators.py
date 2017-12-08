@@ -25,6 +25,7 @@ For more information, refer to the ``pytest`` documentation on ``skipif``.
 """
 
 import pytest
+from distutils.version import LooseVersion
 
 
 def safe_import(mod_name, min_version=None):
@@ -67,5 +68,18 @@ def _skip_if_no_mpl():
         return True
 
 
+def _skip_if_mpl_1_5():
+    mod = safe_import("matplotlib")
+
+    if mod:
+        v = mod.__version__
+        if LooseVersion(v) > LooseVersion('1.4.3') or str(v)[0] == '0':
+            return True
+        else:
+            mod.use("Agg", warn=False)
+
+
 skip_if_no_mpl = pytest.mark.skipif(_skip_if_no_mpl(),
                                     reason="Missing matplotlib dependency")
+skip_if_mpl_1_5 = pytest.mark.skipif(_skip_if_mpl_1_5(),
+                                     reason="matplotlib 1.5")
