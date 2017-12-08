@@ -3019,7 +3019,7 @@ class TestMomentsConsistency(Base):
         x = series.resample('D').max().rolling(window=1).max()
         tm.assert_series_equal(expected, x)
 
-    def test_rolling_max_how_resample(self):
+    def test_rolling_max_resample(self):
 
         indices = [datetime(1975, 1, i) for i in range(1, 6)]
         # So that we can have 3 datapoints on last day (4, 10, and 20)
@@ -3040,17 +3040,17 @@ class TestMomentsConsistency(Base):
         # Now specify median (10.0)
         expected = Series([0.0, 1.0, 2.0, 3.0, 10.0],
                           index=[datetime(1975, 1, i, 0) for i in range(1, 6)])
-        x = series.resample('D').median().rolling(window=1).max(how='median')
+        x = series.resample('D').median().rolling(window=1).max()
         tm.assert_series_equal(expected, x)
 
         # Now specify mean (4+10+20)/3
         v = (4.0 + 10.0 + 20.0) / 3.0
         expected = Series([0.0, 1.0, 2.0, 3.0, v],
                           index=[datetime(1975, 1, i, 0) for i in range(1, 6)])
-        x = series.resample('D').mean().rolling(window=1).max(how='mean')
+        x = series.resample('D').mean().rolling(window=1).max()
         tm.assert_series_equal(expected, x)
 
-    def test_rolling_min_how_resample(self):
+    def test_rolling_min_resample(self):
 
         indices = [datetime(1975, 1, i) for i in range(1, 6)]
         # So that we can have 3 datapoints on last day (4, 10, and 20)
@@ -3068,7 +3068,7 @@ class TestMomentsConsistency(Base):
         r = series.resample('D').min().rolling(window=1)
         tm.assert_series_equal(expected, r.min())
 
-    def test_rolling_median_how_resample(self):
+    def test_rolling_median_resample(self):
 
         indices = [datetime(1975, 1, i) for i in range(1, 6)]
         # So that we can have 3 datapoints on last day (4, 10, and 20)

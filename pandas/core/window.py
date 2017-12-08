@@ -106,17 +106,17 @@ class _Window(PandasObject, SelectionMixin):
             raise ValueError("closed must be 'right', 'left', 'both' or "
                              "'neither'")
 
-    def _convert_freq(self, how=None):
+    def _convert_freq(self):
         """ resample according to the how, return a new object """
 
         obj = self._selected_obj
         index = None
         return obj, index
 
-    def _create_blocks(self, how):
+    def _create_blocks(self):
         """ split data into blocks & return conformed data """
 
-        obj, index = self._convert_freq(how)
+        obj, index = self._convert_freq()
         if index is not None:
             index = self._on
 
@@ -196,7 +196,7 @@ class _Window(PandasObject, SelectionMixin):
             return index, index.asi8
         return index, index
 
-    def _prep_values(self, values=None, kill_inf=True, how=None):
+    def _prep_values(self, values=None, kill_inf=True):
 
         if values is None:
             values = getattr(self._selected_obj, 'values', self._selected_obj)
@@ -320,22 +320,10 @@ class _Window(PandasObject, SelectionMixin):
     agg = aggregate
 
     _shared_docs['sum'] = dedent("""
-    %(name)s sum
-
-    Parameters
-    ----------
-    how : string, default None
-        .. deprecated:: 0.18.0
-           Method for down- or re-sampling""")
+    %(name)s sum""")
 
     _shared_docs['mean'] = dedent("""
-    %(name)s mean
-
-    Parameters
-    ----------
-    how : string, default None
-        .. deprecated:: 0.18.0
-           Method for down- or re-sampling""")
+    %(name)s mean""")
 
 
 class Window(_Window):
@@ -549,7 +537,7 @@ class Window(_Window):
             # GH #15662. `False` makes symmetric window, rather than periodic.
             return sig.get_window(win_type, window, False).astype(float)
 
-    def _apply_window(self, mean=True, how=None, **kwargs):
+    def _apply_window(self, mean=True, **kwargs):
         """
         Applies a moving window of type ``window_type`` on the data.
 
@@ -557,9 +545,6 @@ class Window(_Window):
         ----------
         mean : boolean, default True
             If True computes weighted mean, else weighted sum
-        how : string, default to None
-            .. deprecated:: 0.18.0
-               how to resample
 
         Returns
         -------
@@ -569,7 +554,7 @@ class Window(_Window):
         window = self._prep_window(**kwargs)
         center = self.center
 
-        blocks, obj, index = self._create_blocks(how=how)
+        blocks, obj, index = self._create_blocks()
         results = []
         for b in blocks:
             try:
@@ -686,7 +671,7 @@ class _GroupByMixin(GroupByMixin):
     cov = GroupByMixin._dispatch('cov', other=None, pairwise=None)
 
     def _apply(self, func, name, window=None, center=None,
-               check_minp=None, how=None, **kwargs):
+               check_minp=None, **kwargs):
         """
         dispatch to apply; we are stripping all of the _apply kwargs and
         performing the original function call on the grouped object
@@ -710,7 +695,7 @@ class _Rolling(_Window):
         return Rolling
 
     def _apply(self, func, name=None, window=None, center=None,
-               check_minp=None, how=None, **kwargs):
+               check_minp=None, **kwargs):
         """
         Rolling statistical measure using supplied function. Designed to be
         used with passed-in Cython array-based functions.
@@ -723,9 +708,6 @@ class _Rolling(_Window):
         window : int/array, default to _get_window()
         center : boolean, default to self.center
         check_minp : function, default to _use_window
-        how : string, default to None
-            .. deprecated:: 0.18.0
-               how to resample
 
         Returns
         -------
@@ -739,7 +721,7 @@ class _Rolling(_Window):
         if check_minp is None:
             check_minp = _use_window
 
-        blocks, obj, index = self._create_blocks(how=how)
+        blocks, obj, index = self._create_blocks()
         index, indexi = self._get_index(index=index)
         results = []
         for b in blocks:
@@ -803,7 +785,7 @@ class _Rolling_and_Expanding(_Rolling):
 
     def count(self):
 
-        blocks, obj, index = self._create_blocks(how=None)
+        blocks, obj, index = self._create_blocks()
         index, indexi = self._get_index(index=index)
 
         window = self._get_window()
@@ -849,29 +831,19 @@ class _Rolling_and_Expanding(_Rolling):
 
     _shared_docs['max'] = dedent("""
     %(name)s maximum
+    """)
 
-    Parameters
-    ----------
-    how : string, default 'max'
-        .. deprecated:: 0.18.0
-           Method for down- or re-sampling""")
-
-    def max(self, how=None, *args, **kwargs):
+    def max(self, *args, **kwargs):
         nv.validate_window_func('max', args, kwargs)
-        return self._apply('roll_max', 'max', how=how, **kwargs)
+        return self._apply('roll_max', 'max', **kwargs)
 
     _shared_docs['min'] = dedent("""
     %(name)s minimum
+    """)
 
-    Parameters
-    ----------
-    how : string, default 'min'
-        .. deprecated:: 0.18.0
-           Method for down- or re-sampling""")
-
-    def min(self, how=None, *args, **kwargs):
+    def min(self, *args, **kwargs):
         nv.validate_window_func('min', args, kwargs)
-        return self._apply('roll_min', 'min', how=how, **kwargs)
+        return self._apply('roll_min', 'min', **kwargs)
 
     def mean(self, *args, **kwargs):
         nv.validate_window_func('mean', args, kwargs)
@@ -879,15 +851,10 @@ class _Rolling_and_Expanding(_Rolling):
 
     _shared_docs['median'] = dedent("""
     %(name)s median
+    """)
 
-    Parameters
-    ----------
-    how : string, default 'median'
-        .. deprecated:: 0.18.0
-           Method for down- or re-sampling""")
-
-    def median(self, how=None, **kwargs):
-        return self._apply('roll_median_c', 'median', how=how, **kwargs)
+    def median(self, **kwargs):
+        return self._apply('roll_median_c', 'median', **kwargs)
 
     _shared_docs['std'] = dedent("""
     %(name)s standard deviation
@@ -1709,23 +1676,20 @@ class EWM(_Rolling):
 
     agg = aggregate
 
-    def _apply(self, func, how=None, **kwargs):
+    def _apply(self, func, **kwargs):
         """Rolling statistical measure using supplied function. Designed to be
         used with passed-in Cython array-based functions.
 
         Parameters
         ----------
         func : string/callable to apply
-        how : string, default to None
-            .. deprecated:: 0.18.0
-               how to resample
 
         Returns
         -------
         y : type of input argument
 
         """
-        blocks, obj, index = self._create_blocks(how=how)
+        blocks, obj, index = self._create_blocks()
         results = []
         for b in blocks:
             try:
