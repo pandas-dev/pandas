@@ -1060,19 +1060,29 @@ class Base(object):
         with pytest.raises(ValueError):
             index.putmask('foo', 1)
 
-    def test_astype_category(self):
+    @pytest.mark.parametrize('copy', [True, False])
+    @pytest.mark.parametrize('name', [None, 'foo'])
+    @pytest.mark.parametrize('ordered', [True, False])
+    def test_astype_category(self, copy, name, ordered):
         # GH 18630
         index = self.create_index()
+        if name:
+            index = index.rename(name)
 
-        expected = CategoricalIndex(index.values)
-        result = index.astype('category', copy=True)
+        # standard categories
+        dtype = CategoricalDtype(ordered=ordered)
+        result = index.astype(dtype, copy=copy)
+        expected = CategoricalIndex(index.values, name=name, ordered=ordered)
         tm.assert_index_equal(result, expected)
 
-        expected = CategoricalIndex(index.values, name='foo')
-        result = index.rename('foo').astype('category', copy=False)
+        # non-standard categories
+        dtype = CategoricalDtype(index.unique().tolist()[:-1], ordered)
+        result = index.astype(dtype, copy=copy)
+        expected = CategoricalIndex(index.values, name=name, dtype=dtype)
         tm.assert_index_equal(result, expected)
 
-        dtype = CategoricalDtype(index.unique()[:-1], ordered=True)
-        expected = CategoricalIndex(index.values, dtype=dtype)
-        result = index.astype(dtype)
-        tm.assert_index_equal(result, expected)
+        if ordered is False:
+            # dtype='category' defaults to ordered=False, so only test once
+            result = index.astype('category', copy=copy)
+            expected = CategoricalIndex(index.values, name=name)
+            tm.assert_index_equal(result, expected)

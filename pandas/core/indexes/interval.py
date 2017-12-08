@@ -632,8 +632,9 @@ class IntervalIndex(IntervalMixin, Index):
         elif is_object_dtype(dtype):
             return Index(self.values, dtype=object)
         elif is_categorical_dtype(dtype):
-            from pandas import Categorical
-            return Categorical(self, ordered=True)
+            from pandas.core.indexes.category import CategoricalIndex
+            return CategoricalIndex(self.values, name=self.name, dtype=dtype,
+                                    copy=copy)
         raise ValueError('Cannot cast IntervalIndex to dtype {dtype}'
                          .format(dtype=dtype))
 

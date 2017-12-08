@@ -555,14 +555,17 @@ class TestMultiIndex(Base):
         with tm.assert_raises_regex(TypeError, "^Setting.*dtype.*object"):
             self.index.astype(np.dtype(int))
 
-    def test_astype_category(self):
+    @pytest.mark.parametrize('ordered', [True, False])
+    def test_astype_category(self, ordered):
         # GH 18630
-        msg = 'Setting .* dtype to anything other than object is not supported'
-        with tm.assert_raises_regex(TypeError, msg):
-            self.index.astype('category')
+        msg = '> 1 ndim Categorical are not supported at this time'
+        with tm.assert_raises_regex(NotImplementedError, msg):
+            self.index.astype(CategoricalDtype(ordered=ordered))
 
-        with tm.assert_raises_regex(TypeError, msg):
-            self.index.astype(CategoricalDtype())
+        if ordered is False:
+            # dtype='category' defaults to ordered=False, so only test once
+            with tm.assert_raises_regex(NotImplementedError, msg):
+                self.index.astype('category')
 
     def test_constructor_single_level(self):
         result = MultiIndex(levels=[['foo', 'bar', 'baz', 'qux']],

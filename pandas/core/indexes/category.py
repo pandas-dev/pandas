@@ -4,6 +4,7 @@ from pandas._libs import index as libindex
 from pandas import compat
 from pandas.compat.numpy import function as nv
 from pandas.core.dtypes.generic import ABCCategorical, ABCSeries
+from pandas.core.dtypes.dtypes import CategoricalDtype
 from pandas.core.dtypes.common import (
     is_categorical_dtype,
     _ensure_platform_int,
@@ -166,8 +167,6 @@ class CategoricalIndex(Index, accessor.PandasDelegate):
             data = Categorical(data, categories=categories, ordered=ordered,
                                dtype=dtype)
         else:
-            from pandas.core.dtypes.dtypes import CategoricalDtype
-
             if categories is not None:
                 data = data.set_categories(categories, ordered=ordered)
             elif ordered is not None and ordered != data.ordered:
@@ -346,9 +345,22 @@ class CategoricalIndex(Index, accessor.PandasDelegate):
         if is_interval_dtype(dtype):
             from pandas import IntervalIndex
             return IntervalIndex.from_intervals(np.array(self))
-        elif is_categorical_dtype(dtype) and (dtype == self.dtype):
-            # fastpath if dtype is the same current
-            return self.copy() if copy else self
+        elif is_categorical_dtype(dtype):
+            # want to maintain existing categories/ordered if they are None
+            if dtype.categories is None:
+                new_categories = self.categories
+            else:
+                new_categories = dtype.categories
+            if dtype.ordered is None:
+                new_ordered = self.ordered
+            else:
+                new_ordered = dtype.ordered
+            dtype = CategoricalDtype(new_categories, new_ordered)
+
+            # fastpath if dtypes are equal
+            if dtype == self.dtype:
+                return self.copy() if copy else self
+
         return super(CategoricalIndex, self).astype(dtype=dtype, copy=copy)
 
     @cache_readonly
