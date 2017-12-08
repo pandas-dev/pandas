@@ -143,7 +143,7 @@ class TestStata(object):
         tm.assert_frame_equal(parsed, expected)
 
     def test_read_dta2(self):
-        if LooseVersion(sys.version) < '2.7':
+        if LooseVersion(sys.version) < LooseVersion('2.7'):
             pytest.skip('datetime interp under 2.6 is faulty')
 
         expected = DataFrame.from_records(

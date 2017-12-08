@@ -24,7 +24,8 @@ from .common import TestData
 
 try:
     import scipy
-    _is_scipy_ge_0190 = scipy.__version__ >= LooseVersion('0.19.0')
+    _is_scipy_ge_0190 = (LooseVersion(scipy.__version__) >=
+                         LooseVersion('0.19.0'))
 except:
     _is_scipy_ge_0190 = False
 
@@ -363,6 +364,20 @@ class TestSeriesMissingData(TestData):
             for method in ['backfill', 'bfill', 'pad', 'ffill', None]:
                 with pytest.raises(ValueError):
                     s.fillna(1, limit=limit, method=method)
+
+    def test_categorical_nan_equality(self):
+        cat = Series(Categorical(["a", "b", "c", np.nan]))
+        exp = Series([True, True, True, False])
+        res = (cat == cat)
+        tm.assert_series_equal(res, exp)
+
+    def test_categorical_nan_handling(self):
+
+        # NaNs are represented as -1 in labels
+        s = Series(Categorical(["a", "b", np.nan, "a"]))
+        tm.assert_index_equal(s.cat.categories, Index(["a", "b"]))
+        tm.assert_numpy_array_equal(s.values.codes,
+                                    np.array([0, 1, -1, 0], dtype=np.int8))
 
     @pytest.mark.parametrize('fill_value, expected_output', [
         ('a', ['a', 'a', 'b', 'a', 'a']),
