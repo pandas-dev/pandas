@@ -24,6 +24,7 @@ from pandas.core.dtypes.generic import ABCSeries
 
 import pandas.tseries.frequencies as frequencies
 from pandas.tseries.frequencies import get_freq_code as _gfc
+from pandas.core.indexes.category import CategoricalIndex
 from pandas.core.indexes.datetimes import DatetimeIndex, Int64Index, Index
 from pandas.core.indexes.timedeltas import TimedeltaIndex
 from pandas.core.indexes.datetimelike import DatelikeOps, DatetimeIndexOpsMixin
@@ -519,7 +520,6 @@ class PeriodIndex(DatelikeOps, DatetimeIndexOpsMixin, Int64Index):
         elif is_period_dtype(dtype):
             return self.asfreq(freq=dtype.freq)
         elif is_categorical_dtype(dtype):
-            from pandas.core.indexes.category import CategoricalIndex
             return CategoricalIndex(self.values, name=self.name, dtype=dtype,
                                     copy=copy)
         raise TypeError('Cannot cast PeriodIndex to dtype %s' % dtype)

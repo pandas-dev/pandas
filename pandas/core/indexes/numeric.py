@@ -17,6 +17,7 @@ from pandas import compat
 from pandas.core import algorithms
 from pandas.core.indexes.base import (
     Index, InvalidIndexError, _index_shared_docs)
+from pandas.core.indexes.category import CategoricalIndex
 from pandas.util._decorators import Appender, cache_readonly
 import pandas.core.dtypes.concat as _concat
 import pandas.core.indexes.base as ibase
@@ -323,7 +324,6 @@ class Float64Index(NumericIndex):
         elif is_object_dtype(dtype):
             values = self._values.astype('object', copy=copy)
         elif is_categorical_dtype(dtype):
-            from pandas.core.indexes.category import CategoricalIndex
             return CategoricalIndex(self, name=self.name, dtype=dtype,
                                     copy=copy)
         else:
