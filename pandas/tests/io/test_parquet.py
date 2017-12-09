@@ -6,6 +6,7 @@ from distutils.version import LooseVersion
 from warnings import catch_warnings
 
 import numpy as np
+from numpy.random import randn
 import pandas as pd
 from pandas.compat import PY3
 from pandas.io.parquet import (to_parquet, read_parquet, get_engine,
@@ -43,23 +44,7 @@ def engine(request):
 def pa():
     if not _HAVE_PYARROW:
         pytest.skip("pyarrow is not installed")
-    return 'pyarrow'
-
-
-@pytest.fixture
-def pa_lt_070():
-    if not _HAVE_PYARROW:
-        pytest.skip("pyarrow is not installed")
-    if LooseVersion(pyarrow.__version__) >= LooseVersion('0.7.0'):
-        pytest.skip("pyarrow is >= 0.7.0")
-    return 'pyarrow'
-
-
-@pytest.fixture
-def pa_ge_070():
-    if not _HAVE_PYARROW:
-        pytest.skip("pyarrow is not installed")
-    if LooseVersion(pyarrow.__version__) < LooseVersion('0.7.0'):
+    if LooseVersion(pyarrow.__version__) < '0.7.0':
         pytest.skip("pyarrow is < 0.7.0")
     return 'pyarrow'
 
@@ -68,6 +53,8 @@ def pa_ge_070():
 def fp():
     if not _HAVE_FASTPARQUET:
         pytest.skip("fastparquet is not installed")
+    if LooseVersion(fastparquet.__version__) < '0.1.0':
+        pytest.skip("fastparquet is < 0.1.0")
     return 'fastparquet'
 
 
@@ -181,9 +168,7 @@ def test_cross_engine_fp_pa(df_cross_compat, pa, fp):
 class Base(object):
 
     def check_error_on_write(self, df, engine, exc):
-        # check that we are raising the exception
-        # on writing
-
+        # check that we are raising the exception on writing
         with pytest.raises(exc):
             with tm.ensure_clean() as path:
                 to_parquet(df, path, engine, compression=None)
@@ -247,33 +232,6 @@ class TestBasic(Base):
                       datetime.datetime(2011, 1, 1, 1, 1)]
         self.check_error_on_write(df, engine, ValueError)
 
-    def test_write_with_index(self, engine):
-
-        df = pd.DataFrame({'A': [1, 2, 3]})
-        self.check_round_trip(df, engine, write_kwargs={'compression': None})
-
-        # non-default index
-        for index in [[2, 3, 4],
-                      pd.date_range('20130101', periods=3),
-                      list('abc'),
-                      [1, 3, 4],
-                      pd.MultiIndex.from_tuples([('a', 1), ('a', 2),
-                                                 ('b', 1)]),
-                      ]:
-
-            df.index = index
-            self.check_error_on_write(df, engine, ValueError)
-
-        # index with meta-data
-        df.index = [0, 1, 2]
-        df.index.name = 'foo'
-        self.check_error_on_write(df, engine, ValueError)
-
-        # column multi-index
-        df.index = [0, 1, 2]
-        df.columns = pd.MultiIndex.from_tuples([('a', 1), ('a', 2), ('b', 1)]),
-        self.check_error_on_write(df, engine, ValueError)
-
     @pytest.mark.parametrize('compression', [None, 'gzip', 'snappy', 'brotli'])
     def test_compression(self, engine, compression):
 
@@ -296,6 +254,54 @@ class TestBasic(Base):
         self.check_round_trip(df, engine, expected=expected,
                               write_kwargs={'compression': None},
                               read_kwargs={'columns': ['string']})
+
+    def test_write_with_index(self, engine):
+        df = pd.DataFrame({'A': [1, 2, 3]})
+        self.check_round_trip(df, engine, write_kwargs={'compression': None})
+
+        # non-default index
+        for index in [[2, 3, 4],
+                      pd.date_range('20130101', periods=3),
+                      list('abc'),
+                      [1, 3, 4],
+                      pd.MultiIndex.from_tuples([('a', 1), ('a', 2),
+                                                 ('b', 1)]),
+                      ]:
+
+            df.index = index
+            self.check_round_trip(df, engine)
+
+        # index with meta-data
+        df.index = [0, 1, 2]
+        df.index.name = 'foo'
+        self.check_round_trip(df, engine)
+
+        # column multi-index
+        df.index = [0, 1, 2]
+        df.columns = pd.MultiIndex.from_tuples([('a', 1), ('a', 2), ('b', 1)]),
+        self.check_error_on_write(df, engine, ValueError)
+
+    def test_multiindex_with_columns(self, engine):
+        if engine == 'fastparquet':
+            pytest.xfail("fastparquet doesn't support mulit-indexes as of 0.1.3")
+
+        dates = pd.date_range('01-Jan-2018', '01-Dec-2018', freq='MS')
+        df = pd.DataFrame(randn(2*len(dates), 3), columns=list('ABC'))
+        index1 = pd.MultiIndex.from_product(
+            [['Level1', 'Level2'], dates],
+            names=['level', 'date']
+        )
+        index2 = index1.copy(names=None)
+        for index in [index1, index2]:
+            df.index = index
+            with tm.ensure_clean() as path:
+                df.to_parquet(path, engine)
+                result = read_parquet(path, engine)
+                expected = df
+                tm.assert_frame_equal(result, expected)
+                result = read_parquet(path, engine, columns=['A', 'B'])
+                expected = df[['A', 'B']]
+                tm.assert_frame_equal(result, expected)
 
 
 class TestParquetPyArrow(Base):
@@ -322,14 +328,12 @@ class TestParquetPyArrow(Base):
         self.check_round_trip(df, pa)
 
     def test_duplicate_columns(self, pa):
-
         # not currently able to handle duplicate columns
         df = pd.DataFrame(np.arange(12).reshape(4, 3),
                           columns=list('aaa')).copy()
         self.check_error_on_write(df, pa, ValueError)
 
     def test_unsupported(self, pa):
-
         # period
         df = pd.DataFrame({'a': pd.period_range('2013', freq='M', periods=3)})
         self.check_error_on_write(df, pa, ValueError)
@@ -343,22 +347,12 @@ class TestParquetPyArrow(Base):
         df = pd.DataFrame({'a': ['a', 1, 2.0]})
         self.check_error_on_write(df, pa, ValueError)
 
-    def test_categorical(self, pa_ge_070):
-        pa = pa_ge_070
-
-        # supported in >= 0.7.0
+    def test_categorical(self, pa):
         df = pd.DataFrame({'a': pd.Categorical(list('abc'))})
 
         # de-serialized as object
         expected = df.assign(a=df.a.astype(object))
         self.check_round_trip(df, pa, expected)
-
-    def test_categorical_unsupported(self, pa_lt_070):
-        pa = pa_lt_070
-
-        # supported in >= 0.7.0
-        df = pd.DataFrame({'a': pd.Categorical(list('abc'))})
-        self.check_error_on_write(df, pa, NotImplementedError)
 
 
 class TestParquetFastParquet(Base):
