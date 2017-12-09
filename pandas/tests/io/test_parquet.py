@@ -269,12 +269,12 @@ class TestBasic(Base):
                       ]:
 
             df.index = index
-            self.check_round_trip(df, engine)
+            self.check_round_trip(df, engine, write_kwargs={'compression': None})
 
         # index with meta-data
         df.index = [0, 1, 2]
         df.index.name = 'foo'
-        self.check_round_trip(df, engine)
+        self.check_round_trip(df, engine, write_kwargs={'compression': None})
 
         # column multi-index
         df.index = [0, 1, 2]
