@@ -239,6 +239,15 @@ class TestMultiIndexBasic(object):
             xp = mi_labels.ix['j'].ix[:, 'j'].ix[0, 0]
         assert rs == xp
 
+        # GH8856
+        s = pd.Series(np.arange(10),
+                      pd.MultiIndex.from_product(([0, 1], list('abcde'))))
+        result = s.iloc[::4]
+        expected = pd.Series(np.array([0, 4, 8]),
+                             MultiIndex(levels=[[0, 1], list('ade')],
+                                        labels=[[0, 0, 1], [0, 2, 1]]))
+        tm.assert_series_equal(result, expected)
+
     def test_loc_multiindex(self):
 
         mi_labels = DataFrame(np.random.randn(3, 3),
@@ -277,6 +286,15 @@ class TestMultiIndexBasic(object):
         with catch_warnings(record=True):
             xp = mi_int.ix[4]
         tm.assert_frame_equal(rs, xp)
+
+        # GH8856
+        s = pd.Series(np.arange(10),
+                      pd.MultiIndex.from_product(([0, 1], list('abcde'))))
+        result = s.loc[::4]
+        expected = pd.Series(np.array([0, 4, 8]),
+                             MultiIndex(levels=[[0, 1], ['a', 'd', 'e']],
+                                        labels=[[0, 0, 1], [0, 2, 1]]))
+        tm.assert_series_equal(result, expected)
 
     def test_getitem_partial_int(self):
         # GH 12416
