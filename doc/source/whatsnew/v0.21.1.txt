@@ -85,6 +85,8 @@ Documentation Changes
 
 Bug Fixes
 ~~~~~~~~~
+-
+
 
 Conversion
 ^^^^^^^^^^
@@ -94,6 +96,7 @@ Conversion
 - Bug in :meth:`IntervalIndex.copy` when copying and ``IntervalIndex`` with non-default ``closed`` (:issue:`18339`)
 - Bug in :func:`DataFrame.to_dict` where columns of datetime that are tz-aware were not converted to required arrays when used with ``orient='records'``, raising``TypeError` (:issue:`18372`)
 - Bug in :class:`DateTimeIndex` and :meth:`date_range` where mismatching tz-aware ``start`` and ``end`` timezones would not raise an err if ``end.tzinfo`` is None (:issue:`18431`)
+- Bug in :meth:`Series.fillna` which raised when passed a long integer on Python 2 (:issue:`18159`).
 -
 
 Indexing
