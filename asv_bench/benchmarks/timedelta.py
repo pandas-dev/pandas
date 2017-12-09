@@ -1,5 +1,7 @@
-from .pandas_vb_common import *
-from pandas import to_timedelta, Timestamp
+import numpy as np
+import pandas as pd
+
+from pandas import to_timedelta, Timestamp, Timedelta
 
 
 class ToTimedelta(object):
@@ -67,8 +69,8 @@ class DatetimeAccessor(object):
     def setup(self):
         self.N = 100000
         self.series = pd.Series(
-            pd.timedelta_range('1 days', periods=self.N, freq='h')
-        )
+            pd.timedelta_range('1 days', periods=self.N, freq='h'))
+
     def time_dt_accessor(self):
         self.series.dt
 
