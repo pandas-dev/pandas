@@ -527,7 +527,7 @@ void pandas_datetime_to_datetimestruct(npy_datetime val, PANDAS_DATETIMEUNIT fr,
 void pandas_timedelta_to_timedeltastruct(npy_timedelta val,
                                          PANDAS_DATETIMEUNIT fr,
                                          pandas_timedeltastruct *result) {
-  convert_timedelta_to_timedeltastruct(fr, val, result);
+    convert_timedelta_to_timedeltastruct(fr, val, result);
 }
 
 

@@ -208,6 +208,11 @@ def _test_parse_iso8601(object ts):
 
     obj = _TSObject()
 
+    if ts == 'now':
+        return Timestamp.utcnow()
+    elif ts == 'today':
+        return Timestamp.utcnow().normalize()
+
     _string_to_dts(ts, &obj.dts, &out_local, &out_tzoffset)
     obj.value = dtstruct_to_dt64(&obj.dts)
     check_dts_bounds(&obj.dts)
@@ -581,12 +586,13 @@ cpdef array_to_datetime(ndarray[object] values, errors='raise',
             elif is_string_object(val):
                 # string
 
-                try:
-                    if len(val) == 0 or val in nat_strings:
-                        iresult[i] = NPY_NAT
-                        continue
+                if len(val) == 0 or val in nat_strings:
+                    iresult[i] = NPY_NAT
+                    continue
 
-                    seen_string = 1
+                seen_string = 1
+
+                try:
                     _string_to_dts(val, &dts, &out_local, &out_tzoffset)
                     value = dtstruct_to_dt64(&dts)
                     if out_local == 1:
@@ -597,6 +603,8 @@ cpdef array_to_datetime(ndarray[object] values, errors='raise',
                 except ValueError:
                     # if requiring iso8601 strings, skip trying other formats
                     if require_iso8601:
+                        if _parse_today_now(val, &iresult[i]):
+                            continue
                         if is_coerce:
                             iresult[i] = NPY_NAT
                             continue
@@ -611,6 +619,8 @@ cpdef array_to_datetime(ndarray[object] values, errors='raise',
                         py_dt = parse_datetime_string(val, dayfirst=dayfirst,
                                                       yearfirst=yearfirst)
                     except Exception:
+                        if _parse_today_now(val, &iresult[i]):
+                            continue
                         if is_coerce:
                             iresult[i] = NPY_NAT
                             continue
@@ -705,6 +715,19 @@ cpdef array_to_datetime(ndarray[object] values, errors='raise',
 
         return oresult
 
+
+cdef inline bint _parse_today_now(str val, int64_t* iresult):
+    # We delay this check for as long as possible
+    # because it catches relatively rare cases
+    if val == 'now':
+        # Note: this is *not* the same as Timestamp('now')
+        iresult[0] = Timestamp.utcnow().value
+        return True
+    elif val == 'today':
+        # Note: this is *not* the same as Timestamp('today')
+        iresult[0] = Timestamp.utcnow().normalize().value
+        return True
+    return False
 
 # ----------------------------------------------------------------------
 # Some general helper functions
