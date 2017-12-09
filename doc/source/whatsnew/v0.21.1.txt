@@ -16,7 +16,7 @@ Highlights include:
   :ref:`here <whatsnew_0211.enhancements.parquet>`.
 
 
-.. contents:: What's new in v0.20.2
+.. contents:: What's new in v0.21.1
     :local:
     :backlinks: none
 
