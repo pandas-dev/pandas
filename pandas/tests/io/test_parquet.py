@@ -174,7 +174,8 @@ class Base(object):
                 to_parquet(df, path, engine, compression=None)
 
     def check_round_trip(self, df, engine, expected=None,
-                         write_kwargs=None, read_kwargs=None):
+                         write_kwargs=None, read_kwargs=None,
+                         check_names=True):
         if write_kwargs is None:
             write_kwargs = {}
         if read_kwargs is None:
@@ -185,7 +186,7 @@ class Base(object):
 
             if expected is None:
                 expected = df
-            tm.assert_frame_equal(result, expected)
+            tm.assert_frame_equal(result, expected, check_names=check_names)
 
             # repeat
             to_parquet(df, path, engine, **write_kwargs)
@@ -193,7 +194,7 @@ class Base(object):
 
             if expected is None:
                 expected = df
-            tm.assert_frame_equal(result, expected)
+            tm.assert_frame_equal(result, expected, check_names=check_names)
 
 
 class TestBasic(Base):
@@ -256,25 +257,40 @@ class TestBasic(Base):
                               read_kwargs={'columns': ['string']})
 
     def test_write_with_index(self, engine):
+        check_names = engine != 'fastparquet'
+        
         df = pd.DataFrame({'A': [1, 2, 3]})
         self.check_round_trip(df, engine, write_kwargs={'compression': None})
 
+        indexes = [
+            [2, 3, 4],
+            pd.date_range('20130101', periods=3),
+            list('abc'),
+            [1, 3, 4],
+        ]
         # non-default index
-        for index in [[2, 3, 4],
-                      pd.date_range('20130101', periods=3),
-                      list('abc'),
-                      [1, 3, 4],
-                      pd.MultiIndex.from_tuples([('a', 1), ('a', 2),
-                                                 ('b', 1)]),
-                      ]:
-
+        for index in indexes:
             df.index = index
-            self.check_round_trip(df, engine, write_kwargs={'compression': None})
-
+            self.check_round_trip(
+                df, engine,
+                write_kwargs={'compression': None},
+                check_names=check_names,
+            )
+        if engine != 'fastparquet':
+            # Not suppoprted in fastparquet as of 0.1.3
+            index = pd.MultiIndex.from_tuples([('a', 1), ('a', 2),  ('b', 1)])
+            df.index = index
+            self.check_round_trip(
+                df, engine,
+                write_kwargs={'compression': None},
+            )
         # index with meta-data
         df.index = [0, 1, 2]
         df.index.name = 'foo'
-        self.check_round_trip(df, engine, write_kwargs={'compression': None})
+        self.check_round_trip(
+            df, engine,
+            write_kwargs={'compression': None}
+        )
 
         # column multi-index
         df.index = [0, 1, 2]
