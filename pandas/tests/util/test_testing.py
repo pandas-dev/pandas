@@ -10,7 +10,6 @@ from pandas.util.testing import (assert_almost_equal, raise_with_traceback,
                                  assert_index_equal, assert_series_equal,
                                  assert_frame_equal, assert_numpy_array_equal,
                                  RNGContext)
-from pandas.compat import is_platform_windows
 
 
 class TestAssertAlmostEqual(object):

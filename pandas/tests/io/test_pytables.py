@@ -25,7 +25,7 @@ from pandas.util.testing import (assert_panel4d_equal,
                                  set_timezone)
 
 from pandas.compat import (is_platform_windows, is_platform_little_endian,
-                           PY3, PY35, PY36, BytesIO, text_type,
+                           PY35, PY36, BytesIO, text_type,
                            range, lrange, u)
 from pandas.io.formats.printing import pprint_thing
 from pandas.core.dtypes.common import is_categorical_dtype
