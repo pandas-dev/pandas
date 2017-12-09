@@ -927,7 +927,7 @@ class DatetimeIndex(DatelikeOps, TimelikeOps, DatetimeIndexOpsMixin,
             values = self._local_timestamps()
         return fields.get_time_micros(values)
 
-    def to_series(self, keep_tz=False):
+    def to_series(self, keep_tz=False, **kwargs):
         """
         Create a Series with both index and values equal to the index keys
         useful with map for returning an indexer based on an index
@@ -955,9 +955,13 @@ class DatetimeIndex(DatelikeOps, TimelikeOps, DatetimeIndexOpsMixin,
         Series
         """
         from pandas import Series
-        return Series(self._to_embed(keep_tz),
-                      index=self._shallow_copy(),
-                      name=self.name)
+
+        if 'index' not in kwargs:
+            kwargs['index'] = self._shallow_copy()
+        if 'name' not in kwargs:
+            kwargs['name'] = self.name
+
+        return Series(self._to_embed(keep_tz), **kwargs)
 
     def _to_embed(self, keep_tz=False, dtype=None):
         """

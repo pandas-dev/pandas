@@ -994,9 +994,13 @@ class Index(IndexOpsMixin, PandasObject):
         """
 
         from pandas import Series
-        return Series(self._to_embed(),
-                      index=self._shallow_copy(),
-                      name=self.name)
+
+        if 'index' not in kwargs:
+            kwargs['index'] = self._shallow_copy()
+        if 'name' not in kwargs:
+            kwargs['name'] = self.name
+
+        return Series(self._to_embed(), **kwargs)
 
     def to_frame(self, index=True):
         """
