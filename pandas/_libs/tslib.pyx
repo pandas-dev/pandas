@@ -100,10 +100,6 @@ def ints_to_pydatetime(ndarray[int64_t] arr, tz=None, freq=None,
     result : array of dtype specified by box
     """
 
-    assert ((box == "datetime") or (box == "date") or (box == "timestamp")
-            or (box == "time")), \
-        "box must be one of 'datetime', 'date', 'time' or 'timestamp'"
-
     cdef:
         Py_ssize_t i, n = len(arr)
         ndarray[int64_t] trans, deltas
@@ -127,6 +123,9 @@ def ints_to_pydatetime(ndarray[int64_t] arr, tz=None, freq=None,
         func_create = create_time_from_ts
     elif box == "datetime":
         func_create = create_datetime_from_ts
+    else:
+        raise ValueError("box must be one of 'datetime', 'date', 'time' or" +
+                         " 'timestamp'")
 
     if tz is not None:
         if is_utc(tz):
