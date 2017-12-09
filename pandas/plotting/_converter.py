@@ -193,11 +193,19 @@ class TimeFormatter(Formatter):
         """
         Return the time of day as a formatted string.
 
-        The time of day is specified by `x` as seconds since 00:00
-        (midnight), with upto microsecond precision.
+        Parameters
+        ----------
+        x : float
+            The time of day specified as seconds since 00:00 (midnight),
+            with upto microsecond precision.
+        pos
+            Unused
 
-        In the returned HH:MM:SS.mmmuuu string, microseconds,
-        milliseconds and seconds are only displayed if non-zero.
+        Returns
+        -------
+        str
+            A string in HH:MM:SS.mmmuuu format. Microseconds,
+            milliseconds and seconds are only displayed if non-zero.
         """
         fmt = '%H:%M:%S.%f'
         s = int(x)
