@@ -44,7 +44,23 @@ def engine(request):
 def pa():
     if not _HAVE_PYARROW:
         pytest.skip("pyarrow is not installed")
-    if LooseVersion(pyarrow.__version__) < '0.7.0':
+    return 'pyarrow'
+
+
+@pytest.fixture
+def pa_lt_070():
+    if not _HAVE_PYARROW:
+        pytest.skip("pyarrow is not installed")
+    if LooseVersion(pyarrow.__version__) >= LooseVersion('0.7.0'):
+        pytest.skip("pyarrow is >= 0.7.0")
+    return 'pyarrow'
+
+
+@pytest.fixture
+def pa_ge_070():
+    if not _HAVE_PYARROW:
+        pytest.skip("pyarrow is not installed")
+    if LooseVersion(pyarrow.__version__) < LooseVersion('0.7.0'):
         pytest.skip("pyarrow is < 0.7.0")
     return 'pyarrow'
 
@@ -53,8 +69,6 @@ def pa():
 def fp():
     if not _HAVE_FASTPARQUET:
         pytest.skip("fastparquet is not installed")
-    if LooseVersion(fastparquet.__version__) < '0.1.0':
-        pytest.skip("fastparquet is < 0.1.0")
     return 'fastparquet'
 
 
@@ -394,12 +408,22 @@ class TestParquetPyArrow(Base):
         df = pd.DataFrame({'a': ['a', 1, 2.0]})
         self.check_error_on_write(df, pa, ValueError)
 
-    def test_categorical(self, pa):
+    def test_categorical(self, pa_ge_070):
+        pa = pa_ge_070
+
+        # supported in >= 0.7.0
         df = pd.DataFrame({'a': pd.Categorical(list('abc'))})
 
         # de-serialized as object
         expected = df.assign(a=df.a.astype(object))
         self.check_round_trip(df, pa, expected)
+
+    def test_categorical_unsupported(self, pa_lt_070):
+        pa = pa_lt_070
+
+        # supported in >= 0.7.0
+        df = pd.DataFrame({'a': pd.Categorical(list('abc'))})
+        self.check_error_on_write(df, pa, NotImplementedError)
 
 
 class TestParquetFastParquet(Base):
