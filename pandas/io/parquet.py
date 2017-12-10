@@ -98,9 +98,7 @@ class PyArrowImpl(BaseImpl):
               coerce_timestamps='ms', **kwargs):
         self.validate_dataframe(df)
         if self._pyarrow_lt_070:
-            self._validate_write_lt_070(
-                df, path, compression, coerce_timestamps, **kwargs
-            )
+            self._validate_write_lt_070(df)
         path, _, _ = get_filepath_or_buffer(path)
 
         if self._pyarrow_lt_060:
@@ -116,47 +114,45 @@ class PyArrowImpl(BaseImpl):
 
     def read(self, path, columns=None, **kwargs):
         path, _, _ = get_filepath_or_buffer(path)
-        parquet_file = self.api.parquet.ParquetFile(path)
         if self._pyarrow_lt_070:
-            return self._read_lt_070(path, parquet_file, columns, **kwargs)
+            return self.api.parquet.read_pandas(path, columns=columns,
+                                                **kwargs).to_pandas()
         kwargs['use_pandas_metadata'] = True
-        return parquet_file.read(columns=columns, **kwargs).to_pandas()
+        return self.api.parquet.read_table(path, columns=columns,
+                                           **kwargs).to_pandas()
 
-    def _validate_write_lt_070(self, df, path, compression='snappy',
-                               coerce_timestamps='ms', **kwargs):
+    def _validate_write_lt_070(self, df):
         # Compatibility shim for pyarrow < 0.7.0
         # TODO: Remove in pandas 0.22.0
         from pandas.core.indexes.multi import MultiIndex
         if isinstance(df.index, MultiIndex):
             msg = (
-                "Mulit-index DataFrames are only supported "
+                "Multi-index DataFrames are only supported "
                 "with pyarrow >= 0.7.0"
             )
             raise ValueError(msg)
         # Validate index
         if not isinstance(df.index, Int64Index):
             msg = (
-                "parquet does not support serializing {} for the index;"
-                "you can .reset_index() to make the index into column(s)"
+                "pyarrow < 0.7.0 does not support serializing {} for the "
+                "index; you can .reset_index() to make the index into "
+                "column(s), or install the latest version of pyarrow or "
+                "fastparquet."
             )
             raise ValueError(msg.format(type(df.index)))
         if not df.index.equals(RangeIndex(len(df))):
             raise ValueError(
-                "parquet does not support serializing a non-default index "
-                "for the index; you can .reset_index() to make the index "
-                "into column(s)"
+                "pyarrow < 0.7.0 does not support serializing a non-default "
+                "index; you can .reset_index() to make the index into "
+                "column(s), or install the latest version of pyarrow or "
+                "fastparquet."
             )
         if df.index.name is not None:
             raise ValueError(
-                "parquet does not serialize index meta-data "
-                "on a default index"
+                "pyarrow < 0.7.0 does not serialize indexes with a name; you "
+                "can set the index.name to None or install the latest version "
+                "of pyarrow or fastparquet."
             )
-
-    def _read_lt_070(self, path, parquet_file, columns, **kwargs):
-        # Compatibility shim for pyarrow < 0.7.0
-        # TODO: Remove in pandas 0.22.0
-        kwargs['columns'] = columns
-        return self.api.parquet.read_pandas(path, **kwargs).to_pandas()
 
 
 class FastParquetImpl(BaseImpl):

@@ -6,7 +6,6 @@ from distutils.version import LooseVersion
 from warnings import catch_warnings
 
 import numpy as np
-from numpy.random import randn
 import pandas as pd
 from pandas.compat import PY3, is_platform_windows
 from pandas.io.parquet import (to_parquet, read_parquet, get_engine,
@@ -324,7 +323,7 @@ class TestBasic(Base):
         # index with meta-data
         df.index = [0, 1, 2]
         df.index.name = 'foo'
-        self.check_round_trip( df, engine, write_kwargs={'compression': None})
+        self.check_round_trip(df, engine, write_kwargs={'compression': None})
 
     def test_write_multiindex(self, pa_ge_070):
         # Not suppoprted in fastparquet as of 0.1.3 or older pyarrow version
@@ -345,11 +344,11 @@ class TestBasic(Base):
 
         engine = pa_ge_070
         dates = pd.date_range('01-Jan-2018', '01-Dec-2018', freq='MS')
-        df = pd.DataFrame(randn(2 * len(dates), 3), columns=list('ABC'))
+        df = pd.DataFrame(np.random.randn(2 * len(dates), 3),
+                          columns=list('ABC'))
         index1 = pd.MultiIndex.from_product(
             [['Level1', 'Level2'], dates],
-            names=['level', 'date']
-        )
+            names=['level', 'date'])
         index2 = index1.copy(names=None)
         for index in [index1, index2]:
             df.index = index
