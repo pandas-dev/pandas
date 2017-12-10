@@ -1,8 +1,5 @@
 # -*- coding: utf-8 -*-
 # cython: profile=False
-# cython: linetrace=False
-# distutils: define_macros=CYTHON_TRACE=0
-# distutils: define_macros=CYTHON_TRACE_NOGIL=0
 """
 Parsing functions for datetime and datetime-like strings.
 """

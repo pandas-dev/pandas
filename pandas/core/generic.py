@@ -1603,7 +1603,8 @@ class NDFrame(PandasObject, SelectionMixin):
 
     def to_json(self, path_or_buf=None, orient=None, date_format=None,
                 double_precision=10, force_ascii=True, date_unit='ms',
-                default_handler=None, lines=False, compression=None):
+                default_handler=None, lines=False, compression=None,
+                index=True):
         """
         Convert the object to a JSON string.
 
@@ -1671,6 +1672,13 @@ class NDFrame(PandasObject, SelectionMixin):
 
             .. versionadded:: 0.21.0
 
+        index : boolean, default True
+            Whether to include the index values in the JSON string. Not
+            including the index (``index=False``) is only supported when
+            orient is 'split' or 'table'.
+
+            .. versionadded:: 0.22.0
+
         Returns
         -------
         same type as input object with filtered info axis
@@ -1723,7 +1731,8 @@ class NDFrame(PandasObject, SelectionMixin):
                             double_precision=double_precision,
                             force_ascii=force_ascii, date_unit=date_unit,
                             default_handler=default_handler,
-                            lines=lines, compression=compression)
+                            lines=lines, compression=compression,
+                            index=index)
 
     def to_hdf(self, path_or_buf, key, **kwargs):
         """Write the contained data to an HDF5 file using HDFStore.
@@ -7357,31 +7366,31 @@ class NDFrame(PandasObject, SelectionMixin):
         from pandas.core import window as rwindow
 
         @Appender(rwindow.rolling.__doc__)
-        def rolling(self, window, min_periods=None, freq=None, center=False,
+        def rolling(self, window, min_periods=None, center=False,
                     win_type=None, on=None, axis=0, closed=None):
             axis = self._get_axis_number(axis)
             return rwindow.rolling(self, window=window,
-                                   min_periods=min_periods, freq=freq,
+                                   min_periods=min_periods,
                                    center=center, win_type=win_type,
                                    on=on, axis=axis, closed=closed)
 
         cls.rolling = rolling
 
         @Appender(rwindow.expanding.__doc__)
-        def expanding(self, min_periods=1, freq=None, center=False, axis=0):
+        def expanding(self, min_periods=1, center=False, axis=0):
             axis = self._get_axis_number(axis)
-            return rwindow.expanding(self, min_periods=min_periods, freq=freq,
+            return rwindow.expanding(self, min_periods=min_periods,
                                      center=center, axis=axis)
 
         cls.expanding = expanding
 
         @Appender(rwindow.ewm.__doc__)
         def ewm(self, com=None, span=None, halflife=None, alpha=None,
-                min_periods=0, freq=None, adjust=True, ignore_na=False,
+                min_periods=0, adjust=True, ignore_na=False,
                 axis=0):
             axis = self._get_axis_number(axis)
             return rwindow.ewm(self, com=com, span=span, halflife=halflife,
-                               alpha=alpha, min_periods=min_periods, freq=freq,
+                               alpha=alpha, min_periods=min_periods,
                                adjust=adjust, ignore_na=ignore_na, axis=axis)
 
         cls.ewm = ewm

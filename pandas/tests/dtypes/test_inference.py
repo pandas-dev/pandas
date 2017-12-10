@@ -388,6 +388,13 @@ class TestInference(object):
         result = lib.maybe_convert_numeric(case, set(), coerce_numeric=coerce)
         tm.assert_almost_equal(result, expected)
 
+    @pytest.mark.parametrize("value", [-2**63 - 1, 2**64])
+    def test_convert_int_overflow(self, value):
+        # see gh-18584
+        arr = np.array([value], dtype=object)
+        result = lib.maybe_convert_objects(arr)
+        tm.assert_numpy_array_equal(arr, result)
+
     def test_maybe_convert_objects_uint64(self):
         # see gh-4471
         arr = np.array([2**63], dtype=object)
@@ -1179,7 +1186,7 @@ def test_nan_to_nat_conversions():
 
     # numpy < 1.7.0 is wrong
     from distutils.version import LooseVersion
-    if LooseVersion(np.__version__) >= '1.7.0':
+    if LooseVersion(np.__version__) >= LooseVersion('1.7.0'):
         assert (s[8].value == np.datetime64('NaT').astype(np.int64))
 
 

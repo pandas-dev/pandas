@@ -52,7 +52,7 @@ def _skip_if_none_of(module_names):
         _skip_if_no(module_names)
         if module_names == 'bs4':
             import bs4
-            if bs4.__version__ == LooseVersion('4.2.0'):
+            if LooseVersion(bs4.__version__) == LooseVersion('4.2.0'):
                 pytest.skip("Bad version of bs4: 4.2.0")
     else:
         not_found = [module_name for module_name in module_names if not
@@ -61,7 +61,7 @@ def _skip_if_none_of(module_names):
             pytest.skip("{0!r} not found".format(not_found))
         if 'bs4' in module_names:
             import bs4
-            if bs4.__version__ == LooseVersion('4.2.0'):
+            if LooseVersion(bs4.__version__) == LooseVersion('4.2.0'):
                 pytest.skip("Bad version of bs4: 4.2.0")
 
 
@@ -85,7 +85,7 @@ def assert_framelist_equal(list1, list2, *args, **kwargs):
 def test_bs4_version_fails():
     _skip_if_none_of(('bs4', 'html5lib'))
     import bs4
-    if bs4.__version__ == LooseVersion('4.2.0'):
+    if LooseVersion(bs4.__version__) == LooseVersion('4.2.0'):
         tm.assert_raises(AssertionError, read_html, os.path.join(DATA_PATH,
                                                                  "spam.html"),
                          flavor='bs4')

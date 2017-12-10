@@ -15,7 +15,7 @@ import numpy as np
 
 from pandas.compat import lrange, product
 from pandas import (compat, isna, notna, DataFrame, Series,
-                    MultiIndex, date_range, Timestamp)
+                    MultiIndex, date_range, Timestamp, Categorical)
 import pandas as pd
 import pandas.core.nanops as nanops
 import pandas.core.algorithms as algorithms
@@ -240,6 +240,16 @@ class TestDataFrameAnalytics(TestData):
         tm.assert_almost_equal(c1, c2)
         assert c1 < 1
 
+    def test_corrwith_mixed_dtypes(self):
+        # GH 18570
+        df = pd.DataFrame({'a': [1, 4, 3, 2], 'b': [4, 6, 7, 3],
+                           'c': ['a', 'b', 'c', 'd']})
+        s = pd.Series([0, 6, 7, 3])
+        result = df.corrwith(s)
+        corrs = [df['a'].corr(s), df['b'].corr(s)]
+        expected = pd.Series(data=corrs, index=['a', 'b'])
+        tm.assert_series_equal(result, expected)
+
     def test_bool_describe_in_mixed_frame(self):
         df = DataFrame({
             'string_data': ['a', 'b', 'c', 'd', 'e'],
@@ -295,6 +305,36 @@ class TestDataFrameAnalytics(TestData):
                               'str_data': [4, 3, 'a', 2]},
                              index=['count', 'unique', 'top', 'freq'])
         tm.assert_frame_equal(result, expected)
+
+    def test_describe_categorical(self):
+        df = DataFrame({'value': np.random.randint(0, 10000, 100)})
+        labels = ["{0} - {1}".format(i, i + 499) for i in range(0, 10000, 500)]
+        cat_labels = Categorical(labels, labels)
+
+        df = df.sort_values(by=['value'], ascending=True)
+        df['value_group'] = pd.cut(df.value, range(0, 10500, 500),
+                                   right=False, labels=cat_labels)
+        cat = df
+
+        # Categoricals should not show up together with numerical columns
+        result = cat.describe()
+        assert len(result.columns) == 1
+
+        # In a frame, describe() for the cat should be the same as for string
+        # arrays (count, unique, top, freq)
+
+        cat = Categorical(["a", "b", "b", "b"], categories=['a', 'b', 'c'],
+                          ordered=True)
+        s = Series(cat)
+        result = s.describe()
+        expected = Series([4, 2, "b", 3],
+                          index=['count', 'unique', 'top', 'freq'])
+        tm.assert_series_equal(result, expected)
+
+        cat = Series(Categorical(["a", "b", "c", "c"]))
+        df3 = DataFrame({"cat": cat, "s": ["a", "b", "c", "c"]})
+        res = df3.describe()
+        tm.assert_numpy_array_equal(res["cat"].values, res["s"].values)
 
     def test_describe_categorical_columns(self):
         # GH 11558
@@ -1742,7 +1782,7 @@ class TestDataFrameAnalytics(TestData):
             'col1': [1.123, 2.123, 3.123],
             'col2': [1.2, 2.2, 3.2]})
 
-        if sys.version < LooseVersion('2.7'):
+        if LooseVersion(sys.version) < LooseVersion('2.7'):
             # Rounding with decimal is a ValueError in Python < 2.7
             with pytest.raises(ValueError):
                 df.round(nan_round_Series)

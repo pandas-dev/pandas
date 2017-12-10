@@ -27,7 +27,7 @@ from numpy cimport (ndarray,
 cdef double NaN = <double> np.NaN
 cdef double nan = NaN
 
-from libc.math cimport sqrt, fabs
+from libc.math cimport fabs, sqrt
 
 # this is our util.pxd
 from util cimport numeric, get_nat
@@ -64,22 +64,24 @@ class Infinity(object):
     """ provide a positive Infinity comparision method for ranking """
 
     __lt__ = lambda self, other: False
-    __le__ = lambda self, other: self is other
-    __eq__ = lambda self, other: self is other
-    __ne__ = lambda self, other: self is not other
-    __gt__ = lambda self, other: self is not other
-    __ge__ = lambda self, other: True
+    __le__ = lambda self, other: isinstance(other, Infinity)
+    __eq__ = lambda self, other: isinstance(other, Infinity)
+    __ne__ = lambda self, other: not isinstance(other, Infinity)
+    __gt__ = lambda self, other: (not isinstance(other, Infinity) and
+                                  not missing.checknull(other))
+    __ge__ = lambda self, other: not missing.checknull(other)
 
 
 class NegInfinity(object):
     """ provide a negative Infinity comparision method for ranking """
 
-    __lt__ = lambda self, other: self is not other
-    __le__ = lambda self, other: True
-    __eq__ = lambda self, other: self is other
-    __ne__ = lambda self, other: self is not other
+    __lt__ = lambda self, other: (not isinstance(other, NegInfinity) and
+                                  not missing.checknull(other))
+    __le__ = lambda self, other: not missing.checknull(other)
+    __eq__ = lambda self, other: isinstance(other, NegInfinity)
+    __ne__ = lambda self, other: not isinstance(other, NegInfinity)
     __gt__ = lambda self, other: False
-    __ge__ = lambda self, other: self is other
+    __ge__ = lambda self, other: isinstance(other, NegInfinity)
 
 
 @cython.wraparound(False)

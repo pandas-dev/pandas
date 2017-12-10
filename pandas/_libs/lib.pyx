@@ -1,13 +1,18 @@
 # cython: profile=False
-cimport numpy as np
+import operator
+
 cimport cython
+from cython cimport Py_ssize_t
+
 import numpy as np
-import sys
-
-cdef bint PY3 = (sys.version_info[0] >= 3)
-
-from numpy cimport *
-
+cimport numpy as np
+from numpy cimport (ndarray, PyArray_NDIM, PyArray_GETITEM, PyArray_SETITEM,
+                    PyArray_ITER_DATA, PyArray_ITER_NEXT, PyArray_IterNew,
+                    flatiter, NPY_OBJECT,
+                    int64_t,
+                    float32_t, float64_t,
+                    uint8_t, uint64_t,
+                    complex128_t)
 # initialize numpy
 np.import_array()
 np.import_ufunc()
@@ -57,12 +62,12 @@ from tslib import NaT, Timestamp, Timedelta, array_to_datetime
 from interval import Interval
 from missing cimport checknull
 
-cdef int64_t NPY_NAT = util.get_nat()
 
 cimport util
+cdef int64_t NPY_NAT = util.get_nat()
 from util cimport is_array, _checknull
 
-from libc.math cimport sqrt, fabs
+from libc.math cimport fabs, sqrt
 
 
 def values_from_object(object o):
@@ -494,7 +499,6 @@ def maybe_booleans_to_slice(ndarray[uint8_t] mask):
 @cython.wraparound(False)
 @cython.boundscheck(False)
 def scalar_compare(ndarray[object] values, object val, object op):
-    import operator
     cdef:
         Py_ssize_t i, n = len(values)
         ndarray[uint8_t, cast=True] result
@@ -529,7 +533,7 @@ def scalar_compare(ndarray[object] values, object val, object op):
                 result[i] = True
             else:
                 try:
-                    result[i] = cpython.PyObject_RichCompareBool(x, val, flag)
+                    result[i] = PyObject_RichCompareBool(x, val, flag)
                 except (TypeError):
                     result[i] = True
     elif flag == cpython.Py_EQ:
@@ -541,7 +545,7 @@ def scalar_compare(ndarray[object] values, object val, object op):
                 result[i] = False
             else:
                 try:
-                    result[i] = cpython.PyObject_RichCompareBool(x, val, flag)
+                    result[i] = PyObject_RichCompareBool(x, val, flag)
                 except (TypeError):
                     result[i] = False
 
@@ -553,7 +557,7 @@ def scalar_compare(ndarray[object] values, object val, object op):
             elif isnull_val:
                 result[i] = False
             else:
-                result[i] = cpython.PyObject_RichCompareBool(x, val, flag)
+                result[i] = PyObject_RichCompareBool(x, val, flag)
 
     return result.view(bool)
 
@@ -582,7 +586,6 @@ cpdef bint array_equivalent_object(object[:] left, object[:] right):
 @cython.wraparound(False)
 @cython.boundscheck(False)
 def vec_compare(ndarray[object] left, ndarray[object] right, object op):
-    import operator
     cdef:
         Py_ssize_t i, n = len(left)
         ndarray[uint8_t, cast=True] result
@@ -617,7 +620,7 @@ def vec_compare(ndarray[object] left, ndarray[object] right, object op):
             if checknull(x) or checknull(y):
                 result[i] = True
             else:
-                result[i] = cpython.PyObject_RichCompareBool(x, y, flag)
+                result[i] = PyObject_RichCompareBool(x, y, flag)
     else:
         for i in range(n):
             x = left[i]
@@ -626,7 +629,7 @@ def vec_compare(ndarray[object] left, ndarray[object] right, object op):
             if checknull(x) or checknull(y):
                 result[i] = False
             else:
-                result[i] = cpython.PyObject_RichCompareBool(x, y, flag)
+                result[i] = PyObject_RichCompareBool(x, y, flag)
 
     return result.view(bool)
 

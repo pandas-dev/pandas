@@ -141,28 +141,24 @@ and can take a few minutes to complete.
 Installing using your Linux distribution's package manager.
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-The commands in this table will install pandas for Python 2 from your distribution.
-To install pandas for Python 3 you may need to use the package ``python3-pandas``.
+The commands in this table will install pandas for Python 3 from your distribution.
+To install pandas for Python 2 you may need to use the package ``python-pandas``.
 
 .. csv-table::
     :header: "Distribution", "Status", "Download / Repository Link", "Install method"
     :widths: 10, 10, 20, 50
 
 
-    Debian, stable, `official Debian repository <http://packages.debian.org/search?keywords=pandas&searchon=names&suite=all&section=all>`__ , ``sudo apt-get install python-pandas``
-    Debian & Ubuntu, unstable (latest packages), `NeuroDebian <http://neuro.debian.net/index.html#how-to-use-this-repository>`__ , ``sudo apt-get install python-pandas``
-    Ubuntu, stable, `official Ubuntu repository <http://packages.ubuntu.com/search?keywords=pandas&searchon=names&suite=all&section=all>`__ , ``sudo apt-get install python-pandas``
-    Ubuntu, unstable (daily builds), `PythonXY PPA  <https://code.launchpad.net/~pythonxy/+archive/pythonxy-devel>`__; activate by: ``sudo add-apt-repository ppa:pythonxy/pythonxy-devel && sudo apt-get update``, ``sudo apt-get install python-pandas``
-    OpenSuse, stable, `OpenSuse Repository  <http://software.opensuse.org/package/python-pandas?search_term=pandas>`__ , ``zypper in  python-pandas``
-    Fedora, stable, `official Fedora repository  <https://admin.fedoraproject.org/pkgdb/package/rpms/python-pandas/>`__ , ``dnf install python-pandas``
-    Centos/RHEL, stable, `EPEL repository <https://admin.fedoraproject.org/pkgdb/package/rpms/python-pandas/>`__ , ``yum install python-pandas``
+    Debian, stable, `official Debian repository <http://packages.debian.org/search?keywords=pandas&searchon=names&suite=all&section=all>`__ , ``sudo apt-get install python3-pandas``
+    Debian & Ubuntu, unstable (latest packages), `NeuroDebian <http://neuro.debian.net/index.html#how-to-use-this-repository>`__ , ``sudo apt-get install python3-pandas``
+    Ubuntu, stable, `official Ubuntu repository <http://packages.ubuntu.com/search?keywords=pandas&searchon=names&suite=all&section=all>`__ , ``sudo apt-get install python3-pandas``
+    OpenSuse, stable, `OpenSuse Repository  <http://software.opensuse.org/package/python-pandas?search_term=pandas>`__ , ``zypper in  python3-pandas``
+    Fedora, stable, `official Fedora repository  <https://admin.fedoraproject.org/pkgdb/package/rpms/python-pandas/>`__ , ``dnf install python3-pandas``
+    Centos/RHEL, stable, `EPEL repository <https://admin.fedoraproject.org/pkgdb/package/rpms/python-pandas/>`__ , ``yum install python3-pandas``
 
-
-
-
-
-
-
+**However**, the packages in the linux package managers are often a few versions behind, so
+to get the newest version of pandas, it's recommended to install using the ``pip`` or ``conda``
+methods described above.
 
 
 Installing from source
@@ -198,10 +194,10 @@ installed), make sure you have `pytest
 Dependencies
 ------------
 
-* `setuptools <https://setuptools.readthedocs.io/en/latest/>`__
+* `setuptools <https://setuptools.readthedocs.io/en/latest/>`__: 3.3.0 or higher
 * `NumPy <http://www.numpy.org>`__: 1.9.0 or higher
-* `python-dateutil <http://labix.org/python-dateutil>`__: 1.5 or higher
-* `pytz <http://pytz.sourceforge.net/>`__: Needed for time zone support
+* `python-dateutil <//https://dateutil.readthedocs.io/en/stable/>`__: 2.5.0 or higher
+* `pytz <http://pytz.sourceforge.net/>`__
 
 .. _install.recommended_dependencies:
 
@@ -228,7 +224,7 @@ Optional Dependencies
 ~~~~~~~~~~~~~~~~~~~~~
 
 * `Cython <http://www.cython.org>`__: Only necessary to build development
-  version. Version 0.23 or higher.
+  version. Version 0.24 or higher.
 * `SciPy <http://www.scipy.org>`__: miscellaneous statistical functions, Version 0.14.0 or higher
 * `xarray <http://xarray.pydata.org>`__: pandas like handling for > 2 dims, needed for converting Panels to xarray objects. Version 0.7.0 or higher is recommended.
 * `PyTables <http://www.pytables.org>`__: necessary for HDF5-based storage. Version 3.0.0 or higher required, Version 3.2.1 or higher highly recommended.
@@ -244,8 +240,8 @@ Optional Dependencies
 * For Excel I/O:
 
   * `xlrd/xlwt <http://www.python-excel.org/>`__: Excel reading (xlrd) and writing (xlwt)
-  * `openpyxl <http://packages.python.org/openpyxl/>`__: openpyxl version 1.6.1
-    or higher (but lower than 2.0.0), or version 2.2 or higher, for writing .xlsx files (xlrd >= 0.9.0)
+  * `openpyxl <http://https://openpyxl.readthedocs.io/en/default/>`__: openpyxl version 2.4.0
+    for writing .xlsx files (xlrd >= 0.9.0)
   * `XlsxWriter <https://pypi.python.org/pypi/XlsxWriter>`__: Alternative Excel writer
 
 * `Jinja2 <http://jinja.pocoo.org/>`__: Template engine for conditional HTML formatting.

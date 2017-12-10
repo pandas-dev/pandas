@@ -2935,7 +2935,7 @@ Writing Excel Files to Memory
 +++++++++++++++++++++++++++++
 
 Pandas supports writing Excel files to buffer-like objects such as ``StringIO`` or
-``BytesIO`` using :class:`~pandas.io.excel.ExcelWriter`. Pandas also supports Openpyxl >= 2.2.
+``BytesIO`` using :class:`~pandas.io.excel.ExcelWriter`.
 
 .. code-block:: python
 
@@ -2991,9 +2991,7 @@ files if `Xlsxwriter`_ is not available.
 To specify which writer you want to use, you can pass an engine keyword
 argument to ``to_excel`` and to ``ExcelWriter``. The built-in engines are:
 
-- ``openpyxl``: This includes stable support for Openpyxl from 1.6.1. However,
-  it is advised to use version 2.2 and higher, especially when working with
-  styles.
+- ``openpyxl``: version 2.4 or higher is required
 - ``xlsxwriter``
 - ``xlwt``
 
@@ -4524,6 +4522,7 @@ See the documentation for `pyarrow <http://arrow.apache.org/docs/python/>`__ and
 .. note::
 
    These engines are very similar and should read/write nearly identical parquet format files.
+   Currently ``pyarrow`` does not support timedelta data, and ``fastparquet`` does not support timezone aware datetimes (they are coerced to UTC).
    These libraries differ by having different underlying dependencies (``fastparquet`` by using ``numba``, while ``pyarrow`` uses a c-library).
 
 .. ipython:: python
@@ -4550,8 +4549,8 @@ Read from a parquet file.
 
 .. ipython:: python
 
-   result = pd.read_parquet('example_pa.parquet', engine='pyarrow')
    result = pd.read_parquet('example_fp.parquet', engine='fastparquet')
+   result = pd.read_parquet('example_pa.parquet', engine='pyarrow')
 
    result.dtypes
 
@@ -4559,7 +4558,6 @@ Read only certain columns of a parquet file.
 
 .. ipython:: python
 
-   result = pd.read_parquet('example_pa.parquet', engine='pyarrow', columns=['a', 'b'])
    result = pd.read_parquet('example_fp.parquet', engine='fastparquet', columns=['a', 'b'])
 
    result.dtypes

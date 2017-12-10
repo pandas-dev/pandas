@@ -15,7 +15,7 @@ from pandas import compat
 from numpy.random import randn
 import numpy as np
 
-from pandas import DataFrame, Series, date_range, timedelta_range
+from pandas import DataFrame, Series, date_range, timedelta_range, Categorical
 import pandas as pd
 
 from pandas.util.testing import (assert_almost_equal,
@@ -222,7 +222,7 @@ class SharedWithSparse(object):
 
         tup = next(df.itertuples(name='TestName'))
 
-        if sys.version >= LooseVersion('2.7'):
+        if LooseVersion(sys.version) >= LooseVersion('2.7'):
             assert tup._fields == ('Index', 'a', 'b')
             assert (tup.Index, tup.a, tup.b) == tup
             assert type(tup).__name__ == 'TestName'
@@ -231,7 +231,7 @@ class SharedWithSparse(object):
         tup2 = next(df.itertuples(name='TestName'))
         assert tup2 == (0, 1, 4)
 
-        if sys.version >= LooseVersion('2.7'):
+        if LooseVersion(sys.version) >= LooseVersion('2.7'):
             assert tup2._fields == ('Index', '_1', '_2')
 
         df3 = DataFrame({'f' + str(i): [i] for i in range(1024)})
@@ -239,6 +239,29 @@ class SharedWithSparse(object):
         tup3 = next(df3.itertuples())
         assert not hasattr(tup3, '_fields')
         assert isinstance(tup3, tuple)
+
+    def test_sequence_like_with_categorical(self):
+
+        # GH 7839
+        # make sure can iterate
+        df = DataFrame({"id": [1, 2, 3, 4, 5, 6],
+                        "raw_grade": ['a', 'b', 'b', 'a', 'a', 'e']})
+        df['grade'] = Categorical(df['raw_grade'])
+
+        # basic sequencing testing
+        result = list(df.grade.values)
+        expected = np.array(df.grade.values).tolist()
+        tm.assert_almost_equal(result, expected)
+
+        # iteration
+        for t in df.itertuples(index=False):
+            str(t)
+
+        for row, s in df.iterrows():
+            str(s)
+
+        for c, col in df.iteritems():
+            str(s)
 
     def test_len(self):
         assert len(self.frame) == len(self.frame.index)
