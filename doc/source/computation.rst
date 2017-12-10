@@ -253,12 +253,6 @@ accept the following arguments:
   result is NA)
 - ``center``: boolean, whether to set the labels at the center (default is False)
 
-.. warning::
-
-   The ``freq`` and ``how`` arguments were in the API prior to 0.18.0 changes. These are deprecated in the new API. You can simply resample the input prior to creating a window function.
-
-   For example, instead of ``s.rolling(window=5,freq='D').max()`` to get the max value on a rolling 5 Day window, one could use ``s.resample('D').max().rolling(window=5).max()``, which first resamples the data to daily data, then provides a rolling 5 day window.
-
 We can then call methods on these ``rolling`` objects. These return like-indexed objects:
 
 .. ipython:: python

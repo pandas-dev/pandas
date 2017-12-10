@@ -1,8 +1,5 @@
 # -*- coding: utf-8 -*-
 # cython: profile=False
-# cython: linetrace=False
-# distutils: define_macros=CYTHON_TRACE=0
-# distutils: define_macros=CYTHON_TRACE_NOGIL=0
 
 cimport numpy as np
 from numpy cimport int64_t, ndarray, float64_t
@@ -10,25 +7,22 @@ import numpy as np
 np.import_array()
 
 
-from cpython cimport PyTypeObject, PyFloat_Check
-
-cdef extern from "Python.h":
-    cdef PyTypeObject *Py_TYPE(object)
+from cpython cimport PyFloat_Check
 
 from util cimport (is_integer_object, is_float_object, is_string_object,
                    is_datetime64_object)
 
 from cpython.datetime cimport (PyDateTime_Check, PyDate_Check,
+                               PyDateTime_CheckExact,
                                PyDateTime_IMPORT,
                                timedelta, datetime, date)
 # import datetime C API
 PyDateTime_IMPORT
-# this is our datetime.pxd
-from datetime cimport _string_to_dts
 
 
 from tslibs.np_datetime cimport (check_dts_bounds,
                                  pandas_datetimestruct,
+                                 _string_to_dts,
                                  dt64_to_dtstruct, dtstruct_to_dt64,
                                  pydatetime_to_dt64, pydate_to_dt64,
                                  get_datetime64_value,
@@ -48,10 +42,8 @@ UTC = pytz.utc
 
 from tslibs.timedeltas cimport cast_from_unit
 from tslibs.timedeltas import Timedelta
-from tslibs.timezones cimport (
-    is_utc, is_tzlocal, is_fixed_offset,
-    treat_tz_as_pytz,
-    get_dst_info)
+from tslibs.timezones cimport (is_utc, is_tzlocal, is_fixed_offset,
+                               treat_tz_as_pytz, get_dst_info)
 from tslibs.conversion cimport (tz_convert_single, _TSObject,
                                 convert_datetime_to_tsobject,
                                 get_datetime64_nanos)
@@ -205,13 +197,6 @@ def ints_to_pytimedelta(ndarray[int64_t] arr, box=False):
     return result
 
 
-cdef PyTypeObject* ts_type = <PyTypeObject*> Timestamp
-
-
-cdef inline bint is_timestamp(object o):
-    return Py_TYPE(o) == ts_type  # isinstance(o, Timestamp)
-
-
 def _test_parse_iso8601(object ts):
     """
     TESTING ONLY: Parse string into Timestamp using iso8601 parser. Used
@@ -222,6 +207,11 @@ def _test_parse_iso8601(object ts):
         int out_local = 0, out_tzoffset = 0
 
     obj = _TSObject()
+
+    if ts == 'now':
+        return Timestamp.utcnow()
+    elif ts == 'today':
+        return Timestamp.utcnow().normalize()
 
     _string_to_dts(ts, &obj.dts, &out_local, &out_tzoffset)
     obj.value = dtstruct_to_dt64(&obj.dts)
@@ -334,14 +324,6 @@ def format_array_from_datetime(ndarray[int64_t] values, object tz=None,
     return result
 
 
-# const for parsers
-
-_MONTHS = ['JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN', 'JUL',
-           'AUG', 'SEP', 'OCT', 'NOV', 'DEC']
-_MONTH_NUMBERS = {k: i for i, k in enumerate(_MONTHS)}
-_MONTH_ALIASES = {(k + 1): v for k, v in enumerate(_MONTHS)}
-
-
 cpdef array_with_unit_to_datetime(ndarray values, unit, errors='coerce'):
     """
     convert the ndarray according to the unit
@@ -361,7 +343,7 @@ cpdef array_with_unit_to_datetime(ndarray values, unit, errors='coerce'):
         bint is_ignore = errors=='ignore'
         bint is_coerce = errors=='coerce'
         bint is_raise = errors=='raise'
-        bint need_to_iterate=True
+        bint need_to_iterate = True
         ndarray[int64_t] iresult
         ndarray[object] oresult
 
@@ -384,7 +366,7 @@ cpdef array_with_unit_to_datetime(ndarray values, unit, errors='coerce'):
             mask = iresult == iNaT
             iresult[mask] = 0
             fvalues = iresult.astype('f8') * m
-            need_to_iterate=False
+            need_to_iterate = False
         except:
             pass
 
@@ -395,7 +377,7 @@ cpdef array_with_unit_to_datetime(ndarray values, unit, errors='coerce'):
                     or (fvalues > _NS_UPPER_BOUND).any()):
                 raise OutOfBoundsDatetime(
                     "cannot convert input with unit '{0}'".format(unit))
-            result = (iresult *m).astype('M8[ns]')
+            result = (iresult * m).astype('M8[ns]')
             iresult = result.view('i8')
             iresult[mask] = iNaT
             return result
@@ -546,7 +528,8 @@ cpdef array_to_datetime(ndarray[object] values, errors='raise',
                                          'utc=True')
                 else:
                     iresult[i] = pydatetime_to_dt64(val, &dts)
-                    if is_timestamp(val):
+                    if not PyDateTime_CheckExact(val):
+                        # i.e. a Timestamp object
                         iresult[i] += val.nanosecond
                     try:
                         check_dts_bounds(&dts)
@@ -603,12 +586,13 @@ cpdef array_to_datetime(ndarray[object] values, errors='raise',
             elif is_string_object(val):
                 # string
 
-                try:
-                    if len(val) == 0 or val in nat_strings:
-                        iresult[i] = NPY_NAT
-                        continue
+                if len(val) == 0 or val in nat_strings:
+                    iresult[i] = NPY_NAT
+                    continue
 
-                    seen_string = 1
+                seen_string = 1
+
+                try:
                     _string_to_dts(val, &dts, &out_local, &out_tzoffset)
                     value = dtstruct_to_dt64(&dts)
                     if out_local == 1:
@@ -619,6 +603,8 @@ cpdef array_to_datetime(ndarray[object] values, errors='raise',
                 except ValueError:
                     # if requiring iso8601 strings, skip trying other formats
                     if require_iso8601:
+                        if _parse_today_now(val, &iresult[i]):
+                            continue
                         if is_coerce:
                             iresult[i] = NPY_NAT
                             continue
@@ -633,6 +619,8 @@ cpdef array_to_datetime(ndarray[object] values, errors='raise',
                         py_dt = parse_datetime_string(val, dayfirst=dayfirst,
                                                       yearfirst=yearfirst)
                     except Exception:
+                        if _parse_today_now(val, &iresult[i]):
+                            continue
                         if is_coerce:
                             iresult[i] = NPY_NAT
                             continue
@@ -728,6 +716,19 @@ cpdef array_to_datetime(ndarray[object] values, errors='raise',
         return oresult
 
 
+cdef inline bint _parse_today_now(str val, int64_t* iresult):
+    # We delay this check for as long as possible
+    # because it catches relatively rare cases
+    if val == 'now':
+        # Note: this is *not* the same as Timestamp('now')
+        iresult[0] = Timestamp.utcnow().value
+        return True
+    elif val == 'today':
+        # Note: this is *not* the same as Timestamp('today')
+        iresult[0] = Timestamp.utcnow().normalize().value
+        return True
+    return False
+
 # ----------------------------------------------------------------------
 # Some general helper functions
 
@@ -753,11 +754,15 @@ cpdef normalize_date(object dt):
     -------
     normalized : datetime.datetime or Timestamp
     """
-    if is_timestamp(dt):
-        return dt.replace(hour=0, minute=0, second=0, microsecond=0,
-                          nanosecond=0)
-    elif PyDateTime_Check(dt):
-        return dt.replace(hour=0, minute=0, second=0, microsecond=0)
+    if PyDateTime_Check(dt):
+        if not PyDateTime_CheckExact(dt):
+            # i.e. a Timestamp object
+            return dt.replace(hour=0, minute=0, second=0, microsecond=0,
+                              nanosecond=0)
+        else:
+            # regular datetime object
+            return dt.replace(hour=0, minute=0, second=0, microsecond=0)
+            # TODO: Make sure DST crossing is handled correctly here
     elif PyDate_Check(dt):
         return datetime(dt.year, dt.month, dt.day)
     else:

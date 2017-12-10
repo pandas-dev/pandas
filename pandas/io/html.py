@@ -684,7 +684,7 @@ def _parser_dispatch(flavor):
             raise ImportError(
                 "BeautifulSoup4 (bs4) not found, please install it")
         import bs4
-        if bs4.__version__ == LooseVersion('4.2.0'):
+        if LooseVersion(bs4.__version__) == LooseVersion('4.2.0'):
             raise ValueError("You're using a version"
                              " of BeautifulSoup4 (4.2.0) that has been"
                              " known to cause problems on certain"

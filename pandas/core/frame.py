@@ -4320,7 +4320,7 @@ class DataFrame(NDFrame):
         return valid_indices[0] if len(valid_indices) else None
 
     @Appender(_shared_docs['valid_index'] % {
-        'position': 'first', 'klass': 'DataFrame'})
+        'position': 'last', 'klass': 'DataFrame'})
     def last_valid_index(self):
         if len(self) == 0:
             return None
@@ -5577,7 +5577,7 @@ class DataFrame(NDFrame):
 
         Parameters
         ----------
-        other : DataFrame
+        other : DataFrame, Series
         axis : {0 or 'index', 1 or 'columns'}, default 0
             0 or 'index' to compute column-wise, 1 or 'columns' for row-wise
         drop : boolean, default False
@@ -5588,10 +5588,11 @@ class DataFrame(NDFrame):
         correls : Series
         """
         axis = self._get_axis_number(axis)
-        if isinstance(other, Series):
-            return self.apply(other.corr, axis=axis)
-
         this = self._get_numeric_data()
+
+        if isinstance(other, Series):
+            return this.apply(other.corr, axis=axis)
+
         other = other._get_numeric_data()
 
         left, right = this.align(other, join='inner', copy=False)

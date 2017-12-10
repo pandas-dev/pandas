@@ -1,13 +1,14 @@
 """ Test cases for time series specific (freq conversion, etc) """
 
 from datetime import datetime, timedelta, date, time
+import pickle
 
 import pytest
 from pandas.compat import lrange, zip
 
 import numpy as np
 from pandas import Index, Series, DataFrame, NaT
-from pandas.compat import is_platform_mac
+from pandas.compat import is_platform_mac, PY3
 from pandas.core.indexes.datetimes import date_range, bdate_range
 from pandas.core.indexes.timedeltas import timedelta_range
 from pandas.tseries.offsets import DateOffset
@@ -518,6 +519,7 @@ class TestTSPlot(TestPlotBase):
             xp = Period('1/1/1999', freq='H').ordinal
         assert rs == xp
 
+    @td.skip_if_mpl_1_5
     @pytest.mark.slow
     def test_gaps(self):
         ts = tm.makeTimeSeries()
@@ -525,7 +527,6 @@ class TestTSPlot(TestPlotBase):
         _, ax = self.plt.subplots()
         ts.plot(ax=ax)
         lines = ax.get_lines()
-        tm._skip_if_mpl_1_5()
         assert len(lines) == 1
         l = lines[0]
         data = l.get_xydata()
@@ -563,6 +564,7 @@ class TestTSPlot(TestPlotBase):
         mask = data.mask
         assert mask[2:5, 1].all()
 
+    @td.skip_if_mpl_1_5
     @pytest.mark.slow
     def test_gap_upsample(self):
         low = tm.makeTimeSeries()
@@ -578,8 +580,6 @@ class TestTSPlot(TestPlotBase):
         assert len(ax.right_ax.get_lines()) == 1
         l = lines[0]
         data = l.get_xydata()
-
-        tm._skip_if_mpl_1_5()
 
         assert isinstance(data, np.ma.core.MaskedArray)
         mask = data.mask
@@ -1470,5 +1470,12 @@ def _check_plot_works(f, freq=None, series=None, *args, **kwargs):
 
         with ensure_clean(return_filelike=True) as path:
             plt.savefig(path)
+
+        # GH18439
+        # this is supported only in Python 3 pickle since
+        # pickle in Python2 doesn't support instancemethod pickling
+        if PY3:
+            with ensure_clean(return_filelike=True) as path:
+                pickle.dump(fig, path)
     finally:
         plt.close(fig)
