@@ -53,6 +53,7 @@ Other Enhancements
 
 - :meth:`Timestamp.timestamp` is now available in Python 2.7. (:issue:`17329`)
 - :class:`Grouper` and :class:`TimeGrouper` now have a friendly repr output (:issue:`18203`).
+- Enabled the use of non-default indexes in :func:`DataFrame.to_parquet` where the underlying engine supports it (:issue:`18581`)
 -
 
 .. _whatsnew_0211.deprecations:
