@@ -542,13 +542,21 @@ class TestDataFrameIndexing(TestData):
         assert_frame_equal(df, expected)
 
     def test_setitem_boolean_ndarary(self):
+        # Test for issue #18582
+
         df = self.frame.copy()
         mask = df > np.abs(df)
         expected = df.copy()
         expected.values[mask.values] = nan
+
         # index with 2-d boolean ndarray
         actual = df.copy()
         actual[mask.values] = nan
+        assert_frame_equal(actual, expected)
+
+        # index with boolean DataFrame
+        actual = df.copy()
+        actual[mask] = nan
         assert_frame_equal(actual, expected)
 
     def test_setitem_cast(self):
