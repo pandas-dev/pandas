@@ -258,7 +258,7 @@ class TestBasic(Base):
 
     def test_write_with_index(self, engine):
         check_names = engine != 'fastparquet'
-        
+
         df = pd.DataFrame({'A': [1, 2, 3]})
         self.check_round_trip(df, engine, write_kwargs={'compression': None})
 
@@ -278,7 +278,7 @@ class TestBasic(Base):
             )
         if engine != 'fastparquet':
             # Not suppoprted in fastparquet as of 0.1.3
-            index = pd.MultiIndex.from_tuples([('a', 1), ('a', 2),  ('b', 1)])
+            index = pd.MultiIndex.from_tuples([('a', 1), ('a', 2), ('b', 1)])
             df.index = index
             self.check_round_trip(
                 df, engine,
@@ -299,10 +299,11 @@ class TestBasic(Base):
 
     def test_multiindex_with_columns(self, engine):
         if engine == 'fastparquet':
-            pytest.xfail("fastparquet doesn't support mulit-indexes as of 0.1.3")
+            msg = "fastparquet doesn't support mulit-indexes as of 0.1.3"
+            pytest.xfail(msg)
 
         dates = pd.date_range('01-Jan-2018', '01-Dec-2018', freq='MS')
-        df = pd.DataFrame(randn(2*len(dates), 3), columns=list('ABC'))
+        df = pd.DataFrame(randn(2 * len(dates), 3), columns=list('ABC'))
         index1 = pd.MultiIndex.from_product(
             [['Level1', 'Level2'], dates],
             names=['level', 'date']

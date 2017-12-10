@@ -3,7 +3,7 @@
 from warnings import catch_warnings
 from distutils.version import LooseVersion
 from pandas import DataFrame, RangeIndex, Int64Index, get_option
-from pandas.compat import range, string_types
+from pandas.compat import string_types
 from pandas.core.common import AbstractMethodError
 from pandas.io.common import get_filepath_or_buffer
 
@@ -87,7 +87,7 @@ class PyArrowImpl(BaseImpl):
                 "pip install -U pyarrow\n"
             )
         self._pyarrow_lt_070 = (
-           LooseVersion(pyarrow.__version__) < LooseVersion('0.7.0')
+            LooseVersion(pyarrow.__version__) < LooseVersion('0.7.0')
         )
         self.api = pyarrow
 
@@ -113,14 +113,16 @@ class PyArrowImpl(BaseImpl):
         kwargs['use_pandas_metadata'] = True
         return parquet_file.read(columns=columns, **kwargs).to_pandas()
 
-
     def _validate_write_lt_070(self, df, path, compression='snappy',
-                      coerce_timestamps='ms', **kwargs):
+                               coerce_timestamps='ms', **kwargs):
         # Compatibility shim for pyarrow < 0.7.0
         # TODO: Remove in pandas 0.22.0
         from pandas.core.indexes.multi import MultiIndex
         if isinstance(df.index, MultiIndex):
-            msg = "Mulit-index DataFrames are only supported with pyarrow >= 0.7.0"
+            msg = (
+                "Mulit-index DataFrames are only supported "
+                "with pyarrow >= 0.7.0"
+            )
             raise ValueError(msg)
         # Validate index
         if not isinstance(df.index, Int64Index):
@@ -150,7 +152,8 @@ class PyArrowImpl(BaseImpl):
             metadata = json.loads(parquet_file.metadata.metadata[b'pandas'])
             columns = set(chain(columns, metadata['index_columns']))
         kwargs['columns'] = columns
-        return self.api.parquet.read_table(parquet_file.path, **kwargs).to_pandas()
+        kwargs['path'] = parquet_file.path
+        return self.api.parquet.read_table(**kwargs).to_pandas()
 
 
 class FastParquetImpl(BaseImpl):
