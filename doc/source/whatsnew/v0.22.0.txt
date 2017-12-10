@@ -135,7 +135,7 @@ Other Enhancements
 - Improved wording of ``ValueError`` raised in :func:`read_csv` when the ``usecols`` argument cannot match all columns. (:issue:`17301`)
 - :func:`DataFrame.corrwith` now silently drops non-numeric columns when passed a Series. Before, an exception was raised (:issue:`18570`).
 - :class:`IntervalIndex` now supports time zone aware ``Interval`` objects (:issue:`18537`, :issue:`18538`)
-
+- :func:`read_excel()` has gained the ``nrows`` parameter (:issue:`16645`)
 
 .. _whatsnew_0220.api_breaking:
 
@@ -188,6 +188,7 @@ Other API Changes
 - :func:`pandas.DataFrame.merge` no longer casts a ``float`` column to ``object`` when merging on ``int`` and ``float`` columns (:issue:`16572`)
 - The default NA value for :class:`UInt64Index` has changed from 0 to ``NaN``, which impacts methods that mask with NA, such as ``UInt64Index.where()`` (:issue:`18398`)
 - Refactored ``setup.py`` to use ``find_packages`` instead of explicitly listing out all subpackages (:issue:`18535`)
+- Rearranged the order of keyword arguments in :func:`read_excel()` to align with :func:`read_csv()` (:pr:`16672`)
 
 .. _whatsnew_0220.deprecations:
 
