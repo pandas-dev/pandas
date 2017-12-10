@@ -28,7 +28,12 @@ TABLE_SCHEMA_VERSION = '0.20.0'
 # interface to/from
 def to_json(path_or_buf, obj, orient=None, date_format='epoch',
             double_precision=10, force_ascii=True, date_unit='ms',
-            default_handler=None, lines=False, compression=None):
+            default_handler=None, lines=False, compression=None,
+            index=True):
+
+    if not index and orient not in ['split', 'table']:
+        raise ValueError("'index=False' is only valid when 'orient' is "
+                         "'split' or 'table'")
 
     path_or_buf = _stringify_path(path_or_buf)
     if lines and orient != 'records':
@@ -49,7 +54,8 @@ def to_json(path_or_buf, obj, orient=None, date_format='epoch',
     s = writer(
         obj, orient=orient, date_format=date_format,
         double_precision=double_precision, ensure_ascii=force_ascii,
-        date_unit=date_unit, default_handler=default_handler).write()
+        date_unit=date_unit, default_handler=default_handler,
+        index=index).write()
 
     if lines:
         s = _convert_to_line_delimits(s)
@@ -69,7 +75,7 @@ def to_json(path_or_buf, obj, orient=None, date_format='epoch',
 class Writer(object):
 
     def __init__(self, obj, orient, date_format, double_precision,
-                 ensure_ascii, date_unit, default_handler=None):
+                 ensure_ascii, date_unit, index, default_handler=None):
         self.obj = obj
 
         if orient is None:
@@ -81,6 +87,7 @@ class Writer(object):
         self.ensure_ascii = ensure_ascii
         self.date_unit = date_unit
         self.default_handler = default_handler
+        self.index = index
 
         self.is_copy = None
         self._format_axes()
@@ -89,14 +96,20 @@ class Writer(object):
         raise AbstractMethodError(self)
 
     def write(self):
+        return self._write(self.obj, self.orient, self.double_precision,
+                           self.ensure_ascii, self.date_unit,
+                           self.date_format == 'iso', self.default_handler)
+
+    def _write(self, obj, orient, double_precision, ensure_ascii,
+               date_unit, iso_dates, default_handler):
         return dumps(
-            self.obj,
-            orient=self.orient,
-            double_precision=self.double_precision,
-            ensure_ascii=self.ensure_ascii,
-            date_unit=self.date_unit,
-            iso_dates=self.date_format == 'iso',
-            default_handler=self.default_handler
+            obj,
+            orient=orient,
+            double_precision=double_precision,
+            ensure_ascii=ensure_ascii,
+            date_unit=date_unit,
+            iso_dates=iso_dates,
+            default_handler=default_handler
         )
 
 
@@ -107,6 +120,15 @@ class SeriesWriter(Writer):
         if not self.obj.index.is_unique and self.orient == 'index':
             raise ValueError("Series index must be unique for orient="
                              "'{orient}'".format(orient=self.orient))
+
+    def _write(self, obj, orient, double_precision, ensure_ascii,
+               date_unit, iso_dates, default_handler):
+        if not self.index and orient == 'split':
+            obj = {"name": obj.name, "data": obj.values}
+        return super(SeriesWriter, self)._write(obj, orient,
+                                                double_precision,
+                                                ensure_ascii, date_unit,
+                                                iso_dates, default_handler)
 
 
 class FrameWriter(Writer):
@@ -123,12 +145,22 @@ class FrameWriter(Writer):
             raise ValueError("DataFrame columns must be unique for orient="
                              "'{orient}'.".format(orient=self.orient))
 
+    def _write(self, obj, orient, double_precision, ensure_ascii,
+               date_unit, iso_dates, default_handler):
+        if not self.index and orient == 'split':
+            obj = obj.to_dict(orient='split')
+            del obj["index"]
+        return super(FrameWriter, self)._write(obj, orient,
+                                               double_precision,
+                                               ensure_ascii, date_unit,
+                                               iso_dates, default_handler)
+
 
 class JSONTableWriter(FrameWriter):
     _default_orient = 'records'
 
     def __init__(self, obj, orient, date_format, double_precision,
-                 ensure_ascii, date_unit, default_handler=None):
+                 ensure_ascii, date_unit, index, default_handler=None):
         """
         Adds a `schema` attribut with the Table Schema, resets
         the index (can't do in caller, because the schema inference needs
@@ -137,7 +169,7 @@ class JSONTableWriter(FrameWriter):
         """
         super(JSONTableWriter, self).__init__(
             obj, orient, date_format, double_precision, ensure_ascii,
-            date_unit, default_handler=default_handler)
+            date_unit, index, default_handler=default_handler)
 
         if date_format != 'iso':
             msg = ("Trying to write with `orient='table'` and "
@@ -146,7 +178,7 @@ class JSONTableWriter(FrameWriter):
                    .format(fmt=date_format))
             raise ValueError(msg)
 
-        self.schema = build_table_schema(obj)
+        self.schema = build_table_schema(obj, index=self.index)
 
         # NotImplementd on a column MultiIndex
         if obj.ndim == 2 and isinstance(obj.columns, MultiIndex):
@@ -168,14 +200,24 @@ class JSONTableWriter(FrameWriter):
         if is_period_dtype(obj.index):
             obj.index = obj.index.to_timestamp()
 
-        self.obj = obj.reset_index()
+        # exclude index from obj if index=False
+        if not self.index:
+            self.obj = obj.reset_index(drop=True)
+        else:
+            self.obj = obj.reset_index(drop=False)
         self.date_format = 'iso'
         self.orient = 'records'
+        self.index = index
 
-    def write(self):
-        data = super(JSONTableWriter, self).write()
+    def _write(self, obj, orient, double_precision, ensure_ascii,
+               date_unit, iso_dates, default_handler):
+        data = super(JSONTableWriter, self)._write(obj, orient,
+                                                   double_precision,
+                                                   ensure_ascii, date_unit,
+                                                   iso_dates,
+                                                   default_handler)
         serialized = '{{"schema": {schema}, "data": {data}}}'.format(
-            schema=dumps(self.schema), data=data)
+                     schema=dumps(self.schema), data=data)
         return serialized
 
 

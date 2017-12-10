@@ -136,6 +136,7 @@ Other Enhancements
 - :func:`DataFrame.corrwith` now silently drops non-numeric columns when passed a Series. Before, an exception was raised (:issue:`18570`).
 - :class:`IntervalIndex` now supports time zone aware ``Interval`` objects (:issue:`18537`, :issue:`18538`)
 - :func:`read_excel()` has gained the ``nrows`` parameter (:issue:`16645`)
+- :func:``DataFrame.to_json`` and ``Series.to_json`` now accept an ``index`` argument which allows the user to exclude the index from the JSON output (:issue:`17394`)
 
 .. _whatsnew_0220.api_breaking:
 
