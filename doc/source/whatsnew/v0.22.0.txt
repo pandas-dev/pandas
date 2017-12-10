@@ -336,4 +336,5 @@ Other
 ^^^^^
 
 - Improved error message when attempting to use a Python keyword as an identifier in a ``numexpr`` backed query (:issue:`18221`)
--
+- Updated conda recipe to be in compliance with conda-build 3.0+ (:issue:`18002`)
+- Added CONDA_TEST_BUILD to ci
