@@ -12,7 +12,6 @@ import pandas as pd
 from pandas import (Series, DataFrame, MultiIndex, PeriodIndex, date_range,
                     bdate_range)
 from pandas.core.dtypes.api import is_list_like
-from pandas.core.dtypes.generic import ABCDataFrame
 from pandas.compat import range, lrange, lmap, lzip, u, zip, PY3
 from pandas.io.formats.printing import pprint_thing
 import pandas.util.testing as tm
@@ -2177,7 +2176,7 @@ class TestDataFramePlots(TestPlotBase):
     ])
     def test_invalid_xy_args(self, x, y):
         # GH 18671
-        df = ABCDataFrame({"A": [1, 2], 'B': [3, 4], 'C': [5, 6]})
+        df = DataFrame({"A": [1, 2], 'B': [3, 4], 'C': [5, 6]})
         with pytest.raises(ValueError):
             df.plot(x=x, y=y)
 
@@ -2187,7 +2186,7 @@ class TestDataFramePlots(TestPlotBase):
     ])
     def test_invalid_xy_args_dup_cols(self, x, y):
         # GH 18671
-        df = ABCDataFrame([[1, 3, 5], [2, 4, 6]], columns=list('AAB'))
+        df = DataFrame([[1, 3, 5], [2, 4, 6]], columns=list('AAB'))
         with pytest.raises(ValueError):
             df.plot(x=x, y=y)
 
