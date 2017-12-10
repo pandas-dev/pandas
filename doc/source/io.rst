@@ -4522,6 +4522,7 @@ See the documentation for `pyarrow <http://arrow.apache.org/docs/python/>`__ and
 .. note::
 
    These engines are very similar and should read/write nearly identical parquet format files.
+   Currently ``pyarrow`` does not support timedelta data, and ``fastparquet`` does not support timezone aware datetimes (they are coerced to UTC).
    These libraries differ by having different underlying dependencies (``fastparquet`` by using ``numba``, while ``pyarrow`` uses a c-library).
 
 .. ipython:: python
@@ -4548,8 +4549,8 @@ Read from a parquet file.
 
 .. ipython:: python
 
-   result = pd.read_parquet('example_pa.parquet', engine='pyarrow')
    result = pd.read_parquet('example_fp.parquet', engine='fastparquet')
+   result = pd.read_parquet('example_pa.parquet', engine='pyarrow')
 
    result.dtypes
 
