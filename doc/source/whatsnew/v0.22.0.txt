@@ -284,7 +284,7 @@ I/O
 Plotting
 ^^^^^^^^
 
--
+- :func: `DataFrame.plot` now raises a ``ValueError`` when the ``x`` or ``y`` argument is improperly formed (:issue:`18671`)
 -
 -
 
