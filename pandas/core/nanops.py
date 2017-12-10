@@ -6,7 +6,7 @@ from distutils.version import LooseVersion
 
 import numpy as np
 from pandas import compat
-from pandas._libs import tslib, algos, lib
+from pandas._libs import tslib, lib
 from pandas.core.dtypes.common import (
     _get_dtype,
     is_float, is_scalar,
@@ -85,23 +85,6 @@ class disallow(object):
                 raise
 
         return _f
-
-
-class skipna_switch(object):
-
-    def __init__(self, alt):
-        self.alt = alt
-
-    def __call__(self, default):
-
-        @functools.wraps(default)
-        def f(values, axis=None, skipna=True, **kwds):
-            if skipna:
-                return default(values, axis, skipna, **kwds)
-            else:
-                return self.alt(values, axis, **kwds)
-
-        return f
 
 
 class bottleneck_switch(object):
@@ -360,19 +343,17 @@ def nanmean(values, axis=None, skipna=True):
     return _wrap_results(the_mean, dtype)
 
 
-@skipna_switch(np.median)
 @disallow('M8')
 @bottleneck_switch()
 def nanmedian(values, axis=None, skipna=True):
-
-    values, mask, dtype, dtype_max = _get_values(values, skipna)
 
     def get_median(x):
         mask = notna(x)
         if not skipna and not mask.all():
             return np.nan
-        return algos.median(_values_from_object(x[mask]))
+        return np.nanmedian(x[mask])
 
+    values, mask, dtype, dtype_max = _get_values(values, skipna)
     if not is_float_dtype(values):
         values = values.astype('f8')
         values[mask] = np.nan
@@ -384,8 +365,14 @@ def nanmedian(values, axis=None, skipna=True):
 
     # an array from a frame
     if values.ndim > 1:
+
         # there's a non-empty array to apply over otherwise numpy raises
         if notempty:
+            if not skipna:
+                return _wrap_results(
+                    np.apply_along_axis(get_median, axis, values), dtype)
+
+            # fastpath for the skipna case
             return _wrap_results(np.nanmedian(values, axis), dtype)
 
         # must return the correct shape, but median is not defined for the
@@ -399,7 +386,7 @@ def nanmedian(values, axis=None, skipna=True):
         return _wrap_results(ret, dtype)
 
     # otherwise return a scalar value
-    return _wrap_results(np.nanmedian(values) if notempty else np.nan, dtype)
+    return _wrap_results(get_median(values) if notempty else np.nan, dtype)
 
 
 def _get_counts_nanvar(mask, axis, ddof, dtype=float):
