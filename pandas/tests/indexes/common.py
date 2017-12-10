@@ -50,8 +50,10 @@ class Base(object):
         assert s.index is not idx
         assert s.name == idx.name
 
-    def test_to_series_with_index(self):
+    def test_to_series_with_arguments(self):
         # GH18699
+
+        # index kwarg
         idx = self.create_index()
         s = idx.to_series(index=idx)
 
@@ -59,8 +61,7 @@ class Base(object):
         assert s.index is idx
         assert s.name == idx.name
 
-    def test_to_series_with_name(self):
-        # GH18699
+        # name kwarg
         idx = self.create_index()
         s = idx.to_series(name='__test')
 

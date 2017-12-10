@@ -983,10 +983,18 @@ class Index(IndexOpsMixin, PandasObject):
             attrs.append(('length', len(self)))
         return attrs
 
-    def to_series(self, **kwargs):
+    def to_series(self, index=None, name=None):
         """
         Create a Series with both index and values equal to the index keys
         useful with map for returning an indexer based on an index
+
+        Parameters
+        ----------
+        index : Index, optional
+            index of resulting Series. If None, defaults to original index
+        name : string, optional
+            name of resulting Series. If None, defaults to name of original
+            index
 
         Returns
         -------
@@ -995,12 +1003,12 @@ class Index(IndexOpsMixin, PandasObject):
 
         from pandas import Series
 
-        if 'index' not in kwargs:
-            kwargs['index'] = self._shallow_copy()
-        if 'name' not in kwargs:
-            kwargs['name'] = self.name
+        if index is None:
+            index = self._shallow_copy()
+        if name is None:
+            name = self.name
 
-        return Series(self._to_embed(), **kwargs)
+        return Series(self._to_embed(), index=index, name=name)
 
     def to_frame(self, index=True):
         """
