@@ -400,66 +400,42 @@ class TestInsertIndexCoercion(CoercionBase):
         tm.assert_index_equal(res, expected)
         assert res.dtype == expected_dtype
 
-    def test_insert_index_object(self):
+    @pytest.mark.parametrize("insert, coerced_val, coerced_dtype", [
+        (1, 1, np.object),
+        (1.1, 1.1, np.object),
+        (False, False, np.object),
+        ('x', 'x', np.object)])
+    def test_insert_index_object(self, insert, coerced_val, coerced_dtype):
         obj = pd.Index(list('abcd'))
         assert obj.dtype == np.object
 
-        # object + int -> object
-        exp = pd.Index(['a', 1, 'b', 'c', 'd'])
-        self._assert_insert_conversion(obj, 1, exp, np.object)
+        exp = pd.Index(['a', coerced_val, 'b', 'c', 'd'])
+        self._assert_insert_conversion(obj, insert, exp, coerced_dtype)
 
-        # object + float -> object
-        exp = pd.Index(['a', 1.1, 'b', 'c', 'd'])
-        self._assert_insert_conversion(obj, 1.1, exp, np.object)
-
-        # object + bool -> object
-        res = obj.insert(1, False)
-        tm.assert_index_equal(res, pd.Index(['a', False, 'b', 'c', 'd']))
-        assert res.dtype == np.object
-
-        # object + object -> object
-        exp = pd.Index(['a', 'x', 'b', 'c', 'd'])
-        self._assert_insert_conversion(obj, 'x', exp, np.object)
-
-    def test_insert_index_int64(self):
+    @pytest.mark.parametrize("insert, coerced_val, coerced_dtype", [
+        (1, 1, np.int64),
+        (1.1, 1.1, np.float64),
+        (False, 0, int),
+        ('x', 'x', np.object)])
+    def test_insert_index_int64(self, insert, coerced_val, coerced_dtype):
         obj = pd.Int64Index([1, 2, 3, 4])
         assert obj.dtype == np.int64
 
-        # int + int -> int
-        exp = pd.Index([1, 1, 2, 3, 4])
-        self._assert_insert_conversion(obj, 1, exp, np.int64)
+        exp = pd.Index([1, coerced_val, 2, 3, 4])
+        self._assert_insert_conversion(obj, insert, exp, coerced_dtype)
 
-        # int + float -> float
-        exp = pd.Index([1, 1.1, 2, 3, 4])
-        self._assert_insert_conversion(obj, 1.1, exp, np.float64)
-
-        # int + bool -> int
-        exp = pd.Index([1, 0, 2, 3, 4])
-        self._assert_insert_conversion(obj, False, exp, np.int64)
-
-        # int + object -> object
-        exp = pd.Index([1, 'x', 2, 3, 4])
-        self._assert_insert_conversion(obj, 'x', exp, np.object)
-
-    def test_insert_index_float64(self):
+    @pytest.mark.parametrize("insert, coerced_val, coerced_dtype", [
+        (1, 1., np.float64),
+        (1.1, 1.1, np.float64),
+        (False, 0., np.float64),
+        ('x', 'x', np.object)])
+    def test_insert_index_float64(self, insert, coerced_val, coerced_dtype):
         obj = pd.Float64Index([1., 2., 3., 4.])
         assert obj.dtype == np.float64
 
         # float + int -> int
-        exp = pd.Index([1., 1., 2., 3., 4.])
-        self._assert_insert_conversion(obj, 1, exp, np.float64)
-
-        # float + float -> float
-        exp = pd.Index([1., 1.1, 2., 3., 4.])
-        self._assert_insert_conversion(obj, 1.1, exp, np.float64)
-
-        # float + bool -> float
-        exp = pd.Index([1., 0., 2., 3., 4.])
-        self._assert_insert_conversion(obj, False, exp, np.float64)
-
-        # float + object -> object
-        exp = pd.Index([1., 'x', 2., 3., 4.])
-        self._assert_insert_conversion(obj, 'x', exp, np.object)
+        exp = pd.Index([1., coerced_val, 2., 3., 4.])
+        self._assert_insert_conversion(obj, insert, exp, coerced_dtype)
 
     def test_insert_index_complex128(self):
         pass
@@ -534,41 +510,27 @@ class TestInsertIndexCoercion(CoercionBase):
         with tm.assert_raises_regex(TypeError, msg):
             obj.insert(1, 1)
 
-    def test_insert_index_period(self):
+    @pytest.mark.parametrize("insert, coerced_val, coerced_dtype", [
+        (pd.Period('2012-01', freq='M'), '2012-01', 'period[M]'),
+        (pd.Timestamp('2012-01-01'), pd.Timestamp('2012-01-01'), np.object),
+        (1, 1, np.object),
+        ('x', 'x', np.object)])
+    def test_insert_index_period(self, insert, coerced_val, coerced_dtype):
         obj = pd.PeriodIndex(['2011-01', '2011-02', '2011-03', '2011-04'],
                              freq='M')
         assert obj.dtype == 'period[M]'
 
-        # period + period => period
-        exp = pd.PeriodIndex(['2011-01', '2012-01', '2011-02',
-                              '2011-03', '2011-04'], freq='M')
-        self._assert_insert_conversion(obj, pd.Period('2012-01', freq='M'),
-                                       exp, 'period[M]')
+        if isinstance(insert, pd.Period):
+            index_type = pd.PeriodIndex
+        else:
+            index_type = pd.Index
 
-        # period + datetime64 => object
-        exp = pd.Index([pd.Period('2011-01', freq='M'),
-                        pd.Timestamp('2012-01-01'),
+        exp = index_type([pd.Period('2011-01', freq='M'),
+                        coerced_val,
                         pd.Period('2011-02', freq='M'),
                         pd.Period('2011-03', freq='M'),
-                        pd.Period('2011-04', freq='M')], freq='M')
-        self._assert_insert_conversion(obj, pd.Timestamp('2012-01-01'),
-                                       exp, np.object)
-
-        # period + int => object
-        exp = pd.Index([pd.Period('2011-01', freq='M'),
-                        1,
-                        pd.Period('2011-02', freq='M'),
-                        pd.Period('2011-03', freq='M'),
-                        pd.Period('2011-04', freq='M')], freq='M')
-        self._assert_insert_conversion(obj, 1, exp, np.object)
-
-        # period + object => object
-        exp = pd.Index([pd.Period('2011-01', freq='M'),
-                        'x',
-                        pd.Period('2011-02', freq='M'),
-                        pd.Period('2011-03', freq='M'),
-                        pd.Period('2011-04', freq='M')], freq='M')
-        self._assert_insert_conversion(obj, 'x', exp, np.object)
+                        pd.Period('2011-04', freq='M')], freq='M')        
+        self._assert_insert_conversion(obj, insert, exp, coerced_dtype)
 
 
 class TestWhereCoercion(CoercionBase):
