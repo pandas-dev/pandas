@@ -62,6 +62,14 @@ class NumericIndex(Index):
         # we will try to coerce to integers
         return self._maybe_cast_indexer(label)
 
+    @Appender(_index_shared_docs['_shallow_copy'])
+    def _shallow_copy(self, values=None, **kwargs):
+        if values is not None and not self._can_hold_na:
+            # Ensure we are not returning an Int64Index with float data:
+            return self._shallow_copy_with_infer(values=values, **kwargs)
+        return (super(NumericIndex, self)._shallow_copy(values=values,
+                                                        **kwargs))
+
     def _convert_for_op(self, value):
         """ Convert value to be insertable to ndarray """
 
@@ -395,9 +403,11 @@ class Float64Index(NumericIndex):
             try:
                 return len(other) <= 1 and ibase._try_get_item(other) in self
             except TypeError:
-                return False
-        except:
-            return False
+                pass
+        except TypeError:
+            pass
+
+        return False
 
     @Appender(_index_shared_docs['get_loc'])
     def get_loc(self, key, method=None, tolerance=None):
