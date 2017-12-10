@@ -155,14 +155,8 @@ class PyArrowImpl(BaseImpl):
     def _read_lt_070(self, path, parquet_file, columns, **kwargs):
         # Compatibility shim for pyarrow < 0.7.0
         # TODO: Remove in pandas 0.22.0
-        from itertools import chain
-        import json
-        if columns is not None:
-            metadata = json.loads(
-                parquet_file.metadata.metadata[b'pandas'].decode('utf-8'))
-            columns = set(chain(columns, metadata['index_columns']))
         kwargs['columns'] = columns
-        return self.api.parquet.read_table(path, **kwargs).to_pandas()
+        return self.api.parquet.read_pandas(path, **kwargs).to_pandas()
 
 
 class FastParquetImpl(BaseImpl):
