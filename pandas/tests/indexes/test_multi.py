@@ -997,8 +997,8 @@ class TestMultiIndex(Base):
         exp = CategoricalIndex([1, 2, 3, 1, 2, 3])
         tm.assert_index_equal(index.get_level_values(1), exp)
 
-    @pytest.mark.xfail(reason='GH 17924 (returns Int64Index with float data)')
     def test_get_level_values_int_with_na(self):
+        # GH 17924
         arrays = [['a', 'b', 'b'], [1, np.nan, 2]]
         index = pd.MultiIndex.from_arrays(arrays)
         result = index.get_level_values(1)
@@ -1024,14 +1024,27 @@ class TestMultiIndex(Base):
 
         arrays = [['a', 'b', 'b'], pd.DatetimeIndex([0, 1, pd.NaT])]
         index = pd.MultiIndex.from_arrays(arrays)
-        values = index.get_level_values(1)
+        result = index.get_level_values(1)
         expected = pd.DatetimeIndex([0, 1, pd.NaT])
-        tm.assert_index_equal(values, expected)
+        tm.assert_index_equal(result, expected)
 
         arrays = [[], []]
         index = pd.MultiIndex.from_arrays(arrays)
-        values = index.get_level_values(0)
-        assert values.shape == (0, )
+        result = index.get_level_values(0)
+        expected = pd.Index([], dtype=object)
+        tm.assert_index_equal(result, expected)
+
+    def test_get_level_values_all_na(self):
+        # GH 17924 when level entirely consists of nan
+        arrays = [[np.nan, np.nan, np.nan], ['a', np.nan, 1]]
+        index = pd.MultiIndex.from_arrays(arrays)
+        result = index.get_level_values(0)
+        expected = pd.Index([np.nan, np.nan, np.nan], dtype=np.float64)
+        tm.assert_index_equal(result, expected)
+
+        result = index.get_level_values(1)
+        expected = pd.Index(['a', np.nan, 1], dtype=object)
+        tm.assert_index_equal(result, expected)
 
     def test_reorder_levels(self):
         # this blows up
