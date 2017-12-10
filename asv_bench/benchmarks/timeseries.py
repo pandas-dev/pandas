@@ -85,7 +85,7 @@ class DatetimeIndex(object):
         self.dti_tz.factorize()
 
     def time_dti_time(self):
-        self.rng.time
+        self.dst_rng.time
 
     def time_timestamp_tzinfo_cons(self):
         self.rng5[0]
