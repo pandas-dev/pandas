@@ -6,6 +6,7 @@ from numpy.random import randn
 from numpy import nan
 import numpy as np
 import random
+import re
 
 import pandas as pd
 from pandas.compat import lrange, lzip
@@ -1370,29 +1371,46 @@ class TestMergeMulti(object):
         pytest.raises(NotImplementedError, f)
 
 
-@pytest.fixture
-def df():
-    return DataFrame(
-        {'A': ['foo', 'bar'],
-         'B': Series(['foo', 'bar']).astype('category'),
-         'C': [1, 2],
-         'D': [1.0, 2.0],
-         'E': Series([1, 2], dtype='uint64'),
-         'F': Series([1, 2], dtype='int32')})
-
-
 class TestMergeDtypes(object):
 
-    def test_different(self, df):
+    @pytest.mark.parametrize('right_vals', [
+        ['foo', 'bar'],
+        Series(['foo', 'bar']).astype('category'),
+        [1, 2],
+        [1.0, 2.0],
+        Series([1, 2], dtype='uint64'),
+        Series([1, 2], dtype='int32')
+    ]
+    )
+    def test_different(self, right_vals):
 
-        # we expect differences by kind
-        # to be ok, while other differences should return object
+        left = DataFrame({'A': ['foo', 'bar'],
+                          'B': Series(['foo', 'bar']).astype('category'),
+                          'C': [1, 2],
+                          'D': [1.0, 2.0],
+                          'E': Series([1, 2], dtype='uint64'),
+                          'F': Series([1, 2], dtype='int32')})
+        right = DataFrame({'A': right_vals})
 
-        left = df
-        for col in df.columns:
-            right = DataFrame({'A': df[col]})
+        # GH 9780
+        # We allow merging on object and categorical cols and cast
+        # categorical cols to object
+        if (is_categorical_dtype(right['A'].dtype) or
+           is_object_dtype(right['A'].dtype)):
             result = pd.merge(left, right, on='A')
             assert is_object_dtype(result.A.dtype)
+
+        # GH 9780
+        # We raise for merging on object col and int/float col and
+        # merging on categorical col and int/float col
+        else:
+            msg = ("You are trying to merge on "
+                   "{lk_dtype} and {rk_dtype} columns. "
+                   "If you wish to proceed you should use "
+                   "pd.concat".format(lk_dtype=left['A'].dtype,
+                                      rk_dtype=right['A'].dtype))
+            with tm.assert_raises_regex(ValueError, msg):
+                pd.merge(left, right, on='A')
 
     @pytest.mark.parametrize('d1', [np.int64, np.int32,
                                     np.int16, np.int8, np.uint8])
@@ -1461,6 +1479,42 @@ class TestMergeDtypes(object):
         with tm.assert_produces_warning(UserWarning):
             result = B.merge(A, left_on='Y', right_on='X')
             assert_frame_equal(result, expected[['Y', 'X']])
+
+    @pytest.mark.parametrize('df1_vals, df2_vals', [
+        ([0, 1, 2], ["0", "1", "2"]),
+        ([0.0, 1.0, 2.0], ["0", "1", "2"]),
+        ([0, 1, 2], [u"0", u"1", u"2"]),
+        (pd.date_range('1/1/2011', periods=2, freq='D'), ['2011-01-01',
+                                                          '2011-01-02']),
+        (pd.date_range('1/1/2011', periods=2, freq='D'), [0, 1]),
+        (pd.date_range('1/1/2011', periods=2, freq='D'), [0.0, 1.0]),
+        ([0, 1, 2], Series(['a', 'b', 'a']).astype('category')),
+        ([0.0, 1.0, 2.0], Series(['a', 'b', 'a']).astype('category')),
+    ])
+    def test_merge_incompat_dtypes(self, df1_vals, df2_vals):
+        # GH 9780
+        # Raise a ValueError when a user tries to merge on
+        # dtypes that are incompatible (e.g., obj and int/float)
+
+        df1 = DataFrame({'A': df1_vals})
+        df2 = DataFrame({'A': df2_vals})
+
+        msg = ("You are trying to merge on {lk_dtype} and "
+               "{rk_dtype} columns. If you wish to proceed "
+               "you should use pd.concat".format(lk_dtype=df1['A'].dtype,
+                                                 rk_dtype=df2['A'].dtype))
+        msg = re.escape(msg)
+        with tm.assert_raises_regex(ValueError, msg):
+            pd.merge(df1, df2, on=['A'])
+
+        # Check that error still raised when swapping order of dataframes
+        msg = ("You are trying to merge on {lk_dtype} and "
+               "{rk_dtype} columns. If you wish to proceed "
+               "you should use pd.concat".format(lk_dtype=df2['A'].dtype,
+                                                 rk_dtype=df1['A'].dtype))
+        msg = re.escape(msg)
+        with tm.assert_raises_regex(ValueError, msg):
+            pd.merge(df2, df1, on=['A'])
 
 
 @pytest.fixture
