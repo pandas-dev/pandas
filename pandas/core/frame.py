@@ -4417,8 +4417,8 @@ class DataFrame(NDFrame):
             If list of functions passed, the resulting pivot table will have
             hierarchical columns whose top level are the function names
             (inferred from the function objects themselves)
-            If dict is passed, the key is column to aggregate and value is function
-            or list of functions
+            If dict is passed, the key is column to aggregate and value
+            is function or list of functions
         fill_value : scalar, default None
             Value to replace missing values with
         margins : boolean, default False
@@ -4474,12 +4474,13 @@ class DataFrame(NDFrame):
             two    NaN    6.0
 
         >>> table = pivot_table(df, values=['D', 'E'], index=['A', 'C'],
-        ...                     aggfunc={'D': np.mean, 'E': [min, max, np.median]} )
+        ...                     aggfunc={'D': np.mean,
+        ...                              'E': [min, max, np.mean]})
         >>> table
         ... # doctest: +NORMALIZE_WHITESPACE
-                          D   E           
+                          D   E
                        mean max median min
-        A   C                             
+        A   C
         bar large  5.500000  16   14.5  13
             small  5.500000  15   14.5  14
         foo large  2.000000  10    9.5   9
