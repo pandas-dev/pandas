@@ -15,7 +15,7 @@ from util cimport (is_integer_object, is_float_object, is_string_object,
 from cpython.datetime cimport (PyDateTime_Check, PyDate_Check,
                                PyDateTime_CheckExact,
                                PyDateTime_IMPORT,
-                               timedelta, datetime, date)
+                               timedelta, datetime, date, time)
 # import datetime C API
 PyDateTime_IMPORT
 
@@ -70,11 +70,17 @@ cdef inline object create_date_from_ts(
     """ convenience routine to construct a datetime.date from its parts """
     return date(dts.year, dts.month, dts.day)
 
+cdef inline object create_time_from_ts(
+        int64_t value, pandas_datetimestruct dts,
+        object tz, object freq):
+    """ convenience routine to construct a datetime.time from its parts """
+    return time(dts.hour, dts.min, dts.sec, dts.us, tz)
+
 
 def ints_to_pydatetime(ndarray[int64_t] arr, tz=None, freq=None,
                        box="datetime"):
     """
-    Convert an i8 repr to an ndarray of datetimes, date or Timestamp
+    Convert an i8 repr to an ndarray of datetimes, date, time or Timestamp
 
     Parameters
     ----------
@@ -83,18 +89,16 @@ def ints_to_pydatetime(ndarray[int64_t] arr, tz=None, freq=None,
          convert to this timezone
     freq : str/Offset, default None
          freq to convert
-    box  : {'datetime', 'timestamp', 'date'}, default 'datetime'
+    box  : {'datetime', 'timestamp', 'date', 'time'}, default 'datetime'
          If datetime, convert to datetime.datetime
          If date, convert to datetime.date
+         If time, convert to datetime.time
          If Timestamp, convert to pandas.Timestamp
 
     Returns
     -------
     result : array of dtype specified by box
     """
-
-    assert ((box == "datetime") or (box == "date") or (box == "timestamp")), \
-        "box must be one of 'datetime', 'date' or 'timestamp'"
 
     cdef:
         Py_ssize_t i, n = len(arr)
@@ -115,8 +119,13 @@ def ints_to_pydatetime(ndarray[int64_t] arr, tz=None, freq=None,
         if is_string_object(freq):
             from pandas.tseries.frequencies import to_offset
             freq = to_offset(freq)
+    elif box == "time":
+        func_create = create_time_from_ts
     elif box == "datetime":
         func_create = create_datetime_from_ts
+    else:
+        raise ValueError("box must be one of 'datetime', 'date', 'time' or" +
+                         " 'timestamp'")
 
     if tz is not None:
         if is_utc(tz):
