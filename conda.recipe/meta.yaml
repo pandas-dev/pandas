@@ -15,14 +15,12 @@ requirements:
     - python
     - cython
     - numpy x.x
-    - setuptools
-    - pytz
-    - python-dateutil
+    - setuptools >=3.3
 
   run:
     - python
     - numpy x.x
-    - python-dateutil
+    - python-dateutil >=2.5.0
     - pytz
 
 test:

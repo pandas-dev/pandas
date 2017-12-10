@@ -25,6 +25,11 @@ def get_engine(engine):
         except ImportError:
             pass
 
+        raise ImportError("Unable to find a usable engine; "
+                          "tried using: 'pyarrow', 'fastparquet'.\n"
+                          "pyarrow or fastparquet is required for parquet "
+                          "support")
+
     if engine not in ['pyarrow', 'fastparquet']:
         raise ValueError("engine must be one of 'pyarrow', 'fastparquet'")
 
@@ -50,7 +55,7 @@ class PyArrowImpl(object):
                               "\nor via pip\n"
                               "pip install -U pyarrow\n")
 
-        if LooseVersion(pyarrow.__version__) < '0.4.1':
+        if LooseVersion(pyarrow.__version__) < LooseVersion('0.4.1'):
             raise ImportError("pyarrow >= 0.4.1 is required for parquet"
                               "support\n\n"
                               "you can install via conda\n"
@@ -58,17 +63,30 @@ class PyArrowImpl(object):
                               "\nor via pip\n"
                               "pip install -U pyarrow\n")
 
+        self._pyarrow_lt_050 = (LooseVersion(pyarrow.__version__) <
+                                LooseVersion('0.5.0'))
+        self._pyarrow_lt_060 = (LooseVersion(pyarrow.__version__) <
+                                LooseVersion('0.6.0'))
         self.api = pyarrow
 
-    def write(self, df, path, compression='snappy', **kwargs):
+    def write(self, df, path, compression='snappy',
+              coerce_timestamps='ms', **kwargs):
         path, _, _ = get_filepath_or_buffer(path)
-        table = self.api.Table.from_pandas(df, timestamps_to_ms=True)
-        self.api.parquet.write_table(
-            table, path, compression=compression, **kwargs)
+        if self._pyarrow_lt_060:
+            table = self.api.Table.from_pandas(df, timestamps_to_ms=True)
+            self.api.parquet.write_table(
+                table, path, compression=compression, **kwargs)
 
-    def read(self, path):
+        else:
+            table = self.api.Table.from_pandas(df)
+            self.api.parquet.write_table(
+                table, path, compression=compression,
+                coerce_timestamps=coerce_timestamps, **kwargs)
+
+    def read(self, path, columns=None, **kwargs):
         path, _, _ = get_filepath_or_buffer(path)
-        return self.api.parquet.read_table(path).to_pandas()
+        return self.api.parquet.read_table(path, columns=columns,
+                                           **kwargs).to_pandas()
 
 
 class FastParquetImpl(object):
@@ -86,7 +104,7 @@ class FastParquetImpl(object):
                               "\nor via pip\n"
                               "pip install -U fastparquet")
 
-        if LooseVersion(fastparquet.__version__) < '0.1.0':
+        if LooseVersion(fastparquet.__version__) < LooseVersion('0.1.0'):
             raise ImportError("fastparquet >= 0.1.0 is required for parquet "
                               "support\n\n"
                               "you can install via conda\n"
@@ -105,9 +123,9 @@ class FastParquetImpl(object):
             self.api.write(path, df,
                            compression=compression, **kwargs)
 
-    def read(self, path):
+    def read(self, path, columns=None, **kwargs):
         path, _, _ = get_filepath_or_buffer(path)
-        return self.api.ParquetFile(path).to_pandas()
+        return self.api.ParquetFile(path).to_pandas(columns=columns, **kwargs)
 
 
 def to_parquet(df, path, engine='auto', compression='snappy', **kwargs):
@@ -165,10 +183,10 @@ def to_parquet(df, path, engine='auto', compression='snappy', **kwargs):
     if df.columns.inferred_type not in valid_types:
         raise ValueError("parquet must have string column names")
 
-    return impl.write(df, path, compression=compression)
+    return impl.write(df, path, compression=compression, **kwargs)
 
 
-def read_parquet(path, engine='auto', **kwargs):
+def read_parquet(path, engine='auto', columns=None, **kwargs):
     """
     Load a parquet object from the file path, returning a DataFrame.
 
@@ -178,6 +196,10 @@ def read_parquet(path, engine='auto', **kwargs):
     ----------
     path : string
         File path
+    columns: list, default=None
+        If not None, only these columns will be read from the file.
+
+        .. versionadded 0.21.1
     engine : {'auto', 'pyarrow', 'fastparquet'}, default 'auto'
         Parquet reader library to use. If 'auto', then the option
         'io.parquet.engine' is used. If 'auto', then the first
@@ -191,4 +213,4 @@ def read_parquet(path, engine='auto', **kwargs):
     """
 
     impl = get_engine(engine)
-    return impl.read(path)
+    return impl.read(path, columns=columns, **kwargs)

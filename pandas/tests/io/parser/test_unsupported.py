@@ -127,32 +127,30 @@ x   q   30      3    -0.6662 -0.5243 -0.3580  0.89145  2.5838"""
 
 class TestDeprecatedFeatures(object):
 
-    def test_deprecated_args(self):
-        data = '1,2,3'
+    @pytest.mark.parametrize("engine", ["c", "python"])
+    @pytest.mark.parametrize("kwargs", [{"as_recarray": True},
+                                        {"as_recarray": False},
+                                        {"buffer_lines": True},
+                                        {"buffer_lines": False},
+                                        {"compact_ints": True},
+                                        {"compact_ints": False},
+                                        {"use_unsigned": True},
+                                        {"use_unsigned": False},
+                                        {"tupleize_cols": True},
+                                        {"tupleize_cols": False},
+                                        {"skip_footer": 1}])
+    def test_deprecated_args(self, engine, kwargs):
+        data = "1,2,3"
+        arg, _ = list(kwargs.items())[0]
 
-        # deprecated arguments with non-default values
-        deprecated = {
-            'as_recarray': True,
-            'buffer_lines': True,
-            'compact_ints': True,
-            'use_unsigned': True,
-            'skip_footer': 1,
-        }
+        if engine == "c" and arg == "skip_footer":
+            # unsupported --> exception is raised
+            return
 
-        engines = 'c', 'python'
+        if engine == "python" and arg == "buffer_lines":
+            # unsupported --> exception is raised
+            return
 
-        for engine in engines:
-            for arg, non_default_val in deprecated.items():
-                if engine == 'c' and arg == 'skip_footer':
-                    # unsupported --> exception is raised
-                    continue
-
-                if engine == 'python' and arg == 'buffer_lines':
-                    # unsupported --> exception is raised
-                    continue
-
-                with tm.assert_produces_warning(
-                        FutureWarning, check_stacklevel=False):
-                    kwargs = {arg: non_default_val}
-                    read_csv(StringIO(data), engine=engine,
-                             **kwargs)
+        with tm.assert_produces_warning(
+                FutureWarning, check_stacklevel=False):
+            read_csv(StringIO(data), engine=engine, **kwargs)

@@ -394,21 +394,21 @@ class TestUltraJSONTests(object):
         ]
         for test in tests:
             output = ujson.encode(test)
-            expected = '"%s"' % test.isoformat()
+            expected = '"{iso}"'.format(iso=test.isoformat())
             assert expected == output
 
     def test_encodeTimeConversion_pytz(self):
         # see gh-11473: to_json segfaults with timezone-aware datetimes
         test = datetime.time(10, 12, 15, 343243, pytz.utc)
         output = ujson.encode(test)
-        expected = '"%s"' % test.isoformat()
+        expected = '"{iso}"'.format(iso=test.isoformat())
         assert expected == output
 
     def test_encodeTimeConversion_dateutil(self):
         # see gh-11473: to_json segfaults with timezone-aware datetimes
         test = datetime.time(10, 12, 15, 343243, dateutil.tz.tzutc())
         output = ujson.encode(test)
-        expected = '"%s"' % test.isoformat()
+        expected = '"{iso}"'.format(iso=test.isoformat())
         assert expected == output
 
     def test_nat(self):
@@ -417,7 +417,7 @@ class TestUltraJSONTests(object):
 
     def test_npy_nat(self):
         from distutils.version import LooseVersion
-        if LooseVersion(np.__version__) < '1.7.0':
+        if LooseVersion(np.__version__) < LooseVersion('1.7.0'):
             pytest.skip("numpy version < 1.7.0, is "
                         "{0}".format(np.__version__))
 
@@ -856,9 +856,9 @@ class TestUltraJSONTests(object):
         boundary2 = 2**32  # noqa
         docs = (
             '{"id": 3590016419}',
-            '{"id": %s}' % 2**31,
-            '{"id": %s}' % 2**32,
-            '{"id": %s}' % ((2**32) - 1),
+            '{{"id": {low}}}'.format(low=2**31),
+            '{{"id": {high}}}'.format(high=2**32),
+            '{{"id": {one_less}}}'.format(one_less=(2**32) - 1),
         )
         results = (3590016419, 2**31, 2**32, 2**32 - 1)
         for doc, result in zip(docs, results):
@@ -1643,4 +1643,4 @@ class TestPandasJSONTests(object):
 
 
 def _clean_dict(d):
-    return dict((str(k), v) for k, v in compat.iteritems(d))
+    return {str(k): v for k, v in compat.iteritems(d)}

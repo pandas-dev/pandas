@@ -380,12 +380,29 @@ New Behavior
 
 For ease of creation of series of categorical data, we have added the ability to pass keywords when calling ``.astype()``. These are passed directly to the constructor.
 
-.. ipython:: python
+.. code-block:: python
 
-   s = Series(["a","b","c","a"]).astype('category',ordered=True)
-   s
-   s = Series(["a","b","c","a"]).astype('category',categories=list('abcdef'),ordered=False)
-   s
+    In [54]: s = Series(["a","b","c","a"]).astype('category',ordered=True)
+
+    In [55]: s
+    Out[55]:
+    0    a
+    1    b
+    2    c
+    3    a
+    dtype: category
+    Categories (3, object): [a < b < c]
+
+    In [56]: s = Series(["a","b","c","a"]).astype('category',categories=list('abcdef'),ordered=False)
+
+    In [57]: s
+    Out[57]:
+    0    a
+    1    b
+    2    c
+    3    a
+    dtype: category
+    Categories (6, object): [a, b, c, d, e, f]
 
 
 .. _whatsnew_0160.api_breaking.other:

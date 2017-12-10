@@ -52,10 +52,10 @@ class TestGroupBy(object):
             assert_frame_equal(result1, expected)
 
             df_sorted = df.sort_index()
-            result2 = df_sorted.groupby(pd.TimeGrouper(freq='5D')).sum()
+            result2 = df_sorted.groupby(pd.Grouper(freq='5D')).sum()
             assert_frame_equal(result2, expected)
 
-            result3 = df.groupby(pd.TimeGrouper(freq='5D')).sum()
+            result3 = df.groupby(pd.Grouper(freq='5D')).sum()
             assert_frame_equal(result3, expected)
 
     def test_groupby_with_timegrouper_methods(self):
@@ -80,7 +80,7 @@ class TestGroupBy(object):
 
         for df in [df_original, df_sorted]:
             df = df.set_index('Date', drop=False)
-            g = df.groupby(pd.TimeGrouper('6M'))
+            g = df.groupby(pd.Grouper(freq='6M'))
             assert g.group_keys
             assert isinstance(g.grouper, pd.core.groupby.BinGrouper)
             groups = g.groups
@@ -265,11 +265,11 @@ class TestGroupBy(object):
                         ['date', 'user_id']).sort_index().astype('int64')
             expected.name = 'whole_cost'
 
-            result1 = df.sort_index().groupby([pd.TimeGrouper(freq=freq),
+            result1 = df.sort_index().groupby([pd.Grouper(freq=freq),
                                                'user_id'])['whole_cost'].sum()
             assert_series_equal(result1, expected)
 
-            result2 = df.groupby([pd.TimeGrouper(freq=freq), 'user_id'])[
+            result2 = df.groupby([pd.Grouper(freq=freq), 'user_id'])[
                 'whole_cost'].sum()
             assert_series_equal(result2, expected)
 
@@ -340,7 +340,7 @@ class TestGroupBy(object):
             return pd.Series([x['value'].sum()], ('sum',))
 
         expected = df.groupby(pd.Grouper(key='date')).apply(sumfunc_series)
-        result = (df_dt.groupby(pd.TimeGrouper(freq='M', key='date'))
+        result = (df_dt.groupby(pd.Grouper(freq='M', key='date'))
                   .apply(sumfunc_series))
         assert_frame_equal(result.reset_index(drop=True),
                            expected.reset_index(drop=True))
@@ -358,8 +358,10 @@ class TestGroupBy(object):
             return x.value.sum()
 
         expected = df.groupby(pd.Grouper(key='date')).apply(sumfunc_value)
-        result = (df_dt.groupby(pd.TimeGrouper(freq='M', key='date'))
-                  .apply(sumfunc_value))
+        with tm.assert_produces_warning(FutureWarning,
+                                        check_stacklevel=False):
+            result = (df_dt.groupby(pd.TimeGrouper(freq='M', key='date'))
+                      .apply(sumfunc_value))
         assert_series_equal(result.reset_index(drop=True),
                             expected.reset_index(drop=True))
 
@@ -608,3 +610,35 @@ class TestGroupBy(object):
         assert_frame_equal(grouped_ref.min(), grouped_test.min())
         assert_frame_equal(grouped_ref.first(), grouped_test.first())
         assert_frame_equal(grouped_ref.last(), grouped_test.last())
+
+    def test_nunique_with_timegrouper_and_nat(self):
+        # GH 17575
+        test = pd.DataFrame({
+            'time': [Timestamp('2016-06-28 09:35:35'),
+                     pd.NaT,
+                     Timestamp('2016-06-28 16:46:28')],
+            'data': ['1', '2', '3']})
+
+        grouper = pd.Grouper(key='time', freq='h')
+        result = test.groupby(grouper)['data'].nunique()
+        expected = test[test.time.notnull()].groupby(grouper)['data'].nunique()
+        tm.assert_series_equal(result, expected)
+
+    def test_scalar_call_versus_list_call(self):
+        # Issue: 17530
+        data_frame = {
+            'location': ['shanghai', 'beijing', 'shanghai'],
+            'time': pd.Series(['2017-08-09 13:32:23', '2017-08-11 23:23:15',
+                               '2017-08-11 22:23:15'],
+                              dtype='datetime64[ns]'),
+            'value': [1, 2, 3]
+        }
+        data_frame = pd.DataFrame(data_frame).set_index('time')
+        grouper = pd.Grouper(freq='D')
+
+        grouped = data_frame.groupby(grouper)
+        result = grouped.count()
+        grouped = data_frame.groupby([grouper])
+        expected = grouped.count()
+
+        assert_frame_equal(result, expected)

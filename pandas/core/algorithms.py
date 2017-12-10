@@ -369,7 +369,7 @@ def unique(values):
         # to return an object array of tz-aware Timestamps
 
         # TODO: it must return DatetimeArray with tz in pandas 2.0
-        uniques = uniques.asobject.values
+        uniques = uniques.astype(object).values
 
     return uniques
 
@@ -1475,7 +1475,7 @@ _diff_special = {
 def diff(arr, n, axis=0):
     """
     difference of n between self,
-    analagoust to s-s.shift(n)
+    analogous to s-s.shift(n)
 
     Parameters
     ----------

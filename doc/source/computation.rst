@@ -8,7 +8,7 @@
    np.set_printoptions(precision=4, suppress=True)
    import pandas as pd
    import matplotlib
-   matplotlib.style.use('ggplot')
+   # matplotlib.style.use('default')
    import matplotlib.pyplot as plt
    plt.close('all')
    pd.options.display.max_rows=15
@@ -206,8 +206,6 @@ Window Functions
    functions and are now deprecated. These are replaced by using the :class:`~pandas.core.window.Rolling`, :class:`~pandas.core.window.Expanding` and :class:`~pandas.core.window.EWM`. objects and a corresponding method call.
 
    The deprecation warning will show the new syntax, see an example :ref:`here <whatsnew_0180.window_deprecations>`
-   You can view the previous documentation
-   `here <http://pandas.pydata.org/pandas-docs/version/0.17.1/computation.html#moving-rolling-statistics-moments>`__
 
 For working with data, a number of windows functions are provided for
 computing common *window* or *rolling* statistics. Among these are count, sum,
@@ -254,12 +252,6 @@ accept the following arguments:
 - ``min_periods``: threshold of non-null data points to require (otherwise
   result is NA)
 - ``center``: boolean, whether to set the labels at the center (default is False)
-
-.. warning::
-
-   The ``freq`` and ``how`` arguments were in the API prior to 0.18.0 changes. These are deprecated in the new API. You can simply resample the input prior to creating a window function.
-
-   For example, instead of ``s.rolling(window=5,freq='D').max()`` to get the max value on a rolling 5 Day window, one could use ``s.resample('D').max().rolling(window=5).max()``, which first resamples the data to daily data, then provides a rolling 5 day window.
 
 We can then call methods on these ``rolling`` objects. These return like-indexed objects:
 
@@ -346,7 +338,9 @@ The following methods are available:
     :meth:`~Window.sum`, Sum of values
     :meth:`~Window.mean`, Mean of values
 
-The weights used in the window are specified by the ``win_type`` keyword. The list of recognized types are:
+The weights used in the window are specified by the ``win_type`` keyword.
+The list of recognized types are the `scipy.signal window functions
+  <https://docs.scipy.org/doc/scipy/reference/signal.html#window-functions>`__:
 
 - ``boxcar``
 - ``triang``
@@ -654,7 +648,7 @@ aggregation with, outputting a DataFrame:
 
    r['A'].agg([np.sum, np.mean, np.std])
 
-On a widowed DataFrame, you can pass a list of functions to apply to each
+On a windowed DataFrame, you can pass a list of functions to apply to each
 column, which produces an aggregated result with a hierarchical index:
 
 .. ipython:: python
@@ -672,6 +666,7 @@ columns of a ``DataFrame``:
 
 .. ipython:: python
    :okexcept:
+   :okwarning:
 
    r.agg({'A' : np.sum,
           'B' : lambda x: np.std(x, ddof=1)})
@@ -924,15 +919,12 @@ EWM has a ``min_periods`` argument, which has the same
 meaning it does for all the ``.expanding`` and ``.rolling`` methods:
 no output values will be set until at least ``min_periods`` non-null values
 are encountered in the (expanding) window.
-(This is a change from versions prior to 0.15.0, in which the ``min_periods``
-argument affected only the ``min_periods`` consecutive entries starting at the
-first non-null value.)
 
-EWM also has an ``ignore_na`` argument, which deterines how
+EWM also has an ``ignore_na`` argument, which determines how
 intermediate null values affect the calculation of the weights.
 When ``ignore_na=False`` (the default), weights are calculated based on absolute
 positions, so that intermediate null values affect the result.
-When ``ignore_na=True`` (which reproduces the behavior in versions prior to 0.15.0),
+When ``ignore_na=True``,
 weights are calculated by ignoring intermediate null values.
 For example, assuming ``adjust=True``, if ``ignore_na=False``, the weighted
 average of ``3, NaN, 5`` would be calculated as

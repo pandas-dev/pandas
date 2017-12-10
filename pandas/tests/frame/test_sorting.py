@@ -8,6 +8,7 @@ import numpy as np
 
 import pandas as pd
 from pandas.compat import lrange
+from pandas.api.types import CategoricalDtype
 from pandas import (DataFrame, Series, MultiIndex, Timestamp,
                     date_range, NaT, IntervalIndex)
 
@@ -269,6 +270,11 @@ class TestDataFrameSorting(TestData):
         df2 = df.sort_values(by=['B'])
         assert_frame_equal(df1, df2)
 
+        df1 = df.sort_values(by='B')
+
+        df2 = df.sort_values(by=['C', 'B'])
+        assert_frame_equal(df1, df2)
+
     def test_frame_column_inplace_sort_exception(self):
         s = self.frame['A']
         with tm.assert_raises_regex(ValueError, "This Series is a view"):
@@ -321,7 +327,29 @@ class TestDataFrameSorting(TestData):
         assert_frame_equal(df_sorted, df_reversed)
 
         df_sorted = df.sort_values(["datetime", "float"], na_position="last")
-        assert_frame_equal(df_sorted, df_reversed)
+        assert_frame_equal(df_sorted, df)
+
+        # Ascending should not affect the results.
+        df_sorted = df.sort_values(["datetime", "float"], ascending=False)
+        assert_frame_equal(df_sorted, df)
+
+    def test_sort_nat(self):
+
+        # GH 16836
+
+        d1 = [Timestamp(x) for x in ['2016-01-01', '2015-01-01',
+                                     np.nan, '2016-01-01']]
+        d2 = [Timestamp(x) for x in ['2017-01-01', '2014-01-01',
+                                     '2016-01-01', '2015-01-01']]
+        df = pd.DataFrame({'a': d1, 'b': d2}, index=[0, 1, 2, 3])
+
+        d3 = [Timestamp(x) for x in ['2015-01-01', '2016-01-01',
+                                     '2016-01-01', np.nan]]
+        d4 = [Timestamp(x) for x in ['2014-01-01', '2015-01-01',
+                                     '2017-01-01', '2016-01-01']]
+        expected = pd.DataFrame({'a': d3, 'b': d4}, index=[1, 3, 0, 2])
+        sorted_df = df.sort_values(by=['a', 'b'], )
+        tm.assert_frame_equal(sorted_df, expected)
 
 
 class TestDataFrameSortIndexKinds(TestData):
@@ -486,7 +514,7 @@ class TestDataFrameSortIndexKinds(TestData):
 
         df = (DataFrame({'A': np.arange(6, dtype='int64'),
                          'B': Series(list('aabbca'))
-                         .astype('category', categories=list('cab'))})
+                         .astype(CategoricalDtype(list('cab')))})
               .set_index('B'))
 
         result = df.sort_index()

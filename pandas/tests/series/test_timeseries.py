@@ -134,13 +134,13 @@ class TestTimeSeries(TestData):
         assert res.dtype == 'datetime64[ns, US/Eastern]'
 
         res = s.shift(1)
-        exp_vals = [NaT] + dates.asobject.values.tolist()[:9]
+        exp_vals = [NaT] + dates.astype(object).values.tolist()[:9]
         exp = Series(exp_vals)
         tm.assert_series_equal(res, exp)
         assert res.dtype == 'datetime64[ns, US/Eastern]'
 
         res = s.shift(-2)
-        exp_vals = dates.asobject.values.tolist()[2:] + [NaT, NaT]
+        exp_vals = dates.astype(object).values.tolist()[2:] + [NaT, NaT]
         exp = Series(exp_vals)
         tm.assert_series_equal(res, exp)
         assert res.dtype == 'datetime64[ns, US/Eastern]'
@@ -235,6 +235,22 @@ class TestTimeSeries(TestData):
         pytest.raises(ValueError, ts.truncate,
                       before=self.ts.index[-1] + offset,
                       after=self.ts.index[0] - offset)
+
+    def test_truncate_nonsortedindex(self):
+        # GH 17935
+
+        s = pd.Series(['a', 'b', 'c', 'd', 'e'],
+                      index=[5, 3, 2, 9, 0])
+        with tm.assert_raises_regex(ValueError,
+                                    'truncate requires a sorted index'):
+            s.truncate(before=3, after=9)
+
+        rng = pd.date_range('2011-01-01', '2012-01-01', freq='W')
+        ts = pd.Series(np.random.randn(len(rng)), index=rng)
+        with tm.assert_raises_regex(ValueError,
+                                    'truncate requires a sorted index'):
+            ts.sort_values(ascending=False).truncate(before='2011-11',
+                                                     after='2011-12')
 
     def test_asfreq(self):
         ts = Series([0., 1., 2.], index=[datetime(2009, 10, 30), datetime(
@@ -919,8 +935,9 @@ class TestTimeSeries(TestData):
         assert isinstance(s[0], Timestamp)
         assert s[0] == dates[0][0]
 
-        s = Series.from_array(arr['Date'], Index([0]))
-        assert s[0] == dates[0][0]
+        with pytest.warns(FutureWarning):
+            s = Series.from_array(arr['Date'], Index([0]))
+            assert s[0] == dates[0][0]
 
     def test_get_level_values_box(self):
         from pandas import MultiIndex

@@ -11,114 +11,108 @@ import numpy as np
 import pandas as pd
 
 from pandas import (Series, Categorical, DataFrame, isna, notna,
-                    bdate_range, date_range, _np_version_under1p10)
+                    bdate_range, date_range, _np_version_under1p10,
+                    CategoricalIndex)
 from pandas.core.index import MultiIndex
 from pandas.core.indexes.datetimes import Timestamp
 from pandas.core.indexes.timedeltas import Timedelta
-import pandas.core.config as cf
-
 import pandas.core.nanops as nanops
 
-from pandas.compat import lrange, range, is_platform_windows
+from pandas.compat import lrange, range
 from pandas import compat
 from pandas.util.testing import (assert_series_equal, assert_almost_equal,
                                  assert_frame_equal, assert_index_equal)
 import pandas.util.testing as tm
-
 from .common import TestData
-
-
-skip_if_bottleneck_on_windows = (is_platform_windows() and
-                                 nanops._USE_BOTTLENECK)
 
 
 class TestSeriesAnalytics(TestData):
 
-    def test_sum_zero(self):
-        arr = np.array([])
-        assert nanops.nansum(arr) == 0
+    @pytest.mark.parametrize("use_bottleneck", [True, False])
+    @pytest.mark.parametrize("method", ["sum", "prod"])
+    def test_empty(self, method, use_bottleneck):
 
-        arr = np.empty((10, 0))
-        assert (nanops.nansum(arr, axis=1) == 0).all()
+        with pd.option_context("use_bottleneck", use_bottleneck):
+            # GH 9422
+            # treat all missing as NaN
+            s = Series([])
+            result = getattr(s, method)()
+            assert isna(result)
 
-        # GH #844
-        s = Series([], index=[])
-        assert s.sum() == 0
+            result = getattr(s, method)(skipna=True)
+            assert isna(result)
 
-        df = DataFrame(np.empty((10, 0)))
-        assert (df.sum(1) == 0).all()
+            s = Series([np.nan])
+            result = getattr(s, method)()
+            assert isna(result)
+
+            result = getattr(s, method)(skipna=True)
+            assert isna(result)
+
+            s = Series([np.nan, 1])
+            result = getattr(s, method)()
+            assert result == 1.0
+
+            s = Series([np.nan, 1])
+            result = getattr(s, method)(skipna=True)
+            assert result == 1.0
+
+            # GH #844 (changed in 9422)
+            df = DataFrame(np.empty((10, 0)))
+            assert (df.sum(1).isnull()).all()
+
+    @pytest.mark.parametrize(
+        "method", ['sum', 'mean', 'median', 'std', 'var'])
+    def test_ops_consistency_on_empty(self, method):
+
+        # GH 7869
+        # consistency on empty
+
+        # float
+        result = getattr(Series(dtype=float), method)()
+        assert isna(result)
+
+        # timedelta64[ns]
+        result = getattr(Series(dtype='m8[ns]'), method)()
+        assert result is pd.NaT
 
     def test_nansum_buglet(self):
         s = Series([1.0, np.nan], index=[0, 1])
         result = np.nansum(s)
         assert_almost_equal(result, 1)
 
-    def test_overflow(self):
-        # GH 6915
-        # overflowing on the smaller int dtypes
-        for dtype in ['int32', 'int64']:
-            v = np.arange(5000000, dtype=dtype)
-            s = Series(v)
+    @pytest.mark.parametrize("use_bottleneck", [True, False])
+    def test_sum_overflow(self, use_bottleneck):
 
-            # no bottleneck
-            result = s.sum(skipna=False)
-            assert int(result) == v.sum(dtype='int64')
-            result = s.min(skipna=False)
-            assert int(result) == 0
-            result = s.max(skipna=False)
-            assert int(result) == v[-1]
+        with pd.option_context('use_bottleneck', use_bottleneck):
+            # GH 6915
+            # overflowing on the smaller int dtypes
+            for dtype in ['int32', 'int64']:
+                v = np.arange(5000000, dtype=dtype)
+                s = Series(v)
 
-        for dtype in ['float32', 'float64']:
-            v = np.arange(5000000, dtype=dtype)
-            s = Series(v)
+                result = s.sum(skipna=False)
+                assert int(result) == v.sum(dtype='int64')
+                result = s.min(skipna=False)
+                assert int(result) == 0
+                result = s.max(skipna=False)
+                assert int(result) == v[-1]
 
-            # no bottleneck
-            result = s.sum(skipna=False)
-            assert result == v.sum(dtype=dtype)
-            result = s.min(skipna=False)
-            assert np.allclose(float(result), 0.0)
-            result = s.max(skipna=False)
-            assert np.allclose(float(result), v[-1])
+            for dtype in ['float32', 'float64']:
+                v = np.arange(5000000, dtype=dtype)
+                s = Series(v)
 
-    @pytest.mark.xfail(
-        skip_if_bottleneck_on_windows,
-        reason="buggy bottleneck with sum overflow on windows")
-    def test_overflow_with_bottleneck(self):
-        # GH 6915
-        # overflowing on the smaller int dtypes
-        for dtype in ['int32', 'int64']:
-            v = np.arange(5000000, dtype=dtype)
-            s = Series(v)
+                result = s.sum(skipna=False)
+                assert result == v.sum(dtype=dtype)
+                result = s.min(skipna=False)
+                assert np.allclose(float(result), 0.0)
+                result = s.max(skipna=False)
+                assert np.allclose(float(result), v[-1])
 
-            # use bottleneck if available
-            result = s.sum()
-            assert int(result) == v.sum(dtype='int64')
-            result = s.min()
-            assert int(result) == 0
-            result = s.max()
-            assert int(result) == v[-1]
-
-        for dtype in ['float32', 'float64']:
-            v = np.arange(5000000, dtype=dtype)
-            s = Series(v)
-
-            # use bottleneck if available
-            result = s.sum()
-            assert result == v.sum(dtype=dtype)
-            result = s.min()
-            assert np.allclose(float(result), 0.0)
-            result = s.max()
-            assert np.allclose(float(result), v[-1])
-
-    @pytest.mark.xfail(
-        skip_if_bottleneck_on_windows,
-        reason="buggy bottleneck with sum overflow on windows")
     def test_sum(self):
         self._check_stat_op('sum', np.sum, check_allna=True)
 
     def test_sum_inf(self):
-        import pandas.core.nanops as nanops
-
         s = Series(np.random.randn(10))
         s2 = s.copy()
 
@@ -130,7 +124,7 @@ class TestSeriesAnalytics(TestData):
         arr = np.random.randn(100, 100).astype('f4')
         arr[:, 2] = np.inf
 
-        with cf.option_context("mode.use_inf_as_na", True):
+        with pd.option_context("mode.use_inf_as_na", True):
             assert_almost_equal(s.sum(), s2.sum())
 
         res = nanops.nansum(arr, axis=1)
@@ -510,9 +504,8 @@ class TestSeriesAnalytics(TestData):
 
     def _check_stat_op(self, name, alternate, check_objects=False,
                        check_allna=False):
-        import pandas.core.nanops as nanops
 
-        def testit():
+        with pd.option_context('use_bottleneck', False):
             f = getattr(Series, name)
 
             # add some NaNs
@@ -535,15 +528,7 @@ class TestSeriesAnalytics(TestData):
             allna = self.series * nan
 
             if check_allna:
-                # xref 9422
-                # bottleneck >= 1.0 give 0.0 for an allna Series sum
-                try:
-                    assert nanops._USE_BOTTLENECK
-                    import bottleneck as bn  # noqa
-                    assert bn.__version__ >= LooseVersion('1.0')
-                    assert f(allna) == 0.0
-                except:
-                    assert np.isnan(f(allna))
+                assert np.isnan(f(allna))
 
             # dtype=object with None, it works!
             s = Series([1, 2, 3, None, 5])
@@ -573,16 +558,6 @@ class TestSeriesAnalytics(TestData):
             if 'numeric_only' in compat.signature(f).args:
                 tm.assert_raises_regex(NotImplementedError, name, f,
                                        self.series, numeric_only=True)
-
-        testit()
-
-        try:
-            import bottleneck as bn  # noqa
-            nanops._USE_BOTTLENECK = False
-            testit()
-            nanops._USE_BOTTLENECK = True
-        except ImportError:
-            pass
 
     def _check_accum_op(self, name, check_dtype=True):
         func = getattr(np, name)
@@ -720,7 +695,7 @@ class TestSeriesAnalytics(TestData):
             p = p.astype('float64')
             result = p['first'] % p['second']
             result2 = p['second'] % p['first']
-            assert not np.array_equal(result, result2)
+            assert not result.equals(result2)
 
             # GH 9144
             s = Series([0, 1])
@@ -732,31 +707,6 @@ class TestSeriesAnalytics(TestData):
             result = 0 % s
             expected = Series([nan, 0.0])
             assert_series_equal(result, expected)
-
-    def test_ops_consistency_on_empty(self):
-
-        # GH 7869
-        # consistency on empty
-
-        # float
-        result = Series(dtype=float).sum()
-        assert result == 0
-
-        result = Series(dtype=float).mean()
-        assert isna(result)
-
-        result = Series(dtype=float).median()
-        assert isna(result)
-
-        # timedelta64[ns]
-        result = Series(dtype='m8[ns]').sum()
-        assert result == Timedelta(0)
-
-        result = Series(dtype='m8[ns]').mean()
-        assert result is pd.NaT
-
-        result = Series(dtype='m8[ns]').median()
-        assert result is pd.NaT
 
     def test_corr(self):
         tm._skip_if_no_scipy()
@@ -808,7 +758,7 @@ class TestSeriesAnalytics(TestData):
         tm.assert_almost_equal(result, expected)
 
         # these methods got rewritten in 0.8
-        if scipy.__version__ < LooseVersion('0.9'):
+        if LooseVersion(scipy.__version__) < LooseVersion('0.9'):
             pytest.skip("skipping corr rank because of scipy version "
                         "{0}".format(scipy.__version__))
 
@@ -899,6 +849,12 @@ class TestSeriesAnalytics(TestData):
         result = series.nunique()
         assert result == 11
 
+        # GH 18051
+        s = pd.Series(pd.Categorical([]))
+        assert s.nunique() == 0
+        s = pd.Series(pd.Categorical([np.nan]))
+        assert s.nunique() == 0
+
     def test_unique(self):
 
         # 714 also, dtype=float
@@ -924,52 +880,103 @@ class TestSeriesAnalytics(TestData):
         expected = np.array([1, 2, 3, None], dtype=object)
         tm.assert_numpy_array_equal(result, expected)
 
-    def test_drop_duplicates(self):
-        # check both int and object
-        for s in [Series([1, 2, 3, 3]), Series(['1', '2', '3', '3'])]:
-            expected = Series([False, False, False, True])
-            assert_series_equal(s.duplicated(), expected)
-            assert_series_equal(s.drop_duplicates(), s[~expected])
-            sc = s.copy()
-            sc.drop_duplicates(inplace=True)
-            assert_series_equal(sc, s[~expected])
+        # GH 18051
+        s = pd.Series(pd.Categorical([]))
+        tm.assert_categorical_equal(s.unique(), pd.Categorical([]),
+                                    check_dtype=False)
+        s = pd.Series(pd.Categorical([np.nan]))
+        tm.assert_categorical_equal(s.unique(), pd.Categorical([np.nan]),
+                                    check_dtype=False)
 
-            expected = Series([False, False, True, False])
-            assert_series_equal(s.duplicated(keep='last'), expected)
-            assert_series_equal(s.drop_duplicates(keep='last'), s[~expected])
-            sc = s.copy()
-            sc.drop_duplicates(keep='last', inplace=True)
-            assert_series_equal(sc, s[~expected])
+    @pytest.mark.parametrize(
+        "tc1, tc2",
+        [
+            (
+                Series([1, 2, 3, 3], dtype=np.dtype('int_')),
+                Series([1, 2, 3, 5, 3, 2, 4], dtype=np.dtype('int_'))
+            ),
+            (
+                Series([1, 2, 3, 3], dtype=np.dtype('uint')),
+                Series([1, 2, 3, 5, 3, 2, 4], dtype=np.dtype('uint'))
+            ),
+            (
+                Series([1, 2, 3, 3], dtype=np.dtype('float_')),
+                Series([1, 2, 3, 5, 3, 2, 4], dtype=np.dtype('float_'))
+            ),
+            (
+                Series([1, 2, 3, 3], dtype=np.dtype('unicode_')),
+                Series([1, 2, 3, 5, 3, 2, 4], dtype=np.dtype('unicode_'))
+            )
+        ]
+    )
+    def test_drop_duplicates_non_bool(self, tc1, tc2):
+        # Test case 1
+        expected = Series([False, False, False, True])
+        assert_series_equal(tc1.duplicated(), expected)
+        assert_series_equal(tc1.drop_duplicates(), tc1[~expected])
+        sc = tc1.copy()
+        sc.drop_duplicates(inplace=True)
+        assert_series_equal(sc, tc1[~expected])
 
-            expected = Series([False, False, True, True])
-            assert_series_equal(s.duplicated(keep=False), expected)
-            assert_series_equal(s.drop_duplicates(keep=False), s[~expected])
-            sc = s.copy()
-            sc.drop_duplicates(keep=False, inplace=True)
-            assert_series_equal(sc, s[~expected])
+        expected = Series([False, False, True, False])
+        assert_series_equal(tc1.duplicated(keep='last'), expected)
+        assert_series_equal(tc1.drop_duplicates(keep='last'), tc1[~expected])
+        sc = tc1.copy()
+        sc.drop_duplicates(keep='last', inplace=True)
+        assert_series_equal(sc, tc1[~expected])
 
-        for s in [Series([1, 2, 3, 5, 3, 2, 4]),
-                  Series(['1', '2', '3', '5', '3', '2', '4'])]:
-            expected = Series([False, False, False, False, True, True, False])
-            assert_series_equal(s.duplicated(), expected)
-            assert_series_equal(s.drop_duplicates(), s[~expected])
-            sc = s.copy()
-            sc.drop_duplicates(inplace=True)
-            assert_series_equal(sc, s[~expected])
+        expected = Series([False, False, True, True])
+        assert_series_equal(tc1.duplicated(keep=False), expected)
+        assert_series_equal(tc1.drop_duplicates(keep=False), tc1[~expected])
+        sc = tc1.copy()
+        sc.drop_duplicates(keep=False, inplace=True)
+        assert_series_equal(sc, tc1[~expected])
 
-            expected = Series([False, True, True, False, False, False, False])
-            assert_series_equal(s.duplicated(keep='last'), expected)
-            assert_series_equal(s.drop_duplicates(keep='last'), s[~expected])
-            sc = s.copy()
-            sc.drop_duplicates(keep='last', inplace=True)
-            assert_series_equal(sc, s[~expected])
+        # Test case 2
+        expected = Series([False, False, False, False, True, True, False])
+        assert_series_equal(tc2.duplicated(), expected)
+        assert_series_equal(tc2.drop_duplicates(), tc2[~expected])
+        sc = tc2.copy()
+        sc.drop_duplicates(inplace=True)
+        assert_series_equal(sc, tc2[~expected])
 
-            expected = Series([False, True, True, False, True, True, False])
-            assert_series_equal(s.duplicated(keep=False), expected)
-            assert_series_equal(s.drop_duplicates(keep=False), s[~expected])
-            sc = s.copy()
-            sc.drop_duplicates(keep=False, inplace=True)
-            assert_series_equal(sc, s[~expected])
+        expected = Series([False, True, True, False, False, False, False])
+        assert_series_equal(tc2.duplicated(keep='last'), expected)
+        assert_series_equal(tc2.drop_duplicates(keep='last'), tc2[~expected])
+        sc = tc2.copy()
+        sc.drop_duplicates(keep='last', inplace=True)
+        assert_series_equal(sc, tc2[~expected])
+
+        expected = Series([False, True, True, False, True, True, False])
+        assert_series_equal(tc2.duplicated(keep=False), expected)
+        assert_series_equal(tc2.drop_duplicates(keep=False), tc2[~expected])
+        sc = tc2.copy()
+        sc.drop_duplicates(keep=False, inplace=True)
+        assert_series_equal(sc, tc2[~expected])
+
+    def test_drop_duplicates_bool(self):
+        tc = Series([True, False, True, False])
+
+        expected = Series([False, False, True, True])
+        assert_series_equal(tc.duplicated(), expected)
+        assert_series_equal(tc.drop_duplicates(), tc[~expected])
+        sc = tc.copy()
+        sc.drop_duplicates(inplace=True)
+        assert_series_equal(sc, tc[~expected])
+
+        expected = Series([True, True, False, False])
+        assert_series_equal(tc.duplicated(keep='last'), expected)
+        assert_series_equal(tc.drop_duplicates(keep='last'), tc[~expected])
+        sc = tc.copy()
+        sc.drop_duplicates(keep='last', inplace=True)
+        assert_series_equal(sc, tc[~expected])
+
+        expected = Series([True, True, True, True])
+        assert_series_equal(tc.duplicated(keep=False), expected)
+        assert_series_equal(tc.drop_duplicates(keep=False), tc[~expected])
+        sc = tc.copy()
+        sc.drop_duplicates(keep=False, inplace=True)
+        assert_series_equal(sc, tc[~expected])
 
     def test_clip(self):
         val = self.ts.median()
@@ -1242,16 +1249,31 @@ class TestSeriesAnalytics(TestData):
         result = s.idxmin()
         assert result == 1
 
-    def test_numpy_argmin(self):
-        # argmin is aliased to idxmin
-        data = np.random.randint(0, 11, size=10)
-        result = np.argmin(Series(data))
-        assert result == np.argmin(data)
+    def test_numpy_argmin_deprecated(self):
+        # See gh-16830
+        data = np.arange(1, 11)
+
+        s = Series(data, index=data)
+        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
+            # The deprecation of Series.argmin also causes a deprecation
+            # warning when calling np.argmin. This behavior is temporary
+            # until the implemention of Series.argmin is corrected.
+            result = np.argmin(s)
+
+        assert result == 1
+
+        with tm.assert_produces_warning(FutureWarning):
+            # argmin is aliased to idxmin
+            result = s.argmin()
+
+        assert result == 1
 
         if not _np_version_under1p10:
-            msg = "the 'out' parameter is not supported"
-            tm.assert_raises_regex(ValueError, msg, np.argmin,
-                                   Series(data), out=data)
+            with tm.assert_produces_warning(FutureWarning,
+                                            check_stacklevel=False):
+                msg = "the 'out' parameter is not supported"
+                tm.assert_raises_regex(ValueError, msg, np.argmin,
+                                       s, out=data)
 
     def test_idxmax(self):
         # test idxmax
@@ -1297,17 +1319,30 @@ class TestSeriesAnalytics(TestData):
         result = s.idxmin()
         assert result == 1.1
 
-    def test_numpy_argmax(self):
+    def test_numpy_argmax_deprecated(self):
+        # See gh-16830
+        data = np.arange(1, 11)
 
-        # argmax is aliased to idxmax
-        data = np.random.randint(0, 11, size=10)
-        result = np.argmax(Series(data))
-        assert result == np.argmax(data)
+        s = Series(data, index=data)
+        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
+            # The deprecation of Series.argmax also causes a deprecation
+            # warning when calling np.argmax. This behavior is temporary
+            # until the implemention of Series.argmax is corrected.
+            result = np.argmax(s)
+        assert result == 10
+
+        with tm.assert_produces_warning(FutureWarning):
+            # argmax is aliased to idxmax
+            result = s.argmax()
+
+        assert result == 10
 
         if not _np_version_under1p10:
-            msg = "the 'out' parameter is not supported"
-            tm.assert_raises_regex(ValueError, msg, np.argmax,
-                                   Series(data), out=data)
+            with tm.assert_produces_warning(FutureWarning,
+                                            check_stacklevel=False):
+                msg = "the 'out' parameter is not supported"
+                tm.assert_raises_regex(ValueError, msg, np.argmax,
+                                       s, out=data)
 
     def test_ptp(self):
         N = 1000
@@ -1756,8 +1791,8 @@ class TestNLargestNSmallest(object):
               # not supported on some archs
               # Series([3., 2, 1, 2, 5], dtype='complex256'),
               Series([3., 2, 1, 2, 5], dtype='complex128'),
-              Series(list('abcde'), dtype='category'),
-              Series(list('abcde'))])
+              Series(list('abcde')),
+              Series(list('abcde'), dtype='category')])
     def test_error(self, r):
         dt = r.dtype
         msg = ("Cannot use method 'n(larg|small)est' with "
@@ -1831,3 +1866,218 @@ class TestNLargestNSmallest(object):
         result = s.nsmallest(n)
         expected = s.sort_values().head(n)
         assert_series_equal(result, expected)
+
+
+class TestCategoricalSeriesAnalytics(object):
+
+    def test_count(self):
+
+        s = Series(Categorical([np.nan, 1, 2, np.nan],
+                               categories=[5, 4, 3, 2, 1], ordered=True))
+        result = s.count()
+        assert result == 2
+
+    def test_min_max(self):
+        # unordered cats have no min/max
+        cat = Series(Categorical(["a", "b", "c", "d"], ordered=False))
+        pytest.raises(TypeError, lambda: cat.min())
+        pytest.raises(TypeError, lambda: cat.max())
+
+        cat = Series(Categorical(["a", "b", "c", "d"], ordered=True))
+        _min = cat.min()
+        _max = cat.max()
+        assert _min == "a"
+        assert _max == "d"
+
+        cat = Series(Categorical(["a", "b", "c", "d"], categories=[
+                     'd', 'c', 'b', 'a'], ordered=True))
+        _min = cat.min()
+        _max = cat.max()
+        assert _min == "d"
+        assert _max == "a"
+
+        cat = Series(Categorical(
+            [np.nan, "b", "c", np.nan], categories=['d', 'c', 'b', 'a'
+                                                    ], ordered=True))
+        _min = cat.min()
+        _max = cat.max()
+        assert np.isnan(_min)
+        assert _max == "b"
+
+        cat = Series(Categorical(
+            [np.nan, 1, 2, np.nan], categories=[5, 4, 3, 2, 1], ordered=True))
+        _min = cat.min()
+        _max = cat.max()
+        assert np.isnan(_min)
+        assert _max == 1
+
+    def test_mode(self):
+        s = Series(Categorical([1, 1, 2, 4, 5, 5, 5],
+                               categories=[5, 4, 3, 2, 1], ordered=True))
+        res = s.mode()
+        exp = Series(Categorical([5], categories=[
+                     5, 4, 3, 2, 1], ordered=True))
+        tm.assert_series_equal(res, exp)
+        s = Series(Categorical([1, 1, 1, 4, 5, 5, 5],
+                               categories=[5, 4, 3, 2, 1], ordered=True))
+        res = s.mode()
+        exp = Series(Categorical([5, 1], categories=[
+                     5, 4, 3, 2, 1], ordered=True))
+        tm.assert_series_equal(res, exp)
+        s = Series(Categorical([1, 2, 3, 4, 5], categories=[5, 4, 3, 2, 1],
+                               ordered=True))
+        res = s.mode()
+        exp = Series(Categorical([5, 4, 3, 2, 1], categories=[5, 4, 3, 2, 1],
+                                 ordered=True))
+        tm.assert_series_equal(res, exp)
+
+    def test_value_counts(self):
+        # GH 12835
+        cats = Categorical(list('abcccb'), categories=list('cabd'))
+        s = Series(cats, name='xxx')
+        res = s.value_counts(sort=False)
+
+        exp_index = CategoricalIndex(list('cabd'), categories=cats.categories)
+        exp = Series([3, 1, 2, 0], name='xxx', index=exp_index)
+        tm.assert_series_equal(res, exp)
+
+        res = s.value_counts(sort=True)
+
+        exp_index = CategoricalIndex(list('cbad'), categories=cats.categories)
+        exp = Series([3, 2, 1, 0], name='xxx', index=exp_index)
+        tm.assert_series_equal(res, exp)
+
+        # check object dtype handles the Series.name as the same
+        # (tested in test_base.py)
+        s = Series(["a", "b", "c", "c", "c", "b"], name='xxx')
+        res = s.value_counts()
+        exp = Series([3, 2, 1], name='xxx', index=["c", "b", "a"])
+        tm.assert_series_equal(res, exp)
+
+    def test_value_counts_with_nan(self):
+        # see gh-9443
+
+        # sanity check
+        s = Series(["a", "b", "a"], dtype="category")
+        exp = Series([2, 1], index=CategoricalIndex(["a", "b"]))
+
+        res = s.value_counts(dropna=True)
+        tm.assert_series_equal(res, exp)
+
+        res = s.value_counts(dropna=True)
+        tm.assert_series_equal(res, exp)
+
+        # same Series via two different constructions --> same behaviour
+        series = [
+            Series(["a", "b", None, "a", None, None], dtype="category"),
+            Series(Categorical(["a", "b", None, "a", None, None],
+                               categories=["a", "b"]))
+        ]
+
+        for s in series:
+            # None is a NaN value, so we exclude its count here
+            exp = Series([2, 1], index=CategoricalIndex(["a", "b"]))
+            res = s.value_counts(dropna=True)
+            tm.assert_series_equal(res, exp)
+
+            # we don't exclude the count of None and sort by counts
+            exp = Series([3, 2, 1], index=CategoricalIndex([np.nan, "a", "b"]))
+            res = s.value_counts(dropna=False)
+            tm.assert_series_equal(res, exp)
+
+            # When we aren't sorting by counts, and np.nan isn't a
+            # category, it should be last.
+            exp = Series([2, 1, 3], index=CategoricalIndex(["a", "b", np.nan]))
+            res = s.value_counts(dropna=False, sort=False)
+            tm.assert_series_equal(res, exp)
+
+    @pytest.mark.parametrize(
+        "dtype",
+        ["int_", "uint", "float_", "unicode_", "timedelta64[h]",
+         pytest.param("datetime64[D]",
+                      marks=pytest.mark.xfail(reason="issue7996"))]
+    )
+    @pytest.mark.parametrize("is_ordered", [True, False])
+    def test_drop_duplicates_categorical_non_bool(self, dtype, is_ordered):
+        cat_array = np.array([1, 2, 3, 4, 5], dtype=np.dtype(dtype))
+
+        # Test case 1
+        input1 = np.array([1, 2, 3, 3], dtype=np.dtype(dtype))
+        tc1 = Series(Categorical(input1, categories=cat_array,
+                                 ordered=is_ordered))
+
+        expected = Series([False, False, False, True])
+        tm.assert_series_equal(tc1.duplicated(), expected)
+        tm.assert_series_equal(tc1.drop_duplicates(), tc1[~expected])
+        sc = tc1.copy()
+        sc.drop_duplicates(inplace=True)
+        tm.assert_series_equal(sc, tc1[~expected])
+
+        expected = Series([False, False, True, False])
+        tm.assert_series_equal(tc1.duplicated(keep='last'), expected)
+        tm.assert_series_equal(tc1.drop_duplicates(keep='last'),
+                               tc1[~expected])
+        sc = tc1.copy()
+        sc.drop_duplicates(keep='last', inplace=True)
+        tm.assert_series_equal(sc, tc1[~expected])
+
+        expected = Series([False, False, True, True])
+        tm.assert_series_equal(tc1.duplicated(keep=False), expected)
+        tm.assert_series_equal(tc1.drop_duplicates(keep=False), tc1[~expected])
+        sc = tc1.copy()
+        sc.drop_duplicates(keep=False, inplace=True)
+        tm.assert_series_equal(sc, tc1[~expected])
+
+        # Test case 2
+        input2 = np.array([1, 2, 3, 5, 3, 2, 4], dtype=np.dtype(dtype))
+        tc2 = Series(Categorical(
+            input2, categories=cat_array, ordered=is_ordered)
+        )
+
+        expected = Series([False, False, False, False, True, True, False])
+        tm.assert_series_equal(tc2.duplicated(), expected)
+        tm.assert_series_equal(tc2.drop_duplicates(), tc2[~expected])
+        sc = tc2.copy()
+        sc.drop_duplicates(inplace=True)
+        tm.assert_series_equal(sc, tc2[~expected])
+
+        expected = Series([False, True, True, False, False, False, False])
+        tm.assert_series_equal(tc2.duplicated(keep='last'), expected)
+        tm.assert_series_equal(tc2.drop_duplicates(keep='last'),
+                               tc2[~expected])
+        sc = tc2.copy()
+        sc.drop_duplicates(keep='last', inplace=True)
+        tm.assert_series_equal(sc, tc2[~expected])
+
+        expected = Series([False, True, True, False, True, True, False])
+        tm.assert_series_equal(tc2.duplicated(keep=False), expected)
+        tm.assert_series_equal(tc2.drop_duplicates(keep=False), tc2[~expected])
+        sc = tc2.copy()
+        sc.drop_duplicates(keep=False, inplace=True)
+        tm.assert_series_equal(sc, tc2[~expected])
+
+    @pytest.mark.parametrize("is_ordered", [True, False])
+    def test_drop_duplicates_categorical_bool(self, is_ordered):
+        tc = Series(Categorical([True, False, True, False],
+                                categories=[True, False], ordered=is_ordered))
+
+        expected = Series([False, False, True, True])
+        tm.assert_series_equal(tc.duplicated(), expected)
+        tm.assert_series_equal(tc.drop_duplicates(), tc[~expected])
+        sc = tc.copy()
+        sc.drop_duplicates(inplace=True)
+        tm.assert_series_equal(sc, tc[~expected])
+
+        expected = Series([True, True, False, False])
+        tm.assert_series_equal(tc.duplicated(keep='last'), expected)
+        tm.assert_series_equal(tc.drop_duplicates(keep='last'), tc[~expected])
+        sc = tc.copy()
+        sc.drop_duplicates(keep='last', inplace=True)
+        tm.assert_series_equal(sc, tc[~expected])
+
+        expected = Series([True, True, True, True])
+        tm.assert_series_equal(tc.duplicated(keep=False), expected)
+        tm.assert_series_equal(tc.drop_duplicates(keep=False), tc[~expected])
+        sc = tc.copy()
+        sc.drop_duplicates(keep=False, inplace=True)
+        tm.assert_series_equal(sc, tc[~expected])

@@ -99,11 +99,11 @@ class TestToLatex(object):
                                        datetime(2016, 2, 5),
                                        datetime(2016, 3, 3)]})
 
-        formatters = {'int': lambda x: '0x%x' % x,
-                      'float': lambda x: '[% 4.1f]' % x,
-                      'object': lambda x: '-%s-' % str(x),
+        formatters = {'int': lambda x: '0x{x:x}'.format(x=x),
+                      'float': lambda x: '[{x: 4.1f}]'.format(x=x),
+                      'object': lambda x: '-{x!s}-'.format(x=x),
                       'datetime64': lambda x: x.strftime('%Y-%m'),
-                      '__index__': lambda x: 'index: %s' % x}
+                      '__index__': lambda x: 'index: {x}'.format(x=x)}
         result = df.to_latex(formatters=dict(formatters))
 
         expected = r"""\begin{tabular}{llrrl}
@@ -146,11 +146,11 @@ x & y &  a \\
         assert result == expected
 
         df = DataFrame.from_dict({
-            ('c1', 0): pd.Series(dict((x, x) for x in range(4))),
-            ('c1', 1): pd.Series(dict((x, x + 4) for x in range(4))),
-            ('c2', 0): pd.Series(dict((x, x) for x in range(4))),
-            ('c2', 1): pd.Series(dict((x, x + 4) for x in range(4))),
-            ('c3', 0): pd.Series(dict((x, x) for x in range(4))),
+            ('c1', 0): pd.Series({x: x for x in range(4)}),
+            ('c1', 1): pd.Series({x: x + 4 for x in range(4)}),
+            ('c2', 0): pd.Series({x: x for x in range(4)}),
+            ('c2', 1): pd.Series({x: x + 4 for x in range(4)}),
+            ('c3', 0): pd.Series({x: x for x in range(4)}),
         }).T
         result = df.to_latex()
         expected = r"""\begin{tabular}{llrrrr}
@@ -221,13 +221,35 @@ a &       &      &           &      &       &      &       &      \\
 
         assert result == expected
 
+    def test_to_latex_multiindex_dupe_level(self):
+        # see gh-14484
+        #
+        # If an index is repeated in subsequent rows, it should be
+        # replaced with a blank in the created table. This should
+        # ONLY happen if all higher order indices (to the left) are
+        # equal too. In this test, 'c' has to be printed both times
+        # because the higher order index 'A' != 'B'.
+        df = pd.DataFrame(index=pd.MultiIndex.from_tuples(
+            [('A', 'c'), ('B', 'c')]), columns=['col'])
+        result = df.to_latex()
+        expected = r"""\begin{tabular}{lll}
+\toprule
+  &   &  col \\
+\midrule
+A & c &  NaN \\
+B & c &  NaN \\
+\bottomrule
+\end{tabular}
+"""
+        assert result == expected
+
     def test_to_latex_multicolumnrow(self):
         df = pd.DataFrame({
-            ('c1', 0): dict((x, x) for x in range(5)),
-            ('c1', 1): dict((x, x + 5) for x in range(5)),
-            ('c2', 0): dict((x, x) for x in range(5)),
-            ('c2', 1): dict((x, x + 5) for x in range(5)),
-            ('c3', 0): dict((x, x) for x in range(5))
+            ('c1', 0): {x: x for x in range(5)},
+            ('c1', 1): {x: x + 5 for x in range(5)},
+            ('c2', 0): {x: x for x in range(5)},
+            ('c2', 1): {x: x + 5 for x in range(5)},
+            ('c3', 0): {x: x for x in range(5)}
         })
         result = df.to_latex()
         expected = r"""\begin{tabular}{lrrrrr}

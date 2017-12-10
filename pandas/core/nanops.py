@@ -18,7 +18,7 @@ from pandas.core.dtypes.common import (
     is_datetime_or_timedelta_dtype,
     is_int_or_datetime_dtype, is_any_int_dtype)
 from pandas.core.dtypes.cast import _int64_max, maybe_upcast_putmask
-from pandas.core.dtypes.missing import isna, notna
+from pandas.core.dtypes.missing import isna, notna, na_value_for_dtype
 from pandas.core.config import get_option
 from pandas.core.common import _values_from_object
 
@@ -70,9 +70,8 @@ class disallow(object):
         def _f(*args, **kwargs):
             obj_iter = itertools.chain(args, compat.itervalues(kwargs))
             if any(self.check(obj) for obj in obj_iter):
-                raise TypeError('reduction operation {0!r} not allowed for '
-                                'this dtype'.format(
-                                    f.__name__.replace('nan', '')))
+                msg = 'reduction operation {name!r} not allowed for this dtype'
+                raise TypeError(msg.format(name=f.__name__.replace('nan', '')))
             try:
                 with np.errstate(invalid='ignore'):
                     return f(*args, **kwargs)
@@ -107,8 +106,7 @@ class skipna_switch(object):
 
 class bottleneck_switch(object):
 
-    def __init__(self, zero_value=None, **kwargs):
-        self.zero_value = zero_value
+    def __init__(self, **kwargs):
         self.kwargs = kwargs
 
     def __call__(self, alt):
@@ -126,18 +124,20 @@ class bottleneck_switch(object):
                     if k not in kwds:
                         kwds[k] = v
             try:
-                if self.zero_value is not None and values.size == 0:
-                    if values.ndim == 1:
+                if values.size == 0:
 
-                        # wrap the 0's if needed
-                        if is_timedelta64_dtype(values):
-                            return lib.Timedelta(0)
-                        return 0
+                    # we either return np.nan or pd.NaT
+                    if is_numeric_dtype(values):
+                        values = values.astype('float64')
+                    fill_value = na_value_for_dtype(values.dtype)
+
+                    if values.ndim == 1:
+                        return fill_value
                     else:
                         result_shape = (values.shape[:axis] +
                                         values.shape[axis + 1:])
-                        result = np.empty(result_shape)
-                        result.fill(0)
+                        result = np.empty(result_shape, dtype=values.dtype)
+                        result.fill(fill_value)
                         return result
 
                 if (_USE_BOTTLENECK and skipna and
@@ -172,11 +172,16 @@ def _bn_ok_dtype(dt, name):
     # Bottleneck chokes on datetime64
     if (not is_object_dtype(dt) and not is_datetime_or_timedelta_dtype(dt)):
 
+        # GH 15507
         # bottleneck does not properly upcast during the sum
         # so can overflow
-        if name == 'nansum':
-            if dt.itemsize < 8:
-                return False
+
+        # GH 9422
+        # further we also want to preserve NaN when all elements
+        # are NaN, unlinke bottleneck/numpy which consider this
+        # to be 0
+        if name in ['nansum', 'nanprod']:
+            return False
 
         return True
     return False
@@ -315,7 +320,7 @@ def nanall(values, axis=None, skipna=True):
 
 
 @disallow('M8')
-@bottleneck_switch(zero_value=0)
+@bottleneck_switch()
 def nansum(values, axis=None, skipna=True):
     values, mask, dtype, dtype_max = _get_values(values, skipna, 0)
     dtype_sum = dtype_max
@@ -560,6 +565,9 @@ def nanskew(values, axis=None, skipna=True):
     m3 = adjusted3.sum(axis, dtype=np.float64)
 
     # floating point error
+    #
+    # #18044 in _libs/windows.pyx calc_skew follow this behavior
+    # to fix the fperr to treat m2 <1e-14 as zero
     m2 = _zero_out_fperr(m2)
     m3 = _zero_out_fperr(m3)
 
@@ -583,7 +591,7 @@ def nanskew(values, axis=None, skipna=True):
 
 @disallow('M8', 'm8')
 def nankurt(values, axis=None, skipna=True):
-    """ Compute the sample skewness.
+    """ Compute the sample excess kurtosis.
 
     The statistic computed here is the adjusted Fisher-Pearson standardized
     moment coefficient G2, computed directly from the second and fourth
@@ -621,6 +629,9 @@ def nankurt(values, axis=None, skipna=True):
         result = numer / denom - adj
 
     # floating point error
+    #
+    # #18044 in _libs/windows.pyx calc_kurt follow this behavior
+    # to fix the fperr to treat denom <1e-14 as zero
     numer = _zero_out_fperr(numer)
     denom = _zero_out_fperr(denom)
 
@@ -711,6 +722,7 @@ def _maybe_null_out(result, axis, mask):
 
 
 def _zero_out_fperr(arg):
+    # #18044 reference this behavior to fix rolling skew/kurt issue
     if isinstance(arg, np.ndarray):
         with np.errstate(invalid='ignore'):
             return np.where(np.abs(arg) < 1e-14, 0, arg)
@@ -803,7 +815,8 @@ def _ensure_numeric(x):
             try:
                 x = complex(x)
             except Exception:
-                raise TypeError('Could not convert %s to numeric' % str(x))
+                raise TypeError('Could not convert {value!s} to numeric'
+                                .format(value=x))
     return x
 
 # NA-friendly array comparisons

@@ -2,6 +2,7 @@
 
 import pytest
 import datetime
+from distutils.version import LooseVersion
 from warnings import catch_warnings
 
 import numpy as np
@@ -42,8 +43,24 @@ def engine(request):
 def pa():
     if not _HAVE_PYARROW:
         pytest.skip("pyarrow is not installed")
-    if is_platform_windows():
-        pytest.skip("pyarrow-parquet not building on windows")
+    return 'pyarrow'
+
+
+@pytest.fixture
+def pa_lt_070():
+    if not _HAVE_PYARROW:
+        pytest.skip("pyarrow is not installed")
+    if LooseVersion(pyarrow.__version__) >= LooseVersion('0.7.0'):
+        pytest.skip("pyarrow is >= 0.7.0")
+    return 'pyarrow'
+
+
+@pytest.fixture
+def pa_ge_070():
+    if not _HAVE_PYARROW:
+        pytest.skip("pyarrow is not installed")
+    if LooseVersion(pyarrow.__version__) < LooseVersion('0.7.0'):
+        pytest.skip("pyarrow is < 0.7.0")
     return 'pyarrow'
 
 
@@ -63,14 +80,34 @@ def df_compat():
 def df_cross_compat():
     df = pd.DataFrame({'a': list('abc'),
                        'b': list(range(1, 4)),
-                       'c': np.arange(3, 6).astype('u1'),
+                       # 'c': np.arange(3, 6).astype('u1'),
                        'd': np.arange(4.0, 7.0, dtype='float64'),
                        'e': [True, False, True],
                        'f': pd.date_range('20130101', periods=3),
-                       'g': pd.date_range('20130101', periods=3,
-                                          tz='US/Eastern'),
-                       'h': pd.date_range('20130101', periods=3, freq='ns')})
+                       # 'g': pd.date_range('20130101', periods=3,
+                       #                    tz='US/Eastern'),
+                       # 'h': pd.date_range('20130101', periods=3, freq='ns')
+                       })
     return df
+
+
+@pytest.fixture
+def df_full():
+    return pd.DataFrame(
+        {'string': list('abc'),
+         'string_with_nan': ['a', np.nan, 'c'],
+         'string_with_none': ['a', None, 'c'],
+         'bytes': [b'foo', b'bar', b'baz'],
+         'unicode': [u'foo', u'bar', u'baz'],
+         'int': list(range(1, 4)),
+         'uint': np.arange(3, 6).astype('u1'),
+         'float': np.arange(4.0, 7.0, dtype='float64'),
+         'float_with_nan': [2., np.nan, 3.],
+         'bool': [True, False, True],
+         'datetime': pd.date_range('20130101', periods=3),
+         'datetime_with_nat': [pd.Timestamp('20130101'),
+                               pd.NaT,
+                               pd.Timestamp('20130103')]})
 
 
 def test_invalid_engine(df_compat):
@@ -88,7 +125,7 @@ def test_options_py(df_compat, pa):
         with pd.option_context('io.parquet.engine', 'pyarrow'):
             df.to_parquet(path)
 
-            result = read_parquet(path, compression=None)
+            result = read_parquet(path)
             tm.assert_frame_equal(result, df)
 
 
@@ -101,7 +138,7 @@ def test_options_fp(df_compat, fp):
         with pd.option_context('io.parquet.engine', 'fastparquet'):
             df.to_parquet(path, compression=None)
 
-            result = read_parquet(path, compression=None)
+            result = read_parquet(path)
             tm.assert_frame_equal(result, df)
 
 
@@ -113,7 +150,7 @@ def test_options_auto(df_compat, fp, pa):
         with pd.option_context('io.parquet.engine', 'auto'):
             df.to_parquet(path)
 
-            result = read_parquet(path, compression=None)
+            result = read_parquet(path)
             tm.assert_frame_equal(result, df)
 
 
@@ -137,7 +174,8 @@ def test_options_get_engine(fp, pa):
         assert isinstance(get_engine('fastparquet'), FastParquetImpl)
 
 
-@pytest.mark.xfail(reason="fp does not ignore pa index __index_level_0__")
+@pytest.mark.xfail(is_platform_windows(),
+                   reason="reading pa metadata failing on Windows")
 def test_cross_engine_pa_fp(df_cross_compat, pa, fp):
     # cross-compat with differing reading/writing engines
 
@@ -145,11 +183,13 @@ def test_cross_engine_pa_fp(df_cross_compat, pa, fp):
     with tm.ensure_clean() as path:
         df.to_parquet(path, engine=pa, compression=None)
 
-        result = read_parquet(path, engine=fp, compression=None)
+        result = read_parquet(path, engine=fp)
         tm.assert_frame_equal(result, df)
 
+        result = read_parquet(path, engine=fp, columns=['a', 'd'])
+        tm.assert_frame_equal(result, df[['a', 'd']])
 
-@pytest.mark.xfail(reason="pyarrow reading fp in some cases")
+
 def test_cross_engine_fp_pa(df_cross_compat, pa, fp):
     # cross-compat with differing reading/writing engines
 
@@ -157,8 +197,11 @@ def test_cross_engine_fp_pa(df_cross_compat, pa, fp):
     with tm.ensure_clean() as path:
         df.to_parquet(path, engine=fp, compression=None)
 
-        result = read_parquet(path, engine=pa, compression=None)
+        result = read_parquet(path, engine=pa)
         tm.assert_frame_equal(result, df)
+
+        result = read_parquet(path, engine=pa, columns=['a', 'd'])
+        tm.assert_frame_equal(result, df[['a', 'd']])
 
 
 class Base(object):
@@ -171,19 +214,23 @@ class Base(object):
             with tm.ensure_clean() as path:
                 to_parquet(df, path, engine, compression=None)
 
-    def check_round_trip(self, df, engine, expected=None, **kwargs):
-
+    def check_round_trip(self, df, engine, expected=None,
+                         write_kwargs=None, read_kwargs=None):
+        if write_kwargs is None:
+            write_kwargs = {}
+        if read_kwargs is None:
+            read_kwargs = {}
         with tm.ensure_clean() as path:
-            df.to_parquet(path, engine, **kwargs)
-            result = read_parquet(path, engine)
+            df.to_parquet(path, engine, **write_kwargs)
+            result = read_parquet(path, engine, **read_kwargs)
 
             if expected is None:
                 expected = df
             tm.assert_frame_equal(result, expected)
 
             # repeat
-            to_parquet(df, path, engine, **kwargs)
-            result = pd.read_parquet(path, engine)
+            to_parquet(df, path, engine, **write_kwargs)
+            result = pd.read_parquet(path, engine, **read_kwargs)
 
             if expected is None:
                 expected = df
@@ -205,7 +252,7 @@ class TestBasic(Base):
 
         # unicode
         df.columns = [u'foo', u'bar']
-        self.check_round_trip(df, engine, compression=None)
+        self.check_round_trip(df, engine, write_kwargs={'compression': None})
 
     def test_columns_dtypes_invalid(self, engine):
 
@@ -229,7 +276,7 @@ class TestBasic(Base):
     def test_write_with_index(self, engine):
 
         df = pd.DataFrame({'A': [1, 2, 3]})
-        self.check_round_trip(df, engine, compression=None)
+        self.check_round_trip(df, engine, write_kwargs={'compression': None})
 
         # non-default index
         for index in [[2, 3, 4],
@@ -263,31 +310,46 @@ class TestBasic(Base):
             pytest.importorskip('brotli')
 
         df = pd.DataFrame({'A': [1, 2, 3]})
-        self.check_round_trip(df, engine, compression=compression)
+        self.check_round_trip(df, engine,
+                              write_kwargs={'compression': compression})
+
+    def test_read_columns(self, engine):
+        # GH18154
+        df = pd.DataFrame({'string': list('abc'),
+                           'int': list(range(1, 4))})
+
+        expected = pd.DataFrame({'string': list('abc')})
+        self.check_round_trip(df, engine, expected=expected,
+                              write_kwargs={'compression': None},
+                              read_kwargs={'columns': ['string']})
 
 
 class TestParquetPyArrow(Base):
 
-    def test_basic(self, pa):
+    def test_basic(self, pa, df_full):
 
-        df = pd.DataFrame({'string': list('abc'),
-                           'string_with_nan': ['a', np.nan, 'c'],
-                           'string_with_none': ['a', None, 'c'],
-                           'bytes': [b'foo', b'bar', b'baz'],
-                           'unicode': [u'foo', u'bar', u'baz'],
-                           'int': list(range(1, 4)),
-                           'uint': np.arange(3, 6).astype('u1'),
-                           'float': np.arange(4.0, 7.0, dtype='float64'),
-                           'float_with_nan': [2., np.nan, 3.],
-                           'bool': [True, False, True],
-                           'bool_with_none': [True, None, True],
-                           'datetime_ns': pd.date_range('20130101', periods=3),
-                           'datetime_with_nat': [pd.Timestamp('20130101'),
-                                                 pd.NaT,
-                                                 pd.Timestamp('20130103')]
-                           })
+        df = df_full
+
+        # additional supported types for pyarrow
+        import pyarrow
+        if LooseVersion(pyarrow.__version__) >= LooseVersion('0.7.0'):
+            df['datetime_tz'] = pd.date_range('20130101', periods=3,
+                                              tz='Europe/Brussels')
+        df['bool_with_none'] = [True, None, True]
 
         self.check_round_trip(df, pa)
+
+    @pytest.mark.xfail(reason="pyarrow fails on this (ARROW-1883)")
+    def test_basic_subset_columns(self, pa, df_full):
+        # GH18628
+
+        df = df_full
+        # additional supported types for pyarrow
+        df['datetime_tz'] = pd.date_range('20130101', periods=3,
+                                          tz='Europe/Brussels')
+
+        self.check_round_trip(df, pa, expected=df[['string', 'int']],
+                              read_kwargs={'columns': ['string', 'int']})
 
     def test_duplicate_columns(self, pa):
 
@@ -302,10 +364,6 @@ class TestParquetPyArrow(Base):
         df = pd.DataFrame({'a': pd.period_range('2013', freq='M', periods=3)})
         self.check_error_on_write(df, pa, ValueError)
 
-        # categorical
-        df = pd.DataFrame({'a': pd.Categorical(list('abc'))})
-        self.check_error_on_write(df, pa, NotImplementedError)
-
         # timedelta
         df = pd.DataFrame({'a': pd.timedelta_range('1 day',
                                                    periods=3)})
@@ -315,30 +373,34 @@ class TestParquetPyArrow(Base):
         df = pd.DataFrame({'a': ['a', 1, 2.0]})
         self.check_error_on_write(df, pa, ValueError)
 
+    def test_categorical(self, pa_ge_070):
+        pa = pa_ge_070
+
+        # supported in >= 0.7.0
+        df = pd.DataFrame({'a': pd.Categorical(list('abc'))})
+
+        # de-serialized as object
+        expected = df.assign(a=df.a.astype(object))
+        self.check_round_trip(df, pa, expected)
+
+    def test_categorical_unsupported(self, pa_lt_070):
+        pa = pa_lt_070
+
+        # supported in >= 0.7.0
+        df = pd.DataFrame({'a': pd.Categorical(list('abc'))})
+        self.check_error_on_write(df, pa, NotImplementedError)
+
 
 class TestParquetFastParquet(Base):
 
-    def test_basic(self, fp):
+    def test_basic(self, fp, df_full):
 
-        df = pd.DataFrame(
-            {'string': list('abc'),
-             'string_with_nan': ['a', np.nan, 'c'],
-             'string_with_none': ['a', None, 'c'],
-             'bytes': [b'foo', b'bar', b'baz'],
-             'unicode': [u'foo', u'bar', u'baz'],
-             'int': list(range(1, 4)),
-             'uint': np.arange(3, 6).astype('u1'),
-             'float': np.arange(4.0, 7.0, dtype='float64'),
-             'float_with_nan': [2., np.nan, 3.],
-             'bool': [True, False, True],
-             'datetime': pd.date_range('20130101', periods=3),
-             'datetime_with_nat': [pd.Timestamp('20130101'),
-                                   pd.NaT,
-                                   pd.Timestamp('20130103')],
-             'timedelta': pd.timedelta_range('1 day', periods=3),
-             })
+        df = df_full
 
-        self.check_round_trip(df, fp, compression=None)
+        # additional supported types for fastparquet
+        df['timedelta'] = pd.timedelta_range('1 day', periods=3)
+
+        self.check_round_trip(df, fp, write_kwargs={'compression': None})
 
     @pytest.mark.skip(reason="not supported")
     def test_duplicate_columns(self, fp):
@@ -351,7 +413,8 @@ class TestParquetFastParquet(Base):
     def test_bool_with_none(self, fp):
         df = pd.DataFrame({'a': [True, None, False]})
         expected = pd.DataFrame({'a': [1.0, np.nan, 0.0]}, dtype='float16')
-        self.check_round_trip(df, fp, expected=expected, compression=None)
+        self.check_round_trip(df, fp, expected=expected,
+                              write_kwargs={'compression': None})
 
     def test_unsupported(self, fp):
 
@@ -364,8 +427,10 @@ class TestParquetFastParquet(Base):
         self.check_error_on_write(df, fp, ValueError)
 
     def test_categorical(self, fp):
+        if LooseVersion(fastparquet.__version__) < LooseVersion("0.1.3"):
+            pytest.skip("CategoricalDtype not supported for older fp")
         df = pd.DataFrame({'a': pd.Categorical(list('abc'))})
-        self.check_round_trip(df, fp, compression=None)
+        self.check_round_trip(df, fp, write_kwargs={'compression': None})
 
     def test_datetime_tz(self, fp):
         # doesn't preserve tz
@@ -375,4 +440,13 @@ class TestParquetFastParquet(Base):
         # warns on the coercion
         with catch_warnings(record=True):
             self.check_round_trip(df, fp, df.astype('datetime64[ns]'),
-                                  compression=None)
+                                  write_kwargs={'compression': None})
+
+    def test_filter_row_groups(self, fp):
+        d = {'a': list(range(0, 3))}
+        df = pd.DataFrame(d)
+        with tm.ensure_clean() as path:
+            df.to_parquet(path, fp, compression=None,
+                          row_group_offsets=1)
+            result = read_parquet(path, fp, filters=[('a', '==', 0)])
+        assert len(result) == 1

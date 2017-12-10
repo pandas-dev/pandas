@@ -78,16 +78,16 @@ class TestSparseDataFrame(SharedWithSparse):
         res = df.add(2, fill_value=0)
         tm.assert_sp_frame_equal(res, exp)
 
-    def test_as_matrix(self):
-        empty = self.empty.as_matrix()
+    def test_values(self):
+        empty = self.empty.values
         assert empty.shape == (0, 0)
 
         no_cols = SparseDataFrame(index=np.arange(10))
-        mat = no_cols.as_matrix()
+        mat = no_cols.values
         assert mat.shape == (10, 0)
 
         no_index = SparseDataFrame(columns=np.arange(10))
-        mat = no_index.as_matrix()
+        mat = no_index.values
         assert mat.shape == (0, 10)
 
     def test_copy(self):
@@ -430,22 +430,32 @@ class TestSparseDataFrame(SharedWithSparse):
 
         # ok, as the index gets converted to object
         frame = self.frame.copy()
-        res = frame.set_value('foobar', 'B', 1.5)
+        with tm.assert_produces_warning(FutureWarning,
+                                        check_stacklevel=False):
+            res = frame.set_value('foobar', 'B', 1.5)
         assert res.index.dtype == 'object'
 
         res = self.frame
         res.index = res.index.astype(object)
 
-        res = self.frame.set_value('foobar', 'B', 1.5)
+        with tm.assert_produces_warning(FutureWarning,
+                                        check_stacklevel=False):
+            res = self.frame.set_value('foobar', 'B', 1.5)
         assert res is not self.frame
         assert res.index[-1] == 'foobar'
-        assert res.get_value('foobar', 'B') == 1.5
+        with tm.assert_produces_warning(FutureWarning,
+                                        check_stacklevel=False):
+            assert res.get_value('foobar', 'B') == 1.5
 
-        res2 = res.set_value('foobar', 'qux', 1.5)
+        with tm.assert_produces_warning(FutureWarning,
+                                        check_stacklevel=False):
+            res2 = res.set_value('foobar', 'qux', 1.5)
         assert res2 is not res
         tm.assert_index_equal(res2.columns,
                               pd.Index(list(self.frame.columns) + ['qux']))
-        assert res2.get_value('foobar', 'qux') == 1.5
+        with tm.assert_produces_warning(FutureWarning,
+                                        check_stacklevel=False):
+            assert res2.get_value('foobar', 'qux') == 1.5
 
     def test_fancy_index_misc(self):
         # axis = 0
@@ -1099,7 +1109,10 @@ class TestSparseDataFrame(SharedWithSparse):
         df = SparseDataFrame({'A': [1.1, 3.3], 'B': [nan, -3.9]},
                              dtype='float64')
 
-        df_blocks = df.blocks
+        # deprecated 0.21.0
+        with tm.assert_produces_warning(FutureWarning,
+                                        check_stacklevel=False):
+            df_blocks = df.blocks
         assert list(df_blocks.keys()) == ['float64']
         tm.assert_frame_equal(df_blocks['float64'], df)
 
@@ -1385,3 +1398,139 @@ class TestSparseDataFrameAnalytics(object):
                  'std', 'min', 'max']
         for func in funcs:
             getattr(np, func)(self.frame)
+
+    @pytest.mark.parametrize('data', [
+        [[1, 1], [2, 2], [3, 3], [4, 4], [0, 0]],
+        [[1.0, 1.0], [2.0, 2.0], [3.0, 3.0], [4.0, 4.0], [nan, nan]],
+        [
+            [1.0, 1.0 + 1.0j],
+            [2.0 + 2.0j, 2.0],
+            [3.0, 3.0 + 3.0j],
+            [4.0 + 4.0j, 4.0],
+            [nan, nan]
+        ]
+    ])
+    @pytest.mark.xfail(reason='Wrong SparseBlock initialization '
+                              '(GH 17386)')
+    def test_where_with_numeric_data(self, data):
+        # GH 17386
+        lower_bound = 1.5
+
+        sparse = SparseDataFrame(data)
+        result = sparse.where(sparse > lower_bound)
+
+        dense = DataFrame(data)
+        dense_expected = dense.where(dense > lower_bound)
+        sparse_expected = SparseDataFrame(dense_expected)
+
+        tm.assert_frame_equal(result, dense_expected)
+        tm.assert_sp_frame_equal(result, sparse_expected)
+
+    @pytest.mark.parametrize('data', [
+        [[1, 1], [2, 2], [3, 3], [4, 4], [0, 0]],
+        [[1.0, 1.0], [2.0, 2.0], [3.0, 3.0], [4.0, 4.0], [nan, nan]],
+        [
+            [1.0, 1.0 + 1.0j],
+            [2.0 + 2.0j, 2.0],
+            [3.0, 3.0 + 3.0j],
+            [4.0 + 4.0j, 4.0],
+            [nan, nan]
+        ]
+    ])
+    @pytest.mark.parametrize('other', [
+        True,
+        -100,
+        0.1,
+        100.0 + 100.0j
+    ])
+    @pytest.mark.xfail(reason='Wrong SparseBlock initialization '
+                              '(GH 17386)')
+    def test_where_with_numeric_data_and_other(self, data, other):
+        # GH 17386
+        lower_bound = 1.5
+
+        sparse = SparseDataFrame(data)
+        result = sparse.where(sparse > lower_bound, other)
+
+        dense = DataFrame(data)
+        dense_expected = dense.where(dense > lower_bound, other)
+        sparse_expected = SparseDataFrame(dense_expected,
+                                          default_fill_value=other)
+
+        tm.assert_frame_equal(result, dense_expected)
+        tm.assert_sp_frame_equal(result, sparse_expected)
+
+    @pytest.mark.xfail(reason='Wrong SparseBlock initialization '
+                              '(GH 17386)')
+    def test_where_with_bool_data(self):
+        # GH 17386
+        data = [[False, False], [True, True], [False, False]]
+        cond = True
+
+        sparse = SparseDataFrame(data)
+        result = sparse.where(sparse == cond)
+
+        dense = DataFrame(data)
+        dense_expected = dense.where(dense == cond)
+        sparse_expected = SparseDataFrame(dense_expected)
+
+        tm.assert_frame_equal(result, dense_expected)
+        tm.assert_sp_frame_equal(result, sparse_expected)
+
+    @pytest.mark.parametrize('other', [
+        True,
+        0,
+        0.1,
+        100.0 + 100.0j
+    ])
+    @pytest.mark.xfail(reason='Wrong SparseBlock initialization '
+                              '(GH 17386)')
+    def test_where_with_bool_data_and_other(self, other):
+        # GH 17386
+        data = [[False, False], [True, True], [False, False]]
+        cond = True
+
+        sparse = SparseDataFrame(data)
+        result = sparse.where(sparse == cond, other)
+
+        dense = DataFrame(data)
+        dense_expected = dense.where(dense == cond, other)
+        sparse_expected = SparseDataFrame(dense_expected,
+                                          default_fill_value=other)
+
+        tm.assert_frame_equal(result, dense_expected)
+        tm.assert_sp_frame_equal(result, sparse_expected)
+
+    @pytest.mark.xfail(reason='Wrong SparseBlock initialization '
+                              '(GH 17386)')
+    def test_quantile(self):
+        # GH 17386
+        data = [[1, 1], [2, 10], [3, 100], [nan, nan]]
+        q = 0.1
+
+        sparse_df = SparseDataFrame(data)
+        result = sparse_df.quantile(q)
+
+        dense_df = DataFrame(data)
+        dense_expected = dense_df.quantile(q)
+        sparse_expected = SparseSeries(dense_expected)
+
+        tm.assert_series_equal(result, dense_expected)
+        tm.assert_sp_series_equal(result, sparse_expected)
+
+    @pytest.mark.xfail(reason='Wrong SparseBlock initialization '
+                              '(GH 17386)')
+    def test_quantile_multi(self):
+        # GH 17386
+        data = [[1, 1], [2, 10], [3, 100], [nan, nan]]
+        q = [0.1, 0.5]
+
+        sparse_df = SparseDataFrame(data)
+        result = sparse_df.quantile(q)
+
+        dense_df = DataFrame(data)
+        dense_expected = dense_df.quantile(q)
+        sparse_expected = SparseDataFrame(dense_expected)
+
+        tm.assert_frame_equal(result, dense_expected)
+        tm.assert_sp_frame_equal(result, sparse_expected)

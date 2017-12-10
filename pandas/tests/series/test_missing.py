@@ -12,7 +12,8 @@ import numpy as np
 import pandas as pd
 
 from pandas import (Series, DataFrame, isna, date_range,
-                    MultiIndex, Index, Timestamp, NaT, IntervalIndex)
+                    MultiIndex, Index, Timestamp, NaT, IntervalIndex,
+                    Categorical)
 from pandas.compat import range
 from pandas._libs.tslib import iNaT
 from pandas.core.series import remove_na
@@ -23,7 +24,8 @@ from .common import TestData
 
 try:
     import scipy
-    _is_scipy_ge_0190 = scipy.__version__ >= LooseVersion('0.19.0')
+    _is_scipy_ge_0190 = (LooseVersion(scipy.__version__) >=
+                         LooseVersion('0.19.0'))
 except:
     _is_scipy_ge_0190 = False
 
@@ -292,15 +294,15 @@ class TestSeriesMissingData(TestData):
                           dtype='object')
         assert_series_equal(result, expected)
 
-        # where (we ignore the raise_on_error)
+        # where (we ignore the errors=)
         result = s.where([True, False],
                          Timestamp('20130101', tz='US/Eastern'),
-                         raise_on_error=False)
+                         errors='ignore')
         assert_series_equal(result, expected)
 
         result = s.where([True, False],
                          Timestamp('20130101', tz='US/Eastern'),
-                         raise_on_error=True)
+                         errors='ignore')
         assert_series_equal(result, expected)
 
         # with a non-datetime
@@ -362,6 +364,69 @@ class TestSeriesMissingData(TestData):
             for method in ['backfill', 'bfill', 'pad', 'ffill', None]:
                 with pytest.raises(ValueError):
                     s.fillna(1, limit=limit, method=method)
+
+    def test_categorical_nan_equality(self):
+        cat = Series(Categorical(["a", "b", "c", np.nan]))
+        exp = Series([True, True, True, False])
+        res = (cat == cat)
+        tm.assert_series_equal(res, exp)
+
+    def test_categorical_nan_handling(self):
+
+        # NaNs are represented as -1 in labels
+        s = Series(Categorical(["a", "b", np.nan, "a"]))
+        tm.assert_index_equal(s.cat.categories, Index(["a", "b"]))
+        tm.assert_numpy_array_equal(s.values.codes,
+                                    np.array([0, 1, -1, 0], dtype=np.int8))
+
+    @pytest.mark.parametrize('fill_value, expected_output', [
+        ('a', ['a', 'a', 'b', 'a', 'a']),
+        ({1: 'a', 3: 'b', 4: 'b'}, ['a', 'a', 'b', 'b', 'b']),
+        ({1: 'a'}, ['a', 'a', 'b', np.nan, np.nan]),
+        ({1: 'a', 3: 'b'}, ['a', 'a', 'b', 'b', np.nan]),
+        (Series('a'), ['a', np.nan, 'b', np.nan, np.nan]),
+        (Series('a', index=[1]), ['a', 'a', 'b', np.nan, np.nan]),
+        (Series({1: 'a', 3: 'b'}), ['a', 'a', 'b', 'b', np.nan]),
+        (Series(['a', 'b'], index=[3, 4]), ['a', np.nan, 'b', 'a', 'b'])
+    ])
+    def test_fillna_categorical(self, fill_value, expected_output):
+        # GH 17033
+        # Test fillna for a Categorical series
+        data = ['a', np.nan, 'b', np.nan, np.nan]
+        s = Series(Categorical(data, categories=['a', 'b']))
+        exp = Series(Categorical(expected_output, categories=['a', 'b']))
+        tm.assert_series_equal(s.fillna(fill_value), exp)
+
+    def test_fillna_categorical_raise(self):
+        data = ['a', np.nan, 'b', np.nan, np.nan]
+        s = Series(Categorical(data, categories=['a', 'b']))
+
+        with tm.assert_raises_regex(ValueError,
+                                    "fill value must be in categories"):
+            s.fillna('d')
+
+        with tm.assert_raises_regex(ValueError,
+                                    "fill value must be in categories"):
+            s.fillna(Series('d'))
+
+        with tm.assert_raises_regex(ValueError,
+                                    "fill value must be in categories"):
+            s.fillna({1: 'd', 3: 'a'})
+
+        with tm.assert_raises_regex(TypeError,
+                                    '"value" parameter must be a scalar or '
+                                    'dict, but you passed a "list"'):
+            s.fillna(['a', 'b'])
+
+        with tm.assert_raises_regex(TypeError,
+                                    '"value" parameter must be a scalar or '
+                                    'dict, but you passed a "tuple"'):
+            s.fillna(('a', 'b'))
+
+        with tm.assert_raises_regex(TypeError,
+                                    '"value" parameter must be a scalar, dict '
+                                    'or Series, but you passed a "DataFrame"'):
+            s.fillna(DataFrame({1: ['a'], 3: ['b']}))
 
     def test_fillna_nat(self):
         series = Series([0, 1, 2, iNaT], dtype='M8[ns]')
@@ -636,17 +701,21 @@ class TestSeriesMissingData(TestData):
 
     def test_isna(self):
         ser = Series([0, 5.4, 3, nan, -0.001])
-        np.array_equal(ser.isna(),
-                       Series([False, False, False, True, False]).values)
+        expected = Series([False, False, False, True, False])
+        tm.assert_series_equal(ser.isna(), expected)
+
         ser = Series(["hi", "", nan])
-        np.array_equal(ser.isna(), Series([False, False, True]).values)
+        expected = Series([False, False, True])
+        tm.assert_series_equal(ser.isna(), expected)
 
     def test_notna(self):
         ser = Series([0, 5.4, 3, nan, -0.001])
-        np.array_equal(ser.notna(),
-                       Series([True, True, True, False, True]).values)
+        expected = Series([True, True, True, False, True])
+        tm.assert_series_equal(ser.notna(), expected)
+
         ser = Series(["hi", "", nan])
-        np.array_equal(ser.notna(), Series([True, True, False]).values)
+        expected = Series([True, True, False])
+        tm.assert_series_equal(ser.notna(), expected)
 
     def test_pad_nan(self):
         x = Series([np.nan, 1., np.nan, 3., np.nan], ['z', 'a', 'b', 'c', 'd'],

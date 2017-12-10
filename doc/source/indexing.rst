@@ -49,12 +49,6 @@ advanced indexing.
 
 .. warning::
 
-   In 0.15.0 ``Index`` has internally been refactored to no longer subclass ``ndarray``
-   but instead subclass ``PandasObject``, similarly to the rest of the pandas objects. This should be
-   a transparent change with only very limited API implications (See the :ref:`Internal Refactoring <whatsnew_0150.refactoring>`)
-
-.. warning::
-
    Indexing on an integer-based Index with floats has been clarified in 0.18.0, for a summary of the changes, see :ref:`here <whatsnew_0180.float_indexers>`.
 
 See the :ref:`MultiIndex / Advanced Indexing <advanced>` for ``MultiIndex`` and more advanced indexing documentation.
@@ -65,8 +59,6 @@ See the :ref:`cookbook<cookbook.selection>` for some advanced strategies
 
 Different Choices for Indexing
 ------------------------------
-
-.. versionadded:: 0.11.0
 
 Object selection has had a number of user-requested additions in order to
 support more explicit location based indexing. Pandas now supports three types
@@ -250,8 +242,6 @@ as an attribute:
    - In any of these cases, standard indexing will still work, e.g. ``s['1']``, ``s['min']``, and ``s['index']`` will
      access the corresponding element or column.
 
-   - The ``Series/Panel`` accesses are available starting in 0.13.0.
-
 If you are using the IPython environment, you may also use tab-completion to
 see these accessible attributes.
 
@@ -278,21 +268,6 @@ new column. In 0.21.0 and later, this will raise a ``UserWarning``:
     0  1.0
     1  2.0
     2  3.0
-
-Similarly, it is possible to create a column with a name which collides with one of Pandas's
-built-in methods or attributes, which can cause confusion later when attempting to access
-that column as an attribute. This behavior now warns:
-
-.. code-block:: ipython
-
-    In[4]: df['sum'] = [5., 7., 9.]
-    UserWarning: Column name 'sum' collides with a built-in method, which will cause unexpected attribute behavior
-    In[5]: df.sum
-    Out[5]:
-    <bound method DataFrame.sum of    one  sum
-    0  1.0  5.0
-    1  2.0  7.0
-    2  3.0  9.0>
 
 Slicing ranges
 --------------
@@ -358,8 +333,15 @@ Selection By Label
 
      dfl.loc['20130102':'20130104']
 
+.. warning::
+
+   Starting in 0.21.0, pandas will show a ``FutureWarning`` if indexing with a list with missing labels. In the future
+   this will raise a ``KeyError``. See :ref:`list-like Using loc with missing keys in a list is Deprecated <indexing.deprecate_loc_reindex_listlike>`
+
 pandas provides a suite of methods in order to have **purely label based indexing**. This is a strict inclusion based protocol.
-**At least 1** of the labels for which you ask, must be in the index or a ``KeyError`` will be raised! When slicing, both the start bound **AND** the stop bound are *included*, if present in the index. Integers are valid labels, but they refer to the label **and not the position**.
+All of the labels for which you ask, must be in the index or a ``KeyError`` will be raised!
+When slicing, both the start bound **AND** the stop bound are *included*, if present in the index.
+Integers are valid labels, but they refer to the label **and not the position**.
 
 The ``.loc`` attribute is the primary access method. The following are valid inputs:
 
@@ -531,7 +513,6 @@ Out of range slice indexes are handled gracefully just as in Python/Numpy.
 .. ipython:: python
 
     # these are allowed in python/numpy.
-    # Only works in Pandas starting from v0.14.0.
     x = list('abcdef')
     x
     x[4:10]
@@ -541,14 +522,8 @@ Out of range slice indexes are handled gracefully just as in Python/Numpy.
     s.iloc[4:10]
     s.iloc[8:10]
 
-.. note::
-
-    Prior to v0.14.0, ``iloc`` would not accept out of bounds indexers for
-    slices, e.g. a value that exceeds the length of the object being indexed.
-
-
-Note that this could result in an empty axis (e.g. an empty DataFrame being
-returned)
+Note that using slices that go out of bounds can result in
+an empty axis (e.g. an empty DataFrame being returned)
 
 .. ipython:: python
 
@@ -667,11 +642,111 @@ For getting *multiple* indexers, using ``.get_indexer``
   dfd.iloc[[0, 2], dfd.columns.get_indexer(['A', 'B'])]
 
 
+.. _indexing.deprecate_loc_reindex_listlike:
+
+Indexing with list with missing labels is Deprecated
+----------------------------------------------------
+
+.. warning::
+
+   Starting in 0.21.0, using ``.loc`` or ``[]`` with a list with one or more missing labels, is deprecated, in favor of ``.reindex``.
+
+In prior versions, using ``.loc[list-of-labels]`` would work as long as *at least 1* of the keys was found (otherwise it
+would raise a ``KeyError``). This behavior is deprecated and will show a warning message pointing to this section. The
+recommeded alternative is to use ``.reindex()``.
+
+For example.
+
+.. ipython:: python
+
+   s = pd.Series([1, 2, 3])
+   s
+
+Selection with all keys found is unchanged.
+
+.. ipython:: python
+
+   s.loc[[1, 2]]
+
+Previous Behavior
+
+.. code-block:: ipython
+
+   In [4]: s.loc[[1, 2, 3]]
+   Out[4]:
+   1    2.0
+   2    3.0
+   3    NaN
+   dtype: float64
+
+
+Current Behavior
+
+.. code-block:: ipython
+
+   In [4]: s.loc[[1, 2, 3]]
+   Passing list-likes to .loc with any non-matching elements will raise
+   KeyError in the future, you can use .reindex() as an alternative.
+
+   See the documentation here:
+   http://pandas.pydata.org/pandas-docs/stable/indexing.html#deprecate-loc-reindex-listlike
+
+   Out[4]:
+   1    2.0
+   2    3.0
+   3    NaN
+   dtype: float64
+
+
+Reindexing
+~~~~~~~~~~
+
+The idiomatic way to achieve selecting potentially not-found elmenents is via ``.reindex()``. See also the section on :ref:`reindexing <basics.reindexing>`.
+
+.. ipython:: python
+
+  s.reindex([1, 2, 3])
+
+Alternatively, if you want to select only *valid* keys, the following is idiomatic and efficient; it is guaranteed to preserve the dtype of the selection.
+
+.. ipython:: python
+
+   labels = [1, 2, 3]
+   s.loc[s.index.intersection(labels)]
+
+Having a duplicated index will raise for a ``.reindex()``:
+
+.. ipython:: python
+
+   s = pd.Series(np.arange(4), index=['a', 'a', 'b', 'c'])
+   labels = ['c', 'd']
+
+.. code-block:: ipython
+
+   In [17]: s.reindex(labels)
+   ValueError: cannot reindex from a duplicate axis
+
+Generally, you can interesect the desired labels with the current
+axis, and then reindex.
+
+.. ipython:: python
+
+   s.loc[s.index.intersection(labels)].reindex(labels)
+
+However, this would *still* raise if your resulting index is duplicated.
+
+.. code-block:: ipython
+
+   In [41]: labels = ['a', 'd']
+
+   In [42]: s.loc[s.index.intersection(labels)].reindex(labels)
+   ValueError: cannot reindex from a duplicate axis
+
+
 .. _indexing.basics.partial_setting:
 
 Selecting Random Samples
 ------------------------
-.. versionadded::0.16.1
 
 A random selection of rows or columns from a Series, DataFrame, or Panel with the :meth:`~DataFrame.sample` method. The method will sample rows by default, and accepts a specific number of rows/columns to return, or a fraction of rows.
 
@@ -747,9 +822,7 @@ Finally, one can also set a seed for ``sample``'s random number generator using 
 Setting With Enlargement
 ------------------------
 
-.. versionadded:: 0.13
-
-The ``.loc/[]`` operations can perform enlargement when setting a non-existant key for that axis.
+The ``.loc/[]`` operations can perform enlargement when setting a non-existent key for that axis.
 
 In the ``Series`` case this is effectively an appending operation
 
@@ -887,7 +960,7 @@ when you don't know which of the sought labels are in fact present:
    s[s.index.isin([2, 4, 6])]
 
    # compare it to the following
-   s[[2, 4, 6]]
+   s.reindex([2, 4, 6])
 
 In addition to that, ``MultiIndex`` allows selecting a separate level to use
 in the membership check:
@@ -1022,8 +1095,6 @@ partial setting via ``.loc`` (but on the contents rather than the axis labels)
    df2[ df2[1:4] > 0 ] = 3
    df2
 
-.. versionadded:: 0.13
-
 Where can also accept ``axis`` and ``level`` parameters to align the input when
 performing the ``where``.
 
@@ -1065,8 +1136,6 @@ as condition and ``other`` argument.
 
 The :meth:`~pandas.DataFrame.query` Method (Experimental)
 ---------------------------------------------------------
-
-.. versionadded:: 0.13
 
 :class:`~pandas.DataFrame` objects have a :meth:`~pandas.DataFrame.query`
 method that allows selection using an expression.
@@ -1440,18 +1509,6 @@ default value.
    s.get('a')               # equivalent to s['a']
    s.get('x', default=-1)
 
-The :meth:`~pandas.DataFrame.select` Method
--------------------------------------------
-
-Another way to extract slices from an object is with the ``select`` method of
-Series, DataFrame, and Panel. This method should be used only when there is no
-more direct way.  ``select`` takes a function which operates on labels along
-``axis`` and returns a boolean.  For instance:
-
-.. ipython:: python
-
-   df.select(lambda x: x == 'A', axis=1)
-
 The :meth:`~pandas.DataFrame.lookup` Method
 -------------------------------------------
 
@@ -1508,8 +1565,6 @@ The name, if set, will be shown in the console display:
 Setting metadata
 ~~~~~~~~~~~~~~~~
 
-.. versionadded:: 0.13.0
-
 Indexes are "mostly immutable", but it is possible to set and change their
 metadata, like the index ``name`` (or, for ``MultiIndex``, ``levels`` and
 ``labels``).
@@ -1529,8 +1584,6 @@ See :ref:`Advanced Indexing <advanced>` for usage of MultiIndexes.
   ind.name = "bob"
   ind
 
-.. versionadded:: 0.15.0
-
 ``set_names``, ``set_levels``, and ``set_labels`` also take an optional
 `level`` argument
 
@@ -1545,11 +1598,6 @@ Set operations on Index objects
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 .. _indexing.set_ops:
-
-.. warning::
-
-   In 0.15.0. the set operations ``+`` and ``-`` were deprecated in order to provide these for numeric type operations on certain
-   index types. ``+`` can be replace by ``.union()`` or ``|``, and ``-`` by ``.difference()``.
 
 The two main operations are ``union (|)``, ``intersection (&)``
 These can be directly called as instance methods or used via overloaded
@@ -1583,8 +1631,6 @@ Missing values
 ~~~~~~~~~~~~~~
 
 .. _indexing.missing:
-
-.. versionadded:: 0.17.1
 
 .. important::
 
@@ -1787,15 +1833,27 @@ that you've done this:
 
 Yikes!
 
+.. _indexing.evaluation_order:
+
 Evaluation order matters
 ~~~~~~~~~~~~~~~~~~~~~~~~
 
-Furthermore, in chained expressions, the order may determine whether a copy is returned or not.
-If an expression will set values on a copy of a slice, then a ``SettingWithCopy``
-exception will be raised (this raise/warn behavior is new starting in 0.13.0)
+When you use chained indexing, the order and type of the indexing operation
+partially determine whether the result is a slice into the original object, or
+a copy of the slice.
 
-You can control the action of a chained assignment via the option ``mode.chained_assignment``,
-which can take the values ``['raise','warn',None]``, where showing a warning is the default.
+Pandas has the ``SettingWithCopyWarning`` because assigning to a copy of a
+slice is frequently not intentional, but a mistake caused by chained indexing
+returning a copy where a slice was expected.
+
+If you would like pandas to be more or less trusting about assignment to a
+chained indexing expression, you can set the :ref:`option <options>`
+``mode.chained_assignment`` to one of these values:
+
+* ``'warn'``, the default, means a ``SettingWithCopyWarning`` is printed.
+* ``'raise'`` means pandas will raise a ``SettingWithCopyException``
+  you have to deal with.
+* ``None`` will suppress the warnings entirely.
 
 .. ipython:: python
    :okwarning:

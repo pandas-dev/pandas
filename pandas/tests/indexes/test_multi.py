@@ -14,7 +14,7 @@ import pandas as pd
 
 from pandas import (CategoricalIndex, DataFrame, Index, MultiIndex,
                     compat, date_range, period_range)
-from pandas.compat import PY3, long, lrange, lzip, range, u
+from pandas.compat import PY3, long, lrange, lzip, range, u, PYPY
 from pandas.errors import PerformanceWarning, UnsortedIndexError
 from pandas.core.indexes.base import InvalidIndexError
 from pandas._libs import lib
@@ -157,6 +157,24 @@ class TestMultiIndex(Base):
         res = ind.set_names(new_names2, level=[0, 1], inplace=True)
         assert res is None
         assert ind.names == new_names2
+
+    def test_set_levels_labels_directly(self):
+        # setting levels/labels directly raises AttributeError
+
+        levels = self.index.levels
+        new_levels = [[lev + 'a' for lev in level] for level in levels]
+
+        labels = self.index.labels
+        major_labels, minor_labels = labels
+        major_labels = [(x + 1) % 3 for x in major_labels]
+        minor_labels = [(x + 1) % 1 for x in minor_labels]
+        new_labels = [major_labels, minor_labels]
+
+        with pytest.raises(AttributeError):
+            self.index.levels = new_levels
+
+        with pytest.raises(AttributeError):
+            self.index.labels = new_labels
 
     def test_set_levels(self):
         # side note - you probably wouldn't want to use levels and labels
@@ -458,7 +476,7 @@ class TestMultiIndex(Base):
         df = df.sort_index()
         assert df.is_copy is None
         assert df.index.names == ('Name', 'Number')
-        df = df.set_value(('grethe', '4'), 'one', 99.34)
+        df.at[('grethe', '4'), 'one'] = 99.34
         assert df.is_copy is None
         assert df.index.names == ('Name', 'Number')
 
@@ -537,15 +555,12 @@ class TestMultiIndex(Base):
             self.index.astype(np.dtype(int))
 
     def test_constructor_single_level(self):
-        single_level = MultiIndex(levels=[['foo', 'bar', 'baz', 'qux']],
-                                  labels=[[0, 1, 2, 3]], names=['first'])
-        assert isinstance(single_level, Index)
-        assert not isinstance(single_level, MultiIndex)
-        assert single_level.name == 'first'
-
-        single_level = MultiIndex(levels=[['foo', 'bar', 'baz', 'qux']],
-                                  labels=[[0, 1, 2, 3]])
-        assert single_level.name is None
+        result = MultiIndex(levels=[['foo', 'bar', 'baz', 'qux']],
+                            labels=[[0, 1, 2, 3]], names=['first'])
+        assert isinstance(result, MultiIndex)
+        expected = Index(['foo', 'bar', 'baz', 'qux'], name='first')
+        tm.assert_index_equal(result.levels[0], expected)
+        assert result.names == ['first']
 
     def test_constructor_no_levels(self):
         tm.assert_raises_regex(ValueError, "non-zero number "
@@ -580,16 +595,6 @@ class TestMultiIndex(Base):
 
         with tm.assert_raises_regex(ValueError, label_error):
             self.index.copy().set_labels([[0, 0, 0, 0], [0, 0]])
-
-        # deprecated properties
-        with warnings.catch_warnings():
-            warnings.simplefilter('ignore')
-
-            with tm.assert_raises_regex(ValueError, length_error):
-                self.index.copy().levels = [['a'], ['b']]
-
-            with tm.assert_raises_regex(ValueError, label_error):
-                self.index.copy().labels = [[0, 0, 0, 0], [0, 0]]
 
     def assert_multiindex_copied(self, copy, original):
         # Levels should be (at least, shallow copied)
@@ -667,14 +672,30 @@ class TestMultiIndex(Base):
         for lev, lab in zip(self.index.levels, self.index.labels):
             arrays.append(np.asarray(lev).take(lab))
 
-        result = MultiIndex.from_arrays(arrays)
-        assert list(result) == list(self.index)
+        # list of arrays as input
+        result = MultiIndex.from_arrays(arrays, names=self.index.names)
+        tm.assert_index_equal(result, self.index)
 
         # infer correctly
         result = MultiIndex.from_arrays([[pd.NaT, Timestamp('20130101')],
                                          ['a', 'b']])
         assert result.levels[0].equals(Index([Timestamp('20130101')]))
         assert result.levels[1].equals(Index(['a', 'b']))
+
+    def test_from_arrays_iterator(self):
+        # GH 18434
+        arrays = []
+        for lev, lab in zip(self.index.levels, self.index.labels):
+            arrays.append(np.asarray(lev).take(lab))
+
+        # iterator as input
+        result = MultiIndex.from_arrays(iter(arrays), names=self.index.names)
+        tm.assert_index_equal(result, self.index)
+
+        # invalid iterator input
+        with tm.assert_raises_regex(
+                TypeError, "Input must be a list / sequence of array-likes."):
+            MultiIndex.from_arrays(0)
 
     def test_from_arrays_index_series_datetimetz(self):
         idx1 = pd.date_range('2015-01-01 10:00', freq='D', periods=3,
@@ -768,8 +789,9 @@ class TestMultiIndex(Base):
 
         # 1 level
         result = MultiIndex.from_arrays(arrays=[[]], names=['A'])
+        assert isinstance(result, MultiIndex)
         expected = Index([], name='A')
-        tm.assert_index_equal(result, expected)
+        tm.assert_index_equal(result.levels[0], expected)
 
         # N levels
         for N in [2, 3]:
@@ -819,7 +841,25 @@ class TestMultiIndex(Base):
         expected = MultiIndex.from_tuples(tuples, names=names)
 
         tm.assert_index_equal(result, expected)
-        assert result.names == names
+
+    def test_from_product_iterator(self):
+        # GH 18434
+        first = ['foo', 'bar', 'buz']
+        second = ['a', 'b', 'c']
+        names = ['first', 'second']
+        tuples = [('foo', 'a'), ('foo', 'b'), ('foo', 'c'), ('bar', 'a'),
+                  ('bar', 'b'), ('bar', 'c'), ('buz', 'a'), ('buz', 'b'),
+                  ('buz', 'c')]
+        expected = MultiIndex.from_tuples(tuples, names=names)
+
+        # iterator as input
+        result = MultiIndex.from_product(iter([first, second]), names=names)
+        tm.assert_index_equal(result, expected)
+
+        # Invalid non-iterable input
+        with tm.assert_raises_regex(
+                TypeError, "Input must be a list / sequence of iterables."):
+            MultiIndex.from_product(0)
 
     def test_from_product_empty(self):
         # 0 levels
@@ -830,7 +870,7 @@ class TestMultiIndex(Base):
         # 1 level
         result = MultiIndex.from_product([[]], names=['A'])
         expected = pd.Index([], name='A')
-        tm.assert_index_equal(result, expected)
+        tm.assert_index_equal(result.levels[0], expected)
 
         # 2 levels
         l1 = [[], ['foo', 'bar', 'baz'], []]
@@ -957,33 +997,36 @@ class TestMultiIndex(Base):
         exp = CategoricalIndex([1, 2, 3, 1, 2, 3])
         tm.assert_index_equal(index.get_level_values(1), exp)
 
-    def test_get_level_values_na(self):
+    @pytest.mark.xfail(reason='GH 17924 (returns Int64Index with float data)')
+    def test_get_level_values_int_with_na(self):
         arrays = [['a', 'b', 'b'], [1, np.nan, 2]]
         index = pd.MultiIndex.from_arrays(arrays)
-        values = index.get_level_values(1)
-        expected = np.array([1, np.nan, 2])
-        tm.assert_numpy_array_equal(values.values.astype(float), expected)
+        result = index.get_level_values(1)
+        expected = Index([1, np.nan, 2])
+        tm.assert_index_equal(result, expected)
 
         arrays = [['a', 'b', 'b'], [np.nan, np.nan, 2]]
         index = pd.MultiIndex.from_arrays(arrays)
-        values = index.get_level_values(1)
-        expected = np.array([np.nan, np.nan, 2])
-        tm.assert_numpy_array_equal(values.values.astype(float), expected)
+        result = index.get_level_values(1)
+        expected = Index([np.nan, np.nan, 2])
+        tm.assert_index_equal(result, expected)
 
+    def test_get_level_values_na(self):
         arrays = [[np.nan, np.nan, np.nan], ['a', np.nan, 1]]
         index = pd.MultiIndex.from_arrays(arrays)
-        values = index.get_level_values(0)
-        expected = np.array([np.nan, np.nan, np.nan])
-        tm.assert_numpy_array_equal(values.values.astype(float), expected)
-        values = index.get_level_values(1)
-        expected = np.array(['a', np.nan, 1], dtype=object)
-        tm.assert_numpy_array_equal(values.values, expected)
+        result = index.get_level_values(0)
+        expected = pd.Index([np.nan, np.nan, np.nan])
+        tm.assert_index_equal(result, expected)
+
+        result = index.get_level_values(1)
+        expected = pd.Index(['a', np.nan, 1])
+        tm.assert_index_equal(result, expected)
 
         arrays = [['a', 'b', 'b'], pd.DatetimeIndex([0, 1, pd.NaT])]
         index = pd.MultiIndex.from_arrays(arrays)
         values = index.get_level_values(1)
         expected = pd.DatetimeIndex([0, 1, pd.NaT])
-        tm.assert_numpy_array_equal(values.values, expected.values)
+        tm.assert_index_equal(values, expected)
 
         arrays = [[], []]
         index = pd.MultiIndex.from_arrays(arrays)
@@ -1575,7 +1618,9 @@ class TestMultiIndex(Base):
         # shouldn't change
         assert mi2.is_(mi)
         mi4 = mi3.view()
-        mi4.set_levels([[1 for _ in range(10)], lrange(10)], inplace=True)
+
+        # GH 17464 - Remove duplicate MultiIndex levels
+        mi4.set_levels([lrange(10), lrange(10)], inplace=True)
         assert not mi4.is_(mi3)
         mi5 = mi.view()
         mi5.set_levels(mi5.levels, inplace=True)
@@ -1716,8 +1761,28 @@ class TestMultiIndex(Base):
                                'from empty list',
                                MultiIndex.from_tuples, [])
 
-        idx = MultiIndex.from_tuples(((1, 2), (3, 4)), names=['a', 'b'])
-        assert len(idx) == 2
+        expected = MultiIndex(levels=[[1, 3], [2, 4]],
+                              labels=[[0, 1], [0, 1]],
+                              names=['a', 'b'])
+
+        # input tuples
+        result = MultiIndex.from_tuples(((1, 2), (3, 4)), names=['a', 'b'])
+        tm.assert_index_equal(result, expected)
+
+    def test_from_tuples_iterator(self):
+        # GH 18434
+        # input iterator for tuples
+        expected = MultiIndex(levels=[[1, 3], [2, 4]],
+                              labels=[[0, 1], [0, 1]],
+                              names=['a', 'b'])
+
+        result = MultiIndex.from_tuples(zip([1, 3], [2, 4]), names=['a', 'b'])
+        tm.assert_index_equal(result, expected)
+
+        # input non-iterables
+        with tm.assert_raises_regex(
+                TypeError, 'Input must be a list / sequence of tuple-likes.'):
+            MultiIndex.from_tuples(0)
 
     def test_from_tuples_empty(self):
         # GH 16777
@@ -2169,7 +2234,7 @@ class TestMultiIndex(Base):
 
             if with_nulls:  # inject some null values
                 labels[500] = -1  # common nan value
-                labels = list(labels.copy() for i in range(nlevels))
+                labels = [labels.copy() for i in range(nlevels)]
                 for i in range(nlevels):
                     labels[i][500 + i - nlevels // 2] = -1
 
@@ -2269,6 +2334,20 @@ class TestMultiIndex(Base):
         res = mi.unique()
         exp = pd.MultiIndex.from_arrays([['a'], ['a']])
         tm.assert_index_equal(res, exp)
+
+    @pytest.mark.parametrize('level', [0, 'first', 1, 'second'])
+    def test_unique_level(self, level):
+        # GH #17896 - with level= argument
+        result = self.index.unique(level=level)
+        expected = self.index.get_level_values(level).unique()
+        tm.assert_index_equal(result, expected)
+
+        # With already unique level
+        mi = pd.MultiIndex.from_arrays([[1, 3, 2, 4], [1, 3, 2, 5]],
+                                       names=['first', 'second'])
+        result = mi.unique(level=level)
+        expected = mi.get_level_values(level)
+        tm.assert_index_equal(result, expected)
 
     def test_unique_datetimelike(self):
         idx1 = pd.DatetimeIndex(['2015-01-01', '2015-01-01', '2015-01-01',
@@ -2373,17 +2452,15 @@ class TestMultiIndex(Base):
             pd.isna(self.index)
 
     def test_level_setting_resets_attributes(self):
-        ind = MultiIndex.from_arrays([
+        ind = pd.MultiIndex.from_arrays([
             ['A', 'A', 'B', 'B', 'B'], [1, 2, 1, 2, 3]
         ])
         assert ind.is_monotonic
-        ind.set_levels([['A', 'B', 'A', 'A', 'B'], [2, 1, 3, -2, 5]],
-                       inplace=True)
-
+        ind.set_levels([['A', 'B'], [1, 3, 2]], inplace=True)
         # if this fails, probably didn't reset the cache correctly.
         assert not ind.is_monotonic
 
-    def test_is_monotonic(self):
+    def test_is_monotonic_increasing(self):
         i = MultiIndex.from_product([np.arange(10),
                                      np.arange(10)], names=['one', 'two'])
         assert i.is_monotonic
@@ -2444,14 +2521,89 @@ class TestMultiIndex(Base):
         assert not i.is_monotonic
         assert not i._is_strictly_monotonic_increasing
 
-    def test_is_strictly_monotonic(self):
+        # empty
+        i = MultiIndex.from_arrays([[], []])
+        assert i.is_monotonic
+        assert Index(i.values).is_monotonic
+        assert i._is_strictly_monotonic_increasing
+        assert Index(i.values)._is_strictly_monotonic_increasing
+
+    def test_is_monotonic_decreasing(self):
+        i = MultiIndex.from_product([np.arange(9, -1, -1),
+                                     np.arange(9, -1, -1)],
+                                    names=['one', 'two'])
+        assert i.is_monotonic_decreasing
+        assert i._is_strictly_monotonic_decreasing
+        assert Index(i.values).is_monotonic_decreasing
+        assert i._is_strictly_monotonic_decreasing
+
+        i = MultiIndex.from_product([np.arange(10),
+                                     np.arange(10, 0, -1)],
+                                    names=['one', 'two'])
+        assert not i.is_monotonic_decreasing
+        assert not i._is_strictly_monotonic_decreasing
+        assert not Index(i.values).is_monotonic_decreasing
+        assert not Index(i.values)._is_strictly_monotonic_decreasing
+
+        i = MultiIndex.from_product([np.arange(10, 0, -1),
+                                     np.arange(10)], names=['one', 'two'])
+        assert not i.is_monotonic_decreasing
+        assert not i._is_strictly_monotonic_decreasing
+        assert not Index(i.values).is_monotonic_decreasing
+        assert not Index(i.values)._is_strictly_monotonic_decreasing
+
+        i = MultiIndex.from_product([[2.0, np.nan, 1.0], ['c', 'b', 'a']])
+        assert not i.is_monotonic_decreasing
+        assert not i._is_strictly_monotonic_decreasing
+        assert not Index(i.values).is_monotonic_decreasing
+        assert not Index(i.values)._is_strictly_monotonic_decreasing
+
+        # string ordering
+        i = MultiIndex(levels=[['qux', 'foo', 'baz', 'bar'],
+                               ['three', 'two', 'one']],
+                       labels=[[0, 0, 0, 1, 1, 2, 2, 3, 3, 3],
+                               [0, 1, 2, 0, 1, 1, 2, 0, 1, 2]],
+                       names=['first', 'second'])
+        assert not i.is_monotonic_decreasing
+        assert not Index(i.values).is_monotonic_decreasing
+        assert not i._is_strictly_monotonic_decreasing
+        assert not Index(i.values)._is_strictly_monotonic_decreasing
+
+        i = MultiIndex(levels=[['qux', 'foo', 'baz', 'bar'],
+                               ['zenith', 'next', 'mom']],
+                       labels=[[0, 0, 0, 1, 1, 2, 2, 3, 3, 3],
+                               [0, 1, 2, 0, 1, 1, 2, 0, 1, 2]],
+                       names=['first', 'second'])
+        assert i.is_monotonic_decreasing
+        assert Index(i.values).is_monotonic_decreasing
+        assert i._is_strictly_monotonic_decreasing
+        assert Index(i.values)._is_strictly_monotonic_decreasing
+
+        # mixed levels, hits the TypeError
+        i = MultiIndex(
+            levels=[[4, 3, 2, 1], ['nl0000301109', 'nl0000289965',
+                                   'nl0000289783', 'lu0197800237',
+                                   'gb00b03mlx29']],
+            labels=[[0, 1, 1, 2, 2, 2, 3], [4, 2, 0, 0, 1, 3, -1]],
+            names=['household_id', 'asset_id'])
+
+        assert not i.is_monotonic_decreasing
+        assert not i._is_strictly_monotonic_decreasing
+
+        # empty
+        i = MultiIndex.from_arrays([[], []])
+        assert i.is_monotonic_decreasing
+        assert Index(i.values).is_monotonic_decreasing
+        assert i._is_strictly_monotonic_decreasing
+        assert Index(i.values)._is_strictly_monotonic_decreasing
+
+    def test_is_strictly_monotonic_increasing(self):
         idx = pd.MultiIndex(levels=[['bar', 'baz'], ['mom', 'next']],
                             labels=[[0, 0, 1, 1], [0, 0, 0, 1]])
         assert idx.is_monotonic_increasing
         assert not idx._is_strictly_monotonic_increasing
 
-    @pytest.mark.xfail(reason="buggy MultiIndex.is_monotonic_decresaing.")
-    def test__is_strictly_monotonic_decreasing(self):
+    def test_is_strictly_monotonic_decreasing(self):
         idx = pd.MultiIndex(levels=[['baz', 'bar'], ['next', 'mom']],
                             labels=[[0, 0, 1, 1], [0, 0, 0, 1]])
         assert idx.is_monotonic_decreasing
@@ -2531,6 +2683,20 @@ class TestMultiIndex(Base):
         tm.assert_index_equal(result2, expected)
         assert result2.is_(result)
 
+    @pytest.mark.parametrize('level0', [['a', 'd', 'b'],
+                                        ['a', 'd', 'b', 'unused']])
+    @pytest.mark.parametrize('level1', [['w', 'x', 'y', 'z'],
+                                        ['w', 'x', 'y', 'z', 'unused']])
+    def test_remove_unused_nan(self, level0, level1):
+        # GH 18417
+        mi = pd.MultiIndex(levels=[level0, level1],
+                           labels=[[0, 2, -1, 1, -1], [0, 1, 2, 3, 2]])
+
+        result = mi.remove_unused_levels()
+        tm.assert_index_equal(result, mi)
+        for level in 0, 1:
+            assert('unused' not in result.levels[level])
+
     @pytest.mark.parametrize('first_type,second_type', [
         ('int64', 'int64'),
         ('datetime64[D]', 'str')])
@@ -2573,12 +2739,21 @@ class TestMultiIndex(Base):
         assert len(result) == 0
         assert result.dtype == np.bool_
 
-    def test_isin_nan(self):
+    @pytest.mark.skipif(PYPY, reason="tuples cmp recursively on PyPy")
+    def test_isin_nan_not_pypy(self):
         idx = MultiIndex.from_arrays([['foo', 'bar'], [1.0, np.nan]])
         tm.assert_numpy_array_equal(idx.isin([('bar', np.nan)]),
                                     np.array([False, False]))
         tm.assert_numpy_array_equal(idx.isin([('bar', float('nan'))]),
                                     np.array([False, False]))
+
+    @pytest.mark.skipif(not PYPY, reason="tuples cmp recursively on PyPy")
+    def test_isin_nan_pypy(self):
+        idx = MultiIndex.from_arrays([['foo', 'bar'], [1.0, np.nan]])
+        tm.assert_numpy_array_equal(idx.isin([('bar', np.nan)]),
+                                    np.array([False, True]))
+        tm.assert_numpy_array_equal(idx.isin([('bar', float('nan'))]),
+                                    np.array([False, True]))
 
     def test_isin_level_kwarg(self):
         idx = MultiIndex.from_arrays([['qux', 'baz', 'foo', 'bar'], np.arange(
@@ -2652,7 +2827,7 @@ class TestMultiIndex(Base):
 
         # GH5620
         groups = self.index.groupby(self.index)
-        exp = dict((key, [key]) for key in self.index)
+        exp = {key: [key] for key in self.index}
         tm.assert_dict_equal(groups, exp)
 
     def test_index_name_retained(self):
@@ -2898,3 +3073,26 @@ class TestMultiIndex(Base):
         assert pd.isna(df0.index.get_level_values(1)).all()
         # the following failed in 0.14.1
         assert pd.isna(dfm.index.get_level_values(1)[:-1]).all()
+
+    def test_million_record_attribute_error(self):
+        # GH 18165
+        r = list(range(1000000))
+        df = pd.DataFrame({'a': r, 'b': r},
+                          index=pd.MultiIndex.from_tuples([(x, x) for x in r]))
+
+        with tm.assert_raises_regex(AttributeError,
+                                    "'Series' object has no attribute 'foo'"):
+            df['a'].foo()
+
+    def test_duplicate_multiindex_labels(self):
+        # GH 17464
+        # Make sure that a MultiIndex with duplicate levels throws a ValueError
+        with pytest.raises(ValueError):
+            ind = pd.MultiIndex([['A'] * 10, range(10)], [[0] * 10, range(10)])
+
+        # And that using set_levels with duplicate levels fails
+        ind = MultiIndex.from_arrays([['A', 'A', 'B', 'B', 'B'],
+                                      [1, 2, 1, 2, 3]])
+        with pytest.raises(ValueError):
+            ind.set_levels([['A', 'B', 'A', 'A', 'B'], [2, 1, 3, -2, 5]],
+                           inplace=True)

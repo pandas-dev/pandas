@@ -123,6 +123,30 @@ class series_dropna_datetime(object):
         self.s.dropna()
 
 
+class series_map_dict(object):
+    goal_time = 0.2
+
+    def setup(self):
+        map_size = 1000
+        self.s = Series(np.random.randint(0, map_size, 10000))
+        self.map_dict = {i: map_size - i for i in range(map_size)}
+
+    def time_series_map_dict(self):
+        self.s.map(self.map_dict)
+
+
+class series_map_series(object):
+    goal_time = 0.2
+
+    def setup(self):
+        map_size = 1000
+        self.s = Series(np.random.randint(0, map_size, 10000))
+        self.map_series = Series(map_size - np.arange(map_size))
+
+    def time_series_map_series(self):
+        self.s.map(self.map_series)
+
+
 class series_clip(object):
     goal_time = 0.2
 
@@ -131,3 +155,25 @@ class series_clip(object):
 
     def time_series_dropna_datetime(self):
         self.s.clip(0, 1)
+
+
+class series_value_counts(object):
+    goal_time = 0.2
+
+    def setup(self):
+        self.s = Series(np.random.randint(0, 1000, size=100000))
+        self.s2 = self.s.astype(float)
+
+        self.K = 1000
+        self.N = 100000
+        self.uniques = tm.makeStringIndex(self.K).values
+        self.s3 = Series(np.tile(self.uniques, (self.N // self.K)))
+
+    def time_value_counts_int64(self):
+        self.s.value_counts()
+
+    def time_value_counts_float64(self):
+        self.s2.value_counts()
+
+    def time_value_counts_strings(self):
+        self.s.value_counts()

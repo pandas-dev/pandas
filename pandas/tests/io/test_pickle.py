@@ -94,7 +94,7 @@ def compare(data, vf, version):
 def compare_sp_series_ts(res, exp, typ, version):
     # SparseTimeSeries integrated into SparseSeries in 0.12.0
     # and deprecated in 0.17.0
-    if version and LooseVersion(version) <= "0.12.0":
+    if version and LooseVersion(version) <= LooseVersion("0.12.0"):
         tm.assert_sp_series_equal(res, exp, check_series_type=False)
     else:
         tm.assert_sp_series_equal(res, exp)
@@ -123,7 +123,7 @@ def compare_series_ts(result, expected, typ, version):
 def compare_series_dt_tz(result, expected, typ, version):
     # 8260
     # dtype is object < 0.17.0
-    if LooseVersion(version) < '0.17.0':
+    if LooseVersion(version) < LooseVersion('0.17.0'):
         expected = expected.astype(object)
         tm.assert_series_equal(result, expected)
     else:
@@ -133,10 +133,10 @@ def compare_series_dt_tz(result, expected, typ, version):
 def compare_series_cat(result, expected, typ, version):
     # Categorical dtype is added in 0.15.0
     # ordered is changed in 0.16.0
-    if LooseVersion(version) < '0.15.0':
+    if LooseVersion(version) < LooseVersion('0.15.0'):
         tm.assert_series_equal(result, expected, check_dtype=False,
                                check_categorical=False)
-    elif LooseVersion(version) < '0.16.0':
+    elif LooseVersion(version) < LooseVersion('0.16.0'):
         tm.assert_series_equal(result, expected, check_categorical=False)
     else:
         tm.assert_series_equal(result, expected)
@@ -145,7 +145,7 @@ def compare_series_cat(result, expected, typ, version):
 def compare_frame_dt_mixed_tzs(result, expected, typ, version):
     # 8260
     # dtype is object < 0.17.0
-    if LooseVersion(version) < '0.17.0':
+    if LooseVersion(version) < LooseVersion('0.17.0'):
         expected = expected.astype(object)
         tm.assert_frame_equal(result, expected)
     else:
@@ -155,10 +155,10 @@ def compare_frame_dt_mixed_tzs(result, expected, typ, version):
 def compare_frame_cat_onecol(result, expected, typ, version):
     # Categorical dtype is added in 0.15.0
     # ordered is changed in 0.16.0
-    if LooseVersion(version) < '0.15.0':
+    if LooseVersion(version) < LooseVersion('0.15.0'):
         tm.assert_frame_equal(result, expected, check_dtype=False,
                               check_categorical=False)
-    elif LooseVersion(version) < '0.16.0':
+    elif LooseVersion(version) < LooseVersion('0.16.0'):
         tm.assert_frame_equal(result, expected, check_categorical=False)
     else:
         tm.assert_frame_equal(result, expected)
@@ -177,7 +177,7 @@ def compare_index_period(result, expected, typ, version):
 
 
 def compare_sp_frame_float(result, expected, typ, version):
-    if LooseVersion(version) <= '0.18.1':
+    if LooseVersion(version) <= LooseVersion('0.18.1'):
         tm.assert_sp_frame_equal(result, expected, exact_indices=False,
                                  check_dtype=False)
     else:
@@ -193,26 +193,18 @@ def legacy_pickle_versions():
     for v in os.listdir(path):
         p = os.path.join(path, v)
         if os.path.isdir(p):
-            yield v
+            for f in os.listdir(p):
+                yield (v, f)
 
 
-@pytest.mark.parametrize('version', legacy_pickle_versions())
-def test_pickles(current_pickle_data, version):
+@pytest.mark.parametrize('version, f', legacy_pickle_versions())
+def test_pickles(current_pickle_data, version, f):
     if not is_platform_little_endian():
         pytest.skip("known failure on non-little endian")
 
-    pth = tm.get_data_path('legacy_pickle/{0}'.format(version))
-    n = 0
-    for f in os.listdir(pth):
-        vf = os.path.join(pth, f)
-        with catch_warnings(record=True):
-            data = compare(current_pickle_data, vf, version)
-
-        if data is None:
-            continue
-        n += 1
-    assert n > 0, ('Pickle files are not '
-                   'tested: {version}'.format(version=version))
+    vf = tm.get_data_path('legacy_pickle/{}/{}'.format(version, f))
+    with catch_warnings(record=True):
+        compare(current_pickle_data, vf, version)
 
 
 def test_round_trip_current(current_pickle_data):

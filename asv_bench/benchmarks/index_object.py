@@ -12,7 +12,7 @@ class SetOperations(object):
         if (self.rng.dtype == object):
             self.idx_rng = self.rng.view(Index)
         else:
-            self.idx_rng = self.rng.asobject
+            self.idx_rng = self.rng.astype(object)
         self.idx_rng2 = self.idx_rng[:(-1)]
 
         # other datetime
@@ -199,3 +199,42 @@ class Multi3(object):
 
     def time_datetime_level_values_sliced(self):
         self.mi[:10].values
+
+
+class Range(object):
+    goal_time = 0.2
+
+    def setup(self):
+        self.idx_inc = RangeIndex(start=0, stop=10**7, step=3)
+        self.idx_dec = RangeIndex(start=10**7, stop=-1, step=-3)
+
+    def time_max(self):
+        self.idx_inc.max()
+
+    def time_max_trivial(self):
+        self.idx_dec.max()
+
+    def time_min(self):
+        self.idx_dec.min()
+
+    def time_min_trivial(self):
+        self.idx_inc.min()
+
+
+class IndexOps(object):
+    goal_time = 0.2
+
+    def setup(self):
+        N = 10000
+        self.ridx = [RangeIndex(i * 100, (i + 1) * 100) for i in range(N)]
+        self.iidx = [idx.astype(int) for idx in self.ridx]
+        self.oidx = [idx.astype(str) for idx in self.iidx]
+
+    def time_concat_range(self):
+        self.ridx[0].append(self.ridx[1:])
+
+    def time_concat_int(self):
+        self.iidx[0].append(self.iidx[1:])
+
+    def time_concat_obj(self):
+        self.oidx[0].append(self.oidx[1:])

@@ -94,12 +94,13 @@ class CSSResolver(object):
 
         # 3. TODO: resolve other font-relative units
         for side in self.SIDES:
-            prop = 'border-%s-width' % side
+            prop = 'border-{side}-width'.format(side=side)
             if prop in props:
                 props[prop] = self.size_to_pt(
                     props[prop], em_pt=font_size,
                     conversions=self.BORDER_WIDTH_RATIOS)
-            for prop in ['margin-%s' % side, 'padding-%s' % side]:
+            for prop in ['margin-{side}'.format(side=side),
+                         'padding-{side}'.format(side=side)]:
                 if prop in props:
                     # TODO: support %
                     props[prop] = self.size_to_pt(
@@ -152,7 +153,8 @@ class CSSResolver(object):
 
     def size_to_pt(self, in_val, em_pt=None, conversions=UNIT_RATIOS):
         def _error():
-            warnings.warn('Unhandled size: %r' % in_val, CSSWarning)
+            warnings.warn('Unhandled size: {val!r}'.format(val=in_val),
+                          CSSWarning)
             return self.size_to_pt('1!!default', conversions=conversions)
 
         try:
@@ -185,10 +187,10 @@ class CSSResolver(object):
 
         val = round(val, 5)
         if int(val) == val:
-            size_fmt = '%d'
+            size_fmt = '{fmt:d}pt'.format(fmt=int(val))
         else:
-            size_fmt = '%f'
-        return (size_fmt + 'pt') % val
+            size_fmt = '{fmt:f}pt'.format(fmt=val)
+        return size_fmt
 
     def atomize(self, declarations):
         for prop, value in declarations:
@@ -215,19 +217,19 @@ class CSSResolver(object):
             try:
                 mapping = self.SIDE_SHORTHANDS[len(tokens)]
             except KeyError:
-                warnings.warn('Could not expand "%s: %s"' % (prop, value),
-                              CSSWarning)
+                warnings.warn('Could not expand "{prop}: {val}"'
+                              .format(prop=prop, val=value), CSSWarning)
                 return
             for key, idx in zip(self.SIDES, mapping):
-                yield prop_fmt % key, tokens[idx]
+                yield prop_fmt.format(key), tokens[idx]
 
         return expand
 
-    expand_border_color = _side_expander('border-%s-color')
-    expand_border_style = _side_expander('border-%s-style')
-    expand_border_width = _side_expander('border-%s-width')
-    expand_margin = _side_expander('margin-%s')
-    expand_padding = _side_expander('padding-%s')
+    expand_border_color = _side_expander('border-{:s}-color')
+    expand_border_style = _side_expander('border-{:s}-style')
+    expand_border_width = _side_expander('border-{:s}-width')
+    expand_margin = _side_expander('margin-{:s}')
+    expand_padding = _side_expander('padding-{:s}')
 
     def parse(self, declarations_str):
         """Generates (prop, value) pairs from declarations
@@ -245,4 +247,4 @@ class CSSResolver(object):
                 yield prop, val
             else:
                 warnings.warn('Ill-formatted attribute: expected a colon '
-                              'in %r' % decl, CSSWarning)
+                              'in {decl!r}'.format(decl=decl), CSSWarning)
