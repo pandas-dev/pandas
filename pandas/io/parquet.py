@@ -86,9 +86,12 @@ class PyArrowImpl(BaseImpl):
                 "\nor via pip\n"
                 "pip install -U pyarrow\n"
             )
+
+        self._pyarrow_lt_060 = (
+            LooseVersion(pyarrow.__version__) < LooseVersion('0.6.0'))
         self._pyarrow_lt_070 = (
-            LooseVersion(pyarrow.__version__) < LooseVersion('0.7.0')
-        )
+            LooseVersion(pyarrow.__version__) < LooseVersion('0.7.0'))
+
         self.api = pyarrow
 
     def write(self, df, path, compression='snappy',
@@ -99,17 +102,23 @@ class PyArrowImpl(BaseImpl):
                 df, path, compression, coerce_timestamps, **kwargs
             )
         path, _, _ = get_filepath_or_buffer(path)
-        table = self.api.Table.from_pandas(df)
-        self.api.parquet.write_table(
-            table, path, compression=compression,
-            coerce_timestamps=coerce_timestamps, **kwargs)
+
+        if self._pyarrow_lt_060:
+            table = self.api.Table.from_pandas(df, timestamps_to_ms=True)
+            self.api.parquet.write_table(
+                table, path, compression=compression, **kwargs)
+
+        else:
+            table = self.api.Table.from_pandas(df)
+            self.api.parquet.write_table(
+                table, path, compression=compression,
+                coerce_timestamps=coerce_timestamps, **kwargs)
 
     def read(self, path, columns=None, **kwargs):
         path, _, _ = get_filepath_or_buffer(path)
         parquet_file = self.api.parquet.ParquetFile(path)
         if self._pyarrow_lt_070:
-            parquet_file.path = path
-            return self._read_lt_070(parquet_file, columns, **kwargs)
+            return self._read_lt_070(path, parquet_file, columns, **kwargs)
         kwargs['use_pandas_metadata'] = True
         return parquet_file.read(columns=columns, **kwargs).to_pandas()
 
@@ -143,17 +152,17 @@ class PyArrowImpl(BaseImpl):
                 "on a default index"
             )
 
-    def _read_lt_070(self, parquet_file, columns, **kwargs):
+    def _read_lt_070(self, path, parquet_file, columns, **kwargs):
         # Compatibility shim for pyarrow < 0.7.0
         # TODO: Remove in pandas 0.22.0
         from itertools import chain
         import json
         if columns is not None:
-            metadata = json.loads(parquet_file.metadata.metadata[b'pandas'])
+            metadata = json.loads(
+                parquet_file.metadata.metadata[b'pandas'].decode('utf-8'))
             columns = set(chain(columns, metadata['index_columns']))
         kwargs['columns'] = columns
-        kwargs['path'] = parquet_file.path
-        return self.api.parquet.read_table(**kwargs).to_pandas()
+        return self.api.parquet.read_table(path, **kwargs).to_pandas()
 
 
 class FastParquetImpl(BaseImpl):

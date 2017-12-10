@@ -296,8 +296,13 @@ class TestBasic(Base):
                               write_kwargs={'compression': None},
                               read_kwargs={'columns': ['string']})
 
-    def test_write_with_index(self, engine):
+    def test_write_index(self, engine):
         check_names = engine != 'fastparquet'
+
+        if engine == 'pyarrow':
+            import pyarrow
+            if LooseVersion(pyarrow.__version__) < LooseVersion('0.7.0'):
+                pytest.skip("pyarrow is < 0.7.0")
 
         df = pd.DataFrame({'A': [1, 2, 3]})
         self.check_round_trip(df, engine, write_kwargs={'compression': None})
@@ -314,34 +319,31 @@ class TestBasic(Base):
             self.check_round_trip(
                 df, engine,
                 write_kwargs={'compression': None},
-                check_names=check_names,
-            )
-        if engine != 'fastparquet':
-            # Not suppoprted in fastparquet as of 0.1.3
-            index = pd.MultiIndex.from_tuples([('a', 1), ('a', 2), ('b', 1)])
-            df.index = index
-            self.check_round_trip(
-                df, engine,
-                write_kwargs={'compression': None},
-            )
+                check_names=check_names)
+
         # index with meta-data
         df.index = [0, 1, 2]
         df.index.name = 'foo'
-        self.check_round_trip(
-            df, engine,
-            write_kwargs={'compression': None}
-        )
+        self.check_round_trip( df, engine, write_kwargs={'compression': None})
 
+    def test_write_multiindex(self, pa_ge_070):
+        # Not suppoprted in fastparquet as of 0.1.3 or older pyarrow version
+        engine = pa_ge_070
+
+        df = pd.DataFrame({'A': [1, 2, 3]})
+        index = pd.MultiIndex.from_tuples([('a', 1), ('a', 2), ('b', 1)])
+        df.index = index
+        self.check_round_trip(df, engine, write_kwargs={'compression': None})
+
+    def test_write_column_multiindex(self, engine):
         # column multi-index
-        df.index = [0, 1, 2]
-        df.columns = pd.MultiIndex.from_tuples([('a', 1), ('a', 2), ('b', 1)]),
+        mi_columns = pd.MultiIndex.from_tuples([('a', 1), ('a', 2), ('b', 1)])
+        df = pd.DataFrame(np.random.randn(4, 3), columns=mi_columns)
         self.check_error_on_write(df, engine, ValueError)
 
-    def test_multiindex_with_columns(self, engine):
-        if engine == 'fastparquet':
-            msg = "fastparquet doesn't support mulit-indexes as of 0.1.3"
-            pytest.xfail(msg)
+    def test_multiindex_with_columns(self, pa_ge_070):
 
+        engine = pa_ge_070
         dates = pd.date_range('01-Jan-2018', '01-Dec-2018', freq='MS')
         df = pd.DataFrame(randn(2 * len(dates), 3), columns=list('ABC'))
         index1 = pd.MultiIndex.from_product(
