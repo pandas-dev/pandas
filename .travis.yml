@@ -81,7 +81,7 @@ matrix:
         env:
           - JOB="2.7_SLOW" SLOW=true
       - dist: trusty
-      env:
+        env:
         - JOB="3.6_CONDA_BUILD_TEST" TEST_ARGS="--skip-slow" BUILD_TEST=true
       - dist: trusty
         env:
