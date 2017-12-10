@@ -403,9 +403,11 @@ class Float64Index(NumericIndex):
             try:
                 return len(other) <= 1 and ibase._try_get_item(other) in self
             except TypeError:
-                return False
-        except:
-            return False
+                pass
+        except TypeError:
+            pass
+
+        return False
 
     @Appender(_index_shared_docs['get_loc'])
     def get_loc(self, key, method=None, tolerance=None):
