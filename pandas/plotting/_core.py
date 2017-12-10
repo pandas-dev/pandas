@@ -19,7 +19,7 @@ from pandas.core.dtypes.common import (
     is_number,
     is_hashable,
     is_iterator)
-from pandas.core.dtypes.generic import ABCSeries
+from pandas.core.dtypes.generic import ABCSeries, ABCDataFrame
 
 from pandas.core.common import AbstractMethodError, _try_sort, _any_not_none
 from pandas.core.generic import _shared_docs, _shared_doc_kwargs
@@ -1680,9 +1680,8 @@ def _plot(data, x=None, y=None, subplots=False,
     else:
         raise ValueError("%r is not a valid plot kind" % kind)
 
-    from pandas import DataFrame
     if kind in _dataframe_kinds:
-        if isinstance(data, DataFrame):
+        if isinstance(data, ABCDataFrame):
             plot_obj = klass(data, x=x, y=y, subplots=subplots, ax=ax,
                              kind=kind, **kwds)
         else:
@@ -1690,7 +1689,7 @@ def _plot(data, x=None, y=None, subplots=False,
                              % kind)
 
     elif kind in _series_kinds:
-        if isinstance(data, DataFrame):
+        if isinstance(data, ABCDataFrame):
             if y is None and subplots is False:
                 msg = "{0} requires either y column or 'subplots=True'"
                 raise ValueError(msg.format(kind))
@@ -1702,15 +1701,19 @@ def _plot(data, x=None, y=None, subplots=False,
                 data.index.name = y
         plot_obj = klass(data, subplots=subplots, ax=ax, kind=kind, **kwds)
     else:
-        if isinstance(data, DataFrame):
+        if isinstance(data, ABCDataFrame):
             if x is not None:
                 if is_integer(x) and not data.columns.holds_integer():
                     x = data.columns[x]
+                elif not isinstance(data[x], ABCSeries):
+                    raise ValueError("x must be a label or position")
                 data = data.set_index(x)
 
             if y is not None:
                 if is_integer(y) and not data.columns.holds_integer():
                     y = data.columns[y]
+                elif not isinstance(data[y], ABCSeries):
+                    raise ValueError("y must be a label or position")
                 label = kwds['label'] if 'label' in kwds else y
                 series = data[y].copy()  # Don't modify
                 series.name = label
