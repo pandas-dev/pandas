@@ -189,7 +189,7 @@ Other API Changes
 - :func:`pandas.DataFrame.merge` no longer casts a ``float`` column to ``object`` when merging on ``int`` and ``float`` columns (:issue:`16572`)
 - The default NA value for :class:`UInt64Index` has changed from 0 to ``NaN``, which impacts methods that mask with NA, such as ``UInt64Index.where()`` (:issue:`18398`)
 - Refactored ``setup.py`` to use ``find_packages`` instead of explicitly listing out all subpackages (:issue:`18535`)
-- Rearranged the order of keyword arguments in :func:`read_excel()` to align with :func:`read_csv()` (:pr:`16672`)
+- Rearranged the order of keyword arguments in :func:`read_excel()` to align with :func:`read_csv()` (:issue:`16672`)
 - :func:`pandas.merge` now raises a ``ValueError`` when trying to merge on incompatible data types (:issue:`9780`)
 
 .. _whatsnew_0220.deprecations:
@@ -272,7 +272,8 @@ Indexing
 - Bug in :func:`IntervalIndex.symmetric_difference` where the symmetric difference with a non-``IntervalIndex`` did not raise (:issue:`18475`)
 - Bug in indexing a datetimelike ``Index`` that raised ``ValueError`` instead of ``IndexError`` (:issue:`18386`).
 - Bug in tz-aware :class:`DatetimeIndex` where addition/subtraction with a :class:`TimedeltaIndex` or array with ``dtype='timedelta64[ns]'`` was incorrect (:issue:`17558`)
-- Bug in :func:`Index.to_series` where kwargs were not passed to :class:`Series` constructor (:issue:`18699`)
+- :func:`Index.to_series` now accepts ``index`` and ``name`` kwargs (:issue:`18699`)
+- :func:`DatetimeIndex.to_series` now accepts ``index`` and ``name`` kwargs (:issue:`18699`)
 
 I/O
 ^^^
