@@ -2850,7 +2850,15 @@ def _get_grouper(obj, key=None, axis=0, level=None, sort=True,
     elif isinstance(key, BaseGrouper):
         return key, [], obj
 
-    # Everything which is not a list is a key (including tuples):
+    tuple_as_list = isinstance(key, tuple) and key not in obj
+    if tuple_as_list:
+        msg = ("Interpreting tuple 'by' as a list of keys, rather than "
+               "a single key. Use 'by={!r}' instead of 'by={!r}'. In the "
+               "future, a tuple will always mean a single key.".format(
+                   list(key), key))
+        warnings.warn(msg, FutureWarning, stacklevel=5)
+        key = list(key)
+
     if not isinstance(key, list):
         keys = [key]
         match_axis_length = False

@@ -2727,6 +2727,23 @@ class TestGroupBy(MixIn):
 
         assert_frame_equal(result, expected)
 
+    def test_tuple_warns(self):
+        # https://github.com/pandas-dev/pandas/issues/18314
+        df = pd.DataFrame({('a', 'b'): [1, 1, 2, 2], 'a': [1, 1, 1, 2],
+                           'b': [1, 2, 2, 2], 'c': [1, 1, 1, 1]})
+        with tm.assert_produces_warning(FutureWarning) as w:
+            df[['a', 'b', 'c']].groupby(('a', 'b')).c.mean()
+
+        assert "Interpreting tuple 'by' as a list" in str(w[0].message)
+
+        with tm.assert_produces_warning(FutureWarning) as w:
+            df[['a', 'b', 'c']].groupby(('a', 'b')).c.mean()
+
+        assert "Interpreting tuple 'by' as a list" in str(w[0].message)
+
+        with tm.assert_produces_warning(None):
+            df.groupby(('a', 'b')).c.mean()
+
 
 def _check_groupby(df, result, keys, field, f=lambda x: x.sum()):
     tups = lmap(tuple, df[keys].values)
