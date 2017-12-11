@@ -148,9 +148,6 @@ skiprows : list-like or integer or callable, default None
     An example of a valid callable argument would be ``lambda x: x in [0, 2]``.
 skipfooter : int, default 0
     Number of lines at bottom of file to skip (Unsupported with engine='c')
-skip_footer : int, default 0
-    .. deprecated:: 0.19.0
-       Use the `skipfooter` parameter instead, as they are identical
 nrows : int, default None
     Number of rows of file to read. Useful for reading pieces of large files
 na_values : scalar, str, list-like, or dict, default None
@@ -613,7 +610,6 @@ def _make_parser_function(name, sep=','):
                  warn_bad_lines=True,
 
                  skipfooter=0,
-                 skip_footer=0,  # deprecated
 
                  # Internal
                  doublequote=True,
@@ -640,13 +636,6 @@ def _make_parser_function(name, sep=','):
         else:
             engine = 'c'
             engine_specified = False
-
-        if skip_footer != 0:
-            warnings.warn("The 'skip_footer' argument has "
-                          "been deprecated and will be removed "
-                          "in a future version. Please use the "
-                          "'skipfooter' argument instead.",
-                          FutureWarning, stacklevel=2)
 
         kwds = dict(delimiter=delimiter,
                     engine=engine,
@@ -682,7 +671,7 @@ def _make_parser_function(name, sep=','):
                     nrows=nrows,
                     iterator=iterator,
                     chunksize=chunksize,
-                    skipfooter=skipfooter or skip_footer,
+                    skipfooter=skipfooter,
                     converters=converters,
                     dtype=dtype,
                     usecols=usecols,

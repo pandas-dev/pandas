@@ -16,6 +16,7 @@ from pandas import (CategoricalIndex, DataFrame, Index, MultiIndex,
                     compat, date_range, period_range)
 from pandas.compat import PY3, long, lrange, lzip, range, u, PYPY
 from pandas.errors import PerformanceWarning, UnsortedIndexError
+from pandas.core.dtypes.dtypes import CategoricalDtype
 from pandas.core.indexes.base import InvalidIndexError
 from pandas._libs import lib
 from pandas._libs.lib import Timestamp
@@ -553,6 +554,18 @@ class TestMultiIndex(Base):
 
         with tm.assert_raises_regex(TypeError, "^Setting.*dtype.*object"):
             self.index.astype(np.dtype(int))
+
+    @pytest.mark.parametrize('ordered', [True, False])
+    def test_astype_category(self, ordered):
+        # GH 18630
+        msg = '> 1 ndim Categorical are not supported at this time'
+        with tm.assert_raises_regex(NotImplementedError, msg):
+            self.index.astype(CategoricalDtype(ordered=ordered))
+
+        if ordered is False:
+            # dtype='category' defaults to ordered=False, so only test once
+            with tm.assert_raises_regex(NotImplementedError, msg):
+                self.index.astype('category')
 
     def test_constructor_single_level(self):
         result = MultiIndex(levels=[['foo', 'bar', 'baz', 'qux']],

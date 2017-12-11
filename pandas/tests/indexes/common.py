@@ -13,6 +13,7 @@ from pandas import (Series, Index, Float64Index, Int64Index, UInt64Index,
 from pandas.core.indexes.base import InvalidIndexError
 from pandas.core.indexes.datetimelike import DatetimeIndexOpsMixin
 from pandas.core.dtypes.common import needs_i8_conversion
+from pandas.core.dtypes.dtypes import CategoricalDtype
 from pandas._libs.tslib import iNaT
 
 import pandas.util.testing as tm
@@ -1058,3 +1059,30 @@ class Base(object):
 
         with pytest.raises(ValueError):
             index.putmask('foo', 1)
+
+    @pytest.mark.parametrize('copy', [True, False])
+    @pytest.mark.parametrize('name', [None, 'foo'])
+    @pytest.mark.parametrize('ordered', [True, False])
+    def test_astype_category(self, copy, name, ordered):
+        # GH 18630
+        index = self.create_index()
+        if name:
+            index = index.rename(name)
+
+        # standard categories
+        dtype = CategoricalDtype(ordered=ordered)
+        result = index.astype(dtype, copy=copy)
+        expected = CategoricalIndex(index.values, name=name, ordered=ordered)
+        tm.assert_index_equal(result, expected)
+
+        # non-standard categories
+        dtype = CategoricalDtype(index.unique().tolist()[:-1], ordered)
+        result = index.astype(dtype, copy=copy)
+        expected = CategoricalIndex(index.values, name=name, dtype=dtype)
+        tm.assert_index_equal(result, expected)
+
+        if ordered is False:
+            # dtype='category' defaults to ordered=False, so only test once
+            result = index.astype('category', copy=copy)
+            expected = CategoricalIndex(index.values, name=name)
+            tm.assert_index_equal(result, expected)

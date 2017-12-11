@@ -19,6 +19,7 @@ from pandas.compat import lrange, range
 import pandas.core.algorithms as algos
 from pandas.core.common import _asarray_tuplesafe
 import pandas.util.testing as tm
+from pandas.core.dtypes.dtypes import CategoricalDtype as CDT
 from pandas.compat.numpy import np_array_datetime64_compat
 from pandas.util.testing import assert_almost_equal
 
@@ -565,8 +566,8 @@ class TestValueCounts(object):
         # assert isinstance(factor, n)
         result = algos.value_counts(factor)
         breaks = [-1.194, -0.535, 0.121, 0.777, 1.433]
-        expected_index = IntervalIndex.from_breaks(breaks).astype('category')
-        expected = Series([1, 1, 1, 1], index=expected_index)
+        index = IntervalIndex.from_breaks(breaks).astype(CDT(ordered=True))
+        expected = Series([1, 1, 1, 1], index=index)
         tm.assert_series_equal(result.sort_index(), expected.sort_index())
 
     def test_value_counts_bins(self):

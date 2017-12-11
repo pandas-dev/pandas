@@ -12,12 +12,15 @@ from pandas.core.dtypes.common import (
     is_object_dtype,
     is_timedelta64_dtype,
     is_timedelta64_ns_dtype,
+    is_categorical_dtype,
+    pandas_dtype,
     _ensure_int64)
 from pandas.core.dtypes.missing import isna
 from pandas.core.dtypes.generic import ABCSeries
 from pandas.core.common import _maybe_box, _values_from_object
 
 from pandas.core.indexes.base import Index
+from pandas.core.indexes.category import CategoricalIndex
 from pandas.core.indexes.numeric import Int64Index
 import pandas.compat as compat
 from pandas.compat import u
@@ -479,7 +482,7 @@ class TimedeltaIndex(DatetimeIndexOpsMixin, TimelikeOps, Int64Index):
 
     @Appender(_index_shared_docs['astype'])
     def astype(self, dtype, copy=True):
-        dtype = np.dtype(dtype)
+        dtype = pandas_dtype(dtype)
 
         if is_object_dtype(dtype):
             return self._box_values_as_index()
@@ -498,6 +501,9 @@ class TimedeltaIndex(DatetimeIndexOpsMixin, TimelikeOps, Int64Index):
         elif is_integer_dtype(dtype):
             return Index(self.values.astype('i8', copy=copy), dtype='i8',
                          name=self.name)
+        elif is_categorical_dtype(dtype):
+            return CategoricalIndex(self.values, name=self.name, dtype=dtype,
+                                    copy=copy)
         raise TypeError('Cannot cast TimedeltaIndex to dtype %s' % dtype)
 
     def union(self, other):
