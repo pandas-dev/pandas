@@ -198,10 +198,6 @@ skiprows : list-like or integer, default ``None``
 
 skipfooter : int, default ``0``
   Number of lines at bottom of file to skip (unsupported with engine='c').
-skip_footer : int, default ``0``
-  .. deprecated:: 0.19.0
-
-     Use the ``skipfooter`` parameter instead, as they are identical
 
 nrows : int, default ``None``
   Number of rows of file to read. Useful for reading pieces of large files.
