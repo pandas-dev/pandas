@@ -2475,7 +2475,7 @@ class TestGroupBy(MixIn):
         # Generate a moderately large dataframe with occasional missing
         # values in column `B`, and then group by [`A`, `B`]. This should
         # force `-1` in `labels` array of `g.grouper.group_info` exactly
-        # at those places, where the group-by key is partilly missing.
+        # at those places, where the group-by key is partially missing.
         df = DataFrame([(i % 12, i % 3 if i % 3 else np.nan, i)
                         for i in range(n_rows)], dtype=float,
                        columns=["A", "B", "Z"], index=None)
@@ -2601,13 +2601,16 @@ class TestGroupBy(MixIn):
         tm.assert_series_equal(result, expected)
 
     @pytest.mark.parametrize('in_vals, out_vals', [
+
         # Basics: strictly increasing (T), strictly decreasing (F),
         # abs val increasing (F), non-strictly increasing (T)
         ([1, 2, 5, 3, 2, 0, 4, 5, -6, 1, 1],
          [True, False, False, True]),
+
         # Test with inf vals
         ([1, 2.1, np.inf, 3, 2, np.inf, -np.inf, 5, 11, 1, -np.inf],
          [True, False, True, False]),
+
         # Test with nan vals; should always be False
         ([1, 2, np.nan, 3, 2, np.nan, np.nan, 5, -np.inf, 1, np.nan],
          [False, False, False, False]),
@@ -2620,8 +2623,8 @@ class TestGroupBy(MixIn):
             'C': in_vals}
         df = pd.DataFrame(source_dict)
         result = df.groupby('B').C.is_monotonic_increasing()
-        expected = pd.Series(index=list('abcd'), data=out_vals, name='C')
-        expected.index.name = 'B'
+        index = Index(list('abcd'), name='B')
+        expected = pd.Series(index=index, data=out_vals, name='C')
         tm.assert_series_equal(result, expected)
 
         # Also check result equal to manually taking x.is_monotonic_increasing.
@@ -2634,9 +2637,11 @@ class TestGroupBy(MixIn):
         # abs val decreasing (F), non-strictly increasing (T)
         ([10, 9, 7, 3, 4, 5, -3, 2, 0, 1, 1],
          [True, False, False, True]),
+
         # Test with inf vals
         ([np.inf, 1, -np.inf, np.inf, 2, -3, -np.inf, 5, -3, -np.inf, -np.inf],
          [True, True, False, True]),
+
         # Test with nan vals; should always be False
         ([1, 2, np.nan, 3, 2, np.nan, np.nan, 5, -np.inf, 1, np.nan],
          [False, False, False, False]),
@@ -2650,8 +2655,8 @@ class TestGroupBy(MixIn):
 
         df = pd.DataFrame(source_dict)
         result = df.groupby('B').C.is_monotonic_decreasing()
-        expected = pd.Series(index=list('abcd'), data=out_vals, name='C')
-        expected.index.name = 'B'
+        index = Index(list('abcd'), name='B')
+        expected = pd.Series(index=index, data=out_vals, name='C')
         tm.assert_series_equal(result, expected)
 
     def test_apply_numeric_coercion_when_datetime(self):

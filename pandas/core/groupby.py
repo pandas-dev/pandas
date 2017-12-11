@@ -1834,6 +1834,8 @@ class GroupBy(_GroupBy):
 
         Equivalent to ``.apply(lambda x: x.is_monotonic_increasing)``.
 
+        .. versionadded:: 0.22.0
+
         Examples
         --------
         >>> source_dict = {
@@ -1848,6 +1850,10 @@ class GroupBy(_GroupBy):
         cat_b    False
         Name: C, dtype: bool
 
+        See Also
+        --------
+        pandas.Series.is_monotonic_increasing
+        pandas.Index.is_monotonic_increasing
         """
         return self.apply(lambda x: x.is_monotonic_increasing)
 
@@ -1858,6 +1864,8 @@ class GroupBy(_GroupBy):
         Returns whether each group is monotonically decreasing.
 
         Equivalent to ``.apply(lambda x: x.is_monotonic_decreasing)``.
+
+        .. versionadded:: 0.22.0
 
         Examples
         --------
