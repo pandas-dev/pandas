@@ -416,28 +416,28 @@ def _maybe_coerce_freq(code):
     return code.upper()
 
 
-def _quarter_months_conform(source, target):
+cdef bint _quarter_months_conform(str source, str target):
     snum = MONTH_NUMBERS[source]
     tnum = MONTH_NUMBERS[target]
     return snum % 3 == tnum % 3
 
 
-def _is_annual(rule):
+cdef bint _is_annual(str rule):
     rule = rule.upper()
     return rule == 'A' or rule.startswith('A-')
 
 
-def _is_quarterly(rule):
+cdef bint _is_quarterly(str rule):
     rule = rule.upper()
     return rule == 'Q' or rule.startswith('Q-') or rule.startswith('BQ')
 
 
-def _is_monthly(rule):
+cdef bint _is_monthly(str rule):
     rule = rule.upper()
     return rule == 'M' or rule == 'BM'
 
 
-def _is_weekly(rule):
+cdef bint _is_weekly(str rule):
     rule = rule.upper()
     return rule == 'W' or rule.startswith('W-')
 
