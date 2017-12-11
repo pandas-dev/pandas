@@ -27,6 +27,7 @@ from pandas.core.dtypes.common import (
     is_dtype_equal,
     is_bool,
     is_list_like,
+    is_datetimelike,
     _ensure_int64,
     _ensure_float64,
     _ensure_object,
@@ -961,6 +962,33 @@ class _MergeOperation(object):
                 # let's infer and see if we are ok
                 elif lib.infer_dtype(lk) == lib.infer_dtype(rk):
                     pass
+
+            # Check if we are trying to merge on obviously
+            # incompatible dtypes GH 9780
+            elif is_numeric_dtype(lk) and not is_numeric_dtype(rk):
+                msg = ("You are trying to merge on {lk_dtype} and "
+                       "{rk_dtype} columns. If you wish to proceed "
+                       "you should use pd.concat".format(lk_dtype=lk.dtype,
+                                                         rk_dtype=rk.dtype))
+                raise ValueError(msg)
+            elif not is_numeric_dtype(lk) and is_numeric_dtype(rk):
+                msg = ("You are trying to merge on {lk_dtype} and "
+                       "{rk_dtype} columns. If you wish to proceed "
+                       "you should use pd.concat".format(lk_dtype=lk.dtype,
+                                                         rk_dtype=rk.dtype))
+                raise ValueError(msg)
+            elif is_datetimelike(lk) and not is_datetimelike(rk):
+                msg = ("You are trying to merge on {lk_dtype} and "
+                       "{rk_dtype} columns. If you wish to proceed "
+                       "you should use pd.concat".format(lk_dtype=lk.dtype,
+                                                         rk_dtype=rk.dtype))
+                raise ValueError(msg)
+            elif not is_datetimelike(lk) and is_datetimelike(rk):
+                msg = ("You are trying to merge on {lk_dtype} and "
+                       "{rk_dtype} columns. If you wish to proceed "
+                       "you should use pd.concat".format(lk_dtype=lk.dtype,
+                                                         rk_dtype=rk.dtype))
+                raise ValueError(msg)
 
             # Houston, we have a problem!
             # let's coerce to object if the dtypes aren't

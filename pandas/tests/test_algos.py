@@ -17,7 +17,9 @@ from pandas._libs import (groupby as libgroupby, algos as libalgos,
 from pandas._libs.hashtable import unique_label_indices
 from pandas.compat import lrange, range
 import pandas.core.algorithms as algos
+from pandas.core.common import _asarray_tuplesafe
 import pandas.util.testing as tm
+from pandas.core.dtypes.dtypes import CategoricalDtype as CDT
 from pandas.compat.numpy import np_array_datetime64_compat
 from pandas.util.testing import assert_almost_equal
 
@@ -189,6 +191,33 @@ class TestFactorize(object):
         expected = np.array([2, -1, 0], dtype='int32')
         assert len(set(key)) == len(set(expected))
         tm.assert_numpy_array_equal(pd.isna(key), expected == na_sentinel)
+
+    @pytest.mark.parametrize("data,expected_label,expected_level", [
+        (
+            [(1, 1), (1, 2), (0, 0), (1, 2), 'nonsense'],
+            [0, 1, 2, 1, 3],
+            [(1, 1), (1, 2), (0, 0), 'nonsense']
+        ),
+        (
+            [(1, 1), (1, 2), (0, 0), (1, 2), (1, 2, 3)],
+            [0, 1, 2, 1, 3],
+            [(1, 1), (1, 2), (0, 0), (1, 2, 3)]
+        ),
+        (
+            [(1, 1), (1, 2), (0, 0), (1, 2)],
+            [0, 1, 2, 1],
+            [(1, 1), (1, 2), (0, 0)]
+        )
+    ])
+    def test_factorize_tuple_list(self, data, expected_label, expected_level):
+        # GH9454
+        result = pd.factorize(data)
+
+        tm.assert_numpy_array_equal(result[0],
+                                    np.array(expected_label, dtype=np.intp))
+
+        expected_level_array = _asarray_tuplesafe(expected_level, dtype=object)
+        tm.assert_numpy_array_equal(result[1], expected_level_array)
 
     def test_complex_sorting(self):
         # gh 12666 - check no segfault
@@ -537,8 +566,8 @@ class TestValueCounts(object):
         # assert isinstance(factor, n)
         result = algos.value_counts(factor)
         breaks = [-1.194, -0.535, 0.121, 0.777, 1.433]
-        expected_index = IntervalIndex.from_breaks(breaks).astype('category')
-        expected = Series([1, 1, 1, 1], index=expected_index)
+        index = IntervalIndex.from_breaks(breaks).astype(CDT(ordered=True))
+        expected = Series([1, 1, 1, 1], index=index)
         tm.assert_series_equal(result.sort_index(), expected.sort_index())
 
     def test_value_counts_bins(self):
