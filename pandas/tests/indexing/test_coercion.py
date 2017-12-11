@@ -544,231 +544,120 @@ class TestWhereCoercion(CoercionBase):
         res = target.where(cond, values)
         self._assert(res, expected, expected_dtype)
 
-    def _where_object_common(self, klass):
+    @pytest.mark.parametrize("klass", [pd.Series, pd.Index])
+    @pytest.mark.parametrize("fill_val,exp_dtype", [
+        (1, np.object),
+        (1.1, np.object),
+        (1 + 1j, np.object),
+        (True, np.object)])
+    def test_where_object(self, klass, fill_val,exp_dtype):
         obj = klass(list('abcd'))
         assert obj.dtype == np.object
         cond = klass([True, False, True, False])
 
-        # object + int -> object
-        exp = klass(['a', 1, 'c', 1])
-        self._assert_where_conversion(obj, cond, 1, exp, np.object)
-
-        values = klass([5, 6, 7, 8])
-        exp = klass(['a', 6, 'c', 8])
-        self._assert_where_conversion(obj, cond, values, exp, np.object)
-
-        # object + float -> object
-        exp = klass(['a', 1.1, 'c', 1.1])
-        self._assert_where_conversion(obj, cond, 1.1, exp, np.object)
-
-        values = klass([5.5, 6.6, 7.7, 8.8])
-        exp = klass(['a', 6.6, 'c', 8.8])
-        self._assert_where_conversion(obj, cond, values, exp, np.object)
-
-        # object + complex -> object
-        exp = klass(['a', 1 + 1j, 'c', 1 + 1j])
-        self._assert_where_conversion(obj, cond, 1 + 1j, exp, np.object)
-
-        values = klass([5 + 5j, 6 + 6j, 7 + 7j, 8 + 8j])
-        exp = klass(['a', 6 + 6j, 'c', 8 + 8j])
-        self._assert_where_conversion(obj, cond, values, exp, np.object)
-
-        if klass is pd.Series:
-            exp = klass(['a', 1, 'c', 1])
-            self._assert_where_conversion(obj, cond, True, exp, np.object)
-
-            values = klass([True, False, True, True])
-            exp = klass(['a', 0, 'c', 1])
-            self._assert_where_conversion(obj, cond, values, exp, np.object)
-        elif klass is pd.Index:
-            # object + bool -> object
-            exp = klass(['a', True, 'c', True])
-            self._assert_where_conversion(obj, cond, True, exp, np.object)
-
-            values = klass([True, False, True, True])
-            exp = klass(['a', False, 'c', True])
-            self._assert_where_conversion(obj, cond, values, exp, np.object)
+        if fill_val is True and klass is pd.Series:
+            ret_val = 1
         else:
-            NotImplementedError
+            ret_val = fill_val
 
-    def test_where_series_object(self):
-        self._where_object_common(pd.Series)
+        exp = klass(['a', ret_val, 'c', ret_val])
+        self._assert_where_conversion(obj, cond, fill_val, exp, exp_dtype)
 
-    def test_where_index_object(self):
-        self._where_object_common(pd.Index)
+        if fill_val is True:
+            values = klass([True, False, True, True])
+        else:
+            values = klass(fill_val*x for x in [5, 6, 7, 8])
+            
+        exp = klass(['a', values[1], 'c', values[3]])
+        self._assert_where_conversion(obj, cond, values, exp, exp_dtype)
 
-    def _where_int64_common(self, klass):
+    @pytest.mark.parametrize("klass", [pd.Series, pd.Index])
+    @pytest.mark.parametrize("fill_val,exp_dtype", [
+        (1, np.int64),
+        (1.1, np.float64),
+        (1 + 1j, np.complex128),
+        (True, np.object)])
+    def test_where_int64(self, klass, fill_val, exp_dtype):
+        if klass is pd.Index and exp_dtype is np.complex128:
+            pytest.skip("Complex Index not supported")
         obj = klass([1, 2, 3, 4])
         assert obj.dtype == np.int64
         cond = klass([True, False, True, False])
 
-        # int + int -> int
-        exp = klass([1, 1, 3, 1])
-        self._assert_where_conversion(obj, cond, 1, exp, np.int64)
+        exp = klass([1, fill_val, 3, fill_val])
+        self._assert_where_conversion(obj, cond, fill_val, exp, exp_dtype)
 
-        values = klass([5, 6, 7, 8])
-        exp = klass([1, 6, 3, 8])
-        self._assert_where_conversion(obj, cond, values, exp, np.int64)
+        if fill_val is True:
+            values = klass([True, False, True, True])
+        else:
+            values = klass(x*fill_val for x in [5, 6, 7, 8])
+        exp = klass([1, values[1], 3, values[3]])
+        self._assert_where_conversion(obj, cond, values, exp, exp_dtype)
 
-        # int + float -> float
-        exp = klass([1, 1.1, 3, 1.1])
-        self._assert_where_conversion(obj, cond, 1.1, exp, np.float64)
-
-        values = klass([5.5, 6.6, 7.7, 8.8])
-        exp = klass([1, 6.6, 3, 8.8])
-        self._assert_where_conversion(obj, cond, values, exp, np.float64)
-
-        # int + complex -> complex
-        if klass is pd.Series:
-            exp = klass([1, 1 + 1j, 3, 1 + 1j])
-            self._assert_where_conversion(obj, cond, 1 + 1j, exp,
-                                          np.complex128)
-
-            values = klass([5 + 5j, 6 + 6j, 7 + 7j, 8 + 8j])
-            exp = klass([1, 6 + 6j, 3, 8 + 8j])
-            self._assert_where_conversion(obj, cond, values, exp,
-                                          np.complex128)
-
-        # int + bool -> object
-        exp = klass([1, True, 3, True])
-        self._assert_where_conversion(obj, cond, True, exp, np.object)
-
-        values = klass([True, False, True, True])
-        exp = klass([1, False, 3, True])
-        self._assert_where_conversion(obj, cond, values, exp, np.object)
-
-    def test_where_series_int64(self):
-        self._where_int64_common(pd.Series)
-
-    def test_where_index_int64(self):
-        self._where_int64_common(pd.Index)
-
-    def _where_float64_common(self, klass):
+    @pytest.mark.parametrize("klass", [pd.Series, pd.Index])
+    @pytest.mark.parametrize("fill_val, exp_dtype", [
+        (1, np.float64),
+        (1.1, np.float64),
+        (1 + 1j, np.complex128),
+        (True, np.object)])
+    def test_where_float64(self, klass, fill_val, exp_dtype):
+        if klass is pd.Index and exp_dtype is np.complex128:
+            pytest.skip("Complex Index not supported")        
         obj = klass([1.1, 2.2, 3.3, 4.4])
         assert obj.dtype == np.float64
         cond = klass([True, False, True, False])
 
-        # float + int -> float
-        exp = klass([1.1, 1.0, 3.3, 1.0])
-        self._assert_where_conversion(obj, cond, 1, exp, np.float64)
+        exp = klass([1.1, fill_val, 3.3, fill_val])
+        self._assert_where_conversion(obj, cond, fill_val, exp, exp_dtype)
 
-        values = klass([5, 6, 7, 8])
-        exp = klass([1.1, 6.0, 3.3, 8.0])
-        self._assert_where_conversion(obj, cond, values, exp, np.float64)
+        if fill_val is True:
+            values = klass([True, False, True, True])
+        else:
+            values = klass(x*fill_val for x in [5, 6, 7, 8])
+        exp = klass([1.1, values[1], 3.3, values[3]])
+        self._assert_where_conversion(obj, cond, values, exp, exp_dtype)
 
-        # float + float -> float
-        exp = klass([1.1, 1.1, 3.3, 1.1])
-        self._assert_where_conversion(obj, cond, 1.1, exp, np.float64)
-
-        values = klass([5.5, 6.6, 7.7, 8.8])
-        exp = klass([1.1, 6.6, 3.3, 8.8])
-        self._assert_where_conversion(obj, cond, values, exp, np.float64)
-
-        # float + complex -> complex
-        if klass is pd.Series:
-            exp = klass([1.1, 1 + 1j, 3.3, 1 + 1j])
-            self._assert_where_conversion(obj, cond, 1 + 1j, exp,
-                                          np.complex128)
-
-            values = klass([5 + 5j, 6 + 6j, 7 + 7j, 8 + 8j])
-            exp = klass([1.1, 6 + 6j, 3.3, 8 + 8j])
-            self._assert_where_conversion(obj, cond, values, exp,
-                                          np.complex128)
-
-        # float + bool -> object
-        exp = klass([1.1, True, 3.3, True])
-        self._assert_where_conversion(obj, cond, True, exp, np.object)
-
-        values = klass([True, False, True, True])
-        exp = klass([1.1, False, 3.3, True])
-        self._assert_where_conversion(obj, cond, values, exp, np.object)
-
-    def test_where_series_float64(self):
-        self._where_float64_common(pd.Series)
-
-    def test_where_index_float64(self):
-        self._where_float64_common(pd.Index)
-
-    def test_where_series_complex128(self):
+    @pytest.mark.parametrize("fill_val,exp_dtype", [
+        (1, np.complex128),
+        (1.1, np.complex128),
+        (1 + 1j, np.complex128),
+        (True, np.object)])
+    def test_where_series_complex128(self, fill_val, exp_dtype):
         obj = pd.Series([1 + 1j, 2 + 2j, 3 + 3j, 4 + 4j])
         assert obj.dtype == np.complex128
         cond = pd.Series([True, False, True, False])
 
         # complex + int -> complex
-        exp = pd.Series([1 + 1j, 1, 3 + 3j, 1])
-        self._assert_where_conversion(obj, cond, 1, exp, np.complex128)
+        exp = pd.Series([1 + 1j, fill_val, 3 + 3j, fill_val])
+        self._assert_where_conversion(obj, cond, fill_val, exp, exp_dtype)
 
-        values = pd.Series([5, 6, 7, 8])
-        exp = pd.Series([1 + 1j, 6.0, 3 + 3j, 8.0])
-        self._assert_where_conversion(obj, cond, values, exp, np.complex128)
+        if fill_val is True:
+            values = pd.Series([True, False, True, True])
+        else:
+            values = pd.Series(x*fill_val for x in [5, 6, 7, 8])
+        exp = pd.Series([1 + 1j, values[1], 3 + 3j, values[3]])
+        self._assert_where_conversion(obj, cond, values, exp, exp_dtype)
 
-        # complex + float -> complex
-        exp = pd.Series([1 + 1j, 1.1, 3 + 3j, 1.1])
-        self._assert_where_conversion(obj, cond, 1.1, exp, np.complex128)
-
-        values = pd.Series([5.5, 6.6, 7.7, 8.8])
-        exp = pd.Series([1 + 1j, 6.6, 3 + 3j, 8.8])
-        self._assert_where_conversion(obj, cond, values, exp, np.complex128)
-
-        # complex + complex -> complex
-        exp = pd.Series([1 + 1j, 1 + 1j, 3 + 3j, 1 + 1j])
-        self._assert_where_conversion(obj, cond, 1 + 1j, exp, np.complex128)
-
-        values = pd.Series([5 + 5j, 6 + 6j, 7 + 7j, 8 + 8j])
-        exp = pd.Series([1 + 1j, 6 + 6j, 3 + 3j, 8 + 8j])
-        self._assert_where_conversion(obj, cond, values, exp, np.complex128)
-
-        # complex + bool -> object
-        exp = pd.Series([1 + 1j, True, 3 + 3j, True])
-        self._assert_where_conversion(obj, cond, True, exp, np.object)
-
-        values = pd.Series([True, False, True, True])
-        exp = pd.Series([1 + 1j, False, 3 + 3j, True])
-        self._assert_where_conversion(obj, cond, values, exp, np.object)
-
-    def test_where_index_complex128(self):
-        pass
-
-    def test_where_series_bool(self):
+    @pytest.mark.parametrize("fill_val,exp_dtype", [
+        (1, np.object),
+        (1.1, np.object),
+        (1 + 1j, np.object),
+        (True, np.bool)])
+    def test_where_series_bool(self, fill_val, exp_dtype):
 
         obj = pd.Series([True, False, True, False])
         assert obj.dtype == np.bool
         cond = pd.Series([True, False, True, False])
 
-        # bool + int -> object
-        exp = pd.Series([True, 1, True, 1])
-        self._assert_where_conversion(obj, cond, 1, exp, np.object)
+        exp = pd.Series([True, fill_val, True, fill_val])
+        self._assert_where_conversion(obj, cond, fill_val, exp, exp_dtype)
 
-        values = pd.Series([5, 6, 7, 8])
-        exp = pd.Series([True, 6, True, 8])
-        self._assert_where_conversion(obj, cond, values, exp, np.object)
-
-        # bool + float -> object
-        exp = pd.Series([True, 1.1, True, 1.1])
-        self._assert_where_conversion(obj, cond, 1.1, exp, np.object)
-
-        values = pd.Series([5.5, 6.6, 7.7, 8.8])
-        exp = pd.Series([True, 6.6, True, 8.8])
-        self._assert_where_conversion(obj, cond, values, exp, np.object)
-
-        # bool + complex -> object
-        exp = pd.Series([True, 1 + 1j, True, 1 + 1j])
-        self._assert_where_conversion(obj, cond, 1 + 1j, exp, np.object)
-
-        values = pd.Series([5 + 5j, 6 + 6j, 7 + 7j, 8 + 8j])
-        exp = pd.Series([True, 6 + 6j, True, 8 + 8j])
-        self._assert_where_conversion(obj, cond, values, exp, np.object)
-
-        # bool + bool -> bool
-        exp = pd.Series([True, True, True, True])
-        self._assert_where_conversion(obj, cond, True, exp, np.bool)
-
-        values = pd.Series([True, False, True, True])
-        exp = pd.Series([True, False, True, True])
-        self._assert_where_conversion(obj, cond, values, exp, np.bool)
-
-    def test_where_index_bool(self):
-        pass
+        if fill_val is True:
+            values = pd.Series([True, False, True, True])
+        else:
+            values = pd.Series(x*fill_val for x in [5, 6, 7, 8])        
+        exp = pd.Series([True, values[1], True, values[3]])
+        self._assert_where_conversion(obj, cond, values, exp, exp_dtype)
 
     def test_where_series_datetime64(self):
         obj = pd.Series([pd.Timestamp('2011-01-01'),
