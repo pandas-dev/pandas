@@ -36,7 +36,7 @@ class BaseIO(object):
             # causes an exception to be raised
             pass
 
-    def teardown(self):
+    def teardown(self, *args, **kwargs):
         self.remove(self.fname)
 
 # try em until it works!
