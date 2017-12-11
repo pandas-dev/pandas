@@ -41,6 +41,8 @@ from dateutil.relativedelta import relativedelta
 from dateutil.parser import DEFAULTPARSER
 from dateutil.parser import parse as du_parse
 
+from ccalendar import MONTH_NUMBERS
+
 # ----------------------------------------------------------------------
 # Constants
 
@@ -53,10 +55,6 @@ _nat_strings = set(['NaT', 'nat', 'NAT', 'nan', 'NaN', 'NAN'])
 
 _DEFAULT_DATETIME = datetime(1, 1, 1).replace(hour=0, minute=0,
                                               second=0, microsecond=0)
-_MONTHS = ['JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN', 'JUL',
-           'AUG', 'SEP', 'OCT', 'NOV', 'DEC']
-_MONTH_NUMBERS = {k: i for i, k in enumerate(_MONTHS)}
-_MONTH_ALIASES = {(k + 1): v for k, v in enumerate(_MONTHS)}
 
 cdef object _TIMEPAT = re.compile(r'^([01]?[0-9]|2[0-3]):([0-5][0-9])')
 
@@ -267,7 +265,7 @@ cdef inline object _parse_dateabbr_string(object date_string, object default,
             if freq is not None:
                 # hack attack, #1228
                 try:
-                    mnum = _MONTH_NUMBERS[_get_rule_month(freq)] + 1
+                    mnum = MONTH_NUMBERS[_get_rule_month(freq)] + 1
                 except (KeyError, ValueError):
                     msg = ('Unable to retrieve month information from given '
                            'freq: {0}').format(freq)

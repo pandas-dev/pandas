@@ -22,8 +22,8 @@ from pandas.compat import range, lrange, zip, product, OrderedDict
 from pandas.core.base import SpecificationError, AbstractMethodError
 from pandas.errors import UnsupportedFunctionCall
 from pandas.core.groupby import DataError
-from pandas._libs.tslibs.resolution import DAYS
-from pandas._libs.tslibs.frequencies import _MONTHS
+
+from pandas._libs.tslibs.ccalendar import DAYS, MONTHS
 from pandas.tseries.frequencies import to_offset
 from pandas.core.indexes.datetimes import date_range
 from pandas.tseries.offsets import Minute, BDay
@@ -2334,7 +2334,7 @@ class TestPeriodIndex(Base):
         self._check_annual_upsample_cases('M', 'end', 'bfill')
 
     def _check_annual_upsample_cases(self, targ, conv, meth, end='12/31/1991'):
-        for month in _MONTHS:
+        for month in MONTHS:
             ts = _simple_pts('1/1/1990', end, freq='A-%s' % month)
 
             result = getattr(ts.resample(targ, convention=conv), meth)()
@@ -2401,7 +2401,7 @@ class TestPeriodIndex(Base):
     def test_quarterly_upsample(self):
         targets = ['D', 'B', 'M']
 
-        for month in _MONTHS:
+        for month in MONTHS:
             ts = _simple_pts('1/1/1990', '12/31/1995', freq='Q-%s' % month)
 
             for targ, conv in product(targets, ['start', 'end']):
@@ -2538,7 +2538,7 @@ class TestPeriodIndex(Base):
         assert_series_equal(result, expected)
 
     def test_resample_to_quarterly(self):
-        for month in _MONTHS:
+        for month in MONTHS:
             ts = _simple_pts('1990', '1992', freq='A-%s' % month)
             quar_ts = ts.resample('Q-%s' % month).ffill()
 

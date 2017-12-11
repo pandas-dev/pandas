@@ -6,8 +6,9 @@ import pandas.util.testing as tm
 import pandas.core.indexes.period as period
 from pandas.compat import lrange
 
-from pandas._libs.tslibs.frequencies import get_freq, _MONTHS
+from pandas._libs.tslibs.frequencies import get_freq
 from pandas._libs.tslibs.period import period_ordinal, period_asfreq
+from pandas._libs.ccalendar import MONTHS
 
 from pandas import (PeriodIndex, Period, DatetimeIndex, Timestamp, Series,
                     date_range, to_datetime, period_range)
@@ -337,7 +338,7 @@ class TestPeriodIndex(object):
 
     def test_to_period_quarterly(self):
         # make sure we can make the round trip
-        for month in _MONTHS:
+        for month in MONTHS:
             freq = 'Q-%s' % month
             rng = period_range('1989Q3', '1991Q3', freq=freq)
             stamps = rng.to_timestamp()

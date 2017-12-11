@@ -11,12 +11,10 @@ np.import_array()
 
 from util cimport is_integer_object, is_string_object
 
+from ccalendar import MONTH_NUMBERS
+
 # ----------------------------------------------------------------------
 # Constants
-
-_MONTHS = ['JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN', 'JUL',
-           'AUG', 'SEP', 'OCT', 'NOV', 'DEC']
-_MONTH_NUMBERS = {k: i for i, k in enumerate(_MONTHS)}
 
 # hack to handle WOM-1MON
 opattern = re.compile(
@@ -419,8 +417,8 @@ def _maybe_coerce_freq(code):
 
 
 def _quarter_months_conform(source, target):
-    snum = _MONTH_NUMBERS[source]
-    tnum = _MONTH_NUMBERS[target]
+    snum = MONTH_NUMBERS[source]
+    tnum = MONTH_NUMBERS[target]
     return snum % 3 == tnum % 3
 
 
