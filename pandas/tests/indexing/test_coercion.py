@@ -62,169 +62,125 @@ class TestSetitemCoercion(CoercionBase):
         # temp.loc[1] = loc_value
         # tm.assert_series_equal(temp, expected_series)
 
-    def test_setitem_series_object(self):
+    @pytest.mark.parametrize("val,exp_dtype", [
+        (1, np.object),
+        (1.1, np.object),
+        (1 + 1j, np.object),
+        (True, np.object)])
+    def test_setitem_series_object(self, val, exp_dtype):
         obj = pd.Series(list('abcd'))
         assert obj.dtype == np.object
 
-        # object + int -> object
-        exp = pd.Series(['a', 1, 'c', 'd'])
-        self._assert_setitem_series_conversion(obj, 1, exp, np.object)
-
-        # object + float -> object
-        exp = pd.Series(['a', 1.1, 'c', 'd'])
-        self._assert_setitem_series_conversion(obj, 1.1, exp, np.object)
-
-        # object + complex -> object
-        exp = pd.Series(['a', 1 + 1j, 'c', 'd'])
-        self._assert_setitem_series_conversion(obj, 1 + 1j, exp, np.object)
-
-        # object + bool -> object
-        exp = pd.Series(['a', True, 'c', 'd'])
-        self._assert_setitem_series_conversion(obj, True, exp, np.object)
-
-    def test_setitem_series_int64(self):
+        exp = pd.Series(['a', val, 'c', 'd'])
+        self._assert_setitem_series_conversion(obj, val, exp, exp_dtype)
+        
+    @pytest.mark.parametrize("val,exp_dtype", [
+        (1, np.int64),
+        (1.1, np.float64),
+        (1 + 1j, np.complex128),
+        (True, np.object)])
+    def test_setitem_series_int64(self, val, exp_dtype):
         obj = pd.Series([1, 2, 3, 4])
         assert obj.dtype == np.int64
 
-        # int + int -> int
-        exp = pd.Series([1, 1, 3, 4])
-        self._assert_setitem_series_conversion(obj, 1, exp, np.int64)
+        if exp_dtype is np.float64:
+            exp = pd.Series([1, 1, 3, 4])
+            self._assert_setitem_series_conversion(obj, 1.1, exp, np.int64)
+            pytest.xfail("GH12747 The result must be float")
 
-        # int + float -> float
-        # TODO_GH12747 The result must be float
-        # tm.assert_series_equal(temp, pd.Series([1, 1.1, 3, 4]))
-        # assert temp.dtype == np.float64
-        exp = pd.Series([1, 1, 3, 4])
-        self._assert_setitem_series_conversion(obj, 1.1, exp, np.int64)
+        exp = pd.Series([1, val, 3, 4])
+        self._assert_setitem_series_conversion(obj, val, exp, exp_dtype)
 
-        # int + complex -> complex
-        exp = pd.Series([1, 1 + 1j, 3, 4])
-        self._assert_setitem_series_conversion(obj, 1 + 1j, exp, np.complex128)
-
-        # int + bool -> object
-        exp = pd.Series([1, True, 3, 4])
-        self._assert_setitem_series_conversion(obj, True, exp, np.object)
-
-    def test_setitem_series_int8(self):
+    @pytest.mark.parametrize("val,exp_dtype", [
+        (np.int32(1), np.int8),
+        (np.int16(2**9), np.int16)])
+    def test_setitem_series_int8(self, val, exp_dtype):
         # integer dtype coercion (no change)
         obj = pd.Series([1, 2, 3, 4], dtype=np.int8)
         assert obj.dtype == np.int8
 
-        exp = pd.Series([1, 1, 3, 4], dtype=np.int8)
-        self._assert_setitem_series_conversion(obj, np.int32(1), exp, np.int8)
+        if exp_dtype is np.int16:
+            exp = pd.Series([1, 0, 3, 4], dtype=np.int8)
+            self._assert_setitem_series_conversion(obj, val, exp, np.int8)
+            pytest.xfail("BUG: it must be Series([1, 1, 3, 4], dtype=np.int16")
+            
+        exp = pd.Series([1, val, 3, 4], dtype=np.int8)
+        self._assert_setitem_series_conversion(obj, val, exp, exp_dtype)
 
-        # BUG: it must be Series([1, 1, 3, 4], dtype=np.int16)
-        exp = pd.Series([1, 0, 3, 4], dtype=np.int8)
-        self._assert_setitem_series_conversion(obj, np.int16(2**9), exp,
-                                               np.int8)
-
-    def test_setitem_series_float64(self):
+    @pytest.mark.parametrize("val,exp_dtype", [
+        (1, np.float64),
+        (1.1, np.float64),
+        (1 + 1j, np.complex128),
+        (True, np.object)])
+    def test_setitem_series_float64(self, val, exp_dtype):
         obj = pd.Series([1.1, 2.2, 3.3, 4.4])
         assert obj.dtype == np.float64
 
-        # float + int -> float
-        exp = pd.Series([1.1, 1.0, 3.3, 4.4])
-        self._assert_setitem_series_conversion(obj, 1, exp, np.float64)
+        exp = pd.Series([1.1, val, 3.3, 4.4])
+        self._assert_setitem_series_conversion(obj, val, exp, exp_dtype)
 
-        # float + float -> float
-        exp = pd.Series([1.1, 1.1, 3.3, 4.4])
-        self._assert_setitem_series_conversion(obj, 1.1, exp, np.float64)
-
-        # float + complex -> complex
-        exp = pd.Series([1.1, 1 + 1j, 3.3, 4.4])
-        self._assert_setitem_series_conversion(obj, 1 + 1j, exp,
-                                               np.complex128)
-
-        # float + bool -> object
-        exp = pd.Series([1.1, True, 3.3, 4.4])
-        self._assert_setitem_series_conversion(obj, True, exp, np.object)
-
-    def test_setitem_series_complex128(self):
+    @pytest.mark.parametrize("val,exp_dtype", [
+        (1, np.complex128),
+        (1.1, np.complex128),
+        (1 + 1j, np.complex128),
+        (True, np.object)])
+    def test_setitem_series_complex128(self, val, exp_dtype):
         obj = pd.Series([1 + 1j, 2 + 2j, 3 + 3j, 4 + 4j])
         assert obj.dtype == np.complex128
 
-        # complex + int -> complex
-        exp = pd.Series([1 + 1j, 1, 3 + 3j, 4 + 4j])
-        self._assert_setitem_series_conversion(obj, 1, exp, np.complex128)
+        exp = pd.Series([1 + 1j, val, 3 + 3j, 4 + 4j])
+        self._assert_setitem_series_conversion(obj, val, exp, exp_dtype)
 
-        # complex + float -> complex
-        exp = pd.Series([1 + 1j, 1.1, 3 + 3j, 4 + 4j])
-        self._assert_setitem_series_conversion(obj, 1.1, exp, np.complex128)
-
-        # complex + complex -> complex
-        exp = pd.Series([1 + 1j, 1 + 1j, 3 + 3j, 4 + 4j])
-        self._assert_setitem_series_conversion(obj, 1 + 1j, exp, np.complex128)
-
-        # complex + bool -> object
-        exp = pd.Series([1 + 1j, True, 3 + 3j, 4 + 4j])
-        self._assert_setitem_series_conversion(obj, True, exp, np.object)
-
-    def test_setitem_series_bool(self):
+    @pytest.mark.parametrize("val,exp_dtype", [
+        (1, np.int64),
+        (3, np.int64),
+        (1.1, np.float64),
+        (1 + 1j, np.complex128),
+        (True, np.bool)])
+    def test_setitem_series_bool(self, val, exp_dtype):
         obj = pd.Series([True, False, True, False])
         assert obj.dtype == np.bool
 
-        # bool + int -> int
-        # TODO_GH12747 The result must be int
-        # tm.assert_series_equal(temp, pd.Series([1, 1, 1, 0]))
-        # assert temp.dtype == np.int64
-        exp = pd.Series([True, True, True, False])
-        self._assert_setitem_series_conversion(obj, 1, exp, np.bool)
+        if exp_dtype is np.int64:
+            exp = pd.Series([True, True, True, False])
+            self._assert_setitem_series_conversion(obj, val, exp, np.bool)
+            pytest.xfail("TODO_GH12747 The result must be int")
+        elif exp_dtype is np.float64:
+            exp = pd.Series([True, True, True, False])
+            self._assert_setitem_series_conversion(obj, val, exp, np.bool)
+            pytest.xfail("TODO_GH12747 The result must be float")            
+        elif exp_dtype is np.complex128:
+            exp = pd.Series([True, True, True, False])
+            self._assert_setitem_series_conversion(obj, val, exp, np.bool)
+            pytest.xfail("TODO_GH12747 The result must be complex")
 
-        # TODO_GH12747 The result must be int
-        # assigning int greater than bool
-        # tm.assert_series_equal(temp, pd.Series([1, 3, 1, 0]))
-        # assert temp.dtype == np.int64
-        exp = pd.Series([True, True, True, False])
-        self._assert_setitem_series_conversion(obj, 3, exp, np.bool)
+        exp = pd.Series([True, val, True, False])
+        self._assert_setitem_series_conversion(obj, val, exp, exp_dtype)
 
-        # bool + float -> float
-        # TODO_GH12747 The result must be float
-        # tm.assert_series_equal(temp, pd.Series([1., 1.1, 1., 0.]))
-        # assert temp.dtype == np.float64
-        exp = pd.Series([True, True, True, False])
-        self._assert_setitem_series_conversion(obj, 1.1, exp, np.bool)
-
-        # bool + complex -> complex (buggy, results in bool)
-        # TODO_GH12747 The result must be complex
-        # tm.assert_series_equal(temp, pd.Series([1, 1 + 1j, 1, 0]))
-        # assert temp.dtype == np.complex128
-        exp = pd.Series([True, True, True, False])
-        self._assert_setitem_series_conversion(obj, 1 + 1j, exp, np.bool)
-
-        # bool + bool -> bool
-        exp = pd.Series([True, True, True, False])
-        self._assert_setitem_series_conversion(obj, True, exp, np.bool)
-
-    def test_setitem_series_datetime64(self):
+    @pytest.mark.parametrize("val,exp_dtype", [
+        (pd.Timestamp('2012-01-01'), 'datetime64[ns]'),
+        (1, np.object),
+        ('x', np.object)])
+    def test_setitem_series_datetime64(self, val, exp_dtype):
         obj = pd.Series([pd.Timestamp('2011-01-01'),
                          pd.Timestamp('2011-01-02'),
                          pd.Timestamp('2011-01-03'),
                          pd.Timestamp('2011-01-04')])
         assert obj.dtype == 'datetime64[ns]'
 
-        # datetime64 + datetime64 -> datetime64
         exp = pd.Series([pd.Timestamp('2011-01-01'),
-                         pd.Timestamp('2012-01-01'),
+                         val,
                          pd.Timestamp('2011-01-03'),
                          pd.Timestamp('2011-01-04')])
-        self._assert_setitem_series_conversion(obj, pd.Timestamp('2012-01-01'),
-                                               exp, 'datetime64[ns]')
+        self._assert_setitem_series_conversion(obj, val, exp, exp_dtype)
 
-        # datetime64 + int -> object
-        exp = pd.Series([pd.Timestamp('2011-01-01'),
-                         1,
-                         pd.Timestamp('2011-01-03'),
-                         pd.Timestamp('2011-01-04')])
-        self._assert_setitem_series_conversion(obj, 1, exp, 'object')
-
-        # datetime64 + object -> object
-        exp = pd.Series([pd.Timestamp('2011-01-01'),
-                         'x',
-                         pd.Timestamp('2011-01-03'),
-                         pd.Timestamp('2011-01-04')])
-        self._assert_setitem_series_conversion(obj, 'x', exp, np.object)
-
-    def test_setitem_series_datetime64tz(self):
+    @pytest.mark.parametrize("val,exp_dtype", [
+        (pd.Timestamp('2012-01-01', tz='US/Eastern'),
+         'datetime64[ns, US/Eastern]'),
+        (pd.Timestamp('2012-01-01', tz='US/Pacific'), np.object),
+        (pd.Timestamp('2012-01-01'), np.object),
+        (1, np.object)])
+    def test_setitem_series_datetime64tz(self, val, exp_dtype):
         tz = 'US/Eastern'
         obj = pd.Series([pd.Timestamp('2011-01-01', tz=tz),
                          pd.Timestamp('2011-01-02', tz=tz),
@@ -232,71 +188,28 @@ class TestSetitemCoercion(CoercionBase):
                          pd.Timestamp('2011-01-04', tz=tz)])
         assert obj.dtype == 'datetime64[ns, US/Eastern]'
 
-        # datetime64tz + datetime64tz -> datetime64tz
         exp = pd.Series([pd.Timestamp('2011-01-01', tz=tz),
-                         pd.Timestamp('2012-01-01', tz=tz),
+                         val,
                          pd.Timestamp('2011-01-03', tz=tz),
                          pd.Timestamp('2011-01-04', tz=tz)])
-        value = pd.Timestamp('2012-01-01', tz=tz)
-        self._assert_setitem_series_conversion(obj, value, exp,
-                                               'datetime64[ns, US/Eastern]')
+        self._assert_setitem_series_conversion(obj, val, exp, exp_dtype)
 
-        # datetime64tz + datetime64tz (different tz) -> object
-        exp = pd.Series([pd.Timestamp('2011-01-01', tz=tz),
-                         pd.Timestamp('2012-01-01', tz='US/Pacific'),
-                         pd.Timestamp('2011-01-03', tz=tz),
-                         pd.Timestamp('2011-01-04', tz=tz)])
-        value = pd.Timestamp('2012-01-01', tz='US/Pacific')
-        self._assert_setitem_series_conversion(obj, value, exp, np.object)
-
-        # datetime64tz + datetime64 -> object
-        exp = pd.Series([pd.Timestamp('2011-01-01', tz=tz),
-                         pd.Timestamp('2012-01-01'),
-                         pd.Timestamp('2011-01-03', tz=tz),
-                         pd.Timestamp('2011-01-04', tz=tz)])
-        value = pd.Timestamp('2012-01-01')
-        self._assert_setitem_series_conversion(obj, value, exp, np.object)
-
-        # datetime64 + int -> object
-        exp = pd.Series([pd.Timestamp('2011-01-01', tz=tz),
-                         1,
-                         pd.Timestamp('2011-01-03', tz=tz),
-                         pd.Timestamp('2011-01-04', tz=tz)])
-        self._assert_setitem_series_conversion(obj, 1, exp, np.object)
-
-        # ToDo: add more tests once the above issue has been fixed
-
-    def test_setitem_series_timedelta64(self):
+    @pytest.mark.parametrize("val,exp_dtype", [
+        (pd.Timedelta('12 day'), 'timedelta64[ns]'),
+        (1, np.object),
+        ('x', np.object)])
+    def test_setitem_series_timedelta64(self, val, exp_dtype):
         obj = pd.Series([pd.Timedelta('1 day'),
                          pd.Timedelta('2 day'),
                          pd.Timedelta('3 day'),
                          pd.Timedelta('4 day')])
         assert obj.dtype == 'timedelta64[ns]'
 
-        # timedelta64 + timedelta64 -> timedelta64
         exp = pd.Series([pd.Timedelta('1 day'),
-                         pd.Timedelta('12 day'),
+                         val,
                          pd.Timedelta('3 day'),
                          pd.Timedelta('4 day')])
-        self._assert_setitem_series_conversion(obj, pd.Timedelta('12 day'),
-                                               exp, 'timedelta64[ns]')
-
-        # timedelta64 + int -> object
-        exp = pd.Series([pd.Timedelta('1 day'),
-                         1,
-                         pd.Timedelta('3 day'),
-                         pd.Timedelta('4 day')])
-        self._assert_setitem_series_conversion(obj, 1, exp, np.object)
-
-        # timedelta64 + object -> object
-        exp = pd.Series([pd.Timedelta('1 day'),
-                         'x',
-                         pd.Timedelta('3 day'),
-                         pd.Timedelta('4 day')])
-        self._assert_setitem_series_conversion(obj, 'x', exp, np.object)
-
-    def test_setitem_series_period(self):
-        pass
+        self._assert_setitem_series_conversion(obj, val, exp, exp_dtype)
 
     def _assert_setitem_index_conversion(self, original_series, loc_key,
                                          expected_index, expected_dtype):
