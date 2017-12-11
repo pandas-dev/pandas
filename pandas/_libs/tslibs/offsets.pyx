@@ -28,8 +28,9 @@ from np_datetime cimport (pandas_datetimestruct,
 # ---------------------------------------------------------------------
 # Constants
 
-# TODO: Remove: This is not used outside of tests
+
 class WeekDay(object):
+    # TODO: Remove: This is not used outside of tests
     MON = 0
     TUE = 1
     WED = 2
