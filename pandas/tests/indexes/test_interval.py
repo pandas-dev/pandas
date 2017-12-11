@@ -376,10 +376,6 @@ class TestIntervalIndex(Base):
         tm.assert_index_equal(result, idx)
         assert result.equals(idx)
 
-        result = idx.astype('category')
-        expected = pd.Categorical(idx, ordered=True)
-        tm.assert_categorical_equal(result, expected)
-
     @pytest.mark.parametrize('klass', [list, tuple, np.array, pd.Series])
     def test_where(self, closed, klass):
         idx = self.create_index(closed=closed)

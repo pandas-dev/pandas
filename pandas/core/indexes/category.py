@@ -4,6 +4,7 @@ from pandas._libs import index as libindex
 from pandas import compat
 from pandas.compat.numpy import function as nv
 from pandas.core.dtypes.generic import ABCCategorical, ABCSeries
+from pandas.core.dtypes.dtypes import CategoricalDtype
 from pandas.core.dtypes.common import (
     is_categorical_dtype,
     _ensure_platform_int,
@@ -165,8 +166,6 @@ class CategoricalIndex(Index, accessor.PandasDelegate):
             data = Categorical(data, categories=categories, ordered=ordered,
                                dtype=dtype)
         else:
-            from pandas.core.dtypes.dtypes import CategoricalDtype
-
             if categories is not None:
                 data = data.set_categories(categories, ordered=ordered)
             elif ordered is not None and ordered != data.ordered:
@@ -344,6 +343,12 @@ class CategoricalIndex(Index, accessor.PandasDelegate):
         if is_interval_dtype(dtype):
             from pandas import IntervalIndex
             return IntervalIndex.from_intervals(np.array(self))
+        elif is_categorical_dtype(dtype):
+            # GH 18630
+            dtype = self.dtype._update_dtype(dtype)
+            if dtype == self.dtype:
+                return self.copy() if copy else self
+
         return super(CategoricalIndex, self).astype(dtype=dtype, copy=copy)
 
     @cache_readonly

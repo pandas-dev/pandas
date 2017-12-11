@@ -29,6 +29,7 @@ from pandas._libs.interval import (
     Interval, IntervalMixin, IntervalTree,
     intervals_to_interval_bounds)
 
+from pandas.core.indexes.category import CategoricalIndex
 from pandas.core.indexes.datetimes import date_range
 from pandas.core.indexes.timedeltas import timedelta_range
 from pandas.core.indexes.multi import MultiIndex
@@ -632,8 +633,8 @@ class IntervalIndex(IntervalMixin, Index):
         elif is_object_dtype(dtype):
             return Index(self.values, dtype=object)
         elif is_categorical_dtype(dtype):
-            from pandas import Categorical
-            return Categorical(self, ordered=True)
+            return CategoricalIndex(self.values, name=self.name, dtype=dtype,
+                                    copy=copy)
         raise ValueError('Cannot cast IntervalIndex to dtype {dtype}'
                          .format(dtype=dtype))
 

@@ -388,9 +388,6 @@ class TestCategoricalIndex(Base):
     def test_astype(self):
 
         ci = self.create_index()
-        result = ci.astype('category')
-        tm.assert_index_equal(result, ci, exact=True)
-
         result = ci.astype(object)
         tm.assert_index_equal(result, Index(np.array(ci)))
 
@@ -413,6 +410,37 @@ class TestCategoricalIndex(Base):
 
         result = IntervalIndex.from_intervals(result.values)
         tm.assert_index_equal(result, expected)
+
+    @pytest.mark.parametrize('copy', [True, False])
+    @pytest.mark.parametrize('name', [None, 'foo'])
+    @pytest.mark.parametrize('dtype_ordered', [True, False])
+    @pytest.mark.parametrize('index_ordered', [True, False])
+    def test_astype_category(self, copy, name, dtype_ordered, index_ordered):
+        # GH 18630
+        index = self.create_index(ordered=index_ordered)
+        if name:
+            index = index.rename(name)
+
+        # standard categories
+        dtype = CategoricalDtype(ordered=dtype_ordered)
+        result = index.astype(dtype, copy=copy)
+        expected = CategoricalIndex(index.tolist(),
+                                    name=name,
+                                    categories=index.categories,
+                                    ordered=dtype_ordered)
+        tm.assert_index_equal(result, expected)
+
+        # non-standard categories
+        dtype = CategoricalDtype(index.unique().tolist()[:-1], dtype_ordered)
+        result = index.astype(dtype, copy=copy)
+        expected = CategoricalIndex(index.tolist(), name=name, dtype=dtype)
+        tm.assert_index_equal(result, expected)
+
+        if dtype_ordered is False:
+            # dtype='category' can't specify ordered, so only test once
+            result = index.astype('category', copy=copy)
+            expected = index
+            tm.assert_index_equal(result, expected)
 
     def test_reindex_base(self):
         # Determined by cat ordering.
