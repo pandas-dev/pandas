@@ -189,6 +189,8 @@ class TestToDatetime(object):
 
     def test_to_datetime_now(self):
         # See GH#18666
+        tm._skip_if_windows()  # `tm.set_timezone` does not work in windows
+
         with tm.set_timezone('US/Eastern'):
             npnow = np.datetime64('now').astype('datetime64[ns]')
             pdnow = pd.to_datetime('now')
@@ -209,6 +211,8 @@ class TestToDatetime(object):
         # Unfortunately this test between 12 and 1 AM Samoa time
         # this both of these timezones _and_ UTC will all be in the same day,
         # so this test will not detect the regression introduced in #18666.
+        tm._skip_if_windows()  # `tm.set_timezone` does not work in windows
+
         with tm.set_timezone('Pacific/Auckland'):  # 12-13 hours ahead of UTC
             nptoday = np.datetime64('today').astype('datetime64[ns]')
             pdtoday = pd.to_datetime('today')
