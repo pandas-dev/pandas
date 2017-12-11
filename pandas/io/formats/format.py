@@ -962,8 +962,8 @@ class LatexFormatter(TableFormatter):
                 if self.longtable:
                     buf.write('\\endhead\n')
                     buf.write('\\midrule\n')
-                    buf.write('\\multicolumn{3}{r}{{Continued on next '
-                              'page}} \\\\\n')
+                    buf.write('\\multicolumn{{{n}}}{{r}}{{{{Continued on next '
+                              'page}}}} \\\\\n'.format(n=len(row)))
                     buf.write('\\midrule\n')
                     buf.write('\\endfoot\n\n')
                     buf.write('\\bottomrule\n')

@@ -12,6 +12,7 @@ from dateutil.tz import tzlocal, tzoffset
 from datetime import datetime, timedelta, tzinfo, date
 
 import pandas.util.testing as tm
+import pandas.util._test_decorators as td
 import pandas.tseries.offsets as offsets
 from pandas.compat import lrange, zip, PY3
 from pandas.core.indexes.datetimes import bdate_range, date_range
@@ -958,10 +959,8 @@ class TestTimeZoneSupportDateutil(TestTimeZoneSupportPytz):
     def localize(self, tz, x):
         return x.replace(tzinfo=tz)
 
+    @td.skip_if_windows
     def test_utc_with_system_utc(self):
-        # Skipped on win32 due to dateutil bug
-        tm._skip_if_windows()
-
         from pandas._libs.tslibs.timezones import maybe_get_tz
 
         # from system utc to real utc
@@ -1270,6 +1269,7 @@ class TestTimeZones(object):
             assert (result_pytz.to_pydatetime().tzname() ==
                     result_dateutil.to_pydatetime().tzname())
 
+    @td.skip_if_windows
     def test_replace_tzinfo(self):
         # GH 15683
         dt = datetime(2016, 3, 27, 1)
@@ -1663,6 +1663,7 @@ class TestTimeZones(object):
         assert result.is_normalized
         assert not rng.is_normalized
 
+    @td.skip_if_windows
     def test_normalize_tz_local(self):
         # see gh-13459
         timezones = ['US/Pacific', 'US/Eastern', 'UTC', 'Asia/Kolkata',

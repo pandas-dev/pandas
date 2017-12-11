@@ -195,9 +195,12 @@ class NDFrame(PandasObject, SelectionMixin):
         return '%s(%s)' % (self.__class__.__name__, prepr)
 
     def _dir_additions(self):
-        """ add the string-like attributes from the info_axis """
-        additions = set([c for c in self._info_axis
-                         if isinstance(c, string_types) and isidentifier(c)])
+        """ add the string-like attributes from the info_axis.
+        If info_axis is a MultiIndex, it's first level values are used.
+        """
+        additions = set(
+            [c for c in self._info_axis.unique(level=0)[:100]
+             if isinstance(c, string_types) and isidentifier(c)])
         return super(NDFrame, self)._dir_additions().union(additions)
 
     @property
@@ -1603,7 +1606,8 @@ class NDFrame(PandasObject, SelectionMixin):
 
     def to_json(self, path_or_buf=None, orient=None, date_format=None,
                 double_precision=10, force_ascii=True, date_unit='ms',
-                default_handler=None, lines=False, compression=None):
+                default_handler=None, lines=False, compression=None,
+                index=True):
         """
         Convert the object to a JSON string.
 
@@ -1671,6 +1675,13 @@ class NDFrame(PandasObject, SelectionMixin):
 
             .. versionadded:: 0.21.0
 
+        index : boolean, default True
+            Whether to include the index values in the JSON string. Not
+            including the index (``index=False``) is only supported when
+            orient is 'split' or 'table'.
+
+            .. versionadded:: 0.22.0
+
         Returns
         -------
         same type as input object with filtered info axis
@@ -1723,7 +1734,8 @@ class NDFrame(PandasObject, SelectionMixin):
                             double_precision=double_precision,
                             force_ascii=force_ascii, date_unit=date_unit,
                             default_handler=default_handler,
-                            lines=lines, compression=compression)
+                            lines=lines, compression=compression,
+                            index=index)
 
     def to_hdf(self, path_or_buf, key, **kwargs):
         """Write the contained data to an HDF5 file using HDFStore.

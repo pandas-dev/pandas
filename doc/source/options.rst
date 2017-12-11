@@ -433,7 +433,7 @@ compute.use_numexpr                     True         Use the numexpr library to 
                                                      computation if it is installed.
 plotting.matplotlib.register_converters True         Register custom converters with
                                                      matplotlib. Set to False to de-register.
-======================================= ============ ========================================
+======================================= ============ ==================================
 
 
 .. _basics.console_output:
