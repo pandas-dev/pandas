@@ -61,6 +61,9 @@ New features
 Improvements to the Parquet IO functionality
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+- :func:`DataFrame.to_parquet` will now write non-default indexes when the
+  underlying engine supports it. The indexes will be preserved when reading
+  back in with :func:`read_parquet` (:issue:`18581`).
 - :func:`read_parquet` now allows to specify the columns to read from a parquet file (:issue:`18154`)
 - :func:`read_parquet` now allows to specify kwargs which are passed to the respective engine (:issue:`18216`)
 
@@ -91,8 +94,6 @@ Performance Improvements
 
 Bug Fixes
 ~~~~~~~~~
--
-
 
 Conversion
 ^^^^^^^^^^
