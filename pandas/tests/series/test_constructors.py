@@ -142,6 +142,22 @@ class TestSeriesConstructors(TestData):
             result = Series(obj, index=[0, 1, 2])
             assert_series_equal(result, expected)
 
+    @pytest.mark.parametrize('input_vals, dtype, expected', [
+        ([1, 2, 3], 'str', ['1', '2', '3']),
+        ([1, 2, 3], str, ['1', '2', '3']),
+        ([1, 2, 3], 'U', ['1', '2', '3']),
+        ([1.0, 2.0, 3.0], 'str', ['1.0', '2.0', '3.0']),
+        ([1.0, 2.0, 3.0], str, ['1.0', '2.0', '3.0']),
+        ([1.0, 2.0, 3.0], 'U', ['1.0', '2.0', '3.0'])
+    ])
+    def test_constructor_list_str(self, input_vals, dtype, expected):
+        # GH 16605
+        # Ensure that data elements are converted to strings when
+        # dtype is str, 'str', or 'U'
+
+        result = Series(input_vals, dtype=dtype)
+        assert_series_equal(result, Series(expected))
+
     def test_constructor_generator(self):
         gen = (i for i in range(10))
 
