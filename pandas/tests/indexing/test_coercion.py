@@ -437,59 +437,31 @@ class TestInsertIndexCoercion(CoercionBase):
         exp = pd.Index([1., coerced_val, 2., 3., 4.])
         self._assert_insert_conversion(obj, insert, exp, coerced_dtype)
 
-    def test_insert_index_complex128(self):
-        pass
-
-    def test_insert_index_bool(self):
-        pass
-
-    def test_insert_index_datetime64(self):
+    @pytest.mark.parametrize('fill_val,exp_dtype', [
+        (pd.Timestamp('2012-01-01'), 'datetime64[ns]'),
+        (pd.Timestamp('2012-01-01', tz='US/Eastern'), 'datetime64[ns, US/Eastern]')])
+    def test_insert_index_datetime64(self, fill_val, exp_dtype):
         obj = pd.DatetimeIndex(['2011-01-01', '2011-01-02', '2011-01-03',
-                                '2011-01-04'])
-        assert obj.dtype == 'datetime64[ns]'
+                                '2011-01-04'], tz=fill_val.tz)
+        assert obj.dtype == exp_dtype
 
-        # datetime64 + datetime64 => datetime64
-        exp = pd.DatetimeIndex(['2011-01-01', '2012-01-01', '2011-01-02',
-                                '2011-01-03', '2011-01-04'])
-        self._assert_insert_conversion(obj, pd.Timestamp('2012-01-01'),
-                                       exp, 'datetime64[ns]')
+        exp = pd.DatetimeIndex(['2011-01-01', fill_val.date(), '2011-01-02',
+                                '2011-01-03', '2011-01-04'], tz=fill_val.tz)
+        self._assert_insert_conversion(obj, fill_val, exp, exp_dtype)
 
-        # ToDo: must coerce to object
         msg = "Passed item and index have different timezone"
-        with tm.assert_raises_regex(ValueError, msg):
-            obj.insert(1, pd.Timestamp('2012-01-01', tz='US/Eastern'))
-
-        # ToDo: must coerce to object
-        msg = "cannot insert DatetimeIndex with incompatible label"
-        with tm.assert_raises_regex(TypeError, msg):
-            obj.insert(1, 1)
-
-    def test_insert_index_datetime64tz(self):
-        obj = pd.DatetimeIndex(['2011-01-01', '2011-01-02', '2011-01-03',
-                                '2011-01-04'], tz='US/Eastern')
-        assert obj.dtype == 'datetime64[ns, US/Eastern]'
-
-        # datetime64tz + datetime64tz => datetime64
-        exp = pd.DatetimeIndex(['2011-01-01', '2012-01-01', '2011-01-02',
-                                '2011-01-03', '2011-01-04'], tz='US/Eastern')
-        val = pd.Timestamp('2012-01-01', tz='US/Eastern')
-        self._assert_insert_conversion(obj, val, exp,
-                                       'datetime64[ns, US/Eastern]')
-
-        # ToDo: must coerce to object
-        msg = "Passed item and index have different timezone"
-        with tm.assert_raises_regex(ValueError, msg):
-            obj.insert(1, pd.Timestamp('2012-01-01'))
-
-        # ToDo: must coerce to object
-        msg = "Passed item and index have different timezone"
+        if fill_val.tz:
+            with tm.assert_raises_regex(ValueError, msg):
+                obj.insert(1, pd.Timestamp('2012-01-01'))
+        
         with tm.assert_raises_regex(ValueError, msg):
             obj.insert(1, pd.Timestamp('2012-01-01', tz='Asia/Tokyo'))
 
-        # ToDo: must coerce to object
         msg = "cannot insert DatetimeIndex with incompatible label"
         with tm.assert_raises_regex(TypeError, msg):
             obj.insert(1, 1)
+
+        pytest.xfail("ToDo: must coerce to object")
 
     def test_insert_index_timedelta64(self):
         obj = pd.TimedeltaIndex(['1 day', '2 day', '3 day', '4 day'])
