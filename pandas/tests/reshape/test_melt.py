@@ -30,6 +30,33 @@ class TestMelt(object):
         self.df1.columns = [list('ABC'), list('abc')]
         self.df1.columns.names = ['CAP', 'low']
 
+        self.df2 = DataFrame(
+            {'City': ['Houston', 'Austin', 'Hoover'],
+             'State': ['Texas', 'Texas', 'Alabama'],
+             'Name': ['Aria', 'Penelope', 'Niko'],
+             'Mango': [4, 10, 90],
+             'Orange': [10, 8, 14],
+             'Watermelon': [40, 99, 43],
+             'Gin': [16, 200, 34],
+             'Vodka': [20, 33, 18]}, columns=['City', 'State', 'Name', 'Mango',
+                                              'Orange', 'Watermelon', 'Gin',
+                                              'Vodka'])
+
+        self.df3 = DataFrame(
+            {'group': ['a', 'b', 'c'],
+             'exp_1': [4, 10, -9],
+             'exp_2': [10, 8, 14],
+             'res_1': [8, 5, 4],
+             'res_3': [11, 0, 7]}, columns=['group', 'exp_1', 'exp_2',
+                                            'res_1', 'res_3'])
+
+        self.df4 = self.df2.copy()
+        self.df4.columns = pd.MultiIndex.from_arrays([list('aabbcccd'),
+                                                      list('ffffgggg'),
+                                                      self.df4.columns],
+                                                     names=[None, None,
+                                                            'some vars'])
+
     def test_top_level_method(self):
         result = melt(self.df)
         assert result.columns.tolist() == ['variable', 'value']
@@ -211,6 +238,63 @@ class TestMelt(object):
     def test_multiindex(self):
         res = self.df1.melt()
         assert res.columns.tolist() == ['CAP', 'low', 'value']
+
+    def test_simultaneous_melt(self):
+        data = {'City': ['Houston', 'Austin', 'Hoover', 'Houston', 'Austin',
+                         'Hoover', 'Houston', 'Austin', 'Hoover'],
+                'State': ['Texas', 'Texas', 'Alabama', 'Texas', 'Texas',
+                          'Alabama', 'Texas', 'Texas', 'Alabama'],
+                'Fruit': ['Mango', 'Mango', 'Mango', 'Orange', 'Orange',
+                          'Orange', 'Watermelon', 'Watermelon', 'Watermelon'],
+                'Pounds': [4, 10, 90, 10, 8, 14, 40, 99, 43],
+                'Drink': ['Gin', 'Gin', 'Gin', 'Vodka', 'Vodka', 'Vodka',
+                          'nan', 'nan', 'nan'],
+                'Ounces': [16.0, 200.0, 34.0, 20.0, 33.0, 18.0, nan,
+                           nan, nan]}
+        expected1 = DataFrame(data, columns=['City', 'State', 'Fruit',
+                                             'Pounds', 'Drink', 'Ounces'])
+        result1 = self.df2.melt(id_vars=['City', 'State'],
+                                value_vars=[['Mango', 'Orange', 'Watermelon'],
+                                            ['Gin', 'Vodka']],
+                                var_name=['Fruit', 'Drink'],
+                                value_name=['Pounds', 'Ounces'])
+        tm.assert_frame_equal(result1, expected1)
+
+        # single item groups
+        result2 = self.df2.melt(id_vars='State',
+                                value_vars=[['Mango'], ['Vodka']],
+                                var_name=['Fruit', 'Drink'])
+
+        data = {'Drink': ['Vodka', 'Vodka', 'Vodka'],
+                'Fruit': ['Mango', 'Mango', 'Mango'],
+                'State': ['Texas', 'Texas', 'Alabama'],
+                'value_0': [4, 10, 90],
+                'value_1': [20, 33, 18]}
+        expected2 = DataFrame(data, columns=['State', 'Fruit', 'value_0',
+                                             'Drink', 'value_1'])
+        tm.assert_frame_equal(result2, expected2)
+
+        with pytest.raises(ValueError):
+            self.df2.melt(id_vars='State',
+                          value_vars=[['Vodka'], ['Mango', 'Name'],
+                                      ['Orange', 'Watermelon']],
+                          var_name=['Fruit', 'Drink'])
+
+    def test_melt_multiindex(self):
+        data = {('a', 'f', 'State'): ['Texas', 'Texas', 'Alabama',
+                                      'Texas', 'Texas', 'Alabama'],
+                'variable_0': ['b', 'b', 'b', 'c', 'c', 'c'],
+                'variable_1': ['f', 'f', 'f', 'g', 'g', 'g'],
+                'some vars': ['Name', 'Name', 'Name', 'Watermelon',
+                              'Watermelon', 'Watermelon'],
+                'value': ['Aria', 'Penelope', 'Niko', 40, 99, 43]}
+        expected = DataFrame(data, columns=[('a', 'f', 'State'), 'variable_0',
+                                            'variable_1', 'some vars',
+                                            'value'])
+        result = self.df4.melt(id_vars=[('a', 'f', 'State')],
+                               value_vars=[('b', 'f', 'Name'),
+                                           ('c', 'g', 'Watermelon')])
+        tm.assert_frame_equal(expected, result)
 
 
 class TestLreshape(object):

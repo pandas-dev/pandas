@@ -265,24 +265,59 @@ the right thing:
 Reshaping by Melt
 -----------------
 
-The top-level :func:`melt` and :func:`~DataFrame.melt` functions are useful to
+The top-level :func:`melt` function and the equivalent :func:`DataFrame.melt` method are useful to
 massage a DataFrame into a format where one or more columns are identifier variables,
 while all other columns, considered measured variables, are "unpivoted" to the
-row axis, leaving just two non-identifier columns, "variable" and "value". The
-names of those columns can be customized by supplying the ``var_name`` and
-``value_name`` parameters.
+row axis, leaving just two non-identifier columns, "variable" and "value".
 
-For instance,
+For instance, it is possible to unpivot the fruit columns (``Mango``, ``Orange``, and ``Watermelon``) into a single column 
+with their corresponding values in another.
 
 .. ipython:: python
 
-   cheese = pd.DataFrame({'first' : ['John', 'Mary'],
-                          'last' : ['Doe', 'Bo'],
-                          'height' : [5.5, 6.0],
-                          'weight' : [130, 150]})
-   cheese
-   cheese.melt(id_vars=['first', 'last'])
-   cheese.melt(id_vars=['first', 'last'], var_name='quantity')
+   df = pd.DataFrame({'State': ['Texas', 'Florida', 'Alabama'],
+                      'Mango':[4, 10, 90],
+                      'Orange': [10, 8, 14], 
+                      'Watermelon':[40, 99, 43]},
+                     columns=['State', 'Mango', 'Orange', 'Watermelon'])
+   
+   df
+
+   df.melt(id_vars='State', value_vars=['Mango', 'Orange', 'Watermelon'])
+
+The resulting names of the unpivoted columns can be customized by supplying strings to the ``var_name`` and
+``value_name`` parameters.
+
+.. ipython:: python
+
+   df.melt(id_vars='State', value_vars=['Mango', 'Orange', 'Watermelon'],
+           var_name='Fruit', value_name='Pounds')
+
+.. versionadded:: 0.22.0
+
+Passing a list of lists to `value_vars` allows you to simultaneously melt
+independent column groups. The following DataFrame contains an addtional column grouping of drinks (``Gin`` and ``Vokda``)
+that may be unpivoted along with the fruit columns. The groups need not be the same size. Additionally,
+the ``var_name`` and ``value_name`` parameters may be passed a list of strings to name each of the returned 
+variable and value columns.
+
+.. ipython:: python
+
+   df = pd.DataFrame({'State': ['Texas', 'Florida', 'Alabama'],
+                      'Mango':[4, 10, 90],
+                      'Orange': [10, 8, 14],
+                      'Watermelon':[40, 99, 43],
+                      'Gin':[16, 200, 34],
+                      'Vodka':[20, 33, 18]},
+                      columns=['State', 'Mango', 'Orange', 'Watermelon',
+                               'Gin', 'Vodka'])
+
+   df
+
+   df.melt(id_vars='State', 
+           value_vars=[['Mango', 'Orange', 'Watermelon'], ['Gin', 'Vodka']],
+           var_name=['Fruit', 'Drink'],
+           value_name=['Pounds', 'Ounces'])
 
 Another way to transform is to use the ``wide_to_long`` panel data convenience
 function.

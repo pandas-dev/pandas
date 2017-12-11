@@ -8,12 +8,50 @@ deprecations, new features, enhancements, and performance improvements along
 with a large number of bug fixes. We recommend that all users upgrade to this
 version.
 
+Highlights include:
+
+- The :meth:`DataFrame.melt` method and top-level :func:`melt` function can now simultaneously unpivot independent groups of columns, see :ref:`here <whatsnew_0220.enhancements.melt>`.
+
+.. contents:: What's new in v0.22.0
+    :local:
+    :backlinks: none
+    :depth: 2
+
 .. _whatsnew_0220.enhancements:
 
 New features
 ~~~~~~~~~~~~
 
--
+.. _whatsnew_0220.enhancements.melt:
+
+Simultaneous unpivoting of independent groups of columns with ``melt``
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+Previously, ``melt`` was only able to unpivot a single group of columns. This was done by passing all the column names in the group as a list to the ``value_vars`` parameter.
+
+In the following DataFrame, there are two groups, fruits (``Mango``, ``Orange``, ``Watermelon``) and drinks (``Gin``, ``Vodka``) that can each be unpivoted into their own column. Previously, ``melt`` could only unpivot a single column grouping:
+
+.. ipython:: python
+
+   df = pd.DataFrame({'State': ['Texas', 'Florida', 'Alabama'],
+                      'Mango':[4, 10, 90],
+                      'Orange': [10, 8, 14], 
+                      'Watermelon':[40, 99, 43],
+                      'Gin':[16, 200, 34],
+                      'Vodka':[20, 33, 18]},
+                     columns=['State', 'Mango', 'Orange',
+                              'Watermelon', 'Gin', 'Vodka'])
+
+   df.melt(id_vars='State', value_vars=['Mango', 'Orange', 'Watermelon'],
+           var_name='Fruit', value_name='Pounds')
+
+Now, ``melt`` can unpivot any number of column groups by passing a list of lists to the ``value_vars`` parameter. The resulting unpivoted columns can be named by passing a list to ``var_name``. The corresponding values of each group may also be named by passing a list to ``value_name``. Notice that the column groups need not be equal in length:
+
+.. ipython:: python
+
+   df.melt(id_vars='State', 
+           value_vars=[['Mango', 'Orange', 'Watermelon'], ['Gin', 'Vodka']],
+           var_name=['Fruit', 'Drink'],
+           value_name=['Pounds', 'Ounces'])
 -
 -
 

@@ -4587,10 +4587,10 @@ class DataFrame(NDFrame):
     leaving identifier variables set.
 
     This function is useful to massage a DataFrame into a format where one
-    or more columns are identifier variables (`id_vars`), while all other
-    columns, considered measured variables (`value_vars`), are "unpivoted" to
-    the row axis, leaving just two non-identifier columns, 'variable' and
-    'value'.
+    or more columns are identifier variables (`id_vars`), while other groups of
+    columns, considered measured variables (`value_vars`), are "unpivoted" so
+    that each group consists of two new columns, a 'variable', labeled by
+    `var_name`, and its corresponding 'value', labeled by `value_name`.
 
     %(versionadded)s
     Parameters
@@ -4599,13 +4599,14 @@ class DataFrame(NDFrame):
     id_vars : tuple, list, or ndarray, optional
         Column(s) to use as identifier variables.
     value_vars : tuple, list, or ndarray, optional
-        Column(s) to unpivot. If not specified, uses all columns that
-        are not set as `id_vars`.
-    var_name : scalar
-        Name to use for the 'variable' column. If None it uses
+        Column(s) to unpivot. If list of lists, simultaneously unpivot
+        each sublist into its own variable column. If not specified, uses all
+        columns that are not set as `id_vars`.
+    var_name : scalar or list
+        Name(s) to use for the 'variable' column(s). If None it uses
         ``frame.columns.name`` or 'variable'.
-    value_name : scalar, default 'value'
-        Name to use for the 'value' column.
+    value_name : scalar or list, default 'value'
+        Name(s) to use for the 'value' column(s).
     col_level : int or string, optional
         If columns are a MultiIndex then use this level to melt.
 
@@ -4672,6 +4673,31 @@ class DataFrame(NDFrame):
     0      a          B          E      1
     1      b          B          E      3
     2      c          B          E      5
+
+    .. versionadded:: 0.22.0
+
+    Simultaneously melt multiple groups of columns:
+
+    >>> df2 = pd.DataFrame({'City': ['Houston', 'Miami'],
+                           'Mango':[4, 10],
+                           'Orange': [10, 8],
+                           'Gin':[16, 200],
+                           'Vodka':[20, 33]},
+                           columns=['City','Mango', 'Orange', 'Gin', 'Vodka'])
+    >>> df2
+          City  Mango  Orange  Gin  Vodka
+    0  Houston      4      10   16     20
+    1    Miami     10       8  200     33
+
+    >>> %(caller)sid_vars='City',
+                  value_vars=[['Mango', 'Orange'], ['Gin', 'Vodka']],
+                  var_name=['Fruit', 'Drink'],
+                  value_name=['Pounds', 'Ounces'])
+          City   Fruit  Pounds  Drink  Ounces
+    0  Houston   Mango       4    Gin      16
+    1    Miami   Mango      10    Gin     200
+    2  Houston  Orange      10  Vodka      20
+    3    Miami  Orange       8  Vodka      33
 
     """)
 
