@@ -17,7 +17,7 @@ np.import_array()
 
 from util cimport is_string_object, is_integer_object
 
-from ccalendar import MONTHS, MONTH_ALIASES
+from ccalendar import MONTHS
 from conversion cimport tz_convert_single, pydt_to_i8
 from frequencies cimport get_freq_code
 from nattype cimport NPY_NAT
