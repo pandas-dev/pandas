@@ -53,8 +53,7 @@ import pandas.tseries.offsets as offsets
 import pandas.core.tools.datetimes as tools
 
 from pandas._libs import (lib, index as libindex, tslib as libts,
-                          algos as libalgos, join as libjoin,
-                          Timestamp)
+                          join as libjoin, Timestamp)
 from pandas._libs.tslibs import (timezones, conversion, fields, parsing,
                                  period as libperiod)
 
@@ -1677,9 +1676,7 @@ class DatetimeIndex(DatelikeOps, TimelikeOps, DatetimeIndexOpsMixin,
         """
         Returns numpy array of datetime.time. The time part of the Timestamps.
         """
-        return self._maybe_mask_results(libalgos.arrmap_object(
-            self.astype(object).values,
-            lambda x: np.nan if x is libts.NaT else x.time()))
+        return libts.ints_to_pydatetime(self.asi8, self.tz, box="time")
 
     @property
     def date(self):
