@@ -27,6 +27,8 @@ For more information, refer to the ``pytest`` documentation on ``skipif``.
 import pytest
 from distutils.version import LooseVersion
 
+from pandas.compat import is_platform_windows, is_platform_32bit, PY3
+
 
 def safe_import(mod_name, min_version=None):
     """
@@ -83,3 +85,10 @@ skip_if_no_mpl = pytest.mark.skipif(_skip_if_no_mpl(),
                                     reason="Missing matplotlib dependency")
 skip_if_mpl_1_5 = pytest.mark.skipif(_skip_if_mpl_1_5(),
                                      reason="matplotlib 1.5")
+skip_if_32bit = pytest.mark.skipif(is_platform_32bit(),
+                                   reason="skipping for 32 bit")
+skip_if_windows = pytest.mark.skipif(is_platform_windows(),
+                                     reason="Running on Windows")
+skip_if_windows_python_3 = pytest.mark.skipif(is_platform_windows() and PY3,
+                                              reason=("not used on python3/"
+                                                      "win32"))

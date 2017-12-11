@@ -4,8 +4,7 @@ import pytest
 import numpy as np
 import operator
 import pandas.util.testing as tm
-
-from pandas import compat
+import pandas.util._test_decorators as td
 
 from pandas.core.sparse.array import IntIndex, BlockIndex, _make_index
 import pandas._libs.sparse as splib
@@ -190,6 +189,7 @@ class TestSparseIndexUnion(object):
 
 class TestSparseIndexIntersect(object):
 
+    @td.skip_if_windows
     def test_intersect(self):
         def _check_correct(a, b, expected):
             result = a.intersect(b)
@@ -212,8 +212,6 @@ class TestSparseIndexIntersect(object):
             _check_length_exc(xindex.to_int_index(),
                               longer_index.to_int_index())
 
-        if compat.is_platform_windows():
-            pytest.skip("segfaults on win-64 when all tests are run")
         check_cases(_check_case)
 
     def test_intersect_empty(self):
