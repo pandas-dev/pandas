@@ -101,7 +101,8 @@ usecols : array-like or callable, default None
     be positional (i.e. integer indices into the document columns) or strings
     that correspond to column names provided either by the user in `names` or
     inferred from the document header row(s). For example, a valid array-like
-    `usecols` parameter would be [0, 1, 2] or ['foo', 'bar', 'baz'].
+    `usecols` parameter would be [0, 1, 2] or ['foo', 'bar', 'baz']. Element
+    order is ignored, so usecols=[1,0] is the same as [0,1].
 
     If callable, the callable function will be evaluated against the column
     names, returning names where the callable function evaluates to True. An
