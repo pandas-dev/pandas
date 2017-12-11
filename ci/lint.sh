@@ -97,7 +97,7 @@ if [ "$LINT" ]; then
     #
     # Check the following functions:
     # any(), all(), sum(), max(), min(), list(), dict(), set(), frozenset(), tuple(), str.join()
-    grep -R --include="*.py*" -E "[^_](any|all|sum|max|min|list|dict|set|frozenset|tuple|join)\(\[.* for .* in .*\]\)" *
+    grep -R --include="*.py*" -E "[^_](any|all|sum|max|min|list|dict|set|frozenset|tuple|join)\(\[.* for .* in .*\]\)" pandas
 
     if [ $? = "0" ]; then
         RET=1
