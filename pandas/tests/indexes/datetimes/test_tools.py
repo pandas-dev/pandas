@@ -193,7 +193,9 @@ class TestToDatetime(object):
             npnow = np.datetime64('now').astype('datetime64[ns]')
             pdnow = pd.to_datetime('now')
             pdnow2 = pd.to_datetime(['now'])[0]
-            # These should all be equal with infinite perf
+
+            # These should all be equal with infinite perf; this gives
+            # a generous margin of 10 seconds
             assert abs(pdnow.value - npnow.astype(np.int64)) < 1e10
             assert abs(pdnow2.value - npnow.astype(np.int64)) < 1e10
 
@@ -211,7 +213,9 @@ class TestToDatetime(object):
             nptoday = np.datetime64('today').astype('datetime64[ns]')
             pdtoday = pd.to_datetime('today')
             pdtoday2 = pd.to_datetime(['today'])[0]
-            # These should all be equal with infinite perf
+
+            # These should all be equal with infinite perf; this gives
+            # a generous margin of 10 seconds
             assert abs(pdtoday.value - nptoday.astype(np.int64)) < 1e10
             assert abs(pdtoday2.value - nptoday.astype(np.int64)) < 1e10
 
@@ -222,7 +226,9 @@ class TestToDatetime(object):
             nptoday = np.datetime64('today').astype('datetime64[ns]')
             pdtoday = pd.to_datetime('today')
             pdtoday2 = pd.to_datetime(['today'])[0]
-            # These should all be equal with infinite perf
+
+            # These should all be equal with infinite perf; this gives
+            # a generous margin of 10 seconds
             assert abs(pdtoday.value - nptoday.astype(np.int64)) < 1e10
             assert abs(pdtoday2.value - nptoday.astype(np.int64)) < 1e10
 
