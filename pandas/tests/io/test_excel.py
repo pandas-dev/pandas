@@ -10,7 +10,6 @@ from warnings import catch_warnings
 import numpy as np
 import pytest
 from numpy import nan
-import moto
 
 import pandas as pd
 import pandas.util.testing as tm
@@ -616,6 +615,7 @@ class XlrdTests(ReadingTestsBase):
     def test_read_from_s3_url(self):
         boto3 = pytest.importorskip('boto3')
         pytest.importorskip('s3fs')
+        moto = pytest.importorskip('moto')
 
         with moto.mock_s3():
             conn = boto3.resource("s3", region_name="us-east-1")

@@ -1,5 +1,4 @@
 import pytest
-import moto
 
 import pandas as pd
 from pandas import compat
@@ -73,6 +72,8 @@ def test_read_zipped_json():
 def test_with_s3_url(compression):
     boto3 = pytest.importorskip('boto3')
     pytest.importorskip('s3fs')
+    moto = pytest.importorskip('moto')
+
     if compression == 'xz':
         tm._skip_if_no_lzma()
 

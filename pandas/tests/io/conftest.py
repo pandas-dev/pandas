@@ -1,6 +1,5 @@
 import os
 
-import moto
 import pytest
 from pandas.io.parsers import read_table
 
@@ -42,6 +41,7 @@ def s3_resource(tips_file, jsonl_file):
     is yielded by the fixture.
     """
     pytest.importorskip('s3fs')
+    moto = pytest.importorskip('moto')
     moto.mock_s3().start()
 
     test_s3_files = [
