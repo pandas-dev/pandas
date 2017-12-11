@@ -15,6 +15,7 @@ from distutils.version import LooseVersion
 from pytz.exceptions import AmbiguousTimeError, NonExistentTimeError
 
 import pandas.util.testing as tm
+import pandas.util._test_decorators as td
 from pandas.tseries import offsets, frequencies
 from pandas._libs.tslibs.timezones import get_timezone, dateutil_gettz as gettz
 from pandas._libs.tslibs import conversion, period
@@ -943,6 +944,7 @@ class TestTimestamp(object):
         dt = Timestamp('2100-01-01 00:00:00', tz=tz)
         assert not dt.is_leap_year
 
+    @td.skip_if_windows
     def test_timestamp(self):
         # GH#17329
         # tz-naive --> treat it as if it were UTC for purposes of timestamp()
@@ -1366,9 +1368,8 @@ class TestTimestampConversion(object):
         assert stamp == dtval
         assert stamp.tzinfo == dtval.tzinfo
 
+    @td.skip_if_windows_python_3
     def test_timestamp_to_datetime_explicit_dateutil(self):
-        tm._skip_if_windows_python_3()
-
         stamp = Timestamp('20090415', tz=gettz('US/Eastern'), freq='D')
         dtval = stamp.to_pydatetime()
         assert stamp == dtval

@@ -5,6 +5,7 @@ import numpy as np
 
 import pandas as pd
 import pandas.util.testing as tm
+import pandas.util._test_decorators as td
 from pandas import (DatetimeIndex, date_range, Series, bdate_range, DataFrame,
                     Int64Index, Index, to_datetime)
 from pandas.tseries.offsets import Minute, BMonthEnd, MonthEnd
@@ -358,9 +359,8 @@ class TestBusinessDatetimeIndex(object):
 
         early_dr.union(late_dr)
 
+    @td.skip_if_windows_python_3
     def test_month_range_union_tz_dateutil(self):
-        tm._skip_if_windows_python_3()
-
         from pandas._libs.tslibs.timezones import dateutil_gettz
         tz = dateutil_gettz('US/Eastern')
 

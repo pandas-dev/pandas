@@ -16,6 +16,7 @@ import numpy as np
 
 import pandas as pd
 import pandas.util.testing as tm
+import pandas.util._test_decorators as td
 from pandas import DataFrame
 from pandas import compat
 from pandas.compat import StringIO, range, lrange
@@ -129,9 +130,8 @@ nan 2
                           dtype={'A': 'U8'},
                           index_col=0)
 
+    @td.skip_if_32bit
     def test_precise_conversion(self):
-        # see gh-8002
-        tm._skip_if_32bit()
         from decimal import Decimal
 
         normal_errors = []

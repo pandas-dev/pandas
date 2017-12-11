@@ -28,6 +28,7 @@ from pandas.core.computation.ops import (
 
 import pandas.core.computation.expr as expr
 import pandas.util.testing as tm
+import pandas.util._test_decorators as td
 from pandas.util.testing import (assert_frame_equal, randbool,
                                  assert_numpy_array_equal, assert_series_equal,
                                  assert_produces_warning)
@@ -175,9 +176,8 @@ class TestEvalNumexprPandas(object):
         for lhs, rhs in product(self.lhses, self.rhses):
             self.check_floor_division(lhs, '//', rhs)
 
+    @td.skip_if_windows
     def test_pow(self):
-        tm._skip_if_windows()
-
         # odd failure on win32 platform, so skip
         for lhs, rhs in product(self.lhses, self.rhses):
             self.check_pow(lhs, '**', rhs)

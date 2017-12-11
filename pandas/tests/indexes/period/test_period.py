@@ -3,10 +3,11 @@ import pytest
 import numpy as np
 
 import pandas as pd
+import pandas.util._test_decorators as td
 from pandas.util import testing as tm
 from pandas import (PeriodIndex, period_range, notna, DatetimeIndex, NaT,
                     Index, Period, Int64Index, Series, DataFrame, date_range,
-                    offsets, compat)
+                    offsets)
 
 from ..datetimelike import DatetimeLike
 
@@ -544,9 +545,8 @@ class TestPeriodIndex(DatetimeLike):
         tm.assert_index_equal(result, expected)
         assert result.name == expected.name
 
+    @td.skip_if_32bit
     def test_ndarray_compat_properties(self):
-        if compat.is_platform_32bit():
-            pytest.skip("skipping on 32bit")
         super(TestPeriodIndex, self).test_ndarray_compat_properties()
 
     def test_shift_ndarray(self):

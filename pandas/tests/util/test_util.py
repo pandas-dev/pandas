@@ -16,7 +16,7 @@ from pandas.util._validators import (validate_args, validate_kwargs,
                                      validate_bool_kwarg)
 
 import pandas.util.testing as tm
-from pandas.util._test_decorators import safe_import
+import pandas.util._test_decorators as td
 
 
 class TestDecorators(object):
@@ -406,6 +406,7 @@ def test_numpy_errstate_is_default():
     assert np.geterr() == expected
 
 
+@td.skip_if_windows
 class TestLocaleUtils(object):
 
     @classmethod
@@ -415,8 +416,6 @@ class TestLocaleUtils(object):
 
         if not cls.locales:
             pytest.skip("No locales found")
-
-        tm._skip_if_windows()
 
     @classmethod
     def teardown_class(cls):
@@ -486,8 +485,8 @@ def test_make_signature():
 
 
 def test_safe_import(monkeypatch):
-    assert not safe_import("foo")
-    assert not safe_import("pandas", min_version="99.99.99")
+    assert not td.safe_import("foo")
+    assert not td.safe_import("pandas", min_version="99.99.99")
 
     # Create dummy module to be imported
     import types
@@ -496,7 +495,7 @@ def test_safe_import(monkeypatch):
     mod = types.ModuleType(mod_name)
     mod.__version__ = "1.5"
 
-    assert not safe_import(mod_name)
+    assert not td.safe_import(mod_name)
     monkeypatch.setitem(sys.modules, mod_name, mod)
-    assert not safe_import(mod_name, min_version="2.0")
-    assert safe_import(mod_name, min_version="1.0")
+    assert not td.safe_import(mod_name, min_version="2.0")
+    assert td.safe_import(mod_name, min_version="1.0")
