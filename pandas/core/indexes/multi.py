@@ -14,9 +14,11 @@ from pandas import compat
 from pandas.core.dtypes.common import (
     _ensure_int64,
     _ensure_platform_int,
+    is_categorical_dtype,
     is_object_dtype,
     is_iterator,
     is_list_like,
+    pandas_dtype,
     is_scalar)
 from pandas.core.dtypes.missing import isna, array_equivalent
 from pandas.errors import PerformanceWarning, UnsortedIndexError
@@ -2715,9 +2717,14 @@ class MultiIndex(Index):
 
     @Appender(_index_shared_docs['astype'])
     def astype(self, dtype, copy=True):
-        if not is_object_dtype(np.dtype(dtype)):
-            raise TypeError('Setting %s dtype to anything other than object '
-                            'is not supported' % self.__class__)
+        dtype = pandas_dtype(dtype)
+        if is_categorical_dtype(dtype):
+            msg = '> 1 ndim Categorical are not supported at this time'
+            raise NotImplementedError(msg)
+        elif not is_object_dtype(dtype):
+            msg = ('Setting {cls} dtype to anything other than object '
+                   'is not supported').format(cls=self.__class__)
+            raise TypeError(msg)
         elif copy is True:
             return self._shallow_copy()
         return self
