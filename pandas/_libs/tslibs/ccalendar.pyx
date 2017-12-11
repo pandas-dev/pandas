@@ -42,7 +42,7 @@ MONTH_TO_CAL_NUM = {name: num + 1 for num, name in enumerate(MONTHS)}
 
 DAYS = ['MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT', 'SUN']
 int_to_weekday = {num: name for num, name in enumerate(DAYS)}
-weekday_to_int = {_int_to_weekday[key]: key for key in _int_to_weekday}
+weekday_to_int = {int_to_weekday[key]: key for key in int_to_weekday}
 
 # ----------------------------------------------------------------------
 
