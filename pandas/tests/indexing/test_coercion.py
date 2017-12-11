@@ -659,7 +659,10 @@ class TestWhereCoercion(CoercionBase):
         exp = pd.Series([True, values[1], True, values[3]])
         self._assert_where_conversion(obj, cond, values, exp, exp_dtype)
 
-    def test_where_series_datetime64(self):
+    @pytest.mark.parametrize("fill_val,exp_dtype", [
+        (pd.Timestamp('2012-01-01'), 'datetime64[ns]'),
+        (pd.Timestamp('2012-01-01', tz='US/Eastern'), np.object)])
+    def test_where_series_datetime64(self, fill_val, exp_dtype):
         obj = pd.Series([pd.Timestamp('2011-01-01'),
                          pd.Timestamp('2011-01-02'),
                          pd.Timestamp('2011-01-03'),
@@ -667,46 +670,27 @@ class TestWhereCoercion(CoercionBase):
         assert obj.dtype == 'datetime64[ns]'
         cond = pd.Series([True, False, True, False])
 
-        # datetime64 + datetime64 -> datetime64
-        exp = pd.Series([pd.Timestamp('2011-01-01'),
-                         pd.Timestamp('2012-01-01'),
-                         pd.Timestamp('2011-01-03'),
-                         pd.Timestamp('2012-01-01')])
-        self._assert_where_conversion(obj, cond, pd.Timestamp('2012-01-01'),
-                                      exp, 'datetime64[ns]')
+        exp = pd.Series([pd.Timestamp('2011-01-01'), fill_val,
+                         pd.Timestamp('2011-01-03'), fill_val])
+        self._assert_where_conversion(obj, cond, fill_val, exp, exp_dtype)
 
-        values = pd.Series([pd.Timestamp('2012-01-01'),
-                            pd.Timestamp('2012-01-02'),
-                            pd.Timestamp('2012-01-03'),
-                            pd.Timestamp('2012-01-04')])
-        exp = pd.Series([pd.Timestamp('2011-01-01'),
-                         pd.Timestamp('2012-01-02'),
-                         pd.Timestamp('2011-01-03'),
-                         pd.Timestamp('2012-01-04')])
-        self._assert_where_conversion(obj, cond, values, exp, 'datetime64[ns]')
+        values = pd.Series(pd.date_range(fill_val, periods=4))
+        if fill_val.tz:
+            exp = pd.Series([pd.Timestamp('2011-01-01'),
+                             pd.Timestamp('2012-01-02 05:00'),
+                             pd.Timestamp('2011-01-03'),
+                             pd.Timestamp('2012-01-04 05:00')])
+            self._assert_where_conversion(obj, cond, values, exp, 'datetime64[ns]')
+            pytest.xfail("ToDo: do not coerce to UTC, must be object")
 
-        # datetime64 + datetime64tz -> object
-        exp = pd.Series([pd.Timestamp('2011-01-01'),
-                         pd.Timestamp('2012-01-01', tz='US/Eastern'),
-                         pd.Timestamp('2011-01-03'),
-                         pd.Timestamp('2012-01-01', tz='US/Eastern')])
-        self._assert_where_conversion(
-            obj, cond,
-            pd.Timestamp('2012-01-01', tz='US/Eastern'),
-            exp, np.object)
+        exp = pd.Series([pd.Timestamp('2011-01-01'), values[1],
+                         pd.Timestamp('2011-01-03'), values[3]])
+        self._assert_where_conversion(obj, cond, values, exp, exp_dtype)
 
-        # ToDo: do not coerce to UTC, must be object
-        values = pd.Series([pd.Timestamp('2012-01-01', tz='US/Eastern'),
-                            pd.Timestamp('2012-01-02', tz='US/Eastern'),
-                            pd.Timestamp('2012-01-03', tz='US/Eastern'),
-                            pd.Timestamp('2012-01-04', tz='US/Eastern')])
-        exp = pd.Series([pd.Timestamp('2011-01-01'),
-                         pd.Timestamp('2012-01-02 05:00'),
-                         pd.Timestamp('2011-01-03'),
-                         pd.Timestamp('2012-01-04 05:00')])
-        self._assert_where_conversion(obj, cond, values, exp, 'datetime64[ns]')
-
-    def test_where_index_datetime64(self):
+    @pytest.mark.parametrize("fill_val,exp_dtype", [
+        (pd.Timestamp('2012-01-01'), 'datetime64[ns]'),
+        (pd.Timestamp('2012-01-01', tz='US/Eastern'), np.object)])
+    def test_where_index_datetime64(self, fill_val, exp_dtype):
         obj = pd.Index([pd.Timestamp('2011-01-01'),
                         pd.Timestamp('2011-01-02'),
                         pd.Timestamp('2011-01-03'),
@@ -714,56 +698,22 @@ class TestWhereCoercion(CoercionBase):
         assert obj.dtype == 'datetime64[ns]'
         cond = pd.Index([True, False, True, False])
 
-        # datetime64 + datetime64 -> datetime64
-        # must support scalar
-        msg = "cannot coerce a Timestamp with a tz on a naive Block"
-        with pytest.raises(TypeError):
-            obj.where(cond, pd.Timestamp('2012-01-01'))
-
-        values = pd.Index([pd.Timestamp('2012-01-01'),
-                           pd.Timestamp('2012-01-02'),
-                           pd.Timestamp('2012-01-03'),
-                           pd.Timestamp('2012-01-04')])
-        exp = pd.Index([pd.Timestamp('2011-01-01'),
-                        pd.Timestamp('2012-01-02'),
-                        pd.Timestamp('2011-01-03'),
-                        pd.Timestamp('2012-01-04')])
-        self._assert_where_conversion(obj, cond, values, exp, 'datetime64[ns]')
-
-        # ToDo: coerce to object
         msg = ("Index\\(\\.\\.\\.\\) must be called with a collection "
                "of some kind")
         with tm.assert_raises_regex(TypeError, msg):
-            obj.where(cond, pd.Timestamp('2012-01-01', tz='US/Eastern'))
+            obj.where(cond, fill_val)
 
-        # ToDo: do not ignore timezone, must be object
-        values = pd.Index([pd.Timestamp('2012-01-01', tz='US/Eastern'),
-                           pd.Timestamp('2012-01-02', tz='US/Eastern'),
-                           pd.Timestamp('2012-01-03', tz='US/Eastern'),
-                           pd.Timestamp('2012-01-04', tz='US/Eastern')])
+        values = pd.Index(pd.date_range(fill_val, periods=4))
         exp = pd.Index([pd.Timestamp('2011-01-01'),
                         pd.Timestamp('2012-01-02'),
                         pd.Timestamp('2011-01-03'),
                         pd.Timestamp('2012-01-04')])
-        self._assert_where_conversion(obj, cond, values, exp, 'datetime64[ns]')
 
-    def test_where_series_datetime64tz(self):
-        pass
-
-    def test_where_series_timedelta64(self):
-        pass
-
-    def test_where_series_period(self):
-        pass
-
-    def test_where_index_datetime64tz(self):
-        pass
-
-    def test_where_index_timedelta64(self):
-        pass
-
-    def test_where_index_period(self):
-        pass
+        if fill_val.tz:
+            self._assert_where_conversion(obj, cond, values, exp, 'datetime64[ns]')
+            pytest.xfail("ToDo: do not ignore timezone, must be object")
+        self._assert_where_conversion(obj, cond, values, exp, exp_dtype)
+        pytest.xfail("datetime64 + datetime64 -> datetime64 must support scalar")
 
 
 class TestFillnaSeriesCoercion(CoercionBase):
