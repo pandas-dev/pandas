@@ -10,8 +10,7 @@ from pandas.core.dtypes.common import (
     _ensure_platform_int,
     is_list_like,
     is_interval_dtype,
-    is_scalar,
-    pandas_dtype)
+    is_scalar)
 from pandas.core.common import (_asarray_tuplesafe,
                                 _values_from_object)
 from pandas.core.dtypes.missing import array_equivalent, isna
@@ -341,23 +340,12 @@ class CategoricalIndex(Index, accessor.PandasDelegate):
 
     @Appender(_index_shared_docs['astype'])
     def astype(self, dtype, copy=True):
-        if isinstance(dtype, compat.string_types) and dtype == 'category':
-            # GH 18630: CI.astype('category') should not change anything
-            return self.copy() if copy else self
-
-        dtype = pandas_dtype(dtype)
         if is_interval_dtype(dtype):
             from pandas import IntervalIndex
             return IntervalIndex.from_intervals(np.array(self))
         elif is_categorical_dtype(dtype):
-            # GH 18630: keep current categories if None (ordered can't be None)
-            if dtype.categories is None:
-                new_categories = self.categories
-            else:
-                new_categories = dtype.categories
-            dtype = CategoricalDtype(new_categories, dtype.ordered)
-
-            # fastpath if dtypes are equal
+            # GH 18630
+            dtype = self.dtype._update_dtype(dtype)
             if dtype == self.dtype:
                 return self.copy() if copy else self
 
