@@ -311,8 +311,8 @@ def is_subperiod(source, target):
 
     if _is_annual(target):
         if _is_quarterly(source):
-            return _quarter_months_conform(_get_rule_month(source),
-                                           _get_rule_month(target))
+            return _quarter_months_conform(get_rule_month(source),
+                                           get_rule_month(target))
         return source in {'D', 'C', 'B', 'M', 'H', 'T', 'S', 'L', 'U', 'N'}
     elif _is_quarterly(target):
         return source in {'D', 'C', 'B', 'M', 'H', 'T', 'S', 'L', 'U', 'N'}
@@ -363,11 +363,11 @@ def is_superperiod(source, target):
 
     if _is_annual(source):
         if _is_annual(target):
-            return _get_rule_month(source) == _get_rule_month(target)
+            return get_rule_month(source) == get_rule_month(target)
 
         if _is_quarterly(target):
-            smonth = _get_rule_month(source)
-            tmonth = _get_rule_month(target)
+            smonth = get_rule_month(source)
+            tmonth = get_rule_month(target)
             return _quarter_months_conform(smonth, tmonth)
         return target in {'D', 'C', 'B', 'M', 'H', 'T', 'S', 'L', 'U', 'N'}
     elif _is_quarterly(source):
@@ -444,16 +444,16 @@ cdef bint _is_weekly(str rule):
 
 # ----------------------------------------------------------------------
 
-cpdef object _get_rule_month(object source, object default='DEC'):
+cpdef object get_rule_month(object source, object default='DEC'):
     """
     Return starting month of given freq, default is December.
 
     Example
     -------
-    >>> _get_rule_month('D')
+    >>> get_rule_month('D')
     'DEC'
 
-    >>> _get_rule_month('A-JAN')
+    >>> get_rule_month('A-JAN')
     'JAN'
     """
     if hasattr(source, 'freqstr'):

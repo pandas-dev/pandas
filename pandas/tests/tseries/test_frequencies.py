@@ -7,7 +7,7 @@ import numpy as np
 from pandas import (Index, DatetimeIndex, Timestamp, Series,
                     date_range, period_range)
 
-from pandas._libs.tslibs.frequencies import (_period_code_map, _get_rule_month,
+from pandas._libs.tslibs.frequencies import (_period_code_map, get_rule_month,
                                              _period_str_to_code,
                                              _INVALID_FREQ_ERROR)
 
@@ -289,38 +289,38 @@ def test_rule_aliases():
 
 
 def test_get_rule_month():
-    result = _get_rule_month('W')
+    result = get_rule_month('W')
     assert (result == 'DEC')
-    result = _get_rule_month(offsets.Week())
-    assert (result == 'DEC')
-
-    result = _get_rule_month('D')
-    assert (result == 'DEC')
-    result = _get_rule_month(offsets.Day())
+    result = get_rule_month(offsets.Week())
     assert (result == 'DEC')
 
-    result = _get_rule_month('Q')
+    result = get_rule_month('D')
     assert (result == 'DEC')
-    result = _get_rule_month(offsets.QuarterEnd(startingMonth=12))
+    result = get_rule_month(offsets.Day())
+    assert (result == 'DEC')
+
+    result = get_rule_month('Q')
+    assert (result == 'DEC')
+    result = get_rule_month(offsets.QuarterEnd(startingMonth=12))
     print(result == 'DEC')
 
-    result = _get_rule_month('Q-JAN')
+    result = get_rule_month('Q-JAN')
     assert (result == 'JAN')
-    result = _get_rule_month(offsets.QuarterEnd(startingMonth=1))
+    result = get_rule_month(offsets.QuarterEnd(startingMonth=1))
     assert (result == 'JAN')
 
-    result = _get_rule_month('A-DEC')
+    result = get_rule_month('A-DEC')
     assert (result == 'DEC')
-    result = _get_rule_month('Y-DEC')
+    result = get_rule_month('Y-DEC')
     assert (result == 'DEC')
-    result = _get_rule_month(offsets.YearEnd())
+    result = get_rule_month(offsets.YearEnd())
     assert (result == 'DEC')
 
-    result = _get_rule_month('A-MAY')
+    result = get_rule_month('A-MAY')
     assert (result == 'MAY')
-    result = _get_rule_month('Y-MAY')
+    result = get_rule_month('Y-MAY')
     assert (result == 'MAY')
-    result = _get_rule_month(offsets.YearEnd(month=5))
+    result = get_rule_month(offsets.YearEnd(month=5))
     assert (result == 'MAY')
 
 

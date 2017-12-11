@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 # cython: profile=False
 
-cpdef object _get_rule_month(object source, object default=*)
+cpdef object get_rule_month(object source, object default=*)
 
 cpdef get_freq_code(freqstr)
 cpdef object get_freq(object freq)
