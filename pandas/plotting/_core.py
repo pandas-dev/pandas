@@ -573,6 +573,8 @@ class MPLPlot(object):
                 self.data = self.data[notna(self.data.index)]
                 self.data = self.data.sort_index()
                 x = self.data.index._mpl_repr()
+            elif all(isinstance(val, str) for val in index):
+                x = index._mpl_repr()
             else:
                 self._need_to_set_index = True
                 x = lrange(len(index))
