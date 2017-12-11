@@ -883,6 +883,9 @@ class TestFillnaSeriesCoercion(CoercionBase):
 
     method = 'fillna'
 
+    def test_has_comprehensive_tests(self):
+        pass
+
     def _assert_fillna_conversion(self, original, value,
                                   expected, expected_dtype):
         """ test coercion triggered by fillna """
@@ -890,270 +893,90 @@ class TestFillnaSeriesCoercion(CoercionBase):
         res = target.fillna(value)
         self._assert(res, expected, expected_dtype)
 
-    def _fillna_object_common(self, klass):
+    @pytest.mark.parametrize("klass", [pd.Series, pd.Index])
+    @pytest.mark.parametrize("fill_val, fill_dtype", [
+        (1, np.object),
+        (1.1, np.object),
+        (1 + 1j, np.object),
+        (True, np.object)])
+    def test_fillna_object(self, klass, fill_val, fill_dtype):
         obj = klass(['a', np.nan, 'c', 'd'])
         assert obj.dtype == np.object
 
-        # object + int -> object
-        exp = klass(['a', 1, 'c', 'd'])
-        self._assert_fillna_conversion(obj, 1, exp, np.object)
+        exp = klass(['a', fill_val, 'c', 'd'])
+        self._assert_fillna_conversion(obj, fill_val, exp, fill_dtype)
 
-        # object + float -> object
-        exp = klass(['a', 1.1, 'c', 'd'])
-        self._assert_fillna_conversion(obj, 1.1, exp, np.object)
-
-        # object + complex -> object
-        exp = klass(['a', 1 + 1j, 'c', 'd'])
-        self._assert_fillna_conversion(obj, 1 + 1j, exp, np.object)
-
-        # object + bool -> object
-        exp = klass(['a', True, 'c', 'd'])
-        self._assert_fillna_conversion(obj, True, exp, np.object)
-
-    def test_fillna_series_object(self):
-        self._fillna_object_common(pd.Series)
-
-    def test_fillna_index_object(self):
-        self._fillna_object_common(pd.Index)
-
-    def test_fillna_series_int64(self):
-        # int can't hold NaN
-        pass
-
-    def test_fillna_index_int64(self):
-        pass
-
-    def _fillna_float64_common(self, klass, complex):
+    @pytest.mark.parametrize("klass", [pd.Series, pd.Index])
+    @pytest.mark.parametrize("fill_val,filled_val,fill_dtype", [
+        (1, 1.0, np.float64),
+        (1.1, 1.1, np.float64),
+        (1 + 1j, 1 + 1j, np.complex128),
+        (True, True, np.object)])
+    def test_fillna_float64(self, klass, fill_val, filled_val, fill_dtype):
         obj = klass([1.1, np.nan, 3.3, 4.4])
         assert obj.dtype == np.float64
 
-        # float + int -> float
-        exp = klass([1.1, 1.0, 3.3, 4.4])
-        self._assert_fillna_conversion(obj, 1, exp, np.float64)
-
-        # float + float -> float
-        exp = klass([1.1, 1.1, 3.3, 4.4])
-        self._assert_fillna_conversion(obj, 1.1, exp, np.float64)
-
+        exp = klass([1.1, filled_val, 3.3, 4.4])
         # float + complex -> we don't support a complex Index
         # complex for Series,
         # object for Index
-        exp = klass([1.1, 1 + 1j, 3.3, 4.4])
-        self._assert_fillna_conversion(obj, 1 + 1j, exp, complex)
+        if fill_dtype == np.complex128 and klass == pd.Index:
+            fill_dtype = np.object
+        self._assert_fillna_conversion(obj, fill_val, exp, fill_dtype)
 
-        # float + bool -> object
-        exp = klass([1.1, True, 3.3, 4.4])
-        self._assert_fillna_conversion(obj, True, exp, np.object)
-
-    def test_fillna_series_float64(self):
-        self._fillna_float64_common(pd.Series, complex=np.complex128)
-
-    def test_fillna_index_float64(self):
-        self._fillna_float64_common(pd.Index, complex=np.object)
-
-    def test_fillna_series_complex128(self):
+    @pytest.mark.parametrize("fill_val,fill_dtype", [
+        (1, np.complex128),
+        (1.1, np.complex128),
+        (1 + 1j, np.complex128),
+        (True, np.object)])
+    def test_fillna_series_complex128(self, fill_val, fill_dtype):
         obj = pd.Series([1 + 1j, np.nan, 3 + 3j, 4 + 4j])
         assert obj.dtype == np.complex128
 
-        # complex + int -> complex
-        exp = pd.Series([1 + 1j, 1, 3 + 3j, 4 + 4j])
-        self._assert_fillna_conversion(obj, 1, exp, np.complex128)
+        exp = pd.Series([1 + 1j, fill_val, 3 + 3j, 4 + 4j])
+        self._assert_fillna_conversion(obj, fill_val, exp, fill_dtype)
 
-        # complex + float -> complex
-        exp = pd.Series([1 + 1j, 1.1, 3 + 3j, 4 + 4j])
-        self._assert_fillna_conversion(obj, 1.1, exp, np.complex128)
-
-        # complex + complex -> complex
-        exp = pd.Series([1 + 1j, 1 + 1j, 3 + 3j, 4 + 4j])
-        self._assert_fillna_conversion(obj, 1 + 1j, exp, np.complex128)
-
-        # complex + bool -> object
-        exp = pd.Series([1 + 1j, True, 3 + 3j, 4 + 4j])
-        self._assert_fillna_conversion(obj, True, exp, np.object)
-
-    def test_fillna_index_complex128(self):
-        self._fillna_float64_common(pd.Index, complex=np.object)
-
-    def test_fillna_series_bool(self):
-        # bool can't hold NaN
-        pass
-
-    def test_fillna_index_bool(self):
-        pass
-
-    def test_fillna_series_datetime64(self):
-        obj = pd.Series([pd.Timestamp('2011-01-01'),
-                         pd.NaT,
-                         pd.Timestamp('2011-01-03'),
-                         pd.Timestamp('2011-01-04')])
+    @pytest.mark.parametrize("klass", [pd.Series, pd.Index])
+    @pytest.mark.parametrize("fill_val,fill_dtype", [
+        (pd.Timestamp('2012-01-01'), 'datetime64[ns]'),
+        (pd.Timestamp('2012-01-01', tz='US/Eastern'), np.object),
+        (1, np.object),
+        ('x', np.object)])
+    def test_fillna_datetime64(self, klass, fill_val, fill_dtype):
+        obj = klass([pd.Timestamp('2011-01-01'),
+                     pd.NaT,
+                     pd.Timestamp('2011-01-03'),
+                     pd.Timestamp('2011-01-04')])
         assert obj.dtype == 'datetime64[ns]'
 
-        # datetime64 + datetime64 => datetime64
-        exp = pd.Series([pd.Timestamp('2011-01-01'),
-                         pd.Timestamp('2012-01-01'),
-                         pd.Timestamp('2011-01-03'),
-                         pd.Timestamp('2011-01-04')])
-        self._assert_fillna_conversion(obj, pd.Timestamp('2012-01-01'),
-                                       exp, 'datetime64[ns]')
+        exp = klass([pd.Timestamp('2011-01-01'),
+                     fill_val,
+                     pd.Timestamp('2011-01-03'),
+                     pd.Timestamp('2011-01-04')])
+        self._assert_fillna_conversion(obj, fill_val, exp, fill_dtype)
 
-        # datetime64 + datetime64tz => object
-        exp = pd.Series([pd.Timestamp('2011-01-01'),
-                         pd.Timestamp('2012-01-01', tz='US/Eastern'),
-                         pd.Timestamp('2011-01-03'),
-                         pd.Timestamp('2011-01-04')])
-        value = pd.Timestamp('2012-01-01', tz='US/Eastern')
-        self._assert_fillna_conversion(obj, value, exp, np.object)
-
-        # datetime64 + int => object
-        exp = pd.Series([pd.Timestamp('2011-01-01'),
-                         1,
-                         pd.Timestamp('2011-01-03'),
-                         pd.Timestamp('2011-01-04')])
-        self._assert_fillna_conversion(obj, 1, exp, 'object')
-
-        # datetime64 + object => object
-        exp = pd.Series([pd.Timestamp('2011-01-01'),
-                         'x',
-                         pd.Timestamp('2011-01-03'),
-                         pd.Timestamp('2011-01-04')])
-        self._assert_fillna_conversion(obj, 'x', exp, np.object)
-
-    def test_fillna_series_datetime64tz(self):
+    @pytest.mark.parametrize("klass", [pd.Series, pd.Index])
+    @pytest.mark.parametrize("fill_val,fill_dtype", [
+        (pd.Timestamp('2012-01-01', tz='US/Eastern'),
+         'datetime64[ns, US/Eastern]'),
+        (pd.Timestamp('2012-01-01'), np.object),
+        (pd.Timestamp('2012-01-01', tz='Asia/Tokyo'), np.object),
+        (1, np.object),
+        ('x', np.object)])
+    def test_fillna_datetime64tz(self, klass, fill_val, fill_dtype):
         tz = 'US/Eastern'
 
-        obj = pd.Series([pd.Timestamp('2011-01-01', tz=tz),
-                         pd.NaT,
-                         pd.Timestamp('2011-01-03', tz=tz),
-                         pd.Timestamp('2011-01-04', tz=tz)])
+        obj = klass([pd.Timestamp('2011-01-01', tz=tz),
+                     pd.NaT,
+                     pd.Timestamp('2011-01-03', tz=tz),
+                     pd.Timestamp('2011-01-04', tz=tz)])
         assert obj.dtype == 'datetime64[ns, US/Eastern]'
 
-        # datetime64tz + datetime64tz => datetime64tz
-        exp = pd.Series([pd.Timestamp('2011-01-01', tz=tz),
-                         pd.Timestamp('2012-01-01', tz=tz),
-                         pd.Timestamp('2011-01-03', tz=tz),
-                         pd.Timestamp('2011-01-04', tz=tz)])
-        value = pd.Timestamp('2012-01-01', tz=tz)
-        self._assert_fillna_conversion(obj, value, exp,
-                                       'datetime64[ns, US/Eastern]')
-
-        # datetime64tz + datetime64 => object
-        exp = pd.Series([pd.Timestamp('2011-01-01', tz=tz),
-                         pd.Timestamp('2012-01-01'),
-                         pd.Timestamp('2011-01-03', tz=tz),
-                         pd.Timestamp('2011-01-04', tz=tz)])
-        value = pd.Timestamp('2012-01-01')
-        self._assert_fillna_conversion(obj, value, exp, np.object)
-
-        # datetime64tz + datetime64tz(different tz) => object
-        exp = pd.Series([pd.Timestamp('2011-01-01', tz=tz),
-                         pd.Timestamp('2012-01-01', tz='Asia/Tokyo'),
-                         pd.Timestamp('2011-01-03', tz=tz),
-                         pd.Timestamp('2011-01-04', tz=tz)])
-        value = pd.Timestamp('2012-01-01', tz='Asia/Tokyo')
-        self._assert_fillna_conversion(obj, value, exp, np.object)
-
-        # datetime64tz + int => object
-        exp = pd.Series([pd.Timestamp('2011-01-01', tz=tz),
-                         1,
-                         pd.Timestamp('2011-01-03', tz=tz),
-                         pd.Timestamp('2011-01-04', tz=tz)])
-        self._assert_fillna_conversion(obj, 1, exp, np.object)
-
-        # datetime64tz + object => object
-        exp = pd.Series([pd.Timestamp('2011-01-01', tz=tz),
-                         'x',
-                         pd.Timestamp('2011-01-03', tz=tz),
-                         pd.Timestamp('2011-01-04', tz=tz)])
-        self._assert_fillna_conversion(obj, 'x', exp, np.object)
-
-    def test_fillna_series_timedelta64(self):
-        pass
-
-    def test_fillna_series_period(self):
-        pass
-
-    def test_fillna_index_datetime64(self):
-        obj = pd.DatetimeIndex(['2011-01-01', 'NaT', '2011-01-03',
-                                '2011-01-04'])
-        assert obj.dtype == 'datetime64[ns]'
-
-        # datetime64 + datetime64 => datetime64
-        exp = pd.DatetimeIndex(['2011-01-01', '2012-01-01',
-                                '2011-01-03', '2011-01-04'])
-        self._assert_fillna_conversion(obj, pd.Timestamp('2012-01-01'),
-                                       exp, 'datetime64[ns]')
-
-        # datetime64 + datetime64tz => object
-        exp = pd.Index([pd.Timestamp('2011-01-01'),
-                        pd.Timestamp('2012-01-01', tz='US/Eastern'),
-                        pd.Timestamp('2011-01-03'),
-                        pd.Timestamp('2011-01-04')])
-        value = pd.Timestamp('2012-01-01', tz='US/Eastern')
-        self._assert_fillna_conversion(obj, value, exp, np.object)
-
-        # datetime64 + int => object
-        exp = pd.Index([pd.Timestamp('2011-01-01'),
-                        1,
-                        pd.Timestamp('2011-01-03'),
-                        pd.Timestamp('2011-01-04')])
-        self._assert_fillna_conversion(obj, 1, exp, np.object)
-
-        # datetime64 + object => object
-        exp = pd.Index([pd.Timestamp('2011-01-01'),
-                        'x',
-                        pd.Timestamp('2011-01-03'),
-                        pd.Timestamp('2011-01-04')])
-        self._assert_fillna_conversion(obj, 'x', exp, np.object)
-
-    def test_fillna_index_datetime64tz(self):
-        tz = 'US/Eastern'
-
-        obj = pd.DatetimeIndex(['2011-01-01', 'NaT', '2011-01-03',
-                                '2011-01-04'], tz=tz)
-        assert obj.dtype == 'datetime64[ns, US/Eastern]'
-
-        # datetime64tz + datetime64tz => datetime64tz
-        exp = pd.DatetimeIndex(['2011-01-01', '2012-01-01',
-                                '2011-01-03', '2011-01-04'], tz=tz)
-        value = pd.Timestamp('2012-01-01', tz=tz)
-        self._assert_fillna_conversion(obj, value, exp,
-                                       'datetime64[ns, US/Eastern]')
-
-        # datetime64tz + datetime64 => object
-        exp = pd.Index([pd.Timestamp('2011-01-01', tz=tz),
-                        pd.Timestamp('2012-01-01'),
-                        pd.Timestamp('2011-01-03', tz=tz),
-                        pd.Timestamp('2011-01-04', tz=tz)])
-        value = pd.Timestamp('2012-01-01')
-        self._assert_fillna_conversion(obj, value, exp, np.object)
-
-        # datetime64tz + datetime64tz(different tz) => object
-        exp = pd.Index([pd.Timestamp('2011-01-01', tz=tz),
-                        pd.Timestamp('2012-01-01', tz='Asia/Tokyo'),
-                        pd.Timestamp('2011-01-03', tz=tz),
-                        pd.Timestamp('2011-01-04', tz=tz)])
-        value = pd.Timestamp('2012-01-01', tz='Asia/Tokyo')
-        self._assert_fillna_conversion(obj, value, exp, np.object)
-
-        # datetime64tz + int => object
-        exp = pd.Index([pd.Timestamp('2011-01-01', tz=tz),
-                        1,
-                        pd.Timestamp('2011-01-03', tz=tz),
-                        pd.Timestamp('2011-01-04', tz=tz)])
-        self._assert_fillna_conversion(obj, 1, exp, np.object)
-
-        # datetime64tz + object => object
-        exp = pd.Index([pd.Timestamp('2011-01-01', tz=tz),
-                        'x',
-                        pd.Timestamp('2011-01-03', tz=tz),
-                        pd.Timestamp('2011-01-04', tz=tz)])
-        self._assert_fillna_conversion(obj, 'x', exp, np.object)
-
-    def test_fillna_index_timedelta64(self):
-        pass
-
-    def test_fillna_index_period(self):
-        pass
+        exp = klass([pd.Timestamp('2011-01-01', tz=tz),
+                     fill_val,
+                     pd.Timestamp('2011-01-03', tz=tz),
+                     pd.Timestamp('2011-01-04', tz=tz)])
+        self._assert_fillna_conversion(obj, fill_val, exp, fill_dtype)
 
 
 @pytest.mark.parametrize('how', ['dict', 'series'])
