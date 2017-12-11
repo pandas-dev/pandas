@@ -21,6 +21,7 @@ from pandas.compat import lmap
 from pandas.compat.numpy import np_array_datetime64_compat
 from pandas.core.dtypes.common import is_datetime64_ns_dtype
 from pandas.util import testing as tm
+import pandas.util._test_decorators as td
 from pandas.util.testing import assert_series_equal, _skip_if_has_locale
 from pandas import (isna, to_datetime, Timestamp, Series, DataFrame,
                     Index, DatetimeIndex, NaT, date_range, compat)
@@ -187,10 +188,9 @@ class TestTimeConversionFormats(object):
 
 class TestToDatetime(object):
 
+    @td.skip_if_windows  # `tm.set_timezone` does not work in windows
     def test_to_datetime_now(self):
         # See GH#18666
-        tm._skip_if_windows()  # `tm.set_timezone` does not work in windows
-
         with tm.set_timezone('US/Eastern'):
             npnow = np.datetime64('now').astype('datetime64[ns]')
             pdnow = pd.to_datetime('now')
@@ -204,6 +204,7 @@ class TestToDatetime(object):
             assert pdnow.tzinfo is None
             assert pdnow2.tzinfo is None
 
+    @td.skip_if_windows  # `tm.set_timezone` does not work in windows
     def test_to_datetime_today(self):
         # See GH#18666
         # Test with one timezone far ahead of UTC and another far behind, so
@@ -211,8 +212,6 @@ class TestToDatetime(object):
         # Unfortunately this test between 12 and 1 AM Samoa time
         # this both of these timezones _and_ UTC will all be in the same day,
         # so this test will not detect the regression introduced in #18666.
-        tm._skip_if_windows()  # `tm.set_timezone` does not work in windows
-
         with tm.set_timezone('Pacific/Auckland'):  # 12-13 hours ahead of UTC
             nptoday = np.datetime64('today').astype('datetime64[ns]')
             pdtoday = pd.to_datetime('today')
