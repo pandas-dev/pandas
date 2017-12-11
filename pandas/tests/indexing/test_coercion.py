@@ -228,76 +228,53 @@ class TestSetitemCoercion(CoercionBase):
         # check dtype explicitly for sure
         assert temp.index.dtype == expected_dtype
 
-    def test_setitem_index_object(self):
+    @pytest.mark.parametrize("val,exp_dtype", [
+        ('x', np.object),
+        (5, IndexError),
+        (1.1, np.object)])
+    def test_setitem_index_object(self, val, exp_dtype):
         obj = pd.Series([1, 2, 3, 4], index=list('abcd'))
         assert obj.index.dtype == np.object
 
-        # object + object -> object
-        exp_index = pd.Index(list('abcdx'))
-        self._assert_setitem_index_conversion(obj, 'x', exp_index, np.object)
+        if exp_dtype is IndexError:
+            # object + int -> IndexError, regarded as location
+            temp = obj.copy()
+            with pytest.raises(exp_dtype):
+                temp[5] = 5
+        else:
+            exp_index = pd.Index(list('abcd') + [val])
+            self._assert_setitem_index_conversion(obj, val, exp_index, exp_dtype)
 
-        # object + int -> IndexError, regarded as location
-        temp = obj.copy()
-        with pytest.raises(IndexError):
-            temp[5] = 5
-
-        # object + float -> object
-        exp_index = pd.Index(['a', 'b', 'c', 'd', 1.1])
-        self._assert_setitem_index_conversion(obj, 1.1, exp_index, np.object)
-
-    def test_setitem_index_int64(self):
+    @pytest.mark.parametrize("val,exp_dtype", [
+        (5, np.int64),
+        (1.1, np.float64),
+        ('x', np.object)])
+    def test_setitem_index_int64(self, val, exp_dtype):
         # tests setitem with non-existing numeric key
         obj = pd.Series([1, 2, 3, 4])
         assert obj.index.dtype == np.int64
 
-        # int + int -> int
-        exp_index = pd.Index([0, 1, 2, 3, 5])
-        self._assert_setitem_index_conversion(obj, 5, exp_index, np.int64)
+        exp_index = pd.Index([0, 1, 2, 3, val])
+        self._assert_setitem_index_conversion(obj, val, exp_index, exp_dtype)
 
-        # int + float -> float
-        exp_index = pd.Index([0, 1, 2, 3, 1.1])
-        self._assert_setitem_index_conversion(obj, 1.1, exp_index, np.float64)
-
-        # int + object -> object
-        exp_index = pd.Index([0, 1, 2, 3, 'x'])
-        self._assert_setitem_index_conversion(obj, 'x', exp_index, np.object)
-
-    def test_setitem_index_float64(self):
+    @pytest.mark.parametrize("val,exp_dtype", [
+        (5, IndexError),
+        (5.1, np.float64),
+        ('x', np.object)])
+    def test_setitem_index_float64(self, val, exp_dtype):
         # tests setitem with non-existing numeric key
         obj = pd.Series([1, 2, 3, 4], index=[1.1, 2.1, 3.1, 4.1])
         assert obj.index.dtype == np.float64
 
-        # float + int -> int
-        temp = obj.copy()
-        # TODO_GH12747 The result must be float
-        with pytest.raises(IndexError):
-            temp[5] = 5
+        if exp_dtype is IndexError:
+            # float + int -> int
+            temp = obj.copy()
+            with pytest.raises(exp_dtype):
+                temp[5] = 5
+            pytest.xfail("TODO_GH12747 The result must be float")
 
-        # float + float -> float
-        exp_index = pd.Index([1.1, 2.1, 3.1, 4.1, 5.1])
-        self._assert_setitem_index_conversion(obj, 5.1, exp_index, np.float64)
-
-        # float + object -> object
-        exp_index = pd.Index([1.1, 2.1, 3.1, 4.1, 'x'])
-        self._assert_setitem_index_conversion(obj, 'x', exp_index, np.object)
-
-    def test_setitem_index_complex128(self):
-        pass
-
-    def test_setitem_index_bool(self):
-        pass
-
-    def test_setitem_index_datetime64(self):
-        pass
-
-    def test_setitem_index_datetime64tz(self):
-        pass
-
-    def test_setitem_index_timedelta64(self):
-        pass
-
-    def test_setitem_index_period(self):
-        pass
+        exp_index = pd.Index([1.1, 2.1, 3.1, 4.1, val])
+        self._assert_setitem_index_conversion(obj, val, exp_index, exp_dtype)
 
 
 class TestInsertIndexCoercion(CoercionBase):
