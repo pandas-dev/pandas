@@ -10,7 +10,7 @@ import pandas as pd
 from pandas import Index, Series, DataFrame, date_range
 from pandas.core.indexes.datetimes import Timestamp
 
-from pandas.compat import range
+from pandas.compat import range, lzip, isidentifier, string_types
 from pandas import (compat, Categorical, period_range, timedelta_range,
                     DatetimeIndex, PeriodIndex, TimedeltaIndex)
 import pandas.io.formats.printing as printing
@@ -249,6 +249,33 @@ class TestSeriesMisc(TestData, SharedWithSparse):
         s = Series(list('aabbcde')).astype('category')
         results = get_dir(s)
         tm.assert_almost_equal(results, list(sorted(set(ok_for_cat))))
+
+    @pytest.mark.parametrize("index", [
+        tm.makeUnicodeIndex(10),
+        tm.makeStringIndex(10),
+        tm.makeCategoricalIndex(10),
+        Index(['foo', 'bar', 'baz'] * 2),
+        tm.makeDateIndex(10),
+        tm.makePeriodIndex(10),
+        tm.makeTimedeltaIndex(10),
+        tm.makeIntIndex(10),
+        tm.makeUIntIndex(10),
+        tm.makeIntIndex(10),
+        tm.makeFloatIndex(10),
+        Index([True, False]),
+        Index(['a{}'.format(i) for i in range(101)]),
+        pd.MultiIndex.from_tuples(lzip('ABCD', 'EFGH')),
+        pd.MultiIndex.from_tuples(lzip([0, 1, 2, 3], 'EFGH')), ])
+    def test_index_tab_completion(self, index):
+        # dir contains string-like values of the Index.
+        s = pd.Series(index=index)
+        dir_s = dir(s)
+        for i, x in enumerate(s.index.unique(level=0)):
+            if i < 100:
+                assert (not isinstance(x, string_types) or
+                        not isidentifier(x) or x in dir_s)
+            else:
+                assert x not in dir_s
 
     def test_not_hashable(self):
         s_empty = Series()
