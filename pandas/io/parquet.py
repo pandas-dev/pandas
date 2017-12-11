@@ -41,11 +41,14 @@ class BaseImpl(object):
 
     @staticmethod
     def validate_dataframe(df):
+
         if not isinstance(df, DataFrame):
             raise ValueError("to_parquet only supports IO with DataFrames")
+
         # must have value column names (strings only)
         if df.columns.inferred_type not in {'string', 'unicode'}:
             raise ValueError("parquet must have string column names")
+
         # index level names must be strings
         valid_names = all(
             isinstance(name, string_types)
