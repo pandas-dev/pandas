@@ -219,6 +219,7 @@ Removal of prior version deprecations/changes
 - The ``freq`` and ``how`` parameters have been removed from the ``rolling``/``expanding``/``ewm`` methods of DataFrame
   and Series (deprecated since v0.18). Instead, resample before calling the methods. (:issue:18601 & :issue:18668)
 - ``DatetimeIndex.to_datetime``, ``Timestamp.to_datetime``, ``PeriodIndex.to_datetime``, and ``Index.to_datetime`` have been removed (:issue:`8254`, :issue:`14096`, :issue:`14113`)
+- :func:`read_csv` has dropped the ``skip_footer`` parameter (:issue:`13386`)
 
 .. _whatsnew_0220.performance:
 
