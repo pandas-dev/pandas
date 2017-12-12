@@ -4413,7 +4413,7 @@ class DataFrame(NDFrame):
             list can contain any of the other types (except list).
             Keys to group by on the pivot table column.  If an array is passed,
             it is being used as the same manner as column values.
-        aggfunc : function or list of functions or dict, default numpy.mean
+        aggfunc : function, list of functions, dict, default numpy.mean
             If list of functions passed, the resulting pivot table will have
             hierarchical columns whose top level are the function names
             (inferred from the function objects themselves)
@@ -4454,7 +4454,6 @@ class DataFrame(NDFrame):
         >>> table = pivot_table(df, values='D', index=['A', 'B'],
         ...                     columns=['C'], aggfunc=np.sum)
         >>> table
-        ... # doctest: +NORMALIZE_WHITESPACE
         C        large  small
         A   B
         bar one    4.0    5.0
@@ -4465,7 +4464,6 @@ class DataFrame(NDFrame):
         >>> table = pivot_table(df, values='D', index=['A', 'B'],
         ...                     columns=['C'], aggfunc=np.sum)
         >>> table
-        ... # doctest: +NORMALIZE_WHITESPACE
         C        large  small
         A   B
         bar one    4.0    5.0
