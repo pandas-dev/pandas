@@ -37,6 +37,82 @@ analysis / manipulation tool available in any language.
 * Binary installers on PyPI: http://pypi.python.org/pypi/pandas
 * Documentation: http://pandas.pydata.org
 
+pandas 0.21.1
+-------------
+
+**Release date:** December 12, 2017
+
+This is a minor bug-fix release in the 0.21.x series and includes some small
+regression fixes, bug fixes and performance improvements. We recommend that all
+users upgrade to this version.
+
+Highlights include:
+
+- Temporarily restore matplotlib datetime plotting functionality. This should
+  resolve issues for users who relied implicitly on pandas to plot datetimes
+  with matplotlib. See :ref:`here <whatsnew_0211.special>`.
+- Improvements to the Parquet IO functions introduced in 0.21.0. See
+  :ref:`here <whatsnew_0211.enhancements.parquet>`.
+
+See the :ref:`v0.21.1 Whatsnew <whatsnew_0211>` overview for an extensive list
+of all the changes for 0.21.1.
+
+Thanks
+~~~~~~
+
+A total of 46 people contributed to this release.  People with a "+" by their
+names contributed a patch for the first time.
+
+Contributors
+============
+
+* Aaron Critchley +
+* Alex Rychyk
+* Alexander Buchkovsky +
+* Alexander Michael Schade +
+* Chris Mazzullo
+* Cornelius Riemenschneider +
+* Dave Hirschfeld +
+* David Fischer +
+* David Stansby +
+* Dror Atariah +
+* Eric Kisslinger +
+* Hans +
+* Ingolf Becker +
+* Jan Werkmann +
+* Jeff Reback
+* Joris Van den Bossche
+* Jörg Döpfert +
+* Kevin Kuhl +
+* Krzysztof Chomski +
+* Leif Walsh
+* Licht Takeuchi
+* Manraj Singh +
+* Matt Braymer-Hayes +
+* Michael Waskom +
+* Mie~~~ +
+* Peter Hoffmann +
+* Robert Meyer +
+* Sam Cohan +
+* Sietse Brouwer +
+* Sven +
+* Tim Swast
+* Tom Augspurger
+* Wes Turner
+* William Ayd +
+* Yee Mey +
+* bolkedebruin +
+* cgohlke
+* derestle-htwg +
+* fjdiod +
+* gabrielclow +
+* gfyoung
+* ghasemnaddaf +
+* jbrockmendel
+* jschendel
+* miker985 +
+* topper-123
+
 pandas 0.21.0
 -------------
 
