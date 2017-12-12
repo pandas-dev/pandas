@@ -3567,8 +3567,8 @@ class NDFrame(PandasObject, SelectionMixin):
         Examples
         --------
         >>> df = pd.DataFrame({
-        ...     'col1' : ['A', 'A', 'B', np.nan, 'D', 'C', 'E', 'E', 'F'],
-        ...     'col2' : [2, 1, 9, 8, 7, 4, 0, 2, 2],
+        ...     'col1': ['A', 'A', 'B', 'B', 'D', 'C', 'E', 'E', 'F'],
+        ...     'col2': [2, 1, 9, 8, 7, 4, 0, 2, 2],
         ...     'col3': [0, 1, 9, 4, 2, 3, 5, 7, 3],
         ... })
         >>> df
@@ -3576,12 +3576,12 @@ class NDFrame(PandasObject, SelectionMixin):
         0   A    2    0
         1   A    1    1
         2   B    9    9
-        3   NaN  8    4
+        3   B    8    4
         4   D    7    2
         5   C    4    3
-        6    E     0     5
-        7    E     2     7
-        8    F     2     3
+        6   E     0     5
+        7   E     2     7
+        8   F     2     3
 
         Viewing the first 5 lines (the default)
         >>> df.head()
@@ -3589,11 +3589,11 @@ class NDFrame(PandasObject, SelectionMixin):
         0    A     2     0
         1    A     1     1
         2    B     9     9
-        3  NaN     8     4
+        3    B     8     4
         4    D     7     2
 
         Viewing the first n lines (three in this case)
-        >>> df.head(n=3)
+        >>> df.head(3)
             col1 col2 col3
         0   A    2    0
         1   A    1    1
