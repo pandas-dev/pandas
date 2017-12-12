@@ -17,7 +17,7 @@ np.import_array()
 
 from util cimport is_string_object, is_integer_object
 
-from ccalendar import MONTHS
+from ccalendar import MONTHS, DAYS
 from conversion cimport tz_convert_single, pydt_to_i8
 from frequencies cimport get_freq_code
 from nattype cimport NPY_NAT
@@ -28,8 +28,9 @@ from np_datetime cimport (pandas_datetimestruct,
 # ---------------------------------------------------------------------
 # Constants
 
-# TODO: remove this; it is only used in tests
+
 class WeekDay(object):
+    # TODO: Remove: This is not used outside of tests
     MON = 0
     TUE = 1
     WED = 2
@@ -80,8 +81,7 @@ for __prefix in ['A', 'Q']:
         _alias = '%s-%s' % (__prefix, _m)
         _offset_to_period_map[_alias] = _alias
 
-_days = ['MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT', 'SUN']
-for _d in _days:
+for _d in DAYS:
     _offset_to_period_map['W-%s' % _d] = 'W-%s' % _d
 
 

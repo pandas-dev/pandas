@@ -42,6 +42,7 @@ from dateutil.parser import DEFAULTPARSER
 from dateutil.parser import parse as du_parse
 
 from ccalendar import MONTH_NUMBERS
+from nattype import nat_strings
 
 # ----------------------------------------------------------------------
 # Constants
@@ -50,8 +51,6 @@ from ccalendar import MONTH_NUMBERS
 class DateParseError(ValueError):
     pass
 
-
-_nat_strings = set(['NaT', 'nat', 'NAT', 'nan', 'NaN', 'NAN'])
 
 _DEFAULT_DATETIME = datetime(1, 1, 1).replace(hour=0, minute=0,
                                               second=0, microsecond=0)
@@ -211,7 +210,7 @@ cdef inline object _parse_dateabbr_string(object date_string, object default,
     # len(date_string) == 0
     # should be NaT???
 
-    if date_string in _nat_strings:
+    if date_string in nat_strings:
         return NAT_SENTINEL, NAT_SENTINEL, ''
 
     date_string = date_string.upper()

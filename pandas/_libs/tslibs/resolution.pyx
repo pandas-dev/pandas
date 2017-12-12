@@ -17,8 +17,7 @@ from pandas._libs.khash cimport (khiter_t,
 
 from cpython.datetime cimport datetime
 
-from np_datetime cimport (pandas_datetimestruct,
-                          dtstruct_to_dt64, dt64_to_dtstruct)
+from np_datetime cimport pandas_datetimestruct, dt64_to_dtstruct
 from frequencies cimport get_freq_code
 from timezones cimport (is_utc, is_tzlocal,
                         maybe_get_tz, get_dst_info, get_utcoffset)
@@ -348,7 +347,7 @@ class Resolution(object):
 # Frequency Inference
 
 
-# TODO: this is non performiant logic here (and duplicative) and this
+# TODO: this is non performant logic here (and duplicative) and this
 # simply should call unique_1d directly
 # plus no reason to depend on khash directly
 cdef unique_deltas(ndarray[int64_t] arr):
