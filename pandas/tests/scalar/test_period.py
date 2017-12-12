@@ -12,9 +12,9 @@ from pandas.compat.numpy import np_datetime64_compat
 
 from pandas._libs import tslib
 from pandas._libs.tslibs import period as libperiod
+from pandas._libs.tslibs.ccalendar import DAYS, MONTHS
 from pandas._libs.tslibs.parsing import DateParseError
 from pandas import Period, Timestamp, offsets
-from pandas._libs.tslibs.resolution import DAYS, _MONTHS as MONTHS
 
 
 class TestPeriodProperties(object):

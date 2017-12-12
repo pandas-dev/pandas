@@ -32,8 +32,9 @@ from timestamps import Timestamp
 from timezones cimport is_utc, is_tzlocal, get_utcoffset, get_dst_info
 from timedeltas cimport delta_to_nanoseconds
 
+from ccalendar import MONTH_NUMBERS
 from parsing import (parse_time_string, NAT_SENTINEL,
-                     _get_rule_month, _MONTH_NUMBERS)
+                     _get_rule_month)
 from frequencies cimport get_freq_code
 from resolution import resolution, Resolution
 from nattype import nat_strings, NaT, iNaT
@@ -1148,7 +1149,7 @@ def _quarter_to_myear(year, quarter, freq):
         if quarter <= 0 or quarter > 4:
             raise ValueError('Quarter must be 1 <= q <= 4')
 
-        mnum = _MONTH_NUMBERS[_get_rule_month(freq)] + 1
+        mnum = MONTH_NUMBERS[_get_rule_month(freq)] + 1
         month = (mnum + (quarter - 1) * 3) % 12 + 1
         if month > mnum:
             year -= 1
