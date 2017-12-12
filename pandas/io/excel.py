@@ -70,6 +70,7 @@ sheet_name : string, int, mixed list of strings/ints, or None, default 0
     * None -> All sheets as a dictionary of DataFrames
 
 sheetname : string, int, mixed list of strings/ints, or None, default 0
+
     .. deprecated:: 0.21.0
        Use `sheet_name` instead
 
@@ -77,43 +78,17 @@ header : int, list of ints, default 0
     Row (0-indexed) to use for the column labels of the parsed
     DataFrame. If a list of integers is passed those row positions will
     be combined into a ``MultiIndex``. Use None if there is no header.
-skiprows : list-like
-    Rows to skip at the beginning (0-indexed)
-skip_footer : int, default 0
-    Rows at the end to skip (0-indexed)
+names : array-like, default None
+    List of column names to use. If file contains no header row,
+    then you should explicitly pass header=None
 index_col : int, list of ints, default None
     Column (0-indexed) to use as the row labels of the DataFrame.
     Pass None if there is no such column.  If a list is passed,
     those columns will be combined into a ``MultiIndex``.  If a
     subset of data is selected with ``usecols``, index_col
     is based on the subset.
-names : array-like, default None
-    List of column names to use. If file contains no header row,
-    then you should explicitly pass header=None
-converters : dict, default None
-    Dict of functions for converting values in certain columns. Keys can
-    either be integers or column labels, values are functions that take one
-    input argument, the Excel cell content, and return the transformed
-    content.
-dtype : Type name or dict of column -> type, default None
-    Data type for data or columns. E.g. {'a': np.float64, 'b': np.int32}
-    Use `object` to preserve data as stored in Excel and not interpret dtype.
-    If converters are specified, they will be applied INSTEAD
-    of dtype conversion.
-
-    .. versionadded:: 0.20.0
-
-true_values : list, default None
-    Values to consider as True
-
-    .. versionadded:: 0.19.0
-
-false_values : list, default None
-    Values to consider as False
-
-    .. versionadded:: 0.19.0
-
 parse_cols : int or list, default None
+
     .. deprecated:: 0.21.0
        Pass in `usecols` instead.
 
@@ -126,23 +101,55 @@ usecols : int or list, default None
       both sides.
 squeeze : boolean, default False
     If the parsed data only contains one column then return a Series
+dtype : Type name or dict of column -> type, default None
+    Data type for data or columns. E.g. {'a': np.float64, 'b': np.int32}
+    Use `object` to preserve data as stored in Excel and not interpret dtype.
+    If converters are specified, they will be applied INSTEAD
+    of dtype conversion.
+
+    .. versionadded:: 0.20.0
+
+engine: string, default None
+    If io is not a buffer or path, this must be set to identify io.
+    Acceptable values are None or xlrd
+converters : dict, default None
+    Dict of functions for converting values in certain columns. Keys can
+    either be integers or column labels, values are functions that take one
+    input argument, the Excel cell content, and return the transformed
+    content.
+true_values : list, default None
+    Values to consider as True
+
+    .. versionadded:: 0.19.0
+
+false_values : list, default None
+    Values to consider as False
+
+    .. versionadded:: 0.19.0
+
+skiprows : list-like
+    Rows to skip at the beginning (0-indexed)
+nrows : int, default None
+    Number of rows to parse
+
+    .. versionadded:: 0.22.0
+
 na_values : scalar, str, list-like, or dict, default None
     Additional strings to recognize as NA/NaN. If dict passed, specific
     per-column NA values. By default the following values are interpreted
     as NaN: '""" + fill("', '".join(sorted(_NA_VALUES)), 70) + """'.
-thousands : str, default None
-    Thousands separator for parsing string columns to numeric.  Note that
-    this parameter is only necessary for columns stored as TEXT in Excel,
-    any numeric columns will automatically be parsed, regardless of display
-    format.
 keep_default_na : bool, default True
     If na_values are specified and keep_default_na is False the default NaN
     values are overridden, otherwise they're appended to.
 verbose : boolean, default False
     Indicate number of NA values placed in non-numeric columns
-engine: string, default None
-    If io is not a buffer or path, this must be set to identify io.
-    Acceptable values are None or xlrd
+thousands : str, default None
+    Thousands separator for parsing string columns to numeric.  Note that
+    this parameter is only necessary for columns stored as TEXT in Excel,
+    any numeric columns will automatically be parsed, regardless of display
+    format.
+skip_footer : int, default 0
+    Rows at the end to skip (0-indexed)
 convert_float : boolean, default True
     convert integral floats to int (i.e., 1.0 --> 1). If False, all numeric
     data will be read in as floats: Excel stores all numbers as floats
@@ -193,12 +200,27 @@ def get_writer(engine_name):
 
 @Appender(_read_excel_doc)
 @deprecate_kwarg("parse_cols", "usecols")
-def read_excel(io, sheet_name=0, header=0, skiprows=None, skip_footer=0,
-               index_col=None, names=None, usecols=None, parse_dates=False,
-               date_parser=None, na_values=None, thousands=None,
-               convert_float=True, converters=None, dtype=None,
-               true_values=None, false_values=None, engine=None,
-               squeeze=False, **kwds):
+def read_excel(io,
+               sheet_name=0,
+               header=0,
+               names=None,
+               index_col=None,
+               usecols=None,
+               squeeze=False,
+               dtype=None,
+               engine=None,
+               converters=None,
+               true_values=None,
+               false_values=None,
+               skiprows=None,
+               nrows=None,
+               na_values=None,
+               parse_dates=False,
+               date_parser=None,
+               thousands=None,
+               skip_footer=0,
+               convert_float=True,
+               **kwds):
 
     # Can't use _deprecate_kwarg since sheetname=None has a special meaning
     if is_integer(sheet_name) and sheet_name == 0 and 'sheetname' in kwds:
@@ -213,12 +235,25 @@ def read_excel(io, sheet_name=0, header=0, skiprows=None, skip_footer=0,
         io = ExcelFile(io, engine=engine)
 
     return io._parse_excel(
-        sheetname=sheet_name, header=header, skiprows=skiprows, names=names,
-        index_col=index_col, usecols=usecols, parse_dates=parse_dates,
-        date_parser=date_parser, na_values=na_values, thousands=thousands,
-        convert_float=convert_float, skip_footer=skip_footer,
-        converters=converters, dtype=dtype, true_values=true_values,
-        false_values=false_values, squeeze=squeeze, **kwds)
+        sheetname=sheet_name,
+        header=header,
+        names=names,
+        index_col=index_col,
+        usecols=usecols,
+        squeeze=squeeze,
+        dtype=dtype,
+        converters=converters,
+        true_values=true_values,
+        false_values=false_values,
+        skiprows=skiprows,
+        nrows=nrows,
+        na_values=na_values,
+        parse_dates=parse_dates,
+        date_parser=date_parser,
+        thousands=thousands,
+        skip_footer=skip_footer,
+        convert_float=convert_float,
+        **kwds)
 
 
 class ExcelFile(object):
@@ -282,11 +317,25 @@ class ExcelFile(object):
     def __fspath__(self):
         return self._io
 
-    def parse(self, sheet_name=0, header=0, skiprows=None, skip_footer=0,
-              names=None, index_col=None, usecols=None, parse_dates=False,
-              date_parser=None, na_values=None, thousands=None,
-              convert_float=True, converters=None, true_values=None,
-              false_values=None, squeeze=False, **kwds):
+    def parse(self,
+              sheet_name=0,
+              header=0,
+              names=None,
+              index_col=None,
+              usecols=None,
+              squeeze=False,
+              converters=None,
+              true_values=None,
+              false_values=None,
+              skiprows=None,
+              nrows=None,
+              na_values=None,
+              parse_dates=False,
+              date_parser=None,
+              thousands=None,
+              skip_footer=0,
+              convert_float=True,
+              **kwds):
         """
         Parse specified sheet(s) into a DataFrame
 
@@ -294,19 +343,23 @@ class ExcelFile(object):
         docstring for more info on accepted parameters
         """
 
-        return self._parse_excel(sheetname=sheet_name, header=header,
-                                 skiprows=skiprows, names=names,
+        return self._parse_excel(sheetname=sheet_name,
+                                 header=header,
+                                 names=names,
                                  index_col=index_col,
                                  usecols=usecols,
-                                 parse_dates=parse_dates,
-                                 date_parser=date_parser, na_values=na_values,
-                                 thousands=thousands,
-                                 skip_footer=skip_footer,
-                                 convert_float=convert_float,
+                                 squeeze=squeeze,
                                  converters=converters,
                                  true_values=true_values,
                                  false_values=false_values,
-                                 squeeze=squeeze,
+                                 skiprows=skiprows,
+                                 nrows=nrows,
+                                 na_values=na_values,
+                                 parse_dates=parse_dates,
+                                 date_parser=date_parser,
+                                 thousands=thousands,
+                                 skip_footer=skip_footer,
+                                 convert_float=convert_float,
                                  **kwds)
 
     def _should_parse(self, i, usecols):
@@ -342,12 +395,26 @@ class ExcelFile(object):
         else:
             return i in usecols
 
-    def _parse_excel(self, sheetname=0, header=0, skiprows=None, names=None,
-                     skip_footer=0, index_col=None, usecols=None,
-                     parse_dates=False, date_parser=None, na_values=None,
-                     thousands=None, convert_float=True, true_values=None,
-                     false_values=None, verbose=False, dtype=None,
-                     squeeze=False, **kwds):
+    def _parse_excel(self,
+                     sheetname=0,
+                     header=0,
+                     names=None,
+                     index_col=None,
+                     usecols=None,
+                     squeeze=False,
+                     dtype=None,
+                     true_values=None,
+                     false_values=None,
+                     skiprows=None,
+                     nrows=None,
+                     na_values=None,
+                     verbose=False,
+                     parse_dates=False,
+                     date_parser=None,
+                     thousands=None,
+                     skip_footer=0,
+                     convert_float=True,
+                     **kwds):
 
         skipfooter = kwds.pop('skipfooter', None)
         if skipfooter is not None:
@@ -509,21 +576,24 @@ class ExcelFile(object):
 
             # GH 12292 : error when read one empty column from excel file
             try:
-                parser = TextParser(data, header=header, index_col=index_col,
+                parser = TextParser(data,
+                                    header=header,
+                                    index_col=index_col,
                                     has_index_names=has_index_names,
-                                    na_values=na_values,
-                                    thousands=thousands,
-                                    parse_dates=parse_dates,
-                                    date_parser=date_parser,
+                                    squeeze=squeeze,
+                                    dtype=dtype,
                                     true_values=true_values,
                                     false_values=false_values,
                                     skiprows=skiprows,
+                                    nrows=nrows,
+                                    na_values=na_values,
+                                    parse_dates=parse_dates,
+                                    date_parser=date_parser,
+                                    thousands=thousands,
                                     skipfooter=skip_footer,
-                                    squeeze=squeeze,
-                                    dtype=dtype,
                                     **kwds)
 
-                output[asheetname] = parser.read()
+                output[asheetname] = parser.read(nrows=nrows)
                 if names is not None:
                     output[asheetname].columns = names
                 if not squeeze or isinstance(output[asheetname], DataFrame):

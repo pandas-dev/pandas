@@ -177,3 +177,13 @@ class series_value_counts(object):
 
     def time_value_counts_strings(self):
         self.s.value_counts()
+
+
+class series_dir(object):
+    goal_time = 0.2
+
+    def setup(self):
+        self.s = Series(index=tm.makeStringIndex(10000))
+
+    def time_dir_strings(self):
+        dir(self.s)

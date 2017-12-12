@@ -10,7 +10,8 @@ from numpy import nan
 import numpy as np
 import pytest
 
-from pandas import (DataFrame, compat, option_context)
+from pandas import (DataFrame, Series, compat, option_context,
+                    date_range, period_range, Categorical)
 from pandas.compat import StringIO, lrange, u, PYPY
 import pandas.io.formats.format as fmt
 import pandas as pd
@@ -471,3 +472,34 @@ class TestDataFrameReprInfoEtc(TestData):
 
         buf = StringIO()
         df.info(buf=buf)
+
+    def test_info_categorical_column(self):
+
+        # make sure it works
+        n = 2500
+        df = DataFrame({'int64': np.random.randint(100, size=n)})
+        df['category'] = Series(np.array(list('abcdefghij')).take(
+            np.random.randint(0, 10, size=n))).astype('category')
+        df.isna()
+        buf = StringIO()
+        df.info(buf=buf)
+
+        df2 = df[df['category'] == 'd']
+        buf = compat.StringIO()
+        df2.info(buf=buf)
+
+    def test_repr_categorical_dates_periods(self):
+        # normal DataFrame
+        dt = date_range('2011-01-01 09:00', freq='H', periods=5,
+                        tz='US/Eastern')
+        p = period_range('2011-01', freq='M', periods=5)
+        df = DataFrame({'dt': dt, 'p': p})
+        exp = """                         dt       p
+0 2011-01-01 09:00:00-05:00 2011-01
+1 2011-01-01 10:00:00-05:00 2011-02
+2 2011-01-01 11:00:00-05:00 2011-03
+3 2011-01-01 12:00:00-05:00 2011-04
+4 2011-01-01 13:00:00-05:00 2011-05"""
+
+        df = DataFrame({'dt': Categorical(dt), 'p': Categorical(p)})
+        assert repr(df) == exp

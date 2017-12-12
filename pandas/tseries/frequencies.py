@@ -17,7 +17,6 @@ from pandas.tseries.offsets import DateOffset
 from pandas.util._decorators import deprecate_kwarg
 import pandas.tseries.offsets as offsets
 
-from pandas._libs import tslib
 from pandas._libs.tslib import Timedelta
 from pandas._libs.tslibs.frequencies import (  # noqa
     get_freq_code, _base_and_stride, _period_str_to_code,
@@ -26,7 +25,7 @@ from pandas._libs.tslibs.frequencies import (  # noqa
 from pandas._libs.tslibs.resolution import (Resolution,
                                             _FrequencyInferer,
                                             _TimedeltaFrequencyInferer)
-from pandas._libs.tslibs.parsing import _get_rule_month
+from pandas._libs.tslibs.parsing import _get_rule_month, _MONTH_NUMBERS
 
 from pytz import AmbiguousTimeError
 
@@ -497,8 +496,8 @@ def _is_annual(rule):
 
 
 def _quarter_months_conform(source, target):
-    snum = _month_numbers[source]
-    tnum = _month_numbers[target]
+    snum = _MONTH_NUMBERS[source]
+    tnum = _MONTH_NUMBERS[target]
     return snum % 3 == tnum % 3
 
 
@@ -515,7 +514,3 @@ def _is_monthly(rule):
 def _is_weekly(rule):
     rule = rule.upper()
     return rule == 'W' or rule.startswith('W-')
-
-
-MONTHS = tslib._MONTHS
-_month_numbers = tslib._MONTH_NUMBERS
