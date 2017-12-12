@@ -1,8 +1,5 @@
 # -*- coding: utf-8 -*-
 # cython: profile=False
-# cython: linetrace=False
-# distutils: define_macros=CYTHON_TRACE=0
-# distutils: define_macros=CYTHON_TRACE_NOGIL=0
 """
 Functions for accessing attributes of Timestamp/datetime64/datetime-like
 objects and arrays
@@ -142,8 +139,8 @@ def get_start_end_field(ndarray[int64_t] dtindex, object field,
         int mo_off, dom, doy, dow, ldom
 
     _month_offset = np.array(
-        [[ 0, 31, 59, 90, 120, 151, 181, 212, 243, 273, 304, 334, 365 ],
-         [ 0, 31, 60, 91, 121, 152, 182, 213, 244, 274, 305, 335, 366 ]],
+        [[0, 31, 59, 90, 120, 151, 181, 212, 243, 273, 304, 334, 365],
+         [0, 31, 60, 91, 121, 152, 182, 213, 244, 274, 305, 335, 366]],
         dtype=np.int32)
 
     count = len(dtindex)
@@ -383,8 +380,8 @@ def get_date_field(ndarray[int64_t] dtindex, object field):
         int mo_off, doy, dow
 
     _month_offset = np.array(
-        [[ 0, 31, 59, 90, 120, 151, 181, 212, 243, 273, 304, 334, 365 ],
-         [ 0, 31, 60, 91, 121, 152, 182, 213, 244, 274, 305, 335, 366 ]],
+        [[0, 31, 59, 90, 120, 151, 181, 212, 243, 273, 304, 334, 365],
+         [0, 31, 60, 91, 121, 152, 182, 213, 244, 274, 305, 335, 366]],
         dtype=np.int32 )
 
     count = len(dtindex)

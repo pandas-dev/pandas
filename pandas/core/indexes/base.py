@@ -1053,6 +1053,10 @@ class Index(IndexOpsMixin, PandasObject):
 
     @Appender(_index_shared_docs['astype'])
     def astype(self, dtype, copy=True):
+        if is_categorical_dtype(dtype):
+            from .category import CategoricalIndex
+            return CategoricalIndex(self.values, name=self.name, dtype=dtype,
+                                    copy=copy)
         return Index(self.values.astype(dtype, copy=copy), name=self.name,
                      dtype=dtype)
 

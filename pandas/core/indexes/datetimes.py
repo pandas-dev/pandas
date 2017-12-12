@@ -20,6 +20,7 @@ from pandas.core.dtypes.common import (
     is_period_dtype,
     is_bool_dtype,
     is_string_dtype,
+    is_categorical_dtype,
     is_string_like,
     is_list_like,
     is_scalar,
@@ -35,6 +36,7 @@ from pandas.core.common import _values_from_object, _maybe_box
 from pandas.core.algorithms import checked_add_with_arr
 
 from pandas.core.indexes.base import Index, _index_shared_docs
+from pandas.core.indexes.category import CategoricalIndex
 from pandas.core.indexes.numeric import Int64Index, Float64Index
 import pandas.compat as compat
 from pandas.tseries.frequencies import (
@@ -53,8 +55,7 @@ import pandas.tseries.offsets as offsets
 import pandas.core.tools.datetimes as tools
 
 from pandas._libs import (lib, index as libindex, tslib as libts,
-                          algos as libalgos, join as libjoin,
-                          Timestamp)
+                          join as libjoin, Timestamp)
 from pandas._libs.tslibs import (timezones, conversion, fields, parsing,
                                  period as libperiod)
 
@@ -936,6 +937,9 @@ class DatetimeIndex(DatelikeOps, TimelikeOps, DatetimeIndexOpsMixin,
             elif copy is True:
                 return self.copy()
             return self
+        elif is_categorical_dtype(dtype):
+            return CategoricalIndex(self.values, name=self.name, dtype=dtype,
+                                    copy=copy)
         elif is_string_dtype(dtype):
             return Index(self.format(), name=self.name, dtype=object)
         elif is_period_dtype(dtype):
@@ -1697,9 +1701,7 @@ class DatetimeIndex(DatelikeOps, TimelikeOps, DatetimeIndexOpsMixin,
         """
         Returns numpy array of datetime.time. The time part of the Timestamps.
         """
-        return self._maybe_mask_results(libalgos.arrmap_object(
-            self.astype(object).values,
-            lambda x: np.nan if x is libts.NaT else x.time()))
+        return libts.ints_to_pydatetime(self.asi8, self.tz, box="time")
 
     @property
     def date(self):

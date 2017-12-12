@@ -9,6 +9,7 @@ import pandas as pd
 from pandas import (
     Series, Categorical, CategoricalIndex, IntervalIndex, date_range)
 
+from pandas.compat import string_types
 from pandas.core.dtypes.dtypes import (
     DatetimeTZDtype, PeriodDtype,
     IntervalDtype, CategoricalDtype)
@@ -122,6 +123,41 @@ class TestCategoricalDtype(Base):
         categories = [(1, 'a'), (2, 'b'), (3, 'c')]
         result = CategoricalDtype(categories)
         assert all(result.categories == categories)
+
+    @pytest.mark.parametrize('dtype', [
+        CategoricalDtype(list('abc'), False),
+        CategoricalDtype(list('abc'), True)])
+    @pytest.mark.parametrize('new_dtype', [
+        'category',
+        CategoricalDtype(None, False),
+        CategoricalDtype(None, True),
+        CategoricalDtype(list('abc'), False),
+        CategoricalDtype(list('abc'), True),
+        CategoricalDtype(list('cba'), False),
+        CategoricalDtype(list('cba'), True),
+        CategoricalDtype(list('wxyz'), False),
+        CategoricalDtype(list('wxyz'), True)])
+    def test_update_dtype(self, dtype, new_dtype):
+        if isinstance(new_dtype, string_types) and new_dtype == 'category':
+            expected_categories = dtype.categories
+            expected_ordered = dtype.ordered
+        else:
+            expected_categories = new_dtype.categories
+            if expected_categories is None:
+                expected_categories = dtype.categories
+            expected_ordered = new_dtype.ordered
+
+        result = dtype._update_dtype(new_dtype)
+        tm.assert_index_equal(result.categories, expected_categories)
+        assert result.ordered is expected_ordered
+
+    @pytest.mark.parametrize('bad_dtype', [
+        'foo', object, np.int64, PeriodDtype('Q'), IntervalDtype(object)])
+    def test_update_dtype_errors(self, bad_dtype):
+        dtype = CategoricalDtype(list('abc'), False)
+        msg = 'a CategoricalDtype must be passed to perform an update, '
+        with tm.assert_raises_regex(ValueError, msg):
+            dtype._update_dtype(bad_dtype)
 
 
 class TestDatetimeTZDtype(Base):
