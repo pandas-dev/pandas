@@ -679,16 +679,16 @@ class TestFillnaSeriesCoercion(CoercionBase):
 
     @pytest.mark.parametrize("klass", [pd.Series, pd.Index],
                              ids=['series', 'index'])
-    @pytest.mark.parametrize("fill_val,filled_val,fill_dtype", [
-        (1, 1.0, np.float64),
-        (1.1, 1.1, np.float64),
-        (1 + 1j, 1 + 1j, np.complex128),
-        (True, True, np.object)])
-    def test_fillna_float64(self, klass, fill_val, filled_val, fill_dtype):
+    @pytest.mark.parametrize("fill_val,fill_dtype", [
+        (1, np.float64),
+        (1.1, np.float64),
+        (1 + 1j, np.complex128),
+        (True, np.object)])
+    def test_fillna_float64(self, klass, fill_val, fill_dtype):
         obj = klass([1.1, np.nan, 3.3, 4.4])
         assert obj.dtype == np.float64
 
-        exp = klass([1.1, filled_val, 3.3, 4.4])
+        exp = klass([1.1, fill_val, 3.3, 4.4])
         # float + complex -> we don't support a complex Index
         # complex for Series,
         # object for Index
