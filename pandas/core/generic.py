@@ -3563,6 +3563,30 @@ class NDFrame(PandasObject, SelectionMixin):
         -------
         obj_head : type of caller
             The first n rows of the caller object.
+
+        Examples
+        --------
+        >>> df = pd.DataFrame({
+        ...     'col1' : ['A', 'A', 'B', np.nan, 'D', 'C'],
+        ...     'col2' : [2, 1, 9, 8, 7, 4],
+        ...     'col3': [0, 1, 9, 4, 2, 3],
+        ... })
+        >>> df
+            col1 col2 col3
+        0   A    2    0
+        1   A    1    1
+        2   B    9    9
+        3   NaN  8    4
+        4   D    7    2
+        5   C    4    3
+
+        Viewing the first n lines
+        >>> df.head(n=3)
+            col1 col2 col3
+        0   A    2    0
+        1   A    1    1
+        2   B    9    9
+
         """
 
         return self.iloc[:n]
