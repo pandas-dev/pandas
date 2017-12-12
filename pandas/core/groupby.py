@@ -816,6 +816,9 @@ class _GroupBy(PandasObject, SelectionMixin):
     def _iterate_slices(self):
         yield self._selection_name, self._selected_obj
 
+    @Appender(_shared_docs['transform'] % dict(
+        klass='GroupBy',
+        versionadded=''))
     def transform(self, func, *args, **kwargs):
         raise AbstractMethodError(self)
 
