@@ -1,7 +1,7 @@
 .. _whatsnew_0211:
 
-v0.21.1
--------
+v0.21.1 (December 12, 2017)
+---------------------------
 
 This is a minor bug-fix release in the 0.21.x series and includes some small regression fixes,
 bug fixes and performance improvements.
