@@ -4413,10 +4413,12 @@ class DataFrame(NDFrame):
             list can contain any of the other types (except list).
             Keys to group by on the pivot table column.  If an array is passed,
             it is being used as the same manner as column values.
-        aggfunc : function or list of functions, default numpy.mean
+        aggfunc : function, list of functions, dict, default numpy.mean
             If list of functions passed, the resulting pivot table will have
             hierarchical columns whose top level are the function names
             (inferred from the function objects themselves)
+            If dict is passed, the key is column to aggregate and value
+            is function or list of functions
         fill_value : scalar, default None
             Value to replace missing values with
         margins : boolean, default False
@@ -4452,13 +4454,34 @@ class DataFrame(NDFrame):
         >>> table = pivot_table(df, values='D', index=['A', 'B'],
         ...                     columns=['C'], aggfunc=np.sum)
         >>> table
-        ... # doctest: +NORMALIZE_WHITESPACE
         C        large  small
         A   B
         bar one    4.0    5.0
             two    7.0    6.0
         foo one    4.0    1.0
             two    NaN    6.0
+
+        >>> table = pivot_table(df, values='D', index=['A', 'B'],
+        ...                     columns=['C'], aggfunc=np.sum)
+        >>> table
+        C        large  small
+        A   B
+        bar one    4.0    5.0
+            two    7.0    6.0
+        foo one    4.0    1.0
+            two    NaN    6.0
+
+        >>> table = pivot_table(df, values=['D', 'E'], index=['A', 'C'],
+        ...                     aggfunc={'D': np.mean,
+        ...                              'E': [min, max, np.mean]})
+        >>> table
+                          D   E
+                       mean max median min
+        A   C
+        bar large  5.500000  16   14.5  13
+            small  5.500000  15   14.5  14
+        foo large  2.000000  10    9.5   9
+            small  2.333333  12   11.0   8
 
         Returns
         -------
