@@ -220,7 +220,7 @@ def _test_parse_iso8601(object ts):
     if ts == 'now':
         return Timestamp.utcnow()
     elif ts == 'today':
-        return Timestamp.utcnow().normalize()
+        return Timestamp.now().normalize()
 
     _string_to_dts(ts, &obj.dts, &out_local, &out_tzoffset)
     obj.value = dtstruct_to_dt64(&obj.dts)
@@ -734,7 +734,7 @@ cdef inline bint _parse_today_now(str val, int64_t* iresult):
         return True
     elif val == 'today':
         # Note: this is *not* the same as Timestamp('today')
-        iresult[0] = Timestamp.utcnow().normalize().value
+        iresult[0] = Timestamp.now().normalize().value
         return True
     return False
 
