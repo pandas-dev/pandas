@@ -108,6 +108,8 @@ usecols : array-like or callable, default None
     example of a valid callable argument would be ``lambda x: x.upper() in
     ['AAA', 'BBB', 'DDD']``. Using this parameter results in much faster
     parsing time and lower memory usage.
+    Note that indexes in usecols is automatically sorted in ascending order. (ie. [1,0]
+    will return same dataframe as [0,1] using indexes)
 as_recarray : boolean, default False
     .. deprecated:: 0.19.0
        Please call `pd.read_csv(...).to_records()` instead.
