@@ -17,7 +17,7 @@ class TestTimedeltaComparisons(object):
     @pytest.mark.parametrize('freq', ['D', 'H', 'T', 's', 'ms', 'us', 'ns'])
     def test_tick_comparison(self, freq):
         offset = to_offset(freq) * 2
-        delta = offset.delta
+        delta = offset._inc
         assert isinstance(delta, Timedelta)
         assert delta < offset
         assert delta <= offset
