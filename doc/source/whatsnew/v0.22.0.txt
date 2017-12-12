@@ -138,7 +138,7 @@ Other Enhancements
 - :func:`Series` / :func:`DataFrame` tab completion also returns identifiers in the first level of a :func:`MultiIndex`. (:issue:`16326`)
 - :func:`read_excel()` has gained the ``nrows`` parameter (:issue:`16645`)
 - :func:``DataFrame.to_json`` and ``Series.to_json`` now accept an ``index`` argument which allows the user to exclude the index from the JSON output (:issue:`17394`)
-- :meth: groupby.is_monotonic_increasing and :meth: .is_monotonic_decreasing extend :meth: Series.is_monotonic_increasing to groups, returning whether each group is monotonically increasing or decreasing, respectively. (:issue:`17015`)
+- :func: groupby.is_monotonic_increasing and :func: .is_monotonic_decreasing extend :func: Series.is_monotonic_increasing to groups, returning whether each group is monotonically increasing or decreasing, respectively. (:issue:`17015`)
 -
 
 .. _whatsnew_0220.api_breaking:
