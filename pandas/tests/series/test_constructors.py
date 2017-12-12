@@ -707,10 +707,9 @@ class TestSeriesConstructors(TestData):
         expected = Series(pd.DatetimeIndex(['NaT', 'NaT'], tz='US/Eastern'))
         assert_series_equal(s, expected)
 
-    @pytest.mark.parametrize('arg, dtype',
+    @pytest.mark.parametrize('arg',
                              ['2013-01-01 00:00:00', pd.NaT, np.nan, None])
-    def test_constructor_with_naive_string_and_datetimetz_dtype(self, arg,
-                                                                dtype):
+    def test_constructor_with_naive_string_and_datetimetz_dtype(self, arg):
         # GH 17415: With naive string
         result = Series([arg], dtype='datetime64[ns, CET]')
         expected = Series([pd.Timestamp(arg, tz='CET')])

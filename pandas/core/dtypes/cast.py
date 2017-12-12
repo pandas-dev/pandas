@@ -1003,7 +1003,7 @@ def maybe_cast_to_datetime(value, dtype, errors='raise'):
                         if is_datetime64:
                             value = to_datetime(value, errors=errors)._values
                         elif is_datetime64tz:
-                            # This block can be simplified once PR #17413 is 
+                            # This block can be simplified once PR #17413 is
                             # complete
                             is_dt_string = is_string_dtype(value)
                             value = to_datetime(value, errors=errors)
