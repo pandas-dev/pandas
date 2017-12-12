@@ -19,7 +19,7 @@ from pandas.compat import (lmap, long, zip, range, lrange, lzip,
 from pandas import compat
 from pandas import (DataFrame, Index, Series, isna,
                     MultiIndex, Timedelta, Timestamp,
-                    date_range)
+                    date_range, Categorical)
 import pandas as pd
 import pandas._libs.lib as lib
 import pandas.util.testing as tm
@@ -194,6 +194,18 @@ class TestDataFrameConstructors(TestData):
         data[:] = data_scores
         df_crawls = DataFrame(data)
         assert df_crawls['uid'].dtype == np.uint64
+
+    @pytest.mark.parametrize("values", [np.array([2**64], dtype=object),
+                                        np.array([2**65]), [2**64 + 1],
+                                        np.array([-2**63 - 4], dtype=object),
+                                        np.array([-2**64 - 1]), [-2**65 - 2]])
+    def test_constructor_int_overflow(self, values):
+        # see gh-18584
+        value = values[0]
+        result = DataFrame(values)
+
+        assert result[0].dtype == object
+        assert result[0][0] == value
 
     def test_constructor_ordereddict(self):
         import random
@@ -501,8 +513,8 @@ class TestDataFrameConstructors(TestData):
         assert df['b'].dtype == 'object'
 
         # list of periods
-        df = pd.DataFrame({'a': a.asobject.tolist(),
-                           'b': b.asobject.tolist()})
+        df = pd.DataFrame({'a': a.astype(object).tolist(),
+                           'b': b.astype(object).tolist()})
         assert df['a'].dtype == 'object'
         assert df['b'].dtype == 'object'
 
@@ -1549,6 +1561,79 @@ class TestDataFrameConstructors(TestData):
         d = DataFrame({'a': [np.nan, False]})
         assert d['a'].dtype == np.object_
         assert not d['a'][1]
+
+    def test_constructor_categorical(self):
+
+        # GH8626
+
+        # dict creation
+        df = DataFrame({'A': list('abc')}, dtype='category')
+        expected = Series(list('abc'), dtype='category', name='A')
+        tm.assert_series_equal(df['A'], expected)
+
+        # to_frame
+        s = Series(list('abc'), dtype='category')
+        result = s.to_frame()
+        expected = Series(list('abc'), dtype='category', name=0)
+        tm.assert_series_equal(result[0], expected)
+        result = s.to_frame(name='foo')
+        expected = Series(list('abc'), dtype='category', name='foo')
+        tm.assert_series_equal(result['foo'], expected)
+
+        # list-like creation
+        df = DataFrame(list('abc'), dtype='category')
+        expected = Series(list('abc'), dtype='category', name=0)
+        tm.assert_series_equal(df[0], expected)
+
+        # ndim != 1
+        df = DataFrame([Categorical(list('abc'))])
+        expected = DataFrame({0: Series(list('abc'), dtype='category')})
+        tm.assert_frame_equal(df, expected)
+
+        df = DataFrame([Categorical(list('abc')), Categorical(list('abd'))])
+        expected = DataFrame({0: Series(list('abc'), dtype='category'),
+                              1: Series(list('abd'), dtype='category')},
+                             columns=[0, 1])
+        tm.assert_frame_equal(df, expected)
+
+        # mixed
+        df = DataFrame([Categorical(list('abc')), list('def')])
+        expected = DataFrame({0: Series(list('abc'), dtype='category'),
+                              1: list('def')}, columns=[0, 1])
+        tm.assert_frame_equal(df, expected)
+
+        # invalid (shape)
+        pytest.raises(ValueError,
+                      lambda: DataFrame([Categorical(list('abc')),
+                                         Categorical(list('abdefg'))]))
+
+        # ndim > 1
+        pytest.raises(NotImplementedError,
+                      lambda: Categorical(np.array([list('abcd')])))
+
+    def test_constructor_categorical_series(self):
+
+        l = [1, 2, 3, 1]
+        exp = Series(l).astype('category')
+        res = Series(l, dtype='category')
+        tm.assert_series_equal(res, exp)
+
+        l = ["a", "b", "c", "a"]
+        exp = Series(l).astype('category')
+        res = Series(l, dtype='category')
+        tm.assert_series_equal(res, exp)
+
+        # insert into frame with different index
+        # GH 8076
+        index = date_range('20000101', periods=3)
+        expected = Series(Categorical(values=[np.nan, np.nan, np.nan],
+                                      categories=['a', 'b', 'c']))
+        expected.index = index
+
+        expected = DataFrame({'x': expected})
+        df = DataFrame(
+            {'x': Series(['a', 'b', 'c'], dtype='category')}, index=index)
+        tm.assert_frame_equal(df, expected)
 
     def test_from_records_to_records(self):
         # from numpy documentation

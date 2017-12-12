@@ -181,7 +181,8 @@ class TestSeriesCombine(TestData):
         # categorical
         assert pd.concat([Series(dtype='category'),
                           Series(dtype='category')]).dtype == 'category'
-        assert pd.concat([Series(dtype='category'),
+        # GH 18515
+        assert pd.concat([Series(np.array([]), dtype='category'),
                           Series(dtype='float64')]).dtype == 'float64'
         assert pd.concat([Series(dtype='category'),
                           Series(dtype='object')]).dtype == 'object'

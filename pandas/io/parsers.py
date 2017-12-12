@@ -74,15 +74,19 @@ delim_whitespace : boolean, default False
     .. versionadded:: 0.18.1 support for the Python parser.
 
 header : int or list of ints, default 'infer'
-    Row number(s) to use as the column names, and the start of the data.
-    Default behavior is as if set to 0 if no ``names`` passed, otherwise
-    ``None``. Explicitly pass ``header=0`` to be able to replace existing
-    names. The header can be a list of integers that specify row locations for
-    a multi-index on the columns e.g. [0,1,3]. Intervening rows that are not
-    specified will be skipped (e.g. 2 in this example is skipped). Note that
-    this parameter ignores commented lines and empty lines if
-    ``skip_blank_lines=True``, so header=0 denotes the first line of data
-    rather than the first line of the file.
+    Row number(s) to use as the column names, and the start of the
+    data.  Default behavior is to infer the column names: if no names
+    are passed the behavior is identical to ``header=0`` and column
+    names are inferred from the first line of the file, if column
+    names are passed explicitly then the behavior is identical to
+    ``header=None``. Explicitly pass ``header=0`` to be able to
+    replace existing names. The header can be a list of integers that
+    specify row locations for a multi-index on the columns
+    e.g. [0,1,3]. Intervening rows that are not specified will be
+    skipped (e.g. 2 in this example is skipped). Note that this
+    parameter ignores commented lines and empty lines if
+    ``skip_blank_lines=True``, so header=0 denotes the first line of
+    data rather than the first line of the file.
 names : array-like, default None
     List of column names to use. If file contains no header row, then you
     should explicitly pass header=None. Duplicates in this list will cause
@@ -144,9 +148,6 @@ skiprows : list-like or integer or callable, default None
     An example of a valid callable argument would be ``lambda x: x in [0, 2]``.
 skipfooter : int, default 0
     Number of lines at bottom of file to skip (Unsupported with engine='c')
-skip_footer : int, default 0
-    .. deprecated:: 0.19.0
-       Use the `skipfooter` parameter instead, as they are identical
 nrows : int, default None
     Number of rows of file to read. Useful for reading pieces of large files
 na_values : scalar, str, list-like, or dict, default None
@@ -436,7 +437,7 @@ def _read(filepath_or_buffer, kwds):
     # Extract some of the arguments (pass chunksize on).
     iterator = kwds.get('iterator', False)
     chunksize = _validate_integer('chunksize', kwds.get('chunksize', None), 1)
-    nrows = _validate_integer('nrows', kwds.get('nrows', None))
+    nrows = kwds.get('nrows', None)
 
     # Check for duplicates in names.
     _validate_names(kwds.get("names", None))
@@ -609,7 +610,6 @@ def _make_parser_function(name, sep=','):
                  warn_bad_lines=True,
 
                  skipfooter=0,
-                 skip_footer=0,  # deprecated
 
                  # Internal
                  doublequote=True,
@@ -636,13 +636,6 @@ def _make_parser_function(name, sep=','):
         else:
             engine = 'c'
             engine_specified = False
-
-        if skip_footer != 0:
-            warnings.warn("The 'skip_footer' argument has "
-                          "been deprecated and will be removed "
-                          "in a future version. Please use the "
-                          "'skipfooter' argument instead.",
-                          FutureWarning, stacklevel=2)
 
         kwds = dict(delimiter=delimiter,
                     engine=engine,
@@ -678,7 +671,7 @@ def _make_parser_function(name, sep=','):
                     nrows=nrows,
                     iterator=iterator,
                     chunksize=chunksize,
-                    skipfooter=skipfooter or skip_footer,
+                    skipfooter=skipfooter,
                     converters=converters,
                     dtype=dtype,
                     usecols=usecols,
@@ -1058,6 +1051,8 @@ class TextFileReader(BaseIterator):
         raise AbstractMethodError(self)
 
     def read(self, nrows=None):
+        nrows = _validate_integer('nrows', nrows)
+
         if nrows is not None:
             if self.options.get('skipfooter'):
                 raise ValueError('skipfooter not supported for iteration')
@@ -1134,6 +1129,38 @@ def _evaluate_usecols(usecols, names):
     """
     if callable(usecols):
         return {i for i, name in enumerate(names) if usecols(name)}
+    return usecols
+
+
+def _validate_usecols_names(usecols, names):
+    """
+    Validates that all usecols are present in a given
+    list of names. If not, raise a ValueError that
+    shows what usecols are missing.
+
+    Parameters
+    ----------
+    usecols : iterable of usecols
+        The columns to validate are present in names.
+    names : iterable of names
+        The column names to check against.
+
+    Returns
+    -------
+    usecols : iterable of usecols
+        The `usecols` parameter if the validation succeeds.
+
+    Raises
+    ------
+    ValueError : Columns were missing. Error message will list them.
+    """
+    missing = [c for c in usecols if c not in names]
+    if len(missing) > 0:
+        raise ValueError(
+            "Usecols do not match columns, "
+            "columns expected but not found: {missing}".format(missing=missing)
+        )
+
     return usecols
 
 
@@ -1749,14 +1776,14 @@ class CParserWrapper(ParserBase):
             # GH 14671
             if (self.usecols_dtype == 'string' and
                     not set(usecols).issubset(self.orig_names)):
-                raise ValueError("Usecols do not match names.")
+                _validate_usecols_names(usecols, self.orig_names)
 
             if len(self.names) > len(usecols):
                 self.names = [n for i, n in enumerate(self.names)
                               if (i in usecols or n in usecols)]
 
             if len(self.names) < len(usecols):
-                raise ValueError("Usecols do not match names.")
+                _validate_usecols_names(usecols, self.names)
 
         self._set_noconvert_columns()
 
@@ -2528,9 +2555,13 @@ class PythonParser(ParserBase):
                     raise ValueError("If using multiple headers, usecols must "
                                      "be integers.")
                 col_indices = []
+
                 for col in self.usecols:
                     if isinstance(col, string_types):
-                        col_indices.append(usecols_key.index(col))
+                        try:
+                            col_indices.append(usecols_key.index(col))
+                        except ValueError:
+                            _validate_usecols_names(self.usecols, usecols_key)
                     else:
                         col_indices.append(col)
             else:

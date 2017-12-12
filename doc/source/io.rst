@@ -103,15 +103,20 @@ Column and Index Locations and Names
 ++++++++++++++++++++++++++++++++++++
 
 header : int or list of ints, default ``'infer'``
-  Row number(s) to use as the column names, and the start of the data. Default
-  behavior is as if ``header=0`` if no ``names`` passed, otherwise as if
-  ``header=None``. Explicitly pass ``header=0`` to be able to replace existing
-  names. The header can be a list of ints that specify row locations for a
-  multi-index on the columns e.g. ``[0,1,3]``. Intervening rows that are not
-  specified will be skipped (e.g. 2 in this example is skipped). Note that
-  this parameter ignores commented lines and empty lines if
-  ``skip_blank_lines=True``, so header=0 denotes the first line of data
-  rather than the first line of the file.
+  Row number(s) to use as the column names, and the start of the
+  data. Default behavior is to infer the column names: if no names are
+  passed the behavior is identical to ``header=0`` and column names
+  are inferred from the first line of the file, if column names are
+  passed explicitly then the behavior is identical to
+  ``header=None``. Explicitly pass ``header=0`` to be able to replace
+  existing names.
+
+  The header can be a list of ints that specify row locations
+  for a multi-index on the columns e.g. ``[0,1,3]``. Intervening rows
+  that are not specified will be skipped (e.g. 2 in this example is
+  skipped). Note that this parameter ignores commented lines and empty
+  lines if ``skip_blank_lines=True``, so header=0 denotes the first
+  line of data rather than the first line of the file.
 names : array-like, default ``None``
   List of column names to use. If file contains no header row, then you should
   explicitly pass ``header=None``. Duplicates in this list will cause
@@ -193,10 +198,6 @@ skiprows : list-like or integer, default ``None``
 
 skipfooter : int, default ``0``
   Number of lines at bottom of file to skip (unsupported with engine='c').
-skip_footer : int, default ``0``
-  .. deprecated:: 0.19.0
-
-     Use the ``skipfooter`` parameter instead, as they are identical
 
 nrows : int, default ``None``
   Number of rows of file to read. Useful for reading pieces of large files.
@@ -552,6 +553,14 @@ If the header is in a row other than the first, pass the row number to
 
     data = 'skip this skip it\na,b,c\n1,2,3\n4,5,6\n7,8,9'
     pd.read_csv(StringIO(data), header=1)
+
+.. note::
+
+  Default behavior is to infer the column names: if no names are
+  passed the behavior is identical to ``header=0`` and column names
+  are inferred from the first nonblank line of the file, if column
+  names are passed explicitly then the behavior is identical to
+  ``header=None``.
 
 .. _io.dupe_names:
 
@@ -2922,7 +2931,7 @@ Writing Excel Files to Memory
 +++++++++++++++++++++++++++++
 
 Pandas supports writing Excel files to buffer-like objects such as ``StringIO`` or
-``BytesIO`` using :class:`~pandas.io.excel.ExcelWriter`. Pandas also supports Openpyxl >= 2.2.
+``BytesIO`` using :class:`~pandas.io.excel.ExcelWriter`.
 
 .. code-block:: python
 
@@ -2978,9 +2987,7 @@ files if `Xlsxwriter`_ is not available.
 To specify which writer you want to use, you can pass an engine keyword
 argument to ``to_excel`` and to ``ExcelWriter``. The built-in engines are:
 
-- ``openpyxl``: This includes stable support for Openpyxl from 1.6.1. However,
-  it is advised to use version 2.2 and higher, especially when working with
-  styles.
+- ``openpyxl``: version 2.4 or higher is required
 - ``xlsxwriter``
 - ``xlwt``
 
@@ -4493,11 +4500,8 @@ dtypes, including extension dtypes such as datetime with tz.
 
 Several caveats.
 
-- The format will NOT write an ``Index``, or ``MultiIndex`` for the
-  ``DataFrame`` and will raise an error if a non-default one is provided. You
-  can ``.reset_index()`` to store the index or ``.reset_index(drop=True)`` to
-  ignore it.
 - Duplicate column names and non-string columns names are not supported
+- Index level names, if specified, must be strings
 - Categorical dtypes can be serialized to parquet, but will de-serialize as ``object`` dtype.
 - Non supported types include ``Period`` and actual python object types. These will raise a helpful error message
   on an attempt at serialization.
@@ -4511,6 +4515,7 @@ See the documentation for `pyarrow <http://arrow.apache.org/docs/python/>`__ and
 .. note::
 
    These engines are very similar and should read/write nearly identical parquet format files.
+   Currently ``pyarrow`` does not support timedelta data, and ``fastparquet`` does not support timezone aware datetimes (they are coerced to UTC).
    These libraries differ by having different underlying dependencies (``fastparquet`` by using ``numba``, while ``pyarrow`` uses a c-library).
 
 .. ipython:: python
@@ -4537,8 +4542,8 @@ Read from a parquet file.
 
 .. ipython:: python
 
-   result = pd.read_parquet('example_pa.parquet', engine='pyarrow')
    result = pd.read_parquet('example_fp.parquet', engine='fastparquet')
+   result = pd.read_parquet('example_pa.parquet', engine='pyarrow')
 
    result.dtypes
 
@@ -4546,7 +4551,6 @@ Read only certain columns of a parquet file.
 
 .. ipython:: python
 
-   result = pd.read_parquet('example_pa.parquet', engine='pyarrow', columns=['a', 'b'])
    result = pd.read_parquet('example_fp.parquet', engine='fastparquet', columns=['a', 'b'])
 
    result.dtypes

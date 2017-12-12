@@ -12,6 +12,7 @@ from dateutil.tz import tzlocal, tzoffset
 from datetime import datetime, timedelta, tzinfo, date
 
 import pandas.util.testing as tm
+import pandas.util._test_decorators as td
 import pandas.tseries.offsets as offsets
 from pandas.compat import lrange, zip, PY3
 from pandas.core.indexes.datetimes import bdate_range, date_range
@@ -553,11 +554,11 @@ class TestTimeZoneSupportPytz(object):
         assert times[0] == Timestamp('2013-10-26 23:00', tz=tz, freq="H")
 
         if str(tz).startswith('dateutil'):
-            if dateutil.__version__ < LooseVersion('2.6.0'):
+            if LooseVersion(dateutil.__version__) < LooseVersion('2.6.0'):
                 # see gh-14621
                 assert times[-1] == Timestamp('2013-10-27 01:00:00+0000',
                                               tz=tz, freq="H")
-            elif dateutil.__version__ > LooseVersion('2.6.0'):
+            elif LooseVersion(dateutil.__version__) > LooseVersion('2.6.0'):
                 # fixed ambiguous behavior
                 assert times[-1] == Timestamp('2013-10-27 01:00:00+0100',
                                               tz=tz, freq="H")
@@ -688,7 +689,7 @@ class TestTimeZoneSupportPytz(object):
         # dates around a dst transition
         rng = date_range('2/13/2010', '5/6/2010', tz=self.tzstr('US/Eastern'))
 
-        objs = rng.asobject
+        objs = rng.astype(object)
         for i, x in enumerate(objs):
             exval = rng[i]
             assert x == exval
@@ -958,10 +959,8 @@ class TestTimeZoneSupportDateutil(TestTimeZoneSupportPytz):
     def localize(self, tz, x):
         return x.replace(tzinfo=tz)
 
+    @td.skip_if_windows
     def test_utc_with_system_utc(self):
-        # Skipped on win32 due to dateutil bug
-        tm._skip_if_windows()
-
         from pandas._libs.tslibs.timezones import maybe_get_tz
 
         # from system utc to real utc
@@ -1242,14 +1241,14 @@ class TestTimeZones(object):
         assert result_pytz.value == result_dateutil.value
         assert result_pytz.value == 1382835600000000000
 
-        if dateutil.__version__ < LooseVersion('2.6.0'):
+        if LooseVersion(dateutil.__version__) < LooseVersion('2.6.0'):
             # dateutil 2.6 buggy w.r.t. ambiguous=0
             # see gh-14621
             # see https://github.com/dateutil/dateutil/issues/321
             assert (result_pytz.to_pydatetime().tzname() ==
                     result_dateutil.to_pydatetime().tzname())
             assert str(result_pytz) == str(result_dateutil)
-        elif dateutil.__version__ > LooseVersion('2.6.0'):
+        elif LooseVersion(dateutil.__version__) > LooseVersion('2.6.0'):
             # fixed ambiguous behavior
             assert result_pytz.to_pydatetime().tzname() == 'GMT'
             assert result_dateutil.to_pydatetime().tzname() == 'BST'
@@ -1264,12 +1263,13 @@ class TestTimeZones(object):
         assert result_pytz.value == 1382832000000000000
 
         # dateutil < 2.6 is buggy w.r.t. ambiguous timezones
-        if dateutil.__version__ > LooseVersion('2.5.3'):
+        if LooseVersion(dateutil.__version__) > LooseVersion('2.5.3'):
             # see gh-14621
             assert str(result_pytz) == str(result_dateutil)
             assert (result_pytz.to_pydatetime().tzname() ==
                     result_dateutil.to_pydatetime().tzname())
 
+    @td.skip_if_windows
     def test_replace_tzinfo(self):
         # GH 15683
         dt = datetime(2016, 3, 27, 1)
@@ -1552,8 +1552,8 @@ class TestTimeZones(object):
         ts2 = Series(np.random.randn(len(rng2)), index=rng2)
         ts_result = ts1.append(ts2)
 
-        assert ts_result.index.equals(ts1.index.asobject.append(
-            ts2.index.asobject))
+        assert ts_result.index.equals(ts1.index.astype(object).append(
+            ts2.index.astype(object)))
 
         # mixed
         rng1 = date_range('1/1/2011 01:00', periods=1, freq='H')
@@ -1561,7 +1561,7 @@ class TestTimeZones(object):
         ts1 = Series(np.random.randn(len(rng1)), index=rng1)
         ts2 = Series(np.random.randn(len(rng2)), index=rng2)
         ts_result = ts1.append(ts2)
-        assert ts_result.index.equals(ts1.index.asobject.append(
+        assert ts_result.index.equals(ts1.index.astype(object).append(
             ts2.index))
 
     def test_equal_join_ensure_utc(self):
@@ -1663,6 +1663,7 @@ class TestTimeZones(object):
         assert result.is_normalized
         assert not rng.is_normalized
 
+    @td.skip_if_windows
     def test_normalize_tz_local(self):
         # see gh-13459
         timezones = ['US/Pacific', 'US/Eastern', 'UTC', 'Asia/Kolkata',

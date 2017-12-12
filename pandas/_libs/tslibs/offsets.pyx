@@ -307,27 +307,6 @@ class CacheableOffset(object):
     _cacheable = True
 
 
-class BeginMixin(object):
-    # helper for vectorized offsets
-
-    def _beg_apply_index(self, i, freq):
-        """Offsets index to beginning of Period frequency"""
-
-        off = i.to_perioddelta('D')
-
-        base, mult = get_freq_code(freq)
-        base_period = i.to_period(base)
-        if self.n <= 0:
-            # when subtracting, dates on start roll to prior
-            roll = np.where(base_period.to_timestamp() == i - off,
-                            self.n, self.n + 1)
-        else:
-            roll = self.n
-
-        base = (base_period + roll).to_timestamp()
-        return base + off
-
-
 class EndMixin(object):
     # helper for vectorized offsets
 

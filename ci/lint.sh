@@ -23,6 +23,13 @@ if [ "$LINT" ]; then
     fi
     echo "Linting setup.py DONE"
 
+    echo "Linting asv_bench/benchmarks/"
+    flake8 asv_bench/benchmarks/  --exclude=asv_bench/benchmarks/[ijoprs]*.py --ignore=F811
+    if [ $? -ne "0" ]; then
+        RET=1
+    fi
+    echo "Linting asv_bench/benchmarks/*.py DONE"
+
     echo "Linting *.pyx"
     flake8 pandas --filename=*.pyx --select=E501,E302,E203,E111,E114,E221,E303,E128,E231,E126,E265,E305,E301,E127,E261,E271,E129,W291,E222,E241,E123,F403
     if [ $? -ne "0" ]; then
@@ -90,7 +97,7 @@ if [ "$LINT" ]; then
     #
     # Check the following functions:
     # any(), all(), sum(), max(), min(), list(), dict(), set(), frozenset(), tuple(), str.join()
-    grep -R --include="*.py*" -E "[^_](any|all|sum|max|min|list|dict|set|frozenset|tuple|join)\(\[.* for .* in .*\]\)" *
+    grep -R --include="*.py*" -E "[^_](any|all|sum|max|min|list|dict|set|frozenset|tuple|join)\(\[.* for .* in .*\]\)" pandas
 
     if [ $? = "0" ]; then
         RET=1

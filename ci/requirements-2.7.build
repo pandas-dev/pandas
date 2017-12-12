@@ -1,6 +1,6 @@
 python=2.7*
-python-dateutil=2.4.1
+python-dateutil=2.5.0
 pytz=2013b
 nomkl
 numpy
-cython=0.23
+cython=0.24

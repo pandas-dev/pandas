@@ -5,8 +5,9 @@ import pandas as pd
 import pandas.util.testing as tm
 import pandas.core.indexes.period as period
 from pandas.compat import lrange
-from pandas.tseries.frequencies import get_freq, MONTHS
-from pandas._libs.period import period_ordinal, period_asfreq
+from pandas.tseries.frequencies import get_freq
+from pandas._libs.tslibs.resolution import _MONTHS as MONTHS
+from pandas._libs.tslibs.period import period_ordinal, period_asfreq
 from pandas import (PeriodIndex, Period, DatetimeIndex, Timestamp, Series,
                     date_range, to_datetime, period_range)
 
@@ -385,14 +386,6 @@ class TestPeriodIndex(object):
 
         result = index.to_timestamp()
         assert result[0] == Timestamp('1/1/2012')
-
-    def test_to_datetime_depr(self):
-        index = period_range('1/1/2012', periods=4, freq='D')
-
-        with tm.assert_produces_warning(FutureWarning,
-                                        check_stacklevel=False):
-            result = index.to_datetime()
-            assert result[0] == Timestamp('1/1/2012')
 
     def test_combine_first(self):
         # GH 3367

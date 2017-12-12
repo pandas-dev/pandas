@@ -16,6 +16,7 @@ from pandas import (CategoricalIndex, DataFrame, Index, MultiIndex,
                     compat, date_range, period_range)
 from pandas.compat import PY3, long, lrange, lzip, range, u, PYPY
 from pandas.errors import PerformanceWarning, UnsortedIndexError
+from pandas.core.dtypes.dtypes import CategoricalDtype
 from pandas.core.indexes.base import InvalidIndexError
 from pandas._libs import lib
 from pandas._libs.lib import Timestamp
@@ -554,6 +555,18 @@ class TestMultiIndex(Base):
         with tm.assert_raises_regex(TypeError, "^Setting.*dtype.*object"):
             self.index.astype(np.dtype(int))
 
+    @pytest.mark.parametrize('ordered', [True, False])
+    def test_astype_category(self, ordered):
+        # GH 18630
+        msg = '> 1 ndim Categorical are not supported at this time'
+        with tm.assert_raises_regex(NotImplementedError, msg):
+            self.index.astype(CategoricalDtype(ordered=ordered))
+
+        if ordered is False:
+            # dtype='category' defaults to ordered=False, so only test once
+            with tm.assert_raises_regex(NotImplementedError, msg):
+                self.index.astype('category')
+
     def test_constructor_single_level(self):
         result = MultiIndex(levels=[['foo', 'bar', 'baz', 'qux']],
                             labels=[[0, 1, 2, 3]], names=['first'])
@@ -997,8 +1010,8 @@ class TestMultiIndex(Base):
         exp = CategoricalIndex([1, 2, 3, 1, 2, 3])
         tm.assert_index_equal(index.get_level_values(1), exp)
 
-    @pytest.mark.xfail(reason='GH 17924 (returns Int64Index with float data)')
     def test_get_level_values_int_with_na(self):
+        # GH 17924
         arrays = [['a', 'b', 'b'], [1, np.nan, 2]]
         index = pd.MultiIndex.from_arrays(arrays)
         result = index.get_level_values(1)
@@ -1024,14 +1037,27 @@ class TestMultiIndex(Base):
 
         arrays = [['a', 'b', 'b'], pd.DatetimeIndex([0, 1, pd.NaT])]
         index = pd.MultiIndex.from_arrays(arrays)
-        values = index.get_level_values(1)
+        result = index.get_level_values(1)
         expected = pd.DatetimeIndex([0, 1, pd.NaT])
-        tm.assert_index_equal(values, expected)
+        tm.assert_index_equal(result, expected)
 
         arrays = [[], []]
         index = pd.MultiIndex.from_arrays(arrays)
-        values = index.get_level_values(0)
-        assert values.shape == (0, )
+        result = index.get_level_values(0)
+        expected = pd.Index([], dtype=object)
+        tm.assert_index_equal(result, expected)
+
+    def test_get_level_values_all_na(self):
+        # GH 17924 when level entirely consists of nan
+        arrays = [[np.nan, np.nan, np.nan], ['a', np.nan, 1]]
+        index = pd.MultiIndex.from_arrays(arrays)
+        result = index.get_level_values(0)
+        expected = pd.Index([np.nan, np.nan, np.nan], dtype=np.float64)
+        tm.assert_index_equal(result, expected)
+
+        result = index.get_level_values(1)
+        expected = pd.Index(['a', np.nan, 1], dtype=object)
+        tm.assert_index_equal(result, expected)
 
     def test_reorder_levels(self):
         # this blows up
@@ -1618,7 +1644,9 @@ class TestMultiIndex(Base):
         # shouldn't change
         assert mi2.is_(mi)
         mi4 = mi3.view()
-        mi4.set_levels([[1 for _ in range(10)], lrange(10)], inplace=True)
+
+        # GH 17464 - Remove duplicate MultiIndex levels
+        mi4.set_levels([lrange(10), lrange(10)], inplace=True)
         assert not mi4.is_(mi3)
         mi5 = mi.view()
         mi5.set_levels(mi5.levels, inplace=True)
@@ -2450,13 +2478,11 @@ class TestMultiIndex(Base):
             pd.isna(self.index)
 
     def test_level_setting_resets_attributes(self):
-        ind = MultiIndex.from_arrays([
+        ind = pd.MultiIndex.from_arrays([
             ['A', 'A', 'B', 'B', 'B'], [1, 2, 1, 2, 3]
         ])
         assert ind.is_monotonic
-        ind.set_levels([['A', 'B', 'A', 'A', 'B'], [2, 1, 3, -2, 5]],
-                       inplace=True)
-
+        ind.set_levels([['A', 'B'], [1, 3, 2]], inplace=True)
         # if this fails, probably didn't reset the cache correctly.
         assert not ind.is_monotonic
 
@@ -3083,3 +3109,16 @@ class TestMultiIndex(Base):
         with tm.assert_raises_regex(AttributeError,
                                     "'Series' object has no attribute 'foo'"):
             df['a'].foo()
+
+    def test_duplicate_multiindex_labels(self):
+        # GH 17464
+        # Make sure that a MultiIndex with duplicate levels throws a ValueError
+        with pytest.raises(ValueError):
+            ind = pd.MultiIndex([['A'] * 10, range(10)], [[0] * 10, range(10)])
+
+        # And that using set_levels with duplicate levels fails
+        ind = MultiIndex.from_arrays([['A', 'A', 'B', 'B', 'B'],
+                                      [1, 2, 1, 2, 3]])
+        with pytest.raises(ValueError):
+            ind.set_levels([['A', 'B', 'A', 'A', 'B'], [2, 1, 3, -2, 5]],
+                           inplace=True)

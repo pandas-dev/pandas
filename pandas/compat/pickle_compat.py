@@ -74,7 +74,11 @@ _class_locations_map = {
         ('pandas._libs.sparse', 'BlockIndex'),
     ('pandas.tslib', 'Timestamp'):
         ('pandas._libs.tslib', 'Timestamp'),
-    ('pandas._period', 'Period'): ('pandas._libs.period', 'Period'),
+
+    # 18543 moving period
+    ('pandas._period', 'Period'): ('pandas._libs.tslibs.period', 'Period'),
+    ('pandas._libs.period', 'Period'):
+        ('pandas._libs.tslibs.period', 'Period'),
 
     # 18014 moved __nat_unpickle from _libs.tslib-->_libs.tslibs.nattype
     ('pandas.tslib', '__nat_unpickle'):

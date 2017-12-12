@@ -10,7 +10,8 @@ import pandas.core.indexes.period as period
 from pandas.compat import text_type, iteritems
 from pandas.compat.numpy import np_datetime64_compat
 
-from pandas._libs import tslib, period as libperiod
+from pandas._libs import tslib
+from pandas._libs.tslibs import period as libperiod
 from pandas._libs.tslibs.parsing import DateParseError
 from pandas import Period, Timestamp, offsets
 from pandas._libs.tslibs.resolution import DAYS, _MONTHS as MONTHS
@@ -1037,6 +1038,29 @@ class TestMethods(object):
 
         with tm.assert_raises_regex(TypeError, msg):
             dt1 + dt2
+
+    boxes = [lambda x: x, lambda x: pd.Series([x]), lambda x: pd.Index([x])]
+
+    @pytest.mark.parametrize('lbox', boxes)
+    @pytest.mark.parametrize('rbox', boxes)
+    def test_add_timestamp_raises(self, rbox, lbox):
+        # GH # 17983
+        ts = pd.Timestamp('2017')
+        per = pd.Period('2017', freq='M')
+
+        # We may get a different message depending on which class raises
+        # the error.
+        msg = (r"cannot add|unsupported operand|"
+               r"can only operate on a|incompatible type|"
+               r"ufunc add cannot use operands")
+        with tm.assert_raises_regex(TypeError, msg):
+            lbox(ts) + rbox(per)
+
+        with tm.assert_raises_regex(TypeError, msg):
+            lbox(per) + rbox(ts)
+
+        with tm.assert_raises_regex(TypeError, msg):
+            lbox(per) + rbox(per)
 
     def test_sub(self):
         dt1 = Period('2011-01-01', freq='D')
