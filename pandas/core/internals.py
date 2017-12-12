@@ -573,7 +573,6 @@ class Block(PandasObject):
             raise TypeError(msg)
 
         # may need to convert to categorical
-        # this is only called for non-categoricals
         if self.is_categorical_astype(dtype):
 
             # deprecated 17636

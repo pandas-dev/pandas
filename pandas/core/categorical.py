@@ -27,8 +27,7 @@ from pandas.core.dtypes.common import (
     is_categorical_dtype,
     is_list_like, is_sequence,
     is_scalar,
-    is_dict_like,
-    pandas_dtype)
+    is_dict_like)
 from pandas.core.common import is_null_slice, _maybe_box_datetimelike
 
 from pandas.core.algorithms import factorize, take_1d, unique1d
@@ -436,22 +435,11 @@ class Categorical(PandasObject):
             .. versionadded:: 0.19.0
 
         """
-        if isinstance(dtype, compat.string_types) and dtype == 'category':
-            # GH 18593: astype('category') should not change anything
-            return self.copy() if copy else self
-
-        dtype = pandas_dtype(dtype)
         if is_categorical_dtype(dtype):
-            # GH 18593: keep current categories if None (ordered can't be None)
-            if dtype.categories is None:
-                new_categories = self.categories
-            else:
-                new_categories = dtype.categories
-            dtype = CategoricalDtype(new_categories, dtype.ordered)
-
+            # GH 10696/18593
+            dtype = self.dtype._update_dtype(dtype)
             self = self.copy() if copy else self
             if dtype == self.dtype:
-                # fastpath if dtypes are equal
                 return self
             return self._set_dtype(dtype)
         return np.array(self, dtype=dtype, copy=copy)
