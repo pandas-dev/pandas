@@ -10,8 +10,8 @@ We recommend that all users upgrade to this version.
 Highlights include:
 
 - Temporarily restore matplotlib datetime plotting functionality. This should
-  resolve issues for users who relied implicitly on pandas to plot datetimes
-  with matplotlib. See :ref:`here <whatsnew_0211.special>`.
+  resolve issues for users who implicitly relied on pandas to plot datetimes
+  with matplotlib. See :ref:`here <whatsnew_0211.converters>`.
 - Improvements to the Parquet IO functions introduced in 0.21.0. See
   :ref:`here <whatsnew_0211.enhancements.parquet>`.
 
@@ -21,7 +21,7 @@ Highlights include:
     :backlinks: none
 
 
-.. _whatsnew_0211.special:
+.. _whatsnew_0211.converters:
 
 Restore Matplotlib datetime Converter Registration
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -34,8 +34,8 @@ pandas``.
 In pandas 0.21.0, we required users to explicitly register the
 converter. This caused problems for some users who relied on those converters
 being present for regular ``matplotlib.pyplot`` plotting methods, so we're
-temporarily reverting that change; pandas will again register the converters on
-import.
+temporarily reverting that change; pandas 0.21.1 again registers the converters on
+import, just like before 0.21.0.
 
 We've added a new option to control the converters:
 ``pd.options.plotting.matplotlib.register_converters``. By default, they are
