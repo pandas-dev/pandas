@@ -22,7 +22,7 @@ from pandas.compat.numpy import np_array_datetime64_compat
 from pandas.core.dtypes.common import is_datetime64_ns_dtype
 from pandas.util import testing as tm
 import pandas.util._test_decorators as td
-from pandas.util.testing import assert_series_equal, _skip_if_has_locale
+from pandas.util.testing import assert_series_equal
 from pandas import (isna, to_datetime, Timestamp, Series, DataFrame,
                     Index, DatetimeIndex, NaT, date_range, compat)
 
@@ -144,11 +144,10 @@ class TestTimeConversionFormats(object):
         for s, format, dt in data:
             assert to_datetime(s, format=format, cache=cache) == dt
 
+    @td.skip_if_has_locale
     @pytest.mark.parametrize('cache', [True, False])
     def test_to_datetime_with_non_exact(self, cache):
         # GH 10834
-        tm._skip_if_has_locale()
-
         # 8904
         # exact kw
         if sys.version_info < (2, 7):
@@ -830,11 +829,10 @@ class TestToDatetimeMisc(object):
         result_ignore = to_datetime(s, errors='ignore', cache=cache)
         tm.assert_series_equal(result_ignore, s)
 
+    @td.skip_if_has_locale
     @pytest.mark.parametrize('cache', [True, False])
     def test_to_datetime_with_apply(self, cache):
         # this is only locale tested with US/None locales
-        tm._skip_if_has_locale()
-
         # GH 5195
         # with a format and coerce a single item to_datetime fails
         td = Series(['May 04', 'Jun 02', 'Dec 11'], index=[1, 2, 3])
@@ -1023,9 +1021,9 @@ class TestToDatetimeMisc(object):
 
 class TestGuessDatetimeFormat(object):
 
+    @td.skip_if_not_us_locale
     @is_dateutil_le_261
     def test_guess_datetime_format_for_array(self):
-        tm._skip_if_not_us_locale()
         expected_format = '%Y-%m-%d %H:%M:%S.%f'
         dt_string = datetime(2011, 12, 30, 0, 0, 0).strftime(expected_format)
 
@@ -1044,9 +1042,9 @@ class TestGuessDatetimeFormat(object):
                 [np.nan, np.nan, np.nan], dtype='O'))
         assert format_for_string_of_nans is None
 
+    @td.skip_if_not_us_locale
     @is_dateutil_gt_261
     def test_guess_datetime_format_for_array_gt_261(self):
-        tm._skip_if_not_us_locale()
         expected_format = '%Y-%m-%d %H:%M:%S.%f'
         dt_string = datetime(2011, 12, 30, 0, 0, 0).strftime(expected_format)
 
@@ -1393,9 +1391,9 @@ class TestDatetimeParsingWrappers(object):
             assert result4 == exp_now
             assert result5 == exp_now
 
+    @td.skip_if_has_locale
     def test_parsers_time(self):
         # GH11818
-        _skip_if_has_locale()
         strings = ["14:15", "1415", "2:15pm", "0215pm", "14:15:00", "141500",
                    "2:15:00pm", "021500pm", time(14, 15)]
         expected = time(14, 15)
