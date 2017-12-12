@@ -9,7 +9,8 @@ import numpy as np
 
 from pandas import Timedelta, Timestamp
 from pandas.tseries import offsets
-from pandas.tseries.offsets import Hour, Minute, Second, Milli, Micro, Nano
+from pandas.tseries.offsets import (Hour, Minute, Second, Milli, Micro, Nano,
+                                    Week)
 
 from .common import assert_offset_equal
 
@@ -33,6 +34,24 @@ def test_delta_to_tick():
 
     tick = offsets._delta_to_tick(delta)
     assert (tick == offsets.Day(3))
+
+
+@pytest.mark.parametrize('cls', tick_classes)
+def test_tick_comparisons(cls):
+    off = cls(n=2)
+    with pytest.raises(TypeError):
+        off < 3
+
+    # Unfortunately there is no good way to make the reverse inequality work
+    assert off > timedelta(-1)
+    assert off >= timedelta(-1)
+    assert off < off._inc * 3   # Timedelta object
+    assert off <= off._inc * 3  # Timedelta object
+    assert off == off.delta
+    assert off.delta == off
+    assert off != -1 * off
+
+    assert off < Week()
 
 
 # ---------------------------------------------------------------------

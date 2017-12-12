@@ -3187,3 +3187,51 @@ def test_require_integers(offset_types):
     cls = offset_types
     with pytest.raises(ValueError):
         cls(n=1.5)
+
+
+def test_comparisons(offset_types):
+    cls = offset_types
+
+    if cls is WeekOfMonth:
+        # TODO: The default values for week and weekday should be non-raising
+        off = cls(n=1, week=1, weekday=2)
+    elif cls is LastWeekOfMonth:
+        # TODO: The default value for weekday should be non-raising
+        off = cls(n=1, weekday=4)
+    else:
+        off = cls(n=1)
+
+    if cls is Week:
+        assert off < timedelta(days=8)
+        assert off > timedelta(days=6)
+        assert off <= Day(n=7)
+    elif issubclass(cls, offsets.Tick):
+        pass
+    else:
+        with pytest.raises(TypeError):
+            off < timedelta(days=8)
+        with pytest.raises(TypeError):
+            off > timedelta(days=6)
+        with pytest.raises(TypeError):
+            off <= Day(n=7)
+
+
+def test_week_comparison():
+    # Only Week with weekday == None is special
+    off = Week(weekday=3)
+    with pytest.raises(TypeError):
+        off < timedelta(days=8)
+    with pytest.raises(TypeError):
+        off > timedelta(days=6)
+    with pytest.raises(TypeError):
+        off <= Day(n=7)
+
+
+def test_comparison_names(offset_types):
+    cls = offset_types
+    assert cls.__eq__.__name__ == '__eq__'
+    assert cls.__ne__.__name__ == '__ne__'
+    assert cls.__lt__.__name__ == '__lt__'
+    assert cls.__le__.__name__ == '__le__'
+    assert cls.__gt__.__name__ == '__gt__'
+    assert cls.__ge__.__name__ == '__ge__'
