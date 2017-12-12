@@ -21,6 +21,7 @@ from pandas.compat import lmap
 from pandas.compat.numpy import np_array_datetime64_compat
 from pandas.core.dtypes.common import is_datetime64_ns_dtype
 from pandas.util import testing as tm
+import pandas.util._test_decorators as td
 from pandas.util.testing import assert_series_equal, _skip_if_has_locale
 from pandas import (isna, to_datetime, Timestamp, Series, DataFrame,
                     Index, DatetimeIndex, NaT, date_range, compat)
@@ -186,6 +187,56 @@ class TestTimeConversionFormats(object):
 
 
 class TestToDatetime(object):
+
+    @td.skip_if_windows  # `tm.set_timezone` does not work in windows
+    def test_to_datetime_now(self):
+        # See GH#18666
+        with tm.set_timezone('US/Eastern'):
+            npnow = np.datetime64('now').astype('datetime64[ns]')
+            pdnow = pd.to_datetime('now')
+            pdnow2 = pd.to_datetime(['now'])[0]
+
+            # These should all be equal with infinite perf; this gives
+            # a generous margin of 10 seconds
+            assert abs(pdnow.value - npnow.astype(np.int64)) < 1e10
+            assert abs(pdnow2.value - npnow.astype(np.int64)) < 1e10
+
+            assert pdnow.tzinfo is None
+            assert pdnow2.tzinfo is None
+
+    @td.skip_if_windows  # `tm.set_timezone` does not work in windows
+    def test_to_datetime_today(self):
+        # See GH#18666
+        # Test with one timezone far ahead of UTC and another far behind, so
+        # one of these will _almost_ alawys be in a different day from UTC.
+        # Unfortunately this test between 12 and 1 AM Samoa time
+        # this both of these timezones _and_ UTC will all be in the same day,
+        # so this test will not detect the regression introduced in #18666.
+        with tm.set_timezone('Pacific/Auckland'):  # 12-13 hours ahead of UTC
+            nptoday = np.datetime64('today').astype('datetime64[ns]')
+            pdtoday = pd.to_datetime('today')
+            pdtoday2 = pd.to_datetime(['today'])[0]
+
+            # These should all be equal with infinite perf; this gives
+            # a generous margin of 10 seconds
+            assert abs(pdtoday.value - nptoday.astype(np.int64)) < 1e10
+            assert abs(pdtoday2.value - nptoday.astype(np.int64)) < 1e10
+
+            assert pdtoday.tzinfo is None
+            assert pdtoday2.tzinfo is None
+
+        with tm.set_timezone('US/Samoa'):  # 11 hours behind UTC
+            nptoday = np.datetime64('today').astype('datetime64[ns]')
+            pdtoday = pd.to_datetime('today')
+            pdtoday2 = pd.to_datetime(['today'])[0]
+
+            # These should all be equal with infinite perf; this gives
+            # a generous margin of 10 seconds
+            assert abs(pdtoday.value - nptoday.astype(np.int64)) < 1e10
+            assert abs(pdtoday2.value - nptoday.astype(np.int64)) < 1e10
+
+            assert pdtoday.tzinfo is None
+            assert pdtoday2.tzinfo is None
 
     @pytest.mark.parametrize('cache', [True, False])
     def test_to_datetime_dt64s(self, cache):
