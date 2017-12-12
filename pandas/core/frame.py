@@ -4475,7 +4475,6 @@ class DataFrame(NDFrame):
         ...                     aggfunc={'D': np.mean,
         ...                              'E': [min, max, np.mean]})
         >>> table
-        ... # doctest: +NORMALIZE_WHITESPACE
                           D   E
                        mean max median min
         A   C
