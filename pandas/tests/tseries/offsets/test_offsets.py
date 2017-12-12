@@ -3214,6 +3214,8 @@ def test_comparisons(offset_types):
             off > timedelta(days=6)
         with pytest.raises(TypeError):
             off <= Day(n=7)
+    with pytest.raises(TypeError):
+        off < DateOffset(month=7)
 
 
 def test_week_comparison():
