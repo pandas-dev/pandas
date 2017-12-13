@@ -2,7 +2,7 @@ import numpy as np
 import pandas.util.testing as tm
 from pandas import date_range, DatetimeIndex, Index, MultiIndex, RangeIndex
 
-from .pandas_vb_common import setup # noqa
+from .pandas_vb_common import setup  # noqa
 
 
 class SetOperations(object):
