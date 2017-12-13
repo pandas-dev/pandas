@@ -712,7 +712,7 @@ class TestSeriesConstructors(TestData):
     def test_constructor_with_naive_string_and_datetimetz_dtype(self, arg):
         # GH 17415: With naive string
         result = Series([arg], dtype='datetime64[ns, CET]')
-        expected = Series([pd.Timestamp(arg, tz='CET')])
+        expected = Series(pd.Timestamp(arg)).dt.tz_localize('CET')
         assert_series_equal(result, expected)
 
     def test_construction_interval(self):
