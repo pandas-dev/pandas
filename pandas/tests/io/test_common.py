@@ -8,6 +8,7 @@ from os.path import isabs
 
 import pandas as pd
 import pandas.util.testing as tm
+import pandas.util._test_decorators as td
 
 from pandas.io import common
 from pandas.compat import is_platform_windows, StringIO, FileNotFoundError
@@ -67,9 +68,8 @@ bar2,12,13,14,15
         assert expanded_name == filename
         assert os.path.expanduser(filename) == expanded_name
 
+    @td.skip_if_no('pathlib')
     def test_stringify_path_pathlib(self):
-        tm._skip_if_no_pathlib()
-
         rel_path = common._stringify_path(Path('.'))
         assert rel_path == '.'
         redundant_path = common._stringify_path(Path('foo//bar'))

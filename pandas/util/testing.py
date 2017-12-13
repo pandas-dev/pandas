@@ -359,14 +359,6 @@ def _skip_if_no_xarray():
         pytest.skip("xarray version is too low: {version}".format(version=v))
 
 
-def _skip_if_no_pathlib():
-    try:
-        from pathlib import Path  # noqa
-    except ImportError:
-        import pytest
-        pytest.skip("pathlib not available")
-
-
 def _skip_if_no_localpath():
     try:
         from py.path import local as LocalPath  # noqa

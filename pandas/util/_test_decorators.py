@@ -94,6 +94,13 @@ def _skip_if_not_us_locale():
         return True
 
 
+def skip_if_no(package, min_version=None):
+    def decorated_func(func):
+        return pytest.mark.skipif(not safe_import(package, min_version=min_version),
+                                  reason="Could not import '{}'".format(package))(func)
+    return decorated_func
+
+
 skip_if_no_mpl = pytest.mark.skipif(_skip_if_no_mpl(),
                                     reason="Missing matplotlib dependency")
 skip_if_mpl_1_5 = pytest.mark.skipif(_skip_if_mpl_1_5(),
