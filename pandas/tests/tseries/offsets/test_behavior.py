@@ -11,7 +11,6 @@ import hypothesis.extra.numpy as hen
 import hypothesis.extra.pytz as hepytz  # hypothesis[pytz]
 
 import pandas as pd
-import numpy as np
 
 from pandas.tseries.offsets import (Hour, Minute, Second, Milli, Micro, Nano,
                                     MonthEnd, MonthBegin,
@@ -111,14 +110,14 @@ def gen_random_timestamp():
 def gen_random_datelike():
     # py_dates = st.dates()
     py_datetimes = gen_random_datetime
-    
-    dt64_dtypes = hen.datetime64_dtypes()
-    np_dates = hen.arrays(dtype=dt64_dtypes, shape=())
-    # TODO: Allow for non-scalar versions?
 
-    any_dates = st.one_of(py_datetimes)
+    # dt64_dtypes = hen.datetime64_dtypes()
+    # np_dates = hen.arrays(dtype=dt64_dtypes, shape=())
+    # TODO: Allow for non-scalar versions?
     # FIXME: dt64.__add__(offset) does not get dispatched to
     # offset.__radd__(dt64), just raises TypeError
+
+    any_dates = st.one_of(py_datetimes)
     return any_dates
 
 
@@ -229,20 +228,21 @@ def gen_random_offset(draw, cls):
 # ----------------------------------------------------------------
 # Tick-specific behavior tests
 
+
 @given(n=n_strategy, m=n_strategy)
 @pytest.mark.parametrize('cls', tick_classes)
 def test_tick_add_sub(cls, n, m):
     # For all Tick subclasses and all integers n, m, we should have
     # tick(n) + tick(m) == tick(n+m)
-    # tick(n) - tick(m) == tick(n-m) 
+    # tick(n) - tick(m) == tick(n-m)
     left = cls(n)
     right = cls(m)
-    expected = cls(n+m)
+    expected = cls(n + m)
 
     assert left + right == expected
     assert left.apply(right) == expected
 
-    expected = cls(n-m)
+    expected = cls(n - m)
     assert left - right == expected
 
 
@@ -269,8 +269,6 @@ def test_on_offset_implementations(cls, dt, data):
     # the general case definition:
     #   (dt + offset) - offset == dt
 
-    assume(cls is not DateOffset)  # NotImplementedError
-    
     offset = data.draw(gen_random_offset(cls), label='offset')
     # TODO: Is there a more performant way to do this?
 
@@ -313,18 +311,20 @@ def test_range_matches_addition(freq):
     raise pytest.skip('Need to generate date_range args')
     dr = pd.date_range('2016-10-30 12:00:00', freq=freq,
                        periods=20, tz='US/Eastern')
-    assert df[-1] > pd.Timestamp('2016-11-10')  # DST transition is crossed
+    assert dr[-1] > pd.Timestamp('2016-11-10')  # DST transition is crossed
 
     res = dr + freq
     assert res[:-1].equals(dr[1:])
 
 
+@given(data=st.data())
 @pytest.mark.parametrize('cls', yqm_classes)
-def test_shift_across_dst(cls):
+def test_shift_across_dst(cls, data):
     # GH#18319 check that 1) timezone is correctly normalized and
     # 2) that hour is not incorrectly changed by this normalization
 
     raise pytest.skip('Need to generate date_range args')
+    offset = data.draw(gen_random_offset(cls), label='offset')
     dti = pd.date_range(start='2017-10-30 12:00:00', end='2017-11-06',
                         freq='D', tz='US/Eastern')
     # dti includes a transition across DST boundary
