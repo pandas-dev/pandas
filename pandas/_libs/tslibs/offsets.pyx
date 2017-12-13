@@ -540,11 +540,9 @@ def shift_quarters(int64_t[:] dtindex, int quarters,
                 n = quarters
 
                 months_since = (dts.month - q1start_month) % modby
-                compare_month = dts.month - months_since
-                compare_month = compare_month or 12
                 # compare_day is only relevant for comparison in the case
                 # where months_since == 0.
-                compare_day = get_firstbday(dts.year, compare_month)
+                compare_day = get_firstbday(dts.year, dts.month)
 
                 if n <= 0 and (months_since != 0 or
                                (months_since == 0 and dts.day > compare_day)):
@@ -573,12 +571,10 @@ def shift_quarters(int64_t[:] dtindex, int quarters,
                 n = quarters
 
                 months_since = (dts.month - q1start_month) % modby
-                compare_month = dts.month - months_since
-                compare_month = compare_month or 12
                 # compare_day is only relevant for comparison in the case
                 # where months_since == 0.
-                compare_day = get_lastbday(dts.year, compare_month)
-
+                compare_day = get_lastbday(dts.year, dts.month)
+                #
                 if n <= 0 and (months_since != 0 or
                                (months_since == 0 and dts.day > compare_day)):
                     # make sure to roll forward, so negate
@@ -794,6 +790,7 @@ cpdef datetime shift_month(datetime stamp, int months, object day_opt=None):
     return stamp.replace(year=year, month=month, day=day)
 
 
+# TODO: Can we declare this so it will take datetime _or_ pandas_datetimestruct
 cpdef int get_day_of_month(datetime other, day_opt) except? -1:
     """
     Find the day in `other`'s month that satisfies a DateOffset's onOffset
@@ -842,6 +839,42 @@ cpdef int get_day_of_month(datetime other, day_opt) except? -1:
         raise NotImplementedError
     else:
         raise ValueError(day_opt)
+
+
+def _roll_monthday(n, other, compare):
+    # Either `other` and `compare` are _both_ datetimes or they are both
+    # integers for days in the same month.
+
+    if n > 0 and other < compare:
+        n -= 1
+    elif n <= 0 and other > compare:
+        # as if rolled forward already
+        n += 1
+    return n
+
+
+cpdef inline int roll_qtrday(other, n, month, day_opt='start',
+                             int modby=3) except? -1:
+    # TODO: type `other` as datetime-or-pandas_datetimestruct?
+    # TODO: Merge this with roll_yearday by setting modby=12 there?
+    #       code de-duplication versus perf hit?
+    # TODO: with small adjustments this could be used in shift_quarters
+    months_since = other.month % modby - month % modby
+
+    if n > 0:
+        if months_since < 0 or (months_since == 0 and
+                                other.day < get_day_of_month(other,
+                                                             day_opt)):
+            # pretend to roll back if on same month but
+            # before compare_day
+            n -= 1
+    else:
+        if (months_since > 0 or (months_since == 0 and
+                                  other.day > get_day_of_month(other,
+                                                               day_opt))):
+            # make sure to roll forward, so negate
+            n += 1
+    return n
 
 
 cpdef int roll_yearday(other, n, month, day_opt='start') except? -1:
@@ -905,7 +938,7 @@ cpdef int roll_yearday(other, n, month, day_opt='start') except? -1:
                                    other.day < get_day_of_month(other,
                                                                 day_opt)):
             n -= 1
-    elif n <= 0:
+    else:
         if other.month > month or (other.month == month and
                                    other.day > get_day_of_month(other,
                                                                 day_opt)):

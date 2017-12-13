@@ -944,15 +944,8 @@ class MonthOffset(SingleConstructorOffset):
 
     @apply_wraps
     def apply(self, other):
-        n = self.n
         compare_day = self._get_offset_day(other)
-
-        if n > 0 and other.day < compare_day:
-            n -= 1
-        elif n <= 0 and other.day > compare_day:
-            # as if rolled forward already
-            n += 1
-
+        n = liboffsets._roll_monthday(self.n, other.day, compare_day)
         return shift_month(other, n, self._day_opt)
 
     @apply_index_wraps
@@ -1038,22 +1031,13 @@ class CustomBusinessMonthEnd(_CustomBusinessMonth):
 
     @apply_wraps
     def apply(self, other):
-        n = self.n
-
         # First move to month offset
         cur_mend = self.m_offset.rollforward(other)
 
         # Find this custom month offset
-        cur_cmend = self.cbday.rollback(cur_mend)
+        compare_day = self.cbday.rollback(cur_mend)
 
-        # handle zero case. arbitrarily rollforward
-        if n == 0 and other != cur_cmend:
-            n += 1
-
-        if other < cur_cmend and n >= 1:
-            n -= 1
-        elif other > cur_cmend and n <= -1:
-            n += 1
+        n = liboffsets._roll_monthday(self.n, other, compare_day)
 
         new = cur_mend + n * self.m_offset
         result = self.cbday.rollback(new)
@@ -1066,23 +1050,13 @@ class CustomBusinessMonthBegin(_CustomBusinessMonth):
 
     @apply_wraps
     def apply(self, other):
-        n = self.n
-        dt_in = other
-
         # First move to month offset
-        cur_mbegin = self.m_offset.rollback(dt_in)
+        cur_mbegin = self.m_offset.rollback(other)
 
         # Find this custom month offset
-        cur_cmbegin = self.cbday.rollforward(cur_mbegin)
+        compare_day = self.cbday.rollforward(cur_mbegin)
 
-        # handle zero case. arbitrarily rollforward
-        if n == 0 and dt_in != cur_cmbegin:
-            n += 1
-
-        if dt_in > cur_cmbegin and n <= -1:
-            n += 1
-        elif dt_in < cur_cmbegin and n >= 1:
-            n -= 1
+        n = liboffsets._roll_monthday(self.n, other, compare_day)
 
         new = cur_mbegin + n * self.m_offset
         result = self.cbday.rollforward(new)
@@ -1137,6 +1111,11 @@ class SemiMonthOffset(DateOffset):
                     n += 1
                 elif n == 0:
                     n = 1
+
+            # TODO: The remaining cases are for the first and last of the
+            # month; should we just shift there anyway and do other.replace
+            # irregardless?
+            # TODO: other.replace may not be DST safe.
 
         return self._apply(n, other)
 
@@ -1259,6 +1238,8 @@ class SemiMonthBegin(SemiMonthOffset):
     def _apply(self, n, other):
         # if other.day is not day_of_month move to day_of_month and update n
         if other.day < self.day_of_month:
+            # TODO: Why does this not require n > 0 while
+            # SemiMonthEnd._apply does?
             n -= 1
         elif n <= 0 and other.day > self.day_of_month:
             n += 1
@@ -1343,6 +1324,7 @@ class Week(EndMixin, DateOffset):
         if self.normalize and not _is_normalized(dt):
             return False
         return dt.weekday() == self.weekday
+        # TODO: Shouldn't this return True when self.weekday is None?
 
     @property
     def rule_code(self):
@@ -1404,15 +1386,12 @@ class WeekOfMonth(DateOffset):
         base = other
         offsetOfMonth = self.getOffsetOfMonth(other)
 
-        months = self.n
-        if months > 0 and offsetOfMonth > other:
-            months -= 1
-        elif months <= 0 and offsetOfMonth < other:
-            months += 1
+        months = liboffsets._roll_monthday(self.n, other, offsetOfMonth)
 
         other = self.getOffsetOfMonth(shift_month(other, months, 'start'))
         other = datetime(other.year, other.month, other.day, base.hour,
                          base.minute, base.second, base.microsecond)
+        # TODO: Why is this handled differently from LastWeekOfMonth?
         return other
 
     def getOffsetOfMonth(self, dt):
@@ -1485,11 +1464,7 @@ class LastWeekOfMonth(DateOffset):
     def apply(self, other):
         offsetOfMonth = self.getOffsetOfMonth(other)
 
-        months = self.n
-        if months > 0 and offsetOfMonth > other:
-            months -= 1
-        elif months <= 0 and offsetOfMonth < other:
-            months += 1
+        months = liboffsets._roll_monthday(self.n, other, offsetOfMonth)
 
         return self.getOffsetOfMonth(shift_month(other, months, 'start'))
 
@@ -1497,6 +1472,8 @@ class LastWeekOfMonth(DateOffset):
         m = MonthEnd()
         d = datetime(dt.year, dt.month, 1, dt.hour, dt.minute,
                      dt.second, dt.microsecond, tzinfo=dt.tzinfo)
+        # TODO: Will potentially dropping nanoseconds here be a problem?
+        # Particularly in onOffset?
         eom = m.rollforward(d)
         # TODO: Is this DST-safe?
         w = Week(weekday=self.weekday)
@@ -1532,7 +1509,8 @@ class QuarterOffset(DateOffset):
     _from_name_startingMonth = None
     _adjust_dst = True
     # TODO: Consider combining QuarterOffset and YearOffset __init__ at some
-    #       point
+    #       point.  Also apply_index, onOffset, rule_code if
+    #       startingMonth vs month attr names are resolved
 
     def __init__(self, n=1, normalize=False, startingMonth=None):
         self.n = self._validate_n(n)
@@ -1563,26 +1541,22 @@ class QuarterOffset(DateOffset):
 
     @apply_wraps
     def apply(self, other):
-        n = self.n
-        compare_day = self._get_offset_day(other)
-
-        months_since = (other.month - self.startingMonth) % 3
-
-        if n <= 0 and (months_since != 0 or
-                       (months_since == 0 and other.day > compare_day)):
-            # make sure to roll forward, so negate
-            n += 1
-        elif n > 0 and (months_since == 0 and other.day < compare_day):
-            # pretend to roll back if on same month but before compare_day
-            n -= 1
-
-        return shift_month(other, 3 * n - months_since, self._day_opt)
+        # months_since: find the calendar quarter containing other.month,
+        # e.g. if other.month == 8, the calendar quarter is [Jul, Aug, Sep].
+        # Then find the month in that quarter containing an onOffset date for
+        # self.  `months_since` is the number of months to shift other.month
+        # to get to this on-offset month.
+        months_since = other.month % 3 - self.startingMonth % 3
+        qtrs = liboffsets.roll_qtrday(other, self.n, self.startingMonth,
+                                      day_opt=self._day_opt, modby=3)
+        months = qtrs * 3 - months_since
+        return shift_month(other, months, self._day_opt)
 
     def onOffset(self, dt):
         if self.normalize and not _is_normalized(dt):
             return False
-        modMonth = (dt.month - self.startingMonth) % 3
-        return modMonth == 0 and dt.day == self._get_offset_day(dt)
+        mod_month = (dt.month - self.startingMonth) % 3
+        return mod_month == 0 and dt.day == self._get_offset_day(dt)
 
     @apply_index_wraps
     def apply_index(self, dtindex):
@@ -2126,6 +2100,7 @@ class Easter(DateOffset):
             n -= 1
         elif n < 0 and other > current_easter:
             n += 1
+        # TODO: Why does this handle the 0 case the opposite of others?
 
         # NOTE: easter returns a datetime.date so we have to convert to type of
         # other
