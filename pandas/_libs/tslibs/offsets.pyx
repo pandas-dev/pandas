@@ -853,8 +853,8 @@ cpdef inline int roll_qtrday(other, n, month, day_opt='start',
             n -= 1
     else:
         if (months_since > 0 or (months_since == 0 and
-                                  other.day > get_day_of_month(other,
-                                                               day_opt))):
+                                 other.day > get_day_of_month(other,
+                                                              day_opt))):
             # make sure to roll forward, so negate
             n += 1
     return n
