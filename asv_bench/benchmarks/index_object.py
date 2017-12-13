@@ -132,8 +132,8 @@ class Sortlevel(object):
     goal_time = 0.2
 
     def setup(self):
-        n = 10**6
-        low, high = -5000, 5000
+        n = 1182720
+        low, high = -4096, 4096
         arrs = [np.repeat(np.random.randint(low, high, (n // k)), k)
                 for k in [11, 7, 5, 3, 1]]
         self.mi_int = MultiIndex.from_arrays(arrs)[np.random.permutation(n)]
@@ -141,7 +141,7 @@ class Sortlevel(object):
         a = np.repeat(np.arange(100), 1000)
         b = np.tile(np.arange(1000), 100)
         self.mi = MultiIndex.from_arrays([a, b])
-        self.mi = self.mi.take(np.random.permutation(np.arange(n / 10)))
+        self.mi = self.mi.take(np.random.permutation(np.arange(100000)))
 
     def time_sortlevel_int64(self):
         self.mi_int.sortlevel()
