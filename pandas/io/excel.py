@@ -158,6 +158,9 @@ convert_float : boolean, default True
     convert integral floats to int (i.e., 1.0 --> 1). If False, all numeric
     data will be read in as floats: Excel stores all numbers as floats
     internally
+comment : str, default None
+    Comment out remainder of line. Character or characters to indicate comments
+    in the input file. Any data between comment and line end is ignored.
 
 Returns
 -------
@@ -299,6 +302,7 @@ def read_excel(io,
                thousands=None,
                skipfooter=0,
                convert_float=True,
+               comment=None,
                **kwds):
 
     # Can't use _deprecate_kwarg since sheetname=None has a special meaning
@@ -332,6 +336,7 @@ def read_excel(io,
         thousands=thousands,
         skipfooter=skipfooter,
         convert_float=convert_float,
+        comment=comment,
         **kwds)
 
 
@@ -414,6 +419,7 @@ class ExcelFile(object):
               thousands=None,
               skipfooter=0,
               convert_float=True,
+              comment=None,
               **kwds):
         """
         Parse specified sheet(s) into a DataFrame
@@ -439,6 +445,7 @@ class ExcelFile(object):
                                  thousands=thousands,
                                  skipfooter=skipfooter,
                                  convert_float=convert_float,
+                                 comment=comment,
                                  **kwds)
 
     def _should_parse(self, i, usecols):
@@ -493,6 +500,7 @@ class ExcelFile(object):
                      thousands=None,
                      skipfooter=0,
                      convert_float=True,
+                     comment=None,
                      **kwds):
 
         _validate_header_arg(header)
