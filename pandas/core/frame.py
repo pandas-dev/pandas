@@ -4808,70 +4808,67 @@ class DataFrame(NDFrame):
 
     agg = aggregate
 
-    _shared_docs['apply'] = ("""
-    Applies function along input axis of DataFrame.
-
-    Objects passed to functions are Series objects having index
-    either the DataFrame's index (axis=0) or the columns (axis=1).
-    Return type depends on whether passed function aggregates, or the
-    reduce argument if the DataFrame is empty.
-
-    Parameters
-    ----------
-    func : function
-        Function to apply to each column/row
-    axis : {0 or 'index', 1 or 'columns'}, default 0
-        * 0 or 'index': apply function to each column
-        * 1 or 'columns': apply function to each row
-    broadcast : boolean, default False
-        For aggregation functions, return object of same size with values
-        propagated
-    raw : boolean, default False
-        If False, convert each row or column into a Series. If raw=True the
-        passed function will receive ndarray objects instead. If you are
-        just applying a NumPy reduction function this will achieve much
-        better performance
-    reduce : boolean or None, default None
-        Try to apply reduction procedures. If the DataFrame is empty,
-        apply will use reduce to determine whether the result should be a
-        Series or a DataFrame. If reduce is None (the default), apply's
-        return value will be guessed by calling func an empty Series (note:
-        while guessing, exceptions raised by func will be ignored). If
-        reduce is True a Series will always be returned, and if False a
-        DataFrame will always be returned.
-    args : tuple
-        Positional arguments to pass to function in addition to the
-        array/series
-    Additional keyword arguments will be passed as keywords to the function
-
-    Notes
-    -----
-    In the current implementation apply calls func twice on the
-    first column/row to decide whether it can take a fast or slow
-    code path. This can lead to unexpected behavior if func has
-    side-effects, as they will take effect twice for the first
-    column/row.
-
-    Examples
-    --------
-    >>> df.apply(numpy.sqrt) # returns DataFrame
-    >>> df.apply(numpy.sum, axis=0) # equiv to df.sum(0)
-    >>> df.apply(numpy.sum, axis=1) # equiv to df.sum(1)
-
-    See also
-    --------
-    DataFrame.applymap: For elementwise operations
-    DataFrame.aggregate: only perform aggregating type operations
-    DataFrame.transform: only perform transformating type operations
-
-    Returns
-    -------
-    applied : Series or DataFrame
-    """)
-
-    @Appender(_shared_docs['apply'])
     def apply(self, func, axis=0, broadcast=False, raw=False, reduce=None,
               args=(), **kwds):
+        """Applies function along input axis of DataFrame.
+
+        Objects passed to functions are Series objects having index
+        either the DataFrame's index (axis=0) or the columns (axis=1).
+        Return type depends on whether passed function aggregates, or the
+        reduce argument if the DataFrame is empty.
+
+        Parameters
+        ----------
+        func : function
+            Function to apply to each column/row
+        axis : {0 or 'index', 1 or 'columns'}, default 0
+            * 0 or 'index': apply function to each column
+            * 1 or 'columns': apply function to each row
+        broadcast : boolean, default False
+            For aggregation functions, return object of same size with values
+            propagated
+        raw : boolean, default False
+            If False, convert each row or column into a Series. If raw=True the
+            passed function will receive ndarray objects instead. If you are
+            just applying a NumPy reduction function this will achieve much
+            better performance
+        reduce : boolean or None, default None
+            Try to apply reduction procedures. If the DataFrame is empty,
+            apply will use reduce to determine whether the result should be a
+            Series or a DataFrame. If reduce is None (the default), apply's
+            return value will be guessed by calling func an empty Series (note:
+            while guessing, exceptions raised by func will be ignored). If
+            reduce is True a Series will always be returned, and if False a
+            DataFrame will always be returned.
+        args : tuple
+            Positional arguments to pass to function in addition to the
+            array/series
+        Additional keyword arguments will be passed as keywords to the function
+
+        Notes
+        -----
+        In the current implementation apply calls func twice on the
+        first column/row to decide whether it can take a fast or slow
+        code path. This can lead to unexpected behavior if func has
+        side-effects, as they will take effect twice for the first
+        column/row.
+
+        Examples
+        --------
+        >>> df.apply(numpy.sqrt) # returns DataFrame
+        >>> df.apply(numpy.sum, axis=0) # equiv to df.sum(0)
+        >>> df.apply(numpy.sum, axis=1) # equiv to df.sum(1)
+
+        See also
+        --------
+        DataFrame.applymap: For elementwise operations
+        DataFrame.aggregate: only perform aggregating type operations
+        DataFrame.transform: only perform transformating type operations
+
+        Returns
+        -------
+        applied : Series or DataFrame
+        """
         from pandas.core.apply import frame_apply
         op = frame_apply(self,
                          func=func,
