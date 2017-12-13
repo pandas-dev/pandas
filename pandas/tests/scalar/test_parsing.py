@@ -6,6 +6,8 @@ from datetime import datetime
 import numpy as np
 import pytest
 from dateutil.parser import parse
+
+import pandas.util._test_decorators as td
 from pandas.conftest import is_dateutil_le_261, is_dateutil_gt_261
 from pandas import compat
 from pandas.util import testing as tm
@@ -66,6 +68,7 @@ class TestDatetimeParsingWrappers(object):
 
 class TestGuessDatetimeFormat(object):
 
+    @td.skip_if_not_us_locale
     @is_dateutil_le_261
     @pytest.mark.parametrize(
         "string, format",
@@ -79,11 +82,10 @@ class TestGuessDatetimeFormat(object):
              '%Y-%m-%d %H:%M:%S.%f')])
     def test_guess_datetime_format_with_parseable_formats(
             self, string, format):
-        tm._skip_if_not_us_locale()
-
         result = parsing._guess_datetime_format(string)
         assert result == format
 
+    @td.skip_if_not_us_locale
     @is_dateutil_gt_261
     @pytest.mark.parametrize(
         "string",
@@ -92,8 +94,6 @@ class TestGuessDatetimeFormat(object):
          '2011-12-30 00:00:00.000000'])
     def test_guess_datetime_format_with_parseable_formats_gt_261(
             self, string):
-        tm._skip_if_not_us_locale()
-
         result = parsing._guess_datetime_format(string)
         assert result is None
 
@@ -118,6 +118,7 @@ class TestGuessDatetimeFormat(object):
             ambiguous_string, dayfirst=dayfirst)
         assert result is None
 
+    @td.skip_if_has_locale
     @is_dateutil_le_261
     @pytest.mark.parametrize(
         "string, format",
@@ -127,13 +128,10 @@ class TestGuessDatetimeFormat(object):
             ('30/Dec/2011 00:00:00', '%d/%b/%Y %H:%M:%S')])
     def test_guess_datetime_format_with_locale_specific_formats(
             self, string, format):
-        # The month names will vary depending on the locale, in which
-        # case these wont be parsed properly (dateutil can't parse them)
-        tm._skip_if_has_locale()
-
         result = parsing._guess_datetime_format(string)
         assert result == format
 
+    @td.skip_if_has_locale
     @is_dateutil_gt_261
     @pytest.mark.parametrize(
         "string",
@@ -143,10 +141,6 @@ class TestGuessDatetimeFormat(object):
             '30/Dec/2011 00:00:00'])
     def test_guess_datetime_format_with_locale_specific_formats_gt_261(
             self, string):
-        # The month names will vary depending on the locale, in which
-        # case these wont be parsed properly (dateutil can't parse them)
-        tm._skip_if_has_locale()
-
         result = parsing._guess_datetime_format(string)
         assert result is None
 
