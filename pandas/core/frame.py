@@ -3825,7 +3825,7 @@ class DataFrame(NDFrame):
             Where there are duplicate values:
             - 'first' : take the first occurrence.
             - 'last' : take the last occurrence.
-            - 'all' : keep all ties of nth largest value.
+            - 'all' : keep all ties of nth smallest value.
 
             .. versionadded:: 0.22.0
 
