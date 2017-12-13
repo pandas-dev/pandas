@@ -389,22 +389,6 @@ def skip_if_no_ne(engine='numexpr'):
                             installed=_NUMEXPR_INSTALLED))
 
 
-def _skip_if_has_locale():
-    import locale
-    lang, _ = locale.getlocale()
-    if lang is not None:
-        import pytest
-        pytest.skip("Specific locale is set {lang}".format(lang=lang))
-
-
-def _skip_if_not_us_locale():
-    import locale
-    lang, _ = locale.getlocale()
-    if lang != 'en_US':
-        import pytest
-        pytest.skip("Specific locale is set {lang}".format(lang=lang))
-
-
 def _skip_if_no_mock():
     try:
         import mock  # noqa
