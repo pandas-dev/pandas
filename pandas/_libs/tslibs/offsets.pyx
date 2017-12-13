@@ -574,7 +574,7 @@ def shift_quarters(int64_t[:] dtindex, int quarters,
                 # compare_day is only relevant for comparison in the case
                 # where months_since == 0.
                 compare_day = get_lastbday(dts.year, dts.month)
-                #
+
                 if n <= 0 and (months_since != 0 or
                                (months_since == 0 and dts.day > compare_day)):
                     # make sure to roll forward, so negate
