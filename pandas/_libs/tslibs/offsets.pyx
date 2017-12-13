@@ -824,7 +824,7 @@ cpdef int get_day_of_month(datetime other, day_opt) except? -1:
         raise ValueError(day_opt)
 
 
-def _roll_monthday(n, other, compare):
+cpdef int roll_monthday(int n, other, compare):
     # Either `other` and `compare` are _both_ datetimes or they are both
     # integers for days in the same month.
 

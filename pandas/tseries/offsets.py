@@ -945,7 +945,7 @@ class MonthOffset(SingleConstructorOffset):
     @apply_wraps
     def apply(self, other):
         compare_day = self._get_offset_day(other)
-        n = liboffsets._roll_monthday(self.n, other.day, compare_day)
+        n = liboffsets.roll_monthday(self.n, other.day, compare_day)
         return shift_month(other, n, self._day_opt)
 
     @apply_index_wraps
@@ -1036,7 +1036,7 @@ class CustomBusinessMonthEnd(_CustomBusinessMonth):
 
         # Find this custom month offset
         compare_day = self.cbday.rollback(cur_mend)
-        n = liboffsets._roll_monthday(self.n, other, compare_day)
+        n = liboffsets.roll_monthday(self.n, other, compare_day)
 
         new = cur_mend + n * self.m_offset
         result = self.cbday.rollback(new)
@@ -1054,7 +1054,7 @@ class CustomBusinessMonthBegin(_CustomBusinessMonth):
 
         # Find this custom month offset
         compare_day = self.cbday.rollforward(cur_mbegin)
-        n = liboffsets._roll_monthday(self.n, other, compare_day)
+        n = liboffsets.roll_monthday(self.n, other, compare_day)
 
         new = cur_mbegin + n * self.m_offset
         result = self.cbday.rollforward(new)
@@ -1095,7 +1095,7 @@ class SemiMonthOffset(DateOffset):
     @apply_wraps
     def apply(self, other):
         # shift `other` to self.day_of_month, incrementing `n` if necessary
-        n = liboffsets._roll_monthday(self.n, other.day, self.day_of_month)
+        n = liboffsets.roll_monthday(self.n, other.day, self.day_of_month)
 
         days_in_month = tslib.monthrange(other.year, other.month)[1]
 
@@ -1366,7 +1366,7 @@ class WeekOfMonth(DateOffset):
         base = other
         offsetOfMonth = self.getOffsetOfMonth(other)
 
-        months = liboffsets._roll_monthday(self.n, other, offsetOfMonth)
+        months = liboffsets.roll_monthday(self.n, other, offsetOfMonth)
 
         other = self.getOffsetOfMonth(shift_month(other, months, 'start'))
         other = datetime(other.year, other.month, other.day, base.hour,
@@ -1444,7 +1444,7 @@ class LastWeekOfMonth(DateOffset):
     def apply(self, other):
         offsetOfMonth = self.getOffsetOfMonth(other)
 
-        months = liboffsets._roll_monthday(self.n, other, offsetOfMonth)
+        months = liboffsets.roll_monthday(self.n, other, offsetOfMonth)
 
         return self.getOffsetOfMonth(shift_month(other, months, 'start'))
 
