@@ -322,6 +322,44 @@ class TestSeriesDtypes(TestData):
                         lambda x: x.astype('object').astype(Categorical)]:
             pytest.raises(TypeError, lambda: invalid(s))
 
+    @pytest.mark.parametrize('name', [None, 'foo'])
+    @pytest.mark.parametrize('dtype_ordered', [True, False])
+    @pytest.mark.parametrize('series_ordered', [True, False])
+    def test_astype_categorical_to_categorical(self, name, dtype_ordered,
+                                               series_ordered):
+        # GH 10696/18593
+        s_data = list('abcaacbab')
+        s_dtype = CategoricalDtype(list('bac'), ordered=series_ordered)
+        s = Series(s_data, dtype=s_dtype, name=name)
+
+        # unspecified categories
+        dtype = CategoricalDtype(ordered=dtype_ordered)
+        result = s.astype(dtype)
+        exp_dtype = CategoricalDtype(s_dtype.categories, dtype_ordered)
+        expected = Series(s_data, name=name, dtype=exp_dtype)
+        tm.assert_series_equal(result, expected)
+
+        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
+            result = s.astype('category', ordered=dtype_ordered)
+        tm.assert_series_equal(result, expected)
+
+        # different categories
+        dtype = CategoricalDtype(list('adc'), dtype_ordered)
+        result = s.astype(dtype)
+        expected = Series(s_data, name=name, dtype=dtype)
+        tm.assert_series_equal(result, expected)
+
+        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
+            result = s.astype(
+                'category', categories=list('adc'), ordered=dtype_ordered)
+        tm.assert_series_equal(result, expected)
+
+        if dtype_ordered is False:
+            # not specifying ordered, so only test once
+            expected = s
+            result = s.astype('category')
+            tm.assert_series_equal(result, expected)
+
     def test_astype_categoricaldtype(self):
         s = Series(['a', 'b', 'a'])
         result = s.astype(CategoricalDtype(['a', 'b'], ordered=True))
