@@ -8,6 +8,7 @@ from datetime import datetime, timedelta, time
 
 import pandas as pd
 import pandas.util.testing as tm
+import pandas.util._test_decorators as td
 from pandas._libs.tslib import iNaT
 from pandas.compat import lrange, StringIO, product
 from pandas.core.indexes.timedeltas import TimedeltaIndex
@@ -17,7 +18,7 @@ from pandas import (Index, Series, date_range, NaT, concat, DataFrame,
                     Timestamp, to_datetime, offsets,
                     timedelta_range)
 from pandas.util.testing import (assert_series_equal, assert_almost_equal,
-                                 assert_frame_equal, _skip_if_has_locale)
+                                 assert_frame_equal)
 
 from pandas.tests.series.common import TestData
 
@@ -738,10 +739,9 @@ class TestTimeSeries(TestData):
         pytest.raises(ValueError, series.between_time,
                       datetime(2010, 1, 2, 1), datetime(2010, 1, 2, 5))
 
+    @td.skip_if_has_locale
     def test_between_time_formats(self):
         # GH11818
-        _skip_if_has_locale()
-
         rng = date_range('1/1/2000', '1/5/2000', freq='5min')
         ts = DataFrame(np.random.randn(len(rng), 2), index=rng)
 

@@ -25,6 +25,7 @@ For more information, refer to the ``pytest`` documentation on ``skipif``.
 """
 
 import pytest
+import locale
 from distutils.version import LooseVersion
 
 from pandas.compat import is_platform_windows, is_platform_32bit, PY3
@@ -81,6 +82,18 @@ def _skip_if_mpl_1_5():
             mod.use("Agg", warn=False)
 
 
+def _skip_if_has_locale():
+    lang, _ = locale.getlocale()
+    if lang is not None:
+        return True
+
+
+def _skip_if_not_us_locale():
+    lang, _ = locale.getlocale()
+    if lang != 'en_US':
+        return True
+
+
 skip_if_no_mpl = pytest.mark.skipif(_skip_if_no_mpl(),
                                     reason="Missing matplotlib dependency")
 skip_if_mpl_1_5 = pytest.mark.skipif(_skip_if_mpl_1_5(),
@@ -92,3 +105,10 @@ skip_if_windows = pytest.mark.skipif(is_platform_windows(),
 skip_if_windows_python_3 = pytest.mark.skipif(is_platform_windows() and PY3,
                                               reason=("not used on python3/"
                                                       "win32"))
+skip_if_has_locale = pytest.mark.skipif(_skip_if_has_locale(),
+                                        reason="Specific locale is set {lang}"
+                                        .format(lang=locale.getlocale()[0]))
+skip_if_not_us_locale = pytest.mark.skipif(_skip_if_not_us_locale(),
+                                           reason="Specific locale is set "
+                                           "{lang}".format(
+                                               lang=locale.getlocale()[0]))
