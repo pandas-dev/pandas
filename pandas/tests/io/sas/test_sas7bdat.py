@@ -83,8 +83,8 @@ class TestSAS7BDAT(object):
                 df = pd.read_sas(fname, encoding='utf-8')
                 tm.assert_frame_equal(df, df0)
 
+    @td.skip_if_no('py.path')
     def test_path_localpath(self):
-        tm._skip_if_no_localpath()
         from py.path import local as LocalPath
         for j in 0, 1:
             df0 = self.data[j]

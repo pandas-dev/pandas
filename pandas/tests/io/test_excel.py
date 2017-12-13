@@ -665,11 +665,10 @@ class XlrdTests(ReadingTestsBase):
 
         tm.assert_frame_equal(expected, actual)
 
+    @td.skip_if_no('py.path')
     def test_read_from_py_localpath(self):
 
         # GH12655
-        tm._skip_if_no_localpath()
-
         from py.path import local as LocalPath
 
         str_path = os.path.join(self.dirpath, 'test1' + self.ext)

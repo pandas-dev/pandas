@@ -96,8 +96,10 @@ def _skip_if_not_us_locale():
 
 def skip_if_no(package, min_version=None):
     def decorated_func(func):
-        return pytest.mark.skipif(not safe_import(package, min_version=min_version),
-                                  reason="Could not import '{}'".format(package))(func)
+        return pytest.mark.skipif(
+            not safe_import(package, min_version=min_version),
+            reason="Could not import '{}'".format(package)
+        )(func)
     return decorated_func
 
 
