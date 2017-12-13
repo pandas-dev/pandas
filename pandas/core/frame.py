@@ -3769,11 +3769,11 @@ class DataFrame(NDFrame):
             Number of items to retrieve
         columns : list or str
             Column name or names to order by
-        keep : {'first', 'last'}, default 'first'
+        keep : {'first', 'last', 'all'}, default 'first'
             Where there are duplicate values:
-            - ``first`` : take the first occurrence.
-            - ``last`` : take the last occurrence.
-            - ``all`` : keep all ties of nth largest value.
+            - 'first' : take the first occurrence.
+            - 'last' : take the last occurrence.
+            - 'all' : keep all ties of nth largest value.
 
             .. versionadded:: 0.22.0
 
@@ -3821,11 +3821,11 @@ class DataFrame(NDFrame):
             Number of items to retrieve
         columns : list or str
             Column name or names to order by
-        keep : {'first', 'last'}, default 'first'
+        keep : {'first', 'last', 'all'}, default 'first'
             Where there are duplicate values:
-            - ``first`` : take the first occurrence.
-            - ``last`` : take the last occurrence.
-            - ``all`` : keep all ties of nth largest value.
+            - 'first' : take the first occurrence.
+            - 'last' : take the last occurrence.
+            - 'all' : keep all ties of nth largest value.
 
             .. versionadded:: 0.22.0
 

@@ -138,6 +138,8 @@ Other Enhancements
 - :func:`Series` / :func:`DataFrame` tab completion also returns identifiers in the first level of a :func:`MultiIndex`. (:issue:`16326`)
 - :func:`read_excel()` has gained the ``nrows`` parameter (:issue:`16645`)
 - :func:``DataFrame.to_json`` and ``Series.to_json`` now accept an ``index`` argument which allows the user to exclude the index from the JSON output (:issue:`17394`)
+- :func:`Series` / :func:`DataFrame` methods :func:`nlargest` / :func:`nsmallest` now accept the value 'all' for the `keep` argument. This keeps all ties for the nth largests/smallest value (:issue:`16818`).
+
 
 .. _whatsnew_0220.api_breaking:
 
