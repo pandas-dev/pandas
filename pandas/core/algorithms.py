@@ -219,10 +219,6 @@ def _get_data_algo(values, func_map):
     if is_categorical_dtype(values):
         values = values._values_for_rank()
 
-    # Create copy in case NaT converts to asi8
-    if is_datetime64_any_dtype(values):
-        values = values.copy()
-
     values, dtype, ndtype = _ensure_data(values)
     if ndtype == 'object':
 
