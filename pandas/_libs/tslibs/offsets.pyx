@@ -17,6 +17,7 @@ np.import_array()
 
 from util cimport is_string_object, is_integer_object
 
+from ccalendar import MONTHS, DAYS
 from conversion cimport tz_convert_single, pydt_to_i8
 from frequencies cimport get_freq_code
 from nattype cimport NPY_NAT
@@ -27,14 +28,9 @@ from np_datetime cimport (pandas_datetimestruct,
 # ---------------------------------------------------------------------
 # Constants
 
-# Duplicated in tslib
-_MONTHS = ['JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN', 'JUL',
-           'AUG', 'SEP', 'OCT', 'NOV', 'DEC']
-_int_to_month = {(k + 1): v for k, v in enumerate(_MONTHS)}
-_month_to_int = {v: k for k, v in _int_to_month.items()}
-
 
 class WeekDay(object):
+    # TODO: Remove: This is not used outside of tests
     MON = 0
     TUE = 1
     WED = 2
@@ -42,18 +38,6 @@ class WeekDay(object):
     FRI = 4
     SAT = 5
     SUN = 6
-
-
-_int_to_weekday = {
-    WeekDay.MON: 'MON',
-    WeekDay.TUE: 'TUE',
-    WeekDay.WED: 'WED',
-    WeekDay.THU: 'THU',
-    WeekDay.FRI: 'FRI',
-    WeekDay.SAT: 'SAT',
-    WeekDay.SUN: 'SUN'}
-
-_weekday_to_int = {_int_to_weekday[key]: key for key in _int_to_weekday}
 
 
 _offset_to_period_map = {
@@ -88,17 +72,16 @@ _offset_to_period_map = {
 need_suffix = ['QS', 'BQ', 'BQS', 'YS', 'AS', 'BY', 'BA', 'BYS', 'BAS']
 
 for __prefix in need_suffix:
-    for _m in _MONTHS:
+    for _m in MONTHS:
         key = '%s-%s' % (__prefix, _m)
         _offset_to_period_map[key] = _offset_to_period_map[__prefix]
 
 for __prefix in ['A', 'Q']:
-    for _m in _MONTHS:
+    for _m in MONTHS:
         _alias = '%s-%s' % (__prefix, _m)
         _offset_to_period_map[_alias] = _alias
 
-_days = ['MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT', 'SUN']
-for _d in _days:
+for _d in DAYS:
     _offset_to_period_map['W-%s' % _d] = 'W-%s' % _d
 
 
