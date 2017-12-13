@@ -7,11 +7,51 @@ import numpy as np
 import pytest
 from dateutil.parser import parse
 
+import pandas as pd
 import pandas.util._test_decorators as td
 from pandas.conftest import is_dateutil_le_261, is_dateutil_gt_261
 from pandas import compat
 from pandas.util import testing as tm
 from pandas._libs.tslibs import parsing
+from pandas._libs.tslibs.parsing import parse_time_string
+
+
+def test_to_datetime1():
+    actual = pd.to_datetime(datetime(2008, 1, 15))
+    assert actual == datetime(2008, 1, 15)
+
+    actual = pd.to_datetime('20080115')
+    assert actual == datetime(2008, 1, 15)
+
+    # unparseable
+    s = 'Month 1, 1999'
+    assert pd.to_datetime(s, errors='ignore') == s
+
+
+class TestParseQuarters(object):
+
+    def test_parse_time_string(self):
+        (date, parsed, reso) = parse_time_string('4Q1984')
+        (date_lower, parsed_lower, reso_lower) = parse_time_string('4q1984')
+        assert date == date_lower
+        assert parsed == parsed_lower
+        assert reso == reso_lower
+
+    def test_parse_time_quarter_w_dash(self):
+        # https://github.com/pandas-dev/pandas/issue/9688
+        pairs = [('1988-Q2', '1988Q2'), ('2Q-1988', '2Q1988')]
+
+        for dashed, normal in pairs:
+            (date_dash, parsed_dash, reso_dash) = parse_time_string(dashed)
+            (date, parsed, reso) = parse_time_string(normal)
+
+            assert date_dash == date
+            assert parsed_dash == parsed
+            assert reso_dash == reso
+
+        pytest.raises(parsing.DateParseError, parse_time_string, "-2Q1992")
+        pytest.raises(parsing.DateParseError, parse_time_string, "2-Q1992")
+        pytest.raises(parsing.DateParseError, parse_time_string, "4-4Q1992")
 
 
 class TestDatetimeParsingWrappers(object):
