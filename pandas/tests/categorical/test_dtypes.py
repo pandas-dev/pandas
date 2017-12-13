@@ -100,55 +100,53 @@ class TestCategoricalDtypes(object):
         assert result.codes.dtype == 'int8'
 
     @pytest.mark.parametrize('ordered', [True, False])
-    @pytest.mark.parametrize('copy', [True, False])
-    def test_astype(self, copy, ordered):
+    def test_astype(self, ordered):
         # string
         cat = Categorical(list('abbaaccc'), ordered=ordered)
-        result = cat.astype(object, copy=copy)
+        result = cat.astype(object)
         expected = np.array(cat)
         tm.assert_numpy_array_equal(result, expected)
 
         msg = 'could not convert string to float'
         with tm.assert_raises_regex(ValueError, msg):
-            cat.astype(float, copy=copy)
+            cat.astype(float)
 
         # numeric
         cat = Categorical([0, 1, 2, 2, 1, 0, 1, 0, 2], ordered=ordered)
-        result = cat.astype(object, copy=copy)
+        result = cat.astype(object)
         expected = np.array(cat, dtype=object)
         tm.assert_numpy_array_equal(result, expected)
 
-        result = cat.astype(int, copy=copy)
+        result = cat.astype(int)
         expected = np.array(cat, dtype=np.int)
         tm.assert_numpy_array_equal(result, expected)
 
-        result = cat.astype(float, copy=copy)
+        result = cat.astype(float)
         expected = np.array(cat, dtype=np.float)
         tm.assert_numpy_array_equal(result, expected)
 
-    @pytest.mark.parametrize('copy', [True, False])
     @pytest.mark.parametrize('dtype_ordered', [True, False])
     @pytest.mark.parametrize('cat_ordered', [True, False])
-    def test_astype_category(self, copy, dtype_ordered, cat_ordered):
+    def test_astype_category(self, dtype_ordered, cat_ordered):
         # GH 10696/18593
         data = list('abcaacbab')
         cat = Categorical(data, categories=list('bac'), ordered=cat_ordered)
 
         # standard categories
         dtype = CategoricalDtype(ordered=dtype_ordered)
-        result = cat.astype(dtype, copy=copy)
+        result = cat.astype(dtype)
         expected = Categorical(
             data, categories=cat.categories, ordered=dtype_ordered)
         tm.assert_categorical_equal(result, expected)
 
         # non-standard categories
         dtype = CategoricalDtype(list('adc'), dtype_ordered)
-        result = cat.astype(dtype, copy=copy)
+        result = cat.astype(dtype)
         expected = Categorical(data, dtype=dtype)
         tm.assert_categorical_equal(result, expected)
 
         if dtype_ordered is False:
             # dtype='category' can't specify ordered, so only test once
-            result = cat.astype('category', copy=copy)
+            result = cat.astype('category')
             expected = cat
             tm.assert_categorical_equal(result, expected)

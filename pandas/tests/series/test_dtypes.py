@@ -322,11 +322,10 @@ class TestSeriesDtypes(TestData):
                         lambda x: x.astype('object').astype(Categorical)]:
             pytest.raises(TypeError, lambda: invalid(s))
 
-    @pytest.mark.parametrize('copy', [True, False])
     @pytest.mark.parametrize('name', [None, 'foo'])
     @pytest.mark.parametrize('dtype_ordered', [True, False])
     @pytest.mark.parametrize('series_ordered', [True, False])
-    def test_astype_categorical_to_categorical(self, copy, name, dtype_ordered,
+    def test_astype_categorical_to_categorical(self, name, dtype_ordered,
                                                series_ordered):
         # GH 10696/18593
         s_data = list('abcaacbab')
@@ -335,7 +334,7 @@ class TestSeriesDtypes(TestData):
 
         # unspecified categories
         dtype = CategoricalDtype(ordered=dtype_ordered)
-        result = s.astype(dtype, copy=copy)
+        result = s.astype(dtype)
         exp_dtype = CategoricalDtype(s_dtype.categories, dtype_ordered)
         expected = Series(s_data, name=name, dtype=exp_dtype)
         tm.assert_series_equal(result, expected)
@@ -346,7 +345,7 @@ class TestSeriesDtypes(TestData):
 
         # different categories
         dtype = CategoricalDtype(list('adc'), dtype_ordered)
-        result = s.astype(dtype, copy=copy)
+        result = s.astype(dtype)
         expected = Series(s_data, name=name, dtype=dtype)
         tm.assert_series_equal(result, expected)
 
@@ -358,7 +357,7 @@ class TestSeriesDtypes(TestData):
         if dtype_ordered is False:
             # not specifying ordered, so only test once
             expected = s
-            result = s.astype('category', copy=copy)
+            result = s.astype('category')
             tm.assert_series_equal(result, expected)
 
     def test_astype_categoricaldtype(self):
