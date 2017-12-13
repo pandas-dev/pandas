@@ -150,11 +150,16 @@ class TestDataFramePlots(TestPlotBase):
         ax = df2.plot(ax=ax)
 
         line1, line2 = ax.lines
+
         # xdata should not be touched (Earlier it was [0, 1])
-        np.testing.assert_equal(line1.get_xdata(), x1)
-        np.testing.assert_equal(line1.get_ydata(), y1)
-        np.testing.assert_equal(line2.get_xdata(), x2)
-        np.testing.assert_equal(line2.get_ydata(), y2)
+        tm.assert_numpy_array_equal(line1.get_xdata(), np.array(x1),
+                                    check_dtype=False)
+        tm.assert_numpy_array_equal(line1.get_ydata(), np.array(y1),
+                                    check_dtype=False)
+        tm.assert_numpy_array_equal(line2.get_xdata(), np.array(x2),
+                                    check_dtype=False)
+        tm.assert_numpy_array_equal(line2.get_ydata(), np.array(y2),
+                                    check_dtype=False)
 
     # GH 15516
     def test_mpl2_color_cycle_str(self):
