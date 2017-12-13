@@ -824,7 +824,23 @@ cpdef int get_day_of_month(datetime other, day_opt) except? -1:
         raise ValueError(day_opt)
 
 
-cpdef int roll_monthday(int n, other, compare):
+cpdef int roll_monthday(other, int n, compare):
+    """
+    Possibly increment or decrement the number of periods to shift
+    based on rollforward/rollbackward conventions.
+
+    Parameters
+    ----------
+    other : datetime or Timestamp
+    n : number of periods to increment, before adjusting for rolling
+    day_opt : 'start', 'end', 'business_start', 'business_end'
+        The convention to use in finding the day in a given month against
+        which to compare for rollforward/rollbackward decisions.
+
+    Returns
+    -------
+    n : int number of periods to increment
+    """
     # Either `other` and `compare` are _both_ datetimes or they are both
     # integers for days in the same month.
 
@@ -836,8 +852,25 @@ cpdef int roll_monthday(int n, other, compare):
     return n
 
 
-cpdef inline int roll_qtrday(other, n, month, day_opt='start',
-                             int modby=3) except? -1:
+cpdef int roll_qtrday(datetime other, int n, int month, day_opt='start',
+                      int modby=3) except? -1:
+    """
+    Possibly increment or decrement the number of periods to shift
+    based on rollforward/rollbackward conventions.
+
+    Parameters
+    ----------
+    other : datetime or Timestamp
+    n : number of periods to increment, before adjusting for rolling
+    month : reference month giving the first month of the year
+    day_opt : 'start', 'end', 'business_start', 'business_end'
+        The convention to use in finding the day in a given month against
+        which to compare for rollforward/rollbackward decisions.
+
+    Returns
+    -------
+    n : int number of periods to increment
+    """
     # TODO: type `other` as datetime-or-pandas_datetimestruct?
     # TODO: Merge this with roll_yearday by setting modby=12 there?
     #       code de-duplication versus perf hit?
@@ -869,6 +902,7 @@ cpdef int roll_yearday(other, n, month, day_opt='start') except? -1:
     ----------
     other : datetime or Timestamp
     n : number of periods to increment, before adjusting for rolling
+    month : reference month giving the first month of the year
     day_opt : 'start', 'end'
         'start': returns 1
         'end': returns last day  of the month
