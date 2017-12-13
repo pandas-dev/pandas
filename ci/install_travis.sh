@@ -116,7 +116,7 @@ if [ "$COVERAGE" ]; then
 fi
 
 echo
-if [ -z "$BUILD_TEST" ]; then
+if [ -z "$PIP_BUILD_TEST" ] || [ -z "$CONDA_BUILD_TEST" ]; then
 
     # build but don't install
     echo "[build em]"
@@ -155,7 +155,7 @@ echo "[removing installed pandas]"
 conda remove pandas -y --force
 pip uninstall -y pandas
 
-if [ "$BUILD_TEST" ]; then
+if [ "$PIP_BUILD_TEST" ]; then
 
     # remove any installation
     pip uninstall -y pandas
@@ -167,6 +167,10 @@ if [ "$BUILD_TEST" ]; then
     bash scripts/build_dist_for_release.sh
     conda uninstall -y cython
     time pip install dist/*tar.gz || exit 1
+    
+elif [ "$CONDA_BUILD_TEST" ]; then
+
+    conda build ./conda.recipe/ --numpy 1.11 --python 3.6 -q
 
 else
 
