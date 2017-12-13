@@ -7,6 +7,7 @@ from pandas import (
     Interval, IntervalIndex, Index, isna, notna, interval_range, Timestamp,
     Timedelta, compat, date_range, timedelta_range, DateOffset)
 from pandas.compat import lzip
+from pandas.core.common import _asarray_tuplesafe
 from pandas.tseries.offsets import Day
 from pandas._libs.interval import IntervalTree
 from pandas.tests.indexes.common import Base
@@ -1071,6 +1072,19 @@ class TestIntervalIndex(Base):
         else:
             idx = IntervalIndex.from_breaks(range(4), closed=closed)
             assert idx.is_non_overlapping_monotonic is True
+
+    @pytest.mark.parametrize('tuples', [
+        lzip(range(10), range(1, 11)),
+        lzip(range(10), range(1, 11)) + [np.nan],
+        lzip(date_range('20170101', periods=10),
+             date_range('20170101', periods=10)),
+        [np.nan] + lzip(date_range('20170101', periods=10),
+                        date_range('20170101', periods=10))])
+    def test_to_tuples(self, tuples):
+        # GH 18756
+        result = IntervalIndex.from_tuples(tuples).to_tuples()
+        expected = Index(_asarray_tuplesafe(tuples))
+        tm.assert_index_equal(result, expected)
 
 
 class TestIntervalRange(object):

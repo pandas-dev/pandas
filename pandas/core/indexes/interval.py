@@ -546,7 +546,11 @@ class IntervalIndex(IntervalMixin, Index):
 
     def to_tuples(self):
         """Return an Index of tuples of the form (left, right)"""
-        return Index(_asarray_tuplesafe(zip(self.left, self.right)))
+        tuples = _asarray_tuplesafe(zip(self.left, self.right))
+        if self.hasnans:
+            # GH 18756
+            tuples = np.where(~self._isnan, tuples, np.nan)
+        return Index(tuples)
 
     @cache_readonly
     def _multiindex(self):
