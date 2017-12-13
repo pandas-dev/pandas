@@ -3773,6 +3773,9 @@ class DataFrame(NDFrame):
             Where there are duplicate values:
             - ``first`` : take the first occurrence.
             - ``last`` : take the last occurrence.
+            - ``all`` : keep all ties of nth largest value.
+
+            .. versionadded:: 0.22.0
 
         Returns
         -------
@@ -3780,14 +3783,28 @@ class DataFrame(NDFrame):
 
         Examples
         --------
-        >>> df = DataFrame({'a': [1, 10, 8, 11, -1],
-        ...                 'b': list('abdce'),
-        ...                 'c': [1.0, 2.0, np.nan, 3.0, 4.0]})
-        >>> df.nlargest(3, 'a')
+        >>> df = pd.DataFrame({'a': [1, 10, 8, 11, 8, 2],
+        ...                    'b': list('abdcef'),
+        ...                    'c': [1.0, 2.0, np.nan, 3.0, 4.0, 9.0]})
+
+        >>> df.nlargest(3, 'a', keep='first')
             a  b   c
         3  11  c   3
         1  10  b   2
         2   8  d NaN
+
+        >>> df.nlargest(3, 'a', keep='last')
+            a  b   c
+        3  11  c   3
+        1  10  b   2
+        4   8  e   4
+
+        >>> df.nlargest(3, 'a', keep='all')
+            a  b   c
+        3  11  c   3
+        1  10  b   2
+        2   8  d NaN
+        4   8  e   4
         """
         return algorithms.SelectNFrame(self,
                                        n=n,
@@ -3808,6 +3825,9 @@ class DataFrame(NDFrame):
             Where there are duplicate values:
             - ``first`` : take the first occurrence.
             - ``last`` : take the last occurrence.
+            - ``all`` : keep all ties of nth largest value.
+
+            .. versionadded:: 0.22.0
 
         Returns
         -------
@@ -3815,14 +3835,28 @@ class DataFrame(NDFrame):
 
         Examples
         --------
-        >>> df = DataFrame({'a': [1, 10, 8, 11, -1],
-        ...                 'b': list('abdce'),
-        ...                 'c': [1.0, 2.0, np.nan, 3.0, 4.0]})
-        >>> df.nsmallest(3, 'a')
-           a  b   c
-        4 -1  e   4
-        0  1  a   1
-        2  8  d NaN
+        >>> df = pd.DataFrame({'a': [1, 10, 8, 11, 8, 2],
+        ...                    'b': list('abdcef'),
+        ...                    'c': [1.0, 2.0, np.nan, 3.0, 4.0, 9.0]})
+
+        >>> df.nsmallest(3, 'a', keep='first')
+           a  b    c
+        0  1  a  1.0
+        5  2  f  9.0
+        2  8  d  NaN
+
+        >>> df.nsmallest(3, 'a', keep='last')
+           a  b    c
+        0  1  a  1.0
+        5  2  f  9.0
+        4  8  e  4.0
+
+        >>> df.nsmallest(3, 'a', keep='all')
+           a  b    c
+        0  1  a  1.0
+        5  2  f  9.0
+        2  8  d  NaN
+        4  8  e  4.0
         """
         return algorithms.SelectNFrame(self,
                                        n=n,

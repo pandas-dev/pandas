@@ -910,8 +910,8 @@ class SelectN(object):
         self.n = n
         self.keep = keep
 
-        if self.keep not in ('first', 'last', False):
-            raise ValueError('keep must be either "first", "last", or False')
+        if self.keep not in ('first', 'last', 'all'):
+            raise ValueError('keep must be either "first", "last", or "all"')
 
     def nlargest(self):
         return self.compute('nlargest')
@@ -981,7 +981,7 @@ class SelectNSeries(SelectN):
         ns, = np.nonzero(arr <= kth_val)
         inds = ns[arr[ns].argsort(kind='mergesort')]
 
-        if self.keep is not False:
+        if self.keep != 'all':
             inds = inds[:n]
 
         if self.keep == 'last':
