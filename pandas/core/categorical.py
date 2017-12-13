@@ -436,9 +436,12 @@ class Categorical(PandasObject):
 
         """
         if is_categorical_dtype(dtype):
-            if copy is True:
-                return self.copy()
-            return self
+            # GH 10696/18593
+            dtype = self.dtype._update_dtype(dtype)
+            self = self.copy() if copy else self
+            if dtype == self.dtype:
+                return self
+            return self._set_dtype(dtype)
         return np.array(self, dtype=dtype, copy=copy)
 
     @cache_readonly
