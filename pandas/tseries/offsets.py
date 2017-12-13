@@ -1036,7 +1036,6 @@ class CustomBusinessMonthEnd(_CustomBusinessMonth):
 
         # Find this custom month offset
         compare_day = self.cbday.rollback(cur_mend)
-
         n = liboffsets._roll_monthday(self.n, other, compare_day)
 
         new = cur_mend + n * self.m_offset
@@ -1055,7 +1054,6 @@ class CustomBusinessMonthBegin(_CustomBusinessMonth):
 
         # Find this custom month offset
         compare_day = self.cbday.rollforward(cur_mbegin)
-
         n = liboffsets._roll_monthday(self.n, other, compare_day)
 
         new = cur_mbegin + n * self.m_offset
@@ -1096,26 +1094,21 @@ class SemiMonthOffset(DateOffset):
 
     @apply_wraps
     def apply(self, other):
-        n = self.n
-        if not self.onOffset(other):
-            _, days_in_month = tslib.monthrange(other.year, other.month)
-            if 1 < other.day < self.day_of_month:
-                other = other.replace(day=self.day_of_month)
-                if n > 0:
-                    # rollforward so subtract 1
-                    n -= 1
-            elif self.day_of_month < other.day < days_in_month:
-                other = other.replace(day=self.day_of_month)
-                if n < 0:
-                    # rollforward in the negative direction so add 1
-                    n += 1
-                elif n == 0:
-                    n = 1
+        # shift `other` to self.day_of_month, incrementing `n` if necessary
+        n = liboffsets._roll_monthday(self.n, other.day, self.day_of_month)
 
-            # TODO: The remaining cases are for the first and last of the
-            # month; should we just shift there anyway and do other.replace
-            # irregardless?
-            # TODO: other.replace may not be DST safe.
+        days_in_month = tslib.monthrange(other.year, other.month)[1]
+
+        # For SemiMonthBegin on other.day == 1 and
+        # SemiMonthEnd on other.day == days_in_month,
+        # shifting `other` to `self.day_of_month` _always_ requires
+        # incrementing/decrementing `n`, regardless of whether it is
+        # initially positive.
+        if type(self) is SemiMonthBegin and (self.n <= 0 and other.day == 1):
+            n -= 1
+        elif type(self) is SemiMonthEnd and (self.n > 0 and
+                                             other.day == days_in_month):
+            n += 1
 
         return self._apply(n, other)
 
@@ -1185,12 +1178,6 @@ class SemiMonthEnd(SemiMonthOffset):
         return dt.day in (self.day_of_month, days_in_month)
 
     def _apply(self, n, other):
-        # if other.day is not day_of_month move to day_of_month and update n
-        if n > 0 and other.day < self.day_of_month:
-            n -= 1
-        elif other.day > self.day_of_month:
-            n += 1
-
         months = n // 2
         day = 31 if n % 2 else self.day_of_month
         return shift_month(other, months, day)
@@ -1236,14 +1223,6 @@ class SemiMonthBegin(SemiMonthOffset):
         return dt.day in (1, self.day_of_month)
 
     def _apply(self, n, other):
-        # if other.day is not day_of_month move to day_of_month and update n
-        if other.day < self.day_of_month:
-            # TODO: Why does this not require n > 0 while
-            # SemiMonthEnd._apply does?
-            n -= 1
-        elif n <= 0 and other.day > self.day_of_month:
-            n += 1
-
         months = n // 2 + n % 2
         day = 1 if n % 2 else self.day_of_month
         return shift_month(other, months, day)
