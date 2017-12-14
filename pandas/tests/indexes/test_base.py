@@ -799,6 +799,103 @@ class TestIndex(Base):
         tm.assert_contains_all(self.strIndex, secondCat)
         tm.assert_contains_all(self.dateIndex, firstCat)
 
+    def test_union_sorting_false(self):
+
+        # GH 17839
+        dt_index = pd.DatetimeIndex(["20/12/2012", "15/05/2015",
+                                     "1/1/2011", "1/7/2017"])
+        first = pd.Index([2, 0, 4, 3])
+        second = pd.Index([1, 4])
+        everything = pd.Index([2, 0, 4, 3, 1])
+        union = first.union(second, sort=False)
+        assert tm.equalContents(union, everything)
+
+        cases = [klass(second.values) for klass in [np.array, Series, list]]
+        for case in cases:
+            result = first.union(case, sort=False)
+            assert tm.equalContents(result, everything)
+
+        # Corner cases
+        union = first.union(first, sort=False)
+        assert union is first
+
+        union = first.union([], sort=False)
+        assert union is first
+
+        union = Index([]).union(first, sort=False)
+        assert union is first
+
+        # preserve names
+        first = Index(list('ba'), name='A')
+        second = Index(list('ba'), name='B')
+        union = first.union(second, sort=False)
+        expected = Index(list('ba'), name=None)
+        tm.assert_index_equal(union, expected)
+
+        first = Index(list('ba'), name='A')
+        second = Index([], name='B')
+        union = first.union(second, sort=False)
+        expected = Index(list('ba'), name=None)
+        tm.assert_index_equal(union, expected)
+
+        first = Index([], name='A')
+        second = Index(list('ba'), name='B')
+        union = first.union(second, sort=False)
+        expected = Index(list('ba'), name=None)
+        tm.assert_index_equal(union, expected)
+
+        first = Index(list('ba'))
+        second = Index(list('ba'), name='B')
+        union = first.union(second, sort=False)
+        expected = Index(list('ba'), name='B')
+        tm.assert_index_equal(union, expected)
+
+        first = Index([])
+        second = Index(list('ba'), name='B')
+        union = first.union(second, sort=False)
+        expected = Index(list('ba'), name='B')
+        tm.assert_index_equal(union, expected)
+
+        first = Index(list('ba'))
+        second = Index([], name='B')
+        union = first.union(second, sort=False)
+        expected = Index(list('ba'), name='B')
+        tm.assert_index_equal(union, expected)
+
+        first = Index(list('ba'), name='A')
+        second = Index(list('ba'))
+        union = first.union(second, sort=False)
+        expected = Index(list('ba'), name='A')
+        tm.assert_index_equal(union, expected)
+
+        first = Index(list('ba'), name='A')
+        second = Index([])
+        union = first.union(second, sort=False)
+        expected = Index(list('ba'), name='A')
+        tm.assert_index_equal(union, expected)
+
+        first = Index([], name='A')
+        second = Index(list('ba'))
+        union = first.union(second, sort=False)
+        expected = Index(list('ba'), name='A')
+        tm.assert_index_equal(union, expected)
+
+        first = pd.Index([2, 0, 4, 3])
+        with tm.assert_produces_warning(RuntimeWarning):
+            firstCat = first.union(dt_index, sort=False)
+        secondCat = first.union(first, sort=False)
+
+        if dt_index.dtype == np.object_:
+            appended = np.append(first, dt_index)
+        else:
+            appended = np.append(first, dt_index.astype('O'))
+
+        assert tm.equalContents(firstCat, appended)
+        assert tm.equalContents(secondCat, first)
+        tm.assert_contains_all(first, firstCat)
+        tm.assert_contains_all(first, secondCat)
+        tm.assert_contains_all(dt_index, firstCat)
+
     def test_add(self):
         idx = self.strIndex
         expected = Index(self.strIndex.values * 2)
@@ -984,6 +1081,34 @@ class TestIndex(Base):
         assert len(result) == 0
         assert result.name == first.name
 
+    def test_difference_sorting_false(self):
+
+        # GH 17839
+        first = pd.Index([2, 0, 4, 3])
+        second = pd.Index([2, 1])
+        answer = pd.Index([0, 4, 3])
+        first.name = 'name'
+        # different names
+        result = first.difference(second, sort=False)
+
+        assert tm.equalContents(result, answer)
+        assert result.name is None
+
+        # same names
+        second.name = 'name'
+        result = first.difference(second, sort=False)
+        assert result.name == 'name'
+
+        # with empty
+        result = first.difference([], sort=False)
+        assert tm.equalContents(result, first)
+        assert result.name == first.name
+
+        # with everything
+        result = first.difference(first, sort=False)
+        assert len(result) == 0
+        assert result.name == first.name
+
     def test_symmetric_difference(self):
         # smoke
         idx1 = Index([1, 2, 3, 4], name='idx1')
@@ -1029,6 +1154,55 @@ class TestIndex(Base):
         assert result.name == 'idx1'
 
         result = idx1.symmetric_difference(idx2, result_name='new_name')
+        assert tm.equalContents(result, expected)
+        assert result.name == 'new_name'
+
+    def test_symmetric_difference_sorting_false(self):
+
+        # GH 17839
+        # smoke
+        idx1 = Index([1, 2, 3, 4], name='idx1')
+        idx2 = Index([2, 3, 4, 5])
+        result = idx1.symmetric_difference(idx2, sort=False)
+        expected = Index([1, 5])
+        assert tm.equalContents(result, expected)
+        assert result.name is None
+
+        # __xor__ syntax
+        expected = idx1 ^ idx2
+        assert tm.equalContents(result, expected)
+        assert result.name is None
+
+        # multiIndex
+        idx1 = MultiIndex.from_tuples(self.tuples)
+        idx2 = MultiIndex.from_tuples([('foo', 1), ('bar', 3)])
+        result = idx1.symmetric_difference(idx2, sort=False)
+        expected = MultiIndex.from_tuples([('bar', 2), ('baz', 3), ('bar', 3)])
+        assert tm.equalContents(result, expected)
+
+        # nans:
+        idx1 = Index([1, np.nan, 2, 3])
+        idx2 = Index([0, 1, np.nan])
+        idx3 = Index([0, 1])
+
+        result = idx1.symmetric_difference(idx2, sort=False)
+        expected = Index([2.0, 3.0, 0.0])
+        tm.assert_index_equal(result, expected)
+
+        result = idx1.symmetric_difference(idx3, sort=False)
+        expected = Index([np.nan, 2.0, 3.0, 0.0])
+        tm.assert_index_equal(result, expected)
+
+        # other not an Index:
+        idx1 = Index([5, 3, 4, 2], name='idx1')
+        idx2 = np.array([3, 2, 4, 1])
+        expected = Index([5, 1])
+        result = idx1.symmetric_difference(idx2, sort=False)
+        assert tm.equalContents(result, expected)
+        assert result.name == 'idx1'
+
+        result = idx1.symmetric_difference(idx2, result_name='new_name',
+                                           sort=False)
         assert tm.equalContents(result, expected)
         assert result.name == 'new_name'
 

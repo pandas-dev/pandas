@@ -2180,7 +2180,7 @@ class Index(IndexOpsMixin, PandasObject):
                 return self._shallow_copy(name=name)
         return self
 
-    def union(self, other):
+    def union(self, other, sort=True):
         """
         Form the union of two Index objects and sorts if possible.
 
@@ -2238,27 +2238,31 @@ class Index(IndexOpsMixin, PandasObject):
                                            allow_fill=False)
                 result = _concat._concat_compat((self._values, other_diff))
 
-                try:
-                    self._values[0] < other_diff[0]
-                except TypeError as e:
-                    warnings.warn("%s, sort order is undefined for "
-                                  "incomparable objects" % e, RuntimeWarning,
-                                  stacklevel=3)
-                else:
-                    types = frozenset((self.inferred_type,
-                                       other.inferred_type))
-                    if not types & _unsortable_types:
-                        result.sort()
+                if sort:
+                    try:
+                        self._values[0] < other_diff[0]
+                    except TypeError as e:
+                        warnings.warn("%s, sort order is undefined for "
+                                      "incomparable objects" % e,
+                                      RuntimeWarning,
+                                      stacklevel=3)
+                    else:
+                        types = frozenset((self.inferred_type,
+                                           other.inferred_type))
+                        if not types & _unsortable_types:
+                            result.sort()
 
             else:
                 result = self._values
 
-                try:
-                    result = np.sort(result)
-                except TypeError as e:
-                    warnings.warn("%s, sort order is undefined for "
-                                  "incomparable objects" % e, RuntimeWarning,
-                                  stacklevel=3)
+                if sort:
+                    try:
+                        result = np.sort(result)
+                    except TypeError as e:
+                        warnings.warn("%s, sort order is undefined for "
+                                      "incomparable objects" % e,
+                                      RuntimeWarning,
+                                      stacklevel=3)
 
         # for subclasses
         return self._wrap_union_result(other, result)
@@ -2323,7 +2327,7 @@ class Index(IndexOpsMixin, PandasObject):
             taken.name = None
         return taken
 
-    def difference(self, other):
+    def difference(self, other, sort=True):
         """
         Return a new Index with elements from the index that are not in
         `other`.
@@ -2363,14 +2367,15 @@ class Index(IndexOpsMixin, PandasObject):
         label_diff = np.setdiff1d(np.arange(this.size), indexer,
                                   assume_unique=True)
         the_diff = this.values.take(label_diff)
-        try:
-            the_diff = sorting.safe_sort(the_diff)
-        except TypeError:
-            pass
+        if sort:
+            try:
+                the_diff = sorting.safe_sort(the_diff)
+            except TypeError:
+                pass
 
         return this._shallow_copy(the_diff, name=result_name, freq=None)
 
-    def symmetric_difference(self, other, result_name=None):
+    def symmetric_difference(self, other, result_name=None, sort=True):
         """
         Compute the symmetric difference of two Index objects.
         It's sorted if sorting is possible.
@@ -2423,10 +2428,11 @@ class Index(IndexOpsMixin, PandasObject):
         right_diff = other.values.take(right_indexer)
 
         the_diff = _concat._concat_compat([left_diff, right_diff])
-        try:
-            the_diff = sorting.safe_sort(the_diff)
-        except TypeError:
-            pass
+        if sort:
+            try:
+                the_diff = sorting.safe_sort(the_diff)
+            except TypeError:
+                pass
 
         attribs = self._get_attributes_dict()
         attribs['name'] = result_name
