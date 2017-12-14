@@ -1867,6 +1867,18 @@ class TestNLargestNSmallest(object):
         expected = s.sort_values().head(n)
         assert_series_equal(result, expected)
 
+    def test_keep_all_ties(self):
+        # GH 16818
+        s = Series([10, 9, 8, 7, 7, 7, 7, 6])
+        result = s.nlargest(4, keep='all')
+        expected = Series([10, 9, 8, 7, 7, 7, 7])
+        print(result, expected)
+        assert_series_equal(result, expected)
+
+        result = s.nsmallest(2, keep='all')
+        expected = Series([6, 7, 7, 7, 7], index=[7, 3, 4, 5, 6])
+        assert_series_equal(result, expected)
+
 
 class TestCategoricalSeriesAnalytics(object):
 
