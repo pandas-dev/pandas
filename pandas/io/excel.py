@@ -148,6 +148,10 @@ thousands : str, default None
     this parameter is only necessary for columns stored as TEXT in Excel,
     any numeric columns will automatically be parsed, regardless of display
     format.
+comment : str, default None
+    Comment out remainder of line. Pass a character or characters to this
+    argument to indicate comments in the input file. Any data between the
+    comment string and the end of the current line is ignored.
 skip_footer : int, default 0
 
     .. deprecated:: 0.23.0
@@ -158,9 +162,6 @@ convert_float : boolean, default True
     convert integral floats to int (i.e., 1.0 --> 1). If False, all numeric
     data will be read in as floats: Excel stores all numbers as floats
     internally
-comment : str, default None
-    Comment out remainder of line. Character or characters to indicate comments
-    in the input file. Any data between comment and line end is ignored.
 
 Returns
 -------
@@ -302,7 +303,6 @@ def read_excel(io,
                thousands=None,
                skipfooter=0,
                convert_float=True,
-               comment=None,
                **kwds):
 
     # Can't use _deprecate_kwarg since sheetname=None has a special meaning
@@ -334,9 +334,13 @@ def read_excel(io,
         parse_dates=parse_dates,
         date_parser=date_parser,
         thousands=thousands,
+<<<<<<< cc8a5c2681bfc6e209968ff9eb801e55454dfead
         skipfooter=skipfooter,
-        convert_float=convert_float,
+=======
         comment=comment,
+        skip_footer=skip_footer,
+>>>>>>> changed order of arguments
+        convert_float=convert_float,
         **kwds)
 
 
@@ -417,9 +421,13 @@ class ExcelFile(object):
               parse_dates=False,
               date_parser=None,
               thousands=None,
+<<<<<<< cc8a5c2681bfc6e209968ff9eb801e55454dfead
               skipfooter=0,
-              convert_float=True,
+=======
               comment=None,
+              skip_footer=0,
+>>>>>>> changed order of arguments
+              convert_float=True,
               **kwds):
         """
         Parse specified sheet(s) into a DataFrame
@@ -443,9 +451,13 @@ class ExcelFile(object):
                                  parse_dates=parse_dates,
                                  date_parser=date_parser,
                                  thousands=thousands,
+<<<<<<< cc8a5c2681bfc6e209968ff9eb801e55454dfead
                                  skipfooter=skipfooter,
-                                 convert_float=convert_float,
+=======
                                  comment=comment,
+                                 skip_footer=skip_footer,
+>>>>>>> changed order of arguments
+                                 convert_float=convert_float,
                                  **kwds)
 
     def _should_parse(self, i, usecols):
@@ -498,9 +510,13 @@ class ExcelFile(object):
                      parse_dates=False,
                      date_parser=None,
                      thousands=None,
+<<<<<<< cc8a5c2681bfc6e209968ff9eb801e55454dfead
                      skipfooter=0,
-                     convert_float=True,
+=======
                      comment=None,
+                     skip_footer=0,
+>>>>>>> changed order of arguments
+                     convert_float=True,
                      **kwds):
 
         _validate_header_arg(header)
@@ -673,7 +689,12 @@ class ExcelFile(object):
                                     parse_dates=parse_dates,
                                     date_parser=date_parser,
                                     thousands=thousands,
+<<<<<<< cc8a5c2681bfc6e209968ff9eb801e55454dfead
                                     skipfooter=skipfooter,
+=======
+                                    comment=comment,
+                                    skipfooter=skip_footer,
+>>>>>>> changed order of arguments
                                     **kwds)
 
                 output[asheetname] = parser.read(nrows=nrows)
