@@ -4810,8 +4810,7 @@ class DataFrame(NDFrame):
 
     def apply(self, func, axis=0, broadcast=False, raw=False, reduce=None,
               args=(), **kwds):
-        """
-        Applies function along input axis of DataFrame.
+        """Applies function along input axis of DataFrame.
 
         Objects passed to functions are Series objects having index
         either the DataFrame's index (axis=0) or the columns (axis=1).
@@ -4870,194 +4869,15 @@ class DataFrame(NDFrame):
         -------
         applied : Series or DataFrame
         """
-        axis = self._get_axis_number(axis)
-        ignore_failures = kwds.pop('ignore_failures', False)
-
-        # dispatch to agg
-        if axis == 0 and isinstance(func, (list, dict)):
-            return self.aggregate(func, axis=axis, *args, **kwds)
-
-        if len(self.columns) == 0 and len(self.index) == 0:
-            return self._apply_empty_result(func, axis, reduce, *args, **kwds)
-
-        # if we are a string, try to dispatch
-        if isinstance(func, compat.string_types):
-            if axis:
-                kwds['axis'] = axis
-            return getattr(self, func)(*args, **kwds)
-
-        if kwds or args and not isinstance(func, np.ufunc):
-            def f(x):
-                return func(x, *args, **kwds)
-        else:
-            f = func
-
-        if isinstance(f, np.ufunc):
-            with np.errstate(all='ignore'):
-                results = f(self.values)
-            return self._constructor(data=results, index=self.index,
-                                     columns=self.columns, copy=False)
-        else:
-            if not broadcast:
-                if not all(self.shape):
-                    return self._apply_empty_result(func, axis, reduce, *args,
-                                                    **kwds)
-
-                if raw and not self._is_mixed_type:
-                    return self._apply_raw(f, axis)
-                else:
-                    if reduce is None:
-                        reduce = True
-                    return self._apply_standard(
-                        f, axis,
-                        reduce=reduce,
-                        ignore_failures=ignore_failures)
-            else:
-                return self._apply_broadcast(f, axis)
-
-    def _apply_empty_result(self, func, axis, reduce, *args, **kwds):
-        if reduce is None:
-            reduce = False
-            try:
-                reduce = not isinstance(func(_EMPTY_SERIES, *args, **kwds),
-                                        Series)
-            except Exception:
-                pass
-
-        if reduce:
-            return Series(np.nan, index=self._get_agg_axis(axis))
-        else:
-            return self.copy()
-
-    def _apply_raw(self, func, axis):
-        try:
-            result = lib.reduce(self.values, func, axis=axis)
-        except Exception:
-            result = np.apply_along_axis(func, axis, self.values)
-
-        # TODO: mixed type case
-        if result.ndim == 2:
-            return DataFrame(result, index=self.index, columns=self.columns)
-        else:
-            return Series(result, index=self._get_agg_axis(axis))
-
-    def _apply_standard(self, func, axis, ignore_failures=False, reduce=True):
-
-        # skip if we are mixed datelike and trying reduce across axes
-        # GH6125
-        if (reduce and axis == 1 and self._is_mixed_type and
-                self._is_datelike_mixed_type):
-            reduce = False
-
-        # try to reduce first (by default)
-        # this only matters if the reduction in values is of different dtype
-        # e.g. if we want to apply to a SparseFrame, then can't directly reduce
-        if reduce:
-            values = self.values
-
-            # we cannot reduce using non-numpy dtypes,
-            # as demonstrated in gh-12244
-            if not is_extension_type(values):
-                # Create a dummy Series from an empty array
-                index = self._get_axis(axis)
-                empty_arr = np.empty(len(index), dtype=values.dtype)
-                dummy = Series(empty_arr, index=self._get_axis(axis),
-                               dtype=values.dtype)
-
-                try:
-                    labels = self._get_agg_axis(axis)
-                    result = lib.reduce(values, func, axis=axis, dummy=dummy,
-                                        labels=labels)
-                    return Series(result, index=labels)
-                except Exception:
-                    pass
-
-        dtype = object if self._is_mixed_type else None
-        if axis == 0:
-            series_gen = (self._ixs(i, axis=1)
-                          for i in range(len(self.columns)))
-            res_index = self.columns
-            res_columns = self.index
-        elif axis == 1:
-            res_index = self.index
-            res_columns = self.columns
-            values = self.values
-            series_gen = (Series._from_array(arr, index=res_columns, name=name,
-                                             dtype=dtype)
-                          for i, (arr, name) in enumerate(zip(values,
-                                                              res_index)))
-        else:  # pragma : no cover
-            raise AssertionError('Axis must be 0 or 1, got %s' % str(axis))
-
-        i = None
-        keys = []
-        results = {}
-        if ignore_failures:
-            successes = []
-            for i, v in enumerate(series_gen):
-                try:
-                    results[i] = func(v)
-                    keys.append(v.name)
-                    successes.append(i)
-                except Exception:
-                    pass
-            # so will work with MultiIndex
-            if len(successes) < len(res_index):
-                res_index = res_index.take(successes)
-        else:
-            try:
-                for i, v in enumerate(series_gen):
-                    results[i] = func(v)
-                    keys.append(v.name)
-            except Exception as e:
-                if hasattr(e, 'args'):
-                    # make sure i is defined
-                    if i is not None:
-                        k = res_index[i]
-                        e.args = e.args + ('occurred at index %s' %
-                                           pprint_thing(k), )
-                raise
-
-        if len(results) > 0 and is_sequence(results[0]):
-            if not isinstance(results[0], Series):
-                index = res_columns
-            else:
-                index = None
-
-            result = self._constructor(data=results, index=index)
-            result.columns = res_index
-
-            if axis == 1:
-                result = result.T
-            result = result._convert(datetime=True, timedelta=True, copy=False)
-
-        else:
-
-            result = Series(results)
-            result.index = res_index
-
-        return result
-
-    def _apply_broadcast(self, func, axis):
-        if axis == 0:
-            target = self
-        elif axis == 1:
-            target = self.T
-        else:  # pragma: no cover
-            raise AssertionError('Axis must be 0 or 1, got %s' % axis)
-
-        result_values = np.empty_like(target.values)
-        columns = target.columns
-        for i, col in enumerate(columns):
-            result_values[:, i] = func(target[col])
-
-        result = self._constructor(result_values, index=target.index,
-                                   columns=target.columns)
-
-        if axis == 1:
-            result = result.T
-
-        return result
+        from pandas.core.apply import frame_apply
+        op = frame_apply(self,
+                         func=func,
+                         axis=axis,
+                         broadcast=broadcast,
+                         raw=raw,
+                         reduce=reduce,
+                         args=args, **kwds)
+        return op.get_result()
 
     def applymap(self, func):
         """
@@ -6188,8 +6008,6 @@ DataFrame._add_series_or_dataframe_operations()
 
 ops.add_flex_arithmetic_methods(DataFrame, **ops.frame_flex_funcs)
 ops.add_special_arithmetic_methods(DataFrame, **ops.frame_special_funcs)
-
-_EMPTY_SERIES = Series([])
 
 
 def _arrays_to_mgr(arrays, arr_names, index, columns, dtype=None):
