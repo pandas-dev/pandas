@@ -28,6 +28,25 @@ import pandas.util.testing as tm
 from .common import TestData
 
 
+class TestDatetimeLikeArithmetic(object):
+    def test_sub_datetime64_not_ns(self):
+        # GH#7996
+        ser = Series(date_range('20130101', periods=3))
+        dt64 = np.datetime64('2013-01-01')
+        assert dt64.dtype == 'datetime64[D]'
+        res = ser - dt64
+        expected = pd.Series([Timedelta(days=0), Timedelta(days=1),
+                              Timedelta(days=2)])
+        tm.assert_series_equal(res, expected)
+
+        # check for DatetimeIndex and DataFrame while we're at it
+        dti = pd.DatetimeIndex(ser)
+        res = dti - dt64
+        tm.assert_index_equal(res, pd.Index(expected))
+
+        # TODO: This is still broken for ser.to_frame()
+
+
 class TestSeriesOperators(TestData):
 
     def test_series_comparison_scalars(self):

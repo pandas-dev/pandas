@@ -28,7 +28,7 @@ from pandas.core.dtypes.common import (
     is_datetimelike_v_numeric,
     is_integer_dtype, is_categorical_dtype,
     is_object_dtype, is_timedelta64_dtype,
-    is_datetime64_dtype, is_datetime64tz_dtype,
+    is_datetime64_dtype, is_datetime64tz_dtype, is_datetime64_ns_dtype,
     is_bool_dtype, is_datetimetz,
     is_list_like,
     is_scalar,
@@ -497,6 +497,11 @@ class _TimeOp(_Op):
             elif not (isinstance(values, (np.ndarray, ABCSeries)) and
                       is_datetime64_dtype(values)):
                 values = libts.array_to_datetime(values)
+            elif (is_datetime64_dtype(values) and
+                  not is_datetime64_ns_dtype(values)):
+                # GH#7996 e.g. np.datetime64('2013-01-01') is datetime64[D]
+                values = values.astype('datetime64[ns]')
+
         elif inferred_type in ('timedelta', 'timedelta64'):
             # have a timedelta, convert to to ns here
             values = to_timedelta(values, errors='coerce', box=False)
@@ -671,7 +676,7 @@ def _arith_method_SERIES(op, name, str_rep, fill_zeros=None, default_axis=None,
     """
     def na_op(x, y):
         import pandas.core.computation.expressions as expressions
-
+        #
         try:
             result = expressions.evaluate(op, str_rep, x, y, **eval_kwargs)
         except TypeError:
@@ -688,9 +693,9 @@ def _arith_method_SERIES(op, name, str_rep, fill_zeros=None, default_axis=None,
                 raise TypeError("{typ} cannot perform the operation "
                                 "{op}".format(typ=type(x).__name__,
                                               op=str_rep))
-
+            #
             result, changed = maybe_upcast_putmask(result, ~mask, np.nan)
-
+        #
         result = missing.fill_zeros(result, x, y, name, fill_zeros)
         return result
 
