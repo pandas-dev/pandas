@@ -39,10 +39,16 @@ class TestDatetimeLikeArithmetic(object):
                               Timedelta(days=2)])
         tm.assert_series_equal(res, expected)
 
+        res = dt64 - ser
+        tm.assert_series_equal(res, -expected)
+
         # check for DatetimeIndex and DataFrame while we're at it
         dti = pd.DatetimeIndex(ser)
         res = dti - dt64
         tm.assert_index_equal(res, pd.Index(expected))
+
+        res = dt64 - dti
+        tm.assert_index_equal(res, pd.Index(-expected))
 
         # TODO: This is still broken for ser.to_frame()
 
