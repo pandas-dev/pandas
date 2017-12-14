@@ -892,7 +892,8 @@ cpdef int roll_qtrday(datetime other, int n, int month, day_opt='start',
     return n
 
 
-cpdef int roll_yearday(other, n, month, day_opt='start') except? -1:
+cpdef int roll_yearday(datetime other, int n, int month,
+                       object day_opt='start') except? -1:
     """
     Possibly increment or decrement the number of periods to shift
     based on rollforward/rollbackward conventions.
