@@ -676,7 +676,7 @@ def _arith_method_SERIES(op, name, str_rep, fill_zeros=None, default_axis=None,
     """
     def na_op(x, y):
         import pandas.core.computation.expressions as expressions
-        #
+
         try:
             result = expressions.evaluate(op, str_rep, x, y, **eval_kwargs)
         except TypeError:
@@ -693,9 +693,9 @@ def _arith_method_SERIES(op, name, str_rep, fill_zeros=None, default_axis=None,
                 raise TypeError("{typ} cannot perform the operation "
                                 "{op}".format(typ=type(x).__name__,
                                               op=str_rep))
-            #
+
             result, changed = maybe_upcast_putmask(result, ~mask, np.nan)
-        #
+
         result = missing.fill_zeros(result, x, y, name, fill_zeros)
         return result
 
