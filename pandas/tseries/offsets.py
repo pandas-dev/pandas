@@ -22,7 +22,7 @@ import pandas._libs.tslibs.offsets as liboffsets
 from pandas._libs.tslibs.offsets import (
     ApplyTypeError,
     as_datetime, _is_normalized,
-    _get_calendar, _to_dt64, _validate_business_time,
+    _get_calendar, _to_dt64,
     _determine_offset,
     apply_index_wraps,
     roll_yearday,
@@ -592,8 +592,8 @@ class BusinessHourMixin(BusinessMixin):
     def __init__(self, start='09:00', end='17:00', offset=timedelta(0)):
         # must be validated here to equality check
         kwds = {'offset': offset}
-        self.start = kwds['start'] = _validate_business_time(start)
-        self.end = kwds['end'] = _validate_business_time(end)
+        self.start = kwds['start'] = liboffsets._validate_business_time(start)
+        self.end = kwds['end'] = liboffsets._validate_business_time(end)
         self.kwds.update(kwds)
         self._offset = offset
 
