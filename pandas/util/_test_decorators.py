@@ -25,6 +25,10 @@ For more information, refer to the ``pytest`` documentation on ``skipif``.
 """
 
 import pytest
+import locale
+from distutils.version import LooseVersion
+
+from pandas.compat import is_platform_windows, is_platform_32bit, PY3
 
 
 def safe_import(mod_name, min_version=None):
@@ -67,5 +71,44 @@ def _skip_if_no_mpl():
         return True
 
 
+def _skip_if_mpl_1_5():
+    mod = safe_import("matplotlib")
+
+    if mod:
+        v = mod.__version__
+        if LooseVersion(v) > LooseVersion('1.4.3') or str(v)[0] == '0':
+            return True
+        else:
+            mod.use("Agg", warn=False)
+
+
+def _skip_if_has_locale():
+    lang, _ = locale.getlocale()
+    if lang is not None:
+        return True
+
+
+def _skip_if_not_us_locale():
+    lang, _ = locale.getlocale()
+    if lang != 'en_US':
+        return True
+
+
 skip_if_no_mpl = pytest.mark.skipif(_skip_if_no_mpl(),
                                     reason="Missing matplotlib dependency")
+skip_if_mpl_1_5 = pytest.mark.skipif(_skip_if_mpl_1_5(),
+                                     reason="matplotlib 1.5")
+skip_if_32bit = pytest.mark.skipif(is_platform_32bit(),
+                                   reason="skipping for 32 bit")
+skip_if_windows = pytest.mark.skipif(is_platform_windows(),
+                                     reason="Running on Windows")
+skip_if_windows_python_3 = pytest.mark.skipif(is_platform_windows() and PY3,
+                                              reason=("not used on python3/"
+                                                      "win32"))
+skip_if_has_locale = pytest.mark.skipif(_skip_if_has_locale(),
+                                        reason="Specific locale is set {lang}"
+                                        .format(lang=locale.getlocale()[0]))
+skip_if_not_us_locale = pytest.mark.skipif(_skip_if_not_us_locale(),
+                                           reason="Specific locale is set "
+                                           "{lang}".format(
+                                               lang=locale.getlocale()[0]))

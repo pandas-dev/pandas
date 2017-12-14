@@ -54,7 +54,7 @@ from pandas.core.dtypes.missing import (
 import pandas.core.dtypes.concat as _concat
 
 from pandas.core.dtypes.generic import ABCSeries, ABCDatetimeIndex
-from pandas.core.common import is_null_slice
+from pandas.core.common import is_null_slice, _any_not_none
 import pandas.core.algorithms as algos
 
 from pandas.core.index import Index, MultiIndex, _ensure_index
@@ -573,7 +573,6 @@ class Block(PandasObject):
             raise TypeError(msg)
 
         # may need to convert to categorical
-        # this is only called for non-categoricals
         if self.is_categorical_astype(dtype):
 
             # deprecated 17636
@@ -589,13 +588,16 @@ class Block(PandasObject):
                               "CategoricalDtype instead",
                               FutureWarning, stacklevel=7)
 
-            kwargs = kwargs.copy()
-            categories = getattr(dtype, 'categories', None)
-            ordered = getattr(dtype, 'ordered', False)
+            categories = kwargs.get('categories', None)
+            ordered = kwargs.get('ordered', None)
+            if _any_not_none(categories, ordered):
+                dtype = CategoricalDtype(categories, ordered)
 
-            kwargs.setdefault('categories', categories)
-            kwargs.setdefault('ordered', ordered)
-            return self.make_block(Categorical(self.values, **kwargs))
+            if is_categorical_dtype(self.values):
+                # GH 10696/18593: update an existing categorical efficiently
+                return self.make_block(self.values.astype(dtype, copy=copy))
+
+            return self.make_block(Categorical(self.values, dtype=dtype))
 
         # astype processing
         dtype = np.dtype(dtype)
@@ -1847,8 +1849,10 @@ class FloatBlock(FloatOrComplexBlock):
         if tipo is not None:
             return (issubclass(tipo.type, (np.floating, np.integer)) and
                     not issubclass(tipo.type, (np.datetime64, np.timedelta64)))
-        return (isinstance(element, (float, int, np.floating, np.int_)) and
-                not isinstance(element, (bool, np.bool_, datetime, timedelta,
+        return (
+            isinstance(
+                element, (float, int, np.floating, np.int_, compat.long))
+            and not isinstance(element, (bool, np.bool_, datetime, timedelta,
                                          np.datetime64, np.timedelta64)))
 
     def to_native_types(self, slicer=None, na_rep='', float_format=None,
@@ -1896,9 +1900,11 @@ class ComplexBlock(FloatOrComplexBlock):
         if tipo is not None:
             return issubclass(tipo.type,
                               (np.floating, np.integer, np.complexfloating))
-        return (isinstance(element,
-                           (float, int, complex, np.float_, np.int_)) and
-                not isinstance(element, (bool, np.bool_)))
+        return (
+            isinstance(
+                element,
+                (float, int, complex, np.float_, np.int_, compat.long))
+            and not isinstance(element, (bool, np.bool_)))
 
     def should_store(self, value):
         return issubclass(value.dtype.type, np.complexfloating)
@@ -2422,23 +2428,6 @@ class CategoricalBlock(NonConsolidatableMixIn, ObjectBlock):
                 new_mgr_locs = self.mgr_locs
 
         return self.make_block_same_class(new_values, new_mgr_locs)
-
-    def _astype(self, dtype, copy=False, errors='raise', values=None,
-                klass=None, mgr=None):
-        """
-        Coerce to the new type (if copy=True, return a new copy)
-        raise on an except if raise == True
-        """
-
-        if self.is_categorical_astype(dtype):
-            values = self.values
-        else:
-            values = np.asarray(self.values).astype(dtype, copy=False)
-
-        if copy:
-            values = values.copy()
-
-        return self.make_block(values)
 
     def to_native_types(self, slicer=None, na_rep='', quoting=None, **kwargs):
         """ convert to our native types format, slicing if desired """

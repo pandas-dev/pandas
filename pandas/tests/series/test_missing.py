@@ -365,6 +365,20 @@ class TestSeriesMissingData(TestData):
                 with pytest.raises(ValueError):
                     s.fillna(1, limit=limit, method=method)
 
+    def test_categorical_nan_equality(self):
+        cat = Series(Categorical(["a", "b", "c", np.nan]))
+        exp = Series([True, True, True, False])
+        res = (cat == cat)
+        tm.assert_series_equal(res, exp)
+
+    def test_categorical_nan_handling(self):
+
+        # NaNs are represented as -1 in labels
+        s = Series(Categorical(["a", "b", np.nan, "a"]))
+        tm.assert_index_equal(s.cat.categories, Index(["a", "b"]))
+        tm.assert_numpy_array_equal(s.values.codes,
+                                    np.array([0, 1, -1, 0], dtype=np.int8))
+
     @pytest.mark.parametrize('fill_value, expected_output', [
         ('a', ['a', 'a', 'b', 'a', 'a']),
         ({1: 'a', 3: 'b', 4: 'b'}, ['a', 'a', 'b', 'b', 'b']),

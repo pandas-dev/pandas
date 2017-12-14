@@ -1934,7 +1934,7 @@ def pandas_dtype(dtype):
             except TypeError:
                 pass
 
-        elif dtype.startswith('interval[') or dtype.startswith('Interval['):
+        elif dtype.startswith('interval') or dtype.startswith('Interval'):
             try:
                 return IntervalDtype.construct_from_string(dtype)
             except TypeError:
