@@ -49,7 +49,7 @@ class TestDatetimeLikeArithmetic(object):
         res = dt64 - dti
         tm.assert_index_equal(res, pd.Index(-expected))
 
-    @pytest.xfail(reason='GH#7996 datetime64 units not converted to nanos')
+    @pytest.mark.xfail(reason='GH#7996 datetime64 units not converted to nano')
     def test_frame_sub_datetime64_not_ns(self):
         df = pd.DataFrame(date_range('20130101', periods=3))
         dt64 = np.datetime64('2013-01-01')
