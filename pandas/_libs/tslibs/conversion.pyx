@@ -469,7 +469,8 @@ cdef inline void _localize_tso(_TSObject obj, object tz):
     """
     cdef:
         ndarray[int64_t] trans, deltas
-        Py_ssize_t delta, posn
+        int64_t delta
+        Py_ssize_t posn
         datetime dt
 
     assert obj.tzinfo is None
