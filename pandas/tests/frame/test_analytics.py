@@ -2214,3 +2214,12 @@ class TestNLargestNSmallest(object):
             df_nan.clip_lower(s, axis=0)
             for op in ['lt', 'le', 'gt', 'ge', 'eq', 'ne']:
                 getattr(df, op)(s_nan, axis=0)
+
+    def test_series_nat_conversion(self):
+        # GH 18521
+        # Check rank does not mutate DataFrame
+        df = DataFrame(np.random.randn(10, 3), dtype='float64')
+        expected = df.copy()
+        df.rank()
+        result = df
+        tm.assert_frame_equal(result, expected)
