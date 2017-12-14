@@ -371,6 +371,7 @@ class TestSeriesRank(TestData):
 
     def test_rank_modify_inplace(self):
         # GH 18521
+        # Check rank does not mutate series
         s = Series([Timestamp('2017-01-05 10:20:27.569000'), NaT])
         expected = s.copy()
 

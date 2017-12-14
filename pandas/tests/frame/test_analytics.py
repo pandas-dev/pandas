@@ -2217,6 +2217,7 @@ class TestNLargestNSmallest(object):
 
     def test_series_nat_conversion(self):
         # GH 18521
+        # Check rank does not mutate DataFrame
         df = DataFrame(np.random.randn(10, 3), dtype='float64')
         expected = df.copy()
         df.rank()
