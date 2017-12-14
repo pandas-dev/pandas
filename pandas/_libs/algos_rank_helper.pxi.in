@@ -84,6 +84,7 @@ def rank_1d_{{dtype}}(object in_arr, ties_method='average', ascending=True,
     mask = np.isnan(values)
     {{elif dtype == 'int64'}}
     mask = values == iNaT
+
     # create copy in case of iNaT
     # values are mutated inplace
     if mask.any():
