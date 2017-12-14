@@ -831,11 +831,9 @@ cpdef int roll_monthday(other, int n, compare):
 
     Parameters
     ----------
-    other : datetime or Timestamp
+    other : datetime or int
     n : number of periods to increment, before adjusting for rolling
-    day_opt : 'start', 'end', 'business_start', 'business_end'
-        The convention to use in finding the day in a given month against
-        which to compare for rollforward/rollbackward decisions.
+    compare : datetime or int (must match `other`)
 
     Returns
     -------
@@ -862,10 +860,11 @@ cpdef int roll_qtrday(datetime other, int n, int month, day_opt='start',
     ----------
     other : datetime or Timestamp
     n : number of periods to increment, before adjusting for rolling
-    month : reference month giving the first month of the year
+    month : int reference month giving the first month of the year
     day_opt : 'start', 'end', 'business_start', 'business_end'
         The convention to use in finding the day in a given month against
         which to compare for rollforward/rollbackward decisions.
+    modby : int 3 for quarters, 12 for years
 
     Returns
     -------
@@ -913,7 +912,7 @@ cpdef int roll_yearday(other, n, month, day_opt='start') except? -1:
 
     Notes
     -----
-    * Mirrors `roll_check` in tslib.shift_months
+    * Mirrors `roll_check` in shift_months
 
     Examples
     -------

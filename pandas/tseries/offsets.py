@@ -1446,9 +1446,7 @@ class LastWeekOfMonth(DateOffset):
     @apply_wraps
     def apply(self, other):
         offsetOfMonth = self.getOffsetOfMonth(other)
-
         months = liboffsets.roll_monthday(other, self.n, offsetOfMonth)
-
         return self.getOffsetOfMonth(shift_month(other, months, 'start'))
 
     def getOffsetOfMonth(self, dt):
