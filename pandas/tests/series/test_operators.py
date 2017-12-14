@@ -42,7 +42,6 @@ class TestDatetimeLikeArithmetic(object):
         res = dt64 - ser
         tm.assert_series_equal(res, -expected)
 
-        # check for DatetimeIndex and DataFrame while we're at it
         dti = pd.DatetimeIndex(ser)
         res = dti - dt64
         tm.assert_index_equal(res, pd.Index(expected))
@@ -50,7 +49,15 @@ class TestDatetimeLikeArithmetic(object):
         res = dt64 - dti
         tm.assert_index_equal(res, pd.Index(-expected))
 
-        # TODO: This is still broken for ser.to_frame()
+    @pytest.xfail(reason='GH#7996 datetime64 units not converted to nanos')
+    def test_frame_sub_datetime64_not_ns(self):
+        df = pd.DataFrame(date_range('20130101', periods=3))
+        dt64 = np.datetime64('2013-01-01')
+        assert dt64.dtype == 'datetime64[D]'
+        res = df - dt64
+        expected = pd.DataFrame([Timedelta(days=0), Timedelta(days=1),
+                                 Timedelta(days=2)])
+        tm.assert_frame_equal(res, expected)
 
 
 class TestSeriesOperators(TestData):
