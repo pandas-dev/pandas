@@ -2940,9 +2940,6 @@ def _get_grouper(obj, key=None, axis=0, level=None, sort=True,
             elif obj._is_level_reference(gpr):
                 in_axis, name, level, gpr = False, None, gpr, None
             else:
-                # Want to raise with the correct KeyError here
-                # The deprecation in #18731 means we may have
-                # the wrong error message here.
                 raise KeyError(gpr)
         elif isinstance(gpr, Grouper) and gpr.key is not None:
             # Add key to exclusions
