@@ -2736,11 +2736,6 @@ class TestGroupBy(MixIn):
 
         assert "Interpreting tuple 'by' as a list" in str(w[0].message)
 
-        with tm.assert_produces_warning(FutureWarning) as w:
-            df[['a', 'b', 'c']].groupby(('a', 'b')).c.mean()
-
-        assert "Interpreting tuple 'by' as a list" in str(w[0].message)
-
         with tm.assert_produces_warning(None):
             df.groupby(('a', 'b')).c.mean()
 

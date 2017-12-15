@@ -2859,7 +2859,7 @@ def _get_grouper(obj, key=None, axis=0, level=None, sort=True,
     # they wanted a list of keys.
     # https://github.com/pandas-dev/pandas/issues/18314
     is_tuple = isinstance(key, tuple)
-    all_hashable = is_tuple and all(is_hashable(x) for x in key)
+    all_hashable = is_tuple and is_hashable(key)
 
     if is_tuple:
         if ((all_hashable and key not in obj and set(key).issubset(obj))
