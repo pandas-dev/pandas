@@ -22,7 +22,7 @@ from pandas.compat import range, lrange, zip, product, OrderedDict
 from pandas.core.base import SpecificationError, AbstractMethodError
 from pandas.errors import UnsupportedFunctionCall
 from pandas.core.groupby import DataError
-from pandas._libs.tslibs.resolution import DAYS, _MONTHS as MONTHS
+
 from pandas.tseries.frequencies import to_offset
 from pandas.core.indexes.datetimes import date_range
 from pandas.tseries.offsets import Minute, BDay
@@ -33,6 +33,7 @@ from pandas.core.indexes.timedeltas import timedelta_range, TimedeltaIndex
 from pandas.util.testing import (assert_series_equal, assert_almost_equal,
                                  assert_frame_equal, assert_index_equal)
 from pandas._libs.tslibs.period import IncompatibleFrequency
+from pandas._libs.tslibs.ccalendar import DAYS, MONTHS
 
 bday = BDay()
 
