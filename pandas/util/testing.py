@@ -359,22 +359,6 @@ def _skip_if_no_xarray():
         pytest.skip("xarray version is too low: {version}".format(version=v))
 
 
-def _skip_if_no_pathlib():
-    try:
-        from pathlib import Path  # noqa
-    except ImportError:
-        import pytest
-        pytest.skip("pathlib not available")
-
-
-def _skip_if_no_localpath():
-    try:
-        from py.path import local as LocalPath  # noqa
-    except ImportError:
-        import pytest
-        pytest.skip("py.path not installed")
-
-
 def skip_if_no_ne(engine='numexpr'):
     from pandas.core.computation.expressions import (
         _USE_NUMEXPR,
