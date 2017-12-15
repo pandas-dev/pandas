@@ -396,7 +396,7 @@ class TestSeriesAnalytics(TestData):
         ts = self.ts.copy()
         ts[::2] = np.NaN
         result = ts.cummin()[1::2]
-        expected = np.minimum.accumulate(ts.valid())
+        expected = np.minimum.accumulate(ts.dropna())
 
         tm.assert_series_equal(result, expected)
 
@@ -406,7 +406,7 @@ class TestSeriesAnalytics(TestData):
         ts = self.ts.copy()
         ts[::2] = np.NaN
         result = ts.cummax()[1::2]
-        expected = np.maximum.accumulate(ts.valid())
+        expected = np.maximum.accumulate(ts.dropna())
 
         tm.assert_series_equal(result, expected)
 
@@ -570,7 +570,7 @@ class TestSeriesAnalytics(TestData):
         ts[::2] = np.NaN
 
         result = func(ts)[1::2]
-        expected = func(np.array(ts.valid()))
+        expected = func(np.array(ts.dropna()))
 
         tm.assert_numpy_array_equal(result.values, expected,
                                     check_dtype=False)
@@ -1530,7 +1530,7 @@ class TestSeriesAnalytics(TestData):
         # GH 9416
         s = pd.Series(['a', 'b', 'c', 'd'], dtype='category')
 
-        assert_series_equal(s.iloc[:-1], s.shift(1).shift(-1).valid())
+        assert_series_equal(s.iloc[:-1], s.shift(1).shift(-1).dropna())
 
         sp1 = s.shift(1)
         assert_index_equal(s.index, sp1.index)
