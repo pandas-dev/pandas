@@ -910,19 +910,17 @@ class TestSeriesInterpolateData(TestData):
             method='from_derivatives')
         assert_series_equal(interp_s[1:3], expected)
 
-    @td.skip_if_no_scipy
-    def test_interpolate_corners(self):
+    @pytest.mark.parametrize("kwargs", [
+        {},
+        pytest.param({'method': 'polynomial', 'order': 1},
+                     marks=td.skip_if_no_scipy)
+    ])
+    def test_interpolate_corners(self, kwargs):
         s = Series([np.nan, np.nan])
-        assert_series_equal(s.interpolate(), s)
+        assert_series_equal(s.interpolate(**kwargs), s)
 
         s = Series([]).interpolate()
-        assert_series_equal(s.interpolate(), s)
-
-        s = Series([np.nan, np.nan])
-        assert_series_equal(s.interpolate(method='polynomial', order=1), s)
-
-        s = Series([]).interpolate()
-        assert_series_equal(s.interpolate(method='polynomial', order=1), s)
+        assert_series_equal(s.interpolate(**kwargs), s)
 
     def test_interpolate_index_values(self):
         s = Series(np.nan, index=np.sort(np.random.rand(30)))
@@ -952,14 +950,15 @@ class TestSeriesInterpolateData(TestData):
         with pytest.raises(ValueError):
             s.interpolate(method='time')
 
-    @td.skip_if_no_scipy
-    def test_nan_interpolate(self):
+    @pytest.mark.parametrize("kwargs", [
+        {},
+        pytest.param({'method': 'polynomial', 'order': 1},
+                     marks=td.skip_if_no_scipy)
+    ])
+    def test_nan_interpolate(self, kwargs):
         s = Series([0, 1, np.nan, 3])
-        result = s.interpolate()
+        result = s.interpolate(**kwargs)
         expected = Series([0., 1., 2., 3.])
-        assert_series_equal(result, expected)
-
-        result = s.interpolate(method='polynomial', order=1)
         assert_series_equal(result, expected)
 
     def test_nan_irregular_index(self):
@@ -1154,8 +1153,11 @@ class TestSeriesInterpolateData(TestData):
         result = s.interpolate()
         assert_series_equal(result, s)
 
-    @td.skip_if_no_scipy
-    def test_interp_multiIndex(self):
+    @pytest.mark.parametrize("check_scipy", [
+        False,
+        pytest.param(True, marks=td.skip_if_no_scipy)
+    ])
+    def test_interp_multiIndex(self, check_scipy):
         idx = MultiIndex.from_tuples([(0, 'a'), (1, 'b'), (2, 'c')])
         s = Series([1, 2, np.nan], index=idx)
 
@@ -1164,8 +1166,9 @@ class TestSeriesInterpolateData(TestData):
         result = s.interpolate()
         assert_series_equal(result, expected)
 
-        with pytest.raises(ValueError):
-            s.interpolate(method='polynomial', order=1)
+        if check_scipy:
+            with pytest.raises(ValueError):
+                s.interpolate(method='polynomial', order=1)
 
     @td.skip_if_no_scipy
     def test_interp_nonmono_raise(self):
@@ -1189,12 +1192,11 @@ class TestSeriesInterpolateData(TestData):
         assert_series_equal(result, expected)
 
     @td.skip_if_no_scipy
-    def test_no_order(self):
+    @pytest.mark.parametrize("method", ['polynomial', 'spline'])
+    def test_no_order(self, method):
         s = Series([0, 1, np.nan, 3])
         with pytest.raises(ValueError):
-            s.interpolate(method='polynomial')
-        with pytest.raises(ValueError):
-            s.interpolate(method='spline')
+            s.interpolate(method=method)
 
     @td.skip_if_no_scipy
     def test_spline(self):
