@@ -13,6 +13,7 @@ from numpy import nan
 
 import pandas as pd
 import pandas.util.testing as tm
+import pandas.util._test_decorators as td
 from pandas import DataFrame, Index, MultiIndex
 from pandas.compat import u, range, map, BytesIO, iteritems
 from pandas.core.config import set_option, get_option
@@ -650,11 +651,10 @@ class XlrdTests(ReadingTestsBase):
 
         tm.assert_frame_equal(url_table, local_table)
 
+    @td.skip_if_no('pathlib')
     def test_read_from_pathlib_path(self):
 
         # GH12655
-        tm._skip_if_no_pathlib()
-
         from pathlib import Path
 
         str_path = os.path.join(self.dirpath, 'test1' + self.ext)
@@ -665,11 +665,10 @@ class XlrdTests(ReadingTestsBase):
 
         tm.assert_frame_equal(expected, actual)
 
+    @td.skip_if_no('py.path')
     def test_read_from_py_localpath(self):
 
         # GH12655
-        tm._skip_if_no_localpath()
-
         from py.path import local as LocalPath
 
         str_path = os.path.join(self.dirpath, 'test1' + self.ext)
