@@ -23,6 +23,7 @@ from pandas import compat
 from pandas.util.testing import (assert_series_equal, assert_almost_equal,
                                  assert_frame_equal, assert_index_equal)
 import pandas.util.testing as tm
+import pandas.util._test_decorators as td
 from .common import TestData
 
 
@@ -282,9 +283,8 @@ class TestSeriesAnalytics(TestData):
         result = s.sem(ddof=1)
         assert isna(result)
 
+    @td.skip_if_no_scipy
     def test_skew(self):
-        tm._skip_if_no_scipy()
-
         from scipy.stats import skew
         alt = lambda x: skew(x, bias=False)
         self._check_stat_op('skew', alt)
@@ -302,9 +302,8 @@ class TestSeriesAnalytics(TestData):
                 assert 0 == s.skew()
                 assert (df.skew() == 0).all()
 
+    @td.skip_if_no_scipy
     def test_kurt(self):
-        tm._skip_if_no_scipy()
-
         from scipy.stats import kurtosis
         alt = lambda x: kurtosis(x, bias=False)
         self._check_stat_op('kurt', alt)
@@ -708,9 +707,8 @@ class TestSeriesAnalytics(TestData):
             expected = Series([nan, 0.0])
             assert_series_equal(result, expected)
 
+    @td.skip_if_no_scipy
     def test_corr(self):
-        tm._skip_if_no_scipy()
-
         import scipy.stats as stats
 
         # full overlap
@@ -739,9 +737,8 @@ class TestSeriesAnalytics(TestData):
         expected, _ = stats.pearsonr(A, B)
         tm.assert_almost_equal(result, expected)
 
+    @td.skip_if_no_scipy
     def test_corr_rank(self):
-        tm._skip_if_no_scipy()
-
         import scipy
         import scipy.stats as stats
 

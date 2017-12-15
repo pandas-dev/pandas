@@ -13,6 +13,7 @@ from pandas import (Series, DataFrame, bdate_range,
                     isna, compat, _np_version_under1p12)
 from pandas.tseries.offsets import BDay
 import pandas.util.testing as tm
+import pandas.util._test_decorators as td
 from pandas.compat import range
 from pandas.core.reshape.util import cartesian_product
 
@@ -997,11 +998,11 @@ class TestSparseHandlingMultiIndexes(object):
                               check_names=True)
 
 
+@td.skip_if_no_scipy
 class TestSparseSeriesScipyInteraction(object):
     # Issue 8048: add SparseSeries coo methods
 
     def setup_method(self, method):
-        tm._skip_if_no_scipy()
         import scipy.sparse
         # SparseSeries inputs used in tests, the tests rely on the order
         self.sparse_series = []
@@ -1108,7 +1109,6 @@ class TestSparseSeriesScipyInteraction(object):
     def test_from_coo_long_repr(self):
         # GH 13114
         # test it doesn't raise error. Formatting is tested in test_format
-        tm._skip_if_no_scipy()
         import scipy.sparse
 
         sparse = SparseSeries.from_coo(scipy.sparse.rand(350, 18))
