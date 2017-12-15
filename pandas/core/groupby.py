@@ -2862,7 +2862,8 @@ def _get_grouper(obj, key=None, axis=0, level=None, sort=True,
     all_hashable = is_tuple and all(is_hashable(x) for x in key)
 
     if is_tuple:
-        if (all_hashable and key not in obj and set(key).issubset(obj)) or not all_hashable:
+        if ((all_hashable and key not in obj and set(key).issubset(obj))
+                or not all_hashable):
             # column names ('a', 'b') -> ['a', 'b']
             # arrays like (a, b) -> [a, b]
             msg = ("Interpreting tuple 'by' as a list of keys, rather than "
