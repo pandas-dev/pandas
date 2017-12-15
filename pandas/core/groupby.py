@@ -2866,7 +2866,7 @@ def _get_grouper(obj, key=None, axis=0, level=None, sort=True,
             msg = ("Interpreting tuple 'by' as a list of keys, rather than "
                    "a single key. Use 'by={!r}' instead of 'by={!r}'. In the "
                    "future, a tuple will always mean a single key.".format(
-                    list(key), key))
+                       list(key), key))
             warnings.warn(msg, FutureWarning, stacklevel=5)
             key = list(key)
 
