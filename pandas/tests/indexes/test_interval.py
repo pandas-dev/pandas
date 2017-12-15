@@ -1075,16 +1075,42 @@ class TestIntervalIndex(Base):
 
     @pytest.mark.parametrize('tuples', [
         lzip(range(10), range(1, 11)),
-        lzip(range(10), range(1, 11)) + [np.nan],
         lzip(date_range('20170101', periods=10),
              date_range('20170101', periods=10)),
-        [np.nan] + lzip(date_range('20170101', periods=10),
-                        date_range('20170101', periods=10))])
+        lzip(timedelta_range('0 days', periods=10),
+             timedelta_range('1 day', periods=10))])
     def test_to_tuples(self, tuples):
         # GH 18756
-        result = IntervalIndex.from_tuples(tuples).to_tuples()
+        idx = IntervalIndex.from_tuples(tuples)
+        result = idx.to_tuples()
         expected = Index(_asarray_tuplesafe(tuples))
         tm.assert_index_equal(result, expected)
+
+    @pytest.mark.parametrize('tuples', [
+        lzip(range(10), range(1, 11)) + [np.nan],
+        lzip(date_range('20170101', periods=10),
+             date_range('20170101', periods=10)) + [np.nan],
+        lzip(timedelta_range('0 days', periods=10),
+             timedelta_range('1 day', periods=10)) + [np.nan]])
+    @pytest.mark.parametrize('na_tuple', [True, False])
+    def test_to_tuples_na(self, tuples, na_tuple):
+        # GH 18756
+        idx = IntervalIndex.from_tuples(tuples)
+        result = idx.to_tuples(na_tuple=na_tuple)
+
+        # check the non-NA portion
+        expected_notna = Index(_asarray_tuplesafe(tuples[:-1]))
+        result_notna = result[:-1]
+        tm.assert_index_equal(result_notna, expected_notna)
+
+        # check the NA portion
+        result_na = result[-1]
+        if na_tuple:
+            assert isinstance(result_na, tuple)
+            assert len(result_na) == 2
+            assert all(isna(x) for x in result_na)
+        else:
+            assert isna(result_na)
 
 
 class TestIntervalRange(object):
