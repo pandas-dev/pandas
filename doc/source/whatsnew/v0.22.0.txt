@@ -205,7 +205,8 @@ Deprecations
 - ``Series.asobject``, ``DatetimeIndex.asobject``, ``PeriodIndex.asobject`` and ``TimeDeltaIndex.asobject`` have been deprecated. Use ``.astype(object)`` instead (:issue:`18572`)
 - Grouping by a tuple of keys now emits a ``FutureWarning`` and is deprecated.
   In the future, a tuple passed to ``'by'`` will always refer to a single key
-  that is the actual tuple, instead of treating the tuple as multiple keys (:issue:`18314`)
+  that is the actual tuple, instead of treating the tuple as multiple keys. To
+  retain the previous behavior, use a list instead of a tuple (:issue:`18314`)
 
 .. _whatsnew_0220.prior_deprecations:
 

@@ -28,6 +28,7 @@ from pandas.core.dtypes.common import (
     is_bool_dtype,
     is_scalar,
     is_list_like,
+    is_hashable,
     needs_i8_conversion,
     _ensure_float64,
     _ensure_platform_int,
@@ -2850,14 +2851,24 @@ def _get_grouper(obj, key=None, axis=0, level=None, sort=True,
     elif isinstance(key, BaseGrouper):
         return key, [], obj
 
-    tuple_as_list = isinstance(key, tuple) and key not in obj
-    if tuple_as_list:
-        msg = ("Interpreting tuple 'by' as a list of keys, rather than "
-               "a single key. Use 'by={!r}' instead of 'by={!r}'. In the "
-               "future, a tuple will always mean a single key.".format(
-                   list(key), key))
-        warnings.warn(msg, FutureWarning, stacklevel=5)
-        key = list(key)
+    # In the future, a tuple key will always mean an actual key,
+    # not an iterable of keys. In the meantime, we attempt to provide
+    # a warning. We can assume that the user wanted a list of keys when
+    # the key is not in the index. We just have to be careful with
+    # unhashble elements of `key`. Any unhashable elements implies that
+    # they wanted a list of keys.
+    # https://github.com/pandas-dev/pandas/issues/18314
+    is_tuple = isinstance(key, tuple)
+    all_hashable = is_tuple and all(is_hashable(x) for x in key)
+
+    if is_tuple:
+        if not all_hashable or key not in obj:
+            msg = ("Interpreting tuple 'by' as a list of keys, rather than "
+                   "a single key. Use 'by={!r}' instead of 'by={!r}'. In the "
+                   "future, a tuple will always mean a single key.".format(
+                    list(key), key))
+            warnings.warn(msg, FutureWarning, stacklevel=5)
+            key = list(key)
 
     if not isinstance(key, list):
         keys = [key]

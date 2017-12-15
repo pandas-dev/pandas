@@ -2743,7 +2743,16 @@ class TestGroupBy(MixIn):
 
         with tm.assert_produces_warning(None):
             df.groupby(('a', 'b')).c.mean()
+    
+    def test_tuple_warns_unhashable(self):
+        # https://github.com/pandas-dev/pandas/issues/18314
+        business_dates = date_range(start='4/1/2014', end='6/30/2014', freq='B')
+        df = DataFrame(1, index=business_dates, columns=['a', 'b'])
 
+        with tm.assert_produces_warning(FutureWarning) as w:
+            df.groupby((df.index.year, df.index.month)).nth([0, 3, -1])
+
+        assert "Interpreting tuple 'by' as a list" in str(w[0].message)
 
 def _check_groupby(df, result, keys, field, f=lambda x: x.sum()):
     tups = lmap(tuple, df[keys].values)
