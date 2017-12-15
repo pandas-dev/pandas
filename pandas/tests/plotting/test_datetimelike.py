@@ -643,10 +643,10 @@ class TestTSPlot(TestPlotBase):
         assert ax.get_yaxis().get_visible()
 
     @pytest.mark.slow
+    @td.skip_if_no_scipy
     def test_secondary_kde(self):
         if not self.mpl_ge_1_5_0:
             pytest.skip("mpl is not supported")
-        tm._skip_if_no_scipy()
         _skip_if_no_scipy_gaussian_kde()
 
         ser = Series(np.random.randn(10))

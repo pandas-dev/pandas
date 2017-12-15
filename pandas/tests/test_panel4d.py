@@ -16,6 +16,7 @@ from pandas.tseries.offsets import BDay
 from pandas.util.testing import (assert_frame_equal, assert_series_equal,
                                  assert_almost_equal)
 import pandas.util.testing as tm
+import pandas.util._test_decorators as td
 
 
 def add_nans(panel4d):
@@ -59,11 +60,9 @@ class SafeForLongAndSparse(object):
     def test_max(self):
         self._check_stat_op('max', np.max)
 
+    @td.skip_if_no_scipy
     def test_skew(self):
-        try:
-            from scipy.stats import skew
-        except ImportError:
-            pytest.skip("no scipy.stats.skew")
+        from scipy.stats import skew
 
         def this_skew(x):
             if len(x) < 3:

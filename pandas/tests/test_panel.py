@@ -26,6 +26,7 @@ from pandas.util.testing import (assert_panel_equal, assert_frame_equal,
                                  makeCustomDataframe as mkdf)
 import pandas.core.panel as panelm
 import pandas.util.testing as tm
+import pandas.util._test_decorators as td
 
 
 def make_test_panel():
@@ -104,11 +105,9 @@ class SafeForLongAndSparse(object):
     def test_max(self):
         self._check_stat_op('max', np.max)
 
+    @td.skip_if_no_scipy
     def test_skew(self):
-        try:
-            from scipy.stats import skew
-        except ImportError:
-            pytest.skip("no scipy.stats.skew")
+        from scipy.stats import skew
 
         def this_skew(x):
             if len(x) < 3:
