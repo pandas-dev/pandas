@@ -2966,8 +2966,8 @@ class NDFrame(PandasObject, SelectionMixin):
         Examples
         --------
         >>> df = pd.DataFrame({
-        ...     'col1' : ['A', 'A', 'B', np.nan, 'D', 'C'],
-        ...     'col2' : [2, 1, 9, 8, 7, 4],
+        ...     'col1': ['A', 'A', 'B', np.nan, 'D', 'C'],
+        ...     'col2': [2, 1, 9, 8, 7, 4],
         ...     'col3': [0, 1, 9, 4, 2, 3],
         ... })
         >>> df
@@ -3563,6 +3563,42 @@ class NDFrame(PandasObject, SelectionMixin):
         -------
         obj_head : type of caller
             The first n rows of the caller object.
+
+        Examples
+        --------
+        >>> df = pd.DataFrame({
+        ...     'col1': ['A', 'A', 'B', 'B', 'D', 'C', 'E', 'E', 'F'],
+        ...     'col2': [2, 1, 9, 8, 7, 4, 0, 2, 2],
+        ...     'col3': [0, 1, 9, 4, 2, 3, 5, 7, 3],
+        ... })
+        >>> df
+            col1 col2 col3
+        0   A    2    0
+        1   A    1    1
+        2   B    9    9
+        3   B    8    4
+        4   D    7    2
+        5   C    4    3
+        6   E    0    5
+        7   E    2    7
+        8   F    2    3
+
+        Viewing the first 5 lines (the default)
+        >>> df.head()
+            col1  col2  col3
+        0   A     2     0
+        1   A     1     1
+        2   B     9     9
+        3   B     8     4
+        4   D     7     2
+
+        Viewing the first n lines (three in this case)
+        >>> df.head(3)
+            col1 col2 col3
+        0   A    2    0
+        1   A    1    1
+        2   B    9    9
+
         """
 
         return self.iloc[:n]
