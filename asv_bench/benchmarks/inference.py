@@ -1,15 +1,18 @@
 import numpy as np
 import pandas.util.testing as tm
-import pandas._libs.lib as lib
+try:
+    import pandas._libs.lib as lib
+except ImportError:
+    import pandas.lib as lib
 from pandas import DataFrame, Series, to_numeric
 
-from .pandas_vb_common import setup  # noqa
+from .pandas_vb_common import numeric_dtypes, setup  # noqa
 
 
 class NumericInferOps(object):
     # from GH 7332
     goal_time = 0.2
-    params = ['int64', 'int32', 'uint32', 'float32', 'float64']
+    params = numeric_dtypes
     param_names = ['dtype']
 
     def setup(self, dtype):
@@ -83,7 +86,7 @@ class ToNumericDowncast(object):
               [None, 'integer', 'signed', 'unsigned', 'float']]
 
     N = 500000
-    N2 = N / 2
+    N2 = int(N / 2)
 
     data_dict = {'string-int': ['1'] * N2 + [2] * N2,
                  'string-nint': ['-1'] * N2 + [2] * N2,

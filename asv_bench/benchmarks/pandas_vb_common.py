@@ -14,6 +14,10 @@ try:
 except ImportError:
     pass
 
+numeric_dtypes = [np.int64, np.int32, np.uint32, np.uint64, np.float32,
+                  np.float64, np.int16, np.int8, np.uint16, np.uint8]
+datetime_dtypes = [np.datetime64, np.timedelta64]
+
 # This function just needs to be imported into each benchmark file in order to 
 # sets up the random seed before each function. 
 # http://asv.readthedocs.io/en/latest/writing_benchmarks.html
