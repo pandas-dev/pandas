@@ -3563,6 +3563,44 @@ class NDFrame(PandasObject, SelectionMixin):
         -------
         obj_head : type of caller
             The first n rows of the caller object.
+
+        See Also
+        --------
+        pandas.DataFrame.tail
+
+        Examples
+        --------
+        >>> df = pd.DataFrame({'animal':['alligator', 'bee', 'falcon', 'lion',
+        ...                    'monkey', 'parrot', 'shark', 'whale', 'zebra']})
+        >>> df
+              animal
+        0  alligator
+        1        bee
+        2     falcon
+        3       lion
+        4     monkey
+        5     parrot
+        6      shark
+        7      whale
+        8      zebra
+
+        Viewing the first 5 lines
+
+        >>> df.head()
+              animal
+        0  alligator
+        1        bee
+        2     falcon
+        3       lion
+        4     monkey
+
+        Viewing the first n lines (three in this case)
+
+        >>> df.head(3)
+              animal
+        0  alligator
+        1        bee
+        2     falcon
         """
 
         return self.iloc[:n]
@@ -3580,6 +3618,44 @@ class NDFrame(PandasObject, SelectionMixin):
         -------
         obj_tail : type of caller
             The last n rows of the caller object.
+
+        See Also
+        --------
+        pandas.DataFrame.head
+
+        Examples
+        --------
+        >>> df = pd.DataFrame({'animal':['alligator', 'bee', 'falcon', 'lion',
+        ...                    'monkey', 'parrot', 'shark', 'whale', 'zebra']})
+        >>> df
+              animal
+        0  alligator
+        1        bee
+        2     falcon
+        3       lion
+        4     monkey
+        5     parrot
+        6      shark
+        7      whale
+        8      zebra
+
+        Viewing the last 5 lines
+
+        >>> df.tail()
+           animal
+        4  monkey
+        5  parrot
+        6   shark
+        7   whale
+        8   zebra
+
+        Viewing the last n lines (three in this case)
+
+        >>> df.tail(3)
+          animal
+        6  shark
+        7  whale
+        8  zebra
         """
 
         if n == 0:
