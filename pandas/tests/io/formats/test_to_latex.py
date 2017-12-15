@@ -400,7 +400,6 @@ b &       b &     b \\
 1 &  2 &  b2 \\
 \end{longtable}
 """
-        open("expected.txt", "w").write(withindex_result)
         assert withindex_result == withindex_expected
 
         withoutindex_result = df.to_latex(index=False, longtable=True)
