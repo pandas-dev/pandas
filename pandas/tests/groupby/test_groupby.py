@@ -2755,6 +2755,14 @@ class TestGroupBy(MixIn):
 
         assert "Interpreting tuple 'by' as a list" in str(w[0].message)
 
+    def test_tuple_correct_keyerror(self):
+        df = pd.DataFrame(1, index=range(3),
+                          columns=pd.MultiIndex.from_product([[1, 2],
+                                                              [3, 4]]))
+        with tm.assert_produces_warning(FutureWarning):  # just silence
+            with tm.assert_raises_regex(KeyError, "(7, 8)"):
+                df.groupby((7, 8)).mean()
+
 
 def _check_groupby(df, result, keys, field, f=lambda x: x.sum()):
     tups = lmap(tuple, df[keys].values)

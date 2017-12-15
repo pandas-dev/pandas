@@ -2861,13 +2861,14 @@ def _get_grouper(obj, key=None, axis=0, level=None, sort=True,
     is_tuple = isinstance(key, tuple)
     all_hashable = is_tuple and all(is_hashable(x) for x in key)
 
+    original_grouper = None
     if is_tuple:
         if not all_hashable or key not in obj:
             msg = ("Interpreting tuple 'by' as a list of keys, rather than "
-                   "a single key. Use 'by={!r}' instead of 'by={!r}'. In the "
-                   "future, a tuple will always mean a single key.".format(
-                       list(key), key))
+                   "a single key. Use 'by=[...]' instead of 'by=(...)'. In "
+                   "the future, a tuple will always mean a single key.")
             warnings.warn(msg, FutureWarning, stacklevel=5)
+            original_grouper = key
             key = list(key)
 
     if not isinstance(key, list):
@@ -2939,6 +2940,11 @@ def _get_grouper(obj, key=None, axis=0, level=None, sort=True,
             elif obj._is_level_reference(gpr):
                 in_axis, name, level, gpr = False, None, gpr, None
             else:
+                # Want to raise with the correct KeyError here
+                # The deprecation in #18731 means we may have
+                # the wrong error message here.
+                if original_grouper:
+                    gpr = original_grouper
                 raise KeyError(gpr)
         elif isinstance(gpr, Grouper) and gpr.key is not None:
             # Add key to exclusions
