@@ -8,69 +8,41 @@ from .pandas_vb_common import setup  # noqa
 class SetOperations(object):
 
     goal_time = 0.2
+    params = (['datetime', 'date_string', 'int', 'strings'],
+              ['intersection', 'union', 'symmetric_difference'])
+    param_names = ['dtype', 'method']
+
+    def setup(self, dtype, method):
+        N = 10**5
+        dates_left = date_range('1/1/2000', periods=N, freq='T')
+        fmt = '%Y-%m-%d %H:%M:%S'
+        date_str_left = Index(dates_left.strftime(fmt))
+        int_left = Index(np.arange(N))
+        str_left = tm.makeStringIndex(N)
+        data = {'datetime': {'left': dates_left, 'right': dates_left[:-1]},
+                'date_string': {'left': date_str_left,
+                                'right': date_str_left[:-1]},
+                'int': {'left': int_left, 'right': int_left[:-1]},
+                'strings': {'left': str_left, 'right': str_left[:-1]}}
+        self.left = data[dtype]['left']
+        self.right = data[dtype]['right']
+
+    def time_operation(self, dtype, method):
+        getattr(self.left, method)(self.right)
+
+
+class SetDisjoint(object):
+
+    goal_time = 0.2
 
     def setup(self):
-        self.dates_left = date_range('1/1/2000', periods=10000, freq='T')
-        self.dates_right = self.dates_left[:(-1)]
-
-        fmt = '%Y-%m-%d %H:%M:%S'
-        self.date_str_left = Index(self.dates_left.strftime(fmt))
-        self.date_str_right = self.date_str_left[:-1]
-
-        # other datetime
-        N = 100000
-        A = N - 20000
+        N = 10**5
         B = N + 20000
         self.datetime_left = DatetimeIndex(range(N))
-        self.datetime_right = DatetimeIndex(range(A, B))
-        self.datetime_right2 = DatetimeIndex(range(N, B))
-
-        options = np.arange(N)
-        self.int_left = Index(options.take(np.random.permutation(N)[:N // 2]))
-        self.int_right = Index(options.take(np.random.permutation(N)[:N // 2]))
-
-        strs = tm.rands_array(10, N / 10)
-        self.str_left = Index(strs[:N / 10 * 2 // 3])
-        self.str_right = Index(strs[N / 10 // 3:])
-
-    def time_datetime_intersection(self):
-        self.dates_left.intersection(self.dates_right)
-
-    def time_datetime_union(self):
-        self.dates_left.union(self.dates_right)
-
-    def time_datetime_difference(self):
-        self.datetime_left.difference(self.datetime_right)
+        self.datetime_right = DatetimeIndex(range(N, B))
 
     def time_datetime_difference_disjoint(self):
-        self.datetime_left.difference(self.datetime_right2)
-
-    def time_datetime_symmetric_difference(self):
-        self.datetime_left.symmetric_difference(self.datetime_right)
-
-    def time_index_datetime_intersection(self):
-        self.date_str_left.intersection(self.date_str_right)
-
-    def time_index_datetime_union(self):
-        self.date_str_left.union(self.date_str_right)
-
-    def time_int64_intersection(self):
-        self.int_left.intersection(self.int_right)
-
-    def time_int64_union(self):
-        self.int_left.union(self.int_right)
-
-    def time_int64_difference(self):
-        self.int_left.difference(self.int_right)
-
-    def time_int64_symmetric_difference(self):
-        self.int_left.symmetric_difference(self.int_right)
-
-    def time_str_difference(self):
-        self.str_left.difference(self.str_right)
-
-    def time_str_symmetric_difference(self):
-        self.str_left.symmetric_difference(self.str_right)
+        self.datetime_left.difference(self.datetime_right)
 
 
 class Datetime(object):
