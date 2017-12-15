@@ -2622,13 +2622,13 @@ class TestGroupBy(MixIn):
             'B': ['a', 'a', 'a', 'b', 'b', 'b', 'c', 'c', 'c', 'd', 'd'],
             'C': in_vals}
         df = pd.DataFrame(source_dict)
-        result = df.groupby('B').C.is_monotonic_increasing()
+        result = df.groupby('B').C.is_monotonic_increasing
         index = Index(list('abcd'), name='B')
         expected = pd.Series(index=index, data=out_vals, name='C')
         tm.assert_series_equal(result, expected)
 
         # Also check result equal to manually taking x.is_monotonic_increasing.
-        expected = (
+        expecteAd = (
             df.groupby(['B']).C.apply(lambda x: x.is_monotonic_increasing))
         tm.assert_series_equal(result, expected)
 
@@ -2654,7 +2654,7 @@ class TestGroupBy(MixIn):
             'C': in_vals}
 
         df = pd.DataFrame(source_dict)
-        result = df.groupby('B').C.is_monotonic_decreasing()
+        result = df.groupby('B').C.is_monotonic_decreasing
         index = Index(list('abcd'), name='B')
         expected = pd.Series(index=index, data=out_vals, name='C')
         tm.assert_series_equal(result, expected)
