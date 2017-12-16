@@ -268,18 +268,6 @@ class TestDatetimeIndex(object):
         assert (dr == dr).all()
         assert (dz == dz).all()
 
-        # Check comparisons against datetime-like strings
-        str_ts = '2000-03-14 01:59'
-        str_ts_tz = '2000-03-14 01:59-0500'
-
-        assert (dr > str_ts).all()
-        with pytest.raises(TypeError):
-            op(dr, str_ts_tz)
-
-        assert (dz > str_ts_tz).all()
-        with pytest.raises(TypeError):
-            op(dz, str_ts)
-
         # Check comparisons against scalar Timestamps
         ts = pd.Timestamp('2000-03-14 01:59')
         ts_tz = pd.Timestamp('2000-03-14 01:59', tz='Europe/Amsterdam')

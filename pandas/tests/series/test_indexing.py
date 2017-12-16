@@ -450,10 +450,10 @@ class TestSeriesIndexing(TestData):
 
         lb = "1990-01-01 04:00:00"
         rb = "1990-01-01 07:00:00"
-        with pytest.raises(TypeError):
-            # tznaive vs tzaware comparison is invalid
-            # see GH#18376, GH#18162
-            ts[(ts.index >= lb) & (ts.index <= rb)]
+        # GH#18435 strings get a pass from tzawareness compat
+        result = ts[(ts.index >= lb) & (ts.index <= rb)]
+        expected = ts[4:8]
+        assert_series_equal(result, expected)
 
         lb = "1990-01-01 04:00:00-0500"
         rb = "1990-01-01 07:00:00-0500"

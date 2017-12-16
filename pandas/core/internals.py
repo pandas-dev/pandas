@@ -3482,6 +3482,7 @@ class BlockManager(PandasObject):
             return _maybe_compare(values, getattr(s, 'asm8', s), operator.eq)
 
         masks = [comp(s) for i, s in enumerate(src_list)]
+
         result_blocks = []
         src_len = len(src_list) - 1
         for blk in self.blocks:
