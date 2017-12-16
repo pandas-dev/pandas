@@ -880,6 +880,86 @@ class TestTimedeltaSeriesArithmetic(object):
         rs[2] += np.timedelta64(timedelta(minutes=5, seconds=1))
         assert rs[2] == value
 
+    def test_timedelta64_ops_nat(self):
+        # GH 11349
+        timedelta_series = Series([NaT, Timedelta('1s')])
+        nat_series_dtype_timedelta = Series([NaT, NaT],
+                                            dtype='timedelta64[ns]')
+        single_nat_dtype_timedelta = Series([NaT], dtype='timedelta64[ns]')
+
+        # subtraction
+        assert_series_equal(timedelta_series - NaT,
+                            nat_series_dtype_timedelta)
+        assert_series_equal(-NaT + timedelta_series,
+                            nat_series_dtype_timedelta)
+
+        assert_series_equal(timedelta_series - single_nat_dtype_timedelta,
+                            nat_series_dtype_timedelta)
+        assert_series_equal(-single_nat_dtype_timedelta + timedelta_series,
+                            nat_series_dtype_timedelta)
+
+        # addition
+        assert_series_equal(nat_series_dtype_timedelta + NaT,
+                            nat_series_dtype_timedelta)
+        assert_series_equal(NaT + nat_series_dtype_timedelta,
+                            nat_series_dtype_timedelta)
+
+        assert_series_equal(nat_series_dtype_timedelta +
+                            single_nat_dtype_timedelta,
+                            nat_series_dtype_timedelta)
+        assert_series_equal(single_nat_dtype_timedelta +
+                            nat_series_dtype_timedelta,
+                            nat_series_dtype_timedelta)
+
+        assert_series_equal(timedelta_series + NaT,
+                            nat_series_dtype_timedelta)
+        assert_series_equal(NaT + timedelta_series,
+                            nat_series_dtype_timedelta)
+
+        assert_series_equal(timedelta_series + single_nat_dtype_timedelta,
+                            nat_series_dtype_timedelta)
+        assert_series_equal(single_nat_dtype_timedelta + timedelta_series,
+                            nat_series_dtype_timedelta)
+
+        assert_series_equal(nat_series_dtype_timedelta + NaT,
+                            nat_series_dtype_timedelta)
+        assert_series_equal(NaT + nat_series_dtype_timedelta,
+                            nat_series_dtype_timedelta)
+
+        assert_series_equal(nat_series_dtype_timedelta +
+                            single_nat_dtype_timedelta,
+                            nat_series_dtype_timedelta)
+        assert_series_equal(single_nat_dtype_timedelta +
+                            nat_series_dtype_timedelta,
+                            nat_series_dtype_timedelta)
+
+        # multiplication
+        assert_series_equal(nat_series_dtype_timedelta * 1.0,
+                            nat_series_dtype_timedelta)
+        assert_series_equal(1.0 * nat_series_dtype_timedelta,
+                            nat_series_dtype_timedelta)
+
+        assert_series_equal(timedelta_series * 1, timedelta_series)
+        assert_series_equal(1 * timedelta_series, timedelta_series)
+
+        assert_series_equal(timedelta_series * 1.5,
+                            Series([NaT, Timedelta('1.5s')]))
+        assert_series_equal(1.5 * timedelta_series,
+                            Series([NaT, Timedelta('1.5s')]))
+
+        assert_series_equal(timedelta_series * nan,
+                            nat_series_dtype_timedelta)
+        assert_series_equal(nan * timedelta_series,
+                            nat_series_dtype_timedelta)
+
+        # division
+        assert_series_equal(timedelta_series / 2,
+                            Series([NaT, Timedelta('0.5s')]))
+        assert_series_equal(timedelta_series / 2.0,
+                            Series([NaT, Timedelta('0.5s')]))
+        assert_series_equal(timedelta_series / nan,
+                            nat_series_dtype_timedelta)
+
 
 class TestDatetimeSeriesArithmetic(object):
     def test_operators_datetimelike(self):
@@ -1077,6 +1157,52 @@ class TestDatetimeSeriesArithmetic(object):
             s + op(5)
             op(5) + s
 
+    def test_datetime64_ops_nat(self):
+        # GH 11349
+        datetime_series = Series([NaT, Timestamp('19900315')])
+        nat_series_dtype_timestamp = Series([NaT, NaT], dtype='datetime64[ns]')
+        single_nat_dtype_datetime = Series([NaT], dtype='datetime64[ns]')
+
+        # subtraction
+        assert_series_equal(datetime_series - NaT, nat_series_dtype_timestamp)
+        assert_series_equal(-NaT + datetime_series, nat_series_dtype_timestamp)
+        with pytest.raises(TypeError):
+            -single_nat_dtype_datetime + datetime_series
+
+        assert_series_equal(nat_series_dtype_timestamp - NaT,
+                            nat_series_dtype_timestamp)
+        assert_series_equal(-NaT + nat_series_dtype_timestamp,
+                            nat_series_dtype_timestamp)
+        with pytest.raises(TypeError):
+            -single_nat_dtype_datetime + nat_series_dtype_timestamp
+
+        # addition
+        assert_series_equal(nat_series_dtype_timestamp + NaT,
+                            nat_series_dtype_timestamp)
+        assert_series_equal(NaT + nat_series_dtype_timestamp,
+                            nat_series_dtype_timestamp)
+
+        assert_series_equal(nat_series_dtype_timestamp + NaT,
+                            nat_series_dtype_timestamp)
+        assert_series_equal(NaT + nat_series_dtype_timestamp,
+                            nat_series_dtype_timestamp)
+
+        # multiplication
+        with pytest.raises(TypeError):
+            datetime_series * 1
+        with pytest.raises(TypeError):
+            nat_series_dtype_timestamp * 1
+        with pytest.raises(TypeError):
+            datetime_series * 1.0
+        with pytest.raises(TypeError):
+            nat_series_dtype_timestamp * 1.0
+
+        # division
+        with pytest.raises(TypeError):
+            nat_series_dtype_timestamp / 1.0
+        with pytest.raises(TypeError):
+            nat_series_dtype_timestamp / 1
+
 
 class TestSeriesOperators(TestData):
     def test_op_method(self):
@@ -1234,10 +1360,11 @@ class TestSeriesOperators(TestData):
         assert isinstance(result.iloc[0], timedelta)
         assert result.dtype == np.object_
 
-    def test_timedelta64_equal_timedelta_supported_ops(self):
+    @pytest.mark.parametrize('op', [operator.add, operator.sub])
+    def test_timedelta64_equal_timedelta_supported_ops(self, op):
         ser = Series([Timestamp('20130301'), Timestamp('20130228 23:00:00'),
-                      Timestamp('20130228 22:00:00'), Timestamp(
-                          '20130228 21:00:00')])
+                      Timestamp('20130228 22:00:00'),
+                      Timestamp('20130228 21:00:00')])
 
         intervals = 'D', 'h', 'm', 's', 'us'
 
@@ -1251,8 +1378,7 @@ class TestSeriesOperators(TestData):
         def timedelta64(*args):
             return sum(starmap(np.timedelta64, zip(args, intervals)))
 
-        for op, d, h, m, s, us in product([operator.add, operator.sub],
-                                          *([range(2)] * 5)):
+        for d, h, m, s, us in product(*([range(2)] * 5)):
             nptd = timedelta64(d, h, m, s, us)
             pytd = timedelta(days=d, hours=h, minutes=m, seconds=s,
                              microseconds=us)
@@ -1267,138 +1393,12 @@ class TestSeriesOperators(TestData):
                     "s->{4},us->{5}]\n{6}\n{7}\n".format(op, d, h, m, s,
                                                          us, lhs, rhs))
 
-    def test_timedelta64_ops_nat(self):
-        # GH 11349
-        timedelta_series = Series([NaT, Timedelta('1s')])
-        nat_series_dtype_timedelta = Series([NaT, NaT],
-                                            dtype='timedelta64[ns]')
-        single_nat_dtype_timedelta = Series([NaT], dtype='timedelta64[ns]')
-
-        # subtraction
-        assert_series_equal(timedelta_series - NaT,
-                            nat_series_dtype_timedelta)
-        assert_series_equal(-NaT + timedelta_series,
-                            nat_series_dtype_timedelta)
-
-        assert_series_equal(timedelta_series - single_nat_dtype_timedelta,
-                            nat_series_dtype_timedelta)
-        assert_series_equal(-single_nat_dtype_timedelta + timedelta_series,
-                            nat_series_dtype_timedelta)
-
-        # addition
-        assert_series_equal(nat_series_dtype_timedelta + NaT,
-                            nat_series_dtype_timedelta)
-        assert_series_equal(NaT + nat_series_dtype_timedelta,
-                            nat_series_dtype_timedelta)
-
-        assert_series_equal(nat_series_dtype_timedelta +
-                            single_nat_dtype_timedelta,
-                            nat_series_dtype_timedelta)
-        assert_series_equal(single_nat_dtype_timedelta +
-                            nat_series_dtype_timedelta,
-                            nat_series_dtype_timedelta)
-
-        assert_series_equal(timedelta_series + NaT,
-                            nat_series_dtype_timedelta)
-        assert_series_equal(NaT + timedelta_series,
-                            nat_series_dtype_timedelta)
-
-        assert_series_equal(timedelta_series + single_nat_dtype_timedelta,
-                            nat_series_dtype_timedelta)
-        assert_series_equal(single_nat_dtype_timedelta + timedelta_series,
-                            nat_series_dtype_timedelta)
-
-        assert_series_equal(nat_series_dtype_timedelta + NaT,
-                            nat_series_dtype_timedelta)
-        assert_series_equal(NaT + nat_series_dtype_timedelta,
-                            nat_series_dtype_timedelta)
-
-        assert_series_equal(nat_series_dtype_timedelta +
-                            single_nat_dtype_timedelta,
-                            nat_series_dtype_timedelta)
-        assert_series_equal(single_nat_dtype_timedelta +
-                            nat_series_dtype_timedelta,
-                            nat_series_dtype_timedelta)
-
-        # multiplication
-        assert_series_equal(nat_series_dtype_timedelta * 1.0,
-                            nat_series_dtype_timedelta)
-        assert_series_equal(1.0 * nat_series_dtype_timedelta,
-                            nat_series_dtype_timedelta)
-
-        assert_series_equal(timedelta_series * 1, timedelta_series)
-        assert_series_equal(1 * timedelta_series, timedelta_series)
-
-        assert_series_equal(timedelta_series * 1.5,
-                            Series([NaT, Timedelta('1.5s')]))
-        assert_series_equal(1.5 * timedelta_series,
-                            Series([NaT, Timedelta('1.5s')]))
-
-        assert_series_equal(timedelta_series * nan,
-                            nat_series_dtype_timedelta)
-        assert_series_equal(nan * timedelta_series,
-                            nat_series_dtype_timedelta)
-
-        # division
-        assert_series_equal(timedelta_series / 2,
-                            Series([NaT, Timedelta('0.5s')]))
-        assert_series_equal(timedelta_series / 2.0,
-                            Series([NaT, Timedelta('0.5s')]))
-        assert_series_equal(timedelta_series / nan,
-                            nat_series_dtype_timedelta)
-
-    def test_datetime64_ops_nat(self):
-        # GH 11349
-        datetime_series = Series([NaT, Timestamp('19900315')])
-        nat_series_dtype_timestamp = Series([NaT, NaT], dtype='datetime64[ns]')
-        single_nat_dtype_datetime = Series([NaT], dtype='datetime64[ns]')
-
-        # subtraction
-        assert_series_equal(datetime_series - NaT, nat_series_dtype_timestamp)
-        assert_series_equal(-NaT + datetime_series, nat_series_dtype_timestamp)
-        with pytest.raises(TypeError):
-            -single_nat_dtype_datetime + datetime_series
-
-        assert_series_equal(nat_series_dtype_timestamp - NaT,
-                            nat_series_dtype_timestamp)
-        assert_series_equal(-NaT + nat_series_dtype_timestamp,
-                            nat_series_dtype_timestamp)
-        with pytest.raises(TypeError):
-            -single_nat_dtype_datetime + nat_series_dtype_timestamp
-
-        # addition
-        assert_series_equal(nat_series_dtype_timestamp + NaT,
-                            nat_series_dtype_timestamp)
-        assert_series_equal(NaT + nat_series_dtype_timestamp,
-                            nat_series_dtype_timestamp)
-
-        assert_series_equal(nat_series_dtype_timestamp + NaT,
-                            nat_series_dtype_timestamp)
-        assert_series_equal(NaT + nat_series_dtype_timestamp,
-                            nat_series_dtype_timestamp)
-
-        # multiplication
-        with pytest.raises(TypeError):
-            datetime_series * 1
-        with pytest.raises(TypeError):
-            nat_series_dtype_timestamp * 1
-        with pytest.raises(TypeError):
-            datetime_series * 1.0
-        with pytest.raises(TypeError):
-            nat_series_dtype_timestamp * 1.0
-
-        # division
-        with pytest.raises(TypeError):
-            nat_series_dtype_timestamp / 1.0
-        with pytest.raises(TypeError):
-            nat_series_dtype_timestamp / 1
-
     def test_ops_nat_mixed_datetime64_timedelta64(self):
         # GH 11349
         timedelta_series = Series([NaT, Timedelta('1s')])
         datetime_series = Series([NaT, Timestamp('19900315')])
-        nat_series_dtype_timedelta = Series(
-            [NaT, NaT], dtype='timedelta64[ns]')
+        nat_series_dtype_timedelta = Series([NaT, NaT],
+                                            dtype='timedelta64[ns]')
         nat_series_dtype_timestamp = Series([NaT, NaT], dtype='datetime64[ns]')
         single_nat_dtype_datetime = Series([NaT], dtype='datetime64[ns]')
         single_nat_dtype_timedelta = Series([NaT], dtype='timedelta64[ns]')
