@@ -599,6 +599,14 @@ class IntervalIndex(IntervalMixin, Index):
         """
         return self._closed
 
+    @property
+    def length(self):
+        """
+        Return an Index with entries denoting the length of each Interval in
+        the IntervalIndex
+        """
+        return self.right - self.left
+
     def __len__(self):
         return len(self.left)
 
@@ -683,11 +691,10 @@ class IntervalIndex(IntervalMixin, Index):
         Return the midpoint of each Interval in the IntervalIndex as an Index
         """
         try:
-            return Index(0.5 * (self.left.values + self.right.values))
+            return 0.5 * (self.left + self.right)
         except TypeError:
             # datetime safe version
-            delta = self.right - self.left
-            return self.left + 0.5 * delta
+            return self.left + 0.5 * self.length
 
     @cache_readonly
     def is_monotonic(self):

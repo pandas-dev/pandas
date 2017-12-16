@@ -54,7 +54,12 @@ cdef class IntervalMixin(object):
             return 0.5 * (self.left + self.right)
         except TypeError:
             # datetime safe version
-            return self.left + 0.5 * (self.right - self.left)
+            return self.left + 0.5 * self.length
+
+    @property
+    def length(self):
+        """Return the length of the Interval"""
+        return self.right - self.left
 
 
 cdef _interval_like(other):
