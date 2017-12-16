@@ -4344,8 +4344,8 @@ class DataFrame(NDFrame):
             existing index.
         columns : string or object
             Column name to use to make new frame's columns
-        values : string or object, optional
-            Column name to use for populating new frame's values. If not
+        values : string, object or a list of the previous, optional
+            Column name(s) to use for populating new frame's values. If not
             specified, all remaining columns will be used and the result will
             have hierarchically indexed columns
 
@@ -4370,7 +4370,8 @@ class DataFrame(NDFrame):
 
         >>> df = pd.DataFrame({'foo': ['one','one','one','two','two','two'],
                                'bar': ['A', 'B', 'C', 'A', 'B', 'C'],
-                               'baz': [1, 2, 3, 4, 5, 6]})
+                               'baz': [1, 2, 3, 4, 5, 6],
+                               'zoo': ['x', 'y', 'z', 'q', 'w', 't']})
         >>> df
             foo   bar  baz
         0   one   A    1
@@ -4390,6 +4391,19 @@ class DataFrame(NDFrame):
         one  1   2   3
         two  4   5   6
 
+       >>> df.pivot(index='foo', columns='bar', values=['baz', 'zoo'])
+              A  B  C   A  B  C
+        one   1  2  3   x  y  z
+        two   4  5  6   q  w  t
+
+        >>> df.pivot(index='zoo', columns='foo', values=['bar', 'baz'])
+             one   two  one  two
+        q    None     A  None  4
+        t    None     C  None  6
+        w    None     B  None  5
+        x       A  None  1  None
+        y       B  None  2  None
+        z       C  None  3  None
 
         """
         from pandas.core.reshape.reshape import pivot
