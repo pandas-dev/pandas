@@ -701,7 +701,7 @@ class SparseSeries(Series):
         """
         # TODO: make more efficient
         axis = self._get_axis_number(axis or 0)
-        dense_valid = self.to_dense().valid()
+        dense_valid = self.to_dense().dropna()
         if inplace:
             raise NotImplementedError("Cannot perform inplace dropna"
                                       " operations on a SparseSeries")

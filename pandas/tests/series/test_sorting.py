@@ -50,10 +50,10 @@ class TestSeriesSorting(TestData):
 
         # ascending=False
         ordered = ts.sort_values(ascending=False)
-        expected = np.sort(ts.valid().values)[::-1]
-        assert_almost_equal(expected, ordered.valid().values)
+        expected = np.sort(ts.dropna().values)[::-1]
+        assert_almost_equal(expected, ordered.dropna().values)
         ordered = ts.sort_values(ascending=False, na_position='first')
-        assert_almost_equal(expected, ordered.valid().values)
+        assert_almost_equal(expected, ordered.dropna().values)
 
         # ascending=[False] should behave the same as ascending=False
         ordered = ts.sort_values(ascending=[False])

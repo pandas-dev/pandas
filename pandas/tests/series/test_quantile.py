@@ -17,14 +17,14 @@ class TestSeriesQuantile(TestData):
     def test_quantile(self):
 
         q = self.ts.quantile(0.1)
-        assert q == np.percentile(self.ts.valid(), 10)
+        assert q == np.percentile(self.ts.dropna(), 10)
 
         q = self.ts.quantile(0.9)
-        assert q == np.percentile(self.ts.valid(), 90)
+        assert q == np.percentile(self.ts.dropna(), 90)
 
         # object dtype
         q = Series(self.ts, dtype=object).quantile(0.9)
-        assert q == np.percentile(self.ts.valid(), 90)
+        assert q == np.percentile(self.ts.dropna(), 90)
 
         # datetime64[ns] dtype
         dts = self.ts.index.to_series()
@@ -49,8 +49,8 @@ class TestSeriesQuantile(TestData):
 
         qs = [.1, .9]
         result = self.ts.quantile(qs)
-        expected = pd.Series([np.percentile(self.ts.valid(), 10),
-                              np.percentile(self.ts.valid(), 90)],
+        expected = pd.Series([np.percentile(self.ts.dropna(), 10),
+                              np.percentile(self.ts.dropna(), 90)],
                              index=qs, name=self.ts.name)
         tm.assert_series_equal(result, expected)
 
@@ -72,9 +72,9 @@ class TestSeriesQuantile(TestData):
 
         # interpolation = linear (default case)
         q = self.ts.quantile(0.1, interpolation='linear')
-        assert q == np.percentile(self.ts.valid(), 10)
+        assert q == np.percentile(self.ts.dropna(), 10)
         q1 = self.ts.quantile(0.1)
-        assert q1 == np.percentile(self.ts.valid(), 10)
+        assert q1 == np.percentile(self.ts.dropna(), 10)
 
         # test with and without interpolation keyword
         assert q == q1

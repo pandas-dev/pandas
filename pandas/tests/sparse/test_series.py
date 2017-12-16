@@ -797,9 +797,9 @@ class TestSparseSeries(SharedWithSparse):
     def test_dropna(self):
         sp = SparseSeries([0, 0, 0, nan, nan, 5, 6], fill_value=0)
 
-        sp_valid = sp.valid()
+        sp_valid = sp.dropna()
 
-        expected = sp.to_dense().valid()
+        expected = sp.to_dense().dropna()
         expected = expected[expected != 0]
         exp_arr = pd.SparseArray(expected.values, fill_value=0, kind='block')
         tm.assert_sp_array_equal(sp_valid.values, exp_arr)

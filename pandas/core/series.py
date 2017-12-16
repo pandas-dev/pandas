@@ -150,7 +150,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
     _accessors = frozenset(['dt', 'cat', 'str'])
     _deprecations = generic.NDFrame._deprecations | frozenset(
         ['asobject', 'sortlevel', 'reshape', 'get_value', 'set_value',
-         'from_csv'])
+         'from_csv', 'valid'])
     _allow_index_ops = True
 
     def __init__(self, data=None, index=None, dtype=None, name=None,
@@ -3006,8 +3006,13 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
             else:
                 return self.copy()
 
-    valid = lambda self, inplace=False, **kwargs: self.dropna(inplace=inplace,
-                                                              **kwargs)
+    def valid(self, inplace=False, **kwargs):
+        """DEPRECATED. Series.valid will be removed in a future version.
+        Use :meth:`Series.dropna` instead.
+        """
+        warnings.warn("Method .valid will be removed in a future version. "
+                      "Use .dropna instead.", FutureWarning, stacklevel=2)
+        return self.dropna(inplace=inplace, **kwargs)
 
     @Appender(generic._shared_docs['valid_index'] % {
         'position': 'first', 'klass': 'Series'})
