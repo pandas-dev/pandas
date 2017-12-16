@@ -3781,8 +3781,8 @@ class DataFrame(NDFrame):
         Examples
         --------
         >>> df = pd.DataFrame({'a': [1, 10, 8, 11, -1],
-        ...                 'b': list('abdce'),
-        ...                 'c': [1.0, 2.0, np.nan, 3.0, 4.0]})
+        ...                    'b': list('abdce'),
+        ...                    'c': [1.0, 2.0, np.nan, 3.0, 4.0]})
         >>> df.nlargest(3, 'a')
             a  b   c
         3  11  c   3
@@ -3816,8 +3816,8 @@ class DataFrame(NDFrame):
         Examples
         --------
         >>> df = pd.DataFrame({'a': [1, 10, 8, 11, -1],
-        ...                 'b': list('abdce'),
-        ...                 'c': [1.0, 2.0, np.nan, 3.0, 4.0]})
+        ...                    'b': list('abdce'),
+        ...                    'c': [1.0, 2.0, np.nan, 3.0, 4.0]})
         >>> df.nsmallest(3, 'a')
            a  b   c
         4 -1  e   4
