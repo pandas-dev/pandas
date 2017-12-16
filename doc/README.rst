@@ -160,7 +160,7 @@ Where to start?
 
 There are a number of issues listed under `Docs
 <https://github.com/pandas-dev/pandas/issues?labels=Docs&sort=updated&state=open>`_
-and `good first issuse
+and `good first issue
 <https://github.com/pandas-dev/pandas/issues?labels=good+first+issue&sort=updated&state=open>`_
 where you could start out.
 
