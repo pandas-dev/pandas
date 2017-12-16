@@ -1,12 +1,8 @@
 import numpy as np
 import pandas.util.testing as tm
-try:
-    import pandas._libs.lib as lib
-except ImportError:
-    import pandas.lib as lib
 from pandas import DataFrame, Series, to_numeric
 
-from .pandas_vb_common import numeric_dtypes, setup  # noqa
+from .pandas_vb_common import numeric_dtypes, lib, setup  # noqa
 
 
 class NumericInferOps(object):
