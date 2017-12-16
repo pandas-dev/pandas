@@ -222,3 +222,8 @@ class TestSeries(Generic):
         assert_almost_equal(list(result.coords.keys()), ['one', 'two'])
         assert isinstance(result, DataArray)
         assert_series_equal(result.to_series(), s)
+
+    def test_valid_deprecated(self):
+        # GH18800
+        with tm.assert_produces_warning(FutureWarning):
+            pd.Series([]).valid()
