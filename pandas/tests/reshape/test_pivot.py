@@ -373,6 +373,7 @@ class TestPivotTable(object):
 
     def test_pivot_with_list_like_values(self):
         # issue #17160
+        from collections import namedtuple
         df = pd.DataFrame({'foo': ['one', 'one', 'one', 'two', 'two', 'two'],
                            'bar': ['A', 'B', 'C', 'A', 'B', 'C'],
                            'baz': [1, 2, 3, 4, 5, 6],
@@ -380,8 +381,6 @@ class TestPivotTable(object):
 
         result_list = df.pivot(index='zoo', columns='foo',
                                values=['bar', 'baz'])
-        result_tuple = df.pivot(index='zoo', columns='foo',
-                                values=('bar', 'baz'))
         result_array = df.pivot(index='zoo', columns='foo',
                                 values=np.array(['bar', 'baz']))
         result_series = df.pivot(index='zoo', columns='foo',
@@ -403,7 +402,6 @@ class TestPivotTable(object):
                              columns=columns, dtype='object')
 
         tm.assert_frame_equal(result_list, expected)
-        tm.assert_frame_equal(result_tuple, expected)
         tm.assert_frame_equal(result_array, expected)
         tm.assert_frame_equal(result_series, expected)
         tm.assert_frame_equal(result_index, expected)
