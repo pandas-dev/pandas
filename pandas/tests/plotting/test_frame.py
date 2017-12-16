@@ -1398,8 +1398,8 @@ class TestDataFramePlots(TestPlotBase):
                 check_ax_title=False)
 
     @pytest.mark.slow
+    @td.skip_if_no_scipy
     def test_kde_df(self):
-        tm._skip_if_no_scipy()
         _skip_if_no_scipy_gaussian_kde()
         if not self.mpl_ge_1_5_0:
             pytest.skip("mpl is not supported")
@@ -1422,8 +1422,8 @@ class TestDataFramePlots(TestPlotBase):
         self._check_ax_scales(axes, yaxis='log')
 
     @pytest.mark.slow
+    @td.skip_if_no_scipy
     def test_kde_missing_vals(self):
-        tm._skip_if_no_scipy()
         _skip_if_no_scipy_gaussian_kde()
         if not self.mpl_ge_1_5_0:
             pytest.skip("mpl is not supported")
@@ -1949,8 +1949,8 @@ class TestDataFramePlots(TestPlotBase):
         tm.close()
 
     @pytest.mark.slow
+    @td.skip_if_no_scipy
     def test_kde_colors(self):
-        tm._skip_if_no_scipy()
         _skip_if_no_scipy_gaussian_kde()
         if not self.mpl_ge_1_5_0:
             pytest.skip("mpl is not supported")
@@ -1974,8 +1974,8 @@ class TestDataFramePlots(TestPlotBase):
         self._check_colors(ax.get_lines(), linecolors=rgba_colors)
 
     @pytest.mark.slow
+    @td.skip_if_no_scipy
     def test_kde_colors_and_styles_subplots(self):
-        tm._skip_if_no_scipy()
         _skip_if_no_scipy_gaussian_kde()
         if not self.mpl_ge_1_5_0:
             pytest.skip("mpl is not supported")
@@ -2169,6 +2169,26 @@ class TestDataFramePlots(TestPlotBase):
         df = DataFrame(randn(10, 2))
         with pytest.raises(ValueError):
             df.plot(kind='aasdf')
+
+    @pytest.mark.parametrize("x,y", [
+        (['B', 'C'], 'A'),
+        ('A', ['B', 'C'])
+    ])
+    def test_invalid_xy_args(self, x, y):
+        # GH 18671
+        df = DataFrame({"A": [1, 2], 'B': [3, 4], 'C': [5, 6]})
+        with pytest.raises(ValueError):
+            df.plot(x=x, y=y)
+
+    @pytest.mark.parametrize("x,y", [
+        ('A', 'B'),
+        ('B', 'A')
+    ])
+    def test_invalid_xy_args_dup_cols(self, x, y):
+        # GH 18671
+        df = DataFrame([[1, 3, 5], [2, 4, 6]], columns=list('AAB'))
+        with pytest.raises(ValueError):
+            df.plot(x=x, y=y)
 
     @pytest.mark.slow
     def test_hexbin_basic(self):

@@ -1,6 +1,7 @@
 import pandas as pd
 from pandas.compat import PY2
 import pandas.util.testing as tm
+import pandas.util._test_decorators as td
 from pandas.errors import EmptyDataError
 import os
 import io
@@ -71,8 +72,8 @@ class TestSAS7BDAT(object):
                 tm.assert_frame_equal(df, df0.iloc[2:5, :])
                 rdr.close()
 
+    @td.skip_if_no('pathlib')
     def test_path_pathlib(self):
-        tm._skip_if_no_pathlib()
         from pathlib import Path
         for j in 0, 1:
             df0 = self.data[j]
@@ -82,8 +83,8 @@ class TestSAS7BDAT(object):
                 df = pd.read_sas(fname, encoding='utf-8')
                 tm.assert_frame_equal(df, df0)
 
+    @td.skip_if_no('py.path')
     def test_path_localpath(self):
-        tm._skip_if_no_localpath()
         from py.path import local as LocalPath
         for j in 0, 1:
             df0 = self.data[j]

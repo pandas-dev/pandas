@@ -52,8 +52,8 @@ class TestSeriesPlots(TestPlotBase):
 @td.skip_if_no_mpl
 class TestDataFramePlots(TestPlotBase):
 
+    @td.skip_if_no_scipy
     def test_scatter_matrix_axis(self):
-        tm._skip_if_no_scipy()
         scatter_matrix = plotting.scatter_matrix
 
         with tm.RNGContext(42):
@@ -202,6 +202,7 @@ class TestDataFramePlots(TestPlotBase):
         with tm.assert_produces_warning(FutureWarning):
             parallel_coordinates(df, 'Name', colors=colors)
 
+    @pytest.mark.xfail(reason="unreliable test")
     def test_parallel_coordinates_with_sorted_labels(self):
         """ For #15908 """
         from pandas.plotting import parallel_coordinates

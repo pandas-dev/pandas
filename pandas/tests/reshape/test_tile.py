@@ -4,9 +4,8 @@ import pytest
 import numpy as np
 from pandas.compat import zip
 
-from pandas import (Series, Index, isna,
-                    to_datetime, DatetimeIndex, Timestamp,
-                    Interval, IntervalIndex, Categorical,
+from pandas import (Series, isna, to_datetime, DatetimeIndex,
+                    Timestamp, Interval, IntervalIndex, Categorical,
                     cut, qcut, date_range)
 import pandas.util.testing as tm
 from pandas.api.types import CategoricalDtype as CDT
@@ -29,7 +28,8 @@ class TestCut(object):
         result, bins = cut(data, 3, retbins=True)
 
         intervals = IntervalIndex.from_breaks(bins.round(3))
-        expected = intervals.take([0, 0, 0, 1, 2, 0]).astype('category')
+        intervals = intervals.take([0, 0, 0, 1, 2, 0])
+        expected = Categorical(intervals, ordered=True)
         tm.assert_categorical_equal(result, expected)
         tm.assert_almost_equal(bins, np.array([0.1905, 3.36666667,
                                                6.53333333, 9.7]))
@@ -38,7 +38,8 @@ class TestCut(object):
         data = np.array([.2, 1.4, 2.5, 6.2, 9.7, 2.1, 2.575])
         result, bins = cut(data, 4, right=True, retbins=True)
         intervals = IntervalIndex.from_breaks(bins.round(3))
-        expected = intervals.astype('category').take([0, 0, 0, 2, 3, 0, 0])
+        expected = Categorical(intervals, ordered=True)
+        expected = expected.take([0, 0, 0, 2, 3, 0, 0])
         tm.assert_categorical_equal(result, expected)
         tm.assert_almost_equal(bins, np.array([0.1905, 2.575, 4.95,
                                                7.325, 9.7]))
@@ -47,7 +48,8 @@ class TestCut(object):
         data = np.array([.2, 1.4, 2.5, 6.2, 9.7, 2.1, 2.575])
         result, bins = cut(data, 4, right=False, retbins=True)
         intervals = IntervalIndex.from_breaks(bins.round(3), closed='left')
-        expected = intervals.take([0, 0, 0, 2, 3, 0, 1]).astype('category')
+        intervals = intervals.take([0, 0, 0, 2, 3, 0, 1])
+        expected = Categorical(intervals, ordered=True)
         tm.assert_categorical_equal(result, expected)
         tm.assert_almost_equal(bins, np.array([0.2, 2.575, 4.95,
                                                7.325, 9.7095]))
@@ -56,7 +58,8 @@ class TestCut(object):
         data = [.2, 1.4, 2.5, 6.2, 9.7, 2.1]
         result, bins = cut(data, 3, retbins=True)
         intervals = IntervalIndex.from_breaks(bins.round(3))
-        expected = intervals.take([0, 0, 0, 1, 2, 0]).astype('category')
+        intervals = intervals.take([0, 0, 0, 1, 2, 0])
+        expected = Categorical(intervals, ordered=True)
         tm.assert_categorical_equal(result, expected)
         tm.assert_almost_equal(bins, np.array([0.1905, 3.36666667,
                                                6.53333333, 9.7]))
@@ -249,8 +252,8 @@ class TestCut(object):
 
     def test_qcut_index(self):
         result = qcut([0, 2], 2)
-        expected = Index([Interval(-0.001, 1), Interval(1, 2)]).astype(
-            'category')
+        intervals = [Interval(-0.001, 1), Interval(1, 2)]
+        expected = Categorical(intervals, ordered=True)
         tm.assert_categorical_equal(result, expected)
 
     def test_round_frac(self):

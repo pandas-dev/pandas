@@ -17,6 +17,7 @@ from pandas import (Series, DataFrame, Panel, Panel4D, MultiIndex, Int64Index,
                     isna, compat, concat, Timestamp)
 
 import pandas.util.testing as tm
+import pandas.util._test_decorators as td
 from pandas.util.testing import (assert_panel4d_equal,
                                  assert_panel_equal,
                                  assert_frame_equal,
@@ -24,7 +25,7 @@ from pandas.util.testing import (assert_panel4d_equal,
                                  set_timezone)
 
 from pandas.compat import (is_platform_windows, is_platform_little_endian,
-                           PY3, PY35, PY36, BytesIO, text_type,
+                           PY35, PY36, BytesIO, text_type,
                            range, lrange, u)
 from pandas.io.formats.printing import pprint_thing
 from pandas.core.dtypes.common import is_categorical_dtype
@@ -39,10 +40,6 @@ from pandas.io.pytables import (TableIterator,  # noqa:E402
 _default_compressor = ('blosc' if LooseVersion(tables.__version__) >=
                        LooseVersion('2.2') else 'zlib')
 
-
-# testing on windows/py3 seems to fault
-# for using compression
-skip_compression = PY3 and is_platform_windows()
 
 # contextmanager to ensure the file cleanup
 
@@ -719,12 +716,10 @@ class TestHDFStore(Base):
             pytest.raises(ValueError, store.put, 'b', df,
                           format='fixed', complib='zlib')
 
+    @td.skip_if_windows_python_3
     def test_put_compression_blosc(self):
         tm.skip_if_no_package('tables', min_version='2.2',
                               app='blosc support')
-        if skip_compression:
-            pytest.skip("skipping on windows/PY3")
-
         df = tm.makeTimeDataFrame()
 
         with ensure_clean_store(self.path) as store:
@@ -2892,7 +2887,10 @@ class TestHDFStore(Base):
         except OverflowError:
             pytest.skip('known failer on some windows platforms')
 
-    def test_frame(self):
+    @pytest.mark.parametrize("compression", [
+        False, pytest.param(True, marks=td.skip_if_windows_python_3)
+    ])
+    def test_frame(self, compression):
 
         df = tm.makeDataFrame()
 
@@ -2900,21 +2898,14 @@ class TestHDFStore(Base):
         df.values[0, 0] = np.nan
         df.values[5, 3] = np.nan
 
-        self._check_roundtrip_table(df, tm.assert_frame_equal)
-        self._check_roundtrip(df, tm.assert_frame_equal)
-
-        if not skip_compression:
-            self._check_roundtrip_table(df, tm.assert_frame_equal,
-                                        compression=True)
-            self._check_roundtrip(df, tm.assert_frame_equal,
-                                  compression=True)
+        self._check_roundtrip_table(df, tm.assert_frame_equal,
+                                    compression=compression)
+        self._check_roundtrip(df, tm.assert_frame_equal,
+                              compression=compression)
 
         tdf = tm.makeTimeDataFrame()
-        self._check_roundtrip(tdf, tm.assert_frame_equal)
-
-        if not skip_compression:
-            self._check_roundtrip(tdf, tm.assert_frame_equal,
-                                  compression=True)
+        self._check_roundtrip(tdf, tm.assert_frame_equal,
+                              compression=compression)
 
         with ensure_clean_store(self.path) as store:
             # not consolidated
@@ -3021,7 +3012,10 @@ class TestHDFStore(Base):
             recons = store['series']
             tm.assert_series_equal(recons, series)
 
-    def test_store_mixed(self):
+    @pytest.mark.parametrize("compression", [
+        False, pytest.param(True, marks=td.skip_if_windows_python_3)
+    ])
+    def test_store_mixed(self, compression):
 
         def _make_one():
             df = tm.makeDataFrame()
@@ -3046,19 +3040,12 @@ class TestHDFStore(Base):
             tm.assert_frame_equal(store['obj'], df2)
 
         # check that can store Series of all of these types
-        self._check_roundtrip(df1['obj1'], tm.assert_series_equal)
-        self._check_roundtrip(df1['bool1'], tm.assert_series_equal)
-        self._check_roundtrip(df1['int1'], tm.assert_series_equal)
-
-        if not skip_compression:
-            self._check_roundtrip(df1['obj1'], tm.assert_series_equal,
-                                  compression=True)
-            self._check_roundtrip(df1['bool1'], tm.assert_series_equal,
-                                  compression=True)
-            self._check_roundtrip(df1['int1'], tm.assert_series_equal,
-                                  compression=True)
-            self._check_roundtrip(df1, tm.assert_frame_equal,
-                                  compression=True)
+        self._check_roundtrip(df1['obj1'], tm.assert_series_equal,
+                              compression=compression)
+        self._check_roundtrip(df1['bool1'], tm.assert_series_equal,
+                              compression=compression)
+        self._check_roundtrip(df1['int1'], tm.assert_series_equal,
+                              compression=compression)
 
     def test_wide(self):
 
@@ -4928,6 +4915,25 @@ class TestHDFStore(Base):
             result = read_hdf(path, 'df', where='obsids=B')
             tm.assert_frame_equal(result, expected)
 
+    def test_categorical_nan_only_columns(self):
+        # GH18413
+        # Check that read_hdf with categorical columns with NaN-only values can
+        # be read back.
+        df = pd.DataFrame({
+            'a': ['a', 'b', 'c', np.nan],
+            'b': [np.nan, np.nan, np.nan, np.nan],
+            'c': [1, 2, 3, 4],
+            'd': pd.Series([None] * 4, dtype=object)
+        })
+        df['a'] = df.a.astype('category')
+        df['b'] = df.b.astype('category')
+        df['d'] = df.b.astype('category')
+        expected = df
+        with ensure_clean_path(self.path) as path:
+            df.to_hdf(path, 'df', format='table', data_columns=True)
+            result = read_hdf(path, 'df')
+            tm.assert_frame_equal(result, expected)
+
     def test_duplicate_column_name(self):
         df = DataFrame(columns=["a", "a"], data=[[0, 0]])
 
@@ -5113,11 +5119,10 @@ class TestHDFStore(Base):
             store.close()
             pytest.raises(ValueError, read_hdf, path)
 
+    @td.skip_if_no('pathlib')
     def test_read_from_pathlib_path(self):
 
         # GH11773
-        tm._skip_if_no_pathlib()
-
         from pathlib import Path
 
         expected = DataFrame(np.random.rand(4, 5),
@@ -5131,11 +5136,10 @@ class TestHDFStore(Base):
 
         tm.assert_frame_equal(expected, actual)
 
+    @td.skip_if_no('py.path')
     def test_read_from_py_localpath(self):
 
         # GH11773
-        tm._skip_if_no_localpath()
-
         from py.path import local as LocalPath
 
         expected = DataFrame(np.random.rand(4, 5),
@@ -5620,6 +5624,7 @@ class TestTimezones(Base):
             tm.assert_index_equal(recons.index, rng)
             assert rng.tz == recons.index.tz
 
+    @td.skip_if_windows
     def test_store_timezone(self):
         # GH2852
         # issue storing datetime.date with a timezone as it resets when read

@@ -3,13 +3,14 @@
 import numpy as np
 
 from pandas.core.dtypes.missing import notna, isna
-from pandas.core.dtypes.generic import ABCPeriodIndex
+from pandas.core.dtypes.generic import ABCDatetimeIndex, ABCPeriodIndex
 from pandas.core.dtypes.dtypes import IntervalDtype
 from pandas.core.dtypes.cast import maybe_convert_platform
 from pandas.core.dtypes.common import (
     _ensure_platform_int,
     is_list_like,
     is_datetime_or_timedelta_dtype,
+    is_datetime64tz_dtype,
     is_integer_dtype,
     is_object_dtype,
     is_categorical_dtype,
@@ -28,6 +29,7 @@ from pandas._libs.interval import (
     Interval, IntervalMixin, IntervalTree,
     intervals_to_interval_bounds)
 
+from pandas.core.indexes.category import CategoricalIndex
 from pandas.core.indexes.datetimes import date_range
 from pandas.core.indexes.timedeltas import timedelta_range
 from pandas.core.indexes.multi import MultiIndex
@@ -54,7 +56,7 @@ def _get_next_label(label):
     dtype = getattr(label, 'dtype', type(label))
     if isinstance(label, (Timestamp, Timedelta)):
         dtype = 'datetime64'
-    if is_datetime_or_timedelta_dtype(dtype):
+    if is_datetime_or_timedelta_dtype(dtype) or is_datetime64tz_dtype(dtype):
         return label + np.timedelta64(1, 'ns')
     elif is_integer_dtype(dtype):
         return label + 1
@@ -69,7 +71,7 @@ def _get_prev_label(label):
     dtype = getattr(label, 'dtype', type(label))
     if isinstance(label, (Timestamp, Timedelta)):
         dtype = 'datetime64'
-    if is_datetime_or_timedelta_dtype(dtype):
+    if is_datetime_or_timedelta_dtype(dtype) or is_datetime64tz_dtype(dtype):
         return label - np.timedelta64(1, 'ns')
     elif is_integer_dtype(dtype):
         return label - 1
@@ -227,17 +229,22 @@ class IntervalIndex(IntervalMixin, Index):
         # coerce dtypes to match if needed
         if is_float_dtype(left) and is_integer_dtype(right):
             right = right.astype(left.dtype)
-        if is_float_dtype(right) and is_integer_dtype(left):
+        elif is_float_dtype(right) and is_integer_dtype(left):
             left = left.astype(right.dtype)
 
         if type(left) != type(right):
-            raise ValueError("must not have differing left [{left}] "
-                             "and right [{right}] types"
-                             .format(left=type(left), right=type(right)))
-
-        if isinstance(left, ABCPeriodIndex):
-            raise ValueError("Period dtypes are not supported, "
-                             "use a PeriodIndex instead")
+            msg = ('must not have differing left [{ltype}] and right '
+                   '[{rtype}] types')
+            raise ValueError(msg.format(ltype=type(left).__name__,
+                                        rtype=type(right).__name__))
+        elif isinstance(left, ABCPeriodIndex):
+            msg = 'Period dtypes are not supported, use a PeriodIndex instead'
+            raise ValueError(msg)
+        elif (isinstance(left, ABCDatetimeIndex) and
+                str(left.tz) != str(right.tz)):
+            msg = ("left and right must have the same time zone, got "
+                   "'{left_tz}' and '{right_tz}'")
+            raise ValueError(msg.format(left_tz=left.tz, right_tz=right.tz))
 
         result._left = left
         result._right = right
@@ -537,9 +544,31 @@ class IntervalIndex(IntervalMixin, Index):
 
         return cls.from_arrays(left, right, closed, name=name, copy=False)
 
-    def to_tuples(self):
-        """Return an Index of tuples of the form (left, right)"""
-        return Index(_asarray_tuplesafe(zip(self.left, self.right)))
+    def to_tuples(self, na_tuple=True):
+        """
+        Return an Index of tuples of the form (left, right)
+
+        Parameters
+        ----------
+        na_tuple : boolean, default True
+            Returns NA as a tuple if True, ``(nan, nan)``, or just as the NA
+            value itself if False, ``nan``.
+
+            ..versionadded:: 0.22.0
+
+        Examples
+        --------
+        >>>  idx = pd.IntervalIndex.from_arrays([0, np.nan, 2], [1, np.nan, 3])
+        >>>  idx.to_tuples()
+        Index([(0.0, 1.0), (nan, nan), (2.0, 3.0)], dtype='object')
+        >>>  idx.to_tuples(na_tuple=False)
+        Index([(0.0, 1.0), nan, (2.0, 3.0)], dtype='object')
+        """
+        tuples = _asarray_tuplesafe(zip(self.left, self.right))
+        if not na_tuple:
+            # GH 18756
+            tuples = np.where(~self._isnan, tuples, np.nan)
+        return Index(tuples)
 
     @cache_readonly
     def _multiindex(self):
@@ -626,8 +655,8 @@ class IntervalIndex(IntervalMixin, Index):
         elif is_object_dtype(dtype):
             return Index(self.values, dtype=object)
         elif is_categorical_dtype(dtype):
-            from pandas import Categorical
-            return Categorical(self, ordered=True)
+            return CategoricalIndex(self.values, name=self.name, dtype=dtype,
+                                    copy=copy)
         raise ValueError('Cannot cast IntervalIndex to dtype {dtype}'
                          .format(dtype=dtype))
 
@@ -657,8 +686,8 @@ class IntervalIndex(IntervalMixin, Index):
             return Index(0.5 * (self.left.values + self.right.values))
         except TypeError:
             # datetime safe version
-            delta = self.right.values - self.left.values
-            return Index(self.left.values + 0.5 * delta)
+            delta = self.right - self.left
+            return self.left + 0.5 * delta
 
     @cache_readonly
     def is_monotonic(self):

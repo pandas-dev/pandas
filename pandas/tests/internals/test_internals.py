@@ -1222,7 +1222,9 @@ class TestCanHoldElement(object):
     @pytest.mark.parametrize('value, dtype', [
         (1, 'i8'),
         (1.0, 'f8'),
+        (2**63, 'f8'),
         (1j, 'complex128'),
+        (2**63, 'complex128'),
         (True, 'bool'),
         (np.timedelta64(20, 'ns'), '<m8[ns]'),
         (np.datetime64(20, 'ns'), '<M8[ns]'),

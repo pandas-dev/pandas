@@ -15,7 +15,7 @@ from util cimport (is_integer_object, is_float_object, is_string_object,
 from cpython.datetime cimport (PyDateTime_Check, PyDate_Check,
                                PyDateTime_CheckExact,
                                PyDateTime_IMPORT,
-                               timedelta, datetime, date)
+                               timedelta, datetime, date, time)
 # import datetime C API
 PyDateTime_IMPORT
 
@@ -70,11 +70,17 @@ cdef inline object create_date_from_ts(
     """ convenience routine to construct a datetime.date from its parts """
     return date(dts.year, dts.month, dts.day)
 
+cdef inline object create_time_from_ts(
+        int64_t value, pandas_datetimestruct dts,
+        object tz, object freq):
+    """ convenience routine to construct a datetime.time from its parts """
+    return time(dts.hour, dts.min, dts.sec, dts.us, tz)
+
 
 def ints_to_pydatetime(ndarray[int64_t] arr, tz=None, freq=None,
                        box="datetime"):
     """
-    Convert an i8 repr to an ndarray of datetimes, date or Timestamp
+    Convert an i8 repr to an ndarray of datetimes, date, time or Timestamp
 
     Parameters
     ----------
@@ -83,18 +89,16 @@ def ints_to_pydatetime(ndarray[int64_t] arr, tz=None, freq=None,
          convert to this timezone
     freq : str/Offset, default None
          freq to convert
-    box  : {'datetime', 'timestamp', 'date'}, default 'datetime'
+    box  : {'datetime', 'timestamp', 'date', 'time'}, default 'datetime'
          If datetime, convert to datetime.datetime
          If date, convert to datetime.date
+         If time, convert to datetime.time
          If Timestamp, convert to pandas.Timestamp
 
     Returns
     -------
     result : array of dtype specified by box
     """
-
-    assert ((box == "datetime") or (box == "date") or (box == "timestamp")), \
-        "box must be one of 'datetime', 'date' or 'timestamp'"
 
     cdef:
         Py_ssize_t i, n = len(arr)
@@ -115,8 +119,13 @@ def ints_to_pydatetime(ndarray[int64_t] arr, tz=None, freq=None,
         if is_string_object(freq):
             from pandas.tseries.frequencies import to_offset
             freq = to_offset(freq)
+    elif box == "time":
+        func_create = create_time_from_ts
     elif box == "datetime":
         func_create = create_datetime_from_ts
+    else:
+        raise ValueError("box must be one of 'datetime', 'date', 'time' or" +
+                         " 'timestamp'")
 
     if tz is not None:
         if is_utc(tz):
@@ -207,6 +216,11 @@ def _test_parse_iso8601(object ts):
         int out_local = 0, out_tzoffset = 0
 
     obj = _TSObject()
+
+    if ts == 'now':
+        return Timestamp.utcnow()
+    elif ts == 'today':
+        return Timestamp.now().normalize()
 
     _string_to_dts(ts, &obj.dts, &out_local, &out_tzoffset)
     obj.value = dtstruct_to_dt64(&obj.dts)
@@ -581,12 +595,13 @@ cpdef array_to_datetime(ndarray[object] values, errors='raise',
             elif is_string_object(val):
                 # string
 
-                try:
-                    if len(val) == 0 or val in nat_strings:
-                        iresult[i] = NPY_NAT
-                        continue
+                if len(val) == 0 or val in nat_strings:
+                    iresult[i] = NPY_NAT
+                    continue
 
-                    seen_string = 1
+                seen_string = 1
+
+                try:
                     _string_to_dts(val, &dts, &out_local, &out_tzoffset)
                     value = dtstruct_to_dt64(&dts)
                     if out_local == 1:
@@ -597,6 +612,8 @@ cpdef array_to_datetime(ndarray[object] values, errors='raise',
                 except ValueError:
                     # if requiring iso8601 strings, skip trying other formats
                     if require_iso8601:
+                        if _parse_today_now(val, &iresult[i]):
+                            continue
                         if is_coerce:
                             iresult[i] = NPY_NAT
                             continue
@@ -611,6 +628,8 @@ cpdef array_to_datetime(ndarray[object] values, errors='raise',
                         py_dt = parse_datetime_string(val, dayfirst=dayfirst,
                                                       yearfirst=yearfirst)
                     except Exception:
+                        if _parse_today_now(val, &iresult[i]):
+                            continue
                         if is_coerce:
                             iresult[i] = NPY_NAT
                             continue
@@ -705,6 +724,19 @@ cpdef array_to_datetime(ndarray[object] values, errors='raise',
 
         return oresult
 
+
+cdef inline bint _parse_today_now(str val, int64_t* iresult):
+    # We delay this check for as long as possible
+    # because it catches relatively rare cases
+    if val == 'now':
+        # Note: this is *not* the same as Timestamp('now')
+        iresult[0] = Timestamp.utcnow().value
+        return True
+    elif val == 'today':
+        # Note: this is *not* the same as Timestamp('today')
+        iresult[0] = Timestamp.now().normalize().value
+        return True
+    return False
 
 # ----------------------------------------------------------------------
 # Some general helper functions
