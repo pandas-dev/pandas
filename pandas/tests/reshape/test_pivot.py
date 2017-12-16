@@ -373,7 +373,6 @@ class TestPivotTable(object):
 
     def test_pivot_with_list_like_values(self):
         # issue #17160
-        from collections import namedtuple
         df = pd.DataFrame({'foo': ['one', 'one', 'one', 'two', 'two', 'two'],
                            'bar': ['A', 'B', 'C', 'A', 'B', 'C'],
                            'baz': [1, 2, 3, 4, 5, 6],
