@@ -2304,7 +2304,7 @@ class DataFrame(NDFrame):
         --------
         >>> from numpy.random import randn
         >>> from pandas import DataFrame
-        >>> df = DataFrame(randn(10, 2), columns=list('ab'))
+        >>> df = pd.DataFrame(randn(10, 2), columns=list('ab'))
         >>> df.query('a > b')
         >>> df[df.a > df.b]  # same result as the previous expression
         """
@@ -2368,7 +2368,7 @@ class DataFrame(NDFrame):
         --------
         >>> from numpy.random import randn
         >>> from pandas import DataFrame
-        >>> df = DataFrame(randn(10, 2), columns=list('ab'))
+        >>> df = pd.DataFrame(randn(10, 2), columns=list('ab'))
         >>> df.eval('a + b')
         >>> df.eval('c = a + b')
         """
@@ -2664,7 +2664,7 @@ class DataFrame(NDFrame):
 
         Examples
         --------
-        >>> df = DataFrame({'A': range(1, 11), 'B': np.random.randn(10)})
+        >>> df = pd.DataFrame({'A': range(1, 11), 'B': np.random.randn(10)})
 
         Where the value is a callable, evaluated on `df`:
 
@@ -3780,9 +3780,9 @@ class DataFrame(NDFrame):
 
         Examples
         --------
-        >>> df = DataFrame({'a': [1, 10, 8, 11, -1],
-        ...                 'b': list('abdce'),
-        ...                 'c': [1.0, 2.0, np.nan, 3.0, 4.0]})
+        >>> df = pd.DataFrame({'a': [1, 10, 8, 11, -1],
+        ...                    'b': list('abdce'),
+        ...                    'c': [1.0, 2.0, np.nan, 3.0, 4.0]})
         >>> df.nlargest(3, 'a')
             a  b   c
         3  11  c   3
@@ -3815,9 +3815,9 @@ class DataFrame(NDFrame):
 
         Examples
         --------
-        >>> df = DataFrame({'a': [1, 10, 8, 11, -1],
-        ...                 'b': list('abdce'),
-        ...                 'c': [1.0, 2.0, np.nan, 3.0, 4.0]})
+        >>> df = pd.DataFrame({'a': [1, 10, 8, 11, -1],
+        ...                    'b': list('abdce'),
+        ...                    'c': [1.0, 2.0, np.nan, 3.0, 4.0]})
         >>> df.nsmallest(3, 'a')
            a  b   c
         4 -1  e   4
@@ -5818,7 +5818,7 @@ class DataFrame(NDFrame):
         Examples
         --------
 
-        >>> df = DataFrame(np.array([[1, 1], [2, 10], [3, 100], [4, 100]]),
+        >>> df = pd.DataFrame(np.array([[1, 1], [2, 10], [3, 100], [4, 100]]),
                            columns=['a', 'b'])
         >>> df.quantile(.1)
         a    1.3
@@ -5941,7 +5941,7 @@ class DataFrame(NDFrame):
         --------
         When ``values`` is a list:
 
-        >>> df = DataFrame({'A': [1, 2, 3], 'B': ['a', 'b', 'f']})
+        >>> df = pd.DataFrame({'A': [1, 2, 3], 'B': ['a', 'b', 'f']})
         >>> df.isin([1, 3, 12, 'a'])
                A      B
         0   True   True
@@ -5950,7 +5950,7 @@ class DataFrame(NDFrame):
 
         When ``values`` is a dict:
 
-        >>> df = DataFrame({'A': [1, 2, 3], 'B': [1, 4, 7]})
+        >>> df = pd.DataFrame({'A': [1, 2, 3], 'B': [1, 4, 7]})
         >>> df.isin({'A': [1, 3], 'B': [4, 7, 12]})
                A      B
         0   True  False  # Note that B didn't match the 1 here.
@@ -5959,7 +5959,7 @@ class DataFrame(NDFrame):
 
         When ``values`` is a Series or DataFrame:
 
-        >>> df = DataFrame({'A': [1, 2, 3], 'B': ['a', 'b', 'f']})
+        >>> df = pd.DataFrame({'A': [1, 2, 3], 'B': ['a', 'b', 'f']})
         >>> other = DataFrame({'A': [1, 3, 3, 2], 'B': ['e', 'f', 'f', 'e']})
         >>> df.isin(other)
                A      B
