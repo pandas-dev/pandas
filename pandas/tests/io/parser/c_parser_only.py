@@ -18,7 +18,6 @@ import pandas as pd
 import pandas.util.testing as tm
 import pandas.util._test_decorators as td
 from pandas import DataFrame
-from pandas import compat
 from pandas.compat import StringIO, range, lrange
 
 
