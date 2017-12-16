@@ -773,7 +773,6 @@ cpdef datetime shift_month(datetime stamp, int months, object day_opt=None):
     return stamp.replace(year=year, month=month, day=day)
 
 
-# TODO: Can we declare this so it will take datetime _or_ pandas_datetimestruct
 cpdef int get_day_of_month(datetime other, day_opt) except? -1:
     """
     Find the day in `other`'s month that satisfies a DateOffset's onOffset
@@ -824,24 +823,45 @@ cpdef int get_day_of_month(datetime other, day_opt) except? -1:
         raise ValueError(day_opt)
 
 
-cpdef int roll_monthday(other, int n, compare):
+cpdef int _roll_convention(int other, int n, int compare):
     """
     Possibly increment or decrement the number of periods to shift
     based on rollforward/rollbackward conventions.
 
     Parameters
     ----------
-    other : datetime or int
+    other : int, generally the day component of a datetime
     n : number of periods to increment, before adjusting for rolling
-    compare : datetime or int (must match `other`)
+    compare : int, generally the day component of a datetime, in the same
+              month as the datetime form which `other` was taken.
 
     Returns
     -------
     n : int number of periods to increment
     """
-    # Either `other` and `compare` are _both_ datetimes or they are both
-    # integers for days in the same month.
+    if n > 0 and other < compare:
+        n -= 1
+    elif n <= 0 and other > compare:
+        # as if rolled forward already
+        n += 1
+    return n
 
+
+cpdef int roll_monthday(datetime other, int n, datetime compare):
+    """
+    Possibly increment or decrement the number of periods to shift
+    based on rollforward/rollbackward conventions.
+
+    Parameters
+    ----------
+    other : datetime
+    n : number of periods to increment, before adjusting for rolling
+    compare : datetime
+
+    Returns
+    -------
+    n : int number of periods to increment
+    """
     if n > 0 and other < compare:
         n -= 1
     elif n <= 0 and other > compare:
@@ -870,7 +890,6 @@ cpdef int roll_qtrday(datetime other, int n, int month, day_opt='start',
     -------
     n : int number of periods to increment
     """
-    # TODO: type `other` as datetime-or-pandas_datetimestruct?
     # TODO: Merge this with roll_yearday by setting modby=12 there?
     #       code de-duplication versus perf hit?
     # TODO: with small adjustments this could be used in shift_quarters

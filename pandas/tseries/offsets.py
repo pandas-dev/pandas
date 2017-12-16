@@ -948,7 +948,7 @@ class MonthOffset(SingleConstructorOffset):
     @apply_wraps
     def apply(self, other):
         compare_day = self._get_offset_day(other)
-        n = liboffsets.roll_monthday(other.day, self.n, compare_day)
+        n = liboffsets._roll_convention(other.day, self.n, compare_day)
         return shift_month(other, n, self._day_opt)
 
     @apply_index_wraps
@@ -1038,8 +1038,8 @@ class CustomBusinessMonthEnd(_CustomBusinessMonth):
         cur_mend = self.m_offset.rollforward(other)
 
         # Find this custom month offset
-        compare_day = self.cbday.rollback(cur_mend)
-        n = liboffsets.roll_monthday(other, self.n, compare_day)
+        compare_date = self.cbday.rollback(cur_mend)
+        n = liboffsets.roll_monthday(other, self.n, compare_date)
 
         new = cur_mend + n * self.m_offset
         result = self.cbday.rollback(new)
@@ -1056,8 +1056,8 @@ class CustomBusinessMonthBegin(_CustomBusinessMonth):
         cur_mbegin = self.m_offset.rollback(other)
 
         # Find this custom month offset
-        compare_day = self.cbday.rollforward(cur_mbegin)
-        n = liboffsets.roll_monthday(other, self.n, compare_day)
+        compare_date = self.cbday.rollforward(cur_mbegin)
+        n = liboffsets.roll_monthday(other, self.n, compare_date)
 
         new = cur_mbegin + n * self.m_offset
         result = self.cbday.rollforward(new)
@@ -1098,7 +1098,7 @@ class SemiMonthOffset(DateOffset):
     @apply_wraps
     def apply(self, other):
         # shift `other` to self.day_of_month, incrementing `n` if necessary
-        n = liboffsets.roll_monthday(other.day, self.n, self.day_of_month)
+        n = liboffsets._roll_convention(other.day, self.n, self.day_of_month)
 
         days_in_month = tslib.monthrange(other.year, other.month)[1]
 
