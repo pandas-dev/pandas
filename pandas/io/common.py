@@ -99,6 +99,14 @@ def _is_s3_url(url):
         return False
 
 
+def _is_hdfs_url(url):
+    """Check for an hdfs url"""
+    try:
+        return parse_url(url).scheme == 'hdfs'
+    except:
+        return False
+
+
 def _expand_user(filepath_or_buffer):
     """Return the argument with an initial component of ~ or ~user
        replaced by that user's home directory.
@@ -200,6 +208,12 @@ def get_filepath_or_buffer(filepath_or_buffer, encoding=None,
         return s3.get_filepath_or_buffer(filepath_or_buffer,
                                          encoding=encoding,
                                          compression=compression)
+
+    if _is_hdfs_url(filepath_or_buffer):
+        from pandas.io import hdfs
+        return hdfs.get_filepath_or_buffer(filepath_or_buffer,
+                                           encoding=encoding,
+                                           compression=compression)
 
     if isinstance(filepath_or_buffer, (compat.string_types,
                                        compat.binary_type,
@@ -314,12 +328,19 @@ def _get_handle(path_or_buf, mode, encoding=None, compression=None,
     handles : list of file-like objects
         A list of file-like object that were openned in this function.
     """
+    need_text_wrapping = [BytesIO]
     try:
         from s3fs import S3File
-        need_text_wrapping = (BytesIO, S3File)
+        need_text_wrapping.append(S3File)
     except ImportError:
-        need_text_wrapping = (BytesIO,)
+        pass
+    try:
+        from hdfs3 import HDFile
+        need_text_wrapping.append(HDFile)
+    except ImportError:
+        pass
 
+    need_text_wrapping = tuple(need_text_wrapping)
     handles = list()
     f = path_or_buf
 

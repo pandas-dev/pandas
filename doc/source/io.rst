@@ -78,7 +78,7 @@ Basic
 
 filepath_or_buffer : various
   Either a path to a file (a :class:`python:str`, :class:`python:pathlib.Path`,
-  or :class:`py:py._path.local.LocalPath`), URL (including http, ftp, and S3
+  or :class:`py:py._path.local.LocalPath`), URL (including http, ftp, hdfs, and S3
   locations), or any object with a ``read()`` method (such as an open file or
   :class:`~python:io.StringIO`).
 sep : str, defaults to ``','`` for :func:`read_csv`, ``\t`` for :func:`read_table`
@@ -1579,6 +1579,12 @@ You can pass in a URL to a CSV file:
    df = pd.read_csv('https://download.bls.gov/pub/time.series/cu/cu.item',
                     sep='\t')
 
+Or a hdfs URL:
+
+.. code-block:: python
+
+   df = pd.read_csv('hdfs://<nodenamehost>:<nodenameport>/pandas-test/tips.csv')
+
 S3 URLs are handled as well:
 
 .. code-block:: python
@@ -1849,7 +1855,7 @@ The parser will try to parse a ``DataFrame`` if ``typ`` is not supplied or
 is ``None``. To explicitly force ``Series`` parsing, pass ``typ=series``
 
 - ``filepath_or_buffer`` : a **VALID** JSON string or file handle / StringIO. The string could be
-  a URL. Valid URL schemes include http, ftp, S3, and file. For file URLs, a host
+  a URL. Valid URL schemes include http, ftp, hdfs, S3, and file. For file URLs, a host
   is expected. For instance, a local file could be
   file ://localhost/path/to/table.json
 - ``typ``    : type of object to recover (series or frame), default 'frame'
