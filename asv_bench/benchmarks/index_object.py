@@ -1,6 +1,7 @@
 import numpy as np
 import pandas.util.testing as tm
-from pandas import date_range, DatetimeIndex, Index, MultiIndex, RangeIndex
+from pandas import (Series, date_range, DatetimeIndex, Index, MultiIndex,
+                    RangeIndex)
 
 from .pandas_vb_common import setup  # noqa
 
@@ -193,3 +194,31 @@ class IndexAppend(object):
 
     def time_append_obj_list(self):
         self.obj_idx.append(self.object_idxs)
+
+
+class Indexing(object):
+
+    goal_time = 0.2
+    params = ['String', 'Float', 'Int']
+    param_names = ['dtype']
+
+    def setup(self, dtype):
+        N = 10**6
+        self.idx = getattr(tm, 'make{}Index'.format(dtype))(N)
+        self.array_mask = (np.arange(N) % 3) == 0
+        self.series_mask = Series(self.array_mask)
+
+    def time_boolean_array(self, dtype):
+        self.idx[self.array_mask]
+
+    def time_boolean_series(self, dtype):
+        self.idx[self.series_mask]
+
+    def time_get(self, dtype):
+        self.idx[1]
+
+    def time_slice(self, dtype):
+        self.idx[:-1]
+
+    def time_slice_step(self, dtype):
+        self.idx[::2]
