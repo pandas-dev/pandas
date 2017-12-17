@@ -1109,6 +1109,20 @@ class TestPivotTable(object):
         expected = pd.DataFrame(index=index)
         tm.assert_frame_equal(table, expected)
 
+    def test_pivot_func_strings(self):
+        # GH #18713
+        f = lambda func: pivot_table(self.data, values=['D', 'E'],
+                                     index=['A', 'B'], columns='C',
+                                     aggfunc=func)
+        result = f('sum')
+        expected = f(np.sum)
+        tm.assert_frame_equal(result, expected)
+        result = f(['mean', 'std'])
+        means = f(np.mean)
+        stds = f(np.std)
+        expected = concat([means, stds], keys=['mean', 'std'], axis=1)
+        tm.assert_frame_equal(result, expected)
+
 
 class TestCrosstab(object):
 
