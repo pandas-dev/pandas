@@ -39,7 +39,6 @@ def pivot_table(data, values=None, index=None, columns=None, aggfunc='mean',
                                 margins=margins, margins_name=margins_name)
             pieces.append(table)
             keys.append(getattr(func, '__name__', func))
-            #keys.append(func.__name__)
 
         return concat(pieces, keys=keys, axis=1)
 
