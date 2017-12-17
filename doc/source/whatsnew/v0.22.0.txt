@@ -250,8 +250,7 @@ Performance Improvements
 
 Documentation Changes
 ~~~~~~~~~~~~~~~~~~~~~
-
--
+- Heredoc documentation for io/formats/style.py has been overhauled to more accurately reflect the functioning of the `Styler` class. (:issue:`12148`)
 -
 -
 
@@ -296,7 +295,7 @@ I/O
 - Bug in :func:`read_msgpack` with a non existent file is passed in Python 2 (:issue:`15296`)
 - Bug in :func:`read_csv` where a ``MultiIndex`` with duplicate columns was not being mangled appropriately (:issue:`18062`)
 - Bug in :func:`read_sas` where a file with 0 variables gave an ``AttributeError`` incorrectly. Now it gives an ``EmptyDataError`` (:issue:`18184`)
--
+- 
 -
 
 Plotting
