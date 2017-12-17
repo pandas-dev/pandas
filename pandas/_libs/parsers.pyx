@@ -2309,20 +2309,6 @@ cdef _apply_converter(object f, parser_t *parser, int64_t col,
     return lib.maybe_convert_objects(result)
 
 
-cdef _fill_structured_column(char *dst, char* src, int64_t elsize,
-                             int64_t stride, int64_t length, bint incref):
-    cdef:
-        int64_t i
-
-    if incref:
-        transfer_object_column(dst, src, stride, length)
-    else:
-        for i in range(length):
-            memcpy(dst, src, elsize)
-            dst += stride
-            src += elsize
-
-
 def _maybe_encode(values):
     if values is None:
         return []
