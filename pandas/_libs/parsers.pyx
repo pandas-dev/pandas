@@ -91,7 +91,6 @@ except NameError:
     basestring = str
 
 cdef extern from "src/numpy_helper.h":
-    object sarr_from_data(cnp.dtype, int length, void* data)
     void transfer_object_column(char *dst, char *src, size_t stride,
                                 size_t length)
 
