@@ -30,6 +30,8 @@ from distutils.version import LooseVersion
 
 from pandas.compat import (is_platform_windows, is_platform_32bit, PY3,
                            import_lzma)
+from pandas.core.computation.expressions import (_USE_NUMEXPR,
+                                                 _NUMEXPR_INSTALLED)
 
 
 def safe_import(mod_name, min_version=None):
@@ -103,7 +105,7 @@ def _skip_if_no_scipy():
 def _skip_if_no_lzma():
     try:
         import_lzma()
-    except ImportError as e:
+    except ImportError:
         return True
 
 
@@ -163,3 +165,8 @@ skip_if_no_scipy = pytest.mark.skipif(_skip_if_no_scipy(),
                                       reason="Missing SciPy requirement")
 skip_if_no_lzma = pytest.mark.skipif(_skip_if_no_lzma(),
                                      reason="need backports.lzma to run")
+skip_if_no_ne = pytest.mark.skipif(not _USE_NUMEXPR,
+                                   reason="numexpr enabled->{enabled}, "
+                                   "installed->{installed}".format(
+                                       enabled=_USE_NUMEXPR,
+                                       installed=_NUMEXPR_INSTALLED))
