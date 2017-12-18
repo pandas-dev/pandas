@@ -28,7 +28,8 @@ import pytest
 import locale
 from distutils.version import LooseVersion
 
-from pandas.compat import is_platform_windows, is_platform_32bit, PY3
+from pandas.compat import (is_platform_windows, is_platform_32bit, PY3,
+                           import_lzma)
 
 
 def safe_import(mod_name, min_version=None):
@@ -99,6 +100,13 @@ def _skip_if_no_scipy():
                 safe_import('scipy.interpolate'))
 
 
+def _skip_if_no_lzma():
+    try:
+        import_lzma()
+    except ImportError as e:
+        return True
+
+
 def skip_if_no(package, min_version=None):
     """
     Generic function to help skip test functions when required packages are not
@@ -153,3 +161,5 @@ skip_if_not_us_locale = pytest.mark.skipif(_skip_if_not_us_locale(),
                                                lang=locale.getlocale()[0]))
 skip_if_no_scipy = pytest.mark.skipif(_skip_if_no_scipy(),
                                       reason="Missing SciPy requirement")
+skip_if_no_lzma = pytest.mark.skipif(_skip_if_no_lzma(),
+                                     reason="need backports.lzma to run")

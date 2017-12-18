@@ -336,18 +336,6 @@ def _skip_if_no_scipy():
     pytest.importorskip("scipy.interpolate")
 
 
-def _check_if_lzma():
-    try:
-        return compat.import_lzma()
-    except ImportError:
-        return False
-
-
-def _skip_if_no_lzma():
-    import pytest
-    return _check_if_lzma() or pytest.skip('need backports.lzma to run')
-
-
 def skip_if_no_ne(engine='numexpr'):
     from pandas.core.computation.expressions import (
         _USE_NUMEXPR,
