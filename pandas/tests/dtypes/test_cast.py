@@ -418,3 +418,7 @@ class TestCommonTypes(object):
         # Direct comparison fails: https://github.com/numpy/numpy/issues/10218
         assert result.dtype == 'object'
         assert list(result) == data
+
+    @pytest.mark.parametrize('val', [1, 2., None])
+    def test_cast_1d_array_invalid_scalar(self, val):
+        pytest.raises(TypeError, construct_1d_object_array_from_listlike, val)
