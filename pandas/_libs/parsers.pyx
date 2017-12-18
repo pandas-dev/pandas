@@ -91,7 +91,6 @@ except NameError:
     basestring = str
 
 cdef extern from "src/numpy_helper.h":
-    object sarr_from_data(cnp.dtype, int length, void* data)
     void transfer_object_column(char *dst, char *src, size_t stride,
                                 size_t length)
 
@@ -302,7 +301,6 @@ cdef class TextReader:
         object delimiter, converters, delim_whitespace
         object na_values
         object memory_map
-        object as_recarray
         object header, orig_header, names, header_start, header_end
         object index_col
         object low_memory
@@ -333,8 +331,6 @@ cdef class TextReader:
                   compression=None,
 
                   converters=None,
-
-                  as_recarray=False,
 
                   skipinitialspace=False,
                   escapechar=None,
@@ -489,8 +485,6 @@ cdef class TextReader:
         self.converters = converters
 
         self.na_filter = na_filter
-        self.as_recarray = as_recarray
-
         self.compact_ints = compact_ints
         self.use_unsigned = use_unsigned
 
@@ -903,14 +897,7 @@ cdef class TextReader:
             # Don't care about memory usage
             columns = self._read_rows(rows, 1)
 
-        if self.as_recarray:
-            self._start_clock()
-            result = _to_structured_array(columns, self.header, self.usecols)
-            self._end_clock('Conversion to structured array')
-
-            return result
-        else:
-            return columns
+        return columns
 
     cdef _read_low_memory(self, rows):
         cdef:
@@ -999,7 +986,7 @@ cdef class TextReader:
         self._start_clock()
         columns = self._convert_column_data(rows=rows,
                                             footer=footer,
-                                            upcast_na=not self.as_recarray)
+                                            upcast_na=True)
         self._end_clock('Type conversion')
 
         self._start_clock()
@@ -2319,77 +2306,6 @@ cdef _apply_converter(object f, parser_t *parser, int64_t col,
             result[i] = f(val)
 
     return lib.maybe_convert_objects(result)
-
-
-def _to_structured_array(dict columns, object names, object usecols):
-    cdef:
-        ndarray recs, column
-        cnp.dtype dt
-        dict fields
-
-        object name, fnames, field_type
-        Py_ssize_t i, offset, nfields, length
-        int64_t stride, elsize
-        char *buf
-
-    if names is None:
-        names = ['%d' % i for i in range(len(columns))]
-    else:
-        # single line header
-        names = names[0]
-
-    if usecols is not None:
-        names = [n for i, n in enumerate(names)
-                 if i in usecols or n in usecols]
-
-    dt = np.dtype([(str(name), columns[i].dtype)
-                   for i, name in enumerate(names)])
-    fnames = dt.names
-    fields = dt.fields
-
-    nfields = len(fields)
-
-    if PY3:
-        length = len(list(columns.values())[0])
-    else:
-        length = len(columns.values()[0])
-
-    stride = dt.itemsize
-
-    # We own the data.
-    buf = <char*> malloc(length * stride)
-
-    recs = sarr_from_data(dt, length, buf)
-    assert(recs.flags.owndata)
-
-    for i in range(nfields):
-        # XXX
-        field_type = fields[fnames[i]]
-
-        # (dtype, stride) tuple
-        offset = field_type[1]
-        elsize = field_type[0].itemsize
-        column = columns[i]
-
-        _fill_structured_column(buf + offset, <char*> column.data,
-                                elsize, stride, length,
-                                field_type[0] == np.object_)
-
-    return recs
-
-
-cdef _fill_structured_column(char *dst, char* src, int64_t elsize,
-                             int64_t stride, int64_t length, bint incref):
-    cdef:
-        int64_t i
-
-    if incref:
-        transfer_object_column(dst, src, stride, length)
-    else:
-        for i in range(length):
-            memcpy(dst, src, elsize)
-            dst += stride
-            src += elsize
 
 
 def _maybe_encode(values):
