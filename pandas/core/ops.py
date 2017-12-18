@@ -363,7 +363,7 @@ class _TimeOp(_Op):
         rvalues = self._convert_to_array(right, name=name, other=lvalues)
 
         # left
-        self.is_offset_lhs = self._is_offset(left)
+        self.is_offset_lhs = _is_offset(left)
         self.is_timedelta_lhs = is_timedelta64_dtype(lvalues)
         self.is_datetime64_lhs = is_datetime64_dtype(lvalues)
         self.is_datetime64tz_lhs = is_datetime64tz_dtype(lvalues)
@@ -373,7 +373,7 @@ class _TimeOp(_Op):
         self.is_floating_lhs = left.dtype.kind == 'f'
 
         # right
-        self.is_offset_rhs = self._is_offset(right)
+        self.is_offset_rhs = _is_offset(right)
         self.is_datetime64_rhs = is_datetime64_dtype(rvalues)
         self.is_datetime64tz_rhs = is_datetime64tz_dtype(rvalues)
         self.is_datetime_rhs = (self.is_datetime64_rhs or
@@ -489,6 +489,7 @@ class _TimeOp(_Op):
             # datetime with tz
             elif (isinstance(ovalues, datetime.datetime) and
                   hasattr(ovalues, 'tzinfo')):
+                # TODO: does this mean to say `ovalues.tzinfo is not None`?
                 values = pd.DatetimeIndex(values)
             # datetime array with tz
             elif is_datetimetz(values):
@@ -515,7 +516,7 @@ class _TimeOp(_Op):
                 values = np.empty(values.shape, dtype=other.dtype)
                 values[:] = iNaT
             return values
-        elif self._is_offset(values):
+        elif _is_offset(values):
             return values
         else:
             raise TypeError("incompatible type [{dtype}] for a "
@@ -618,14 +619,15 @@ class _TimeOp(_Op):
 
         return lvalues, rvalues
 
-    def _is_offset(self, arr_or_obj):
-        """ check if obj or all elements of list-like is DateOffset """
-        if isinstance(arr_or_obj, ABCDateOffset):
-            return True
-        elif (is_list_like(arr_or_obj) and len(arr_or_obj) and
-              is_object_dtype(arr_or_obj)):
-            return all(isinstance(x, ABCDateOffset) for x in arr_or_obj)
-        return False
+
+def _is_offset(arr_or_obj):
+    """ check if obj or all elements of list-like is DateOffset """
+    if isinstance(arr_or_obj, ABCDateOffset):
+        return True
+    elif (is_list_like(arr_or_obj) and len(arr_or_obj) and
+          is_object_dtype(arr_or_obj)):
+        return all(isinstance(x, ABCDateOffset) for x in arr_or_obj)
+    return False
 
 
 def _align_method_SERIES(left, right, align_asobject=False):
@@ -661,6 +663,15 @@ def _construct_divmod_result(left, result, index, name, dtype):
         constructor(result[0], index=index, name=name, dtype=dtype),
         constructor(result[1], index=index, name=name, dtype=dtype),
     )
+
+
+def _get_series_result_name(left, rvalues):
+    # TODO: Can we just use right instead of rvalues?
+    if isinstance(rvalues, ABCSeries):
+        name = _maybe_match_name(left, rvalues)
+    else:
+        name = left.name
+    return name
 
 
 def _arith_method_SERIES(op, name, str_rep, fill_zeros=None, default_axis=None,
@@ -714,6 +725,29 @@ def _arith_method_SERIES(op, name, str_rep, fill_zeros=None, default_axis=None,
 
         if isinstance(right, ABCDataFrame):
             return NotImplemented
+
+        if _is_offset(right):
+            # special handling for alignment
+            pass
+        elif isinstance(right, pd.PeriodIndex):
+            # not supported for DatetimeIndex
+            pass
+        elif is_datetime64_dtype(left) or is_datetime64tz_dtype(left):
+            # Dispatch to DatetimeIndex method
+            if right is pd.NaT:
+                # DatetimeIndex and Series handle this differently, so
+                # until that is resolved we need to special-case here
+                return construct_result(left, pd.NaT, index=left.index,
+                                        name=left.name, dtype=left.dtype)
+                # TODO: double-check that the tz part of the dtype
+                # is supposed to be retained
+            left, right = _align_method_SERIES(left, right)
+            name = _get_series_result_name(left, right)
+            result = op(pd.DatetimeIndex(left), right)
+            result.name = name  # Needs to be overriden if name is None
+            return construct_result(left, result,
+                                    index=left.index, name=name,
+                                    dtype=result.dtype)
 
         left, right = _align_method_SERIES(left, right)
 

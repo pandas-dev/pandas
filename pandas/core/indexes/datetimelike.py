@@ -11,7 +11,7 @@ from pandas.core.tools.timedeltas import to_timedelta
 
 import numpy as np
 from pandas.core.dtypes.common import (
-    is_integer, is_float,
+    is_integer, is_float, is_integer_dtype,
     is_bool_dtype, _ensure_int64,
     is_scalar, is_dtype_equal,
     is_list_like, is_timedelta64_dtype)
@@ -650,6 +650,7 @@ class DatetimeIndexOpsMixin(object):
         def __add__(self, other):
             from pandas.core.index import Index
             from pandas.core.indexes.timedeltas import TimedeltaIndex
+            from pandas.core.indexes.datetimes import DatetimeIndex
             from pandas.tseries.offsets import DateOffset
             if is_timedelta64_dtype(other):
                 return self._add_delta(other)
@@ -664,6 +665,12 @@ class DatetimeIndexOpsMixin(object):
                 return self.shift(other)
             elif isinstance(other, (Index, datetime, np.datetime64)):
                 return self._add_datelike(other)
+            elif (isinstance(self, DatetimeIndex) and
+                  isinstance(other, np.ndarray) and other.size == 1
+                  and is_integer_dtype(other)):
+                # TODO: Should this be allowed if self.freq is not None?
+                raise TypeError("cannot add {cls} and {typ}"
+                                .format(cls=type(cls), typ=type(other)))
             else:  # pragma: no cover
                 return NotImplemented
         cls.__add__ = __add__
@@ -695,6 +702,12 @@ class DatetimeIndexOpsMixin(object):
                 return self._sub_datelike(other)
             elif isinstance(other, Period):
                 return self._sub_period(other)
+            elif (isinstance(self, DatetimeIndex) and
+                  isinstance(other, np.ndarray) and other.size == 1
+                  and is_integer_dtype(other)):
+                # TODO: Should this be allowed if self.freq is not None?
+                raise TypeError("cannot add {cls} and {typ}"
+                                .format(cls=type(cls), typ=type(other)))
             else:  # pragma: no cover
                 return NotImplemented
         cls.__sub__ = __sub__
