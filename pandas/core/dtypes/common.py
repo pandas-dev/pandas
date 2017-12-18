@@ -267,7 +267,28 @@ def is_datetimetz(arr):
 
 
 def is_offsetlike(arr_or_obj):
-    """ check if obj or all elements of list-like is DateOffset """
+    """
+    Check if obj or all elements of list-like is DateOffset
+
+    Parameters
+    ----------
+    arr_or_obj : object
+
+    Returns
+    -------
+    boolean : Whether the object is a DateOffset or listlike of DatetOffsets
+
+    Examples
+    --------
+    >>> is_offsetlike(pd.DateOffset(days=1))
+    True
+    >>> is_offsetlike('offset')
+    False
+    >>> is_offsetlike([pd.offsets.Minute(4), pd.offsets.MonthEnd()])
+    True
+    >>> is_offsetlike(np.array([pd.DateOffset(months=3), pd.Timestamp.now()]))
+    False
+    """
     if isinstance(arr_or_obj, ABCDateOffset):
         return True
     elif (is_list_like(arr_or_obj) and len(arr_or_obj) and

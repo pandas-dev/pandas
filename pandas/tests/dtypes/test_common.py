@@ -541,14 +541,13 @@ def test_is_offsetlike():
     assert com.is_offsetlike(np.array([pd.DateOffset(month=3),
                                        pd.offsets.Nano()]))
     assert com.is_offsetlike(pd.offsets.MonthEnd())
-    assert com.is_offsetlike([pd.offsets.MonthBegin(),
-                              pd.offsets.YearBegin()])
+    assert com.is_offsetlike(pd.Index([pd.DateOffset(second=1)]))
 
     assert not com.is_offsetlike(pd.Timedelta(1))
     assert not com.isoffsetlike(np.array([1 + 1j, 5]))
 
     # mixed case
-    assert not com.isoffsetlike([pd.DateOffset(), pd.Timestamp(0)])
+    assert not com.isoffsetlike(np.array([pd.DateOffset(), pd.Timestamp(0)]))
 
 
 @pytest.mark.parametrize('input_param,result', [
