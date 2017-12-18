@@ -6,6 +6,7 @@ from __future__ import division
 from warnings import warn, catch_warnings
 import numpy as np
 
+from pandas.core.extensions import ExtensionArray
 from pandas.core.dtypes.cast import (
     maybe_promote, construct_1d_object_array_from_listlike)
 from pandas.core.dtypes.generic import (
@@ -22,7 +23,7 @@ from pandas.core.dtypes.common import (
     is_categorical, is_datetimetz,
     is_datetime64_any_dtype, is_datetime64tz_dtype,
     is_timedelta64_dtype, is_interval_dtype,
-    is_scalar, is_list_like,
+    is_scalar, is_list_like, is_extension_type,
     _ensure_platform_int, _ensure_object,
     _ensure_float64, _ensure_uint64,
     _ensure_int64)
@@ -542,9 +543,12 @@ def value_counts(values, sort=True, ascending=False, normalize=False,
 
     else:
 
-        if is_categorical_dtype(values) or is_sparse(values):
-
-            # handle Categorical and sparse,
+        if (is_extension_type(values) and not
+                is_datetime64tz_dtype(values)):
+            # Need the not is_datetime64tz_dtype since it's actually
+            # an ndarray. It doesn't have a `.values.value_counts`.
+            # Perhaps we need a new is_extension_type method that
+            # distinguishes these...
             result = Series(values).values.value_counts(dropna=dropna)
             result.name = name
             counts = result.values
@@ -1322,6 +1326,8 @@ def take_nd(arr, indexer, axis=0, out=None, fill_value=np.nan, mask_info=None,
     elif is_datetimetz(arr):
         return arr.take(indexer, fill_value=fill_value, allow_fill=allow_fill)
     elif is_interval_dtype(arr):
+        return arr.take(indexer, fill_value=fill_value, allow_fill=allow_fill)
+    elif isinstance(arr, ExtensionArray):
         return arr.take(indexer, fill_value=fill_value, allow_fill=allow_fill)
 
     if indexer is None:

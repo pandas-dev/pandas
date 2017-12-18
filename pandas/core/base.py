@@ -880,7 +880,7 @@ class IndexOpsMixin(object):
         if isinstance(mapper, ABCSeries):
             # Since values were input this means we came from either
             # a dict or a series and mapper should be an index
-            if is_extension_type(self.dtype):
+            if is_extension_type(self):
                 values = self._values
             else:
                 values = self.values
@@ -891,7 +891,8 @@ class IndexOpsMixin(object):
             return new_values
 
         # we must convert to python types
-        if is_extension_type(self.dtype):
+        # TODO: is map part of the interface?
+        if is_extension_type(self) and hasattr(self._values, 'map'):
             values = self._values
             if na_action is not None:
                 raise NotImplementedError

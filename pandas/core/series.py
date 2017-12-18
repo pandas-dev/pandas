@@ -37,7 +37,7 @@ from pandas.core.dtypes.cast import (
     maybe_cast_to_datetime, maybe_castable,
     construct_1d_arraylike_from_scalar)
 from pandas.core.dtypes.missing import isna, notna, remove_na_arraylike
-
+from pandas.core.extensions import ExtensionArray
 from pandas.core.common import (is_bool_indexer,
                                 _default_index,
                                 _asarray_tuplesafe,
@@ -239,6 +239,11 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
                                        copy=copy)
                 elif copy:
                     data = data.copy()
+            elif isinstance(data, ExtensionArray):
+                # data = data._block_type(data, index)
+                if copy:
+                    data = data.copy()
+                data = SingleBlockManager(data, index, fastpath=True)
             else:
                 data = _sanitize_array(data, index, dtype, copy,
                                        raise_cast_failure=True)
@@ -2523,7 +2528,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
                 return f(self)
 
             # row-wise access
-            if is_extension_type(self.dtype):
+            if is_extension_type(self):
                 mapped = self._values.map(f)
             else:
                 values = self.astype(object).values
@@ -3217,6 +3222,8 @@ def _sanitize_array(data, index, dtype=None, copy=False,
         start, stop, step = get_range_parameters(data)
         arr = np.arange(start, stop, step, dtype='int64')
         subarr = _try_cast(arr, False)
+    elif isinstance(data, ExtensionArray):
+        subarr = data
     else:
         subarr = _try_cast(data, False)
 

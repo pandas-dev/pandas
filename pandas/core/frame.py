@@ -517,7 +517,7 @@ class DataFrame(NDFrame):
             index, columns = _get_axes(len(values), 1)
             return _arrays_to_mgr([values], columns, index, columns,
                                   dtype=dtype)
-        elif is_datetimetz(values):
+        elif is_extension_type(values):
             return self._init_dict({0: values}, index, columns, dtype=dtype)
 
         # by definition an array here
@@ -3345,6 +3345,7 @@ class DataFrame(NDFrame):
             new_obj = self.copy()
 
         def _maybe_casted_values(index, labels=None):
+            # TODO: Handle extension index -> extension array
             if isinstance(index, PeriodIndex):
                 values = index.astype(object).values
             elif isinstance(index, DatetimeIndex) and index.tz is not None:

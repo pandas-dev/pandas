@@ -140,3 +140,64 @@ As an example of fully-formed metadata:
          'metadata': None}
     ],
     'pandas_version': '0.20.0'}
+
+.. _developer.custom-array-types:
+
+Custom Array Types
+------------------
+
+.. versionadded:: 0.23.0
+
+.. warning::
+   Support for custom array types is experimental.
+
+Sometimes the NumPy type system isn't rich enough for your needs. Pandas has
+made a few extensions internally (e.g. ``Categorical``). While this has worked
+well for pandas, not all custom data types belong in pandas itself.
+
+Pandas defines an interface for custom arrays. Arrays implementing this
+interface will be stored correctly in ``Series`` or ``DataFrame``. The ABCs
+that must be implemented are
+
+1. :class:`ExtensionDtype` A class describing your data type itself. This is
+   similar to a ``numpy.dtype``.
+2. :class:`ExtensionArray`: A container for your data.
+
+Throughout this document, we'll use the example of storing IPv6 addresses. An
+IPv6 address is 128 bits, so NumPy doesn't have a native data type for it. We'll
+model it as a structured array with two ``uint64`` fields, which together
+represent the 128-bit integer that is the IP Address.
+
+Extension Dtype
+'''''''''''''''
+
+This should describe your data type. The most important fields are ``name`` and
+``base``:
+
+.. code-block:: python
+
+   class IPv6Type(ExtensionDtype):
+       name = 'IPv6'
+       base = np.dtype([('hi', '>u8'), ('lo', '>u8')])
+       type = IPTypeType
+       kind = 'O'
+       fill_value = np.array([(0, 0)], dtype=base)
+
+``base`` describe the underlying storage of individual items in your array.
+TODO: is this true? Or does ``.base`` refer to the original memory this
+is a view on? Different meanings for ``np.dtype.base`` vs. ``np.ndarray.base``?
+
+In our IPAddress case, we're using a NumPy structured array with two fields.
+
+Extension Array
+'''''''''''''''
+
+This is the actual array container for your data, similar to a ``Categorical``,
+and requires the most work to implement correctly. *pandas makes no assumptions
+about how you store the data*. You're free to use NumPy arrays or PyArrow
+arrays, or even just Python lists. That said, several of the methods required by
+the interface expect NumPy arrays as the return value.
+
+* ``dtype``: Should be an *instance* of your custom ``ExtensionType``
+* ``formtting_values(self)``: Used for printing Series and DataFrame
+* ``concat_same_type(concat)``: Used in :func:`pd.concat`

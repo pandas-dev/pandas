@@ -503,28 +503,26 @@ def test_is_bool_dtype():
     assert com.is_bool_dtype(pd.Index([True, False]))
 
 
-@pytest.mark.parametrize("check_scipy", [
-    False, pytest.param(True, marks=td.skip_if_no_scipy)
+@pytest.mark.parametrize("name, obj, is_extension", [
+    ('list', [1, 2, 3], False),
+    ('ndarray', np.array([1, 2, 3]), False),
+    ('datetimeindex', pd.DatetimeIndex([1, 2, 3]), False),  # ?
+    ('category', pd.Categorical([1, 2, 3]), True),
+    ('series[categorical]', pd.Series(pd.Categorical([1, 2, 3])), True),
+    ('sparse', pd.SparseArray([1, 2, 3]), True),
+    ('series[sparse]', pd.SparseSeries([1, 2, 3]), True),
+    ('datetime-with-tz', pd.DatetimeIndex([1, 2, 3], tz="US/Eastern"), True),
+
 ])
-def test_is_extension_type(check_scipy):
-    assert not com.is_extension_type([1, 2, 3])
-    assert not com.is_extension_type(np.array([1, 2, 3]))
-    assert not com.is_extension_type(pd.DatetimeIndex([1, 2, 3]))
+def test_is_extension_type(name, obj, is_extension):
+    result = com.is_extension_type(obj)
+    assert result == is_extension
 
-    cat = pd.Categorical([1, 2, 3])
-    assert com.is_extension_type(cat)
-    assert com.is_extension_type(pd.Series(cat))
-    assert com.is_extension_type(pd.SparseArray([1, 2, 3]))
-    assert com.is_extension_type(pd.SparseSeries([1, 2, 3]))
-    assert com.is_extension_type(pd.DatetimeIndex([1, 2, 3], tz="US/Eastern"))
 
-    dtype = DatetimeTZDtype("ns", tz="US/Eastern")
-    s = pd.Series([], dtype=dtype)
-    assert com.is_extension_type(s)
-
-    if check_scipy:
-        import scipy.sparse
-        assert not com.is_extension_type(scipy.sparse.bsr_matrix([1, 2, 3]))
+@td.skip_if_no_scipy
+def test_is_extension_type_scipy():
+    import scipy.sparse
+    assert not com.is_extension_type(scipy.sparse.bsr_matrix([1, 2, 3]))
 
 
 def test_is_complex_dtype():

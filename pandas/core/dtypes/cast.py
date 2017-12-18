@@ -1068,6 +1068,7 @@ def find_common_type(types):
     numpy.find_common_type
 
     """
+    # TODO: Make part of the interface?
 
     if len(types) == 0:
         raise ValueError('no types given')
@@ -1079,7 +1080,8 @@ def find_common_type(types):
     if all(is_dtype_equal(first, t) for t in types[1:]):
         return first
 
-    if any(isinstance(t, ExtensionDtype) for t in types):
+    # TODO: Period is an ExtensionDtype
+    if any(isinstance(t, (ExtensionDtype, PeriodDtype)) for t in types):
         return np.object
 
     # take lowest unit

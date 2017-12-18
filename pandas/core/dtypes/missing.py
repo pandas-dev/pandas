@@ -18,9 +18,11 @@ from .common import (is_string_dtype, is_datetimelike,
                      is_scalar,
                      is_object_dtype,
                      is_integer,
+                     is_extension_type,
                      _TD_DTYPE,
                      _NS_DTYPE)
 from .inference import is_list_like
+from ..extensions import ExtensionArray
 
 isposinf_scalar = libmissing.isposinf_scalar
 isneginf_scalar = libmissing.isneginf_scalar
@@ -57,7 +59,8 @@ def _isna_new(obj):
     # hack (for now) because MI registers as ndarray
     elif isinstance(obj, ABCMultiIndex):
         raise NotImplementedError("isna is not defined for MultiIndex")
-    elif isinstance(obj, (ABCSeries, np.ndarray, ABCIndexClass)):
+    elif isinstance(obj, (ABCSeries, np.ndarray, ABCIndexClass,
+                          ExtensionArray)):
         return _isna_ndarraylike(obj)
     elif isinstance(obj, ABCGeneric):
         return obj._constructor(obj._data.isna(func=isna))
@@ -128,7 +131,9 @@ def _isna_ndarraylike(obj):
     values = getattr(obj, 'values', obj)
     dtype = values.dtype
 
-    if is_string_dtype(dtype):
+    if isinstance(values, ExtensionArray):
+        result = values.isna()
+    elif is_string_dtype(dtype):
         if is_categorical_dtype(values):
             from pandas import Categorical
             if not isinstance(values, Categorical):
@@ -406,4 +411,7 @@ def remove_na_arraylike(arr):
     """
     Return array-like containing only true/non-NaN values, possibly empty.
     """
-    return arr[notna(lib.values_from_object(arr))]
+    if is_extension_type(arr):
+        return arr[notna(arr)]
+    else:
+        return arr[notna(lib.values_from_object(arr))]

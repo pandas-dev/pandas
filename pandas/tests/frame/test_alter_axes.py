@@ -327,6 +327,8 @@ class TestDataFrameAlterAxes(TestData):
         assert_frame_equal(result, expected)
 
         result2 = result.reset_index()
+        # XXX: Handle extension index things
+        # This will fail
         assert_frame_equal(result2, original)
 
     def test_set_index_multiindexcolumns(self):

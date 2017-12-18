@@ -43,6 +43,7 @@ from pandas.util._decorators import (
 from pandas.io.formats.terminal import get_terminal_size
 from pandas.util._validators import validate_bool_kwarg
 from pandas.core.config import get_option
+from pandas.core.extensions import ExtensionArray
 
 
 def _cat_compare_op(op):
@@ -408,6 +409,11 @@ class Categorical(PandasObject):
     def dtype(self):
         """The :class:`~pandas.api.types.CategoricalDtype` for this instance"""
         return self._dtype
+
+    @property
+    def _block_type(self):
+        from pandas.core.internals import CategoricalBlock
+        return CategoricalBlock
 
     @property
     def _constructor(self):
@@ -2144,6 +2150,15 @@ class Categorical(PandasObject):
         return self._constructor(values=codes, categories=self.categories,
                                  ordered=self.ordered, fastpath=True)
 
+
+# TODO: Categorical does not currently implement
+# - concat_same_type
+# - can_hold_na
+# We don't need to implement these, since they're just for
+# Block things, and we only use CategoricalBlocks for categoricals.
+# We could move that logic from CategoricalBlock to Categorical,
+# but holding off for now.
+ExtensionArray.register(Categorical)
 # The Series.cat accessor
 
 
