@@ -94,6 +94,45 @@ def _skip_if_not_us_locale():
         return True
 
 
+def _skip_if_no_scipy():
+    return not (safe_import('scipy.stats') and safe_import('scipy.sparse') and
+                safe_import('scipy.interpolate'))
+
+
+def skip_if_no(package, min_version=None):
+    """
+    Generic function to help skip test functions when required packages are not
+    present on the testing system.
+
+    Intended for use as a decorator, this function will wrap the decorated
+    function with a pytest ``skip_if`` mark. During a pytest test suite
+    execution, that mark will attempt to import the specified ``package`` and
+    optionally ensure it meets the ``min_version``. If the import and version
+    check are unsuccessful, then the decorated function will be skipped.
+
+    Parameters
+    ----------
+    package: str
+        The name of the package required by the decorated function
+    min_version: str or None, default None
+        Optional minimum version of the package required by the decorated
+        function
+
+    Returns
+    -------
+    decorated_func: function
+        The decorated function wrapped within a pytest ``skip_if`` mark
+    """
+    def decorated_func(func):
+        msg = "Could not import '{}'".format(package)
+        if min_version:
+            msg += " satisfying a min_version of {}".format(min_version)
+        return pytest.mark.skipif(
+            not safe_import(package, min_version=min_version), reason=msg
+        )(func)
+    return decorated_func
+
+
 skip_if_no_mpl = pytest.mark.skipif(_skip_if_no_mpl(),
                                     reason="Missing matplotlib dependency")
 skip_if_mpl_1_5 = pytest.mark.skipif(_skip_if_mpl_1_5(),
@@ -112,3 +151,5 @@ skip_if_not_us_locale = pytest.mark.skipif(_skip_if_not_us_locale(),
                                            reason="Specific locale is set "
                                            "{lang}".format(
                                                lang=locale.getlocale()[0]))
+skip_if_no_scipy = pytest.mark.skipif(_skip_if_no_scipy(),
+                                      reason="Missing SciPy requirement")

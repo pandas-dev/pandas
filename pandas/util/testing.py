@@ -348,33 +348,6 @@ def _skip_if_no_lzma():
     return _check_if_lzma() or pytest.skip('need backports.lzma to run')
 
 
-def _skip_if_no_xarray():
-    import pytest
-
-    xarray = pytest.importorskip("xarray")
-    v = xarray.__version__
-
-    if LooseVersion(v) < LooseVersion('0.7.0'):
-        import pytest
-        pytest.skip("xarray version is too low: {version}".format(version=v))
-
-
-def _skip_if_no_pathlib():
-    try:
-        from pathlib import Path  # noqa
-    except ImportError:
-        import pytest
-        pytest.skip("pathlib not available")
-
-
-def _skip_if_no_localpath():
-    try:
-        from py.path import local as LocalPath  # noqa
-    except ImportError:
-        import pytest
-        pytest.skip("py.path not installed")
-
-
 def skip_if_no_ne(engine='numexpr'):
     from pandas.core.computation.expressions import (
         _USE_NUMEXPR,
@@ -398,11 +371,6 @@ def _skip_if_no_mock():
         except ImportError:
             import pytest
             raise pytest.skip("mock is not installed")
-
-
-def _skip_if_no_ipython():
-    import pytest
-    pytest.importorskip("IPython")
 
 # -----------------------------------------------------------------------------
 # locale utilities
