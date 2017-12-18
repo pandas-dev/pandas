@@ -12,8 +12,8 @@ from .dtypes import (CategoricalDtype, CategoricalDtypeType,
 from .generic import (ABCCategorical, ABCPeriodIndex,
                       ABCDatetimeIndex, ABCSeries,
                       ABCSparseArray, ABCSparseSeries, ABCCategoricalIndex,
-                      ABCIndexClass)
-from .inference import is_string_like
+                      ABCIndexClass, ABCDateOffset)
+from .inference import is_string_like, is_list_like
 from .inference import *  # noqa
 
 
@@ -264,6 +264,26 @@ def is_datetimetz(arr):
     return ((isinstance(arr, ABCDatetimeIndex) and
              getattr(arr, 'tz', None) is not None) or
             is_datetime64tz_dtype(arr))
+
+
+def is_offsetlike(arr_or_obj):
+    """
+    Check if obj or all elements of list-like is DateOffset
+
+    Parameters
+    ----------
+    arr_or_obj : object
+
+    Returns
+    -------
+    boolean : Whether the object is a DateOffset or listlike of DatetOffsets
+    """
+    if isinstance(arr_or_obj, ABCDateOffset):
+        return True
+    elif (is_list_like(arr_or_obj) and len(arr_or_obj) and
+          is_object_dtype(arr_or_obj)):
+        return all(isinstance(x, ABCDateOffset) for x in arr_or_obj)
+    return False
 
 
 def is_period(arr):
