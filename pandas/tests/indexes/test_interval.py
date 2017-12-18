@@ -289,6 +289,7 @@ class TestIntervalIndex(Base):
         pd.to_datetime(['20170101', '20170202', '20170303', '20170404']),
         pd.to_timedelta(['1ns', '2ms', '3s', '4M', '5H', '6D'])])
     def test_length(self, closed, breaks):
+        # GH 18789
         index = IntervalIndex.from_breaks(breaks, closed=closed)
         result = index.length
         expected = Index(iv.length for iv in index)
@@ -299,6 +300,18 @@ class TestIntervalIndex(Base):
         result = index.length
         expected = Index(iv.length if notna(iv) else iv for iv in index)
         tm.assert_index_equal(result, expected)
+
+    @pytest.mark.parametrize('breaks', [
+        list('abcdefgh'),
+        lzip(range(10), range(1, 11)),
+        [['A', 'B'], ['a', 'b'], ['c', 'd'], ['e', 'f']],
+        [Interval(0, 1), Interval(1, 2), Interval(3, 4), Interval(4, 5)]])
+    def test_length_errors(self, closed, breaks):
+        # GH 18789
+        index = IntervalIndex.from_breaks(breaks)
+        msg = 'IntervalIndex contains Intervals without defined length'
+        with tm.assert_raises_regex(TypeError, msg):
+            index.length
 
     def test_with_nans(self, closed):
         index = self.create_index(closed=closed)

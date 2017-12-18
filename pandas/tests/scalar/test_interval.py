@@ -97,6 +97,18 @@ class TestInterval(object):
         expected = Timedelta(expected)
         assert result == expected
 
+    @pytest.mark.parametrize('left, right', [
+        ('a', 'z'),
+        (('a', 'b'), ('c', 'd')),
+        (list('AB'), list('ab')),
+        (Interval(0, 1), Interval(1, 2))])
+    def test_length_errors(self, left, right):
+        # GH 18789
+        iv = Interval(left, right)
+        msg = 'cannot compute length between .* and .*'
+        with tm.assert_raises_regex(TypeError, msg):
+            iv.length
+
     def test_math_add(self, interval):
         expected = Interval(1, 2)
         actual = interval + 1

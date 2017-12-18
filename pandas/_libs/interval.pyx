@@ -59,7 +59,12 @@ cdef class IntervalMixin(object):
     @property
     def length(self):
         """Return the length of the Interval"""
-        return self.right - self.left
+        try:
+            return self.right - self.left
+        except TypeError:
+            # length not defined for some types, e.g. string
+            msg = 'cannot compute length between {left} and {right}'
+            raise TypeError(msg.format(left=self.left, right=self.right))
 
 
 cdef _interval_like(other):
