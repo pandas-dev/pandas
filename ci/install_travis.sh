@@ -155,12 +155,11 @@ echo "[removing installed pandas]"
 conda remove pandas -y --force
 pip uninstall -y pandas
 
-if [ "$BUILD_TEST" ]; then
+# remove any installation
+conda list pandas
+pip list --format columns | grep pandas
 
-    # remove any installation
-    pip uninstall -y pandas
-    conda list pandas
-    pip list --format columns |grep pandas
+if [ "$BUILD_TEST" ]; then
 
     # build & install testing
     echo ["building release"]
