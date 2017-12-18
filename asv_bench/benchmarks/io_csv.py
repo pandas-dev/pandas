@@ -1,9 +1,12 @@
+import random
 import timeit
+import string
 
 import numpy as np
 import pandas.util.testing as tm
-from pandas import DataFrame, date_range, read_csv
-from pandas.compat import PY2, StringIO
+from pandas import DataFrame, Categorical, date_range, read_csv
+from pandas.compat import PY2
+from pandas.compat import cStringIO as StringIO
 
 from .pandas_vb_common import setup, BaseIO  # noqa
 
@@ -145,3 +148,102 @@ class S3(object):
         # Read a small number of rows from a huge (100,000 x 50) table.
         read_csv(self.big_fname, nrows=10, compression=compression,
                  engine=engine)
+
+
+class ReadCSVThousands(object):
+
+    goal_time = 0.2
+    fname = '__test__.csv'
+    params = ([',', '|'], [None, ','])
+    param_names = ['sep', 'thousands']
+
+    def setup(self, sep, thousands):
+        N = 10000
+        K = 8
+        data = np.random.randn(N, K) * np.random.randint(100, 10000, (N, K))
+        df = DataFrame(data)
+        if thousands is not None:
+            fmt = ':{}'.format(thousands)
+            fmt = '{' + fmt + '}'
+            df = df.applymap(lambda x: fmt.format(x))
+        df.to_csv(self.fname, sep=sep)
+
+    def time_thousands(self, sep, thousands):
+        read_csv(self.fname, sep=sep, thousands=thousands)
+
+
+class ReadCSVComment(object):
+
+    goal_time = 0.2
+
+    def setup(self):
+        data = ['A,B,C'] + (['1,2,3 # comment'] * 100000)
+        self.s_data = StringIO('\n'.join(data))
+
+    def time_comment(self):
+        read_csv(self.s_data, comment='#', header=None, names=list('abc'))
+
+
+class ReadCSVFloatPrecision(object):
+
+    goal_time = 0.2
+    params = ([',', ';'], ['.', '_'], [None, 'high', 'round_trip'])
+    param_names = ['sep', 'decimal', 'float_precision']
+
+    def setup(self, sep, decimal, float_precision):
+        floats = [''.join(random.choice(string.digits) for _ in range(28))
+                  for _ in range(15)]
+        rows = sep.join(['0{}'.format(decimal) + '{}'] * 3) + '\n'
+        data = rows * 5
+        data = data.format(*floats) * 200  # 1000 x 3 strings csv
+        self.s_data = StringIO(data)
+
+    def time_read_csv(self, sep, decimal, float_precision):
+        read_csv(self.s_data, sep=sep, header=None, names=list('abc'),
+                 float_precision=float_precision)
+
+    def time_read_csv_python_engine(self, sep, decimal, float_precision):
+        read_csv(self.s_data, sep=sep, header=None, engine='python',
+                 float_precision=None, names=list('abc'))
+
+
+class ReadCSVCategorical(BaseIO):
+
+    goal_time = 0.2
+    fname = '__test__.csv'
+
+    def setup(self):
+        N = 100000
+        group1 = ['aaaaaaaa', 'bbbbbbb', 'cccccccc', 'dddddddd', 'eeeeeeee']
+        df = DataFrame(np.random.choice(group1, (N, 3)), columns=list('abc'))
+        df.to_csv(self.fname, index=False)
+
+    def time_convert_post(self):
+        read_csv(self.fname).apply(Categorical)
+
+    def time_convert_direct(self):
+        read_csv(self.fname, dtype='category')
+
+
+class ReadCSVParseDates(object):
+
+    goal_time = 0.2
+
+    def setup(self):
+        data = """{},19:00:00,18:56:00,0.8100,2.8100,7.2000,0.0000,280.0000\n
+                  {},20:00:00,19:56:00,0.0100,2.2100,7.2000,0.0000,260.0000\n
+                  {},21:00:00,20:56:00,-0.5900,2.2100,5.7000,0.0000,280.0000\n
+                  {},21:00:00,21:18:00,-0.9900,2.0100,3.6000,0.0000,270.0000\n
+                  {},22:00:00,21:56:00,-0.5900,1.7100,5.1000,0.0000,290.0000\n
+               """
+        two_cols = ['KORD,19990127'] * 5
+        data = data.format(*two_cols)
+        self.s_data = StringIO(data)
+
+    def time_multiple_date(self):
+        read_csv(self.s_data, sep=',', header=None,
+                 names=list(string.digits[:9]), parse_dates=[[1, 2], [1, 3]])
+
+    def time_baseline(self):
+        read_csv(self.s_data, sep=',', header=None, parse_dates=[1],
+                 names=list(string.digits[:9]))

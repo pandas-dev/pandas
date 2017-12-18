@@ -9,45 +9,51 @@ class ReadJSON(BaseIO):
 
     goal_time = 0.2
     fname = "__test__.json"
-    params = (['records', 'split'], [None, 25000], ['int', 'datetime'])
-    param_names = ['orient', 'chunksize', 'index']
+    params = (['split', 'index', 'records'], ['int', 'datetime'])
+    param_names = ['orient', 'index']
 
-    def setup(self, orient, chunksize, index):
+    def setup(self, orient, index):
         N = 100000
         indexes = {'int': np.arange(N),
                    'datetime': date_range('20000101', periods=N, freq='H')}
         df = DataFrame(np.random.randn(N, 5),
                        columns=['float_{}'.format(i) for i in range(5)],
                        index=indexes[index])
-        df.to_json(self.fname, orient=lines_orient[1], lines=lines_orient[0])
+        df.to_json(self.fname, orient=orient)
 
-    def time_read_json(self, orient, chunksize, index):
-        read_json(self.fname, orient=orient, chunksize=chunksize)
+    def time_read_json(self, orient, index):
+        read_json(self.fname, orient=orient)
 
-    def time_read_json_concat(self, orient, chunksize, index):
-        concat(read_json(self.fname, orient=orient, chunksize=chunksize))
 
-    def peakmem_read_json(self, orient, chunksize, index):
-        read_json(self.fname, orient=orient, chunksize=chunksize)
+class ReadJSONLines(BaseIO):
 
-    def peakmem_read_json_concat(self, orient, chunksize, index):
-        concat(read_json(self.fname, orient=orient, chunksize=chunksize))
+    goal_time = 0.2
+    fname = "__test_lines__.json"
+    params = ['int', 'datetime']
+    param_names = ['index']
 
-    def time_read_json_lines(self, orient, chunksize, index):
-        read_json(self.fname, orient='records', lines=True,
-                  chunksize=chunksize)
+    def setup(self, index):
+        N = 100000
+        indexes = {'int': np.arange(N),
+                   'datetime': date_range('20000101', periods=N, freq='H')}
+        df = DataFrame(np.random.randn(N, 5),
+                       columns=['float_{}'.format(i) for i in range(5)],
+                       index=indexes[index])
+        df.to_json(self.fname, orient='records', lines=True)
 
-    def time_read_json_lines_concat(self, orient, chunksize, index):
+    def time_read_json_lines(self, index):
+        read_json(self.fname, orient='records', lines=True)
+
+    def time_read_json_lines_concat(self, index):
         concat(read_json(self.fname, orient='records', lines=True,
-                         chunksize=chunksize))
+                         chunksize=25000))
 
-    def peakmem_read_json_lines(self, orient, chunksize, index):
-        read_json(self.fname, orient='records', lines=True,
-                  chunksize=chunksize)
+    def peakmem_read_json_lines(self, index):
+        read_json(self.fname, orient='records', lines=True)
 
-    def peakmem_read_json_lines_concat(self, orient, chunksize, index):
+    def peakmem_read_json_lines_concat(self, index):
         concat(read_json(self.fname, orient='records', lines=True,
-                         chunksize=chunksize))
+                         chunksize=25000))
 
 
 class ToJSON(BaseIO):
