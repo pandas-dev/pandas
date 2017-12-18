@@ -30,7 +30,7 @@ from pandas.core.dtypes.common import (
     is_object_dtype, is_timedelta64_dtype,
     is_datetime64_dtype, is_datetime64tz_dtype,
     is_bool_dtype, is_datetimetz,
-    is_list_like,
+    is_list_like, is_offsetlike,
     is_scalar,
     _ensure_object)
 from pandas.core.dtypes.cast import maybe_upcast_putmask, find_common_type
@@ -38,8 +38,7 @@ from pandas.core.dtypes.generic import (
     ABCSeries,
     ABCDataFrame,
     ABCIndex,
-    ABCPeriodIndex,
-    ABCDateOffset)
+    ABCPeriodIndex)
 
 # -----------------------------------------------------------------------------
 # Functions that add arithmetic methods to objects, given arithmetic factory
@@ -363,7 +362,7 @@ class _TimeOp(_Op):
         rvalues = self._convert_to_array(right, name=name, other=lvalues)
 
         # left
-        self.is_offset_lhs = _is_offset(left)
+        self.is_offset_lhs = is_offsetlike(left)
         self.is_timedelta_lhs = is_timedelta64_dtype(lvalues)
         self.is_datetime64_lhs = is_datetime64_dtype(lvalues)
         self.is_datetime64tz_lhs = is_datetime64tz_dtype(lvalues)
@@ -373,7 +372,7 @@ class _TimeOp(_Op):
         self.is_floating_lhs = left.dtype.kind == 'f'
 
         # right
-        self.is_offset_rhs = _is_offset(right)
+        self.is_offset_rhs = is_offsetlike(right)
         self.is_datetime64_rhs = is_datetime64_dtype(rvalues)
         self.is_datetime64tz_rhs = is_datetime64tz_dtype(rvalues)
         self.is_datetime_rhs = (self.is_datetime64_rhs or
@@ -516,7 +515,7 @@ class _TimeOp(_Op):
                 values = np.empty(values.shape, dtype=other.dtype)
                 values[:] = iNaT
             return values
-        elif _is_offset(values):
+        elif is_offsetlike(values):
             return values
         else:
             raise TypeError("incompatible type [{dtype}] for a "
@@ -620,16 +619,6 @@ class _TimeOp(_Op):
         return lvalues, rvalues
 
 
-def _is_offset(arr_or_obj):
-    """ check if obj or all elements of list-like is DateOffset """
-    if isinstance(arr_or_obj, ABCDateOffset):
-        return True
-    elif (is_list_like(arr_or_obj) and len(arr_or_obj) and
-          is_object_dtype(arr_or_obj)):
-        return all(isinstance(x, ABCDateOffset) for x in arr_or_obj)
-    return False
-
-
 def _align_method_SERIES(left, right, align_asobject=False):
     """ align lhs and rhs Series """
 
@@ -726,7 +715,7 @@ def _arith_method_SERIES(op, name, str_rep, fill_zeros=None, default_axis=None,
         if isinstance(right, ABCDataFrame):
             return NotImplemented
 
-        if _is_offset(right):
+        if is_offsetlike(right):
             # special handling for alignment
             pass
         elif isinstance(right, pd.PeriodIndex):
