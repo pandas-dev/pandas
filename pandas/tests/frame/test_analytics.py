@@ -22,6 +22,7 @@ import pandas.core.algorithms as algorithms
 import pandas.io.formats.printing as printing
 
 import pandas.util.testing as tm
+import pandas.util._test_decorators as td
 from pandas.tests.frame.common import TestData
 
 
@@ -30,22 +31,22 @@ class TestDataFrameAnalytics(TestData):
     # ---------------------------------------------------------------------=
     # Correlation and covariance
 
+    @td.skip_if_no_scipy
     def test_corr_pearson(self):
-        tm._skip_if_no_scipy()
         self.frame['A'][:5] = nan
         self.frame['B'][5:10] = nan
 
         self._check_method('pearson')
 
+    @td.skip_if_no_scipy
     def test_corr_kendall(self):
-        tm._skip_if_no_scipy()
         self.frame['A'][:5] = nan
         self.frame['B'][5:10] = nan
 
         self._check_method('kendall')
 
+    @td.skip_if_no_scipy
     def test_corr_spearman(self):
-        tm._skip_if_no_scipy()
         self.frame['A'][:5] = nan
         self.frame['B'][5:10] = nan
 
@@ -62,8 +63,8 @@ class TestDataFrameAnalytics(TestData):
             expected.loc['A', 'B'] = expected.loc['B', 'A'] = nan
             tm.assert_frame_equal(result, expected)
 
+    @td.skip_if_no_scipy
     def test_corr_non_numeric(self):
-        tm._skip_if_no_scipy()
         self.frame['A'][:5] = nan
         self.frame['B'][5:10] = nan
 
@@ -72,9 +73,8 @@ class TestDataFrameAnalytics(TestData):
         expected = self.mixed_frame.loc[:, ['A', 'B', 'C', 'D']].corr()
         tm.assert_frame_equal(result, expected)
 
+    @td.skip_if_no_scipy
     def test_corr_nooverlap(self):
-        tm._skip_if_no_scipy()
-
         # nothing in common
         for meth in ['pearson', 'kendall', 'spearman']:
             df = DataFrame({'A': [1, 1.5, 1, np.nan, np.nan, np.nan],
@@ -88,9 +88,8 @@ class TestDataFrameAnalytics(TestData):
             assert rs.loc['B', 'B'] == 1
             assert isna(rs.loc['C', 'C'])
 
+    @td.skip_if_no_scipy
     def test_corr_constant(self):
-        tm._skip_if_no_scipy()
-
         # constant --> all NA
 
         for meth in ['pearson', 'spearman']:
@@ -106,9 +105,8 @@ class TestDataFrameAnalytics(TestData):
         df3.cov()
         df3.corr()
 
+    @td.skip_if_no_scipy
     def test_corr_int_and_boolean(self):
-        tm._skip_if_no_scipy()
-
         # when dtypes of pandas series are different
         # then ndarray will have dtype=object,
         # so it need to be properly handled
@@ -719,8 +717,8 @@ class TestDataFrameAnalytics(TestData):
             result = nanops.nansem(arr, axis=0)
             assert not (result < 0).any()
 
+    @td.skip_if_no_scipy
     def test_skew(self):
-        tm._skip_if_no_scipy()
         from scipy.stats import skew
 
         def alt(x):
@@ -730,9 +728,8 @@ class TestDataFrameAnalytics(TestData):
 
         self._check_stat_op('skew', alt)
 
+    @td.skip_if_no_scipy
     def test_kurt(self):
-        tm._skip_if_no_scipy()
-
         from scipy.stats import kurtosis
 
         def alt(x):
