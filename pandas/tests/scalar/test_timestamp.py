@@ -983,7 +983,7 @@ class TestTimestampComparison(object):
         # 2D case
         arr = np.array([[other, ts],
                         [ts, other]],
-                        dtype=object)
+                       dtype=object)
         res = arr != ts
         expected = np.array([[True, False], [False, True]], dtype=bool)
         assert res.shape == expected.shape
