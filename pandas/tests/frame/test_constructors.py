@@ -22,7 +22,7 @@ from pandas import (DataFrame, Index, Series, isna,
                     date_range, Categorical)
 import pandas as pd
 import pandas.util.testing as tm
-from pandas.core.dtypes.cast import construct_1d_array_from_listlike
+from pandas.core.dtypes.cast import construct_1d_object_array_from_listlike
 
 from pandas.tests.frame.common import TestData
 
@@ -1199,7 +1199,7 @@ class TestDataFrameConstructors(TestData):
             DataFrame.from_items(row_items, orient='index')
 
         # orient='index', but thar be tuples
-        arr = construct_1d_array_from_listlike(
+        arr = construct_1d_object_array_from_listlike(
             [('bar', 'baz')] * len(self.mixed_frame))
         self.mixed_frame['foo'] = arr
         row_items = [(idx, list(self.mixed_frame.xs(idx)))

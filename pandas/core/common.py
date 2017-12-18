@@ -21,7 +21,7 @@ from pandas.core.dtypes.inference import _iterable_not_string
 from pandas.core.dtypes.missing import isna, isnull, notnull  # noqa
 from pandas.api import types
 from pandas.core.dtypes import common
-from pandas.core.dtypes.cast import construct_1d_array_from_listlike
+from pandas.core.dtypes.cast import construct_1d_object_array_from_listlike
 
 # compat
 from pandas.errors import (  # noqa
@@ -382,7 +382,7 @@ def _asarray_tuplesafe(values, dtype=None):
         return values.values
 
     if isinstance(values, list) and dtype in [np.object_, object]:
-        return construct_1d_array_from_listlike(values)
+        return construct_1d_object_array_from_listlike(values)
 
     result = np.asarray(values, dtype=dtype)
 
@@ -393,7 +393,7 @@ def _asarray_tuplesafe(values, dtype=None):
         # Avoid building an array of arrays:
         # TODO: verify whether any path hits this except #18819 (invalid)
         values = [tuple(x) for x in values]
-        result = construct_1d_array_from_listlike(values)
+        result = construct_1d_object_array_from_listlike(values)
 
     return result
 
