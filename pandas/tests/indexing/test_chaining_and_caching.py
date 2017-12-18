@@ -8,7 +8,6 @@ from pandas.core import common as com
 from pandas import (compat, DataFrame, option_context,
                     Series, MultiIndex, date_range, Timestamp)
 from pandas.util import testing as tm
-from pandas.core.common import SettingWithCopyError, SettingWithCopyWarning
 
 
 class TestCaching(object):
@@ -421,11 +420,11 @@ class TestChaining(object):
         tm.assert_series_equal(df.f, expected)
 
     def test_deprecate_is_copy(self):
-        #GH18801
+        # GH18801
         df = DataFrame({"A": [1, 2, 3]})
         with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
             # getter
-            is_copy = df.is_copy
+            df.is_copy
 
         with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
             # setter
