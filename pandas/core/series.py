@@ -3280,7 +3280,7 @@ def _sanitize_array(data, index, dtype=None, copy=False,
         # GH 16605
         # If not empty convert the data to dtype
         if not isna(data).all():
-            data = np.array(data, dtype=dtype)
+            data = np.array(data, dtype=dtype, copy=False)
 
         subarr = np.array(data, dtype=object, copy=copy)
 
