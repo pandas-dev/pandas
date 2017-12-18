@@ -95,7 +95,7 @@ constructed from the sorted keys of the dict, if possible.
 
     NaN (not a number) is the standard missing data marker used in pandas.
 
-**From scalar value** 
+**From scalar value**
 
 If ``data`` is a scalar value, an index must be
 provided. The value will be repeated to match the length of **index**.
@@ -154,7 +154,7 @@ See also the :ref:`section on attribute access<indexing.attribute_access>`.
 Vectorized operations and label alignment with Series
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-When working with raw NumPy arrays, looping through value-by-value is usually 
+When working with raw NumPy arrays, looping through value-by-value is usually
 not necessary. The same is true when working with Series in pandas.
 Series can also be passed into most NumPy methods expecting an ndarray.
 
@@ -324,7 +324,7 @@ From a list of dicts
 From a dict of tuples
 ~~~~~~~~~~~~~~~~~~~~~
 
-You can automatically create a multi-indexed frame by passing a tuples 
+You can automatically create a multi-indexed frame by passing a tuples
 dictionary.
 
 .. ipython:: python
@@ -347,7 +347,7 @@ column name provided).
 **Missing Data**
 
 Much more will be said on this topic in the :ref:`Missing data <missing_data>`
-section. To construct a DataFrame with missing data, we use ``np.nan`` to 
+section. To construct a DataFrame with missing data, we use ``np.nan`` to
 represent missing values. Alternatively, you may pass a ``numpy.MaskedArray``
 as the data argument to the DataFrame constructor, and its masked entries will
 be considered missing.
@@ -370,7 +370,7 @@ set to ``'index'`` in order to use the dict keys as row labels.
 
 ``DataFrame.from_records`` takes a list of tuples or an ndarray with structured
 dtype. It works analogously to the normal ``DataFrame`` constructor, except that
-the resulting DataFrame index may be a specific field of the structured 
+the resulting DataFrame index may be a specific field of the structured
 dtype. For example:
 
 .. ipython:: python
@@ -506,25 +506,36 @@ to be inserted (for example, a ``Series`` or NumPy array), or a function
 of one argument to be called on the ``DataFrame``. A *copy* of the original
 DataFrame is returned, with the new values inserted.
 
+Starting from Python 3.6 ``**kwargs`` is an ordered dictionary and :func:`DataFrame.assign`
+respects the order of the keyword arguments. You can use assign in the following way:
+
+.. ipython:: python
+
+   dfa = pd.DataFrame({"A": [1, 2, 3],
+                       "B": [4, 5, 6]})
+   dfa.assign(C=lambda x: x['A'] + x['B'],
+              D=lambda x: x['A'] + x['C'])
+
 .. warning::
 
-  Since the function signature of ``assign`` is ``**kwargs``, a dictionary,
-  the order of the new columns in the resulting DataFrame cannot be guaranteed
-  to match the order you pass in. To make things predictable, items are inserted
-  alphabetically (by key) at the end of the DataFrame.
+   Prior to Python 3.6, this may subtly change the behavior of your code when you are
+   using :func:`DataFrame.assign` to update an existing column.
 
-  All expressions are computed first, and then assigned. So you can't refer
-  to another column being assigned in the same call to ``assign``. For example:
+   Since the function signature of ``assign`` is ``**kwargs``, a dictionary,
+   the order of the new columns in the resulting DataFrame cannot be guaranteed
+   to match the order you pass in. To make things predictable, items are inserted
+   alphabetically (by key) at the end of the DataFrame.
 
    .. ipython::
-       :verbatim:
+      :verbatim:
 
-       In [1]: # Don't do this, bad reference to `C`
-               df.assign(C = lambda x: x['A'] + x['B'],
-                         D = lambda x: x['A'] + x['C'])
-       In [2]: # Instead, break it into two assigns
-               (df.assign(C = lambda x: x['A'] + x['B'])
-                  .assign(D = lambda x: x['A'] + x['C']))
+      In [1]: # Don't do this, bad reference to `C`
+              df.assign(C = lambda x: x['A'] + x['B'],
+                        D = lambda x: x['A'] + x['C'])
+      In [2]: # Instead, break it into two assigns
+              (df.assign(C = lambda x: x['A'] + x['B'])
+                 .assign(D = lambda x: x['A'] + x['C']))
+
 
 Indexing / Selection
 ~~~~~~~~~~~~~~~~~~~~
@@ -914,7 +925,7 @@ For example, using the earlier example data, we could do:
 Squeezing
 ~~~~~~~~~
 
-Another way to change the dimensionality of an object is to ``squeeze`` a 1-len 
+Another way to change the dimensionality of an object is to ``squeeze`` a 1-len
 object, similar to ``wp['Item1']``.
 
 .. ipython:: python
