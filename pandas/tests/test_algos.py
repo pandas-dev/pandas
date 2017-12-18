@@ -19,6 +19,7 @@ from pandas.compat import lrange, range
 import pandas.core.algorithms as algos
 from pandas.core.common import _asarray_tuplesafe
 import pandas.util.testing as tm
+import pandas.util._test_decorators as td
 from pandas.core.dtypes.dtypes import CategoricalDtype as CDT
 from pandas.compat.numpy import np_array_datetime64_compat
 from pandas.util.testing import assert_almost_equal
@@ -1109,8 +1110,8 @@ def test_unique_label_indices():
 
 class TestRank(object):
 
+    @td.skip_if_no_scipy
     def test_scipy_compat(self):
-        tm._skip_if_no_scipy()
         from scipy.stats import rankdata
 
         def _check(arr):

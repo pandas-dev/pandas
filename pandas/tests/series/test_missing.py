@@ -19,6 +19,7 @@ from pandas._libs.tslib import iNaT
 from pandas.core.series import remove_na
 from pandas.util.testing import assert_series_equal, assert_frame_equal
 import pandas.util.testing as tm
+import pandas.util._test_decorators as td
 
 from .common import TestData
 
@@ -694,7 +695,7 @@ class TestSeriesMissingData(TestData):
         ts = self.ts.copy()
         ts[::2] = np.NaN
 
-        result = ts.valid()
+        result = ts.dropna()
         assert len(result) == ts.count()
         tm.assert_series_equal(result, ts[1::2])
         tm.assert_series_equal(result, ts[pd.notna(ts)])
@@ -853,8 +854,8 @@ class TestSeriesInterpolateData(TestData):
         non_ts[0] = np.NaN
         pytest.raises(ValueError, non_ts.interpolate, method='time')
 
+    @td.skip_if_no_scipy
     def test_interpolate_pchip(self):
-        tm._skip_if_no_scipy()
         _skip_if_no_pchip()
 
         ser = Series(np.sort(np.random.uniform(size=100)))
@@ -866,8 +867,8 @@ class TestSeriesInterpolateData(TestData):
         # does not blow up, GH5977
         interp_s[49:51]
 
+    @td.skip_if_no_scipy
     def test_interpolate_akima(self):
-        tm._skip_if_no_scipy()
         _skip_if_no_akima()
 
         ser = Series([10, 11, 12, 13])
@@ -881,9 +882,8 @@ class TestSeriesInterpolateData(TestData):
         interp_s = ser.reindex(new_index).interpolate(method='akima')
         assert_series_equal(interp_s[1:3], expected)
 
+    @td.skip_if_no_scipy
     def test_interpolate_piecewise_polynomial(self):
-        tm._skip_if_no_scipy()
-
         ser = Series([10, 11, 12, 13])
 
         expected = Series([11.00, 11.25, 11.50, 11.75,
@@ -896,9 +896,8 @@ class TestSeriesInterpolateData(TestData):
             method='piecewise_polynomial')
         assert_series_equal(interp_s[1:3], expected)
 
+    @td.skip_if_no_scipy
     def test_interpolate_from_derivatives(self):
-        tm._skip_if_no_scipy()
-
         ser = Series([10, 11, 12, 13])
 
         expected = Series([11.00, 11.25, 11.50, 11.75,
@@ -911,19 +910,17 @@ class TestSeriesInterpolateData(TestData):
             method='from_derivatives')
         assert_series_equal(interp_s[1:3], expected)
 
-    def test_interpolate_corners(self):
+    @pytest.mark.parametrize("kwargs", [
+        {},
+        pytest.param({'method': 'polynomial', 'order': 1},
+                     marks=td.skip_if_no_scipy)
+    ])
+    def test_interpolate_corners(self, kwargs):
         s = Series([np.nan, np.nan])
-        assert_series_equal(s.interpolate(), s)
+        assert_series_equal(s.interpolate(**kwargs), s)
 
         s = Series([]).interpolate()
-        assert_series_equal(s.interpolate(), s)
-
-        tm._skip_if_no_scipy()
-        s = Series([np.nan, np.nan])
-        assert_series_equal(s.interpolate(method='polynomial', order=1), s)
-
-        s = Series([]).interpolate()
-        assert_series_equal(s.interpolate(method='polynomial', order=1), s)
+        assert_series_equal(s.interpolate(**kwargs), s)
 
     def test_interpolate_index_values(self):
         s = Series(np.nan, index=np.sort(np.random.rand(30)))
@@ -953,15 +950,15 @@ class TestSeriesInterpolateData(TestData):
         with pytest.raises(ValueError):
             s.interpolate(method='time')
 
-    # New interpolation tests
-    def test_nan_interpolate(self):
+    @pytest.mark.parametrize("kwargs", [
+        {},
+        pytest.param({'method': 'polynomial', 'order': 1},
+                     marks=td.skip_if_no_scipy)
+    ])
+    def test_nan_interpolate(self, kwargs):
         s = Series([0, 1, np.nan, 3])
-        result = s.interpolate()
+        result = s.interpolate(**kwargs)
         expected = Series([0., 1., 2., 3.])
-        assert_series_equal(result, expected)
-
-        tm._skip_if_no_scipy()
-        result = s.interpolate(method='polynomial', order=1)
         assert_series_equal(result, expected)
 
     def test_nan_irregular_index(self):
@@ -976,16 +973,15 @@ class TestSeriesInterpolateData(TestData):
         expected = Series([0., 1., 2., 2.], index=list('abcd'))
         assert_series_equal(result, expected)
 
+    @td.skip_if_no_scipy
     def test_interp_quad(self):
-        tm._skip_if_no_scipy()
         sq = Series([1, 4, np.nan, 16], index=[1, 2, 3, 4])
         result = sq.interpolate(method='quadratic')
         expected = Series([1., 4., 9., 16.], index=[1, 2, 3, 4])
         assert_series_equal(result, expected)
 
+    @td.skip_if_no_scipy
     def test_interp_scipy_basic(self):
-        tm._skip_if_no_scipy()
-
         s = Series([1, 3, np.nan, 12, np.nan, 25])
         # slinear
         expected = Series([1., 3., 7.5, 12., 18.5, 25.])
@@ -1147,9 +1143,8 @@ class TestSeriesInterpolateData(TestData):
                                limit_direction='both')
         assert_series_equal(result, expected)
 
+    @td.skip_if_no_scipy
     def test_interp_all_good(self):
-        # scipy
-        tm._skip_if_no_scipy()
         s = Series([1, 2, 3])
         result = s.interpolate(method='polynomial', order=1)
         assert_series_equal(result, s)
@@ -1158,7 +1153,11 @@ class TestSeriesInterpolateData(TestData):
         result = s.interpolate()
         assert_series_equal(result, s)
 
-    def test_interp_multiIndex(self):
+    @pytest.mark.parametrize("check_scipy", [
+        False,
+        pytest.param(True, marks=td.skip_if_no_scipy)
+    ])
+    def test_interp_multiIndex(self, check_scipy):
         idx = MultiIndex.from_tuples([(0, 'a'), (1, 'b'), (2, 'c')])
         s = Series([1, 2, np.nan], index=idx)
 
@@ -1167,18 +1166,18 @@ class TestSeriesInterpolateData(TestData):
         result = s.interpolate()
         assert_series_equal(result, expected)
 
-        tm._skip_if_no_scipy()
-        with pytest.raises(ValueError):
-            s.interpolate(method='polynomial', order=1)
+        if check_scipy:
+            with pytest.raises(ValueError):
+                s.interpolate(method='polynomial', order=1)
 
+    @td.skip_if_no_scipy
     def test_interp_nonmono_raise(self):
-        tm._skip_if_no_scipy()
         s = Series([1, np.nan, 3], index=[0, 2, 1])
         with pytest.raises(ValueError):
             s.interpolate(method='krogh')
 
+    @td.skip_if_no_scipy
     def test_interp_datetime64(self):
-        tm._skip_if_no_scipy()
         df = Series([1, np.nan, 3], index=date_range('1/1/2000', periods=3))
         result = df.interpolate(method='nearest')
         expected = Series([1., 1., 3.],
@@ -1192,25 +1191,22 @@ class TestSeriesInterpolateData(TestData):
         expected = s
         assert_series_equal(result, expected)
 
-    def test_no_order(self):
-        tm._skip_if_no_scipy()
+    @td.skip_if_no_scipy
+    @pytest.mark.parametrize("method", ['polynomial', 'spline'])
+    def test_no_order(self, method):
         s = Series([0, 1, np.nan, 3])
         with pytest.raises(ValueError):
-            s.interpolate(method='polynomial')
-        with pytest.raises(ValueError):
-            s.interpolate(method='spline')
+            s.interpolate(method=method)
 
+    @td.skip_if_no_scipy
     def test_spline(self):
-        tm._skip_if_no_scipy()
         s = Series([1, 2, np.nan, 4, 5, np.nan, 7])
         result = s.interpolate(method='spline', order=1)
         expected = Series([1., 2., 3., 4., 5., 6., 7.])
         assert_series_equal(result, expected)
 
+    @td.skip_if_no('scipy', min_version='0.15')
     def test_spline_extrapolate(self):
-        tm.skip_if_no_package(
-            'scipy', min_version='0.15',
-            app='setting ext on scipy.interpolate.UnivariateSpline')
         s = Series([1, 2, 3, 4, np.nan, 6, np.nan])
         result3 = s.interpolate(method='spline', order=1, ext=3)
         expected3 = Series([1., 2., 3., 4., 5., 6., 6.])
@@ -1220,25 +1216,23 @@ class TestSeriesInterpolateData(TestData):
         expected1 = Series([1., 2., 3., 4., 5., 6., 7.])
         assert_series_equal(result1, expected1)
 
+    @td.skip_if_no_scipy
     def test_spline_smooth(self):
-        tm._skip_if_no_scipy()
         s = Series([1, 2, np.nan, 4, 5.1, np.nan, 7])
         assert (s.interpolate(method='spline', order=3, s=0)[5] !=
                 s.interpolate(method='spline', order=3)[5])
 
+    @td.skip_if_no_scipy
     def test_spline_interpolation(self):
-        tm._skip_if_no_scipy()
-
         s = Series(np.arange(10) ** 2)
         s[np.random.randint(0, 9, 3)] = np.nan
         result1 = s.interpolate(method='spline', order=1)
         expected1 = s.interpolate(method='spline', order=1)
         assert_series_equal(result1, expected1)
 
+    @td.skip_if_no_scipy
     def test_spline_error(self):
         # see gh-10633
-        tm._skip_if_no_scipy()
-
         s = pd.Series(np.arange(10) ** 2)
         s[np.random.randint(0, 9, 3)] = np.nan
         with pytest.raises(ValueError):
