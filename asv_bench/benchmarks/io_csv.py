@@ -150,7 +150,7 @@ class S3(object):
                  engine=engine)
 
 
-class ReadCSVThousands(object):
+class ReadCSVThousands(BaseIO):
 
     goal_time = 0.2
     fname = '__test__.csv'
