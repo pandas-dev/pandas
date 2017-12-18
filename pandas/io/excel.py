@@ -149,7 +149,7 @@ thousands : str, default None
     any numeric columns will automatically be parsed, regardless of display
     format.
 comment : str, default None
-    Comment out remainder of line. Pass a character or characters to this
+    Comments out remainder of line. Pass a character or characters to this
     argument to indicate comments in the input file. Any data between the
     comment string and the end of the current line is ignored.
 skip_footer : int, default 0
