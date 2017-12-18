@@ -510,7 +510,7 @@ class CheckIndexing(object):
         with catch_warnings(record=True):
             result = self.panel4d.xs('D', axis=3)
 
-        assert result.is_copy is not None
+        assert result._is_copy is not None
 
     def test_getitem_fancy_labels(self):
         with catch_warnings(record=True):

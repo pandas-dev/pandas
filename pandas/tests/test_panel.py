@@ -607,7 +607,7 @@ class CheckIndexing(object):
             # Mixed-type yields a copy.
             self.panel['strings'] = 'foo'
             result = self.panel.xs('D', axis=2)
-            assert result.is_copy is not None
+            assert result._is_copy is not None
 
     def test_getitem_fancy_labels(self):
         with catch_warnings(record=True):

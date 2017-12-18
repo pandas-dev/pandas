@@ -204,6 +204,7 @@ Deprecations
 - ``DataFrame.as_matrix`` is deprecated. Use ``DataFrame.values`` instead (:issue:`18458`).
 - ``Series.asobject``, ``DatetimeIndex.asobject``, ``PeriodIndex.asobject`` and ``TimeDeltaIndex.asobject`` have been deprecated. Use ``.astype(object)`` instead (:issue:`18572`)
 - ``Series.valid`` is deprecated. Use :meth:`Series.dropna` instead (:issue:`18800`).
+- The ``is_copy`` attribute is deprecated and will be removed in a future version (:issue:`18801`).
 
 .. _whatsnew_0220.prior_deprecations:
 

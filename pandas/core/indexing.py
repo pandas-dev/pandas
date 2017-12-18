@@ -366,7 +366,7 @@ class _NDFrameIndexer(_NDFrameIndexerBase):
                     labels = index.insert(len(index), key)
                     self.obj._data = self.obj.reindex(labels, axis=i)._data
                     self.obj._maybe_update_cacher(clear=True)
-                    self.obj.is_copy = None
+                    self.obj._is_copy = None
 
                     nindexer.append(labels.get_loc(key))
 
