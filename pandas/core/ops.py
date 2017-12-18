@@ -386,54 +386,19 @@ class _TimeOp(_Op):
         self.lvalues, self.rvalues = self._convert_for_datetime(lvalues,
                                                                 rvalues)
 
-    def _validate(self, lvalues, rvalues, name):
-        # timedelta and integer mul/div
+    def _validate_datetime(self, lvalues, rvalues, name):
+        # assumes self.is_datetime_lhs
 
-        if ((self.is_timedelta_lhs and
-                (self.is_integer_rhs or self.is_floating_rhs)) or
-            (self.is_timedelta_rhs and
-                (self.is_integer_lhs or self.is_floating_lhs))):
-
-            if name not in ('__div__', '__truediv__', '__mul__', '__rmul__'):
-                raise TypeError("can only operate on a timedelta and an "
-                                "integer or a float for division and "
-                                "multiplication, but the operator [{name}] "
-                                "was passed".format(name=name))
-
-        # 2 timedeltas
-        elif ((self.is_timedelta_lhs and
-               (self.is_timedelta_rhs or self.is_offset_rhs)) or
-              (self.is_timedelta_rhs and
-               (self.is_timedelta_lhs or self.is_offset_lhs))):
-
-            if name not in ('__div__', '__rdiv__', '__truediv__',
-                            '__rtruediv__', '__add__', '__radd__', '__sub__',
-                            '__rsub__'):
-                raise TypeError("can only operate on a timedeltas for addition"
-                                ", subtraction, and division, but the operator"
-                                " [{name}] was passed".format(name=name))
-
-        # datetime and timedelta/DateOffset
-        elif (self.is_datetime_lhs and
-              (self.is_timedelta_rhs or self.is_offset_rhs)):
-
+        if (self.is_timedelta_rhs or self.is_offset_rhs):
+            # datetime and timedelta/DateOffset
             if name not in ('__add__', '__radd__', '__sub__'):
                 raise TypeError("can only operate on a datetime with a rhs of "
                                 "a timedelta/DateOffset for addition and "
                                 "subtraction, but the operator [{name}] was "
                                 "passed".format(name=name))
 
-        elif (self.is_datetime_rhs and
-              (self.is_timedelta_lhs or self.is_offset_lhs)):
-            if name not in ('__add__', '__radd__', '__rsub__'):
-                raise TypeError("can only operate on a timedelta/DateOffset "
-                                "with a rhs of a datetime for addition, "
-                                "but the operator [{name}] was passed"
-                                .format(name=name))
-
-        # 2 datetimes
-        elif self.is_datetime_lhs and self.is_datetime_rhs:
-
+        elif self.is_datetime_rhs:
+            # 2 datetimes
             if name not in ('__sub__', '__rsub__'):
                 raise TypeError("can only operate on a datetimes for"
                                 " subtraction, but the operator [{name}] was"
@@ -444,59 +409,148 @@ class _TimeOp(_Op):
                 raise ValueError("Incompatible tz's on datetime subtraction "
                                  "ops")
 
-        elif ((self.is_timedelta_lhs or self.is_offset_lhs) and
-              self.is_datetime_rhs):
-
-            if name not in ('__add__', '__radd__'):
-                raise TypeError("can only operate on a timedelta/DateOffset "
-                                "and a datetime for addition, but the operator"
-                                " [{name}] was passed".format(name=name))
         else:
             raise TypeError('cannot operate on a series without a rhs '
                             'of a series/ndarray of type datetime64[ns] '
                             'or a timedelta')
+
+    def _validate_timedelta(self, name):
+        # assumes self.is_timedelta_lhs
+
+        if self.is_integer_rhs or self.is_floating_rhs:
+            # timedelta and integer mul/div
+            if name not in ('__div__', '__truediv__', '__mul__', '__rmul__'):
+                raise TypeError("can only operate on a timedelta and an "
+                                "integer or a float for division and "
+                                "multiplication, but the operator [{name}] "
+                                "was passed".format(name=name))
+        elif self.is_timedelta_rhs or self.is_offset_rhs:
+            # 2 timedeltas
+            if name not in ('__div__', '__rdiv__', '__truediv__',
+                            '__rtruediv__', '__add__', '__radd__', '__sub__',
+                            '__rsub__'):
+                raise TypeError("can only operate on a timedeltas for addition"
+                                ", subtraction, and division, but the operator"
+                                " [{name}] was passed".format(name=name))
+        elif self.is_datetime_rhs:
+            if name not in ('__add__', '__radd__', '__rsub__'):
+                raise TypeError("can only operate on a timedelta/DateOffset "
+                                "with a rhs of a datetime for addition, "
+                                "but the operator [{name}] was passed"
+                                .format(name=name))
+        else:
+            raise TypeError('cannot operate on a series without a rhs '
+                            'of a series/ndarray of type datetime64[ns] '
+                            'or a timedelta')
+
+    def _validate_offset(self, name):
+        # assumes self.is_offset_lhs
+
+        if self.is_timedelta_rhs:
+            # 2 timedeltas
+            if name not in ('__div__', '__rdiv__', '__truediv__',
+                            '__rtruediv__', '__add__', '__radd__', '__sub__',
+                            '__rsub__'):
+                raise TypeError("can only operate on a timedeltas for addition"
+                                ", subtraction, and division, but the operator"
+                                " [{name}] was passed".format(name=name))
+
+        elif self.is_datetime_rhs:
+            if name not in ('__add__', '__radd__'):
+                raise TypeError("can only operate on a timedelta/DateOffset "
+                                "and a datetime for addition, but the operator"
+                                " [{name}] was passed".format(name=name))
+
+        else:
+            raise TypeError('cannot operate on a series without a rhs '
+                            'of a series/ndarray of type datetime64[ns] '
+                            'or a timedelta')
+
+    def _validate(self, lvalues, rvalues, name):
+        if self.is_datetime_lhs:
+            return self._validate_datetime(lvalues, rvalues, name)
+        elif self.is_timedelta_lhs:
+            return self._validate_timedelta(name)
+        elif self.is_offset_lhs:
+            return self._validate_offset(name)
+
+        if ((self.is_integer_lhs or self.is_floating_lhs) and
+                self.is_timedelta_rhs):
+
+            if name not in ('__div__', '__truediv__', '__mul__', '__rmul__'):
+                raise TypeError("can only operate on a timedelta and an "
+                                "integer or a float for division and "
+                                "multiplication, but the operator [{name}] "
+                                "was passed".format(name=name))
+        else:
+            raise TypeError('cannot operate on a series without a rhs '
+                            'of a series/ndarray of type datetime64[ns] '
+                            'or a timedelta')
+
+    def _convert_datetimelike_to_array(self, raw_values, values, other):
+        """
+        By the time we get here, we know that:
+            * inferred_type in ('datetime64', 'datetime', 'date', 'time') or
+                is_datetimetz(inferred_type)
+            * is_list_like(values)
+        """
+        supplied_dtype = None
+        if raw_values is not values:
+            # skip unnecessary isinstance call because we know values is an
+            # ndarray
+            pass
+        elif (isinstance(values, pd.Series) and
+              (is_timedelta64_dtype(values) or is_datetime64_dtype(values))):
+            # if this is a Series that contains relevant dtype info, then use
+            # this instead of the inferred type; this avoids coercing
+            # Series([NaT], dtype='datetime64[ns]') to
+            # Series([NaT], dtype='timedelta64[ns]')
+            supplied_dtype = values.dtype
+
+        inferred_type = lib.infer_dtype(values)
+
+        if (supplied_dtype is None and other is not None and
+            (other.dtype in ('timedelta64[ns]', 'datetime64[ns]')) and
+                isna(values).all()):
+            # if we have a other of timedelta, but use pd.NaT here we
+            # we are in the wrong path
+            values = np.empty(values.shape, dtype='timedelta64[ns]')
+            values[:] = iNaT
+
+        elif isinstance(values, pd.DatetimeIndex):
+            # a datelike
+            values = values.to_series()
+
+        elif (isinstance(raw_values, datetime.datetime) and
+              hasattr(raw_values, 'tzinfo')):
+            # datetime with tz
+            values = pd.DatetimeIndex(values)
+
+        elif is_datetimetz(values):
+            # datetime array with tz
+            if isinstance(values, ABCSeries):
+                values = values._values
+
+        elif not (isinstance(values, (np.ndarray, ABCSeries)) and
+                  is_datetime64_dtype(values)):
+            values = libts.array_to_datetime(values)
+
+        return values
 
     def _convert_to_array(self, values, name=None, other=None):
         """converts values to ndarray"""
         from pandas.core.tools.timedeltas import to_timedelta
 
         ovalues = values
-        supplied_dtype = None
         if not is_list_like(values):
             values = np.array([values])
 
-        # if this is a Series that contains relevant dtype info, then use this
-        # instead of the inferred type; this avoids coercing Series([NaT],
-        # dtype='datetime64[ns]') to Series([NaT], dtype='timedelta64[ns]')
-        elif (isinstance(values, pd.Series) and
-              (is_timedelta64_dtype(values) or is_datetime64_dtype(values))):
-            supplied_dtype = values.dtype
-
         inferred_type = lib.infer_dtype(values)
+
         if (inferred_type in ('datetime64', 'datetime', 'date', 'time') or
                 is_datetimetz(inferred_type)):
-            # if we have a other of timedelta, but use pd.NaT here we
-            # we are in the wrong path
-            if (supplied_dtype is None and other is not None and
-                (other.dtype in ('timedelta64[ns]', 'datetime64[ns]')) and
-                    isna(values).all()):
-                values = np.empty(values.shape, dtype='timedelta64[ns]')
-                values[:] = iNaT
+            return self._convert_datetimelike_to_array(ovalues, values, other)
 
-            # a datelike
-            elif isinstance(values, pd.DatetimeIndex):
-                values = values.to_series()
-            # datetime with tz
-            elif (isinstance(ovalues, datetime.datetime) and
-                  hasattr(ovalues, 'tzinfo')):
-                values = pd.DatetimeIndex(values)
-            # datetime array with tz
-            elif is_datetimetz(values):
-                if isinstance(values, ABCSeries):
-                    values = values._values
-            elif not (isinstance(values, (np.ndarray, ABCSeries)) and
-                      is_datetime64_dtype(values)):
-                values = libts.array_to_datetime(values)
         elif inferred_type in ('timedelta', 'timedelta64'):
             # have a timedelta, convert to to ns here
             values = to_timedelta(values, errors='coerce', box=False)
@@ -545,25 +599,12 @@ class _TimeOp(_Op):
             else:
                 self.dtype = 'datetime64[ns]'
 
-            # if adding single offset try vectorized path
-            # in DatetimeIndex; otherwise elementwise apply
-            def _offset(lvalues, rvalues):
-                if len(lvalues) == 1:
-                    rvalues = pd.DatetimeIndex(rvalues)
-                    lvalues = lvalues[0]
-                else:
-                    warnings.warn("Adding/subtracting array of DateOffsets to "
-                                  "Series not vectorized", PerformanceWarning)
-                    rvalues = rvalues.astype('O')
-
-                # pass thru on the na_op
-                self.na_op = lambda x, y: getattr(x, self.name)(y)
-                return lvalues, rvalues
-
             if self.is_offset_lhs:
-                lvalues, rvalues = _offset(lvalues, rvalues)
+                lvalues, rvalues, self.na_op = _offset_op(lvalues, rvalues,
+                                                          self.name)
             elif self.is_offset_rhs:
-                rvalues, lvalues = _offset(rvalues, lvalues)
+                rvalues, lvalues, self.na_op = _offset_op(rvalues, lvalues,
+                                                          self.name)
             else:
 
                 # with tz, convert to UTC
@@ -577,28 +618,7 @@ class _TimeOp(_Op):
 
         # otherwise it's a timedelta
         else:
-
-            self.dtype = 'timedelta64[ns]'
-
-            # convert Tick DateOffset to underlying delta
-            if self.is_offset_lhs:
-                lvalues = to_timedelta(lvalues, box=False)
-            if self.is_offset_rhs:
-                rvalues = to_timedelta(rvalues, box=False)
-
-            lvalues = lvalues.astype(np.int64)
-            if not self.is_floating_rhs:
-                rvalues = rvalues.astype(np.int64)
-
-            # time delta division -> unit less
-            # integer gets converted to timedelta in np < 1.6
-            if ((self.is_timedelta_lhs and self.is_timedelta_rhs) and
-                    not self.is_integer_rhs and not self.is_integer_lhs and
-                    self.name in ('__div__', '__truediv__')):
-                self.dtype = 'float64'
-                self.fill_value = np.nan
-                lvalues = lvalues.astype(np.float64)
-                rvalues = rvalues.astype(np.float64)
+            lvalues, rvalues = self._convert_for_timedelta(lvalues, rvalues)
 
         # if we need to mask the results
         if mask.any():
@@ -618,6 +638,33 @@ class _TimeOp(_Op):
 
         return lvalues, rvalues
 
+    def _convert_for_timedelta(self, lvalues, rvalues):
+        from pandas.core.tools.timedeltas import to_timedelta
+
+        self.dtype = 'timedelta64[ns]'
+
+        # convert Tick DateOffset to underlying delta
+        if self.is_offset_lhs:
+            lvalues = to_timedelta(lvalues, box=False)
+        if self.is_offset_rhs:
+            rvalues = to_timedelta(rvalues, box=False)
+
+        lvalues = lvalues.astype(np.int64)
+        if not self.is_floating_rhs:
+            rvalues = rvalues.astype(np.int64)
+
+        if ((self.is_timedelta_lhs and self.is_timedelta_rhs) and
+                not self.is_integer_rhs and not self.is_integer_lhs and
+                self.name in ('__div__', '__truediv__')):
+            # timedelta division -> unit less
+            # integer gets converted to timedelta in np < 1.6
+            self.dtype = 'float64'
+            self.fill_value = np.nan
+            lvalues = lvalues.astype(np.float64)
+            rvalues = rvalues.astype(np.float64)
+
+        return lvalues, rvalues
+
     def _is_offset(self, arr_or_obj):
         """ check if obj or all elements of list-like is DateOffset """
         if isinstance(arr_or_obj, ABCDateOffset):
@@ -626,6 +673,22 @@ class _TimeOp(_Op):
               is_object_dtype(arr_or_obj)):
             return all(isinstance(x, ABCDateOffset) for x in arr_or_obj)
         return False
+
+
+def _offset_op(lvalues, rvalues, opname):
+    # if adding single offset try vectorized path
+    # in DatetimeIndex; otherwise elementwise apply
+    if len(lvalues) == 1:
+        rvalues = pd.DatetimeIndex(rvalues)
+        lvalues = lvalues[0]
+    else:
+        warnings.warn("Adding/subtracting array of DateOffsets to "
+                      "Series not vectorized", PerformanceWarning)
+        rvalues = rvalues.astype('O')
+
+    # pass thru on the na_op
+    na_op = lambda x, y: getattr(x, opname)(y)
+    return lvalues, rvalues, na_op
 
 
 def _align_method_SERIES(left, right, align_asobject=False):

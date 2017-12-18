@@ -960,8 +960,37 @@ class TestTimedeltaSeriesArithmetic(object):
         assert_series_equal(timedelta_series / nan,
                             nat_series_dtype_timedelta)
 
+    def test_operators_timedelta64(self):
+        td1 = Series([timedelta(minutes=5, seconds=3)] * 3)
+        td1.iloc[2] = np.nan
+        td2 = timedelta(minutes=5, seconds=4)
+
+        td1 + td2
+        td2 + td1
+        td1 - td2
+        td2 - td1
+        td1 / td2
+        td2 / td1
+
+    @pytest.mark.parametrize('op_str', ['__mul__', '__rmul__',
+                                        '__floordiv__', '__rfloordiv__',
+                                        '__pow__', '__rpow__'])
+    def test_operators_timedelta64_invalid(self, op_str):
+        td1 = Series([timedelta(minutes=5, seconds=3)] * 3)
+        td1.iloc[2] = np.nan
+        td2 = timedelta(minutes=5, seconds=4)
+
+        # check that we are getting a TypeError
+        # with 'operate' (from core/ops.py) for the ops that are not
+        # defined
+        op = getattr(td1, op_str, None)
+        pattern = 'operate|unsupported|cannot'
+        with tm.assert_raises_regex(TypeError, pattern):
+            op(td2)
+
 
 class TestDatetimeSeriesArithmetic(object):
+
     def test_operators_datetimelike(self):
         def run_ops(ops, get_ser, test_ser):
 
@@ -976,16 +1005,6 @@ class TestDatetimeSeriesArithmetic(object):
         # ## timedelta64 ###
         td1 = Series([timedelta(minutes=5, seconds=3)] * 3)
         td1.iloc[2] = np.nan
-        td2 = timedelta(minutes=5, seconds=4)
-        ops = ['__mul__', '__floordiv__', '__pow__', '__rmul__',
-               '__rfloordiv__', '__rpow__']
-        run_ops(ops, td1, td2)
-        td1 + td2
-        td2 + td1
-        td1 - td2
-        td2 - td1
-        td1 / td2
-        td2 / td1
 
         # ## datetime64 ###
         dt1 = Series([Timestamp('20111230'), Timestamp('20120101'),
