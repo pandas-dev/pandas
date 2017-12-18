@@ -18,7 +18,6 @@ import pandas as pd
 import pandas.util.testing as tm
 import pandas.util._test_decorators as td
 from pandas import DataFrame
-from pandas import compat
 from pandas.compat import StringIO, range, lrange
 
 
@@ -160,25 +159,6 @@ nan 2
 
         assert sum(precise_errors) <= sum(normal_errors)
         assert max(precise_errors) <= max(normal_errors)
-
-    def test_pass_dtype_as_recarray(self):
-        if compat.is_platform_windows() and self.low_memory:
-            pytest.skip(
-                "segfaults on win-64, only when all tests are run")
-
-        data = """\
-one,two
-1,2.5
-2,3.5
-3,4.5
-4,5.5"""
-
-        with tm.assert_produces_warning(
-                FutureWarning, check_stacklevel=False):
-            result = self.read_csv(StringIO(data), dtype={
-                'one': 'u1', 1: 'S1'}, as_recarray=True)
-            assert result['one'].dtype == 'u1'
-            assert result['two'].dtype == 'S1'
 
     def test_usecols_dtypes(self):
         data = """\
