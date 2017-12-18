@@ -666,8 +666,8 @@ class DatetimeIndexOpsMixin(object):
             elif isinstance(other, (Index, datetime, np.datetime64)):
                 return self._add_datelike(other)
             elif (isinstance(self, DatetimeIndex) and
-                  isinstance(other, np.ndarray) and other.size == 1
-                  and is_integer_dtype(other)):
+                  isinstance(other, np.ndarray) and other.size == 1 and
+                  is_integer_dtype(other)):
                 # TODO: Should this be allowed if self.freq is not None?
                 raise TypeError("cannot add {cls} and {typ}"
                                 .format(cls=type(cls), typ=type(other)))
@@ -703,8 +703,8 @@ class DatetimeIndexOpsMixin(object):
             elif isinstance(other, Period):
                 return self._sub_period(other)
             elif (isinstance(self, DatetimeIndex) and
-                  isinstance(other, np.ndarray) and other.size == 1
-                  and is_integer_dtype(other)):
+                  isinstance(other, np.ndarray) and other.size == 1 and
+                  is_integer_dtype(other)):
                 # TODO: Should this be allowed if self.freq is not None?
                 raise TypeError("cannot add {cls} and {typ}"
                                 .format(cls=type(cls), typ=type(other)))
