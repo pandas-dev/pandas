@@ -199,21 +199,6 @@ low_memory : boolean, default ``True``
   Note that the entire file is read into a single DataFrame regardless,
   use the ``chunksize`` or ``iterator`` parameter to return the data in chunks.
   (Only valid with C parser)
-compact_ints : boolean, default False
-  .. deprecated:: 0.19.0
-
-     Argument moved to ``pd.to_numeric``
-
-  If ``compact_ints`` is ``True``, then for any column that is of integer dtype, the
-  parser will attempt to cast it as the smallest integer ``dtype`` possible, either
-  signed or unsigned depending on the specification from the ``use_unsigned`` parameter.
-use_unsigned : boolean, default False
-  .. deprecated:: 0.18.2
-
-     Argument moved to ``pd.to_numeric``
-
-  If integer columns are being compacted (i.e. ``compact_ints=True``), specify whether
-  the column should be compacted to the smallest signed or unsigned integer dtype.
 memory_map : boolean, default False
   If a filepath is provided for ``filepath_or_buffer``, map the file object
   directly onto memory and access the data directly from there. Using this
