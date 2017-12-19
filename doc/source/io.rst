@@ -143,15 +143,6 @@ usecols : array-like or callable, default ``None``
      pd.read_csv(StringIO(data), usecols=lambda x: x.upper() in ['COL1', 'COL3'])
 
   Using this parameter results in much faster parsing time and lower memory usage.
-as_recarray : boolean, default ``False``
-  .. deprecated:: 0.18.2
-
-     Please call ``pd.read_csv(...).to_records()`` instead.
-
-  Return a NumPy recarray instead of a DataFrame after parsing the data. If
-  set to ``True``, this option takes precedence over the ``squeeze`` parameter.
-  In addition, as row indices are not available in such a format, the ``index_col``
-  parameter will be ignored.
 squeeze : boolean, default ``False``
   If the parsed data only contains one column then return a Series.
 prefix : str, default ``None``
@@ -208,11 +199,6 @@ low_memory : boolean, default ``True``
   Note that the entire file is read into a single DataFrame regardless,
   use the ``chunksize`` or ``iterator`` parameter to return the data in chunks.
   (Only valid with C parser)
-buffer_lines : int, default None
-  .. deprecated:: 0.19.0
-
-     Argument removed because its value is not respected by the parser
-
 compact_ints : boolean, default False
   .. deprecated:: 0.19.0
 

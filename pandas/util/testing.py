@@ -336,43 +336,6 @@ def _skip_if_no_scipy():
     pytest.importorskip("scipy.interpolate")
 
 
-def _check_if_lzma():
-    try:
-        return compat.import_lzma()
-    except ImportError:
-        return False
-
-
-def _skip_if_no_lzma():
-    import pytest
-    return _check_if_lzma() or pytest.skip('need backports.lzma to run')
-
-
-def _skip_if_no_xarray():
-    import pytest
-
-    xarray = pytest.importorskip("xarray")
-    v = xarray.__version__
-
-    if LooseVersion(v) < LooseVersion('0.7.0'):
-        import pytest
-        pytest.skip("xarray version is too low: {version}".format(version=v))
-
-
-def skip_if_no_ne(engine='numexpr'):
-    from pandas.core.computation.expressions import (
-        _USE_NUMEXPR,
-        _NUMEXPR_INSTALLED)
-
-    if engine == 'numexpr':
-        if not _USE_NUMEXPR:
-            import pytest
-            pytest.skip("numexpr enabled->{enabled}, "
-                        "installed->{installed}".format(
-                            enabled=_USE_NUMEXPR,
-                            installed=_NUMEXPR_INSTALLED))
-
-
 def _skip_if_no_mock():
     try:
         import mock  # noqa
@@ -382,11 +345,6 @@ def _skip_if_no_mock():
         except ImportError:
             import pytest
             raise pytest.skip("mock is not installed")
-
-
-def _skip_if_no_ipython():
-    import pytest
-    pytest.importorskip("IPython")
 
 # -----------------------------------------------------------------------------
 # locale utilities

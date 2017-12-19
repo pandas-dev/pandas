@@ -128,11 +128,7 @@ x   q   30      3    -0.6662 -0.5243 -0.3580  0.89145  2.5838"""
 class TestDeprecatedFeatures(object):
 
     @pytest.mark.parametrize("engine", ["c", "python"])
-    @pytest.mark.parametrize("kwargs", [{"as_recarray": True},
-                                        {"as_recarray": False},
-                                        {"buffer_lines": True},
-                                        {"buffer_lines": False},
-                                        {"compact_ints": True},
+    @pytest.mark.parametrize("kwargs", [{"compact_ints": True},
                                         {"compact_ints": False},
                                         {"use_unsigned": True},
                                         {"use_unsigned": False},
