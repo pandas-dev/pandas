@@ -2,7 +2,7 @@ import numpy as np
 import pandas.util.testing as tm
 from pandas import DataFrame, date_range, timedelta_range, concat, read_json
 
-from .pandas_vb_common import setup, BaseIO  # noqa
+from ..pandas_vb_common import setup, BaseIO  # noqa
 
 
 class ReadJSON(BaseIO):
