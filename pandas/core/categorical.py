@@ -2084,12 +2084,12 @@ class Categorical(PandasObject):
         if self.is_dtype_equal(other):
             if self.categories.equals(other.categories):
                 # fastpath to avoid re-coding
-                return np.array_equal(self._codes, other._codes)
+                other_codes = other._codes
             else:
-                # coerce their codes to ours
-                codes2 = _recode_for_categories(other.codes, other.categories,
-                                                self.categories)
-                return np.array_equal(self._codes, codes2)
+                other_codes = _recode_for_categories(other.codes,
+                                                     other.categories,
+                                                     self.categories)
+            return np.array_equal(self._codes, other_codes)
         return False
 
     def is_dtype_equal(self, other):
