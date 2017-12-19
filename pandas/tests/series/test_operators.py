@@ -977,8 +977,8 @@ class TestDatetimeSeriesArithmetic(object):
         td1 = Series([timedelta(minutes=5, seconds=3)] * 3)
         td1.iloc[2] = np.nan
         td2 = timedelta(minutes=5, seconds=4)
-        ops = ['__mul__', '__floordiv__', '__pow__', '__rmul__',
-               '__rfloordiv__', '__rpow__']
+        ops = ['__mul__', '__pow__', '__rmul__',
+               '__rpow__']
         run_ops(ops, td1, td2)
         td1 + td2
         td2 + td1
@@ -986,6 +986,8 @@ class TestDatetimeSeriesArithmetic(object):
         td2 - td1
         td1 / td2
         td2 / td1
+        tm.assert_series_equal(td1 // td2, Series([0, 0, np.nan]))
+        tm.assert_series_equal(td2 // td1, Series([1, 1, np.nan]))
 
         # ## datetime64 ###
         dt1 = Series([Timestamp('20111230'), Timestamp('20120101'),

@@ -346,3 +346,4 @@ Other
 ^^^^^
 
 - Improved error message when attempting to use a Python keyword as an identifier in a ``numexpr`` backed query (:issue:`18221`)
+- Bug in :func:`Series.__floordiv__`  and :func:`Series.__rfloordiv__` where operating on a scalar ``timedelta`` raises an exception (:issue:`18824`)
