@@ -48,16 +48,13 @@ echo
 echo "[update conda]"
 conda config --set ssl_verify false || exit 1
 conda config --set quiet true --set always_yes true --set changeps1 false || exit 1
-
-conda install conda=4.3.30
-# conda update -q conda
+conda update -q conda
 
 if [ "$CONDA_BUILD_TEST" ]; then
     echo
     echo "[installing conda-build]"
     conda install conda-build
 fi
-
 
 echo
 echo "[add channels]"
@@ -125,7 +122,7 @@ if [ "$COVERAGE" ]; then
 fi
 
 echo
-if [ -z "$PIP_BUILD_TEST" ] and [ -z "$CONDA_BUILD_TEST" ]; then
+if [ -z "$PIP_BUILD_TEST" ] && [ -z "$CONDA_BUILD_TEST" ]; then
 
     # build but don't install
     echo "[build em]"
