@@ -715,14 +715,10 @@ def _arith_method_SERIES(op, name, str_rep, fill_zeros=None, default_axis=None,
         if isinstance(right, ABCDataFrame):
             return NotImplemented
 
-        if is_offsetlike(right):
-            # special handling for alignment
-            pass
-        elif isinstance(right, pd.PeriodIndex):
-            # not supported for DatetimeIndex
-            pass
         elif is_datetime64_dtype(left) or is_datetime64tz_dtype(left):
-            # Dispatch to DatetimeIndex method
+            # Dispatch to DatetimeIndex method; there are a handful of cases
+            # that DatetimeIndex handles differently from Series so we avoid
+            # dispatching.
             if right is pd.NaT:
                 # DatetimeIndex and Series handle this differently, so
                 # until that is resolved we need to special-case here
@@ -730,13 +726,24 @@ def _arith_method_SERIES(op, name, str_rep, fill_zeros=None, default_axis=None,
                                         name=left.name, dtype=left.dtype)
                 # TODO: double-check that the tz part of the dtype
                 # is supposed to be retained
-            left, right = _align_method_SERIES(left, right)
-            name = _get_series_result_name(left, right)
-            result = op(pd.DatetimeIndex(left), right)
-            result.name = name  # Needs to be overriden if name is None
-            return construct_result(left, result,
-                                    index=left.index, name=name,
-                                    dtype=result.dtype)
+            elif is_offsetlike(right):
+                # special handling for alignment
+                pass
+            elif isinstance(right, pd.PeriodIndex):
+                # not supported for DatetimeIndex
+                pass
+            elif (isinstance(other, np.ndarray) and other.size == 1 and
+                  is_integer_dtype(other)):
+                # DatetimeIndex adds this as nanoseconds, needs fixing
+                pass
+            else:
+                left, right = _align_method_SERIES(left, right)
+                name = _get_series_result_name(left, right)
+                result = op(pd.DatetimeIndex(left), right)
+                result.name = name  # Needs to be overriden if name is None
+                return construct_result(left, result,
+                                        index=left.index, name=name,
+                                        dtype=result.dtype)
 
         left, right = _align_method_SERIES(left, right)
 
