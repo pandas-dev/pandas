@@ -25,7 +25,7 @@ from pandas.core.common import _values_from_object, _maybe_match_name
 from pandas.core.dtypes.missing import notna, isna
 from pandas.core.dtypes.common import (
     needs_i8_conversion,
-    is_datetimelike_v_numeric, is_offsetlike,
+    is_datetimelike_v_numeric,
     is_integer_dtype, is_categorical_dtype,
     is_object_dtype, is_timedelta64_dtype,
     is_datetime64_dtype, is_datetime64tz_dtype,

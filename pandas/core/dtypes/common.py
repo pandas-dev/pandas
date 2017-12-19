@@ -1205,26 +1205,6 @@ def is_datetime_or_timedelta_dtype(arr_or_dtype):
     return issubclass(tipo, (np.datetime64, np.timedelta64))
 
 
-def is_offsetlike(arr_or_obj):
-    """
-    Check if obj or all elements of list-like is DateOffset
-
-    Parameters
-    ----------
-    arr_or_obj : object
-
-    Returns
-    -------
-    boolean : Whether the object is a DateOffset or listlike of DatetOffsets
-    """
-    if isinstance(arr_or_obj, ABCDateOffset):
-        return True
-    elif (is_list_like(arr_or_obj) and len(arr_or_obj) and
-          is_object_dtype(arr_or_obj)):
-        return all(isinstance(x, ABCDateOffset) for x in arr_or_obj)
-    return False
-
-
 def _is_unorderable_exception(e):
     """
     Check if the exception raised is an unorderable exception.
