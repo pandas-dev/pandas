@@ -969,6 +969,31 @@ class TestTimestamp(object):
 
 
 class TestTimestampComparison(object):
+    def test_comparison_object_array(self):
+        # GH#15183
+        ts = Timestamp('2011-01-03 00:00:00-0500', tz='US/Eastern')
+        other = Timestamp('2011-01-01 00:00:00-0500', tz='US/Eastern')
+        naive = Timestamp('2011-01-01 00:00:00')
+
+        arr = np.array([other, ts], dtype=object)
+        res = arr == ts
+        expected = np.array([False, True], dtype=bool)
+        assert (res == expected).all()
+
+        # 2D case
+        arr = np.array([[other, ts],
+                        [ts, other]],
+                       dtype=object)
+        res = arr != ts
+        expected = np.array([[True, False], [False, True]], dtype=bool)
+        assert res.shape == expected.shape
+        assert (res == expected).all()
+
+        # tzaware mismatch
+        arr = np.array([naive], dtype=object)
+        with pytest.raises(TypeError):
+            arr < ts
+
     def test_comparison(self):
         # 5-18-2012 00:00:00.000
         stamp = long(1337299200000000000)

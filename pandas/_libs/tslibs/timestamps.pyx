@@ -17,7 +17,7 @@ from cpython.datetime cimport (datetime,
 PyDateTime_IMPORT
 
 from util cimport (is_datetime64_object, is_timedelta64_object,
-                   is_integer_object, is_string_object,
+                   is_integer_object, is_string_object, is_array,
                    INT64_MAX)
 
 cimport ccalendar
@@ -108,6 +108,9 @@ cdef class _Timestamp(datetime):
                         raise TypeError('Cannot compare type %r with type %r' %
                                         (type(self).__name__,
                                          type(other).__name__))
+                elif is_array(other):
+                    # avoid recursion error GH#15183
+                    return PyObject_RichCompare(np.array([self]), other, op)
                 return PyObject_RichCompare(other, self, reverse_ops[op])
             else:
                 if op == Py_EQ:

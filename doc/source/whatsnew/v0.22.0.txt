@@ -352,3 +352,4 @@ Other
 ^^^^^
 
 - Improved error message when attempting to use a Python keyword as an identifier in a ``numexpr`` backed query (:issue:`18221`)
+- Bug in :class:`Timestamp` where comparison with an array of ``Timestamp`` objects would result in a ``RecursionError`` (:issue:`15183`)
