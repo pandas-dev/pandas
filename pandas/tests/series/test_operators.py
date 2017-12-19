@@ -976,17 +976,27 @@ class TestDatetimeSeriesArithmetic(object):
         # ## timedelta64 ###
         td1 = Series([timedelta(minutes=5, seconds=3)] * 3)
         td1.iloc[2] = np.nan
-        td2 = timedelta(minutes=5, seconds=4)
+        tdscalar = Timedelta(minutes=5, seconds=4)
         ops = ['__mul__', '__pow__', '__rmul__', '__rpow__']
-        run_ops(ops, td1, td2)
-        td1 + td2
-        td2 + td1
-        td1 - td2
-        td2 - td1
-        td1 / td2
-        td2 / td1
-        tm.assert_series_equal(td1 // td2, Series([0, 0, np.nan]))
-        tm.assert_series_equal(td2 // td1, Series([1, 1, np.nan]))
+        run_ops(ops, td1, tdscalar)
+        td1 + tdscalar
+        tdscalar + td1
+        td1 - tdscalar
+        tdscalar - td1
+        td1 / tdscalar
+        tdscalar / td1
+        tm.assert_series_equal(td1 // tdscalar, Series([0, 0, np.nan]))
+        tm.assert_series_equal(td1 // tdscalar.to_pytimedelta(),
+                               Series([0, 0, np.nan]))
+        tm.assert_series_equal(td1 // tdscalar.to_timedelta64(),
+                               Series([0, 0, np.nan]))
+        # TODO: the Timedelta // td1 fails because of a bug
+        # in Timedelta.__floordiv__, see #18824
+        # tm.assert_series_equal(tdscalar // td1, Series([1, 1, np.nan]))
+        tm.assert_series_equal(tdscalar.to_pytimedelta() // td1,
+                               Series([1, 1, np.nan]))
+        tm.assert_series_equal(tdscalar.to_timedelta64() // td1,
+                               Series([1, 1, np.nan]))
 
         # ## datetime64 ###
         dt1 = Series([Timestamp('20111230'), Timestamp('20120101'),
