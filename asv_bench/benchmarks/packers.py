@@ -77,28 +77,6 @@ class packers_read_hdf_table(_Packers):
         pd.read_hdf(self.f, 'df')
 
 
-class packers_read_json(_Packers):
-
-    def setup(self):
-        self._setup()
-        self.df.to_json(self.f, orient='split')
-        self.df.index = np.arange(self.N)
-
-    def time_packers_read_json(self):
-        pd.read_json(self.f, orient='split')
-
-
-class packers_read_json_date_index(_Packers):
-
-    def setup(self):
-        self._setup()
-        self.remove(self.f)
-        self.df.to_json(self.f, orient='split')
-
-    def time_packers_read_json_date_index(self):
-        pd.read_json(self.f, orient='split')
-
-
 class packers_read_pack(_Packers):
 
     def setup(self):
@@ -217,46 +195,6 @@ class HDF(_Packers):
 
     def time_write_hdf_table(self):
         self.df2.to_hdf(self.f, 'df', table=True)
-
-
-class JSON(_Packers):
-
-    def setup(self):
-        self._setup()
-        self.df_date = self.df.copy()
-        self.df.index = np.arange(self.N)
-        self.cols = [(lambda i: ('{0}_timedelta'.format(i), [pd.Timedelta(('%d seconds' % randrange(1000000.0))) for _ in range(self.N)])), (lambda i: ('{0}_int'.format(i), randint(100000000.0, size=self.N))), (lambda i: ('{0}_timestamp'.format(i), [pd.Timestamp((1418842918083256000 + randrange(1000000000.0, 1e+18, 200))) for _ in range(self.N)]))]
-        self.df_mixed = DataFrame(OrderedDict([self.cols[(i % len(self.cols))](i) for i in range(self.C)]), index=self.index)
-
-        self.cols = [(lambda i: ('{0}_float'.format(i), randn(self.N))), (lambda i: ('{0}_int'.format(i), randint(100000000.0, size=self.N)))]
-        self.df_mixed2 = DataFrame(OrderedDict([self.cols[(i % len(self.cols))](i) for i in range(self.C)]), index=self.index)
-
-        self.cols = [(lambda i: ('{0}_float'.format(i), randn(self.N))), (lambda i: ('{0}_int'.format(i), randint(100000000.0, size=self.N))), (lambda i: ('{0}_str'.format(i), [('%08x' % randrange((16 ** 8))) for _ in range(self.N)]))]
-        self.df_mixed3 = DataFrame(OrderedDict([self.cols[(i % len(self.cols))](i) for i in range(self.C)]), index=self.index)
-
-    def time_write_json(self):
-        self.df.to_json(self.f, orient='split')
-
-    def time_write_json_T(self):
-        self.df.to_json(self.f, orient='columns')
-
-    def time_write_json_date_index(self):
-        self.df_date.to_json(self.f, orient='split')
-
-    def time_write_json_mixed_delta_int_tstamp(self):
-        self.df_mixed.to_json(self.f, orient='split')
-
-    def time_write_json_mixed_float_int(self):
-        self.df_mixed2.to_json(self.f, orient='index')
-
-    def time_write_json_mixed_float_int_T(self):
-        self.df_mixed2.to_json(self.f, orient='columns')
-
-    def time_write_json_mixed_float_int_str(self):
-        self.df_mixed3.to_json(self.f, orient='split')
-
-    def time_write_json_lines(self):
-        self.df.to_json(self.f, orient="records", lines=True)
 
 
 class MsgPack(_Packers):
