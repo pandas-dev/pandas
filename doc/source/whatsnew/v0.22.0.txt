@@ -162,8 +162,12 @@ If installed, we now require:
    +-----------------+-----------------+----------+
 
 
+Build Changes
+^^^^^^^^^^^^^
+
 - Building pandas for development now requires ``cython >= 0.24`` (:issue:`18613`)
 - Building from source now explicity requires ``setuptools`` in ``setup.py`` (:issue:`18113`)
+- Updated conda recipe to be in compliance with conda-build 3.0+ (:issue:`18002`)
 
 .. _whatsnew_0220.api:
 

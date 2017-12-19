@@ -2,7 +2,7 @@
 
 source activate pandas
 
-echo "install 35"
+echo "install 35 CONDA_BUILD_TEST"
 
 # pip install python-dateutil to get latest
 conda remove -n pandas python-dateutil --force
