@@ -734,8 +734,8 @@ def _arith_method_SERIES(op, name, str_rep, fill_zeros=None, default_axis=None,
             elif isinstance(right, pd.PeriodIndex):
                 # not supported for DatetimeIndex
                 pass
-            elif (isinstance(other, np.ndarray) and other.size == 1 and
-                  is_integer_dtype(other)):
+            elif (isinstance(right, np.ndarray) and right.size == 1 and
+                  is_integer_dtype(right)):
                 # DatetimeIndex adds this as nanoseconds, needs fixing
                 pass
             else:
