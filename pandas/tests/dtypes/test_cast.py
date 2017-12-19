@@ -21,7 +21,8 @@ from pandas.core.dtypes.cast import (
     infer_dtype_from_array,
     maybe_convert_string_to_object,
     maybe_convert_scalar,
-    find_common_type)
+    find_common_type,
+    construct_1d_object_array_from_listlike)
 from pandas.core.dtypes.dtypes import (
     CategoricalDtype,
     DatetimeTZDtype,
@@ -407,3 +408,17 @@ class TestCommonTypes(object):
                        np.dtype('datetime64[ns]'), np.object, np.int64]:
             assert find_common_type([dtype, dtype2]) == np.object
             assert find_common_type([dtype2, dtype]) == np.object
+
+    @pytest.mark.parametrize('datum1', [1, 2., "3", (4, 5), [6, 7], None])
+    @pytest.mark.parametrize('datum2', [8, 9., "10", (11, 12), [13, 14], None])
+    def test_cast_1d_array(self, datum1, datum2):
+        data = [datum1, datum2]
+        result = construct_1d_object_array_from_listlike(data)
+
+        # Direct comparison fails: https://github.com/numpy/numpy/issues/10218
+        assert result.dtype == 'object'
+        assert list(result) == data
+
+    @pytest.mark.parametrize('val', [1, 2., None])
+    def test_cast_1d_array_invalid_scalar(self, val):
+        pytest.raises(TypeError, construct_1d_object_array_from_listlike, val)
