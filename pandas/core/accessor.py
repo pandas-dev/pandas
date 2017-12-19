@@ -199,7 +199,7 @@ def register_dataframe_accessor(name):
 
         import pandas as pd
 
-        @pd.register_dataframe_accessor("geo")
+        @pd.extensions.register_dataframe_accessor("geo")
         class GeoAccessor(object):
             def __init__(self, pandas_obj):
                 self._obj = pandas_obj
@@ -225,18 +225,44 @@ def register_dataframe_accessor(name):
 
     See also
     --------
-    register_series_accessor
     register_index_accessor
+    register_series_accessor
     """
     from pandas import DataFrame
     return _register_accessor(name, DataFrame)
 
 
 def register_series_accessor(name):
+    """Register a custom accessor on pandas.Series objects.
+
+    Parameters
+    ----------
+    name : str
+        Name under which the accessor should be registered. A warning is issued
+        if this name conflicts with a preexisting attribute.
+
+    See Also
+    --------
+    register_dataframe_accessor
+    register_index_accessor
+    """
     from pandas import Series
     return _register_accessor(name, Series)
 
 
 def register_index_accessor(name):
+    """Register a custom accessor on pandas.Index objects.
+
+    Parameters
+    ----------
+    name : str
+        Name under which the accessor should be registered. A warning is issued
+        if this name conflicts with a preexisting attribute.
+
+    See Also
+    --------
+    register_index_accessor
+    register_series_accessor
+    """
     from pandas import Index
     return _register_accessor(name, Index)

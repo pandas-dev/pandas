@@ -132,7 +132,7 @@ supports registering custom accessors in library code.
 
    import pandas as pd
 
-   @pd.register_dataframe_accessor("geo")
+   @pd.extensions.register_dataframe_accessor("geo")
    class GeoAccessor(object):
        def __init__(self, pandas_obj):
            self._obj = pandas_obj

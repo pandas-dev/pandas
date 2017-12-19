@@ -103,7 +103,7 @@ class's `__init__` method gets the object being decorated. For example:
 
 .. ipython:: python
 
-   @pd.register_dataframe_accessor("geo")
+   @pd.extensions.register_dataframe_accessor("geo")
    class GeoAccessor(object):
        def __init__(self, pandas_obj):
            self._obj = pandas_obj
