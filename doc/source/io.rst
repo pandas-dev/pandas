@@ -199,11 +199,6 @@ low_memory : boolean, default ``True``
   Note that the entire file is read into a single DataFrame regardless,
   use the ``chunksize`` or ``iterator`` parameter to return the data in chunks.
   (Only valid with C parser)
-buffer_lines : int, default None
-  .. deprecated:: 0.19.0
-
-     Argument removed because its value is not respected by the parser
-
 compact_ints : boolean, default False
   .. deprecated:: 0.19.0
 
