@@ -205,6 +205,10 @@ Deprecations
 - ``Series.from_array`` and ``SparseSeries.from_array`` are deprecated. Use the normal constructor ``Series(..)`` and ``SparseSeries(..)`` instead (:issue:`18213`).
 - ``DataFrame.as_matrix`` is deprecated. Use ``DataFrame.values`` instead (:issue:`18458`).
 - ``Series.asobject``, ``DatetimeIndex.asobject``, ``PeriodIndex.asobject`` and ``TimeDeltaIndex.asobject`` have been deprecated. Use ``.astype(object)`` instead (:issue:`18572`)
+- Grouping by a tuple of keys now emits a ``FutureWarning`` and is deprecated.
+  In the future, a tuple passed to ``'by'`` will always refer to a single key
+  that is the actual tuple, instead of treating the tuple as multiple keys. To
+  retain the previous behavior, use a list instead of a tuple (:issue:`18314`)
 - ``Series.valid`` is deprecated. Use :meth:`Series.dropna` instead (:issue:`18800`).
 
 .. _whatsnew_0220.prior_deprecations:
@@ -224,6 +228,7 @@ Removal of prior version deprecations/changes
   and Series (deprecated since v0.18). Instead, resample before calling the methods. (:issue:18601 & :issue:18668)
 - ``DatetimeIndex.to_datetime``, ``Timestamp.to_datetime``, ``PeriodIndex.to_datetime``, and ``Index.to_datetime`` have been removed (:issue:`8254`, :issue:`14096`, :issue:`14113`)
 - :func:`read_csv` has dropped the ``skip_footer`` parameter (:issue:`13386`)
+- :func:`read_csv` has dropped the ``as_recarray`` parameter (:issue:`13373`)
 
 .. _whatsnew_0220.performance:
 

@@ -108,14 +108,6 @@ usecols : array-like or callable, default None
     example of a valid callable argument would be ``lambda x: x.upper() in
     ['AAA', 'BBB', 'DDD']``. Using this parameter results in much faster
     parsing time and lower memory usage.
-as_recarray : boolean, default False
-    .. deprecated:: 0.19.0
-       Please call `pd.read_csv(...).to_records()` instead.
-
-    Return a NumPy recarray instead of a DataFrame after parsing the data.
-    If set to True, this option takes precedence over the `squeeze` parameter.
-    In addition, as row indices are not available in such a format, the
-    `index_col` parameter will be ignored.
 squeeze : boolean, default False
     If the parsed data only contains one column then return a Series
 prefix : str, default None
@@ -506,7 +498,6 @@ _parser_defaults = {
 
 _c_parser_defaults = {
     'delim_whitespace': False,
-    'as_recarray': False,
     'na_filter': True,
     'compact_ints': False,
     'use_unsigned': False,
@@ -532,14 +523,12 @@ _python_unsupported = {
 }
 
 _deprecated_defaults = {
-    'as_recarray': None,
     'buffer_lines': None,
     'compact_ints': None,
     'use_unsigned': None,
     'tupleize_cols': None
 }
 _deprecated_args = {
-    'as_recarray',
     'buffer_lines',
     'compact_ints',
     'use_unsigned',
@@ -614,7 +603,6 @@ def _make_parser_function(name, sep=','):
                  # Internal
                  doublequote=True,
                  delim_whitespace=False,
-                 as_recarray=None,
                  compact_ints=None,
                  use_unsigned=None,
                  low_memory=_c_parser_defaults['low_memory'],
@@ -685,7 +673,6 @@ def _make_parser_function(name, sep=','):
                     compact_ints=compact_ints,
                     use_unsigned=use_unsigned,
                     delim_whitespace=delim_whitespace,
-                    as_recarray=as_recarray,
                     warn_bad_lines=warn_bad_lines,
                     error_bad_lines=error_bad_lines,
                     low_memory=low_memory,
@@ -971,9 +958,7 @@ class TextFileReader(BaseIterator):
                    "and will be removed in a future version."
                    .format(arg=arg))
 
-            if arg == 'as_recarray':
-                msg += ' Please call pd.to_csv(...).to_records() instead.'
-            elif arg == 'tupleize_cols':
+            if arg == 'tupleize_cols':
                 msg += (' Column tuples will then '
                         'always be converted to MultiIndex.')
 
@@ -1058,9 +1043,6 @@ class TextFileReader(BaseIterator):
                 raise ValueError('skipfooter not supported for iteration')
 
         ret = self._engine.read(nrows)
-
-        if self.options.get('as_recarray'):
-            return ret
 
         # May alter columns / col_dict
         index, columns, col_dict = self._create_index(ret)
@@ -1279,7 +1261,6 @@ class ParserBase(object):
 
         self.true_values = kwds.get('true_values')
         self.false_values = kwds.get('false_values')
-        self.as_recarray = kwds.get('as_recarray', False)
         self.tupleize_cols = kwds.get('tupleize_cols', False)
         self.mangle_dupe_cols = kwds.get('mangle_dupe_cols', True)
         self.infer_datetime_format = kwds.pop('infer_datetime_format', False)
@@ -1295,9 +1276,6 @@ class ParserBase(object):
         if isinstance(self.header, (list, tuple, np.ndarray)):
             if not all(map(is_integer, self.header)):
                 raise ValueError("header must be integer or list of integers")
-            if kwds.get('as_recarray'):
-                raise ValueError("cannot specify as_recarray when "
-                                 "specifying a multi-index header")
             if kwds.get('usecols'):
                 raise ValueError("cannot specify usecols when "
                                  "specifying a multi-index header")
@@ -1900,10 +1878,6 @@ class CParserWrapper(ParserBase):
         # Done with first read, next time raise StopIteration
         self._first_chunk = False
 
-        if self.as_recarray:
-            # what to do if there are leading columns?
-            return data
-
         names = self.names
 
         if self._reader.leading_cols:
@@ -2306,9 +2280,6 @@ class PythonParser(ParserBase):
         columns, data = self._do_date_conversions(columns, data)
 
         data = self._convert_data(data)
-        if self.as_recarray:
-            return self._to_recarray(data, columns)
-
         index, columns = self._make_index(data, alldata, columns, indexnamerow)
 
         return index, columns, data
@@ -2375,19 +2346,6 @@ class PythonParser(ParserBase):
         return self._convert_to_ndarrays(data, clean_na_values,
                                          clean_na_fvalues, self.verbose,
                                          clean_conv, clean_dtypes)
-
-    def _to_recarray(self, data, columns):
-        dtypes = []
-        o = compat.OrderedDict()
-
-        # use the columns to "order" the keys
-        # in the unordered 'data' dictionary
-        for col in columns:
-            dtypes.append((str(col), data[col].dtype))
-            o[col] = data[col]
-
-        tuples = lzip(*o.values())
-        return np.array(tuples, dtypes)
 
     def _infer_columns(self):
         names = self.names
