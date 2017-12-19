@@ -173,10 +173,10 @@ class Styler(object):
                 Name or list of names which refer to the axis items.""",
         versionadded_to_excel='\n    .. versionadded:: 0.20'))
     def to_excel(self, excel_writer, sheet_name='Sheet1', na_rep='',
-                float_format=None, columns=None, header=True, index=True,
-                index_label=None, startrow=0, startcol=0, engine=None,
-                merge_cells=True, encoding=None, inf_rep='inf', verbose=True,
-                freeze_panes=None):
+                 float_format=None, columns=None, header=True, index=True,
+                 index_label=None, startrow=0, startcol=0, engine=None,
+                 merge_cells=True, encoding=None, inf_rep='inf', verbose=True,
+                 freeze_panes=None):
                 """
                 Returns an Excel representation of the DataFrame.
                 Currently, `to_excel` creates a
@@ -191,12 +191,12 @@ class Styler(object):
                 """
                 from pandas.io.formats.excel import ExcelFormatter
                 formatter = ExcelFormatter(self, na_rep=na_rep, cols=columns,
-                                            header=header,
-                                            float_format=float_format,
-                                            index=index,
-                                            index_label=index_label,
-                                            merge_cells=merge_cells,
-                                            inf_rep=inf_rep)
+                                           header=header,
+                                           float_format=float_format,
+                                           index=index,
+                                           index_label=index_label,
+                                           merge_cells=merge_cells,
+                                           inf_rep=inf_rep)
                 formatter.write(excel_writer, sheet_name=sheet_name,
                                 startrow=startrow,
                                 startcol=startcol, freeze_panes=freeze_panes,
@@ -671,7 +671,7 @@ class Styler(object):
         func : function
             `func` should take a scalar and return a scalar
         subset : IndexSlice
-            determines to which cells `func` will apply 
+            determines to which cells `func` will apply
         kwargs : dict
             parameters to pass to `func`
 
@@ -852,7 +852,7 @@ class Styler(object):
         Notes
         -----
         Entries are rendered with CSS selectors according to gross properties
-        of their position and content: 
+        of their position and content:
         * Index and Column names include ``index_name`` and ``level<k>``
           where `k` is its level in a MultiIndex
         * Index label cells include
