@@ -960,7 +960,8 @@ class TestTimedeltaSeriesArithmetic(object):
         assert_series_equal(timedelta_series / nan,
                             nat_series_dtype_timedelta)
 
-    def test_operators_timedelta64(self):
+    def test_operators_timedelta64_with_timedelta(self):
+        # smoke tests
         td1 = Series([timedelta(minutes=5, seconds=3)] * 3)
         td1.iloc[2] = np.nan
         td2 = timedelta(minutes=5, seconds=4)
@@ -972,7 +973,7 @@ class TestTimedeltaSeriesArithmetic(object):
         td1 / td2
         td2 / td1
 
-    def test_operators_timedelta64_invalid(self):
+    def test_operators_timedelta64_with_timedelta_invalid(self):
         td1 = Series([timedelta(minutes=5, seconds=3)] * 3)
         td1.iloc[2] = np.nan
         td2 = timedelta(minutes=5, seconds=4)
