@@ -23,7 +23,7 @@ from pandas._libs import lib
 from pandas._libs.tslib import iNaT
 
 from pandas.compat import lrange, range, zip, long
-from pandas.util.testing import assert_series_equal
+from pandas.util.testing import assert_series_equal, assert_frame_equal
 import pandas.util.testing as tm
 
 from .common import TestData
@@ -146,14 +146,15 @@ class TestSeriesConstructors(TestData):
         ([1, 2]),
         ([1.0, 2.0, np.nan]),
         (['1', '2']),
-        (pd.date_range('1/1/2011', periods=2)),
-        (pd.date_range('1/1/2011', periods=2, tz='US/Eastern')),
-        (pd.Interval(left=0, right=5)),
+        (list(pd.date_range('1/1/2011', periods=2, freq='H'))),
+        (list(pd.date_range('1/1/2011', periods=2, freq='H',
+                            tz='US/Eastern'))),
+        ([pd.Interval(left=0, right=5)]),
     ])
     def test_constructor_list_str(self, input_vals):
         # GH 16605
-        # Ensure that data elements are converted to strings when
-        # dtype is str, 'str', or 'U'
+        # Ensure that data elements from a list are converted to strings
+        # when dtype is str, 'str', or 'U'
 
         for dtype in ['str', str, 'U']:
             result = Series(input_vals, dtype=dtype)
