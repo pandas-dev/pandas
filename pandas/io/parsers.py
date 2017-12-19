@@ -273,9 +273,6 @@ low_memory : boolean, default True
     Note that the entire file is read into a single DataFrame regardless,
     use the `chunksize` or `iterator` parameter to return the data in chunks.
     (Only valid with C parser)
-buffer_lines : int, default None
-    .. deprecated:: 0.19.0
-       This argument is not respected by the parser
 compact_ints : boolean, default False
     .. deprecated:: 0.19.0
        Argument moved to ``pd.to_numeric``
@@ -503,7 +500,6 @@ _c_parser_defaults = {
     'use_unsigned': False,
     'low_memory': True,
     'memory_map': False,
-    'buffer_lines': None,
     'error_bad_lines': True,
     'warn_bad_lines': True,
     'tupleize_cols': False,
@@ -518,18 +514,15 @@ _fwf_defaults = {
 _c_unsupported = {'skipfooter'}
 _python_unsupported = {
     'low_memory',
-    'buffer_lines',
     'float_precision',
 }
 
 _deprecated_defaults = {
-    'buffer_lines': None,
     'compact_ints': None,
     'use_unsigned': None,
     'tupleize_cols': None
 }
 _deprecated_args = {
-    'buffer_lines',
     'compact_ints',
     'use_unsigned',
     'tupleize_cols',
@@ -606,7 +599,6 @@ def _make_parser_function(name, sep=','):
                  compact_ints=None,
                  use_unsigned=None,
                  low_memory=_c_parser_defaults['low_memory'],
-                 buffer_lines=None,
                  memory_map=False,
                  float_precision=None):
 
@@ -676,7 +668,6 @@ def _make_parser_function(name, sep=','):
                     warn_bad_lines=warn_bad_lines,
                     error_bad_lines=error_bad_lines,
                     low_memory=low_memory,
-                    buffer_lines=buffer_lines,
                     mangle_dupe_cols=mangle_dupe_cols,
                     tupleize_cols=tupleize_cols,
                     infer_datetime_format=infer_datetime_format,

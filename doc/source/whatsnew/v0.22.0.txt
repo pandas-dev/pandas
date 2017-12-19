@@ -232,6 +232,7 @@ Removal of prior version deprecations/changes
 - ``DatetimeIndex.to_datetime``, ``Timestamp.to_datetime``, ``PeriodIndex.to_datetime``, and ``Index.to_datetime`` have been removed (:issue:`8254`, :issue:`14096`, :issue:`14113`)
 - :func:`read_csv` has dropped the ``skip_footer`` parameter (:issue:`13386`)
 - :func:`read_csv` has dropped the ``as_recarray`` parameter (:issue:`13373`)
+- :func:`read_csv` has dropped the ``buffer_lines`` parameter (:issue:`13360`)
 
 .. _whatsnew_0220.performance:
 
