@@ -212,6 +212,7 @@ Deprecations
   that is the actual tuple, instead of treating the tuple as multiple keys. To
   retain the previous behavior, use a list instead of a tuple (:issue:`18314`)
 - ``Series.valid`` is deprecated. Use :meth:`Series.dropna` instead (:issue:`18800`).
+- :func:`read_excel` has deprecated the ``skip_footer`` parameter. Use ``skipfooter`` instead (:issue:`18836`)
 
 .. _whatsnew_0220.prior_deprecations:
 

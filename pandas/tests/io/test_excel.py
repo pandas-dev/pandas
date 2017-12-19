@@ -286,14 +286,14 @@ class ReadingTestsBase(SharedItems):
         tm.assert_frame_equal(df2, dfref, check_names=False)
 
         df3 = read_excel(excel, 0, index_col=0, skipfooter=1)
-        df4 = read_excel(excel, 0, index_col=0, skip_footer=1)
         tm.assert_frame_equal(df3, df1.iloc[:-1])
-        tm.assert_frame_equal(df3, df4)
+
+        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
+            df4 = read_excel(excel, 0, index_col=0, skip_footer=1)
+            tm.assert_frame_equal(df3, df4)
 
         df3 = excel.parse(0, index_col=0, skipfooter=1)
-        df4 = excel.parse(0, index_col=0, skip_footer=1)
         tm.assert_frame_equal(df3, df1.iloc[:-1])
-        tm.assert_frame_equal(df3, df4)
 
         import xlrd
         with pytest.raises(xlrd.XLRDError):
@@ -311,10 +311,7 @@ class ReadingTestsBase(SharedItems):
 
         df3 = self.get_exceldf('test1', 'Sheet1', index_col=0,
                                skipfooter=1)
-        df4 = self.get_exceldf('test1', 'Sheet1', index_col=0,
-                               skip_footer=1)
         tm.assert_frame_equal(df3, df1.iloc[:-1])
-        tm.assert_frame_equal(df3, df4)
 
     def test_reader_special_dtypes(self):
 
