@@ -162,8 +162,12 @@ If installed, we now require:
    +-----------------+-----------------+----------+
 
 
+Build Changes
+^^^^^^^^^^^^^
+
 - Building pandas for development now requires ``cython >= 0.24`` (:issue:`18613`)
 - Building from source now explicity requires ``setuptools`` in ``setup.py`` (:issue:`18113`)
+- Updated conda recipe to be in compliance with conda-build 3.0+ (:issue:`18002`)
 
 .. _whatsnew_0220.api:
 
@@ -203,7 +207,12 @@ Deprecations
 - ``Series.from_array`` and ``SparseSeries.from_array`` are deprecated. Use the normal constructor ``Series(..)`` and ``SparseSeries(..)`` instead (:issue:`18213`).
 - ``DataFrame.as_matrix`` is deprecated. Use ``DataFrame.values`` instead (:issue:`18458`).
 - ``Series.asobject``, ``DatetimeIndex.asobject``, ``PeriodIndex.asobject`` and ``TimeDeltaIndex.asobject`` have been deprecated. Use ``.astype(object)`` instead (:issue:`18572`)
+- Grouping by a tuple of keys now emits a ``FutureWarning`` and is deprecated.
+  In the future, a tuple passed to ``'by'`` will always refer to a single key
+  that is the actual tuple, instead of treating the tuple as multiple keys. To
+  retain the previous behavior, use a list instead of a tuple (:issue:`18314`)
 - ``Series.valid`` is deprecated. Use :meth:`Series.dropna` instead (:issue:`18800`).
+- :func:`read_excel` has deprecated the ``skip_footer`` parameter. Use ``skipfooter`` instead (:issue:`18836`)
 
 .. _whatsnew_0220.prior_deprecations:
 
@@ -222,6 +231,8 @@ Removal of prior version deprecations/changes
   and Series (deprecated since v0.18). Instead, resample before calling the methods. (:issue:18601 & :issue:18668)
 - ``DatetimeIndex.to_datetime``, ``Timestamp.to_datetime``, ``PeriodIndex.to_datetime``, and ``Index.to_datetime`` have been removed (:issue:`8254`, :issue:`14096`, :issue:`14113`)
 - :func:`read_csv` has dropped the ``skip_footer`` parameter (:issue:`13386`)
+- :func:`read_csv` has dropped the ``as_recarray`` parameter (:issue:`13373`)
+- :func:`read_csv` has dropped the ``buffer_lines`` parameter (:issue:`13360`)
 
 .. _whatsnew_0220.performance:
 
@@ -305,6 +316,7 @@ Groupby/Resample/Rolling
 ^^^^^^^^^^^^^^^^^^^^^^^^
 
 - Bug when grouping by a single column and aggregating with a class like ``list`` or ``tuple`` (:issue:`18079`)
+- Fixed regression in :func:`DataFrame.groupby` which would not emit an error when called with a tuple key not in the index (:issue:`18798`)
 -
 -
 
@@ -341,3 +353,4 @@ Other
 ^^^^^
 
 - Improved error message when attempting to use a Python keyword as an identifier in a ``numexpr`` backed query (:issue:`18221`)
+- Bug in :class:`Timestamp` where comparison with an array of ``Timestamp`` objects would result in a ``RecursionError`` (:issue:`15183`)
