@@ -1226,6 +1226,7 @@ def test_from_to_scipy(spmatrix, index, columns, fill_value, dtype):
     assert sdf.to_coo().dtype == np.object_
 
 
+@td.skip_if_no_scipy
 @pytest.mark.parametrize('fill_value', [None, 0, np.nan])  # noqa: F811
 def test_from_to_scipy_object(spmatrix, fill_value):
     # GH 4343
