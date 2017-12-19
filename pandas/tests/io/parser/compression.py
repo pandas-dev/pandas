@@ -8,7 +8,9 @@ of the parsers defined in parsers.py
 import pytest
 
 import pandas as pd
+import pandas.compat as compat
 import pandas.util.testing as tm
+import pandas.util._test_decorators as td
 
 
 class CompressionTests(object):
@@ -117,8 +119,9 @@ class CompressionTests(object):
             result = self.read_csv(path, compression='infer')
             tm.assert_frame_equal(result, expected)
 
+    @td.skip_if_no_lzma
     def test_xz(self):
-        lzma = tm._skip_if_no_lzma()
+        lzma = compat.import_lzma()
 
         with open(self.csv1, 'rb') as data_file:
             data = data_file.read()
