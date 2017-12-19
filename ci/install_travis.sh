@@ -34,9 +34,9 @@ fi
 
 # install miniconda
 if [ "${TRAVIS_OS_NAME}" == "osx" ]; then
-    time wget http://repo.continuum.io/miniconda/Miniconda3-latest-MacOSX-x86_64.sh -O miniconda.sh || exit 1
+    time wget http://repo.continuum.io/miniconda/Miniconda3-latest-MacOSX-x86_64.sh -q -O miniconda.sh || exit 1
 else
-    time wget http://repo.continuum.io/miniconda/Miniconda3-latest-Linux-x86_64.sh -O miniconda.sh || exit 1
+    time wget http://repo.continuum.io/miniconda/Miniconda3-latest-Linux-x86_64.sh -q -O miniconda.sh || exit 1
 fi
 time bash miniconda.sh -b -p "$MINICONDA_DIR" || exit 1
 
@@ -49,6 +49,12 @@ echo "[update conda]"
 conda config --set ssl_verify false || exit 1
 conda config --set quiet true --set always_yes true --set changeps1 false || exit 1
 conda update -q conda
+
+if [ "$CONDA_BUILD_TEST" ]; then
+    echo
+    echo "[installing conda-build]"
+    conda install conda-build
+fi
 
 echo
 echo "[add channels]"
@@ -107,7 +113,7 @@ time conda install -n pandas pytest>=3.1.0
 time pip install pytest-xdist moto
 
 if [ "$LINT" ]; then
-   conda install flake8
+   conda install flake8=3.4.1
    pip install cpplint
 fi
 
@@ -116,7 +122,7 @@ if [ "$COVERAGE" ]; then
 fi
 
 echo
-if [ -z "$BUILD_TEST" ]; then
+if [ -z "$PIP_BUILD_TEST" ] && [ -z "$CONDA_BUILD_TEST" ]; then
 
     # build but don't install
     echo "[build em]"
@@ -155,23 +161,34 @@ echo "[removing installed pandas]"
 conda remove pandas -y --force
 pip uninstall -y pandas
 
-if [ "$BUILD_TEST" ]; then
+echo
+echo "[no installed pandas]"
+conda list pandas
+pip list --format columns |grep pandas
 
-    # remove any installation
-    pip uninstall -y pandas
-    conda list pandas
-    pip list --format columns |grep pandas
+# build and install
+echo
+
+if [ "$PIP_BUILD_TEST" ]; then
 
     # build & install testing
-    echo ["building release"]
+    echo "[building release]"
     bash scripts/build_dist_for_release.sh
     conda uninstall -y cython
     time pip install dist/*tar.gz || exit 1
 
+elif [ "$CONDA_BUILD_TEST" ]; then
+
+    # build & install testing
+    echo "[building conda recipe]"
+    conda build ./conda.recipe --numpy 1.13 --python 3.5 -q --no-test
+
+    echo "[installing]"
+    conda install $(conda build ./conda.recipe --numpy 1.13 --python 3.5 --output) --quiet
+
 else
 
     # install our pandas
-    echo
     echo "[running setup.py develop]"
     python setup.py develop  || exit 1
 

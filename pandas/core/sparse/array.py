@@ -19,6 +19,7 @@ from pandas.core.dtypes.generic import (
 from pandas.core.dtypes.common import (
     _ensure_platform_int,
     is_float, is_integer,
+    is_object_dtype,
     is_integer_dtype,
     is_bool_dtype,
     is_list_like,
@@ -614,6 +615,48 @@ class SparseArray(PandasObject, np.ndarray):
         return self._simple_new(new_values, self.sp_index,
                                 fill_value=fill_value)
 
+    def all(self, axis=0, *args, **kwargs):
+        """
+        Tests whether all elements evaluate True
+
+        Returns
+        -------
+        all : bool
+
+        See Also
+        --------
+        numpy.all
+        """
+        nv.validate_all(args, kwargs)
+
+        values = self.sp_values
+
+        if len(values) != len(self) and not np.all(self.fill_value):
+            return False
+
+        return values.all()
+
+    def any(self, axis=0, *args, **kwargs):
+        """
+        Tests whether at least one of elements evaluate True
+
+        Returns
+        -------
+        any : bool
+
+        See Also
+        --------
+        numpy.any
+        """
+        nv.validate_any(args, kwargs)
+
+        values = self.sp_values
+
+        if len(values) != len(self) and np.any(self.fill_value):
+            return True
+
+        return values.any()
+
     def sum(self, axis=0, *args, **kwargs):
         """
         Sum of non-NA/null values
@@ -789,7 +832,13 @@ def make_sparse(arr, kind='block', fill_value=None):
         if is_string_dtype(arr):
             arr = arr.astype(object)
 
-        mask = arr != fill_value
+        if is_object_dtype(arr.dtype):
+            # element-wise equality check method in numpy doesn't treat
+            # each element type, eg. 0, 0.0, and False are treated as
+            # same. So we have to check the both of its type and value.
+            mask = splib.make_mask_object_ndarray(arr, fill_value)
+        else:
+            mask = arr != fill_value
 
     length = len(arr)
     if length != mask.size:

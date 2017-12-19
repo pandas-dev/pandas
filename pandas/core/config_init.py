@@ -392,8 +392,9 @@ with cf.config_prefix('mode'):
     cf.register_option('sim_interactive', False, tc_sim_interactive_doc)
 
 use_inf_as_null_doc = """
-use_inf_as_null had been deprecated and will be removed in a future version.
-Use `use_inf_as_na` instead.
+: boolean
+    use_inf_as_null had been deprecated and will be removed in a future
+    version. Use `use_inf_as_na` instead.
 """
 
 use_inf_as_na_doc = """
@@ -437,34 +438,36 @@ with cf.config_prefix('mode'):
 writer_engine_doc = """
 : string
     The default Excel writer engine for '{ext}' files. Available options:
-    '{default}' (the default){others}.
+    auto, {others}.
 """
 
-with cf.config_prefix('io.excel'):
-    # going forward, will be additional writers
-    for ext, options in [('xls', ['xlwt']), ('xlsm', ['openpyxl'])]:
-        default = options.pop(0)
-        if options:
-            options = " " + ", ".join(options)
-        else:
-            options = ""
-        doc = writer_engine_doc.format(ext=ext, default=default,
-                                       others=options)
-        cf.register_option(ext + '.writer', default, doc, validator=str)
+_xls_options = ['xlwt']
+_xlsm_options = ['openpyxl']
+_xlsx_options = ['openpyxl', 'xlsxwriter']
 
-    def _register_xlsx(engine, other):
-        cf.register_option('xlsx.writer', engine,
-                           writer_engine_doc.format(ext='xlsx', default=engine,
-                                                    others=", '%s'" % other),
-                           validator=str)
 
-    try:
-        # better memory footprint
-        import xlsxwriter  # noqa
-        _register_xlsx('xlsxwriter', 'openpyxl')
-    except ImportError:
-        # fallback
-        _register_xlsx('openpyxl', 'xlsxwriter')
+with cf.config_prefix("io.excel.xls"):
+    cf.register_option("writer", "auto",
+                       writer_engine_doc.format(
+                           ext='xls',
+                           others=', '.join(_xls_options)),
+                       validator=str)
+
+with cf.config_prefix("io.excel.xlsm"):
+    cf.register_option("writer", "auto",
+                       writer_engine_doc.format(
+                           ext='xlsm',
+                           others=', '.join(_xlsm_options)),
+                       validator=str)
+
+
+with cf.config_prefix("io.excel.xlsx"):
+    cf.register_option("writer", "auto",
+                       writer_engine_doc.format(
+                           ext='xlsx',
+                           others=', '.join(_xlsx_options)),
+                       validator=str)
+
 
 # Set up the io.parquet specific configuration.
 parquet_engine_doc = """
@@ -477,3 +480,29 @@ with cf.config_prefix('io.parquet'):
     cf.register_option(
         'engine', 'auto', parquet_engine_doc,
         validator=is_one_of_factory(['auto', 'pyarrow', 'fastparquet']))
+
+# --------
+# Plotting
+# ---------
+
+register_converter_doc = """
+: bool
+    Whether to register converters with matplotlib's units registry for
+    dates, times, datetimes, and Periods. Toggling to False will remove
+    the converters, restoring any converters that pandas overwrote.
+"""
+
+
+def register_converter_cb(key):
+    from pandas.plotting import register_matplotlib_converters
+    from pandas.plotting import deregister_matplotlib_converters
+
+    if cf.get_option(key):
+        register_matplotlib_converters()
+    else:
+        deregister_matplotlib_converters()
+
+
+with cf.config_prefix("plotting.matplotlib"):
+    cf.register_option("register_converters", True, register_converter_doc,
+                       validator=bool, cb=register_converter_cb)

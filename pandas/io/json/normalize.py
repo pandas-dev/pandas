@@ -181,7 +181,7 @@ def json_normalize(data, record_path=None, meta=None,
 
         return result
 
-    if isinstance(data, list) and len(data) is 0:
+    if isinstance(data, list) and not data:
         return DataFrame()
 
     # A bit of a hackjob
@@ -189,7 +189,7 @@ def json_normalize(data, record_path=None, meta=None,
         data = [data]
 
     if record_path is None:
-        if any([isinstance(x, dict) for x in compat.itervalues(data[0])]):
+        if any(isinstance(x, dict) for x in compat.itervalues(data[0])):
             # naive normalization, this is idempotent for flat records
             # and potentially will inflate the data considerably for
             # deeply nested structures:
@@ -207,9 +207,7 @@ def json_normalize(data, record_path=None, meta=None,
     elif not isinstance(meta, list):
         meta = [meta]
 
-    for i, x in enumerate(meta):
-        if not isinstance(x, list):
-            meta[i] = [x]
+    meta = [m if isinstance(m, list) else [m] for m in meta]
 
     # Disastrously inefficient for now
     records = []

@@ -16,6 +16,7 @@ from pandas.tseries.offsets import BDay
 from pandas.util.testing import (assert_frame_equal, assert_series_equal,
                                  assert_almost_equal)
 import pandas.util.testing as tm
+import pandas.util._test_decorators as td
 
 
 def add_nans(panel4d):
@@ -59,11 +60,9 @@ class SafeForLongAndSparse(object):
     def test_max(self):
         self._check_stat_op('max', np.max)
 
+    @td.skip_if_no_scipy
     def test_skew(self):
-        try:
-            from scipy.stats import skew
-        except ImportError:
-            pytest.skip("no scipy.stats.skew")
+        from scipy.stats import skew
 
         def this_skew(x):
             if len(x) < 3:
@@ -138,7 +137,7 @@ class SafeForLongAndSparse(object):
         with catch_warnings(record=True):
             for i in range(obj.ndim):
                 result = f(axis=i)
-                if not tm._incompat_bottleneck_version(name):
+                if name in ['sum', 'prod']:
                     expected = obj.apply(skipna_wrapper, axis=i)
                     tm.assert_panel_equal(result, expected)
 
@@ -563,8 +562,8 @@ class CheckIndexing(object):
             for item in self.panel4d.items:
                 for mjr in self.panel4d.major_axis[::2]:
                     for mnr in self.panel4d.minor_axis:
-                        result = self.panel4d.get_value(
-                            label, item, mjr, mnr)
+                        result = self.panel4d.loc[
+                            label, item, mjr, mnr]
                         expected = self.panel4d[label][item][mnr][mjr]
                         assert_almost_equal(result, expected)
 
@@ -689,7 +688,7 @@ class TestPanel4d(CheckIndexing, SafeForSparse,
 
     def test_constructor_dict_mixed(self):
         with catch_warnings(record=True):
-            data = dict((k, v.values) for k, v in self.panel4d.iteritems())
+            data = {k: v.values for k, v in self.panel4d.iteritems()}
             result = Panel4D(data)
 
             exp_major = Index(np.arange(len(self.panel4d.major_axis)))

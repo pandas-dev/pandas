@@ -162,7 +162,7 @@ void initObjToJSON(void)
 #endif
 {
     PyObject *mod_pandas;
-    PyObject *mod_tslib;
+    PyObject *mod_nattype;
     PyObject *mod_decimal = PyImport_ImportModule("decimal");
     type_decimal = PyObject_GetAttrString(mod_decimal, "Decimal");
     Py_INCREF(type_decimal);
@@ -180,10 +180,11 @@ void initObjToJSON(void)
         Py_DECREF(mod_pandas);
     }
 
-    mod_tslib = PyImport_ImportModule("pandas._libs.tslib");
-    if (mod_tslib) {
-        cls_nat = (PyTypeObject *)PyObject_GetAttrString(mod_tslib, "NaTType");
-        Py_DECREF(mod_tslib);
+    mod_nattype = PyImport_ImportModule("pandas._libs.tslibs.nattype");
+    if (mod_nattype) {
+        cls_nat = (PyTypeObject *)PyObject_GetAttrString(mod_nattype,
+                                                         "NaTType");
+        Py_DECREF(mod_nattype);
     }
 
     /* Initialise numpy API and use 2/3 compatible return */
@@ -454,8 +455,7 @@ static void *PandasDateTimeStructToJSON(pandas_datetimestruct *dts,
             return NULL;
         }
 
-        if (!make_iso_8601_datetime(dts, GET_TC(tc)->cStr, *_outLen, 0, base,
-                                    -1, NPY_UNSAFE_CASTING)) {
+        if (!make_iso_8601_datetime(dts, GET_TC(tc)->cStr, *_outLen, base)) {
             PRINTMARK();
             *_outLen = strlen(GET_TC(tc)->cStr);
             return GET_TC(tc)->cStr;
@@ -492,7 +492,7 @@ static void *PyDateTimeToJSON(JSOBJ _obj, JSONTypeContext *tc, void *outValue,
 
     PRINTMARK();
 
-    if (!convert_pydatetime_to_datetimestruct(obj, &dts, NULL, 1)) {
+    if (!convert_pydatetime_to_datetimestruct(obj, &dts)) {
         PRINTMARK();
         return PandasDateTimeStructToJSON(&dts, tc, outValue, _outLen);
     } else {
@@ -783,6 +783,7 @@ static void NpyArr_getLabel(JSOBJ obj, JSONTypeContext *tc, size_t *outLen,
     JSONObjectEncoder *enc = (JSONObjectEncoder *)tc->encoder;
     PRINTMARK();
     *outLen = strlen(labels[idx]);
+    Buffer_Reserve(enc, *outLen);
     memcpy(enc->offset, labels[idx], sizeof(char) * (*outLen));
     enc->offset += *outLen;
     *outLen = 0;
@@ -879,7 +880,7 @@ int PdBlock_iterNext(JSOBJ obj, JSONTypeContext *tc) {
     NpyArrContext *npyarr;
     PRINTMARK();
 
-    if (PyErr_Occurred()) {
+    if (PyErr_Occurred() || ((JSONObjectEncoder *)tc->encoder)->errorMsg) {
         return 0;
     }
 
@@ -1223,6 +1224,10 @@ int Dir_iterNext(JSOBJ _obj, JSONTypeContext *tc) {
     PyObject *attr;
     PyObject *attrName;
     char *attrStr;
+
+    if (PyErr_Occurred() || ((JSONObjectEncoder *)tc->encoder)->errorMsg) {
+        return 0;
+    }
 
     if (itemValue) {
         Py_DECREF(GET_TC(tc)->itemValue);

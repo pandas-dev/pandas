@@ -121,8 +121,8 @@ class TestSparseSeriesIndexing(object):
         tm.assert_sp_series_equal(result, exp)
 
         # exceeds the bounds
-        result = sparse.loc[[1, 3, 4, 5]]
-        exp = orig.loc[[1, 3, 4, 5]].to_sparse()
+        result = sparse.reindex([1, 3, 4, 5])
+        exp = orig.reindex([1, 3, 4, 5]).to_sparse()
         tm.assert_sp_series_equal(result, exp)
         # padded with NaN
         assert np.isnan(result[-1])
@@ -414,6 +414,11 @@ class TestSparseSeriesIndexing(object):
         expected = pd.Series([0, 1, np.nan, 2], target).to_sparse()
         tm.assert_sp_series_equal(expected, actual)
 
+        actual = s.reindex(target, method='nearest',
+                           tolerance=[0.3, 0.01, 0.4, 3])
+        expected = pd.Series([0, np.nan, np.nan, 2], target).to_sparse()
+        tm.assert_sp_series_equal(expected, actual)
+
     def tests_indexing_with_sparse(self):
         # GH 13985
 
@@ -677,8 +682,8 @@ class TestSparseDataFrameIndexing(object):
         tm.assert_sp_frame_equal(result, exp)
 
         # exceeds the bounds
-        result = sparse.loc[[1, 3, 4, 5]]
-        exp = orig.loc[[1, 3, 4, 5]].to_sparse()
+        result = sparse.reindex([1, 3, 4, 5])
+        exp = orig.reindex([1, 3, 4, 5]).to_sparse()
         tm.assert_sp_frame_equal(result, exp)
 
         # dense array

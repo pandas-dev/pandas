@@ -10,8 +10,9 @@ from pandas.core.dtypes.common import (
     is_int64_dtype)
 
 from pandas import compat
-from pandas.compat import lrange, range
+from pandas.compat import lrange, range, get_range_parameters
 from pandas.compat.numpy import function as nv
+from pandas.core.common import _all_none
 from pandas.core.indexes.base import Index, _index_shared_docs
 from pandas.util._decorators import Appender, cache_readonly
 import pandas.core.dtypes.concat as _concat
@@ -23,9 +24,14 @@ from pandas.core.indexes.numeric import Int64Index
 class RangeIndex(Int64Index):
 
     """
-    Immutable Index implementing a monotonic range. RangeIndex is a
-    memory-saving special case of Int64Index limited to representing
-    monotonic ranges.
+    Immutable Index implementing a monotonic integer range.
+
+    RangeIndex is a memory-saving special case of Int64Index limited to
+    representing monotonic ranges. Using RangeIndex may in some instances
+    improve computing speed.
+
+    This is the default index type used
+    by DataFrame and Series when no explicit index is provided by the user.
 
     Parameters
     ----------
@@ -38,6 +44,14 @@ class RangeIndex(Int64Index):
     copy : bool, default False
         Unused, accepted for homogeneity with other index types.
 
+    See Also
+    --------
+    Index : The base pandas Index type
+    Int64Index : Index of int64 data
+
+    Methods
+    -------
+    from_range
     """
 
     _typ = 'rangeindex'
@@ -74,7 +88,7 @@ class RangeIndex(Int64Index):
 
             return new_value
 
-        if start is None and stop is None and step is None:
+        if _all_none(start, stop, step):
             msg = "RangeIndex(...) must be called with integers"
             raise TypeError(msg)
         elif start is None:
@@ -103,24 +117,7 @@ class RangeIndex(Int64Index):
                 '{0}(...) must be called with object coercible to a '
                 'range, {1} was passed'.format(cls.__name__, repr(data)))
 
-        if compat.PY3:
-            step = data.step
-            stop = data.stop
-            start = data.start
-        else:
-            # seems we only have indexing ops to infer
-            # rather than direct accessors
-            if len(data) > 1:
-                step = data[1] - data[0]
-                stop = data[-1] + step
-                start = data[0]
-            elif len(data):
-                start = data[0]
-                stop = data[0] + 1
-                step = 1
-            else:
-                start = stop = 0
-                step = 1
+        start, stop, step = get_range_parameters(data)
         return RangeIndex(start, stop, step, dtype=dtype, name=name, **kwargs)
 
     @classmethod
@@ -200,8 +197,8 @@ class RangeIndex(Int64Index):
         On implementations where this is undetermined (PyPy)
         assume 24 bytes for each value
         """
-        return sum([getsizeof(getattr(self, v), 24) for v in
-                    ['_start', '_stop', '_step']])
+        return sum(getsizeof(getattr(self, v), 24) for v in
+                   ['_start', '_stop', '_step'])
 
     def memory_usage(self, deep=False):
         """
@@ -620,8 +617,8 @@ class RangeIndex(Int64Index):
                     # for compat with numpy / Int64Index
                     # even if we can represent as a RangeIndex, return
                     # as a Float64Index if we have float-like descriptors
-                    if not all([is_integer(x) for x in
-                                [rstart, rstop, rstep]]):
+                    if not all(is_integer(x) for x in
+                               [rstart, rstop, rstep]):
                         result = result.astype('float64')
 
                     return result

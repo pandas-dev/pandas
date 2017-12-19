@@ -1,6 +1,7 @@
 from __future__ import division
 
-from pandas import Interval
+from pandas import Interval, Timestamp
+from pandas.core.common import _any_none
 
 import pytest
 import pandas.util.testing as tm
@@ -137,3 +138,22 @@ class TestInterval(object):
 
         with tm.assert_raises_regex(TypeError, msg):
             interval / 'foo'
+
+    def test_constructor_errors(self):
+        msg = "invalid option for 'closed': foo"
+        with tm.assert_raises_regex(ValueError, msg):
+            Interval(0, 1, closed='foo')
+
+        msg = 'left side of interval must be <= right side'
+        with tm.assert_raises_regex(ValueError, msg):
+            Interval(1, 0)
+
+    @pytest.mark.parametrize('tz_left, tz_right', [
+        (None, 'UTC'), ('UTC', None), ('UTC', 'US/Eastern')])
+    def test_constructor_errors_tz(self, tz_left, tz_right):
+        # GH 18538
+        left = Timestamp('2017-01-01', tz=tz_left)
+        right = Timestamp('2017-01-02', tz=tz_right)
+        error = TypeError if _any_none(tz_left, tz_right) else ValueError
+        with pytest.raises(error):
+            Interval(left, right)

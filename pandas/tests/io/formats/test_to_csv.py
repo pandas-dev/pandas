@@ -1,10 +1,28 @@
-from pandas import DataFrame
+# -*- coding: utf-8 -*-
+
 import numpy as np
 import pandas as pd
+import pytest
+from pandas import DataFrame
 from pandas.util import testing as tm
 
 
 class TestToCSV(object):
+
+    def test_to_csv_defualt_encoding(self):
+        # GH17097
+        df = DataFrame({'col': [u"AAAAA", u"ÄÄÄÄÄ", u"ßßßßß", u"聞聞聞聞聞"]})
+
+        with tm.ensure_clean('test.csv') as path:
+            # the default to_csv encoding in Python 2 is ascii, and that in
+            # Python 3 is uft-8.
+            if pd.compat.PY2:
+                # the encoding argument parameter should be utf-8
+                with tm.assert_raises_regex(UnicodeEncodeError, 'ascii'):
+                    df.to_csv(path)
+            else:
+                df.to_csv(path)
+                tm.assert_frame_equal(pd.read_csv(path, index_col=0), df)
 
     def test_to_csv_quotechar(self):
         df = DataFrame({'col': [1, 2]})
@@ -180,7 +198,7 @@ $1$,$2$
                 expected_ymd_sec)
 
     def test_to_csv_multi_index(self):
-        # see gh-6618
+        # GH 6618
         df = DataFrame([1], columns=pd.MultiIndex.from_arrays([[1], [2]]))
 
         exp = ",1\n,2\n0,1\n"
@@ -206,3 +224,32 @@ $1$,$2$
 
         exp = "foo\nbar\n1\n"
         assert df.to_csv(index=False) == exp
+
+    def test_to_csv_string_array_ascii(self):
+        # GH 10813
+        str_array = [{'names': ['foo', 'bar']}, {'names': ['baz', 'qux']}]
+        df = pd.DataFrame(str_array)
+        expected_ascii = '''\
+,names
+0,"['foo', 'bar']"
+1,"['baz', 'qux']"
+'''
+        with tm.ensure_clean('str_test.csv') as path:
+            df.to_csv(path, encoding='ascii')
+            with open(path, 'r') as f:
+                assert f.read() == expected_ascii
+
+    @pytest.mark.xfail
+    def test_to_csv_string_array_utf8(self):
+        # GH 10813
+        str_array = [{'names': ['foo', 'bar']}, {'names': ['baz', 'qux']}]
+        df = pd.DataFrame(str_array)
+        expected_utf8 = '''\
+,names
+0,"[u'foo', u'bar']"
+1,"[u'baz', u'qux']"
+'''
+        with tm.ensure_clean('unicode_test.csv') as path:
+            df.to_csv(path, encoding='utf-8')
+            with open(path, 'r') as f:
+                assert f.read() == expected_utf8

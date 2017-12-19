@@ -61,6 +61,15 @@ class TestSparseArray(object):
         assert arr.dtype == np.object
         assert arr.fill_value == 'A'
 
+        # GH 17574
+        data = [False, 0, 100.0, 0.0]
+        arr = SparseArray(data, dtype=np.object, fill_value=False)
+        assert arr.dtype == np.object
+        assert arr.fill_value is False
+        arr_expected = np.array(data, dtype=np.object)
+        it = (type(x) == type(y) and x == y for x, y in zip(arr, arr_expected))
+        assert np.fromiter(it, dtype=np.bool).all()
+
     def test_constructor_spindex_dtype(self):
         arr = SparseArray(data=[1, 2], sparse_index=IntIndex(4, [1, 2]))
         tm.assert_sp_array_equal(arr, SparseArray([np.nan, 1, 2, np.nan]))
@@ -654,6 +663,94 @@ class TestSparseArray(object):
 
 
 class TestSparseArrayAnalytics(object):
+
+    @pytest.mark.parametrize('data,pos,neg', [
+        ([True, True, True], True, False),
+        ([1, 2, 1], 1, 0),
+        ([1.0, 2.0, 1.0], 1.0, 0.0)
+    ])
+    def test_all(self, data, pos, neg):
+        # GH 17570
+        out = SparseArray(data).all()
+        assert out
+
+        out = SparseArray(data, fill_value=pos).all()
+        assert out
+
+        data[1] = neg
+        out = SparseArray(data).all()
+        assert not out
+
+        out = SparseArray(data, fill_value=pos).all()
+        assert not out
+
+    @pytest.mark.parametrize('data,pos,neg', [
+        ([True, True, True], True, False),
+        ([1, 2, 1], 1, 0),
+        ([1.0, 2.0, 1.0], 1.0, 0.0)
+    ])
+    def test_numpy_all(self, data, pos, neg):
+        # GH 17570
+        out = np.all(SparseArray(data))
+        assert out
+
+        out = np.all(SparseArray(data, fill_value=pos))
+        assert out
+
+        data[1] = neg
+        out = np.all(SparseArray(data))
+        assert not out
+
+        out = np.all(SparseArray(data, fill_value=pos))
+        assert not out
+
+        msg = "the 'out' parameter is not supported"
+        tm.assert_raises_regex(ValueError, msg, np.all,
+                               SparseArray(data), out=out)
+
+    @pytest.mark.parametrize('data,pos,neg', [
+        ([False, True, False], True, False),
+        ([0, 2, 0], 2, 0),
+        ([0.0, 2.0, 0.0], 2.0, 0.0)
+    ])
+    def test_any(self, data, pos, neg):
+        # GH 17570
+        out = SparseArray(data).any()
+        assert out
+
+        out = SparseArray(data, fill_value=pos).any()
+        assert out
+
+        data[1] = neg
+        out = SparseArray(data).any()
+        assert not out
+
+        out = SparseArray(data, fill_value=pos).any()
+        assert not out
+
+    @pytest.mark.parametrize('data,pos,neg', [
+        ([False, True, False], True, False),
+        ([0, 2, 0], 2, 0),
+        ([0.0, 2.0, 0.0], 2.0, 0.0)
+    ])
+    def test_numpy_any(self, data, pos, neg):
+        # GH 17570
+        out = np.any(SparseArray(data))
+        assert out
+
+        out = np.any(SparseArray(data, fill_value=pos))
+        assert out
+
+        data[1] = neg
+        out = np.any(SparseArray(data))
+        assert not out
+
+        out = np.any(SparseArray(data, fill_value=pos))
+        assert not out
+
+        msg = "the 'out' parameter is not supported"
+        tm.assert_raises_regex(ValueError, msg, np.any,
+                               SparseArray(data), out=out)
 
     def test_sum(self):
         data = np.arange(10).astype(float)

@@ -4,13 +4,14 @@ import pytest
 
 import pandas.util.testing as tm
 from pandas.core.indexes.api import Index, CategoricalIndex
+from pandas.core.dtypes.dtypes import CategoricalDtype
 from .common import Base
 
 from pandas.compat import range, PY3
 
 import numpy as np
 
-from pandas import Categorical, IntervalIndex, compat, notna
+from pandas import Categorical, IntervalIndex, compat
 from pandas.util.testing import assert_almost_equal
 import pandas.core.config as cf
 import pandas as pd
@@ -95,6 +96,11 @@ class TestCategoricalIndex(Base):
                                               1, -1, 0], dtype='int8'))
         assert result.ordered
 
+        result = pd.CategoricalIndex(ci, categories=list('ab'), ordered=True)
+        expected = pd.CategoricalIndex(ci, categories=list('ab'), ordered=True,
+                                       dtype='category')
+        tm.assert_index_equal(result, expected, exact=True)
+
         # turn me to an Index
         result = Index(np.array(ci))
         assert isinstance(result, Index)
@@ -124,6 +130,25 @@ class TestCategoricalIndex(Base):
         idx = Index(range(3))
         result = CategoricalIndex(idx, categories=idx, ordered=True)
         tm.assert_index_equal(result, expected, exact=True)
+
+    def test_construction_with_categorical_dtype(self):
+        # construction with CategoricalDtype
+        # GH18109
+        data, cats, ordered = 'a a b b'.split(), 'c b a'.split(), True
+        dtype = CategoricalDtype(categories=cats, ordered=ordered)
+
+        result = pd.CategoricalIndex(data, dtype=dtype)
+        expected = pd.CategoricalIndex(data, categories=cats,
+                                       ordered=ordered)
+        tm.assert_index_equal(result, expected, exact=True)
+
+        # error to combine categories or ordered and dtype keywords args
+        with pytest.raises(ValueError, match="Cannot specify both `dtype` and "
+                                             "`categories` or `ordered`."):
+            pd.CategoricalIndex(data, categories=cats, dtype=dtype)
+        with pytest.raises(ValueError, match="Cannot specify both `dtype` and "
+                                             "`categories` or `ordered`."):
+            pd.CategoricalIndex(data, ordered=ordered, dtype=dtype)
 
     def test_create_categorical(self):
         # https://github.com/pandas-dev/pandas/pull/17513
@@ -244,28 +269,37 @@ class TestCategoricalIndex(Base):
                                   ordered=False)
         tm.assert_index_equal(result, exp)
 
-    def test_where(self):
+        result = ci.map(pd.Series([10, 20, 30], index=['A', 'B', 'C']))
+        tm.assert_index_equal(result, exp)
+
+        result = ci.map({'A': 10, 'B': 20, 'C': 30})
+        tm.assert_index_equal(result, exp)
+
+    def test_map_with_categorical_series(self):
+        # GH 12756
+        a = pd.Index([1, 2, 3, 4])
+        b = pd.Series(["even", "odd", "even", "odd"],
+                      dtype="category")
+        c = pd.Series(["even", "odd", "even", "odd"])
+
+        exp = CategoricalIndex(["odd", "even", "odd", np.nan])
+        tm.assert_index_equal(a.map(b), exp)
+        exp = pd.Index(["odd", "even", "odd", np.nan])
+        tm.assert_index_equal(a.map(c), exp)
+
+    @pytest.mark.parametrize('klass', [list, tuple, np.array, pd.Series])
+    def test_where(self, klass):
         i = self.create_index()
-        result = i.where(notna(i))
+        cond = [True] * len(i)
         expected = i
+        result = i.where(klass(cond))
         tm.assert_index_equal(result, expected)
 
-        i2 = pd.CategoricalIndex([np.nan, np.nan] + i[2:].tolist(),
-                                 categories=i.categories)
-        result = i.where(notna(i2))
-        expected = i2
-        tm.assert_index_equal(result, expected)
-
-    def test_where_array_like(self):
-        i = self.create_index()
         cond = [False] + [True] * (len(i) - 1)
-        klasses = [list, tuple, np.array, pd.Series]
-        expected = pd.CategoricalIndex([np.nan] + i[1:].tolist(),
-                                       categories=i.categories)
-
-        for klass in klasses:
-            result = i.where(klass(cond))
-            tm.assert_index_equal(result, expected)
+        expected = CategoricalIndex([np.nan] + i[1:].tolist(),
+                                    categories=i.categories)
+        result = i.where(klass(cond))
+        tm.assert_index_equal(result, expected)
 
     def test_append(self):
 
@@ -328,6 +362,12 @@ class TestCategoricalIndex(Base):
         # invalid
         pytest.raises(TypeError, lambda: ci.insert(0, 'd'))
 
+        # GH 18295 (test missing)
+        expected = CategoricalIndex(['a', np.nan, 'a', 'b', 'c', 'b'])
+        for na in (np.nan, pd.NaT, None):
+            result = CategoricalIndex(list('aabcb')).insert(1, na)
+            tm.assert_index_equal(result, expected)
+
     def test_delete(self):
 
         ci = self.create_index()
@@ -348,9 +388,6 @@ class TestCategoricalIndex(Base):
     def test_astype(self):
 
         ci = self.create_index()
-        result = ci.astype('category')
-        tm.assert_index_equal(result, ci, exact=True)
-
         result = ci.astype(object)
         tm.assert_index_equal(result, Index(np.array(ci)))
 
@@ -373,6 +410,36 @@ class TestCategoricalIndex(Base):
 
         result = IntervalIndex.from_intervals(result.values)
         tm.assert_index_equal(result, expected)
+
+    @pytest.mark.parametrize('name', [None, 'foo'])
+    @pytest.mark.parametrize('dtype_ordered', [True, False])
+    @pytest.mark.parametrize('index_ordered', [True, False])
+    def test_astype_category(self, name, dtype_ordered, index_ordered):
+        # GH 18630
+        index = self.create_index(ordered=index_ordered)
+        if name:
+            index = index.rename(name)
+
+        # standard categories
+        dtype = CategoricalDtype(ordered=dtype_ordered)
+        result = index.astype(dtype)
+        expected = CategoricalIndex(index.tolist(),
+                                    name=name,
+                                    categories=index.categories,
+                                    ordered=dtype_ordered)
+        tm.assert_index_equal(result, expected)
+
+        # non-standard categories
+        dtype = CategoricalDtype(index.unique().tolist()[:-1], dtype_ordered)
+        result = index.astype(dtype)
+        expected = CategoricalIndex(index.tolist(), name=name, dtype=dtype)
+        tm.assert_index_equal(result, expected)
+
+        if dtype_ordered is False:
+            # dtype='category' can't specify ordered, so only test once
+            result = index.astype('category')
+            expected = index
+            tm.assert_index_equal(result, expected)
 
     def test_reindex_base(self):
         # Determined by cat ordering.

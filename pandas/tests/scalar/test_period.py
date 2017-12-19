@@ -10,9 +10,11 @@ import pandas.core.indexes.period as period
 from pandas.compat import text_type, iteritems
 from pandas.compat.numpy import np_datetime64_compat
 
-from pandas._libs import tslib, period as libperiod
+from pandas._libs import tslib
+from pandas._libs.tslibs import period as libperiod
+from pandas._libs.tslibs.ccalendar import DAYS, MONTHS
+from pandas._libs.tslibs.parsing import DateParseError
 from pandas import Period, Timestamp, offsets
-from pandas.tseries.frequencies import DAYS, MONTHS
 
 
 class TestPeriodProperties(object):
@@ -886,8 +888,8 @@ class TestPeriodProperties(object):
 
     def test_badinput(self):
         pytest.raises(ValueError, Period, '-2000', 'A')
-        pytest.raises(tslib.DateParseError, Period, '0', 'A')
-        pytest.raises(tslib.DateParseError, Period, '1/1/-2000', 'A')
+        pytest.raises(DateParseError, Period, '0', 'A')
+        pytest.raises(DateParseError, Period, '1/1/-2000', 'A')
 
     def test_multiples(self):
         result1 = Period('1989', freq='2A')
@@ -1036,6 +1038,29 @@ class TestMethods(object):
 
         with tm.assert_raises_regex(TypeError, msg):
             dt1 + dt2
+
+    boxes = [lambda x: x, lambda x: pd.Series([x]), lambda x: pd.Index([x])]
+
+    @pytest.mark.parametrize('lbox', boxes)
+    @pytest.mark.parametrize('rbox', boxes)
+    def test_add_timestamp_raises(self, rbox, lbox):
+        # GH # 17983
+        ts = pd.Timestamp('2017')
+        per = pd.Period('2017', freq='M')
+
+        # We may get a different message depending on which class raises
+        # the error.
+        msg = (r"cannot add|unsupported operand|"
+               r"can only operate on a|incompatible type|"
+               r"ufunc add cannot use operands")
+        with tm.assert_raises_regex(TypeError, msg):
+            lbox(ts) + rbox(per)
+
+        with tm.assert_raises_regex(TypeError, msg):
+            lbox(per) + rbox(ts)
+
+        with tm.assert_raises_regex(TypeError, msg):
+            lbox(per) + rbox(per)
 
     def test_sub(self):
         dt1 = Period('2011-01-01', freq='D')
