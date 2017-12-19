@@ -74,14 +74,14 @@ class Styler(object):
     Notes
     -----
 
-    `Styler` renders HTML on a `DataFrame` using its own `Styler.render`
-    method; in particular, the Styler class will not affect, and is
-    independent from, its `data` object's `DataFrame.to_html` rendering
-    method.
+    `Styler` renders an HTML representation of a `DataFrame` using its
+    own `Styler.render` method; in particular, the Styler class will not
+    affect, and is independent from, its `data` object's `DataFrame.to_html`
+    rendering method.
 
-    `Styler.render` returns an HTML string, based on attributes which are set
-    using methods of `Styler`, and are stored as instance attributes in a
-    `Styler` instance.
+    `Styler.render` returns an HTML string based on attributes which are set
+    using methods of `Styler`, and are stored as attributes of a `Styler`
+    instance.
 
     Some of these attributes are _data-dependent_ functions: they affect the
     rendered HTML corresponding to an entry, row, or column of `data` based on
@@ -90,10 +90,11 @@ class Styler(object):
     Others are _data-independent_: they affect the rendering of the entire
     table, or only affect entries of the table based on their position.
 
-    Some, like the table values set by `set_table_values`, are something
-    in-between: HTML table entries corresponding to empty `DataFrame` entries
-    are endowed with CSS selectors which indicate this fact, and which can be
-    used to set global styles.
+    Some, like the table values set by `set_table_values`, are _semi-data-
+    dependent_: for instance, HTML table entries corresponding to empty
+    `DataFrame` entries are endowed with CSS selectors which indicate this
+    fact, so their styles can be set with a data-independent global attribute.
+    See the notes for `Styler.render` for details.
 
     `Styler.render` first constructs a table of strings corresponding
     to each entry of `data`, possibly with the help of the data-dependent
@@ -162,7 +163,7 @@ class Styler(object):
         self._display_funcs = defaultdict(lambda: default_display_func)
 
     def _repr_html_(self):
-        """Hooks into Jupyter notebook rich display system."""
+        """Hooks into Jupyter notebook's rich display system."""
         return self.render()
 
     @Appender(_shared_docs['to_excel'] % dict(
@@ -446,7 +447,8 @@ class Styler(object):
         return self
 
     def render(self, **kwargs):
-        """Render the DataFrame `data` as HTML, as described in the Notes
+        """
+        Render the DataFrame `data` as HTML, as described in the Notes
         for the class.
 
         Parameters
@@ -474,6 +476,24 @@ class Styler(object):
         In order to render HTML into the Out field of a Notebook cell when
         a `Styler` is not the last value, invoke
         `IPython.display.HTML(self.render())`.
+        
+        Entries are rendered with CSS selectors according to gross properties
+        of their position and content:
+        * Index and Column names include ``index_name`` and ``level<k>``
+          where `k` is its level in a MultiIndex
+        * Index label cells include
+            * ``row_heading``
+            * ``row<n>`` where `n` is the numeric position of the row
+            * ``level<k>`` where `k` is the level in a MultiIndex
+        * Column label cells include
+            * ``col_heading``
+            * ``col<n>`` where `n` is the numeric position of the column
+            * ``level<k>`` where `k` is the level in a MultiIndex
+        * Blank cells include ``blank``
+        * Data cells include ``data``
+        This means that `set_table_values` can be used to set semi-data-
+        dependent style attributes globally.
+
 
         `Styler` renders HTML by creating a dictionary with the entries:
         * head
@@ -496,6 +516,10 @@ class Styler(object):
         if the backend changes. Therefore, unless you have both a really good
         reason, and intimate knowledge of the rendering backend, you probably
         should not pass keyword arguments to `render`.
+
+        See also:
+        ---------
+        Styler.apply, Styler.applymap, Styler.where, Styler.set_table_values
         """
         self._compute()
         # TODO: namespace all the pandas keys
@@ -851,21 +875,7 @@ class Styler(object):
 
         Notes
         -----
-        Entries are rendered with CSS selectors according to gross properties
-        of their position and content:
-        * Index and Column names include ``index_name`` and ``level<k>``
-          where `k` is its level in a MultiIndex
-        * Index label cells include
-            * ``row_heading``
-            * ``row<n>`` where `n` is the numeric position of the row
-            * ``level<k>`` where `k` is the level in a MultiIndex
-        * Column label cells include
-            * ``col_heading``
-            * ``col<n>`` where `n` is the numeric position of the column
-            * ``level<k>`` where `k` is the level in a MultiIndex
-
-        * Blank cells include ``blank``
-        * Data cells include ``data``
+        See the notes for `Styler.render`.
 
         Examples
         --------
