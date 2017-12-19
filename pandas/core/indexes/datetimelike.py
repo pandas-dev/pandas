@@ -675,9 +675,8 @@ class DatetimeIndexOpsMixin(object):
                     warnings.warn("Adding/subtracting array of DateOffsets to "
                                   "{} not vectorized".format(type(self)),
                                   PerformanceWarning)
-
                     return self.astype('O') + np.array(other)
-                    # TODO: What if other is an Index and has a name?
+                    # FIXME: This works for __add__ but loses dtype in __sub__
             elif isinstance(other, Index):
                 return self._add_datelike(other)
             else:  # pragma: no cover
@@ -718,9 +717,7 @@ class DatetimeIndexOpsMixin(object):
                                   "{} not vectorized".format(type(self)),
                                   PerformanceWarning)
                     res_values = self.astype('O').values - np.array(other)
-
                     return self.__class__(res_values, freq='infer')
-                    # TODO: What if other is an Index and has a name?
             elif isinstance(other, Index):
                 raise TypeError("cannot subtract {typ1} and {typ2}"
                                 .format(typ1=type(self).__name__,

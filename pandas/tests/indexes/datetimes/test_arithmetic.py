@@ -366,6 +366,7 @@ class TestDatetimeIndexArithmetic(object):
     @pytest.mark.parametrize('box', [np.array, pd.Index])
     def test_dti_add_offset_array(self, tz, box):
         dti = pd.date_range('2017-01-01', periods=2, tz=tz)
+        # TODO: check that `name` propogates correctly
         other = box([pd.offsets.MonthEnd(), pd.offsets.Day(n=2)])
         res = dti + other
         expected = DatetimeIndex([dti[n] + other[n] for n in range(len(dti))],
