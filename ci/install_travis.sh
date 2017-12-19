@@ -56,10 +56,6 @@ if [ "$CONDA_BUILD_TEST" ]; then
     conda install conda-build
 fi
 
-
-# TODO(jreback) fix cnoda install
-conda install conda=4.3.30
-
 echo
 echo "[add channels]"
 conda config --remove channels defaults || exit 1
@@ -126,7 +122,7 @@ if [ "$COVERAGE" ]; then
 fi
 
 echo
-if [ -z "$PIP_BUILD_TEST" ] and [ -z "$CONDA_BUILD_TEST" ]; then
+if [ -z "$PIP_BUILD_TEST" ] && [ -z "$CONDA_BUILD_TEST" ]; then
 
     # build but don't install
     echo "[build em]"
