@@ -2977,7 +2977,7 @@ def _get_grouper(obj, key=None, axis=0, level=None, sort=True,
 
 
 def _is_label_like(val):
-    return (isinstance(val, compat.string_types) or
+    return (isinstance(val, (compat.string_types, tuple)) or
             (val is not None and is_scalar(val)))
 
 
