@@ -360,7 +360,6 @@ cdef class TextReader:
                   allow_leading_cols=True,
                   use_unsigned=False,
                   low_memory=False,
-                  buffer_lines=None,
                   skiprows=None,
                   skipfooter=0,
                   verbose=False,
@@ -557,7 +556,7 @@ cdef class TextReader:
         if not self.table_width:
             raise EmptyDataError("No columns to parse from file")
 
-        # compute buffer_lines as function of table width
+        # Compute buffer_lines as function of table width.
         heuristic = 2**20 // self.table_width
         self.buffer_lines = 1
         while self.buffer_lines * 2 < heuristic:

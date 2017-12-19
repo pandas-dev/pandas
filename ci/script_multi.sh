@@ -18,7 +18,7 @@ fi
 export PYTHONHASHSEED=$(python -c 'import random; print(random.randint(1, 4294967295))')
 echo PYTHONHASHSEED=$PYTHONHASHSEED
 
-if [ "$BUILD_TEST" ]; then
+if [ "$PIP_BUILD_TEST" ] || [ "$CONDA_BUILD_TEST" ]; then
     echo "[build-test]"
 
     echo "[env]"

@@ -349,7 +349,9 @@ def infer_dtype(object value, bint skipna=False):
     else:
         if not isinstance(value, list):
             value = list(value)
-        values = list_to_object_array(value)
+        from pandas.core.dtypes.cast import (
+            construct_1d_object_array_from_listlike)
+        values = construct_1d_object_array_from_listlike(value)
 
     values = getattr(values, 'values', values)
     val = _try_infer_map(values)
