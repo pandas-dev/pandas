@@ -991,7 +991,7 @@ class TestDatetimeSeriesArithmetic(object):
         tm.assert_series_equal(td1 // tdscalar.to_timedelta64(),
                                Series([0, 0, np.nan]))
         # TODO: the Timedelta // td1 fails because of a bug
-        # in Timedelta.__floordiv__, see #18824
+        # in Timedelta.__floordiv__, see GH#18824
         # tm.assert_series_equal(tdscalar // td1, Series([1, 1, np.nan]))
         tm.assert_series_equal(tdscalar.to_pytimedelta() // td1,
                                Series([1, 1, np.nan]))
