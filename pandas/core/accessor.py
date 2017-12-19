@@ -261,7 +261,7 @@ def register_index_accessor(name):
 
     See Also
     --------
-    register_index_accessor
+    register_dataframe_accessor
     register_series_accessor
     """
     from pandas import Index
