@@ -1111,6 +1111,7 @@ class TestPivotTable(object):
 
     def test_pivot_string_as_func(self):
         # GH #18713
+        # for correctness purposes
         data = DataFrame({'A': ['foo', 'foo', 'foo', 'foo', 'bar', 'bar',
                                 'bar', 'bar', 'foo', 'foo', 'foo'],
                           'B': ['one', 'one', 'one', 'two', 'one', 'one',
@@ -1146,6 +1147,7 @@ class TestPivotTable(object):
     @pytest.mark.parametrize("f, f_numpy", funcs)
     def test_pivot_string_func_vs_func(self, f, f_numpy):
         # GH #18713
+        # for consistency purposes
         result = pivot_table(self.data, index='A', columns='B', aggfunc=f)
         expected = pivot_table(self.data, index='A', columns='B',
                                aggfunc=f_numpy)
