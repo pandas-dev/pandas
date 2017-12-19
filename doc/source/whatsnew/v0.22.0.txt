@@ -250,7 +250,7 @@ Performance Improvements
 
 Documentation Changes
 ~~~~~~~~~~~~~~~~~~~~~
-- Heredoc documentation for io/formats/style.py has been overhauled to more accurately reflect the functioning of the `Styler` class. (:issue:`12148`)
+- Docstring documentation for io/formats/style.py has been overhauled to more accurately reflect the functioning of the `Styler` class. (:issue:`12148`)
 -
 -
 
