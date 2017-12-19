@@ -576,12 +576,25 @@ class _TimeOp(_Op):
             else:
                 self.dtype = 'datetime64[ns]'
 
+            # if adding single offset try vectorized path
+            # in DatetimeIndex; otherwise elementwise apply
+            def _offset(lvalues, rvalues):
+                if len(lvalues) == 1:
+                    rvalues = pd.DatetimeIndex(rvalues)
+                    lvalues = lvalues[0]
+                else:
+                    warnings.warn("Adding/subtracting array of DateOffsets to "
+                                  "Series not vectorized", PerformanceWarning)
+                    rvalues = rvalues.astype('O')
+
+                # pass thru on the na_op
+                self.na_op = lambda x, y: getattr(x, self.name)(y)
+                return lvalues, rvalues
+
             if self.is_offset_lhs:
-                lvalues, rvalues, self.na_op = _offset_op(lvalues, rvalues,
-                                                          self.name)
+                lvalues, rvalues = _offset(lvalues, rvalues)
             elif self.is_offset_rhs:
-                rvalues, lvalues, self.na_op = _offset_op(rvalues, lvalues,
-                                                          self.name)
+                rvalues, lvalues = _offset(rvalues, lvalues)
             else:
 
                 # with tz, convert to UTC
@@ -644,22 +657,6 @@ class _TimeOp(_Op):
               is_object_dtype(arr_or_obj)):
             return all(isinstance(x, ABCDateOffset) for x in arr_or_obj)
         return False
-
-
-def _offset_op(lvalues, rvalues, opname):
-    # if adding single offset try vectorized path
-    # in DatetimeIndex; otherwise elementwise apply
-    if len(lvalues) == 1:
-        rvalues = pd.DatetimeIndex(rvalues)
-        lvalues = lvalues[0]
-    else:
-        warnings.warn("Adding/subtracting array of DateOffsets to "
-                      "Series not vectorized", PerformanceWarning)
-        rvalues = rvalues.astype('O')
-
-    # pass thru on the na_op
-    na_op = lambda x, y: getattr(x, opname)(y)
-    return lvalues, rvalues, na_op
 
 
 def _align_method_SERIES(left, right, align_asobject=False):
