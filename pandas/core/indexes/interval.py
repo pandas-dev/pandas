@@ -116,10 +116,11 @@ class IntervalIndex(IntervalMixin, Index):
        The indexing behaviors are provisional and may change in
        a future version of pandas.
 
-    Attributes
+    Parameters
     ----------
-    left, right : array-like (1-dimensional)
-        Left and right bounds for each interval.
+    data : array-like (1-dimensional)
+        Array-like containing Interval objects from which to build the
+        IntervalIndex
     closed : {'left', 'right', 'both', 'neither'}, default 'right'
         Whether the intervals are closed on the left-side, right-side, both or
         neither.
@@ -127,7 +128,14 @@ class IntervalIndex(IntervalMixin, Index):
         Name to be stored in the index.
     copy : boolean, default False
         Copy the meta-data
+
+    Attributes
+    ----------
+    left
+    right
+    closed
     mid
+    length
     values
     is_non_overlapping_monotonic
 
