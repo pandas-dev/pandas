@@ -595,7 +595,28 @@ class _TimeOp(_Op):
 
         # otherwise it's a timedelta
         else:
-            lvalues, rvalues = self._convert_for_timedelta(lvalues, rvalues)
+
+            self.dtype = 'timedelta64[ns]'
+
+            # convert Tick DateOffset to underlying delta
+            if self.is_offset_lhs:
+                lvalues = to_timedelta(lvalues, box=False)
+            if self.is_offset_rhs:
+                rvalues = to_timedelta(rvalues, box=False)
+
+            lvalues = lvalues.astype(np.int64)
+            if not self.is_floating_rhs:
+                rvalues = rvalues.astype(np.int64)
+
+            # time delta division -> unit less
+            # integer gets converted to timedelta in np < 1.6
+            if ((self.is_timedelta_lhs and self.is_timedelta_rhs) and
+                    not self.is_integer_rhs and not self.is_integer_lhs and
+                    self.name in ('__div__', '__truediv__')):
+                self.dtype = 'float64'
+                self.fill_value = np.nan
+                lvalues = lvalues.astype(np.float64)
+                rvalues = rvalues.astype(np.float64)
 
         # if we need to mask the results
         if mask.any():
@@ -612,33 +633,6 @@ class _TimeOp(_Op):
                 return x
 
             self.wrap_results = f
-
-        return lvalues, rvalues
-
-    def _convert_for_timedelta(self, lvalues, rvalues):
-        from pandas.core.tools.timedeltas import to_timedelta
-
-        self.dtype = 'timedelta64[ns]'
-
-        # convert Tick DateOffset to underlying delta
-        if self.is_offset_lhs:
-            lvalues = to_timedelta(lvalues, box=False)
-        if self.is_offset_rhs:
-            rvalues = to_timedelta(rvalues, box=False)
-
-        lvalues = lvalues.astype(np.int64)
-        if not self.is_floating_rhs:
-            rvalues = rvalues.astype(np.int64)
-
-        if ((self.is_timedelta_lhs and self.is_timedelta_rhs) and
-                not self.is_integer_rhs and not self.is_integer_lhs and
-                self.name in ('__div__', '__truediv__')):
-            # timedelta division -> unit less
-            # integer gets converted to timedelta in np < 1.6
-            self.dtype = 'float64'
-            self.fill_value = np.nan
-            lvalues = lvalues.astype(np.float64)
-            rvalues = rvalues.astype(np.float64)
 
         return lvalues, rvalues
 
