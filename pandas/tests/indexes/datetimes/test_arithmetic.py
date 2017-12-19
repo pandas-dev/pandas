@@ -363,6 +363,27 @@ class TestDatetimeIndexArithmetic(object):
             with pytest.raises(OverflowError):
                 dtimin - variant
 
+    @pytest.mark.parametrize('box', [np.array, pd.Index])
+    def test_dti_add_offset_array(self, tz, box):
+        dti = pd.date_range('2017-01-01', periods=2, tz=tz)
+        other = box([pd.offsets.MonthEnd(), pd.offsets.Day(n=2)])
+        res = dti + other
+        expected = DatetimeIndex([dti[n] + other[n] for n in range(len(dti))],
+                                 name=dti.name, freq='infer')
+        tm.assert_index_equal(res, expected)
+
+        res2 = other + dti
+        tm.assert_index_equal(res2, expected)
+
+    @pytest.mark.parametrize('box', [np.array, pd.Index])
+    def test_dti_sub_offset_array(self, tz, box):
+        dti = pd.date_range('2017-01-01', periods=2, tz=tz)
+        other = box([pd.offsets.MonthEnd(), pd.offsets.Day(n=2)])
+        res = dti - other
+        expected = DatetimeIndex([dti[n] - other[n] for n in range(len(dti))],
+                                 name=dti.name, freq='infer')
+        tm.assert_index_equal(res, expected)
+
 
 # GH 10699
 @pytest.mark.parametrize('klass,assert_func', zip([Series, DatetimeIndex],

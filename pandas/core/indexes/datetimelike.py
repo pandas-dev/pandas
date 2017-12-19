@@ -13,7 +13,7 @@ import numpy as np
 from pandas.core.dtypes.common import (
     is_integer, is_float,
     is_bool_dtype, _ensure_int64,
-    is_scalar, is_dtype_equal,
+    is_scalar, is_dtype_equal, is_offsetlike,
     is_list_like, is_timedelta64_dtype)
 from pandas.core.dtypes.generic import (
     ABCIndex, ABCSeries,
@@ -650,6 +650,7 @@ class DatetimeIndexOpsMixin(object):
         def __add__(self, other):
             from pandas.core.index import Index
             from pandas.core.indexes.timedeltas import TimedeltaIndex
+            from pandas.core.indexes.datetimes import DatetimeIndex
             from pandas.tseries.offsets import DateOffset
             if is_timedelta64_dtype(other):
                 return self._add_delta(other)
@@ -662,7 +663,21 @@ class DatetimeIndexOpsMixin(object):
                 return self._add_delta(other)
             elif is_integer(other):
                 return self.shift(other)
-            elif isinstance(other, (Index, datetime, np.datetime64)):
+            elif isinstance(other, (datetime, np.datetime64)):
+                return self._add_datelike(other)
+            elif (isinstance(self, DatetimeIndex) and is_offsetlike(other) and
+                  not isinstance(other, ABCSeries)):
+                # Array of DateOffset objects
+                if len(other) == 1:
+                    return self + other[0]
+                else:
+                    from pandas.errors import PerformanceWarning
+                    warnings.warn("Adding/subtracting array of DateOffsets to "
+                                  "{} not vectorized".format(type(self)),
+                                  PerformanceWarning)
+
+                    return self.astype('O') + np.array(other)
+            elif isinstance(other, Index):
                 return self._add_datelike(other)
             else:  # pragma: no cover
                 return NotImplemented
@@ -683,10 +698,6 @@ class DatetimeIndexOpsMixin(object):
                 return self._add_delta(-other)
             elif isinstance(other, DatetimeIndex):
                 return self._sub_datelike(other)
-            elif isinstance(other, Index):
-                raise TypeError("cannot subtract {typ1} and {typ2}"
-                                .format(typ1=type(self).__name__,
-                                        typ2=type(other).__name__))
             elif isinstance(other, (DateOffset, timedelta)):
                 return self._add_delta(-other)
             elif is_integer(other):
@@ -695,6 +706,23 @@ class DatetimeIndexOpsMixin(object):
                 return self._sub_datelike(other)
             elif isinstance(other, Period):
                 return self._sub_period(other)
+            elif (isinstance(self, DatetimeIndex) and is_offsetlike(other) and
+                  not isinstance(other, ABCSeries)):
+                # Array of DateOffset objects
+                if len(other) == 1:
+                    return self - other[0]
+                else:
+                    from pandas.errors import PerformanceWarning
+                    warnings.warn("Adding/subtracting array of DateOffsets to "
+                                  "{} not vectorized".format(type(self)),
+                                  PerformanceWarning)
+                    res_values = self.astype('O').values - np.array(other)
+                    return self.__class__(res_values, freq='infer')
+            elif isinstance(other, Index):
+                raise TypeError("cannot subtract {typ1} and {typ2}"
+                                .format(typ1=type(self).__name__,
+                                        typ2=type(other).__name__))
+
             else:  # pragma: no cover
                 return NotImplemented
         cls.__sub__ = __sub__
