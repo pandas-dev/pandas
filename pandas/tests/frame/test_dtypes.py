@@ -676,7 +676,6 @@ class TestDataFrameDataTypes(TestData):
 
         df.astype(np.int8, errors='ignore')
 
-
     @pytest.mark.parametrize('input_vals', [
         ([1, 2]),
         ([1.0, 2.0, np.nan]),

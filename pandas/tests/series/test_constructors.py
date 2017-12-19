@@ -23,7 +23,7 @@ from pandas._libs import lib
 from pandas._libs.tslib import iNaT
 
 from pandas.compat import lrange, range, zip, long
-from pandas.util.testing import assert_series_equal, assert_frame_equal
+from pandas.util.testing import assert_series_equal
 import pandas.util.testing as tm
 
 from .common import TestData
