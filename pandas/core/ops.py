@@ -33,7 +33,9 @@ from pandas.core.dtypes.common import (
     is_list_like, is_offsetlike,
     is_scalar,
     _ensure_object)
-from pandas.core.dtypes.cast import maybe_upcast_putmask, find_common_type
+from pandas.core.dtypes.cast import (
+    maybe_upcast_putmask, find_common_type,
+    construct_1d_object_array_from_listlike)
 from pandas.core.dtypes.generic import (
     ABCSeries,
     ABCDataFrame,
@@ -740,7 +742,7 @@ def _arith_method_SERIES(op, name, str_rep, fill_zeros=None, default_axis=None,
 
 def _comp_method_OBJECT_ARRAY(op, x, y):
     if isinstance(y, list):
-        y = lib.list_to_object_array(y)
+        y = construct_1d_object_array_from_listlike(y)
     if isinstance(y, (np.ndarray, ABCSeries, ABCIndex)):
         if not is_object_dtype(y.dtype):
             y = y.astype(np.object_)
@@ -891,7 +893,7 @@ def _bool_method_SERIES(op, name, str_rep):
             result = op(x, y)
         except TypeError:
             if isinstance(y, list):
-                y = lib.list_to_object_array(y)
+                y = construct_1d_object_array_from_listlike(y)
 
             if isinstance(y, (np.ndarray, ABCSeries)):
                 if (is_bool_dtype(x.dtype) and is_bool_dtype(y.dtype)):
