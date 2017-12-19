@@ -977,8 +977,7 @@ class TestDatetimeSeriesArithmetic(object):
         td1 = Series([timedelta(minutes=5, seconds=3)] * 3)
         td1.iloc[2] = np.nan
         td2 = timedelta(minutes=5, seconds=4)
-        ops = ['__mul__', '__pow__', '__rmul__',
-               '__rpow__']
+        ops = ['__mul__', '__pow__', '__rmul__', '__rpow__']
         run_ops(ops, td1, td2)
         td1 + td2
         td2 + td1

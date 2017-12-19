@@ -594,7 +594,8 @@ class _TimeOp(_Op):
             # integer gets converted to timedelta in np < 1.6
             if ((self.is_timedelta_lhs and self.is_timedelta_rhs) and
                     not self.is_integer_rhs and not self.is_integer_lhs and
-                    self.name in ('__div__', '__truediv__',
+                    self.name in ('__div__', '__rdiv__',
+                                  '__truediv__', '__rtruediv__',
                                   '__floordiv__', '__rfloordiv__')):
                 self.dtype = 'float64'
                 self.fill_value = np.nan
