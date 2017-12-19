@@ -94,10 +94,11 @@ if you compute the levels and labels yourself, please be careful.
 Registering Custom Accessors
 ----------------------------
 
-Libraries can use the decorators :func:`register_dataframe_accessor`,
-:func:`register_series_accessor`, and :func:`register_index_accessor`, to add
-additional "namespaces" to pandas objects. All of these follow a similar
-convention: you decorate a class, providing the name of attribute to add. The
+Libraries can use the decorators
+:func:`pandas.extensions.register_dataframe_accessor`,
+:func:`pandas.extensions.register_series_accessor`, and
+:func:`pandas.extensions.register_index_accessor`, to add additional "namespaces" to
+pandas objects. All of these follow a similar convention: you decorate a class, providing the name of attribute to add. The
 class's `__init__` method gets the object being decorated. For example:
 
 .. ipython:: python
