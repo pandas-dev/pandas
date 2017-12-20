@@ -4,7 +4,7 @@ import pandas as pd
 from .pandas_vb_common import setup  # noqa
 
 
-class NaN(object):
+class FillNa(object):
 
     goal_time = 0.2
     params = [True, False]
