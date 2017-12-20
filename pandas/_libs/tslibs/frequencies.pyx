@@ -26,6 +26,21 @@ _INVALID_FREQ_ERROR = "Invalid frequency: {0}"
 # ---------------------------------------------------------------------
 # Period codes
 
+class FreqGroup(object):
+    FR_ANN = 1000
+    FR_QTR = 2000
+    FR_MTH = 3000
+    FR_WK = 4000
+    FR_BUS = 5000
+    FR_DAY = 6000
+    FR_HR = 7000
+    FR_MIN = 8000
+    FR_SEC = 9000
+    FR_MS = 10000
+    FR_US = 11000
+    FR_NS = 12000
+
+
 # period frequency constants corresponding to scikits timeseries
 # originals
 _period_code_map = {
@@ -209,38 +224,53 @@ cpdef _period_str_to_code(freqstr):
 
 
 cpdef str get_freq_str(base, mult=1):
+    """
+    Return the summary string associated with this offset code, possibly
+    adjusted by a multiplier.
+
+    Parameters
+    ----------
+    base : int (member of FreqGroup)
+
+    Returns
+    -------
+    freq_str : str
+
+    Examples
+    --------
+    >>> get_freq_str(1000)
+    'A-DEC'
+
+    >>> get_freq_str(2000, 2)
+    '2Q-DEC'
+
+    >>> get_freq_str("foo")
+    """
     code = _reverse_period_code_map.get(base)
     if mult == 1:
         return code
     return str(mult) + code
 
 
-cpdef get_base_alias(freqstr):
+cpdef str get_base_alias(freqstr):
     """
     Returns the base frequency alias, e.g., '5D' -> 'D'
     """
     return _base_and_stride(freqstr)[0]
 
 
-class FreqGroup(object):
-    FR_ANN = 1000
-    FR_QTR = 2000
-    FR_MTH = 3000
-    FR_WK = 4000
-    FR_BUS = 5000
-    FR_DAY = 6000
-    FR_HR = 7000
-    FR_MIN = 8000
-    FR_SEC = 9000
-    FR_MS = 10000
-    FR_US = 11000
-    FR_NS = 12000
-
-
 cpdef int get_to_timestamp_base(int base):
     """
     Return frequency code group used for base of to_timestamp against
     frequency code.
+
+    Parameters
+    ----------
+    base : int (member of FreqGroup)
+
+    Returns
+    -------
+    base : int
 
     Example
     -------
@@ -287,7 +317,7 @@ cpdef object get_freq(object freq):
 # ----------------------------------------------------------------------
 # Frequency comparison
 
-def is_subperiod(source, target):
+cpdef bool is_subperiod(source, target):
     """
     Returns True if downsampling is possible between source and target
     frequencies
@@ -340,7 +370,7 @@ def is_subperiod(source, target):
         return source in {'N'}
 
 
-def is_superperiod(source, target):
+cpdef bool is_superperiod(source, target):
     """
     Returns True if upsampling is possible between source and target
     frequencies
@@ -396,7 +426,7 @@ def is_superperiod(source, target):
         return target in {'N'}
 
 
-def _maybe_coerce_freq(code):
+cdef str _maybe_coerce_freq(str code):
     """ we might need to coerce a code to a rule_code
     and uppercase it
 
@@ -407,7 +437,7 @@ def _maybe_coerce_freq(code):
 
     Returns
     -------
-    string code
+    code : string
     """
     assert code is not None
     if getattr(code, '_typ', None) == 'dateoffset':
@@ -447,6 +477,15 @@ cdef bint _is_weekly(str rule):
 cpdef object get_rule_month(object source, object default='DEC'):
     """
     Return starting month of given freq, default is December.
+
+    Parameters
+    ----------
+    source : object
+    default : object (default "DEC")
+
+    Returns
+    -------
+    rule_month: object (usually string)
 
     Example
     -------
