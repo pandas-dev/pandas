@@ -21,7 +21,8 @@ from pandas.core.dtypes.cast import (
     infer_dtype_from_array,
     maybe_convert_string_to_object,
     maybe_convert_scalar,
-    find_common_type)
+    find_common_type,
+    construct_1d_object_array_from_listlike)
 from pandas.core.dtypes.dtypes import (
     CategoricalDtype,
     DatetimeTZDtype,
@@ -38,17 +39,17 @@ class TestMaybeDowncast(object):
 
         arr = np.array([8.5, 8.6, 8.7, 8.8, 8.9999999999995])
         result = maybe_downcast_to_dtype(arr, 'infer')
-        assert (np.array_equal(result, arr))
+        tm.assert_numpy_array_equal(result, arr)
 
         arr = np.array([8., 8., 8., 8., 8.9999999999995])
         result = maybe_downcast_to_dtype(arr, 'infer')
-        expected = np.array([8, 8, 8, 8, 9])
-        assert (np.array_equal(result, expected))
+        expected = np.array([8, 8, 8, 8, 9], dtype=np.int64)
+        tm.assert_numpy_array_equal(result, expected)
 
         arr = np.array([8., 8., 8., 8., 9.0000000000005])
         result = maybe_downcast_to_dtype(arr, 'infer')
-        expected = np.array([8, 8, 8, 8, 9])
-        assert (np.array_equal(result, expected))
+        expected = np.array([8, 8, 8, 8, 9], dtype=np.int64)
+        tm.assert_numpy_array_equal(result, expected)
 
         # GH16875 coercing of bools
         ser = Series([True, True, False])
@@ -407,3 +408,17 @@ class TestCommonTypes(object):
                        np.dtype('datetime64[ns]'), np.object, np.int64]:
             assert find_common_type([dtype, dtype2]) == np.object
             assert find_common_type([dtype2, dtype]) == np.object
+
+    @pytest.mark.parametrize('datum1', [1, 2., "3", (4, 5), [6, 7], None])
+    @pytest.mark.parametrize('datum2', [8, 9., "10", (11, 12), [13, 14], None])
+    def test_cast_1d_array(self, datum1, datum2):
+        data = [datum1, datum2]
+        result = construct_1d_object_array_from_listlike(data)
+
+        # Direct comparison fails: https://github.com/numpy/numpy/issues/10218
+        assert result.dtype == 'object'
+        assert list(result) == data
+
+    @pytest.mark.parametrize('val', [1, 2., None])
+    def test_cast_1d_array_invalid_scalar(self, val):
+        pytest.raises(TypeError, construct_1d_object_array_from_listlike, val)

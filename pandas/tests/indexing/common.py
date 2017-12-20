@@ -127,11 +127,11 @@ class Base(object):
             key = obj._get_axis(axis)[key]
 
         # in case we actually want 0 index slicing
-        try:
-            with catch_warnings(record=True):
+        with catch_warnings(record=True):
+            try:
                 xp = getattr(obj, method).__getitem__(_axify(obj, key, axis))
-        except:
-            xp = getattr(obj, method).__getitem__(key)
+            except:
+                xp = getattr(obj, method).__getitem__(key)
 
         return xp
 

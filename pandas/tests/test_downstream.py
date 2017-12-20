@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 """
 Testing that we work in the downstream packages
 """
@@ -52,7 +53,6 @@ def test_xarray(df):
     assert df.to_xarray() is not None
 
 
-@tm.network
 def test_statsmodels():
 
     statsmodels = import_module('statsmodels')  # noqa
@@ -92,6 +92,7 @@ def test_pandas_datareader():
     pandas_datareader.get_data_google('AAPL')
 
 
+@pytest.mark.xfail(reason="install not working, gh-18780")
 def test_geopandas():
 
     geopandas = import_module('geopandas')  # noqa

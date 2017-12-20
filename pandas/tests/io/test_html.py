@@ -52,7 +52,7 @@ def _skip_if_none_of(module_names):
         _skip_if_no(module_names)
         if module_names == 'bs4':
             import bs4
-            if bs4.__version__ == LooseVersion('4.2.0'):
+            if LooseVersion(bs4.__version__) == LooseVersion('4.2.0'):
                 pytest.skip("Bad version of bs4: 4.2.0")
     else:
         not_found = [module_name for module_name in module_names if not
@@ -61,7 +61,7 @@ def _skip_if_none_of(module_names):
             pytest.skip("{0!r} not found".format(not_found))
         if 'bs4' in module_names:
             import bs4
-            if bs4.__version__ == LooseVersion('4.2.0'):
+            if LooseVersion(bs4.__version__) == LooseVersion('4.2.0'):
                 pytest.skip("Bad version of bs4: 4.2.0")
 
 
@@ -85,7 +85,7 @@ def assert_framelist_equal(list1, list2, *args, **kwargs):
 def test_bs4_version_fails():
     _skip_if_none_of(('bs4', 'html5lib'))
     import bs4
-    if bs4.__version__ == LooseVersion('4.2.0'):
+    if LooseVersion(bs4.__version__) == LooseVersion('4.2.0'):
         tm.assert_raises(AssertionError, read_html, os.path.join(DATA_PATH,
                                                                  "spam.html"),
                          flavor='bs4')
@@ -335,8 +335,10 @@ class TestReadHtml(ReadHtmlMixin):
 
     @pytest.mark.slow
     def test_multiindex_header_skiprows_tuples(self):
-        df = self._bank_data(header=[0, 1], skiprows=1, tupleize_cols=True)[0]
-        assert isinstance(df.columns, Index)
+        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
+            df = self._bank_data(header=[0, 1], skiprows=1,
+                                 tupleize_cols=True)[0]
+            assert isinstance(df.columns, Index)
 
     @pytest.mark.slow
     def test_multiindex_header_skiprows(self):
@@ -953,6 +955,7 @@ def test_importcheck_thread_safety():
     # see gh-16928
 
     # force import check by reinitalising global vars in html.py
+    pytest.importorskip('lxml')
     reload(pandas.io.html)
 
     filename = os.path.join(DATA_PATH, 'valid_markup.html')
@@ -965,3 +968,55 @@ def test_importcheck_thread_safety():
     while helper_thread1.is_alive() or helper_thread2.is_alive():
         pass
     assert None is helper_thread1.err is helper_thread2.err
+
+
+def test_parse_failure_unseekable():
+    # Issue #17975
+    _skip_if_no('lxml')
+    _skip_if_no('bs4')
+
+    class UnseekableStringIO(StringIO):
+        def seekable(self):
+            return False
+
+    good = UnseekableStringIO('''
+        <table><tr><td>spam<br />eggs</td></tr></table>''')
+    bad = UnseekableStringIO('''
+        <table><tr><td>spam<foobr />eggs</td></tr></table>''')
+
+    assert read_html(good)
+    assert read_html(bad, flavor='bs4')
+
+    bad.seek(0)
+
+    with pytest.raises(ValueError,
+                       match='passed a non-rewindable file object'):
+        read_html(bad)
+
+
+def test_parse_failure_rewinds():
+    # Issue #17975
+    _skip_if_no('lxml')
+    _skip_if_no('bs4')
+
+    class MockFile(object):
+        def __init__(self, data):
+            self.data = data
+            self.at_end = False
+
+        def read(self, size=None):
+            data = '' if self.at_end else self.data
+            self.at_end = True
+            return data
+
+        def seek(self, offset):
+            self.at_end = False
+
+        def seekable(self):
+            return True
+
+    good = MockFile('<table><tr><td>spam<br />eggs</td></tr></table>')
+    bad = MockFile('<table><tr><td>spam<foobr />eggs</td></tr></table>')
+
+    assert read_html(good)
+    assert read_html(bad)

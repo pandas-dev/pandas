@@ -4,6 +4,7 @@ from pandas._libs import index as libindex
 from pandas import compat
 from pandas.compat.numpy import function as nv
 from pandas.core.dtypes.generic import ABCCategorical, ABCSeries
+from pandas.core.dtypes.dtypes import CategoricalDtype
 from pandas.core.dtypes.common import (
     is_categorical_dtype,
     _ensure_platform_int,
@@ -12,7 +13,7 @@ from pandas.core.dtypes.common import (
     is_scalar)
 from pandas.core.common import (_asarray_tuplesafe,
                                 _values_from_object)
-from pandas.core.dtypes.missing import array_equivalent
+from pandas.core.dtypes.missing import array_equivalent, isna
 from pandas.core.algorithms import take_1d
 
 
@@ -45,6 +46,24 @@ class CategoricalIndex(Index, accessor.PandasDelegate):
         Make a copy of input ndarray
     name : object
         Name to be stored in the index
+
+    Attributes
+    ----------
+    codes
+    categories
+    ordered
+
+    Methods
+    -------
+    rename_categories
+    reorder_categories
+    add_categories
+    remove_categories
+    remove_unused_categories
+    set_categories
+    as_ordered
+    as_unordered
+    map
 
     See Also
     --------
@@ -79,7 +98,8 @@ class CategoricalIndex(Index, accessor.PandasDelegate):
                 if data is not None or categories is None:
                     cls._scalar_data_error(data)
                 data = []
-            data = cls._create_categorical(cls, data, categories, ordered)
+            data = cls._create_categorical(cls, data, categories, ordered,
+                                           dtype)
 
         if copy:
             data = data.copy()
@@ -146,8 +166,6 @@ class CategoricalIndex(Index, accessor.PandasDelegate):
             data = Categorical(data, categories=categories, ordered=ordered,
                                dtype=dtype)
         else:
-            from pandas.core.dtypes.dtypes import CategoricalDtype
-
             if categories is not None:
                 data = data.set_categories(categories, ordered=ordered)
             elif ordered is not None and ordered != data.ordered:
@@ -325,6 +343,12 @@ class CategoricalIndex(Index, accessor.PandasDelegate):
         if is_interval_dtype(dtype):
             from pandas import IntervalIndex
             return IntervalIndex.from_intervals(np.array(self))
+        elif is_categorical_dtype(dtype):
+            # GH 18630
+            dtype = self.dtype._update_dtype(dtype)
+            if dtype == self.dtype:
+                return self.copy() if copy else self
+
         return super(CategoricalIndex, self).astype(dtype=dtype, copy=copy)
 
     @cache_readonly
@@ -359,8 +383,10 @@ class CategoricalIndex(Index, accessor.PandasDelegate):
     def is_monotonic_decreasing(self):
         return Index(self.codes).is_monotonic_decreasing
 
-    @Appender(base._shared_docs['unique'] % _index_doc_kwargs)
-    def unique(self):
+    @Appender(_index_shared_docs['index_unique'] % _index_doc_kwargs)
+    def unique(self, level=None):
+        if level is not None:
+            self._validate_index_level(level)
         result = base.IndexOpsMixin.unique(self)
         # CategoricalIndex._shallow_copy uses keeps original categories
         # and ordered if not otherwise specified
@@ -669,7 +695,7 @@ class CategoricalIndex(Index, accessor.PandasDelegate):
 
         """
         code = self.categories.get_indexer([item])
-        if (code == -1):
+        if (code == -1) and not (is_scalar(item) and isna(item)):
             raise TypeError("cannot insert an item into a CategoricalIndex "
                             "that is not already an existing category")
 
@@ -701,7 +727,7 @@ class CategoricalIndex(Index, accessor.PandasDelegate):
     def _add_comparison_methods(cls):
         """ add in comparison methods """
 
-        def _make_compare(op):
+        def _make_compare(opname):
             def _evaluate_compare(self, other):
 
                 # if we have a Categorical type, then must have the same
@@ -724,9 +750,9 @@ class CategoricalIndex(Index, accessor.PandasDelegate):
                                         "have the same categories and ordered "
                                         "attributes")
 
-                return getattr(self.values, op)(other)
+                return getattr(self.values, opname)(other)
 
-            return _evaluate_compare
+            return compat.set_function_name(_evaluate_compare, opname, cls)
 
         cls.__eq__ = _make_compare('__eq__')
         cls.__ne__ = _make_compare('__ne__')

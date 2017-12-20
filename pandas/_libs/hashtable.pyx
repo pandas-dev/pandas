@@ -42,19 +42,13 @@ cdef extern from "numpy/npy_math.h":
 cimport cython
 cimport numpy as cnp
 
-from pandas._libs.lib import checknull
+from missing cimport checknull
 
 cnp.import_array()
 cnp.import_ufunc()
 
 cdef int64_t iNaT = util.get_nat()
 _SIZE_HINT_LIMIT = (1 << 20) + 7
-
-cdef extern from "datetime.h":
-    bint PyDateTime_Check(object o)
-    void PyDateTime_IMPORT()
-
-PyDateTime_IMPORT
 
 
 cdef size_t _INIT_VEC_CAP = 128

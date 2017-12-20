@@ -1,6 +1,9 @@
 # -*- coding: utf-8 -*-
 
+from datetime import datetime
+
 import pytest
+import pytz
 import collections
 import numpy as np
 
@@ -148,6 +151,27 @@ class TestDataFrameConvertTo(TestData):
         )
         tm.assert_almost_equal(result, expected)
 
+    def test_to_records_with_categorical(self):
+
+        # GH8626
+
+        # dict creation
+        df = DataFrame({'A': list('abc')}, dtype='category')
+        expected = Series(list('abc'), dtype='category', name='A')
+        tm.assert_series_equal(df['A'], expected)
+
+        # list-like creation
+        df = DataFrame(list('abc'), dtype='category')
+        expected = Series(list('abc'), dtype='category', name=0)
+        tm.assert_series_equal(df[0], expected)
+
+        # to record array
+        # this coerces
+        result = df.to_records()
+        expected = np.rec.array([(0, 'a'), (1, 'b'), (2, 'c')],
+                                dtype=[('index', '=i8'), ('0', 'O')])
+        tm.assert_almost_equal(result, expected)
+
     @pytest.mark.parametrize('mapping', [
         dict,
         collections.defaultdict(list),
@@ -249,3 +273,18 @@ class TestDataFrameConvertTo(TestData):
 
         result = DataFrame(d).to_dict(orient='records')
         assert isinstance(result[0]['a'], (int, long))
+
+    def test_frame_to_dict_tz(self):
+        # GH18372 When converting to dict with orient='records' columns of
+        # datetime that are tz-aware were not converted to required arrays
+        data = [(datetime(2017, 11, 18, 21, 53, 0, 219225, tzinfo=pytz.utc),),
+                (datetime(2017, 11, 18, 22, 6, 30, 61810, tzinfo=pytz.utc,),)]
+        df = DataFrame(list(data), columns=["d", ])
+
+        result = df.to_dict(orient='records')
+        expected = [
+            {'d': Timestamp('2017-11-18 21:53:00.219225+0000', tz=pytz.utc)},
+            {'d': Timestamp('2017-11-18 22:06:30.061810+0000', tz=pytz.utc)},
+        ]
+        tm.assert_dict_equal(result[0], expected[0])
+        tm.assert_dict_equal(result[1], expected[1])

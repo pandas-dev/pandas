@@ -1,7 +1,7 @@
 include MANIFEST.in
 include LICENSE
 include RELEASE.md
-include README.rst
+include README.md
 include setup.py
 include pyproject.toml
 

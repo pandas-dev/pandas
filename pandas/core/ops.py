@@ -16,7 +16,6 @@ from pandas._libs import (lib, index as libindex,
 
 from pandas import compat
 from pandas.util._decorators import Appender
-import pandas.core.computation.expressions as expressions
 
 from pandas.compat import bind_method
 import pandas.core.missing as missing
@@ -31,15 +30,17 @@ from pandas.core.dtypes.common import (
     is_object_dtype, is_timedelta64_dtype,
     is_datetime64_dtype, is_datetime64tz_dtype,
     is_bool_dtype, is_datetimetz,
-    is_list_like,
+    is_list_like, is_offsetlike,
     is_scalar,
     _ensure_object)
-from pandas.core.dtypes.cast import maybe_upcast_putmask, find_common_type
+from pandas.core.dtypes.cast import (
+    maybe_upcast_putmask, find_common_type,
+    construct_1d_object_array_from_listlike)
 from pandas.core.dtypes.generic import (
     ABCSeries,
+    ABCDataFrame,
     ABCIndex,
-    ABCPeriodIndex,
-    ABCDateOffset)
+    ABCPeriodIndex)
 
 # -----------------------------------------------------------------------------
 # Functions that add arithmetic methods to objects, given arithmetic factory
@@ -146,7 +147,7 @@ def _create_methods(arith_method, comp_method, bool_method,
             construct_result=_construct_divmod_result,
         )
 
-    new_methods = dict((names(k), v) for k, v in new_methods.items())
+    new_methods = {names(k): v for k, v in new_methods.items()}
     return new_methods
 
 
@@ -363,7 +364,7 @@ class _TimeOp(_Op):
         rvalues = self._convert_to_array(right, name=name, other=lvalues)
 
         # left
-        self.is_offset_lhs = self._is_offset(left)
+        self.is_offset_lhs = is_offsetlike(left)
         self.is_timedelta_lhs = is_timedelta64_dtype(lvalues)
         self.is_datetime64_lhs = is_datetime64_dtype(lvalues)
         self.is_datetime64tz_lhs = is_datetime64tz_dtype(lvalues)
@@ -373,7 +374,7 @@ class _TimeOp(_Op):
         self.is_floating_lhs = left.dtype.kind == 'f'
 
         # right
-        self.is_offset_rhs = self._is_offset(right)
+        self.is_offset_rhs = is_offsetlike(right)
         self.is_datetime64_rhs = is_datetime64_dtype(rvalues)
         self.is_datetime64tz_rhs = is_datetime64tz_dtype(rvalues)
         self.is_datetime_rhs = (self.is_datetime64_rhs or
@@ -515,7 +516,7 @@ class _TimeOp(_Op):
                 values = np.empty(values.shape, dtype=other.dtype)
                 values[:] = iNaT
             return values
-        elif self._is_offset(values):
+        elif is_offsetlike(values):
             return values
         else:
             raise TypeError("incompatible type [{dtype}] for a "
@@ -618,14 +619,6 @@ class _TimeOp(_Op):
 
         return lvalues, rvalues
 
-    def _is_offset(self, arr_or_obj):
-        """ check if obj or all elements of list-like is DateOffset """
-        if isinstance(arr_or_obj, ABCDateOffset):
-            return True
-        elif is_list_like(arr_or_obj) and len(arr_or_obj):
-            return all(isinstance(x, ABCDateOffset) for x in arr_or_obj)
-        return False
-
 
 def _align_method_SERIES(left, right, align_asobject=False):
     """ align lhs and rhs Series """
@@ -668,11 +661,11 @@ def _arith_method_SERIES(op, name, str_rep, fill_zeros=None, default_axis=None,
     Wrapper function for Series arithmetic operations, to avoid
     code duplication.
     """
-
     def na_op(x, y):
+        import pandas.core.computation.expressions as expressions
+
         try:
-            result = expressions.evaluate(op, str_rep, x, y,
-                                          raise_on_error=True, **eval_kwargs)
+            result = expressions.evaluate(op, str_rep, x, y, **eval_kwargs)
         except TypeError:
             if isinstance(y, (np.ndarray, ABCSeries, pd.Index)):
                 dtype = find_common_type([x.dtype, y.dtype])
@@ -711,7 +704,7 @@ def _arith_method_SERIES(op, name, str_rep, fill_zeros=None, default_axis=None,
 
     def wrapper(left, right, name=name, na_op=na_op):
 
-        if isinstance(right, pd.DataFrame):
+        if isinstance(right, ABCDataFrame):
             return NotImplemented
 
         left, right = _align_method_SERIES(left, right)
@@ -749,7 +742,7 @@ def _arith_method_SERIES(op, name, str_rep, fill_zeros=None, default_axis=None,
 
 def _comp_method_OBJECT_ARRAY(op, x, y):
     if isinstance(y, list):
-        y = lib.list_to_object_array(y)
+        y = construct_1d_object_array_from_listlike(y)
     if isinstance(y, (np.ndarray, ABCSeries, ABCIndex)):
         if not is_object_dtype(y.dtype):
             y = y.astype(np.object_)
@@ -835,7 +828,7 @@ def _comp_method_SERIES(op, name, str_rep, masker=False):
                 raise ValueError(msg)
             return self._constructor(na_op(self.values, other.values),
                                      index=self.index, name=name)
-        elif isinstance(other, pd.DataFrame):  # pragma: no cover
+        elif isinstance(other, ABCDataFrame):  # pragma: no cover
             return NotImplemented
         elif isinstance(other, (np.ndarray, pd.Index)):
             # do not check length of zerodim array
@@ -849,7 +842,7 @@ def _comp_method_SERIES(op, name, str_rep, masker=False):
                 # tested in test_nat_comparisons
                 # (pandas.tests.series.test_operators.TestSeriesOperators)
                 return self._constructor(na_op(self.values,
-                                               other.asobject.values),
+                                               other.astype(object).values),
                                          index=self.index)
 
             return self._constructor(na_op(self.values, np.asarray(other)),
@@ -900,7 +893,7 @@ def _bool_method_SERIES(op, name, str_rep):
             result = op(x, y)
         except TypeError:
             if isinstance(y, list):
-                y = lib.list_to_object_array(y)
+                y = construct_1d_object_array_from_listlike(y)
 
             if isinstance(y, (np.ndarray, ABCSeries)):
                 if (is_bool_dtype(x.dtype) and is_bool_dtype(y.dtype)):
@@ -942,7 +935,7 @@ def _bool_method_SERIES(op, name, str_rep):
             return filler(self._constructor(na_op(self.values, other.values),
                                             index=self.index, name=name))
 
-        elif isinstance(other, pd.DataFrame):
+        elif isinstance(other, ABCDataFrame):
             return NotImplemented
 
         else:
@@ -1166,10 +1159,7 @@ def _align_method_FRAME(left, right, axis):
             right = left._constructor_sliced(right, index=left.columns)
         return right
 
-    if isinstance(right, (list, tuple)):
-        right = to_series(right)
-
-    elif isinstance(right, np.ndarray) and right.ndim:  # skips np scalar
+    if isinstance(right, np.ndarray):
 
         if right.ndim == 1:
             right = to_series(right)
@@ -1183,9 +1173,14 @@ def _align_method_FRAME(left, right, axis):
 
             right = left._constructor(right, index=left.index,
                                       columns=left.columns)
-        else:
+        elif right.ndim > 2:
             raise ValueError('Unable to coerce to Series/DataFrame, dim '
                              'must be <= 2: {dim}'.format(dim=right.shape))
+
+    elif (is_list_like(right) and
+          not isinstance(right, (ABCSeries, ABCDataFrame))):
+        # GH17901
+        right = to_series(right)
 
     return right
 
@@ -1193,9 +1188,10 @@ def _align_method_FRAME(left, right, axis):
 def _arith_method_FRAME(op, name, str_rep=None, default_axis='columns',
                         fill_zeros=None, **eval_kwargs):
     def na_op(x, y):
+        import pandas.core.computation.expressions as expressions
+
         try:
-            result = expressions.evaluate(op, str_rep, x, y,
-                                          raise_on_error=True, **eval_kwargs)
+            result = expressions.evaluate(op, str_rep, x, y, **eval_kwargs)
         except TypeError:
             xrav = x.ravel()
             if isinstance(y, (np.ndarray, ABCSeries)):
@@ -1252,7 +1248,7 @@ def _arith_method_FRAME(op, name, str_rep=None, default_axis='columns',
 
         other = _align_method_FRAME(self, other, axis)
 
-        if isinstance(other, pd.DataFrame):  # Another DataFrame
+        if isinstance(other, ABCDataFrame):  # Another DataFrame
             return self._combine_frame(other, na_op, fill_value, level)
         elif isinstance(other, ABCSeries):
             return self._combine_series(other, na_op, fill_value, axis, level)
@@ -1300,7 +1296,7 @@ def _flex_comp_method_FRAME(op, name, str_rep=None, default_axis='columns',
 
         other = _align_method_FRAME(self, other, axis)
 
-        if isinstance(other, pd.DataFrame):  # Another DataFrame
+        if isinstance(other, ABCDataFrame):  # Another DataFrame
             return self._flex_compare_frame(other, na_op, str_rep, level,
                                             try_cast=False)
 
@@ -1318,7 +1314,7 @@ def _flex_comp_method_FRAME(op, name, str_rep=None, default_axis='columns',
 def _comp_method_FRAME(func, name, str_rep, masker=False):
     @Appender('Wrapper for comparison method {name}'.format(name=name))
     def f(self, other):
-        if isinstance(other, pd.DataFrame):  # Another DataFrame
+        if isinstance(other, ABCDataFrame):  # Another DataFrame
             return self._compare_frame(other, func, str_rep)
         elif isinstance(other, ABCSeries):
             return self._combine_series_infer(other, func, try_cast=False)
@@ -1327,7 +1323,7 @@ def _comp_method_FRAME(func, name, str_rep, masker=False):
             # straight boolean comparisions we want to allow all columns
             # (regardless of dtype to pass thru) See #4537 for discussion.
             res = self._combine_const(other, func,
-                                      raise_on_error=False,
+                                      errors='ignore',
                                       try_cast=False)
             return res.fillna(True).astype(bool)
 
@@ -1349,9 +1345,10 @@ def _arith_method_PANEL(op, name, str_rep=None, fill_zeros=None,
     # copied from Series na_op above, but without unnecessary branch for
     # non-scalar
     def na_op(x, y):
+        import pandas.core.computation.expressions as expressions
+
         try:
-            result = expressions.evaluate(op, str_rep, x, y,
-                                          raise_on_error=True, **eval_kwargs)
+            result = expressions.evaluate(op, str_rep, x, y, **eval_kwargs)
         except TypeError:
 
             # TODO: might need to find_common_type here?
@@ -1378,9 +1375,10 @@ def _arith_method_PANEL(op, name, str_rep=None, fill_zeros=None,
 
 def _comp_method_PANEL(op, name, str_rep=None, masker=False):
     def na_op(x, y):
+        import pandas.core.computation.expressions as expressions
+
         try:
-            result = expressions.evaluate(op, str_rep, x, y,
-                                          raise_on_error=True)
+            result = expressions.evaluate(op, str_rep, x, y)
         except TypeError:
             xrav = x.ravel()
             result = np.empty(x.size, dtype=bool)
@@ -1409,7 +1407,7 @@ def _comp_method_PANEL(op, name, str_rep=None, masker=False):
 
         if isinstance(other, self._constructor):
             return self._compare_constructor(other, na_op, try_cast=False)
-        elif isinstance(other, (self._constructor_sliced, pd.DataFrame,
+        elif isinstance(other, (self._constructor_sliced, ABCDataFrame,
                                 ABCSeries)):
             raise Exception("input needs alignment for this object [{object}]"
                             .format(object=self._constructor))

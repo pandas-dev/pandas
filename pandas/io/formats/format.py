@@ -20,12 +20,14 @@ from pandas.core.dtypes.common import (
     is_datetimetz,
     is_integer,
     is_float,
+    is_scalar,
     is_numeric_dtype,
     is_datetime64_dtype,
     is_timedelta64_dtype,
     is_list_like)
 from pandas.core.dtypes.generic import ABCSparseArray
 from pandas.core.base import PandasObject
+from pandas.core.common import _any_not_none, sentinel_factory
 from pandas.core.index import Index, MultiIndex, _ensure_index
 from pandas import compat
 from pandas.compat import (StringIO, lzip, range, map, zip, u,
@@ -36,8 +38,7 @@ from pandas.io.common import (_get_handle, UnicodeWriter, _expand_user,
                               _stringify_path)
 from pandas.io.formats.printing import adjoin, justify, pprint_thing
 from pandas.io.formats.common import get_level_lengths
-import pandas.core.common as com
-import pandas._libs.lib as lib
+from pandas._libs import lib
 from pandas._libs.tslib import (iNaT, Timestamp, Timedelta,
                                 format_array_from_datetime)
 from pandas.core.indexes.datetimes import DatetimeIndex
@@ -45,7 +46,6 @@ from pandas.core.indexes.period import PeriodIndex
 import pandas as pd
 import numpy as np
 
-import itertools
 import csv
 from functools import partial
 
@@ -79,11 +79,28 @@ common_docstring = """
     line_width : int, optional
         Width to wrap a line in characters, default no wrap"""
 
+_VALID_JUSTIFY_PARAMETERS = ("left", "right", "center", "justify",
+                             "justify-all", "start", "end", "inherit",
+                             "match-parent", "initial", "unset")
+
 justify_docstring = """
-    justify : {'left', 'right'}, default None
-        Left or right-justify the column labels. If None uses the option from
+    justify : str, default None
+        How to justify the column labels. If None uses the option from
         the print configuration (controlled by set_option), 'right' out
-        of the box."""
+        of the box. Valid values are
+
+        * left
+        * right
+        * center
+        * justify
+        * justify-all
+        * start
+        * end
+        * inherit
+        * match-parent
+        * initial
+        * unset
+"""
 
 return_docstring = """
 
@@ -529,7 +546,7 @@ class DataFrameFormatter(TableFormatter):
                                                minimum=header_colwidth,
                                                adj=self.adj)
 
-                max_len = max(np.max([self.adj.len(x) for x in fmt_values]),
+                max_len = max(max(self.adj.len(x) for x in fmt_values),
                               header_colwidth)
                 cheader = self.adj.justify(cheader, max_len, mode=self.justify)
                 stringified.append(cheader + fmt_values)
@@ -598,9 +615,7 @@ class DataFrameFormatter(TableFormatter):
                 text = self._join_multiline(*strcols)
             else:  # max_cols == 0. Try to fit frame to terminal
                 text = self.adj.adjoin(1, *strcols).split('\n')
-                row_lens = Series(text).apply(len)
-                max_len_col_ix = np.argmax(row_lens)
-                max_len = row_lens[max_len_col_ix]
+                max_len = Series(text).str.len().max()
                 headers = [ele[0] for ele in strcols]
                 # Size of last col determines dot col size. See
                 # `self._to_str_columns
@@ -746,7 +761,7 @@ class DataFrameFormatter(TableFormatter):
             dtypes = self.frame.dtypes._values
 
             # if we have a Float level, they don't use leading space at all
-            restrict_formatting = any([l.is_floating for l in columns.levels])
+            restrict_formatting = any(l.is_floating for l in columns.levels)
             need_leadsp = dict(zip(fmt_columns, map(is_numeric_dtype, dtypes)))
 
             def space_format(x, y):
@@ -887,6 +902,7 @@ class LatexFormatter(TableFormatter):
             name = any(self.frame.index.names)
             cname = any(self.frame.columns.names)
             lastcol = self.frame.index.nlevels - 1
+            previous_lev3 = None
             for i, lev in enumerate(self.frame.index.levels):
                 lev2 = lev.format()
                 blank = ' ' * len(lev2[0])
@@ -897,11 +913,19 @@ class LatexFormatter(TableFormatter):
                     lev3 = [blank] * clevels
                 if name:
                     lev3.append(lev.name)
-                for level_idx, group in itertools.groupby(
-                        self.frame.index.labels[i]):
-                    count = len(list(group))
-                    lev3.extend([lev2[level_idx]] + [blank] * (count - 1))
+                current_idx_val = None
+                for level_idx in self.frame.index.labels[i]:
+                    if ((previous_lev3 is None or
+                        previous_lev3[len(lev3)].isspace()) and
+                            lev2[level_idx] == current_idx_val):
+                        # same index as above row and left index was the same
+                        lev3.append(blank)
+                    else:
+                        # different value than above or left index different
+                        lev3.append(lev2[level_idx])
+                        current_idx_val = lev2[level_idx]
                 strcols.insert(i, lev3)
+                previous_lev3 = lev3
 
         column_format = self.column_format
         if column_format is None:
@@ -938,8 +962,8 @@ class LatexFormatter(TableFormatter):
                 if self.longtable:
                     buf.write('\\endhead\n')
                     buf.write('\\midrule\n')
-                    buf.write('\\multicolumn{3}{r}{{Continued on next '
-                              'page}} \\\\\n')
+                    buf.write('\\multicolumn{{{n}}}{{r}}{{{{Continued on next '
+                              'page}}}} \\\\\n'.format(n=len(row)))
                     buf.write('\\midrule\n')
                     buf.write('\\endfoot\n\n')
                     buf.write('\\bottomrule\n')
@@ -1253,7 +1277,7 @@ class HTMLFormatter(TableFormatter):
 
             if self.fmt.sparsify:
                 # GH3547
-                sentinel = com.sentinel_factory()
+                sentinel = sentinel_factory()
             else:
                 sentinel = None
             levels = self.columns.format(sparsify=sentinel, adjoin=False,
@@ -1422,7 +1446,7 @@ class HTMLFormatter(TableFormatter):
 
         if self.fmt.sparsify:
             # GH3547
-            sentinel = com.sentinel_factory()
+            sentinel = sentinel_factory()
             levels = frame.index.format(sparsify=sentinel, adjoin=False,
                                         names=False)
 
@@ -1608,12 +1632,20 @@ class CSVFormatter(object):
 
     def save(self):
         # create the writer & save
+        if self.encoding is None:
+            if compat.PY2:
+                encoding = 'ascii'
+            else:
+                encoding = 'utf-8'
+        else:
+            encoding = self.encoding
+
         if hasattr(self.path_or_buf, 'write'):
             f = self.path_or_buf
             close = False
         else:
             f, handles = _get_handle(self.path_or_buf, self.mode,
-                                     encoding=self.encoding,
+                                     encoding=encoding,
                                      compression=self.compression)
             close = True
 
@@ -1623,11 +1655,11 @@ class CSVFormatter(object):
                                  doublequote=self.doublequote,
                                  escapechar=self.escapechar,
                                  quotechar=self.quotechar)
-            if self.encoding is not None:
-                writer_kwargs['encoding'] = self.encoding
-                self.writer = UnicodeWriter(f, **writer_kwargs)
-            else:
+            if encoding == 'ascii':
                 self.writer = csv.writer(f, **writer_kwargs)
+            else:
+                writer_kwargs['encoding'] = encoding
+                self.writer = UnicodeWriter(f, **writer_kwargs)
 
             self._save()
 
@@ -1683,7 +1715,7 @@ class CSVFormatter(object):
             else:
                 encoded_labels = []
 
-        if not has_mi_columns:
+        if not has_mi_columns or has_aliases:
             encoded_labels += list(write_cols)
             writer.writerow(encoded_labels)
         else:
@@ -1837,7 +1869,7 @@ class GenericArrayFormatter(object):
             (lambda x: pprint_thing(x, escape_chars=('\t', '\r', '\n'))))
 
         def _format(x):
-            if self.na_rep is not None and lib.checknull(x):
+            if self.na_rep is not None and is_scalar(x) and isna(x):
                 if x is None:
                     return 'None'
                 elif x is pd.NaT:
@@ -2163,7 +2195,7 @@ def _is_dates_only(values):
 
 
 def _format_datetime64(x, tz=None, nat_rep='NaT'):
-    if x is None or lib.checknull(x):
+    if x is None or (is_scalar(x) and isna(x)):
         return nat_rep
 
     if tz is not None or not isinstance(x, Timestamp):
@@ -2173,7 +2205,7 @@ def _format_datetime64(x, tz=None, nat_rep='NaT'):
 
 
 def _format_datetime64_dateonly(x, nat_rep='NaT', date_format=None):
-    if x is None or lib.checknull(x):
+    if x is None or (is_scalar(x) and isna(x)):
         return nat_rep
 
     if not isinstance(x, Timestamp):
@@ -2207,7 +2239,7 @@ class Datetime64TZFormatter(Datetime64Formatter):
     def _format_strings(self):
         """ we by definition have a TZ """
 
-        values = self.values.asobject
+        values = self.values.astype(object)
         is_dates_only = _is_dates_only(values)
         formatter = (self.formatter or
                      _get_format_datetime64(is_dates_only,
@@ -2251,14 +2283,14 @@ def _get_format_timedelta64(values, nat_rep='NaT', box=False):
         consider_values, np.abs(values_int) >= one_day_nanos).sum() == 0
 
     if even_days:
-        format = 'even_day'
+        format = None
     elif all_sub_day:
         format = 'sub_day'
     else:
         format = 'long'
 
     def _formatter(x):
-        if x is None or lib.checknull(x):
+        if x is None or (is_scalar(x) and isna(x)):
             return nat_rep
 
         if not isinstance(x, Timedelta):
@@ -2279,7 +2311,7 @@ def _make_fixed_width(strings, justify='right', minimum=None, adj=None):
     if adj is None:
         adj = _get_adjustment()
 
-    max_len = np.max([adj.len(x) for x in strings])
+    max_len = max(adj.len(x) for x in strings)
 
     if minimum is not None:
         max_len = max(minimum, max_len)
@@ -2307,8 +2339,8 @@ def _trim_zeros(str_floats, na_rep='NaN'):
 
     def _cond(values):
         non_na = [x for x in values if x != na_rep]
-        return (len(non_na) > 0 and all([x.endswith('0') for x in non_na]) and
-                not (any([('e' in x) or ('E' in x) for x in non_na])))
+        return (len(non_na) > 0 and all(x.endswith('0') for x in non_na) and
+                not (any(('e' in x) or ('E' in x) for x in non_na)))
 
     while _cond(trimmed):
         trimmed = [x[:-1] if x != na_rep else x for x in trimmed]
@@ -2340,7 +2372,7 @@ def single_row_table(row):  # pragma: no cover
 
 def _has_names(index):
     if isinstance(index, MultiIndex):
-        return any([x is not None for x in index.names])
+        return _any_not_none(*index.names)
     else:
         return index.name is not None
 
