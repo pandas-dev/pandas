@@ -184,7 +184,7 @@ elif [ "$CONDA_BUILD_TEST" ]; then
     conda build ./conda.recipe --numpy 1.13 --python 3.5 -q --no-test
 
     echo "[installing]"
-    conda install $(conda build ./conda.recipe --numpy 1.13 --python 3.5 --output) --quiet
+    conda install $(conda build ./conda.recipe --numpy 1.13 --python 3.5 --output) --quiet --use-local
 
 else
 
