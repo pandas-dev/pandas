@@ -413,10 +413,10 @@ class Styler(object):
         >>> df.style.format({'C': str.upper})
         >>> df.style.format("<b>{}</b>") # Make everything bold
         >>> df.style.format(\"\"\"
-            <script>
-            document.removeChild(document.documentElement))
-            </script>
-            \"\"\") # You probably don't want to do this
+        ... <script>
+        ... document.removeChild(document.documentElement))
+        ... </script>
+        ... \"\"\") # You probably don't want to do this
         """
         if subset is None:
             row_locs = range(len(self.data))
