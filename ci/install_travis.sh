@@ -181,10 +181,12 @@ elif [ "$CONDA_BUILD_TEST" ]; then
 
     # build & install testing
     echo "[building conda recipe]"
-    conda build ./conda.recipe --numpy 1.13 --python 3.5 -q --no-test
+    mkidr conda-bld
+    conda build ./conda.recipe --numpy 1.13 --python 3.5 -q --no-test --output-folder conda-bld
 
     echo "[installing]"
-    conda install $(conda build ./conda.recipe --numpy 1.13 --python 3.5 --output) --quiet --use-local
+    output = $(conda build ./conda.recipe --numpy 1.13 --python 3.5 --output)
+    conda install "conda-bld/$output"
 
 else
 
