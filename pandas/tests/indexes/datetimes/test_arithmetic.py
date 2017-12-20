@@ -378,6 +378,7 @@ class TestDatetimeIndexArithmetic(object):
 
     @pytest.mark.parametrize('box', [np.array, pd.Index])
     def test_dti_sub_offset_array(self, tz, box):
+        # GH#18824
         dti = pd.date_range('2017-01-01', periods=2, tz=tz)
         other = box([pd.offsets.MonthEnd(), pd.offsets.Day(n=2)])
         res = dti - other
@@ -386,6 +387,7 @@ class TestDatetimeIndexArithmetic(object):
         tm.assert_index_equal(res, expected)
 
     def test_dti_with_offset_series(self, tz):
+        # GH#18824
         dti = pd.date_range('2017-01-01', periods=2, tz=tz)
         other = pd.Series([pd.offsets.MonthEnd(), pd.offsets.Day(n=2)],
                           name='foo')

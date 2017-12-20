@@ -640,6 +640,14 @@ class DatetimeIndexOpsMixin(object):
     def _sub_period(self, other):
         return NotImplemented
 
+    def _add_offset_array(self, other):
+        # Array/Index of DateOffset objects
+        return NotImplemented
+
+    def _sub_offset_array(self, other):
+        # Array/Index of DateOffset objects
+        return NotImplemented
+
     @classmethod
     def _add_datetimelike_methods(cls):
         """
@@ -665,18 +673,9 @@ class DatetimeIndexOpsMixin(object):
                 return self.shift(other)
             elif isinstance(other, (datetime, np.datetime64)):
                 return self._add_datelike(other)
-            elif (isinstance(self, DatetimeIndex) and is_offsetlike(other) and
-                  not isinstance(other, ABCSeries)):
-                # Array of DateOffset objects
-                if len(other) == 1:
-                    return self + other[0]
-                else:
-                    from pandas.errors import PerformanceWarning
-                    warnings.warn("Adding/subtracting array of DateOffsets to "
-                                  "{} not vectorized".format(type(self)),
-                                  PerformanceWarning)
-                    return self.astype('O') + np.array(other)
-                    # FIXME: This works for __add__ but loses dtype in __sub__
+            elif is_offsetlike(other):
+                # Array/Index of DateOffset objects
+                return self._add_offset_array(other)
             elif isinstance(other, Index):
                 return self._add_datelike(other)
             else:  # pragma: no cover
@@ -706,18 +705,9 @@ class DatetimeIndexOpsMixin(object):
                 return self._sub_datelike(other)
             elif isinstance(other, Period):
                 return self._sub_period(other)
-            elif (isinstance(self, DatetimeIndex) and is_offsetlike(other) and
-                  not isinstance(other, ABCSeries)):
-                # Array of DateOffset objects
-                if len(other) == 1:
-                    return self - other[0]
-                else:
-                    from pandas.errors import PerformanceWarning
-                    warnings.warn("Adding/subtracting array of DateOffsets to "
-                                  "{} not vectorized".format(type(self)),
-                                  PerformanceWarning)
-                    res_values = self.astype('O').values - np.array(other)
-                    return self.__class__(res_values, freq='infer')
+            elif is_offsetlike(other):
+                # Array/Index of DateOffset objects
+                return self._sub_offset_array(other)
             elif isinstance(other, Index):
                 raise TypeError("cannot subtract {typ1} and {typ2}"
                                 .format(typ1=type(self).__name__,
