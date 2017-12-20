@@ -962,6 +962,14 @@ class TestTimedeltaSeriesArithmetic(object):
 
 
 class TestDatetimeSeriesArithmetic(object):
+    @pytest.mark.xfail(reason='GH#18824 bug in Timedelta.__floordiv__')
+    def test_timedelta_rfloordiv(self):
+        td1 = Series([timedelta(minutes=5, seconds=3)] * 3)
+        td1.iloc[2] = np.nan
+        tdscalar = Timedelta(minutes=5, seconds=4)
+        tm.assert_series_equal(tdscalar // td1,
+                               Series([1, 1, np.nan]))
+
     def test_operators_datetimelike(self):
         def run_ops(ops, get_ser, test_ser):
 
@@ -990,9 +998,6 @@ class TestDatetimeSeriesArithmetic(object):
                                Series([0, 0, np.nan]))
         tm.assert_series_equal(td1 // tdscalar.to_timedelta64(),
                                Series([0, 0, np.nan]))
-        # TODO: the Timedelta // td1 fails because of a bug
-        # in Timedelta.__floordiv__, see GH#18824
-        # tm.assert_series_equal(tdscalar // td1, Series([1, 1, np.nan]))
         tm.assert_series_equal(tdscalar.to_pytimedelta() // td1,
                                Series([1, 1, np.nan]))
         tm.assert_series_equal(tdscalar.to_timedelta64() // td1,
