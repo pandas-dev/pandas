@@ -478,10 +478,11 @@ class TestDataFrameAnalytics(TestData):
                                Series({0: 1, 1: 3, 2: 2}))
 
     def test_sum(self):
-        self._check_stat_op('sum', np.sum, has_numeric_only=True)
+        self._check_stat_op('sum', np.nansum, has_numeric_only=True,
+                            no_skipna_alternative=np.sum)
 
         # mixed types (with upcasting happening)
-        self._check_stat_op('sum', np.sum,
+        self._check_stat_op('sum', np.nansum,
                             frame=self.mixed_float.astype('float32'),
                             has_numeric_only=True, check_dtype=False,
                             check_less_precise=True)
@@ -753,7 +754,8 @@ class TestDataFrameAnalytics(TestData):
 
     def _check_stat_op(self, name, alternative, frame=None, has_skipna=True,
                        has_numeric_only=False, check_dtype=True,
-                       check_dates=False, check_less_precise=False):
+                       check_dates=False, check_less_precise=False,
+                       no_skipna_alternative=None):
         if frame is None:
             frame = self.frame
             # set some NAs
@@ -774,14 +776,20 @@ class TestDataFrameAnalytics(TestData):
             assert len(result)
 
         if has_skipna:
-            def skipna_wrapper(x):
-                nona = x.dropna()
-                if len(nona) == 0:
-                    return np.nan
-                return alternative(nona)
+            alt = no_skipna_alternative or alternative  # e.g. sum / nansum
+
+            if no_skipna_alternative:
+                def skipna_wrapper(x):
+                    return alternative(x.values)
+            else:
+                def skipna_wrapper(x):
+                    nona = x.dropna()
+                    if len(nona) == 0:
+                        return np.nan
+                    return alt(nona)
 
             def wrapper(x):
-                return alternative(x.values)
+                return alt(x.values)
 
             result0 = f(axis=0, skipna=False)
             result1 = f(axis=1, skipna=False)
@@ -793,7 +801,7 @@ class TestDataFrameAnalytics(TestData):
                                    check_dtype=False,
                                    check_less_precise=check_less_precise)
         else:
-            skipna_wrapper = alternative
+            skipna_wrapper =alternative
             wrapper = alternative
 
         result0 = f(axis=0)
@@ -834,6 +842,12 @@ class TestDataFrameAnalytics(TestData):
             r0 = getattr(all_na, name)(axis=0)
             r1 = getattr(all_na, name)(axis=1)
             if name in ['sum', 'prod']:
+                tm.assert_numpy_array_equal(r0.values, np.zeros_like(r0))
+                tm.assert_numpy_array_equal(r1.values, np.zeros_like(r1))
+
+            if name in ['sum', 'prod']:
+                r0 = getattr(all_na, name)(axis=0, skipna=False)
+                r1 = getattr(all_na, name)(axis=1, skipna=False)
                 assert np.isnan(r0).all()
                 assert np.isnan(r1).all()
 

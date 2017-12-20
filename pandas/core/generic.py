@@ -7310,7 +7310,8 @@ class NDFrame(PandasObject, SelectionMixin):
         @Substitution(outname='mad',
                       desc="Return the mean absolute deviation of the values "
                            "for the requested axis",
-                      name1=name, name2=name2, axis_descr=axis_descr)
+                      name1=name, name2=name2, axis_descr=axis_descr,
+                      empty_is_na='')
         @Appender(_num_doc)
         def mad(self, axis=None, skipna=None, level=None):
             if skipna is None:
@@ -7351,7 +7352,7 @@ class NDFrame(PandasObject, SelectionMixin):
         @Substitution(outname='compounded',
                       desc="Return the compound percentage of the values for "
                       "the requested axis", name1=name, name2=name2,
-                      axis_descr=axis_descr)
+                      axis_descr=axis_descr, empty_is_na='')
         @Appender(_num_doc)
         def compound(self, axis=None, skipna=None, level=None):
             if skipna is None:
@@ -7375,10 +7376,11 @@ class NDFrame(PandasObject, SelectionMixin):
             lambda y, axis: np.maximum.accumulate(y, axis), "max",
             -np.inf, np.nan)
 
-        cls.sum = _make_stat_function(
+        cls.sum = _make_empty_stat_function(
             cls, 'sum', name, name2, axis_descr,
             'Return the sum of the values for the requested axis',
-            nanops.nansum)
+            nanops.nansum,
+            empty_is_na=False)
         cls.mean = _make_stat_function(
             cls, 'mean', name, name2, axis_descr,
             'Return the mean of the values for the requested axis',
@@ -7394,10 +7396,11 @@ class NDFrame(PandasObject, SelectionMixin):
             "by N-1\n",
             nanops.nankurt)
         cls.kurtosis = cls.kurt
-        cls.prod = _make_stat_function(
+        cls.prod = _make_empty_stat_function(
             cls, 'prod', name, name2, axis_descr,
             'Return the product of the values for the requested axis',
-            nanops.nanprod)
+            nanops.nanprod,
+            empty_is_na=False)
         cls.product = cls.prod
         cls.median = _make_stat_function(
             cls, 'median', name, name2, axis_descr,
@@ -7520,14 +7523,14 @@ Parameters
 ----------
 axis : %(axis_descr)s
 skipna : boolean, default True
-    Exclude NA/null values. If an entire row/column is NA or empty, the result
-    will be NA
+    Exclude NA/null values before computing the result.
 level : int or level name, default None
     If the axis is a MultiIndex (hierarchical), count along a
     particular level, collapsing into a %(name1)s
 numeric_only : boolean, default None
     Include only float, int, boolean columns. If None, will attempt to use
-    everything, then use only numeric data. Not implemented for Series.
+    everything, then use only numeric data. Not implemented for
+    Series.%(empty_is_na)s
 
 Returns
 -------
@@ -7584,7 +7587,7 @@ Parameters
 axis : %(axis_descr)s
 skipna : boolean, default True
     Exclude NA/null values. If an entire row/column is NA, the result
-    will be NA
+    will be NA.
 
 Returns
 -------
@@ -7598,16 +7601,45 @@ pandas.core.window.Expanding.%(accum_func_name)s : Similar functionality
 
 """
 
+_empty_is_na_doc = """
+empty_is_na : bool, default False
+    The result of operating on an empty array should be NA. The default
+    behavior is for the sum of an empty array to be 0, and the product
+    of an empty array to be 1.
+
+    When ``skipna=True``, "empty" refers to whether or not the array
+    is empty after removing NAs. So operating on an all-NA array with
+    ``skipna=True`` will be NA when ``empty_is_na`` is True.
+    """
+
+
+def _make_empty_stat_function(cls, name, name1, name2, axis_descr, desc, f,
+                              empty_is_na=False):
+    @Substitution(outname=name, desc=desc, name1=name1, name2=name2,
+                  axis_descr=axis_descr, empty_is_na=_empty_is_na_doc)
+    @Appender(_num_doc)
+    def stat_func(self, axis=None, skipna=True, level=None, numeric_only=None,
+                  empty_is_na=empty_is_na, **kwargs):
+        nv.validate_stat_func(tuple(), kwargs, fname=name)
+        if axis is None:
+            axis = self._stat_axis_number
+        if level is not None:
+            return self._agg_by_level(name, axis=axis, level=level,
+                                      skipna=skipna, empty_is_na=empty_is_na)
+        return self._reduce(f, name, axis=axis, skipna=skipna,
+                            numeric_only=numeric_only,
+                            empty_is_na=empty_is_na)
+
+    return set_function_name(stat_func, name, cls)
+
 
 def _make_stat_function(cls, name, name1, name2, axis_descr, desc, f):
     @Substitution(outname=name, desc=desc, name1=name1, name2=name2,
-                  axis_descr=axis_descr)
+                  axis_descr=axis_descr, empty_is_na='')
     @Appender(_num_doc)
-    def stat_func(self, axis=None, skipna=None, level=None, numeric_only=None,
+    def stat_func(self, axis=None, skipna=True, level=None, numeric_only=None,
                   **kwargs):
         nv.validate_stat_func(tuple(), kwargs, fname=name)
-        if skipna is None:
-            skipna = True
         if axis is None:
             axis = self._stat_axis_number
         if level is not None:

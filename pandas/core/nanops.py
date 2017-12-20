@@ -107,7 +107,8 @@ class bottleneck_switch(object):
                     if k not in kwds:
                         kwds[k] = v
             try:
-                if values.size == 0:
+                # TODO: NaT
+                if values.size == 0 and kwds.get('empty_is_na'):
 
                     # we either return np.nan or pd.NaT
                     if is_numeric_dtype(values):
@@ -155,6 +156,7 @@ def _bn_ok_dtype(dt, name):
     # Bottleneck chokes on datetime64
     if (not is_object_dtype(dt) and not is_datetime_or_timedelta_dtype(dt)):
 
+        # TODO: handle this overflow
         # GH 15507
         # bottleneck does not properly upcast during the sum
         # so can overflow
@@ -163,6 +165,9 @@ def _bn_ok_dtype(dt, name):
         # further we also want to preserve NaN when all elements
         # are NaN, unlinke bottleneck/numpy which consider this
         # to be 0
+
+        # https://github.com/kwgoodman/bottleneck/issues/180
+        # No upcast for boolean -> int
         if name in ['nansum', 'nanprod']:
             return False
 
@@ -303,8 +308,8 @@ def nanall(values, axis=None, skipna=True):
 
 
 @disallow('M8')
-@bottleneck_switch()
-def nansum(values, axis=None, skipna=True):
+@bottleneck_switch(empty_is_na=False)
+def nansum(values, axis=None, skipna=True, empty_is_na=False):
     values, mask, dtype, dtype_max = _get_values(values, skipna, 0)
     dtype_sum = dtype_max
     if is_float_dtype(dtype):
@@ -312,13 +317,12 @@ def nansum(values, axis=None, skipna=True):
     elif is_timedelta64_dtype(dtype):
         dtype_sum = np.float64
     the_sum = values.sum(axis, dtype=dtype_sum)
-    the_sum = _maybe_null_out(the_sum, axis, mask)
+    the_sum = _maybe_null_out(the_sum, axis, mask, empty_is_na)
 
     return _wrap_results(the_sum, dtype)
 
 
 @disallow('M8')
-@bottleneck_switch()
 def nanmean(values, axis=None, skipna=True):
     values, mask, dtype, dtype_max = _get_values(values, skipna, 0)
 
@@ -641,13 +645,15 @@ def nankurt(values, axis=None, skipna=True):
 
 
 @disallow('M8', 'm8')
-def nanprod(values, axis=None, skipna=True):
+@bottleneck_switch(empty_is_na=False)
+def nanprod(values, axis=None, skipna=True, empty_is_na=False):
     mask = isna(values)
     if skipna and not is_any_int_dtype(values):
         values = values.copy()
         values[mask] = 1
     result = values.prod(axis)
-    return _maybe_null_out(result, axis, mask)
+
+    return _maybe_null_out(result, axis, mask, empty_is_na, unit=1.0)
 
 
 def _maybe_arg_null_out(result, axis, mask, skipna):
@@ -683,9 +689,13 @@ def _get_counts(mask, axis, dtype=float):
         return np.array(count, dtype=dtype)
 
 
-def _maybe_null_out(result, axis, mask):
+def _maybe_null_out(result, axis, mask, empty_is_na=True, unit=0.0):
     if axis is not None and getattr(result, 'ndim', False):
         null_mask = (mask.shape[axis] - mask.sum(axis)) == 0
+
+        if not empty_is_na:
+            null_mask[result == unit] = False
+
         if np.any(null_mask):
             if is_numeric_dtype(result):
                 if np.iscomplexobj(result):
@@ -698,7 +708,7 @@ def _maybe_null_out(result, axis, mask):
                 result[null_mask] = None
     elif result is not tslib.NaT:
         null_mask = mask.size - mask.sum()
-        if null_mask == 0:
+        if null_mask == 0.0 and empty_is_na:
             result = np.nan
 
     return result
