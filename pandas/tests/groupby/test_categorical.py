@@ -37,7 +37,7 @@ class TestGroupByCategorical(MixIn):
         # single grouper
         gb = df.groupby("A")
         exp_idx = CategoricalIndex(['a', 'b', 'z'], name='A', ordered=True)
-        expected = DataFrame({'values': Series([3, 7, np.nan], index=exp_idx)})
+        expected = DataFrame({'values': Series([3, 7, 0], index=exp_idx)})
         result = gb.sum()
         tm.assert_frame_equal(result, expected)
 
@@ -662,3 +662,25 @@ class TestGroupByCategorical(MixIn):
                          "C3": [nan, nan, nan, nan, 10, 100,
                                 nan, nan, nan, nan, 200, 34]}, index=idx)
         tm.assert_frame_equal(res, exp)
+
+    def test_sum_zero(self):
+        df = pd.DataFrame({"A": pd.Categorical(['a', 'b', 'a'],
+                                               categories=['a', 'b', 'c']),
+                           'B': [1, 2, 1]})
+        result = df.groupby("A").B.sum()
+        expected = pd.Series([2, 2, 0],
+                             index=pd.CategoricalIndex(['a', 'b', 'c'],
+                                                       name='A'),
+                             name='B')
+        tm.assert_series_equal(result, expected)
+
+    def test_prod_one(self):
+        df = pd.DataFrame({"A": pd.Categorical(['a', 'b', 'a'],
+                                               categories=['a', 'b', 'c']),
+                           'B': [1, 2, 1]})
+        result = df.groupby("A").B.prod()
+        expected = pd.Series([1, 2, 1],
+                             index=pd.CategoricalIndex(['a', 'b', 'c'],
+                                                       name='A'),
+                             name='B')
+        tm.assert_series_equal(result, expected)
