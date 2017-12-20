@@ -43,9 +43,11 @@ class TestIntervalIndex(Base):
 
     @pytest.mark.xfail(reason="new indexing tests for issue 16316")
     @pytest.mark.parametrize("idx_side", ['right', 'left', 'both', 'neither'])
-    def test_get_loc_scalar(self, idx_side):
+    @pytest.mark.parametrize("scalar", [-0.5, 0, 0.5, 1, 1.5, 2, 2.5, 3, 3.5])
+    def test_get_loc_scalar(self, idx_side, scalar):
 
-        scalars = [-0.5, 0, 0.5, 1, 1.5, 2, 2.5, 3, 3.5]
+        # correct = {side: {query: answer}}.
+        # If query is not in the dict, that query should raise a KeyError
         correct = {'right': {0.5: 0, 1: 0, 2.5: 1, 3: 1},
                    'left': {0: 0, 0.5: 0, 2: 1, 2.5: 1},
                    'both': {0: 0, 0.5: 0, 1: 0, 2: 1, 2.5: 1, 3: 1},
@@ -53,13 +55,12 @@ class TestIntervalIndex(Base):
 
         idx = IntervalIndex.from_tuples([(0, 1), (2, 3)], closed=idx_side)
 
-        for scalar in scalars:
-            # if get_loc is supplied a scalar, it should return the index of
-            # the interval which contains the scalar, or KeyError.
-            if scalar in correct[idx_side].keys():
-                assert idx.get_loc(scalar) == correct[idx_side][scalar]
-            else:
-                pytest.raises(KeyError, idx.get_loc, scalar)
+        # if get_loc is supplied a scalar, it should return the index of
+        # the interval which contains the scalar, or KeyError.
+        if scalar in correct[idx_side].keys():
+            assert idx.get_loc(scalar) == correct[idx_side][scalar]
+        else:
+            pytest.raises(KeyError, idx.get_loc, scalar)
 
     @pytest.mark.xfail(reason="new indexing tests for issue 16316")
     def test_slice_locs_with_interval(self):
@@ -120,9 +121,7 @@ class TestIntervalIndex(Base):
             start=Interval(2, 4), end=Interval(0, 2)) == (2, 2)
 
     @pytest.mark.xfail(reason="new indexing tests for issue 16316")
-    def test_slice_locs_with_ints_and_floats(self):
-
-        queries = [[0, 1], [0, 2], [0, 3], [3, 1], [3, 4], [0, 4]]
+    def test_slice_locs_with_ints_and_floats_succeeds(self):
 
         # increasing non-overlapping
         index = IntervalIndex.from_tuples([(0, 1), (1, 2), (3, 4)])
@@ -143,101 +142,96 @@ class TestIntervalIndex(Base):
         assert index.slice_locs(3, 4) == (1, 0)
         assert index.slice_locs(0, 4) == (3, 0)
 
+    @pytest.mark.xfail(reason="new indexing tests for issue 16316")
+    @pytest.mark.parametrize("query", [[0, 1], [0, 2], [0, 3],
+                                       [3, 1], [3, 4], [0, 4]])
+    def test_slice_locs_with_ints_and_floats_fails(self, query):
+
         # increasing overlapping
         index = IntervalIndex.from_tuples([(0, 2), (1, 3), (2, 4)])
-        for query in queries:
-            pytest.raises(KeyError, index.slice_locs, query)
+        pytest.raises(KeyError, index.slice_locs, query)
 
         # decreasing overlapping
         index = IntervalIndex.from_tuples([(2, 4), (1, 3), (0, 2)])
-        for query in queries:
-            pytest.raises(KeyError, index.slice_locs, query)
+        pytest.raises(KeyError, index.slice_locs, query)
 
         # sorted duplicates
         index = IntervalIndex.from_tuples([(0, 2), (0, 2), (2, 4)])
-        for query in queries:
-            pytest.raises(KeyError, index.slice_locs, query)
+        pytest.raises(KeyError, index.slice_locs, query)
 
         # unsorted duplicates
         index = IntervalIndex.from_tuples([(0, 2), (2, 4), (0, 2)])
-        for query in queries:
-            pytest.raises(KeyError, index.slice_locs, query)
+        pytest.raises(KeyError, index.slice_locs, query)
 
         # another unsorted duplicates
         index = IntervalIndex.from_tuples([(0, 2), (0, 2), (2, 4), (1, 3)])
-        for query in queries:
-            pytest.raises(KeyError, index.slice_locs, query)
+        pytest.raises(KeyError, index.slice_locs, query)
 
     @pytest.mark.xfail(reason="new indexing tests for issue 16316")
-    def test_get_indexer_with_interval(self):
+    @pytest.mark.parametrize("query_and_expected_result", [
+        (Interval(1, 3, closed='right'), 1),
+        (Interval(1, 3, closed='left'), -1),
+        (Interval(1, 3, closed='both'), -1),
+        (Interval(1, 3, closed='neither'), -1),
+        (Interval(1, 4, closed='right'), -1),
+        (Interval(0, 4, closed='right'), -1),
+        (Interval(1, 2, closed='right'), -1)])
+    def test_get_indexer_with_interval_single_queries(self, query_and_expected_result):
 
         index = IntervalIndex.from_tuples(
             [(0, 2.5), (1, 3), (2, 4)], closed='right')
 
-        # single queries
-        queries = [Interval(1, 3, closed='right'),
-                   Interval(1, 3, closed='left'),
-                   Interval(1, 3, closed='both'),
-                   Interval(1, 3, closed='neither'),
-                   Interval(1, 4, closed='right'),
-                   Interval(0, 4, closed='right'),
-                   Interval(1, 2, closed='right')]
-        expected = [1, -1, -1, -1, -1, -1, -1]
-
-        for query, expected_result in zip(queries, expected):
-            result = index.get_indexer([query])
-            expect = np.array([expected_result], dtype='intp')
-            tm.assert_numpy_array_equal(result, expect)
-
-        # multiple queries
-        queries = [
-            [Interval(2, 4, closed='right'), Interval(1, 3, closed='right')],
-            [Interval(1, 3, closed='right'), Interval(0, 2, closed='right')],
-            [Interval(1, 3, closed='right'), Interval(1, 3, closed='left')],
-            index]
-        expected = [[2, 1], [1, -1], [1, -1], [0, 1, 2]]
-
-        for query, expected_result in zip(queries, expected):
-            result = index.get_indexer(query)
-            expect = np.array(expected_result, dtype='intp')
-            tm.assert_numpy_array_equal(result, expect)
+        query, expected_result = query_and_expected_result
+        result = index.get_indexer([query])
+        expect = np.array([expected_result], dtype='intp')
+        tm.assert_numpy_array_equal(result, expect)
 
     @pytest.mark.xfail(reason="new indexing tests for issue 16316")
-    def test_get_indexer_with_ints_and_floats(self):
+    @pytest.mark.parametrize("query_and_expected_result", [
+        ([Interval(2, 4, closed='right'), Interval(1, 3, closed='right')], [2, 1]),
+        ([Interval(1, 3, closed='right'), Interval(0, 2, closed='right')], [1, -1]),
+        ([Interval(1, 3, closed='right'), Interval(1, 3, closed='left')], [1, -1])])
+    def test_get_indexer_with_interval_multiple_queries(self, query_and_expected_result):
+
+        index = IntervalIndex.from_tuples(
+            [(0, 2.5), (1, 3), (2, 4)], closed='right')
+
+        query, expected_result = query_and_expected_result
+        result = index.get_indexer(query)
+        expect = np.array(expected_result, dtype='intp')
+        tm.assert_numpy_array_equal(result, expect)
+
+    @pytest.mark.xfail(reason="new indexing tests for issue 16316")
+    @pytest.mark.parametrize("query", [-0.5, 0, 0.5, 1, 1.5, 2, 2.5, 3, 3.5, 4, 4.5])
+    @pytest.mark.parametrize("expected_result", [-1, -1, 0, 0, 1, 1, -1, -1, 2, 2, -1])
+    def test_get_indexer_with_ints_and_floats_single_queries(self, query, expected_result):
 
         index = IntervalIndex.from_tuples(
             [(0, 1), (1, 2), (3, 4)], closed='right')
 
-        # single queries
-        queries = [-0.5, 0, 0.5, 1, 1.5, 2, 2.5, 3, 3.5, 4, 4.5]
-        expected = [-1, -1, 0, 0, 1, 1, -1, -1, 2, 2, -1]
+        result = index.get_indexer([query])
+        expect = np.array([expected_result], dtype='intp')
+        tm.assert_numpy_array_equal(result, expect)
 
-        for query, expected_result in zip(queries, expected):
-            result = index.get_indexer([query])
-            expect = np.array([expected_result], dtype='intp')
-            tm.assert_numpy_array_equal(result, expect)
+    @pytest.mark.xfail(reason="new indexing tests for issue 16316")
+    @pytest.mark.parametrize("query", [[1, 2], [1, 2, 3], [1, 2, 3, 4], [1, 2, 3, 4, 2]])
+    @pytest.mark.parametrize("expected_result", [[0, 1], [0, 1, -1], [0, 1, -1, 2], [0, 1, -1, 2, 1]])
+    def test_get_indexer_with_ints_and_floats_multiple_queries(self, query, expected_result):
 
-        # multiple queries
-        queries = [[1, 2], [1, 2, 3], [1, 2, 3, 4], [1, 2, 3, 4, 2]]
-        expected = [[0, 1], [0, 1, -1], [0, 1, -1, 2], [0, 1, -1, 2, 1]]
+        index = IntervalIndex.from_tuples(
+            [(0, 1), (1, 2), (3, 4)], closed='right')
 
-        for query, expected_result in zip(queries, expected):
-            result = index.get_indexer(query)
-            expect = np.array(expected_result, dtype='intp')
-            tm.assert_numpy_array_equal(result, expect)
+        result = index.get_indexer(query)
+        expect = np.array(expected_result, dtype='intp')
+        tm.assert_numpy_array_equal(result, expect)
 
         index = IntervalIndex.from_tuples([(0, 2), (1, 3), (2, 4)])
         # TODO: @shoyer believes this should raise, master branch doesn't
 
     @pytest.mark.xfail(reason="new indexing tests for issue 16316")
-    def test_get_indexer_non_unique_with_ints_and_floats(self):
-
-        index = IntervalIndex.from_tuples(
-            [(0, 2.5), (1, 3), (2, 4)], closed='left')
-
-        # single queries
-        queries = [-0.5, 0, 0.5, 1, 1.5, 2, 2.5, 3, 3.5, 4, 4.5]
-        expected = [(Int64Index([], dtype='int64'), np.array([0]))
+    @pytest.mark.parametrize("query", [-0.5, 0, 0.5, 1, 1.5, 2, 2.5, 3, 3.5, 4, 4.5])
+    @pytest.mark.parametrize("expected_result", [
+                    (Int64Index([], dtype='int64'), np.array([0]))
                     (Int64Index([0], dtype='int64'), np.array([]))
                     (Int64Index([0], dtype='int64'), np.array([]))
                     (Int64Index([0, 1], dtype='int64'), np.array([]))
@@ -247,25 +241,32 @@ class TestIntervalIndex(Base):
                     (Int64Index([2], dtype='int64'), np.array([]))
                     (Int64Index([2], dtype='int64'), np.array([]))
                     (Int64Index([], dtype='int64'), np.array([0]))
-                    (Int64Index([], dtype='int64'), np.array([0]))]
+                    (Int64Index([], dtype='int64'), np.array([0]))])
+    def test_get_indexer_non_unique_with_ints_and_floats_single_queries(self, query, expected_result):
 
-        for query, expected_result in zip(queries, expected):
-            result = index.get_indexer_non_unique([query])
-            tm.assert_numpy_array_equal(result, expected_result)
+        index = IntervalIndex.from_tuples(
+            [(0, 2.5), (1, 3), (2, 4)], closed='left')
 
-        # multiple queries
-        queries = [[1, 2], [1, 2, 3], [1, 2, 3, 4], [1, 2, 3, 4, 2]]
-        expected = [(Int64Index([0, 1, 0, 1, 2], dtype='int64'), np.array([]))
+        result = index.get_indexer_non_unique([query])
+        tm.assert_numpy_array_equal(result, expected_result)
+
+    @pytest.mark.xfail(reason="new indexing tests for issue 16316")
+    @pytest.mark.parametrize("query", [[1, 2], [1, 2, 3], [1, 2, 3, 4], [1, 2, 3, 4, 2]])
+    @pytest.mark.parametrize("expected_result", [
+                    (Int64Index([0, 1, 0, 1, 2], dtype='int64'), np.array([]))
                     (Int64Index([0, 1, 0, 1, 2, 2],
                                 dtype='int64'), np.array([]))
                     (Int64Index([0, 1, 0, 1, 2, 2, -1],
                                 dtype='int64'), np.array([3]))
                     (Int64Index([0, 1, 0, 1, 2, 2, -1, 0, 1, 2],
-                                dtype='int64'), np.array([3]))]
+                                dtype='int64'), np.array([3]))])
+    def test_get_indexer_non_unique_with_ints_and_floats_multiple_queries(self, query, expected_result):
 
-        for query, expected_result in zip(queries, expected):
-            result = index.get_indexer_non_unique(query)
-            tm.assert_numpy_array_equal(result, expected_result)
+        index = IntervalIndex.from_tuples(
+            [(0, 2.5), (1, 3), (2, 4)], closed='left')
+
+        result = index.get_indexer_non_unique(query)
+        tm.assert_numpy_array_equal(result, expected_result)
 
         # TODO we may also want to test get_indexer for the case when
         # the intervals are duplicated, decreasing, non-monotonic, etc..
