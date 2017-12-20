@@ -716,7 +716,6 @@ class TestHDFStore(Base):
             pytest.raises(ValueError, store.put, 'b', df,
                           format='fixed', complib='zlib')
 
-    @td.skip_if_no('tables', min_version='2.2')
     @td.skip_if_windows_python_3
     def test_put_compression_blosc(self):
         df = tm.makeTimeDataFrame()
