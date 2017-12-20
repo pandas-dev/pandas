@@ -388,14 +388,18 @@ class TestGroupByCategorical(MixIn):
                              columns=['cat', 'A', 'B'])
         tm.assert_frame_equal(result, expected)
 
-        # another not in-axis grouper (conflicting names in index)
-        s = Series(['a', 'b', 'b'], name='cat')
+        # another not in-axis grouper
+        s = Series(['a', 'b', 'b'], name='cat2')
         result = df.groupby(['cat', s], as_index=False).sum()
         expected = DataFrame({'cat': Categorical([1, 1, 2, 2, 3, 3]),
                               'A': [10.0, nan, nan, 22.0, nan, nan],
                               'B': [101.0, nan, nan, 205.0, nan, nan]},
                              columns=['cat', 'A', 'B'])
         tm.assert_frame_equal(result, expected)
+
+        # GH18872: conflicting names in desired index
+        pytest.raises(ValueError, lambda: df.groupby(['cat',
+                                                      s.rename('cat')]).sum())
 
         # is original index dropped?
         expected = DataFrame({'cat': Categorical([1, 1, 2, 2, 3, 3]),
