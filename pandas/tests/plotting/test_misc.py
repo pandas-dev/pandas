@@ -52,8 +52,8 @@ class TestSeriesPlots(TestPlotBase):
 @td.skip_if_no_mpl
 class TestDataFramePlots(TestPlotBase):
 
+    @td.skip_if_no_scipy
     def test_scatter_matrix_axis(self):
-        tm._skip_if_no_scipy()
         scatter_matrix = plotting.scatter_matrix
 
         with tm.RNGContext(42):

@@ -51,6 +51,25 @@ class Base(object):
         assert s.index is not idx
         assert s.name == idx.name
 
+    def test_to_series_with_arguments(self):
+        # GH18699
+
+        # index kwarg
+        idx = self.create_index()
+        s = idx.to_series(index=idx)
+
+        assert s.values is not idx.values
+        assert s.index is idx
+        assert s.name == idx.name
+
+        # name kwarg
+        idx = self.create_index()
+        s = idx.to_series(name='__test')
+
+        assert s.values is not idx.values
+        assert s.index is not idx
+        assert s.name != idx.name
+
     def test_to_frame(self):
         # see gh-15230
         idx = self.create_index()
