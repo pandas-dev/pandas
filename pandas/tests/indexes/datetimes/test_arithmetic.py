@@ -363,6 +363,21 @@ class TestDatetimeIndexArithmetic(object):
             with pytest.raises(OverflowError):
                 dtimin - variant
 
+    @pytest.mark.parametrize('tz', [None, 'America/Chicago'])
+    def test_dti_add_series(self, tz):
+        # GH#13905
+        index = pd.DatetimeIndex(['2016-06-28 05:30', '2016-06-28 05:31'],
+                                 tz=tz)
+        ser = pd.Series([pd.Timedelta(seconds=5)] * 2,
+                        index=index)
+        expected = pd.Series(index + pd.Timedelta(seconds=5),
+                             index=index)
+        assert expected.dtype == index.dtype
+        res = ser + index
+        tm.assert_series_equal(res, expected)
+        res2 = index + ser
+        tm.assert_series_equal(res2, expected)
+
 
 # GH 10699
 @pytest.mark.parametrize('klass,assert_func', zip([Series, DatetimeIndex],

@@ -709,6 +709,15 @@ def _arith_method_SERIES(op, name, str_rep, fill_zeros=None, default_axis=None,
 
         left, right = _align_method_SERIES(left, right)
 
+        if is_timedelta64_dtype(left) and isinstance(right, pd.DatetimeIndex):
+            # GH#13905
+            # Defer to DatetimeIndex/TimedeltaIndex operations where timezones
+            # are handled carefully.
+            result = op(pd.TimedeltaIndex(left), right)
+            return construct_result(left, result,
+                                    index=left.index, name=left.name,
+                                    dtype=result.dtype)
+
         converted = _Op.get_op(left, right, name, na_op)
 
         left, right = converted.left, converted.right
