@@ -3385,7 +3385,13 @@ class TestTimeGrouper(object):
         for func in ['min', 'max', 'sum', 'prod']:
             normal_result = getattr(normal_grouped, func)()
             dt_result = getattr(dt_grouped, func)()
-            pad = DataFrame([[np.nan, np.nan, np.nan, np.nan]], index=[3],
+            if func == 'sum':
+                fill_value = 0
+            elif func == 'prod':
+                fill_value = 1
+            else:
+                fill_value = np.nan
+            pad = DataFrame([[fill_value] * 4], index=[3],
                             columns=['A', 'B', 'C', 'D'])
             expected = normal_result.append(pad)
             expected = expected.sort_index()
