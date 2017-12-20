@@ -317,7 +317,7 @@ cpdef object get_freq(object freq):
 # ----------------------------------------------------------------------
 # Frequency comparison
 
-cpdef bool is_subperiod(source, target):
+cpdef bint is_subperiod(source, target):
     """
     Returns True if downsampling is possible between source and target
     frequencies
@@ -370,7 +370,7 @@ cpdef bool is_subperiod(source, target):
         return source in {'N'}
 
 
-cpdef bool is_superperiod(source, target):
+cpdef bint is_superperiod(source, target):
     """
     Returns True if upsampling is possible between source and target
     frequencies
