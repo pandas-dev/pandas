@@ -2750,7 +2750,6 @@ class TestGroupBy(MixIn):
 
         assert "Interpreting tuple 'by' as a list" in str(w[0].message)
 
-    @pytest.mark.xfail(reason="GH-18798")
     def test_tuple_correct_keyerror(self):
         # https://github.com/pandas-dev/pandas/issues/18798
         df = pd.DataFrame(1, index=range(3),
