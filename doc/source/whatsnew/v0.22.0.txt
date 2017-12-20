@@ -277,6 +277,7 @@ Conversion
 - Fixed a bug where ``FY5253`` date offsets could incorrectly raise an ``AssertionError`` in arithmetic operatons (:issue:`14774`)
 - Bug in :meth:`Index.astype` with a categorical dtype where the resultant index is not converted to a :class:`CategoricalIndex` for all types of index (:issue:`18630`)
 - Bug in :meth:`Series.astype` and ``Categorical.astype()`` where an existing categorical data does not get updated (:issue:`10696`, :issue:`18593`)
+- Bug in :func:`Series.__floordiv__`  and :func:`Series.__rfloordiv__` where operating on a scalar ``timedelta`` raises an exception (:issue:`18824`)
 
 
 Indexing
@@ -354,4 +355,3 @@ Other
 
 - Improved error message when attempting to use a Python keyword as an identifier in a ``numexpr`` backed query (:issue:`18221`)
 - Bug in :class:`Timestamp` where comparison with an array of ``Timestamp`` objects would result in a ``RecursionError`` (:issue:`15183`)
-- Bug in :func:`Series.__floordiv__`  and :func:`Series.__rfloordiv__` where operating on a scalar ``timedelta`` raises an exception (:issue:`18824`)

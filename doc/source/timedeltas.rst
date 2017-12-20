@@ -267,6 +267,14 @@ yields another ``timedelta64[ns]`` dtypes Series.
    td * -1
    td * pd.Series([1, 2, 3, 4])
 
+Rounded division (floor-division) of a ``timedelta64[ns]`` Series by a scalar
+``Timedelta`` gives a series of integers.
+
+.. ipython:: python
+
+   td // pd.Timedelta(days=3, hours=4)
+   pd.Timedelta(days=3, hours=4) // td
+
 Attributes
 ----------
 
