@@ -33,26 +33,30 @@ class TestSeriesAnalytics(TestData):
     @pytest.mark.parametrize("method", ["sum", "prod"])
     def test_empty(self, method, use_bottleneck):
 
+        if method == "sum":
+            unit = 0
+        else:
+            unit = 1
         with pd.option_context("use_bottleneck", use_bottleneck):
-            # GH 9422
-            # treat all missing as NaN
+            # GH 9422 / 18678
+            # treat all missing as 0
             s = Series([])
             result = getattr(s, method)()
-            assert isna(result)
+            assert result == unit
 
             result = getattr(s, method)(skipna=True)
-            assert isna(result)
+            assert result == unit
 
             s = Series([np.nan])
             result = getattr(s, method)()
-            assert isna(result)
+            assert result == unit
 
             result = getattr(s, method)(skipna=True)
-            assert isna(result)
+            assert result == unit
 
             s = Series([np.nan, 1])
             result = getattr(s, method)()
-            assert result == 1.0
+            assert result == 1
 
             s = Series([np.nan, 1])
             result = getattr(s, method)(skipna=True)
@@ -60,13 +64,15 @@ class TestSeriesAnalytics(TestData):
 
             # GH #844 (changed in 9422)
             df = DataFrame(np.empty((10, 0)))
-            assert (df.sum(1).isnull()).all()
+            result = df.sum(1)
+            expected = pd.Series(0, index=df.index, dtype='float64')
+            tm.assert_series_equal(result, expected)
 
     @pytest.mark.parametrize(
-        "method", ['sum', 'mean', 'median', 'std', 'var'])
+        "method", ['mean', 'median', 'std', 'var'])
     def test_ops_consistency_on_empty(self, method):
 
-        # GH 7869
+        # GH 7869 / 18678
         # consistency on empty
 
         # float
@@ -76,6 +82,19 @@ class TestSeriesAnalytics(TestData):
         # timedelta64[ns]
         result = getattr(Series(dtype='m8[ns]'), method)()
         assert result is pd.NaT
+
+    @pytest.mark.parametrize('method, unit', [
+        ('sum', 0),
+        ('prod', 1),
+    ])
+    def test_ops_consistency_on_empty_sum_prod(self, method, unit):
+        # GH 18678
+        result = getattr(Series(dtype=float), method)()
+        assert result == unit
+
+        if method == 'sum':
+            result = getattr(Series(dtype='m8[ns]'), method)()
+            assert result == pd.Timedelta(0)
 
     def test_nansum_buglet(self):
         s = Series([1.0, np.nan], index=[0, 1])
@@ -111,7 +130,7 @@ class TestSeriesAnalytics(TestData):
                 assert np.allclose(float(result), v[-1])
 
     def test_sum(self):
-        self._check_stat_op('sum', np.sum, check_allna=True)
+        self._check_stat_op('sum', np.nansum, check_allna=False)
 
     def test_sum_inf(self):
         s = Series(np.random.randn(10))

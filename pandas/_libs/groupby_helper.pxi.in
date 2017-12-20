@@ -89,7 +89,7 @@ def group_add_{{name}}(ndarray[{{dest_type2}}, ndim=2] out,
         for i in range(ncounts):
             for j in range(K):
                 if nobs[i, j] == 0:
-                    out[i, j] = NAN
+                    out[i, j] = 0
                 else:
                     out[i, j] = sumx[i, j]
 
@@ -148,7 +148,7 @@ def group_prod_{{name}}(ndarray[{{dest_type2}}, ndim=2] out,
         for i in range(ncounts):
             for j in range(K):
                 if nobs[i, j] == 0:
-                    out[i, j] = NAN
+                    out[i, j] = 1
                 else:
                     out[i, j] = prodx[i, j]
 

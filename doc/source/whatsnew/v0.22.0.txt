@@ -8,6 +8,103 @@ deprecations, new features, enhancements, and performance improvements along
 with a large number of bug fixes. We recommend that all users upgrade to this
 version.
 
+.. _whatsnew_0220.na_sum:
+
+Pandas 0.22.0 changes the handling of empty and all-NA sums and products. The
+summary is that
+
+* The sum of an all-NA or empty series is now 0
+* The product of an all-NA or empty series is now 1
+* We've added an ``empty_is_na`` keyword to the ``sum`` and ``prod`` methods
+  to control whether the sum or product of an empty series should be NA. The
+  default is ``False``. To restore the 0.21 behavior, use
+  ``empty_is_na=True``.
+
+Some background: In pandas 0.21.1, we fixed a long-standing inconsistency
+in the return value of all-NA series depending on whether or not bottleneck
+was installed. See :ref:`whatsnew_0210.api_breaking.bottleneck`_. At the same
+time, we changed the sum and prod of an empty Series to also be ``NaN``.
+
+Based on feedback, we've partially reverted those changes. The defualt sum
+for all-NA and empty series is now 0 (1 for ``prod``). You can achieve the
+pandas 0.21.0 behavior, returning ``NaN``, with the ``empty_is_na`` keyword.
+
+*pandas 0.21*
+
+.. code-block:: ipython
+
+   In [1]: import pandas as pd
+
+   In [2]: import numpy as np
+
+   In [3]: pd.Series([]).sum()
+   Out[3]: nan
+
+   In [4]: pd.Series([np.nan]).sum()
+   Out[4]: nan
+
+*pandas 0.22.0*
+
+.. ipython:: python
+
+   pd.Series([]).sum()
+   pd.Series([np.nan]).sum()
+
+To have the sum of an empty series return ``NaN``, use the ``empty_is_na``
+keyword. Thanks to the ``skipna`` parameter, the ``.sum`` on an all-NA
+series is conceptually the same as on an empty. The ``empty_is_na`` parameter
+controls the return value after removing NAs.
+
+.. ipython:: python
+
+   pd.Series([]).sum(empty_is_na=True)
+   pd.Series([np.nan]).sum(empty_is_na=True)
+
+Note that this affects some other places in the library:
+
+1. Grouping by a Categorical with some unobserved categories
+
+*pandas 0.21*
+
+.. code-block:: ipython
+
+   In [3]: grouper = pd.Categorical(['a', 'a'], categories=['a', 'b'])
+
+   In [4]: pd.Series([1, 2]).groupby(grouper).sum()
+   Out[4]:
+   a    3.0
+   b    NaN
+   dtype: float64
+
+*pandas 0.22*
+
+.. ipython:: python
+
+   grouper = pd.Categorical(['a', 'a'], categories=['a', 'b'])
+   pd.Series([1, 2]).groupby(grouepr).sum()
+
+2. Upsampling
+
+*pandas 0.21.0*
+
+.. code-block:: ipython
+
+   In [5]: idx = pd.DatetimeIndex(['2017-01-01', '2017-01-02'])
+
+   In [6]: pd.Series([1, 2], index=idx).resample('12H').sum()
+   Out[6]:
+   2017-01-01 00:00:00    1.0
+   2017-01-01 12:00:00    NaN
+   2017-01-02 00:00:00    2.0
+   Freq: 12H, dtype: float64
+
+*pandas 0.22.0*
+
+.. ipython:: python
+
+   idx = pd.DatetimeIndex(['2017-01-01', '2017-01-02'])
+   pd.Series([1, 2], index=idx).resample("12H").sum()
+
 .. _whatsnew_0220.enhancements:
 
 New features
