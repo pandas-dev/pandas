@@ -12,7 +12,7 @@ class TestIntervalIndex(object):
     def setup_method(self, method):
         self.s = Series(np.arange(5), IntervalIndex.from_breaks(np.arange(6)))
 
-    # To be removed (see #16316, #16386)
+    # To be removed, replaced by test_interval_new.py (see #16316, #16386)
     def test_loc_with_scalar(self):
 
         s = self.s
@@ -31,7 +31,7 @@ class TestIntervalIndex(object):
         expected = s.iloc[2:5]
         tm.assert_series_equal(expected, s.loc[s >= 2])
 
-    # TODO: check this behavior is consistent
+    # TODO: check this behavior is consistent with test_interval_new.py
     def test_getitem_with_scalar(self):
 
         s = self.s
@@ -50,7 +50,7 @@ class TestIntervalIndex(object):
         expected = s.iloc[2:5]
         tm.assert_series_equal(expected, s[s >= 2])
 
-    # TODO: check this behavior is consistent
+    # TODO: check this behavior is consistent with test_interval_new.py
     @pytest.mark.parametrize('direction, closed',
                              product(('increasing', 'decreasing'),
                                      ('left', 'right', 'neither', 'both')))
@@ -86,7 +86,7 @@ class TestIntervalIndex(object):
             assert s[key] == expected
             assert s.loc[key] == expected
 
-    # To be removed (see #16316, #16386)
+    # To be removed, replaced by test_interval_new.py (see #16316, #16386)
     def test_with_interval(self):
 
         s = self.s
@@ -123,7 +123,7 @@ class TestIntervalIndex(object):
         with pytest.raises(KeyError):
             s[Interval(5, 6)]
 
-    # To be removed (see #16316, #16386)
+    # To be removed, replaced by test_interval_new.py (see #16316, #16386)
     def test_with_slices(self):
 
         s = self.s
@@ -143,7 +143,7 @@ class TestIntervalIndex(object):
         with pytest.raises(ValueError):
             s[0:4:2]
 
-    # To be removed (see #16316, #16386)
+    # To be removed, replaced by test_interval_new.py (see #16316, #16386)
     def test_with_overlaps(self):
 
         s = self.s
@@ -181,7 +181,7 @@ class TestIntervalIndex(object):
         with pytest.raises(KeyError):
             s.loc[[Interval(3, 5)]]
 
-    # To be removed (see #16316, #16386)
+    # To be removed, replaced by test_interval_new.py (see #16316, #16386)
     def test_non_unique(self):
 
         idx = IntervalIndex.from_tuples([(1, 3), (3, 7)])
@@ -195,7 +195,7 @@ class TestIntervalIndex(object):
         expected = s.iloc[0:1]
         tm.assert_series_equal(expected, result)
 
-    # To be removed (see #16316, #16386)
+    # To be removed, replaced by test_interval_new.py (see #16316, #16386)
     def test_non_unique_moar(self):
 
         idx = IntervalIndex.from_tuples([(1, 3), (1, 3), (3, 7)])
@@ -216,7 +216,7 @@ class TestIntervalIndex(object):
         with pytest.raises(ValueError):
             s[[Interval(1, 3)]]
 
-    # TODO: check this behavior is consistent
+    # TODO: check this behavior is consistent with test_interval_new.py
     def test_non_matching(self):
         s = self.s
 
