@@ -185,6 +185,11 @@ class TestCategoricalIndex(Base):
         tm.assert_index_equal(result, CategoricalIndex(
             list('ffggef'), categories=list('efg')))
 
+        # GH18862 (let rename_categories take callables)
+        result = ci.rename_categories(lambda x: x.upper())
+        tm.assert_index_equal(result, CategoricalIndex(
+            list('AABBCA'), categories=list('CAB')))
+
         ci = CategoricalIndex(list('aabbca'), categories=list('cab'))
         result = ci.add_categories(['d'])
         tm.assert_index_equal(result, CategoricalIndex(
