@@ -15,60 +15,43 @@
    plt.close('all')
    from collections import OrderedDict
 
+
 *****************************
 Group By: split-apply-combine
 *****************************
 
-By "group by" we are referring to a process involving one or more of the following
-steps
+Split-apply-combine is a common paradigm in data analysis. It involves splitting
+the data set into smaller groups, applying some operation to each group
+independently and combining the results into a data structure. This strategy is
+supported for example in Excels pivot tables, SQLs ``group by`` operator and Rs
+``plyr`` package. This section will look at the the Pandas ``groupby`` and
+related functions and show you how to do split-apply-combine in Pandas. See the
+:ref:`cookbook<cookbook.grouping>` for some advanced strategies
 
- - **Splitting** the data into groups based on some criteria
- - **Applying** a function to each group independently
- - **Combining** the results into a data structure
+The split step is the most straightforward. See the section on
+:ref:`splitting<groupby.split>` below.
 
-Of these, the split step is the most straightforward. In fact, in many
-situations you may wish to split the data set into groups and do something with
-those groups yourself. In the apply step, we might wish to one of the
-following:
+In the apply step you may wish to apply one of the following operations:
+  - **Aggregate**: Get a single value for each group. This could be a summary
+    statistic like sum or mean of some column or counting the number of members
+    in the group. See the section on :ref:`aggregating<groupby.aggregate>` below.
+  - **Filter**: When you want a subset of your original data. Discard data
+    according to some function applied to each group. This can be useful when
+    for example you wish to discard groups with low member count. See the section on 
+    :ref:`filtering<groupby.filter>` below.
+  - **Transform**: A new value for each original row. This can be used to
+    normalize/scale data or filling in erroneous or missing values. See the
+    section on :ref:`transforming<groupby.transform>` below.
+Pandas has direct support for these three operations and will try and return a
+sensibly combined result. See here for further help on `when to use
+aggregate/filter/transform in Pandas
+<https://pythonforbiologists.com/when-to-use-aggregatefiltertransform-in-pandas/>`_.
 
- - **Aggregation**: computing a summary statistic (or statistics) about each
-   group. Some examples:
-
-    - Compute group sums or means
-    - Compute group sizes / counts
-
- - **Transformation**: perform some group-specific computations and return a
-   like-indexed. Some examples:
-
-    - Standardizing data (zscore) within group
-    - Filling NAs within groups with a value derived from each group
-
- - **Filtration**: discard some groups, according to a group-wise computation
-   that evaluates True or False. Some examples:
-
-    - Discarding data that belongs to groups with only a few members
-    - Filtering out data based on the group sum or mean
-
- - Some combination of the above: GroupBy will examine the results of the apply
-   step and try to return a sensibly combined result if it doesn't fit into
-   either of the above two categories
-
-Since the set of object instance methods on pandas data structures are generally
-rich and expressive, we often simply want to invoke, say, a DataFrame function
-on each group. The name GroupBy should be quite familiar to those who have used
-a SQL-based tool (or ``itertools``), in which you can write code like:
-
-.. code-block:: sql
-
-   SELECT Column1, Column2, mean(Column3), sum(Column4)
-   FROM SomeTable
-   GROUP BY Column1, Column2
-
-We aim to make operations like this natural and easy to express using
-pandas. We'll address each area of GroupBy functionality then provide some
-non-trivial examples / use cases.
-
-See the :ref:`cookbook<cookbook.grouping>` for some advanced strategies
+Pandas also supports iteration over the groups created in the split step; Using
+iteration over the groups (rather than the three shortcut functions) renders
+more control over the apply and combine parts of the process, but also requires
+more work from the programmer. See the section in
+:ref:`iterating<groupby.iterating>` below.
 
 .. _groupby.split:
 
@@ -436,51 +419,113 @@ Or for an object grouped on multiple columns:
 Aggregation
 -----------
 
+This section describes how to aggregate data. We will be giving examples using
+the ``tips.csv`` dataset. Each row represents a meal at some restaurant; The
+columns store the value of the total bill, the size if the tip and some metadata
+about the customer.
+
+.. ipython:: python
+
+   tips = pd.read_csv('./data/tips.csv')
+   tips
+
+What if we wanted to know the average total bill on each day? We split the data
+so that each group consists of all the meals eaten on the same day. We want a
+single value for each group, so we should use the aggregate function:
+
+.. ipython:: python
+
+   tips.groupby('day').aggregate('mean')
+
+The result has the group names, in this case the days, as the index along the
+grouped axis. Along the other axis we have the columns for which Pandas could
+calculate a mean, i.e. the ones with a numeric data type. We could have selected
+the ``total_bill`` column either before or after aggregating to limit the result
+to this column, but not before splitting since we need the ``day`` column for
+the splitting.
+
+How about the number of guests for each day and for each time of day? In this
+case it is not enough to split the data on the day it was eaten, we also need
+split by the time of day. Instead of calculating the mean, like in the previous
+example we use the ``sum`` function.
+
+.. ipython:: python
+
+   tips.groupby(['day', 'time'])['size'].agg('sum')
+
+``agg`` is short for ``aggregate``.
+
+Pandas has support for a number of basic descriptive statistic functions which can be used with aggregate:
+
+.. csv-table::
+    :header: "Function", "Description"
+    :widths: 20, 80
+
+    ``count``, Number of non-NA observations
+    ``sum``, Sum of values
+    ``mean``, Mean of values
+    ``mad``, Mean absolute deviation
+    ``median``, Arithmetic median of values
+    ``min``, Minimum
+    ``max``, Maximum
+    ``mode``, Mode
+    ``abs``, Absolute Value
+    ``prod``, Product of values
+    ``std``, Bessel-corrected sample standard deviation
+    ``var``, Unbiased variance
+    ``sem``, Standard error of the mean
+    ``skew``, Sample skewness (3rd moment)
+    ``kurt``, Sample kurtosis (4th moment)
+    ``quantile``, Sample quantile (value at %)
+
+What if we need to know the difference between the smallest and largest total
+bill for each day? Again we split the data so each group has the meals eaten on
+the same day. But which function do we use to find the difference? The ``agg``
+function also accepts a function as argument. The function is called once per
+group with the current group as argument and should return a single value.
+
+.. ipython:: python
+
+   tips.groupby(['size']).agg(lambda group: max(group) - min(group))['total_bill']
+
+
 Once the GroupBy object has been created, several methods are available to
 perform a computation on the grouped data. These operations are similar to the
 :ref:`aggregating API <basics.aggregate>`, :ref:`window functions API <stats.aggregate>`,
 and :ref:`resample API <timeseries.aggregate>`.
 
-An obvious one is aggregation via the ``aggregate`` or equivalently ``agg`` method:
+..
+   THIS SHOULD PROBABLY BE MOVED TO THE SECTION ON GROUPBY?
+   As you can see, the result of the aggregation will have the group names as the
+   new index along the grouped axis. In the case of multiple keys, the result is a
+   :ref:`MultiIndex <advanced.hierarchical>` by default, though this can be
+   changed by using the ``as_index`` option:
 
-.. ipython:: python
+   .. ipython:: python
 
-   grouped = df.groupby('A')
-   grouped.aggregate(np.sum)
+      grouped = df.groupby(['A', 'B'], as_index=False)
+      grouped.aggregate(np.sum)
 
-   grouped = df.groupby(['A', 'B'])
-   grouped.aggregate(np.sum)
+      df.groupby('A', as_index=False).sum()
 
-As you can see, the result of the aggregation will have the group names as the
-new index along the grouped axis. In the case of multiple keys, the result is a
-:ref:`MultiIndex <advanced.hierarchical>` by default, though this can be
-changed by using the ``as_index`` option:
+   Note that you could use the ``reset_index`` DataFrame function to achieve the
+   same result as the column names are stored in the resulting ``MultiIndex``:
 
-.. ipython:: python
+   .. ipython:: python
 
-   grouped = df.groupby(['A', 'B'], as_index=False)
-   grouped.aggregate(np.sum)
+      df.groupby(['A', 'B']).sum().reset_index()
 
-   df.groupby('A', as_index=False).sum()
+   Another simple aggregation example is to compute the size of each group.
+   This is included in GroupBy as the ``size`` method. It returns a Series whose
+   index are the group names and whose values are the sizes of each group.
 
-Note that you could use the ``reset_index`` DataFrame function to achieve the
-same result as the column names are stored in the resulting ``MultiIndex``:
+   .. ipython:: python
 
-.. ipython:: python
+      grouped.size()
 
-   df.groupby(['A', 'B']).sum().reset_index()
+   .. ipython:: python
 
-Another simple aggregation example is to compute the size of each group.
-This is included in GroupBy as the ``size`` method. It returns a Series whose
-index are the group names and whose values are the sizes of each group.
-
-.. ipython:: python
-
-   grouped.size()
-
-.. ipython:: python
-
-   grouped.describe()
+      grouped.describe()
 
 .. note::
 
