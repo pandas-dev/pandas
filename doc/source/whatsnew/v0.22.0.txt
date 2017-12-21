@@ -299,6 +299,8 @@ Indexing
 - Bug in tz-aware :class:`DatetimeIndex` where addition/subtraction with a :class:`TimedeltaIndex` or array with ``dtype='timedelta64[ns]'`` was incorrect (:issue:`17558`)
 - :func:`Index.to_series` now accepts ``index`` and ``name`` kwargs (:issue:`18699`)
 - :func:`DatetimeIndex.to_series` now accepts ``index`` and ``name`` kwargs (:issue:`18699`)
+- Bug in indexing non-scalar value from ``Series`` having non-unique ``Index`` will return value flattened (:issue:`17610`)
+
 
 I/O
 ^^^
