@@ -5,13 +5,12 @@ import pandas as pd
 from pandas import Series, IntervalIndex, Interval
 import pandas.util.testing as tm
 
-
+@pytest.mark.xfail(reason="new indexing tests for issue 16316")
 class TestIntervalIndex(object):
 
     def setup_method(self, method):
         self.s = Series(np.arange(5), IntervalIndex.from_breaks(np.arange(6)))
 
-    @pytest.mark.xfail(reason="new indexing tests for issue 16316")
     def test_loc_with_interval(self):
 
         # loc with single label / list of labels:
@@ -60,7 +59,6 @@ class TestIntervalIndex(object):
         with pytest.raises(KeyError):
             s[Interval(5, 6)]
 
-    @pytest.mark.xfail(reason="new indexing tests for issue 16316")
     def test_loc_with_scalar(self):
 
         # loc with single label / list of labels:
@@ -89,7 +87,6 @@ class TestIntervalIndex(object):
         expected = s.iloc[2:5]
         tm.assert_series_equal(expected, s.loc[s >= 2])
 
-    @pytest.mark.xfail(reason="new indexing tests for issue 16316")
     def test_loc_with_slices(self):
 
         # loc with slices:
@@ -149,7 +146,6 @@ class TestIntervalIndex(object):
         with pytest.raises(NotImplementedError):
             s[0:4:2]
 
-    @pytest.mark.xfail(reason="new indexing tests for issue 16316")
     def test_loc_with_overlap(self):
 
         idx = IntervalIndex.from_tuples([(1, 5), (3, 7)])
@@ -227,7 +223,6 @@ class TestIntervalIndex(object):
         expected = s.iloc[0:1]
         tm.assert_series_equal(expected, result)
 
-    @pytest.mark.xfail(reason="new indexing tests for issue 16316")
     def test_non_unique_moar(self):
 
         idx = IntervalIndex.from_tuples([(1, 3), (1, 3), (3, 7)])

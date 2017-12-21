@@ -8,7 +8,7 @@ from pandas import (Interval, IntervalIndex, Int64Index,
 from pandas.tests.indexes.common import Base
 import pandas.util.testing as tm
 
-
+@pytest.mark.xfail(reason="new indexing tests for issue 16316")
 class TestIntervalIndex(Base):
 
     def _compare_tuple_of_numpy_array(self, result, expected):
@@ -18,7 +18,6 @@ class TestIntervalIndex(Base):
         tm.assert_numpy_array_equal(lidx, lidx_expected)
         tm.assert_numpy_array_equal(ridx, ridx_expected)
 
-    @pytest.mark.xfail(reason="new indexing tests for issue 16316")
     @pytest.mark.parametrize("idx_side", ['right', 'left', 'both', 'neither'])
     @pytest.mark.parametrize("side", ['right', 'left', 'both', 'neither'])
     def test_get_loc_interval(self, idx_side, side):
@@ -41,7 +40,6 @@ class TestIntervalIndex(Base):
                 with pytest.raises(KeyError):
                     idx.get_loc(Interval(*bound, closed=side))
 
-    @pytest.mark.xfail(reason="new indexing tests for issue 16316")
     @pytest.mark.parametrize("idx_side", ['right', 'left', 'both', 'neither'])
     @pytest.mark.parametrize("scalar", [-0.5, 0, 0.5, 1, 1.5, 2, 2.5, 3, 3.5])
     def test_get_loc_scalar(self, idx_side, scalar):
@@ -62,7 +60,6 @@ class TestIntervalIndex(Base):
         else:
             pytest.raises(KeyError, idx.get_loc, scalar)
 
-    @pytest.mark.xfail(reason="new indexing tests for issue 16316")
     def test_slice_locs_with_interval(self):
 
         # increasing monotonically
@@ -120,7 +117,6 @@ class TestIntervalIndex(Base):
         assert index.slice_locs(
             start=Interval(2, 4), end=Interval(0, 2)) == (2, 2)
 
-    @pytest.mark.xfail(reason="new indexing tests for issue 16316")
     def test_slice_locs_with_ints_and_floats_succeeds(self):
 
         # increasing non-overlapping
@@ -142,7 +138,6 @@ class TestIntervalIndex(Base):
         assert index.slice_locs(3, 4) == (1, 0)
         assert index.slice_locs(0, 4) == (3, 0)
 
-    @pytest.mark.xfail(reason="new indexing tests for issue 16316")
     @pytest.mark.parametrize("query", [[0, 1], [0, 2], [0, 3],
                                        [3, 1], [3, 4], [0, 4]])
     def test_slice_locs_with_ints_and_floats_fails(self, query):
@@ -167,7 +162,6 @@ class TestIntervalIndex(Base):
         index = IntervalIndex.from_tuples([(0, 2), (0, 2), (2, 4), (1, 3)])
         pytest.raises(KeyError, index.slice_locs, query)
 
-    @pytest.mark.xfail(reason="new indexing tests for issue 16316")
     @pytest.mark.parametrize("query_and_expected_result", [
         (Interval(1, 3, closed='right'), 1),
         (Interval(1, 3, closed='left'), -1),
@@ -186,7 +180,6 @@ class TestIntervalIndex(Base):
         expect = np.array([expected_result], dtype='intp')
         tm.assert_numpy_array_equal(result, expect)
 
-    @pytest.mark.xfail(reason="new indexing tests for issue 16316")
     @pytest.mark.parametrize("query_and_expected_result", [
         ([Interval(2, 4, closed='right'), Interval(1, 3, closed='right')], [2, 1]),
         ([Interval(1, 3, closed='right'), Interval(0, 2, closed='right')], [1, -1]),
@@ -201,7 +194,6 @@ class TestIntervalIndex(Base):
         expect = np.array(expected_result, dtype='intp')
         tm.assert_numpy_array_equal(result, expect)
 
-    @pytest.mark.xfail(reason="new indexing tests for issue 16316")
     @pytest.mark.parametrize("query", [-0.5, 0, 0.5, 1, 1.5, 2, 2.5, 3, 3.5, 4, 4.5])
     @pytest.mark.parametrize("expected_result", [-1, -1, 0, 0, 1, 1, -1, -1, 2, 2, -1])
     def test_get_indexer_with_ints_and_floats_single_queries(self, query, expected_result):
@@ -213,7 +205,6 @@ class TestIntervalIndex(Base):
         expect = np.array([expected_result], dtype='intp')
         tm.assert_numpy_array_equal(result, expect)
 
-    @pytest.mark.xfail(reason="new indexing tests for issue 16316")
     @pytest.mark.parametrize("query", [[1, 2], [1, 2, 3], [1, 2, 3, 4], [1, 2, 3, 4, 2]])
     @pytest.mark.parametrize("expected_result", [[0, 1], [0, 1, -1], [0, 1, -1, 2], [0, 1, -1, 2, 1]])
     def test_get_indexer_with_ints_and_floats_multiple_queries(self, query, expected_result):
@@ -228,7 +219,6 @@ class TestIntervalIndex(Base):
         index = IntervalIndex.from_tuples([(0, 2), (1, 3), (2, 4)])
         # TODO: @shoyer believes this should raise, master branch doesn't
 
-    @pytest.mark.xfail(reason="new indexing tests for issue 16316")
     @pytest.mark.parametrize("query", [-0.5, 0, 0.5, 1, 1.5, 2, 2.5, 3, 3.5, 4, 4.5])
     @pytest.mark.parametrize("expected_result", [
                     (Int64Index([], dtype='int64'), np.array([0]))
@@ -250,7 +240,6 @@ class TestIntervalIndex(Base):
         result = index.get_indexer_non_unique([query])
         tm.assert_numpy_array_equal(result, expected_result)
 
-    @pytest.mark.xfail(reason="new indexing tests for issue 16316")
     @pytest.mark.parametrize("query", [[1, 2], [1, 2, 3], [1, 2, 3, 4], [1, 2, 3, 4, 2]])
     @pytest.mark.parametrize("expected_result", [
                     (Int64Index([0, 1, 0, 1, 2], dtype='int64'), np.array([]))
@@ -271,7 +260,6 @@ class TestIntervalIndex(Base):
         # TODO we may also want to test get_indexer for the case when
         # the intervals are duplicated, decreasing, non-monotonic, etc..
 
-    @pytest.mark.xfail(reason="new indexing tests for issue 16316")
     def test_contains(self):
 
         index = IntervalIndex.from_arrays([0, 1], [1, 2], closed='right')
@@ -289,7 +277,6 @@ class TestIntervalIndex(Base):
         assert Interval(0, 1, closed='left') not in index
         assert Interval(0, 1, closed='both') not in index
 
-    @pytest.mark.xfail(reason="new indexing tests for issue 16316")
     def test_contains_method(self):
 
         index = IntervalIndex.from_arrays([0, 1], [1, 2], closed='right')
