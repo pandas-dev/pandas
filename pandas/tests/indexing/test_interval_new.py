@@ -5,6 +5,7 @@ import pandas as pd
 from pandas import Series, IntervalIndex, Interval
 import pandas.util.testing as tm
 
+
 @pytest.mark.xfail(reason="new indexing tests for issue 16316")
 class TestIntervalIndex(object):
 
