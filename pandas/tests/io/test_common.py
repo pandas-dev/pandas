@@ -40,7 +40,7 @@ try:
 except ImportError:
     pass
 
-HERE = os.path.dirname(__file__)
+HERE = os.path.abspath(os.path.dirname(__file__))
 
 
 class TestCommonIOCapabilities(object):
@@ -144,7 +144,6 @@ bar2,12,13,14,15
         with pytest.raises(error_class):
             reader(path)
 
-    @pytest.mark.xfail(reason="not working in 3.5 conda build")
     @pytest.mark.parametrize('reader, module, path', [
         (pd.read_csv, 'os', os.path.join(HERE, 'data', 'iris.csv')),
         (pd.read_table, 'os', os.path.join(HERE, 'data', 'iris.csv')),
