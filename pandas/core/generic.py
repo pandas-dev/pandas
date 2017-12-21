@@ -108,7 +108,7 @@ class NDFrame(PandasObject, SelectionMixin):
     axes : list
     copy : boolean, default False
     """
-    _internal_names = ['_data', '_cacher', '_item_cache', '_cache', 'is_copy',
+    _internal_names = ['_data', '_cacher', '_item_cache', '_cache', '_is_copy',
                        '_subtyp', '_name', '_index', '_default_kind',
                        '_default_fill_value', '_metadata', '__array_struct__',
                        '__array_interface__']
@@ -117,7 +117,7 @@ class NDFrame(PandasObject, SelectionMixin):
     _deprecations = frozenset(['as_blocks', 'blocks',
                                'consolidate', 'convert_objects'])
     _metadata = []
-    is_copy = None
+    _is_copy = None
 
     def __init__(self, data, axes=None, copy=False, dtype=None,
                  fastpath=False):
@@ -132,9 +132,21 @@ class NDFrame(PandasObject, SelectionMixin):
                 for i, ax in enumerate(axes):
                     data = data.reindex_axis(ax, axis=i)
 
-        object.__setattr__(self, 'is_copy', None)
+        object.__setattr__(self, '_is_copy', None)
         object.__setattr__(self, '_data', data)
         object.__setattr__(self, '_item_cache', {})
+
+    @property
+    def is_copy(self):
+        warnings.warn("Attribute 'is_copy' is deprecated and will be removed "
+                      "in a future version.", FutureWarning, stacklevel=2)
+        return self._is_copy
+
+    @is_copy.setter
+    def is_copy(self, msg):
+        warnings.warn("Attribute 'is_copy' is deprecated and will be removed "
+                      "in a future version.", FutureWarning, stacklevel=2)
+        self._is_copy = msg
 
     def _repr_data_resource_(self):
         """
@@ -2153,7 +2165,7 @@ class NDFrame(PandasObject, SelectionMixin):
             res._set_as_cached(item, self)
 
             # for a chain
-            res.is_copy = self.is_copy
+            res._is_copy = self._is_copy
         return res
 
     def _set_as_cached(self, item, cacher):
@@ -2264,12 +2276,12 @@ class NDFrame(PandasObject, SelectionMixin):
 
     def _set_is_copy(self, ref=None, copy=True):
         if not copy:
-            self.is_copy = None
+            self._is_copy = None
         else:
             if ref is not None:
-                self.is_copy = weakref.ref(ref)
+                self._is_copy = weakref.ref(ref)
             else:
-                self.is_copy = None
+                self._is_copy = None
 
     def _check_is_chained_assignment_possible(self):
         """
@@ -2288,7 +2300,7 @@ class NDFrame(PandasObject, SelectionMixin):
                 self._check_setitem_copy(stacklevel=4, t='referant',
                                          force=True)
             return True
-        elif self.is_copy:
+        elif self._is_copy:
             self._check_setitem_copy(stacklevel=4, t='referant')
         return False
 
@@ -2323,7 +2335,7 @@ class NDFrame(PandasObject, SelectionMixin):
 
         """
 
-        if force or self.is_copy:
+        if force or self._is_copy:
 
             value = config.get_option('mode.chained_assignment')
             if value is None:
@@ -2333,23 +2345,23 @@ class NDFrame(PandasObject, SelectionMixin):
             # the copy weakref
             try:
                 gc.collect(2)
-                if not gc.get_referents(self.is_copy()):
-                    self.is_copy = None
+                if not gc.get_referents(self._is_copy()):
+                    self._is_copy = None
                     return
             except Exception:
                 pass
 
             # we might be a false positive
             try:
-                if self.is_copy().shape == self.shape:
-                    self.is_copy = None
+                if self._is_copy().shape == self.shape:
+                    self._is_copy = None
                     return
             except Exception:
                 pass
 
             # a custom message
-            if isinstance(self.is_copy, string_types):
-                t = self.is_copy
+            if isinstance(self._is_copy, string_types):
+                t = self._is_copy
 
             elif t == 'referant':
                 t = ("\n"
