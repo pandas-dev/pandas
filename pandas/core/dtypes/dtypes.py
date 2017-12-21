@@ -159,11 +159,11 @@ class CategoricalDtype(PandasExtensionDtype):
     _metadata = ['categories', 'ordered']
     _cache = {}
 
-    def __init__(self, categories=None, ordered=False):
+    def __init__(self, categories=None, ordered=None):
         self._finalize(categories, ordered, fastpath=False)
 
     @classmethod
-    def _from_fastpath(cls, categories=None, ordered=False):
+    def _from_fastpath(cls, categories=None, ordered=None):
         self = cls.__new__(cls)
         self._finalize(categories, ordered, fastpath=True)
         return self
@@ -180,9 +180,7 @@ class CategoricalDtype(PandasExtensionDtype):
 
     def _finalize(self, categories, ordered, fastpath=False):
 
-        if ordered is None:
-            ordered = False
-        else:
+        if ordered is not None:
             self._validate_ordered(ordered)
 
         if categories is not None:
@@ -220,10 +218,10 @@ class CategoricalDtype(PandasExtensionDtype):
             # CDT(., .) = CDT(None, False) and *all*
             # CDT(., .) = CDT(None, True).
             return True
-        elif self.ordered:
-            return other.ordered and self.categories.equals(other.categories)
-        elif other.ordered:
-            return False
+        elif self.ordered or other.ordered:
+            # at least one ordered
+            return ((self.ordered == other.ordered) and
+                    self.categories.equals(other.categories))
         else:
             # both unordered; this could probably be optimized / cached
             return hash(self) == hash(other)
@@ -361,11 +359,16 @@ class CategoricalDtype(PandasExtensionDtype):
                    'got {dtype!r}').format(dtype=dtype)
             raise ValueError(msg)
 
-        # dtype is CDT: keep current categories if None (ordered can't be None)
+        # dtype is CDT: keep current categories/ordered if None
         new_categories = dtype.categories
         if new_categories is None:
             new_categories = self.categories
-        return CategoricalDtype(new_categories, dtype.ordered)
+
+        new_ordered = dtype.ordered
+        if new_ordered is None:
+            new_ordered = self.ordered
+
+        return CategoricalDtype(new_categories, new_ordered)
 
     @property
     def categories(self):

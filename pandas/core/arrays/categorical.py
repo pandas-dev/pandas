@@ -243,7 +243,7 @@ class Categorical(ExtensionArray, PandasObject):
     # For comparisons, so that numpy uses our implementation if the compare
     # ops, which raise
     __array_priority__ = 1000
-    _dtype = CategoricalDtype()
+    _dtype = CategoricalDtype(ordered=False)
     _deprecations = frozenset(['labels'])
     _typ = 'categorical'
 
@@ -294,7 +294,7 @@ class Categorical(ExtensionArray, PandasObject):
 
         if fastpath:
             self._codes = coerce_indexer_dtype(values, categories)
-            self._dtype = dtype
+            self._dtype = self._dtype._update_dtype(dtype)
             return
 
         # null_mask indicates missing values we want to exclude from inference.
@@ -358,7 +358,7 @@ class Categorical(ExtensionArray, PandasObject):
             full_codes[~null_mask] = codes
             codes = full_codes
 
-        self._dtype = dtype
+        self._dtype = self._dtype._update_dtype(dtype)
         self._codes = coerce_indexer_dtype(codes, dtype.categories)
 
     @property

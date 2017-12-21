@@ -507,6 +507,7 @@ Other API Changes
 - Set operations (union, difference...) on :class:`IntervalIndex` with incompatible index types will now raise a ``TypeError`` rather than a ``ValueError`` (:issue:`19329`)
 - :class:`DateOffset` objects render more simply, e.g. "<DateOffset: days=1>" instead of "<DateOffset: kwds={'days': 1}>" (:issue:`19403`)
 - :func:`pandas.merge` provides a more informative error message when trying to merge on timezone-aware and timezone-naive columns (:issue:`15800`)
+- The default value of the ``ordered`` parameter for :class:`~pandas.api.types.CategoricalDtype` has changed from ``False`` to ``None``.  Behavior should remain consistent for downstream objects, such as :class:`Categorical` (:issue:`18790`)
 
 .. _whatsnew_0230.deprecations:
 
