@@ -305,7 +305,6 @@ cdef class TextReader:
         object index_col
         object low_memory
         object skiprows
-        object compact_ints, use_unsigned
         object dtype
         object encoding
         object compression
@@ -355,12 +354,8 @@ cdef class TextReader:
                   na_fvalues=None,
                   true_values=None,
                   false_values=None,
-
-                  compact_ints=False,
                   allow_leading_cols=True,
-                  use_unsigned=False,
                   low_memory=False,
-                  buffer_lines=None,
                   skiprows=None,
                   skipfooter=0,
                   verbose=False,
@@ -483,10 +478,7 @@ cdef class TextReader:
         self.false_set = kset_from_list(self.false_values)
 
         self.converters = converters
-
         self.na_filter = na_filter
-        self.compact_ints = compact_ints
-        self.use_unsigned = use_unsigned
 
         self.verbose = verbose
         self.low_memory = low_memory
@@ -557,7 +549,7 @@ cdef class TextReader:
         if not self.table_width:
             raise EmptyDataError("No columns to parse from file")
 
-        # compute buffer_lines as function of table width
+        # Compute buffer_lines as function of table width.
         heuristic = 2**20 // self.table_width
         self.buffer_lines = 1
         while self.buffer_lines * 2 < heuristic:
@@ -1122,11 +1114,6 @@ cdef class TextReader:
 
             if upcast_na and na_count > 0:
                 col_res = _maybe_upcast(col_res)
-
-            if issubclass(col_res.dtype.type,
-                          np.integer) and self.compact_ints:
-                col_res = lib.downcast_int64(col_res, na_values,
-                                             self.use_unsigned)
 
             if col_res is None:
                 raise ParserError('Unable to parse column %d' % i)
