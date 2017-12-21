@@ -4343,7 +4343,7 @@ class NDFrame(PandasObject, SelectionMixin):
         pandas object may propagate changes:
 
         >>> s1 = pd.Series([1,2])
-        >>> s2 = s1.astype('int', copy=False)
+        >>> s2 = s1.astype('int64', copy=False)
         >>> s2[0] = 10
         >>> s1  # note that s1[0] has changed too
         0    10
