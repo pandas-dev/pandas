@@ -419,11 +419,7 @@ class _TimeOp(_Op):
 
         if self.is_integer_rhs or self.is_floating_rhs:
             # timedelta and integer mul/div
-            if name not in ('__div__', '__truediv__', '__mul__', '__rmul__'):
-                raise TypeError("can only operate on a timedelta and an "
-                                "integer or a float for division and "
-                                "multiplication, but the operator [{name}] "
-                                "was passed".format(name=name))
+            self._check_timedelta_with_numeric(name)
         elif self.is_timedelta_rhs or self.is_offset_rhs:
             # 2 timedeltas
             if name not in ('__div__', '__rdiv__', '__truediv__',
@@ -476,16 +472,18 @@ class _TimeOp(_Op):
 
         if ((self.is_integer_lhs or self.is_floating_lhs) and
                 self.is_timedelta_rhs):
-
-            if name not in ('__div__', '__truediv__', '__mul__', '__rmul__'):
-                raise TypeError("can only operate on a timedelta and an "
-                                "integer or a float for division and "
-                                "multiplication, but the operator [{name}] "
-                                "was passed".format(name=name))
+            self._check_timedelta_with_numeric(name)
         else:
             raise TypeError('cannot operate on a series without a rhs '
                             'of a series/ndarray of type datetime64[ns] '
                             'or a timedelta')
+
+    def _check_timedelta_with_numeric(self, name):
+        if name not in ('__div__', '__truediv__', '__mul__', '__rmul__'):
+            raise TypeError("can only operate on a timedelta and an "
+                            "integer or a float for division and "
+                            "multiplication, but the operator [{name}] "
+                            "was passed".format(name=name))
 
     def _convert_to_array(self, values, name=None, other=None):
         """converts values to ndarray"""
