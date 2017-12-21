@@ -40,7 +40,7 @@ try:
 except ImportError:
     pass
 
-HERE = os.path.dirname(__file__)
+HERE = os.path.abspath(os.path.dirname(__file__))
 
 
 class TestCommonIOCapabilities(object):

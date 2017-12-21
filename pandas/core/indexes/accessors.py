@@ -113,9 +113,9 @@ class Properties(PandasDelegate, PandasObject, NoNewAttributesMixin):
         result = Series(result, index=self.index, name=self.name)
 
         # setting this object will show a SettingWithCopyWarning/Error
-        result.is_copy = ("modifications to a property of a datetimelike "
-                          "object are not supported and are discarded. "
-                          "Change values on the original.")
+        result._is_copy = ("modifications to a property of a datetimelike "
+                           "object are not supported and are discarded. "
+                           "Change values on the original.")
 
         return result
 
@@ -136,9 +136,9 @@ class Properties(PandasDelegate, PandasObject, NoNewAttributesMixin):
         result = Series(result, index=self.index, name=self.name)
 
         # setting this object will show a SettingWithCopyWarning/Error
-        result.is_copy = ("modifications to a method of a datetimelike object "
-                          "are not supported and are discarded. Change "
-                          "values on the original.")
+        result._is_copy = ("modifications to a method of a datetimelike "
+                           "object are not supported and are discarded. "
+                           "Change values on the original.")
 
         return result
 
