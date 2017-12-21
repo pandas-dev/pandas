@@ -547,6 +547,26 @@ class TestSeriesIndexing(TestData):
         result[4:8] = ts[4:8]
         assert_series_equal(result, ts)
 
+    @pytest.mark.parametrize(
+        'result_1, duplicate_item, expected_1',
+        [
+            [
+                pd.Series({1: 12, 2: [1, 2, 2, 3]}), pd.Series({1: 313}),
+                pd.Series({1: 12, }, dtype=object),
+            ],
+            [
+                pd.Series({1: [1, 2, 3], 2: [1, 2, 2, 3]}),
+                pd.Series({1: [1, 2, 3]}), pd.Series({1: [1, 2, 3], }),
+            ],
+        ])
+    def test_getitem_with_duplicates_indices(
+            self, result_1, duplicate_item, expected_1):
+        # GH 17610
+        result = result_1.append(duplicate_item)
+        expected = expected_1.append(duplicate_item)
+        assert_series_equal(result[1], expected)
+        assert result[2] == result_1[2]
+
     def test_getitem_median_slice_bug(self):
         index = date_range('20090415', '20090519', freq='2B')
         s = Series(np.random.randn(13), index=index)
