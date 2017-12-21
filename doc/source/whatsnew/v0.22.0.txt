@@ -3,12 +3,198 @@
 v0.22.0
 -------
 
-This is a major release from 0.21.1 and includes a number of API changes,
-deprecations, new features, enhancements, and performance improvements along
-with a large number of bug fixes. We recommend that all users upgrade to this
-version.
+This is a major release from 0.21.1 and includes a single, API-breaking change.
+We recommend that all users upgrade to this version after carefully reading the
+release note (singular!).
 
 .. _whatsnew_0220.api_breaking:
 
 Backwards incompatible API changes
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Pandas 0.22.0 changes the handling of empty and all-*NA* sums and products. The
+summary is that
+
+* The sum of an all-*NA* or empty ``Series`` is now 0
+* The product of an all-*NA* or empty series is now 1
+* We've added a ``min_count`` parameter to ``.sum`` and ``.prod`` to control
+  the minimum number of valid values for the result to be valid. If fewer than
+  ``min_count`` valid values are present, the result is NA. The default is
+  ``0``. To return ``NaN``, the 0.21 behavior, use ``min_count=1``.
+
+Some background: In pandas 0.21, we fixed a long-standing inconsistency
+in the return value of all-*NA* series depending on whether or not bottleneck
+was installed. See :ref:`whatsnew_0210.api_breaking.bottleneck`_. At the same
+time, we changed the sum and prod of an empty Series to also be ``NaN``.
+
+Based on feedback, we've partially reverted those changes. The default sum for
+all-*NA* and empty series is now 0 (1 for ``prod``).
+
+*pandas 0.21.x*
+
+.. code-block:: ipython
+
+   In [3]: pd.Series([]).sum()
+   Out[3]: nan
+
+   In [4]: pd.Series([np.nan]).sum()
+   Out[4]: nan
+
+*pandas 0.22.0*
+
+.. ipython:: python
+
+   pd.Series([]).sum()
+   pd.Series([np.nan]).sum()
+
+The default behavior is the same as pandas 0.20.3 with bottleneck installed. It
+also matches the behavior of ``np.nansum`` and ``np.nanprod`` on empty and
+all-*NA* arrays.
+
+To have the sum of an empty series return ``NaN``, use the ``min_count``
+keyword. Thanks to the ``skipna`` parameter, the ``.sum`` on an all-*NA*
+series is conceptually the same as on an empty. The ``min_count`` parameter
+refers to the minimum number of *valid* values required for a non-NA sum
+or product.
+
+.. ipython:: python
+
+   pd.Series([]).sum(min_count=1)
+   pd.Series([np.nan]).sum(min_count=1)
+
+Returning ``NaN`` was the default behavior for pandas 0.20.3 without bottleneck
+installed.
+
+Note that this affects some other places in the library:
+
+Grouping by a Categorical
+^^^^^^^^^^^^^^^^^^^^^^^^^
+
+Grouping by a ``Categorical`` with some unobserved categories and computing the
+``sum`` / ``prod`` will behave differently.
+
+*pandas 0.21.x*
+
+.. code-block:: ipython
+
+   In [5]: grouper = pd.Categorical(['a', 'a'], categories=['a', 'b'])
+
+   In [6]: pd.Series([1, 2]).groupby(grouper).sum()
+   Out[6]:
+   a    3.0
+   b    NaN
+   dtype: float64
+
+*pandas 0.22*
+
+.. ipython:: python
+
+   grouper = pd.Categorical(['a', 'a'], categories=['a', 'b'])
+   pd.Series([1, 2]).groupby(grouper).sum()
+
+To restore the 0.21 behavior of returning ``NaN`` of unobserved groups,
+use ``min_count>=1``.
+
+.. ipython:: python
+
+   pd.Series([1, 2]).groupby(grouper).sum(min_count=1)
+
+Resample
+^^^^^^^^
+
+The sum and product of all-*NA* bins will change:
+
+*pandas 0.21.x*
+
+.. code-block:: ipython
+
+   In [7]: s = pd.Series([1, 1, np.nan, np.nan],
+      ...:               index=pd.date_range('2017', periods=4))
+      ...:
+
+   In [8]: s
+   Out[8]:
+   2017-01-01    1.0
+   2017-01-02    1.0
+   2017-01-03    NaN
+   2017-01-04    NaN
+   Freq: D, dtype: float64
+
+   In [9]: s.resample('2d').sum()
+   Out[9]:
+   2017-01-01    2.0
+   2017-01-03    NaN
+   Freq: 2D, dtype: float64
+
+*pandas 0.22.0*
+
+.. ipython:: python
+
+   s = pd.Series([1, 1, np.nan, np.nan],
+                 index=pd.date_range('2017', periods=4))
+   s.resample('2d').sum()
+
+To restore the 0.21 behavior of returning ``NaN``, use ``min_count>=1``.
+
+.. ipython:: python
+
+   s.resample('2d').sum(min_count=1)
+
+In particular, upsampling and taking the sum or product is affected, as
+upsampling introduces all-*NA* original series was entirely valid.
+
+*pandas 0.21.x*
+
+.. code-block:: ipython
+
+   In [10]: idx = pd.DatetimeIndex(['2017-01-01', '2017-01-02'])
+
+   In [10]: pd.Series([1, 2], index=idx).resample('12H').sum()
+   Out[10]:
+   2017-01-01 00:00:00    1.0
+   2017-01-01 12:00:00    NaN
+   2017-01-02 00:00:00    2.0
+   Freq: 12H, dtype: float64
+
+*pandas 0.22.0*
+
+.. ipython:: python
+
+   idx = pd.DatetimeIndex(['2017-01-01', '2017-01-02'])
+   pd.Series([1, 2], index=idx).resample("12H").sum()
+
+Once again, the ``min_count`` keyword is available to restore the 0.21 behavior.
+
+.. ipython:: python
+
+   pd.Series([1, 2], index=idx).resample("12H").sum(min_count=1)
+
+Rolling and Expanding
+^^^^^^^^^^^^^^^^^^^^^
+
+Rolling and expanding already have a ``min_periods`` keyword that behaves
+similarly to ``min_count``. The only case that changes is when doing a rolling
+or expanding sum on an all-*NA* series with ``min_periods=0``. Previously this
+returned ``NaN``, now it will return ``0``.
+
+*pandas 0.21.1*
+
+.. ipython:: python
+
+   In [11]: s = pd.Series([np.nan, np.nan])
+
+   In [12]: s.rolling(2, min_periods=0).sum()
+   Out[12]:
+   0   NaN
+   1   NaN
+   dtype: float64
+
+*pandas 0.22.0*
+
+.. ipython:: python
+
+   s = pd.Series([np.nan, np.nan])
+   s.rolling(2, min_periods=0).sum()
+
+The default behavior of ``min_periods=None``, implying that ``min_periods``
+equals the window size, is unchanged.

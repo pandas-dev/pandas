@@ -37,7 +37,7 @@ class TestGroupByCategorical(MixIn):
         # single grouper
         gb = df.groupby("A")
         exp_idx = CategoricalIndex(['a', 'b', 'z'], name='A', ordered=True)
-        expected = DataFrame({'values': Series([3, 7, np.nan], index=exp_idx)})
+        expected = DataFrame({'values': Series([3, 7, 0], index=exp_idx)})
         result = gb.sum()
         tm.assert_frame_equal(result, expected)
 
@@ -670,9 +670,9 @@ class TestGroupByCategorical(MixIn):
                            'B': [1, 2, 1]})
         expected_idx = pd.CategoricalIndex(['a', 'b', 'c'], name='A')
 
-        # NA by default
+        # 0 by default
         result = df.groupby("A").B.sum()
-        expected = pd.Series([3, 1, np.nan], expected_idx, name='B')
+        expected = pd.Series([3, 1, 0], expected_idx, name='B')
         tm.assert_series_equal(result, expected)
 
         # min_count=0
@@ -693,9 +693,9 @@ class TestGroupByCategorical(MixIn):
 
         expected_idx = pd.CategoricalIndex(['a', 'b', 'c'], name='A')
 
-        # NA by default
+        # 1 by default
         result = df.groupby("A").B.prod()
-        expected = pd.Series([2, 1, np.nan], expected_idx, name='B')
+        expected = pd.Series([2, 1, 1], expected_idx, name='B')
         tm.assert_series_equal(result, expected)
 
         # min_count=0

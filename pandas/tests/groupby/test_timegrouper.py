@@ -41,12 +41,11 @@ class TestGroupBy(object):
             df = df.set_index(['Date'])
 
             expected = DataFrame(
-                {'Quantity': np.nan},
+                {'Quantity': 0},
                 index=date_range('20130901 13:00:00',
                                  '20131205 13:00:00', freq='5D',
                                  name='Date', closed='left'))
-            expected.iloc[[0, 6, 18], 0] = np.array(
-                [24., 6., 9.], dtype='float64')
+            expected.iloc[[0, 6, 18], 0] = np.array([24, 6, 9], dtype='int64')
 
             result1 = df.resample('5D') .sum()
             assert_frame_equal(result1, expected)
@@ -259,10 +258,15 @@ class TestGroupBy(object):
         }).set_index('date')
 
         for freq in ['D', 'M', 'A', 'Q-APR']:
-            expected = df.groupby('user_id')[
-                'whole_cost'].resample(
-                    freq).sum().dropna().reorder_levels(
-                        ['date', 'user_id']).sort_index().astype('int64')
+            expected = (
+                df.groupby('user_id')['whole_cost']
+                  .resample(freq)
+                  .sum(min_count=1)  # XXX
+                  .dropna()
+                  .reorder_levels(['date', 'user_id'])
+                  .sort_index()
+                  .astype('int64')
+            )
             expected.name = 'whole_cost'
 
             result1 = df.sort_index().groupby([pd.Grouper(freq=freq),

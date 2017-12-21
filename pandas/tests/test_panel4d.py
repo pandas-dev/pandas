@@ -38,13 +38,13 @@ class SafeForLongAndSparse(object):
         self._check_stat_op('count', f, obj=self.panel4d, has_skipna=False)
 
     def test_sum(self):
-        self._check_stat_op('sum', np.sum)
+        self._check_stat_op('sum', np.sum, skipna_alternative=np.nansum)
 
     def test_mean(self):
         self._check_stat_op('mean', np.mean)
 
     def test_prod(self):
-        self._check_stat_op('prod', np.prod)
+        self._check_stat_op('prod', np.prod, skipna_alternative=np.nanprod)
 
     def test_median(self):
         def wrapper(x):
@@ -105,7 +105,8 @@ class SafeForLongAndSparse(object):
 
     #     self._check_stat_op('skew', alt)
 
-    def _check_stat_op(self, name, alternative, obj=None, has_skipna=True):
+    def _check_stat_op(self, name, alternative, obj=None, has_skipna=True,
+                       skipna_alternative=None):
         if obj is None:
             obj = self.panel4d
 
@@ -116,11 +117,16 @@ class SafeForLongAndSparse(object):
         f = getattr(obj, name)
 
         if has_skipna:
-            def skipna_wrapper(x):
-                nona = remove_na_arraylike(x)
-                if len(nona) == 0:
-                    return np.nan
-                return alternative(nona)
+
+            if skipna_alternative:
+                def skipna_wrapper(x):
+                    return skipna_alternative(np.asarray(x))
+            else:
+                def skipna_wrapper(x):
+                    nona = remove_na_arraylike(x)
+                    if len(nona) == 0:
+                        return np.nan
+                    return alternative(nona)
 
             def wrapper(x):
                 return alternative(np.asarray(x))
