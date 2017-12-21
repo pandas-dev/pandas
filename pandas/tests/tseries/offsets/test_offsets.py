@@ -3229,11 +3229,10 @@ def test_week_comparison():
         off <= Day(n=7)
 
 
-def test_comparison_names(offset_types):
+@pytest.mark.parametrize('opname', ['__eq__', '__ne__',
+                                    '__lt__', '__le__',
+                                    '__gt__', '__ge__'])
+def test_comparison_names(offset_types, opname):
     cls = offset_types
-    assert cls.__eq__.__name__ == '__eq__'
-    assert cls.__ne__.__name__ == '__ne__'
-    assert cls.__lt__.__name__ == '__lt__'
-    assert cls.__le__.__name__ == '__le__'
-    assert cls.__gt__.__name__ == '__gt__'
-    assert cls.__ge__.__name__ == '__ge__'
+    method = getattr(cls, opname)
+    assert method.__name__ == opname
