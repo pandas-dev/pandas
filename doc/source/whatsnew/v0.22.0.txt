@@ -338,7 +338,8 @@ Reshaping
 Numeric
 ^^^^^^^
 
--
+- Fixed ``std`` and ``var`` computations for timedelta arrays not returning results in timedelta units (:issue:`18880`)
+- Fixed ``skipna`` handling for some operations like ``sum`` on timedelta arrays (:issue:`18880`)
 -
 -
 

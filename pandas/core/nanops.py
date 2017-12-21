@@ -239,6 +239,9 @@ def _get_values(values, skipna, fill_value=None, fill_value_typ=None,
     elif copy:
         values = values.copy()
 
+    if is_timedelta64_dtype(values) and not skipna:
+        values = values.astype('float64')
+        values[mask] = np.nan
     values = _view_if_needed(values)
 
     # return a platform independent precision dtype
@@ -406,7 +409,10 @@ def _get_counts_nanvar(mask, axis, ddof, dtype=float):
 @disallow('M8')
 @bottleneck_switch(ddof=1)
 def nanstd(values, axis=None, skipna=True, ddof=1):
-    result = np.sqrt(nanvar(values, axis=axis, skipna=skipna, ddof=ddof))
+    var_ = nanvar(values, axis=axis, skipna=skipna, ddof=ddof)
+    if is_timedelta64_dtype(values):
+        var_ = var_.value
+    result = np.sqrt(var_)
     return _wrap_results(result, values.dtype)
 
 
@@ -448,7 +454,7 @@ def nanvar(values, axis=None, skipna=True, ddof=1):
     # precision as the original values array.
     if is_float_dtype(dtype):
         result = result.astype(dtype)
-    return _wrap_results(result, values.dtype)
+    return _wrap_results(result, dtype)
 
 
 @disallow('M8', 'm8')

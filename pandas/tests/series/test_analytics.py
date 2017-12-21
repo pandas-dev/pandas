@@ -1215,6 +1215,39 @@ class TestSeriesAnalytics(TestData):
         expected = Timedelta('1 days')
         assert result == expected
 
+    def test_timedelta64_sum(self):
+        # https://github.com/pandas-dev/pandas/issues/18880
+        s = pd.Series(pd.timedelta_range(0, periods=12, freq='S'))
+        s[0] = np.nan
+
+        result = s.sum(skipna=False)
+        assert result is pd.NaT
+
+        result = s.sum()
+        assert result == pd.Timedelta(minutes=1, seconds=6)
+
+    @pytest.mark.parametrize('method', [
+        'sum', 'mean', 'min', 'max', 'median',
+        'std', 'var',
+    ])
+    def test_timedelta64_many(self, method):
+        s_float = pd.Series(np.arange(12) * 1e3)
+        s_timed = pd.Series(pd.timedelta_range(0, periods=12, freq='us'))
+
+        expected = pd.Timedelta(getattr(s_float, method)())
+        result = getattr(s_timed, method)()
+        if pd.isna(expected):
+            assert pd.isna(result)
+        else:
+            assert result == expected
+
+        s_float[0] = np.nan
+        s_timed[0] = np.nan
+        result = getattr(s_timed, method)(skipna=False)
+        expected = getattr(s_float, method)(skipna=False)
+        assert pd.isna(result)
+        assert pd.isna(expected)
+
     def test_idxmin(self):
         # test idxmin
         # _check_stat_op approach can not be used here because of isna check.

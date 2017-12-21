@@ -888,6 +888,19 @@ class TestNanvarFixedValues(object):
             result = data.std(ddof=ddof)
             assert result == 0.0
 
+    def test_nanvar_timedelta(self):
+        result = pd.Series(dtype='m8[ns]').var()
+        assert result is pd.NaT
+
+        result = pd.Series([1, 1], dtype='m8[ns]').var()
+        assert result == pd.Timedelta(0)
+
+        result = pd.Series([10, 20], dtype='m8[ns]').var()
+        assert result == pd.Timedelta(50)
+
+        result = pd.Series([np.nan, 10, 20, np.nan], dtype='m8[ns]').var()
+        assert result == pd.Timedelta(50)
+
     @property
     def prng(self):
         return np.random.RandomState(1234)
