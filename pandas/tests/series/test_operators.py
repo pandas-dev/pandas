@@ -962,25 +962,23 @@ class TestTimedeltaSeriesArithmetic(object):
 
 
 class TestDatetimeSeriesArithmetic(object):
-    def test_sub_datetime64_not_ns(self):
+    @pytest.mark.parametrize('box_cls, assert_func', [(Series,
+                                                       tm.assert_series_equal),
+                                                      (pd.Index,
+                                                       tm.assert_index_equal)])
+    def test_sub_datetime64_not_ns(self, box_cls, assert_func):
         # GH#7996
-        ser = Series(date_range('20130101', periods=3))
         dt64 = np.datetime64('2013-01-01')
         assert dt64.dtype == 'datetime64[D]'
-        res = ser - dt64
-        expected = pd.Series([Timedelta(days=0), Timedelta(days=1),
-                              Timedelta(days=2)])
-        tm.assert_series_equal(res, expected)
 
-        res = dt64 - ser
-        tm.assert_series_equal(res, -expected)
+        obj = box_cls(date_range('20130101', periods=3))
+        res = obj - dt64
+        expected = box_cls([Timedelta(days=0), Timedelta(days=1),
+                            Timedelta(days=2)])
+        assert_func(res, expected)
 
-        dti = pd.DatetimeIndex(ser)
-        res = dti - dt64
-        tm.assert_index_equal(res, pd.Index(expected))
-
-        res = dt64 - dti
-        tm.assert_index_equal(res, pd.Index(-expected))
+        res = dt64 - obj
+        assert_func(res, -expected)
 
     @pytest.mark.xfail(reason='GH#7996 datetime64 units not converted to nano')
     def test_frame_sub_datetime64_not_ns(self):
