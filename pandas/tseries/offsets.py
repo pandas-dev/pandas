@@ -16,13 +16,13 @@ from dateutil.easter import easter
 from pandas._libs import tslib, Timestamp, OutOfBoundsDatetime, Timedelta
 from pandas.util._decorators import cache_readonly
 
+from pandas._libs.tslibs import ccalendar
 from pandas._libs.tslibs.timedeltas import delta_to_nanoseconds
 import pandas._libs.tslibs.offsets as liboffsets
 from pandas._libs.tslibs.offsets import (
     ApplyTypeError,
     as_datetime, _is_normalized,
     _get_calendar, _to_dt64, _validate_business_time,
-    _int_to_weekday, _weekday_to_int,
     _determine_offset,
     apply_index_wraps,
     roll_yearday,
@@ -954,7 +954,7 @@ class MonthOffset(SingleConstructorOffset):
         if self.isAnchored:
             return self.rule_code
         else:
-            month = liboffsets._int_to_month[self.n]
+            month = ccalendar.MONTH_ALIASES[self.n]
             return "{code}-{month}".format(code=self.rule_code,
                                            month=month)
 
@@ -1369,7 +1369,8 @@ class Week(EndMixin, DateOffset):
     def rule_code(self):
         suffix = ''
         if self.weekday is not None:
-            suffix = '-{weekday}'.format(weekday=_int_to_weekday[self.weekday])
+            weekday = ccalendar.int_to_weekday[self.weekday]
+            suffix = '-{weekday}'.format(weekday=weekday)
         return self._prefix + suffix
 
     @classmethod
@@ -1377,7 +1378,7 @@ class Week(EndMixin, DateOffset):
         if not suffix:
             weekday = None
         else:
-            weekday = _weekday_to_int[suffix]
+            weekday = ccalendar.weekday_to_int[suffix]
         return cls(weekday=weekday)
 
 
@@ -1451,7 +1452,7 @@ class WeekOfMonth(DateOffset):
 
     @property
     def rule_code(self):
-        weekday = _int_to_weekday.get(self.weekday, '')
+        weekday = ccalendar.int_to_weekday.get(self.weekday, '')
         return '{prefix}-{week}{weekday}'.format(prefix=self._prefix,
                                                  week=self.week + 1,
                                                  weekday=weekday)
@@ -1464,7 +1465,7 @@ class WeekOfMonth(DateOffset):
         # TODO: handle n here...
         # only one digit weeks (1 --> week 0, 2 --> week 1, etc.)
         week = int(suffix[0]) - 1
-        weekday = _weekday_to_int[suffix[1:]]
+        weekday = ccalendar.weekday_to_int[suffix[1:]]
         return cls(week=week, weekday=weekday)
 
 
@@ -1530,7 +1531,7 @@ class LastWeekOfMonth(DateOffset):
 
     @property
     def rule_code(self):
-        weekday = _int_to_weekday.get(self.weekday, '')
+        weekday = ccalendar.int_to_weekday.get(self.weekday, '')
         return '{prefix}-{weekday}'.format(prefix=self._prefix,
                                            weekday=weekday)
 
@@ -1540,7 +1541,7 @@ class LastWeekOfMonth(DateOffset):
             raise ValueError("Prefix {prefix!r} requires a suffix."
                              .format(prefix=cls._prefix))
         # TODO: handle n here...
-        weekday = _weekday_to_int[suffix]
+        weekday = ccalendar.weekday_to_int[suffix]
         return cls(weekday=weekday)
 
 # ---------------------------------------------------------------------
@@ -1571,7 +1572,7 @@ class QuarterOffset(DateOffset):
     def _from_name(cls, suffix=None):
         kwargs = {}
         if suffix:
-            kwargs['startingMonth'] = liboffsets._month_to_int[suffix]
+            kwargs['startingMonth'] = ccalendar.MONTH_TO_CAL_NUM[suffix]
         else:
             if cls._from_name_startingMonth is not None:
                 kwargs['startingMonth'] = cls._from_name_startingMonth
@@ -1579,7 +1580,7 @@ class QuarterOffset(DateOffset):
 
     @property
     def rule_code(self):
-        month = liboffsets._int_to_month[self.startingMonth]
+        month = ccalendar.MONTH_ALIASES[self.startingMonth]
         return '{prefix}-{month}'.format(prefix=self._prefix, month=month)
 
     @apply_wraps
@@ -1702,12 +1703,12 @@ class YearOffset(DateOffset):
     def _from_name(cls, suffix=None):
         kwargs = {}
         if suffix:
-            kwargs['month'] = liboffsets._month_to_int[suffix]
+            kwargs['month'] = ccalendar.MONTH_TO_CAL_NUM[suffix]
         return cls(**kwargs)
 
     @property
     def rule_code(self):
-        month = liboffsets._int_to_month[self.month]
+        month = ccalendar.MONTH_ALIASES[self.month]
         return '{prefix}-{month}'.format(prefix=self._prefix, month=month)
 
 
@@ -1927,8 +1928,8 @@ class FY5253(DateOffset):
 
     def get_rule_code_suffix(self):
         prefix = self._get_suffix_prefix()
-        month = liboffsets._int_to_month[self.startingMonth]
-        weekday = _int_to_weekday[self.weekday]
+        month = ccalendar.MONTH_ALIASES[self.startingMonth]
+        weekday = ccalendar.int_to_weekday[self.weekday]
         return '{prefix}-{month}-{weekday}'.format(prefix=prefix, month=month,
                                                    weekday=weekday)
 
@@ -1942,8 +1943,8 @@ class FY5253(DateOffset):
             raise ValueError("Unable to parse varion_code: "
                              "{code}".format(code=varion_code))
 
-        startingMonth = liboffsets._month_to_int[startingMonth_code]
-        weekday = _weekday_to_int[weekday_code]
+        startingMonth = ccalendar.MONTH_TO_CAL_NUM[startingMonth_code]
+        weekday = ccalendar.weekday_to_int[weekday_code]
 
         return {"weekday": weekday,
                 "startingMonth": startingMonth,

@@ -150,7 +150,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
     _accessors = frozenset(['dt', 'cat', 'str'])
     _deprecations = generic.NDFrame._deprecations | frozenset(
         ['asobject', 'sortlevel', 'reshape', 'get_value', 'set_value',
-         'from_csv'])
+         'from_csv', 'valid'])
     _allow_index_ops = True
 
     def __init__(self, data=None, index=None, dtype=None, name=None,
@@ -664,13 +664,15 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
             if not is_scalar(result):
                 if is_list_like(result) and not isinstance(result, Series):
 
-                    # we need to box if we have a non-unique index here
+                    # we need to box if loc of the key isn't scalar here
                     # otherwise have inline ndarray/lists
-                    if not self.index.is_unique:
-                        result = self._constructor(
-                            result, index=[key] * len(result),
-                            dtype=self.dtype).__finalize__(self)
-
+                    try:
+                        if not is_scalar(self.index.get_loc(key)):
+                            result = self._constructor(
+                                result, index=[key] * len(result),
+                                dtype=self.dtype).__finalize__(self)
+                    except KeyError:
+                        pass
             return result
         except InvalidIndexError:
             pass
@@ -3006,8 +3008,13 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
             else:
                 return self.copy()
 
-    valid = lambda self, inplace=False, **kwargs: self.dropna(inplace=inplace,
-                                                              **kwargs)
+    def valid(self, inplace=False, **kwargs):
+        """DEPRECATED. Series.valid will be removed in a future version.
+        Use :meth:`Series.dropna` instead.
+        """
+        warnings.warn("Method .valid will be removed in a future version. "
+                      "Use .dropna instead.", FutureWarning, stacklevel=2)
+        return self.dropna(inplace=inplace, **kwargs)
 
     @Appender(generic._shared_docs['valid_index'] % {
         'position': 'first', 'klass': 'Series'})
@@ -3272,6 +3279,11 @@ def _sanitize_array(data, index, dtype=None, copy=False,
     # This is to prevent mixed-type Series getting all casted to
     # NumPy string type, e.g. NaN --> '-1#IND'.
     if issubclass(subarr.dtype.type, compat.string_types):
+        # GH 16605
+        # If not empty convert the data to dtype
+        if not isna(data).all():
+            data = np.array(data, dtype=dtype, copy=False)
+
         subarr = np.array(data, dtype=object, copy=copy)
 
     return subarr

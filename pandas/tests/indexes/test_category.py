@@ -185,6 +185,11 @@ class TestCategoricalIndex(Base):
         tm.assert_index_equal(result, CategoricalIndex(
             list('ffggef'), categories=list('efg')))
 
+        # GH18862 (let rename_categories take callables)
+        result = ci.rename_categories(lambda x: x.upper())
+        tm.assert_index_equal(result, CategoricalIndex(
+            list('AABBCA'), categories=list('CAB')))
+
         ci = CategoricalIndex(list('aabbca'), categories=list('cab'))
         result = ci.add_categories(['d'])
         tm.assert_index_equal(result, CategoricalIndex(
@@ -411,11 +416,10 @@ class TestCategoricalIndex(Base):
         result = IntervalIndex.from_intervals(result.values)
         tm.assert_index_equal(result, expected)
 
-    @pytest.mark.parametrize('copy', [True, False])
     @pytest.mark.parametrize('name', [None, 'foo'])
     @pytest.mark.parametrize('dtype_ordered', [True, False])
     @pytest.mark.parametrize('index_ordered', [True, False])
-    def test_astype_category(self, copy, name, dtype_ordered, index_ordered):
+    def test_astype_category(self, name, dtype_ordered, index_ordered):
         # GH 18630
         index = self.create_index(ordered=index_ordered)
         if name:
@@ -423,7 +427,7 @@ class TestCategoricalIndex(Base):
 
         # standard categories
         dtype = CategoricalDtype(ordered=dtype_ordered)
-        result = index.astype(dtype, copy=copy)
+        result = index.astype(dtype)
         expected = CategoricalIndex(index.tolist(),
                                     name=name,
                                     categories=index.categories,
@@ -432,13 +436,13 @@ class TestCategoricalIndex(Base):
 
         # non-standard categories
         dtype = CategoricalDtype(index.unique().tolist()[:-1], dtype_ordered)
-        result = index.astype(dtype, copy=copy)
+        result = index.astype(dtype)
         expected = CategoricalIndex(index.tolist(), name=name, dtype=dtype)
         tm.assert_index_equal(result, expected)
 
         if dtype_ordered is False:
             # dtype='category' can't specify ordered, so only test once
-            result = index.astype('category', copy=copy)
+            result = index.astype('category')
             expected = index
             tm.assert_index_equal(result, expected)
 

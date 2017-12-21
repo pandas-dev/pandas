@@ -37,6 +37,7 @@ from pandas.core.dtypes.common import (
     _ensure_int32,
     _ensure_categorical)
 from pandas.util import testing as tm
+import pandas.util._test_decorators as td
 
 
 @pytest.fixture(params=[True, False], ids=str)
@@ -1190,8 +1191,8 @@ def test_nan_to_nat_conversions():
         assert (s[8].value == np.datetime64('NaT').astype(np.int64))
 
 
+@td.skip_if_no_scipy
 def test_is_scipy_sparse(spmatrix):  # noqa: F811
-    tm._skip_if_no_scipy()
     assert is_scipy_sparse(spmatrix([[0, 1]]))
     assert not is_scipy_sparse(np.array([1]))
 

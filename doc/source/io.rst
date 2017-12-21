@@ -131,7 +131,8 @@ usecols : array-like or callable, default ``None``
   be positional (i.e. integer indices into the document columns) or strings
   that correspond to column names provided either by the user in `names` or
   inferred from the document header row(s). For example, a valid array-like
-  `usecols` parameter would be [0, 1, 2] or ['foo', 'bar', 'baz'].
+  `usecols` parameter would be [0, 1, 2] or ['foo', 'bar', 'baz']. Element
+  order is ignored, so usecols=[0,1] is the same as [1, 0].
 
   If callable, the callable function will be evaluated against the column names,
   returning names where the callable function evaluates to True:
@@ -143,15 +144,6 @@ usecols : array-like or callable, default ``None``
      pd.read_csv(StringIO(data), usecols=lambda x: x.upper() in ['COL1', 'COL3'])
 
   Using this parameter results in much faster parsing time and lower memory usage.
-as_recarray : boolean, default ``False``
-  .. deprecated:: 0.18.2
-
-     Please call ``pd.read_csv(...).to_records()`` instead.
-
-  Return a NumPy recarray instead of a DataFrame after parsing the data. If
-  set to ``True``, this option takes precedence over the ``squeeze`` parameter.
-  In addition, as row indices are not available in such a format, the ``index_col``
-  parameter will be ignored.
 squeeze : boolean, default ``False``
   If the parsed data only contains one column then return a Series.
 prefix : str, default ``None``
@@ -208,26 +200,6 @@ low_memory : boolean, default ``True``
   Note that the entire file is read into a single DataFrame regardless,
   use the ``chunksize`` or ``iterator`` parameter to return the data in chunks.
   (Only valid with C parser)
-buffer_lines : int, default None
-  .. deprecated:: 0.19.0
-
-     Argument removed because its value is not respected by the parser
-
-compact_ints : boolean, default False
-  .. deprecated:: 0.19.0
-
-     Argument moved to ``pd.to_numeric``
-
-  If ``compact_ints`` is ``True``, then for any column that is of integer dtype, the
-  parser will attempt to cast it as the smallest integer ``dtype`` possible, either
-  signed or unsigned depending on the specification from the ``use_unsigned`` parameter.
-use_unsigned : boolean, default False
-  .. deprecated:: 0.18.2
-
-     Argument moved to ``pd.to_numeric``
-
-  If integer columns are being compacted (i.e. ``compact_ints=True``), specify whether
-  the column should be compacted to the smallest signed or unsigned integer dtype.
 memory_map : boolean, default False
   If a filepath is provided for ``filepath_or_buffer``, map the file object
   directly onto memory and access the data directly from there. Using this
@@ -2818,11 +2790,11 @@ to be parsed.
 
 If `usecols` is a list of integers, then it is assumed to be the file column
 indices to be parsed.
-
 .. code-block:: python
 
    read_excel('path_to_file.xls', 'Sheet1', usecols=[0, 2, 3])
 
+Element order is ignored, so usecols=[0,1] is the same as [1,0].
 
 Parsing Dates
 +++++++++++++

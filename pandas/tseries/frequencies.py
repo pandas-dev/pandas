@@ -25,7 +25,8 @@ from pandas._libs.tslibs.frequencies import (  # noqa
 from pandas._libs.tslibs.resolution import (Resolution,
                                             _FrequencyInferer,
                                             _TimedeltaFrequencyInferer)
-from pandas._libs.tslibs.parsing import _get_rule_month, _MONTH_NUMBERS
+from pandas._libs.tslibs.parsing import _get_rule_month
+from pandas._libs.tslibs.ccalendar import MONTH_NUMBERS
 
 from pytz import AmbiguousTimeError
 
@@ -496,8 +497,8 @@ def _is_annual(rule):
 
 
 def _quarter_months_conform(source, target):
-    snum = _MONTH_NUMBERS[source]
-    tnum = _MONTH_NUMBERS[target]
+    snum = MONTH_NUMBERS[source]
+    tnum = MONTH_NUMBERS[target]
     return snum % 3 == tnum % 3
 
 

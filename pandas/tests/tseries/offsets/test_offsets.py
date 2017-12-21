@@ -29,9 +29,7 @@ from pandas.tseries.offsets import (BDay, CDay, BQuarterEnd, BMonthEnd,
                                     QuarterEnd, BusinessMonthEnd, FY5253,
                                     Nano, Easter, FY5253Quarter,
                                     LastWeekOfMonth)
-from pandas.core.tools.datetimes import (
-    format, ole2datetime, parse_time_string,
-    to_datetime, DateParseError)
+from pandas.core.tools.datetimes import format, ole2datetime
 import pandas.tseries.offsets as offsets
 from pandas.io.pickle import read_pickle
 from pandas._libs.tslibs import timezones
@@ -65,18 +63,6 @@ def test_ole2datetime():
 
     with pytest.raises(ValueError):
         ole2datetime(60)
-
-
-def test_to_datetime1():
-    actual = to_datetime(datetime(2008, 1, 15))
-    assert actual == datetime(2008, 1, 15)
-
-    actual = to_datetime('20080115')
-    assert actual == datetime(2008, 1, 15)
-
-    # unparseable
-    s = 'Month 1, 1999'
-    assert to_datetime(s, errors='ignore') == s
 
 
 def test_normalize_date():
@@ -2798,32 +2784,6 @@ def test_get_offset_legacy():
     for name, expected in pairs:
         with tm.assert_raises_regex(ValueError, _INVALID_FREQ_ERROR):
             get_offset(name)
-
-
-class TestParseTimeString(object):
-
-    def test_parse_time_string(self):
-        (date, parsed, reso) = parse_time_string('4Q1984')
-        (date_lower, parsed_lower, reso_lower) = parse_time_string('4q1984')
-        assert date == date_lower
-        assert parsed == parsed_lower
-        assert reso == reso_lower
-
-    def test_parse_time_quarter_w_dash(self):
-        # https://github.com/pandas-dev/pandas/issue/9688
-        pairs = [('1988-Q2', '1988Q2'), ('2Q-1988', '2Q1988'), ]
-
-        for dashed, normal in pairs:
-            (date_dash, parsed_dash, reso_dash) = parse_time_string(dashed)
-            (date, parsed, reso) = parse_time_string(normal)
-
-            assert date_dash == date
-            assert parsed_dash == parsed
-            assert reso_dash == reso
-
-        pytest.raises(DateParseError, parse_time_string, "-2Q1992")
-        pytest.raises(DateParseError, parse_time_string, "2-Q1992")
-        pytest.raises(DateParseError, parse_time_string, "4-4Q1992")
 
 
 def test_get_standard_freq():
