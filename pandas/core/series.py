@@ -3277,6 +3277,11 @@ def _sanitize_array(data, index, dtype=None, copy=False,
     # This is to prevent mixed-type Series getting all casted to
     # NumPy string type, e.g. NaN --> '-1#IND'.
     if issubclass(subarr.dtype.type, compat.string_types):
+        # GH 16605
+        # If not empty convert the data to dtype
+        if not isna(data).all():
+            data = np.array(data, dtype=dtype, copy=False)
+
         subarr = np.array(data, dtype=object, copy=copy)
 
     return subarr
