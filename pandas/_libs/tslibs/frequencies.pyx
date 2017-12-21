@@ -324,9 +324,9 @@ cpdef bint is_subperiod(source, target):
 
     Parameters
     ----------
-    source : string
+    source : string or DateOffset
         Frequency converting from
-    target : string
+    target : string or DateOffset
         Frequency converting to
 
     Returns
@@ -426,13 +426,13 @@ cpdef bint is_superperiod(source, target):
         return target in {'N'}
 
 
-cdef str _maybe_coerce_freq(str code):
+cdef str _maybe_coerce_freq(code):
     """ we might need to coerce a code to a rule_code
     and uppercase it
 
     Parameters
     ----------
-    source : string
+    source : string or DateOffset
         Frequency converting from
 
     Returns
