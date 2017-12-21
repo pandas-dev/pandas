@@ -1139,12 +1139,13 @@ class TestPivotTable(object):
                              columns=mi).rename_axis('A')
         tm.assert_frame_equal(result, expected)
 
-    funcs = [('sum', np.sum), ('mean', np.mean), ('std', np.std),
-             (['sum', 'mean'], [np.sum, np.mean]),
-             (['sum', 'std'], [np.sum, np.std]),
-             (['std', 'mean'], [np.std, np.mean])]
-
-    @pytest.mark.parametrize("f, f_numpy", funcs)
+    @pytest.mark.parametrize('f, f_numpy',
+                             [('sum', np.sum),
+                              ('mean', np.mean),
+                              ('std', np.std),
+                              (['sum', 'mean'], [np.sum, np.mean]),
+                              (['sum', 'std'], [np.sum, np.std]),
+                              (['std', 'mean'], [np.std, np.mean])])
     def test_pivot_string_func_vs_func(self, f, f_numpy):
         # GH #18713
         # for consistency purposes
