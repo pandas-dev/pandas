@@ -714,8 +714,10 @@ def _arith_method_SERIES(op, name, str_rep, fill_zeros=None, default_axis=None,
             # Defer to DatetimeIndex/TimedeltaIndex operations where timezones
             # are handled carefully.
             result = op(pd.TimedeltaIndex(left), right)
+            name = _maybe_match_name(left, right)
+            result.name = name  # in case name is None, needs to be overridden
             return construct_result(left, result,
-                                    index=left.index, name=left.name,
+                                    index=left.index, name=name,
                                     dtype=result.dtype)
 
         converted = _Op.get_op(left, right, name, na_op)

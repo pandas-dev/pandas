@@ -363,15 +363,20 @@ class TestDatetimeIndexArithmetic(object):
             with pytest.raises(OverflowError):
                 dtimin - variant
 
+    @pytest.mark.parametrize('names', [('foo', None, None),
+                                       ('baz', 'bar', None),
+                                       ('bar', 'bar', 'bar')])
     @pytest.mark.parametrize('tz', [None, 'America/Chicago'])
-    def test_dti_add_series(self, tz):
+    def test_dti_add_series(self, tz, names):
         # GH#13905
         index = pd.DatetimeIndex(['2016-06-28 05:30', '2016-06-28 05:31'],
-                                 tz=tz)
+                                 tz=tz, name=names[0])
         ser = pd.Series([pd.Timedelta(seconds=5)] * 2,
-                        index=index)
+                        index=index, name=names[1])
         expected = pd.Series(index + pd.Timedelta(seconds=5),
-                             index=index)
+                             index=index, name=names[2])
+        # passing name arg isn't enough when names[2] is None
+        expected.name = names[2]
         assert expected.dtype == index.dtype
         res = ser + index
         tm.assert_series_equal(res, expected)
