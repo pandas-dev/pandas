@@ -215,6 +215,7 @@ Deprecations
   retain the previous behavior, use a list instead of a tuple (:issue:`18314`)
 - ``Series.valid`` is deprecated. Use :meth:`Series.dropna` instead (:issue:`18800`).
 - :func:`read_excel` has deprecated the ``skip_footer`` parameter. Use ``skipfooter`` instead (:issue:`18836`)
+- The ``is_copy`` attribute is deprecated and will be removed in a future version (:issue:`18801`).
 
 .. _whatsnew_0220.prior_deprecations:
 
