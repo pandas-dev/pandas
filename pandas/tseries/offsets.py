@@ -112,6 +112,24 @@ def apply_wraps(func):
     return wrapper
 
 
+def _make_cmp_func(op):
+    assert op not in [operator.eq, operator.ne]
+    # __eq__ and __ne__ have slightly different behavior, returning
+    # False and True, respectively, instead of raising
+
+    def cmp_func(self, other):
+        if type(self) == Week and self.weekday is None:
+            # Week without weekday behaves like a Tick
+            tick = Day(n=7 * self.n, normalize=self.normalize)
+            return op(tick, other)
+        else:
+            raise TypeError('Cannot compare type {self} with {other}'
+                            .format(self=self.__class__.__name__,
+                                    other=other.__class__.__name__))
+
+    cmp_func.__name__ = '__{name}__'.format(name=op.__name__)
+    return cmp_func
+
 # ---------------------------------------------------------------------
 # DateOffset
 
@@ -299,6 +317,11 @@ class DateOffset(BaseOffset):
     def name(self):
         return self.rule_code
 
+    __lt__ = _make_cmp_func(operator.lt)
+    __le__ = _make_cmp_func(operator.le)
+    __ge__ = _make_cmp_func(operator.ge)
+    __gt__ = _make_cmp_func(operator.gt)
+
     def __eq__(self, other):
         if other is None:
             return False
@@ -320,9 +343,7 @@ class DateOffset(BaseOffset):
         return hash(self._params())
 
     def __add__(self, other):
-        if isinstance(other, (ABCDatetimeIndex, ABCSeries)):
-            return other + self
-        elif isinstance(other, ABCPeriod):
+        if isinstance(other, (ABCDatetimeIndex, ABCSeries, ABCPeriod)):
             return other + self
         try:
             return self.apply(other)
@@ -2146,8 +2167,41 @@ class Easter(DateOffset):
 
 def _tick_comp(op):
     def f(self, other):
-        return op(self.delta, other.delta)
+        if isinstance(other, Tick):
+            # Note we cannot just try/except other.delta because Tick.delta
+            # returns a Timedelta while Timedelta.delta returns an int
+            other_delta = other.delta
+        elif isinstance(other, (timedelta, np.timedelta64)):
+            other_delta = other
+        elif isinstance(other, Week) and other.weekday is None:
+            other_delta = timedelta(weeks=other.n)
+        elif isinstance(other, compat.string_types):
+            from pandas.tseries.frequencies import to_offset
+            other = to_offset(other)
+            if isinstance(other, DateOffset):
+                return f(self, other)
+            else:
+                if op == operator.eq:
+                    return False
+                elif op == operator.ne:
+                    return True
+                raise TypeError('Cannot compare type {self} and {other}'
+                                .format(self=self.__class__.__name__,
+                                        other=other.__class__.__name__))
+        elif op == operator.eq:
+            # TODO: Consider changing this older behavior for
+            # __eq__ and __ne__to match other comparisons
+            return False
+        elif op == operator.ne:
+            return True
+        else:
+            raise TypeError('Cannot compare type {self} and {other}'
+                            .format(self=self.__class__.__name__,
+                                    other=other.__class__.__name__))
 
+        return op(self.delta, other_delta)
+
+    f.__name__ = '__{name}__'.format(name=op.__name__)
     return f
 
 
@@ -2184,34 +2238,11 @@ class Tick(SingleConstructorOffset):
             raise OverflowError("the add operation between {self} and {other} "
                                 "will overflow".format(self=self, other=other))
 
-    def __eq__(self, other):
-        if isinstance(other, compat.string_types):
-            from pandas.tseries.frequencies import to_offset
-
-            other = to_offset(other)
-
-        if isinstance(other, Tick):
-            return self.delta == other.delta
-        else:
-            # TODO: Are there cases where this should raise TypeError?
-            return False
-
-    # This is identical to DateOffset.__hash__, but has to be redefined here
-    # for Python 3, because we've redefined __eq__.
     def __hash__(self):
-        return hash(self._params())
-
-    def __ne__(self, other):
-        if isinstance(other, compat.string_types):
-            from pandas.tseries.frequencies import to_offset
-
-            other = to_offset(other)
-
-        if isinstance(other, Tick):
-            return self.delta != other.delta
-        else:
-            # TODO: Are there cases where this should raise TypeError?
-            return True
+        # This is identical to DateOffset.__hash__, but has to be redefined
+        # here for Python 3, because we've redefined __eq__.
+        tup = (str(self.__class__), ('n', self.n))
+        return hash(tup)
 
     @property
     def delta(self):

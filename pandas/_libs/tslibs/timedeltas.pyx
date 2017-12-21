@@ -567,7 +567,13 @@ cdef class _Timedelta(timedelta):
                     return PyObject_RichCompare(np.array([self]), other, op)
                 return PyObject_RichCompare(other, self, reverse_ops[op])
             else:
-                if op == Py_EQ:
+                if (getattr(other, "_typ", "") == "dateoffset" and
+                        hasattr(other, "delta")):
+                    # offsets.Tick; we catch this fairly late as it is a
+                    # relatively infrequent case
+                    ots = other.delta
+                    return cmp_scalar(self.value, ots.value, op)
+                elif op == Py_EQ:
                     return False
                 elif op == Py_NE:
                     return True

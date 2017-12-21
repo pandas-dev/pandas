@@ -9,7 +9,22 @@ import pandas.util.testing as tm
 from pandas.core.tools.timedeltas import _coerce_scalar_to_timedelta_type as ct
 from pandas import (Timedelta, TimedeltaIndex, timedelta_range, Series,
                     to_timedelta, compat)
+from pandas.tseries.frequencies import to_offset
 from pandas._libs.tslib import iNaT, NaT
+
+
+class TestTimedeltaComparisons(object):
+    @pytest.mark.parametrize('freq', ['D', 'H', 'T', 's', 'ms', 'us', 'ns'])
+    def test_tick_comparison(self, freq):
+        offset = to_offset(freq) * 2
+        delta = offset._inc
+        assert isinstance(delta, Timedelta)
+        assert delta < offset
+        assert delta <= offset
+        assert not delta == offset
+        assert delta != offset
+        assert not delta > offset
+        assert not delta >= offset
 
 
 class TestTimedeltaArithmetic(object):
