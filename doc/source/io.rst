@@ -131,7 +131,8 @@ usecols : array-like or callable, default ``None``
   be positional (i.e. integer indices into the document columns) or strings
   that correspond to column names provided either by the user in `names` or
   inferred from the document header row(s). For example, a valid array-like
-  `usecols` parameter would be [0, 1, 2] or ['foo', 'bar', 'baz'].
+  `usecols` parameter would be [0, 1, 2] or ['foo', 'bar', 'baz']. Element
+  order is ignored, so usecols=[0,1] is the same as [1, 0].
 
   If callable, the callable function will be evaluated against the column names,
   returning names where the callable function evaluates to True:
@@ -2789,11 +2790,11 @@ to be parsed.
 
 If `usecols` is a list of integers, then it is assumed to be the file column
 indices to be parsed.
-
 .. code-block:: python
 
    read_excel('path_to_file.xls', 'Sheet1', usecols=[0, 2, 3])
 
+Element order is ignored, so usecols=[0,1] is the same as [1,0].
 
 Parsing Dates
 +++++++++++++
