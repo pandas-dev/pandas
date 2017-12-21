@@ -375,13 +375,14 @@ class TestDatetimeIndexArithmetic(object):
                         index=index, name=names[1])
         expected = pd.Series(index + pd.Timedelta(seconds=5),
                              index=index, name=names[2])
+
         # passing name arg isn't enough when names[2] is None
         expected.name = names[2]
         assert expected.dtype == index.dtype
-        res = ser + index
-        tm.assert_series_equal(res, expected)
-        res2 = index + ser
-        tm.assert_series_equal(res2, expected)
+        result = ser + index
+        tm.assert_series_equal(result, expected)
+        result2 = index + ser
+        tm.assert_series_equal(result2, expected)
 
 
 # GH 10699
