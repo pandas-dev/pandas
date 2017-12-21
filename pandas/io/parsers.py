@@ -273,21 +273,6 @@ low_memory : boolean, default True
     Note that the entire file is read into a single DataFrame regardless,
     use the `chunksize` or `iterator` parameter to return the data in chunks.
     (Only valid with C parser)
-compact_ints : boolean, default False
-    .. deprecated:: 0.19.0
-       Argument moved to ``pd.to_numeric``
-
-    If compact_ints is True, then for any column that is of integer dtype,
-    the parser will attempt to cast it as the smallest integer dtype possible,
-    either signed or unsigned depending on the specification from the
-    `use_unsigned` parameter.
-use_unsigned : boolean, default False
-    .. deprecated:: 0.19.0
-       Argument moved to ``pd.to_numeric``
-
-    If integer columns are being compacted (i.e. `compact_ints=True`), specify
-    whether the column should be compacted to the smallest signed or unsigned
-    integer dtype.
 memory_map : boolean, default False
     If a filepath is provided for `filepath_or_buffer`, map the file object
     directly onto memory and access the data directly from there. Using this
@@ -496,8 +481,6 @@ _parser_defaults = {
 _c_parser_defaults = {
     'delim_whitespace': False,
     'na_filter': True,
-    'compact_ints': False,
-    'use_unsigned': False,
     'low_memory': True,
     'memory_map': False,
     'error_bad_lines': True,
@@ -518,13 +501,9 @@ _python_unsupported = {
 }
 
 _deprecated_defaults = {
-    'compact_ints': None,
-    'use_unsigned': None,
     'tupleize_cols': None
 }
 _deprecated_args = {
-    'compact_ints',
-    'use_unsigned',
     'tupleize_cols',
 }
 
@@ -596,8 +575,6 @@ def _make_parser_function(name, sep=','):
                  # Internal
                  doublequote=True,
                  delim_whitespace=False,
-                 compact_ints=None,
-                 use_unsigned=None,
                  low_memory=_c_parser_defaults['low_memory'],
                  memory_map=False,
                  float_precision=None):
@@ -662,8 +639,6 @@ def _make_parser_function(name, sep=','):
                     float_precision=float_precision,
 
                     na_filter=na_filter,
-                    compact_ints=compact_ints,
-                    use_unsigned=use_unsigned,
                     delim_whitespace=delim_whitespace,
                     warn_bad_lines=warn_bad_lines,
                     error_bad_lines=error_bad_lines,
@@ -1569,11 +1544,6 @@ class ParserBase(object):
                 if cast_type and not is_dtype_equal(cvals, cast_type):
                     cvals = self._cast_types(cvals, cast_type, c)
 
-            if issubclass(cvals.dtype.type, np.integer) and self.compact_ints:
-                cvals = lib.downcast_int64(
-                    cvals, parsers.na_values,
-                    self.use_unsigned)
-
             result[c] = cvals
             if verbose and na_count:
                 print('Filled %d NA values in column %s' % (na_count, str(c)))
@@ -2064,8 +2034,6 @@ class PythonParser(ParserBase):
         self.converters = kwds['converters']
         self.dtype = kwds['dtype']
 
-        self.compact_ints = kwds['compact_ints']
-        self.use_unsigned = kwds['use_unsigned']
         self.thousands = kwds['thousands']
         self.decimal = kwds['decimal']
 
