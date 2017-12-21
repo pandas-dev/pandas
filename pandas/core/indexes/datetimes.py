@@ -1270,8 +1270,7 @@ class DatetimeIndex(DatelikeOps, TimelikeOps, DatetimeIndexOpsMixin,
             converted = libts.ints_to_pydatetime(data[start_i:end_i],
                                                  tz=self.tz, freq=self.freq,
                                                  box="timestamp")
-            for v in converted:
-                yield v
+            return iter(converted)
 
     def _wrap_union_result(self, other, result):
         name = self.name if self.name == other.name else None

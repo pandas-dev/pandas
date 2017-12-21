@@ -142,6 +142,25 @@ class TestSeriesConstructors(TestData):
             result = Series(obj, index=[0, 1, 2])
             assert_series_equal(result, expected)
 
+    @pytest.mark.parametrize('input_vals', [
+        ([1, 2]),
+        ([1.0, 2.0, np.nan]),
+        (['1', '2']),
+        (list(pd.date_range('1/1/2011', periods=2, freq='H'))),
+        (list(pd.date_range('1/1/2011', periods=2, freq='H',
+                            tz='US/Eastern'))),
+        ([pd.Interval(left=0, right=5)]),
+    ])
+    def test_constructor_list_str(self, input_vals):
+        # GH 16605
+        # Ensure that data elements from a list are converted to strings
+        # when dtype is str, 'str', or 'U'
+
+        for dtype in ['str', str, 'U']:
+            result = Series(input_vals, dtype=dtype)
+            expected = Series(input_vals).astype(dtype)
+            assert_series_equal(result, expected)
+
     def test_constructor_generator(self):
         gen = (i for i in range(10))
 

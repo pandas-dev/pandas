@@ -213,7 +213,7 @@ class TestDataFrameTimeSeriesMethods(TestData):
         unshifted = shifted.shift(-1)
         tm.assert_index_equal(shifted.index, ps.index)
         tm.assert_index_equal(unshifted.index, ps.index)
-        tm.assert_numpy_array_equal(unshifted.iloc[:, 0].valid().values,
+        tm.assert_numpy_array_equal(unshifted.iloc[:, 0].dropna().values,
                                     ps.iloc[:-1, 0].values)
 
         shifted2 = ps.shift(1, 'B')

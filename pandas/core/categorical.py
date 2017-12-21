@@ -844,7 +844,7 @@ class Categorical(PandasObject):
 
         Parameters
         ----------
-        new_categories : list-like or dict-like
+        new_categories : list-like, dict-like or callable
 
            * list-like: all items must be unique and the number of items in
              the new categories must match the existing number of categories.
@@ -852,7 +852,14 @@ class Categorical(PandasObject):
            * dict-like: specifies a mapping from
              old categories to new. Categories not contained in the mapping
              are passed through and extra categories in the mapping are
-             ignored. *New in version 0.21.0*.
+             ignored.
+
+             .. versionadded:: 0.21.0
+
+           * callable : a callable that is called on all items in the old
+             categories and whose return values comprise the new categories.
+
+             .. versionadded:: 0.22.0
 
            .. warning::
 
@@ -890,6 +897,12 @@ class Categorical(PandasObject):
         >>> c.rename_categories({'a': 'A', 'c': 'C'})
         [A, A, b]
         Categories (2, object): [A, b]
+
+        You may also provide a callable to create the new categories
+
+        >>> c.rename_categories(lambda x: x.upper())
+        [A, A, B]
+        Categories (2, object): [A, B]
         """
         inplace = validate_bool_kwarg(inplace, 'inplace')
         cat = self if inplace else self.copy()
@@ -906,6 +919,8 @@ class Categorical(PandasObject):
         if is_dict_like(new_categories):
             cat.categories = [new_categories.get(item, item)
                               for item in cat.categories]
+        elif callable(new_categories):
+            cat.categories = [new_categories(item) for item in cat.categories]
         else:
             cat.categories = new_categories
         if not inplace:
