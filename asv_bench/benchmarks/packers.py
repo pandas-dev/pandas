@@ -3,9 +3,7 @@ from numpy.random import randint
 import pandas as pd
 from collections import OrderedDict
 from pandas.compat import BytesIO
-import sqlite3
 import os
-from sqlalchemy import create_engine
 import numpy as np
 from random import randrange
 
@@ -57,109 +55,6 @@ class packers_read_excel(_Packers):
         pd.read_excel(self.bio)
 
 
-class packers_read_hdf_store(_Packers):
-
-    def setup(self):
-        self._setup()
-        self.df2.to_hdf(self.f, 'df')
-
-    def time_packers_read_hdf_store(self):
-        pd.read_hdf(self.f, 'df')
-
-
-class packers_read_hdf_table(_Packers):
-
-    def setup(self):
-        self._setup()
-        self.df2.to_hdf(self.f, 'df', format='table')
-
-    def time_packers_read_hdf_table(self):
-        pd.read_hdf(self.f, 'df')
-
-
-class packers_read_pack(_Packers):
-
-    def setup(self):
-        self._setup()
-        self.df2.to_msgpack(self.f)
-
-    def time_packers_read_pack(self):
-        pd.read_msgpack(self.f)
-
-
-class packers_read_pickle(_Packers):
-
-    def setup(self):
-        self._setup()
-        self.df2.to_pickle(self.f)
-
-    def time_packers_read_pickle(self):
-        pd.read_pickle(self.f)
-
-
-class packers_read_sql(_Packers):
-
-    def setup(self):
-        self._setup()
-        self.engine = create_engine('sqlite:///:memory:')
-        self.df2.to_sql('table', self.engine, if_exists='replace')
-
-    def time_packers_read_sql(self):
-        pd.read_sql_table('table', self.engine)
-
-
-class packers_read_stata(_Packers):
-
-    def setup(self):
-        self._setup()
-        self.df.to_stata(self.f, {'index': 'tc', })
-
-    def time_packers_read_stata(self):
-        pd.read_stata(self.f)
-
-
-class packers_read_stata_with_validation(_Packers):
-
-    def setup(self):
-        self._setup()
-        self.df['int8_'] = [randint(np.iinfo(np.int8).min, (np.iinfo(np.int8).max - 27)) for _ in range(self.N)]
-        self.df['int16_'] = [randint(np.iinfo(np.int16).min, (np.iinfo(np.int16).max - 27)) for _ in range(self.N)]
-        self.df['int32_'] = [randint(np.iinfo(np.int32).min, (np.iinfo(np.int32).max - 27)) for _ in range(self.N)]
-        self.df['float32_'] = np.array(randn(self.N), dtype=np.float32)
-        self.df.to_stata(self.f, {'index': 'tc', })
-
-    def time_packers_read_stata_with_validation(self):
-        pd.read_stata(self.f)
-
-
-class packers_read_sas(_Packers):
-
-    def setup(self):
-
-        testdir = os.path.join(os.path.dirname(__file__), '..', '..',
-                               'pandas', 'tests', 'io', 'sas')
-        if not os.path.exists(testdir):
-            testdir = os.path.join(os.path.dirname(__file__), '..', '..',
-                                   'pandas', 'io', 'tests', 'sas')
-        self.f = os.path.join(testdir, 'data', 'test1.sas7bdat')
-        self.f2 = os.path.join(testdir, 'data', 'paxraw_d_short.xpt')
-
-    def time_read_sas7bdat(self):
-        pd.read_sas(self.f, format='sas7bdat')
-
-    def time_read_xport(self):
-        pd.read_sas(self.f2, format='xport')
-
-
-class CSV(_Packers):
-
-    def setup(self):
-        self._setup()
-
-    def time_write_csv(self):
-        self.df.to_csv(self.f)
-
-
 class Excel(_Packers):
 
     def setup(self):
@@ -183,61 +78,3 @@ class Excel(_Packers):
         self.writer = pd.io.excel.ExcelWriter(self.bio, engine='xlwt')
         self.df[:2000].to_excel(self.writer)
         self.writer.save()
-
-
-class HDF(_Packers):
-
-    def setup(self):
-        self._setup()
-
-    def time_write_hdf_store(self):
-        self.df2.to_hdf(self.f, 'df')
-
-    def time_write_hdf_table(self):
-        self.df2.to_hdf(self.f, 'df', table=True)
-
-
-class MsgPack(_Packers):
-
-    def setup(self):
-        self._setup()
-
-    def time_write_msgpack(self):
-        self.df2.to_msgpack(self.f)
-
-
-class Pickle(_Packers):
-
-    def setup(self):
-        self._setup()
-
-    def time_write_pickle(self):
-        self.df2.to_pickle(self.f)
-
-
-class SQL(_Packers):
-
-    def setup(self):
-        self._setup()
-        self.engine = create_engine('sqlite:///:memory:')
-
-    def time_write_sql(self):
-        self.df2.to_sql('table', self.engine, if_exists='replace')
-
-
-class STATA(_Packers):
-
-    def setup(self):
-        self._setup()
-
-        self.df3=self.df.copy()
-        self.df3['int8_'] = [randint(np.iinfo(np.int8).min, (np.iinfo(np.int8).max - 27)) for _ in range(self.N)]
-        self.df3['int16_'] = [randint(np.iinfo(np.int16).min, (np.iinfo(np.int16).max - 27)) for _ in range(self.N)]
-        self.df3['int32_'] = [randint(np.iinfo(np.int32).min, (np.iinfo(np.int32).max - 27)) for _ in range(self.N)]
-        self.df3['float32_'] = np.array(randn(self.N), dtype=np.float32)
-
-    def time_write_stata(self):
-        self.df.to_stata(self.f, {'index': 'tc', })
-
-    def time_write_stata_with_validation(self):
-        self.df3.to_stata(self.f, {'index': 'tc', })
