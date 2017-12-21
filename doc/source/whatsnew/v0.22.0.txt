@@ -139,6 +139,8 @@ Other Enhancements
 - :func:`read_excel()` has gained the ``nrows`` parameter (:issue:`16645`)
 - :func:``DataFrame.to_json`` and ``Series.to_json`` now accept an ``index`` argument which allows the user to exclude the index from the JSON output (:issue:`17394`)
 - ``IntervalIndex.to_tuples()`` has gained the ``na_tuple`` parameter to control whether NA is returned as a tuple of NA, or NA itself (:issue:`18756`)
+- ``Categorical.rename_categories``, ``CategoricalIndex.rename_categories`` and :attr:`Series.cat.rename_categories`
+  can now take a callable as their argument (:issue:`18862`)
 
 .. _whatsnew_0220.api_breaking:
 
@@ -213,6 +215,7 @@ Deprecations
   retain the previous behavior, use a list instead of a tuple (:issue:`18314`)
 - ``Series.valid`` is deprecated. Use :meth:`Series.dropna` instead (:issue:`18800`).
 - :func:`read_excel` has deprecated the ``skip_footer`` parameter. Use ``skipfooter`` instead (:issue:`18836`)
+- The ``is_copy`` attribute is deprecated and will be removed in a future version (:issue:`18801`).
 
 .. _whatsnew_0220.prior_deprecations:
 
@@ -233,6 +236,7 @@ Removal of prior version deprecations/changes
 - :func:`read_csv` has dropped the ``skip_footer`` parameter (:issue:`13386`)
 - :func:`read_csv` has dropped the ``as_recarray`` parameter (:issue:`13373`)
 - :func:`read_csv` has dropped the ``buffer_lines`` parameter (:issue:`13360`)
+- :func:`read_csv` has dropped the ``compact_ints`` and ``use_unsigned`` parameters (:issue:`13323`)
 
 .. _whatsnew_0220.performance:
 
@@ -277,6 +281,7 @@ Conversion
 - Fixed a bug where ``FY5253`` date offsets could incorrectly raise an ``AssertionError`` in arithmetic operatons (:issue:`14774`)
 - Bug in :meth:`Index.astype` with a categorical dtype where the resultant index is not converted to a :class:`CategoricalIndex` for all types of index (:issue:`18630`)
 - Bug in :meth:`Series.astype` and ``Categorical.astype()`` where an existing categorical data does not get updated (:issue:`10696`, :issue:`18593`)
+- Bug in :class:`Series` constructor with an int or float list where specifying ``dtype=str``, ``dtype='str'`` or ``dtype='U'`` failed to convert the data elements to strings (:issue:`16605`)
 
 
 Indexing
@@ -294,7 +299,9 @@ Indexing
 - Bug in tz-aware :class:`DatetimeIndex` where addition/subtraction with a :class:`TimedeltaIndex` or array with ``dtype='timedelta64[ns]'`` was incorrect (:issue:`17558`)
 - :func:`Index.to_series` now accepts ``index`` and ``name`` kwargs (:issue:`18699`)
 - :func:`DatetimeIndex.to_series` now accepts ``index`` and ``name`` kwargs (:issue:`18699`)
+- Bug in indexing non-scalar value from ``Series`` having non-unique ``Index`` will return value flattened (:issue:`17610`)
 - Bug in :func:`DatetimeIndex.insert` where inserting ``NaT`` into a timezone-aware index incorrectly raised (:issue:`16357`)
+
 
 I/O
 ^^^
@@ -303,13 +310,14 @@ I/O
 - Bug in :func:`read_msgpack` with a non existent file is passed in Python 2 (:issue:`15296`)
 - Bug in :func:`read_csv` where a ``MultiIndex`` with duplicate columns was not being mangled appropriately (:issue:`18062`)
 - Bug in :func:`read_sas` where a file with 0 variables gave an ``AttributeError`` incorrectly. Now it gives an ``EmptyDataError`` (:issue:`18184`)
--
+- Bug in :func:`DataFrame.to_latex()` where pairs of braces meant to serve as invisible placeholders were escaped (:issue:`18667`)
 -
 
 Plotting
 ^^^^^^^^
 
 - :func: `DataFrame.plot` now raises a ``ValueError`` when the ``x`` or ``y`` argument is improperly formed (:issue:`18671`)
+- Bug in formatting tick labels with ``datetime.time()`` and fractional seconds (:issue:`18478`).
 -
 -
 

@@ -7,6 +7,7 @@ from warnings import catch_warnings
 from numpy import nan
 import numpy as np
 import pandas as pd
+from distutils.version import LooseVersion
 
 from pandas import Series, DataFrame, bdate_range, Panel
 from pandas.core.dtypes.common import (
@@ -20,6 +21,7 @@ from pandas.util import testing as tm
 from pandas.compat import lrange
 from pandas import compat
 from pandas.core.sparse import frame as spf
+import pandas.util._test_decorators as td
 
 from pandas._libs.sparse import BlockIndex, IntIndex
 from pandas.core.sparse.api import SparseSeries, SparseDataFrame, SparseArray
@@ -1169,14 +1171,13 @@ class TestSparseDataFrame(SharedWithSparse):
         tm.assert_frame_equal(res.to_dense(), exp)
 
 
+@td.skip_if_no_scipy
 @pytest.mark.parametrize('index', [None, list('abc')])  # noqa: F811
 @pytest.mark.parametrize('columns', [None, list('def')])
 @pytest.mark.parametrize('fill_value', [None, 0, np.nan])
 @pytest.mark.parametrize('dtype', [bool, int, float, np.uint16])
 def test_from_to_scipy(spmatrix, index, columns, fill_value, dtype):
     # GH 4343
-    tm.skip_if_no_package('scipy')
-
     # Make one ndarray and from it one sparse matrix, both to be used for
     # constructing frames and comparing results
     arr = np.eye(3, dtype=dtype)
@@ -1225,13 +1226,17 @@ def test_from_to_scipy(spmatrix, index, columns, fill_value, dtype):
     assert sdf.to_coo().dtype == np.object_
 
 
+@td.skip_if_no_scipy
 @pytest.mark.parametrize('fill_value', [None, 0, np.nan])  # noqa: F811
 def test_from_to_scipy_object(spmatrix, fill_value):
     # GH 4343
     dtype = object
     columns = list('cd')
     index = list('ab')
-    tm.skip_if_no_package('scipy', max_version='0.19.0')
+    import scipy
+    if (spmatrix is scipy.sparse.dok_matrix and LooseVersion(
+            scipy.__version__) >= LooseVersion('0.19.0')):
+        pytest.skip("dok_matrix from object does not work in SciPy >= 0.19")
 
     # Make one ndarray and from it one sparse matrix, both to be used for
     # constructing frames and comparing results
@@ -1270,10 +1275,9 @@ def test_from_to_scipy_object(spmatrix, fill_value):
     assert sdf.to_coo().dtype == res_dtype
 
 
+@td.skip_if_no_scipy
 def test_from_scipy_correct_ordering(spmatrix):
     # GH 16179
-    tm.skip_if_no_package('scipy')
-
     arr = np.arange(1, 5).reshape(2, 2)
     try:
         spm = spmatrix(arr)
@@ -1290,10 +1294,9 @@ def test_from_scipy_correct_ordering(spmatrix):
     tm.assert_frame_equal(sdf.to_dense(), expected.to_dense())
 
 
+@td.skip_if_no_scipy
 def test_from_scipy_fillna(spmatrix):
     # GH 16112
-    tm.skip_if_no_package('scipy')
-
     arr = np.eye(3)
     arr[1:, 0] = np.nan
 
