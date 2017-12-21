@@ -190,19 +190,39 @@ class TimeFormatter(Formatter):
         self.locs = locs
 
     def __call__(self, x, pos=0):
-        fmt = '%H:%M:%S'
+        """
+        Return the time of day as a formatted string.
+
+        Parameters
+        ----------
+        x : float
+            The time of day specified as seconds since 00:00 (midnight),
+            with upto microsecond precision.
+        pos
+            Unused
+
+        Returns
+        -------
+        str
+            A string in HH:MM:SS.mmmuuu format. Microseconds,
+            milliseconds and seconds are only displayed if non-zero.
+        """
+        fmt = '%H:%M:%S.%f'
         s = int(x)
-        ms = int((x - s) * 1e3)
-        us = int((x - s) * 1e6 - ms)
+        msus = int(round((x - s) * 1e6))
+        ms = msus // 1000
+        us = msus % 1000
         m, s = divmod(s, 60)
         h, m = divmod(m, 60)
         _, h = divmod(h, 24)
         if us != 0:
-            fmt += '.%6f'
+            return pydt.time(h, m, s, msus).strftime(fmt)
         elif ms != 0:
-            fmt += '.%3f'
+            return pydt.time(h, m, s, msus).strftime(fmt)[:-3]
+        elif s != 0:
+            return pydt.time(h, m, s).strftime('%H:%M:%S')
 
-        return pydt.time(h, m, s, us).strftime(fmt)
+        return pydt.time(h, m).strftime('%H:%M')
 
 
 # Period Conversion
