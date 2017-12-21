@@ -678,7 +678,7 @@ class DataFrame(NDFrame):
     def style(self):
         """
         Property returning a Styler object containing methods for
-        building a styled HTML representation fo the DataFrame.
+        building a styled HTML representation of the DataFrame.
 
         See Also
         --------

@@ -1,6 +1,5 @@
 """
-Module for applying conditional formatting to
-DataFrames and Series.
+Module for applying data-dependent formatting to DataFrames and Series.
 """
 from functools import partial
 from itertools import product
@@ -49,19 +48,21 @@ def _mpl(func):
 
 class Styler(object):
     """
-    Helps style a DataFrame or Series according to the
-    data with HTML and CSS.
+    A decorator class for a `DataFrame` object to provide an
+    HTML renderer configurable by data-dependent parameters.
 
     Parameters
     ----------
-    data: Series or DataFrame
-    precision: int
+    data : Series or DataFrame
+        the object to which the Styler is attached
+    precision : int
         precision to round floats to, defaults to pd.options.display.precision
-    table_styles: list-like, default None
-        list of {selector: (attr, value)} dicts; see Notes
-    uuid: str, default None
+    table_styles : list-like, default None
+        list of ``{selector: (attr, value)}`` dicts; see docs for the
+        `set_table_styles` method
+    uuid : str, default None
         a unique identifier to avoid CSS collisons; generated automatically
-    caption: str, default None
+    caption : str, default None
         caption to attach to the table
 
     Attributes
@@ -72,32 +73,47 @@ class Styler(object):
 
     Notes
     -----
-    Most styling will be done by passing style functions into
-    ``Styler.apply`` or ``Styler.applymap``. Style functions should
-    return values with strings containing CSS ``'attr: value'`` that will
-    be applied to the indicated cells.
 
-    If using in the Jupyter notebook, Styler has defined a ``_repr_html_``
-    to automatically render itself. Otherwise call Styler.render to get
-    the genterated HTML.
+    `Styler` renders an HTML representation of a `DataFrame` using its
+    own `Styler.render` method; in particular, the Styler class will not
+    affect, and is independent from, its `data` object's `DataFrame.to_html`
+    rendering method.
 
-    CSS classes are attached to the generated HTML
+    `Styler.render` returns an HTML string based on attributes which are set
+    using methods of `Styler`, and are stored as attributes of a `Styler`
+    instance.
 
-    * Index and Column names include ``index_name`` and ``level<k>``
-      where `k` is its level in a MultiIndex
-    * Index label cells include
+    Some of these attributes are _data-dependent_ functions: they affect the
+    rendered HTML corresponding to an entry, row, or column of `data` based on
+    its contents.
 
-      * ``row_heading``
-      * ``row<n>`` where `n` is the numeric position of the row
-      * ``level<k>`` where `k` is the level in a MultiIndex
+    Others are _data-independent_: they affect the rendering of the entire
+    table, or only affect entries of the table based on their position.
 
-    * Column label cells include
-      * ``col_heading``
-      * ``col<n>`` where `n` is the numeric position of the column
-      * ``evel<k>`` where `k` is the level in a MultiIndex
+    Some, like the table values set by `set_table_values`, are _semi-data-
+    dependent_: for instance, HTML table entries corresponding to empty
+    `DataFrame` entries are endowed with CSS selectors which indicate this
+    fact, so their styles can be set with a data-independent global attribute.
+    See the notes for `Styler.render` for details.
 
-    * Blank cells include ``blank``
-    * Data cells include ``data``
+    `Styler.render` first constructs a table of strings corresponding
+    to each entry of `data`, possibly with the help of the data-dependent
+    function passed into `Styler.format`.  It then constructs dict
+    with general formatting determined by the data-independent properties set,
+    for instance, by `Styler.set_caption` and `Styler.set_uuid`; and CSS
+    attributes applied to cells, rows, and columns by data-dependent functions
+    passed into `Styler.apply`, `Styler.applymap`, and `Styler.where`.
+    Currently, you cannot apply data-dependent styling to column or row
+    headers.  It then passes this dict to Jinja2's render function with a
+    fixed template file.
+
+    `Styler also has a `_repr_html_` function which calls
+    `Styler.render`, so when a Styler object is the value of the last line
+    in a Jupyter cell, the Styler is automatically rendered to the ``Out``
+    field of the cell.
+
+    Style data can be transferred between `Styler` instances with the
+    `Styler.use` and `Styler.export` methods.
 
     See Also
     --------
@@ -120,7 +136,7 @@ class Styler(object):
         if data.ndim == 1:
             data = data.to_frame()
         if not data.index.is_unique or not data.columns.is_unique:
-            raise ValueError("style is not supported for non-unique indicies.")
+            raise ValueError("style is not supported for non-unique indices.")
 
         self.data = data
         self.index = data.index
@@ -147,7 +163,7 @@ class Styler(object):
         self._display_funcs = defaultdict(lambda: default_display_func)
 
     def _repr_html_(self):
-        """Hooks into Jupyter notebook rich display system."""
+        """Hooks into Jupyter notebook's rich display system."""
         return self.render()
 
     @Appender(_shared_docs['to_excel'] % dict(
@@ -162,22 +178,35 @@ class Styler(object):
                  index_label=None, startrow=0, startcol=0, engine=None,
                  merge_cells=True, encoding=None, inf_rep='inf', verbose=True,
                  freeze_panes=None):
+                """
+                Returns an Excel representation of the DataFrame.
+                Currently, `to_excel` creates a
+                `pandas.io.formats.excel.ExcelFormatter` object and passes
+                all parameters to (depending on the parameter) its
+                constructor, or its `write` method; all keyword arguments
+                are described in `ExcelFormatter`'s documentation.
 
-        from pandas.io.formats.excel import ExcelFormatter
-        formatter = ExcelFormatter(self, na_rep=na_rep, cols=columns,
-                                   header=header,
-                                   float_format=float_format, index=index,
-                                   index_label=index_label,
-                                   merge_cells=merge_cells,
-                                   inf_rep=inf_rep)
-        formatter.write(excel_writer, sheet_name=sheet_name, startrow=startrow,
-                        startcol=startcol, freeze_panes=freeze_panes,
-                        engine=engine)
+                See Also
+                --------
+                pandas.io.formats.excel.ExcelFormatter
+                """
+                from pandas.io.formats.excel import ExcelFormatter
+                formatter = ExcelFormatter(self, na_rep=na_rep, cols=columns,
+                                           header=header,
+                                           float_format=float_format,
+                                           index=index,
+                                           index_label=index_label,
+                                           merge_cells=merge_cells,
+                                           inf_rep=inf_rep)
+                formatter.write(excel_writer, sheet_name=sheet_name,
+                                startrow=startrow,
+                                startcol=startcol, freeze_panes=freeze_panes,
+                                engine=engine)
 
     def _translate(self):
         """
-        Convert the DataFrame in `self.data` and the attrs from `_build_styles`
-        into a dictionary of {head, body, uuid, cellstyle}
+        Builds a dictionary representation out of the data processed with
+        `_compute()` to be passed to `self.template.render()`.
         """
         table_styles = self.table_styles or []
         caption = self.caption
@@ -330,16 +359,18 @@ class Styler(object):
 
     def format(self, formatter, subset=None):
         """
-        Format the text display value of cells.
+        Specify the text rendered for each table entry based on a formatter.
 
         .. versionadded:: 0.18.0
 
         Parameters
         ----------
         formatter: str, callable, or dict
+            A `callable` must return a `str`, and a `dict`'s values
+            must be either `str`'s or `callable`'s which return a `str`.
         subset: IndexSlice
-            An argument to ``DataFrame.loc`` that restricts which elements
-            ``formatter`` is applied to.
+            An argument to `DataFrame.loc` that restricts which elements
+            `formatter` is applied to.
 
         Returns
         -------
@@ -347,15 +378,31 @@ class Styler(object):
 
         Notes
         -----
+        A `DataFrame` entry with contents `x` will be formatted to the
+        string representation:
+            * `formatter.format(x)` if `formatter` is a `str`.
+            * `formatter(x)` if `formatter` is a `callable`.
+            * `formatter[<col_name>].format(x)` if `formatter` is a
+                `dict`, `x` is in the column defined by `<col_name>`,
+                and `formatter[<col_name>]` is a `str`.
+            * `formatter[<col_name>].(x)` if `formatter` is a `dict`,
+                `x` is in the column defined by `<col_name>`, and
+                `formatter[<col_name>]` is a `callable` which returns
+                a `str`.
 
-        ``formatter`` is either an ``a`` or a dict ``{column name: a}`` where
-        ``a`` is one of
+        If no formatter is specified for an entry, the default display value
+        for numeric values is the "general" (``g``) format with
+        `pd.options.display.precision` precision.
 
-        - str: this will be wrapped in: ``a.format(x)``
-        - callable: called with the value of an individual cell
+        Unlike the methods which apply CSS to table entries, each `Styler`
+        instance can have at most one `formatter` method specified at any
+        point; calling `format` a second time with a different `formatter`
+        parameter replaces the old `formatter` method with the newly
+        specified parameter.
 
-        The default display value for numeric values is the "general" (``g``)
-        format with ``pd.options.display.precision`` precision.
+        Note that because `Styler`'s current implementation does not sanitize
+        HTML tags, you can insert arbitrary HTML code/javascript into your
+        format strings, and they will render/execute.  See examples below.
 
         Examples
         --------
@@ -364,6 +411,12 @@ class Styler(object):
         >>> df.style.format("{:.2%}")
         >>> df['c'] = ['a', 'b', 'c', 'd']
         >>> df.style.format({'C': str.upper})
+        >>> df.style.format("<b>{}</b>") # Make everything bold
+        >>> df.style.format(\"\"\"
+        ... <script>
+        ... document.removeChild(document.documentElement))
+        ... </script>
+        ... \"\"\") # You probably don't want to do this
         """
         if subset is None:
             row_locs = range(len(self.data))
@@ -394,13 +447,15 @@ class Styler(object):
         return self
 
     def render(self, **kwargs):
-        """Render the built up styles to HTML
+        """
+        Render the DataFrame `data` as HTML, as described in the Notes
+        for the class.
 
         Parameters
         ----------
-        `**kwargs`:
-            Any additional keyword arguments are passed through
-            to ``self.template.render``. This is useful when you
+        `**kwargs` :
+            Any keyword arguments are passed through to the default renderer
+            provided by `jinja2.Environment`. This is useful when you
             need to provide additional variables for a custom
             template.
 
@@ -408,21 +463,39 @@ class Styler(object):
 
         Returns
         -------
-        rendered: str
+        rendered : str
             the rendered HTML
 
         Notes
         -----
-        ``Styler`` objects have defined the ``_repr_html_`` method
-        which automatically calls ``self.render()`` when it's the
-        last item in a Notebook cell. When calling ``Styler.render()``
-        directly, wrap the result in ``IPython.display.HTML`` to view
-        the rendered HTML in the notebook.
+        `Styler._repr_html_` calls render to do HTML rendering.  This means
+        that `Styler.render` is automatically invoked to display the output
+        in a Jupyter Notebook cell if the value of the last item is a
+        `Styler`.
 
-        Pandas uses the following keys in render. Arguments passed
-        in ``**kwargs`` take precedence, so think carefuly if you want
-        to override them:
+        In order to render HTML into the Out field of a Notebook cell when
+        a `Styler` is not the last value, invoke
+        `IPython.display.HTML(self.render())`.
+        
+        Entries are rendered with CSS selectors according to gross properties
+        of their position and content:
+        * Index and Column names include ``index_name`` and ``level<k>``
+          where `k` is its level in a MultiIndex
+        * Index label cells include
+            * ``row_heading``
+            * ``row<n>`` where `n` is the numeric position of the row
+            * ``level<k>`` where `k` is the level in a MultiIndex
+        * Column label cells include
+            * ``col_heading``
+            * ``col<n>`` where `n` is the numeric position of the column
+            * ``level<k>`` where `k` is the level in a MultiIndex
+        * Blank cells include ``blank``
+        * Data cells include ``data``
+        This means that `set_table_values` can be used to set semi-data-
+        dependent style attributes globally.
 
+
+        `Styler` renders HTML by creating a dictionary with the entries:
         * head
         * cellstyle
         * body
@@ -431,6 +504,22 @@ class Styler(object):
         * table_styles
         * caption
         * table_attributes
+        based on the attributes already assigned to the `Styler` instance,
+        and passes this dictionary to the `render` method determined by
+        `jinja2.Environment`.
+
+        This dictionary is the penultimate result of the process embodied by
+        `Styler` (the final product being, of course, the rendered HTML).
+        Dictionary values can be over-ridden by keyword arguments passed to
+        `Styler.render`; this accesses the underlying rendering engine
+        directly, however, so is unstable: the behavior keywords could change
+        if the backend changes. Therefore, unless you have both a really good
+        reason, and intimate knowledge of the rendering backend, you probably
+        should not pass keyword arguments to `render`.
+
+        See also:
+        ---------
+        Styler.apply, Styler.applymap, Styler.where, Styler.set_table_values
         """
         self._compute()
         # TODO: namespace all the pandas keys
@@ -446,13 +535,14 @@ class Styler(object):
 
     def _update_ctx(self, attrs):
         """
-        update the state of the Styler. Collects a mapping
-        of {index_label: ['<property>: <value>']}
+        Update the state of the Styler. Collects a dict of the form
+        {index_label: ['<property>: <value>']}
 
+        Parameters
+        ----------
         attrs: Series or DataFrame
-        should contain strings of '<property>: <value>;<prop2>: <val2>'
-        Whitespace shouldn't matter and the final trailing ';' shouldn't
-        matter.
+            Should contain strings of the form '<property>: <value>; <prop2>:
+            <val2>; ...'.  Neither whitespace nor the final semicolon matters.
         """
         for row_label, v in attrs.iterrows():
             for col_label, col in v.iteritems():
@@ -475,7 +565,7 @@ class Styler(object):
 
     def __copy__(self):
         """
-        Deep copy by default.
+        Shallow copy by default.
         """
         return self._copy(deepcopy=False)
 
@@ -483,7 +573,8 @@ class Styler(object):
         return self._copy(deepcopy=True)
 
     def clear(self):
-        """"Reset" the styler, removing any previously applied styles.
+        """
+        "Reset" the styler, removing any previously applied styles.
         Returns None.
         """
         self.ctx.clear()
@@ -491,12 +582,11 @@ class Styler(object):
 
     def _compute(self):
         """
-        Execute the style functions built up in `self._todo`.
+        Execute the style methods enumerated in `self._todo`,
+        which usually got there because they were appended by
+        `Styler.apply`, `Styler.applymap`, and `Styler.where`.
 
-        Relies on the conventions that all style functions go through
-        .apply or .applymap. The append styles to apply as tuples of
-
-        (application method, *args, **kwargs)
+        Returns none
         """
         r = self
         for func, args, kwargs in self._todo:
@@ -536,25 +626,27 @@ class Styler(object):
 
     def apply(self, func, axis=0, subset=None, **kwargs):
         """
-        Apply a function column-wise, row-wise, or table-wase,
-        updating the HTML representation with the result.
+        Assure that when `Styler.render` is called, CSS attributes
+        determined by the data-dependent function `func` are added
+        to cells, rows or entries.
 
         Parameters
         ----------
         func : function
-            ``func`` should take a Series or DataFrame (depending
-            on ``axis``), and return an object with the same shape.
+            `func` should take a Series or DataFrame (depending
+            on `axis`), and return an object with the same shape.
             Must return a DataFrame with identical index and
-            column labels when ``axis=None``
+            column labels to those of `data` when `axis=None`
         axis : int, str or None
-            apply to each column (``axis=0`` or ``'index'``)
-            or to each row (``axis=1`` or ``'columns'``) or
-            to the entire DataFrame at once with ``axis=None``
+            determine whether to add attributes to each row
+            (`axis=0` or `'index'`), to each column (`axis=1` or
+            `'columns'`) or to the entire DataFrame at once with
+            `axis=None`
         subset : IndexSlice
-            a valid indexer to limit ``data`` to *before* applying the
-            function. Consider using a pandas.IndexSlice
+            a valid indexer to limit `data` to *before* applying `func`.
+            Consider using a pandas.IndexSlice
         kwargs : dict
-            pass along to ``func``
+            pass along to `func`
 
         Returns
         -------
@@ -562,13 +654,13 @@ class Styler(object):
 
         Notes
         -----
-        The output shape of ``func`` should match the input, i.e. if
-        ``x`` is the input row, column, or table (depending on ``axis``),
-        then ``func(x.shape) == x.shape`` should be true.
+        The output shape of `func` should match the input, i.e., if
+        `x` is the input row, column, or table (depending on `axis`),
+        then `func(x.shape) == x.shape` should be true.
 
-        This is similar to ``DataFrame.apply``, except that ``axis=None``
-        applies the function to the entire DataFrame at once,
-        rather than column-wise or row-wise.
+        In this way, `Styler.apply` handles its parameters similarly to
+        `DataFrame.apply`, except that `axis=None` applies `func` to
+        the entire DataFrame at once, rather than column-wise or row-wise.
 
         Examples
         --------
@@ -584,7 +676,7 @@ class Styler(object):
         return self
 
     def _applymap(self, func, subset=None, **kwargs):
-        func = partial(func, **kwargs)  # applymap doesn't take kwargs?
+        func = partial(func, **kwargs)
         if subset is None:
             subset = pd.IndexSlice[:]
         subset = _non_reducing_slice(subset)
@@ -594,18 +686,18 @@ class Styler(object):
 
     def applymap(self, func, subset=None, **kwargs):
         """
-        Apply a function elementwise, updating the HTML
-        representation with the result.
+        Assure that when `Styler.render` is called, CSS attributes
+        determined by the data-dependent function parameter `func`
+        are added to individual table entries.
 
         Parameters
         ----------
         func : function
-            ``func`` should take a scalar and return a scalar
+            `func` should take a scalar and return a scalar
         subset : IndexSlice
-            a valid indexer to limit ``data`` to *before* applying the
-            function. Consider using a pandas.IndexSlice
+            determines to which cells `func` will apply
         kwargs : dict
-            pass along to ``func``
+            parameters to pass to `func`
 
         Returns
         -------
@@ -622,25 +714,26 @@ class Styler(object):
 
     def where(self, cond, value, other=None, subset=None, **kwargs):
         """
-        Apply a function elementwise, updating the HTML
-        representation with a style which is selected in
-        accordance with the return value of a function.
+        Assure that when `Styler.render` is called, the CSS attribute
+        `value` is added to an entry when `cond` of that entry is True,
+        and that the CSS attribute `other` is added when `cond` is False.
+        are added to individual table entries
 
         .. versionadded:: 0.21.0
 
         Parameters
         ----------
         cond : callable
-            ``cond`` should take a scalar and return a boolean
+            `cond` should take a scalar and return a boolean
         value : str
-            applied when ``cond`` returns true
+            applied when `cond` returns true
         other : str
-            applied when ``cond`` returns false
+            applied when `cond` returns false
         subset : IndexSlice
-            a valid indexer to limit ``data`` to *before* applying the
-            function. Consider using a pandas.IndexSlice
+            a valid indexer to limit `data` to *before* applying `cond`.
+            Consider using a pandas.IndexSlice
         kwargs : dict
-            pass along to ``cond``
+            pass along to `cond`
 
         Returns
         -------
@@ -676,8 +769,8 @@ class Styler(object):
     def set_table_attributes(self, attributes):
         """
         Set the table attributes. These are the items
-        that show up in the opening ``<table>`` tag in addition
-        to to automatic (by default) id.
+        that show up in the opening `<table>` tag in addition
+        to to automatic (by default) id. Data-independent attribute.
 
         Parameters
         ----------
@@ -699,7 +792,7 @@ class Styler(object):
     def export(self):
         """
         Export the styles to applied to the current Styler.
-        Can be applied to a second style with ``Styler.use``.
+        Can be applied to a second style with `Styler.use`.
 
         Returns
         -------
@@ -714,7 +807,7 @@ class Styler(object):
     def use(self, styles):
         """
         Set the styles on the current Styler, possibly using styles
-        from ``Styler.export``.
+        from `Styler.export`.
 
         Parameters
         ----------
@@ -764,21 +857,25 @@ class Styler(object):
 
     def set_table_styles(self, table_styles):
         """
-        Set the table styles on a Styler. These are placed in a
-        ``<style>`` tag before the generated HTML table.
+        Set table styles. These are placed in a `<style>` tag before the
+        generated HTML table.
 
         Parameters
         ----------
         table_styles: list
-            Each individual table_style should be a dictionary with
-            ``selector`` and ``props`` keys. ``selector`` should be a CSS
+            Each list item should be a dictionary with
+            `selector` and `props` keys. `selector` should be a CSS
             selector that the style will be applied to (automatically
-            prefixed by the table's UUID) and ``props`` should be a list of
-            tuples with ``(attribute, value)``.
+            prefixed by the table's UUID) and `props` should be a list of
+            tuples with `(attribute, value)`.
 
         Returns
         -------
         self : Styler
+
+        Notes
+        -----
+        See the notes for `Styler.render`.
 
         Examples
         --------
@@ -813,7 +910,7 @@ class Styler(object):
         Parameters
         ----------
         subset: IndexSlice
-            An argument to ``DataFrame.loc`` that identifies which columns
+            An argument to `DataFrame.loc` that identifies which columns
             are hidden.
 
         Returns
@@ -836,7 +933,7 @@ class Styler(object):
 
     def highlight_null(self, null_color='red'):
         """
-        Shade the background ``null_color`` for missing values.
+        Set the background color of table entries with missing values.
 
         Parameters
         ----------
@@ -852,7 +949,7 @@ class Styler(object):
     def background_gradient(self, cmap='PuBu', low=0, high=0, axis=0,
                             subset=None):
         """
-        Color the background in a gradient according to
+        Color the background of table entries in a gradient according to
         the data in each column (optionally row).
         Requires matplotlib.
 
@@ -865,7 +962,7 @@ class Styler(object):
         axis: int or str
             1 or 'columns' for columnwise, 0 or 'index' for rowwise
         subset: IndexSlice
-            a valid slice for ``data`` to limit the style application to
+            a valid slice for `data` to limit the style application to
 
         Returns
         -------
@@ -873,10 +970,10 @@ class Styler(object):
 
         Notes
         -----
-        Tune ``low`` and ``high`` to keep the text legible by
+        Tune `low` and `high` to keep the text legible by
         not using the entire range of the color map. These extend
-        the range of the data by ``low * (x.max() - x.min())``
-        and ``high * (x.max() - x.min())`` before normalizing.
+        the range of the data by `low * (x.max() - x.min())`
+        and `high * (x.max() - x.min())` before normalizing.
         """
         subset = _maybe_numeric_slice(self.data, subset)
         subset = _non_reducing_slice(subset)
@@ -902,12 +999,12 @@ class Styler(object):
     def set_properties(self, subset=None, **kwargs):
         """
         Convenience method for setting one or more non-data dependent
-        properties or each cell.
+        properties for each cell.
 
         Parameters
         ----------
         subset: IndexSlice
-            a valid slice for ``data`` to limit the style application to
+            a valid slice for `data` to limit the style application to
         kwargs: dict
             property: value pairs to be set for each cell
 
@@ -932,13 +1029,13 @@ class Styler(object):
         The minimum value is aligned at the left of the cell
         Parameters
         ----------
-        color: 2-tuple/list, of [``color_negative``, ``color_positive``]
+        color: 2-tuple/list, of [`color_negative`, `color_positive`]
         width: float
-            A number between 0 or 100. The largest value will cover ``width``
+            A number between 0 or 100. The largest value will cover `width`
             percent of the cell's width
         base: str
             The base css format of the cell, e.g.:
-            ``base = 'width: 10em; height: 80%;'``
+            `base = 'width: 10em; height: 80%;'`
         Returns
         -------
         self : Styler
@@ -959,13 +1056,13 @@ class Styler(object):
         Creates a bar chart where the zero is centered in the cell
         Parameters
         ----------
-        color: 2-tuple/list, of [``color_negative``, ``color_positive``]
+        color: 2-tuple/list, of [`color_negative`, `color_positive`]
         width: float
-            A number between 0 or 100. The largest value will cover ``width``
+            A number between 0 or 100. The largest value will cover `width`
             percent of the cell's width
         base: str
             The base css format of the cell, e.g.:
-            ``base = 'width: 10em; height: 80%;'``
+            `base = 'width: 10em; height: 80%;'`
         Returns
         -------
         self : Styler
@@ -995,13 +1092,13 @@ class Styler(object):
         Creates a bar chart where the midpoint is centered in the cell
         Parameters
         ----------
-        color: 2-tuple/list, of [``color_negative``, ``color_positive``]
+        color: 2-tuple/list, of [`color_negative`, `color_positive`]
         width: float
-            A number between 0 or 100. The largest value will cover ``width``
+            A number between 0 or 100. The largest value will cover `width`
             percent of the cell's width
         base: str
             The base css format of the cell, e.g.:
-            ``base = 'width: 10em; height: 80%;'``
+            `base = 'width: 10em; height: 80%;'`
         Returns
         -------
         self : Styler
@@ -1038,13 +1135,14 @@ class Styler(object):
     def bar(self, subset=None, axis=0, color='#d65f5f', width=100,
             align='left'):
         """
-        Color the background ``color`` proptional to the values in each column.
-        Excludes non-numeric data by default.
+        Color the background of each cell with a bar of color `color`,
+        and of length proportional to the value of the cell relative to those
+        in its column.  Excludes non-numeric data by default.
 
         Parameters
         ----------
         subset: IndexSlice, default None
-            a valid slice for ``data`` to limit the style application to
+            a valid slice for `data` to limit the style application to
         axis: int
         color: str or 2-tuple/list
             If a str is passed, the color is the same for both
@@ -1052,7 +1150,7 @@ class Styler(object):
             first element is the color_negative and the second is the
             color_positive (eg: ['#d65f5f', '#5fba7d'])
         width: float
-            A number between 0 or 100. The largest value will cover ``width``
+            A number between 0 or 100. The largest value will cover `width`
             percent of the cell's width
         align : {'left', 'zero',' mid'}, default 'left'
             - 'left' : the min value starts at the left of the cell
@@ -1099,16 +1197,17 @@ class Styler(object):
 
     def highlight_max(self, subset=None, color='yellow', axis=0):
         """
-        Highlight the maximum by shading the background
+        Set the color to shade the background of an entry
+        containing the maximum value in a column, row, or table.
 
         Parameters
         ----------
         subset: IndexSlice, default None
-            a valid slice for ``data`` to limit the style application to
+            a valid slice for `data` to limit the style application to
         color: str, default 'yellow'
         axis: int, str, or None; default 0
             0 or 'index' for columnwise (default), 1 or 'columns' for rowwise,
-            or ``None`` for tablewise
+            or `None` for tablewise
 
         Returns
         -------
@@ -1119,16 +1218,17 @@ class Styler(object):
 
     def highlight_min(self, subset=None, color='yellow', axis=0):
         """
-        Highlight the minimum by shading the background
+        Set the color to shade the background of an entry
+        containing the maximum value in a column, row, or table.
 
         Parameters
         ----------
         subset: IndexSlice, default None
-            a valid slice for ``data`` to limit the style application to
+            a valid slice for `data` to limit the style application to
         color: str, default 'yellow'
         axis: int, str, or None; default 0
             0 or 'index' for columnwise (default), 1 or 'columns' for rowwise,
-            or ``None`` for tablewise
+            or `None` for tablewise
 
         Returns
         -------
@@ -1165,7 +1265,7 @@ class Styler(object):
     @classmethod
     def from_custom_template(cls, searchpath, name):
         """
-        Factory function for creating a subclass of ``Styler``
+        Factory function for creating a subclass of `Styler`
         with a custom template and Jinja environment.
 
         Parameters
@@ -1178,7 +1278,7 @@ class Styler(object):
         Returns
         -------
         MyStyler : subclass of Styler
-            has the correct ``env`` and ``template`` class attributes set.
+            has the correct `env` and `template` class attributes set.
         """
         loader = ChoiceLoader([
             FileSystemLoader(searchpath),
@@ -1201,11 +1301,12 @@ def _is_visible(idx_row, idx_col, lengths):
 
 def _get_level_lengths(index, hidden_elements=None):
     """
-    Given an index, find the level lenght for each element.
+    Given an index, find the level length for each element.
     Optional argument is a list of index positions which
     should not be visible.
 
-    Result is a dictionary of (level, inital_position): span
+    Returns:
+     (level, inital_position): span
     """
     sentinel = sentinel_factory()
     levels = index.format(sparsify=sentinel, adjoin=False, names=False)
