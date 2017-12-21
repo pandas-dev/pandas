@@ -26,6 +26,7 @@ _INVALID_FREQ_ERROR = "Invalid frequency: {0}"
 # ---------------------------------------------------------------------
 # Period codes
 
+
 class FreqGroup(object):
     FR_ANN = 1000
     FR_QTR = 2000
