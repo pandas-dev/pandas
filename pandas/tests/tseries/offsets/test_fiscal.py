@@ -617,6 +617,7 @@ def test_bunched_yearends():
 
 
 def test_fy5253_last_onoffset():
+    # GH#18877 dates on the year-end but not normalized to midnight
     offset = FY5253(n=-5, startingMonth=5, variation="last", weekday=0)
     ts = Timestamp('1984-05-28 06:29:43.955911354+0200',
                    tz='Europe/San_Marino')
@@ -626,6 +627,7 @@ def test_fy5253_last_onoffset():
 
 
 def test_fy5253_nearest_onoffset():
+    # GH#18877 dates on the year-end but not normalized to midnight
     offset = FY5253(n=3, startingMonth=7, variation="nearest", weekday=2)
     ts = Timestamp('2032-07-28 00:12:59.035729419+0000', tz='Africa/Dakar')
     fast = offset.onOffset(ts)
