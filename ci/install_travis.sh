@@ -175,7 +175,7 @@ if [ "$PIP_BUILD_TEST" ]; then
     echo "[building release]"
     bash scripts/build_dist_for_release.sh
     conda uninstall -y cython
-    time pip install dist/*tar.gz || exit 1
+    time pip install dist/*tar.gz --quiet || exit 1
 
 elif [ "$CONDA_BUILD_TEST" ]; then
 
