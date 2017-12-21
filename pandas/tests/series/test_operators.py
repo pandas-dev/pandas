@@ -970,7 +970,7 @@ class TestDatetimeSeriesArithmetic(object):
             # defined
             for op_str in ops:
                 op = getattr(get_ser, op_str, None)
-                with tm.assert_raises_regex(TypeError, 'operate'):
+                with tm.assert_raises_regex(TypeError, 'operate|cannot'):
                     op(test_ser)
 
         # ## timedelta64 ###
@@ -1202,6 +1202,21 @@ class TestDatetimeSeriesArithmetic(object):
             nat_series_dtype_timestamp / 1.0
         with pytest.raises(TypeError):
             nat_series_dtype_timestamp / 1
+
+    def test_datetime_sub_datetime_overflow(self):
+        # GH#12534
+        dt = pd.Timestamp('1700-01-31')
+        dti = pd.date_range('1999-09-30', freq='M', periods=10)
+        with pytest.raises(OverflowError):
+            dti - dt
+        with pytest.raises(OverflowError):
+            dt - dti
+
+        ser = pd.Series(dti)
+        with pytest.raises(OverflowError):
+            ser - dt
+        with pytest.raises(OverflowError):
+            dt - ser
 
 
 class TestSeriesOperators(TestData):

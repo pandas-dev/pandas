@@ -363,6 +363,20 @@ class TestDatetimeIndexArithmetic(object):
             with pytest.raises(OverflowError):
                 dtimin - variant
 
+    def test_dti_add_intarray(self, tz):
+        rng = pd.date_range('2000-01-01 09:00', freq='H',
+                            periods=10, tz=tz)
+        other = np.array(1, dtype=np.int64)
+        with pytest.raises(TypeError):
+            rng + other
+
+    def test_dti_sub_intarray(self, tz):
+        rng = pd.date_range('2000-01-01 09:00', freq='H',
+                            periods=10, tz=tz)
+        other = np.array(1, dtype=np.int64)
+        with pytest.raises(TypeError):
+            rng - other
+
 
 # GH 10699
 @pytest.mark.parametrize('klass,assert_func', zip([Series, DatetimeIndex],
