@@ -40,7 +40,7 @@ try:
 except ImportError:
     pass
 
-HERE = os.path.dirname(__file__)
+HERE = os.path.abspath(os.path.dirname(__file__))
 
 
 class TestCommonIOCapabilities(object):
@@ -150,10 +150,8 @@ bar2,12,13,14,15
         (pd.read_fwf, 'os', os.path.join(HERE, 'data',
                                          'fixed_width_format.txt')),
         (pd.read_excel, 'xlrd', os.path.join(HERE, 'data', 'test1.xlsx')),
-
-        # TODO(jreback) gh-18873
-        # (pd.read_feather, 'feather', os.path.join(HERE, 'data',
-        #                                           'feather-0_3_1.feather')),
+        (pd.read_feather, 'feather', os.path.join(HERE, 'data',
+                                                  'feather-0_3_1.feather')),
         (pd.read_hdf, 'tables', os.path.join(HERE, 'data', 'legacy_hdf',
                                              'datetimetz_object.h5')),
         (pd.read_stata, 'os', os.path.join(HERE, 'data', 'stata10_115.dta')),

@@ -56,6 +56,11 @@ if [ "$CONDA_BUILD_TEST" ]; then
     conda install conda-build
 fi
 
+# TODO(jreback)
+echo
+echo "[fix conda version]"
+conda install conda=4.3.30
+
 echo
 echo "[add channels]"
 conda config --remove channels defaults || exit 1
