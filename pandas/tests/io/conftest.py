@@ -53,11 +53,13 @@ def s3_resource(tips_file, jsonl_file):
 
     def add_tips_files(bucket_name):
         for s3_key, file_name in test_s3_files:
-            with open(file_name, 'rb') as f:
-                conn.Bucket(bucket_name).put_object(
-                    Key=s3_key,
-                    Body=f)
-
+            try:
+                with open(file_name, 'rb') as f:
+                    conn.Bucket(bucket_name).put_object(
+                        Key=s3_key,
+                        Body=f)
+            except Exception:
+                raise Exception(os.listdir(os.path.dirname(file_name)))
     boto3 = pytest.importorskip('boto3')
     # see gh-16135
     bucket = 'pandas-test'
