@@ -842,7 +842,7 @@ Deprecations
 - ``pandas.tseries.plotting.tsplot`` is deprecated. Use :func:`Series.plot` instead (:issue:`18627`)
 - ``Index.summary()`` is deprecated and will be removed in a future version (:issue:`18217`)
 - ``NDFrame.get_ftype_counts()`` is deprecated and will be removed in a future version (:issue:`18243`)
-- The ``convert_datetime64`` parameter has been deprecated and the default value is now ``False`` in :func:`to_records` as the NumPy bug motivating this parameter has been resolved (:issue:`18160`).
+- The ``convert_datetime64`` parameter in :func:`DataFrame.to_records` has been deprecated and the default value is now ``False``. The NumPy bug motivating this parameter has been resolved (:issue:`18160`).
 
 .. _whatsnew_0230.prior_deprecations:
 
