@@ -810,7 +810,7 @@ class TestIntervalIndex(Base):
         tm.assert_index_equal(result, expected)
 
     # TODO: check this behavior is consistent with test_interval_new.py
-    def test_non_contiguous(self):
+    def test_non_contiguous(self, closed):
         index = IntervalIndex.from_tuples([(0, 1), (2, 3)], closed=closed)
         target = [0.5, 1.5, 2.5]
         actual = index.get_indexer(target)

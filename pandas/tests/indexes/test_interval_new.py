@@ -216,7 +216,7 @@ class TestIntervalIndex(Base):
     @pytest.mark.parametrize("expected_result",
         [[0, 1], [0, 1, -1], [0, 1, -1, 2], [0, 1, -1, 2, 1]])
     def test_get_indexer_with_ints_and_floats_multiple_queries(self, query,
-                                                               expected_result):
+                                                            expected_result):
 
         index = IntervalIndex.from_tuples(
             [(0, 1), (1, 2), (3, 4)], closed='right')
