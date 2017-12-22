@@ -26,12 +26,12 @@ class Excel(object):
         self.bio_read.seek(0)
 
         self.bio_write = BytesIO()
-        self.writer_write = ExcelWriter(self.bio_write, engine=engine)
         self.bio_write.seek(0)
+        self.writer_write = ExcelWriter(self.bio_write, engine=engine)
 
     def time_read_excel(self, engine):
         read_excel(self.bio_read)
 
     def time_write_excel(self, engine):
-        self.df.to_excel(self.bio_write, sheet_name='Sheet1')
+        self.df.to_excel(self.writer_write, sheet_name='Sheet1')
         self.writer_write.save()
