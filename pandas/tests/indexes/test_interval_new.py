@@ -231,17 +231,17 @@ class TestIntervalIndex(Base):
     @pytest.mark.parametrize("query",
         [-0.5, 0, 0.5, 1, 1.5, 2, 2.5, 3, 3.5, 4, 4.5])
     @pytest.mark.parametrize("expected_result", [
-                    (Int64Index([], dtype='int64'), np.array([0])),
-                    (Int64Index([0], dtype='int64'), np.array([])),
-                    (Int64Index([0], dtype='int64'), np.array([])),
-                    (Int64Index([0, 1], dtype='int64'), np.array([])),
-                    (Int64Index([0, 1], dtype='int64'), np.array([])),
-                    (Int64Index([0, 1, 2], dtype='int64'), np.array([])),
-                    (Int64Index([1, 2], dtype='int64'), np.array([])),
-                    (Int64Index([2], dtype='int64'), np.array([])),
-                    (Int64Index([2], dtype='int64'), np.array([])),
-                    (Int64Index([], dtype='int64'), np.array([0])),
-                    (Int64Index([], dtype='int64'), np.array([0]))])
+        (Int64Index([], dtype='int64'), np.array([0])),
+        (Int64Index([0], dtype='int64'), np.array([])),
+        (Int64Index([0], dtype='int64'), np.array([])),
+        (Int64Index([0, 1], dtype='int64'), np.array([])),
+        (Int64Index([0, 1], dtype='int64'), np.array([])),
+        (Int64Index([0, 1, 2], dtype='int64'), np.array([])),
+        (Int64Index([1, 2], dtype='int64'), np.array([])),
+        (Int64Index([2], dtype='int64'), np.array([])),
+        (Int64Index([2], dtype='int64'), np.array([])),
+        (Int64Index([], dtype='int64'), np.array([0])),
+        (Int64Index([], dtype='int64'), np.array([0]))])
     def test_get_indexer_non_unique_with_ints_and_floats_single_queries(self,
                                                     query, expected_result):
 
@@ -254,13 +254,11 @@ class TestIntervalIndex(Base):
     @pytest.mark.parametrize("query",
         [[1, 2], [1, 2, 3], [1, 2, 3, 4], [1, 2, 3, 4, 2]])
     @pytest.mark.parametrize("expected_result", [
-                    (Int64Index([0, 1, 0, 1, 2], dtype='int64'), np.array([]))
-                    (Int64Index([0, 1, 0, 1, 2, 2],
-                                dtype='int64'), np.array([]))
-                    (Int64Index([0, 1, 0, 1, 2, 2, -1],
-                                dtype='int64'), np.array([3]))
-                    (Int64Index([0, 1, 0, 1, 2, 2, -1, 0, 1, 2],
-                                dtype='int64'), np.array([3]))])
+        (Int64Index([0, 1, 0, 1, 2], dtype='int64'), np.array([])),
+        (Int64Index([0, 1, 0, 1, 2, 2], dtype='int64'), np.array([])),
+        (Int64Index([0, 1, 0, 1, 2, 2, -1], dtype='int64'), np.array([3])),
+        (Int64Index([0, 1, 0, 1, 2, 2, -1, 0, 1, 2], dtype='int64'),
+            np.array([3]))])
     def test_get_indexer_non_unique_with_ints_and_floats_multiple_queries(self,
                                                        query, expected_result):
 
