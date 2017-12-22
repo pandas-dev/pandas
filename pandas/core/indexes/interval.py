@@ -554,7 +554,7 @@ class IntervalIndex(IntervalMixin, Index):
             Returns NA as a tuple if True, ``(nan, nan)``, or just as the NA
             value itself if False, ``nan``.
 
-            ..versionadded:: 0.22.0
+            ..versionadded:: 0.23.0
 
         Examples
         --------

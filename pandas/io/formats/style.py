@@ -795,7 +795,7 @@ class Styler(object):
         """
         Hide any indices from rendering.
 
-        .. versionadded:: 0.22.0
+        .. versionadded:: 0.23.0
 
         Returns
         -------
@@ -808,7 +808,7 @@ class Styler(object):
         """
         Hide columns from rendering.
 
-        .. versionadded:: 0.22.0
+        .. versionadded:: 0.23.0
 
         Parameters
         ----------

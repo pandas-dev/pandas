@@ -3785,7 +3785,7 @@ class Index(IndexOpsMixin, PandasObject):
         level : int or str, optional, default None
             Only return values from specified level (for MultiIndex)
 
-            .. versionadded:: 0.22.0
+            .. versionadded:: 0.23.0
 
         Returns
         -------
