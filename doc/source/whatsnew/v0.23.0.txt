@@ -141,6 +141,7 @@ Other Enhancements
 - ``IntervalIndex.to_tuples()`` has gained the ``na_tuple`` parameter to control whether NA is returned as a tuple of NA, or NA itself (:issue:`18756`)
 - ``Categorical.rename_categories``, ``CategoricalIndex.rename_categories`` and :attr:`Series.cat.rename_categories`
   can now take a callable as their argument (:issue:`18862`)
+- :class:`Interval` and :class:`IntervalIndex` have gained a ``length`` attribute (:issue:`18789`)
 
 .. _whatsnew_0230.api_breaking:
 
