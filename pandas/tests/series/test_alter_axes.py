@@ -278,3 +278,9 @@ class TestSeriesAlterAxes(TestData):
             with tm.assert_produces_warning(FutureWarning):
                 result = s.set_axis(0, list('abcd'), inplace=False)
             tm.assert_series_equal(result, expected)
+
+    def test_rename_axis_supported(self):
+        # Supporting axis for compatibility, detailed in GH-18589
+        s = Series(range(5))
+        s.rename({}, axis=0)
+        s.rename({}, axis=5)

@@ -862,7 +862,6 @@ class NDFrame(PandasObject, SelectionMixin):
         copy = kwargs.pop('copy', True)
         inplace = kwargs.pop('inplace', False)
         level = kwargs.pop('level', None)
-        # Axis supported for compatibility, detailed in GH-18589
         kwargs.pop('axis', None)
 
         if kwargs:
