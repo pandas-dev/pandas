@@ -492,11 +492,13 @@ a,b,c
         tm.assert_frame_equal(df, expected)
 
         usecols = ['a', 'b', 'c', 'f']
-        with tm.assert_raises_regex(ValueError, msg.format(missing=r"\['f'\]")):
+        with tm.assert_raises_regex(
+                ValueError, msg.format(missing=r"\['f'\]")):
             self.read_csv(StringIO(data), usecols=usecols)
 
         usecols = ['a', 'b', 'f']
-        with tm.assert_raises_regex(ValueError, msg.format(missing=r"\['f'\]")):
+        with tm.assert_raises_regex(
+                ValueError, msg.format(missing=r"\['f'\]")):
             self.read_csv(StringIO(data), usecols=usecols)
 
         usecols = ['a', 'b', 'f', 'g']
@@ -525,9 +527,11 @@ a,b,c
         # tm.assert_frame_equal(df, expected)
 
         usecols = ['A', 'B', 'C', 'f']
-        with tm.assert_raises_regex(ValueError, msg.format(missing=r"\['f'\]")):
+        with tm.assert_raises_regex(
+                ValueError, msg.format(missing=r"\['f'\]")):
             self.read_csv(StringIO(data), header=0, names=names,
                           usecols=usecols)
         usecols = ['A', 'B', 'f']
-        with tm.assert_raises_regex(ValueError, msg.format(missing=r"\['f'\]")):
+        with tm.assert_raises_regex(
+                ValueError, msg.format(missing=r"\['f'\]")):
             self.read_csv(StringIO(data), names=names, usecols=usecols)
