@@ -1004,19 +1004,19 @@ class TestTimedeltaSeriesArithmetic(object):
 
 
 class TestDatetimeSeriesArithmetic(object):
-    @pytest.mark.parametrize('box_cls, assert_func', [(Series,
-                                                       tm.assert_series_equal),
-                                                      (pd.Index,
-                                                       tm.assert_index_equal)])
-    def test_sub_datetime64_not_ns(self, box_cls, assert_func):
+    @pytest.mark.parametrize(
+        'box, assert_func',
+        [(Series, tm.assert_series_equal),
+         (pd.Index, tm.assert_index_equal)])
+    def test_sub_datetime64_not_ns(self, box, assert_func):
         # GH#7996
         dt64 = np.datetime64('2013-01-01')
         assert dt64.dtype == 'datetime64[D]'
 
-        obj = box_cls(date_range('20130101', periods=3))
+        obj = box(date_range('20130101', periods=3))
         res = obj - dt64
-        expected = box_cls([Timedelta(days=0), Timedelta(days=1),
-                            Timedelta(days=2)])
+        expected = box([Timedelta(days=0), Timedelta(days=1),
+                        Timedelta(days=2)])
         assert_func(res, expected)
 
         res = dt64 - obj
