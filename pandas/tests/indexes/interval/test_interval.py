@@ -1407,6 +1407,7 @@ class TestIntervalRange(object):
         with tm.assert_raises_regex(TypeError, msg):
             interval_range(start=start, end=end)
 
+
 class TestIntervalTree(object):
     def setup_method(self, method):
         gentree = lambda dtype: IntervalTree(np.arange(5, dtype=dtype),
