@@ -372,7 +372,7 @@ cdef class _Timestamp(datetime):
 class Timestamp(_Timestamp):
     """Pandas replacement for datetime.datetime
 
-    TimeStamp is the pandas equivalent of python's Datetime
+    Timestamp is the pandas equivalent of python's Datetime
     and is interchangable with it in most cases. It's the type used
     for the entries that make up a DatetimeIndex, and other timeseries
     oriented data structures in pandas.
@@ -383,10 +383,12 @@ class Timestamp(_Timestamp):
         Value to be converted to Timestamp
     freq : str, DateOffset
         Offset which Timestamp will have
-    tz : string, pytz.timezone, dateutil.tz.tzfile or None
+    tz : str, pytz.timezone, dateutil.tz.tzfile or None
         Time zone for time which Timestamp will have.
-    unit : string
-        numpy unit used for conversion, if ts_input is int or float
+    unit : str
+        Unit used for conversion if ts_input is of type int or float. The
+        valid values are 'D', 'h', 'm', 's', 'ms', 'us', and 'ns'. For
+        example, 's' means seconds and 'ms' means milliseconds.
     offset : str, DateOffset
         Deprecated, use freq
 
@@ -408,8 +410,22 @@ class Timestamp(_Timestamp):
 
     Examples
     --------
+    Using the primary calling convention:
+
+    This converts a datetime-like string
     >>> pd.Timestamp('2017-01-01T12')
     Timestamp('2017-01-01 12:00:00')
+
+    This converts a float representing a Unix epoch in units of seconds
+    >>> pd.Timestamp(1513393355.5, unit='s')
+    Timestamp('2017-12-16 03:02:35.500000')
+
+    This converts an int representing a Unix-epoch in units of seconds
+    and for a particular timezone
+    >>> pd.Timestamp(1513393355, unit='s', tz='US/Pacific')
+    Timestamp('2017-12-15 19:02:35-0800', tz='US/Pacific')
+
+    Using the other two forms that mimic the API for ``datetime.datetime``:
 
     >>> pd.Timestamp(2017, 1, 1, 12)
     Timestamp('2017-01-01 12:00:00')
@@ -432,7 +448,7 @@ class Timestamp(_Timestamp):
             date corresponding to a proleptic Gregorian ordinal
         freq : str, DateOffset
             Offset which Timestamp will have
-        tz : string, pytz.timezone, dateutil.tz.tzfile or None
+        tz : str, pytz.timezone, dateutil.tz.tzfile or None
             Time zone for time which Timestamp will have.
         offset : str, DateOffset
             Deprecated, use freq
@@ -450,7 +466,7 @@ class Timestamp(_Timestamp):
 
         Parameters
         ----------
-        tz : string / timezone object, default None
+        tz : str or timezone object, default None
             Timezone to localize to
         """
         if is_string_object(tz):
@@ -468,7 +484,7 @@ class Timestamp(_Timestamp):
 
         Parameters
         ----------
-        tz : string / timezone object, default None
+        tz : str or timezone object, default None
             Timezone to localize to
         """
         return cls.now(tz)
@@ -777,7 +793,7 @@ class Timestamp(_Timestamp):
 
         Parameters
         ----------
-        tz : string, pytz.timezone, dateutil.tz.tzfile or None
+        tz : str, pytz.timezone, dateutil.tz.tzfile or None
             Time zone for time which Timestamp will be converted to.
             None will remove timezone holding local time.
 
@@ -831,7 +847,7 @@ class Timestamp(_Timestamp):
 
         Parameters
         ----------
-        tz : string, pytz.timezone, dateutil.tz.tzfile or None
+        tz : str, pytz.timezone, dateutil.tz.tzfile or None
             Time zone for time which Timestamp will be converted to.
             None will remove timezone holding UTC time.
 
