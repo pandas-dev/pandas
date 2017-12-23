@@ -282,6 +282,8 @@ Conversion
 - Bug in :meth:`Index.astype` with a categorical dtype where the resultant index is not converted to a :class:`CategoricalIndex` for all types of index (:issue:`18630`)
 - Bug in :meth:`Series.astype` and ``Categorical.astype()`` where an existing categorical data does not get updated (:issue:`10696`, :issue:`18593`)
 - Bug in :class:`Series` constructor with an int or float list where specifying ``dtype=str``, ``dtype='str'`` or ``dtype='U'`` failed to convert the data elements to strings (:issue:`16605`)
+- Bug in :class:`Timestamp` where comparison with an array of ``Timestamp`` objects would result in a ``RecursionError`` (:issue:`15183`)
+- Bug in :class:`WeekOfMonth` and class:`Week` where addition and subtraction did not roll correctly (:issue:`18510`,:issue:`18672`,:issue:`18864`)
 
 
 Indexing
@@ -361,4 +363,3 @@ Other
 ^^^^^
 
 - Improved error message when attempting to use a Python keyword as an identifier in a ``numexpr`` backed query (:issue:`18221`)
-- Bug in :class:`Timestamp` where comparison with an array of ``Timestamp`` objects would result in a ``RecursionError`` (:issue:`15183`)
