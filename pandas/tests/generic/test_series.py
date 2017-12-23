@@ -227,3 +227,8 @@ class TestSeries(Generic):
         # GH18800
         with tm.assert_produces_warning(FutureWarning):
             pd.Series([]).valid()
+
+    def test_axis_supported(self):
+        # Supporting axis for compatibility, detailed in GH-18589
+        s = Series(range(5))
+        s.rename({}, axis=0)
