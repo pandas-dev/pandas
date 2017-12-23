@@ -115,7 +115,7 @@ class NDFrame(PandasObject, SelectionMixin):
     _internal_names_set = set(_internal_names)
     _accessors = frozenset([])
     _deprecations = frozenset(['as_blocks', 'blocks',
-                               'consolidate', 'convert_objects'])
+                               'consolidate', 'convert_objects', 'is_copy'])
     _metadata = []
     _is_copy = None
 
@@ -1692,7 +1692,7 @@ class NDFrame(PandasObject, SelectionMixin):
             including the index (``index=False``) is only supported when
             orient is 'split' or 'table'.
 
-            .. versionadded:: 0.22.0
+            .. versionadded:: 0.23.0
 
         Returns
         -------
