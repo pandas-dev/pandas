@@ -9,7 +9,9 @@ from pandas.tests.indexes.common import Base
 import pandas.util.testing as tm
 
 
-@pytest.mark.xfail(reason="new indexing tests for issue 16316")
+pytestmark = pytest.mark.skip(reason="new indexing tests for issue 16316")
+
+
 class TestIntervalIndex(Base):
 
     def _compare_tuple_of_numpy_array(self, result, expected):

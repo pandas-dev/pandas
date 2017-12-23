@@ -6,7 +6,9 @@ from pandas import Series, IntervalIndex, Interval
 import pandas.util.testing as tm
 
 
-@pytest.mark.xfail(reason="new indexing tests for issue 16316")
+pytestmark = pytest.mark.skip(reason="new indexing tests for issue 16316")
+
+
 class TestIntervalIndex(object):
 
     def setup_method(self, method):
