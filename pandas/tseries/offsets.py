@@ -1847,9 +1847,9 @@ class FY5253(DateOffset):
         prev_year = tslib._localize_pydatetime(prev_year, other.tzinfo)
         cur_year = tslib._localize_pydatetime(cur_year, other.tzinfo)
         next_year = tslib._localize_pydatetime(next_year, other.tzinfo)
+
         # Note: next_year.year == other.year + 1, so we will always
         # have other < next_year
-
         if norm == prev_year:
             n -= 1
         elif norm == cur_year:
@@ -1894,6 +1894,7 @@ class FY5253(DateOffset):
 
         if self.variation == "last":
             days_forward = (wkday_diff % 7) - 7
+
             # days_forward is always negative, so we always end up
             # in the same year as dt
             return target_date + timedelta(days=days_forward)
