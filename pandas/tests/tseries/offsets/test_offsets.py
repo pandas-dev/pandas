@@ -3147,3 +3147,37 @@ def test_require_integers(offset_types):
     cls = offset_types
     with pytest.raises(ValueError):
         cls(n=1.5)
+
+
+def test_weeks_onoffset():
+    # GH#18510 Week with weekday = None, normalize = False should always
+    # be onOffset
+    offset = Week(n=2, weekday=None)
+    ts = Timestamp('1862-01-13 09:03:34.873477378+0210', tz='Africa/Lusaka')
+    fast = offset.onOffset(ts)
+    slow = (ts + offset) - offset == ts
+    assert fast == slow
+
+    # negative n
+    offset = Week(n=2, weekday=None)
+    ts = Timestamp('1856-10-24 16:18:36.556360110-0717', tz='Pacific/Easter')
+    fast = offset.onOffset(ts)
+    slow = (ts + offset) - offset == ts
+    assert fast == slow
+
+
+def test_weekofmonth_onoffset():
+    # GH#18864
+    # Make sure that nanoseconds don't trip up onOffset (and with it apply)
+    offset = WeekOfMonth(n=2, week=2, weekday=0)
+    ts = Timestamp('1916-05-15 01:14:49.583410462+0422', tz='Asia/Qyzylorda')
+    fast = offset.onOffset(ts)
+    slow = (ts + offset) - offset == ts
+    assert fast == slow
+
+    # negative n
+    offset = WeekOfMonth(n=-3, week=1, weekday=0)
+    ts = Timestamp('1980-12-08 03:38:52.878321185+0500', tz='Asia/Oral')
+    fast = offset.onOffset(ts)
+    slow = (ts + offset) - offset == ts
+    assert fast == slow
