@@ -859,7 +859,7 @@ class Categorical(PandasObject):
            * callable : a callable that is called on all items in the old
              categories and whose return values comprise the new categories.
 
-             .. versionadded:: 0.22.0
+             .. versionadded:: 0.23.0
 
            .. warning::
 
