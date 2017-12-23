@@ -1,21 +1,20 @@
-from .pandas_vb_common import *
-try:
-    from pandas import date_range
-except ImportError:
-    def date_range(start=None, end=None, periods=None, freq=None):
-        return DatetimeIndex(start, end, periods=periods, offset=freq)
+import numpy as np
+from pandas import DataFrame, Series, DatetimeIndex, date_range
 try:
     from pandas.plotting import andrews_curves
 except ImportError:
     from pandas.tools.plotting import andrews_curves
+import matplotlib
+matplotlib.use('Agg')
+
+from .pandas_vb_common import setup  # noqa
 
 
 class Plotting(object):
+
     goal_time = 0.2
 
     def setup(self):
-        import matplotlib
-        matplotlib.use('Agg')
         self.s = Series(np.random.randn(1000000))
         self.df = DataFrame({'col': self.s})
 
@@ -27,18 +26,17 @@ class Plotting(object):
 
 
 class TimeseriesPlotting(object):
+
     goal_time = 0.2
 
     def setup(self):
-        import matplotlib
-        matplotlib.use('Agg')
         N = 2000
         M = 5
         idx = date_range('1/1/1975', periods=N)
         self.df = DataFrame(np.random.randn(N, M), index=idx)
 
-        idx_irregular = pd.DatetimeIndex(np.concatenate((idx.values[0:10],
-                                                         idx.values[12:])))
+        idx_irregular = DatetimeIndex(np.concatenate((idx.values[0:10],
+                                                      idx.values[12:])))
         self.df2 = DataFrame(np.random.randn(len(idx_irregular), M),
                              index=idx_irregular)
 
@@ -53,16 +51,14 @@ class TimeseriesPlotting(object):
 
 
 class Misc(object):
+
     goal_time = 0.6
 
     def setup(self):
-        import matplotlib
-        matplotlib.use('Agg')
-        self.N = 500
-        self.M = 10
-        data_dict = {x: np.random.randn(self.N) for x in range(self.M)}
-        data_dict["Name"] = ["A"] * self.N
-        self.df = DataFrame(data_dict)
+        N = 500
+        M = 10
+        self.df = DataFrame(np.random.randn(N, M))
+        self.df['Name'] = ["A"] * N
 
     def time_plot_andrews_curves(self):
         andrews_curves(self.df, "Name")
