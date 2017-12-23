@@ -242,7 +242,9 @@ class TestGroupByAggregate(object):
         grouped = self.df.groupby('A')
         funcs = ['mean', lambda x: x.mean(), lambda x: x.std()]
 
-        pytest.raises(SpecificationError, grouped.agg, funcs)
+        msg = 'Function names must be unique, found multiple named <lambda>'
+        with tm.assert_raises_regex(SpecificationError, msg):
+            grouped.agg(funcs)
 
     def test_more_flexible_frame_multi_function(self):
 
@@ -491,7 +493,6 @@ class TestGroupByAggregateCython(object):
 
 
 def test_agg_api():
-
     # GH 6337
     # http://stackoverflow.com/questions/21706030/pandas-groupby-agg-function-column-dtype-error
     # different api for agg when passed custom function with mixed frame
