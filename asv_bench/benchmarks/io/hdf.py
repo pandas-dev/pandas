@@ -1,11 +1,11 @@
 import numpy as np
-from pandas import DataFrame, Panel, date_range, HDFStore
+from pandas import DataFrame, Panel, date_range, HDFStore, read_hdf
 import pandas.util.testing as tm
 
-from .pandas_vb_common import BaseIO, setup  # noqa
+from ..pandas_vb_common import BaseIO, setup  # noqa
 
 
-class HDF5(BaseIO):
+class HDFStoreDataFrame(BaseIO):
 
     goal_time = 0.2
 
@@ -34,9 +34,9 @@ class HDF5(BaseIO):
         self.df_dc = DataFrame(np.random.randn(N, 10),
                                columns=['C%03d' % i for i in range(10)])
 
-        self.f = '__test__.h5'
+        self.fname = '__test__.h5'
 
-        self.store = HDFStore(self.f)
+        self.store = HDFStore(self.fname)
         self.store.put('fixed', self.df)
         self.store.put('fixed_mixed', self.df_mixed)
         self.store.append('table', self.df2)
@@ -46,7 +46,7 @@ class HDF5(BaseIO):
 
     def teardown(self):
         self.store.close()
-        self.remove(self.f)
+        self.remove(self.fname)
 
     def time_read_store(self):
         self.store.get('fixed')
@@ -99,25 +99,48 @@ class HDF5(BaseIO):
         self.store.info()
 
 
-class HDF5Panel(BaseIO):
+class HDFStorePanel(BaseIO):
 
     goal_time = 0.2
 
     def setup(self):
-        self.f = '__test__.h5'
+        self.fname = '__test__.h5'
         self.p = Panel(np.random.randn(20, 1000, 25),
                        items=['Item%03d' % i for i in range(20)],
                        major_axis=date_range('1/1/2000', periods=1000),
                        minor_axis=['E%03d' % i for i in range(25)])
-        self.store = HDFStore(self.f)
+        self.store = HDFStore(self.fname)
         self.store.append('p1', self.p)
 
     def teardown(self):
         self.store.close()
-        self.remove(self.f)
+        self.remove(self.fname)
 
     def time_read_store_table_panel(self):
         self.store.select('p1')
 
     def time_write_store_table_panel(self):
         self.store.append('p2', self.p)
+
+
+class HDF(BaseIO):
+
+    goal_time = 0.2
+    params = ['table', 'fixed']
+    param_names = ['format']
+
+    def setup(self, format):
+        self.fname = '__test__.h5'
+        N = 100000
+        C = 5
+        self.df = DataFrame(np.random.randn(N, C),
+                            columns=['float{}'.format(i) for i in range(C)],
+                            index=date_range('20000101', periods=N, freq='H'))
+        self.df['object'] = tm.makeStringIndex(N)
+        self.df.to_hdf(self.fname, 'df', format=format)
+
+    def time_read_hdf(self, format):
+        read_hdf(self.fname, 'df')
+
+    def time_write_hdf(self, format):
+        self.df.to_hdf(self.fname, 'df', format=format)
