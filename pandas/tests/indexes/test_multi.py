@@ -475,10 +475,10 @@ class TestMultiIndex(Base):
             columns=['one', 'two', 'three', 'four'],
             index=idx)
         df = df.sort_index()
-        assert df.is_copy is None
+        assert df._is_copy is None
         assert df.index.names == ('Name', 'Number')
         df.at[('grethe', '4'), 'one'] = 99.34
-        assert df.is_copy is None
+        assert df._is_copy is None
         assert df.index.names == ('Name', 'Number')
 
     def test_copy_names(self):

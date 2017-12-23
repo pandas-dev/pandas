@@ -200,7 +200,7 @@ validate : string, default None
 Notes
 -----
 Support for specifying index levels as the `on`, `left_on`, and
-`right_on` parameters was added in version 0.22.0
+`right_on` parameters was added in version 0.23.0
 
 Examples
 --------
@@ -5094,7 +5094,7 @@ class DataFrame(NDFrame):
         of DataFrame objects
 
         Support for specifying index levels as the `on` parameter was added
-        in version 0.22.0
+        in version 0.23.0
 
         Examples
         --------
