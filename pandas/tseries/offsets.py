@@ -112,6 +112,31 @@ def apply_wraps(func):
     return wrapper
 
 
+def shift_day(other, days):
+    """
+    Increment the datetime `other` by the given number of days, retaining
+    the time-portion of the datetime.  For tz-naive datetimes this is
+    equivalent to adding a timedelta.  For tz-aware datetimes it is similar to
+    dateutil's relativedelta.__add__, but handles pytz tzinfo objects.
+
+    Parameters
+    ----------
+    other : datetime or Timestamp
+    days : int
+
+    Returns
+    -------
+    shifted: datetime or Timestamp
+    """
+    if other.tzinfo is None:
+        return other + timedelta(days=days)
+
+    tz = other.tzinfo
+    naive = other.replace(tzinfo=None)
+    shifted = naive + timedelta(days=days)
+    return tslib._localize_pydatetime(shifted, tz)
+
+
 # ---------------------------------------------------------------------
 # DateOffset
 
@@ -1305,8 +1330,9 @@ class Week(EndMixin, DateOffset):
     def onOffset(self, dt):
         if self.normalize and not _is_normalized(dt):
             return False
+        elif self.weekday is None:
+            return True
         return dt.weekday() == self.weekday
-        # TODO: Shouldn't this return True when self.weekday is None?
 
     @property
     def rule_code(self):
@@ -1325,7 +1351,29 @@ class Week(EndMixin, DateOffset):
         return cls(weekday=weekday)
 
 
-class WeekOfMonth(DateOffset):
+class _WeekOfMonthMixin(object):
+    """Mixin for methods common to WeekOfMonth and LastWeekOfMonth"""
+    @apply_wraps
+    def apply(self, other):
+        compare_day = self._get_offset_day(other)
+
+        months = self.n
+        if months > 0 and compare_day > other.day:
+            months -= 1
+        elif months <= 0 and compare_day < other.day:
+            months += 1
+
+        shifted = shift_month(other, months, 'start')
+        to_day = self._get_offset_day(shifted)
+        return shift_day(shifted, to_day - shifted.day)
+
+    def onOffset(self, dt):
+        if self.normalize and not _is_normalized(dt):
+            return False
+        return dt.day == self._get_offset_day(dt)
+
+
+class WeekOfMonth(_WeekOfMonthMixin, DateOffset):
     """
     Describes monthly dates like "the Tuesday of the 2nd week of each month"
 
@@ -1364,31 +1412,23 @@ class WeekOfMonth(DateOffset):
 
         self.kwds = {'weekday': weekday, 'week': week}
 
-    @apply_wraps
-    def apply(self, other):
-        base = other
-        offsetOfMonth = self.getOffsetOfMonth(other)
+    def _get_offset_day(self, other):
+        """
+        Find the day in the same month as other that has the same
+        weekday as self.weekday and is the self.week'th such day in the month.
 
-        months = liboffsets.roll_monthday(other, self.n, offsetOfMonth)
+        Parameters
+        ----------
+        other: datetime
 
-        other = self.getOffsetOfMonth(shift_month(other, months, 'start'))
-        other = datetime(other.year, other.month, other.day, base.hour,
-                         base.minute, base.second, base.microsecond)
-        # TODO: Why is this handled differently from LastWeekOfMonth?
-        return other
-
-    def getOffsetOfMonth(self, dt):
-        w = Week(weekday=self.weekday)
-        d = datetime(dt.year, dt.month, 1, tzinfo=dt.tzinfo)
-        # TODO: Is this DST-safe?
-        d = w.rollforward(d)
-        return d + timedelta(weeks=self.week)
-
-    def onOffset(self, dt):
-        if self.normalize and not _is_normalized(dt):
-            return False
-        d = datetime(dt.year, dt.month, dt.day, tzinfo=dt.tzinfo)
-        return d == self.getOffsetOfMonth(dt)
+        Returns
+        -------
+        day: int
+        """
+        mstart = datetime(other.year, other.month, 1)
+        wday = mstart.weekday()
+        shift_days = (self.weekday - wday) % 7
+        return 1 + shift_days + self.week * 7
 
     @property
     def rule_code(self):
@@ -1409,7 +1449,7 @@ class WeekOfMonth(DateOffset):
         return cls(week=week, weekday=weekday)
 
 
-class LastWeekOfMonth(DateOffset):
+class LastWeekOfMonth(_WeekOfMonthMixin, DateOffset):
     """
     Describes monthly dates in last week of month like "the last Tuesday of
     each month"
@@ -1443,27 +1483,24 @@ class LastWeekOfMonth(DateOffset):
 
         self.kwds = {'weekday': weekday}
 
-    @apply_wraps
-    def apply(self, other):
-        offsetOfMonth = self.getOffsetOfMonth(other)
-        months = liboffsets.roll_monthday(other, self.n, offsetOfMonth)
-        return self.getOffsetOfMonth(shift_month(other, months, 'start'))
+    def _get_offset_day(self, other):
+        """
+        Find the day in the same month as other that has the same
+        weekday as self.weekday and is the last such day in the month.
 
-    def getOffsetOfMonth(self, dt):
-        m = MonthEnd()
-        d = datetime(dt.year, dt.month, 1, dt.hour, dt.minute,
-                     dt.second, dt.microsecond, tzinfo=dt.tzinfo)
-        # TODO: Will potentially dropping nanoseconds here be a problem?
-        # Particularly in onOffset?
-        eom = m.rollforward(d)
-        # TODO: Is this DST-safe?
-        w = Week(weekday=self.weekday)
-        return w.rollback(eom)
+        Parameters
+        ----------
+        other: datetime
 
-    def onOffset(self, dt):
-        if self.normalize and not _is_normalized(dt):
-            return False
-        return dt == self.getOffsetOfMonth(dt)
+        Returns
+        -------
+        day: int
+        """
+        dim = ccalendar.get_days_in_month(other.year, other.month)
+        mend = datetime(other.year, other.month, dim)
+        wday = mend.weekday()
+        shift_days = (wday - self.weekday) % 7
+        return dim - shift_days
 
     @property
     def rule_code(self):
