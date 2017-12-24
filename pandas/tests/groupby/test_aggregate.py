@@ -768,7 +768,7 @@ def test_agg_nested_dicts():
 
     g = df.groupby(['A', 'B'])
 
-    msg = "cannot perform renaming for r1 with a nested dictionary"
+    msg = r'cannot perform renaming for r[1-2] with a nested dictionary'
     with tm.assert_raises_regex(SpecificationError, msg):
         g.aggregate({'r1': {'C': ['mean', 'sum']},
                      'r2': {'D': ['mean', 'sum']}})
