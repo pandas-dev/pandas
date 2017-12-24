@@ -168,7 +168,6 @@ class SparseSeries(Series):
                 if index is None:
                     index = data.index.view()
                 else:
-
                     data = data.reindex(index, copy=False)
 
             else:

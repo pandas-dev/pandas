@@ -1,4 +1,5 @@
 # pylint: disable-msg=E1101,W0612
+import pytest
 
 import numpy as np
 import pandas as pd
@@ -317,37 +318,34 @@ class TestSparseDataFrameConcat(object):
         assert isinstance(res, pd.SparseDataFrame)
         tm.assert_frame_equal(res.to_dense(), exp)
 
-    def test_concat_sparse_dense(self):
-        sparse = self.dense1.to_sparse()
-
+    @pytest.mark.parametrize('fill_value', [None, 0])
+    def test_concat_sparse_dense(self, fill_value):
+        sparse = self.dense1.to_sparse(fill_value=fill_value)
         res = pd.concat([sparse, self.dense2])
         exp = pd.concat([self.dense1, self.dense2])
+
         assert isinstance(res, pd.SparseDataFrame)
         tm.assert_frame_equal(res.to_dense(), exp)
 
         res = pd.concat([self.dense2, sparse])
         exp = pd.concat([self.dense2, self.dense1])
-        assert isinstance(res, pd.SparseDataFrame)
-        tm.assert_frame_equal(res.to_dense(), exp)
 
-        sparse = self.dense1.to_sparse(fill_value=0)
-
-        res = pd.concat([sparse, self.dense2])
-        exp = pd.concat([self.dense1, self.dense2])
-        assert isinstance(res, pd.SparseDataFrame)
-        tm.assert_frame_equal(res.to_dense(), exp)
-
-        res = pd.concat([self.dense2, sparse])
-        exp = pd.concat([self.dense2, self.dense1])
         assert isinstance(res, pd.SparseDataFrame)
         tm.assert_frame_equal(res.to_dense(), exp)
 
         res = pd.concat([self.dense3, sparse], axis=1)
         exp = pd.concat([self.dense3, self.dense1], axis=1)
-        assert isinstance(res, pd.SparseDataFrame)
+        # See GH18914 and #18686 for why this should be
+        # A DataFrame
+        assert isinstance(res, pd.DataFrame)
+        for column in self.dense3.columns:
+            tm.assert_series_equal(res[column], exp[column])
+
         tm.assert_frame_equal(res, exp)
 
         res = pd.concat([sparse, self.dense3], axis=1)
         exp = pd.concat([self.dense1, self.dense3], axis=1)
-        assert isinstance(res, pd.SparseDataFrame)
+        assert isinstance(res, pd.DataFrame)
+        for column in self.dense3.columns:
+            tm.assert_series_equal(res[column], exp[column])
         tm.assert_frame_equal(res, exp)
