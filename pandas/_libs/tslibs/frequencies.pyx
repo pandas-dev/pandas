@@ -256,6 +256,14 @@ cpdef str get_freq_str(base, mult=1):
 cpdef str get_base_alias(freqstr):
     """
     Returns the base frequency alias, e.g., '5D' -> 'D'
+
+    Parameters
+    ----------
+    freqstr : str
+
+    Returns
+    -------
+    base_alias : str
     """
     return _base_and_stride(freqstr)[0]
 
@@ -291,7 +299,7 @@ cpdef int get_to_timestamp_base(int base):
     """
     if base < FreqGroup.FR_BUS:
         return FreqGroup.FR_DAY
-    if FreqGroup.FR_HR <= base <= FreqGroup.FR_SEC:
+    elif FreqGroup.FR_HR <= base <= FreqGroup.FR_SEC:
         return FreqGroup.FR_SEC
     return base
 
