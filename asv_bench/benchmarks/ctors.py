@@ -1,9 +1,8 @@
 import numpy as np
 import pandas.util.testing as tm
-from pandas import (DataFrame, Series, Index, DatetimeIndex, Timestamp,
-                    MultiIndex)
+from pandas import Series, Index, DatetimeIndex, Timestamp, MultiIndex
 
-from .pandas_vb_common import setup # noqa
+from .pandas_vb_common import setup  # noqa
 
 
 class SeriesConstructors(object):
@@ -23,7 +22,6 @@ class SeriesConstructors(object):
 
     def setup(self, data_fmt, with_index):
         N = 10**4
-        np.random.seed(1234)
         arr = np.random.randn(N)
         self.data = data_fmt(arr)
         self.index = np.arange(N) if with_index else None
