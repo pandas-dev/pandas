@@ -1004,7 +1004,7 @@ class TestTimedeltaSeriesArithmetic(object):
 
 
 class TestDatetimeSeriesArithmetic(object):
-    @pytest.mark.xfail(reason='GH#18824 bug in Timedelta.__floordiv__')
+    @pytest.mark.xfail(reason='GH#18846 bug in Timedelta.__floordiv__')
     def test_timedelta_rfloordiv(self):
         td1 = Series([timedelta(minutes=5, seconds=3)] * 3)
         td1.iloc[2] = np.nan
