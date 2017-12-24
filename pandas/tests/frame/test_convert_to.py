@@ -84,8 +84,9 @@ class TestDataFrameConvertTo(TestData):
             result = df.to_records(convert_datetime64=True)['index'][0]
             assert expected == result
 
-        rs = df.to_records(convert_datetime64=False)
-        assert rs['index'][0] == df.index.values[0]
+        with tm.assert_produces_warning(FutureWarning):
+            rs = df.to_records(convert_datetime64=False)
+            assert rs['index'][0] == df.index.values[0]
 
     def test_to_records_with_multindex(self):
         # GH3189
