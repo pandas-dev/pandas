@@ -200,7 +200,7 @@ def wide_to_long(df, stubnames, i, j, sep="", suffix=r'\d+'):
 
         .. versionadded:: 0.20.0
 
-        .. versionchanged:: 0.22.0
+        .. versionchanged:: 0.23.0
             When all suffixes are numeric, they are cast to int64/float64.
 
     Returns
