@@ -76,10 +76,10 @@ class TestGroupByAggregate(object):
     def test_agg_must_agg(self):
         grouped = self.df.groupby('A')['C']
 
-        with pytest.raises(Exception):
+        msg = "Must produce aggregated value"
+        with tm.assert_raises_regex(Exception, msg):
             grouped.agg(lambda x: x.describe())
-
-        with pytest.raises(Exception):
+        with tm.assert_raises_regex(Exception, msg):
             grouped.agg(lambda x: x.index[:2])
 
     def test_agg_ser_multi_key(self):
@@ -290,27 +290,26 @@ class TestGroupByAggregate(object):
         # GH #1268
         grouped = self.df.groupby('A')
 
-        d = OrderedDict([['C', OrderedDict([['foo', 'mean'], [
-            'bar', 'std'
-        ]])], ['D', 'sum']])
+        d = OrderedDict([['C', OrderedDict([['foo', 'mean'],
+                                            ['bar', 'std']])], ['D', 'sum']])
 
         # this uses column selection & renaming
         with tm.assert_produces_warning(FutureWarning,
                                         check_stacklevel=False):
             result = grouped.aggregate(d)
 
-        d2 = OrderedDict([['C', OrderedDict([['foo', 'mean'], [
-            'bar', 'std'
-        ]])], ['D', ['sum']]])
+        d2 = OrderedDict([['C', OrderedDict([['foo', 'mean'],
+                                             ['bar', 'std']])],
+                          ['D', ['sum']]])
 
         # this uses column selection & renaming
         with tm.assert_produces_warning(FutureWarning,
                                         check_stacklevel=False):
             result2 = grouped.aggregate(d2)
 
-        d3 = OrderedDict([['C', OrderedDict([['foo', 'mean'], [
-            'bar', 'std'
-        ]])], ['D', {'sum': 'sum'}]])
+        d3 = OrderedDict([['C', OrderedDict([['foo', 'mean'],
+                                             ['bar', 'std']])],
+                          ['D', {'sum': 'sum'}]])
 
         # this uses column selection & renaming
         with tm.assert_produces_warning(FutureWarning,
@@ -379,11 +378,15 @@ class TestGroupByAggregateCython(object):
     def test_cython_agg_nothing_to_agg(self):
         frame = DataFrame({'a': np.random.randint(0, 5, 50),
                            'b': ['foo', 'bar'] * 25})
-        pytest.raises(DataError, frame.groupby('a')['b'].mean)
+        with tm.assert_raises_regex(DataError,
+                                    "No numeric types to aggregate"):
+            frame.groupby('a')['b'].mean()
 
         frame = DataFrame({'a': np.random.randint(0, 5, 50),
                            'b': ['foo', 'bar'] * 25})
-        pytest.raises(DataError, frame[['b']].groupby(frame['a']).mean)
+        with tm.assert_raises_regex(DataError,
+                                    "No numeric types to aggregate"):
+            frame[['b']].groupby(frame['a']).mean()
 
     def test_cython_agg_nothing_to_agg_with_dates(self):
         frame = DataFrame({'a': np.random.randint(0, 5, 50),
@@ -557,7 +560,7 @@ def test_agg_dict_parameter_cast_result_dtypes():
 
     df = DataFrame(
         {'class': ['A', 'A', 'B', 'B', 'C', 'C', 'D', 'D'],
-            'time': date_range('1/1/2011', periods=8, freq='H')})
+         'time': date_range('1/1/2011', periods=8, freq='H')})
     df.loc[[0, 1, 2, 5], 'time'] = None
 
     # test for `first` function
@@ -765,7 +768,8 @@ def test_agg_nested_dicts():
 
     g = df.groupby(['A', 'B'])
 
-    with pytest.raises(SpecificationError):
+    msg = "cannot perform renaming for r1 with a nested dictionary"
+    with tm.assert_raises_regex(SpecificationError, msg):
         g.aggregate({'r1': {'C': ['mean', 'sum']},
                      'r2': {'D': ['mean', 'sum']}})
 
@@ -802,9 +806,9 @@ def test_agg_item_by_item_raise_typeerror():
     def raiseException(df):
         pprint_thing('----------------------------------------')
         pprint_thing(df.to_string())
-        raise TypeError
+        raise TypeError('test')
 
-    with pytest.raises(TypeError):
+    with tm.assert_raises_regex(TypeError, 'test'):
         df.groupby(0).agg(raiseException)
 
 
