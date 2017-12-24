@@ -449,6 +449,8 @@ Reshaping
 - Bug in :func:`cut` which fails when using readonly arrays (:issue:`18773`)
 - Bug in :func:`Dataframe.pivot_table` which fails when the ``aggfunc`` arg is of type string.  The behavior is now consistent with other methods like ``agg`` and ``apply`` (:issue:`18713`)
 - Bug in :func:`DataFrame.merge` in which merging using ``Index`` objects as vectors raised an Exception (:issue:`19038`)
+- Bug in :func:`DataFrame.stack`, :func:`DataFrame.unstack`, :func:`Series.unstack` which were not returning subclasses (:issue:`15563`)
+-
 
 Numeric
 ^^^^^^^
