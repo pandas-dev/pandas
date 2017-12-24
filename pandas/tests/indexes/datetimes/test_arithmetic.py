@@ -386,21 +386,24 @@ class TestDatetimeIndexArithmetic(object):
                                  name=dti.name, freq='infer')
         tm.assert_index_equal(res, expected)
 
-    def test_dti_with_offset_series(self, tz):
-        # GH#18824
-        dti = pd.date_range('2017-01-01', periods=2, tz=tz)
+    @pytest.mark.parametrize('names', [(None, None, None),
+                                       ('foo', 'bar', None),
+                                       ('foo', 'foo', 'foo')])
+    def test_dti_with_offset_series(self, tz, names):
+        # GH#18849
+        dti = pd.date_range('2017-01-01', periods=2, tz=tz, name=names[0])
         other = pd.Series([pd.offsets.MonthEnd(), pd.offsets.Day(n=2)],
-                          name='foo')
+                          name=names[1])
 
         expected_add = pd.Series([dti[n] + other[n] for n in range(len(dti))],
-                                 name='foo')
+                                 name=names[2])
         res = dti + other
         tm.assert_series_equal(res, expected_add)
         res2 = other + dti
         tm.assert_series_equal(res2, expected_add)
 
         expected_sub = pd.Series([dti[n] - other[n] for n in range(len(dti))],
-                                 name='foo')
+                                 name=names[2])
 
         res3 = dti - other
         tm.assert_series_equal(res3, expected_sub)
