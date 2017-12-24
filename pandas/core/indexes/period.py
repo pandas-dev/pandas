@@ -478,7 +478,8 @@ class PeriodIndex(PeriodArrayMixin, DatelikeOps, DatetimeIndexOpsMixin,
 
     @property
     def end_time(self):
-        return self.to_timestamp(how='end')
+        data = (self + 1).start_time.values.astype(int) - 1
+        return DatetimeIndex(data=data)
 
     def _mpl_repr(self):
         # how to represent ourselves to matplotlib
