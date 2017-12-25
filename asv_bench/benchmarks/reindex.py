@@ -166,8 +166,8 @@ class LibFastZip(object):
         col_array = np.vstack([key1, key2, np.random.randn(N * K)])
         col_array2 = col_array.copy()
         col_array2[:, :10000] = np.nan
-        self.col_array_list = col_array.tolist()
-        self.col_array_list2 = col_array2.tolist()
+        self.col_array_list = list(col_array)
+        self.col_array_list2 = list(col_array2)
 
     def time_lib_fast_zip(self):
         lib.fast_zip(self.col_array_list)
