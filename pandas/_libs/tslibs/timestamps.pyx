@@ -435,9 +435,9 @@ class Timestamp(_Timestamp):
     """
 
     @classmethod
-    def fromordinal(cls, ordinal, freq=None, tz=None, offset=None):
+    def fromordinal(cls, ordinal, freq=None, tz=None):
         """
-        Timestamp.fromordinal(ordinal, freq=None, tz=None, offset=None)
+        Timestamp.fromordinal(ordinal, freq=None, tz=None)
 
         passed an ordinal, translate and convert to a ts
         note: by definition there cannot be any tz info on the ordinal itself
@@ -450,11 +450,9 @@ class Timestamp(_Timestamp):
             Offset which Timestamp will have
         tz : str, pytz.timezone, dateutil.tz.tzfile or None
             Time zone for time which Timestamp will have.
-        offset : str, DateOffset
-            Deprecated, use freq
         """
         return cls(datetime.fromordinal(ordinal),
-                   freq=freq, tz=tz, offset=offset)
+                   freq=freq, tz=tz)
 
     @classmethod
     def now(cls, tz=None):
@@ -529,8 +527,7 @@ class Timestamp(_Timestamp):
                 object freq=None, tz=None, unit=None,
                 year=None, month=None, day=None,
                 hour=None, minute=None, second=None, microsecond=None,
-                tzinfo=None,
-                object offset=None):
+                tzinfo=None):
         # The parameter list folds together legacy parameter names (the first
         # four) and positional and keyword parameter names from pydatetime.
         #
@@ -553,15 +550,6 @@ class Timestamp(_Timestamp):
         # Mixing pydatetime positional and keyword arguments is forbidden!
 
         cdef _TSObject ts
-
-        if offset is not None:
-            # deprecate offset kwd in 0.19.0, GH13593
-            if freq is not None:
-                msg = "Can only specify freq or offset, not both"
-                raise TypeError(msg)
-            warnings.warn("offset is deprecated. Use freq instead",
-                          FutureWarning)
-            freq = offset
 
         if tzinfo is not None:
             if not PyTZInfo_Check(tzinfo):
@@ -675,12 +663,6 @@ class Timestamp(_Timestamp):
         Alias for tzinfo
         """
         return self.tzinfo
-
-    @property
-    def offset(self):
-        warnings.warn(".offset is deprecated. Use .freq instead",
-                      FutureWarning)
-        return self.freq
 
     def __setstate__(self, state):
         self.value = state[0]
