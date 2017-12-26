@@ -120,7 +120,7 @@ _shared_doc_kwargs = dict(
             - if `axis` is 1 or `'columns'` then `by` may contain column
               levels and/or index labels
 
-        .. versionmodified:: 0.22.0
+        .. versionmodified:: 0.23.0
            Allow specifying index or column level names.""",
     versionadded_to_excel='',
     optional_labels="""labels : array-like, optional
