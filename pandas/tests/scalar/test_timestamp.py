@@ -307,36 +307,6 @@ class TestTimestampConstructors(object):
         ts = Timestamp.fromordinal(dt_tz.toordinal(), tz='US/Eastern')
         assert ts.to_pydatetime() == dt_tz
 
-    def test_constructor_offset_depr(self):
-        # see gh-12160
-        with tm.assert_produces_warning(FutureWarning,
-                                        check_stacklevel=False):
-            ts = Timestamp('2011-01-01', offset='D')
-        assert ts.freq == 'D'
-
-        with tm.assert_produces_warning(FutureWarning,
-                                        check_stacklevel=False):
-            assert ts.offset == 'D'
-
-        msg = "Can only specify freq or offset, not both"
-        with tm.assert_raises_regex(TypeError, msg):
-            Timestamp('2011-01-01', offset='D', freq='D')
-
-    def test_constructor_offset_depr_fromordinal(self):
-        # GH 12160
-        base = datetime(2000, 1, 1)
-
-        with tm.assert_produces_warning(FutureWarning,
-                                        check_stacklevel=False):
-            ts = Timestamp.fromordinal(base.toordinal(), offset='D')
-        assert Timestamp('2000-01-01') == ts
-        assert ts.freq == 'D'
-        assert base.toordinal() == ts.toordinal()
-
-        msg = "Can only specify freq or offset, not both"
-        with tm.assert_raises_regex(TypeError, msg):
-            Timestamp.fromordinal(base.toordinal(), offset='D', freq='D')
-
 
 class TestTimestamp(object):
 
