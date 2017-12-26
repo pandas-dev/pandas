@@ -102,7 +102,7 @@ project, and makes it possible to `donate <https://pandas.pydata.org/donate.html
 Project Governance
 ------------------
 
-The governance process that pandas project has used informally since its inception in 2008 is formalized in `Project Governance documents <https://github.com/pandas-dev/pandas-governance>`__ .
+The governance process that pandas project has used informally since its inception in 2008 is formalized in `Project Governance documents <https://github.com/pandas-dev/pandas-governance>`__.
 The documents clarify how decisions are made and how the various elements of our community interact, including the relationship between open source collaborative development and work that may be funded by for-profit or non-profit entities.
 
 Wes McKinney is the Benevolent Dictator for Life (BDFL).
@@ -116,7 +116,7 @@ The list of the  Core Team members and more detailed information can be found on
 Institutional Partners
 ----------------------
 
-The information about current institutional partners can be found on `pandas website page <https://pandas.pydata.org/about.html>`__
+The information about current institutional partners can be found on `pandas website page <https://pandas.pydata.org/about.html>`__.
 
 License
 -------
