@@ -33,55 +33,6 @@ This file implements string parsing and creation for NumPy datetime.
 #include "np_datetime_strings.h"
 
 
-/* Platform-specific time_t typedef */
-typedef time_t NPY_TIME_T;
-
-/*
- * Wraps `localtime` functionality for multiple platforms. This
- * converts a time value to a time structure in the local timezone.
- *
- * Returns 0 on success, -1 on failure.
- */
-static int get_localtime(NPY_TIME_T *ts, struct tm *tms) {
-    char *func_name = "<unknown>";
-#if defined(_WIN32)
-#if defined(_MSC_VER) && (_MSC_VER >= 1400)
-    if (localtime_s(tms, ts) != 0) {
-        func_name = "localtime_s";
-        goto fail;
-    }
-#elif defined(__GNUC__) && defined(NPY_MINGW_USE_CUSTOM_MSVCR)
-    if (_localtime64_s(tms, ts) != 0) {
-        func_name = "_localtime64_s";
-        goto fail;
-    }
-#else
-    struct tm *tms_tmp;
-    localtime_r(ts, tms_tmp);
-    if (tms_tmp == NULL) {
-        func_name = "localtime";
-        goto fail;
-    }
-    memcpy(tms, tms_tmp, sizeof(struct tm));
-#endif
-#else
-    if (localtime_r(ts, tms) == NULL) {
-        func_name = "localtime_r";
-        goto fail;
-    }
-#endif
-
-    return 0;
-
-fail:
-    PyErr_Format(PyExc_OSError,
-                 "Failed to use '%s' to convert "
-                 "to a local time",
-                 func_name);
-    return -1;
-}
-
-
 /*
  * Parses (almost) standard ISO 8601 date strings. The differences are:
  *
@@ -137,59 +88,6 @@ int parse_iso_8601_datetime(char *str, int len,
     memset(out, 0, sizeof(pandas_datetimestruct));
     out->month = 1;
     out->day = 1;
-
-    /*
-     * The string "today" means take today's date in local time, and
-     * convert it to a date representation. This date representation, if
-     * forced into a time unit, will be at midnight UTC.
-     * This is perhaps a little weird, but done so that the
-     * 'datetime64[D]' type produces the date you expect, rather than
-     * switching to an adjacent day depending on the current time and your
-     * timezone.
-     */
-    if (len == 5 && tolower(str[0]) == 't' && tolower(str[1]) == 'o' &&
-        tolower(str[2]) == 'd' && tolower(str[3]) == 'a' &&
-        tolower(str[4]) == 'y') {
-        NPY_TIME_T rawtime = 0;
-        struct tm tm_;
-
-        time(&rawtime);
-        if (get_localtime(&rawtime, &tm_) < 0) {
-            return -1;
-        }
-        out->year = tm_.tm_year + 1900;
-        out->month = tm_.tm_mon + 1;
-        out->day = tm_.tm_mday;
-
-        /*
-         * Indicate that this was a special value, and
-         * is a date (unit 'D').
-         */
-        if (out_local != NULL) {
-            *out_local = 0;
-        }
-
-        return 0;
-    }
-
-    /* The string "now" resolves to the current UTC time */
-    if (len == 3 && tolower(str[0]) == 'n' && tolower(str[1]) == 'o' &&
-        tolower(str[2]) == 'w') {
-        NPY_TIME_T rawtime = 0;
-
-        time(&rawtime);
-
-        /*
-         * Indicate that this was a special value, and
-         * use 's' because the time() function has resolution
-         * seconds.
-         */
-        if (out_local != NULL) {
-            *out_local = 0;
-        }
-
-        return convert_datetime_to_datetimestruct(PANDAS_FR_s, rawtime, out);
-    }
 
     substr = str;
     sublen = len;

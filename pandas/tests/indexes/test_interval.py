@@ -7,6 +7,7 @@ from pandas import (
     Interval, IntervalIndex, Index, isna, notna, interval_range, Timestamp,
     Timedelta, compat, date_range, timedelta_range, DateOffset)
 from pandas.compat import lzip
+from pandas.core.common import _asarray_tuplesafe
 from pandas.tseries.offsets import Day
 from pandas._libs.interval import IntervalTree
 from pandas.tests.indexes.common import Base
@@ -42,24 +43,37 @@ class TestIntervalIndex(Base):
             np.where(mask, np.arange(10), np.nan),
             np.where(mask, np.arange(1, 11), np.nan), closed=closed)
 
-    def test_constructors(self, closed, name):
-        left, right = Index([0, 1, 2, 3]), Index([1, 2, 3, 4])
+    @pytest.mark.parametrize('data', [
+        Index([0, 1, 2, 3, 4]),
+        Index(list('abcde')),
+        date_range('2017-01-01', periods=5),
+        date_range('2017-01-01', periods=5, tz='US/Eastern'),
+        timedelta_range('1 day', periods=5)])
+    def test_constructors(self, data, closed, name):
+        left, right = data[:-1], data[1:]
         ivs = [Interval(l, r, closed=closed) for l, r in lzip(left, right)]
         expected = IntervalIndex._simple_new(
             left=left, right=right, closed=closed, name=name)
 
+        # validate expected
+        assert expected.closed == closed
+        assert expected.name == name
+        assert expected.dtype.subtype == data.dtype
+        tm.assert_index_equal(expected.left, data[:-1])
+        tm.assert_index_equal(expected.right, data[1:])
+
+        # validated constructors
         result = IntervalIndex(ivs, name=name)
         tm.assert_index_equal(result, expected)
 
         result = IntervalIndex.from_intervals(ivs, name=name)
         tm.assert_index_equal(result, expected)
 
-        result = IntervalIndex.from_breaks(
-            np.arange(5), closed=closed, name=name)
+        result = IntervalIndex.from_breaks(data, closed=closed, name=name)
         tm.assert_index_equal(result, expected)
 
         result = IntervalIndex.from_arrays(
-            left.values, right.values, closed=closed, name=name)
+            left, right, closed=closed, name=name)
         tm.assert_index_equal(result, expected)
 
         result = IntervalIndex.from_tuples(
@@ -187,6 +201,9 @@ class TestIntervalIndex(Base):
                                           Interval(1, 2, closed='left')])
 
         with tm.assert_raises_regex(ValueError, msg):
+            IntervalIndex([Interval(0, 1), Interval(2, 3, closed='left')])
+
+        with tm.assert_raises_regex(ValueError, msg):
             Index([Interval(0, 1), Interval(2, 3, closed='left')])
 
         # mismatched closed inferred from intervals vs constructor.
@@ -209,26 +226,24 @@ class TestIntervalIndex(Base):
         with tm.assert_raises_regex(ValueError, msg):
             IntervalIndex.from_arrays(range(10, -1, -1), range(9, -2, -1))
 
-    def test_constructors_datetimelike(self, closed):
+    @pytest.mark.parametrize('tz_left, tz_right', [
+        (None, 'UTC'), ('UTC', None), ('UTC', 'US/Eastern')])
+    def test_constructors_errors_tz(self, tz_left, tz_right):
+        # GH 18537
+        left = date_range('2017-01-01', periods=4, tz=tz_left)
+        right = date_range('2017-01-02', periods=4, tz=tz_right)
 
-        # DTI / TDI
-        for idx in [pd.date_range('20130101', periods=5),
-                    pd.timedelta_range('1 day', periods=5)]:
-            result = IntervalIndex.from_breaks(idx, closed=closed)
-            expected = IntervalIndex.from_breaks(idx.values, closed=closed)
-            tm.assert_index_equal(result, expected)
+        # don't need to check IntervalIndex(...) or from_intervals, since
+        # mixed tz are disallowed at the Interval level
+        with pytest.raises(ValueError):
+            IntervalIndex.from_arrays(left, right)
 
-            expected_scalar_type = type(idx[0])
-            i = result[0]
-            assert isinstance(i.left, expected_scalar_type)
-            assert isinstance(i.right, expected_scalar_type)
+        with pytest.raises(ValueError):
+            IntervalIndex.from_tuples(lzip(left, right))
 
-    def test_constructors_error(self):
-
-        # non-intervals
-        def f():
-            IntervalIndex.from_intervals([0.997, 4.0])
-        pytest.raises(TypeError, f)
+        with pytest.raises(ValueError):
+            breaks = left.tolist() + [right[-1]]
+            IntervalIndex.from_breaks(breaks)
 
     def test_properties(self, closed):
         index = self.create_index(closed=closed)
@@ -267,6 +282,36 @@ class TestIntervalIndex(Base):
         expected = np.array(ivs, dtype=object)
         tm.assert_numpy_array_equal(np.asarray(index), expected)
         tm.assert_numpy_array_equal(index.values, expected)
+
+    @pytest.mark.parametrize('breaks', [
+        [1, 1, 2, 5, 15, 53, 217, 1014, 5335, 31240, 201608],
+        [-np.inf, -100, -10, 0.5, 1, 1.5, 3.8, 101, 202, np.inf],
+        pd.to_datetime(['20170101', '20170202', '20170303', '20170404']),
+        pd.to_timedelta(['1ns', '2ms', '3s', '4M', '5H', '6D'])])
+    def test_length(self, closed, breaks):
+        # GH 18789
+        index = IntervalIndex.from_breaks(breaks, closed=closed)
+        result = index.length
+        expected = Index(iv.length for iv in index)
+        tm.assert_index_equal(result, expected)
+
+        # with NA
+        index = index.insert(1, np.nan)
+        result = index.length
+        expected = Index(iv.length if notna(iv) else iv for iv in index)
+        tm.assert_index_equal(result, expected)
+
+    @pytest.mark.parametrize('breaks', [
+        list('abcdefgh'),
+        lzip(range(10), range(1, 11)),
+        [['A', 'B'], ['a', 'b'], ['c', 'd'], ['e', 'f']],
+        [Interval(0, 1), Interval(1, 2), Interval(3, 4), Interval(4, 5)]])
+    def test_length_errors(self, closed, breaks):
+        # GH 18789
+        index = IntervalIndex.from_breaks(breaks)
+        msg = 'IntervalIndex contains Intervals without defined length'
+        with tm.assert_raises_regex(TypeError, msg):
+            index.length
 
     def test_with_nans(self, closed):
         index = self.create_index(closed=closed)
@@ -361,10 +406,6 @@ class TestIntervalIndex(Base):
         result = idx.astype('interval')
         tm.assert_index_equal(result, idx)
         assert result.equals(idx)
-
-        result = idx.astype('category')
-        expected = pd.Categorical(idx, ordered=True)
-        tm.assert_categorical_equal(result, expected)
 
     @pytest.mark.parametrize('klass', [list, tuple, np.array, pd.Series])
     def test_where(self, closed, klass):
@@ -964,23 +1005,46 @@ class TestIntervalIndex(Base):
         expected = IntervalIndex([np.nan, Interval(1, 2), Interval(0, 1)])
         tm.assert_index_equal(result, expected)
 
-    def test_datetime(self):
-        dates = date_range('2000', periods=3)
-        idx = IntervalIndex.from_breaks(dates)
+    @pytest.mark.parametrize('tz', [None, 'US/Eastern'])
+    def test_datetime(self, tz):
+        start = Timestamp('2000-01-01', tz=tz)
+        dates = date_range(start=start, periods=10)
+        index = IntervalIndex.from_breaks(dates)
 
-        tm.assert_index_equal(idx.left, dates[:2])
-        tm.assert_index_equal(idx.right, dates[-2:])
+        # test mid
+        start = Timestamp('2000-01-01T12:00', tz=tz)
+        expected = date_range(start=start, periods=9)
+        tm.assert_index_equal(index.mid, expected)
 
-        expected = date_range('2000-01-01T12:00', periods=2)
-        tm.assert_index_equal(idx.mid, expected)
+        # __contains__ doesn't check individual points
+        assert Timestamp('2000-01-01', tz=tz) not in index
+        assert Timestamp('2000-01-01T12', tz=tz) not in index
+        assert Timestamp('2000-01-02', tz=tz) not in index
+        iv_true = Interval(Timestamp('2000-01-01T08', tz=tz),
+                           Timestamp('2000-01-01T18', tz=tz))
+        iv_false = Interval(Timestamp('1999-12-31', tz=tz),
+                            Timestamp('2000-01-01', tz=tz))
+        assert iv_true in index
+        assert iv_false not in index
 
-        assert Timestamp('2000-01-01T12') not in idx
-        assert Timestamp('2000-01-01T12') not in idx
+        # .contains does check individual points
+        assert not index.contains(Timestamp('2000-01-01', tz=tz))
+        assert index.contains(Timestamp('2000-01-01T12', tz=tz))
+        assert index.contains(Timestamp('2000-01-02', tz=tz))
+        assert index.contains(iv_true)
+        assert not index.contains(iv_false)
 
-        target = date_range('1999-12-31T12:00', periods=7, freq='12H')
-        actual = idx.get_indexer(target)
+        # test get_indexer
+        start = Timestamp('1999-12-31T12:00', tz=tz)
+        target = date_range(start=start, periods=7, freq='12H')
+        actual = index.get_indexer(target)
+        expected = np.array([-1, -1, 0, 0, 1, 1, 2], dtype='intp')
+        tm.assert_numpy_array_equal(actual, expected)
 
-        expected = np.array([-1, -1, 0, 0, 1, 1, -1], dtype='intp')
+        start = Timestamp('2000-01-08T18:00', tz=tz)
+        target = date_range(start=start, periods=7, freq='6H')
+        actual = index.get_indexer(target)
+        expected = np.array([7, 7, 8, 8, 8, 8, -1], dtype='intp')
         tm.assert_numpy_array_equal(actual, expected)
 
     def test_append(self, closed):
@@ -1039,6 +1103,45 @@ class TestIntervalIndex(Base):
             idx = IntervalIndex.from_breaks(range(4), closed=closed)
             assert idx.is_non_overlapping_monotonic is True
 
+    @pytest.mark.parametrize('tuples', [
+        lzip(range(10), range(1, 11)),
+        lzip(date_range('20170101', periods=10),
+             date_range('20170101', periods=10)),
+        lzip(timedelta_range('0 days', periods=10),
+             timedelta_range('1 day', periods=10))])
+    def test_to_tuples(self, tuples):
+        # GH 18756
+        idx = IntervalIndex.from_tuples(tuples)
+        result = idx.to_tuples()
+        expected = Index(_asarray_tuplesafe(tuples))
+        tm.assert_index_equal(result, expected)
+
+    @pytest.mark.parametrize('tuples', [
+        lzip(range(10), range(1, 11)) + [np.nan],
+        lzip(date_range('20170101', periods=10),
+             date_range('20170101', periods=10)) + [np.nan],
+        lzip(timedelta_range('0 days', periods=10),
+             timedelta_range('1 day', periods=10)) + [np.nan]])
+    @pytest.mark.parametrize('na_tuple', [True, False])
+    def test_to_tuples_na(self, tuples, na_tuple):
+        # GH 18756
+        idx = IntervalIndex.from_tuples(tuples)
+        result = idx.to_tuples(na_tuple=na_tuple)
+
+        # check the non-NA portion
+        expected_notna = Index(_asarray_tuplesafe(tuples[:-1]))
+        result_notna = result[:-1]
+        tm.assert_index_equal(result_notna, expected_notna)
+
+        # check the NA portion
+        result_na = result[-1]
+        if na_tuple:
+            assert isinstance(result_na, tuple)
+            assert len(result_na) == 2
+            assert all(isna(x) for x in result_na)
+        else:
+            assert isna(result_na)
+
 
 class TestIntervalRange(object):
 
@@ -1079,9 +1182,11 @@ class TestIntervalRange(object):
                                 closed=closed)
         tm.assert_index_equal(result, expected)
 
-    def test_construction_from_timestamp(self, closed, name):
+    @pytest.mark.parametrize('tz', [None, 'US/Eastern'])
+    def test_construction_from_timestamp(self, closed, name, tz):
         # combinations of start/end/periods without freq
-        start, end = Timestamp('2017-01-01'), Timestamp('2017-01-06')
+        start = Timestamp('2017-01-01', tz=tz)
+        end = Timestamp('2017-01-06', tz=tz)
         breaks = date_range(start=start, end=end)
         expected = IntervalIndex.from_breaks(breaks, name=name, closed=closed)
 
@@ -1099,7 +1204,8 @@ class TestIntervalRange(object):
 
         # combinations of start/end/periods with fixed freq
         freq = '2D'
-        start, end = Timestamp('2017-01-01'), Timestamp('2017-01-07')
+        start = Timestamp('2017-01-01', tz=tz)
+        end = Timestamp('2017-01-07', tz=tz)
         breaks = date_range(start=start, end=end, freq=freq)
         expected = IntervalIndex.from_breaks(breaks, name=name, closed=closed)
 
@@ -1116,14 +1222,15 @@ class TestIntervalRange(object):
         tm.assert_index_equal(result, expected)
 
         # output truncates early if freq causes end to be skipped.
-        end = Timestamp('2017-01-08')
+        end = Timestamp('2017-01-08', tz=tz)
         result = interval_range(start=start, end=end, freq=freq, name=name,
                                 closed=closed)
         tm.assert_index_equal(result, expected)
 
         # combinations of start/end/periods with non-fixed freq
         freq = 'M'
-        start, end = Timestamp('2017-01-01'), Timestamp('2017-12-31')
+        start = Timestamp('2017-01-01', tz=tz)
+        end = Timestamp('2017-12-31', tz=tz)
         breaks = date_range(start=start, end=end, freq=freq)
         expected = IntervalIndex.from_breaks(breaks, name=name, closed=closed)
 
@@ -1140,7 +1247,7 @@ class TestIntervalRange(object):
         tm.assert_index_equal(result, expected)
 
         # output truncates early if freq causes end to be skipped.
-        end = Timestamp('2018-01-15')
+        end = Timestamp('2018-01-15', tz=tz)
         result = interval_range(start=start, end=end, freq=freq, name=name,
                                 closed=closed)
         tm.assert_index_equal(result, expected)
@@ -1307,6 +1414,13 @@ class TestIntervalRange(object):
 
         with tm.assert_raises_regex(ValueError, msg):
             interval_range(end=Timedelta('1 day'), periods=10, freq='foo')
+
+        # mixed tz
+        start = Timestamp('2017-01-01', tz='US/Eastern')
+        end = Timestamp('2017-01-07', tz='US/Pacific')
+        msg = 'Start and end cannot both be tz-aware with different timezones'
+        with tm.assert_raises_regex(TypeError, msg):
+            interval_range(start=start, end=end)
 
 
 class TestIntervalTree(object):

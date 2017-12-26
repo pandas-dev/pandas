@@ -108,16 +108,16 @@ class NDFrame(PandasObject, SelectionMixin):
     axes : list
     copy : boolean, default False
     """
-    _internal_names = ['_data', '_cacher', '_item_cache', '_cache', 'is_copy',
+    _internal_names = ['_data', '_cacher', '_item_cache', '_cache', '_is_copy',
                        '_subtyp', '_name', '_index', '_default_kind',
                        '_default_fill_value', '_metadata', '__array_struct__',
                        '__array_interface__']
     _internal_names_set = set(_internal_names)
     _accessors = frozenset([])
     _deprecations = frozenset(['as_blocks', 'blocks',
-                               'consolidate', 'convert_objects'])
+                               'consolidate', 'convert_objects', 'is_copy'])
     _metadata = []
-    is_copy = None
+    _is_copy = None
 
     def __init__(self, data, axes=None, copy=False, dtype=None,
                  fastpath=False):
@@ -132,9 +132,21 @@ class NDFrame(PandasObject, SelectionMixin):
                 for i, ax in enumerate(axes):
                     data = data.reindex_axis(ax, axis=i)
 
-        object.__setattr__(self, 'is_copy', None)
+        object.__setattr__(self, '_is_copy', None)
         object.__setattr__(self, '_data', data)
         object.__setattr__(self, '_item_cache', {})
+
+    @property
+    def is_copy(self):
+        warnings.warn("Attribute 'is_copy' is deprecated and will be removed "
+                      "in a future version.", FutureWarning, stacklevel=2)
+        return self._is_copy
+
+    @is_copy.setter
+    def is_copy(self, msg):
+        warnings.warn("Attribute 'is_copy' is deprecated and will be removed "
+                      "in a future version.", FutureWarning, stacklevel=2)
+        self._is_copy = msg
 
     def _repr_data_resource_(self):
         """
@@ -195,9 +207,12 @@ class NDFrame(PandasObject, SelectionMixin):
         return '%s(%s)' % (self.__class__.__name__, prepr)
 
     def _dir_additions(self):
-        """ add the string-like attributes from the info_axis """
-        additions = set([c for c in self._info_axis
-                         if isinstance(c, string_types) and isidentifier(c)])
+        """ add the string-like attributes from the info_axis.
+        If info_axis is a MultiIndex, it's first level values are used.
+        """
+        additions = set(
+            [c for c in self._info_axis.unique(level=0)[:100]
+             if isinstance(c, string_types) and isidentifier(c)])
         return super(NDFrame, self)._dir_additions().union(additions)
 
     @property
@@ -1621,7 +1636,8 @@ class NDFrame(PandasObject, SelectionMixin):
 
     def to_json(self, path_or_buf=None, orient=None, date_format=None,
                 double_precision=10, force_ascii=True, date_unit='ms',
-                default_handler=None, lines=False, compression=None):
+                default_handler=None, lines=False, compression=None,
+                index=True):
         """
         Convert the object to a JSON string.
 
@@ -1689,6 +1705,13 @@ class NDFrame(PandasObject, SelectionMixin):
 
             .. versionadded:: 0.21.0
 
+        index : boolean, default True
+            Whether to include the index values in the JSON string. Not
+            including the index (``index=False``) is only supported when
+            orient is 'split' or 'table'.
+
+            .. versionadded:: 0.23.0
+
         Returns
         -------
         same type as input object with filtered info axis
@@ -1741,7 +1764,8 @@ class NDFrame(PandasObject, SelectionMixin):
                             double_precision=double_precision,
                             force_ascii=force_ascii, date_unit=date_unit,
                             default_handler=default_handler,
-                            lines=lines, compression=compression)
+                            lines=lines, compression=compression,
+                            index=index)
 
     def to_hdf(self, path_or_buf, key, **kwargs):
         """Write the contained data to an HDF5 file using HDFStore.
@@ -2159,7 +2183,7 @@ class NDFrame(PandasObject, SelectionMixin):
             res._set_as_cached(item, self)
 
             # for a chain
-            res.is_copy = self.is_copy
+            res._is_copy = self._is_copy
         return res
 
     def _set_as_cached(self, item, cacher):
@@ -2270,12 +2294,12 @@ class NDFrame(PandasObject, SelectionMixin):
 
     def _set_is_copy(self, ref=None, copy=True):
         if not copy:
-            self.is_copy = None
+            self._is_copy = None
         else:
             if ref is not None:
-                self.is_copy = weakref.ref(ref)
+                self._is_copy = weakref.ref(ref)
             else:
-                self.is_copy = None
+                self._is_copy = None
 
     def _check_is_chained_assignment_possible(self):
         """
@@ -2294,7 +2318,7 @@ class NDFrame(PandasObject, SelectionMixin):
                 self._check_setitem_copy(stacklevel=4, t='referant',
                                          force=True)
             return True
-        elif self.is_copy:
+        elif self._is_copy:
             self._check_setitem_copy(stacklevel=4, t='referant')
         return False
 
@@ -2329,7 +2353,7 @@ class NDFrame(PandasObject, SelectionMixin):
 
         """
 
-        if force or self.is_copy:
+        if force or self._is_copy:
 
             value = config.get_option('mode.chained_assignment')
             if value is None:
@@ -2339,23 +2363,23 @@ class NDFrame(PandasObject, SelectionMixin):
             # the copy weakref
             try:
                 gc.collect(2)
-                if not gc.get_referents(self.is_copy()):
-                    self.is_copy = None
+                if not gc.get_referents(self._is_copy()):
+                    self._is_copy = None
                     return
             except Exception:
                 pass
 
             # we might be a false positive
             try:
-                if self.is_copy().shape == self.shape:
-                    self.is_copy = None
+                if self._is_copy().shape == self.shape:
+                    self._is_copy = None
                     return
             except Exception:
                 pass
 
             # a custom message
-            if isinstance(self.is_copy, string_types):
-                t = self.is_copy
+            if isinstance(self._is_copy, string_types):
+                t = self._is_copy
 
             elif t == 'referant':
                 t = ("\n"
@@ -3569,6 +3593,44 @@ class NDFrame(PandasObject, SelectionMixin):
         -------
         obj_head : type of caller
             The first n rows of the caller object.
+
+        See Also
+        --------
+        pandas.DataFrame.tail
+
+        Examples
+        --------
+        >>> df = pd.DataFrame({'animal':['alligator', 'bee', 'falcon', 'lion',
+        ...                    'monkey', 'parrot', 'shark', 'whale', 'zebra']})
+        >>> df
+              animal
+        0  alligator
+        1        bee
+        2     falcon
+        3       lion
+        4     monkey
+        5     parrot
+        6      shark
+        7      whale
+        8      zebra
+
+        Viewing the first 5 lines
+
+        >>> df.head()
+              animal
+        0  alligator
+        1        bee
+        2     falcon
+        3       lion
+        4     monkey
+
+        Viewing the first n lines (three in this case)
+
+        >>> df.head(3)
+              animal
+        0  alligator
+        1        bee
+        2     falcon
         """
 
         return self.iloc[:n]
@@ -3586,6 +3648,44 @@ class NDFrame(PandasObject, SelectionMixin):
         -------
         obj_tail : type of caller
             The last n rows of the caller object.
+
+        See Also
+        --------
+        pandas.DataFrame.head
+
+        Examples
+        --------
+        >>> df = pd.DataFrame({'animal':['alligator', 'bee', 'falcon', 'lion',
+        ...                    'monkey', 'parrot', 'shark', 'whale', 'zebra']})
+        >>> df
+              animal
+        0  alligator
+        1        bee
+        2     falcon
+        3       lion
+        4     monkey
+        5     parrot
+        6      shark
+        7      whale
+        8      zebra
+
+        Viewing the last 5 lines
+
+        >>> df.tail()
+           animal
+        4  monkey
+        5  parrot
+        6   shark
+        7   whale
+        8   zebra
+
+        Viewing the last n lines (three in this case)
+
+        >>> df.tail(3)
+          animal
+        6  shark
+        7  whale
+        8  zebra
         """
 
         if n == 0:
@@ -4273,7 +4373,7 @@ class NDFrame(PandasObject, SelectionMixin):
         pandas object may propagate changes:
 
         >>> s1 = pd.Series([1,2])
-        >>> s2 = s1.astype('int', copy=False)
+        >>> s2 = s1.astype('int64', copy=False)
         >>> s2[0] = 10
         >>> s1  # note that s1[0] has changed too
         0    10

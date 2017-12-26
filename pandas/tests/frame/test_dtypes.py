@@ -619,6 +619,13 @@ class TestDataFrameDataTypes(TestData):
         expected = concat([a1_str, b, a2_str], axis=1)
         assert_frame_equal(result, expected)
 
+    @pytest.mark.parametrize('columns', [['x'], ['x', 'y'], ['x', 'y', 'z']])
+    def test_categorical_astype_ndim_raises(self, columns):
+        # GH 18004
+        msg = '> 1 ndim Categorical are not supported at this time'
+        with tm.assert_raises_regex(NotImplementedError, msg):
+            DataFrame(columns=columns).astype('category')
+
     @pytest.mark.parametrize("cls", [
         pd.api.types.CategoricalDtype,
         pd.api.types.DatetimeTZDtype,
@@ -668,6 +675,25 @@ class TestDataFrameDataTypes(TestData):
             df.astype(np.int8, raise_on_error=False)
 
         df.astype(np.int8, errors='ignore')
+
+    @pytest.mark.parametrize('input_vals', [
+        ([1, 2]),
+        ([1.0, 2.0, np.nan]),
+        (['1', '2']),
+        (list(pd.date_range('1/1/2011', periods=2, freq='H'))),
+        (list(pd.date_range('1/1/2011', periods=2, freq='H',
+                            tz='US/Eastern'))),
+        ([pd.Interval(left=0, right=5)]),
+    ])
+    def test_constructor_list_str(self, input_vals):
+        # GH 16605
+        # Ensure that data elements are converted to strings when
+        # dtype is str, 'str', or 'U'
+
+        for dtype in ['str', str, 'U']:
+            result = DataFrame({'A': input_vals}, dtype=dtype)
+            expected = DataFrame({'A': input_vals}).astype({'A': dtype})
+            assert_frame_equal(result, expected)
 
 
 class TestDataFrameDatetimeWithTZ(TestData):

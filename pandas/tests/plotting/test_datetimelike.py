@@ -519,6 +519,7 @@ class TestTSPlot(TestPlotBase):
             xp = Period('1/1/1999', freq='H').ordinal
         assert rs == xp
 
+    @td.skip_if_mpl_1_5
     @pytest.mark.slow
     def test_gaps(self):
         ts = tm.makeTimeSeries()
@@ -526,7 +527,6 @@ class TestTSPlot(TestPlotBase):
         _, ax = self.plt.subplots()
         ts.plot(ax=ax)
         lines = ax.get_lines()
-        tm._skip_if_mpl_1_5()
         assert len(lines) == 1
         l = lines[0]
         data = l.get_xydata()
@@ -564,6 +564,7 @@ class TestTSPlot(TestPlotBase):
         mask = data.mask
         assert mask[2:5, 1].all()
 
+    @td.skip_if_mpl_1_5
     @pytest.mark.slow
     def test_gap_upsample(self):
         low = tm.makeTimeSeries()
@@ -579,8 +580,6 @@ class TestTSPlot(TestPlotBase):
         assert len(ax.right_ax.get_lines()) == 1
         l = lines[0]
         data = l.get_xydata()
-
-        tm._skip_if_mpl_1_5()
 
         assert isinstance(data, np.ma.core.MaskedArray)
         mask = data.mask
@@ -644,10 +643,10 @@ class TestTSPlot(TestPlotBase):
         assert ax.get_yaxis().get_visible()
 
     @pytest.mark.slow
+    @td.skip_if_no_scipy
     def test_secondary_kde(self):
         if not self.mpl_ge_1_5_0:
             pytest.skip("mpl is not supported")
-        tm._skip_if_no_scipy()
         _skip_if_no_scipy_gaussian_kde()
 
         ser = Series(np.random.randn(10))
@@ -1033,32 +1032,40 @@ class TestTSPlot(TestPlotBase):
         df = DataFrame({'a': np.random.randn(len(ts)),
                         'b': np.random.randn(len(ts))},
                        index=ts)
-        _, ax = self.plt.subplots()
+        fig, ax = self.plt.subplots()
         df.plot(ax=ax)
 
         # verify tick labels
+        fig.canvas.draw()
         ticks = ax.get_xticks()
         labels = ax.get_xticklabels()
         for t, l in zip(ticks, labels):
             m, s = divmod(int(t), 60)
             h, m = divmod(m, 60)
-            xp = l.get_text()
-            if len(xp) > 0:
-                rs = time(h, m, s).strftime('%H:%M:%S')
+            rs = l.get_text()
+            if len(rs) > 0:
+                if s != 0:
+                    xp = time(h, m, s).strftime('%H:%M:%S')
+                else:
+                    xp = time(h, m, s).strftime('%H:%M')
                 assert xp == rs
 
         # change xlim
         ax.set_xlim('1:30', '5:00')
 
         # check tick labels again
+        fig.canvas.draw()
         ticks = ax.get_xticks()
         labels = ax.get_xticklabels()
         for t, l in zip(ticks, labels):
             m, s = divmod(int(t), 60)
             h, m = divmod(m, 60)
-            xp = l.get_text()
-            if len(xp) > 0:
-                rs = time(h, m, s).strftime('%H:%M:%S')
+            rs = l.get_text()
+            if len(rs) > 0:
+                if s != 0:
+                    xp = time(h, m, s).strftime('%H:%M:%S')
+                else:
+                    xp = time(h, m, s).strftime('%H:%M')
                 assert xp == rs
 
     @pytest.mark.slow
@@ -1070,22 +1077,29 @@ class TestTSPlot(TestPlotBase):
         df = DataFrame({'a': np.random.randn(len(ts)),
                         'b': np.random.randn(len(ts))},
                        index=ts)
-        _, ax = self.plt.subplots()
+        fig, ax = self.plt.subplots()
         ax = df.plot(ax=ax)
 
         # verify tick labels
+        fig.canvas.draw()
         ticks = ax.get_xticks()
         labels = ax.get_xticklabels()
         for t, l in zip(ticks, labels):
             m, s = divmod(int(t), 60)
 
-            # TODO: unused?
-            # us = int((t - int(t)) * 1e6)
+            us = int(round((t - int(t)) * 1e6))
 
             h, m = divmod(m, 60)
-            xp = l.get_text()
-            if len(xp) > 0:
-                rs = time(h, m, s).strftime('%H:%M:%S.%f')
+            rs = l.get_text()
+            if len(rs) > 0:
+                if (us % 1000) != 0:
+                    xp = time(h, m, s, us).strftime('%H:%M:%S.%f')
+                elif (us // 1000) != 0:
+                    xp = time(h, m, s, us).strftime('%H:%M:%S.%f')[:-3]
+                elif s != 0:
+                    xp = time(h, m, s, us).strftime('%H:%M:%S')
+                else:
+                    xp = time(h, m, s, us).strftime('%H:%M')
                 assert xp == rs
 
     @pytest.mark.slow

@@ -16,13 +16,13 @@ from dateutil.easter import easter
 from pandas._libs import tslib, Timestamp, OutOfBoundsDatetime, Timedelta
 from pandas.util._decorators import cache_readonly
 
+from pandas._libs.tslibs import ccalendar
 from pandas._libs.tslibs.timedeltas import delta_to_nanoseconds
 import pandas._libs.tslibs.offsets as liboffsets
 from pandas._libs.tslibs.offsets import (
     ApplyTypeError,
     as_datetime, _is_normalized,
     _get_calendar, _to_dt64, _validate_business_time,
-    _int_to_weekday, _weekday_to_int,
     _determine_offset,
     apply_index_wraps,
     roll_yearday,
@@ -110,6 +110,31 @@ def apply_wraps(func):
 
         return result
     return wrapper
+
+
+def shift_day(other, days):
+    """
+    Increment the datetime `other` by the given number of days, retaining
+    the time-portion of the datetime.  For tz-naive datetimes this is
+    equivalent to adding a timedelta.  For tz-aware datetimes it is similar to
+    dateutil's relativedelta.__add__, but handles pytz tzinfo objects.
+
+    Parameters
+    ----------
+    other : datetime or Timestamp
+    days : int
+
+    Returns
+    -------
+    shifted: datetime or Timestamp
+    """
+    if other.tzinfo is None:
+        return other + timedelta(days=days)
+
+    tz = other.tzinfo
+    naive = other.replace(tzinfo=None)
+    shifted = naive + timedelta(days=days)
+    return tslib._localize_pydatetime(shifted, tz)
 
 
 # ---------------------------------------------------------------------
@@ -933,7 +958,7 @@ class MonthOffset(SingleConstructorOffset):
         if self.isAnchored:
             return self.rule_code
         else:
-            month = liboffsets._int_to_month[self.n]
+            month = ccalendar.MONTH_ALIASES[self.n]
             return "{code}-{month}".format(code=self.rule_code,
                                            month=month)
 
@@ -1342,13 +1367,16 @@ class Week(EndMixin, DateOffset):
     def onOffset(self, dt):
         if self.normalize and not _is_normalized(dt):
             return False
+        elif self.weekday is None:
+            return True
         return dt.weekday() == self.weekday
 
     @property
     def rule_code(self):
         suffix = ''
         if self.weekday is not None:
-            suffix = '-{weekday}'.format(weekday=_int_to_weekday[self.weekday])
+            weekday = ccalendar.int_to_weekday[self.weekday]
+            suffix = '-{weekday}'.format(weekday=weekday)
         return self._prefix + suffix
 
     @classmethod
@@ -1356,11 +1384,33 @@ class Week(EndMixin, DateOffset):
         if not suffix:
             weekday = None
         else:
-            weekday = _weekday_to_int[suffix]
+            weekday = ccalendar.weekday_to_int[suffix]
         return cls(weekday=weekday)
 
 
-class WeekOfMonth(DateOffset):
+class _WeekOfMonthMixin(object):
+    """Mixin for methods common to WeekOfMonth and LastWeekOfMonth"""
+    @apply_wraps
+    def apply(self, other):
+        compare_day = self._get_offset_day(other)
+
+        months = self.n
+        if months > 0 and compare_day > other.day:
+            months -= 1
+        elif months <= 0 and compare_day < other.day:
+            months += 1
+
+        shifted = shift_month(other, months, 'start')
+        to_day = self._get_offset_day(shifted)
+        return shift_day(shifted, to_day - shifted.day)
+
+    def onOffset(self, dt):
+        if self.normalize and not _is_normalized(dt):
+            return False
+        return dt.day == self._get_offset_day(dt)
+
+
+class WeekOfMonth(_WeekOfMonthMixin, DateOffset):
     """
     Describes monthly dates like "the Tuesday of the 2nd week of each month"
 
@@ -1399,38 +1449,27 @@ class WeekOfMonth(DateOffset):
 
         self.kwds = {'weekday': weekday, 'week': week}
 
-    @apply_wraps
-    def apply(self, other):
-        base = other
-        offsetOfMonth = self.getOffsetOfMonth(other)
+    def _get_offset_day(self, other):
+        """
+        Find the day in the same month as other that has the same
+        weekday as self.weekday and is the self.week'th such day in the month.
 
-        months = self.n
-        if months > 0 and offsetOfMonth > other:
-            months -= 1
-        elif months <= 0 and offsetOfMonth < other:
-            months += 1
+        Parameters
+        ----------
+        other: datetime
 
-        other = self.getOffsetOfMonth(shift_month(other, months, 'start'))
-        other = datetime(other.year, other.month, other.day, base.hour,
-                         base.minute, base.second, base.microsecond)
-        return other
-
-    def getOffsetOfMonth(self, dt):
-        w = Week(weekday=self.weekday)
-        d = datetime(dt.year, dt.month, 1, tzinfo=dt.tzinfo)
-        # TODO: Is this DST-safe?
-        d = w.rollforward(d)
-        return d + timedelta(weeks=self.week)
-
-    def onOffset(self, dt):
-        if self.normalize and not _is_normalized(dt):
-            return False
-        d = datetime(dt.year, dt.month, dt.day, tzinfo=dt.tzinfo)
-        return d == self.getOffsetOfMonth(dt)
+        Returns
+        -------
+        day: int
+        """
+        mstart = datetime(other.year, other.month, 1)
+        wday = mstart.weekday()
+        shift_days = (self.weekday - wday) % 7
+        return 1 + shift_days + self.week * 7
 
     @property
     def rule_code(self):
-        weekday = _int_to_weekday.get(self.weekday, '')
+        weekday = ccalendar.int_to_weekday.get(self.weekday, '')
         return '{prefix}-{week}{weekday}'.format(prefix=self._prefix,
                                                  week=self.week + 1,
                                                  weekday=weekday)
@@ -1443,11 +1482,11 @@ class WeekOfMonth(DateOffset):
         # TODO: handle n here...
         # only one digit weeks (1 --> week 0, 2 --> week 1, etc.)
         week = int(suffix[0]) - 1
-        weekday = _weekday_to_int[suffix[1:]]
+        weekday = ccalendar.weekday_to_int[suffix[1:]]
         return cls(week=week, weekday=weekday)
 
 
-class LastWeekOfMonth(DateOffset):
+class LastWeekOfMonth(_WeekOfMonthMixin, DateOffset):
     """
     Describes monthly dates in last week of month like "the last Tuesday of
     each month"
@@ -1481,35 +1520,28 @@ class LastWeekOfMonth(DateOffset):
 
         self.kwds = {'weekday': weekday}
 
-    @apply_wraps
-    def apply(self, other):
-        offsetOfMonth = self.getOffsetOfMonth(other)
+    def _get_offset_day(self, other):
+        """
+        Find the day in the same month as other that has the same
+        weekday as self.weekday and is the last such day in the month.
 
-        months = self.n
-        if months > 0 and offsetOfMonth > other:
-            months -= 1
-        elif months <= 0 and offsetOfMonth < other:
-            months += 1
+        Parameters
+        ----------
+        other: datetime
 
-        return self.getOffsetOfMonth(shift_month(other, months, 'start'))
-
-    def getOffsetOfMonth(self, dt):
-        m = MonthEnd()
-        d = datetime(dt.year, dt.month, 1, dt.hour, dt.minute,
-                     dt.second, dt.microsecond, tzinfo=dt.tzinfo)
-        eom = m.rollforward(d)
-        # TODO: Is this DST-safe?
-        w = Week(weekday=self.weekday)
-        return w.rollback(eom)
-
-    def onOffset(self, dt):
-        if self.normalize and not _is_normalized(dt):
-            return False
-        return dt == self.getOffsetOfMonth(dt)
+        Returns
+        -------
+        day: int
+        """
+        dim = ccalendar.get_days_in_month(other.year, other.month)
+        mend = datetime(other.year, other.month, dim)
+        wday = mend.weekday()
+        shift_days = (wday - self.weekday) % 7
+        return dim - shift_days
 
     @property
     def rule_code(self):
-        weekday = _int_to_weekday.get(self.weekday, '')
+        weekday = ccalendar.int_to_weekday.get(self.weekday, '')
         return '{prefix}-{weekday}'.format(prefix=self._prefix,
                                            weekday=weekday)
 
@@ -1519,7 +1551,7 @@ class LastWeekOfMonth(DateOffset):
             raise ValueError("Prefix {prefix!r} requires a suffix."
                              .format(prefix=cls._prefix))
         # TODO: handle n here...
-        weekday = _weekday_to_int[suffix]
+        weekday = ccalendar.weekday_to_int[suffix]
         return cls(weekday=weekday)
 
 # ---------------------------------------------------------------------
@@ -1550,7 +1582,7 @@ class QuarterOffset(DateOffset):
     def _from_name(cls, suffix=None):
         kwargs = {}
         if suffix:
-            kwargs['startingMonth'] = liboffsets._month_to_int[suffix]
+            kwargs['startingMonth'] = ccalendar.MONTH_TO_CAL_NUM[suffix]
         else:
             if cls._from_name_startingMonth is not None:
                 kwargs['startingMonth'] = cls._from_name_startingMonth
@@ -1558,7 +1590,7 @@ class QuarterOffset(DateOffset):
 
     @property
     def rule_code(self):
-        month = liboffsets._int_to_month[self.startingMonth]
+        month = ccalendar.MONTH_ALIASES[self.startingMonth]
         return '{prefix}-{month}'.format(prefix=self._prefix, month=month)
 
     @apply_wraps
@@ -1681,12 +1713,12 @@ class YearOffset(DateOffset):
     def _from_name(cls, suffix=None):
         kwargs = {}
         if suffix:
-            kwargs['month'] = liboffsets._month_to_int[suffix]
+            kwargs['month'] = ccalendar.MONTH_TO_CAL_NUM[suffix]
         return cls(**kwargs)
 
     @property
     def rule_code(self):
-        month = liboffsets._int_to_month[self.month]
+        month = ccalendar.MONTH_ALIASES[self.month]
         return '{prefix}-{month}'.format(prefix=self._prefix, month=month)
 
 
@@ -1906,8 +1938,8 @@ class FY5253(DateOffset):
 
     def get_rule_code_suffix(self):
         prefix = self._get_suffix_prefix()
-        month = liboffsets._int_to_month[self.startingMonth]
-        weekday = _int_to_weekday[self.weekday]
+        month = ccalendar.MONTH_ALIASES[self.startingMonth]
+        weekday = ccalendar.int_to_weekday[self.weekday]
         return '{prefix}-{month}-{weekday}'.format(prefix=prefix, month=month,
                                                    weekday=weekday)
 
@@ -1921,8 +1953,8 @@ class FY5253(DateOffset):
             raise ValueError("Unable to parse varion_code: "
                              "{code}".format(code=varion_code))
 
-        startingMonth = liboffsets._month_to_int[startingMonth_code]
-        weekday = _weekday_to_int[weekday_code]
+        startingMonth = ccalendar.MONTH_TO_CAL_NUM[startingMonth_code]
+        weekday = ccalendar.weekday_to_int[weekday_code]
 
         return {"weekday": weekday,
                 "startingMonth": startingMonth,

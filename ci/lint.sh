@@ -24,7 +24,7 @@ if [ "$LINT" ]; then
     echo "Linting setup.py DONE"
 
     echo "Linting asv_bench/benchmarks/"
-    flake8 asv_bench/benchmarks/  --exclude=asv_bench/benchmarks/[ghijoprst]*.py --ignore=F811
+    flake8 asv_bench/benchmarks/  --exclude=asv_bench/benchmarks/[ijoprs]*.py --ignore=F811
     if [ $? -ne "0" ]; then
         RET=1
     fi
@@ -97,7 +97,7 @@ if [ "$LINT" ]; then
     #
     # Check the following functions:
     # any(), all(), sum(), max(), min(), list(), dict(), set(), frozenset(), tuple(), str.join()
-    grep -R --include="*.py*" -E "[^_](any|all|sum|max|min|list|dict|set|frozenset|tuple|join)\(\[.* for .* in .*\]\)" *
+    grep -R --include="*.py*" -E "[^_](any|all|sum|max|min|list|dict|set|frozenset|tuple|join)\(\[.* for .* in .*\]\)" pandas
 
     if [ $? = "0" ]; then
         RET=1

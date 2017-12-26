@@ -10,10 +10,10 @@ from warnings import catch_warnings
 import numpy as np
 import pytest
 from numpy import nan
-import moto
 
 import pandas as pd
 import pandas.util.testing as tm
+import pandas.util._test_decorators as td
 from pandas import DataFrame, Index, MultiIndex
 from pandas.compat import u, range, map, BytesIO, iteritems
 from pandas.core.config import set_option, get_option
@@ -286,14 +286,14 @@ class ReadingTestsBase(SharedItems):
         tm.assert_frame_equal(df2, dfref, check_names=False)
 
         df3 = read_excel(excel, 0, index_col=0, skipfooter=1)
-        df4 = read_excel(excel, 0, index_col=0, skip_footer=1)
         tm.assert_frame_equal(df3, df1.iloc[:-1])
-        tm.assert_frame_equal(df3, df4)
+
+        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
+            df4 = read_excel(excel, 0, index_col=0, skip_footer=1)
+            tm.assert_frame_equal(df3, df4)
 
         df3 = excel.parse(0, index_col=0, skipfooter=1)
-        df4 = excel.parse(0, index_col=0, skip_footer=1)
         tm.assert_frame_equal(df3, df1.iloc[:-1])
-        tm.assert_frame_equal(df3, df4)
 
         import xlrd
         with pytest.raises(xlrd.XLRDError):
@@ -311,10 +311,7 @@ class ReadingTestsBase(SharedItems):
 
         df3 = self.get_exceldf('test1', 'Sheet1', index_col=0,
                                skipfooter=1)
-        df4 = self.get_exceldf('test1', 'Sheet1', index_col=0,
-                               skip_footer=1)
         tm.assert_frame_equal(df3, df1.iloc[:-1])
-        tm.assert_frame_equal(df3, df4)
 
     def test_reader_special_dtypes(self):
 
@@ -616,6 +613,7 @@ class XlrdTests(ReadingTestsBase):
     def test_read_from_s3_url(self):
         boto3 = pytest.importorskip('boto3')
         pytest.importorskip('s3fs')
+        moto = pytest.importorskip('moto')
 
         with moto.mock_s3():
             conn = boto3.resource("s3", region_name="us-east-1")
@@ -650,11 +648,10 @@ class XlrdTests(ReadingTestsBase):
 
         tm.assert_frame_equal(url_table, local_table)
 
+    @td.skip_if_no('pathlib')
     def test_read_from_pathlib_path(self):
 
         # GH12655
-        tm._skip_if_no_pathlib()
-
         from pathlib import Path
 
         str_path = os.path.join(self.dirpath, 'test1' + self.ext)
@@ -665,11 +662,10 @@ class XlrdTests(ReadingTestsBase):
 
         tm.assert_frame_equal(expected, actual)
 
+    @td.skip_if_no('py.path')
     def test_read_from_py_localpath(self):
 
         # GH12655
-        tm._skip_if_no_localpath()
-
         from py.path import local as LocalPath
 
         str_path = os.path.join(self.dirpath, 'test1' + self.ext)
@@ -1016,6 +1012,33 @@ class XlrdTests(ReadingTestsBase):
                                             'testskiprows' + self.ext),
                                'skiprows_list', skiprows=np.array([0, 2]))
         tm.assert_frame_equal(actual, expected)
+
+    def test_read_excel_nrows(self):
+        # GH 16645
+        num_rows_to_pull = 5
+        actual = pd.read_excel(os.path.join(self.dirpath, 'test1' + self.ext),
+                               nrows=num_rows_to_pull)
+        expected = pd.read_excel(os.path.join(self.dirpath,
+                                              'test1' + self.ext))
+        expected = expected[:num_rows_to_pull]
+        tm.assert_frame_equal(actual, expected)
+
+    def test_read_excel_nrows_greater_than_nrows_in_file(self):
+        # GH 16645
+        expected = pd.read_excel(os.path.join(self.dirpath,
+                                              'test1' + self.ext))
+        num_records_in_file = len(expected)
+        num_rows_to_pull = num_records_in_file + 10
+        actual = pd.read_excel(os.path.join(self.dirpath, 'test1' + self.ext),
+                               nrows=num_rows_to_pull)
+        tm.assert_frame_equal(actual, expected)
+
+    def test_read_excel_nrows_non_integer_parameter(self):
+        # GH 16645
+        msg = "'nrows' must be an integer >=0"
+        with tm.assert_raises_regex(ValueError, msg):
+            pd.read_excel(os.path.join(self.dirpath, 'test1' + self.ext),
+                          nrows='5')
 
     def test_read_excel_squeeze(self):
         # GH 12157

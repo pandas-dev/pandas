@@ -13,7 +13,8 @@ import pandas._libs.index as _index
 from pandas.core.dtypes.common import is_integer, is_scalar
 from pandas import (Index, Series, DataFrame, isna,
                     date_range, NaT, MultiIndex,
-                    Timestamp, DatetimeIndex, Timedelta)
+                    Timestamp, DatetimeIndex, Timedelta,
+                    Categorical)
 from pandas.core.indexing import IndexingError
 from pandas.tseries.offsets import BDay
 from pandas._libs import tslib, lib
@@ -545,6 +546,26 @@ class TestSeriesIndexing(TestData):
         result[ts.index[4:8]] = 0
         result[4:8] = ts[4:8]
         assert_series_equal(result, ts)
+
+    @pytest.mark.parametrize(
+        'result_1, duplicate_item, expected_1',
+        [
+            [
+                pd.Series({1: 12, 2: [1, 2, 2, 3]}), pd.Series({1: 313}),
+                pd.Series({1: 12, }, dtype=object),
+            ],
+            [
+                pd.Series({1: [1, 2, 3], 2: [1, 2, 2, 3]}),
+                pd.Series({1: [1, 2, 3]}), pd.Series({1: [1, 2, 3], }),
+            ],
+        ])
+    def test_getitem_with_duplicates_indices(
+            self, result_1, duplicate_item, expected_1):
+        # GH 17610
+        result = result_1.append(duplicate_item)
+        expected = expected_1.append(duplicate_item)
+        assert_series_equal(result[1], expected)
+        assert result[2] == result_1[2]
 
     def test_getitem_median_slice_bug(self):
         index = date_range('20090415', '20090519', freq='2B')
@@ -2237,6 +2258,31 @@ class TestSeriesIndexing(TestData):
         expected = Series([False, True, False], index=[1, 2, 3])
         assert_series_equal(result, expected)
 
+    def test_reindex_categorical(self):
+
+        index = date_range('20000101', periods=3)
+
+        # reindexing to an invalid Categorical
+        s = Series(['a', 'b', 'c'], dtype='category')
+        result = s.reindex(index)
+        expected = Series(Categorical(values=[np.nan, np.nan, np.nan],
+                                      categories=['a', 'b', 'c']))
+        expected.index = index
+        tm.assert_series_equal(result, expected)
+
+        # partial reindexing
+        expected = Series(Categorical(values=['b', 'c'], categories=['a', 'b',
+                                                                     'c']))
+        expected.index = [1, 2]
+        result = s.reindex([1, 2])
+        tm.assert_series_equal(result, expected)
+
+        expected = Series(Categorical(
+            values=['c', np.nan], categories=['a', 'b', 'c']))
+        expected.index = [2, 3]
+        result = s.reindex([2, 3])
+        tm.assert_series_equal(result, expected)
+
     def test_rename(self):
 
         # GH 17407
@@ -2336,6 +2382,41 @@ class TestSeriesIndexing(TestData):
             series[1:3] = 1
 
         assert not array.any()
+
+    def test_categorial_assigning_ops(self):
+        orig = Series(Categorical(["b", "b"], categories=["a", "b"]))
+        s = orig.copy()
+        s[:] = "a"
+        exp = Series(Categorical(["a", "a"], categories=["a", "b"]))
+        tm.assert_series_equal(s, exp)
+
+        s = orig.copy()
+        s[1] = "a"
+        exp = Series(Categorical(["b", "a"], categories=["a", "b"]))
+        tm.assert_series_equal(s, exp)
+
+        s = orig.copy()
+        s[s.index > 0] = "a"
+        exp = Series(Categorical(["b", "a"], categories=["a", "b"]))
+        tm.assert_series_equal(s, exp)
+
+        s = orig.copy()
+        s[[False, True]] = "a"
+        exp = Series(Categorical(["b", "a"], categories=["a", "b"]))
+        tm.assert_series_equal(s, exp)
+
+        s = orig.copy()
+        s.index = ["x", "y"]
+        s["y"] = "a"
+        exp = Series(Categorical(["b", "a"], categories=["a", "b"]),
+                     index=["x", "y"])
+        tm.assert_series_equal(s, exp)
+
+        # ensure that one can set something to np.nan
+        s = Series(Categorical([1, 2, 3]))
+        exp = Series(Categorical([1, np.nan, 3], categories=[1, 2, 3]))
+        s[1] = np.nan
+        tm.assert_series_equal(s, exp)
 
 
 class TestTimeSeriesDuplicates(object):

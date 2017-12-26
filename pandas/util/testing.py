@@ -15,7 +15,6 @@ import traceback
 from datetime import datetime
 from functools import wraps, partial
 from contextlib import contextmanager
-from distutils.version import LooseVersion
 
 from numpy.random import randn, rand
 import numpy as np
@@ -38,9 +37,7 @@ from pandas.core.common import _all_not_none
 import pandas.compat as compat
 from pandas.compat import (
     filter, map, zip, range, unichr, lrange, lmap, lzip, u, callable, Counter,
-    raise_with_traceback, httplib, is_platform_windows, is_platform_32bit,
-    StringIO, PY3
-)
+    raise_with_traceback, httplib, StringIO, PY3)
 
 from pandas import (bdate_range, CategoricalIndex, Categorical, IntervalIndex,
                     DatetimeIndex, TimedeltaIndex, PeriodIndex, RangeIndex,
@@ -318,127 +315,6 @@ def close(fignum=None):
     else:
         _close(fignum)
 
-
-def _skip_if_32bit():
-    if is_platform_32bit():
-        import pytest
-        pytest.skip("skipping for 32 bit")
-
-
-def _skip_if_mpl_1_5():
-    import matplotlib as mpl
-
-    v = mpl.__version__
-    if LooseVersion(v) > LooseVersion('1.4.3') or str(v)[0] == '0':
-        import pytest
-        pytest.skip("matplotlib 1.5")
-    else:
-        mpl.use("Agg", warn=False)
-
-
-def _skip_if_no_scipy():
-    import pytest
-
-    pytest.importorskip("scipy.stats")
-    pytest.importorskip("scipy.sparse")
-    pytest.importorskip("scipy.interpolate")
-
-
-def _check_if_lzma():
-    try:
-        return compat.import_lzma()
-    except ImportError:
-        return False
-
-
-def _skip_if_no_lzma():
-    import pytest
-    return _check_if_lzma() or pytest.skip('need backports.lzma to run')
-
-
-def _skip_if_no_xarray():
-    import pytest
-
-    xarray = pytest.importorskip("xarray")
-    v = xarray.__version__
-
-    if LooseVersion(v) < LooseVersion('0.7.0'):
-        import pytest
-        pytest.skip("xarray version is too low: {version}".format(version=v))
-
-
-def _skip_if_windows_python_3():
-    if PY3 and is_platform_windows():
-        import pytest
-        pytest.skip("not used on python 3/win32")
-
-
-def _skip_if_windows():
-    if is_platform_windows():
-        import pytest
-        pytest.skip("Running on Windows")
-
-
-def _skip_if_no_pathlib():
-    try:
-        from pathlib import Path  # noqa
-    except ImportError:
-        import pytest
-        pytest.skip("pathlib not available")
-
-
-def _skip_if_no_localpath():
-    try:
-        from py.path import local as LocalPath  # noqa
-    except ImportError:
-        import pytest
-        pytest.skip("py.path not installed")
-
-
-def skip_if_no_ne(engine='numexpr'):
-    from pandas.core.computation.expressions import (
-        _USE_NUMEXPR,
-        _NUMEXPR_INSTALLED)
-
-    if engine == 'numexpr':
-        if not _USE_NUMEXPR:
-            import pytest
-            pytest.skip("numexpr enabled->{enabled}, "
-                        "installed->{installed}".format(
-                            enabled=_USE_NUMEXPR,
-                            installed=_NUMEXPR_INSTALLED))
-
-
-def _skip_if_has_locale():
-    import locale
-    lang, _ = locale.getlocale()
-    if lang is not None:
-        import pytest
-        pytest.skip("Specific locale is set {lang}".format(lang=lang))
-
-
-def _skip_if_not_us_locale():
-    import locale
-    lang, _ = locale.getlocale()
-    if lang != 'en_US':
-        import pytest
-        pytest.skip("Specific locale is set {lang}".format(lang=lang))
-
-
-def _skip_if_no_mock():
-    try:
-        import mock  # noqa
-    except ImportError:
-        try:
-            from unittest import mock  # noqa
-        except ImportError:
-            import pytest
-            raise pytest.skip("mock is not installed")
-
-
-def _skip_if_no_ipython():
-    import pytest
-    pytest.importorskip("IPython")
 
 # -----------------------------------------------------------------------------
 # locale utilities
@@ -2073,62 +1949,6 @@ class TestSubDict(dict):
         dict.__init__(self, *args, **kwargs)
 
 
-# Dependency checker when running tests.
-#
-# Copied this from nipy/nipype
-# Copyright of respective developers, License: BSD-3
-def skip_if_no_package(pkg_name, min_version=None, max_version=None,
-                       app='pandas', checker=LooseVersion):
-    """Check that the min/max version of the required package is installed.
-
-    If the package check fails, the test is automatically skipped.
-
-    Parameters
-    ----------
-    pkg_name : string
-        Name of the required package.
-    min_version : string, optional
-        Minimal version number for required package.
-    max_version : string, optional
-        Max version number for required package.
-    app : string, optional
-        Application that is performing the check. For instance, the
-        name of the tutorial being executed that depends on specific
-        packages.
-    checker : object, optional
-        The class that will perform the version checking. Default is
-        distutils.version.LooseVersion.
-
-    Examples
-    --------
-    package_check('numpy', '1.3')
-
-    """
-
-    import pytest
-    if app:
-        msg = '{app} requires {pkg_name}'.format(app=app, pkg_name=pkg_name)
-    else:
-        msg = 'module requires {pkg_name}'.format(pkg_name=pkg_name)
-    if min_version:
-        msg += ' with version >= {min_version}'.format(min_version=min_version)
-    if max_version:
-        msg += ' with version < {max_version}'.format(max_version=max_version)
-    try:
-        mod = __import__(pkg_name)
-    except ImportError:
-        mod = None
-    try:
-        have_version = mod.__version__
-    except AttributeError:
-        pytest.skip('Cannot find version for {pkg_name}'
-                    .format(pkg_name=pkg_name))
-    if min_version and checker(have_version) < checker(min_version):
-        pytest.skip(msg)
-    if max_version and checker(have_version) >= checker(max_version):
-        pytest.skip(msg)
-
-
 def optional_args(decorator):
     """allows a decorator to take optional positional and keyword arguments.
     Assumes that taking a single, callable, positional argument means that
@@ -2825,9 +2645,6 @@ def set_timezone(tz):
     ...
     'EDT'
     """
-    if is_platform_windows():
-        import pytest
-        pytest.skip("timezone setting not supported on windows")
 
     import os
     import time
