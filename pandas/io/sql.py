@@ -339,17 +339,15 @@ def read_sql(sql, con, index_col=None, coerce_float=True, params=None,
 
     This function is a convenience wrapper around ``read_sql_table`` and
     ``read_sql_query`` (for backward compatibility). It will delegate
-    to the specific function depending on the provided input.
-
-    For example, a SQL query will be routed to ``read_sql_query``, while a
-    database table name will be routed to ``read_sql_table``. Note that
-    the delegated function might have more specific notes about their
-    functionality not listed here.
+    to the specific function depending on the provided input. A SQL query
+    will be routed to ``read_sql_query``, while a database table name will
+    be routed to ``read_sql_table``. Note that the delegated function might
+    have more specific notes about their functionality not listed here.
 
     Parameters
     ----------
     sql : string or SQLAlchemy Selectable (select or text object)
-        SQL query to be executed or a table name from which to select rows.
+        SQL query to be executed or a table name.
     con : SQLAlchemy connectable (engine/connection) or database string URI
         or DBAPI2 connection (fallback mode)
 
