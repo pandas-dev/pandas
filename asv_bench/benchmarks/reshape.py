@@ -40,9 +40,9 @@ class SimpleReshape(object):
     goal_time = 0.2
 
     def setup(self):
-        index = MultiIndex.from_arrays([np.arange(100).repeat(100),
-                                        np.roll(np.arange(100).repeat(100),
-                                                25)])
+        arrays = [np.arange(100).repeat(100),
+                  np.roll(np.tile(np.arange(100), 100), 25)]
+        index = MultiIndex.from_arrays(arrays)
         self.df = DataFrame(np.random.randn(10000, 4), index=index)
         self.udf = self.df.unstack(1)
 
