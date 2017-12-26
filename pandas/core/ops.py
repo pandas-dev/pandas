@@ -515,7 +515,8 @@ class _TimeOp(_Op):
 
             # a datelike
             elif isinstance(values, pd.DatetimeIndex):
-                values = values.to_series()
+                # TODO: why are we casting to_series in the first place?
+                values = values.to_series(keep_tz=True)
             # datetime with tz
             elif (isinstance(ovalues, datetime.datetime) and
                   hasattr(ovalues, 'tzinfo')):
@@ -530,6 +531,11 @@ class _TimeOp(_Op):
         elif inferred_type in ('timedelta', 'timedelta64'):
             # have a timedelta, convert to to ns here
             values = to_timedelta(values, errors='coerce', box=False)
+            if isinstance(other, pd.DatetimeIndex):
+                # GH#13905
+                # Defer to DatetimeIndex/TimedeltaIndex operations where
+                # timezones are handled carefully.
+                values = pd.TimedeltaIndex(values)
         elif inferred_type == 'integer':
             # py3 compat where dtype is 'm' but is an integer
             if values.dtype.kind == 'm':
@@ -738,17 +744,6 @@ def _arith_method_SERIES(op, name, str_rep, fill_zeros=None, default_axis=None,
 
         left, right = _align_method_SERIES(left, right)
 
-        if is_timedelta64_dtype(left) and isinstance(right, pd.DatetimeIndex):
-            # GH#13905
-            # Defer to DatetimeIndex/TimedeltaIndex operations where timezones
-            # are handled carefully.
-            result = op(pd.TimedeltaIndex(left), right)
-            name = _maybe_match_name(left, right)
-            result.name = name  # in case name is None, needs to be overridden
-            return construct_result(left, result,
-                                    index=left.index, name=name,
-                                    dtype=result.dtype)
-
         converted = _Op.get_op(left, right, name, na_op)
 
         left, right = converted.left, converted.right
@@ -758,26 +753,35 @@ def _arith_method_SERIES(op, name, str_rep, fill_zeros=None, default_axis=None,
         na_op = converted.na_op
 
         if isinstance(rvalues, ABCSeries):
-            name = _maybe_match_name(left, rvalues)
             lvalues = getattr(lvalues, 'values', lvalues)
             rvalues = getattr(rvalues, 'values', rvalues)
             # _Op aligns left and right
         else:
-            name = left.name
             if (hasattr(lvalues, 'values') and
                     not isinstance(lvalues, pd.DatetimeIndex)):
                 lvalues = lvalues.values
+
+        res_name = _get_series_result_name(left, right)
 
         result = wrap_results(safe_na_op(lvalues, rvalues))
         return construct_result(
             left,
             result,
             index=left.index,
-            name=name,
+            name=res_name,
             dtype=dtype,
         )
 
     return wrapper
+
+
+def _get_series_result_name(left, right):
+    # left is always a Series
+    if isinstance(right, (ABCSeries, pd.Index)):
+        name = _maybe_match_name(left, right)
+    else:
+        name = left.name
+    return name
 
 
 def _comp_method_OBJECT_ARRAY(op, x, y):
