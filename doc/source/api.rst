@@ -2274,6 +2274,7 @@ Function application
    Resampler.apply
    Resampler.aggregate
    Resampler.transform
+   Resampler.pipe
 
 Upsampling
 ~~~~~~~~~~

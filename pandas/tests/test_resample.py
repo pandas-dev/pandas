@@ -235,6 +235,21 @@ class TestResampleAPI(object):
         result = df.groupby('key').resample('D', on='dates').mean()
         assert_frame_equal(result, expected)
 
+    def test_pipe(self):
+        # GH17905
+
+        # series
+        r = self.series.resample('H')
+        expected = r.max() - r.mean()
+        result = r.pipe(lambda x: x.max() - x.mean())
+        tm.assert_series_equal(result, expected)
+
+        # dataframe
+        r = self.frame.resample('H')
+        expected = r.max() - r.mean()
+        result = r.pipe(lambda x: x.max() - x.mean())
+        tm.assert_frame_equal(result, expected)
+
     @td.skip_if_no_mpl
     def test_plot_api(self):
         # .resample(....).plot(...)
