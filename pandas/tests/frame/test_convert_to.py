@@ -79,10 +79,16 @@ class TestDataFrameConvertTo(TestData):
         df = DataFrame([["one", "two", "three"],
                         ["four", "five", "six"]],
                        index=date_range("2012-01-01", "2012-01-02"))
+
         with tm.assert_produces_warning(FutureWarning):
             expected = df.index[0]
             result = df.to_records(convert_datetime64=True)['index'][0]
             assert expected == result
+
+        expected = df.index[0]
+        # convert_datetime64 defaults to True if not passed
+        result = df.to_records()['index'][0]
+        assert expected == result
 
         with tm.assert_produces_warning(FutureWarning):
             rs = df.to_records(convert_datetime64=False)

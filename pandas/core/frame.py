@@ -1384,6 +1384,8 @@ class DataFrame(NDFrame):
                           "deprecated and will be removed in a future "
                           "version",
                           FutureWarning, stacklevel=2)
+        else:
+            convert_datetime64 = True
 
         if index:
             if is_datetime64_any_dtype(self.index) and convert_datetime64:
