@@ -975,13 +975,40 @@ class Timedelta(_Timedelta):
         __rdiv__ = __rtruediv__
 
     def __floordiv__(self, other):
-        if hasattr(other, 'dtype'):
-            # work with i8
-            other = other.astype('m8[ns]').astype('i8')
-            return self.value // other
+        # numpy does not implement floordiv for timedelta64 dtype, so we cannot
+        # just defer
+        if hasattr(other, '_typ'):
+            # Series, DataFrame, ...
+            return NotImplemented
 
-        elif is_integer_object(other):
-            # integers only
+        if hasattr(other, 'dtype'):
+            if other.dtype.kind == 'm':
+                # also timedelta-like
+                # We need to watch out for np.timedelta64('NaT')
+                if np.ndim(other) == 0:
+                    if np.isnat(other):
+                        return np.nan
+                    else:
+                        other = other.astype('m8[ns]').astype('i8')
+                        return self.value // other
+                else:
+                    mask = np.isnat(other)
+                    res = self.value // other.astype('m8[ns]').astype('i8')
+                    if mask.any():
+                        res = res.astype('f8')
+                        res[mask] = np.nan
+                    return res
+            elif other.dtype.kind in ['i', 'u', 'f']:
+                if np.ndim(other) == 0:
+                    return Timedelta(self.value // other)
+                else:
+                    return self.to_timedelta64() // other
+            else:
+                raise TypeError('Invalid dtype {dtype} for '
+                                '{op}'.format(dtype=other.dtype,
+                                              op='__floordiv__'))
+
+        elif is_integer_object(other) or is_float_object(other):
             return Timedelta(self.value // other, unit='ns')
 
         elif not _validate_ops_compat(other):
@@ -993,17 +1020,42 @@ class Timedelta(_Timedelta):
         return self.value // other.value
 
     def __rfloordiv__(self, other):
-        if hasattr(other, 'dtype'):
-            # work with i8
-            other = other.astype('m8[ns]').astype('i8')
-            return other // self.value
+        # numpy does not implement floordiv for timedelta64 dtype, so we cannot
+        # just defer
+        if hasattr(other, '_typ'):
+            # Series, DataFrame, ...
+            return NotImplemented
 
+        if hasattr(other, 'dtype'):
+            if other.dtype.kind == 'm':
+                # also timedelta-like
+                # We need to watch out for np.timedelta64('NaT')
+                if np.ndim(other) == 0:
+                    if np.isnat(other):
+                        return np.nan
+                    else:
+                        other = other.astype('m8[ns]').astype('i8')
+                        return other // self.value
+                else:
+                    mask = np.isnat(other)
+                    res = other.astype('m8[ns]').astype('i8') // self.value
+                    if mask.any():
+                        res = res.astype('f8')
+                        res[mask] = np.nan
+                    return res
+            else:
+                raise TypeError('Invalid dtype {dtype} for '
+                                '{op}'.format(dtype=other.dtype,
+                                              op='__floordiv__'))
+
+        if isinstance(other, float) and np.isnan(other):
+            return NotImplemented
         elif not _validate_ops_compat(other):
             return NotImplemented
 
         other = Timedelta(other)
         if other is NaT:
-            return NaT
+            return np.nan
         return other.value // self.value
 
 

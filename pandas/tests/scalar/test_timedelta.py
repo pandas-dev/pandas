@@ -162,6 +162,93 @@ class TestTimedeltaArithmetic(object):
         # invalid multiply with another timedelta
         pytest.raises(TypeError, lambda: td * td)
 
+    def test_floordiv(self):
+        # GH#18846
+        td = Timedelta(hours=3, minutes=4)
+        scalar = Timedelta(hours=3, minutes=3)
+
+        # scalar others
+        assert td // scalar == 1
+        assert -td // scalar.to_pytimedelta() == -2
+        assert (2 * td) // scalar.to_timedelta64() == 2
+
+        assert td // np.nan is pd.NaT
+        assert np.isnan(td // pd.NaT)
+        assert np.isnan(td // np.timedelta64('NaT'))
+
+        with pytest.raises(TypeError):
+            td // np.datetime64('2016-01-01', dtype='datetime64[us]')
+
+        expected = Timedelta(hours=1, minutes=32)
+        assert td // 2 == expected
+        assert td // 2.0 == expected
+        assert td // np.float64(2.0) == expected
+        assert td // np.int32(2.0) == expected
+        assert td // np.uint8(2.0) == expected
+
+        # Array-like others
+        assert td // np.array(scalar.to_timedelta64()) == 1
+
+        res = (3 * td) // np.array([scalar.to_timedelta64()])
+        expected = np.array([3])
+        np.testing.assert_array_equal(res, expected)
+
+        res = (10 * td) // np.array([scalar.to_timedelta64(),
+                                     np.timedelta64('NaT')])
+        expected = np.array([10, np.nan])
+        np.testing.assert_array_equal(res, expected)
+
+        ser = pd.Series([1], dtype=np.int64)
+        res = td // ser
+        assert res.dtype.kind == 'm'
+
+    def test_rfloordiv(self):
+        # GH#18846
+        td = Timedelta(hours=3, minutes=3)
+        scalar = Timedelta(hours=3, minutes=4)
+
+        # scalar others
+        assert td.__rfloordiv__(scalar) == 1
+        assert (-td).__rfloordiv__(scalar.to_pytimedelta()) == -2
+        assert (2 * td).__rfloordiv__(scalar.to_timedelta64()) == 0
+
+        assert np.isnan(td.__rfloordiv__(pd.NaT))
+        assert np.isnan(td.__rfloordiv__(np.timedelta64('NaT')))
+
+        dt64 = np.datetime64('2016-01-01', dtype='datetime64[us]')
+        with pytest.raises(TypeError):
+            td.__rfloordiv__(dt64)
+
+        assert td.__rfloordiv__(np.nan) is NotImplemented
+        assert td.__rfloordiv__(3.5) is NotImplemented
+        assert td.__rfloordiv__(2) is NotImplemented
+
+        with pytest.raises(TypeError):
+            td.__rfloordiv__(np.float64(2.0))
+        with pytest.raises(TypeError):
+            td.__rfloordiv__(np.int32(2.0))
+        with pytest.raises(TypeError):
+            td.__rfloordiv__(np.uint8(9))
+
+        # Array-like others
+        assert td.__rfloordiv__(np.array(scalar.to_timedelta64())) == 1
+
+        res = td.__rfloordiv__(np.array([(3 * scalar).to_timedelta64()]))
+        expected = np.array([3])
+        np.testing.assert_array_equal(res, expected)
+
+        arr = np.array([(10 * scalar).to_timedelta64(),
+                        np.timedelta64('NaT')])
+        res = td.__rfloordiv__(arr)
+        expected = np.array([10, np.nan])
+        np.testing.assert_array_equal(res, expected)
+
+        ser = pd.Series([1], dtype=np.int64)
+        res = td.__rfloordiv__(ser)
+        assert res is NotImplemented
+        with pytest.raises(TypeError):
+            ser // td
+
 
 class TestTimedeltas(object):
     _multiprocess_can_split_ = True
