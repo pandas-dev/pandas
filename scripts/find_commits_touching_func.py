@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-# copryright 2013, y-p @ github
+# copyright 2013, y-p @ github
 
 from __future__ import print_function
 from pandas.compat import range, lrange, map, string_types, text_type
