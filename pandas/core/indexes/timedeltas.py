@@ -480,9 +480,7 @@ class TimedeltaIndex(DatetimeIndexOpsMixin, TimelikeOps, Int64Index):
     @Appender(_index_shared_docs['astype'])
     def astype(self, dtype, copy=True):
         dtype = pandas_dtype(dtype)
-        if is_timedelta64_ns_dtype(dtype):
-            return self.copy() if copy else self
-        elif is_timedelta64_dtype(dtype):
+        if is_timedelta64_dtype(dtype) and not is_timedelta64_ns_dtype(dtype):
             # return an index (essentially this is division)
             result = self.values.astype(dtype, copy=copy)
             if self.hasnans:

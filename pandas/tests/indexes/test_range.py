@@ -711,7 +711,7 @@ class TestRangeIndex(Numeric):
 
         # memory savings vs int index
         i = RangeIndex(0, 1000)
-        assert i.nbytes < i.astype(int).nbytes / 10
+        assert i.nbytes < i._int64index.nbytes / 10
 
         # constant memory usage
         i2 = RangeIndex(0, 10)

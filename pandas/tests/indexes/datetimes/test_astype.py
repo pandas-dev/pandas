@@ -57,6 +57,18 @@ class TestDatetimeIndex(object):
                           dtype=object)
         tm.assert_series_equal(result, expected)
 
+        # GH 18951: tz-aware to tz-aware
+        idx = date_range('20170101', periods=4, tz='US/Pacific')
+        result = idx.astype('datetime64[ns, US/Eastern]')
+        expected = date_range('20170101 03:00:00', periods=4, tz='US/Eastern')
+        tm.assert_index_equal(result, expected)
+
+        # GH 18951: tz-naive to tz-aware
+        idx = date_range('20170101', periods=4)
+        result = idx.astype('datetime64[ns, US/Eastern]')
+        expected = date_range('20170101', periods=4, tz='US/Eastern')
+        tm.assert_index_equal(result, expected)
+
     def test_astype_str_compat(self):
         # GH 13149, GH 13209
         # verify that we are returing NaT as a string (and not unicode)
