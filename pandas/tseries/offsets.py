@@ -254,7 +254,7 @@ class DateOffset(BaseOffset):
             months = ((self.kwds.get('years', 0) * 12 +
                        self.kwds.get('months', 0)) * self.n)
             if months:
-                shifted = liboffsets.shift_months(i.asi8, months, day_opt=None)
+                shifted = liboffsets.shift_months(i.asi8, months, day=None)
                 i = i._shallow_copy(shifted)
 
             weeks = (self.kwds.get('weeks', 0)) * self.n

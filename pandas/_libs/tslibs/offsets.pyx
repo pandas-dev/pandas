@@ -583,12 +583,12 @@ def shift_quarters(int64_t[:] dtindex, int quarters,
 
 @cython.wraparound(False)
 @cython.boundscheck(False)
-def shift_months(int64_t[:] dtindex, int months, object day_opt):
+def shift_months(int64_t[:] dtindex, int months, object day):
     """
     Given an int64-based datetime index, shift all elements
     specified number of months using DateOffset semantics
 
-    day_opt: {None, 'start', 'end', 'business_start', 'business_end'}
+    day: {None, 'start', 'end', 'business_start', 'business_end'}
        * None: day of month
        * 'start' 1st day of month
        * 'end' last day of month
