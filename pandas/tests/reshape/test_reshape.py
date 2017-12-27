@@ -476,41 +476,6 @@ class TestCategoricalReshape(object):
                              index=p.major_axis.set_names('major'))
         tm.assert_frame_equal(result, expected)
 
-    def test_reshape_categorical(self):
-        cat = Categorical([], categories=["a", "b"])
-        tm.assert_produces_warning(FutureWarning, cat.reshape, 0)
-
-        with tm.assert_produces_warning(FutureWarning):
-            cat = Categorical([], categories=["a", "b"])
-            tm.assert_categorical_equal(cat.reshape(0), cat)
-
-        with tm.assert_produces_warning(FutureWarning):
-            cat = Categorical([], categories=["a", "b"])
-            tm.assert_categorical_equal(cat.reshape((5, -1)), cat)
-
-        with tm.assert_produces_warning(FutureWarning):
-            cat = Categorical(["a", "b"], categories=["a", "b"])
-            tm.assert_categorical_equal(cat.reshape(cat.shape), cat)
-
-        with tm.assert_produces_warning(FutureWarning):
-            cat = Categorical(["a", "b"], categories=["a", "b"])
-            tm.assert_categorical_equal(cat.reshape(cat.size), cat)
-
-        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
-            msg = "can only specify one unknown dimension"
-            cat = Categorical(["a", "b"], categories=["a", "b"])
-            tm.assert_raises_regex(ValueError, msg, cat.reshape, (-2, -1))
-
-    def test_reshape_categorical_numpy(self):
-        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
-            cat = Categorical(["a", "b"], categories=["a", "b"])
-            tm.assert_categorical_equal(np.reshape(cat, cat.shape), cat)
-
-        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
-            msg = "the 'order' parameter is not supported"
-            tm.assert_raises_regex(ValueError, msg, np.reshape,
-                                   cat, cat.shape, order='F')
-
 
 class TestMakeAxisDummies(object):
 

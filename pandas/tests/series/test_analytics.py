@@ -1542,66 +1542,6 @@ class TestSeriesAnalytics(TestData):
         assert_index_equal(s.values.categories, sp1.values.categories)
         assert_index_equal(s.values.categories, sn2.values.categories)
 
-    def test_reshape_deprecate(self):
-        x = Series(np.random.random(10), name='x')
-        tm.assert_produces_warning(FutureWarning, x.reshape, x.shape)
-
-    def test_reshape_non_2d(self):
-        # see gh-4554
-        with tm.assert_produces_warning(FutureWarning):
-            x = Series(np.random.random(201), name='x')
-            assert x.reshape(x.shape, ) is x
-
-        # see gh-2719
-        with tm.assert_produces_warning(FutureWarning):
-            a = Series([1, 2, 3, 4])
-            result = a.reshape(2, 2)
-            expected = a.values.reshape(2, 2)
-            tm.assert_numpy_array_equal(result, expected)
-            assert isinstance(result, type(expected))
-
-    def test_reshape_2d_return_array(self):
-        x = Series(np.random.random(201), name='x')
-
-        with tm.assert_produces_warning(FutureWarning):
-            result = x.reshape((-1, 1))
-            assert not isinstance(result, Series)
-
-        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
-            result2 = np.reshape(x, (-1, 1))
-            assert not isinstance(result2, Series)
-
-        with tm.assert_produces_warning(FutureWarning):
-            result = x[:, None]
-            expected = x.reshape((-1, 1))
-            tm.assert_almost_equal(result, expected)
-
-    def test_reshape_bad_kwarg(self):
-        a = Series([1, 2, 3, 4])
-
-        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
-            msg = "'foo' is an invalid keyword argument for this function"
-            tm.assert_raises_regex(
-                TypeError, msg, a.reshape, (2, 2), foo=2)
-
-        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
-            msg = r"reshape\(\) got an unexpected keyword argument 'foo'"
-            tm.assert_raises_regex(
-                TypeError, msg, a.reshape, a.shape, foo=2)
-
-    def test_numpy_reshape(self):
-        a = Series([1, 2, 3, 4])
-
-        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
-            result = np.reshape(a, (2, 2))
-            expected = a.values.reshape(2, 2)
-            tm.assert_numpy_array_equal(result, expected)
-            assert isinstance(result, type(expected))
-
-        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
-            result = np.reshape(a, a.shape)
-            tm.assert_series_equal(result, a)
-
     def test_unstack(self):
         from numpy import nan
 
