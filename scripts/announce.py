@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- encoding:utf-8 -*-
 """
-Script to generate contribor and pull request lists
+Script to generate contributor and pull request lists
 
 This script generates contributor and pull request lists for release
 announcements using Github v3 protocol. Use requires an authentication token in
