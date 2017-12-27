@@ -1,8 +1,7 @@
 # -*- coding: utf-8 -*-
 
 """
-we test .agg behavior / note that .apply is tested
-generally in test_groupby.py
+test cython .agg behavior
 """
 
 from __future__ import print_function
@@ -76,14 +75,14 @@ class TestGroupByAggregateCython(object):
     def test_cython_agg_nothing_to_agg(self):
         frame = DataFrame({'a': np.random.randint(0, 5, 50),
                            'b': ['foo', 'bar'] * 25})
-        with tm.assert_raises_regex(DataError,
-                                    "No numeric types to aggregate"):
+        msg = "No numeric types to aggregate"
+
+        with tm.assert_raises_regex(DataError, msg):
             frame.groupby('a')['b'].mean()
 
         frame = DataFrame({'a': np.random.randint(0, 5, 50),
                            'b': ['foo', 'bar'] * 25})
-        with tm.assert_raises_regex(DataError,
-                                    "No numeric types to aggregate"):
+        with tm.assert_raises_regex(DataError, msg):
             frame[['b']].groupby(frame['a']).mean()
 
     def test_cython_agg_nothing_to_agg_with_dates(self):
@@ -91,8 +90,8 @@ class TestGroupByAggregateCython(object):
                            'b': ['foo', 'bar'] * 25,
                            'dates': pd.date_range('now', periods=50,
                                                   freq='T')})
-        with tm.assert_raises_regex(DataError,
-                                    "No numeric types to aggregate"):
+        msg = "No numeric types to aggregate"
+        with tm.assert_raises_regex(DataError, msg):
             frame.groupby('b').dates.mean()
 
     def test_cython_agg_frame_columns(self):
@@ -112,8 +111,7 @@ class TestGroupByAggregateCython(object):
              'C': np.random.randn(8),
              'D': np.random.randn(8)})
 
-        ts = df.groupby('A')['B'].agg(
-            lambda x: x.value_counts().to_dict())
+        ts = df.groupby('A')['B'].agg(lambda x: x.value_counts().to_dict())
         expected = Series([{'two': 1, 'one': 1, 'three': 1},
                            {'two': 2, 'one': 2, 'three': 1}],
                           index=Index(['bar', 'foo'], name='A'),

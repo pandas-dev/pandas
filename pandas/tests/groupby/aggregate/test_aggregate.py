@@ -1,8 +1,7 @@
 # -*- coding: utf-8 -*-
 
 """
-we test .agg behavior / note that .apply is tested
-generally in test_groupby.py
+test .agg behavior / note that .apply is tested generally in test_groupby.py
 """
 
 import numpy as np
@@ -34,11 +33,10 @@ class TestGroupByAggregate(object):
             {'A': ['foo', 'bar', 'foo', 'bar', 'foo', 'bar', 'foo', 'foo'],
              'B': ['one', 'one', 'two', 'three', 'two', 'two', 'one', 'three'],
              'C': np.random.randn(8),
-             'D': np.array(
-                 np.random.randn(8), dtype='float32')})
+             'D': np.array(np.random.randn(8), dtype='float32')})
 
-        index = MultiIndex(levels=[['foo', 'bar', 'baz', 'qux'], ['one', 'two',
-                                                                  'three']],
+        index = MultiIndex(levels=[['foo', 'bar', 'baz', 'qux'],
+                                   ['one', 'two', 'three']],
                            labels=[[0, 0, 0, 1, 1, 2, 2, 3, 3, 3],
                                    [0, 1, 2, 0, 1, 1, 2, 0, 1, 2]],
                            names=['first', 'second'])
@@ -86,22 +84,21 @@ class TestGroupByAggregate(object):
         assert self.ts.dtype == np.float64
 
         # groupby float64 values results in Float64Index
-        exp = Series([],
-                     dtype=np.float64,
+        exp = Series([], dtype=np.float64,
                      index=pd.Index([], dtype=np.float64))
         tm.assert_series_equal(grouped.sum(), exp)
         tm.assert_series_equal(grouped.agg(np.sum), exp)
-        tm.assert_series_equal(grouped.apply(np.sum), exp, check_index_type=False)
+        tm.assert_series_equal(grouped.apply(np.sum), exp,
+                               check_index_type=False)
 
         # DataFrame
         grouped = self.tsframe.groupby(self.tsframe['A'] * np.nan)
-        exp_df = DataFrame(columns=self.tsframe.columns,
-                           dtype=float,
+        exp_df = DataFrame(columns=self.tsframe.columns, dtype=float,
                            index=pd.Index([], dtype=np.float64))
         tm.assert_frame_equal(grouped.sum(), exp_df, check_names=False)
         tm.assert_frame_equal(grouped.agg(np.sum), exp_df, check_names=False)
         tm.assert_frame_equal(grouped.apply(np.sum), exp_df.iloc[:, :0],
-                           check_names=False)
+                              check_names=False)
 
     def test_agg_grouping_is_list_tuple(self):
         from pandas.core.groupby import Grouping
@@ -142,11 +139,14 @@ class TestGroupByAggregate(object):
             tm.assert_frame_equal(result, expected)
 
             # group frame by function dict
-            result = grouped.agg(OrderedDict([['A', 'var'], ['B', 'std'],
-                                              ['C', 'mean'], ['D', 'sem']]))
-            expected = DataFrame(OrderedDict([['A', grouped['A'].var(
-            )], ['B', grouped['B'].std()], ['C', grouped['C'].mean()],
-                ['D', grouped['D'].sem()]]))
+            result = grouped.agg(OrderedDict([['A', 'var'],
+                                              ['B', 'std'],
+                                              ['C', 'mean'],
+                                              ['D', 'sem']]))
+            expected = DataFrame(OrderedDict([['A', grouped['A'].var()],
+                                              ['B', grouped['B'].std()],
+                                              ['C', grouped['C'].mean()],
+                                              ['D', grouped['D'].sem()]]))
             tm.assert_frame_equal(result, expected)
 
         by_weekday = self.tsframe.groupby(lambda x: x.weekday())
@@ -264,10 +264,10 @@ class TestGroupByAggregate(object):
             return np.std(x, ddof=1)
 
         # this uses column selection & renaming
-        with tm.assert_produces_warning(FutureWarning,
-                                        check_stacklevel=False):
-            d = OrderedDict([['C', np.mean], ['D', OrderedDict(
-                [['foo', np.mean], ['bar', np.std]])]])
+        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
+            d = OrderedDict([['C', np.mean],
+                             ['D', OrderedDict([['foo', np.mean],
+                                                ['bar', np.std]])]])
             result = grouped.aggregate(d)
 
         d = OrderedDict([['C', [np.mean]], ['D', [foo, bar]]])
@@ -279,31 +279,25 @@ class TestGroupByAggregate(object):
         # GH #1268
         grouped = self.df.groupby('A')
 
-        d = OrderedDict([['C', OrderedDict([['foo', 'mean'],
-                                            ['bar', 'std']])], ['D', 'sum']])
-
+        # Expected
+        d = OrderedDict([['C', OrderedDict([['foo', 'mean'], ['bar', 'std']])],
+                         ['D', {'sum': 'sum'}]])
         # this uses column selection & renaming
-        with tm.assert_produces_warning(FutureWarning,
-                                        check_stacklevel=False):
+        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
+            expected = grouped.aggregate(d)
+
+        # Test 1
+        d = OrderedDict([['C', OrderedDict([['foo', 'mean'], ['bar', 'std']])],
+                         ['D', 'sum']])
+        # this uses column selection & renaming
+        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
             result = grouped.aggregate(d)
-
-        d2 = OrderedDict([['C', OrderedDict([['foo', 'mean'],
-                                             ['bar', 'std']])],
-                          ['D', ['sum']]])
-
-        # this uses column selection & renaming
-        with tm.assert_produces_warning(FutureWarning,
-                                        check_stacklevel=False):
-            result2 = grouped.aggregate(d2)
-
-        d3 = OrderedDict([['C', OrderedDict([['foo', 'mean'],
-                                             ['bar', 'std']])],
-                          ['D', {'sum': 'sum'}]])
-
-        # this uses column selection & renaming
-        with tm.assert_produces_warning(FutureWarning,
-                                        check_stacklevel=False):
-            expected = grouped.aggregate(d3)
-
         tm.assert_frame_equal(result, expected)
-        tm.assert_frame_equal(result2, expected)
+
+        # Test 2
+        d = OrderedDict([['C', OrderedDict([['foo', 'mean'], ['bar', 'std']])],
+                         ['D', ['sum']]])
+        # this uses column selection & renaming
+        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
+            result = grouped.aggregate(d)
+        tm.assert_frame_equal(result, expected)

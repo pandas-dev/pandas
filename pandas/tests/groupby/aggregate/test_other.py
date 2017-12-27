@@ -1,8 +1,7 @@
 # -*- coding: utf-8 -*-
 
 """
-we test .agg behavior / note that .apply is tested
-generally in test_groupby.py
+test all other .agg behavior
 """
 
 from __future__ import print_function
@@ -42,14 +41,18 @@ def test_agg_api():
 
 
 def test_agg_datetimes_mixed():
-    data = [[1, '2012-01-01', 1.0], [2, '2012-01-02', 2.0], [3, None, 3.0]]
+    data = [[1, '2012-01-01', 1.0],
+            [2, '2012-01-02', 2.0],
+            [3, None, 3.0]]
 
     df1 = DataFrame({'key': [x[0] for x in data],
                      'date': [x[1] for x in data],
                      'value': [x[2] for x in data]})
 
-    data = [[row[0], datetime.strptime(row[1], '%Y-%m-%d').date() if row[1]
-             else None, row[2]] for row in data]
+    data = [[row[0],
+             datetime.strptime(row[1], '%Y-%m-%d').date() if row[1] else None,
+             row[2]]
+            for row in data]
 
     df2 = DataFrame({'key': [x[0] for x in data],
                      'date': [x[1] for x in data],
@@ -84,9 +87,8 @@ def test_agg_period_index():
 def test_agg_dict_parameter_cast_result_dtypes():
     # GH 12821
 
-    df = DataFrame(
-        {'class': ['A', 'A', 'B', 'B', 'C', 'C', 'D', 'D'],
-         'time': date_range('1/1/2011', periods=8, freq='H')})
+    df = DataFrame({'class': ['A', 'A', 'B', 'B', 'C', 'C', 'D', 'D'],
+                    'time': date_range('1/1/2011', periods=8, freq='H')})
     df.loc[[0, 1, 2, 5], 'time'] = None
 
     # test for `first` function
@@ -138,15 +140,13 @@ def test_aggregate_float64_no_int64():
                     "b": [1, 2, 2, 4, 5],
                     "c": [1, 2, 3, 4, 5]})
 
-    expected = DataFrame({"a": [1, 2.5, 4, 5]},
-                         index=[1, 2, 4, 5])
+    expected = DataFrame({"a": [1, 2.5, 4, 5]}, index=[1, 2, 4, 5])
     expected.index.name = "b"
 
     result = df.groupby("b")[["a"]].mean()
     tm.assert_frame_equal(result, expected)
 
-    expected = DataFrame({"a": [1, 2.5, 4, 5],
-                          "c": [1, 2.5, 4, 5]},
+    expected = DataFrame({"a": [1, 2.5, 4, 5], "c": [1, 2.5, 4, 5]},
                          index=[1, 2, 4, 5])
     expected.index.name = "b"
 
@@ -173,56 +173,36 @@ def test_aggregate_api_consistency():
     d_sum = grouped['D'].sum()
 
     result = grouped['D'].agg(['sum', 'mean'])
-    expected = pd.concat([d_sum, d_mean],
-                         axis=1)
+    expected = pd.concat([d_sum, d_mean], axis=1)
     expected.columns = ['sum', 'mean']
     tm.assert_frame_equal(result, expected, check_like=True)
 
     result = grouped.agg([np.sum, np.mean])
-    expected = pd.concat([c_sum,
-                          c_mean,
-                          d_sum,
-                          d_mean],
-                         axis=1)
+    expected = pd.concat([c_sum, c_mean, d_sum, d_mean], axis=1)
     expected.columns = MultiIndex.from_product([['C', 'D'],
                                                 ['sum', 'mean']])
     tm.assert_frame_equal(result, expected, check_like=True)
 
     result = grouped[['D', 'C']].agg([np.sum, np.mean])
-    expected = pd.concat([d_sum,
-                          d_mean,
-                          c_sum,
-                          c_mean],
-                         axis=1)
+    expected = pd.concat([d_sum, d_mean, c_sum, c_mean], axis=1)
     expected.columns = MultiIndex.from_product([['D', 'C'],
                                                 ['sum', 'mean']])
     tm.assert_frame_equal(result, expected, check_like=True)
 
     result = grouped.agg({'C': 'mean', 'D': 'sum'})
-    expected = pd.concat([d_sum,
-                          c_mean],
-                         axis=1)
+    expected = pd.concat([d_sum, c_mean], axis=1)
     tm.assert_frame_equal(result, expected, check_like=True)
 
     result = grouped.agg({'C': ['mean', 'sum'],
                           'D': ['mean', 'sum']})
-    expected = pd.concat([c_mean,
-                          c_sum,
-                          d_mean,
-                          d_sum],
-                         axis=1)
+    expected = pd.concat([c_mean, c_sum, d_mean, d_sum], axis=1)
     expected.columns = MultiIndex.from_product([['C', 'D'],
                                                 ['mean', 'sum']])
 
-    with tm.assert_produces_warning(FutureWarning,
-                                    check_stacklevel=False):
+    with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
         result = grouped[['D', 'C']].agg({'r': np.sum,
                                           'r2': np.mean})
-    expected = pd.concat([d_sum,
-                          c_sum,
-                          d_mean,
-                          c_mean],
-                         axis=1)
+    expected = pd.concat([d_sum, c_sum, d_mean, c_mean], axis=1)
     expected.columns = MultiIndex.from_product([['r', 'r2'],
                                                 ['D', 'C']])
     tm.assert_frame_equal(result, expected, check_like=True)
@@ -240,8 +220,7 @@ def test_agg_dict_renaming_deprecation():
                              'C': {'bar': ['count', 'min']}})
         assert "using a dict with renaming" in str(w[0].message)
 
-    with tm.assert_produces_warning(FutureWarning,
-                                    check_stacklevel=False):
+    with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
         df.groupby('A')[['B', 'C']].agg({'ma': 'max'})
 
     with tm.assert_produces_warning(FutureWarning) as w:
@@ -261,23 +240,17 @@ def test_agg_compat():
 
     g = df.groupby(['A', 'B'])
 
-    expected = pd.concat([g['D'].sum(),
-                          g['D'].std()],
-                         axis=1)
+    expected = pd.concat([g['D'].sum(), g['D'].std()], axis=1)
     expected.columns = MultiIndex.from_tuples([('C', 'sum'),
                                                ('C', 'std')])
-    with tm.assert_produces_warning(FutureWarning,
-                                    check_stacklevel=False):
+    with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
         result = g['D'].agg({'C': ['sum', 'std']})
     tm.assert_frame_equal(result, expected, check_like=True)
 
-    expected = pd.concat([g['D'].sum(),
-                          g['D'].std()],
-                         axis=1)
+    expected = pd.concat([g['D'].sum(), g['D'].std()], axis=1)
     expected.columns = ['C', 'D']
 
-    with tm.assert_produces_warning(FutureWarning,
-                                    check_stacklevel=False):
+    with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
         result = g['D'].agg({'C': 'sum', 'D': 'std'})
     tm.assert_frame_equal(result, expected, check_like=True)
 
@@ -299,8 +272,7 @@ def test_agg_nested_dicts():
         g.aggregate({'r1': {'C': ['mean', 'sum']},
                      'r2': {'D': ['mean', 'sum']}})
 
-    with tm.assert_produces_warning(FutureWarning,
-                                    check_stacklevel=False):
+    with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
         result = g.agg({'C': {'ra': ['mean', 'std']},
                         'D': {'rb': ['mean', 'std']}})
     expected = pd.concat([g['C'].mean(), g['C'].std(),
@@ -313,13 +285,11 @@ def test_agg_nested_dicts():
 
     # same name as the original column
     # GH9052
-    with tm.assert_produces_warning(FutureWarning,
-                                    check_stacklevel=False):
+    with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
         expected = g['D'].agg({'result1': np.sum, 'result2': np.mean})
     expected = expected.rename(columns={'result1': 'D'})
 
-    with tm.assert_produces_warning(FutureWarning,
-                                    check_stacklevel=False):
+    with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
         result = g['D'].agg({'D': np.sum, 'result2': np.mean})
     tm.assert_frame_equal(result, expected, check_like=True)
 
@@ -402,8 +372,12 @@ def test_agg_callables():
         def __call__(self, x):
             return sum(x)
 
-    equiv_callables = [sum, np.sum, lambda x: sum(x), lambda x: x.sum(),
-                       partial(sum), fn_class()]
+    equiv_callables = [sum,
+                       np.sum,
+                       lambda x: sum(x),
+                       lambda x: x.sum(),
+                       partial(sum),
+                       fn_class(), ]
 
     expected = df.groupby("foo").agg(sum)
     for ecall in equiv_callables:
@@ -432,8 +406,8 @@ def test_agg_over_numpy_arrays():
 def test_agg_timezone_round_trip():
     # GH 15426
     ts = pd.Timestamp("2016-01-01 12:00:00", tz='US/Pacific')
-    df = pd.DataFrame({'a': 1, 'b': [ts + timedelta(minutes=nn)
-                                     for nn in range(10)]})
+    df = pd.DataFrame({'a': 1,
+                       'b': [ts + timedelta(minutes=nn) for nn in range(10)]})
 
     result1 = df.groupby('a')['b'].agg(np.min).iloc[0]
     result2 = df.groupby('a')['b'].agg(lambda x: np.min(x)).iloc[0]
@@ -463,14 +437,17 @@ def test_sum_uint64_overflow():
     # see gh-14758
 
     # Convert to uint64 and don't overflow
-    df = pd.DataFrame([[1, 2], [3, 4], [5, 6]],
-                      dtype=object) + 9223372036854775807
+    df = pd.DataFrame([[1, 2], [3, 4], [5, 6]], dtype=object)
+    df = df + 9223372036854775807
 
-    index = pd.Index([9223372036854775808, 9223372036854775810,
-                      9223372036854775812], dtype=np.uint64)
+    index = pd.Index([9223372036854775808,
+                      9223372036854775810,
+                      9223372036854775812],
+                     dtype=np.uint64)
     expected = pd.DataFrame({1: [9223372036854775809,
                                  9223372036854775811,
-                                 9223372036854775813]}, index=index)
+                                 9223372036854775813]},
+                            index=index)
 
     expected.index.name = 0
     result = df.groupby(0).sum()
