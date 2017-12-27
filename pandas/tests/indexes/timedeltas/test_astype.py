@@ -40,8 +40,11 @@ class TestTimedeltaIndex(DatetimeLike):
                               dtype=np.int64)
         tm.assert_index_equal(result, expected)
 
-        rng = timedelta_range('1 days', periods=10)
+        result = idx.astype(str)
+        expected = Index(str(x) for x in idx)
+        tm.assert_index_equal(result, expected)
 
+        rng = timedelta_range('1 days', periods=10)
         result = rng.astype('i8')
         tm.assert_index_equal(result, Index(rng.asi8))
         tm.assert_numpy_array_equal(rng.asi8, result.values)
@@ -62,14 +65,14 @@ class TestTimedeltaIndex(DatetimeLike):
         tm.assert_index_equal(result, idx)
         assert result is idx
 
-    def test_astype_raises(self):
+    @pytest.mark.parametrize('dtype', [
+        float, 'datetime64', 'datetime64[ns]'])
+    def test_astype_raises(self, dtype):
         # GH 13149, GH 13209
         idx = TimedeltaIndex([1e14, 'NaT', pd.NaT, np.NaN])
-
-        pytest.raises(TypeError, idx.astype, float)
-        pytest.raises(TypeError, idx.astype, str)
-        pytest.raises(TypeError, idx.astype, 'datetime64')
-        pytest.raises(TypeError, idx.astype, 'datetime64[ns]')
+        msg = 'Cannot cast TimedeltaIndex to dtype'
+        with tm.assert_raises_regex(TypeError, msg):
+            idx.astype(dtype)
 
     def test_pickle_compat_construction(self):
         pass
