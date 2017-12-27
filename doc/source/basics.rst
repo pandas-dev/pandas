@@ -764,7 +764,7 @@ For example, we can fit a regression using statsmodels. Their API expects a form
 The pipe method is inspired by unix pipes and more recently dplyr_ and magrittr_, which
 have introduced the popular ``(%>%)`` (read pipe) operator for R_.
 The implementation of ``pipe`` here is quite clean and feels right at home in python.
-We encourage you to view the source code of ``pd.DataFrame.pipe``.
+We encourage you to view the source code of :meth:`~DataFrame.pipe`.
 
 .. _dplyr: https://github.com/hadley/dplyr
 .. _magrittr: https://github.com/smbache/magrittr
@@ -786,7 +786,7 @@ statistics methods, take an optional ``axis`` argument:
    df.apply(np.cumsum)
    df.apply(np.exp)
 
-The ``.apply()`` method will also dispatch on a string method name.
+The :meth:`~DataFrame.apply` method will also dispatch on a string method name.
 
 .. ipython:: python
 
@@ -1009,7 +1009,7 @@ function name or a user defined function.
    tsdf.transform('abs')
    tsdf.transform(lambda x: x.abs())
 
-Here ``.transform()`` received a single function; this is equivalent to a ufunc application.
+Here :meth:`~DataFrame.transform` received a single function; this is equivalent to a ufunc application.
 
 .. ipython:: python
 
@@ -1516,7 +1516,7 @@ To iterate over the rows of a DataFrame, you can use the following methods:
     over the values. See the docs on :ref:`function application <basics.apply>`.
 
   * If you need to do iterative manipulations on the values but performance is
-    important, consider writing the inner loop using for instance cython or numba.
+    important, consider writing the inner loop with cython or numba.
     See the :ref:`enhancing performance <enhancingperf>` section for some
     examples of this approach.
 
@@ -1595,7 +1595,7 @@ index value along with a Series containing the data in each row:
 
    To preserve dtypes while iterating over the rows, it is better
    to use :meth:`~DataFrame.itertuples` which returns namedtuples of the values
-   and which is generally much faster than ``iterrows``.
+   and which is generally much faster than :meth:`~DataFrame.iterrows`.
 
 For instance, a contrived way to transpose the DataFrame would be:
 

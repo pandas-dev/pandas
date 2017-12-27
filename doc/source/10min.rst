@@ -210,7 +210,7 @@ For getting a scalar value:
 
    df.loc[dates[0],'A']
 
-For getting fast access to a scalar (equiv to the prior method):
+For getting fast access to a scalar (equivalent to the prior method):
 
 .. ipython:: python
 
@@ -426,7 +426,7 @@ String Methods
 Series is equipped with a set of string processing methods in the `str`
 attribute that make it easy to operate on each element of the array, as in the
 code snippet below. Note that pattern-matching in `str` generally uses `regular
-expressions <https://docs.python.org/3.5/library/re.html>`__ by default (and in
+expressions <https://docs.python.org/3/library/re.html>`__ by default (and in
 some cases always uses them). See more at :ref:`Vectorized String Methods
 <text.string_methods>`.
 
@@ -520,7 +520,8 @@ See the :ref:`Grouping section <groupby>`.
                       'D' : np.random.randn(8)})
    df
 
-Grouping and then applying the ``sum`` function to the resulting groups.
+Grouping and then applying the :meth:`~DataFrame.sum` function to the resulting 
+groups.
 
 .. ipython:: python
 
@@ -669,7 +670,7 @@ Rename the categories to more meaningful names (assigning to
     df["grade"].cat.categories = ["very good", "good", "very bad"]
 
 Reorder the categories and simultaneously add the missing categories (methods under ``Series
-.cat`` return a new ``Series`` per default).
+.cat`` return a new ``Series`` by default).
 
 .. ipython:: python
 
