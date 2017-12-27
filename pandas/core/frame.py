@@ -1403,6 +1403,8 @@ class DataFrame(NDFrame):
         Transform long (stacked) format (DataFrame) into wide (3D, Panel)
         format.
 
+        .. deprecated:: 0.20.0
+
         Currently the index of the DataFrame must be a 2-level MultiIndex. This
         may be generalized later
 

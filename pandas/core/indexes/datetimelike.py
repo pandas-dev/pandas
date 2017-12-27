@@ -11,13 +11,23 @@ from pandas.core.tools.timedeltas import to_timedelta
 
 import numpy as np
 from pandas.core.dtypes.common import (
-    is_integer, is_float,
-    is_bool_dtype, _ensure_int64,
-    is_scalar, is_dtype_equal, is_offsetlike,
-    is_list_like, is_timedelta64_dtype)
+    _ensure_int64,
+    is_dtype_equal,
+    is_float,
+    is_integer,
+    is_list_like,
+    is_scalar,
+    is_bool_dtype,
+    is_offsetlike,
+    is_categorical_dtype,
+    is_datetime_or_timedelta_dtype,
+    is_float_dtype,
+    is_integer_dtype,
+    is_object_dtype,
+    is_string_dtype,
+    is_timedelta64_dtype)
 from pandas.core.dtypes.generic import (
-    ABCIndex, ABCSeries,
-    ABCPeriodIndex, ABCIndexClass)
+    ABCIndex, ABCSeries, ABCPeriodIndex, ABCIndexClass)
 from pandas.core.dtypes.missing import isna
 from pandas.core import common as com, algorithms
 from pandas.core.algorithms import checked_add_with_arr
@@ -875,6 +885,22 @@ class DatetimeIndexOpsMixin(object):
         else:
             new_data = np.concatenate([c.asi8 for c in to_concat])
         return self._simple_new(new_data, **attribs)
+
+    def astype(self, dtype, copy=True):
+        if is_object_dtype(dtype):
+            return self._box_values_as_index()
+        elif is_string_dtype(dtype) and not is_categorical_dtype(dtype):
+            return Index(self.format(), name=self.name, dtype=object)
+        elif is_integer_dtype(dtype):
+            return Index(self.values.astype('i8', copy=copy), name=self.name,
+                         dtype='i8')
+        elif (is_datetime_or_timedelta_dtype(dtype) and
+              not is_dtype_equal(self.dtype, dtype)) or is_float_dtype(dtype):
+            # disallow conversion between datetime/timedelta,
+            # and conversions for any datetimelike to float
+            msg = 'Cannot cast {name} to dtype {dtype}'
+            raise TypeError(msg.format(name=type(self).__name__, dtype=dtype))
+        return super(DatetimeIndexOpsMixin, self).astype(dtype, copy=copy)
 
 
 def _ensure_datetimelike_to_i8(other):

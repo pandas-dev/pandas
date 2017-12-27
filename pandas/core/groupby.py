@@ -191,6 +191,60 @@ _apply_docs = dict(
     dtype: int64
     """)
 
+_pipe_template = """\
+Apply a function ``func`` with arguments to this %(klass)s object and return
+the function's result.
+
+%(versionadded)s
+
+Use ``.pipe`` when you want to improve readability by chaining together
+functions that expect Series, DataFrames, GroupBy or Resampler objects.
+Instead of writing
+
+>>> h(g(f(df.groupby('group')), arg1=a), arg2=b, arg3=c)
+
+You can write
+
+>>> (df.groupby('group')
+...    .pipe(f)
+...    .pipe(g, arg1=a)
+...    .pipe(h, arg2=b, arg3=c))
+
+which is much more readable.
+
+Parameters
+----------
+func : callable or tuple of (callable, string)
+    Function to apply to this %(klass)s object or, alternatively,
+    a ``(callable, data_keyword)`` tuple where ``data_keyword`` is a
+    string indicating the keyword of ``callable`` that expects the
+    %(klass)s object.
+args : iterable, optional
+       positional arguments passed into ``func``.
+kwargs : dict, optional
+         a dictionary of keyword arguments passed into ``func``.
+
+Returns
+-------
+object : the return type of ``func``.
+
+Notes
+-----
+See more `here
+<http://pandas.pydata.org/pandas-docs/stable/groupby.html#pipe>`_
+
+Examples
+--------
+%(examples)s
+
+See Also
+--------
+pandas.Series.pipe : Apply a function with arguments to a series
+pandas.DataFrame.pipe: Apply a function with arguments to a dataframe
+apply : Apply function to each group instead of to the
+    full %(klass)s object.
+"""
+
 _transform_template = """
 Call function producing a like-indexed %(klass)s on each group and
 return a %(klass)s having the same indexes as the original object
@@ -675,6 +729,29 @@ class _GroupBy(PandasObject, SelectionMixin):
 
         raise AttributeError("%r object has no attribute %r" %
                              (type(self).__name__, attr))
+
+    @Substitution(klass='GroupBy',
+                  versionadded='.. versionadded:: 0.21.0',
+                  examples="""\
+>>> df = pd.DataFrame({'A': 'a b a b'.split(), 'B': [1, 2, 3, 4]})
+>>> df
+   A  B
+0  a  1
+1  b  2
+2  a  3
+3  b  4
+
+To get the difference between each groups maximum and minimum value in one
+pass, you can do
+
+>>> df.groupby('A').pipe(lambda x: x.max() - x.min())
+   B
+A
+a  2
+b  2""")
+    @Appender(_pipe_template)
+    def pipe(self, func, *args, **kwargs):
+        return _pipe(self, func, *args, **kwargs)
 
     plot = property(GroupByPlot)
 
@@ -1778,54 +1855,6 @@ class GroupBy(_GroupBy):
         self._reset_group_selection()
         mask = self._cumcount_array(ascending=False) < n
         return self._selected_obj[mask]
-
-    def pipe(self, func, *args, **kwargs):
-        """ Apply a function with arguments to this GroupBy object,
-
-        .. versionadded:: 0.21.0
-
-        Parameters
-        ----------
-        func : callable or tuple of (callable, string)
-            Function to apply to this GroupBy object or, alternatively, a
-            ``(callable, data_keyword)`` tuple where ``data_keyword`` is a
-            string indicating the keyword of ``callable`` that expects the
-            GroupBy object.
-        args : iterable, optional
-               positional arguments passed into ``func``.
-        kwargs : dict, optional
-                 a dictionary of keyword arguments passed into ``func``.
-
-        Returns
-        -------
-        object : the return type of ``func``.
-
-        Notes
-        -----
-        Use ``.pipe`` when chaining together functions that expect
-        Series, DataFrames or GroupBy objects. Instead of writing
-
-        >>> f(g(h(df.groupby('group')), arg1=a), arg2=b, arg3=c)
-
-        You can write
-
-        >>> (df
-        ...    .groupby('group')
-        ...    .pipe(f, arg1)
-        ...    .pipe(g, arg2)
-        ...    .pipe(h, arg3))
-
-        See more `here
-        <http://pandas.pydata.org/pandas-docs/stable/groupby.html#pipe>`_
-
-        See Also
-        --------
-        pandas.Series.pipe : Apply a function with arguments to a series
-        pandas.DataFrame.pipe: Apply a function with arguments to a dataframe
-        apply : Apply function to each group instead of to the
-            full GroupBy object.
-        """
-        return _pipe(self, func, *args, **kwargs)
 
 
 GroupBy._add_numeric_operations()

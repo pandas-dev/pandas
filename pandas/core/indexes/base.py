@@ -1065,12 +1065,18 @@ class Index(IndexOpsMixin, PandasObject):
 
     @Appender(_index_shared_docs['astype'])
     def astype(self, dtype, copy=True):
-        if is_categorical_dtype(dtype):
+        if is_dtype_equal(self.dtype, dtype):
+            return self.copy() if copy else self
+        elif is_categorical_dtype(dtype):
             from .category import CategoricalIndex
             return CategoricalIndex(self.values, name=self.name, dtype=dtype,
                                     copy=copy)
-        return Index(self.values.astype(dtype, copy=copy), name=self.name,
-                     dtype=dtype)
+        try:
+            return Index(self.values.astype(dtype, copy=copy), name=self.name,
+                         dtype=dtype)
+        except (TypeError, ValueError):
+            msg = 'Cannot cast {name} to dtype {dtype}'
+            raise TypeError(msg.format(name=type(self).__name__, dtype=dtype))
 
     def _to_safe_for_reshape(self):
         """ convert to object if we are a categorical """
@@ -1189,16 +1195,6 @@ class Index(IndexOpsMixin, PandasObject):
         new index (of same type and class...etc) [if inplace, returns None]
         """
         return self.set_names([name], inplace=inplace)
-
-    def reshape(self, *args, **kwargs):
-        """
-        NOT IMPLEMENTED: do not call this method, as reshaping is not
-        supported for Index objects and will raise an error.
-
-        Reshape an Index.
-        """
-        raise NotImplementedError("reshaping is not supported "
-                                  "for Index objects")
 
     @property
     def _has_complex_internals(self):
