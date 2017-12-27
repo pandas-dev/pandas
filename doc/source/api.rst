@@ -1623,6 +1623,7 @@ IntervalIndex Components
    IntervalIndex.right
    IntervalIndex.mid
    IntervalIndex.closed
+   IntervalIndex.length
    IntervalIndex.values
    IntervalIndex.is_non_overlapping_monotonic
 
@@ -1995,6 +1996,7 @@ Properties
     Interval.closed_left
     Interval.closed_right
     Interval.left
+    Interval.length
     Interval.mid
     Interval.open_left
     Interval.open_right
@@ -2272,6 +2274,7 @@ Function application
    Resampler.apply
    Resampler.aggregate
    Resampler.transform
+   Resampler.pipe
 
 Upsampling
 ~~~~~~~~~~

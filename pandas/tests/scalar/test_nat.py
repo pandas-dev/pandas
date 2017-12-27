@@ -170,8 +170,9 @@ def test_NaT_docstrings():
     ts_missing = [x for x in ts_names if x not in nat_names and
                   not x.startswith('_')]
     ts_missing.sort()
-    ts_expected = ['freqstr', 'normalize', 'offset',
-                   'to_julian_date', 'to_period', 'tz']
+    ts_expected = ['freqstr', 'normalize',
+                   'to_julian_date',
+                   'to_period', 'tz']
     assert ts_missing == ts_expected
 
     ts_overlap = [x for x in nat_names if x in ts_names and

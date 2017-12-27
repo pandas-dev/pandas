@@ -131,7 +131,7 @@ class PyArrowImpl(BaseImpl):
 
     def _validate_write_lt_070(self, df):
         # Compatibility shim for pyarrow < 0.7.0
-        # TODO: Remove in pandas 0.22.0
+        # TODO: Remove in pandas 0.23.0
         from pandas.core.indexes.multi import MultiIndex
         if isinstance(df.index, MultiIndex):
             msg = (

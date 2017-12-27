@@ -337,15 +337,22 @@ def read_sql(sql, con, index_col=None, coerce_float=True, params=None,
     """
     Read SQL query or database table into a DataFrame.
 
+    This function is a convenience wrapper around ``read_sql_table`` and
+    ``read_sql_query`` (for backward compatibility). It will delegate
+    to the specific function depending on the provided input. A SQL query
+    will be routed to ``read_sql_query``, while a database table name will
+    be routed to ``read_sql_table``. Note that the delegated function might
+    have more specific notes about their functionality not listed here.
+
     Parameters
     ----------
     sql : string or SQLAlchemy Selectable (select or text object)
-        SQL query to be executed.
-    con : SQLAlchemy connectable(engine/connection) or database string URI
+        SQL query to be executed or a table name.
+    con : SQLAlchemy connectable (engine/connection) or database string URI
         or DBAPI2 connection (fallback mode)
+
         Using SQLAlchemy makes it possible to use any DB supported by that
-        library.
-        If a DBAPI2 object, only sqlite3 is supported.
+        library. If a DBAPI2 object, only sqlite3 is supported.
     index_col : string or list of strings, optional, default: None
         Column(s) to set as index(MultiIndex).
     coerce_float : boolean, default True
@@ -376,14 +383,6 @@ def read_sql(sql, con, index_col=None, coerce_float=True, params=None,
     Returns
     -------
     DataFrame
-
-    Notes
-    -----
-    This function is a convenience wrapper around ``read_sql_table`` and
-    ``read_sql_query`` (and for backward compatibility) and will delegate
-    to the specific function depending on the provided input (database
-    table name or SQL query).  The delegated function might have more specific
-    notes about their functionality not listed here.
 
     See also
     --------
