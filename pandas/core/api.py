@@ -69,7 +69,7 @@ def groupby(*args, **kwargs):
     return args[0].groupby(*args[1:], **kwargs)
 
 
-# deprecation, xref
+# Deprecation: xref gh-16747
 class TimeGrouper(object):
 
     def __new__(cls, *args, **kwargs):
