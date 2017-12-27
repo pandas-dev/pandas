@@ -19,7 +19,19 @@ import pandas.util.testing as tm
 
 class TestGroupByAggregateCython(object):
 
-    def test_cythonized_aggers(self):
+    @pytest.mark.parametrize('op', [
+        'count',
+        'sum',
+        'std',
+        'var',
+        'sem',
+        'mean',
+        'median',
+        'prod',
+        'min',
+        'max',
+    ])
+    def test_cythonized_aggers(self, op):
         data = {'A': [0, 0, 0, 0, 1, 1, 1, 1, 1, 1., nan, nan],
                 'B': ['A', 'B'] * 6,
                 'C': np.random.randn(12)}
@@ -53,16 +65,7 @@ class TestGroupByAggregateCython(object):
             if name in ['sum', 'prod']:
                 tm.assert_series_equal(result, exp)
 
-        _testit('count')
-        _testit('sum')
-        _testit('std')
-        _testit('var')
-        _testit('sem')
-        _testit('mean')
-        _testit('median')
-        _testit('prod')
-        _testit('min')
-        _testit('max')
+        _testit(op)
 
     def test_cython_agg_boolean(self):
         frame = DataFrame({'a': np.random.randint(0, 5, 50),
@@ -127,27 +130,28 @@ class TestGroupByAggregateCython(object):
         expected = grouped.agg(np.sum)
         tm.assert_series_equal(summed, expected)
 
-    def test__cython_agg_general(self):
-        ops = [('mean', np.mean),
-               ('median', np.median),
-               ('var', np.var),
-               ('add', np.sum),
-               ('prod', np.prod),
-               ('min', np.min),
-               ('max', np.max),
-               ('first', lambda x: x.iloc[0]),
-               ('last', lambda x: x.iloc[-1]), ]
+    @pytest.mark.parametrize('op, targop', [
+        ('mean', np.mean),
+        ('median', np.median),
+        ('var', np.var),
+        ('add', np.sum),
+        ('prod', np.prod),
+        ('min', np.min),
+        ('max', np.max),
+        ('first', lambda x: x.iloc[0]),
+        ('last', lambda x: x.iloc[-1]),
+    ])
+    def test__cython_agg_general(self, op, targop):
         df = DataFrame(np.random.randn(1000))
         labels = np.random.randint(0, 50, size=1000).astype(float)
 
-        for op, targop in ops:
-            result = df.groupby(labels)._cython_agg_general(op)
-            expected = df.groupby(labels).agg(targop)
-            try:
-                tm.assert_frame_equal(result, expected)
-            except BaseException as exc:
-                exc.args += ('operation: %s' % op, )
-                raise
+        result = df.groupby(labels)._cython_agg_general(op)
+        expected = df.groupby(labels).agg(targop)
+        try:
+            tm.assert_frame_equal(result, expected)
+        except BaseException as exc:
+            exc.args += ('operation: %s' % op, )
+            raise
 
     @pytest.mark.parametrize('op, targop', [
         ('mean', np.mean),

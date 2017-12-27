@@ -4,6 +4,8 @@
 test .agg behavior / note that .apply is tested generally in test_groupby.py
 """
 
+import pytest
+
 import numpy as np
 import pandas as pd
 
@@ -126,7 +128,11 @@ class TestGroupByAggregate(object):
         expected = grouped.mean()
         tm.assert_frame_equal(result, expected)
 
-    def test_aggregate_str_func(self):
+    @pytest.mark.parametrize('groupbyfunc', [
+        lambda x: x.weekday(),
+        [lambda x: x.month, lambda x: x.weekday()],
+    ])
+    def test_aggregate_str_func(self, groupbyfunc):
         def _check_results(grouped):
             # single series
             result = grouped['A'].agg('std')
@@ -149,24 +155,13 @@ class TestGroupByAggregate(object):
                                               ['D', grouped['D'].sem()]]))
             tm.assert_frame_equal(result, expected)
 
-        by_weekday = self.tsframe.groupby(lambda x: x.weekday())
-        _check_results(by_weekday)
-
-        by_mwkday = self.tsframe.groupby([lambda x: x.month,
-                                          lambda x: x.weekday()])
-        _check_results(by_mwkday)
+        _check_results(self.tsframe.groupby(groupbyfunc))
 
     def test_aggregate_item_by_item(self):
 
         df = self.df.copy()
         df['E'] = ['a'] * len(self.df)
         grouped = self.df.groupby('A')
-
-        # API change in 0.11
-        # def aggfun(ser):
-        #     return len(ser + 'a')
-        # result = grouped.agg(aggfun)
-        # assert len(result.columns) == 1
 
         aggfun = lambda ser: ser.size
         result = grouped.agg(aggfun)
