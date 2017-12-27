@@ -158,7 +158,6 @@ def test_aggregate_api_consistency():
     # GH 9052
     # make sure that the aggregates via dict
     # are consistent
-
     df = DataFrame({'A': ['foo', 'bar', 'foo', 'bar',
                           'foo', 'bar', 'foo', 'foo'],
                     'B': ['one', 'one', 'two', 'two',
@@ -230,7 +229,6 @@ def test_agg_dict_renaming_deprecation():
 
 def test_agg_compat():
     # GH 12334
-
     df = DataFrame({'A': ['foo', 'bar', 'foo', 'bar',
                           'foo', 'bar', 'foo', 'foo'],
                     'B': ['one', 'one', 'two', 'two',
@@ -257,7 +255,6 @@ def test_agg_compat():
 
 def test_agg_nested_dicts():
     # API change for disallowing these types of nested dicts
-
     df = DataFrame({'A': ['foo', 'bar', 'foo', 'bar',
                           'foo', 'bar', 'foo', 'foo'],
                     'B': ['one', 'one', 'two', 'two',
@@ -341,7 +338,6 @@ def test_series_agg_multi_pure_python():
 def test_agg_consistency():
     # agg with ([]) and () not consistent
     # GH 6715
-
     def P1(a):
         try:
             return np.percentile(a.dropna(), q=1)
@@ -435,7 +431,6 @@ def test_agg_timezone_round_trip():
 
 def test_sum_uint64_overflow():
     # see gh-14758
-
     # Convert to uint64 and don't overflow
     df = pd.DataFrame([[1, 2], [3, 4], [5, 6]], dtype=object)
     df = df + 9223372036854775807
@@ -492,7 +487,7 @@ def test_agg_structs_series(structure, expected):
 
 
 @pytest.mark.xfail(reason="GH-18869: agg func not called on empty groups.")
-def test_agg_category_nansum(self):
+def test_agg_category_nansum():
     categories = ['a', 'b', 'c']
     df = pd.DataFrame({"A": pd.Categorical(['a', 'a', 'b'],
                                            categories=categories),

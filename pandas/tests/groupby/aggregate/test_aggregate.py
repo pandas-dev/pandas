@@ -133,32 +133,30 @@ class TestGroupByAggregate(object):
         [lambda x: x.month, lambda x: x.weekday()],
     ])
     def test_aggregate_str_func(self, groupbyfunc):
-        def _check_results(grouped):
-            # single series
-            result = grouped['A'].agg('std')
-            expected = grouped['A'].std()
-            tm.assert_series_equal(result, expected)
+        grouped = self.tsframe.groupby(groupbyfunc)
 
-            # group frame by function name
-            result = grouped.aggregate('var')
-            expected = grouped.var()
-            tm.assert_frame_equal(result, expected)
+        # single series
+        result = grouped['A'].agg('std')
+        expected = grouped['A'].std()
+        tm.assert_series_equal(result, expected)
 
-            # group frame by function dict
-            result = grouped.agg(OrderedDict([['A', 'var'],
-                                              ['B', 'std'],
-                                              ['C', 'mean'],
-                                              ['D', 'sem']]))
-            expected = DataFrame(OrderedDict([['A', grouped['A'].var()],
-                                              ['B', grouped['B'].std()],
-                                              ['C', grouped['C'].mean()],
-                                              ['D', grouped['D'].sem()]]))
-            tm.assert_frame_equal(result, expected)
+        # group frame by function name
+        result = grouped.aggregate('var')
+        expected = grouped.var()
+        tm.assert_frame_equal(result, expected)
 
-        _check_results(self.tsframe.groupby(groupbyfunc))
+        # group frame by function dict
+        result = grouped.agg(OrderedDict([['A', 'var'],
+                                          ['B', 'std'],
+                                          ['C', 'mean'],
+                                          ['D', 'sem']]))
+        expected = DataFrame(OrderedDict([['A', grouped['A'].var()],
+                                          ['B', grouped['B'].std()],
+                                          ['C', grouped['C'].mean()],
+                                          ['D', grouped['D'].sem()]]))
+        tm.assert_frame_equal(result, expected)
 
     def test_aggregate_item_by_item(self):
-
         df = self.df.copy()
         df['E'] = ['a'] * len(self.df)
         grouped = self.df.groupby('A')
@@ -210,7 +208,6 @@ class TestGroupByAggregate(object):
 
     def test_multiple_functions_tuples_and_non_tuples(self):
         # #1359
-
         funcs = [('foo', 'mean'), 'std']
         ex_funcs = [('foo', 'mean'), ('std', 'std')]
 
@@ -231,7 +228,6 @@ class TestGroupByAggregate(object):
             grouped.agg(funcs)
 
     def test_more_flexible_frame_multi_function(self):
-
         grouped = self.df.groupby('A')
 
         exmean = grouped.agg(OrderedDict([['C', np.mean], ['D', np.mean]]))

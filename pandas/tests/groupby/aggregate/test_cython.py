@@ -17,7 +17,7 @@ from pandas.core.groupby import DataError
 import pandas.util.testing as tm
 
 
-@pytest.mark.parametrize('op', [
+@pytest.mark.parametrize('op_name', [
     'count',
     'sum',
     'std',
@@ -29,41 +29,37 @@ import pandas.util.testing as tm
     'min',
     'max',
 ])
-def test_cythonized_aggers(op):
+def test_cythonized_aggers(op_name):
     data = {'A': [0, 0, 0, 0, 1, 1, 1, 1, 1, 1., nan, nan],
             'B': ['A', 'B'] * 6,
             'C': np.random.randn(12)}
     df = DataFrame(data)
     df.loc[2:10:2, 'C'] = nan
 
-    def _testit(name):
+    op = lambda x: getattr(x, op_name)()
 
-        op = lambda x: getattr(x, name)()
+    # single column
+    grouped = df.drop(['B'], axis=1).groupby('A')
+    exp = {}
+    for cat, group in grouped:
+        exp[cat] = op(group['C'])
+    exp = DataFrame({'C': exp})
+    exp.index.name = 'A'
+    result = op(grouped)
+    tm.assert_frame_equal(result, exp)
 
-        # single column
-        grouped = df.drop(['B'], axis=1).groupby('A')
-        exp = {}
-        for cat, group in grouped:
-            exp[cat] = op(group['C'])
-        exp = DataFrame({'C': exp})
-        exp.index.name = 'A'
-        result = op(grouped)
-        tm.assert_frame_equal(result, exp)
+    # multiple columns
+    grouped = df.groupby(['A', 'B'])
+    expd = {}
+    for (cat1, cat2), group in grouped:
+        expd.setdefault(cat1, {})[cat2] = op(group['C'])
+    exp = DataFrame(expd).T.stack(dropna=False)
+    exp.index.names = ['A', 'B']
+    exp.name = 'C'
 
-        # multiple columns
-        grouped = df.groupby(['A', 'B'])
-        expd = {}
-        for (cat1, cat2), group in grouped:
-            expd.setdefault(cat1, {})[cat2] = op(group['C'])
-        exp = DataFrame(expd).T.stack(dropna=False)
-        exp.index.names = ['A', 'B']
-        exp.name = 'C'
-
-        result = op(grouped)['C']
-        if name in ['sum', 'prod']:
-            tm.assert_series_equal(result, exp)
-
-    _testit(op)
+    result = op(grouped)['C']
+    if op_name in ['sum', 'prod']:
+        tm.assert_series_equal(result, exp)
 
 
 def test_cython_agg_boolean():
@@ -151,11 +147,7 @@ def test__cython_agg_general(op, targop):
 
     result = df.groupby(labels)._cython_agg_general(op)
     expected = df.groupby(labels).agg(targop)
-    try:
-        tm.assert_frame_equal(result, expected)
-    except BaseException as exc:
-        exc.args += ('operation: %s' % op, )
-        raise
+    tm.assert_frame_equal(result, expected)
 
 
 @pytest.mark.parametrize('op, targop', [
@@ -173,11 +165,7 @@ def test_cython_agg_empty_buckets(op, targop):
     # which sets different values for min_count, so do that here.
     result = df.groupby(pd.cut(df[0], grps))._cython_agg_general(op)
     expected = df.groupby(pd.cut(df[0], grps)).agg(lambda x: targop(x))
-    try:
-        tm.assert_frame_equal(result, expected)
-    except BaseException as exc:
-        exc.args += ('operation: %s' % op,)
-        raise
+    tm.assert_frame_equal(result, expected)
 
 
 def test_cython_agg_empty_buckets_nanops():
