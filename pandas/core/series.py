@@ -951,7 +951,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
 
         Parameters
         ----------
-        index : label
+        label : object
         takeable : interpret the index as indexers, default False
 
         Returns
