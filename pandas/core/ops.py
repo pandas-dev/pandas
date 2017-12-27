@@ -407,7 +407,7 @@ class _TimeOp(_Op):
 
             # if tz's must be equal (same or None)
             if getattr(lvalues, 'tz', None) != getattr(rvalues, 'tz', None):
-                if len(rvalues) == 1 and np.isnat(rvalues[0]):
+                if len(rvalues) == 1 and isna(rvalues[0]):
                     # NaT gets a pass
                     pass
                 else:
