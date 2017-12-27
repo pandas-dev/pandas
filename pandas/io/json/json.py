@@ -724,7 +724,7 @@ class Parser(object):
         if new_data.dtype == 'object':
             try:
                 new_data = data.astype('int64')
-            except (TypeError, ValueError):
+            except (TypeError, ValueError, OverflowError):
                 pass
 
         # ignore numbers that are out of range
