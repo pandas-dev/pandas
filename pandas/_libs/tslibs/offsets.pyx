@@ -583,15 +583,17 @@ def shift_quarters(int64_t[:] dtindex, int quarters,
 
 @cython.wraparound(False)
 @cython.boundscheck(False)
-def shift_months(int64_t[:] dtindex, int months, object day=None):
+def shift_months(int64_t[:] dtindex, int months, object day_opt):
     """
     Given an int64-based datetime index, shift all elements
     specified number of months using DateOffset semantics
 
-    day: {None, 'start', 'end'}
+    day_opt: {None, 'start', 'end', 'business_start', 'business_end'}
        * None: day of month
        * 'start' 1st day of month
        * 'end' last day of month
+       * 'business_start' first business day of month
+       * 'business_end' last business day of month
     """
     cdef:
         Py_ssize_t i
@@ -717,7 +719,7 @@ def shift_months(int64_t[:] dtindex, int months, object day=None):
     return np.asarray(out)
 
 
-cpdef datetime shift_month(datetime stamp, int months, object day_opt=None):
+cpdef datetime shift_month(datetime stamp, int months, object day_opt):
     """
     Given a datetime (or Timestamp) `stamp`, an integer `months` and an
     option `day_opt`, return a new datetimelike that many months later,
@@ -824,7 +826,7 @@ cpdef int get_day_of_month(datetime other, day_opt) except? -1:
 
 
 cpdef int roll_yearday(datetime other, int n, int month,
-                       object day_opt='start') except? -1:
+                       object day_opt) except? -1:
     """
     Possibly increment or decrement the number of periods to shift
     based on rollforward/rollbackward conventions.

@@ -254,7 +254,7 @@ class DateOffset(BaseOffset):
             months = ((self.kwds.get('years', 0) * 12 +
                        self.kwds.get('months', 0)) * self.n)
             if months:
-                shifted = liboffsets.shift_months(i.asi8, months)
+                shifted = liboffsets.shift_months(i.asi8, months, day_opt=None)
                 i = i._shallow_copy(shifted)
 
             weeks = (self.kwds.get('weeks', 0)) * self.n
@@ -1241,7 +1241,7 @@ class SemiMonthEnd(SemiMonthOffset):
 
         months = n // 2
         day = 31 if n % 2 else self.day_of_month
-        return shift_month(other, months, day)
+        return shift_month(other, months, day_opt=day)
 
     def _get_roll(self, i, before_day_of_month, after_day_of_month):
         n = self.n
@@ -1292,7 +1292,7 @@ class SemiMonthBegin(SemiMonthOffset):
 
         months = n // 2 + n % 2
         day = 1 if n % 2 else self.day_of_month
-        return shift_month(other, months, day)
+        return shift_month(other, months, day_opt=day)
 
     def _get_roll(self, i, before_day_of_month, after_day_of_month):
         n = self.n
