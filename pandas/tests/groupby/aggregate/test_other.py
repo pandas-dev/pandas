@@ -16,7 +16,6 @@ import numpy as np
 import pandas as pd
 
 from pandas import date_range, DataFrame, Index, MultiIndex, Series
-from pandas.util.testing import assert_frame_equal, assert_series_equal
 from pandas.core.groupby import SpecificationError
 from pandas.io.formats.printing import pprint_thing
 import pandas.util.testing as tm
@@ -39,7 +38,7 @@ def test_agg_api():
     expected = grouped.agg([peak_to_peak])
     expected.columns = ['data1', 'data2']
     result = grouped.agg(peak_to_peak)
-    assert_frame_equal(result, expected)
+    tm.assert_frame_equal(result, expected)
 
 
 def test_agg_datetimes_mixed():
@@ -93,32 +92,32 @@ def test_agg_dict_parameter_cast_result_dtypes():
     # test for `first` function
     exp = df.loc[[0, 3, 4, 6]].set_index('class')
     grouped = df.groupby('class')
-    assert_frame_equal(grouped.first(), exp)
-    assert_frame_equal(grouped.agg('first'), exp)
-    assert_frame_equal(grouped.agg({'time': 'first'}), exp)
-    assert_series_equal(grouped.time.first(), exp['time'])
-    assert_series_equal(grouped.time.agg('first'), exp['time'])
+    tm.assert_frame_equal(grouped.first(), exp)
+    tm.assert_frame_equal(grouped.agg('first'), exp)
+    tm.assert_frame_equal(grouped.agg({'time': 'first'}), exp)
+    tm.assert_series_equal(grouped.time.first(), exp['time'])
+    tm.assert_series_equal(grouped.time.agg('first'), exp['time'])
 
     # test for `last` function
     exp = df.loc[[0, 3, 4, 7]].set_index('class')
     grouped = df.groupby('class')
-    assert_frame_equal(grouped.last(), exp)
-    assert_frame_equal(grouped.agg('last'), exp)
-    assert_frame_equal(grouped.agg({'time': 'last'}), exp)
-    assert_series_equal(grouped.time.last(), exp['time'])
-    assert_series_equal(grouped.time.agg('last'), exp['time'])
+    tm.assert_frame_equal(grouped.last(), exp)
+    tm.assert_frame_equal(grouped.agg('last'), exp)
+    tm.assert_frame_equal(grouped.agg({'time': 'last'}), exp)
+    tm.assert_series_equal(grouped.time.last(), exp['time'])
+    tm.assert_series_equal(grouped.time.agg('last'), exp['time'])
 
     # count
     exp = pd.Series([2, 2, 2, 2],
                     index=Index(list('ABCD'), name='class'),
                     name='time')
-    assert_series_equal(grouped.time.agg(len), exp)
-    assert_series_equal(grouped.time.size(), exp)
+    tm.assert_series_equal(grouped.time.agg(len), exp)
+    tm.assert_series_equal(grouped.time.size(), exp)
 
     exp = pd.Series([0, 1, 1, 2],
                     index=Index(list('ABCD'), name='class'),
                     name='time')
-    assert_series_equal(grouped.time.count(), exp)
+    tm.assert_series_equal(grouped.time.count(), exp)
 
 
 def test_agg_cast_results_dtypes():
@@ -130,7 +129,7 @@ def test_agg_cast_results_dtypes():
 
     result = df.groupby('X')['Y'].agg(len)
     expected = df.groupby('X')['Y'].count()
-    assert_series_equal(result, expected)
+    tm.assert_series_equal(result, expected)
 
 
 def test_aggregate_float64_no_int64():
@@ -177,7 +176,7 @@ def test_aggregate_api_consistency():
     expected = pd.concat([d_sum, d_mean],
                          axis=1)
     expected.columns = ['sum', 'mean']
-    assert_frame_equal(result, expected, check_like=True)
+    tm.assert_frame_equal(result, expected, check_like=True)
 
     result = grouped.agg([np.sum, np.mean])
     expected = pd.concat([c_sum,
@@ -187,7 +186,7 @@ def test_aggregate_api_consistency():
                          axis=1)
     expected.columns = MultiIndex.from_product([['C', 'D'],
                                                 ['sum', 'mean']])
-    assert_frame_equal(result, expected, check_like=True)
+    tm.assert_frame_equal(result, expected, check_like=True)
 
     result = grouped[['D', 'C']].agg([np.sum, np.mean])
     expected = pd.concat([d_sum,
@@ -197,13 +196,13 @@ def test_aggregate_api_consistency():
                          axis=1)
     expected.columns = MultiIndex.from_product([['D', 'C'],
                                                 ['sum', 'mean']])
-    assert_frame_equal(result, expected, check_like=True)
+    tm.assert_frame_equal(result, expected, check_like=True)
 
     result = grouped.agg({'C': 'mean', 'D': 'sum'})
     expected = pd.concat([d_sum,
                           c_mean],
                          axis=1)
-    assert_frame_equal(result, expected, check_like=True)
+    tm.assert_frame_equal(result, expected, check_like=True)
 
     result = grouped.agg({'C': ['mean', 'sum'],
                           'D': ['mean', 'sum']})
@@ -226,7 +225,7 @@ def test_aggregate_api_consistency():
                          axis=1)
     expected.columns = MultiIndex.from_product([['r', 'r2'],
                                                 ['D', 'C']])
-    assert_frame_equal(result, expected, check_like=True)
+    tm.assert_frame_equal(result, expected, check_like=True)
 
 
 def test_agg_dict_renaming_deprecation():
@@ -270,7 +269,7 @@ def test_agg_compat():
     with tm.assert_produces_warning(FutureWarning,
                                     check_stacklevel=False):
         result = g['D'].agg({'C': ['sum', 'std']})
-    assert_frame_equal(result, expected, check_like=True)
+    tm.assert_frame_equal(result, expected, check_like=True)
 
     expected = pd.concat([g['D'].sum(),
                           g['D'].std()],
@@ -280,7 +279,7 @@ def test_agg_compat():
     with tm.assert_produces_warning(FutureWarning,
                                     check_stacklevel=False):
         result = g['D'].agg({'C': 'sum', 'D': 'std'})
-    assert_frame_equal(result, expected, check_like=True)
+    tm.assert_frame_equal(result, expected, check_like=True)
 
 
 def test_agg_nested_dicts():
@@ -310,7 +309,7 @@ def test_agg_nested_dicts():
     expected.columns = pd.MultiIndex.from_tuples(
         [('ra', 'mean'), ('ra', 'std'),
          ('rb', 'mean'), ('rb', 'std')])
-    assert_frame_equal(result, expected, check_like=True)
+    tm.assert_frame_equal(result, expected, check_like=True)
 
     # same name as the original column
     # GH9052
@@ -322,7 +321,7 @@ def test_agg_nested_dicts():
     with tm.assert_produces_warning(FutureWarning,
                                     check_stacklevel=False):
         result = g['D'].agg({'D': np.sum, 'result2': np.mean})
-    assert_frame_equal(result, expected, check_like=True)
+    tm.assert_frame_equal(result, expected, check_like=True)
 
 
 def test_agg_item_by_item_raise_typeerror():
@@ -345,7 +344,7 @@ def test_series_agg_multikey():
 
     result = grouped.agg(np.sum)
     expected = grouped.sum()
-    assert_series_equal(result, expected)
+    tm.assert_series_equal(result, expected)
 
 
 def test_series_agg_multi_pure_python():
@@ -366,7 +365,7 @@ def test_series_agg_multi_pure_python():
 
     result = data.groupby(['A', 'B']).agg(bad)
     expected = data.groupby(['A', 'B']).agg(lambda x: 'foo')
-    assert_frame_equal(result, expected)
+    tm.assert_frame_equal(result, expected)
 
 
 def test_agg_consistency():
@@ -391,7 +390,7 @@ def test_agg_consistency():
     expected.columns = expected.columns.levels[0]
 
     result = g.agg(P1)
-    assert_frame_equal(result, expected)
+    tm.assert_frame_equal(result, expected)
 
 
 def test_agg_callables():
@@ -409,7 +408,7 @@ def test_agg_callables():
     expected = df.groupby("foo").agg(sum)
     for ecall in equiv_callables:
         result = df.groupby('foo').agg(ecall)
-        assert_frame_equal(result, expected)
+        tm.assert_frame_equal(result, expected)
 
 
 def test_agg_over_numpy_arrays():
@@ -427,7 +426,7 @@ def test_agg_over_numpy_arrays():
                             index=expected_index,
                             columns=expected_column)
 
-    assert_frame_equal(result, expected)
+    tm.assert_frame_equal(result, expected)
 
 
 def test_agg_timezone_round_trip():
@@ -493,7 +492,7 @@ def test_agg_structs_dataframe(structure, expected):
 
     result = df.groupby(['A', 'B']).aggregate(structure)
     expected.index.names = ['A', 'B']
-    assert_frame_equal(result, expected)
+    tm.assert_frame_equal(result, expected)
 
 
 @pytest.mark.parametrize("structure, expected", [
@@ -512,7 +511,7 @@ def test_agg_structs_series(structure, expected):
 
     result = df.groupby('A')['C'].aggregate(structure)
     expected.index.name = 'A'
-    assert_series_equal(result, expected)
+    tm.assert_series_equal(result, expected)
 
 
 @pytest.mark.xfail(reason="GH-18869: agg func not called on empty groups.")

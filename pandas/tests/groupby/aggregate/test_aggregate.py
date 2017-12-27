@@ -9,7 +9,6 @@ import numpy as np
 import pandas as pd
 
 from pandas import concat, DataFrame, Index, MultiIndex, Series
-from pandas.util.testing import assert_frame_equal, assert_series_equal
 from pandas.core.groupby import SpecificationError
 from pandas.compat import OrderedDict
 import pandas.util.testing as tm
@@ -61,7 +60,7 @@ class TestGroupByAggregate(object):
         grouped = self.tsframe.groupby([lambda x: x.year, lambda x: x.month])
         result = grouped.agg(np.mean)
         expected = grouped.mean()
-        assert_frame_equal(result, expected)
+        tm.assert_frame_equal(result, expected)
 
     def test_agg_must_agg(self):
         grouped = self.df.groupby('A')['C']
@@ -79,7 +78,7 @@ class TestGroupByAggregate(object):
         f = lambda x: x.sum()
         results = self.df.C.groupby([self.df.A, self.df.B]).aggregate(f)
         expected = self.df.groupby(['A', 'B']).sum()['C']
-        assert_series_equal(results, expected)
+        tm.assert_series_equal(results, expected)
 
     def test_agg_apply_corner(self):
         # nothing to group, all NA
@@ -90,18 +89,18 @@ class TestGroupByAggregate(object):
         exp = Series([],
                      dtype=np.float64,
                      index=pd.Index([], dtype=np.float64))
-        assert_series_equal(grouped.sum(), exp)
-        assert_series_equal(grouped.agg(np.sum), exp)
-        assert_series_equal(grouped.apply(np.sum), exp, check_index_type=False)
+        tm.assert_series_equal(grouped.sum(), exp)
+        tm.assert_series_equal(grouped.agg(np.sum), exp)
+        tm.assert_series_equal(grouped.apply(np.sum), exp, check_index_type=False)
 
         # DataFrame
         grouped = self.tsframe.groupby(self.tsframe['A'] * np.nan)
         exp_df = DataFrame(columns=self.tsframe.columns,
                            dtype=float,
                            index=pd.Index([], dtype=np.float64))
-        assert_frame_equal(grouped.sum(), exp_df, check_names=False)
-        assert_frame_equal(grouped.agg(np.sum), exp_df, check_names=False)
-        assert_frame_equal(grouped.apply(np.sum), exp_df.iloc[:, :0],
+        tm.assert_frame_equal(grouped.sum(), exp_df, check_names=False)
+        tm.assert_frame_equal(grouped.agg(np.sum), exp_df, check_names=False)
+        tm.assert_frame_equal(grouped.apply(np.sum), exp_df.iloc[:, :0],
                            check_names=False)
 
     def test_agg_grouping_is_list_tuple(self):
@@ -135,12 +134,12 @@ class TestGroupByAggregate(object):
             # single series
             result = grouped['A'].agg('std')
             expected = grouped['A'].std()
-            assert_series_equal(result, expected)
+            tm.assert_series_equal(result, expected)
 
             # group frame by function name
             result = grouped.aggregate('var')
             expected = grouped.var()
-            assert_frame_equal(result, expected)
+            tm.assert_frame_equal(result, expected)
 
             # group frame by function dict
             result = grouped.agg(OrderedDict([['A', 'var'], ['B', 'std'],
@@ -148,7 +147,7 @@ class TestGroupByAggregate(object):
             expected = DataFrame(OrderedDict([['A', grouped['A'].var(
             )], ['B', grouped['B'].std()], ['C', grouped['C'].mean()],
                 ['D', grouped['D'].sem()]]))
-            assert_frame_equal(result, expected)
+            tm.assert_frame_equal(result, expected)
 
         by_weekday = self.tsframe.groupby(lambda x: x.weekday())
         _check_results(by_weekday)
@@ -204,7 +203,7 @@ class TestGroupByAggregate(object):
         result = grouped.aggregate(func)
         exp_grouped = self.three_group.loc[:, self.three_group.columns != 'C']
         expected = exp_grouped.groupby(['A', 'B']).aggregate(func)
-        assert_frame_equal(result, expected)
+        tm.assert_frame_equal(result, expected)
 
     def test_agg_multiple_functions_maintain_order(self):
         # GH #610
@@ -222,11 +221,11 @@ class TestGroupByAggregate(object):
 
         result = self.df.groupby('A')['C'].agg(funcs)
         expected = self.df.groupby('A')['C'].agg(ex_funcs)
-        assert_frame_equal(result, expected)
+        tm.assert_frame_equal(result, expected)
 
         result = self.df.groupby('A').agg(funcs)
         expected = self.df.groupby('A').agg(ex_funcs)
-        assert_frame_equal(result, expected)
+        tm.assert_frame_equal(result, expected)
 
     def test_agg_multiple_functions_too_many_lambdas(self):
         grouped = self.df.groupby('A')
@@ -249,14 +248,14 @@ class TestGroupByAggregate(object):
         d = OrderedDict([['C', [np.mean, np.std]], ['D', [np.mean, np.std]]])
         result = grouped.aggregate(d)
 
-        assert_frame_equal(result, expected)
+        tm.assert_frame_equal(result, expected)
 
         # be careful
         result = grouped.aggregate(OrderedDict([['C', np.mean],
                                                 ['D', [np.mean, np.std]]]))
         expected = grouped.aggregate(OrderedDict([['C', np.mean],
                                                   ['D', [np.mean, np.std]]]))
-        assert_frame_equal(result, expected)
+        tm.assert_frame_equal(result, expected)
 
         def foo(x):
             return np.mean(x)
@@ -274,7 +273,7 @@ class TestGroupByAggregate(object):
         d = OrderedDict([['C', [np.mean]], ['D', [foo, bar]]])
         expected = grouped.aggregate(d)
 
-        assert_frame_equal(result, expected)
+        tm.assert_frame_equal(result, expected)
 
     def test_multi_function_flexible_mix(self):
         # GH #1268
@@ -306,5 +305,5 @@ class TestGroupByAggregate(object):
                                         check_stacklevel=False):
             expected = grouped.aggregate(d3)
 
-        assert_frame_equal(result, expected)
-        assert_frame_equal(result2, expected)
+        tm.assert_frame_equal(result, expected)
+        tm.assert_frame_equal(result2, expected)

@@ -14,7 +14,6 @@ from numpy import nan
 import pandas as pd
 
 from pandas import bdate_range, DataFrame, Index, Series
-from pandas.util.testing import assert_frame_equal, assert_series_equal
 from pandas.core.groupby import DataError
 import pandas.util.testing as tm
 
@@ -40,7 +39,7 @@ class TestGroupByAggregateCython(object):
             exp = DataFrame({'C': exp})
             exp.index.name = 'A'
             result = op(grouped)
-            assert_frame_equal(result, exp)
+            tm.assert_frame_equal(result, exp)
 
             # multiple columns
             grouped = df.groupby(['A', 'B'])
@@ -53,7 +52,7 @@ class TestGroupByAggregateCython(object):
 
             result = op(grouped)['C']
             if name in ['sum', 'prod']:
-                assert_series_equal(result, exp)
+                tm.assert_series_equal(result, exp)
 
         _testit('count')
         _testit('sum')
@@ -72,7 +71,7 @@ class TestGroupByAggregateCython(object):
         result = frame.groupby('a')['b'].mean()
         expected = frame.groupby('a')['b'].agg(np.mean)
 
-        assert_series_equal(result, expected)
+        tm.assert_series_equal(result, expected)
 
     def test_cython_agg_nothing_to_agg(self):
         frame = DataFrame({'a': np.random.randint(0, 5, 50),
@@ -119,7 +118,7 @@ class TestGroupByAggregateCython(object):
                            {'two': 2, 'one': 2, 'three': 1}],
                           index=Index(['bar', 'foo'], name='A'),
                           name='B')
-        assert_series_equal(ts, expected)
+        tm.assert_series_equal(ts, expected)
 
     def test_cython_fail_agg(self):
         dr = bdate_range('1/1/2000', periods=50)
@@ -128,7 +127,7 @@ class TestGroupByAggregateCython(object):
         grouped = ts.groupby(lambda x: x.month)
         summed = grouped.sum()
         expected = grouped.agg(np.sum)
-        assert_series_equal(summed, expected)
+        tm.assert_series_equal(summed, expected)
 
     def test__cython_agg_general(self):
         ops = [('mean', np.mean),
