@@ -9,19 +9,13 @@ from __future__ import print_function
 
 import pytest
 
-from datetime import datetime, timedelta
-from functools import partial
-
 import numpy as np
 from numpy import nan
 import pandas as pd
 
-from pandas import (date_range, MultiIndex, DataFrame,
-                    Series, Index, bdate_range, concat)
+from pandas import bdate_range, DataFrame, Index, Series
 from pandas.util.testing import assert_frame_equal, assert_series_equal
-from pandas.core.groupby import SpecificationError, DataError
-from pandas.compat import OrderedDict
-from pandas.io.formats.printing import pprint_thing
+from pandas.core.groupby import DataError
 import pandas.util.testing as tm
 
 
