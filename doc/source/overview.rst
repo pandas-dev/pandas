@@ -10,21 +10,21 @@ Package overview
 easy-to-use data structures and data analysis tools for the `Python <https://www.python.org/>`__
 programming language.
 
-:mod:`pandas` consists of the following elements
+:mod:`pandas` consists of the following elements:
 
  * A set of labeled array data structures, the primary of which are
-   Series and DataFrame
+   Series and DataFrame.
  * Index objects enabling both simple axis indexing and multi-level /
-   hierarchical axis indexing
- * An integrated group by engine for aggregating and transforming data sets
+   hierarchical axis indexing.
+ * An integrated group by engine for aggregating and transforming data sets.
  * Date range generation (date_range) and custom date offsets enabling the
-   implementation of customized frequencies
+   implementation of customized frequencies.
  * Input/Output tools: loading tabular data from flat files (CSV, delimited,
    Excel 2003), and saving and loading pandas objects from the fast and
    efficient PyTables/HDF5 format.
  * Memory-efficient "sparse" versions of the standard data structures for storing
-   data that is mostly missing or mostly constant (some fixed value)
- * Moving window statistics (rolling mean, rolling standard deviation, etc.)
+   data that is mostly missing or mostly constant (some fixed value).
+ * Moving window statistics (rolling mean, rolling standard deviation, etc.).
 
 Data Structures
 ---------------
@@ -58,7 +58,7 @@ transformations in downstream functions.
 
 For example, with tabular data (DataFrame) it is more semantically helpful to
 think of the **index** (the rows) and the **columns** rather than axis 0 and
-axis 1. And iterating through the columns of the DataFrame thus results in more
+axis 1. Iterating through the columns of the DataFrame thus results in more
 readable code:
 
 ::
@@ -74,8 +74,7 @@ All pandas data structures are value-mutable (the values they contain can be
 altered) but not always size-mutable. The length of a Series cannot be
 changed, but, for example, columns can be inserted into a DataFrame. However,
 the vast majority of methods produce new objects and leave the input data
-untouched. In general, though, we like to **favor immutability** where
-sensible.
+untouched. In general we like to **favor immutability** where sensible.
 
 Getting Support
 ---------------
@@ -102,7 +101,7 @@ project, and makes it possible to `donate <https://pandas.pydata.org/donate.html
 Project Governance
 ------------------
 
-The governance process that pandas project has used informally since its inception in 2008 is formalized in `Project Governance documents <https://github.com/pandas-dev/pandas-governance>`__ .
+The governance process that pandas project has used informally since its inception in 2008 is formalized in `Project Governance documents <https://github.com/pandas-dev/pandas-governance>`__.
 The documents clarify how decisions are made and how the various elements of our community interact, including the relationship between open source collaborative development and work that may be funded by for-profit or non-profit entities.
 
 Wes McKinney is the Benevolent Dictator for Life (BDFL).
@@ -116,7 +115,7 @@ The list of the  Core Team members and more detailed information can be found on
 Institutional Partners
 ----------------------
 
-The information about current institutional partners can be found on `pandas website page <https://pandas.pydata.org/about.html>`__
+The information about current institutional partners can be found on `pandas website page <https://pandas.pydata.org/about.html>`__.
 
 License
 -------

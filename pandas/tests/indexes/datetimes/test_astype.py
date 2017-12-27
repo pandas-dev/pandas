@@ -57,6 +57,18 @@ class TestDatetimeIndex(object):
                           dtype=object)
         tm.assert_series_equal(result, expected)
 
+        # GH 18951: tz-aware to tz-aware
+        idx = date_range('20170101', periods=4, tz='US/Pacific')
+        result = idx.astype('datetime64[ns, US/Eastern]')
+        expected = date_range('20170101 03:00:00', periods=4, tz='US/Eastern')
+        tm.assert_index_equal(result, expected)
+
+        # GH 18951: tz-naive to tz-aware
+        idx = date_range('20170101', periods=4)
+        result = idx.astype('datetime64[ns, US/Eastern]')
+        expected = date_range('20170101', periods=4, tz='US/Eastern')
+        tm.assert_index_equal(result, expected)
+
     def test_astype_str_compat(self):
         # GH 13149, GH 13209
         # verify that we are returing NaT as a string (and not unicode)
@@ -126,15 +138,15 @@ class TestDatetimeIndex(object):
         tm.assert_index_equal(casted, Index(exp_values, dtype=np.object_))
         assert casted.tolist() == exp_values
 
-    def test_astype_raises(self):
+    @pytest.mark.parametrize('dtype', [
+        float, 'timedelta64', 'timedelta64[ns]', 'datetime64',
+        'datetime64[D]'])
+    def test_astype_raises(self, dtype):
         # GH 13149, GH 13209
         idx = DatetimeIndex(['2016-05-16', 'NaT', NaT, np.NaN])
-
-        pytest.raises(TypeError, idx.astype, float)
-        pytest.raises(TypeError, idx.astype, 'timedelta64')
-        pytest.raises(TypeError, idx.astype, 'timedelta64[ns]')
-        pytest.raises(TypeError, idx.astype, 'datetime64')
-        pytest.raises(TypeError, idx.astype, 'datetime64[D]')
+        msg = 'Cannot cast DatetimeIndex to dtype'
+        with tm.assert_raises_regex(TypeError, msg):
+            idx.astype(dtype)
 
     def test_index_convert_to_datetime_array(self):
         def _check_rng(rng):

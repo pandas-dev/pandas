@@ -367,5 +367,3 @@ class InsertColumns(object):
         np.random.seed(1234)
         for i in range(100):
             self.df[i] = np.random.randn(self.N)
-
-
