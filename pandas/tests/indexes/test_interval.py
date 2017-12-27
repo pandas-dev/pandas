@@ -390,14 +390,7 @@ class TestIntervalIndex(Base):
             assert not expected.equals(expected_other_closed)
 
     def test_astype(self, closed):
-
         idx = self.create_index(closed=closed)
-
-        for dtype in [np.int64, np.float64, 'datetime64[ns]',
-                      'datetime64[ns, US/Eastern]', 'timedelta64',
-                      'period[M]']:
-            pytest.raises(ValueError, idx.astype, dtype)
-
         result = idx.astype(object)
         tm.assert_index_equal(result, Index(idx.values, dtype='object'))
         assert not idx.equals(result)
@@ -406,6 +399,15 @@ class TestIntervalIndex(Base):
         result = idx.astype('interval')
         tm.assert_index_equal(result, idx)
         assert result.equals(idx)
+
+    @pytest.mark.parametrize('dtype', [
+        np.int64, np.float64, 'period[M]', 'timedelta64', 'datetime64[ns]',
+        'datetime64[ns, US/Eastern]'])
+    def test_astype_errors(self, closed, dtype):
+        idx = self.create_index(closed=closed)
+        msg = 'Cannot cast IntervalIndex to dtype'
+        with tm.assert_raises_regex(TypeError, msg):
+            idx.astype(dtype)
 
     @pytest.mark.parametrize('klass', [list, tuple, np.array, pd.Series])
     def test_where(self, closed, klass):
