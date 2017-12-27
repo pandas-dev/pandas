@@ -1190,16 +1190,6 @@ class Index(IndexOpsMixin, PandasObject):
         """
         return self.set_names([name], inplace=inplace)
 
-    def reshape(self, *args, **kwargs):
-        """
-        NOT IMPLEMENTED: do not call this method, as reshaping is not
-        supported for Index objects and will raise an error.
-
-        Reshape an Index.
-        """
-        raise NotImplementedError("reshaping is not supported "
-                                  "for Index objects")
-
     @property
     def _has_complex_internals(self):
         # to disable groupby tricks in MultiIndex
