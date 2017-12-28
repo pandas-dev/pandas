@@ -599,7 +599,7 @@ class TestIntervalIndex(Base):
         assert idx.is_monotonic_decreasing
         assert idx._is_strictly_monotonic_decreasing
 
-    @pytest.mark.xfail(reason='not a valid repr as we use interval notation')
+    @pytest.mark.skip(reason='not a valid repr as we use interval notation')
     def test_repr(self):
         i = IntervalIndex.from_tuples([(0, 1), (1, 2)], closed='right')
         expected = ("IntervalIndex(left=[0, 1],"
@@ -619,11 +619,11 @@ class TestIntervalIndex(Base):
                     "\n              dtype='interval[datetime64[ns]]')")
         assert repr(i) == expected
 
-    @pytest.mark.xfail(reason='not a valid repr as we use interval notation')
+    @pytest.mark.skip(reason='not a valid repr as we use interval notation')
     def test_repr_max_seq_item_setting(self):
         super(TestIntervalIndex, self).test_repr_max_seq_item_setting()
 
-    @pytest.mark.xfail(reason='not a valid repr as we use interval notation')
+    @pytest.mark.skip(reason='not a valid repr as we use interval notation')
     def test_repr_roundtrip(self):
         super(TestIntervalIndex, self).test_repr_roundtrip()
 
