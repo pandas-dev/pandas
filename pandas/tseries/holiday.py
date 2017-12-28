@@ -133,7 +133,7 @@ class Holiday(object):
             Name of the holiday , defaults to class name
         offset : array of pandas.tseries.offsets or
                 class from pandas.tseries.offsets
-            computes offset from  date
+            computes offset from date
         observance: function
             computes when holiday is given a pandas Timestamp
         days_of_week:

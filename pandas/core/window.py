@@ -253,7 +253,7 @@ class _Window(PandasObject, SelectionMixin):
         """
         wrap the results
 
-        Paramters
+        Parameters
         ---------
         results : list of ndarrays
         blocks : list of blocks
@@ -403,7 +403,7 @@ class Window(_Window):
     3  NaN
     4  NaN
 
-    Same as above, but explicity set the min_periods
+    Same as above, but explicitly set the min_periods
 
     >>> df.rolling(2, min_periods=1).sum()
          B

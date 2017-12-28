@@ -216,7 +216,7 @@ class TestSeriesMisc(TestData, SharedWithSparse):
         assert 'dt' not in dir(s)
         assert 'cat' not in dir(s)
 
-        # similiarly for .dt
+        # similarly for .dt
         s = Series(date_range('1/1/2015', periods=5))
         assert 'dt' in dir(s)
         assert 'str' not in dir(s)

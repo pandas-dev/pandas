@@ -861,7 +861,7 @@ class XlrdTests(ReadingTestsBase):
                             if (c_idx_levels == 1 and c_idx_names):
                                 continue
 
-                            # empty name case current read in as unamed levels,
+                            # empty name case current read in as unnamed levels,
                             # not Nones
                             check_names = True
                             if not r_idx_names and r_idx_levels > 1:

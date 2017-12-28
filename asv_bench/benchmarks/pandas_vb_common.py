@@ -43,7 +43,7 @@ class BaseIO(object):
     def teardown(self, *args, **kwargs):
         self.remove(self.fname)
 
-# Compatability import for lib
+# Compatibility import for lib
 for imp in ['pandas._libs.lib', 'pandas.lib', 'pandas_tseries']:
     try:
         lib = import_module(imp)

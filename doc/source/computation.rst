@@ -247,7 +247,7 @@ These are created from methods on ``Series`` and ``DataFrame``.
    r = s.rolling(window=60)
    r
 
-These object provide tab-completion of the avaible methods and properties.
+These object provide tab-completion of the available methods and properties.
 
 .. code-block:: ipython
 

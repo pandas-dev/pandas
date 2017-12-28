@@ -197,7 +197,7 @@ def to_datetime(arg, errors='raise', dayfirst=False, yearfirst=False,
 
         In case when it is not possible to return designated types (e.g. when
         any element of input is before Timestamp.min or after Timestamp.max)
-        return will have datetime.datetime type (or correspoding array/Series).
+        return will have datetime.datetime type (or corresponding array/Series).
 
     Examples
     --------
@@ -497,7 +497,7 @@ _unit_map = {'year': 'year',
 
 def _assemble_from_unit_mappings(arg, errors):
     """
-    assemble the unit specifed fields from the arg (DataFrame)
+    assemble the unit specified fields from the arg (DataFrame)
     Return a Series for actual parsing
 
     Parameters

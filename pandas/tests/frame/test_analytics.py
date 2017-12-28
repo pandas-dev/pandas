@@ -1907,7 +1907,7 @@ class TestDataFrameAnalytics(TestData):
 
     def test_built_in_round(self):
         if not compat.PY3:
-            pytest.skip("build in round cannot be overriden "
+            pytest.skip("build in round cannot be overridden "
                         "prior to Python 3")
 
         # GH11763

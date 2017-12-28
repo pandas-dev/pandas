@@ -799,7 +799,7 @@ class MultiIndex(Index):
 
         *this is internal for use for the cython routines*
 
-        Paramters
+        Parameters
         ---------
         key : string or tuple
 

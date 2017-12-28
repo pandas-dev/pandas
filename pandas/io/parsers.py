@@ -1541,7 +1541,7 @@ class ParserBase(object):
                     values, set(col_na_values) | col_na_fvalues,
                     try_num_bool)
 
-                # type specificed in dtype param
+                # type specified in dtype param
                 if cast_type and not is_dtype_equal(cvals, cast_type):
                     cvals = self._cast_types(cvals, cast_type, c)
 

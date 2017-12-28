@@ -362,7 +362,7 @@ class TestFancy(Base):
 
     def test_multi_assign(self):
 
-        # GH 3626, an assignement of a sub-df to a df
+        # GH 3626, an assignment of a sub-df to a df
         df = DataFrame({'FC': ['a', 'b', 'a', 'b', 'a', 'b'],
                         'PF': [0, 0, 0, 0, 1, 1],
                         'col1': lrange(6),
