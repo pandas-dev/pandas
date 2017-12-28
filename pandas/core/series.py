@@ -174,6 +174,8 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
 
             if data is None:
                 data = {}
+                if index is None:
+                    index = _default_index(0)
             if dtype is not None:
                 dtype = self._validate_dtype(dtype)
 
