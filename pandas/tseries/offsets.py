@@ -112,6 +112,31 @@ def apply_wraps(func):
     return wrapper
 
 
+def shift_day(other, days):
+    """
+    Increment the datetime `other` by the given number of days, retaining
+    the time-portion of the datetime.  For tz-naive datetimes this is
+    equivalent to adding a timedelta.  For tz-aware datetimes it is similar to
+    dateutil's relativedelta.__add__, but handles pytz tzinfo objects.
+
+    Parameters
+    ----------
+    other : datetime or Timestamp
+    days : int
+
+    Returns
+    -------
+    shifted: datetime or Timestamp
+    """
+    if other.tzinfo is None:
+        return other + timedelta(days=days)
+
+    tz = other.tzinfo
+    naive = other.replace(tzinfo=None)
+    shifted = naive + timedelta(days=days)
+    return tslib._localize_pydatetime(shifted, tz)
+
+
 # ---------------------------------------------------------------------
 # DateOffset
 
@@ -1342,6 +1367,8 @@ class Week(EndMixin, DateOffset):
     def onOffset(self, dt):
         if self.normalize and not _is_normalized(dt):
             return False
+        elif self.weekday is None:
+            return True
         return dt.weekday() == self.weekday
 
     @property
@@ -1361,7 +1388,29 @@ class Week(EndMixin, DateOffset):
         return cls(weekday=weekday)
 
 
-class WeekOfMonth(DateOffset):
+class _WeekOfMonthMixin(object):
+    """Mixin for methods common to WeekOfMonth and LastWeekOfMonth"""
+    @apply_wraps
+    def apply(self, other):
+        compare_day = self._get_offset_day(other)
+
+        months = self.n
+        if months > 0 and compare_day > other.day:
+            months -= 1
+        elif months <= 0 and compare_day < other.day:
+            months += 1
+
+        shifted = shift_month(other, months, 'start')
+        to_day = self._get_offset_day(shifted)
+        return shift_day(shifted, to_day - shifted.day)
+
+    def onOffset(self, dt):
+        if self.normalize and not _is_normalized(dt):
+            return False
+        return dt.day == self._get_offset_day(dt)
+
+
+class WeekOfMonth(_WeekOfMonthMixin, DateOffset):
     """
     Describes monthly dates like "the Tuesday of the 2nd week of each month"
 
@@ -1400,34 +1449,23 @@ class WeekOfMonth(DateOffset):
 
         self.kwds = {'weekday': weekday, 'week': week}
 
-    @apply_wraps
-    def apply(self, other):
-        base = other
-        offsetOfMonth = self.getOffsetOfMonth(other)
+    def _get_offset_day(self, other):
+        """
+        Find the day in the same month as other that has the same
+        weekday as self.weekday and is the self.week'th such day in the month.
 
-        months = self.n
-        if months > 0 and offsetOfMonth > other:
-            months -= 1
-        elif months <= 0 and offsetOfMonth < other:
-            months += 1
+        Parameters
+        ----------
+        other: datetime
 
-        other = self.getOffsetOfMonth(shift_month(other, months, 'start'))
-        other = datetime(other.year, other.month, other.day, base.hour,
-                         base.minute, base.second, base.microsecond)
-        return other
-
-    def getOffsetOfMonth(self, dt):
-        w = Week(weekday=self.weekday)
-        d = datetime(dt.year, dt.month, 1, tzinfo=dt.tzinfo)
-        # TODO: Is this DST-safe?
-        d = w.rollforward(d)
-        return d + timedelta(weeks=self.week)
-
-    def onOffset(self, dt):
-        if self.normalize and not _is_normalized(dt):
-            return False
-        d = datetime(dt.year, dt.month, dt.day, tzinfo=dt.tzinfo)
-        return d == self.getOffsetOfMonth(dt)
+        Returns
+        -------
+        day: int
+        """
+        mstart = datetime(other.year, other.month, 1)
+        wday = mstart.weekday()
+        shift_days = (self.weekday - wday) % 7
+        return 1 + shift_days + self.week * 7
 
     @property
     def rule_code(self):
@@ -1448,7 +1486,7 @@ class WeekOfMonth(DateOffset):
         return cls(week=week, weekday=weekday)
 
 
-class LastWeekOfMonth(DateOffset):
+class LastWeekOfMonth(_WeekOfMonthMixin, DateOffset):
     """
     Describes monthly dates in last week of month like "the last Tuesday of
     each month"
@@ -1482,31 +1520,24 @@ class LastWeekOfMonth(DateOffset):
 
         self.kwds = {'weekday': weekday}
 
-    @apply_wraps
-    def apply(self, other):
-        offsetOfMonth = self.getOffsetOfMonth(other)
+    def _get_offset_day(self, other):
+        """
+        Find the day in the same month as other that has the same
+        weekday as self.weekday and is the last such day in the month.
 
-        months = self.n
-        if months > 0 and offsetOfMonth > other:
-            months -= 1
-        elif months <= 0 and offsetOfMonth < other:
-            months += 1
+        Parameters
+        ----------
+        other: datetime
 
-        return self.getOffsetOfMonth(shift_month(other, months, 'start'))
-
-    def getOffsetOfMonth(self, dt):
-        m = MonthEnd()
-        d = datetime(dt.year, dt.month, 1, dt.hour, dt.minute,
-                     dt.second, dt.microsecond, tzinfo=dt.tzinfo)
-        eom = m.rollforward(d)
-        # TODO: Is this DST-safe?
-        w = Week(weekday=self.weekday)
-        return w.rollback(eom)
-
-    def onOffset(self, dt):
-        if self.normalize and not _is_normalized(dt):
-            return False
-        return dt == self.getOffsetOfMonth(dt)
+        Returns
+        -------
+        day: int
+        """
+        dim = ccalendar.get_days_in_month(other.year, other.month)
+        mend = datetime(other.year, other.month, dim)
+        wday = mend.weekday()
+        shift_days = (wday - self.weekday) % 7
+        return dim - shift_days
 
     @property
     def rule_code(self):
@@ -1783,13 +1814,6 @@ class FY5253(DateOffset):
             raise ValueError('{variation} is not a valid variation'
                              .format(variation=self.variation))
 
-    @cache_readonly
-    def _offset_lwom(self):
-        if self.variation == "nearest":
-            return None
-        else:
-            return LastWeekOfMonth(n=1, weekday=self.weekday)
-
     def isAnchored(self):
         return (self.n == 1 and
                 self.startingMonth is not None and
@@ -1810,6 +1834,8 @@ class FY5253(DateOffset):
 
     @apply_wraps
     def apply(self, other):
+        norm = Timestamp(other).normalize()
+
         n = self.n
         prev_year = self.get_year_end(
             datetime(other.year - 1, self.startingMonth, 1))
@@ -1822,32 +1848,26 @@ class FY5253(DateOffset):
         cur_year = tslib._localize_pydatetime(cur_year, other.tzinfo)
         next_year = tslib._localize_pydatetime(next_year, other.tzinfo)
 
-        if other == prev_year:
+        # Note: next_year.year == other.year + 1, so we will always
+        # have other < next_year
+        if norm == prev_year:
             n -= 1
-        elif other == cur_year:
+        elif norm == cur_year:
             pass
-        elif other == next_year:
-            n += 1
-            # TODO: Not hit in tests
         elif n > 0:
-            if other < prev_year:
+            if norm < prev_year:
                 n -= 2
-            elif prev_year < other < cur_year:
+            elif prev_year < norm < cur_year:
                 n -= 1
-            elif cur_year < other < next_year:
+            elif cur_year < norm < next_year:
                 pass
-            else:
-                assert False
         else:
-            if next_year < other:
-                n += 2
-                # TODO: Not hit in tests; UPDATE: looks impossible
-            elif cur_year < other < next_year:
+            if cur_year < norm < next_year:
                 n += 1
-            elif prev_year < other < cur_year:
+            elif prev_year < norm < cur_year:
                 pass
-            elif (other.year == prev_year.year and other < prev_year and
-                  prev_year - other <= timedelta(6)):
+            elif (norm.year == prev_year.year and norm < prev_year and
+                  prev_year - norm <= timedelta(6)):
                 # GH#14774, error when next_year.year == cur_year.year
                 # e.g. prev_year == datetime(2004, 1, 3),
                 # other == datetime(2004, 1, 1)
@@ -1863,35 +1883,30 @@ class FY5253(DateOffset):
         return result
 
     def get_year_end(self, dt):
-        if self.variation == "nearest":
-            return self._get_year_end_nearest(dt)
-        else:
-            return self._get_year_end_last(dt)
+        assert dt.tzinfo is None
 
-    def get_target_month_end(self, dt):
-        target_month = datetime(dt.year, self.startingMonth, 1,
-                                tzinfo=dt.tzinfo)
-        return shift_month(target_month, 0, 'end')
-        # TODO: is this DST-safe?
-
-    def _get_year_end_nearest(self, dt):
-        target_date = self.get_target_month_end(dt)
+        dim = ccalendar.get_days_in_month(dt.year, self.startingMonth)
+        target_date = datetime(dt.year, self.startingMonth, dim)
         wkday_diff = self.weekday - target_date.weekday()
         if wkday_diff == 0:
+            # year_end is the same for "last" and "nearest" cases
             return target_date
 
-        days_forward = wkday_diff % 7
-        if days_forward <= 3:
-            # The upcoming self.weekday is closer than the previous one
-            return target_date + timedelta(days_forward)
-        else:
-            # The previous self.weekday is closer than the upcoming one
-            return target_date + timedelta(days_forward - 7)
+        if self.variation == "last":
+            days_forward = (wkday_diff % 7) - 7
 
-    def _get_year_end_last(self, dt):
-        current_year = datetime(dt.year, self.startingMonth, 1,
-                                tzinfo=dt.tzinfo)
-        return current_year + self._offset_lwom
+            # days_forward is always negative, so we always end up
+            # in the same year as dt
+            return target_date + timedelta(days=days_forward)
+        else:
+            # variation == "nearest":
+            days_forward = wkday_diff % 7
+            if days_forward <= 3:
+                # The upcoming self.weekday is closer than the previous one
+                return target_date + timedelta(days_forward)
+            else:
+                # The previous self.weekday is closer than the upcoming one
+                return target_date + timedelta(days_forward - 7)
 
     @property
     def rule_code(self):

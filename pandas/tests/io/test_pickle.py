@@ -23,6 +23,7 @@ from pandas import Index
 from pandas.compat import is_platform_little_endian
 import pandas
 import pandas.util.testing as tm
+import pandas.util._test_decorators as td
 from pandas.tseries.offsets import Day, MonthEnd
 import shutil
 import sys
@@ -382,12 +383,11 @@ class TestCompression(object):
             fh.write(f.read())
         f.close()
 
-    @pytest.mark.parametrize('compression', [None, 'gzip', 'bz2', 'xz'])
+    @pytest.mark.parametrize('compression', [
+        None, 'gzip', 'bz2',
+        pytest.param('xz', marks=td.skip_if_no_lzma)  # issue 11666
+    ])
     def test_write_explicit(self, compression, get_random_path):
-        # issue 11666
-        if compression == 'xz':
-            tm._skip_if_no_lzma()
-
         base = get_random_path
         path1 = base + ".compressed"
         path2 = base + ".raw"
@@ -414,11 +414,11 @@ class TestCompression(object):
                 df = tm.makeDataFrame()
                 df.to_pickle(path, compression=compression)
 
-    @pytest.mark.parametrize('ext', ['', '.gz', '.bz2', '.xz', '.no_compress'])
+    @pytest.mark.parametrize('ext', [
+        '', '.gz', '.bz2', '.no_compress',
+        pytest.param('.xz', marks=td.skip_if_no_lzma)
+    ])
     def test_write_infer(self, ext, get_random_path):
-        if ext == '.xz':
-            tm._skip_if_no_lzma()
-
         base = get_random_path
         path1 = base + ext
         path2 = base + ".raw"
@@ -442,12 +442,11 @@ class TestCompression(object):
 
             tm.assert_frame_equal(df, df2)
 
-    @pytest.mark.parametrize('compression', [None, 'gzip', 'bz2', 'xz', "zip"])
+    @pytest.mark.parametrize('compression', [
+        None, 'gzip', 'bz2', "zip",
+        pytest.param('xz', marks=td.skip_if_no_lzma)
+    ])
     def test_read_explicit(self, compression, get_random_path):
-        # issue 11666
-        if compression == 'xz':
-            tm._skip_if_no_lzma()
-
         base = get_random_path
         path1 = base + ".raw"
         path2 = base + ".compressed"
@@ -466,12 +465,11 @@ class TestCompression(object):
 
             tm.assert_frame_equal(df, df2)
 
-    @pytest.mark.parametrize('ext', ['', '.gz', '.bz2', '.xz', '.zip',
-                                     '.no_compress'])
+    @pytest.mark.parametrize('ext', [
+        '', '.gz', '.bz2', '.zip', '.no_compress',
+        pytest.param('.xz', marks=td.skip_if_no_lzma)
+    ])
     def test_read_infer(self, ext, get_random_path):
-        if ext == '.xz':
-            tm._skip_if_no_lzma()
-
         base = get_random_path
         path1 = base + ".raw"
         path2 = base + ext

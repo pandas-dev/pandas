@@ -200,7 +200,7 @@ validate : string, default None
 Notes
 -----
 Support for specifying index levels as the `on`, `left_on`, and
-`right_on` parameters was added in version 0.22.0
+`right_on` parameters was added in version 0.23.0
 
 Examples
 --------
@@ -1402,6 +1402,8 @@ class DataFrame(NDFrame):
         """
         Transform long (stacked) format (DataFrame) into wide (3D, Panel)
         format.
+
+        .. deprecated:: 0.20.0
 
         Currently the index of the DataFrame must be a 2-level MultiIndex. This
         may be generalized later
@@ -2633,7 +2635,7 @@ class DataFrame(NDFrame):
                           allow_duplicates=allow_duplicates)
 
     def assign(self, **kwargs):
-        """
+        r"""
         Assign new columns to a DataFrame, returning a new object
         (a copy) with all the original columns in addition to the new ones.
 
@@ -5094,7 +5096,7 @@ class DataFrame(NDFrame):
         of DataFrame objects
 
         Support for specifying index levels as the `on` parameter was added
-        in version 0.22.0
+        in version 0.23.0
 
         Examples
         --------

@@ -4,6 +4,7 @@ from warnings import catch_warnings
 from datetime import datetime, timedelta
 from functools import partial
 from textwrap import dedent
+from operator import methodcaller
 
 import pytz
 import pytest
@@ -234,6 +235,21 @@ class TestResampleAPI(object):
 
         result = df.groupby('key').resample('D', on='dates').mean()
         assert_frame_equal(result, expected)
+
+    def test_pipe(self):
+        # GH17905
+
+        # series
+        r = self.series.resample('H')
+        expected = r.max() - r.mean()
+        result = r.pipe(lambda x: x.max() - x.mean())
+        tm.assert_series_equal(result, expected)
+
+        # dataframe
+        r = self.frame.resample('H')
+        expected = r.max() - r.mean()
+        result = r.pipe(lambda x: x.max() - x.mean())
+        tm.assert_frame_equal(result, expected)
 
     @td.skip_if_no_mpl
     def test_plot_api(self):
@@ -3367,6 +3383,34 @@ class TestTimeGrouper(object):
             assert_frame_equal(expected, dt_result)
         """
 
+    @pytest.mark.parametrize('method, unit', [
+        ('sum', 0),
+        ('prod', 1),
+    ])
+    def test_resample_entirly_nat_window(self, method, unit):
+        s = pd.Series([0] * 2 + [np.nan] * 2,
+                      index=pd.date_range('2017', periods=4))
+        # nan by default
+        result = methodcaller(method)(s.resample("2d"))
+        expected = pd.Series([0.0, np.nan],
+                             index=pd.to_datetime(['2017-01-01',
+                                                   '2017-01-03']))
+        tm.assert_series_equal(result, expected)
+
+        # min_count=0
+        result = methodcaller(method, min_count=0)(s.resample("2d"))
+        expected = pd.Series([0.0, unit],
+                             index=pd.to_datetime(['2017-01-01',
+                                                   '2017-01-03']))
+        tm.assert_series_equal(result, expected)
+
+        # min_count=1
+        result = methodcaller(method, min_count=1)(s.resample("2d"))
+        expected = pd.Series([0.0, np.nan],
+                             index=pd.to_datetime(['2017-01-01',
+                                                   '2017-01-03']))
+        tm.assert_series_equal(result, expected)
+
     def test_aggregate_with_nat(self):
         # check TimeGrouper's aggregation is identical as normal groupby
 
@@ -3426,3 +3470,29 @@ class TestTimeGrouper(object):
                     "closed='left', label='left', how='mean', "
                     "convention='e', base=0)")
         assert result == expected
+
+    @pytest.mark.parametrize('method, unit', [
+        ('sum', 0),
+        ('prod', 1),
+    ])
+    def test_upsample_sum(self, method, unit):
+        s = pd.Series(1, index=pd.date_range("2017", periods=2, freq="H"))
+        resampled = s.resample("30T")
+        index = pd.to_datetime(['2017-01-01T00:00:00',
+                                '2017-01-01T00:30:00',
+                                '2017-01-01T01:00:00'])
+
+        # NaN by default
+        result = methodcaller(method)(resampled)
+        expected = pd.Series([1, np.nan, 1], index=index)
+        tm.assert_series_equal(result, expected)
+
+        # min_count=0
+        result = methodcaller(method, min_count=0)(resampled)
+        expected = pd.Series([1, unit, 1], index=index)
+        tm.assert_series_equal(result, expected)
+
+        # min_count=1
+        result = methodcaller(method, min_count=1)(resampled)
+        expected = pd.Series([1, np.nan, 1], index=index)
+        tm.assert_series_equal(result, expected)

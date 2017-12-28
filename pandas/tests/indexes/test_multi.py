@@ -18,7 +18,7 @@ from pandas.compat import PY3, long, lrange, lzip, range, u, PYPY
 from pandas.errors import PerformanceWarning, UnsortedIndexError
 from pandas.core.dtypes.dtypes import CategoricalDtype
 from pandas.core.indexes.base import InvalidIndexError
-from pandas._libs import lib
+from pandas.core.dtypes.cast import construct_1d_object_array_from_listlike
 from pandas._libs.lib import Timestamp
 
 import pandas.util.testing as tm
@@ -475,10 +475,10 @@ class TestMultiIndex(Base):
             columns=['one', 'two', 'three', 'four'],
             index=idx)
         df = df.sort_index()
-        assert df.is_copy is None
+        assert df._is_copy is None
         assert df.index.names == ('Name', 'Number')
         df.at[('grethe', '4'), 'one'] = 99.34
-        assert df.is_copy is None
+        assert df._is_copy is None
         assert df.index.names == ('Name', 'Number')
 
     def test_copy_names(self):
@@ -913,7 +913,7 @@ class TestMultiIndex(Base):
     def test_from_product_datetimeindex(self):
         dt_index = date_range('2000-01-01', periods=2)
         mi = pd.MultiIndex.from_product([[1, 2], dt_index])
-        etalon = lib.list_to_object_array([(1, pd.Timestamp(
+        etalon = construct_1d_object_array_from_listlike([(1, pd.Timestamp(
             '2000-01-01')), (1, pd.Timestamp('2000-01-02')), (2, pd.Timestamp(
                 '2000-01-01')), (2, pd.Timestamp('2000-01-02'))])
         tm.assert_numpy_array_equal(mi.values, etalon)
@@ -938,11 +938,11 @@ class TestMultiIndex(Base):
                   (1, pd.Timestamp('2000-01-04')),
                   (2, pd.Timestamp('2000-01-02')),
                   (3, pd.Timestamp('2000-01-03'))]
-        mi = pd.MultiIndex.from_tuples(tuples)
-        tm.assert_numpy_array_equal(mi.values,
-                                    lib.list_to_object_array(tuples))
+        result = pd.MultiIndex.from_tuples(tuples)
+        expected = construct_1d_object_array_from_listlike(tuples)
+        tm.assert_numpy_array_equal(result.values, expected)
         # Check that code branches for boxed values produce identical results
-        tm.assert_numpy_array_equal(mi.values[:4], mi[:4].values)
+        tm.assert_numpy_array_equal(result.values[:4], result[:4].values)
 
     def test_append(self):
         result = self.index[:3].append(self.index[3:])

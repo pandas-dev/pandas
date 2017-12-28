@@ -8,7 +8,8 @@ import pandas as pd
 from pandas.core.base import AbstractMethodError, GroupByMixin
 
 from pandas.core.groupby import (BinGrouper, Grouper, _GroupBy, GroupBy,
-                                 SeriesGroupBy, groupby, PanelGroupBy)
+                                 SeriesGroupBy, groupby, PanelGroupBy,
+                                 _pipe_template)
 
 from pandas.tseries.frequencies import to_offset, is_subperiod, is_superperiod
 from pandas.core.indexes.datetimes import DatetimeIndex, date_range
@@ -26,7 +27,7 @@ from pandas._libs import lib, tslib
 from pandas._libs.lib import Timestamp
 from pandas._libs.tslibs.period import IncompatibleFrequency
 
-from pandas.util._decorators import Appender
+from pandas.util._decorators import Appender, Substitution
 from pandas.core.generic import _shared_docs
 _shared_docs_kwargs = dict()
 
@@ -256,6 +257,29 @@ class Resampler(_GroupBy):
     def _assure_grouper(self):
         """ make sure that we are creating our binner & grouper """
         self._set_binner()
+
+    @Substitution(klass='Resampler',
+                  versionadded='.. versionadded:: 0.23.0',
+                  examples="""
+>>> df = pd.DataFrame({'A': [1, 2, 3, 4]},
+...                   index=pd.date_range('2012-08-02', periods=4))
+>>> df
+            A
+2012-08-02  1
+2012-08-03  2
+2012-08-04  3
+2012-08-05  4
+
+To get the difference between each 2-day period's maximum and minimum value in
+one pass, you can do
+
+>>> df.resample('2D').pipe(lambda x: x.max() - x.min())
+            A
+2012-08-02  1
+2012-08-04  1""")
+    @Appender(_pipe_template)
+    def pipe(self, func, *args, **kwargs):
+        return super(Resampler, self).pipe(func, *args, **kwargs)
 
     def plot(self, *args, **kwargs):
         # for compat with prior versions, we want to
@@ -601,9 +625,20 @@ class Resampler(_GroupBy):
 
 Resampler._deprecated_valids += dir(Resampler)
 
+
 # downsample methods
-for method in ['min', 'max', 'first', 'last', 'sum', 'mean', 'sem',
-               'median', 'prod', 'ohlc']:
+for method in ['sum', 'prod']:
+
+    def f(self, _method=method, min_count=1, *args, **kwargs):
+        nv.validate_resampler_func(_method, args, kwargs)
+        return self._downsample(_method, min_count=min_count)
+    f.__doc__ = getattr(GroupBy, method).__doc__
+    setattr(Resampler, method, f)
+
+
+# downsample methods
+for method in ['min', 'max', 'first', 'last', 'mean', 'sem',
+               'median', 'ohlc']:
 
     def f(self, _method=method, *args, **kwargs):
         nv.validate_resampler_func(_method, args, kwargs)

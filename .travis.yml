@@ -49,12 +49,13 @@ matrix:
         apt:
           packages:
           - python-gtk2
+    # In allow_failures
     - dist: trusty
       env:
-        - JOB="3.5" TEST_ARGS="--skip-slow --skip-network" COVERAGE=true
+        - JOB="3.5_CONDA_BUILD_TEST" TEST_ARGS="--skip-slow --skip-network" CONDA_BUILD_TEST=true
     - dist: trusty
       env:
-        - JOB="3.6" TEST_ARGS="--skip-slow --skip-network" PANDAS_TESTING_MODE="deprecate" CONDA_FORGE=true
+        - JOB="3.6" TEST_ARGS="--skip-slow --skip-network" PANDAS_TESTING_MODE="deprecate" CONDA_FORGE=true COVERAGE=true
     # In allow_failures
     - dist: trusty
       env:
@@ -62,7 +63,7 @@ matrix:
     # In allow_failures
     - dist: trusty
       env:
-        - JOB="3.6_BUILD_TEST" TEST_ARGS="--skip-slow" BUILD_TEST=true
+        - JOB="3.6_PIP_BUILD_TEST" TEST_ARGS="--skip-slow" PIP_BUILD_TEST=true
       addons:
         apt:
           packages:
@@ -76,12 +77,16 @@ matrix:
       env:
         - JOB="3.6_DOC" DOC=true
     allow_failures:
+      # TODO(jreback)
+      - dist: trusty
+        env:
+          - JOB="3.5_CONDA_BUILD_TEST" TEST_ARGS="--skip-slow --skip-network" CONDA_BUILD_TEST=true
       - dist: trusty
         env:
           - JOB="2.7_SLOW" SLOW=true
       - dist: trusty
         env:
-          - JOB="3.6_BUILD_TEST" TEST_ARGS="--skip-slow" BUILD_TEST=true
+          - JOB="3.6_PIP_BUILD_TEST" TEST_ARGS="--skip-slow" PIP_BUILD_TEST=true
         addons:
           apt:
             packages:

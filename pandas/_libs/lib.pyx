@@ -150,23 +150,6 @@ def item_from_zerodim(object val):
 
 @cython.wraparound(False)
 @cython.boundscheck(False)
-cpdef ndarray[object] list_to_object_array(list obj):
-    """
-    Convert list to object ndarray. Seriously can\'t believe
-    I had to write this function.
-    """
-    cdef:
-        Py_ssize_t i, n = len(obj)
-        ndarray[object] arr = np.empty(n, dtype=object)
-
-    for i in range(n):
-        arr[i] = obj[i]
-
-    return arr
-
-
-@cython.wraparound(False)
-@cython.boundscheck(False)
 def fast_unique(ndarray[object] values):
     cdef:
         Py_ssize_t i, n = len(values)

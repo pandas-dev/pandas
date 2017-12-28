@@ -81,3 +81,15 @@ class FromRecords(object):
     def time_frame_from_records_generator(self, nrows):
         # issue-6700
         self.df = DataFrame.from_records(self.gen, nrows=nrows)
+
+
+class FromNDArray(object):
+
+    goal_time = 0.2
+
+    def setup(self):
+        N = 100000
+        self.data = np.random.randn(N)
+
+    def time_frame_from_ndarray(self):
+        self.df = DataFrame(self.data)

@@ -132,7 +132,7 @@ skiprows : list-like
 nrows : int, default None
     Number of rows to parse
 
-    .. versionadded:: 0.22.0
+    .. versionadded:: 0.23.0
 
 na_values : scalar, str, list-like, or dict, default None
     Additional strings to recognize as NA/NaN. If dict passed, specific
@@ -149,6 +149,10 @@ thousands : str, default None
     any numeric columns will automatically be parsed, regardless of display
     format.
 skip_footer : int, default 0
+
+    .. deprecated:: 0.23.0
+       Pass in `skipfooter` instead.
+skipfooter : int, default 0
     Rows at the end to skip (0-indexed)
 convert_float : boolean, default True
     convert integral floats to int (i.e., 1.0 --> 1). If False, all numeric
@@ -200,6 +204,7 @@ def get_writer(engine_name):
 
 @Appender(_read_excel_doc)
 @deprecate_kwarg("parse_cols", "usecols")
+@deprecate_kwarg("skip_footer", "skipfooter")
 def read_excel(io,
                sheet_name=0,
                header=0,
@@ -218,7 +223,7 @@ def read_excel(io,
                parse_dates=False,
                date_parser=None,
                thousands=None,
-               skip_footer=0,
+               skipfooter=0,
                convert_float=True,
                **kwds):
 
@@ -251,7 +256,7 @@ def read_excel(io,
         parse_dates=parse_dates,
         date_parser=date_parser,
         thousands=thousands,
-        skip_footer=skip_footer,
+        skipfooter=skipfooter,
         convert_float=convert_float,
         **kwds)
 
@@ -333,7 +338,7 @@ class ExcelFile(object):
               parse_dates=False,
               date_parser=None,
               thousands=None,
-              skip_footer=0,
+              skipfooter=0,
               convert_float=True,
               **kwds):
         """
@@ -358,7 +363,7 @@ class ExcelFile(object):
                                  parse_dates=parse_dates,
                                  date_parser=date_parser,
                                  thousands=thousands,
-                                 skip_footer=skip_footer,
+                                 skipfooter=skipfooter,
                                  convert_float=convert_float,
                                  **kwds)
 
@@ -412,13 +417,9 @@ class ExcelFile(object):
                      parse_dates=False,
                      date_parser=None,
                      thousands=None,
-                     skip_footer=0,
+                     skipfooter=0,
                      convert_float=True,
                      **kwds):
-
-        skipfooter = kwds.pop('skipfooter', None)
-        if skipfooter is not None:
-            skip_footer = skipfooter
 
         _validate_header_arg(header)
 
@@ -590,7 +591,7 @@ class ExcelFile(object):
                                     parse_dates=parse_dates,
                                     date_parser=date_parser,
                                     thousands=thousands,
-                                    skipfooter=skip_footer,
+                                    skipfooter=skipfooter,
                                     **kwds)
 
                 output[asheetname] = parser.read(nrows=nrows)

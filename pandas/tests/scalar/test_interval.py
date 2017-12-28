@@ -1,6 +1,7 @@
 from __future__ import division
 
-from pandas import Interval, Timestamp
+import numpy as np
+from pandas import Interval, Timestamp, Timedelta
 from pandas.core.common import _any_none
 
 import pytest
@@ -65,6 +66,48 @@ class TestInterval(object):
     def test_hash(self, interval):
         # should not raise
         hash(interval)
+
+    @pytest.mark.parametrize('left, right, expected', [
+        (0, 5, 5),
+        (-2, 5.5, 7.5),
+        (10, 10, 0),
+        (10, np.inf, np.inf),
+        (-np.inf, -5, np.inf),
+        (-np.inf, np.inf, np.inf),
+        (Timedelta('0 days'), Timedelta('5 days'), Timedelta('5 days')),
+        (Timedelta('10 days'), Timedelta('10 days'), Timedelta('0 days')),
+        (Timedelta('1H10M'), Timedelta('5H5M'), Timedelta('3H55M')),
+        (Timedelta('5S'), Timedelta('1H'), Timedelta('59M55S'))])
+    def test_length(self, left, right, expected):
+        # GH 18789
+        iv = Interval(left, right)
+        result = iv.length
+        assert result == expected
+
+    @pytest.mark.parametrize('left, right, expected', [
+        ('2017-01-01', '2017-01-06', '5 days'),
+        ('2017-01-01', '2017-01-01 12:00:00', '12 hours'),
+        ('2017-01-01 12:00', '2017-01-01 12:00:00', '0 days'),
+        ('2017-01-01 12:01', '2017-01-05 17:31:00', '4 days 5 hours 30 min')])
+    @pytest.mark.parametrize('tz', (None, 'UTC', 'CET', 'US/Eastern'))
+    def test_length_timestamp(self, tz, left, right, expected):
+        # GH 18789
+        iv = Interval(Timestamp(left, tz=tz), Timestamp(right, tz=tz))
+        result = iv.length
+        expected = Timedelta(expected)
+        assert result == expected
+
+    @pytest.mark.parametrize('left, right', [
+        ('a', 'z'),
+        (('a', 'b'), ('c', 'd')),
+        (list('AB'), list('ab')),
+        (Interval(0, 1), Interval(1, 2))])
+    def test_length_errors(self, left, right):
+        # GH 18789
+        iv = Interval(left, right)
+        msg = 'cannot compute length between .* and .*'
+        with tm.assert_raises_regex(TypeError, msg):
+            iv.length
 
     def test_math_add(self, interval):
         expected = Interval(1, 2)

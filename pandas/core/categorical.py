@@ -471,32 +471,6 @@ class Categorical(PandasObject):
             return [_maybe_box_datetimelike(x) for x in self]
         return np.array(self).tolist()
 
-    def reshape(self, new_shape, *args, **kwargs):
-        """
-        .. deprecated:: 0.19.0
-           Calling this method will raise an error in a future release.
-
-        An ndarray-compatible method that returns `self` because
-        `Categorical` instances cannot actually be reshaped.
-
-        Parameters
-        ----------
-        new_shape : int or tuple of ints
-            A 1-D array of integers that correspond to the new
-            shape of the `Categorical`. For more information on
-            the parameter, please refer to `np.reshape`.
-        """
-        warn("reshape is deprecated and will raise "
-             "in a subsequent release", FutureWarning, stacklevel=2)
-
-        nv.validate_reshape(args, kwargs)
-
-        # while the 'new_shape' parameter has no effect,
-        # we should still enforce valid shape parameters
-        np.reshape(self.codes, new_shape)
-
-        return self
-
     @property
     def base(self):
         """ compat, we are always our own object """
@@ -844,7 +818,7 @@ class Categorical(PandasObject):
 
         Parameters
         ----------
-        new_categories : list-like or dict-like
+        new_categories : list-like, dict-like or callable
 
            * list-like: all items must be unique and the number of items in
              the new categories must match the existing number of categories.
@@ -852,7 +826,14 @@ class Categorical(PandasObject):
            * dict-like: specifies a mapping from
              old categories to new. Categories not contained in the mapping
              are passed through and extra categories in the mapping are
-             ignored. *New in version 0.21.0*.
+             ignored.
+
+             .. versionadded:: 0.21.0
+
+           * callable : a callable that is called on all items in the old
+             categories and whose return values comprise the new categories.
+
+             .. versionadded:: 0.23.0
 
            .. warning::
 
@@ -890,6 +871,12 @@ class Categorical(PandasObject):
         >>> c.rename_categories({'a': 'A', 'c': 'C'})
         [A, A, b]
         Categories (2, object): [A, b]
+
+        You may also provide a callable to create the new categories
+
+        >>> c.rename_categories(lambda x: x.upper())
+        [A, A, B]
+        Categories (2, object): [A, B]
         """
         inplace = validate_bool_kwarg(inplace, 'inplace')
         cat = self if inplace else self.copy()
@@ -906,6 +893,8 @@ class Categorical(PandasObject):
         if is_dict_like(new_categories):
             cat.categories = [new_categories.get(item, item)
                               for item in cat.categories]
+        elif callable(new_categories):
+            cat.categories = [new_categories(item) for item in cat.categories]
         else:
             cat.categories = new_categories
         if not inplace:

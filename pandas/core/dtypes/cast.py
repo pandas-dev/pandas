@@ -42,7 +42,7 @@ def maybe_convert_platform(values):
     """ try to do platform conversion, allow ndarray or list here """
 
     if isinstance(values, (list, tuple)):
-        values = lib.list_to_object_array(list(values))
+        values = construct_1d_object_array_from_listlike(list(values))
     if getattr(values, 'dtype', None) == np.object_:
         if hasattr(values, '_values'):
             values = values._values
@@ -1162,3 +1162,28 @@ def construct_1d_arraylike_from_scalar(value, length, dtype):
         subarr.fill(value)
 
     return subarr
+
+
+def construct_1d_object_array_from_listlike(values):
+    """
+    Transform any list-like object in a 1-dimensional numpy array of object
+    dtype.
+
+    Parameters
+    ----------
+    values : any iterable which has a len()
+
+    Raises
+    ------
+    TypeError
+        * If `values` does not have a len()
+
+    Returns
+    -------
+    1-dimensional numpy array of dtype object
+    """
+    # numpy will try to interpret nested lists as further dimensions, hence
+    # making a 1D array that contains list-likes is a bit tricky:
+    result = np.empty(len(values), dtype='object')
+    result[:] = values
+    return result
