@@ -136,6 +136,7 @@ class TestTimedeltaArithmetic(object):
         assert (td * pd.NaT) is pd.NaT
         assert (td / pd.NaT) is np.nan
         assert (td // pd.NaT) is np.nan
+        assert (td // np.timedelta64('NaT')) is np.nan
 
     def test_binary_ops_integers(self):
         td = Timedelta(10, unit='d')

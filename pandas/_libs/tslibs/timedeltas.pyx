@@ -984,25 +984,13 @@ class Timedelta(_Timedelta):
         if hasattr(other, 'dtype'):
             if other.dtype.kind == 'm':
                 # also timedelta-like
-                # We need to watch out for np.timedelta64('NaT')
-                if np.ndim(other) == 0:
-                    if np.isnat(other):
-                        return np.nan
-                    else:
-                        other = other.astype('m8[ns]').astype('i8')
-                        return self.value // other
-                else:
-                    mask = np.isnat(other)
-                    res = self.value // other.astype('m8[ns]').astype('i8')
-                    if mask.any():
-                        res = res.astype('f8')
-                        res[mask] = np.nan
-                    return res
+                return _broadcast_floordiv_td64(self.value, other, _floordiv)
             elif other.dtype.kind in ['i', 'u', 'f']:
                 if np.ndim(other) == 0:
                     return Timedelta(self.value // other)
                 else:
                     return self.to_timedelta64() // other
+
             else:
                 raise TypeError('Invalid dtype {dtype} for '
                                 '{op}'.format(dtype=other.dtype,
@@ -1029,20 +1017,7 @@ class Timedelta(_Timedelta):
         if hasattr(other, 'dtype'):
             if other.dtype.kind == 'm':
                 # also timedelta-like
-                # We need to watch out for np.timedelta64('NaT')
-                if np.ndim(other) == 0:
-                    if np.isnat(other):
-                        return np.nan
-                    else:
-                        other = other.astype('m8[ns]').astype('i8')
-                        return other // self.value
-                else:
-                    mask = np.isnat(other)
-                    res = other.astype('m8[ns]').astype('i8') // self.value
-                    if mask.any():
-                        res = res.astype('f8')
-                        res[mask] = np.nan
-                    return res
+                return _broadcast_floordiv_td64(self.value, other, _rfloordiv)
             else:
                 raise TypeError('Invalid dtype {dtype} for '
                                 '{op}'.format(dtype=other.dtype,
@@ -1059,6 +1034,52 @@ class Timedelta(_Timedelta):
         return other.value // self.value
 
 
+cdef _floordiv(int64_t value, right):
+    return value // right
+
+
+cdef _rfloordiv(int64_t value, right):
+    # analogous to referencing operator.div, but there is no operator.rfloordiv
+    return right // value
+
+
+cdef _broadcast_floordiv_td64(int64_t value, object other,
+                              object (*operation)(int64_t value,
+                                                  object right)):
+    """Boilerplate code shared by Timedelta.__floordiv__ and
+    Timedelta.__rfloordiv__ because np.timedelta64 does not implement these.
+
+    Parameters
+    ----------
+    value : int64_t; `self.value` from a Timedelta object
+    other : object
+    operation : function, either _floordiv or _rfloordiv
+
+    Returns
+    -------
+    result : varies based on `other`
+    """
+    # assumes other.dtype.kind == 'm', i.e. other is timedelta-like
+    cdef:
+        int ndim = getattr(other, 'ndim', -1)
+
+    # We need to watch out for np.timedelta64('NaT')
+    if ndim == 0:
+        if np.isnat(other):
+            return np.nan
+        else:
+            return operation(value, other.astype('m8[ns]').astype('i8'))
+
+    else:
+        mask = np.isnat(other)
+        res = operation(value, other.astype('m8[ns]').astype('i8'))
+
+        if mask.any():
+            res = res.astype('f8')
+            res[mask] = np.nan
+        return res
+
+
 # resolution in ns
-Timedelta.min = Timedelta(np.iinfo(np.int64).min +1)
+Timedelta.min = Timedelta(np.iinfo(np.int64).min + 1)
 Timedelta.max = Timedelta(np.iinfo(np.int64).max)
