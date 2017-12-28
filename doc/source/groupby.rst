@@ -497,28 +497,6 @@ index are the group names and whose values are the sizes of each group.
 
    ``nth`` can act as a reducer *or* a filter, see :ref:`here <groupby.nth>`
 
-   Decimal columns are "nuisance" columns that .agg automatically excludes in groupby.
-
-   If you do wish to aggregate them you must do so explicitly:
-
-.. ipython:: python
-
-    from decimal import Decimal
-    dec = pd.DataFrame(
-            {'name': ['foo', 'bar', 'foo', 'bar'], 
-                'title': ['boo', 'far', 'boo', 'far'], 
-                'id': [123, 456, 123, 456], 
-                'int_column': [1, 2, 3, 4], 
-                'dec_column1': [Decimal('0.50'), Decimal('0.15'), Decimal('0.25'), Decimal('0.40')], 
-                'dec_column2': [Decimal('0.20'), Decimal('0.30'), Decimal('0.55'), Decimal('0.60')]
-            },
-        columns=['name','title','id','int_column','dec_column1','dec_column2']
-        )
-
-    dec.groupby(['name', 'title', 'id'], as_index=False).sum()
-
-    dec.groupby(['name', 'title', 'id'], as_index=False).agg({'dec_column1': 'sum', 'dec_column2': 'sum'})
-
 .. _groupby.aggregate.multifunc:
 
 Applying multiple functions at once
@@ -976,6 +954,42 @@ will be (silently) dropped. Thus, this does not pose any problems:
 .. ipython:: python
 
    df.groupby('A').std()
+
+.. note::
+   Decimal columns are also "nuisance" columns. They are excluded from aggregate functions automatically in groupby.
+
+   If you do wish to include decimal columns in the aggregation, you must do so explicitly:
+
+.. ipython:: python
+
+    from decimal import Decimal
+    dec = pd.DataFrame(
+                {'name': ['foo', 'bar', 'foo', 'bar'], 
+                    'title': ['boo', 'far', 'boo', 'far'], 
+                    'id': [123, 456, 123, 456], 
+                    'int_column': [1, 2, 3, 4], 
+                    'dec_column1': [Decimal('0.50'), Decimal('0.15'), Decimal('0.25'), Decimal('0.40')], 
+                    'dec_column2': [Decimal('0.20'), Decimal('0.30'), Decimal('0.55'), Decimal('0.60')]
+                },
+            columns=['name','title','id','int_column','dec_column1','dec_column2']
+            )
+    
+    dec.head()
+
+    dec.dtypes
+
+    # Decimal columns excluded from sum by default
+    dec.groupby(['name', 'title', 'id'], as_index=False).sum()
+
+    # Decimal columns can be sum'd explicitly by themselves...
+    dec.groupby(['name', 'title', 'id'], as_index=False)['dec_column1','dec_column2'].sum()
+
+    # ...but cannot be combined with standard data types or they will be excluded
+    dec.groupby(['name', 'title', 'id'], as_index=False)['int_column','dec_column1','dec_column2'].sum()
+
+    # Use .agg function to aggregate over standard and "nuisance" data types at the same time 
+    dec.groupby(['name', 'title', 'id'], as_index=False).agg({'int_column': 'sum', 'dec_column1': 'sum', 'dec_column2': 'sum'})
+
 
 .. _groupby.missing:
 
