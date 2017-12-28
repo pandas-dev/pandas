@@ -261,17 +261,17 @@ class TestGroupBy(object):
 
         expected = (
             df.groupby('user_id')['whole_cost']
-                .resample(freq)
-                .sum(min_count=1)  # XXX
-                .dropna()
-                .reorder_levels(['date', 'user_id'])
-                .sort_index()
-                .astype('int64')
+              .resample(freq)
+              .sum(min_count=1)  # XXX
+              .dropna()
+              .reorder_levels(['date', 'user_id'])
+              .sort_index()
+              .astype('int64')
         )
         expected.name = 'whole_cost'
 
         result1 = df.sort_index().groupby([pd.Grouper(freq=freq),
-                                            'user_id'])['whole_cost'].sum()
+                                           'user_id'])['whole_cost'].sum()
         assert_series_equal(result1, expected)
 
         result2 = df.groupby([pd.Grouper(freq=freq), 'user_id'])[

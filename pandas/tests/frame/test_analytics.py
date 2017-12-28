@@ -1015,8 +1015,8 @@ class TestDataFrameAnalytics(TestData):
         # prod isn't defined on timedeltas
         idx = ['a', 'b', 'c']
         df = pd.DataFrame({"a": [0, 0],
-                            "b": [0, np.nan],
-                            "c": [np.nan, np.nan]})
+                           "b": [0, np.nan],
+                           "c": [np.nan, np.nan]})
 
         df2 = df.apply(pd.to_timedelta)
 

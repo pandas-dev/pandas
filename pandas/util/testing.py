@@ -2666,6 +2666,7 @@ def set_timezone(tz):
     finally:
         setTZ(orig_tz)
 
+
 def _make_skipna_wrapper(alternative, skipna_alternative=None):
     """Create a function for calling on an array.
 
