@@ -316,7 +316,7 @@ Basic multi-index slicing using slices, lists, and labels.
 
    dfmi.loc[(slice('A1','A3'), slice(None), ['C1', 'C3']), :]
 
-You can use ``pd.IndexSlice`` to facilitate a more natural syntax using ``:``, rather than using ``slice(None)``.
+You can use :class:`pandas.IndexSlice` to facilitate a more natural syntax using ``:``, rather than using ``slice(None)``.
 
 .. ipython:: python
 
@@ -764,8 +764,9 @@ The only positional indexing is via ``iloc``.
 
 A scalar index that is not found will raise a ``KeyError``.
 
-Slicing is **always** on the values of the index when using ``[],ix,loc``, and 
-**always** positional when using ``iloc``.
+Slicing is primarily on the values of the index when using ``[],ix,loc``, and 
+**always** positional when using ``iloc``. The exception is when the slice is
+boolean, in which case it will always be positional.
 
 .. ipython:: python
 

@@ -48,8 +48,8 @@ the percent change).
 Covariance
 ~~~~~~~~~~
 
-The ``Series`` object has a method :meth:`~Series.cov` to compute covariance 
-between series (excluding NA/null values).
+:meth:`Series.cov` can be used to compute covariance between series 
+(excluding missing values).
 
 .. ipython:: python
 
@@ -57,7 +57,7 @@ between series (excluding NA/null values).
    s2 = pd.Series(np.random.randn(1000))
    s1.cov(s2)
 
-Analogously, ``DataFrame`` has a method :meth:`~DataFrame.cov` to compute 
+Analogously, :meth:`DataFrame.cov` to compute 
 pairwise covariances among the series in the DataFrame, also excluding 
 NA/null values.
 
