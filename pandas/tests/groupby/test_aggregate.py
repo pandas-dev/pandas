@@ -809,26 +809,33 @@ class TestGroupByAggregate(object):
                 exc.args += ('operation: %s' % op, )
                 raise
 
-    def test_cython_agg_empty_buckets(self):
-        ops = [('mean', np.mean),
-               ('median', lambda x: np.median(x) if len(x) > 0 else np.nan),
-               ('var', lambda x: np.var(x, ddof=1)),
-               ('add', lambda x: np.sum(x) if len(x) > 0 else np.nan),
-               ('prod', np.prod),
-               ('min', np.min),
-               ('max', np.max), ]
-
+    @pytest.mark.parametrize('op, targop', [
+        ('mean', np.mean),
+        ('median', lambda x: np.median(x) if len(x) > 0 else np.nan),
+        ('var', lambda x: np.var(x, ddof=1)),
+        ('add', lambda x: np.sum(x) if len(x) > 0 else np.nan),
+        ('prod', np.prod),
+        ('min', np.min),
+        ('max', np.max), ]
+    )
+    def test_cython_agg_empty_buckets(self, op, targop):
         df = pd.DataFrame([11, 12, 13])
         grps = range(0, 55, 5)
 
-        for op, targop in ops:
-            result = df.groupby(pd.cut(df[0], grps))._cython_agg_general(op)
-            expected = df.groupby(pd.cut(df[0], grps)).agg(lambda x: targop(x))
-            try:
-                tm.assert_frame_equal(result, expected)
-            except BaseException as exc:
-                exc.args += ('operation: %s' % op,)
-                raise
+        # calling _cython_agg_general directly, instead of via the user API
+        # which sets different values for min_count, so do that here.
+        if op in ('add', 'prod'):
+            min_count = 1
+        else:
+            min_count = -1
+        result = df.groupby(pd.cut(df[0], grps))._cython_agg_general(
+            op, min_count=min_count)
+        expected = df.groupby(pd.cut(df[0], grps)).agg(lambda x: targop(x))
+        try:
+            tm.assert_frame_equal(result, expected)
+        except BaseException as exc:
+            exc.args += ('operation: %s' % op,)
+            raise
 
     def test_agg_over_numpy_arrays(self):
         # GH 3788

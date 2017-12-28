@@ -973,6 +973,37 @@ class TestDataFrameAnalytics(TestData):
         assert len(axis0) == 0
         assert len(axis1) == 0
 
+    @pytest.mark.parametrize('method, unit', [
+        ('sum', 0),
+        ('prod', 1),
+    ])
+    def test_sum_prod_nanops(self, method, unit):
+        idx = ['a', 'b', 'c']
+        df = pd.DataFrame({"a": [unit, unit],
+                           "b": [unit, np.nan],
+                           "c": [np.nan, np.nan]})
+
+        result = getattr(df, method)(min_count=1)
+        expected = pd.Series([unit, unit, np.nan], index=idx)
+        tm.assert_series_equal(result, expected)
+
+        result = getattr(df, method)(min_count=0)
+        expected = pd.Series([unit, unit, unit], index=idx, dtype='float64')
+        tm.assert_series_equal(result, expected)
+
+        result = getattr(df.iloc[1:], method)(min_count=1)
+        expected = pd.Series([unit, np.nan, np.nan], index=idx)
+        tm.assert_series_equal(result, expected)
+
+        df = pd.DataFrame({"A": [unit] * 10, "B": [unit] * 5 + [np.nan] * 5})
+        result = getattr(df, method)(min_count=5)
+        expected = pd.Series(result, index=['A', 'B'])
+        tm.assert_series_equal(result, expected)
+
+        result = getattr(df, method)(min_count=6)
+        expected = pd.Series(result, index=['A', 'B'])
+        tm.assert_series_equal(result, expected)
+
     def test_sum_object(self):
         values = self.frame.values.astype(int)
         frame = DataFrame(values, index=self.frame.index,
