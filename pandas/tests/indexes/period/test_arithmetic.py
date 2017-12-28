@@ -13,6 +13,7 @@ import pandas.core.indexes.period as period
 
 class TestPeriodIndexArithmetic(object):
     def test_pi_add_offset_array(self):
+        # GH#18849
         pi = pd.PeriodIndex([pd.Period('2015Q1'), pd.Period('2016Q2')])
         offs = np.array([pd.offsets.QuarterEnd(n=1, startingMonth=12),
                          pd.offsets.QuarterEnd(n=-2, startingMonth=12)])
@@ -29,6 +30,7 @@ class TestPeriodIndexArithmetic(object):
 
     @pytest.mark.xfail(reason='GH#18824 radd doesnt implement this case')
     def test_pi_radd_offset_array(self):
+        # GH#18849
         pi = pd.PeriodIndex([pd.Period('2015Q1'), pd.Period('2016Q2')])
         offs = np.array([pd.offsets.QuarterEnd(n=1, startingMonth=12),
                          pd.offsets.QuarterEnd(n=-2, startingMonth=12)])

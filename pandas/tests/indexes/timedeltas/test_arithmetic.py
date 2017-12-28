@@ -30,6 +30,7 @@ class TestTimedeltaIndexArithmetic(object):
 
     @pytest.mark.xfail(reason='GH#18824 ufunc add cannot use operands...')
     def test_tdi_with_offset_array(self):
+        # GH#18849
         tdi = pd.TimedeltaIndex(['1 days 00:00:00', '3 days 04:00:00'])
         offs = np.array([pd.offsets.Hour(n=1), pd.offsets.Minute(n=-2)])
         expected = pd.TimedeltaIndex(['1 days 01:00:00', '3 days 04:02:00'])
