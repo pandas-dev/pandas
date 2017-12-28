@@ -220,7 +220,8 @@ cdef class VariableWindowIndexer(WindowIndexer):
     right_closed: bint
         right endpoint closedness
         True if the right endpoint is closed, False if open
-
+    floor: optional
+        unit for flooring the unit
     """
     def __init__(self, ndarray input, int64_t win, int64_t minp,
                  bint left_closed, bint right_closed, ndarray index,
@@ -343,7 +344,7 @@ def get_window_indexer(input, win, minp, index, closed,
 
     if index is not None:
         indexer = VariableWindowIndexer(input, win, minp, left_closed,
-                                        right_closed, index, floor=floor)
+                                        right_closed, index, floor)
     elif use_mock:
         indexer = MockFixedWindowIndexer(input, win, minp, left_closed,
                                          right_closed, index, floor)
@@ -442,7 +443,7 @@ def roll_sum(ndarray[double_t] input, int64_t win, int64_t minp,
              object index, object closed):
     cdef:
         double val, prev_x, sum_x = 0
-        int64_t s, e
+        int64_t s, e, range_endpoint
         int64_t nobs = 0, i, j, N
         bint is_variable
         ndarray[int64_t] start, end
@@ -491,13 +492,15 @@ def roll_sum(ndarray[double_t] input, int64_t win, int64_t minp,
 
         # fixed window
 
+        range_endpoint = int_max(minp, 1) - 1
+
         with nogil:
 
-            for i in range(0, min(1, minp) - 1):
+            for i in range(0, range_endpoint):
                 add_sum(input[i], &nobs, &sum_x)
                 output[i] = NaN
 
-            for i in range(min(1, minp) - 1, N):
+            for i in range(range_endpoint, N):
                 val = input[i]
                 add_sum(val, &nobs, &sum_x)
 
