@@ -1071,7 +1071,7 @@ class LatexFormatter(TableFormatter):
         """
         for cl in self.clinebuf:
             if cl[0] == i:
-                buf.write('\cline{{{cl:d}-{icol:d}}}\n'
+                buf.write('\\cline{{{cl:d}-{icol:d}}}\n'
                           .format(cl=cl[1], icol=icol))
         # remove entries that have been written to buffer
         self.clinebuf = [x for x in self.clinebuf if x[0] != i]

@@ -847,9 +847,9 @@ class TextFileReader(BaseIterator):
                 del result['delimiter']
             elif engine not in ('python', 'python-fwf'):
                 # wait until regex engine integrated
-                fallback_reason = r"the 'c' engine does not support"\
+                fallback_reason = "the 'c' engine does not support"\
                                   " regex separators (separators > 1 char and"\
-                                  " different from '\s+' are"\
+                                  r" different from '\s+' are"\
                                   " interpreted as regex)"
                 engine = 'python'
         elif delim_whitespace:
