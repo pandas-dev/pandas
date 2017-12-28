@@ -118,16 +118,8 @@ class SafeForLongAndSparse(object):
 
         if has_skipna:
 
-            if skipna_alternative:
-                def skipna_wrapper(x):
-                    return skipna_alternative(np.asarray(x))
-            else:
-                def skipna_wrapper(x):
-                    nona = remove_na_arraylike(x)
-                    if len(nona) == 0:
-                        return np.nan
-                    return alternative(nona)
-
+            skipna_wrapper = tm._make_skipna_wrapper(alternative,
+                                                     skipna_alternative)
             def wrapper(x):
                 return alternative(np.asarray(x))
 

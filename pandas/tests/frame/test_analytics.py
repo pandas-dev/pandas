@@ -779,16 +779,8 @@ class TestDataFrameAnalytics(TestData):
             def wrapper(x):
                 return alternative(x.values)
 
-            if skipna_alternative:
-                def skipna_wrapper(x):
-                    return skipna_alternative(x.values)
-            else:
-                def skipna_wrapper(x):
-                    nona = x.dropna()
-                    if len(nona) == 0:
-                        return np.nan
-                    return alternative(nona)
-
+            skipna_wrapper = tm._make_skipna_wrapper(alternative,
+                                                     skipna_alternative)
             result0 = f(axis=0, skipna=False)
             result1 = f(axis=1, skipna=False)
             tm.assert_series_equal(result0, frame.apply(wrapper),
@@ -1013,28 +1005,28 @@ class TestDataFrameAnalytics(TestData):
         expected = pd.Series(result, index=['A', 'B'])
         tm.assert_series_equal(result, expected)
 
-        if method == 'sum':
-            # prod isn't defined on timedeltas
-            df = pd.DataFrame({"a": [unit, unit],
-                               "b": [unit, np.nan],
-                               "c": [np.nan, np.nan]})
+    def test_sum_nanops_timedelta(self):
+        # prod isn't defined on timedeltas
+        idx = ['a', 'b', 'c']
+        df = pd.DataFrame({"a": [0, 0],
+                            "b": [0, np.nan],
+                            "c": [np.nan, np.nan]})
 
-            df2 = df.apply(pd.to_timedelta)
+        df2 = df.apply(pd.to_timedelta)
 
-            # 0 by default
-            result = getattr(df2, method)()
-            expected = pd.Series([0, 0, 0], dtype='m8[ns]', index=idx)
-            tm.assert_series_equal(result, expected)
+        # 0 by default
+        result = df2.sum()
+        expected = pd.Series([0, 0, 0], dtype='m8[ns]', index=idx)
+        tm.assert_series_equal(result, expected)
 
-            # min_count=0
-            result = getattr(df2, method)(min_count=0)
-            tm.assert_series_equal(result, expected)
+        # min_count=0
+        result = df2.sum(min_count=0)
+        tm.assert_series_equal(result, expected)
 
-            # min_count=1
-            result = getattr(df2, method)(min_count=1)
-            expected = pd.Series([0, 0, np.nan], dtype='m8[ns]',
-                                 index=idx)
-            tm.assert_series_equal(result, expected)
+        # min_count=1
+        result = df2.sum(min_count=1)
+        expected = pd.Series([0, 0, np.nan], dtype='m8[ns]', index=idx)
+        tm.assert_series_equal(result, expected)
 
     def test_sum_object(self):
         values = self.frame.values.astype(int)
