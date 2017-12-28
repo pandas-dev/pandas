@@ -666,9 +666,60 @@ class TestSeriesArithmetic(object):
             result = pd.Series(zero_array) / pd.Series(data)
             assert_series_equal(result, expected)
 
+    def test_series_radd_more(self):
+        data = [[1, 2, 3],
+                [1.1, 2.2, 3.3],
+                [pd.Timestamp('2011-01-01'), pd.Timestamp('2011-01-02'),
+                 pd.NaT],
+                ['x', 'y', 1]]
+
+        for d in data:
+            for dtype in [None, object]:
+                s = Series(d, dtype=dtype)
+                with pytest.raises(TypeError):
+                    'foo_' + s
+
+        for dtype in [None, object]:
+            res = 1 + pd.Series([1, 2, 3], dtype=dtype)
+            exp = pd.Series([2, 3, 4], dtype=dtype)
+            assert_series_equal(res, exp)
+            res = pd.Series([1, 2, 3], dtype=dtype) + 1
+            assert_series_equal(res, exp)
+
+            res = np.nan + pd.Series([1, 2, 3], dtype=dtype)
+            exp = pd.Series([np.nan, np.nan, np.nan], dtype=dtype)
+            assert_series_equal(res, exp)
+            res = pd.Series([1, 2, 3], dtype=dtype) + np.nan
+            assert_series_equal(res, exp)
+
+            s = pd.Series([pd.Timedelta('1 days'), pd.Timedelta('2 days'),
+                           pd.Timedelta('3 days')], dtype=dtype)
+            exp = pd.Series([pd.Timedelta('4 days'), pd.Timedelta('5 days'),
+                             pd.Timedelta('6 days')])
+            assert_series_equal(pd.Timedelta('3 days') + s, exp)
+            assert_series_equal(s + pd.Timedelta('3 days'), exp)
+
+        s = pd.Series(['x', np.nan, 'x'])
+        assert_series_equal('a' + s, pd.Series(['ax', np.nan, 'ax']))
+        assert_series_equal(s + 'a', pd.Series(['xa', np.nan, 'xa']))
+
+    def test_invalid_add_sub(self):
+        # invalid ops
+        obj_series = tm.makeObjectSeries()
+        obj_series.name = 'objects'
+
+        with pytest.raises(Exception):
+            obj_series + 1
+        with pytest.raises(Exception):
+            obj_series + np.array(1, dtype=np.int64)
+        with pytest.raises(Exception):
+            obj_series - 1
+        with pytest.raises(Exception):
+            obj_series - np.array(1, dtype=np.int64)
+
 
 class TestTimedeltaSeriesArithmetic(object):
-    def test_timedelta_series_ops(self):
+    def test_timedelta_series_ops_with_timestamp(self):
         # GH11925
         s = Series(timedelta_range('1 day', periods=3))
         ts = Timestamp('2012-01-01')
@@ -897,6 +948,9 @@ class TestTimedeltaSeriesArithmetic(object):
                             nat_series_dtype_timedelta)
         assert_series_equal(-single_nat_dtype_timedelta + timedelta_series,
                             nat_series_dtype_timedelta)
+
+        with pytest.raises(TypeError):
+            timedelta_series - Series([NaT], dtype='datetime64[ns]')
 
         # addition
         assert_series_equal(nat_series_dtype_timedelta + NaT,
@@ -1263,6 +1317,60 @@ class TestDatetimeSeriesArithmetic(object):
         with pytest.raises(TypeError):
             nat_series_dtype_timestamp / 1
 
+    def test_ops_nat_mixed_datetime64_timedelta64(self):
+        # GH 11349
+        datetime_series = Series([NaT, Timestamp('19900315')])
+        nat_series_dtype_timedelta = Series([NaT, NaT],
+                                            dtype='timedelta64[ns]')
+        nat_series_dtype_timestamp = Series([NaT, NaT], dtype='datetime64[ns]')
+        single_nat_dtype_datetime = Series([NaT], dtype='datetime64[ns]')
+        single_nat_dtype_timedelta = Series([NaT], dtype='timedelta64[ns]')
+
+        # subtraction
+        assert_series_equal(datetime_series - single_nat_dtype_datetime,
+                            nat_series_dtype_timedelta)
+
+        assert_series_equal(datetime_series - single_nat_dtype_timedelta,
+                            nat_series_dtype_timestamp)
+        assert_series_equal(-single_nat_dtype_timedelta + datetime_series,
+                            nat_series_dtype_timestamp)
+
+        # without a Series wrapping the NaT, it is ambiguous
+        # whether it is a datetime64 or timedelta64
+        # defaults to interpreting it as timedelta64
+        assert_series_equal(nat_series_dtype_timestamp -
+                            single_nat_dtype_datetime,
+                            nat_series_dtype_timedelta)
+
+        assert_series_equal(nat_series_dtype_timestamp -
+                            single_nat_dtype_timedelta,
+                            nat_series_dtype_timestamp)
+        assert_series_equal(-single_nat_dtype_timedelta +
+                            nat_series_dtype_timestamp,
+                            nat_series_dtype_timestamp)
+
+        # addition
+        assert_series_equal(nat_series_dtype_timestamp +
+                            single_nat_dtype_timedelta,
+                            nat_series_dtype_timestamp)
+        assert_series_equal(single_nat_dtype_timedelta +
+                            nat_series_dtype_timestamp,
+                            nat_series_dtype_timestamp)
+
+        assert_series_equal(nat_series_dtype_timestamp +
+                            single_nat_dtype_timedelta,
+                            nat_series_dtype_timestamp)
+        assert_series_equal(single_nat_dtype_timedelta +
+                            nat_series_dtype_timestamp,
+                            nat_series_dtype_timestamp)
+
+        assert_series_equal(nat_series_dtype_timedelta +
+                            single_nat_dtype_datetime,
+                            nat_series_dtype_timestamp)
+        assert_series_equal(single_nat_dtype_datetime +
+                            nat_series_dtype_timedelta,
+                            nat_series_dtype_timestamp)
+
 
 class TestSeriesOperators(TestData):
     def test_op_method(self):
@@ -1375,15 +1483,6 @@ class TestSeriesOperators(TestData):
         s2 = Series({'x': 0.})
         assert_series_equal(s1 * s2, Series([np.nan], index=['x']))
 
-    def test_invalid_ops(self):
-        # invalid ops
-        pytest.raises(Exception, self.objSeries.__add__, 1)
-        pytest.raises(Exception, self.objSeries.__add__,
-                      np.array(1, dtype=np.int64))
-        pytest.raises(Exception, self.objSeries.__sub__, 1)
-        pytest.raises(Exception, self.objSeries.__sub__,
-                      np.array(1, dtype=np.int64))
-
     def test_timedelta64_conversions(self):
         startdate = Series(date_range('2013-01-01', '2013-01-03'))
         enddate = Series(date_range('2013-03-01', '2013-03-03'))
@@ -1452,64 +1551,6 @@ class TestSeriesOperators(TestData):
                     "invalid comparsion [op->{0},d->{1},h->{2},m->{3},"
                     "s->{4},us->{5}]\n{6}\n{7}\n".format(op, d, h, m, s,
                                                          us, lhs, rhs))
-
-    def test_ops_nat_mixed_datetime64_timedelta64(self):
-        # GH 11349
-        timedelta_series = Series([NaT, Timedelta('1s')])
-        datetime_series = Series([NaT, Timestamp('19900315')])
-        nat_series_dtype_timedelta = Series([NaT, NaT],
-                                            dtype='timedelta64[ns]')
-        nat_series_dtype_timestamp = Series([NaT, NaT], dtype='datetime64[ns]')
-        single_nat_dtype_datetime = Series([NaT], dtype='datetime64[ns]')
-        single_nat_dtype_timedelta = Series([NaT], dtype='timedelta64[ns]')
-
-        # subtraction
-        assert_series_equal(datetime_series - single_nat_dtype_datetime,
-                            nat_series_dtype_timedelta)
-
-        assert_series_equal(datetime_series - single_nat_dtype_timedelta,
-                            nat_series_dtype_timestamp)
-        assert_series_equal(-single_nat_dtype_timedelta + datetime_series,
-                            nat_series_dtype_timestamp)
-
-        # without a Series wrapping the NaT, it is ambiguous
-        # whether it is a datetime64 or timedelta64
-        # defaults to interpreting it as timedelta64
-        assert_series_equal(nat_series_dtype_timestamp -
-                            single_nat_dtype_datetime,
-                            nat_series_dtype_timedelta)
-
-        assert_series_equal(nat_series_dtype_timestamp -
-                            single_nat_dtype_timedelta,
-                            nat_series_dtype_timestamp)
-        assert_series_equal(-single_nat_dtype_timedelta +
-                            nat_series_dtype_timestamp,
-                            nat_series_dtype_timestamp)
-
-        with pytest.raises(TypeError):
-            timedelta_series - single_nat_dtype_datetime
-
-        # addition
-        assert_series_equal(nat_series_dtype_timestamp +
-                            single_nat_dtype_timedelta,
-                            nat_series_dtype_timestamp)
-        assert_series_equal(single_nat_dtype_timedelta +
-                            nat_series_dtype_timestamp,
-                            nat_series_dtype_timestamp)
-
-        assert_series_equal(nat_series_dtype_timestamp +
-                            single_nat_dtype_timedelta,
-                            nat_series_dtype_timestamp)
-        assert_series_equal(single_nat_dtype_timedelta +
-                            nat_series_dtype_timestamp,
-                            nat_series_dtype_timestamp)
-
-        assert_series_equal(nat_series_dtype_timedelta +
-                            single_nat_dtype_datetime,
-                            nat_series_dtype_timestamp)
-        assert_series_equal(single_nat_dtype_datetime +
-                            nat_series_dtype_timedelta,
-                            nat_series_dtype_timestamp)
 
     def test_ops_datetimelike_align(self):
         # GH 7500
@@ -1719,35 +1760,6 @@ class TestSeriesOperators(TestData):
         _check_op(arr, operator.truediv)
         _check_op(arr, operator.floordiv)
 
-    def test_arith_ops_df_compat(self):
-        # GH 1134
-        s1 = pd.Series([1, 2, 3], index=list('ABC'), name='x')
-        s2 = pd.Series([2, 2, 2], index=list('ABD'), name='x')
-
-        exp = pd.Series([3.0, 4.0, np.nan, np.nan],
-                        index=list('ABCD'), name='x')
-        assert_series_equal(s1 + s2, exp)
-        assert_series_equal(s2 + s1, exp)
-
-        exp = pd.DataFrame({'x': [3.0, 4.0, np.nan, np.nan]},
-                           index=list('ABCD'))
-        assert_frame_equal(s1.to_frame() + s2.to_frame(), exp)
-        assert_frame_equal(s2.to_frame() + s1.to_frame(), exp)
-
-        # different length
-        s3 = pd.Series([1, 2, 3], index=list('ABC'), name='x')
-        s4 = pd.Series([2, 2, 2, 2], index=list('ABCD'), name='x')
-
-        exp = pd.Series([3, 4, 5, np.nan],
-                        index=list('ABCD'), name='x')
-        assert_series_equal(s3 + s4, exp)
-        assert_series_equal(s4 + s3, exp)
-
-        exp = pd.DataFrame({'x': [3, 4, 5, np.nan]},
-                           index=list('ABCD'))
-        assert_frame_equal(s3.to_frame() + s4.to_frame(), exp)
-        assert_frame_equal(s4.to_frame() + s3.to_frame(), exp)
-
     def test_bool_ops_df_compat(self):
         # GH 1134
         s1 = pd.Series([True, False, True], index=list('ABC'), name='x')
@@ -1805,105 +1817,6 @@ class TestSeriesOperators(TestData):
                            index=list('ABCD'))
         assert_frame_equal(s3.to_frame() | s4.to_frame(), exp)
         assert_frame_equal(s4.to_frame() | s3.to_frame(), exp)
-
-    def test_series_frame_radd_bug(self):
-        # GH 353
-        vals = Series(tm.rands_array(5, 10))
-        result = 'foo_' + vals
-        expected = vals.map(lambda x: 'foo_' + x)
-        assert_series_equal(result, expected)
-
-        frame = DataFrame({'vals': vals})
-        result = 'foo_' + frame
-        expected = DataFrame({'vals': vals.map(lambda x: 'foo_' + x)})
-        assert_frame_equal(result, expected)
-
-        # really raise this time
-        with pytest.raises(TypeError):
-            datetime.now() + self.ts
-
-        with pytest.raises(TypeError):
-            self.ts + datetime.now()
-
-    def test_series_radd_more(self):
-        data = [[1, 2, 3],
-                [1.1, 2.2, 3.3],
-                [pd.Timestamp('2011-01-01'), pd.Timestamp('2011-01-02'),
-                 pd.NaT],
-                ['x', 'y', 1]]
-
-        for d in data:
-            for dtype in [None, object]:
-                s = Series(d, dtype=dtype)
-                with pytest.raises(TypeError):
-                    'foo_' + s
-
-        for dtype in [None, object]:
-            res = 1 + pd.Series([1, 2, 3], dtype=dtype)
-            exp = pd.Series([2, 3, 4], dtype=dtype)
-            assert_series_equal(res, exp)
-            res = pd.Series([1, 2, 3], dtype=dtype) + 1
-            assert_series_equal(res, exp)
-
-            res = np.nan + pd.Series([1, 2, 3], dtype=dtype)
-            exp = pd.Series([np.nan, np.nan, np.nan], dtype=dtype)
-            assert_series_equal(res, exp)
-            res = pd.Series([1, 2, 3], dtype=dtype) + np.nan
-            assert_series_equal(res, exp)
-
-            s = pd.Series([pd.Timedelta('1 days'), pd.Timedelta('2 days'),
-                           pd.Timedelta('3 days')], dtype=dtype)
-            exp = pd.Series([pd.Timedelta('4 days'), pd.Timedelta('5 days'),
-                             pd.Timedelta('6 days')])
-            assert_series_equal(pd.Timedelta('3 days') + s, exp)
-            assert_series_equal(s + pd.Timedelta('3 days'), exp)
-
-        s = pd.Series(['x', np.nan, 'x'])
-        assert_series_equal('a' + s, pd.Series(['ax', np.nan, 'ax']))
-        assert_series_equal(s + 'a', pd.Series(['xa', np.nan, 'xa']))
-
-    def test_frame_radd_more(self):
-        data = [[1, 2, 3],
-                [1.1, 2.2, 3.3],
-                [pd.Timestamp('2011-01-01'), pd.Timestamp('2011-01-02'),
-                 pd.NaT],
-                ['x', 'y', 1]]
-
-        for d in data:
-            for dtype in [None, object]:
-                s = DataFrame(d, dtype=dtype)
-                with pytest.raises(TypeError):
-                    'foo_' + s
-
-        for dtype in [None, object]:
-            res = 1 + pd.DataFrame([1, 2, 3], dtype=dtype)
-            exp = pd.DataFrame([2, 3, 4], dtype=dtype)
-            assert_frame_equal(res, exp)
-            res = pd.DataFrame([1, 2, 3], dtype=dtype) + 1
-            assert_frame_equal(res, exp)
-
-            res = np.nan + pd.DataFrame([1, 2, 3], dtype=dtype)
-            exp = pd.DataFrame([np.nan, np.nan, np.nan], dtype=dtype)
-            assert_frame_equal(res, exp)
-            res = pd.DataFrame([1, 2, 3], dtype=dtype) + np.nan
-            assert_frame_equal(res, exp)
-
-        df = pd.DataFrame(['x', np.nan, 'x'])
-        assert_frame_equal('a' + df, pd.DataFrame(['ax', np.nan, 'ax']))
-        assert_frame_equal(df + 'a', pd.DataFrame(['xa', np.nan, 'xa']))
-
-    def test_operators_frame(self):
-        # rpow does not work with DataFrame
-        df = DataFrame({'A': self.ts})
-
-        assert_series_equal(self.ts + self.ts, self.ts + df['A'],
-                            check_names=False)
-        assert_series_equal(self.ts ** self.ts, self.ts ** df['A'],
-                            check_names=False)
-        assert_series_equal(self.ts < self.ts, self.ts < df['A'],
-                            check_names=False)
-        assert_series_equal(self.ts / self.ts, self.ts / df['A'],
-                            check_names=False)
 
     def test_operators_combine(self):
         def _check_fill(meth, op, a, b, fill_value=0):
@@ -2073,3 +1986,96 @@ class TestSeriesOperators(TestData):
             assert np.isnan(s.idxmin(skipna=False))
             assert s.idxmax() == 0
             np.isnan(s.idxmax(skipna=False))
+
+
+class TestSeriesWithFrameArithmetic(TestData):
+    def test_operators_frame(self):
+        # rpow does not work with DataFrame
+        df = DataFrame({'A': self.ts})
+
+        assert_series_equal(self.ts + self.ts, self.ts + df['A'],
+                            check_names=False)
+        assert_series_equal(self.ts ** self.ts, self.ts ** df['A'],
+                            check_names=False)
+        assert_series_equal(self.ts < self.ts, self.ts < df['A'],
+                            check_names=False)
+        assert_series_equal(self.ts / self.ts, self.ts / df['A'],
+                            check_names=False)
+
+    def test_series_frame_radd_bug(self):
+        # GH 353
+        vals = Series(tm.rands_array(5, 10))
+        result = 'foo_' + vals
+        expected = vals.map(lambda x: 'foo_' + x)
+        assert_series_equal(result, expected)
+
+        frame = DataFrame({'vals': vals})
+        result = 'foo_' + frame
+        expected = DataFrame({'vals': vals.map(lambda x: 'foo_' + x)})
+        assert_frame_equal(result, expected)
+
+        # really raise this time
+        with pytest.raises(TypeError):
+            datetime.now() + self.ts
+
+        with pytest.raises(TypeError):
+            self.ts + datetime.now()
+
+    def test_arith_ops_df_compat(self):
+        # GH 1134
+        s1 = pd.Series([1, 2, 3], index=list('ABC'), name='x')
+        s2 = pd.Series([2, 2, 2], index=list('ABD'), name='x')
+
+        exp = pd.Series([3.0, 4.0, np.nan, np.nan],
+                        index=list('ABCD'), name='x')
+        assert_series_equal(s1 + s2, exp)
+        assert_series_equal(s2 + s1, exp)
+
+        exp = pd.DataFrame({'x': [3.0, 4.0, np.nan, np.nan]},
+                           index=list('ABCD'))
+        assert_frame_equal(s1.to_frame() + s2.to_frame(), exp)
+        assert_frame_equal(s2.to_frame() + s1.to_frame(), exp)
+
+        # different length
+        s3 = pd.Series([1, 2, 3], index=list('ABC'), name='x')
+        s4 = pd.Series([2, 2, 2, 2], index=list('ABCD'), name='x')
+
+        exp = pd.Series([3, 4, 5, np.nan],
+                        index=list('ABCD'), name='x')
+        assert_series_equal(s3 + s4, exp)
+        assert_series_equal(s4 + s3, exp)
+
+        exp = pd.DataFrame({'x': [3, 4, 5, np.nan]},
+                           index=list('ABCD'))
+        assert_frame_equal(s3.to_frame() + s4.to_frame(), exp)
+        assert_frame_equal(s4.to_frame() + s3.to_frame(), exp)
+
+    def test_frame_radd_more(self):
+        data = [[1, 2, 3],
+                [1.1, 2.2, 3.3],
+                [pd.Timestamp('2011-01-01'), pd.Timestamp('2011-01-02'),
+                 pd.NaT],
+                ['x', 'y', 1]]
+
+        for d in data:
+            for dtype in [None, object]:
+                s = DataFrame(d, dtype=dtype)
+                with pytest.raises(TypeError):
+                    'foo_' + s
+
+        for dtype in [None, object]:
+            res = 1 + pd.DataFrame([1, 2, 3], dtype=dtype)
+            exp = pd.DataFrame([2, 3, 4], dtype=dtype)
+            assert_frame_equal(res, exp)
+            res = pd.DataFrame([1, 2, 3], dtype=dtype) + 1
+            assert_frame_equal(res, exp)
+
+            res = np.nan + pd.DataFrame([1, 2, 3], dtype=dtype)
+            exp = pd.DataFrame([np.nan, np.nan, np.nan], dtype=dtype)
+            assert_frame_equal(res, exp)
+            res = pd.DataFrame([1, 2, 3], dtype=dtype) + np.nan
+            assert_frame_equal(res, exp)
+
+        df = pd.DataFrame(['x', np.nan, 'x'])
+        assert_frame_equal('a' + df, pd.DataFrame(['ax', np.nan, 'ax']))
+        assert_frame_equal(df + 'a', pd.DataFrame(['xa', np.nan, 'xa']))
