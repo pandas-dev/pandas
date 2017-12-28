@@ -28,37 +28,121 @@ from .common import TestData
 class TestSeriesAnalytics(TestData):
 
     @pytest.mark.parametrize("use_bottleneck", [True, False])
-    @pytest.mark.parametrize("method", ["sum", "prod"])
-    def test_empty(self, method, use_bottleneck):
-
+    @pytest.mark.parametrize("method, unit", [
+        ("sum", 0.0),
+        ("prod", 1.0)
+    ])
+    def test_empty(self, method, unit, use_bottleneck):
         with pd.option_context("use_bottleneck", use_bottleneck):
             # GH 9422
-            # treat all missing as NaN
+            # Entirely empty
             s = Series([])
+            # NA by default
             result = getattr(s, method)()
             assert isna(result)
 
+            # Explict
+            result = getattr(s, method)(min_count=0)
+            assert result == unit
+
+            result = getattr(s, method)(min_count=1)
+            assert isna(result)
+
+            # Skipna, default
             result = getattr(s, method)(skipna=True)
             assert isna(result)
 
+            # Skipna, explicit
+            result = getattr(s, method)(skipna=True, min_count=0)
+            assert result == unit
+
+            result = getattr(s, method)(skipna=True, min_count=1)
+            assert isna(result)
+
+            # All-NA
             s = Series([np.nan])
+            # NA by default
             result = getattr(s, method)()
             assert isna(result)
 
+            # Explicit
+            result = getattr(s, method)(min_count=0)
+            assert result == unit
+
+            result = getattr(s, method)(min_count=1)
+            assert isna(result)
+
+            # Skipna, default
             result = getattr(s, method)(skipna=True)
             assert isna(result)
 
+            # skipna, explicit
+            result = getattr(s, method)(skipna=True, min_count=0)
+            assert result == unit
+
+            result = getattr(s, method)(skipna=True, min_count=1)
+            assert isna(result)
+
+            # Mix of valid, empty
             s = Series([np.nan, 1])
+            # Default
             result = getattr(s, method)()
             assert result == 1.0
 
-            s = Series([np.nan, 1])
+            # Explicit
+            result = getattr(s, method)(min_count=0)
+            assert result == 1.0
+
+            result = getattr(s, method)(min_count=1)
+            assert result == 1.0
+
+            # Skipna
             result = getattr(s, method)(skipna=True)
+            assert result == 1.0
+
+            result = getattr(s, method)(skipna=True, min_count=0)
+            assert result == 1.0
+
+            result = getattr(s, method)(skipna=True, min_count=1)
             assert result == 1.0
 
             # GH #844 (changed in 9422)
             df = DataFrame(np.empty((10, 0)))
             assert (df.sum(1).isnull()).all()
+
+            s = pd.Series([1])
+            result = getattr(s, method)(min_count=2)
+            assert isna(result)
+
+            s = pd.Series([np.nan])
+            result = getattr(s, method)(min_count=2)
+            assert isna(result)
+
+            s = pd.Series([np.nan, 1])
+            result = getattr(s, method)(min_count=2)
+            assert isna(result)
+
+    @pytest.mark.parametrize('method, unit', [
+        ('sum', 0.0),
+        ('prod', 1.0),
+    ])
+    def test_empty_multi(self, method, unit):
+        s = pd.Series([1, np.nan, np.nan, np.nan],
+                      index=pd.MultiIndex.from_product([('a', 'b'), (0, 1)]))
+        # NaN by default
+        result = getattr(s, method)(level=0)
+        expected = pd.Series([1, np.nan], index=['a', 'b'])
+        tm.assert_series_equal(result, expected)
+
+        # min_count=0
+        result = getattr(s, method)(level=0, min_count=0)
+        expected = pd.Series([1, unit], index=['a', 'b'])
+        tm.assert_series_equal(result, expected)
+
+        # min_count=1
+        result = getattr(s, method)(level=0, min_count=1)
+        expected = pd.Series([1, np.nan], index=['a', 'b'])
+        tm.assert_series_equal(result, expected)
 
     @pytest.mark.parametrize(
         "method", ['sum', 'mean', 'median', 'std', 'var'])

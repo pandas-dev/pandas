@@ -601,9 +601,20 @@ class Resampler(_GroupBy):
 
 Resampler._deprecated_valids += dir(Resampler)
 
+
 # downsample methods
-for method in ['min', 'max', 'first', 'last', 'sum', 'mean', 'sem',
-               'median', 'prod', 'ohlc']:
+for method in ['sum', 'prod']:
+
+    def f(self, _method=method, min_count=1, *args, **kwargs):
+        nv.validate_resampler_func(_method, args, kwargs)
+        return self._downsample(_method, min_count=min_count)
+    f.__doc__ = getattr(GroupBy, method).__doc__
+    setattr(Resampler, method, f)
+
+
+# downsample methods
+for method in ['min', 'max', 'first', 'last', 'mean', 'sem',
+               'median', 'ohlc']:
 
     def f(self, _method=method, *args, **kwargs):
         nv.validate_resampler_func(_method, args, kwargs)
