@@ -425,7 +425,7 @@ class _TimeOp(_Op):
             # 2 timedeltas
             if name not in ('__div__', '__rdiv__', '__truediv__',
                             '__rtruediv__', '__add__', '__radd__', '__sub__',
-                            '__rsub__'):
+                            '__rsub__', '__floordiv__', '__rfloordiv__'):
                 raise TypeError("can only operate on a timedeltas for addition"
                                 ", subtraction, and division, but the operator"
                                 " [{name}] was passed".format(name=name))

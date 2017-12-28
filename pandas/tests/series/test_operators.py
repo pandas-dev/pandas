@@ -977,9 +977,7 @@ class TestTimedeltaSeriesArithmetic(object):
 
     @pytest.mark.parametrize('scalar_td', [
         timedelta(minutes=5, seconds=4),
-        pytest.param(Timedelta('5m4s'),
-                     marks=pytest.mark.xfail(reason="Timedelta.__floordiv__ "
-                                                    "bug GH#18846")),
+        Timedelta('5m4s'),
         Timedelta('5m4s').to_timedelta64()])
     def test_operators_timedelta64_with_timedelta_invalid(self, scalar_td):
         td1 = Series([timedelta(minutes=5, seconds=3)] * 3)
@@ -994,24 +992,45 @@ class TestTimedeltaSeriesArithmetic(object):
         with tm.assert_raises_regex(TypeError, pattern):
             scalar_td * td1
         with tm.assert_raises_regex(TypeError, pattern):
-            td1 // scalar_td
-        with tm.assert_raises_regex(TypeError, pattern):
-            scalar_td // td1
-        with tm.assert_raises_regex(TypeError, pattern):
             scalar_td ** td1
         with tm.assert_raises_regex(TypeError, pattern):
             td1 ** scalar_td
 
-
-class TestDatetimeSeriesArithmetic(object):
-    @pytest.mark.xfail(reason='GH#18846 bug in Timedelta.__floordiv__')
-    def test_timedelta_rfloordiv(self):
+    @pytest.mark.parametrize('scalar_td', [
+        timedelta(minutes=5, seconds=4),
+        pytest.param(Timedelta('5m4s'),
+                     marks=pytest.mark.xfail(reason="Timedelta.__floordiv__ "
+                                                    "bug GH#18846")),
+        Timedelta('5m4s').to_timedelta64()])
+    def test_timedelta_rfloordiv(self, scalar_td):
+        # GH#18831
         td1 = Series([timedelta(minutes=5, seconds=3)] * 3)
         td1.iloc[2] = np.nan
-        tdscalar = Timedelta(minutes=5, seconds=4)
-        tm.assert_series_equal(tdscalar // td1,
-                               Series([1, 1, np.nan]))
+        result = scalar_td // td1
+        expected = Series([1, 1, np.nan])
+        tm.assert_series_equal(result, expected)
 
+    @pytest.mark.parametrize('scalar_td', [
+        timedelta(minutes=5, seconds=4),
+        Timedelta('5m4s'),
+        Timedelta('5m4s').to_timedelta64()])
+    def test_timedelta_floordiv(self, scalar_td):
+        # GH#18831
+        td1 = Series([timedelta(minutes=5, seconds=3)] * 3)
+        td1.iloc[2] = np.nan
+
+        result = td1 // scalar_td
+        expected = Series([0, 0, np.nan])
+        tm.assert_series_equal(result, expected)
+
+        # We can test __rfloordiv__ using this syntax,
+        # see `test_timedelta_rfloordiv`
+        result = td1.__rfloordiv__(scalar_td)
+        expected = Series([1, 1, np.nan])
+        tm.assert_series_equal(result, expected)
+
+
+class TestDatetimeSeriesArithmetic(object):
     @pytest.mark.parametrize(
         'box, assert_func',
         [(Series, tm.assert_series_equal),
