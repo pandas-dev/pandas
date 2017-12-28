@@ -627,6 +627,7 @@ class TestIntervalIndex(Base):
     def test_repr_roundtrip(self):
         super(TestIntervalIndex, self).test_repr_roundtrip()
 
+    # TODO: check this behavior is consistent with test_interval_new.py
     def test_get_item(self, closed):
         i = IntervalIndex.from_arrays((0, 1, np.nan), (1, 2, np.nan),
                                       closed=closed)
@@ -647,6 +648,7 @@ class TestIntervalIndex(Base):
                                              closed=closed)
         tm.assert_index_equal(result, expected)
 
+    # To be removed, replaced by test_interval_new.py (see #16316, #16386)
     def test_get_loc_value(self):
         pytest.raises(KeyError, self.index.get_loc, 0)
         assert self.index.get_loc(0.5) == 0
@@ -669,6 +671,7 @@ class TestIntervalIndex(Base):
         idx = IntervalIndex.from_arrays([0, 2], [1, 3])
         pytest.raises(KeyError, idx.get_loc, 1.5)
 
+    # To be removed, replaced by test_interval_new.py (see #16316, #16386)
     def slice_locs_cases(self, breaks):
         # TODO: same tests for more index types
         index = IntervalIndex.from_breaks([0, 1, 2], closed='right')
@@ -697,12 +700,15 @@ class TestIntervalIndex(Base):
         assert index.slice_locs(1, 1) == (0, 1)
         assert index.slice_locs(1, 2) == (0, 2)
 
+    # To be removed, replaced by test_interval_new.py (see #16316, #16386)
     def test_slice_locs_int64(self):
         self.slice_locs_cases([0, 1, 2])
 
+    # To be removed, replaced by test_interval_new.py (see #16316, #16386)
     def test_slice_locs_float64(self):
         self.slice_locs_cases([0.0, 1.0, 2.0])
 
+    # To be removed, replaced by test_interval_new.py (see #16316, #16386)
     def slice_locs_decreasing_cases(self, tuples):
         index = IntervalIndex.from_tuples(tuples)
         assert index.slice_locs(1.5, 0.5) == (1, 3)
@@ -716,17 +722,21 @@ class TestIntervalIndex(Base):
         slice_locs = index.slice_locs(-1, -1)
         assert slice_locs[0] == slice_locs[1]
 
+    # To be removed, replaced by test_interval_new.py (see #16316, #16386)
     def test_slice_locs_decreasing_int64(self):
         self.slice_locs_cases([(2, 4), (1, 3), (0, 2)])
 
+    # To be removed, replaced by test_interval_new.py (see #16316, #16386)
     def test_slice_locs_decreasing_float64(self):
         self.slice_locs_cases([(2., 4.), (1., 3.), (0., 2.)])
 
+    # To be removed, replaced by test_interval_new.py (see #16316, #16386)
     def test_slice_locs_fails(self):
         index = IntervalIndex.from_tuples([(1, 2), (0, 1), (2, 3)])
         with pytest.raises(KeyError):
             index.slice_locs(1, 2)
 
+    # To be removed, replaced by test_interval_new.py (see #16316, #16386)
     def test_get_loc_interval(self):
         assert self.index.get_loc(Interval(0, 1)) == 0
         assert self.index.get_loc(Interval(0, 0.5)) == 0
@@ -735,6 +745,7 @@ class TestIntervalIndex(Base):
         pytest.raises(KeyError, self.index.get_loc,
                       Interval(-1, 0, 'left'))
 
+    # To be removed, replaced by test_interval_new.py (see #16316, #16386)
     def test_get_indexer(self):
         actual = self.index.get_indexer([-1, 0, 0.5, 1, 1.5, 2, 3])
         expected = np.array([-1, -1, 0, 0, 1, 1, -1], dtype='intp')
@@ -757,6 +768,7 @@ class TestIntervalIndex(Base):
         expected = np.array([-1, 1], dtype='intp')
         tm.assert_numpy_array_equal(actual, expected)
 
+    # To be removed, replaced by test_interval_new.py (see #16316, #16386)
     def test_get_indexer_subintervals(self):
 
         # TODO: is this right?
@@ -780,6 +792,7 @@ class TestIntervalIndex(Base):
         expected = np.array([0, 0, 0], dtype='intp')
         tm.assert_numpy_array_equal(actual, expected)
 
+    # To be removed, replaced by test_interval_new.py (see #16316, #16386)
     def test_contains(self):
         # Only endpoints are valid.
         i = IntervalIndex.from_arrays([0, 1], [1, 2])
@@ -796,6 +809,7 @@ class TestIntervalIndex(Base):
         assert Interval(3, 5) not in i
         assert Interval(-1, 0, closed='left') not in i
 
+    # To be removed, replaced by test_interval_new.py (see #16316, #16386)
     def testcontains(self):
         # can select values that are IN the range of a value
         i = IntervalIndex.from_arrays([0, 1], [1, 2])
@@ -827,6 +841,7 @@ class TestIntervalIndex(Base):
         result = ii.dropna()
         tm.assert_index_equal(result, expected)
 
+    # TODO: check this behavior is consistent with test_interval_new.py
     def test_non_contiguous(self, closed):
         index = IntervalIndex.from_tuples([(0, 1), (2, 3)], closed=closed)
         target = [0.5, 1.5, 2.5]
