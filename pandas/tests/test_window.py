@@ -440,6 +440,7 @@ class TestRolling(Base):
         tm.assert_frame_equal(result, expected)
 
     def test_missing_minp_zero(self):
+        # https://github.com/pandas-dev/pandas/pull/18921
         # minp=0
         x = pd.Series([np.nan])
         result = x.rolling(1, min_periods=0).sum()
@@ -452,6 +453,7 @@ class TestRolling(Base):
         tm.assert_series_equal(result, expected)
 
     def test_missing_minp_zero_variable(self):
+        # https://github.com/pandas-dev/pandas/pull/18921
         x = pd.Series([np.nan] * 4,
                       index=pd.DatetimeIndex(['2017-01-01', '2017-01-04',
                                               '2017-01-06', '2017-01-07']))
@@ -533,6 +535,7 @@ class TestExpanding(Base):
         tm.assert_frame_equal(result, expected)
 
     def test_missing_minp_zero(self):
+        # https://github.com/pandas-dev/pandas/pull/18921
         # minp=0
         x = pd.Series([np.nan])
         result = x.expanding(min_periods=0).sum()

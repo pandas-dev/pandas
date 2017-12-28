@@ -111,8 +111,8 @@ class bottleneck_switch(object):
                     # We are empty, returning NA for our type
                     # Only applies for the default `min_count` of None
                     # since that affects how empty arrays are handled.
-                    # TODO(toma): update all the nanops methods to correctly
-                    # handle empty inputs and remove this check.
+                    # TODO(GH-18976) update all the nanops methods to
+                    # correctly handle empty inputs and remove this check.
                     # It *may* just be `var`
                     return _na_for_min_count(values, axis)
 
