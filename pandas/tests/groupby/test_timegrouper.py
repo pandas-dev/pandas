@@ -244,6 +244,8 @@ class TestGroupBy(object):
             result = df.groupby([pd.Grouper(freq='1M', key='Date')]).sum()
             assert_frame_equal(result, expected)
 
+    @pytest.mark.parametrize('freq', ['D', 'M', 'A', 'Q-APR'])
+    def test_timegrouper_with_reg_groups_freq(self, freq):
         # GH 6764 multiple grouping with/without sort
         df = DataFrame({
             'date': pd.to_datetime([
@@ -257,25 +259,24 @@ class TestGroupBy(object):
             'cost1': [12, 15, 10, 24, 39, 1, 0, 90, 45, 34, 1, 12]
         }).set_index('date')
 
-        for freq in ['D', 'M', 'A', 'Q-APR']:
-            expected = (
-                df.groupby('user_id')['whole_cost']
-                  .resample(freq)
-                  .sum(min_count=1)  # XXX
-                  .dropna()
-                  .reorder_levels(['date', 'user_id'])
-                  .sort_index()
-                  .astype('int64')
-            )
-            expected.name = 'whole_cost'
+        expected = (
+            df.groupby('user_id')['whole_cost']
+                .resample(freq)
+                .sum(min_count=1)  # XXX
+                .dropna()
+                .reorder_levels(['date', 'user_id'])
+                .sort_index()
+                .astype('int64')
+        )
+        expected.name = 'whole_cost'
 
-            result1 = df.sort_index().groupby([pd.Grouper(freq=freq),
-                                               'user_id'])['whole_cost'].sum()
-            assert_series_equal(result1, expected)
+        result1 = df.sort_index().groupby([pd.Grouper(freq=freq),
+                                            'user_id'])['whole_cost'].sum()
+        assert_series_equal(result1, expected)
 
-            result2 = df.groupby([pd.Grouper(freq=freq), 'user_id'])[
-                'whole_cost'].sum()
-            assert_series_equal(result2, expected)
+        result2 = df.groupby([pd.Grouper(freq=freq), 'user_id'])[
+            'whole_cost'].sum()
+        assert_series_equal(result2, expected)
 
     def test_timegrouper_get_group(self):
         # GH 6914
