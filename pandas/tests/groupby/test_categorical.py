@@ -685,6 +685,11 @@ class TestGroupByCategorical(MixIn):
         expected = pd.Series([3, 1, np.nan], expected_idx, name='B')
         tm.assert_series_equal(result, expected)
 
+        # min_count>1
+        result = df.groupby("A").B.sum(min_count=2)
+        expected = pd.Series([3, np.nan, np.nan], expected_idx, name='B')
+        tm.assert_series_equal(result, expected)
+
     def test_empty_prod(self):
         # https://github.com/pandas-dev/pandas/issues/18678
         df = pd.DataFrame({"A": pd.Categorical(['a', 'a', 'b'],

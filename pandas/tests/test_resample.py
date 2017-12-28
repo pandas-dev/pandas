@@ -3505,3 +3505,8 @@ class TestTimeGrouper(object):
         result = methodcaller(method, min_count=1)(resampled)
         expected = pd.Series([1, np.nan, 1], index=index)
         tm.assert_series_equal(result, expected)
+
+        # min_count>1
+        result = methodcaller(method, min_count=2)(resampled)
+        expected = pd.Series([np.nan, np.nan, np.nan], index=index)
+        tm.assert_series_equal(result, expected)

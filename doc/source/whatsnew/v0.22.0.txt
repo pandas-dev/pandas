@@ -1,4 +1,4 @@
-.. _whatsnew_0220:
+
 
 v0.22.0
 -------
@@ -25,7 +25,7 @@ summary is that
 Some background: In pandas 0.21, we fixed a long-standing inconsistency
 in the return value of all-*NA* series depending on whether or not bottleneck
 was installed. See :ref:`whatsnew_0210.api_breaking.bottleneck`_. At the same
-time, we changed the sum and prod of an empty Series to also be ``NaN``.
+time, we changed the sum and prod of an empty ``Series`` to also be ``NaN``.
 
 Based on feedback, we've partially reverted those changes.
 
@@ -52,13 +52,13 @@ The default sum for all-*NA* and empty series is now ``0``.
    pd.Series([np.nan]).sum()
 
 The default behavior is the same as pandas 0.20.3 with bottleneck installed. It
-also matches the behavior of ``np.nansum`` on empty and all-*NA* arrays.
+also matches the behavior of NumPy's ``np.nansum`` on empty and all-*NA* arrays.
 
 To have the sum of an empty series return ``NaN``, use the ``min_count``
 keyword. Thanks to the ``skipna`` parameter, the ``.sum`` on an all-*NA*
-series is conceptually the same as on an empty. The ``min_count`` parameter
-refers to the minimum number of *valid* values required for a non-NA sum
-or product.
+series is conceptually the same as the ``.sum`` of an empty one with
+``skipna=True`` (the default). The ``min_count`` parameter refers to the
+minimum number of *non-null* values required for a non-NA sum or product.
 
 .. ipython:: python
 
@@ -186,7 +186,7 @@ Rolling and Expanding
 ^^^^^^^^^^^^^^^^^^^^^
 
 Rolling and expanding already have a ``min_periods`` keyword that behaves
-similarly to ``min_count``. The only case that changes is when doing a rolling
+similar to ``min_count``. The only case that changes is when doing a rolling
 or expanding sum on an all-*NA* series with ``min_periods=0``. Previously this
 returned ``NaN``, now it will return ``0``.
 
