@@ -36,7 +36,8 @@ def get_dispatch(dtypes):
 def group_add_{{name}}(ndarray[{{dest_type2}}, ndim=2] out,
                        ndarray[int64_t] counts,
                        ndarray[{{c_type}}, ndim=2] values,
-                       ndarray[int64_t] labels):
+                       ndarray[int64_t] labels,
+                       Py_ssize_t min_count=1):
     """
     Only aggregates on axis=0
     """
@@ -88,7 +89,7 @@ def group_add_{{name}}(ndarray[{{dest_type2}}, ndim=2] out,
 
         for i in range(ncounts):
             for j in range(K):
-                if nobs[i, j] == 0:
+                if nobs[i, j] < min_count:
                     out[i, j] = NAN
                 else:
                     out[i, j] = sumx[i, j]
@@ -99,7 +100,8 @@ def group_add_{{name}}(ndarray[{{dest_type2}}, ndim=2] out,
 def group_prod_{{name}}(ndarray[{{dest_type2}}, ndim=2] out,
                         ndarray[int64_t] counts,
                         ndarray[{{c_type}}, ndim=2] values,
-                        ndarray[int64_t] labels):
+                        ndarray[int64_t] labels,
+                        Py_ssize_t min_count=1):
     """
     Only aggregates on axis=0
     """
@@ -147,7 +149,7 @@ def group_prod_{{name}}(ndarray[{{dest_type2}}, ndim=2] out,
 
         for i in range(ncounts):
             for j in range(K):
-                if nobs[i, j] == 0:
+                if nobs[i, j] < min_count:
                     out[i, j] = NAN
                 else:
                     out[i, j] = prodx[i, j]
@@ -159,11 +161,14 @@ def group_prod_{{name}}(ndarray[{{dest_type2}}, ndim=2] out,
 def group_var_{{name}}(ndarray[{{dest_type2}}, ndim=2] out,
                        ndarray[int64_t] counts,
                        ndarray[{{dest_type2}}, ndim=2] values,
-                       ndarray[int64_t] labels):
+                       ndarray[int64_t] labels,
+                       Py_ssize_t min_count=-1):
     cdef:
         Py_ssize_t i, j, N, K, lab, ncounts = len(counts)
         {{dest_type2}} val, ct, oldmean
         ndarray[{{dest_type2}}, ndim=2] nobs, mean
+
+    assert min_count == -1, "'min_count' only used in add and prod"
 
     if not len(values) == len(labels):
         raise AssertionError("len(index) != len(labels)")
@@ -208,11 +213,14 @@ def group_var_{{name}}(ndarray[{{dest_type2}}, ndim=2] out,
 def group_mean_{{name}}(ndarray[{{dest_type2}}, ndim=2] out,
                         ndarray[int64_t] counts,
                         ndarray[{{dest_type2}}, ndim=2] values,
-                        ndarray[int64_t] labels):
+                        ndarray[int64_t] labels,
+                        Py_ssize_t min_count=-1):
     cdef:
         Py_ssize_t i, j, N, K, lab, ncounts = len(counts)
         {{dest_type2}} val, count
         ndarray[{{dest_type2}}, ndim=2] sumx, nobs
+
+    assert min_count == -1, "'min_count' only used in add and prod"
 
     if not len(values) == len(labels):
         raise AssertionError("len(index) != len(labels)")
@@ -263,7 +271,8 @@ def group_mean_{{name}}(ndarray[{{dest_type2}}, ndim=2] out,
 def group_ohlc_{{name}}(ndarray[{{dest_type2}}, ndim=2] out,
                   ndarray[int64_t] counts,
                   ndarray[{{dest_type2}}, ndim=2] values,
-                  ndarray[int64_t] labels):
+                  ndarray[int64_t] labels,
+                  Py_ssize_t min_count=-1):
     """
     Only aggregates on axis=0
     """
@@ -271,6 +280,8 @@ def group_ohlc_{{name}}(ndarray[{{dest_type2}}, ndim=2] out,
         Py_ssize_t i, j, N, K, lab
         {{dest_type2}} val, count
         Py_ssize_t ngroups = len(counts)
+
+    assert min_count == -1, "'min_count' only used in add and prod"
 
     if len(labels) == 0:
         return
@@ -332,7 +343,8 @@ def get_dispatch(dtypes):
 def group_last_{{name}}(ndarray[{{dest_type2}}, ndim=2] out,
                         ndarray[int64_t] counts,
                         ndarray[{{c_type}}, ndim=2] values,
-                        ndarray[int64_t] labels):
+                        ndarray[int64_t] labels,
+                        Py_ssize_t min_count=-1):
     """
     Only aggregates on axis=0
     """
@@ -341,6 +353,8 @@ def group_last_{{name}}(ndarray[{{dest_type2}}, ndim=2] out,
         {{dest_type2}} val, count
         ndarray[{{dest_type2}}, ndim=2] resx
         ndarray[int64_t, ndim=2] nobs
+
+    assert min_count == -1, "'min_count' only used in add and prod"
 
     if not len(values) == len(labels):
         raise AssertionError("len(index) != len(labels)")
@@ -382,7 +396,8 @@ def group_last_{{name}}(ndarray[{{dest_type2}}, ndim=2] out,
 def group_nth_{{name}}(ndarray[{{dest_type2}}, ndim=2] out,
                        ndarray[int64_t] counts,
                        ndarray[{{c_type}}, ndim=2] values,
-                       ndarray[int64_t] labels, int64_t rank):
+                       ndarray[int64_t] labels, int64_t rank,
+                       Py_ssize_t min_count=-1):
     """
     Only aggregates on axis=0
     """
@@ -391,6 +406,8 @@ def group_nth_{{name}}(ndarray[{{dest_type2}}, ndim=2] out,
         {{dest_type2}} val, count
         ndarray[{{dest_type2}}, ndim=2] resx
         ndarray[int64_t, ndim=2] nobs
+
+    assert min_count == -1, "'min_count' only used in add and prod"
 
     if not len(values) == len(labels):
         raise AssertionError("len(index) != len(labels)")
@@ -455,7 +472,8 @@ def get_dispatch(dtypes):
 def group_max_{{name}}(ndarray[{{dest_type2}}, ndim=2] out,
                        ndarray[int64_t] counts,
                        ndarray[{{dest_type2}}, ndim=2] values,
-                       ndarray[int64_t] labels):
+                       ndarray[int64_t] labels,
+                       Py_ssize_t min_count=-1):
     """
     Only aggregates on axis=0
     """
@@ -463,6 +481,8 @@ def group_max_{{name}}(ndarray[{{dest_type2}}, ndim=2] out,
         Py_ssize_t i, j, N, K, lab, ncounts = len(counts)
         {{dest_type2}} val, count
         ndarray[{{dest_type2}}, ndim=2] maxx, nobs
+
+    assert min_count == -1, "'min_count' only used in add and prod"
 
     if not len(values) == len(labels):
         raise AssertionError("len(index) != len(labels)")
@@ -526,7 +546,8 @@ def group_max_{{name}}(ndarray[{{dest_type2}}, ndim=2] out,
 def group_min_{{name}}(ndarray[{{dest_type2}}, ndim=2] out,
                        ndarray[int64_t] counts,
                        ndarray[{{dest_type2}}, ndim=2] values,
-                       ndarray[int64_t] labels):
+                       ndarray[int64_t] labels,
+                       Py_ssize_t min_count=-1):
     """
     Only aggregates on axis=0
     """
@@ -534,6 +555,8 @@ def group_min_{{name}}(ndarray[{{dest_type2}}, ndim=2] out,
         Py_ssize_t i, j, N, K, lab, ncounts = len(counts)
         {{dest_type2}} val, count
         ndarray[{{dest_type2}}, ndim=2] minx, nobs
+
+    assert min_count == -1, "'min_count' only used in add and prod"
 
     if not len(values) == len(labels):
         raise AssertionError("len(index) != len(labels)")
@@ -686,7 +709,8 @@ def group_cummax_{{name}}(ndarray[{{dest_type2}}, ndim=2] out,
 def group_median_float64(ndarray[float64_t, ndim=2] out,
                          ndarray[int64_t] counts,
                          ndarray[float64_t, ndim=2] values,
-                         ndarray[int64_t] labels):
+                         ndarray[int64_t] labels,
+                         Py_ssize_t min_count=-1):
     """
     Only aggregates on axis=0
     """
@@ -695,6 +719,9 @@ def group_median_float64(ndarray[float64_t, ndim=2] out,
         ndarray[int64_t] _counts
         ndarray data
         float64_t* ptr
+
+    assert min_count == -1, "'min_count' only used in add and prod"
+
     ngroups = len(counts)
     N, K = (<object> values).shape
 

@@ -3065,7 +3065,7 @@ any pickled pandas object (or any other pickled object) from file:
 
    Loading pickled data received from untrusted sources can be unsafe.
 
-   See: https://docs.python.org/3.6/library/pickle.html
+   See: https://docs.python.org/3/library/pickle.html
 
 .. warning::
 
@@ -4545,7 +4545,7 @@ facilitate data retrieval and to reduce dependency on DB-specific API. Database 
 is provided by SQLAlchemy if installed. In addition you will need a driver library for
 your database. Examples of such drivers are `psycopg2 <http://initd.org/psycopg/>`__
 for PostgreSQL or `pymysql <https://github.com/PyMySQL/PyMySQL>`__ for MySQL.
-For `SQLite <https://docs.python.org/3.5/library/sqlite3.html>`__ this is
+For `SQLite <https://docs.python.org/3/library/sqlite3.html>`__ this is
 included in Python's standard library by default.
 You can find an overview of supported drivers for each SQL dialect in the
 `SQLAlchemy docs <http://docs.sqlalchemy.org/en/latest/dialects/index.html>`__.
