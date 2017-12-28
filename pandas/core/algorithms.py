@@ -635,14 +635,16 @@ def duplicated(values, keep='first'):
     return f(values, keep=keep)
 
 
-def mode(values):
+def mode(values, dropna=True):
     """
     Returns the mode(s) of an array.
 
     Parameters
     ----------
     values : array-like
-        Array over which to check for duplicate values.
+        Array over which to check for duplicate values
+    dropna : boolean, default True
+        Don't include NaN values.
 
     Returns
     -------
@@ -667,6 +669,7 @@ def mode(values):
         ndtype = 'object'
         values = _ensure_object(values)
 
+### TODO: IN HERE IMPLEMENT THE DROPNA PARAMETER
     f = getattr(htable, "mode_{dtype}".format(dtype=ndtype))
     result = f(values)
     try:

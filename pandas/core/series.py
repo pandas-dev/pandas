@@ -1276,10 +1276,15 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         return self._constructor(out, index=lev,
                                  dtype='int64').__finalize__(self)
 
-    def mode(self):
+    def mode(self, dropna=True):
         """Return the mode(s) of the dataset.
 
         Always returns Series even if only one value is returned.
+
+        Parameters
+        ----------
+        dropna : boolean, default True
+            Don't include NaN values.
 
         Returns
         -------
