@@ -1002,7 +1002,7 @@ class LatexFormatter(TableFormatter):
             buf.write('\\end{longtable}\n')
 
     def _format_multicolumn(self, row, ilevels):
-        """
+        r"""
         Combine columns belonging to a group to a single multicolumn entry
         according to self.multicolumn_format
 
@@ -1040,7 +1040,7 @@ class LatexFormatter(TableFormatter):
         return row2
 
     def _format_multirow(self, row, ilevels, i, rows):
-        """
+        r"""
         Check following rows, whether row should be a multirow
 
         e.g.:     becomes:
