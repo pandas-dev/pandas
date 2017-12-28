@@ -254,8 +254,7 @@ class TestDataFrameFormatting(object):
         tm.assert_series_equal(Series(res), Series(idx))
 
     def test_repr_should_return_str(self):
-        # http://docs.python.org/py3k/reference/datamodel.html#object.__repr__
-        # http://docs.python.org/reference/datamodel.html#object.__repr__
+        # https://docs.python.org/3/reference/datamodel.html#object.__repr__
         # "...The return value must be a string object."
 
         # (str on py2.x, str (unicode) on py3)
