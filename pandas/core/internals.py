@@ -29,6 +29,7 @@ from pandas.core.dtypes.common import (
     is_bool_dtype,
     is_object_dtype,
     is_datetimelike_v_numeric,
+    is_complex_dtype,
     is_float_dtype, is_numeric_dtype,
     is_numeric_v_string_like, is_extension_type,
     is_list_like,
@@ -458,8 +459,11 @@ class Block(PandasObject):
                     nv = _block_shape(nv, ndim=self.ndim)
                 except (AttributeError, NotImplementedError):
                     pass
+
                 block = self.make_block(values=nv,
-                                        placement=ref_loc, fastpath=True)
+                                        placement=ref_loc,
+                                        fastpath=True)
+
             return block
 
         # ndim == 1
@@ -1028,7 +1032,7 @@ class Block(PandasObject):
 
         return [self.make_block(new_values, fastpath=True)]
 
-    def coerce_to_target_dtype(self, other):
+    def coerce_to_target_dtype(self, other, copy=False):
         """
         coerce the current block to a dtype compat for other
         we will return a block, possibly object, and not raise
@@ -1045,7 +1049,7 @@ class Block(PandasObject):
 
         if self.is_bool or is_object_dtype(dtype) or is_bool_dtype(dtype):
             # we don't upcast to bool
-            return self.astype(object)
+            return self.astype(object, copy=copy)
 
         elif ((self.is_float or self.is_complex) and
               (is_integer_dtype(dtype) or is_float_dtype(dtype))):
@@ -1059,14 +1063,14 @@ class Block(PandasObject):
             # not a datetime
             if not ((is_datetime64_dtype(dtype) or
                      is_datetime64tz_dtype(dtype)) and self.is_datetime):
-                return self.astype(object)
+                return self.astype(object, copy=copy)
 
             # don't upcast timezone with different timezone or no timezone
             mytz = getattr(self.dtype, 'tz', None)
             othertz = getattr(dtype, 'tz', None)
 
             if str(mytz) != str(othertz):
-                return self.astype(object)
+                return self.astype(object, copy=copy)
 
             raise AssertionError("possible recursion in "
                                  "coerce_to_target_dtype: {} {}".format(
@@ -1076,18 +1080,18 @@ class Block(PandasObject):
 
             # not a timedelta
             if not (is_timedelta64_dtype(dtype) and self.is_timedelta):
-                return self.astype(object)
+                return self.astype(object, copy=copy)
 
             raise AssertionError("possible recursion in "
                                  "coerce_to_target_dtype: {} {}".format(
                                      self, other))
 
         try:
-            return self.astype(dtype)
+            return self.astype(dtype, copy=copy)
         except (ValueError, TypeError):
             pass
 
-        return self.astype(object)
+        return self.astype(object, copy=copy)
 
     def interpolate(self, method='pad', axis=0, index=None, values=None,
                     inplace=False, limit=None, limit_direction='forward',
@@ -1451,6 +1455,11 @@ class Block(PandasObject):
         if hasattr(other, 'reindex_axis'):
             other = other.values
 
+        if is_scalar(other) or is_list_like(other):
+            fill_value = other
+        else:
+            fill_value = None
+
         if hasattr(cond, 'reindex_axis'):
             cond = cond.values
 
@@ -1463,6 +1472,9 @@ class Block(PandasObject):
         if not hasattr(cond, 'shape'):
             raise ValueError("where must have a condition that is ndarray "
                              "like")
+        else:
+            if self.is_sparse:
+                cond = cond.flatten()
 
         # our where function
         def func(cond, values, other):
@@ -1501,7 +1513,7 @@ class Block(PandasObject):
                                  transpose=transpose)
             return self._maybe_downcast(blocks, 'infer')
 
-        if self._can_hold_na or self.ndim == 1:
+        if self._can_hold_element(fill_value) or values.ndim == 1:
 
             if transpose:
                 result = result.T
@@ -1510,7 +1522,12 @@ class Block(PandasObject):
             if try_cast:
                 result = self._try_cast_result(result)
 
-            return self.make_block(result)
+            if isinstance(result, np.ndarray):
+                ndim = result.ndim
+            else:
+                ndim = None
+
+            return self.make_block(result, ndim=ndim, fill_value=fill_value)
 
         # might need to separate out blocks
         axis = cond.ndim - 1
@@ -1524,7 +1541,8 @@ class Block(PandasObject):
                 r = self._try_cast_result(result.take(m.nonzero()[0],
                                                       axis=axis))
                 result_blocks.append(
-                    self.make_block(r.T, placement=self.mgr_locs[m]))
+                    self.make_block_same_class(r.T,
+                                               placement=self.mgr_locs[m]))
 
         return result_blocks
 
@@ -1844,6 +1862,7 @@ class FloatBlock(FloatOrComplexBlock):
     is_float = True
     _downcast_dtype = 'int64'
 
+    @classmethod
     def _can_hold_element(self, element):
         tipo = maybe_infer_dtype_type(element)
         if tipo is not None:
@@ -1895,6 +1914,7 @@ class ComplexBlock(FloatOrComplexBlock):
     __slots__ = ()
     is_complex = True
 
+    @classmethod
     def _can_hold_element(self, element):
         tipo = maybe_infer_dtype_type(element)
         if tipo is not None:
@@ -2059,6 +2079,7 @@ class BoolBlock(NumericBlock):
     is_bool = True
     _can_hold_na = False
 
+    @classmethod
     def _can_hold_element(self, element):
         tipo = maybe_infer_dtype_type(element)
         if tipo is not None:
@@ -2751,10 +2772,62 @@ class SparseBlock(NonConsolidatableMixIn, Block):
     is_sparse = True
     is_numeric = True
     _box_to_block_values = False
-    _can_hold_na = True
     _ftype = 'sparse'
     _holder = SparseArray
     _concatenator = staticmethod(_concat._concat_sparse)
+
+    def __init__(self, values, placement, ndim=None, fastpath=False, **kwargs):
+        super(SparseBlock, self).__init__(values, placement,
+                                          ndim, fastpath,
+                                          **kwargs)
+
+        dtype = self.values.sp_values.dtype
+
+        if is_float_dtype(dtype):
+            self.is_float = True
+            self._can_hold_na = True
+        elif is_complex_dtype(dtype):
+            self.is_complex = True
+            self._can_hold_na = True
+        elif is_integer_dtype(dtype):
+            self.is_integer = True
+            self._can_hold_na = False
+        elif is_bool_dtype(dtype):
+            self.is_bool = True
+            self._can_hold_na = False
+        elif is_object_dtype(dtype):
+            self.is_object = True
+            self._can_hold_na = True
+        else:
+            self._can_hold_na = False
+
+    def _can_hold_element(self, element):
+        """ require the same dtype as ourselves """
+        dtype = self.values.sp_values.dtype
+
+        if is_bool_dtype(dtype):
+            return BoolBlock._can_hold_element(element)
+        elif is_integer_dtype(dtype):
+            if is_list_like(element):
+                element = np.array(element)
+                tipo = element.dtype.type
+                return (issubclass(tipo, np.integer) and
+                        not issubclass(tipo,
+                                       (np.datetime64,
+                                        np.timedelta64)) and
+                        dtype.itemsize >= element.dtype.itemsize)
+            return is_integer(element)
+        elif is_float_dtype(dtype):
+            return FloatBlock._can_hold_element(element)
+        elif is_complex_dtype(dtype):
+            return ComplexBlock._can_hold_element(element)
+        elif is_object_dtype(dtype):
+            return True
+        else:
+            return False
+
+    def coerce_to_target_dtype(self, other, copy=True):
+        return super(SparseBlock, self).coerce_to_target_dtype(other, copy)
 
     @property
     def shape(self):
@@ -2815,6 +2888,20 @@ class SparseBlock(NonConsolidatableMixIn, Block):
                                           sparse_index=self.sp_index,
                                           kind=self.kind, copy=deep,
                                           placement=self.mgr_locs)
+
+    def make_block(self, values, placement=None,
+                   ndim=None, fill_value=None, **kwargs):
+        """
+        Create a new block, with type inference propagate any values that are
+        not specified
+        """
+        if fill_value is not None and isinstance(values, SparseArray):
+            values = SparseArray(values.to_dense(), fill_value=fill_value,
+                                 kind=values.kind, dtype=values.dtype)
+
+        return super(SparseBlock, self).make_block(values, placement=placement,
+                                                   ndim=ndim, fill_value=None,
+                                                   **kwargs)
 
     def make_block_same_class(self, values, placement, sparse_index=None,
                               kind=None, dtype=None, fill_value=None,
@@ -2913,9 +3000,15 @@ class SparseBlock(NonConsolidatableMixIn, Block):
         return self.make_block_same_class(values, sparse_index=new_index,
                                           placement=self.mgr_locs)
 
+    def _try_coerce_result(self, result):
+        """ reverse of try_coerce_args """
+        if isinstance(result, np.ndarray):
+            result = SparseArray(result.flatten(), kind=self.kind)
+        return result
+
 
 def make_block(values, placement, klass=None, ndim=None, dtype=None,
-               fastpath=False):
+               fastpath=False, **kwargs):
     if klass is None:
         dtype = dtype or values.dtype
         vtype = dtype.type

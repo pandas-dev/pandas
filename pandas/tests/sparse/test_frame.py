@@ -1413,8 +1413,6 @@ class TestSparseDataFrameAnalytics(object):
             [nan, nan]
         ]
     ])
-    @pytest.mark.xfail(reason='Wrong SparseBlock initialization '
-                              '(GH 17386)')
     def test_where_with_numeric_data(self, data):
         # GH 17386
         lower_bound = 1.5
@@ -1446,8 +1444,6 @@ class TestSparseDataFrameAnalytics(object):
         0.1,
         100.0 + 100.0j
     ])
-    @pytest.mark.xfail(reason='Wrong SparseBlock initialization '
-                              '(GH 17386)')
     def test_where_with_numeric_data_and_other(self, data, other):
         # GH 17386
         lower_bound = 1.5
@@ -1463,8 +1459,6 @@ class TestSparseDataFrameAnalytics(object):
         tm.assert_frame_equal(result, dense_expected)
         tm.assert_sp_frame_equal(result, sparse_expected)
 
-    @pytest.mark.xfail(reason='Wrong SparseBlock initialization '
-                              '(GH 17386)')
     def test_where_with_bool_data(self):
         # GH 17386
         data = [[False, False], [True, True], [False, False]]
@@ -1486,8 +1480,6 @@ class TestSparseDataFrameAnalytics(object):
         0.1,
         100.0 + 100.0j
     ])
-    @pytest.mark.xfail(reason='Wrong SparseBlock initialization '
-                              '(GH 17386)')
     def test_where_with_bool_data_and_other(self, other):
         # GH 17386
         data = [[False, False], [True, True], [False, False]]
@@ -1504,8 +1496,6 @@ class TestSparseDataFrameAnalytics(object):
         tm.assert_frame_equal(result, dense_expected)
         tm.assert_sp_frame_equal(result, sparse_expected)
 
-    @pytest.mark.xfail(reason='Wrong SparseBlock initialization '
-                              '(GH 17386)')
     def test_quantile(self):
         # GH 17386
         data = [[1, 1], [2, 10], [3, 100], [nan, nan]]
@@ -1521,8 +1511,6 @@ class TestSparseDataFrameAnalytics(object):
         tm.assert_series_equal(result, dense_expected)
         tm.assert_sp_series_equal(result, sparse_expected)
 
-    @pytest.mark.xfail(reason='Wrong SparseBlock initialization '
-                              '(GH 17386)')
     def test_quantile_multi(self):
         # GH 17386
         data = [[1, 1], [2, 10], [3, 100], [nan, nan]]

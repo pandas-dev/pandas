@@ -320,8 +320,9 @@ class SparseDataFrame(DataFrame):
             data=new_data, index=self.index, columns=self.columns,
             default_fill_value=self.default_fill_value).__finalize__(self)
 
-    def astype(self, dtype):
-        return self._apply_columns(lambda x: x.astype(dtype))
+    def astype(self, dtype, copy=True, errors='raise', **kwargs):
+        return self._apply_columns(lambda x: x.astype(dtype, copy,
+                                                      errors, **kwargs))
 
     def copy(self, deep=True):
         """
@@ -330,6 +331,16 @@ class SparseDataFrame(DataFrame):
         result = super(SparseDataFrame, self).copy(deep=deep)
         result._default_fill_value = self._default_fill_value
         result._default_kind = self._default_kind
+        return result
+
+    def where(self, cond, other=np.nan, inplace=False, axis=None, level=None,
+              try_cast=False, raise_on_error=True):
+        result = super(SparseDataFrame,
+                       self).where(cond, other,
+                                   inplace, axis,
+                                   level, try_cast,
+                                   raise_on_error=raise_on_error)
+        result._default_fill_value = other
         return result
 
     @property
