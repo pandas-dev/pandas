@@ -670,7 +670,7 @@ def test_shift_months(years, months):
                        Timestamp('2000-01-01'),
                        Timestamp('2000-02-29'),
                        Timestamp('2000-12-31')])
-    actual = DatetimeIndex(shift_months(s.asi8, years * 12 + months))
+    actual = DatetimeIndex(shift_months(s.asi8, years * 12 + months, None))
     expected = DatetimeIndex([x + pd.offsets.DateOffset(
         years=years, months=months) for x in s])
     tm.assert_index_equal(actual, expected)
