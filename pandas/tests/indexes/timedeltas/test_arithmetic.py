@@ -26,41 +26,60 @@ def freq(request):
 
 
 class TestTimedeltaIndexArithmetic(object):
-    _holder = TimedeltaIndex
 
-    # TODO: Split by ops, better name
-    def test_numeric_compat(self):
-        idx = self._holder(np.arange(5, dtype='int64'))
-        didx = self._holder(np.arange(5, dtype='int64') ** 2)
+    def test_tdi_mul_int(self):
+        idx = TimedeltaIndex(np.arange(5, dtype='int64'))
+
         result = idx * 1
         tm.assert_index_equal(result, idx)
 
         result = 1 * idx
         tm.assert_index_equal(result, idx)
 
+    def test_tdi_div_int(self):
+        idx = TimedeltaIndex(np.arange(5, dtype='int64'))
         result = idx / 1
         tm.assert_index_equal(result, idx)
 
+    def test_tdi_floordiv_int(self):
+        idx = TimedeltaIndex(np.arange(5, dtype='int64'))
         result = idx // 1
         tm.assert_index_equal(result, idx)
 
+    def test_tdi_mul_intarray_0dim(self):
+        idx = TimedeltaIndex(np.arange(5, dtype='int64'))
+
         result = idx * np.array(5, dtype='int64')
-        tm.assert_index_equal(result,
-                              self._holder(np.arange(5, dtype='int64') * 5))
+        expected = TimedeltaIndex(np.arange(5, dtype='int64') * 5)
+        tm.assert_index_equal(result, expected)
+
+    def test_tdi_mul_intarray_1dim(self):
+        idx = TimedeltaIndex(np.arange(5, dtype='int64'))
 
         result = idx * np.arange(5, dtype='int64')
-        tm.assert_index_equal(result, didx)
+        expected = TimedeltaIndex(np.arange(5, dtype='int64') ** 2)
+        tm.assert_index_equal(result, expected)
+
+    # FIXME: These ops should return Series, NOT indexes
+    def test_tdi_mul_intSeries(self):
+        idx = TimedeltaIndex(np.arange(5, dtype='int64'))
+        expected = TimedeltaIndex(np.arange(5, dtype='int64') ** 2)
 
         result = idx * Series(np.arange(5, dtype='int64'))
-        tm.assert_index_equal(result, didx)
+        tm.assert_index_equal(result, expected)
 
         result = idx * Series(np.arange(5, dtype='float64') + 0.1)
-        tm.assert_index_equal(result, self._holder(np.arange(
-            5, dtype='float64') * (np.arange(5, dtype='float64') + 0.1)))
+        expected = TimedeltaIndex([0.0, 1.1, 4.2, 9.3, 16.4])
+        tm.assert_index_equal(result, expected)
+
+    def test_tdi_mul_invalid(self):
+        idx = TimedeltaIndex(np.arange(5, dtype='int64'))
 
         # invalid
         pytest.raises(TypeError, lambda: idx * idx)
-        pytest.raises(ValueError, lambda: idx * self._holder(np.arange(3)))
+
+        # Cases with wrong length
+        pytest.raises(ValueError, lambda: idx * TimedeltaIndex(np.arange(3)))
         pytest.raises(ValueError, lambda: idx * np.array([1, 2]))
 
     def test_ufunc_coercions(self):
@@ -256,6 +275,7 @@ class TestTimedeltaIndexArithmetic(object):
         expected = DatetimeIndex(['20121231', pd.NaT, '20121230'], name='foo')
         tm.assert_index_equal(result, expected)
 
+    # TODO: Belongs in DatetimeIndex tests
     def test_subtraction_ops_with_tz(self):
 
         # check that dt/dti subtraction ops with tz are validated
