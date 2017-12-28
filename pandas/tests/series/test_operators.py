@@ -1004,6 +1004,33 @@ class TestTimedeltaSeriesArithmetic(object):
 
 
 class TestDatetimeSeriesArithmetic(object):
+    @pytest.mark.parametrize(
+        'box, assert_func',
+        [(Series, tm.assert_series_equal),
+         (pd.Index, tm.assert_index_equal)])
+    def test_sub_datetime64_not_ns(self, box, assert_func):
+        # GH#7996
+        dt64 = np.datetime64('2013-01-01')
+        assert dt64.dtype == 'datetime64[D]'
+
+        obj = box(date_range('20130101', periods=3))
+        res = obj - dt64
+        expected = box([Timedelta(days=0), Timedelta(days=1),
+                        Timedelta(days=2)])
+        assert_func(res, expected)
+
+        res = dt64 - obj
+        assert_func(res, -expected)
+
+    @pytest.mark.xfail(reason='GH#7996 datetime64 units not converted to nano')
+    def test_frame_sub_datetime64_not_ns(self):
+        df = pd.DataFrame(date_range('20130101', periods=3))
+        dt64 = np.datetime64('2013-01-01')
+        assert dt64.dtype == 'datetime64[D]'
+        res = df - dt64
+        expected = pd.DataFrame([Timedelta(days=0), Timedelta(days=1),
+                                 Timedelta(days=2)])
+        tm.assert_frame_equal(res, expected)
 
     def test_operators_datetimelike(self):
         def run_ops(ops, get_ser, test_ser):
