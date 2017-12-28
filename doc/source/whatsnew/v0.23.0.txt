@@ -365,7 +365,7 @@ Numeric
 Categorical
 ^^^^^^^^^^^
 
--
+- Bug in ``Categorical.equals`` between two unordered categories with the same categories, but in a different order (:issue:`16603`)
 -
 -
 
