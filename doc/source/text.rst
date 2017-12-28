@@ -99,7 +99,7 @@ Elements in the split lists can be accessed using ``get`` or ``[]`` notation:
    s2.str.split('_').str.get(1)
    s2.str.split('_').str[1]
 
-Easy to expand this to return a DataFrame using ``expand``.
+It's easy to expand this to return a DataFrame using ``expand``.
 
 .. ipython:: python
 
@@ -268,7 +268,7 @@ It returns a Series if ``expand=False``.
    pd.Series(['a1', 'b2', 'c3']).str.extract('[ab](\d)', expand=False)
 
 Calling on an ``Index`` with a regex with exactly one capture group
-returns a ``DataFrame`` with one column if ``expand=True``,
+returns a ``DataFrame`` with one column if ``expand=True``.
 
 .. ipython:: python
 
@@ -373,7 +373,7 @@ You can check whether elements contain a pattern:
    pattern = r'[0-9][a-z]'
    pd.Series(['1', '2', '3a', '3b', '03c']).str.contains(pattern)
 
-or match a pattern:
+Or whether elements match a pattern:
 
 .. ipython:: python
 

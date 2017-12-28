@@ -37,7 +37,7 @@ namespace:
 - :func:`~pandas.option_context` - execute a codeblock with a set of options
   that revert to prior settings after execution.
 
-**Note:** developers can check out pandas/core/config.py for more info.
+**Note:** Developers can check out ``pandas/core/config.py`` for more info.
 
 All of the functions above accept a regexp pattern (``re.search`` style) as an argument,
 and so passing in a substring will work - as long as it is unambiguous:
@@ -79,7 +79,7 @@ Getting and Setting Options
 ---------------------------
 
 As described above, ``get_option()`` and ``set_option()`` are available from the
-pandas namespace.  To change an option, call ``set_option('option regex', new_value)``
+pandas namespace.  To change an option, call ``set_option('option regex', new_value)``.
 
 .. ipython:: python
 
@@ -87,7 +87,7 @@ pandas namespace.  To change an option, call ``set_option('option regex', new_va
    pd.set_option('mode.sim_interactive', True)
    pd.get_option('mode.sim_interactive')
 
-**Note:** that the option 'mode.sim_interactive' is mostly used for debugging purposes.
+**Note:** The option 'mode.sim_interactive' is mostly used for debugging purposes.
 
 All options also have a default value, and you can use ``reset_option`` to do just that:
 
@@ -221,7 +221,7 @@ can specify the option ``df.info(null_counts=True)`` to override on showing a pa
 
 .. ipython:: python
 
-   df  =pd.DataFrame(np.random.choice([0,1,np.nan], size=(10,10)))
+   df = pd.DataFrame(np.random.choice([0,1,np.nan], size=(10,10)))
    df
    pd.set_option('max_info_rows', 11)
    df.info()
@@ -229,8 +229,8 @@ can specify the option ``df.info(null_counts=True)`` to override on showing a pa
    df.info()
    pd.reset_option('max_info_rows')
 
-``display.precision`` sets the output display precision in terms of decimal places. This is only a
-suggestion.
+``display.precision`` sets the output display precision in terms of decimal places. 
+This is only a suggestion.
 
 .. ipython:: python
 
@@ -241,7 +241,7 @@ suggestion.
    df
 
 ``display.chop_threshold`` sets at what level pandas rounds to zero when
-it displays a Series of DataFrame. Note, this does not effect the
+it displays a Series of DataFrame. This setting does not change the
 precision at which the number is stored.
 
 .. ipython:: python
@@ -254,7 +254,7 @@ precision at which the number is stored.
    pd.reset_option('chop_threshold')
 
 ``display.colheader_justify`` controls the justification of the headers.
-Options are 'right', and 'left'.
+The options are 'right', and 'left'.
 
 .. ipython:: python
 
