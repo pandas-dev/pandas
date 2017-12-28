@@ -15,9 +15,9 @@ Backwards incompatible API changes
 Pandas 0.22.0 changes the handling of empty and all-*NA* sums and products. The
 summary is that
 
-* The sum of an all-*NA* or empty ``Series`` is now 0
-* The product of an all-*NA* or empty series is now 1
-* We've added a ``min_count`` parameter to ``.sum`` and ``.prod`` to control
+* The sum of an all-*NA* or empty ``Series`` is now ``0``
+* The product of an all-*NA* or empty series is now ``1``
+* We've added a ``min_count`` parameter to ``.sum()`` and ``.prod()`` to control
   the minimum number of valid values for the result to be valid. If fewer than
   ``min_count`` valid values are present, the result is NA. The default is
   ``0``. To return ``NaN``, the 0.21 behavior, use ``min_count=1``.
@@ -27,8 +27,12 @@ in the return value of all-*NA* series depending on whether or not bottleneck
 was installed. See :ref:`whatsnew_0210.api_breaking.bottleneck`_. At the same
 time, we changed the sum and prod of an empty Series to also be ``NaN``.
 
-Based on feedback, we've partially reverted those changes. The default sum for
-all-*NA* and empty series is now 0 (1 for ``prod``).
+Based on feedback, we've partially reverted those changes.
+
+Arithmetic Operations
+^^^^^^^^^^^^^^^^^^^^^
+
+The default sum for all-*NA* and empty series is now ``0``.
 
 *pandas 0.21.x*
 
@@ -48,8 +52,7 @@ all-*NA* and empty series is now 0 (1 for ``prod``).
    pd.Series([np.nan]).sum()
 
 The default behavior is the same as pandas 0.20.3 with bottleneck installed. It
-also matches the behavior of ``np.nansum`` and ``np.nanprod`` on empty and
-all-*NA* arrays.
+also matches the behavior of ``np.nansum`` on empty and all-*NA* arrays.
 
 To have the sum of an empty series return ``NaN``, use the ``min_count``
 keyword. Thanks to the ``skipna`` parameter, the ``.sum`` on an all-*NA*
@@ -65,7 +68,17 @@ or product.
 Returning ``NaN`` was the default behavior for pandas 0.20.3 without bottleneck
 installed.
 
-Note that this affects some other places in the library:
+:meth:`Series.prod` has been updated to behave the same as :meth:`Series.sum`,
+returning ``1`` instead.
+
+.. ipython:: python
+
+   pd.Series([]).prod()
+   pd.Series([np.nan]).prod()
+   pd.Series([]).prod(min_count=1)
+
+These changes affect :meth:`DataFrame.sum` and :meth:`DataFrame.prod` as well.
+Finally, a few less obvious places in pandas are affected by this change.
 
 Grouping by a Categorical
 ^^^^^^^^^^^^^^^^^^^^^^^^^
