@@ -232,7 +232,7 @@ as an attribute:
 
    - You can use this access only if the index element is a valid python identifier, e.g. ``s.1`` is not allowed.
      See `here for an explanation of valid identifiers
-     <http://docs.python.org/2.7/reference/lexical_analysis.html#identifiers>`__.
+     <https://docs.python.org/3/reference/lexical_analysis.html#identifiers>`__.
 
    - The attribute will not be available if it conflicts with an existing method name, e.g. ``s.min`` is not allowed.
 

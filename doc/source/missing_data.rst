@@ -559,7 +559,7 @@ String/Regular Expression Replacement
    backslashes than strings without this prefix. Backslashes in raw strings
    will be interpreted as an escaped backslash, e.g., ``r'\' == '\\'``. You
    should `read about them
-   <http://docs.python.org/2/reference/lexical_analysis.html#string-literals>`__
+   <https://docs.python.org/3/reference/lexical_analysis.html#string-literals>`__
    if this is unclear.
 
 Replace the '.' with ``NaN`` (str -> str)

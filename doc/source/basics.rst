@@ -1728,7 +1728,7 @@ built-in string methods. For example:
 
 Powerful pattern-matching methods are provided as well, but note that
 pattern-matching generally uses `regular expressions
-<https://docs.python.org/2/library/re.html>`__ by default (and in some cases
+<https://docs.python.org/3/library/re.html>`__ by default (and in some cases
 always uses them).
 
 Please see :ref:`Vectorized String Methods <text.string_methods>` for a complete

@@ -119,7 +119,7 @@ i.e., from the end of the string to the beginning of the string:
    s2.str.rsplit('_', expand=True, n=1)
 
 Methods like ``replace`` and ``findall`` take `regular expressions
-<https://docs.python.org/2/library/re.html>`__, too:
+<https://docs.python.org/3/library/re.html>`__, too:
 
 .. ipython:: python
 
@@ -221,7 +221,7 @@ Extract first match in each subject (extract)
    confusing from the perspective of a user.
 
 The ``extract`` method accepts a `regular expression
-<https://docs.python.org/2/library/re.html>`__ with at least one
+<https://docs.python.org/3/library/re.html>`__ with at least one
 capture group.
 
 Extracting a regular expression with more than one group returns a

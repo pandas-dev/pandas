@@ -65,7 +65,7 @@ class DatelikeOps(object):
     Returns
     -------
     ndarray of formatted strings
-    """.format("https://docs.python.org/2/library/datetime.html"
+    """.format("https://docs.python.org/3/library/datetime.html"
                "#strftime-and-strptime-behavior")
 
 

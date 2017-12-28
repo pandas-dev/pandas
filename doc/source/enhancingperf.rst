@@ -468,8 +468,8 @@ This Python syntax is **not** allowed:
 
 * Statements
 
-  - Neither `simple <http://docs.python.org/2/reference/simple_stmts.html>`__
-    nor `compound <http://docs.python.org/2/reference/compound_stmts.html>`__
+  - Neither `simple <https://docs.python.org/3/reference/simple_stmts.html>`__
+    nor `compound <https://docs.python.org/3/reference/compound_stmts.html>`__
     statements are allowed. This includes things like ``for``, ``while``, and
     ``if``.
 
