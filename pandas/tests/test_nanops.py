@@ -187,7 +187,7 @@ class TestnanopsDataFrame(object):
         for axis in list(range(targarval.ndim)) + [None]:
             for skipna in [False, True]:
                 targartempval = targarval if skipna else targarnanval
-                if skipna and empty_targfunc and pd.isna(targartempval).all():
+                if skipna and empty_targfunc and isna(targartempval).all():
                     targ = empty_targfunc(targartempval, axis=axis, **kwargs)
                 else:
                     targ = targfunc(targartempval, axis=axis, **kwargs)

@@ -111,6 +111,9 @@ class bottleneck_switch(object):
                     # We are empty, returning NA for our type
                     # Only applies for the default `min_count` of None
                     # since that affects how empty arrays are handled.
+                    # TODO(toma): update all the nanops methods to correctly
+                    # handle empty inputs and remove this check.
+                    # It *may* just be `var`
                     return _na_for_min_count(values, axis)
 
                 if (_USE_BOTTLENECK and skipna and
@@ -285,8 +288,10 @@ def _wrap_results(result, dtype):
 def _na_for_min_count(values, axis):
     """Return the missing value for `values`
 
+    Parameters
+    ----------
     values : ndarray
-    axis : int, optional
+    axis : int or None
         axis for the reduction
 
     Returns
