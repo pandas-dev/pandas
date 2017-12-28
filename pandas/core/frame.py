@@ -1403,6 +1403,8 @@ class DataFrame(NDFrame):
         Transform long (stacked) format (DataFrame) into wide (3D, Panel)
         format.
 
+        .. deprecated:: 0.20.0
+
         Currently the index of the DataFrame must be a 2-level MultiIndex. This
         may be generalized later
 
@@ -2633,7 +2635,7 @@ class DataFrame(NDFrame):
                           allow_duplicates=allow_duplicates)
 
     def assign(self, **kwargs):
-        """
+        r"""
         Assign new columns to a DataFrame, returning a new object
         (a copy) with all the original columns in addition to the new ones.
 
