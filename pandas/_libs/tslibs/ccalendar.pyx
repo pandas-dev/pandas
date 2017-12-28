@@ -94,7 +94,7 @@ cdef int dayofweek(int y, int m, int d) nogil:
 
     See Also
     --------
-    [1] https://docs.python.org/3.6/library/calendar.html#calendar.weekday
+    [1] https://docs.python.org/3/library/calendar.html#calendar.weekday
 
     [2] https://en.wikipedia.org/wiki/\
     Determination_of_the_day_of_the_week#Sakamoto.27s_methods
