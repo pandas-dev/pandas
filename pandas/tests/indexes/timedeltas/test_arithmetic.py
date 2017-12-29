@@ -27,6 +27,24 @@ def freq(request):
 
 class TestTimedeltaIndexArithmetic(object):
 
+    @pytest.mark.xfail(reason='GH#18824 ufunc add cannot use operands...')
+    def test_tdi_with_offset_array(self):
+        # GH#18849
+        tdi = pd.TimedeltaIndex(['1 days 00:00:00', '3 days 04:00:00'])
+        offs = np.array([pd.offsets.Hour(n=1), pd.offsets.Minute(n=-2)])
+        expected = pd.TimedeltaIndex(['1 days 01:00:00', '3 days 04:02:00'])
+
+        res = tdi + offs
+        tm.assert_index_equal(res, expected)
+
+        res2 = offs + tdi
+        tm.assert_index_equal(res2, expected)
+
+        anchored = np.array([pd.offsets.QuarterEnd(),
+                             pd.offsets.Week(weekday=2)])
+        with pytest.raises(TypeError):
+            tdi + anchored
+
     def test_tdi_mul_int(self):
         idx = TimedeltaIndex(np.arange(5, dtype='int64'))
 
