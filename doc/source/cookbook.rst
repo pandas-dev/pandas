@@ -41,7 +41,7 @@ above what the in-line examples offer.
 Pandas (pd) and Numpy (np) are the only two abbreviated imported modules. The rest are kept
 explicitly imported for newer users.
 
-These examples are written for python 3.4.  Minor tweaks might be necessary for earlier python
+These examples are written for Python 3.4.  Minor tweaks might be necessary for earlier python
 versions.
 
 Idioms
@@ -750,7 +750,7 @@ Timeseries
 <http://nipunbatra.github.io/2015/06/timeseries/>`__
 
 Turn a matrix with hours in columns and days in rows into a continuous row sequence in the form of a time series.
-`How to rearrange a python pandas DataFrame?
+`How to rearrange a Python pandas DataFrame?
 <http://stackoverflow.com/questions/15432659/how-to-rearrange-a-python-pandas-dataframe>`__
 
 `Dealing with duplicates when reindexing a timeseries to a specified frequency
@@ -1152,7 +1152,7 @@ Storing Attributes to a group node
    store = pd.HDFStore('test.h5')
    store.put('df',df)
 
-   # you can store an arbitrary python object via pickle
+   # you can store an arbitrary Python object via pickle
    store.get_storer('df').attrs.my_attribute = dict(A = 10)
    store.get_storer('df').attrs.my_attribute
 

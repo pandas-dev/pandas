@@ -359,9 +359,9 @@ Index level names may be specified as keys directly to ``groupby``.
 DataFrame column selection in GroupBy
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-Once you have created the GroupBy object from a DataFrame, for example, you
-might want to do something different for each of the columns. Thus, using
-``[]`` similar to getting a column from a DataFrame, you can do:
+Once you have created the GroupBy object from a DataFrame, you might want to do 
+something different for each of the columns. Thus, using ``[]`` similar to 
+getting a column from a DataFrame, you can do:
 
 .. ipython:: python
    :suppress:
@@ -394,7 +394,7 @@ Iterating through groups
 ------------------------
 
 With the GroupBy object in hand, iterating through the grouped data is very
-natural and functions similarly to ``itertools.groupby``:
+natural and functions similarly to :py:func:`itertools.groupby`:
 
 .. ipython::
 
@@ -420,7 +420,8 @@ statement if you wish: ``for (k1, k2), group in grouped:``.
 Selecting a group
 -----------------
 
-A single group can be selected using ``GroupBy.get_group()``:
+A single group can be selected using 
+:meth:`~pandas.core.groupby.DataFrameGroupBy.get_group`:
 
 .. ipython:: python
 
@@ -442,7 +443,9 @@ perform a computation on the grouped data. These operations are similar to the
 :ref:`aggregating API <basics.aggregate>`, :ref:`window functions API <stats.aggregate>`,
 and :ref:`resample API <timeseries.aggregate>`.
 
-An obvious one is aggregation via the ``aggregate`` or equivalently ``agg`` method:
+An obvious one is aggregation via the 
+:meth:`~pandas.core.groupby.DataFrameGroupBy.aggregate` or equivalently 
+:meth:`~pandas.core.groupby.DataFrameGroupBy.agg` method:
 
 .. ipython:: python
 
@@ -492,11 +495,34 @@ index are the group names and whose values are the sizes of each group.
    Passing ``as_index=False`` **will** return the groups that you are aggregating over, if they are
    named *columns*.
 
-   Aggregating functions are ones that reduce the dimension of the returned objects,
-   for example: ``mean, sum, size, count, std, var, sem, describe, first, last, nth, min, max``. This is
-   what happens when you do for example ``DataFrame.sum()`` and get back a ``Series``.
+Aggregating functions are the ones that reduce the dimension of the returned objects.
+Some common aggregating functions are tabulated below:
 
-   ``nth`` can act as a reducer *or* a filter, see :ref:`here <groupby.nth>`
+.. csv-table::
+    :header: "Function", "Description"
+    :widths: 20, 80
+    :delim: ;
+
+	:meth:`~pd.core.groupby.DataFrameGroupBy.mean`;Compute mean of groups
+	:meth:`~pd.core.groupby.DataFrameGroupBy.sum`;Compute sum of group values
+	:meth:`~pd.core.groupby.DataFrameGroupBy.size`;Compute group sizes
+	:meth:`~pd.core.groupby.DataFrameGroupBy.count`;Compute count of group
+	:meth:`~pd.core.groupby.DataFrameGroupBy.std`;Standard deviation of groups
+	:meth:`~pd.core.groupby.DataFrameGroupBy.var`;Compute variance of groups
+	:meth:`~pd.core.groupby.DataFrameGroupBy.sem`;Standard error of the mean of groups
+	:meth:`~pd.core.groupby.DataFrameGroupBy.describe`;Generates descriptive statistics
+	:meth:`~pd.core.groupby.DataFrameGroupBy.first`;Compute first of group values
+	:meth:`~pd.core.groupby.DataFrameGroupBy.last`;Compute last of group values
+	:meth:`~pd.core.groupby.DataFrameGroupBy.nth`;Take nth value, or a subset if n is a list
+	:meth:`~pd.core.groupby.DataFrameGroupBy.min`;Compute min of group values
+	:meth:`~pd.core.groupby.DataFrameGroupBy.max`;Compute max of group values
+	
+
+The aggregating functions above will exclude NA values. Any function which 
+reduces a :class:`Series` to a scalar value is an aggregation function and will work,
+a trivial example is ``df.groupby('A').agg(lambda ser: 1)``. Note that
+:meth:`~pd.core.groupby.DataFrameGroupBy.nth` can act as a reducer *or* a 
+filter, see :ref:`here <groupby.nth>`.
 
 .. _groupby.aggregate.multifunc:
 
@@ -704,11 +730,11 @@ and that the transformed data contains no NAs.
 
 .. note::
 
-   Some functions when applied to a groupby object will automatically transform
-   the input, returning an object of the same shape as the original. Passing
-   ``as_index=False`` will not affect these transformation methods.
+   Some functions will automatically transform the input when applied to a
+   GroupBy object, but returning an object of the same shape as the original. 
+   Passing ``as_index=False`` will not affect these transformation methods.
 
-   For example: ``fillna, ffill, bfill, shift``.
+   For example: ``fillna, ffill, bfill, shift.``.
 
    .. ipython:: python
 
@@ -899,7 +925,8 @@ The dimension of the returned result can also change:
 
     In [11]: grouped.apply(f)
 
-``apply`` on a Series can operate on a returned value from the applied function, that is itself a series, and possibly upcast the result to a DataFrame
+``apply`` on a Series can operate on a returned value from the applied function, 
+that is itself a series, and possibly upcast the result to a DataFrame:
 
 .. ipython:: python
 
@@ -956,15 +983,21 @@ will be (silently) dropped. Thus, this does not pose any problems:
 
    df.groupby('A').std()
 
+Note that ``df.groupby('A').colname.std().`` is more efficient than 
+``df.groupby('A').std().colname``, so if the result of an aggregation function
+is only interesting over one column (here ``colname``), it may be filtered 
+*before* applying the aggregation function.
+
 .. _groupby.missing:
 
 NA and NaT group handling
 ~~~~~~~~~~~~~~~~~~~~~~~~~
 
-If there are any NaN or NaT values in the grouping key, these will be automatically
-excluded. So there will never be an "NA group" or "NaT group". This was not the case in older
-versions of pandas, but users were generally discarding the NA group anyway
-(and supporting it was an implementation headache).
+If there are any NaN or NaT values in the grouping key, these will be 
+automatically excluded. In other words, there will never be an "NA group" or 
+"NaT group". This was not the case in older versions of pandas, but users were 
+generally discarding the NA group anyway (and supporting it was an 
+implementation headache).
 
 Grouping with ordered factors
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -1050,7 +1083,9 @@ This shows the first or last n rows from each group.
 Taking the nth row of each group
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-To select from a DataFrame or Series the nth item, use the nth method. This is a reduction method, and will return a single row (or no row) per group if you pass an int for n:
+To select from a DataFrame or Series the nth item, use 
+:meth:`~pd.core.groupby.DataFrameGroupBy.nth`. This is a reduction method, and 
+will return a single row (or no row) per group if you pass an int for n:
 
 .. ipython:: python
 
@@ -1117,8 +1152,10 @@ Enumerate groups
 .. versionadded:: 0.20.2
 
 To see the ordering of the groups (as opposed to the order of rows
-within a group given by ``cumcount``) you can use the ``ngroup``
-method.
+within a group given by ``cumcount``) you can use 
+:meth:`~pandas.core.groupby.DataFrameGroupBy.ngroup`.
+
+
 
 Note that the numbers given to the groups match the order in which the
 groups would be seen when iterating over the groupby object, not the
@@ -1179,7 +1216,7 @@ allow for a cleaner, more readable syntax. To read about ``.pipe`` in general te
 see :ref:`here <basics.pipe>`.
 
 Combining ``.groupby`` and ``.pipe`` is often useful when you need to reuse
-GroupB objects.
+GroupBy objects.
 
 For an example, imagine having a DataFrame with columns for stores, products,
 revenue and sold quantity. We'd like to do a groupwise calculation of *prices*
@@ -1234,9 +1271,9 @@ Regroup columns of a DataFrame according to their sum, and sum the aggregated on
 Multi-column factorization
 ~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-By using ``.ngroup()``, we can extract information about the groups in
-a way similar to :func:`factorize` (as described further in the
-:ref:`reshaping API <reshaping.factorize>`) but which applies
+By using :meth:`~pandas.core.groupby.DataFrameGroupBy.ngroup`, we can extract 
+information about the groups in a way similar to :func:`factorize` (as described
+further in the :ref:`reshaping API <reshaping.factorize>`) but which applies
 naturally to multiple columns of mixed type and different
 sources. This can be useful as an intermediate categorical-like step
 in processing, when the relationships between the group rows are more

@@ -877,7 +877,7 @@ of DataFrames:
    wp['Item3'] = wp['Item1'] / wp['Item2']
 
 The API for insertion and deletion is the same as for DataFrame. And as with
-DataFrame, if the item is a valid python identifier, you can access it as an
+DataFrame, if the item is a valid Python identifier, you can access it as an
 attribute and tab-complete it in IPython.
 
 Transposing

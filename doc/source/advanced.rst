@@ -731,7 +731,7 @@ This is an Immutable array implementing an ordered, sliceable set.
 Prior to 0.18.0, the ``Int64Index`` would provide the default index for all ``NDFrame`` objects.
 
 ``RangeIndex`` is a sub-class of ``Int64Index`` added in version 0.18.0, now providing the default index for all ``NDFrame`` objects.
-``RangeIndex`` is an optimized version of ``Int64Index`` that can represent a monotonic ordered set. These are analogous to python `range types <https://docs.python.org/3/library/stdtypes.html#typesseq-range>`__.
+``RangeIndex`` is an optimized version of ``Int64Index`` that can represent a monotonic ordered set. These are analogous to Python `range types <https://docs.python.org/3/library/stdtypes.html#typesseq-range>`__.
 
 .. _indexing.float64index:
 

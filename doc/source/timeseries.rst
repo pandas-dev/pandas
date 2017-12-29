@@ -2016,7 +2016,7 @@ Pandas provides rich support for working with timestamps in different time
 zones using ``pytz`` and ``dateutil`` libraries. ``dateutil`` currently is only
 supported for fixed offset and tzfile zones. The default library is ``pytz``.
 Support for ``dateutil`` is provided for compatibility with other
-applications e.g. if you use ``dateutil`` in other python packages.
+applications e.g. if you use ``dateutil`` in other Python packages.
 
 Working with Time Zones
 ~~~~~~~~~~~~~~~~~~~~~~~

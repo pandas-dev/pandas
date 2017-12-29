@@ -228,7 +228,7 @@ as an attribute:
 
 .. warning::
 
-   - You can use this access only if the index element is a valid python identifier, e.g. ``s.1`` is not allowed.
+   - You can use this access only if the index element is a valid Python identifier, e.g. ``s.1`` is not allowed.
      See `here for an explanation of valid identifiers
      <https://docs.python.org/3/reference/lexical_analysis.html#identifiers>`__.
 
@@ -441,7 +441,7 @@ Selection By Position
    This is sometimes called ``chained assignment`` and should be avoided.
    See :ref:`Returning a View versus Copy <indexing.view_versus_copy>`.
 
-Pandas provides a suite of methods in order to get **purely integer based indexing**. The semantics follow closely python and numpy slicing. These are ``0-based`` indexing. When slicing, the start bounds is *included*, while the upper bound is *excluded*. Trying to use a non-integer, even a **valid** label will raise an ``IndexError``.
+Pandas provides a suite of methods in order to get **purely integer based indexing**. The semantics follow closely Python and numpy slicing. These are ``0-based`` indexing. When slicing, the start bounds is *included*, while the upper bound is *excluded*. Trying to use a non-integer, even a **valid** label will raise an ``IndexError``.
 
 The ``.iloc`` attribute is the primary access method. The following are valid inputs:
 
@@ -1772,7 +1772,7 @@ These both yield the same results, so which should you use? It is instructive to
 of operations on these and why method 2 (``.loc``) is much preferred over method 1 (chained ``[]``).
 
 ``dfmi['one']`` selects the first level of the columns and returns a DataFrame that is singly-indexed.
-Then another python operation ``dfmi_with_one['second']`` selects the series indexed by ``'second'`` happens.
+Then another Python operation ``dfmi_with_one['second']`` selects the series indexed by ``'second'`` happens.
 This is indicated by the variable ``dfmi_with_one`` because pandas sees these operations as separate events.
 e.g. separate calls to ``__getitem__``, so it has to treat them as linear operations, they happen one after another.
 

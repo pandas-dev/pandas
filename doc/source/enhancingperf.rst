@@ -24,13 +24,13 @@ Enhancing Performance
 Cython (Writing C extensions for pandas)
 ----------------------------------------
 
-For many use cases writing pandas in pure python and numpy is sufficient. In some
+For many use cases writing pandas in pure Python and numpy is sufficient. In some
 computationally heavy applications however, it can be possible to achieve sizeable
 speed-ups by offloading work to `cython <http://cython.org/>`__.
 
 This tutorial assumes you have refactored as much as possible in python, for example
 trying to remove for loops and making use of numpy vectorization, it's always worth
-optimising in python first.
+optimising in Python first.
 
 This tutorial walks through a "typical" process of cythonizing a slow computation.
 We use an `example from the cython documentation <http://docs.cython.org/src/quickstart/cythonize.html>`__
@@ -86,8 +86,8 @@ hence we'll concentrate our efforts cythonizing these two functions.
 
 .. note::
 
-  In python 2 replacing the ``range`` with its generator counterpart (``xrange``)
-  would mean the ``range`` line would vanish. In python 3 ``range`` is already a generator.
+  In Python 2 replacing the ``range`` with its generator counterpart (``xrange``)
+  would mean the ``range`` line would vanish. In Python 3 ``range`` is already a generator.
 
 .. _enhancingperf.plain:
 
@@ -315,7 +315,7 @@ Numba works by generating optimized machine code using the LLVM compiler infrast
 Jit
 ~~~
 
-Using ``numba`` to just-in-time compile your code. We simply take the plain python code from above and annotate with the ``@jit`` decorator.
+Using ``numba`` to just-in-time compile your code. We simply take the plain Python code from above and annotate with the ``@jit`` decorator.
 
 .. code-block:: python
 
