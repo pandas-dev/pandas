@@ -3761,7 +3761,8 @@ class Index(IndexOpsMixin, PandasObject):
         -------
         dropped : Index
         """
-        labels = _index_labels_to_array(labels)
+        arr_dtype = 'object' if self.dtype == 'object' else None
+        labels = _index_labels_to_array(labels, dtype=arr_dtype)
         indexer = self.get_indexer(labels)
         mask = indexer == -1
         if mask.any():
