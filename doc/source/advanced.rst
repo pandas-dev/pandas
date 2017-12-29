@@ -24,9 +24,9 @@ See the :ref:`Indexing and Selecting Data <indexing>` for general indexing docum
    Whether a copy or a reference is returned for a setting operation, may
    depend on the context.  This is sometimes called ``chained assignment`` and
    should be avoided.  See :ref:`Returning a View versus Copy
-   <indexing.view_versus_copy>`
+   <indexing.view_versus_copy>`.
 
-See the :ref:`cookbook<cookbook.selection>` for some advanced strategies
+See the :ref:`cookbook<cookbook.selection>` for some advanced strategies.
 
 .. _advanced.hierarchical:
 
@@ -46,7 +46,7 @@ described above and in prior sections. Later, when discussing :ref:`group by
 non-trivial applications to illustrate how it aids in structuring data for
 analysis.
 
-See the :ref:`cookbook<cookbook.multi_index>` for some advanced strategies
+See the :ref:`cookbook<cookbook.multi_index>` for some advanced strategies.
 
 Creating a MultiIndex (hierarchical index) object
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -59,7 +59,7 @@ can think of ``MultiIndex`` as an array of tuples where each tuple is unique. A
 ``MultiIndex.from_tuples``), or a crossed set of iterables (using
 ``MultiIndex.from_product``).  The ``Index`` constructor will attempt to return
 a ``MultiIndex`` when it is passed a list of tuples.  The following examples
-demo different ways to initialize MultiIndexes.
+demonstrate different ways to initialize MultiIndexes.
 
 
 .. ipython:: python
@@ -196,7 +196,8 @@ highly performant. If you want to see the actual used levels.
    # for a specific level
    df[['foo','qux']].columns.get_level_values(0)
 
-To reconstruct the ``MultiIndex`` with only the used levels
+To reconstruct the ``MultiIndex`` with only the used levels, the 
+``remove_unused_levels`` method may be used.
 
 .. versionadded:: 0.20.0
 
@@ -216,7 +217,7 @@ tuples:
    s + s[:-2]
    s + s[::2]
 
-``reindex`` can be called with another ``MultiIndex`` or even a list or array
+``reindex`` can be called with another ``MultiIndex``, or even a list or array
 of tuples:
 
 .. ipython:: python
@@ -230,7 +231,7 @@ Advanced indexing with hierarchical index
 -----------------------------------------
 
 Syntactically integrating ``MultiIndex`` in advanced indexing with ``.loc`` is a
-bit challenging, but we've made every effort to do so. for example the
+bit challenging, but we've made every effort to do so. For example the
 following works as you would expect:
 
 .. ipython:: python
@@ -286,7 +287,7 @@ As usual, **both sides** of the slicers are included as this is label indexing.
 
       df.loc[(slice('A1','A3'),.....), :]
 
-   rather than this:
+   You should **not** do this:
  
    .. code-block:: python
 
@@ -315,7 +316,7 @@ Basic multi-index slicing using slices, lists, and labels.
 
    dfmi.loc[(slice('A1','A3'), slice(None), ['C1', 'C3']), :]
 
-You can use a ``pd.IndexSlice`` to have a more natural syntax using ``:`` rather than using ``slice(None)``
+You can use :class:`pandas.IndexSlice` to facilitate a more natural syntax using ``:``, rather than using ``slice(None)``.
 
 .. ipython:: python
 
@@ -344,7 +345,7 @@ slicers on a single axis.
 
    dfmi.loc(axis=0)[:, :, ['C1', 'C3']]
 
-Furthermore you can *set* the values using these methods
+Furthermore you can *set* the values using the following methods.
 
 .. ipython:: python
 
@@ -379,7 +380,7 @@ selecting data at a particular level of a MultiIndex easier.
    df.loc[(slice(None),'one'),:]
 
 You can also select on the columns with :meth:`~pandas.MultiIndex.xs`, by
-providing the axis argument
+providing the axis argument.
 
 .. ipython:: python
 
@@ -391,7 +392,7 @@ providing the axis argument
    # using the slicers
    df.loc[:,(slice(None),'one')]
 
-:meth:`~pandas.MultiIndex.xs` also allows selection with multiple keys
+:meth:`~pandas.MultiIndex.xs` also allows selection with multiple keys.
 
 .. ipython:: python
 
@@ -403,13 +404,13 @@ providing the axis argument
    df.loc[:,('bar','one')]
 
 You can pass ``drop_level=False`` to :meth:`~pandas.MultiIndex.xs` to retain
-the level that was selected
+the level that was selected.
 
 .. ipython:: python
 
    df.xs('one', level='second', axis=1, drop_level=False)
 
-versus the result with ``drop_level=True`` (the default value)
+Compare the above with the result using ``drop_level=True`` (the default value).
 
 .. ipython:: python
 
@@ -470,7 +471,7 @@ allowing you to permute the hierarchical index levels in one step:
 Sorting a :class:`~pandas.MultiIndex`
 -------------------------------------
 
-For MultiIndex-ed objects to be indexed & sliced effectively, they need
+For MultiIndex-ed objects to be indexed and sliced effectively, they need
 to be sorted. As with any index, you can use ``sort_index``.
 
 .. ipython:: python
@@ -623,7 +624,8 @@ Index Types
 -----------
 
 We have discussed ``MultiIndex`` in the previous sections pretty extensively. ``DatetimeIndex`` and ``PeriodIndex``
-are shown :ref:`here <timeseries.overview>`. ``TimedeltaIndex`` are :ref:`here <timedeltas.timedeltas>`.
+are shown :ref:`here <timeseries.overview>`, and information about 
+`TimedeltaIndex`` is found :ref:`here <timedeltas.timedeltas>`.
 
 In the following sub-sections we will highlight some other index types.
 
@@ -647,7 +649,7 @@ and allows efficient indexing and storage of an index with a large number of dup
    df.dtypes
    df.B.cat.categories
 
-Setting the index, will create a ``CategoricalIndex``
+Setting the index will create a ``CategoricalIndex``.
 
 .. ipython:: python
 
@@ -655,36 +657,38 @@ Setting the index, will create a ``CategoricalIndex``
    df2.index
 
 Indexing with ``__getitem__/.iloc/.loc`` works similarly to an ``Index`` with duplicates.
-The indexers MUST be in the category or the operation will raise.
+The indexers **must** be in the category or the operation will raise a ``KeyError``.
 
 .. ipython:: python
 
    df2.loc['a']
 
-These PRESERVE the ``CategoricalIndex``
+The ``CategoricalIndex`` is **preserved** after indexing:
 
 .. ipython:: python
 
    df2.loc['a'].index
 
-Sorting will order by the order of the categories
+Sorting the index will sort by the order of the categories (Recall that we 
+created the index with with ``CategoricalDtype(list('cab'))``, so the sorted 
+order is ``cab``.). 
 
 .. ipython:: python
 
    df2.sort_index()
 
-Groupby operations on the index will preserve the index nature as well
+Groupby operations on the index will preserve the index nature as well.
 
 .. ipython:: python
 
    df2.groupby(level=0).sum()
    df2.groupby(level=0).sum().index
 
-Reindexing operations, will return a resulting index based on the type of the passed
-indexer, meaning that passing a list will return a plain-old-``Index``; indexing with
+Reindexing operations will return a resulting index based on the type of the passed
+indexer. Passing a list will return a plain-old ``Index``; indexing with
 a ``Categorical`` will return a ``CategoricalIndex``, indexed according to the categories
-of the PASSED ``Categorical`` dtype. This allows one to arbitrarily index these even with
-values NOT in the categories, similarly to how you can reindex ANY pandas index.
+of the **passed** ``Categorical`` dtype. This allows one to arbitrarily index these even with
+values **not** in the categories, similarly to how you can reindex **any** pandas index.
 
 .. ipython :: python
 
@@ -720,7 +724,8 @@ Int64Index and RangeIndex
 
    Indexing on an integer-based Index with floats has been clarified in 0.18.0, for a summary of the changes, see :ref:`here <whatsnew_0180.float_indexers>`.
 
-``Int64Index`` is a fundamental basic index in *pandas*. This is an Immutable array implementing an ordered, sliceable set.
+``Int64Index`` is a fundamental basic index in pandas. 
+This is an Immutable array implementing an ordered, sliceable set.
 Prior to 0.18.0, the ``Int64Index`` would provide the default index for all ``NDFrame`` objects.
 
 ``RangeIndex`` is a sub-class of ``Int64Index`` added in version 0.18.0, now providing the default index for all ``NDFrame`` objects.
@@ -742,7 +747,7 @@ same.
    sf = pd.Series(range(5), index=indexf)
    sf
 
-Scalar selection for ``[],.loc`` will always be label based. An integer will match an equal float index (e.g. ``3`` is equivalent to ``3.0``)
+Scalar selection for ``[],.loc`` will always be label based. An integer will match an equal float index (e.g. ``3`` is equivalent to ``3.0``).
 
 .. ipython:: python
 
@@ -751,15 +756,17 @@ Scalar selection for ``[],.loc`` will always be label based. An integer will mat
    sf.loc[3]
    sf.loc[3.0]
 
-The only positional indexing is via ``iloc``
+The only positional indexing is via ``iloc``.
 
 .. ipython:: python
 
    sf.iloc[3]
 
-A scalar index that is not found will raise ``KeyError``
+A scalar index that is not found will raise a ``KeyError``.
 
-Slicing is ALWAYS on the values of the index, for ``[],ix,loc`` and ALWAYS positional with ``iloc``
+Slicing is primarily on the values of the index when using ``[],ix,loc``, and 
+**always** positional when using ``iloc``. The exception is when the slice is
+boolean, in which case it will always be positional.
 
 .. ipython:: python
 
@@ -767,14 +774,14 @@ Slicing is ALWAYS on the values of the index, for ``[],ix,loc`` and ALWAYS posit
    sf.loc[2:4]
    sf.iloc[2:4]
 
-In float indexes, slicing using floats is allowed
+In float indexes, slicing using floats is allowed.
 
 .. ipython:: python
 
    sf[2.1:4.6]
    sf.loc[2.1:4.6]
 
-In non-float indexes, slicing using floats will raise a ``TypeError``
+In non-float indexes, slicing using floats will raise a ``TypeError``.
 
 .. code-block:: ipython
 
@@ -786,7 +793,7 @@ In non-float indexes, slicing using floats will raise a ``TypeError``
 
 .. warning::
 
-   Using a scalar float indexer for ``.iloc`` has been removed in 0.18.0, so the following will raise a ``TypeError``
+   Using a scalar float indexer for ``.iloc`` has been removed in 0.18.0, so the following will raise a ``TypeError``:
 
    .. code-block:: ipython
 
@@ -816,13 +823,13 @@ Selection operations then will always work on a value basis, for all selection o
    dfir.loc[0:1001,'A']
    dfir.loc[1000.4]
 
-You could then easily pick out the first 1 second (1000 ms) of data then.
+You could retrieve the first 1 second (1000 ms) of data as such:
 
 .. ipython:: python
 
    dfir[0:1000]
 
-Of course if you need integer based selection, then use ``iloc``
+If you need integer based selection, you should use ``iloc``:
 
 .. ipython:: python
 
@@ -975,6 +982,7 @@ consider the following Series:
    s
 
 Suppose we wished to slice from ``c`` to ``e``, using integers this would be
+accomplished as such:
 
 .. ipython:: python
 
