@@ -15,16 +15,16 @@ Backwards incompatible API changes
 Pandas 0.22.0 changes the handling of empty and all-*NA* sums and products. The
 summary is that
 
-* The sum of an all-*NA* or empty ``Series`` is now ``0``
-* The product of an all-*NA* or empty series is now ``1``
+* The sum of an empty or all-*NA* ``Series`` is now ``0``
+* The product of an empty or all-*NA* ``Series`` is now ``1``
 * We've added a ``min_count`` parameter to ``.sum()`` and ``.prod()`` controlling
   the minimum number of valid values for the result to be valid. If fewer than
-  ``min_count`` valid values are present, the result is NA. The default is
+  ``min_count`` non-*NA* values are present, the result is *NA*. The default is
   ``0``. To return ``NaN``, the 0.21 behavior, use ``min_count=1``.
 
 Some background: In pandas 0.21, we fixed a long-standing inconsistency
 in the return value of all-*NA* series depending on whether or not bottleneck
-was installed. See :ref:`whatsnew_0210.api_breaking.bottleneck`_. At the same
+was installed. See :ref:`whatsnew_0210.api_breaking.bottleneck`. At the same
 time, we changed the sum and prod of an empty ``Series`` to also be ``NaN``.
 
 Based on feedback, we've partially reverted those changes.
@@ -32,17 +32,17 @@ Based on feedback, we've partially reverted those changes.
 Arithmetic Operations
 ^^^^^^^^^^^^^^^^^^^^^
 
-The default sum for all-*NA* and empty series is now ``0``.
+The default sum for empty or all-*NA* ``Series`` is now ``0``.
 
 *pandas 0.21.x*
 
 .. code-block:: ipython
 
-   In [3]: pd.Series([]).sum()
-   Out[3]: nan
+   In [1]: pd.Series([]).sum()
+   Out[1]: nan
 
-   In [4]: pd.Series([np.nan]).sum()
-   Out[4]: nan
+   In [2]: pd.Series([np.nan]).sum()
+   Out[2]: nan
 
 *pandas 0.22.0*
 
@@ -96,10 +96,10 @@ instead of ``NaN``.
 
 .. code-block:: ipython
 
-   In [5]: grouper = pd.Categorical(['a', 'a'], categories=['a', 'b'])
+   In [8]: grouper = pd.Categorical(['a', 'a'], categories=['a', 'b'])
 
-   In [6]: pd.Series([1, 2]).groupby(grouper).sum()
-   Out[6]:
+   In [9]: pd.Series([1, 2]).groupby(grouper).sum()
+   Out[9]:
    a    3.0
    b    NaN
    dtype: float64
@@ -128,20 +128,18 @@ sum and ``1`` for product.
 
 .. code-block:: ipython
 
-   In [7]: s = pd.Series([1, 1, np.nan, np.nan],
-      ...:               index=pd.date_range('2017', periods=4))
-      ...:
-
-   In [8]: s
-   Out[8]:
+   In [11]: s = pd.Series([1, 1, np.nan, np.nan],
+      ...:                index=pd.date_range('2017', periods=4))
+      ...:  s
+   Out[11]:
    2017-01-01    1.0
    2017-01-02    1.0
    2017-01-03    NaN
    2017-01-04    NaN
    Freq: D, dtype: float64
 
-   In [9]: s.resample('2d').sum()
-   Out[9]:
+   In [12]: s.resample('2d').sum()
+   Out[12]:
    2017-01-01    2.0
    2017-01-03    NaN
    Freq: 2D, dtype: float64
@@ -161,16 +159,17 @@ To restore the 0.21 behavior of returning ``NaN``, use ``min_count>=1``.
    s.resample('2d').sum(min_count=1)
 
 In particular, upsampling and taking the sum or product is affected, as
-upsampling introduces all-*NA* original series was entirely valid.
+upsampling introduces missing values even if the original series was
+entirely valid.
 
 *pandas 0.21.x*
 
 .. code-block:: ipython
 
-   In [10]: idx = pd.DatetimeIndex(['2017-01-01', '2017-01-02'])
+   In [14]: idx = pd.DatetimeIndex(['2017-01-01', '2017-01-02'])
 
-   In [10]: pd.Series([1, 2], index=idx).resample('12H').sum()
-   Out[10]:
+   In [15]: pd.Series([1, 2], index=idx).resample('12H').sum()
+   Out[15]:
    2017-01-01 00:00:00    1.0
    2017-01-01 12:00:00    NaN
    2017-01-02 00:00:00    2.0
@@ -194,17 +193,18 @@ Rolling and Expanding
 
 Rolling and expanding already have a ``min_periods`` keyword that behaves
 similar to ``min_count``. The only case that changes is when doing a rolling
-or expanding sum on an all-*NA* series with ``min_periods=0``. Previously this
-returned ``NaN``, now it returns ``0``.
+or expanding sum with ``min_periods=0``. Previously this returned ``NaN``,
+when fewer than ``min_periods`` non-*NA* values were in the window. Now it
+returns ``0``.
 
 *pandas 0.21.1*
 
-.. ipython:: python
+.. code-block:: ipython
 
-   In [11]: s = pd.Series([np.nan, np.nan])
+   In [17]: s = pd.Series([np.nan, np.nan])
 
-   In [12]: s.rolling(2, min_periods=0).sum()
-   Out[12]:
+   In [18]: s.rolling(2, min_periods=0).sum()
+   Out[18]:
    0   NaN
    1   NaN
    dtype: float64
