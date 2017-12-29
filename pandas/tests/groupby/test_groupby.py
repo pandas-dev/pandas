@@ -3850,7 +3850,7 @@ class TestGroupBy(MixIn):
 
         # Assert the results here
         index = pd.Index(['A', 'B', 'C'], name='group')
-        expected = pd.Series([-79.5160891089, -78.4839108911, None],
+        expected = pd.Series([-79.5160891089, -78.4839108911, -80],
                              index=index)
 
         assert_series_equal(expected, result)

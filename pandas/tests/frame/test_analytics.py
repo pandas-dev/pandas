@@ -440,7 +440,8 @@ class TestDataFrameAnalytics(TestData):
                                Series({0: 1, 1: 3, 2: 2}))
 
     def test_sum(self):
-        self._check_stat_op('sum', np.sum, has_numeric_only=True)
+        self._check_stat_op('sum', np.sum, has_numeric_only=True,
+                            skipna_alternative=np.nansum)
 
         # mixed types (with upcasting happening)
         self._check_stat_op('sum', np.sum,
@@ -716,7 +717,8 @@ class TestDataFrameAnalytics(TestData):
 
     def _check_stat_op(self, name, alternative, frame=None, has_skipna=True,
                        has_numeric_only=False, check_dtype=True,
-                       check_dates=False, check_less_precise=False):
+                       check_dates=False, check_less_precise=False,
+                       skipna_alternative=None):
         if frame is None:
             frame = self.frame
             # set some NAs
@@ -737,15 +739,11 @@ class TestDataFrameAnalytics(TestData):
             assert len(result)
 
         if has_skipna:
-            def skipna_wrapper(x):
-                nona = x.dropna()
-                if len(nona) == 0:
-                    return np.nan
-                return alternative(nona)
-
             def wrapper(x):
                 return alternative(x.values)
 
+            skipna_wrapper = tm._make_skipna_wrapper(alternative,
+                                                     skipna_alternative)
             result0 = f(axis=0, skipna=False)
             result1 = f(axis=1, skipna=False)
             tm.assert_series_equal(result0, frame.apply(wrapper),
@@ -797,8 +795,11 @@ class TestDataFrameAnalytics(TestData):
             r0 = getattr(all_na, name)(axis=0)
             r1 = getattr(all_na, name)(axis=1)
             if name in ['sum', 'prod']:
-                assert np.isnan(r0).all()
-                assert np.isnan(r1).all()
+                unit = int(name == 'prod')
+                expected = pd.Series(unit, index=r0.index, dtype=r0.dtype)
+                tm.assert_series_equal(r0, expected)
+                expected = pd.Series(unit, index=r1.index, dtype=r1.dtype)
+                tm.assert_series_equal(r1, expected)
 
     def test_mode(self):
         df = pd.DataFrame({"A": [12, 12, 11, 12, 19, 11],
@@ -945,11 +946,16 @@ class TestDataFrameAnalytics(TestData):
         df = pd.DataFrame({"a": [unit, unit],
                            "b": [unit, np.nan],
                            "c": [np.nan, np.nan]})
+        # The default
+        result = getattr(df, method)
+        expected = pd.Series([unit, unit, unit], index=idx, dtype='float64')
 
+        # min_count=1
         result = getattr(df, method)(min_count=1)
         expected = pd.Series([unit, unit, np.nan], index=idx)
         tm.assert_series_equal(result, expected)
 
+        # min_count=0
         result = getattr(df, method)(min_count=0)
         expected = pd.Series([unit, unit, unit], index=idx, dtype='float64')
         tm.assert_series_equal(result, expected)
@@ -958,6 +964,7 @@ class TestDataFrameAnalytics(TestData):
         expected = pd.Series([unit, np.nan, np.nan], index=idx)
         tm.assert_series_equal(result, expected)
 
+        # min_count > 1
         df = pd.DataFrame({"A": [unit] * 10, "B": [unit] * 5 + [np.nan] * 5})
         result = getattr(df, method)(min_count=5)
         expected = pd.Series(result, index=['A', 'B'])
@@ -965,6 +972,29 @@ class TestDataFrameAnalytics(TestData):
 
         result = getattr(df, method)(min_count=6)
         expected = pd.Series(result, index=['A', 'B'])
+        tm.assert_series_equal(result, expected)
+
+    def test_sum_nanops_timedelta(self):
+        # prod isn't defined on timedeltas
+        idx = ['a', 'b', 'c']
+        df = pd.DataFrame({"a": [0, 0],
+                           "b": [0, np.nan],
+                           "c": [np.nan, np.nan]})
+
+        df2 = df.apply(pd.to_timedelta)
+
+        # 0 by default
+        result = df2.sum()
+        expected = pd.Series([0, 0, 0], dtype='m8[ns]', index=idx)
+        tm.assert_series_equal(result, expected)
+
+        # min_count=0
+        result = df2.sum(min_count=0)
+        tm.assert_series_equal(result, expected)
+
+        # min_count=1
+        result = df2.sum(min_count=1)
+        expected = pd.Series([0, 0, np.nan], dtype='m8[ns]', index=idx)
         tm.assert_series_equal(result, expected)
 
     def test_sum_object(self):

@@ -605,7 +605,7 @@ Resampler._deprecated_valids += dir(Resampler)
 # downsample methods
 for method in ['sum', 'prod']:
 
-    def f(self, _method=method, min_count=1, *args, **kwargs):
+    def f(self, _method=method, min_count=0, *args, **kwargs):
         nv.validate_resampler_func(_method, args, kwargs)
         return self._downsample(_method, min_count=min_count)
     f.__doc__ = getattr(GroupBy, method).__doc__
