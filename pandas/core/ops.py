@@ -356,6 +356,9 @@ class _TimeOp(_Op):
     """
     Wrapper around Series datetime/time/timedelta arithmetic operations.
     Generally, you should use classmethod ``_Op.get_op`` as an entry point.
+
+    This is only reached in cases where either `self.is_datetime_lhs`
+    or `self.is_timedelta_lhs`.
     """
     fill_value = iNaT
 
@@ -374,6 +377,7 @@ class _TimeOp(_Op):
                                 self.is_datetime64tz_lhs)
         self.is_integer_lhs = left.dtype.kind in ['i', 'u']
         self.is_floating_lhs = left.dtype.kind == 'f'
+        #assert left.dtype.kind not in ['i', 'u', 'f'], left
 
         # right
         self.is_offset_rhs = is_offsetlike(right)
@@ -446,7 +450,10 @@ class _TimeOp(_Op):
         if self.is_datetime_lhs:
             return self._validate_datetime(lvalues, rvalues, name)
         elif self.is_timedelta_lhs:
+            # The only other option is self.is_timedelta_lhs
             return self._validate_timedelta(name)
+        else:
+            assert False
 
     def _check_timedelta_with_numeric(self, name):
         if name not in ('__div__', '__truediv__', '__mul__', '__rmul__'):
@@ -540,6 +547,7 @@ class _TimeOp(_Op):
 
             # datetime subtraction means timedelta
             if self.is_datetime_lhs and self.is_datetime_rhs:
+                # assert self.name in ('__sub__', '__rsub__')
                 if self.name in ('__sub__', '__rsub__'):
                     self.dtype = 'timedelta64[ns]'
             elif self.is_datetime64tz_lhs:
@@ -685,7 +693,10 @@ def _arith_method_SERIES(op, name, str_rep, fill_zeros=None, default_axis=None,
         result = missing.fill_zeros(result, x, y, name, fill_zeros)
         return result
 
-    def safe_na_op(lvalues, rvalues):
+    def safe_na_op(lvalues, rvalues, na_op):
+        # We pass na_op explicitly here for namespace/closure reasons;
+        # the alternative is to make it an argument to `wrapper`, which
+        # would mess with the signatures of Series methods.
         try:
             with np.errstate(all='ignore'):
                 return na_op(lvalues, rvalues)
@@ -693,8 +704,7 @@ def _arith_method_SERIES(op, name, str_rep, fill_zeros=None, default_axis=None,
             if isinstance(rvalues, ABCSeries):
                 # TODO: This case is not hit in tests.  For it to be hit would
                 # require `right` to be an object such that right.values
-                # is a Series, which is likely an indication that a screwup
-                # has occurred somewhere.
+                # is a Series.  This should probably be removed.
                 if is_object_dtype(rvalues):
                     # if dtype is object, try elementwise op
                     return libalgos.arrmap_object(rvalues,
@@ -705,9 +715,7 @@ def _arith_method_SERIES(op, name, str_rep, fill_zeros=None, default_axis=None,
                                                   lambda x: op(x, rvalues))
             raise
 
-    def wrapper(left, right, na_op=na_op):
-        # TODO: `na_op` does not belong in Series.__{op}__ signature.  But this
-        # is needed here for closure/namespace purposes ATM.
+    def wrapper(left, right):#, na_op=na_op):
 
         if isinstance(right, ABCDataFrame):
             return NotImplemented
@@ -719,7 +727,7 @@ def _arith_method_SERIES(op, name, str_rep, fill_zeros=None, default_axis=None,
         lvalues, rvalues = converted.lvalues, converted.rvalues
         dtype = converted.dtype
         wrap_results = converted.wrap_results
-        na_op = converted.na_op
+        #na_op = converted.na_op
 
         if isinstance(rvalues, ABCSeries):
             res_name = _maybe_match_name(left, rvalues)
@@ -735,11 +743,13 @@ def _arith_method_SERIES(op, name, str_rep, fill_zeros=None, default_axis=None,
                     not isinstance(lvalues, pd.DatetimeIndex)):
                 lvalues = lvalues.values
 
-        result = wrap_results(safe_na_op(lvalues, rvalues))
+        result = wrap_results(safe_na_op(lvalues, rvalues, converted.na_op))
         return construct_result(left, result,
                                 index=left.index, name=res_name, dtype=dtype)
 
     wrapper.__name__ = name
+    if hasattr(operator, name) and callable(getattr(operator, name)):
+        wrapper.__doc__ = getattr(operator, name).__doc__
     return wrapper
 
 
