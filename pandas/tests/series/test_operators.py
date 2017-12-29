@@ -1014,6 +1014,21 @@ class TestTimedeltaSeriesArithmetic(object):
         timedelta(minutes=5, seconds=4),
         Timedelta('5m4s'),
         Timedelta('5m4s').to_timedelta64()])
+    def test_timedelta_rfloordiv_explicit(self, scalar_td):
+        # GH#18831
+        td1 = Series([timedelta(minutes=5, seconds=3)] * 3)
+        td1.iloc[2] = np.nan
+
+        # We can test __rfloordiv__ using this syntax,
+        # see `test_timedelta_rfloordiv`
+        result = td1.__rfloordiv__(scalar_td)
+        expected = Series([1, 1, np.nan])
+        tm.assert_series_equal(result, expected)
+
+    @pytest.mark.parametrize('scalar_td', [
+        timedelta(minutes=5, seconds=4),
+        Timedelta('5m4s'),
+        Timedelta('5m4s').to_timedelta64()])
     def test_timedelta_floordiv(self, scalar_td):
         # GH#18831
         td1 = Series([timedelta(minutes=5, seconds=3)] * 3)
@@ -1021,12 +1036,6 @@ class TestTimedeltaSeriesArithmetic(object):
 
         result = td1 // scalar_td
         expected = Series([0, 0, np.nan])
-        tm.assert_series_equal(result, expected)
-
-        # We can test __rfloordiv__ using this syntax,
-        # see `test_timedelta_rfloordiv`
-        result = td1.__rfloordiv__(scalar_td)
-        expected = Series([1, 1, np.nan])
         tm.assert_series_equal(result, expected)
 
 
