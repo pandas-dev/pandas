@@ -60,7 +60,7 @@ class TestTimedeltaIndexArithmetic(object):
         expected = TimedeltaIndex(np.arange(5, dtype='int64') ** 2)
         tm.assert_index_equal(result, expected)
 
-    # FIXME: These ops should return Series, NOT indexes
+    # TODO: These ops should return Series, NOT indexes
     def test_tdi_mul_intSeries(self):
         idx = TimedeltaIndex(np.arange(5, dtype='int64'))
         expected = TimedeltaIndex(np.arange(5, dtype='int64') ** 2)

@@ -666,56 +666,42 @@ class TestSeriesArithmetic(object):
             result = pd.Series(zero_array) / pd.Series(data)
             assert_series_equal(result, expected)
 
-    def test_series_radd_more(self):
-        data = [[1, 2, 3],
-                [1.1, 2.2, 3.3],
-                [pd.Timestamp('2011-01-01'), pd.Timestamp('2011-01-02'),
-                 pd.NaT],
-                ['x', 'y', 1]]
+    @pytest.mark.parametrize('dtype', [None, object])
+    @pytest.mark.parametrize('data', [
+        [1, 2, 3],
+        [1.1, 2.2, 3.3],
+        [pd.Timestamp('2011-01-01'), pd.Timestamp('2011-01-02'), pd.NaT],
+        ['x', 'y', 1]])
+    def test_series_radd_invalid(self, data, dtype):
+        s = Series(data, dtype=dtype)
+        with pytest.raises(TypeError):
+            'foo_' + s
 
-        for d in data:
-            for dtype in [None, object]:
-                s = Series(d, dtype=dtype)
-                with pytest.raises(TypeError):
-                    'foo_' + s
+    def test_series_radd_str(self):
+        ser = pd.Series(['x', np.nan, 'x'])
+        assert_series_equal('a' + ser, pd.Series(['ax', np.nan, 'ax']))
+        assert_series_equal(ser + 'a', pd.Series(['xa', np.nan, 'xa']))
 
-        for dtype in [None, object]:
-            res = 1 + pd.Series([1, 2, 3], dtype=dtype)
-            exp = pd.Series([2, 3, 4], dtype=dtype)
-            assert_series_equal(res, exp)
-            res = pd.Series([1, 2, 3], dtype=dtype) + 1
-            assert_series_equal(res, exp)
+    @pytest.mark.parametrize('dtype', [None, object])
+    def test_series_radd_more(self, dtype):
+        res = 1 + pd.Series([1, 2, 3], dtype=dtype)
+        exp = pd.Series([2, 3, 4], dtype=dtype)
+        assert_series_equal(res, exp)
+        res = pd.Series([1, 2, 3], dtype=dtype) + 1
+        assert_series_equal(res, exp)
 
-            res = np.nan + pd.Series([1, 2, 3], dtype=dtype)
-            exp = pd.Series([np.nan, np.nan, np.nan], dtype=dtype)
-            assert_series_equal(res, exp)
-            res = pd.Series([1, 2, 3], dtype=dtype) + np.nan
-            assert_series_equal(res, exp)
+        res = np.nan + pd.Series([1, 2, 3], dtype=dtype)
+        exp = pd.Series([np.nan, np.nan, np.nan], dtype=dtype)
+        assert_series_equal(res, exp)
+        res = pd.Series([1, 2, 3], dtype=dtype) + np.nan
+        assert_series_equal(res, exp)
 
-            s = pd.Series([pd.Timedelta('1 days'), pd.Timedelta('2 days'),
-                           pd.Timedelta('3 days')], dtype=dtype)
-            exp = pd.Series([pd.Timedelta('4 days'), pd.Timedelta('5 days'),
-                             pd.Timedelta('6 days')])
-            assert_series_equal(pd.Timedelta('3 days') + s, exp)
-            assert_series_equal(s + pd.Timedelta('3 days'), exp)
-
-        s = pd.Series(['x', np.nan, 'x'])
-        assert_series_equal('a' + s, pd.Series(['ax', np.nan, 'ax']))
-        assert_series_equal(s + 'a', pd.Series(['xa', np.nan, 'xa']))
-
-    def test_invalid_add_sub(self):
-        # invalid ops
-        obj_series = tm.makeObjectSeries()
-        obj_series.name = 'objects'
-
-        with pytest.raises(Exception):
-            obj_series + 1
-        with pytest.raises(Exception):
-            obj_series + np.array(1, dtype=np.int64)
-        with pytest.raises(Exception):
-            obj_series - 1
-        with pytest.raises(Exception):
-            obj_series - np.array(1, dtype=np.int64)
+        ser = pd.Series([pd.Timedelta('1 days'), pd.Timedelta('2 days'),
+                         pd.Timedelta('3 days')], dtype=dtype)
+        exp = pd.Series([pd.Timedelta('4 days'), pd.Timedelta('5 days'),
+                         pd.Timedelta('6 days')])
+        assert_series_equal(pd.Timedelta('3 days') + ser, exp)
+        assert_series_equal(ser + pd.Timedelta('3 days'), exp)
 
 
 class TestTimedeltaSeriesArithmetic(object):
@@ -1370,6 +1356,21 @@ class TestDatetimeSeriesArithmetic(object):
         assert_series_equal(single_nat_dtype_datetime +
                             nat_series_dtype_timedelta,
                             nat_series_dtype_timestamp)
+
+    def test_add_sub_integerlike_invalid(self):
+        # addition/subtraction of integers and zero-dim integer arrays with
+        # Series[datetime64] is invalid
+        obj_series = tm.makeObjectSeries()
+        obj_series.name = 'objects'
+
+        with pytest.raises(Exception):
+            obj_series + 1
+        with pytest.raises(Exception):
+            obj_series + np.array(1, dtype=np.int64)
+        with pytest.raises(Exception):
+            obj_series - 1
+        with pytest.raises(Exception):
+            obj_series - np.array(1, dtype=np.int64)
 
 
 class TestSeriesOperators(TestData):
