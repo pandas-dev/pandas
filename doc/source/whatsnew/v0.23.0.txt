@@ -303,6 +303,7 @@ Indexing
 - Bug in :func:`MultiIndex.remove_unused_levels` which would fill nan values (:issue:`18417`)
 - Bug in :func:`MultiIndex.from_tuples`` which would fail to take zipped tuples in python3 (:issue:`18434`)
 - Bug in :class:`Index` construction from list of mixed type tuples (:issue:`18505`)
+- Bug in :func:`Index.drop` when passing a list of both tuples and non-tuples (:issue:`18304`)
 - Bug in :class:`IntervalIndex` where empty and purely NA data was constructed inconsistently depending on the construction method (:issue:`18421`)
 - Bug in :func:`IntervalIndex.symmetric_difference` where the symmetric difference with a non-``IntervalIndex`` did not raise (:issue:`18475`)
 - Bug in indexing a datetimelike ``Index`` that raised ``ValueError`` instead of ``IndexError`` (:issue:`18386`).
