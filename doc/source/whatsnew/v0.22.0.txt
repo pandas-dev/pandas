@@ -215,3 +215,6 @@ returns ``0``.
 
    s = pd.Series([np.nan, np.nan])
    s.rolling(2, min_periods=0).sum()
+
+The default behavior of ``min_periods=None``, implying that ``min_periods``
+equals the window size, is unchanged.
