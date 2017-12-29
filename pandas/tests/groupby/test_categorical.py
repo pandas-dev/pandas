@@ -37,7 +37,7 @@ class TestGroupByCategorical(MixIn):
         # single grouper
         gb = df.groupby("A")
         exp_idx = CategoricalIndex(['a', 'b', 'z'], name='A', ordered=True)
-        expected = DataFrame({'values': Series([3, 7, np.nan], index=exp_idx)})
+        expected = DataFrame({'values': Series([3, 7, 0], index=exp_idx)})
         result = gb.sum()
         tm.assert_frame_equal(result, expected)
 
@@ -388,14 +388,18 @@ class TestGroupByCategorical(MixIn):
                              columns=['cat', 'A', 'B'])
         tm.assert_frame_equal(result, expected)
 
-        # another not in-axis grouper (conflicting names in index)
-        s = Series(['a', 'b', 'b'], name='cat')
+        # another not in-axis grouper
+        s = Series(['a', 'b', 'b'], name='cat2')
         result = df.groupby(['cat', s], as_index=False).sum()
         expected = DataFrame({'cat': Categorical([1, 1, 2, 2, 3, 3]),
                               'A': [10.0, nan, nan, 22.0, nan, nan],
                               'B': [101.0, nan, nan, 205.0, nan, nan]},
                              columns=['cat', 'A', 'B'])
         tm.assert_frame_equal(result, expected)
+
+        # GH18872: conflicting names in desired index
+        pytest.raises(ValueError, lambda: df.groupby(['cat',
+                                                      s.rename('cat')]).sum())
 
         # is original index dropped?
         expected = DataFrame({'cat': Categorical([1, 1, 2, 2, 3, 3]),
@@ -670,9 +674,9 @@ class TestGroupByCategorical(MixIn):
                            'B': [1, 2, 1]})
         expected_idx = pd.CategoricalIndex(['a', 'b', 'c'], name='A')
 
-        # NA by default
+        # 0 by default
         result = df.groupby("A").B.sum()
-        expected = pd.Series([3, 1, np.nan], expected_idx, name='B')
+        expected = pd.Series([3, 1, 0], expected_idx, name='B')
         tm.assert_series_equal(result, expected)
 
         # min_count=0
@@ -685,6 +689,11 @@ class TestGroupByCategorical(MixIn):
         expected = pd.Series([3, 1, np.nan], expected_idx, name='B')
         tm.assert_series_equal(result, expected)
 
+        # min_count>1
+        result = df.groupby("A").B.sum(min_count=2)
+        expected = pd.Series([3, np.nan, np.nan], expected_idx, name='B')
+        tm.assert_series_equal(result, expected)
+
     def test_empty_prod(self):
         # https://github.com/pandas-dev/pandas/issues/18678
         df = pd.DataFrame({"A": pd.Categorical(['a', 'a', 'b'],
@@ -693,9 +702,9 @@ class TestGroupByCategorical(MixIn):
 
         expected_idx = pd.CategoricalIndex(['a', 'b', 'c'], name='A')
 
-        # NA by default
+        # 1 by default
         result = df.groupby("A").B.prod()
-        expected = pd.Series([2, 1, np.nan], expected_idx, name='B')
+        expected = pd.Series([2, 1, 1], expected_idx, name='B')
         tm.assert_series_equal(result, expected)
 
         # min_count=0
