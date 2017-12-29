@@ -3390,9 +3390,9 @@ class TestTimeGrouper(object):
     def test_resample_entirly_nat_window(self, method, unit):
         s = pd.Series([0] * 2 + [np.nan] * 2,
                       index=pd.date_range('2017', periods=4))
-        # nan by default
+        # 0 / 1 by default
         result = methodcaller(method)(s.resample("2d"))
-        expected = pd.Series([0.0, np.nan],
+        expected = pd.Series([0.0, unit],
                              index=pd.to_datetime(['2017-01-01',
                                                    '2017-01-03']))
         tm.assert_series_equal(result, expected)
@@ -3411,8 +3411,17 @@ class TestTimeGrouper(object):
                                                    '2017-01-03']))
         tm.assert_series_equal(result, expected)
 
-    def test_aggregate_with_nat(self):
+    @pytest.mark.parametrize('func, fill_value', [
+        ('min', np.nan),
+        ('max', np.nan),
+        ('sum', 0),
+        ('prod', 1),
+        ('count', 0),
+    ])
+    def test_aggregate_with_nat(self, func, fill_value):
         # check TimeGrouper's aggregation is identical as normal groupby
+        # if NaT is included, 'var', 'std', 'mean', 'first','last'
+        # and 'nth' doesn't work yet
 
         n = 20
         data = np.random.randn(n, 4).astype('int64')
@@ -3426,42 +3435,42 @@ class TestTimeGrouper(object):
         normal_grouped = normal_df.groupby('key')
         dt_grouped = dt_df.groupby(TimeGrouper(key='key', freq='D'))
 
-        for func in ['min', 'max', 'sum', 'prod']:
-            normal_result = getattr(normal_grouped, func)()
-            dt_result = getattr(dt_grouped, func)()
-            pad = DataFrame([[np.nan, np.nan, np.nan, np.nan]], index=[3],
-                            columns=['A', 'B', 'C', 'D'])
-            expected = normal_result.append(pad)
-            expected = expected.sort_index()
-            expected.index = date_range(start='2013-01-01', freq='D',
-                                        periods=5, name='key')
-            assert_frame_equal(expected, dt_result)
+        normal_result = getattr(normal_grouped, func)()
+        dt_result = getattr(dt_grouped, func)()
 
-        for func in ['count']:
-            normal_result = getattr(normal_grouped, func)()
-            pad = DataFrame([[0, 0, 0, 0]], index=[3],
-                            columns=['A', 'B', 'C', 'D'])
-            expected = normal_result.append(pad)
-            expected = expected.sort_index()
-            expected.index = date_range(start='2013-01-01', freq='D',
-                                        periods=5, name='key')
-            dt_result = getattr(dt_grouped, func)()
-            assert_frame_equal(expected, dt_result)
+        pad = DataFrame([[fill_value] * 4], index=[3],
+                        columns=['A', 'B', 'C', 'D'])
+        expected = normal_result.append(pad)
+        expected = expected.sort_index()
+        expected.index = date_range(start='2013-01-01', freq='D',
+                                    periods=5, name='key')
+        assert_frame_equal(expected, dt_result)
+        assert dt_result.index.name == 'key'
 
-        for func in ['size']:
-            normal_result = getattr(normal_grouped, func)()
-            pad = Series([0], index=[3])
-            expected = normal_result.append(pad)
-            expected = expected.sort_index()
-            expected.index = date_range(start='2013-01-01', freq='D',
-                                        periods=5, name='key')
-            dt_result = getattr(dt_grouped, func)()
-            assert_series_equal(expected, dt_result)
-            # GH 9925
-            assert dt_result.index.name == 'key'
+    def test_aggregate_with_nat_size(self):
+        # GH 9925
+        n = 20
+        data = np.random.randn(n, 4).astype('int64')
+        normal_df = DataFrame(data, columns=['A', 'B', 'C', 'D'])
+        normal_df['key'] = [1, 2, np.nan, 4, 5] * 4
 
-            # if NaT is included, 'var', 'std', 'mean', 'first','last'
-            # and 'nth' doesn't work yet
+        dt_df = DataFrame(data, columns=['A', 'B', 'C', 'D'])
+        dt_df['key'] = [datetime(2013, 1, 1), datetime(2013, 1, 2), pd.NaT,
+                        datetime(2013, 1, 4), datetime(2013, 1, 5)] * 4
+
+        normal_grouped = normal_df.groupby('key')
+        dt_grouped = dt_df.groupby(TimeGrouper(key='key', freq='D'))
+
+        normal_result = normal_grouped.size()
+        dt_result = dt_grouped.size()
+
+        pad = Series([0], index=[3])
+        expected = normal_result.append(pad)
+        expected = expected.sort_index()
+        expected.index = date_range(start='2013-01-01', freq='D',
+                                    periods=5, name='key')
+        assert_series_equal(expected, dt_result)
+        assert dt_result.index.name == 'key'
 
     def test_repr(self):
         # GH18203
@@ -3482,9 +3491,9 @@ class TestTimeGrouper(object):
                                 '2017-01-01T00:30:00',
                                 '2017-01-01T01:00:00'])
 
-        # NaN by default
+        # 0 / 1 by default
         result = methodcaller(method)(resampled)
-        expected = pd.Series([1, np.nan, 1], index=index)
+        expected = pd.Series([1, unit, 1], index=index)
         tm.assert_series_equal(result, expected)
 
         # min_count=0
@@ -3495,4 +3504,9 @@ class TestTimeGrouper(object):
         # min_count=1
         result = methodcaller(method, min_count=1)(resampled)
         expected = pd.Series([1, np.nan, 1], index=index)
+        tm.assert_series_equal(result, expected)
+
+        # min_count>1
+        result = methodcaller(method, min_count=2)(resampled)
+        expected = pd.Series([np.nan, np.nan, np.nan], index=index)
         tm.assert_series_equal(result, expected)

@@ -37,7 +37,7 @@ def group_add_{{name}}(ndarray[{{dest_type2}}, ndim=2] out,
                        ndarray[int64_t] counts,
                        ndarray[{{c_type}}, ndim=2] values,
                        ndarray[int64_t] labels,
-                       Py_ssize_t min_count=1):
+                       Py_ssize_t min_count=0):
     """
     Only aggregates on axis=0
     """
@@ -101,7 +101,7 @@ def group_prod_{{name}}(ndarray[{{dest_type2}}, ndim=2] out,
                         ndarray[int64_t] counts,
                         ndarray[{{c_type}}, ndim=2] values,
                         ndarray[int64_t] labels,
-                        Py_ssize_t min_count=1):
+                        Py_ssize_t min_count=0):
     """
     Only aggregates on axis=0
     """

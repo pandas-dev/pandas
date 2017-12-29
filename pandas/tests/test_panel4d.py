@@ -8,7 +8,6 @@ import numpy as np
 
 from pandas import Series, Index, isna, notna
 from pandas.core.dtypes.common import is_float_dtype
-from pandas.core.dtypes.missing import remove_na_arraylike
 from pandas.core.panel import Panel
 from pandas.core.panel4d import Panel4D
 from pandas.tseries.offsets import BDay
@@ -38,13 +37,14 @@ class SafeForLongAndSparse(object):
         self._check_stat_op('count', f, obj=self.panel4d, has_skipna=False)
 
     def test_sum(self):
-        self._check_stat_op('sum', np.sum)
+        self._check_stat_op('sum', np.sum, skipna_alternative=np.nansum)
 
     def test_mean(self):
         self._check_stat_op('mean', np.mean)
 
+    @td.skip_if_no("numpy", min_version="1.10.0")
     def test_prod(self):
-        self._check_stat_op('prod', np.prod)
+        self._check_stat_op('prod', np.prod, skipna_alternative=np.nanprod)
 
     def test_median(self):
         def wrapper(x):
@@ -105,7 +105,8 @@ class SafeForLongAndSparse(object):
 
     #     self._check_stat_op('skew', alt)
 
-    def _check_stat_op(self, name, alternative, obj=None, has_skipna=True):
+    def _check_stat_op(self, name, alternative, obj=None, has_skipna=True,
+                       skipna_alternative=None):
         if obj is None:
             obj = self.panel4d
 
@@ -116,11 +117,9 @@ class SafeForLongAndSparse(object):
         f = getattr(obj, name)
 
         if has_skipna:
-            def skipna_wrapper(x):
-                nona = remove_na_arraylike(x)
-                if len(nona) == 0:
-                    return np.nan
-                return alternative(nona)
+
+            skipna_wrapper = tm._make_skipna_wrapper(alternative,
+                                                     skipna_alternative)
 
             def wrapper(x):
                 return alternative(np.asarray(x))

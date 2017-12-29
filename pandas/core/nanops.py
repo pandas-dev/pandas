@@ -109,6 +109,11 @@ class bottleneck_switch(object):
             try:
                 if values.size == 0 and kwds.get('min_count') is None:
                     # We are empty, returning NA for our type
+                    # Only applies for the default `min_count` of None
+                    # since that affects how empty arrays are handled.
+                    # TODO(GH-18976) update all the nanops methods to
+                    # correctly handle empty inputs and remove this check.
+                    # It *may* just be `var`
                     return _na_for_min_count(values, axis)
 
                 if (_USE_BOTTLENECK and skipna and
@@ -281,6 +286,20 @@ def _wrap_results(result, dtype):
 
 
 def _na_for_min_count(values, axis):
+    """Return the missing value for `values`
+
+    Parameters
+    ----------
+    values : ndarray
+    axis : int or None
+        axis for the reduction
+
+    Returns
+    -------
+    result : scalar or ndarray
+        For 1-D values, returns a scalar of the correct missing type.
+        For 2-D values, returns a 1-D array where each element is missing.
+    """
     # we either return np.nan or pd.NaT
     if is_numeric_dtype(values):
         values = values.astype('float64')
@@ -308,7 +327,7 @@ def nanall(values, axis=None, skipna=True):
 
 @disallow('M8')
 @bottleneck_switch()
-def nansum(values, axis=None, skipna=True, min_count=1):
+def nansum(values, axis=None, skipna=True, min_count=0):
     values, mask, dtype, dtype_max = _get_values(values, skipna, 0)
     dtype_sum = dtype_max
     if is_float_dtype(dtype):
@@ -645,7 +664,7 @@ def nankurt(values, axis=None, skipna=True):
 
 
 @disallow('M8', 'm8')
-def nanprod(values, axis=None, skipna=True, min_count=1):
+def nanprod(values, axis=None, skipna=True, min_count=0):
     mask = isna(values)
     if skipna and not is_any_int_dtype(values):
         values = values.copy()
