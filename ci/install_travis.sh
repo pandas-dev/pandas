@@ -114,6 +114,12 @@ if [ -e ${REQ} ]; then
     time bash $REQ || exit 1
 fi
 
+# Pin NumPy
+echo ["pin NumPy"]
+NUMPY_VERSION="$(conda list numpy | grep '^n.*' | awk '{print $2}')"
+conda config --env --add pinned_packages numpy=" ${NUMPY_VERSION}"
+conda config --show pinned_packages
+
 time conda install -n pandas pytest>=3.1.0
 time pip install pytest-xdist moto
 
@@ -201,7 +207,7 @@ fi
 
 echo
 echo "[show pandas]"
-conda list pandas
+conda list -n pandas
 
 echo
 echo "[done]"
