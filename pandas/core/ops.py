@@ -757,7 +757,10 @@ def _arith_method_SERIES(op, name, str_rep, fill_zeros=None, default_axis=None,
             rvalues = getattr(rvalues, 'values', rvalues)
             # _Op aligns left and right
         else:
-            name = left.name
+            if isinstance(rvalues, pd.Index):
+                name = _maybe_match_name(left, rvalues)
+            else:
+                name = left.name
             if (hasattr(lvalues, 'values') and
                     not isinstance(lvalues, pd.DatetimeIndex)):
                 lvalues = lvalues.values

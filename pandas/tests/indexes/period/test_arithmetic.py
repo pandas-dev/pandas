@@ -12,6 +12,32 @@ import pandas.core.indexes.period as period
 
 
 class TestPeriodIndexArithmetic(object):
+    def test_pi_add_offset_array(self):
+        # GH#18849
+        pi = pd.PeriodIndex([pd.Period('2015Q1'), pd.Period('2016Q2')])
+        offs = np.array([pd.offsets.QuarterEnd(n=1, startingMonth=12),
+                         pd.offsets.QuarterEnd(n=-2, startingMonth=12)])
+        res = pi + offs
+        expected = pd.PeriodIndex([pd.Period('2015Q2'), pd.Period('2015Q4')])
+        tm.assert_index_equal(res, expected)
+
+        unanchored = np.array([pd.offsets.Hour(n=1),
+                               pd.offsets.Minute(n=-2)])
+        with pytest.raises(period.IncompatibleFrequency):
+            pi + unanchored
+        with pytest.raises(TypeError):
+            unanchored + pi
+
+    @pytest.mark.xfail(reason='GH#18824 radd doesnt implement this case')
+    def test_pi_radd_offset_array(self):
+        # GH#18849
+        pi = pd.PeriodIndex([pd.Period('2015Q1'), pd.Period('2016Q2')])
+        offs = np.array([pd.offsets.QuarterEnd(n=1, startingMonth=12),
+                         pd.offsets.QuarterEnd(n=-2, startingMonth=12)])
+        res = offs + pi
+        expected = pd.PeriodIndex([pd.Period('2015Q2'), pd.Period('2015Q4')])
+        tm.assert_index_equal(res, expected)
+
     def test_add_iadd(self):
         rng = pd.period_range('1/1/2000', freq='D', periods=5)
         other = pd.period_range('1/6/2000', freq='D', periods=5)
