@@ -758,7 +758,7 @@ class TestCategoricalSeries(object):
     '__add__', '__radd__',
     '__sub__', '__rsub__',
     '__mul__', '__rmul__',
-    #'__div__', '__rdiv__',
+    # '__div__', '__rdiv__',  # TODO: Is this different in py2 vs py3?
     '__truediv__', '__rtruediv__',
     '__floordiv__', '__rfloordiv__',
     '__mod__', '__rmod__', '__divmod__',
