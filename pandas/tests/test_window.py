@@ -17,6 +17,7 @@ import pandas.tseries.offsets as offsets
 from pandas.core.base import SpecificationError
 from pandas.errors import UnsupportedFunctionCall
 import pandas.util.testing as tm
+import pandas.util._test_decorators as td
 from pandas.compat import range, zip, PY3
 
 N, K = 100, 10
@@ -251,9 +252,8 @@ class TestApi(Base):
         expected = df.notna().astype(float)
         tm.assert_frame_equal(result, expected)
 
+    @td.skip_if_no_scipy
     def test_window_with_args(self):
-        tm._skip_if_no_scipy()
-
         # make sure that we are aggregating window functions correctly with arg
         r = Series(np.random.randn(100)).rolling(window=10, min_periods=1,
                                                  win_type='gaussian')
@@ -289,9 +289,9 @@ class TestWindow(Base):
     def setup_method(self, method):
         self._create_data()
 
+    @td.skip_if_no_scipy
     def test_constructor(self):
         # GH 12669
-        tm._skip_if_no_scipy()
 
         for o in [self.series, self.frame]:
             c = o.rolling
@@ -367,9 +367,9 @@ class TestRolling(Base):
                 with pytest.raises(ValueError):
                     c(window=2, min_periods=1, center=w)
 
+    @td.skip_if_no_scipy
     def test_constructor_with_win_type(self):
         # GH 13383
-        tm._skip_if_no_scipy()
         for o in [self.series, self.frame]:
             c = o.rolling
             c(0, win_type='boxcar')
@@ -438,6 +438,28 @@ class TestRolling(Base):
         expected = DataFrame(index=pd.DatetimeIndex([]))
         result = DataFrame(index=pd.DatetimeIndex([])).rolling(roller).sum()
         tm.assert_frame_equal(result, expected)
+
+    def test_missing_minp_zero(self):
+        # https://github.com/pandas-dev/pandas/pull/18921
+        # minp=0
+        x = pd.Series([np.nan])
+        result = x.rolling(1, min_periods=0).sum()
+        expected = pd.Series([0.0])
+        tm.assert_series_equal(result, expected)
+
+        # minp=1
+        result = x.rolling(1, min_periods=1).sum()
+        expected = pd.Series([np.nan])
+        tm.assert_series_equal(result, expected)
+
+    def test_missing_minp_zero_variable(self):
+        # https://github.com/pandas-dev/pandas/pull/18921
+        x = pd.Series([np.nan] * 4,
+                      index=pd.DatetimeIndex(['2017-01-01', '2017-01-04',
+                                              '2017-01-06', '2017-01-07']))
+        result = x.rolling(pd.Timedelta("2d"), min_periods=0).sum()
+        expected = pd.Series(0.0, index=x.index)
+        tm.assert_series_equal(result, expected)
 
     def test_multi_index_names(self):
 
@@ -511,6 +533,19 @@ class TestExpanding(Base):
         result = DataFrame(
             index=pd.DatetimeIndex([])).expanding(expander).sum()
         tm.assert_frame_equal(result, expected)
+
+    def test_missing_minp_zero(self):
+        # https://github.com/pandas-dev/pandas/pull/18921
+        # minp=0
+        x = pd.Series([np.nan])
+        result = x.expanding(min_periods=0).sum()
+        expected = pd.Series([0.0])
+        tm.assert_series_equal(result, expected)
+
+        # minp=1
+        result = x.expanding(min_periods=1).sum()
+        expected = pd.Series([np.nan])
+        tm.assert_series_equal(result, expected)
 
 
 class TestEWM(Base):
@@ -828,7 +863,8 @@ class TestMoments(Base):
              .rolling(window=3, center=True, axis=2).mean())
 
     def test_rolling_sum(self):
-        self._check_moment_func(mom.rolling_sum, np.sum, name='sum')
+        self._check_moment_func(mom.rolling_sum, np.nansum, name='sum',
+                                zero_min_periods_equal=False)
 
     def test_rolling_count(self):
         counter = lambda x: np.isfinite(x).astype(float).sum()
@@ -839,10 +875,9 @@ class TestMoments(Base):
     def test_rolling_mean(self):
         self._check_moment_func(mom.rolling_mean, np.mean, name='mean')
 
+    @td.skip_if_no_scipy
     def test_cmov_mean(self):
         # GH 8238
-        tm._skip_if_no_scipy()
-
         vals = np.array([6.95, 15.21, 4.72, 9.12, 13.81, 13.49, 16.68, 9.48,
                          10.63, 14.48])
         xp = np.array([np.nan, np.nan, 9.962, 11.27, 11.564, 12.516, 12.818,
@@ -856,10 +891,9 @@ class TestMoments(Base):
         rs = Series(vals).rolling(5, center=True).mean()
         tm.assert_series_equal(xp, rs)
 
+    @td.skip_if_no_scipy
     def test_cmov_window(self):
         # GH 8238
-        tm._skip_if_no_scipy()
-
         vals = np.array([6.95, 15.21, 4.72, 9.12, 13.81, 13.49, 16.68, 9.48,
                          10.63, 14.48])
         xp = np.array([np.nan, np.nan, 9.962, 11.27, 11.564, 12.516, 12.818,
@@ -873,10 +907,9 @@ class TestMoments(Base):
         rs = Series(vals).rolling(5, win_type='boxcar', center=True).mean()
         tm.assert_series_equal(xp, rs)
 
+    @td.skip_if_no_scipy
     def test_cmov_window_corner(self):
         # GH 8238
-        tm._skip_if_no_scipy()
-
         # all nan
         vals = np.empty(10, dtype=float)
         vals.fill(np.nan)
@@ -897,10 +930,9 @@ class TestMoments(Base):
             assert np.isnan(rs).all()
             assert len(rs) == 5
 
+    @td.skip_if_no_scipy
     def test_cmov_window_frame(self):
         # Gh 8238
-        tm._skip_if_no_scipy()
-
         vals = np.array([[12.18, 3.64], [10.18, 9.16], [13.24, 14.61],
                          [4.51, 8.11], [6.15, 11.44], [9.14, 6.21],
                          [11.31, 10.67], [2.94, 6.51], [9.42, 8.39], [12.44,
@@ -929,9 +961,8 @@ class TestMoments(Base):
         rs = DataFrame(vals).rolling(5, win_type='boxcar', center=True).sum()
         tm.assert_frame_equal(DataFrame(xp), rs)
 
+    @td.skip_if_no_scipy
     def test_cmov_window_na_min_periods(self):
-        tm._skip_if_no_scipy()
-
         # min_periods
         vals = Series(np.random.randn(10))
         vals[4] = np.nan
@@ -942,10 +973,9 @@ class TestMoments(Base):
                           center=True).mean()
         tm.assert_series_equal(xp, rs)
 
+    @td.skip_if_no_scipy
     def test_cmov_window_regular(self):
         # GH 8238
-        tm._skip_if_no_scipy()
-
         win_types = ['triang', 'blackman', 'hamming', 'bartlett', 'bohman',
                      'blackmanharris', 'nuttall', 'barthann']
 
@@ -975,10 +1005,9 @@ class TestMoments(Base):
             rs = Series(vals).rolling(5, win_type=wt, center=True).mean()
             tm.assert_series_equal(xp, rs)
 
+    @td.skip_if_no_scipy
     def test_cmov_window_regular_linear_range(self):
         # GH 8238
-        tm._skip_if_no_scipy()
-
         win_types = ['triang', 'blackman', 'hamming', 'bartlett', 'bohman',
                      'blackmanharris', 'nuttall', 'barthann']
 
@@ -992,10 +1021,9 @@ class TestMoments(Base):
             rs = Series(vals).rolling(5, win_type=wt, center=True).mean()
             tm.assert_series_equal(xp, rs)
 
+    @td.skip_if_no_scipy
     def test_cmov_window_regular_missing_data(self):
         # GH 8238
-        tm._skip_if_no_scipy()
-
         win_types = ['triang', 'blackman', 'hamming', 'bartlett', 'bohman',
                      'blackmanharris', 'nuttall', 'barthann']
 
@@ -1025,10 +1053,9 @@ class TestMoments(Base):
             rs = Series(vals).rolling(5, win_type=wt, min_periods=3).mean()
             tm.assert_series_equal(xp, rs)
 
+    @td.skip_if_no_scipy
     def test_cmov_window_special(self):
         # GH 8238
-        tm._skip_if_no_scipy()
-
         win_types = ['kaiser', 'gaussian', 'general_gaussian', 'slepian']
         kwds = [{'beta': 1.}, {'std': 1.}, {'power': 2.,
                                             'width': 2.}, {'width': 0.5}]
@@ -1052,10 +1079,9 @@ class TestMoments(Base):
             rs = Series(vals).rolling(5, win_type=wt, center=True).mean(**k)
             tm.assert_series_equal(xp, rs)
 
+    @td.skip_if_no_scipy
     def test_cmov_window_special_linear_range(self):
         # GH 8238
-        tm._skip_if_no_scipy()
-
         win_types = ['kaiser', 'gaussian', 'general_gaussian', 'slepian']
         kwds = [{'beta': 1.}, {'std': 1.}, {'power': 2.,
                                             'width': 2.}, {'width': 0.5}]
@@ -1259,19 +1285,15 @@ class TestMoments(Base):
         self._check_moment_func(mom.rolling_var, lambda x: np.var(x, ddof=0),
                                 name='var', ddof=0)
 
+    @td.skip_if_no_scipy
     def test_rolling_skew(self):
-        try:
-            from scipy.stats import skew
-        except ImportError:
-            pytest.skip('no scipy')
+        from scipy.stats import skew
         self._check_moment_func(mom.rolling_skew,
                                 lambda x: skew(x, bias=False), name='skew')
 
+    @td.skip_if_no_scipy
     def test_rolling_kurt(self):
-        try:
-            from scipy.stats import kurtosis
-        except ImportError:
-            pytest.skip('no scipy')
+        from scipy.stats import kurtosis
         self._check_moment_func(mom.rolling_kurt,
                                 lambda x: kurtosis(x, bias=False), name='kurt')
 
@@ -1312,14 +1334,18 @@ class TestMoments(Base):
     def _check_moment_func(self, f, static_comp, name=None, window=50,
                            has_min_periods=True, has_center=True,
                            has_time_rule=True, preserve_nan=True,
-                           fill_value=None, test_stable=False, **kwargs):
+                           fill_value=None, test_stable=False,
+                           zero_min_periods_equal=True,
+                           **kwargs):
 
         with warnings.catch_warnings(record=True):
             self._check_ndarray(f, static_comp, window=window,
                                 has_min_periods=has_min_periods,
                                 preserve_nan=preserve_nan,
                                 has_center=has_center, fill_value=fill_value,
-                                test_stable=test_stable, **kwargs)
+                                test_stable=test_stable,
+                                zero_min_periods_equal=zero_min_periods_equal,
+                                **kwargs)
 
         with warnings.catch_warnings(record=True):
             self._check_structures(f, static_comp,
@@ -1338,7 +1364,8 @@ class TestMoments(Base):
 
     def _check_ndarray(self, f, static_comp, window=50, has_min_periods=True,
                        preserve_nan=True, has_center=True, fill_value=None,
-                       test_stable=False, test_window=True, **kwargs):
+                       test_stable=False, test_window=True,
+                       zero_min_periods_equal=True, **kwargs):
         def get_result(arr, window, min_periods=None, center=False):
             return f(arr, window, min_periods=min_periods, center=center, **
                      kwargs)
@@ -1371,10 +1398,11 @@ class TestMoments(Base):
             assert isna(result[3])
             assert notna(result[4])
 
-            # min_periods=0
-            result0 = get_result(arr, 20, min_periods=0)
-            result1 = get_result(arr, 20, min_periods=1)
-            tm.assert_almost_equal(result0, result1)
+            if zero_min_periods_equal:
+                # min_periods=0 may be equivalent to min_periods=1
+                result0 = get_result(arr, 20, min_periods=0)
+                result1 = get_result(arr, 20, min_periods=1)
+                tm.assert_almost_equal(result0, result1)
         else:
             result = get_result(arr, 50)
             tm.assert_almost_equal(result[-1], static_comp(arr[10:-10]))

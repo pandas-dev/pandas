@@ -809,26 +809,60 @@ class TestGroupByAggregate(object):
                 exc.args += ('operation: %s' % op, )
                 raise
 
-    def test_cython_agg_empty_buckets(self):
-        ops = [('mean', np.mean),
-               ('median', lambda x: np.median(x) if len(x) > 0 else np.nan),
-               ('var', lambda x: np.var(x, ddof=1)),
-               ('add', lambda x: np.sum(x) if len(x) > 0 else np.nan),
-               ('prod', np.prod),
-               ('min', np.min),
-               ('max', np.max), ]
-
+    @pytest.mark.parametrize('op, targop', [
+        ('mean', np.mean),
+        ('median', lambda x: np.median(x) if len(x) > 0 else np.nan),
+        ('var', lambda x: np.var(x, ddof=1)),
+        ('min', np.min),
+        ('max', np.max), ]
+    )
+    def test_cython_agg_empty_buckets(self, op, targop):
         df = pd.DataFrame([11, 12, 13])
         grps = range(0, 55, 5)
 
-        for op, targop in ops:
-            result = df.groupby(pd.cut(df[0], grps))._cython_agg_general(op)
-            expected = df.groupby(pd.cut(df[0], grps)).agg(lambda x: targop(x))
-            try:
-                tm.assert_frame_equal(result, expected)
-            except BaseException as exc:
-                exc.args += ('operation: %s' % op,)
-                raise
+        # calling _cython_agg_general directly, instead of via the user API
+        # which sets different values for min_count, so do that here.
+        result = df.groupby(pd.cut(df[0], grps))._cython_agg_general(op)
+        expected = df.groupby(pd.cut(df[0], grps)).agg(lambda x: targop(x))
+        try:
+            tm.assert_frame_equal(result, expected)
+        except BaseException as exc:
+            exc.args += ('operation: %s' % op,)
+            raise
+
+    def test_cython_agg_empty_buckets_nanops(self):
+        # GH-18869 can't call nanops on empty groups, so hardcode expected
+        # for these
+        df = pd.DataFrame([11, 12, 13], columns=['a'])
+        grps = range(0, 25, 5)
+        # add / sum
+        result = df.groupby(pd.cut(df['a'], grps))._cython_agg_general('add')
+        intervals = pd.interval_range(0, 20, freq=5)
+        expected = pd.DataFrame(
+            {"a": [0, 0, 36, 0]},
+            index=pd.CategoricalIndex(intervals, name='a', ordered=True))
+        tm.assert_frame_equal(result, expected)
+
+        # prod
+        result = df.groupby(pd.cut(df['a'], grps))._cython_agg_general('prod')
+        expected = pd.DataFrame(
+            {"a": [1, 1, 1716, 1]},
+            index=pd.CategoricalIndex(intervals, name='a', ordered=True))
+        tm.assert_frame_equal(result, expected)
+
+    @pytest.mark.xfail(reason="GH-18869: agg func not called on empty groups.")
+    def test_agg_category_nansum(self):
+        categories = ['a', 'b', 'c']
+        df = pd.DataFrame({"A": pd.Categorical(['a', 'a', 'b'],
+                                               categories=categories),
+                           'B': [1, 2, 3]})
+        result = df.groupby("A").B.agg(np.nansum)
+        expected = pd.Series([3, 3, 0],
+                             index=pd.CategoricalIndex(['a', 'b', 'c'],
+                                                       categories=categories,
+                                                       name='A'),
+                             name='B')
+        tm.assert_series_equal(result, expected)
 
     def test_agg_over_numpy_arrays(self):
         # GH 3788

@@ -2704,7 +2704,7 @@ class TestGroupBy(MixIn):
 
         # Assert the results here
         index = pd.Index(['A', 'B', 'C'], name='group')
-        expected = pd.Series([-79.5160891089, -78.4839108911, None],
+        expected = pd.Series([-79.5160891089, -78.4839108911, -80],
                              index=index)
 
         assert_series_equal(expected, result)
@@ -2726,6 +2726,37 @@ class TestGroupBy(MixIn):
         expected.index.name = 'A'
 
         assert_frame_equal(result, expected)
+
+    def test_tuple_warns(self):
+        # https://github.com/pandas-dev/pandas/issues/18314
+        df = pd.DataFrame({('a', 'b'): [1, 1, 2, 2], 'a': [1, 1, 1, 2],
+                           'b': [1, 2, 2, 2], 'c': [1, 1, 1, 1]})
+        with tm.assert_produces_warning(FutureWarning) as w:
+            df[['a', 'b', 'c']].groupby(('a', 'b')).c.mean()
+
+        assert "Interpreting tuple 'by' as a list" in str(w[0].message)
+
+        with tm.assert_produces_warning(None):
+            df.groupby(('a', 'b')).c.mean()
+
+    def test_tuple_warns_unhashable(self):
+        # https://github.com/pandas-dev/pandas/issues/18314
+        business_dates = date_range(start='4/1/2014', end='6/30/2014',
+                                    freq='B')
+        df = DataFrame(1, index=business_dates, columns=['a', 'b'])
+
+        with tm.assert_produces_warning(FutureWarning) as w:
+            df.groupby((df.index.year, df.index.month)).nth([0, 3, -1])
+
+        assert "Interpreting tuple 'by' as a list" in str(w[0].message)
+
+    def test_tuple_correct_keyerror(self):
+        # https://github.com/pandas-dev/pandas/issues/18798
+        df = pd.DataFrame(1, index=range(3),
+                          columns=pd.MultiIndex.from_product([[1, 2],
+                                                              [3, 4]]))
+        with tm.assert_raises_regex(KeyError, "(7, 8)"):
+            df.groupby((7, 8)).mean()
 
 
 def _check_groupby(df, result, keys, field, f=lambda x: x.sum()):

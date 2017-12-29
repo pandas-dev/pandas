@@ -1074,6 +1074,20 @@ DataFrame\\.index values are different \\(100\\.0 %\\)
                              columns=['a', 'b'])
         assert_frame_equal(result, expected)
 
+    def test_read_json_large_numbers(self):
+        # GH18842
+        json = '{"articleId": "1404366058080022500245"}'
+        json = StringIO(json)
+        result = read_json(json, typ="series")
+        expected = Series(1.404366e+21, index=['articleId'])
+        assert_series_equal(result, expected)
+
+        json = '{"0": {"articleId": "1404366058080022500245"}}'
+        json = StringIO(json)
+        result = read_json(json)
+        expected = DataFrame(1.404366e+21, index=['articleId'], columns=[0])
+        assert_frame_equal(result, expected)
+
     def test_to_jsonl(self):
         # GH9180
         df = DataFrame([[1, 2], [1, 2]], columns=['a', 'b'])

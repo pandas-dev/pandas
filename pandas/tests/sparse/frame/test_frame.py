@@ -7,6 +7,7 @@ from warnings import catch_warnings
 from numpy import nan
 import numpy as np
 import pandas as pd
+from distutils.version import LooseVersion
 
 from pandas import Series, DataFrame, bdate_range, Panel
 from pandas.core.dtypes.common import (
@@ -20,6 +21,7 @@ from pandas.util import testing as tm
 from pandas.compat import lrange
 from pandas import compat
 from pandas.core.sparse import frame as spf
+import pandas.util._test_decorators as td
 
 from pandas._libs.sparse import BlockIndex, IntIndex
 from pandas.core.sparse.api import SparseSeries, SparseDataFrame, SparseArray
@@ -1169,14 +1171,13 @@ class TestSparseDataFrame(SharedWithSparse):
         tm.assert_frame_equal(res.to_dense(), exp)
 
 
+@td.skip_if_no_scipy
 @pytest.mark.parametrize('index', [None, list('abc')])  # noqa: F811
 @pytest.mark.parametrize('columns', [None, list('def')])
 @pytest.mark.parametrize('fill_value', [None, 0, np.nan])
 @pytest.mark.parametrize('dtype', [bool, int, float, np.uint16])
 def test_from_to_scipy(spmatrix, index, columns, fill_value, dtype):
     # GH 4343
-    tm.skip_if_no_package('scipy')
-
     # Make one ndarray and from it one sparse matrix, both to be used for
     # constructing frames and comparing results
     arr = np.eye(3, dtype=dtype)
@@ -1225,13 +1226,17 @@ def test_from_to_scipy(spmatrix, index, columns, fill_value, dtype):
     assert sdf.to_coo().dtype == np.object_
 
 
+@td.skip_if_no_scipy
 @pytest.mark.parametrize('fill_value', [None, 0, np.nan])  # noqa: F811
 def test_from_to_scipy_object(spmatrix, fill_value):
     # GH 4343
     dtype = object
     columns = list('cd')
     index = list('ab')
-    tm.skip_if_no_package('scipy', max_version='0.19.0')
+    import scipy
+    if (spmatrix is scipy.sparse.dok_matrix and LooseVersion(
+            scipy.__version__) >= LooseVersion('0.19.0')):
+        pytest.skip("dok_matrix from object does not work in SciPy >= 0.19")
 
     # Make one ndarray and from it one sparse matrix, both to be used for
     # constructing frames and comparing results
@@ -1270,10 +1275,9 @@ def test_from_to_scipy_object(spmatrix, fill_value):
     assert sdf.to_coo().dtype == res_dtype
 
 
+@td.skip_if_no_scipy
 def test_from_scipy_correct_ordering(spmatrix):
     # GH 16179
-    tm.skip_if_no_package('scipy')
-
     arr = np.arange(1, 5).reshape(2, 2)
     try:
         spm = spmatrix(arr)
@@ -1290,10 +1294,9 @@ def test_from_scipy_correct_ordering(spmatrix):
     tm.assert_frame_equal(sdf.to_dense(), expected.to_dense())
 
 
+@td.skip_if_no_scipy
 def test_from_scipy_fillna(spmatrix):
     # GH 16112
-    tm.skip_if_no_package('scipy')
-
     arr = np.eye(3)
     arr[1:, 0] = np.nan
 
@@ -1398,108 +1401,6 @@ class TestSparseDataFrameAnalytics(object):
                  'std', 'min', 'max']
         for func in funcs:
             getattr(np, func)(self.frame)
-
-    @pytest.mark.parametrize('data', [
-        [[1, 1], [2, 2], [3, 3], [4, 4], [0, 0]],
-        [[1.0, 1.0], [2.0, 2.0], [3.0, 3.0], [4.0, 4.0], [nan, nan]],
-        [
-            [1.0, 1.0 + 1.0j],
-            [2.0 + 2.0j, 2.0],
-            [3.0, 3.0 + 3.0j],
-            [4.0 + 4.0j, 4.0],
-            [nan, nan]
-        ]
-    ])
-    @pytest.mark.xfail(reason='Wrong SparseBlock initialization '
-                              '(GH 17386)')
-    def test_where_with_numeric_data(self, data):
-        # GH 17386
-        lower_bound = 1.5
-
-        sparse = SparseDataFrame(data)
-        result = sparse.where(sparse > lower_bound)
-
-        dense = DataFrame(data)
-        dense_expected = dense.where(dense > lower_bound)
-        sparse_expected = SparseDataFrame(dense_expected)
-
-        tm.assert_frame_equal(result, dense_expected)
-        tm.assert_sp_frame_equal(result, sparse_expected)
-
-    @pytest.mark.parametrize('data', [
-        [[1, 1], [2, 2], [3, 3], [4, 4], [0, 0]],
-        [[1.0, 1.0], [2.0, 2.0], [3.0, 3.0], [4.0, 4.0], [nan, nan]],
-        [
-            [1.0, 1.0 + 1.0j],
-            [2.0 + 2.0j, 2.0],
-            [3.0, 3.0 + 3.0j],
-            [4.0 + 4.0j, 4.0],
-            [nan, nan]
-        ]
-    ])
-    @pytest.mark.parametrize('other', [
-        True,
-        -100,
-        0.1,
-        100.0 + 100.0j
-    ])
-    @pytest.mark.xfail(reason='Wrong SparseBlock initialization '
-                              '(GH 17386)')
-    def test_where_with_numeric_data_and_other(self, data, other):
-        # GH 17386
-        lower_bound = 1.5
-
-        sparse = SparseDataFrame(data)
-        result = sparse.where(sparse > lower_bound, other)
-
-        dense = DataFrame(data)
-        dense_expected = dense.where(dense > lower_bound, other)
-        sparse_expected = SparseDataFrame(dense_expected,
-                                          default_fill_value=other)
-
-        tm.assert_frame_equal(result, dense_expected)
-        tm.assert_sp_frame_equal(result, sparse_expected)
-
-    @pytest.mark.xfail(reason='Wrong SparseBlock initialization '
-                              '(GH 17386)')
-    def test_where_with_bool_data(self):
-        # GH 17386
-        data = [[False, False], [True, True], [False, False]]
-        cond = True
-
-        sparse = SparseDataFrame(data)
-        result = sparse.where(sparse == cond)
-
-        dense = DataFrame(data)
-        dense_expected = dense.where(dense == cond)
-        sparse_expected = SparseDataFrame(dense_expected)
-
-        tm.assert_frame_equal(result, dense_expected)
-        tm.assert_sp_frame_equal(result, sparse_expected)
-
-    @pytest.mark.parametrize('other', [
-        True,
-        0,
-        0.1,
-        100.0 + 100.0j
-    ])
-    @pytest.mark.xfail(reason='Wrong SparseBlock initialization '
-                              '(GH 17386)')
-    def test_where_with_bool_data_and_other(self, other):
-        # GH 17386
-        data = [[False, False], [True, True], [False, False]]
-        cond = True
-
-        sparse = SparseDataFrame(data)
-        result = sparse.where(sparse == cond, other)
-
-        dense = DataFrame(data)
-        dense_expected = dense.where(dense == cond, other)
-        sparse_expected = SparseDataFrame(dense_expected,
-                                          default_fill_value=other)
-
-        tm.assert_frame_equal(result, dense_expected)
-        tm.assert_sp_frame_equal(result, sparse_expected)
 
     @pytest.mark.xfail(reason='Wrong SparseBlock initialization '
                               '(GH 17386)')

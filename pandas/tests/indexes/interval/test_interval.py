@@ -7,6 +7,7 @@ from pandas import (
     Interval, IntervalIndex, Index, isna, notna, interval_range, Timestamp,
     Timedelta, compat, date_range, timedelta_range, DateOffset)
 from pandas.compat import lzip
+from pandas.core.common import _asarray_tuplesafe
 from pandas.tseries.offsets import Day
 from pandas._libs.interval import IntervalTree
 from pandas.tests.indexes.common import Base
@@ -282,6 +283,36 @@ class TestIntervalIndex(Base):
         tm.assert_numpy_array_equal(np.asarray(index), expected)
         tm.assert_numpy_array_equal(index.values, expected)
 
+    @pytest.mark.parametrize('breaks', [
+        [1, 1, 2, 5, 15, 53, 217, 1014, 5335, 31240, 201608],
+        [-np.inf, -100, -10, 0.5, 1, 1.5, 3.8, 101, 202, np.inf],
+        pd.to_datetime(['20170101', '20170202', '20170303', '20170404']),
+        pd.to_timedelta(['1ns', '2ms', '3s', '4M', '5H', '6D'])])
+    def test_length(self, closed, breaks):
+        # GH 18789
+        index = IntervalIndex.from_breaks(breaks, closed=closed)
+        result = index.length
+        expected = Index(iv.length for iv in index)
+        tm.assert_index_equal(result, expected)
+
+        # with NA
+        index = index.insert(1, np.nan)
+        result = index.length
+        expected = Index(iv.length if notna(iv) else iv for iv in index)
+        tm.assert_index_equal(result, expected)
+
+    @pytest.mark.parametrize('breaks', [
+        list('abcdefgh'),
+        lzip(range(10), range(1, 11)),
+        [['A', 'B'], ['a', 'b'], ['c', 'd'], ['e', 'f']],
+        [Interval(0, 1), Interval(1, 2), Interval(3, 4), Interval(4, 5)]])
+    def test_length_errors(self, closed, breaks):
+        # GH 18789
+        index = IntervalIndex.from_breaks(breaks)
+        msg = 'IntervalIndex contains Intervals without defined length'
+        with tm.assert_raises_regex(TypeError, msg):
+            index.length
+
     def test_with_nans(self, closed):
         index = self.create_index(closed=closed)
         assert not index.hasnans
@@ -359,14 +390,7 @@ class TestIntervalIndex(Base):
             assert not expected.equals(expected_other_closed)
 
     def test_astype(self, closed):
-
         idx = self.create_index(closed=closed)
-
-        for dtype in [np.int64, np.float64, 'datetime64[ns]',
-                      'datetime64[ns, US/Eastern]', 'timedelta64',
-                      'period[M]']:
-            pytest.raises(ValueError, idx.astype, dtype)
-
         result = idx.astype(object)
         tm.assert_index_equal(result, Index(idx.values, dtype='object'))
         assert not idx.equals(result)
@@ -375,6 +399,15 @@ class TestIntervalIndex(Base):
         result = idx.astype('interval')
         tm.assert_index_equal(result, idx)
         assert result.equals(idx)
+
+    @pytest.mark.parametrize('dtype', [
+        np.int64, np.float64, 'period[M]', 'timedelta64', 'datetime64[ns]',
+        'datetime64[ns, US/Eastern]'])
+    def test_astype_errors(self, closed, dtype):
+        idx = self.create_index(closed=closed)
+        msg = 'Cannot cast IntervalIndex to dtype'
+        with tm.assert_raises_regex(TypeError, msg):
+            idx.astype(dtype)
 
     @pytest.mark.parametrize('klass', [list, tuple, np.array, pd.Series])
     def test_where(self, closed, klass):
@@ -566,7 +599,7 @@ class TestIntervalIndex(Base):
         assert idx.is_monotonic_decreasing
         assert idx._is_strictly_monotonic_decreasing
 
-    @pytest.mark.xfail(reason='not a valid repr as we use interval notation')
+    @pytest.mark.skip(reason='not a valid repr as we use interval notation')
     def test_repr(self):
         i = IntervalIndex.from_tuples([(0, 1), (1, 2)], closed='right')
         expected = ("IntervalIndex(left=[0, 1],"
@@ -586,14 +619,15 @@ class TestIntervalIndex(Base):
                     "\n              dtype='interval[datetime64[ns]]')")
         assert repr(i) == expected
 
-    @pytest.mark.xfail(reason='not a valid repr as we use interval notation')
+    @pytest.mark.skip(reason='not a valid repr as we use interval notation')
     def test_repr_max_seq_item_setting(self):
         super(TestIntervalIndex, self).test_repr_max_seq_item_setting()
 
-    @pytest.mark.xfail(reason='not a valid repr as we use interval notation')
+    @pytest.mark.skip(reason='not a valid repr as we use interval notation')
     def test_repr_roundtrip(self):
         super(TestIntervalIndex, self).test_repr_roundtrip()
 
+    # TODO: check this behavior is consistent with test_interval_new.py
     def test_get_item(self, closed):
         i = IntervalIndex.from_arrays((0, 1, np.nan), (1, 2, np.nan),
                                       closed=closed)
@@ -614,6 +648,7 @@ class TestIntervalIndex(Base):
                                              closed=closed)
         tm.assert_index_equal(result, expected)
 
+    # To be removed, replaced by test_interval_new.py (see #16316, #16386)
     def test_get_loc_value(self):
         pytest.raises(KeyError, self.index.get_loc, 0)
         assert self.index.get_loc(0.5) == 0
@@ -636,6 +671,7 @@ class TestIntervalIndex(Base):
         idx = IntervalIndex.from_arrays([0, 2], [1, 3])
         pytest.raises(KeyError, idx.get_loc, 1.5)
 
+    # To be removed, replaced by test_interval_new.py (see #16316, #16386)
     def slice_locs_cases(self, breaks):
         # TODO: same tests for more index types
         index = IntervalIndex.from_breaks([0, 1, 2], closed='right')
@@ -664,12 +700,15 @@ class TestIntervalIndex(Base):
         assert index.slice_locs(1, 1) == (0, 1)
         assert index.slice_locs(1, 2) == (0, 2)
 
+    # To be removed, replaced by test_interval_new.py (see #16316, #16386)
     def test_slice_locs_int64(self):
         self.slice_locs_cases([0, 1, 2])
 
+    # To be removed, replaced by test_interval_new.py (see #16316, #16386)
     def test_slice_locs_float64(self):
         self.slice_locs_cases([0.0, 1.0, 2.0])
 
+    # To be removed, replaced by test_interval_new.py (see #16316, #16386)
     def slice_locs_decreasing_cases(self, tuples):
         index = IntervalIndex.from_tuples(tuples)
         assert index.slice_locs(1.5, 0.5) == (1, 3)
@@ -683,17 +722,21 @@ class TestIntervalIndex(Base):
         slice_locs = index.slice_locs(-1, -1)
         assert slice_locs[0] == slice_locs[1]
 
+    # To be removed, replaced by test_interval_new.py (see #16316, #16386)
     def test_slice_locs_decreasing_int64(self):
         self.slice_locs_cases([(2, 4), (1, 3), (0, 2)])
 
+    # To be removed, replaced by test_interval_new.py (see #16316, #16386)
     def test_slice_locs_decreasing_float64(self):
         self.slice_locs_cases([(2., 4.), (1., 3.), (0., 2.)])
 
+    # To be removed, replaced by test_interval_new.py (see #16316, #16386)
     def test_slice_locs_fails(self):
         index = IntervalIndex.from_tuples([(1, 2), (0, 1), (2, 3)])
         with pytest.raises(KeyError):
             index.slice_locs(1, 2)
 
+    # To be removed, replaced by test_interval_new.py (see #16316, #16386)
     def test_get_loc_interval(self):
         assert self.index.get_loc(Interval(0, 1)) == 0
         assert self.index.get_loc(Interval(0, 0.5)) == 0
@@ -702,6 +745,7 @@ class TestIntervalIndex(Base):
         pytest.raises(KeyError, self.index.get_loc,
                       Interval(-1, 0, 'left'))
 
+    # To be removed, replaced by test_interval_new.py (see #16316, #16386)
     def test_get_indexer(self):
         actual = self.index.get_indexer([-1, 0, 0.5, 1, 1.5, 2, 3])
         expected = np.array([-1, -1, 0, 0, 1, 1, -1], dtype='intp')
@@ -724,6 +768,7 @@ class TestIntervalIndex(Base):
         expected = np.array([-1, 1], dtype='intp')
         tm.assert_numpy_array_equal(actual, expected)
 
+    # To be removed, replaced by test_interval_new.py (see #16316, #16386)
     def test_get_indexer_subintervals(self):
 
         # TODO: is this right?
@@ -747,6 +792,7 @@ class TestIntervalIndex(Base):
         expected = np.array([0, 0, 0], dtype='intp')
         tm.assert_numpy_array_equal(actual, expected)
 
+    # To be removed, replaced by test_interval_new.py (see #16316, #16386)
     def test_contains(self):
         # Only endpoints are valid.
         i = IntervalIndex.from_arrays([0, 1], [1, 2])
@@ -763,6 +809,7 @@ class TestIntervalIndex(Base):
         assert Interval(3, 5) not in i
         assert Interval(-1, 0, closed='left') not in i
 
+    # To be removed, replaced by test_interval_new.py (see #16316, #16386)
     def testcontains(self):
         # can select values that are IN the range of a value
         i = IntervalIndex.from_arrays([0, 1], [1, 2])
@@ -794,6 +841,7 @@ class TestIntervalIndex(Base):
         result = ii.dropna()
         tm.assert_index_equal(result, expected)
 
+    # TODO: check this behavior is consistent with test_interval_new.py
     def test_non_contiguous(self, closed):
         index = IntervalIndex.from_tuples([(0, 1), (2, 3)], closed=closed)
         target = [0.5, 1.5, 2.5]
@@ -1071,6 +1119,45 @@ class TestIntervalIndex(Base):
         else:
             idx = IntervalIndex.from_breaks(range(4), closed=closed)
             assert idx.is_non_overlapping_monotonic is True
+
+    @pytest.mark.parametrize('tuples', [
+        lzip(range(10), range(1, 11)),
+        lzip(date_range('20170101', periods=10),
+             date_range('20170101', periods=10)),
+        lzip(timedelta_range('0 days', periods=10),
+             timedelta_range('1 day', periods=10))])
+    def test_to_tuples(self, tuples):
+        # GH 18756
+        idx = IntervalIndex.from_tuples(tuples)
+        result = idx.to_tuples()
+        expected = Index(_asarray_tuplesafe(tuples))
+        tm.assert_index_equal(result, expected)
+
+    @pytest.mark.parametrize('tuples', [
+        lzip(range(10), range(1, 11)) + [np.nan],
+        lzip(date_range('20170101', periods=10),
+             date_range('20170101', periods=10)) + [np.nan],
+        lzip(timedelta_range('0 days', periods=10),
+             timedelta_range('1 day', periods=10)) + [np.nan]])
+    @pytest.mark.parametrize('na_tuple', [True, False])
+    def test_to_tuples_na(self, tuples, na_tuple):
+        # GH 18756
+        idx = IntervalIndex.from_tuples(tuples)
+        result = idx.to_tuples(na_tuple=na_tuple)
+
+        # check the non-NA portion
+        expected_notna = Index(_asarray_tuplesafe(tuples[:-1]))
+        result_notna = result[:-1]
+        tm.assert_index_equal(result_notna, expected_notna)
+
+        # check the NA portion
+        result_na = result[-1]
+        if na_tuple:
+            assert isinstance(result_na, tuple)
+            assert len(result_na) == 2
+            assert all(isna(x) for x in result_na)
+        else:
+            assert isna(result_na)
 
 
 class TestIntervalRange(object):

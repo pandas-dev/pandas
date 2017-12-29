@@ -1091,7 +1091,7 @@ You can also select multiple rows from each group by specifying multiple nth val
    business_dates = pd.date_range(start='4/1/2014', end='6/30/2014', freq='B')
    df = pd.DataFrame(1, index=business_dates, columns=['a', 'b'])
    # get the first, 4th, and last date index for each month
-   df.groupby((df.index.year, df.index.month)).nth([0, 3, -1])
+   df.groupby([df.index.year, df.index.month]).nth([0, 3, -1])
 
 Enumerate group items
 ~~~~~~~~~~~~~~~~~~~~~

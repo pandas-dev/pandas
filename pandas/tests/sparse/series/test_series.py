@@ -13,6 +13,7 @@ from pandas import (Series, DataFrame, bdate_range,
                     isna, compat, _np_version_under1p12)
 from pandas.tseries.offsets import BDay
 import pandas.util.testing as tm
+import pandas.util._test_decorators as td
 from pandas.compat import range
 from pandas.core.reshape.util import cartesian_product
 
@@ -796,9 +797,9 @@ class TestSparseSeries(SharedWithSparse):
     def test_dropna(self):
         sp = SparseSeries([0, 0, 0, nan, nan, 5, 6], fill_value=0)
 
-        sp_valid = sp.valid()
+        sp_valid = sp.dropna()
 
-        expected = sp.to_dense().valid()
+        expected = sp.to_dense().dropna()
         expected = expected[expected != 0]
         exp_arr = pd.SparseArray(expected.values, fill_value=0, kind='block')
         tm.assert_sp_array_equal(sp_valid.values, exp_arr)
@@ -997,11 +998,11 @@ class TestSparseHandlingMultiIndexes(object):
                               check_names=True)
 
 
+@td.skip_if_no_scipy
 class TestSparseSeriesScipyInteraction(object):
     # Issue 8048: add SparseSeries coo methods
 
     def setup_method(self, method):
-        tm._skip_if_no_scipy()
         import scipy.sparse
         # SparseSeries inputs used in tests, the tests rely on the order
         self.sparse_series = []
@@ -1108,7 +1109,6 @@ class TestSparseSeriesScipyInteraction(object):
     def test_from_coo_long_repr(self):
         # GH 13114
         # test it doesn't raise error. Formatting is tested in test_format
-        tm._skip_if_no_scipy()
         import scipy.sparse
 
         sparse = SparseSeries.from_coo(scipy.sparse.rand(350, 18))
@@ -1418,108 +1418,6 @@ class TestSparseSeriesAnalytics(object):
         with tm.assert_produces_warning(FutureWarning) as m:
             self.bseries.reindex_axis([0, 1, 2])
         assert 'reindex' in str(m[0].message)
-
-    @pytest.mark.parametrize('data', [
-        [1, 1, 2, 2, 3, 3, 4, 4, 0, 0],
-        [1.0, 1.0, 2.0, 2.0, 3.0, 3.0, 4.0, 4.0, nan, nan],
-        [
-            1.0, 1.0 + 1.0j,
-            2.0 + 2.0j, 2.0,
-            3.0, 3.0 + 3.0j,
-            4.0 + 4.0j, 4.0,
-            nan, nan
-        ]
-    ])
-    @pytest.mark.xfail(reason='Wrong SparseBlock initialization '
-                              '(GH 17386)')
-    def test_where_with_numeric_data(self, data):
-        # GH 17386
-        lower_bound = 1.5
-
-        sparse = SparseSeries(data)
-        result = sparse.where(sparse > lower_bound)
-
-        dense = Series(data)
-        dense_expected = dense.where(dense > lower_bound)
-        sparse_expected = SparseSeries(dense_expected)
-
-        tm.assert_series_equal(result, dense_expected)
-        tm.assert_sp_series_equal(result, sparse_expected)
-
-    @pytest.mark.parametrize('data', [
-        [1, 1, 2, 2, 3, 3, 4, 4, 0, 0],
-        [1.0, 1.0, 2.0, 2.0, 3.0, 3.0, 4.0, 4.0, nan, nan],
-        [
-            1.0, 1.0 + 1.0j,
-            2.0 + 2.0j, 2.0,
-            3.0, 3.0 + 3.0j,
-            4.0 + 4.0j, 4.0,
-            nan, nan
-        ]
-    ])
-    @pytest.mark.parametrize('other', [
-        True,
-        -100,
-        0.1,
-        100.0 + 100.0j
-    ])
-    @pytest.mark.skip(reason='Wrong SparseBlock initialization '
-                             '(Segfault) '
-                             '(GH 17386)')
-    def test_where_with_numeric_data_and_other(self, data, other):
-        # GH 17386
-        lower_bound = 1.5
-
-        sparse = SparseSeries(data)
-        result = sparse.where(sparse > lower_bound, other)
-
-        dense = Series(data)
-        dense_expected = dense.where(dense > lower_bound, other)
-        sparse_expected = SparseSeries(dense_expected, fill_value=other)
-
-        tm.assert_series_equal(result, dense_expected)
-        tm.assert_sp_series_equal(result, sparse_expected)
-
-    @pytest.mark.xfail(reason='Wrong SparseBlock initialization '
-                              '(GH 17386)')
-    def test_where_with_bool_data(self):
-        # GH 17386
-        data = [False, False, True, True, False, False]
-        cond = True
-
-        sparse = SparseSeries(data)
-        result = sparse.where(sparse == cond)
-
-        dense = Series(data)
-        dense_expected = dense.where(dense == cond)
-        sparse_expected = SparseSeries(dense_expected)
-
-        tm.assert_series_equal(result, dense_expected)
-        tm.assert_sp_series_equal(result, sparse_expected)
-
-    @pytest.mark.parametrize('other', [
-        True,
-        0,
-        0.1,
-        100.0 + 100.0j
-    ])
-    @pytest.mark.skip(reason='Wrong SparseBlock initialization '
-                             '(Segfault) '
-                             '(GH 17386)')
-    def test_where_with_bool_data_and_other(self, other):
-        # GH 17386
-        data = [False, False, True, True, False, False]
-        cond = True
-
-        sparse = SparseSeries(data)
-        result = sparse.where(sparse == cond, other)
-
-        dense = Series(data)
-        dense_expected = dense.where(dense == cond, other)
-        sparse_expected = SparseSeries(dense_expected, fill_value=other)
-
-        tm.assert_series_equal(result, dense_expected)
-        tm.assert_sp_series_equal(result, sparse_expected)
 
 
 @pytest.mark.parametrize(

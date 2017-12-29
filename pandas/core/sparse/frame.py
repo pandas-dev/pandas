@@ -861,11 +861,17 @@ class SparseDataFrame(DataFrame):
                 new_series, index=self.index, columns=self.columns,
                 default_fill_value=self._default_fill_value,
                 default_kind=self._default_kind).__finalize__(self)
-        else:
-            if not broadcast:
-                return self._apply_standard(func, axis, reduce=reduce)
-            else:
-                return self._apply_broadcast(func, axis)
+
+        from pandas.core.apply import frame_apply
+        op = frame_apply(self,
+                         func=func,
+                         axis=axis,
+                         reduce=reduce)
+
+        if broadcast:
+            return op.apply_broadcast()
+
+        return op.apply_standard()
 
     def applymap(self, func):
         """

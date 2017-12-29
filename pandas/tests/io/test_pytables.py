@@ -718,8 +718,6 @@ class TestHDFStore(Base):
 
     @td.skip_if_windows_python_3
     def test_put_compression_blosc(self):
-        tm.skip_if_no_package('tables', min_version='2.2',
-                              app='blosc support')
         df = tm.makeTimeDataFrame()
 
         with ensure_clean_store(self.path) as store:
@@ -1908,12 +1906,6 @@ class TestHDFStore(Base):
             _maybe_remove(store, 'df')
             df = DataFrame(np.zeros((12, 2)), columns=[
                            'a', 'b'], index=make_index(['date', 'a', 't']))
-            pytest.raises(ValueError, store.append, 'df', df)
-
-            # dup within level
-            _maybe_remove(store, 'df')
-            df = DataFrame(np.zeros((12, 2)), columns=['a', 'b'],
-                           index=make_index(['date', 'date', 'date']))
             pytest.raises(ValueError, store.append, 'df', df)
 
             # fully names
@@ -5119,11 +5111,10 @@ class TestHDFStore(Base):
             store.close()
             pytest.raises(ValueError, read_hdf, path)
 
+    @td.skip_if_no('pathlib')
     def test_read_from_pathlib_path(self):
 
         # GH11773
-        tm._skip_if_no_pathlib()
-
         from pathlib import Path
 
         expected = DataFrame(np.random.rand(4, 5),
@@ -5137,11 +5128,10 @@ class TestHDFStore(Base):
 
         tm.assert_frame_equal(expected, actual)
 
+    @td.skip_if_no('py.path')
     def test_read_from_py_localpath(self):
 
         # GH11773
-        tm._skip_if_no_localpath()
-
         from py.path import local as LocalPath
 
         expected = DataFrame(np.random.rand(4, 5),

@@ -21,6 +21,7 @@ from pandas.core.dtypes.inference import _iterable_not_string
 from pandas.core.dtypes.missing import isna, isnull, notnull  # noqa
 from pandas.api import types
 from pandas.core.dtypes import common
+from pandas.core.dtypes.cast import construct_1d_object_array_from_listlike
 
 # compat
 from pandas.errors import (  # noqa
@@ -381,7 +382,7 @@ def _asarray_tuplesafe(values, dtype=None):
         return values.values
 
     if isinstance(values, list) and dtype in [np.object_, object]:
-        return lib.list_to_object_array(values)
+        return construct_1d_object_array_from_listlike(values)
 
     result = np.asarray(values, dtype=dtype)
 
@@ -389,22 +390,27 @@ def _asarray_tuplesafe(values, dtype=None):
         result = np.asarray(values, dtype=object)
 
     if result.ndim == 2:
-        if isinstance(values, list):
-            return lib.list_to_object_array(values)
-        else:
-            # Making a 1D array that safely contains tuples is a bit tricky
-            # in numpy, leading to the following
-            try:
-                result = np.empty(len(values), dtype=object)
-                result[:] = values
-            except ValueError:
-                # we have a list-of-list
-                result[:] = [tuple(x) for x in values]
+        # Avoid building an array of arrays:
+        # TODO: verify whether any path hits this except #18819 (invalid)
+        values = [tuple(x) for x in values]
+        result = construct_1d_object_array_from_listlike(values)
 
     return result
 
 
-def _index_labels_to_array(labels):
+def _index_labels_to_array(labels, dtype=None):
+    """
+    Transform label or iterable of labels to array, for use in Index.
+
+    Parameters
+    ----------
+    dtype : dtype
+        If specified, use as dtype of the resulting array, otherwise infer.
+
+    Returns
+    -------
+    array
+    """
     if isinstance(labels, (compat.string_types, tuple)):
         labels = [labels]
 
@@ -414,7 +420,7 @@ def _index_labels_to_array(labels):
         except TypeError:  # non-iterable
             labels = [labels]
 
-    labels = _asarray_tuplesafe(labels)
+    labels = _asarray_tuplesafe(labels, dtype=dtype)
 
     return labels
 

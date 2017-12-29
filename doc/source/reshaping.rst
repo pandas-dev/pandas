@@ -642,7 +642,7 @@ By default new columns will have ``np.uint8`` dtype. To choose another dtype use
 
     pd.get_dummies(df, dtype=bool).dtypes
 
-.. versionadded:: 0.22.0
+.. versionadded:: 0.23.0
 
 
 .. _reshaping.factorize:

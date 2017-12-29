@@ -51,7 +51,7 @@ from pandas._libs.tslibs import parsing
 # so we need to remove it if we see it.
 _BOM = u('\ufeff')
 
-_parser_params = """Also supports optionally iterating or breaking of the file
+_parser_params = r"""Also supports optionally iterating or breaking of the file
 into chunks.
 
 Additional help can be found in the `online docs for IO Tools
@@ -101,21 +101,14 @@ usecols : array-like or callable, default None
     be positional (i.e. integer indices into the document columns) or strings
     that correspond to column names provided either by the user in `names` or
     inferred from the document header row(s). For example, a valid array-like
-    `usecols` parameter would be [0, 1, 2] or ['foo', 'bar', 'baz'].
+    `usecols` parameter would be [0, 1, 2] or ['foo', 'bar', 'baz']. Element
+    order is ignored, so usecols=[1,0] is the same as [0,1].
 
     If callable, the callable function will be evaluated against the column
     names, returning names where the callable function evaluates to True. An
     example of a valid callable argument would be ``lambda x: x.upper() in
     ['AAA', 'BBB', 'DDD']``. Using this parameter results in much faster
     parsing time and lower memory usage.
-as_recarray : boolean, default False
-    .. deprecated:: 0.19.0
-       Please call `pd.read_csv(...).to_records()` instead.
-
-    Return a NumPy recarray instead of a DataFrame after parsing the data.
-    If set to True, this option takes precedence over the `squeeze` parameter.
-    In addition, as row indices are not available in such a format, the
-    `index_col` parameter will be ignored.
 squeeze : boolean, default False
     If the parsed data only contains one column then return a Series
 prefix : str, default None
@@ -281,24 +274,6 @@ low_memory : boolean, default True
     Note that the entire file is read into a single DataFrame regardless,
     use the `chunksize` or `iterator` parameter to return the data in chunks.
     (Only valid with C parser)
-buffer_lines : int, default None
-    .. deprecated:: 0.19.0
-       This argument is not respected by the parser
-compact_ints : boolean, default False
-    .. deprecated:: 0.19.0
-       Argument moved to ``pd.to_numeric``
-
-    If compact_ints is True, then for any column that is of integer dtype,
-    the parser will attempt to cast it as the smallest integer dtype possible,
-    either signed or unsigned depending on the specification from the
-    `use_unsigned` parameter.
-use_unsigned : boolean, default False
-    .. deprecated:: 0.19.0
-       Argument moved to ``pd.to_numeric``
-
-    If integer columns are being compacted (i.e. `compact_ints=True`), specify
-    whether the column should be compacted to the smallest signed or unsigned
-    integer dtype.
 memory_map : boolean, default False
     If a filepath is provided for `filepath_or_buffer`, map the file object
     directly onto memory and access the data directly from there. Using this
@@ -506,13 +481,9 @@ _parser_defaults = {
 
 _c_parser_defaults = {
     'delim_whitespace': False,
-    'as_recarray': False,
     'na_filter': True,
-    'compact_ints': False,
-    'use_unsigned': False,
     'low_memory': True,
     'memory_map': False,
-    'buffer_lines': None,
     'error_bad_lines': True,
     'warn_bad_lines': True,
     'tupleize_cols': False,
@@ -527,22 +498,13 @@ _fwf_defaults = {
 _c_unsupported = {'skipfooter'}
 _python_unsupported = {
     'low_memory',
-    'buffer_lines',
     'float_precision',
 }
 
 _deprecated_defaults = {
-    'as_recarray': None,
-    'buffer_lines': None,
-    'compact_ints': None,
-    'use_unsigned': None,
     'tupleize_cols': None
 }
 _deprecated_args = {
-    'as_recarray',
-    'buffer_lines',
-    'compact_ints',
-    'use_unsigned',
     'tupleize_cols',
 }
 
@@ -614,11 +576,7 @@ def _make_parser_function(name, sep=','):
                  # Internal
                  doublequote=True,
                  delim_whitespace=False,
-                 as_recarray=None,
-                 compact_ints=None,
-                 use_unsigned=None,
                  low_memory=_c_parser_defaults['low_memory'],
-                 buffer_lines=None,
                  memory_map=False,
                  float_precision=None):
 
@@ -682,14 +640,10 @@ def _make_parser_function(name, sep=','):
                     float_precision=float_precision,
 
                     na_filter=na_filter,
-                    compact_ints=compact_ints,
-                    use_unsigned=use_unsigned,
                     delim_whitespace=delim_whitespace,
-                    as_recarray=as_recarray,
                     warn_bad_lines=warn_bad_lines,
                     error_bad_lines=error_bad_lines,
                     low_memory=low_memory,
-                    buffer_lines=buffer_lines,
                     mangle_dupe_cols=mangle_dupe_cols,
                     tupleize_cols=tupleize_cols,
                     infer_datetime_format=infer_datetime_format,
@@ -888,19 +842,19 @@ class TextFileReader(BaseIterator):
                                   " sep=None with delim_whitespace=False"
                 engine = 'python'
         elif sep is not None and len(sep) > 1:
-            if engine == 'c' and sep == '\s+':
+            if engine == 'c' and sep == r'\s+':
                 result['delim_whitespace'] = True
                 del result['delimiter']
             elif engine not in ('python', 'python-fwf'):
                 # wait until regex engine integrated
                 fallback_reason = "the 'c' engine does not support"\
                                   " regex separators (separators > 1 char and"\
-                                  " different from '\s+' are"\
+                                  r" different from '\s+' are"\
                                   " interpreted as regex)"
                 engine = 'python'
         elif delim_whitespace:
             if 'python' in engine:
-                result['delimiter'] = '\s+'
+                result['delimiter'] = r'\s+'
         elif sep is not None:
             encodeable = True
             try:
@@ -971,9 +925,7 @@ class TextFileReader(BaseIterator):
                    "and will be removed in a future version."
                    .format(arg=arg))
 
-            if arg == 'as_recarray':
-                msg += ' Please call pd.to_csv(...).to_records() instead.'
-            elif arg == 'tupleize_cols':
+            if arg == 'tupleize_cols':
                 msg += (' Column tuples will then '
                         'always be converted to MultiIndex.')
 
@@ -1058,9 +1010,6 @@ class TextFileReader(BaseIterator):
                 raise ValueError('skipfooter not supported for iteration')
 
         ret = self._engine.read(nrows)
-
-        if self.options.get('as_recarray'):
-            return ret
 
         # May alter columns / col_dict
         index, columns, col_dict = self._create_index(ret)
@@ -1279,7 +1228,6 @@ class ParserBase(object):
 
         self.true_values = kwds.get('true_values')
         self.false_values = kwds.get('false_values')
-        self.as_recarray = kwds.get('as_recarray', False)
         self.tupleize_cols = kwds.get('tupleize_cols', False)
         self.mangle_dupe_cols = kwds.get('mangle_dupe_cols', True)
         self.infer_datetime_format = kwds.pop('infer_datetime_format', False)
@@ -1295,9 +1243,6 @@ class ParserBase(object):
         if isinstance(self.header, (list, tuple, np.ndarray)):
             if not all(map(is_integer, self.header)):
                 raise ValueError("header must be integer or list of integers")
-            if kwds.get('as_recarray'):
-                raise ValueError("cannot specify as_recarray when "
-                                 "specifying a multi-index header")
             if kwds.get('usecols'):
                 raise ValueError("cannot specify usecols when "
                                  "specifying a multi-index header")
@@ -1600,11 +1545,6 @@ class ParserBase(object):
                 if cast_type and not is_dtype_equal(cvals, cast_type):
                     cvals = self._cast_types(cvals, cast_type, c)
 
-            if issubclass(cvals.dtype.type, np.integer) and self.compact_ints:
-                cvals = lib.downcast_int64(
-                    cvals, parsers.na_values,
-                    self.use_unsigned)
-
             result[c] = cvals
             if verbose and na_count:
                 print('Filled %d NA values in column %s' % (na_count, str(c)))
@@ -1900,10 +1840,6 @@ class CParserWrapper(ParserBase):
         # Done with first read, next time raise StopIteration
         self._first_chunk = False
 
-        if self.as_recarray:
-            # what to do if there are leading columns?
-            return data
-
         names = self.names
 
         if self._reader.leading_cols:
@@ -2099,8 +2035,6 @@ class PythonParser(ParserBase):
         self.converters = kwds['converters']
         self.dtype = kwds['dtype']
 
-        self.compact_ints = kwds['compact_ints']
-        self.use_unsigned = kwds['use_unsigned']
         self.thousands = kwds['thousands']
         self.decimal = kwds['decimal']
 
@@ -2306,9 +2240,6 @@ class PythonParser(ParserBase):
         columns, data = self._do_date_conversions(columns, data)
 
         data = self._convert_data(data)
-        if self.as_recarray:
-            return self._to_recarray(data, columns)
-
         index, columns = self._make_index(data, alldata, columns, indexnamerow)
 
         return index, columns, data
@@ -2375,19 +2306,6 @@ class PythonParser(ParserBase):
         return self._convert_to_ndarrays(data, clean_na_values,
                                          clean_na_fvalues, self.verbose,
                                          clean_conv, clean_dtypes)
-
-    def _to_recarray(self, data, columns):
-        dtypes = []
-        o = compat.OrderedDict()
-
-        # use the columns to "order" the keys
-        # in the unordered 'data' dictionary
-        for col in columns:
-            dtypes.append((str(col), data[col].dtype))
-            o[col] = data[col]
-
-        tuples = lzip(*o.values())
-        return np.array(tuples, dtypes)
 
     def _infer_columns(self):
         names = self.names

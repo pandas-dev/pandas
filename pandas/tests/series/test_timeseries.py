@@ -42,7 +42,7 @@ class TestTimeSeries(TestData):
 
         tm.assert_index_equal(shifted.index, self.ts.index)
         tm.assert_index_equal(unshifted.index, self.ts.index)
-        tm.assert_numpy_array_equal(unshifted.valid().values,
+        tm.assert_numpy_array_equal(unshifted.dropna().values,
                                     self.ts.values[:-1])
 
         offset = BDay()
@@ -69,7 +69,7 @@ class TestTimeSeries(TestData):
         unshifted = shifted.shift(-1)
         tm.assert_index_equal(shifted.index, ps.index)
         tm.assert_index_equal(unshifted.index, ps.index)
-        tm.assert_numpy_array_equal(unshifted.valid().values, ps.values[:-1])
+        tm.assert_numpy_array_equal(unshifted.dropna().values, ps.values[:-1])
 
         shifted2 = ps.shift(1, 'B')
         shifted3 = ps.shift(1, BDay())

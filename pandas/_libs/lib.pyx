@@ -112,6 +112,7 @@ cpdef bint isscalar(object val):
     - Period
     - instances of decimal.Decimal
     - Interval
+    - DateOffset
 
     """
 
@@ -126,7 +127,8 @@ cpdef bint isscalar(object val):
             or PyTime_Check(val)
             or util.is_period_object(val)
             or is_decimal(val)
-            or is_interval(val))
+            or is_interval(val)
+            or is_offset(val))
 
 
 def item_from_zerodim(object val):
@@ -146,23 +148,6 @@ def item_from_zerodim(object val):
 
     """
     return util.unbox_if_zerodim(val)
-
-
-@cython.wraparound(False)
-@cython.boundscheck(False)
-cpdef ndarray[object] list_to_object_array(list obj):
-    """
-    Convert list to object ndarray. Seriously can\'t believe
-    I had to write this function.
-    """
-    cdef:
-        Py_ssize_t i, n = len(obj)
-        ndarray[object] arr = np.empty(n, dtype=object)
-
-    for i in range(n):
-        arr[i] = obj[i]
-
-    return arr
 
 
 @cython.wraparound(False)
