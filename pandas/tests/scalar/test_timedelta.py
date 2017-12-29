@@ -192,12 +192,12 @@ class TestTimedeltaArithmetic(object):
 
         res = (3 * td) // np.array([scalar.to_timedelta64()])
         expected = np.array([3])
-        np.testing.assert_array_equal(res, expected)
+        assert (res == expected).all()
 
         res = (10 * td) // np.array([scalar.to_timedelta64(),
                                      np.timedelta64('NaT')])
         expected = np.array([10, np.nan])
-        np.testing.assert_array_equal(res, expected)
+        assert (res == expected).all()
 
         ser = pd.Series([1], dtype=np.int64)
         res = td // ser
@@ -236,13 +236,13 @@ class TestTimedeltaArithmetic(object):
 
         res = td.__rfloordiv__(np.array([(3 * scalar).to_timedelta64()]))
         expected = np.array([3])
-        np.testing.assert_array_equal(res, expected)
+        assert (res == expected).all()
 
         arr = np.array([(10 * scalar).to_timedelta64(),
                         np.timedelta64('NaT')])
         res = td.__rfloordiv__(arr)
         expected = np.array([10, np.nan])
-        np.testing.assert_array_equal(res, expected)
+        assert (res == expected).all()
 
         ser = pd.Series([1], dtype=np.int64)
         res = td.__rfloordiv__(ser)
