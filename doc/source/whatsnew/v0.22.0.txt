@@ -17,7 +17,7 @@ summary is that
 
 * The sum of an all-*NA* or empty ``Series`` is now ``0``
 * The product of an all-*NA* or empty series is now ``1``
-* We've added a ``min_count`` parameter to ``.sum()`` and ``.prod()`` to control
+* We've added a ``min_count`` parameter to ``.sum()`` and ``.prod()`` controlling
   the minimum number of valid values for the result to be valid. If fewer than
   ``min_count`` valid values are present, the result is NA. The default is
   ``0``. To return ``NaN``, the 0.21 behavior, use ``min_count=1``.
@@ -54,19 +54,24 @@ The default sum for all-*NA* and empty series is now ``0``.
 The default behavior is the same as pandas 0.20.3 with bottleneck installed. It
 also matches the behavior of NumPy's ``np.nansum`` on empty and all-*NA* arrays.
 
-To have the sum of an empty series return ``NaN``, use the ``min_count``
-keyword. Thanks to the ``skipna`` parameter, the ``.sum`` on an all-*NA*
-series is conceptually the same as the ``.sum`` of an empty one with
-``skipna=True`` (the default). The ``min_count`` parameter refers to the
-minimum number of *non-null* values required for a non-NA sum or product.
+To have the sum of an empty series return ``NaN`` (the default behavior of
+pandas 0.20.3 without bottleneck, or pandas 0.21.x), use the ``min_count``
+keyword.
 
 .. ipython:: python
 
    pd.Series([]).sum(min_count=1)
-   pd.Series([np.nan]).sum(min_count=1)
 
-Returning ``NaN`` was the default behavior for pandas 0.20.3 without bottleneck
-installed.
+Thanks to the ``skipna`` parameter, the ``.sum`` on an all-*NA*
+series is conceptually the same as the ``.sum`` of an empty one with
+``skipna=True`` (the default).
+
+.. ipython:: python
+
+   pd.Series([np.nan]).sum(min_count=1)  # skipna=True by default
+
+The ``min_count`` parameter refers to the minimum number of *non-null* values
+required for a non-NA sum or product.
 
 :meth:`Series.prod` has been updated to behave the same as :meth:`Series.sum`,
 returning ``1`` instead.
@@ -83,8 +88,9 @@ Finally, a few less obvious places in pandas are affected by this change.
 Grouping by a Categorical
 ^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Grouping by a ``Categorical`` with some unobserved categories and computing the
-``sum`` / ``prod`` will behave differently.
+Grouping by a ``Categorical`` and summing now returns ``0`` instead of
+``NaN`` for categories with no observations. The product now returns ``1``
+instead of ``NaN``.
 
 *pandas 0.21.x*
 
@@ -105,7 +111,7 @@ Grouping by a ``Categorical`` with some unobserved categories and computing the
    grouper = pd.Categorical(['a', 'a'], categories=['a', 'b'])
    pd.Series([1, 2]).groupby(grouper).sum()
 
-To restore the 0.21 behavior of returning ``NaN`` of unobserved groups,
+To restore the 0.21 behavior of returning ``NaN`` for unobserved groups,
 use ``min_count>=1``.
 
 .. ipython:: python
@@ -115,7 +121,8 @@ use ``min_count>=1``.
 Resample
 ^^^^^^^^
 
-The sum and product of all-*NA* bins will change:
+The sum and product of all-*NA* bins has changed from ``NaN`` to ``0`` for
+sum and ``1`` for product.
 
 *pandas 0.21.x*
 
@@ -188,7 +195,7 @@ Rolling and Expanding
 Rolling and expanding already have a ``min_periods`` keyword that behaves
 similar to ``min_count``. The only case that changes is when doing a rolling
 or expanding sum on an all-*NA* series with ``min_periods=0``. Previously this
-returned ``NaN``, now it will return ``0``.
+returned ``NaN``, now it returns ``0``.
 
 *pandas 0.21.1*
 
