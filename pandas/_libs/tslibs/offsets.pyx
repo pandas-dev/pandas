@@ -523,11 +523,9 @@ def shift_quarters(int64_t[:] dtindex, int quarters,
                 n = quarters
 
                 months_since = (dts.month - q1start_month) % modby
-                compare_month = dts.month - months_since
-                compare_month = compare_month or 12
                 # compare_day is only relevant for comparison in the case
                 # where months_since == 0.
-                compare_day = get_firstbday(dts.year, compare_month)
+                compare_day = get_firstbday(dts.year, dts.month)
 
                 if n <= 0 and (months_since != 0 or
                                (months_since == 0 and dts.day > compare_day)):
@@ -556,11 +554,9 @@ def shift_quarters(int64_t[:] dtindex, int quarters,
                 n = quarters
 
                 months_since = (dts.month - q1start_month) % modby
-                compare_month = dts.month - months_since
-                compare_month = compare_month or 12
                 # compare_day is only relevant for comparison in the case
                 # where months_since == 0.
-                compare_day = get_lastbday(dts.year, compare_month)
+                compare_day = get_lastbday(dts.year, dts.month)
 
                 if n <= 0 and (months_since != 0 or
                                (months_since == 0 and dts.day > compare_day)):
@@ -587,15 +583,17 @@ def shift_quarters(int64_t[:] dtindex, int quarters,
 
 @cython.wraparound(False)
 @cython.boundscheck(False)
-def shift_months(int64_t[:] dtindex, int months, object day=None):
+def shift_months(int64_t[:] dtindex, int months, object day):
     """
     Given an int64-based datetime index, shift all elements
     specified number of months using DateOffset semantics
 
-    day: {None, 'start', 'end'}
+    day: {None, 'start', 'end', 'business_start', 'business_end'}
        * None: day of month
        * 'start' 1st day of month
        * 'end' last day of month
+       * 'business_start' first business day of month
+       * 'business_end' last business day of month
     """
     cdef:
         Py_ssize_t i
@@ -721,7 +719,7 @@ def shift_months(int64_t[:] dtindex, int months, object day=None):
     return np.asarray(out)
 
 
-cpdef datetime shift_month(datetime stamp, int months, object day_opt=None):
+cpdef datetime shift_month(datetime stamp, int months, object day_opt):
     """
     Given a datetime (or Timestamp) `stamp`, an integer `months` and an
     option `day_opt`, return a new datetimelike that many months later,
@@ -827,7 +825,8 @@ cpdef int get_day_of_month(datetime other, day_opt) except? -1:
         raise ValueError(day_opt)
 
 
-cpdef int roll_yearday(other, n, month, day_opt='start') except? -1:
+cpdef int roll_yearday(datetime other, int n, int month,
+                       object day_opt) except? -1:
     """
     Possibly increment or decrement the number of periods to shift
     based on rollforward/rollbackward conventions.
@@ -836,9 +835,12 @@ cpdef int roll_yearday(other, n, month, day_opt='start') except? -1:
     ----------
     other : datetime or Timestamp
     n : number of periods to increment, before adjusting for rolling
-    day_opt : 'start', 'end'
-        'start': returns 1
-        'end': returns last day  of the month
+    month : reference month giving the first month of the year
+    day_opt : 'start', 'end', 'business_start', 'business_end'
+        'start': compare with 1
+        'end': compare with last day of the month
+        'business_start': compare with first business day of the month
+        'business_end': compare with last business day of the month
 
     Returns
     -------
@@ -846,7 +848,7 @@ cpdef int roll_yearday(other, n, month, day_opt='start') except? -1:
 
     Notes
     -----
-    * Mirrors `roll_check` in tslib.shift_months
+    * Mirrors `roll_check` in shift_months
 
     Examples
     -------
@@ -888,7 +890,7 @@ cpdef int roll_yearday(other, n, month, day_opt='start') except? -1:
                                    other.day < get_day_of_month(other,
                                                                 day_opt)):
             n -= 1
-    elif n <= 0:
+    else:
         if other.month > month or (other.month == month and
                                    other.day > get_day_of_month(other,
                                                                 day_opt)):

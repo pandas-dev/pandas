@@ -22,7 +22,7 @@ import pandas._libs.tslibs.offsets as liboffsets
 from pandas._libs.tslibs.offsets import (
     ApplyTypeError,
     as_datetime, _is_normalized,
-    _get_calendar, _to_dt64, _validate_business_time,
+    _get_calendar, _to_dt64,
     _determine_offset,
     apply_index_wraps,
     roll_yearday,
@@ -254,7 +254,7 @@ class DateOffset(BaseOffset):
             months = ((self.kwds.get('years', 0) * 12 +
                        self.kwds.get('months', 0)) * self.n)
             if months:
-                shifted = liboffsets.shift_months(i.asi8, months)
+                shifted = liboffsets.shift_months(i.asi8, months, day=None)
                 i = i._shallow_copy(shifted)
 
             weeks = (self.kwds.get('weeks', 0)) * self.n
@@ -557,28 +557,31 @@ class BusinessDay(BusinessMixin, SingleConstructorOffset):
     def apply(self, other):
         if isinstance(other, datetime):
             n = self.n
+            wday = other.weekday()
 
-            if n == 0 and other.weekday() > 4:
-                n = 1
+            # avoid slowness below by operating on weeks first
+            weeks = n // 5
+            if n <= 0 and wday > 4:
+                # roll forward
+                n += 1
 
-            result = other
+            n -= 5 * weeks
 
-            # avoid slowness below
-            if abs(n) > 5:
-                k = n // 5
-                result = result + timedelta(7 * k)
-                if n < 0 and result.weekday() > 4:
-                    n += 1
-                n -= 5 * k
-                if n == 0 and result.weekday() > 4:
-                    n -= 1
+            # n is always >= 0 at this point
+            if n == 0 and wday > 4:
+                # roll back
+                days = 4 - wday
+            elif wday > 4:
+                # roll forward
+                days = (7 - wday) + (n - 1)
+            elif wday + n <= 4:
+                # shift by n days without leaving the current week
+                days = n
+            else:
+                # shift by n days plus 2 to get past the weekend
+                days = n + 2
 
-            while n != 0:
-                k = n // abs(n)
-                result = result + timedelta(k)
-                if result.weekday() < 5:
-                    n -= k
-
+            result = other + timedelta(days=7 * weeks + days)
             if self.offset:
                 result = result + self.offset
             return result
@@ -614,8 +617,8 @@ class BusinessHourMixin(BusinessMixin):
     def __init__(self, start='09:00', end='17:00', offset=timedelta(0)):
         # must be validated here to equality check
         kwds = {'offset': offset}
-        self.start = kwds['start'] = _validate_business_time(start)
-        self.end = kwds['end'] = _validate_business_time(end)
+        self.start = kwds['start'] = liboffsets._validate_business_time(start)
+        self.end = kwds['end'] = liboffsets._validate_business_time(end)
         self.kwds.update(kwds)
         self._offset = offset
 
@@ -1092,21 +1095,20 @@ class CustomBusinessMonthBegin(_CustomBusinessMonth):
     @apply_wraps
     def apply(self, other):
         n = self.n
-        dt_in = other
 
         # First move to month offset
-        cur_mbegin = self.m_offset.rollback(dt_in)
+        cur_mbegin = self.m_offset.rollback(other)
 
         # Find this custom month offset
         cur_cmbegin = self.cbday.rollforward(cur_mbegin)
 
         # handle zero case. arbitrarily rollforward
-        if n == 0 and dt_in != cur_cmbegin:
+        if n == 0 and other != cur_cmbegin:
             n += 1
 
-        if dt_in > cur_cmbegin and n <= -1:
+        if other > cur_cmbegin and n <= -1:
             n += 1
-        elif dt_in < cur_cmbegin and n >= 1:
+        elif other < cur_cmbegin and n >= 1:
             n -= 1
 
         new = cur_mbegin + n * self.m_offset
@@ -1239,7 +1241,7 @@ class SemiMonthEnd(SemiMonthOffset):
 
         months = n // 2
         day = 31 if n % 2 else self.day_of_month
-        return shift_month(other, months, day)
+        return shift_month(other, months, day_opt=day)
 
     def _get_roll(self, i, before_day_of_month, after_day_of_month):
         n = self.n
@@ -1290,7 +1292,7 @@ class SemiMonthBegin(SemiMonthOffset):
 
         months = n // 2 + n % 2
         day = 1 if n % 2 else self.day_of_month
-        return shift_month(other, months, day)
+        return shift_month(other, months, day_opt=day)
 
     def _get_roll(self, i, before_day_of_month, after_day_of_month):
         n = self.n
@@ -1564,7 +1566,8 @@ class QuarterOffset(DateOffset):
     _from_name_startingMonth = None
     _adjust_dst = True
     # TODO: Consider combining QuarterOffset and YearOffset __init__ at some
-    #       point
+    #       point.  Also apply_index, onOffset, rule_code if
+    #       startingMonth vs month attr names are resolved
 
     def __init__(self, n=1, normalize=False, startingMonth=None):
         self.n = self._validate_n(n)
@@ -1613,8 +1616,8 @@ class QuarterOffset(DateOffset):
     def onOffset(self, dt):
         if self.normalize and not _is_normalized(dt):
             return False
-        modMonth = (dt.month - self.startingMonth) % 3
-        return modMonth == 0 and dt.day == self._get_offset_day(dt)
+        mod_month = (dt.month - self.startingMonth) % 3
+        return mod_month == 0 and dt.day == self._get_offset_day(dt)
 
     @apply_index_wraps
     def apply_index(self, dtindex):
@@ -2142,6 +2145,7 @@ class Easter(DateOffset):
             n -= 1
         elif n < 0 and other > current_easter:
             n += 1
+        # TODO: Why does this handle the 0 case the opposite of others?
 
         # NOTE: easter returns a datetime.date so we have to convert to type of
         # other
