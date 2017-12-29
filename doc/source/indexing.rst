@@ -1127,7 +1127,7 @@ as condition and ``other`` argument.
 
 
 Mask
-~~~~~~~~~
+~~~~
 
 :meth:`~pandas.DataFrame.mask` is the inverse boolean operation of ``where``.
 
@@ -1139,7 +1139,7 @@ Mask
 .. _indexing.query:
 
 The :meth:`~pandas.DataFrame.query` Method
----------------------------------------------------------
+------------------------------------------
 
 :class:`~pandas.DataFrame` objects have a :meth:`~pandas.DataFrame.query`
 method that allows selection using an expression.
@@ -1667,8 +1667,8 @@ Set an index
 .. _indexing.set_index:
 
 DataFrame has a :meth:`~DataFrame.set_index` method which takes a column name 
-(for a regular ``Index``) or a list of column names (for a ``MultiIndex``), 
-to create a new, indexed DataFrame:
+(for a regular ``Index``) or a list of column names (for a ``MultiIndex``).
+To create a new, re-indexed DataFrame:
 
 .. ipython:: python
    :suppress:
@@ -1710,7 +1710,7 @@ Reset the index
 As a convenience, there is a new function on DataFrame called 
 :meth:`~DataFrame.reset_index` which transfers the index values into the 
 DataFrame's columns and sets a simple integer index. 
-This is the inverse operation to ``set_index``.
+This is the inverse operation of :meth:`~DataFrame.set_index`.
 
 .. ipython:: python
 
@@ -1730,11 +1730,6 @@ You can use the ``level`` keyword to remove only a portion of the index:
 
 ``reset_index`` takes an optional parameter ``drop`` which if true simply
 discards the index, instead of putting index values in the DataFrame's columns.
-
-.. note::
-
-   The ``reset_index`` method used to be called ``delevel``, which is now
-   deprecated.
 
 Adding an ad hoc index
 ~~~~~~~~~~~~~~~~~~~~~~
