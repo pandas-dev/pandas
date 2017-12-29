@@ -37,7 +37,7 @@ namespace:
 - :func:`~pandas.option_context` - execute a codeblock with a set of options
   that revert to prior settings after execution.
 
-**Note:** Developers can check out ``pandas/core/config.py`` for more info.
+**Note:** Developers can check out `pandas/core/config.py <https://github.com/pandas-dev/pandas/blob/master/pandas/core/config.py>`_ for more information.
 
 All of the functions above accept a regexp pattern (``re.search`` style) as an argument,
 and so passing in a substring will work - as long as it is unambiguous:
@@ -78,8 +78,9 @@ with no argument ``describe_option`` will print out the descriptions for all ava
 Getting and Setting Options
 ---------------------------
 
-As described above, ``get_option()`` and ``set_option()`` are available from the
-pandas namespace.  To change an option, call ``set_option('option regex', new_value)``.
+As described above, :func:`~pandas.get_option` and :func:`~pandas.set_option` 
+are available from the pandas namespace.  To change an option, call 
+``set_option('option regex', new_value)``.
 
 .. ipython:: python
 

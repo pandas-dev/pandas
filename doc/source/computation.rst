@@ -114,11 +114,11 @@ provided:
 .. \rho = \cov(x, y) / \sigma_x \sigma_y
 
 All of these are currently computed using pairwise complete observations.
-Wikipedia has articles covering the 
-`pearson <https://en.wikipedia.org/wiki/Pearson_correlation_coefficient>`_, 
-`Kendall Tau <https://en.wikipedia.org/wiki/Kendall_rank_correlation_coefficient>`_ and
-`Spearman <https://en.wikipedia.org/wiki/Spearman%27s_rank_correlation_coefficient>`_ 
-coefficients.
+Wikipedia has articles covering the above correlation coefficients:
+
+* `Pearson correlation coefficient <https://en.wikipedia.org/wiki/Pearson_correlation_coefficient>`_
+* `Kendall rank correlation coefficient <https://en.wikipedia.org/wiki/Kendall_rank_correlation_coefficient>`_
+* `Spearman's rank correlation coefficient <https://en.wikipedia.org/wiki/Spearman%27s_rank_correlation_coefficient>`_
 
 .. note::
 

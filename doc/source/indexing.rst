@@ -943,8 +943,8 @@ and :ref:`Advanced Indexing <advanced>` you may select along more than one axis 
 Indexing with isin
 ------------------
 
-Consider the :meth:`~Series.isin` method of Series, which returns a boolean 
-vector that is true wherever the Series elements exist in the passed list. 
+Consider the :meth:`~Series.isin` method of ``Series``, which returns a boolean 
+vector that is true wherever the ``Series`` elements exist in the passed list. 
 This allows you to select rows where one or more columns have values you want:
 
 .. ipython:: python
@@ -1125,7 +1125,11 @@ as condition and ``other`` argument.
                        'C': [7, 8, 9]})
    df3.where(lambda x: x > 4, lambda x: x + 10)
 
-``mask`` is the inverse boolean operation of ``where``.
+
+Mask
+~~~~~~~~~
+
+:meth:`~pandas.DataFrame.mask` is the inverse boolean operation of ``where``.
 
 .. ipython:: python
 
@@ -1134,7 +1138,7 @@ as condition and ``other`` argument.
 
 .. _indexing.query:
 
-The :meth:`~pandas.DataFrame.query` Method (Experimental)
+The :meth:`~pandas.DataFrame.query` Method
 ---------------------------------------------------------
 
 :class:`~pandas.DataFrame` objects have a :meth:`~pandas.DataFrame.query`

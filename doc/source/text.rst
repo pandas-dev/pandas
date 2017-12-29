@@ -99,7 +99,7 @@ Elements in the split lists can be accessed using ``get`` or ``[]`` notation:
    s2.str.split('_').str.get(1)
    s2.str.split('_').str[1]
 
-It's easy to expand this to return a DataFrame using ``expand``.
+It is easy to expand this to return a DataFrame using ``expand``.
 
 .. ipython:: python
 
