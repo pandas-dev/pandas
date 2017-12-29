@@ -7218,48 +7218,48 @@ pandas.core.window.Expanding.%(accum_func_name)s : Similar functionality
 _sum_examples = """\
 Examples
 --------
-By default, the sum of an empty series is ``NaN``.
+By default, the sum of an empty or all-NA Series is ``0``.
 
->>> pd.Series([]).sum()  # min_count=1 is the default
-nan
+>>> pd.Series([]).sum()  # min_count=0 is the default
+0.0
 
 This can be controlled with the ``min_count`` parameter. For example, if
-you'd like the sum of an empty series to be 0, pass ``min_count=0``.
+you'd like the sum of an empty series to be NaN, pass ``min_count=1``.
 
->>> pd.Series([]).sum(min_count=0)
-0.0
+>>> pd.Series([]).sum(min_count=1)
+nan
 
 Thanks to the ``skipna`` parameter, ``min_count`` handles all-NA and
 empty series identically.
 
 >>> pd.Series([np.nan]).sum()
-nan
-
->>> pd.Series([np.nan]).sum(min_count=0)
 0.0
+
+>>> pd.Series([np.nan]).sum(min_count=1)
+nan
 """
 
 _prod_examples = """\
 Examples
 --------
-By default, the product of an empty series is ``NaN``
+By default, the product of an empty or all-NA Series is ``1``
 
 >>> pd.Series([]).prod()
-nan
+1.0
 
 This can be controlled with the ``min_count`` parameter
 
->>> pd.Series([]).prod(min_count=0)
-1.0
+>>> pd.Series([]).prod(min_count=1)
+nan
 
 Thanks to the ``skipna`` parameter, ``min_count`` handles all-NA and
 empty series identically.
 
 >>> pd.Series([np.nan]).prod()
-nan
-
->>> pd.Series([np.nan]).sum(min_count=0)
 1.0
+
+>>> pd.Series([np.nan]).sum(min_count=1)
+nan
 """
 
 
@@ -7282,7 +7282,7 @@ def _make_min_count_stat_function(cls, name, name1, name2, axis_descr, desc,
                   examples=examples)
     @Appender(_num_doc)
     def stat_func(self, axis=None, skipna=None, level=None, numeric_only=None,
-                  min_count=1,
+                  min_count=0,
                   **kwargs):
         nv.validate_stat_func(tuple(), kwargs, fname=name)
         if skipna is None:

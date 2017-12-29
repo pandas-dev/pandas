@@ -34,12 +34,12 @@ class TestSeriesAnalytics(TestData):
     ])
     def test_empty(self, method, unit, use_bottleneck):
         with pd.option_context("use_bottleneck", use_bottleneck):
-            # GH 9422
+            # GH 9422 / 18921
             # Entirely empty
             s = Series([])
             # NA by default
             result = getattr(s, method)()
-            assert isna(result)
+            assert result == unit
 
             # Explict
             result = getattr(s, method)(min_count=0)
@@ -50,7 +50,7 @@ class TestSeriesAnalytics(TestData):
 
             # Skipna, default
             result = getattr(s, method)(skipna=True)
-            assert isna(result)
+            result == unit
 
             # Skipna, explicit
             result = getattr(s, method)(skipna=True, min_count=0)
@@ -63,7 +63,7 @@ class TestSeriesAnalytics(TestData):
             s = Series([np.nan])
             # NA by default
             result = getattr(s, method)()
-            assert isna(result)
+            assert result == unit
 
             # Explicit
             result = getattr(s, method)(min_count=0)
@@ -74,7 +74,7 @@ class TestSeriesAnalytics(TestData):
 
             # Skipna, default
             result = getattr(s, method)(skipna=True)
-            assert isna(result)
+            result == unit
 
             # skipna, explicit
             result = getattr(s, method)(skipna=True, min_count=0)
@@ -108,7 +108,7 @@ class TestSeriesAnalytics(TestData):
 
             # GH #844 (changed in 9422)
             df = DataFrame(np.empty((10, 0)))
-            assert (df.sum(1).isnull()).all()
+            assert (getattr(df, method)(1) == unit).all()
 
             s = pd.Series([1])
             result = getattr(s, method)(min_count=2)
@@ -129,9 +129,9 @@ class TestSeriesAnalytics(TestData):
     def test_empty_multi(self, method, unit):
         s = pd.Series([1, np.nan, np.nan, np.nan],
                       index=pd.MultiIndex.from_product([('a', 'b'), (0, 1)]))
-        # NaN by default
+        # 1 / 0 by default
         result = getattr(s, method)(level=0)
-        expected = pd.Series([1, np.nan], index=['a', 'b'])
+        expected = pd.Series([1, unit], index=['a', 'b'])
         tm.assert_series_equal(result, expected)
 
         # min_count=0
@@ -145,7 +145,7 @@ class TestSeriesAnalytics(TestData):
         tm.assert_series_equal(result, expected)
 
     @pytest.mark.parametrize(
-        "method", ['sum', 'mean', 'median', 'std', 'var'])
+        "method", ['mean', 'median', 'std', 'var'])
     def test_ops_consistency_on_empty(self, method):
 
         # GH 7869
@@ -193,7 +193,7 @@ class TestSeriesAnalytics(TestData):
                 assert np.allclose(float(result), v[-1])
 
     def test_sum(self):
-        self._check_stat_op('sum', np.sum, check_allna=True)
+        self._check_stat_op('sum', np.sum, check_allna=False)
 
     def test_sum_inf(self):
         s = Series(np.random.randn(10))

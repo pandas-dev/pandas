@@ -475,6 +475,28 @@ class TestRolling(Base):
         result = DataFrame(index=pd.DatetimeIndex([])).rolling(roller).sum()
         tm.assert_frame_equal(result, expected)
 
+    def test_missing_minp_zero(self):
+        # https://github.com/pandas-dev/pandas/pull/18921
+        # minp=0
+        x = pd.Series([np.nan])
+        result = x.rolling(1, min_periods=0).sum()
+        expected = pd.Series([0.0])
+        tm.assert_series_equal(result, expected)
+
+        # minp=1
+        result = x.rolling(1, min_periods=1).sum()
+        expected = pd.Series([np.nan])
+        tm.assert_series_equal(result, expected)
+
+    def test_missing_minp_zero_variable(self):
+        # https://github.com/pandas-dev/pandas/pull/18921
+        x = pd.Series([np.nan] * 4,
+                      index=pd.DatetimeIndex(['2017-01-01', '2017-01-04',
+                                              '2017-01-06', '2017-01-07']))
+        result = x.rolling(pd.Timedelta("2d"), min_periods=0).sum()
+        expected = pd.Series(0.0, index=x.index)
+        tm.assert_series_equal(result, expected)
+
     def test_multi_index_names(self):
 
         # GH 16789, 16825
@@ -547,6 +569,19 @@ class TestExpanding(Base):
         result = DataFrame(
             index=pd.DatetimeIndex([])).expanding(expander).sum()
         tm.assert_frame_equal(result, expected)
+
+    def test_missing_minp_zero(self):
+        # https://github.com/pandas-dev/pandas/pull/18921
+        # minp=0
+        x = pd.Series([np.nan])
+        result = x.expanding(min_periods=0).sum()
+        expected = pd.Series([0.0])
+        tm.assert_series_equal(result, expected)
+
+        # minp=1
+        result = x.expanding(min_periods=1).sum()
+        expected = pd.Series([np.nan])
+        tm.assert_series_equal(result, expected)
 
 
 class TestEWM(Base):
@@ -864,7 +899,8 @@ class TestMoments(Base):
              .rolling(window=3, center=True, axis=2).mean())
 
     def test_rolling_sum(self):
-        self._check_moment_func(mom.rolling_sum, np.sum, name='sum')
+        self._check_moment_func(mom.rolling_sum, np.nansum, name='sum',
+                                zero_min_periods_equal=False)
 
     def test_rolling_count(self):
         counter = lambda x: np.isfinite(x).astype(float).sum()
@@ -1349,14 +1385,18 @@ class TestMoments(Base):
     def _check_moment_func(self, f, static_comp, name=None, window=50,
                            has_min_periods=True, has_center=True,
                            has_time_rule=True, preserve_nan=True,
-                           fill_value=None, test_stable=False, **kwargs):
+                           fill_value=None, test_stable=False,
+                           zero_min_periods_equal=True,
+                           **kwargs):
 
         with warnings.catch_warnings(record=True):
             self._check_ndarray(f, static_comp, window=window,
                                 has_min_periods=has_min_periods,
                                 preserve_nan=preserve_nan,
                                 has_center=has_center, fill_value=fill_value,
-                                test_stable=test_stable, **kwargs)
+                                test_stable=test_stable,
+                                zero_min_periods_equal=zero_min_periods_equal,
+                                **kwargs)
 
         with warnings.catch_warnings(record=True):
             self._check_structures(f, static_comp,
@@ -1375,7 +1415,8 @@ class TestMoments(Base):
 
     def _check_ndarray(self, f, static_comp, window=50, has_min_periods=True,
                        preserve_nan=True, has_center=True, fill_value=None,
-                       test_stable=False, test_window=True, **kwargs):
+                       test_stable=False, test_window=True,
+                       zero_min_periods_equal=True, **kwargs):
         def get_result(arr, window, min_periods=None, center=False):
             return f(arr, window, min_periods=min_periods, center=center, **
                      kwargs)
@@ -1408,10 +1449,11 @@ class TestMoments(Base):
             assert isna(result[3])
             assert notna(result[4])
 
-            # min_periods=0
-            result0 = get_result(arr, 20, min_periods=0)
-            result1 = get_result(arr, 20, min_periods=1)
-            tm.assert_almost_equal(result0, result1)
+            if zero_min_periods_equal:
+                # min_periods=0 may be equivalent to min_periods=1
+                result0 = get_result(arr, 20, min_periods=0)
+                result1 = get_result(arr, 20, min_periods=1)
+                tm.assert_almost_equal(result0, result1)
         else:
             result = get_result(arr, 50)
             tm.assert_almost_equal(result[-1], static_comp(arr[10:-10]))
