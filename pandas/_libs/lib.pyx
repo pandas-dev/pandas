@@ -112,6 +112,7 @@ cpdef bint isscalar(object val):
     - Period
     - instances of decimal.Decimal
     - Interval
+    - DateOffset
 
     """
 
@@ -126,7 +127,8 @@ cpdef bint isscalar(object val):
             or PyTime_Check(val)
             or util.is_period_object(val)
             or is_decimal(val)
-            or is_interval(val))
+            or is_interval(val)
+            or is_offset(val))
 
 
 def item_from_zerodim(object val):

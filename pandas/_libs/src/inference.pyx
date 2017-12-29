@@ -45,6 +45,8 @@ cpdef bint is_period(object val):
     """ Return a boolean if this is a Period object """
     return util.is_period_object(val)
 
+cdef inline bint is_offset(object val):
+    return getattr(val, '_typ', '_typ') == 'dateoffset'
 
 _TYPE_MAP = {
     'categorical': 'categorical',

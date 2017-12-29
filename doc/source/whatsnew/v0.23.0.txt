@@ -144,6 +144,7 @@ Other Enhancements
 - :class:`Interval` and :class:`IntervalIndex` have gained a ``length`` attribute (:issue:`18789`)
 - ``Resampler`` objects now have a functioning :attr:`~pandas.core.resample.Resampler.pipe` method.
   Previously, calls to ``pipe`` were diverted to  the ``mean`` method (:issue:`17905`).
+- :func:`~pandas.api.types.is_scalar` now returns ``True`` for ``DateOffset`` objects (:issue:`18943`).
 
 .. _whatsnew_0230.api_breaking:
 
