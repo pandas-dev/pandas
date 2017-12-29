@@ -1774,13 +1774,6 @@ class FY5253(DateOffset):
             raise ValueError('{variation} is not a valid variation'
                              .format(variation=self.variation))
 
-    @cache_readonly
-    def _offset_lwom(self):
-        if self.variation == "nearest":
-            return None
-        else:
-            return LastWeekOfMonth(n=1, weekday=self.weekday)
-
     def isAnchored(self):
         return (self.n == 1 and
                 self.startingMonth is not None and
@@ -1801,6 +1794,8 @@ class FY5253(DateOffset):
 
     @apply_wraps
     def apply(self, other):
+        norm = Timestamp(other).normalize()
+
         n = self.n
         prev_year = self.get_year_end(
             datetime(other.year - 1, self.startingMonth, 1))
@@ -1813,32 +1808,26 @@ class FY5253(DateOffset):
         cur_year = tslib._localize_pydatetime(cur_year, other.tzinfo)
         next_year = tslib._localize_pydatetime(next_year, other.tzinfo)
 
-        if other == prev_year:
+        # Note: next_year.year == other.year + 1, so we will always
+        # have other < next_year
+        if norm == prev_year:
             n -= 1
-        elif other == cur_year:
+        elif norm == cur_year:
             pass
-        elif other == next_year:
-            n += 1
-            # TODO: Not hit in tests
         elif n > 0:
-            if other < prev_year:
+            if norm < prev_year:
                 n -= 2
-            elif prev_year < other < cur_year:
+            elif prev_year < norm < cur_year:
                 n -= 1
-            elif cur_year < other < next_year:
+            elif cur_year < norm < next_year:
                 pass
-            else:
-                assert False
         else:
-            if next_year < other:
-                n += 2
-                # TODO: Not hit in tests; UPDATE: looks impossible
-            elif cur_year < other < next_year:
+            if cur_year < norm < next_year:
                 n += 1
-            elif prev_year < other < cur_year:
+            elif prev_year < norm < cur_year:
                 pass
-            elif (other.year == prev_year.year and other < prev_year and
-                  prev_year - other <= timedelta(6)):
+            elif (norm.year == prev_year.year and norm < prev_year and
+                  prev_year - norm <= timedelta(6)):
                 # GH#14774, error when next_year.year == cur_year.year
                 # e.g. prev_year == datetime(2004, 1, 3),
                 # other == datetime(2004, 1, 1)
@@ -1854,35 +1843,30 @@ class FY5253(DateOffset):
         return result
 
     def get_year_end(self, dt):
-        if self.variation == "nearest":
-            return self._get_year_end_nearest(dt)
-        else:
-            return self._get_year_end_last(dt)
+        assert dt.tzinfo is None
 
-    def get_target_month_end(self, dt):
-        target_month = datetime(dt.year, self.startingMonth, 1,
-                                tzinfo=dt.tzinfo)
-        return shift_month(target_month, 0, 'end')
-        # TODO: is this DST-safe?
-
-    def _get_year_end_nearest(self, dt):
-        target_date = self.get_target_month_end(dt)
+        dim = ccalendar.get_days_in_month(dt.year, self.startingMonth)
+        target_date = datetime(dt.year, self.startingMonth, dim)
         wkday_diff = self.weekday - target_date.weekday()
         if wkday_diff == 0:
+            # year_end is the same for "last" and "nearest" cases
             return target_date
 
-        days_forward = wkday_diff % 7
-        if days_forward <= 3:
-            # The upcoming self.weekday is closer than the previous one
-            return target_date + timedelta(days_forward)
-        else:
-            # The previous self.weekday is closer than the upcoming one
-            return target_date + timedelta(days_forward - 7)
+        if self.variation == "last":
+            days_forward = (wkday_diff % 7) - 7
 
-    def _get_year_end_last(self, dt):
-        current_year = datetime(dt.year, self.startingMonth, 1,
-                                tzinfo=dt.tzinfo)
-        return current_year + self._offset_lwom
+            # days_forward is always negative, so we always end up
+            # in the same year as dt
+            return target_date + timedelta(days=days_forward)
+        else:
+            # variation == "nearest":
+            days_forward = wkday_diff % 7
+            if days_forward <= 3:
+                # The upcoming self.weekday is closer than the previous one
+                return target_date + timedelta(days_forward)
+            else:
+                # The previous self.weekday is closer than the upcoming one
+                return target_date + timedelta(days_forward - 7)
 
     @property
     def rule_code(self):

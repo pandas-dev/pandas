@@ -402,7 +402,7 @@ class DatetimeTZDtype(ExtensionDtype):
     num = 101
     base = np.dtype('M8[ns]')
     _metadata = ['unit', 'tz']
-    _match = re.compile("(datetime64|M8)\[(?P<unit>.+), (?P<tz>.+)\]")
+    _match = re.compile(r"(datetime64|M8)\[(?P<unit>.+), (?P<tz>.+)\]")
     _cache = {}
 
     def __new__(cls, unit=None, tz=None):
@@ -514,7 +514,7 @@ class PeriodDtype(ExtensionDtype):
     base = np.dtype('O')
     num = 102
     _metadata = ['freq']
-    _match = re.compile("(P|p)eriod\[(?P<freq>.+)\]")
+    _match = re.compile(r"(P|p)eriod\[(?P<freq>.+)\]")
     _cache = {}
 
     def __new__(cls, freq=None):
@@ -632,7 +632,7 @@ class IntervalDtype(ExtensionDtype):
     base = np.dtype('O')
     num = 103
     _metadata = ['subtype']
-    _match = re.compile("(I|i)nterval\[(?P<subtype>.+)\]")
+    _match = re.compile(r"(I|i)nterval\[(?P<subtype>.+)\]")
     _cache = {}
 
     def __new__(cls, subtype=None):
