@@ -669,7 +669,9 @@ class DatetimeIndexOpsMixin(object):
             from pandas.core.index import Index
             from pandas.core.indexes.timedeltas import TimedeltaIndex
             from pandas.tseries.offsets import DateOffset
-            if is_timedelta64_dtype(other):
+            if isinstance(other, ABCSeries):
+                return NotImplemented
+            elif is_timedelta64_dtype(other):
                 return self._add_delta(other)
             elif isinstance(self, TimedeltaIndex) and isinstance(other, Index):
                 if hasattr(other, '_add_delta'):
@@ -697,7 +699,9 @@ class DatetimeIndexOpsMixin(object):
             from pandas.core.indexes.datetimes import DatetimeIndex
             from pandas.core.indexes.timedeltas import TimedeltaIndex
             from pandas.tseries.offsets import DateOffset
-            if is_timedelta64_dtype(other):
+            if isinstance(other, ABCSeries):
+                return NotImplemented
+            elif is_timedelta64_dtype(other):
                 return self._add_delta(-other)
             elif isinstance(self, TimedeltaIndex) and isinstance(other, Index):
                 if not isinstance(other, TimedeltaIndex):

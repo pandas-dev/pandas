@@ -758,29 +758,34 @@ def _arith_method_SERIES(op, name, str_rep, fill_zeros=None, default_axis=None,
         na_op = converted.na_op
 
         if isinstance(rvalues, ABCSeries):
-            name = _maybe_match_name(left, rvalues)
             lvalues = getattr(lvalues, 'values', lvalues)
             rvalues = getattr(rvalues, 'values', rvalues)
             # _Op aligns left and right
         else:
-            if isinstance(rvalues, pd.Index):
-                name = _maybe_match_name(left, rvalues)
-            else:
-                name = left.name
             if (hasattr(lvalues, 'values') and
                     not isinstance(lvalues, pd.DatetimeIndex)):
                 lvalues = lvalues.values
 
+        res_name = _get_series_op_result_name(left, right)
         result = wrap_results(safe_na_op(lvalues, rvalues))
         return construct_result(
             left,
             result,
             index=left.index,
-            name=name,
+            name=res_name,
             dtype=dtype,
         )
 
     return wrapper
+
+
+def _get_series_op_result_name(left, right):
+    # `left` is always a Series object
+    if isinstance(right, (pd.Series, pd.Index)):
+        name = _maybe_match_name(left, right)
+    else:
+        name = left.name
+    return name
 
 
 def _comp_method_OBJECT_ARRAY(op, x, y):
