@@ -973,7 +973,7 @@ class MonthOffset(SingleConstructorOffset):
     @apply_wraps
     def apply(self, other):
         compare_day = self._get_offset_day(other)
-        n = liboffsets._roll_convention(other.day, self.n, compare_day)
+        n = liboffsets.roll_convention(other.day, self.n, compare_day)
         return shift_month(other, n, self._day_opt)
 
     @apply_index_wraps
@@ -1123,7 +1123,7 @@ class SemiMonthOffset(DateOffset):
     @apply_wraps
     def apply(self, other):
         # shift `other` to self.day_of_month, incrementing `n` if necessary
-        n = liboffsets._roll_convention(other.day, self.n, self.day_of_month)
+        n = liboffsets.roll_convention(other.day, self.n, self.day_of_month)
 
         days_in_month = tslib.monthrange(other.year, other.month)[1]
 

@@ -823,7 +823,7 @@ cpdef int get_day_of_month(datetime other, day_opt) except? -1:
         raise ValueError(day_opt)
 
 
-cpdef int _roll_convention(int other, int n, int compare):
+cpdef int roll_convention(int other, int n, int compare):
     """
     Possibly increment or decrement the number of periods to shift
     based on rollforward/rollbackward conventions.
@@ -870,7 +870,7 @@ cpdef int roll_monthday(datetime other, int n, datetime compare):
     return n
 
 
-cpdef int roll_qtrday(datetime other, int n, int month, day_opt='start',
+cpdef int roll_qtrday(datetime other, int n, int month, object day_opt,
                       int modby=3) except? -1:
     """
     Possibly increment or decrement the number of periods to shift
@@ -903,16 +903,16 @@ cpdef int roll_qtrday(datetime other, int n, int month, day_opt='start',
             # before compare_day
             n -= 1
     else:
-        if (months_since > 0 or (months_since == 0 and
-                                 other.day > get_day_of_month(other,
-                                                              day_opt))):
+        if months_since > 0 or (months_since == 0 and
+                                other.day > get_day_of_month(other,
+                                                             day_opt)):
             # make sure to roll forward, so negate
             n += 1
     return n
 
 
 cpdef int roll_yearday(datetime other, int n, int month,
-                       object day_opt='start') except? -1:
+                       object day_opt) except? -1:
     """
     Possibly increment or decrement the number of periods to shift
     based on rollforward/rollbackward conventions.
