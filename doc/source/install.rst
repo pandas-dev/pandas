@@ -234,7 +234,7 @@ Optional Dependencies
 
   * `psycopg2 <http://initd.org/psycopg/>`__: for PostgreSQL
   * `pymysql <https://github.com/PyMySQL/PyMySQL>`__: for MySQL.
-  * `SQLite <https://docs.python.org/3.5/library/sqlite3.html>`__: for SQLite, this is included in Python's standard library by default.
+  * `SQLite <https://docs.python.org/3/library/sqlite3.html>`__: for SQLite, this is included in Python's standard library by default.
 
 * `matplotlib <http://matplotlib.org/>`__: for plotting, Version 1.4.3 or higher.
 * For Excel I/O:

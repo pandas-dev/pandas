@@ -28,7 +28,7 @@ from pandas.core.dtypes.common import (
     is_datetimelike_v_numeric,
     is_integer_dtype, is_categorical_dtype,
     is_object_dtype, is_timedelta64_dtype,
-    is_datetime64_dtype, is_datetime64tz_dtype,
+    is_datetime64_dtype, is_datetime64tz_dtype, is_datetime64_ns_dtype,
     is_bool_dtype, is_datetimetz,
     is_list_like, is_offsetlike,
     is_scalar,
@@ -528,6 +528,11 @@ class _TimeOp(_Op):
             elif not (isinstance(values, (np.ndarray, ABCSeries)) and
                       is_datetime64_dtype(values)):
                 values = libts.array_to_datetime(values)
+            elif (is_datetime64_dtype(values) and
+                  not is_datetime64_ns_dtype(values)):
+                # GH#7996 e.g. np.datetime64('2013-01-01') is datetime64[D]
+                values = values.astype('datetime64[ns]')
+
         elif inferred_type in ('timedelta', 'timedelta64'):
             # have a timedelta, convert to to ns here
             values = to_timedelta(values, errors='coerce', box=False)
@@ -753,15 +758,15 @@ def _arith_method_SERIES(op, name, str_rep, fill_zeros=None, default_axis=None,
         na_op = converted.na_op
 
         if isinstance(rvalues, ABCSeries):
-            res_name = _maybe_match_name(lvalues, rvalues)
+            name = _maybe_match_name(left, rvalues)
             lvalues = getattr(lvalues, 'values', lvalues)
             rvalues = getattr(rvalues, 'values', rvalues)
             # _Op aligns left and right
         else:
             if isinstance(rvalues, pd.Index):
-                res_name = _maybe_match_name(left, right)
+                name = _maybe_match_name(left, rvalues)
             else:
-                res_name = left.name
+                name = left.name
             if (hasattr(lvalues, 'values') and
                     not isinstance(lvalues, pd.DatetimeIndex)):
                 lvalues = lvalues.values

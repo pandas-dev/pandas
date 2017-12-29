@@ -1792,7 +1792,7 @@ class DataCol(IndexCol):
         # name values_0
         try:
             if version[0] == 0 and version[1] <= 10 and version[2] == 0:
-                m = re.search("values_block_(\d+)", name)
+                m = re.search(r"values_block_(\d+)", name)
                 if m:
                     name = "values_%s" % m.groups()[0]
         except:
@@ -4297,7 +4297,7 @@ class AppendableMultiFrameTable(AppendableFrameTable):
     table_type = u('appendable_multiframe')
     obj_type = DataFrame
     ndim = 2
-    _re_levels = re.compile("^level_\d+$")
+    _re_levels = re.compile(r"^level_\d+$")
 
     @property
     def table_type_short(self):

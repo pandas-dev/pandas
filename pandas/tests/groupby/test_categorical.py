@@ -662,3 +662,48 @@ class TestGroupByCategorical(MixIn):
                          "C3": [nan, nan, nan, nan, 10, 100,
                                 nan, nan, nan, nan, 200, 34]}, index=idx)
         tm.assert_frame_equal(res, exp)
+
+    def test_empty_sum(self):
+        # https://github.com/pandas-dev/pandas/issues/18678
+        df = pd.DataFrame({"A": pd.Categorical(['a', 'a', 'b'],
+                                               categories=['a', 'b', 'c']),
+                           'B': [1, 2, 1]})
+        expected_idx = pd.CategoricalIndex(['a', 'b', 'c'], name='A')
+
+        # NA by default
+        result = df.groupby("A").B.sum()
+        expected = pd.Series([3, 1, np.nan], expected_idx, name='B')
+        tm.assert_series_equal(result, expected)
+
+        # min_count=0
+        result = df.groupby("A").B.sum(min_count=0)
+        expected = pd.Series([3, 1, 0], expected_idx, name='B')
+        tm.assert_series_equal(result, expected)
+
+        # min_count=1
+        result = df.groupby("A").B.sum(min_count=1)
+        expected = pd.Series([3, 1, np.nan], expected_idx, name='B')
+        tm.assert_series_equal(result, expected)
+
+    def test_empty_prod(self):
+        # https://github.com/pandas-dev/pandas/issues/18678
+        df = pd.DataFrame({"A": pd.Categorical(['a', 'a', 'b'],
+                                               categories=['a', 'b', 'c']),
+                           'B': [1, 2, 1]})
+
+        expected_idx = pd.CategoricalIndex(['a', 'b', 'c'], name='A')
+
+        # NA by default
+        result = df.groupby("A").B.prod()
+        expected = pd.Series([2, 1, np.nan], expected_idx, name='B')
+        tm.assert_series_equal(result, expected)
+
+        # min_count=0
+        result = df.groupby("A").B.prod(min_count=0)
+        expected = pd.Series([2, 1, 1], expected_idx, name='B')
+        tm.assert_series_equal(result, expected)
+
+        # min_count=1
+        result = df.groupby("A").B.prod(min_count=1)
+        expected = pd.Series([2, 1, np.nan], expected_idx, name='B')
+        tm.assert_series_equal(result, expected)
