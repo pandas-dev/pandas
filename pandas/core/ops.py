@@ -514,7 +514,7 @@ class _TimeOp(_Op):
                 values[:] = iNaT
 
             # a datelike
-            elif isinstance(values, pd.DatetimeIndex):
+            elif isinstance(values, ABCDatetimeIndex):
                 # TODO: why are we casting to_series in the first place?
                 values = values.to_series(keep_tz=True)
             # datetime with tz
