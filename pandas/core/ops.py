@@ -39,7 +39,7 @@ from pandas.core.dtypes.cast import (
 from pandas.core.dtypes.generic import (
     ABCSeries,
     ABCDataFrame,
-    ABCIndex,
+    ABCIndex, ABCDatetimeIndex,
     ABCPeriodIndex)
 
 # -----------------------------------------------------------------------------
@@ -763,7 +763,7 @@ def _arith_method_SERIES(op, name, str_rep, fill_zeros=None, default_axis=None,
             # _Op aligns left and right
         else:
             if (hasattr(lvalues, 'values') and
-                    not isinstance(lvalues, pd.DatetimeIndex)):
+                    not isinstance(lvalues, ABCDatetimeIndex)):
                 lvalues = lvalues.values
 
         res_name = _get_series_op_result_name(left, right)
@@ -781,7 +781,7 @@ def _arith_method_SERIES(op, name, str_rep, fill_zeros=None, default_axis=None,
 
 def _get_series_op_result_name(left, right):
     # `left` is always a Series object
-    if isinstance(right, (pd.Series, pd.Index)):
+    if isinstance(right, (ABCSeries, pd.Index)):
         name = _maybe_match_name(left, right)
     else:
         name = left.name
