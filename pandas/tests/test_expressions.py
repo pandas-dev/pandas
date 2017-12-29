@@ -73,16 +73,10 @@ class TestExpressions(object):
     def run_arithmetic(self, df, other, assert_func, check_dtype=False,
                        test_flex=True):
         expr._MIN_ELEMENTS = 0
-        operations = ['add', 'sub', 'mul', 'mod', 'truediv', 'floordiv', 'pow']
+        operations = ['add', 'sub', 'mul', 'mod', 'truediv', 'floordiv']
         if not compat.PY3:
             operations.append('div')
         for arith in operations:
-
-            # numpy >= 1.11 doesn't handle integers
-            # raised to integer powers
-            # https://github.com/pandas-dev/pandas/issues/15363
-            if arith == 'pow' and not _np_version_under1p11:
-                continue
 
             operator_name = arith
             if arith == 'div':
