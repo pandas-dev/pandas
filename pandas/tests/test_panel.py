@@ -3,6 +3,7 @@
 
 from warnings import catch_warnings
 from datetime import datetime
+from distutils.version import LooseVersion
 import operator
 import pytest
 
@@ -87,8 +88,10 @@ class SafeForLongAndSparse(object):
     def test_mean(self):
         self._check_stat_op('mean', np.mean)
 
-    @td.skip_if_no("numpy", min_version="1.10.0")
     def test_prod(self):
+        if LooseVersion(np.__version__) < LooseVersion("1.10.0"):
+            raise pytest.skip("np.nanprod added in 1.10.0")
+
         self._check_stat_op('prod', np.prod, skipna_alternative=np.nanprod)
 
     def test_median(self):
