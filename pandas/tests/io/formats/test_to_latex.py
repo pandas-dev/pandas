@@ -589,8 +589,8 @@ AA &  BB \\
 """
         assert observed == expected
 
-    @pytest.mark.parametrize('name0', [None, 'named'])
-    @pytest.mark.parametrize('name1', [None, 'named'])
+    @pytest.mark.parametrize('name0', [None, 'named0'])
+    @pytest.mark.parametrize('name1', [None, 'named1'])
     @pytest.mark.parametrize('axes', [[0], [1], [0, 1]])
     def test_to_latex_multiindex_names(self, name0, name1, axes):
         # GH 18667
