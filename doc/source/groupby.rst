@@ -20,38 +20,38 @@ Group By: split-apply-combine
 *****************************
 
 By "group by" we are referring to a process involving one or more of the following
-steps
+steps:
 
- - **Splitting** the data into groups based on some criteria
- - **Applying** a function to each group independently
- - **Combining** the results into a data structure
+ - **Splitting** the data into groups based on some criteria.
+ - **Applying** a function to each group independently.
+ - **Combining** the results into a data structure.
 
-Of these, the split step is the most straightforward. In fact, in many
-situations you may wish to split the data set into groups and do something with
-those groups yourself. In the apply step, we might wish to one of the
+Out of these, the split step is the most straightforward. In fact, in many
+situations we may wish to split the data set into groups and do something with
+those groups. In the apply step, we might wish to one of the
 following:
 
- - **Aggregation**: computing a summary statistic (or statistics) about each
+ - **Aggregation**: compute a summary statistic (or statistics) for each
    group. Some examples:
 
-    - Compute group sums or means
-    - Compute group sizes / counts
+    - Compute group sums or means.
+    - Compute group sizes / counts.
 
  - **Transformation**: perform some group-specific computations and return a
-   like-indexed. Some examples:
+   like-indexed object. Some examples:
 
-    - Standardizing data (zscore) within group
-    - Filling NAs within groups with a value derived from each group
+    - Standardize data (zscore) within a group.
+    - Filling NAs within groups with a value derived from each group.
 
  - **Filtration**: discard some groups, according to a group-wise computation
    that evaluates True or False. Some examples:
 
-    - Discarding data that belongs to groups with only a few members
-    - Filtering out data based on the group sum or mean
+    - Discard data that belongs to groups with only a few members.
+    - Filter out data based on the group sum or mean.
 
  - Some combination of the above: GroupBy will examine the results of the apply
    step and try to return a sensibly combined result if it doesn't fit into
-   either of the above two categories
+   either of the above two categories.
 
 Since the set of object instance methods on pandas data structures are generally
 rich and expressive, we often simply want to invoke, say, a DataFrame function
@@ -68,7 +68,7 @@ We aim to make operations like this natural and easy to express using
 pandas. We'll address each area of GroupBy functionality then provide some
 non-trivial examples / use cases.
 
-See the :ref:`cookbook<cookbook.grouping>` for some advanced strategies
+See the :ref:`cookbook<cookbook.grouping>` for some advanced strategies.
 
 .. _groupby.split:
 
@@ -77,7 +77,7 @@ Splitting an object into groups
 
 pandas objects can be split on any of their axes. The abstract definition of
 grouping is to provide a mapping of labels to group names. To create a GroupBy
-object (more on what the GroupBy object is later), you do the following:
+object (more on what the GroupBy object is later), you may do the following:
 
 .. code-block:: ipython
 
@@ -88,14 +88,14 @@ object (more on what the GroupBy object is later), you do the following:
 
 The mapping can be specified many different ways:
 
-  - A Python function, to be called on each of the axis labels
-  - A list or NumPy array of the same length as the selected axis
-  - A dict or Series, providing a ``label -> group name`` mapping
+  - A Python function, to be called on each of the axis labels.
+  - A list or NumPy array of the same length as the selected axis.
+  - A dict or Series, providing a ``label -> group name`` mapping.
   - For DataFrame objects, a string indicating a column to be used to group. Of
     course ``df.groupby('A')`` is just syntactic sugar for
-    ``df.groupby(df['A'])``, but it makes life simpler
+    ``df.groupby(df['A'])``, but it makes life simpler.
   - For DataFrame objects, a string indicating an index level to be used to group.
-  - A list of any of the above things
+  - A list of any of the above things.
 
 Collectively we refer to the grouping objects as the **keys**. For example,
 consider the following DataFrame:
@@ -119,7 +119,8 @@ consider the following DataFrame:
                       'D' : np.random.randn(8)})
    df
 
-We could naturally group by either the ``A`` or ``B`` columns or both:
+On a DataFrame, we obtain a GroupBy object by calling :meth:`~DataFrame.groupby`. 
+We could naturally group by either the ``A`` or ``B`` columns, or both:
 
 .. ipython:: python
 
@@ -140,7 +141,7 @@ columns:
 
     In [5]: grouped = df.groupby(get_letter_type, axis=1)
 
-pandas Index objects support duplicate values. If a
+pandas :class:`~pandas.Index` objects support duplicate values. If a
 non-unique index is used as the group key in a groupby operation, all values
 for the same index value will be considered to be in one group and thus the
 output of aggregation functions will only contain unique index values:
@@ -220,7 +221,7 @@ the length of the ``groups`` dict, so it is largely just a convenience:
 
 .. _groupby.tabcompletion:
 
-``GroupBy`` will tab complete column names (and other attributes)
+``GroupBy`` will tab complete column names (and other attributes):
 
 .. ipython:: python
    :suppress:
