@@ -446,11 +446,9 @@ class _TimeOp(_Op):
     def _validate(self, lvalues, rvalues, name):
         if self.is_datetime_lhs:
             return self._validate_datetime(lvalues, rvalues, name)
-        elif self.is_timedelta_lhs:
+        else:
             # The only other option is self.is_timedelta_lhs
             return self._validate_timedelta(name)
-        else:
-            assert False
 
     def _check_timedelta_with_numeric(self, name):
         if name not in ('__div__', '__truediv__', '__mul__', '__rmul__'):
@@ -544,9 +542,8 @@ class _TimeOp(_Op):
 
             # datetime subtraction means timedelta
             if self.is_datetime_lhs and self.is_datetime_rhs:
-                # assert self.name in ('__sub__', '__rsub__')
-                if self.name in ('__sub__', '__rsub__'):
-                    self.dtype = 'timedelta64[ns]'
+                assert self.name in ('__sub__', '__rsub__')
+                self.dtype = 'timedelta64[ns]'
             elif self.is_datetime64tz_lhs:
                 self.dtype = lvalues.dtype
             elif self.is_datetime64tz_rhs:
