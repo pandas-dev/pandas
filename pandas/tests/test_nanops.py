@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 from __future__ import division, print_function
 
+from distutils.version import LooseVersion
 from functools import partial
 
 import pytest
@@ -468,8 +469,10 @@ class TestnanopsDataFrame(object):
                             allow_str=False, allow_date=False,
                             allow_tdelta=False)
 
-    @td.skip_if_no("numpy", min_version="1.10.0")
     def test_nanprod(self):
+        if LooseVersion(np.__version__) < LooseVersion("1.10.0"):
+            raise pytest.skip("np.nanprod added in 1.10.0")
+
         self.check_funs(nanops.nanprod, np.prod, allow_str=False,
                         allow_date=False, allow_tdelta=False,
                         empty_targfunc=np.nanprod)
