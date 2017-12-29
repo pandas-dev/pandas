@@ -9,7 +9,6 @@ import pytest
 import numpy as np
 
 from pandas.core.dtypes.common import is_float_dtype
-from pandas.core.dtypes.missing import remove_na_arraylike
 from pandas import (Series, DataFrame, Index, date_range, isna, notna,
                     pivot, MultiIndex)
 from pandas.core.nanops import nanall, nanany
@@ -155,6 +154,7 @@ class SafeForLongAndSparse(object):
 
             skipna_wrapper = tm._make_skipna_wrapper(alternative,
                                                      skipna_alternative)
+
             def wrapper(x):
                 return alternative(np.asarray(x))
 

@@ -8,7 +8,6 @@ import numpy as np
 
 from pandas import Series, Index, isna, notna
 from pandas.core.dtypes.common import is_float_dtype
-from pandas.core.dtypes.missing import remove_na_arraylike
 from pandas.core.panel import Panel
 from pandas.core.panel4d import Panel4D
 from pandas.tseries.offsets import BDay
@@ -120,6 +119,7 @@ class SafeForLongAndSparse(object):
 
             skipna_wrapper = tm._make_skipna_wrapper(alternative,
                                                      skipna_alternative)
+
             def wrapper(x):
                 return alternative(np.asarray(x))
 
