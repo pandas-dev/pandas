@@ -92,7 +92,6 @@ def test_pandas_datareader():
     pandas_datareader.get_data_google('AAPL')
 
 
-@pytest.mark.xfail(reason="install not working, gh-18780")
 def test_geopandas():
 
     geopandas = import_module('geopandas')  # noqa
