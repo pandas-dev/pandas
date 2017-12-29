@@ -478,8 +478,7 @@ class PeriodIndex(PeriodArrayMixin, DatelikeOps, DatetimeIndexOpsMixin,
 
     @property
     def end_time(self):
-        data = (self + 1).start_time.values.astype(int) - 1
-        return DatetimeIndex(data=data)
+        return self.to_timestamp(how='end')
 
     def _mpl_repr(self):
         # how to represent ourselves to matplotlib
@@ -511,7 +510,16 @@ class PeriodIndex(PeriodArrayMixin, DatelikeOps, DatetimeIndexOpsMixin,
         base, mult = _gfc(freq)
         new_data = self.asfreq(freq, how)
 
-        new_data = period.periodarr_to_dt64arr(new_data._ndarray_values, base)
+        end = how == 'E'
+        if end:
+            indexer = np.where(new_data.notnull())
+            # move forward one period
+            new_data._values[indexer] += 1
+            new_data = period.periodarr_to_dt64arr(new_data._values, base)
+            # subtract one nanosecond
+            new_data[indexer] -= 1
+        else:
+            new_data = period.periodarr_to_dt64arr(new_data._values, base)
         return DatetimeIndex(new_data, freq='infer', name=self.name)
 
     @property

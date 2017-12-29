@@ -3,8 +3,8 @@ import numpy as np
 import pandas as pd
 import pandas.util.testing as tm
 import pandas.core.indexes.period as period
-from pandas import Series, period_range, DataFrame
-
+from pandas import Series, period_range, DataFrame, Period
+import pytest
 
 def _permute(obj):
     return obj.take(np.random.permutation(len(obj)))
@@ -167,3 +167,23 @@ class TestSeriesPeriod(object):
             pd.Period('2017-09-02')
         ])
         tm.assert_series_equal(result2, pd.Series([2], index=expected_idx2))
+
+    @pytest.mark.parametrize('input_vals', [
+        [Period('2016-01', freq='M'), Period('2016-02', freq='M')],
+        [Period('2016-01-01', freq='D'), Period('2016-01-02', freq='D')],
+        [Period('2016-01-01 00:00:00', freq='H'),
+         Period('2016-01-01 01:00:00', freq='H')],
+        [Period('2016-01-01 00:00:00', freq='M'),
+         Period('2016-01-01 00:01:00', freq='M')],
+        [Period('2016-01-01 00:00:00', freq='S'),
+         Period('2016-01-01 00:00:01', freq='S')]
+    ])
+    def test_end_time_timevalues(self, input_vals):
+        # GH 17157
+        # Check that the time part of the Period is adjusted by end_time
+        # when using the dt accessor on a Series
+
+        s = Series(input_vals)
+        result = s.dt.end_time
+        expected = s.apply(lambda x: x.end_time)
+        tm.assert_series_equal(result, expected)
