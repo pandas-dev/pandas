@@ -1306,7 +1306,7 @@ class SQLiteTable(SQLTable):
         column_names_and_types = \
             self._get_column_names_and_types(self._sql_type_name)
 
-        pat = re.compile('\s+')
+        pat = re.compile(r'\s+')
         column_names = [col_name for col_name, _, _ in column_names_and_types]
         if any(map(pat.search, column_names)):
             warnings.warn(_SAFE_NAMES_WARNING, stacklevel=6)
