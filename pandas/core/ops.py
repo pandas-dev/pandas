@@ -715,7 +715,7 @@ def _arith_method_SERIES(op, name, str_rep, fill_zeros=None, default_axis=None,
                                                   lambda x: op(x, rvalues))
             raise
 
-    def wrapper(left, right):#, na_op=na_op):
+    def wrapper(left, right):
 
         if isinstance(right, ABCDataFrame):
             return NotImplemented
@@ -727,7 +727,6 @@ def _arith_method_SERIES(op, name, str_rep, fill_zeros=None, default_axis=None,
         lvalues, rvalues = converted.lvalues, converted.rvalues
         dtype = converted.dtype
         wrap_results = converted.wrap_results
-        #na_op = converted.na_op
 
         if isinstance(rvalues, ABCSeries):
             res_name = _maybe_match_name(left, rvalues)
