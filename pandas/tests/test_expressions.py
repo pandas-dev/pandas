@@ -17,6 +17,7 @@ from pandas import compat, _np_version_under1p11, _np_version_under1p13
 from pandas.util.testing import (assert_almost_equal, assert_series_equal,
                                  assert_frame_equal, assert_panel_equal,
                                  assert_panel4d_equal)
+from pandas.util._test_decorators import skip_if_no
 from pandas.io.formats.printing import pprint_thing
 import pandas.util.testing as tm
 
@@ -107,6 +108,7 @@ class TestExpressions(object):
                 pprint_thing("Failed test with operator %r" % op.__name__)
                 raise
 
+    @skip_if_no("numpy", "1.11")
     def test_integer_arithmetic(self):
         self.run_arithmetic(self.integer, self.integer,
                             assert_frame_equal)
@@ -191,6 +193,7 @@ class TestExpressions(object):
             self.run_binary(panel, binary_comp, assert_func,
                             test_flex=True, **kwargs)
 
+    @skip_if_no("numpy", "1.11")
     def test_integer_arithmetic_frame(self):
         self.run_frame(self.integer, self.integer)
 
@@ -243,6 +246,7 @@ class TestExpressions(object):
             self.run_arithmetic(self.mixed[col], self.mixed[col],
                                 assert_series_equal)
 
+    @skip_if_no("numpy", "1.11")
     def test_integer_with_zeros(self):
         self.integer *= np.random.randint(0, 2, size=np.shape(self.integer))
         self.run_arithmetic(self.integer, self.integer,
