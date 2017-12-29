@@ -626,6 +626,7 @@ class IntervalDtype(ExtensionDtype):
 
     THIS IS NOT A REAL NUMPY DTYPE
     """
+    name = 'interval'
     type = IntervalDtypeType
     kind = None
     str = '|O08'
@@ -653,8 +654,8 @@ class IntervalDtype(ExtensionDtype):
             u.subtype = None
             return u
         elif (isinstance(subtype, compat.string_types) and
-              subtype == 'interval'):
-            subtype = ''
+              subtype in ('interval', 'interval[]')):
+            subtype = None
         else:
             if isinstance(subtype, compat.string_types):
                 m = cls._match.search(subtype)
@@ -678,11 +679,15 @@ class IntervalDtype(ExtensionDtype):
             raise TypeError(msg)
 
         try:
-            return cls._cache[str(subtype)]
+            # GH 18980: need to combine since str and hash individually may not
+            # be unique, e.g. str(CategoricalDtype) always returns 'category',
+            # and hash(np.dtype('<m8')) == hash(np.dtype('<m8[ns]'))
+            key = ''.join([str(subtype), str(hash(subtype))])
+            return cls._cache[key]
         except KeyError:
             u = object.__new__(cls)
             u.subtype = subtype
-            cls._cache[str(subtype)] = u
+            cls._cache[key] = u
             return u
 
     @classmethod
@@ -692,20 +697,14 @@ class IntervalDtype(ExtensionDtype):
         if its not possible
         """
         if isinstance(string, compat.string_types):
-            try:
-                return cls(string)
-            except ValueError:
-                pass
-        raise TypeError("could not construct IntervalDtype")
+            return cls(string)
+        msg = "a string needs to be passed, got type {typ}"
+        raise TypeError(msg.format(typ=type(string)))
 
     def __unicode__(self):
         if self.subtype is None:
             return "interval"
         return "interval[{subtype}]".format(subtype=self.subtype)
-
-    @property
-    def name(self):
-        return str(self)
 
     def __hash__(self):
         # make myself hashable
@@ -713,10 +712,14 @@ class IntervalDtype(ExtensionDtype):
 
     def __eq__(self, other):
         if isinstance(other, compat.string_types):
-            return other == self.name or other == self.name.title()
-
-        return (isinstance(other, IntervalDtype) and
-                self.subtype == other.subtype)
+            return other.title() in (self.name.title(), str(self).title())
+        elif not isinstance(other, IntervalDtype):
+            return False
+        elif self.subtype is None or other.subtype is None:
+            # None should match any subtype
+            return True
+        else:
+            return self.subtype == other.subtype
 
     @classmethod
     def is_dtype(cls, dtype):
