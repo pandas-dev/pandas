@@ -758,15 +758,11 @@ class TestCategoricalSeries(object):
     '__add__', '__radd__',
     '__sub__', '__rsub__',
     '__mul__', '__rmul__',
-    '__div__', '__rdiv__',
+    #'__div__', '__rdiv__',
     '__truediv__', '__rtruediv__',
     '__floordiv__', '__rfloordiv__',
     '__mod__', '__rmod__', '__divmod__',
-    '__pow__', '__rpow__'
-    '__eq__', '__ne__', '__ge__', '__gt__', '__le__', '__lt__',
-    '__float__', '__int__', '__long__',
-    '__and__', '__rand__','__or__', '__ror__', '__xor__', '__rxor__',
-    'argmax', 'argmin'])
+    '__pow__', '__rpow__'])
 def test_generated_op_names(opname):
     method = getattr(pd.Series, opname)
     assert method.__name__ == opname
