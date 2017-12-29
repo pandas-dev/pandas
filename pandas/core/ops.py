@@ -776,7 +776,7 @@ def _arith_method_SERIES(op, name, str_rep, fill_zeros=None, default_axis=None,
             left,
             result,
             index=left.index,
-            name=res_name,
+            name=name,
             dtype=dtype,
         )
 
