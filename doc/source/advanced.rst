@@ -559,7 +559,7 @@ Take Methods
 
 .. _advanced.take:
 
-Similar to numpy ndarrays, pandas Index, Series, and DataFrame also provides
+Similar to NumPy ndarrays, pandas Index, Series, and DataFrame also provides
 the ``take`` method that retrieves elements along a given axis at the given
 indices. The given indices must be either a list or an ndarray of integer
 index positions. ``take`` will also accept negative integers as relative positions to the end of the object.

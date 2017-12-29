@@ -441,7 +441,7 @@ Selection By Position
    This is sometimes called ``chained assignment`` and should be avoided.
    See :ref:`Returning a View versus Copy <indexing.view_versus_copy>`.
 
-Pandas provides a suite of methods in order to get **purely integer based indexing**. The semantics follow closely Python and numpy slicing. These are ``0-based`` indexing. When slicing, the start bounds is *included*, while the upper bound is *excluded*. Trying to use a non-integer, even a **valid** label will raise an ``IndexError``.
+Pandas provides a suite of methods in order to get **purely integer based indexing**. The semantics follow closely Python and NumPy slicing. These are ``0-based`` indexing. When slicing, the start bounds is *included*, while the upper bound is *excluded*. Trying to use a non-integer, even a **valid** label will raise an ``IndexError``.
 
 The ``.iloc`` attribute is the primary access method. The following are valid inputs:
 
@@ -777,7 +777,7 @@ using the ``replace`` option:
 
 By default, each row has an equal probability of being selected, but if you want rows
 to have different probabilities, you can pass the ``sample`` function sampling weights as
-``weights``. These weights can be a list, a numpy array, or a Series, but they must be of the same length as the object you are sampling. Missing values will be treated as a weight of zero, and inf values are not allowed. If weights do not sum to 1, they will be re-normalized by dividing all weights by the sum of the weights. For example:
+``weights``. These weights can be a list, a NumPy array, or a Series, but they must be of the same length as the object you are sampling. Missing values will be treated as a weight of zero, and inf values are not allowed. If weights do not sum to 1, they will be re-normalized by dividing all weights by the sum of the weights. For example:
 
 .. ipython :: python
 
@@ -805,7 +805,7 @@ as a string.
     df3 = pd.DataFrame({'col1':[1,2,3], 'col2':[2,3,4]})
     df3.sample(n=1, axis=1)
 
-Finally, one can also set a seed for ``sample``'s random number generator using the ``random_state`` argument, which will accept either an integer (as a seed) or a numpy RandomState object.
+Finally, one can also set a seed for ``sample``'s random number generator using the ``random_state`` argument, which will accept either an integer (as a seed) or a NumPy RandomState object.
 
 .. 	ipython :: python
 
@@ -893,7 +893,7 @@ evaluate an expression such as ``df.A > 2 & df.B < 3`` as
 ``df.A > (2 & df.B) < 3``, while the desired evaluation order is 
 ``(df.A > 2) & (df.B < 3)``.
 
-Using a boolean vector to index a Series works exactly as in a numpy ndarray:
+Using a boolean vector to index a Series works exactly as in a NumPy ndarray:
 
 .. ipython:: python
 

@@ -24,12 +24,12 @@ Enhancing Performance
 Cython (Writing C extensions for pandas)
 ----------------------------------------
 
-For many use cases writing pandas in pure Python and numpy is sufficient. In some
+For many use cases writing pandas in pure Python and NumPy is sufficient. In some
 computationally heavy applications however, it can be possible to achieve sizeable
 speed-ups by offloading work to `cython <http://cython.org/>`__.
 
 This tutorial assumes you have refactored as much as possible in python, for example
-trying to remove for loops and making use of numpy vectorization, it's always worth
+trying to remove for loops and making use of NumPy vectorization, it's always worth
 optimising in Python first.
 
 This tutorial walks through a "typical" process of cythonizing a slow computation.
@@ -232,7 +232,7 @@ the rows, applying our ``integrate_f_typed``, and putting this in the zeros arra
 .. note::
 
     Loops like this would be *extremely* slow in python, but in Cython looping
-    over numpy arrays is *fast*.
+    over NumPy arrays is *fast*.
 
 .. code-block:: ipython
 
@@ -391,7 +391,7 @@ Caveats
 
     ``numba`` will execute on any function, but can only accelerate certain classes of functions.
 
-``numba`` is best at accelerating functions that apply numerical functions to numpy arrays. When passed a function that only uses operations it knows how to accelerate, it will execute in ``nopython`` mode.
+``numba`` is best at accelerating functions that apply numerical functions to NumPy arrays. When passed a function that only uses operations it knows how to accelerate, it will execute in ``nopython`` mode.
 
 If ``numba`` is passed a function that includes something it doesn't know how to work with -- a category that currently includes sets, lists, dictionaries, or string functions -- it will revert to ``object mode``. In ``object mode``, numba will execute but your code will not speed up significantly. If you would prefer that ``numba`` throw an error if it cannot compile a function in a way that speeds up your code, pass numba the argument ``nopython=True`` (e.g.  ``@numba.jit(nopython=True)``). For more on troubleshooting ``numba`` modes, see the `numba troubleshooting page <http://numba.pydata.org/numba-doc/0.20.0/user/troubleshoot.html#the-compiled-code-is-too-slow>`__.
 
@@ -779,7 +779,7 @@ Technical Minutia Regarding Expression Evaluation
 
 Expressions that would result in an object dtype or involve datetime operations
 (because of ``NaT``) must be evaluated in Python space. The main reason for
-this behavior is to maintain backwards compatibility with versions of numpy <
+this behavior is to maintain backwards compatibility with versions of NumPy <
 1.7. In those versions of ``numpy`` a call to ``ndarray.astype(str)`` will
 truncate any strings that are more than 60 characters in length. Second, we
 can't pass ``object`` arrays to ``numexpr`` thus string comparisons must be

@@ -104,7 +104,7 @@ Datetimes
 ---------
 
 For datetime64[ns] types, ``NaT`` represents missing values. This is a pseudo-native
-sentinel value that can be represented by numpy in a singular dtype (datetime64[ns]).
+sentinel value that can be represented by NumPy in a singular dtype (datetime64[ns]).
 pandas objects provide intercompatibility between ``NaT`` and ``NaN``.
 
 .. ipython:: python

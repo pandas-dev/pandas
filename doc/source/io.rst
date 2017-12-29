@@ -1851,7 +1851,7 @@ is ``None``. To explicitly force ``Series`` parsing, pass ``typ=series``
 - ``convert_axes`` : boolean, try to convert the axes to the proper dtypes, default is True
 - ``convert_dates`` : a list of columns to parse for dates; If True, then try to parse date-like columns, default is True
 - ``keep_default_dates`` : boolean, default True. If parsing dates, then parse the default date-like columns
-- ``numpy`` : direct decoding to numpy arrays. default is False;
+- ``numpy`` : direct decoding to NumPy arrays. default is False;
   Supports numeric data only, although labels may be non-numeric. Also note that the JSON ordering **MUST** be the same for each term if ``numpy=True``
 - ``precise_float`` : boolean, default ``False``. Set to enable usage of higher precision (strtod) function when decoding string to double values. Default (``False``) is to use fast but less precise builtin functionality
 - ``date_unit`` : string, the timestamp unit to detect if converting dates. Default
@@ -1962,7 +1962,7 @@ The Numpy Parameter
 
 If ``numpy=True`` is passed to ``read_json`` an attempt will be made to sniff
 an appropriate dtype during deserialization and to subsequently decode directly
-to numpy arrays, bypassing the need for intermediate Python objects.
+to NumPy arrays, bypassing the need for intermediate Python objects.
 
 This can provide speedups if you are deserialising a large amount of numeric
 data:
@@ -1999,7 +1999,7 @@ The speedup is less noticeable for smaller datasets:
 
 .. warning::
 
-   Direct numpy decoding makes a number of assumptions and may fail or produce
+   Direct NumPy decoding makes a number of assumptions and may fail or produce
    unexpected output if these assumptions are not satisfied:
 
     - data is numeric.
