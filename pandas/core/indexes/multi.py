@@ -45,6 +45,77 @@ _index_doc_kwargs.update(
          target_klass='MultiIndex or list of tuples'))
 
 
+class MultiIndexUIntEngine(libindex.BaseMultiIndexCodesEngine,
+                           libindex.UInt64Engine):
+    """
+    This class manages a MultiIndex by mapping label combinations to positive
+    integers.
+    """
+    _base = libindex.UInt64Engine
+
+    def _codes_to_ints(self, codes):
+        """
+        Transform each row of a 2d array of uint64 in a uint64, in a strictly
+        monotonic way (i.e. respecting the lexicographic order of integer
+        combinations): see BaseMultiIndexCodesEngine documentation.
+
+        Parameters
+        ----------
+        codes : 2-dimensional array of dtype uint64
+            Combinations of integers (one per row)
+
+        Returns
+        ------
+        int_keys : 1-dimensional array of dtype uint64
+            Integers representing one combination each
+        """
+        # Shift the representation of each level by the pre-calculated number
+        # of bits:
+        codes <<= self.offsets
+
+        # Now sum and OR are in fact interchangeable. This is a simple
+        # composition of the (disjunct) significant bits of each level (i.e.
+        # each column in "codes") in a single positive integer (per row):
+        return np.bitwise_or.reduce(codes, axis=1)
+
+
+class MultiIndexPyIntEngine(libindex.BaseMultiIndexCodesEngine,
+                            libindex.ObjectEngine):
+    """
+    This class manages those (extreme) cases in which the number of possible
+    label combinations overflows the 64 bits integers, and uses an ObjectEngine
+    containing Python integers.
+    """
+    _base = libindex.ObjectEngine
+
+    def _codes_to_ints(self, codes):
+        """
+        Transform each row of a 2d array of uint64 in a Python integer, in a
+        strictly monotonic way (i.e. respecting the lexicographic order of
+        integer combinations): see BaseMultiIndexCodesEngine documentation.
+
+        Parameters
+        ----------
+        codes : 2-dimensional array of dtype uint64
+            Combinations of integers (one per row)
+
+        Returns
+        ------
+        int_keys : 1-dimensional array of dtype object
+            Integers representing one combination each
+        """
+
+        # Shift the representation of each level by the pre-calculated number
+        # of bits. Since this can overflow uint64, first make sure we are
+        # working with Python integers:
+        codes = codes.astype('object') << self.offsets
+
+        # Now sum and OR are in fact interchangeable. This is a simple
+        # composition of the (disjunct) significant bits of each level (i.e.
+        # each column in "codes") in a single positive integer (per row):
+        return np.bitwise_or.reduce(codes, axis=1)
+
+
 class MultiIndex(Index):
     """
     A multi-level, or hierarchical, index object for pandas objects
@@ -687,16 +758,25 @@ class MultiIndex(Index):
 
     @cache_readonly
     def _engine(self):
+        # Calculate the number of bits needed to represent labels in each
+        # level, as log2 of their sizes (including -1 for NaN):
+        sizes = np.ceil(np.log2([len(l) + 1 for l in self.levels]))
 
-        # choose our engine based on our size
-        # the hashing based MultiIndex for larger
-        # sizes, and the MultiIndexOjbect for smaller
-        # xref: https://github.com/pandas-dev/pandas/pull/16324
-        l = len(self)
-        if l > 10000:
-            return libindex.MultiIndexHashEngine(lambda: self, l)
+        # Sum bit counts, starting from the _right_....
+        lev_bits = np.cumsum(sizes[::-1])[::-1]
 
-        return libindex.MultiIndexObjectEngine(lambda: self.values, l)
+        # ... in order to obtain offsets such that sorting the combination of
+        # shifted codes (one for each level, resulting in a unique integer) is
+        # equivalent to sorting lexicographically the codes themselves. Notice
+        # that each level needs to be shifted by the number of bits needed to
+        # represent the _previous_ ones:
+        offsets = np.concatenate([lev_bits[1:], [0]]).astype('uint64')
+
+        # Check the total number of bits needed for our representation:
+        if lev_bits[0] > 64:
+            # The levels would overflow a 64 bit uint - use Python integers:
+            return MultiIndexPyIntEngine(self.levels, self.labels, offsets)
+        return MultiIndexUIntEngine(self.levels, self.labels, offsets)
 
     @property
     def values(self):
@@ -1885,7 +1965,7 @@ class MultiIndex(Index):
             if tolerance is not None:
                 raise NotImplementedError("tolerance not implemented yet "
                                           'for MultiIndex')
-            indexer = self._get_fill_indexer(target, method, limit)
+            indexer = self._engine.get_indexer(target, method, limit)
         elif method == 'nearest':
             raise NotImplementedError("method='nearest' not implemented yet "
                                       'for MultiIndex; see GitHub issue 9365')

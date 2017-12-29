@@ -26,6 +26,7 @@ from hashtable cimport HashTable
 from pandas._libs import algos, hashtable as _hash
 from pandas._libs.tslibs import period as periodlib
 from pandas._libs.tslib import Timestamp, Timedelta
+from pandas._libs.missing import checknull
 
 cdef int64_t iNaT = util.get_nat()
 
@@ -583,6 +584,141 @@ cpdef convert_scalar(ndarray arr, object value):
             raise ValueError('Cannot assign nan to integer series')
 
     return value
+
+
+cdef class BaseMultiIndexCodesEngine:
+    """
+    Base class for MultiIndexUIntEngine and MultiIndexPyIntEngine, which
+    represent each label in a MultiIndex as an integer, by juxtaposing the bits
+    encoding each level, with appropriate offsets.
+
+    For instance: if 3 levels have respectively 3, 6 and 1 possible values,
+    then their labels can be represented using respectively 2, 3 and 1 bits,
+    as follows:
+     _ _ _ _____ _ __ __ __
+    |0|0|0| ... |0| 0|a1|a0| -> offset 0 (first level)
+     — — — ————— — —— —— ——
+    |0|0|0| ... |0|b2|b1|b0| -> offset 2 (bits required for first level)
+     — — — ————— — —— —— ——
+    |0|0|0| ... |0| 0| 0|c0| -> offset 5 (bits required for first two levels)
+     ‾ ‾ ‾ ‾‾‾‾‾ ‾ ‾‾ ‾‾ ‾‾
+    and the resulting unsigned integer representation will be:
+     _ _ _ _____ _ __ __ __ __ __ __
+    |0|0|0| ... |0|c0|b2|b1|b0|a1|a0|
+     ‾ ‾ ‾ ‾‾‾‾‾ ‾ ‾‾ ‾‾ ‾‾ ‾‾ ‾‾ ‾‾
+
+    Offsets are calculated at initialization, labels are transformed by method
+    _codes_to_ints.
+
+    Keys are located by first locating each component against the respective
+    level, then locating (the integer representation of) codes.
+    """
+    def __init__(self, object levels, object labels,
+                 ndarray[uint64_t, ndim=1] offsets):
+        """
+        Parameters
+        ----------
+        levels : list-like of numpy arrays
+            Levels of the MultiIndex
+        labels : list-like of numpy arrays of integer dtype
+            Labels of the MultiIndex
+        offsets : numpy array of uint64 dtype
+            Pre-calculated offsets, one for each level of the index
+        """
+
+        self.levels = levels
+        self.offsets = offsets
+
+        # Transform labels in a single array, and add 1 so that we are working
+        # with positive integers (-1 for NaN becomes 0):
+        codes = (np.array(labels, dtype='int64').T + 1).astype('uint64',
+                                                               copy=False)
+
+        # Map each codes combination in the index to an integer unambiguously
+        # (no collisions possible), based on the "offsets", which describe the
+        # number of bits to switch labels for each level:
+        lab_ints = self._codes_to_ints(codes)
+
+        # Initialize underlying index (e.g. libindex.UInt64Engine) with
+        # integers representing labels: we will use its get_loc and get_indexer
+        self._base.__init__(self, lambda: lab_ints, len(lab_ints))
+
+    def _extract_level_codes(self, object target, object method=None):
+        """
+        Map the requested list of (tuple) keys to their integer representations
+        for searching in the underlying integer index.
+
+        Parameters
+        ----------
+        target : list-like of keys
+            Each key is a tuple, with a label for each level of the index.
+
+        Returns
+        ------
+        int_keys : 1-dimensional array of dtype uint64 or object
+            Integers representing one combination each
+        """
+
+        level_codes = [lev.get_indexer(codes) + 1 for lev, codes
+                       in zip(self.levels, zip(*target))]
+        return self._codes_to_ints(np.array(level_codes, dtype='uint64').T)
+
+    def get_indexer(self, object target, object method=None,
+                    object limit=None):
+        lab_ints = self._extract_level_codes(target)
+
+        # All methods (exact, backfill, pad) directly map to the respective
+        # methods of the underlying (integers) index...
+        if method is not None:
+            # but underlying backfill and pad methods require index and keys
+            # to be sorted. The index already is (checked in
+            # Index._get_fill_indexer), sort (integer representations of) keys:
+            order = np.argsort(lab_ints)
+            lab_ints = lab_ints[order]
+            indexer = (getattr(self._base, 'get_{}_indexer'.format(method))
+                       (self, lab_ints, limit=limit))
+            indexer = indexer[order]
+        else:
+            indexer = self._base.get_indexer(self, lab_ints)
+
+        return indexer
+
+    def get_loc(self, object key):
+        if is_definitely_invalid_key(key):
+            raise TypeError("'{key}' is an invalid key".format(key=key))
+        if not PyTuple_Check(key):
+            raise KeyError(key)
+        try:
+            indices = [0 if checknull(v) else lev.get_loc(v) + 1
+                       for lev, v in zip(self.levels, key)]
+        except KeyError:
+            raise KeyError(key)
+
+        # ndmin=2 because codes_to_ints expects multiple labels:
+        indices = np.array(indices, ndmin=2, dtype='uint64')
+        # ... and returns a (length 1, in this case) array of integers:
+        lab_int = self._codes_to_ints(indices)[0]
+
+        return self._base.get_loc(self, lab_int)
+
+    def get_indexer_non_unique(self, object target):
+        # This needs to be overridden just because the default one works on
+        # target._values, and target can be itself a MultiIndex.
+
+        lab_ints = self._extract_level_codes(target)
+        indexer = self._base.get_indexer_non_unique(self, lab_ints)
+
+        return indexer
+
+    def __contains__(self, object val):
+        # Default __contains__ looks in the underlying mapping, which in this
+        # case only contains integer representations.
+        try:
+            self.get_loc(val)
+            return True
+        except (KeyError, TypeError, ValueError):
+            return False
+
 
 
 cdef class MultiIndexObjectEngine(ObjectEngine):
