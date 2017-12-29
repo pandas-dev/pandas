@@ -221,10 +221,7 @@ but can be explicitly specified, too. Supply the values you would like
 as strings or lists of strings!
 
 >>> pd.read_excel(open('tmp.xlsx','rb'),
-...               true_values='2',
-...               false_values='3',
-...               na_values=['string1', 'string2'],
-...               thousands=',')
+...               na_values=['string1', 'string2'])
       Name  Value
 0      NaN      1
 1      NaN      2
