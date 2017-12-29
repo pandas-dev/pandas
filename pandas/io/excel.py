@@ -132,12 +132,13 @@ skiprows : list-like
 nrows : int, default None
     Number of rows to parse
 
-    .. versionadded:: 0.23.0
+    .. versionadded:: 0.22.0
 
 na_values : scalar, str, list-like, or dict, default None
     Additional strings to recognize as NA/NaN. If dict passed, specific
     per-column NA values. By default the following values are interpreted
-    as NaN: '""" + fill("', '".join(sorted(_NA_VALUES)), 999) + """'.
+    as NaN: '""" + fill("', '".join(sorted(_NA_VALUES)), 70,
+    subsequent_indent="    ") + """'.
 keep_default_na : bool, default True
     If na_values are specified and keep_default_na is False the default NaN
     values are overridden, otherwise they're appended to.
@@ -154,7 +155,7 @@ comment : str, default None
     comment string and the end of the current line is ignored.
 skip_footer : int, default 0
 
-    .. deprecated:: 0.23.0
+    .. deprecated:: 0.22.0
        Pass in `skipfooter` instead.
 skipfooter : int, default 0
     Rows at the end to skip (0-indexed)
@@ -177,7 +178,7 @@ An example DataFrame written to a local file
 >>> df_out = pd.DataFrame([('string1', 1),
 ...                        ('string2', 2),
 ...                        ('string3', 3)],
-...                       columns=('Name', 'Value'))
+...                       columns=['Name', 'Value'])
 >>> df_out
       Name  Value
 0  string1      1
@@ -201,7 +202,7 @@ The file can be read using the file name as string or an open file object:
 
 Index and header can be specified via the `index_col` and `header` arguments
 
->>> pd.read_excel(open('tmp.xlsx','rb'), index_col=None, header=None)
+>>> pd.read_excel('tmp.xlsx', index_col=None, header=None)
      0        1      2
 0  NaN     Name  Value
 1  0.0  string1      1
@@ -210,7 +211,7 @@ Index and header can be specified via the `index_col` and `header` arguments
 
 Column types are inferred but can be explicitly specified
 
->>> pd.read_excel(open('tmp.xlsx','rb'), dtype={'Name':str, 'Value':float})
+>>> pd.read_excel('tmp.xlsx', dtype={'Name':str, 'Value':float})
       Name  Value
 0  string1    1.0
 1  string2    2.0
@@ -220,7 +221,7 @@ True, False, and NA values, and thousands separators have defaults,
 but can be explicitly specified, too. Supply the values you would like
 as strings or lists of strings!
 
->>> pd.read_excel(open('tmp.xlsx','rb'),
+>>> pd.read_excel('tmp.xlsx',
 ...               na_values=['string1', 'string2'])
       Name  Value
 0      NaN      1
@@ -298,6 +299,7 @@ def read_excel(io,
                parse_dates=False,
                date_parser=None,
                thousands=None,
+               comment=None,
                skipfooter=0,
                convert_float=True,
                **kwds):
@@ -331,12 +333,8 @@ def read_excel(io,
         parse_dates=parse_dates,
         date_parser=date_parser,
         thousands=thousands,
-<<<<<<< cc8a5c2681bfc6e209968ff9eb801e55454dfead
-        skipfooter=skipfooter,
-=======
         comment=comment,
-        skip_footer=skip_footer,
->>>>>>> changed order of arguments
+        skipfooter=skipfooter,
         convert_float=convert_float,
         **kwds)
 
@@ -418,12 +416,8 @@ class ExcelFile(object):
               parse_dates=False,
               date_parser=None,
               thousands=None,
-<<<<<<< cc8a5c2681bfc6e209968ff9eb801e55454dfead
-              skipfooter=0,
-=======
               comment=None,
-              skip_footer=0,
->>>>>>> changed order of arguments
+              skipfooter=0,
               convert_float=True,
               **kwds):
         """
@@ -448,12 +442,8 @@ class ExcelFile(object):
                                  parse_dates=parse_dates,
                                  date_parser=date_parser,
                                  thousands=thousands,
-<<<<<<< cc8a5c2681bfc6e209968ff9eb801e55454dfead
-                                 skipfooter=skipfooter,
-=======
                                  comment=comment,
-                                 skip_footer=skip_footer,
->>>>>>> changed order of arguments
+                                 skipfooter=skipfooter,
                                  convert_float=convert_float,
                                  **kwds)
 
@@ -507,12 +497,8 @@ class ExcelFile(object):
                      parse_dates=False,
                      date_parser=None,
                      thousands=None,
-<<<<<<< cc8a5c2681bfc6e209968ff9eb801e55454dfead
-                     skipfooter=0,
-=======
                      comment=None,
-                     skip_footer=0,
->>>>>>> changed order of arguments
+                     skipfooter=0,
                      convert_float=True,
                      **kwds):
 
@@ -686,12 +672,8 @@ class ExcelFile(object):
                                     parse_dates=parse_dates,
                                     date_parser=date_parser,
                                     thousands=thousands,
-<<<<<<< cc8a5c2681bfc6e209968ff9eb801e55454dfead
-                                    skipfooter=skipfooter,
-=======
                                     comment=comment,
-                                    skipfooter=skip_footer,
->>>>>>> changed order of arguments
+                                    skipfooter=skipfooter,
                                     **kwds)
 
                 output[asheetname] = parser.read(nrows=nrows)

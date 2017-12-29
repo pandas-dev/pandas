@@ -59,10 +59,8 @@ Other API Changes
 - :func:`pandas.DataFrame.merge` no longer casts a ``float`` column to ``object`` when merging on ``int`` and ``float`` columns (:issue:`16572`)
 - The default NA value for :class:`UInt64Index` has changed from 0 to ``NaN``, which impacts methods that mask with NA, such as ``UInt64Index.where()`` (:issue:`18398`)
 - Refactored ``setup.py`` to use ``find_packages`` instead of explicitly listing out all subpackages (:issue:`18535`)
-- Rearranged the order of keyword arguments in :func:`read_excel()` to align with :func:`read_csv()` (:issue:`16672`)
 - :func:`pandas.merge` now raises a ``ValueError`` when trying to merge on incompatible data types (:issue:`9780`)
 - :func:`wide_to_long` previously kept numeric-like suffixes as ``object`` dtype. Now they are cast to numeric if possible (:issue:`17627`)
-- in :func:`read_excel`, the ``comment`` argument is now exposed as a named parameter (:issue:`18735`)
 
 .. _whatsnew_0220.deprecations:
 
