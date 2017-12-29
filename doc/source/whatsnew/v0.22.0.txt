@@ -1,7 +1,7 @@
 .. _whatsnew_0220:
 
-v0.22.0
--------
+v0.22.0 (December 29, 2017)
+---------------------------
 
 This is a major release from 0.21.1 and includes a single, API-breaking change.
 We recommend that all users upgrade to this version after carefully reading the
