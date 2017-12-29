@@ -51,7 +51,7 @@ from pandas._libs.tslibs import parsing
 # so we need to remove it if we see it.
 _BOM = u('\ufeff')
 
-_parser_params = """Also supports optionally iterating or breaking of the file
+_parser_params = r"""Also supports optionally iterating or breaking of the file
 into chunks.
 
 Additional help can be found in the `online docs for IO Tools
@@ -842,19 +842,19 @@ class TextFileReader(BaseIterator):
                                   " sep=None with delim_whitespace=False"
                 engine = 'python'
         elif sep is not None and len(sep) > 1:
-            if engine == 'c' and sep == '\s+':
+            if engine == 'c' and sep == r'\s+':
                 result['delim_whitespace'] = True
                 del result['delimiter']
             elif engine not in ('python', 'python-fwf'):
                 # wait until regex engine integrated
                 fallback_reason = "the 'c' engine does not support"\
                                   " regex separators (separators > 1 char and"\
-                                  " different from '\s+' are"\
+                                  r" different from '\s+' are"\
                                   " interpreted as regex)"
                 engine = 'python'
         elif delim_whitespace:
             if 'python' in engine:
-                result['delimiter'] = '\s+'
+                result['delimiter'] = r'\s+'
         elif sep is not None:
             encodeable = True
             try:

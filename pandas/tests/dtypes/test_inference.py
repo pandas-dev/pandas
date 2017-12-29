@@ -18,7 +18,8 @@ import pandas as pd
 from pandas._libs import tslib, lib, missing as libmissing
 from pandas import (Series, Index, DataFrame, Timedelta,
                     DatetimeIndex, TimedeltaIndex, Timestamp,
-                    Panel, Period, Categorical, isna)
+                    Panel, Period, Categorical, isna, Interval,
+                    DateOffset)
 from pandas.compat import u, PY2, PY3, StringIO, lrange
 from pandas.core.dtypes import inference
 from pandas.core.dtypes.common import (
@@ -1151,6 +1152,8 @@ class Testisscalar(object):
         assert is_scalar(Timestamp('2014-01-01'))
         assert is_scalar(Timedelta(hours=1))
         assert is_scalar(Period('2014-01-01'))
+        assert is_scalar(Interval(left=0, right=1))
+        assert is_scalar(DateOffset(days=1))
 
     def test_lisscalar_pandas_containers(self):
         assert not is_scalar(Series())
