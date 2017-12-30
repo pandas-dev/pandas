@@ -218,3 +218,26 @@ returns ``0``.
 
 The default behavior of ``min_periods=None``, implying that ``min_periods``
 equals the window size, is unchanged.
+
+Compatibility
+~~~~~~~~~~~~~
+
+If you maintain a library that should work across pandas versions, it
+may be easiest to exclude pandas 0.21 from your requirements. Otherwise, all your
+``sum()`` calls would need to check if the ``Series`` is empty before summing.
+
+With setuptools, in your ``setup.py`` use::
+
+    install_requires=['pandas!=0.21.*', ...]
+
+With conda, use
+
+.. code-block:: yaml
+
+    requirements:
+      run:
+        - pandas !=0.21.0,!=0.21.1
+
+Note that the inconsistency in the return value for all-*NA* series is still
+there for pandas 0.20.3 and earlier. Avoiding pandas 0.21 will only help with
+the empty case.

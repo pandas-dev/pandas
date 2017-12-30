@@ -7534,8 +7534,7 @@ Parameters
 ----------
 axis : %(axis_descr)s
 skipna : boolean, default True
-    Exclude NA/null values. If an entire row/column is NA or empty, the result
-    will be NA
+    Exclude NA/null values when computing the result.
 level : int or level name, default None
     If the axis is a MultiIndex (hierarchical), count along a
     particular level, collapsing into a %(name1)s
@@ -7669,7 +7668,7 @@ min_count : int, default 1
     The required number of valid values to perform the operation. If fewer than
     ``min_count`` non-NA values are present the result will be NA.
 
-    .. versionadded :: 0.21.2
+    .. versionadded :: 0.22.0
 
        Added with the default being 1. This means the sum or product
        of an all-NA or empty series is ``NaN``.
