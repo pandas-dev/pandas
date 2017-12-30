@@ -1858,6 +1858,68 @@ class ExcelWriterBase(SharedItems):
             with pytest.raises(KeyError):
                 write_frame.to_excel(path, 'test1', columns=['C', 'D'])
 
+    def test_comment_arg(self):
+        # Re issue #18735
+        # Test the comment argument functionality to read_excel
+        with ensure_clean(self.ext) as path:
+
+            # Create file to read in
+            df = DataFrame({'A': ['one', '#one', 'one'],
+                            'B': ['two', 'two', '#two']})
+            df.to_excel(path, 'test_c')
+
+            # Read file without comment arg
+            result1 = read_excel(path, 'test_c')
+            result1.iloc[1, 0] = None
+            result1.iloc[1, 1] = None
+            result1.iloc[2, 1] = None
+            result2 = read_excel(path, 'test_c', comment='#')
+            tm.assert_frame_equal(result1, result2)
+
+    def test_comment_default(self):
+        # Re issue #18735
+        # Test the comment argument default to read_excel
+        with ensure_clean(self.ext) as path:
+
+            # Create file to read in
+            df = DataFrame({'A': ['one', '#one', 'one'],
+                            'B': ['two', 'two', '#two']})
+            df.to_excel(path, 'test_c')
+
+            # Read file with default and explicit comment=None
+            result1 = read_excel(path, 'test_c')
+            result2 = read_excel(path, 'test_c', comment=None)
+            tm.assert_frame_equal(result1, result2)
+
+    def test_comment_used(self):
+        # Re issue #18735
+        # Test the comment argument is working as expected when used
+        with ensure_clean(self.ext) as path:
+
+            # Create file to read in
+            df = DataFrame({'A': ['one', '#one', 'one'],
+                            'B': ['two', 'two', '#two']})
+            df.to_excel(path, 'test_c')
+
+            # Test read_frame_comment against manually produced expected output
+            expected = DataFrame({'A': ['one', None, 'one'],
+                                  'B': ['two', None, None]})
+            result = read_excel(path, 'test_c', comment='#')
+            tm.assert_frame_equal(result, expected)
+
+    def test_comment_emptyline(self):
+        # Re issue #18735
+        # Test that read_excel ignores commented lines at the end of file
+        with ensure_clean(self.ext) as path:
+
+            df = DataFrame({'a': ['1', '#2'], 'b': ['2', '3']})
+            df.to_excel(path, index=False)
+
+            # Test that all-comment lines at EoF are ignored
+            expected = DataFrame({'a': [1], 'b': [2]})
+            result = read_excel(path, comment='#')
+            tm.assert_frame_equal(result, expected)
+
     def test_datetimes(self):
 
         # Test writing and reading datetimes. For issue #9139. (xref #9185)
