@@ -11,12 +11,7 @@ from dateutil.tz import (
     tzfile as _dateutil_tzfile)
 
 import sys
-if sys.platform == 'win32' or sys.platform == 'cygwin':
-    # equiv pd.compat.is_platform_windows()
-    from dateutil.zoneinfo import gettz as dateutil_gettz
-else:
-    from dateutil.tz import gettz as dateutil_gettz
-
+from dateutil.tz import gettz as dateutil_gettz
 
 from pytz.tzinfo import BaseTzInfo as _pytz_BaseTzInfo
 import pytz
