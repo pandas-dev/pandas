@@ -26,21 +26,21 @@ except ImportError:
 import argparse
 
 desc = """
-Find all commits touching a sepcified function across the codebase.
+Find all commits touching a specified function across the codebase.
 """.strip()
 argparser = argparse.ArgumentParser(description=desc)
 argparser.add_argument('funcname', metavar='FUNCNAME',
                    help='Name of function/method to search for changes on.')
 argparser.add_argument('-f', '--file-masks', metavar='f_re(,f_re)*',
                        default=["\.py.?$"],
-                   help='comma seperated list of regexes to match filenames against\n'+
+                   help='comma separated list of regexes to match filenames against\n'+
                    'defaults all .py? files')
 argparser.add_argument('-d', '--dir-masks', metavar='d_re(,d_re)*',
                        default=[],
-                   help='comma seperated list of regexes to match base path against')
+                   help='comma separated list of regexes to match base path against')
 argparser.add_argument('-p', '--path-masks', metavar='p_re(,p_re)*',
                        default=[],
-                   help='comma seperated list of regexes to match full file path against')
+                   help='comma separated list of regexes to match full file path against')
 argparser.add_argument('-y', '--saw-the-warning',
                        action='store_true',default=False,
                    help='must specify this to run, acknowledge you realize this will erase untracked files')

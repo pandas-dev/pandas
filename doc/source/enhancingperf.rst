@@ -173,7 +173,7 @@ Using ndarray
 
 It's calling series... a lot! It's creating a Series from each row, and get-ting from both
 the index and the series (three times for each row). Function calls are expensive
-in python, so maybe we could minimise these by cythonizing the apply part.
+in python, so maybe we could minimize these by cythonizing the apply part.
 
 .. note::
 
@@ -578,7 +578,7 @@ on the original ``DataFrame`` or return a copy with the new column.
 
 .. warning::
 
-   For backwards compatability, ``inplace`` defaults to ``True`` if not
+   For backwards compatibility, ``inplace`` defaults to ``True`` if not
    specified. This will change in a future version of pandas - if your
    code depends on an inplace assignment you should update to explicitly
    set ``inplace=True``

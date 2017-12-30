@@ -21,6 +21,7 @@
 .ipynb_checkpoints
 .tags
 .cache/
+.vscode/
 
 # Compiled source #
 ###################

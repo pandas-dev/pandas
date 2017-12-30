@@ -113,7 +113,7 @@ class Base(object):
         else:
             try:
                 klass = klass(value, normalize=normalize)
-            except:
+            except Exception:
                 klass = klass(normalize=normalize)
         return klass
 
@@ -143,10 +143,10 @@ class Base(object):
 
         except tslib.OutOfBoundsDatetime:
             raise
-        except (ValueError, KeyError) as e:
-            pytest.skip(
-                "cannot create out_of_range offset: {0} {1}".format(
-                    str(self).split('.')[-1], e))
+        except (ValueError, KeyError):
+            # we are creating an invalid offset
+            # so ignore
+            pass
 
 
 class TestCommon(Base):
@@ -3016,7 +3016,7 @@ class TestDST(object):
                     t.minute == tstart.minute and
                     t.second == tstart.second)
         elif offset_name in self.valid_date_offsets_singular:
-            # expect the signular offset value to match between tstart and t
+            # expect the singular offset value to match between tstart and t
             datepart_offset = getattr(t, offset_name
                                       if offset_name != 'weekday' else
                                       'dayofweek')
@@ -3063,7 +3063,7 @@ class TestDST(object):
                 expected_utc_offset=hrs_post)
 
     def test_fallback_singular(self):
-        # in the case of signular offsets, we dont neccesarily know which utc
+        # in the case of singular offsets, we don't necessarily know which utc
         # offset the new Timestamp will wind up in (the tz for 1 month may be
         # different from 1 second) so we don't specify an expected_utc_offset
         for tz, utc_offsets in self.timezone_utc_offsets.items():
