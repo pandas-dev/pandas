@@ -175,7 +175,7 @@ class TestIntervalIndex(Base):
     def test_constructors_errors(self):
 
         # scalar
-        msg = ('IntervalIndex\(...\) must be called with a collection of '
+        msg = (r'IntervalIndex\(...\) must be called with a collection of '
                'some kind, 5 was passed')
         with tm.assert_raises_regex(TypeError, msg):
             IntervalIndex(5)

@@ -709,7 +709,7 @@ class TestToDatetimeUnit(object):
                          'day': [4, 5]})
 
         msg = ("cannot assemble the datetimes: time data .+ does not "
-               "match format '%Y%m%d' \(match\)")
+               r"match format '%Y%m%d' \(match\)")
         with tm.assert_raises_regex(ValueError, msg):
             to_datetime(df2, cache=cache)
         result = to_datetime(df2, errors='coerce', cache=cache)
@@ -719,15 +719,15 @@ class TestToDatetimeUnit(object):
 
         # extra columns
         msg = ("extra keys have been passed to the datetime assemblage: "
-               "\[foo\]")
+               r"\[foo\]")
         with tm.assert_raises_regex(ValueError, msg):
             df2 = df.copy()
             df2['foo'] = 1
             to_datetime(df2, cache=cache)
 
         # not enough
-        msg = ('to assemble mappings requires at least that \[year, month, '
-               'day\] be specified: \[.+\] is missing')
+        msg = (r'to assemble mappings requires at least that \[year, month, '
+               r'day\] be specified: \[.+\] is missing')
         for c in [['year'],
                   ['year', 'month'],
                   ['year', 'month', 'second'],

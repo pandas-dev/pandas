@@ -261,7 +261,7 @@ class TestGroupBy(MixIn):
         9   B-053  b76cd912ff "2014-10-08 19:17:48"
         10  B-065  b76cd912ff "2014-10-08 19:21:38"
         """
-        df = pd.read_csv(StringIO(data), sep='\s+',
+        df = pd.read_csv(StringIO(data), sep=r'\s+',
                          index_col=[0], parse_dates=['DATETIME'])
 
         result = df.groupby('ID3')['DATETIME'].transform(lambda x: x.diff())
