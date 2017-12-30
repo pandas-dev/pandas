@@ -235,7 +235,7 @@ class TestIX(object):
         tm.assert_frame_equal(df, expected)
 
         # ok, but chained assignments are dangerous
-        # if we turn off chained assignement it will work
+        # if we turn off chained assignment it will work
         with option_context('chained_assignment', None):
             df = DataFrame({'a': lrange(4)})
             df['b'] = np.nan

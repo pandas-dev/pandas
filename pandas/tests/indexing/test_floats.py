@@ -360,7 +360,7 @@ class TestFloatIndexers(object):
 
         # same as above, but for Integer based indexes
         # these coerce to a like integer
-        # oob indiciates if we are out of bounds
+        # oob indicates if we are out of bounds
         # of positional indexing
         for index, oob in [(tm.makeIntIndex(5), False),
                            (tm.makeRangeIndex(5), False),

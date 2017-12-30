@@ -319,7 +319,7 @@ class Index(IndexOpsMixin, PandasObject):
                     return IntervalIndex.from_intervals(subarr, name=name,
                                                         copy=copy)
                 elif inferred == 'boolean':
-                    # don't support boolean explicity ATM
+                    # don't support boolean explicitly ATM
                     pass
                 elif inferred != 'string':
                     if inferred.startswith('datetime'):
@@ -887,7 +887,7 @@ class Index(IndexOpsMixin, PandasObject):
         # are we a truncated display
         is_truncated = n > max_seq_items
 
-        # adj can optionaly handle unicode eastern asian width
+        # adj can optionally handle unicode eastern asian width
         adj = _get_adjustment()
 
         def _extend_line(s, line, value, display_width, next_line_prefix):
@@ -1788,7 +1788,7 @@ class Index(IndexOpsMixin, PandasObject):
         """
         Concatenate to_concat which has the same class
         """
-        # must be overrided in specific classes
+        # must be overridden in specific classes
         return _concat._concat_index_asobject(to_concat, name)
 
     _index_shared_docs['take'] = """
@@ -3276,7 +3276,7 @@ class Index(IndexOpsMixin, PandasObject):
                 sorter, _ = libalgos.groupsort_indexer(lab, 1 + lab.max())
                 return sorter
 
-            # find indexers of begining of each set of
+            # find indexers of beginning of each set of
             # same-key labels w.r.t all but last level
             tic = labels[0][:-1] != labels[0][1:]
             for lab in labels[1:-1]:
@@ -3573,7 +3573,7 @@ class Index(IndexOpsMixin, PandasObject):
 
     def _get_loc_only_exact_matches(self, key):
         """
-        This is overriden on subclasses (namely, IntervalIndex) to control
+        This is overridden on subclasses (namely, IntervalIndex) to control
         get_slice_bound.
         """
         return self.get_loc(key)

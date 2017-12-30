@@ -80,7 +80,7 @@ def hash_object_array(ndarray[object] arr, object key, object encoding='utf8'):
         lens[i] = l
         cdata = data
 
-        # keep the refernce alive thru the end of the
+        # keep the references alive thru the end of the
         # function
         datas.append(data)
         vecs[i] = cdata

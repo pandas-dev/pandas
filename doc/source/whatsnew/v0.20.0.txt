@@ -97,7 +97,7 @@ The API also supports a ``.transform()`` function for broadcasting results.
    df.transform(['abs', lambda x: x - x.min()])
 
 When presented with mixed dtypes that cannot be aggregated, ``.agg()`` will only take the valid
-aggregations. This is similiar to how groupby ``.agg()`` works. (:issue:`15015`)
+aggregations. This is similar to how groupby ``.agg()`` works. (:issue:`15015`)
 
 .. ipython:: python
 
@@ -1504,7 +1504,7 @@ Other Deprecations
 - ``TimedeltaIndex.searchsorted()``, ``DatetimeIndex.searchsorted()``, and ``PeriodIndex.searchsorted()`` have deprecated the ``key`` parameter in favor of ``value`` (:issue:`12662`)
 - ``DataFrame.astype()`` has deprecated the ``raise_on_error`` parameter in favor of ``errors`` (:issue:`14878`)
 - ``Series.sortlevel`` and ``DataFrame.sortlevel`` have been deprecated in favor of ``Series.sort_index`` and ``DataFrame.sort_index`` (:issue:`15099`)
-- importing ``concat`` from ``pandas.tools.merge`` has been deprecated in favor of imports from the ``pandas`` namespace. This should only affect explict imports (:issue:`15358`)
+- importing ``concat`` from ``pandas.tools.merge`` has been deprecated in favor of imports from the ``pandas`` namespace. This should only affect explicit imports (:issue:`15358`)
 - ``Series/DataFrame/Panel.consolidate()`` been deprecated as a public method. (:issue:`15483`)
 - The ``as_indexer`` keyword of ``Series.str.match()`` has been deprecated (ignored keyword) (:issue:`15257`).
 - The following top-level pandas functions have been deprecated and will be removed in a future version (:issue:`13790`, :issue:`15940`)

@@ -487,7 +487,7 @@ class TestSeriesConstructors(TestData):
     def test_constructor_datelike_coercion(self):
 
         # GH 9477
-        # incorrectly infering on dateimelike looking when object dtype is
+        # incorrectly inferring on dateimelike looking when object dtype is
         # specified
         s = Series([Timestamp('20130101'), 'NOV'], dtype=object)
         assert s.iloc[0] == Timestamp('20130101')

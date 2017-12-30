@@ -93,7 +93,7 @@ ToDo
 Authors
 -------
 
-- John D Hunter: orignal author.
+- John D Hunter: original author.
 - Fernando Perez: refactoring, documentation, cleanups, port to 0.11.
 - VáclavŠmilauer <eudoxos-AT-arcig.cz>: Prompt generalizations.
 - Skipper Seabold, refactoring, cleanups, pure python addition
@@ -154,7 +154,7 @@ COMMENT, INPUT, OUTPUT =  range(3)
 def block_parser(part, rgxin, rgxout, fmtin, fmtout):
     """
     part is a string of ipython text, comprised of at most one
-    input, one ouput, comments, and blank lines.  The block parser
+    input, one output, comments, and blank lines.  The block parser
     parses the text into a list of::
 
       blocks = [ (TOKEN0, data0), (TOKEN1, data1), ...]
@@ -268,7 +268,7 @@ class DecodingStringIO(StringIO, object):
                     return super(DecodingStringIO, self).write(data)
                 except :
                     pass
-        # default to brute utf8 if no encoding succeded
+        # default to brute utf8 if no encoding succeeded
             return super(DecodingStringIO, self).write(data.decode('utf8', 'replace'))
 
 

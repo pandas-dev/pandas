@@ -645,7 +645,7 @@ class StataValueLabel(object):
 
     def _encode(self, s):
         """
-        Python 3 compatability shim
+        Python 3 compatibility shim
         """
         if compat.PY3:
             return s.encode(self._encoding)
@@ -968,7 +968,7 @@ class StataReader(StataParser, BaseIterator):
         self._order_categoricals = order_categoricals
         if encoding is not None:
             if encoding not in VALID_ENCODINGS:
-                raise ValueError('Unknown encoding. Only latin-1 and  ascii '
+                raise ValueError('Unknown encoding. Only latin-1 and ascii '
                                  'supported.')
         self._encoding = encoding
         self._chunksize = chunksize
@@ -1881,7 +1881,7 @@ class StataWriter(StataParser):
         Input to save
     convert_dates : dict
         Dictionary mapping columns containing datetime types to stata internal
-        format to use when wirting the dates. Options are 'tc', 'td', 'tm',
+        format to use when writing the dates. Options are 'tc', 'td', 'tm',
         'tw', 'th', 'tq', 'ty'. Column can be either an integer or a name.
         Datetime columns that do not have a conversion type specified will be
         converted to 'tc'. Raises NotImplementedError if a datetime column has
@@ -1913,7 +1913,7 @@ class StataWriter(StataParser):
     NotImplementedError
         * If datetimes contain timezone information
     ValueError
-        * Columns listed in convert_dates are noth either datetime64[ns]
+        * Columns listed in convert_dates are neither datetime64[ns]
           or datetime.datetime
         * Column dtype is not representable in Stata
         * Column listed in convert_dates is not in DataFrame

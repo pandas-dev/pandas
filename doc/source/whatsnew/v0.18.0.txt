@@ -217,7 +217,7 @@ It returns a ``DataFrame`` with one column if ``expand=True``.
    pd.Series(['a1', 'b2', 'c3']).str.extract('[ab](\d)', expand=True)
 
 Calling on an ``Index`` with a regex with exactly one capture group
-returns  an ``Index`` if ``expand=False``.
+returns an ``Index`` if ``expand=False``.
 
 .. ipython:: python
 
@@ -944,7 +944,7 @@ assignment should be done inplace or return a copy.
 
 .. warning::
 
-   For backwards compatability, ``inplace`` defaults to ``True`` if not specified.
+   For backwards compatibility, ``inplace`` defaults to ``True`` if not specified.
    This will change in a future version of pandas. If your code depends on an
    inplace assignment you should update to explicitly set ``inplace=True``
 
@@ -1039,7 +1039,7 @@ Deprecations
              2    0.5
              dtype: float64
 
-- The the ``freq`` and ``how`` arguments to the ``.rolling``, ``.expanding``, and ``.ewm`` (new) functions are deprecated, and will be removed in a future version. You can simply resample the input prior to creating a window function. (:issue:`11603`).
+- The ``freq`` and ``how`` arguments to the ``.rolling``, ``.expanding``, and ``.ewm`` (new) functions are deprecated, and will be removed in a future version. You can simply resample the input prior to creating a window function. (:issue:`11603`).
 
   For example, instead of ``s.rolling(window=5,freq='D').max()`` to get the max value on a rolling 5 Day window, one could use ``s.resample('D').mean().rolling(window=5).max()``, which first resamples the data to daily data, then provides a rolling 5 day window.
 

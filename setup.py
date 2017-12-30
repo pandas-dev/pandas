@@ -109,7 +109,7 @@ class build_ext(_build_ext):
         # generate template output
         if cython:
             for pxifile in _pxifiles:
-                # build pxifiles first, template extention must be .pxi.in
+                # build pxifiles first, template extension must be .pxi.in
                 assert pxifile.endswith('.pxi.in')
                 outfile = pxifile[:-3]
 

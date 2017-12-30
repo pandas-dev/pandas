@@ -196,7 +196,7 @@ cdef extern from "numpy/arrayobject.h":
         # -- the details of this may change.
         def __getbuffer__(ndarray self, Py_buffer* info, int flags):
             # This implementation of getbuffer is geared towards Cython
-            # requirements, and does not yet fullfill the PEP.
+            # requirements, and does not yet fulfill the PEP.
             # In particular strided access is always provided regardless
             # of flags
 

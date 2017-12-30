@@ -115,7 +115,7 @@ class SphinxDocString(NumpyDocString):
                         or inspect.isgetsetdescriptor(param_obj)):
                     param_obj = None
 
-                # pandas HACK - do not exclude attributes wich are None
+                # pandas HACK - do not exclude attributes which are None
                 # if param_obj and (pydoc.getdoc(param_obj) or not desc):
                 #     # Referenced object has a docstring
                 #     autosum += ["   %s%s" % (prefix, param)]

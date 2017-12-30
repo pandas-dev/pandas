@@ -276,7 +276,7 @@ class _Concatenator(object):
             ndims.add(obj.ndim)
 
         # get the sample
-        # want the higest ndim that we have, and must be non-empty
+        # want the highest ndim that we have, and must be non-empty
         # unless all objs are empty
         sample = None
         if len(ndims) > 1:

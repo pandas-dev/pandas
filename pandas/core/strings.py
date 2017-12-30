@@ -1414,7 +1414,7 @@ class StringMethods(NoNewAttributesMixin):
 
         elif expand is True and not isinstance(self._orig, Index):
             # required when expand=True is explicitly specified
-            # not needed when infered
+            # not needed when inferred
 
             def cons_row(x):
                 if is_list_like(x):
@@ -1424,7 +1424,7 @@ class StringMethods(NoNewAttributesMixin):
 
             result = [cons_row(x) for x in result]
             if result:
-                # propogate nan values to match longest sequence (GH 18450)
+                # propagate nan values to match longest sequence (GH 18450)
                 max_len = max(len(x) for x in result)
                 result = [x * max_len if x[0] is np.nan else x for x in result]
 

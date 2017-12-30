@@ -650,7 +650,7 @@ class TestStyler(object):
                         (0, 0): [''], (1, 0): ['']}
             assert result == expected
 
-        # separate since we cant negate the strs
+        # separate since we can't negate the strs
         df['C'] = ['a', 'b']
         result = df.style.highlight_max()._compute().ctx
         expected = {(1, 1): ['background-color: yellow']}

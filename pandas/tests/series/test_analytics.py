@@ -704,7 +704,7 @@ class TestSeriesAnalytics(TestData):
     def test_built_in_round(self):
         if not compat.PY3:
             pytest.skip(
-                'build in round cannot be overriden prior to Python 3')
+                'build in round cannot be overridden prior to Python 3')
 
         s = Series([1.123, 2.123, 3.123], index=lrange(3))
         result = round(s)
@@ -1338,7 +1338,7 @@ class TestSeriesAnalytics(TestData):
         with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
             # The deprecation of Series.argmin also causes a deprecation
             # warning when calling np.argmin. This behavior is temporary
-            # until the implemention of Series.argmin is corrected.
+            # until the implementation of Series.argmin is corrected.
             result = np.argmin(s)
 
         assert result == 1
@@ -1408,7 +1408,7 @@ class TestSeriesAnalytics(TestData):
         with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
             # The deprecation of Series.argmax also causes a deprecation
             # warning when calling np.argmax. This behavior is temporary
-            # until the implemention of Series.argmax is corrected.
+            # until the implementation of Series.argmax is corrected.
             result = np.argmax(s)
         assert result == 10
 

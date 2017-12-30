@@ -109,7 +109,7 @@ Wes McKinney is the Benevolent Dictator for Life (BDFL).
 Development Team
 -----------------
 
-The list of the  Core Team members and more detailed information can be found on the `people’s page <https://github.com/pandas-dev/pandas-governance/blob/master/people.md>`__ of the governance repo.
+The list of the Core Team members and more detailed information can be found on the `people’s page <https://github.com/pandas-dev/pandas-governance/blob/master/people.md>`__ of the governance repo.
  
 
 Institutional Partners

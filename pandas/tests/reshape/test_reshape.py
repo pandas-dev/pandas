@@ -341,7 +341,7 @@ class TestGetDummies(object):
         assert_frame_equal(result, expected)
 
     def test_basic_drop_first_NA(self, sparse):
-        # Test NA hadling together with drop_first
+        # Test NA handling together with drop_first
         s_NA = ['a', 'b', np.nan]
         res = get_dummies(s_NA, drop_first=True, sparse=sparse)
         exp = DataFrame({'b': [0, 1, 0]}, dtype=np.uint8)

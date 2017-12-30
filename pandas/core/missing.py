@@ -127,7 +127,7 @@ def interpolate_1d(xvalues, yvalues, method='linear', limit=None,
 
     if not valid.any():
         # have to call np.asarray(xvalues) since xvalues could be an Index
-        # which cant be mutated
+        # which can't be mutated
         result = np.empty_like(np.asarray(xvalues), dtype=np.float64)
         result.fill(np.nan)
         return result

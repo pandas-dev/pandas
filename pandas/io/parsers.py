@@ -1541,7 +1541,7 @@ class ParserBase(object):
                     values, set(col_na_values) | col_na_fvalues,
                     try_num_bool)
 
-                # type specificed in dtype param
+                # type specified in dtype param
                 if cast_type and not is_dtype_equal(cvals, cast_type):
                     cvals = self._cast_types(cvals, cast_type, c)
 
@@ -2054,7 +2054,7 @@ class PythonParser(ParserBase):
             self.data = f
 
         # Get columns in two steps: infer from data, then
-        # infer column indices from self.usecols if is is specified.
+        # infer column indices from self.usecols if it is specified.
         self._col_indices = None
         self.columns, self.num_original_columns = self._infer_columns()
 

@@ -779,7 +779,7 @@ class TestRangeIndex(Numeric):
     def test_explicit_conversions(self):
 
         # GH 8608
-        # add/sub are overriden explicity for Float/Int Index
+        # add/sub are overridden explicitly for Float/Int Index
         idx = RangeIndex(5)
 
         # float conversions

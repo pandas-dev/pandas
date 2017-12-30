@@ -162,7 +162,7 @@ class JSONTableWriter(FrameWriter):
     def __init__(self, obj, orient, date_format, double_precision,
                  ensure_ascii, date_unit, index, default_handler=None):
         """
-        Adds a `schema` attribut with the Table Schema, resets
+        Adds a `schema` attribute with the Table Schema, resets
         the index (can't do in caller, because the schema inference needs
         to know what the index is, forces orient to records, and forces
         date_format to 'iso'.
@@ -534,7 +534,7 @@ class JsonReader(BaseIterator):
 
     def close(self):
         """
-        If we opened a  stream earlier, in _get_data_from_filepath, we should
+        If we opened a stream earlier, in _get_data_from_filepath, we should
         close it. If an open stream or file was passed, we leave it open.
         """
         if self.should_close:

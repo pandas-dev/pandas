@@ -148,7 +148,7 @@ cdef class Int64Factorizer:
 def unique_label_indices(ndarray[int64_t, ndim=1] labels):
     """
     indices of the first occurrences of the unique labels
-    *excluding* -1. equivelent to:
+    *excluding* -1. equivalent to:
         np.unique(labels, return_index=True)[1]
     """
     cdef:

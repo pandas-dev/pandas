@@ -420,7 +420,7 @@ class Styler(object):
         the rendered HTML in the notebook.
 
         Pandas uses the following keys in render. Arguments passed
-        in ``**kwargs`` take precedence, so think carefuly if you want
+        in ``**kwargs`` take precedence, so think carefully if you want
         to override them:
 
         * head
@@ -1201,7 +1201,7 @@ def _is_visible(idx_row, idx_col, lengths):
 
 def _get_level_lengths(index, hidden_elements=None):
     """
-    Given an index, find the level lenght for each element.
+    Given an index, find the level length for each element.
     Optional argument is a list of index positions which
     should not be visible.
 
@@ -1229,7 +1229,7 @@ def _get_level_lengths(index, hidden_elements=None):
                 lengths[(i, last_label)] = 1
             elif (row != sentinel):
                 # even if its hidden, keep track of it in case
-                # length >1 and later elemens are visible
+                # length >1 and later elements are visible
                 last_label = j
                 lengths[(i, last_label)] = 0
             elif(j not in hidden_elements):

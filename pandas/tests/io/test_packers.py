@@ -205,7 +205,7 @@ class TestNumpy(TestPackers):
 
     def test_list_numpy_float_complex(self):
         if not hasattr(np, 'complex128'):
-            pytest.skip('numpy cant handle complex128')
+            pytest.skip('numpy can not handle complex128')
 
         x = [np.float32(np.random.rand()) for i in range(5)] + \
             [np.complex128(np.random.rand() + 1j * np.random.rand())

@@ -61,7 +61,7 @@ cdef inline are_diff(object left, object right):
 
 
 class Infinity(object):
-    """ provide a positive Infinity comparision method for ranking """
+    """ provide a positive Infinity comparison method for ranking """
 
     __lt__ = lambda self, other: False
     __le__ = lambda self, other: isinstance(other, Infinity)
@@ -73,7 +73,7 @@ class Infinity(object):
 
 
 class NegInfinity(object):
-    """ provide a negative Infinity comparision method for ranking """
+    """ provide a negative Infinity comparison method for ranking """
 
     __lt__ = lambda self, other: (not isinstance(other, NegInfinity) and
                                   not missing.checknull(other))

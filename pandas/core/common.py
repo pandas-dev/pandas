@@ -305,7 +305,7 @@ def split_ranges(mask):
     ranges = [(0, len(mask))]
 
     for pos, val in enumerate(mask):
-        if not val:  # this pos should be ommited, split off the prefix range
+        if not val:  # this pos should be omitted, split off the prefix range
             r = ranges.pop()
             if pos > r[0]:  # yield non-zero range
                 yield (r[0], pos)

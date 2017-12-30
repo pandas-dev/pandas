@@ -2956,7 +2956,7 @@ def _get_grouper(obj, key=None, axis=0, level=None, sort=True,
 
         return True
 
-    # if the the grouper is obj[name]
+    # if the grouper is obj[name]
     def is_in_obj(gpr):
         try:
             return id(gpr) == id(obj[gpr.name])

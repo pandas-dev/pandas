@@ -2341,7 +2341,7 @@ class NDFrame(PandasObject, SelectionMixin):
             if value is None:
                 return
 
-            # see if the copy is not actually refererd; if so, then disolve
+            # see if the copy is not actually referred; if so, then dissolve
             # the copy weakref
             try:
                 gc.collect(2)
@@ -3109,7 +3109,7 @@ class NDFrame(PandasObject, SelectionMixin):
         %(optional_axis)s
         method : {None, 'backfill'/'bfill', 'pad'/'ffill', 'nearest'}, optional
             method to use for filling holes in reindexed DataFrame.
-            Please note: this is only  applicable to DataFrames/Series with a
+            Please note: this is only applicable to DataFrames/Series with a
             monotonically increasing/decreasing index.
 
             * default: don't fill gaps

@@ -929,7 +929,7 @@ def is_lexsorted(list list_of_arrays):
 
 
 # TODO: could do even better if we know something about the data. eg, index has
-# 1-min data, binner has 5-min data, then  bins are just strides in index. This
+# 1-min data, binner has 5-min data, then bins are just strides in index. This
 # is a general, O(max(len(values), len(binner))) method.
 @cython.boundscheck(False)
 @cython.wraparound(False)

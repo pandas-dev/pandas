@@ -561,7 +561,7 @@ class ExcelFile(object):
                 cell_contents = bool(cell_contents)
             elif convert_float and cell_typ == XL_CELL_NUMBER:
                 # GH5394 - Excel 'numbers' are always floats
-                # it's a minimal perf hit and less suprising
+                # it's a minimal perf hit and less surprising
                 val = int(cell_contents)
                 if val == cell_contents:
                     cell_contents = val
@@ -881,12 +881,12 @@ class ExcelWriter(object):
     def write_cells(self, cells, sheet_name=None, startrow=0, startcol=0,
                     freeze_panes=None):
         """
-        Write given formated cells into Excel an excel sheet
+        Write given formatted cells into Excel an excel sheet
 
         Parameters
         ----------
         cells : generator
-            cell of formated data to save to Excel sheet
+            cell of formatted data to save to Excel sheet
         sheet_name : string, default None
             Name of Excel sheet, if None, then use self.cur_sheet
         startrow: upper left cell row to dump data frame

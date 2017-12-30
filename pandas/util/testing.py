@@ -107,7 +107,7 @@ def round_trip_pickle(obj, path=None):
 
 def round_trip_pathlib(writer, reader, path=None):
     """
-    Write an object to file specifed by a pathlib.Path and read it back
+    Write an object to file specified by a pathlib.Path and read it back
 
     Parameters
     ----------
@@ -136,7 +136,7 @@ def round_trip_pathlib(writer, reader, path=None):
 
 def round_trip_localpath(writer, reader, path=None):
     """
-    Write an object to file specifed by a py.path LocalPath and read it back
+    Write an object to file specified by a py.path LocalPath and read it back
 
     Parameters
     ----------
@@ -1784,8 +1784,8 @@ def makeCustomDataframe(nrows, ncols, c_idx_names=True, r_idx_names=True,
     """
    nrows,  ncols - number of data rows/cols
    c_idx_names, idx_names  - False/True/list of strings,  yields No names ,
-        default names or  uses the provided names for the levels of the
-        corresponding  index. You can provide a single string when
+        default names or uses the provided names for the levels of the
+        corresponding index. You can provide a single string when
         c_idx_nlevels ==1.
    c_idx_nlevels - number of levels in columns index. > 1 will yield MultiIndex
    r_idx_nlevels - number of levels in rows index. > 1 will yield MultiIndex
@@ -2081,7 +2081,7 @@ def network(t, url="http://www.google.com",
     _skip_on_messages: iterable of string
         any exception e for which one of the strings is
         a substring of str(e) will be skipped with an appropriate
-        message. Intended to supress errors where an errno isn't available.
+        message. Intended to suppress errors where an errno isn't available.
 
     Notes
     -----

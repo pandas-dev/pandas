@@ -1951,7 +1951,7 @@ _shared_docs['boxplot'] = """
     return_type : {None, 'axes', 'dict', 'both'}, default None
         The kind of object to return. The default is ``axes``
         'axes' returns the matplotlib axes the boxplot is drawn on;
-        'dict' returns a dictionary  whose values are the matplotlib
+        'dict' returns a dictionary whose values are the matplotlib
         Lines of the boxplot;
         'both' returns a namedtuple with the axes and dict.
 

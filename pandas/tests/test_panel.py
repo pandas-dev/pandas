@@ -2582,19 +2582,19 @@ class TestLongPanel(object):
             trunced = self.panel.truncate(start, end).to_panel()
             expected = self.panel.to_panel()['ItemA'].truncate(start, end)
 
-            # TODO trucate drops index.names
+            # TODO truncate drops index.names
             assert_frame_equal(trunced['ItemA'], expected, check_names=False)
 
             trunced = self.panel.truncate(before=start).to_panel()
             expected = self.panel.to_panel()['ItemA'].truncate(before=start)
 
-            # TODO trucate drops index.names
+            # TODO truncate drops index.names
             assert_frame_equal(trunced['ItemA'], expected, check_names=False)
 
             trunced = self.panel.truncate(after=end).to_panel()
             expected = self.panel.to_panel()['ItemA'].truncate(after=end)
 
-            # TODO trucate drops index.names
+            # TODO truncate drops index.names
             assert_frame_equal(trunced['ItemA'], expected, check_names=False)
 
             # truncate on dates that aren't in there

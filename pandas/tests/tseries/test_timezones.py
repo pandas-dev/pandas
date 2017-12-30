@@ -577,7 +577,7 @@ class TestTimeZoneSupportPytz(object):
                  '11/06/2011 03:00']
         di_test = DatetimeIndex(times, tz='US/Eastern')
 
-        # left dtype is  datetime64[ns, US/Eastern]
+        # left dtype is datetime64[ns, US/Eastern]
         # right is datetime64[ns, tzfile('/usr/share/zoneinfo/US/Eastern')]
         tm.assert_numpy_array_equal(di_test.values, localized.values)
 

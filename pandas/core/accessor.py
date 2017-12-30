@@ -17,7 +17,7 @@ class DirNamesMixin(object):
         return self._accessors | self._deprecations
 
     def _dir_additions(self):
-        """ add addtional __dir__ for this object """
+        """ add additional __dir__ for this object """
         rv = set()
         for accessor in self._accessors:
             try:

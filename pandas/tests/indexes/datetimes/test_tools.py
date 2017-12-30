@@ -1464,7 +1464,7 @@ class TestDatetimeParsingWrappers(object):
             actual = tslib._test_parse_iso8601(date_str)
             assert actual == exp
 
-        # seperators must all match - YYYYMM not valid
+        # separators must all match - YYYYMM not valid
         invalid_cases = ['2011-01/02', '2011^11^11',
                          '201401', '201111', '200101',
                          # mixed separated and unseparated

@@ -71,7 +71,7 @@ def _can_use_numexpr(op, op_str, a, b, dtype_check):
         # required min elements (otherwise we are adding overhead)
         if np.prod(a.shape) > _MIN_ELEMENTS:
 
-            # check for dtype compatiblity
+            # check for dtype compatibility
             dtypes = set()
             for o in [a, b]:
                 if hasattr(o, 'get_dtype_counts'):
@@ -224,7 +224,7 @@ def where(cond, a, b, use_numexpr=True):
 
 def set_test_mode(v=True):
     """
-    Keeps track of whether numexpr  was used.  Stores an additional ``True``
+    Keeps track of whether numexpr was used.  Stores an additional ``True``
     for every successful use of evaluate with numexpr since the last
     ``get_test_result``
     """

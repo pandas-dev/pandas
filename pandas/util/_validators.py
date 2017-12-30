@@ -40,7 +40,7 @@ def _check_for_default_values(fname, arg_val_dict, compat_args):
     """
     for key in arg_val_dict:
         # try checking equality directly with '=' operator,
-        # as comparison may have been overriden for the left
+        # as comparison may have been overridden for the left
         # hand object
         try:
             v1 = arg_val_dict[key]
@@ -292,7 +292,7 @@ def validate_axis_style_args(data, args, kwargs, arg_name, method_name):
             out[ax] = v
 
     # All user-provided kwargs have been handled now.
-    # Now we supplement with positional arguments, emmitting warnings
+    # Now we supplement with positional arguments, emitting warnings
     # when there's ambiguity and raising when there's conflicts
 
     if len(args) == 0:
@@ -307,7 +307,7 @@ def validate_axis_style_args(data, args, kwargs, arg_name, method_name):
                    "or 'columns'")
             raise TypeError(msg)
 
-        msg = ("Intepreting call\n\t'.{method_name}(a, b)' as "
+        msg = ("Interpreting call\n\t'.{method_name}(a, b)' as "
                "\n\t'.{method_name}(index=a, columns=b)'.\nUse named "
                "arguments to remove any ambiguity. In the future, using "
                "positional arguments for 'index' or 'columns' will raise "

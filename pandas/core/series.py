@@ -345,7 +345,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
                               (DatetimeIndex, PeriodIndex, TimedeltaIndex)):
                 try:
                     labels = DatetimeIndex(labels)
-                    # need to set here becuase we changed the index
+                    # need to set here because we changed the index
                     if fastpath:
                         self._data.set_axis(axis, labels)
                 except (libts.OutOfBoundsDatetime, ValueError):
@@ -487,7 +487,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         Return the indices of the elements that are non-zero
 
         This method is equivalent to calling `numpy.nonzero` on the
-        series data. For compatability with NumPy, the return value is
+        series data. For compatibility with NumPy, the return value is
         the same (a tuple with an array of indices for each dimension),
         but it will always be a one-item tuple because series only have
         one dimension.
@@ -2388,7 +2388,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
             # expression, e.g.: lambda x: x-x.quantile(0.25)
             # this will fail, so we can try a vectorized evaluation
 
-            # we cannot FIRST try the vectorized evaluation, becuase
+            # we cannot FIRST try the vectorized evaluation, because
             # then .agg and .apply would have different semantics if the
             # operation is actually defined on the Series, e.g. str
             try:

@@ -947,7 +947,7 @@ Mixed Dtypes
 ++++++++++++
 
 When presented with mixed dtypes that cannot aggregate, ``.agg`` will only take the valid
-aggregations. This is similiar to how groupby ``.agg`` works.
+aggregations. This is similar to how groupby ``.agg`` works.
 
 .. ipython:: python
 

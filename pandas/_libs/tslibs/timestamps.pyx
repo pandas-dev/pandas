@@ -373,7 +373,7 @@ class Timestamp(_Timestamp):
     """Pandas replacement for datetime.datetime
 
     Timestamp is the pandas equivalent of python's Datetime
-    and is interchangable with it in most cases. It's the type used
+    and is interchangeable with it in most cases. It's the type used
     for the entries that make up a DatetimeIndex, and other timeseries
     oriented data structures in pandas.
 

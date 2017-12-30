@@ -170,7 +170,7 @@ class Block(PandasObject):
     def get_values(self, dtype=None):
         """
         return an internal format, currently just the ndarray
-        this is often overriden to handle to_dense like operations
+        this is often overridden to handle to_dense like operations
         """
         if is_object_dtype(dtype):
             return self.values.astype(object)
@@ -954,7 +954,7 @@ class Block(PandasObject):
                 new_values = new_values.T
 
             # If the default repeat behavior in np.putmask would go in the
-            # wrong direction, then explictly repeat and reshape new instead
+            # wrong direction, then explicitly repeat and reshape new instead
             if getattr(new, 'ndim', 0) >= 1:
                 if self.ndim - 1 == new.ndim and axis == 1:
                     new = np.repeat(
@@ -1455,7 +1455,7 @@ class Block(PandasObject):
             cond = cond.values
 
         # If the default broadcasting would go in the wrong direction, then
-        # explictly reshape other instead
+        # explicitly reshape other instead
         if getattr(other, 'ndim', 0) >= 1:
             if values.ndim - 1 == other.ndim and axis == 1:
                 other = other.reshape(tuple(other.shape + (1, )))
@@ -1493,7 +1493,7 @@ class Block(PandasObject):
         except TypeError:
 
             # we cannot coerce, return a compat dtype
-            # we are explicity ignoring errors
+            # we are explicitly ignoring errors
             block = self.coerce_to_target_dtype(other)
             blocks = block.where(orig_other, cond, align=align,
                                  errors=errors,
@@ -4939,7 +4939,7 @@ def _maybe_compare(a, b, op):
     is_a_array = isinstance(a, np.ndarray)
     is_b_array = isinstance(b, np.ndarray)
 
-    # numpy deprecation warning to have i8 vs integer comparisions
+    # numpy deprecation warning to have i8 vs integer comparisons
     if is_datetimelike_v_numeric(a, b):
         result = False
 

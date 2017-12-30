@@ -67,9 +67,9 @@ def _get_standard_colors(num_colors=None, colormap=None, color_type='default',
             except ValueError:
                 return False
 
-        # check whether the string can be convertable to single color
+        # check whether the string can be convertible to single color
         maybe_single_color = _maybe_valid_colors([colors])
-        # check whether each character can be convertable to colors
+        # check whether each character can be convertible to colors
         maybe_color_cycle = _maybe_valid_colors(list(colors))
         if maybe_single_color and maybe_color_cycle and len(colors) > 1:
             # Special case for single str 'CN' match and convert to hex

@@ -38,7 +38,7 @@ def current_pickle_data():
 
 
 # ---------------------
-# comparision functions
+# comparison functions
 # ---------------------
 def compare_element(result, expected, typ, version=None):
     if isinstance(expected, Index):

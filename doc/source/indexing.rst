@@ -651,7 +651,7 @@ Indexing with list with missing labels is Deprecated
 
 In prior versions, using ``.loc[list-of-labels]`` would work as long as *at least 1* of the keys was found (otherwise it
 would raise a ``KeyError``). This behavior is deprecated and will show a warning message pointing to this section. The
-recommeded alternative is to use ``.reindex()``.
+recommended alternative is to use ``.reindex()``.
 
 For example.
 
@@ -724,7 +724,7 @@ Having a duplicated index will raise for a ``.reindex()``:
    In [17]: s.reindex(labels)
    ValueError: cannot reindex from a duplicate axis
 
-Generally, you can interesect the desired labels with the current
+Generally, you can intersect the desired labels with the current
 axis, and then reindex.
 
 .. ipython:: python

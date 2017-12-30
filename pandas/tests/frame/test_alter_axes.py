@@ -480,7 +480,7 @@ class TestDataFrameAlterAxes(TestData):
         df = DataFrame([(0, 0), (1, 1)], index=index, columns=columns)
 
         #
-        # without specifying level -> accross all levels
+        # without specifying level -> across all levels
 
         renamed = df.rename(index={'foo1': 'foo3', 'bar2': 'bar3'},
                             columns={'fizz1': 'fizz3', 'buzz2': 'buzz3'})

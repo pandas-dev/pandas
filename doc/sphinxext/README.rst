@@ -14,4 +14,4 @@ pandas documentation. These copies originate from other projects:
 
     These copies are maintained at the respective projects, so fixes should,
     to the extent possible, be pushed upstream instead of only adapting our
-    local copy to avoid divergence between the the local and upstream version.
+    local copy to avoid divergence between the local and upstream version.

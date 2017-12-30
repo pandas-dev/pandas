@@ -1112,7 +1112,7 @@ class TestIntervalIndex(Base):
         idx = IntervalIndex.from_tuples(tpls[::-1], closed=closed)
         assert idx.is_non_overlapping_monotonic is False
 
-        # Should be False for closed='both', overwise True (GH16560)
+        # Should be False for closed='both', otherwise True (GH16560)
         if closed == 'both':
             idx = IntervalIndex.from_breaks(range(4), closed=closed)
             assert idx.is_non_overlapping_monotonic is False

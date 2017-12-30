@@ -369,7 +369,7 @@ class TestDataFrameFormatting(object):
 
     def test_auto_detect(self):
         term_width, term_height = get_terminal_size()
-        fac = 1.05  # Arbitrary large factor to exceed term widht
+        fac = 1.05  # Arbitrary large factor to exceed term width
         cols = range(int(term_width * fac))
         index = range(10)
         df = DataFrame(index=index, columns=cols)

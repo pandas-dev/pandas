@@ -71,7 +71,7 @@ class TestDatetimeIndex(object):
 
     def test_astype_str_compat(self):
         # GH 13149, GH 13209
-        # verify that we are returing NaT as a string (and not unicode)
+        # verify that we are returning NaT as a string (and not unicode)
 
         idx = DatetimeIndex(['2016-05-16', 'NaT', NaT, np.NaN])
         result = idx.astype(str)

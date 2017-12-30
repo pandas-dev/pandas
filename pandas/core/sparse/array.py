@@ -525,7 +525,7 @@ class SparseArray(PandasObject, np.ndarray):
         # if is_integer(key):
         #    self.values[key] = value
         # else:
-        #    raise Exception("SparseArray does not support seting non-scalars
+        #    raise Exception("SparseArray does not support setting non-scalars
         # via setitem")
         raise TypeError(
             "SparseArray does not support item assignment via setitem")
@@ -538,7 +538,7 @@ class SparseArray(PandasObject, np.ndarray):
         slobj = slice(i, j)  # noqa
 
         # if not is_scalar(value):
-        #    raise Exception("SparseArray does not support seting non-scalars
+        #    raise Exception("SparseArray does not support setting non-scalars
         # via slices")
 
         # x = self.values

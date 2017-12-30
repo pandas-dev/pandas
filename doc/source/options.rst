@@ -164,7 +164,7 @@ lines are replaced by an ellipsis.
    df
    pd.reset_option('max_rows')
 
-``display.expand_frame_repr`` allows for the the representation of
+``display.expand_frame_repr`` allows for the representation of
 dataframes to stretch across pages, wrapped over the full column vs row-wise.
 
 .. ipython:: python
