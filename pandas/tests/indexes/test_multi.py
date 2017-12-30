@@ -1258,6 +1258,17 @@ class TestMultiIndex(Base):
         assert result == expected
         assert new_index.equals(index.droplevel(0))
 
+    @pytest.mark.parametrize('level', [0, 1])
+    @pytest.mark.parametrize('null_val', [np.nan, pd.NaT, None])
+    def test_get_loc_nan(self, level, null_val):
+        # GH 18485 : NaN in MultiIndex
+        levels = [['a', 'b'], ['c', 'd']]
+        key = ['b', 'd']
+        levels[level] = np.array([0, null_val], dtype=type(null_val))
+        key[level] = null_val
+        idx = MultiIndex.from_product(levels)
+        assert idx.get_loc(tuple(key)) == 3
+
     def test_get_loc_missing_nan(self):
         # GH 8569
         idx = MultiIndex.from_arrays([[1.0, 2.0], [3.0, 4.0]])
