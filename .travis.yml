@@ -49,7 +49,6 @@ matrix:
         apt:
           packages:
           - python-gtk2
-    # In allow_failures
     - dist: trusty
       env:
         - JOB="3.5_CONDA_BUILD_TEST" TEST_ARGS="--skip-slow --skip-network" CONDA_BUILD_TEST=true
@@ -77,10 +76,6 @@ matrix:
       env:
         - JOB="3.6_DOC" DOC=true
     allow_failures:
-      # TODO(jreback)
-      - dist: trusty
-        env:
-          - JOB="3.5_CONDA_BUILD_TEST" TEST_ARGS="--skip-slow --skip-network" CONDA_BUILD_TEST=true
       - dist: trusty
         env:
           - JOB="2.7_SLOW" SLOW=true
