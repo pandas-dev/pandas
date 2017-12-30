@@ -197,7 +197,8 @@ def to_datetime(arg, errors='raise', dayfirst=False, yearfirst=False,
 
         In case when it is not possible to return designated types (e.g. when
         any element of input is before Timestamp.min or after Timestamp.max)
-        return will have datetime.datetime type (or corresponding array/Series).
+        return will have datetime.datetime type (or corresponding
+        array/Series).
 
     Examples
     --------
