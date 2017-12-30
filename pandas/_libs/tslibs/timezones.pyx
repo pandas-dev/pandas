@@ -10,7 +10,6 @@ from dateutil.tz import (
     tzlocal as _dateutil_tzlocal,
     tzfile as _dateutil_tzfile)
 
-import sys
 from dateutil.tz import gettz as dateutil_gettz
 
 from pytz.tzinfo import BaseTzInfo as _pytz_BaseTzInfo
