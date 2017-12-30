@@ -132,7 +132,7 @@ class TimelikeOps(object):
 
 
 class DatetimeIndexOpsMixin(object):
-    """ common ops mixin to support a unified inteface datetimelike Index """
+    """ common ops mixin to support a unified interface datetimelike Index """
 
     def equals(self, other):
         """

@@ -520,7 +520,7 @@ def maybe_infer_dtype_type(element):
 
 
 def maybe_upcast(values, fill_value=np.nan, dtype=None, copy=False):
-    """ provide explict type promotion and coercion
+    """ provide explicit type promotion and coercion
 
     Parameters
     ----------

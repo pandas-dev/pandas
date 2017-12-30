@@ -1308,7 +1308,7 @@ class _IXIndexer(_NDFrameIndexer):
     ``.ix`` is the most general indexer and will support any of the
     inputs in ``.loc`` and ``.iloc``. ``.ix`` also supports floating
     point label schemes. ``.ix`` is exceptionally useful when dealing
-    with mixed positional and label based hierachical indexes.
+    with mixed positional and label based hierarchical indexes.
 
     However, when an axis is integer based, ONLY label based access
     and not positional access is supported. Thus, in such cases, it's
@@ -1441,8 +1441,8 @@ class _LocIndexer(_LocationIndexer):
         ax = self.obj._get_axis(axis)
 
         # valid for a label where all labels are in the index
-        # slice of lables (where start-end in labels)
-        # slice of integers (only if in the lables)
+        # slice of labels (where start-end in labels)
+        # slice of integers (only if in the labels)
         # boolean
 
         if isinstance(key, slice):
@@ -1929,7 +1929,7 @@ class _iAtIndexer(_ScalarAccessIndexer):
         self._has_valid_positional_setitem_indexer(indexer)
 
     def _convert_key(self, key, is_setter=False):
-        """ require  integer args (and convert to label arguments) """
+        """ require integer args (and convert to label arguments) """
         for a, i in zip(self.obj.axes, key):
             if not is_integer(i):
                 raise ValueError("iAt based indexing can only have integer "
@@ -2118,7 +2118,7 @@ def maybe_convert_ix(*args):
 
 
 def is_nested_tuple(tup, labels):
-    # check for a compatiable nested tuple and multiindexes among the axes
+    # check for a compatible nested tuple and multiindexes among the axes
     if not isinstance(tup, tuple):
         return False
 

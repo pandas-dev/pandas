@@ -1368,7 +1368,7 @@ def _comp_method_FRAME(func, name, str_rep, masker=False):
             return self._combine_series_infer(other, func, try_cast=False)
         else:
 
-            # straight boolean comparisions we want to allow all columns
+            # straight boolean comparisons we want to allow all columns
             # (regardless of dtype to pass thru) See #4537 for discussion.
             res = self._combine_const(other, func,
                                       errors='ignore',
