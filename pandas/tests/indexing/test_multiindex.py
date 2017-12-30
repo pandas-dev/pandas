@@ -299,7 +299,7 @@ class TestMultiIndexBasic(object):
         # missing item:
         with tm.assert_raises_regex(KeyError, '1'):
             df[1]
-        with tm.assert_raises_regex(KeyError, "'\[1\] not in index'"):
+        with tm.assert_raises_regex(KeyError, r"'\[1\] not in index'"):
             df[[1]]
 
     def test_loc_multiindex_indexer_none(self):
