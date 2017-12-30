@@ -372,6 +372,12 @@ Additionally, support has been dropped for Python 3.4 (:issue:`15251`).
 Sum/Prod of all-NaN or empty Series/DataFrames is now consistently NaN
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+.. note::
+
+   The changes described here have been partially reverted. See
+   the :ref:`v0.22.0 Whatsnew <whatsnew_0220>` for more.
+
+
 The behavior of ``sum`` and ``prod`` on all-NaN Series/DataFrames no longer depends on
 whether `bottleneck <http://berkeleyanalytics.com/bottleneck>`__ is installed, and return value of ``sum`` and ``prod`` on an empty Series has changed (:issue:`9422`, :issue:`15507`).
 
