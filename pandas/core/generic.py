@@ -2359,7 +2359,7 @@ class NDFrame(PandasObject, SelectionMixin):
             if value is None:
                 return
 
-            # see if the copy is not actually refererd; if so, then disolve
+            # see if the copy is not actually referred; if so, then dissolve
             # the copy weakref
             try:
                 gc.collect(2)
@@ -3127,7 +3127,7 @@ class NDFrame(PandasObject, SelectionMixin):
         %(optional_axis)s
         method : {None, 'backfill'/'bfill', 'pad'/'ffill', 'nearest'}, optional
             method to use for filling holes in reindexed DataFrame.
-            Please note: this is only  applicable to DataFrames/Series with a
+            Please note: this is only applicable to DataFrames/Series with a
             monotonically increasing/decreasing index.
 
             * default: don't fill gaps
@@ -7340,7 +7340,8 @@ class NDFrame(PandasObject, SelectionMixin):
         @Substitution(outname='mad',
                       desc="Return the mean absolute deviation of the values "
                            "for the requested axis",
-                      name1=name, name2=name2, axis_descr=axis_descr)
+                      name1=name, name2=name2, axis_descr=axis_descr,
+                      min_count='', examples='')
         @Appender(_num_doc)
         def mad(self, axis=None, skipna=None, level=None):
             if skipna is None:
@@ -7381,7 +7382,8 @@ class NDFrame(PandasObject, SelectionMixin):
         @Substitution(outname='compounded',
                       desc="Return the compound percentage of the values for "
                       "the requested axis", name1=name, name2=name2,
-                      axis_descr=axis_descr)
+                      axis_descr=axis_descr,
+                      min_count='', examples='')
         @Appender(_num_doc)
         def compound(self, axis=None, skipna=None, level=None):
             if skipna is None:
@@ -7405,10 +7407,10 @@ class NDFrame(PandasObject, SelectionMixin):
             lambda y, axis: np.maximum.accumulate(y, axis), "max",
             -np.inf, np.nan)
 
-        cls.sum = _make_stat_function(
+        cls.sum = _make_min_count_stat_function(
             cls, 'sum', name, name2, axis_descr,
             'Return the sum of the values for the requested axis',
-            nanops.nansum)
+            nanops.nansum, _sum_examples)
         cls.mean = _make_stat_function(
             cls, 'mean', name, name2, axis_descr,
             'Return the mean of the values for the requested axis',
@@ -7424,10 +7426,10 @@ class NDFrame(PandasObject, SelectionMixin):
             "by N-1\n",
             nanops.nankurt)
         cls.kurtosis = cls.kurt
-        cls.prod = _make_stat_function(
+        cls.prod = _make_min_count_stat_function(
             cls, 'prod', name, name2, axis_descr,
             'Return the product of the values for the requested axis',
-            nanops.nanprod)
+            nanops.nanprod, _prod_examples)
         cls.product = cls.prod
         cls.median = _make_stat_function(
             cls, 'median', name, name2, axis_descr,
@@ -7558,10 +7560,13 @@ level : int or level name, default None
 numeric_only : boolean, default None
     Include only float, int, boolean columns. If None, will attempt to use
     everything, then use only numeric data. Not implemented for Series.
+%(min_count)s\
 
 Returns
 -------
-%(outname)s : %(name1)s or %(name2)s (if level specified)\n"""
+%(outname)s : %(name1)s or %(name2)s (if level specified)
+
+%(examples)s"""
 
 _num_ddof_doc = """
 
@@ -7629,9 +7634,92 @@ pandas.core.window.Expanding.%(accum_func_name)s : Similar functionality
 """
 
 
+_sum_examples = """\
+Examples
+--------
+By default, the sum of an empty or all-NA Series is ``0``.
+
+>>> pd.Series([]).sum()  # min_count=0 is the default
+0.0
+
+This can be controlled with the ``min_count`` parameter. For example, if
+you'd like the sum of an empty series to be NaN, pass ``min_count=1``.
+
+>>> pd.Series([]).sum(min_count=1)
+nan
+
+Thanks to the ``skipna`` parameter, ``min_count`` handles all-NA and
+empty series identically.
+
+>>> pd.Series([np.nan]).sum()
+0.0
+
+>>> pd.Series([np.nan]).sum(min_count=1)
+nan
+"""
+
+_prod_examples = """\
+Examples
+--------
+By default, the product of an empty or all-NA Series is ``1``
+
+>>> pd.Series([]).prod()
+1.0
+
+This can be controlled with the ``min_count`` parameter
+
+>>> pd.Series([]).prod(min_count=1)
+nan
+
+Thanks to the ``skipna`` parameter, ``min_count`` handles all-NA and
+empty series identically.
+
+>>> pd.Series([np.nan]).prod()
+1.0
+
+>>> pd.Series([np.nan]).sum(min_count=1)
+nan
+"""
+
+
+_min_count_stub = """\
+min_count : int, default 1
+    The required number of valid values to perform the operation. If fewer than
+    ``min_count`` non-NA values are present the result will be NA.
+
+    .. versionadded :: 0.21.2
+
+       Added with the default being 1. This means the sum or product
+       of an all-NA or empty series is ``NaN``.
+"""
+
+
+def _make_min_count_stat_function(cls, name, name1, name2, axis_descr, desc,
+                                  f, examples):
+    @Substitution(outname=name, desc=desc, name1=name1, name2=name2,
+                  axis_descr=axis_descr, min_count=_min_count_stub,
+                  examples=examples)
+    @Appender(_num_doc)
+    def stat_func(self, axis=None, skipna=None, level=None, numeric_only=None,
+                  min_count=0,
+                  **kwargs):
+        nv.validate_stat_func(tuple(), kwargs, fname=name)
+        if skipna is None:
+            skipna = True
+        if axis is None:
+            axis = self._stat_axis_number
+        if level is not None:
+            return self._agg_by_level(name, axis=axis, level=level,
+                                      skipna=skipna, min_count=min_count)
+        return self._reduce(f, name, axis=axis, skipna=skipna,
+                            numeric_only=numeric_only, min_count=min_count)
+
+    return set_function_name(stat_func, name, cls)
+
+
 def _make_stat_function(cls, name, name1, name2, axis_descr, desc, f):
     @Substitution(outname=name, desc=desc, name1=name1, name2=name2,
-                  axis_descr=axis_descr)
+                  axis_descr=axis_descr, min_count='', examples='')
     @Appender(_num_doc)
     def stat_func(self, axis=None, skipna=None, level=None, numeric_only=None,
                   **kwargs):

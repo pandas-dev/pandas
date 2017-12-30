@@ -306,7 +306,7 @@ def str_endswith(arr, pat, na=np.nan):
 
 
 def str_replace(arr, pat, repl, n=-1, case=None, flags=0):
-    """
+    r"""
     Replace occurrences of pattern/regex in the Series/Index with
     some other string. Equivalent to :meth:`str.replace` or
     :func:`re.sub`.
@@ -598,7 +598,7 @@ def _str_extract_frame(arr, pat, flags=0):
 
 
 def str_extract(arr, pat, flags=0, expand=None):
-    """
+    r"""
     For each subject string in the Series, extract groups from the
     first match of regular expression pat.
 
@@ -635,7 +635,7 @@ def str_extract(arr, pat, flags=0, expand=None):
     Non-matches will be NaN.
 
     >>> s = Series(['a1', 'b2', 'c3'])
-    >>> s.str.extract('([ab])(\d)')
+    >>> s.str.extract(r'([ab])(\d)')
          0    1
     0    a    1
     1    b    2
@@ -643,7 +643,7 @@ def str_extract(arr, pat, flags=0, expand=None):
 
     A pattern may contain optional groups.
 
-    >>> s.str.extract('([ab])?(\d)')
+    >>> s.str.extract(r'([ab])?(\d)')
          0  1
     0    a  1
     1    b  2
@@ -651,7 +651,7 @@ def str_extract(arr, pat, flags=0, expand=None):
 
     Named groups will become column names in the result.
 
-    >>> s.str.extract('(?P<letter>[ab])(?P<digit>\d)')
+    >>> s.str.extract(r'(?P<letter>[ab])(?P<digit>\d)')
       letter digit
     0      a     1
     1      b     2
@@ -660,7 +660,7 @@ def str_extract(arr, pat, flags=0, expand=None):
     A pattern with one group will return a DataFrame with one column
     if expand=True.
 
-    >>> s.str.extract('[ab](\d)', expand=True)
+    >>> s.str.extract(r'[ab](\d)', expand=True)
          0
     0    1
     1    2
@@ -668,7 +668,7 @@ def str_extract(arr, pat, flags=0, expand=None):
 
     A pattern with one group will return a Series if expand=False.
 
-    >>> s.str.extract('[ab](\d)', expand=False)
+    >>> s.str.extract(r'[ab](\d)', expand=False)
     0      1
     1      2
     2    NaN
@@ -694,7 +694,7 @@ def str_extract(arr, pat, flags=0, expand=None):
 
 
 def str_extractall(arr, pat, flags=0):
-    """
+    r"""
     For each subject string in the Series, extract groups from all
     matches of regular expression pat. When each subject string in the
     Series has exactly one match, extractall(pat).xs(0, level='match')
@@ -728,7 +728,7 @@ def str_extractall(arr, pat, flags=0):
     Indices with no matches will not appear in the result.
 
     >>> s = Series(["a1a2", "b1", "c1"], index=["A", "B", "C"])
-    >>> s.str.extractall("[ab](\d)")
+    >>> s.str.extractall(r"[ab](\d)")
              0
       match
     A 0      1
@@ -737,7 +737,7 @@ def str_extractall(arr, pat, flags=0):
 
     Capture group names are used for column names of the result.
 
-    >>> s.str.extractall("[ab](?P<digit>\d)")
+    >>> s.str.extractall(r"[ab](?P<digit>\d)")
             digit
       match
     A 0         1
@@ -746,7 +746,7 @@ def str_extractall(arr, pat, flags=0):
 
     A pattern with two groups will return a DataFrame with two columns.
 
-    >>> s.str.extractall("(?P<letter>[ab])(?P<digit>\d)")
+    >>> s.str.extractall(r"(?P<letter>[ab])(?P<digit>\d)")
             letter digit
       match
     A 0          a     1
@@ -755,7 +755,7 @@ def str_extractall(arr, pat, flags=0):
 
     Optional groups that do not match are NaN in the result.
 
-    >>> s.str.extractall("(?P<letter>[ab])?(?P<digit>\d)")
+    >>> s.str.extractall(r"(?P<letter>[ab])?(?P<digit>\d)")
             letter digit
       match
     A 0          a     1
@@ -1414,7 +1414,7 @@ class StringMethods(NoNewAttributesMixin):
 
         elif expand is True and not isinstance(self._orig, Index):
             # required when expand=True is explicitly specified
-            # not needed when infered
+            # not needed when inferred
 
             def cons_row(x):
                 if is_list_like(x):
@@ -1424,7 +1424,7 @@ class StringMethods(NoNewAttributesMixin):
 
             result = [cons_row(x) for x in result]
             if result:
-                # propogate nan values to match longest sequence (GH 18450)
+                # propagate nan values to match longest sequence (GH 18450)
                 max_len = max(len(x) for x in result)
                 result = [x * max_len if x[0] is np.nan else x for x in result]
 

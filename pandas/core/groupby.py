@@ -191,6 +191,60 @@ _apply_docs = dict(
     dtype: int64
     """)
 
+_pipe_template = """\
+Apply a function ``func`` with arguments to this %(klass)s object and return
+the function's result.
+
+%(versionadded)s
+
+Use ``.pipe`` when you want to improve readability by chaining together
+functions that expect Series, DataFrames, GroupBy or Resampler objects.
+Instead of writing
+
+>>> h(g(f(df.groupby('group')), arg1=a), arg2=b, arg3=c)
+
+You can write
+
+>>> (df.groupby('group')
+...    .pipe(f)
+...    .pipe(g, arg1=a)
+...    .pipe(h, arg2=b, arg3=c))
+
+which is much more readable.
+
+Parameters
+----------
+func : callable or tuple of (callable, string)
+    Function to apply to this %(klass)s object or, alternatively,
+    a ``(callable, data_keyword)`` tuple where ``data_keyword`` is a
+    string indicating the keyword of ``callable`` that expects the
+    %(klass)s object.
+args : iterable, optional
+       positional arguments passed into ``func``.
+kwargs : dict, optional
+         a dictionary of keyword arguments passed into ``func``.
+
+Returns
+-------
+object : the return type of ``func``.
+
+Notes
+-----
+See more `here
+<http://pandas.pydata.org/pandas-docs/stable/groupby.html#pipe>`_
+
+Examples
+--------
+%(examples)s
+
+See Also
+--------
+pandas.Series.pipe : Apply a function with arguments to a series
+pandas.DataFrame.pipe: Apply a function with arguments to a dataframe
+apply : Apply function to each group instead of to the
+    full %(klass)s object.
+"""
+
 _transform_template = """
 Call function producing a like-indexed %(klass)s on each group and
 return a %(klass)s having the same indexes as the original object
@@ -676,6 +730,29 @@ class _GroupBy(PandasObject, SelectionMixin):
         raise AttributeError("%r object has no attribute %r" %
                              (type(self).__name__, attr))
 
+    @Substitution(klass='GroupBy',
+                  versionadded='.. versionadded:: 0.21.0',
+                  examples="""\
+>>> df = pd.DataFrame({'A': 'a b a b'.split(), 'B': [1, 2, 3, 4]})
+>>> df
+   A  B
+0  a  1
+1  b  2
+2  a  3
+3  b  4
+
+To get the difference between each groups maximum and minimum value in one
+pass, you can do
+
+>>> df.groupby('A').pipe(lambda x: x.max() - x.min())
+   B
+A
+a  2
+b  2""")
+    @Appender(_pipe_template)
+    def pipe(self, func, *args, **kwargs):
+        return _pipe(self, func, *args, **kwargs)
+
     plot = property(GroupByPlot)
 
     def _make_wrapper(self, name):
@@ -909,7 +986,8 @@ class _GroupBy(PandasObject, SelectionMixin):
 
         return self._wrap_transformed_output(output, names)
 
-    def _cython_agg_general(self, how, alt=None, numeric_only=True):
+    def _cython_agg_general(self, how, alt=None, numeric_only=True,
+                            min_count=-1):
         output = {}
         for name, obj in self._iterate_slices():
             is_numeric = is_numeric_dtype(obj.dtype)
@@ -917,7 +995,8 @@ class _GroupBy(PandasObject, SelectionMixin):
                 continue
 
             try:
-                result, names = self.grouper.aggregate(obj.values, how)
+                result, names = self.grouper.aggregate(obj.values, how,
+                                                       min_count=min_count)
             except AssertionError as e:
                 raise GroupByError(str(e))
             output[name] = self._try_cast(result, obj)
@@ -1224,7 +1303,8 @@ class GroupBy(_GroupBy):
         """ add numeric operations to the GroupBy generically """
 
         def groupby_function(name, alias, npfunc,
-                             numeric_only=True, _convert=False):
+                             numeric_only=True, _convert=False,
+                             min_count=-1):
 
             _local_template = "Compute %(f)s of group values"
 
@@ -1234,6 +1314,8 @@ class GroupBy(_GroupBy):
             def f(self, **kwargs):
                 if 'numeric_only' not in kwargs:
                     kwargs['numeric_only'] = numeric_only
+                if 'min_count' not in kwargs:
+                    kwargs['min_count'] = min_count
                 self._set_group_selection()
                 try:
                     return self._cython_agg_general(
@@ -1281,8 +1363,8 @@ class GroupBy(_GroupBy):
             else:
                 return last(x)
 
-        cls.sum = groupby_function('sum', 'add', np.sum)
-        cls.prod = groupby_function('prod', 'prod', np.prod)
+        cls.sum = groupby_function('sum', 'add', np.sum, min_count=0)
+        cls.prod = groupby_function('prod', 'prod', np.prod, min_count=0)
         cls.min = groupby_function('min', 'min', np.min, numeric_only=False)
         cls.max = groupby_function('max', 'max', np.max, numeric_only=False)
         cls.first = groupby_function('first', 'first', first_compat,
@@ -1779,54 +1861,6 @@ class GroupBy(_GroupBy):
         mask = self._cumcount_array(ascending=False) < n
         return self._selected_obj[mask]
 
-    def pipe(self, func, *args, **kwargs):
-        """ Apply a function with arguments to this GroupBy object,
-
-        .. versionadded:: 0.21.0
-
-        Parameters
-        ----------
-        func : callable or tuple of (callable, string)
-            Function to apply to this GroupBy object or, alternatively, a
-            ``(callable, data_keyword)`` tuple where ``data_keyword`` is a
-            string indicating the keyword of ``callable`` that expects the
-            GroupBy object.
-        args : iterable, optional
-               positional arguments passed into ``func``.
-        kwargs : dict, optional
-                 a dictionary of keyword arguments passed into ``func``.
-
-        Returns
-        -------
-        object : the return type of ``func``.
-
-        Notes
-        -----
-        Use ``.pipe`` when chaining together functions that expect
-        Series, DataFrames or GroupBy objects. Instead of writing
-
-        >>> f(g(h(df.groupby('group')), arg1=a), arg2=b, arg3=c)
-
-        You can write
-
-        >>> (df
-        ...    .groupby('group')
-        ...    .pipe(f, arg1)
-        ...    .pipe(g, arg2)
-        ...    .pipe(h, arg3))
-
-        See more `here
-        <http://pandas.pydata.org/pandas-docs/stable/groupby.html#pipe>`_
-
-        See Also
-        --------
-        pandas.Series.pipe : Apply a function with arguments to a series
-        pandas.DataFrame.pipe: Apply a function with arguments to a dataframe
-        apply : Apply function to each group instead of to the
-            full GroupBy object.
-        """
-        return _pipe(self, func, *args, **kwargs)
-
 
 GroupBy._add_numeric_operations()
 
@@ -2110,7 +2144,7 @@ class BaseGrouper(object):
             'var': 'group_var',
             'first': {
                 'name': 'group_nth',
-                'f': lambda func, a, b, c, d: func(a, b, c, d, 1)
+                'f': lambda func, a, b, c, d, e: func(a, b, c, d, 1, -1)
             },
             'last': 'group_last',
             'ohlc': 'group_ohlc',
@@ -2180,7 +2214,7 @@ class BaseGrouper(object):
                                       (how, dtype_str))
         return func, dtype_str
 
-    def _cython_operation(self, kind, values, how, axis):
+    def _cython_operation(self, kind, values, how, axis, min_count=-1):
         assert kind in ['transform', 'aggregate']
 
         # can we do this operation with our cython functions
@@ -2265,11 +2299,12 @@ class BaseGrouper(object):
             counts = np.zeros(self.ngroups, dtype=np.int64)
             result = self._aggregate(
                 result, counts, values, labels, func, is_numeric,
-                is_datetimelike)
+                is_datetimelike, min_count)
         elif kind == 'transform':
             result = _maybe_fill(np.empty_like(values, dtype=out_dtype),
                                  fill_value=np.nan)
 
+            # TODO: min_count
             result = self._transform(
                 result, values, labels, func, is_numeric, is_datetimelike)
 
@@ -2306,14 +2341,15 @@ class BaseGrouper(object):
 
         return result, names
 
-    def aggregate(self, values, how, axis=0):
-        return self._cython_operation('aggregate', values, how, axis)
+    def aggregate(self, values, how, axis=0, min_count=-1):
+        return self._cython_operation('aggregate', values, how, axis,
+                                      min_count=min_count)
 
     def transform(self, values, how, axis=0):
         return self._cython_operation('transform', values, how, axis)
 
     def _aggregate(self, result, counts, values, comp_ids, agg_func,
-                   is_numeric, is_datetimelike):
+                   is_numeric, is_datetimelike, min_count=-1):
         if values.ndim > 3:
             # punting for now
             raise NotImplementedError("number of dimensions is currently "
@@ -2322,9 +2358,10 @@ class BaseGrouper(object):
             for i, chunk in enumerate(values.transpose(2, 0, 1)):
 
                 chunk = chunk.squeeze()
-                agg_func(result[:, :, i], counts, chunk, comp_ids)
+                agg_func(result[:, :, i], counts, chunk, comp_ids,
+                         min_count)
         else:
-            agg_func(result, counts, values, comp_ids)
+            agg_func(result, counts, values, comp_ids, min_count)
 
         return result
 
@@ -2919,7 +2956,7 @@ def _get_grouper(obj, key=None, axis=0, level=None, sort=True,
 
         return True
 
-    # if the the grouper is obj[name]
+    # if the grouper is obj[name]
     def is_in_obj(gpr):
         try:
             return id(gpr) == id(obj[gpr.name])
@@ -3616,9 +3653,10 @@ class NDFrameGroupBy(GroupBy):
                 continue
             yield val, slicer(val)
 
-    def _cython_agg_general(self, how, alt=None, numeric_only=True):
+    def _cython_agg_general(self, how, alt=None, numeric_only=True,
+                            min_count=-1):
         new_items, new_blocks = self._cython_agg_blocks(
-            how, alt=alt, numeric_only=numeric_only)
+            how, alt=alt, numeric_only=numeric_only, min_count=min_count)
         return self._wrap_agged_blocks(new_items, new_blocks)
 
     def _wrap_agged_blocks(self, items, blocks):
@@ -3644,7 +3682,8 @@ class NDFrameGroupBy(GroupBy):
 
     _block_agg_axis = 0
 
-    def _cython_agg_blocks(self, how, alt=None, numeric_only=True):
+    def _cython_agg_blocks(self, how, alt=None, numeric_only=True,
+                           min_count=-1):
         # TODO: the actual managing of mgr_locs is a PITA
         # here, it should happen via BlockManager.combine
 
@@ -3661,7 +3700,7 @@ class NDFrameGroupBy(GroupBy):
             locs = block.mgr_locs.as_array
             try:
                 result, _ = self.grouper.aggregate(
-                    block.values, how, axis=agg_axis)
+                    block.values, how, axis=agg_axis, min_count=min_count)
             except NotImplementedError:
                 # generally if we have numeric_only=False
                 # and non-applicable functions

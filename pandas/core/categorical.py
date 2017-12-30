@@ -471,32 +471,6 @@ class Categorical(PandasObject):
             return [_maybe_box_datetimelike(x) for x in self]
         return np.array(self).tolist()
 
-    def reshape(self, new_shape, *args, **kwargs):
-        """
-        .. deprecated:: 0.19.0
-           Calling this method will raise an error in a future release.
-
-        An ndarray-compatible method that returns `self` because
-        `Categorical` instances cannot actually be reshaped.
-
-        Parameters
-        ----------
-        new_shape : int or tuple of ints
-            A 1-D array of integers that correspond to the new
-            shape of the `Categorical`. For more information on
-            the parameter, please refer to `np.reshape`.
-        """
-        warn("reshape is deprecated and will raise "
-             "in a subsequent release", FutureWarning, stacklevel=2)
-
-        nv.validate_reshape(args, kwargs)
-
-        # while the 'new_shape' parameter has no effect,
-        # we should still enforce valid shape parameters
-        np.reshape(self.codes, new_shape)
-
-        return self
-
     @property
     def base(self):
         """ compat, we are always our own object """
@@ -674,7 +648,7 @@ class Categorical(PandasObject):
         Parameters
         ----------
         sort : boolean
-            The value of the sort paramter groupby was called with.
+            The value of the sort parameter groupby was called with.
 
         Returns
         -------
@@ -796,7 +770,7 @@ class Categorical(PandasObject):
            If not given, do not change the ordered information.
         rename : boolean (default: False)
            Whether or not the new_categories should be considered as a rename
-           of the old  categories or as reordered categories.
+           of the old categories or as reordered categories.
         inplace : boolean (default: False)
            Whether or not to reorder the categories inplace or return a copy of
            this categorical with reordered categories.
@@ -1165,7 +1139,7 @@ class Categorical(PandasObject):
         shifted : Categorical
         """
         # since categoricals always have ndim == 1, an axis parameter
-        # doesnt make any sense here.
+        # doesn't make any sense here.
         codes = self.codes
         if codes.ndim > 1:
             raise NotImplementedError("Categorical with ndim > 1.")

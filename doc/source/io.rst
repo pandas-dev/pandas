@@ -1048,7 +1048,7 @@ The ``thousands`` keyword allows integers to be parsed correctly
 NA Values
 '''''''''
 
-To control which values are parsed as missing values (which are signified by ``NaN``), specifiy a
+To control which values are parsed as missing values (which are signified by ``NaN``), specify a
 string in ``na_values``. If you specify a list of strings, then all values in
 it are considered to be missing values. If you specify a number (a ``float``, like ``5.0`` or an ``integer`` like ``5``),
 the corresponding equivalent values will also imply a missing value (in this case effectively
@@ -3065,7 +3065,7 @@ any pickled pandas object (or any other pickled object) from file:
 
    Loading pickled data received from untrusted sources can be unsafe.
 
-   See: https://docs.python.org/3.6/library/pickle.html
+   See: https://docs.python.org/3/library/pickle.html
 
 .. warning::
 
@@ -4153,7 +4153,7 @@ Caveats
 
 .. warning::
 
-   ``PyTables`` will show a ``NaturalNameWarning`` if a  column name
+   ``PyTables`` will show a ``NaturalNameWarning`` if a column name
    cannot be used as an attribute selector.
    *Natural* identifiers contain only letters, numbers, and underscores,
    and may not begin with a number.
@@ -4478,7 +4478,7 @@ Several caveats.
 - Non supported types include ``Period`` and actual python object types. These will raise a helpful error message
   on an attempt at serialization.
 
-You can specifiy an ``engine`` to direct the serialization. This can be one of ``pyarrow``, or ``fastparquet``, or ``auto``.
+You can specify an ``engine`` to direct the serialization. This can be one of ``pyarrow``, or ``fastparquet``, or ``auto``.
 If the engine is NOT specified, then the ``pd.options.io.parquet.engine`` option is checked; if this is also ``auto``, then
 then ``pyarrow`` is tried, and falling back to ``fastparquet``.
 
@@ -4545,7 +4545,7 @@ facilitate data retrieval and to reduce dependency on DB-specific API. Database 
 is provided by SQLAlchemy if installed. In addition you will need a driver library for
 your database. Examples of such drivers are `psycopg2 <http://initd.org/psycopg/>`__
 for PostgreSQL or `pymysql <https://github.com/PyMySQL/PyMySQL>`__ for MySQL.
-For `SQLite <https://docs.python.org/3.5/library/sqlite3.html>`__ this is
+For `SQLite <https://docs.python.org/3/library/sqlite3.html>`__ this is
 included in Python's standard library by default.
 You can find an overview of supported drivers for each SQL dialect in the
 `SQLAlchemy docs <http://docs.sqlalchemy.org/en/latest/dialects/index.html>`__.

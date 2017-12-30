@@ -12,8 +12,6 @@ from pandas.core.dtypes.common import (
     is_datetime_or_timedelta_dtype,
     is_datetime64tz_dtype,
     is_integer_dtype,
-    is_object_dtype,
-    is_categorical_dtype,
     is_float_dtype,
     is_interval_dtype,
     is_scalar,
@@ -29,7 +27,6 @@ from pandas._libs.interval import (
     Interval, IntervalMixin, IntervalTree,
     intervals_to_interval_bounds)
 
-from pandas.core.indexes.category import CategoricalIndex
 from pandas.core.indexes.datetimes import date_range
 from pandas.core.indexes.timedeltas import timedelta_range
 from pandas.core.indexes.multi import MultiIndex
@@ -671,16 +668,8 @@ class IntervalIndex(IntervalMixin, Index):
     @Appender(_index_shared_docs['astype'])
     def astype(self, dtype, copy=True):
         if is_interval_dtype(dtype):
-            if copy:
-                self = self.copy()
-            return self
-        elif is_object_dtype(dtype):
-            return Index(self.values, dtype=object)
-        elif is_categorical_dtype(dtype):
-            return CategoricalIndex(self.values, name=self.name, dtype=dtype,
-                                    copy=copy)
-        raise ValueError('Cannot cast IntervalIndex to dtype {dtype}'
-                         .format(dtype=dtype))
+            return self.copy() if copy else self
+        return super(IntervalIndex, self).astype(dtype, copy=copy)
 
     @cache_readonly
     def dtype(self):
@@ -694,7 +683,7 @@ class IntervalIndex(IntervalMixin, Index):
 
     @Appender(Index.memory_usage.__doc__)
     def memory_usage(self, deep=False):
-        # we don't use an explict engine
+        # we don't use an explicit engine
         # so return the bytes here
         return (self.left.memory_usage(deep=deep) +
                 self.right.memory_usage(deep=deep))

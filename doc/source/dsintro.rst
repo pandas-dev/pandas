@@ -93,10 +93,12 @@ constructed from the sorted keys of the dict, if possible.
 
 .. note::
 
-    NaN (not a number) is the standard missing data marker used in pandas
+    NaN (not a number) is the standard missing data marker used in pandas.
 
-**From scalar value** If ``data`` is a scalar value, an index must be
-provided. The value will be repeated to match the length of **index**
+**From scalar value** 
+
+If ``data`` is a scalar value, an index must be
+provided. The value will be repeated to match the length of **index**.
 
 .. ipython:: python
 
@@ -106,7 +108,7 @@ Series is ndarray-like
 ~~~~~~~~~~~~~~~~~~~~~~
 
 ``Series`` acts very similarly to a ``ndarray``, and is a valid argument to most NumPy functions.
-However, things like slicing also slice the index.
+However, operations such as slicing will also slice the index.
 
 .. ipython :: python
 
@@ -152,10 +154,9 @@ See also the :ref:`section on attribute access<indexing.attribute_access>`.
 Vectorized operations and label alignment with Series
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-When doing data analysis, as with raw NumPy arrays looping through Series
-value-by-value is usually not necessary. Series can also be passed into most
-NumPy methods expecting an ndarray.
-
+When working with raw NumPy arrays, looping through value-by-value is usually 
+not necessary. The same is true when working with Series in pandas.
+Series can also be passed into most NumPy methods expecting an ndarray.
 
 .. ipython:: python
 
@@ -245,8 +246,8 @@ based on common sense rules.
 From dict of Series or dicts
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-The result **index** will be the **union** of the indexes of the various
-Series. If there are any nested dicts, these will be first converted to
+The resulting **index** will be the **union** of the indexes of the various
+Series. If there are any nested dicts, these will first be converted to
 Series. If no columns are passed, the columns will be the sorted list of dict
 keys.
 
@@ -323,7 +324,8 @@ From a list of dicts
 From a dict of tuples
 ~~~~~~~~~~~~~~~~~~~~~
 
-You can automatically create a multi-indexed frame by passing a tuples dictionary
+You can automatically create a multi-indexed frame by passing a tuples 
+dictionary.
 
 .. ipython:: python
 
@@ -345,8 +347,8 @@ column name provided).
 **Missing Data**
 
 Much more will be said on this topic in the :ref:`Missing data <missing_data>`
-section. To construct a DataFrame with missing data, use ``np.nan`` for those
-values which are missing. Alternatively, you may pass a ``numpy.MaskedArray``
+section. To construct a DataFrame with missing data, we use ``np.nan`` to 
+represent missing values. Alternatively, you may pass a ``numpy.MaskedArray``
 as the data argument to the DataFrame constructor, and its masked entries will
 be considered missing.
 
@@ -367,9 +369,9 @@ set to ``'index'`` in order to use the dict keys as row labels.
 **DataFrame.from_records**
 
 ``DataFrame.from_records`` takes a list of tuples or an ndarray with structured
-dtype. Works analogously to the normal ``DataFrame`` constructor, except that
-index maybe be a specific field of the structured dtype to use as the index.
-For example:
+dtype. It works analogously to the normal ``DataFrame`` constructor, except that
+the resulting DataFrame index may be a specific field of the structured 
+dtype. For example:
 
 .. ipython:: python
 
@@ -467,8 +469,8 @@ derived from existing columns.
    (iris.assign(sepal_ratio = iris['SepalWidth'] / iris['SepalLength'])
         .head())
 
-Above was an example of inserting a precomputed value. We can also pass in
-a function of one argument to be evalutated on the DataFrame being assigned to.
+In the example above, we inserted a precomputed value. We can also pass in
+a function of one argument to be evaluated on the DataFrame being assigned to.
 
 .. ipython:: python
 
@@ -480,7 +482,7 @@ DataFrame untouched.
 
 Passing a callable, as opposed to an actual value to be inserted, is
 useful when you don't have a reference to the DataFrame at hand. This is
-common when using ``assign`` in chains of operations. For example,
+common when using ``assign`` in a chain of operations. For example,
 we can limit the DataFrame to just those observations with a Sepal Length
 greater than 5, calculate the ratio, and plot:
 
@@ -546,7 +548,7 @@ DataFrame:
    df.loc['b']
    df.iloc[2]
 
-For a more exhaustive treatment of more sophisticated label-based indexing and
+For a more exhaustive treatment of sophisticated label-based indexing and
 slicing, see the :ref:`section on indexing <indexing>`. We will address the
 fundamentals of reindexing / conforming to new sets of labels in the
 :ref:`section on reindexing <basics.reindexing>`.
@@ -739,7 +741,7 @@ DataFrame column attribute access and IPython completion
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 If a DataFrame column label is a valid Python variable name, the column can be
-accessed like attributes:
+accessed like an attribute:
 
 .. ipython:: python
 
@@ -912,7 +914,8 @@ For example, using the earlier example data, we could do:
 Squeezing
 ~~~~~~~~~
 
-Another way to change the dimensionality of an object is to ``squeeze`` a 1-len object, similar to ``wp['Item1']``
+Another way to change the dimensionality of an object is to ``squeeze`` a 1-len 
+object, similar to ``wp['Item1']``.
 
 .. ipython:: python
    :okwarning:
@@ -954,7 +957,7 @@ pandas to focus on these areas exclusively.
 
 Oftentimes, one can simply use a MultiIndex ``DataFrame`` for easily working with higher dimensional data.
 
-In additon, the ``xarray`` package was built from the ground up, specifically in order to
+In addition, the ``xarray`` package was built from the ground up, specifically in order to
 support the multi-dimensional analysis that is one of ``Panel`` s main usecases.
 `Here is a link to the xarray panel-transition documentation <http://xarray.pydata.org/en/stable/pandas.html#panel-transition>`__.
 
@@ -964,7 +967,7 @@ support the multi-dimensional analysis that is one of ``Panel`` s main usecases.
    p = tm.makePanel()
    p
 
-Convert to a MultiIndex DataFrame
+Convert to a MultiIndex DataFrame.
 
 .. ipython:: python
    :okwarning:
