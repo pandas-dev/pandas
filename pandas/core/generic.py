@@ -7263,7 +7263,7 @@ nan
 
 
 _min_count_stub = """\
-min_count : int, default 1
+min_count : int, default 0
     The required number of valid values to perform the operation. If fewer than
     ``min_count`` non-NA values are present the result will be NA.
 
