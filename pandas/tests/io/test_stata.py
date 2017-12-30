@@ -295,7 +295,7 @@ class TestStata(object):
                            u'Floats': u'float data'}
             tm.assert_dict_equal(vl, vl_expected)
 
-            assert rdr.data_label == u'This is a Ünicode data label'
+            assert rdr.data_label == u'This is a  Ünicode data label'
 
     def test_read_write_dta5(self):
         original = DataFrame([(np.nan, np.nan, np.nan, np.nan, np.nan)],
