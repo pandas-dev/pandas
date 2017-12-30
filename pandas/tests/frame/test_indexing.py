@@ -50,7 +50,7 @@ def f_get_mask(request):
             return (df > np.abs(df)).values
         else:
             raise ValueError("Unknown `mask_type` '{}'".format(mask_type))
-    
+
     return partial(get_mask, mask_type=request.param)
 
 
@@ -561,7 +561,7 @@ class TestDataFrameIndexing(TestData):
         # Test for issue #18582
         df = self.frame.copy()
         mask = f_get_mask(df)
-        
+
         # index with boolean mask
         actual = df.copy()
         actual[mask] = nan
