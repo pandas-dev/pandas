@@ -113,7 +113,7 @@ class Base(object):
         else:
             try:
                 klass = klass(value, normalize=normalize)
-            except:
+            except Exception:
                 klass = klass(normalize=normalize)
         return klass
 
@@ -143,10 +143,10 @@ class Base(object):
 
         except tslib.OutOfBoundsDatetime:
             raise
-        except (ValueError, KeyError) as e:
-            pytest.skip(
-                "cannot create out_of_range offset: {0} {1}".format(
-                    str(self).split('.')[-1], e))
+        except (ValueError, KeyError):
+            # we are creating an invalid offset
+            # so ignore
+            pass
 
 
 class TestCommon(Base):

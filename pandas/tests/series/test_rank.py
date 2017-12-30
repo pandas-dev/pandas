@@ -209,11 +209,9 @@ class TestSeriesRank(TestData):
         pytest.param([np.iinfo(np.int64).min, -100, 0, 1, 9999, 100000,
                       1e10, np.iinfo(np.int64).max],
                      'int64',
-                     marks=pytest.mark.xfail(reason='''iNaT is equivalent to
-                                                      minimum value of dtype
-                                                      int64 pending issue
-                                                      #16674'''),
-                     ),
+                     marks=pytest.mark.xfail(
+                         reason="iNaT is equivalent to minimum value of dtype"
+                         "int64 pending issue #16674")),
         ([NegInfinity(), '1', 'A', 'BA', 'Ba', 'C', Infinity()],
          'object')
     ])
