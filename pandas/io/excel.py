@@ -132,7 +132,7 @@ skiprows : list-like
 nrows : int, default None
     Number of rows to parse
 
-    .. versionadded:: 0.22.0
+    .. versionadded:: 0.23.0
 
 na_values : scalar, str, list-like, or dict, default None
     Additional strings to recognize as NA/NaN. If dict passed, specific
@@ -155,7 +155,7 @@ comment : str, default None
     comment string and the end of the current line is ignored.
 skip_footer : int, default 0
 
-    .. deprecated:: 0.22.0
+    .. deprecated:: 0.23.0
        Pass in `skipfooter` instead.
 skipfooter : int, default 0
     Rows at the end to skip (0-indexed)
