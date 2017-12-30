@@ -2043,7 +2043,7 @@ Bug Fixes
 - Fixed missing arg validation in get_options_data (:issue:`6105`)
 - Bug in assignment with duplicate columns in a frame where the locations
   are a slice (e.g. next to each other) (:issue:`6120`)
-- Bug in propogating _ref_locs during construction of a DataFrame with dups
+- Bug in propagating _ref_locs during construction of a DataFrame with dups
   index/columns (:issue:`6121`)
 - Bug in ``DataFrame.apply`` when using mixed datelike reductions (:issue:`6125`)
 - Bug in ``DataFrame.append`` when appending a row with different columns (:issue:`6129`)
@@ -2056,7 +2056,7 @@ Bug Fixes
 - Bug in ``HDFStore`` on appending a dataframe with multi-indexed columns to
   an existing table (:issue:`6167`)
 - Consistency with dtypes in setting an empty DataFrame (:issue:`6171`)
-- Bug in  selecting on a multi-index ``HDFStore`` even in the presence of under
+- Bug in selecting on a multi-index ``HDFStore`` even in the presence of under
   specified column spec (:issue:`6169`)
 - Bug in ``nanops.var`` with ``ddof=1`` and 1 elements would sometimes return ``inf``
   rather than ``nan`` on some platforms (:issue:`6136`)
@@ -2437,7 +2437,7 @@ API Changes
 - The refactoring involving``Series`` deriving from ``NDFrame`` breaks ``rpy2<=2.3.8``. an Issue
   has been opened against rpy2 and a workaround is detailed in :issue:`5698`. Thanks @JanSchulz.
 - ``Series.argmin`` and ``Series.argmax`` are now aliased to ``Series.idxmin`` and ``Series.idxmax``.
-  These return the *index* of the  min or max element respectively. Prior to 0.13.0 these would return
+  These return the *index* of the min or max element respectively. Prior to 0.13.0 these would return
   the position of the min / max element (:issue:`6214`)
 
 Internal Refactoring
@@ -3097,7 +3097,7 @@ Bug Fixes
 - Fixed bug where a time-series was being selected in preference to an actual column name
   in a frame (:issue:`3594`)
 - Make secondary_y work properly for bar plots (:issue:`3598`)
-- Fix modulo and integer division on Series,DataFrames to act similary to ``float`` dtypes to return
+- Fix modulo and integer division on Series,DataFrames to act similarly to ``float`` dtypes to return
   ``np.nan`` or ``np.inf`` as appropriate (:issue:`3590`)
 - Fix incorrect dtype on groupby with ``as_index=False`` (:issue:`3610`)
 - Fix ``read_csv/read_excel`` to correctly encode identical na_values, e.g. ``na_values=[-999.0,-999]``
@@ -3400,11 +3400,11 @@ Bug Fixes
 - Fixed bug in reshape if not passed correct input, now raises TypeError (:issue:`2719`)
 - Fixed a bug where Series ctor did not respect ordering if OrderedDict passed in (:issue:`3282`)
 - Fix NameError issue on RESO_US (:issue:`2787`)
-- Allow selection in an *unordered* timeseries to work similary
+- Allow selection in an *unordered* timeseries to work similarly
   to an *ordered* timeseries (:issue:`2437`).
 - Fix implemented ``.xs`` when called with ``axes=1`` and a level parameter (:issue:`2903`)
 - Timestamp now supports the class method fromordinal similar to datetimes (:issue:`3042`)
-- Fix issue with indexing a series with a boolean key and specifiying a 1-len list on the rhs (:issue:`2745`)
+- Fix issue with indexing a series with a boolean key and specifying a 1-len list on the rhs (:issue:`2745`)
   or a list on the rhs (:issue:`3235`)
 - Fixed bug in groupby apply when kernel generate list of arrays having unequal len (:issue:`1738`)
 - fixed handling of rolling_corr with center=True which could produce corr>1 (:issue:`3155`)
@@ -3555,7 +3555,7 @@ Bug Fixes
 - Upconvert datetime + datetime64 values when concatenating frames (:issue:`2624`)
 - Raise a more helpful error message in merge operations when one DataFrame
   has duplicate columns (:issue:`2649`)
-- Fix partial date parsing issue occuring only when code is run at EOM
+- Fix partial date parsing issue occurring only when code is run at EOM
   (:issue:`2618`)
 - Prevent MemoryError when using counting sort in sortlevel with
   high-cardinality MultiIndex objects (:issue:`2684`)
@@ -3973,7 +3973,7 @@ Bug Fixes
 - Don't lose tzinfo when passing DatetimeIndex as DataFrame column (:issue:`1682`)
 - Fix tz conversion with time zones that haven't had any DST transitions since
   first date in the array (:issue:`1673`)
-- Fix field access with  UTC->local conversion on unsorted arrays (:issue:`1756`)
+- Fix field access with UTC->local conversion on unsorted arrays (:issue:`1756`)
 - Fix isnull handling of array-like (list) inputs (:issue:`1755`)
 - Fix regression in handling of Series in Series constructor (:issue:`1671`)
 - Fix comparison of Int64Index with DatetimeIndex (:issue:`1681`)
@@ -4525,7 +4525,7 @@ Bug Fixes
 - Fix na-filling handling in mixed-type DataFrame (:issue:`910`)
 - Fix to DataFrame.set_value with non-existant row/col (:issue:`911`)
 - Fix malformed block in groupby when excluding nuisance columns (:issue:`916`)
-- Fix inconsistant NA handling in dtype=object arrays (:issue:`925`)
+- Fix inconsistent NA handling in dtype=object arrays (:issue:`925`)
 - Fix missing center-of-mass computation in ewmcov (:issue:`862`)
 - Don't raise exception when opening read-only HDF5 file (:issue:`847`)
 - Fix possible out-of-bounds memory access in 0-length Series (:issue:`917`)
@@ -5395,9 +5395,9 @@ pandas 0.4.3
 
 **Release date:** 10/9/2011
 
-is is largely a bugfix release from 0.4.2 but also includes a handful of new
-d enhanced features. Also, pandas can now be installed and used on Python 3
-hanks Thomas Kluyver!).
+This is largely a bugfix release from 0.4.2 but also includes a handful of new
+and enhanced features. Also, pandas can now be installed and used on Python 3
+(thanks Thomas Kluyver!).
 
 New Features
 ~~~~~~~~~~~~
@@ -5460,9 +5460,9 @@ pandas 0.4.2
 
 **Release date:** 10/3/2011
 
-is is a performance optimization release with several bug fixes. The new
-t64Index and new merging / joining Cython code and related Python
-frastructure are the main new additions
+This is a performance optimization release with several bug fixes. The new
+Int64Index and new merging / joining Cython code and related Python
+infrastructure are the main new additions
 
 New Features
 ~~~~~~~~~~~~
@@ -5537,7 +5537,7 @@ pandas 0.4.1
 
 **Release date:** 9/25/2011
 
-is is primarily a bug fix release but includes some new features and
+This is primarily a bug fix release but includes some new features and
 improvements
 
 New Features

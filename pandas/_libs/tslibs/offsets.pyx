@@ -104,7 +104,7 @@ cpdef bint _is_normalized(dt):
 
 def apply_index_wraps(func):
     # Note: normally we would use `@functools.wraps(func)`, but this does
-    # not play nicely wtih cython class methods
+    # not play nicely with cython class methods
     def wrapper(self, other):
         result = func(self, other)
         if self.normalize:
@@ -316,7 +316,7 @@ class EndMixin(object):
 
 class _BaseOffset(object):
     """
-    Base class for DateOffset methods that are not overriden by subclasses
+    Base class for DateOffset methods that are not overridden by subclasses
     and will (after pickle errors are resolved) go into a cdef class.
     """
     _typ = "dateoffset"
@@ -783,7 +783,7 @@ cpdef int get_day_of_month(datetime other, day_opt) except? -1:
     other : datetime or Timestamp
     day_opt : 'start', 'end'
         'start': returns 1
-        'end': returns last day  of the month
+        'end': returns last day of the month
 
     Returns
     -------
@@ -924,7 +924,7 @@ cpdef int roll_yearday(datetime other, int n, int month,
     month : reference month giving the first month of the year
     day_opt : 'start', 'end'
         'start': returns 1
-        'end': returns last day  of the month
+        'end': returns last day of the month
 
     Returns
     -------
