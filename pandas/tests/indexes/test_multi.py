@@ -1266,6 +1266,18 @@ class TestMultiIndex(Base):
         pytest.raises(KeyError, idx.get_loc, np.nan)
         pytest.raises(KeyError, idx.get_loc, [np.nan])
 
+    @pytest.mark.parametrize('level', [0, 1])
+    @pytest.mark.parametrize('dtypes', [[int, float], [float, int]])
+    def test_get_loc_implicit_cast(self, level, dtypes):
+        # GH 18818, GH 15994 : as flat index, cast int to float and vice-versa
+        levels = [['a', 'b'], ['c', 'd']]
+        key = ['b', 'd']
+        lev_dtype, key_dtype = dtypes
+        levels[level] = np.array([0, 1], dtype=lev_dtype)
+        key[level] = key_dtype(1)
+        idx = MultiIndex.from_product(levels)
+        assert idx.get_loc(tuple(key)) == 3
+
     def test_slice_locs(self):
         df = tm.makeTimeDataFrame()
         stacked = df.stack()
