@@ -2054,7 +2054,7 @@ class PythonParser(ParserBase):
             self.data = f
 
         # Get columns in two steps: infer from data, then
-        # infer column indices from self.usecols if is is specified.
+        # infer column indices from self.usecols if it is specified.
         self._col_indices = None
         self.columns, self.num_original_columns = self._infer_columns()
 

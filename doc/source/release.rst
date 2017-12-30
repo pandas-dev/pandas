@@ -5395,9 +5395,9 @@ pandas 0.4.3
 
 **Release date:** 10/9/2011
 
-is is largely a bugfix release from 0.4.2 but also includes a handful of new
-d enhanced features. Also, pandas can now be installed and used on Python 3
-hanks Thomas Kluyver!).
+This is largely a bugfix release from 0.4.2 but also includes a handful of new
+and enhanced features. Also, pandas can now be installed and used on Python 3
+(thanks Thomas Kluyver!).
 
 New Features
 ~~~~~~~~~~~~
@@ -5460,9 +5460,9 @@ pandas 0.4.2
 
 **Release date:** 10/3/2011
 
-is is a performance optimization release with several bug fixes. The new
-t64Index and new merging / joining Cython code and related Python
-frastructure are the main new additions
+This is a performance optimization release with several bug fixes. The new
+Int64Index and new merging / joining Cython code and related Python
+infrastructure are the main new additions
 
 New Features
 ~~~~~~~~~~~~
@@ -5537,7 +5537,7 @@ pandas 0.4.1
 
 **Release date:** 9/25/2011
 
-is is primarily a bug fix release but includes some new features and
+This is primarily a bug fix release but includes some new features and
 improvements
 
 New Features
