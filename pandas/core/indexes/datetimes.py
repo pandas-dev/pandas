@@ -355,7 +355,7 @@ class DatetimeIndex(DatelikeOps, TimelikeOps, DatetimeIndexOpsMixin,
             raise ValueError("Must provide freq argument if no data is "
                              "supplied")
 
-        # if dtype has an embeded tz, capture it
+        # if dtype has an embedded tz, capture it
         if dtype is not None:
             try:
                 dtype = DatetimeTZDtype.construct_from_string(dtype)
@@ -1791,7 +1791,7 @@ class DatetimeIndex(DatelikeOps, TimelikeOps, DatetimeIndexOpsMixin,
 
         if isinstance(item, (datetime, np.datetime64)):
             self._assert_can_do_op(item)
-            if not self._has_same_tz(item):
+            if not self._has_same_tz(item) and not isna(item):
                 raise ValueError(
                     'Passed item and index have different timezone')
             # check freq can be preserved on edge cases

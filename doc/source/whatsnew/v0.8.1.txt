@@ -32,5 +32,5 @@ Performance improvements
     strings with ``DatetimeIndex`` or ``to_datetime`` (:issue:`1571`)
   - Improve the performance of GroupBy on single-key aggregations and use with
     Categorical types
-  - Significant datetime parsing performance improvments
+  - Significant datetime parsing performance improvements
 
