@@ -9,6 +9,7 @@ import pytest
 from pandas import Timestamp
 
 import pandas._libs.tslibs.offsets as liboffsets
+from pandas._libs.tslibs.offsets import roll_qtrday
 
 
 def test_get_lastbday():
@@ -95,3 +96,93 @@ def test_roll_yearday():
     assert liboffsets.roll_yearday(other, 5, month, day_opt) == 5
     assert liboffsets.roll_yearday(other, -7, month, day_opt) == -6
     assert liboffsets.roll_yearday(other, 0, month, day_opt) == 1
+
+
+def test_roll_qtrday():
+    other = Timestamp(2072, 10, 1, 6, 17, 18)  # Saturday
+    for day_opt in ['start', 'end', 'business_start', 'business_end']:
+        # as long as (other.month % 3) != (month % 3), day_opt is irrelevant
+        # the `day_opt` doesn't matter.
+        month = 5  # (other.month % 3) < (month % 3)
+        assert roll_qtrday(other, 4, month, day_opt, modby=3) == 3
+        assert roll_qtrday(other, -3, month, day_opt, modby=3) == -3
+
+        month = 3  # (other.month % 3) > (month % 3)
+        assert roll_qtrday(other, 4, month, day_opt, modby=3) == 4
+        assert roll_qtrday(other, -3, month, day_opt, modby=3) == -2
+
+    month = 2
+    other = datetime(1999, 5, 31)  # Monday
+    # has (other.month % 3) == (month % 3)
+
+    n = 2
+    assert roll_qtrday(other, n, month, 'start', modby=3) == n
+    assert roll_qtrday(other, n, month, 'end', modby=3) == n
+    assert roll_qtrday(other, n, month, 'business_start', modby=3) == n
+    assert roll_qtrday(other, n, month, 'business_end', modby=3) == n
+
+    n = -1
+    assert roll_qtrday(other, n, month, 'start', modby=3) == n + 1
+    assert roll_qtrday(other, n, month, 'end', modby=3) == n
+    assert roll_qtrday(other, n, month, 'business_start', modby=3) == n + 1
+    assert roll_qtrday(other, n, month, 'business_end', modby=3) == n
+
+    other = Timestamp(2072, 10, 1, 6, 17, 18)  # Saturday
+    month = 4  # (other.month % 3) == (month % 3)
+    n = 2
+    assert roll_qtrday(other, n, month, 'start', modby=3) == n
+    assert roll_qtrday(other, n, month, 'end', modby=3) == n - 1
+    assert roll_qtrday(other, n, month, 'business_start', modby=3) == n - 1
+    assert roll_qtrday(other, n, month, 'business_end', modby=3) == n - 1
+
+    n = -1
+    assert roll_qtrday(other, n, month, 'start', modby=3) == n
+    assert roll_qtrday(other, n, month, 'end', modby=3) == n
+    assert roll_qtrday(other, n, month, 'business_start', modby=3) == n
+    assert roll_qtrday(other, n, month, 'business_end', modby=3) == n
+
+    other = Timestamp(2072, 10, 3, 6, 17, 18)  # First businessday
+    month = 4  # (other.month % 3) == (month % 3)
+    n = 2
+    assert roll_qtrday(other, n, month, 'start', modby=3) == n
+    assert roll_qtrday(other, n, month, 'end', modby=3) == n - 1
+    assert roll_qtrday(other, n, month, 'business_start', modby=3) == n
+    assert roll_qtrday(other, n, month, 'business_end', modby=3) == n - 1
+
+    n = -1
+    assert roll_qtrday(other, n, month, 'start', modby=3) == n + 1
+    assert roll_qtrday(other, n, month, 'end', modby=3) == n
+    assert roll_qtrday(other, n, month, 'business_start', modby=3) == n
+    assert roll_qtrday(other, n, month, 'business_end', modby=3) == n
+
+
+def test_roll_monthday():
+    other = Timestamp('2017-12-29', tz='US/Pacific')
+    before = Timestamp('2017-12-01', tz='US/Pacific')
+    after = Timestamp('2017-12-31', tz='US/Pacific')
+
+    n = 42
+    assert liboffsets.roll_monthday(other, n, other) == n
+    assert liboffsets.roll_monthday(other, n, before) == n
+    assert liboffsets.roll_monthday(other, n, after) == n - 1
+
+    n = -4
+    assert liboffsets.roll_monthday(other, n, other) == n
+    assert liboffsets.roll_monthday(other, n, before) == n + 1
+    assert liboffsets.roll_monthday(other, n, after) == n
+
+
+def test_roll_convention():
+    other = 29
+    before = 1
+    after = 31
+
+    n = 42
+    assert liboffsets.roll_convention(other, n, other) == n
+    assert liboffsets.roll_convention(other, n, before) == n
+    assert liboffsets.roll_convention(other, n, after) == n - 1
+
+    n = -4
+    assert liboffsets.roll_convention(other, n, other) == n
+    assert liboffsets.roll_convention(other, n, before) == n + 1
+    assert liboffsets.roll_convention(other, n, after) == n
