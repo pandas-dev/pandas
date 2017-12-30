@@ -144,9 +144,7 @@ class Base(object):
         except tslib.OutOfBoundsDatetime:
             raise
         except (ValueError, KeyError) as e:
-            pytest.skip(
-                "cannot create out_of_range offset: {0} {1}".format(
-                    str(self).split('.')[-1], e))
+            pass
 
 
 class TestCommon(Base):
