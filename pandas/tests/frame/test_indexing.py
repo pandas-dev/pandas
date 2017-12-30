@@ -557,7 +557,7 @@ class TestDataFrameIndexing(TestData):
         result[mask] = np.nan
 
         expected = df.copy()
-        expected.values[mask] = np.nan
+        expected.values[np.array(mask)] = np.nan
         assert_frame_equal(result, expected)
 
     def test_setitem_cast(self):
