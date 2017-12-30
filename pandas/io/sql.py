@@ -1484,7 +1484,7 @@ class SQLiteDatabase(PandasSQL):
             `index` is True, then the index names are used.
             A sequence should be given if the DataFrame uses MultiIndex.
         schema : string, default None
-            Ignored parameter included for compatability with SQLAlchemy
+            Ignored parameter included for compatibility with SQLAlchemy
             version of ``to_sql``.
         chunksize : int, default None
             If not None, then rows will be written in batches of this

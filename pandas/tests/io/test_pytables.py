@@ -903,7 +903,7 @@ class TestHDFStore(Base):
                     'items', 'major_axis', 'minor_axis'])
                 assert_panel4d_equal(store['p4d'], p4d)
 
-                # test using differnt number of items on each axis
+                # test using different number of items on each axis
                 p4d2 = p4d.copy()
                 p4d2['l4'] = p4d['l1']
                 p4d2['l5'] = p4d['l1']
@@ -1300,11 +1300,11 @@ class TestHDFStore(Base):
             df['int16'] = Series([1] * len(df), dtype='int16')
             store.append('df', df)
 
-            # store additonal fields in different blocks
+            # store additional fields in different blocks
             df['int16_2'] = Series([1] * len(df), dtype='int16')
             pytest.raises(ValueError, store.append, 'df', df)
 
-            # store multile additonal fields in different blocks
+            # store multile additional fields in different blocks
             df['float_3'] = Series([1.] * len(df), dtype='float64')
             pytest.raises(ValueError, store.append, 'df', df)
 
@@ -1330,7 +1330,7 @@ class TestHDFStore(Base):
                 assert_panel4d_equal(store.select('p4d'), p4d)
                 check_indexers('p4d', indexers)
 
-                # same as above, but try to append with differnt axes
+                # same as above, but try to append with different axes
                 _maybe_remove(store, 'p4d')
                 store.append('p4d', p4d.iloc[:, :, :10, :], axes=indexers)
                 store.append('p4d', p4d.iloc[:, :, 10:, :], axes=[
@@ -1908,12 +1908,6 @@ class TestHDFStore(Base):
                            'a', 'b'], index=make_index(['date', 'a', 't']))
             pytest.raises(ValueError, store.append, 'df', df)
 
-            # dup within level
-            _maybe_remove(store, 'df')
-            df = DataFrame(np.zeros((12, 2)), columns=['a', 'b'],
-                           index=make_index(['date', 'date', 'date']))
-            pytest.raises(ValueError, store.append, 'df', df)
-
             # fully names
             _maybe_remove(store, 'df')
             df = DataFrame(np.zeros((12, 2)), columns=[
@@ -2089,7 +2083,7 @@ class TestHDFStore(Base):
             assert df.dtypes['invalid'] == np.object_
             pytest.raises(TypeError, store.append, 'df', df)
 
-            # directy ndarray
+            # directly ndarray
             pytest.raises(TypeError, store.append, 'df', np.arange(10))
 
             # series directly
@@ -3072,7 +3066,7 @@ class TestHDFStore(Base):
             expected = df.loc[:, ['A']]
             assert_frame_equal(result, expected)
 
-        # dups accross dtypes
+        # dups across dtypes
         df = concat([DataFrame(np.random.randn(10, 4),
                                columns=['A', 'A', 'B', 'B']),
                      DataFrame(np.random.randint(0, 10, size=20)
@@ -5416,7 +5410,7 @@ class TestTimezones(Base):
                 b_e = b.loc[i, c]
                 if not (a_e == b_e and a_e.tz == b_e.tz):
                     raise AssertionError(
-                        "invalid tz comparsion [%s] [%s]" % (a_e, b_e))
+                        "invalid tz comparison [%s] [%s]" % (a_e, b_e))
 
     def test_append_with_timezones_dateutil(self):
 

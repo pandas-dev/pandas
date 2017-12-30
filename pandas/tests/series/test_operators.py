@@ -1377,7 +1377,7 @@ class TestSeriesOperators(TestData):
                 expecteds = divmod(series.values, np.asarray(other_np))
 
             for result, expected in zip(results, expecteds):
-                # check the values, name, and index separatly
+                # check the values, name, and index separately
                 assert_almost_equal(np.asarray(result), expected)
 
                 assert result.name == series.name
@@ -1467,7 +1467,7 @@ class TestSeriesOperators(TestData):
                 assert_series_equal(lhs, rhs)
             except:
                 raise AssertionError(
-                    "invalid comparsion [op->{0},d->{1},h->{2},m->{3},"
+                    "invalid comparison [op->{0},d->{1},h->{2},m->{3},"
                     "s->{4},us->{5}]\n{6}\n{7}\n".format(op, d, h, m, s,
                                                          us, lhs, rhs))
 

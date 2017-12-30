@@ -106,8 +106,8 @@ Here are just a few of the things that pandas does well:
   - Easy handling of missing data in floating point as well as non-floating
     point data.
   - Size mutability: columns can be inserted and deleted from DataFrame and
-    higher dimensional objects.
-  - Automatic and explicit data alignment: objects can  be explicitly aligned
+    higher dimensional objects
+  - Automatic and explicit data alignment: objects can be explicitly aligned
     to a set of labels, or the user can simply ignore the labels and let
     `Series`, `DataFrame`, etc. automatically align the data for you in
     computations.

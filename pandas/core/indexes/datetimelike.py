@@ -18,6 +18,7 @@ from pandas.core.dtypes.common import (
     is_list_like,
     is_scalar,
     is_bool_dtype,
+    is_offsetlike,
     is_categorical_dtype,
     is_datetime_or_timedelta_dtype,
     is_float_dtype,
@@ -131,7 +132,7 @@ class TimelikeOps(object):
 
 
 class DatetimeIndexOpsMixin(object):
-    """ common ops mixin to support a unified inteface datetimelike Index """
+    """ common ops mixin to support a unified interface datetimelike Index """
 
     def equals(self, other):
         """
@@ -649,6 +650,14 @@ class DatetimeIndexOpsMixin(object):
     def _sub_period(self, other):
         return NotImplemented
 
+    def _add_offset_array(self, other):
+        # Array/Index of DateOffset objects
+        return NotImplemented
+
+    def _sub_offset_array(self, other):
+        # Array/Index of DateOffset objects
+        return NotImplemented
+
     @classmethod
     def _add_datetimelike_methods(cls):
         """
@@ -671,7 +680,12 @@ class DatetimeIndexOpsMixin(object):
                 return self._add_delta(other)
             elif is_integer(other):
                 return self.shift(other)
-            elif isinstance(other, (Index, datetime, np.datetime64)):
+            elif isinstance(other, (datetime, np.datetime64)):
+                return self._add_datelike(other)
+            elif is_offsetlike(other):
+                # Array/Index of DateOffset objects
+                return self._add_offset_array(other)
+            elif isinstance(other, Index):
                 return self._add_datelike(other)
             else:  # pragma: no cover
                 return NotImplemented
@@ -692,10 +706,6 @@ class DatetimeIndexOpsMixin(object):
                 return self._add_delta(-other)
             elif isinstance(other, DatetimeIndex):
                 return self._sub_datelike(other)
-            elif isinstance(other, Index):
-                raise TypeError("cannot subtract {typ1} and {typ2}"
-                                .format(typ1=type(self).__name__,
-                                        typ2=type(other).__name__))
             elif isinstance(other, (DateOffset, timedelta)):
                 return self._add_delta(-other)
             elif is_integer(other):
@@ -704,6 +714,14 @@ class DatetimeIndexOpsMixin(object):
                 return self._sub_datelike(other)
             elif isinstance(other, Period):
                 return self._sub_period(other)
+            elif is_offsetlike(other):
+                # Array/Index of DateOffset objects
+                return self._sub_offset_array(other)
+            elif isinstance(other, Index):
+                raise TypeError("cannot subtract {typ1} and {typ2}"
+                                .format(typ1=type(self).__name__,
+                                        typ2=type(other).__name__))
+
             else:  # pragma: no cover
                 return NotImplemented
         cls.__sub__ = __sub__

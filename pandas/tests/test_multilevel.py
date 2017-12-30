@@ -2383,7 +2383,7 @@ Thur,Lunch,Yes,51.51,17"""
 
 
 class TestSorted(Base):
-    """ everthing you wanted to test about sorting """
+    """ everything you wanted to test about sorting """
 
     def test_sort_index_preserve_levels(self):
         result = self.frame.sort_index()
