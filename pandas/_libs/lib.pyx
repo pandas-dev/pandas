@@ -98,7 +98,7 @@ def memory_usage_of_objects(ndarray[object, ndim=1] arr):
 # ----------------------------------------------------------------------
 
 
-cpdef bint isscalar(object val):
+cpdef bint is_scalar(object val):
     """
     Return True if given value is scalar.
 

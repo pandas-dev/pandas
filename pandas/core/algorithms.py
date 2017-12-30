@@ -750,7 +750,7 @@ def checked_add_with_arr(arr, b, arr_mask=None, b_mask=None):
         Helper function to broadcast arrays / scalars to the desired shape.
         """
         if _np_version_under1p10:
-            if lib.isscalar(arr_or_scalar):
+            if is_scalar(arr_or_scalar):
                 out = np.empty(shape)
                 out.fill(arr_or_scalar)
             else:

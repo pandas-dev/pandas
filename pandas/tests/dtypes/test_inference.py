@@ -1098,9 +1098,9 @@ class TestNumberScalar(object):
         assert not is_timedelta64_ns_dtype(tdi.astype('timedelta64[h]'))
 
 
-class Testisscalar(object):
+class TestIsScalar(object):
 
-    def test_isscalar_builtin_scalars(self):
+    def test_is_scalar_builtin_scalars(self):
         assert is_scalar(None)
         assert is_scalar(True)
         assert is_scalar(False)
@@ -1115,7 +1115,7 @@ class Testisscalar(object):
         assert is_scalar(timedelta(hours=1))
         assert is_scalar(pd.NaT)
 
-    def test_isscalar_builtin_nonscalars(self):
+    def test_is_scalar_builtin_nonscalars(self):
         assert not is_scalar({})
         assert not is_scalar([])
         assert not is_scalar([1])
@@ -1124,7 +1124,7 @@ class Testisscalar(object):
         assert not is_scalar(slice(None))
         assert not is_scalar(Ellipsis)
 
-    def test_isscalar_numpy_array_scalars(self):
+    def test_is_scalar_numpy_array_scalars(self):
         assert is_scalar(np.int64(1))
         assert is_scalar(np.float64(1.))
         assert is_scalar(np.int32(1))
@@ -1135,7 +1135,7 @@ class Testisscalar(object):
         assert is_scalar(np.datetime64('2014-01-01'))
         assert is_scalar(np.timedelta64(1, 'h'))
 
-    def test_isscalar_numpy_zerodim_arrays(self):
+    def test_is_scalar_numpy_zerodim_arrays(self):
         for zerodim in [np.array(1), np.array('foobar'),
                         np.array(np.datetime64('2014-01-01')),
                         np.array(np.timedelta64(1, 'h')),
@@ -1143,19 +1143,19 @@ class Testisscalar(object):
             assert not is_scalar(zerodim)
             assert is_scalar(lib.item_from_zerodim(zerodim))
 
-    def test_isscalar_numpy_arrays(self):
+    def test_is_scalar_numpy_arrays(self):
         assert not is_scalar(np.array([]))
         assert not is_scalar(np.array([[]]))
         assert not is_scalar(np.matrix('1; 2'))
 
-    def test_isscalar_pandas_scalars(self):
+    def test_is_scalar_pandas_scalars(self):
         assert is_scalar(Timestamp('2014-01-01'))
         assert is_scalar(Timedelta(hours=1))
         assert is_scalar(Period('2014-01-01'))
         assert is_scalar(Interval(left=0, right=1))
         assert is_scalar(DateOffset(days=1))
 
-    def test_lisscalar_pandas_containers(self):
+    def test_is_scalar_pandas_containers(self):
         assert not is_scalar(Series())
         assert not is_scalar(Series([1]))
         assert not is_scalar(DataFrame())

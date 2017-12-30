@@ -126,7 +126,7 @@ def _align(terms):
         return np.result_type(terms.type), None
 
     # if all resolved variables are numeric scalars
-    if all(term.isscalar for term in terms):
+    if all(term.is_scalar for term in terms):
         return _result_type_many(*(term.value for term in terms)).type, None
 
     # perform the main alignment
