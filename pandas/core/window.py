@@ -254,7 +254,7 @@ class _Window(PandasObject, SelectionMixin):
         wrap the results
 
         Parameters
-        ---------
+        ----------
         results : list of ndarrays
         blocks : list of blocks
         obj : conformed data (may be resampled)

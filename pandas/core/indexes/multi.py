@@ -800,7 +800,7 @@ class MultiIndex(Index):
         *this is internal for use for the cython routines*
 
         Parameters
-        ---------
+        ----------
         key : string or tuple
 
         Returns
