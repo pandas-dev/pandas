@@ -303,7 +303,7 @@ class TestGroupBy(MixIn):
 
             # assert issubclass(agged.dtype.type, np.integer)
 
-            # explicity return a float from my function
+            # explicitly return a float from my function
             def f(x):
                 return float(len(x))
 

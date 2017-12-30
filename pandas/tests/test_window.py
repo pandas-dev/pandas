@@ -3417,7 +3417,7 @@ class TestRollingTS(object):
 
         # test as a frame
         # we should be ignoring the 'on' as an aggregation column
-        # note that the expected is setting, computing, and reseting
+        # note that the expected is setting, computing, and resetting
         # so the columns need to be switched compared
         # to the actual result where they are ordered as in the
         # original
@@ -3815,7 +3815,7 @@ class TestRollingTS(object):
 
     def test_all(self):
 
-        # simple comparision of integer vs time-based windowing
+        # simple comparison of integer vs time-based windowing
         df = self.regular * 2
         er = df.rolling(window=1)
         r = df.rolling(window='1s')
@@ -3837,7 +3837,7 @@ class TestRollingTS(object):
 
     def test_all2(self):
 
-        # more sophisticated comparision of integer vs.
+        # more sophisticated comparison of integer vs.
         # time-based windowing
         df = DataFrame({'B': np.arange(50)},
                        index=pd.date_range('20130101',

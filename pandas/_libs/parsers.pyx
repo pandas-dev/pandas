@@ -424,7 +424,7 @@ cdef class TextReader:
 
         if escapechar is not None:
             if len(escapechar) != 1:
-                raise ValueError('Only length-1 escapes  supported')
+                raise ValueError('Only length-1 escapes supported')
             self.parser.escapechar = ord(escapechar)
 
         self._set_quoting(quotechar, quoting)
@@ -523,7 +523,7 @@ cdef class TextReader:
         else:
             if isinstance(header, list):
                 if len(header) > 1:
-                    # need to artifically skip the final line
+                    # need to artificially skip the final line
                     # which is still a header line
                     header = list(header)
                     header.append(header[-1] + 1)

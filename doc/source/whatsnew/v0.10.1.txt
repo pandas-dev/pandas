@@ -153,7 +153,7 @@ combined result, by using ``where`` on a selector table.
   table
 
 - You can pass ``chunksize=an integer`` to ``append``, to change the writing
-  chunksize (default is 50000). This will signficantly lower your memory usage
+  chunksize (default is 50000). This will significantly lower your memory usage
   on writing.
 
 - You can pass ``expectedrows=an integer`` to the first ``append``, to set the
