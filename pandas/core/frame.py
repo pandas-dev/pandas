@@ -2532,10 +2532,10 @@ class DataFrame(NDFrame):
         if indexer is not None:
             return self._setitem_slice(indexer, value)
 
-        if isinstance(key, (Series, np.ndarray, list, Index)):
-            self._setitem_array(key, value)
-        elif isinstance(key, DataFrame):
+        if isinstance(key, DataFrame) or getattr(key, 'ndim', None) == 2:
             self._setitem_frame(key, value)
+        elif isinstance(key, (Series, np.ndarray, list, Index)):
+            self._setitem_array(key, value)
         else:
             # set column
             self._set_item(key, value)
@@ -2568,8 +2568,17 @@ class DataFrame(NDFrame):
     def _setitem_frame(self, key, value):
         # support boolean setting with DataFrame input, e.g.
         # df[df > df2] = 0
+        if isinstance(key, np.ndarray):
+            if key.shape != self.shape:
+                raise ValueError(
+                    'Array conditional must be same shape as self'
+                )
+            key = self._constructor(key, **self._construct_axes_dict())
+
         if key.values.size and not is_bool_dtype(key.values):
-            raise TypeError('Must pass DataFrame with boolean values only')
+            raise TypeError(
+                'Must pass DataFrame or 2-d ndarray with boolean values only'
+            )
 
         self._check_inplace_setting(value)
         self._check_setitem_copy()
