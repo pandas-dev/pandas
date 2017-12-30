@@ -38,6 +38,22 @@ import pandas.util.testing as tm
 from pandas.tests.frame.common import TestData
 
 
+@pytest.fixture(scope='module',
+                params=['dataframe', 'ndarray'])
+def f_get_mask(request):
+    from functools import partial
+
+    def get_mask(df, mask_type):
+        if mask_type == 'dataframe':
+            return df > np.abs(df)
+        elif mask_type == 'ndarray':
+            return (df > np.abs(df)).values
+        else:
+            raise ValueError("Unknown `mask_type` '{}'".format(mask_type))
+    
+    return partial(get_mask, mask_type=request.param)
+
+
 class TestDataFrameIndexing(TestData):
 
     def test_getitem(self):
@@ -541,22 +557,21 @@ class TestDataFrameIndexing(TestData):
         np.putmask(expected.values, mask.values, df.values * 2)
         assert_frame_equal(df, expected)
 
-    def test_setitem_boolean_ndarary(self):
+    def test_setitem_boolean_mask(self, f_get_mask):
         # Test for issue #18582
-
         df = self.frame.copy()
-        mask = df > np.abs(df)
-        expected = df.copy()
-        expected.values[mask.values] = nan
-
-        # index with 2-d boolean ndarray
-        actual = df.copy()
-        actual[mask.values] = nan
-        assert_frame_equal(actual, expected)
-
-        # index with boolean DataFrame
+        mask = f_get_mask(df)
+        
+        # index with boolean mask
         actual = df.copy()
         actual[mask] = nan
+
+        # compare against ndarray boolean indexing
+        if isinstance(mask, pd.DataFrame):
+            mask = mask.values
+
+        expected = df.copy()
+        expected.values[mask] = nan
         assert_frame_equal(actual, expected)
 
     def test_setitem_cast(self):
