@@ -489,20 +489,6 @@ class TestGroupByAggregateCython(object):
             index=pd.CategoricalIndex(intervals, name='a', ordered=True))
         tm.assert_frame_equal(result, expected)
 
-    @pytest.mark.xfail(reason="GH-18869: agg func not called on empty groups.")
-    def test_agg_category_nansum(self):
-        categories = ['a', 'b', 'c']
-        df = pd.DataFrame({"A": pd.Categorical(['a', 'a', 'b'],
-                                               categories=categories),
-                           'B': [1, 2, 3]})
-        result = df.groupby("A").B.agg(np.nansum)
-        expected = pd.Series([3, 3, 0],
-                             index=pd.CategoricalIndex(['a', 'b', 'c'],
-                                                       categories=categories,
-                                                       name='A'),
-                             name='B')
-        tm.assert_series_equal(result, expected)
-
 
 def test_agg_api():
 
@@ -995,3 +981,18 @@ def test_agg_structs_series(structure, expected):
     result = df.groupby('A')['C'].aggregate(structure)
     expected.index.name = 'A'
     assert_series_equal(result, expected)
+
+
+@pytest.mark.xfail(reason="GH-18869: agg func not called on empty groups.")
+def test_agg_category_nansum(self):
+    categories = ['a', 'b', 'c']
+    df = pd.DataFrame({"A": pd.Categorical(['a', 'a', 'b'],
+                                           categories=categories),
+                       'B': [1, 2, 3]})
+    result = df.groupby("A").B.agg(np.nansum)
+    expected = pd.Series([3, 3, 0],
+                         index=pd.CategoricalIndex(['a', 'b', 'c'],
+                                                   categories=categories,
+                                                   name='A'),
+                         name='B')
+    tm.assert_series_equal(result, expected)
