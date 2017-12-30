@@ -2289,7 +2289,7 @@ Thur,Lunch,Yes,51.51,17"""
 
         # gh-16120: already existing column
         with tm.assert_raises_regex(ValueError,
-                                    ("cannot insert \('A', ''\), "
+                                    (r"cannot insert \('A', ''\), "
                                      "already exists")):
             df.rename_axis('A').reset_index()
 
@@ -2323,7 +2323,7 @@ Thur,Lunch,Yes,51.51,17"""
         # ... which is incompatible with col_fill=None
         with tm.assert_raises_regex(ValueError,
                                     ("col_fill=None is incompatible with "
-                                     "incomplete column name \('C', 'c'\)")):
+                                     r"incomplete column name \('C', 'c'\)")):
             df2.rename_axis([('C', 'c')]).reset_index(col_fill=None)
 
         # with col_level != 0

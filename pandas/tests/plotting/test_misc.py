@@ -206,6 +206,7 @@ class TestDataFramePlots(TestPlotBase):
     def test_parallel_coordinates_with_sorted_labels(self):
         """ For #15908 """
         from pandas.plotting import parallel_coordinates
+
         df = DataFrame({"feat": [i for i in range(30)],
                         "class": [2 for _ in range(10)] +
                         [3 for _ in range(10)] +

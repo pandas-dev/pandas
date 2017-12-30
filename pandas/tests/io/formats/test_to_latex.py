@@ -424,11 +424,11 @@ b &       b &     b \\
 
         df = DataFrame({'a': [1, 2]})
         with1column_result = df.to_latex(index=False, longtable=True)
-        assert "\multicolumn{1}" in with1column_result
+        assert r"\multicolumn{1}" in with1column_result
 
         df = DataFrame({'a': [1, 2], 'b': [3, 4], 'c': [5, 6]})
         with3columns_result = df.to_latex(index=False, longtable=True)
-        assert "\multicolumn{3}" in with3columns_result
+        assert r"\multicolumn{3}" in with3columns_result
 
     def test_to_latex_escape_special_chars(self):
         special_characters = ['&', '%', '$', '#', '_', '{', '}', '~', '^',

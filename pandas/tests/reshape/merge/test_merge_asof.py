@@ -976,7 +976,7 @@ class TestAsOfMerge(object):
 
     def test_merge_datatype_error(self):
         """ Tests merge datatype mismatch error """
-        msg = 'merge keys \[0\] object and int64, must be the same type'
+        msg = r'merge keys \[0\] object and int64, must be the same type'
 
         left = pd.DataFrame({'left_val': [1, 5, 10],
                              'a': ['a', 'b', 'c']})

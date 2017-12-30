@@ -1040,6 +1040,6 @@ class TestDataFrameEvalWithFrame(object):
         ops = '+', '-', '*', '/'
         for op in ops:
             with tm.assert_raises_regex(TypeError,
-                                        "unsupported operand type\(s\) "
+                                        r"unsupported operand type\(s\) "
                                         "for .+: '.+' and '.+'"):
                 df.eval('a {0} b'.format(op), engine=engine, parser=parser)

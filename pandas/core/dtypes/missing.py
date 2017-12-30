@@ -316,6 +316,10 @@ def array_equivalent(left, right, strict_nan=False):
 
     # NaNs can occur in float and complex arrays.
     if is_float_dtype(left) or is_complex_dtype(left):
+
+        # empty
+        if not (np.prod(left.shape) and np.prod(right.shape)):
+            return True
         return ((left == right) | (isna(left) & isna(right))).all()
 
     # numpy will will not allow this type of datetimelike vs integer comparison
