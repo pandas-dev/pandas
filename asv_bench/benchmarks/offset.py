@@ -71,7 +71,7 @@ class OffsetSeriesArithmetic(object):
     param_names = ['offset']
 
     def setup(self, offset):
-        N = 10000
+        N = 1000
         rng = pd.date_range(start='1/1/2000', periods=N, freq='T')
         self.data = pd.Series(rng)
 
@@ -86,7 +86,7 @@ class OffsetDatetimeIndexArithmetic(object):
     param_names = ['offset']
 
     def setup(self, offset):
-        N = 10000
+        N = 1000
         self.data = pd.date_range(start='1/1/2000', periods=N, freq='T')
 
     def time_add_offset(self, offset):
