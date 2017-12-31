@@ -678,7 +678,8 @@ class DatetimeIndexOpsMixin(object):
                                 .format(typ=type(other)))
             elif isinstance(other, (DateOffset, timedelta)):
                 return self._add_delta(other)
-            elif is_integer(other):
+            elif is_integer(other) or (is_integer_dtype(other) and
+                                       is_zero_dim_array(other)):
                 return self.shift(other)
             elif isinstance(other, (datetime, np.datetime64)):
                 return self._add_datelike(other)
@@ -708,7 +709,8 @@ class DatetimeIndexOpsMixin(object):
                 return self._sub_datelike(other)
             elif isinstance(other, (DateOffset, timedelta)):
                 return self._add_delta(-other)
-            elif is_integer(other):
+            elif is_integer(other) or (is_integer_dtype(other) and
+                                       is_zero_dim_array(other)):
                 return self.shift(-other)
             elif isinstance(other, (datetime, np.datetime64)):
                 return self._sub_datelike(other)
@@ -901,6 +903,10 @@ class DatetimeIndexOpsMixin(object):
             msg = 'Cannot cast {name} to dtype {dtype}'
             raise TypeError(msg.format(name=type(self).__name__, dtype=dtype))
         return super(DatetimeIndexOpsMixin, self).astype(dtype, copy=copy)
+
+
+def is_zero_dim_array(obj):
+    return isinstance(obj, np.ndarray) and obj.ndim == 0
 
 
 def _ensure_datetimelike_to_i8(other):

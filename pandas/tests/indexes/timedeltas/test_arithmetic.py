@@ -121,28 +121,28 @@ class TestTimedeltaIndexArithmetic(object):
     # -------------------------------------------------------------
     # Binary operations TimedeltaIndex and integer
 
-    def test_tdi_add_int(self):
+    def test_tdi_add_int(self, one):
         rng = timedelta_range('1 days 09:00:00', freq='H', periods=10)
-        result = rng + 1
+        result = rng + one
         expected = timedelta_range('1 days 10:00:00', freq='H', periods=10)
         tm.assert_index_equal(result, expected)
 
-    def test_tdi_iadd_int(self):
+    def test_tdi_iadd_int(self, one):
         rng = timedelta_range('1 days 09:00:00', freq='H', periods=10)
         expected = timedelta_range('1 days 10:00:00', freq='H', periods=10)
-        rng += 1
+        rng += one
         tm.assert_index_equal(rng, expected)
 
-    def test_tdi_sub_int(self):
+    def test_tdi_sub_int(self, one):
         rng = timedelta_range('1 days 09:00:00', freq='H', periods=10)
-        result = rng - 1
+        result = rng - one
         expected = timedelta_range('1 days 08:00:00', freq='H', periods=10)
         tm.assert_index_equal(result, expected)
 
-    def test_tdi_isub_int(self):
+    def test_tdi_isub_int(self, one):
         rng = timedelta_range('1 days 09:00:00', freq='H', periods=10)
         expected = timedelta_range('1 days 08:00:00', freq='H', periods=10)
-        rng -= 1
+        rng -= one
         tm.assert_index_equal(rng, expected)
 
     # -------------------------------------------------------------

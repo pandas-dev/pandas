@@ -131,19 +131,21 @@ class TestPeriodIndexArithmetic(object):
                     period.IncompatibleFrequency, msg):
                 rng += delta
 
-        # int
+    def test_pi_add_int(self, one):
+        # Int or int-like
         rng = pd.period_range('2000-01-01 09:00', freq='H', periods=10)
-        result = rng + 1
+        result = rng + one
         expected = pd.period_range('2000-01-01 10:00', freq='H', periods=10)
         tm.assert_index_equal(result, expected)
-        rng += 1
+        rng += one
         tm.assert_index_equal(rng, expected)
 
-    def test_sub(self):
+    @pytest.mark.parametrize('five', [5, np.array(5, dtype=np.int64)])
+    def test_sub(self, five):
         rng = period_range('2007-01', periods=50)
 
-        result = rng - 5
-        exp = rng + (-5)
+        result = rng - five
+        exp = rng + (-five)
         tm.assert_index_equal(result, exp)
 
     def test_sub_isub(self):
