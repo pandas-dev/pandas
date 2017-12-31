@@ -47,6 +47,8 @@ def ascending(request):
 def test_sort_index_level_and_column_label(
         df_none, df_idx, sort_names, ascending):
 
+    # GH 14353
+
     # Get index levels from df_idx
     levels = df_idx.index.names
 
@@ -65,6 +67,8 @@ def test_sort_index_level_and_column_label(
 
 def test_sort_column_level_and_index_label(
         df_none, df_idx, sort_names, ascending):
+
+    # GH 14353
 
     # Get levels from df_idx
     levels = df_idx.index.names
