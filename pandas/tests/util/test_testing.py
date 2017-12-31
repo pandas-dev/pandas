@@ -48,12 +48,18 @@ class TestAssertAlmostEqual(object):
         self._assert_not_almost_equal_both(1, [1, ])
         self._assert_not_almost_equal_both(1, object())
 
-    def test_assert_almost_equal_edge_case_ndarrays(self):
-        self._assert_almost_equal_both(np.array([], dtype='M8[ns]'),
-                                       np.array([], dtype='float64'),
-                                       check_dtype=False)
-        self._assert_almost_equal_both(np.array([], dtype=str),
-                                       np.array([], dtype='int64'),
+    @pytest.mark.parametrize(
+        "left_dtype",
+        ['M8[ns]', 'm8[ns]', 'float64', 'int64', 'object'])
+    @pytest.mark.parametrize(
+        "right_dtype",
+        ['M8[ns]', 'm8[ns]', 'float64', 'int64', 'object'])
+    def test_assert_almost_equal_edge_case_ndarrays(
+            self, left_dtype, right_dtype):
+
+        # empty compare
+        self._assert_almost_equal_both(np.array([], dtype=left_dtype),
+                                       np.array([], dtype=right_dtype),
                                        check_dtype=False)
 
     def test_assert_almost_equal_dicts(self):

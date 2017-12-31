@@ -977,9 +977,7 @@ class TestTimedeltaSeriesArithmetic(object):
 
     @pytest.mark.parametrize('scalar_td', [
         timedelta(minutes=5, seconds=4),
-        pytest.param(Timedelta('5m4s'),
-                     marks=pytest.mark.xfail(reason="Timedelta.__floordiv__ "
-                                                    "bug GH#18846")),
+        Timedelta('5m4s'),
         Timedelta('5m4s').to_timedelta64()])
     def test_operators_timedelta64_with_timedelta_invalid(self, scalar_td):
         td1 = Series([timedelta(minutes=5, seconds=3)] * 3)
@@ -994,13 +992,51 @@ class TestTimedeltaSeriesArithmetic(object):
         with tm.assert_raises_regex(TypeError, pattern):
             scalar_td * td1
         with tm.assert_raises_regex(TypeError, pattern):
-            td1 // scalar_td
-        with tm.assert_raises_regex(TypeError, pattern):
-            scalar_td // td1
-        with tm.assert_raises_regex(TypeError, pattern):
             scalar_td ** td1
         with tm.assert_raises_regex(TypeError, pattern):
             td1 ** scalar_td
+
+    @pytest.mark.parametrize('scalar_td', [
+        timedelta(minutes=5, seconds=4),
+        pytest.param(Timedelta('5m4s'),
+                     marks=pytest.mark.xfail(reason="Timedelta.__floordiv__ "
+                                                    "bug GH#18846")),
+        Timedelta('5m4s').to_timedelta64()])
+    def test_timedelta_rfloordiv(self, scalar_td):
+        # GH#18831
+        td1 = Series([timedelta(minutes=5, seconds=3)] * 3)
+        td1.iloc[2] = np.nan
+        result = scalar_td // td1
+        expected = Series([1, 1, np.nan])
+        tm.assert_series_equal(result, expected)
+
+    @pytest.mark.parametrize('scalar_td', [
+        timedelta(minutes=5, seconds=4),
+        Timedelta('5m4s'),
+        Timedelta('5m4s').to_timedelta64()])
+    def test_timedelta_rfloordiv_explicit(self, scalar_td):
+        # GH#18831
+        td1 = Series([timedelta(minutes=5, seconds=3)] * 3)
+        td1.iloc[2] = np.nan
+
+        # We can test __rfloordiv__ using this syntax,
+        # see `test_timedelta_rfloordiv`
+        result = td1.__rfloordiv__(scalar_td)
+        expected = Series([1, 1, np.nan])
+        tm.assert_series_equal(result, expected)
+
+    @pytest.mark.parametrize('scalar_td', [
+        timedelta(minutes=5, seconds=4),
+        Timedelta('5m4s'),
+        Timedelta('5m4s').to_timedelta64()])
+    def test_timedelta_floordiv(self, scalar_td):
+        # GH#18831
+        td1 = Series([timedelta(minutes=5, seconds=3)] * 3)
+        td1.iloc[2] = np.nan
+
+        result = td1 // scalar_td
+        expected = Series([0, 0, np.nan])
+        tm.assert_series_equal(result, expected)
 
 
 class TestDatetimeSeriesArithmetic(object):
@@ -1359,7 +1395,7 @@ class TestSeriesOperators(TestData):
                 expecteds = divmod(series.values, np.asarray(other_np))
 
             for result, expected in zip(results, expecteds):
-                # check the values, name, and index separatly
+                # check the values, name, and index separately
                 assert_almost_equal(np.asarray(result), expected)
 
                 assert result.name == series.name
@@ -1449,7 +1485,7 @@ class TestSeriesOperators(TestData):
                 assert_series_equal(lhs, rhs)
             except:
                 raise AssertionError(
-                    "invalid comparsion [op->{0},d->{1},h->{2},m->{3},"
+                    "invalid comparison [op->{0},d->{1},h->{2},m->{3},"
                     "s->{4},us->{5}]\n{6}\n{7}\n".format(op, d, h, m, s,
                                                          us, lhs, rhs))
 

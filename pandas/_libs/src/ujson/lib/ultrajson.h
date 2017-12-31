@@ -140,7 +140,7 @@ typedef int64_t JSLONG;
 #endif
 
 #if !defined(__LITTLE_ENDIAN__) && !defined(__BIG_ENDIAN__)
-#error "Endianess not supported"
+#error "Endianness not supported"
 #endif
 
 enum JSTYPES {
@@ -245,7 +245,7 @@ typedef struct __JSONObjectEncoder {
   int encodeHTMLChars;
 
   /*
-  Set to an error message if error occured */
+  Set to an error message if error occurred */
   const char *errorMsg;
   JSOBJ errorObj;
 

@@ -7,7 +7,7 @@ from warnings import catch_warnings
 
 import numpy as np
 import pandas as pd
-from pandas.compat import PY3, is_platform_windows
+from pandas.compat import PY3, is_platform_windows, is_platform_mac
 from pandas.io.parquet import (to_parquet, read_parquet, get_engine,
                                PyArrowImpl, FastParquetImpl)
 from pandas.util import testing as tm
@@ -174,8 +174,8 @@ def test_options_get_engine(fp, pa):
         assert isinstance(get_engine('fastparquet'), FastParquetImpl)
 
 
-@pytest.mark.xfail(is_platform_windows(),
-                   reason="reading pa metadata failing on Windows")
+@pytest.mark.xfail(is_platform_windows() or is_platform_mac(),
+                   reason="reading pa metadata failing on Windows/mac")
 def test_cross_engine_pa_fp(df_cross_compat, pa, fp):
     # cross-compat with differing reading/writing engines
 

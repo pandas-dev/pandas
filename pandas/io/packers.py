@@ -70,7 +70,7 @@ from pandas.util._move import (
     move_into_mutable_buffer as _move_into_mutable_buffer,
 )
 
-# check whcih compression libs we have installed
+# check which compression libs we have installed
 try:
     import zlib
 

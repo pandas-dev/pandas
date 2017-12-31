@@ -58,36 +58,37 @@ class TestDatetimeIndexArithmetic(object):
     # -------------------------------------------------------------
     # Binary operations DatetimeIndex and int
 
-    def test_dti_add_int(self, tz):
+    def test_dti_add_int(self, tz, one):
+        # Variants of `one` for #19012
         rng = pd.date_range('2000-01-01 09:00', freq='H',
                             periods=10, tz=tz)
-        result = rng + 1
+        result = rng + one
         expected = pd.date_range('2000-01-01 10:00', freq='H',
                                  periods=10, tz=tz)
         tm.assert_index_equal(result, expected)
 
-    def test_dti_iadd_int(self, tz):
+    def test_dti_iadd_int(self, tz, one):
         rng = pd.date_range('2000-01-01 09:00', freq='H',
                             periods=10, tz=tz)
         expected = pd.date_range('2000-01-01 10:00', freq='H',
                                  periods=10, tz=tz)
-        rng += 1
+        rng += one
         tm.assert_index_equal(rng, expected)
 
-    def test_dti_sub_int(self, tz):
+    def test_dti_sub_int(self, tz, one):
         rng = pd.date_range('2000-01-01 09:00', freq='H',
                             periods=10, tz=tz)
-        result = rng - 1
+        result = rng - one
         expected = pd.date_range('2000-01-01 08:00', freq='H',
                                  periods=10, tz=tz)
         tm.assert_index_equal(result, expected)
 
-    def test_dti_isub_int(self, tz):
+    def test_dti_isub_int(self, tz, one):
         rng = pd.date_range('2000-01-01 09:00', freq='H',
                             periods=10, tz=tz)
         expected = pd.date_range('2000-01-01 08:00', freq='H',
                                  periods=10, tz=tz)
-        rng -= 1
+        rng -= one
         tm.assert_index_equal(rng, expected)
 
     # -------------------------------------------------------------
@@ -362,6 +363,61 @@ class TestDatetimeIndexArithmetic(object):
         for variant in ts_pos_variants:
             with pytest.raises(OverflowError):
                 dtimin - variant
+
+    @pytest.mark.parametrize('box', [np.array, pd.Index])
+    def test_dti_add_offset_array(self, tz, box):
+        # GH#18849
+        dti = pd.date_range('2017-01-01', periods=2, tz=tz)
+        other = box([pd.offsets.MonthEnd(), pd.offsets.Day(n=2)])
+
+        with tm.assert_produces_warning(PerformanceWarning):
+            res = dti + other
+        expected = DatetimeIndex([dti[n] + other[n] for n in range(len(dti))],
+                                 name=dti.name, freq='infer')
+        tm.assert_index_equal(res, expected)
+
+        with tm.assert_produces_warning(PerformanceWarning):
+            res2 = other + dti
+        tm.assert_index_equal(res2, expected)
+
+    @pytest.mark.parametrize('box', [np.array, pd.Index])
+    def test_dti_sub_offset_array(self, tz, box):
+        # GH#18824
+        dti = pd.date_range('2017-01-01', periods=2, tz=tz)
+        other = box([pd.offsets.MonthEnd(), pd.offsets.Day(n=2)])
+
+        with tm.assert_produces_warning(PerformanceWarning):
+            res = dti - other
+        expected = DatetimeIndex([dti[n] - other[n] for n in range(len(dti))],
+                                 name=dti.name, freq='infer')
+        tm.assert_index_equal(res, expected)
+
+    @pytest.mark.parametrize('names', [(None, None, None),
+                                       ('foo', 'bar', None),
+                                       ('foo', 'foo', 'foo')])
+    def test_dti_with_offset_series(self, tz, names):
+        # GH#18849
+        dti = pd.date_range('2017-01-01', periods=2, tz=tz, name=names[0])
+        other = Series([pd.offsets.MonthEnd(), pd.offsets.Day(n=2)],
+                       name=names[1])
+
+        expected_add = Series([dti[n] + other[n] for n in range(len(dti))],
+                              name=names[2])
+
+        with tm.assert_produces_warning(PerformanceWarning):
+            res = dti + other
+        tm.assert_series_equal(res, expected_add)
+
+        with tm.assert_produces_warning(PerformanceWarning):
+            res2 = other + dti
+        tm.assert_series_equal(res2, expected_add)
+
+        expected_sub = Series([dti[n] - other[n] for n in range(len(dti))],
+                              name=names[2])
+
+        with tm.assert_produces_warning(PerformanceWarning):
+            res3 = dti - other
+        tm.assert_series_equal(res3, expected_sub)
 
 
 # GH 10699

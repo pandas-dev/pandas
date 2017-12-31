@@ -1306,7 +1306,7 @@ class SQLiteTable(SQLTable):
         column_names_and_types = \
             self._get_column_names_and_types(self._sql_type_name)
 
-        pat = re.compile('\s+')
+        pat = re.compile(r'\s+')
         column_names = [col_name for col_name, _, _ in column_names_and_types]
         if any(map(pat.search, column_names)):
             warnings.warn(_SAFE_NAMES_WARNING, stacklevel=6)
@@ -1484,7 +1484,7 @@ class SQLiteDatabase(PandasSQL):
             `index` is True, then the index names are used.
             A sequence should be given if the DataFrame uses MultiIndex.
         schema : string, default None
-            Ignored parameter included for compatability with SQLAlchemy
+            Ignored parameter included for compatibility with SQLAlchemy
             version of ``to_sql``.
         chunksize : int, default None
             If not None, then rows will be written in batches of this

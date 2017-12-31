@@ -560,16 +560,6 @@ class TestDataFrameReshape(TestData):
             assert left.shape == (3, 2)
             tm.assert_frame_equal(left, right)
 
-    def test_unstack_non_unique_index_names(self):
-        idx = MultiIndex.from_tuples([('a', 'b'), ('c', 'd')],
-                                     names=['c1', 'c1'])
-        df = DataFrame([1, 2], index=idx)
-        with pytest.raises(ValueError):
-            df.unstack('c1')
-
-        with pytest.raises(ValueError):
-            df.T.stack('c1')
-
     def test_unstack_nan_index(self):  # GH7466
         cast = lambda val: '{0:1}'.format('' if val != val else val)
         nan = np.nan
