@@ -1,4 +1,5 @@
 import pytest
+import numpy as np
 
 import pandas.util.testing as tm
 from pandas.core.indexes.api import Index, MultiIndex
@@ -21,4 +22,10 @@ from pandas.compat import lzip
                         Index([0, 0, 1, 1, 2, 2])],
                 ids=lambda x: type(x).__name__)
 def indices(request):
+    return request.param
+
+
+@pytest.fixture(params=[1, np.array(1, dtype=np.int64)])
+def one(request):
+    # zero-dim integer array behaves like an integer
     return request.param
