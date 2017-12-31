@@ -15,6 +15,7 @@ environment:
     # See: http://stackoverflow.com/a/13751649/163740
     CMD_IN_ENV: "cmd /E:ON /V:ON /C .\\ci\\run_with_env.cmd"
     clone_folder: C:\projects\pandas
+    PANDAS_TESTING_MODE: "deprecate"
 
   matrix:
 
