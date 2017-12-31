@@ -24,6 +24,22 @@ is_decimal = lib.is_decimal
 is_interval = lib.is_interval
 
 
+def is_zero_dim_array(obj):
+    """
+    Check if this is a numpy array with dimension zero, which in some
+    cases is treated like a scalar.
+
+    Parameters
+    ----------
+    obj : object
+
+    Returns
+    -------
+    is_zero_dim_array : bool
+    """
+    return isinstance(obj, np.ndarray) and obj.ndim == 0
+
+
 def is_number(obj):
     """
     Check if the object is a number.

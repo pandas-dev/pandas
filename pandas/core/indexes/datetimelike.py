@@ -15,7 +15,7 @@ from pandas.core.dtypes.common import (
     is_dtype_equal,
     is_float,
     is_integer,
-    is_list_like,
+    is_list_like, is_zero_dim_array,
     is_scalar,
     is_bool_dtype,
     is_offsetlike,
@@ -903,10 +903,6 @@ class DatetimeIndexOpsMixin(object):
             msg = 'Cannot cast {name} to dtype {dtype}'
             raise TypeError(msg.format(name=type(self).__name__, dtype=dtype))
         return super(DatetimeIndexOpsMixin, self).astype(dtype, copy=copy)
-
-
-def is_zero_dim_array(obj):
-    return isinstance(obj, np.ndarray) and obj.ndim == 0
 
 
 def _ensure_datetimelike_to_i8(other):
