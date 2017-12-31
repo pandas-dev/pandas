@@ -357,8 +357,8 @@ class _TimeOp(_Op):
     Wrapper around Series datetime/time/timedelta arithmetic operations.
     Generally, you should use classmethod ``_Op.get_op`` as an entry point.
 
-    This is only reached in cases where either `self.is_datetime_lhs`
-    or `self.is_timedelta_lhs`.
+    This is only reached in cases where either self.is_datetime_lhs
+    or self.is_timedelta_lhs.
     """
     fill_value = iNaT
 
@@ -375,6 +375,7 @@ class _TimeOp(_Op):
         self.is_datetime_lhs = (self.is_datetime64_lhs or
                                 self.is_datetime64tz_lhs)
         assert left.dtype.kind not in ['i', 'u', 'f'], left
+        assert self.is_timedelta_lhs or self.is_datetime_lhs
 
         # right
         self.is_offset_rhs = is_offsetlike(right)
@@ -488,18 +489,13 @@ class _TimeOp(_Op):
             # a datelike
             elif isinstance(values, pd.DatetimeIndex):
                 values = values.to_series()
-            # datetime with tz
-            elif isinstance(ovalues, datetime.datetime):
+            elif isinstance(ovalues, (datetime.datetime, np.datetime64)):
+                # original input was scalar datetimelike
                 values = pd.DatetimeIndex(values)
             # datetime array with tz
             elif is_datetimetz(values):
                 if isinstance(values, ABCSeries):
                     values = values._values
-            elif not (isinstance(values, (np.ndarray, ABCSeries)) and
-                      is_datetime64_dtype(values)):
-                # TODO: This is not hit in tests.  What case is it intended
-                # to catch?
-                values = libts.array_to_datetime(values)
             elif (is_datetime64_dtype(values) and
                   not is_datetime64_ns_dtype(values)):
                 # GH#7996 e.g. np.datetime64('2013-01-01') is datetime64[D]
@@ -697,18 +693,9 @@ def _arith_method_SERIES(op, name, str_rep, fill_zeros=None, default_axis=None,
             with np.errstate(all='ignore'):
                 return na_op(lvalues, rvalues)
         except Exception:
-            if isinstance(rvalues, ABCSeries):
-                # TODO: This case is not hit in tests.  For it to be hit would
-                # require `right` to be an object such that right.values
-                # is a Series.  This should probably be removed.
-                if is_object_dtype(rvalues):
-                    # if dtype is object, try elementwise op
-                    return libalgos.arrmap_object(rvalues,
-                                                  lambda x: op(lvalues, x))
-            else:
-                if is_object_dtype(lvalues):
-                    return libalgos.arrmap_object(lvalues,
-                                                  lambda x: op(x, rvalues))
+            if is_object_dtype(lvalues):
+                return libalgos.arrmap_object(lvalues,
+                                              lambda x: op(x, rvalues))
             raise
 
     def wrapper(left, right):
@@ -743,8 +730,6 @@ def _arith_method_SERIES(op, name, str_rep, fill_zeros=None, default_axis=None,
                                 index=left.index, name=res_name, dtype=dtype)
 
     wrapper.__name__ = name
-    if hasattr(operator, name) and callable(getattr(operator, name)):
-        wrapper.__doc__ = getattr(operator, name).__doc__
     return wrapper
 
 
@@ -827,9 +812,7 @@ def _comp_method_SERIES(op, name, str_rep, masker=False):
     def wrapper(self, other, axis=None):
         # Validate the axis parameter
         if axis is not None:
-            self._get_axis_number(axis)
-            # TODO: should this be `axis = self._get_axis_number(axis)`?
-            # This is not hit in tests.
+            axis = self._get_axis_number(axis)
 
         if isinstance(other, ABCSeries):
             name = _maybe_match_name(self, other)
