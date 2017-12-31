@@ -13,7 +13,7 @@ from .generic import (ABCCategorical, ABCPeriodIndex,
                       ABCDatetimeIndex, ABCSeries,
                       ABCSparseArray, ABCSparseSeries, ABCCategoricalIndex,
                       ABCIndexClass, ABCDateOffset)
-from .inference import is_string_like, is_list_like, is_zero_dim_array
+from .inference import is_string_like, is_list_like
 from .inference import *  # noqa
 
 
@@ -291,8 +291,6 @@ def is_offsetlike(arr_or_obj):
     """
     if isinstance(arr_or_obj, ABCDateOffset):
         return True
-    elif is_zero_dim_array(arr_or_obj):
-        return isinstance(arr_or_obj.item(), ABCDateOffset)
     elif (is_list_like(arr_or_obj) and len(arr_or_obj) and
           is_object_dtype(arr_or_obj)):
         return all(isinstance(x, ABCDateOffset) for x in arr_or_obj)

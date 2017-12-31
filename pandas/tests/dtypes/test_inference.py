@@ -33,7 +33,6 @@ from pandas.core.dtypes.common import (
     is_integer,
     is_float,
     is_bool,
-    is_zero_dim_array,
     is_scalar,
     is_scipy_sparse,
     _ensure_int32,
@@ -1219,11 +1218,3 @@ def test_ensure_categorical():
     values = Categorical(values)
     result = _ensure_categorical(values)
     tm.assert_categorical_equal(result, values)
-
-
-def test_is_zero_dim_array():
-    assert not is_zero_dim_array(1)
-    assert not is_zero_dim_array(False)
-    assert not is_zero_dim_array(np.array([]))
-    assert not is_zero_dim_array(np.array([1]))
-    assert is_zero_dim_array(np.array(1))

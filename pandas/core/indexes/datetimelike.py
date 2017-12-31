@@ -15,7 +15,7 @@ from pandas.core.dtypes.common import (
     is_dtype_equal,
     is_float,
     is_integer,
-    is_list_like, is_zero_dim_array,
+    is_list_like,
     is_scalar,
     is_bool_dtype,
     is_offsetlike,
@@ -669,6 +669,7 @@ class DatetimeIndexOpsMixin(object):
             from pandas.core.index import Index
             from pandas.core.indexes.timedeltas import TimedeltaIndex
             from pandas.tseries.offsets import DateOffset
+            other = lib.item_from_zerodim(other)  # GH#19011
             if is_timedelta64_dtype(other):
                 return self._add_delta(other)
             elif isinstance(self, TimedeltaIndex) and isinstance(other, Index):
@@ -678,8 +679,7 @@ class DatetimeIndexOpsMixin(object):
                                 .format(typ=type(other)))
             elif isinstance(other, (DateOffset, timedelta)):
                 return self._add_delta(other)
-            elif is_integer(other) or (is_integer_dtype(other) and
-                                       is_zero_dim_array(other)):
+            elif is_integer(other):
                 return self.shift(other)
             elif isinstance(other, (datetime, np.datetime64)):
                 return self._add_datelike(other)
@@ -698,6 +698,7 @@ class DatetimeIndexOpsMixin(object):
             from pandas.core.indexes.datetimes import DatetimeIndex
             from pandas.core.indexes.timedeltas import TimedeltaIndex
             from pandas.tseries.offsets import DateOffset
+            other = lib.item_from_zerodim(other)  # GH#19011
             if is_timedelta64_dtype(other):
                 return self._add_delta(-other)
             elif isinstance(self, TimedeltaIndex) and isinstance(other, Index):
@@ -709,8 +710,7 @@ class DatetimeIndexOpsMixin(object):
                 return self._sub_datelike(other)
             elif isinstance(other, (DateOffset, timedelta)):
                 return self._add_delta(-other)
-            elif is_integer(other) or (is_integer_dtype(other) and
-                                       is_zero_dim_array(other)):
+            elif is_integer(other):
                 return self.shift(-other)
             elif isinstance(other, (datetime, np.datetime64)):
                 return self._sub_datelike(other)
