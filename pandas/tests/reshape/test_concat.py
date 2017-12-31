@@ -1,5 +1,6 @@
 from warnings import catch_warnings
 
+import datetime as dt
 import dateutil
 import numpy as np
 from numpy.random import randn
@@ -829,12 +830,76 @@ class TestAppend(ConcatenateBase):
         result = df1.append(df2)
         assert result.index.name == 'A'
 
+    @pytest.mark.parametrize("df_columns", [
+        pd.RangeIndex(3),
+        pd.CategoricalIndex('A B C'.split()),
+        pd.MultiIndex.from_arrays(['A B C'.split(), 'D E F'.split()]),
+        pd.IntervalIndex.from_breaks([0, 1, 2, 3]),
+        pd.DatetimeIndex([dt.datetime(2013, 1, 3, 0, 0),
+                          dt.datetime(2013, 1, 3, 6, 10),
+                          dt.datetime(2013, 1, 3, 7, 12)]),
+        pd.Index([1, 2, 3]),
+    ])
+    def test_append_same_columns_type(self, df_columns):
+        # GH18359
+
+        # df wider than ser
+        df = pd.DataFrame([[1, 2, 3], [4, 5, 6]], columns=df_columns)
+        ser_index = df_columns[:2]
+        ser = pd.Series([7, 8], index=ser_index, name=2)
+        result = df.append(ser)
+        expected = pd.DataFrame([[1., 2., 3.], [4, 5, 6], [7, 8, np.nan]],
+                                index=[0, 1, 2],
+                                columns=df_columns)
+        assert_frame_equal(result, expected)
+
+        # ser wider than df
+        ser_index = df_columns
+        df_columns = df_columns[:2]
+        df = pd.DataFrame([[1, 2], [4, 5]], columns=df_columns)
+        ser = pd.Series([7, 8, 9], index=ser_index, name=2)
+        result = df.append(ser)
+        expected = pd.DataFrame([[1, 2, np.nan], [4, 5, np.nan], [7, 8, 9]],
+                                index=[0, 1, 2],
+                                columns=ser_index)
+        assert_frame_equal(result, expected)
+
+    @pytest.mark.parametrize("df_columns", [
+        pd.RangeIndex(3),
+        pd.CategoricalIndex('A B C'.split()),
+        pd.MultiIndex.from_arrays(['A B C'.split(), 'D E F'.split()]),
+        pd.IntervalIndex.from_breaks([0, 1, 2, 3]),
+        pd.DatetimeIndex([dt.datetime(2013, 1, 3, 0, 0),
+                          dt.datetime(2013, 1, 3, 6, 10),
+                          dt.datetime(2013, 1, 3, 7, 12)]),
+        pd.Index([1, 2, 3]),
+    ])
+    def test_append_different_columns_types(self, df_columns):
+        # GH18359
+
+        # ser.index is a normal pd.Index, so result from df.append(ser) should
+        # be pd.Index (but this is not possible for IntervalIndex and
+        # MultiIndex)
+        df = pd.DataFrame([[1, 2, 3], [4, 5, 6]], columns=df_columns)
+        ser = pd.Series([7], index=['a'], name=2)
+        if isinstance(df_columns, (pd.IntervalIndex, pd.MultiIndex)):
+            with pytest.raises(TypeError):
+                df.append(ser)
+        else:
+            result = df.append(ser)
+            idx_diff = ser.index.difference(df_columns)
+            combined_columns = Index(df_columns.tolist()).append(idx_diff)
+            expected = pd.DataFrame([[1., 2., 3., np.nan],
+                                     [4, 5, 6, np.nan],
+                                     [np.nan, np.nan, np.nan, 7]],
+                                    index=[0, 1, 2],
+                                    columns=combined_columns)
+            assert_frame_equal(result, expected)
+
     def test_append_dtype_coerce(self):
 
         # GH 4993
         # appending with datetime will incorrectly convert datetime64
-        import datetime as dt
-        from pandas import NaT
 
         df1 = DataFrame(index=[1, 2], data=[dt.datetime(2013, 1, 1, 0, 0),
                                             dt.datetime(2013, 1, 2, 0, 0)],
@@ -845,7 +910,9 @@ class TestAppend(ConcatenateBase):
                                              dt.datetime(2013, 1, 4, 7, 10)]],
                         columns=['start_time', 'end_time'])
 
-        expected = concat([Series([NaT, NaT, dt.datetime(2013, 1, 3, 6, 10),
+        expected = concat([Series([pd.NaT,
+                                   pd.NaT,
+                                   dt.datetime(2013, 1, 3, 6, 10),
                                    dt.datetime(2013, 1, 4, 7, 10)],
                                   name='end_time'),
                            Series([dt.datetime(2013, 1, 1, 0, 0),
