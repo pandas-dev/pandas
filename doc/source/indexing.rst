@@ -1125,7 +1125,6 @@ as condition and ``other`` argument.
                        'C': [7, 8, 9]})
    df3.where(lambda x: x > 4, lambda x: x + 10)
 
-
 Mask
 ~~~~
 
@@ -1711,6 +1710,7 @@ As a convenience, there is a new function on DataFrame called
 :meth:`~DataFrame.reset_index` which transfers the index values into the 
 DataFrame's columns and sets a simple integer index. 
 This is the inverse operation of :meth:`~DataFrame.set_index`.
+
 
 .. ipython:: python
 
