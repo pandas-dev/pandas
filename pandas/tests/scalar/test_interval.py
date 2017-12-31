@@ -122,7 +122,7 @@ class TestInterval(object):
         actual += 1
         assert expected == actual
 
-        msg = "unsupported operand type\(s\) for \+"
+        msg = r"unsupported operand type\(s\) for \+"
         with tm.assert_raises_regex(TypeError, msg):
             interval + Interval(1, 2)
 
@@ -138,7 +138,7 @@ class TestInterval(object):
         actual -= 1
         assert expected == actual
 
-        msg = "unsupported operand type\(s\) for -"
+        msg = r"unsupported operand type\(s\) for -"
         with tm.assert_raises_regex(TypeError, msg):
             interval - Interval(1, 2)
 
@@ -158,11 +158,11 @@ class TestInterval(object):
         actual *= 2
         assert expected == actual
 
-        msg = "unsupported operand type\(s\) for \*"
+        msg = r"unsupported operand type\(s\) for \*"
         with tm.assert_raises_regex(TypeError, msg):
             interval * Interval(1, 2)
 
-        msg = "can\'t multiply sequence by non-int"
+        msg = r"can\'t multiply sequence by non-int"
         with tm.assert_raises_regex(TypeError, msg):
             interval * 'foo'
 
@@ -175,7 +175,7 @@ class TestInterval(object):
         actual /= 2.0
         assert expected == actual
 
-        msg = "unsupported operand type\(s\) for /"
+        msg = r"unsupported operand type\(s\) for /"
         with tm.assert_raises_regex(TypeError, msg):
             interval / Interval(1, 2)
 

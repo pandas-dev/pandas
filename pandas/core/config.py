@@ -613,7 +613,7 @@ def _warn_if_deprecated(key):
     if d:
         if d.msg:
             print(d.msg)
-            warnings.warn(d.msg, DeprecationWarning)
+            warnings.warn(d.msg, FutureWarning)
         else:
             msg = "'{key}' is deprecated".format(key=key)
             if d.removal_ver:
@@ -624,7 +624,7 @@ def _warn_if_deprecated(key):
             else:
                 msg += ', please refrain from using it.'
 
-            warnings.warn(msg, DeprecationWarning)
+            warnings.warn(msg, FutureWarning)
         return True
     return False
 
