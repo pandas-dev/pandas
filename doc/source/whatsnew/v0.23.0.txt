@@ -368,7 +368,7 @@ Numeric
 ^^^^^^^
 
 - Bug in :func:`Series.__sub__` subtracting a non-nanosecond ``np.datetime64`` object from a ``Series`` gave incorrect results (:issue:`7996`)
--
+- Bug in :class:`DatetimeIndex`, :class:`TimedeltaIndex` addition and subtraction of zero-dimensional integer arrays gave incrrect results (:issue:`19012`)
 -
 
 Categorical

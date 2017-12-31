@@ -59,6 +59,7 @@ class TestDatetimeIndexArithmetic(object):
     # Binary operations DatetimeIndex and int
 
     def test_dti_add_int(self, tz, one):
+        # Variants of `one` for #19012
         rng = pd.date_range('2000-01-01 09:00', freq='H',
                             periods=10, tz=tz)
         result = rng + one

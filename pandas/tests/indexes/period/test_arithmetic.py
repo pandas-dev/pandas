@@ -132,7 +132,7 @@ class TestPeriodIndexArithmetic(object):
                 rng += delta
 
     def test_pi_add_int(self, one):
-        # Int or int-like
+        # Variants of `one` for #19012
         rng = pd.period_range('2000-01-01 09:00', freq='H', periods=10)
         result = rng + one
         expected = pd.period_range('2000-01-01 10:00', freq='H', periods=10)

@@ -122,6 +122,7 @@ class TestTimedeltaIndexArithmetic(object):
     # Binary operations TimedeltaIndex and integer
 
     def test_tdi_add_int(self, one):
+        # Variants of `one` for #19012
         rng = timedelta_range('1 days 09:00:00', freq='H', periods=10)
         result = rng + one
         expected = timedelta_range('1 days 10:00:00', freq='H', periods=10)
