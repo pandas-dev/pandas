@@ -833,6 +833,8 @@ class TestAppend(ConcatenateBase):
 
     @pytest.mark.parametrize("df_columns", [
         pd.RangeIndex(3),
+        pd.Index([1, 2, 3]),
+        pd.Index(list('abc')),
         pd.CategoricalIndex('A B C'.split()),
         pd.CategoricalIndex('A B C'.split(), ordered=True),
         pd.MultiIndex.from_arrays(['A B C'.split(), 'D E F'.split()]),
@@ -840,7 +842,6 @@ class TestAppend(ConcatenateBase):
         pd.DatetimeIndex([dt.datetime(2013, 1, 3, 0, 0),
                           dt.datetime(2013, 1, 3, 6, 10),
                           dt.datetime(2013, 1, 3, 7, 12)]),
-        pd.Index([1, 2, 3]),
     ], ids=lambda x: str(x.dtype))
     def test_append_same_columns_type(self, df_columns):
         # GH18359
@@ -870,16 +871,16 @@ class TestAppend(ConcatenateBase):
         pd.RangeIndex(3),
         pd.Index([4, 5, 6]),
         pd.Index([7.5, 8.5, 9.5]),
-        pd.CategoricalIndex('A B C'.split()),
-        # pd.CategoricalIndex('A B C'.split(), ordered=True),
+        pd.Index(list('abc')),
+        pd.CategoricalIndex('A B C'.split(), ordered=True),
+        # pd.CategoricalIndex('A B C'.split()),
         pd.DatetimeIndex([dt.datetime(2013, 1, 3, 0, 0),
                           dt.datetime(2013, 1, 3, 6, 10),
                           dt.datetime(2013, 1, 3, 7, 12)]),
     ], r=2), ids=lambda x: str(x.dtype))
     def test_append_different_columns_types(self, df_columns, series_index):
         # GH18359
-        # see also tests 'test_append_multi_index_raises' and
-        # 'test_append_interval_index_raises' below
+        # see also test 'test_append_different_columns_types_raises' below
 
         df = pd.DataFrame([[1, 2, 3], [4, 5, 6]], columns=df_columns)
         ser = pd.Series([7, 8, 9], index=series_index, name=2)
@@ -894,60 +895,43 @@ class TestAppend(ConcatenateBase):
                                 columns=combined_columns)
         assert_frame_equal(result, expected)
 
+    @pytest.mark.parametrize("this_type", [
+        pd.IntervalIndex.from_breaks([0, 1, 2, 3]),
+        pd.MultiIndex.from_arrays(['A B C'.split(), 'D E F'.split()]),
+    ])
     @pytest.mark.parametrize("other_type", [
         pd.RangeIndex(3),
+        pd.Index([4, 5, 6]),
+        pd.Index(list("abc")),
         pd.CategoricalIndex('A B C'.split()),
         pd.CategoricalIndex('A B C'.split(), ordered=True),
         pd.IntervalIndex.from_breaks([0, 1, 2, 3]),
-        pd.DatetimeIndex([dt.datetime(2013, 1, 3, 0, 0),
-                          dt.datetime(2013, 1, 3, 6, 10),
-                          dt.datetime(2013, 1, 3, 7, 12)]),
-        pd.Index([4, 5, 6]),
-    ], ids=lambda x: str(x.dtype))
-    def test_append_multi_index_raises(self, other_type):
-        # GH18359
-        # .append will raise if MultiIndex appends or is appended to a
-        # different index type
-
-        mi = pd.MultiIndex.from_arrays(['A B C'.split(), 'D E F'.split()])
-
-        df = pd.DataFrame([[1, 2, 3], [4, 5, 6]], columns=mi)
-        ser = pd.Series([7, 8, 9], index=other_type, name=2)
-        if isinstance(other_type, pd.IntervalIndex):
-            pytest.raises(ValueError, df.append, ser)
-        else:
-            pytest.raises(TypeError, df.append, ser)
-
-        df = pd.DataFrame([[1, 2, 3], [4, 5, 6]], columns=other_type)
-        ser = pd.Series([7, 8, 9], index=mi, name=2)
-        with pytest.raises(TypeError):
-            df.append(ser)
-
-    @pytest.mark.parametrize("other_type", [
-        pd.RangeIndex(3),
-        pd.CategoricalIndex('A B C'.split()),
-        pd.CategoricalIndex('A B C'.split(), ordered=True),
         pd.MultiIndex.from_arrays(['A B C'.split(), 'D E F'.split()]),
         pd.DatetimeIndex([dt.datetime(2013, 1, 3, 0, 0),
                           dt.datetime(2013, 1, 3, 6, 10),
                           dt.datetime(2013, 1, 3, 7, 12)]),
-        pd.Index([4, 5, 6]),
     ], ids=lambda x: str(x.dtype))
-    def test_append_interval_index_raises(self, other_type):
+    def test_append_different_columns_types_raises(self,
+                                                   this_type, other_type):
         # GH18359
-        # .append will raise if IntervalIndex appends or is appended to a
-        # different index type
+        # .append will raise if IntervalIndex/MultiIndex appends or is
+        # appended to a different index type
+        #
+        # see also test 'test_append_different_columns_types' above for
+        # appending without raising.
 
-        ii = pd.IntervalIndex.from_breaks([0, 1, 2, 3])
+        if type(this_type) is type(other_type):
+            # don't test same type
+            return
 
-        df = pd.DataFrame([[1, 2, 3], [4, 5, 6]], columns=ii)
+        df = pd.DataFrame([[1, 2, 3], [4, 5, 6]], columns=this_type)
         ser = pd.Series([7, 8, 9], index=other_type, name=2)
         with pytest.raises(TypeError):
             df.append(ser)
 
         df = pd.DataFrame([[1, 2, 3], [4, 5, 6]], columns=other_type)
-        ser = pd.Series([7, 8, 9], index=ii, name=2)
-        with pytest.raises(ValueError):
+        ser = pd.Series([7, 8, 9], index=this_type, name=2)
+        with pytest.raises(TypeError):
             df.append(ser)
 
     def test_append_dtype_coerce(self):
