@@ -385,6 +385,12 @@ class TestDatetimeIndexArithmetic(object):
         result2 = index + ser
         tm.assert_series_equal(result2, expected)
 
+        expected = index + Timedelta(seconds=5)
+        result3 = ser.values + index
+        tm.assert_index_equal(result3, expected)
+        result4 = index + ser.values
+        tm.assert_index_equal(result4, expected)
+
     @pytest.mark.parametrize('box', [np.array, pd.Index])
     def test_dti_add_offset_array(self, tz, box):
         # GH#18849

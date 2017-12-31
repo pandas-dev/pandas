@@ -768,7 +768,12 @@ def _arith_method_SERIES(op, name, str_rep, fill_zeros=None, default_axis=None,
                     not isinstance(lvalues, ABCDatetimeIndex)):
                 lvalues = lvalues.values
 
-        res_name = _get_series_op_result_name(left, right)
+        if isinstance(right, (ABCSeries, pd.Index)):
+            # `left` is always a Series object
+            res_name = _maybe_match_name(left, right)
+        else:
+            res_name = left.name
+
         result = wrap_results(safe_na_op(lvalues, rvalues))
         return construct_result(
             left,
@@ -779,15 +784,6 @@ def _arith_method_SERIES(op, name, str_rep, fill_zeros=None, default_axis=None,
         )
 
     return wrapper
-
-
-def _get_series_op_result_name(left, right):
-    # `left` is always a Series object
-    if isinstance(right, (ABCSeries, pd.Index)):
-        name = _maybe_match_name(left, right)
-    else:
-        name = left.name
-    return name
 
 
 def _comp_method_OBJECT_ARRAY(op, x, y):
