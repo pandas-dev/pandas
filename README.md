@@ -160,10 +160,9 @@ pip install pandas
 ```
 
 ## Dependencies
-- [NumPy](http://www.numpy.org): 1.7.0 or higher
-- [python-dateutil](https://labix.org/python-dateutil): 1.5 or higher
-- [pytz](https://pythonhosted.org/pytz)
-    - Needed for time zone support with ``pandas.date_range``
+- [NumPy](http://www.numpy.org): 1.9.0 or higher
+- [python-dateutil](https://labix.org/python-dateutil): 2.5.0 or higher
+- [pytz](https://pythonhosted.org/pytz): 2011k or higher
 
 See the [full installation instructions](https://pandas.pydata.org/pandas-docs/stable/install.html#dependencies)
 for recommended and optional dependencies.
@@ -204,9 +203,6 @@ See the full instructions for [installing from source](https://pandas.pydata.org
 
 ## Documentation
 The official documentation is hosted on PyData.org: https://pandas.pydata.org/pandas-docs/stable
-
-The Sphinx documentation should provide a good starting point for learning how
-to use the library. Expect the docs to continue to expand as time goes on.
 
 ## Background
 Work on ``pandas`` started at AQR (a quantitative hedge fund) in 2008 and
