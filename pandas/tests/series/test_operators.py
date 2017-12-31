@@ -962,9 +962,9 @@ class TestTimedeltaSeriesArithmetic(object):
 
     def test_td64_sub_NaT(self):
         # GH#18808
-        ser = pd.Series([pd.NaT, pd.Timedelta('1s')])
-        res = ser - pd.NaT
-        expected = pd.Series([pd.NaT, pd.NaT], dtype='timedelta64[ns]')
+        ser = Series([NaT, Timedelta('1s')])
+        res = ser - NaT
+        expected = Series([NaT, NaT], dtype='timedelta64[ns]')
         tm.assert_series_equal(res, expected)
 
     @pytest.mark.parametrize('scalar_td', [timedelta(minutes=5, seconds=4),
