@@ -407,7 +407,7 @@ class _TimeOp(_Op):
 
             # if tz's must be equal (same or None)
             if getattr(lvalues, 'tz', None) != getattr(rvalues, 'tz', None):
-                if len(rvalues) == 1 and isna(rvalues[0]):
+                if len(rvalues) == 1 and isna(rvalues).all():
                     # NaT gets a pass
                     pass
                 else:
@@ -510,20 +510,17 @@ class _TimeOp(_Op):
         if (inferred_type in ('datetime64', 'datetime', 'date', 'time') or
                 is_datetimetz(inferred_type)):
 
-            if ovalues is pd.NaT and name == '__sub__':
-                # Note: This can only occur when `values` represents `right`
-                # i.e. `other`.
-                if other.dtype == 'timedelta64[ns]':
-                    values = np.array([iNaT], dtype='timedelta64[ns]')
-                else:
-                    values = np.array([iNaT], dtype='datetime64[ns]')
-
             # if we have a other of timedelta, but use pd.NaT here we
             # we are in the wrong path
-            elif (supplied_dtype is None and other is not None and
-                  (other.dtype in ('timedelta64[ns]', 'datetime64[ns]')) and
-                  isna(values).all()):
-                values = np.empty(values.shape, dtype='timedelta64[ns]')
+            if (supplied_dtype is None and other is not None and
+                    (other.dtype in ('timedelta64[ns]', 'datetime64[ns]')) and
+                    isna(values).all()):
+                if len(values) == 1 and other.dtype == 'timedelta64[ns]':
+                    values = np.empty(values.shape, dtype='timedelta64[ns]')
+                elif len(values) == 1 and other.dtype == 'datetime64[ns]':
+                    values = np.empty(values.shape, dtype='datetime64[ns]')
+                else:
+                    values = np.empty(values.shape, dtype='timedelta64[ns]')
                 values[:] = iNaT
 
             # a datelike
