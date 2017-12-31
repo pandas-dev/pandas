@@ -369,12 +369,12 @@ class TestDatetimeIndexArithmetic(object):
     @pytest.mark.parametrize('tz', [None, 'America/Chicago'])
     def test_dti_add_series(self, tz, names):
         # GH#13905
-        index = pd.DatetimeIndex(['2016-06-28 05:30', '2016-06-28 05:31'],
-                                 tz=tz, name=names[0])
-        ser = pd.Series([pd.Timedelta(seconds=5)] * 2,
-                        index=index, name=names[1])
-        expected = pd.Series(index + pd.Timedelta(seconds=5),
-                             index=index, name=names[2])
+        index = DatetimeIndex(['2016-06-28 05:30', '2016-06-28 05:31'],
+                              tz=tz, name=names[0])
+        ser = Series([Timedelta(seconds=5)] * 2,
+                     index=index, name=names[1])
+        expected = Series(index + Timedelta(seconds=5),
+                          index=index, name=names[2])
 
         # passing name arg isn't enough when names[2] is None
         expected.name = names[2]

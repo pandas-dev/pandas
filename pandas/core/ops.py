@@ -536,7 +536,7 @@ class _TimeOp(_Op):
         elif inferred_type in ('timedelta', 'timedelta64'):
             # have a timedelta, convert to to ns here
             values = to_timedelta(values, errors='coerce', box=False)
-            if isinstance(other, pd.DatetimeIndex):
+            if isinstance(other, ABCDatetimeIndex):
                 # GH#13905
                 # Defer to DatetimeIndex/TimedeltaIndex operations where
                 # timezones are handled carefully.
