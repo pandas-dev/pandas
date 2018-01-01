@@ -208,6 +208,9 @@ Other API Changes
 - In :func:`read_excel`, the ``comment`` argument is now exposed as a named parameter (:issue:`18735`)
 - Rearranged the order of keyword arguments in :func:`read_excel()` to align with :func:`read_csv()` (:issue:`16672`)
 - The options ``html.border`` and ``mode.use_inf_as_null`` were deprecated in prior versions, these will now show ``FutureWarning`` rather than a ``DeprecationWarning`` (:issue:`19003`)
+- Subtracting ``NaT`` from a :class:`Series` with ``dtype='datetime64[ns]'`` returns a ``Series`` with ``dtype='timedelta64[ns]'`` instead of ``dtype='datetime64[ns]'``(:issue:`18808`)
+- Operations between a :class:`Series` with dtype ``dtype='datetime64[ns]'`` and a :class:`PeriodIndex` will correctly raises ``TypeError`` (:issue:`18850`)
+- Subtraction of :class:`Series` with timezone-aware ``dtype='datetime64[ns]'`` will mis-matched timezones will raise ``TypeError`` instead of ``ValueError`` (issue:`18817`) dtypewith mis-matched timezones will now raise a ``TypeError`` instead of a ``ValueError`` (:issue:`18817`)
 
 .. _whatsnew_0230.deprecations:
 

@@ -744,6 +744,13 @@ def _arith_method_SERIES(op, name, str_rep, fill_zeros=None, default_axis=None,
             return NotImplemented
 
         left, right = _align_method_SERIES(left, right)
+        if is_datetime64_dtype(left) or is_datetime64tz_dtype(left):
+            result = op(pd.DatetimeIndex(left), right)
+            res_name = _get_series_op_result_name(left, right)
+            result.name = res_name  # needs to be overriden if None
+            return construct_result(left, result,
+                                    index=left.index, name=res_name,
+                                    dtype=result.dtype)
 
         converted = _Op.get_op(left, right, name, na_op)
 
@@ -754,29 +761,34 @@ def _arith_method_SERIES(op, name, str_rep, fill_zeros=None, default_axis=None,
         na_op = converted.na_op
 
         if isinstance(rvalues, ABCSeries):
-            name = _maybe_match_name(left, rvalues)
             lvalues = getattr(lvalues, 'values', lvalues)
             rvalues = getattr(rvalues, 'values', rvalues)
             # _Op aligns left and right
         else:
-            if isinstance(rvalues, pd.Index):
-                name = _maybe_match_name(left, rvalues)
-            else:
-                name = left.name
             if (hasattr(lvalues, 'values') and
                     not isinstance(lvalues, pd.DatetimeIndex)):
                 lvalues = lvalues.values
 
         result = wrap_results(safe_na_op(lvalues, rvalues))
+        res_name = _get_series_op_result_name(left, right)
         return construct_result(
             left,
             result,
             index=left.index,
-            name=name,
+            name=res_name,
             dtype=dtype,
         )
 
     return wrapper
+
+
+def _get_series_op_result_name(left, right):
+    # `left` is always a Series
+    if isinstance(right, (ABCSeries, pd.Index)):
+        name = _maybe_match_name(left, right)
+    else:
+        name = left.name
+    return name
 
 
 def _comp_method_OBJECT_ARRAY(op, x, y):
