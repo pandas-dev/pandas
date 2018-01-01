@@ -1277,6 +1277,15 @@ class TestMultiIndex(Base):
         pytest.raises(KeyError, idx.get_loc, np.nan)
         pytest.raises(KeyError, idx.get_loc, [np.nan])
 
+    @pytest.mark.parametrize('dtype1', [int, float, bool, str])
+    @pytest.mark.parametrize('dtype2', [int, float, bool, str])
+    def test_get_loc_multiple_dtypes(self, dtype1, dtype2):
+        # GH 18520
+        levels = [np.array([0, 1]).astype(dtype1),
+                  np.array([0, 1]).astype(dtype2)]
+        idx = pd.MultiIndex.from_product(levels)
+        assert idx.get_loc(idx[2]) == 2
+
     @pytest.mark.parametrize('level', [0, 1])
     @pytest.mark.parametrize('dtypes', [[int, float], [float, int]])
     def test_get_loc_implicit_cast(self, level, dtypes):
