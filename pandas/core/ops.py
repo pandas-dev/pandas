@@ -783,7 +783,7 @@ def _arith_method_SERIES(op, name, str_rep, fill_zeros=None, default_axis=None,
 
 
 def _get_series_op_result_name(left, right):
-    # `left` is always a Series
+    # `left` is always a pd.Series
     if isinstance(right, (ABCSeries, pd.Index)):
         name = _maybe_match_name(left, right)
     else:
