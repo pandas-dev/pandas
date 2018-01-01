@@ -33,6 +33,9 @@ class TestIntervalIndex(Base):
         assert not Interval(1, 3).covers(Interval(0.5, 2.5))
         assert not Interval(1, 3).covers(Interval(1.5, 3.5))
 
+        ivl = Interval(1, 3, closed=ivl_side)
+        other = Interval(1, 3, closed=other_side)
+
         should_cover = {
             'right': {'right': True, 'left': False, 'both': False, 'neither': True},
             'left': {'right': False, 'left': True, 'both': False, 'neither': True},
@@ -40,8 +43,6 @@ class TestIntervalIndex(Base):
             'neither': {'right': False, 'left': False, 'both': False, 'neither': True}
         }
 
-        ivl = Interval(1, 3, closed=ivl_side)
-        other = Interval(1, 3, closed=other_side)
         assert ivl.covers(other) == should_cover[ivl_side][other_side]
 
     @pytest.mark.parametrize("ivl_side", ['right', 'left', 'both', 'neither'])
