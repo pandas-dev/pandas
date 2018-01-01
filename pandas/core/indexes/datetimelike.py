@@ -669,6 +669,7 @@ class DatetimeIndexOpsMixin(object):
             from pandas.core.index import Index
             from pandas.core.indexes.timedeltas import TimedeltaIndex
             from pandas.tseries.offsets import DateOffset
+
             other = lib.item_from_zerodim(other)
             if isinstance(other, ABCSeries):
                 return NotImplemented
@@ -701,6 +702,7 @@ class DatetimeIndexOpsMixin(object):
             from pandas.core.indexes.datetimes import DatetimeIndex
             from pandas.core.indexes.timedeltas import TimedeltaIndex
             from pandas.tseries.offsets import DateOffset
+
             other = lib.item_from_zerodim(other)
             if isinstance(other, ABCSeries):
                 return NotImplemented
