@@ -39,3 +39,18 @@ class Quantile(object):
 
     def time_quantile(self, contructor, window, dtype, percentile):
         self.roll.quantile(percentile)
+
+
+class DepreciatedRolling(object):
+
+    sample_time = 0.2
+    params = ['rolling_median', 'rolling_mean', 'rolling_min', 'rolling_max',
+              'rolling_var', 'rolling_skew', 'rolling_kurt', 'rolling_std']
+    param_names = ['method']
+
+    def setup(self, method):
+        self.arr = np.random.randn(100000)
+        self.win = 100
+
+    def time_method(self, method):
+        getattr(pd, method)(self.arr, self.win)
