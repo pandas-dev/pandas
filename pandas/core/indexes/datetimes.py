@@ -355,7 +355,7 @@ class DatetimeIndex(DatelikeOps, TimelikeOps, DatetimeIndexOpsMixin,
             raise ValueError("Must provide freq argument if no data is "
                              "supplied")
 
-        # if dtype has an embeded tz, capture it
+        # if dtype has an embedded tz, capture it
         if dtype is not None:
             try:
                 dtype = DatetimeTZDtype.construct_from_string(dtype)
@@ -892,6 +892,32 @@ class DatetimeIndex(DatelikeOps, TimelikeOps, DatetimeIndexOpsMixin,
             warnings.warn("Non-vectorized DateOffset being applied to Series "
                           "or DatetimeIndex", PerformanceWarning)
             return self.astype('O') + offset
+
+    def _add_offset_array(self, other):
+        # Array/Index of DateOffset objects
+        if isinstance(other, ABCSeries):
+            return NotImplemented
+        elif len(other) == 1:
+            return self + other[0]
+        else:
+            warnings.warn("Adding/subtracting array of DateOffsets to "
+                          "{} not vectorized".format(type(self)),
+                          PerformanceWarning)
+            return self.astype('O') + np.array(other)
+            # TODO: This works for __add__ but loses dtype in __sub__
+
+    def _sub_offset_array(self, other):
+        # Array/Index of DateOffset objects
+        if isinstance(other, ABCSeries):
+            return NotImplemented
+        elif len(other) == 1:
+            return self - other[0]
+        else:
+            warnings.warn("Adding/subtracting array of DateOffsets to "
+                          "{} not vectorized".format(type(self)),
+                          PerformanceWarning)
+            res_values = self.astype('O').values - np.array(other)
+            return self.__class__(res_values, freq='infer')
 
     def _format_native_types(self, na_rep='NaT', date_format=None, **kwargs):
         from pandas.io.formats.format import _get_format_datetime64_from_values
@@ -1765,7 +1791,7 @@ class DatetimeIndex(DatelikeOps, TimelikeOps, DatetimeIndexOpsMixin,
 
         if isinstance(item, (datetime, np.datetime64)):
             self._assert_can_do_op(item)
-            if not self._has_same_tz(item):
+            if not self._has_same_tz(item) and not isna(item):
                 raise ValueError(
                     'Passed item and index have different timezone')
             # check freq can be preserved on edge cases

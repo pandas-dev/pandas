@@ -184,7 +184,7 @@ def test_regression_whitelist_methods(
         axis, skipna, sort):
     # GH6944
     # GH 17537
-    # explicity test the whitelest methods
+    # explicitly test the whitelest methods
 
     if axis == 0:
         frame = raw_frame

@@ -10,7 +10,7 @@ methods. In general, all classes and functions exposed in the top-level
 ``pandas.*`` namespace are regarded as public.
 
 Further some of the subpackages are public, including ``pandas.errors``,
-``pandas.plotting``, and ``pandas.testing``. Certain functions in the the
+``pandas.plotting``, and ``pandas.testing``. Certain functions in the
 ``pandas.io`` and ``pandas.tseries`` submodules are public as well (those
 mentioned in the documentation). Further, the ``pandas.api.types`` subpackage
 holds some public functions related to data types in pandas.

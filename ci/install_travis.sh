@@ -56,11 +56,6 @@ if [ "$CONDA_BUILD_TEST" ]; then
     conda install conda-build
 fi
 
-# TODO(jreback)
-echo
-echo "[fix conda version]"
-conda install conda=4.3.30
-
 echo
 echo "[add channels]"
 conda config --remove channels defaults || exit 1
@@ -105,6 +100,9 @@ REQ="ci/requirements-${JOB}.build"
 time conda create -n pandas --file=${REQ} || exit 1
 
 source activate pandas
+
+# https://github.com/travis-ci/travis-ci/issues/8920#issuecomment-352661024
+python -c "import fcntl; fcntl.fcntl(1, fcntl.F_SETFL, 0)"
 
 # may have addtl installation instructions for this build
 echo

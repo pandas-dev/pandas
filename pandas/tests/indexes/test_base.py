@@ -1067,7 +1067,7 @@ class TestIndex(Base):
         # GH 14626
         # windows has different precision on datetime.datetime.now (it doesn't
         # include us since the default for Timestamp shows these but Index
-        # formating does not we are skipping)
+        # formatting does not we are skipping)
         now = datetime.now()
         if not str(now).endswith("000"):
             index = Index([now])
@@ -1428,6 +1428,27 @@ class TestIndex(Base):
         dropped = ser.drop([3, 4, 5], errors='ignore')
         expected = Index([1, 2])
         tm.assert_index_equal(dropped, expected)
+
+    @pytest.mark.parametrize("values", [['a', 'b', ('c', 'd')],
+                                        ['a', ('c', 'd'), 'b'],
+                                        [('c', 'd'), 'a', 'b']])
+    @pytest.mark.parametrize("to_drop", [[('c', 'd'), 'a'], ['a', ('c', 'd')]])
+    def test_drop_tuple(self, values, to_drop):
+        # GH 18304
+        index = pd.Index(values)
+        expected = pd.Index(['b'])
+
+        result = index.drop(to_drop)
+        tm.assert_index_equal(result, expected)
+
+        removed = index.drop(to_drop[0])
+        for drop_me in to_drop[1], [to_drop[1]]:
+            result = removed.drop(drop_me)
+            tm.assert_index_equal(result, expected)
+
+        removed = index.drop(to_drop[1])
+        for drop_me in to_drop[1], [to_drop[1]]:
+            pytest.raises(ValueError, removed.drop, drop_me)
 
     def test_tuple_union_bug(self):
         import pandas

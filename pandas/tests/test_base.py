@@ -116,7 +116,8 @@ class TestPandasDelegate(object):
 
     def test_invalida_delgation(self):
         # these show that in order for the delegation to work
-        # the _delegate_* methods need to be overriden to not raise a TypeError
+        # the _delegate_* methods need to be overridden to not raise
+        # a TypeError
 
         self.Delegate._add_delegate_accessors(
             delegate=self.Delegator,

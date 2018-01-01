@@ -175,7 +175,7 @@ class TestNth(MixIn):
         df = DataFrame([[1, np.nan], [1, 4], [5, 6]], columns=['A', 'B'])
         g = df.groupby('A')
         # PR 17493, related to issue 11038
-        # test Series.nth with True for dropna produces DeprecationWarning
+        # test Series.nth with True for dropna produces FutureWarning
         with assert_produces_warning(FutureWarning):
             result = g.B.nth(0, dropna=True)
         expected = g.B.first()

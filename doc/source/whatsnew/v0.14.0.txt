@@ -83,7 +83,7 @@ API changes
   been removed, instead a header with the column names is returned (:issue:`6062`).
 - ``Series`` and ``Index`` now internall share more common operations, e.g. ``factorize(),nunique(),value_counts()`` are
   now supported on ``Index`` types as well. The ``Series.weekday`` property from is removed
-  from Series for API  consistency. Using a ``DatetimeIndex/PeriodIndex`` method on a Series will now raise a ``TypeError``.
+  from Series for API consistency. Using a ``DatetimeIndex/PeriodIndex`` method on a Series will now raise a ``TypeError``.
   (:issue:`4551`, :issue:`4056`, :issue:`5519`, :issue:`6380`, :issue:`7206`).
 
 - Add ``is_month_start``, ``is_month_end``, ``is_quarter_start``, ``is_quarter_end``, ``is_year_start``, ``is_year_end`` accessors for ``DateTimeIndex`` / ``Timestamp`` which return a boolean array of whether the timestamp(s) are at the start/end of the month/quarter/year defined by the frequency of the ``DateTimeIndex`` / ``Timestamp`` (:issue:`4565`, :issue:`6998`)
@@ -284,7 +284,7 @@ Display Changes
   `large_repr` set to 'info' (:issue:`7105`)
 - The `verbose` keyword in ``DataFrame.info()``, which controls whether to shorten the ``info``
   representation, is now ``None`` by default. This will follow the global setting in
-  ``display.max_info_columns``. The global setting can be overriden with ``verbose=True`` or
+  ``display.max_info_columns``. The global setting can be overridden with ``verbose=True`` or
   ``verbose=False``.
 - Fixed a bug with the `info` repr not honoring the `display.max_info_columns` setting (:issue:`6939`)
 - Offset/freq info now in Timestamp __repr__ (:issue:`4553`)
@@ -446,7 +446,7 @@ Some other enhancements to the sql functions include:
 - support for writing the index. This can be controlled with the ``index``
   keyword (default is True).
 - specify the column label to use when writing the index with ``index_label``.
-- specify string columns to parse as datetimes withh the ``parse_dates``
+- specify string columns to parse as datetimes with the ``parse_dates``
   keyword in :func:`~pandas.read_sql_query` and :func:`~pandas.read_sql_table`.
 
 .. warning::
@@ -596,15 +596,15 @@ Plotting
   - `align`: Specify the bar alignment. Default is `center` (different from matplotlib). In previous versions, pandas passes `align='edge'` to matplotlib and adjust the location to `center` by itself, and it results `align` keyword is not applied as expected. (:issue:`4525`)
   - `position`: Specify relative alignments for bar plot layout. From 0 (left/bottom-end) to 1(right/top-end). Default is 0.5 (center). (:issue:`6604`)
 
-  Because of the default `align` value changes, coordinates of bar plots are now located on integer values (0.0, 1.0, 2.0 ...). This is intended to make bar plot be located on the same coodinates as line plot. However, bar plot may differs unexpectedly when you manually adjust the bar location or drawing area, such as using `set_xlim`, `set_ylim`, etc. In this cases, please modify your script to meet with new coordinates.
+  Because of the default `align` value changes, coordinates of bar plots are now located on integer values (0.0, 1.0, 2.0 ...). This is intended to make bar plot be located on the same coordinates as line plot. However, bar plot may differs unexpectedly when you manually adjust the bar location or drawing area, such as using `set_xlim`, `set_ylim`, etc. In this cases, please modify your script to meet with new coordinates.
 
 - The :func:`parallel_coordinates` function now takes argument ``color``
-  instead of ``colors``. A ``FutureWarning`` is raised  to alert that
+  instead of ``colors``. A ``FutureWarning`` is raised to alert that
   the old ``colors`` argument will not be supported in a future release. (:issue:`6956`)
 
 - The :func:`parallel_coordinates` and :func:`andrews_curves` functions now take
   positional argument ``frame`` instead of ``data``. A ``FutureWarning`` is
-  raised  if the old ``data`` argument is used by name. (:issue:`6956`)
+  raised if the old ``data`` argument is used by name. (:issue:`6956`)
 
 - :meth:`DataFrame.boxplot` now supports ``layout`` keyword (:issue:`6769`)
 - :meth:`DataFrame.boxplot` has a new keyword argument, `return_type`. It accepts ``'dict'``,
@@ -645,17 +645,17 @@ Deprecations
 
 - The :func:`pivot_table`/:meth:`DataFrame.pivot_table` and :func:`crosstab` functions
   now take arguments ``index`` and ``columns`` instead of ``rows`` and ``cols``.  A
-  ``FutureWarning`` is raised  to alert that the old ``rows`` and ``cols`` arguments
+  ``FutureWarning`` is raised to alert that the old ``rows`` and ``cols`` arguments
   will not be supported in a future release (:issue:`5505`)
 
 - The :meth:`DataFrame.drop_duplicates` and :meth:`DataFrame.duplicated` methods
   now take argument ``subset`` instead of ``cols`` to better align with
-  :meth:`DataFrame.dropna`.  A ``FutureWarning`` is raised  to alert that the old
+  :meth:`DataFrame.dropna`.  A ``FutureWarning`` is raised to alert that the old
   ``cols`` arguments will not be supported in a future release (:issue:`6680`)
 
 - The :meth:`DataFrame.to_csv` and :meth:`DataFrame.to_excel` functions
   now takes argument ``columns`` instead of ``cols``.  A
-  ``FutureWarning`` is raised  to alert that the old ``cols`` arguments
+  ``FutureWarning`` is raised to alert that the old ``cols`` arguments
   will not be supported in a future release (:issue:`6645`)
 
 - Indexers will warn ``FutureWarning`` when used with a scalar indexer and
@@ -698,12 +698,12 @@ Deprecations
   ALWAYS return a view. (:issue:`6894`)
 
 - The :func:`parallel_coordinates` function now takes argument ``color``
-  instead of ``colors``. A ``FutureWarning`` is raised  to alert that
+  instead of ``colors``. A ``FutureWarning`` is raised to alert that
   the old ``colors`` argument will not be supported in a future release. (:issue:`6956`)
 
 - The :func:`parallel_coordinates` and :func:`andrews_curves` functions now take
   positional argument ``frame`` instead of ``data``. A ``FutureWarning`` is
-  raised  if the old ``data`` argument is used by name. (:issue:`6956`)
+  raised if the old ``data`` argument is used by name. (:issue:`6956`)
 
 - The support for the 'mysql' flavor when using DBAPI connection objects has been deprecated.
   MySQL will be further supported with SQLAlchemy engines (:issue:`6900`).
@@ -899,7 +899,7 @@ Bug Fixes
 - Raise when trying to align on different levels of a multi-index assignment (:issue:`3738`)
 - Bug in setting complex dtypes via boolean indexing (:issue:`6345`)
 - Bug in TimeGrouper/resample when presented with a non-monotonic DatetimeIndex that would return invalid results. (:issue:`4161`)
-- Bug in index name propogation in TimeGrouper/resample (:issue:`4161`)
+- Bug in index name propagation in TimeGrouper/resample (:issue:`4161`)
 - TimeGrouper has a more compatible API to the rest of the groupers (e.g. ``groups`` was missing) (:issue:`3881`)
 - Bug in multiple grouping with a TimeGrouper depending on target column order (:issue:`6764`)
 - Bug in ``pd.eval`` when parsing strings with possible tokens like ``'&'``
@@ -976,7 +976,7 @@ Bug Fixes
   clean`` (:issue:`6768`)
 - Bug with numpy < 1.7.2 when reading long strings from ``HDFStore`` (:issue:`6166`)
 - Bug in ``DataFrame._reduce`` where non bool-like (0/1) integers were being
-  coverted into bools. (:issue:`6806`)
+  converted into bools. (:issue:`6806`)
 - Regression from 0.13 with ``fillna`` and a Series on datetime-like (:issue:`6344`)
 - Bug in adding ``np.timedelta64`` to ``DatetimeIndex`` with timezone outputs incorrect results (:issue:`6818`)
 - Bug in ``DataFrame.replace()`` where changing a dtype through replacement

@@ -75,7 +75,7 @@ API changes
 
   Note that for the other offsets the default behaviour did not change.
 
-- Add back ``#N/A N/A`` as a default NA value in text parsing, (regresion from 0.12) (:issue:`5521`)
+- Add back ``#N/A N/A`` as a default NA value in text parsing, (regression from 0.12) (:issue:`5521`)
 - Raise a ``TypeError`` on inplace-setting with a ``.where`` and a non ``np.nan`` value as this is inconsistent
   with a set-item expression like ``df[mask] = None`` (:issue:`7656`)
 
@@ -88,7 +88,7 @@ Enhancements
 - Add ``dropna`` argument to ``value_counts`` and ``nunique`` (:issue:`5569`).
 - Add :meth:`~pandas.DataFrame.select_dtypes` method to allow selection of
   columns based on dtype (:issue:`7316`). See :ref:`the docs <basics.selectdtypes>`.
-- All ``offsets`` suppports the ``normalize`` keyword to specify whether
+- All ``offsets`` supports the ``normalize`` keyword to specify whether
   ``offsets.apply``, ``rollforward`` and ``rollback`` resets the time (hour,
   minute, etc) or not (default ``False``, preserves time) (:issue:`7156`):
 

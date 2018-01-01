@@ -215,7 +215,7 @@ Bug Fixes
 - ``io.data.Options`` now raises ``RemoteDataError`` when no expiry dates are available from Yahoo and when it receives no data from Yahoo (:issue:`8761`), (:issue:`8783`).
 - Fix: The font size was only set on x axis if vertical or the y axis if horizontal. (:issue:`8765`)
 - Fixed division by 0 when reading big csv files in python 3 (:issue:`8621`)
-- Bug in outputing a Multindex with ``to_html,index=False`` which would add an extra column (:issue:`8452`)
+- Bug in outputting a Multindex with ``to_html,index=False`` which would add an extra column (:issue:`8452`)
 - Imported categorical variables from Stata files retain the ordinal information in the underlying data (:issue:`8836`).
 - Defined ``.size`` attribute across ``NDFrame`` objects to provide compat with numpy >= 1.9.1; buggy with ``np.array_split`` (:issue:`8846`)
 - Skip testing of histogram plots for matplotlib <= 1.2 (:issue:`8648`).

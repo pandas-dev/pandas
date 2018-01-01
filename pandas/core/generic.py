@@ -2341,7 +2341,7 @@ class NDFrame(PandasObject, SelectionMixin):
             if value is None:
                 return
 
-            # see if the copy is not actually refererd; if so, then disolve
+            # see if the copy is not actually referred; if so, then dissolve
             # the copy weakref
             try:
                 gc.collect(2)
@@ -3109,7 +3109,7 @@ class NDFrame(PandasObject, SelectionMixin):
         %(optional_axis)s
         method : {None, 'backfill'/'bfill', 'pad'/'ffill', 'nearest'}, optional
             method to use for filling holes in reindexed DataFrame.
-            Please note: this is only  applicable to DataFrames/Series with a
+            Please note: this is only applicable to DataFrames/Series with a
             monotonically increasing/decreasing index.
 
             * default: don't fill gaps
@@ -7534,8 +7534,7 @@ Parameters
 ----------
 axis : %(axis_descr)s
 skipna : boolean, default True
-    Exclude NA/null values. If an entire row/column is NA or empty, the result
-    will be NA
+    Exclude NA/null values when computing the result.
 level : int or level name, default None
     If the axis is a MultiIndex (hierarchical), count along a
     particular level, collapsing into a %(name1)s
@@ -7619,57 +7618,57 @@ pandas.core.window.Expanding.%(accum_func_name)s : Similar functionality
 _sum_examples = """\
 Examples
 --------
-By default, the sum of an empty series is ``NaN``.
+By default, the sum of an empty or all-NA Series is ``0``.
 
->>> pd.Series([]).sum()  # min_count=1 is the default
-nan
+>>> pd.Series([]).sum()  # min_count=0 is the default
+0.0
 
 This can be controlled with the ``min_count`` parameter. For example, if
-you'd like the sum of an empty series to be 0, pass ``min_count=0``.
+you'd like the sum of an empty series to be NaN, pass ``min_count=1``.
 
->>> pd.Series([]).sum(min_count=0)
-0.0
+>>> pd.Series([]).sum(min_count=1)
+nan
 
 Thanks to the ``skipna`` parameter, ``min_count`` handles all-NA and
 empty series identically.
 
 >>> pd.Series([np.nan]).sum()
-nan
-
->>> pd.Series([np.nan]).sum(min_count=0)
 0.0
+
+>>> pd.Series([np.nan]).sum(min_count=1)
+nan
 """
 
 _prod_examples = """\
 Examples
 --------
-By default, the product of an empty series is ``NaN``
+By default, the product of an empty or all-NA Series is ``1``
 
 >>> pd.Series([]).prod()
-nan
+1.0
 
 This can be controlled with the ``min_count`` parameter
 
->>> pd.Series([]).prod(min_count=0)
-1.0
+>>> pd.Series([]).prod(min_count=1)
+nan
 
 Thanks to the ``skipna`` parameter, ``min_count`` handles all-NA and
 empty series identically.
 
 >>> pd.Series([np.nan]).prod()
-nan
-
->>> pd.Series([np.nan]).sum(min_count=0)
 1.0
+
+>>> pd.Series([np.nan]).sum(min_count=1)
+nan
 """
 
 
 _min_count_stub = """\
-min_count : int, default 1
+min_count : int, default 0
     The required number of valid values to perform the operation. If fewer than
     ``min_count`` non-NA values are present the result will be NA.
 
-    .. versionadded :: 0.21.2
+    .. versionadded :: 0.22.0
 
        Added with the default being 1. This means the sum or product
        of an all-NA or empty series is ``NaN``.
@@ -7683,7 +7682,7 @@ def _make_min_count_stat_function(cls, name, name1, name2, axis_descr, desc,
                   examples=examples)
     @Appender(_num_doc)
     def stat_func(self, axis=None, skipna=None, level=None, numeric_only=None,
-                  min_count=1,
+                  min_count=0,
                   **kwargs):
         nv.validate_stat_func(tuple(), kwargs, fname=name)
         if skipna is None:

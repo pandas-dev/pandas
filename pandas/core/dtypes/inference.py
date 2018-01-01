@@ -17,7 +17,7 @@ is_float = lib.is_float
 
 is_complex = lib.is_complex
 
-is_scalar = lib.isscalar
+is_scalar = lib.is_scalar
 
 is_decimal = lib.is_decimal
 
