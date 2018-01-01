@@ -1,7 +1,9 @@
+import string
+
 import numpy as np
 import pandas.util.testing as tm
 from pandas import (Series, date_range, DatetimeIndex, Index, MultiIndex,
-                    RangeIndex)
+                    RangeIndex, Float64Index)
 
 from .pandas_vb_common import setup  # noqa
 
@@ -222,3 +224,89 @@ class Indexing(object):
 
     def time_slice_step(self, dtype):
         self.idx[::2]
+
+
+class Float64IndexMethod(object):
+    # GH 13166
+    goal_time = 0.2
+
+    def setup(self):
+        N = 100000
+        a = np.arange(N)
+        self.ind = Float64Index(a * 4.8000000418824129e-08)
+
+    def time_get_loc(self):
+        self.ind.get_loc(0)
+
+
+class MultiIndexGet(object):
+
+    goal_time = 0.2
+
+    def setup(self):
+        self.mi_large = MultiIndex.from_product(
+            [np.arange(1000), np.arange(20), list(string.ascii_letters)],
+            names=['one', 'two', 'three'])
+        self.mi_med = MultiIndex.from_product(
+            [np.arange(1000), np.arange(10), list('A')],
+            names=['one', 'two', 'three'])
+        self.mi_small = MultiIndex.from_product(
+            [np.arange(100), list('A'), list('A')],
+            names=['one', 'two', 'three'])
+
+    def time_multiindex_large_get_loc(self):
+        self.mi_large.get_loc((999, 19, 'Z'))
+
+    def time_multiindex_large_get_loc_warm(self):
+        for _ in range(1000):
+            self.mi_large.get_loc((999, 19, 'Z'))
+
+    def time_multiindex_med_get_loc(self):
+        self.mi_med.get_loc((999, 9, 'A'))
+
+    def time_multiindex_med_get_loc_warm(self):
+        for _ in range(1000):
+            self.mi_med.get_loc((999, 9, 'A'))
+
+    def time_multiindex_string_get_loc(self):
+        self.mi_small.get_loc((99, 'A', 'A'))
+
+    def time_multiindex_small_get_loc_warm(self):
+        for _ in range(1000):
+            self.mi_small.get_loc((99, 'A', 'A'))
+
+
+class MultiIndexDuplicates(object):
+
+    goal_time = 0.2
+
+    def setup(self):
+        size = 65536
+        arrays = [np.random.randint(0, 8192, size),
+                  np.random.randint(0, 1024, size)]
+        mask = np.random.rand(size) < 0.1
+        self.mi_unused_levels = MultiIndex.from_arrays(arrays)
+        self.mi_unused_levels = self.mi_unused_levels[mask]
+
+    def time_remove_unused_levels(self):
+        self.mi_unused_levels.remove_unused_levels()
+
+
+class MultiIndexInteger(object):
+
+    goal_time = 0.2
+
+    def setup(self):
+        self.mi_int = MultiIndex.from_product([np.arange(1000),
+                                               np.arange(1000)],
+                                              names=['one', 'two'])
+        self.obj_index = np.array([(0, 10), (0, 11), (0, 12),
+                                   (0, 13), (0, 14), (0, 15),
+                                   (0, 16), (0, 17), (0, 18),
+                                   (0, 19)], dtype=object)
+
+    def time_get_indexer(self):
+        self.mi_int.get_indexer(self.obj_index)
+
+    def time_is_monotonic(self):
+        self.mi_int.is_monotonic

@@ -1,9 +1,7 @@
-import string
-
 import numpy as np
 import pandas.util.testing as tm
 from pandas import (Series, DataFrame, MultiIndex, Int64Index, Float64Index,
-                    IntervalIndex, IndexSlice)
+                    IntervalIndex, IndexSlice, concat, date_range)
 from .pandas_vb_common import setup, Panel  # noqa
 
 
@@ -79,27 +77,27 @@ class NonNumericSeriesIndexing(object):
     param_names = ['index']
 
     def setup(self, index):
-        N = 10**6
+        N = 10**5
         indexes = {'string': tm.makeStringIndex(N),
-                   'datetime': tm.makeTimeSeries(N)}
+                   'datetime': date_range('1900', periods=N, freq='s')}
         index = indexes[index]
         self.s = Series(np.random.rand(N), index=index)
-        self.lbl = index[800000]
+        self.lbl = index[80000]
 
-    def time_getitem_label_slice(self):
+    def time_getitem_label_slice(self, index):
         self.s[:self.lbl]
 
-    def time_getitem_pos_slice(self):
-        self.s[:800000]
+    def time_getitem_pos_slice(self, index):
+        self.s[:80000]
 
-    def time_get_value(self):
+    def time_get_value(self, index):
         self.s.get_value(self.lbl)
 
     def time_getitem_scalar(self, index):
         self.s[self.lbl]
 
 
-class DataFrameIndexing(object):
+class DataFrameStringIndexing(object):
 
     goal_time = 0.2
 
@@ -108,67 +106,71 @@ class DataFrameIndexing(object):
         columns = tm.makeStringIndex(30)
         self.df = DataFrame(np.random.randn(1000, 30), index=index,
                             columns=columns)
-        self.idx = index[100]
-        self.col = columns[10]
-
-        self.df2 = DataFrame(np.random.randn(10000, 4),
-                             columns=['A', 'B', 'C', 'D'])
-        self.indexer = self.df2['B'] > 0
-        self.obj_indexer = self.indexer.astype('O')
-
-        # dupes
-        self.idx_dupe = np.array(range(30)) * 99
-        self.df3 = DataFrame({'A': [0.1] * 1000, 'B': [1] * 1000})
-        self.df3 = concat([self.df3, 2 * self.df3, 3 * self.df3])
-
-        self.df_big = DataFrame(dict(A=['foo'] * 1000000))
+        self.idx_scalar = index[100]
+        self.col_scalar = columns[10]
+        self.bool_indexer = self.df[self.col_scalar] > 0
+        self.bool_obj_indexer = self.bool_indexer.astype(object)
 
     def time_get_value(self):
-        self.df.get_value(self.idx, self.col)
+        self.df.get_value(self.idx_scalar, self.col_scalar)
 
-    def time_get_value_ix(self):
-        self.df.ix[(self.idx, self.col)]
+    def time_ix(self):
+        self.df.ix[self.idx_scalar, self.col_scalar]
+
+    def time_loc(self):
+        self.df.loc[self.idx_scalar, self.col_scalar]
 
     def time_getitem_scalar(self):
-        self.df[self.col][self.idx]
+        self.df[self.col_scalar][self.idx_scalar]
 
     def time_boolean_rows(self):
-        self.df2[self.indexer]
+        self.df[self.bool_indexer]
 
     def time_boolean_rows_object(self):
-        self.df2[self.obj_indexer]
-
-    def time_iloc_dups(self):
-        self.df3.iloc[self.idx_dupe]
-
-    def time_loc_dups(self):
-        self.df3.loc[self.idx_dupe]
-
-    def time_iloc_big(self):
-        self.df_big.iloc[:100, 0]
+        self.df[self.bool_obj_indexer]
 
 
-class IndexingMethods(object):
-    # GH 13166
+class DataFrameNumericIndexing(object):
+
     goal_time = 0.2
 
     def setup(self):
-        N = 100000
-        a = np.arange(N)
-        self.ind = Float64Index(a * 4.8000000418824129e-08)
+        self.idx_dupe = np.array(range(30)) * 99
+        self.df = DataFrame(np.random.randn(10000, 5))
+        self.df_dup = concat([self.df, 2 * self.df, 3 * self.df])
+        self.bool_indexer = [True] * 5000 + [False] * 5000
 
-        self.s = Series(np.random.rand(N))
-        self.ts = Series(np.random.rand(N),
-                         index=date_range('2011-01-01', freq='S', periods=N))
+    def time_iloc_dups(self):
+        self.df_dup.iloc[self.idx_dupe]
+
+    def time_loc_dups(self):
+        self.df_dup.loc[self.idx_dupe]
+
+    def time_iloc(self):
+        self.df.iloc[:100, 0]
+
+    def time_loc(self):
+        self.df.loc[:100, 0]
+
+    def time_bool_indexer(self):
+        self.df[self.bool_indexer]
+
+
+class Take(object):
+
+    goal_time = 0.2
+    params = ['int', 'datetime']
+    param_names = ['index']
+
+    def setup(self, index):
+        N = 100000
+        indexes = {'int': Int64Index(np.arange(N)),
+                   'datetime': date_range('2011-01-01', freq='S', periods=N)}
+        index = indexes[index]
+        self.s = Series(np.random.rand(N), index=index)
         self.indexer = [True, False, True, True, False] * 20000
 
-    def time_get_loc_float(self):
-        self.ind.get_loc(0)
-
-    def time_take_dtindex(self):
-        self.ts.take(self.indexer)
-
-    def time_take_intindex(self):
+    def time_take(self, index):
         self.s.take(self.indexer)
 
 
@@ -177,11 +179,10 @@ class MultiIndexing(object):
     goal_time = 0.2
 
     def setup(self):
-        self.mi = MultiIndex.from_product([range(1000), range(1000)])
-        self.s = Series(np.random.randn(1000000), index=self.mi)
+        mi = MultiIndex.from_product([range(1000), range(1000)])
+        self.s = Series(np.random.randn(1000000), index=mi)
         self.df = DataFrame(self.s)
 
-        # slicers
         n = 100000
         self.mdt = DataFrame({'A': np.random.choice(range(10000, 45000, 1000),
                                                     n),
@@ -191,68 +192,16 @@ class MultiIndexing(object):
                               'x': np.random.choice(range(400), n),
                               'y': np.random.choice(range(25), n)})
         self.idx = IndexSlice[20000:30000, 20:30, 35:45, 30000:40000]
-        self.mdt2 = self.mdt.set_index(['A', 'B', 'C', 'D']).sortlevel()
-        self.miint = MultiIndex.from_product([np.arange(1000),
-                                              np.arange(1000)],
-                                             names=['one', 'two'])
-        self.obj_index = np.array([(0, 10), (0, 11), (0, 12),
-                                   (0, 13), (0, 14), (0, 15),
-                                   (0, 16), (0, 17), (0, 18),
-                                   (0, 19)], dtype=object)
+        self.mdt = self.mdt.set_index(['A', 'B', 'C', 'D']).sort_index()
 
-        self.mi_large = MultiIndex.from_product(
-            [np.arange(1000), np.arange(20), list(string.ascii_letters)],
-            names=['one', 'two', 'three'])
-        self.mi_med = MultiIndex.from_product(
-            [np.arange(1000), np.arange(10), list('A')],
-            names=['one', 'two', 'three'])
-        self.mi_small = MultiIndex.from_product(
-            [np.arange(100), list('A'), list('A')],
-            names=['one', 'two', 'three'])
-
-        size = 65536
-        self.mi_unused_levels = pd.MultiIndex.from_arrays([
-            rng.randint(0, 8192, size),
-            rng.randint(0, 1024, size)])[rng.random.rand(size) < 0.1]
-
-    def time_series_xs_mi_ix(self):
+    def time_series_ix(self):
         self.s.ix[999]
 
-    def time_frame_xs_mi_ix(self):
+    def time_frame_ix(self):
         self.df.ix[999]
 
-    def time_multiindex_slicers(self):
-        self.mdt2.loc[self.idx, :]
-
-    def time_multiindex_get_indexer(self):
-        self.miint.get_indexer(self.obj_index)
-
-    def time_multiindex_large_get_loc(self):
-        self.mi_large.get_loc((999, 19, 'Z'))
-
-    def time_multiindex_large_get_loc_warm(self):
-        for _ in range(1000):
-            self.mi_large.get_loc((999, 19, 'Z'))
-
-    def time_multiindex_med_get_loc(self):
-        self.mi_med.get_loc((999, 9, 'A'))
-
-    def time_multiindex_med_get_loc_warm(self):
-        for _ in range(1000):
-            self.mi_med.get_loc((999, 9, 'A'))
-
-    def time_multiindex_string_get_loc(self):
-        self.mi_small.get_loc((99, 'A', 'A'))
-
-    def time_multiindex_small_get_loc_warm(self):
-        for _ in range(1000):
-            self.mi_small.get_loc((99, 'A', 'A'))
-
-    def time_is_monotonic(self):
-        self.miint.is_monotonic
-
-    def time_remove_unused_levels(self):
-        self.mi_unused_levels.remove_unused_levels()
+    def time_index_slice(self):
+        self.mdt.loc[self.idx, :]
 
 
 class IntervalIndexing(object):
@@ -307,20 +256,6 @@ class MethodLookup(object):
         s.loc
 
 
-class BooleanRowSelect(object):
-
-    goal_time = 0.2
-
-    def setup(self):
-        N = 10000
-        self.df = DataFrame(np.random.randn(N, 100))
-        self.bool_arr = np.zeros(N, dtype=bool)
-        self.bool_arr[:1000] = True
-
-    def time_frame_boolean_row_select(self):
-        self.df[self.bool_arr]
-
-
 class GetItemSingleColumn(object):
 
     goal_time = 0.2
@@ -342,7 +277,7 @@ class AssignTimeseriesIndex(object):
 
     def setup(self):
         N = 100000
-        dx = date_range('1/1/2000', periods=N, freq='H')
+        idx = date_range('1/1/2000', periods=N, freq='H')
         self.df = DataFrame(np.random.randn(N, 1), columns=['A'], index=idx)
 
     def time_frame_assign_timeseries_index(self):
