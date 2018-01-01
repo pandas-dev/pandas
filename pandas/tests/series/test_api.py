@@ -752,3 +752,17 @@ class TestCategoricalSeries(object):
                 AttributeError, "Can only use .dt accessor with datetimelike"):
             invalid.dt
         assert not hasattr(invalid, 'str')
+
+
+@pytest.mark.parametrize('opname', [
+    '__add__', '__radd__',
+    '__sub__', '__rsub__',
+    '__mul__', '__rmul__',
+    # '__div__', '__rdiv__',  # TODO: Is this different in py2 vs py3?
+    '__truediv__', '__rtruediv__',
+    '__floordiv__', '__rfloordiv__',
+    '__mod__', '__rmod__', '__divmod__',
+    '__pow__', '__rpow__'])
+def test_generated_op_names(opname):
+    method = getattr(pd.Series, opname)
+    assert method.__name__ == opname

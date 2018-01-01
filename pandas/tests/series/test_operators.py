@@ -1068,6 +1068,63 @@ class TestDatetimeSeriesArithmetic(object):
                                  Timedelta(days=2)])
         tm.assert_frame_equal(res, expected)
 
+    def test_scalar_op_retains_name(self):
+        # GH#18964
+        ser = pd.Series([pd.Timedelta(days=1, hours=2)], name='NCC-1701D')
+
+        dt = pd.Timestamp(1968, 7, 8)
+        res = ser + dt
+        assert res.name == ser.name
+        res = dt - ser
+        assert res.name == ser.name
+
+    @pytest.mark.xfail(reason='GH#18963 DatetimeIndex+Series[datetime64] '
+                              'returns DatetimeIndex with wrong name.')
+    def test_dti_op_retains_name(self):
+        # GH#18964
+        ser = pd.Series([pd.Timedelta(days=1, hours=2)], name='NCC-1701D')
+        dti = pd.DatetimeIndex([pd.Timestamp(1968, 7, 8)], name='Serenity')
+
+        expected = pd.Series([ser[0] + dti[0]], name=None)
+        res = ser + dti
+        tm.assert_series_equal(res, expected)
+        res = dti + ser  # GH#18963 wrong type and name
+        tm.assert_series_equal(res, expected)
+
+        expected = pd.Series([dti[0] - ser[0]], name=None)
+        res = dti - ser  # GH#18963 wrong type and name
+        tm.assert_series_equal(res, expected)
+        res = -ser + dti
+        tm.assert_series_equal(res, expected)
+
+        res = ser + dti.rename(name=ser.name)
+        tm.assert_series_equal(res, expected, check_names=False)
+        assert res.name == ser.name  # TODO: Series.rename(name=...) fails
+
+    @pytest.mark.xfail(reason='GH#18824 Series[timedelta64]+TimedeltaIndex'
+                              'gets name from TimedeltaIndex;'
+                              'reverse op raises ValueError')
+    def test_tdi_op_retains_name(self):
+        # GH#18964
+        ser = pd.Series([pd.Timedelta(days=1, hours=2)], name='NCC-1701D')
+        tdi = pd.TimedeltaIndex(ser, name='Heart Of Gold')
+
+        expected = pd.Series([ser[0] + tdi[0]], name=None)
+        res = ser + tdi  # right type, wrong name
+        tm.assert_series_equal(res, expected)
+        res = tdi + ser
+        tm.assert_series_equal(res, expected)
+
+        expected = pd.Series([ser[0] - tdi[0]], name=None)
+        res = ser - tdi  # right type, wrong name
+        tm.assert_series_equal(res, expected)
+        res = -tdi + ser
+        tm.assert_series_equal(res, expected)
+
+        res = ser + tdi.rename(name=ser.name)
+        tm.assert_series_equal(res, expected, check_names=False)
+        assert res.name == ser.name  # TODO: Series.rename(name=...) fails
+
     def test_operators_datetimelike(self):
         def run_ops(ops, get_ser, test_ser):
 
