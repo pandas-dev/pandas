@@ -960,6 +960,13 @@ class TestTimedeltaSeriesArithmetic(object):
         assert_series_equal(timedelta_series / nan,
                             nat_series_dtype_timedelta)
 
+    def test_td64_sub_NaT(self):
+        # GH#18808
+        ser = Series([NaT, Timedelta('1s')])
+        res = ser - NaT
+        expected = Series([NaT, NaT], dtype='timedelta64[ns]')
+        tm.assert_series_equal(res, expected)
+
     @pytest.mark.parametrize('scalar_td', [timedelta(minutes=5, seconds=4),
                                            Timedelta(minutes=5, seconds=4),
                                            Timedelta('5m4s').to_timedelta64()])
@@ -1260,13 +1267,10 @@ class TestDatetimeSeriesArithmetic(object):
         single_nat_dtype_datetime = Series([NaT], dtype='datetime64[ns]')
 
         # subtraction
-        assert_series_equal(datetime_series - NaT, nat_series_dtype_timestamp)
         assert_series_equal(-NaT + datetime_series, nat_series_dtype_timestamp)
         with pytest.raises(TypeError):
             -single_nat_dtype_datetime + datetime_series
 
-        assert_series_equal(nat_series_dtype_timestamp - NaT,
-                            nat_series_dtype_timestamp)
         assert_series_equal(-NaT + nat_series_dtype_timestamp,
                             nat_series_dtype_timestamp)
         with pytest.raises(TypeError):
@@ -1298,6 +1302,20 @@ class TestDatetimeSeriesArithmetic(object):
             nat_series_dtype_timestamp / 1.0
         with pytest.raises(TypeError):
             nat_series_dtype_timestamp / 1
+
+    def test_dt64_sub_NaT(self):
+        # GH#18808
+        dti = pd.DatetimeIndex([pd.NaT, pd.Timestamp('19900315')])
+        ser = pd.Series(dti)
+        res = ser - pd.NaT
+        expected = pd.Series([pd.NaT, pd.NaT], dtype='timedelta64[ns]')
+        tm.assert_series_equal(res, expected)
+
+        dti_tz = dti.tz_localize('Asia/Tokyo')
+        ser_tz = pd.Series(dti_tz)
+        res = ser_tz - pd.NaT
+        expected = pd.Series([pd.NaT, pd.NaT], dtype='timedelta64[ns]')
+        tm.assert_series_equal(res, expected)
 
 
 class TestSeriesOperators(TestData):
