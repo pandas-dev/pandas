@@ -38,7 +38,7 @@ class NumericIndex(Index):
         if fastpath:
             return cls._simple_new(data, name=name)
 
-        # isscalar, generators handled in coerce_to_ndarray
+        # is_scalar, generators handled in coerce_to_ndarray
         data = cls._coerce_to_ndarray(data)
 
         if issubclass(data.dtype.type, compat.string_types):

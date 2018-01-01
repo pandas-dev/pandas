@@ -425,7 +425,7 @@ class _TimeOp(_Op):
             # 2 timedeltas
             if name not in ('__div__', '__rdiv__', '__truediv__',
                             '__rtruediv__', '__add__', '__radd__', '__sub__',
-                            '__rsub__'):
+                            '__rsub__', '__floordiv__', '__rfloordiv__'):
                 raise TypeError("can only operate on a timedeltas for addition"
                                 ", subtraction, and division, but the operator"
                                 " [{name}] was passed".format(name=name))
@@ -629,7 +629,9 @@ class _TimeOp(_Op):
             # integer gets converted to timedelta in np < 1.6
             if ((self.is_timedelta_lhs and self.is_timedelta_rhs) and
                     not self.is_integer_rhs and not self.is_integer_lhs and
-                    self.name in ('__div__', '__truediv__')):
+                    self.name in ('__div__', '__rdiv__',
+                                  '__truediv__', '__rtruediv__',
+                                  '__floordiv__', '__rfloordiv__')):
                 self.dtype = 'float64'
                 self.fill_value = np.nan
                 lvalues = lvalues.astype(np.float64)
