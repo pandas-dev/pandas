@@ -11,6 +11,8 @@ from pandas.core.dtypes.common import (
     is_list_like,
     is_datetime_or_timedelta_dtype,
     is_datetime64tz_dtype,
+    is_categorical_dtype,
+    is_string_dtype,
     is_integer_dtype,
     is_float_dtype,
     is_interval_dtype,
@@ -90,6 +92,18 @@ def _get_interval_closed_bounds(interval):
     if interval.open_right:
         right = _get_prev_label(right)
     return left, right
+
+
+def _maybe_convert_platform_interval(data):
+    """
+    Try to do platform conversion, with special casing for IntervalIndex
+    """
+    if isinstance(data, (list, tuple)) and len(data) == 0:
+        # GH 19016
+        # empty lists/tuples get object dtype by default, but this is not
+        # prohibited for IntervalIndex, so coerce to integer instead
+        return np.array([], dtype=np.intp)
+    return maybe_convert_platform(data)
 
 
 def _new_IntervalIndex(cls, d):
@@ -206,7 +220,7 @@ class IntervalIndex(IntervalMixin, Index):
             if is_scalar(data):
                 cls._scalar_data_error(data)
 
-            data = maybe_convert_platform(data)
+            data = _maybe_convert_platform_interval(data)
             left, right, infer_closed = intervals_to_interval_bounds(data)
 
             if _all_not_none(closed, infer_closed) and closed != infer_closed:
@@ -242,6 +256,11 @@ class IntervalIndex(IntervalMixin, Index):
                    '[{rtype}] types')
             raise ValueError(msg.format(ltype=type(left).__name__,
                                         rtype=type(right).__name__))
+        elif is_categorical_dtype(left.dtype) or is_string_dtype(left.dtype):
+            # GH 19016
+            msg = ('category, object, and string subtypes are not supported '
+                   'for IntervalIndex')
+            raise TypeError(msg)
         elif isinstance(left, ABCPeriodIndex):
             msg = 'Period dtypes are not supported, use a PeriodIndex instead'
             raise ValueError(msg)
@@ -403,7 +422,7 @@ class IntervalIndex(IntervalMixin, Index):
         IntervalIndex.from_tuples : Construct an IntervalIndex from a
                                     list/array of tuples
         """
-        breaks = maybe_convert_platform(breaks)
+        breaks = _maybe_convert_platform_interval(breaks)
 
         return cls.from_arrays(breaks[:-1], breaks[1:], closed,
                                name=name, copy=copy)
@@ -444,8 +463,8 @@ class IntervalIndex(IntervalMixin, Index):
         IntervalIndex.from_tuples : Construct an IntervalIndex from a
                                     list/array of tuples
         """
-        left = maybe_convert_platform(left)
-        right = maybe_convert_platform(right)
+        left = _maybe_convert_platform_interval(left)
+        right = _maybe_convert_platform_interval(right)
 
         return cls._simple_new(left, right, closed, name=name,
                                copy=copy, verify_integrity=True)
@@ -493,7 +512,7 @@ class IntervalIndex(IntervalMixin, Index):
             left, right, closed = data.left, data.right, data.closed
             name = name or data.name
         else:
-            data = maybe_convert_platform(data)
+            data = _maybe_convert_platform_interval(data)
             left, right, closed = intervals_to_interval_bounds(data)
         return cls.from_arrays(left, right, closed, name=name, copy=False)
 
