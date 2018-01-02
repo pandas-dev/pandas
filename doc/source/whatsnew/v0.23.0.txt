@@ -247,6 +247,8 @@ Removal of prior version deprecations/changes
 - :func:`read_csv` has dropped the ``compact_ints`` and ``use_unsigned`` parameters (:issue:`13323`)
 - The ``Timestamp`` class has dropped the ``offset`` attribute in favor of ``freq`` (:issue:`13593`)
 - The ``Series``, ``Categorical``, and ``Index`` classes have dropped the ``reshape`` method (:issue:`13012`)
+- ``pandas.tseries.frequencies.get_standard_freq`` has been removed in favor of ``pandas.tseries.frequencies.to_offset(freq).rule_code`` (:issue:`13874`)
+- The ``freqstr`` keyword has been removed from ``pandas.tseries.frequencies.to_offset`` in favor of ``freq`` (:issue:`13874`)
 
 .. _whatsnew_0230.performance:
 
@@ -370,6 +372,7 @@ Numeric
 
 - Bug in :func:`Series.__sub__` subtracting a non-nanosecond ``np.datetime64`` object from a ``Series`` gave incorrect results (:issue:`7996`)
 - Bug in :class:`DatetimeIndex`, :class:`TimedeltaIndex` addition and subtraction of zero-dimensional integer arrays gave incorrect results (:issue:`19012`)
+- Bug in :func:`Series.__add__` adding Series with dtype ``timedelta64[ns]`` to a timezone-aware ``DatetimeIndex`` incorrectly dropped timezone information (:issue:`13905`)
 -
 
 Categorical
