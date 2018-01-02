@@ -71,39 +71,3 @@ class TestParseSQL(object):
         result = lib.convert_sql_column(arr)
         expected = np.array([1.5, np.nan, 3, 4.2], dtype='f8')
         tm.assert_numpy_array_equal(result, expected)
-
-    def test_convert_downcast_int64(self):
-        from pandas._libs.parsers import na_values
-
-        arr = np.array([1, 2, 7, 8, 10], dtype=np.int64)
-        expected = np.array([1, 2, 7, 8, 10], dtype=np.int8)
-
-        # default argument
-        result = lib.downcast_int64(arr, na_values)
-        tm.assert_numpy_array_equal(result, expected)
-
-        result = lib.downcast_int64(arr, na_values, use_unsigned=False)
-        tm.assert_numpy_array_equal(result, expected)
-
-        expected = np.array([1, 2, 7, 8, 10], dtype=np.uint8)
-        result = lib.downcast_int64(arr, na_values, use_unsigned=True)
-        tm.assert_numpy_array_equal(result, expected)
-
-        # still cast to int8 despite use_unsigned=True
-        # because of the negative number as an element
-        arr = np.array([1, 2, -7, 8, 10], dtype=np.int64)
-        expected = np.array([1, 2, -7, 8, 10], dtype=np.int8)
-        result = lib.downcast_int64(arr, na_values, use_unsigned=True)
-        tm.assert_numpy_array_equal(result, expected)
-
-        arr = np.array([1, 2, 7, 8, 300], dtype=np.int64)
-        expected = np.array([1, 2, 7, 8, 300], dtype=np.int16)
-        result = lib.downcast_int64(arr, na_values)
-        tm.assert_numpy_array_equal(result, expected)
-
-        int8_na = na_values[np.int8]
-        int64_na = na_values[np.int64]
-        arr = np.array([int64_na, 2, 3, 10, 15], dtype=np.int64)
-        expected = np.array([int8_na, 2, 3, 10, 15], dtype=np.int8)
-        result = lib.downcast_int64(arr, na_values)
-        tm.assert_numpy_array_equal(result, expected)

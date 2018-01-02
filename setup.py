@@ -109,7 +109,7 @@ class build_ext(_build_ext):
         # generate template output
         if cython:
             for pxifile in _pxifiles:
-                # build pxifiles first, template extention must be .pxi.in
+                # build pxifiles first, template extension must be .pxi.in
                 assert pxifile.endswith('.pxi.in')
                 outfile = pxifile[:-3]
 
@@ -198,10 +198,6 @@ scientists, working with data is typically divided into multiple stages:
 munging and cleaning data, analyzing / modeling it, then organizing the results
 of the analysis into a form suitable for plotting or tabular display. pandas is
 the ideal tool for all of these tasks.
-
-Notes
------
-Windows binaries built against NumPy 1.8.1
 """
 
 DISTNAME = 'pandas'

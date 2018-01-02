@@ -200,7 +200,7 @@ validate : string, default None
 Notes
 -----
 Support for specifying index levels as the `on`, `left_on`, and
-`right_on` parameters was added in version 0.22.0
+`right_on` parameters was added in version 0.23.0
 
 Examples
 --------
@@ -591,7 +591,7 @@ class DataFrame(NDFrame):
             max_rows = get_option("display.max_rows")
 
         # when auto-detecting, so width=None and not in ipython front end
-        # check whether repr fits horizontal by actualy checking
+        # check whether repr fits horizontal by actually checking
         # the width of the rendered repr
         buf = StringIO()
 
@@ -1403,6 +1403,8 @@ class DataFrame(NDFrame):
         Transform long (stacked) format (DataFrame) into wide (3D, Panel)
         format.
 
+        .. deprecated:: 0.20.0
+
         Currently the index of the DataFrame must be a 2-level MultiIndex. This
         may be generalized later
 
@@ -1576,7 +1578,7 @@ class DataFrame(NDFrame):
             String path of file-like object
         convert_dates : dict
             Dictionary mapping columns containing datetime types to stata
-            internal format to use when wirting the dates. Options are 'tc',
+            internal format to use when writing the dates. Options are 'tc',
             'td', 'tm', 'tw', 'th', 'tq', 'ty'. Column can be either an integer
             or a name. Datetime columns that do not have a conversion type
             specified will be converted to 'tc'. Raises NotImplementedError if
@@ -1604,7 +1606,7 @@ class DataFrame(NDFrame):
             * If datetimes contain timezone information
             * Column dtype is not representable in Stata
         ValueError
-            * Columns listed in convert_dates are noth either datetime64[ns]
+            * Columns listed in convert_dates are neither datetime64[ns]
               or datetime.datetime
             * Column listed in convert_dates is not in DataFrame
             * Categorical label contains more than 32,000 characters
@@ -2530,10 +2532,10 @@ class DataFrame(NDFrame):
         if indexer is not None:
             return self._setitem_slice(indexer, value)
 
-        if isinstance(key, (Series, np.ndarray, list, Index)):
-            self._setitem_array(key, value)
-        elif isinstance(key, DataFrame):
+        if isinstance(key, DataFrame) or getattr(key, 'ndim', None) == 2:
             self._setitem_frame(key, value)
+        elif isinstance(key, (Series, np.ndarray, list, Index)):
+            self._setitem_array(key, value)
         else:
             # set column
             self._set_item(key, value)
@@ -2566,8 +2568,17 @@ class DataFrame(NDFrame):
     def _setitem_frame(self, key, value):
         # support boolean setting with DataFrame input, e.g.
         # df[df > df2] = 0
+        if isinstance(key, np.ndarray):
+            if key.shape != self.shape:
+                raise ValueError(
+                    'Array conditional must be same shape as self'
+                )
+            key = self._constructor(key, **self._construct_axes_dict())
+
         if key.values.size and not is_bool_dtype(key.values):
-            raise TypeError('Must pass DataFrame with boolean values only')
+            raise TypeError(
+                'Must pass DataFrame or 2-d ndarray with boolean values only'
+            )
 
         self._check_inplace_setting(value)
         self._check_setitem_copy()
@@ -2633,7 +2644,7 @@ class DataFrame(NDFrame):
                           allow_duplicates=allow_duplicates)
 
     def assign(self, **kwargs):
-        """
+        r"""
         Assign new columns to a DataFrame, returning a new object
         (a copy) with all the original columns in addition to the new ones.
 
@@ -5108,7 +5119,7 @@ class DataFrame(NDFrame):
         of DataFrame objects
 
         Support for specifying index levels as the `on` parameter was added
-        in version 0.22.0
+        in version 0.23.0
 
         Examples
         --------
@@ -5748,7 +5759,7 @@ class DataFrame(NDFrame):
         return Series(result, index=self._get_agg_axis(axis))
 
     def _get_agg_axis(self, axis_num):
-        """ let's be explict about this """
+        """ let's be explicit about this """
         if axis_num == 0:
             return self.columns
         elif axis_num == 1:

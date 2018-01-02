@@ -22,7 +22,7 @@ import pandas._libs.tslibs.offsets as liboffsets
 from pandas._libs.tslibs.offsets import (
     ApplyTypeError,
     as_datetime, _is_normalized,
-    _get_calendar, _to_dt64, _validate_business_time,
+    _get_calendar, _to_dt64,
     _determine_offset,
     apply_index_wraps,
     roll_yearday,
@@ -110,6 +110,31 @@ def apply_wraps(func):
 
         return result
     return wrapper
+
+
+def shift_day(other, days):
+    """
+    Increment the datetime `other` by the given number of days, retaining
+    the time-portion of the datetime.  For tz-naive datetimes this is
+    equivalent to adding a timedelta.  For tz-aware datetimes it is similar to
+    dateutil's relativedelta.__add__, but handles pytz tzinfo objects.
+
+    Parameters
+    ----------
+    other : datetime or Timestamp
+    days : int
+
+    Returns
+    -------
+    shifted: datetime or Timestamp
+    """
+    if other.tzinfo is None:
+        return other + timedelta(days=days)
+
+    tz = other.tzinfo
+    naive = other.replace(tzinfo=None)
+    shifted = naive + timedelta(days=days)
+    return tslib._localize_pydatetime(shifted, tz)
 
 
 # ---------------------------------------------------------------------
@@ -532,28 +557,31 @@ class BusinessDay(BusinessMixin, SingleConstructorOffset):
     def apply(self, other):
         if isinstance(other, datetime):
             n = self.n
+            wday = other.weekday()
 
-            if n == 0 and other.weekday() > 4:
-                n = 1
+            # avoid slowness below by operating on weeks first
+            weeks = n // 5
+            if n <= 0 and wday > 4:
+                # roll forward
+                n += 1
 
-            result = other
+            n -= 5 * weeks
 
-            # avoid slowness below
-            if abs(n) > 5:
-                k = n // 5
-                result = result + timedelta(7 * k)
-                if n < 0 and result.weekday() > 4:
-                    n += 1
-                n -= 5 * k
-                if n == 0 and result.weekday() > 4:
-                    n -= 1
+            # n is always >= 0 at this point
+            if n == 0 and wday > 4:
+                # roll back
+                days = 4 - wday
+            elif wday > 4:
+                # roll forward
+                days = (7 - wday) + (n - 1)
+            elif wday + n <= 4:
+                # shift by n days without leaving the current week
+                days = n
+            else:
+                # shift by n days plus 2 to get past the weekend
+                days = n + 2
 
-            while n != 0:
-                k = n // abs(n)
-                result = result + timedelta(k)
-                if result.weekday() < 5:
-                    n -= k
-
+            result = other + timedelta(days=7 * weeks + days)
             if self.offset:
                 result = result + self.offset
             return result
@@ -589,8 +617,8 @@ class BusinessHourMixin(BusinessMixin):
     def __init__(self, start='09:00', end='17:00', offset=timedelta(0)):
         # must be validated here to equality check
         kwds = {'offset': offset}
-        self.start = kwds['start'] = _validate_business_time(start)
-        self.end = kwds['end'] = _validate_business_time(end)
+        self.start = kwds['start'] = liboffsets._validate_business_time(start)
+        self.end = kwds['end'] = liboffsets._validate_business_time(end)
         self.kwds.update(kwds)
         self._offset = offset
 
@@ -944,15 +972,8 @@ class MonthOffset(SingleConstructorOffset):
 
     @apply_wraps
     def apply(self, other):
-        n = self.n
         compare_day = self._get_offset_day(other)
-
-        if n > 0 and other.day < compare_day:
-            n -= 1
-        elif n <= 0 and other.day > compare_day:
-            # as if rolled forward already
-            n += 1
-
+        n = liboffsets.roll_convention(other.day, self.n, compare_day)
         return shift_month(other, n, self._day_opt)
 
     @apply_index_wraps
@@ -1038,22 +1059,12 @@ class CustomBusinessMonthEnd(_CustomBusinessMonth):
 
     @apply_wraps
     def apply(self, other):
-        n = self.n
-
         # First move to month offset
         cur_mend = self.m_offset.rollforward(other)
 
         # Find this custom month offset
-        cur_cmend = self.cbday.rollback(cur_mend)
-
-        # handle zero case. arbitrarily rollforward
-        if n == 0 and other != cur_cmend:
-            n += 1
-
-        if other < cur_cmend and n >= 1:
-            n -= 1
-        elif other > cur_cmend and n <= -1:
-            n += 1
+        compare_date = self.cbday.rollback(cur_mend)
+        n = liboffsets.roll_monthday(other, self.n, compare_date)
 
         new = cur_mend + n * self.m_offset
         result = self.cbday.rollback(new)
@@ -1066,23 +1077,12 @@ class CustomBusinessMonthBegin(_CustomBusinessMonth):
 
     @apply_wraps
     def apply(self, other):
-        n = self.n
-        dt_in = other
-
         # First move to month offset
-        cur_mbegin = self.m_offset.rollback(dt_in)
+        cur_mbegin = self.m_offset.rollback(other)
 
         # Find this custom month offset
-        cur_cmbegin = self.cbday.rollforward(cur_mbegin)
-
-        # handle zero case. arbitrarily rollforward
-        if n == 0 and dt_in != cur_cmbegin:
-            n += 1
-
-        if dt_in > cur_cmbegin and n <= -1:
-            n += 1
-        elif dt_in < cur_cmbegin and n >= 1:
-            n -= 1
+        compare_date = self.cbday.rollforward(cur_mbegin)
+        n = liboffsets.roll_monthday(other, self.n, compare_date)
 
         new = cur_mbegin + n * self.m_offset
         result = self.cbday.rollforward(new)
@@ -1122,21 +1122,21 @@ class SemiMonthOffset(DateOffset):
 
     @apply_wraps
     def apply(self, other):
-        n = self.n
-        if not self.onOffset(other):
-            _, days_in_month = tslib.monthrange(other.year, other.month)
-            if 1 < other.day < self.day_of_month:
-                other = other.replace(day=self.day_of_month)
-                if n > 0:
-                    # rollforward so subtract 1
-                    n -= 1
-            elif self.day_of_month < other.day < days_in_month:
-                other = other.replace(day=self.day_of_month)
-                if n < 0:
-                    # rollforward in the negative direction so add 1
-                    n += 1
-                elif n == 0:
-                    n = 1
+        # shift `other` to self.day_of_month, incrementing `n` if necessary
+        n = liboffsets.roll_convention(other.day, self.n, self.day_of_month)
+
+        days_in_month = tslib.monthrange(other.year, other.month)[1]
+
+        # For SemiMonthBegin on other.day == 1 and
+        # SemiMonthEnd on other.day == days_in_month,
+        # shifting `other` to `self.day_of_month` _always_ requires
+        # incrementing/decrementing `n`, regardless of whether it is
+        # initially positive.
+        if type(self) is SemiMonthBegin and (self.n <= 0 and other.day == 1):
+            n -= 1
+        elif type(self) is SemiMonthEnd and (self.n > 0 and
+                                             other.day == days_in_month):
+            n += 1
 
         return self._apply(n, other)
 
@@ -1206,12 +1206,6 @@ class SemiMonthEnd(SemiMonthOffset):
         return dt.day in (self.day_of_month, days_in_month)
 
     def _apply(self, n, other):
-        # if other.day is not day_of_month move to day_of_month and update n
-        if n > 0 and other.day < self.day_of_month:
-            n -= 1
-        elif other.day > self.day_of_month:
-            n += 1
-
         months = n // 2
         day = 31 if n % 2 else self.day_of_month
         return shift_month(other, months, day)
@@ -1257,12 +1251,6 @@ class SemiMonthBegin(SemiMonthOffset):
         return dt.day in (1, self.day_of_month)
 
     def _apply(self, n, other):
-        # if other.day is not day_of_month move to day_of_month and update n
-        if other.day < self.day_of_month:
-            n -= 1
-        elif n <= 0 and other.day > self.day_of_month:
-            n += 1
-
         months = n // 2 + n % 2
         day = 1 if n % 2 else self.day_of_month
         return shift_month(other, months, day)
@@ -1342,6 +1330,8 @@ class Week(EndMixin, DateOffset):
     def onOffset(self, dt):
         if self.normalize and not _is_normalized(dt):
             return False
+        elif self.weekday is None:
+            return True
         return dt.weekday() == self.weekday
 
     @property
@@ -1361,7 +1351,29 @@ class Week(EndMixin, DateOffset):
         return cls(weekday=weekday)
 
 
-class WeekOfMonth(DateOffset):
+class _WeekOfMonthMixin(object):
+    """Mixin for methods common to WeekOfMonth and LastWeekOfMonth"""
+    @apply_wraps
+    def apply(self, other):
+        compare_day = self._get_offset_day(other)
+
+        months = self.n
+        if months > 0 and compare_day > other.day:
+            months -= 1
+        elif months <= 0 and compare_day < other.day:
+            months += 1
+
+        shifted = shift_month(other, months, 'start')
+        to_day = self._get_offset_day(shifted)
+        return shift_day(shifted, to_day - shifted.day)
+
+    def onOffset(self, dt):
+        if self.normalize and not _is_normalized(dt):
+            return False
+        return dt.day == self._get_offset_day(dt)
+
+
+class WeekOfMonth(_WeekOfMonthMixin, DateOffset):
     """
     Describes monthly dates like "the Tuesday of the 2nd week of each month"
 
@@ -1400,34 +1412,23 @@ class WeekOfMonth(DateOffset):
 
         self.kwds = {'weekday': weekday, 'week': week}
 
-    @apply_wraps
-    def apply(self, other):
-        base = other
-        offsetOfMonth = self.getOffsetOfMonth(other)
+    def _get_offset_day(self, other):
+        """
+        Find the day in the same month as other that has the same
+        weekday as self.weekday and is the self.week'th such day in the month.
 
-        months = self.n
-        if months > 0 and offsetOfMonth > other:
-            months -= 1
-        elif months <= 0 and offsetOfMonth < other:
-            months += 1
+        Parameters
+        ----------
+        other: datetime
 
-        other = self.getOffsetOfMonth(shift_month(other, months, 'start'))
-        other = datetime(other.year, other.month, other.day, base.hour,
-                         base.minute, base.second, base.microsecond)
-        return other
-
-    def getOffsetOfMonth(self, dt):
-        w = Week(weekday=self.weekday)
-        d = datetime(dt.year, dt.month, 1, tzinfo=dt.tzinfo)
-        # TODO: Is this DST-safe?
-        d = w.rollforward(d)
-        return d + timedelta(weeks=self.week)
-
-    def onOffset(self, dt):
-        if self.normalize and not _is_normalized(dt):
-            return False
-        d = datetime(dt.year, dt.month, dt.day, tzinfo=dt.tzinfo)
-        return d == self.getOffsetOfMonth(dt)
+        Returns
+        -------
+        day: int
+        """
+        mstart = datetime(other.year, other.month, 1)
+        wday = mstart.weekday()
+        shift_days = (self.weekday - wday) % 7
+        return 1 + shift_days + self.week * 7
 
     @property
     def rule_code(self):
@@ -1448,7 +1449,7 @@ class WeekOfMonth(DateOffset):
         return cls(week=week, weekday=weekday)
 
 
-class LastWeekOfMonth(DateOffset):
+class LastWeekOfMonth(_WeekOfMonthMixin, DateOffset):
     """
     Describes monthly dates in last week of month like "the last Tuesday of
     each month"
@@ -1482,31 +1483,24 @@ class LastWeekOfMonth(DateOffset):
 
         self.kwds = {'weekday': weekday}
 
-    @apply_wraps
-    def apply(self, other):
-        offsetOfMonth = self.getOffsetOfMonth(other)
+    def _get_offset_day(self, other):
+        """
+        Find the day in the same month as other that has the same
+        weekday as self.weekday and is the last such day in the month.
 
-        months = self.n
-        if months > 0 and offsetOfMonth > other:
-            months -= 1
-        elif months <= 0 and offsetOfMonth < other:
-            months += 1
+        Parameters
+        ----------
+        other: datetime
 
-        return self.getOffsetOfMonth(shift_month(other, months, 'start'))
-
-    def getOffsetOfMonth(self, dt):
-        m = MonthEnd()
-        d = datetime(dt.year, dt.month, 1, dt.hour, dt.minute,
-                     dt.second, dt.microsecond, tzinfo=dt.tzinfo)
-        eom = m.rollforward(d)
-        # TODO: Is this DST-safe?
-        w = Week(weekday=self.weekday)
-        return w.rollback(eom)
-
-    def onOffset(self, dt):
-        if self.normalize and not _is_normalized(dt):
-            return False
-        return dt == self.getOffsetOfMonth(dt)
+        Returns
+        -------
+        day: int
+        """
+        dim = ccalendar.get_days_in_month(other.year, other.month)
+        mend = datetime(other.year, other.month, dim)
+        wday = mend.weekday()
+        shift_days = (wday - self.weekday) % 7
+        return dim - shift_days
 
     @property
     def rule_code(self):
@@ -1533,7 +1527,8 @@ class QuarterOffset(DateOffset):
     _from_name_startingMonth = None
     _adjust_dst = True
     # TODO: Consider combining QuarterOffset and YearOffset __init__ at some
-    #       point
+    #       point.  Also apply_index, onOffset, rule_code if
+    #       startingMonth vs month attr names are resolved
 
     def __init__(self, n=1, normalize=False, startingMonth=None):
         self.n = self._validate_n(n)
@@ -1564,26 +1559,22 @@ class QuarterOffset(DateOffset):
 
     @apply_wraps
     def apply(self, other):
-        n = self.n
-        compare_day = self._get_offset_day(other)
-
-        months_since = (other.month - self.startingMonth) % 3
-
-        if n <= 0 and (months_since != 0 or
-                       (months_since == 0 and other.day > compare_day)):
-            # make sure to roll forward, so negate
-            n += 1
-        elif n > 0 and (months_since == 0 and other.day < compare_day):
-            # pretend to roll back if on same month but before compare_day
-            n -= 1
-
-        return shift_month(other, 3 * n - months_since, self._day_opt)
+        # months_since: find the calendar quarter containing other.month,
+        # e.g. if other.month == 8, the calendar quarter is [Jul, Aug, Sep].
+        # Then find the month in that quarter containing an onOffset date for
+        # self.  `months_since` is the number of months to shift other.month
+        # to get to this on-offset month.
+        months_since = other.month % 3 - self.startingMonth % 3
+        qtrs = liboffsets.roll_qtrday(other, self.n, self.startingMonth,
+                                      day_opt=self._day_opt, modby=3)
+        months = qtrs * 3 - months_since
+        return shift_month(other, months, self._day_opt)
 
     def onOffset(self, dt):
         if self.normalize and not _is_normalized(dt):
             return False
-        modMonth = (dt.month - self.startingMonth) % 3
-        return modMonth == 0 and dt.day == self._get_offset_day(dt)
+        mod_month = (dt.month - self.startingMonth) % 3
+        return mod_month == 0 and dt.day == self._get_offset_day(dt)
 
     @apply_index_wraps
     def apply_index(self, dtindex):
@@ -1783,13 +1774,6 @@ class FY5253(DateOffset):
             raise ValueError('{variation} is not a valid variation'
                              .format(variation=self.variation))
 
-    @cache_readonly
-    def _offset_lwom(self):
-        if self.variation == "nearest":
-            return None
-        else:
-            return LastWeekOfMonth(n=1, weekday=self.weekday)
-
     def isAnchored(self):
         return (self.n == 1 and
                 self.startingMonth is not None and
@@ -1810,6 +1794,8 @@ class FY5253(DateOffset):
 
     @apply_wraps
     def apply(self, other):
+        norm = Timestamp(other).normalize()
+
         n = self.n
         prev_year = self.get_year_end(
             datetime(other.year - 1, self.startingMonth, 1))
@@ -1822,32 +1808,26 @@ class FY5253(DateOffset):
         cur_year = tslib._localize_pydatetime(cur_year, other.tzinfo)
         next_year = tslib._localize_pydatetime(next_year, other.tzinfo)
 
-        if other == prev_year:
+        # Note: next_year.year == other.year + 1, so we will always
+        # have other < next_year
+        if norm == prev_year:
             n -= 1
-        elif other == cur_year:
+        elif norm == cur_year:
             pass
-        elif other == next_year:
-            n += 1
-            # TODO: Not hit in tests
         elif n > 0:
-            if other < prev_year:
+            if norm < prev_year:
                 n -= 2
-            elif prev_year < other < cur_year:
+            elif prev_year < norm < cur_year:
                 n -= 1
-            elif cur_year < other < next_year:
+            elif cur_year < norm < next_year:
                 pass
-            else:
-                assert False
         else:
-            if next_year < other:
-                n += 2
-                # TODO: Not hit in tests; UPDATE: looks impossible
-            elif cur_year < other < next_year:
+            if cur_year < norm < next_year:
                 n += 1
-            elif prev_year < other < cur_year:
+            elif prev_year < norm < cur_year:
                 pass
-            elif (other.year == prev_year.year and other < prev_year and
-                  prev_year - other <= timedelta(6)):
+            elif (norm.year == prev_year.year and norm < prev_year and
+                  prev_year - norm <= timedelta(6)):
                 # GH#14774, error when next_year.year == cur_year.year
                 # e.g. prev_year == datetime(2004, 1, 3),
                 # other == datetime(2004, 1, 1)
@@ -1863,35 +1843,30 @@ class FY5253(DateOffset):
         return result
 
     def get_year_end(self, dt):
-        if self.variation == "nearest":
-            return self._get_year_end_nearest(dt)
-        else:
-            return self._get_year_end_last(dt)
+        assert dt.tzinfo is None
 
-    def get_target_month_end(self, dt):
-        target_month = datetime(dt.year, self.startingMonth, 1,
-                                tzinfo=dt.tzinfo)
-        return shift_month(target_month, 0, 'end')
-        # TODO: is this DST-safe?
-
-    def _get_year_end_nearest(self, dt):
-        target_date = self.get_target_month_end(dt)
+        dim = ccalendar.get_days_in_month(dt.year, self.startingMonth)
+        target_date = datetime(dt.year, self.startingMonth, dim)
         wkday_diff = self.weekday - target_date.weekday()
         if wkday_diff == 0:
+            # year_end is the same for "last" and "nearest" cases
             return target_date
 
-        days_forward = wkday_diff % 7
-        if days_forward <= 3:
-            # The upcoming self.weekday is closer than the previous one
-            return target_date + timedelta(days_forward)
-        else:
-            # The previous self.weekday is closer than the upcoming one
-            return target_date + timedelta(days_forward - 7)
+        if self.variation == "last":
+            days_forward = (wkday_diff % 7) - 7
 
-    def _get_year_end_last(self, dt):
-        current_year = datetime(dt.year, self.startingMonth, 1,
-                                tzinfo=dt.tzinfo)
-        return current_year + self._offset_lwom
+            # days_forward is always negative, so we always end up
+            # in the same year as dt
+            return target_date + timedelta(days=days_forward)
+        else:
+            # variation == "nearest":
+            days_forward = wkday_diff % 7
+            if days_forward <= 3:
+                # The upcoming self.weekday is closer than the previous one
+                return target_date + timedelta(days_forward)
+            else:
+                # The previous self.weekday is closer than the upcoming one
+                return target_date + timedelta(days_forward - 7)
 
     @property
     def rule_code(self):
@@ -2127,6 +2102,7 @@ class Easter(DateOffset):
             n -= 1
         elif n < 0 and other > current_easter:
             n += 1
+        # TODO: Why does this handle the 0 case the opposite of others?
 
         # NOTE: easter returns a datetime.date so we have to convert to type of
         # other

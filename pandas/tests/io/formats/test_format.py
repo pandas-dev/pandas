@@ -254,8 +254,7 @@ class TestDataFrameFormatting(object):
         tm.assert_series_equal(Series(res), Series(idx))
 
     def test_repr_should_return_str(self):
-        # http://docs.python.org/py3k/reference/datamodel.html#object.__repr__
-        # http://docs.python.org/reference/datamodel.html#object.__repr__
+        # https://docs.python.org/3/reference/datamodel.html#object.__repr__
         # "...The return value must be a string object."
 
         # (str on py2.x, str (unicode) on py3)
@@ -370,7 +369,7 @@ class TestDataFrameFormatting(object):
 
     def test_auto_detect(self):
         term_width, term_height = get_terminal_size()
-        fac = 1.05  # Arbitrary large factor to exceed term widht
+        fac = 1.05  # Arbitrary large factor to exceed term width
         cols = range(int(term_width * fac))
         index = range(10)
         df = DataFrame(index=index, columns=cols)

@@ -161,6 +161,7 @@ Modern Pandas
 - `Performance <http://tomaugspurger.github.io/modern-4-performance.html>`_
 - `Tidy Data <http://tomaugspurger.github.io/modern-5-tidy.html>`_
 - `Visualization <http://tomaugspurger.github.io/modern-6-visualization.html>`_
+- `Timeseries <http://tomaugspurger.github.io/modern-7-timeseries.html>`_
 
 Excel charts with pandas, vincent and xlsxwriter
 ------------------------------------------------

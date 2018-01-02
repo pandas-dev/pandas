@@ -685,7 +685,7 @@ class GroupByMixin(object):
 
 
 class IndexOpsMixin(object):
-    """ common ops mixin to support a unified inteface / docs for Series /
+    """ common ops mixin to support a unified interface / docs for Series /
     Index
     """
 

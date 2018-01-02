@@ -3,10 +3,12 @@ import pytest
 import pandas as pd
 from pandas import compat
 import pandas.util.testing as tm
+import pandas.util._test_decorators as td
 from pandas.util.testing import assert_frame_equal, assert_raises_regex
 
 
-COMPRESSION_TYPES = [None, 'bz2', 'gzip', 'xz']
+COMPRESSION_TYPES = [None, 'bz2', 'gzip',
+                     pytest.param('xz', marks=td.skip_if_no_lzma)]
 
 
 def decompress_file(path, compression):
@@ -32,9 +34,6 @@ def decompress_file(path, compression):
 
 @pytest.mark.parametrize('compression', COMPRESSION_TYPES)
 def test_compression_roundtrip(compression):
-    if compression == 'xz':
-        tm._skip_if_no_lzma()
-
     df = pd.DataFrame([[0.123456, 0.234567, 0.567567],
                        [12.32112, 123123.2, 321321.2]],
                       index=['A', 'B'], columns=['X', 'Y', 'Z'])
@@ -74,9 +73,6 @@ def test_with_s3_url(compression):
     pytest.importorskip('s3fs')
     moto = pytest.importorskip('moto')
 
-    if compression == 'xz':
-        tm._skip_if_no_lzma()
-
     df = pd.read_json('{"a": [1, 2, 3], "b": [4, 5, 6]}')
     with moto.mock_s3():
         conn = boto3.resource("s3", region_name="us-east-1")
@@ -94,9 +90,6 @@ def test_with_s3_url(compression):
 
 @pytest.mark.parametrize('compression', COMPRESSION_TYPES)
 def test_lines_with_compression(compression):
-    if compression == 'xz':
-        tm._skip_if_no_lzma()
-
     with tm.ensure_clean() as path:
         df = pd.read_json('{"a": [1, 2, 3], "b": [4, 5, 6]}')
         df.to_json(path, orient='records', lines=True, compression=compression)
@@ -107,9 +100,6 @@ def test_lines_with_compression(compression):
 
 @pytest.mark.parametrize('compression', COMPRESSION_TYPES)
 def test_chunksize_with_compression(compression):
-    if compression == 'xz':
-        tm._skip_if_no_lzma()
-
     with tm.ensure_clean() as path:
         df = pd.read_json('{"a": ["foo", "bar", "baz"], "b": [4, 5, 6]}')
         df.to_json(path, orient='records', lines=True, compression=compression)

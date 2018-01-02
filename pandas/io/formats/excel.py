@@ -492,7 +492,7 @@ class ExcelFormatter(object):
 
         # output index and index_label?
         if self.index:
-            # chek aliases
+            # check aliases
             # if list only take first as this is not a MultiIndex
             if (self.index_label and
                     isinstance(self.index_label, (list, tuple, np.ndarray,
