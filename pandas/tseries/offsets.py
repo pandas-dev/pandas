@@ -1505,6 +1505,7 @@ class LastWeekOfMonth(_WeekOfMonthMixin, DateOffset):
 
     """
     _prefix = 'LWOM'
+    _adjust_dst = True
 
     def __init__(self, n=1, normalize=False, weekday=None):
         self.n = self._validate_n(n)
@@ -1755,10 +1756,7 @@ class YearBegin(YearOffset):
 # ---------------------------------------------------------------------
 # Special Offset Classes
 
-class FY5253(DateOffset):
-    """
-    Describes 52-53 week fiscal year. This is also known as a 4-4-5 calendar.
-
+_5253doc = """
     It is used by companies that desire that their
     fiscal year always end on the same day of the week.
 
@@ -1767,8 +1765,7 @@ class FY5253(DateOffset):
     such as retail, manufacturing and parking industry.
 
     For more information see:
-    http://en.wikipedia.org/wiki/4%E2%80%934%E2%80%935_calendar
-
+    http://en.wikipedia.org/wiki/4-4-5_calendar
 
     The year may either:
     - end on the last X day of the Y month.
@@ -1776,6 +1773,14 @@ class FY5253(DateOffset):
 
     X is a specific day of the week.
     Y is a certain month of the year
+"""
+
+
+class FY5253(DateOffset):
+    __doc__ = """
+    Describes 52-53 week fiscal year. This is also known as a 4-4-5 calendar.
+
+    {shared}
 
     Parameters
     ----------
@@ -1791,7 +1796,7 @@ class FY5253(DateOffset):
     startingMonth : The month in which fiscal years end. {1, 2, ... 12}
     variation : str
         {"nearest", "last"} for "LastOfMonth" or "NearestEndMonth"
-    """
+    """.format(shared=_5253doc)
     _prefix = 'RE'
     _adjust_dst = True
 
@@ -1950,26 +1955,11 @@ class FY5253(DateOffset):
 
 
 class FY5253Quarter(DateOffset):
-    """
+    __doc__ = """
     DateOffset increments between business quarter dates
     for 52-53 week fiscal year (also known as a 4-4-5 calendar).
 
-    It is used by companies that desire that their
-    fiscal year always end on the same day of the week.
-
-    It is a method of managing accounting periods.
-    It is a common calendar structure for some industries,
-    such as retail, manufacturing and parking industry.
-
-    For more information see:
-    http://en.wikipedia.org/wiki/4%E2%80%934%E2%80%935_calendar
-
-    The year may either:
-    - end on the last X day of the Y month.
-    - end on the last X day closest to the last day of the Y month.
-
-    X is a specific day of the week.
-    Y is a certain month of the year
+    {shared}
 
     startingMonth = 1 corresponds to dates like 1/31/2007, 4/30/2007, ...
     startingMonth = 2 corresponds to dates like 2/28/2007, 5/31/2007, ...
@@ -1991,7 +1981,7 @@ class FY5253Quarter(DateOffset):
         or 14 week when needed. {1,2,3,4}
     variation : str
         {"nearest", "last"} for "LastOfMonth" or "NearestEndMonth"
-    """
+    """.format(shared=_5253doc)
 
     _prefix = 'REQ'
     _adjust_dst = True
@@ -2022,46 +2012,76 @@ class FY5253Quarter(DateOffset):
     def isAnchored(self):
         return self.n == 1 and self._offset.isAnchored()
 
+    def _rollback_to_year(self, other):
+        """roll `other` back to the most recent date that was on a fiscal year
+        end.  Return the date of that year-end, the number of full quarters
+        elapsed between that year-end and other, and the remaining Timedelta
+        since the most recent quarter-end.
+
+        Parameters
+        ----------
+        other : datetime or Timestamp
+
+        Returns
+        -------
+        prev_year_end : Timestamp giving most recent fiscal year end
+        num_qtrs : int
+        tdelta : Timedelta
+        """
+        num_qtrs = 0
+
+        norm = Timestamp(other).tz_localize(None)
+        start = self._offset.rollback(norm)
+        # Note: start <= norm and self._offset.onOffset(start)
+
+        if start < norm:
+            # roll adjustment
+            qtr_lens = self.get_weeks(norm)
+
+            # check thet qtr_lens is consistent with self._offset addition
+            end = shift_day(start, days=7 * sum(qtr_lens))
+            assert self._offset.onOffset(end), (start, end, qtr_lens)
+
+            tdelta = norm - start
+            for qlen in qtr_lens:
+                if qlen * 7 <= tdelta.days:
+                    num_qtrs += 1
+                    tdelta -= Timedelta(days=qlen * 7)
+                else:
+                    break
+        else:
+            tdelta = Timedelta(0)
+
+        # Note: we always have tdelta.value >= 0
+        return start, num_qtrs, tdelta
+
     @apply_wraps
     def apply(self, other):
-        base = other
+        # Note: self.n == 0 is not allowed.
         n = self.n
 
-        if n > 0:
-            while n > 0:
-                if not self._offset.onOffset(other):
-                    qtr_lens = self.get_weeks(other)
-                    start = other - self._offset
-                else:
-                    start = other
-                    qtr_lens = self.get_weeks(other + self._offset)
+        prev_year_end, num_qtrs, tdelta = self._rollback_to_year(other)
+        res = prev_year_end
+        n += num_qtrs
+        if self.n <= 0 and tdelta.value > 0:
+            n += 1
 
-                for weeks in qtr_lens:
-                    start += timedelta(weeks=weeks)
-                    if start > other:
-                        other = start
-                        n -= 1
-                        break
+        # Possible speedup by handling years first.
+        years = n // 4
+        if years:
+            res += self._offset * years
+            n -= years * 4
 
-        else:
-            n = -n
-            while n > 0:
-                if not self._offset.onOffset(other):
-                    qtr_lens = self.get_weeks(other)
-                    end = other + self._offset
-                else:
-                    end = other
-                    qtr_lens = self.get_weeks(other)
+        # Add an extra day to make *sure* we are getting the quarter lengths
+        # for the upcoming year, not the previous year
+        qtr_lens = self.get_weeks(res + Timedelta(days=1))
 
-                for weeks in reversed(qtr_lens):
-                    end -= timedelta(weeks=weeks)
-                    if end < other:
-                        other = end
-                        n -= 1
-                        break
-        other = datetime(other.year, other.month, other.day,
-                         base.hour, base.minute, base.second, base.microsecond)
-        return other
+        # Note: we always have 0 <= n < 4
+        weeks = sum(qtr_lens[:n])
+        if weeks:
+            res = shift_day(res, days=weeks * 7)
+
+        return res
 
     def get_weeks(self, dt):
         ret = [13] * 4
@@ -2074,16 +2094,15 @@ class FY5253Quarter(DateOffset):
         return ret
 
     def year_has_extra_week(self, dt):
-        if self._offset.onOffset(dt):
-            prev_year_end = dt - self._offset
-            next_year_end = dt
-        else:
-            next_year_end = dt + self._offset
-            prev_year_end = dt - self._offset
+        # Avoid round-down errors --> normalize to get
+        # e.g. '370D' instead of '360D23H'
+        norm = Timestamp(dt).normalize().tz_localize(None)
 
-        week_in_year = (next_year_end - prev_year_end).days / 7
-
-        return week_in_year == 53
+        next_year_end = self._offset.rollforward(norm)
+        prev_year_end = norm - self._offset
+        weeks_in_year = (next_year_end - prev_year_end).days / 7
+        assert weeks_in_year in [52, 53], weeks_in_year
+        return weeks_in_year == 53
 
     def onOffset(self, dt):
         if self.normalize and not _is_normalized(dt):
@@ -2096,8 +2115,8 @@ class FY5253Quarter(DateOffset):
         qtr_lens = self.get_weeks(dt)
 
         current = next_year_end
-        for qtr_len in qtr_lens[0:4]:
-            current += timedelta(weeks=qtr_len)
+        for qtr_len in qtr_lens:
+            current = shift_day(current, days=qtr_len * 7)
             if dt == current:
                 return True
         return False
