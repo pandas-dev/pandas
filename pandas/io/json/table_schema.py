@@ -3,12 +3,17 @@ Table Schema builders
 
 http://specs.frictionlessdata.io/json-table-schema/
 """
+import pandas._libs.json as json
+from pandas import DataFrame
+from pandas.api.types import CategoricalDtype
 from pandas.core.common import _all_not_none
 from pandas.core.dtypes.common import (
     is_integer_dtype, is_timedelta64_dtype, is_numeric_dtype,
     is_bool_dtype, is_datetime64_dtype, is_datetime64tz_dtype,
     is_categorical_dtype, is_period_dtype, is_string_dtype
 )
+
+loads = json.loads
 
 
 def as_json_table_type(x):
@@ -103,6 +108,40 @@ def make_field(arr, dtype=None):
     return field
 
 
+def revert_field(field):
+    '''
+    Converts a JSON field descriptor into its corresponding NumPy / pandas type
+
+    Parameters
+    ----------
+    field
+        A JSON field descriptor
+
+    Returns
+    -------
+    dtype
+    '''
+    typ = field['type']
+    if typ == 'integer':
+        return 'int64'
+    elif typ == 'number':
+        return 'float64'
+    elif typ == 'boolean':
+        return 'bool'
+    elif typ == 'duration':
+        return 'timedelta64'
+    elif typ == 'datetime':
+        if field.get('tz'):
+            return 'datetime64[ns, {tz}]'.format(tz=field['tz'])
+        else:
+            return 'datetime64[ns]'
+    elif typ == 'any':
+        if 'constraints' in field and 'ordered' in field:
+            return CategoricalDtype(categories=field['constraints']['enum'],
+                                    ordered=field['ordered'])
+    return 'object'
+
+
 def build_table_schema(data, index=True, primary_key=None, version=True):
     """
     Create a Table schema from ``data``.
@@ -180,3 +219,55 @@ def build_table_schema(data, index=True, primary_key=None, version=True):
     if version:
         schema['pandas_version'] = '0.20.0'
     return schema
+
+
+def parse_table_schema(json, precise_float):
+    """
+    Builds a DataFrame from a given schema
+
+    Parameters
+    ----------
+    json :
+        A JSON table schema
+    precise_float : boolean
+        Flag controlling precision when decoding string to double values, as
+        dictated by ``read_json``
+
+    Returns
+    -------
+    df : DataFrame
+
+    Raises
+    ------
+    NotImplementedError
+        If the JSON table schema contains either timezone or timedelta data
+
+    See also
+    --------
+    build_table_schema : inverse function
+    pandas.read_json
+    """
+    table = loads(json, precise_float=precise_float)
+    col_order = [field['name'] for field in table['schema']['fields']]
+    df = DataFrame(table['data'])[col_order]
+
+    dtypes = {field['name']: revert_field(field)
+              for field in table['schema']['fields']}
+
+    # Cannot directly use as_type with timezone data on object; raise for now
+    if any(str(x).startswith('datetime64[ns, ') for x in dtypes.values()):
+        raise NotImplementedError('table="orient" can not yet read timezone '
+                                  'data')
+
+    # No ISO constructor for Timedelta as of yet, so need to raise
+    if 'timedelta64' in dtypes.values():
+        raise NotImplementedError('table="orient" can not yet read '
+                                  'ISO-formatted Timedelta data')
+
+    df = df.astype(dtypes)
+
+    df = df.set_index(table['schema']['primaryKey'])
+    if all(x.startswith('level_') for x in df.index.names):
+        df.index.names = [None] * len(df.index.names)
+
+    return df

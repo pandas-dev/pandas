@@ -14,6 +14,7 @@ from pandas.io.json.table_schema import (
     build_table_schema,
     make_field,
     set_default_names)
+import pandas.util.testing as tm
 
 
 class TestBuildSchema(object):
@@ -471,3 +472,126 @@ class TestTableOrient(object):
                                                             ('a', 'b')]))
         result = [x['name'] for x in build_table_schema(df)['fields']]
         assert result == ['level_0', 'level_1', 0, 1, 2, 3]
+
+
+class TestTableOrientReader(object):
+
+    def test_integer(self):
+        df = DataFrame(
+            {'A': [1, 2, 3, 4],
+             },
+            index=pd.Index(range(4), name='idx'))
+        out = df.to_json(orient="table")
+        result = pd.read_json(out, orient="table")
+        tm.assert_frame_equal(df, result)
+
+    def test_object(self):
+        df = DataFrame(
+            {'B': ['a', 'b', 'c', 'c'],
+             },
+            index=pd.Index(range(4), name='idx'))
+        out = df.to_json(orient="table")
+        result = pd.read_json(out, orient="table")
+        tm.assert_frame_equal(df, result)
+
+    def test_date_range(self):
+        df = DataFrame(
+            {'C': pd.date_range('2016-01-01', freq='d', periods=4),
+             },
+            index=pd.Index(range(4), name='idx'))
+
+        out = df.to_json(orient="table")
+        result = pd.read_json(out, orient="table")
+        tm.assert_frame_equal(df, result)
+
+    def test_timedelta_raises(self):
+        df = DataFrame(
+            {'D': pd.timedelta_range('1H', periods=4, freq='T'),
+             },
+            index=pd.Index(range(4), name='idx'))
+
+        out = df.to_json(orient="table")
+        with tm.assert_raises_regex(NotImplementedError, 'can not yet read '
+                                    'ISO-formatted Timedelta data'):
+            pd.read_json(out, orient="table")
+
+    def test_categorical(self):
+        df = DataFrame(
+            {'E': pd.Series(pd.Categorical(['a', 'b', 'c', 'c'])),
+             'F': pd.Series(pd.Categorical(['a', 'b', 'c', 'c'],
+                                           ordered=True)),
+             },
+            index=pd.Index(range(4), name='idx'))
+
+        out = df.to_json(orient="table")
+        result = pd.read_json(out, orient="table")
+        tm.assert_frame_equal(df, result)
+
+    @pytest.mark.parametrize("float_vals", [
+        pytest.param([1., 2., 3., 4.], marks=pytest.mark.xfail),
+        [1.1, 2.2, 3.3, 4.4]])
+    def test_float(self, float_vals):
+        df = DataFrame(
+            {'G': float_vals,
+             },
+            index=pd.Index(range(4), name='idx'))
+
+        out = df.to_json(orient="table")
+        result = pd.read_json(out, orient="table", convert_axes=False)
+        tm.assert_frame_equal(df, result)
+
+    def test_timezone_raises(self):
+        df = DataFrame(
+            {'H': pd.date_range('2016-01-01', freq='d', periods=4,
+                                tz='US/Central'),
+             },
+            index=pd.Index(range(4), name='idx'))
+
+        out = df.to_json(orient="table")
+        with tm.assert_raises_regex(NotImplementedError, 'can not yet read '
+                                    'timezone data'):
+            pd.read_json(out, orient="table")
+
+    def test_bool(self):
+        df = DataFrame(
+            {'I': [True, False, False, True],
+             },
+            index=pd.Index(range(4), name='idx'))
+
+        out = df.to_json(orient="table")
+        result = pd.read_json(out, orient="table")
+        tm.assert_frame_equal(df, result)
+
+    def test_comprehensive(self):
+        df = DataFrame(
+            {'A': [1, 2, 3, 4],
+             'B': ['a', 'b', 'c', 'c'],
+             'C': pd.date_range('2016-01-01', freq='d', periods=4),
+             # 'D': pd.timedelta_range('1H', periods=4, freq='T'),
+             'E': pd.Series(pd.Categorical(['a', 'b', 'c', 'c'])),
+             'F': pd.Series(pd.Categorical(['a', 'b', 'c', 'c'],
+                                           ordered=True)),
+             'G': [1.1, 2.2, 3.3, 4.4],
+             # 'H': pd.date_range('2016-01-01', freq='d', periods=4,
+             #                   tz='US/Central'),
+             'I': [True, False, False, True],
+             },
+            index=pd.Index(range(4), name='idx'))
+
+        out = df.to_json(orient="table")
+        result = pd.read_json(out, orient="table")
+        tm.assert_frame_equal(df, result)
+
+    @pytest.mark.parametrize("index_names", [[None, None], ['foo', 'bar']])
+    def test_multiindex(self, index_names):
+        # GH 18912
+        df = pd.DataFrame(
+            [["Arr", "alpha", [1, 2, 3, 4]],
+             ["Bee", "Beta", [10, 20, 30, 40]]],
+            index=[["A", "B"], ["Null", "Eins"]],
+            columns=["Aussprache", "Griechisch", "Args"]
+        )
+        df.index.names = index_names
+        out = df.to_json(orient="table")
+        result = pd.read_json(out, orient="table")
+        tm.assert_frame_equal(df, result)

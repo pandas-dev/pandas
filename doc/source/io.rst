@@ -1833,7 +1833,7 @@ is ``None``. To explicitly force ``Series`` parsing, pass ``typ=series``
 
   DataFrame
       - default is ``columns``
-      - allowed values are {``split``, ``records``, ``index``, ``columns``, ``values``}
+      - allowed values are {``split``, ``records``, ``index``, ``columns``, ``values``, ``table``}
 
   The format of the JSON string
 
@@ -1846,6 +1846,7 @@ is ``None``. To explicitly force ``Series`` parsing, pass ``typ=series``
      ``index``; dict like {index -> {column -> value}}
      ``columns``; dict like {column -> {index -> value}}
      ``values``; just the values array
+     ``table``; adhering to the JSON `Table Schema`_
 
 - ``dtype`` : if True, infer dtypes, if a dict of column to dtype, then use those, if False, then don't infer dtypes at all, default is True, apply only to the data
 - ``convert_axes`` : boolean, try to convert the axes to the proper dtypes, default is True

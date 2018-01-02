@@ -16,7 +16,7 @@ from pandas.core.common import AbstractMethodError
 from pandas.core.reshape.concat import concat
 from pandas.io.formats.printing import pprint_thing
 from .normalize import _convert_to_line_delimits
-from .table_schema import build_table_schema
+from .table_schema import build_table_schema, parse_table_schema
 from pandas.core.dtypes.common import is_period_dtype
 
 loads = json.loads
@@ -261,12 +261,15 @@ def read_json(path_or_buf=None, orient=None, typ='frame', dtype=True,
         * when ``typ == 'frame'``,
 
           - allowed orients are ``{'split','records','index',
-            'columns','values'}``
+            'columns','values', 'table'}``
           - default is ``'columns'``
           - The DataFrame index must be unique for orients ``'index'`` and
             ``'columns'``.
           - The DataFrame columns must be unique for orients ``'index'``,
             ``'columns'``, and ``'records'``.
+
+        .. versionadded:: 0.23.0
+           'table' as an allowed value for the ``orient`` argument
 
     typ : type of object to recover (series or frame), default 'frame'
     dtype : boolean or dict, default True
@@ -839,6 +842,9 @@ class FrameParser(Parser):
         elif orient == "index":
             self.obj = DataFrame(
                 loads(json, precise_float=self.precise_float), dtype=None).T
+        elif orient == 'table':
+            self.obj = parse_table_schema(json,
+                                          precise_float=self.precise_float)
         else:
             self.obj = DataFrame(
                 loads(json, precise_float=self.precise_float), dtype=None)

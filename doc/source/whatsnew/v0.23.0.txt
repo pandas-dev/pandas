@@ -171,6 +171,7 @@ Other Enhancements
 - ``Resampler`` objects now have a functioning :attr:`~pandas.core.resample.Resampler.pipe` method.
   Previously, calls to ``pipe`` were diverted to  the ``mean`` method (:issue:`17905`).
 - :func:`~pandas.api.types.is_scalar` now returns ``True`` for ``DateOffset`` objects (:issue:`18943`).
+- :func:`read_json` now supports ``table`` as a value to the ``orient`` argument (:issue:`18912`)
 
 .. _whatsnew_0230.api_breaking:
 
