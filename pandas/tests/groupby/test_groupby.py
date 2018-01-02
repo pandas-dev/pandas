@@ -303,7 +303,7 @@ class TestGroupBy(MixIn):
 
             # assert issubclass(agged.dtype.type, np.integer)
 
-            # explicity return a float from my function
+            # explicitly return a float from my function
             def f(x):
                 return float(len(x))
 
@@ -2704,7 +2704,7 @@ class TestGroupBy(MixIn):
 
         # Assert the results here
         index = pd.Index(['A', 'B', 'C'], name='group')
-        expected = pd.Series([-79.5160891089, -78.4839108911, None],
+        expected = pd.Series([-79.5160891089, -78.4839108911, -80],
                              index=index)
 
         assert_series_equal(expected, result)
@@ -2750,7 +2750,6 @@ class TestGroupBy(MixIn):
 
         assert "Interpreting tuple 'by' as a list" in str(w[0].message)
 
-    @pytest.mark.xfail(reason="GH-18798")
     def test_tuple_correct_keyerror(self):
         # https://github.com/pandas-dev/pandas/issues/18798
         df = pd.DataFrame(1, index=range(3),

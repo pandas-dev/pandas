@@ -547,6 +547,26 @@ class TestSeriesIndexing(TestData):
         result[4:8] = ts[4:8]
         assert_series_equal(result, ts)
 
+    @pytest.mark.parametrize(
+        'result_1, duplicate_item, expected_1',
+        [
+            [
+                pd.Series({1: 12, 2: [1, 2, 2, 3]}), pd.Series({1: 313}),
+                pd.Series({1: 12, }, dtype=object),
+            ],
+            [
+                pd.Series({1: [1, 2, 3], 2: [1, 2, 2, 3]}),
+                pd.Series({1: [1, 2, 3]}), pd.Series({1: [1, 2, 3], }),
+            ],
+        ])
+    def test_getitem_with_duplicates_indices(
+            self, result_1, duplicate_item, expected_1):
+        # GH 17610
+        result = result_1.append(duplicate_item)
+        expected = expected_1.append(duplicate_item)
+        assert_series_equal(result[1], expected)
+        assert result[2] == result_1[2]
+
     def test_getitem_median_slice_bug(self):
         index = date_range('20090415', '20090519', freq='2B')
         s = Series(np.random.randn(13), index=index)
@@ -1596,7 +1616,7 @@ class TestSeriesIndexing(TestData):
     def test_setitem_boolean(self):
         mask = self.series > self.series.median()
 
-        # similiar indexed series
+        # similar indexed series
         result = self.series.copy()
         result[mask] = self.series * 2
         expected = self.series * 2
@@ -1648,7 +1668,7 @@ class TestSeriesIndexing(TestData):
         s[::2] = np.nan
         assert_series_equal(s, expected)
 
-        # get's coerced to float, right?
+        # gets coerced to float, right?
         expected = Series([np.nan, 1, np.nan, 0])
         s = Series([True, True, False, False])
         s[::2] = np.nan
@@ -2093,7 +2113,7 @@ class TestSeriesIndexing(TestData):
         result = s.reindex(new_index, method='ffill')
         assert_series_equal(result, expected)
 
-        # inferrence of new dtype
+        # inference of new dtype
         s = Series([True, False, False, True], index=list('abcd'))
         new_index = 'agc'
         result = s.reindex(list(new_index)).ffill()

@@ -21,8 +21,8 @@ from pandas import (DataFrame, Index, Series, isna,
                     MultiIndex, Timedelta, Timestamp,
                     date_range, Categorical)
 import pandas as pd
-import pandas._libs.lib as lib
 import pandas.util.testing as tm
+from pandas.core.dtypes.cast import construct_1d_object_array_from_listlike
 
 from pandas.tests.frame.common import TestData
 
@@ -328,13 +328,13 @@ class TestDataFrameConstructors(TestData):
 
         # wrong size axis labels
         with tm.assert_raises_regex(ValueError, "Shape of passed values "
-                                    "is \(3, 2\), indices "
-                                    "imply \(3, 1\)"):
+                                    r"is \(3, 2\), indices "
+                                    r"imply \(3, 1\)"):
             DataFrame(np.random.rand(2, 3), columns=['A', 'B', 'C'], index=[1])
 
         with tm.assert_raises_regex(ValueError, "Shape of passed values "
-                                    "is \(3, 2\), indices "
-                                    "imply \(2, 2\)"):
+                                    r"is \(3, 2\), indices "
+                                    r"imply \(2, 2\)"):
             DataFrame(np.random.rand(2, 3), columns=['A', 'B'], index=[1, 2])
 
         with tm.assert_raises_regex(ValueError, "If using all scalar "
@@ -1199,7 +1199,7 @@ class TestDataFrameConstructors(TestData):
             DataFrame.from_items(row_items, orient='index')
 
         # orient='index', but thar be tuples
-        arr = lib.list_to_object_array(
+        arr = construct_1d_object_array_from_listlike(
             [('bar', 'baz')] * len(self.mixed_frame))
         self.mixed_frame['foo'] = arr
         row_items = [(idx, list(self.mixed_frame.xs(idx)))
@@ -1220,12 +1220,12 @@ class TestDataFrameConstructors(TestData):
     def test_constructor_from_items_scalars(self):
         # GH 17312
         with tm.assert_raises_regex(ValueError,
-                                    'The value in each \(key, value\) '
+                                    r'The value in each \(key, value\) '
                                     'pair must be an array, Series, or dict'):
             DataFrame.from_items([('A', 1), ('B', 4)])
 
         with tm.assert_raises_regex(ValueError,
-                                    'The value in each \(key, value\) '
+                                    r'The value in each \(key, value\) '
                                     'pair must be an array, Series, or dict'):
             DataFrame.from_items([('A', 1), ('B', 2)], columns=['col1'],
                                  orient='index')

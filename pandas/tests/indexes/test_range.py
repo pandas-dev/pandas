@@ -711,7 +711,7 @@ class TestRangeIndex(Numeric):
 
         # memory savings vs int index
         i = RangeIndex(0, 1000)
-        assert i.nbytes < i.astype(int).nbytes / 10
+        assert i.nbytes < i._int64index.nbytes / 10
 
         # constant memory usage
         i2 = RangeIndex(0, 10)
@@ -779,7 +779,7 @@ class TestRangeIndex(Numeric):
     def test_explicit_conversions(self):
 
         # GH 8608
-        # add/sub are overriden explicity for Float/Int Index
+        # add/sub are overridden explicitly for Float/Int Index
         idx = RangeIndex(5)
 
         # float conversions

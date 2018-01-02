@@ -38,7 +38,7 @@ class TestSeriesQuantile(TestData):
 
         # GH7661
         result = Series([np.timedelta64('NaT')]).sum()
-        assert result is pd.NaT
+        assert result == pd.Timedelta(0)
 
         msg = 'percentiles should all be in the interval \\[0, 1\\]'
         for invalid in [-1, 2, [0.5, -1], [0.5, 2]]:
