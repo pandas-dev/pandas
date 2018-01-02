@@ -3156,7 +3156,7 @@ def test_weekofmonth_onoffset():
 
 
 def test_last_week_of_month_on_offset():
-    # GH#18977 _adjust_dst was incorrect for LastWeekOfMonth
+    # GH#19036, GH#18977 _adjust_dst was incorrect for LastWeekOfMonth
     offset = LastWeekOfMonth(n=4, weekday=6)
     ts = Timestamp('1917-05-27 20:55:27.084284178+0200',
                    tz='Europe/Warsaw')
