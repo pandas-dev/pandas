@@ -508,9 +508,9 @@ Finally, one can also add margins or normalize this output.
 Tiling
 ------
 
-The :func:`~pandas.cut` function computes groupings for the values of the input array and
-is often used to transform continuous variables to discrete or categorical
-variables:
+The :func:`~pandas.cut` function computes groupings for the values of the input 
+array and is often used to transform continuous variables to discrete or 
+categorical variables:
 
 .. ipython:: python
 
@@ -529,7 +529,7 @@ Alternatively we can specify custom bin-edges:
 .. versionadded:: 0.20.0
 
 If the ``bins`` keyword is an ``IntervalIndex``, then these will be
-used to bin the passed data.
+used to bin the passed data.::
 
    pd.cut([25, 20, 50], bins=c.categories)
 
@@ -539,9 +539,10 @@ used to bin the passed data.
 Computing indicator / dummy variables
 -------------------------------------
 
-To convert a categorical variable into a "dummy" or "indicator" DataFrame, for example
-a column in a DataFrame (a Series) which has ``k`` distinct values, can derive a DataFrame
-containing ``k`` columns of 1s and 0s:
+To convert a categorical variable into a "dummy" or "indicator" ``DataFrame``, 
+for example a column in a ``DataFrame`` (a ``Series``) which has ``k`` distinct 
+values, can derive a ``DataFrame`` containing ``k`` columns of 1s and 0s using
+:func:`~pandas.get_dummies`:
 
 .. ipython:: python
 
@@ -550,7 +551,7 @@ containing ``k`` columns of 1s and 0s:
    pd.get_dummies(df['key'])
 
 Sometimes it's useful to prefix the column names, for example when merging the result
-with the original DataFrame:
+with the original ``DataFrame``:
 
 .. ipython:: python
 
@@ -575,9 +576,9 @@ This function is often used along with discretization functions like ``cut``:
 
 See also :func:`Series.str.get_dummies <pandas.Series.str.get_dummies>`.
 
-:func:`get_dummies` also accepts a DataFrame. By default all categorical
-variables (categorical in the statistical sense,
-those with `object` or `categorical` dtype) are encoded as dummy variables.
+:func:`get_dummies` also accepts a ``DataFrame``. By default all categorical
+variables (categorical in the statistical sense, those with `object` or 
+`categorical` dtype) are encoded as dummy variables.
 
 
 .. ipython:: python
@@ -586,9 +587,8 @@ those with `object` or `categorical` dtype) are encoded as dummy variables.
                        'C': [1, 2, 3]})
     pd.get_dummies(df)
 
-All non-object columns are included untouched in the output.
-
-You can control the columns that are encoded with the ``columns`` keyword.
+All non-object columns are included untouched in the output. You can control 
+the columns that are encoded with the ``columns`` keyword.
 
 .. ipython:: python
 
@@ -598,14 +598,14 @@ Notice that the ``B`` column is still included in the output, it just hasn't
 been encoded. You can drop ``B`` before calling ``get_dummies`` if you don't
 want to include it in the output.
 
-As with the Series version, you can pass values for the ``prefix`` and
+As with the ``Series`` version, you can pass values for the ``prefix`` and
 ``prefix_sep``. By default the column name is used as the prefix, and '_' as
-the prefix separator. You can specify ``prefix`` and ``prefix_sep`` in 3 ways
+the prefix separator. You can specify ``prefix`` and ``prefix_sep`` in 3 ways:
 
 - string: Use the same value for ``prefix`` or ``prefix_sep`` for each column
-  to be encoded
+  to be encoded.
 - list: Must be the same length as the number of columns being encoded.
-- dict: Mapping column name to prefix
+- dict: Mapping column name to prefix.
 
 .. ipython:: python
 
@@ -640,7 +640,8 @@ When a column contains only one level, it will be omitted in the result.
 
     pd.get_dummies(df, drop_first=True)
 
-By default new columns will have ``np.uint8`` dtype. To choose another dtype use ``dtype`` argument:
+By default new columns will have ``np.uint8`` dtype. 
+To choose another dtype, use the``dtype`` argument:
 
 .. ipython:: python
 
@@ -656,7 +657,7 @@ By default new columns will have ``np.uint8`` dtype. To choose another dtype use
 Factorizing values
 ------------------
 
-To encode 1-d values as an enumerated type use ``factorize``:
+To encode 1-d values as an enumerated type use :func:`~pandas.factorize`:
 
 .. ipython:: python
 
@@ -672,7 +673,7 @@ handling of NaN:
 .. note::
    The following ``numpy.unique`` will fail under Python 3 with a ``TypeError``
    because of an ordering bug. See also
-   `Here <https://github.com/numpy/numpy/issues/641>`__
+   `here <https://github.com/numpy/numpy/issues/641>`__.
 
 .. code-block:: ipython
 
