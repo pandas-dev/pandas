@@ -11,9 +11,8 @@ import numpy as np
 from pandas.compat.numpy import np_datetime64_compat
 
 from pandas.core.series import Series
-from pandas.tseries.frequencies import (_offset_map, get_freq_code,
-                                        _get_freq_str, _INVALID_FREQ_ERROR,
-                                        get_offset, get_standard_freq)
+from pandas.tseries.frequencies import (_offset_map, get_freq_code, get_offset,
+                                        _get_freq_str, _INVALID_FREQ_ERROR)
 from pandas.core.indexes.datetimes import (
     _to_m8, DatetimeIndex, _daterange_cache)
 import pandas._libs.tslibs.offsets as liboffsets
@@ -2784,33 +2783,6 @@ def test_get_offset_legacy():
     for name, expected in pairs:
         with tm.assert_raises_regex(ValueError, _INVALID_FREQ_ERROR):
             get_offset(name)
-
-
-def test_get_standard_freq():
-    with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
-        fstr = get_standard_freq('W')
-    with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
-        assert fstr == get_standard_freq('w')
-    with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
-        assert fstr == get_standard_freq('1w')
-    with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
-        assert fstr == get_standard_freq(('W', 1))
-
-    with tm.assert_raises_regex(ValueError, _INVALID_FREQ_ERROR):
-        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
-            get_standard_freq('WeEk')
-
-    with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
-        fstr = get_standard_freq('5Q')
-    with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
-        assert fstr == get_standard_freq('5q')
-
-    with tm.assert_raises_regex(ValueError, _INVALID_FREQ_ERROR):
-        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
-            get_standard_freq('5QuarTer')
-
-    with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
-        assert fstr == get_standard_freq(('q', 5))
 
 
 class TestOffsetAliases(object):
