@@ -8,7 +8,6 @@ that can be mixed into or pinned onto other pandas classes.
 import traceback
 import warnings
 
-from pandas.core.common import AbstractMethodError
 from pandas.compat import PY2
 from pandas.errors import AccessorRegistrationWarning
 
@@ -70,6 +69,7 @@ class PandasDelegate(object):
 
     @classmethod
     def _make_accessor(cls, data):
+        from pandas.core.common import AbstractMethodError
         raise AbstractMethodError("_make_accessor should be implemented"
                                   "by subclass and return an instance"
                                   "of `cls`.")

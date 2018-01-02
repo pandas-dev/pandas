@@ -57,7 +57,6 @@ scatter_matrix = pandas.util._decorators.deprecate(
 from pandas.util._print_versions import show_versions
 from pandas.io.api import *
 from pandas.util._tester import test
-from pandas.extensions import *
 import pandas.testing
 
 # extension module deprecations

@@ -35,9 +35,9 @@ class MyAccessor(object):
 
 
 @pytest.mark.parametrize('obj, registrar', [
-    (pd.Series, pd.extensions.register_series_accessor),
-    (pd.DataFrame, pd.extensions.register_dataframe_accessor),
-    (pd.Index, pd.extensions.register_index_accessor)
+    (pd.Series, pd.api.extensions.register_series_accessor),
+    (pd.DataFrame, pd.api.extensions.register_dataframe_accessor),
+    (pd.Index, pd.api.extensions.register_index_accessor)
 ])
 def test_series_register(obj, registrar):
     with ensure_removed(obj, 'mine'):
@@ -50,7 +50,7 @@ def test_series_register(obj, registrar):
 
 def test_accessor_works():
     with ensure_removed(pd.Series, 'mine'):
-        pd.extensions.register_series_accessor('mine')(MyAccessor)
+        pd.api.extensions.register_series_accessor('mine')(MyAccessor)
 
         s = pd.Series([1, 2])
         assert s.mine.obj is s
@@ -64,7 +64,7 @@ def test_overwrite_warns():
     mean = pd.Series.mean
     try:
         with tm.assert_produces_warning(AccessorRegistrationWarning) as w:
-            pd.extensions.register_series_accessor('mean')(MyAccessor)
+            pd.api.extensions.register_series_accessor('mean')(MyAccessor)
             s = pd.Series([1, 2])
             assert s.mean.prop == 'item'
         msg = str(w[0].message)

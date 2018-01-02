@@ -130,9 +130,9 @@ supports registering custom accessors in library code.
 
 Once you've implemented an accessor, register it with one or more of the decorators
 
-* :func:`pandas.extensions.register_dataframe_accessor`
-* :func:`pandas.extensions.register_series_accessor`
-* :func:`pandas.extensions.register_index_accessor`
+* :func:`pandas.api.extensions.register_dataframe_accessor`
+* :func:`pandas.api.extensions.register_series_accessor`
+* :func:`pandas.api.extensions.register_index_accessor`
 
 .. code-block:: python
 

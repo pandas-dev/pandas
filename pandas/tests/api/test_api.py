@@ -30,7 +30,7 @@ class TestPDApi(Base):
     ignored = ['tests', 'locale', 'conftest']
 
     # top-level sub-packages
-    lib = ['api', 'compat', 'core', 'errors', 'extensions', 'pandas',
+    lib = ['api', 'compat', 'core', 'errors', 'pandas',
            'plotting', 'test', 'testing', 'tools', 'tseries',
            'util', 'options', 'io']
 
@@ -40,13 +40,6 @@ class TestPDApi(Base):
 
     # misc
     misc = ['IndexSlice', 'NaT']
-
-    # extension points
-    extensions = [
-        'register_dataframe_accessor',
-        'register_index_accessor',
-        'register_series_accessor',
-    ]
 
     # top-level classes
     classes = ['Categorical', 'CategoricalIndex', 'DataFrame', 'DateOffset',
@@ -118,7 +111,6 @@ class TestPDApi(Base):
 
         self.check(pd,
                    self.lib + self.misc +
-                   self.extensions +
                    self.modules + self.deprecated_modules +
                    self.classes + self.deprecated_classes +
                    self.deprecated_classes_in_future +
@@ -131,7 +123,7 @@ class TestPDApi(Base):
 
 class TestApi(Base):
 
-    allowed = ['types']
+    allowed = ['types', 'extensions']
 
     def test_api(self):
 
