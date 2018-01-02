@@ -39,7 +39,7 @@ from pandas.core.dtypes.cast import (
 from pandas.core.dtypes.generic import (
     ABCSeries,
     ABCDataFrame,
-    ABCIndex,
+    ABCIndex, ABCDatetimeIndex,
     ABCPeriodIndex)
 
 # -----------------------------------------------------------------------------
@@ -442,8 +442,9 @@ class _TimeOp(_Op):
                 values[:] = iNaT
 
             # a datelike
-            elif isinstance(values, pd.DatetimeIndex):
-                values = values.to_series()
+            elif isinstance(values, ABCDatetimeIndex):
+                # TODO: why are we casting to_series in the first place?
+                values = values.to_series(keep_tz=True)
             # datetime with tz
             elif (isinstance(ovalues, datetime.datetime) and
                   hasattr(ovalues, 'tzinfo')):
@@ -463,6 +464,11 @@ class _TimeOp(_Op):
         elif inferred_type in ('timedelta', 'timedelta64'):
             # have a timedelta, convert to to ns here
             values = to_timedelta(values, errors='coerce', box=False)
+            if isinstance(other, ABCDatetimeIndex):
+                # GH#13905
+                # Defer to DatetimeIndex/TimedeltaIndex operations where
+                # timezones are handled carefully.
+                values = pd.TimedeltaIndex(values)
         elif inferred_type == 'integer':
             # py3 compat where dtype is 'm' but is an integer
             if values.dtype.kind == 'm':
@@ -680,8 +686,14 @@ def _arith_method_SERIES(op, name, str_rep, fill_zeros=None, default_axis=None,
             # _Op aligns left and right
         else:
             if (hasattr(lvalues, 'values') and
-                    not isinstance(lvalues, pd.DatetimeIndex)):
+                    not isinstance(lvalues, ABCDatetimeIndex)):
                 lvalues = lvalues.values
+
+        if isinstance(right, (ABCSeries, pd.Index)):
+            # `left` is always a Series object
+            res_name = _maybe_match_name(left, right)
+        else:
+            res_name = left.name
 
         result = wrap_results(safe_na_op(lvalues, rvalues))
         res_name = _get_series_op_result_name(left, right)
