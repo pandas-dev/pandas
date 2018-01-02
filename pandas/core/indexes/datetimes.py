@@ -854,6 +854,9 @@ class DatetimeIndex(DatelikeOps, TimelikeOps, DatetimeIndexOpsMixin,
         return attrs
 
     def _add_delta(self, delta):
+        if isinstance(delta, ABCSeries):
+            return NotImplemented
+
         from pandas import TimedeltaIndex
         name = self.name
 
