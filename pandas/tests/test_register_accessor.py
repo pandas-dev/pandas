@@ -73,3 +73,16 @@ def test_overwrite_warns():
         assert 'Series' in msg
     finally:
         pd.Series.mean = mean
+
+
+def test_raises_attribute_error():
+
+    with ensure_removed(pd.Series, 'bad'):
+
+        @pd.api.extensions.register_series_accessor("bad")
+        class Bad(object):
+            def __init__(self, data):
+                raise AttributeError("whoops")
+
+        with tm.assert_raises_regex(AttributeError, "whoops"):
+            pd.Series([]).bad

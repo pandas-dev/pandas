@@ -150,21 +150,11 @@ class _CachedAccessor(object):
         if obj is None:
             # we're accessing the attribute of the class, i.e., Dataset.geo
             return self._accessor
-        try:
-            accessor_obj = self._accessor(obj)
-        except AttributeError:
-            # TODO
-            # __getattr__ on data object will swallow any AttributeErrors
-            # raised when initializing the accessor, so we need to raise
-            # as something else (GH933):
-            msg = 'error initializing %r accessor.' % self._name
-            if PY2:
-                msg += ' Full traceback:\n' + traceback.format_exc()
-            raise RuntimeError(msg)
+        accessor_obj = self._accessor(obj)
         # Replace the property with the accessor object. Inspired by:
         # http://www.pydanny.com/cached-property.html
         # We need to use object.__setattr__ because we overwrite __setattr__ on
-        # AttrAccessMixin.
+        # NDFrame
         object.__setattr__(obj, self._name, accessor_obj)
         return accessor_obj
 
