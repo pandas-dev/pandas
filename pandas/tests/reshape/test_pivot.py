@@ -371,21 +371,18 @@ class TestPivotTable(object):
         pv = df.pivot(index='p1', columns='p2', values='data1')
         tm.assert_frame_equal(pv, expected)
 
-    def test_pivot_with_list_like_values(self):
+    @pytest.mark.parametrize('values', [
+        ['bar', 'baz'], np.array(['bar', 'baz']),
+        pd.Series(['bar', 'baz']), pd.Index(['bar', 'baz'])
+    ])
+    def test_pivot_with_list_like_values(self, values):
         # issue #17160
         df = pd.DataFrame({'foo': ['one', 'one', 'one', 'two', 'two', 'two'],
                            'bar': ['A', 'B', 'C', 'A', 'B', 'C'],
                            'baz': [1, 2, 3, 4, 5, 6],
                            'zoo': ['x', 'y', 'z', 'q', 'w', 't']})
 
-        result_list = df.pivot(index='zoo', columns='foo',
-                               values=['bar', 'baz'])
-        result_array = df.pivot(index='zoo', columns='foo',
-                                values=np.array(['bar', 'baz']))
-        result_series = df.pivot(index='zoo', columns='foo',
-                                 values=pd.Series(['bar', 'baz']))
-        result_index = df.pivot(index='zoo', columns='foo',
-                                values=pd.Index(['bar', 'baz']))
+        result = df.pivot(index='zoo', columns='foo', values=values)
 
         data = [[np.nan, 'A', np.nan, 4],
                 [np.nan, 'C', np.nan, 6],
@@ -399,11 +396,7 @@ class TestPivotTable(object):
                              names=[None, 'foo'])
         expected = DataFrame(data=data, index=index,
                              columns=columns, dtype='object')
-
-        tm.assert_frame_equal(result_list, expected)
-        tm.assert_frame_equal(result_array, expected)
-        tm.assert_frame_equal(result_series, expected)
-        tm.assert_frame_equal(result_index, expected)
+        tm.assert_frame_equal(result, expected)
 
     def test_margins(self):
         def _check_output(result, values_col, index=['A', 'B'],

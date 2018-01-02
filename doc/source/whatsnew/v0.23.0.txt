@@ -145,6 +145,7 @@ Other Enhancements
 - ``Resampler`` objects now have a functioning :attr:`~pandas.core.resample.Resampler.pipe` method.
   Previously, calls to ``pipe`` were diverted to  the ``mean`` method (:issue:`17905`).
 - :func:`~pandas.api.types.is_scalar` now returns ``True`` for ``DateOffset`` objects (:issue:`18943`).
+- :func:`DataFrame.pivot` now accepts a list for the ``values=`` kwarg (:issue:`17160`).
 
 .. _whatsnew_0230.api_breaking:
 

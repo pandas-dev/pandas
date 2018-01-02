@@ -4355,7 +4355,7 @@ class DataFrame(NDFrame):
             existing index.
         columns : string or object
             Column name to use to make new frame's columns
-        values : string, object or a list of the previous, optional
+        values : string, object or (0.23.0) a list of the previous, optional
             Column name(s) to use for populating new frame's values. If not
             specified, all remaining columns will be used and the result will
             have hierarchically indexed columns
@@ -4384,13 +4384,13 @@ class DataFrame(NDFrame):
                                'baz': [1, 2, 3, 4, 5, 6],
                                'zoo': ['x', 'y', 'z', 'q', 'w', 't']})
         >>> df
-            foo   bar  baz
-        0   one   A    1
-        1   one   B    2
-        2   one   C    3
-        3   two   A    4
-        4   two   B    5
-        5   two   C    6
+            foo   bar  baz  zoo
+        0   one   A    1    x
+        1   one   B    2    y
+        2   one   C    3    z
+        3   two   A    4    q
+        4   two   B    5    w
+        5   two   C    6    t
 
         >>> df.pivot(index='foo', columns='bar', values='baz')
              A   B   C
@@ -4402,19 +4402,15 @@ class DataFrame(NDFrame):
         one  1   2   3
         two  4   5   6
 
+        >>> df.pivot(index='foo', columns='bar', values=['baz'])
+             A   B   C
+        one  1   2   3
+        two  4   5   6
+
        >>> df.pivot(index='foo', columns='bar', values=['baz', 'zoo'])
               A  B  C   A  B  C
         one   1  2  3   x  y  z
         two   4  5  6   q  w  t
-
-        >>> df.pivot(index='zoo', columns='foo', values=['bar', 'baz'])
-             one   two  one  two
-        q    None     A  None  4
-        t    None     C  None  6
-        w    None     B  None  5
-        x       A  None  1  None
-        y       B  None  2  None
-        z       C  None  3  None
 
         """
         from pandas.core.reshape.reshape import pivot
