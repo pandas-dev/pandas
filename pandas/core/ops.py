@@ -426,7 +426,7 @@ class _TimeOp(_Op):
         # if this is a Series that contains relevant dtype info, then use this
         # instead of the inferred type; this avoids coercing Series([NaT],
         # dtype='datetime64[ns]') to Series([NaT], dtype='timedelta64[ns]')
-        elif (isinstance(values, pd.Series) and
+        elif (isinstance(values, (pd.Series, ABCDatetimeIndex)) and
               (is_timedelta64_dtype(values) or is_datetime64_dtype(values))):
             supplied_dtype = values.dtype
 
@@ -441,13 +441,11 @@ class _TimeOp(_Op):
                 values = np.empty(values.shape, dtype='timedelta64[ns]')
                 values[:] = iNaT
 
-            # a datelike
             elif isinstance(values, ABCDatetimeIndex):
-                # TODO: why are we casting to_series in the first place?
-                values = values.to_series(keep_tz=True)
-            # datetime with tz
-            elif (isinstance(ovalues, datetime.datetime) and
-                  hasattr(ovalues, 'tzinfo')):
+                # a datelike
+                pass
+            elif isinstance(ovalues, datetime.datetime):
+                # datetime scalar
                 values = pd.DatetimeIndex(values)
             # datetime array with tz
             elif is_datetimetz(values):
