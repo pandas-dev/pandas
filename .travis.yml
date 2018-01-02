@@ -51,10 +51,10 @@ matrix:
           - python-gtk2
     - dist: trusty
       env:
-        - JOB="3.5_CONDA_BUILD_TEST" TEST_ARGS="--skip-slow --skip-network" CONDA_BUILD_TEST=true COVERAGE=true
+        - JOB="3.5_CONDA_BUILD_TEST" TEST_ARGS="--skip-slow --skip-network" CONDA_BUILD_TEST=true
     - dist: trusty
       env:
-        - JOB="3.6" TEST_ARGS="--skip-slow --skip-network" PANDAS_TESTING_MODE="deprecate" CONDA_FORGE=true
+        - JOB="3.6" TEST_ARGS="--skip-slow --skip-network" PANDAS_TESTING_MODE="deprecate" CONDA_FORGE=true COVERAGE=true
     # In allow_failures
     - dist: trusty
       env:

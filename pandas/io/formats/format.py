@@ -975,7 +975,7 @@ class LatexFormatter(TableFormatter):
                          .replace('#', '\\#').replace('{', '\\{')
                          .replace('}', '\\}').replace('~', '\\textasciitilde')
                          .replace('^', '\\textasciicircum').replace('&', '\\&')
-                         if x else '{}') for x in row]
+                         if (x and x != '{}') else '{}') for x in row]
             else:
                 crow = [x if x else '{}' for x in row]
             if self.bold_rows and self.fmt.index:
@@ -1002,7 +1002,7 @@ class LatexFormatter(TableFormatter):
             buf.write('\\end{longtable}\n')
 
     def _format_multicolumn(self, row, ilevels):
-        """
+        r"""
         Combine columns belonging to a group to a single multicolumn entry
         according to self.multicolumn_format
 
@@ -1040,7 +1040,7 @@ class LatexFormatter(TableFormatter):
         return row2
 
     def _format_multirow(self, row, ilevels, i, rows):
-        """
+        r"""
         Check following rows, whether row should be a multirow
 
         e.g.:     becomes:
@@ -1071,7 +1071,7 @@ class LatexFormatter(TableFormatter):
         """
         for cl in self.clinebuf:
             if cl[0] == i:
-                buf.write('\cline{{{cl:d}-{icol:d}}}\n'
+                buf.write('\\cline{{{cl:d}-{icol:d}}}\n'
                           .format(cl=cl[1], icol=icol))
         # remove entries that have been written to buffer
         self.clinebuf = [x for x in self.clinebuf if x[0] != i]

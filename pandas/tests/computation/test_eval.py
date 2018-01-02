@@ -1798,7 +1798,7 @@ _parsers = {'python': PythonExprVisitor, 'pytables': pytables.ExprVisitor,
             'pandas': PandasExprVisitor}
 
 
-@pytest.mark.parametrize('engine', _parsers)
+@pytest.mark.parametrize('engine', _engines)
 @pytest.mark.parametrize('parser', _parsers)
 def test_disallowed_nodes(engine, parser):
     VisitorClass = _parsers[parser]

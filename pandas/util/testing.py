@@ -15,7 +15,6 @@ import traceback
 from datetime import datetime
 from functools import wraps, partial
 from contextlib import contextmanager
-from distutils.version import LooseVersion
 
 from numpy.random import randn, rand
 import numpy as np
@@ -108,7 +107,7 @@ def round_trip_pickle(obj, path=None):
 
 def round_trip_pathlib(writer, reader, path=None):
     """
-    Write an object to file specifed by a pathlib.Path and read it back
+    Write an object to file specified by a pathlib.Path and read it back
 
     Parameters
     ----------
@@ -137,7 +136,7 @@ def round_trip_pathlib(writer, reader, path=None):
 
 def round_trip_localpath(writer, reader, path=None):
     """
-    Write an object to file specifed by a py.path LocalPath and read it back
+    Write an object to file specified by a py.path LocalPath and read it back
 
     Parameters
     ----------
@@ -316,35 +315,6 @@ def close(fignum=None):
     else:
         _close(fignum)
 
-
-def _skip_if_mpl_1_5():
-    import matplotlib as mpl
-
-    v = mpl.__version__
-    if LooseVersion(v) > LooseVersion('1.4.3') or str(v)[0] == '0':
-        import pytest
-        pytest.skip("matplotlib 1.5")
-    else:
-        mpl.use("Agg", warn=False)
-
-
-def _skip_if_no_scipy():
-    import pytest
-
-    pytest.importorskip("scipy.stats")
-    pytest.importorskip("scipy.sparse")
-    pytest.importorskip("scipy.interpolate")
-
-
-def _skip_if_no_mock():
-    try:
-        import mock  # noqa
-    except ImportError:
-        try:
-            from unittest import mock  # noqa
-        except ImportError:
-            import pytest
-            raise pytest.skip("mock is not installed")
 
 # -----------------------------------------------------------------------------
 # locale utilities
@@ -1814,8 +1784,8 @@ def makeCustomDataframe(nrows, ncols, c_idx_names=True, r_idx_names=True,
     """
    nrows,  ncols - number of data rows/cols
    c_idx_names, idx_names  - False/True/list of strings,  yields No names ,
-        default names or  uses the provided names for the levels of the
-        corresponding  index. You can provide a single string when
+        default names or uses the provided names for the levels of the
+        corresponding index. You can provide a single string when
         c_idx_nlevels ==1.
    c_idx_nlevels - number of levels in columns index. > 1 will yield MultiIndex
    r_idx_nlevels - number of levels in rows index. > 1 will yield MultiIndex
@@ -1979,62 +1949,6 @@ class TestSubDict(dict):
         dict.__init__(self, *args, **kwargs)
 
 
-# Dependency checker when running tests.
-#
-# Copied this from nipy/nipype
-# Copyright of respective developers, License: BSD-3
-def skip_if_no_package(pkg_name, min_version=None, max_version=None,
-                       app='pandas', checker=LooseVersion):
-    """Check that the min/max version of the required package is installed.
-
-    If the package check fails, the test is automatically skipped.
-
-    Parameters
-    ----------
-    pkg_name : string
-        Name of the required package.
-    min_version : string, optional
-        Minimal version number for required package.
-    max_version : string, optional
-        Max version number for required package.
-    app : string, optional
-        Application that is performing the check. For instance, the
-        name of the tutorial being executed that depends on specific
-        packages.
-    checker : object, optional
-        The class that will perform the version checking. Default is
-        distutils.version.LooseVersion.
-
-    Examples
-    --------
-    package_check('numpy', '1.3')
-
-    """
-
-    import pytest
-    if app:
-        msg = '{app} requires {pkg_name}'.format(app=app, pkg_name=pkg_name)
-    else:
-        msg = 'module requires {pkg_name}'.format(pkg_name=pkg_name)
-    if min_version:
-        msg += ' with version >= {min_version}'.format(min_version=min_version)
-    if max_version:
-        msg += ' with version < {max_version}'.format(max_version=max_version)
-    try:
-        mod = __import__(pkg_name)
-    except ImportError:
-        mod = None
-    try:
-        have_version = mod.__version__
-    except AttributeError:
-        pytest.skip('Cannot find version for {pkg_name}'
-                    .format(pkg_name=pkg_name))
-    if min_version and checker(have_version) < checker(min_version):
-        pytest.skip(msg)
-    if max_version and checker(have_version) >= checker(max_version):
-        pytest.skip(msg)
-
-
 def optional_args(decorator):
     """allows a decorator to take optional positional and keyword arguments.
     Assumes that taking a single, callable, positional argument means that
@@ -2167,7 +2081,7 @@ def network(t, url="http://www.google.com",
     _skip_on_messages: iterable of string
         any exception e for which one of the strings is
         a substring of str(e) will be skipped with an appropriate
-        message. Intended to supress errors where an errno isn't available.
+        message. Intended to suppress errors where an errno isn't available.
 
     Notes
     -----
@@ -2751,3 +2665,31 @@ def set_timezone(tz):
         yield
     finally:
         setTZ(orig_tz)
+
+
+def _make_skipna_wrapper(alternative, skipna_alternative=None):
+    """Create a function for calling on an array.
+
+    Parameters
+    ----------
+    alternative : function
+        The function to be called on the array with no NaNs.
+        Only used when 'skipna_alternative' is None.
+    skipna_alternative : function
+        The function to be called on the original array
+
+    Returns
+    -------
+    skipna_wrapper : function
+    """
+    if skipna_alternative:
+        def skipna_wrapper(x):
+            return skipna_alternative(x.values)
+    else:
+        def skipna_wrapper(x):
+            nona = x.dropna()
+            if len(nona) == 0:
+                return np.nan
+            return alternative(nona)
+
+    return skipna_wrapper

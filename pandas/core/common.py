@@ -305,7 +305,7 @@ def split_ranges(mask):
     ranges = [(0, len(mask))]
 
     for pos, val in enumerate(mask):
-        if not val:  # this pos should be ommited, split off the prefix range
+        if not val:  # this pos should be omitted, split off the prefix range
             r = ranges.pop()
             if pos > r[0]:  # yield non-zero range
                 yield (r[0], pos)
@@ -398,7 +398,19 @@ def _asarray_tuplesafe(values, dtype=None):
     return result
 
 
-def _index_labels_to_array(labels):
+def _index_labels_to_array(labels, dtype=None):
+    """
+    Transform label or iterable of labels to array, for use in Index.
+
+    Parameters
+    ----------
+    dtype : dtype
+        If specified, use as dtype of the resulting array, otherwise infer.
+
+    Returns
+    -------
+    array
+    """
     if isinstance(labels, (compat.string_types, tuple)):
         labels = [labels]
 
@@ -408,7 +420,7 @@ def _index_labels_to_array(labels):
         except TypeError:  # non-iterable
             labels = [labels]
 
-    labels = _asarray_tuplesafe(labels)
+    labels = _asarray_tuplesafe(labels, dtype=dtype)
 
     return labels
 

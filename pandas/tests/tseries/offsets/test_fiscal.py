@@ -158,17 +158,6 @@ class TestFY5253LastOfMonth(Base):
 
 class TestFY5253NearestEndMonth(Base):
 
-    def test_get_target_month_end(self):
-        assert (makeFY5253NearestEndMonth(
-            startingMonth=8, weekday=WeekDay.SAT).get_target_month_end(
-            datetime(2013, 1, 1)) == datetime(2013, 8, 31))
-        assert (makeFY5253NearestEndMonth(
-            startingMonth=12, weekday=WeekDay.SAT).get_target_month_end(
-            datetime(2013, 1, 1)) == datetime(2013, 12, 31))
-        assert (makeFY5253NearestEndMonth(
-            startingMonth=2, weekday=WeekDay.SAT).get_target_month_end(
-            datetime(2013, 1, 1)) == datetime(2013, 2, 28))
-
     def test_get_year_end(self):
         assert (makeFY5253NearestEndMonth(
             startingMonth=8, weekday=WeekDay.SAT).get_year_end(
@@ -625,3 +614,22 @@ def test_bunched_yearends():
     assert fy.rollback(dt) == Timestamp('2002-12-28')
     assert (-fy).apply(dt) == Timestamp('2002-12-28')
     assert dt - fy == Timestamp('2002-12-28')
+
+
+def test_fy5253_last_onoffset():
+    # GH#18877 dates on the year-end but not normalized to midnight
+    offset = FY5253(n=-5, startingMonth=5, variation="last", weekday=0)
+    ts = Timestamp('1984-05-28 06:29:43.955911354+0200',
+                   tz='Europe/San_Marino')
+    fast = offset.onOffset(ts)
+    slow = (ts + offset) - offset == ts
+    assert fast == slow
+
+
+def test_fy5253_nearest_onoffset():
+    # GH#18877 dates on the year-end but not normalized to midnight
+    offset = FY5253(n=3, startingMonth=7, variation="nearest", weekday=2)
+    ts = Timestamp('2032-07-28 00:12:59.035729419+0000', tz='Africa/Dakar')
+    fast = offset.onOffset(ts)
+    slow = (ts + offset) - offset == ts
+    assert fast == slow

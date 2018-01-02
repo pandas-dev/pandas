@@ -475,10 +475,10 @@ class TestMultiIndex(Base):
             columns=['one', 'two', 'three', 'four'],
             index=idx)
         df = df.sort_index()
-        assert df.is_copy is None
+        assert df._is_copy is None
         assert df.index.names == ('Name', 'Number')
         df.at[('grethe', '4'), 'one'] = 99.34
-        assert df.is_copy is None
+        assert df._is_copy is None
         assert df.index.names == ('Name', 'Number')
 
     def test_copy_names(self):
@@ -535,15 +535,6 @@ class TestMultiIndex(Base):
         ind_names = list(index.names)
         level_names = [level.name for level in index.levels]
         assert ind_names == level_names
-
-    def test_reference_duplicate_name(self):
-        idx = MultiIndex.from_tuples(
-            [('a', 'b'), ('c', 'd')], names=['x', 'x'])
-        assert idx._reference_duplicate_name('x')
-
-        idx = MultiIndex.from_tuples(
-            [('a', 'b'), ('c', 'd')], names=['x', 'y'])
-        assert not idx._reference_duplicate_name('x')
 
     def test_astype(self):
         expected = self.index.copy()
@@ -609,6 +600,23 @@ class TestMultiIndex(Base):
         with tm.assert_raises_regex(ValueError, label_error):
             self.index.copy().set_labels([[0, 0, 0, 0], [0, 0]])
 
+    @pytest.mark.parametrize('names', [['a', 'b', 'a'], [1, 1, 2],
+                                       [1, 'a', 1]])
+    def test_duplicate_level_names(self, names):
+        # GH18872
+        pytest.raises(ValueError, pd.MultiIndex.from_product,
+                      [[0, 1]] * 3, names=names)
+
+        # With .rename()
+        mi = pd.MultiIndex.from_product([[0, 1]] * 3)
+        tm.assert_raises_regex(ValueError, "Duplicated level name:",
+                               mi.rename, names)
+
+        # With .rename(., level=)
+        mi.rename(names[0], level=1, inplace=True)
+        tm.assert_raises_regex(ValueError, "Duplicated level name:",
+                               mi.rename, names[:2], level=[0, 2])
+
     def assert_multiindex_copied(self, copy, original):
         # Levels should be (at least, shallow copied)
         tm.assert_copy(copy.levels, original.levels)
@@ -666,11 +674,6 @@ class TestMultiIndex(Base):
         # and copies shouldn't change original
         shallow_copy.names = [name + "c" for name in shallow_copy.names]
         self.check_level_names(self.index, new_names)
-
-    def test_duplicate_names(self):
-        self.index.names = ['foo', 'foo']
-        tm.assert_raises_regex(KeyError, 'Level foo not found',
-                               self.index._get_level_number, 'foo')
 
     def test_get_level_number_integer(self):
         self.index.names = [1, 0]

@@ -1580,7 +1580,7 @@ We can instead only resample those groups where we have points as follows:
 Aggregation
 ~~~~~~~~~~~
 
-Similar to the :ref:`aggregating API <basics.aggregate>`, :ref:`groupby API <groupby.aggregate>`, and  the :ref:`window functions API <stats.aggregate>`,
+Similar to the :ref:`aggregating API <basics.aggregate>`, :ref:`groupby API <groupby.aggregate>`, and the :ref:`window functions API <stats.aggregate>`,
 a ``Resampler`` can be selectively resampled.
 
 Resampling a ``DataFrame``, the default will be to act on all columns with the same function.
@@ -2108,7 +2108,7 @@ tz-aware data to another time zone:
 
        It is incorrect to pass a timezone directly into the ``datetime.datetime`` constructor (e.g.,
        ``datetime.datetime(2011, 1, 1, tz=timezone('US/Eastern'))``.  Instead, the datetime
-       needs to be localized using the the localize method on the timezone.
+       needs to be localized using the localize method on the timezone.
 
 Under the hood, all timestamps are stored in UTC. Scalar values from a
 ``DatetimeIndex`` with a time zone will have their fields (day, hour, minute)

@@ -48,7 +48,12 @@ echo
 echo "[update conda]"
 conda config --set ssl_verify false || exit 1
 conda config --set quiet true --set always_yes true --set changeps1 false || exit 1
-conda update -q conda
+
+# TODO(jreback), fix conoda version
+echo
+echo "[conda version]"
+conda install conda=4.4.4
+# conda update -q conda
 
 if [ "$CONDA_BUILD_TEST" ]; then
     echo
@@ -100,6 +105,9 @@ REQ="ci/requirements-${JOB}.build"
 time conda create -n pandas --file=${REQ} || exit 1
 
 source activate pandas
+
+# https://github.com/travis-ci/travis-ci/issues/8920#issuecomment-352661024
+python -c "import fcntl; fcntl.fcntl(1, fcntl.F_SETFL, 0)"
 
 # may have addtl installation instructions for this build
 echo
@@ -173,7 +181,7 @@ if [ "$PIP_BUILD_TEST" ]; then
 
     # build & install testing
     echo "[building release]"
-    bash scripts/build_dist_for_release.sh
+    time bash scripts/build_dist_for_release.sh || exit 1
     conda uninstall -y cython
     time pip install dist/*tar.gz || exit 1
 
@@ -181,7 +189,7 @@ elif [ "$CONDA_BUILD_TEST" ]; then
 
     # build & install testing
     echo "[building conda recipe]"
-    conda build ./conda.recipe --numpy 1.13 --python 3.5 -q --no-test
+    time conda build ./conda.recipe --numpy 1.13 --python 3.5 -q --no-test
 
     echo "[installing]"
     conda install pandas --use-local

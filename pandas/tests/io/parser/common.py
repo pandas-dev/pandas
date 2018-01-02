@@ -1371,49 +1371,6 @@ j,-inF"""
         data = "\n\n\n"
         pytest.raises(EmptyDataError, self.read_csv, StringIO(data))
 
-    def test_compact_ints_use_unsigned(self):
-        # see gh-13323
-        data = 'a,b,c\n1,9,258'
-
-        # sanity check
-        expected = DataFrame({
-            'a': np.array([1], dtype=np.int64),
-            'b': np.array([9], dtype=np.int64),
-            'c': np.array([258], dtype=np.int64),
-        })
-        out = self.read_csv(StringIO(data))
-        tm.assert_frame_equal(out, expected)
-
-        expected = DataFrame({
-            'a': np.array([1], dtype=np.int8),
-            'b': np.array([9], dtype=np.int8),
-            'c': np.array([258], dtype=np.int16),
-        })
-
-        # default behaviour for 'use_unsigned'
-        with tm.assert_produces_warning(
-                FutureWarning, check_stacklevel=False):
-            out = self.read_csv(StringIO(data), compact_ints=True)
-            tm.assert_frame_equal(out, expected)
-
-        with tm.assert_produces_warning(
-                FutureWarning, check_stacklevel=False):
-            out = self.read_csv(StringIO(data), compact_ints=True,
-                                use_unsigned=False)
-            tm.assert_frame_equal(out, expected)
-
-        expected = DataFrame({
-            'a': np.array([1], dtype=np.uint8),
-            'b': np.array([9], dtype=np.uint8),
-            'c': np.array([258], dtype=np.uint16),
-        })
-
-        with tm.assert_produces_warning(
-                FutureWarning, check_stacklevel=False):
-            out = self.read_csv(StringIO(data), compact_ints=True,
-                                use_unsigned=True)
-            tm.assert_frame_equal(out, expected)
-
     def test_memory_map(self):
         mmap_file = os.path.join(self.dirpath, 'test_mmap.csv')
         expected = DataFrame({
