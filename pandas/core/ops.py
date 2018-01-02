@@ -39,7 +39,7 @@ from pandas.core.dtypes.cast import (
 from pandas.core.dtypes.generic import (
     ABCSeries,
     ABCDataFrame,
-    ABCIndex,
+    ABCIndex, ABCDatetimeIndex,
     ABCPeriodIndex)
 
 # -----------------------------------------------------------------------------
@@ -425,7 +425,7 @@ class _TimeOp(_Op):
             # 2 timedeltas
             if name not in ('__div__', '__rdiv__', '__truediv__',
                             '__rtruediv__', '__add__', '__radd__', '__sub__',
-                            '__rsub__'):
+                            '__rsub__', '__floordiv__', '__rfloordiv__'):
                 raise TypeError("can only operate on a timedeltas for addition"
                                 ", subtraction, and division, but the operator"
                                 " [{name}] was passed".format(name=name))
@@ -514,8 +514,9 @@ class _TimeOp(_Op):
                 values[:] = iNaT
 
             # a datelike
-            elif isinstance(values, pd.DatetimeIndex):
-                values = values.to_series()
+            elif isinstance(values, ABCDatetimeIndex):
+                # TODO: why are we casting to_series in the first place?
+                values = values.to_series(keep_tz=True)
             # datetime with tz
             elif (isinstance(ovalues, datetime.datetime) and
                   hasattr(ovalues, 'tzinfo')):
@@ -535,6 +536,11 @@ class _TimeOp(_Op):
         elif inferred_type in ('timedelta', 'timedelta64'):
             # have a timedelta, convert to to ns here
             values = to_timedelta(values, errors='coerce', box=False)
+            if isinstance(other, ABCDatetimeIndex):
+                # GH#13905
+                # Defer to DatetimeIndex/TimedeltaIndex operations where
+                # timezones are handled carefully.
+                values = pd.TimedeltaIndex(values)
         elif inferred_type == 'integer':
             # py3 compat where dtype is 'm' but is an integer
             if values.dtype.kind == 'm':
@@ -629,7 +635,9 @@ class _TimeOp(_Op):
             # integer gets converted to timedelta in np < 1.6
             if ((self.is_timedelta_lhs and self.is_timedelta_rhs) and
                     not self.is_integer_rhs and not self.is_integer_lhs and
-                    self.name in ('__div__', '__truediv__')):
+                    self.name in ('__div__', '__rdiv__',
+                                  '__truediv__', '__rtruediv__',
+                                  '__floordiv__', '__rfloordiv__')):
                 self.dtype = 'float64'
                 self.fill_value = np.nan
                 lvalues = lvalues.astype(np.float64)
@@ -752,22 +760,26 @@ def _arith_method_SERIES(op, name, str_rep, fill_zeros=None, default_axis=None,
         na_op = converted.na_op
 
         if isinstance(rvalues, ABCSeries):
-            name = _maybe_match_name(left, rvalues)
             lvalues = getattr(lvalues, 'values', lvalues)
             rvalues = getattr(rvalues, 'values', rvalues)
             # _Op aligns left and right
         else:
-            name = left.name
             if (hasattr(lvalues, 'values') and
-                    not isinstance(lvalues, pd.DatetimeIndex)):
+                    not isinstance(lvalues, ABCDatetimeIndex)):
                 lvalues = lvalues.values
+
+        if isinstance(right, (ABCSeries, pd.Index)):
+            # `left` is always a Series object
+            res_name = _maybe_match_name(left, right)
+        else:
+            res_name = left.name
 
         result = wrap_results(safe_na_op(lvalues, rvalues))
         return construct_result(
             left,
             result,
             index=left.index,
-            name=name,
+            name=res_name,
             dtype=dtype,
         )
 
@@ -1354,7 +1366,7 @@ def _comp_method_FRAME(func, name, str_rep, masker=False):
             return self._combine_series_infer(other, func, try_cast=False)
         else:
 
-            # straight boolean comparisions we want to allow all columns
+            # straight boolean comparisons we want to allow all columns
             # (regardless of dtype to pass thru) See #4537 for discussion.
             res = self._combine_const(other, func,
                                       errors='ignore',

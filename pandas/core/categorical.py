@@ -648,7 +648,7 @@ class Categorical(PandasObject):
         Parameters
         ----------
         sort : boolean
-            The value of the sort paramter groupby was called with.
+            The value of the sort parameter groupby was called with.
 
         Returns
         -------
@@ -770,7 +770,7 @@ class Categorical(PandasObject):
            If not given, do not change the ordered information.
         rename : boolean (default: False)
            Whether or not the new_categories should be considered as a rename
-           of the old  categories or as reordered categories.
+           of the old categories or as reordered categories.
         inplace : boolean (default: False)
            Whether or not to reorder the categories inplace or return a copy of
            this categorical with reordered categories.
@@ -1139,7 +1139,7 @@ class Categorical(PandasObject):
         shifted : Categorical
         """
         # since categoricals always have ndim == 1, an axis parameter
-        # doesnt make any sense here.
+        # doesn't make any sense here.
         codes = self.codes
         if codes.ndim > 1:
             raise NotImplementedError("Categorical with ndim > 1.")

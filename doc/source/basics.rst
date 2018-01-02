@@ -436,7 +436,7 @@ General DataFrame Combine
 ~~~~~~~~~~~~~~~~~~~~~~~~~
 
 The :meth:`~DataFrame.combine_first` method above calls the more general
-DataFrame method :meth:`~DataFrame.combine`. This method takes another DataFrame
+:meth:`DataFrame.combine`. This method takes another DataFrame
 and a combiner function, aligns the input DataFrame and then passes the combiner
 function pairs of Series (i.e., columns whose names are the same).
 
@@ -540,8 +540,8 @@ will exclude NAs on Series input by default:
    np.mean(df['one'])
    np.mean(df['one'].values)
 
-``Series`` also has a method :meth:`~Series.nunique` which will return the
-number of unique non-NA values:
+:meth:`Series.nunique` will return the number of unique non-NA values in a 
+Series:
 
 .. ipython:: python
 
@@ -852,7 +852,8 @@ Aggregation API
 The aggregation API allows one to express possibly multiple aggregation operations in a single concise way.
 This API is similar across pandas objects, see :ref:`groupby API <groupby.aggregate>`, the
 :ref:`window functions API <stats.aggregate>`, and the :ref:`resample API <timeseries.aggregate>`.
-The entry point for aggregation is the method :meth:`~DataFrame.aggregate`, or the alias :meth:`~DataFrame.agg`.
+The entry point for aggregation is :meth:`DataFrame.aggregate`, or the alias 
+:meth:`DataFrame.agg`.
 
 We will use a similar starting frame from above:
 
@@ -946,7 +947,7 @@ Mixed Dtypes
 ++++++++++++
 
 When presented with mixed dtypes that cannot aggregate, ``.agg`` will only take the valid
-aggregations. This is similiar to how groupby ``.agg`` works.
+aggregations. This is similar to how groupby ``.agg`` works.
 
 .. ipython:: python
 
@@ -1913,8 +1914,8 @@ dtype of the column will be chosen to accommodate all of the data types
    # string data forces an ``object`` dtype
    pd.Series([1, 2, 3, 6., 'foo'])
 
-The method :meth:`~DataFrame.get_dtype_counts` will return the number of columns of
-each type in a ``DataFrame``:
+The number of columns of each type in a ``DataFrame`` can be found by calling
+:meth:`~DataFrame.get_dtype_counts`.
 
 .. ipython:: python
 

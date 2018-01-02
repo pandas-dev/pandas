@@ -522,7 +522,7 @@ class CategoricalIndex(Index, accessor.PandasDelegate):
         # we always want to return an Index type here
         # to be consistent with .reindex for other index types (e.g. they don't
         # coerce based on the actual values, only on the dtype)
-        # unless we had an inital Categorical to begin with
+        # unless we had an initial Categorical to begin with
         # in which case we are going to conform to the passed Categorical
         new_target = np.asarray(new_target)
         if is_categorical_dtype(target):
@@ -746,7 +746,7 @@ class CategoricalIndex(Index, accessor.PandasDelegate):
 
                 if isinstance(other, ABCCategorical):
                     if not self.values.is_dtype_equal(other):
-                        raise TypeError("categorical index comparisions must "
+                        raise TypeError("categorical index comparisons must "
                                         "have the same categories and ordered "
                                         "attributes")
 

@@ -470,7 +470,7 @@ derived from existing columns.
         .head())
 
 In the example above, we inserted a precomputed value. We can also pass in
-a function of one argument to be evalutated on the DataFrame being assigned to.
+a function of one argument to be evaluated on the DataFrame being assigned to.
 
 .. ipython:: python
 
@@ -957,7 +957,7 @@ pandas to focus on these areas exclusively.
 
 Oftentimes, one can simply use a MultiIndex ``DataFrame`` for easily working with higher dimensional data.
 
-In additon, the ``xarray`` package was built from the ground up, specifically in order to
+In addition, the ``xarray`` package was built from the ground up, specifically in order to
 support the multi-dimensional analysis that is one of ``Panel`` s main usecases.
 `Here is a link to the xarray panel-transition documentation <http://xarray.pydata.org/en/stable/pandas.html#panel-transition>`__.
 

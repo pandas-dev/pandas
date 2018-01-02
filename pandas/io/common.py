@@ -312,7 +312,7 @@ def _get_handle(path_or_buf, mode, encoding=None, compression=None,
     f : file-like
         A file-like object
     handles : list of file-like objects
-        A list of file-like object that were openned in this function.
+        A list of file-like object that were opened in this function.
     """
     try:
         from s3fs import S3File
@@ -533,7 +533,7 @@ else:
             # Fetch UTF-8 output from the queue ...
             data = self.queue.getvalue()
             data = data.decode("utf-8")
-            # ... and reencode it into the target encoding
+            # ... and re-encode it into the target encoding
             data = self.encoder.encode(data)
             # write to the target stream
             self.stream.write(data)
@@ -553,7 +553,7 @@ else:
             # Fetch UTF-8 output from the queue ...
             data = self.queue.getvalue()
             data = data.decode("utf-8")
-            # ... and reencode it into the target encoding
+            # ... and re-encode it into the target encoding
             data = self.encoder.encode(data)
             # write to the target stream
             self.stream.write(data)

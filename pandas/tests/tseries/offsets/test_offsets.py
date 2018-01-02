@@ -11,9 +11,8 @@ import numpy as np
 from pandas.compat.numpy import np_datetime64_compat
 
 from pandas.core.series import Series
-from pandas.tseries.frequencies import (_offset_map, get_freq_code,
-                                        _get_freq_str, _INVALID_FREQ_ERROR,
-                                        get_offset, get_standard_freq)
+from pandas.tseries.frequencies import (_offset_map, get_freq_code, get_offset,
+                                        _get_freq_str, _INVALID_FREQ_ERROR)
 from pandas.core.indexes.datetimes import (
     _to_m8, DatetimeIndex, _daterange_cache)
 import pandas._libs.tslibs.offsets as liboffsets
@@ -113,7 +112,7 @@ class Base(object):
         else:
             try:
                 klass = klass(value, normalize=normalize)
-            except:
+            except Exception:
                 klass = klass(normalize=normalize)
         return klass
 
@@ -143,10 +142,10 @@ class Base(object):
 
         except tslib.OutOfBoundsDatetime:
             raise
-        except (ValueError, KeyError) as e:
-            pytest.skip(
-                "cannot create out_of_range offset: {0} {1}".format(
-                    str(self).split('.')[-1], e))
+        except (ValueError, KeyError):
+            # we are creating an invalid offset
+            # so ignore
+            pass
 
 
 class TestCommon(Base):
@@ -2786,33 +2785,6 @@ def test_get_offset_legacy():
             get_offset(name)
 
 
-def test_get_standard_freq():
-    with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
-        fstr = get_standard_freq('W')
-    with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
-        assert fstr == get_standard_freq('w')
-    with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
-        assert fstr == get_standard_freq('1w')
-    with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
-        assert fstr == get_standard_freq(('W', 1))
-
-    with tm.assert_raises_regex(ValueError, _INVALID_FREQ_ERROR):
-        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
-            get_standard_freq('WeEk')
-
-    with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
-        fstr = get_standard_freq('5Q')
-    with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
-        assert fstr == get_standard_freq('5q')
-
-    with tm.assert_raises_regex(ValueError, _INVALID_FREQ_ERROR):
-        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
-            get_standard_freq('5QuarTer')
-
-    with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
-        assert fstr == get_standard_freq(('q', 5))
-
-
 class TestOffsetAliases(object):
 
     def setup_method(self, method):
@@ -3016,7 +2988,7 @@ class TestDST(object):
                     t.minute == tstart.minute and
                     t.second == tstart.second)
         elif offset_name in self.valid_date_offsets_singular:
-            # expect the signular offset value to match between tstart and t
+            # expect the singular offset value to match between tstart and t
             datepart_offset = getattr(t, offset_name
                                       if offset_name != 'weekday' else
                                       'dayofweek')
@@ -3063,7 +3035,7 @@ class TestDST(object):
                 expected_utc_offset=hrs_post)
 
     def test_fallback_singular(self):
-        # in the case of signular offsets, we dont neccesarily know which utc
+        # in the case of singular offsets, we don't necessarily know which utc
         # offset the new Timestamp will wind up in (the tz for 1 month may be
         # different from 1 second) so we don't specify an expected_utc_offset
         for tz, utc_offsets in self.timezone_utc_offsets.items():

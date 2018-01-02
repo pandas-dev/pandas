@@ -48,18 +48,18 @@ echo
 echo "[update conda]"
 conda config --set ssl_verify false || exit 1
 conda config --set quiet true --set always_yes true --set changeps1 false || exit 1
-conda update -q conda
+
+# TODO(jreback), fix conoda version
+echo
+echo "[conda version]"
+conda install conda=4.4.4
+# conda update -q conda
 
 if [ "$CONDA_BUILD_TEST" ]; then
     echo
     echo "[installing conda-build]"
     conda install conda-build
 fi
-
-# TODO(jreback)
-echo
-echo "[fix conda version]"
-conda install conda=4.3.30
 
 echo
 echo "[add channels]"
@@ -105,6 +105,9 @@ REQ="ci/requirements-${JOB}.build"
 time conda create -n pandas --file=${REQ} || exit 1
 
 source activate pandas
+
+# https://github.com/travis-ci/travis-ci/issues/8920#issuecomment-352661024
+python -c "import fcntl; fcntl.fcntl(1, fcntl.F_SETFL, 0)"
 
 # may have addtl installation instructions for this build
 echo

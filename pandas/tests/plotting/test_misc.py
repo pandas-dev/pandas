@@ -206,6 +206,7 @@ class TestDataFramePlots(TestPlotBase):
     def test_parallel_coordinates_with_sorted_labels(self):
         """ For #15908 """
         from pandas.plotting import parallel_coordinates
+
         df = DataFrame({"feat": [i for i in range(30)],
                         "class": [2 for _ in range(10)] +
                         [3 for _ in range(10)] +
@@ -219,7 +220,7 @@ class TestDataFramePlots(TestPlotBase):
         prev_next_tupels = zip([i for i in ordered_color_label_tuples[0:-1]],
                                [i for i in ordered_color_label_tuples[1:]])
         for prev, nxt in prev_next_tupels:
-            # lables and colors are ordered strictly increasing
+            # labels and colors are ordered strictly increasing
             assert prev[1] < nxt[1] and prev[0] < nxt[0]
 
     @pytest.mark.slow

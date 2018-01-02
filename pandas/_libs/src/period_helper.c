@@ -247,7 +247,7 @@ onError:
 
 ///////////////////////////////////////////////
 
-// frequency specifc conversion routines
+// frequency specific conversion routines
 // each function must take an integer fromDate and
 // a char relation ('S' or 'E' for 'START' or 'END')
 ///////////////////////////////////////////////////////////////////////

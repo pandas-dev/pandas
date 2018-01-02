@@ -117,7 +117,7 @@ class Numeric(Base):
     def test_explicit_conversions(self):
 
         # GH 8608
-        # add/sub are overriden explicity for Float/Int Index
+        # add/sub are overridden explicitly for Float/Int Index
         idx = self._holder(np.arange(5, dtype='int64'))
 
         # float conversions
