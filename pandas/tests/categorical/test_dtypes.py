@@ -6,7 +6,7 @@ import numpy as np
 
 import pandas.util.testing as tm
 from pandas.core.dtypes.dtypes import CategoricalDtype
-from pandas import Categorical, Index, CategoricalIndex
+from pandas import Categorical, Index, CategoricalIndex, Series
 
 
 class TestCategoricalDtypes(object):
@@ -29,6 +29,17 @@ class TestCategoricalDtypes(object):
         assert (c1.is_dtype_equal(
             CategoricalIndex(c1, categories=list('cab'))))
         assert not c1.is_dtype_equal(CategoricalIndex(c1, ordered=True))
+
+        # GH 16659
+        s1 = Series(c1)
+        s2 = Series(c2)
+        s3 = Series(c3)
+        assert c1.is_dtype_equal(s1)
+        assert c2.is_dtype_equal(s2)
+        assert c3.is_dtype_equal(s3)
+        assert c1.is_dtype_equal(s2)
+        assert not c1.is_dtype_equal(s3)
+        assert not c1.is_dtype_equal(s1.astype(object))
 
     def test_set_dtype_same(self):
         c = Categorical(['a', 'b', 'c'])
