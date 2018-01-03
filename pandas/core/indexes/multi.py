@@ -1970,11 +1970,6 @@ class MultiIndex(Index):
             raise NotImplementedError("method='nearest' not implemented yet "
                                       'for MultiIndex; see GitHub issue 9365')
         else:
-            # we may not compare equally because of hashing if we
-            # don't have the same dtypes
-            if self._inferred_type_levels != target._inferred_type_levels:
-                return Index(self.values).get_indexer(target.values)
-
             indexer = self._engine.get_indexer(target)
 
         return _ensure_platform_int(indexer)
@@ -2211,17 +2206,6 @@ class MultiIndex(Index):
                            ''.format(keylen, self.nlevels))
 
         if keylen == self.nlevels and self.is_unique:
-
-            def _maybe_str_to_time_stamp(key, lev):
-                if lev.is_all_dates and not isinstance(key, Timestamp):
-                    try:
-                        return Timestamp(key, tz=getattr(lev, 'tz', None))
-                    except Exception:
-                        pass
-                return key
-
-            key = com._values_from_object(key)
-            key = tuple(map(_maybe_str_to_time_stamp, key, self.levels))
             return self._engine.get_loc(key)
 
         # -- partial selection or non-unique index
@@ -2354,34 +2338,9 @@ class MultiIndex(Index):
                     return indexer, maybe_droplevels(indexer, ilevels,
                                                      drop_level)
 
-                if len(key) == self.nlevels:
-
-                    if self.is_unique:
-
-                        # here we have a completely specified key, but are
-                        # using some partial string matching here
-                        # GH4758
-                        all_dates = ((l.is_all_dates and
-                                      not isinstance(k, compat.string_types))
-                                     for k, l in zip(key, self.levels))
-                        can_index_exactly = any(all_dates)
-                        if (any(l.is_all_dates
-                                for k, l in zip(key, self.levels)) and
-                                not can_index_exactly):
-                            indexer = self.get_loc(key)
-
-                            # we have a multiple selection here
-                            if (not isinstance(indexer, slice) or
-                                    indexer.stop - indexer.start != 1):
-                                return partial_selection(key, indexer)
-
-                            key = tuple(self[indexer].tolist()[0])
-
-                        return (self._engine.get_loc(
-                            com._values_from_object(key)), None)
-
-                    else:
-                        return partial_selection(key)
+                if len(key) == self.nlevels and self.is_unique:
+                    # Complete key in unique index -> standard get_loc
+                    return (self._engine.get_loc(key), None)
                 else:
                     return partial_selection(key)
             else:
