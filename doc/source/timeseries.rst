@@ -60,7 +60,7 @@ Change frequency and fill gaps:
    converted = ts.asfreq('45Min', method='pad')
    converted.head()
 
-Resample:
+Resample the series to a daily frequency:
 
 .. ipython:: python
 
@@ -73,7 +73,7 @@ Resample:
 Overview
 --------
 
-Following table shows the type of time-related classes pandas can handle and
+The ollowing table shows the type of time-related classes pandas can handle and
 how to create them.
 
 =================  =============================== ===================================================================
@@ -112,9 +112,9 @@ For example:
 
    pd.Period('2012-05', freq='D')
 
-``Timestamp`` and ``Period`` can be the index. Lists of ``Timestamp`` and
-``Period`` are automatically coerced to ``DatetimeIndex`` and ``PeriodIndex``
-respectively.
+:class:`Timestamp` and :class:`Period` can serve as an index. Lists of 
+``Timestamp`` and ``Period`` are automatically coerced to :class:`DatetimeIndex`
+and :class:`PeriodIndex` respectively.
 
 .. ipython:: python
 
@@ -149,7 +149,7 @@ future releases.
 Converting to Timestamps
 ------------------------
 
-To convert a ``Series`` or list-like object of date-like objects e.g. strings,
+To convert a :class:`Series` or list-like object of date-like objects e.g. strings,
 epochs, or a mixture, you can use the ``to_datetime`` function. When passed
 a ``Series``, this returns a ``Series`` (with the same index), while a list-like
 is converted to a ``DatetimeIndex``:
@@ -197,7 +197,9 @@ This could also potentially speed up the conversion considerably.
 
     pd.to_datetime('12-11-2010 00:00', format='%d-%m-%Y %H:%M')
 
-For more information on how to specify the ``format`` options, see https://docs.python.org/3/library/datetime.html#strftime-and-strptime-behavior.
+For more information on the choices available when specifying the ``format`` 
+option, see the Python `datetime documentation 
+<https://docs.python.org/3/library/datetime.html#strftime-and-strptime-behavior`__.
 
 Assembling Datetime from Multiple DataFrame Columns
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -449,12 +451,12 @@ The ``DatetimeIndex`` class contains many time series related optimizations:
 
   - A large range of dates for various offsets are pre-computed and cached
     under the hood in order to make generating subsequent date ranges very fast
-    (just have to grab a slice)
-  - Fast shifting using the ``shift`` and ``tshift`` method on pandas objects
+    (just have to grab a slice).
+  - Fast shifting using the ``shift`` and ``tshift`` method on pandas objects.
   - Unioning of overlapping ``DatetimeIndex`` objects with the same frequency is
-    very fast (important for fast data alignment)
+    very fast (important for fast data alignment).
   - Quick access to date fields via properties such as ``year``, ``month``, etc.
-  - Regularization functions like ``snap`` and very fast ``asof`` logic
+  - Regularization functions like ``snap`` and very fast ``asof`` logic.
 
 ``DatetimeIndex`` objects have all the basic functionality of regular ``Index``
 objects, and a smorgasbord of advanced time series specific methods for easy
@@ -515,25 +517,26 @@ would include matching times on an included date:
    dft
    dft['2013']
 
-This starts on the very first time in the month, and includes the last date & time for the month
+This starts on the very first time in the month, and includes the last date and 
+time for the month:
 
 .. ipython:: python
 
    dft['2013-1':'2013-2']
 
-This specifies a stop time **that includes all of the times on the last day**
+This specifies a stop time **that includes all of the times on the last day**:
 
 .. ipython:: python
 
    dft['2013-1':'2013-2-28']
 
-This specifies an **exact** stop time (and is not the same as the above)
+This specifies an **exact** stop time (and is not the same as the above):
 
 .. ipython:: python
 
    dft['2013-1':'2013-2-28 00:00:00']
 
-We are stopping on the included end-point as it is part of the index
+We are stopping on the included end-point as it is part of the index:
 
 .. ipython:: python
 
@@ -589,7 +592,8 @@ A timestamp string with minute resolution (or more accurate), gives a scalar ins
     series_minute['2011-12-31 23:59']
     series_minute['2011-12-31 23:59:00']
 
-If index resolution is second, then, the minute-accurate timestamp gives a ``Series``.
+If index resolution is second, then the minute-accurate timestamp gives a 
+``Series``.
 
 .. ipython:: python
 
@@ -652,10 +656,10 @@ With no defaults.
 Truncating & Fancy Indexing
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-A ``truncate`` convenience function is provided that is similar to slicing.
-Note that ``truncate`` assumes a 0 value for any unspecified date component
-in a ``DatetimeIndex`` in contrast to slicing which returns any partially
-matching dates:
+A :meth:`~DataFrame.truncate` convenience function is provided that is similar 
+to slicing. Note that ``truncate`` assumes a 0 value for any unspecified date 
+component in a ``DatetimeIndex`` in contrast to slicing which returns any 
+partially matching dates:
 
 .. ipython:: python
 
@@ -709,7 +713,9 @@ There are several time/date properties that one can access from ``Timestamp`` or
     is_year_end,"Logical indicating if last day of year (defined by frequency)"
     is_leap_year,"Logical indicating if the date belongs to a leap year"
 
-Furthermore, if you have a ``Series`` with datetimelike values, then you can access these properties via the ``.dt`` accessor, see the :ref:`docs <basics.dt_accessors>`
+Furthermore, if you have a ``Series`` with datetimelike values, then you can 
+access these properties via the ``.dt`` accessor, as detailed in the section
+on :ref:`.dt accessors<basics.dt_accessors>`.
 
 .. _timeseries.offsets:
 
@@ -718,8 +724,8 @@ DateOffset Objects
 
 In the preceding examples, we created ``DatetimeIndex`` objects at various
 frequencies by passing in :ref:`frequency strings <timeseries.offset_aliases>`
-like 'M', 'W', and 'BM to the ``freq`` keyword. Under the hood, these frequency
-strings are being translated into an instance of pandas ``DateOffset``,
+like 'M', 'W', and 'BM' to the ``freq`` keyword. Under the hood, these frequency
+strings are being translated into an instance of :class:`DateOffset`,
 which represents a regular frequency increment. Specific offset logic like
 "month", "business day", or "one hour" is represented in its various subclasses.
 
@@ -761,7 +767,7 @@ which represents a regular frequency increment. Specific offset logic like
     Nano, "one nanosecond"
 
 The basic ``DateOffset`` takes the same arguments as
-``dateutil.relativedelta``, which works like:
+``dateutil.relativedelta``, which works as follows:
 
 .. ipython:: python
 
@@ -777,12 +783,13 @@ We could have done the same thing with ``DateOffset``:
 
 The key features of a ``DateOffset`` object are:
 
-- it can be added / subtracted to/from a datetime object to obtain a
-  shifted date
-- it can be multiplied by an integer (positive or negative) so that the
-  increment will be applied multiple times
-- it has ``rollforward`` and ``rollback`` methods for moving a date forward
-  or backward to the next or previous "offset date"
+- It can be added / subtracted to/from a datetime object to obtain a
+  shifted date.
+- It can be multiplied by an integer (positive or negative) so that the
+  increment will be applied multiple times.
+- It has :meth:`~pandas.DateOffset.rollforward` and 
+  :meth:`~pandas.DateOffset.rollback` methods for moving a date forward or 
+  backward to the next or previous "offset date".
 
 Subclasses of ``DateOffset`` define the ``apply`` function which dictates
 custom date increment logic, such as adding business days:
@@ -811,7 +818,10 @@ The ``rollforward`` and ``rollback`` methods do exactly what you would expect:
 It's definitely worth exploring the ``pandas.tseries.offsets`` module and the
 various docstrings for the classes.
 
-These operations (``apply``, ``rollforward`` and ``rollback``) preserves time (hour, minute, etc) information by default. To reset time, use ``normalize=True`` keyword when creating the offset instance. If ``normalize=True``, result is normalized after the function is applied.
+These operations (``apply``, ``rollforward`` and ``rollback``) preserve time 
+(hour, minute, etc) information by default. To reset time, use ``normalize=True`` 
+when creating the offset instance. If ``normalize=True``, the result is 
+normalized after the function is applied.
 
 
 .. ipython:: python
@@ -847,7 +857,7 @@ particular day of the week:
 
    d - Week()
 
-``normalize`` option will be effective for addition and subtraction.
+The ``normalize`` option will be effective for addition and subtraction.
 
 .. ipython:: python
 
@@ -926,7 +936,7 @@ As an interesting example, let's look at Egypt where a Friday-Saturday weekend i
     dt = datetime(2013, 4, 30)
     dt + 2 * bday_egypt
 
-Let's map to the weekday names
+Let's map to the weekday names:
 
 .. ipython:: python
 
@@ -982,9 +992,10 @@ The ``BusinessHour`` class provides a business hour representation on ``Business
 allowing to use specific start and end times.
 
 By default, ``BusinessHour`` uses 9:00 - 17:00 as business hours.
-Adding ``BusinessHour`` will increment ``Timestamp`` by hourly.
-If target ``Timestamp`` is out of business hours, move to the next business hour then increment it.
-If the result exceeds the business hours end, remaining is added to the next business day.
+Adding ``BusinessHour`` will increment ``Timestamp`` by hourly frequency.
+If target ``Timestamp`` is out of business hours, move to the next business hour 
+then increment it. If the result exceeds the business hours end, the remaining 
+hours are added to the next business day.
 
 .. ipython:: python
 
@@ -1010,9 +1021,10 @@ If the result exceeds the business hours end, remaining is added to the next bus
     # Subtracting 3 business hours
     pd.Timestamp('2014-08-01 10:00') + BusinessHour(-3)
 
-Also, you can specify ``start`` and ``end`` time by keywords.
-Argument must be ``str`` which has ``hour:minute`` representation or ``datetime.time`` instance.
-Specifying seconds, microseconds and nanoseconds as business hour results in ``ValueError``.
+You can also specify ``start`` and ``end`` time by keywords. The argument must 
+be a ``str`` with an ``hour:minute`` representation or a ``datetime.time`` 
+instance. Specifying seconds, microseconds and nanoseconds as business hour 
+results in ``ValueError``.
 
 .. ipython:: python
 
@@ -1068,8 +1080,9 @@ under the default business hours (9:00 - 17:00), there is no gap (0 minutes) bet
     # The result is the same as rollworward because BusinessDay never overlap.
     BusinessHour().apply(pd.Timestamp('2014-08-02'))
 
-``BusinessHour`` regards Saturday and Sunday as holidays. To use arbitrary holidays,
-you can use ``CustomBusinessHour`` offset, see :ref:`Custom Business Hour <timeseries.custombusinesshour>`:
+``BusinessHour`` regards Saturday and Sunday as holidays. To use arbitrary 
+holidays, you can use ``CustomBusinessHour`` offset, as explained in the 
+following subsection.
 
 .. _timeseries.custombusinesshour:
 
