@@ -80,7 +80,7 @@ def set_default_names(data):
     return data
 
 
-def make_field(arr, dtype=None):
+def convert_pandas_type_to_json_field(arr, dtype=None):
     dtype = dtype or arr.dtype
     if arr.name is None:
         name = 'values'
@@ -108,8 +108,8 @@ def make_field(arr, dtype=None):
     return field
 
 
-def revert_field(field):
-    '''
+def convert_json_field_to_pandas_type(field):
+    """
     Converts a JSON field descriptor into its corresponding NumPy / pandas type
 
     Parameters
@@ -120,9 +120,35 @@ def revert_field(field):
     Returns
     -------
     dtype
-    '''
+
+    Raises
+    -----
+    ValueError
+        If the type of the provided field is unknown or currently unsupported
+
+    Examples
+    --------
+    >>> convert_json_field_to_pandas_type({'name': 'an_int',
+                                           'type': 'integer'})
+    'int64'
+    >>> convert_json_field_to_pandas_type({'name': 'a_categorical',
+                                           'type': 'any',
+                                           'contraints': {'enum': [
+                                                          'a', 'b', 'c']},
+                                           'ordered': True})
+    'CategoricalDtype(categories=['a', 'b', 'c'], ordered=True)'
+    >>> convert_json_field_to_pandas_type({'name': 'a_datetime',
+                                           'type': 'datetime'})
+    'datetime64[ns]'
+    >>> convert_json_field_to_pandas_type({'name': 'a_datetime_with_tz',
+                                           'type': 'datetime',
+                                           'tz': 'US/Central'})
+    'datetime64[ns, US/Central]'
+    """
     typ = field['type']
-    if typ == 'integer':
+    if typ == 'string':
+        return 'object'
+    elif typ == 'integer':
         return 'int64'
     elif typ == 'number':
         return 'float64'
@@ -139,7 +165,10 @@ def revert_field(field):
         if 'constraints' in field and 'ordered' in field:
             return CategoricalDtype(categories=field['constraints']['enum'],
                                     ordered=field['ordered'])
-    return 'object'
+        else:
+            return 'object'
+
+    raise ValueError("Unsupported or invalid field type: {}".format(typ))
 
 
 def build_table_schema(data, index=True, primary_key=None, version=True):
@@ -197,15 +226,15 @@ def build_table_schema(data, index=True, primary_key=None, version=True):
     if index:
         if data.index.nlevels > 1:
             for level in data.index.levels:
-                fields.append(make_field(level))
+                fields.append(convert_pandas_type_to_json_field(level))
         else:
-            fields.append(make_field(data.index))
+            fields.append(convert_pandas_type_to_json_field(data.index))
 
     if data.ndim > 1:
         for column, s in data.iteritems():
-            fields.append(make_field(s))
+            fields.append(convert_pandas_type_to_json_field(s))
     else:
-        fields.append(make_field(data))
+        fields.append(convert_pandas_type_to_json_field(data))
 
     schema['fields'] = fields
     if index and data.index.is_unique and primary_key is None:
@@ -242,6 +271,13 @@ def parse_table_schema(json, precise_float):
     NotImplementedError
         If the JSON table schema contains either timezone or timedelta data
 
+    Notes
+    -----
+        Because ``write_json`` uses the string `index` to denote a name-less
+        ``Index``, this function sets the name of the returned ``DataFrame`` to
+        ``None`` when said string is encountered. Therefore, intentional usage
+        of `index` as the ``Index`` name is not supported.
+
     See also
     --------
     build_table_schema : inverse function
@@ -251,7 +287,7 @@ def parse_table_schema(json, precise_float):
     col_order = [field['name'] for field in table['schema']['fields']]
     df = DataFrame(table['data'])[col_order]
 
-    dtypes = {field['name']: revert_field(field)
+    dtypes = {field['name']: convert_json_field_to_pandas_type(field)
               for field in table['schema']['fields']}
 
     # Cannot directly use as_type with timezone data on object; raise for now
@@ -267,7 +303,10 @@ def parse_table_schema(json, precise_float):
     df = df.astype(dtypes)
 
     df = df.set_index(table['schema']['primaryKey'])
-    if all(x.startswith('level_') for x in df.index.names):
-        df.index.names = [None] * len(df.index.names)
+    if len(df.index.names) == 1 and df.index.name == 'index':
+        df.index.name = None
+    else:
+        if all(x.startswith('level_') for x in df.index.names):
+            df.index.names = [None] * len(df.index.names)
 
     return df

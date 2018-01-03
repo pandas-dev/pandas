@@ -12,7 +12,8 @@ from pandas.core.dtypes.dtypes import (
 from pandas.io.json.table_schema import (
     as_json_table_type,
     build_table_schema,
-    make_field,
+    convert_pandas_type_to_json_field,
+    convert_json_field_to_pandas_type,
     set_default_names)
 import pandas.util.testing as tm
 
@@ -335,61 +336,88 @@ class TestTableOrient(object):
         self.df.to_json(orient='table', date_format='iso')
         self.df.to_json(orient='table')
 
-    def test_make_field_int(self):
+    def test_convert_pandas_type_to_json_field_int(self):
         data = [1, 2, 3]
         kinds = [pd.Series(data, name='name'), pd.Index(data, name='name')]
         for kind in kinds:
-            result = make_field(kind)
+            result = convert_pandas_type_to_json_field(kind)
             expected = {"name": "name", "type": 'integer'}
             assert result == expected
 
-    def test_make_field_float(self):
+    def test_convert_pandas_type_to_json_field_float(self):
         data = [1., 2., 3.]
         kinds = [pd.Series(data, name='name'), pd.Index(data, name='name')]
         for kind in kinds:
-            result = make_field(kind)
+            result = convert_pandas_type_to_json_field(kind)
             expected = {"name": "name", "type": 'number'}
             assert result == expected
 
-    def test_make_field_datetime(self):
+    def test_convert_pandas_type_to_json_field_datetime(self):
         data = [1., 2., 3.]
         kinds = [pd.Series(pd.to_datetime(data), name='values'),
                  pd.to_datetime(data)]
         for kind in kinds:
-            result = make_field(kind)
+            result = convert_pandas_type_to_json_field(kind)
             expected = {"name": "values", "type": 'datetime'}
             assert result == expected
 
         kinds = [pd.Series(pd.to_datetime(data, utc=True), name='values'),
                  pd.to_datetime(data, utc=True)]
         for kind in kinds:
-            result = make_field(kind)
+            result = convert_pandas_type_to_json_field(kind)
             expected = {"name": "values", "type": 'datetime', "tz": "UTC"}
             assert result == expected
 
         arr = pd.period_range('2016', freq='A-DEC', periods=4)
-        result = make_field(arr)
+        result = convert_pandas_type_to_json_field(arr)
         expected = {"name": "values", "type": 'datetime', "freq": "A-DEC"}
         assert result == expected
 
-    def test_make_field_categorical(self):
+    def test_convert_pandas_type_to_json_field_categorical(self):
         data = ['a', 'b', 'c']
         ordereds = [True, False]
 
         for ordered in ordereds:
             arr = pd.Series(pd.Categorical(data, ordered=ordered), name='cats')
-            result = make_field(arr)
+            result = convert_pandas_type_to_json_field(arr)
             expected = {"name": "cats", "type": "any",
                         "constraints": {"enum": data},
                         "ordered": ordered}
             assert result == expected
 
             arr = pd.CategoricalIndex(data, ordered=ordered, name='cats')
-            result = make_field(arr)
+            result = convert_pandas_type_to_json_field(arr)
             expected = {"name": "cats", "type": "any",
                         "constraints": {"enum": data},
                         "ordered": ordered}
             assert result == expected
+
+    @pytest.mark.parametrize("inp,exp", [
+        ({'type': 'integer'}, 'int64'),
+        ({'type': 'number'}, 'float64'),
+        ({'type': 'boolean'}, 'bool'),
+        ({'type': 'duration'}, 'timedelta64'),
+        ({'type': 'datetime'}, 'datetime64[ns]'),
+        ({'type': 'datetime', 'tz': 'US/Hawaii'}, 'datetime64[ns, US/Hawaii]'),
+        ({'type': 'any'}, 'object'),
+        ({'type': 'any', 'constraints': {'enum': ['a', 'b', 'c']},
+          'ordered': False}, CategoricalDtype(categories=['a', 'b', 'c'],
+                                              ordered=False)),
+        ({'type': 'any', 'constraints': {'enum': ['a', 'b', 'c']},
+          'ordered': True}, CategoricalDtype(categories=['a', 'b', 'c'],
+                                             ordered=True)),
+        ({'type': 'string'}, 'object')])
+    def test_convert_json_field_to_pandas_type(self, inp, exp):
+        field = {'name': 'foo'}
+        field.update(inp)
+        assert convert_json_field_to_pandas_type(field) == exp
+
+    @pytest.mark.parametrize("inp", ["geopoint", "geojson", "fake_type"])
+    def test_convert_json_field_to_pandas_type_raises(self, inp):
+        field = {'type': inp}
+        with tm.assert_raises_regex(ValueError, "Unsupported or invalid field "
+                                    "type: {}".format(inp)):
+            convert_json_field_to_pandas_type(field)
 
     def test_categorical(self):
         s = pd.Series(pd.Categorical(['a', 'b', 'a']))
@@ -476,91 +504,35 @@ class TestTableOrient(object):
 
 class TestTableOrientReader(object):
 
-    def test_integer(self):
-        df = DataFrame(
-            {'A': [1, 2, 3, 4],
-             },
-            index=pd.Index(range(4), name='idx'))
+    @pytest.mark.parametrize("index_nm", [
+        None, "idx", pytest.param("index", marks=pytest.mark.xfail)])
+    @pytest.mark.parametrize("vals", [
+        {'ints': [1, 2, 3, 4]},
+        {'objects': ['a', 'b', 'c', 'd']},
+        {'date_ranges': pd.date_range('2016-01-01', freq='d', periods=4)},
+        {'categoricals': pd.Series(pd.Categorical(['a', 'b', 'c', 'c']))},
+        {'ordered_cats': pd.Series(pd.Categorical(['a', 'b', 'c', 'c'],
+                                                  ordered=True))},
+        pytest.param({'floats': [1., 2., 3., 4.]}, marks=pytest.mark.xfail),
+        {'floats': [1.1, 2.2, 3.3, 4.4]},
+        {'bools': [True, False, False, True]}])
+    def test_read_json_table_orient(self, index_nm, vals):
+        df = DataFrame(vals, index=pd.Index(range(4), name=index_nm))
         out = df.to_json(orient="table")
         result = pd.read_json(out, orient="table")
         tm.assert_frame_equal(df, result)
 
-    def test_object(self):
-        df = DataFrame(
-            {'B': ['a', 'b', 'c', 'c'],
-             },
-            index=pd.Index(range(4), name='idx'))
+    @pytest.mark.parametrize("index_nm", [
+        None, "idx", pytest.param("index", marks=pytest.mark.xfail)])
+    @pytest.mark.parametrize("vals", [
+        {'timedeltas': pd.timedelta_range('1H', periods=4, freq='T')},
+        {'timezones': pd.date_range('2016-01-01', freq='d', periods=4,
+                                    tz='US/Central')}])
+    def test_read_json_table_orient_raises(self, index_nm, vals):
+        df = DataFrame(vals, index=pd.Index(range(4), name=index_nm))
         out = df.to_json(orient="table")
-        result = pd.read_json(out, orient="table")
-        tm.assert_frame_equal(df, result)
-
-    def test_date_range(self):
-        df = DataFrame(
-            {'C': pd.date_range('2016-01-01', freq='d', periods=4),
-             },
-            index=pd.Index(range(4), name='idx'))
-
-        out = df.to_json(orient="table")
-        result = pd.read_json(out, orient="table")
-        tm.assert_frame_equal(df, result)
-
-    def test_timedelta_raises(self):
-        df = DataFrame(
-            {'D': pd.timedelta_range('1H', periods=4, freq='T'),
-             },
-            index=pd.Index(range(4), name='idx'))
-
-        out = df.to_json(orient="table")
-        with tm.assert_raises_regex(NotImplementedError, 'can not yet read '
-                                    'ISO-formatted Timedelta data'):
+        with tm.assert_raises_regex(NotImplementedError, 'can not yet read '):
             pd.read_json(out, orient="table")
-
-    def test_categorical(self):
-        df = DataFrame(
-            {'E': pd.Series(pd.Categorical(['a', 'b', 'c', 'c'])),
-             'F': pd.Series(pd.Categorical(['a', 'b', 'c', 'c'],
-                                           ordered=True)),
-             },
-            index=pd.Index(range(4), name='idx'))
-
-        out = df.to_json(orient="table")
-        result = pd.read_json(out, orient="table")
-        tm.assert_frame_equal(df, result)
-
-    @pytest.mark.parametrize("float_vals", [
-        pytest.param([1., 2., 3., 4.], marks=pytest.mark.xfail),
-        [1.1, 2.2, 3.3, 4.4]])
-    def test_float(self, float_vals):
-        df = DataFrame(
-            {'G': float_vals,
-             },
-            index=pd.Index(range(4), name='idx'))
-
-        out = df.to_json(orient="table")
-        result = pd.read_json(out, orient="table", convert_axes=False)
-        tm.assert_frame_equal(df, result)
-
-    def test_timezone_raises(self):
-        df = DataFrame(
-            {'H': pd.date_range('2016-01-01', freq='d', periods=4,
-                                tz='US/Central'),
-             },
-            index=pd.Index(range(4), name='idx'))
-
-        out = df.to_json(orient="table")
-        with tm.assert_raises_regex(NotImplementedError, 'can not yet read '
-                                    'timezone data'):
-            pd.read_json(out, orient="table")
-
-    def test_bool(self):
-        df = DataFrame(
-            {'I': [True, False, False, True],
-             },
-            index=pd.Index(range(4), name='idx'))
-
-        out = df.to_json(orient="table")
-        result = pd.read_json(out, orient="table")
-        tm.assert_frame_equal(df, result)
 
     def test_comprehensive(self):
         df = DataFrame(
