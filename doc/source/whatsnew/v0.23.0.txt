@@ -273,8 +273,11 @@ Performance Improvements
 Documentation Changes
 ~~~~~~~~~~~~~~~~~~~~~
 
--
--
+- Changed spelling of "numpy" to "NumPy", and "python" to "Python". (:issue:`19017`) 
+- Consistency when introducing code samples, using either colon or period.
+  Rewrote some sentences for greater clarity, added more dynamic references
+  to functions, methods and classes.
+  (:issue:`18941`, :issue:`18948`, :issue:`18973`, :issue:`19017`) 
 -
 
 .. _whatsnew_0230.bug_fixes:

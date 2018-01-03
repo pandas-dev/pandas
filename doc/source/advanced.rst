@@ -316,7 +316,9 @@ Basic multi-index slicing using slices, lists, and labels.
 
    dfmi.loc[(slice('A1','A3'), slice(None), ['C1', 'C3']), :]
 
-You can use :class:`pandas.IndexSlice` to facilitate a more natural syntax using ``:``, rather than using ``slice(None)``.
+
+You can use :class:`pandas.IndexSlice` to facilitate a more natural syntax 
+using ``:``, rather than using ``slice(None)``.
 
 .. ipython:: python
 
@@ -557,7 +559,7 @@ Take Methods
 
 .. _advanced.take:
 
-Similar to numpy ndarrays, pandas Index, Series, and DataFrame also provides
+Similar to NumPy ndarrays, pandas Index, Series, and DataFrame also provides
 the ``take`` method that retrieves elements along a given axis at the given
 indices. The given indices must be either a list or an ndarray of integer
 index positions. ``take`` will also accept negative integers as relative positions to the end of the object.
@@ -729,7 +731,7 @@ This is an Immutable array implementing an ordered, sliceable set.
 Prior to 0.18.0, the ``Int64Index`` would provide the default index for all ``NDFrame`` objects.
 
 ``RangeIndex`` is a sub-class of ``Int64Index`` added in version 0.18.0, now providing the default index for all ``NDFrame`` objects.
-``RangeIndex`` is an optimized version of ``Int64Index`` that can represent a monotonic ordered set. These are analogous to python `range types <https://docs.python.org/3/library/stdtypes.html#typesseq-range>`__.
+``RangeIndex`` is an optimized version of ``Int64Index`` that can represent a monotonic ordered set. These are analogous to Python `range types <https://docs.python.org/3/library/stdtypes.html#typesseq-range>`__.
 
 .. _indexing.float64index:
 
@@ -763,7 +765,6 @@ The only positional indexing is via ``iloc``.
    sf.iloc[3]
 
 A scalar index that is not found will raise a ``KeyError``.
-
 Slicing is primarily on the values of the index when using ``[],ix,loc``, and 
 **always** positional when using ``iloc``. The exception is when the slice is
 boolean, in which case it will always be positional.

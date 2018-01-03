@@ -118,7 +118,7 @@ Creating a development environment
 ----------------------------------
 
 To test out code changes, you'll need to build pandas from source, which
-requires a C compiler and python environment. If you're making documentation
+requires a C compiler and Python environment. If you're making documentation
 changes, you can skip to :ref:`contributing.documentation` but you won't be able
 to build the documentation locally before pushing your changes.
 
@@ -187,7 +187,7 @@ At this point you should be able to import pandas from your locally built versio
    0.22.0.dev0+29.g4ad6d4d74
 
 This will create the new environment, and not touch any of your existing environments,
-nor any existing python installation.
+nor any existing Python installation.
 
 To view your environments::
 

@@ -164,7 +164,7 @@ dtype : Type name or dict of column -> type, default ``None``
   .. versionadded:: 0.20.0 support for the Python parser.
 
 engine : {``'c'``, ``'python'``}
-  Parser engine to use. The C engine is faster while the python engine is
+  Parser engine to use. The C engine is faster while the Python engine is
   currently more feature-complete.
 converters : dict, default ``None``
   Dict of functions for converting values in certain columns. Keys can either be
@@ -1529,9 +1529,9 @@ Specifying the parser engine
 ''''''''''''''''''''''''''''
 
 Under the hood pandas uses a fast and efficient parser implemented in C as well
-as a python implementation which is currently more feature-complete. Where
+as a Python implementation which is currently more feature-complete. Where
 possible pandas uses the C parser (specified as ``engine='c'``), but may fall
-back to python if C-unsupported options are specified. Currently, C-unsupported
+back to Python if C-unsupported options are specified. Currently, C-unsupported
 options include:
 
 - ``sep`` other than a single character (e.g. regex separators)
@@ -1582,7 +1582,7 @@ function takes a number of arguments. Only the first is required.
     used. (A sequence should be given if the DataFrame uses MultiIndex).
   - ``mode`` : Python write mode, default 'w'
   - ``encoding``: a string representing the encoding to use if the contents are
-    non-ASCII, for python versions prior to 3
+    non-ASCII, for Python versions prior to 3
   - ``line_terminator``: Character sequence denoting line end (default '\\n')
   - ``quoting``: Set quoting rules as in csv module (default csv.QUOTE_MINIMAL). Note that if you have set a `float_format` then floats are converted to strings and csv.QUOTE_NONNUMERIC will treat them as non-numeric
   - ``quotechar``: Character used to quote fields (default '"')
@@ -1851,7 +1851,7 @@ is ``None``. To explicitly force ``Series`` parsing, pass ``typ=series``
 - ``convert_axes`` : boolean, try to convert the axes to the proper dtypes, default is True
 - ``convert_dates`` : a list of columns to parse for dates; If True, then try to parse date-like columns, default is True
 - ``keep_default_dates`` : boolean, default True. If parsing dates, then parse the default date-like columns
-- ``numpy`` : direct decoding to numpy arrays. default is False;
+- ``numpy`` : direct decoding to NumPy arrays. default is False;
   Supports numeric data only, although labels may be non-numeric. Also note that the JSON ordering **MUST** be the same for each term if ``numpy=True``
 - ``precise_float`` : boolean, default ``False``. Set to enable usage of higher precision (strtod) function when decoding string to double values. Default (``False``) is to use fast but less precise builtin functionality
 - ``date_unit`` : string, the timestamp unit to detect if converting dates. Default
@@ -1962,7 +1962,7 @@ The Numpy Parameter
 
 If ``numpy=True`` is passed to ``read_json`` an attempt will be made to sniff
 an appropriate dtype during deserialization and to subsequently decode directly
-to numpy arrays, bypassing the need for intermediate Python objects.
+to NumPy arrays, bypassing the need for intermediate Python objects.
 
 This can provide speedups if you are deserialising a large amount of numeric
 data:
@@ -1999,7 +1999,7 @@ The speedup is less noticeable for smaller datasets:
 
 .. warning::
 
-   Direct numpy decoding makes a number of assumptions and may fail or produce
+   Direct NumPy decoding makes a number of assumptions and may fail or produce
    unexpected output if these assumptions are not satisfied:
 
     - data is numeric.
@@ -3187,7 +3187,7 @@ You can pass ``append=True`` to the writer to append to an existing pack
 
 Unlike other io methods, ``to_msgpack`` is available on both a per-object basis,
 ``df.to_msgpack()`` and using the top-level ``pd.to_msgpack(...)`` where you
-can pack arbitrary collections of python lists, dicts, scalars, while intermixing
+can pack arbitrary collections of Python lists, dicts, scalars, while intermixing
 pandas objects.
 
 .. ipython:: python
@@ -4411,7 +4411,7 @@ Several caveats.
   can ``.reset_index()`` to store the index or ``.reset_index(drop=True)`` to
   ignore it.
 - Duplicate column names and non-string columns names are not supported
-- Non supported types include ``Period`` and actual python object types. These will raise a helpful error message
+- Non supported types include ``Period`` and actual Python object types. These will raise a helpful error message
   on an attempt at serialization.
 
 See the `Full Documentation <https://github.com/wesm/feather>`__
@@ -4475,7 +4475,7 @@ Several caveats.
 - Duplicate column names and non-string columns names are not supported
 - Index level names, if specified, must be strings
 - Categorical dtypes can be serialized to parquet, but will de-serialize as ``object`` dtype.
-- Non supported types include ``Period`` and actual python object types. These will raise a helpful error message
+- Non supported types include ``Period`` and actual Python object types. These will raise a helpful error message
   on an attempt at serialization.
 
 You can specify an ``engine`` to direct the serialization. This can be one of ``pyarrow``, or ``fastparquet``, or ``auto``.

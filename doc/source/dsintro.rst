@@ -23,7 +23,7 @@ Intro to Data Structures
 We'll start with a quick, non-comprehensive overview of the fundamental data
 structures in pandas to get you started. The fundamental behavior about data
 types, indexing, and axis labeling / alignment apply across all of the
-objects. To get started, import numpy and load pandas into your namespace:
+objects. To get started, import NumPy and load pandas into your namespace:
 
 .. ipython:: python
 
@@ -877,7 +877,7 @@ of DataFrames:
    wp['Item3'] = wp['Item1'] / wp['Item2']
 
 The API for insertion and deletion is the same as for DataFrame. And as with
-DataFrame, if the item is a valid python identifier, you can access it as an
+DataFrame, if the item is a valid Python identifier, you can access it as an
 attribute and tab-complete it in IPython.
 
 Transposing
