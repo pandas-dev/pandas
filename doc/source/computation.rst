@@ -57,9 +57,8 @@ Covariance
    s2 = pd.Series(np.random.randn(1000))
    s1.cov(s2)
 
-Analogously, :meth:`DataFrame.cov` to compute 
-pairwise covariances among the series in the DataFrame, also excluding 
-NA/null values.
+Analogously, :meth:`DataFrame.cov` to compute pairwise covariances among the 
+series in the DataFrame, also excluding NA/null values.
 
 .. _computation.covariance.caveats:
 
