@@ -2123,7 +2123,7 @@ class MultiIndex(Index):
         if isinstance(key, int):
             try:
                 return self.get_loc((key,))
-            except LookupError:
+            except (LookupError, TypeError):
                 raise KeyError(key)
 
         if not isinstance(key, tuple):

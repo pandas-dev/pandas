@@ -628,7 +628,11 @@ def _stack_multi_columns(frame, level_num=-1, dropna=True):
     levsize = len(level_labels)
     drop_cols = []
     for key in unique_groups:
-        loc = this.columns.get_loc(key)
+        try:
+            loc = this.columns.get_loc(key)
+        except KeyError:
+            drop_cols.append(key)
+            continue
 
         # can make more efficient?
         # we almost always return a slice
