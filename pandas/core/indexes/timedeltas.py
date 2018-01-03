@@ -371,6 +371,9 @@ class TimedeltaIndex(DatetimeIndexOpsMixin, TimelikeOps, Int64Index):
         return result
 
     def _evaluate_with_timedelta_like(self, other, op, opstr):
+        if isinstance(other, ABCSeries):
+            # GH#19042
+            return NotImplemented
 
         # allow division by a timedelta
         if opstr in ['__div__', '__truediv__', '__floordiv__']:
@@ -910,6 +913,22 @@ TimedeltaIndex._add_comparison_methods()
 TimedeltaIndex._add_numeric_methods()
 TimedeltaIndex._add_logical_methods_disabled()
 TimedeltaIndex._add_datetimelike_methods()
+
+
+def _override_tdi_arith_methods():
+    # GH#19042
+    # TODO: Eventually just do this correctly in indexes.base
+    tdi_mul = TimedeltaIndex.__mul__
+
+    def __mul__(self, other):
+        if isinstance(other, ABCSeries):
+            return NotImplemented
+        return tdi_mul(self, other)
+
+    TimedeltaIndex.__mul__ = __mul__
+
+
+_override_tdi_arith_methods()
 
 
 def _is_convertible_to_index(other):

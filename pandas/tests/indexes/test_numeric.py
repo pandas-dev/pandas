@@ -114,22 +114,6 @@ class Numeric(Base):
         result = idx**2.0
         tm.assert_index_equal(result, expected)
 
-    @pytest.mark.xfail(reason="Index._add_numeric_methods_binary does not "
-                              "return NotImplemented when operating against "
-                              "a Series.")
-    def test_index_with_series(self):
-        # GH#19044
-        idx = self.create_index()
-        didx = idx * idx
-        arr_dtype = 'uint64' if isinstance(idx, UInt64Index) else 'int64'
-        result = idx * Series(np.arange(5, dtype=arr_dtype))
-        tm.assert_series_equal(result, Series(didx))
-
-        result = idx * Series(np.arange(5, dtype='float64') + 0.1)
-        expected = Series(Float64Index(np.arange(5, dtype='float64') *
-                                       (np.arange(5, dtype='float64') + 0.1)))
-        tm.assert_series_equal(result, expected)
-
     def test_explicit_conversions(self):
 
         # GH 8608

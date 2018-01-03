@@ -684,7 +684,11 @@ def _align_method_SERIES(left, right, align_asobject=False):
 
 
 def _construct_result(left, result, index, name, dtype):
-    return left._constructor(result, index=index, name=name, dtype=dtype)
+    out = left._constructor(result, index=index, name=name, dtype=dtype)
+
+    # If `result` has a non-None name and name is None, we need to override.
+    out.name = name
+    return out
 
 
 def _construct_divmod_result(left, result, index, name, dtype):
@@ -775,12 +779,6 @@ def _arith_method_SERIES(op, name, str_rep, fill_zeros=None, default_axis=None,
             res_name = left.name
 
         result = wrap_results(safe_na_op(lvalues, rvalues))
-        try:
-            # if res_name is None we may need to override `result.name`
-            result.name = res_name
-        except AttributeError:
-            # np.ndarray has no name
-            pass
         return construct_result(
             left,
             result,

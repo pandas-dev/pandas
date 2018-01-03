@@ -70,8 +70,7 @@ class TestTimedeltaIndexArithmetic(object):
         tm.assert_index_equal(result, didx)
 
         result = idx * Series(np.arange(5, dtype='int64'))
-        expected = Series(didx)
-        tm.assert_series_equal(result, expected)
+        tm.assert_series_equal(result, Series(didx))
 
         rng5 = np.arange(5, dtype='float64')
         result = idx * Series(rng5 + 0.1)
