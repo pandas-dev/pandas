@@ -4022,7 +4022,8 @@ class Index(IndexOpsMixin, PandasObject):
             def _evaluate_numeric_binop(self, other):
                 if (isinstance(other, ABCSeries) and
                         self.dtype == "timedelta64[ns]"):
-                    # GH#19042
+                    # GH#19042 This needs to be changed for all Index classes,
+                    # but is only being handled for TimedeltaIndex in this PR.
                     return NotImplemented
                 other = self._validate_for_numeric_binop(other, op, opstr)
 
