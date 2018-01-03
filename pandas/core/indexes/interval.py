@@ -94,16 +94,28 @@ def _get_interval_closed_bounds(interval):
     return left, right
 
 
-def _maybe_convert_platform_interval(data):
+def maybe_convert_platform_interval(values):
     """
-    Try to do platform conversion, with special casing for IntervalIndex
+    Try to do platform conversion, with special casing for IntervalIndex.
+    Wrapper around maybe_convert_platform that alters the default return
+    dtype in certain cases to be compatible with IntervalIndex.  For example,
+    empty lists return with integer dtype instead of object dtype, which is
+    prohibited for IntervalIndex.
+
+    Parameters
+    ----------
+    values : array-like
+
+    Returns
+    -------
+    array
     """
-    if isinstance(data, (list, tuple)) and len(data) == 0:
+    if isinstance(values, (list, tuple)) and len(values) == 0:
         # GH 19016
         # empty lists/tuples get object dtype by default, but this is not
         # prohibited for IntervalIndex, so coerce to integer instead
         return np.array([], dtype=np.intp)
-    return maybe_convert_platform(data)
+    return maybe_convert_platform(values)
 
 
 def _new_IntervalIndex(cls, d):
@@ -220,7 +232,7 @@ class IntervalIndex(IntervalMixin, Index):
             if is_scalar(data):
                 cls._scalar_data_error(data)
 
-            data = _maybe_convert_platform_interval(data)
+            data = maybe_convert_platform_interval(data)
             left, right, infer_closed = intervals_to_interval_bounds(data)
 
             if _all_not_none(closed, infer_closed) and closed != infer_closed:
@@ -422,7 +434,7 @@ class IntervalIndex(IntervalMixin, Index):
         IntervalIndex.from_tuples : Construct an IntervalIndex from a
                                     list/array of tuples
         """
-        breaks = _maybe_convert_platform_interval(breaks)
+        breaks = maybe_convert_platform_interval(breaks)
 
         return cls.from_arrays(breaks[:-1], breaks[1:], closed,
                                name=name, copy=copy)
@@ -463,8 +475,8 @@ class IntervalIndex(IntervalMixin, Index):
         IntervalIndex.from_tuples : Construct an IntervalIndex from a
                                     list/array of tuples
         """
-        left = _maybe_convert_platform_interval(left)
-        right = _maybe_convert_platform_interval(right)
+        left = maybe_convert_platform_interval(left)
+        right = maybe_convert_platform_interval(right)
 
         return cls._simple_new(left, right, closed, name=name,
                                copy=copy, verify_integrity=True)
@@ -512,7 +524,7 @@ class IntervalIndex(IntervalMixin, Index):
             left, right, closed = data.left, data.right, data.closed
             name = name or data.name
         else:
-            data = _maybe_convert_platform_interval(data)
+            data = maybe_convert_platform_interval(data)
             left, right, closed = intervals_to_interval_bounds(data)
         return cls.from_arrays(left, right, closed, name=name, copy=False)
 
