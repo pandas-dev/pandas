@@ -91,6 +91,8 @@ class TestClipboard(object):
             self.check_round_trip_frame(dt)
 
     def test_read_clipboard_infer_excel(self):
+        # gh-19010: avoid warnings
+        clip_kwargs = dict(engine="python")
 
         text = dedent("""
             John James	Charlie Mingus
@@ -98,7 +100,7 @@ class TestClipboard(object):
             4	Harry Carney
             """.strip())
         clipboard_set(text)
-        df = pd.read_clipboard()
+        df = pd.read_clipboard(**clip_kwargs)
 
         # excel data is parsed correctly
         assert df.iloc[1][1] == 'Harry Carney'
@@ -110,7 +112,7 @@ class TestClipboard(object):
             3  4
             """.strip())
         clipboard_set(text)
-        res = pd.read_clipboard()
+        res = pd.read_clipboard(**clip_kwargs)
 
         text = dedent("""
             a  b
@@ -118,7 +120,7 @@ class TestClipboard(object):
             3  4
             """.strip())
         clipboard_set(text)
-        exp = pd.read_clipboard()
+        exp = pd.read_clipboard(**clip_kwargs)
 
         tm.assert_frame_equal(res, exp)
 
