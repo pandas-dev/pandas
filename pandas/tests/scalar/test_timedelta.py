@@ -853,3 +853,18 @@ class TestTimedeltas(object):
         result = Timedelta(minutes=1).isoformat()
         expected = 'P0DT0H1M0S'
         assert result == expected
+
+    @pytest.mark.parametrize('fmt,exp', [
+        ('P6DT0H50M3.010010012S', Timedelta(days=6, minutes=50, seconds=3,
+                                            milliseconds=10, microseconds=10,
+                                            nanoseconds=12)),
+        ('P-6DT0H50M3.010010012S', Timedelta(days=-6, minutes=50, seconds=3,
+                                             milliseconds=10, microseconds=10,
+                                             nanoseconds=12)),
+        ('P4DT12H30M5S', Timedelta(days=4, hours=12, minutes=30, seconds=5)),
+        ('P0DT0H0M0.000000123S', Timedelta(nanoseconds=123)),
+        ('P0DT0H0M0.00001S', Timedelta(microseconds=10)),
+        ('P0DT0H0M0.001S', Timedelta(milliseconds=1)),
+        ('P0DT0H1M0S', Timedelta(minutes=1))])
+    def test_iso_constructor(self, fmt, exp):
+        assert Timedelta(fmt) == exp

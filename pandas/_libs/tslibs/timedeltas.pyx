@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 # cython: profile=False
 import collections
+import re
 
 import sys
 cdef bint PY3 = (sys.version_info[0] >= 3)
@@ -233,6 +234,25 @@ cpdef inline int64_t cast_from_unit(object ts, object unit) except? -1:
     if p:
         frac = round(frac, p)
     return <int64_t> (base *m) + <int64_t> (frac *m)
+
+
+cpdef match_iso_format(object ts):
+    """
+    Match a provided string against an ISO 8601 pattern, providing a group for
+    each ``Timedelta`` component.
+    """
+    pater = re.compile(r"""P
+                       (?P<days>-?[0-9]*)DT
+                       (?P<hours>[0-9]{1,2})H
+                       (?P<minutes>[0-9]{1,2})M
+                       (?P<seconds>[0-9]{0,2})
+                       (\.
+                       (?P<milliseconds>[0-9]{0,3})
+                       (?P<microseconds>[0-9]{0,3})
+                       (?P<nanoseconds>[0-9]{0,3})
+                       )?S""", re.VERBOSE)
+
+    return re.match(pater, ts)
 
 
 cdef inline parse_timedelta_string(object ts):
@@ -505,6 +525,33 @@ def _binary_op_method_timedeltalike(op, name):
 
 # ----------------------------------------------------------------------
 # Timedelta Construction
+
+def _value_from_iso_match(match):
+    """
+    Extracts and cleanses the appropriate values from a match object with
+    groups for each component of an ISO 8601 duration
+
+    Parameters
+    ----------
+    match:
+        Regular expression with groups for each component of an ISO 8601
+        duration
+
+    Returns
+    -------
+    int
+        Precision in nanoseconds of matched ISO 8601 duration
+    """
+    match_dict = {k: v for k, v in match.groupdict().items() if v}
+    for comp in ['milliseconds', 'microseconds', 'nanoseconds']:
+        if comp in match_dict:
+            match_dict[comp] ='{:0<3}'.format(match_dict[comp])
+
+    match_dict = {k: int(v) for k, v in match_dict.items()}
+    nano = match_dict.pop('nanoseconds', 0)
+
+    return nano + convert_to_timedelta64(timedelta(**match_dict), 'ns')
+
 
 cdef _to_py_int_float(v):
     # Note: This used to be defined inside Timedelta.__new__
@@ -825,7 +872,11 @@ class Timedelta(_Timedelta):
         if isinstance(value, Timedelta):
             value = value.value
         elif is_string_object(value):
-            value = np.timedelta64(parse_timedelta_string(value))
+            if len(value) > 0 and value[0] == 'P':  # hackish
+                match = match_iso_format(value)
+                value = _value_from_iso_match(match)
+            else:
+                value = np.timedelta64(parse_timedelta_string(value))
         elif PyDelta_Check(value):
             value = convert_to_timedelta64(value, 'ns')
         elif is_timedelta64_object(value):
