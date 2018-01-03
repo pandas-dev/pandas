@@ -1,7 +1,7 @@
 import numpy as np
 import pandas.util.testing as tm
-from pandas import (Series, date_range, DatetimeIndex, Index, MultiIndex,
-                    RangeIndex)
+from pandas import (Series, date_range, DatetimeIndex, Index, RangeIndex,
+                    Float64Index)
 
 from .pandas_vb_common import setup  # noqa
 
@@ -84,66 +84,6 @@ class Ops(object):
         self.index % 2
 
 
-class Duplicated(object):
-
-    goal_time = 0.2
-
-    def setup(self):
-        n, k = 200, 5000
-        levels = [np.arange(n),
-                  tm.makeStringIndex(n).values,
-                  1000 + np.arange(n)]
-        labels = [np.random.choice(n, (k * n)) for lev in levels]
-        self.mi = MultiIndex(levels=levels, labels=labels)
-
-    def time_duplicated(self):
-        self.mi.duplicated()
-
-
-class Sortlevel(object):
-
-    goal_time = 0.2
-
-    def setup(self):
-        n = 1182720
-        low, high = -4096, 4096
-        arrs = [np.repeat(np.random.randint(low, high, (n // k)), k)
-                for k in [11, 7, 5, 3, 1]]
-        self.mi_int = MultiIndex.from_arrays(arrs)[np.random.permutation(n)]
-
-        a = np.repeat(np.arange(100), 1000)
-        b = np.tile(np.arange(1000), 100)
-        self.mi = MultiIndex.from_arrays([a, b])
-        self.mi = self.mi.take(np.random.permutation(np.arange(100000)))
-
-    def time_sortlevel_int64(self):
-        self.mi_int.sortlevel()
-
-    def time_sortlevel_zero(self):
-        self.mi.sortlevel(0)
-
-    def time_sortlevel_one(self):
-        self.mi.sortlevel(1)
-
-
-class MultiIndexValues(object):
-
-    goal_time = 0.2
-
-    def setup_cache(self):
-
-        level1 = range(1000)
-        level2 = date_range(start='1/1/2012', periods=100)
-        mi = MultiIndex.from_product([level1, level2])
-        return mi
-
-    def time_datetime_level_values_copy(self, mi):
-        mi.copy().values
-
-    def time_datetime_level_values_sliced(self, mi):
-        mi[:10].values
-
-
 class Range(object):
 
     goal_time = 0.2
@@ -222,3 +162,16 @@ class Indexing(object):
 
     def time_slice_step(self, dtype):
         self.idx[::2]
+
+
+class Float64IndexMethod(object):
+    # GH 13166
+    goal_time = 0.2
+
+    def setup(self):
+        N = 100000
+        a = np.arange(N)
+        self.ind = Float64Index(a * 4.8000000418824129e-08)
+
+    def time_get_loc(self):
+        self.ind.get_loc(0)

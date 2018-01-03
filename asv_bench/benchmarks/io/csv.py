@@ -132,7 +132,7 @@ class S3(object):
             # The Python 2 C parser can't read bz2 from open files.
             raise NotImplementedError
         try:
-            import s3fs
+            import s3fs  # noqa
         except ImportError:
             # Skip these benchmarks if `boto` is not installed.
             raise NotImplementedError
