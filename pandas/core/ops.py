@@ -775,6 +775,12 @@ def _arith_method_SERIES(op, name, str_rep, fill_zeros=None, default_axis=None,
             res_name = left.name
 
         result = wrap_results(safe_na_op(lvalues, rvalues))
+        try:
+            # if res_name is None we may need to override `result.name`
+            result.name = res_name
+        except AttributeError:
+            # np.ndarray has no name
+            pass
         return construct_result(
             left,
             result,

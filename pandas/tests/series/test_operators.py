@@ -1038,6 +1038,71 @@ class TestTimedeltaSeriesArithmetic(object):
         expected = Series([0, 0, np.nan])
         tm.assert_series_equal(result, expected)
 
+    @pytest.mark.parametrize('names', [(None, None, None),
+                                       ('Egon', 'Venkman', None),
+                                       ('NCC1701D', 'NCC1701D', 'NCC1701D')])
+    def test_td64_series_with_tdi(self, names):
+        # GH#17250 make sure result dtype is correct
+        # GH#19043 make sure names are propogated correctly
+        tdi = pd.TimedeltaIndex(['0 days', '1 day'], name=names[0])
+        ser = Series([Timedelta(hours=3), Timedelta(hours=4)], name=names[1])
+        expected = Series([Timedelta(hours=3), Timedelta(days=1, hours=4)],
+                          name=names[2])
+
+        result = tdi + ser
+        tm.assert_series_equal(result, expected)
+        assert result.dtype == 'timedelta64[ns]'
+
+        result = ser + tdi
+        tm.assert_series_equal(result, expected)
+        assert result.dtype == 'timedelta64[ns]'
+
+        expected = Series([Timedelta(hours=-3), Timedelta(days=1, hours=-4)],
+                          name=names[2])
+
+        result = tdi - ser
+        tm.assert_series_equal(result, expected)
+        assert result.dtype == 'timedelta64[ns]'
+
+        result = ser - tdi
+        tm.assert_series_equal(result, -expected)
+        assert result.dtype == 'timedelta64[ns]'
+
+    @pytest.mark.parametrize('names', [(None, None, None),
+                                       ('Egon', 'Venkman', None),
+                                       ('NCC1701D', 'NCC1701D', 'NCC1701D')])
+    def test_tdi_mul_int_series(self, names):
+        # GH#19042
+        tdi = pd.TimedeltaIndex(['0days', '1day', '2days', '3days', '4days'],
+                                name=names[0])
+        ser = Series([0, 1, 2, 3, 4], dtype=np.int64, name=names[1])
+
+        expected = Series(['0days', '1day', '4days', '9days', '16days'],
+                          dtype='timedelta64[ns]',
+                          name=names[2])
+
+        result = tdi * ser
+        tm.assert_series_equal(result, expected)
+
+        result = ser * tdi
+        tm.assert_series_equal(result, expected)
+
+    @pytest.mark.parametrize('names', [(None, None, None),
+                                       ('Egon', 'Venkman', None),
+                                       ('NCC1701D', 'NCC1701D', 'NCC1701D')])
+    def test_tdi_div_float_series(self, names):
+        # GH#19042
+        tdi = pd.TimedeltaIndex(['0days', '1day', '2days', '3days', '4days'],
+                                name=names[0])
+        ser = Series([1.5, 3, 4.5, 6, 7.5], dtype=np.float64, name=names[1])
+
+        expected = Series([tdi[n] / ser[n] for n in range(len(ser))],
+                          dtype='timedelta64[ns]',
+                          name=names[2])
+
+        result = tdi / ser
+        tm.assert_series_equal(result, expected)
+
 
 class TestDatetimeSeriesArithmetic(object):
     @pytest.mark.parametrize(
