@@ -2120,6 +2120,12 @@ class MultiIndex(Index):
             mask[loc] = True
             return mask
 
+        if isinstance(key, int):
+            try:
+                return self.get_loc((key,))
+            except LookupError:
+                raise KeyError(key)
+
         if not isinstance(key, tuple):
             loc = self._get_level_indexer(key, level=0)
             return _maybe_to_slice(loc)
