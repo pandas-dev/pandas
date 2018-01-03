@@ -7,7 +7,6 @@ from pandas import Interval, IntervalIndex, Int64Index
 from pandas.tests.indexes.common import Base
 import pandas.util.testing as tm
 
-
 pytestmark = pytest.mark.skip(reason="new indexing tests for issue 16316")
 
 
@@ -21,8 +20,8 @@ class TestIntervalIndex(Base):
         tm.assert_numpy_array_equal(ridx, ridx_expected)
 
     @pytest.mark.parametrize("ivl_side", ['right', 'left', 'both', 'neither'])
-    @pytest.mark.parametrize("other_side", ['right', 'left', 'both', 'neither'])
-    def test_interval_covers_interval(self, ivl_side, other_side):
+    @pytest.mark.parametrize("oth_side", ['right', 'left', 'both', 'neither'])
+    def test_interval_covers_interval(self, ivl_side, oth_side):
 
         # class Interval:
         #     def covers(self, other: Interval) -> bool
@@ -34,7 +33,7 @@ class TestIntervalIndex(Base):
         assert not Interval(1, 3).covers(Interval(1.5, 3.5))
 
         ivl = Interval(1, 3, closed=ivl_side)
-        other = Interval(1, 3, closed=other_side)
+        other = Interval(1, 3, closed=oth_side)
 
         should_cover = {
             'right': {
@@ -47,12 +46,12 @@ class TestIntervalIndex(Base):
                 'right': False, 'left': False, 'both': False, 'neither': True}
         }
 
-        assert ivl.covers(other) == should_cover[ivl_side][other_side]
+        assert ivl.covers(other) == should_cover[ivl_side][oth_side]
 
     @pytest.mark.parametrize("ivl_side", ['right', 'left', 'both', 'neither'])
-    @pytest.mark.parametrize("other_side", ['right', 'left', 'both', 'neither'])
+    @pytest.mark.parametrize("oth_side", ['right', 'left', 'both', 'neither'])
     @pytest.mark.parametrize("ivl_range", [(1, 3), (-1, 1), (3, 5)])
-    def test_interval_overlaps_interval(self, ivl_side, other_side, ivl_range):
+    def test_interval_overlaps_interval(self, ivl_side, oth_side, ivl_range):
 
         # class Interval:
         #     def overlaps(self, other: Interval) -> bool
@@ -67,7 +66,7 @@ class TestIntervalIndex(Base):
         assert not Interval(1, 3).overlaps(Interval(3, 5))
 
         ivl = Interval(*ivl_range, closed=ivl_side)
-        other = Interval(1, 3, closed=other_side)
+        other = Interval(1, 3, closed=oth_side)
 
         should_overlap = {
             # idx_side:
@@ -98,7 +97,9 @@ class TestIntervalIndex(Base):
             }
         }
 
-        assert ivl.overlaps(other) == should_overlap[other_side][ivl_side][ivl_range] == other.overlaps(ivl)
+        assert ivl.overlaps(other) == \
+               should_overlap[oth_side][ivl_side][ivl_range] == \
+               other.overlaps(ivl)
 
     @pytest.mark.parametrize("idx_side", ['right', 'left', 'both', 'neither'])
     @pytest.mark.parametrize("ivl_side", ['right', 'left', 'both', 'neither'])
@@ -107,6 +108,9 @@ class TestIntervalIndex(Base):
 
         # class Interval:
         #     def covers(self, other: IntervalIndex) -> IntegerArray1D
+
+        # class IntervalIndex:
+        #     def covers(self, other: Interval) -> IntegerArray1D
 
         idx = IntervalIndex.from_tuples([(0, 1), (2, 3), (1, 3)], closed=idx_side)
         ivl = Interval(*ivl_range, closed=ivl_side)
@@ -168,6 +172,9 @@ class TestIntervalIndex(Base):
 
         # class Interval:
         #     def overlaps(self, other: IntervalIndex) -> IntegerArray1D
+
+        # class IntervalIndex:
+        #     def overlaps(self, other: Interval) -> IntegerArray1D
 
         idx = IntervalIndex.from_tuples([(0, 1), (2, 3), (1, 3)], closed=idx_side)
         ivl = Interval(*ivl_range, closed=ivl_side)
