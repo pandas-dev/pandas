@@ -15,8 +15,7 @@ from pandas.core.api import DataFrame, Panel
 from pandas.core.computation import expressions as expr
 from pandas import compat, _np_version_under1p11, _np_version_under1p13
 from pandas.util.testing import (assert_almost_equal, assert_series_equal,
-                                 assert_frame_equal, assert_panel_equal,
-                                 assert_panel4d_equal)
+                                 assert_frame_equal, assert_panel_equal)
 from pandas.io.formats.printing import pprint_thing
 import pandas.util.testing as tm
 
@@ -204,12 +203,6 @@ class TestExpressions(object):
     @pytest.mark.slow
     def test_float_panel(self):
         self.run_panel(_frame2_panel, np.random.randn() + 0.1, binary_comp=0.8)
-
-    @pytest.mark.slow
-    def test_panel4d(self):
-        with catch_warnings(record=True):
-            self.run_panel(tm.makePanel4D(), np.random.randn() + 0.5,
-                           assert_func=assert_panel4d_equal, binary_comp=3)
 
     def test_mixed_arithmetic_frame(self):
         # TODO: FIGURE OUT HOW TO GET IT TO WORK...

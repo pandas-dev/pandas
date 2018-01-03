@@ -42,7 +42,7 @@ from pandas.compat import (
 from pandas import (bdate_range, CategoricalIndex, Categorical, IntervalIndex,
                     DatetimeIndex, TimedeltaIndex, PeriodIndex, RangeIndex,
                     Index, MultiIndex,
-                    Series, DataFrame, Panel, Panel4D)
+                    Series, DataFrame, Panel)
 
 from pandas._libs import testing as _testing
 from pandas.io.common import urlopen
@@ -1333,8 +1333,6 @@ def assert_panelnd_equal(left, right,
 _panel_frame_equal = partial(assert_frame_equal, check_names=False)
 assert_panel_equal = partial(assert_panelnd_equal,
                              assert_func=_panel_frame_equal)
-assert_panel4d_equal = partial(assert_panelnd_equal,
-                               assert_func=assert_panel_equal)
 
 
 # -----------------------------------------------------------------------------
@@ -1672,13 +1670,6 @@ def makePeriodPanel(nper=None):
         cols = ['Item' + c for c in string.ascii_uppercase[:K - 1]]
         data = {c: makePeriodFrame(nper) for c in cols}
         return Panel.fromDict(data)
-
-
-def makePanel4D(nper=None):
-    with warnings.catch_warnings(record=True):
-        d = dict(l1=makePanel(nper), l2=makePanel(nper),
-                 l3=makePanel(nper))
-        return Panel4D(d)
 
 
 def makeCustomIndex(nentries, nlevels, prefix='#', names=False, ndupe_l=None,

@@ -99,13 +99,6 @@ class TestIsNA(object):
                 expected = p.apply(isna_f)
                 tm.assert_panel_equal(result, expected)
 
-        # panel 4d
-        with catch_warnings(record=True):
-            for p in [tm.makePanel4D(), tm.add_nans_panel4d(tm.makePanel4D())]:
-                result = isna_f(p)
-                expected = p.apply(isna_f)
-                tm.assert_panel4d_equal(result, expected)
-
     def test_isna_lists(self):
         result = isna([[False]])
         exp = np.array([[False]])

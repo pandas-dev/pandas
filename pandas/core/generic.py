@@ -7146,7 +7146,7 @@ class NDFrame(PandasObject, SelectionMixin):
         DataFrame.select_dtypes
         """
         if self.ndim >= 3:
-            msg = "describe is not implemented on Panel or PanelND objects."
+            msg = "describe is not implemented on Panel objects."
             raise NotImplementedError(msg)
         elif self.ndim == 2 and self.columns.size == 0:
             raise ValueError("Cannot describe a DataFrame without columns")

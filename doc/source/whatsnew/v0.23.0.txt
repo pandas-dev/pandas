@@ -249,6 +249,7 @@ Removal of prior version deprecations/changes
 - The ``Series``, ``Categorical``, and ``Index`` classes have dropped the ``reshape`` method (:issue:`13012`)
 - ``pandas.tseries.frequencies.get_standard_freq`` has been removed in favor of ``pandas.tseries.frequencies.to_offset(freq).rule_code`` (:issue:`13874`)
 - The ``freqstr`` keyword has been removed from ``pandas.tseries.frequencies.to_offset`` in favor of ``freq`` (:issue:`13874`)
+- The ``Panel4D`` and ``PanelND`` classes have been removed (:issue:`13776`)
 
 .. _whatsnew_0230.performance:
 

@@ -982,21 +982,3 @@ Alternatively, one can convert to an xarray ``DataArray``.
    p.to_xarray()
 
 You can see the full-documentation for the `xarray package <http://xarray.pydata.org/en/stable/>`__.
-
-.. _dsintro.panelnd:
-.. _dsintro.panel4d:
-
-Panel4D and PanelND (Deprecated)
---------------------------------
-
-.. warning::
-
-    In 0.19.0 ``Panel4D`` and ``PanelND`` are deprecated and will be removed in
-    a future version. The recommended way to represent these types of
-    n-dimensional data are with the
-    `xarray package <http://xarray.pydata.org/en/stable/>`__.
-    Pandas provides a :meth:`~Panel4D.to_xarray` method to automate
-    this conversion.
-
-See the `docs of a previous version <http://pandas.pydata.org/pandas-docs/version/0.18.1/dsintro.html#panel4d-experimental>`__
-for documentation on these objects.
