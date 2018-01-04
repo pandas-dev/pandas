@@ -140,9 +140,10 @@ class PandasDelegate(object):
 
 class _CachedAccessor(object):
     """Custom property-like object (descriptor) for caching accessors."""
-    def __init__(self, name, accessor):
+    def __init__(self, name, accessor, cache=True):
         self._name = name
         self._accessor = accessor
+        self._cache = cache
 
     def __get__(self, obj, cls):
         if obj is None:
@@ -153,11 +154,12 @@ class _CachedAccessor(object):
         # http://www.pydanny.com/cached-property.html
         # We need to use object.__setattr__ because we overwrite __setattr__ on
         # NDFrame
-        object.__setattr__(obj, self._name, accessor_obj)
+        if self._cache:
+            object.__setattr__(obj, self._name, accessor_obj)
         return accessor_obj
 
 
-def _register_accessor(name, cls):
+def _register_accessor(name, cls, cache=True):
     def decorator(accessor):
         if hasattr(cls, name):
             warnings.warn(
@@ -166,12 +168,12 @@ def _register_accessor(name, cls):
                 'name.'.format(accessor, name, cls),
                 AccessorRegistrationWarning,
                 stacklevel=2)
-        setattr(cls, name, _CachedAccessor(name, accessor))
+        setattr(cls, name, _CachedAccessor(name, accessor, cache=cache))
         return accessor
     return decorator
 
 
-def register_dataframe_accessor(name):
+def register_dataframe_accessor(name, cache=True):
     """Register a custom accessor on pandas.DataFrame objects.
 
     Parameters
@@ -217,10 +219,10 @@ def register_dataframe_accessor(name):
     register_series_accessor
     """
     from pandas import DataFrame
-    return _register_accessor(name, DataFrame)
+    return _register_accessor(name, DataFrame, cache=cache)
 
 
-def register_series_accessor(name):
+def register_series_accessor(name, cache=True):
     """Register a custom accessor on pandas.Series objects.
 
     Parameters
@@ -235,10 +237,10 @@ def register_series_accessor(name):
     register_index_accessor
     """
     from pandas import Series
-    return _register_accessor(name, Series)
+    return _register_accessor(name, Series, cache=cache)
 
 
-def register_index_accessor(name):
+def register_index_accessor(name, cache=True):
     """Register a custom accessor on pandas.Index objects.
 
     Parameters
@@ -253,4 +255,4 @@ def register_index_accessor(name):
     register_series_accessor
     """
     from pandas import Index
-    return _register_accessor(name, Index)
+    return _register_accessor(name, Index, cache=cache)

@@ -3058,17 +3058,6 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         return self._constructor(new_values,
                                  index=new_index).__finalize__(self)
 
-    # -------------------------------------------------------------------------
-    # Datetimelike delegation methods
-    dt = accessor.AccessorProperty(CombinedDatetimelikeProperties)
-
-    # -------------------------------------------------------------------------
-    # Categorical methods
-    # cat = accessor.AccessorProperty(CategoricalAccessor)
-
-    # String Methods
-    # str = accessor.AccessorProperty(strings.StringMethods)
-
     # ----------------------------------------------------------------------
     # Add plotting methods to Series
     plot = accessor.AccessorProperty(gfx.SeriesPlotMethods,
