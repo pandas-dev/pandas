@@ -3153,3 +3153,21 @@ def test_weekofmonth_onoffset():
     fast = offset.onOffset(ts)
     slow = (ts + offset) - offset == ts
     assert fast == slow
+
+
+def test_last_week_of_month_on_offset():
+    # GH#19036, GH#18977 _adjust_dst was incorrect for LastWeekOfMonth
+    offset = LastWeekOfMonth(n=4, weekday=6)
+    ts = Timestamp('1917-05-27 20:55:27.084284178+0200',
+                   tz='Europe/Warsaw')
+    slow = (ts + offset) - offset == ts
+    fast = offset.onOffset(ts)
+    assert fast == slow
+
+    # negative n
+    offset = LastWeekOfMonth(n=-4, weekday=5)
+    ts = Timestamp('2005-08-27 05:01:42.799392561-0500',
+                   tz='America/Rainy_River')
+    slow = (ts + offset) - offset == ts
+    fast = offset.onOffset(ts)
+    assert fast == slow
