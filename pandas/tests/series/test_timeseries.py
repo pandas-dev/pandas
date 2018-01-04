@@ -107,7 +107,7 @@ class TestTimeSeries(TestData):
         # incompat tz
         s2 = Series(date_range('2000-01-01 09:00:00', periods=5,
                                tz='CET'), name='foo')
-        pytest.raises(ValueError, lambda: s - s2)
+        pytest.raises(TypeError, lambda: s - s2)
 
     def test_shift2(self):
         ts = Series(np.random.randn(5),
