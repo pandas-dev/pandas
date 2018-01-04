@@ -138,8 +138,23 @@ class PandasDelegate(object):
 # https://github.com/pydata/xarray/blob/master/xarray/core/extensions.py
 
 
-class _CachedAccessor(object):
-    """Custom property-like object (descriptor) for caching accessors."""
+class _CachableAccessor(object):
+    """Custom property-like object (descriptor) for caching accessors.
+
+    Parameters
+    ----------
+    name : str
+        The namespace this will be accessed under, e.g. ``df.foo``
+    accessor : cls
+        The class with the extension methods. The class' __init__ method
+        should expect one of a ``Series``, ``DataFrame`` or ``Index`` as
+        the single argument ``data``
+    cache : bool, default True
+        Whether to cache the accessor on an instance, such that ``df.foo``
+        will be the same object every time. Set this to ``False`` if the
+        object you are extending is mutable (``Series``, ``DataFrame``) and
+        if your accessor caches anything based on its ``data`` argument.
+    """
     def __init__(self, name, accessor, cache=True):
         self._name = name
         self._accessor = accessor
@@ -168,7 +183,7 @@ def _register_accessor(name, cls, cache=True):
                 'name.'.format(accessor, name, cls),
                 AccessorRegistrationWarning,
                 stacklevel=2)
-        setattr(cls, name, _CachedAccessor(name, accessor, cache=cache))
+        setattr(cls, name, _CachableAccessor(name, accessor, cache=cache))
         return accessor
     return decorator
 
@@ -181,6 +196,11 @@ def register_dataframe_accessor(name, cache=True):
     name : str
         Name under which the accessor should be registered. A warning is issued
         if this name conflicts with a preexisting attribute.
+    cache : bool, default True
+        Whether to cache the accessor such that ``df.<name>`` is always the
+        same object for a given ``DataFrame``.  Set this to ``False`` if the
+        object you are extending is mutable (``Series``, ``DataFrame``) and
+        if your accessor caches anything based on its ``data`` argument.
 
     Examples
     --------
