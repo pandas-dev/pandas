@@ -9,6 +9,15 @@ from pandas._libs.tslibs.frequencies import (get_rule_month,
                                              is_superperiod, is_subperiod)
 
 
+def assert_aliases_deprecated(freq, expected, aliases):
+    assert isinstance(aliases, list)
+    assert (_period_str_to_code(freq) == expected)
+
+    for alias in aliases:
+        with tm.assert_raises_regex(ValueError, _INVALID_FREQ_ERROR):
+            _period_str_to_code(alias)
+
+
 def test_get_rule_month():
     result = get_rule_month('W')
     assert (result == 'DEC')
@@ -23,7 +32,6 @@ def test_get_rule_month():
     result = get_rule_month('Q')
     assert (result == 'DEC')
     result = get_rule_month(offsets.QuarterEnd(startingMonth=12))
-    print(result == 'DEC')
 
     result = get_rule_month('Q-JAN')
     assert (result == 'JAN')
@@ -57,36 +65,28 @@ def test_period_str_to_code():
     assert (_period_str_to_code('Q-DEC') == 2000)
     assert (_period_str_to_code('Q-FEB') == 2002)
 
-    def _assert_depr(freq, expected, aliases):
-        assert isinstance(aliases, list)
-        assert (_period_str_to_code(freq) == expected)
-
-        msg = _INVALID_FREQ_ERROR
-        for alias in aliases:
-            with tm.assert_raises_regex(ValueError, msg):
-                _period_str_to_code(alias)
-
-    _assert_depr("M", 3000, ["MTH", "MONTH", "MONTHLY"])
+    assert_aliases_deprecated("M", 3000, ["MTH", "MONTH", "MONTHLY"])
 
     assert (_period_str_to_code('W') == 4000)
     assert (_period_str_to_code('W-SUN') == 4000)
     assert (_period_str_to_code('W-FRI') == 4005)
 
-    _assert_depr("B", 5000, ["BUS", "BUSINESS", "BUSINESSLY", "WEEKDAY"])
-    _assert_depr("D", 6000, ["DAY", "DLY", "DAILY"])
-    _assert_depr("H", 7000, ["HR", "HOUR", "HRLY", "HOURLY"])
+    assert_aliases_deprecated("B", 5000, ["BUS", "BUSINESS",
+                                          "BUSINESSLY", "WEEKDAY"])
+    assert_aliases_deprecated("D", 6000, ["DAY", "DLY", "DAILY"])
+    assert_aliases_deprecated("H", 7000, ["HR", "HOUR", "HRLY", "HOURLY"])
 
-    _assert_depr("T", 8000, ["minute", "MINUTE", "MINUTELY"])
+    assert_aliases_deprecated("T", 8000, ["minute", "MINUTE", "MINUTELY"])
     assert (_period_str_to_code('Min') == 8000)
 
-    _assert_depr("S", 9000, ["sec", "SEC", "SECOND", "SECONDLY"])
-    _assert_depr("L", 10000, ["MILLISECOND", "MILLISECONDLY"])
+    assert_aliases_deprecated("S", 9000, ["sec", "SEC", "SECOND", "SECONDLY"])
+    assert_aliases_deprecated("L", 10000, ["MILLISECOND", "MILLISECONDLY"])
     assert (_period_str_to_code('ms') == 10000)
 
-    _assert_depr("U", 11000, ["MICROSECOND", "MICROSECONDLY"])
+    assert_aliases_deprecated("U", 11000, ["MICROSECOND", "MICROSECONDLY"])
     assert (_period_str_to_code('US') == 11000)
 
-    _assert_depr("N", 12000, ["NANOSECOND", "NANOSECONDLY"])
+    assert_aliases_deprecated("N", 12000, ["NANOSECOND", "NANOSECONDLY"])
     assert (_period_str_to_code('NS') == 12000)
 
 

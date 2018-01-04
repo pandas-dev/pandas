@@ -144,8 +144,8 @@ cpdef get_freq_code(freqstr):
     -------
     return : tuple of base frequency code and stride (mult)
 
-    Example
-    -------
+    Examples
+    --------
     >>> get_freq_code('3D')
     (6000, 3)
 
@@ -281,8 +281,8 @@ cpdef int get_to_timestamp_base(int base):
     -------
     base : int
 
-    Example
-    -------
+    Examples
+    --------
     # Return day freq code against longer freq than day
     >>> get_to_timestamp_base(get_freq_code('D')[0])
     6000
@@ -309,8 +309,8 @@ cpdef object get_freq(object freq):
     Return frequency code of given frequency str.
     If input is not string, return input as it is.
 
-    Example
-    -------
+    Examples
+    --------
     >>> get_freq('A')
     1000
 
@@ -496,8 +496,8 @@ cpdef object get_rule_month(object source, object default='DEC'):
     -------
     rule_month: object (usually string)
 
-    Example
-    -------
+    Examples
+    --------
     >>> get_rule_month('D')
     'DEC'
 
