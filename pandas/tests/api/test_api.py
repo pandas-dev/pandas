@@ -51,8 +51,7 @@ class TestPDApi(Base):
                'TimedeltaIndex', 'Timestamp', 'Interval', 'IntervalIndex']
 
     # these are already deprecated; awaiting removal
-    deprecated_classes = ['WidePanel', 'Panel4D', 'TimeGrouper',
-                          'Expr', 'Term']
+    deprecated_classes = ['WidePanel', 'TimeGrouper', 'Expr', 'Term']
 
     # these should be deprecated in the future
     deprecated_classes_in_future = ['Panel']

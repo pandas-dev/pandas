@@ -244,5 +244,16 @@ PeriodProperties._add_delegate_accessors(
     typ='method')
 
 
-def CombinedDatetimelikeProperties(data):
-    return maybe_to_datetimelike(data)
+class CombinedDatetimelikeProperties(DatetimeProperties, TimedeltaProperties):
+    # This class is never instantiated, and exists solely for the benefit of
+    # the Series.dt class property. For Series objects, .dt will always be one
+    # of the more specific classes above.
+    __doc__ = DatetimeProperties.__doc__
+
+    @classmethod
+    def _make_accessor(cls, data):
+        try:
+            return maybe_to_datetimelike(data)
+        except Exception:
+            raise AttributeError("Can only use .dt accessor with "
+                                 "datetimelike values")

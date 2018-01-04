@@ -3061,7 +3061,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
 
     # -------------------------------------------------------------------------
     # Datetimelike delegation methods
-    # dt = accessor.AccessorProperty(CombinedDatetimelikeProperties)
+    dt = accessor.AccessorProperty(CombinedDatetimelikeProperties)
 
     # -------------------------------------------------------------------------
     # Categorical methods
