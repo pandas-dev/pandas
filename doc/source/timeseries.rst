@@ -73,7 +73,7 @@ Resample the series to a daily frequency:
 Overview
 --------
 
-The ollowing table shows the type of time-related classes pandas can handle and
+The following table shows the type of time-related classes pandas can handle and
 how to create them.
 
 =================  =============================== ===================================================================

@@ -64,7 +64,7 @@ But suppose we wish to do time series operations with the variables. A better
 representation would be where the ``columns`` are the unique variables and an
 ``index`` of dates identifies individual observations. To reshape the data into
 this form, we use the :meth:`DataFrame.pivot` method (also implemented as a
-top level function :func:`pandas.pivot`):
+top level function :func:`~pandas.pivot`):
 
 .. ipython:: python
 
