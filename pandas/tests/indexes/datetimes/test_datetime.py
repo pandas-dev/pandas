@@ -261,12 +261,18 @@ class TestDatetimeIndex(object):
         with pytest.raises(TypeError):
             op(dr, dz)
         with pytest.raises(TypeError):
+            op(dr, list(dz))
+        with pytest.raises(TypeError):
             op(dz, dr)
+        with pytest.raises(TypeError):
+            op(dz, list(dr))
 
         # Check that there isn't a problem aware-aware and naive-naive do not
         # raise
         assert (dr == dr).all()
+        assert (dr == list(dr)).all()
         assert (dz == dz).all()
+        assert (dz == list(dz)).all()
 
         # Check comparisons against scalar Timestamps
         ts = pd.Timestamp('2000-03-14 01:59')

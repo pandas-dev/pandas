@@ -16,7 +16,7 @@ from pandas.core.dtypes.common import (
     is_timedelta64_dtype,
     is_integer, is_float,
     is_integer_dtype,
-    is_datetime64_ns_dtype,
+    is_datetime64_ns_dtype, is_datetimelike,
     is_period_dtype,
     is_bool_dtype,
     is_string_dtype,
@@ -122,7 +122,10 @@ def _dt_index_cmp(opname, cls, nat_result=False):
                 other = DatetimeIndex(other)
             elif not isinstance(other, (np.ndarray, Index, ABCSeries)):
                 other = _ensure_datetime64(other)
-            self._assert_tzawareness_compat(other)
+
+            if is_datetimelike(other):
+                self._assert_tzawareness_compat(other)
+
             result = func(np.asarray(other))
             result = _values_from_object(result)
 
