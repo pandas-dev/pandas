@@ -1195,6 +1195,18 @@ class TestDatetimeSeriesArithmetic(object):
         expected = Series([Timedelta('-2days')])
         assert_series_equal(result, expected)
 
+    def test_dt64tz_series_sub_dtitz(self):
+        # GH#19071 subtracting tzaware DatetimeIndex from tzaware Series
+        # (with same tz) raises, fixed by #19024
+        dti = pd.date_range('1999-09-30', periods=10, tz='US/Pacific')
+        ser = pd.Series(dti)
+        expected = pd.Series(pd.TimedeltaIndex(['0days'] * 10))
+
+        res = dti - ser
+        tm.assert_series_equal(res, expected)
+        res = ser - dti
+        tm.assert_series_equal(res, expected)
+
     def test_sub_datetime_compat(self):
         # see gh-14088
         s = Series([datetime(2016, 8, 23, 12, tzinfo=pytz.utc), pd.NaT])
@@ -1318,7 +1330,7 @@ class TestDatetimeSeriesArithmetic(object):
             nat_series_dtype_timestamp / 1
 
     def test_dt64series_arith_overflow(self):
-        # GH#12534
+        # GH#12534, fixed by #19024
         dt = pd.Timestamp('1700-01-31')
         td = pd.Timedelta('20000 Days')
         dti = pd.date_range('1949-09-30', freq='100Y', periods=4)
@@ -1347,18 +1359,6 @@ class TestDatetimeSeriesArithmetic(object):
         tm.assert_series_equal(res, expected)
         res = dt - ser
         tm.assert_series_equal(res, -expected)
-
-    def test_dt64tz_series_sub_dtitz(self):
-        # GH#19071 subtracting tzaware DatetimeIndex from tzaware Series
-        # (with same tz) raises
-        dti = pd.date_range('1999-09-30', periods=10, tz='US/Pacific')
-        ser = pd.Series(dti)
-        expected = pd.Series(pd.TimedeltaIndex(['0days'] * 10))
-
-        res = dti - ser
-        tm.assert_series_equal(res, expected)
-        res = ser - dti
-        tm.assert_series_equal(res, expected)
 
 
 class TestSeriesOperators(TestData):
