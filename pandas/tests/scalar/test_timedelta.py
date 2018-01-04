@@ -865,6 +865,17 @@ class TestTimedeltas(object):
         ('P0DT0H0M0.000000123S', Timedelta(nanoseconds=123)),
         ('P0DT0H0M0.00001S', Timedelta(microseconds=10)),
         ('P0DT0H0M0.001S', Timedelta(milliseconds=1)),
-        ('P0DT0H1M0S', Timedelta(minutes=1))])
+        ('P0DT0H1M0S', Timedelta(minutes=1)),
+        ('P1DT25H61M61S', Timedelta(days=1, hours=25, minutes=61, seconds=61))
+    ])
     def test_iso_constructor(self, fmt, exp):
         assert Timedelta(fmt) == exp
+
+    @pytest.mark.parametrize('fmt', [
+        'PPPPPPPPPPPP', 'PDTHMS', 'P0DT999H999M999S',
+        'P1DT0H0M0.0000000000000S', 'P1DT0H0M00000000000S',
+        'P1DT0H0M0.S'])
+    def test_iso_constructor_raises(self, fmt):
+        with tm.assert_raises_regex(ValueError, 'Invalid ISO 8601 Duration '
+                                    'format - {}'.format(fmt)):
+            Timedelta(fmt)
