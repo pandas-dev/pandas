@@ -40,7 +40,7 @@ The categorical data type is useful in the following cases:
 * The lexical order of a variable is not the same as the logical order ("one", "two", "three").
   By converting to a categorical and specifying an order on the categories, sorting and
   min/max will use the logical order instead of the lexical order, see :ref:`here <categorical.sort>`.
-* As a signal to other python libraries that this column should be treated as a categorical
+* As a signal to other Python libraries that this column should be treated as a categorical
   variable (e.g. to use suitable statistical methods or plot types).
 
 See also the :ref:`API docs on categoricals<api.categorical>`.
@@ -366,7 +366,7 @@ or simply set the categories to a predefined scale, use :func:`Categorical.set_c
 .. note::
     Be aware that :func:`Categorical.set_categories` cannot know whether some category is omitted
     intentionally or because it is misspelled or (under Python3) due to a type difference (e.g.,
-    numpys S1 dtype and python strings). This can result in surprising behaviour!
+    numpys S1 dtype and Python strings). This can result in surprising behaviour!
 
 Sorting and Order
 -----------------

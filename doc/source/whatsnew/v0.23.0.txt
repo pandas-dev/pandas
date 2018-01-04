@@ -209,6 +209,9 @@ Other API Changes
 - In :func:`read_excel`, the ``comment`` argument is now exposed as a named parameter (:issue:`18735`)
 - Rearranged the order of keyword arguments in :func:`read_excel()` to align with :func:`read_csv()` (:issue:`16672`)
 - The options ``html.border`` and ``mode.use_inf_as_null`` were deprecated in prior versions, these will now show ``FutureWarning`` rather than a ``DeprecationWarning`` (:issue:`19003`)
+- Subtracting ``NaT`` from a :class:`Series` with ``dtype='datetime64[ns]'`` returns a ``Series`` with ``dtype='timedelta64[ns]'`` instead of ``dtype='datetime64[ns]'``(:issue:`18808`)
+- Operations between a :class:`Series` with dtype ``dtype='datetime64[ns]'`` and a :class:`PeriodIndex` will correctly raises ``TypeError`` (:issue:`18850`)
+- Subtraction of :class:`Series` with timezone-aware ``dtype='datetime64[ns]'`` with mis-matched timezones will raise ``TypeError`` instead of ``ValueError`` (issue:`18817`)
 
 .. _whatsnew_0230.deprecations:
 
@@ -250,6 +253,7 @@ Removal of prior version deprecations/changes
 - The ``Series``, ``Categorical``, and ``Index`` classes have dropped the ``reshape`` method (:issue:`13012`)
 - ``pandas.tseries.frequencies.get_standard_freq`` has been removed in favor of ``pandas.tseries.frequencies.to_offset(freq).rule_code`` (:issue:`13874`)
 - The ``freqstr`` keyword has been removed from ``pandas.tseries.frequencies.to_offset`` in favor of ``freq`` (:issue:`13874`)
+- The ``Panel4D`` and ``PanelND`` classes have been removed (:issue:`13776`)
 
 .. _whatsnew_0230.performance:
 
@@ -274,8 +278,11 @@ Performance Improvements
 Documentation Changes
 ~~~~~~~~~~~~~~~~~~~~~
 
--
--
+- Changed spelling of "numpy" to "NumPy", and "python" to "Python". (:issue:`19017`) 
+- Consistency when introducing code samples, using either colon or period.
+  Rewrote some sentences for greater clarity, added more dynamic references
+  to functions, methods and classes.
+  (:issue:`18941`, :issue:`18948`, :issue:`18973`, :issue:`19017`) 
 -
 
 .. _whatsnew_0230.bug_fixes:
@@ -301,6 +308,8 @@ Conversion
 - Bug in :class:`FY5253` where ``datetime`` addition and subtraction incremented incorrectly for dates on the year-end but not normalized to midnight (:issue:`18854`)
 - Bug in :class:`DatetimeIndex` where adding or subtracting an array-like of ``DateOffset`` objects either raised (``np.array``, ``pd.Index``) or broadcast incorrectly (``pd.Series``) (:issue:`18849`)
 - Bug in :class:`Series` floor-division where operating on a scalar ``timedelta`` raises an exception (:issue:`18846`)
+- Bug in :class:`FY5253Quarter`, :class:`LastWeekOfMonth` where rollback and rollforward behavior was inconsistent with addition and subtraction behavior (:issue:`18854`)
+- Bug in :class:`Index` constructor with ``dtype=CategoricalDtype(...)`` where ``categories`` and ``ordered`` are not maintained (issue:`19032`) 
 
 
 Indexing

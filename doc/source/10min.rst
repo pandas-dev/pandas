@@ -48,7 +48,7 @@ a default integer index:
    s = pd.Series([1,3,5,np.nan,6,8])
    s
 
-Creating a :class:`DataFrame` by passing a numpy array, with a datetime index
+Creating a :class:`DataFrame` by passing a NumPy array, with a datetime index
 and labeled columns:
 
 .. ipython:: python
@@ -114,7 +114,7 @@ Here is how to view the top and bottom rows of the frame:
    df.head()
    df.tail(3)
 
-Display the index, columns, and the underlying numpy data:
+Display the index, columns, and the underlying NumPy data:
 
 .. ipython:: python
 
@@ -311,7 +311,7 @@ Setting values by position:
 
    df.iat[0,1] = 0
 
-Setting by assigning with a numpy array:
+Setting by assigning with a NumPy array:
 
 .. ipython:: python
 

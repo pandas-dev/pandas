@@ -1402,39 +1402,6 @@ class TestConcatenate(ConcatenateBase):
             # it works!
             concat([panel1, panel3], axis=1, verify_integrity=True)
 
-    def test_panel4d_concat(self):
-        with catch_warnings(record=True):
-            p4d = tm.makePanel4D()
-
-            p1 = p4d.iloc[:, :, :5, :]
-            p2 = p4d.iloc[:, :, 5:, :]
-
-            result = concat([p1, p2], axis=2)
-            tm.assert_panel4d_equal(result, p4d)
-
-            p1 = p4d.iloc[:, :, :, :2]
-            p2 = p4d.iloc[:, :, :, 2:]
-
-            result = concat([p1, p2], axis=3)
-            tm.assert_panel4d_equal(result, p4d)
-
-    def test_panel4d_concat_mixed_type(self):
-        with catch_warnings(record=True):
-            p4d = tm.makePanel4D()
-
-            # if things are a bit misbehaved
-            p1 = p4d.iloc[:, :2, :, :2]
-            p2 = p4d.iloc[:, :, :, 2:]
-            p1['L5'] = 'baz'
-
-            result = concat([p1, p2], axis=3)
-
-            p2['L5'] = np.nan
-            expected = concat([p1, p2], axis=3)
-            expected = expected.loc[result.labels]
-
-            tm.assert_panel4d_equal(result, expected)
-
     def test_concat_series(self):
 
         ts = tm.makeTimeSeries()
