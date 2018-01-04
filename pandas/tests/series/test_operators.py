@@ -1317,7 +1317,7 @@ class TestDatetimeSeriesArithmetic(object):
         with pytest.raises(TypeError):
             nat_series_dtype_timestamp / 1
 
-    def test_dt64series_with_scalar_overflow(self):
+    def test_dt64series_arith_overflow(self):
         # GH#12534
         dt = pd.Timestamp('1700-01-31')
         td = pd.Timedelta('20000 Days')
