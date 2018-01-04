@@ -1630,7 +1630,7 @@ class TestSeriesIndexing(TestData):
     def test_setitem_boolean(self):
         mask = self.series > self.series.median()
 
-        # similiar indexed series
+        # similar indexed series
         result = self.series.copy()
         result[mask] = self.series * 2
         expected = self.series * 2
@@ -1682,7 +1682,7 @@ class TestSeriesIndexing(TestData):
         s[::2] = np.nan
         assert_series_equal(s, expected)
 
-        # get's coerced to float, right?
+        # gets coerced to float, right?
         expected = Series([np.nan, 1, np.nan, 0])
         s = Series([True, True, False, False])
         s[::2] = np.nan
@@ -2127,7 +2127,7 @@ class TestSeriesIndexing(TestData):
         result = s.reindex(new_index, method='ffill')
         assert_series_equal(result, expected)
 
-        # inferrence of new dtype
+        # inference of new dtype
         s = Series([True, False, False, True], index=list('abcd'))
         new_index = 'agc'
         result = s.reindex(list(new_index)).ffill()

@@ -337,15 +337,22 @@ def read_sql(sql, con, index_col=None, coerce_float=True, params=None,
     """
     Read SQL query or database table into a DataFrame.
 
+    This function is a convenience wrapper around ``read_sql_table`` and
+    ``read_sql_query`` (for backward compatibility). It will delegate
+    to the specific function depending on the provided input. A SQL query
+    will be routed to ``read_sql_query``, while a database table name will
+    be routed to ``read_sql_table``. Note that the delegated function might
+    have more specific notes about their functionality not listed here.
+
     Parameters
     ----------
     sql : string or SQLAlchemy Selectable (select or text object)
-        SQL query to be executed.
-    con : SQLAlchemy connectable(engine/connection) or database string URI
+        SQL query to be executed or a table name.
+    con : SQLAlchemy connectable (engine/connection) or database string URI
         or DBAPI2 connection (fallback mode)
+
         Using SQLAlchemy makes it possible to use any DB supported by that
-        library.
-        If a DBAPI2 object, only sqlite3 is supported.
+        library. If a DBAPI2 object, only sqlite3 is supported.
     index_col : string or list of strings, optional, default: None
         Column(s) to set as index(MultiIndex).
     coerce_float : boolean, default True
@@ -376,14 +383,6 @@ def read_sql(sql, con, index_col=None, coerce_float=True, params=None,
     Returns
     -------
     DataFrame
-
-    Notes
-    -----
-    This function is a convenience wrapper around ``read_sql_table`` and
-    ``read_sql_query`` (and for backward compatibility) and will delegate
-    to the specific function depending on the provided input (database
-    table name or SQL query).  The delegated function might have more specific
-    notes about their functionality not listed here.
 
     See also
     --------
@@ -1307,7 +1306,7 @@ class SQLiteTable(SQLTable):
         column_names_and_types = \
             self._get_column_names_and_types(self._sql_type_name)
 
-        pat = re.compile('\s+')
+        pat = re.compile(r'\s+')
         column_names = [col_name for col_name, _, _ in column_names_and_types]
         if any(map(pat.search, column_names)):
             warnings.warn(_SAFE_NAMES_WARNING, stacklevel=6)
@@ -1485,7 +1484,7 @@ class SQLiteDatabase(PandasSQL):
             `index` is True, then the index names are used.
             A sequence should be given if the DataFrame uses MultiIndex.
         schema : string, default None
-            Ignored parameter included for compatability with SQLAlchemy
+            Ignored parameter included for compatibility with SQLAlchemy
             version of ``to_sql``.
         chunksize : int, default None
             If not None, then rows will be written in batches of this

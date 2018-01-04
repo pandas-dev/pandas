@@ -402,7 +402,7 @@ class TestBusinessDateRange(object):
         assert isinstance(result, DatetimeIndex)
 
     def test_error_with_zero_monthends(self):
-        msg = 'Offset <0 \* MonthEnds> did not increment date'
+        msg = r'Offset <0 \* MonthEnds> did not increment date'
         with tm.assert_raises_regex(ValueError, msg):
             date_range('1/1/2000', '1/1/2001', freq=MonthEnd(0))
 

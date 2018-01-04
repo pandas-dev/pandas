@@ -54,7 +54,7 @@ def read_pickle(path, compression='infer'):
     file path
 
     Warning: Loading pickled data received from untrusted sources can be
-    unsafe. See: http://docs.python.org/2.7/library/pickle.html
+    unsafe. See: https://docs.python.org/3/library/pickle.html
 
     Parameters
     ----------

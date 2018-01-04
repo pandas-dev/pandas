@@ -28,6 +28,24 @@ def freq(request):
 class TestTimedeltaIndexArithmetic(object):
     _holder = TimedeltaIndex
 
+    @pytest.mark.xfail(reason='GH#18824 ufunc add cannot use operands...')
+    def test_tdi_with_offset_array(self):
+        # GH#18849
+        tdi = pd.TimedeltaIndex(['1 days 00:00:00', '3 days 04:00:00'])
+        offs = np.array([pd.offsets.Hour(n=1), pd.offsets.Minute(n=-2)])
+        expected = pd.TimedeltaIndex(['1 days 01:00:00', '3 days 04:02:00'])
+
+        res = tdi + offs
+        tm.assert_index_equal(res, expected)
+
+        res2 = offs + tdi
+        tm.assert_index_equal(res2, expected)
+
+        anchored = np.array([pd.offsets.QuarterEnd(),
+                             pd.offsets.Week(weekday=2)])
+        with pytest.raises(TypeError):
+            tdi + anchored
+
     # TODO: Split by ops, better name
     def test_numeric_compat(self):
         idx = self._holder(np.arange(5, dtype='int64'))
@@ -103,28 +121,29 @@ class TestTimedeltaIndexArithmetic(object):
     # -------------------------------------------------------------
     # Binary operations TimedeltaIndex and integer
 
-    def test_tdi_add_int(self):
+    def test_tdi_add_int(self, one):
+        # Variants of `one` for #19012
         rng = timedelta_range('1 days 09:00:00', freq='H', periods=10)
-        result = rng + 1
+        result = rng + one
         expected = timedelta_range('1 days 10:00:00', freq='H', periods=10)
         tm.assert_index_equal(result, expected)
 
-    def test_tdi_iadd_int(self):
+    def test_tdi_iadd_int(self, one):
         rng = timedelta_range('1 days 09:00:00', freq='H', periods=10)
         expected = timedelta_range('1 days 10:00:00', freq='H', periods=10)
-        rng += 1
+        rng += one
         tm.assert_index_equal(rng, expected)
 
-    def test_tdi_sub_int(self):
+    def test_tdi_sub_int(self, one):
         rng = timedelta_range('1 days 09:00:00', freq='H', periods=10)
-        result = rng - 1
+        result = rng - one
         expected = timedelta_range('1 days 08:00:00', freq='H', periods=10)
         tm.assert_index_equal(result, expected)
 
-    def test_tdi_isub_int(self):
+    def test_tdi_isub_int(self, one):
         rng = timedelta_range('1 days 09:00:00', freq='H', periods=10)
         expected = timedelta_range('1 days 08:00:00', freq='H', periods=10)
-        rng -= 1
+        rng -= one
         tm.assert_index_equal(rng, expected)
 
     # -------------------------------------------------------------

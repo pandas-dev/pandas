@@ -51,7 +51,7 @@ from pandas._libs.tslibs import parsing
 # so we need to remove it if we see it.
 _BOM = u('\ufeff')
 
-_parser_params = """Also supports optionally iterating or breaking of the file
+_parser_params = r"""Also supports optionally iterating or breaking of the file
 into chunks.
 
 Additional help can be found in the `online docs for IO Tools
@@ -842,19 +842,19 @@ class TextFileReader(BaseIterator):
                                   " sep=None with delim_whitespace=False"
                 engine = 'python'
         elif sep is not None and len(sep) > 1:
-            if engine == 'c' and sep == '\s+':
+            if engine == 'c' and sep == r'\s+':
                 result['delim_whitespace'] = True
                 del result['delimiter']
             elif engine not in ('python', 'python-fwf'):
                 # wait until regex engine integrated
                 fallback_reason = "the 'c' engine does not support"\
                                   " regex separators (separators > 1 char and"\
-                                  " different from '\s+' are"\
+                                  r" different from '\s+' are"\
                                   " interpreted as regex)"
                 engine = 'python'
         elif delim_whitespace:
             if 'python' in engine:
-                result['delimiter'] = '\s+'
+                result['delimiter'] = r'\s+'
         elif sep is not None:
             encodeable = True
             try:
@@ -1541,7 +1541,7 @@ class ParserBase(object):
                     values, set(col_na_values) | col_na_fvalues,
                     try_num_bool)
 
-                # type specificed in dtype param
+                # type specified in dtype param
                 if cast_type and not is_dtype_equal(cvals, cast_type):
                     cvals = self._cast_types(cvals, cast_type, c)
 
@@ -2054,7 +2054,7 @@ class PythonParser(ParserBase):
             self.data = f
 
         # Get columns in two steps: infer from data, then
-        # infer column indices from self.usecols if is is specified.
+        # infer column indices from self.usecols if it is specified.
         self._col_indices = None
         self.columns, self.num_original_columns = self._infer_columns()
 

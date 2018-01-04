@@ -27,7 +27,7 @@ pandas.
     NumPy will soon be able to provide a native NA type solution (similar to R)
     performant enough to be used in pandas.
 
-See the :ref:`cookbook<cookbook.missing_data>` for some advanced strategies
+See the :ref:`cookbook<cookbook.missing_data>` for some advanced strategies.
 
 Missing data basics
 -------------------
@@ -43,7 +43,7 @@ series might start on different dates. Thus, values prior to the start date
 would generally be marked as missing.
 
 In pandas, one of the most common ways that missing data is **introduced** into
-a data set is by reindexing. For example
+a data set is by reindexing. For example:
 
 .. ipython:: python
 
@@ -86,7 +86,7 @@ pandas provides the :func:`isna` and
 
 .. warning::
 
-   One has to be mindful that in python (and numpy), the ``nan's`` don't compare equal, but ``None's`` **do**.
+   One has to be mindful that in Python (and numpy), the ``nan's`` don't compare equal, but ``None's`` **do**.
    Note that Pandas/numpy uses the fact that ``np.nan != np.nan``, and treats ``None`` like ``np.nan``.
 
    .. ipython:: python
@@ -104,7 +104,7 @@ Datetimes
 ---------
 
 For datetime64[ns] types, ``NaT`` represents missing values. This is a pseudo-native
-sentinel value that can be represented by numpy in a singular dtype (datetime64[ns]).
+sentinel value that can be represented by NumPy in a singular dtype (datetime64[ns]).
 pandas objects provide intercompatibility between ``NaT`` and ``NaN``.
 
 .. ipython:: python
@@ -169,10 +169,10 @@ The descriptive statistics and computational methods discussed in the
 <api.series.stats>` and :ref:`here <api.dataframe.stats>`) are all written to
 account for missing data. For example:
 
-* When summing data, NA (missing) values will be treated as zero
-* If the data are all NA, the result will be NA
+* When summing data, NA (missing) values will be treated as zero.
+* If the data are all NA, the result will be NA.
 * Methods like **cumsum** and **cumprod** ignore NA values, but preserve them
-  in the resulting arrays
+  in the resulting arrays.
 
 .. ipython:: python
 
@@ -190,7 +190,8 @@ Sum/Prod of Empties/Nans
 .. warning::
 
    This behavior is now standard as of v0.21.0; previously sum/prod would give different
-   results if the ``bottleneck`` package was installed. See the :ref:`here <whatsnew_0210.api_breaking.bottleneck>`.
+   results if the ``bottleneck`` package was installed. 
+   See the :ref:`v0.21.0 whatsnew <whatsnew_0210.api_breaking.bottleneck>`.
 
 With ``sum`` or ``prod`` on an empty or all-``NaN`` ``Series``, or columns of a ``DataFrame``, the result will be all-``NaN``.
 
@@ -200,7 +201,7 @@ With ``sum`` or ``prod`` on an empty or all-``NaN`` ``Series``, or columns of a 
 
    s.sum()
 
-Summing of an empty ``Series``
+Summing over an empty ``Series`` will return ``NaN``:
 
 .. ipython:: python
 
@@ -250,7 +251,7 @@ of ways, which we illustrate:
 
    df2
    df2.fillna(0)
-   df2['four'].fillna('missing')
+   df2['one'].fillna('missing')
 
 **Fill gaps forward or backward**
 
@@ -328,7 +329,7 @@ Dropping axis labels with missing data: dropna
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 You may wish to simply exclude labels from a data set which refer to missing
-data. To do this, use the **dropna** method:
+data. To do this, use the :meth:`~DataFrame.dropna` method:
 
 .. ipython:: python
    :suppress:
@@ -343,7 +344,7 @@ data. To do this, use the **dropna** method:
    df.dropna(axis=1)
    df['one'].dropna()
 
-Series.dropna is a simpler method as it only has one axis to consider.
+An equivalent :meth:`~Series.dropna` method is available for Series.
 DataFrame.dropna has considerably more options than Series.dropna, which can be
 examined :ref:`in the API <api.dataframe.missing>`.
 
@@ -352,8 +353,8 @@ examined :ref:`in the API <api.dataframe.missing>`.
 Interpolation
 ~~~~~~~~~~~~~
 
-Both Series and DataFrame objects have an ``interpolate`` method that, by default,
-performs linear interpolation at missing datapoints.
+Both Series and DataFrame objects have an :meth:`~DataFrame.interpolate` method 
+that, by default, performs linear interpolation at missing datapoints.
 
 .. ipython:: python
    :suppress:
@@ -411,7 +412,7 @@ You can also interpolate with a DataFrame:
    df.interpolate()
 
 The ``method`` argument gives access to fancier interpolation methods.
-If you have scipy_ installed, you can set pass the name of a 1-d interpolation routine to ``method``.
+If you have scipy_ installed, you can pass the name of a 1-d interpolation routine to ``method``.
 You'll want to consult the full scipy interpolation documentation_ and reference guide_ for details.
 The appropriate interpolation method will depend on the type of data you are working with.
 
@@ -419,7 +420,7 @@ The appropriate interpolation method will depend on the type of data you are wor
   ``method='quadratic'`` may be appropriate.
 * If you have values approximating a cumulative distribution function,
   then ``method='pchip'`` should work well.
-* To fill missing values with goal of smooth plotting, use ``method='akima'``.
+* To fill missing values with goal of smooth plotting, consider ``method='akima'``.
 
 .. warning::
 
@@ -559,10 +560,10 @@ String/Regular Expression Replacement
    backslashes than strings without this prefix. Backslashes in raw strings
    will be interpreted as an escaped backslash, e.g., ``r'\' == '\\'``. You
    should `read about them
-   <http://docs.python.org/2/reference/lexical_analysis.html#string-literals>`__
+   <https://docs.python.org/3/reference/lexical_analysis.html#string-literals>`__
    if this is unclear.
 
-Replace the '.' with ``NaN`` (str -> str)
+Replace the '.' with ``NaN`` (str -> str):
 
 .. ipython:: python
 
@@ -571,58 +572,58 @@ Replace the '.' with ``NaN`` (str -> str)
    df.replace('.', np.nan)
 
 Now do it with a regular expression that removes surrounding whitespace
-(regex -> regex)
+(regex -> regex):
 
 .. ipython:: python
 
    df.replace(r'\s*\.\s*', np.nan, regex=True)
 
-Replace a few different values (list -> list)
+Replace a few different values (list -> list):
 
 .. ipython:: python
 
    df.replace(['a', '.'], ['b', np.nan])
 
-list of regex -> list of regex
+list of regex -> list of regex:
 
 .. ipython:: python
 
    df.replace([r'\.', r'(a)'], ['dot', '\1stuff'], regex=True)
 
-Only search in column ``'b'`` (dict -> dict)
+Only search in column ``'b'`` (dict -> dict):
 
 .. ipython:: python
 
    df.replace({'b': '.'}, {'b': np.nan})
 
 Same as the previous example, but use a regular expression for
-searching instead (dict of regex -> dict)
+searching instead (dict of regex -> dict):
 
 .. ipython:: python
 
    df.replace({'b': r'\s*\.\s*'}, {'b': np.nan}, regex=True)
 
-You can pass nested dictionaries of regular expressions that use ``regex=True``
+You can pass nested dictionaries of regular expressions that use ``regex=True``:
 
 .. ipython:: python
 
    df.replace({'b': {'b': r''}}, regex=True)
 
-or you can pass the nested dictionary like so
+Alternatively, you can pass the nested dictionary like so:
 
 .. ipython:: python
 
    df.replace(regex={'b': {r'\s*\.\s*': np.nan}})
 
 You can also use the group of a regular expression match when replacing (dict
-of regex -> dict of regex), this works for lists as well
+of regex -> dict of regex), this works for lists as well.
 
 .. ipython:: python
 
    df.replace({'b': r'\s*(\.)\s*'}, {'b': r'\1ty'}, regex=True)
 
 You can pass a list of regular expressions, of which those that match
-will be replaced with a scalar (list of regex -> regex)
+will be replaced with a scalar (list of regex -> regex).
 
 .. ipython:: python
 
@@ -631,7 +632,7 @@ will be replaced with a scalar (list of regex -> regex)
 All of the regular expression examples can also be passed with the
 ``to_replace`` argument as the ``regex`` argument. In this case the ``value``
 argument must be passed explicitly by name or ``regex`` must be a nested
-dictionary. The previous example, in this case, would then be
+dictionary. The previous example, in this case, would then be:
 
 .. ipython:: python
 
@@ -648,7 +649,7 @@ want to use a regular expression.
 Numeric Replacement
 ~~~~~~~~~~~~~~~~~~~
 
-Similar to ``DataFrame.fillna``
+The :meth:`~DataFrame.replace` method is similar to :meth:`~DataFrame.fillna`.
 
 .. ipython:: python
 
@@ -656,7 +657,7 @@ Similar to ``DataFrame.fillna``
    df[np.random.rand(df.shape[0]) > 0.5] = 1.5
    df.replace(1.5, np.nan)
 
-Replacing more than one value via lists works as well
+Replacing more than one value is possible by passing a list.
 
 .. ipython:: python
 
@@ -664,7 +665,7 @@ Replacing more than one value via lists works as well
    df.replace([1.5, df00], [np.nan, 'a'])
    df[1].dtype
 
-You can also operate on the DataFrame in place
+You can also operate on the DataFrame in place:
 
 .. ipython:: python
 
@@ -674,7 +675,7 @@ You can also operate on the DataFrame in place
 
    When replacing multiple ``bool`` or ``datetime64`` objects, the first
    argument to ``replace`` (``to_replace``) must match the type of the value
-   being replaced type. For example,
+   being replaced. For example,
 
    .. code-block:: python
 
@@ -702,9 +703,9 @@ Missing data casting rules and indexing
 
 While pandas supports storing arrays of integer and boolean type, these types
 are not capable of storing missing data. Until we can switch to using a native
-NA type in NumPy, we've established some "casting rules" when reindexing will
-cause missing data to be introduced into, say, a Series or DataFrame. Here they
-are:
+NA type in NumPy, we've established some "casting rules". When a reindexing
+operation introduces missing data, the Series will be cast according to the
+rules introduced in the table below.
 
 .. csv-table::
     :header: "data type", "Cast to"

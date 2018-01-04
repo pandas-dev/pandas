@@ -118,22 +118,22 @@ Creating a development environment
 ----------------------------------
 
 To test out code changes, you'll need to build pandas from source, which
-requires a C compiler and python environment. If you're making documentation
+requires a C compiler and Python environment. If you're making documentation
 changes, you can skip to :ref:`contributing.documentation` but you won't be able
 to build the documentation locally before pushing your changes.
 
 .. _contributiong.dev_c:
 
-Installing a C Complier
+Installing a C Compiler
 ~~~~~~~~~~~~~~~~~~~~~~~
 
 Pandas uses C extensions (mostly written using Cython) to speed up certain
 operations. To install pandas from source, you need to compile these C
-extensions, which means you need a C complier. This process depends on which
+extensions, which means you need a C compiler. This process depends on which
 platform you're using. Follow the `CPython contributing guidelines
 <https://docs.python.org/devguide/setup.html#build-dependencies>`_ for getting a
-complier installed. You don't need to do any of the ``./configure`` or ``make``
-steps; you only need to install the complier.
+compiler installed. You don't need to do any of the ``./configure`` or ``make``
+steps; you only need to install the compiler.
 
 For Windows developers, the following links may be helpful.
 
@@ -151,7 +151,7 @@ Let us know if you have any difficulties by opening an issue or reaching out on
 Creating a Python Environment
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-Now that you have a C complier, create an isolated pandas development
+Now that you have a C compiler, create an isolated pandas development
 environment:
 
 - Install either `Anaconda <https://www.anaconda.com/download/>`_ or `miniconda
@@ -187,7 +187,7 @@ At this point you should be able to import pandas from your locally built versio
    0.22.0.dev0+29.g4ad6d4d74
 
 This will create the new environment, and not touch any of your existing environments,
-nor any existing python installation.
+nor any existing Python installation.
 
 To view your environments::
 

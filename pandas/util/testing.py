@@ -13,7 +13,7 @@ import locale
 import traceback
 
 from datetime import datetime
-from functools import wraps, partial
+from functools import wraps
 from contextlib import contextmanager
 
 from numpy.random import randn, rand
@@ -42,7 +42,7 @@ from pandas.compat import (
 from pandas import (bdate_range, CategoricalIndex, Categorical, IntervalIndex,
                     DatetimeIndex, TimedeltaIndex, PeriodIndex, RangeIndex,
                     Index, MultiIndex,
-                    Series, DataFrame, Panel, Panel4D)
+                    Series, DataFrame, Panel)
 
 from pandas._libs import testing as _testing
 from pandas.io.common import urlopen
@@ -107,7 +107,7 @@ def round_trip_pickle(obj, path=None):
 
 def round_trip_pathlib(writer, reader, path=None):
     """
-    Write an object to file specifed by a pathlib.Path and read it back
+    Write an object to file specified by a pathlib.Path and read it back
 
     Parameters
     ----------
@@ -136,7 +136,7 @@ def round_trip_pathlib(writer, reader, path=None):
 
 def round_trip_localpath(writer, reader, path=None):
     """
-    Write an object to file specifed by a py.path LocalPath and read it back
+    Write an object to file specified by a py.path LocalPath and read it back
 
     Parameters
     ----------
@@ -1266,14 +1266,13 @@ def assert_frame_equal(left, right, check_dtype=True,
                 obj='DataFrame.iloc[:, {idx}]'.format(idx=i))
 
 
-def assert_panelnd_equal(left, right,
-                         check_dtype=True,
-                         check_panel_type=False,
-                         check_less_precise=False,
-                         assert_func=assert_frame_equal,
-                         check_names=False,
-                         by_blocks=False,
-                         obj='Panel'):
+def assert_panel_equal(left, right,
+                       check_dtype=True,
+                       check_panel_type=False,
+                       check_less_precise=False,
+                       check_names=False,
+                       by_blocks=False,
+                       obj='Panel'):
     """Check that left and right Panels are equal.
 
     Parameters
@@ -1288,7 +1287,6 @@ def assert_panelnd_equal(left, right,
         Specify comparison precision. Only used when check_exact is False.
         5 digits (False) or 3 digits (True) after decimal points are compared.
         If int, then specify the digits to compare
-    assert_func : function for comparing data
     check_names : bool, default True
         Whether to check the Index names attribute.
     by_blocks : bool, default False
@@ -1322,19 +1320,13 @@ def assert_panelnd_equal(left, right,
             assert item in right, msg
             litem = left.iloc[i]
             ritem = right.iloc[i]
-            assert_func(litem, ritem, check_less_precise=check_less_precise)
+            assert_frame_equal(litem, ritem,
+                               check_less_precise=check_less_precise,
+                               check_names=check_names)
 
         for i, item in enumerate(right._get_axis(0)):
             msg = "non-matching item (left) '{item}'".format(item=item)
             assert item in left, msg
-
-
-# TODO: strangely check_names fails in py3 ?
-_panel_frame_equal = partial(assert_frame_equal, check_names=False)
-assert_panel_equal = partial(assert_panelnd_equal,
-                             assert_func=_panel_frame_equal)
-assert_panel4d_equal = partial(assert_panelnd_equal,
-                               assert_func=assert_panel_equal)
 
 
 # -----------------------------------------------------------------------------
@@ -1674,13 +1666,6 @@ def makePeriodPanel(nper=None):
         return Panel.fromDict(data)
 
 
-def makePanel4D(nper=None):
-    with warnings.catch_warnings(record=True):
-        d = dict(l1=makePanel(nper), l2=makePanel(nper),
-                 l3=makePanel(nper))
-        return Panel4D(d)
-
-
 def makeCustomIndex(nentries, nlevels, prefix='#', names=False, ndupe_l=None,
                     idx_type=None):
     """Create an index/multindex with given dimensions, levels, names, etc'
@@ -1784,8 +1769,8 @@ def makeCustomDataframe(nrows, ncols, c_idx_names=True, r_idx_names=True,
     """
    nrows,  ncols - number of data rows/cols
    c_idx_names, idx_names  - False/True/list of strings,  yields No names ,
-        default names or  uses the provided names for the levels of the
-        corresponding  index. You can provide a single string when
+        default names or uses the provided names for the levels of the
+        corresponding index. You can provide a single string when
         c_idx_nlevels ==1.
    c_idx_nlevels - number of levels in columns index. > 1 will yield MultiIndex
    r_idx_nlevels - number of levels in rows index. > 1 will yield MultiIndex
@@ -2081,7 +2066,7 @@ def network(t, url="http://www.google.com",
     _skip_on_messages: iterable of string
         any exception e for which one of the strings is
         a substring of str(e) will be skipped with an appropriate
-        message. Intended to supress errors where an errno isn't available.
+        message. Intended to suppress errors where an errno isn't available.
 
     Notes
     -----
@@ -2665,3 +2650,31 @@ def set_timezone(tz):
         yield
     finally:
         setTZ(orig_tz)
+
+
+def _make_skipna_wrapper(alternative, skipna_alternative=None):
+    """Create a function for calling on an array.
+
+    Parameters
+    ----------
+    alternative : function
+        The function to be called on the array with no NaNs.
+        Only used when 'skipna_alternative' is None.
+    skipna_alternative : function
+        The function to be called on the original array
+
+    Returns
+    -------
+    skipna_wrapper : function
+    """
+    if skipna_alternative:
+        def skipna_wrapper(x):
+            return skipna_alternative(x.values)
+    else:
+        def skipna_wrapper(x):
+            nona = x.dropna()
+            if len(nona) == 0:
+                return np.nan
+            return alternative(nona)
+
+    return skipna_wrapper

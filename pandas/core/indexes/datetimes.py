@@ -10,17 +10,19 @@ from pytz import utc
 from pandas.core.base import _shared_docs
 
 from pandas.core.dtypes.common import (
-    _NS_DTYPE, _INT64_DTYPE,
-    is_object_dtype, is_datetime64_dtype, is_datetime64tz_dtype,
-    is_datetimetz, is_dtype_equal,
+    _INT64_DTYPE,
+    _NS_DTYPE,
+    is_object_dtype,
+    is_datetime64_dtype, is_datetime64tz_dtype,
+    is_datetimetz,
+    is_dtype_equal,
     is_timedelta64_dtype,
-    is_integer, is_float,
+    is_integer,
+    is_float,
     is_integer_dtype,
     is_datetime64_ns_dtype, is_datetimelike,
     is_period_dtype,
     is_bool_dtype,
-    is_string_dtype,
-    is_categorical_dtype,
     is_string_like,
     is_list_like,
     is_scalar,
@@ -36,20 +38,17 @@ from pandas.core.common import _values_from_object, _maybe_box
 from pandas.core.algorithms import checked_add_with_arr
 
 from pandas.core.indexes.base import Index, _index_shared_docs
-from pandas.core.indexes.category import CategoricalIndex
 from pandas.core.indexes.numeric import Int64Index, Float64Index
 import pandas.compat as compat
-from pandas.tseries.frequencies import (
-    to_offset, get_period_alias,
-    Resolution)
+from pandas.tseries.frequencies import to_offset, get_period_alias, Resolution
 from pandas.core.indexes.datetimelike import (
     DatelikeOps, TimelikeOps, DatetimeIndexOpsMixin)
 from pandas.tseries.offsets import (
     DateOffset, generate_range, Tick, CDay, prefix_mapping)
 
 from pandas.core.tools.timedeltas import to_timedelta
-from pandas.util._decorators import (Appender, cache_readonly,
-                                     deprecate_kwarg, Substitution)
+from pandas.util._decorators import (
+    Appender, cache_readonly, deprecate_kwarg, Substitution)
 import pandas.core.common as com
 import pandas.tseries.offsets as offsets
 import pandas.core.tools.datetimes as tools
@@ -364,7 +363,7 @@ class DatetimeIndex(DatelikeOps, TimelikeOps, DatetimeIndexOpsMixin,
             raise ValueError("Must provide freq argument if no data is "
                              "supplied")
 
-        # if dtype has an embeded tz, capture it
+        # if dtype has an embedded tz, capture it
         if dtype is not None:
             try:
                 dtype = DatetimeTZDtype.construct_from_string(dtype)
@@ -877,6 +876,9 @@ class DatetimeIndex(DatelikeOps, TimelikeOps, DatetimeIndexOpsMixin,
         return attrs
 
     def _add_delta(self, delta):
+        if isinstance(delta, ABCSeries):
+            return NotImplemented
+
         from pandas import TimedeltaIndex
         name = self.name
 
@@ -916,6 +918,32 @@ class DatetimeIndex(DatelikeOps, TimelikeOps, DatetimeIndexOpsMixin,
                           "or DatetimeIndex", PerformanceWarning)
             return self.astype('O') + offset
 
+    def _add_offset_array(self, other):
+        # Array/Index of DateOffset objects
+        if isinstance(other, ABCSeries):
+            return NotImplemented
+        elif len(other) == 1:
+            return self + other[0]
+        else:
+            warnings.warn("Adding/subtracting array of DateOffsets to "
+                          "{} not vectorized".format(type(self)),
+                          PerformanceWarning)
+            return self.astype('O') + np.array(other)
+            # TODO: This works for __add__ but loses dtype in __sub__
+
+    def _sub_offset_array(self, other):
+        # Array/Index of DateOffset objects
+        if isinstance(other, ABCSeries):
+            return NotImplemented
+        elif len(other) == 1:
+            return self - other[0]
+        else:
+            warnings.warn("Adding/subtracting array of DateOffsets to "
+                          "{} not vectorized".format(type(self)),
+                          PerformanceWarning)
+            res_values = self.astype('O').values - np.array(other)
+            return self.__class__(res_values, freq='infer')
+
     def _format_native_types(self, na_rep='NaT', date_format=None, **kwargs):
         from pandas.io.formats.format import _get_format_datetime64_from_values
         format = _get_format_datetime64_from_values(self, date_format)
@@ -928,25 +956,16 @@ class DatetimeIndex(DatelikeOps, TimelikeOps, DatetimeIndexOpsMixin,
     @Appender(_index_shared_docs['astype'])
     def astype(self, dtype, copy=True):
         dtype = pandas_dtype(dtype)
-        if is_object_dtype(dtype):
-            return self._box_values_as_index()
-        elif is_integer_dtype(dtype):
-            return Index(self.values.astype('i8', copy=copy), name=self.name,
-                         dtype='i8')
-        elif is_datetime64_ns_dtype(dtype):
-            if self.tz is not None:
-                return self.tz_convert('UTC').tz_localize(None)
-            elif copy is True:
-                return self.copy()
-            return self
-        elif is_categorical_dtype(dtype):
-            return CategoricalIndex(self.values, name=self.name, dtype=dtype,
-                                    copy=copy)
-        elif is_string_dtype(dtype):
-            return Index(self.format(), name=self.name, dtype=object)
+        if (is_datetime64_ns_dtype(dtype) and
+                not is_dtype_equal(dtype, self.dtype)):
+            # GH 18951: datetime64_ns dtype but not equal means different tz
+            new_tz = getattr(dtype, 'tz', None)
+            if getattr(self.dtype, 'tz', None) is None:
+                return self.tz_localize(new_tz)
+            return self.tz_convert(new_tz)
         elif is_period_dtype(dtype):
             return self.to_period(freq=dtype.freq)
-        raise TypeError('Cannot cast DatetimeIndex to dtype %s' % dtype)
+        return super(DatetimeIndex, self).astype(dtype, copy=copy)
 
     def _get_time_micros(self):
         values = self.asi8
@@ -1797,7 +1816,7 @@ class DatetimeIndex(DatelikeOps, TimelikeOps, DatetimeIndexOpsMixin,
 
         if isinstance(item, (datetime, np.datetime64)):
             self._assert_can_do_op(item)
-            if not self._has_same_tz(item):
+            if not self._has_same_tz(item) and not isna(item):
                 raise ValueError(
                     'Passed item and index have different timezone')
             # check freq can be preserved on edge cases
