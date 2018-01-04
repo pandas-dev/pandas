@@ -39,38 +39,8 @@ class DirNamesMixin(object):
         return sorted(rv)
 
 
-class AccessorProperty(object):
-    """Descriptor for implementing accessor properties like Series.str
-    """
-
-    def __init__(self, accessor_cls, construct_accessor=None):
-        self.accessor_cls = accessor_cls
-        self.construct_accessor = (construct_accessor or
-                                   accessor_cls._make_accessor)
-        self.__doc__ = accessor_cls.__doc__
-
-    def __get__(self, instance, owner=None):
-        if instance is None:
-            # this ensures that Series.str.<method> is well defined
-            return self.accessor_cls
-        return self.construct_accessor(instance)
-
-    def __set__(self, instance, value):
-        raise AttributeError("can't set attribute")
-
-    def __delete__(self, instance):
-        raise AttributeError("can't delete attribute")
-
-
 class PandasDelegate(object):
     """ an abstract base class for delegating methods/properties """
-
-    @classmethod
-    def _make_accessor(cls, data):
-        from pandas.core.common import AbstractMethodError
-        raise AbstractMethodError("_make_accessor should be implemented"
-                                  "by subclass and return an instance"
-                                  "of `cls`.")
 
     def _delegate_property_get(self, name, *args, **kwargs):
         raise TypeError("You cannot access the "
@@ -136,6 +106,8 @@ class PandasDelegate(object):
 
 # Ported with modifications from xarray
 # https://github.com/pydata/xarray/blob/master/xarray/core/extensions.py
+# 1. We don't need to catch and re-raise AttributeErrors as RuntimeErrors
+# 2. We made caching configurable
 
 
 class _CachableAccessor(object):
@@ -250,6 +222,12 @@ def register_series_accessor(name, cache=True):
     name : str
         Name under which the accessor should be registered. A warning is issued
         if this name conflicts with a preexisting attribute.
+    cache : bool, default True
+        Whether to cache the accessor such that ``series.<name>`` is always the
+        same object for a given ``Series``.  Set this to ``False`` if the
+        object you are extending is mutable (``Series``, ``DataFrame``) and
+        if your accessor caches anything based on its ``data`` argument.
+
 
     See Also
     --------
@@ -268,6 +246,12 @@ def register_index_accessor(name, cache=True):
     name : str
         Name under which the accessor should be registered. A warning is issued
         if this name conflicts with a preexisting attribute.
+    cache : bool, default True
+        Whether to cache the accessor such that ``df.<name>`` is always the
+        same object for a given ``DataFrame``.  Set this to ``False`` if the
+        object you are extending is mutable (``Series``, ``DataFrame``) and
+        if your accessor caches anything based on its ``data`` argument.
+
 
     See Also
     --------

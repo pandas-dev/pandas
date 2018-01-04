@@ -181,4 +181,3 @@ Now users can access your methods using the `geo` namespace:
       # plots data on a map
 
 This can be a convenient way to extend pandas objects without subclassing them.
-
