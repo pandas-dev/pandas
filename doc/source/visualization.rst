@@ -1270,7 +1270,7 @@ The layout of subplots can be specified by ``layout`` keyword. It can accept
 
 The number of axes which can be contained by rows x columns specified by ``layout`` must be
 larger than the number of required subplots. If layout can contain more axes than required,
-blank axes are not drawn. Similar to a numpy array's ``reshape`` method, you
+blank axes are not drawn. Similar to a NumPy array's ``reshape`` method, you
 can use ``-1`` for one dimension to automatically calculate the number of rows
 or columns needed, given the other.
 

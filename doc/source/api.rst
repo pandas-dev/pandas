@@ -730,7 +730,7 @@ The dtype information is available on the ``Categorical``
    Categorical.codes
 
 ``np.asarray(categorical)`` works by implementing the array interface. Be aware, that this converts
-the Categorical back to a numpy array, so categories and order information is not preserved!
+the Categorical back to a NumPy array, so categories and order information is not preserved!
 
 .. autosummary::
    :toctree: generated/
