@@ -34,7 +34,7 @@ from pandas.core.internals import (BlockManager,
 from pandas.core.ops import _op_descriptions
 from pandas.core.series import Series
 from pandas.core.reshape.util import cartesian_product
-from pandas.util._decorators import (deprecate, Appender)
+from pandas.util._decorators import Appender
 from pandas.util._validators import validate_axis_style_args
 
 _shared_doc_kwargs = dict(
