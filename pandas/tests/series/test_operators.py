@@ -1088,17 +1088,20 @@ class TestTimedeltaSeriesArithmetic(object):
                           dtype='timedelta64[ns]',
                           name=names[2])
 
-        result = tdi * ser
+        result = ser * tdi
         tm.assert_series_equal(result, expected)
 
-        result = ser * tdi
+        # The direct operation tdi * ser still needs to be fixed.
+        result = ser.__rmul__(tdi)
         tm.assert_series_equal(result, expected)
 
     @pytest.mark.parametrize('names', [(None, None, None),
                                        ('Egon', 'Venkman', None),
                                        ('NCC1701D', 'NCC1701D', 'NCC1701D')])
-    def test_tdi_div_float_series(self, names):
+    def test_float_series_rdiv_tdi(self, names):
         # GH#19042
+        # TODO: the direct operation TimedeltaIndex / Series still
+        # needs to be fixed.
         tdi = pd.TimedeltaIndex(['0days', '1day', '2days', '3days', '4days'],
                                 name=names[0])
         ser = Series([1.5, 3, 4.5, 6, 7.5], dtype=np.float64, name=names[1])
@@ -1107,7 +1110,7 @@ class TestTimedeltaSeriesArithmetic(object):
                           dtype='timedelta64[ns]',
                           name=names[2])
 
-        result = tdi / ser
+        result = ser.__rdiv__(tdi)
         tm.assert_series_equal(result, expected)
 
 
