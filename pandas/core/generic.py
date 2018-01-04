@@ -5725,7 +5725,7 @@ class NDFrame(PandasObject, SelectionMixin):
             For PeriodIndex only, controls whether to use the start or end of
             `rule`
         kind: {'timestamp', 'period'}, optional
-            Pass 'timestamp' to convert the resulting index to a 
+            Pass 'timestamp' to convert the resulting index to a
             ``DateTimeIndex`` or 'period' to convert it to a ``PeriodIndex``.
             By default the input representation is retained.
         loffset : timedelta
