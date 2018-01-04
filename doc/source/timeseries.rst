@@ -1225,7 +1225,7 @@ Anchored Offset Semantics
 ~~~~~~~~~~~~~~~~~~~~~~~~~
 
 For those offsets that are anchored to the start or end of specific
-frequency (``MonthEnd``, ``MonthBegin``, ``WeekEnd``, etc) the following
+frequency (``MonthEnd``, ``MonthBegin``, ``WeekEnd``, etc), the following
 rules apply to rolling forward and backwards.
 
 When ``n`` is not 0, if the given date is not on an anchor point, it snapped to the next(previous)
@@ -1276,7 +1276,7 @@ Holidays and calendars provide a simple way to define holiday rules to be used
 with ``CustomBusinessDay`` or in other analysis that requires a predefined
 set of holidays.  The ``AbstractHolidayCalendar`` class provides all the necessary
 methods to return a list of holidays and only ``rules`` need to be defined
-in a specific holiday calendar class.  Further, ``start_date`` and ``end_date``
+in a specific holiday calendar class. Furthermore, the ``start_date`` and ``end_date``
 class attributes determine over what date range holidays are generated.  These
 should be overwritten on the ``AbstractHolidayCalendar`` class to have the range
 apply to all calendar subclasses.  ``USFederalHolidayCalendar`` is the
@@ -1331,7 +1331,7 @@ or ``Timestamp`` objects.
     datetime(2012, 7, 6) + offset
 
 Ranges are defined by the ``start_date`` and ``end_date`` class attributes
-of ``AbstractHolidayCalendar``.  The defaults are below.
+of ``AbstractHolidayCalendar``.  The defaults are shown below.
 
 .. ipython:: python
 
@@ -1371,16 +1371,17 @@ Shifting / Lagging
 ~~~~~~~~~~~~~~~~~~
 
 One may want to *shift* or *lag* the values in a time series back and forward in
-time. The method for this is ``shift``, which is available on all of the pandas
-objects.
+time. The method for this is :meth:`~Series.shift`, which is available on all of 
+the pandas objects.
 
 .. ipython:: python
 
    ts = ts[:5]
    ts.shift(1)
 
-The shift method accepts an ``freq`` argument which can accept a
-``DateOffset`` class or other ``timedelta``-like object or also a :ref:`offset alias <timeseries.offset_aliases>`:
+The ``shift`` method accepts an ``freq`` argument which can accept a
+``DateOffset`` class or other ``timedelta``-like object or also an 
+:ref:`offset alias <timeseries.offset_aliases>`:
 
 .. ipython:: python
 
@@ -1388,8 +1389,8 @@ The shift method accepts an ``freq`` argument which can accept a
    ts.shift(5, freq='BM')
 
 Rather than changing the alignment of the data and the index, ``DataFrame`` and
-``Series`` objects also have a ``tshift`` convenience method that changes
-all the dates in the index by a specified number of offsets:
+``Series`` objects also have a :meth:`~Series.tshift` convenience method that 
+changes all the dates in the index by a specified number of offsets:
 
 .. ipython:: python
 
@@ -1401,9 +1402,10 @@ is not being realigned.
 Frequency Conversion
 ~~~~~~~~~~~~~~~~~~~~
 
-The primary function for changing frequencies is the ``asfreq`` function.
-For a ``DatetimeIndex``, this is basically just a thin, but convenient wrapper
-around ``reindex`` which generates a ``date_range`` and calls ``reindex``.
+The primary function for changing frequencies is the :meth:`~Series.asfreq` 
+method. For a ``DatetimeIndex``, this is basically just a thin, but convenient 
+wrapper around :meth:`~Series.reindex`  which generates a ``date_range`` and 
+calls ``reindex``.
 
 .. ipython:: python
 
@@ -1413,7 +1415,7 @@ around ``reindex`` which generates a ``date_range`` and calls ``reindex``.
    ts.asfreq(BDay())
 
 ``asfreq`` provides a further convenience so you can specify an interpolation
-method for any gaps that may appear after the frequency conversion
+method for any gaps that may appear after the frequency conversion.
 
 .. ipython:: python
 
@@ -1422,14 +1424,14 @@ method for any gaps that may appear after the frequency conversion
 Filling Forward / Backward
 ~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-Related to ``asfreq`` and ``reindex`` is the ``fillna`` function documented in
-the :ref:`missing data section <missing_data.fillna>`.
+Related to ``asfreq`` and ``reindex`` is :meth:`~Series.fillna`, which is 
+documented in the :ref:`missing data section <missing_data.fillna>`.
 
 Converting to Python Datetimes
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-``DatetimeIndex`` can be converted to an array of Python native datetime.datetime objects using the
-``to_pydatetime`` method.
+``DatetimeIndex`` can be converted to an array of Python native 
+:py:class:`datetime.datetime` objects using the ``to_pydatetime`` method.
 
 .. _timeseries.resampling:
 
@@ -1441,20 +1443,22 @@ Resampling
    The interface to ``.resample`` has changed in 0.18.0 to be more groupby-like and hence more flexible.
    See the :ref:`whatsnew docs <whatsnew_0180.breaking.resample>` for a comparison with prior versions.
 
-Pandas has a simple, powerful, and efficient functionality for
-performing resampling operations during frequency conversion (e.g., converting
-secondly data into 5-minutely data). This is extremely common in, but not
-limited to, financial applications.
+Pandas has a simple, powerful, and efficient functionality for performing 
+resampling operations during frequency conversion (e.g., converting secondly 
+data into 5-minutely data). This is extremely common in, but not limited to, 
+financial applications.
 
-``.resample()`` is a time-based groupby, followed by a reduction method on each of its groups.
-See some :ref:`cookbook examples <cookbook.resample>` for some advanced strategies
+:meth:`~Series.resample` is a time-based groupby, followed by a reduction method 
+on each of its groups. See some :ref:`cookbook examples <cookbook.resample>` for 
+some advanced strategies.
 
 Starting in version 0.18.1, the ``resample()`` function can be used directly from
 ``DataFrameGroupBy`` objects, see the :ref:`groupby docs <groupby.transform.window_resample>`.
 
 .. note::
 
-   ``.resample()`` is similar to using a ``.rolling()`` operation with a time-based offset, see a discussion :ref:`here <stats.moments.ts-versus-resampling>`
+   ``.resample()`` is similar to using a :meth:`~Series.rolling` operation with 
+   a time-based offset, see a discussion :ref:`here <stats.moments.ts-versus-resampling>`.
 
 Basics
 ~~~~~~
@@ -1555,20 +1559,21 @@ For upsampling, you can specify a way to upsample and the ``limit`` parameter to
 Sparse Resampling
 ~~~~~~~~~~~~~~~~~
 
-Sparse timeseries are ones where you have a lot fewer points relative
-to the amount of time you are looking to resample. Naively upsampling a sparse series can potentially
-generate lots of intermediate values. When you don't want to use a method to fill these values, e.g. ``fill_method`` is ``None``,
-then intermediate values will be filled with ``NaN``.
+Sparse timeseries are the ones where you have a lot fewer points relative
+to the amount of time you are looking to resample. Naively upsampling a sparse 
+series can potentially generate lots of intermediate values. When you don't want 
+to use a method to fill these values, e.g. ``fill_method`` is ``None``, then 
+intermediate values will be filled with ``NaN``.
 
 Since ``resample`` is a time-based groupby, the following is a method to efficiently
-resample only the groups that are not all ``NaN``
+resample only the groups that are not all ``NaN``.
 
 .. ipython:: python
 
     rng = pd.date_range('2014-1-1', periods=100, freq='D') + pd.Timedelta('1s')
     ts = pd.Series(range(100), index=rng)
 
-If we want to resample to the full range of the series
+If we want to resample to the full range of the series:
 
 .. ipython:: python
 
@@ -1637,7 +1642,7 @@ columns of a ``DataFrame``:
           'B' : lambda x: np.std(x, ddof=1)})
 
 The function names can also be strings. In order for a string to be valid it
-must be implemented on the Resampled object
+must be implemented on the resampled object:
 
 .. ipython:: python
 
@@ -2013,7 +2018,7 @@ To convert from an ``int64`` based YYYYMMDD representation.
    s.apply(conv)
    s.apply(conv)[2]
 
-These can easily be converted to a ``PeriodIndex``
+These can easily be converted to a ``PeriodIndex``:
 
 .. ipython:: python
 
@@ -2291,7 +2296,7 @@ a convert on an aware stamp.
 
       pd.Series(s_aware.values)
 
-   However, these can be easily converted
+   However, these can be easily converted:
 
    .. ipython:: python
 
