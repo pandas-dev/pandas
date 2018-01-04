@@ -1063,15 +1063,17 @@ cdef _broadcast_floordiv_td64(int64_t value, object other,
     cdef:
         int ndim = getattr(other, 'ndim', -1)
 
-    # We need to watch out for np.timedelta64('NaT')
+    # We need to watch out for np.timedelta64('NaT').
+    mask = other.view('i8') == NPY_NAT
+    # equiv np.isnat, which does not exist in some supported np versions.
+
     if ndim == 0:
-        if np.isnat(other):
+        if mask:
             return np.nan
         else:
             return operation(value, other.astype('m8[ns]').astype('i8'))
 
     else:
-        mask = np.isnat(other)
         res = operation(value, other.astype('m8[ns]').astype('i8'))
 
         if mask.any():
