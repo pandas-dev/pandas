@@ -303,6 +303,7 @@ Removal of prior version deprecations/changes
 - ``pandas.tseries.frequencies.get_standard_freq`` has been removed in favor of ``pandas.tseries.frequencies.to_offset(freq).rule_code`` (:issue:`13874`)
 - The ``freqstr`` keyword has been removed from ``pandas.tseries.frequencies.to_offset`` in favor of ``freq`` (:issue:`13874`)
 - The ``Panel4D`` and ``PanelND`` classes have been removed (:issue:`13776`)
+- The ``Panel``class has dropped the ``to_long``and ``toLong`` methods (:issue:`19077`)
 
 .. _whatsnew_0230.performance:
 
