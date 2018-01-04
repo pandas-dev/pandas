@@ -107,7 +107,6 @@ class PandasDelegate(object):
 # Ported with modifications from xarray
 # https://github.com/pydata/xarray/blob/master/xarray/core/extensions.py
 # 1. We don't need to catch and re-raise AttributeErrors as RuntimeErrors
-# 2. We made caching configurable
 
 
 class _CachedAccssor(object):
