@@ -597,9 +597,13 @@ def _align_method_SERIES(left, right, align_asobject=False):
 
 
 def _construct_result(left, result, index, name, dtype):
+    """
+    If the raw op result has a non-None name (e.g. it is an Index object) and
+    the name argument is None, then passing name to the constructor will
+    not be enough; we still need to override the name attribute.
+    """
     out = left._constructor(result, index=index, name=name, dtype=dtype)
 
-    # If `result` has a non-None name and name is None, we need to override.
     out.name = name
     return out
 

@@ -915,22 +915,6 @@ TimedeltaIndex._add_logical_methods_disabled()
 TimedeltaIndex._add_datetimelike_methods()
 
 
-def _override_tdi_arith_methods():
-    # GH#19042
-    # TODO: Eventually just do this correctly in indexes.base
-    tdi_mul = TimedeltaIndex.__mul__
-
-    def __mul__(self, other):
-        if isinstance(other, ABCSeries):
-            return NotImplemented
-        return tdi_mul(self, other)
-
-    TimedeltaIndex.__mul__ = __mul__
-
-
-_override_tdi_arith_methods()
-
-
 def _is_convertible_to_index(other):
     """
     return a boolean whether I can attempt conversion to a TimedeltaIndex
