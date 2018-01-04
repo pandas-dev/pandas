@@ -31,7 +31,7 @@ from pandas._libs.missing import checknull
 cdef int64_t iNaT = util.get_nat()
 
 
-cdef inline is_definitely_invalid_key(object val):
+cdef inline bint is_definitely_invalid_key(object val):
     if PyTuple_Check(val):
         try:
             hash(val)
