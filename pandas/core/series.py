@@ -13,6 +13,7 @@ from textwrap import dedent
 import numpy as np
 import numpy.ma as ma
 
+from pandas.core.accessor import _CachedAccssor
 from pandas.core.dtypes.common import (
     is_categorical_dtype,
     is_bool,
@@ -52,7 +53,8 @@ from pandas.core.index import (Index, MultiIndex, InvalidIndexError,
 from pandas.core.indexing import check_bool_indexer, maybe_convert_indices
 from pandas.core import generic, base
 from pandas.core.internals import SingleBlockManager
-from pandas.core.categorical import Categorical
+from pandas.core.categorical import Categorical, CategoricalAccessor
+from pandas.core.indexes.accessors import CombinedDatetimelikeProperties
 from pandas.core.indexes.datetimes import DatetimeIndex
 from pandas.core.indexes.timedeltas import TimedeltaIndex
 from pandas.core.indexes.period import PeriodIndex
@@ -74,6 +76,7 @@ from pandas.util._validators import validate_bool_kwarg
 
 from pandas._libs import index as libindex, tslib as libts, lib, iNaT
 from pandas.core.config import get_option
+from pandas.core.strings import StringMethods
 
 import pandas.plotting._core as gfx
 
@@ -3055,6 +3058,14 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         new_index = self.index.to_period(freq=freq)
         return self._constructor(new_values,
                                  index=new_index).__finalize__(self)
+
+    # ----------------------------------------------------------------------
+    # Accessor Methods
+    # ----------------------------------------------------------------------
+    str = _CachedAccssor("str", StringMethods)
+    dt = _CachedAccssor("dt", CombinedDatetimelikeProperties)
+    cat = _CachedAccssor("cat", CategoricalAccessor)
+    plot = _CachedAccssor("plot", gfx.SeriesPlotMethods)
 
     # ----------------------------------------------------------------------
     # Add plotting methods to Series

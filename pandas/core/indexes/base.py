@@ -12,6 +12,7 @@ from pandas.compat import range, u, set_function_name
 from pandas.compat.numpy import function as nv
 from pandas import compat
 
+from pandas.core.accessor import _CachedAccssor
 from pandas.core.dtypes.generic import (
     ABCSeries,
     ABCMultiIndex,
@@ -56,6 +57,7 @@ import pandas.core.sorting as sorting
 from pandas.io.formats.printing import pprint_thing
 from pandas.core.ops import _comp_method_OBJECT_ARRAY
 from pandas.core.config import get_option
+from pandas.core.strings import StringMethods
 
 
 # simplify
@@ -171,6 +173,7 @@ class Index(IndexOpsMixin, PandasObject):
     _engine_type = libindex.ObjectEngine
 
     _accessors = frozenset(['str'])
+    str = _CachedAccssor("str", StringMethods)
 
     def __new__(cls, data=None, dtype=None, copy=False, name=None,
                 fastpath=False, tupleize_cols=True, **kwargs):

@@ -86,19 +86,3 @@ def test_raises_attribute_error():
 
         with tm.assert_raises_regex(AttributeError, "whoops"):
             pd.Series([]).bad
-
-
-@pytest.mark.parametrize('obj, registrar', [
-    (pd.Series, pd.api.extensions.register_series_accessor),
-    (pd.DataFrame, pd.api.extensions.register_dataframe_accessor),
-    (pd.Index, pd.api.extensions.register_index_accessor)
-])
-@pytest.mark.parametrize("cache", [True, False])
-def test_cache_works(obj, registrar, cache):
-    with ensure_removed(obj, "mine"):
-        registrar("mine", cache=cache)(MyAccessor)
-
-        ser = obj([])
-        a = ser.mine
-        b = ser.mine
-        assert (a is b) == cache

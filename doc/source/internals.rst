@@ -89,27 +89,6 @@ not check (or care) whether the levels themselves are sorted. Fortunately, the
 constructors ``from_tuples`` and ``from_arrays`` ensure that this is true, but
 if you compute the levels and labels yourself, please be careful.
 
-Accessors
----------
-
-We use accessors (like ``Series.str``, ``CategoricalIndex.cat``, etc) to provide
-namespaces for related methods on certain objects.
-
-Our accessors should inherit from ``pands.core.base.NoNewAttributesMixin`` and
-call ``self._freeze`` at the end of initialization. Additionally, we can use
-``pandas.core.accessor.PandasDelegate`` to implement many attributes on the
-accessor that simply pass the call through to another object, (e.g.
-``series.cat.categories`` delegates to ``Categorical.categories``).
-
-Accessors are registered using the public accessor registration methods
-
-* :func:`pandas.api.extensions.register_dataframe_accessor`
-* :func:`pandas.api.extensions.register_series_accessor`
-* :func:`pandas.api.extensions.register_index_accessor`
-
-These methods import ``Series``, ``DataFrame``, etc., so the registration
-has to happen towards the end of ``pandas.__init__``.
-
 .. _ref-subclassing-pandas:
 
 Subclassing pandas Data Structures

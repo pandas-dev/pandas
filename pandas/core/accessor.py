@@ -110,7 +110,7 @@ class PandasDelegate(object):
 # 2. We made caching configurable
 
 
-class _CachableAccessor(object):
+class _CachedAccssor(object):
     """Custom property-like object (descriptor) for caching accessors.
 
     Parameters
@@ -121,16 +121,10 @@ class _CachableAccessor(object):
         The class with the extension methods. The class' __init__ method
         should expect one of a ``Series``, ``DataFrame`` or ``Index`` as
         the single argument ``data``
-    cache : bool, default True
-        Whether to cache the accessor on an instance, such that ``df.foo``
-        will be the same object every time. Set this to ``False`` if the
-        object you are extending is mutable (``Series``, ``DataFrame``) and
-        if your accessor caches anything based on its ``data`` argument.
     """
-    def __init__(self, name, accessor, cache=True):
+    def __init__(self, name, accessor):
         self._name = name
         self._accessor = accessor
-        self._cache = cache
 
     def __get__(self, obj, cls):
         if obj is None:
@@ -141,12 +135,11 @@ class _CachableAccessor(object):
         # http://www.pydanny.com/cached-property.html
         # We need to use object.__setattr__ because we overwrite __setattr__ on
         # NDFrame
-        if self._cache:
-            object.__setattr__(obj, self._name, accessor_obj)
+        object.__setattr__(obj, self._name, accessor_obj)
         return accessor_obj
 
 
-def _register_accessor(name, cls, cache=True):
+def _register_accessor(name, cls):
     def decorator(accessor):
         if hasattr(cls, name):
             warnings.warn(
@@ -155,12 +148,12 @@ def _register_accessor(name, cls, cache=True):
                 'name.'.format(accessor, name, cls),
                 AccessorRegistrationWarning,
                 stacklevel=2)
-        setattr(cls, name, _CachableAccessor(name, accessor, cache=cache))
+        setattr(cls, name, _CachedAccssor(name, accessor))
         return accessor
     return decorator
 
 
-def register_dataframe_accessor(name, cache=True):
+def register_dataframe_accessor(name):
     """Register a custom accessor on pandas.DataFrame objects.
 
     Parameters
@@ -168,11 +161,6 @@ def register_dataframe_accessor(name, cache=True):
     name : str
         Name under which the accessor should be registered. A warning is issued
         if this name conflicts with a preexisting attribute.
-    cache : bool, default True
-        Whether to cache the accessor such that ``df.<name>`` is always the
-        same object for a given ``DataFrame``.  Set this to ``False`` if the
-        object you are extending is mutable (``Series``, ``DataFrame``) and
-        if your accessor caches anything based on its ``data`` argument.
 
     Examples
     --------
@@ -211,10 +199,10 @@ def register_dataframe_accessor(name, cache=True):
     register_series_accessor
     """
     from pandas import DataFrame
-    return _register_accessor(name, DataFrame, cache=cache)
+    return _register_accessor(name, DataFrame)
 
 
-def register_series_accessor(name, cache=True):
+def register_series_accessor(name):
     """Register a custom accessor on pandas.Series objects.
 
     Parameters
@@ -222,12 +210,6 @@ def register_series_accessor(name, cache=True):
     name : str
         Name under which the accessor should be registered. A warning is issued
         if this name conflicts with a preexisting attribute.
-    cache : bool, default True
-        Whether to cache the accessor such that ``series.<name>`` is always the
-        same object for a given ``Series``.  Set this to ``False`` if the
-        object you are extending is mutable (``Series``, ``DataFrame``) and
-        if your accessor caches anything based on its ``data`` argument.
-
 
     See Also
     --------
@@ -235,10 +217,10 @@ def register_series_accessor(name, cache=True):
     register_index_accessor
     """
     from pandas import Series
-    return _register_accessor(name, Series, cache=cache)
+    return _register_accessor(name, Series)
 
 
-def register_index_accessor(name, cache=True):
+def register_index_accessor(name):
     """Register a custom accessor on pandas.Index objects.
 
     Parameters
@@ -246,12 +228,6 @@ def register_index_accessor(name, cache=True):
     name : str
         Name under which the accessor should be registered. A warning is issued
         if this name conflicts with a preexisting attribute.
-    cache : bool, default True
-        Whether to cache the accessor such that ``df.<name>`` is always the
-        same object for a given ``DataFrame``.  Set this to ``False`` if the
-        object you are extending is mutable (``Series``, ``DataFrame``) and
-        if your accessor caches anything based on its ``data`` argument.
-
 
     See Also
     --------
@@ -259,4 +235,4 @@ def register_index_accessor(name, cache=True):
     register_series_accessor
     """
     from pandas import Index
-    return _register_accessor(name, Index, cache=cache)
+    return _register_accessor(name, Index)

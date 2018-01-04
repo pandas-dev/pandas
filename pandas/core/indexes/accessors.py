@@ -4,6 +4,7 @@ datetimelike delegation
 
 import numpy as np
 
+from pandas.core.dtypes.generic import ABCSeries
 from pandas.core.dtypes.common import (
     is_period_arraylike,
     is_datetime_arraylike, is_integer_dtype,
@@ -22,17 +23,46 @@ from pandas.core.algorithms import take_1d
 
 class Properties(PandasDelegate, PandasObject, NoNewAttributesMixin):
 
-    def __init__(self, values, index, name, orig=None):
-        self.values = values
-        self.index = index
-        self.name = name
-        self.orig = orig
+    def __init__(self, data):
+        if not isinstance(data, ABCSeries):
+            raise TypeError("cannot convert an object of type {0} to a "
+                            "datetimelike index".format(type(data)))
+
+        orig = data if is_categorical_dtype(data) else None
+        if orig is not None:
+            data = orig.values.categories
+
+        self._values = data
+        self._orig = orig
+        self._name = getattr(data, 'name', None)
+        self._index = getattr(data, 'index', None)
         self._freeze()
+
+    def _get_values(self):
+        data = self._values
+        if is_datetime64_dtype(data.dtype):
+            return DatetimeIndex(data, copy=False, name=self._name)
+
+        elif is_datetime64tz_dtype(data.dtype):
+            return DatetimeIndex(data, copy=False, name=self._name)
+
+        elif is_timedelta64_dtype(data.dtype):
+            return TimedeltaIndex(data, copy=False, name=self._name)
+
+        else:
+            if is_period_arraylike(data):
+                return PeriodIndex(data, copy=False, name=self._name)
+            if is_datetime_arraylike(data):
+                return DatetimeIndex(data, copy=False, name=self._name)
+
+        raise TypeError("cannot convert an object of type {0} to a "
+                        "datetimelike index".format(type(data)))
 
     def _delegate_property_get(self, name):
         from pandas import Series
+        values = self._get_values()
 
-        result = getattr(self.values, name)
+        result = getattr(values, name)
 
         # maybe need to upcast (ints)
         if isinstance(result, np.ndarray):
@@ -44,11 +74,11 @@ class Properties(PandasDelegate, PandasObject, NoNewAttributesMixin):
         result = np.asarray(result)
 
         # blow up if we operate on categories
-        if self.orig is not None:
-            result = take_1d(result, self.orig.cat.codes)
+        if self._orig is not None:
+            result = take_1d(result, self._orig.cat.codes)
 
         # return the result as a Series, which is by definition a copy
-        result = Series(result, index=self.index, name=self.name)
+        result = Series(result, index=self._index, name=self._name)
 
         # setting this object will show a SettingWithCopyWarning/Error
         result._is_copy = ("modifications to a property of a datetimelike "
@@ -64,14 +94,15 @@ class Properties(PandasDelegate, PandasObject, NoNewAttributesMixin):
 
     def _delegate_method(self, name, *args, **kwargs):
         from pandas import Series
+        values = self._get_values()
 
-        method = getattr(self.values, name)
+        method = getattr(values, name)
         result = method(*args, **kwargs)
 
         if not is_list_like(result):
             return result
 
-        result = Series(result, index=self.index, name=self.name)
+        result = Series(result, index=self._index, name=self._name)
 
         # setting this object will show a SettingWithCopyWarning/Error
         result._is_copy = ("modifications to a method of a datetimelike "
@@ -191,29 +222,17 @@ class CombinedDatetimelikeProperties(DatetimeProperties, TimedeltaProperties):
             raise TypeError("cannot convert an object of type {0} to a "
                             "datetimelike index".format(type(data)))
 
-        index = data.index
-        name = data.name
-        orig = data if is_categorical_dtype(data) else None
-        if orig is not None:
-            data = orig.values.categories
-
         if is_datetime64_dtype(data.dtype):
-            return DatetimeProperties(DatetimeIndex(data, copy=False),
-                                      index, name=name, orig=orig)
+            return DatetimeProperties(data)
         elif is_datetime64tz_dtype(data.dtype):
-            return DatetimeProperties(DatetimeIndex(data, copy=False),
-                                      index, data.name, orig=orig)
+            return DatetimeProperties(data)
         elif is_timedelta64_dtype(data.dtype):
-            return TimedeltaProperties(TimedeltaIndex(data, copy=False), index,
-                                       name=name, orig=orig)
+            return TimedeltaProperties(data)
         else:
             if is_period_arraylike(data):
-                return PeriodProperties(PeriodIndex(data, copy=False), index,
-                                        name=name, orig=orig)
+                return PeriodProperties(data)
             if is_datetime_arraylike(data):
-                return DatetimeProperties(DatetimeIndex(data, copy=False),
-                                          index,
-                                          name=name, orig=orig)
+                return DatetimeProperties(data)
 
         raise TypeError("cannot convert an object of type {0} to a "
                         "datetimelike index".format(type(data)))
