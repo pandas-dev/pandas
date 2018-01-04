@@ -1716,7 +1716,10 @@ class YearBegin(YearOffset):
 # ---------------------------------------------------------------------
 # Special Offset Classes
 
-_5253doc = """
+class FY5253(DateOffset):
+    """
+    Describes 52-53 week fiscal year. This is also known as a 4-4-5 calendar.
+
     It is used by companies that desire that their
     fiscal year always end on the same day of the week.
 
@@ -1733,14 +1736,6 @@ _5253doc = """
 
     X is a specific day of the week.
     Y is a certain month of the year
-"""
-
-
-class FY5253(DateOffset):
-    __doc__ = """
-    Describes 52-53 week fiscal year. This is also known as a 4-4-5 calendar.
-
-    %s
 
     Parameters
     ----------
@@ -1756,7 +1751,7 @@ class FY5253(DateOffset):
     startingMonth : The month in which fiscal years end. {1, 2, ... 12}
     variation : str
         {"nearest", "last"} for "LastOfMonth" or "NearestEndMonth"
-    """ % _5253doc
+    """
     _prefix = 'RE'
     _adjust_dst = True
 
@@ -1915,11 +1910,26 @@ class FY5253(DateOffset):
 
 
 class FY5253Quarter(DateOffset):
-    __doc__ = """
+    """
     DateOffset increments between business quarter dates
     for 52-53 week fiscal year (also known as a 4-4-5 calendar).
 
-    %s
+    It is used by companies that desire that their
+    fiscal year always end on the same day of the week.
+
+    It is a method of managing accounting periods.
+    It is a common calendar structure for some industries,
+    such as retail, manufacturing and parking industry.
+
+    For more information see:
+    http://en.wikipedia.org/wiki/4-4-5_calendar
+
+    The year may either:
+    - end on the last X day of the Y month.
+    - end on the last X day closest to the last day of the Y month.
+
+    X is a specific day of the week.
+    Y is a certain month of the year
 
     startingMonth = 1 corresponds to dates like 1/31/2007, 4/30/2007, ...
     startingMonth = 2 corresponds to dates like 2/28/2007, 5/31/2007, ...
@@ -1941,7 +1951,7 @@ class FY5253Quarter(DateOffset):
         or 14 week when needed. {1,2,3,4}
     variation : str
         {"nearest", "last"} for "LastOfMonth" or "NearestEndMonth"
-    """ % _5253doc
+    """
 
     _prefix = 'REQ'
     _adjust_dst = True
@@ -1984,6 +1994,7 @@ class FY5253Quarter(DateOffset):
 
         Returns
         -------
+        tuple of
         prev_year_end : Timestamp giving most recent fiscal year end
         num_qtrs : int
         tdelta : Timedelta
