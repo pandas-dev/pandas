@@ -1298,6 +1298,17 @@ class TestMultiIndex(Base):
         idx = MultiIndex.from_product(levels)
         assert idx.get_loc(tuple(key)) == 3
 
+    def test_get_loc_cast_bool(self):
+        # GH 19086 : int is casted to bool, but not vice-versa
+        levels = [[False, True], np.arange(2, dtype='int64')]
+        idx = MultiIndex.from_product(levels)
+
+        assert idx.get_loc((0, 1)) == 1
+        assert idx.get_loc((1, 0)) == 2
+
+        pytest.raises(KeyError, idx.get_loc, (False, True))
+        pytest.raises(KeyError, idx.get_loc, (True, False))
+
     def test_slice_locs(self):
         df = tm.makeTimeDataFrame()
         stacked = df.stack()
