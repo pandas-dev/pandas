@@ -400,22 +400,23 @@ class TestPivotTable(object):
 
     def test_pivot_with_multiindex(self):
         # issue #17160
-        index = pd.Index(data=[0, 1, 2, 3, 4, 5])
+        index = Index(data=[0, 1, 2, 3, 4, 5])
         data = [['one', 'A', 1, 'x'],
                 ['one', 'B', 2, 'y'],
                 ['one', 'C', 3, 'z'],
                 ['two', 'A', 4, 'q'],
                 ['two', 'B', 5, 'w'],
                 ['two', 'C', 6, 't']]
-        columns = pd.MultiIndex(levels=[['bar', 'baz'], ['first', 'second']],
-                                labels=[[0, 0, 1, 1], [0, 1, 0, 1]])
-        df = pd.DataFrame(data=data, index=index, columns=columns, dtype='object')
-        result = df.pivot(index=('bar', 'first'), columns=('bar', 'second'), values=('baz', 'first'))
+        columns = MultiIndex(levels=[['bar', 'baz'], ['first', 'second']],
+                             labels=[[0, 0, 1, 1], [0, 1, 0, 1]])
+        df = DataFrame(data=data, index=index, columns=columns, dtype='object')
+        result = df.pivot(index=('bar', 'first'), columns=('bar', 'second'),
+                          values=('baz', 'first'))
 
-        data = {'A': pd.Series([1, 4], index=['one', 'two']),
-                'B': pd.Series([2, 5], index=['one', 'two']),
-                'C': pd.Series([3, 6], index=['one', 'two'])}
-        expected = pd.DataFrame(data)
+        data = {'A': Series([1, 4], index=['one', 'two']),
+                'B': Series([2, 5], index=['one', 'two']),
+                'C': Series([3, 6], index=['one', 'two'])}
+        expected = DataFrame(data)
         tm.assert_frame_equal(result, expected)
 
     @pytest.mark.xfail(reason='tuple is seen as a single column name')
