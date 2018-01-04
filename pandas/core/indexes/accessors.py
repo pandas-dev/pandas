@@ -20,68 +20,6 @@ from pandas.core.indexes.timedeltas import TimedeltaIndex
 from pandas.core.algorithms import take_1d
 
 
-def is_datetimelike(data):
-    """
-    return a boolean if we can be successfully converted to a datetimelike
-    """
-    try:
-        maybe_to_datetimelike(data)
-        return True
-    except (Exception):
-        pass
-    return False
-
-
-def maybe_to_datetimelike(data, copy=False):
-    """
-    return a DelegatedClass of a Series that is datetimelike
-      (e.g. datetime64[ns],timedelta64[ns] dtype or a Series of Periods)
-    raise TypeError if this is not possible.
-
-    Parameters
-    ----------
-    data : Series
-    copy : boolean, default False
-           copy the input data
-
-    Returns
-    -------
-    DelegatedClass
-
-    """
-    from pandas import Series
-
-    if not isinstance(data, Series):
-        raise TypeError("cannot convert an object of type {0} to a "
-                        "datetimelike index".format(type(data)))
-
-    index = data.index
-    name = data.name
-    orig = data if is_categorical_dtype(data) else None
-    if orig is not None:
-        data = orig.values.categories
-
-    if is_datetime64_dtype(data.dtype):
-        return DatetimeProperties(DatetimeIndex(data, copy=copy),
-                                  index, name=name, orig=orig)
-    elif is_datetime64tz_dtype(data.dtype):
-        return DatetimeProperties(DatetimeIndex(data, copy=copy),
-                                  index, data.name, orig=orig)
-    elif is_timedelta64_dtype(data.dtype):
-        return TimedeltaProperties(TimedeltaIndex(data, copy=copy), index,
-                                   name=name, orig=orig)
-    else:
-        if is_period_arraylike(data):
-            return PeriodProperties(PeriodIndex(data, copy=copy), index,
-                                    name=name, orig=orig)
-        if is_datetime_arraylike(data):
-            return DatetimeProperties(DatetimeIndex(data, copy=copy), index,
-                                      name=name, orig=orig)
-
-    raise TypeError("cannot convert an object of type {0} to a "
-                    "datetimelike index".format(type(data)))
-
-
 class Properties(PandasDelegate, PandasObject, NoNewAttributesMixin):
 
     def __init__(self, values, index, name, orig=None):
@@ -245,15 +183,40 @@ PeriodProperties._add_delegate_accessors(
 
 
 class CombinedDatetimelikeProperties(DatetimeProperties, TimedeltaProperties):
-    # use a class instead of a function so that the methods are inherited,
-    # making this easier to autodoc
 
-    def __call__(self, data):
-        try:
-            return maybe_to_datetimelike(data)
-        except Exception:
-            raise AttributeError("Can only use .dt accessor with "
-                                 "datetimelike values")
+    def __new__(cls, data):
+        from pandas import Series
+
+        if not isinstance(data, Series):
+            raise TypeError("cannot convert an object of type {0} to a "
+                            "datetimelike index".format(type(data)))
+
+        index = data.index
+        name = data.name
+        orig = data if is_categorical_dtype(data) else None
+        if orig is not None:
+            data = orig.values.categories
+
+        if is_datetime64_dtype(data.dtype):
+            return DatetimeProperties(DatetimeIndex(data, copy=False),
+                                      index, name=name, orig=orig)
+        elif is_datetime64tz_dtype(data.dtype):
+            return DatetimeProperties(DatetimeIndex(data, copy=False),
+                                      index, data.name, orig=orig)
+        elif is_timedelta64_dtype(data.dtype):
+            return TimedeltaProperties(TimedeltaIndex(data, copy=False), index,
+                                       name=name, orig=orig)
+        else:
+            if is_period_arraylike(data):
+                return PeriodProperties(PeriodIndex(data, copy=False), index,
+                                        name=name, orig=orig)
+            if is_datetime_arraylike(data):
+                return DatetimeProperties(DatetimeIndex(data, copy=False),
+                                          index,
+                                          name=name, orig=orig)
+
+        raise TypeError("cannot convert an object of type {0} to a "
+                        "datetimelike index".format(type(data)))
 
 
 CombinedDatetimelikeProperties.__doc__ = DatetimeProperties.__doc__
