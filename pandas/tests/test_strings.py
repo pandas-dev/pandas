@@ -1074,26 +1074,28 @@ class TestStringMethods(object):
 
     def test_extractall_no_matches(self):
         s = Series(['a3', 'b3', 'd4c2'], name='series_name')
+        i = MultiIndex(levels=[[], []],
+                       labels=[[], []],
+                       names=[None, 'match'])
         # one un-named group.
         r = s.str.extractall('(z)')
-        e = DataFrame(columns=[0])
+        e = DataFrame(columns=[0], index=i)
         tm.assert_frame_equal(r, e)
         # two un-named groups.
         r = s.str.extractall('(z)(z)')
-        e = DataFrame(columns=[0, 1])
+        e = DataFrame(columns=[0, 1], index=i)
         tm.assert_frame_equal(r, e)
         # one named group.
         r = s.str.extractall('(?P<first>z)')
-        e = DataFrame(columns=["first"])
+        e = DataFrame(columns=["first"], index=i)
         tm.assert_frame_equal(r, e)
         # two named groups.
         r = s.str.extractall('(?P<first>z)(?P<second>z)')
-        e = DataFrame(columns=["first", "second"])
+        e = DataFrame(columns=["first", "second"], index=i)
         tm.assert_frame_equal(r, e)
         # one named, one un-named.
         r = s.str.extractall('(z)(?P<second>z)')
-        e = DataFrame(columns=[0,
-                               "second"])
+        e = DataFrame(columns=[0, "second"], index=i)
         tm.assert_frame_equal(r, e)
 
     def test_extractall_stringindex(self):
