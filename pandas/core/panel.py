@@ -996,9 +996,6 @@ class Panel(NDFrame):
 
         return DataFrame(data, index=index, columns=self.items)
 
-    to_long = deprecate('to_long', to_frame)
-    toLong = deprecate('toLong', to_frame)
-
     def apply(self, func, axis='major', **kwargs):
         """
         Applies function along axis (or axes) of the Panel
