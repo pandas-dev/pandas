@@ -669,7 +669,11 @@ class DatetimeIndexOpsMixin(object):
             from pandas.core.index import Index
             from pandas.core.indexes.timedeltas import TimedeltaIndex
             from pandas.tseries.offsets import DateOffset
-            if is_timedelta64_dtype(other):
+
+            other = lib.item_from_zerodim(other)
+            if isinstance(other, ABCSeries):
+                return NotImplemented
+            elif is_timedelta64_dtype(other):
                 return self._add_delta(other)
             elif isinstance(self, TimedeltaIndex) and isinstance(other, Index):
                 if hasattr(other, '_add_delta'):
@@ -689,6 +693,7 @@ class DatetimeIndexOpsMixin(object):
                 return self._add_datelike(other)
             else:  # pragma: no cover
                 return NotImplemented
+
         cls.__add__ = __add__
         cls.__radd__ = __add__
 
@@ -697,7 +702,11 @@ class DatetimeIndexOpsMixin(object):
             from pandas.core.indexes.datetimes import DatetimeIndex
             from pandas.core.indexes.timedeltas import TimedeltaIndex
             from pandas.tseries.offsets import DateOffset
-            if is_timedelta64_dtype(other):
+
+            other = lib.item_from_zerodim(other)
+            if isinstance(other, ABCSeries):
+                return NotImplemented
+            elif is_timedelta64_dtype(other):
                 return self._add_delta(-other)
             elif isinstance(self, TimedeltaIndex) and isinstance(other, Index):
                 if not isinstance(other, TimedeltaIndex):
@@ -724,6 +733,7 @@ class DatetimeIndexOpsMixin(object):
 
             else:  # pragma: no cover
                 return NotImplemented
+
         cls.__sub__ = __sub__
 
         def __rsub__(self, other):
@@ -737,8 +747,10 @@ class DatetimeIndexOpsMixin(object):
         return NotImplemented
 
     def _add_delta_td(self, other):
-        # add a delta of a timedeltalike
-        # return the i8 result view
+        """
+        Add a delta of a timedeltalike
+        return the i8 result view
+        """
 
         inc = delta_to_nanoseconds(other)
         new_values = checked_add_with_arr(self.asi8, inc,
@@ -748,8 +760,10 @@ class DatetimeIndexOpsMixin(object):
         return new_values.view('i8')
 
     def _add_delta_tdi(self, other):
-        # add a delta of a TimedeltaIndex
-        # return the i8 result view
+        """
+        Add a delta of a TimedeltaIndex
+        return the i8 result view
+        """
 
         # delta operation
         if not len(self) == len(other):
@@ -905,7 +919,7 @@ class DatetimeIndexOpsMixin(object):
 
 def _ensure_datetimelike_to_i8(other):
     """ helper for coercing an input scalar or array to i8 """
-    if lib.isscalar(other) and isna(other):
+    if is_scalar(other) and isna(other):
         other = iNaT
     elif isinstance(other, ABCIndexClass):
         # convert tz if needed

@@ -395,7 +395,7 @@ raise a ValueError:
     In [56]: pd.Series(['foo', 'bar', 'baz']) == pd.Series(['foo'])
     ValueError: Series lengths must match to compare
 
-Note that this is different from the numpy behavior where a comparison can
+Note that this is different from the NumPy behavior where a comparison can
 be broadcast:
 
 .. ipython:: python
@@ -1000,7 +1000,7 @@ We create a frame similar to the one used in the above sections.
    tsdf.iloc[3:7] = np.nan
    tsdf
 
-Transform the entire frame. ``.transform()`` allows input functions as: a numpy function, a string
+Transform the entire frame. ``.transform()`` allows input functions as: a NumPy function, a string
 function name or a user defined function.
 
 .. ipython:: python
@@ -1510,7 +1510,7 @@ To iterate over the rows of a DataFrame, you can use the following methods:
   one of the following approaches:
 
   * Look for a *vectorized* solution: many operations can be performed using
-    built-in methods or numpy functions, (boolean) indexing, ...
+    built-in methods or NumPy functions, (boolean) indexing, ...
 
   * When you have a function that cannot work on the full DataFrame/Series
     at once, it is better to use :meth:`~DataFrame.apply` instead of iterating
@@ -1971,7 +1971,7 @@ from the current type (e.g. ``int`` to ``float``).
    df3.dtypes
 
 The ``values`` attribute on a DataFrame return the *lower-common-denominator* of the dtypes, meaning
-the dtype that can accommodate **ALL** of the types in the resulting homogeneous dtyped numpy array. This can
+the dtype that can accommodate **ALL** of the types in the resulting homogeneous dtyped NumPy array. This can
 force some *upcasting*.
 
 .. ipython:: python
@@ -2253,7 +2253,7 @@ can define a function that returns a tree of child dtypes:
            return dtype
        return [dtype, [subdtypes(dt) for dt in subs]]
 
-All numpy dtypes are subclasses of ``numpy.generic``:
+All NumPy dtypes are subclasses of ``numpy.generic``:
 
 .. ipython:: python
 
@@ -2262,4 +2262,4 @@ All numpy dtypes are subclasses of ``numpy.generic``:
 .. note::
 
     Pandas also defines the types ``category``, and ``datetime64[ns, tz]``, which are not integrated into the normal
-    numpy hierarchy and wont show up with the above function.
+    NumPy hierarchy and wont show up with the above function.

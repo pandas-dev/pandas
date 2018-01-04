@@ -197,13 +197,13 @@ class Index(IndexOpsMixin, PandasObject):
         # categorical
         if is_categorical_dtype(data) or is_categorical_dtype(dtype):
             from .category import CategoricalIndex
-            return CategoricalIndex(data, copy=copy, name=name, **kwargs)
+            return CategoricalIndex(data, dtype=dtype, copy=copy, name=name,
+                                    **kwargs)
 
         # interval
-        if is_interval_dtype(data):
+        if is_interval_dtype(data) or is_interval_dtype(dtype):
             from .interval import IntervalIndex
-            return IntervalIndex.from_intervals(data, name=name,
-                                                copy=copy)
+            return IntervalIndex(data, dtype=dtype, name=name, copy=copy)
 
         # index-like
         elif isinstance(data, (np.ndarray, Index, ABCSeries)):
@@ -1101,7 +1101,7 @@ class Index(IndexOpsMixin, PandasObject):
 
     def _assert_can_do_op(self, value):
         """ Check value is valid for scalar op """
-        if not lib.isscalar(value):
+        if not is_scalar(value):
             msg = "'value' must be a scalar, passed: {0}"
             raise TypeError(msg.format(type(value).__name__))
 
