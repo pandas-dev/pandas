@@ -13,7 +13,7 @@ import locale
 import traceback
 
 from datetime import datetime
-from functools import wraps, partial
+from functools import wraps
 from contextlib import contextmanager
 
 from numpy.random import randn, rand
@@ -1266,14 +1266,13 @@ def assert_frame_equal(left, right, check_dtype=True,
                 obj='DataFrame.iloc[:, {idx}]'.format(idx=i))
 
 
-def assert_panelnd_equal(left, right,
-                         check_dtype=True,
-                         check_panel_type=False,
-                         check_less_precise=False,
-                         assert_func=assert_frame_equal,
-                         check_names=False,
-                         by_blocks=False,
-                         obj='Panel'):
+def assert_panel_equal(left, right,
+                       check_dtype=True,
+                       check_panel_type=False,
+                       check_less_precise=False,
+                       check_names=False,
+                       by_blocks=False,
+                       obj='Panel'):
     """Check that left and right Panels are equal.
 
     Parameters
@@ -1288,7 +1287,6 @@ def assert_panelnd_equal(left, right,
         Specify comparison precision. Only used when check_exact is False.
         5 digits (False) or 3 digits (True) after decimal points are compared.
         If int, then specify the digits to compare
-    assert_func : function for comparing data
     check_names : bool, default True
         Whether to check the Index names attribute.
     by_blocks : bool, default False
@@ -1322,17 +1320,13 @@ def assert_panelnd_equal(left, right,
             assert item in right, msg
             litem = left.iloc[i]
             ritem = right.iloc[i]
-            assert_func(litem, ritem, check_less_precise=check_less_precise)
+            assert_frame_equal(litem, ritem,
+                               check_less_precise=check_less_precise,
+                               check_names=check_names)
 
         for i, item in enumerate(right._get_axis(0)):
             msg = "non-matching item (left) '{item}'".format(item=item)
             assert item in left, msg
-
-
-# TODO: strangely check_names fails in py3 ?
-_panel_frame_equal = partial(assert_frame_equal, check_names=False)
-assert_panel_equal = partial(assert_panelnd_equal,
-                             assert_func=_panel_frame_equal)
 
 
 # -----------------------------------------------------------------------------
