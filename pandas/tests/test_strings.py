@@ -24,8 +24,9 @@ class TestStringMethods(object):
     def test_api(self):
 
         # GH 6106, GH 9322
-        assert Series.str is strings.StringMethods
-        assert isinstance(Series(['']).str, strings.StringMethods)
+        from pandas.core.register_accessors import StringAccessor
+        assert Series.str is StringAccessor
+        assert isinstance(Series(['']).str, StringAccessor)
 
         # GH 9184
         invalid = Series([1])

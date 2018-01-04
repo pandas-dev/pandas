@@ -3061,14 +3061,14 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
 
     # -------------------------------------------------------------------------
     # Datetimelike delegation methods
-    dt = accessor.AccessorProperty(CombinedDatetimelikeProperties)
+    # dt = accessor.AccessorProperty(CombinedDatetimelikeProperties)
 
     # -------------------------------------------------------------------------
     # Categorical methods
-    cat = accessor.AccessorProperty(CategoricalAccessor)
+    # cat = accessor.AccessorProperty(CategoricalAccessor)
 
     # String Methods
-    str = accessor.AccessorProperty(strings.StringMethods)
+    # str = accessor.AccessorProperty(strings.StringMethods)
 
     # ----------------------------------------------------------------------
     # Add plotting methods to Series

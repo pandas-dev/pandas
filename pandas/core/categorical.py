@@ -2146,6 +2146,10 @@ class CategoricalAccessor(PandasDelegate, PandasObject, NoNewAttributesMixin):
     methods return new categorical data per default (but can be called with
     `inplace=True`).
 
+    Parameters
+    ----------
+    data : Series or CategoricalIndex
+
     Examples
     --------
     >>> s.cat.categories
@@ -2161,10 +2165,10 @@ class CategoricalAccessor(PandasDelegate, PandasObject, NoNewAttributesMixin):
 
     """
 
-    def __init__(self, values, index, name):
-        self.categorical = values
-        self.index = index
-        self.name = name
+    def __init__(self, data):
+        self.categorical = data.values
+        self.index = data.index
+        self.name = data.name
         self._freeze()
 
     def _delegate_property_get(self, name):

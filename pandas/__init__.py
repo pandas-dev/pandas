@@ -46,6 +46,9 @@ from pandas.tseries.api import *
 from pandas.core.computation.api import *
 from pandas.core.reshape.api import *
 
+# register accessors
+from pandas.core.register_accessors import *
+
 # deprecate tools.plotting, plot_params and scatter_matrix on the top namespace
 import pandas.tools.plotting
 plot_params = pandas.plotting._style._Options(deprecated=True)

@@ -5,10 +5,8 @@ accessor.py contains base classes for implementing accessor properties
 that can be mixed into or pinned onto other pandas classes.
 
 """
-import traceback
 import warnings
 
-from pandas.compat import PY2
 from pandas.errors import AccessorRegistrationWarning
 
 

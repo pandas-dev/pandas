@@ -173,9 +173,6 @@ class Index(IndexOpsMixin, PandasObject):
 
     _accessors = frozenset(['str'])
 
-    # String Methods
-    str = accessor.AccessorProperty(strings.StringMethods)
-
     def __new__(cls, data=None, dtype=None, copy=False, name=None,
                 fastpath=False, tupleize_cols=True, **kwargs):
 
