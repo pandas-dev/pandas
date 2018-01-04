@@ -1224,9 +1224,6 @@ class Panel(NDFrame):
             kwargs['minor_axis'] = minor
         axes = validate_axis_style_args(self, args, kwargs, 'labels',
                                         'reindex')
-        if self.ndim >= 4:
-            # Hack for PanelND
-            axes = {}
         kwargs.update(axes)
         kwargs.pop('axis', None)
         kwargs.pop('labels', None)

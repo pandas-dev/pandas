@@ -2894,7 +2894,7 @@ Improvements to existing features
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 - Fixed various issues with internal pprinting code, the repr() for various objects
-  including TimeStamp and Index now produces valid python code strings and
+  including TimeStamp and Index now produces valid Python code strings and
   can be used to recreate the object, (:issue:`3038`, :issue:`3379`, :issue:`3251`, :issue:`3460`)
 - ``convert_objects`` now accepts a ``copy`` parameter (defaults to ``True``)
 - ``HDFStore``
