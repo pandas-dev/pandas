@@ -2166,10 +2166,17 @@ class CategoricalAccessor(PandasDelegate, PandasObject, NoNewAttributesMixin):
     """
 
     def __init__(self, data):
+        self._validate(data)
         self.categorical = data.values
         self.index = data.index
         self.name = data.name
         self._freeze()
+
+    @staticmethod
+    def _validate(data):
+        if not is_categorical_dtype(data.dtype):
+            raise AttributeError("Can only use .cat accessor with a "
+                                 "'category' dtype")
 
     def _delegate_property_get(self, name):
         return getattr(self.categorical, name)

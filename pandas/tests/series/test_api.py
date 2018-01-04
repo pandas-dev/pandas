@@ -511,7 +511,8 @@ class TestCategoricalSeries(object):
 
     def test_cat_accessor_api(self):
         # GH 9322
-        from pandas.core.categorical import CategoricalAccessor
+        from pandas.core.register_accessors import CategoricalAccessor
+
         assert Series.cat is CategoricalAccessor
         s = Series(list('aabbcde')).astype('category')
         assert isinstance(s.cat, CategoricalAccessor)
