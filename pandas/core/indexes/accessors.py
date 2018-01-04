@@ -244,12 +244,16 @@ PeriodProperties._add_delegate_accessors(
     typ='method')
 
 
-def CombinedDatetimelikeProperties(data):
-    try:
-        return maybe_to_datetimelike(data)
-    except Exception:
-        raise AttributeError("Can only use .dt accessor with "
-                             "datetimelike values")
+class CombinedDatetimelikeProperties(DatetimeProperties, TimedeltaProperties):
+    # use a class instead of a function so that the methods are inherited,
+    # making this easier to autodoc
+
+    def __call__(self, data):
+        try:
+            return maybe_to_datetimelike(data)
+        except Exception:
+            raise AttributeError("Can only use .dt accessor with "
+                                 "datetimelike values")
 
 
 CombinedDatetimelikeProperties.__doc__ = DatetimeProperties.__doc__

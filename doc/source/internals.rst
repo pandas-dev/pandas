@@ -95,14 +95,20 @@ Accessors
 We use accessors (like ``Series.str``, ``CategoricalIndex.cat``, etc) to provide
 namespaces for related methods on certain objects.
 
+Our accessors should inherit from ``pands.core.base.NoNewAttributesMixin`` and
+call ``self._freeze`` at the end of initialization. Additionally, we can use
+``pandas.core.accessor.PandasDelegate`` to implement many attributes on the
+accessor that simply pass the call through to another object, (e.g.
+``series.cat.categories`` delegates to ``Categorical.categories``).
+
 Accessors are registered using the public accessor registration methods
 
 * :func:`pandas.api.extensions.register_dataframe_accessor`
 * :func:`pandas.api.extensions.register_series_accessor`
 * :func:`pandas.api.extensions.register_index_accessor`
 
-Our accessors should inherit from ``NoNewAttributesMixin`` and call
-``self._freeze`` at the end of initialization.
+These methods import ``Series``, ``DataFrame``, etc., so the registration
+has to happen towards the end of ``pandas.__init__``.
 
 .. _ref-subclassing-pandas:
 
