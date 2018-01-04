@@ -814,13 +814,13 @@ class _MergeOperation(object):
         join_names = []
         right_drop = []
         left_drop = []
+
         left, right = self.left, self.right
         stacklevel = 5  # Number of stack levels from df.merge
+        list_types = (np.ndarray, Series, Index)
 
-        is_lkey = lambda x: isinstance(
-            x, (np.ndarray, Series)) and len(x) == len(left)
-        is_rkey = lambda x: isinstance(
-            x, (np.ndarray, Series)) and len(x) == len(right)
+        is_lkey = lambda x: isinstance(x, list_types) and len(x) == len(left)
+        is_rkey = lambda x: isinstance(x, list_types) and len(x) == len(right)
 
         # Note that pd.merge_asof() has separate 'on' and 'by' parameters. A
         # user could, for example, request 'left_index' and 'left_by'. In a
