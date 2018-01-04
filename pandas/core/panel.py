@@ -860,7 +860,7 @@ class Panel(NDFrame):
         xs is only for getting, not setting values.
 
         MultiIndex Slicers is a generic way to get/set values on any level or
-        levels and  is a superset of xs functionality, see
+        levels and is a superset of xs functionality, see
         :ref:`MultiIndex Slicers <advanced.mi_slicers>`
 
         """
@@ -1224,9 +1224,6 @@ class Panel(NDFrame):
             kwargs['minor_axis'] = minor
         axes = validate_axis_style_args(self, args, kwargs, 'labels',
                                         'reindex')
-        if self.ndim >= 4:
-            # Hack for PanelND
-            axes = {}
         kwargs.update(axes)
         kwargs.pop('axis', None)
         kwargs.pop('labels', None)

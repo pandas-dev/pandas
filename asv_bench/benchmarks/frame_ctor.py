@@ -4,7 +4,7 @@ from pandas import DataFrame, Series, MultiIndex, Timestamp, date_range
 try:
     from pandas.tseries.offsets import Nano, Hour
 except ImportError:
-    # For compatability with older versions
+    # For compatibility with older versions
     from pandas.core.datetools import * # noqa
 
 from .pandas_vb_common import setup # noqa

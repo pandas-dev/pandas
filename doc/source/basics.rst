@@ -395,7 +395,7 @@ raise a ValueError:
     In [56]: pd.Series(['foo', 'bar', 'baz']) == pd.Series(['foo'])
     ValueError: Series lengths must match to compare
 
-Note that this is different from the numpy behavior where a comparison can
+Note that this is different from the NumPy behavior where a comparison can
 be broadcast:
 
 .. ipython:: python
@@ -436,7 +436,7 @@ General DataFrame Combine
 ~~~~~~~~~~~~~~~~~~~~~~~~~
 
 The :meth:`~DataFrame.combine_first` method above calls the more general
-DataFrame method :meth:`~DataFrame.combine`. This method takes another DataFrame
+:meth:`DataFrame.combine`. This method takes another DataFrame
 and a combiner function, aligns the input DataFrame and then passes the combiner
 function pairs of Series (i.e., columns whose names are the same).
 
@@ -540,8 +540,8 @@ will exclude NAs on Series input by default:
    np.mean(df['one'])
    np.mean(df['one'].values)
 
-``Series`` also has a method :meth:`~Series.nunique` which will return the
-number of unique non-NA values:
+:meth:`Series.nunique` will return the number of unique non-NA values in a 
+Series:
 
 .. ipython:: python
 
@@ -852,7 +852,8 @@ Aggregation API
 The aggregation API allows one to express possibly multiple aggregation operations in a single concise way.
 This API is similar across pandas objects, see :ref:`groupby API <groupby.aggregate>`, the
 :ref:`window functions API <stats.aggregate>`, and the :ref:`resample API <timeseries.aggregate>`.
-The entry point for aggregation is the method :meth:`~DataFrame.aggregate`, or the alias :meth:`~DataFrame.agg`.
+The entry point for aggregation is :meth:`DataFrame.aggregate`, or the alias 
+:meth:`DataFrame.agg`.
 
 We will use a similar starting frame from above:
 
@@ -946,7 +947,7 @@ Mixed Dtypes
 ++++++++++++
 
 When presented with mixed dtypes that cannot aggregate, ``.agg`` will only take the valid
-aggregations. This is similiar to how groupby ``.agg`` works.
+aggregations. This is similar to how groupby ``.agg`` works.
 
 .. ipython:: python
 
@@ -999,7 +1000,7 @@ We create a frame similar to the one used in the above sections.
    tsdf.iloc[3:7] = np.nan
    tsdf
 
-Transform the entire frame. ``.transform()`` allows input functions as: a numpy function, a string
+Transform the entire frame. ``.transform()`` allows input functions as: a NumPy function, a string
 function name or a user defined function.
 
 .. ipython:: python
@@ -1509,7 +1510,7 @@ To iterate over the rows of a DataFrame, you can use the following methods:
   one of the following approaches:
 
   * Look for a *vectorized* solution: many operations can be performed using
-    built-in methods or numpy functions, (boolean) indexing, ...
+    built-in methods or NumPy functions, (boolean) indexing, ...
 
   * When you have a function that cannot work on the full DataFrame/Series
     at once, it is better to use :meth:`~DataFrame.apply` instead of iterating
@@ -1913,8 +1914,8 @@ dtype of the column will be chosen to accommodate all of the data types
    # string data forces an ``object`` dtype
    pd.Series([1, 2, 3, 6., 'foo'])
 
-The method :meth:`~DataFrame.get_dtype_counts` will return the number of columns of
-each type in a ``DataFrame``:
+The number of columns of each type in a ``DataFrame`` can be found by calling
+:meth:`~DataFrame.get_dtype_counts`.
 
 .. ipython:: python
 
@@ -1970,7 +1971,7 @@ from the current type (e.g. ``int`` to ``float``).
    df3.dtypes
 
 The ``values`` attribute on a DataFrame return the *lower-common-denominator* of the dtypes, meaning
-the dtype that can accommodate **ALL** of the types in the resulting homogeneous dtyped numpy array. This can
+the dtype that can accommodate **ALL** of the types in the resulting homogeneous dtyped NumPy array. This can
 force some *upcasting*.
 
 .. ipython:: python
@@ -2252,7 +2253,7 @@ can define a function that returns a tree of child dtypes:
            return dtype
        return [dtype, [subdtypes(dt) for dt in subs]]
 
-All numpy dtypes are subclasses of ``numpy.generic``:
+All NumPy dtypes are subclasses of ``numpy.generic``:
 
 .. ipython:: python
 
@@ -2261,4 +2262,4 @@ All numpy dtypes are subclasses of ``numpy.generic``:
 .. note::
 
     Pandas also defines the types ``category``, and ``datetime64[ns, tz]``, which are not integrated into the normal
-    numpy hierarchy and wont show up with the above function.
+    NumPy hierarchy and wont show up with the above function.

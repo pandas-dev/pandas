@@ -202,7 +202,7 @@ cdef class Unpacker(object):
     :param int max_buffer_size:
         Limits size of data waiting unpacked.  0 means system's
         INT_MAX  (default). Raises `BufferFull` exception when it
-        is insufficient. You shoud set this parameter when unpacking
+        is insufficient. You should set this parameter when unpacking
         data from untrasted source.
 
     :param int max_str_len:

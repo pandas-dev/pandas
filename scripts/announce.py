@@ -13,7 +13,7 @@ see it.
 
 Usage::
 
-    $ ./tools/announce.py <token> <revision range>
+    $ ./scripts/announce.py <token> <revision range>
 
 The output is utf8 rst.
 
@@ -23,14 +23,14 @@ Dependencies
 - gitpython
 - pygithub
 
-Some code was copied from scipy `tools/gh_list.py` and `tools/authors.py`.
+Some code was copied from scipy `tools/gh_lists.py` and `tools/authors.py`.
 
 Examples
 --------
 
 From the bash command line with $GITHUB token.
 
-    $ ./tools/announce $GITHUB v1.11.0..v1.11.1 > announce.rst
+    $ ./scripts/announce $GITHUB v1.11.0..v1.11.1 > announce.rst
 
 """
 from __future__ import print_function, division

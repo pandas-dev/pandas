@@ -3,7 +3,6 @@ from datetime import timedelta
 from pandas.compat import zip
 from pandas import compat
 import re
-import warnings
 
 import numpy as np
 
@@ -14,7 +13,6 @@ from pandas.core.dtypes.common import (
     is_datetime64_dtype)
 
 from pandas.tseries.offsets import DateOffset
-from pandas.util._decorators import deprecate_kwarg
 
 from pandas._libs.tslib import Timedelta
 
@@ -73,7 +71,6 @@ _name_to_offset_map = {'days': Day(1),
                        'nanoseconds': Nano(1)}
 
 
-@deprecate_kwarg(old_arg_name='freqstr', new_arg_name='freq')
 def to_offset(freq):
     """
     Return DateOffset object from string or tuple representation
@@ -216,18 +213,6 @@ def get_offset(name):
 
 
 getOffset = get_offset
-
-
-def get_standard_freq(freq):
-    """
-    Return the standardized frequency string
-    """
-
-    msg = ("get_standard_freq is deprecated. Use to_offset(freq).rule_code "
-           "instead.")
-    warnings.warn(msg, FutureWarning, stacklevel=2)
-    return to_offset(freq).rule_code
-
 
 # ---------------------------------------------------------------------
 # Period codes

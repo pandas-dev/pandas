@@ -98,7 +98,7 @@ def memory_usage_of_objects(ndarray[object, ndim=1] arr):
 # ----------------------------------------------------------------------
 
 
-cpdef bint isscalar(object val):
+cpdef bint is_scalar(object val):
     """
     Return True if given value is scalar.
 
@@ -929,7 +929,7 @@ def is_lexsorted(list list_of_arrays):
 
 
 # TODO: could do even better if we know something about the data. eg, index has
-# 1-min data, binner has 5-min data, then  bins are just strides in index. This
+# 1-min data, binner has 5-min data, then bins are just strides in index. This
 # is a general, O(max(len(values), len(binner))) method.
 @cython.boundscheck(False)
 @cython.wraparound(False)

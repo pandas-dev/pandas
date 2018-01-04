@@ -1580,7 +1580,7 @@ We can instead only resample those groups where we have points as follows:
 Aggregation
 ~~~~~~~~~~~
 
-Similar to the :ref:`aggregating API <basics.aggregate>`, :ref:`groupby API <groupby.aggregate>`, and  the :ref:`window functions API <stats.aggregate>`,
+Similar to the :ref:`aggregating API <basics.aggregate>`, :ref:`groupby API <groupby.aggregate>`, and the :ref:`window functions API <stats.aggregate>`,
 a ``Resampler`` can be selectively resampled.
 
 Resampling a ``DataFrame``, the default will be to act on all columns with the same function.
@@ -2016,7 +2016,7 @@ Pandas provides rich support for working with timestamps in different time
 zones using ``pytz`` and ``dateutil`` libraries. ``dateutil`` currently is only
 supported for fixed offset and tzfile zones. The default library is ``pytz``.
 Support for ``dateutil`` is provided for compatibility with other
-applications e.g. if you use ``dateutil`` in other python packages.
+applications e.g. if you use ``dateutil`` in other Python packages.
 
 Working with Time Zones
 ~~~~~~~~~~~~~~~~~~~~~~~
@@ -2108,7 +2108,7 @@ tz-aware data to another time zone:
 
        It is incorrect to pass a timezone directly into the ``datetime.datetime`` constructor (e.g.,
        ``datetime.datetime(2011, 1, 1, tz=timezone('US/Eastern'))``.  Instead, the datetime
-       needs to be localized using the the localize method on the timezone.
+       needs to be localized using the localize method on the timezone.
 
 Under the hood, all timestamps are stored in UTC. Scalar values from a
 ``DatetimeIndex`` with a time zone will have their fields (day, hour, minute)
@@ -2264,15 +2264,15 @@ a convert on an aware stamp.
 
 .. note::
 
-   Using the ``.values`` accessor on a ``Series``, returns an numpy array of the data.
-   These values are converted to UTC, as numpy does not currently support timezones (even though it is *printing* in the local timezone!).
+   Using the ``.values`` accessor on a ``Series``, returns an NumPy array of the data.
+   These values are converted to UTC, as NumPy does not currently support timezones (even though it is *printing* in the local timezone!).
 
    .. ipython:: python
 
       s_naive.values
       s_aware.values
 
-   Further note that once converted to a numpy array these would lose the tz tenor.
+   Further note that once converted to a NumPy array these would lose the tz tenor.
 
    .. ipython:: python
 

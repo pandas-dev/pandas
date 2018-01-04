@@ -473,10 +473,6 @@ class TestFrequencyCode(object):
         with tm.assert_raises_regex(ValueError, 'Could not evaluate'):
             frequencies.to_offset(('', ''))
 
-        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
-            result = frequencies.get_standard_freq(offsets.Hour())
-        assert result == 'H'
-
 
 _dti = DatetimeIndex
 
