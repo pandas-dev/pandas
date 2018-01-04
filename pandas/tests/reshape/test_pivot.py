@@ -398,6 +398,50 @@ class TestPivotTable(object):
                              columns=columns, dtype='object')
         tm.assert_frame_equal(result, expected)
 
+    def test_pivot_with_multiindex(self):
+        # issue #17160
+        index = pd.Index(data=[0, 1, 2, 3, 4, 5])
+        data = [['one', 'A', 1, 'x'],
+                ['one', 'B', 2, 'y'],
+                ['one', 'C', 3, 'z'],
+                ['two', 'A', 4, 'q'],
+                ['two', 'B', 5, 'w'],
+                ['two', 'C', 6, 't']]
+        columns = pd.MultiIndex(levels=[['bar', 'baz'], ['first', 'second']],
+                                labels=[[0, 0, 1, 1], [0, 1, 0, 1]])
+        df = pd.DataFrame(data=data, index=index, columns=columns, dtype='object')
+        result = df.pivot(index=('bar', 'first'), columns=('bar', 'second'), values=('baz', 'first'))
+
+        data = {'A': pd.Series([1, 4], index=['one', 'two']),
+                'B': pd.Series([2, 5], index=['one', 'two']),
+                'C': pd.Series([3, 6], index=['one', 'two'])}
+        expected = pd.DataFrame(data)
+        tm.assert_frame_equal(result, expected)
+
+    @pytest.mark.xfail(reason='tuple is seen as a single column name')
+    def test_pivot_with_tuple_of_values(self):
+        # issue #17160
+        df = pd.DataFrame({'foo': ['one', 'one', 'one', 'two', 'two', 'two'],
+                           'bar': ['A', 'B', 'C', 'A', 'B', 'C'],
+                           'baz': [1, 2, 3, 4, 5, 6],
+                           'zoo': ['x', 'y', 'z', 'q', 'w', 't']})
+
+        result = df.pivot(index='zoo', columns='foo', values=('bar', 'baz'))
+
+        data = [[np.nan, 'A', np.nan, 4],
+                [np.nan, 'C', np.nan, 6],
+                [np.nan, 'B', np.nan, 5],
+                ['A', np.nan, 1, np.nan],
+                ['B', np.nan, 2, np.nan],
+                ['C', np.nan, 3, np.nan]]
+        index = Index(data=['q', 't', 'w', 'x', 'y', 'z'], name='zoo')
+        columns = MultiIndex(levels=[['bar', 'baz'], ['one', 'two']],
+                             labels=[[0, 0, 1, 1], [0, 1, 0, 1]],
+                             names=[None, 'foo'])
+        expected = DataFrame(data=data, index=index,
+                             columns=columns, dtype='object')
+        tm.assert_frame_equal(result, expected)
+
     def test_margins(self):
         def _check_output(result, values_col, index=['A', 'B'],
                           columns=['C'],

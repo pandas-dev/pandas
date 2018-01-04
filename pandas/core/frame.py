@@ -4355,7 +4355,7 @@ class DataFrame(NDFrame):
             existing index.
         columns : string or object
             Column name to use to make new frame's columns
-        values : string, object or (0.23.0) a list of the previous, optional
+        values : string, object or a list (0.23.0) of the previous, optional
             Column name(s) to use for populating new frame's values. If not
             specified, all remaining columns will be used and the result will
             have hierarchically indexed columns
@@ -4392,17 +4392,12 @@ class DataFrame(NDFrame):
         4   two   B    5    w
         5   two   C    6    t
 
-        >>> df.pivot(index='foo', columns='bar', values='baz')
-             A   B   C
-        one  1   2   3
-        two  4   5   6
-
         >>> df.pivot(index='foo', columns='bar')['baz']
              A   B   C
         one  1   2   3
         two  4   5   6
 
-        >>> df.pivot(index='foo', columns='bar', values=['baz'])
+        >>> df.pivot(index='foo', columns='bar', values='baz')
              A   B   C
         one  1   2   3
         two  4   5   6
