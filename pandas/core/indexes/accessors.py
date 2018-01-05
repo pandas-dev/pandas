@@ -241,6 +241,3 @@ class CombinedDatetimelikeProperties(DatetimeProperties, TimedeltaProperties):
 
         raise AttributeError("Can only use .dt accessor with datetimelike "
                              "values")
-
-
-CombinedDatetimelikeProperties.__doc__ = DatetimeProperties.__doc__
