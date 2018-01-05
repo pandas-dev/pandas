@@ -179,34 +179,8 @@ entirely valid.
 
 .. ipython:: python
 
-<<<<<<< HEAD
-    s.rank(na_option='top')
-
-.. _whatsnew_0220.enhancements.other:
-
-Other Enhancements
-^^^^^^^^^^^^^^^^^^
-
-- Better support for :func:`Dataframe.style.to_excel` output with the ``xlsxwriter`` engine. (:issue:`16149`)
-- :func:`pandas.tseries.frequencies.to_offset` now accepts leading '+' signs e.g. '+1h'. (:issue:`18171`)
-- :func:`MultiIndex.unique` now supports the ``level=`` argument, to get unique values from a specific index level (:issue:`17896`)
-- :class:`pandas.io.formats.style.Styler` now has method ``hide_index()`` to determine whether the index will be rendered in ouptut (:issue:`14194`)
-- :class:`pandas.io.formats.style.Styler` now has method ``hide_columns()`` to determine whether columns will be hidden in output (:issue:`14194`)
-- Improved wording of ``ValueError`` raised in :func:`to_datetime` when ``unit=`` is passed with a non-convertible value (:issue:`14350`)
-- :func:`Series.fillna` now accepts a Series or a dict as a ``value`` for a categorical dtype (:issue:`17033`)
-- :func:`pandas.read_clipboard` updated to use qtpy, falling back to PyQt5 and then PyQt4, adding compatibility with Python3 and multiple python-qt bindings (:issue:`17722`)
-- Improved wording of ``ValueError`` raised in :func:`read_csv` when the ``usecols`` argument cannot match all columns. (:issue:`17301`)
-- :func:`DataFrame.corrwith` now silently drops non-numeric columns when passed a Series. Before, an exception was raised (:issue:`18570`).
-- :class:`IntervalIndex` now supports time zone aware ``Interval`` objects (:issue:`18537`, :issue:`18538`)
-- :func:`Series` / :func:`DataFrame` tab completion also returns identifiers in the first level of a :func:`MultiIndex`. (:issue:`16326`)
-- :func:`read_excel()` has gained the ``nrows`` parameter (:issue:`16645`)
-- :func:``DataFrame.to_json`` and ``Series.to_json`` now accept an ``index`` argument which allows the user to exclude the index from the JSON output (:issue:`17394`)
-- ``IntervalIndex.to_tuples()`` has gained the ``na_tuple`` parameter to control whether NA is returned as a tuple of NA, or NA itself (:issue:`18756`)
-- :func: groupby.is_monotonic_increasing and :func: .is_monotonic_decreasing extend :func: Series.is_monotonic_increasing to groups, returning whether each group is monotonically increasing or decreasing, respectively. (:issue:`17015`)
-=======
    idx = pd.DatetimeIndex(['2017-01-01', '2017-01-02'])
    pd.Series([1, 2], index=idx).resample("12H").sum()
->>>>>>> master
 
 Once again, the ``min_count`` keyword is available to restore the 0.21 behavior.
 
