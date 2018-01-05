@@ -1042,15 +1042,14 @@ class Timedelta(_Timedelta):
                 # also timedelta-like
                 return _broadcast_floordiv_td64(self.value, other, _floordiv)
             elif other.dtype.kind in ['i', 'u', 'f']:
-                if np.ndim(other) == 0:
+                if other.ndim == 0:
                     return Timedelta(self.value // other)
                 else:
                     return self.to_timedelta64() // other
 
-            else:
-                raise TypeError('Invalid dtype {dtype} for '
-                                '{op}'.format(dtype=other.dtype,
-                                              op='__floordiv__'))
+            raise TypeError('Invalid dtype {dtype} for '
+                            '{op}'.format(dtype=other.dtype,
+                                          op='__floordiv__'))
 
         elif is_integer_object(other) or is_float_object(other):
             return Timedelta(self.value // other, unit='ns')
@@ -1074,12 +1073,12 @@ class Timedelta(_Timedelta):
             if other.dtype.kind == 'm':
                 # also timedelta-like
                 return _broadcast_floordiv_td64(self.value, other, _rfloordiv)
-            else:
-                raise TypeError('Invalid dtype {dtype} for '
-                                '{op}'.format(dtype=other.dtype,
-                                              op='__floordiv__'))
+            raise TypeError('Invalid dtype {dtype} for '
+                            '{op}'.format(dtype=other.dtype,
+                                          op='__floordiv__'))
 
-        if isinstance(other, float) and np.isnan(other):
+        if is_float_object(other) and util._checknull(other):
+            # i.e. np.nan
             return NotImplemented
         elif not _validate_ops_compat(other):
             return NotImplemented
@@ -1121,13 +1120,12 @@ cdef _broadcast_floordiv_td64(int64_t value, object other,
 
     # We need to watch out for np.timedelta64('NaT').
     mask = other.view('i8') == NPY_NAT
-    # equiv np.isnat, which does not exist in some supported np versions.
 
     if ndim == 0:
         if mask:
             return np.nan
-        else:
-            return operation(value, other.astype('m8[ns]').astype('i8'))
+
+        return operation(value, other.astype('m8[ns]').astype('i8'))
 
     else:
         res = operation(value, other.astype('m8[ns]').astype('i8'))
