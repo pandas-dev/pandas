@@ -514,7 +514,7 @@ class TestPeriodProperties(object):
                  "U": ["MICROSECOND", "MICROSECONDLY", "microsecond"],
                  "N": ["NANOSECOND", "NANOSECONDLY", "nanosecond"]}
 
-        msg = pd.tseries.frequencies._INVALID_FREQ_ERROR
+        msg = pd._libs.tslibs.frequencies._INVALID_FREQ_ERROR
         for exp, freqs in iteritems(cases):
             for freq in freqs:
                 with tm.assert_raises_regex(ValueError, msg):
@@ -758,7 +758,7 @@ class TestPeriodProperties(object):
         exp = Period(freq='W', year=2012, month=2, day=1)
         assert exp.days_in_month == 29
 
-        msg = pd.tseries.frequencies._INVALID_FREQ_ERROR
+        msg = pd._libs.tslibs.frequencies._INVALID_FREQ_ERROR
         with tm.assert_raises_regex(ValueError, msg):
             Period(freq='WK', year=2007, month=1, day=7)
 

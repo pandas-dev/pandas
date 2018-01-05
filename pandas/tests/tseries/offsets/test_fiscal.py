@@ -10,7 +10,8 @@ import pytest
 import pandas.util.testing as tm
 
 from pandas import Timestamp
-from pandas.tseries.frequencies import get_offset, _INVALID_FREQ_ERROR
+from pandas.tseries.frequencies import get_offset
+from pandas._libs.tslibs.frequencies import _INVALID_FREQ_ERROR
 from pandas.tseries.offsets import FY5253Quarter, FY5253
 from pandas._libs.tslibs.offsets import WeekDay
 
