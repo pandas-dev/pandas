@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 
+import sys
 import numpy as np
 import pandas as pd
 import pytest
@@ -8,6 +9,30 @@ from pandas.util import testing as tm
 
 
 class TestToCSV(object):
+
+    @pytest.mark.xfail((3, 6, 5) > sys.version_info >= (3, 5),
+                       reason='Python csv library bug')
+    def test_to_csv_with_single_column(self):
+        # GH18676
+        df1 = DataFrame([None, 1])
+        expected1 = """\
+""
+1.0
+"""
+        with tm.ensure_clean('test.csv') as path:
+            df1.to_csv(path, header=None, index=None)
+            with open(path, 'r') as f:
+                assert f.read() == expected1
+
+        df2 = DataFrame([1, None])
+        expected2 = """\
+1.0
+""
+"""
+        with tm.ensure_clean('test.csv') as path:
+            df2.to_csv(path, header=None, index=None)
+            with open(path, 'r') as f:
+                assert f.read() == expected2
 
     def test_to_csv_defualt_encoding(self):
         # GH17097
