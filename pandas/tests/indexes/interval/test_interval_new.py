@@ -4,14 +4,13 @@ import pytest
 import numpy as np
 
 from pandas import Interval, IntervalIndex, Int64Index
-from pandas.tests.indexes.common import Base
 import pandas.util.testing as tm
 
 
 pytestmark = pytest.mark.skip(reason="new indexing tests for issue 16316")
 
 
-class TestIntervalIndex(Base):
+class TestIntervalIndex(object):
 
     def _compare_tuple_of_numpy_array(self, result, expected):
         lidx, ridx = result
