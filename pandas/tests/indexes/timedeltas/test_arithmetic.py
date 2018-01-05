@@ -10,6 +10,7 @@ from pandas import (DatetimeIndex, TimedeltaIndex, Float64Index, Int64Index,
                     to_timedelta, timedelta_range, date_range,
                     Series,
                     Timestamp, Timedelta)
+from pandas.errors import PerformanceWarning
 
 
 @pytest.fixture(params=[pd.offsets.Hour(2), timedelta(hours=2),
@@ -28,23 +29,98 @@ def freq(request):
 class TestTimedeltaIndexArithmetic(object):
     _holder = TimedeltaIndex
 
-    @pytest.mark.xfail(reason='GH#18824 ufunc add cannot use operands...')
-    def test_tdi_with_offset_array(self):
+    @pytest.mark.parametrize('box', [np.array, pd.Index])
+    def test_tdi_add_offset_array(self, box):
         # GH#18849
-        tdi = pd.TimedeltaIndex(['1 days 00:00:00', '3 days 04:00:00'])
-        offs = np.array([pd.offsets.Hour(n=1), pd.offsets.Minute(n=-2)])
-        expected = pd.TimedeltaIndex(['1 days 01:00:00', '3 days 04:02:00'])
+        tdi = TimedeltaIndex(['1 days 00:00:00', '3 days 04:00:00'])
+        other = np.array([pd.offsets.Hour(n=1), pd.offsets.Minute(n=-2)])
 
-        res = tdi + offs
+        expected = TimedeltaIndex([tdi[n] + other[n] for n in range(len(tdi))],
+                                  name=tdi.name, freq='infer')
+
+        with tm.assert_produces_warning(PerformanceWarning):
+            res = tdi + other
         tm.assert_index_equal(res, expected)
 
-        res2 = offs + tdi
+        with tm.assert_produces_warning(PerformanceWarning):
+            res2 = other + tdi
         tm.assert_index_equal(res2, expected)
 
-        anchored = np.array([pd.offsets.QuarterEnd(),
-                             pd.offsets.Week(weekday=2)])
+        anchored = box([pd.offsets.QuarterEnd(),
+                        pd.offsets.Week(weekday=2)])
         with pytest.raises(TypeError):
-            tdi + anchored
+            with tm.assert_produces_warning(PerformanceWarning):
+                tdi + anchored
+        with pytest.raises(TypeError):
+            with tm.assert_produces_warning(PerformanceWarning):
+                anchored + tdi
+
+    @pytest.mark.parametrize('box', [np.array, pd.Index])
+    def test_tdi_sub_offset_array(self, box):
+        # GH#18824
+        tdi = TimedeltaIndex(['1 days 00:00:00', '3 days 04:00:00'])
+        other = np.array([pd.offsets.Hour(n=1), pd.offsets.Minute(n=-2)])
+
+        expected = TimedeltaIndex([tdi[n] - other[n] for n in range(len(tdi))],
+                                  name=tdi.name, freq='infer')
+
+        with tm.assert_produces_warning(PerformanceWarning):
+            res = tdi - other
+        tm.assert_index_equal(res, expected)
+
+        anchored = box([pd.offsets.MonthEnd(), pd.offsets.Day(n=2)])
+        with pytest.raises(TypeError):
+            with tm.assert_produces_warning(PerformanceWarning):
+                tdi - anchored
+        with pytest.raises(TypeError):
+            with tm.assert_produces_warning(PerformanceWarning):
+                anchored - tdi
+
+    @pytest.mark.parametrize('names', [(None, None, None),
+                                       ('foo', 'bar', None),
+                                       ('foo', 'foo', 'foo')])
+    def test_tdi_with_offset_series(self, names):
+        # GH#18849
+        tdi = TimedeltaIndex(['1 days 00:00:00', '3 days 04:00:00'],
+                             name=names[0])
+        other = Series([pd.offsets.Hour(n=1), pd.offsets.Minute(n=-2)],
+                       name=names[1])
+
+        expected_add = Series([tdi[n] + other[n] for n in range(len(tdi))],
+                              name=names[2])
+
+        with tm.assert_produces_warning(PerformanceWarning):
+            res = tdi + other
+        tm.assert_series_equal(res, expected_add)
+
+        with tm.assert_produces_warning(PerformanceWarning):
+            res2 = other + tdi
+        tm.assert_series_equal(res2, expected_add)
+
+        expected_sub = Series([tdi[n] - other[n] for n in range(len(tdi))],
+                              name=names[2])
+
+        with tm.assert_produces_warning(PerformanceWarning):
+            res3 = tdi - other
+        tm.assert_series_equal(res3, expected_sub)
+
+        anchored = Series([pd.offsets.MonthEnd(), pd.offsets.Day(n=2)],
+                          name=names[1])
+        with pytest.raises(TypeError):
+            with tm.assert_produces_warning(PerformanceWarning):
+                anchored + tdi
+        with pytest.raises(TypeError):
+            with tm.assert_produces_warning(PerformanceWarning):
+                tdi + anchored
+        with pytest.raises(TypeError):
+            with tm.assert_produces_warning(PerformanceWarning):
+                anchored + tdi
+        with pytest.raises(TypeError):
+            with tm.assert_produces_warning(PerformanceWarning):
+                tdi - anchored
+        with pytest.raises(TypeError):
+            with tm.assert_produces_warning(PerformanceWarning):
+                anchored - tdi
 
     # TODO: Split by ops, better name
     def test_numeric_compat(self):
