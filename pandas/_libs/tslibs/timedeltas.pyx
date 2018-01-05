@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 # cython: profile=False
 import collections
+import re
 
 import sys
 cdef bint PY3 = (sys.version_info[0] >= 3)
@@ -506,6 +507,57 @@ def _binary_op_method_timedeltalike(op, name):
 # ----------------------------------------------------------------------
 # Timedelta Construction
 
+iso_pater = re.compile(r"""P
+                        (?P<days>-?[0-9]*)DT
+                        (?P<hours>[0-9]{1,2})H
+                        (?P<minutes>[0-9]{1,2})M
+                        (?P<seconds>[0-9]{0,2})
+                        (\.
+                        (?P<milliseconds>[0-9]{1,3})
+                        (?P<microseconds>[0-9]{0,3})
+                        (?P<nanoseconds>[0-9]{0,3})
+                        )?S""", re.VERBOSE)
+
+
+cdef int64_t parse_iso_format_string(object iso_fmt) except? -1:
+    """
+    Extracts and cleanses the appropriate values from a match object with
+    groups for each component of an ISO 8601 duration
+
+    Parameters
+    ----------
+    iso_fmt:
+        ISO 8601 Duration formatted string
+
+    Returns
+    -------
+    ns: int64_t
+        Precision in nanoseconds of matched ISO 8601 duration
+
+    Raises
+    ------
+    ValueError
+        If ``iso_fmt`` cannot be parsed
+    """
+
+    cdef int64_t ns = 0
+
+    match = re.match(iso_pater, iso_fmt)
+    if match:
+        match_dict = match.groupdict(default='0')
+        for comp in ['milliseconds', 'microseconds', 'nanoseconds']:
+            match_dict[comp] = '{:0<3}'.format(match_dict[comp])
+
+        for k, v in match_dict.items():
+            ns += timedelta_from_spec(v, '0', k)
+
+    else:
+        raise ValueError("Invalid ISO 8601 Duration format - "
+                         "{}".format(iso_fmt))
+
+    return ns
+
+
 cdef _to_py_int_float(v):
     # Note: This used to be defined inside Timedelta.__new__
     # but cython will not allow `cdef` functions to be defined dynamically.
@@ -825,7 +877,11 @@ class Timedelta(_Timedelta):
         if isinstance(value, Timedelta):
             value = value.value
         elif is_string_object(value):
-            value = np.timedelta64(parse_timedelta_string(value))
+            if len(value) > 0 and value[0] == 'P':
+                value = parse_iso_format_string(value)
+            else:
+                value = parse_timedelta_string(value)
+            value = np.timedelta64(value)
         elif PyDelta_Check(value):
             value = convert_to_timedelta64(value, 'ns')
         elif is_timedelta64_object(value):

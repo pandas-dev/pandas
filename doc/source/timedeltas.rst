@@ -62,6 +62,14 @@ You can construct a ``Timedelta`` scalar through various arguments:
    pd.Timedelta('nan')
    pd.Timedelta('nat')
 
+   # ISO 8601 Duration strings
+   pd.Timedelta('P0DT0H1M0S')
+   pd.Timedelta('P0DT0H0M0.000000123S')
+
+.. versionadded:: 0.23.0
+
+   Added constructor for `ISO 8601 Duration`_ strings
+
 :ref:`DateOffsets<timeseries.offsets>` (``Day, Hour, Minute, Second, Milli, Micro, Nano``) can also be used in construction.
 
 .. ipython:: python
