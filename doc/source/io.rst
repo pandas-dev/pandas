@@ -1648,7 +1648,7 @@ with optional parameters:
 
   DataFrame
       - default is ``columns``
-      - allowed values are {``split``, ``records``, ``index``, ``columns``, ``values``}
+      - allowed values are {``split``, ``records``, ``index``, ``columns``, ``values``, ``table``}
 
   The format of the JSON string
 
@@ -1731,6 +1731,9 @@ values, index and columns. Name is also included for ``Series``:
 
   dfjo.to_json(orient="split")
   sjo.to_json(orient="split")
+
+**Table oriented** serializes to the JSON `Table Schema`_, allowing for the
+preservation of metadata including but not limited to dtypes and index names.
 
 .. note::
 
@@ -1847,6 +1850,7 @@ is ``None``. To explicitly force ``Series`` parsing, pass ``typ=series``
      ``columns``; dict like {column -> {index -> value}}
      ``values``; just the values array
      ``table``; adhering to the JSON `Table Schema`_
+
 
 - ``dtype`` : if True, infer dtypes, if a dict of column to dtype, then use those, if False, then don't infer dtypes at all, default is True, apply only to the data
 - ``convert_axes`` : boolean, try to convert the axes to the proper dtypes, default is True
@@ -2203,7 +2207,39 @@ A few notes on the generated table schema:
     then ``level_<i>`` is used.
 
 
-_Table Schema: http://specs.frictionlessdata.io/json-table-schema/
+.. versionadded:: 0.23.0
+
+``read_json`` also accepts ``orient='table'`` as an argument. This allows for
+the preserveration of metadata such as dtypes and index names in a
+round-trippable manner.
+
+  .. ipython:: python
+
+   df = pd.DataFrame({'foo': [1, 2, 3, 4],
+		      'bar': ['a', 'b', 'c', 'd'],
+		      'baz': pd.date_range('2018-01-01', freq='d', periods=4),
+		      'qux': pd.Categorical(['a', 'b', 'c', 'c'])
+		      }, index=pd.Index(range(4), name='idx'))
+   df
+   df.dtypes
+
+   df.to_json('test.json', orient='table')
+   new_df = pd.read_json('test.json', orient='table')
+   new_df
+   new_df.dtypes
+
+Please note that the string `index` is not supported with the round trip
+format, as it is used by default in ``write_json`` to indicate a missing index
+name.
+
+.. ipython:: python
+
+   df.index.name = 'index'
+   df.to_json('test.json', orient='table')
+   new_df = pd.read_json('test.json', orient='table')
+   print(new_df.index.name)
+
+.. _Table Schema: http://specs.frictionlessdata.io/json-table-schema/
 
 HTML
 ----

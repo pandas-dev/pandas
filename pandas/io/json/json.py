@@ -339,6 +339,15 @@ def read_json(path_or_buf=None, orient=None, typ='frame', dtype=True,
     -------
     result : Series or DataFrame, depending on the value of `typ`.
 
+    Notes
+    -----
+    Specific to ``orient='table'``, if a ``DataFrame`` with a literal ``Index``
+    name of `index` gets written with ``write_json``, the subsequent read
+    operation will incorrectly set the ``Index`` name to ``None``. This is
+    because `index` is also used by ``write_json`` to denote a missing
+    ``Index`` name, and the subsequent ``read_json`` operation cannot
+    distinguish between the two.
+
     See Also
     --------
     DataFrame.to_json
