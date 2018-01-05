@@ -211,6 +211,7 @@ Other API Changes
 - Subtracting ``NaT`` from a :class:`Series` with ``dtype='datetime64[ns]'`` returns a ``Series`` with ``dtype='timedelta64[ns]'`` instead of ``dtype='datetime64[ns]'``(:issue:`18808`)
 - Operations between a :class:`Series` with dtype ``dtype='datetime64[ns]'`` and a :class:`PeriodIndex` will correctly raises ``TypeError`` (:issue:`18850`)
 - Subtraction of :class:`Series` with timezone-aware ``dtype='datetime64[ns]'`` with mis-matched timezones will raise ``TypeError`` instead of ``ValueError`` (issue:`18817`)
+- The default ``Timedelta`` constructor now accepts an ``ISO 8601 Duration`` string as an argument (:issue:`19040`)
 
 .. _whatsnew_0230.deprecations:
 
