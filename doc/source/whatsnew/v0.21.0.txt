@@ -1067,9 +1067,6 @@ Indexing
 - Fixes ``DataFrame.loc`` for setting with alignment and tz-aware ``DatetimeIndex`` (:issue:`16889`)
 - Avoids ``IndexError`` when passing an Index or Series to ``.iloc`` with older numpy (:issue:`17193`)
 - Allow unicode empty strings as placeholders in multilevel columns in Python 2 (:issue:`17099`)
-<<<<<<< HEAD
-- Fixes in ``Index.__add__`` disappearing index name after plus operation (:issue:`17067`)
-=======
 - Bug in ``.iloc`` when used with inplace addition or assignment and an int indexer on a ``MultiIndex`` causing the wrong indexes to be read from and written to (:issue:`17148`)
 - Bug in ``.isin()`` in which checking membership in empty ``Series`` objects raised an error (:issue:`16991`)
 - Bug in ``CategoricalIndex`` reindexing in which specified indices containing duplicates were not being respected (:issue:`17323`)
@@ -1078,7 +1075,6 @@ Indexing
 - Bug in :meth:`DataFrame.first_valid_index` and :meth:`DataFrame.last_valid_index` when no valid entry (:issue:`17400`)
 - Bug in :func:`Series.rename` when called with a callable, incorrectly alters the name of the ``Series``, rather than the name of the ``Index``. (:issue:`17407`)
 - Bug in :func:`String.str_get` raises ``IndexError`` instead of inserting NaNs when using a negative index. (:issue:`17704`)
->>>>>>> master
 
 I/O
 ^^^
