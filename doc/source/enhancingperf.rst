@@ -28,14 +28,14 @@ For many use cases writing pandas in pure Python and NumPy is sufficient. In som
 computationally heavy applications however, it can be possible to achieve sizeable
 speed-ups by offloading work to `cython <http://cython.org/>`__.
 
-This tutorial assumes you have refactored as much as possible in python, for example
+This tutorial assumes you have refactored as much as possible in Python, for example
 trying to remove for loops and making use of NumPy vectorization, it's always worth
 optimising in Python first.
 
 This tutorial walks through a "typical" process of cythonizing a slow computation.
 We use an `example from the cython documentation <http://docs.cython.org/src/quickstart/cythonize.html>`__
 but in the context of pandas. Our final cythonized solution is around 100 times
-faster than the pure python.
+faster than the pure Python.
 
 .. _enhancingperf.pure:
 
@@ -52,7 +52,7 @@ We have a DataFrame to which we want to apply a function row-wise.
                       'x': 'x'})
    df
 
-Here's the function in pure python:
+Here's the function in pure Python:
 
 .. ipython:: python
 
@@ -173,7 +173,7 @@ Using ndarray
 
 It's calling series... a lot! It's creating a Series from each row, and get-ting from both
 the index and the series (three times for each row). Function calls are expensive
-in python, so maybe we could minimize these by cythonizing the apply part.
+in Python, so maybe we could minimize these by cythonizing the apply part.
 
 .. note::
 
@@ -231,7 +231,7 @@ the rows, applying our ``integrate_f_typed``, and putting this in the zeros arra
 
 .. note::
 
-    Loops like this would be *extremely* slow in python, but in Cython looping
+    Loops like this would be *extremely* slow in Python, but in Cython looping
     over NumPy arrays is *fast*.
 
 .. code-block:: ipython
