@@ -99,7 +99,7 @@ def test_grouper_column_index_level_precedence(frame,
     frame['inner'] = [1, 1, 1, 1, 1, 1]
 
     # Performing a groupby with strings should produce warning
-    with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
+    with tm.assert_produces_warning(FutureWarning):
         result = frame.groupby(key_strs).mean()
 
     # Grouping with key Grouper should produce the same result and no warning

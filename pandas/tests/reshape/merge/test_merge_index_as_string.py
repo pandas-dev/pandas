@@ -200,14 +200,14 @@ def test_merge_index_column_precedence(df1, df2):
     # Merge left_df and right_df on 'outer' and 'inner'
     #  'outer' for left_df should refer to the 'outer' column, not the
     #  'outer' index level and a FutureWarning should be raised
-    with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
+    with tm.assert_produces_warning(FutureWarning):
         result = left_df.merge(right_df, on=['outer', 'inner'])
 
     # Check results
     assert_frame_equal(result, expected)
 
     # Perform the same using the left_on and right_on parameters
-    with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
+    with tm.assert_produces_warning(FutureWarning):
         result = left_df.merge(right_df,
                                left_on=['outer', 'inner'],
                                right_on=['outer', 'inner'])

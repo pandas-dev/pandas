@@ -455,26 +455,26 @@ class TestDataFrameSortIndexKinds(TestData):
         df = DataFrame([lrange(5, 9), lrange(4)],
                        columns=['a', 'a', 'b', 'b'])
 
-        with tm.assert_raises_regex(ValueError, 'duplicate'):
+        with tm.assert_raises_regex(ValueError, 'not unique'):
             # use .sort_values #9816
             with tm.assert_produces_warning(FutureWarning):
                 df.sort_index(by='a')
-        with tm.assert_raises_regex(ValueError, 'duplicate'):
+        with tm.assert_raises_regex(ValueError, 'not unique'):
             df.sort_values(by='a')
 
-        with tm.assert_raises_regex(ValueError, 'duplicate'):
+        with tm.assert_raises_regex(ValueError, 'not unique'):
             # use .sort_values #9816
             with tm.assert_produces_warning(FutureWarning):
                 df.sort_index(by=['a'])
-        with tm.assert_raises_regex(ValueError, 'duplicate'):
+        with tm.assert_raises_regex(ValueError, 'not unique'):
             df.sort_values(by=['a'])
 
-        with tm.assert_raises_regex(ValueError, 'duplicate'):
+        with tm.assert_raises_regex(ValueError, 'not unique'):
             # use .sort_values #9816
             with tm.assert_produces_warning(FutureWarning):
                 # multi-column 'by' is separate codepath
                 df.sort_index(by=['a', 'b'])
-        with tm.assert_raises_regex(ValueError, 'duplicate'):
+        with tm.assert_raises_regex(ValueError, 'not unique'):
             # multi-column 'by' is separate codepath
             df.sort_values(by=['a', 'b'])
 
@@ -482,11 +482,11 @@ class TestDataFrameSortIndexKinds(TestData):
         # GH4370
         df = DataFrame(np.random.randn(4, 2),
                        columns=MultiIndex.from_tuples([('a', 0), ('a', 1)]))
-        with tm.assert_raises_regex(ValueError, 'levels'):
+        with tm.assert_raises_regex(ValueError, 'level'):
             # use .sort_values #9816
             with tm.assert_produces_warning(FutureWarning):
                 df.sort_index(by='a')
-        with tm.assert_raises_regex(ValueError, 'levels'):
+        with tm.assert_raises_regex(ValueError, 'level'):
             df.sort_values(by='a')
 
         # convert tuples to a list of tuples
