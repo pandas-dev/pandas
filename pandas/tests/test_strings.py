@@ -1083,6 +1083,7 @@ class TestStringMethods(object):
         (['a3', 'b3', 'd4c2'], ('i1', 'i2')),
     ])
     def test_extractall_no_matches(self, data, names):
+        # GH19075 extractall with no matches should return a valid MultiIndex
         n = len(data)
         if len(names) == 1:
             i = Index(range(n), name=names[0])
