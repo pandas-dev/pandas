@@ -212,6 +212,10 @@ PeriodProperties._add_delegate_accessors(
 class CombinedDatetimelikeProperties(DatetimeProperties, TimedeltaProperties):
 
     def __new__(cls, data):
+        # CombinedDatetimelikeProperties isn't really instantiated. Instead
+        # we need to choose which parent (datetime or timedelta) is
+        # appropriate. Since we're checking the dtypes anyway, we'll just
+        # do all the validation here.
         from pandas import Series
 
         if not isinstance(data, Series):
