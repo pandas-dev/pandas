@@ -5724,6 +5724,10 @@ class NDFrame(PandasObject, SelectionMixin):
         convention : {'start', 'end', 's', 'e'}
             For PeriodIndex only, controls whether to use the start or end of
             `rule`
+        kind: {'timestamp', 'period'}, optional
+            Pass 'timestamp' to convert the resulting index to a
+            ``DateTimeIndex`` or 'period' to convert it to a ``PeriodIndex``.
+            By default the input representation is retained.
         loffset : timedelta
             Adjust the resampled time labels
         base : int, default 0

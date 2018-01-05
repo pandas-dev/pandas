@@ -775,7 +775,7 @@ The simplest case is to just pass in ``parse_dates=True``:
    df = pd.read_csv('foo.csv', index_col=0, parse_dates=True)
    df
 
-   # These are python datetime objects
+   # These are Python datetime objects
    df.index
 
 It is often the case that we may want to store date and time data separately,
