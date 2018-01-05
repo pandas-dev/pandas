@@ -960,6 +960,13 @@ class TestTimedeltaSeriesArithmetic(object):
         assert_series_equal(timedelta_series / nan,
                             nat_series_dtype_timedelta)
 
+    def test_td64_sub_NaT(self):
+        # GH#18808
+        ser = Series([NaT, Timedelta('1s')])
+        res = ser - NaT
+        expected = Series([NaT, NaT], dtype='timedelta64[ns]')
+        tm.assert_series_equal(res, expected)
+
     @pytest.mark.parametrize('scalar_td', [timedelta(minutes=5, seconds=4),
                                            Timedelta(minutes=5, seconds=4),
                                            Timedelta('5m4s').to_timedelta64()])
@@ -1038,6 +1045,74 @@ class TestTimedeltaSeriesArithmetic(object):
         expected = Series([0, 0, np.nan])
         tm.assert_series_equal(result, expected)
 
+    @pytest.mark.parametrize('names', [(None, None, None),
+                                       ('Egon', 'Venkman', None),
+                                       ('NCC1701D', 'NCC1701D', 'NCC1701D')])
+    def test_td64_series_with_tdi(self, names):
+        # GH#17250 make sure result dtype is correct
+        # GH#19043 make sure names are propogated correctly
+        tdi = pd.TimedeltaIndex(['0 days', '1 day'], name=names[0])
+        ser = Series([Timedelta(hours=3), Timedelta(hours=4)], name=names[1])
+        expected = Series([Timedelta(hours=3), Timedelta(days=1, hours=4)],
+                          name=names[2])
+
+        result = tdi + ser
+        tm.assert_series_equal(result, expected)
+        assert result.dtype == 'timedelta64[ns]'
+
+        result = ser + tdi
+        tm.assert_series_equal(result, expected)
+        assert result.dtype == 'timedelta64[ns]'
+
+        expected = Series([Timedelta(hours=-3), Timedelta(days=1, hours=-4)],
+                          name=names[2])
+
+        result = tdi - ser
+        tm.assert_series_equal(result, expected)
+        assert result.dtype == 'timedelta64[ns]'
+
+        result = ser - tdi
+        tm.assert_series_equal(result, -expected)
+        assert result.dtype == 'timedelta64[ns]'
+
+    @pytest.mark.parametrize('names', [(None, None, None),
+                                       ('Egon', 'Venkman', None),
+                                       ('NCC1701D', 'NCC1701D', 'NCC1701D')])
+    def test_tdi_mul_int_series(self, names):
+        # GH#19042
+        tdi = pd.TimedeltaIndex(['0days', '1day', '2days', '3days', '4days'],
+                                name=names[0])
+        ser = Series([0, 1, 2, 3, 4], dtype=np.int64, name=names[1])
+
+        expected = Series(['0days', '1day', '4days', '9days', '16days'],
+                          dtype='timedelta64[ns]',
+                          name=names[2])
+
+        result = ser * tdi
+        tm.assert_series_equal(result, expected)
+
+        # The direct operation tdi * ser still needs to be fixed.
+        result = ser.__rmul__(tdi)
+        tm.assert_series_equal(result, expected)
+
+    @pytest.mark.parametrize('names', [(None, None, None),
+                                       ('Egon', 'Venkman', None),
+                                       ('NCC1701D', 'NCC1701D', 'NCC1701D')])
+    def test_float_series_rdiv_tdi(self, names):
+        # GH#19042
+        # TODO: the direct operation TimedeltaIndex / Series still
+        # needs to be fixed.
+        tdi = pd.TimedeltaIndex(['0days', '1day', '2days', '3days', '4days'],
+                                name=names[0])
+        ser = Series([1.5, 3, 4.5, 6, 7.5], dtype=np.float64, name=names[1])
+
+        expected = Series([tdi[n] / ser[n] for n in range(len(ser))],
+                          dtype='timedelta64[ns]',
+                          name=names[2])
+
+        result = ser.__rdiv__(tdi)
+        tm.assert_series_equal(result, expected)
+
 
 class TestDatetimeSeriesArithmetic(object):
     @pytest.mark.parametrize(
@@ -1076,7 +1151,7 @@ class TestDatetimeSeriesArithmetic(object):
             # defined
             for op_str in ops:
                 op = getattr(get_ser, op_str, None)
-                with tm.assert_raises_regex(TypeError, 'operate'):
+                with tm.assert_raises_regex(TypeError, 'operate|cannot'):
                     op(test_ser)
 
         # ## timedelta64 ###
@@ -1188,6 +1263,18 @@ class TestDatetimeSeriesArithmetic(object):
         expected = Series([Timedelta('-2days')])
         assert_series_equal(result, expected)
 
+    def test_dt64tz_series_sub_dtitz(self):
+        # GH#19071 subtracting tzaware DatetimeIndex from tzaware Series
+        # (with same tz) raises, fixed by #19024
+        dti = pd.date_range('1999-09-30', periods=10, tz='US/Pacific')
+        ser = pd.Series(dti)
+        expected = pd.Series(pd.TimedeltaIndex(['0days'] * 10))
+
+        res = dti - ser
+        tm.assert_series_equal(res, expected)
+        res = ser - dti
+        tm.assert_series_equal(res, expected)
+
     def test_sub_datetime_compat(self):
         # see gh-14088
         s = Series([datetime(2016, 8, 23, 12, tzinfo=pytz.utc), pd.NaT])
@@ -1253,6 +1340,20 @@ class TestDatetimeSeriesArithmetic(object):
             s + op(5)
             op(5) + s
 
+    def test_dt64_sub_NaT(self):
+        # GH#18808
+        dti = pd.DatetimeIndex([pd.NaT, pd.Timestamp('19900315')])
+        ser = pd.Series(dti)
+        res = ser - pd.NaT
+        expected = pd.Series([pd.NaT, pd.NaT], dtype='timedelta64[ns]')
+        tm.assert_series_equal(res, expected)
+
+        dti_tz = dti.tz_localize('Asia/Tokyo')
+        ser_tz = pd.Series(dti_tz)
+        res = ser_tz - pd.NaT
+        expected = pd.Series([pd.NaT, pd.NaT], dtype='timedelta64[ns]')
+        tm.assert_series_equal(res, expected)
+
     def test_datetime64_ops_nat(self):
         # GH 11349
         datetime_series = Series([NaT, Timestamp('19900315')])
@@ -1260,13 +1361,10 @@ class TestDatetimeSeriesArithmetic(object):
         single_nat_dtype_datetime = Series([NaT], dtype='datetime64[ns]')
 
         # subtraction
-        assert_series_equal(datetime_series - NaT, nat_series_dtype_timestamp)
         assert_series_equal(-NaT + datetime_series, nat_series_dtype_timestamp)
         with pytest.raises(TypeError):
             -single_nat_dtype_datetime + datetime_series
 
-        assert_series_equal(nat_series_dtype_timestamp - NaT,
-                            nat_series_dtype_timestamp)
         assert_series_equal(-NaT + nat_series_dtype_timestamp,
                             nat_series_dtype_timestamp)
         with pytest.raises(TypeError):
@@ -1298,6 +1396,37 @@ class TestDatetimeSeriesArithmetic(object):
             nat_series_dtype_timestamp / 1.0
         with pytest.raises(TypeError):
             nat_series_dtype_timestamp / 1
+
+    def test_dt64series_arith_overflow(self):
+        # GH#12534, fixed by #19024
+        dt = pd.Timestamp('1700-01-31')
+        td = pd.Timedelta('20000 Days')
+        dti = pd.date_range('1949-09-30', freq='100Y', periods=4)
+        ser = pd.Series(dti)
+        with pytest.raises(OverflowError):
+            ser - dt
+        with pytest.raises(OverflowError):
+            dt - ser
+        with pytest.raises(OverflowError):
+            ser + td
+        with pytest.raises(OverflowError):
+            td + ser
+
+        ser.iloc[-1] = pd.NaT
+        expected = pd.Series(['2004-10-03', '2104-10-04', '2204-10-04', 'NaT'],
+                             dtype='datetime64[ns]')
+        res = ser + td
+        tm.assert_series_equal(res, expected)
+        res = td + ser
+        tm.assert_series_equal(res, expected)
+
+        ser.iloc[1:] = pd.NaT
+        expected = pd.Series(['91279 Days', 'NaT', 'NaT', 'NaT'],
+                             dtype='timedelta64[ns]')
+        res = ser - dt
+        tm.assert_series_equal(res, expected)
+        res = dt - ser
+        tm.assert_series_equal(res, -expected)
 
 
 class TestSeriesOperators(TestData):
@@ -2036,8 +2165,9 @@ class TestSeriesOperators(TestData):
         result = s - s.index
         assert_series_equal(result, expected)
 
-        result = s - s.index.to_period()
-        assert_series_equal(result, expected)
+        with pytest.raises(TypeError):
+            # GH#18850
+            result = s - s.index.to_period()
 
         df = DataFrame(np.random.randn(5, 2),
                        index=date_range('20130101', periods=5))

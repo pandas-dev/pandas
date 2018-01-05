@@ -8,13 +8,15 @@ from __future__ import print_function
 
 import pytest
 
-from datetime import datetime, timedelta
+import datetime as dt
 from functools import partial
 
 import numpy as np
 import pandas as pd
 
-from pandas import date_range, DataFrame, Index, MultiIndex, Series
+from pandas import (
+    date_range, DataFrame, Index, MultiIndex, PeriodIndex, period_range, Series
+)
 from pandas.core.groupby import SpecificationError
 from pandas.io.formats.printing import pprint_thing
 import pandas.util.testing as tm
@@ -50,7 +52,8 @@ def test_agg_datetimes_mixed():
                      'value': [x[2] for x in data]})
 
     data = [[row[0],
-             datetime.strptime(row[1], '%Y-%m-%d').date() if row[1] else None,
+             (dt.datetime.strptime(row[1], '%Y-%m-%d').date()
+              if row[1] else None),
              row[2]]
             for row in data]
 
@@ -68,7 +71,6 @@ def test_agg_datetimes_mixed():
 
 
 def test_agg_period_index():
-    from pandas import period_range, PeriodIndex
     prng = period_range('2012-1-1', freq='M', periods=3)
     df = DataFrame(np.random.randn(3, 2), index=prng)
     rs = df.groupby(level=0).sum()
@@ -125,7 +127,7 @@ def test_agg_dict_parameter_cast_result_dtypes():
 def test_agg_cast_results_dtypes():
     # similar to GH12821
     # xref #11444
-    u = [datetime(2015, x + 1, 1) for x in range(12)]
+    u = [dt.datetime(2015, x + 1, 1) for x in range(12)]
     v = list('aaabbbbbbccd')
     df = pd.DataFrame({'X': v, 'Y': u})
 
@@ -292,9 +294,7 @@ def test_agg_nested_dicts():
 
 
 def test_agg_item_by_item_raise_typeerror():
-    from numpy.random import randint
-
-    df = DataFrame(randint(10, size=(20, 10)))
+    df = DataFrame(np.random.randint(10, size=(20, 10)))
 
     def raiseException(df):
         pprint_thing('----------------------------------------')
@@ -344,7 +344,6 @@ def test_agg_consistency():
         except Exception:
             return np.nan
 
-    import datetime as dt
     df = DataFrame({'col1': [1, 2, 3, 4],
                     'col2': [10, 25, 26, 31],
                     'date': [dt.date(2013, 2, 10), dt.date(2013, 2, 10),
@@ -403,7 +402,8 @@ def test_agg_timezone_round_trip():
     # GH 15426
     ts = pd.Timestamp("2016-01-01 12:00:00", tz='US/Pacific')
     df = pd.DataFrame({'a': 1,
-                       'b': [ts + timedelta(minutes=nn) for nn in range(10)]})
+                       'b': [ts + dt.timedelta(minutes=nn)
+                             for nn in range(10)]})
 
     result1 = df.groupby('a')['b'].agg(np.min).iloc[0]
     result2 = df.groupby('a')['b'].agg(lambda x: np.min(x)).iloc[0]
