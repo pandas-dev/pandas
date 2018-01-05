@@ -28,14 +28,16 @@ cimport util
 from util cimport is_period_object, is_string_object, INT32_MIN
 
 from pandas._libs.missing cimport is_null_datetimelike
+
 from timestamps import Timestamp
 from timezones cimport is_utc, is_tzlocal, get_utcoffset, get_dst_info
 from timedeltas cimport delta_to_nanoseconds
 
 from ccalendar import MONTH_NUMBERS
-from parsing import (parse_time_string, NAT_SENTINEL,
-                     _get_rule_month)
-from frequencies cimport get_freq_code
+from frequencies cimport (get_freq_code, get_base_alias,
+                          get_to_timestamp_base, get_freq_str,
+                          get_rule_month)
+from parsing import parse_time_string, NAT_SENTINEL
 from resolution import resolution, Resolution
 from nattype import nat_strings, NaT, iNaT
 from nattype cimport _nat_scalar_rules, NPY_NAT
@@ -572,7 +574,7 @@ cdef class _Period(object):
 
         if isinstance(freq, (int, tuple)):
             code, stride = get_freq_code(freq)
-            freq = frequencies._get_freq_str(code, stride)
+            freq = get_freq_str(code, stride)
 
         freq = frequencies.to_offset(freq)
 
@@ -630,7 +632,7 @@ cdef class _Period(object):
             raise IncompatibleFrequency(msg.format(self.freqstr))
         elif isinstance(other, offsets.DateOffset):
             freqstr = other.rule_code
-            base = frequencies.get_base_alias(freqstr)
+            base = get_base_alias(freqstr)
             if base == self.freq.rule_code:
                 ordinal = self.ordinal + other.n
                 return Period(ordinal=ordinal, freq=self.freq)
@@ -756,7 +758,7 @@ cdef class _Period(object):
 
         if freq is None:
             base, mult = get_freq_code(self.freq)
-            freq = frequencies.get_to_timestamp_base(base)
+            freq = get_to_timestamp_base(base)
 
         base, mult = get_freq_code(freq)
         val = self.asfreq(freq, how)
@@ -1149,7 +1151,7 @@ def _quarter_to_myear(year, quarter, freq):
         if quarter <= 0 or quarter > 4:
             raise ValueError('Quarter must be 1 <= q <= 4')
 
-        mnum = MONTH_NUMBERS[_get_rule_month(freq)] + 1
+        mnum = MONTH_NUMBERS[get_rule_month(freq)] + 1
         month = (mnum + (quarter - 1) * 3) % 12 + 1
         if month > mnum:
             year -= 1

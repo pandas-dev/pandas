@@ -11,8 +11,9 @@ import numpy as np
 from pandas.compat.numpy import np_datetime64_compat
 
 from pandas.core.series import Series
-from pandas.tseries.frequencies import (_offset_map, get_freq_code, get_offset,
-                                        _get_freq_str, _INVALID_FREQ_ERROR)
+from pandas._libs.tslibs.frequencies import (get_freq_code, get_freq_str,
+                                             _INVALID_FREQ_ERROR)
+from pandas.tseries.frequencies import _offset_map, get_offset
 from pandas.core.indexes.datetimes import (
     _to_m8, DatetimeIndex, _daterange_cache)
 import pandas._libs.tslibs.offsets as liboffsets
@@ -2825,7 +2826,7 @@ class TestOffsetAliases(object):
             code, stride = get_freq_code('3' + k)
             assert isinstance(code, int)
             assert stride == 3
-            assert k == _get_freq_str(code)
+            assert k == get_freq_str(code)
 
 
 def test_dateoffset_misc():
