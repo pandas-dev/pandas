@@ -61,6 +61,10 @@ class TestTimeZoneSupportPytz(object):
     def localize(self, tz, x):
         return tz.localize(x)
 
+    def normalize(self, ts):
+        tzinfo = ts.tzinfo
+        return tzinfo.normalize(ts)
+
     def cmptz(self, tz1, tz2):
         # Compare two timezones. Overridden in subclass to parameterize
         # tests.
@@ -935,6 +939,27 @@ class TestTimeZoneSupportPytz(object):
         assert isna(idx[1])
         assert idx[0].tzinfo is not None
 
+    def test_replace_across_dst(self):
+        # GH#18319 check that 1) timezone is correctly normalized and
+        # 2) that hour is not incorrectly changed by this normalization
+        tz = self.tz('US/Eastern')
+
+        ts_naive = Timestamp('2017-12-03 16:03:30')
+        ts_aware = self.localize(tz, ts_naive)
+
+        # Preliminary sanity-check
+        assert ts_aware == self.normalize(ts_aware)
+
+        # Replace across DST boundary
+        ts2 = ts_aware.replace(month=6)
+
+        # Check that `replace` preserves hour literal
+        assert (ts2.hour, ts2.minute) == (ts_aware.hour, ts_aware.minute)
+
+        # Check that post-replace object is appropriately normalized
+        ts2b = self.normalize(ts2)
+        assert ts2 == ts2b
+
 
 class TestTimeZoneSupportDateutil(TestTimeZoneSupportPytz):
 
@@ -958,6 +983,10 @@ class TestTimeZoneSupportDateutil(TestTimeZoneSupportPytz):
 
     def localize(self, tz, x):
         return x.replace(tzinfo=tz)
+
+    def normalize(self, ts):
+        # no-op for dateutil
+        return ts
 
     @td.skip_if_windows
     def test_utc_with_system_utc(self):
