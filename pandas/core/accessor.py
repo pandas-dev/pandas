@@ -8,6 +8,7 @@ that can be mixed into or pinned onto other pandas classes.
 import warnings
 
 from pandas.errors import AccessorRegistrationWarning
+from pandas.util._decorators import Appender
 
 
 class DirNamesMixin(object):
@@ -109,7 +110,7 @@ class PandasDelegate(object):
 # 1. We don't need to catch and re-raise AttributeErrors as RuntimeErrors
 
 
-class _CachedAccssor(object):
+class CachedAccessor(object):
     """Custom property-like object (descriptor) for caching accessors.
 
     Parameters
@@ -147,91 +148,93 @@ def _register_accessor(name, cls):
                 'name.'.format(accessor, name, cls),
                 AccessorRegistrationWarning,
                 stacklevel=2)
-        setattr(cls, name, _CachedAccssor(name, accessor))
+        setattr(cls, name, CachedAccessor(name, accessor))
         return accessor
     return decorator
 
 
+_doc = """Register a custom accessor on %(klass)s objects.
+
+Parameters
+----------
+name : str
+    Name under which the accessor should be registered. A warning is issued
+    if this name conflicts with a preexisting attribute.
+
+Notes
+-----
+When accessed, your accessor will be initialized with the pandas object
+the user is interacting with. So the signature must be
+
+.. code-block:: python
+
+    def __init__(self, pandas_object):
+
+For consistency with pandas methods, you should raise an ``AttributeError``
+if the data passed to your accessor has an incorrect dtype.
+
+>>> pd.Series(['a', 'b']).dt
+Traceback (most recent call last):
+...
+AttributeError: Can only use .dt accessor with datetimelike values
+
+Examples
+--------
+
+In your library code::
+
+    import pandas as pd
+
+    @pd.api.extensions.register_dataframe_accessor("geo")
+    class GeoAccessor(object):
+        def __init__(self, pandas_obj):
+            self._obj = pandas_obj
+
+        @property
+        def center(self):
+            # return the geographic center point of this DataFarme
+            lon = self._obj.latitude
+            lat = self._obj.longitude
+            return (float(lon.mean()), float(lat.mean()))
+
+        def plot(self):
+            # plot this array's data on a map, e.g., using Cartopy
+            pass
+
+Back in an interactive IPython session:
+
+    >>> ds = pd.DataFrame({'longitude': np.linspace(0, 10),
+    ...                    'latitude': np.linspace(0, 20)})
+    >>> ds.geo.center
+    (5.0, 10.0)
+    >>> ds.geo.plot()
+    # plots data on a map
+
+See also
+--------
+%(others)s
+"""
+
+
+@Appender(_doc % dict(klass="DataFrame",
+                      others=("register_series_accessor, "
+                              "register_index_accessor")))
 def register_dataframe_accessor(name):
-    """Register a custom accessor on pandas.DataFrame objects.
-
-    Parameters
-    ----------
-    name : str
-        Name under which the accessor should be registered. A warning is issued
-        if this name conflicts with a preexisting attribute.
-
-    Examples
-    --------
-
-    In your library code::
-
-        import pandas as pd
-
-        @pd.extensions.register_dataframe_accessor("geo")
-        class GeoAccessor(object):
-            def __init__(self, pandas_obj):
-                self._obj = pandas_obj
-
-            @property
-            def center(self):
-                # return the geographic center point of this DataFarme
-                lon = self._obj.latitude
-                lat = self._obj.longitude
-                return (float(lon.mean()), float(lat.mean()))
-
-            def plot(self):
-                # plot this array's data on a map, e.g., using Cartopy
-                pass
-
-    Back in an interactive IPython session:
-        >>> ds = pd.DataFrame({'longitude': np.linspace(0, 10),
-        ...                    'latitude': np.linspace(0, 20)})
-        >>> ds.geo.center
-        (5.0, 10.0)
-        >>> ds.geo.plot()
-        # plots data on a map
-
-    See also
-    --------
-    register_index_accessor
-    register_series_accessor
-    """
     from pandas import DataFrame
     return _register_accessor(name, DataFrame)
 
 
+@Appender(_doc % dict(klass="Series",
+                      others=("register_dataframe_accessor, "
+                              "register_index_accessor")))
 def register_series_accessor(name):
-    """Register a custom accessor on pandas.Series objects.
-
-    Parameters
-    ----------
-    name : str
-        Name under which the accessor should be registered. A warning is issued
-        if this name conflicts with a preexisting attribute.
-
-    See Also
-    --------
-    register_dataframe_accessor
-    register_index_accessor
-    """
     from pandas import Series
     return _register_accessor(name, Series)
 
 
+@Appender(_doc % dict(klass="Index",
+                      others=("register_dataframe_accessor, "
+                              "register_series_accessor")))
 def register_index_accessor(name):
-    """Register a custom accessor on pandas.Index objects.
-
-    Parameters
-    ----------
-    name : str
-        Name under which the accessor should be registered. A warning is issued
-        if this name conflicts with a preexisting attribute.
-
-    See Also
-    --------
-    register_dataframe_accessor
-    register_series_accessor
-    """
     from pandas import Index
     return _register_accessor(name, Index)

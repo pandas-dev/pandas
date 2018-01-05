@@ -12,7 +12,7 @@ from pandas.compat import range, u, set_function_name
 from pandas.compat.numpy import function as nv
 from pandas import compat
 
-from pandas.core.accessor import _CachedAccssor
+from pandas.core.accessor import CachedAccessor
 from pandas.core.dtypes.generic import (
     ABCSeries,
     ABCMultiIndex,
@@ -173,7 +173,7 @@ class Index(IndexOpsMixin, PandasObject):
     _engine_type = libindex.ObjectEngine
 
     _accessors = frozenset(['str'])
-    str = _CachedAccssor("str", StringMethods)
+    str = CachedAccessor("str", StringMethods)
 
     def __new__(cls, data=None, dtype=None, copy=False, name=None,
                 fastpath=False, tupleize_cols=True, **kwargs):

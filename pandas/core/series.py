@@ -13,7 +13,7 @@ from textwrap import dedent
 import numpy as np
 import numpy.ma as ma
 
-from pandas.core.accessor import _CachedAccssor
+from pandas.core.accessor import CachedAccessor
 from pandas.core.dtypes.common import (
     is_categorical_dtype,
     is_bool,
@@ -3062,10 +3062,10 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
     # ----------------------------------------------------------------------
     # Accessor Methods
     # ----------------------------------------------------------------------
-    str = _CachedAccssor("str", StringMethods)
-    dt = _CachedAccssor("dt", CombinedDatetimelikeProperties)
-    cat = _CachedAccssor("cat", CategoricalAccessor)
-    plot = _CachedAccssor("plot", gfx.SeriesPlotMethods)
+    str = CachedAccessor("str", StringMethods)
+    dt = CachedAccessor("dt", CombinedDatetimelikeProperties)
+    cat = CachedAccessor("cat", CategoricalAccessor)
+    plot = CachedAccessor("plot", gfx.SeriesPlotMethods)
 
     # ----------------------------------------------------------------------
     # Add plotting methods to Series
