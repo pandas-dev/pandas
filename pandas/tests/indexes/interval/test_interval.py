@@ -4,7 +4,7 @@ import pytest
 import numpy as np
 from pandas import (
     Interval, IntervalIndex, Index, isna, notna, interval_range, Timestamp,
-    Timedelta, date_range, timedelta_range)
+    Timedelta, date_range, timedelta_range, Categorical)
 from pandas.compat import lzip
 from pandas.core.common import _asarray_tuplesafe
 from pandas.tests.indexes.common import Base
@@ -42,7 +42,6 @@ class TestIntervalIndex(Base):
 
     @pytest.mark.parametrize('data', [
         Index([0, 1, 2, 3, 4]),
-        Index(list('abcde')),
         date_range('2017-01-01', periods=5),
         date_range('2017-01-01', periods=5, tz='US/Eastern'),
         timedelta_range('1 day', periods=5)])
@@ -138,10 +137,10 @@ class TestIntervalIndex(Base):
         [],
         np.array([], dtype='int64'),
         np.array([], dtype='float64'),
-        np.array([], dtype=object)])
+        np.array([], dtype='datetime64[ns]')])
     def test_constructors_empty(self, data, closed):
         # GH 18421
-        expected_dtype = data.dtype if isinstance(data, np.ndarray) else object
+        expected_dtype = getattr(data, 'dtype', np.intp)
         expected_values = np.array([], dtype=object)
         expected_index = IntervalIndex(data, closed=closed)
 
@@ -223,6 +222,48 @@ class TestIntervalIndex(Base):
         with tm.assert_raises_regex(ValueError, msg):
             IntervalIndex.from_arrays(range(10, -1, -1), range(9, -2, -1))
 
+        # GH 19016: categorical data
+        data = Categorical(list('01234abcde'), ordered=True)
+        msg = ('category, object, and string subtypes are not supported '
+               'for IntervalIndex')
+
+        with tm.assert_raises_regex(TypeError, msg):
+            IntervalIndex.from_breaks(data)
+
+        with tm.assert_raises_regex(TypeError, msg):
+            IntervalIndex.from_arrays(data[:-1], data[1:])
+
+    @pytest.mark.parametrize('data', [
+        tuple('0123456789'),
+        list('abcdefghij'),
+        np.array(list('abcdefghij'), dtype=object),
+        np.array(list('abcdefghij'), dtype='<U1')])
+    def test_constructors_errors_string(self, data):
+        # GH 19016
+        left, right = data[:-1], data[1:]
+        tuples = lzip(left, right)
+        ivs = [Interval(l, r) for l, r in tuples] or data
+        msg = ('category, object, and string subtypes are not supported '
+               'for IntervalIndex')
+
+        with tm.assert_raises_regex(TypeError, msg):
+            IntervalIndex(ivs)
+
+        with tm.assert_raises_regex(TypeError, msg):
+            Index(ivs)
+
+        with tm.assert_raises_regex(TypeError, msg):
+            IntervalIndex.from_intervals(ivs)
+
+        with tm.assert_raises_regex(TypeError, msg):
+            IntervalIndex.from_breaks(data)
+
+        with tm.assert_raises_regex(TypeError, msg):
+            IntervalIndex.from_arrays(left, right)
+
+        with tm.assert_raises_regex(TypeError, msg):
+            IntervalIndex.from_tuples(tuples)
+
     @pytest.mark.parametrize('tz_left, tz_right', [
         (None, 'UTC'), ('UTC', None), ('UTC', 'US/Eastern')])
     def test_constructors_errors_tz(self, tz_left, tz_right):
@@ -297,18 +338,6 @@ class TestIntervalIndex(Base):
         result = index.length
         expected = Index(iv.length if notna(iv) else iv for iv in index)
         tm.assert_index_equal(result, expected)
-
-    @pytest.mark.parametrize('breaks', [
-        list('abcdefgh'),
-        lzip(range(10), range(1, 11)),
-        [['A', 'B'], ['a', 'b'], ['c', 'd'], ['e', 'f']],
-        [Interval(0, 1), Interval(1, 2), Interval(3, 4), Interval(4, 5)]])
-    def test_length_errors(self, closed, breaks):
-        # GH 18789
-        index = IntervalIndex.from_breaks(breaks)
-        msg = 'IntervalIndex contains Intervals without defined length'
-        with tm.assert_raises_regex(TypeError, msg):
-            index.length
 
     def test_with_nans(self, closed):
         index = self.create_index(closed=closed)
@@ -428,9 +457,7 @@ class TestIntervalIndex(Base):
         interval_range(0, periods=10, closed='neither'),
         interval_range(1.7, periods=8, freq=2.5, closed='both'),
         interval_range(Timestamp('20170101'), periods=12, closed='left'),
-        interval_range(Timedelta('1 day'), periods=6, closed='right'),
-        IntervalIndex.from_tuples([('a', 'd'), ('e', 'j'), ('w', 'z')]),
-        IntervalIndex.from_tuples([(1, 2), ('a', 'z'), (3.14, 6.28)])])
+        interval_range(Timedelta('1 day'), periods=6, closed='right')])
     def test_insert(self, data):
         item = data[0]
         idx_item = IntervalIndex([item])
@@ -502,15 +529,6 @@ class TestIntervalIndex(Base):
         # duplicate
         idx = IntervalIndex.from_tuples(
             [(0, 1), (0, 1), (2, 3)], closed=closed)
-        assert not idx.is_unique
-
-        # unique mixed
-        idx = IntervalIndex.from_tuples([(0, 1), ('a', 'b')], closed=closed)
-        assert idx.is_unique
-
-        # duplicate mixed
-        idx = IntervalIndex.from_tuples(
-            [(0, 1), ('a', 'b'), (0, 1)], closed=closed)
         assert not idx.is_unique
 
         # empty
