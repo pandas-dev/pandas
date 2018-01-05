@@ -62,6 +62,32 @@ levels <merging.merge_on_columns_and_levels>` documentation section.
 
    left.merge(right, on=['key1', 'key2'])
 
+.. _whatsnew_0230.enhancements.sort_by_columns_and_levels:
+
+Sorting by a combination of columns and index levels
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+Strings passed to :meth:`DataFrame.sort_values` as the ``by`` parameter may
+now refer to either column names or index level names.  This enables sorting
+``DataFrame`` instances by a combination of index levels and columns without
+resetting indexes. See the :ref:`Sorting by Indexes and Values
+<basics.sort_indexes_and_values>` documentation section.
+(:issue:`14353`)
+
+.. ipython:: python
+
+   # Build MultiIndex
+   idx = pd.MultiIndex.from_tuples([('a', 1), ('a', 2), ('a', 2),
+                                    ('b', 2), ('b', 1), ('b', 1)])
+   idx.names = ['first', 'second']
+
+   # Build DataFrame
+   df_multi = pd.DataFrame({'A': np.arange(6, 0, -1)},
+                           index=idx)
+   df_multi
+
+   # Sort by 'second' (index) and 'A' (column)
+   df_multi.sort_values(by=['second', 'A'])
 
 .. _whatsnew_0230.enhancements.ran_inf:
 
@@ -312,8 +338,12 @@ Conversion
 - Bug in :class:`Series` floor-division where operating on a scalar ``timedelta`` raises an exception (:issue:`18846`)
 - Bug in :class:`FY5253Quarter`, :class:`LastWeekOfMonth` where rollback and rollforward behavior was inconsistent with addition and subtraction behavior (:issue:`18854`)
 - Bug in :class:`Index` constructor with ``dtype=CategoricalDtype(...)`` where ``categories`` and ``ordered`` are not maintained (issue:`19032`)
+- Bug in :class:`Index` constructor with ``dtype=CategoricalDtype(...)`` where ``categories`` and ``ordered`` are not maintained (issue:`19032`) 
+- Bug in :class:`Series`` with ``dtype='timedelta64[ns]`` where addition or subtraction of ``TimedeltaIndex`` had results cast to ``dtype='int64'`` (:issue:`17250`)
+- Bug in :class:`TimedeltaIndex` where division by a ``Series`` would return a ``TimedeltaIndex`` instead of a ``Series`` (issue:`19042`)
+- Bug in :class:`Series` with ``dtype='timedelta64[ns]`` where addition or subtraction of ``TimedeltaIndex`` could return a ``Series`` with an incorrect name (issue:`19043`)
 - Fixed bug where comparing :class:`DatetimeIndex` failed to raise ``TypeError`` when attempting to compare timezone-aware and timezone-naive datetimelike objects (:issue:`18162`)
-
+-
 
 Indexing
 ^^^^^^^^
@@ -334,7 +364,7 @@ Indexing
 - Bug in indexing non-scalar value from ``Series`` having non-unique ``Index`` will return value flattened (:issue:`17610`)
 - Bug in :func:`DatetimeIndex.insert` where inserting ``NaT`` into a timezone-aware index incorrectly raised (:issue:`16357`)
 - Bug in ``__setitem__`` when indexing a :class:`DataFrame` with a 2-d boolean ndarray (:issue:`18582`)
-
+- Bug in ``str.extractall`` when there were no matches empty :class:`Index` was returned instead of appropriate :class:`MultiIndex` (:issue:`19034`)
 
 I/O
 ^^^

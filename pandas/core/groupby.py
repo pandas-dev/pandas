@@ -2972,7 +2972,9 @@ def _get_grouper(obj, key=None, axis=0, level=None, sort=True,
         elif is_in_axis(gpr):  # df.groupby('name')
             if gpr in obj:
                 if validate:
-                    obj._check_label_or_level_ambiguity(gpr)
+                    stacklevel = 5  # Number of stack levels from df.groupby
+                    obj._check_label_or_level_ambiguity(
+                        gpr, stacklevel=stacklevel)
                 in_axis, name, gpr = True, gpr, obj[gpr]
                 exclusions.append(name)
             elif obj._is_level_reference(gpr):
