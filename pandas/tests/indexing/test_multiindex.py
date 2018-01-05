@@ -707,6 +707,8 @@ class TestMultiIndexBasic(object):
 
     def test_multiindex_contains_dropped(self):
         # GH 19027
+        # test that dropped MultiIndex levels are not in the MultiIndex
+        # despite continuing to be in the MultiIndex's levels
         idx = MultiIndex.from_product([[1, 2], [3, 4]])
         assert 2 in idx
         idx = idx.drop(2)

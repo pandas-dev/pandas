@@ -152,7 +152,7 @@ class TestCategoricalDtype(Base):
         assert result.ordered is expected_ordered
 
     @pytest.mark.parametrize('bad_dtype', [
-        'foo', object, np.int64, PeriodDtype('Q'), IntervalDtype(object)])
+        'foo', object, np.int64, PeriodDtype('Q')])
     def test_update_dtype_errors(self, bad_dtype):
         dtype = CategoricalDtype(list('abc'), False)
         msg = 'a CategoricalDtype must be passed to perform an update, '
@@ -459,6 +459,17 @@ class TestIntervalDtype(Base):
             i = IntervalDtype(s)
             assert i.subtype == np.dtype('int64')
             assert is_interval_dtype(i)
+
+    @pytest.mark.parametrize('subtype', [
+        CategoricalDtype(list('abc'), False),
+        CategoricalDtype(list('wxyz'), True),
+        object, str, '<U10', 'interval[category]', 'interval[object]'])
+    def test_construction_not_supported(self, subtype):
+        # GH 19016
+        msg = ('category, object, and string subtypes are not supported '
+               'for IntervalDtype')
+        with tm.assert_raises_regex(TypeError, msg):
+            IntervalDtype(subtype)
 
     def test_construction_generic(self):
         # generic
