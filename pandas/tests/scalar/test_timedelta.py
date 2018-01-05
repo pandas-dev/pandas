@@ -235,7 +235,7 @@ class TestTimedeltaArithmetic(object):
         assert td.__rfloordiv__(np.array(scalar.to_timedelta64())) == 1
 
         res = td.__rfloordiv__(np.array([(3 * scalar).to_timedelta64()]))
-        expected = np.array([3])
+        expected = np.array([3], dtype=np.int64)
         tm.assert_numpy_array_equal(res, expected)
 
         arr = np.array([(10 * scalar).to_timedelta64(),
