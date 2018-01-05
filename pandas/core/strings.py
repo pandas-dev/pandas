@@ -794,12 +794,10 @@ def str_extractall(arr, pat, flags=0):
                 result_key = tuple(subject_key + (match_i, ))
                 index_list.append(result_key)
 
-    if 0 < len(index_list):
-        from pandas import MultiIndex
-        index = MultiIndex.from_tuples(
-            index_list, names=arr.index.names + ["match"])
-    else:
-        index = None
+    from pandas import MultiIndex
+    index = MultiIndex.from_tuples(
+        index_list, names=arr.index.names + ["match"])
+
     result = arr._constructor_expanddim(match_list, index=index,
                                         columns=columns)
     return result
