@@ -376,7 +376,9 @@ Categorical
 ^^^^^^^^^^^
 
 -
--
+- Bug in :func:`pandas.api.types.union_categoricals` returning the wrong result
+  when all the categoricals had the same categories, but in a different order.
+  This affected :func:`pandas.concat` with Categorical data (:issue:`19096`).
 -
 
 Other
