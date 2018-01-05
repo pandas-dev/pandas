@@ -60,6 +60,7 @@ class TestPeriodIndex(object):
 
         exp_index = date_range('1/1/2001', end='12/31/2009', freq='A-DEC')
         result = series.to_timestamp(how='end')
+        exp_index = exp_index + pd.Timedelta(1, 'D') - pd.Timedelta(1, 'ns')
         tm.assert_index_equal(result.index, exp_index)
         assert result.name == 'foo'
 
@@ -74,16 +75,19 @@ class TestPeriodIndex(object):
         delta = timedelta(hours=23)
         result = series.to_timestamp('H', 'end')
         exp_index = _get_with_delta(delta)
+        exp_index = exp_index + pd.Timedelta(1, 'h') - pd.Timedelta(1, 'ns')
         tm.assert_index_equal(result.index, exp_index)
 
         delta = timedelta(hours=23, minutes=59)
         result = series.to_timestamp('T', 'end')
         exp_index = _get_with_delta(delta)
+        exp_index = exp_index + pd.Timedelta(1, 'm') - pd.Timedelta(1, 'ns')
         tm.assert_index_equal(result.index, exp_index)
 
         result = series.to_timestamp('S', 'end')
         delta = timedelta(hours=23, minutes=59, seconds=59)
         exp_index = _get_with_delta(delta)
+        exp_index = exp_index + pd.Timedelta(1, 's') - pd.Timedelta(1, 'ns')
         tm.assert_index_equal(result.index, exp_index)
 
         index = PeriodIndex(freq='H', start='1/1/2001', end='1/2/2001')
@@ -92,6 +96,7 @@ class TestPeriodIndex(object):
         exp_index = date_range('1/1/2001 00:59:59', end='1/2/2001 00:59:59',
                                freq='H')
         result = series.to_timestamp(how='end')
+        exp_index = exp_index + pd.Timedelta(1, 's') - pd.Timedelta(1, 'ns')
         tm.assert_index_equal(result.index, exp_index)
         assert result.name == 'foo'
 

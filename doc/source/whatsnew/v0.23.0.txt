@@ -777,6 +777,61 @@ Note that this change also applies to :meth:`DataFrame.append`, which has also r
 
 .. _whatsnew_0230.api_breaking.build_changes:
 
+.. _whatsnew_0230.api_breaking.end_time:
+
+Time values in ``dt.end_time`` and ``to_timestamp(how='end')``
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+The time values in ``Period`` and ``PeriodIndex`` objects are now adjusted
+appropriately when calling :attr:`Series.dt.end_time`, :attr:`Period.end_time`,
+:attr:`PeriodIndex.end_time`, :func:`Period.to_timestamp()` with ``how='end'``,
+and :func:`PeriodIndex.to_timestamp()` with ``how='end'`` (:issue:`17157`)
+
+Previous Behavior:
+
+.. code-block:: ipython
+
+   In [2]: p = pd.Period('2017-01-01', 'D')
+   In [3]: pi = pd.PeriodIndex([p])
+
+   In [4]: pd.Series(p).dt.end_time[0]
+   Out[4]: Timestamp(2017-01-01 00:00:00)
+
+   In [5]: pd.Series(pi).dt.end_time[0]
+   Out[5]: Timestamp(2017-01-01 00:00:00)
+
+   In [6]: p.end_time
+   Out[6]: Timestamp(2017-01-01 23:59:59.999999999)
+
+   In [7]: pi.end_time[0]
+   Out[7]: Timestamp(2017-01-01 00:00:00)
+
+   In [8]: p.to_timestamp(how='end')
+   Out[8]: Timestamp(2017-01-01 00:00:00)
+
+   In [9]: pi.to_timestamp(how='end')[0]
+   Out[9]: Timestamp(2017-01-01 00:00:00)
+
+Current Behavior
+
+.. ipython:: python
+
+   p = pd.Period('2017-01-01', 'D')
+   pi = pd.PeriodIndex([p])
+
+   pd.Series(p).dt.end_time[0]
+
+   pd.Series(pi).dt.end_time[0]
+
+   p.end_time
+
+   pi.end_time[0]
+
+   p.to_timestamp(how='end')
+
+   pi.to_timestamp(how='end')[0]
+
+
 Build Changes
 ^^^^^^^^^^^^^
 

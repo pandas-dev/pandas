@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 # cython: profile=False
-from datetime import datetime, date
+import pandas as pd
+from datetime import datetime, date, timedelta
 
 from cpython cimport (
     PyUnicode_Check,
@@ -1220,6 +1221,10 @@ cdef class _Period(object):
         if freq is not None:
             freq = self._maybe_convert_freq(freq)
         how = _validate_end_alias(how)
+
+        end = how == 'E'
+        if end:
+            return (self + 1).to_timestamp(how='start') - pd.Timedelta(1, 'ns')
 
         if freq is None:
             base, mult = get_freq_code(self.freq)
