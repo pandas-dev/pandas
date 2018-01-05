@@ -1,7 +1,7 @@
 import pandas as pd
 from pandas import Period, offsets
 from pandas.util import testing as tm
-from pandas.tseries.frequencies import _period_code_map
+from pandas._libs.tslibs.frequencies import _period_code_map
 
 
 class TestFreqConversion(object):
@@ -293,13 +293,13 @@ class TestFreqConversion(object):
 
         assert ival_W.asfreq('W') == ival_W
 
-        msg = pd.tseries.frequencies._INVALID_FREQ_ERROR
+        msg = pd._libs.tslibs.frequencies._INVALID_FREQ_ERROR
         with tm.assert_raises_regex(ValueError, msg):
             ival_W.asfreq('WK')
 
     def test_conv_weekly_legacy(self):
         # frequency conversion tests: from Weekly Frequency
-        msg = pd.tseries.frequencies._INVALID_FREQ_ERROR
+        msg = pd._libs.tslibs.frequencies._INVALID_FREQ_ERROR
         with tm.assert_raises_regex(ValueError, msg):
             Period(freq='WK', year=2007, month=1, day=1)
 
@@ -706,7 +706,7 @@ class TestFreqConversion(object):
 
         assert initial.asfreq(freq="M", how="S") == Period('2013-01', 'M')
 
-        msg = pd.tseries.frequencies._INVALID_FREQ_ERROR
+        msg = pd._libs.tslibs.frequencies._INVALID_FREQ_ERROR
         with tm.assert_raises_regex(ValueError, msg):
             initial.asfreq(freq="MS", how="S")
 

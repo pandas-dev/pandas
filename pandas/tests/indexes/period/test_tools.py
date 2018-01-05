@@ -5,10 +5,11 @@ import pandas as pd
 import pandas.util.testing as tm
 import pandas.core.indexes.period as period
 from pandas.compat import lrange
-from pandas.tseries.frequencies import get_freq
 
-from pandas._libs.tslibs.ccalendar import MONTHS
+from pandas._libs.tslibs.frequencies import get_freq
 from pandas._libs.tslibs.period import period_ordinal, period_asfreq
+from pandas._libs.tslibs.ccalendar import MONTHS
+
 from pandas import (PeriodIndex, Period, DatetimeIndex, Timestamp, Series,
                     date_range, to_datetime, period_range)
 
@@ -369,7 +370,7 @@ class TestPeriodIndex(object):
         prng = rng.to_period()
         assert prng.freq == 'M'
 
-        msg = pd.tseries.frequencies._INVALID_FREQ_ERROR
+        msg = pd._libs.tslibs.frequencies._INVALID_FREQ_ERROR
         with tm.assert_raises_regex(ValueError, msg):
             date_range('01-Jan-2012', periods=8, freq='EOM')
 
