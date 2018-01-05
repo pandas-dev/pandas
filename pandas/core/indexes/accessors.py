@@ -23,37 +23,33 @@ from pandas.core.algorithms import take_1d
 
 class Properties(PandasDelegate, PandasObject, NoNewAttributesMixin):
 
-    def __init__(self, data):
+    def __init__(self, data, orig):
         if not isinstance(data, ABCSeries):
             raise TypeError("cannot convert an object of type {0} to a "
                             "datetimelike index".format(type(data)))
 
-        orig = data if is_categorical_dtype(data) else None
-        if orig is not None:
-            data = orig.values.categories
-
-        self._values = data
-        self._orig = orig
-        self._name = getattr(data, 'name', None)
-        self._index = getattr(data, 'index', None)
+        self.values = data
+        self.orig = orig
+        self.name = getattr(data, 'name', None)
+        self.index = getattr(data, 'index', None)
         self._freeze()
 
     def _get_values(self):
-        data = self._values
+        data = self.values
         if is_datetime64_dtype(data.dtype):
-            return DatetimeIndex(data, copy=False, name=self._name)
+            return DatetimeIndex(data, copy=False, name=self.name)
 
         elif is_datetime64tz_dtype(data.dtype):
-            return DatetimeIndex(data, copy=False, name=self._name)
+            return DatetimeIndex(data, copy=False, name=self.name)
 
         elif is_timedelta64_dtype(data.dtype):
-            return TimedeltaIndex(data, copy=False, name=self._name)
+            return TimedeltaIndex(data, copy=False, name=self.name)
 
         else:
             if is_period_arraylike(data):
-                return PeriodIndex(data, copy=False, name=self._name)
+                return PeriodIndex(data, copy=False, name=self.name)
             if is_datetime_arraylike(data):
-                return DatetimeIndex(data, copy=False, name=self._name)
+                return DatetimeIndex(data, copy=False, name=self.name)
 
         raise TypeError("cannot convert an object of type {0} to a "
                         "datetimelike index".format(type(data)))
@@ -74,11 +70,11 @@ class Properties(PandasDelegate, PandasObject, NoNewAttributesMixin):
         result = np.asarray(result)
 
         # blow up if we operate on categories
-        if self._orig is not None:
-            result = take_1d(result, self._orig.cat.codes)
+        if self.orig is not None:
+            result = take_1d(result, self.orig.cat.codes)
 
         # return the result as a Series, which is by definition a copy
-        result = Series(result, index=self._index, name=self._name)
+        result = Series(result, index=self.index, name=self.name)
 
         # setting this object will show a SettingWithCopyWarning/Error
         result._is_copy = ("modifications to a property of a datetimelike "
@@ -102,7 +98,7 @@ class Properties(PandasDelegate, PandasObject, NoNewAttributesMixin):
         if not is_list_like(result):
             return result
 
-        result = Series(result, index=self._index, name=self._name)
+        result = Series(result, index=self.index, name=self.name)
 
         # setting this object will show a SettingWithCopyWarning/Error
         result._is_copy = ("modifications to a method of a datetimelike "
@@ -127,11 +123,11 @@ class DatetimeProperties(Properties):
     """
 
     def to_pydatetime(self):
-        return self.values.to_pydatetime()
+        return self._get_values().to_pydatetime()
 
     @property
     def freq(self):
-        return self.values.inferred_freq
+        return self._get_values().inferred_freq
 
 
 DatetimeProperties._add_delegate_accessors(
@@ -158,7 +154,7 @@ class TimedeltaProperties(Properties):
     """
 
     def to_pytimedelta(self):
-        return self.values.to_pytimedelta()
+        return self._get_values().to_pytimedelta()
 
     @property
     def components(self):
@@ -171,11 +167,11 @@ class TimedeltaProperties(Properties):
         a DataFrame
 
         """
-        return self.values.components.set_index(self.index)
+        return self._get_values().components.set_index(self.index)
 
     @property
     def freq(self):
-        return self.values.inferred_freq
+        return self._get_values().inferred_freq
 
 
 TimedeltaProperties._add_delegate_accessors(
@@ -222,20 +218,29 @@ class CombinedDatetimelikeProperties(DatetimeProperties, TimedeltaProperties):
             raise TypeError("cannot convert an object of type {0} to a "
                             "datetimelike index".format(type(data)))
 
-        if is_datetime64_dtype(data.dtype):
-            return DatetimeProperties(data)
-        elif is_datetime64tz_dtype(data.dtype):
-            return DatetimeProperties(data)
-        elif is_timedelta64_dtype(data.dtype):
-            return TimedeltaProperties(data)
-        else:
-            if is_period_arraylike(data):
-                return PeriodProperties(data)
-            if is_datetime_arraylike(data):
-                return DatetimeProperties(data)
+        orig = data if is_categorical_dtype(data) else None
+        if orig is not None:
+            data = Series(orig.values.categories,
+                          name=orig.name,
+                          copy=False)
 
-        raise TypeError("cannot convert an object of type {0} to a "
-                        "datetimelike index".format(type(data)))
+        try:
+            if is_datetime64_dtype(data.dtype):
+                return DatetimeProperties(data, orig)
+            elif is_datetime64tz_dtype(data.dtype):
+                return DatetimeProperties(data, orig)
+            elif is_timedelta64_dtype(data.dtype):
+                return TimedeltaProperties(data, orig)
+            else:
+                if is_period_arraylike(data):
+                    return PeriodProperties(data, orig)
+                if is_datetime_arraylike(data):
+                    return DatetimeProperties(data, orig)
+        except Exception:
+            pass  # we raise an attribute error anyway
+
+        raise AttributeError("Can only use .dt accessor with datetimelike "
+                             "values")
 
 
 CombinedDatetimelikeProperties.__doc__ = DatetimeProperties.__doc__
