@@ -10,6 +10,8 @@ import numpy as np
 from pandas import (DataFrame, Series, date_range, Timedelta, Timestamp,
                     compat, concat, option_context)
 from pandas.compat import u
+from pandas import _np_version_under1p14
+
 from pandas.core.dtypes.dtypes import DatetimeTZDtype
 from pandas.tests.frame.common import TestData
 from pandas.util.testing import (assert_series_equal,
@@ -418,8 +420,8 @@ class TestDataFrameDataTypes(TestData):
 
         # mixed casting
         def _check_cast(df, v):
-            assert (list(set([s.dtype.name for
-                              _, s in compat.iteritems(df)]))[0] == v)
+            assert (list(set(s.dtype.name for
+                             _, s in compat.iteritems(df)))[0] == v)
 
         mn = self.all_mixed._get_numeric_data().copy()
         mn['little_float'] = np.array(12345., dtype='float16')
@@ -531,7 +533,12 @@ class TestDataFrameDataTypes(TestData):
             assert_frame_equal(result, expected)
 
             result = DataFrame([1.12345678901234567890]).astype(tt)
-            expected = DataFrame(['1.12345678901'])
+            if _np_version_under1p14:
+                # < 1.14 truncates
+                expected = DataFrame(['1.12345678901'])
+            else:
+                # >= 1.14 preserves the full repr
+                expected = DataFrame(['1.1234567890123457'])
             assert_frame_equal(result, expected)
 
     @pytest.mark.parametrize("dtype_class", [dict, Series])
@@ -612,6 +619,27 @@ class TestDataFrameDataTypes(TestData):
         expected = concat([a1_str, b, a2_str], axis=1)
         assert_frame_equal(result, expected)
 
+    @pytest.mark.parametrize('columns', [['x'], ['x', 'y'], ['x', 'y', 'z']])
+    def test_categorical_astype_ndim_raises(self, columns):
+        # GH 18004
+        msg = '> 1 ndim Categorical are not supported at this time'
+        with tm.assert_raises_regex(NotImplementedError, msg):
+            DataFrame(columns=columns).astype('category')
+
+    @pytest.mark.parametrize("cls", [
+        pd.api.types.CategoricalDtype,
+        pd.api.types.DatetimeTZDtype,
+        pd.api.types.IntervalDtype
+    ])
+    def test_astype_categoricaldtype_class_raises(self, cls):
+        df = DataFrame({"A": ['a', 'a', 'b', 'c']})
+        xpr = "Expected an instance of {}".format(cls.__name__)
+        with tm.assert_raises_regex(TypeError, xpr):
+            df.astype({"A": cls})
+
+        with tm.assert_raises_regex(TypeError, xpr):
+            df['A'].astype(cls)
+
     def test_timedeltas(self):
         df = DataFrame(dict(A=Series(date_range('2012-1-1', periods=3,
                                                 freq='D')),
@@ -647,6 +675,25 @@ class TestDataFrameDataTypes(TestData):
             df.astype(np.int8, raise_on_error=False)
 
         df.astype(np.int8, errors='ignore')
+
+    @pytest.mark.parametrize('input_vals', [
+        ([1, 2]),
+        ([1.0, 2.0, np.nan]),
+        (['1', '2']),
+        (list(pd.date_range('1/1/2011', periods=2, freq='H'))),
+        (list(pd.date_range('1/1/2011', periods=2, freq='H',
+                            tz='US/Eastern'))),
+        ([pd.Interval(left=0, right=5)]),
+    ])
+    def test_constructor_list_str(self, input_vals):
+        # GH 16605
+        # Ensure that data elements are converted to strings when
+        # dtype is str, 'str', or 'U'
+
+        for dtype in ['str', str, 'U']:
+            result = DataFrame({'A': input_vals}, dtype=dtype)
+            expected = DataFrame({'A': input_vals}).astype({'A': dtype})
+            assert_frame_equal(result, expected)
 
 
 class TestDataFrameDatetimeWithTZ(TestData):

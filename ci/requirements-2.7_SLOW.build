@@ -1,5 +1,5 @@
 python=2.7*
 python-dateutil
 pytz
-numpy=1.8.2
+numpy=1.10*
 cython

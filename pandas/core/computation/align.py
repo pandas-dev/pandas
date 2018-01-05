@@ -89,7 +89,7 @@ def _align_core(terms):
         for axis, items in zip(range(ndim), axes):
             ti = terms[i].value
 
-            if hasattr(ti, 'reindex_axis'):
+            if hasattr(ti, 'reindex'):
                 transpose = isinstance(ti, pd.Series) and naxes > 1
                 reindexer = axes[naxes - 1] if transpose else items
 
@@ -104,11 +104,7 @@ def _align_core(terms):
                          ).format(axis=axis, term=terms[i].name, ordm=ordm)
                     warnings.warn(w, category=PerformanceWarning, stacklevel=6)
 
-                if transpose:
-                    f = partial(ti.reindex, index=reindexer, copy=False)
-                else:
-                    f = partial(ti.reindex_axis, reindexer, axis=axis,
-                                copy=False)
+                f = partial(ti.reindex, reindexer, axis=axis, copy=False)
 
                 terms[i].update(f())
 
@@ -130,7 +126,7 @@ def _align(terms):
         return np.result_type(terms.type), None
 
     # if all resolved variables are numeric scalars
-    if all(term.isscalar for term in terms):
+    if all(term.is_scalar for term in terms):
         return _result_type_many(*(term.value for term in terms)).type, None
 
     # perform the main alignment

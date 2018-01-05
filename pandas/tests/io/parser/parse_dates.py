@@ -10,7 +10,7 @@ from datetime import datetime, date
 
 import pytest
 import numpy as np
-import pandas._libs.lib as lib
+from pandas._libs.tslibs import parsing
 from pandas._libs.lib import Timestamp
 
 import pandas as pd
@@ -53,7 +53,8 @@ KORD,19990127, 23:00:00, 22:56:00, -0.5900, 1.7100, 4.6000, 0.0000, 280.0000
 """
 
         def func(*date_cols):
-            return lib.try_parse_dates(parsers._concat_date_cols(date_cols))
+            res = parsing.try_parse_dates(parsers._concat_date_cols(date_cols))
+            return res
 
         df = self.read_csv(StringIO(data), header=None,
                            date_parser=func,
@@ -216,8 +217,8 @@ KORD6,19990127, 23:00:00, 22:56:00, -0.5900, 1.7100, 4.6000, 0.0000, 280.0000"""
             tm.assert_series_equal(expected, result.dtypes)
 
             # test with NaT for the nan_rep
-            # we don't have a method to specif the Datetime na_rep (it defaults
-            # to '')
+            # we don't have a method to specify the Datetime na_rep
+            # (it defaults to '')
             df.to_csv(path)
             result = self.read_csv(path, index_col=0, parse_dates=['B'])
             tm.assert_frame_equal(result, df)
@@ -269,7 +270,7 @@ KORD6,19990127, 23:00:00, 22:56:00, -0.5900, 1.7100, 4.6000, 0.0000, 280.0000"""
 
         # See gh-217
         import dateutil
-        if dateutil.__version__ >= LooseVersion('2.5.0'):
+        if LooseVersion(dateutil.__version__) >= LooseVersion('2.5.0'):
             pytest.skip("testing yearfirst=True not-support"
                         "on datetutil < 2.5.0 this works but"
                         "is wrong")
@@ -654,4 +655,22 @@ date,time,prn,rxstatus
                          [7, '10/18/2008'],
                          [621, ' ']]
         expected = DataFrame(expected_data, columns=['case', 'opdate'])
+        tm.assert_frame_equal(result, expected)
+
+    @pytest.mark.parametrize("data,expected", [
+        ("a\n135217135789158401\n1352171357E+5",
+         DataFrame({"a": [135217135789158401,
+                          135217135700000]}, dtype="float64")),
+        ("a\n99999999999\n123456789012345\n1234E+0",
+         DataFrame({"a": [99999999999,
+                          123456789012345,
+                          1234]}, dtype="float64"))
+    ])
+    @pytest.mark.parametrize("parse_dates", [True, False])
+    def test_parse_date_float(self, data, expected, parse_dates):
+        # see gh-2697
+        #
+        # Date parsing should fail, so we leave the data untouched
+        # (i.e. float precision should remain unchanged).
+        result = self.read_csv(StringIO(data), parse_dates=parse_dates)
         tm.assert_frame_equal(result, expected)

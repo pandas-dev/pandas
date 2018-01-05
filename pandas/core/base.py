@@ -8,16 +8,25 @@ import numpy as np
 
 from pandas.core.dtypes.missing import isna
 from pandas.core.dtypes.generic import ABCDataFrame, ABCSeries, ABCIndexClass
-from pandas.core.dtypes.common import is_object_dtype, is_list_like, is_scalar
+from pandas.core.dtypes.common import (
+    is_object_dtype,
+    is_list_like,
+    is_scalar,
+    is_datetimelike,
+    is_extension_type)
+
 from pandas.util._validators import validate_bool_kwarg
 
-from pandas.core import common as com
+from pandas.core import common as com, algorithms
 import pandas.core.nanops as nanops
 import pandas._libs.lib as lib
 from pandas.compat.numpy import function as nv
+from pandas.compat import PYPY
 from pandas.util._decorators import (Appender, cache_readonly,
                                      deprecate_kwarg, Substitution)
-from pandas.core.common import AbstractMethodError
+from pandas.core.common import AbstractMethodError, _maybe_box_datetimelike
+
+from pandas.core.accessor import DirNamesMixin
 
 _shared_docs = dict()
 _indexops_doc_kwargs = dict(klass='IndexOpsMixin', inplace='',
@@ -72,7 +81,7 @@ class StringMixin(object):
         return str(self)
 
 
-class PandasObject(StringMixin):
+class PandasObject(StringMixin, DirNamesMixin):
 
     """baseclass for various pandas objects"""
 
@@ -90,23 +99,6 @@ class PandasObject(StringMixin):
         """
         # Should be overwritten by base classes
         return object.__repr__(self)
-
-    def _dir_additions(self):
-        """ add addtional __dir__ for this object """
-        return set()
-
-    def _dir_deletions(self):
-        """ delete unwanted __dir__ for this object """
-        return set()
-
-    def __dir__(self):
-        """
-        Provide method name lookup and completion
-        Only provide 'public' methods
-        """
-        rv = set(dir(type(self)))
-        rv = (rv - self._dir_deletions()) | self._dir_additions()
-        return sorted(rv)
 
     def _reset_cache(self, key=None):
         """
@@ -140,7 +132,7 @@ class NoNewAttributesMixin(object):
 
     Prevents additional attributes via xxx.attribute = "something" after a
     call to `self.__freeze()`. Mainly used to prevent the user from using
-    wrong attrirbutes on a accessor (`Series.cat/.str/.dt`).
+    wrong attributes on a accessor (`Series.cat/.str/.dt`).
 
     If you really want to add a new attribute at a later time, you need to use
     `object.__setattr__(self, key, value)`.
@@ -160,100 +152,6 @@ class NoNewAttributesMixin(object):
             raise AttributeError("You cannot add any new attribute '{key}'".
                                  format(key=key))
         object.__setattr__(self, key, value)
-
-
-class PandasDelegate(PandasObject):
-    """ an abstract base class for delegating methods/properties """
-
-    @classmethod
-    def _make_accessor(cls, data):
-        raise AbstractMethodError("_make_accessor should be implemented"
-                                  "by subclass and return an instance"
-                                  "of `cls`.")
-
-    def _delegate_property_get(self, name, *args, **kwargs):
-        raise TypeError("You cannot access the "
-                        "property {name}".format(name=name))
-
-    def _delegate_property_set(self, name, value, *args, **kwargs):
-        raise TypeError("The property {name} cannot be set".format(name=name))
-
-    def _delegate_method(self, name, *args, **kwargs):
-        raise TypeError("You cannot call method {name}".format(name=name))
-
-    @classmethod
-    def _add_delegate_accessors(cls, delegate, accessors, typ,
-                                overwrite=False):
-        """
-        add accessors to cls from the delegate class
-
-        Parameters
-        ----------
-        cls : the class to add the methods/properties to
-        delegate : the class to get methods/properties & doc-strings
-        acccessors : string list of accessors to add
-        typ : 'property' or 'method'
-        overwrite : boolean, default False
-           overwrite the method/property in the target class if it exists
-        """
-
-        def _create_delegator_property(name):
-
-            def _getter(self):
-                return self._delegate_property_get(name)
-
-            def _setter(self, new_values):
-                return self._delegate_property_set(name, new_values)
-
-            _getter.__name__ = name
-            _setter.__name__ = name
-
-            return property(fget=_getter, fset=_setter,
-                            doc=getattr(delegate, name).__doc__)
-
-        def _create_delegator_method(name):
-
-            def f(self, *args, **kwargs):
-                return self._delegate_method(name, *args, **kwargs)
-
-            f.__name__ = name
-            f.__doc__ = getattr(delegate, name).__doc__
-
-            return f
-
-        for name in accessors:
-
-            if typ == 'property':
-                f = _create_delegator_property(name)
-            else:
-                f = _create_delegator_method(name)
-
-            # don't overwrite existing methods/properties
-            if overwrite or not hasattr(cls, name):
-                setattr(cls, name, f)
-
-
-class AccessorProperty(object):
-    """Descriptor for implementing accessor properties like Series.str
-    """
-
-    def __init__(self, accessor_cls, construct_accessor=None):
-        self.accessor_cls = accessor_cls
-        self.construct_accessor = (construct_accessor or
-                                   accessor_cls._make_accessor)
-        self.__doc__ = accessor_cls.__doc__
-
-    def __get__(self, instance, owner=None):
-        if instance is None:
-            # this ensures that Series.str.<method> is well defined
-            return self.accessor_cls
-        return self.construct_accessor(instance)
-
-    def __set__(self, instance, value):
-        raise AttributeError("can't set attribute")
-
-    def __delete__(self, instance):
-        raise AttributeError("can't delete attribute")
 
 
 class GroupByError(Exception):
@@ -341,24 +239,25 @@ class SelectionMixin(object):
 
     def __getitem__(self, key):
         if self._selection is not None:
-            raise Exception('Column(s) %s already selected' % self._selection)
+            raise Exception('Column(s) {selection} already selected'
+                            .format(selection=self._selection))
 
         if isinstance(key, (list, tuple, ABCSeries, ABCIndexClass,
                             np.ndarray)):
             if len(self.obj.columns.intersection(key)) != len(key):
                 bad_keys = list(set(key).difference(self.obj.columns))
-                raise KeyError("Columns not found: %s"
-                               % str(bad_keys)[1:-1])
+                raise KeyError("Columns not found: {missing}"
+                               .format(missing=str(bad_keys)[1:-1]))
             return self._gotitem(list(key), ndim=2)
 
         elif not getattr(self, 'as_index', False):
             if key not in self.obj.columns:
-                raise KeyError("Column not found: %s" % key)
+                raise KeyError("Column not found: {key}".format(key=key))
             return self._gotitem(key, ndim=2)
 
         else:
             if key not in self.obj:
-                raise KeyError("Column not found: %s" % key)
+                raise KeyError("Column not found: {key}".format(key=key))
             return self._gotitem(key, ndim=1)
 
     def _gotitem(self, key, ndim, subset=None):
@@ -408,7 +307,7 @@ class SelectionMixin(object):
         if f is not None:
             return f(self, *args, **kwargs)
 
-        raise ValueError("{} is an unknown string function".format(arg))
+        raise ValueError("{arg} is an unknown string function".format(arg=arg))
 
     def _aggregate(self, arg, *args, **kwargs):
         """
@@ -483,9 +382,9 @@ class SelectionMixin(object):
                         is_nested_renamer = True
 
                         if k not in obj.columns:
-                            raise SpecificationError('cannot perform renaming '
-                                                     'for {0} with a nested '
-                                                     'dictionary'.format(k))
+                            msg = ('cannot perform renaming for {key} with a '
+                                   'nested dictionary').format(key=k)
+                            raise SpecificationError(msg)
                         nested_renaming_depr(4 + (_level or 0))
 
                     elif isinstance(obj, ABCSeries):
@@ -588,13 +487,13 @@ class SelectionMixin(object):
 
             def is_any_series():
                 # return a boolean if we have *any* nested series
-                return any([isinstance(r, ABCSeries)
-                            for r in compat.itervalues(result)])
+                return any(isinstance(r, ABCSeries)
+                           for r in compat.itervalues(result))
 
             def is_any_frame():
                 # return a boolean if we have *any* nested series
-                return any([isinstance(r, ABCDataFrame)
-                            for r in compat.itervalues(result)])
+                return any(isinstance(r, ABCDataFrame)
+                           for r in compat.itervalues(result))
 
             if isinstance(result, list):
                 return concat(result, keys=keys, axis=1), True
@@ -786,7 +685,7 @@ class GroupByMixin(object):
 
 
 class IndexOpsMixin(object):
-    """ common ops mixin to support a unified inteface / docs for Series /
+    """ common ops mixin to support a unified interface / docs for Series /
     Index
     """
 
@@ -898,6 +797,34 @@ class IndexOpsMixin(object):
         """
         return nanops.nanargmin(self.values)
 
+    def tolist(self):
+        """
+        Return a list of the values.
+
+        These are each a scalar type, which is a Python scalar
+        (for str, int, float) or a pandas scalar
+        (for Timestamp/Timedelta/Interval/Period)
+
+        See Also
+        --------
+        numpy.ndarray.tolist
+        """
+
+        if is_datetimelike(self):
+            return [_maybe_box_datetimelike(x) for x in self._values]
+        else:
+            return self._values.tolist()
+
+    def __iter__(self):
+        """
+        Return an iterator of the values.
+
+        These are each a scalar type, which is a Python scalar
+        (for str, int, float) or a pandas scalar
+        (for Timestamp/Timedelta/Interval/Period)
+        """
+        return iter(self.tolist())
+
     @cache_readonly
     def hasnans(self):
         """ return if I have any nans; enables various perf speedups """
@@ -911,6 +838,78 @@ class IndexOpsMixin(object):
             raise TypeError("{klass} cannot perform the operation {op}".format(
                             klass=self.__class__.__name__, op=name))
         return func(**kwds)
+
+    def _map_values(self, mapper, na_action=None):
+        """An internal function that maps values using the input
+        correspondence (which can be a dict, Series, or function).
+
+        Parameters
+        ----------
+        mapper : function, dict, or Series
+            The input correspondence object
+        na_action : {None, 'ignore'}
+            If 'ignore', propagate NA values, without passing them to the
+            mapping function
+
+        Returns
+        -------
+        applied : Union[Index, MultiIndex], inferred
+            The output of the mapping function applied to the index.
+            If the function returns a tuple with more than one element
+            a MultiIndex will be returned.
+
+        """
+
+        # we can fastpath dict/Series to an efficient map
+        # as we know that we are not going to have to yield
+        # python types
+        if isinstance(mapper, dict):
+            if hasattr(mapper, '__missing__'):
+                # If a dictionary subclass defines a default value method,
+                # convert mapper to a lookup function (GH #15999).
+                dict_with_default = mapper
+                mapper = lambda x: dict_with_default[x]
+            else:
+                # Dictionary does not have a default. Thus it's safe to
+                # convert to an Series for efficiency.
+                # we specify the keys here to handle the
+                # possibility that they are tuples
+                from pandas import Series
+                mapper = Series(mapper)
+
+        if isinstance(mapper, ABCSeries):
+            # Since values were input this means we came from either
+            # a dict or a series and mapper should be an index
+            if is_extension_type(self.dtype):
+                values = self._values
+            else:
+                values = self.values
+
+            indexer = mapper.index.get_indexer(values)
+            new_values = algorithms.take_1d(mapper._values, indexer)
+
+            return new_values
+
+        # we must convert to python types
+        if is_extension_type(self.dtype):
+            values = self._values
+            if na_action is not None:
+                raise NotImplementedError
+            map_f = lambda values, f: values.map(f)
+        else:
+            values = self.astype(object)
+            values = getattr(values, 'values', values)
+            if na_action == 'ignore':
+                def map_f(values, f):
+                    return lib.map_infer_mask(values, f,
+                                              isna(values).view(np.uint8))
+            else:
+                map_f = lib.map_infer
+
+        # mapper is a function
+        new_values = map_f(values, mapper)
+
+        return new_values
 
     def value_counts(self, normalize=False, sort=True, ascending=False,
                      bins=None, dropna=True):
@@ -1061,7 +1060,7 @@ class IndexOpsMixin(object):
         Notes
         -----
         Memory usage does not include memory consumed by elements that
-        are not components of the array if deep=False
+        are not components of the array if deep=False or if used on PyPy
 
         See Also
         --------
@@ -1071,9 +1070,8 @@ class IndexOpsMixin(object):
             return self.values.memory_usage(deep=deep)
 
         v = self.values.nbytes
-        if deep and is_object_dtype(self):
+        if deep and is_object_dtype(self) and not PYPY:
             v += lib.memory_usage_of_objects(self.values)
-
         return v
 
     def factorize(self, sort=False, na_sentinel=-1):

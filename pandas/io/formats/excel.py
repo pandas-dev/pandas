@@ -10,8 +10,9 @@ import numpy as np
 from pandas.compat import reduce
 from pandas.io.formats.css import CSSResolver, CSSWarning
 from pandas.io.formats.printing import pprint_thing
-from pandas.core.dtypes.common import is_float
-import pandas._libs.lib as lib
+from pandas.core.common import _any_not_none
+from pandas.core.dtypes.common import is_float, is_scalar
+from pandas.core.dtypes import missing
 from pandas import Index, MultiIndex, PeriodIndex
 from pandas.io.formats.common import get_level_lengths
 
@@ -132,10 +133,12 @@ class CSSToExcelConverter(object):
 
     def build_border(self, props):
         return {side: {
-            'style': self._border_style(props.get('border-%s-style' % side),
-                                        props.get('border-%s-width' % side)),
+            'style': self._border_style(props.get('border-{side}-style'
+                                        .format(side=side)),
+                                        props.get('border-{side}-width'
+                                        .format(side=side))),
             'color': self.color_to_excel(
-                props.get('border-%s-color' % side)),
+                props.get('border-{side}-color'.format(side=side))),
         } for side in ['top', 'right', 'bottom', 'left']}
 
     def _border_style(self, style, width):
@@ -261,7 +264,7 @@ class CSSToExcelConverter(object):
                           else None),
             'strike': ('line-through' in decoration) or None,
             'color': self.color_to_excel(props.get('color')),
-            # shadow if nonzero digit before shadow colour
+            # shadow if nonzero digit before shadow color
             'shadow': (bool(re.search('^[^#(]*[1-9]',
                                       props['text-shadow']))
                        if 'text-shadow' in props else None),
@@ -302,7 +305,8 @@ class CSSToExcelConverter(object):
         try:
             return self.NAMED_COLORS[val]
         except KeyError:
-            warnings.warn('Unhandled colour format: %r' % val, CSSWarning)
+            warnings.warn('Unhandled color format: {val!r}'.format(val=val),
+                          CSSWarning)
 
 
 class ExcelFormatter(object):
@@ -353,7 +357,21 @@ class ExcelFormatter(object):
             self.styler = None
         self.df = df
         if cols is not None:
-            self.df = df.loc[:, cols]
+
+            # all missing, raise
+            if not len(Index(cols) & df.columns):
+                raise KeyError(
+                    "passes columns are not ALL present dataframe")
+
+            # deprecatedin gh-17295
+            # 1 missing is ok (for now)
+            if len(Index(cols) & df.columns) != len(cols):
+                warnings.warn(
+                    "Not all names specified in 'columns' are found; "
+                    "this will raise a KeyError in the future",
+                    FutureWarning)
+
+            self.df = df.reindex(columns=cols)
         self.columns = self.df.columns
         self.float_format = float_format
         self.index = index
@@ -363,13 +381,13 @@ class ExcelFormatter(object):
         self.inf_rep = inf_rep
 
     def _format_value(self, val):
-        if lib.checknull(val):
+        if is_scalar(val) and missing.isna(val):
             val = self.na_rep
         elif is_float(val):
-            if lib.isposinf_scalar(val):
+            if missing.isposinf_scalar(val):
                 val = self.inf_rep
-            elif lib.isneginf_scalar(val):
-                val = '-%s' % self.inf_rep
+            elif missing.isneginf_scalar(val):
+                val = '-{inf}'.format(inf=self.inf_rep)
             elif self.float_format is not None:
                 val = float(self.float_format % val)
         return val
@@ -434,8 +452,9 @@ class ExcelFormatter(object):
             colnames = self.columns
             if has_aliases:
                 if len(self.header) != len(self.columns):
-                    raise ValueError('Writing %d cols but got %d aliases' %
-                                     (len(self.columns), len(self.header)))
+                    raise ValueError('Writing {cols} cols but got {alias} '
+                                     'aliases'.format(cols=len(self.columns),
+                                                      alias=len(self.header)))
                 else:
                     colnames = self.header
 
@@ -473,7 +492,7 @@ class ExcelFormatter(object):
 
         # output index and index_label?
         if self.index:
-            # chek aliases
+            # check aliases
             # if list only take first as this is not a MultiIndex
             if (self.index_label and
                     isinstance(self.index_label, (list, tuple, np.ndarray,
@@ -530,8 +549,7 @@ class ExcelFormatter(object):
                 self.rowcounter += 1
 
             # if index labels are not empty go ahead and dump
-            if (any(x is not None for x in index_labels) and
-                    self.header is not False):
+            if _any_not_none(*index_labels) and self.header is not False:
 
                 for cidx, name in enumerate(index_labels):
                     yield ExcelCell(self.rowcounter - 1, cidx, name,

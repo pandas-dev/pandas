@@ -42,7 +42,6 @@ df_whitelist = frozenset([
     'pct_change',
     'skew',
     'plot',
-    'boxplot',
     'hist',
     'median',
     'dtypes',
@@ -175,13 +174,17 @@ def raw_frame():
 
 
 @pytest.mark.parametrize(
-    "op, level, axis, skipna",
+    "op, level, axis, skipna, sort",
     product(AGG_FUNCTIONS,
             lrange(2), lrange(2),
+            [True, False],
             [True, False]))
-def test_regression_whitelist_methods(raw_frame, op, level, axis, skipna):
+def test_regression_whitelist_methods(
+        raw_frame, op, level,
+        axis, skipna, sort):
     # GH6944
-    # explicity test the whitelest methods
+    # GH 17537
+    # explicitly test the whitelest methods
 
     if axis == 0:
         frame = raw_frame
@@ -189,15 +192,19 @@ def test_regression_whitelist_methods(raw_frame, op, level, axis, skipna):
         frame = raw_frame.T
 
     if op in AGG_FUNCTIONS_WITH_SKIPNA:
-        grouped = frame.groupby(level=level, axis=axis)
+        grouped = frame.groupby(level=level, axis=axis, sort=sort)
         result = getattr(grouped, op)(skipna=skipna)
         expected = getattr(frame, op)(level=level, axis=axis,
                                       skipna=skipna)
+        if sort:
+            expected = expected.sort_index(axis=axis, level=level)
         tm.assert_frame_equal(result, expected)
     else:
-        grouped = frame.groupby(level=level, axis=axis)
+        grouped = frame.groupby(level=level, axis=axis, sort=sort)
         result = getattr(grouped, op)()
         expected = getattr(frame, op)(level=level, axis=axis)
+        if sort:
+            expected = expected.sort_index(axis=axis, level=level)
         tm.assert_frame_equal(result, expected)
 
 
@@ -231,18 +238,18 @@ def test_groupby_blacklist(df_letters):
 
 def test_tab_completion(mframe):
     grp = mframe.groupby(level='second')
-    results = set([v for v in dir(grp) if not v.startswith('_')])
-    expected = set(
-        ['A', 'B', 'C', 'agg', 'aggregate', 'apply', 'boxplot', 'filter',
-         'first', 'get_group', 'groups', 'hist', 'indices', 'last', 'max',
-         'mean', 'median', 'min', 'ngroups', 'nth', 'ohlc', 'plot',
-         'prod', 'size', 'std', 'sum', 'transform', 'var', 'sem', 'count',
-         'nunique', 'head', 'describe', 'cummax', 'quantile',
-         'rank', 'cumprod', 'tail', 'resample', 'cummin', 'fillna',
-         'cumsum', 'cumcount', 'ngroup', 'all', 'shift', 'skew',
-         'take', 'tshift', 'pct_change', 'any', 'mad', 'corr', 'corrwith',
-         'cov', 'dtypes', 'ndim', 'diff', 'idxmax', 'idxmin',
-         'ffill', 'bfill', 'pad', 'backfill', 'rolling', 'expanding'])
+    results = {v for v in dir(grp) if not v.startswith('_')}
+    expected = {
+        'A', 'B', 'C', 'agg', 'aggregate', 'apply', 'boxplot', 'filter',
+        'first', 'get_group', 'groups', 'hist', 'indices', 'last', 'max',
+        'mean', 'median', 'min', 'ngroups', 'nth', 'ohlc', 'plot',
+        'prod', 'size', 'std', 'sum', 'transform', 'var', 'sem', 'count',
+        'nunique', 'head', 'describe', 'cummax', 'quantile',
+        'rank', 'cumprod', 'tail', 'resample', 'cummin', 'fillna',
+        'cumsum', 'cumcount', 'ngroup', 'all', 'shift', 'skew',
+        'take', 'tshift', 'pct_change', 'any', 'mad', 'corr', 'corrwith',
+        'cov', 'dtypes', 'ndim', 'diff', 'idxmax', 'idxmin',
+        'ffill', 'bfill', 'pad', 'backfill', 'rolling', 'expanding', 'pipe'}
     assert results == expected
 
 

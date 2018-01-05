@@ -152,7 +152,8 @@ cdef extern from "numpy/arrayobject.h":
 
     npy_intp NPY_MAX_ELSIZE
 
-    ctypedef void (*PyArray_VectorUnaryFunc)(void *, void *, npy_intp, void *,  void *)
+    ctypedef void (*PyArray_VectorUnaryFunc)(
+        void *, void *, npy_intp, void *,  void *)
 
     ctypedef class numpy.dtype [object PyArray_Descr]:
         # Use PyDataType_* macros when possible, however there are no macros
@@ -195,7 +196,7 @@ cdef extern from "numpy/arrayobject.h":
         # -- the details of this may change.
         def __getbuffer__(ndarray self, Py_buffer* info, int flags):
             # This implementation of getbuffer is geared towards Cython
-            # requirements, and does not yet fullfill the PEP.
+            # requirements, and does not yet fulfill the PEP.
             # In particular strided access is always provided regardless
             # of flags
 
@@ -225,7 +226,9 @@ cdef extern from "numpy/arrayobject.h":
             if copy_shape:
                 # Allocate new buffer for strides and shape info.
                 # This is allocated as one block, strides first.
-                info.strides = <Py_ssize_t*>stdlib.malloc(sizeof(Py_ssize_t) * <size_t>ndim * 2)
+                info.strides = <Py_ssize_t*>stdlib.malloc(
+                    sizeof(Py_ssize_t) * <size_t>ndim * 2)
+                
                 info.shape = info.strides + ndim
                 for i in range(ndim):
                     info.strides[i] = PyArray_STRIDES(self)[i]
@@ -275,7 +278,8 @@ cdef extern from "numpy/arrayobject.h":
                 elif t == NPY_CLONGDOUBLE: f = "Zg"
                 elif t == NPY_OBJECT:      f = "O"
                 else:
-                    raise ValueError(u"unknown dtype code in numpy.pxd (%d)" % t)
+                    raise ValueError(
+                        u"unknown dtype code in numpy.pxd (%d)" % t)
                 info.format = f
                 return
             else:
@@ -293,7 +297,6 @@ cdef extern from "numpy/arrayobject.h":
             if sizeof(npy_intp) != sizeof(Py_ssize_t):
                 stdlib.free(info.strides)
                 # info.shape was stored after info.strides in the same block
-
 
     ctypedef signed char      npy_bool
 
@@ -462,7 +465,6 @@ cdef extern from "numpy/arrayobject.h":
     bint PyArray_ISBEHAVED(ndarray)
     bint PyArray_ISBEHAVED_RO(ndarray)
 
-
     bint PyDataType_ISNOTSWAPPED(dtype)
     bint PyDataType_ISBYTESWAPPED(dtype)
 
@@ -474,7 +476,6 @@ cdef extern from "numpy/arrayobject.h":
     # Cannot be supported due to out arg:
     # bint PyArray_HasArrayInterfaceType(object, dtype, object, object&)
     # bint PyArray_HasArrayInterface(op, out)
-
 
     bint PyArray_IsZeroDim(object)
     # Cannot be supported due to ## ## in macro:
@@ -502,24 +503,28 @@ cdef extern from "numpy/arrayobject.h":
     unsigned char PyArray_EquivArrTypes(ndarray a1, ndarray a2)
     bint PyArray_EquivByteorders(int b1, int b2)
     object PyArray_SimpleNew(int nd, npy_intp* dims, int typenum)
-    object PyArray_SimpleNewFromData(int nd, npy_intp* dims, int typenum, void* data)
+    object PyArray_SimpleNewFromData(int nd, npy_intp* dims,
+                                     int typenum, void* data)
     #object PyArray_SimpleNewFromDescr(int nd, npy_intp* dims, dtype descr)
     object PyArray_ToScalar(void* data, ndarray arr)
 
     void* PyArray_GETPTR1(ndarray m, npy_intp i)
     void* PyArray_GETPTR2(ndarray m, npy_intp i, npy_intp j)
     void* PyArray_GETPTR3(ndarray m, npy_intp i, npy_intp j, npy_intp k)
-    void* PyArray_GETPTR4(ndarray m, npy_intp i, npy_intp j, npy_intp k, npy_intp l)
+    void* PyArray_GETPTR4(ndarray m, npy_intp i,
+                          npy_intp j, npy_intp k, npy_intp l)
 
     void PyArray_XDECREF_ERR(ndarray)
     # Cannot be supported due to out arg
     # void PyArray_DESCR_REPLACE(descr)
 
-
     object PyArray_Copy(ndarray)
-    object PyArray_FromObject(object op, int type, int min_depth, int max_depth)
-    object PyArray_ContiguousFromObject(object op, int type, int min_depth, int max_depth)
-    object PyArray_CopyFromObject(object op, int type, int min_depth, int max_depth)
+    object PyArray_FromObject(object op, int type,
+                              int min_depth, int max_depth)
+    object PyArray_ContiguousFromObject(object op, int type,
+                                        int min_depth, int max_depth)
+    object PyArray_CopyFromObject(object op, int type,
+                                  int min_depth, int max_depth)
 
     object PyArray_Cast(ndarray mp, int type_num)
     object PyArray_Take(ndarray ap, object items, int axis)
@@ -598,8 +603,8 @@ cdef extern from "numpy/arrayobject.h":
     object PyArray_Dumps (object, int)
     int PyArray_ValidType (int)
     void PyArray_UpdateFlags (ndarray, int)
-    object PyArray_New (type, int, npy_intp *, int, npy_intp *, void *, int, int, object)
-    #object PyArray_NewFromDescr (type, dtype, int, npy_intp *, npy_intp *, void *, int, object)
+    object PyArray_New (type, int, npy_intp *, int, npy_intp *,
+                        void *, int, int, object)
     #dtype PyArray_DescrNew (dtype)
     dtype PyArray_DescrNewFromType (int)
     double PyArray_GetPriority (object, double)
@@ -611,7 +616,8 @@ cdef extern from "numpy/arrayobject.h":
     int PyArray_Broadcast (broadcast)
     void PyArray_FillObjectArray (ndarray, object)
     int PyArray_FillWithScalar (ndarray, object)
-    npy_bool PyArray_CheckStrides (int, int, npy_intp, npy_intp, npy_intp *, npy_intp *)
+    npy_bool PyArray_CheckStrides (
+        int, int, npy_intp, npy_intp, npy_intp *, npy_intp *)
     dtype PyArray_DescrNewByteorder (dtype, char)
     object PyArray_IterAllButAxis (object, int *)
     #object PyArray_CheckFromAny (object, dtype, int, int, int, object)
@@ -782,9 +788,11 @@ cdef inline object PyArray_MultiIterNew4(a, b, c, d):
     return PyArray_MultiIterNew(4, <void*>a, <void*>b, <void*>c, <void*> d)
 
 cdef inline object PyArray_MultiIterNew5(a, b, c, d, e):
-    return PyArray_MultiIterNew(5, <void*>a, <void*>b, <void*>c, <void*> d, <void*> e)
+    return PyArray_MultiIterNew(5, <void*>a, <void*>b,
+                                <void*>c, <void*> d, <void*> e)
 
-cdef inline char* _util_dtypestring(dtype descr, char* f, char* end, int* offset) except NULL:
+cdef inline char* _util_dtypestring(dtype descr, char* f,
+                                    char* end, int* offset) except NULL:
     # Recursive utility function used in __getbuffer__ to get format
     # string. The new location in the format string is returned.
 
@@ -800,7 +808,8 @@ cdef inline char* _util_dtypestring(dtype descr, char* f, char* end, int* offset
         child, new_offset = fields
 
         if (end - f) - (new_offset - offset[0]) < 15:
-            raise RuntimeError(u"Format string allocated too short, see comment in numpy.pxd")
+            raise RuntimeError(
+                u"Format string allocated too short, see comment in numpy.pxd")
 
         if ((child.byteorder == '>' and little_endian) or
             (child.byteorder == '<' and not little_endian)):
@@ -860,7 +869,8 @@ cdef inline char* _util_dtypestring(dtype descr, char* f, char* end, int* offset
 
 cdef extern from "numpy/ufuncobject.h":
 
-    ctypedef void (*PyUFuncGenericFunction) (char **, npy_intp *, npy_intp *, void *)
+    ctypedef void (*PyUFuncGenericFunction) (char **, npy_intp *,
+                                             npy_intp *, void *)
 
     ctypedef extern class numpy.ufunc [object PyUFuncObject]:
         cdef:
@@ -968,14 +978,14 @@ cdef extern from "numpy/ufuncobject.h":
 
 
 cdef inline void set_array_base(ndarray arr, object base):
-     cdef PyObject* baseptr
-     if base is None:
-         baseptr = NULL
-     else:
-         Py_INCREF(base) # important to do this before decref below!
-         baseptr = <PyObject*>base
-     Py_XDECREF(arr.base)
-     arr.base = baseptr
+    cdef PyObject* baseptr
+    if base is None:
+        baseptr = NULL
+    else:
+        Py_INCREF(base) # important to do this before decref below!
+        baseptr = <PyObject*>base
+    Py_XDECREF(arr.base)
+    arr.base = baseptr
 
 cdef inline object get_array_base(ndarray arr):
     if arr.base is NULL:

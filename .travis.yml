@@ -37,7 +37,7 @@ matrix:
         - JOB="3.5_OSX" TEST_ARGS="--skip-slow --skip-network"
     - dist: trusty
       env:
-        - JOB="2.7_LOCALE" TEST_ARGS="--only-slow --skip-network" LOCALE_OVERRIDE="zh_CN.UTF-8"
+        - JOB="2.7_LOCALE" LOCALE_OVERRIDE="zh_CN.UTF-8" SLOW=true
       addons:
         apt:
           packages:
@@ -51,22 +51,22 @@ matrix:
           - python-gtk2
     - dist: trusty
       env:
-        - JOB="3.5" TEST_ARGS="--skip-slow --skip-network" COVERAGE=true
+        - JOB="3.5_CONDA_BUILD_TEST" TEST_ARGS="--skip-slow --skip-network" CONDA_BUILD_TEST=true
+    - dist: trusty
+      env:
+        - JOB="3.6" TEST_ARGS="--skip-slow --skip-network" PANDAS_TESTING_MODE="deprecate" CONDA_FORGE=true COVERAGE=true
+    # In allow_failures
+    - dist: trusty
+      env:
+        - JOB="2.7_SLOW" SLOW=true
+    # In allow_failures
+    - dist: trusty
+      env:
+        - JOB="3.6_PIP_BUILD_TEST" TEST_ARGS="--skip-slow" PIP_BUILD_TEST=true
       addons:
         apt:
           packages:
           - xsel
-    - dist: trusty
-      env:
-        - JOB="3.6" TEST_ARGS="--skip-slow --skip-network" PANDAS_TESTING_MODE="deprecate" CONDA_FORGE=true
-    # In allow_failures
-    - dist: trusty
-      env:
-        - JOB="2.7_SLOW" TEST_ARGS="--only-slow --skip-network"
-    # In allow_failures
-    - dist: trusty
-      env:
-        - JOB="2.7_BUILD_TEST" TEST_ARGS="--skip-slow" BUILD_TEST=true
     # In allow_failures
     - dist: trusty
       env:
@@ -75,17 +75,17 @@ matrix:
     - dist: trusty
       env:
         - JOB="3.6_DOC" DOC=true
-      addons:
-        apt:
-          packages:
-          - xsel
     allow_failures:
       - dist: trusty
         env:
-          - JOB="2.7_SLOW" TEST_ARGS="--only-slow --skip-network"
+          - JOB="2.7_SLOW" SLOW=true
       - dist: trusty
         env:
-          - JOB="2.7_BUILD_TEST" TEST_ARGS="--skip-slow" BUILD_TEST=true
+          - JOB="3.6_PIP_BUILD_TEST" TEST_ARGS="--skip-slow" PIP_BUILD_TEST=true
+        addons:
+          apt:
+            packages:
+            - xsel
       - dist: trusty
         env:
           - JOB="3.6_NUMPY_DEV" TEST_ARGS="--skip-slow --skip-network" PANDAS_TESTING_MODE="deprecate"
@@ -102,8 +102,6 @@ before_install:
   - uname -a
   - git --version
   - git tag
-  - ci/before_install_travis.sh
-  - export DISPLAY=":99.0"
 
 install:
   - echo "install start"
@@ -114,6 +112,8 @@ install:
 
 before_script:
   - ci/install_db_travis.sh
+  - export DISPLAY=":99.0"
+  - ci/before_script_travis.sh
 
 script:
   - echo "script start"
@@ -121,6 +121,8 @@ script:
   - ci/script_single.sh
   - ci/script_multi.sh
   - ci/lint.sh
+  - echo "checking imports"
+  - source activate pandas && python ci/check_imports.py
   - echo "script done"
 
 after_success:

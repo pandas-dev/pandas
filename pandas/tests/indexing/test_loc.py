@@ -8,8 +8,7 @@ import numpy as np
 
 import pandas as pd
 from pandas.compat import lrange, StringIO
-from pandas import (Series, DataFrame, Timestamp,
-                    date_range, MultiIndex)
+from pandas import Series, DataFrame, Timestamp, date_range, MultiIndex
 from pandas.util import testing as tm
 from pandas.tests.indexing.common import Base
 
@@ -18,7 +17,7 @@ class TestLoc(Base):
 
     def test_loc_getitem_dups(self):
         # GH 5678
-        # repeated gettitems on a dup index returing a ndarray
+        # repeated gettitems on a dup index returning a ndarray
         df = DataFrame(
             np.random.random_sample((20, 5)),
             index=['ABCDE' [x % 5] for x in range(20)])
@@ -152,14 +151,28 @@ class TestLoc(Base):
                           [Timestamp('20130102'), Timestamp('20130103')],
                           typs=['ts'], axes=0)
 
+    def test_loc_getitem_label_list_with_missing(self):
         self.check_result('list lbl', 'loc', [0, 1, 2], 'indexer', [0, 1, 2],
                           typs=['empty'], fails=KeyError)
-        self.check_result('list lbl', 'loc', [0, 2, 3], 'ix', [0, 2, 3],
-                          typs=['ints', 'uints'], axes=0, fails=KeyError)
-        self.check_result('list lbl', 'loc', [3, 6, 7], 'ix', [3, 6, 7],
-                          typs=['ints', 'uints'], axes=1, fails=KeyError)
+        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
+            self.check_result('list lbl', 'loc', [0, 2, 3], 'ix', [0, 2, 3],
+                              typs=['ints', 'uints'], axes=0, fails=KeyError)
+        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
+            self.check_result('list lbl', 'loc', [3, 6, 7], 'ix', [3, 6, 7],
+                              typs=['ints', 'uints'], axes=1, fails=KeyError)
         self.check_result('list lbl', 'loc', [4, 8, 10], 'ix', [4, 8, 10],
                           typs=['ints', 'uints'], axes=2, fails=KeyError)
+
+    def test_getitem_label_list_with_missing(self):
+        s = Series(range(3), index=['a', 'b', 'c'])
+
+        # consistency
+        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
+            s[['a', 'd']]
+
+        s = Series(range(3))
+        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
+            s[[0, 3]]
 
     def test_loc_getitem_label_list_fails(self):
         # fails
@@ -249,7 +262,9 @@ class TestLoc(Base):
         pytest.raises(KeyError, lambda: s.loc[['4']])
 
         s.loc[-1] = 3
-        result = s.loc[[-1, -2]]
+        with tm.assert_produces_warning(FutureWarning,
+                                        check_stacklevel=False):
+            result = s.loc[[-1, -2]]
         expected = Series([3, np.nan], index=[-1, -2])
         tm.assert_series_equal(result, expected)
 
@@ -276,6 +291,23 @@ class TestLoc(Base):
             df.loc[[3]]
 
         pytest.raises(KeyError, f)
+
+    def test_loc_getitem_list_with_fail(self):
+        # 15747
+        # should KeyError if *any* missing labels
+
+        s = Series([1, 2, 3])
+
+        s.loc[[2]]
+
+        with pytest.raises(KeyError):
+            s.loc[[3]]
+
+        # a non-match and a match
+        with tm.assert_produces_warning(FutureWarning):
+            expected = s.loc[[2, 3]]
+        result = s.reindex([2, 3])
+        tm.assert_series_equal(result, expected)
 
     def test_loc_getitem_label_slice(self):
 
@@ -317,6 +349,23 @@ class TestLoc(Base):
         self.check_result('mixed slice', 'loc', slice(2, 4, 2), 'ix', slice(
             2, 4, 2), typs=['mixed'], axes=0, fails=TypeError)
 
+    def test_loc_index(self):
+        # gh-17131
+        # a boolean index should index like a boolean numpy array
+
+        df = DataFrame(
+            np.random.random(size=(5, 10)),
+            index=["alpha_0", "alpha_1", "alpha_2", "beta_0", "beta_1"])
+
+        mask = df.index.map(lambda x: "alpha" in x)
+        expected = df.loc[np.array(mask)]
+
+        result = df.loc[mask]
+        tm.assert_frame_equal(result, expected)
+
+        result = df.loc[mask.values]
+        tm.assert_frame_equal(result, expected)
+
     def test_loc_general(self):
 
         df = DataFrame(
@@ -336,7 +385,7 @@ class TestLoc(Base):
 
     def test_loc_setitem_consistency(self):
         # GH 6149
-        # coerce similary for setitem and loc when rows have a null-slice
+        # coerce similarly for setitem and loc when rows have a null-slice
         expected = DataFrame({'date': Series(0, index=range(5),
                                              dtype=np.int64),
                               'val': Series(range(5), dtype=np.int64)})
@@ -502,7 +551,7 @@ Region_1,Site_2,3977723089,A,5/20/2015 8:33,5/20/2015 9:09,Yes,No"""
     def test_loc_coerceion(self):
 
         # 12411
-        df = DataFrame({'date': [pd.Timestamp('20130101').tz_localize('UTC'),
+        df = DataFrame({'date': [Timestamp('20130101').tz_localize('UTC'),
                                  pd.NaT]})
         expected = df.dtypes
 
@@ -539,7 +588,7 @@ Region_1,Site_2,3977723089,A,5/20/2015 8:33,5/20/2015 9:09,Yes,No"""
         # non-unique indexer with loc slice
         # https://groups.google.com/forum/?fromgroups#!topic/pydata/zTm2No0crYs
 
-        # these are going to raise becuase the we are non monotonic
+        # these are going to raise because the we are non monotonic
         df = DataFrame({'A': [1, 2, 3, 4, 5, 6],
                         'B': [3, 4, 5, 6, 7, 8]}, index=[0, 1, 0, 1, 2, 3])
         pytest.raises(KeyError, df.loc.__getitem__,
@@ -581,11 +630,11 @@ Region_1,Site_2,3977723089,A,5/20/2015 8:33,5/20/2015 9:09,Yes,No"""
 
         def gen_expected(df, mask):
             l = len(mask)
-            return pd.concat([df.take([0], convert=False),
+            return pd.concat([df.take([0]),
                               DataFrame(np.ones((l, len(columns))),
                                         index=[0] * l,
                                         columns=columns),
-                              df.take(mask[1:], convert=False)])
+                              df.take(mask[1:])])
 
         df = gen_test(900, 100)
         assert not df.index.is_unique

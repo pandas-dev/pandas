@@ -6,8 +6,8 @@ from __future__ import division
 from warnings import warn, catch_warnings
 import numpy as np
 
-from pandas import compat, _np_version_under1p8
-from pandas.core.dtypes.cast import maybe_promote
+from pandas.core.dtypes.cast import (
+    maybe_promote, construct_1d_object_array_from_listlike)
 from pandas.core.dtypes.generic import (
     ABCSeries, ABCIndex,
     ABCIndexClass, ABCCategorical)
@@ -68,7 +68,7 @@ def _ensure_data(values, dtype=None):
             return _ensure_object(np.asarray(values)), 'object', 'object'
         if is_bool_dtype(values) or is_bool_dtype(dtype):
             # we are actually coercing to uint64
-            # until our algos suppport uint8 directly (see TODO)
+            # until our algos support uint8 directly (see TODO)
             return np.asarray(values).astype('uint64'), 'bool', 'uint64'
         elif is_signed_integer_dtype(values) or is_signed_integer_dtype(dtype):
             return _ensure_int64(values), 'int64', 'int64'
@@ -120,7 +120,7 @@ def _ensure_data(values, dtype=None):
         dtype = 'category'
 
         # we are actually coercing to int64
-        # until our algos suppport int* directly (not all do)
+        # until our algos support int* directly (not all do)
         values = _ensure_int64(values)
 
         return values, dtype, 'int64'
@@ -172,7 +172,7 @@ def _ensure_arraylike(values):
         if inferred in ['mixed', 'string', 'unicode']:
             if isinstance(values, tuple):
                 values = list(values)
-            values = lib.list_to_object_array(values)
+            values = construct_1d_object_array_from_listlike(values)
         else:
             values = np.asarray(values)
     return values
@@ -370,7 +370,7 @@ def unique(values):
         # to return an object array of tz-aware Timestamps
 
         # TODO: it must return DatetimeArray with tz in pandas 2.0
-        uniques = uniques.asobject.values
+        uniques = uniques.astype(object).values
 
     return uniques
 
@@ -394,27 +394,25 @@ def isin(comps, values):
 
     if not is_list_like(comps):
         raise TypeError("only list-like objects are allowed to be passed"
-                        " to isin(), you passed a "
-                        "[{0}]".format(type(comps).__name__))
+                        " to isin(), you passed a [{comps_type}]"
+                        .format(comps_type=type(comps).__name__))
     if not is_list_like(values):
         raise TypeError("only list-like objects are allowed to be passed"
-                        " to isin(), you passed a "
-                        "[{0}]".format(type(values).__name__))
+                        " to isin(), you passed a [{values_type}]"
+                        .format(values_type=type(values).__name__))
 
     if not isinstance(values, (ABCIndex, ABCSeries, np.ndarray)):
-        values = lib.list_to_object_array(list(values))
+        values = construct_1d_object_array_from_listlike(list(values))
 
     comps, dtype, _ = _ensure_data(comps)
     values, _, _ = _ensure_data(values, dtype=dtype)
 
-    # GH11232
-    # work-around for numpy < 1.8 and comparisions on py3
     # faster for larger cases to use np.in1d
     f = lambda x, y: htable.ismember_object(x, values)
+
     # GH16012
     # Ensure np.in1d doesn't get object types or it *may* throw an exception
-    if ((_np_version_under1p8 and compat.PY3) or len(comps) > 1000000 and
-       not is_object_dtype(comps)):
+    if len(comps) > 1000000 and not is_object_dtype(comps):
         f = lambda x, y: np.in1d(x, y)
     elif is_integer_dtype(comps):
         try:
@@ -674,7 +672,7 @@ def mode(values):
     try:
         result = np.sort(result)
     except TypeError as e:
-        warn("Unable to sort modes: %s" % e)
+        warn("Unable to sort modes: {error}".format(error=e))
 
     result = _reconstruct_data(result, original.dtype, original)
     return Series(result)
@@ -752,7 +750,7 @@ def checked_add_with_arr(arr, b, arr_mask=None, b_mask=None):
         Helper function to broadcast arrays / scalars to the desired shape.
         """
         if _np_version_under1p10:
-            if lib.isscalar(arr_or_scalar):
+            if is_scalar(arr_or_scalar):
                 out = np.empty(shape)
                 out.fill(arr_or_scalar)
             else:
@@ -1478,7 +1476,7 @@ _diff_special = {
 def diff(arr, n, axis=0):
     """
     difference of n between self,
-    analagoust to s-s.shift(n)
+    analogous to s-s.shift(n)
 
     Parameters
     ----------

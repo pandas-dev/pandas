@@ -5,6 +5,7 @@
 
 import pytest
 
+import weakref
 from warnings import catch_warnings
 from datetime import datetime
 
@@ -69,7 +70,7 @@ class TestFancy(Base):
         # np.inf should cause an index to convert to float
 
         # Test with np.inf in rows
-        df = pd.DataFrame(columns=[0])
+        df = DataFrame(columns=[0])
         df.loc[1] = 1
         df.loc[2] = 2
         df.loc[np.inf] = 3
@@ -82,7 +83,7 @@ class TestFancy(Base):
         tm.assert_index_equal(result, expected)
 
         # Test with np.inf in columns
-        df = pd.DataFrame()
+        df = DataFrame()
         df.loc[0, 0] = 1
         df.loc[1, 1] = 2
         df.loc[0, np.inf] = 3
@@ -176,7 +177,8 @@ class TestFancy(Base):
              'test1': [7., 6, np.nan],
              'other': ['d', 'c', np.nan]}, index=rows)
 
-        result = df.loc[rows]
+        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
+            result = df.loc[rows]
         tm.assert_frame_equal(result, expected)
 
         # see GH5553, make sure we use the right indexer
@@ -186,7 +188,8 @@ class TestFancy(Base):
                               'other': [np.nan, np.nan, np.nan,
                                         'd', 'c', np.nan]},
                              index=rows)
-        result = df.loc[rows]
+        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
+            result = df.loc[rows]
         tm.assert_frame_equal(result, expected)
 
         # inconsistent returns for unique/duplicate indices when values are
@@ -203,12 +206,14 @@ class TestFancy(Base):
 
         # GH 4619; duplicate indexer with missing label
         df = DataFrame({"A": [0, 1, 2]})
-        result = df.loc[[0, 8, 0]]
+        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
+            result = df.loc[[0, 8, 0]]
         expected = DataFrame({"A": [0, np.nan, 0]}, index=[0, 8, 0])
         tm.assert_frame_equal(result, expected, check_index_type=False)
 
         df = DataFrame({"A": list('abc')})
-        result = df.loc[[0, 8, 0]]
+        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
+            result = df.loc[[0, 8, 0]]
         expected = DataFrame({"A": ['a', np.nan, 'a']}, index=[0, 8, 0])
         tm.assert_frame_equal(result, expected, check_index_type=False)
 
@@ -216,7 +221,8 @@ class TestFancy(Base):
         df = DataFrame({'test': [5, 7, 9, 11]}, index=['A', 'A', 'B', 'C'])
         expected = DataFrame(
             {'test': [5, 7, 5, 7, np.nan]}, index=['A', 'A', 'A', 'A', 'E'])
-        result = df.loc[['A', 'A', 'E']]
+        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
+            result = df.loc[['A', 'A', 'E']]
         tm.assert_frame_equal(result, expected)
 
         # GH 5835
@@ -227,7 +233,8 @@ class TestFancy(Base):
         expected = pd.concat(
             [df.loc[:, ['A', 'B']], DataFrame(np.nan, columns=['C'],
                                               index=df.index)], axis=1)
-        result = df.loc[:, ['A', 'B', 'C']]
+        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
+            result = df.loc[:, ['A', 'B', 'C']]
         tm.assert_frame_equal(result, expected)
 
         # GH 6504, multi-axis indexing
@@ -267,8 +274,8 @@ class TestFancy(Base):
 
     def test_multitype_list_index_access(self):
         # GH 10610
-        df = pd.DataFrame(np.random.random((10, 5)),
-                          columns=["a"] + [20, 21, 22, 23])
+        df = DataFrame(np.random.random((10, 5)),
+                       columns=["a"] + [20, 21, 22, 23])
 
         with pytest.raises(KeyError):
             df[[22, 26, -8]]
@@ -355,7 +362,7 @@ class TestFancy(Base):
 
     def test_multi_assign(self):
 
-        # GH 3626, an assignement of a sub-df to a df
+        # GH 3626, an assignment of a sub-df to a df
         df = DataFrame({'FC': ['a', 'b', 'a', 'b', 'a', 'b'],
                         'PF': [0, 0, 0, 0, 1, 1],
                         'col1': lrange(6),
@@ -462,8 +469,7 @@ class TestFancy(Base):
         # GH 14424
         # string indexing against datetimelike with object
         # dtype should properly raises KeyError
-        df = pd.DataFrame([1], pd.Index([pd.Timestamp('2011-01-01')],
-                                        dtype=object))
+        df = DataFrame([1], Index([pd.Timestamp('2011-01-01')], dtype=object))
         assert df.index.is_all_dates
         with pytest.raises(KeyError):
             df['2011']
@@ -471,7 +477,7 @@ class TestFancy(Base):
         with pytest.raises(KeyError):
             df.loc['2011', 0]
 
-        df = pd.DataFrame()
+        df = DataFrame()
         assert not df.index.is_all_dates
         with pytest.raises(KeyError):
             df['2011']
@@ -564,7 +570,7 @@ class TestFancy(Base):
 
         # GH 4686
         # assignment with dups that has a dtype change
-        cols = pd.MultiIndex.from_tuples([('A', '1'), ('B', '1'), ('A', '2')])
+        cols = MultiIndex.from_tuples([('A', '1'), ('B', '1'), ('A', '2')])
         df = DataFrame(np.arange(3).reshape((1, 3)),
                        columns=cols, dtype=object)
         index = df.index.copy()
@@ -577,23 +583,23 @@ class TestFancy(Base):
         # expected = Series({'float64': 2, 'object': 1}).sort_index()
 
     @pytest.mark.parametrize("index,val", [
-        (pd.Index([0, 1, 2]), 2),
-        (pd.Index([0, 1, '2']), '2'),
-        (pd.Index([0, 1, 2, np.inf, 4]), 4),
-        (pd.Index([0, 1, 2, np.nan, 4]), 4),
-        (pd.Index([0, 1, 2, np.inf]), np.inf),
-        (pd.Index([0, 1, 2, np.nan]), np.nan),
+        (Index([0, 1, 2]), 2),
+        (Index([0, 1, '2']), '2'),
+        (Index([0, 1, 2, np.inf, 4]), 4),
+        (Index([0, 1, 2, np.nan, 4]), 4),
+        (Index([0, 1, 2, np.inf]), np.inf),
+        (Index([0, 1, 2, np.nan]), np.nan),
     ])
     def test_index_contains(self, index, val):
         assert val in index
 
     @pytest.mark.parametrize("index,val", [
-        (pd.Index([0, 1, 2]), '2'),
-        (pd.Index([0, 1, '2']), 2),
-        (pd.Index([0, 1, 2, np.inf]), 4),
-        (pd.Index([0, 1, 2, np.nan]), 4),
-        (pd.Index([0, 1, 2, np.inf]), np.nan),
-        (pd.Index([0, 1, 2, np.nan]), np.inf),
+        (Index([0, 1, 2]), '2'),
+        (Index([0, 1, '2']), 2),
+        (Index([0, 1, 2, np.inf]), 4),
+        (Index([0, 1, 2, np.nan]), 4),
+        (Index([0, 1, 2, np.inf]), np.nan),
+        (Index([0, 1, 2, np.nan]), np.inf),
         # Checking if np.inf in Int64Index should not cause an OverflowError
         # Related to GH 16957
         (pd.Int64Index([0, 1, 2]), np.inf),
@@ -698,7 +704,7 @@ class TestMisc(Base):
         tm.assert_frame_equal(df, df2)
 
     def test_float_index_at_iat(self):
-        s = pd.Series([1, 2, 3], index=[0.1, 0.2, 0.3])
+        s = Series([1, 2, 3], index=[0.1, 0.2, 0.3])
         for el, item in s.iteritems():
             assert s.at[el] == item
         for i in range(len(s)):
@@ -737,7 +743,7 @@ class TestMisc(Base):
 
         xs = np.arange(20).reshape(5, 4)
         cols = ['jim', 'joe', 'jolie', 'joline']
-        df = pd.DataFrame(xs, columns=cols, index=list('abcde'))
+        df = DataFrame(xs, columns=cols, index=list('abcde'))
 
         # right hand side; permute the indices and multiplpy by -2
         rhs = -2 * df.iloc[3:0:-1, 2:0:-1]
@@ -788,9 +794,9 @@ class TestMisc(Base):
                                    lambda: s.ix[::0])
 
     def test_indexing_assignment_dict_already_exists(self):
-        df = pd.DataFrame({'x': [1, 2, 6],
-                           'y': [2, 2, 8],
-                           'z': [-5, 0, 5]}).set_index('z')
+        df = DataFrame({'x': [1, 2, 6],
+                        'y': [2, 2, 8],
+                        'z': [-5, 0, 5]}).set_index('z')
         expected = df.copy()
         rhs = dict(x=9, y=99)
         df.loc[5] = rhs
@@ -812,7 +818,7 @@ class TestMisc(Base):
         # range can cause an indexing error
         # GH 11652
         for x in [5, 999999, 1000000]:
-            s = pd.Series(index=range(x))
+            s = Series(index=range(x))
             s.loc[range(1)] = 42
             tm.assert_series_equal(s.loc[range(1)], Series(42.0, index=[0]))
 
@@ -820,7 +826,7 @@ class TestMisc(Base):
             tm.assert_series_equal(s.loc[range(2)], Series(43.0, index=[0, 1]))
 
     def test_non_reducing_slice(self):
-        df = pd.DataFrame([[0, 1], [2, 3]])
+        df = DataFrame([[0, 1], [2, 3]])
 
         slices = [
             # pd.IndexSlice[:, :],
@@ -834,7 +840,7 @@ class TestMisc(Base):
             slice(None, None, None),
             [0, 1],
             np.array([0, 1]),
-            pd.Series([0, 1])
+            Series([0, 1])
         ]
         for slice_ in slices:
             tslice_ = _non_reducing_slice(slice_)
@@ -842,15 +848,15 @@ class TestMisc(Base):
 
     def test_list_slice(self):
         # like dataframe getitem
-        slices = [['A'], pd.Series(['A']), np.array(['A'])]
-        df = pd.DataFrame({'A': [1, 2], 'B': [3, 4]}, index=['A', 'B'])
+        slices = [['A'], Series(['A']), np.array(['A'])]
+        df = DataFrame({'A': [1, 2], 'B': [3, 4]}, index=['A', 'B'])
         expected = pd.IndexSlice[:, ['A']]
         for subset in slices:
             result = _non_reducing_slice(subset)
             tm.assert_frame_equal(df.loc[result], df.loc[expected])
 
     def test_maybe_numeric_slice(self):
-        df = pd.DataFrame({'A': [1, 2], 'B': ['c', 'd'], 'C': [True, False]})
+        df = DataFrame({'A': [1, 2], 'B': ['c', 'd'], 'C': [True, False]})
         result = _maybe_numeric_slice(df, slice_=None)
         expected = pd.IndexSlice[:, ['A']]
         assert result == expected
@@ -863,17 +869,26 @@ class TestMisc(Base):
 
     def test_partial_boolean_frame_indexing(self):
         # GH 17170
-        df = pd.DataFrame(np.arange(9.).reshape(3, 3),
-                          index=list('abc'),
-                          columns=list('ABC'))
-        index_df = pd.DataFrame(1, index=list('ab'), columns=list('AB'))
+        df = DataFrame(np.arange(9.).reshape(3, 3),
+                       index=list('abc'), columns=list('ABC'))
+        index_df = DataFrame(1, index=list('ab'), columns=list('AB'))
         result = df[index_df.notnull()]
-        expected = pd.DataFrame(np.array([[0., 1., np.nan],
-                                          [3., 4., np.nan],
-                                          [np.nan] * 3]),
-                                index=list('abc'),
-                                columns=list('ABC'))
+        expected = DataFrame(np.array([[0., 1., np.nan],
+                                       [3., 4., np.nan],
+                                       [np.nan] * 3]),
+                             index=list('abc'),
+                             columns=list('ABC'))
         tm.assert_frame_equal(result, expected)
+
+    def test_no_reference_cycle(self):
+        df = DataFrame({'a': [0, 1], 'b': [2, 3]})
+        for name in ('loc', 'iloc', 'at', 'iat'):
+            getattr(df, name)
+        with catch_warnings(record=True):
+            getattr(df, 'ix')
+        wr = weakref.ref(df)
+        del df
+        assert wr() is None
 
 
 class TestSeriesNoneCoercion(object):

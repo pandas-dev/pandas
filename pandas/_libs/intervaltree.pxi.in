@@ -4,11 +4,15 @@ Template for intervaltree
 WARNING: DO NOT edit .pxi FILE directly, .pxi is generated from .pxi.in
 """
 
-from numpy cimport int64_t, float64_t
-from numpy cimport ndarray, PyArray_ArgSort, NPY_QUICKSORT, PyArray_Take
+from numpy cimport (
+    int64_t, int32_t, float64_t, float32_t,
+    ndarray,
+    PyArray_ArgSort, NPY_QUICKSORT, PyArray_Take)
 import numpy as np
 
 cimport cython
+from cython cimport Py_ssize_t
+
 cimport numpy as cnp
 cnp.import_array()
 

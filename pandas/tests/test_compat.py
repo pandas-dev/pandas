@@ -3,9 +3,10 @@
 Testing that functions from compat work as expected
 """
 
+import pytest
 from pandas.compat import (range, zip, map, filter, lrange, lzip, lmap,
                            lfilter, builtins, iterkeys, itervalues, iteritems,
-                           next)
+                           next, get_range_parameters, PY2)
 
 
 class TestBuiltinIterators(object):
@@ -69,3 +70,22 @@ class TestBuiltinIterators(object):
         assert next(itervalues({1: 2})) == 2
         assert next(iterkeys({1: 2})) == 1
         assert next(iteritems({1: 2})) == (1, 2)
+
+
+class TestCompatFunctions(object):
+
+    @pytest.mark.parametrize(
+        'start,stop,step', [(0, 10, 2), (11, -2, -1), (0, -5, 1), (2, 4, 8)])
+    def test_get_range_parameters(self, start, stop, step):
+        rng = range(start, stop, step)
+        if PY2 and len(rng) == 0:
+            start_expected, stop_expected, step_expected = 0, 0, 1
+        elif PY2 and len(rng) == 1:
+            start_expected, stop_expected, step_expected = start, start + 1, 1
+        else:
+            start_expected, stop_expected, step_expected = start, stop, step
+
+        start_result, stop_result, step_result = get_range_parameters(rng)
+        assert start_result == start_expected
+        assert stop_result == stop_expected
+        assert step_result == step_expected

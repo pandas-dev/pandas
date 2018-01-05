@@ -14,7 +14,7 @@ Frequently Asked Questions (FAQ)
    import pandas as pd
    pd.options.display.max_rows = 15
    import matplotlib
-   matplotlib.style.use('ggplot')
+   # matplotlib.style.use('default')
    import matplotlib.pyplot as plt
    plt.close('all')
 
@@ -22,8 +22,8 @@ Frequently Asked Questions (FAQ)
 
 DataFrame memory usage
 ----------------------
-As of pandas version 0.15.0, the memory usage of a dataframe (including
-the index) is shown when accessing the ``info`` method of a dataframe. A
+The memory usage of a dataframe (including the index)
+is shown when accessing the ``info`` method of a dataframe. A
 configuration option, ``display.memory_usage`` (see :ref:`options`),
 specifies if the dataframe's memory usage will be displayed when
 invoking the ``df.info()`` method.
@@ -46,8 +46,6 @@ when calling ``df.info()``:
 The ``+`` symbol indicates that the true memory usage could be higher, because
 pandas does not count the memory used by values in columns with
 ``dtype=object``.
-
-.. versionadded:: 0.17.1
 
 Passing ``memory_usage='deep'`` will enable a more accurate memory usage report,
 that accounts for the full usage of the contained objects. This is optional
@@ -93,7 +91,7 @@ See also :ref:`Categorical Memory Usage <categorical.memory>`.
 Using If/Truth Statements with pandas
 -------------------------------------
 
-pandas follows the numpy convention of raising an error when you try to convert something to a ``bool``.
+pandas follows the NumPy convention of raising an error when you try to convert something to a ``bool``.
 This happens in a ``if`` or when using the boolean operations, ``and``, ``or``, or ``not``.  It is not clear
 what the result of
 

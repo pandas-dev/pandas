@@ -19,13 +19,6 @@ from pandas.errors import (ParserError, DtypeWarning,  # noqa
 # gh-12665: Alias for now and remove later.
 CParserError = ParserError
 
-
-try:
-    from s3fs import S3File
-    need_text_wrapping = (BytesIO, S3File)
-except ImportError:
-    need_text_wrapping = (BytesIO,)
-
 # common NA values
 # no longer excluding inf representations
 # '1.#INF','-1.#INF', '1.#INF000000',
@@ -33,19 +26,6 @@ _NA_VALUES = set([
     '-1.#IND', '1.#QNAN', '1.#IND', '-1.#QNAN', '#N/A N/A', '#N/A',
     'N/A', 'n/a', 'NA', '#NA', 'NULL', 'null', 'NaN', '-NaN', 'nan', '-nan', ''
 ])
-
-try:
-    import pathlib
-    _PATHLIB_INSTALLED = True
-except ImportError:
-    _PATHLIB_INSTALLED = False
-
-
-try:
-    from py.path import local as LocalPath
-    _PY_PATH_INSTALLED = True
-except:
-    _PY_PATH_INSTALLED = False
 
 
 if compat.PY3:
@@ -167,6 +147,18 @@ def _stringify_path(filepath_or_buffer):
     Any other object is passed through unchanged, which includes bytes,
     strings, buffers, or anything else that's not even path-like.
     """
+    try:
+        import pathlib
+        _PATHLIB_INSTALLED = True
+    except ImportError:
+        _PATHLIB_INSTALLED = False
+
+    try:
+        from py.path import local as LocalPath
+        _PY_PATH_INSTALLED = True
+    except ImportError:
+        _PY_PATH_INSTALLED = False
+
     if hasattr(filepath_or_buffer, '__fspath__'):
         return filepath_or_buffer.__fspath__()
     if _PATHLIB_INSTALLED and isinstance(filepath_or_buffer, pathlib.Path):
@@ -272,13 +264,15 @@ def _infer_compression(filepath_or_buffer, compression):
     if compression is None:
         return None
 
-    # Cannot infer compression of a buffer. Hence assume no compression.
-    is_path = isinstance(filepath_or_buffer, compat.string_types)
-    if compression == 'infer' and not is_path:
-        return None
-
-    # Infer compression from the filename/URL extension
+    # Infer compression
     if compression == 'infer':
+        # Convert all path types (e.g. pathlib.Path) to strings
+        filepath_or_buffer = _stringify_path(filepath_or_buffer)
+        if not isinstance(filepath_or_buffer, compat.string_types):
+            # Cannot infer compression of a buffer, assume no compression
+            return None
+
+        # Infer compression from the filename/URL extension
         for compression, extension in _compression_to_extension.items():
             if filepath_or_buffer.endswith(extension):
                 return compression
@@ -318,8 +312,13 @@ def _get_handle(path_or_buf, mode, encoding=None, compression=None,
     f : file-like
         A file-like object
     handles : list of file-like objects
-        A list of file-like object that were openned in this function.
+        A list of file-like object that were opened in this function.
     """
+    try:
+        from s3fs import S3File
+        need_text_wrapping = (BytesIO, S3File)
+    except ImportError:
+        need_text_wrapping = (BytesIO,)
 
     handles = list()
     f = path_or_buf
@@ -534,7 +533,7 @@ else:
             # Fetch UTF-8 output from the queue ...
             data = self.queue.getvalue()
             data = data.decode("utf-8")
-            # ... and reencode it into the target encoding
+            # ... and re-encode it into the target encoding
             data = self.encoder.encode(data)
             # write to the target stream
             self.stream.write(data)
@@ -554,7 +553,7 @@ else:
             # Fetch UTF-8 output from the queue ...
             data = self.queue.getvalue()
             data = data.decode("utf-8")
-            # ... and reencode it into the target encoding
+            # ... and re-encode it into the target encoding
             data = self.encoder.encode(data)
             # write to the target stream
             self.stream.write(data)

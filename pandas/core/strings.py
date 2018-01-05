@@ -16,7 +16,7 @@ from pandas.core.common import _values_from_object
 
 from pandas.core.algorithms import take_1d
 import pandas.compat as compat
-from pandas.core.base import AccessorProperty, NoNewAttributesMixin
+from pandas.core.base import NoNewAttributesMixin
 from pandas.util._decorators import Appender
 import re
 import pandas._libs.lib as lib
@@ -306,7 +306,7 @@ def str_endswith(arr, pat, na=np.nan):
 
 
 def str_replace(arr, pat, repl, n=-1, case=None, flags=0):
-    """
+    r"""
     Replace occurrences of pattern/regex in the Series/Index with
     some other string. Equivalent to :meth:`str.replace` or
     :func:`re.sub`.
@@ -598,11 +598,9 @@ def _str_extract_frame(arr, pat, flags=0):
 
 
 def str_extract(arr, pat, flags=0, expand=None):
-    """
+    r"""
     For each subject string in the Series, extract groups from the
     first match of regular expression pat.
-
-    .. versionadded:: 0.13.0
 
     Parameters
     ----------
@@ -637,7 +635,7 @@ def str_extract(arr, pat, flags=0, expand=None):
     Non-matches will be NaN.
 
     >>> s = Series(['a1', 'b2', 'c3'])
-    >>> s.str.extract('([ab])(\d)')
+    >>> s.str.extract(r'([ab])(\d)')
          0    1
     0    a    1
     1    b    2
@@ -645,7 +643,7 @@ def str_extract(arr, pat, flags=0, expand=None):
 
     A pattern may contain optional groups.
 
-    >>> s.str.extract('([ab])?(\d)')
+    >>> s.str.extract(r'([ab])?(\d)')
          0  1
     0    a  1
     1    b  2
@@ -653,7 +651,7 @@ def str_extract(arr, pat, flags=0, expand=None):
 
     Named groups will become column names in the result.
 
-    >>> s.str.extract('(?P<letter>[ab])(?P<digit>\d)')
+    >>> s.str.extract(r'(?P<letter>[ab])(?P<digit>\d)')
       letter digit
     0      a     1
     1      b     2
@@ -662,7 +660,7 @@ def str_extract(arr, pat, flags=0, expand=None):
     A pattern with one group will return a DataFrame with one column
     if expand=True.
 
-    >>> s.str.extract('[ab](\d)', expand=True)
+    >>> s.str.extract(r'[ab](\d)', expand=True)
          0
     0    1
     1    2
@@ -670,7 +668,7 @@ def str_extract(arr, pat, flags=0, expand=None):
 
     A pattern with one group will return a Series if expand=False.
 
-    >>> s.str.extract('[ab](\d)', expand=False)
+    >>> s.str.extract(r'[ab](\d)', expand=False)
     0      1
     1      2
     2    NaN
@@ -696,7 +694,7 @@ def str_extract(arr, pat, flags=0, expand=None):
 
 
 def str_extractall(arr, pat, flags=0):
-    """
+    r"""
     For each subject string in the Series, extract groups from all
     matches of regular expression pat. When each subject string in the
     Series has exactly one match, extractall(pat).xs(0, level='match')
@@ -730,7 +728,7 @@ def str_extractall(arr, pat, flags=0):
     Indices with no matches will not appear in the result.
 
     >>> s = Series(["a1a2", "b1", "c1"], index=["A", "B", "C"])
-    >>> s.str.extractall("[ab](\d)")
+    >>> s.str.extractall(r"[ab](\d)")
              0
       match
     A 0      1
@@ -739,7 +737,7 @@ def str_extractall(arr, pat, flags=0):
 
     Capture group names are used for column names of the result.
 
-    >>> s.str.extractall("[ab](?P<digit>\d)")
+    >>> s.str.extractall(r"[ab](?P<digit>\d)")
             digit
       match
     A 0         1
@@ -748,7 +746,7 @@ def str_extractall(arr, pat, flags=0):
 
     A pattern with two groups will return a DataFrame with two columns.
 
-    >>> s.str.extractall("(?P<letter>[ab])(?P<digit>\d)")
+    >>> s.str.extractall(r"(?P<letter>[ab])(?P<digit>\d)")
             letter digit
       match
     A 0          a     1
@@ -757,7 +755,7 @@ def str_extractall(arr, pat, flags=0):
 
     Optional groups that do not match are NaN in the result.
 
-    >>> s.str.extractall("(?P<letter>[ab])?(?P<digit>\d)")
+    >>> s.str.extractall(r"(?P<letter>[ab])?(?P<digit>\d)")
             letter digit
       match
     A 0          a     1
@@ -796,12 +794,10 @@ def str_extractall(arr, pat, flags=0):
                 result_key = tuple(subject_key + (match_i, ))
                 index_list.append(result_key)
 
-    if 0 < len(index_list):
-        from pandas import MultiIndex
-        index = MultiIndex.from_tuples(
-            index_list, names=arr.index.names + ["match"])
-    else:
-        index = None
+    from pandas import MultiIndex
+    index = MultiIndex.from_tuples(
+        index_list, names=arr.index.names + ["match"])
+
     result = arr._constructor_expanddim(match_list, index=index,
                                         columns=columns)
     return result
@@ -1016,7 +1012,6 @@ def str_split(arr, pat=None, n=None):
         * If True, return DataFrame/MultiIndex expanding dimensionality.
         * If False, return Series/Index.
 
-        .. versionadded:: 0.16.1
     return_type : deprecated, use `expand`
 
     Returns
@@ -1046,8 +1041,6 @@ def str_rsplit(arr, pat=None, n=None):
     Split each string in the Series/Index by the given delimiter
     string, starting at the end of the string and working to the front.
     Equivalent to :meth:`str.rsplit`.
-
-    .. versionadded:: 0.16.2
 
     Parameters
     ----------
@@ -1265,7 +1258,7 @@ def str_get(arr, i):
     -------
     items : Series/Index of objects
     """
-    f = lambda x: x[i] if len(x) > i else np.nan
+    f = lambda x: x[i] if len(x) > i >= -len(x) else np.nan
     return _na_map(f, arr)
 
 
@@ -1419,7 +1412,7 @@ class StringMethods(NoNewAttributesMixin):
 
         elif expand is True and not isinstance(self._orig, Index):
             # required when expand=True is explicitly specified
-            # not needed when infered
+            # not needed when inferred
 
             def cons_row(x):
                 if is_list_like(x):
@@ -1428,6 +1421,10 @@ class StringMethods(NoNewAttributesMixin):
                     return [x]
 
             result = [cons_row(x) for x in result]
+            if result:
+                # propagate nan values to match longest sequence (GH 18450)
+                max_len = max(len(x) for x in result)
+                result = [x * max_len if x[0] is np.nan else x for x in result]
 
         if not isinstance(expand, bool):
             raise ValueError("expand must be True or False")
@@ -1452,7 +1449,12 @@ class StringMethods(NoNewAttributesMixin):
 
             if expand:
                 result = list(result)
-                return MultiIndex.from_tuples(result, names=name)
+                out = MultiIndex.from_tuples(result, names=name)
+                if out.nlevels == 1:
+                    # We had all tuples of length-one, which are
+                    # better represented as a regular Index.
+                    out = out.get_level_values(0)
+                return out
             else:
                 return Index(result, name=name)
         else:
@@ -1920,20 +1922,4 @@ class StringMethods(NoNewAttributesMixin):
                 message = ("Can only use .str accessor with Index, not "
                            "MultiIndex")
                 raise AttributeError(message)
-        return StringMethods(data)
-
-
-class StringAccessorMixin(object):
-    """ Mixin to add a `.str` acessor to the class."""
-
-    str = AccessorProperty(StringMethods)
-
-    def _dir_additions(self):
-        return set()
-
-    def _dir_deletions(self):
-        try:
-            getattr(self, 'str')
-        except AttributeError:
-            return set(['str'])
-        return set()
+        return cls(data)

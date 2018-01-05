@@ -69,7 +69,7 @@ class AssignToSelf(ast.NodeTransformer):
         return node
 
     def visit_TryExcept(self, node):
-        if any([isinstance(x, (ast.Import, ast.ImportFrom)) for x in node.body]):
+        if any(isinstance(x, (ast.Import, ast.ImportFrom)) for x in node.body):
             self.imports.append(node)
         else:
             self.generic_visit(node)

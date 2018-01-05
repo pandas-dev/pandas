@@ -11,9 +11,10 @@ from pandas.core.dtypes.common import (
     is_timedelta64_dtype, is_categorical_dtype,
     is_list_like)
 
-from pandas.core.base import PandasDelegate, NoNewAttributesMixin
+from pandas.core.accessor import PandasDelegate
+from pandas.core.base import NoNewAttributesMixin, PandasObject
 from pandas.core.indexes.datetimes import DatetimeIndex
-from pandas._libs.period import IncompatibleFrequency  # noqa
+from pandas._libs.tslibs.period import IncompatibleFrequency  # noqa
 from pandas.core.indexes.period import PeriodIndex
 from pandas.core.indexes.timedeltas import TimedeltaIndex
 from pandas.core.algorithms import take_1d
@@ -61,30 +62,27 @@ def maybe_to_datetimelike(data, copy=False):
         data = orig.values.categories
 
     if is_datetime64_dtype(data.dtype):
-        return DatetimeProperties(DatetimeIndex(data, copy=copy, freq='infer'),
+        return DatetimeProperties(DatetimeIndex(data, copy=copy),
                                   index, name=name, orig=orig)
     elif is_datetime64tz_dtype(data.dtype):
-        return DatetimeProperties(DatetimeIndex(data, copy=copy, freq='infer',
-                                                ambiguous='infer'),
+        return DatetimeProperties(DatetimeIndex(data, copy=copy),
                                   index, data.name, orig=orig)
     elif is_timedelta64_dtype(data.dtype):
-        return TimedeltaProperties(TimedeltaIndex(data, copy=copy,
-                                                  freq='infer'), index,
+        return TimedeltaProperties(TimedeltaIndex(data, copy=copy), index,
                                    name=name, orig=orig)
     else:
         if is_period_arraylike(data):
             return PeriodProperties(PeriodIndex(data, copy=copy), index,
                                     name=name, orig=orig)
         if is_datetime_arraylike(data):
-            return DatetimeProperties(DatetimeIndex(data, copy=copy,
-                                                    freq='infer'), index,
+            return DatetimeProperties(DatetimeIndex(data, copy=copy), index,
                                       name=name, orig=orig)
 
     raise TypeError("cannot convert an object of type {0} to a "
                     "datetimelike index".format(type(data)))
 
 
-class Properties(PandasDelegate, NoNewAttributesMixin):
+class Properties(PandasDelegate, PandasObject, NoNewAttributesMixin):
 
     def __init__(self, values, index, name, orig=None):
         self.values = values
@@ -115,9 +113,9 @@ class Properties(PandasDelegate, NoNewAttributesMixin):
         result = Series(result, index=self.index, name=self.name)
 
         # setting this object will show a SettingWithCopyWarning/Error
-        result.is_copy = ("modifications to a property of a datetimelike "
-                          "object are not supported and are discarded. "
-                          "Change values on the original.")
+        result._is_copy = ("modifications to a property of a datetimelike "
+                           "object are not supported and are discarded. "
+                           "Change values on the original.")
 
         return result
 
@@ -138,9 +136,9 @@ class Properties(PandasDelegate, NoNewAttributesMixin):
         result = Series(result, index=self.index, name=self.name)
 
         # setting this object will show a SettingWithCopyWarning/Error
-        result.is_copy = ("modifications to a method of a datetimelike object "
-                          "are not supported and are discarded. Change "
-                          "values on the original.")
+        result._is_copy = ("modifications to a method of a datetimelike "
+                           "object are not supported and are discarded. "
+                           "Change values on the original.")
 
         return result
 
@@ -161,6 +159,10 @@ class DatetimeProperties(Properties):
 
     def to_pydatetime(self):
         return self.values.to_pydatetime()
+
+    @property
+    def freq(self):
+        return self.values.inferred_freq
 
 
 DatetimeProperties._add_delegate_accessors(
@@ -201,6 +203,10 @@ class TimedeltaProperties(Properties):
 
         """
         return self.values.components.set_index(self.index)
+
+    @property
+    def freq(self):
+        return self.values.inferred_freq
 
 
 TimedeltaProperties._add_delegate_accessors(

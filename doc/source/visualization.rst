@@ -10,7 +10,7 @@
    np.set_printoptions(precision=4, suppress=True)
    pd.options.display.max_rows = 15
    import matplotlib
-   matplotlib.style.use('ggplot')
+   # matplotlib.style.use('default')
    import matplotlib.pyplot as plt
    plt.close('all')
 
@@ -23,13 +23,6 @@ We use the standard convention for referencing the matplotlib API:
 .. ipython:: python
 
    import matplotlib.pyplot as plt
-
-The plots in this document are made using matplotlib's ``ggplot`` style (new in version 1.4):
-
-.. code-block:: python
-
-   import matplotlib
-   matplotlib.style.use('ggplot')
 
 We provide the basics in pandas to easily create decent looking plots.
 See the :ref:`ecosystem <ecosystem.visualization>` section for visualization
@@ -134,9 +127,7 @@ For example, a bar plot can be created the following way:
    plt.figure();
 
    @savefig bar_plot_ex.png
-   df.iloc[5].plot(kind='bar'); plt.axhline(0, color='k')
-
-.. versionadded:: 0.17.0
+   df.iloc[5].plot(kind='bar');
 
 You can also create these other plots using the methods ``DataFrame.plot.<kind>`` instead of providing the ``kind`` keyword argument. This makes it easier to discover plot methods and the specific arguments they use:
 
@@ -149,12 +140,12 @@ You can also create these other plots using the methods ``DataFrame.plot.<kind>`
     df.plot.area     df.plot.barh     df.plot.density  df.plot.hist     df.plot.line     df.plot.scatter
     df.plot.bar      df.plot.box      df.plot.hexbin   df.plot.kde      df.plot.pie
 
-In addition to these ``kind`` s, there are  the :ref:`DataFrame.hist() <visualization.hist>`,
+In addition to these ``kind`` s, there are the :ref:`DataFrame.hist() <visualization.hist>`,
 and :ref:`DataFrame.boxplot() <visualization.box>` methods, which use a separate interface.
 
 Finally, there are several :ref:`plotting functions <visualization.tools>` in ``pandas.plotting``
 that take a :class:`Series` or :class:`DataFrame` as an argument. These
-include
+include:
 
 * :ref:`Scatter Matrix <visualization.scatter_matrix>`
 * :ref:`Andrews Curves <visualization.andrews_curves>`
@@ -229,8 +220,6 @@ To get horizontal bar plots, use the ``barh`` method:
 Histograms
 ~~~~~~~~~~
 
-.. versionadded:: 0.15.0
-
 Histogram can be drawn by using the :meth:`DataFrame.plot.hist` and :meth:`Series.plot.hist` methods.
 
 .. ipython:: python
@@ -263,7 +252,7 @@ Histogram can be stacked by ``stacked=True``. Bin size can be changed by ``bins`
 
    plt.close('all')
 
-You can pass other keywords supported by matplotlib ``hist``. For example, horizontal and cumulative histgram can be drawn by ``orientation='horizontal'`` and ``cumulative='True'``.
+You can pass other keywords supported by matplotlib ``hist``. For example, horizontal and cumulative histogram can be drawn by ``orientation='horizontal'`` and ``cumulative=True``.
 
 .. ipython:: python
 
@@ -306,8 +295,6 @@ subplots:
    df.diff().hist(color='k', alpha=0.5, bins=50)
 
 
-.. versionadded:: 0.10.0
-
 The ``by`` keyword can be specified to plot grouped histograms:
 
 .. ipython:: python
@@ -329,8 +316,6 @@ The ``by`` keyword can be specified to plot grouped histograms:
 
 Box Plots
 ~~~~~~~~~
-
-.. versionadded:: 0.15.0
 
 Boxplot can be drawn calling :meth:`Series.plot.box` and :meth:`DataFrame.plot.box`,
 or :meth:`DataFrame.boxplot` to visualize the distribution of values within each column.
@@ -514,8 +499,6 @@ Compare to:
 Area Plot
 ~~~~~~~~~
 
-.. versionadded:: 0.14
-
 You can create area plots with :meth:`Series.plot.area` and :meth:`DataFrame.plot.area`.
 Area plots are stacked by default. To produce stacked area plot, each column must be either all positive or all negative values.
 
@@ -551,8 +534,6 @@ To produce an unstacked plot, pass ``stacked=False``. Alpha value is set to 0.5 
 
 Scatter Plot
 ~~~~~~~~~~~~
-
-.. versionadded:: 0.13
 
 Scatter plot can be drawn by using the :meth:`DataFrame.plot.scatter` method.
 Scatter plot requires numeric columns for x and y axis.
@@ -621,8 +602,6 @@ See the :meth:`scatter <matplotlib.axes.Axes.scatter>` method and the
 Hexagonal Bin Plot
 ~~~~~~~~~~~~~~~~~~
 
-.. versionadded:: 0.14
-
 You can create hexagonal bin plots with :meth:`DataFrame.plot.hexbin`.
 Hexbin plots can be a useful alternative to scatter plots if your data are
 too dense to plot each point individually.
@@ -684,8 +663,6 @@ See the :meth:`hexbin <matplotlib.axes.Axes.hexbin>` method and the
 Pie plot
 ~~~~~~~~
 
-.. versionadded:: 0.14
-
 You can create a pie plot with :meth:`DataFrame.plot.pie` or :meth:`Series.plot.pie`.
 If your data includes any ``NaN``, they will be automatically filled with 0.
 A ``ValueError`` will be raised if there are any negative values in your data.
@@ -739,7 +716,7 @@ You can use the ``labels`` and ``colors`` keywords to specify the labels and col
 
 .. warning::
 
-   Most pandas plots use the the ``label`` and ``color`` arguments (note the lack of "s" on those).
+   Most pandas plots use the ``label`` and ``color`` arguments (note the lack of "s" on those).
    To be consistent with :func:`matplotlib.pyplot.pie` you must use ``labels`` and ``colors``.
 
 If you want to hide wedge labels, specify ``labels=None``.
@@ -831,8 +808,6 @@ and take a :class:`Series` or :class:`DataFrame` as an argument.
 Scatter Matrix Plot
 ~~~~~~~~~~~~~~~~~~~
 
-.. versionadded:: 0.7.3
-
 You can create a scatter plot matrix using the
 ``scatter_matrix`` method in ``pandas.plotting``:
 
@@ -858,8 +833,6 @@ You can create a scatter plot matrix using the
 
 Density Plot
 ~~~~~~~~~~~~
-
-.. versionadded:: 0.8.0
 
 You can create density plots using the :meth:`Series.plot.kde` and :meth:`DataFrame.plot.kde` methods.
 
@@ -1067,6 +1040,21 @@ be colored differently.
 Plot Formatting
 ---------------
 
+Setting the plot style
+~~~~~~~~~~~~~~~~~~~~~~
+
+From version 1.5 and up, matplotlib offers a range of preconfigured plotting styles. Setting the
+style can be used to easily give plots the general look that you want.
+Setting the style is as easy as calling ``matplotlib.style.use(my_plot_style)`` before
+creating your plot. For example you could do ``matplotlib.style.use('ggplot')`` for ggplot-style
+plots.
+
+You can see the various available style names at ``matplotlib.style.available`` and it's very
+easy to try them out.
+
+General plot style arguments
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
 Most plotting methods have a set of keyword arguments that control the
 layout and formatting of the returned plot:
 
@@ -1199,7 +1187,7 @@ time-series data. For limited cases where pandas cannot infer the frequency
 information (e.g., in an externally created ``twinx``), you can choose to
 suppress this behavior for alignment purposes.
 
-Here is the default behavior, notice how the x-axis tick labelling is performed:
+Here is the default behavior, notice how the x-axis tick labeling is performed:
 
 .. ipython:: python
 
@@ -1282,7 +1270,7 @@ The layout of subplots can be specified by ``layout`` keyword. It can accept
 
 The number of axes which can be contained by rows x columns specified by ``layout`` must be
 larger than the number of required subplots. If layout can contain more axes than required,
-blank axes are not drawn. Similar to a numpy array's ``reshape`` method, you
+blank axes are not drawn. Similar to a NumPy array's ``reshape`` method, you
 can use ``-1`` for one dimension to automatically calculate the number of rows
 or columns needed, given the other.
 
@@ -1371,8 +1359,6 @@ Another option is passing an ``ax`` argument to :meth:`Series.plot` to plot on a
 Plotting With Error Bars
 ~~~~~~~~~~~~~~~~~~~~~~~~
 
-.. versionadded:: 0.14
-
 Plotting with error bars is now supported in the :meth:`DataFrame.plot` and :meth:`Series.plot`
 
 Horizontal and vertical errorbars can be supplied to the ``xerr`` and ``yerr`` keyword arguments to :meth:`~DataFrame.plot()`. The error values can be specified using a variety of formats.
@@ -1412,8 +1398,6 @@ Here is an example of one way to easily plot group means with standard deviation
 
 Plotting Tables
 ~~~~~~~~~~~~~~~
-
-.. versionadded:: 0.14
 
 Plotting with matplotlib table is now supported in  :meth:`DataFrame.plot` and :meth:`Series.plot` with a ``table`` keyword. The ``table`` keyword can accept ``bool``, :class:`DataFrame` or :class:`Series`. The simple way to draw a table is to specify ``table=True``. Data will be transposed to meet matplotlib's default layout.
 
@@ -1590,10 +1574,6 @@ indices, thereby extending date and time support to practically all plot types
 available in matplotlib. Although this formatting does not provide the same
 level of refinement you would get when plotting via pandas, it can be faster
 when plotting a large number of points.
-
-.. note::
-
-    The speed up for large data sets only applies to pandas 0.14.0 and later.
 
 .. ipython:: python
    :suppress:

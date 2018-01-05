@@ -9,6 +9,8 @@ from pandas.util import testing as tm
 import pandas as pd
 from pandas.core import config as cf
 from pandas.compat import u
+
+from pandas._libs import missing as libmissing
 from pandas._libs.tslib import iNaT
 from pandas import (NaT, Float64Index, Series,
                     DatetimeIndex, TimedeltaIndex, date_range)
@@ -96,13 +98,6 @@ class TestIsNA(object):
                 result = isna_f(p)
                 expected = p.apply(isna_f)
                 tm.assert_panel_equal(result, expected)
-
-        # panel 4d
-        with catch_warnings(record=True):
-            for p in [tm.makePanel4D(), tm.add_nans_panel4d(tm.makePanel4D())]:
-                result = isna_f(p)
-                expected = p.apply(isna_f)
-                tm.assert_panel4d_equal(result, expected)
 
     def test_isna_lists(self):
         result = isna([[False]])
@@ -333,3 +328,52 @@ def test_na_value_for_dtype():
 
     for dtype in ['O']:
         assert np.isnan(na_value_for_dtype(np.dtype(dtype)))
+
+
+class TestNAObj(object):
+
+    _1d_methods = ['isnaobj', 'isnaobj_old']
+    _2d_methods = ['isnaobj2d', 'isnaobj2d_old']
+
+    def _check_behavior(self, arr, expected):
+        for method in TestNAObj._1d_methods:
+            result = getattr(libmissing, method)(arr)
+            tm.assert_numpy_array_equal(result, expected)
+
+        arr = np.atleast_2d(arr)
+        expected = np.atleast_2d(expected)
+
+        for method in TestNAObj._2d_methods:
+            result = getattr(libmissing, method)(arr)
+            tm.assert_numpy_array_equal(result, expected)
+
+    def test_basic(self):
+        arr = np.array([1, None, 'foo', -5.1, pd.NaT, np.nan])
+        expected = np.array([False, True, False, False, True, True])
+
+        self._check_behavior(arr, expected)
+
+    def test_non_obj_dtype(self):
+        arr = np.array([1, 3, np.nan, 5], dtype=float)
+        expected = np.array([False, False, True, False])
+
+        self._check_behavior(arr, expected)
+
+    def test_empty_arr(self):
+        arr = np.array([])
+        expected = np.array([], dtype=bool)
+
+        self._check_behavior(arr, expected)
+
+    def test_empty_str_inp(self):
+        arr = np.array([""])  # empty but not na
+        expected = np.array([False])
+
+        self._check_behavior(arr, expected)
+
+    def test_empty_like(self):
+        # see gh-13717: no segfaults!
+        arr = np.empty_like([None])
+        expected = np.array([True])
+
+        self._check_behavior(arr, expected)

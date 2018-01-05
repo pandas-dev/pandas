@@ -3,7 +3,7 @@
 """ Test cases for Series.plot """
 
 
-import itertools
+from itertools import chain
 import pytest
 
 from datetime import datetime
@@ -12,6 +12,7 @@ import pandas as pd
 from pandas import Series, DataFrame, date_range
 from pandas.compat import range, lrange
 import pandas.util.testing as tm
+import pandas.util._test_decorators as td
 
 import numpy as np
 from numpy.random import randn
@@ -21,9 +22,8 @@ from pandas.tests.plotting.common import (TestPlotBase, _check_plot_works,
                                           _skip_if_no_scipy_gaussian_kde,
                                           _ok_for_gaussian_kde)
 
-tm._skip_if_no_mpl()
 
-
+@td.skip_if_no_mpl
 class TestSeriesPlots(TestPlotBase):
 
     def setup_method(self, method):
@@ -102,23 +102,23 @@ class TestSeriesPlots(TestPlotBase):
         ax = self.ts.plot(ax=ax)
         xmin, xmax = ax.get_xlim()
         lines = ax.get_lines()
-        assert xmin == lines[0].get_data(orig=False)[0][0]
-        assert xmax == lines[0].get_data(orig=False)[0][-1]
+        assert xmin <= lines[0].get_data(orig=False)[0][0]
+        assert xmax >= lines[0].get_data(orig=False)[0][-1]
         tm.close()
 
         ax = self.ts.plot(secondary_y=True, ax=ax)
         xmin, xmax = ax.get_xlim()
         lines = ax.get_lines()
-        assert xmin == lines[0].get_data(orig=False)[0][0]
-        assert xmax == lines[0].get_data(orig=False)[0][-1]
+        assert xmin <= lines[0].get_data(orig=False)[0][0]
+        assert xmax >= lines[0].get_data(orig=False)[0][-1]
 
     def test_ts_area_lim(self):
         _, ax = self.plt.subplots()
         ax = self.ts.plot.area(stacked=False, ax=ax)
         xmin, xmax = ax.get_xlim()
         line = ax.get_lines()[0].get_data(orig=False)[0]
-        assert xmin == line[0]
-        assert xmax == line[-1]
+        assert xmin <= line[0]
+        assert xmax >= line[-1]
         tm.close()
 
         # GH 7471
@@ -126,8 +126,8 @@ class TestSeriesPlots(TestPlotBase):
         ax = self.ts.plot.area(stacked=False, x_compat=True, ax=ax)
         xmin, xmax = ax.get_xlim()
         line = ax.get_lines()[0].get_data(orig=False)[0]
-        assert xmin == line[0]
-        assert xmax == line[-1]
+        assert xmin <= line[0]
+        assert xmax >= line[-1]
         tm.close()
 
         tz_ts = self.ts.copy()
@@ -136,16 +136,16 @@ class TestSeriesPlots(TestPlotBase):
         ax = tz_ts.plot.area(stacked=False, x_compat=True, ax=ax)
         xmin, xmax = ax.get_xlim()
         line = ax.get_lines()[0].get_data(orig=False)[0]
-        assert xmin == line[0]
-        assert xmax == line[-1]
+        assert xmin <= line[0]
+        assert xmax >= line[-1]
         tm.close()
 
         _, ax = self.plt.subplots()
         ax = tz_ts.plot.area(stacked=False, secondary_y=True, ax=ax)
         xmin, xmax = ax.get_xlim()
         line = ax.get_lines()[0].get_data(orig=False)[0]
-        assert xmin == line[0]
-        assert xmax == line[-1]
+        assert xmin <= line[0]
+        assert xmax >= line[-1]
 
     def test_label(self):
         s = Series([1, 2])
@@ -258,6 +258,16 @@ class TestSeriesPlots(TestPlotBase):
         ax = df.plot.bar(use_index=False, ax=ax)
         self._check_text_labels(ax.get_xticklabels(), ['0', '1', '2', '3'])
 
+    def test_bar_user_colors(self):
+        s = Series([1, 2, 3, 4])
+        ax = s.plot.bar(color=['red', 'blue', 'blue', 'red'])
+        result = [p.get_facecolor() for p in ax.patches]
+        expected = [(1., 0., 0., 1.),
+                    (0., 0., 1., 1.),
+                    (0., 0., 1., 1.),
+                    (1., 0., 0., 1.)]
+        assert result == expected
+
     def test_rotation(self):
         df = DataFrame(randn(5, 5))
         # Default rot 0
@@ -278,6 +288,16 @@ class TestSeriesPlots(TestPlotBase):
         xp = datetime(1999, 1, 1).toordinal()
         ax.set_xlim('1/1/1999', '1/1/2001')
         assert xp == ax.get_xlim()[0]
+
+    def test_unsorted_index_xlim(self):
+        ser = Series([0., 1., np.nan, 3., 4., 5., 6.],
+                     index=[1., 0., 3., 2., np.nan, 3., 2.])
+        _, ax = self.plt.subplots()
+        ax = ser.plot(ax=ax)
+        xmin, xmax = ax.get_xlim()
+        lines = ax.get_lines()
+        assert xmin <= np.nanmin(lines[0].get_data(orig=False)[0])
+        assert xmax >= np.nanmax(lines[0].get_data(orig=False)[0])
 
     @pytest.mark.slow
     def test_pie_series(self):
@@ -313,8 +333,7 @@ class TestSeriesPlots(TestPlotBase):
                                autopct='%.2f', fontsize=7)
         pcts = ['{0:.2f}'.format(s * 100)
                 for s in series.values / float(series.sum())]
-        iters = [iter(series.index), iter(pcts)]
-        expected_texts = list(next(it) for it in itertools.cycle(iters))
+        expected_texts = list(chain.from_iterable(zip(series.index, pcts)))
         self._check_text_labels(ax.texts, expected_texts)
         for t in ax.texts:
             assert t.get_fontsize() == 7
@@ -570,7 +589,11 @@ class TestSeriesPlots(TestPlotBase):
             x.plot(style='k--', color='k', ax=ax)
 
     @pytest.mark.slow
+    @td.skip_if_no_scipy
     def test_hist_kde(self):
+        if not self.mpl_ge_1_5_0:
+            pytest.skip("mpl is not supported")
+
         _, ax = self.plt.subplots()
         ax = self.ts.plot.hist(logy=True, ax=ax)
         self._check_ax_scales(ax, yaxis='log')
@@ -580,7 +603,6 @@ class TestSeriesPlots(TestPlotBase):
         ylabels = ax.get_yticklabels()
         self._check_text_labels(ylabels, [''] * len(ylabels))
 
-        tm._skip_if_no_scipy()
         _skip_if_no_scipy_gaussian_kde()
         _check_plot_works(self.ts.plot.kde)
         _check_plot_works(self.ts.plot.density)
@@ -593,9 +615,12 @@ class TestSeriesPlots(TestPlotBase):
         self._check_text_labels(ylabels, [''] * len(ylabels))
 
     @pytest.mark.slow
+    @td.skip_if_no_scipy
     def test_kde_kwargs(self):
-        tm._skip_if_no_scipy()
         _skip_if_no_scipy_gaussian_kde()
+        if not self.mpl_ge_1_5_0:
+            pytest.skip("mpl is not supported")
+
         from numpy import linspace
         _check_plot_works(self.ts.plot.kde, bw_method=.5,
                           ind=linspace(-100, 100, 20))
@@ -608,9 +633,12 @@ class TestSeriesPlots(TestPlotBase):
         self._check_text_labels(ax.yaxis.get_label(), 'Density')
 
     @pytest.mark.slow
+    @td.skip_if_no_scipy
     def test_kde_missing_vals(self):
-        tm._skip_if_no_scipy()
         _skip_if_no_scipy_gaussian_kde()
+        if not self.mpl_ge_1_5_0:
+            pytest.skip("mpl is not supported")
+
         s = Series(np.random.uniform(size=50))
         s[0] = np.nan
         axes = _check_plot_works(s.plot.kde)
@@ -637,14 +665,17 @@ class TestSeriesPlots(TestPlotBase):
             tm.close()
 
     @pytest.mark.slow
+    @td.skip_if_no_scipy
     def test_hist_kde_color(self):
+        if not self.mpl_ge_1_5_0:
+            pytest.skip("mpl is not supported")
+
         _, ax = self.plt.subplots()
         ax = self.ts.plot.hist(logy=True, bins=10, color='b', ax=ax)
         self._check_ax_scales(ax, yaxis='log')
         assert len(ax.patches) == 10
         self._check_colors(ax.patches, facecolors=['b'] * 10)
 
-        tm._skip_if_no_scipy()
         _skip_if_no_scipy_gaussian_kde()
         _, ax = self.plt.subplots()
         ax = self.ts.plot.kde(logy=True, color='r', ax=ax)

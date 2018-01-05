@@ -13,9 +13,8 @@ import locale
 import traceback
 
 from datetime import datetime
-from functools import wraps, partial
+from functools import wraps
 from contextlib import contextmanager
-from distutils.version import LooseVersion
 
 from numpy.random import randn, rand
 import numpy as np
@@ -33,20 +32,17 @@ from pandas.core.dtypes.common import (
     is_list_like)
 from pandas.io.formats.printing import pprint_thing
 from pandas.core.algorithms import take_1d
+from pandas.core.common import _all_not_none
 
 import pandas.compat as compat
 from pandas.compat import (
     filter, map, zip, range, unichr, lrange, lmap, lzip, u, callable, Counter,
-    raise_with_traceback, httplib, is_platform_windows, is_platform_32bit,
-    StringIO, PY3
-)
-
-from pandas.core.computation import expressions as expr
+    raise_with_traceback, httplib, StringIO, PY3)
 
 from pandas import (bdate_range, CategoricalIndex, Categorical, IntervalIndex,
                     DatetimeIndex, TimedeltaIndex, PeriodIndex, RangeIndex,
                     Index, MultiIndex,
-                    Series, DataFrame, Panel, Panel4D)
+                    Series, DataFrame, Panel)
 
 from pandas._libs import testing as _testing
 from pandas.io.common import urlopen
@@ -55,7 +51,6 @@ from pandas.io.common import urlopen
 N = 30
 K = 4
 _RAISE_NETWORK_ERROR_DEFAULT = False
-
 
 # set testing_mode
 _testing_mode_warnings = (DeprecationWarning, compat.ResourceWarning)
@@ -112,7 +107,7 @@ def round_trip_pickle(obj, path=None):
 
 def round_trip_pathlib(writer, reader, path=None):
     """
-    Write an object to file specifed by a pathlib.Path and read it back
+    Write an object to file specified by a pathlib.Path and read it back
 
     Parameters
     ----------
@@ -141,7 +136,7 @@ def round_trip_pathlib(writer, reader, path=None):
 
 def round_trip_localpath(writer, reader, path=None):
     """
-    Write an object to file specifed by a py.path LocalPath and read it back
+    Write an object to file specified by a py.path LocalPath and read it back
 
     Parameters
     ----------
@@ -321,149 +316,6 @@ def close(fignum=None):
         _close(fignum)
 
 
-def _skip_if_32bit():
-    if is_platform_32bit():
-        import pytest
-        pytest.skip("skipping for 32 bit")
-
-
-def _skip_if_no_mpl():
-    import pytest
-
-    mpl = pytest.importorskip("matplotlib")
-    mpl.use("Agg", warn=False)
-
-
-def _skip_if_mpl_1_5():
-    import matplotlib as mpl
-
-    v = mpl.__version__
-    if v > LooseVersion('1.4.3') or v[0] == '0':
-        import pytest
-        pytest.skip("matplotlib 1.5")
-    else:
-        mpl.use("Agg", warn=False)
-
-
-def _skip_if_no_scipy():
-    import pytest
-
-    pytest.importorskip("scipy.stats")
-    pytest.importorskip("scipy.sparse")
-    pytest.importorskip("scipy.interpolate")
-
-
-def _check_if_lzma():
-    try:
-        return compat.import_lzma()
-    except ImportError:
-        return False
-
-
-def _skip_if_no_lzma():
-    import pytest
-    return _check_if_lzma() or pytest.skip('need backports.lzma to run')
-
-
-def _skip_if_no_xarray():
-    import pytest
-
-    xarray = pytest.importorskip("xarray")
-    v = xarray.__version__
-
-    if v < LooseVersion('0.7.0'):
-        import pytest
-        pytest.skip("xarray version is too low: {version}".format(version=v))
-
-
-def _skip_if_windows_python_3():
-    if PY3 and is_platform_windows():
-        import pytest
-        pytest.skip("not used on python 3/win32")
-
-
-def _skip_if_windows():
-    if is_platform_windows():
-        import pytest
-        pytest.skip("Running on Windows")
-
-
-def _skip_if_no_pathlib():
-    try:
-        from pathlib import Path  # noqa
-    except ImportError:
-        import pytest
-        pytest.skip("pathlib not available")
-
-
-def _skip_if_no_localpath():
-    try:
-        from py.path import local as LocalPath  # noqa
-    except ImportError:
-        import pytest
-        pytest.skip("py.path not installed")
-
-
-def _incompat_bottleneck_version(method):
-    """ skip if we have bottleneck installed
-    and its >= 1.0
-    as we don't match the nansum/nanprod behavior for all-nan
-    ops, see GH9422
-    """
-    if method not in ['sum', 'prod']:
-        return False
-    try:
-        import bottleneck as bn
-        return bn.__version__ >= LooseVersion('1.0')
-    except ImportError:
-        return False
-
-
-def skip_if_no_ne(engine='numexpr'):
-    from pandas.core.computation.expressions import (
-        _USE_NUMEXPR,
-        _NUMEXPR_INSTALLED)
-
-    if engine == 'numexpr':
-        if not _USE_NUMEXPR:
-            import pytest
-            pytest.skip("numexpr enabled->{enabled}, "
-                        "installed->{installed}".format(
-                            enabled=_USE_NUMEXPR,
-                            installed=_NUMEXPR_INSTALLED))
-
-
-def _skip_if_has_locale():
-    import locale
-    lang, _ = locale.getlocale()
-    if lang is not None:
-        import pytest
-        pytest.skip("Specific locale is set {lang}".format(lang=lang))
-
-
-def _skip_if_not_us_locale():
-    import locale
-    lang, _ = locale.getlocale()
-    if lang != 'en_US':
-        import pytest
-        pytest.skip("Specific locale is set {lang}".format(lang=lang))
-
-
-def _skip_if_no_mock():
-    try:
-        import mock  # noqa
-    except ImportError:
-        try:
-            from unittest import mock  # noqa
-        except ImportError:
-            import pytest
-            raise pytest.skip("mock is not installed")
-
-
-def _skip_if_no_ipython():
-    import pytest
-    pytest.importorskip("IPython")
-
 # -----------------------------------------------------------------------------
 # locale utilities
 
@@ -543,7 +395,7 @@ def get_locales(prefix=None, normalize=True,
     """
     try:
         raw_locales = locale_getter()
-    except:
+    except Exception:
         return None
 
     try:
@@ -597,7 +449,7 @@ def set_locale(new_locale, lc_var=locale.LC_ALL):
         except ValueError:
             yield new_locale
         else:
-            if all(lc is not None for lc in normalized_locale):
+            if _all_not_none(*normalized_locale):
                 yield '.'.join(normalized_locale)
             else:
                 yield new_locale
@@ -774,7 +626,7 @@ def set_trace():
     from IPython.core.debugger import Pdb
     try:
         Pdb(color_scheme='Linux').set_trace(sys._getframe().f_back)
-    except:
+    except Exception:
         from pdb import Pdb as OldPdb
         OldPdb().set_trace(sys._getframe().f_back)
 
@@ -1091,8 +943,12 @@ def assert_categorical_equal(left, right, check_dtype=True,
 def raise_assert_detail(obj, message, left, right, diff=None):
     if isinstance(left, np.ndarray):
         left = pprint_thing(left)
+    elif is_categorical_dtype(left):
+        left = repr(left)
     if isinstance(right, np.ndarray):
         right = pprint_thing(right)
+    elif is_categorical_dtype(right):
+        right = repr(right)
 
     msg = """{obj} are different
 
@@ -1245,7 +1101,14 @@ def assert_series_equal(left, right, check_dtype=True,
                        obj='{obj}.index'.format(obj=obj))
 
     if check_dtype:
-        assert_attr_equal('dtype', left, right)
+        # We want to skip exact dtype checking when `check_categorical`
+        # is False. We'll still raise if only one is a `Categorical`,
+        # regardless of `check_categorical`
+        if (is_categorical_dtype(left) and is_categorical_dtype(right) and
+                not check_categorical):
+            pass
+        else:
+            assert_attr_equal('dtype', left, right)
 
     if check_exact:
         assert_numpy_array_equal(left.get_values(), right.get_values(),
@@ -1271,9 +1134,9 @@ def assert_series_equal(left, right, check_dtype=True,
                                      check_dtype=check_dtype)
     elif is_interval_dtype(left) or is_interval_dtype(right):
         # TODO: big hack here
-        l = pd.IntervalIndex(left)
-        r = pd.IntervalIndex(right)
-        assert_index_equal(l, r, obj='{obj}.index'.format(obj=obj))
+        left = pd.IntervalIndex(left)
+        right = pd.IntervalIndex(right)
+        assert_index_equal(left, right, obj='{obj}.index'.format(obj=obj))
 
     else:
         _testing.assert_almost_equal(left.get_values(), right.get_values(),
@@ -1379,8 +1242,8 @@ def assert_frame_equal(left, right, check_dtype=True,
 
     # compare by blocks
     if by_blocks:
-        rblocks = right.blocks
-        lblocks = left.blocks
+        rblocks = right._to_dict_of_blocks()
+        lblocks = left._to_dict_of_blocks()
         for dtype in list(set(list(lblocks.keys()) + list(rblocks.keys()))):
             assert dtype in lblocks
             assert dtype in rblocks
@@ -1403,14 +1266,13 @@ def assert_frame_equal(left, right, check_dtype=True,
                 obj='DataFrame.iloc[:, {idx}]'.format(idx=i))
 
 
-def assert_panelnd_equal(left, right,
-                         check_dtype=True,
-                         check_panel_type=False,
-                         check_less_precise=False,
-                         assert_func=assert_frame_equal,
-                         check_names=False,
-                         by_blocks=False,
-                         obj='Panel'):
+def assert_panel_equal(left, right,
+                       check_dtype=True,
+                       check_panel_type=False,
+                       check_less_precise=False,
+                       check_names=False,
+                       by_blocks=False,
+                       obj='Panel'):
     """Check that left and right Panels are equal.
 
     Parameters
@@ -1425,7 +1287,6 @@ def assert_panelnd_equal(left, right,
         Specify comparison precision. Only used when check_exact is False.
         5 digits (False) or 3 digits (True) after decimal points are compared.
         If int, then specify the digits to compare
-    assert_func : function for comparing data
     check_names : bool, default True
         Whether to check the Index names attribute.
     by_blocks : bool, default False
@@ -1445,8 +1306,8 @@ def assert_panelnd_equal(left, right,
         assert_index_equal(left_ind, right_ind, check_names=check_names)
 
     if by_blocks:
-        rblocks = right.blocks
-        lblocks = left.blocks
+        rblocks = right._to_dict_of_blocks()
+        lblocks = left._to_dict_of_blocks()
         for dtype in list(set(list(lblocks.keys()) + list(rblocks.keys()))):
             assert dtype in lblocks
             assert dtype in rblocks
@@ -1459,19 +1320,13 @@ def assert_panelnd_equal(left, right,
             assert item in right, msg
             litem = left.iloc[i]
             ritem = right.iloc[i]
-            assert_func(litem, ritem, check_less_precise=check_less_precise)
+            assert_frame_equal(litem, ritem,
+                               check_less_precise=check_less_precise,
+                               check_names=check_names)
 
         for i, item in enumerate(right._get_axis(0)):
             msg = "non-matching item (left) '{item}'".format(item=item)
             assert item in left, msg
-
-
-# TODO: strangely check_names fails in py3 ?
-_panel_frame_equal = partial(assert_frame_equal, check_names=False)
-assert_panel_equal = partial(assert_panelnd_equal,
-                             assert_func=_panel_frame_equal)
-assert_panel4d_equal = partial(assert_panelnd_equal,
-                               assert_func=assert_panel_equal)
 
 
 # -----------------------------------------------------------------------------
@@ -1595,13 +1450,6 @@ def assert_sp_frame_equal(left, right, check_dtype=True, exact_indices=True,
     for col in right:
         assert (col in left)
 
-
-def assert_sp_list_equal(left, right):
-    assert isinstance(left, pd.SparseList)
-    assert isinstance(right, pd.SparseList)
-
-    assert_sp_array_equal(left.to_array(), right.to_array())
-
 # -----------------------------------------------------------------------------
 # Others
 
@@ -1708,7 +1556,8 @@ def all_index_generator(k=10):
     """
     all_make_index_funcs = [makeIntIndex, makeFloatIndex, makeStringIndex,
                             makeUnicodeIndex, makeDateIndex, makePeriodIndex,
-                            makeTimedeltaIndex, makeBoolIndex,
+                            makeTimedeltaIndex, makeBoolIndex, makeRangeIndex,
+                            makeIntervalIndex,
                             makeCategoricalIndex]
     for make_index_func in all_make_index_funcs:
         yield make_index_func(k=k)
@@ -1747,7 +1596,7 @@ def makeObjectSeries(name=None):
 
 def getSeriesData():
     index = makeStringIndex(N)
-    return dict((c, Series(randn(N), index=index)) for c in getCols(K))
+    return {c: Series(randn(N), index=index) for c in getCols(K)}
 
 
 def makeTimeSeries(nper=None, freq='B', name=None):
@@ -1763,11 +1612,11 @@ def makePeriodSeries(nper=None, name=None):
 
 
 def getTimeSeriesData(nper=None, freq='B'):
-    return dict((c, makeTimeSeries(nper, freq)) for c in getCols(K))
+    return {c: makeTimeSeries(nper, freq) for c in getCols(K)}
 
 
 def getPeriodData(nper=None):
-    return dict((c, makePeriodSeries(nper)) for c in getCols(K))
+    return {c: makePeriodSeries(nper) for c in getCols(K)}
 
 
 # make frame
@@ -1806,22 +1655,15 @@ def makePeriodFrame(nper=None):
 def makePanel(nper=None):
     with warnings.catch_warnings(record=True):
         cols = ['Item' + c for c in string.ascii_uppercase[:K - 1]]
-        data = dict((c, makeTimeDataFrame(nper)) for c in cols)
+        data = {c: makeTimeDataFrame(nper) for c in cols}
         return Panel.fromDict(data)
 
 
 def makePeriodPanel(nper=None):
     with warnings.catch_warnings(record=True):
         cols = ['Item' + c for c in string.ascii_uppercase[:K - 1]]
-        data = dict((c, makePeriodFrame(nper)) for c in cols)
+        data = {c: makePeriodFrame(nper) for c in cols}
         return Panel.fromDict(data)
-
-
-def makePanel4D(nper=None):
-    with warnings.catch_warnings(record=True):
-        d = dict(l1=makePanel(nper), l2=makePanel(nper),
-                 l3=makePanel(nper))
-        return Panel4D(d)
 
 
 def makeCustomIndex(nentries, nlevels, prefix='#', names=False, ndupe_l=None,
@@ -1887,13 +1729,13 @@ def makeCustomIndex(nentries, nlevels, prefix='#', names=False, ndupe_l=None,
         ndupe_l.extend([1] * (nlevels - len(ndupe_l)))
     assert len(ndupe_l) == nlevels
 
-    assert all([x > 0 for x in ndupe_l])
+    assert all(x > 0 for x in ndupe_l)
 
     tuples = []
     for i in range(nlevels):
         def keyfunc(x):
             import re
-            numeric_tuple = re.sub("[^\d_]_?", "", x).split("_")
+            numeric_tuple = re.sub(r"[^\d_]_?", "", x).split("_")
             return lmap(int, numeric_tuple)
 
         # build a list of lists to create the index from
@@ -1910,7 +1752,11 @@ def makeCustomIndex(nentries, nlevels, prefix='#', names=False, ndupe_l=None,
 
     # convert tuples to index
     if nentries == 1:
+        # we have a single level of tuples, i.e. a regular Index
         index = Index(tuples[0], name=names[0])
+    elif nlevels == 1:
+        name = None if names is None else names[0]
+        index = Index((x[0] for x in tuples), name=name)
     else:
         index = MultiIndex.from_tuples(tuples, names=names)
     return index
@@ -1923,8 +1769,8 @@ def makeCustomDataframe(nrows, ncols, c_idx_names=True, r_idx_names=True,
     """
    nrows,  ncols - number of data rows/cols
    c_idx_names, idx_names  - False/True/list of strings,  yields No names ,
-        default names or  uses the provided names for the levels of the
-        corresponding  index. You can provide a single string when
+        default names or uses the provided names for the levels of the
+        corresponding index. You can provide a single string when
         c_idx_nlevels ==1.
    c_idx_nlevels - number of levels in columns index. > 1 will yield MultiIndex
    r_idx_nlevels - number of levels in rows index. > 1 will yield MultiIndex
@@ -2088,62 +1934,6 @@ class TestSubDict(dict):
         dict.__init__(self, *args, **kwargs)
 
 
-# Dependency checker when running tests.
-#
-# Copied this from nipy/nipype
-# Copyright of respective developers, License: BSD-3
-def skip_if_no_package(pkg_name, min_version=None, max_version=None,
-                       app='pandas', checker=LooseVersion):
-    """Check that the min/max version of the required package is installed.
-
-    If the package check fails, the test is automatically skipped.
-
-    Parameters
-    ----------
-    pkg_name : string
-        Name of the required package.
-    min_version : string, optional
-        Minimal version number for required package.
-    max_version : string, optional
-        Max version number for required package.
-    app : string, optional
-        Application that is performing the check. For instance, the
-        name of the tutorial being executed that depends on specific
-        packages.
-    checker : object, optional
-        The class that will perform the version checking. Default is
-        distutils.version.LooseVersion.
-
-    Examples
-    --------
-    package_check('numpy', '1.3')
-
-    """
-
-    import pytest
-    if app:
-        msg = '{app} requires {pkg_name}'.format(app=app, pkg_name=pkg_name)
-    else:
-        msg = 'module requires {pkg_name}'.format(pkg_name=pkg_name)
-    if min_version:
-        msg += ' with version >= {min_version}'.format(min_version=min_version)
-    if max_version:
-        msg += ' with version < {max_version}'.format(max_version=max_version)
-    try:
-        mod = __import__(pkg_name)
-    except ImportError:
-        mod = None
-    try:
-        have_version = mod.__version__
-    except AttributeError:
-        pytest.skip('Cannot find version for {pkg_name}'
-                    .format(pkg_name=pkg_name))
-    if min_version and checker(have_version) < checker(min_version):
-        pytest.skip(msg)
-    if max_version and checker(have_version) >= checker(max_version):
-        pytest.skip(msg)
-
-
 def optional_args(decorator):
     """allows a decorator to take optional positional and keyword arguments.
     Assumes that taking a single, callable, positional argument means that
@@ -2276,7 +2066,7 @@ def network(t, url="http://www.google.com",
     _skip_on_messages: iterable of string
         any exception e for which one of the strings is
         a substring of str(e) will be skipped with an appropriate
-        message. Intended to supress errors where an errno isn't available.
+        message. Intended to suppress errors where an errno isn't available.
 
     Notes
     -----
@@ -2347,10 +2137,10 @@ def network(t, url="http://www.google.com",
 
             try:
                 e_str = traceback.format_exc(e)
-            except:
+            except Exception:
                 e_str = str(e)
 
-            if any([m.lower() in e_str.lower() for m in _skip_on_messages]):
+            if any(m.lower() in e_str.lower() for m in _skip_on_messages):
                 skip("Skipping test because exception "
                      "message is known and error {error}".format(error=e))
 
@@ -2424,7 +2214,7 @@ def stdin_encoding(encoding=None):
 
 def assert_raises_regex(_exception, _regexp, _callable=None,
                         *args, **kwargs):
-    """
+    r"""
     Check that the specified Exception is raised and that the error message
     matches a given regular expression pattern. This may be a regular
     expression object or a string containing a regular expression suitable
@@ -2584,7 +2374,7 @@ def assert_produces_warning(expected_warning=Warning, filter_level="always",
             for m in clear:
                 try:
                     m.__warningregistry__.clear()
-                except:
+                except Exception:
                     pass
 
         saw_warning = False
@@ -2650,7 +2440,11 @@ class RNGContext(object):
 
 
 @contextmanager
-def use_numexpr(use, min_elements=expr._MIN_ELEMENTS):
+def use_numexpr(use, min_elements=None):
+    from pandas.core.computation import expressions as expr
+    if min_elements is None:
+        min_elements = expr._MIN_ELEMENTS
+
     olduse = expr._USE_NUMEXPR
     oldmin = expr._MIN_ELEMENTS
     expr.set_use_numexpr(use)
@@ -2836,9 +2630,6 @@ def set_timezone(tz):
     ...
     'EDT'
     """
-    if is_platform_windows():
-        import pytest
-        pytest.skip("timezone setting not supported on windows")
 
     import os
     import time
@@ -2847,7 +2638,7 @@ def set_timezone(tz):
         if tz is None:
             try:
                 del os.environ['TZ']
-            except:
+            except KeyError:
                 pass
         else:
             os.environ['TZ'] = tz
@@ -2859,3 +2650,31 @@ def set_timezone(tz):
         yield
     finally:
         setTZ(orig_tz)
+
+
+def _make_skipna_wrapper(alternative, skipna_alternative=None):
+    """Create a function for calling on an array.
+
+    Parameters
+    ----------
+    alternative : function
+        The function to be called on the array with no NaNs.
+        Only used when 'skipna_alternative' is None.
+    skipna_alternative : function
+        The function to be called on the original array
+
+    Returns
+    -------
+    skipna_wrapper : function
+    """
+    if skipna_alternative:
+        def skipna_wrapper(x):
+            return skipna_alternative(x.values)
+    else:
+        def skipna_wrapper(x):
+            nona = x.dropna()
+            if len(nona) == 0:
+                return np.nan
+            return alternative(nona)
+
+    return skipna_wrapper

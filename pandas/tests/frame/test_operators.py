@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 
 from __future__ import print_function
-
+from collections import deque
 from datetime import datetime
 import operator
 
@@ -10,7 +10,7 @@ import pytest
 from numpy import nan, random
 import numpy as np
 
-from pandas.compat import lrange
+from pandas.compat import lrange, range
 from pandas import compat
 from pandas import (DataFrame, Series, MultiIndex, Timestamp,
                     date_range)
@@ -237,7 +237,7 @@ class TestDataFrameOperators(TestData):
         s = p[0]
         res = s % p
         res2 = p % s
-        assert not np.array_equal(res.fillna(0), res2.fillna(0))
+        assert not res.fillna(0).equals(res2.fillna(0))
 
     def test_div(self):
 
@@ -271,7 +271,7 @@ class TestDataFrameOperators(TestData):
         s = p[0]
         res = s / p
         res2 = p / s
-        assert not np.array_equal(res.fillna(0), res2.fillna(0))
+        assert not res.fillna(0).equals(res2.fillna(0))
 
     def test_logical_operators(self):
 
@@ -749,6 +749,15 @@ class TestDataFrameOperators(TestData):
         added = DataFrame(df.values + val3, index=df.index, columns=df.columns)
         assert_frame_equal(df.add(val3), added)
 
+    @pytest.mark.parametrize('values', [[1, 2], (1, 2), np.array([1, 2]),
+                                        range(1, 3), deque([1, 2])])
+    def test_arith_alignment_non_pandas_object(self, values):
+        # GH 17901
+        df = DataFrame({'A': [1, 1], 'B': [1, 1]})
+        expected = DataFrame({'A': [2, 2], 'B': [3, 3]})
+        result = df + values
+        assert_frame_equal(result, expected)
+
     def test_combineFrame(self):
         frame_copy = self.frame.reindex(self.frame.index[::2])
 
@@ -757,10 +766,10 @@ class TestDataFrameOperators(TestData):
 
         added = self.frame + frame_copy
 
-        indexer = added['A'].valid().index
+        indexer = added['A'].dropna().index
         exp = (self.frame['A'] * 2).copy()
 
-        tm.assert_series_equal(added['A'].valid(), exp.loc[indexer])
+        tm.assert_series_equal(added['A'].dropna(), exp.loc[indexer])
 
         exp.loc[~exp.index.isin(indexer)] = np.nan
         tm.assert_series_equal(added['A'], exp.loc[added['A'].index])
@@ -856,7 +865,7 @@ class TestDataFrameOperators(TestData):
 
         # 10890
         # we no longer allow auto timeseries broadcasting
-        # and require explict broadcasting
+        # and require explicit broadcasting
         added = self.tsframe.add(ts, axis='index')
 
         for key, col in compat.iteritems(self.tsframe):
@@ -1021,7 +1030,7 @@ class TestDataFrameOperators(TestData):
         assert_numpy_array_equal(result, expected.values)
 
         pytest.raises(ValueError, lambda: df == b_c)
-        assert not np.array_equal(df.values, b_c)
+        assert df.values.shape != b_c.shape
 
         # with alignment
         df = DataFrame(np.arange(6).reshape((3, 2)),
@@ -1034,6 +1043,12 @@ class TestDataFrameOperators(TestData):
 
         result = df == tup
         assert_frame_equal(result, expected)
+
+    def test_boolean_comparison_error(self):
+
+        # GH 4576
+        # boolean comparisons with a tuple/list give unexpected results
+        df = DataFrame(np.arange(6).reshape((3, 2)))
 
         # not shape compatible
         pytest.raises(ValueError, lambda: df == (2, 2))
@@ -1161,14 +1176,41 @@ class TestDataFrameOperators(TestData):
         assert_frame_equal(df2, expected)
         assert df._data is df2._data
 
+    @pytest.mark.parametrize('op', ['add', 'and', 'div', 'floordiv', 'mod',
+                                    'mul', 'or', 'pow', 'sub', 'truediv',
+                                    'xor'])
+    def test_inplace_ops_identity2(self, op):
+
+        if compat.PY3 and op == 'div':
+            return
+
+        df = DataFrame({'a': [1., 2., 3.],
+                        'b': [1, 2, 3]})
+
+        operand = 2
+        if op in ('and', 'or', 'xor'):
+            # cannot use floats for boolean ops
+            df['a'] = [True, False, True]
+
+        df_copy = df.copy()
+        iop = '__i{}__'.format(op)
+        op = '__{}__'.format(op)
+
+        # no id change and value is correct
+        getattr(df, iop)(operand)
+        expected = getattr(df_copy, op)(operand)
+        assert_frame_equal(df, expected)
+        expected = id(df)
+        assert id(df) == expected
+
     def test_alignment_non_pandas(self):
         index = ['A', 'B', 'C']
         columns = ['X', 'Y', 'Z']
         df = pd.DataFrame(np.random.randn(3, 3), index=index, columns=columns)
 
         align = pd.core.ops._align_method_FRAME
-
-        for val in [[1, 2, 3], (1, 2, 3), np.array([1, 2, 3], dtype=np.int64)]:
+        for val in [[1, 2, 3], (1, 2, 3), np.array([1, 2, 3], dtype=np.int64),
+                    range(1, 4)]:
 
             tm.assert_series_equal(align(df, val, 'index'),
                                    Series([1, 2, 3], index=df.index))
@@ -1177,7 +1219,8 @@ class TestDataFrameOperators(TestData):
 
         # length mismatch
         msg = 'Unable to coerce to Series, length must be 3: given 2'
-        for val in [[1, 2], (1, 2), np.array([1, 2])]:
+        for val in [[1, 2], (1, 2), np.array([1, 2]), range(1, 3)]:
+
             with tm.assert_raises_regex(ValueError, msg):
                 align(df, val, 'index')
 

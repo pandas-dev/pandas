@@ -3,6 +3,7 @@
 import re
 import numpy as np
 from pandas import compat
+from pandas.core.dtypes.generic import ABCIndexClass, ABCCategoricalIndex
 
 
 class ExtensionDtype(object):
@@ -108,39 +109,171 @@ class CategoricalDtypeType(type):
 
 
 class CategoricalDtype(ExtensionDtype):
-
     """
-    A np.dtype duck-typed class, suitable for holding a custom categorical
-    dtype.
+    Type for categorical data with the categories and orderedness
 
-    THIS IS NOT A REAL NUMPY DTYPE, but essentially a sub-class of np.object
+    .. versionchanged:: 0.21.0
+
+    Parameters
+    ----------
+    categories : sequence, optional
+        Must be unique, and must not contain any nulls.
+    ordered : bool, default False
+
+    Attributes
+    ----------
+    categories
+    ordered
+
+    Methods
+    -------
+    None
+
+    Notes
+    -----
+    This class is useful for specifying the type of a ``Categorical``
+    independent of the values. See :ref:`categorical.categoricaldtype`
+    for more.
+
+    Examples
+    --------
+    >>> t = CategoricalDtype(categories=['b', 'a'], ordered=True)
+    >>> pd.Series(['a', 'b', 'a', 'c'], dtype=t)
+    0      a
+    1      b
+    2      a
+    3    NaN
+    dtype: category
+    Categories (2, object): [b < a]
+
+    See Also
+    --------
+    pandas.Categorical
     """
+    # TODO: Document public vs. private API
     name = 'category'
     type = CategoricalDtypeType
     kind = 'O'
     str = '|O08'
     base = np.dtype('O')
-    _metadata = []
+    _metadata = ['categories', 'ordered']
     _cache = {}
 
-    def __new__(cls):
+    def __init__(self, categories=None, ordered=False):
+        self._finalize(categories, ordered, fastpath=False)
 
-        try:
-            return cls._cache[cls.name]
-        except KeyError:
-            c = object.__new__(cls)
-            cls._cache[cls.name] = c
-            return c
+    @classmethod
+    def _from_fastpath(cls, categories=None, ordered=False):
+        self = cls.__new__(cls)
+        self._finalize(categories, ordered, fastpath=True)
+        return self
+
+    @classmethod
+    def _from_categorical_dtype(cls, dtype, categories=None, ordered=None):
+        if categories is ordered is None:
+            return dtype
+        if categories is None:
+            categories = dtype.categories
+        if ordered is None:
+            ordered = dtype.ordered
+        return cls(categories, ordered)
+
+    def _finalize(self, categories, ordered, fastpath=False):
+
+        if ordered is None:
+            ordered = False
+        else:
+            self._validate_ordered(ordered)
+
+        if categories is not None:
+            categories = self._validate_categories(categories,
+                                                   fastpath=fastpath)
+
+        self._categories = categories
+        self._ordered = ordered
+
+    def __setstate__(self, state):
+        self._categories = state.pop('categories', None)
+        self._ordered = state.pop('ordered', False)
 
     def __hash__(self):
-        # make myself hashable
-        return hash(str(self))
+        # _hash_categories returns a uint64, so use the negative
+        # space for when we have unknown categories to avoid a conflict
+        if self.categories is None:
+            if self.ordered:
+                return -1
+            else:
+                return -2
+        # We *do* want to include the real self.ordered here
+        return int(self._hash_categories(self.categories, self.ordered))
 
     def __eq__(self, other):
         if isinstance(other, compat.string_types):
             return other == self.name
 
-        return isinstance(other, CategoricalDtype)
+        if not (hasattr(other, 'ordered') and hasattr(other, 'categories')):
+            return False
+        elif self.categories is None or other.categories is None:
+            # We're forced into a suboptimal corner thanks to math and
+            # backwards compatibility. We require that `CDT(...) == 'category'`
+            # for all CDTs **including** `CDT(None, ...)`. Therefore, *all*
+            # CDT(., .) = CDT(None, False) and *all*
+            # CDT(., .) = CDT(None, True).
+            return True
+        elif self.ordered:
+            return other.ordered and self.categories.equals(other.categories)
+        elif other.ordered:
+            return False
+        else:
+            # both unordered; this could probably be optimized / cached
+            return hash(self) == hash(other)
+
+    def __repr__(self):
+        tpl = u'CategoricalDtype(categories={}ordered={})'
+        if self.categories is None:
+            data = u"None, "
+        else:
+            data = self.categories._format_data(name=self.__class__.__name__)
+        return tpl.format(data, self.ordered)
+
+    @staticmethod
+    def _hash_categories(categories, ordered=True):
+        from pandas.core.util.hashing import (
+            hash_array, _combine_hash_arrays, hash_tuples
+        )
+
+        if len(categories) and isinstance(categories[0], tuple):
+            # assumes if any individual category is a tuple, then all our. ATM
+            # I don't really want to support just some of the categories being
+            # tuples.
+            categories = list(categories)  # breaks if a np.array of categories
+            cat_array = hash_tuples(categories)
+        else:
+            if categories.dtype == 'O':
+                types = [type(x) for x in categories]
+                if not len(set(types)) == 1:
+                    # TODO: hash_array doesn't handle mixed types. It casts
+                    # everything to a str first, which means we treat
+                    # {'1', '2'} the same as {'1', 2}
+                    # find a better solution
+                    cat_array = np.array([hash(x) for x in categories])
+                    hashed = hash((tuple(categories), ordered))
+                    return hashed
+            cat_array = hash_array(np.asarray(categories), categorize=False)
+        if ordered:
+            cat_array = np.vstack([
+                cat_array, np.arange(len(cat_array), dtype=cat_array.dtype)
+            ])
+        else:
+            cat_array = [cat_array]
+        hashed = _combine_hash_arrays(iter(cat_array),
+                                      num_items=len(cat_array))
+        if len(hashed) == 0:
+            # bug in Numpy<1.12 for length 0 arrays. Just return the correct
+            # value of 0
+            return 0
+        else:
+            return np.bitwise_xor.reduce(hashed)
 
     @classmethod
     def construct_from_string(cls, string):
@@ -153,6 +286,98 @@ class CategoricalDtype(ExtensionDtype):
             pass
 
         raise TypeError("cannot construct a CategoricalDtype")
+
+    @staticmethod
+    def _validate_ordered(ordered):
+        """
+        Validates that we have a valid ordered parameter. If
+        it is not a boolean, a TypeError will be raised.
+
+        Parameters
+        ----------
+        ordered : object
+            The parameter to be verified.
+
+        Raises
+        ------
+        TypeError
+            If 'ordered' is not a boolean.
+        """
+        from pandas.core.dtypes.common import is_bool
+        if not is_bool(ordered):
+            raise TypeError("'ordered' must either be 'True' or 'False'")
+
+    @staticmethod
+    def _validate_categories(categories, fastpath=False):
+        """
+        Validates that we have good categories
+
+        Parameters
+        ----------
+        categories : array-like
+        fastpath : bool
+            Whether to skip nan and uniqueness checks
+
+        Returns
+        -------
+        categories : Index
+        """
+        from pandas import Index
+
+        if not isinstance(categories, ABCIndexClass):
+            categories = Index(categories, tupleize_cols=False)
+
+        if not fastpath:
+
+            if categories.hasnans:
+                raise ValueError('Categorial categories cannot be null')
+
+            if not categories.is_unique:
+                raise ValueError('Categorical categories must be unique')
+
+        if isinstance(categories, ABCCategoricalIndex):
+            categories = categories.categories
+
+        return categories
+
+    def _update_dtype(self, dtype):
+        """
+        Returns a CategoricalDtype with categories and ordered taken from dtype
+        if specified, otherwise falling back to self if unspecified
+
+        Parameters
+        ----------
+        dtype : CategoricalDtype
+
+        Returns
+        -------
+        new_dtype : CategoricalDtype
+        """
+        if isinstance(dtype, compat.string_types) and dtype == 'category':
+            # dtype='category' should not change anything
+            return self
+        elif not self.is_dtype(dtype):
+            msg = ('a CategoricalDtype must be passed to perform an update, '
+                   'got {dtype!r}').format(dtype=dtype)
+            raise ValueError(msg)
+
+        # dtype is CDT: keep current categories if None (ordered can't be None)
+        new_categories = dtype.categories
+        if new_categories is None:
+            new_categories = self.categories
+        return CategoricalDtype(new_categories, dtype.ordered)
+
+    @property
+    def categories(self):
+        """
+        An ``Index`` containing the unique categories allowed.
+        """
+        return self._categories
+
+    @property
+    def ordered(self):
+        """Whether the categories have an ordered relationship"""
+        return self._ordered
 
 
 class DatetimeTZDtypeType(type):
@@ -177,7 +402,7 @@ class DatetimeTZDtype(ExtensionDtype):
     num = 101
     base = np.dtype('M8[ns]')
     _metadata = ['unit', 'tz']
-    _match = re.compile("(datetime64|M8)\[(?P<unit>.+), (?P<tz>.+)\]")
+    _match = re.compile(r"(datetime64|M8)\[(?P<unit>.+), (?P<tz>.+)\]")
     _cache = {}
 
     def __new__(cls, unit=None, tz=None):
@@ -289,7 +514,7 @@ class PeriodDtype(ExtensionDtype):
     base = np.dtype('O')
     num = 102
     _metadata = ['freq']
-    _match = re.compile("(P|p)eriod\[(?P<freq>.+)\]")
+    _match = re.compile(r"(P|p)eriod\[(?P<freq>.+)\]")
     _cache = {}
 
     def __new__(cls, freq=None):
@@ -372,8 +597,8 @@ class PeriodDtype(ExtensionDtype):
         """
 
         if isinstance(dtype, compat.string_types):
-            # PeriodDtype can be instanciated from freq string like "U",
-            # but dosn't regard freq str like "U" as dtype.
+            # PeriodDtype can be instantiated from freq string like "U",
+            # but doesn't regard freq str like "U" as dtype.
             if dtype.startswith('period[') or dtype.startswith('Period['):
                 try:
                     if cls._parse_dtype_strict(dtype) is not None:
@@ -407,7 +632,7 @@ class IntervalDtype(ExtensionDtype):
     base = np.dtype('O')
     num = 103
     _metadata = ['subtype']
-    _match = re.compile("(I|i)nterval\[(?P<subtype>.+)\]")
+    _match = re.compile(r"(I|i)nterval\[(?P<subtype>.+)\]")
     _cache = {}
 
     def __new__(cls, subtype=None):
@@ -416,6 +641,8 @@ class IntervalDtype(ExtensionDtype):
         ----------
         subtype : the dtype of the Interval
         """
+        from pandas.core.dtypes.common import (
+            is_categorical_dtype, is_string_dtype, pandas_dtype)
 
         if isinstance(subtype, IntervalDtype):
             return subtype
@@ -434,7 +661,6 @@ class IntervalDtype(ExtensionDtype):
                 if m is not None:
                     subtype = m.group('subtype')
 
-            from pandas.core.dtypes.common import pandas_dtype
             try:
                 subtype = pandas_dtype(subtype)
             except TypeError:
@@ -444,6 +670,12 @@ class IntervalDtype(ExtensionDtype):
             u = object.__new__(cls)
             u.subtype = None
             return u
+
+        if is_categorical_dtype(subtype) or is_string_dtype(subtype):
+            # GH 19016
+            msg = ('category, object, and string subtypes are not supported '
+                   'for IntervalDtype')
+            raise TypeError(msg)
 
         try:
             return cls._cache[str(subtype)]

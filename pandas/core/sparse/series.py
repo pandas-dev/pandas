@@ -35,7 +35,8 @@ from pandas.core.sparse.scipy_sparse import (
 
 
 _shared_doc_kwargs = dict(axes='index', klass='SparseSeries',
-                          axes_single_arg="{0, 'index'}")
+                          axes_single_arg="{0, 'index'}",
+                          optional_labels='', optional_axis='')
 
 # -----------------------------------------------------------------------------
 # Wrapper function for Series arithmetic methods
@@ -65,7 +66,8 @@ def _arith_method(op, name, str_rep=None, default_axis=None, fill_zeros=None,
                                      index=self.index,
                                      name=self.name)
         else:  # pragma: no cover
-            raise TypeError('operation with %s not supported' % type(other))
+            raise TypeError('operation with {other} not supported'
+                            .format(other=type(other)))
 
     wrapper.__name__ = name
     if name.startswith("__"):
@@ -254,8 +256,18 @@ class SparseSeries(Series):
     def from_array(cls, arr, index=None, name=None, copy=False,
                    fill_value=None, fastpath=False):
         """
-        Simplified alternate constructor
+        DEPRECATED: use the pd.SparseSeries(..) constructor instead.
+
         """
+        warnings.warn("'from_array' is deprecated and will be removed in a "
+                      "future version. Please use the pd.SparseSeries(..) "
+                      "constructor instead.", FutureWarning, stacklevel=2)
+        return cls._from_array(arr, index=index, name=name, copy=copy,
+                               fill_value=fill_value, fastpath=fastpath)
+
+    @classmethod
+    def _from_array(cls, arr, index=None, name=None, copy=False,
+                    fill_value=None, fastpath=False):
         return cls(arr, index=index, name=name, copy=copy,
                    fill_value=fill_value, fastpath=fastpath)
 
@@ -295,7 +307,8 @@ class SparseSeries(Series):
     def __unicode__(self):
         # currently, unicode is same as repr...fixes infinite loop
         series_rep = Series.__unicode__(self)
-        rep = '%s\n%s' % (series_rep, repr(self.sp_index))
+        rep = '{series}\n{index!r}'.format(series=series_rep,
+                                           index=self.sp_index)
         return rep
 
     def __array_wrap__(self, result, context=None):
@@ -384,7 +397,7 @@ class SparseSeries(Series):
         """
         label = self.index[i]
         if isinstance(label, Index):
-            return self.take(i, axis=axis, convert=True)
+            return self.take(i, axis=axis)
         else:
             return self._get_val_at(i)
 
@@ -424,7 +437,7 @@ class SparseSeries(Series):
             return self[indexer]
 
     def _set_with_engine(self, key, value):
-        return self.set_value(key, value)
+        return self._set_value(key, value)
 
     def abs(self):
         """
@@ -464,6 +477,10 @@ class SparseSeries(Series):
         """
         Retrieve single value at passed index label
 
+        .. deprecated:: 0.21.0
+
+        Please use .at[] or .iat[] accessors.
+
         Parameters
         ----------
         index : label
@@ -473,14 +490,27 @@ class SparseSeries(Series):
         -------
         value : scalar value
         """
+        warnings.warn("get_value is deprecated and will be removed "
+                      "in a future release. Please use "
+                      ".at[] or .iat[] accessors instead", FutureWarning,
+                      stacklevel=2)
+
+        return self._get_value(label, takeable=takeable)
+
+    def _get_value(self, label, takeable=False):
         loc = label if takeable is True else self.index.get_loc(label)
         return self._get_val_at(loc)
+    _get_value.__doc__ = get_value.__doc__
 
     def set_value(self, label, value, takeable=False):
         """
         Quickly set single value at passed label. If label is not contained, a
         new object is created with the label placed at the end of the result
         index
+
+        .. deprecated:: 0.21.0
+
+        Please use .at[] or .iat[] accessors.
 
         Parameters
         ----------
@@ -499,11 +529,18 @@ class SparseSeries(Series):
         -------
         series : SparseSeries
         """
+        warnings.warn("set_value is deprecated and will be removed "
+                      "in a future release. Please use "
+                      ".at[] or .iat[] accessors instead", FutureWarning,
+                      stacklevel=2)
+        return self._set_value(label, value, takeable=takeable)
+
+    def _set_value(self, label, value, takeable=False):
         values = self.to_dense()
 
         # if the label doesn't exist, we will create a new object here
         # and possibily change the index
-        new_values = values.set_value(label, value, takeable=takeable)
+        new_values = values._set_value(label, value, takeable=takeable)
         if new_values is not None:
             values = new_values
         new_index = values.index
@@ -511,6 +548,7 @@ class SparseSeries(Series):
                              kind=self.kind)
         self._data = SingleBlockManager(values, new_index)
         self._index = new_index
+    _set_value.__doc__ = set_value.__doc__
 
     def _set_values(self, key, value):
 
@@ -600,16 +638,16 @@ class SparseSeries(Series):
                                  sparse_index=new_index,
                                  fill_value=self.fill_value).__finalize__(self)
 
-    def take(self, indices, axis=0, convert=True, *args, **kwargs):
-        """
-        Sparse-compatible version of ndarray.take
+    @Appender(generic._shared_docs['take'])
+    def take(self, indices, axis=0, convert=None, *args, **kwargs):
+        if convert is not None:
+            msg = ("The 'convert' parameter is deprecated "
+                   "and will be removed in a future version.")
+            warnings.warn(msg, FutureWarning, stacklevel=2)
+        else:
+            convert = True
 
-        Returns
-        -------
-        taken : ndarray
-        """
-
-        convert = nv.validate_take_with_convert(convert, args, kwargs)
+        nv.validate_take_with_convert(convert, args, kwargs)
         new_values = SparseArray.take(self.values, indices)
         new_index = self.index.take(indices)
         return self._constructor(new_values,
@@ -663,7 +701,7 @@ class SparseSeries(Series):
         """
         # TODO: make more efficient
         axis = self._get_axis_number(axis or 0)
-        dense_valid = self.to_dense().valid()
+        dense_valid = self.to_dense().dropna()
         if inplace:
             raise NotImplementedError("Cannot perform inplace dropna"
                                       " operations on a SparseSeries")
@@ -730,8 +768,6 @@ class SparseSeries(Series):
         (labels) or numbers of the levels. {row_levels, column_levels} must be
         a partition of the MultiIndex level names (or numbers).
 
-        .. versionadded:: 0.16.0
-
         Parameters
         ----------
         row_levels : tuple/list
@@ -781,8 +817,6 @@ class SparseSeries(Series):
     def from_coo(cls, A, dense_index=False):
         """
         Create a SparseSeries from a scipy.sparse.coo_matrix.
-
-        .. versionadded:: 0.16.0
 
         Parameters
         ----------

@@ -12,7 +12,6 @@ import pandas as pd
 from pandas.util.testing import assert_series_equal, assert_frame_equal
 
 import pandas.util.testing as tm
-from pandas import _np_version_under1p9
 
 from pandas.tests.frame.common import TestData
 
@@ -103,9 +102,6 @@ class TestDataFrameQuantile(TestData):
 
     def test_quantile_interpolation(self):
         # see gh-10174
-        if _np_version_under1p9:
-            pytest.skip("Numpy version under 1.9")
-
         from numpy import percentile
 
         # interpolation = linear (default case)
@@ -165,44 +161,6 @@ class TestDataFrameQuantile(TestData):
             expected = DataFrame([[1.5, 1.5, 1.5], [2.0, 2.0, 2.0]],
                                  index=[.25, .5], columns=['a', 'b', 'c'])
         assert_frame_equal(result, expected)
-
-    def test_quantile_interpolation_np_lt_1p9(self):
-        # see gh-10174
-        if not _np_version_under1p9:
-            pytest.skip("Numpy version is greater than 1.9")
-
-        from numpy import percentile
-
-        # interpolation = linear (default case)
-        q = self.tsframe.quantile(0.1, axis=0, interpolation='linear')
-        assert q['A'] == percentile(self.tsframe['A'], 10)
-        q = self.intframe.quantile(0.1)
-        assert q['A'] == percentile(self.intframe['A'], 10)
-
-        # test with and without interpolation keyword
-        q1 = self.intframe.quantile(0.1)
-        assert q1['A'] == np.percentile(self.intframe['A'], 10)
-        assert_series_equal(q, q1)
-
-        # interpolation method other than default linear
-        msg = "Interpolation methods other than linear"
-        df = DataFrame({"A": [1, 2, 3], "B": [2, 3, 4]}, index=[1, 2, 3])
-        with tm.assert_raises_regex(ValueError, msg):
-            df.quantile(.5, axis=1, interpolation='nearest')
-
-        with tm.assert_raises_regex(ValueError, msg):
-            df.quantile([.5, .75], axis=1, interpolation='lower')
-
-        # test degenerate case
-        df = DataFrame({'x': [], 'y': []})
-        with tm.assert_raises_regex(ValueError, msg):
-            q = df.quantile(0.1, axis=0, interpolation='higher')
-
-        # multi
-        df = DataFrame([[1, 1, 1], [2, 2, 2], [3, 3, 3]],
-                       columns=['a', 'b', 'c'])
-        with tm.assert_raises_regex(ValueError, msg):
-            df.quantile([.25, .5], interpolation='midpoint')
 
     def test_quantile_multi(self):
         df = DataFrame([[1, 1, 1], [2, 2, 2], [3, 3, 3]],

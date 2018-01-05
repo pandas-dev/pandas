@@ -4,13 +4,14 @@ import pytest
 
 import pandas.util.testing as tm
 from pandas.core.indexes.api import Index, CategoricalIndex
+from pandas.core.dtypes.dtypes import CategoricalDtype
 from .common import Base
 
 from pandas.compat import range, PY3
 
 import numpy as np
 
-from pandas import Categorical, IntervalIndex, compat, notna
+from pandas import Categorical, IntervalIndex, compat
 from pandas.util.testing import assert_almost_equal
 import pandas.core.config as cf
 import pandas as pd
@@ -95,6 +96,11 @@ class TestCategoricalIndex(Base):
                                               1, -1, 0], dtype='int8'))
         assert result.ordered
 
+        result = pd.CategoricalIndex(ci, categories=list('ab'), ordered=True)
+        expected = pd.CategoricalIndex(ci, categories=list('ab'), ordered=True,
+                                       dtype='category')
+        tm.assert_index_equal(result, expected, exact=True)
+
         # turn me to an Index
         result = Index(np.array(ci))
         assert isinstance(result, Index)
@@ -125,6 +131,44 @@ class TestCategoricalIndex(Base):
         result = CategoricalIndex(idx, categories=idx, ordered=True)
         tm.assert_index_equal(result, expected, exact=True)
 
+    def test_construction_with_categorical_dtype(self):
+        # construction with CategoricalDtype
+        # GH18109
+        data, cats, ordered = 'a a b b'.split(), 'c b a'.split(), True
+        dtype = CategoricalDtype(categories=cats, ordered=ordered)
+
+        result = CategoricalIndex(data, dtype=dtype)
+        expected = CategoricalIndex(data, categories=cats, ordered=ordered)
+        tm.assert_index_equal(result, expected, exact=True)
+
+        # GH 19032
+        result = Index(data, dtype=dtype)
+        tm.assert_index_equal(result, expected, exact=True)
+
+        # error when combining categories/ordered and dtype kwargs
+        msg = 'Cannot specify both `dtype` and `categories` or `ordered`.'
+        with pytest.raises(ValueError, match=msg):
+            CategoricalIndex(data, categories=cats, dtype=dtype)
+
+        with pytest.raises(ValueError, match=msg):
+            Index(data, categories=cats, dtype=dtype)
+
+        with pytest.raises(ValueError, match=msg):
+            CategoricalIndex(data, ordered=ordered, dtype=dtype)
+
+        with pytest.raises(ValueError, match=msg):
+            Index(data, ordered=ordered, dtype=dtype)
+
+    def test_create_categorical(self):
+        # https://github.com/pandas-dev/pandas/pull/17513
+        # The public CI constructor doesn't hit this code path with
+        # instances of CategoricalIndex, but we still want to test the code
+        ci = CategoricalIndex(['a', 'b', 'c'])
+        # First ci is self, second ci is data.
+        result = CategoricalIndex._create_categorical(ci, ci)
+        expected = Categorical(['a', 'b', 'c'])
+        tm.assert_categorical_equal(result, expected)
+
     def test_disallow_set_ops(self):
 
         # GH 10039
@@ -149,6 +193,11 @@ class TestCategoricalIndex(Base):
         result = ci.rename_categories(list('efg'))
         tm.assert_index_equal(result, CategoricalIndex(
             list('ffggef'), categories=list('efg')))
+
+        # GH18862 (let rename_categories take callables)
+        result = ci.rename_categories(lambda x: x.upper())
+        tm.assert_index_equal(result, CategoricalIndex(
+            list('AABBCA'), categories=list('CAB')))
 
         ci = CategoricalIndex(list('aabbca'), categories=list('cab'))
         result = ci.add_categories(['d'])
@@ -234,28 +283,37 @@ class TestCategoricalIndex(Base):
                                   ordered=False)
         tm.assert_index_equal(result, exp)
 
-    def test_where(self):
+        result = ci.map(pd.Series([10, 20, 30], index=['A', 'B', 'C']))
+        tm.assert_index_equal(result, exp)
+
+        result = ci.map({'A': 10, 'B': 20, 'C': 30})
+        tm.assert_index_equal(result, exp)
+
+    def test_map_with_categorical_series(self):
+        # GH 12756
+        a = pd.Index([1, 2, 3, 4])
+        b = pd.Series(["even", "odd", "even", "odd"],
+                      dtype="category")
+        c = pd.Series(["even", "odd", "even", "odd"])
+
+        exp = CategoricalIndex(["odd", "even", "odd", np.nan])
+        tm.assert_index_equal(a.map(b), exp)
+        exp = pd.Index(["odd", "even", "odd", np.nan])
+        tm.assert_index_equal(a.map(c), exp)
+
+    @pytest.mark.parametrize('klass', [list, tuple, np.array, pd.Series])
+    def test_where(self, klass):
         i = self.create_index()
-        result = i.where(notna(i))
+        cond = [True] * len(i)
         expected = i
+        result = i.where(klass(cond))
         tm.assert_index_equal(result, expected)
 
-        i2 = pd.CategoricalIndex([np.nan, np.nan] + i[2:].tolist(),
-                                 categories=i.categories)
-        result = i.where(notna(i2))
-        expected = i2
-        tm.assert_index_equal(result, expected)
-
-    def test_where_array_like(self):
-        i = self.create_index()
         cond = [False] + [True] * (len(i) - 1)
-        klasses = [list, tuple, np.array, pd.Series]
-        expected = pd.CategoricalIndex([np.nan] + i[1:].tolist(),
-                                       categories=i.categories)
-
-        for klass in klasses:
-            result = i.where(klass(cond))
-            tm.assert_index_equal(result, expected)
+        expected = CategoricalIndex([np.nan] + i[1:].tolist(),
+                                    categories=i.categories)
+        result = i.where(klass(cond))
+        tm.assert_index_equal(result, expected)
 
     def test_append(self):
 
@@ -318,6 +376,12 @@ class TestCategoricalIndex(Base):
         # invalid
         pytest.raises(TypeError, lambda: ci.insert(0, 'd'))
 
+        # GH 18295 (test missing)
+        expected = CategoricalIndex(['a', np.nan, 'a', 'b', 'c', 'b'])
+        for na in (np.nan, pd.NaT, None):
+            result = CategoricalIndex(list('aabcb')).insert(1, na)
+            tm.assert_index_equal(result, expected)
+
     def test_delete(self):
 
         ci = self.create_index()
@@ -338,9 +402,6 @@ class TestCategoricalIndex(Base):
     def test_astype(self):
 
         ci = self.create_index()
-        result = ci.astype('category')
-        tm.assert_index_equal(result, ci, exact=True)
-
         result = ci.astype(object)
         tm.assert_index_equal(result, Index(np.array(ci)))
 
@@ -364,25 +425,67 @@ class TestCategoricalIndex(Base):
         result = IntervalIndex.from_intervals(result.values)
         tm.assert_index_equal(result, expected)
 
-    def test_reindex_base(self):
+    @pytest.mark.parametrize('name', [None, 'foo'])
+    @pytest.mark.parametrize('dtype_ordered', [True, False])
+    @pytest.mark.parametrize('index_ordered', [True, False])
+    def test_astype_category(self, name, dtype_ordered, index_ordered):
+        # GH 18630
+        index = self.create_index(ordered=index_ordered)
+        if name:
+            index = index.rename(name)
 
-        # determined by cat ordering
-        idx = self.create_index()
+        # standard categories
+        dtype = CategoricalDtype(ordered=dtype_ordered)
+        result = index.astype(dtype)
+        expected = CategoricalIndex(index.tolist(),
+                                    name=name,
+                                    categories=index.categories,
+                                    ordered=dtype_ordered)
+        tm.assert_index_equal(result, expected)
+
+        # non-standard categories
+        dtype = CategoricalDtype(index.unique().tolist()[:-1], dtype_ordered)
+        result = index.astype(dtype)
+        expected = CategoricalIndex(index.tolist(), name=name, dtype=dtype)
+        tm.assert_index_equal(result, expected)
+
+        if dtype_ordered is False:
+            # dtype='category' can't specify ordered, so only test once
+            result = index.astype('category')
+            expected = index
+            tm.assert_index_equal(result, expected)
+
+    def test_reindex_base(self):
+        # Determined by cat ordering.
+        idx = CategoricalIndex(list("cab"), categories=list("cab"))
         expected = np.arange(len(idx), dtype=np.intp)
 
         actual = idx.get_indexer(idx)
         tm.assert_numpy_array_equal(expected, actual)
 
-        with tm.assert_raises_regex(ValueError, 'Invalid fill method'):
-            idx.get_indexer(idx, method='invalid')
+        with tm.assert_raises_regex(ValueError, "Invalid fill method"):
+            idx.get_indexer(idx, method="invalid")
 
     def test_reindexing(self):
+        np.random.seed(123456789)
 
         ci = self.create_index()
         oidx = Index(np.array(ci))
 
         for n in [1, 2, 5, len(ci)]:
             finder = oidx[np.random.randint(0, len(ci), size=n)]
+            expected = oidx.get_indexer_non_unique(finder)[0]
+
+            actual = ci.get_indexer(finder)
+            tm.assert_numpy_array_equal(expected, actual)
+
+        # see gh-17323
+        #
+        # Even when indexer is equal to the
+        # members in the index, we should
+        # respect duplicates instead of taking
+        # the fast-track path.
+        for finder in [list("aabbca"), list("aababca")]:
             expected = oidx.get_indexer_non_unique(finder)[0]
 
             actual = ci.get_indexer(finder)
@@ -564,12 +667,13 @@ class TestCategoricalIndex(Base):
             ci.isin(['c', 'a', 'b', np.nan]), np.array([True] * 6))
 
         # mismatched categorical -> coerced to ndarray so doesn't matter
-        tm.assert_numpy_array_equal(
-            ci.isin(ci.set_categories(list('abcdefghi'))), np.array([True] *
-                                                                    6))
-        tm.assert_numpy_array_equal(
-            ci.isin(ci.set_categories(list('defghi'))),
-            np.array([False] * 5 + [True]))
+        result = ci.isin(ci.set_categories(list('abcdefghi')))
+        expected = np.array([True] * 6)
+        tm.assert_numpy_array_equal(result, expected)
+
+        result = ci.isin(ci.set_categories(list('defghi')))
+        expected = np.array([False] * 5 + [True])
+        tm.assert_numpy_array_equal(result, expected)
 
     def test_identical(self):
 
@@ -631,7 +735,11 @@ class TestCategoricalIndex(Base):
         # make sure that we are testing for category inclusion properly
         ci = CategoricalIndex(list('aabca'), categories=['c', 'a', 'b'])
         assert not ci.equals(list('aabca'))
-        assert not ci.equals(CategoricalIndex(list('aabca')))
+        # Same categories, but different order
+        # Unordered
+        assert ci.equals(CategoricalIndex(list('aabca')))
+        # Ordered
+        assert not ci.equals(CategoricalIndex(list('aabca'), ordered=True))
         assert ci.equals(ci.copy())
 
         ci = CategoricalIndex(list('aabca') + [np.nan],
@@ -643,7 +751,9 @@ class TestCategoricalIndex(Base):
         ci = CategoricalIndex(list('aabca') + [np.nan],
                               categories=['c', 'a', 'b'])
         assert not ci.equals(list('aabca') + [np.nan])
-        assert not ci.equals(CategoricalIndex(list('aabca') + [np.nan]))
+        assert ci.equals(CategoricalIndex(list('aabca') + [np.nan]))
+        assert not ci.equals(CategoricalIndex(list('aabca') + [np.nan],
+                                              ordered=True))
         assert ci.equals(ci.copy())
 
     def test_string_categorical_index_repr(self):

@@ -115,7 +115,7 @@ class SphinxDocString(NumpyDocString):
                         or inspect.isgetsetdescriptor(param_obj)):
                     param_obj = None
 
-                # pandas HACK - do not exclude attributes wich are None
+                # pandas HACK - do not exclude attributes which are None
                 # if param_obj and (pydoc.getdoc(param_obj) or not desc):
                 #     # Referenced object has a docstring
                 #     autosum += ["   %s%s" % (prefix, param)]
@@ -130,7 +130,7 @@ class SphinxDocString(NumpyDocString):
                 out += [''] + autosum
 
             if others:
-                maxlen_0 = max(3, max([len(x[0]) for x in others]))
+                maxlen_0 = max(3, max(len(x[0]) for x in others))
                 hdr = sixu("=")*maxlen_0 + sixu("  ") + sixu("=")*10
                 fmt = sixu('%%%ds  %%s  ') % (maxlen_0,)
                 out += ['', hdr]
@@ -203,7 +203,7 @@ class SphinxDocString(NumpyDocString):
                 m = re.match(r'.. \[([a-z0-9._-]+)\]', line, re.I)
                 if m:
                     items.append(m.group(1))
-            out += ['   ' + ", ".join(["[%s]_" % item for item in items]), '']
+            out += ['   ' + ", ".join("[%s]_" % item for item in items), '']
         return out
 
     def _str_examples(self):

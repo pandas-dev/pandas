@@ -9,6 +9,7 @@ from pandas.core.dtypes.dtypes import (DatetimeTZDtype, PeriodDtype,
 
 import pandas.core.dtypes.common as com
 import pandas.util.testing as tm
+import pandas.util._test_decorators as td
 
 
 class TestPandasDtype(object):
@@ -132,21 +133,22 @@ def test_is_object():
     assert not com.is_object_dtype([1, 2, 3])
 
 
-def test_is_sparse():
+@pytest.mark.parametrize("check_scipy", [
+    False, pytest.param(True, marks=td.skip_if_no_scipy)
+])
+def test_is_sparse(check_scipy):
     assert com.is_sparse(pd.SparseArray([1, 2, 3]))
     assert com.is_sparse(pd.SparseSeries([1, 2, 3]))
 
     assert not com.is_sparse(np.array([1, 2, 3]))
 
-    # This test will only skip if the previous assertions
-    # pass AND scipy is not installed.
-    sparse = pytest.importorskip("scipy.sparse")
-    assert not com.is_sparse(sparse.bsr_matrix([1, 2, 3]))
+    if check_scipy:
+        import scipy.sparse
+        assert not com.is_sparse(scipy.sparse.bsr_matrix([1, 2, 3]))
 
 
+@td.skip_if_no_scipy
 def test_is_scipy_sparse():
-    tm._skip_if_no_scipy()
-
     from scipy.sparse import bsr_matrix
     assert com.is_scipy_sparse(bsr_matrix([1, 2, 3]))
 
@@ -501,7 +503,10 @@ def test_is_bool_dtype():
     assert com.is_bool_dtype(pd.Index([True, False]))
 
 
-def test_is_extension_type():
+@pytest.mark.parametrize("check_scipy", [
+    False, pytest.param(True, marks=td.skip_if_no_scipy)
+])
+def test_is_extension_type(check_scipy):
     assert not com.is_extension_type([1, 2, 3])
     assert not com.is_extension_type(np.array([1, 2, 3]))
     assert not com.is_extension_type(pd.DatetimeIndex([1, 2, 3]))
@@ -517,10 +522,9 @@ def test_is_extension_type():
     s = pd.Series([], dtype=dtype)
     assert com.is_extension_type(s)
 
-    # This test will only skip if the previous assertions
-    # pass AND scipy is not installed.
-    sparse = pytest.importorskip("scipy.sparse")
-    assert not com.is_extension_type(sparse.bsr_matrix([1, 2, 3]))
+    if check_scipy:
+        import scipy.sparse
+        assert not com.is_extension_type(scipy.sparse.bsr_matrix([1, 2, 3]))
 
 
 def test_is_complex_dtype():
@@ -531,6 +535,19 @@ def test_is_complex_dtype():
 
     assert com.is_complex_dtype(np.complex)
     assert com.is_complex_dtype(np.array([1 + 1j, 5]))
+
+
+def test_is_offsetlike():
+    assert com.is_offsetlike(np.array([pd.DateOffset(month=3),
+                                       pd.offsets.Nano()]))
+    assert com.is_offsetlike(pd.offsets.MonthEnd())
+    assert com.is_offsetlike(pd.Index([pd.DateOffset(second=1)]))
+
+    assert not com.is_offsetlike(pd.Timedelta(1))
+    assert not com.is_offsetlike(np.array([1 + 1j, 5]))
+
+    # mixed case
+    assert not com.is_offsetlike(np.array([pd.DateOffset(), pd.Timestamp(0)]))
 
 
 @pytest.mark.parametrize('input_param,result', [
@@ -545,10 +562,12 @@ def test_is_complex_dtype():
     (pd.Index([1, 2]), np.dtype('int64')),
     (pd.Index(['a', 'b']), np.dtype(object)),
     ('category', 'category'),
-    (pd.Categorical(['a', 'b']).dtype, CategoricalDtype()),
-    (pd.Categorical(['a', 'b']), CategoricalDtype()),
-    (pd.CategoricalIndex(['a', 'b']).dtype, CategoricalDtype()),
-    (pd.CategoricalIndex(['a', 'b']), CategoricalDtype()),
+    (pd.Categorical(['a', 'b']).dtype, CategoricalDtype(['a', 'b'])),
+    (pd.Categorical(['a', 'b']), CategoricalDtype(['a', 'b'])),
+    (pd.CategoricalIndex(['a', 'b']).dtype, CategoricalDtype(['a', 'b'])),
+    (pd.CategoricalIndex(['a', 'b']), CategoricalDtype(['a', 'b'])),
+    (CategoricalDtype(), CategoricalDtype()),
+    (CategoricalDtype(['a', 'b']), CategoricalDtype()),
     (pd.DatetimeIndex([1, 2]), np.dtype('<M8[ns]')),
     (pd.DatetimeIndex([1, 2]).dtype, np.dtype('<M8[ns]')),
     ('<M8[ns]', np.dtype('<M8[ns]')),

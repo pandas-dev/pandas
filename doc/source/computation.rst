@@ -8,7 +8,7 @@
    np.set_printoptions(precision=4, suppress=True)
    import pandas as pd
    import matplotlib
-   matplotlib.style.use('ggplot')
+   # matplotlib.style.use('default')
    import matplotlib.pyplot as plt
    plt.close('all')
    pd.options.display.max_rows=15
@@ -26,9 +26,10 @@ Statistical Functions
 Percent Change
 ~~~~~~~~~~~~~~
 
-``Series``, ``DataFrame``, and ``Panel`` all have a method ``pct_change`` to compute the
-percent change over a given number of periods (using ``fill_method`` to fill
-NA/null values *before* computing the percent change).
+``Series``, ``DataFrame``, and ``Panel`` all have a method 
+:meth:`~DataFrame.pct_change` to compute the percent change over a given number 
+of periods (using ``fill_method`` to fill NA/null values *before* computing 
+the percent change).
 
 .. ipython:: python
 
@@ -47,8 +48,8 @@ NA/null values *before* computing the percent change).
 Covariance
 ~~~~~~~~~~
 
-The ``Series`` object has a method ``cov`` to compute covariance between series
-(excluding NA/null values).
+:meth:`Series.cov` can be used to compute covariance between series 
+(excluding missing values).
 
 .. ipython:: python
 
@@ -56,8 +57,8 @@ The ``Series`` object has a method ``cov`` to compute covariance between series
    s2 = pd.Series(np.random.randn(1000))
    s1.cov(s2)
 
-Analogously, ``DataFrame`` has a method ``cov`` to compute pairwise covariances
-among the series in the DataFrame, also excluding NA/null values.
+Analogously, :meth:`DataFrame.cov` to compute pairwise covariances among the 
+series in the DataFrame, also excluding NA/null values.
 
 .. _computation.covariance.caveats:
 
@@ -97,7 +98,9 @@ in order to have a valid result.
 Correlation
 ~~~~~~~~~~~
 
-Several methods for computing correlations are provided:
+Correlation may be computed using the :meth:`~DataFrame.corr` method.
+Using the ``method`` parameter, several methods for computing correlations are 
+provided:
 
 .. csv-table::
     :header: "Method name", "Description"
@@ -110,6 +113,11 @@ Several methods for computing correlations are provided:
 .. \rho = \cov(x, y) / \sigma_x \sigma_y
 
 All of these are currently computed using pairwise complete observations.
+Wikipedia has articles covering the above correlation coefficients:
+
+* `Pearson correlation coefficient <https://en.wikipedia.org/wiki/Pearson_correlation_coefficient>`_
+* `Kendall rank correlation coefficient <https://en.wikipedia.org/wiki/Kendall_rank_correlation_coefficient>`_
+* `Spearman's rank correlation coefficient <https://en.wikipedia.org/wiki/Spearman%27s_rank_correlation_coefficient>`_
 
 .. note::
 
@@ -145,9 +153,9 @@ Like ``cov``, ``corr`` also supports the optional ``min_periods`` keyword:
    frame.corr(min_periods=12)
 
 
-A related method ``corrwith`` is implemented on DataFrame to compute the
-correlation between like-labeled Series contained in different DataFrame
-objects.
+A related method :meth:`~DataFrame.corrwith` is implemented on DataFrame to 
+compute the correlation between like-labeled Series contained in different 
+DataFrame objects.
 
 .. ipython:: python
 
@@ -163,8 +171,8 @@ objects.
 Data ranking
 ~~~~~~~~~~~~
 
-The ``rank`` method produces a data ranking with ties being assigned the mean
-of the ranks (by default) for the group:
+The :meth:`~Series.rank` method produces a data ranking with ties being 
+assigned the mean of the ranks (by default) for the group:
 
 .. ipython:: python
 
@@ -172,8 +180,9 @@ of the ranks (by default) for the group:
    s['d'] = s['b'] # so there's a tie
    s.rank()
 
-``rank`` is also a DataFrame method and can rank either the rows (``axis=0``)
-or the columns (``axis=1``). ``NaN`` values are excluded from the ranking.
+:meth:`~DataFrame.rank` is also a DataFrame method and can rank either the rows 
+(``axis=0``) or the columns (``axis=1``). ``NaN`` values are excluded from the 
+ranking.
 
 .. ipython:: python
 
@@ -205,9 +214,7 @@ Window Functions
    Prior to version 0.18.0, ``pd.rolling_*``, ``pd.expanding_*``, and ``pd.ewm*`` were module level
    functions and are now deprecated. These are replaced by using the :class:`~pandas.core.window.Rolling`, :class:`~pandas.core.window.Expanding` and :class:`~pandas.core.window.EWM`. objects and a corresponding method call.
 
-   The deprecation warning will show the new syntax, see an example :ref:`here <whatsnew_0180.window_deprecations>`
-   You can view the previous documentation
-   `here <http://pandas.pydata.org/pandas-docs/version/0.17.1/computation.html#moving-rolling-statistics-moments>`__
+   The deprecation warning will show the new syntax, see an example :ref:`here <whatsnew_0180.window_deprecations>`.
 
 For working with data, a number of windows functions are provided for
 computing common *window* or *rolling* statistics. Among these are count, sum,
@@ -221,7 +228,7 @@ see the :ref:`groupby docs <groupby.transform.window_resample>`.
 
 .. note::
 
-   The API for window statistics is quite similar to the way one works with ``GroupBy`` objects, see the documentation :ref:`here <groupby>`
+   The API for window statistics is quite similar to the way one works with ``GroupBy`` objects, see the documentation :ref:`here <groupby>`.
 
 We work with ``rolling``, ``expanding`` and ``exponentially weighted`` data through the corresponding
 objects, :class:`~pandas.core.window.Rolling`, :class:`~pandas.core.window.Expanding` and :class:`~pandas.core.window.EWM`.
@@ -239,7 +246,7 @@ These are created from methods on ``Series`` and ``DataFrame``.
    r = s.rolling(window=60)
    r
 
-These object provide tab-completion of the avaible methods and properties.
+These object provide tab-completion of the available methods and properties.
 
 .. code-block:: ipython
 
@@ -254,12 +261,6 @@ accept the following arguments:
 - ``min_periods``: threshold of non-null data points to require (otherwise
   result is NA)
 - ``center``: boolean, whether to set the labels at the center (default is False)
-
-.. warning::
-
-   The ``freq`` and ``how`` arguments were in the API prior to 0.18.0 changes. These are deprecated in the new API. You can simply resample the input prior to creating a window function.
-
-   For example, instead of ``s.rolling(window=5,freq='D').max()`` to get the max value on a rolling 5 Day window, one could use ``s.resample('D').max().rolling(window=5).max()``, which first resamples the data to daily data, then provides a rolling 5 day window.
 
 We can then call methods on these ``rolling`` objects. These return like-indexed objects:
 
@@ -297,7 +298,7 @@ sugar for applying the moving window operator to all of the DataFrame's columns:
 Method Summary
 ~~~~~~~~~~~~~~
 
-We provide a number of the common statistical functions:
+We provide a number of common statistical functions:
 
 .. currentmodule:: pandas.core.window
 
@@ -346,7 +347,9 @@ The following methods are available:
     :meth:`~Window.sum`, Sum of values
     :meth:`~Window.mean`, Mean of values
 
-The weights used in the window are specified by the ``win_type`` keyword. The list of recognized types are:
+The weights used in the window are specified by the ``win_type`` keyword.
+The list of recognized types are the `scipy.signal window functions
+<https://docs.scipy.org/doc/scipy/reference/signal.html#window-functions>`__:
 
 - ``boxcar``
 - ``triang``
@@ -570,7 +573,7 @@ Computing rolling pairwise covariances and correlations
 .. warning::
 
    Prior to version 0.20.0 if ``pairwise=True`` was passed, a ``Panel`` would be returned.
-   This will now return a 2-level MultiIndexed DataFrame, see the whatsnew :ref:`here <whatsnew_0200.api_breaking.rolling_pairwise>`
+   This will now return a 2-level MultiIndexed DataFrame, see the whatsnew :ref:`here <whatsnew_0200.api_breaking.rolling_pairwise>`.
 
 In financial data analysis and other fields it's common to compute covariance
 and correlation matrices for a collection of time series. Often one is also
@@ -629,7 +632,8 @@ perform multiple computations on the data. These operations are similar to the :
    r = dfa.rolling(window=60,min_periods=1)
    r
 
-We can aggregate by passing a function to the entire DataFrame, or select a Series (or multiple Series) via standard getitem.
+We can aggregate by passing a function to the entire DataFrame, or select a 
+Series (or multiple Series) via standard ``__getitem__``.
 
 .. ipython:: python
 
@@ -654,7 +658,7 @@ aggregation with, outputting a DataFrame:
 
    r['A'].agg([np.sum, np.mean, np.std])
 
-On a widowed DataFrame, you can pass a list of functions to apply to each
+On a windowed DataFrame, you can pass a list of functions to apply to each
 column, which produces an aggregated result with a hierarchical index:
 
 .. ipython:: python
@@ -672,6 +676,7 @@ columns of a ``DataFrame``:
 
 .. ipython:: python
    :okexcept:
+   :okwarning:
 
    r.agg({'A' : np.sum,
           'B' : lambda x: np.std(x, ddof=1)})
@@ -746,14 +751,14 @@ all accept are:
 - ``min_periods``: threshold of non-null data points to require. Defaults to
   minimum needed to compute statistic. No ``NaNs`` will be output once
   ``min_periods`` non-null data points have been seen.
-- ``center``: boolean, whether to set the labels at the center (default is False)
+- ``center``: boolean, whether to set the labels at the center (default is False).
 
 .. _stats.moments.expanding.note:
 .. note::
 
    The output of the ``.rolling`` and ``.expanding`` methods do not return a
    ``NaN`` if there are at least ``min_periods`` non-null values in the current
-   window. For example,
+   window. For example:
 
    .. ipython:: python
 
@@ -823,7 +828,8 @@ In general, a weighted moving average is calculated as
 
     y_t = \frac{\sum_{i=0}^t w_i x_{t-i}}{\sum_{i=0}^t w_i},
 
-where :math:`x_t` is the input and :math:`y_t` is the result.
+where :math:`x_t` is the input, :math:`y_t` is the result and the :math:`w_i`
+are the weights.
 
 The EW functions support two variants of exponential weights.
 The default, ``adjust=True``, uses the weights :math:`w_i = (1 - \alpha)^i`
@@ -924,22 +930,19 @@ EWM has a ``min_periods`` argument, which has the same
 meaning it does for all the ``.expanding`` and ``.rolling`` methods:
 no output values will be set until at least ``min_periods`` non-null values
 are encountered in the (expanding) window.
-(This is a change from versions prior to 0.15.0, in which the ``min_periods``
-argument affected only the ``min_periods`` consecutive entries starting at the
-first non-null value.)
 
-EWM also has an ``ignore_na`` argument, which deterines how
+EWM also has an ``ignore_na`` argument, which determines how
 intermediate null values affect the calculation of the weights.
 When ``ignore_na=False`` (the default), weights are calculated based on absolute
 positions, so that intermediate null values affect the result.
-When ``ignore_na=True`` (which reproduces the behavior in versions prior to 0.15.0),
+When ``ignore_na=True``,
 weights are calculated by ignoring intermediate null values.
 For example, assuming ``adjust=True``, if ``ignore_na=False``, the weighted
 average of ``3, NaN, 5`` would be calculated as
 
 .. math::
 
-	\frac{(1-\alpha)^2 \cdot 3 + 1 \cdot 5}{(1-\alpha)^2 + 1}
+	\frac{(1-\alpha)^2 \cdot 3 + 1 \cdot 5}{(1-\alpha)^2 + 1}.
 
 Whereas if ``ignore_na=True``, the weighted average would be calculated as
 
@@ -961,4 +964,4 @@ are scaled by debiasing factors
 (For :math:`w_i = 1`, this reduces to the usual :math:`N / (N - 1)` factor,
 with :math:`N = t + 1`.)
 See `Weighted Sample Variance <http://en.wikipedia.org/wiki/Weighted_arithmetic_mean#Weighted_sample_variance>`__
-for further details.
+on Wikipedia for further details.

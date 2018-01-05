@@ -6,9 +6,9 @@ from datetime import datetime
 
 import numpy as np
 from numpy import nan
-import pandas as pd
 from pandas.core import common as com
-from pandas import DataFrame, MultiIndex, merge, concat, Series, compat
+from pandas import (DataFrame, MultiIndex, merge, concat, Series, compat,
+                    _np_version_under1p10)
 from pandas.util import testing as tm
 from pandas.util.testing import assert_frame_equal, assert_series_equal
 from pandas.core.sorting import (is_int64_overflow_possible,
@@ -63,10 +63,8 @@ class TestSorting(object):
 
         # GH9096
         values = range(55109)
-        data = pd.DataFrame.from_dict({'a': values,
-                                       'b': values,
-                                       'c': values,
-                                       'd': values})
+        data = DataFrame.from_dict(
+            {'a': values, 'b': values, 'c': values, 'd': values})
         grouped = data.groupby(['a', 'b', 'c', 'd'])
         assert len(grouped) == len(values)
 
@@ -84,7 +82,7 @@ class TestSorting(object):
         # verify this is testing what it is supposed to test!
         assert is_int64_overflow_possible(gr.grouper.shape)
 
-        # mannually compute groupings
+        # manually compute groupings
         jim, joe = defaultdict(list), defaultdict(list)
         for key, a, b in zip(map(tuple, arr), df['jim'], df['joe']):
             jim[key].append(a)
@@ -332,16 +330,17 @@ def test_decons():
         label_list2 = decons_group_index(group_index, shape)
 
         for a, b in zip(label_list, label_list2):
-            assert (np.array_equal(a, b))
+            tm.assert_numpy_array_equal(a, b)
 
     shape = (4, 5, 6)
-    label_list = [np.tile([0, 1, 2, 3, 0, 1, 2, 3], 100), np.tile(
-        [0, 2, 4, 3, 0, 1, 2, 3], 100), np.tile(
-            [5, 1, 0, 2, 3, 0, 5, 4], 100)]
+    label_list = [np.tile([0, 1, 2, 3, 0, 1, 2, 3], 100).astype(np.int64),
+                  np.tile([0, 2, 4, 3, 0, 1, 2, 3], 100).astype(np.int64),
+                  np.tile([5, 1, 0, 2, 3, 0, 5, 4], 100).astype(np.int64)]
     testit(label_list, shape)
 
     shape = (10000, 10000)
-    label_list = [np.tile(np.arange(10000), 5), np.tile(np.arange(10000), 5)]
+    label_list = [np.tile(np.arange(10000, dtype=np.int64), 5),
+                  np.tile(np.arange(10000, dtype=np.int64), 5)]
     testit(label_list, shape)
 
 
@@ -408,7 +407,7 @@ class TestSafeSort(object):
         tm.assert_numpy_array_equal(result, expected)
         tm.assert_numpy_array_equal(result_labels, expected_labels)
 
-    def test_mixed_interger_from_list(self):
+    def test_mixed_integer_from_list(self):
         values = ['b', 1, 0, 'a', 0, 'b']
         result = safe_sort(values)
         expected = np.array([0, 0, 1, 'a', 'b', 'b'], dtype=object)
@@ -417,7 +416,7 @@ class TestSafeSort(object):
     def test_unsortable(self):
         # GH 13714
         arr = np.array([1, 2, datetime.now(), 0, 3], dtype=object)
-        if compat.PY2 and not pd._np_version_under1p10:
+        if compat.PY2 and not _np_version_under1p10:
             # RuntimeWarning: tp_compare didn't return -1 or -2 for exception
             with warnings.catch_warnings():
                 pytest.raises(TypeError, safe_sort, arr)

@@ -3,8 +3,7 @@
 import pytest
 
 import numpy as np
-import pandas as pd
-import pandas._libs.lib as lib
+from pandas._libs import lib
 import pandas.util.testing as tm
 
 
@@ -198,53 +197,4 @@ class TestIndexing(object):
         indexer = np.array([-1, -1, 1, 2, 0, -1, 3, 4], dtype=np.int64)
         result = lib.get_reverse_indexer(indexer, 5)
         expected = np.array([4, 2, 3, 6, 7], dtype=np.int64)
-        assert np.array_equal(result, expected)
-
-
-class TestNAObj(object):
-
-    _1d_methods = ['isnaobj', 'isnaobj_old']
-    _2d_methods = ['isnaobj2d', 'isnaobj2d_old']
-
-    def _check_behavior(self, arr, expected):
-        for method in TestNAObj._1d_methods:
-            result = getattr(lib, method)(arr)
-            tm.assert_numpy_array_equal(result, expected)
-
-        arr = np.atleast_2d(arr)
-        expected = np.atleast_2d(expected)
-
-        for method in TestNAObj._2d_methods:
-            result = getattr(lib, method)(arr)
-            tm.assert_numpy_array_equal(result, expected)
-
-    def test_basic(self):
-        arr = np.array([1, None, 'foo', -5.1, pd.NaT, np.nan])
-        expected = np.array([False, True, False, False, True, True])
-
-        self._check_behavior(arr, expected)
-
-    def test_non_obj_dtype(self):
-        arr = np.array([1, 3, np.nan, 5], dtype=float)
-        expected = np.array([False, False, True, False])
-
-        self._check_behavior(arr, expected)
-
-    def test_empty_arr(self):
-        arr = np.array([])
-        expected = np.array([], dtype=bool)
-
-        self._check_behavior(arr, expected)
-
-    def test_empty_str_inp(self):
-        arr = np.array([""])  # empty but not na
-        expected = np.array([False])
-
-        self._check_behavior(arr, expected)
-
-    def test_empty_like(self):
-        # see gh-13717: no segfaults!
-        arr = np.empty_like([None])
-        expected = np.array([True])
-
-        self._check_behavior(arr, expected)
+        tm.assert_numpy_array_equal(result, expected)

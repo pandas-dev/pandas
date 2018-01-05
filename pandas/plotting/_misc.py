@@ -413,7 +413,7 @@ def parallel_coordinates(frame, class_column, cols=None, ax=None, color=None,
     axvlines_kwds: keywords, optional
         Options to be passed to axvline method for vertical lines
     sort_labels: bool, False
-        Sort class_column labels, useful when assigning colours
+        Sort class_column labels, useful when assigning colors
 
         .. versionadded:: 0.20.0
 
@@ -525,7 +525,7 @@ def lag_plot(series, lag=1, ax=None, **kwds):
     if ax is None:
         ax = plt.gca()
     ax.set_xlabel("y(t)")
-    ax.set_ylabel("y(t + %s)" % lag)
+    ax.set_ylabel("y(t + {lag})".format(lag=lag))
     ax.scatter(y1, y2, **kwds)
     return ax
 

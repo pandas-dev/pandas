@@ -214,17 +214,6 @@ class TestSeriesAlterAxes(TestData):
         expected = Series(np.arange(6), index=e_idx)
         assert_series_equal(result, expected)
 
-        result = s.reorder_levels([0, 0, 0])
-        e_idx = MultiIndex(levels=[['bar'], ['bar'], ['bar']],
-                           labels=[[0, 0, 0, 0, 0, 0], [0, 0, 0, 0, 0, 0],
-                                   [0, 0, 0, 0, 0, 0]],
-                           names=['L0', 'L0', 'L0'])
-        expected = Series(range(6), index=e_idx)
-        assert_series_equal(result, expected)
-
-        result = s.reorder_levels(['L0', 'L0', 'L0'])
-        assert_series_equal(result, expected)
-
     def test_rename_axis_inplace(self):
         # GH 15704
         series = self.ts.copy()

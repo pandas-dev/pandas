@@ -99,7 +99,7 @@ Elements in the split lists can be accessed using ``get`` or ``[]`` notation:
    s2.str.split('_').str.get(1)
    s2.str.split('_').str[1]
 
-Easy to expand this to return a DataFrame using ``expand``.
+It is easy to expand this to return a DataFrame using ``expand``.
 
 .. ipython:: python
 
@@ -119,7 +119,7 @@ i.e., from the end of the string to the beginning of the string:
    s2.str.rsplit('_', expand=True, n=1)
 
 Methods like ``replace`` and ``findall`` take `regular expressions
-<https://docs.python.org/2/library/re.html>`__, too:
+<https://docs.python.org/3/library/re.html>`__, too:
 
 .. ipython:: python
 
@@ -211,8 +211,6 @@ Extracting Substrings
 Extract first match in each subject (extract)
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-.. versionadded:: 0.13.0
-
 .. warning::
 
    In version 0.18.0, ``extract`` gained the ``expand`` argument. When
@@ -223,7 +221,7 @@ Extract first match in each subject (extract)
    confusing from the perspective of a user.
 
 The ``extract`` method accepts a `regular expression
-<https://docs.python.org/2/library/re.html>`__ with at least one
+<https://docs.python.org/3/library/re.html>`__ with at least one
 capture group.
 
 Extracting a regular expression with more than one group returns a
@@ -270,7 +268,7 @@ It returns a Series if ``expand=False``.
    pd.Series(['a1', 'b2', 'c3']).str.extract('[ab](\d)', expand=False)
 
 Calling on an ``Index`` with a regex with exactly one capture group
-returns a ``DataFrame`` with one column if ``expand=True``,
+returns a ``DataFrame`` with one column if ``expand=True``.
 
 .. ipython:: python
 
@@ -375,7 +373,7 @@ You can check whether elements contain a pattern:
    pattern = r'[0-9][a-z]'
    pd.Series(['1', '2', '3a', '3b', '03c']).str.contains(pattern)
 
-or match a pattern:
+Or whether elements match a pattern:
 
 .. ipython:: python
 

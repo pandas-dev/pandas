@@ -57,9 +57,21 @@ class TestDatetimeIndex(object):
                           dtype=object)
         tm.assert_series_equal(result, expected)
 
+        # GH 18951: tz-aware to tz-aware
+        idx = date_range('20170101', periods=4, tz='US/Pacific')
+        result = idx.astype('datetime64[ns, US/Eastern]')
+        expected = date_range('20170101 03:00:00', periods=4, tz='US/Eastern')
+        tm.assert_index_equal(result, expected)
+
+        # GH 18951: tz-naive to tz-aware
+        idx = date_range('20170101', periods=4)
+        result = idx.astype('datetime64[ns, US/Eastern]')
+        expected = date_range('20170101', periods=4, tz='US/Eastern')
+        tm.assert_index_equal(result, expected)
+
     def test_astype_str_compat(self):
         # GH 13149, GH 13209
-        # verify that we are returing NaT as a string (and not unicode)
+        # verify that we are returning NaT as a string (and not unicode)
 
         idx = DatetimeIndex(['2016-05-16', 'NaT', NaT, np.NaN])
         result = idx.astype(str)
@@ -117,15 +129,24 @@ class TestDatetimeIndex(object):
                                  dtype='datetime64[ns]')
         tm.assert_index_equal(result, expected)
 
-    def test_astype_raises(self):
+    def test_astype_object(self):
+        rng = date_range('1/1/2000', periods=20)
+
+        casted = rng.astype('O')
+        exp_values = list(rng)
+
+        tm.assert_index_equal(casted, Index(exp_values, dtype=np.object_))
+        assert casted.tolist() == exp_values
+
+    @pytest.mark.parametrize('dtype', [
+        float, 'timedelta64', 'timedelta64[ns]', 'datetime64',
+        'datetime64[D]'])
+    def test_astype_raises(self, dtype):
         # GH 13149, GH 13209
         idx = DatetimeIndex(['2016-05-16', 'NaT', NaT, np.NaN])
-
-        pytest.raises(ValueError, idx.astype, float)
-        pytest.raises(ValueError, idx.astype, 'timedelta64')
-        pytest.raises(ValueError, idx.astype, 'timedelta64[ns]')
-        pytest.raises(ValueError, idx.astype, 'datetime64')
-        pytest.raises(ValueError, idx.astype, 'datetime64[D]')
+        msg = 'Cannot cast DatetimeIndex to dtype'
+        with tm.assert_raises_regex(TypeError, msg):
+            idx.astype(dtype)
 
     def test_index_convert_to_datetime_array(self):
         def _check_rng(rng):
@@ -287,12 +308,18 @@ class TestToPeriod(object):
         assert result == expected
         tm.assert_index_equal(ts.to_period(), xp)
 
-    def test_astype_object(self):
-        # NumPy 1.6.1 weak ns support
-        rng = date_range('1/1/2000', periods=20)
+    def test_to_period_nofreq(self):
+        idx = DatetimeIndex(['2000-01-01', '2000-01-02', '2000-01-04'])
+        pytest.raises(ValueError, idx.to_period)
 
-        casted = rng.astype('O')
-        exp_values = list(rng)
+        idx = DatetimeIndex(['2000-01-01', '2000-01-02', '2000-01-03'],
+                            freq='infer')
+        assert idx.freqstr == 'D'
+        expected = pd.PeriodIndex(['2000-01-01', '2000-01-02',
+                                   '2000-01-03'], freq='D')
+        tm.assert_index_equal(idx.to_period(), expected)
 
-        tm.assert_index_equal(casted, Index(exp_values, dtype=np.object_))
-        assert casted.tolist() == exp_values
+        # GH 7606
+        idx = DatetimeIndex(['2000-01-01', '2000-01-02', '2000-01-03'])
+        assert idx.freqstr is None
+        tm.assert_index_equal(idx.to_period(), expected)

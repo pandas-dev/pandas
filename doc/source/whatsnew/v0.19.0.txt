@@ -216,6 +216,7 @@ contained the values ``[0, 3]``.
 **New behavior**:
 
 .. ipython:: python
+   :okwarning:
 
    pd.read_csv(StringIO(data), names=names)
 
@@ -1412,7 +1413,7 @@ Performance Improvements
 - Improved performance of ``factorize`` of datetime with timezone (:issue:`13750`)
 - Improved performance of by lazily creating indexing hashtables on larger Indexes (:issue:`14266`)
 - Improved performance of ``groupby.groups`` (:issue:`14293`)
-- Unecessary materializing of a MultiIndex when introspecting for memory usage (:issue:`14308`)
+- Unnecessary materializing of a MultiIndex when introspecting for memory usage (:issue:`14308`)
 
 .. _whatsnew_0190.bug_fixes:
 
@@ -1453,7 +1454,7 @@ Bug Fixes
 - Bug in ``.tz_localize`` with ``dateutil.tz.tzlocal`` may return incorrect result (:issue:`13583`)
 - Bug in ``DatetimeTZDtype`` dtype with ``dateutil.tz.tzlocal`` cannot be regarded as valid dtype (:issue:`13583`)
 - Bug in ``pd.read_hdf()`` where attempting to load an HDF file with a single dataset, that had one or more categorical columns, failed unless the key argument was set to the name of the dataset. (:issue:`13231`)
-- Bug in ``.rolling()`` that allowed a negative integer window in contruction of the ``Rolling()`` object, but would later fail on aggregation (:issue:`13383`)
+- Bug in ``.rolling()`` that allowed a negative integer window in construction of the ``Rolling()`` object, but would later fail on aggregation (:issue:`13383`)
 - Bug in ``Series`` indexing with tuple-valued data and a numeric index (:issue:`13509`)
 - Bug in printing ``pd.DataFrame`` where unusual elements with the ``object`` dtype were causing segfaults (:issue:`13717`)
 - Bug in ranking ``Series`` which could result in segfaults (:issue:`13445`)

@@ -8,21 +8,12 @@ from os.path import isabs
 
 import pandas as pd
 import pandas.util.testing as tm
+import pandas.util._test_decorators as td
 
 from pandas.io import common
-from pandas.compat import is_platform_windows, StringIO
+from pandas.compat import is_platform_windows, StringIO, FileNotFoundError
 
 from pandas import read_csv, concat
-
-try:
-    from pathlib import Path
-except ImportError:
-    pass
-
-try:
-    from py.path import local as LocalPath
-except ImportError:
-    pass
 
 
 class CustomFSPath(object):
@@ -34,7 +25,22 @@ class CustomFSPath(object):
         return self.path
 
 
-HERE = os.path.dirname(__file__)
+# Functions that consume a string path and return a string or path-like object
+path_types = [str, CustomFSPath]
+
+try:
+    from pathlib import Path
+    path_types.append(Path)
+except ImportError:
+    pass
+
+try:
+    from py.path import local as LocalPath
+    path_types.append(LocalPath)
+except ImportError:
+    pass
+
+HERE = os.path.abspath(os.path.dirname(__file__))
 
 
 class TestCommonIOCapabilities(object):
@@ -62,17 +68,15 @@ bar2,12,13,14,15
         assert expanded_name == filename
         assert os.path.expanduser(filename) == expanded_name
 
+    @td.skip_if_no('pathlib')
     def test_stringify_path_pathlib(self):
-        tm._skip_if_no_pathlib()
-
         rel_path = common._stringify_path(Path('.'))
         assert rel_path == '.'
         redundant_path = common._stringify_path(Path('foo//bar'))
         assert redundant_path == os.path.join('foo', 'bar')
 
+    @td.skip_if_no('py.path')
     def test_stringify_path_localpath(self):
-        tm._skip_if_no_localpath()
-
         path = os.path.join('foo', 'bar')
         abs_path = os.path.abspath(path)
         lpath = LocalPath(path)
@@ -82,6 +86,19 @@ bar2,12,13,14,15
         p = CustomFSPath('foo/bar.csv')
         result = common._stringify_path(p)
         assert result == 'foo/bar.csv'
+
+    @pytest.mark.parametrize('extension,expected', [
+        ('', None),
+        ('.gz', 'gzip'),
+        ('.bz2', 'bz2'),
+        ('.zip', 'zip'),
+        ('.xz', 'xz'),
+    ])
+    @pytest.mark.parametrize('path_type', path_types)
+    def test_infer_compression_from_path(self, extension, expected, path_type):
+        path = path_type('foo/bar.csv' + extension)
+        compression = common._infer_compression(path, compression='infer')
+        assert compression == expected
 
     def test_get_filepath_or_buffer_with_path(self):
         filename = '~/sometest'
@@ -106,6 +123,26 @@ bar2,12,13,14,15
         first = next(it)
         tm.assert_frame_equal(first, expected.iloc[[0]])
         tm.assert_frame_equal(concat(it), expected.iloc[1:])
+
+    @pytest.mark.parametrize('reader, module, error_class, fn_ext', [
+        (pd.read_csv, 'os', FileNotFoundError, 'csv'),
+        (pd.read_table, 'os', FileNotFoundError, 'csv'),
+        (pd.read_fwf, 'os', FileNotFoundError, 'txt'),
+        (pd.read_excel, 'xlrd', FileNotFoundError, 'xlsx'),
+        (pd.read_feather, 'feather', Exception, 'feather'),
+        (pd.read_hdf, 'tables', FileNotFoundError, 'h5'),
+        (pd.read_stata, 'os', FileNotFoundError, 'dta'),
+        (pd.read_sas, 'os', FileNotFoundError, 'sas7bdat'),
+        (pd.read_json, 'os', ValueError, 'json'),
+        (pd.read_msgpack, 'os', ValueError, 'mp'),
+        (pd.read_pickle, 'os', FileNotFoundError, 'pickle'),
+    ])
+    def test_read_non_existant(self, reader, module, error_class, fn_ext):
+        pytest.importorskip(module)
+
+        path = os.path.join(HERE, 'data', 'does_not_exist.' + fn_ext)
+        with pytest.raises(error_class):
+            reader(path)
 
     @pytest.mark.parametrize('reader, module, path', [
         (pd.read_csv, 'os', os.path.join(HERE, 'data', 'iris.csv')),

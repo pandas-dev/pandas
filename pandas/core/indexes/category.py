@@ -4,6 +4,7 @@ from pandas._libs import index as libindex
 from pandas import compat
 from pandas.compat.numpy import function as nv
 from pandas.core.dtypes.generic import ABCCategorical, ABCSeries
+from pandas.core.dtypes.dtypes import CategoricalDtype
 from pandas.core.dtypes.common import (
     is_categorical_dtype,
     _ensure_platform_int,
@@ -12,13 +13,14 @@ from pandas.core.dtypes.common import (
     is_scalar)
 from pandas.core.common import (_asarray_tuplesafe,
                                 _values_from_object)
-from pandas.core.dtypes.missing import array_equivalent
+from pandas.core.dtypes.missing import array_equivalent, isna
 from pandas.core.algorithms import take_1d
 
 
 from pandas.util._decorators import Appender, cache_readonly
 from pandas.core.config import get_option
 from pandas.core.indexes.base import Index, _index_shared_docs
+from pandas.core import accessor
 import pandas.core.base as base
 import pandas.core.missing as missing
 import pandas.core.indexes.base as ibase
@@ -27,13 +29,11 @@ _index_doc_kwargs = dict(ibase._index_doc_kwargs)
 _index_doc_kwargs.update(dict(target_klass='CategoricalIndex'))
 
 
-class CategoricalIndex(Index, base.PandasDelegate):
+class CategoricalIndex(Index, accessor.PandasDelegate):
     """
 
     Immutable Index implementing an ordered, sliceable set. CategoricalIndex
     represents a sparsely populated Index with an underlying Categorical.
-
-    .. versionadded:: 0.16.1
 
     Parameters
     ----------
@@ -46,6 +46,24 @@ class CategoricalIndex(Index, base.PandasDelegate):
         Make a copy of input ndarray
     name : object
         Name to be stored in the index
+
+    Attributes
+    ----------
+    codes
+    categories
+    ordered
+
+    Methods
+    -------
+    rename_categories
+    reorder_categories
+    add_categories
+    remove_categories
+    remove_unused_categories
+    set_categories
+    as_ordered
+    as_unordered
+    map
 
     See Also
     --------
@@ -60,16 +78,18 @@ class CategoricalIndex(Index, base.PandasDelegate):
                 copy=False, name=None, fastpath=False, **kwargs):
 
         if fastpath:
-            return cls._simple_new(data, name=name)
+            return cls._simple_new(data, name=name, dtype=dtype)
 
         if name is None and hasattr(data, 'name'):
             name = data.name
 
         if isinstance(data, ABCCategorical):
-            data = cls._create_categorical(cls, data, categories, ordered)
+            data = cls._create_categorical(cls, data, categories, ordered,
+                                           dtype)
         elif isinstance(data, CategoricalIndex):
             data = data._data
-            data = cls._create_categorical(cls, data, categories, ordered)
+            data = cls._create_categorical(cls, data, categories, ordered,
+                                           dtype)
         else:
 
             # don't allow scalars
@@ -78,7 +98,8 @@ class CategoricalIndex(Index, base.PandasDelegate):
                 if data is not None or categories is None:
                     cls._scalar_data_error(data)
                 data = []
-            data = cls._create_categorical(cls, data, categories, ordered)
+            data = cls._create_categorical(cls, data, categories, ordered,
+                                           dtype)
 
         if copy:
             data = data.copy()
@@ -116,7 +137,8 @@ class CategoricalIndex(Index, base.PandasDelegate):
         return CategoricalIndex(cat, name=name)
 
     @staticmethod
-    def _create_categorical(self, data, categories=None, ordered=None):
+    def _create_categorical(self, data, categories=None, ordered=None,
+                            dtype=None):
         """
         *this is an internal non-public method*
 
@@ -127,28 +149,39 @@ class CategoricalIndex(Index, base.PandasDelegate):
         data : data for new Categorical
         categories : optional categories, defaults to existing
         ordered : optional ordered attribute, defaults to existing
+        dtype : CategoricalDtype, defaults to existing
 
         Returns
         -------
         Categorical
         """
+        if (isinstance(data, (ABCSeries, type(self))) and
+                is_categorical_dtype(data)):
+            data = data.values
+
         if not isinstance(data, ABCCategorical):
-            ordered = False if ordered is None else ordered
+            if ordered is None and dtype is None:
+                ordered = False
             from pandas.core.categorical import Categorical
-            data = Categorical(data, categories=categories, ordered=ordered)
+            data = Categorical(data, categories=categories, ordered=ordered,
+                               dtype=dtype)
         else:
             if categories is not None:
-                data = data.set_categories(categories)
-            if ordered is not None:
+                data = data.set_categories(categories, ordered=ordered)
+            elif ordered is not None and ordered != data.ordered:
                 data = data.set_ordered(ordered)
+            if isinstance(dtype, CategoricalDtype):
+                # we want to silently ignore dtype='category'
+                data = data._set_dtype(dtype)
         return data
 
     @classmethod
     def _simple_new(cls, values, name=None, categories=None, ordered=None,
-                    **kwargs):
+                    dtype=None, **kwargs):
         result = object.__new__(cls)
 
-        values = cls._create_categorical(cls, values, categories, ordered)
+        values = cls._create_categorical(cls, values, categories, ordered,
+                                         dtype=dtype)
         result._data = values
         result.name = name
         for k, v in compat.iteritems(kwargs):
@@ -159,16 +192,28 @@ class CategoricalIndex(Index, base.PandasDelegate):
 
     @Appender(_index_shared_docs['_shallow_copy'])
     def _shallow_copy(self, values=None, categories=None, ordered=None,
-                      **kwargs):
+                      dtype=None, **kwargs):
         # categories and ordered can't be part of attributes,
         # as these are properties
+        # we want to reuse self.dtype if possible, i.e. neither are
+        # overridden.
+        if dtype is not None and (categories is not None or
+                                  ordered is not None):
+            raise TypeError("Cannot specify both `dtype` and `categories` "
+                            "or `ordered`")
+
+        if categories is None and ordered is None:
+            dtype = self.dtype if dtype is None else dtype
+            return super(CategoricalIndex, self)._shallow_copy(
+                values=values, dtype=dtype, **kwargs)
         if categories is None:
             categories = self.categories
         if ordered is None:
             ordered = self.ordered
-        return super(CategoricalIndex,
-                     self)._shallow_copy(values=values, categories=categories,
-                                         ordered=ordered, **kwargs)
+
+        return super(CategoricalIndex, self)._shallow_copy(
+            values=values, categories=categories,
+            ordered=ordered, **kwargs)
 
     def _is_dtype_compat(self, other):
         """
@@ -234,7 +279,7 @@ class CategoricalIndex(Index, base.PandasDelegate):
             ('ordered', self.ordered)]
         if self.name is not None:
             attrs.append(('name', ibase.default_pprint(self.name)))
-        attrs.append(('dtype', "'%s'" % self.dtype))
+        attrs.append(('dtype', "'%s'" % self.dtype.name))
         max_seq_items = get_option('display.max_seq_items') or len(self)
         if len(self) > max_seq_items:
             attrs.append(('length', len(self)))
@@ -252,6 +297,9 @@ class CategoricalIndex(Index, base.PandasDelegate):
     def get_values(self):
         """ return the underlying data as an ndarray """
         return self._data.get_values()
+
+    def tolist(self):
+        return self._data.tolist()
 
     @property
     def codes(self):
@@ -295,6 +343,12 @@ class CategoricalIndex(Index, base.PandasDelegate):
         if is_interval_dtype(dtype):
             from pandas import IntervalIndex
             return IntervalIndex.from_intervals(np.array(self))
+        elif is_categorical_dtype(dtype):
+            # GH 18630
+            dtype = self.dtype._update_dtype(dtype)
+            if dtype == self.dtype:
+                return self.copy() if copy else self
+
         return super(CategoricalIndex, self).astype(dtype=dtype, copy=copy)
 
     @cache_readonly
@@ -329,8 +383,10 @@ class CategoricalIndex(Index, base.PandasDelegate):
     def is_monotonic_decreasing(self):
         return Index(self.codes).is_monotonic_decreasing
 
-    @Appender(base._shared_docs['unique'] % _index_doc_kwargs)
-    def unique(self):
+    @Appender(_index_shared_docs['index_unique'] % _index_doc_kwargs)
+    def unique(self, level=None):
+        if level is not None:
+            self._validate_index_level(level)
         result = base.IndexOpsMixin.unique(self)
         # CategoricalIndex._shallow_copy uses keeps original categories
         # and ordered if not otherwise specified
@@ -349,7 +405,7 @@ class CategoricalIndex(Index, base.PandasDelegate):
 
     def get_loc(self, key, method=None):
         """
-        Get integer location for requested label
+        Get integer location, slice or boolean mask for requested label.
 
         Parameters
         ----------
@@ -359,7 +415,21 @@ class CategoricalIndex(Index, base.PandasDelegate):
 
         Returns
         -------
-        loc : int if unique index, possibly slice or mask if not
+        loc : int if unique index, slice if monotonic index, else mask
+
+        Examples
+        ---------
+        >>> unique_index = pd.CategoricalIndex(list('abc'))
+        >>> unique_index.get_loc('b')
+        1
+
+        >>> monotonic_index = pd.CategoricalIndex(list('abbc'))
+        >>> monotonic_index.get_loc('b')
+        slice(1, 3, None)
+
+        >>> non_monotonic_index = p.dCategoricalIndex(list('abcb'))
+        >>> non_monotonic_index.get_loc('b')
+        array([False,  True, False,  True], dtype=bool)
         """
         codes = self.categories.get_loc(key)
         if (codes == -1):
@@ -452,7 +522,7 @@ class CategoricalIndex(Index, base.PandasDelegate):
         # we always want to return an Index type here
         # to be consistent with .reindex for other index types (e.g. they don't
         # coerce based on the actual values, only on the dtype)
-        # unless we had an inital Categorical to begin with
+        # unless we had an initial Categorical to begin with
         # in which case we are going to conform to the passed Categorical
         new_target = np.asarray(new_target)
         if is_categorical_dtype(target):
@@ -487,7 +557,7 @@ class CategoricalIndex(Index, base.PandasDelegate):
         method = missing.clean_reindex_fill_method(method)
         target = ibase._ensure_index(target)
 
-        if self.equals(target):
+        if self.is_unique and self.equals(target):
             return np.arange(len(self), dtype='intp')
 
         if method == 'pad' or method == 'backfill':
@@ -625,7 +695,7 @@ class CategoricalIndex(Index, base.PandasDelegate):
 
         """
         code = self.categories.get_indexer([item])
-        if (code == -1):
+        if (code == -1) and not (is_scalar(item) and isna(item)):
             raise TypeError("cannot insert an item into a CategoricalIndex "
                             "that is not already an existing category")
 
@@ -633,7 +703,11 @@ class CategoricalIndex(Index, base.PandasDelegate):
         codes = np.concatenate((codes[:loc], code, codes[loc:]))
         return self._create_from_codes(codes)
 
-    def _append_same_dtype(self, to_concat, name):
+    def _concat(self, to_concat, name):
+        # if calling index is category, don't check dtype of others
+        return CategoricalIndex._concat_same_dtype(self, to_concat, name)
+
+    def _concat_same_dtype(self, to_concat, name):
         """
         Concatenate to_concat which has the same class
         ValueError if other is not in the categories
@@ -653,7 +727,7 @@ class CategoricalIndex(Index, base.PandasDelegate):
     def _add_comparison_methods(cls):
         """ add in comparison methods """
 
-        def _make_compare(op):
+        def _make_compare(opname):
             def _evaluate_compare(self, other):
 
                 # if we have a Categorical type, then must have the same
@@ -672,13 +746,13 @@ class CategoricalIndex(Index, base.PandasDelegate):
 
                 if isinstance(other, ABCCategorical):
                     if not self.values.is_dtype_equal(other):
-                        raise TypeError("categorical index comparisions must "
+                        raise TypeError("categorical index comparisons must "
                                         "have the same categories and ordered "
                                         "attributes")
 
-                return getattr(self.values, op)(other)
+                return getattr(self.values, opname)(other)
 
-            return _evaluate_compare
+            return compat.set_function_name(_evaluate_compare, opname, cls)
 
         cls.__eq__ = _make_compare('__eq__')
         cls.__ne__ = _make_compare('__ne__')

@@ -47,12 +47,11 @@ class TestPDApi(Base):
                'Grouper', 'HDFStore', 'Index', 'Int64Index', 'MultiIndex',
                'Period', 'PeriodIndex', 'RangeIndex', 'UInt64Index',
                'Series', 'SparseArray', 'SparseDataFrame',
-               'SparseSeries', 'TimeGrouper', 'Timedelta',
+               'SparseSeries', 'Timedelta',
                'TimedeltaIndex', 'Timestamp', 'Interval', 'IntervalIndex']
 
     # these are already deprecated; awaiting removal
-    deprecated_classes = ['WidePanel', 'Panel4D',
-                          'SparseList', 'Expr', 'Term']
+    deprecated_classes = ['WidePanel', 'TimeGrouper', 'Expr', 'Term']
 
     # these should be deprecated in the future
     deprecated_classes_in_future = ['Panel']
@@ -103,7 +102,7 @@ class TestPDApi(Base):
                         'rolling_kurt', 'rolling_max', 'rolling_mean',
                         'rolling_median', 'rolling_min', 'rolling_quantile',
                         'rolling_skew', 'rolling_std', 'rolling_sum',
-                        'rolling_var', 'rolling_window', 'ordered_merge',
+                        'rolling_var', 'rolling_window',
                         'pnow', 'match', 'groupby', 'get_store',
                         'plot_params', 'scatter_matrix']
 
@@ -184,6 +183,11 @@ class TestTopLevelDeprecations(object):
                                         check_stacklevel=False):
             pd.groupby(pd.Series([1, 2, 3]), [1, 1, 1])
 
+    def test_TimeGrouper(self):
+        with tm.assert_produces_warning(FutureWarning,
+                                        check_stacklevel=False):
+            pd.TimeGrouper(freq='D')
+
     # GH 15940
 
     def test_get_store(self):
@@ -235,3 +239,13 @@ class TestTypes(object):
                 [c1, c2],
                 sort_categories=True,
                 ignore_order=True)
+
+
+class TestCDateRange(object):
+
+    def test_deprecation_cdaterange(self):
+        # GH17596
+        from pandas.core.indexes.datetimes import cdate_range
+        with tm.assert_produces_warning(FutureWarning,
+                                        check_stacklevel=False):
+            cdate_range('2017-01-01', '2017-12-31')

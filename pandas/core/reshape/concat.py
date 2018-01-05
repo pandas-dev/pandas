@@ -66,13 +66,17 @@ def concat(objs, axis=0, join='outer', join_axes=None, ignore_index=False,
     Returns
     -------
     concatenated : object, type of objs
+        When concatenating all ``Series`` along the index (axis=0), a
+        ``Series`` is returned. When ``objs`` contains at least one
+        ``DataFrame``, a ``DataFrame`` is returned. When concatenating along
+        the columns (axis=1), a ``DataFrame`` is returned.
 
     Notes
     -----
     The keys, levels, and names arguments are all optional.
 
     A walkthrough of how this method fits in with other tools for combining
-    panda objects can be found `here
+    pandas objects can be found `here
     <http://pandas.pydata.org/pandas-docs/stable/merging.html>`__.
 
     See Also
@@ -220,7 +224,7 @@ class _Concatenator(object):
         if isinstance(objs, (NDFrame, compat.string_types)):
             raise TypeError('first argument must be an iterable of pandas '
                             'objects, you passed an object of type '
-                            '"{0}"'.format(type(objs).__name__))
+                            '"{name}"'.format(name=type(objs).__name__))
 
         if join == 'outer':
             self.intersect = False
@@ -241,7 +245,7 @@ class _Concatenator(object):
             raise ValueError('No objects to concatenate')
 
         if keys is None:
-            objs = [obj for obj in objs if obj is not None]
+            objs = list(com._not_none(*objs))
         else:
             # #1649
             clean_keys = []
@@ -262,14 +266,17 @@ class _Concatenator(object):
         ndims = set()
         for obj in objs:
             if not isinstance(obj, NDFrame):
-                raise TypeError("cannot concatenate a non-NDFrame object")
+                msg = ('cannot concatenate object of type "{0}";'
+                       ' only pd.Series, pd.DataFrame, and pd.Panel'
+                       ' (deprecated) objs are valid'.format(type(obj)))
+                raise TypeError(msg)
 
             # consolidate
             obj._consolidate(inplace=True)
             ndims.add(obj.ndim)
 
         # get the sample
-        # want the higest ndim that we have, and must be non-empty
+        # want the highest ndim that we have, and must be non-empty
         # unless all objs are empty
         sample = None
         if len(ndims) > 1:
@@ -309,8 +316,8 @@ class _Concatenator(object):
 
         self._is_series = isinstance(sample, Series)
         if not 0 <= axis <= sample.ndim:
-            raise AssertionError("axis must be between 0 and {0}, "
-                                 "input was {1}".format(sample.ndim, axis))
+            raise AssertionError("axis must be between 0 and {ndim}, input was"
+                                 " {axis}".format(ndim=sample.ndim, axis=axis))
 
         # if we have mixed ndims, then convert to highest ndim
         # creating column numbers as needed
@@ -362,20 +369,12 @@ class _Concatenator(object):
 
             # stack blocks
             if self.axis == 0:
-                # concat Series with length to keep dtype as much
-                non_empties = [x for x in self.objs if len(x) > 0]
-                if len(non_empties) > 0:
-                    values = [x._values for x in non_empties]
-                else:
-                    values = [x._values for x in self.objs]
-                new_data = _concat._concat_compat(values)
-
                 name = com._consensus_name_attr(self.objs)
-                cons = _concat._get_series_result_type(new_data)
 
-                return (cons(new_data, index=self.new_axes[0],
-                             name=name, dtype=new_data.dtype)
-                        .__finalize__(self, method='concat'))
+                mgr = self.objs[0]._data.concat([x._data for x in self.objs],
+                                                self.new_axes)
+                cons = _concat._get_series_result_type(mgr, self.objs)
+                return cons(mgr, name=name).__finalize__(self, method='concat')
 
             # combine as columns in a frame
             else:
@@ -431,8 +430,8 @@ class _Concatenator(object):
                 new_axes[i] = self._get_comb_axis(i)
         else:
             if len(self.join_axes) != ndim - 1:
-                raise AssertionError("length of join_axes must not be "
-                                     "equal to {0}".format(ndim - 1))
+                raise AssertionError("length of join_axes must not be equal "
+                                     "to {length}".format(length=ndim - 1))
 
             # ufff...
             indices = compat.lrange(ndim)
@@ -451,7 +450,8 @@ class _Concatenator(object):
                                            intersect=self.intersect)
         except IndexError:
             types = [type(x).__name__ for x in self.objs]
-            raise TypeError("Cannot concatenate list of %s" % types)
+            raise TypeError("Cannot concatenate list of {types}"
+                            .format(types=types))
 
     def _get_concat_axis(self):
         """
@@ -470,8 +470,8 @@ class _Concatenator(object):
                 for i, x in enumerate(self.objs):
                     if not isinstance(x, Series):
                         raise TypeError("Cannot concatenate type 'Series' "
-                                        "with object of type "
-                                        "%r" % type(x).__name__)
+                                        "with object of type {type!r}"
+                                        .format(type=type(x).__name__))
                     if x.name is not None:
                         names[i] = x.name
                         has_names = True
@@ -505,8 +505,8 @@ class _Concatenator(object):
         if self.verify_integrity:
             if not concat_index.is_unique:
                 overlap = concat_index.get_duplicates()
-                raise ValueError('Indexes have overlapping values: %s'
-                                 % str(overlap))
+                raise ValueError('Indexes have overlapping values: '
+                                 '{overlap!s}'.format(overlap=overlap))
 
 
 def _concat_indexes(indexes):
@@ -547,8 +547,8 @@ def _make_concat_multiindex(indexes, keys, levels=None, names=None):
                 try:
                     i = level.get_loc(key)
                 except KeyError:
-                    raise ValueError('Key %s not in level %s'
-                                     % (str(key), str(level)))
+                    raise ValueError('Key {key!s} not in level {level!s}'
+                                     .format(key=key, level=level))
 
                 to_concat.append(np.repeat(i, len(index)))
             label_list.append(np.concatenate(to_concat))
@@ -568,7 +568,7 @@ def _make_concat_multiindex(indexes, keys, levels=None, names=None):
             names = list(names)
         else:
             # make sure that all of the passed indices have the same nlevels
-            if not len(set([idx.nlevels for idx in indexes])) == 1:
+            if not len({idx.nlevels for idx in indexes}) == 1:
                 raise AssertionError("Cannot concat indices that do"
                                      " not have the same number of levels")
 
@@ -597,8 +597,8 @@ def _make_concat_multiindex(indexes, keys, levels=None, names=None):
 
         mask = mapped == -1
         if mask.any():
-            raise ValueError('Values not found in passed level: %s'
-                             % str(hlevel[mask]))
+            raise ValueError('Values not found in passed level: {hlevel!s}'
+                             .format(hlevel=hlevel[mask]))
 
         new_labels.append(np.repeat(mapped, n))
 

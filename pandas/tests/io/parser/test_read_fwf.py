@@ -291,7 +291,7 @@ Account                 Name  Balance     CreditLimit   AccountCreated
         tm.assert_frame_equal(expected, read_fwf(StringIO(test)))
 
     def test_full_file_with_spaces_and_missing(self):
-        # File with spaces and missing values in columsn
+        # File with spaces and missing values in columns
         test = """
 Account               Name    Balance     CreditLimit   AccountCreated
 101                           10000.00                       1/17/1998

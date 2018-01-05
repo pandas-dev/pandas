@@ -1,68 +1,43 @@
 # cython: profile=False
 # cython: boundscheck=False, wraparound=False, cdivision=True
 
-from numpy cimport *
+from cython cimport Py_ssize_t
+
 cimport numpy as np
 import numpy as np
 
 cimport cython
 
-import_array()
+np.import_array()
 
 cimport util
 
 from libc.stdlib cimport malloc, free
 
-from numpy cimport NPY_INT8 as NPY_int8
-from numpy cimport NPY_INT16 as NPY_int16
-from numpy cimport NPY_INT32 as NPY_int32
-from numpy cimport NPY_INT64 as NPY_int64
-from numpy cimport NPY_FLOAT16 as NPY_float16
-from numpy cimport NPY_FLOAT32 as NPY_float32
-from numpy cimport NPY_FLOAT64 as NPY_float64
+from numpy cimport ndarray, double_t, int64_t, float64_t
 
-from numpy cimport (int8_t, int16_t, int32_t, int64_t, uint8_t, uint16_t,
-                    uint32_t, uint64_t, float16_t, float32_t, float64_t)
+from skiplist cimport (IndexableSkiplist,
+                       node_t, skiplist_t,
+                       skiplist_init, skiplist_destroy,
+                       skiplist_get, skiplist_insert, skiplist_remove)
 
-int8 = np.dtype(np.int8)
-int16 = np.dtype(np.int16)
-int32 = np.dtype(np.int32)
-int64 = np.dtype(np.int64)
-float16 = np.dtype(np.float16)
-float32 = np.dtype(np.float32)
-float64 = np.dtype(np.float64)
-
-cdef np.int8_t MINint8 = np.iinfo(np.int8).min
-cdef np.int16_t MINint16 = np.iinfo(np.int16).min
-cdef np.int32_t MINint32 = np.iinfo(np.int32).min
-cdef np.int64_t MINint64 = np.iinfo(np.int64).min
-cdef np.float16_t MINfloat16 = np.NINF
 cdef np.float32_t MINfloat32 = np.NINF
 cdef np.float64_t MINfloat64 = np.NINF
 
-cdef np.int8_t MAXint8 = np.iinfo(np.int8).max
-cdef np.int16_t MAXint16 = np.iinfo(np.int16).max
-cdef np.int32_t MAXint32 = np.iinfo(np.int32).max
-cdef np.int64_t MAXint64 = np.iinfo(np.int64).max
-cdef np.float16_t MAXfloat16 = np.inf
 cdef np.float32_t MAXfloat32 = np.inf
 cdef np.float64_t MAXfloat64 = np.inf
 
 cdef double NaN = <double> np.NaN
-cdef double nan = NaN
 
 cdef inline int int_max(int a, int b): return a if a >= b else b
 cdef inline int int_min(int a, int b): return a if a <= b else b
 
 from util cimport numeric
 
-from skiplist cimport *
-
 cdef extern from "../src/headers/math.h":
-    double sqrt(double x) nogil
     int signbit(double) nogil
+    double sqrt(double x) nogil
 
-include "skiplist.pyx"
 
 # Cython implementations of rolling sum, mean, variance, skewness,
 # other statistical moment functions
@@ -245,14 +220,16 @@ cdef class VariableWindowIndexer(WindowIndexer):
     right_closed: bint
         right endpoint closedness
         True if the right endpoint is closed, False if open
-
+    floor: optional
+        unit for flooring the unit
     """
     def __init__(self, ndarray input, int64_t win, int64_t minp,
-                 bint left_closed, bint right_closed, ndarray index):
+                 bint left_closed, bint right_closed, ndarray index,
+                 object floor=None):
 
         self.is_variable = 1
         self.N = len(index)
-        self.minp = _check_minp(win, minp, self.N)
+        self.minp = _check_minp(win, minp, self.N, floor=floor)
 
         self.start = np.empty(self.N, dtype='int64')
         self.start.fill(-1)
@@ -367,7 +344,7 @@ def get_window_indexer(input, win, minp, index, closed,
 
     if index is not None:
         indexer = VariableWindowIndexer(input, win, minp, left_closed,
-                                        right_closed, index)
+                                        right_closed, index, floor)
     elif use_mock:
         indexer = MockFixedWindowIndexer(input, win, minp, left_closed,
                                          right_closed, index, floor)
@@ -466,7 +443,7 @@ def roll_sum(ndarray[double_t] input, int64_t win, int64_t minp,
              object index, object closed):
     cdef:
         double val, prev_x, sum_x = 0
-        int64_t s, e
+        int64_t s, e, range_endpoint
         int64_t nobs = 0, i, j, N
         bint is_variable
         ndarray[int64_t] start, end
@@ -474,7 +451,8 @@ def roll_sum(ndarray[double_t] input, int64_t win, int64_t minp,
 
     start, end, N, win, minp, is_variable = get_window_indexer(input, win,
                                                                minp, index,
-                                                               closed)
+                                                               closed,
+                                                               floor=0)
     output = np.empty(N, dtype=float)
 
     # for performance we are going to iterate
@@ -514,13 +492,15 @@ def roll_sum(ndarray[double_t] input, int64_t win, int64_t minp,
 
         # fixed window
 
+        range_endpoint = int_max(minp, 1) - 1
+
         with nogil:
 
-            for i in range(0, minp - 1):
+            for i in range(0, range_endpoint):
                 add_sum(input[i], &nobs, &sum_x)
                 output[i] = NaN
 
-            for i in range(minp - 1, N):
+            for i in range(range_endpoint, N):
                 val = input[i]
                 add_sum(val, &nobs, &sum_x)
 
@@ -681,9 +661,11 @@ cdef inline void add_var(double val, double *nobs, double *mean_x,
     if val == val:
         nobs[0] = nobs[0] + 1
 
-        delta = (val - mean_x[0])
+        # a part of Welford's method for the online variance-calculation
+        # https://en.wikipedia.org/wiki/Algorithms_for_calculating_variance
+        delta = val - mean_x[0]
         mean_x[0] = mean_x[0] + delta / nobs[0]
-        ssqdm_x[0] = ssqdm_x[0] + delta * (val - mean_x[0])
+        ssqdm_x[0] = ssqdm_x[0] + ((nobs[0] - 1) * delta ** 2) / nobs[0]
 
 
 cdef inline void remove_var(double val, double *nobs, double *mean_x,
@@ -695,9 +677,11 @@ cdef inline void remove_var(double val, double *nobs, double *mean_x,
     if val == val:
         nobs[0] = nobs[0] - 1
         if nobs[0]:
-            delta = (val - mean_x[0])
+            # a part of Welford's method for the online variance-calculation
+            # https://en.wikipedia.org/wiki/Algorithms_for_calculating_variance
+            delta = val - mean_x[0]
             mean_x[0] = mean_x[0] - delta / nobs[0]
-            ssqdm_x[0] = ssqdm_x[0] - delta * (val - mean_x[0])
+            ssqdm_x[0] = ssqdm_x[0] - ((nobs[0] + 1) * delta ** 2) / nobs[0]
         else:
             mean_x[0] = 0
             ssqdm_x[0] = 0
@@ -709,7 +693,7 @@ def roll_var(ndarray[double_t] input, int64_t win, int64_t minp,
     Numerically stable implementation using Welford's method.
     """
     cdef:
-        double val, prev, mean_x = 0, ssqdm_x = 0, nobs = 0, delta
+        double val, prev, mean_x = 0, ssqdm_x = 0, nobs = 0, delta, mean_x_old
         int64_t s, e
         bint is_variable
         Py_ssize_t i, j, N
@@ -769,6 +753,9 @@ def roll_var(ndarray[double_t] input, int64_t win, int64_t minp,
                 add_var(input[i], &nobs, &mean_x, &ssqdm_x)
                 output[i] = calc_var(minp, ddof, nobs, ssqdm_x)
 
+            # a part of Welford's method for the online variance-calculation
+            # https://en.wikipedia.org/wiki/Algorithms_for_calculating_variance
+
             # After the first window, observations can both be added and
             # removed
             for i from win <= i < N:
@@ -780,10 +767,12 @@ def roll_var(ndarray[double_t] input, int64_t win, int64_t minp,
 
                         # Adding one observation and removing another one
                         delta = val - prev
-                        prev -= mean_x
+                        mean_x_old = mean_x
+
                         mean_x += delta / nobs
-                        val -= mean_x
-                        ssqdm_x += (val + prev) * delta
+                        ssqdm_x += ((nobs - 1) * val
+                                    + (nobs + 1) * prev
+                                    - 2 * nobs * mean_x_old) * delta / nobs
 
                     else:
                         add_var(val, &nobs, &mean_x, &ssqdm_x)
@@ -808,7 +797,17 @@ cdef inline double calc_skew(int64_t minp, int64_t nobs, double x, double xx,
         A = x / dnobs
         B = xx / dnobs - A * A
         C = xxx / dnobs - A * A * A - 3 * A * B
-        if B <= 0 or nobs < 3:
+
+        # #18044: with uniform distribution, floating issue will
+        #         cause B != 0. and cause the result is a very
+        #         large number.
+        #
+        #         in core/nanops.py nanskew/nankurt call the function
+        #         _zero_out_fperr(m2) to fix floating error.
+        #         if the variance is less than 1e-14, it could be
+        #         treat as zero, here we follow the original
+        #         skew/kurt behaviour to check B <= 1e-14
+        if B <= 1e-14 or nobs < 3:
             result = NaN
         else:
             R = sqrt(B)
@@ -935,7 +934,16 @@ cdef inline double calc_kurt(int64_t minp, int64_t nobs, double x, double xx,
         R = R * A
         D = xxxx / dnobs - R - 6 * B * A * A - 4 * C * A
 
-        if B == 0 or nobs < 4:
+        # #18044: with uniform distribution, floating issue will
+        #         cause B != 0. and cause the result is a very
+        #         large number.
+        #
+        #         in core/nanops.py nanskew/nankurt call the function
+        #         _zero_out_fperr(m2) to fix floating error.
+        #         if the variance is less than 1e-14, it could be
+        #         treat as zero, here we follow the original
+        #         skew/kurt behaviour to check B <= 1e-14
+        if B <= 1e-14 or nobs < 4:
             result = NaN
         else:
             K = (dnobs * dnobs - 1.) * D / (B * B) - 3 * ((dnobs - 1.) ** 2)
@@ -1401,8 +1409,8 @@ def roll_quantile(ndarray[float64_t, cast=True] input, int64_t win,
             else:
                 vlow = skiplist.get(idx)
                 vhigh = skiplist.get(idx + 1)
-                output[i] = (vlow + (vhigh - vlow) *
-                                 (quantile * (nobs - 1) - idx))
+                output[i] = ((vlow + (vhigh - vlow) *
+                             (quantile * (nobs - 1) - idx)))
         else:
             output[i] = NaN
 

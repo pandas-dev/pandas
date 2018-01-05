@@ -56,7 +56,6 @@ from pandas import (Timestamp, Period, Series, DataFrame,  # noqa
                     Index, MultiIndex, Float64Index, Int64Index,
                     Panel, RangeIndex, PeriodIndex, DatetimeIndex, NaT,
                     Categorical, CategoricalIndex)
-from pandas._libs.tslib import NaTType
 from pandas.core.sparse.api import SparseSeries, SparseDataFrame
 from pandas.core.sparse.array import BlockIndex, IntIndex
 from pandas.core.generic import NDFrame
@@ -71,7 +70,7 @@ from pandas.util._move import (
     move_into_mutable_buffer as _move_into_mutable_buffer,
 )
 
-# check whcih compression libs we have installed
+# check which compression libs we have installed
 try:
     import zlib
 
@@ -193,7 +192,6 @@ def read_msgpack(path_or_buf, encoding='utf-8', iterator=False, **kwargs):
 
     # see if we have an actual file
     if isinstance(path_or_buf, compat.string_types):
-
         try:
             exists = os.path.exists(path_or_buf)
         except (TypeError, ValueError):
@@ -203,18 +201,21 @@ def read_msgpack(path_or_buf, encoding='utf-8', iterator=False, **kwargs):
             with open(path_or_buf, 'rb') as fh:
                 return read(fh)
 
-    # treat as a binary-like
     if isinstance(path_or_buf, compat.binary_type):
+        # treat as a binary-like
         fh = None
         try:
-            fh = compat.BytesIO(path_or_buf)
-            return read(fh)
+            # We can't distinguish between a path and a buffer of bytes in
+            # Python 2 so instead assume the first byte of a valid path is
+            # less than 0x80.
+            if compat.PY3 or ord(path_or_buf[0]) >= 0x80:
+                fh = compat.BytesIO(path_or_buf)
+                return read(fh)
         finally:
             if fh is not None:
                 fh.close()
-
-    # a buffer like
-    if hasattr(path_or_buf, 'read') and compat.callable(path_or_buf.read):
+    elif hasattr(path_or_buf, 'read') and compat.callable(path_or_buf.read):
+        # treat as a buffer like
         return read(path_or_buf)
 
     raise ValueError('path_or_buf needs to be a string file path or file-like')
@@ -351,8 +352,11 @@ def unconvert(values, dtype, compress=None):
                 )
                 # fall through to copying `np.fromstring`
 
-    # Copy the string into a numpy array.
-    return np.fromstring(values, dtype=dtype)
+    # Copy the bytes into a numpy array.
+    buf = np.frombuffer(values, dtype=dtype)
+    buf = buf.copy()  # required to not mutate the original data
+    buf.flags.writeable = True
+    return buf
 
 
 def encode(obj):
@@ -470,7 +474,7 @@ def encode(obj):
                     }
 
     elif isinstance(obj, (datetime, date, np.datetime64, timedelta,
-                          np.timedelta64, NaTType)):
+                          np.timedelta64)) or obj is NaT:
         if isinstance(obj, Timestamp):
             tz = obj.tzinfo
             if tz is not None:
@@ -482,7 +486,7 @@ def encode(obj):
                     u'value': obj.value,
                     u'freq': freq,
                     u'tz': tz}
-        if isinstance(obj, NaTType):
+        if obj is NaT:
             return {u'typ': u'nat'}
         elif isinstance(obj, np.timedelta64):
             return {u'typ': u'timedelta64',

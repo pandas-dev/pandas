@@ -15,14 +15,13 @@ from pandas.core.dtypes.common import (
     is_string_like, is_scalar)
 from pandas.core.dtypes.missing import notna
 
-import pandas.core.computation.expressions as expressions
-import pandas.core.common as com
 import pandas.core.ops as ops
 import pandas.core.missing as missing
 from pandas import compat
 from pandas.compat import (map, zip, range, u, OrderedDict)
 from pandas.compat.numpy import function as nv
-from pandas.core.common import _try_sort, _default_index
+from pandas.core.common import (_try_sort, _default_index, _all_not_none,
+                                _any_not_none, _apply_if_callable)
 from pandas.core.frame import DataFrame
 from pandas.core.generic import NDFrame, _shared_docs
 from pandas.core.index import (Index, MultiIndex, _ensure_index,
@@ -35,15 +34,17 @@ from pandas.core.internals import (BlockManager,
 from pandas.core.ops import _op_descriptions
 from pandas.core.series import Series
 from pandas.core.reshape.util import cartesian_product
-from pandas.util._decorators import (deprecate, Appender)
+from pandas.util._decorators import Appender
+from pandas.util._validators import validate_axis_style_args
 
 _shared_doc_kwargs = dict(
     axes='items, major_axis, minor_axis',
     klass="Panel",
-    axes_single_arg="{0, 1, 2, 'items', 'major_axis', 'minor_axis'}")
-_shared_doc_kwargs['args_transpose'] = ("three positional arguments: each one"
-                                        "of\n%s" %
-                                        _shared_doc_kwargs['axes_single_arg'])
+    axes_single_arg="{0, 1, 2, 'items', 'major_axis', 'minor_axis'}",
+    optional_mapper='', optional_axis='', optional_labels='')
+_shared_doc_kwargs['args_transpose'] = (
+    "three positional arguments: each one of\n{ax_single}".format(
+        ax_single=_shared_doc_kwargs['axes_single_arg']))
 
 
 def _ensure_like_indices(time, panels):
@@ -110,6 +111,13 @@ class Panel(NDFrame):
     """
     Represents wide format panel data, stored as 3-dimensional array
 
+   .. deprecated:: 0.20.0
+       The recommended way to represent 3-D data are with a MultiIndex on a
+       DataFrame via the :attr:`~Panel.to_frame()` method or with the
+       `xarray package <http://xarray.pydata.org/en/stable/>`__.
+       Pandas provides a :attr:`~Panel.to_xarray()` method to automate this
+       conversion.
+
     Parameters
     ----------
     data : ndarray (items x major x minor), or dict of DataFrames
@@ -166,7 +174,7 @@ class Panel(NDFrame):
 
         axes = None
         if isinstance(data, BlockManager):
-            if any(x is not None for x in passed_axes):
+            if _any_not_none(*passed_axes):
                 axes = [x if x is not None else y
                         for x, y in zip(passed_axes, data.axes)]
             mgr = data
@@ -178,7 +186,7 @@ class Panel(NDFrame):
             mgr = self._init_matrix(data, passed_axes, dtype=dtype, copy=copy)
             copy = False
             dtype = None
-        elif is_scalar(data) and all(x is not None for x in passed_axes):
+        elif is_scalar(data) and _all_not_none(*passed_axes):
             values = cast_scalar_to_array([len(x) for x in passed_axes],
                                           data, dtype=dtype)
             mgr = self._init_matrix(values, passed_axes, dtype=values.dtype,
@@ -279,7 +287,7 @@ class Panel(NDFrame):
         return cls(**d)
 
     def __getitem__(self, key):
-        key = com._apply_if_callable(key, self)
+        key = _apply_if_callable(key, self)
 
         if isinstance(self._info_axis, MultiIndex):
             return self._getitem_multilevel(key)
@@ -310,7 +318,8 @@ class Panel(NDFrame):
             try:
                 values = values.astype(dtype)
             except Exception:
-                raise ValueError('failed to cast to %s' % dtype)
+                raise ValueError('failed to cast to '
+                                 '{datatype}'.format(datatype=dtype))
 
         shape = values.shape
         fixed_axes = []
@@ -351,18 +360,18 @@ class Panel(NDFrame):
 
         class_name = str(self.__class__)
 
-        shape = self.shape
-        dims = u('Dimensions: %s') % ' x '.join(
-            ["%d (%s)" % (s, a) for a, s in zip(self._AXIS_ORDERS, shape)])
+        dims = u('Dimensions: {dimensions}'.format(dimensions=' x '.join(
+            ["{shape} ({axis})".format(shape=shape, axis=axis) for axis, shape
+             in zip(self._AXIS_ORDERS, self.shape)])))
 
         def axis_pretty(a):
             v = getattr(self, a)
             if len(v) > 0:
-                return u('%s axis: %s to %s') % (a.capitalize(),
-                                                 pprint_thing(v[0]),
-                                                 pprint_thing(v[-1]))
+                return u('{ax} axis: {x} to {y}'.format(ax=a.capitalize(),
+                                                        x=pprint_thing(v[0]),
+                                                        y=pprint_thing(v[-1])))
             else:
-                return u('%s axis: None') % a.capitalize()
+                return u('{ax} axis: None'.format(ax=a.capitalize()))
 
         output = '\n'.join(
             [class_name, dims] + [axis_pretty(a) for a in self._AXIS_ORDERS])
@@ -462,7 +471,7 @@ class Panel(NDFrame):
 
     def as_matrix(self):
         self._consolidate_inplace()
-        return self._data.as_matrix()
+        return self._data.as_array()
 
     # ----------------------------------------------------------------------
     # Getting and setting elements
@@ -470,6 +479,10 @@ class Panel(NDFrame):
     def get_value(self, *args, **kwargs):
         """
         Quickly retrieve single value at (item, major, minor) location
+
+        .. deprecated:: 0.21.0
+
+        Please use .at[] or .iat[] accessors.
 
         Parameters
         ----------
@@ -482,6 +495,13 @@ class Panel(NDFrame):
         -------
         value : scalar value
         """
+        warnings.warn("get_value is deprecated and will be removed "
+                      "in a future release. Please use "
+                      ".at[] or .iat[] accessors instead", FutureWarning,
+                      stacklevel=2)
+        return self._get_value(*args, **kwargs)
+
+    def _get_value(self, *args, **kwargs):
         nargs = len(args)
         nreq = self._AXIS_LEN
 
@@ -501,11 +521,16 @@ class Panel(NDFrame):
         else:
             lower = self._get_item_cache(args[0])
 
-        return lower.get_value(*args[1:], takeable=takeable)
+        return lower._get_value(*args[1:], takeable=takeable)
+    _get_value.__doc__ = get_value.__doc__
 
     def set_value(self, *args, **kwargs):
         """
         Quickly set single value at (item, major, minor) location
+
+        .. deprecated:: 0.21.0
+
+        Please use .at[] or .iat[] accessors.
 
         Parameters
         ----------
@@ -521,6 +546,13 @@ class Panel(NDFrame):
             If label combo is contained, will be reference to calling Panel,
             otherwise a new object
         """
+        warnings.warn("set_value is deprecated and will be removed "
+                      "in a future release. Please use "
+                      ".at[] or .iat[] accessors instead", FutureWarning,
+                      stacklevel=2)
+        return self._set_value(*args, **kwargs)
+
+    def _set_value(self, *args, **kwargs):
         # require an arg for each axis and the value
         nargs = len(args)
         nreq = self._AXIS_LEN + 1
@@ -541,7 +573,7 @@ class Panel(NDFrame):
             else:
                 lower = self._get_item_cache(args[0])
 
-            lower.set_value(*args[1:], takeable=takeable)
+            lower._set_value(*args[1:], takeable=takeable)
             return self
         except KeyError:
             axes = self._expand_axes(args)
@@ -554,7 +586,8 @@ class Panel(NDFrame):
             if made_bigger:
                 maybe_cast_item(result, args[0], likely_dtype)
 
-            return result.set_value(*args)
+            return result._set_value(*args)
+    _set_value.__doc__ = set_value.__doc__
 
     def _box_item_values(self, key, values):
         if self.ndim == values.ndim:
@@ -570,7 +603,7 @@ class Panel(NDFrame):
         return self._constructor_sliced(values, **d)
 
     def __setitem__(self, key, value):
-        key = com._apply_if_callable(key, self)
+        key = _apply_if_callable(key, self)
         shape = tuple(self.shape)
         if isinstance(value, self._constructor_sliced):
             value = value.reindex(
@@ -585,14 +618,17 @@ class Panel(NDFrame):
         elif is_scalar(value):
             mat = cast_scalar_to_array(shape[1:], value)
         else:
-            raise TypeError('Cannot set item of type: %s' % str(type(value)))
+            raise TypeError('Cannot set item of '
+                            'type: {dtype!s}'.format(dtype=type(value)))
 
         mat = mat.reshape(tuple([1]) + shape[1:])
         NDFrame._set_item(self, key, mat)
 
     def _unpickle_panel_compat(self, state):  # pragma: no cover
         "Unpickle the panel"
-        _unpickle = com._unpickle_array
+        from pandas.io.pickle import _unpickle_array
+
+        _unpickle = _unpickle_array
         vals, items, major, minor = state
 
         items = _unpickle(items)
@@ -712,9 +748,9 @@ class Panel(NDFrame):
         elif is_scalar(other):
             return self._combine_const(other, func)
         else:
-            raise NotImplementedError("%s is not supported in combine "
-                                      "operation with %s" %
-                                      (str(type(other)), str(type(self))))
+            raise NotImplementedError(
+                "{otype!s} is not supported in combine operation with "
+                "{selftype!s}".format(otype=type(other), selftype=type(self)))
 
     def _combine_const(self, other, func, try_cast=True):
         with np.errstate(all='ignore'):
@@ -824,7 +860,7 @@ class Panel(NDFrame):
         xs is only for getting, not setting values.
 
         MultiIndex Slicers is a generic way to get/set values on any level or
-        levels and  is a superset of xs functionality, see
+        levels and is a superset of xs functionality, see
         :ref:`MultiIndex Slicers <advanced.mi_slicers>`
 
         """
@@ -960,9 +996,6 @@ class Panel(NDFrame):
 
         return DataFrame(data, index=index, columns=self.items)
 
-    to_long = deprecate('to_long', to_frame)
-    toLong = deprecate('toLong', to_frame)
-
     def apply(self, func, axis='major', **kwargs):
         """
         Applies function along axis (or axes) of the Panel
@@ -1051,7 +1084,7 @@ class Panel(NDFrame):
         for i in range(np.prod(shape)):
 
             # construct the object
-            pts = tuple([p[i] for p in points])
+            pts = tuple(p[i] for p in points)
             indexer.put(indlist, slice_indexer)
 
             obj = Series(values[tuple(indexer)], index=slice_axis, name=pts)
@@ -1161,8 +1194,8 @@ class Panel(NDFrame):
             return self._constructor_sliced(
                 result, **self._extract_axes_for_slice(self, axes))
 
-        raise ValueError('invalid _construct_return_type [self->%s] '
-                         '[result->%s]' % (self, result))
+        raise ValueError('invalid _construct_return_type [self->{self}] '
+                         '[result->{result}]'.format(self=self, result=result))
 
     def _wrap_result(self, result, axis):
         axis = self._get_axis_name(axis)
@@ -1173,13 +1206,25 @@ class Panel(NDFrame):
         return self._construct_return_type(result, axes)
 
     @Appender(_shared_docs['reindex'] % _shared_doc_kwargs)
-    def reindex(self, items=None, major_axis=None, minor_axis=None, **kwargs):
-        major_axis = (major_axis if major_axis is not None else
-                      kwargs.pop('major', None))
-        minor_axis = (minor_axis if minor_axis is not None else
-                      kwargs.pop('minor', None))
-        return super(Panel, self).reindex(items=items, major_axis=major_axis,
-                                          minor_axis=minor_axis, **kwargs)
+    def reindex(self, *args, **kwargs):
+        major = kwargs.pop("major", None)
+        minor = kwargs.pop('minor', None)
+
+        if major is not None:
+            if kwargs.get("major_axis"):
+                raise TypeError("Cannot specify both 'major' and 'major_axis'")
+            kwargs['major_axis'] = major
+        if minor is not None:
+            if kwargs.get("minor_axis"):
+                raise TypeError("Cannot specify both 'minor' and 'minor_axis'")
+
+            kwargs['minor_axis'] = minor
+        axes = validate_axis_style_args(self, args, kwargs, 'labels',
+                                        'reindex')
+        kwargs.update(axes)
+        kwargs.pop('axis', None)
+        kwargs.pop('labels', None)
+        return super(Panel, self).reindex(**kwargs)
 
     @Appender(_shared_docs['rename'] % _shared_doc_kwargs)
     def rename(self, items=None, major_axis=None, minor_axis=None, **kwargs):
@@ -1373,10 +1418,10 @@ class Panel(NDFrame):
     @staticmethod
     def _extract_axes_for_slice(self, axes):
         """ return the slice dictionary for these axes """
-        return dict([(self._AXIS_SLICEMAP[i], a)
-                     for i, a in zip(
-                         self._AXIS_ORDERS[self._AXIS_LEN - len(axes):],
-                         axes)])
+        return dict((self._AXIS_SLICEMAP[i], a)
+                    for i, a in zip(
+                        self._AXIS_ORDERS[self._AXIS_LEN - len(axes):],
+                        axes))
 
     @staticmethod
     def _prep_ndarray(self, values, copy=True):
@@ -1424,8 +1469,8 @@ class Panel(NDFrame):
                 adj_frames[k] = v
 
         axes = self._AXIS_ORDERS[1:]
-        axes_dict = dict([(a, ax) for a, ax in zip(axes, self._extract_axes(
-            self, adj_frames, axes, intersect=intersect))])
+        axes_dict = dict((a, ax) for a, ax in zip(axes, self._extract_axes(
+            self, adj_frames, axes, intersect=intersect)))
 
         reindex_dict = dict(
             [(self._AXIS_SLICEMAP[a], axes_dict[a]) for a in axes])
@@ -1466,7 +1511,8 @@ class Panel(NDFrame):
         if have_raw_arrays:
             lengths = list(set(raw_lengths))
             if len(lengths) > 1:
-                raise ValueError('ndarrays must match shape on axis %d' % axis)
+                raise ValueError('ndarrays must match shape on '
+                                 'axis {ax}'.format(ax=axis))
 
             if have_frames:
                 if lengths[0] != len(index):
@@ -1483,26 +1529,14 @@ class Panel(NDFrame):
     def _add_aggregate_operations(cls, use_numexpr=True):
         """ add the operations to the cls; evaluate the doc strings again """
 
-        # doc strings substitors
-        _agg_doc = """
-Wrapper method for %%s
-
-Parameters
-----------
-other : %s or %s""" % (cls._constructor_sliced.__name__, cls.__name__) + """
-axis : {""" + ', '.join(cls._AXIS_ORDERS) + "}" + """
-    Axis to broadcast over
-
-Returns
--------
-""" + cls.__name__ + "\n"
-
         def _panel_arith_method(op, name, str_rep=None, default_axis=None,
                                 fill_zeros=None, **eval_kwargs):
             def na_op(x, y):
+                import pandas.core.computation.expressions as expressions
+
                 try:
                     result = expressions.evaluate(op, str_rep, x, y,
-                                                  raise_on_error=True,
+                                                  errors='raise',
                                                   **eval_kwargs)
                 except TypeError:
                     result = op(x, y)
@@ -1522,27 +1556,45 @@ Returns
                     equiv = 'panel ' + op_desc['op'] + ' other'
 
                 _op_doc = """
-                %%s of series and other, element-wise (binary operator `%%s`).
-                Equivalent to ``%%s``.
+{desc} of series and other, element-wise (binary operator `{op_name}`).
+Equivalent to ``{equiv}``.
+
+Parameters
+----------
+other : {construct} or {cls_name}
+axis : {{{axis_order}}}
+    Axis to broadcast over
+
+Returns
+-------
+{cls_name}
+
+See also
+--------
+{cls_name}.{reverse}\n"""
+                doc = _op_doc.format(
+                    desc=op_desc['desc'], op_name=op_name, equiv=equiv,
+                    construct=cls._constructor_sliced.__name__,
+                    cls_name=cls.__name__, reverse=op_desc['reverse'],
+                    axis_order=', '.join(cls._AXIS_ORDERS))
+            else:
+                # doc strings substitors
+                _agg_doc = """
+                Wrapper method for {wrp_method}
 
                 Parameters
                 ----------
-                other : %s or %s""" % (cls._constructor_sliced.__name__,
-                                       cls.__name__) + """
-                axis : {""" + ', '.join(cls._AXIS_ORDERS) + "}" + """
+                other : {construct} or {cls_name}
+                axis : {{{axis_order}}}
                     Axis to broadcast over
 
                 Returns
                 -------
-                """ + cls.__name__ + """
-
-                See also
-                --------
-                """ + cls.__name__ + ".%s\n"
-                doc = _op_doc % (op_desc['desc'], op_name, equiv,
-                                 op_desc['reverse'])
-            else:
-                doc = _agg_doc % name
+                {cls_name}\n"""
+                doc = _agg_doc.format(
+                    construct=cls._constructor_sliced.__name__,
+                    cls_name=cls.__name__, wrp_method=name,
+                    axis_order=', '.join(cls._AXIS_ORDERS))
 
             @Appender(doc)
             def f(self, other, axis=0):

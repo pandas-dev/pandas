@@ -148,7 +148,7 @@ def qcut(x, q, labels=None, retbins=False, precision=3, duplicates='raise'):
 
     Parameters
     ----------
-    x : ndarray or Series
+    x : 1d ndarray or Series
     q : integer or array of quantiles
         Number of quantiles. 10 for deciles, 4 for quartiles, etc. Alternately
         array of quantiles, e.g. [0, .25, .5, .75, 1.] for quartiles
@@ -229,9 +229,9 @@ def _bins_to_cuts(x, bins, right=True, labels=None,
     unique_bins = algos.unique(bins)
     if len(unique_bins) < len(bins) and len(bins) != 2:
         if duplicates == 'raise':
-            raise ValueError("Bin edges must be unique: {}.\nYou "
+            raise ValueError("Bin edges must be unique: {bins!r}.\nYou "
                              "can drop duplicate edges by setting "
-                             "the 'duplicates' kwarg".format(repr(bins)))
+                             "the 'duplicates' kwarg".format(bins=bins))
         else:
             bins = unique_bins
 
@@ -359,7 +359,7 @@ def _preprocess_for_cut(x):
     """
     handles preprocessing for cut where we convert passed
     input to array, strip the index information and store it
-    seperately
+    separately
     """
     x_is_series = isinstance(x, Series)
     series_index = None

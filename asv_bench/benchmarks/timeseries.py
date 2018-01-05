@@ -2,13 +2,11 @@ try:
     from pandas.plotting._converter import DatetimeConverter
 except ImportError:
     from pandas.tseries.converter import DatetimeConverter
-from .pandas_vb_common import *
+
 import pandas as pd
+from pandas import to_datetime, date_range, Series, DataFrame, period_range
+
 import datetime as dt
-try:
-    import pandas.tseries.holiday
-except ImportError:
-    pass
 from pandas.tseries.frequencies import infer_freq
 import numpy as np
 
@@ -22,32 +20,38 @@ class DatetimeIndex(object):
     def setup(self):
         self.N = 100000
         self.rng = date_range(start='1/1/2000', periods=self.N, freq='T')
-        self.delta_offset = pd.offsets.Day()
-        self.fast_offset = pd.offsets.DateOffset(months=2, days=2)
-        self.slow_offset = pd.offsets.BusinessDay()
 
-        self.rng2 = date_range(start='1/1/2000 9:30', periods=10000, freq='S', tz='US/Eastern')
+        self.rng2 = date_range(start='1/1/2000 9:30', periods=10000,
+                               freq='S', tz='US/Eastern')
 
-        self.index_repeated = date_range(start='1/1/2000', periods=1000, freq='T').repeat(10)
+        self.index_repeated = date_range(start='1/1/2000',
+                                         periods=1000, freq='T').repeat(10)
 
         self.rng3 = date_range(start='1/1/2000', periods=1000, freq='H')
         self.df = DataFrame(np.random.randn(len(self.rng3), 2), self.rng3)
 
-        self.rng4 = date_range(start='1/1/2000', periods=1000, freq='H', tz='US/Eastern')
-        self.df2 = DataFrame(np.random.randn(len(self.rng4), 2), index=self.rng4)
+        self.rng4 = date_range(start='1/1/2000', periods=1000,
+                               freq='H', tz='US/Eastern')
+        self.df2 = DataFrame(np.random.randn(len(self.rng4), 2),
+                             index=self.rng4)
 
         N = 100000
         self.dti = pd.date_range('2011-01-01', freq='H', periods=N).repeat(5)
         self.dti_tz = pd.date_range('2011-01-01', freq='H', periods=N,
                                     tz='Asia/Tokyo').repeat(5)
 
-        self.rng5 = date_range(start='1/1/2000', end='3/1/2000', tz='US/Eastern')
+        self.rng5 = date_range(start='1/1/2000',
+                               end='3/1/2000', tz='US/Eastern')
 
-        self.dst_rng = date_range(start='10/29/2000 1:00:00', end='10/29/2000 1:59:59', freq='S')
-        self.index = date_range(start='10/29/2000', end='10/29/2000 00:59:59', freq='S')
+        self.dst_rng = date_range(start='10/29/2000 1:00:00',
+                                  end='10/29/2000 1:59:59', freq='S')
+        self.index = date_range(start='10/29/2000',
+                                end='10/29/2000 00:59:59', freq='S')
         self.index = self.index.append(self.dst_rng)
         self.index = self.index.append(self.dst_rng)
-        self.index = self.index.append(date_range(start='10/29/2000 2:00:00', end='10/29/2000 3:00:00', freq='S'))
+        self.index = self.index.append(date_range(start='10/29/2000 2:00:00',
+                                                  end='10/29/2000 3:00:00',
+                                                  freq='S'))
 
         self.N = 10000
         self.rng6 = date_range(start='1/1/1', periods=self.N, freq='B')
@@ -56,20 +60,11 @@ class DatetimeIndex(object):
         self.no_freq = self.rng7[:50000].append(self.rng7[50002:])
         self.d_freq = self.rng7[:50000].append(self.rng7[50000:])
 
-        self.rng8 = date_range(start='1/1/1700', freq='B', periods=100000)
+        self.rng8 = date_range(start='1/1/1700', freq='B', periods=75000)
         self.b_freq = self.rng8[:50000].append(self.rng8[50000:])
 
     def time_add_timedelta(self):
         (self.rng + dt.timedelta(minutes=2))
-
-    def time_add_offset_delta(self):
-        (self.rng + self.delta_offset)
-
-    def time_add_offset_fast(self):
-        (self.rng + self.fast_offset)
-
-    def time_add_offset_slow(self):
-        (self.rng + self.slow_offset)
 
     def time_normalize(self):
         self.rng2.normalize()
@@ -89,6 +84,9 @@ class DatetimeIndex(object):
     def time_dti_tz_factorize(self):
         self.dti_tz.factorize()
 
+    def time_dti_time(self):
+        self.dst_rng.time
+
     def time_timestamp_tzinfo_cons(self):
         self.rng5[0]
 
@@ -106,6 +104,12 @@ class DatetimeIndex(object):
 
     def time_infer_freq_business(self):
         infer_freq(self.b_freq)
+
+    def time_to_date(self):
+        self.rng.date
+
+    def time_to_pydatetime(self):
+        self.rng.to_pydatetime()
 
 
 class TimeDatetimeConverter(object):
@@ -148,7 +152,7 @@ class Iteration(object):
         self.iter_n(self.idx2, self.M)
 
 
-#----------------------------------------------------------------------
+# ----------------------------------------------------------------------
 # Resampling
 
 class ResampleDataFrame(object):
@@ -187,7 +191,8 @@ class ResampleSeries(object):
         self.rng2 = date_range(start='1/1/2000', end='1/1/2001', freq='T')
         self.ts2 = Series(np.random.randn(len(self.rng2)), index=self.rng2)
 
-        self.rng3 = date_range(start='2000-01-01 00:00:00', end='2000-01-01 10:00:00', freq='555000U')
+        self.rng3 = date_range(start='2000-01-01 00:00:00',
+                               end='2000-01-01 10:00:00', freq='555000U')
         self.int_ts = Series(5, self.rng3, dtype='int64')
         self.dt_ts = self.int_ts.astype('datetime64[ns]')
 
@@ -215,7 +220,8 @@ class AsOf(object):
         self.N = 10000
         self.rng = date_range(start='1/1/1990', periods=self.N, freq='53s')
         self.ts = Series(np.random.randn(self.N), index=self.rng)
-        self.dates = date_range(start='1/1/1990', periods=(self.N * 10), freq='5s')
+        self.dates = date_range(start='1/1/1990',
+                                periods=(self.N * 10), freq='5s')
         self.ts2 = self.ts.copy()
         self.ts2[250:5000] = np.nan
         self.ts3 = self.ts.copy()
@@ -253,7 +259,8 @@ class AsOfDataFrame(object):
         self.N = 10000
         self.M = 100
         self.rng = date_range(start='1/1/1990', periods=self.N, freq='53s')
-        self.dates = date_range(start='1/1/1990', periods=(self.N * 10), freq='5s')
+        self.dates = date_range(start='1/1/1990',
+                                periods=(self.N * 10), freq='5s')
         self.ts = DataFrame(np.random.randn(self.N, self.M), index=self.rng)
         self.ts2 = self.ts.copy()
         self.ts2.iloc[250:5000] = np.nan
@@ -298,8 +305,10 @@ class TimeSeries(object):
 
         self.lindex = np.random.permutation(self.N)[:(self.N // 2)]
         self.rindex = np.random.permutation(self.N)[:(self.N // 2)]
-        self.left = Series(self.ts2.values.take(self.lindex), index=self.ts2.index.take(self.lindex))
-        self.right = Series(self.ts2.values.take(self.rindex), index=self.ts2.index.take(self.rindex))
+        self.left = Series(self.ts2.values.take(self.lindex),
+                           index=self.ts2.index.take(self.lindex))
+        self.right = Series(self.ts2.values.take(self.rindex),
+                            index=self.ts2.index.take(self.rindex))
 
         self.rng3 = date_range(start='1/1/2000', periods=1500000, freq='S')
         self.ts3 = Series(1, index=self.rng3)
@@ -321,41 +330,26 @@ class TimeSeries(object):
         self.ts3.index._cleanup()
 
 
-class SeriesArithmetic(object):
-    goal_time = 0.2
-
-    def setup(self):
-        self.N = 100000
-        self.s = Series(date_range(start='20140101', freq='T', periods=self.N))
-        self.delta_offset = pd.offsets.Day()
-        self.fast_offset = pd.offsets.DateOffset(months=2, days=2)
-        self.slow_offset = pd.offsets.BusinessDay()
-
-    def time_add_offset_delta(self):
-        (self.s + self.delta_offset)
-
-    def time_add_offset_fast(self):
-        (self.s + self.fast_offset)
-
-    def time_add_offset_slow(self):
-        (self.s + self.slow_offset)
-
-
 class ToDatetime(object):
     goal_time = 0.2
 
     def setup(self):
         self.rng = date_range(start='1/1/2000', periods=10000, freq='D')
-        self.stringsD = Series((((self.rng.year * 10000) + (self.rng.month * 100)) + self.rng.day), dtype=np.int64).apply(str)
+        self.stringsD = Series(self.rng.strftime('%Y%m%d'))
 
         self.rng = date_range(start='1/1/2000', periods=20000, freq='H')
-        self.strings = [x.strftime('%Y-%m-%d %H:%M:%S') for x in self.rng]
-        self.strings_nosep = [x.strftime('%Y%m%d %H:%M:%S') for x in self.rng]
+        self.strings = self.rng.strftime('%Y-%m-%d %H:%M:%S').tolist()
+        self.strings_nosep = self.rng.strftime('%Y%m%d %H:%M:%S').tolist()
         self.strings_tz_space = [x.strftime('%Y-%m-%d %H:%M:%S') + ' -0800'
                                  for x in self.rng]
 
         self.s = Series((['19MAY11', '19MAY11:00:00:00'] * 100000))
         self.s2 = self.s.str.replace(':\\S+$', '')
+
+        self.unique_numeric_seconds = range(10000)
+        self.dup_numeric_seconds = [1000] * 10000
+        self.dup_string_dates = ['2000-02-11'] * 10000
+        self.dup_string_with_tz = ['2000-02-11 15:00:00-0800'] * 10000
 
     def time_format_YYYYMMDD(self):
         to_datetime(self.stringsD, format='%Y%m%d')
@@ -381,132 +375,46 @@ class ToDatetime(object):
     def time_format_no_exact(self):
         to_datetime(self.s, format='%d%b%y', exact=False)
 
+    def time_cache_true_with_unique_seconds_and_unit(self):
+        to_datetime(self.unique_numeric_seconds, unit='s', cache=True)
 
-class Offsets(object):
-    goal_time = 0.2
+    def time_cache_false_with_unique_seconds_and_unit(self):
+        to_datetime(self.unique_numeric_seconds, unit='s', cache=False)
 
-    def setup(self):
-        self.date = dt.datetime(2011, 1, 1)
-        self.dt64 = np.datetime64('2011-01-01 09:00Z')
-        self.hcal = pd.tseries.holiday.USFederalHolidayCalendar()
-        self.day = pd.offsets.Day()
-        self.year = pd.offsets.YearBegin()
-        self.cday = pd.offsets.CustomBusinessDay()
-        self.cmb = pd.offsets.CustomBusinessMonthBegin(calendar=self.hcal)
-        self.cme = pd.offsets.CustomBusinessMonthEnd(calendar=self.hcal)
-        self.cdayh = pd.offsets.CustomBusinessDay(calendar=self.hcal)
+    def time_cache_true_with_dup_seconds_and_unit(self):
+        to_datetime(self.dup_numeric_seconds, unit='s', cache=True)
 
-    def time_timeseries_day_apply(self):
-        self.day.apply(self.date)
+    def time_cache_false_with_dup_seconds_and_unit(self):
+        to_datetime(self.dup_numeric_seconds, unit='s', cache=False)
 
-    def time_timeseries_day_incr(self):
-        (self.date + self.day)
+    def time_cache_true_with_dup_string_dates(self):
+        to_datetime(self.dup_string_dates, cache=True)
 
-    def time_timeseries_year_apply(self):
-        self.year.apply(self.date)
+    def time_cache_false_with_dup_string_dates(self):
+        to_datetime(self.dup_string_dates, cache=False)
 
-    def time_timeseries_year_incr(self):
-        (self.date + self.year)
+    def time_cache_true_with_dup_string_dates_and_format(self):
+        to_datetime(self.dup_string_dates, format='%Y-%m-%d', cache=True)
 
-    # custom business offsets
+    def time_cache_false_with_dup_string_dates_and_format(self):
+        to_datetime(self.dup_string_dates, format='%Y-%m-%d', cache=False)
 
-    def time_custom_bday_decr(self):
-        (self.date - self.cday)
+    def time_cache_true_with_dup_string_tzoffset_dates(self):
+        to_datetime(self.dup_string_with_tz, cache=True)
 
-    def time_custom_bday_incr(self):
-        (self.date + self.cday)
-
-    def time_custom_bday_apply(self):
-        self.cday.apply(self.date)
-
-    def time_custom_bday_apply_dt64(self):
-        self.cday.apply(self.dt64)
-
-    def time_custom_bday_cal_incr(self):
-        self.date + 1 * self.cdayh
-
-    def time_custom_bday_cal_decr(self):
-        self.date - 1 * self.cdayh
-
-    def time_custom_bday_cal_incr_n(self):
-        self.date + 10 * self.cdayh
-
-    def time_custom_bday_cal_incr_neg_n(self):
-        self.date - 10 * self.cdayh
-
-    # Increment custom business month
-
-    def time_custom_bmonthend_incr(self):
-        (self.date + self.cme)
-
-    def time_custom_bmonthend_incr_n(self):
-        (self.date + (10 * self.cme))
-
-    def time_custom_bmonthend_decr_n(self):
-        (self.date - (10 * self.cme))
-
-    def time_custom_bmonthbegin_decr_n(self):
-        (self.date - (10 * self.cmb))
-
-    def time_custom_bmonthbegin_incr_n(self):
-        (self.date + (10 * self.cmb))
+    def time_cache_false_with_dup_string_tzoffset_dates(self):
+        to_datetime(self.dup_string_with_tz, cache=False)
 
 
-class SemiMonthOffset(object):
-    goal_time = 0.2
-
+class DatetimeAccessor(object):
     def setup(self):
         self.N = 100000
-        self.rng = date_range(start='1/1/2000', periods=self.N, freq='T')
-        # date is not on an offset which will be slowest case
-        self.date = dt.datetime(2011, 1, 2)
-        self.semi_month_end = pd.offsets.SemiMonthEnd()
-        self.semi_month_begin = pd.offsets.SemiMonthBegin()
+        self.series = pd.Series(
+            pd.date_range(start='1/1/2000', periods=self.N, freq='T')
+        )
 
-    def time_end_apply(self):
-        self.semi_month_end.apply(self.date)
+    def time_dt_accessor(self):
+        self.series.dt
 
-    def time_end_incr(self):
-        self.date + self.semi_month_end
-
-    def time_end_incr_n(self):
-        self.date + 10 * self.semi_month_end
-
-    def time_end_decr(self):
-        self.date - self.semi_month_end
-
-    def time_end_decr_n(self):
-        self.date - 10 * self.semi_month_end
-
-    def time_end_apply_index(self):
-        self.semi_month_end.apply_index(self.rng)
-
-    def time_end_incr_rng(self):
-        self.rng + self.semi_month_end
-
-    def time_end_decr_rng(self):
-        self.rng - self.semi_month_end
-
-    def time_begin_apply(self):
-        self.semi_month_begin.apply(self.date)
-
-    def time_begin_incr(self):
-        self.date + self.semi_month_begin
-
-    def time_begin_incr_n(self):
-        self.date + 10 * self.semi_month_begin
-
-    def time_begin_decr(self):
-        self.date - self.semi_month_begin
-
-    def time_begin_decr_n(self):
-        self.date - 10 * self.semi_month_begin
-
-    def time_begin_apply_index(self):
-        self.semi_month_begin.apply_index(self.rng)
-
-    def time_begin_incr_rng(self):
-        self.rng + self.semi_month_begin
-
-    def time_begin_decr_rng(self):
-        self.rng - self.semi_month_begin
+    def time_dt_accessor_normalize(self):
+        self.series.dt.normalize()

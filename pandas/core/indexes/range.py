@@ -10,10 +10,12 @@ from pandas.core.dtypes.common import (
     is_int64_dtype)
 
 from pandas import compat
-from pandas.compat import lrange, range
+from pandas.compat import lrange, range, get_range_parameters
 from pandas.compat.numpy import function as nv
+from pandas.core.common import _all_none
 from pandas.core.indexes.base import Index, _index_shared_docs
 from pandas.util._decorators import Appender, cache_readonly
+import pandas.core.dtypes.concat as _concat
 import pandas.core.indexes.base as ibase
 
 from pandas.core.indexes.numeric import Int64Index
@@ -22,9 +24,14 @@ from pandas.core.indexes.numeric import Int64Index
 class RangeIndex(Int64Index):
 
     """
-    Immutable Index implementing a monotonic range. RangeIndex is a
-    memory-saving special case of Int64Index limited to representing
-    monotonic ranges.
+    Immutable Index implementing a monotonic integer range.
+
+    RangeIndex is a memory-saving special case of Int64Index limited to
+    representing monotonic ranges. Using RangeIndex may in some instances
+    improve computing speed.
+
+    This is the default index type used
+    by DataFrame and Series when no explicit index is provided by the user.
 
     Parameters
     ----------
@@ -37,6 +44,14 @@ class RangeIndex(Int64Index):
     copy : bool, default False
         Unused, accepted for homogeneity with other index types.
 
+    See Also
+    --------
+    Index : The base pandas Index type
+    Int64Index : Index of int64 data
+
+    Methods
+    -------
+    from_range
     """
 
     _typ = 'rangeindex'
@@ -73,7 +88,7 @@ class RangeIndex(Int64Index):
 
             return new_value
 
-        if start is None and stop is None and step is None:
+        if _all_none(start, stop, step):
             msg = "RangeIndex(...) must be called with integers"
             raise TypeError(msg)
         elif start is None:
@@ -102,24 +117,7 @@ class RangeIndex(Int64Index):
                 '{0}(...) must be called with object coercible to a '
                 'range, {1} was passed'.format(cls.__name__, repr(data)))
 
-        if compat.PY3:
-            step = data.step
-            stop = data.stop
-            start = data.start
-        else:
-            # seems we only have indexing ops to infer
-            # rather than direct accessors
-            if len(data) > 1:
-                step = data[1] - data[0]
-                stop = data[-1] + step
-                start = data[0]
-            elif len(data):
-                start = data[0]
-                stop = data[0] + 1
-                step = 1
-            else:
-                start = stop = 0
-                step = 1
+        start, stop, step = get_range_parameters(data)
         return RangeIndex(start, stop, step, dtype=dtype, name=name, **kwargs)
 
     @classmethod
@@ -188,15 +186,19 @@ class RangeIndex(Int64Index):
             attrs.append(('name', ibase.default_pprint(self.name)))
         return attrs
 
-    def _format_data(self):
+    def _format_data(self, name=None):
         # we are formatting thru the attributes
         return None
 
     @cache_readonly
     def nbytes(self):
-        """ return the number of bytes in the underlying data """
-        return sum([getsizeof(getattr(self, v)) for v in
-                    ['_start', '_stop', '_step']])
+        """
+        Return the number of bytes in the underlying data
+        On implementations where this is undetermined (PyPy)
+        assume 24 bytes for each value
+        """
+        return sum(getsizeof(getattr(self, v), 24) for v in
+                   ['_start', '_stop', '_step'])
 
     def memory_usage(self, deep=False):
         """
@@ -264,6 +266,24 @@ class RangeIndex(Int64Index):
         return RangeIndex(name=name, fastpath=True,
                           **dict(self._get_data_as_items()))
 
+    def _minmax(self, meth):
+        no_steps = len(self) - 1
+        if no_steps == -1:
+            return np.nan
+        elif ((meth == 'min' and self._step > 0) or
+              (meth == 'max' and self._step < 0)):
+            return self._start
+
+        return self._start + self._step * no_steps
+
+    def min(self):
+        """The minimum value of the RangeIndex"""
+        return self._minmax('min')
+
+    def max(self):
+        """The maximum value of the RangeIndex"""
+        return self._minmax('max')
+
     def argsort(self, *args, **kwargs):
         """
         Returns the indices that would sort the index and its
@@ -319,12 +339,13 @@ class RangeIndex(Int64Index):
         if not len(self) or not len(other):
             return RangeIndex._simple_new(None)
 
+        first = self[::-1] if self._step < 0 else self
+        second = other[::-1] if other._step < 0 else other
+
         # check whether intervals intersect
         # deals with in- and decreasing ranges
-        int_low = max(min(self._start, self._stop + 1),
-                      min(other._start, other._stop + 1))
-        int_high = min(max(self._stop, self._start + 1),
-                       max(other._stop, other._start + 1))
+        int_low = max(first._start, second._start)
+        int_high = min(first._stop, second._stop)
         if int_high <= int_low:
             return RangeIndex._simple_new(None)
 
@@ -332,21 +353,24 @@ class RangeIndex(Int64Index):
         # solve intersection problem
         # performance hint: for identical step sizes, could use
         # cheaper alternative
-        gcd, s, t = self._extended_gcd(self._step, other._step)
+        gcd, s, t = first._extended_gcd(first._step, second._step)
 
         # check whether element sets intersect
-        if (self._start - other._start) % gcd:
+        if (first._start - second._start) % gcd:
             return RangeIndex._simple_new(None)
 
         # calculate parameters for the RangeIndex describing the
         # intersection disregarding the lower bounds
-        tmp_start = self._start + (other._start - self._start) * \
-            self._step // gcd * s
-        new_step = self._step * other._step // gcd
+        tmp_start = first._start + (second._start - first._start) * \
+            first._step // gcd * s
+        new_step = first._step * second._step // gcd
         new_index = RangeIndex(tmp_start, int_high, new_step, fastpath=True)
 
         # adjust index to limiting interval
         new_index._start = new_index._min_fitting_element(int_low)
+
+        if (self._step < 0 and other._step < 0) is not (new_index._step < 0):
+            new_index = new_index[::-1]
         return new_index
 
     def _min_fitting_element(self, lower_limit):
@@ -443,62 +467,8 @@ class RangeIndex(Int64Index):
         return super(RangeIndex, self).join(other, how, level, return_indexers,
                                             sort)
 
-    def append(self, other):
-        """
-        Append a collection of Index options together
-
-        Parameters
-        ----------
-        other : Index or list/tuple of indices
-
-        Returns
-        -------
-        appended : RangeIndex if all indexes are consecutive RangeIndexes,
-                   otherwise Int64Index or Index
-        """
-
-        to_concat = [self]
-
-        if isinstance(other, (list, tuple)):
-            to_concat = to_concat + list(other)
-        else:
-            to_concat.append(other)
-
-        if not all([isinstance(i, RangeIndex) for i in to_concat]):
-            return super(RangeIndex, self).append(other)
-
-        start = step = next = None
-
-        for obj in to_concat:
-            if not len(obj):
-                continue
-
-            if start is None:
-                # This is set by the first non-empty index
-                start = obj._start
-                if step is None and len(obj) > 1:
-                    step = obj._step
-            elif step is None:
-                # First non-empty index had only one element
-                if obj._start == start:
-                    return super(RangeIndex, self).append(other)
-                step = obj._start - start
-
-            non_consecutive = ((step != obj._step and len(obj) > 1) or
-                               (next is not None and obj._start != next))
-            if non_consecutive:
-                return super(RangeIndex, self).append(other)
-
-            if step is not None:
-                next = obj[-1] + step
-
-        if start is None:
-            start = obj._start
-            step = obj._step
-        stop = obj._stop if next is None else next
-        names = set([obj.name for obj in to_concat])
-        name = None if len(names) > 1 else self.name
-        return RangeIndex(start, stop, step, name=name)
+    def _concat_same_dtype(self, indexes, name):
+        return _concat._concat_rangeindex_same_dtype(indexes).rename(name)
 
     def __len__(self):
         """
@@ -647,8 +617,8 @@ class RangeIndex(Int64Index):
                     # for compat with numpy / Int64Index
                     # even if we can represent as a RangeIndex, return
                     # as a Float64Index if we have float-like descriptors
-                    if not all([is_integer(x) for x in
-                                [rstart, rstop, rstep]]):
+                    if not all(is_integer(x) for x in
+                               [rstart, rstop, rstep]):
                         result = result.astype('float64')
 
                     return result

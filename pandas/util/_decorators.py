@@ -1,13 +1,14 @@
-from pandas.compat import callable, signature
-from pandas._libs.lib import cache_readonly  # noqa
+from pandas.compat import callable, signature, PY2
+from pandas._libs.properties import cache_readonly  # noqa
+import inspect
 import types
 import warnings
-from textwrap import dedent
+from textwrap import dedent, wrap
 from functools import wraps, update_wrapper
 
 
 def deprecate(name, alternative, alt_name=None, klass=None,
-              stacklevel=2):
+              stacklevel=2, msg=None):
     """
     Return a new function that emits a deprecation warning on use.
 
@@ -21,16 +22,23 @@ def deprecate(name, alternative, alt_name=None, klass=None,
         Name to use in preference of alternative.__name__
     klass : Warning, default FutureWarning
     stacklevel : int, default 2
+    msg : str
+          The message to display in the warning.
+          Default is '{name} is deprecated. Use {alt_name} instead.'
     """
 
     alt_name = alt_name or alternative.__name__
     klass = klass or FutureWarning
+    msg = msg or "{} is deprecated, use {} instead".format(name, alt_name)
 
+    @wraps(alternative)
     def wrapper(*args, **kwargs):
-        msg = "{name} is deprecated. Use {alt_name} instead".format(
-            name=name, alt_name=alt_name)
         warnings.warn(msg, klass, stacklevel=stacklevel)
         return alternative(*args, **kwargs)
+
+    if getattr(wrapper, '__doc__', None) is not None:
+        wrapper.__doc__ = ('\n'.join(wrap(msg, 70)) + '\n'
+                           + dedent(wrapper.__doc__))
     return wrapper
 
 
@@ -116,6 +124,31 @@ def deprecate_kwarg(old_arg_name, new_arg_name, mapping=None, stacklevel=2):
         return wrapper
     return _deprecate_kwarg
 
+
+def rewrite_axis_style_signature(name, extra_params):
+    def decorate(func):
+        @wraps(func)
+        def wrapper(*args, **kwargs):
+            return func(*args, **kwargs)
+
+        if not PY2:
+            kind = inspect.Parameter.POSITIONAL_OR_KEYWORD
+            params = [
+                inspect.Parameter('self', kind),
+                inspect.Parameter(name, kind, default=None),
+                inspect.Parameter('index', kind, default=None),
+                inspect.Parameter('columns', kind, default=None),
+                inspect.Parameter('axis', kind, default=None),
+            ]
+
+            for pname, default in extra_params:
+                params.append(inspect.Parameter(pname, kind, default=default))
+
+            sig = inspect.Signature(params)
+
+            func.__signature__ = sig
+        return wrapper
+    return decorate
 
 # Substitution and Appender are derived from matplotlib.docstring (1.1.0)
 # module http://matplotlib.org/users/license.html
@@ -242,7 +275,7 @@ def make_signature(func):
         defaults = ('',) * n_wo_defaults
     else:
         n_wo_defaults = len(spec.args) - len(spec.defaults)
-        defaults = ('',) * n_wo_defaults + spec.defaults
+        defaults = ('',) * n_wo_defaults + tuple(spec.defaults)
     args = []
     for i, (var, default) in enumerate(zip(spec.args, defaults)):
         args.append(var if default == '' else var + '=' + repr(default))

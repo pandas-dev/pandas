@@ -10,8 +10,9 @@ from numpy import nan
 import numpy as np
 import pytest
 
-from pandas import (DataFrame, compat, option_context)
-from pandas.compat import StringIO, lrange, u
+from pandas import (DataFrame, Series, compat, option_context,
+                    date_range, period_range, Categorical)
+from pandas.compat import StringIO, lrange, u, PYPY
 import pandas.io.formats.format as fmt
 import pandas as pd
 
@@ -323,23 +324,6 @@ class TestDataFrameReprInfoEtc(TestData):
         # excluded column with object dtype, so estimate is accurate
         assert not re.match(r"memory usage: [^+]+\+", res[-1])
 
-        df_with_object_index = pd.DataFrame({'a': [1]}, index=['foo'])
-        df_with_object_index.info(buf=buf, memory_usage=True)
-        res = buf.getvalue().splitlines()
-        assert re.match(r"memory usage: [^+]+\+", res[-1])
-
-        df_with_object_index.info(buf=buf, memory_usage='deep')
-        res = buf.getvalue().splitlines()
-        assert re.match(r"memory usage: [^+]+$", res[-1])
-
-        assert (df_with_object_index.memory_usage(
-            index=True, deep=True).sum() > df_with_object_index.memory_usage(
-            index=True).sum())
-
-        df_object = pd.DataFrame({'a': ['a']})
-        assert (df_object.memory_usage(deep=True).sum() >
-                df_object.memory_usage().sum())
-
         # Test a DataFrame with duplicate columns
         dtypes = ['int64', 'int64', 'int64', 'float64']
         data = {}
@@ -348,6 +332,15 @@ class TestDataFrameReprInfoEtc(TestData):
             data[i] = np.random.randint(2, size=n).astype(dtype)
         df = DataFrame(data)
         df.columns = dtypes
+
+        df_with_object_index = pd.DataFrame({'a': [1]}, index=['foo'])
+        df_with_object_index.info(buf=buf, memory_usage=True)
+        res = buf.getvalue().splitlines()
+        assert re.match(r"memory usage: [^+]+\+", res[-1])
+
+        df_with_object_index.info(buf=buf, memory_usage='deep')
+        res = buf.getvalue().splitlines()
+        assert re.match(r"memory usage: [^+]+$", res[-1])
 
         # Ensure df size is as expected
         # (cols * rows * bytes) + index size
@@ -377,9 +370,47 @@ class TestDataFrameReprInfoEtc(TestData):
         df.memory_usage(index=True)
         df.index.values.nbytes
 
+        mem = df.memory_usage(deep=True).sum()
+        assert mem > 0
+
+    @pytest.mark.skipif(PYPY,
+                        reason="on PyPy deep=True doesn't change result")
+    def test_info_memory_usage_deep_not_pypy(self):
+        df_with_object_index = pd.DataFrame({'a': [1]}, index=['foo'])
+        assert (df_with_object_index.memory_usage(
+                index=True, deep=True).sum() >
+                df_with_object_index.memory_usage(
+                    index=True).sum())
+
+        df_object = pd.DataFrame({'a': ['a']})
+        assert (df_object.memory_usage(deep=True).sum() >
+                df_object.memory_usage().sum())
+
+    @pytest.mark.skipif(not PYPY,
+                        reason="on PyPy deep=True does not change result")
+    def test_info_memory_usage_deep_pypy(self):
+        df_with_object_index = pd.DataFrame({'a': [1]}, index=['foo'])
+        assert (df_with_object_index.memory_usage(
+                index=True, deep=True).sum() ==
+                df_with_object_index.memory_usage(
+                    index=True).sum())
+
+        df_object = pd.DataFrame({'a': ['a']})
+        assert (df_object.memory_usage(deep=True).sum() ==
+                df_object.memory_usage().sum())
+
+    @pytest.mark.skipif(PYPY, reason="PyPy getsizeof() fails by design")
+    def test_usage_via_getsizeof(self):
+        df = DataFrame(
+            data=1,
+            index=pd.MultiIndex.from_product(
+                [['a'], range(1000)]),
+            columns=['A']
+        )
+        mem = df.memory_usage(deep=True).sum()
         # sys.getsizeof will call the .memory_usage with
         # deep=True, and add on some GC overhead
-        diff = df.memory_usage(deep=True).sum() - sys.getsizeof(df)
+        diff = mem - sys.getsizeof(df)
         assert abs(diff) < 100
 
     def test_info_memory_usage_qualified(self):
@@ -441,3 +472,34 @@ class TestDataFrameReprInfoEtc(TestData):
 
         buf = StringIO()
         df.info(buf=buf)
+
+    def test_info_categorical_column(self):
+
+        # make sure it works
+        n = 2500
+        df = DataFrame({'int64': np.random.randint(100, size=n)})
+        df['category'] = Series(np.array(list('abcdefghij')).take(
+            np.random.randint(0, 10, size=n))).astype('category')
+        df.isna()
+        buf = StringIO()
+        df.info(buf=buf)
+
+        df2 = df[df['category'] == 'd']
+        buf = compat.StringIO()
+        df2.info(buf=buf)
+
+    def test_repr_categorical_dates_periods(self):
+        # normal DataFrame
+        dt = date_range('2011-01-01 09:00', freq='H', periods=5,
+                        tz='US/Eastern')
+        p = period_range('2011-01', freq='M', periods=5)
+        df = DataFrame({'dt': dt, 'p': p})
+        exp = """                         dt       p
+0 2011-01-01 09:00:00-05:00 2011-01
+1 2011-01-01 10:00:00-05:00 2011-02
+2 2011-01-01 11:00:00-05:00 2011-03
+3 2011-01-01 12:00:00-05:00 2011-04
+4 2011-01-01 13:00:00-05:00 2011-05"""
+
+        df = DataFrame({'dt': Categorical(dt), 'p': Categorical(p)})
+        assert repr(df) == exp

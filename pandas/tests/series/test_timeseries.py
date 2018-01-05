@@ -8,6 +8,7 @@ from datetime import datetime, timedelta, time
 
 import pandas as pd
 import pandas.util.testing as tm
+import pandas.util._test_decorators as td
 from pandas._libs.tslib import iNaT
 from pandas.compat import lrange, StringIO, product
 from pandas.core.indexes.timedeltas import TimedeltaIndex
@@ -17,7 +18,7 @@ from pandas import (Index, Series, date_range, NaT, concat, DataFrame,
                     Timestamp, to_datetime, offsets,
                     timedelta_range)
 from pandas.util.testing import (assert_series_equal, assert_almost_equal,
-                                 assert_frame_equal, _skip_if_has_locale)
+                                 assert_frame_equal)
 
 from pandas.tests.series.common import TestData
 
@@ -41,7 +42,7 @@ class TestTimeSeries(TestData):
 
         tm.assert_index_equal(shifted.index, self.ts.index)
         tm.assert_index_equal(unshifted.index, self.ts.index)
-        tm.assert_numpy_array_equal(unshifted.valid().values,
+        tm.assert_numpy_array_equal(unshifted.dropna().values,
                                     self.ts.values[:-1])
 
         offset = BDay()
@@ -68,7 +69,7 @@ class TestTimeSeries(TestData):
         unshifted = shifted.shift(-1)
         tm.assert_index_equal(shifted.index, ps.index)
         tm.assert_index_equal(unshifted.index, ps.index)
-        tm.assert_numpy_array_equal(unshifted.valid().values, ps.values[:-1])
+        tm.assert_numpy_array_equal(unshifted.dropna().values, ps.values[:-1])
 
         shifted2 = ps.shift(1, 'B')
         shifted3 = ps.shift(1, BDay())
@@ -106,7 +107,7 @@ class TestTimeSeries(TestData):
         # incompat tz
         s2 = Series(date_range('2000-01-01 09:00:00', periods=5,
                                tz='CET'), name='foo')
-        pytest.raises(ValueError, lambda: s - s2)
+        pytest.raises(TypeError, lambda: s - s2)
 
     def test_shift2(self):
         ts = Series(np.random.randn(5),
@@ -134,13 +135,13 @@ class TestTimeSeries(TestData):
         assert res.dtype == 'datetime64[ns, US/Eastern]'
 
         res = s.shift(1)
-        exp_vals = [NaT] + dates.asobject.values.tolist()[:9]
+        exp_vals = [NaT] + dates.astype(object).values.tolist()[:9]
         exp = Series(exp_vals)
         tm.assert_series_equal(res, exp)
         assert res.dtype == 'datetime64[ns, US/Eastern]'
 
         res = s.shift(-2)
-        exp_vals = dates.asobject.values.tolist()[2:] + [NaT, NaT]
+        exp_vals = dates.astype(object).values.tolist()[2:] + [NaT, NaT]
         exp = Series(exp_vals)
         tm.assert_series_equal(res, exp)
         assert res.dtype == 'datetime64[ns, US/Eastern]'
@@ -235,6 +236,22 @@ class TestTimeSeries(TestData):
         pytest.raises(ValueError, ts.truncate,
                       before=self.ts.index[-1] + offset,
                       after=self.ts.index[0] - offset)
+
+    def test_truncate_nonsortedindex(self):
+        # GH 17935
+
+        s = pd.Series(['a', 'b', 'c', 'd', 'e'],
+                      index=[5, 3, 2, 9, 0])
+        with tm.assert_raises_regex(ValueError,
+                                    'truncate requires a sorted index'):
+            s.truncate(before=3, after=9)
+
+        rng = pd.date_range('2011-01-01', '2012-01-01', freq='W')
+        ts = pd.Series(np.random.randn(len(rng)), index=rng)
+        with tm.assert_raises_regex(ValueError,
+                                    'truncate requires a sorted index'):
+            ts.sort_values(ascending=False).truncate(before='2011-11',
+                                                     after='2011-12')
 
     def test_asfreq(self):
         ts = Series([0., 1., 2.], index=[datetime(2009, 10, 30), datetime(
@@ -722,10 +739,9 @@ class TestTimeSeries(TestData):
         pytest.raises(ValueError, series.between_time,
                       datetime(2010, 1, 2, 1), datetime(2010, 1, 2, 5))
 
+    @td.skip_if_has_locale
     def test_between_time_formats(self):
         # GH11818
-        _skip_if_has_locale()
-
         rng = date_range('1/1/2000', '1/5/2000', freq='5min')
         ts = DataFrame(np.random.randn(len(rng), 2), index=rng)
 
@@ -919,8 +935,9 @@ class TestTimeSeries(TestData):
         assert isinstance(s[0], Timestamp)
         assert s[0] == dates[0][0]
 
-        s = Series.from_array(arr['Date'], Index([0]))
-        assert s[0] == dates[0][0]
+        with pytest.warns(FutureWarning):
+            s = Series.from_array(arr['Date'], Index([0]))
+            assert s[0] == dates[0][0]
 
     def test_get_level_values_box(self):
         from pandas import MultiIndex

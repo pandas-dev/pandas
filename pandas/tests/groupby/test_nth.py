@@ -2,7 +2,10 @@ import numpy as np
 import pandas as pd
 from pandas import DataFrame, MultiIndex, Index, Series, isna
 from pandas.compat import lrange
-from pandas.util.testing import assert_frame_equal, assert_series_equal
+from pandas.util.testing import (
+    assert_frame_equal,
+    assert_produces_warning,
+    assert_series_equal)
 
 from .common import MixIn
 
@@ -171,7 +174,10 @@ class TestNth(MixIn):
         # doc example
         df = DataFrame([[1, np.nan], [1, 4], [5, 6]], columns=['A', 'B'])
         g = df.groupby('A')
-        result = g.B.nth(0, dropna=True)
+        # PR 17493, related to issue 11038
+        # test Series.nth with True for dropna produces FutureWarning
+        with assert_produces_warning(FutureWarning):
+            result = g.B.nth(0, dropna=True)
         expected = g.B.first()
         assert_series_equal(result, expected)
 
@@ -196,7 +202,7 @@ class TestNth(MixIn):
                                        freq='B')
         df = DataFrame(1, index=business_dates, columns=['a', 'b'])
         # get the first, fourth and last two business days for each month
-        key = (df.index.year, df.index.month)
+        key = [df.index.year, df.index.month]
         result = df.groupby(key, as_index=False).nth([0, 3, -2, -1])
         expected_dates = pd.to_datetime(
             ['2014/4/1', '2014/4/4', '2014/4/29', '2014/4/30', '2014/5/1',
@@ -231,6 +237,84 @@ class TestNth(MixIn):
                                           ['one', 'two', 'one', 'two']],
                                          names=['A', 'B']))
         assert_frame_equal(result, expected)
+
+    def test_groupby_head_tail(self):
+        df = DataFrame([[1, 2], [1, 4], [5, 6]], columns=['A', 'B'])
+        g_as = df.groupby('A', as_index=True)
+        g_not_as = df.groupby('A', as_index=False)
+
+        # as_index= False, much easier
+        assert_frame_equal(df.loc[[0, 2]], g_not_as.head(1))
+        assert_frame_equal(df.loc[[1, 2]], g_not_as.tail(1))
+
+        empty_not_as = DataFrame(columns=df.columns,
+                                 index=pd.Index([], dtype=df.index.dtype))
+        empty_not_as['A'] = empty_not_as['A'].astype(df.A.dtype)
+        empty_not_as['B'] = empty_not_as['B'].astype(df.B.dtype)
+        assert_frame_equal(empty_not_as, g_not_as.head(0))
+        assert_frame_equal(empty_not_as, g_not_as.tail(0))
+        assert_frame_equal(empty_not_as, g_not_as.head(-1))
+        assert_frame_equal(empty_not_as, g_not_as.tail(-1))
+
+        assert_frame_equal(df, g_not_as.head(7))  # contains all
+        assert_frame_equal(df, g_not_as.tail(7))
+
+        # as_index=True, (used to be different)
+        df_as = df
+
+        assert_frame_equal(df_as.loc[[0, 2]], g_as.head(1))
+        assert_frame_equal(df_as.loc[[1, 2]], g_as.tail(1))
+
+        empty_as = DataFrame(index=df_as.index[:0], columns=df.columns)
+        empty_as['A'] = empty_not_as['A'].astype(df.A.dtype)
+        empty_as['B'] = empty_not_as['B'].astype(df.B.dtype)
+        assert_frame_equal(empty_as, g_as.head(0))
+        assert_frame_equal(empty_as, g_as.tail(0))
+        assert_frame_equal(empty_as, g_as.head(-1))
+        assert_frame_equal(empty_as, g_as.tail(-1))
+
+        assert_frame_equal(df_as, g_as.head(7))  # contains all
+        assert_frame_equal(df_as, g_as.tail(7))
+
+        # test with selection
+        assert_frame_equal(g_as[[]].head(1), df_as.loc[[0, 2], []])
+        assert_frame_equal(g_as[['A']].head(1), df_as.loc[[0, 2], ['A']])
+        assert_frame_equal(g_as[['B']].head(1), df_as.loc[[0, 2], ['B']])
+        assert_frame_equal(g_as[['A', 'B']].head(1), df_as.loc[[0, 2]])
+
+        assert_frame_equal(g_not_as[[]].head(1), df_as.loc[[0, 2], []])
+        assert_frame_equal(g_not_as[['A']].head(1), df_as.loc[[0, 2], ['A']])
+        assert_frame_equal(g_not_as[['B']].head(1), df_as.loc[[0, 2], ['B']])
+        assert_frame_equal(g_not_as[['A', 'B']].head(1), df_as.loc[[0, 2]])
+
+    def test_group_selection_cache(self):
+        # GH 12839 nth, head, and tail should return same result consistently
+        df = DataFrame([[1, 2], [1, 4], [5, 6]], columns=['A', 'B'])
+        expected = df.iloc[[0, 2]].set_index('A')
+
+        g = df.groupby('A')
+        result1 = g.head(n=2)
+        result2 = g.nth(0)
+        assert_frame_equal(result1, df)
+        assert_frame_equal(result2, expected)
+
+        g = df.groupby('A')
+        result1 = g.tail(n=2)
+        result2 = g.nth(0)
+        assert_frame_equal(result1, df)
+        assert_frame_equal(result2, expected)
+
+        g = df.groupby('A')
+        result1 = g.nth(0)
+        result2 = g.head(n=2)
+        assert_frame_equal(result1, expected)
+        assert_frame_equal(result2, df)
+
+        g = df.groupby('A')
+        result1 = g.nth(0)
+        result2 = g.tail(n=2)
+        assert_frame_equal(result1, expected)
+        assert_frame_equal(result2, df)
 
 
 def test_nth_empty():

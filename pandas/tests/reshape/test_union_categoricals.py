@@ -90,7 +90,8 @@ class TestUnionCategoricals(object):
         tm.assert_categorical_equal(res, exp)
 
         # all NaN
-        res = union_categoricals([pd.Categorical([np.nan, np.nan]),
+        res = union_categoricals([pd.Categorical(np.array([np.nan, np.nan],
+                                                          dtype=object)),
                                   pd.Categorical(['X'])])
         exp = Categorical([np.nan, np.nan, 'X'])
         tm.assert_categorical_equal(res, exp)
@@ -107,16 +108,10 @@ class TestUnionCategoricals(object):
         exp = Categorical([])
         tm.assert_categorical_equal(res, exp)
 
-        res = union_categoricals([pd.Categorical([]),
-                                  pd.Categorical([1.0])])
-        exp = Categorical([1.0])
+        res = union_categoricals([Categorical([]),
+                                  Categorical(['1'])])
+        exp = Categorical(['1'])
         tm.assert_categorical_equal(res, exp)
-
-        # to make dtype equal
-        nanc = pd.Categorical(np.array([np.nan], dtype=np.float64))
-        res = union_categoricals([nanc,
-                                  pd.Categorical([])])
-        tm.assert_categorical_equal(res, nanc)
 
     def test_union_categorical_same_category(self):
         # check fastpath
@@ -256,7 +251,7 @@ class TestUnionCategoricals(object):
         c1 = Categorical([np.nan])
         c2 = Categorical([np.nan])
         result = union_categoricals([c1, c2], sort_categories=True)
-        expected = Categorical([np.nan, np.nan], categories=[])
+        expected = Categorical([np.nan, np.nan])
         tm.assert_categorical_equal(result, expected)
 
         c1 = Categorical([])
@@ -305,7 +300,7 @@ class TestUnionCategoricals(object):
         c1 = Categorical([np.nan])
         c2 = Categorical([np.nan])
         result = union_categoricals([c1, c2], sort_categories=False)
-        expected = Categorical([np.nan, np.nan], categories=[])
+        expected = Categorical([np.nan, np.nan])
         tm.assert_categorical_equal(result, expected)
 
         c1 = Categorical([])

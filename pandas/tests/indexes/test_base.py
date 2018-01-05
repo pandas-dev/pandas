@@ -4,20 +4,23 @@ import pytest
 
 from datetime import datetime, timedelta
 
+from collections import defaultdict
+
 import pandas.util.testing as tm
+from pandas.core.dtypes.common import is_unsigned_integer_dtype
 from pandas.core.indexes.api import Index, MultiIndex
 from pandas.tests.indexes.common import Base
 
 from pandas.compat import (range, lrange, lzip, u,
-                           text_type, zip, PY3, PY36)
+                           text_type, zip, PY3, PY36, PYPY)
 import operator
 import numpy as np
 
 from pandas import (period_range, date_range, Series,
-                    DataFrame, Float64Index, Int64Index,
+                    DataFrame, Float64Index, Int64Index, UInt64Index,
                     CategoricalIndex, DatetimeIndex, TimedeltaIndex,
                     PeriodIndex, isna)
-from pandas.core.index import _get_combined_index
+from pandas.core.index import _get_combined_index, _ensure_index_from_sequences
 from pandas.util.testing import assert_almost_equal
 from pandas.compat.numpy import np_datetime64_compat
 
@@ -46,7 +49,8 @@ class TestIndex(Base):
                             catIndex=tm.makeCategoricalIndex(100),
                             empty=Index([]),
                             tuples=MultiIndex.from_tuples(lzip(
-                                ['foo', 'bar', 'baz'], [1, 2, 3])))
+                                ['foo', 'bar', 'baz'], [1, 2, 3])),
+                            repeats=Index([0, 0, 1, 1, 2, 2]))
         self.setup_indices()
 
     def create_index(self):
@@ -57,8 +61,8 @@ class TestIndex(Base):
         assert new_index.ndim == 2
         assert isinstance(new_index, np.ndarray)
 
-    def test_copy_and_deepcopy(self):
-        super(TestIndex, self).test_copy_and_deepcopy()
+    def test_copy_and_deepcopy(self, indices):
+        super(TestIndex, self).test_copy_and_deepcopy(indices)
 
         new_copy2 = self.intIndex.copy(dtype=int)
         assert new_copy2.dtype.kind == 'i'
@@ -102,6 +106,15 @@ class TestIndex(Base):
         assert isinstance(idx2, Index)
         assert not isinstance(idx2, MultiIndex)
 
+    @pytest.mark.parametrize('na_value', [None, np.nan])
+    @pytest.mark.parametrize('vtype', [list, tuple, iter])
+    def test_construction_list_tuples_nan(self, na_value, vtype):
+        # GH 18505 : valid tuples containing NaN
+        values = [(1, 'two'), (3., na_value)]
+        result = Index(vtype(values))
+        expected = MultiIndex.from_tuples(values)
+        tm.assert_index_equal(result, expected)
+
     def test_constructor_from_index_datetimetz(self):
         idx = pd.date_range('2015-01-01 10:00', freq='D', periods=3,
                             tz='US/Eastern')
@@ -109,7 +122,7 @@ class TestIndex(Base):
         tm.assert_index_equal(result, idx)
         assert result.tz == idx.tz
 
-        result = pd.Index(idx.asobject)
+        result = pd.Index(idx.astype(object))
         tm.assert_index_equal(result, idx)
         assert result.tz == idx.tz
 
@@ -118,7 +131,7 @@ class TestIndex(Base):
         result = pd.Index(idx)
         tm.assert_index_equal(result, idx)
 
-        result = pd.Index(idx.asobject)
+        result = pd.Index(idx.astype(object))
         tm.assert_index_equal(result, idx)
 
     def test_constructor_from_index_period(self):
@@ -126,7 +139,7 @@ class TestIndex(Base):
         result = pd.Index(idx)
         tm.assert_index_equal(result, idx)
 
-        result = pd.Index(idx.asobject)
+        result = pd.Index(idx.astype(object))
         tm.assert_index_equal(result, idx)
 
     def test_constructor_from_series_datetimetz(self):
@@ -199,6 +212,20 @@ class TestIndex(Base):
             expected = pd.Index(array)
             result = pd.Index(ArrayLike(array))
             tm.assert_index_equal(result, expected)
+
+    @pytest.mark.parametrize('dtype', [
+        int, 'int64', 'int32', 'int16', 'int8', 'uint64', 'uint32',
+        'uint16', 'uint8'])
+    def test_constructor_int_dtype_float(self, dtype):
+        # GH 18400
+        if is_unsigned_integer_dtype(dtype):
+            index_type = UInt64Index
+        else:
+            index_type = Int64Index
+
+        expected = index_type([0, 1, 2, 3])
+        result = Index([0., 1., 2., 3.], dtype=dtype)
+        tm.assert_index_equal(result, expected)
 
     def test_constructor_int_dtype_nan(self):
         # see gh-15187
@@ -441,6 +468,12 @@ class TestIndex(Base):
         null_index = Index([])
         tm.assert_index_equal(Index(['a']), null_index.insert(0, 'a'))
 
+        # GH 18295 (test missing)
+        expected = Index(['a', np.nan, 'b', 'c'])
+        for na in (np.nan, pd.NaT, None):
+            result = Index(list('abc')).insert(1, na)
+            tm.assert_index_equal(result, expected)
+
     def test_delete(self):
         idx = Index(['a', 'b', 'c', 'd'], name='idx')
 
@@ -590,12 +623,13 @@ class TestIndex(Base):
             # Index.
             pytest.raises(IndexError, idx.__getitem__, empty_farr)
 
-    def test_getitem(self):
-        arr = np.array(self.dateIndex)
-        exp = self.dateIndex[5]
-        exp = _to_m8(exp)
+    def test_getitem_error(self, indices):
 
-        assert exp == arr[5]
+        with pytest.raises(IndexError):
+            indices[101]
+
+        with pytest.raises(IndexError):
+            indices['no_int']
 
     def test_intersection(self):
         first = self.strIndex[:20]
@@ -662,6 +696,15 @@ class TestIndex(Base):
         second.name = 'B'
         intersect = first.intersection(second)
         assert intersect.name is None
+
+    def test_intersect_str_dates(self):
+        dt_dates = [datetime(2012, 2, 9), datetime(2012, 2, 22)]
+
+        i1 = Index(dt_dates, dtype=object)
+        i2 = Index(['aa'], dtype=object)
+        res = i2.intersection(i1)
+
+        assert len(res) == 0
 
     def test_union(self):
         first = self.strIndex[5:20]
@@ -818,6 +861,61 @@ class TestIndex(Base):
         date_index = tm.makeDateIndex(24, freq='h', name='hourly')
         exp = Index(range(24), name='hourly')
         tm.assert_index_equal(exp, date_index.map(lambda x: x.hour))
+
+    @pytest.mark.parametrize(
+        "mapper",
+        [
+            lambda values, index: {i: e for e, i in zip(values, index)},
+            lambda values, index: pd.Series(values, index)])
+    def test_map_dictlike(self, mapper):
+        # GH 12756
+        expected = Index(['foo', 'bar', 'baz'])
+        result = tm.makeIntIndex(3).map(mapper(expected.values, [0, 1, 2]))
+        tm.assert_index_equal(result, expected)
+
+        for name in self.indices.keys():
+            if name == 'catIndex':
+                # Tested in test_categorical
+                continue
+            elif name == 'repeats':
+                # Cannot map duplicated index
+                continue
+
+            index = self.indices[name]
+            expected = Index(np.arange(len(index), 0, -1))
+
+            # to match proper result coercion for uints
+            if name == 'empty':
+                expected = Index([])
+
+            result = index.map(mapper(expected, index))
+            tm.assert_index_equal(result, expected)
+
+    def test_map_with_non_function_missing_values(self):
+        # GH 12756
+        expected = Index([2., np.nan, 'foo'])
+        input = Index([2, 1, 0])
+
+        mapper = Series(['foo', 2., 'baz'], index=[0, 2, -1])
+        tm.assert_index_equal(expected, input.map(mapper))
+
+        mapper = {0: 'foo', 2: 2.0, -1: 'baz'}
+        tm.assert_index_equal(expected, input.map(mapper))
+
+    def test_map_na_exclusion(self):
+        idx = Index([1.5, np.nan, 3, np.nan, 5])
+
+        result = idx.map(lambda x: x * 2, na_action='ignore')
+        exp = idx * 2
+        tm.assert_index_equal(result, exp)
+
+    def test_map_defaultdict(self):
+        idx = Index([1, 2, 3])
+        default_dict = defaultdict(lambda: 'blank')
+        default_dict[1] = 'stuff'
+        result = idx.map(default_dict)
+        expected = Index(['stuff', 'blank', 'blank'])
+        tm.assert_index_equal(result, expected)
 
     def test_append_multiple(self):
         index = Index(['a', 'b', 'c', 'd', 'e', 'f'])
@@ -977,7 +1075,7 @@ class TestIndex(Base):
         # GH 14626
         # windows has different precision on datetime.datetime.now (it doesn't
         # include us since the default for Timestamp shows these but Index
-        # formating does not we are skipping)
+        # formatting does not we are skipping)
         now = datetime.now()
         if not str(now).endswith("000"):
             index = Index([now])
@@ -1073,39 +1171,57 @@ class TestIndex(Base):
         with tm.assert_raises_regex(ValueError, 'limit argument'):
             idx.get_indexer([1, 0], limit=1)
 
-    def test_get_indexer_nearest(self):
+    @pytest.mark.parametrize(
+        'method, tolerance, indexer, expected',
+        [
+            ('pad', None, [0, 5, 9], [0, 5, 9]),
+            ('backfill', None, [0, 5, 9], [0, 5, 9]),
+            ('nearest', None, [0, 5, 9], [0, 5, 9]),
+            ('pad', 0, [0, 5, 9], [0, 5, 9]),
+            ('backfill', 0, [0, 5, 9], [0, 5, 9]),
+            ('nearest', 0, [0, 5, 9], [0, 5, 9]),
+
+            ('pad', None, [0.2, 1.8, 8.5], [0, 1, 8]),
+            ('backfill', None, [0.2, 1.8, 8.5], [1, 2, 9]),
+            ('nearest', None, [0.2, 1.8, 8.5], [0, 2, 9]),
+            ('pad', 1, [0.2, 1.8, 8.5], [0, 1, 8]),
+            ('backfill', 1, [0.2, 1.8, 8.5], [1, 2, 9]),
+            ('nearest', 1, [0.2, 1.8, 8.5], [0, 2, 9]),
+
+            ('pad', 0.2, [0.2, 1.8, 8.5], [0, -1, -1]),
+            ('backfill', 0.2, [0.2, 1.8, 8.5], [-1, 2, -1]),
+            ('nearest', 0.2, [0.2, 1.8, 8.5], [0, 2, -1])])
+    def test_get_indexer_nearest(self, method, tolerance, indexer, expected):
         idx = Index(np.arange(10))
 
-        all_methods = ['pad', 'backfill', 'nearest']
-        for method in all_methods:
-            actual = idx.get_indexer([0, 5, 9], method=method)
-            tm.assert_numpy_array_equal(actual, np.array([0, 5, 9],
-                                                         dtype=np.intp))
+        actual = idx.get_indexer(indexer, method=method, tolerance=tolerance)
+        tm.assert_numpy_array_equal(actual, np.array(expected,
+                                                     dtype=np.intp))
 
-            actual = idx.get_indexer([0, 5, 9], method=method, tolerance=0)
-            tm.assert_numpy_array_equal(actual, np.array([0, 5, 9],
-                                                         dtype=np.intp))
+    @pytest.mark.parametrize('listtype', [list, tuple, Series, np.array])
+    @pytest.mark.parametrize(
+        'tolerance, expected',
+        list(zip([[0.3, 0.3, 0.1], [0.2, 0.1, 0.1],
+                  [0.1, 0.5, 0.5]],
+                 [[0, 2, -1], [0, -1, -1],
+                  [-1, 2, 9]])))
+    def test_get_indexer_nearest_listlike_tolerance(self, tolerance,
+                                                    expected, listtype):
+        idx = Index(np.arange(10))
 
-        for method, expected in zip(all_methods, [[0, 1, 8], [1, 2, 9],
-                                                  [0, 2, 9]]):
-            actual = idx.get_indexer([0.2, 1.8, 8.5], method=method)
-            tm.assert_numpy_array_equal(actual, np.array(expected,
-                                                         dtype=np.intp))
+        actual = idx.get_indexer([0.2, 1.8, 8.5], method='nearest',
+                                 tolerance=listtype(tolerance))
+        tm.assert_numpy_array_equal(actual, np.array(expected,
+                                                     dtype=np.intp))
 
-            actual = idx.get_indexer([0.2, 1.8, 8.5], method=method,
-                                     tolerance=1)
-            tm.assert_numpy_array_equal(actual, np.array(expected,
-                                                         dtype=np.intp))
-
-        for method, expected in zip(all_methods, [[0, -1, -1], [-1, 2, -1],
-                                                  [0, 2, -1]]):
-            actual = idx.get_indexer([0.2, 1.8, 8.5], method=method,
-                                     tolerance=0.2)
-            tm.assert_numpy_array_equal(actual, np.array(expected,
-                                                         dtype=np.intp))
-
+    def test_get_indexer_nearest_error(self):
+        idx = Index(np.arange(10))
         with tm.assert_raises_regex(ValueError, 'limit argument'):
             idx.get_indexer([1, 0], method='nearest', limit=1)
+
+        with pytest.raises(ValueError, match='tolerance size must match'):
+            idx.get_indexer([1, 0], method='nearest',
+                            tolerance=[1, 2, 3])
 
     def test_get_indexer_nearest_decreasing(self):
         idx = Index(np.arange(10))[::-1]
@@ -1139,6 +1255,17 @@ class TestIndex(Base):
         with pytest.raises(TypeError):
             idx.get_indexer(['a', 'b', 'c', 'd'], method='pad', tolerance=2)
 
+        with pytest.raises(TypeError):
+            idx.get_indexer(['a', 'b', 'c', 'd'], method='pad',
+                            tolerance=[2, 2, 2, 2])
+
+    def test_get_indexer_numeric_index_boolean_target(self):
+        # GH 16877
+        numeric_idx = pd.Index(range(4))
+        result = numeric_idx.get_indexer([True, False, True])
+        expected = np.array([-1, -1, -1], dtype=np.intp)
+        tm.assert_numpy_array_equal(result, expected)
+
     def test_get_loc(self):
         idx = pd.Index([0, 1, 2])
         all_methods = [None, 'pad', 'backfill', 'nearest']
@@ -1163,6 +1290,8 @@ class TestIndex(Base):
             idx.get_loc(1.1, 'nearest', tolerance='invalid')
         with tm.assert_raises_regex(ValueError, 'tolerance .* valid if'):
             idx.get_loc(1.1, tolerance=1)
+        with pytest.raises(ValueError, match='tolerance size must match'):
+            idx.get_loc(1.1, 'nearest', tolerance=[1, 1])
 
         idx = pd.Index(['a', 'c'])
         with pytest.raises(TypeError):
@@ -1308,6 +1437,27 @@ class TestIndex(Base):
         expected = Index([1, 2])
         tm.assert_index_equal(dropped, expected)
 
+    @pytest.mark.parametrize("values", [['a', 'b', ('c', 'd')],
+                                        ['a', ('c', 'd'), 'b'],
+                                        [('c', 'd'), 'a', 'b']])
+    @pytest.mark.parametrize("to_drop", [[('c', 'd'), 'a'], ['a', ('c', 'd')]])
+    def test_drop_tuple(self, values, to_drop):
+        # GH 18304
+        index = pd.Index(values)
+        expected = pd.Index(['b'])
+
+        result = index.drop(to_drop)
+        tm.assert_index_equal(result, expected)
+
+        removed = index.drop(to_drop[0])
+        for drop_me in to_drop[1], [to_drop[1]]:
+            result = removed.drop(drop_me)
+            tm.assert_index_equal(result, expected)
+
+        removed = index.drop(to_drop[1])
+        for drop_me in to_drop[1], [to_drop[1]]:
+            pytest.raises(ValueError, removed.drop, drop_me)
+
     def test_tuple_union_bug(self):
         import pandas
         import numpy as np
@@ -1368,13 +1518,21 @@ class TestIndex(Base):
         assert len(result) == 0
         assert result.dtype == np.bool_
 
-    def test_isin_nan(self):
+    @pytest.mark.skipif(PYPY, reason="np.nan is float('nan') on PyPy")
+    def test_isin_nan_not_pypy(self):
+        tm.assert_numpy_array_equal(Index(['a', np.nan]).isin([float('nan')]),
+                                    np.array([False, False]))
+
+    @pytest.mark.skipif(not PYPY, reason="np.nan is float('nan') on PyPy")
+    def test_isin_nan_pypy(self):
+        tm.assert_numpy_array_equal(Index(['a', np.nan]).isin([float('nan')]),
+                                    np.array([False, True]))
+
+    def test_isin_nan_common(self):
         tm.assert_numpy_array_equal(Index(['a', np.nan]).isin([np.nan]),
                                     np.array([False, True]))
         tm.assert_numpy_array_equal(Index(['a', pd.NaT]).isin([pd.NaT]),
                                     np.array([False, True]))
-        tm.assert_numpy_array_equal(Index(['a', np.nan]).isin([float('nan')]),
-                                    np.array([False, False]))
         tm.assert_numpy_array_equal(Index(['a', np.nan]).isin([pd.NaT]),
                                     np.array([False, False]))
 
@@ -1436,6 +1594,12 @@ class TestIndex(Base):
     def test_get_level_values(self):
         result = self.strIndex.get_level_values(0)
         tm.assert_index_equal(result, self.strIndex)
+
+        # test for name (GH 17414)
+        index_with_name = self.strIndex.copy()
+        index_with_name.name = 'a'
+        result = index_with_name.get_level_values('a')
+        tm.assert_index_equal(result, index_with_name)
 
     def test_slice_keep_name(self):
         idx = Index(['a', 'b'], name='asdf')
@@ -1548,12 +1712,6 @@ class TestIndex(Base):
 
         with pytest.raises(IndexError):
             idx.take(np.array([1, -5]))
-
-    def test_reshape_raise(self):
-        msg = "reshaping is not supported"
-        idx = pd.Index([0, 1, 2])
-        tm.assert_raises_regex(NotImplementedError, msg,
-                               idx.reshape, idx.shape)
 
     def test_reindex_preserves_name_if_target_is_list_or_ndarray(self):
         # GH6552
@@ -2111,3 +2269,27 @@ class TestMixedIntIndex(Base):
         res = i2.intersection(i1)
 
         assert len(res) == 0
+
+
+class TestIndexUtils(object):
+
+    @pytest.mark.parametrize('data, names, expected', [
+        ([[1, 2, 3]], None, Index([1, 2, 3])),
+        ([[1, 2, 3]], ['name'], Index([1, 2, 3], name='name')),
+        ([['a', 'a'], ['c', 'd']], None,
+         MultiIndex([['a'], ['c', 'd']], [[0, 0], [0, 1]])),
+        ([['a', 'a'], ['c', 'd']], ['L1', 'L2'],
+         MultiIndex([['a'], ['c', 'd']], [[0, 0], [0, 1]],
+                    names=['L1', 'L2'])),
+    ])
+    def test_ensure_index_from_sequences(self, data, names, expected):
+        result = _ensure_index_from_sequences(data, names)
+        tm.assert_index_equal(result, expected)
+
+
+@pytest.mark.parametrize('opname', ['eq', 'ne', 'le', 'lt', 'ge', 'gt'])
+def test_generated_op_names(opname, indices):
+    index = indices
+    opname = '__{name}__'.format(name=opname)
+    method = getattr(index, opname)
+    assert method.__name__ == opname

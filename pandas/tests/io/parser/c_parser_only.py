@@ -16,8 +16,8 @@ import numpy as np
 
 import pandas as pd
 import pandas.util.testing as tm
+import pandas.util._test_decorators as td
 from pandas import DataFrame
-from pandas import compat
 from pandas.compat import StringIO, range, lrange
 
 
@@ -129,9 +129,8 @@ nan 2
                           dtype={'A': 'U8'},
                           index_col=0)
 
+    @td.skip_if_32bit
     def test_precise_conversion(self):
-        # see gh-8002
-        tm._skip_if_32bit()
         from decimal import Decimal
 
         normal_errors = []
@@ -160,25 +159,6 @@ nan 2
 
         assert sum(precise_errors) <= sum(normal_errors)
         assert max(precise_errors) <= max(normal_errors)
-
-    def test_pass_dtype_as_recarray(self):
-        if compat.is_platform_windows() and self.low_memory:
-            pytest.skip(
-                "segfaults on win-64, only when all tests are run")
-
-        data = """\
-one,two
-1,2.5
-2,3.5
-3,4.5
-4,5.5"""
-
-        with tm.assert_produces_warning(
-                FutureWarning, check_stacklevel=False):
-            result = self.read_csv(StringIO(data), dtype={
-                'one': 'u1', 1: 'S1'}, as_recarray=True)
-            assert result['one'].dtype == 'u1'
-            assert result['two'].dtype == 'S1'
 
     def test_usecols_dtypes(self):
         data = """\
@@ -290,11 +270,11 @@ No,No,No"""
             test_empty_header_read(count)
 
     def test_parse_trim_buffers(self):
-        # This test is part of a bugfix for issue #13703. It attmepts to
+        # This test is part of a bugfix for issue #13703. It attempts to
         # to stress the system memory allocator, to cause it to move the
         # stream buffer and either let the OS reclaim the region, or let
         # other memory requests of parser otherwise modify the contents
-        # of memory space, where it was formely located.
+        # of memory space, where it was formally located.
         # This test is designed to cause a `segfault` with unpatched
         # `tokenizer.c`. Sometimes the test fails on `segfault`, other
         # times it fails due to memory corruption, which causes the
@@ -346,7 +326,7 @@ No,No,No"""
 
         # Generate the expected output: manually create the dataframe
         # by splitting by comma and repeating the `n_lines` times.
-        row = tuple(val_ if val_ else float("nan")
+        row = tuple(val_ if val_ else np.nan
                     for val_ in record_.split(","))
         expected = pd.DataFrame([row for _ in range(n_lines)],
                                 dtype=object, columns=None, index=None)
@@ -357,6 +337,15 @@ No,No,No"""
         result = pd.concat(chunks_, axis=0, ignore_index=True)
 
         # Check for data corruption if there was no segfault
+        tm.assert_frame_equal(result, expected)
+
+        # This extra test was added to replicate the fault in gh-5291.
+        # Force 'utf-8' encoding, so that `_string_convert` would take
+        # a different execution branch.
+        chunks_ = self.read_csv(StringIO(csv_data), header=None,
+                                dtype=object, chunksize=chunksize,
+                                encoding='utf_8')
+        result = pd.concat(chunks_, axis=0, ignore_index=True)
         tm.assert_frame_equal(result, expected)
 
     def test_internal_null_byte(self):

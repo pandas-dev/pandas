@@ -23,13 +23,12 @@
 Time Deltas
 ***********
 
-.. note::
+Timedeltas are differences in times, expressed in difference units, e.g. days, hours, minutes,
+seconds. They can be both positive and negative.
 
-   Starting in v0.15.0, we introduce a new scalar type ``Timedelta``, which is a subclass of ``datetime.timedelta``, and behaves in a similar manner,
-   but allows compatibility with ``np.timedelta64`` types as well as a host of custom representation, parsing, and attributes.
-
-Timedeltas are differences in times, expressed in difference units, e.g. days, hours, minutes, seconds.
-They can be both positive and negative.
+``Timedelta`` is a subclass of ``datetime.timedelta``, and behaves in a similar manner,
+but allows compatibility with ``np.timedelta64`` types as well as a host of custom representation,
+parsing, and attributes.
 
 Parsing
 -------
@@ -63,6 +62,14 @@ You can construct a ``Timedelta`` scalar through various arguments:
    pd.Timedelta('nan')
    pd.Timedelta('nat')
 
+   # ISO 8601 Duration strings
+   pd.Timedelta('P0DT0H1M0S')
+   pd.Timedelta('P0DT0H0M0.000000123S')
+
+.. versionadded:: 0.23.0
+
+   Added constructor for `ISO 8601 Duration`_ strings
+
 :ref:`DateOffsets<timeseries.offsets>` (``Day, Hour, Minute, Second, Milli, Micro, Nano``) can also be used in construction.
 
 .. ipython:: python
@@ -78,15 +85,10 @@ Further, operations among the scalars yield another scalar ``Timedelta``.
 to_timedelta
 ~~~~~~~~~~~~
 
-.. warning::
-
-       Prior to 0.15.0 ``pd.to_timedelta`` would return a ``Series`` for list-like/Series input, and a ``np.timedelta64`` for scalar input.
-       It will now return a ``TimedeltaIndex`` for list-like input, ``Series`` for Series input, and ``Timedelta`` for scalar input.
-
-       The arguments to ``pd.to_timedelta`` are now ``(arg, unit='ns', box=True)``, previously were ``(arg, box=True, unit='ns')`` as these are more logical.
-
-Using the top-level ``pd.to_timedelta``, you can convert a scalar, array, list, or Series from a recognized timedelta format / value into a ``Timedelta`` type.
-It will construct Series if the input is a Series, a scalar if the input is scalar-like, otherwise will output a ``TimedeltaIndex``.
+Using the top-level ``pd.to_timedelta``, you can convert a scalar, array, list,
+or Series from a recognized timedelta format / value into a ``Timedelta`` type.
+It will construct Series if the input is a Series, a scalar if the input is
+scalar-like, otherwise it will output a ``TimedeltaIndex``.
 
 You can parse a single string to a Timedelta:
 
@@ -242,11 +244,9 @@ Numeric reduction operation for ``timedelta64[ns]`` will return ``Timedelta`` ob
 Frequency Conversion
 --------------------
 
-.. versionadded:: 0.13
-
 Timedelta Series, ``TimedeltaIndex``, and ``Timedelta`` scalars can be converted to other 'frequencies' by dividing by another timedelta,
 or by astyping to a specific timedelta type. These operations yield Series and propagate ``NaT`` -> ``nan``.
-Note that division by the numpy scalar is true division, while astyping is equivalent of floor division.
+Note that division by the NumPy scalar is true division, while astyping is equivalent of floor division.
 
 .. ipython:: python
 
@@ -274,6 +274,14 @@ yields another ``timedelta64[ns]`` dtypes Series.
 
    td * -1
    td * pd.Series([1, 2, 3, 4])
+
+Rounded division (floor-division) of a ``timedelta64[ns]`` Series by a scalar
+``Timedelta`` gives a series of integers.
+
+.. ipython:: python
+
+   td // pd.Timedelta(days=3, hours=4)
+   pd.Timedelta(days=3, hours=4) // td
 
 Attributes
 ----------
@@ -329,8 +337,6 @@ You can convert a ``Timedelta`` to an `ISO 8601 Duration`_ string with the
 
 TimedeltaIndex
 --------------
-
-.. versionadded:: 0.15.0
 
 To generate an index with time delta, you can use either the ``TimedeltaIndex`` or
 the ``timedelta_range`` constructor.

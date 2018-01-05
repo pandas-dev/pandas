@@ -2,8 +2,28 @@
 
 from cpython cimport PyObject, Py_INCREF, PyList_Check, PyTuple_Check
 
-from khash cimport *
-from numpy cimport *
+from khash cimport (
+    khiter_t,
+
+    kh_str_t, kh_init_str, kh_put_str, kh_exist_str,
+    kh_get_str, kh_destroy_str, kh_resize_str,
+
+    kh_put_strbox, kh_get_strbox, kh_init_strbox,
+
+    kh_int64_t, kh_init_int64, kh_resize_int64, kh_destroy_int64,
+    kh_get_int64, kh_exist_int64, kh_put_int64,
+
+    kh_float64_t, kh_exist_float64, kh_put_float64, kh_init_float64,
+    kh_get_float64, kh_destroy_float64, kh_resize_float64,
+
+    kh_resize_uint64, kh_exist_uint64, kh_destroy_uint64, kh_put_uint64,
+    kh_get_uint64, kh_init_uint64,
+
+    kh_destroy_pymap, kh_exist_pymap, kh_init_pymap, kh_get_pymap,
+    kh_put_pymap, kh_resize_pymap)
+
+
+from numpy cimport ndarray, uint8_t, uint32_t
 
 from libc.stdlib cimport malloc, free
 from cpython cimport (PyMem_Malloc, PyMem_Realloc, PyMem_Free,
@@ -22,7 +42,7 @@ cdef extern from "numpy/npy_math.h":
 cimport cython
 cimport numpy as cnp
 
-from pandas._libs.lib import checknull
+from missing cimport checknull
 
 cnp.import_array()
 cnp.import_ufunc()
@@ -30,14 +50,6 @@ cnp.import_ufunc()
 cdef int64_t iNaT = util.get_nat()
 _SIZE_HINT_LIMIT = (1 << 20) + 7
 
-cdef extern from "datetime.h":
-    bint PyDateTime_Check(object o)
-    void PyDateTime_IMPORT()
-
-PyDateTime_IMPORT
-
-cdef extern from "Python.h":
-    int PySlice_Check(object)
 
 cdef size_t _INIT_VEC_CAP = 128
 
@@ -136,7 +148,7 @@ cdef class Int64Factorizer:
 def unique_label_indices(ndarray[int64_t, ndim=1] labels):
     """
     indices of the first occurrences of the unique labels
-    *excluding* -1. equivelent to:
+    *excluding* -1. equivalent to:
         np.unique(labels, return_index=True)[1]
     """
     cdef:

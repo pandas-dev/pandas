@@ -1,5 +1,5 @@
 python=2.7*
-numpy=1.7.1
-cython=0.23
-dateutil=1.5
+numpy=1.9.2
+cython=0.24
+python-dateutil=2.5.0
 pytz=2013b

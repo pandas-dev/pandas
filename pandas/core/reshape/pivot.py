@@ -38,7 +38,8 @@ def pivot_table(data, values=None, index=None, columns=None, aggfunc='mean',
                                 fill_value=fill_value, aggfunc=func,
                                 margins=margins, margins_name=margins_name)
             pieces.append(table)
-            keys.append(func.__name__)
+            keys.append(getattr(func, '__name__', func))
+
         return concat(pieces, keys=keys, axis=1)
 
     keys = index + columns
@@ -101,14 +102,14 @@ def pivot_table(data, values=None, index=None, columns=None, aggfunc='mean',
         try:
             m = MultiIndex.from_arrays(cartesian_product(table.index.levels),
                                        names=table.index.names)
-            table = table.reindex_axis(m, axis=0)
+            table = table.reindex(m, axis=0)
         except AttributeError:
             pass  # it's a single level
 
         try:
             m = MultiIndex.from_arrays(cartesian_product(table.columns.levels),
                                        names=table.columns.names)
-            table = table.reindex_axis(m, axis=1)
+            table = table.reindex(m, axis=1)
         except AttributeError:
             pass  # it's a single level or a series
 
@@ -145,10 +146,10 @@ def _add_margins(table, data, values, rows, cols, aggfunc,
     if not isinstance(margins_name, compat.string_types):
         raise ValueError('margins_name argument must be a string')
 
-    exception_msg = 'Conflicting name "{0}" in margins'.format(margins_name)
+    msg = u'Conflicting name "{name}" in margins'.format(name=margins_name)
     for level in table.index.names:
         if margins_name in table.index.get_level_values(level):
-            raise ValueError(exception_msg)
+            raise ValueError(msg)
 
     grand_margin = _compute_grand_margin(data, values, aggfunc, margins_name)
 
@@ -156,7 +157,7 @@ def _add_margins(table, data, values, rows, cols, aggfunc,
     if hasattr(table, 'columns'):
         for level in table.columns.names[1:]:
             if margins_name in table.columns.get_level_values(level):
-                raise ValueError(exception_msg)
+                raise ValueError(msg)
 
     if len(rows) > 1:
         key = (margins_name,) + ('',) * (len(rows) - 1)
@@ -553,7 +554,7 @@ def _get_names(arrs, names, prefix='row'):
             if isinstance(arr, ABCSeries) and arr.name is not None:
                 names.append(arr.name)
             else:
-                names.append('%s_%d' % (prefix, i))
+                names.append('{prefix}_{i}'.format(prefix=prefix, i=i))
     else:
         if len(names) != len(arrs):
             raise AssertionError('arrays and names must have the same length')

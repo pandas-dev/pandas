@@ -54,7 +54,7 @@ def read_pickle(path, compression='infer'):
     file path
 
     Warning: Loading pickled data received from untrusted sources can be
-    unsafe. See: http://docs.python.org/2.7/library/pickle.html
+    unsafe. See: https://docs.python.org/3/library/pickle.html
 
     Parameters
     ----------
@@ -62,8 +62,8 @@ def read_pickle(path, compression='infer'):
         File path
     compression : {'infer', 'gzip', 'bz2', 'xz', 'zip', None}, default 'infer'
         For on-the-fly decompression of on-disk data. If 'infer', then use
-        gzip, bz2, xz or zip if path is a string ending in '.gz', '.bz2', 'xz',
-        or 'zip' respectively, and no decompression otherwise.
+        gzip, bz2, xz or zip if path ends in '.gz', '.bz2', '.xz',
+        or '.zip' respectively, and no decompression otherwise.
         Set to None for no decompression.
 
         .. versionadded:: 0.20.0

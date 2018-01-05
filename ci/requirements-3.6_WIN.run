@@ -1,6 +1,6 @@
 python-dateutil
 pytz
-numpy=1.12*
+numpy=1.13*
 bottleneck
 openpyxl
 xlsxwriter
@@ -8,7 +8,6 @@ xlrd
 xlwt
 scipy
 feather-format
-pyarrow
 numexpr
 pytables
 matplotlib

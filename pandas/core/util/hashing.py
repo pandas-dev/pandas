@@ -260,7 +260,7 @@ def hash_array(vals, encoding='utf8', hash_key=None, categorize=True):
 
     # For categoricals, we hash the categories, then remap the codes to the
     # hash values. (This check is above the complex check so that we don't ask
-    # numpy if categorical is a subdtype of complex, as it will choke.
+    # numpy if categorical is a subdtype of complex, as it will choke).
     if is_categorical_dtype(dtype):
         return _hash_categorical(vals, encoding, hash_key)
 
