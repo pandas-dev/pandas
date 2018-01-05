@@ -141,7 +141,7 @@ As an example of fully-formed metadata:
     ],
     'pandas_version': '0.20.0'}
 
-.. _register-accessors:
+.. _developer.register-accessors:
 
 Registering Custom Accessors
 ----------------------------
@@ -181,3 +181,5 @@ Now users can access your methods using the `geo` namespace:
       # plots data on a map
 
 This can be a convenient way to extend pandas objects without subclassing them.
+If you write a custom accessor, make a pull request adding it to our
+:ref:`ecosystem` page.
