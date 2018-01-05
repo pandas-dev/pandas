@@ -371,6 +371,9 @@ class TimedeltaIndex(DatetimeIndexOpsMixin, TimelikeOps, Int64Index):
         return result
 
     def _evaluate_with_timedelta_like(self, other, op, opstr):
+        if isinstance(other, ABCSeries):
+            # GH#19042
+            return NotImplemented
 
         # allow division by a timedelta
         if opstr in ['__div__', '__truediv__', '__floordiv__']:
