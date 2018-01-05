@@ -23,7 +23,7 @@ from timezones cimport (is_utc, is_tzlocal,
                         maybe_get_tz, get_dst_info, get_utcoffset)
 from fields import build_field_sarray
 from conversion import tz_convert
-from ccalendar import DAYS, MONTH_ALIASES, int_to_weekday
+from ccalendar import MONTH_ALIASES, int_to_weekday
 
 from pandas._libs.properties import cache_readonly
 from pandas._libs.tslib import Timestamp
