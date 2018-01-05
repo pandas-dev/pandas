@@ -28,7 +28,10 @@ import pytest
 import locale
 from distutils.version import LooseVersion
 
-from pandas.compat import is_platform_windows, is_platform_32bit, PY3
+from pandas.compat import (is_platform_windows, is_platform_32bit, PY3,
+                           import_lzma)
+from pandas.core.computation.expressions import (_USE_NUMEXPR,
+                                                 _NUMEXPR_INSTALLED)
 
 
 def safe_import(mod_name, min_version=None):
@@ -94,6 +97,18 @@ def _skip_if_not_us_locale():
         return True
 
 
+def _skip_if_no_scipy():
+    return not (safe_import('scipy.stats') and safe_import('scipy.sparse') and
+                safe_import('scipy.interpolate'))
+
+
+def _skip_if_no_lzma():
+    try:
+        import_lzma()
+    except ImportError:
+        return True
+
+
 def skip_if_no(package, min_version=None):
     """
     Generic function to help skip test functions when required packages are not
@@ -119,9 +134,11 @@ def skip_if_no(package, min_version=None):
         The decorated function wrapped within a pytest ``skip_if`` mark
     """
     def decorated_func(func):
+        msg = "Could not import '{}'".format(package)
+        if min_version:
+            msg += " satisfying a min_version of {}".format(min_version)
         return pytest.mark.skipif(
-            not safe_import(package, min_version=min_version),
-            reason="Could not import '{}'".format(package)
+            not safe_import(package, min_version=min_version), reason=msg
         )(func)
     return decorated_func
 
@@ -144,3 +161,12 @@ skip_if_not_us_locale = pytest.mark.skipif(_skip_if_not_us_locale(),
                                            reason="Specific locale is set "
                                            "{lang}".format(
                                                lang=locale.getlocale()[0]))
+skip_if_no_scipy = pytest.mark.skipif(_skip_if_no_scipy(),
+                                      reason="Missing SciPy requirement")
+skip_if_no_lzma = pytest.mark.skipif(_skip_if_no_lzma(),
+                                     reason="need backports.lzma to run")
+skip_if_no_ne = pytest.mark.skipif(not _USE_NUMEXPR,
+                                   reason="numexpr enabled->{enabled}, "
+                                   "installed->{installed}".format(
+                                       enabled=_USE_NUMEXPR,
+                                       installed=_NUMEXPR_INSTALLED))

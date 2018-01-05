@@ -131,7 +131,8 @@ usecols : array-like or callable, default ``None``
   be positional (i.e. integer indices into the document columns) or strings
   that correspond to column names provided either by the user in `names` or
   inferred from the document header row(s). For example, a valid array-like
-  `usecols` parameter would be [0, 1, 2] or ['foo', 'bar', 'baz'].
+  `usecols` parameter would be [0, 1, 2] or ['foo', 'bar', 'baz']. Element
+  order is ignored, so usecols=[0,1] is the same as [1, 0].
 
   If callable, the callable function will be evaluated against the column names,
   returning names where the callable function evaluates to True:
@@ -143,15 +144,6 @@ usecols : array-like or callable, default ``None``
      pd.read_csv(StringIO(data), usecols=lambda x: x.upper() in ['COL1', 'COL3'])
 
   Using this parameter results in much faster parsing time and lower memory usage.
-as_recarray : boolean, default ``False``
-  .. deprecated:: 0.18.2
-
-     Please call ``pd.read_csv(...).to_records()`` instead.
-
-  Return a NumPy recarray instead of a DataFrame after parsing the data. If
-  set to ``True``, this option takes precedence over the ``squeeze`` parameter.
-  In addition, as row indices are not available in such a format, the ``index_col``
-  parameter will be ignored.
 squeeze : boolean, default ``False``
   If the parsed data only contains one column then return a Series.
 prefix : str, default ``None``
@@ -172,7 +164,7 @@ dtype : Type name or dict of column -> type, default ``None``
   .. versionadded:: 0.20.0 support for the Python parser.
 
 engine : {``'c'``, ``'python'``}
-  Parser engine to use. The C engine is faster while the python engine is
+  Parser engine to use. The C engine is faster while the Python engine is
   currently more feature-complete.
 converters : dict, default ``None``
   Dict of functions for converting values in certain columns. Keys can either be
@@ -208,26 +200,6 @@ low_memory : boolean, default ``True``
   Note that the entire file is read into a single DataFrame regardless,
   use the ``chunksize`` or ``iterator`` parameter to return the data in chunks.
   (Only valid with C parser)
-buffer_lines : int, default None
-  .. deprecated:: 0.19.0
-
-     Argument removed because its value is not respected by the parser
-
-compact_ints : boolean, default False
-  .. deprecated:: 0.19.0
-
-     Argument moved to ``pd.to_numeric``
-
-  If ``compact_ints`` is ``True``, then for any column that is of integer dtype, the
-  parser will attempt to cast it as the smallest integer ``dtype`` possible, either
-  signed or unsigned depending on the specification from the ``use_unsigned`` parameter.
-use_unsigned : boolean, default False
-  .. deprecated:: 0.18.2
-
-     Argument moved to ``pd.to_numeric``
-
-  If integer columns are being compacted (i.e. ``compact_ints=True``), specify whether
-  the column should be compacted to the smallest signed or unsigned integer dtype.
 memory_map : boolean, default False
   If a filepath is provided for ``filepath_or_buffer``, map the file object
   directly onto memory and access the data directly from there. Using this
@@ -803,7 +775,7 @@ The simplest case is to just pass in ``parse_dates=True``:
    df = pd.read_csv('foo.csv', index_col=0, parse_dates=True)
    df
 
-   # These are python datetime objects
+   # These are Python datetime objects
    df.index
 
 It is often the case that we may want to store date and time data separately,
@@ -1076,7 +1048,7 @@ The ``thousands`` keyword allows integers to be parsed correctly
 NA Values
 '''''''''
 
-To control which values are parsed as missing values (which are signified by ``NaN``), specifiy a
+To control which values are parsed as missing values (which are signified by ``NaN``), specify a
 string in ``na_values``. If you specify a list of strings, then all values in
 it are considered to be missing values. If you specify a number (a ``float``, like ``5.0`` or an ``integer`` like ``5``),
 the corresponding equivalent values will also imply a missing value (in this case effectively
@@ -1557,9 +1529,9 @@ Specifying the parser engine
 ''''''''''''''''''''''''''''
 
 Under the hood pandas uses a fast and efficient parser implemented in C as well
-as a python implementation which is currently more feature-complete. Where
+as a Python implementation which is currently more feature-complete. Where
 possible pandas uses the C parser (specified as ``engine='c'``), but may fall
-back to python if C-unsupported options are specified. Currently, C-unsupported
+back to Python if C-unsupported options are specified. Currently, C-unsupported
 options include:
 
 - ``sep`` other than a single character (e.g. regex separators)
@@ -1610,7 +1582,7 @@ function takes a number of arguments. Only the first is required.
     used. (A sequence should be given if the DataFrame uses MultiIndex).
   - ``mode`` : Python write mode, default 'w'
   - ``encoding``: a string representing the encoding to use if the contents are
-    non-ASCII, for python versions prior to 3
+    non-ASCII, for Python versions prior to 3
   - ``line_terminator``: Character sequence denoting line end (default '\\n')
   - ``quoting``: Set quoting rules as in csv module (default csv.QUOTE_MINIMAL). Note that if you have set a `float_format` then floats are converted to strings and csv.QUOTE_NONNUMERIC will treat them as non-numeric
   - ``quotechar``: Character used to quote fields (default '"')
@@ -1879,7 +1851,7 @@ is ``None``. To explicitly force ``Series`` parsing, pass ``typ=series``
 - ``convert_axes`` : boolean, try to convert the axes to the proper dtypes, default is True
 - ``convert_dates`` : a list of columns to parse for dates; If True, then try to parse date-like columns, default is True
 - ``keep_default_dates`` : boolean, default True. If parsing dates, then parse the default date-like columns
-- ``numpy`` : direct decoding to numpy arrays. default is False;
+- ``numpy`` : direct decoding to NumPy arrays. default is False;
   Supports numeric data only, although labels may be non-numeric. Also note that the JSON ordering **MUST** be the same for each term if ``numpy=True``
 - ``precise_float`` : boolean, default ``False``. Set to enable usage of higher precision (strtod) function when decoding string to double values. Default (``False``) is to use fast but less precise builtin functionality
 - ``date_unit`` : string, the timestamp unit to detect if converting dates. Default
@@ -1990,7 +1962,7 @@ The Numpy Parameter
 
 If ``numpy=True`` is passed to ``read_json`` an attempt will be made to sniff
 an appropriate dtype during deserialization and to subsequently decode directly
-to numpy arrays, bypassing the need for intermediate Python objects.
+to NumPy arrays, bypassing the need for intermediate Python objects.
 
 This can provide speedups if you are deserialising a large amount of numeric
 data:
@@ -2027,7 +1999,7 @@ The speedup is less noticeable for smaller datasets:
 
 .. warning::
 
-   Direct numpy decoding makes a number of assumptions and may fail or produce
+   Direct NumPy decoding makes a number of assumptions and may fail or produce
    unexpected output if these assumptions are not satisfied:
 
     - data is numeric.
@@ -2818,11 +2790,11 @@ to be parsed.
 
 If `usecols` is a list of integers, then it is assumed to be the file column
 indices to be parsed.
-
 .. code-block:: python
 
    read_excel('path_to_file.xls', 'Sheet1', usecols=[0, 2, 3])
 
+Element order is ignored, so usecols=[0,1] is the same as [1,0].
 
 Parsing Dates
 +++++++++++++
@@ -3093,7 +3065,7 @@ any pickled pandas object (or any other pickled object) from file:
 
    Loading pickled data received from untrusted sources can be unsafe.
 
-   See: https://docs.python.org/3.6/library/pickle.html
+   See: https://docs.python.org/3/library/pickle.html
 
 .. warning::
 
@@ -3215,7 +3187,7 @@ You can pass ``append=True`` to the writer to append to an existing pack
 
 Unlike other io methods, ``to_msgpack`` is available on both a per-object basis,
 ``df.to_msgpack()`` and using the top-level ``pd.to_msgpack(...)`` where you
-can pack arbitrary collections of python lists, dicts, scalars, while intermixing
+can pack arbitrary collections of Python lists, dicts, scalars, while intermixing
 pandas objects.
 
 .. ipython:: python
@@ -4181,7 +4153,7 @@ Caveats
 
 .. warning::
 
-   ``PyTables`` will show a ``NaturalNameWarning`` if a  column name
+   ``PyTables`` will show a ``NaturalNameWarning`` if a column name
    cannot be used as an attribute selector.
    *Natural* identifiers contain only letters, numbers, and underscores,
    and may not begin with a number.
@@ -4439,7 +4411,7 @@ Several caveats.
   can ``.reset_index()`` to store the index or ``.reset_index(drop=True)`` to
   ignore it.
 - Duplicate column names and non-string columns names are not supported
-- Non supported types include ``Period`` and actual python object types. These will raise a helpful error message
+- Non supported types include ``Period`` and actual Python object types. These will raise a helpful error message
   on an attempt at serialization.
 
 See the `Full Documentation <https://github.com/wesm/feather>`__
@@ -4503,10 +4475,10 @@ Several caveats.
 - Duplicate column names and non-string columns names are not supported
 - Index level names, if specified, must be strings
 - Categorical dtypes can be serialized to parquet, but will de-serialize as ``object`` dtype.
-- Non supported types include ``Period`` and actual python object types. These will raise a helpful error message
+- Non supported types include ``Period`` and actual Python object types. These will raise a helpful error message
   on an attempt at serialization.
 
-You can specifiy an ``engine`` to direct the serialization. This can be one of ``pyarrow``, or ``fastparquet``, or ``auto``.
+You can specify an ``engine`` to direct the serialization. This can be one of ``pyarrow``, or ``fastparquet``, or ``auto``.
 If the engine is NOT specified, then the ``pd.options.io.parquet.engine`` option is checked; if this is also ``auto``, then
 then ``pyarrow`` is tried, and falling back to ``fastparquet``.
 
@@ -4573,7 +4545,7 @@ facilitate data retrieval and to reduce dependency on DB-specific API. Database 
 is provided by SQLAlchemy if installed. In addition you will need a driver library for
 your database. Examples of such drivers are `psycopg2 <http://initd.org/psycopg/>`__
 for PostgreSQL or `pymysql <https://github.com/PyMySQL/PyMySQL>`__ for MySQL.
-For `SQLite <https://docs.python.org/3.5/library/sqlite3.html>`__ this is
+For `SQLite <https://docs.python.org/3/library/sqlite3.html>`__ this is
 included in Python's standard library by default.
 You can find an overview of supported drivers for each SQL dialect in the
 `SQLAlchemy docs <http://docs.sqlalchemy.org/en/latest/dialects/index.html>`__.

@@ -766,10 +766,10 @@ class TestDataFrameOperators(TestData):
 
         added = self.frame + frame_copy
 
-        indexer = added['A'].valid().index
+        indexer = added['A'].dropna().index
         exp = (self.frame['A'] * 2).copy()
 
-        tm.assert_series_equal(added['A'].valid(), exp.loc[indexer])
+        tm.assert_series_equal(added['A'].dropna(), exp.loc[indexer])
 
         exp.loc[~exp.index.isin(indexer)] = np.nan
         tm.assert_series_equal(added['A'], exp.loc[added['A'].index])
@@ -865,7 +865,7 @@ class TestDataFrameOperators(TestData):
 
         # 10890
         # we no longer allow auto timeseries broadcasting
-        # and require explict broadcasting
+        # and require explicit broadcasting
         added = self.tsframe.add(ts, axis='index')
 
         for key, col in compat.iteritems(self.tsframe):

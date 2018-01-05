@@ -12,6 +12,32 @@ import pandas.core.indexes.period as period
 
 
 class TestPeriodIndexArithmetic(object):
+    def test_pi_add_offset_array(self):
+        # GH#18849
+        pi = pd.PeriodIndex([pd.Period('2015Q1'), pd.Period('2016Q2')])
+        offs = np.array([pd.offsets.QuarterEnd(n=1, startingMonth=12),
+                         pd.offsets.QuarterEnd(n=-2, startingMonth=12)])
+        res = pi + offs
+        expected = pd.PeriodIndex([pd.Period('2015Q2'), pd.Period('2015Q4')])
+        tm.assert_index_equal(res, expected)
+
+        unanchored = np.array([pd.offsets.Hour(n=1),
+                               pd.offsets.Minute(n=-2)])
+        with pytest.raises(period.IncompatibleFrequency):
+            pi + unanchored
+        with pytest.raises(TypeError):
+            unanchored + pi
+
+    @pytest.mark.xfail(reason='GH#18824 radd doesnt implement this case')
+    def test_pi_radd_offset_array(self):
+        # GH#18849
+        pi = pd.PeriodIndex([pd.Period('2015Q1'), pd.Period('2016Q2')])
+        offs = np.array([pd.offsets.QuarterEnd(n=1, startingMonth=12),
+                         pd.offsets.QuarterEnd(n=-2, startingMonth=12)])
+        res = offs + pi
+        expected = pd.PeriodIndex([pd.Period('2015Q2'), pd.Period('2015Q4')])
+        tm.assert_index_equal(res, expected)
+
     def test_add_iadd(self):
         rng = pd.period_range('1/1/2000', freq='D', periods=5)
         other = pd.period_range('1/6/2000', freq='D', periods=5)
@@ -105,19 +131,21 @@ class TestPeriodIndexArithmetic(object):
                     period.IncompatibleFrequency, msg):
                 rng += delta
 
-        # int
+    def test_pi_add_int(self, one):
+        # Variants of `one` for #19012
         rng = pd.period_range('2000-01-01 09:00', freq='H', periods=10)
-        result = rng + 1
+        result = rng + one
         expected = pd.period_range('2000-01-01 10:00', freq='H', periods=10)
         tm.assert_index_equal(result, expected)
-        rng += 1
+        rng += one
         tm.assert_index_equal(rng, expected)
 
-    def test_sub(self):
+    @pytest.mark.parametrize('five', [5, np.array(5, dtype=np.int64)])
+    def test_sub(self, five):
         rng = period_range('2007-01', periods=50)
 
-        result = rng - 5
-        exp = rng + (-5)
+        result = rng - five
+        exp = rng + (-five)
         tm.assert_index_equal(result, exp)
 
     def test_sub_isub(self):

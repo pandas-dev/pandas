@@ -42,7 +42,7 @@ class TestTimeSeries(TestData):
 
         tm.assert_index_equal(shifted.index, self.ts.index)
         tm.assert_index_equal(unshifted.index, self.ts.index)
-        tm.assert_numpy_array_equal(unshifted.valid().values,
+        tm.assert_numpy_array_equal(unshifted.dropna().values,
                                     self.ts.values[:-1])
 
         offset = BDay()
@@ -69,7 +69,7 @@ class TestTimeSeries(TestData):
         unshifted = shifted.shift(-1)
         tm.assert_index_equal(shifted.index, ps.index)
         tm.assert_index_equal(unshifted.index, ps.index)
-        tm.assert_numpy_array_equal(unshifted.valid().values, ps.values[:-1])
+        tm.assert_numpy_array_equal(unshifted.dropna().values, ps.values[:-1])
 
         shifted2 = ps.shift(1, 'B')
         shifted3 = ps.shift(1, BDay())
@@ -107,7 +107,7 @@ class TestTimeSeries(TestData):
         # incompat tz
         s2 = Series(date_range('2000-01-01 09:00:00', periods=5,
                                tz='CET'), name='foo')
-        pytest.raises(ValueError, lambda: s - s2)
+        pytest.raises(TypeError, lambda: s - s2)
 
     def test_shift2(self):
         ts = Series(np.random.randn(5),

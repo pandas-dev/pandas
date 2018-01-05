@@ -34,7 +34,7 @@ from pandas.core.internals import (BlockManager,
 from pandas.core.ops import _op_descriptions
 from pandas.core.series import Series
 from pandas.core.reshape.util import cartesian_product
-from pandas.util._decorators import (deprecate, Appender)
+from pandas.util._decorators import Appender
 from pandas.util._validators import validate_axis_style_args
 
 _shared_doc_kwargs = dict(
@@ -110,6 +110,13 @@ def panel_index(time, panels, names=None):
 class Panel(NDFrame):
     """
     Represents wide format panel data, stored as 3-dimensional array
+
+   .. deprecated:: 0.20.0
+       The recommended way to represent 3-D data are with a MultiIndex on a
+       DataFrame via the :attr:`~Panel.to_frame()` method or with the
+       `xarray package <http://xarray.pydata.org/en/stable/>`__.
+       Pandas provides a :attr:`~Panel.to_xarray()` method to automate this
+       conversion.
 
     Parameters
     ----------
@@ -853,7 +860,7 @@ class Panel(NDFrame):
         xs is only for getting, not setting values.
 
         MultiIndex Slicers is a generic way to get/set values on any level or
-        levels and  is a superset of xs functionality, see
+        levels and is a superset of xs functionality, see
         :ref:`MultiIndex Slicers <advanced.mi_slicers>`
 
         """
@@ -988,9 +995,6 @@ class Panel(NDFrame):
                            verify_integrity=False)
 
         return DataFrame(data, index=index, columns=self.items)
-
-    to_long = deprecate('to_long', to_frame)
-    toLong = deprecate('toLong', to_frame)
 
     def apply(self, func, axis='major', **kwargs):
         """
@@ -1217,9 +1221,6 @@ class Panel(NDFrame):
             kwargs['minor_axis'] = minor
         axes = validate_axis_style_args(self, args, kwargs, 'labels',
                                         'reindex')
-        if self.ndim >= 4:
-            # Hack for PanelND
-            axes = {}
         kwargs.update(axes)
         kwargs.pop('axis', None)
         kwargs.pop('labels', None)

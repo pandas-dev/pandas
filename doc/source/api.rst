@@ -10,7 +10,7 @@ methods. In general, all classes and functions exposed in the top-level
 ``pandas.*`` namespace are regarded as public.
 
 Further some of the subpackages are public, including ``pandas.errors``,
-``pandas.plotting``, and ``pandas.testing``. Certain functions in the the
+``pandas.plotting``, and ``pandas.testing``. Certain functions in the
 ``pandas.io`` and ``pandas.tseries`` submodules are public as well (those
 mentioned in the documentation). Further, the ``pandas.api.types`` subpackage
 holds some public functions related to data types in pandas.
@@ -730,7 +730,7 @@ The dtype information is available on the ``Categorical``
    Categorical.codes
 
 ``np.asarray(categorical)`` works by implementing the array interface. Be aware, that this converts
-the Categorical back to a numpy array, so categories and order information is not preserved!
+the Categorical back to a NumPy array, so categories and order information is not preserved!
 
 .. autosummary::
    :toctree: generated/
@@ -1623,6 +1623,7 @@ IntervalIndex Components
    IntervalIndex.right
    IntervalIndex.mid
    IntervalIndex.closed
+   IntervalIndex.length
    IntervalIndex.values
    IntervalIndex.is_non_overlapping_monotonic
 
@@ -1995,6 +1996,7 @@ Properties
     Interval.closed_left
     Interval.closed_right
     Interval.left
+    Interval.length
     Interval.mid
     Interval.open_left
     Interval.open_right
@@ -2274,6 +2276,7 @@ Function application
    Resampler.apply
    Resampler.aggregate
    Resampler.transform
+   Resampler.pipe
 
 Upsampling
 ~~~~~~~~~~

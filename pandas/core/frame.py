@@ -113,7 +113,15 @@ _shared_doc_kwargs = dict(
     axes_single_arg="{0 or 'index', 1 or 'columns'}",
     optional_by="""
         by : str or list of str
-            Name or list of names which refer to the axis items.""",
+            Name or list of names to sort by.
+
+            - if `axis` is 0 or `'index'` then `by` may contain index
+              levels and/or column labels
+            - if `axis` is 1 or `'columns'` then `by` may contain column
+              levels and/or index labels
+
+        .. versionmodified:: 0.23.0
+           Allow specifying index or column level names.""",
     versionadded_to_excel='',
     optional_labels="""labels : array-like, optional
             New labels / index to conform the axis specified by 'axis' to.""",
@@ -200,7 +208,7 @@ validate : string, default None
 Notes
 -----
 Support for specifying index levels as the `on`, `left_on`, and
-`right_on` parameters was added in version 0.22.0
+`right_on` parameters was added in version 0.23.0
 
 Examples
 --------
@@ -591,7 +599,7 @@ class DataFrame(NDFrame):
             max_rows = get_option("display.max_rows")
 
         # when auto-detecting, so width=None and not in ipython front end
-        # check whether repr fits horizontal by actualy checking
+        # check whether repr fits horizontal by actually checking
         # the width of the rendered repr
         buf = StringIO()
 
@@ -1403,6 +1411,8 @@ class DataFrame(NDFrame):
         Transform long (stacked) format (DataFrame) into wide (3D, Panel)
         format.
 
+        .. deprecated:: 0.20.0
+
         Currently the index of the DataFrame must be a 2-level MultiIndex. This
         may be generalized later
 
@@ -1576,7 +1586,7 @@ class DataFrame(NDFrame):
             String path of file-like object
         convert_dates : dict
             Dictionary mapping columns containing datetime types to stata
-            internal format to use when wirting the dates. Options are 'tc',
+            internal format to use when writing the dates. Options are 'tc',
             'td', 'tm', 'tw', 'th', 'tq', 'ty'. Column can be either an integer
             or a name. Datetime columns that do not have a conversion type
             specified will be converted to 'tc'. Raises NotImplementedError if
@@ -1604,7 +1614,7 @@ class DataFrame(NDFrame):
             * If datetimes contain timezone information
             * Column dtype is not representable in Stata
         ValueError
-            * Columns listed in convert_dates are noth either datetime64[ns]
+            * Columns listed in convert_dates are neither datetime64[ns]
               or datetime.datetime
             * Column listed in convert_dates is not in DataFrame
             * Categorical label contains more than 32,000 characters
@@ -2304,7 +2314,7 @@ class DataFrame(NDFrame):
         --------
         >>> from numpy.random import randn
         >>> from pandas import DataFrame
-        >>> df = DataFrame(randn(10, 2), columns=list('ab'))
+        >>> df = pd.DataFrame(randn(10, 2), columns=list('ab'))
         >>> df.query('a > b')
         >>> df[df.a > df.b]  # same result as the previous expression
         """
@@ -2368,7 +2378,7 @@ class DataFrame(NDFrame):
         --------
         >>> from numpy.random import randn
         >>> from pandas import DataFrame
-        >>> df = DataFrame(randn(10, 2), columns=list('ab'))
+        >>> df = pd.DataFrame(randn(10, 2), columns=list('ab'))
         >>> df.eval('a + b')
         >>> df.eval('c = a + b')
         """
@@ -2530,10 +2540,10 @@ class DataFrame(NDFrame):
         if indexer is not None:
             return self._setitem_slice(indexer, value)
 
-        if isinstance(key, (Series, np.ndarray, list, Index)):
-            self._setitem_array(key, value)
-        elif isinstance(key, DataFrame):
+        if isinstance(key, DataFrame) or getattr(key, 'ndim', None) == 2:
             self._setitem_frame(key, value)
+        elif isinstance(key, (Series, np.ndarray, list, Index)):
+            self._setitem_array(key, value)
         else:
             # set column
             self._set_item(key, value)
@@ -2566,8 +2576,17 @@ class DataFrame(NDFrame):
     def _setitem_frame(self, key, value):
         # support boolean setting with DataFrame input, e.g.
         # df[df > df2] = 0
+        if isinstance(key, np.ndarray):
+            if key.shape != self.shape:
+                raise ValueError(
+                    'Array conditional must be same shape as self'
+                )
+            key = self._constructor(key, **self._construct_axes_dict())
+
         if key.values.size and not is_bool_dtype(key.values):
-            raise TypeError('Must pass DataFrame with boolean values only')
+            raise TypeError(
+                'Must pass DataFrame or 2-d ndarray with boolean values only'
+            )
 
         self._check_inplace_setting(value)
         self._check_setitem_copy()
@@ -2633,7 +2652,7 @@ class DataFrame(NDFrame):
                           allow_duplicates=allow_duplicates)
 
     def assign(self, **kwargs):
-        """
+        r"""
         Assign new columns to a DataFrame, returning a new object
         (a copy) with all the original columns in addition to the new ones.
 
@@ -2664,7 +2683,7 @@ class DataFrame(NDFrame):
 
         Examples
         --------
-        >>> df = DataFrame({'A': range(1, 11), 'B': np.random.randn(10)})
+        >>> df = pd.DataFrame({'A': range(1, 11), 'B': np.random.randn(10)})
 
         Where the value is a callable, evaluated on `df`:
 
@@ -3612,7 +3631,7 @@ class DataFrame(NDFrame):
                     kind='quicksort', na_position='last'):
         inplace = validate_bool_kwarg(inplace, 'inplace')
         axis = self._get_axis_number(axis)
-        other_axis = 0 if axis == 1 else 1
+        stacklevel = 2  # Number of stack levels from df.sort_values
 
         if not isinstance(by, list):
             by = [by]
@@ -3624,10 +3643,8 @@ class DataFrame(NDFrame):
 
             keys = []
             for x in by:
-                k = self.xs(x, axis=other_axis).values
-                if k.ndim == 2:
-                    raise ValueError('Cannot sort by duplicate column %s' %
-                                     str(x))
+                k = self._get_label_or_level_values(x, axis=axis,
+                                                    stacklevel=stacklevel)
                 keys.append(k)
             indexer = lexsort_indexer(keys, orders=ascending,
                                       na_position=na_position)
@@ -3636,17 +3653,9 @@ class DataFrame(NDFrame):
             from pandas.core.sorting import nargsort
 
             by = by[0]
-            k = self.xs(by, axis=other_axis).values
-            if k.ndim == 2:
+            k = self._get_label_or_level_values(by, axis=axis,
+                                                stacklevel=stacklevel)
 
-                # try to be helpful
-                if isinstance(self.columns, MultiIndex):
-                    raise ValueError('Cannot sort by column %s in a '
-                                     'multi-index you need to explicitly '
-                                     'provide all the levels' % str(by))
-
-                raise ValueError('Cannot sort by duplicate column %s' %
-                                 str(by))
             if isinstance(ascending, (tuple, list)):
                 ascending = ascending[0]
 
@@ -3780,9 +3789,9 @@ class DataFrame(NDFrame):
 
         Examples
         --------
-        >>> df = DataFrame({'a': [1, 10, 8, 11, -1],
-        ...                 'b': list('abdce'),
-        ...                 'c': [1.0, 2.0, np.nan, 3.0, 4.0]})
+        >>> df = pd.DataFrame({'a': [1, 10, 8, 11, -1],
+        ...                    'b': list('abdce'),
+        ...                    'c': [1.0, 2.0, np.nan, 3.0, 4.0]})
         >>> df.nlargest(3, 'a')
             a  b   c
         3  11  c   3
@@ -3815,9 +3824,9 @@ class DataFrame(NDFrame):
 
         Examples
         --------
-        >>> df = DataFrame({'a': [1, 10, 8, 11, -1],
-        ...                 'b': list('abdce'),
-        ...                 'c': [1.0, 2.0, np.nan, 3.0, 4.0]})
+        >>> df = pd.DataFrame({'a': [1, 10, 8, 11, -1],
+        ...                    'b': list('abdce'),
+        ...                    'c': [1.0, 2.0, np.nan, 3.0, 4.0]})
         >>> df.nsmallest(3, 'a')
            a  b   c
         4 -1  e   4
@@ -5094,7 +5103,7 @@ class DataFrame(NDFrame):
         of DataFrame objects
 
         Support for specifying index levels as the `on` parameter was added
-        in version 0.22.0
+        in version 0.23.0
 
         Examples
         --------
@@ -5734,7 +5743,7 @@ class DataFrame(NDFrame):
         return Series(result, index=self._get_agg_axis(axis))
 
     def _get_agg_axis(self, axis_num):
-        """ let's be explict about this """
+        """ let's be explicit about this """
         if axis_num == 0:
             return self.columns
         elif axis_num == 1:
@@ -5818,7 +5827,7 @@ class DataFrame(NDFrame):
         Examples
         --------
 
-        >>> df = DataFrame(np.array([[1, 1], [2, 10], [3, 100], [4, 100]]),
+        >>> df = pd.DataFrame(np.array([[1, 1], [2, 10], [3, 100], [4, 100]]),
                            columns=['a', 'b'])
         >>> df.quantile(.1)
         a    1.3
@@ -5941,7 +5950,7 @@ class DataFrame(NDFrame):
         --------
         When ``values`` is a list:
 
-        >>> df = DataFrame({'A': [1, 2, 3], 'B': ['a', 'b', 'f']})
+        >>> df = pd.DataFrame({'A': [1, 2, 3], 'B': ['a', 'b', 'f']})
         >>> df.isin([1, 3, 12, 'a'])
                A      B
         0   True   True
@@ -5950,7 +5959,7 @@ class DataFrame(NDFrame):
 
         When ``values`` is a dict:
 
-        >>> df = DataFrame({'A': [1, 2, 3], 'B': [1, 4, 7]})
+        >>> df = pd.DataFrame({'A': [1, 2, 3], 'B': [1, 4, 7]})
         >>> df.isin({'A': [1, 3], 'B': [4, 7, 12]})
                A      B
         0   True  False  # Note that B didn't match the 1 here.
@@ -5959,7 +5968,7 @@ class DataFrame(NDFrame):
 
         When ``values`` is a Series or DataFrame:
 
-        >>> df = DataFrame({'A': [1, 2, 3], 'B': ['a', 'b', 'f']})
+        >>> df = pd.DataFrame({'A': [1, 2, 3], 'B': ['a', 'b', 'f']})
         >>> other = DataFrame({'A': [1, 3, 3, 2], 'B': ['e', 'f', 'f', 'e']})
         >>> df.isin(other)
                A      B

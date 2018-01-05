@@ -216,7 +216,7 @@ class TestSeriesMisc(TestData, SharedWithSparse):
         assert 'dt' not in dir(s)
         assert 'cat' not in dir(s)
 
-        # similiarly for .dt
+        # similarly for .dt
         s = Series(date_range('1/1/2015', periods=5))
         assert 'dt' in dir(s)
         assert 'str' not in dir(s)
@@ -587,6 +587,14 @@ class TestCategoricalSeries(object):
 
         pytest.raises(Exception, f)
         # right: s.cat.set_categories([4,3,2,1])
+
+        # GH18862 (let Series.cat.rename_categories take callables)
+        s = Series(Categorical(["a", "b", "c", "a"], ordered=True))
+        result = s.cat.rename_categories(lambda x: x.upper())
+        expected = Series(Categorical(["A", "B", "C", "A"],
+                                      categories=["A", "B", "C"],
+                                      ordered=True))
+        tm.assert_series_equal(result, expected)
 
     def test_str_accessor_api_for_categorical(self):
         # https://github.com/pandas-dev/pandas/issues/10661

@@ -186,7 +186,7 @@ def wide_to_long(df, stubnames, i, j, sep="", suffix=r'\d+'):
         A character indicating the separation of the variable names
         in the wide format, to be stripped from the names in the long format.
         For example, if your column names are A-suffix1, A-suffix2, you
-        can strip the hypen by specifying `sep='-'`
+        can strip the hyphen by specifying `sep='-'`
 
         .. versionadded:: 0.20.0
 
@@ -200,7 +200,7 @@ def wide_to_long(df, stubnames, i, j, sep="", suffix=r'\d+'):
 
         .. versionadded:: 0.20.0
 
-        .. versionchanged:: 0.22.0
+        .. versionchanged:: 0.23.0
             When all suffixes are numeric, they are cast to int64/float64.
 
     Returns

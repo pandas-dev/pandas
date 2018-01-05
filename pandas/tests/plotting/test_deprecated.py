@@ -24,9 +24,8 @@ pandas.tools.plotting
 class TestDeprecatedNameSpace(TestPlotBase):
 
     @pytest.mark.slow
+    @td.skip_if_no_scipy
     def test_scatter_plot_legacy(self):
-        tm._skip_if_no_scipy()
-
         df = pd.DataFrame(randn(100, 2))
 
         with tm.assert_produces_warning(FutureWarning):

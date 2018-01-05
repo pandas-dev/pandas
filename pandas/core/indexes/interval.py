@@ -11,9 +11,9 @@ from pandas.core.dtypes.common import (
     is_list_like,
     is_datetime_or_timedelta_dtype,
     is_datetime64tz_dtype,
-    is_integer_dtype,
-    is_object_dtype,
     is_categorical_dtype,
+    is_string_dtype,
+    is_integer_dtype,
     is_float_dtype,
     is_interval_dtype,
     is_scalar,
@@ -29,7 +29,6 @@ from pandas._libs.interval import (
     Interval, IntervalMixin, IntervalTree,
     intervals_to_interval_bounds)
 
-from pandas.core.indexes.category import CategoricalIndex
 from pandas.core.indexes.datetimes import date_range
 from pandas.core.indexes.timedeltas import timedelta_range
 from pandas.core.indexes.multi import MultiIndex
@@ -95,6 +94,30 @@ def _get_interval_closed_bounds(interval):
     return left, right
 
 
+def maybe_convert_platform_interval(values):
+    """
+    Try to do platform conversion, with special casing for IntervalIndex.
+    Wrapper around maybe_convert_platform that alters the default return
+    dtype in certain cases to be compatible with IntervalIndex.  For example,
+    empty lists return with integer dtype instead of object dtype, which is
+    prohibited for IntervalIndex.
+
+    Parameters
+    ----------
+    values : array-like
+
+    Returns
+    -------
+    array
+    """
+    if isinstance(values, (list, tuple)) and len(values) == 0:
+        # GH 19016
+        # empty lists/tuples get object dtype by default, but this is not
+        # prohibited for IntervalIndex, so coerce to integer instead
+        return np.array([], dtype=np.intp)
+    return maybe_convert_platform(values)
+
+
 def _new_IntervalIndex(cls, d):
     """
     This is called upon unpickling, rather than the default which doesn't have
@@ -116,10 +139,11 @@ class IntervalIndex(IntervalMixin, Index):
        The indexing behaviors are provisional and may change in
        a future version of pandas.
 
-    Attributes
+    Parameters
     ----------
-    left, right : array-like (1-dimensional)
-        Left and right bounds for each interval.
+    data : array-like (1-dimensional)
+        Array-like containing Interval objects from which to build the
+        IntervalIndex
     closed : {'left', 'right', 'both', 'neither'}, default 'right'
         Whether the intervals are closed on the left-side, right-side, both or
         neither.
@@ -127,7 +151,14 @@ class IntervalIndex(IntervalMixin, Index):
         Name to be stored in the index.
     copy : boolean, default False
         Copy the meta-data
+
+    Attributes
+    ----------
+    left
+    right
+    closed
     mid
+    length
     values
     is_non_overlapping_monotonic
 
@@ -201,7 +232,7 @@ class IntervalIndex(IntervalMixin, Index):
             if is_scalar(data):
                 cls._scalar_data_error(data)
 
-            data = maybe_convert_platform(data)
+            data = maybe_convert_platform_interval(data)
             left, right, infer_closed = intervals_to_interval_bounds(data)
 
             if _all_not_none(closed, infer_closed) and closed != infer_closed:
@@ -237,6 +268,11 @@ class IntervalIndex(IntervalMixin, Index):
                    '[{rtype}] types')
             raise ValueError(msg.format(ltype=type(left).__name__,
                                         rtype=type(right).__name__))
+        elif is_categorical_dtype(left.dtype) or is_string_dtype(left.dtype):
+            # GH 19016
+            msg = ('category, object, and string subtypes are not supported '
+                   'for IntervalIndex')
+            raise TypeError(msg)
         elif isinstance(left, ABCPeriodIndex):
             msg = 'Period dtypes are not supported, use a PeriodIndex instead'
             raise ValueError(msg)
@@ -398,7 +434,7 @@ class IntervalIndex(IntervalMixin, Index):
         IntervalIndex.from_tuples : Construct an IntervalIndex from a
                                     list/array of tuples
         """
-        breaks = maybe_convert_platform(breaks)
+        breaks = maybe_convert_platform_interval(breaks)
 
         return cls.from_arrays(breaks[:-1], breaks[1:], closed,
                                name=name, copy=copy)
@@ -439,8 +475,8 @@ class IntervalIndex(IntervalMixin, Index):
         IntervalIndex.from_tuples : Construct an IntervalIndex from a
                                     list/array of tuples
         """
-        left = maybe_convert_platform(left)
-        right = maybe_convert_platform(right)
+        left = maybe_convert_platform_interval(left)
+        right = maybe_convert_platform_interval(right)
 
         return cls._simple_new(left, right, closed, name=name,
                                copy=copy, verify_integrity=True)
@@ -488,7 +524,7 @@ class IntervalIndex(IntervalMixin, Index):
             left, right, closed = data.left, data.right, data.closed
             name = name or data.name
         else:
-            data = maybe_convert_platform(data)
+            data = maybe_convert_platform_interval(data)
             left, right, closed = intervals_to_interval_bounds(data)
         return cls.from_arrays(left, right, closed, name=name, copy=False)
 
@@ -554,7 +590,7 @@ class IntervalIndex(IntervalMixin, Index):
             Returns NA as a tuple if True, ``(nan, nan)``, or just as the NA
             value itself if False, ``nan``.
 
-            ..versionadded:: 0.22.0
+            ..versionadded:: 0.23.0
 
         Examples
         --------
@@ -598,6 +634,20 @@ class IntervalIndex(IntervalMixin, Index):
         neither
         """
         return self._closed
+
+    @property
+    def length(self):
+        """
+        Return an Index with entries denoting the length of each Interval in
+        the IntervalIndex
+        """
+        try:
+            return self.right - self.left
+        except TypeError:
+            # length not defined for some types, e.g. string
+            msg = ('IntervalIndex contains Intervals without defined length, '
+                   'e.g. Intervals with string endpoints')
+            raise TypeError(msg)
 
     def __len__(self):
         return len(self.left)
@@ -649,16 +699,8 @@ class IntervalIndex(IntervalMixin, Index):
     @Appender(_index_shared_docs['astype'])
     def astype(self, dtype, copy=True):
         if is_interval_dtype(dtype):
-            if copy:
-                self = self.copy()
-            return self
-        elif is_object_dtype(dtype):
-            return Index(self.values, dtype=object)
-        elif is_categorical_dtype(dtype):
-            return CategoricalIndex(self.values, name=self.name, dtype=dtype,
-                                    copy=copy)
-        raise ValueError('Cannot cast IntervalIndex to dtype {dtype}'
-                         .format(dtype=dtype))
+            return self.copy() if copy else self
+        return super(IntervalIndex, self).astype(dtype, copy=copy)
 
     @cache_readonly
     def dtype(self):
@@ -672,7 +714,7 @@ class IntervalIndex(IntervalMixin, Index):
 
     @Appender(Index.memory_usage.__doc__)
     def memory_usage(self, deep=False):
-        # we don't use an explict engine
+        # we don't use an explicit engine
         # so return the bytes here
         return (self.left.memory_usage(deep=deep) +
                 self.right.memory_usage(deep=deep))
@@ -683,11 +725,10 @@ class IntervalIndex(IntervalMixin, Index):
         Return the midpoint of each Interval in the IntervalIndex as an Index
         """
         try:
-            return Index(0.5 * (self.left.values + self.right.values))
+            return 0.5 * (self.left + self.right)
         except TypeError:
             # datetime safe version
-            delta = self.right - self.left
-            return self.left + 0.5 * delta
+            return self.left + 0.5 * self.length
 
     @cache_readonly
     def is_monotonic(self):

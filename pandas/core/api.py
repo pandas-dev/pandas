@@ -22,7 +22,6 @@ from pandas.core.indexes.interval import Interval, interval_range
 from pandas.core.series import Series
 from pandas.core.frame import DataFrame
 from pandas.core.panel import Panel, WidePanel
-from pandas.core.panel4d import Panel4D
 
 # TODO: Remove import when statsmodels updates #18264
 from pandas.core.reshape.reshape import get_dummies
@@ -69,7 +68,7 @@ def groupby(*args, **kwargs):
     return args[0].groupby(*args[1:], **kwargs)
 
 
-# deprecation, xref
+# Deprecation: xref gh-16747
 class TimeGrouper(object):
 
     def __new__(cls, *args, **kwargs):

@@ -15,6 +15,7 @@ from pandas.util.testing import (assert_series_equal,
                                  assert_almost_equal)
 
 import pandas.util.testing as tm
+import pandas.util._test_decorators as td
 from .test_generic import Generic
 
 try:
@@ -200,9 +201,8 @@ class TestSeries(Generic):
                             check_index_type=False,
                             check_categorical=True)
 
+    @td.skip_if_no('xarray', min_version='0.7.0')
     def test_to_xarray(self):
-
-        tm._skip_if_no_xarray()
         from xarray import DataArray
 
         s = Series([])
@@ -222,3 +222,8 @@ class TestSeries(Generic):
         assert_almost_equal(list(result.coords.keys()), ['one', 'two'])
         assert isinstance(result, DataArray)
         assert_series_equal(result.to_series(), s)
+
+    def test_valid_deprecated(self):
+        # GH18800
+        with tm.assert_produces_warning(FutureWarning):
+            pd.Series([]).valid()

@@ -263,7 +263,7 @@ class _HtmlFrameParser(object):
 
         attrs : dict
             A dictionary of table attributes that can be used to disambiguate
-            mutliple tables on a page.
+            multiple tables on a page.
 
         Raises
         ------

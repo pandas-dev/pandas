@@ -140,7 +140,7 @@ You can also create these other plots using the methods ``DataFrame.plot.<kind>`
     df.plot.area     df.plot.barh     df.plot.density  df.plot.hist     df.plot.line     df.plot.scatter
     df.plot.bar      df.plot.box      df.plot.hexbin   df.plot.kde      df.plot.pie
 
-In addition to these ``kind`` s, there are  the :ref:`DataFrame.hist() <visualization.hist>`,
+In addition to these ``kind`` s, there are the :ref:`DataFrame.hist() <visualization.hist>`,
 and :ref:`DataFrame.boxplot() <visualization.box>` methods, which use a separate interface.
 
 Finally, there are several :ref:`plotting functions <visualization.tools>` in ``pandas.plotting``
@@ -716,7 +716,7 @@ You can use the ``labels`` and ``colors`` keywords to specify the labels and col
 
 .. warning::
 
-   Most pandas plots use the the ``label`` and ``color`` arguments (note the lack of "s" on those).
+   Most pandas plots use the ``label`` and ``color`` arguments (note the lack of "s" on those).
    To be consistent with :func:`matplotlib.pyplot.pie` you must use ``labels`` and ``colors``.
 
 If you want to hide wedge labels, specify ``labels=None``.
@@ -1187,7 +1187,7 @@ time-series data. For limited cases where pandas cannot infer the frequency
 information (e.g., in an externally created ``twinx``), you can choose to
 suppress this behavior for alignment purposes.
 
-Here is the default behavior, notice how the x-axis tick labelling is performed:
+Here is the default behavior, notice how the x-axis tick labeling is performed:
 
 .. ipython:: python
 
@@ -1270,7 +1270,7 @@ The layout of subplots can be specified by ``layout`` keyword. It can accept
 
 The number of axes which can be contained by rows x columns specified by ``layout`` must be
 larger than the number of required subplots. If layout can contain more axes than required,
-blank axes are not drawn. Similar to a numpy array's ``reshape`` method, you
+blank axes are not drawn. Similar to a NumPy array's ``reshape`` method, you
 can use ``-1`` for one dimension to automatically calculate the number of rows
 or columns needed, given the other.
 

@@ -132,12 +132,12 @@ skiprows : list-like
 nrows : int, default None
     Number of rows to parse
 
-    .. versionadded:: 0.22.0
+    .. versionadded:: 0.23.0
 
 na_values : scalar, str, list-like, or dict, default None
     Additional strings to recognize as NA/NaN. If dict passed, specific
     per-column NA values. By default the following values are interpreted
-    as NaN: '""" + fill("', '".join(sorted(_NA_VALUES)), 70) + """'.
+    as NaN: '""" + fill("', '".join(sorted(_NA_VALUES)), 70, subsequent_indent="    ") + """'.
 keep_default_na : bool, default True
     If na_values are specified and keep_default_na is False the default NaN
     values are overridden, otherwise they're appended to.
@@ -148,7 +148,15 @@ thousands : str, default None
     this parameter is only necessary for columns stored as TEXT in Excel,
     any numeric columns will automatically be parsed, regardless of display
     format.
+comment : str, default None
+    Comments out remainder of line. Pass a character or characters to this
+    argument to indicate comments in the input file. Any data between the
+    comment string and the end of the current line is ignored.
 skip_footer : int, default 0
+
+    .. deprecated:: 0.23.0
+       Pass in `skipfooter` instead.
+skipfooter : int, default 0
     Rows at the end to skip (0-indexed)
 convert_float : boolean, default True
     convert integral floats to int (i.e., 1.0 --> 1). If False, all numeric
@@ -160,6 +168,77 @@ Returns
 parsed : DataFrame or Dict of DataFrames
     DataFrame from the passed in Excel file.  See notes in sheet_name
     argument for more information on when a Dict of Dataframes is returned.
+
+Examples
+--------
+
+An example DataFrame written to a local file
+
+>>> df_out = pd.DataFrame([('string1', 1),
+...                        ('string2', 2),
+...                        ('string3', 3)],
+...                       columns=['Name', 'Value'])
+>>> df_out
+      Name  Value
+0  string1      1
+1  string2      2
+2  string3      3
+>>> df_out.to_excel('tmp.xlsx')
+
+The file can be read using the file name as string or an open file object:
+
+>>> pd.read_excel('tmp.xlsx')
+      Name  Value
+0  string1      1
+1  string2      2
+2  string3      3
+
+>>> pd.read_excel(open('tmp.xlsx','rb'))
+      Name  Value
+0  string1      1
+1  string2      2
+2  string3      3
+
+Index and header can be specified via the `index_col` and `header` arguments
+
+>>> pd.read_excel('tmp.xlsx', index_col=None, header=None)
+     0        1      2
+0  NaN     Name  Value
+1  0.0  string1      1
+2  1.0  string2      2
+3  2.0  string3      3
+
+Column types are inferred but can be explicitly specified
+
+>>> pd.read_excel('tmp.xlsx', dtype={'Name':str, 'Value':float})
+      Name  Value
+0  string1    1.0
+1  string2    2.0
+2  string3    3.0
+
+True, False, and NA values, and thousands separators have defaults,
+but can be explicitly specified, too. Supply the values you would like
+as strings or lists of strings!
+
+>>> pd.read_excel('tmp.xlsx',
+...               na_values=['string1', 'string2'])
+      Name  Value
+0      NaN      1
+1      NaN      2
+2  string3      3
+
+Comment lines in the excel input file can be skipped using the `comment` kwarg
+
+>>> df = pd.DataFrame({'a': ['1', '#2'], 'b': ['2', '3']})
+>>> df.to_excel('tmp.xlsx', index=False)
+>>> pd.read_excel('tmp.xlsx')
+    a  b
+0   1  2
+1  #2  3
+
+>>> pd.read_excel('tmp.xlsx', comment='#')
+   a  b
+0  1  2
 """
 
 
@@ -200,6 +279,7 @@ def get_writer(engine_name):
 
 @Appender(_read_excel_doc)
 @deprecate_kwarg("parse_cols", "usecols")
+@deprecate_kwarg("skip_footer", "skipfooter")
 def read_excel(io,
                sheet_name=0,
                header=0,
@@ -218,7 +298,8 @@ def read_excel(io,
                parse_dates=False,
                date_parser=None,
                thousands=None,
-               skip_footer=0,
+               comment=None,
+               skipfooter=0,
                convert_float=True,
                **kwds):
 
@@ -251,7 +332,8 @@ def read_excel(io,
         parse_dates=parse_dates,
         date_parser=date_parser,
         thousands=thousands,
-        skip_footer=skip_footer,
+        comment=comment,
+        skipfooter=skipfooter,
         convert_float=convert_float,
         **kwds)
 
@@ -333,7 +415,8 @@ class ExcelFile(object):
               parse_dates=False,
               date_parser=None,
               thousands=None,
-              skip_footer=0,
+              comment=None,
+              skipfooter=0,
               convert_float=True,
               **kwds):
         """
@@ -358,7 +441,8 @@ class ExcelFile(object):
                                  parse_dates=parse_dates,
                                  date_parser=date_parser,
                                  thousands=thousands,
-                                 skip_footer=skip_footer,
+                                 comment=comment,
+                                 skipfooter=skipfooter,
                                  convert_float=convert_float,
                                  **kwds)
 
@@ -412,13 +496,10 @@ class ExcelFile(object):
                      parse_dates=False,
                      date_parser=None,
                      thousands=None,
-                     skip_footer=0,
+                     comment=None,
+                     skipfooter=0,
                      convert_float=True,
                      **kwds):
-
-        skipfooter = kwds.pop('skipfooter', None)
-        if skipfooter is not None:
-            skip_footer = skipfooter
 
         _validate_header_arg(header)
 
@@ -480,7 +561,7 @@ class ExcelFile(object):
                 cell_contents = bool(cell_contents)
             elif convert_float and cell_typ == XL_CELL_NUMBER:
                 # GH5394 - Excel 'numbers' are always floats
-                # it's a minimal perf hit and less suprising
+                # it's a minimal perf hit and less surprising
                 val = int(cell_contents)
                 if val == cell_contents:
                     cell_contents = val
@@ -590,7 +671,8 @@ class ExcelFile(object):
                                     parse_dates=parse_dates,
                                     date_parser=date_parser,
                                     thousands=thousands,
-                                    skipfooter=skip_footer,
+                                    comment=comment,
+                                    skipfooter=skipfooter,
                                     **kwds)
 
                 output[asheetname] = parser.read(nrows=nrows)
@@ -799,12 +881,12 @@ class ExcelWriter(object):
     def write_cells(self, cells, sheet_name=None, startrow=0, startcol=0,
                     freeze_panes=None):
         """
-        Write given formated cells into Excel an excel sheet
+        Write given formatted cells into Excel an excel sheet
 
         Parameters
         ----------
         cells : generator
-            cell of formated data to save to Excel sheet
+            cell of formatted data to save to Excel sheet
         sheet_name : string, default None
             Name of Excel sheet, if None, then use self.cur_sheet
         startrow: upper left cell row to dump data frame

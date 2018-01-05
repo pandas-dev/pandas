@@ -402,7 +402,7 @@ class DatetimeTZDtype(ExtensionDtype):
     num = 101
     base = np.dtype('M8[ns]')
     _metadata = ['unit', 'tz']
-    _match = re.compile("(datetime64|M8)\[(?P<unit>.+), (?P<tz>.+)\]")
+    _match = re.compile(r"(datetime64|M8)\[(?P<unit>.+), (?P<tz>.+)\]")
     _cache = {}
 
     def __new__(cls, unit=None, tz=None):
@@ -514,7 +514,7 @@ class PeriodDtype(ExtensionDtype):
     base = np.dtype('O')
     num = 102
     _metadata = ['freq']
-    _match = re.compile("(P|p)eriod\[(?P<freq>.+)\]")
+    _match = re.compile(r"(P|p)eriod\[(?P<freq>.+)\]")
     _cache = {}
 
     def __new__(cls, freq=None):
@@ -597,8 +597,8 @@ class PeriodDtype(ExtensionDtype):
         """
 
         if isinstance(dtype, compat.string_types):
-            # PeriodDtype can be instanciated from freq string like "U",
-            # but dosn't regard freq str like "U" as dtype.
+            # PeriodDtype can be instantiated from freq string like "U",
+            # but doesn't regard freq str like "U" as dtype.
             if dtype.startswith('period[') or dtype.startswith('Period['):
                 try:
                     if cls._parse_dtype_strict(dtype) is not None:
@@ -632,7 +632,7 @@ class IntervalDtype(ExtensionDtype):
     base = np.dtype('O')
     num = 103
     _metadata = ['subtype']
-    _match = re.compile("(I|i)nterval\[(?P<subtype>.+)\]")
+    _match = re.compile(r"(I|i)nterval\[(?P<subtype>.+)\]")
     _cache = {}
 
     def __new__(cls, subtype=None):
@@ -641,6 +641,8 @@ class IntervalDtype(ExtensionDtype):
         ----------
         subtype : the dtype of the Interval
         """
+        from pandas.core.dtypes.common import (
+            is_categorical_dtype, is_string_dtype, pandas_dtype)
 
         if isinstance(subtype, IntervalDtype):
             return subtype
@@ -659,7 +661,6 @@ class IntervalDtype(ExtensionDtype):
                 if m is not None:
                     subtype = m.group('subtype')
 
-            from pandas.core.dtypes.common import pandas_dtype
             try:
                 subtype = pandas_dtype(subtype)
             except TypeError:
@@ -669,6 +670,12 @@ class IntervalDtype(ExtensionDtype):
             u = object.__new__(cls)
             u.subtype = None
             return u
+
+        if is_categorical_dtype(subtype) or is_string_dtype(subtype):
+            # GH 19016
+            msg = ('category, object, and string subtypes are not supported '
+                   'for IntervalDtype')
+            raise TypeError(msg)
 
         try:
             return cls._cache[str(subtype)]

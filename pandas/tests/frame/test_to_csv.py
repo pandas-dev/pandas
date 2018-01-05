@@ -21,6 +21,7 @@ from pandas.util.testing import (assert_almost_equal,
                                  ensure_clean,
                                  makeCustomDataframe as mkdf)
 import pandas.util.testing as tm
+import pandas.util._test_decorators as td
 
 from pandas.tests.frame.common import TestData
 
@@ -965,10 +966,10 @@ class TestDataFrameToCSV(TestData):
             for col in df.columns:
                 assert col in text
 
+    @td.skip_if_no_lzma
     def test_to_csv_compression_xz(self):
         # GH11852
         # use the compression kw in to_csv
-        tm._skip_if_no_lzma()
         df = DataFrame([[0.123456, 0.234567, 0.567567],
                         [12.32112, 123123.2, 321321.2]],
                        index=['A', 'B'], columns=['X', 'Y', 'Z'])

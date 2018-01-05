@@ -589,6 +589,7 @@ class TestSeriesPlots(TestPlotBase):
             x.plot(style='k--', color='k', ax=ax)
 
     @pytest.mark.slow
+    @td.skip_if_no_scipy
     def test_hist_kde(self):
         if not self.mpl_ge_1_5_0:
             pytest.skip("mpl is not supported")
@@ -602,7 +603,6 @@ class TestSeriesPlots(TestPlotBase):
         ylabels = ax.get_yticklabels()
         self._check_text_labels(ylabels, [''] * len(ylabels))
 
-        tm._skip_if_no_scipy()
         _skip_if_no_scipy_gaussian_kde()
         _check_plot_works(self.ts.plot.kde)
         _check_plot_works(self.ts.plot.density)
@@ -615,8 +615,8 @@ class TestSeriesPlots(TestPlotBase):
         self._check_text_labels(ylabels, [''] * len(ylabels))
 
     @pytest.mark.slow
+    @td.skip_if_no_scipy
     def test_kde_kwargs(self):
-        tm._skip_if_no_scipy()
         _skip_if_no_scipy_gaussian_kde()
         if not self.mpl_ge_1_5_0:
             pytest.skip("mpl is not supported")
@@ -633,8 +633,8 @@ class TestSeriesPlots(TestPlotBase):
         self._check_text_labels(ax.yaxis.get_label(), 'Density')
 
     @pytest.mark.slow
+    @td.skip_if_no_scipy
     def test_kde_missing_vals(self):
-        tm._skip_if_no_scipy()
         _skip_if_no_scipy_gaussian_kde()
         if not self.mpl_ge_1_5_0:
             pytest.skip("mpl is not supported")
@@ -665,6 +665,7 @@ class TestSeriesPlots(TestPlotBase):
             tm.close()
 
     @pytest.mark.slow
+    @td.skip_if_no_scipy
     def test_hist_kde_color(self):
         if not self.mpl_ge_1_5_0:
             pytest.skip("mpl is not supported")
@@ -675,7 +676,6 @@ class TestSeriesPlots(TestPlotBase):
         assert len(ax.patches) == 10
         self._check_colors(ax.patches, facecolors=['b'] * 10)
 
-        tm._skip_if_no_scipy()
         _skip_if_no_scipy_gaussian_kde()
         _, ax = self.plt.subplots()
         ax = self.ts.plot.kde(logy=True, color='r', ax=ax)
