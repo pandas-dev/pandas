@@ -310,6 +310,7 @@ Conversion
 - Bug in :class:`Series` floor-division where operating on a scalar ``timedelta`` raises an exception (:issue:`18846`)
 - Bug in :class:`FY5253Quarter`, :class:`LastWeekOfMonth` where rollback and rollforward behavior was inconsistent with addition and subtraction behavior (:issue:`18854`)
 - Bug in :class:`Index` constructor with ``dtype=CategoricalDtype(...)`` where ``categories`` and ``ordered`` are not maintained (issue:`19032`) 
+- Fixed bug where comparing :class:`DatetimeIndex` failed to raise ``TypeError`` when attempting to compare timezone-aware and timezone-naive datetimelike objects (:issue:`18162`)
 
 
 Indexing
@@ -395,5 +396,4 @@ Categorical
 Other
 ^^^^^
 
-- Fixed bug where comparing :class:`DatetimeIndex` failed to raise ``TypeError`` when attempting to compare timezone-aware and timezone-naive datetimelike objects (:issue:`18162`)
 - Improved error message when attempting to use a Python keyword as an identifier in a ``numexpr`` backed query (:issue:`18221`)
