@@ -327,27 +327,20 @@ class TestMultiIndex(Base):
         assert_matching(ind2.labels, new_labels)
         assert_matching(self.index.labels, labels)
 
-    def test_set_label_distinctly_sized_levels(self):
         # label changing for levels of different magnitude of categories
-        def assert_equal(actual, expected):
-            assert len(actual) == len(expected)
-            for act, exp in zip(actual, expected):
-                act = np.asarray(act)
-                exp = np.asarray(exp)
-                tm.assert_numpy_array_equal(act, exp, check_dtype=True)
-
         ind = pd.MultiIndex.from_tuples([(0, i) for i in range(130)])
         new_labels = range(129, -1, -1)
-        ind_reference = pd.MultiIndex.from_tuples(
+        expected = pd.MultiIndex.from_tuples(
             [(0, i) for i in new_labels])
 
-        # [w/o  mutation]
-        ind2 = ind.set_labels(labels=new_labels, level=1)
-        assert_equal(ind2, ind_reference)
+        # [w/o mutation]
+        result = ind.set_labels(labels=new_labels, level=1)
+        assert result.equals(expected)
 
-        # [w/  mutation]
-        ind.set_labels(labels=new_labels, level=1, inplace=True)
-        assert_equal(ind, ind_reference)
+        # [w/ mutation]
+        result = ind.copy()
+        result.set_labels(labels=new_labels, level=1, inplace=True)
+        assert result.equals(expected)
 
     def test_set_levels_labels_names_bad_input(self):
         levels, labels = self.index.levels, self.index.labels
