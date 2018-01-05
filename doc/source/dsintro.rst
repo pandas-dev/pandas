@@ -23,7 +23,7 @@ Intro to Data Structures
 We'll start with a quick, non-comprehensive overview of the fundamental data
 structures in pandas to get you started. The fundamental behavior about data
 types, indexing, and axis labeling / alignment apply across all of the
-objects. To get started, import numpy and load pandas into your namespace:
+objects. To get started, import NumPy and load pandas into your namespace:
 
 .. ipython:: python
 
@@ -877,7 +877,7 @@ of DataFrames:
    wp['Item3'] = wp['Item1'] / wp['Item2']
 
 The API for insertion and deletion is the same as for DataFrame. And as with
-DataFrame, if the item is a valid python identifier, you can access it as an
+DataFrame, if the item is a valid Python identifier, you can access it as an
 attribute and tab-complete it in IPython.
 
 Transposing
@@ -982,21 +982,3 @@ Alternatively, one can convert to an xarray ``DataArray``.
    p.to_xarray()
 
 You can see the full-documentation for the `xarray package <http://xarray.pydata.org/en/stable/>`__.
-
-.. _dsintro.panelnd:
-.. _dsintro.panel4d:
-
-Panel4D and PanelND (Deprecated)
---------------------------------
-
-.. warning::
-
-    In 0.19.0 ``Panel4D`` and ``PanelND`` are deprecated and will be removed in
-    a future version. The recommended way to represent these types of
-    n-dimensional data are with the
-    `xarray package <http://xarray.pydata.org/en/stable/>`__.
-    Pandas provides a :meth:`~Panel4D.to_xarray` method to automate
-    this conversion.
-
-See the `docs of a previous version <http://pandas.pydata.org/pandas-docs/version/0.18.1/dsintro.html#panel4d-experimental>`__
-for documentation on these objects.

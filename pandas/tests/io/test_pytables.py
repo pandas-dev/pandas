@@ -11,15 +11,14 @@ from datetime import timedelta
 import numpy as np
 
 import pandas as pd
-from pandas import (Series, DataFrame, Panel, Panel4D, MultiIndex, Int64Index,
+from pandas import (Series, DataFrame, Panel, MultiIndex, Int64Index,
                     RangeIndex, Categorical, bdate_range,
                     date_range, timedelta_range, Index, DatetimeIndex,
                     isna, compat, concat, Timestamp)
 
 import pandas.util.testing as tm
 import pandas.util._test_decorators as td
-from pandas.util.testing import (assert_panel4d_equal,
-                                 assert_panel_equal,
+from pandas.util.testing import (assert_panel_equal,
                                  assert_frame_equal,
                                  assert_series_equal,
                                  set_timezone)
@@ -888,30 +887,6 @@ class TestHDFStore(Base):
                 store.append('wp1', wp.iloc[:, 10:, :])
                 assert_panel_equal(store['wp1'], wp)
 
-                # ndim
-                p4d = tm.makePanel4D()
-                _maybe_remove(store, 'p4d')
-                store.append('p4d', p4d.iloc[:, :, :10, :])
-                store.append('p4d', p4d.iloc[:, :, 10:, :])
-                assert_panel4d_equal(store['p4d'], p4d)
-
-                # test using axis labels
-                _maybe_remove(store, 'p4d')
-                store.append('p4d', p4d.iloc[:, :, :10, :], axes=[
-                    'items', 'major_axis', 'minor_axis'])
-                store.append('p4d', p4d.iloc[:, :, 10:, :], axes=[
-                    'items', 'major_axis', 'minor_axis'])
-                assert_panel4d_equal(store['p4d'], p4d)
-
-                # test using different number of items on each axis
-                p4d2 = p4d.copy()
-                p4d2['l4'] = p4d['l1']
-                p4d2['l5'] = p4d['l1']
-                _maybe_remove(store, 'p4d2')
-                store.append(
-                    'p4d2', p4d2, axes=['items', 'major_axis', 'minor_axis'])
-                assert_panel4d_equal(store['p4d2'], p4d2)
-
                 # test using differt order of items on the non-index axes
                 _maybe_remove(store, 'wp1')
                 wp_append1 = wp.iloc[:, :10, :]
@@ -1307,76 +1282,6 @@ class TestHDFStore(Base):
             # store multile additional fields in different blocks
             df['float_3'] = Series([1.] * len(df), dtype='float64')
             pytest.raises(ValueError, store.append, 'df', df)
-
-    def test_ndim_indexables(self):
-        # test using ndim tables in new ways
-
-        with catch_warnings(record=True):
-            with ensure_clean_store(self.path) as store:
-
-                p4d = tm.makePanel4D()
-
-                def check_indexers(key, indexers):
-                    for i, idx in enumerate(indexers):
-                        descr = getattr(store.root, key).table.description
-                        assert getattr(descr, idx)._v_pos == i
-
-                # append then change (will take existing schema)
-                indexers = ['items', 'major_axis', 'minor_axis']
-
-                _maybe_remove(store, 'p4d')
-                store.append('p4d', p4d.iloc[:, :, :10, :], axes=indexers)
-                store.append('p4d', p4d.iloc[:, :, 10:, :])
-                assert_panel4d_equal(store.select('p4d'), p4d)
-                check_indexers('p4d', indexers)
-
-                # same as above, but try to append with different axes
-                _maybe_remove(store, 'p4d')
-                store.append('p4d', p4d.iloc[:, :, :10, :], axes=indexers)
-                store.append('p4d', p4d.iloc[:, :, 10:, :], axes=[
-                    'labels', 'items', 'major_axis'])
-                assert_panel4d_equal(store.select('p4d'), p4d)
-                check_indexers('p4d', indexers)
-
-                # pass incorrect number of axes
-                _maybe_remove(store, 'p4d')
-                pytest.raises(ValueError, store.append, 'p4d', p4d.iloc[
-                    :, :, :10, :], axes=['major_axis', 'minor_axis'])
-
-                # different than default indexables #1
-                indexers = ['labels', 'major_axis', 'minor_axis']
-                _maybe_remove(store, 'p4d')
-                store.append('p4d', p4d.iloc[:, :, :10, :], axes=indexers)
-                store.append('p4d', p4d.iloc[:, :, 10:, :])
-                assert_panel4d_equal(store['p4d'], p4d)
-                check_indexers('p4d', indexers)
-
-                # different than default indexables #2
-                indexers = ['major_axis', 'labels', 'minor_axis']
-                _maybe_remove(store, 'p4d')
-                store.append('p4d', p4d.iloc[:, :, :10, :], axes=indexers)
-                store.append('p4d', p4d.iloc[:, :, 10:, :])
-                assert_panel4d_equal(store['p4d'], p4d)
-                check_indexers('p4d', indexers)
-
-                # partial selection
-                result = store.select('p4d', ['labels=l1'])
-                expected = p4d.reindex(labels=['l1'])
-                assert_panel4d_equal(result, expected)
-
-                # partial selection2
-                result = store.select(
-                    'p4d', "labels='l1' and items='ItemA' and minor_axis='B'")
-                expected = p4d.reindex(
-                    labels=['l1'], items=['ItemA'], minor_axis=['B'])
-                assert_panel4d_equal(result, expected)
-
-                # non-existent partial selection
-                result = store.select(
-                    'p4d', "labels='l1' and items='Item1' and minor_axis='B'")
-                expected = p4d.reindex(labels=['l1'], items=[],
-                                       minor_axis=['B'])
-                assert_panel4d_equal(result, expected)
 
     def test_append_with_strings(self):
 
@@ -1972,27 +1877,14 @@ class TestHDFStore(Base):
     def test_append_misc(self):
 
         with ensure_clean_store(self.path) as store:
+            df = tm.makeDataFrame()
+            store.append('df', df, chunksize=1)
+            result = store.select('df')
+            tm.assert_frame_equal(result, df)
 
-            with catch_warnings(record=True):
-
-                # unsupported data types for non-tables
-                p4d = tm.makePanel4D()
-                pytest.raises(TypeError, store.put, 'p4d', p4d)
-
-                # unsupported data types
-                pytest.raises(TypeError, store.put, 'abc', None)
-                pytest.raises(TypeError, store.put, 'abc', '123')
-                pytest.raises(TypeError, store.put, 'abc', 123)
-                pytest.raises(TypeError, store.put, 'abc', np.arange(5))
-
-                df = tm.makeDataFrame()
-                store.append('df', df, chunksize=1)
-                result = store.select('df')
-                tm.assert_frame_equal(result, df)
-
-                store.append('df1', df, expectedrows=10)
-                result = store.select('df1')
-                tm.assert_frame_equal(result, df)
+            store.append('df1', df, expectedrows=10)
+            result = store.select('df1')
+            tm.assert_frame_equal(result, df)
 
         # more chunksize in append tests
         def check(obj, comparator):
@@ -2014,10 +1906,6 @@ class TestHDFStore(Base):
         with catch_warnings(record=True):
             p = tm.makePanel()
             check(p, assert_panel_equal)
-
-        with catch_warnings(record=True):
-            p4d = tm.makePanel4D()
-            check(p4d, assert_panel4d_equal)
 
         # empty frame, GH4273
         with ensure_clean_store(self.path) as store:
@@ -2188,21 +2076,6 @@ class TestHDFStore(Base):
             with ensure_clean_store(self.path) as store:
                 store.append('p1_mixed', wp)
                 assert_panel_equal(store.select('p1_mixed'), wp)
-
-        with catch_warnings(record=True):
-            # ndim
-            wp = tm.makePanel4D()
-            wp['obj1'] = 'foo'
-            wp['obj2'] = 'bar'
-            wp['bool1'] = wp['l1'] > 0
-            wp['bool2'] = wp['l2'] > 0
-            wp['int1'] = 1
-            wp['int2'] = 2
-            wp = wp._consolidate()
-
-            with ensure_clean_store(self.path) as store:
-                store.append('p4d_mixed', wp)
-                assert_panel4d_equal(store.select('p4d_mixed'), wp)
 
     def test_unimplemented_dtypes_table_columns(self):
 
@@ -2545,10 +2418,8 @@ class TestHDFStore(Base):
                 df.loc[0:4, 'string'] = 'bar'
                 wp = tm.makePanel()
 
-                p4d = tm.makePanel4D()
                 store.put('df', df, format='table')
                 store.put('wp', wp, format='table')
-                store.put('p4d', p4d, format='table')
 
                 # some invalid terms
                 pytest.raises(ValueError, store.select,
@@ -2597,8 +2468,7 @@ class TestHDFStore(Base):
                 wpneg = Panel.fromDict({-1: tm.makeDataFrame(),
                                         0: tm.makeDataFrame(),
                                         1: tm.makeDataFrame()})
-                p4d = tm.makePanel4D()
-                store.put('p4d', p4d, format='table')
+
                 store.put('wp', wp, format='table')
                 store.put('wpneg', wpneg, format='table')
 
@@ -2617,17 +2487,6 @@ class TestHDFStore(Base):
                 expected = wp.truncate(
                     after='20000108').reindex(minor=['A', 'B'])
                 tm.assert_panel_equal(result, expected)
-
-            # p4d
-            with catch_warnings(record=True):
-
-                result = store.select('p4d',
-                                      ("major_axis<'20000108' and "
-                                       "minor_axis=['A', 'B'] and "
-                                       "items=['ItemA', 'ItemB']"))
-                expected = p4d.truncate(after='20000108').reindex(
-                    minor=['A', 'B'], items=['ItemA', 'ItemB'])
-                assert_panel4d_equal(result, expected)
 
             with catch_warnings(record=True):
 
@@ -2648,12 +2507,6 @@ class TestHDFStore(Base):
 
                 for t in terms:
                     store.select('wp', t)
-                    store.select('p4d', t)
-
-                # valid for p4d only
-                terms = ["labels=['l1', 'l2']"]
-                for t in terms:
-                    store.select('p4d', t)
 
                 with tm.assert_raises_regex(
                         TypeError, 'Only named functions are supported'):
@@ -5353,11 +5206,9 @@ class TestHDFComplexValues(Base):
 
         with catch_warnings(record=True):
             p = Panel({'One': df, 'Two': df})
-            p4d = Panel4D({'i': p, 'ii': p})
 
-            objs = [df, p, p4d]
-            comps = [tm.assert_frame_equal, tm.assert_panel_equal,
-                     tm.assert_panel4d_equal]
+            objs = [df, p]
+            comps = [tm.assert_frame_equal, tm.assert_panel_equal]
             for obj, comp in zip(objs, comps):
                 with ensure_clean_path(self.path) as path:
                     obj.to_hdf(path, 'obj', format='table')
