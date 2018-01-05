@@ -269,7 +269,7 @@ def test_more_flexible_frame_multi_function(df):
     # this uses column selection & renaming
     with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
         d = OrderedDict([['C', np.mean],
-                            ['D', OrderedDict([['foo', np.mean],
+                         ['D', OrderedDict([['foo', np.mean],
                                             ['bar', np.std]])]])
         result = grouped.aggregate(d)
 
