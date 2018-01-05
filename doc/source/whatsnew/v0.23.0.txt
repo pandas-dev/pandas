@@ -333,7 +333,7 @@ Indexing
 - Bug in indexing non-scalar value from ``Series`` having non-unique ``Index`` will return value flattened (:issue:`17610`)
 - Bug in :func:`DatetimeIndex.insert` where inserting ``NaT`` into a timezone-aware index incorrectly raised (:issue:`16357`)
 - Bug in ``__setitem__`` when indexing a :class:`DataFrame` with a 2-d boolean ndarray (:issue:`18582`)
-
+- Bug in ``str.extractall`` when there were no matches empty :class:`Index` was returned instead of appropriate :class:`MultiIndex` (:issue:`19034`)
 
 I/O
 ^^^
