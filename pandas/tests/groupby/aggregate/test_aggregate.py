@@ -10,7 +10,7 @@ import numpy as np
 import pandas as pd
 
 from pandas import concat, DataFrame, Index, MultiIndex, Series
-from pandas.core.groupby import SpecificationError
+from pandas.core.groupby import Grouping, SpecificationError
 from pandas.compat import OrderedDict
 import pandas.util.testing as tm
 
@@ -103,8 +103,6 @@ class TestGroupByAggregate(object):
                               check_names=False)
 
     def test_agg_grouping_is_list_tuple(self):
-        from pandas.core.groupby import Grouping
-
         df = tm.makeTimeDataFrame()
 
         grouped = df.groupby(lambda x: x.year)
