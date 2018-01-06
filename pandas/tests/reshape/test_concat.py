@@ -481,6 +481,15 @@ class TestConcatAppendCommon(ConcatenateBase):
         tm.assert_series_equal(pd.concat([s1, s2], ignore_index=True), exp)
         tm.assert_series_equal(s1.append(s2, ignore_index=True), exp)
 
+    def test_union_categorical_same_categories_different_order(self):
+        # https://github.com/pandas-dev/pandas/issues/19096
+        a = pd.Series(Categorical(['a', 'b', 'c'], categories=['a', 'b', 'c']))
+        b = pd.Series(Categorical(['a', 'b', 'c'], categories=['b', 'a', 'c']))
+        result = pd.concat([a, b], ignore_index=True)
+        expected = pd.Series(Categorical(['a', 'b', 'c', 'a', 'b', 'c'],
+                                         categories=['a', 'b', 'c']))
+        tm.assert_series_equal(result, expected)
+
     def test_concat_categorical_coercion(self):
         # GH 13524
 
