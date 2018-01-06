@@ -2262,6 +2262,26 @@ class TestMixedIntIndex(Base):
 
         assert len(res) == 0
 
+    @pytest.mark.parametrize('op', [operator.eq, operator.ne,
+                                    operator.gt, operator.ge,
+                                    operator.lt, operator.le])
+    def test_comparison_tzawareness_compat(self, op):
+        # GH#18162
+        dr = pd.date_range('2016-01-01', periods=6)
+        dz = dr.tz_localize('US/Pacific')
+
+        # Check that there isn't a problem aware-aware and naive-naive do not
+        # raise
+        naive_series = Series(dr)
+        aware_series = Series(dz)
+        with pytest.raises(TypeError):
+            op(dz, naive_series)
+        with pytest.raises(TypeError):
+            op(dr, aware_series)
+
+        # TODO: implement _assert_tzawareness_compat for the reverse
+        # comparison with the Series on the left-hand side
+
 
 class TestIndexUtils(object):
 

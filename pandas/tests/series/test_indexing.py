@@ -450,6 +450,13 @@ class TestSeriesIndexing(TestData):
 
         lb = "1990-01-01 04:00:00"
         rb = "1990-01-01 07:00:00"
+        # GH#18435 strings get a pass from tzawareness compat
+        result = ts[(ts.index >= lb) & (ts.index <= rb)]
+        expected = ts[4:8]
+        assert_series_equal(result, expected)
+
+        lb = "1990-01-01 04:00:00-0500"
+        rb = "1990-01-01 07:00:00-0500"
         result = ts[(ts.index >= lb) & (ts.index <= rb)]
         expected = ts[4:8]
         assert_series_equal(result, expected)
@@ -475,6 +482,13 @@ class TestSeriesIndexing(TestData):
 
         lb = datetime(1990, 1, 1, 4)
         rb = datetime(1990, 1, 1, 7)
+        with pytest.raises(TypeError):
+            # tznaive vs tzaware comparison is invalid
+            # see GH#18376, GH#18162
+            ts[(ts.index >= lb) & (ts.index <= rb)]
+
+        lb = pd.Timestamp(datetime(1990, 1, 1, 4)).tz_localize(rng.tzinfo)
+        rb = pd.Timestamp(datetime(1990, 1, 1, 7)).tz_localize(rng.tzinfo)
         result = ts[(ts.index >= lb) & (ts.index <= rb)]
         expected = ts[4:8]
         assert_series_equal(result, expected)
