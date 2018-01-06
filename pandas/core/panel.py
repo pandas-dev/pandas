@@ -477,8 +477,7 @@ class Panel(NDFrame):
     # Getting and setting elements
 
     def get_value(self, *args, **kwargs):
-        """
-        Quickly retrieve single value at (item, major, minor) location
+        """Quickly retrieve single value at (item, major, minor) location
 
         .. deprecated:: 0.21.0
 
@@ -525,8 +524,7 @@ class Panel(NDFrame):
     _get_value.__doc__ = get_value.__doc__
 
     def set_value(self, *args, **kwargs):
-        """
-        Quickly set single value at (item, major, minor) location
+        """Quickly set single value at (item, major, minor) location
 
         .. deprecated:: 0.21.0
 
