@@ -824,6 +824,11 @@ class TestDataFrameAlterAxes(TestData):
                                 index=RangeIndex(stop=2))
         assert_frame_equal(result, expected)
 
+    def test_reset_index_name(self):
+        # issue `17067`: after reset_index, index name should be None
+        df = pd.DataFrame(index=pd.Index([], name='x'))
+        assert df.reset_index(level=[]).index.name is None
+
     def test_set_index_names(self):
         df = pd.util.testing.makeDataFrame()
         df.index.name = 'name'

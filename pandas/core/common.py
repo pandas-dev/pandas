@@ -205,9 +205,9 @@ def is_bool_indexer(key):
     return False
 
 
-def _default_index(n):
+def _default_index(n, name=None):
     from pandas.core.index import RangeIndex
-    return RangeIndex(0, n, name=None)
+    return RangeIndex(0, n, name=name)
 
 
 def _mut_exclusive(**kwargs):

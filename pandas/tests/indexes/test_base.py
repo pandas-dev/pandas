@@ -957,6 +957,14 @@ class TestIndex(Base):
         index += '_x'
         assert 'a_x' in index
 
+    def test_iadd_index_name(self):
+        # issue `17067`: test Index keeping index name after plus op
+        s = pd.Series([1, 2, 3])
+        s.index.name = 'foo'
+
+        s.index += 1
+        assert s.index.name == 'foo'
+
     def test_difference(self):
 
         first = self.strIndex[5:20]
