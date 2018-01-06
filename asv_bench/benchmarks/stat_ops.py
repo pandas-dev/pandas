@@ -4,45 +4,33 @@ import pandas as pd
 from .pandas_vb_common import setup  # noqa
 
 
-class Bottleneck(object):
-
-    goal_time = 0.2
-    params = ([True, False], ['DataFrame', 'Series'])
-    param_names = ['use_bottleneck', 'constructor']
-
-    def setup(self, use_bottleneck, constructor):
-        values = np.random.randn(10**6)
-        self.data = getattr(pd, constructor)(values)
-        try:
-            pd.options.compute.use_bottleneck = use_bottleneck
-        except:
-            from pandas.core import nanops
-            nanops._USE_BOTTLENECK = use_bottleneck
-
-    def time_mean(self, use_bottleneck, constructor):
-        self.data.mean()
+ops = ['mean', 'sum', 'median', 'std', 'skew', 'kurt', 'mad', 'prod', 'sem',
+       'var']
 
 
 class FrameOps(object):
 
     goal_time = 0.2
-    param_names = ['op', 'dtype', 'axis']
-    params = [['mean', 'sum', 'median', 'std'],
-              ['float', 'int'],
-              [0, 1]]
+    params = [ops, ['float', 'int'], [0, 1], [True, False]]
+    param_names = ['op', 'dtype', 'axis', 'use_bottleneck']
 
-    def setup(self, op, dtype, axis):
+    def setup(self, op, dtype, axis, use_bottleneck):
         df = pd.DataFrame(np.random.randn(100000, 4)).astype(dtype)
+        try:
+            pd.options.compute.use_bottleneck = use_bottleneck
+        except:
+            from pandas.core import nanops
+            nanops._USE_BOTTLENECK = use_bottleneck
         self.df_func = getattr(df, op)
 
-    def time_op(self, op, dtype, axis):
+    def time_op(self, op, dtype, axis, use_bottleneck):
         self.df_func(axis=axis)
 
 
 class FrameMultiIndexOps(object):
 
     goal_time = 0.2
-    params = ([0, 1, [0, 1]], ['mean', 'sum', 'median'])
+    params = ([0, 1, [0, 1]], ops)
     param_names = ['level', 'op']
 
     def setup(self, level, op):
@@ -61,22 +49,26 @@ class FrameMultiIndexOps(object):
 class SeriesOps(object):
 
     goal_time = 0.2
-    param_names = ['op', 'dtype']
-    params = [['mean', 'sum', 'median', 'std'],
-              ['float', 'int']]
+    params = [ops, ['float', 'int'], [True, False]]
+    param_names = ['op', 'dtype', 'use_bottleneck']
 
-    def setup(self, op, dtype):
+    def setup(self, op, dtype, use_bottleneck):
         s = pd.Series(np.random.randn(100000)).astype(dtype)
+        try:
+            pd.options.compute.use_bottleneck = use_bottleneck
+        except:
+            from pandas.core import nanops
+            nanops._USE_BOTTLENECK = use_bottleneck
         self.s_func = getattr(s, op)
 
-    def time_op(self, op, dtype):
+    def time_op(self, op, dtype, use_bottleneck):
         self.s_func()
 
 
 class SeriesMultiIndexOps(object):
 
     goal_time = 0.2
-    params = ([0, 1, [0, 1]], ['mean', 'sum', 'median'])
+    params = ([0, 1, [0, 1]], ops)
     param_names = ['level', 'op']
 
     def setup(self, level, op):
