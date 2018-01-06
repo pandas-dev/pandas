@@ -2718,10 +2718,10 @@ class NDFrame(PandasObject, SelectionMixin):
     _xs = xs
 
     def select(self, crit, axis=0):
-        """
-        Return data corresponding to axis labels matching criteria
+        """Return data corresponding to axis labels matching criteria
 
-        DEPRECATED: use df.loc[df.index.map(crit)] to select via labels
+        .. deprecated:: 0.21.0
+            Use df.loc[df.index.map(crit)] to select via labels
 
         Parameters
         ----------
@@ -4108,8 +4108,11 @@ class NDFrame(PandasObject, SelectionMixin):
             return self._constructor(cons_data).__finalize__(self)
 
     def consolidate(self, inplace=False):
-        """
-        DEPRECATED: consolidate will be an internal implementation only.
+        """Compute NDFrame with "consolidated" internals (data of each dtype
+        grouped together in a single ndarray).
+
+        .. deprecated:: 0.20.0
+            Consolidate will be an internal implementation only.
         """
         # 15483
         warnings.warn("consolidate is deprecated and will be removed in a "
@@ -4160,11 +4163,10 @@ class NDFrame(PandasObject, SelectionMixin):
     # Internal Interface Methods
 
     def as_matrix(self, columns=None):
-        """
-        DEPRECATED: as_matrix will be removed in a future version.
-        Use :meth:`DataFrame.values` instead.
+        """Convert the frame to its Numpy-array representation.
 
-        Convert the frame to its Numpy-array representation.
+        .. deprecated:: 0.23.0
+            Use :meth:`DataFrame.values` instead.
 
         Parameters
         ----------
@@ -4479,12 +4481,11 @@ class NDFrame(PandasObject, SelectionMixin):
                                timedelta=timedelta, coerce=coerce,
                                copy=copy)).__finalize__(self)
 
-    # TODO: Remove in 0.18 or 2017, which ever is sooner
     def convert_objects(self, convert_dates=True, convert_numeric=False,
                         convert_timedeltas=True, copy=True):
-        """
-        Deprecated.
-        Attempt to infer better dtype for object columns
+        """Attempt to infer better dtype for object columns.
+
+        .. deprecated:: 0.21.0
 
         Parameters
         ----------
