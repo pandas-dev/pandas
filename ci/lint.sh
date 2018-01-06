@@ -24,7 +24,7 @@ if [ "$LINT" ]; then
     echo "Linting setup.py DONE"
 
     echo "Linting asv_bench/benchmarks/"
-    flake8 asv_bench/benchmarks/  --exclude=asv_bench/benchmarks/[ps]*.py --ignore=F811
+    flake8 asv_bench/benchmarks/  --exclude=asv_bench/benchmarks/*.py --ignore=F811
     if [ $? -ne "0" ]; then
         RET=1
     fi
