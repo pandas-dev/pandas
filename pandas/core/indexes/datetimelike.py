@@ -441,9 +441,10 @@ class DatetimeIndexOpsMixin(object):
 
     @property
     def asobject(self):
-        """DEPRECATED: Use ``astype(object)`` instead.
+        """Return object Index which contains boxed values.
 
-        return object Index which contains boxed values
+        .. deprecated:: 0.23.0
+            Use ``astype(object)`` instead.
 
         *this is an internal non-public method*
         """

@@ -51,7 +51,7 @@ import pandas.tools.plotting
 plot_params = pandas.plotting._style._Options(deprecated=True)
 # do not import deprecate to top namespace
 scatter_matrix = pandas.util._decorators.deprecate(
-    'pandas.scatter_matrix', pandas.plotting.scatter_matrix,
+    'pandas.scatter_matrix', pandas.plotting.scatter_matrix, '0.20.0',
     'pandas.plotting.scatter_matrix')
 
 from pandas.util._print_versions import show_versions

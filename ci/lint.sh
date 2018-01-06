@@ -117,6 +117,10 @@ if [ "$LINT" ]; then
         fi
     done
     echo "Check for incorrect sphinx directives DONE"
+
+    echo "Check for deprecated messages without sphinx directive"
+    grep -R --include="*.py" --include="*.pyx" -E "(DEPRECATED|DEPRECATE|Deprecated)(:|,|\.)" pandas
+    echo "Check for deprecated messages without sphinx directive DONE"
 else
     echo "NOT Linting"
 fi

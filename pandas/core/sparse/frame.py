@@ -820,12 +820,12 @@ class SparseDataFrame(DataFrame):
 
         return self.apply(lambda x: x.cumsum(), axis=axis)
 
-    @Appender(generic._shared_docs['isna'])
+    @Appender(generic._shared_docs['isna'] % _shared_doc_kwargs)
     def isna(self):
         return self._apply_columns(lambda x: x.isna())
     isnull = isna
 
-    @Appender(generic._shared_docs['notna'])
+    @Appender(generic._shared_docs['notna'] % _shared_doc_kwargs)
     def notna(self):
         return self._apply_columns(lambda x: x.notna())
     notnull = notna

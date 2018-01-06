@@ -7,10 +7,15 @@ from textwrap import dedent, wrap
 from functools import wraps, update_wrapper
 
 
-def deprecate(name, alternative, alt_name=None, klass=None,
-              stacklevel=2, msg=None):
-    """
-    Return a new function that emits a deprecation warning on use.
+def deprecate(name, alternative, version, alt_name=None,
+              klass=None, stacklevel=2, msg=None):
+    """Return a new function that emits a deprecation warning on use.
+
+    To use this method for a deprecated function, another function
+    `alternative` with the same signature must exist. The deprecated
+    function will emit a deprecation warning, and in the docstring
+    it will contain the deprecation directive with the provided version
+    so it can be detected for future removal.
 
     Parameters
     ----------
@@ -18,6 +23,8 @@ def deprecate(name, alternative, alt_name=None, klass=None,
         Name of function to deprecate
     alternative : str
         Name of function to use instead
+    version : str
+        Version of pandas in which the method has been deprecated
     alt_name : str, optional
         Name to use in preference of alternative.__name__
     klass : Warning, default FutureWarning
@@ -29,16 +36,24 @@ def deprecate(name, alternative, alt_name=None, klass=None,
 
     alt_name = alt_name or alternative.__name__
     klass = klass or FutureWarning
-    msg = msg or "{} is deprecated, use {} instead".format(name, alt_name)
+    warning_msg = msg or '{} is deprecated, use {} instead'.format(name,
+                                                                   alt_name)
 
     @wraps(alternative)
     def wrapper(*args, **kwargs):
-        warnings.warn(msg, klass, stacklevel=stacklevel)
+        warnings.warn(warning_msg, klass, stacklevel=stacklevel)
         return alternative(*args, **kwargs)
 
-    if getattr(wrapper, '__doc__', None) is not None:
-        wrapper.__doc__ = ('\n'.join(wrap(msg, 70)) + '\n'
-                           + dedent(wrapper.__doc__))
+    # adding deprecated directive to the docstring
+    msg = msg or 'Use `{alt_name}` instead.'
+    docstring = '.. deprecated:: {}\n'.format(version)
+    docstring += dedent('    ' + ('\n'.join(wrap(msg, 70))))
+
+    if getattr(wrapper, '__doc__') is not None:
+        docstring += dedent(wrapper.__doc__)
+
+    wrapper.__doc__ = docstring
+
     return wrapper
 
 

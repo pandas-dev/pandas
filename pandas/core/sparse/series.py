@@ -255,9 +255,10 @@ class SparseSeries(Series):
     @classmethod
     def from_array(cls, arr, index=None, name=None, copy=False,
                    fill_value=None, fastpath=False):
-        """
-        DEPRECATED: use the pd.SparseSeries(..) constructor instead.
+        """Construct SparseSeries from array.
 
+        .. deprecated:: 0.23.0
+            Use the pd.SparseSeries(..) constructor instead.
         """
         warnings.warn("'from_array' is deprecated and will be removed in a "
                       "future version. Please use the pd.SparseSeries(..) "
@@ -571,8 +572,9 @@ class SparseSeries(Series):
 
         Parameters
         ----------
-        sparse_only: bool, default False
-            DEPRECATED: this argument will be removed in a future version.
+        sparse_only : bool, default False
+            .. deprecated:: 0.20.0
+                This argument will be removed in a future version.
 
             If True, return just the non-sparse values, or the dense version
             of `self.values` if False.
@@ -679,7 +681,7 @@ class SparseSeries(Series):
             new_array, index=self.index,
             sparse_index=new_array.sp_index).__finalize__(self)
 
-    @Appender(generic._shared_docs['isna'])
+    @Appender(generic._shared_docs['isna'] % _shared_doc_kwargs)
     def isna(self):
         arr = SparseArray(isna(self.values.sp_values),
                           sparse_index=self.values.sp_index,
@@ -687,7 +689,7 @@ class SparseSeries(Series):
         return self._constructor(arr, index=self.index).__finalize__(self)
     isnull = isna
 
-    @Appender(generic._shared_docs['notna'])
+    @Appender(generic._shared_docs['notna'] % _shared_doc_kwargs)
     def notna(self):
         arr = SparseArray(notna(self.values.sp_values),
                           sparse_index=self.values.sp_index,
