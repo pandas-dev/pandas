@@ -1,6 +1,4 @@
 # -*- coding: utf-8 -*-
-import operator
-
 import pytest
 import numpy as np
 from datetime import timedelta
@@ -28,12 +26,6 @@ def freq(request):
     return request.param
 
 
-def _raises_and_warns(op, left, right):
-    with pytest.raises(TypeError):
-        with tm.assert_produces_warning(PerformanceWarning):
-            op(left, right)
-
-
 class TestTimedeltaIndexArithmetic(object):
     _holder = TimedeltaIndex
 
@@ -56,8 +48,12 @@ class TestTimedeltaIndexArithmetic(object):
 
         anchored = box([pd.offsets.QuarterEnd(),
                         pd.offsets.Week(weekday=2)])
-        _raises_and_warns(operator.add, tdi, anchored)
-        _raises_and_warns(operator.add, anchored, tdi)
+        with pytest.raises(TypeError):
+            with tm.assert_produces_warning(PerformanceWarning):
+                tdi + anchored
+        with pytest.raises(TypeError):
+            with tm.assert_produces_warning(PerformanceWarning):
+                anchored + tdi
 
     @pytest.mark.parametrize('box', [np.array, pd.Index])
     def test_tdi_sub_offset_array(self, box):
@@ -73,8 +69,12 @@ class TestTimedeltaIndexArithmetic(object):
         tm.assert_index_equal(res, expected)
 
         anchored = box([pd.offsets.MonthEnd(), pd.offsets.Day(n=2)])
-        _raises_and_warns(operator.sub, tdi, anchored)
-        _raises_and_warns(operator.sub, anchored, tdi)
+        with pytest.raises(TypeError):
+            with tm.assert_produces_warning(PerformanceWarning):
+                tdi - anchored
+        with pytest.raises(TypeError):
+            with tm.assert_produces_warning(PerformanceWarning):
+                anchored - tdi
 
     @pytest.mark.parametrize('names', [(None, None, None),
                                        ('foo', 'bar', None),
@@ -106,10 +106,18 @@ class TestTimedeltaIndexArithmetic(object):
 
         anchored = Series([pd.offsets.MonthEnd(), pd.offsets.Day(n=2)],
                           name=names[1])
-        _raises_and_warns(operator.add, anchored, tdi)
-        _raises_and_warns(operator.add, tdi, anchored)
-        _raises_and_warns(operator.sub, anchored, tdi)
-        _raises_and_warns(operator.sub, tdi, anchored)
+        with pytest.raises(TypeError):
+            with tm.assert_produces_warning(PerformanceWarning):
+                tdi + anchored
+        with pytest.raises(TypeError):
+            with tm.assert_produces_warning(PerformanceWarning):
+                anchored + tdi
+        with pytest.raises(TypeError):
+            with tm.assert_produces_warning(PerformanceWarning):
+                tdi - anchored
+        with pytest.raises(TypeError):
+            with tm.assert_produces_warning(PerformanceWarning):
+                anchored - tdi
 
     # TODO: Split by ops, better name
     def test_numeric_compat(self):
