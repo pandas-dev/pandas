@@ -327,6 +327,21 @@ class TestMultiIndex(Base):
         assert_matching(ind2.labels, new_labels)
         assert_matching(self.index.labels, labels)
 
+        # label changing for levels of different magnitude of categories
+        ind = pd.MultiIndex.from_tuples([(0, i) for i in range(130)])
+        new_labels = range(129, -1, -1)
+        expected = pd.MultiIndex.from_tuples(
+            [(0, i) for i in new_labels])
+
+        # [w/o mutation]
+        result = ind.set_labels(labels=new_labels, level=1)
+        assert result.equals(expected)
+
+        # [w/ mutation]
+        result = ind.copy()
+        result.set_labels(labels=new_labels, level=1, inplace=True)
+        assert result.equals(expected)
+
     def test_set_levels_labels_names_bad_input(self):
         levels, labels = self.index.levels, self.index.labels
         names = self.index.names
