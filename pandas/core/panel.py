@@ -34,7 +34,7 @@ from pandas.core.internals import (BlockManager,
 from pandas.core.ops import _op_descriptions
 from pandas.core.series import Series
 from pandas.core.reshape.util import cartesian_product
-from pandas.util._decorators import (deprecate, Appender)
+from pandas.util._decorators import Appender
 from pandas.util._validators import validate_axis_style_args
 
 _shared_doc_kwargs = dict(
@@ -477,8 +477,7 @@ class Panel(NDFrame):
     # Getting and setting elements
 
     def get_value(self, *args, **kwargs):
-        """
-        Quickly retrieve single value at (item, major, minor) location
+        """Quickly retrieve single value at (item, major, minor) location
 
         .. deprecated:: 0.21.0
 
@@ -525,8 +524,7 @@ class Panel(NDFrame):
     _get_value.__doc__ = get_value.__doc__
 
     def set_value(self, *args, **kwargs):
-        """
-        Quickly set single value at (item, major, minor) location
+        """Quickly set single value at (item, major, minor) location
 
         .. deprecated:: 0.21.0
 
@@ -996,9 +994,6 @@ class Panel(NDFrame):
 
         return DataFrame(data, index=index, columns=self.items)
 
-    to_long = deprecate('to_long', to_frame)
-    toLong = deprecate('toLong', to_frame)
-
     def apply(self, func, axis='major', **kwargs):
         """
         Applies function along axis (or axes) of the Panel
@@ -1224,9 +1219,6 @@ class Panel(NDFrame):
             kwargs['minor_axis'] = minor
         axes = validate_axis_style_args(self, args, kwargs, 'labels',
                                         'reindex')
-        if self.ndim >= 4:
-            # Hack for PanelND
-            axes = {}
         kwargs.update(axes)
         kwargs.pop('axis', None)
         kwargs.pop('labels', None)

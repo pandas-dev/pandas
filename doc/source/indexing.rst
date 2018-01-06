@@ -84,7 +84,7 @@ of multi-axis indexing.
   ``length-1`` of the axis), but may also be used with a boolean
   array.  ``.iloc`` will raise ``IndexError`` if a requested
   indexer is out-of-bounds, except *slice* indexers which allow
-  out-of-bounds indexing.  (this conforms with python/numpy *slice*
+  out-of-bounds indexing.  (this conforms with Python/NumPy *slice*
   semantics).  Allowed inputs are:
 
   - An integer e.g. ``5``.
@@ -228,7 +228,7 @@ as an attribute:
 
 .. warning::
 
-   - You can use this access only if the index element is a valid python identifier, e.g. ``s.1`` is not allowed.
+   - You can use this access only if the index element is a valid Python identifier, e.g. ``s.1`` is not allowed.
      See `here for an explanation of valid identifiers
      <https://docs.python.org/3/reference/lexical_analysis.html#identifiers>`__.
 
@@ -441,7 +441,7 @@ Selection By Position
    This is sometimes called ``chained assignment`` and should be avoided.
    See :ref:`Returning a View versus Copy <indexing.view_versus_copy>`.
 
-Pandas provides a suite of methods in order to get **purely integer based indexing**. The semantics follow closely python and numpy slicing. These are ``0-based`` indexing. When slicing, the start bounds is *included*, while the upper bound is *excluded*. Trying to use a non-integer, even a **valid** label will raise an ``IndexError``.
+Pandas provides a suite of methods in order to get **purely integer based indexing**. The semantics follow closely Python and NumPy slicing. These are ``0-based`` indexing. When slicing, the start bounds is *included*, while the upper bound is *excluded*. Trying to use a non-integer, even a **valid** label will raise an ``IndexError``.
 
 The ``.iloc`` attribute is the primary access method. The following are valid inputs:
 
@@ -777,7 +777,7 @@ using the ``replace`` option:
 
 By default, each row has an equal probability of being selected, but if you want rows
 to have different probabilities, you can pass the ``sample`` function sampling weights as
-``weights``. These weights can be a list, a numpy array, or a Series, but they must be of the same length as the object you are sampling. Missing values will be treated as a weight of zero, and inf values are not allowed. If weights do not sum to 1, they will be re-normalized by dividing all weights by the sum of the weights. For example:
+``weights``. These weights can be a list, a NumPy array, or a Series, but they must be of the same length as the object you are sampling. Missing values will be treated as a weight of zero, and inf values are not allowed. If weights do not sum to 1, they will be re-normalized by dividing all weights by the sum of the weights. For example:
 
 .. ipython :: python
 
@@ -805,7 +805,7 @@ as a string.
     df3 = pd.DataFrame({'col1':[1,2,3], 'col2':[2,3,4]})
     df3.sample(n=1, axis=1)
 
-Finally, one can also set a seed for ``sample``'s random number generator using the ``random_state`` argument, which will accept either an integer (as a seed) or a numpy RandomState object.
+Finally, one can also set a seed for ``sample``'s random number generator using the ``random_state`` argument, which will accept either an integer (as a seed) or a NumPy RandomState object.
 
 .. 	ipython :: python
 
@@ -893,7 +893,7 @@ evaluate an expression such as ``df.A > 2 & df.B < 3`` as
 ``df.A > (2 & df.B) < 3``, while the desired evaluation order is 
 ``(df.A > 2) & (df.B < 3)``.
 
-Using a boolean vector to index a Series works exactly as in a numpy ndarray:
+Using a boolean vector to index a Series works exactly as in a NumPy ndarray:
 
 .. ipython:: python
 
@@ -1124,7 +1124,6 @@ as condition and ``other`` argument.
                        'B': [4, 5, 6],
                        'C': [7, 8, 9]})
    df3.where(lambda x: x > 4, lambda x: x + 10)
-
 
 Mask
 ~~~~
@@ -1518,7 +1517,7 @@ The :meth:`~pandas.DataFrame.lookup` Method
 
 Sometimes you want to extract a set of values given a sequence of row labels
 and column labels, and the ``lookup`` method allows for this and returns a
-numpy array.  For instance:
+NumPy array.  For instance:
 
 .. ipython:: python
 
@@ -1712,6 +1711,7 @@ As a convenience, there is a new function on DataFrame called
 DataFrame's columns and sets a simple integer index. 
 This is the inverse operation of :meth:`~DataFrame.set_index`.
 
+
 .. ipython:: python
 
    data
@@ -1772,7 +1772,7 @@ These both yield the same results, so which should you use? It is instructive to
 of operations on these and why method 2 (``.loc``) is much preferred over method 1 (chained ``[]``).
 
 ``dfmi['one']`` selects the first level of the columns and returns a DataFrame that is singly-indexed.
-Then another python operation ``dfmi_with_one['second']`` selects the series indexed by ``'second'`` happens.
+Then another Python operation ``dfmi_with_one['second']`` selects the series indexed by ``'second'`` happens.
 This is indicated by the variable ``dfmi_with_one`` because pandas sees these operations as separate events.
 e.g. separate calls to ``__getitem__``, so it has to treat them as linear operations, they happen one after another.
 

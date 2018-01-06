@@ -1635,7 +1635,7 @@ performance improvements along with a large number of bug fixes.
 
 Highlights include:
 
-- Drop support for numpy < 1.7.0 (:issue:`7711`)
+- Drop support for NumPy < 1.7.0 (:issue:`7711`)
 - The ``Categorical`` type was integrated as a first-class pandas type, see :ref:`here <whatsnew_0150.cat>`
 - New scalar type ``Timedelta``, and a new index type ``TimedeltaIndex``, see :ref:`here <whatsnew_0150.timedeltaindex>`
 - New DataFrame default display for ``df.info()`` to include memory usage, see :ref:`Memory Usage <whatsnew_0150.memory>`
@@ -2032,7 +2032,7 @@ Bug Fixes
 - Bug in Series.xs with a multi-index (:issue:`6018`)
 - Bug in Series construction of mixed type with datelike and an integer (which should result in
   object type and not automatic conversion) (:issue:`6028`)
-- Possible segfault when chained indexing with an object array under numpy 1.7.1 (:issue:`6026`, :issue:`6056`)
+- Possible segfault when chained indexing with an object array under NumPy 1.7.1 (:issue:`6026`, :issue:`6056`)
 - Bug in setting using fancy indexing a single element with a non-scalar (e.g. a list),
   (:issue:`6043`)
 - ``to_sql`` did not respect ``if_exists`` (:issue:`4110` :issue:`4304`)
@@ -2177,7 +2177,7 @@ Improvements to existing features
 - allow DataFrame constructor to accept more list-like objects, e.g. list of
   ``collections.Sequence`` and ``array.Array`` objects (:issue:`3783`,
   :issue:`4297`, :issue:`4851`), thanks @lgautier
-- DataFrame constructor now accepts a numpy masked record array
+- DataFrame constructor now accepts a NumPy masked record array
   (:issue:`3478`), thanks @jnothman
 - ``__getitem__`` with ``tuple`` key (e.g., ``[:, 2]``) on ``Series``
   without ``MultiIndex`` raises ``ValueError`` (:issue:`4759`, :issue:`4837`)
@@ -2397,8 +2397,8 @@ API Changes
   support ``pow`` or ``mod`` with non-scalars. (:issue:`3765`)
 - Arithmetic func factories are now passed real names (suitable for using
   with super) (:issue:`5240`)
-- Provide numpy compatibility with 1.7 for a calling convention like
-  ``np.prod(pandas_object)`` as numpy call with additional keyword args
+- Provide NumPy compatibility with 1.7 for a calling convention like
+  ``np.prod(pandas_object)`` as NumPy call with additional keyword args
   (:issue:`4435`)
 - Provide __dir__ method (and local context) for tab completion / remove
   ipython completers code (:issue:`4501`)
@@ -2481,7 +2481,7 @@ See :ref:`Internal Refactoring<whatsnew_0130.refactoring>`
 - Series now inherits from ``NDFrame`` rather than directly from ``ndarray``.
   There are several minor changes that affect the API.
 
- - numpy functions that do not support the array interface will now return
+ - NumPy functions that do not support the array interface will now return
    ``ndarrays`` rather than series, e.g. ``np.diff``, ``np.ones_like``,
    ``np.where``
  - ``Series(0.5)`` would previously return the scalar ``0.5``, this is no
@@ -2650,7 +2650,7 @@ Bug Fixes
 - Fix bug in having a rhs of ``np.timedelta64`` or ``np.offsets.DateOffset``
   when operating with datetimes (:issue:`4532`)
 - Fix arithmetic with series/datetimeindex and ``np.timedelta64`` not working
-  the same (:issue:`4134`) and buggy timedelta in numpy 1.6 (:issue:`4135`)
+  the same (:issue:`4134`) and buggy timedelta in NumPy 1.6 (:issue:`4135`)
 - Fix bug in ``pd.read_clipboard`` on windows with PY3 (:issue:`4561`); not
   decoding properly
 - ``tslib.get_period_field()`` and ``tslib.get_period_field_arr()`` now raise
@@ -2691,7 +2691,7 @@ Bug Fixes
 - Bug with reindexing on the index with a non-unique index will now raise
   ``ValueError`` (:issue:`4746`)
 - Bug in setting with ``loc/ix`` a single indexer with a multi-index axis and
-  a numpy array, related to (:issue:`3777`)
+  a NumPy array, related to (:issue:`3777`)
 - Bug in concatenation with duplicate columns across dtypes not merging with
   axis=0 (:issue:`4771`, :issue:`4975`)
 - Bug in ``iloc`` with a slice index failing (:issue:`4771`)
@@ -2894,7 +2894,7 @@ Improvements to existing features
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 - Fixed various issues with internal pprinting code, the repr() for various objects
-  including TimeStamp and Index now produces valid python code strings and
+  including TimeStamp and Index now produces valid Python code strings and
   can be used to recreate the object, (:issue:`3038`, :issue:`3379`, :issue:`3251`, :issue:`3460`)
 - ``convert_objects`` now accepts a ``copy`` parameter (defaults to ``True``)
 - ``HDFStore``
@@ -2958,7 +2958,7 @@ API Changes
     to enable alternate encodings (:issue:`3750`)
   - enable support for ``iterator/chunksize`` with ``read_hdf``
 - The repr() for (Multi)Index now obeys display.max_seq_items rather
-  then numpy threshold print options. (:issue:`3426`, :issue:`3466`)
+  then NumPy threshold print options. (:issue:`3426`, :issue:`3466`)
 - Added mangle_dupe_cols option to read_table/csv, allowing users
   to control legacy behaviour re dupe cols (A, A.1, A.2 vs A, A ) (:issue:`3468`)
   Note: The default value will change in 0.12 to the "no mangle" behaviour,
@@ -3025,8 +3025,8 @@ API Changes
   as ``Index``, ``Categorical``, ``GroupBy``, ``SparseList``, and
   ``SparseArray`` (+ their base classes). Currently, ``PandasObject``
   provides string methods (from ``StringMixin``). (:issue:`4090`, :issue:`4092`)
-- New ``StringMixin`` that, given a ``__unicode__`` method, gets python 2 and
-  python 3 compatible string methods (``__str__``, ``__bytes__``, and
+- New ``StringMixin`` that, given a ``__unicode__`` method, gets Python 2 and
+  Python 3 compatible string methods (``__str__``, ``__bytes__``, and
   ``__repr__``). Plus string safety throughout. Now employed in many places
   throughout the pandas library. (:issue:`4090`, :issue:`4092`)
 
@@ -3139,7 +3139,7 @@ Bug Fixes
   two integer arrays with at least 10000 cells total (:issue:`3764`)
 - Indexing with a string with seconds resolution not selecting from a time index (:issue:`3925`)
 - csv parsers would loop infinitely if ``iterator=True`` but no ``chunksize`` was
-  specified (:issue:`3967`), python parser failing with ``chunksize=1``
+  specified (:issue:`3967`), Python parser failing with ``chunksize=1``
 - Fix index name not propagating when using ``shift``
 - Fixed dropna=False being ignored with multi-index stack (:issue:`3997`)
 - Fixed flattening of columns when renaming MultiIndex columns DataFrame (:issue:`4004`)
@@ -3301,7 +3301,7 @@ API Changes
   - all timedelta like objects will be correctly assigned to ``timedelta64``
     with mixed ``NaN`` and/or ``NaT`` allowed
 
-- arguments to DataFrame.clip were inconsistent to numpy and Series clipping
+- arguments to DataFrame.clip were inconsistent to NumPy and Series clipping
   (:issue:`2747`)
 - util.testing.assert_frame_equal now checks the column and index names (:issue:`2964`)
 - Constructors will now return a more informative ValueError on failures
@@ -3360,7 +3360,7 @@ Bug Fixes
   - Series ops with a Timestamp on the rhs was throwing an exception (:issue:`2898`)
     added tests for Series ops with datetimes,timedeltas,Timestamps, and datelike
     Series on both lhs and rhs
-  - Fixed subtle timedelta64 inference issue on py3 & numpy 1.7.0 (:issue:`3094`)
+  - Fixed subtle timedelta64 inference issue on py3 & NumPy 1.7.0 (:issue:`3094`)
   - Fixed some formatting issues on timedelta when negative
   - Support null checking on timedelta64, representing (and formatting) with NaT
   - Support setitem with np.nan value, converts to NaT
@@ -4574,7 +4574,7 @@ Bug Fixes
 - Add clearer error message in csv parser (:issue:`835`)
 - Fix loss of fractional seconds in HDFStore (:issue:`513`)
 - Fix DataFrame join where columns have datetimes (:issue:`787`)
-- Work around numpy performance issue in take (:issue:`817`)
+- Work around NumPy performance issue in take (:issue:`817`)
 - Improve comparison operations for NA-friendliness (:issue:`801`)
 - Fix indexing operation for floating point values (:issue:`780`, :issue:`798`)
 - Fix groupby case resulting in malformed dataframe (:issue:`814`)
@@ -5822,7 +5822,7 @@ API Changes
   `offset` argument for everything. So you can still pass a time rule string
   to `offset`
 - Added optional `encoding` argument to `read_csv`, `read_table`, `to_csv`,
-  `from_csv` to handle unicode in python 2.x
+  `from_csv` to handle unicode in Python 2.x
 
 Bug Fixes
 ~~~~~~~~~

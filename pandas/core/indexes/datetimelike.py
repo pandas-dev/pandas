@@ -441,9 +441,10 @@ class DatetimeIndexOpsMixin(object):
 
     @property
     def asobject(self):
-        """DEPRECATED: Use ``astype(object)`` instead.
+        """Return object Index which contains boxed values.
 
-        return object Index which contains boxed values
+        .. deprecated:: 0.23.0
+            Use ``astype(object)`` instead.
 
         *this is an internal non-public method*
         """
@@ -671,7 +672,9 @@ class DatetimeIndexOpsMixin(object):
             from pandas.tseries.offsets import DateOffset
 
             other = lib.item_from_zerodim(other)
-            if is_timedelta64_dtype(other):
+            if isinstance(other, ABCSeries):
+                return NotImplemented
+            elif is_timedelta64_dtype(other):
                 return self._add_delta(other)
             elif isinstance(self, TimedeltaIndex) and isinstance(other, Index):
                 if hasattr(other, '_add_delta'):
@@ -702,7 +705,9 @@ class DatetimeIndexOpsMixin(object):
             from pandas.tseries.offsets import DateOffset
 
             other = lib.item_from_zerodim(other)
-            if is_timedelta64_dtype(other):
+            if isinstance(other, ABCSeries):
+                return NotImplemented
+            elif is_timedelta64_dtype(other):
                 return self._add_delta(-other)
             elif isinstance(self, TimedeltaIndex) and isinstance(other, Index):
                 if not isinstance(other, TimedeltaIndex):

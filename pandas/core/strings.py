@@ -478,7 +478,8 @@ def str_match(arr, pat, case=True, flags=0, na=np.nan, as_indexer=None):
     flags : int, default 0 (no flags)
         re module flags, e.g. re.IGNORECASE
     na : default NaN, fill value for missing values.
-    as_indexer : DEPRECATED - Keyword is ignored.
+    as_indexer
+        .. deprecated:: 0.21.0
 
     Returns
     -------
@@ -794,12 +795,10 @@ def str_extractall(arr, pat, flags=0):
                 result_key = tuple(subject_key + (match_i, ))
                 index_list.append(result_key)
 
-    if 0 < len(index_list):
-        from pandas import MultiIndex
-        index = MultiIndex.from_tuples(
-            index_list, names=arr.index.names + ["match"])
-    else:
-        index = None
+    from pandas import MultiIndex
+    index = MultiIndex.from_tuples(
+        index_list, names=arr.index.names + ["match"])
+
     result = arr._constructor_expanddim(match_list, index=index,
                                         columns=columns)
     return result

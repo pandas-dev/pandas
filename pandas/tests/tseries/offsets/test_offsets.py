@@ -11,9 +11,9 @@ import numpy as np
 from pandas.compat.numpy import np_datetime64_compat
 
 from pandas.core.series import Series
-from pandas.tseries.frequencies import (_offset_map, get_freq_code,
-                                        _get_freq_str, _INVALID_FREQ_ERROR,
-                                        get_offset, get_standard_freq)
+from pandas._libs.tslibs.frequencies import (get_freq_code, get_freq_str,
+                                             _INVALID_FREQ_ERROR)
+from pandas.tseries.frequencies import _offset_map, get_offset
 from pandas.core.indexes.datetimes import (
     _to_m8, DatetimeIndex, _daterange_cache)
 import pandas._libs.tslibs.offsets as liboffsets
@@ -2786,33 +2786,6 @@ def test_get_offset_legacy():
             get_offset(name)
 
 
-def test_get_standard_freq():
-    with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
-        fstr = get_standard_freq('W')
-    with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
-        assert fstr == get_standard_freq('w')
-    with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
-        assert fstr == get_standard_freq('1w')
-    with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
-        assert fstr == get_standard_freq(('W', 1))
-
-    with tm.assert_raises_regex(ValueError, _INVALID_FREQ_ERROR):
-        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
-            get_standard_freq('WeEk')
-
-    with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
-        fstr = get_standard_freq('5Q')
-    with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
-        assert fstr == get_standard_freq('5q')
-
-    with tm.assert_raises_regex(ValueError, _INVALID_FREQ_ERROR):
-        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
-            get_standard_freq('5QuarTer')
-
-    with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
-        assert fstr == get_standard_freq(('q', 5))
-
-
 class TestOffsetAliases(object):
 
     def setup_method(self, method):
@@ -2853,7 +2826,7 @@ class TestOffsetAliases(object):
             code, stride = get_freq_code('3' + k)
             assert isinstance(code, int)
             assert stride == 3
-            assert k == _get_freq_str(code)
+            assert k == get_freq_str(code)
 
 
 def test_dateoffset_misc():
@@ -3180,4 +3153,22 @@ def test_weekofmonth_onoffset():
     ts = Timestamp('1980-12-08 03:38:52.878321185+0500', tz='Asia/Oral')
     fast = offset.onOffset(ts)
     slow = (ts + offset) - offset == ts
+    assert fast == slow
+
+
+def test_last_week_of_month_on_offset():
+    # GH#19036, GH#18977 _adjust_dst was incorrect for LastWeekOfMonth
+    offset = LastWeekOfMonth(n=4, weekday=6)
+    ts = Timestamp('1917-05-27 20:55:27.084284178+0200',
+                   tz='Europe/Warsaw')
+    slow = (ts + offset) - offset == ts
+    fast = offset.onOffset(ts)
+    assert fast == slow
+
+    # negative n
+    offset = LastWeekOfMonth(n=-4, weekday=5)
+    ts = Timestamp('2005-08-27 05:01:42.799392561-0500',
+                   tz='America/Rainy_River')
+    slow = (ts + offset) - offset == ts
+    fast = offset.onOffset(ts)
     assert fast == slow

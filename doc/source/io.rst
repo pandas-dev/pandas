@@ -164,7 +164,7 @@ dtype : Type name or dict of column -> type, default ``None``
   .. versionadded:: 0.20.0 support for the Python parser.
 
 engine : {``'c'``, ``'python'``}
-  Parser engine to use. The C engine is faster while the python engine is
+  Parser engine to use. The C engine is faster while the Python engine is
   currently more feature-complete.
 converters : dict, default ``None``
   Dict of functions for converting values in certain columns. Keys can either be
@@ -775,7 +775,7 @@ The simplest case is to just pass in ``parse_dates=True``:
    df = pd.read_csv('foo.csv', index_col=0, parse_dates=True)
    df
 
-   # These are python datetime objects
+   # These are Python datetime objects
    df.index
 
 It is often the case that we may want to store date and time data separately,
@@ -1529,9 +1529,9 @@ Specifying the parser engine
 ''''''''''''''''''''''''''''
 
 Under the hood pandas uses a fast and efficient parser implemented in C as well
-as a python implementation which is currently more feature-complete. Where
+as a Python implementation which is currently more feature-complete. Where
 possible pandas uses the C parser (specified as ``engine='c'``), but may fall
-back to python if C-unsupported options are specified. Currently, C-unsupported
+back to Python if C-unsupported options are specified. Currently, C-unsupported
 options include:
 
 - ``sep`` other than a single character (e.g. regex separators)
@@ -1582,7 +1582,7 @@ function takes a number of arguments. Only the first is required.
     used. (A sequence should be given if the DataFrame uses MultiIndex).
   - ``mode`` : Python write mode, default 'w'
   - ``encoding``: a string representing the encoding to use if the contents are
-    non-ASCII, for python versions prior to 3
+    non-ASCII, for Python versions prior to 3
   - ``line_terminator``: Character sequence denoting line end (default '\\n')
   - ``quoting``: Set quoting rules as in csv module (default csv.QUOTE_MINIMAL). Note that if you have set a `float_format` then floats are converted to strings and csv.QUOTE_NONNUMERIC will treat them as non-numeric
   - ``quotechar``: Character used to quote fields (default '"')
@@ -1648,7 +1648,7 @@ with optional parameters:
 
   DataFrame
       - default is ``columns``
-      - allowed values are {``split``, ``records``, ``index``, ``columns``, ``values``}
+      - allowed values are {``split``, ``records``, ``index``, ``columns``, ``values``, ``table``}
 
   The format of the JSON string
 
@@ -1731,6 +1731,9 @@ values, index and columns. Name is also included for ``Series``:
 
   dfjo.to_json(orient="split")
   sjo.to_json(orient="split")
+
+**Table oriented** serializes to the JSON `Table Schema`_, allowing for the
+preservation of metadata including but not limited to dtypes and index names.
 
 .. note::
 
@@ -1833,7 +1836,7 @@ is ``None``. To explicitly force ``Series`` parsing, pass ``typ=series``
 
   DataFrame
       - default is ``columns``
-      - allowed values are {``split``, ``records``, ``index``, ``columns``, ``values``}
+      - allowed values are {``split``, ``records``, ``index``, ``columns``, ``values``, ``table``}
 
   The format of the JSON string
 
@@ -1846,12 +1849,14 @@ is ``None``. To explicitly force ``Series`` parsing, pass ``typ=series``
      ``index``; dict like {index -> {column -> value}}
      ``columns``; dict like {column -> {index -> value}}
      ``values``; just the values array
+     ``table``; adhering to the JSON `Table Schema`_
+
 
 - ``dtype`` : if True, infer dtypes, if a dict of column to dtype, then use those, if False, then don't infer dtypes at all, default is True, apply only to the data
 - ``convert_axes`` : boolean, try to convert the axes to the proper dtypes, default is True
 - ``convert_dates`` : a list of columns to parse for dates; If True, then try to parse date-like columns, default is True
 - ``keep_default_dates`` : boolean, default True. If parsing dates, then parse the default date-like columns
-- ``numpy`` : direct decoding to numpy arrays. default is False;
+- ``numpy`` : direct decoding to NumPy arrays. default is False;
   Supports numeric data only, although labels may be non-numeric. Also note that the JSON ordering **MUST** be the same for each term if ``numpy=True``
 - ``precise_float`` : boolean, default ``False``. Set to enable usage of higher precision (strtod) function when decoding string to double values. Default (``False``) is to use fast but less precise builtin functionality
 - ``date_unit`` : string, the timestamp unit to detect if converting dates. Default
@@ -1962,7 +1967,7 @@ The Numpy Parameter
 
 If ``numpy=True`` is passed to ``read_json`` an attempt will be made to sniff
 an appropriate dtype during deserialization and to subsequently decode directly
-to numpy arrays, bypassing the need for intermediate Python objects.
+to NumPy arrays, bypassing the need for intermediate Python objects.
 
 This can provide speedups if you are deserialising a large amount of numeric
 data:
@@ -1999,7 +2004,7 @@ The speedup is less noticeable for smaller datasets:
 
 .. warning::
 
-   Direct numpy decoding makes a number of assumptions and may fail or produce
+   Direct NumPy decoding makes a number of assumptions and may fail or produce
    unexpected output if these assumptions are not satisfied:
 
     - data is numeric.
@@ -2202,7 +2207,39 @@ A few notes on the generated table schema:
     then ``level_<i>`` is used.
 
 
-_Table Schema: http://specs.frictionlessdata.io/json-table-schema/
+.. versionadded:: 0.23.0
+
+``read_json`` also accepts ``orient='table'`` as an argument. This allows for
+the preserveration of metadata such as dtypes and index names in a
+round-trippable manner.
+
+  .. ipython:: python
+
+   df = pd.DataFrame({'foo': [1, 2, 3, 4],
+		      'bar': ['a', 'b', 'c', 'd'],
+		      'baz': pd.date_range('2018-01-01', freq='d', periods=4),
+		      'qux': pd.Categorical(['a', 'b', 'c', 'c'])
+		      }, index=pd.Index(range(4), name='idx'))
+   df
+   df.dtypes
+
+   df.to_json('test.json', orient='table')
+   new_df = pd.read_json('test.json', orient='table')
+   new_df
+   new_df.dtypes
+
+Please note that the string `index` is not supported with the round trip
+format, as it is used by default in ``write_json`` to indicate a missing index
+name.
+
+.. ipython:: python
+
+   df.index.name = 'index'
+   df.to_json('test.json', orient='table')
+   new_df = pd.read_json('test.json', orient='table')
+   print(new_df.index.name)
+
+.. _Table Schema: http://specs.frictionlessdata.io/json-table-schema/
 
 HTML
 ----
@@ -3187,7 +3224,7 @@ You can pass ``append=True`` to the writer to append to an existing pack
 
 Unlike other io methods, ``to_msgpack`` is available on both a per-object basis,
 ``df.to_msgpack()`` and using the top-level ``pd.to_msgpack(...)`` where you
-can pack arbitrary collections of python lists, dicts, scalars, while intermixing
+can pack arbitrary collections of Python lists, dicts, scalars, while intermixing
 pandas objects.
 
 .. ipython:: python
@@ -4411,7 +4448,7 @@ Several caveats.
   can ``.reset_index()`` to store the index or ``.reset_index(drop=True)`` to
   ignore it.
 - Duplicate column names and non-string columns names are not supported
-- Non supported types include ``Period`` and actual python object types. These will raise a helpful error message
+- Non supported types include ``Period`` and actual Python object types. These will raise a helpful error message
   on an attempt at serialization.
 
 See the `Full Documentation <https://github.com/wesm/feather>`__
@@ -4475,7 +4512,7 @@ Several caveats.
 - Duplicate column names and non-string columns names are not supported
 - Index level names, if specified, must be strings
 - Categorical dtypes can be serialized to parquet, but will de-serialize as ``object`` dtype.
-- Non supported types include ``Period`` and actual python object types. These will raise a helpful error message
+- Non supported types include ``Period`` and actual Python object types. These will raise a helpful error message
   on an attempt at serialization.
 
 You can specify an ``engine`` to direct the serialization. This can be one of ``pyarrow``, or ``fastparquet``, or ``auto``.

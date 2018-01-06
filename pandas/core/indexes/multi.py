@@ -328,8 +328,9 @@ class MultiIndex(Index):
         else:
             level = [self._get_level_number(l) for l in level]
             new_labels = list(self._labels)
-            for l, lev, lab in zip(level, self.levels, labels):
-                new_labels[l] = _ensure_frozen(
+            for lev_idx, lab in zip(level, labels):
+                lev = self.levels[lev_idx]
+                new_labels[lev_idx] = _ensure_frozen(
                     lab, lev, copy=copy)._shallow_copy()
             new_labels = FrozenList(new_labels)
 

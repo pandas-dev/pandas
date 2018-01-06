@@ -758,10 +758,9 @@ def is_dtype_union_equal(source, target):
 
 
 def is_any_int_dtype(arr_or_dtype):
-    """
-    DEPRECATED: This function will be removed in a future version.
+    """Check whether the provided array or dtype is of an integer dtype.
 
-    Check whether the provided array or dtype is of an integer dtype.
+    .. deprecated:: 0.20.0
 
     In this function, timedelta64 instances are also considered "any-integer"
     type objects and will return True.
@@ -1557,11 +1556,10 @@ def is_float_dtype(arr_or_dtype):
 
 
 def is_floating_dtype(arr_or_dtype):
-    """
-    DEPRECATED: This function will be removed in a future version.
-
-    Check whether the provided array or dtype is an instance of
+    """Check whether the provided array or dtype is an instance of
     numpy's float dtype.
+
+    .. deprecated:: 0.20.0
 
     Unlike, `is_float_dtype`, this check is a lot stricter, as it requires
     `isinstance` of `np.floating` and not `issubclass`.

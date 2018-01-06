@@ -113,7 +113,15 @@ _shared_doc_kwargs = dict(
     axes_single_arg="{0 or 'index', 1 or 'columns'}",
     optional_by="""
         by : str or list of str
-            Name or list of names which refer to the axis items.""",
+            Name or list of names to sort by.
+
+            - if `axis` is 0 or `'index'` then `by` may contain index
+              levels and/or column labels
+            - if `axis` is 1 or `'columns'` then `by` may contain column
+              levels and/or index labels
+
+        .. versionmodified:: 0.23.0
+           Allow specifying index or column level names.""",
     versionadded_to_excel='',
     optional_labels="""labels : array-like, optional
             New labels / index to conform the axis specified by 'axis' to.""",
@@ -1318,9 +1326,10 @@ class DataFrame(NDFrame):
     def from_csv(cls, path, header=0, sep=',', index_col=0, parse_dates=True,
                  encoding=None, tupleize_cols=None,
                  infer_datetime_format=False):
-        """
-        Read CSV file (DEPRECATED, please use :func:`pandas.read_csv`
-        instead).
+        """Read CSV file.
+
+        .. deprecated:: 0.21.0
+            Use :func:`pandas.read_csv` instead.
 
         It is preferable to use the more powerful :func:`pandas.read_csv`
         for most general purposes, but ``from_csv`` makes for an easy
@@ -1971,12 +1980,10 @@ class DataFrame(NDFrame):
     # Getting and setting elements
 
     def get_value(self, index, col, takeable=False):
-        """
-        Quickly retrieve single value at passed column and index
+        """Quickly retrieve single value at passed column and index
 
         .. deprecated:: 0.21.0
-
-        Please use .at[] or .iat[] accessors.
+            Use .at[] or .iat[] accessors instead.
 
         Parameters
         ----------
@@ -2016,12 +2023,10 @@ class DataFrame(NDFrame):
     _get_value.__doc__ = get_value.__doc__
 
     def set_value(self, index, col, value, takeable=False):
-        """
-        Put single value at passed column and index
+        """Put single value at passed column and index
 
         .. deprecated:: 0.21.0
-
-        Please use .at[] or .iat[] accessors.
+            Use .at[] or .iat[] accessors instead.
 
         Parameters
         ----------
@@ -3623,7 +3628,7 @@ class DataFrame(NDFrame):
                     kind='quicksort', na_position='last'):
         inplace = validate_bool_kwarg(inplace, 'inplace')
         axis = self._get_axis_number(axis)
-        other_axis = 0 if axis == 1 else 1
+        stacklevel = 2  # Number of stack levels from df.sort_values
 
         if not isinstance(by, list):
             by = [by]
@@ -3635,10 +3640,8 @@ class DataFrame(NDFrame):
 
             keys = []
             for x in by:
-                k = self.xs(x, axis=other_axis).values
-                if k.ndim == 2:
-                    raise ValueError('Cannot sort by duplicate column %s' %
-                                     str(x))
+                k = self._get_label_or_level_values(x, axis=axis,
+                                                    stacklevel=stacklevel)
                 keys.append(k)
             indexer = lexsort_indexer(keys, orders=ascending,
                                       na_position=na_position)
@@ -3647,17 +3650,9 @@ class DataFrame(NDFrame):
             from pandas.core.sorting import nargsort
 
             by = by[0]
-            k = self.xs(by, axis=other_axis).values
-            if k.ndim == 2:
+            k = self._get_label_or_level_values(by, axis=axis,
+                                                stacklevel=stacklevel)
 
-                # try to be helpful
-                if isinstance(self.columns, MultiIndex):
-                    raise ValueError('Cannot sort by column %s in a '
-                                     'multi-index you need to explicitly '
-                                     'provide all the levels' % str(by))
-
-                raise ValueError('Cannot sort by duplicate column %s' %
-                                 str(by))
             if isinstance(ascending, (tuple, list)):
                 ascending = ascending[0]
 
@@ -3739,12 +3734,13 @@ class DataFrame(NDFrame):
 
     def sortlevel(self, level=0, axis=0, ascending=True, inplace=False,
                   sort_remaining=True):
-        """
-        DEPRECATED: use :meth:`DataFrame.sort_index`
-
-        Sort multilevel index by chosen axis and primary level. Data will be
+        """Sort multilevel index by chosen axis and primary level. Data will be
         lexicographically sorted by the chosen level followed by the other
-        levels (in order)
+        levels (in order).
+
+        .. deprecated:: 0.20.0
+            Use :meth:`DataFrame.sort_index`
+
 
         Parameters
         ----------

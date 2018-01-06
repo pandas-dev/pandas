@@ -10,7 +10,8 @@ import pytest
 import pandas.util.testing as tm
 
 from pandas import Timestamp
-from pandas.tseries.frequencies import get_offset, _INVALID_FREQ_ERROR
+from pandas.tseries.frequencies import get_offset
+from pandas._libs.tslibs.frequencies import _INVALID_FREQ_ERROR
 from pandas.tseries.offsets import FY5253Quarter, FY5253
 from pandas._libs.tslibs.offsets import WeekDay
 
@@ -632,4 +633,26 @@ def test_fy5253_nearest_onoffset():
     ts = Timestamp('2032-07-28 00:12:59.035729419+0000', tz='Africa/Dakar')
     fast = offset.onOffset(ts)
     slow = (ts + offset) - offset == ts
+    assert fast == slow
+
+
+def test_fy5253qtr_onoffset_nearest():
+    # GH#19036
+    ts = Timestamp('1985-09-02 23:57:46.232550356-0300',
+                   tz='Atlantic/Bermuda')
+    offset = FY5253Quarter(n=3, qtr_with_extra_week=1, startingMonth=2,
+                           variation="nearest", weekday=0)
+    fast = offset.onOffset(ts)
+    slow = (ts + offset) - offset == ts
+    assert fast == slow
+
+
+def test_fy5253qtr_onoffset_last():
+    # GH#19036
+    offset = FY5253Quarter(n=-2, qtr_with_extra_week=1,
+                           startingMonth=7, variation="last", weekday=2)
+    ts = Timestamp('2011-01-26 19:03:40.331096129+0200',
+                   tz='Africa/Windhoek')
+    slow = (ts + offset) - offset == ts
+    fast = offset.onOffset(ts)
     assert fast == slow

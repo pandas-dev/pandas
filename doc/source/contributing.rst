@@ -118,7 +118,7 @@ Creating a development environment
 ----------------------------------
 
 To test out code changes, you'll need to build pandas from source, which
-requires a C compiler and python environment. If you're making documentation
+requires a C compiler and Python environment. If you're making documentation
 changes, you can skip to :ref:`contributing.documentation` but you won't be able
 to build the documentation locally before pushing your changes.
 
@@ -187,7 +187,7 @@ At this point you should be able to import pandas from your locally built versio
    0.22.0.dev0+29.g4ad6d4d74
 
 This will create the new environment, and not touch any of your existing environments,
-nor any existing python installation.
+nor any existing Python installation.
 
 To view your environments::
 
@@ -547,7 +547,30 @@ Backwards Compatibility
 Please try to maintain backward compatibility. *pandas* has lots of users with lots of
 existing code, so don't break it if at all possible.  If you think breakage is required,
 clearly state why as part of the pull request.  Also, be careful when changing method
-signatures and add deprecation warnings where needed.
+signatures and add deprecation warnings where needed. Also, add the deprecated sphinx
+directive to the deprecated functions or methods.
+
+If a function with the same arguments as the one being deprecated exist, you can use
+the ``pandas.util._decorators.deprecate``:
+
+.. code-block:: python
+
+    from pandas.util._decorators import deprecate
+
+    deprecate('old_func', 'new_func', '0.21.0')
+
+Otherwise, you need to do it manually:
+
+.. code-block:: python
+
+    def old_func():
+        """Summary of the function.
+
+        .. deprecated:: 0.21.0
+           Use new_func instead.
+        """
+        warnings.warn('Use new_func instead.', FutureWarning, stacklevel=2)
+        new_func()
 
 .. _contributing.ci:
 
