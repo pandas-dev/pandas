@@ -273,7 +273,7 @@ def test_nat_arithmetic():
         assert right - left is NaT
 
 
-def test_nat_rfloordiv_timedelta(self):
+def test_nat_rfloordiv_timedelta():
     # GH#18846
     # See also test_timedelta.TestTimedeltaArithmetic.test_floordiv
     td = Timedelta(hours=3, minutes=4)
