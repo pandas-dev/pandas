@@ -594,7 +594,8 @@ class Categorical(PandasObject):
         """
         Get the category labels (deprecated).
 
-        Deprecated, use .codes!
+        .. deprecated:: 0.15.0
+            Use `.codes()` instead.
         """
         warn("'labels' is deprecated. Use 'codes' instead", FutureWarning,
              stacklevel=2)
