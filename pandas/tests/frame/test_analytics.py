@@ -2091,41 +2091,42 @@ class TestDataFrameAnalytics(TestData):
                               self.frame)
 
     # Matrix-like
-
-    def test_dot(self):
+    @pytest.mark.parametrize('dot_fn', [DataFrame.dot, DataFrame.__matmul__])
+    def test_dot(self, dot_fn):
+        # __matmul__ test is for GH #10259
         a = DataFrame(np.random.randn(3, 4), index=['a', 'b', 'c'],
                       columns=['p', 'q', 'r', 's'])
         b = DataFrame(np.random.randn(4, 2), index=['p', 'q', 'r', 's'],
                       columns=['one', 'two'])
 
-        result = a.dot(b)
+        result = dot_fn(a, b)
         expected = DataFrame(np.dot(a.values, b.values),
                              index=['a', 'b', 'c'],
                              columns=['one', 'two'])
         # Check alignment
         b1 = b.reindex(index=reversed(b.index))
-        result = a.dot(b)
+        result = dot_fn(a, b)
         tm.assert_frame_equal(result, expected)
 
         # Check series argument
-        result = a.dot(b['one'])
+        result = dot_fn(a, b['one'])
         tm.assert_series_equal(result, expected['one'], check_names=False)
         assert result.name is None
 
-        result = a.dot(b1['one'])
+        result = dot_fn(a, b1['one'])
         tm.assert_series_equal(result, expected['one'], check_names=False)
         assert result.name is None
 
         # can pass correct-length arrays
         row = a.iloc[0].values
 
-        result = a.dot(row)
-        exp = a.dot(a.iloc[0])
+        result = dot_fn(a, row)
+        exp = dot_fn(a, a.iloc[0])
         tm.assert_series_equal(result, exp)
 
         with tm.assert_raises_regex(ValueError,
                                     'Dot product shape mismatch'):
-            a.dot(row[:-1])
+            dot_fn(a, row[:-1])
 
         a = np.random.rand(1, 5)
         b = np.random.rand(5, 1)
@@ -2135,14 +2136,14 @@ class TestDataFrameAnalytics(TestData):
         B = DataFrame(b)  # noqa
 
         # it works
-        result = A.dot(b)
+        result = dot_fn(A, b)
 
         # unaligned
         df = DataFrame(randn(3, 4), index=[1, 2, 3], columns=lrange(4))
         df2 = DataFrame(randn(5, 3), index=lrange(5), columns=[1, 2, 3])
 
         with tm.assert_raises_regex(ValueError, 'aligned'):
-            df.dot(df2)
+            dot_fn(df, df2)
 
 
 @pytest.fixture
