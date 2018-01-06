@@ -48,6 +48,9 @@ class TestTimedeltaIndexArithmetic(object):
 
         anchored = box([pd.offsets.QuarterEnd(),
                         pd.offsets.Week(weekday=2)])
+
+        # addition/subtraction ops with anchored offsets should issue
+        # a PerformanceWarning and _then_ raise a TypeError.
         with pytest.raises(TypeError):
             with tm.assert_produces_warning(PerformanceWarning):
                 tdi + anchored
@@ -69,6 +72,9 @@ class TestTimedeltaIndexArithmetic(object):
         tm.assert_index_equal(res, expected)
 
         anchored = box([pd.offsets.MonthEnd(), pd.offsets.Day(n=2)])
+
+        # addition/subtraction ops with anchored offsets should issue
+        # a PerformanceWarning and _then_ raise a TypeError.
         with pytest.raises(TypeError):
             with tm.assert_produces_warning(PerformanceWarning):
                 tdi - anchored
@@ -106,6 +112,9 @@ class TestTimedeltaIndexArithmetic(object):
 
         anchored = Series([pd.offsets.MonthEnd(), pd.offsets.Day(n=2)],
                           name=names[1])
+
+        # addition/subtraction ops with anchored offsets should issue
+        # a PerformanceWarning and _then_ raise a TypeError.
         with pytest.raises(TypeError):
             with tm.assert_produces_warning(PerformanceWarning):
                 tdi + anchored
