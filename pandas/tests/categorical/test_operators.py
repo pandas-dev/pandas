@@ -250,6 +250,13 @@ class TestCategoricalOps(object):
         with tm.assert_raises_regex(TypeError, msg):
             c1 == c2
 
+    def test_compare_unordered_different_order(self):
+        # https://github.com/pandas-dev/pandas/issues/16603#issuecomment-
+        # 349290078
+        a = pd.Categorical(['a'], categories=['a', 'b'])
+        b = pd.Categorical(['b'], categories=['b', 'a'])
+        assert not a.equals(b)
+
     def test_numeric_like_ops(self):
 
         df = DataFrame({'value': np.random.randint(0, 10000, 100)})
