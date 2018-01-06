@@ -8,7 +8,7 @@ except ImportError:
     from pandas import WidePanel as Panel  # noqa
 
 # Compatibility import for lib
-for imp in ['pandas._libs.lib', 'pandas.lib', 'pandas_tseries']:
+for imp in ['pandas._libs.lib', 'pandas.lib']:
     try:
         lib = import_module(imp)
         break
