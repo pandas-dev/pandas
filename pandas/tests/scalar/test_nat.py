@@ -273,6 +273,16 @@ def test_nat_arithmetic():
         assert right - left is NaT
 
 
+def test_nat_rfloordiv_timedelta():
+    # GH#18846
+    # See also test_timedelta.TestTimedeltaArithmetic.test_floordiv
+    td = Timedelta(hours=3, minutes=4)
+
+    assert td // np.nan is NaT
+    assert np.isnan(td // NaT)
+    assert np.isnan(td // np.timedelta64('NaT'))
+
+
 def test_nat_arithmetic_index():
     # GH 11718
 
