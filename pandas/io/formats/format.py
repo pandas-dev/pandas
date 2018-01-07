@@ -2188,7 +2188,7 @@ def _is_dates_only(values):
     consider_values = values_int != iNaT
     one_day_nanos = (86400 * 1e9)
     even_days = np.logical_and(consider_values,
-                               values_int % one_day_nanos != 0).sum() == 0
+                               values_int % int(one_day_nanos) != 0).sum() == 0
     if even_days:
         return True
     return False
