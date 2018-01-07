@@ -1031,13 +1031,27 @@ class Timedelta(_Timedelta):
         __rdiv__ = __rtruediv__
 
     def __floordiv__(self, other):
-        if hasattr(other, 'dtype'):
-            # work with i8
-            other = other.astype('m8[ns]').astype('i8')
-            return self.value // other
+        # numpy does not implement floordiv for timedelta64 dtype, so we cannot
+        # just defer
+        if hasattr(other, '_typ'):
+            # Series, DataFrame, ...
+            return NotImplemented
 
-        elif is_integer_object(other):
-            # integers only
+        if hasattr(other, 'dtype'):
+            if other.dtype.kind == 'm':
+                # also timedelta-like
+                return _broadcast_floordiv_td64(self.value, other, _floordiv)
+            elif other.dtype.kind in ['i', 'u', 'f']:
+                if other.ndim == 0:
+                    return Timedelta(self.value // other)
+                else:
+                    return self.to_timedelta64() // other
+
+            raise TypeError('Invalid dtype {dtype} for '
+                            '{op}'.format(dtype=other.dtype,
+                                          op='__floordiv__'))
+
+        elif is_integer_object(other) or is_float_object(other):
             return Timedelta(self.value // other, unit='ns')
 
         elif not _validate_ops_compat(other):
@@ -1049,20 +1063,79 @@ class Timedelta(_Timedelta):
         return self.value // other.value
 
     def __rfloordiv__(self, other):
-        if hasattr(other, 'dtype'):
-            # work with i8
-            other = other.astype('m8[ns]').astype('i8')
-            return other // self.value
+        # numpy does not implement floordiv for timedelta64 dtype, so we cannot
+        # just defer
+        if hasattr(other, '_typ'):
+            # Series, DataFrame, ...
+            return NotImplemented
 
+        if hasattr(other, 'dtype'):
+            if other.dtype.kind == 'm':
+                # also timedelta-like
+                return _broadcast_floordiv_td64(self.value, other, _rfloordiv)
+            raise TypeError('Invalid dtype {dtype} for '
+                            '{op}'.format(dtype=other.dtype,
+                                          op='__floordiv__'))
+
+        if is_float_object(other) and util._checknull(other):
+            # i.e. np.nan
+            return NotImplemented
         elif not _validate_ops_compat(other):
             return NotImplemented
 
         other = Timedelta(other)
         if other is NaT:
-            return NaT
+            return np.nan
         return other.value // self.value
 
 
+cdef _floordiv(int64_t value, right):
+    return value // right
+
+
+cdef _rfloordiv(int64_t value, right):
+    # analogous to referencing operator.div, but there is no operator.rfloordiv
+    return right // value
+
+
+cdef _broadcast_floordiv_td64(int64_t value, object other,
+                              object (*operation)(int64_t value,
+                                                  object right)):
+    """Boilerplate code shared by Timedelta.__floordiv__ and
+    Timedelta.__rfloordiv__ because np.timedelta64 does not implement these.
+
+    Parameters
+    ----------
+    value : int64_t; `self.value` from a Timedelta object
+    other : object
+    operation : function, either _floordiv or _rfloordiv
+
+    Returns
+    -------
+    result : varies based on `other`
+    """
+    # assumes other.dtype.kind == 'm', i.e. other is timedelta-like
+    cdef:
+        int ndim = getattr(other, 'ndim', -1)
+
+    # We need to watch out for np.timedelta64('NaT').
+    mask = other.view('i8') == NPY_NAT
+
+    if ndim == 0:
+        if mask:
+            return np.nan
+
+        return operation(value, other.astype('m8[ns]').astype('i8'))
+
+    else:
+        res = operation(value, other.astype('m8[ns]').astype('i8'))
+
+        if mask.any():
+            res = res.astype('f8')
+            res[mask] = np.nan
+        return res
+
+
 # resolution in ns
-Timedelta.min = Timedelta(np.iinfo(np.int64).min +1)
+Timedelta.min = Timedelta(np.iinfo(np.int64).min + 1)
 Timedelta.max = Timedelta(np.iinfo(np.int64).max)
