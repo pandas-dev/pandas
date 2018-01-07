@@ -3861,7 +3861,7 @@ class Index(IndexOpsMixin, PandasObject):
             return self._shallow_copy(self.values[~self._isnan])
         return self._shallow_copy()
 
-    def _evaluate_with_timedelta_like(self, other, op, opstr):
+    def _evaluate_with_timedelta_like(self, other, op, opstr, reversed=False):
         raise TypeError("can only perform ops with timedelta like values")
 
     def _evaluate_with_datetime_like(self, other, op, opstr):
@@ -4025,7 +4025,8 @@ class Index(IndexOpsMixin, PandasObject):
                 # handle time-based others
                 if isinstance(other, (ABCDateOffset, np.timedelta64,
                                       Timedelta, datetime.timedelta)):
-                    return self._evaluate_with_timedelta_like(other, op, opstr)
+                    return self._evaluate_with_timedelta_like(other, op, opstr,
+                                                              reversed)
                 elif isinstance(other, (Timestamp, np.datetime64)):
                     return self._evaluate_with_datetime_like(other, op, opstr)
 

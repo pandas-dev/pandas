@@ -372,7 +372,7 @@ class TimedeltaIndex(DatetimeIndexOpsMixin, TimelikeOps, Int64Index):
         result = TimedeltaIndex(new_values, freq='infer', name=name)
         return result
 
-    def _evaluate_with_timedelta_like(self, other, op, opstr):
+    def _evaluate_with_timedelta_like(self, other, op, opstr, reversed=False):
         if isinstance(other, ABCSeries):
             # GH#19042
             return NotImplemented
@@ -386,10 +386,14 @@ class TimedeltaIndex(DatetimeIndexOpsMixin, TimelikeOps, Int64Index):
                         "division by pd.NaT not implemented")
 
                 i8 = self.asi8
+                left, right = i8, other.value
+                if reversed:
+                    left, right = right, left
+
                 if opstr in ['__floordiv__']:
-                    result = i8 // other.value
+                    result = left // right
                 else:
-                    result = op(i8, float(other.value))
+                    result = op(left, float(right))
                 result = self._maybe_mask_results(result, convert='float64')
                 return Index(result, name=self.name, copy=False)
 
@@ -972,6 +976,7 @@ def _is_convertible_to_index(other):
 
 
 def _is_convertible_to_td(key):
+    # TODO: Not all DateOffset objects are convertible to Timedelta
     return isinstance(key, (DateOffset, timedelta, Timedelta,
                             np.timedelta64, compat.string_types))
 
