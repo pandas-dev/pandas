@@ -28,7 +28,7 @@ EXCLUDE+="^pandas/util/_depr_module.py$|"  # generic deprecate module that raise
 EXCLUDE+="^pandas/util/testing.py$|" # contains function to evaluate if warning is raised
 EXCLUDE+="^pandas/io/parsers.py$"  # implements generic deprecation system in io reading
 
-BASE_DIR="$(dirname $(dirname $(realpath $0)))"
+BASE_DIR="$(dirname $0)/.."
 cd $BASE_DIR
 FILES=`grep -RIl "FutureWarning" pandas/* | grep -vE "$EXCLUDE"`
 OUTPUT=()
