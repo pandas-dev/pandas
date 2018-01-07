@@ -291,7 +291,7 @@ class TestTimedeltaIndexArithmetic(object):
         Timedelta('10m7s'),
         Timedelta('10m7s').to_timedelta64()])
     def test_tdi_floordiv_timedelta_scalar(self, scalar_td):
-        # GH#
+        # GH#19125
         tdi = TimedeltaIndex(['00:05:03', '00:05:03', pd.NaT], freq=None)
         expected = pd.Index([2.0, 2.0, np.nan])
 
