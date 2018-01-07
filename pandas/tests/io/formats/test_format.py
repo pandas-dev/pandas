@@ -883,6 +883,29 @@ class TestDataFrameFormatting(object):
                         '[10 rows x 2 columns]')
             assert repr(df) == expected
 
+    @pytest.mark.parametrize('start_date', [
+        '2017-01-01 23:59:59.999999999',
+        '2017-01-01 23:59:59.99999999',
+        '2017-01-01 23:59:59.9999999',
+        '2017-01-01 23:59:59.999999',
+        '2017-01-01 23:59:59.99999',
+        '2017-01-01 23:59:59.9999',
+    ])
+    def test_datetimeindex_highprecision(self, start_date):
+        # GH19030
+        # Check that high-precision time values for the end of day are
+        # included in repr for DatetimeIndex
+        df = DataFrame({'A': date_range(start=start_date,
+                                        freq='D', periods=5)})
+        result = str(df)
+        assert start_date in result
+
+        dti = date_range(start=start_date,
+                         freq='D', periods=5)
+        df = DataFrame({'A': range(5)}, index=dti)
+        result = str(df.index)
+        assert start_date in result
+
     def test_nonunicode_nonascii_alignment(self):
         df = DataFrame([["aa\xc3\xa4\xc3\xa4", 1], ["bbbb", 2]])
         rep_str = df.to_string()
@@ -1913,6 +1936,27 @@ class TestSeriesFormatting(object):
         # nat in summary
         result = str(s2.index)
         assert 'NaT' in result
+
+    @pytest.mark.parametrize('start_date', [
+        '2017-01-01 23:59:59.999999999',
+        '2017-01-01 23:59:59.99999999',
+        '2017-01-01 23:59:59.9999999',
+        '2017-01-01 23:59:59.999999',
+        '2017-01-01 23:59:59.99999',
+        '2017-01-01 23:59:59.9999'
+    ])
+    def test_datetimeindex_highprecision(self, start_date):
+        # GH19030
+        # Check that high-precision time values for the end of day are
+        # included in repr for DatetimeIndex
+        s1 = Series(date_range(start=start_date, freq='D', periods=5))
+        result = str(s1)
+        assert start_date in result
+
+        dti = date_range(start=start_date, freq='D', periods=5)
+        s2 = Series(3, index=dti)
+        result = str(s2.index)
+        assert start_date in result
 
     def test_timedelta64(self):
 
