@@ -1285,29 +1285,26 @@ class IntervalIndex(IntervalMixin, Index):
                 self.right.equals(other.right) and
                 self.closed == other.closed)
 
-    def _setop(op_name, check_subtypes=False):
+    def _setop(op_name):
         def func(self, other):
             msg = ('can only do set operations between two IntervalIndex '
                    'objects that are closed on the same side')
             other = self._as_like_interval_index(other, msg)
 
-            if check_subtypes:
-                # GH 19016: ensure set op will not return a prohibited dtype
-                subtypes = [self.dtype.subtype, other.dtype.subtype]
-                result_subtype = find_common_type(subtypes)
-                if is_object_dtype(result_subtype):
-                    msg = ('can only do {op} between two IntervalIndex '
-                           'objects that have compatible dtypes')
-                    raise TypeError(msg.format(op=op_name))
-            else:
-                result_subtype = self.dtype.subtype
+            # GH 19016: ensure set op will not return a prohibited dtype
+            subtypes = [self.dtype.subtype, other.dtype.subtype]
+            common_subtype = find_common_type(subtypes)
+            if is_object_dtype(common_subtype):
+                msg = ('can only do {op} between two IntervalIndex '
+                       'objects that have compatible dtypes')
+                raise TypeError(msg.format(op=op_name))
 
             result = getattr(self._multiindex, op_name)(other._multiindex)
             result_name = self.name if self.name == other.name else None
 
             # GH 19101: ensure empty results have correct dtype
             if result.empty:
-                result = result.values.astype(result_subtype)
+                result = result.values.astype(self.dtype.subtype)
             else:
                 result = result.values
 
@@ -1315,10 +1312,10 @@ class IntervalIndex(IntervalMixin, Index):
                                           name=result_name)
         return func
 
-    union = _setop('union', check_subtypes=True)
+    union = _setop('union')
     intersection = _setop('intersection')
     difference = _setop('difference')
-    symmetric_difference = _setop('symmetric_difference', check_subtypes=True)
+    symmetric_difference = _setop('symmetric_difference')
 
     # TODO: arithmetic operations
 

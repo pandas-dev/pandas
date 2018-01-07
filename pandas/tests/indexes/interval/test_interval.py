@@ -888,7 +888,7 @@ class TestIntervalIndex(Base):
         # GH 19101: empty result, different dtypes
         other = IntervalIndex(np.array([], dtype='float64'), closed=closed)
         result = index.union(other)
-        tm.assert_index_equal(result, other)
+        tm.assert_index_equal(result, index)
 
     def test_intersection(self, closed):
         index = self.create_index(closed=closed)
@@ -945,7 +945,6 @@ class TestIntervalIndex(Base):
         other = IntervalIndex.from_arrays(index.left.astype('float64'),
                                           index.right, closed=closed)
         result = index.symmetric_difference(other)
-        expected = IntervalIndex(np.array([], dtype='float64'), closed=closed)
         tm.assert_index_equal(result, expected)
 
     @pytest.mark.parametrize('op_name', [
@@ -968,13 +967,9 @@ class TestIntervalIndex(Base):
 
         # GH 19016: incompatible dtypes
         other = interval_range(Timestamp('20180101'), periods=9, closed=closed)
-        if op_name in ('union', 'symmetric_difference'):
-            msg = ('can only do {op} between two IntervalIndex objects '
-                   'that have compatible dtypes').format(op=op_name)
-            with tm.assert_raises_regex(TypeError, msg):
-                set_op(other)
-        else:
-            # should not raise
+        msg = ('can only do {op} between two IntervalIndex objects that have '
+               'compatible dtypes').format(op=op_name)
+        with tm.assert_raises_regex(TypeError, msg):
             set_op(other)
 
     def test_isin(self, closed):
