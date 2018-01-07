@@ -10,7 +10,7 @@ import numpy as np
 from pandas.compat import range, lzip, zip, map, filter
 import pandas.compat as compat
 
-from pandas import (Categorical, Series, DataFrame,
+from pandas import (Categorical, DataFrame,
                     Index, MultiIndex, Timedelta)
 from pandas.core.frame import _merge_doc
 from pandas.core.dtypes.common import (
@@ -18,6 +18,7 @@ from pandas.core.dtypes.common import (
     is_datetime64_dtype,
     needs_i8_conversion,
     is_int64_dtype,
+    is_array_like,
     is_categorical_dtype,
     is_integer_dtype,
     is_float_dtype,
@@ -814,13 +815,12 @@ class _MergeOperation(object):
         join_names = []
         right_drop = []
         left_drop = []
+
         left, right = self.left, self.right
         stacklevel = 5  # Number of stack levels from df.merge
 
-        is_lkey = lambda x: isinstance(
-            x, (np.ndarray, Series)) and len(x) == len(left)
-        is_rkey = lambda x: isinstance(
-            x, (np.ndarray, Series)) and len(x) == len(right)
+        is_lkey = lambda x: is_array_like(x) and len(x) == len(left)
+        is_rkey = lambda x: is_array_like(x) and len(x) == len(right)
 
         # Note that pd.merge_asof() has separate 'on' and 'by' parameters. A
         # user could, for example, request 'left_index' and 'left_by'. In a

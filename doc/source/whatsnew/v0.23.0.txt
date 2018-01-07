@@ -338,10 +338,11 @@ Conversion
 - Bug in :class:`Series` floor-division where operating on a scalar ``timedelta`` raises an exception (:issue:`18846`)
 - Bug in :class:`FY5253Quarter`, :class:`LastWeekOfMonth` where rollback and rollforward behavior was inconsistent with addition and subtraction behavior (:issue:`18854`)
 - Bug in :class:`Index` constructor with ``dtype=CategoricalDtype(...)`` where ``categories`` and ``ordered`` are not maintained (issue:`19032`)
-- Bug in :class:`Index` constructor with ``dtype=CategoricalDtype(...)`` where ``categories`` and ``ordered`` are not maintained (issue:`19032`) 
+- Bug in :class:`Index` constructor with ``dtype=CategoricalDtype(...)`` where ``categories`` and ``ordered`` are not maintained (issue:`19032`)
 - Bug in :class:`Series`` with ``dtype='timedelta64[ns]`` where addition or subtraction of ``TimedeltaIndex`` had results cast to ``dtype='int64'`` (:issue:`17250`)
 - Bug in :class:`TimedeltaIndex` where division by a ``Series`` would return a ``TimedeltaIndex`` instead of a ``Series`` (issue:`19042`)
 - Bug in :class:`Series` with ``dtype='timedelta64[ns]`` where addition or subtraction of ``TimedeltaIndex`` could return a ``Series`` with an incorrect name (issue:`19043`)
+- Fixed bug where comparing :class:`DatetimeIndex` failed to raise ``TypeError`` when attempting to compare timezone-aware and timezone-naive datetimelike objects (:issue:`18162`)
 -
 
 Indexing
@@ -364,6 +365,7 @@ Indexing
 - Bug in :func:`DatetimeIndex.insert` where inserting ``NaT`` into a timezone-aware index incorrectly raised (:issue:`16357`)
 - Bug in ``__setitem__`` when indexing a :class:`DataFrame` with a 2-d boolean ndarray (:issue:`18582`)
 - Bug in :func:`MultiIndex.__contains__` where non-tuple keys would return ``True`` even if they had been dropped (:issue:`19027`)
+- Bug in :func:`MultiIndex.set_labels` which would cause casting (and potentially clipping) of the new labels if the ``level`` argument is not 0 or a list like [0, 1, ... ]  (:issue:`19057`)
 - Bug in ``str.extractall`` when there were no matches empty :class:`Index` was returned instead of appropriate :class:`MultiIndex` (:issue:`19034`)
 
 I/O
@@ -408,7 +410,7 @@ Reshaping
 - Bug in :func:`Series.rank` where ``Series`` containing ``NaT`` modifies the ``Series`` inplace (:issue:`18521`)
 - Bug in :func:`cut` which fails when using readonly arrays (:issue:`18773`)
 - Bug in :func:`Dataframe.pivot_table` which fails when the ``aggfunc`` arg is of type string.  The behavior is now consistent with other methods like ``agg`` and ``apply`` (:issue:`18713`)
-
+- Bug in :func:`DataFrame.merge` in which merging using ``Index`` objects as vectors raised an Exception (:issue:`19038`)
 
 Numeric
 ^^^^^^^
@@ -429,3 +431,4 @@ Other
 ^^^^^
 
 - Improved error message when attempting to use a Python keyword as an identifier in a ``numexpr`` backed query (:issue:`18221`)
+- :func:`Timestamp.replace` will now handle Daylight Savings transitions gracefully (:issue:`18319`)

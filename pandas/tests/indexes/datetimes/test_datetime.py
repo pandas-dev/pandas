@@ -1,3 +1,5 @@
+import operator
+
 import pytest
 
 import numpy as np
@@ -247,6 +249,42 @@ class TestDatetimeIndex(object):
 
         # it works
         rng.join(idx, how='outer')
+
+    @pytest.mark.parametrize('op', [operator.eq, operator.ne,
+                                    operator.gt, operator.ge,
+                                    operator.lt, operator.le])
+    def test_comparison_tzawareness_compat(self, op):
+        # GH#18162
+        dr = pd.date_range('2016-01-01', periods=6)
+        dz = dr.tz_localize('US/Pacific')
+
+        with pytest.raises(TypeError):
+            op(dr, dz)
+        with pytest.raises(TypeError):
+            op(dr, list(dz))
+        with pytest.raises(TypeError):
+            op(dz, dr)
+        with pytest.raises(TypeError):
+            op(dz, list(dr))
+
+        # Check that there isn't a problem aware-aware and naive-naive do not
+        # raise
+        assert (dr == dr).all()
+        assert (dr == list(dr)).all()
+        assert (dz == dz).all()
+        assert (dz == list(dz)).all()
+
+        # Check comparisons against scalar Timestamps
+        ts = pd.Timestamp('2000-03-14 01:59')
+        ts_tz = pd.Timestamp('2000-03-14 01:59', tz='Europe/Amsterdam')
+
+        assert (dr > ts).all()
+        with pytest.raises(TypeError):
+            op(dr, ts_tz)
+
+        assert (dz > ts_tz).all()
+        with pytest.raises(TypeError):
+            op(dz, ts)
 
     def test_comparisons_coverage(self):
         rng = date_range('1/1/2000', periods=10)
