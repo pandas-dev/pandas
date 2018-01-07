@@ -458,7 +458,7 @@ class TestIntervalDtype(Base):
         assert i.subtype == np.dtype('int64')
         assert is_interval_dtype(i)
 
-    @pytest.mark.parametrize('subtype', [None, 'interval', 'interval[]'])
+    @pytest.mark.parametrize('subtype', [None, 'interval', 'Interval'])
     def test_construction_generic(self, subtype):
         # generic
         i = IntervalDtype(subtype)
@@ -535,8 +535,8 @@ class TestIntervalDtype(Base):
                                   IntervalDtype('float64'))
 
     @pytest.mark.parametrize('subtype', [
-        None, 'interval', 'interval[]', 'int64', 'uint64', 'float64', object,
-        CategoricalDtype(), 'datetime64', 'timedelta64', PeriodDtype('Q')])
+        None, 'interval', 'Interval', 'int64', 'uint64', 'float64',
+        'complex128', 'datetime64', 'timedelta64', PeriodDtype('Q')])
     def test_equality_generic(self, subtype):
         # GH 18980
         dtype = IntervalDtype(subtype)
@@ -544,8 +544,8 @@ class TestIntervalDtype(Base):
         assert is_dtype_equal(dtype, IntervalDtype())
 
     @pytest.mark.parametrize('subtype', [
-        'int64', 'uint64', 'float64', 'complex128', np.dtype('O'),
-        CategoricalDtype(), 'datetime64', 'timedelta64', PeriodDtype('Q')])
+        'int64', 'uint64', 'float64', 'complex128', 'datetime64',
+        'timedelta64', PeriodDtype('Q')])
     def test_name_repr(self, subtype):
         # GH 18980
         dtype = IntervalDtype(subtype)
@@ -553,7 +553,7 @@ class TestIntervalDtype(Base):
         assert str(dtype) == expected
         assert dtype.name == 'interval'
 
-    @pytest.mark.parametrize('subtype', [None, 'interval', 'interval[]'])
+    @pytest.mark.parametrize('subtype', [None, 'interval', 'Interval'])
     def test_name_repr_generic(self, subtype):
         # GH 18980
         dtype = IntervalDtype(subtype)
@@ -599,15 +599,6 @@ class TestIntervalDtype(Base):
         IntervalDtype.reset_cache()
         tm.round_trip_pickle(dtype)
         assert len(IntervalDtype._cache) == 0
-
-    def test_caching_categoricaldtype(self):
-        # GH 18980
-        cdt1 = CategoricalDtype(list('abc'), True)
-        cdt2 = CategoricalDtype(list('wxyz'), False)
-        idt1 = IntervalDtype(cdt1)
-        idt2 = IntervalDtype(cdt2)
-        assert idt1.subtype is cdt1
-        assert idt2.subtype is cdt2
 
 
 class TestCategoricalDtypeParametrized(object):

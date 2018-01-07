@@ -654,7 +654,7 @@ class IntervalDtype(ExtensionDtype):
             u.subtype = None
             return u
         elif (isinstance(subtype, compat.string_types) and
-              subtype in ('interval', 'interval[]')):
+              subtype.lower() == 'interval'):
             subtype = None
         else:
             if isinstance(subtype, compat.string_types):
@@ -667,11 +667,6 @@ class IntervalDtype(ExtensionDtype):
             except TypeError:
                 raise ValueError("could not construct IntervalDtype")
 
-        if subtype is None:
-            u = object.__new__(cls)
-            u.subtype = None
-            return u
-
         if is_categorical_dtype(subtype) or is_string_dtype(subtype):
             # GH 19016
             msg = ('category, object, and string subtypes are not supported '
@@ -679,15 +674,11 @@ class IntervalDtype(ExtensionDtype):
             raise TypeError(msg)
 
         try:
-            # GH 18980: need to combine since str and hash individually may not
-            # be unique, e.g. str(CategoricalDtype) always returns 'category',
-            # and hash(np.dtype('<m8')) == hash(np.dtype('<m8[ns]'))
-            key = ''.join([str(subtype), str(hash(subtype))])
-            return cls._cache[key]
+            return cls._cache[str(subtype)]
         except KeyError:
             u = object.__new__(cls)
             u.subtype = subtype
-            cls._cache[key] = u
+            cls._cache[str(subtype)] = u
             return u
 
     @classmethod
@@ -712,7 +703,7 @@ class IntervalDtype(ExtensionDtype):
 
     def __eq__(self, other):
         if isinstance(other, compat.string_types):
-            return other.title() in (self.name.title(), str(self).title())
+            return other.lower() in (self.name.lower(), str(self).lower())
         elif not isinstance(other, IntervalDtype):
             return False
         elif self.subtype is None or other.subtype is None:
