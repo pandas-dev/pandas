@@ -297,9 +297,15 @@ if not bool(pr["mergeable"]):
     continue_maybe(msg)
 
 print("\n=== Pull Request #%s ===" % pr_num)
+
+# we may have un-printable unicode in our title
+try:
+    title = title.encode('raw_unicode_escape')
+except Exception:
+    pass
+
 print("title\t{title}\nsource\t{source}\ntarget\t{target}\nurl\t{url}".format(
     title=title, source=pr_repo_desc, target=target_ref, url=url))
-
 
 
 merged_refs = [target_ref]
