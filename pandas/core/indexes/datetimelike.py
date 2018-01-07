@@ -676,20 +676,20 @@ class DatetimeIndexOpsMixin(object):
                 return NotImplemented
             elif is_timedelta64_dtype(other):
                 return self._add_delta(other)
+            elif isinstance(other, (DateOffset, timedelta)):
+                return self._add_delta(other)
+            elif is_offsetlike(other):
+                # Array/Index of DateOffset objects
+                return self._add_offset_array(other)
             elif isinstance(self, TimedeltaIndex) and isinstance(other, Index):
                 if hasattr(other, '_add_delta'):
                     return other._add_delta(self)
                 raise TypeError("cannot add TimedeltaIndex and {typ}"
                                 .format(typ=type(other)))
-            elif isinstance(other, (DateOffset, timedelta)):
-                return self._add_delta(other)
             elif is_integer(other):
                 return self.shift(other)
             elif isinstance(other, (datetime, np.datetime64)):
                 return self._add_datelike(other)
-            elif is_offsetlike(other):
-                # Array/Index of DateOffset objects
-                return self._add_offset_array(other)
             elif isinstance(other, Index):
                 return self._add_datelike(other)
             else:  # pragma: no cover
@@ -709,6 +709,11 @@ class DatetimeIndexOpsMixin(object):
                 return NotImplemented
             elif is_timedelta64_dtype(other):
                 return self._add_delta(-other)
+            elif isinstance(other, (DateOffset, timedelta)):
+                return self._add_delta(-other)
+            elif is_offsetlike(other):
+                # Array/Index of DateOffset objects
+                return self._sub_offset_array(other)
             elif isinstance(self, TimedeltaIndex) and isinstance(other, Index):
                 if not isinstance(other, TimedeltaIndex):
                     raise TypeError("cannot subtract TimedeltaIndex and {typ}"
@@ -716,17 +721,12 @@ class DatetimeIndexOpsMixin(object):
                 return self._add_delta(-other)
             elif isinstance(other, DatetimeIndex):
                 return self._sub_datelike(other)
-            elif isinstance(other, (DateOffset, timedelta)):
-                return self._add_delta(-other)
             elif is_integer(other):
                 return self.shift(-other)
             elif isinstance(other, (datetime, np.datetime64)):
                 return self._sub_datelike(other)
             elif isinstance(other, Period):
                 return self._sub_period(other)
-            elif is_offsetlike(other):
-                # Array/Index of DateOffset objects
-                return self._sub_offset_array(other)
             elif isinstance(other, Index):
                 raise TypeError("cannot subtract {typ1} and {typ2}"
                                 .format(typ1=type(self).__name__,

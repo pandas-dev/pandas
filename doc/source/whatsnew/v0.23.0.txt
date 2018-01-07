@@ -366,7 +366,7 @@ Conversion
 - Bug in :class:`WeekOfMonth` and class:`Week` where addition and subtraction did not roll correctly (:issue:`18510`,:issue:`18672`,:issue:`18864`)
 - Bug in :meth:`DatetimeIndex.astype` when converting between timezone aware dtypes, and converting from timezone aware to naive (:issue:`18951`)
 - Bug in :class:`FY5253` where ``datetime`` addition and subtraction incremented incorrectly for dates on the year-end but not normalized to midnight (:issue:`18854`)
-- Bug in :class:`DatetimeIndex` where adding or subtracting an array-like of ``DateOffset`` objects either raised (``np.array``, ``pd.Index``) or broadcast incorrectly (``pd.Series``) (:issue:`18849`)
+- Bug in :class:`DatetimeIndex` and :class:`TimedeltaIndex` where adding or subtracting an array-like of ``DateOffset`` objects either raised (``np.array``, ``pd.Index``) or broadcast incorrectly (``pd.Series``) (:issue:`18849`)
 - Bug in :class:`Series` floor-division where operating on a scalar ``timedelta`` raises an exception (:issue:`18846`)
 - Bug in :class:`FY5253Quarter`, :class:`LastWeekOfMonth` where rollback and rollforward behavior was inconsistent with addition and subtraction behavior (:issue:`18854`)
 - Bug in :class:`Index` constructor with ``dtype=CategoricalDtype(...)`` where ``categories`` and ``ordered`` are not maintained (issue:`19032`)
