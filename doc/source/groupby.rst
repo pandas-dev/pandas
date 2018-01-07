@@ -915,13 +915,17 @@ The dimension of the returned result can also change:
    So depending on the path taken, and exactly what you are grouping. Thus the grouped columns(s) may be included in
    the output as well as set the indices.
 
-.. warning::
+.. warnings::
 
-    In the current implementation apply calls func twice on the
+    * In the current implementation apply calls func twice on the
     first group to decide whether it can take a fast or slow code
     path. This can lead to unexpected behavior if func has
     side-effects, as they will take effect twice for the first
     group.
+    
+    * Apply should not perform in-place operations on the group chunk. 
+    Group chunks should be treated as immutable, and changes to a 
+    group chunk may produce unexpected results.
 
     .. ipython:: python
 
