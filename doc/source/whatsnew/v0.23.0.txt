@@ -453,8 +453,11 @@ Numeric
 Categorical
 ^^^^^^^^^^^
 
-- Bug in ``Categorical.equals`` between two unordered categories with the same categories, but in a different order (:issue:`16603`)
 -
+- Bug in :func:`pandas.api.types.union_categoricals` returning the wrong result
+  when all the categoricals had the same categories, but in a different order.
+  This affected :func:`pandas.concat` with Categorical data (:issue:`19096`).
+- Bug in ``Categorical.equals`` between two unordered categories with the same categories, but in a different order (:issue:`16603`)
 -
 
 Other
