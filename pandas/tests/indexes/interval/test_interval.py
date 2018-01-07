@@ -140,7 +140,7 @@ class TestIntervalIndex(Base):
         np.array([], dtype='datetime64[ns]')])
     def test_constructors_empty(self, data, closed):
         # GH 18421
-        expected_dtype = getattr(data, 'dtype', np.intp)
+        expected_dtype = getattr(data, 'dtype', np.int64)
         expected_values = np.array([], dtype=object)
         expected_index = IntervalIndex(data, closed=closed)
 

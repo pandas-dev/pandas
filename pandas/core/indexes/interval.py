@@ -114,7 +114,7 @@ def maybe_convert_platform_interval(values):
         # GH 19016
         # empty lists/tuples get object dtype by default, but this is not
         # prohibited for IntervalIndex, so coerce to integer instead
-        return np.array([], dtype=np.intp)
+        return np.array([], dtype=np.int64)
     return maybe_convert_platform(values)
 
 
