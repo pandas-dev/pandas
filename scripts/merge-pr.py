@@ -297,8 +297,8 @@ if not bool(pr["mergeable"]):
     continue_maybe(msg)
 
 print("\n=== Pull Request #%s ===" % pr_num)
-print("title\t%s\nsource\t%s\ntarget\t%s\nurl\t%s"
-      % (title, pr_repo_desc, target_ref, url))
+print("title\t{title}\nsource\t{source}\ntarget\t{target}\nurl\t{url}".format(
+    title=title, source=pr_repo_desc, target=target_ref, url=url))
 
 
 
