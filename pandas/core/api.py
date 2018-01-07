@@ -32,17 +32,6 @@ from pandas.tseries.offsets import DateOffset
 from pandas.core.tools.datetimes import to_datetime
 from pandas.core.tools.timedeltas import to_timedelta
 
-# see gh-14094.
-from pandas.util._depr_module import _DeprecatedModule
-
-_removals = ['day', 'bday', 'businessDay', 'cday', 'customBusinessDay',
-             'customBusinessMonthEnd', 'customBusinessMonthBegin',
-             'monthEnd', 'yearEnd', 'yearBegin', 'bmonthEnd', 'bmonthBegin',
-             'cbmonthEnd', 'cbmonthBegin', 'bquarterEnd', 'quarterEnd',
-             'byearEnd', 'week']
-datetools = _DeprecatedModule(deprmod='pandas.core.datetools',
-                              removals=_removals)
-
 from pandas.core.config import (get_option, set_option, reset_option,
                                 describe_option, option_context, options)
 
