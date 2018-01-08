@@ -654,11 +654,8 @@ def shift_months(int64_t[:] dtindex, int months, object day=None):
                 months_to_roll = months
                 compare_day = get_firstbday(dts.year, dts.month)
 
-                if months_to_roll > 0 and dts.day < compare_day:
-                    months_to_roll -= 1
-                elif months_to_roll <= 0 and dts.day > compare_day:
-                    # as if rolled forward already
-                    months_to_roll += 1
+                months_to_roll = roll_convention(dts.day, months_to_roll,
+                                                 compare_day)
 
                 dts.year = year_add_months(dts, months_to_roll)
                 dts.month = month_add_months(dts, months_to_roll)
@@ -677,11 +674,8 @@ def shift_months(int64_t[:] dtindex, int months, object day=None):
                 months_to_roll = months
                 compare_day = get_lastbday(dts.year, dts.month)
 
-                if months_to_roll > 0 and dts.day < compare_day:
-                    months_to_roll -= 1
-                elif months_to_roll <= 0 and dts.day > compare_day:
-                    # as if rolled forward already
-                    months_to_roll += 1
+                months_to_roll = roll_convention(dts.day, months_to_roll,
+                                                 compare_day)
 
                 dts.year = year_add_months(dts, months_to_roll)
                 dts.month = month_add_months(dts, months_to_roll)
