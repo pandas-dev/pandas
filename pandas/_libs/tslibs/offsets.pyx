@@ -290,27 +290,6 @@ class CacheableOffset(object):
     _cacheable = True
 
 
-class EndMixin(object):
-    # helper for vectorized offsets
-
-    def _end_apply_index(self, i, freq):
-        """Offsets index to end of Period frequency"""
-
-        off = i.to_perioddelta('D')
-
-        base, mult = get_freq_code(freq)
-        base_period = i.to_period(base)
-        if self.n > 0:
-            # when adding, dates on end roll to next
-            roll = np.where(base_period.to_timestamp(how='end') == i - off,
-                            self.n, self.n - 1)
-        else:
-            roll = self.n
-
-        base = (base_period + roll).to_timestamp(how='end')
-        return base + off
-
-
 # ---------------------------------------------------------------------
 # Base Classes
 

@@ -27,7 +27,6 @@ from pandas._libs.tslibs.offsets import (
     apply_index_wraps,
     roll_yearday,
     shift_month,
-    EndMixin,
     BaseOffset)
 
 
@@ -1226,7 +1225,8 @@ class SemiMonthEnd(SemiMonthOffset):
         return roll
 
     def _apply_index_days(self, i, roll):
-        i += (roll % 2) * Timedelta(days=self.day_of_month).value
+        nanos = (roll % 2) * Timedelta(days=self.day_of_month).value
+        i += nanos.astype('timedelta64[ns]')
         return i + Timedelta(days=-1)
 
 
@@ -1271,13 +1271,14 @@ class SemiMonthBegin(SemiMonthOffset):
         return roll
 
     def _apply_index_days(self, i, roll):
-        return i + (roll % 2) * Timedelta(days=self.day_of_month - 1).value
+        nanos = (roll % 2) * Timedelta(days=self.day_of_month - 1).value
+        return i + nanos.astype('timedelta64[ns]')
 
 
 # ---------------------------------------------------------------------
 # Week-Based Offset Classes
 
-class Week(EndMixin, DateOffset):
+class Week(DateOffset):
     """
     Weekly offset
 
@@ -1326,6 +1327,21 @@ class Week(EndMixin, DateOffset):
                     i.to_perioddelta('W'))
         else:
             return self._end_apply_index(i, self.freqstr)
+
+    def _end_apply_index(self, i, freq):
+        """Offsets index to end of Period frequency"""
+        off = i.to_perioddelta('D')
+
+        base_period = i.to_period('W')
+        if self.n > 0:
+            # when adding, dates on end roll to next
+            roll = np.where(base_period.to_timestamp(how='end') == i - off,
+                            self.n, self.n - 1)
+        else:
+            roll = self.n
+
+        base = (base_period + roll).to_timestamp(how='end')
+        return base + off
 
     def onOffset(self, dt):
         if self.normalize and not _is_normalized(dt):
