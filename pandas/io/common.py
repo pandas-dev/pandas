@@ -169,7 +169,7 @@ def _stringify_path(filepath_or_buffer):
 
 
 def get_filepath_or_buffer(filepath_or_buffer, encoding=None,
-                           compression=None):
+                           compression=None, mode='rb'):
     """
     If the filepath_or_buffer is a url, translate and return the buffer.
     Otherwise passthrough.
@@ -199,7 +199,8 @@ def get_filepath_or_buffer(filepath_or_buffer, encoding=None,
         from pandas.io import s3
         return s3.get_filepath_or_buffer(filepath_or_buffer,
                                          encoding=encoding,
-                                         compression=compression)
+                                         compression=compression,
+                                         mode=mode)
 
     if isinstance(filepath_or_buffer, (compat.string_types,
                                        compat.binary_type,

@@ -107,7 +107,7 @@ class PyArrowImpl(BaseImpl):
         self.validate_dataframe(df)
         if self._pyarrow_lt_070:
             self._validate_write_lt_070(df)
-        path, _, _ = get_filepath_or_buffer(path)
+        path, _, _ = get_filepath_or_buffer(path, mode='wb')
 
         if self._pyarrow_lt_060:
             table = self.api.Table.from_pandas(df, timestamps_to_ms=True)
