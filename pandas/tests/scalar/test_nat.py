@@ -302,14 +302,14 @@ def test_nat_arithmetic_index():
         tm.assert_index_equal(left - right, exp)
         tm.assert_index_equal(right - left, exp)
 
-    # timedelta
+    # timedelta # GH#19124
     tdi = TimedeltaIndex(['1 day', '2 day'], name='x')
-    exp = DatetimeIndex([NaT, NaT], name='x')
-    for (left, right) in [(NaT, tdi)]:
-        tm.assert_index_equal(left + right, exp)
-        tm.assert_index_equal(right + left, exp)
-        tm.assert_index_equal(left - right, exp)
-        tm.assert_index_equal(right - left, exp)
+    tdi_nat = TimedeltaIndex([NaT, NaT], name='x')
+
+    tm.assert_index_equal(tdi + NaT, tdi_nat)
+    tm.assert_index_equal(NaT + tdi, tdi_nat)
+    tm.assert_index_equal(tdi - NaT, tdi_nat)
+    tm.assert_index_equal(NaT - tdi, tdi_nat)
 
 
 def test_nat_pinned_docstrings():
