@@ -796,7 +796,7 @@ cpdef int get_day_of_month(datetime other, day_opt) except? -1:
         raise ValueError(day_opt)
 
 
-cpdef int roll_convention(int other, int n, int compare):
+cpdef int roll_convention(int other, int n, int compare) nogil:
     """
     Possibly increment or decrement the number of periods to shift
     based on rollforward/rollbackward conventions.
