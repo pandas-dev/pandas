@@ -1328,14 +1328,15 @@ class Week(DateOffset):
         else:
             return self._end_apply_index(i, self.freqstr)
 
-    def _end_apply_index(self, i, freq):
+    def _end_apply_index(self, dtindex, freq):
         """Offsets index to end of Period frequency"""
-        off = i.to_perioddelta('D')
+        off = dtindex.to_perioddelta('D')
 
-        base_period = i.to_period('W')
+        base_period = dtindex.to_period('W')
         if self.n > 0:
             # when adding, dates on end roll to next
-            roll = np.where(base_period.to_timestamp(how='end') == i - off,
+            normed = dtindex - off
+            roll = np.where(base_period.to_timestamp(how='end') == normed,
                             self.n, self.n - 1)
         else:
             roll = self.n
@@ -1396,9 +1397,9 @@ class WeekOfMonth(_WeekOfMonthMixin, DateOffset):
     Parameters
     ----------
     n : int
-    week : {0, 1, 2, 3, ...}, default None
+    week : {0, 1, 2, 3, ...}, default 0
         0 is 1st week of month, 1 2nd week, etc.
-    weekday : {0, 1, ..., 6}, default None
+    weekday : {0, 1, ..., 6}, default 0
         0: Mondays
         1: Tuesdays
         2: Wednesdays
@@ -1410,7 +1411,7 @@ class WeekOfMonth(_WeekOfMonthMixin, DateOffset):
     _prefix = 'WOM'
     _adjust_dst = True
 
-    def __init__(self, n=1, normalize=False, week=None, weekday=None):
+    def __init__(self, n=1, normalize=False, week=0, weekday=0):
         self.n = self._validate_n(n)
         self.normalize = normalize
         self.weekday = weekday
@@ -1473,7 +1474,7 @@ class LastWeekOfMonth(_WeekOfMonthMixin, DateOffset):
     Parameters
     ----------
     n : int, default 1
-    weekday : {0, 1, ..., 6}, default None
+    weekday : {0, 1, ..., 6}, default 0
         0: Mondays
         1: Tuesdays
         2: Wednesdays
@@ -1486,7 +1487,7 @@ class LastWeekOfMonth(_WeekOfMonthMixin, DateOffset):
     _prefix = 'LWOM'
     _adjust_dst = True
 
-    def __init__(self, n=1, normalize=False, weekday=None):
+    def __init__(self, n=1, normalize=False, weekday=0):
         self.n = self._validate_n(n)
         self.normalize = normalize
         self.weekday = weekday
