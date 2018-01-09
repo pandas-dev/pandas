@@ -1049,7 +1049,6 @@ class _CustomBusinessMonth(_CustomMixin, BusinessMixin, MonthOffset):
         else:
             # MonthEnd
             cbday.roll_func = cbday.rollback
-        kwds = self.kwds
         return cbday
 
     @cache_readonly
