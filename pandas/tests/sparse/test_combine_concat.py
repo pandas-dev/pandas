@@ -337,11 +337,12 @@ class TestSparseDataFrameConcat(object):
         exp = pd.concat([self.dense3, self.dense1], axis=1)
         # See GH18914 and #18686 for why this should be
         # A DataFrame
-        assert isinstance(res, pd.DataFrame)
+        assert type(res) is pd.DataFrame
         # See GH16874
-        assert res.isnull()
-        assert res[res.columns[0]]
-        assert res.iloc[0,0]
+        assert not res.isnull().empty
+        assert not res[res.columns[0]].empty
+        assert res.iloc[0,0] == self.dense3.iloc[0,0]
+
         for column in self.dense3.columns:
             tm.assert_series_equal(res[column], exp[column])
 
@@ -349,11 +350,11 @@ class TestSparseDataFrameConcat(object):
 
         res = pd.concat([sparse, self.dense3], axis=1)
         exp = pd.concat([self.dense1, self.dense3], axis=1)
-        assert isinstance(res, pd.DataFrame)
+        assert type(res) is pd.DataFrame
         # See GH16874
-        assert res.isnull()
-        assert res[res.columns[0]]
-        assert res.iloc[0,0]
+        assert not res.isnull().empty
+        assert not res[res.columns[0]].empty
+        assert res.iloc[0,0] == sparse.iloc[0,0]
         for column in self.dense3.columns:
             tm.assert_series_equal(res[column], exp[column])
         tm.assert_frame_equal(res, exp)

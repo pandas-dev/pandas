@@ -92,11 +92,13 @@ def _get_frame_result_type(result, objs):
     if all blocks are SparseBlock, return SparseDataFrame
     otherwise, return 1st obj
     """
+
+    from pandas.core.sparse.api import SparseDataFrame
+
     if result.blocks and all(b.is_sparse for b in result.blocks):
-        from pandas.core.sparse.api import SparseDataFrame
         return SparseDataFrame
     else:
-        return objs[0]
+        return next(obj for obj in objs if not type(obj) == SparseDataFrame)
 
 
 def _concat_compat(to_concat, axis=0):
