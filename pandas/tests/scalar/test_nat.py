@@ -312,6 +312,22 @@ def test_nat_arithmetic_index():
     tm.assert_index_equal(NaT - tdi, tdi_nat)
 
 
+@pytest.mark.xfail(reason='NaT - Series returns NaT.  This behavior was '
+                          'introduced somewhere between 0.22.0 and '
+                          '23fb3392adedd3a')
+def test_nat_arithmetic_series():
+    # GH#19124
+    tdi = TimedeltaIndex(['1 day', '2 day'], name='x')
+    tdi_nat = TimedeltaIndex([NaT, NaT], name='x')
+    ser = Series(tdi)
+    ser_nat = Series(tdi_nat)
+
+    tm.assert_series_equal(ser + NaT, ser_nat)
+    tm.assert_series_equal(NaT + ser, ser_nat)
+    tm.assert_series_equal(ser - NaT, ser_nat)
+    tm.assert_series_equal(NaT - ser, ser_nat)
+
+
 def test_nat_pinned_docstrings():
     # GH17327
     assert NaT.ctime.__doc__ == datetime.ctime.__doc__
