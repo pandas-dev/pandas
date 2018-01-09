@@ -486,3 +486,20 @@ class TestParquetFastParquet(Base):
                           row_group_offsets=1)
             result = read_parquet(path, fp, filters=[('a', '==', 0)])
         assert len(result) == 1
+
+class TestIntegrationWithS3(Base):
+    def test_s3_roundtrip(self):
+        expected = pd.DataFrame({'A': [1, 2, 3], 'B': 'foo'})
+
+        boto3 = pytest.importorskip('boto3')
+        moto = pytest.importorskip('moto')
+
+        with moto.mock_s3():
+            conn = boto3.resource("s3", region_name="us-east-1")
+            conn.create_bucket(Bucket="pandas-test")
+
+            expected.to_parquet('s3://pandas-test/test.parquet')
+            actual = pd.read_parquet('s3://pandas-test/test.parquet')
+
+            tm.assert_frame_equal(actual, expected)
+
