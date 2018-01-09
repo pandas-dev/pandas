@@ -113,7 +113,7 @@ if [ -e ${REQ} ]; then
 fi
 
 time conda install -n pandas pytest>=3.1.0
-time pip install pytest-xdist moto
+time pip install pytest-xdist moto botocore==1.18.23
 
 if [ "$LINT" ]; then
    conda install flake8=3.4.1
