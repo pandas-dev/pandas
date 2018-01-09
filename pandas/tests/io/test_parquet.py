@@ -491,9 +491,9 @@ class TestParquetFastParquet(Base):
 class TestIntegrationWithS3(Base):
     def test_s3_roundtrip(self, df_compat, s3_resource, engine):
         # GH #19134
-
         if engine == 'pyarrow':
-            df_compat.to_parquet('s3://pandas-test/test.parquet', engine)
+            df_compat.to_parquet('s3://pandas-test/test.parquet',
+                                 engine, compression=None)
 
             expected = df_compat
             actual = pd.read_parquet('s3://pandas-test/test.parquet', engine)
