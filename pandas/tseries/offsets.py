@@ -1040,53 +1040,52 @@ class _CustomBusinessMonth(_CustomMixin, BusinessMixin, MonthOffset):
 
     @cache_readonly
     def cbday(self):
+        cbday = CustomBusinessDay(n=self.n, normalize=False, **self.kwds)
+
+        # Define default roll function to be called in apply method
+        if self._prefix.endswith('S'):
+            # MonthBegin
+            cbday.roll_func = cbday.rollforward
+        else:
+            # MonthEnd
+            cbday.roll_func = cbday.rollback
         kwds = self.kwds
-        return CustomBusinessDay(n=self.n, normalize=self.normalize, **kwds)
+        return cbday
 
     @cache_readonly
     def m_offset(self):
         if self._prefix.endswith('S'):
-            # MonthBegin:
-            return MonthBegin(n=1, normalize=self.normalize)
+            # MonthBegin
+            moff = MonthBegin(n=1, normalize=False)
+            moff.roll_func = moff.rollback
         else:
             # MonthEnd
-            return MonthEnd(n=1, normalize=self.normalize)
+            moff = MonthEnd(n=1, normalize=False)
+            moff.roll_func = moff.rollforward
+        return moff
+
+    @apply_wraps
+    def apply(self, other):
+        # First move to month offset
+        cur_month_offset_date = self.m_offset.roll_func(other)
+
+        # Find this custom month offset
+        compare_date = self.cbday.roll_func(cur_month_offset_date)
+        n = liboffsets.roll_convention(other.day, self.n, compare_date.day)
+
+        new = cur_month_offset_date + n * self.m_offset
+        result = self.cbday.roll_func(new)
+        return result
 
 
 class CustomBusinessMonthEnd(_CustomBusinessMonth):
     __doc__ = _CustomBusinessMonth.__doc__.replace('[BEGIN/END]', 'end')
     _prefix = 'CBM'
 
-    @apply_wraps
-    def apply(self, other):
-        # First move to month offset
-        cur_mend = self.m_offset.rollforward(other)
-
-        # Find this custom month offset
-        compare_date = self.cbday.rollback(cur_mend)
-        n = liboffsets.roll_monthday(other, self.n, compare_date)
-
-        new = cur_mend + n * self.m_offset
-        result = self.cbday.rollback(new)
-        return result
-
 
 class CustomBusinessMonthBegin(_CustomBusinessMonth):
     __doc__ = _CustomBusinessMonth.__doc__.replace('[BEGIN/END]', 'beginning')
     _prefix = 'CBMS'
-
-    @apply_wraps
-    def apply(self, other):
-        # First move to month offset
-        cur_mbegin = self.m_offset.rollback(other)
-
-        # Find this custom month offset
-        compare_date = self.cbday.rollforward(cur_mbegin)
-        n = liboffsets.roll_monthday(other, self.n, compare_date)
-
-        new = cur_mbegin + n * self.m_offset
-        result = self.cbday.rollforward(new)
-        return result
 
 
 # ---------------------------------------------------------------------
