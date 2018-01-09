@@ -1,12 +1,11 @@
 import datetime
 
 import numpy as np
-import pandas as pd
-
-from pandas import to_timedelta, Timestamp, Timedelta
+from pandas import Series, timedelta_range, to_timedelta, Timestamp, Timedelta
 
 
 class TimedeltaConstructor(object):
+
     goal_time = 0.2
 
     def time_from_int(self):
@@ -36,35 +35,44 @@ class TimedeltaConstructor(object):
 
 
 class ToTimedelta(object):
+
     goal_time = 0.2
 
     def setup(self):
-        self.arr = np.random.randint(0, 1000, size=10000)
-        self.arr2 = ['{0} days'.format(i) for i in self.arr]
-
-        self.arr3 = np.random.randint(0, 60, size=10000)
-        self.arr3 = ['00:00:{0:02d}'.format(i) for i in self.arr3]
-
-        self.arr4 = list(self.arr2)
-        self.arr4[-1] = 'apple'
+        self.ints = np.random.randint(0, 60, size=10000)
+        self.str_days = []
+        self.str_seconds = []
+        for i in self.ints:
+            self.str_days.append('{0} days'.format(i))
+            self.str_seconds.append('00:00:{0:02d}'.format(i))
 
     def time_convert_int(self):
-        to_timedelta(self.arr, unit='s')
+        to_timedelta(self.ints, unit='s')
 
-    def time_convert_string(self):
-        to_timedelta(self.arr2)
+    def time_convert_string_days(self):
+        to_timedelta(self.str_days)
 
     def time_convert_string_seconds(self):
-        to_timedelta(self.arr3)
+        to_timedelta(self.str_seconds)
 
-    def time_convert_coerce(self):
-        to_timedelta(self.arr4, errors='coerce')
 
-    def time_convert_ignore(self):
-        to_timedelta(self.arr4, errors='ignore')
+class ToTimedeltaErrors(object):
+
+    goal_time = 0.2
+    params = ['coerce', 'ignore']
+    param_names = ['errors']
+
+    def setup(self, errors):
+        ints = np.random.randint(0, 60, size=10000)
+        self.arr = ['{0} days'.format(i) for i in ints]
+        self.arr[-1] = 'apple'
+
+    def time_convert(self, errors):
+        to_timedelta(self.arr, errors=errors)
 
 
 class TimedeltaOps(object):
+
     goal_time = 0.2
 
     def setup(self):
@@ -76,43 +84,46 @@ class TimedeltaOps(object):
 
 
 class TimedeltaProperties(object):
+
     goal_time = 0.2
 
-    def setup(self):
-        self.td = Timedelta(days=365, minutes=35, seconds=25, milliseconds=35)
+    def setup_cache(self):
+        td = Timedelta(days=365, minutes=35, seconds=25, milliseconds=35)
+        return td
 
-    def time_timedelta_days(self):
-        self.td.days
+    def time_timedelta_days(self, td):
+        td.days
 
-    def time_timedelta_seconds(self):
-        self.td.seconds
+    def time_timedelta_seconds(self, td):
+        td.seconds
 
-    def time_timedelta_microseconds(self):
-        self.td.microseconds
+    def time_timedelta_microseconds(self, td):
+        td.microseconds
 
-    def time_timedelta_nanoseconds(self):
-        self.td.nanoseconds
+    def time_timedelta_nanoseconds(self, td):
+        td.nanoseconds
 
 
 class DatetimeAccessor(object):
+
     goal_time = 0.2
 
-    def setup(self):
-        self.N = 100000
-        self.series = pd.Series(
-            pd.timedelta_range('1 days', periods=self.N, freq='h'))
+    def setup_cache(self):
+        N = 100000
+        series = Series(timedelta_range('1 days', periods=N, freq='h'))
+        return series
 
-    def time_dt_accessor(self):
-        self.series.dt
+    def time_dt_accessor(self, series):
+        series.dt
 
-    def time_timedelta_dt_accessor_days(self):
-        self.series.dt.days
+    def time_timedelta_days(self, series):
+        series.dt.days
 
-    def time_timedelta_dt_accessor_seconds(self):
-        self.series.dt.seconds
+    def time_timedelta_seconds(self, series):
+        series.dt.seconds
 
-    def time_timedelta_dt_accessor_microseconds(self):
-        self.series.dt.microseconds
+    def time_timedelta_microseconds(self, series):
+        series.dt.microseconds
 
-    def time_timedelta_dt_accessor_nanoseconds(self):
-        self.series.dt.nanoseconds
+    def time_timedelta_nanoseconds(self, series):
+        series.dt.nanoseconds
