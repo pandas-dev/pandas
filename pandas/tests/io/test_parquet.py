@@ -489,6 +489,7 @@ class TestParquetFastParquet(Base):
 
 class TestIntegrationWithS3(Base):
     def test_s3_roundtrip(self, df_compat, s3_resource):
+        # GH #19134
         df_compat.to_parquet('s3://pandas-test/test.parquet')
 
         expected = df_compat
