@@ -1039,41 +1039,49 @@ class _CustomBusinessMonth(_CustomMixin, BusinessMixin, MonthOffset):
         _CustomMixin.__init__(self, weekmask, holidays, calendar)
 
     @cache_readonly
-    def cbday(self):
+    def cbday_roll(self):
         cbday = CustomBusinessDay(n=self.n, normalize=False, **self.kwds)
 
         # Define default roll function to be called in apply method
         if self._prefix.endswith('S'):
             # MonthBegin
-            cbday.roll_func = cbday.rollforward
+            roll_func = cbday.rollforward
         else:
             # MonthEnd
-            cbday.roll_func = cbday.rollback
-        return cbday
+            roll_func = cbday.rollback
+        return roll_func
 
     @cache_readonly
     def m_offset(self):
         if self._prefix.endswith('S'):
             # MonthBegin
             moff = MonthBegin(n=1, normalize=False)
-            moff.roll_func = moff.rollback
         else:
             # MonthEnd
             moff = MonthEnd(n=1, normalize=False)
-            moff.roll_func = moff.rollforward
         return moff
+
+    @cache_readonly
+    def month_roll(self):
+        if self._prefix.endswith('S'):
+            # MonthBegin
+            roll_func = self.m_offset.rollback
+        else:
+            # MonthEnd
+            roll_func = self.m_offset.rollforward
+        return roll_func
 
     @apply_wraps
     def apply(self, other):
         # First move to month offset
-        cur_month_offset_date = self.m_offset.roll_func(other)
+        cur_month_offset_date = self.month_roll(other)
 
         # Find this custom month offset
-        compare_date = self.cbday.roll_func(cur_month_offset_date)
+        compare_date = self.cbday_roll(cur_month_offset_date)
         n = liboffsets.roll_convention(other.day, self.n, compare_date.day)
 
         new = cur_month_offset_date + n * self.m_offset
-        result = self.cbday.roll_func(new)
+        result = self.cbday_roll(new)
         return result
 
 
