@@ -4722,7 +4722,9 @@ class DataSplitter(object):
             # if start >= end:
             #     raise AssertionError('Start %s must be less than end %s'
             #                          % (str(start), str(end)))
-            yield i, self._chop(sdata, slice(start, end))
+            group_data = self._chop(sdata, slice(start, end))
+            group_data._is_copy = None
+            yield i, group_data
 
     def _get_sorted_data(self):
         return self.data._take(self.sort_idx, axis=self.axis, convert=False)
