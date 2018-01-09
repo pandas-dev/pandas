@@ -488,18 +488,11 @@ class TestParquetFastParquet(Base):
         assert len(result) == 1
 
 class TestIntegrationWithS3(Base):
-    def test_s3_roundtrip(self):
-        expected = pd.DataFrame({'A': [1, 2, 3], 'B': 'foo'})
+    def test_s3_roundtrip(self, df_compat, s3_resource):
+        df_compat.to_parquet('s3://pandas-test/test.parquet')
 
-        boto3 = pytest.importorskip('boto3')
-        moto = pytest.importorskip('moto')
+        expected = df_compat
+        actual = pd.read_parquet('s3://pandas-test/test.parquet')
 
-        with moto.mock_s3():
-            conn = boto3.resource("s3", region_name="us-east-1")
-            conn.create_bucket(Bucket="pandas-test")
-
-            expected.to_parquet('s3://pandas-test/test.parquet')
-            actual = pd.read_parquet('s3://pandas-test/test.parquet')
-
-            tm.assert_frame_equal(actual, expected)
+        tm.assert_frame_equal(expected, actual)
 
