@@ -672,7 +672,7 @@ def _arith_method_SERIES(op, name, str_rep, fill_zeros=None, default_axis=None,
 
         left, right = _align_method_SERIES(left, right)
         if is_datetime64_dtype(left) or is_datetime64tz_dtype(left):
-            result = _dispatch_to_index_op(op, left, right, pd.DatetimeIndex)
+            result = dispatch_to_index_op(op, left, right, pd.DatetimeIndex)
             res_name = _get_series_op_result_name(left, right)
             return construct_result(left, result,
                                     index=left.index, name=res_name,
@@ -702,13 +702,29 @@ def _arith_method_SERIES(op, name, str_rep, fill_zeros=None, default_axis=None,
     return wrapper
 
 
-def _dispatch_to_index_op(op, left, right, index_class):
+def dispatch_to_index_op(op, left, right, index_class):
     """
-    Defer to DatetimeIndex implementations for type
-    checking and timezone handling.
+    Wrap Series left in the given index_class to delegate the operation op
+    to the index implementation.  DatetimeIndex and TimedeltaIndex perform
+    type checking, timezone handling, overflow checks, etc.
+
+    Parameters
+    ----------
+    op : binary operator (operator.add, operator.sub, ...)
+    left : Series
+    right : object
+    index_class : DatetimeIndex or TimedeltaIndex
+
+    Returns
+    -------
+    result : object, usually DatetimeIndex, TimedeltaIndex, or Series
     """
     left_idx = index_class(left)
-    left_idx.freq = None  # avoid accidentally allowing integer add/sub
+
+    # avoid accidentally allowing integer add/sub.  For datetime64[tz] dtypes,
+    # left_idx may inherit a freq from a cached DatetimeIndex.
+    # See discussion in GH#19147.
+    left_idx.freq = None
     try:
         result = op(left_idx, right)
     except NullFrequencyError:
