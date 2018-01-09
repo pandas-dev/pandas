@@ -25,3 +25,4 @@ class TestIntegration(object):
             actual = pd.read_parquet('s3://pandas-test/test.parquet')
 
             tm.assert_frame_equal(actual, expected)
+
