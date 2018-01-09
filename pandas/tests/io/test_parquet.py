@@ -487,13 +487,15 @@ class TestParquetFastParquet(Base):
             result = read_parquet(path, fp, filters=[('a', '==', 0)])
         assert len(result) == 1
 
+
 class TestIntegrationWithS3(Base):
-    def test_s3_roundtrip(self, df_compat, s3_resource):
+    def test_s3_roundtrip(self, df_compat, s3_resource, engine):
         # GH #19134
-        df_compat.to_parquet('s3://pandas-test/test.parquet')
 
-        expected = df_compat
-        actual = pd.read_parquet('s3://pandas-test/test.parquet')
+        if engine == 'pyarrow':
+            df_compat.to_parquet('s3://pandas-test/test.parquet', engine)
 
-        tm.assert_frame_equal(expected, actual)
+            expected = df_compat
+            actual = pd.read_parquet('s3://pandas-test/test.parquet', engine)
 
+            tm.assert_frame_equal(expected, actual)
