@@ -541,12 +541,12 @@ def test_dt64_with_DateOffsets(klass, assert_func, cls_name):
                 if (cls_name in ['WeekOfMonth', 'LastWeekOfMonth',
                                  'FY5253Quarter', 'FY5253'] and n == 0):
                     continue
-            offset = getattr(pd.offsets, cls_name)(n,
-                                                   normalize=normalize,
-                                                   **kwargs)
-            assert_func(klass([x + offset for x in vec]), vec + offset)
-            assert_func(klass([x - offset for x in vec]), vec - offset)
-            assert_func(klass([offset + x for x in vec]), offset + vec)
+                offset = getattr(pd.offsets, cls_name)(n,
+                                                       normalize=normalize,
+                                                       **kwargs)
+                assert_func(klass([x + offset for x in vec]), vec + offset)
+                assert_func(klass([x - offset for x in vec]), vec - offset)
+                assert_func(klass([offset + x for x in vec]), offset + vec)
 
 
 # GH 10699
