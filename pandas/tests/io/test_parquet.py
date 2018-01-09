@@ -203,16 +203,6 @@ def test_cross_engine_fp_pa(df_cross_compat, pa, fp):
         result = read_parquet(path, engine=pa, columns=['a', 'd'])
         tm.assert_frame_equal(result, df[['a', 'd']])
 
-def test_s3_roundtrip(df_compat, s3_resource, engine):
-    # GH #19134
-    if engine == 'pyarrow':
-        df_compat.to_parquet('s3://pandas-test/test.parquet',
-                             engine, compression=None)
-
-        expected = df_compat
-        actual = pd.read_parquet('s3://pandas-test/test.parquet', engine)
-
-        tm.assert_frame_equal(expected, actual)
 
 class Base(object):
 
@@ -435,6 +425,16 @@ class TestParquetPyArrow(Base):
         # supported in >= 0.7.0
         df = pd.DataFrame({'a': pd.Categorical(list('abc'))})
         self.check_error_on_write(df, pa, NotImplementedError)
+
+    def test_s3_roundtrip(self, df_compat, s3_resource, pa):
+        # GH #19134
+        df_compat.to_parquet('s3://pandas-test/test.parquet',
+                             engine=pa, compression=None)
+
+        expected = df_compat
+        actual = read_parquet('s3://pandas-test/test.parquet', engine=pa)
+
+        tm.assert_frame_equal(expected, actual)
 
 
 class TestParquetFastParquet(Base):
