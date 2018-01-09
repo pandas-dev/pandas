@@ -36,9 +36,6 @@ class TimestampProperties(object):
     def time_tz(self, tz, freq):
         self.ts.tz
 
-    def time_offset(self, tz, freq):
-        self.ts.offset
-
     def time_dayofweek(self, tz, freq):
         self.ts.dayofweek
 
