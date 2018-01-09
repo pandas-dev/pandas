@@ -714,6 +714,31 @@ either the left or right tables, the values in the joined table will be
           labels=['left', 'right'], vertical=False);
    plt.close('all');
 
+To join a Series and a DataFrame, the Series has to be transformed into a DataFrame first:
+
+.. ipython:: python
+
+   df = pd.DataFrame({"Let": ["A", "B", "C"], "Num": [1, 2, 3]})
+   df
+
+   # The series has a multi-index with levels corresponding to columns in the DataFrame we want to merge with
+   ser = pd.Series(
+       ['a', 'b', 'c', 'd', 'e', 'f'],
+       index=pd.MultiIndex.from_arrays([["A", "B", "C"]*2, [1, 2, 3, 4, 5, 6]])
+       )
+   ser
+
+   # Name the row index levels
+   ser.index.names=['Let','Num']
+   ser
+
+   # reset_index turns the multi-level row index into columns, which requires a DataFrame
+   df2 = ser.reset_index()
+   type(df2)
+
+   # Now we merge the DataFrames
+   pd.merge(df, df2, on=['Let','Num'])
+
 Here is another example with duplicate join keys in ``DataFrame``s:
 
 .. ipython:: python
