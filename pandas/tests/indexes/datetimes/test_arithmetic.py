@@ -514,10 +514,11 @@ def test_dt64_with_DateOffsets_relativedelta(klass, assert_func):
     ('WeekOfMonth', {'weekday': 2, 'week': 2}),
     'Easter', ('DateOffset', {'day': 4}),
     ('DateOffset', {'month': 5})])
+@pytest.mark.parametrize('normalize', [True, False])
 @pytest.mark.parametrize('klass,assert_func', zip([Series, DatetimeIndex],
                                                   [tm.assert_series_equal,
                                                    tm.assert_index_equal]))
-def test_dt64_with_DateOffsets(klass, assert_func, cls_name):
+def test_dt64_with_DateOffsets(klass, assert_func, normalize, cls_name):
     # GH#10699
     # assert these are equal on a piecewise basis
     vec = klass([Timestamp('2000-01-05 00:15:00'),
@@ -529,24 +530,25 @@ def test_dt64_with_DateOffsets(klass, assert_func, cls_name):
                  Timestamp('2000-05-15'),
                  Timestamp('2001-06-15')])
 
-    with warnings.catch_warnings(record=True):
-        for normalize in (True, False):
-            if isinstance(cls_name, tuple):
-                cls_name, kwargs = cls_name
-            else:
-                cls_name = cls_name
-                kwargs = {}
+    if isinstance(cls_name, tuple):
+        # If cls_name param is a tuple, then 2nd entry is kwargs for
+        # the offset constructor
+        cls_name, kwargs = cls_name
+    else:
+        cls_name = cls_name
+        kwargs = {}
 
-            for n in [0, 5]:
-                if (cls_name in ['WeekOfMonth', 'LastWeekOfMonth',
-                                 'FY5253Quarter', 'FY5253'] and n == 0):
-                    continue
-                offset = getattr(pd.offsets, cls_name)(n,
-                                                       normalize=normalize,
-                                                       **kwargs)
-                assert_func(klass([x + offset for x in vec]), vec + offset)
-                assert_func(klass([x - offset for x in vec]), vec - offset)
-                assert_func(klass([offset + x for x in vec]), offset + vec)
+    with warnings.catch_warnings(record=True):
+        for n in [0, 5]:
+            if (cls_name in ['WeekOfMonth', 'LastWeekOfMonth',
+                             'FY5253Quarter', 'FY5253'] and n == 0):
+                continue
+            offset = getattr(pd.offsets, cls_name)(n,
+                                                   normalize=normalize,
+                                                   **kwargs)
+            assert_func(klass([x + offset for x in vec]), vec + offset)
+            assert_func(klass([x - offset for x in vec]), vec - offset)
+            assert_func(klass([offset + x for x in vec]), offset + vec)
 
 
 # GH 10699
