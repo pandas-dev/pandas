@@ -2758,6 +2758,12 @@ class TestGroupBy(MixIn):
         with tm.assert_raises_regex(KeyError, "(7, 8)"):
             df.groupby((7, 8)).mean()
 
+    def test_no_setting_with_copy_warning(self):
+        df = pd.DataFrame({'x': range(4), 'c': list('aabb')})
+        for _, gdf in df.groupby('c'):
+            with tm.assert_produces_warning(None):
+                gdf['x'] = 1
+
 
 def _check_groupby(df, result, keys, field, f=lambda x: x.sum()):
     tups = lmap(tuple, df[keys].values)
