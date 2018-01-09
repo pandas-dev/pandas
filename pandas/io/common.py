@@ -179,7 +179,7 @@ def get_filepath_or_buffer(filepath_or_buffer, encoding=None,
     filepath_or_buffer : a url, filepath (str, py.path.local or pathlib.Path),
                          or buffer
     encoding : the encoding to use to decode py3 bytes, default is 'utf-8'
-    mode : One of 'rb' or 'wb' or 'ab'. default: 'rb'
+    mode : {'rb', 'wb', 'ab'}
 
     Returns
     -------
