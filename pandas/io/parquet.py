@@ -194,16 +194,14 @@ class FastParquetImpl(BaseImpl):
         # thriftpy/protocol/compact.py:339:
         # DeprecationWarning: tostring() is deprecated.
         # Use tobytes() instead.
-        path, _, _ = get_filepath_or_buffer(path, mode='wb')
+        path, _, _ = get_filepath_or_buffer(path)
         with catch_warnings(record=True):
             self.api.write(path, df,
-                           compression=compression,
-                           open_with=lambda path, mode: path,
-                           **kwargs)
+                           compression=compression, **kwargs)
 
     def read(self, path, columns=None, **kwargs):
         path, _, _ = get_filepath_or_buffer(path)
-        parquet_file = self.api.ParquetFile(path, open_with=lambda path, mode: path)
+        parquet_file = self.api.ParquetFile(path)
         return parquet_file.to_pandas(columns=columns, **kwargs)
 
 
