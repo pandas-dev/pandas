@@ -680,6 +680,25 @@ class TestTimedeltaSeriesArithmetic(object):
         assert_series_equal(ts - s, expected2)
         assert_series_equal(ts + (-s), expected2)
 
+    def test_td64series_add_intlike(self):
+        # GH#19123
+        tdi = pd.TimedeltaIndex(['59 days', '59 days', 'NaT'])
+        ser = Series(tdi)
+
+        other = Series([20, 30, 40], dtype='uint8')
+
+        pytest.raises(TypeError, ser.__add__, 1)
+        pytest.raises(TypeError, ser.__sub__, 1)
+
+        pytest.raises(TypeError, ser.__add__, other)
+        pytest.raises(TypeError, ser.__sub__, other)
+
+        pytest.raises(TypeError, ser.__add__, other.values)
+        pytest.raises(TypeError, ser.__sub__, other.values)
+
+        pytest.raises(TypeError, ser.__add__, pd.Index(other))
+        pytest.raises(TypeError, ser.__sub__, pd.Index(other))
+
     def test_timedelta64_operations_with_integers(self):
         # GH 4521
         # divide/multiply by integers
@@ -738,12 +757,6 @@ class TestTimedeltaSeriesArithmetic(object):
         assert_series_equal(s1 / 2.0,
                             Series([Timedelta('29 days 12:00:00'), Timedelta(
                                 '29 days 12:00:00'), Timedelta('NaT')]))
-
-        for op in ['__add__', '__sub__']:
-            sop = getattr(s1, op, None)
-            if sop is not None:
-                pytest.raises(TypeError, sop, 1)
-                pytest.raises(TypeError, sop, s2.values)
 
     def test_timedelta64_operations_with_DateOffset(self):
         # GH 10699
@@ -1428,6 +1441,24 @@ class TestDatetimeSeriesArithmetic(object):
         res = dt - ser
         tm.assert_series_equal(res, -expected)
 
+    def test_dt64series_add_intlike(self):
+        # GH#19123
+        dti = pd.DatetimeIndex(['2016-01-02', '2016-02-03', 'NaT'])
+        ser = Series(dti)
+
+        other = Series([20, 30, 40], dtype='uint8')
+
+        pytest.raises(TypeError, ser.__add__, 1)
+        pytest.raises(TypeError, ser.__sub__, 1)
+
+        pytest.raises(TypeError, ser.__add__, other)
+        pytest.raises(TypeError, ser.__sub__, other)
+
+        pytest.raises(TypeError, ser.__add__, other.values)
+        pytest.raises(TypeError, ser.__sub__, other.values)
+
+        pytest.raises(TypeError, ser.__add__, pd.Index(other))
+        pytest.raises(TypeError, ser.__sub__, pd.Index(other))
 
 class TestSeriesOperators(TestData):
     def test_op_method(self):

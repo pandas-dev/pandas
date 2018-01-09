@@ -20,7 +20,7 @@ from pandas.util._decorators import Appender
 from pandas.compat import bind_method
 import pandas.core.missing as missing
 
-from pandas.errors import PerformanceWarning
+from pandas.errors import PerformanceWarning, NullFrequencyError
 from pandas.core.common import _values_from_object, _maybe_match_name
 from pandas.core.dtypes.missing import notna, isna
 from pandas.core.dtypes.common import (
@@ -672,9 +672,8 @@ def _arith_method_SERIES(op, name, str_rep, fill_zeros=None, default_axis=None,
 
         left, right = _align_method_SERIES(left, right)
         if is_datetime64_dtype(left) or is_datetime64tz_dtype(left):
-            result = op(pd.DatetimeIndex(left), right)
+            result = _dispatch_to_index_op(op, left, right, pd.DatetimeIndex)
             res_name = _get_series_op_result_name(left, right)
-            result.name = res_name  # needs to be overriden if None
             return construct_result(left, result,
                                     index=left.index, name=res_name,
                                     dtype=result.dtype)
@@ -701,6 +700,23 @@ def _arith_method_SERIES(op, name, str_rep, fill_zeros=None, default_axis=None,
                                 index=left.index, name=res_name, dtype=dtype)
 
     return wrapper
+
+
+def _dispatch_to_index_op(op, left, right, index_class):
+    """
+    Defer to DatetimeIndex implementations for type
+    checking and timezone handling.
+    """
+    left_idx = index_class(left)
+    left_idx.freq = None  # avoid accidentally allowing integer add/sub
+    try:
+        result = op(left_idx, right)
+    except NullFrequencyError:
+        # DatetimeIndex and TimedeltaIndex with freq == None raise ValueError
+        # on add/sub of integers (or int-like).  We re-raise as a TypeError.
+        raise TypeError('incompatible type for a datetime/timedelta '
+                        'operation [{name}]'.format(name=op.__name__))
+    return result
 
 
 def _get_series_op_result_name(left, right):

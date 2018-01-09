@@ -65,3 +65,11 @@ class MergeError(ValueError):
     Error raised when problems arise during merging due to problems
     with input data. Subclass of `ValueError`.
     """
+
+
+class NullFrequencyError(ValueError):
+    """
+    Error raised when a null `freq` attribute is used in an operation
+    that needs a non-null frequency, particularly `DatetimeIndex.shift`,
+    `TimedeltaIndex.shift`, `PeriodIndex.shift`.
+    """
