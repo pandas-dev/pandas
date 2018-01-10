@@ -314,6 +314,7 @@ Removal of prior version deprecations/changes
 - The ``Panel4D`` and ``PanelND`` classes have been removed (:issue:`13776`)
 - The ``Panel``class has dropped the ``to_long``and ``toLong`` methods (:issue:`19077`)
 - The options ``display.line_with`` and ``display.height`` are removed in favor of ``display.width`` and ``display.max_rows`` respectively (:issue:`4391`, :issue:`19107`)
+- The ``labels`` attribute of the ``Categorical`` class has been removed in favor of :attribute:`Categorical.codes` (:issue:`7768`)
 - The ``flavor`` parameter have been removed from func:`to_sql` method (:issue:`13611`)
 
 .. _whatsnew_0230.performance:
