@@ -7,7 +7,6 @@ that can be mixed into or pinned onto other pandas classes.
 """
 import warnings
 
-from pandas.errors import AccessorRegistrationWarning
 from pandas.util._decorators import Appender
 
 
@@ -108,7 +107,7 @@ class PandasDelegate(object):
 # Ported with modifications from xarray
 # https://github.com/pydata/xarray/blob/master/xarray/core/extensions.py
 # 1. We don't need to catch and re-raise AttributeErrors as RuntimeErrors
-
+# 2. We use a UserWarning instead of a custom Warning
 
 class CachedAccessor(object):
     """Custom property-like object (descriptor) for caching accessors.
@@ -146,7 +145,7 @@ def _register_accessor(name, cls):
                 'registration of accessor {!r} under name {!r} for type '
                 '{!r} is overriding a preexisting attribute with the same '
                 'name.'.format(accessor, name, cls),
-                AccessorRegistrationWarning,
+                UserWarning,
                 stacklevel=2)
         setattr(cls, name, CachedAccessor(name, accessor))
         return accessor
