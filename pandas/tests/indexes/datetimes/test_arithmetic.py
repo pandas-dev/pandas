@@ -447,9 +447,9 @@ class TestDatetimeIndexArithmetic(object):
         tm.assert_series_equal(res3, expected_sub)
 
 
-@pytest.mark.parametrize('klass,assert_func', zip([Series, DatetimeIndex],
-                                                  [tm.assert_series_equal,
-                                                   tm.assert_index_equal]))
+@pytest.mark.parametrize('klass,assert_func', [
+    (Series, tm.assert_series_equal),
+    (DatetimeIndex, tm.assert_index_equal)])
 def test_dt64_with_offset_array(klass, assert_func):
     # GH#10699
     # array of offsets
@@ -468,9 +468,9 @@ def test_dt64_with_offset_array(klass, assert_func):
         assert_func(result, exp)
 
 
-@pytest.mark.parametrize('klass,assert_func', zip([Series, DatetimeIndex],
-                                                  [tm.assert_series_equal,
-                                                   tm.assert_index_equal]))
+@pytest.mark.parametrize('klass,assert_func', [
+    (Series, tm.assert_series_equal),
+    (DatetimeIndex, tm.assert_index_equal)])
 def test_dt64_with_DateOffsets_relativedelta(klass, assert_func):
     # GH#10699
     vec = klass([Timestamp('2000-01-05 00:15:00'),
@@ -515,9 +515,9 @@ def test_dt64_with_DateOffsets_relativedelta(klass, assert_func):
     'Easter', ('DateOffset', {'day': 4}),
     ('DateOffset', {'month': 5})])
 @pytest.mark.parametrize('normalize', [True, False])
-@pytest.mark.parametrize('klass,assert_func', zip([Series, DatetimeIndex],
-                                                  [tm.assert_series_equal,
-                                                   tm.assert_index_equal]))
+@pytest.mark.parametrize('klass,assert_func', [
+    (Series, tm.assert_series_equal),
+    (DatetimeIndex, tm.assert_index_equal)])
 def test_dt64_with_DateOffsets(klass, assert_func, normalize, cls_name):
     # GH#10699
     # assert these are equal on a piecewise basis
