@@ -447,6 +447,111 @@ class TestDatetimeIndexArithmetic(object):
         tm.assert_series_equal(res3, expected_sub)
 
 
+@pytest.mark.parametrize('klass,assert_func', [
+    (Series, tm.assert_series_equal),
+    (DatetimeIndex, tm.assert_index_equal)])
+def test_dt64_with_offset_array(klass, assert_func):
+    # GH#10699
+    # array of offsets
+    box = Series if klass is Series else pd.Index
+    with tm.assert_produces_warning(PerformanceWarning):
+        s = klass([Timestamp('2000-1-1'), Timestamp('2000-2-1')])
+        result = s + box([pd.offsets.DateOffset(years=1),
+                          pd.offsets.MonthEnd()])
+        exp = klass([Timestamp('2001-1-1'), Timestamp('2000-2-29')])
+        assert_func(result, exp)
+
+        # same offset
+        result = s + box([pd.offsets.DateOffset(years=1),
+                          pd.offsets.DateOffset(years=1)])
+        exp = klass([Timestamp('2001-1-1'), Timestamp('2001-2-1')])
+        assert_func(result, exp)
+
+
+@pytest.mark.parametrize('klass,assert_func', [
+    (Series, tm.assert_series_equal),
+    (DatetimeIndex, tm.assert_index_equal)])
+def test_dt64_with_DateOffsets_relativedelta(klass, assert_func):
+    # GH#10699
+    vec = klass([Timestamp('2000-01-05 00:15:00'),
+                 Timestamp('2000-01-31 00:23:00'),
+                 Timestamp('2000-01-01'),
+                 Timestamp('2000-03-31'),
+                 Timestamp('2000-02-29'),
+                 Timestamp('2000-12-31'),
+                 Timestamp('2000-05-15'),
+                 Timestamp('2001-06-15')])
+
+    # DateOffset relativedelta fastpath
+    relative_kwargs = [('years', 2), ('months', 5), ('days', 3),
+                       ('hours', 5), ('minutes', 10), ('seconds', 2),
+                       ('microseconds', 5)]
+    for i, kwd in enumerate(relative_kwargs):
+        op = pd.DateOffset(**dict([kwd]))
+        assert_func(klass([x + op for x in vec]), vec + op)
+        assert_func(klass([x - op for x in vec]), vec - op)
+        op = pd.DateOffset(**dict(relative_kwargs[:i + 1]))
+        assert_func(klass([x + op for x in vec]), vec + op)
+        assert_func(klass([x - op for x in vec]), vec - op)
+
+
+@pytest.mark.parametrize('cls_name', [
+    'YearBegin', ('YearBegin', {'month': 5}),
+    'YearEnd', ('YearEnd', {'month': 5}),
+    'MonthBegin', 'MonthEnd',
+    'SemiMonthEnd', 'SemiMonthBegin',
+    'Week', ('Week', {'weekday': 3}),
+    'BusinessDay', 'BDay', 'QuarterEnd', 'QuarterBegin',
+    'CustomBusinessDay', 'CDay', 'CBMonthEnd',
+    'CBMonthBegin', 'BMonthBegin', 'BMonthEnd',
+    'BusinessHour', 'BYearBegin', 'BYearEnd',
+    'BQuarterBegin', ('LastWeekOfMonth', {'weekday': 2}),
+    ('FY5253Quarter', {'qtr_with_extra_week': 1,
+                       'startingMonth': 1,
+                       'weekday': 2,
+                       'variation': 'nearest'}),
+    ('FY5253', {'weekday': 0, 'startingMonth': 2, 'variation': 'nearest'}),
+    ('WeekOfMonth', {'weekday': 2, 'week': 2}),
+    'Easter', ('DateOffset', {'day': 4}),
+    ('DateOffset', {'month': 5})])
+@pytest.mark.parametrize('normalize', [True, False])
+@pytest.mark.parametrize('klass,assert_func', [
+    (Series, tm.assert_series_equal),
+    (DatetimeIndex, tm.assert_index_equal)])
+def test_dt64_with_DateOffsets(klass, assert_func, normalize, cls_name):
+    # GH#10699
+    # assert these are equal on a piecewise basis
+    vec = klass([Timestamp('2000-01-05 00:15:00'),
+                 Timestamp('2000-01-31 00:23:00'),
+                 Timestamp('2000-01-01'),
+                 Timestamp('2000-03-31'),
+                 Timestamp('2000-02-29'),
+                 Timestamp('2000-12-31'),
+                 Timestamp('2000-05-15'),
+                 Timestamp('2001-06-15')])
+
+    if isinstance(cls_name, tuple):
+        # If cls_name param is a tuple, then 2nd entry is kwargs for
+        # the offset constructor
+        cls_name, kwargs = cls_name
+    else:
+        kwargs = {}
+
+    offset_cls = getattr(pd.offsets, cls_name)
+
+    with warnings.catch_warnings(record=True):
+        for n in [0, 5]:
+            if (cls_name in ['WeekOfMonth', 'LastWeekOfMonth',
+                             'FY5253Quarter', 'FY5253'] and n == 0):
+                # passing n = 0 is invalid for these offset classes
+                continue
+
+            offset = offset_cls(n, normalize=normalize, **kwargs)
+            assert_func(klass([x + offset for x in vec]), vec + offset)
+            assert_func(klass([x - offset for x in vec]), vec - offset)
+            assert_func(klass([offset + x for x in vec]), offset + vec)
+
+
 # GH 10699
 @pytest.mark.parametrize('klass,assert_func', zip([Series, DatetimeIndex],
                                                   [tm.assert_series_equal,
@@ -480,84 +585,3 @@ def test_datetime64_with_DateOffset(klass, assert_func):
                  Timestamp('2000-02-29', tz='US/Central')], name='a')
     assert_func(result, exp)
     assert_func(result2, exp)
-
-    # array of offsets - valid for Series only
-    if klass is Series:
-        with tm.assert_produces_warning(PerformanceWarning):
-            s = klass([Timestamp('2000-1-1'), Timestamp('2000-2-1')])
-            result = s + Series([pd.offsets.DateOffset(years=1),
-                                 pd.offsets.MonthEnd()])
-            exp = klass([Timestamp('2001-1-1'), Timestamp('2000-2-29')
-                         ])
-            assert_func(result, exp)
-
-            # same offset
-            result = s + Series([pd.offsets.DateOffset(years=1),
-                                 pd.offsets.DateOffset(years=1)])
-            exp = klass([Timestamp('2001-1-1'), Timestamp('2001-2-1')])
-            assert_func(result, exp)
-
-    s = klass([Timestamp('2000-01-05 00:15:00'),
-               Timestamp('2000-01-31 00:23:00'),
-               Timestamp('2000-01-01'),
-               Timestamp('2000-03-31'),
-               Timestamp('2000-02-29'),
-               Timestamp('2000-12-31'),
-               Timestamp('2000-05-15'),
-               Timestamp('2001-06-15')])
-
-    # DateOffset relativedelta fastpath
-    relative_kwargs = [('years', 2), ('months', 5), ('days', 3),
-                       ('hours', 5), ('minutes', 10), ('seconds', 2),
-                       ('microseconds', 5)]
-    for i, kwd in enumerate(relative_kwargs):
-        op = pd.DateOffset(**dict([kwd]))
-        assert_func(klass([x + op for x in s]), s + op)
-        assert_func(klass([x - op for x in s]), s - op)
-        op = pd.DateOffset(**dict(relative_kwargs[:i + 1]))
-        assert_func(klass([x + op for x in s]), s + op)
-        assert_func(klass([x - op for x in s]), s - op)
-
-    # assert these are equal on a piecewise basis
-    offsets = ['YearBegin', ('YearBegin', {'month': 5}),
-               'YearEnd', ('YearEnd', {'month': 5}),
-               'MonthBegin', 'MonthEnd',
-               'SemiMonthEnd', 'SemiMonthBegin',
-               'Week', ('Week', {'weekday': 3}),
-               'BusinessDay', 'BDay', 'QuarterEnd', 'QuarterBegin',
-               'CustomBusinessDay', 'CDay', 'CBMonthEnd',
-               'CBMonthBegin', 'BMonthBegin', 'BMonthEnd',
-               'BusinessHour', 'BYearBegin', 'BYearEnd',
-               'BQuarterBegin', ('LastWeekOfMonth', {'weekday': 2}),
-               ('FY5253Quarter', {'qtr_with_extra_week': 1,
-                                  'startingMonth': 1,
-                                  'weekday': 2,
-                                  'variation': 'nearest'}),
-               ('FY5253', {'weekday': 0,
-                           'startingMonth': 2,
-                           'variation':
-                           'nearest'}),
-               ('WeekOfMonth', {'weekday': 2,
-                                'week': 2}),
-               'Easter', ('DateOffset', {'day': 4}),
-               ('DateOffset', {'month': 5})]
-
-    with warnings.catch_warnings(record=True):
-        for normalize in (True, False):
-            for do in offsets:
-                if isinstance(do, tuple):
-                    do, kwargs = do
-                else:
-                    do = do
-                    kwargs = {}
-
-                    for n in [0, 5]:
-                        if (do in ['WeekOfMonth', 'LastWeekOfMonth',
-                                   'FY5253Quarter', 'FY5253'] and n == 0):
-                            continue
-                    op = getattr(pd.offsets, do)(n,
-                                                 normalize=normalize,
-                                                 **kwargs)
-                    assert_func(klass([x + op for x in s]), s + op)
-                    assert_func(klass([x - op for x in s]), s - op)
-                    assert_func(klass([op + x for x in s]), op + s)
