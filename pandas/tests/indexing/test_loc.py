@@ -420,6 +420,13 @@ class TestLoc(Base):
         df.loc[:, 'date'] = 1.0
         tm.assert_frame_equal(df, expected)
 
+        # GH 15494
+        # setting on frame with single row
+        df = DataFrame({'date': Series([Timestamp('20180101')])})
+        df.loc[:, 'date'] = 'string'
+        expected = DataFrame({'date': Series(['string'])})
+        tm.assert_frame_equal(df, expected)
+
     def test_loc_setitem_consistency_empty(self):
         # empty (essentially noops)
         expected = DataFrame(columns=['x', 'y'])
