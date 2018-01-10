@@ -554,27 +554,27 @@ class TestSeriesComparisons(object):
         s3 = pd.Series([1, 2, 3], index=list('ABC'), name='x')
         s4 = pd.Series([2, 2, 2, 2], index=list('ABCD'), name='x')
 
-        for l, r in [(s1, s2), (s2, s1), (s3, s4), (s4, s3)]:
+        for left, right in [(s1, s2), (s2, s1), (s3, s4), (s4, s3)]:
 
             msg = "Can only compare identically-labeled Series objects"
             with tm.assert_raises_regex(ValueError, msg):
-                l == r
+                left == right
 
             with tm.assert_raises_regex(ValueError, msg):
-                l != r
+                left != right
 
             with tm.assert_raises_regex(ValueError, msg):
-                l < r
+                left < right
 
             msg = "Can only compare identically-labeled DataFrame objects"
             with tm.assert_raises_regex(ValueError, msg):
-                l.to_frame() == r.to_frame()
+                left.to_frame() == right.to_frame()
 
             with tm.assert_raises_regex(ValueError, msg):
-                l.to_frame() != r.to_frame()
+                left.to_frame() != right.to_frame()
 
             with tm.assert_raises_regex(ValueError, msg):
-                l.to_frame() < r.to_frame()
+                left.to_frame() < right.to_frame()
 
 
 class TestSeriesArithmetic(object):
@@ -1549,6 +1549,18 @@ class TestSeriesOperators(TestData):
         pytest.raises(Exception, self.objSeries.__sub__,
                       np.array(1, dtype=np.int64))
 
+    def test_dt64series_astype_object(self):
+        dt64ser = Series(date_range('20130101', periods=3))
+        result = dt64ser.astype(object)
+        assert isinstance(result.iloc[0], datetime)
+        assert result.dtype == np.object_
+
+    def test_td64series_astype_object(self):
+        tdser = Series(['59 Days', '59 Days', 'NaT'], dtype='timedelta64[ns]')
+        result = tdser.astype(object)
+        assert isinstance(result.iloc[0], timedelta)
+        assert result.dtype == np.object_
+
     def test_timedelta64_conversions(self):
         startdate = Series(date_range('2013-01-01', '2013-01-03'))
         enddate = Series(date_range('2013-03-01', '2013-03-03'))
@@ -1575,16 +1587,6 @@ class TestSeriesOperators(TestData):
                     lambda x: Timedelta(np.timedelta64(m, unit)) / x)
                 result = np.timedelta64(m, unit) / s1
                 assert_series_equal(result, expected)
-
-        # astype
-        s = Series(date_range('20130101', periods=3))
-        result = s.astype(object)
-        assert isinstance(result.iloc[0], datetime)
-        assert result.dtype == np.object_
-
-        result = s1.astype(object)
-        assert isinstance(result.iloc[0], timedelta)
-        assert result.dtype == np.object_
 
     @pytest.mark.parametrize('op', [operator.add, operator.sub])
     def test_timedelta64_equal_timedelta_supported_ops(self, op):
@@ -1613,7 +1615,7 @@ class TestSeriesOperators(TestData):
 
             try:
                 assert_series_equal(lhs, rhs)
-            except:
+            except Exception:
                 raise AssertionError(
                     "invalid comparison [op->{0},d->{1},h->{2},m->{3},"
                     "s->{4},us->{5}]\n{6}\n{7}\n".format(op, d, h, m, s,
@@ -2013,7 +2015,7 @@ class TestSeriesOperators(TestData):
     def test_series_with_dtype_radd_int(self, dtype):
         ser = pd.Series([1, 2, 3], dtype=dtype)
         expected = pd.Series([2, 3, 4], dtype=dtype)
-        
+
         result = 1 + ser
         assert_series_equal(result, expected)
 
