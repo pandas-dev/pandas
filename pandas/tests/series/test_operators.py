@@ -1131,16 +1131,6 @@ class TestDatetimeSeriesArithmetic(object):
         res = dt64 - obj
         assert_func(res, -expected)
 
-    @pytest.mark.xfail(reason='GH#7996 datetime64 units not converted to nano')
-    def test_frame_sub_datetime64_not_ns(self):
-        df = pd.DataFrame(date_range('20130101', periods=3))
-        dt64 = np.datetime64('2013-01-01')
-        assert dt64.dtype == 'datetime64[D]'
-        res = df - dt64
-        expected = pd.DataFrame([Timedelta(days=0), Timedelta(days=1),
-                                 Timedelta(days=2)])
-        tm.assert_frame_equal(res, expected)
-
     def test_operators_datetimelike(self):
         def run_ops(ops, get_ser, test_ser):
 
@@ -1281,7 +1271,7 @@ class TestDatetimeSeriesArithmetic(object):
         assert_series_equal(s - dt, exp)
         assert_series_equal(s - Timestamp(dt), exp)
 
-    def test_datetime_series_with_timedelta(self):
+    def test_dt64series_with_timedelta(self):
         # scalar timedeltas/np.timedelta64 objects
         # operate with np.timedelta64 correctly
         s = Series([Timestamp('20130101 9:01'), Timestamp('20130101 9:02')])
@@ -1300,24 +1290,51 @@ class TestDatetimeSeriesArithmetic(object):
         assert_series_equal(result, expected)
         assert_series_equal(result2, expected)
 
-    def test_datetime_series_with_DateOffset(self):
+    def test_dt64series_add_tick_DateOffset(self):
+        # GH 4532
+        # operate with pd.offsets
+        ser = Series([Timestamp('20130101 9:01'), Timestamp('20130101 9:02')])
+        expected = Series([Timestamp('20130101 9:01:05'),
+                           Timestamp('20130101 9:02:05')])
+
+        result = ser + pd.offsets.Second(5)
+        assert_series_equal(result, expected)
+
+        result2 = pd.offsets.Second(5) + ser
+        assert_series_equal(result2, expected)
+
+    def test_dt64series_sub_tick_DateOffset(self):
+        # GH 4532
+        # operate with pd.offsets
+        ser = Series([Timestamp('20130101 9:01'), Timestamp('20130101 9:02')])
+        expected = Series([Timestamp('20130101 9:00:55'),
+                           Timestamp('20130101 9:01:55')])
+
+        result = ser - pd.offsets.Second(5)
+        assert_series_equal(result, expected)
+
+        result2 = -pd.offsets.Second(5) + ser
+        assert_series_equal(result2, expected)
+
+        with pytest.raises(TypeError):
+            pd.offsets.Second(5) - ser
+
+    def test_dt64series_with_DateOffset_smoke(self):
+        # GH 4532
+        # smoke tests for valid DateOffsets
+        ser = Series([Timestamp('20130101 9:01'), Timestamp('20130101 9:02')])
+
+        # valid DateOffsets
+        for cls_name in ['Day', 'Hour', 'Minute', 'Second',
+                         'Milli', 'Micro', 'Nano']:
+            offset_cls = getattr(pd.offsets, cls_name)
+            ser + offset_cls(5)
+            offset_cls(5) + ser
+
+    def test_dt64series_with_DateOffset(self):
         # GH 4532
         # operate with pd.offsets
         s = Series([Timestamp('20130101 9:01'), Timestamp('20130101 9:02')])
-
-        result = s + pd.offsets.Second(5)
-        result2 = pd.offsets.Second(5) + s
-        expected = Series([Timestamp('20130101 9:01:05'),
-                           Timestamp('20130101 9:02:05')])
-        assert_series_equal(result, expected)
-        assert_series_equal(result2, expected)
-
-        result = s - pd.offsets.Second(5)
-        result2 = -pd.offsets.Second(5) + s
-        expected = Series([Timestamp('20130101 9:00:55'),
-                           Timestamp('20130101 9:01:55')])
-        assert_series_equal(result, expected)
-        assert_series_equal(result2, expected)
 
         result = s + pd.offsets.Milli(5)
         result2 = pd.offsets.Milli(5) + s
@@ -1331,14 +1348,7 @@ class TestDatetimeSeriesArithmetic(object):
                            Timestamp('20130101 9:07:00.005')])
         assert_series_equal(result, expected)
 
-        # valid DateOffsets
-        for do in ['Hour', 'Minute', 'Second', 'Day', 'Micro', 'Milli',
-                   'Nano']:
-            op = getattr(pd.offsets, do)
-            s + op(5)
-            op(5) + s
-
-    def test_dt64_sub_NaT(self):
+    def test_dt64series_sub_NaT(self):
         # GH#18808
         dti = pd.DatetimeIndex([pd.NaT, pd.Timestamp('19900315')])
         ser = pd.Series(dti)
@@ -1561,32 +1571,26 @@ class TestSeriesOperators(TestData):
         assert isinstance(result.iloc[0], timedelta)
         assert result.dtype == np.object_
 
-    def test_timedelta64_conversions(self):
-        startdate = Series(date_range('2013-01-01', '2013-01-03'))
-        enddate = Series(date_range('2013-03-01', '2013-03-03'))
-
-        s1 = enddate - startdate
-        s1[2] = np.nan
+    @pytest.mark.parametrize('unit', ['D', 'h', 'm', 's', 'ms', 'us', 'ns'])
+    def test_timedelta64_conversions(self, unit):
+        s1 = Series(['59 Days', '59 Days', 'NaT'], dtype='timedelta64[ns]')
 
         for m in [1, 3, 10]:
-            for unit in ['D', 'h', 'm', 's', 'ms', 'us', 'ns']:
+            # op
+            expected = s1.apply(lambda x: x / np.timedelta64(m, unit))
+            result = s1 / np.timedelta64(m, unit)
+            assert_series_equal(result, expected)
 
-                # op
-                expected = s1.apply(lambda x: x / np.timedelta64(m, unit))
-                result = s1 / np.timedelta64(m, unit)
+            if m == 1 and unit != 'ns':
+                # astype
+                result = s1.astype("timedelta64[{0}]".format(unit))
                 assert_series_equal(result, expected)
 
-                if m == 1 and unit != 'ns':
-
-                    # astype
-                    result = s1.astype("timedelta64[{0}]".format(unit))
-                    assert_series_equal(result, expected)
-
-                # reverse op
-                expected = s1.apply(
-                    lambda x: Timedelta(np.timedelta64(m, unit)) / x)
-                result = np.timedelta64(m, unit) / s1
-                assert_series_equal(result, expected)
+            # reverse op
+            expected = s1.apply(
+                lambda x: Timedelta(np.timedelta64(m, unit)) / x)
+            result = np.timedelta64(m, unit) / s1
+            assert_series_equal(result, expected)
 
     @pytest.mark.parametrize('op', [operator.add, operator.sub])
     def test_timedelta64_equal_timedelta_supported_ops(self, op):
@@ -2044,17 +2048,6 @@ class TestSeriesOperators(TestData):
         with pytest.raises(TypeError):
             'foo_' + ser
 
-    @pytest.mark.parametrize('data', [
-        [1, 2, 3],
-        [1.1, 2.2, 3.3],
-        [pd.Timestamp('2011-01-01'), pd.Timestamp('2011-01-02'), pd.NaT],
-        ['x', 'y', 1]])
-    @pytest.mark.parametrize('dtype', [None, object])
-    def test_frame_radd_str_invalid(self, dtype, data):
-        df = DataFrame(data, dtype=dtype)
-        with pytest.raises(TypeError):
-            'foo_' + df
-
     def test_operators_frame(self):
         # rpow does not work with DataFrame
         df = DataFrame({'A': self.ts})
@@ -2241,20 +2234,44 @@ class TestSeriesOperators(TestData):
 class TestDataFrameOperators(object):
     # TODO: This may belong in a frame-specific test file
 
-    @pytest.mark.parametrize('dtype', [None, object])
-    def test_frame_radd_more(self, dtype):
-        df = pd.DataFrame([1, 2, 3], dtype=dtype)
-        res = 1 + df
-        exp = pd.DataFrame([2, 3, 4], dtype=dtype)
-        assert_frame_equal(res, exp)
-        res = df + 1
-        assert_frame_equal(res, exp)
+    @pytest.mark.xfail(reason='GH#7996 datetime64 units not converted to nano')
+    def test_frame_sub_datetime64_not_ns(self):
+        df = pd.DataFrame(date_range('20130101', periods=3))
+        dt64 = np.datetime64('2013-01-01')
+        assert dt64.dtype == 'datetime64[D]'
+        res = df - dt64
+        expected = pd.DataFrame([Timedelta(days=0), Timedelta(days=1),
+                                 Timedelta(days=2)])
+        tm.assert_frame_equal(res, expected)
 
-        res = np.nan + df
-        exp = pd.DataFrame([np.nan, np.nan, np.nan], dtype=dtype)
-        assert_frame_equal(res, exp)
-        res = df + np.nan
-        assert_frame_equal(res, exp)
+    @pytest.mark.parametrize('data', [
+        [1, 2, 3],
+        [1.1, 2.2, 3.3],
+        [pd.Timestamp('2011-01-01'), pd.Timestamp('2011-01-02'), pd.NaT],
+        ['x', 'y', 1]])
+    @pytest.mark.parametrize('dtype', [None, object])
+    def test_frame_radd_str_invalid(self, dtype, data):
+        df = DataFrame(data, dtype=dtype)
+        with pytest.raises(TypeError):
+            'foo_' + df
+
+    @pytest.mark.parametrize('dtype', [None, object])
+    def test_frame_with_dtype_radd_int(self, dtype):
+        df = pd.DataFrame([1, 2, 3], dtype=dtype)
+        expected = pd.DataFrame([2, 3, 4], dtype=dtype)
+        result = 1 + df
+        assert_frame_equal(result, expected)
+        result = df + 1
+        assert_frame_equal(result, expected)
+
+    @pytest.mark.parametrize('dtype', [None, object])
+    def test_frame_with_dtype_radd_nan(self, dtype):
+        df = pd.DataFrame([1, 2, 3], dtype=dtype)
+        expected = pd.DataFrame([np.nan, np.nan, np.nan], dtype=dtype)
+        result = np.nan + df
+        assert_frame_equal(result, expected)
+        result = df + np.nan
+        assert_frame_equal(result, expected)
 
     def test_frame_radd_str(self):
         df = pd.DataFrame(['x', np.nan, 'x'])
