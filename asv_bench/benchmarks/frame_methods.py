@@ -4,7 +4,7 @@ import pandas.util.testing as tm
 from pandas import (DataFrame, Series, MultiIndex, date_range, period_range,
                     isnull, NaT)
 
-from .pandas_vb_common import setup # noqa
+from .pandas_vb_common import setup  # noqa
 
 
 class GetNumericData(object):
@@ -127,7 +127,7 @@ class ToHTML(object):
     def setup(self):
         nrows = 500
         self.df2 = DataFrame(np.random.randn(nrows, 10))
-        self.df2[0] = period_range('2000', '2010', nrows)
+        self.df2[0] = period_range('2000', periods=nrows)
         self.df2[1] = range(nrows)
 
     def time_to_html_mixed(self):
