@@ -535,7 +535,6 @@ def test_dt64_with_DateOffsets(klass, assert_func, normalize, cls_name):
         # the offset constructor
         cls_name, kwargs = cls_name
     else:
-        cls_name = cls_name
         kwargs = {}
 
     with warnings.catch_warnings(record=True):
