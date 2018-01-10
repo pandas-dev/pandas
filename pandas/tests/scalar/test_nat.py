@@ -317,10 +317,8 @@ def test_nat_arithmetic_index():
                           '23fb3392adedd3a')
 def test_nat_arithmetic_series():
     # GH#19124
-    tdi = TimedeltaIndex(['1 day', '2 day'], name='x')
-    tdi_nat = TimedeltaIndex([NaT, NaT], name='x')
-    ser = Series(tdi)
-    ser_nat = Series(tdi_nat)
+    ser = Series(['1 day', '2 day'], dtype='timedelta64[ns]')
+    ser_nat = Series([NaT, NaT], dtype='timedelta64[ns]')
 
     tm.assert_series_equal(ser + NaT, ser_nat)
     tm.assert_series_equal(NaT + ser, ser_nat)
