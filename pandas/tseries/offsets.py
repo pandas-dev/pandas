@@ -16,7 +16,7 @@ from dateutil.easter import easter
 from pandas._libs import tslib, Timestamp, OutOfBoundsDatetime, Timedelta
 from pandas.util._decorators import cache_readonly
 
-from pandas._libs.tslibs import ccalendar
+from pandas._libs.tslibs import ccalendar, frequencies as libfrequencies
 from pandas._libs.tslibs.timedeltas import delta_to_nanoseconds
 import pandas._libs.tslibs.offsets as liboffsets
 from pandas._libs.tslibs.offsets import (
@@ -1333,13 +1333,14 @@ class Week(DateOffset):
             return ((i.to_period('W') + self.n).to_timestamp() +
                     i.to_perioddelta('W'))
         else:
-            return self._end_apply_index(i, self.freqstr)
+            return self._end_apply_index(i)
 
-    def _end_apply_index(self, dtindex, freq):
+    def _end_apply_index(self, dtindex):
         """Offsets index to end of Period frequency"""
         off = dtindex.to_perioddelta('D')
 
-        base_period = dtindex.to_period('W')
+        base, mult = libfrequencies.get_freq_code(self.freqstr)
+        base_period = dtindex.to_period(base)
         if self.n > 0:
             # when adding, dates on end roll to next
             normed = dtindex - off
