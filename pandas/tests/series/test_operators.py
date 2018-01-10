@@ -730,31 +730,25 @@ class TestTimedeltaSeriesArithmeticWithIntegers(object):
     # ------------------------------------------------------------------
     # Multiplicaton and Division
 
-    def test_timedelta64_operations_with_integers(self):
+    @pytest.mark.parametrize('dtype', ['int64', 'int32', 'int16',
+                                       'uint64', 'uint32', 'uint16', 'uint8',
+                                       'float64', 'float32', 'float16'])
+    @pytest.mark.parametrize('vector', [np.array([20, 30, 40]),
+                                        pd.Index([20, 30, 40]),
+                                        Series([20, 30, 40])])
+    def test_td64series_div_numeric_array(self, vector, dtype):
         # GH 4521
         # divide/multiply by integers
-        s1 = self.tdser
-        s2 = self.intser
-        expected = Series(['29.5D', '19D 16H', 'NaT'], dtype='timedelta64[ns]')
-        result = s1 / s2
-        assert_series_equal(result, expected)
-
+        tdser = self.tdser
+        vector = vector.astype(dtype)
         expected = Series(['2.95D', '1D 23H 12m', 'NaT'],
                           dtype='timedelta64[ns]')
-        result = s1 / Series([20, 30, 40])
-        assert_series_equal(result, expected)
-        result = s1 / Series([20, 30, 40]).astype(float)
+
+        result = tdser / vector
         assert_series_equal(result, expected)
 
-        expected = Series(['1180 Days', '1770 Days', 'NaT'],
-                          dtype='timedelta64[ns]')
-        result = s1 * Series([20, 30, 40])
-        assert_series_equal(result, expected)
-
-        for dtype in ['int32', 'int16', 'uint32', 'uint64', 'uint32', 'uint16',
-                      'uint8']:
-            result = s1 * Series([20, 30, 40], dtype=dtype)
-            assert_series_equal(result, expected)
+        with pytest.raises(TypeError):
+            vector / tdser
 
     @pytest.mark.parametrize('dtype', ['int64', 'int32', 'int16',
                                        'uint64', 'uint32', 'uint16', 'uint8',
