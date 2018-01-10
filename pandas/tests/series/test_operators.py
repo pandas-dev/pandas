@@ -1379,21 +1379,23 @@ class TestDatetimeSeriesArithmetic(object):
         assert_series_equal(NaT + nat_series_dtype_timestamp,
                             nat_series_dtype_timestamp)
 
+    @pytest.mark.parametrize('dt64_series', [
+        Series([Timestamp('19900315'), Timestamp('19900315')]),
+        Series([NaT, Timestamp('19900315')]),
+        Series([NaT, NaT], dtype='datetime64[ns]')])
+    @pytest.mark.parametrize('one', [1, 1.0, np.array(1)])
+    def test_dt64_mul_div_numeric_invalid(self, one, dt64_series):
         # multiplication
         with pytest.raises(TypeError):
-            datetime_series * 1
+            dt64_series * one
         with pytest.raises(TypeError):
-            nat_series_dtype_timestamp * 1
-        with pytest.raises(TypeError):
-            datetime_series * 1.0
-        with pytest.raises(TypeError):
-            nat_series_dtype_timestamp * 1.0
+            one * dt64_series
 
         # division
         with pytest.raises(TypeError):
-            nat_series_dtype_timestamp / 1.0
+            dt64_series / one
         with pytest.raises(TypeError):
-            nat_series_dtype_timestamp / 1
+            one / dt64_series
 
     def test_dt64series_arith_overflow(self):
         # GH#12534, fixed by #19024
