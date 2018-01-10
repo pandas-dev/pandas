@@ -1572,6 +1572,7 @@ class TestSeriesOperators(TestData):
                 expected = s1.apply(
                     lambda x: Timedelta(np.timedelta64(m, unit)) / x)
                 result = np.timedelta64(m, unit) / s1
+                assert_series_equal(result, expected)
 
         # astype
         s = Series(date_range('20130101', periods=3))
