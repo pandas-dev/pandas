@@ -1842,8 +1842,8 @@ class NDFrame(PandasObject, SelectionMixin):
         return packers.to_msgpack(path_or_buf, self, encoding=encoding,
                                   **kwargs)
 
-    def to_sql(self, name, con, flavor=None, schema=None, if_exists='fail',
-               index=True, index_label=None, chunksize=None, dtype=None):
+    def to_sql(self, name, con, schema=None, if_exists='fail', index=True,
+               index_label=None, chunksize=None, dtype=None):
         """
         Write records stored in a DataFrame to a SQL database.
 
@@ -1854,10 +1854,6 @@ class NDFrame(PandasObject, SelectionMixin):
         con : SQLAlchemy engine or DBAPI2 connection (legacy mode)
             Using SQLAlchemy makes it possible to use any DB supported by that
             library. If a DBAPI2 object, only sqlite3 is supported.
-        flavor : 'sqlite', default None
-            .. deprecated:: 0.19.0
-               'sqlite' is the only supported option if SQLAlchemy is not
-               used.
         schema : string, default None
             Specify the schema (if database flavor supports this). If None, use
             default schema.
@@ -1880,9 +1876,9 @@ class NDFrame(PandasObject, SelectionMixin):
 
         """
         from pandas.io import sql
-        sql.to_sql(self, name, con, flavor=flavor, schema=schema,
-                   if_exists=if_exists, index=index, index_label=index_label,
-                   chunksize=chunksize, dtype=dtype)
+        sql.to_sql(self, name, con, schema=schema, if_exists=if_exists,
+                   index=index, index_label=index_label, chunksize=chunksize,
+                   dtype=dtype)
 
     def to_pickle(self, path, compression='infer',
                   protocol=pkl.HIGHEST_PROTOCOL):

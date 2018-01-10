@@ -2334,31 +2334,6 @@ class TestXSQLite(SQLiteMixIn):
 
 
 @pytest.mark.single
-class TestSQLFlavorDeprecation(object):
-    """
-    gh-13611: test that the 'flavor' parameter
-    is appropriately deprecated by checking the
-    functions that directly raise the warning
-    """
-
-    con = 1234  # don't need real connection for this
-    funcs = ['SQLiteDatabase', 'pandasSQL_builder']
-
-    def test_unsupported_flavor(self):
-        msg = 'is not supported'
-
-        for func in self.funcs:
-            tm.assert_raises_regex(ValueError, msg, getattr(sql, func),
-                                   self.con, flavor='mysql')
-
-    def test_deprecated_flavor(self):
-        for func in self.funcs:
-            with tm.assert_produces_warning(FutureWarning,
-                                            check_stacklevel=False):
-                getattr(sql, func)(self.con, flavor='sqlite')
-
-
-@pytest.mark.single
 @pytest.mark.skip(reason="gh-13611: there is no support for MySQL "
                   "if SQLAlchemy is not installed")
 class TestXMySQL(MySQLMixIn):
