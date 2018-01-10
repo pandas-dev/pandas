@@ -193,9 +193,10 @@ class TestDataFrameMutateColumns(TestData):
         with pytest.raises(KeyError):
             del df[('A',)]
 
-        # xref: https://github.com/pandas-dev/pandas/issues/2770
-        # the 'A' is STILL in the columns!
-        assert 'A' in df.columns
+        # behavior of dropped/deleted MultiIndex levels changed from
+        # GH 2770 to GH 19027: MultiIndex no longer '.__contains__'
+        # levels which are dropped/deleted
+        assert 'A' not in df.columns
         with pytest.raises(KeyError):
             del df['A']
 
