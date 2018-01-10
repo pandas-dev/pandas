@@ -293,45 +293,45 @@ class TestSeriesComparisons(object):
         expected = Series([True, True, True])
         assert_series_equal(result, expected)
 
-    def test_nat_comparisons(self):
-        data = [([pd.Timestamp('2011-01-01'), pd.NaT,
-                  pd.Timestamp('2011-01-03')],
-                 [pd.NaT, pd.NaT, pd.Timestamp('2011-01-03')]),
+    @pytest.mark.parametrize('pair', [
+        ([pd.Timestamp('2011-01-01'), NaT, pd.Timestamp('2011-01-03')],
+         [NaT, NaT, pd.Timestamp('2011-01-03')]),
 
-                ([pd.Timedelta('1 days'), pd.NaT,
-                  pd.Timedelta('3 days')],
-                 [pd.NaT, pd.NaT, pd.Timedelta('3 days')]),
+        ([pd.Timedelta('1 days'), NaT, pd.Timedelta('3 days')],
+         [NaT, NaT, pd.Timedelta('3 days')]),
 
-                ([pd.Period('2011-01', freq='M'), pd.NaT,
-                  pd.Period('2011-03', freq='M')],
-                 [pd.NaT, pd.NaT, pd.Period('2011-03', freq='M')])]
+        ([pd.Period('2011-01', freq='M'), NaT, pd.Period('2011-03', freq='M')],
+         [NaT, NaT, pd.Period('2011-03', freq='M')])])
+    @pytest.mark.parametrize('reverse', [True, False])
+    @pytest.mark.parametrize('box', [Series, Index])
+    @pytest.mark.parametrize('dtype', [None, object])
+    def test_nat_comparisons(self, dtype, box, reverse, pair):
+        l, r = pair
+        if reverse:
+            # add lhs / rhs switched data
+            l, r = r, l
 
-        # add lhs / rhs switched data
-        data = data + [(r, l) for l, r in data]
+        left = Series(l, dtype=dtype)
+        right = box(r, dtype=dtype)
+        # Series, Index
 
-        for l, r in data:
-            for dtype in [None, object]:
-                left = Series(l, dtype=dtype)
+        expected = Series([False, False, True])
+        assert_series_equal(left == right, expected)
 
-                # Series, Index
-                for right in [Series(r, dtype=dtype), Index(r, dtype=dtype)]:
-                    expected = Series([False, False, True])
-                    assert_series_equal(left == right, expected)
+        expected = Series([True, True, False])
+        assert_series_equal(left != right, expected)
 
-                    expected = Series([True, True, False])
-                    assert_series_equal(left != right, expected)
+        expected = Series([False, False, False])
+        assert_series_equal(left < right, expected)
 
-                    expected = Series([False, False, False])
-                    assert_series_equal(left < right, expected)
+        expected = Series([False, False, False])
+        assert_series_equal(left > right, expected)
 
-                    expected = Series([False, False, False])
-                    assert_series_equal(left > right, expected)
+        expected = Series([False, False, True])
+        assert_series_equal(left >= right, expected)
 
-                    expected = Series([False, False, True])
-                    assert_series_equal(left >= right, expected)
-
-                    expected = Series([False, False, True])
-                    assert_series_equal(left <= right, expected)
+        expected = Series([False, False, True])
+        assert_series_equal(left <= right, expected)
 
     @pytest.mark.parametrize('dtype', [None, object])
     def test_nat_comparisons_scalar(self, dtype):
