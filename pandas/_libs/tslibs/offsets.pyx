@@ -820,29 +820,6 @@ cpdef int roll_convention(int other, int n, int compare) nogil:
     return n
 
 
-cpdef int roll_monthday(datetime other, int n, datetime compare):
-    """
-    Possibly increment or decrement the number of periods to shift
-    based on rollforward/rollbackward conventions.
-
-    Parameters
-    ----------
-    other : datetime
-    n : number of periods to increment, before adjusting for rolling
-    compare : datetime
-
-    Returns
-    -------
-    n : int number of periods to increment
-    """
-    if n > 0 and other < compare:
-        n -= 1
-    elif n <= 0 and other > compare:
-        # as if rolled forward already
-        n += 1
-    return n
-
-
 cpdef int roll_qtrday(datetime other, int n, int month, object day_opt,
                       int modby=3) except? -1:
     """
