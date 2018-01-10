@@ -626,6 +626,7 @@ class IntervalDtype(ExtensionDtype):
 
     THIS IS NOT A REAL NUMPY DTYPE
     """
+    name = 'interval'
     type = IntervalDtypeType
     kind = None
     str = '|O08'
@@ -653,8 +654,8 @@ class IntervalDtype(ExtensionDtype):
             u.subtype = None
             return u
         elif (isinstance(subtype, compat.string_types) and
-              subtype == 'interval'):
-            subtype = ''
+              subtype.lower() == 'interval'):
+            subtype = None
         else:
             if isinstance(subtype, compat.string_types):
                 m = cls._match.search(subtype)
@@ -665,11 +666,6 @@ class IntervalDtype(ExtensionDtype):
                 subtype = pandas_dtype(subtype)
             except TypeError:
                 raise ValueError("could not construct IntervalDtype")
-
-        if subtype is None:
-            u = object.__new__(cls)
-            u.subtype = None
-            return u
 
         if is_categorical_dtype(subtype) or is_string_dtype(subtype):
             # GH 19016
@@ -692,20 +688,14 @@ class IntervalDtype(ExtensionDtype):
         if its not possible
         """
         if isinstance(string, compat.string_types):
-            try:
-                return cls(string)
-            except ValueError:
-                pass
-        raise TypeError("could not construct IntervalDtype")
+            return cls(string)
+        msg = "a string needs to be passed, got type {typ}"
+        raise TypeError(msg.format(typ=type(string)))
 
     def __unicode__(self):
         if self.subtype is None:
             return "interval"
         return "interval[{subtype}]".format(subtype=self.subtype)
-
-    @property
-    def name(self):
-        return str(self)
 
     def __hash__(self):
         # make myself hashable
@@ -713,10 +703,14 @@ class IntervalDtype(ExtensionDtype):
 
     def __eq__(self, other):
         if isinstance(other, compat.string_types):
-            return other == self.name or other == self.name.title()
-
-        return (isinstance(other, IntervalDtype) and
-                self.subtype == other.subtype)
+            return other.lower() in (self.name.lower(), str(self).lower())
+        elif not isinstance(other, IntervalDtype):
+            return False
+        elif self.subtype is None or other.subtype is None:
+            # None should match any subtype
+            return True
+        else:
+            return self.subtype == other.subtype
 
     @classmethod
     def is_dtype(cls, dtype):
