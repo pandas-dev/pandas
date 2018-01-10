@@ -156,22 +156,6 @@ def test_roll_qtrday():
     assert roll_qtrday(other, n, month, 'business_end', modby=3) == n
 
 
-def test_roll_monthday():
-    other = Timestamp('2017-12-29', tz='US/Pacific')
-    before = Timestamp('2017-12-01', tz='US/Pacific')
-    after = Timestamp('2017-12-31', tz='US/Pacific')
-
-    n = 42
-    assert liboffsets.roll_monthday(other, n, other) == n
-    assert liboffsets.roll_monthday(other, n, before) == n
-    assert liboffsets.roll_monthday(other, n, after) == n - 1
-
-    n = -4
-    assert liboffsets.roll_monthday(other, n, other) == n
-    assert liboffsets.roll_monthday(other, n, before) == n + 1
-    assert liboffsets.roll_monthday(other, n, after) == n
-
-
 def test_roll_convention():
     other = 29
     before = 1
