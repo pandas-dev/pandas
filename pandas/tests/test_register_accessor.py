@@ -4,7 +4,6 @@ import pytest
 
 import pandas as pd
 import pandas.util.testing as tm
-from pandas.errors import AccessorRegistrationWarning
 
 
 @contextlib.contextmanager
@@ -63,7 +62,7 @@ def test_overwrite_warns():
     # Need to restore mean
     mean = pd.Series.mean
     try:
-        with tm.assert_produces_warning(AccessorRegistrationWarning) as w:
+        with tm.assert_produces_warning(UserWarning) as w:
             pd.api.extensions.register_series_accessor('mean')(MyAccessor)
             s = pd.Series([1, 2])
             assert s.mean.prop == 'item'
