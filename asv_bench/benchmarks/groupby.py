@@ -1,4 +1,4 @@
-from string import ascii_letters, digits
+from string import ascii_letters
 from itertools import product
 from functools import partial
 
@@ -275,18 +275,12 @@ class GroupStrings(object):
 
     def setup(self):
         n = 2 * 10**5
-        alpha = list(map(''.join, product((ascii_letters + digits), repeat=4)))
-        self.df = DataFrame({'a': np.repeat(np.random.choice(alpha,
-                                                             (n // 11)), 11),
-                             'b': np.repeat(np.random.choice(alpha,
-                                                             (n // 7)), 7),
-                             'c': np.repeat(np.random.choice(alpha,
-                                                             (n // 5)), 5),
-                             'd': np.repeat(np.random.choice(alpha,
-                                                             (n // 1)), 1)})
+        alpha = list(map(''.join, product(ascii_letters, repeat=4)))
+        data = np.random.choice(alpha, (n // 5, 4), replace=False)
+        data = np.repeat(data, 5, axis=0)
+        self.df = DataFrame(data, columns=list('abcd'))
         self.df['joe'] = (np.random.randn(len(self.df)) * 10).round(3)
-        i = np.random.permutation(len(self.df))
-        self.df = self.df.iloc[i].reset_index(drop=True)
+        self.df = self.df.sample(frac=1).reset_index(drop=True)
 
     def time_multi_columns(self):
         self.df.groupby(list('abcd')).max()
@@ -356,10 +350,16 @@ class GroupByMethods(object):
 
     goal_time = 0.2
 
-    param_names = ['dtype', 'ngroups']
-    params = [['int', 'float'], [100, 10000]]
+    param_names = ['dtype', 'method']
+    params = [['int', 'float'],
+              ['all', 'any', 'count', 'cumcount', 'cummax', 'cummin',
+               'cumprod', 'cumsum', 'describe', 'first', 'head', 'last', 'mad',
+               'max', 'min', 'median', 'mean', 'nunique', 'pct_change', 'prod',
+               'rank', 'sem', 'shift', 'size', 'skew', 'std', 'sum', 'tail',
+               'unique', 'value_counts', 'var']]
 
-    def setup(self, dtype, ngroups):
+    def setup(self, dtype, method):
+        ngroups = 1000
         size = ngroups * 2
         rng = np.arange(ngroups)
         values = rng.take(np.random.randint(0, ngroups, size=size))
@@ -369,104 +369,11 @@ class GroupByMethods(object):
             key = np.concatenate([np.random.random(ngroups) * 0.1,
                                   np.random.random(ngroups) * 10.0])
 
-        self.df = DataFrame({'values': values,
-                             'key': key})
+        df = DataFrame({'values': values, 'key': key})
+        self.df_groupby_method = getattr(df.groupby('key')['values'], method)
 
-    def time_all(self, dtype, ngroups):
-        self.df.groupby('key')['values'].all()
-
-    def time_any(self, dtype, ngroups):
-        self.df.groupby('key')['values'].any()
-
-    def time_count(self, dtype, ngroups):
-        self.df.groupby('key')['values'].count()
-
-    def time_cumcount(self, dtype, ngroups):
-        self.df.groupby('key')['values'].cumcount()
-
-    def time_cummax(self, dtype, ngroups):
-        self.df.groupby('key')['values'].cummax()
-
-    def time_cummin(self, dtype, ngroups):
-        self.df.groupby('key')['values'].cummin()
-
-    def time_cumprod(self, dtype, ngroups):
-        self.df.groupby('key')['values'].cumprod()
-
-    def time_cumsum(self, dtype, ngroups):
-        self.df.groupby('key')['values'].cumsum()
-
-    def time_describe(self, dtype, ngroups):
-        self.df.groupby('key')['values'].describe()
-
-    def time_diff(self, dtype, ngroups):
-        self.df.groupby('key')['values'].diff()
-
-    def time_first(self, dtype, ngroups):
-        self.df.groupby('key')['values'].first()
-
-    def time_head(self, dtype, ngroups):
-        self.df.groupby('key')['values'].head()
-
-    def time_last(self, dtype, ngroups):
-        self.df.groupby('key')['values'].last()
-
-    def time_mad(self, dtype, ngroups):
-        self.df.groupby('key')['values'].mad()
-
-    def time_max(self, dtype, ngroups):
-        self.df.groupby('key')['values'].max()
-
-    def time_mean(self, dtype, ngroups):
-        self.df.groupby('key')['values'].mean()
-
-    def time_median(self, dtype, ngroups):
-        self.df.groupby('key')['values'].median()
-
-    def time_min(self, dtype, ngroups):
-        self.df.groupby('key')['values'].min()
-
-    def time_nunique(self, dtype, ngroups):
-        self.df.groupby('key')['values'].nunique()
-
-    def time_pct_change(self, dtype, ngroups):
-        self.df.groupby('key')['values'].pct_change()
-
-    def time_prod(self, dtype, ngroups):
-        self.df.groupby('key')['values'].prod()
-
-    def time_rank(self, dtype, ngroups):
-        self.df.groupby('key')['values'].rank()
-
-    def time_sem(self, dtype, ngroups):
-        self.df.groupby('key')['values'].sem()
-
-    def time_shift(self, dtype, ngroups):
-        self.df.groupby('key')['values'].shift()
-
-    def time_size(self, dtype, ngroups):
-        self.df.groupby('key')['values'].size()
-
-    def time_skew(self, dtype, ngroups):
-        self.df.groupby('key')['values'].skew()
-
-    def time_std(self, dtype, ngroups):
-        self.df.groupby('key')['values'].std()
-
-    def time_sum(self, dtype, ngroups):
-        self.df.groupby('key')['values'].sum()
-
-    def time_tail(self, dtype, ngroups):
-        self.df.groupby('key')['values'].tail()
-
-    def time_unique(self, dtype, ngroups):
-        self.df.groupby('key')['values'].unique()
-
-    def time_value_counts(self, dtype, ngroups):
-        self.df.groupby('key')['values'].value_counts()
-
-    def time_var(self, dtype, ngroups):
-        self.df.groupby('key')['values'].var()
+    def time_method(self, dtype, method):
+        self.df_groupby_method()
 
 
 class Float32(object):
