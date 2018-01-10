@@ -1,10 +1,10 @@
+import datetime
+
 from pandas import Timestamp
 import pytz
-import datetime
 
 
 class TimestampConstruction(object):
-    # TODO: classmethod constructors: fromordinal, fromtimestamp...
 
     def time_parse_iso8601_no_tz(self):
         Timestamp('2017-08-25 08:16:14')
@@ -21,6 +21,12 @@ class TimestampConstruction(object):
     def time_parse_now(self):
         Timestamp('now')
 
+    def time_fromordinal(self):
+        Timestamp.fromordinal(730120)
+
+    def time_fromtimestamp(self):
+        Timestamp.fromtimestamp(1515448538)
+
 
 class TimestampProperties(object):
     goal_time = 0.2
@@ -35,9 +41,6 @@ class TimestampProperties(object):
 
     def time_tz(self, tz, freq):
         self.ts.tz
-
-    def time_offset(self, tz, freq):
-        self.ts.offset
 
     def time_dayofweek(self, tz, freq):
         self.ts.dayofweek
