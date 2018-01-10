@@ -1460,6 +1460,7 @@ class TestDatetimeSeriesArithmetic(object):
         pytest.raises(TypeError, ser.__add__, pd.Index(other))
         pytest.raises(TypeError, ser.__sub__, pd.Index(other))
 
+
 class TestSeriesOperators(TestData):
     def test_op_method(self):
         def check(series, other, check_reverse=False):
