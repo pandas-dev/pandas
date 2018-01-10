@@ -835,17 +835,20 @@ class TestTimedeltaSeriesArithmeticWithIntegers(object):
 
 
 class TestTimedeltaSeriesArithmetic(object):
-    def test_timedelta_series_ops(self):
+    def test_td64series_add_sub_timestamp(self):
         # GH11925
-        s = Series(timedelta_range('1 day', periods=3))
+        tdser = Series(timedelta_range('1 day', periods=3))
         ts = Timestamp('2012-01-01')
         expected = Series(date_range('2012-01-02', periods=3))
-        assert_series_equal(ts + s, expected)
-        assert_series_equal(s + ts, expected)
+        assert_series_equal(ts + tdser, expected)
+        assert_series_equal(tdser + ts, expected)
 
         expected2 = Series(date_range('2011-12-31', periods=3, freq='-1D'))
-        assert_series_equal(ts - s, expected2)
-        assert_series_equal(ts + (-s), expected2)
+        assert_series_equal(ts - tdser, expected2)
+        assert_series_equal(ts + (-tdser), expected2)
+
+        with pytest.raises(TypeError):
+            tdser - ts
 
     def test_timedelta64_operations_with_DateOffset(self):
         # GH 10699
