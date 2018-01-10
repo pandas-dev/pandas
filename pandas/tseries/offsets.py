@@ -1040,9 +1040,9 @@ class _CustomBusinessMonth(_CustomMixin, BusinessMixin, MonthOffset):
 
     @cache_readonly
     def cbday_roll(self):
+        """Define default roll function to be called in apply method"""
         cbday = CustomBusinessDay(n=self.n, normalize=False, **self.kwds)
 
-        # Define default roll function to be called in apply method
         if self._prefix.endswith('S'):
             # MonthBegin
             roll_func = cbday.rollforward
@@ -1063,6 +1063,7 @@ class _CustomBusinessMonth(_CustomMixin, BusinessMixin, MonthOffset):
 
     @cache_readonly
     def month_roll(self):
+        """Define default roll function to be called in apply method"""
         if self._prefix.endswith('S'):
             # MonthBegin
             roll_func = self.m_offset.rollback
