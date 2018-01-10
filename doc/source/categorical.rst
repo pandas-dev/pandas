@@ -19,10 +19,11 @@ Categorical Data
 This is an introduction to pandas categorical data type, including a short comparison
 with R's ``factor``.
 
-`Categoricals` are a pandas data type, which correspond to categorical variables in
-statistics: a variable, which can take on only a limited, and usually fixed,
-number of possible values (`categories`; `levels` in R). Examples are gender, social class,
-blood types, country affiliations, observation time or ratings via Likert scales.
+`Categoricals` are a pandas data type corresponding to categorical variables in
+statistics. A categorical variable takes on a limited, and usually fixed,
+number of possible values (`categories`; `levels` in R). Examples are gender, 
+social class, blood type, country affiliation, observation time or rating via 
+Likert scales.
 
 In contrast to statistical categorical variables, categorical data might have an order (e.g.
 'strongly agree' vs 'agree' or 'first observation' vs. 'second observation'), but numerical
@@ -48,16 +49,16 @@ See also the :ref:`API docs on categoricals<api.categorical>`.
 Object Creation
 ---------------
 
-Categorical `Series` or columns in a `DataFrame` can be created in several ways:
+Categorical ``Series`` or columns in a ``DataFrame`` can be created in several ways:
 
-By specifying ``dtype="category"`` when constructing a `Series`:
+By specifying ``dtype="category"`` when constructing a ``Series``:
 
 .. ipython:: python
 
     s = pd.Series(["a","b","c","a"], dtype="category")
     s
 
-By converting an existing `Series` or column to a ``category`` dtype:
+By converting an existing ``Series`` or column to a ``category`` dtype:
 
 .. ipython:: python
 
@@ -65,7 +66,8 @@ By converting an existing `Series` or column to a ``category`` dtype:
     df["B"] = df["A"].astype('category')
     df
 
-By using some special functions:
+By using special functions, such as :func:`~pandas.cut` (:ref:`docs here 
+<reshaping.tile.cut>`):
 
 .. ipython:: python
 
@@ -74,8 +76,6 @@ By using some special functions:
 
     df['group'] = pd.cut(df.value, range(0, 105, 10), right=False, labels=labels)
     df.head(10)
-
-See :ref:`documentation <reshaping.tile.cut>` for :func:`~pandas.cut`.
 
 By passing a :class:`pandas.Categorical` object to a `Series` or assigning it to a `DataFrame`.
 
@@ -89,10 +89,11 @@ By passing a :class:`pandas.Categorical` object to a `Series` or assigning it to
     df["B"] = raw_cat
     df
 
-Anywhere above we passed a keyword ``dtype='category'``, we used the default behavior of
+In the examples above where we passed ``dtype='category'``, we used the default 
+behavior:
 
-1. categories are inferred from the data
-2. categories are unordered.
+1. Categories are inferred from the data.
+2. Categories are unordered.
 
 To control those behaviors, instead of passing ``'category'``, use an instance
 of :class:`~pandas.api.types.CategoricalDtype`.
@@ -123,8 +124,8 @@ Categorical data has a specific ``category`` :ref:`dtype <basics.dtypes>`:
     In contrast to R's `factor` function, there is currently no way to assign/change labels at
     creation time. Use `categories` to change the categories after creation time.
 
-To get back to the original Series or `numpy` array, use ``Series.astype(original_dtype)`` or
-``np.asarray(categorical)``:
+To get back to the original ``Series`` or NumPy array, use 
+``Series.astype(original_dtype)`` or ``np.asarray(categorical)``:
 
 .. ipython:: python
 
@@ -135,8 +136,9 @@ To get back to the original Series or `numpy` array, use ``Series.astype(origina
     s2.astype(str)
     np.asarray(s2)
 
-If you have already `codes` and `categories`, you can use the :func:`~pandas.Categorical.from_codes`
-constructor to save the factorize step during normal constructor mode:
+If you already have `codes` and `categories`, you can use the 
+:func:`~pandas.Categorical.from_codes` constructor to save the factorize step 
+during normal constructor mode:
 
 .. ipython:: python
 
@@ -171,7 +173,7 @@ by default.
 
 A :class:`~pandas.api.types.CategoricalDtype` can be used in any place pandas
 expects a `dtype`. For example :func:`pandas.read_csv`,
-:func:`pandas.DataFrame.astype`, or in the Series constructor.
+:func:`pandas.DataFrame.astype`, or in the ``Series`` constructor.
 
 .. note::
 
@@ -185,8 +187,8 @@ Equality Semantics
 ~~~~~~~~~~~~~~~~~~
 
 Two instances of :class:`~pandas.api.types.CategoricalDtype` compare equal
-whenever they have the same categories and orderedness. When comparing two
-unordered categoricals, the order of the ``categories`` is not considered
+whenever they have the same categories and order. When comparing two
+unordered categoricals, the order of the ``categories`` is not considered.
 
 .. ipython:: python
 
@@ -198,7 +200,7 @@ unordered categoricals, the order of the ``categories`` is not considered
    # Unequal, since the second CategoricalDtype is ordered
    c1 == CategoricalDtype(['a',  'b', 'c'], ordered=True)
 
-All instances of ``CategoricalDtype`` compare equal to the string ``'category'``
+All instances of ``CategoricalDtype`` compare equal to the string ``'category'``.
 
 .. ipython:: python
 
@@ -215,8 +217,8 @@ All instances of ``CategoricalDtype`` compare equal to the string ``'category'``
 Description
 -----------
 
-Using ``.describe()`` on categorical data will produce similar output to a `Series` or
-`DataFrame` of type ``string``.
+Using :meth:`~DataFrame.describe` on categorical data will produce similar 
+output to a ``Series`` or ``DataFrame`` of type ``string``.
 
 .. ipython:: python
 
@@ -230,10 +232,10 @@ Using ``.describe()`` on categorical data will produce similar output to a `Seri
 Working with categories
 -----------------------
 
-Categorical data has a `categories` and a `ordered` property, which list their possible values and
-whether the ordering matters or not. These properties are exposed as ``s.cat.categories`` and
-``s.cat.ordered``. If you don't manually specify categories and ordering, they are inferred from the
-passed in values.
+Categorical data has a `categories` and a `ordered` property, which list their 
+possible values and whether the ordering matters or not. These properties are 
+exposed as ``s.cat.categories`` and ``s.cat.ordered``. If you don't manually 
+specify categories and ordering, they are inferred from the passed arguments.
 
 .. ipython:: python
 
@@ -251,13 +253,13 @@ It's also possible to pass in the categories in a specific order:
 
 .. note::
 
-    New categorical data are NOT automatically ordered. You must explicitly pass ``ordered=True`` to
-    indicate an ordered ``Categorical``.
+    New categorical data are **not** automatically ordered. You must explicitly 
+    pass ``ordered=True`` to indicate an ordered ``Categorical``.
 
 
 .. note::
 
-    The result of ``Series.unique()`` is not always the same as ``Series.cat.categories``,
+    The result of :meth:`~Series.unique` is not always the same as ``Series.cat.categories``,
     because ``Series.unique()`` has a couple of guarantees, namely that it returns categories
     in the order of appearance, and it only includes values that are actually present.
 
@@ -275,8 +277,10 @@ It's also possible to pass in the categories in a specific order:
 Renaming categories
 ~~~~~~~~~~~~~~~~~~~
 
-Renaming categories is done by assigning new values to the ``Series.cat.categories`` property or
-by using the :func:`Categorical.rename_categories` method:
+Renaming categories is done by assigning new values to the 
+``Series.cat.categories`` property or by using the 
+:meth:`~pandas.Categorical.rename_categories` method:
+
 
 .. ipython:: python
 
@@ -296,8 +300,8 @@ by using the :func:`Categorical.rename_categories` method:
 
 .. note::
 
-    Be aware that assigning new categories is an inplace operations, while most other operation
-    under ``Series.cat`` per default return a new Series of dtype `category`.
+    Be aware that assigning new categories is an inplace operation, while most other operations
+    under ``Series.cat`` per default return a new ``Series`` of dtype `category`.
 
 Categories must be unique or a `ValueError` is raised:
 
@@ -320,7 +324,8 @@ Categories must also not be ``NaN`` or a `ValueError` is raised:
 Appending new categories
 ~~~~~~~~~~~~~~~~~~~~~~~~
 
-Appending categories can be done by using the :func:`Categorical.add_categories` method:
+Appending categories can be done by using the 
+:meth:`~pandas.Categorical.add_categories` method:
 
 .. ipython:: python
 
@@ -331,8 +336,9 @@ Appending categories can be done by using the :func:`Categorical.add_categories`
 Removing categories
 ~~~~~~~~~~~~~~~~~~~
 
-Removing categories can be done by using the :func:`Categorical.remove_categories` method. Values
-which are removed are replaced by ``np.nan``.:
+Removing categories can be done by using the 
+:meth:`~pandas.Categorical.remove_categories` method. Values which are removed 
+are replaced by ``np.nan``.:
 
 .. ipython:: python
 
@@ -353,8 +359,10 @@ Removing unused categories can also be done:
 Setting categories
 ~~~~~~~~~~~~~~~~~~
 
-If you want to do remove and add new categories in one step (which has some speed advantage),
-or simply set the categories to a predefined scale, use :func:`Categorical.set_categories`.
+If you want to do remove and add new categories in one step (which has some 
+speed advantage), or simply set the categories to a predefined scale, 
+use :meth:`~pandas.Categorical.set_categories`.
+
 
 .. ipython:: python
 
@@ -366,7 +374,7 @@ or simply set the categories to a predefined scale, use :func:`Categorical.set_c
 .. note::
     Be aware that :func:`Categorical.set_categories` cannot know whether some category is omitted
     intentionally or because it is misspelled or (under Python3) due to a type difference (e.g.,
-    numpys S1 dtype and Python strings). This can result in surprising behaviour!
+    NumPy S1 dtype and Python strings). This can result in surprising behaviour!
 
 Sorting and Order
 -----------------
@@ -411,8 +419,8 @@ This is even true for strings and numeric data:
 Reordering
 ~~~~~~~~~~
 
-Reordering the categories is possible via the :func:`Categorical.reorder_categories` and
-the :func:`Categorical.set_categories` methods. For :func:`Categorical.reorder_categories`, all
+Reordering the categories is possible via the :meth:`Categorical.reorder_categories` and
+the :meth:`Categorical.set_categories` methods. For :meth:`Categorical.reorder_categories`, all
 old categories must be included in the new categories and no new categories are allowed. This will
 necessarily make the sort order the same as the categories order.
 
