@@ -178,18 +178,18 @@ class TestSeriesComparisons(object):
         assert_series_equal(result, expected)
 
     def test_comparison_operators_with_nas(self):
-        s = Series(bdate_range('1/1/2000', periods=10), dtype=object)
-        s[::2] = np.nan
+        ser = Series(bdate_range('1/1/2000', periods=10), dtype=object)
+        ser[::2] = np.nan
 
         # test that comparisons work
         ops = ['lt', 'le', 'gt', 'ge', 'eq', 'ne']
         for op in ops:
-            val = s[5]
+            val = ser[5]
 
             f = getattr(operator, op)
-            result = f(s, val)
+            result = f(ser, val)
 
-            expected = f(s.dropna(), val).reindex(s.index)
+            expected = f(ser.dropna(), val).reindex(ser.index)
 
             if op == 'ne':
                 expected = expected.fillna(True).astype(bool)
@@ -206,28 +206,28 @@ class TestSeriesComparisons(object):
             # boolean &, |, ^ should work with object arrays and propagate NAs
 
         ops = ['and_', 'or_', 'xor']
-        mask = s.isna()
+        mask = ser.isna()
         for bool_op in ops:
-            f = getattr(operator, bool_op)
+            func = getattr(operator, bool_op)
 
-            filled = s.fillna(s[0])
+            filled = ser.fillna(ser[0])
 
-            result = f(s < s[9], s > s[3])
+            result = func(ser < ser[9], ser > ser[3])
 
-            expected = f(filled < filled[9], filled > filled[3])
+            expected = func(filled < filled[9], filled > filled[3])
             expected[mask] = False
             assert_series_equal(result, expected)
 
     def test_comparison_object_numeric_nas(self):
-        s = Series(np.random.randn(10), dtype=object)
-        shifted = s.shift(2)
+        ser = Series(np.random.randn(10), dtype=object)
+        shifted = ser.shift(2)
 
         ops = ['lt', 'le', 'gt', 'ge', 'eq', 'ne']
         for op in ops:
-            f = getattr(operator, op)
+            func = getattr(operator, op)
 
-            result = f(s, shifted)
-            expected = f(s.astype(float), shifted.astype(float))
+            result = func(ser, shifted)
+            expected = func(ser.astype(float), shifted.astype(float))
             assert_series_equal(result, expected)
 
     def test_comparison_invalid(self):
@@ -272,26 +272,26 @@ class TestSeriesComparisons(object):
         tm.assert_series_equal(cat == "d", Series([False, False, False]))
         tm.assert_series_equal(cat != "d", Series([True, True, True]))
 
-    def test_more_na_comparisons(self):
-        for dtype in [None, object]:
-            left = Series(['a', np.nan, 'c'], dtype=dtype)
-            right = Series(['a', np.nan, 'd'], dtype=dtype)
+    @pytest.mark.parametrize('dtype', [None, object])
+    def test_more_na_comparisons(self, dtype):
+        left = Series(['a', np.nan, 'c'], dtype=dtype)
+        right = Series(['a', np.nan, 'd'], dtype=dtype)
 
-            result = left == right
-            expected = Series([True, False, False])
-            assert_series_equal(result, expected)
+        result = left == right
+        expected = Series([True, False, False])
+        assert_series_equal(result, expected)
 
-            result = left != right
-            expected = Series([False, True, True])
-            assert_series_equal(result, expected)
+        result = left != right
+        expected = Series([False, True, True])
+        assert_series_equal(result, expected)
 
-            result = left == np.nan
-            expected = Series([False, False, False])
-            assert_series_equal(result, expected)
+        result = left == np.nan
+        expected = Series([False, False, False])
+        assert_series_equal(result, expected)
 
-            result = left != np.nan
-            expected = Series([True, True, True])
-            assert_series_equal(result, expected)
+        result = left != np.nan
+        expected = Series([True, True, True])
+        assert_series_equal(result, expected)
 
     def test_nat_comparisons(self):
         data = [([pd.Timestamp('2011-01-01'), pd.NaT,
@@ -333,7 +333,8 @@ class TestSeriesComparisons(object):
                     expected = Series([False, False, True])
                     assert_series_equal(left <= right, expected)
 
-    def test_nat_comparisons_scalar(self):
+    @pytest.mark.parametrize('dtype', [None, object])
+    def test_nat_comparisons_scalar(self, dtype):
         data = [[pd.Timestamp('2011-01-01'), pd.NaT,
                  pd.Timestamp('2011-01-03')],
 
@@ -343,27 +344,26 @@ class TestSeriesComparisons(object):
                  pd.Period('2011-03', freq='M')]]
 
         for l in data:
-            for dtype in [None, object]:
-                left = Series(l, dtype=dtype)
+            left = Series(l, dtype=dtype)
 
-                expected = Series([False, False, False])
-                assert_series_equal(left == pd.NaT, expected)
-                assert_series_equal(pd.NaT == left, expected)
+            expected = Series([False, False, False])
+            assert_series_equal(left == pd.NaT, expected)
+            assert_series_equal(pd.NaT == left, expected)
 
-                expected = Series([True, True, True])
-                assert_series_equal(left != pd.NaT, expected)
-                assert_series_equal(pd.NaT != left, expected)
+            expected = Series([True, True, True])
+            assert_series_equal(left != pd.NaT, expected)
+            assert_series_equal(pd.NaT != left, expected)
 
-                expected = Series([False, False, False])
-                assert_series_equal(left < pd.NaT, expected)
-                assert_series_equal(pd.NaT > left, expected)
-                assert_series_equal(left <= pd.NaT, expected)
-                assert_series_equal(pd.NaT >= left, expected)
+            expected = Series([False, False, False])
+            assert_series_equal(left < pd.NaT, expected)
+            assert_series_equal(pd.NaT > left, expected)
+            assert_series_equal(left <= pd.NaT, expected)
+            assert_series_equal(pd.NaT >= left, expected)
 
-                assert_series_equal(left > pd.NaT, expected)
-                assert_series_equal(pd.NaT < left, expected)
-                assert_series_equal(left >= pd.NaT, expected)
-                assert_series_equal(pd.NaT <= left, expected)
+            assert_series_equal(left > pd.NaT, expected)
+            assert_series_equal(pd.NaT < left, expected)
+            assert_series_equal(left >= pd.NaT, expected)
+            assert_series_equal(pd.NaT <= left, expected)
 
     def test_comparison_different_length(self):
         a = Series(['a', 'b', 'c'])
@@ -1997,25 +1997,39 @@ class TestSeriesOperators(TestData):
         assert_series_equal(ser + 'a', pd.Series(['xa', np.nan, 'xa']))
 
     @pytest.mark.parametrize('dtype', [None, object])
-    def test_series_radd_more(self, dtype):
-        res = 1 + pd.Series([1, 2, 3], dtype=dtype)
-        exp = pd.Series([2, 3, 4], dtype=dtype)
-        assert_series_equal(res, exp)
-        res = pd.Series([1, 2, 3], dtype=dtype) + 1
-        assert_series_equal(res, exp)
+    def test_series_with_dtype_radd_timedelta(self, dtype):
+        ser = pd.Series([pd.Timedelta('1 days'), pd.Timedelta('2 days'),
+                         pd.Timedelta('3 days')], dtype=dtype)
+        expected = pd.Series([pd.Timedelta('4 days'), pd.Timedelta('5 days'),
+                              pd.Timedelta('6 days')])
 
-        res = np.nan + pd.Series([1, 2, 3], dtype=dtype)
-        exp = pd.Series([np.nan, np.nan, np.nan], dtype=dtype)
-        assert_series_equal(res, exp)
-        res = pd.Series([1, 2, 3], dtype=dtype) + np.nan
-        assert_series_equal(res, exp)
+        result = pd.Timedelta('3 days') + ser
+        assert_series_equal(result, expected)
 
-        s = pd.Series([pd.Timedelta('1 days'), pd.Timedelta('2 days'),
-                       pd.Timedelta('3 days')], dtype=dtype)
-        exp = pd.Series([pd.Timedelta('4 days'), pd.Timedelta('5 days'),
-                         pd.Timedelta('6 days')])
-        assert_series_equal(pd.Timedelta('3 days') + s, exp)
-        assert_series_equal(s + pd.Timedelta('3 days'), exp)
+        result = ser + pd.Timedelta('3 days')
+        assert_series_equal(result, expected)
+
+    @pytest.mark.parametrize('dtype', [None, object])
+    def test_series_with_dtype_radd_int(self, dtype):
+        ser = pd.Series([1, 2, 3], dtype=dtype)
+        expected = pd.Series([2, 3, 4], dtype=dtype)
+        
+        result = 1 + ser
+        assert_series_equal(result, expected)
+
+        result = ser + 1
+        assert_series_equal(result, expected)
+
+    @pytest.mark.parametrize('dtype', [None, object])
+    def test_series_with_dtype_radd_nan(self, dtype):
+        ser = pd.Series([1, 2, 3], dtype=dtype)
+        expected = pd.Series([np.nan, np.nan, np.nan], dtype=dtype)
+
+        result = np.nan + ser
+        assert_series_equal(result, expected)
+
+        result = ser + np.nan
+        assert_series_equal(result, expected)
 
     @pytest.mark.parametrize('data', [
         [1, 2, 3],
@@ -2038,25 +2052,6 @@ class TestSeriesOperators(TestData):
         df = DataFrame(data, dtype=dtype)
         with pytest.raises(TypeError):
             'foo_' + df
-
-    @pytest.mark.parametrize('dtype', [None, object])
-    def test_frame_radd_more(self, dtype):
-        res = 1 + pd.DataFrame([1, 2, 3], dtype=dtype)
-        exp = pd.DataFrame([2, 3, 4], dtype=dtype)
-        assert_frame_equal(res, exp)
-        res = pd.DataFrame([1, 2, 3], dtype=dtype) + 1
-        assert_frame_equal(res, exp)
-
-        res = np.nan + pd.DataFrame([1, 2, 3], dtype=dtype)
-        exp = pd.DataFrame([np.nan, np.nan, np.nan], dtype=dtype)
-        assert_frame_equal(res, exp)
-        res = pd.DataFrame([1, 2, 3], dtype=dtype) + np.nan
-        assert_frame_equal(res, exp)
-
-    def test_frame_radd_str(self):
-        df = pd.DataFrame(['x', np.nan, 'x'])
-        assert_frame_equal('a' + df, pd.DataFrame(['ax', np.nan, 'ax']))
-        assert_frame_equal(df + 'a', pd.DataFrame(['xa', np.nan, 'xa']))
 
     def test_operators_frame(self):
         # rpow does not work with DataFrame
@@ -2151,24 +2146,23 @@ class TestSeriesOperators(TestData):
         assert_series_equal(result, expected)
 
     def test_datetime64_with_index(self):
-
         # arithmetic integer ops with an index
-        s = Series(np.random.randn(5))
-        expected = s - s.index.to_series()
-        result = s - s.index
+        ser = Series(np.random.randn(5))
+        expected = ser - ser.index.to_series()
+        result = ser - ser.index
         assert_series_equal(result, expected)
 
         # GH 4629
         # arithmetic datetime64 ops with an index
-        s = Series(date_range('20130101', periods=5),
-                   index=date_range('20130101', periods=5))
-        expected = s - s.index.to_series()
-        result = s - s.index
+        ser = Series(date_range('20130101', periods=5),
+                     index=date_range('20130101', periods=5))
+        expected = ser - ser.index.to_series()
+        result = ser - ser.index
         assert_series_equal(result, expected)
 
         with pytest.raises(TypeError):
             # GH#18850
-            result = s - s.index.to_period()
+            result = ser - ser.index.to_period()
 
         df = DataFrame(np.random.randn(5, 2),
                        index=date_range('20130101', periods=5))
@@ -2240,3 +2234,27 @@ class TestSeriesOperators(TestData):
             assert np.isnan(s.idxmin(skipna=False))
             assert s.idxmax() == 0
             np.isnan(s.idxmax(skipna=False))
+
+
+class TestDataFrameOperators(object):
+    # TODO: This may belong in a frame-specific test file
+
+    @pytest.mark.parametrize('dtype', [None, object])
+    def test_frame_radd_more(self, dtype):
+        df = pd.DataFrame([1, 2, 3], dtype=dtype)
+        res = 1 + df
+        exp = pd.DataFrame([2, 3, 4], dtype=dtype)
+        assert_frame_equal(res, exp)
+        res = df + 1
+        assert_frame_equal(res, exp)
+
+        res = np.nan + df
+        exp = pd.DataFrame([np.nan, np.nan, np.nan], dtype=dtype)
+        assert_frame_equal(res, exp)
+        res = df + np.nan
+        assert_frame_equal(res, exp)
+
+    def test_frame_radd_str(self):
+        df = pd.DataFrame(['x', np.nan, 'x'])
+        assert_frame_equal('a' + df, pd.DataFrame(['ax', np.nan, 'ax']))
+        assert_frame_equal(df + 'a', pd.DataFrame(['xa', np.nan, 'xa']))
