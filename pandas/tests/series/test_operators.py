@@ -746,12 +746,6 @@ class TestTimedeltaSeriesArithmeticWithIntegers(object):
         result = s1 / Series([20, 30, 40]).astype(float)
         assert_series_equal(result, expected)
 
-        expected = Series(['29.5D', '29.5D', 'NaT'], dtype='timedelta64[ns]')
-        result = s1 / 2
-        assert_series_equal(result, expected)
-        result = s1 / 2.0
-        assert_series_equal(result, expected)
-
         expected = Series(['1180 Days', '1770 Days', 'NaT'],
                           dtype='timedelta64[ns]')
         result = s1 * Series([20, 30, 40])
@@ -762,8 +756,48 @@ class TestTimedeltaSeriesArithmeticWithIntegers(object):
             result = s1 * Series([20, 30, 40], dtype=dtype)
             assert_series_equal(result, expected)
 
-    @pytest.mark.parametrize('one', [1, np.array(1),
-                                     1.0, np.array(1.0)])
+    @pytest.mark.parametrize('dtype', ['int64', 'int32', 'int16',
+                                       'uint64', 'uint32', 'uint16', 'uint8',
+                                       'float64', 'float32', 'float16'])
+    @pytest.mark.parametrize('vector', [np.array([20, 30, 40]),
+                                        pd.Index([20, 30, 40]),
+                                        Series([20, 30, 40])])
+    def test_td64series_mul_numeric_array(self, vector, dtype):
+        # GH 4521
+        # divide/multiply by integers
+        tdser = self.tdser
+        vector = vector.astype(dtype)
+
+        expected = Series(['1180 Days', '1770 Days', 'NaT'],
+                          dtype='timedelta64[ns]')
+
+        result = tdser * vector
+        assert_series_equal(result, expected)
+
+    @pytest.mark.parametrize('dtype', ['int64', 'int32', 'int16',
+                                       'uint64', 'uint32', 'uint16', 'uint8',
+                                       'float64', 'float32', 'float16'])
+    @pytest.mark.parametrize('vector', [
+        np.array([20, 30, 40]),
+        pytest.param(pd.Index([20, 30, 40]),
+                     marks=pytest.mark.xfail(reason='__mul__ raises '
+                                                    'instead of returning '
+                                                    'NotImplemented')),
+        Series([20, 30, 40])
+    ])
+    def test_td64series_rmul_numeric_array(self, vector, dtype):
+        # GH 4521
+        # divide/multiply by integers
+        tdser = self.tdser
+        vector = vector.astype(dtype)
+
+        expected = Series(['1180 Days', '1770 Days', 'NaT'],
+                          dtype='timedelta64[ns]')
+
+        result = vector * tdser
+        assert_series_equal(result, expected)
+
+    @pytest.mark.parametrize('one', [1, np.array(1), 1.0, np.array(1.0)])
     def test_td64series_mul_numeric_scalar(self, one):
         # GH 4521
         # divide/multiply by integers
@@ -782,6 +816,24 @@ class TestTimedeltaSeriesArithmeticWithIntegers(object):
         result = tdser * (2 * one)
         assert_series_equal(result, expected)
         result = (2 * one) * tdser
+        assert_series_equal(result, expected)
+
+    @pytest.mark.parametrize('two', [
+        2, 2.0,
+        pytest.param(np.array(2),
+                     marks=pytest.mark.xfail(reason='GH#19011 is_list_like '
+                                                    'incorrectly True.')),
+        pytest.param(np.array(2.0),
+                     marks=pytest.mark.xfail(reason='GH#19011 is_list_like '
+                                                    'incorrectly True.')),
+    ])
+    def test_td64series_div_numeric_scalar(self, two):
+        # GH 4521
+        # divide/multiply by integers
+        tdser = self.tdser
+        expected = Series(['29.5D', '29.5D', 'NaT'], dtype='timedelta64[ns]')
+
+        result = tdser / two
         assert_series_equal(result, expected)
 
 
