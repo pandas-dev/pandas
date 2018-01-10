@@ -640,6 +640,7 @@ For getting *multiple* indexers, using ``.get_indexer``:
   dfd.iloc[[0, 2], dfd.columns.get_indexer(['A', 'B'])]
 
 
+.. _deprecate_loc_reindex_listlike:
 .. _indexing.deprecate_loc_reindex_listlike:
 
 Indexing with list with missing labels is Deprecated
