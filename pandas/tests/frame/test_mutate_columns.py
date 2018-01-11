@@ -55,6 +55,13 @@ class TestDataFrameMutateColumns(TestData):
         result = df.assign(A=lambda x: x.A + x.B)
         assert_frame_equal(result, expected)
 
+        # SparseDataFrame
+        # See GH 19163
+        result = df.to_sparse(fill_value=False).assign(newcol=False)
+        expected = df.assign(newcol=False)
+        assert type(result) is DataFrame
+        assert_frame_equal(expected, result)
+
     def test_assign_multiple(self):
         df = DataFrame([[1, 4], [2, 5], [3, 6]], columns=['A', 'B'])
         result = df.assign(C=[7, 8, 9], D=df.A, E=lambda x: x.B)
