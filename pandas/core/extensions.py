@@ -11,17 +11,20 @@ class ExtensionDtype(metaclass=abc.ABCMeta):
     """
     @property
     @abc.abstractmethod
-    def type(self) -> type:
+    def type(self):
+        # type: () -> T.Any
         """Typically a metaclass inheriting from 'type' with no methods."""
 
     @property
     @abc.abstractmethod
-    def base(self) -> np.dtype:
-        # TODO
+    def base(self):
+        # type: () -> np.dtype
+        # TODO: what do we need from this?
         pass
 
     @property
-    def kind(self) -> str:
+    def kind(self):
+        # type: () -> str
         """A character code (one of 'biufcmMOSUV'), default 'O'
 
         See Also
@@ -32,19 +35,22 @@ class ExtensionDtype(metaclass=abc.ABCMeta):
 
     @property
     @abc.abstractmethod
-    def name(self) -> str:
+    def name(self):
+        # type: () -> str
         """An string identifying the data type.
 
         Will be used in, e.g. ``Series.dtype``
         """
 
     @property
-    def names(self) -> T.Optional[T.List[str]]:
+    def names(self):
+        # type: () -> T.Optional[T.List[str]]
         """Ordered list of field names, or None if there are no fields"""
         return None
 
     @classmethod
-    def construct_from_string(cls, string: str) -> 'ExtensionDtype':
+    def construct_from_string(cls, string):
+        # type: (str) -> ExtensionDtype
         """Attempt to construct this type from a string.
 
         Parameters
@@ -71,7 +77,8 @@ class ExtensionDtype(metaclass=abc.ABCMeta):
                             "'{}'".format(cls, string))
 
     @classmethod
-    def is_dtype(cls, dtype: T.Union[str, np.dtype]) -> bool:
+    def is_dtype(cls, dtype):
+        # type: (T.Union[str, type]) -> bool
         """Check if we match 'dtype'
 
         Parameters
@@ -111,6 +118,10 @@ class ExtensionArray(metaclass=abc.ABCMeta):
     # Must be a Sequence
     # ------------------------------------------------------------------------
     @abc.abstractmethod
+    def __getitem__(self, item):
+        pass
+
+    @abc.abstractmethod
     def __iter__(self):
         pass
 
@@ -124,21 +135,24 @@ class ExtensionArray(metaclass=abc.ABCMeta):
     @property
     @abc.abstractmethod
     def dtype(self):
+        # type: () -> ExtensionDtype
         pass
 
     @property
-    @abc.abstractmethod
-    def shape(self) -> T.Tuple[int, ...]:
-        pass
+    def shape(self):
+        # type: () -> T.Tuple[int, ...]
+        return (len(self),)
+
+    @property
+    def ndim(self):
+        # type: () -> int
+        """Extension Arrays are only allowed to be 1-dimensional"""
+        return 1
 
     @property
     @abc.abstractmethod
-    def ndim(self) -> int:
-        pass
-
-    @property
-    @abc.abstractmethod
-    def nbytes(self) -> int:
+    def nbytes(self):
+        # type: () -> int
         # TODO: default impl?
         pass
 
@@ -146,7 +160,8 @@ class ExtensionArray(metaclass=abc.ABCMeta):
     # Additional Methods
     # ------------------------------------------------------------------------
     @abc.abstractmethod
-    def isna(self) -> T.Sequence[bool]:
+    def isna(self):
+        # type: () -> T.Sequence[bool]
         # TODO: narrow this type?
         pass
 
@@ -155,14 +170,18 @@ class ExtensionArray(metaclass=abc.ABCMeta):
     # ------------------------------------------------------------------------
     @abc.abstractmethod
     def take(self, indexer, allow_fill=True, fill_value=None):
+        # type: (T.Sequence, bool, T.Optional[T.Any]) -> ExtensionArray
         """For slicing"""
 
     @abc.abstractmethod
     def take_nd(self, indexer, allow_fill=True, fill_value=None):
         """For slicing"""
+        # TODO: this isn't nescesary if we only allow 1D (though maybe
+        # impelment it).
 
     @abc.abstractmethod
     def copy(self, deep=False):
+        # type: (bool) -> ExtensionArray
         """For slicing"""
 
     # ------------------------------------------------------------------------
@@ -170,16 +189,20 @@ class ExtensionArray(metaclass=abc.ABCMeta):
     # ------------------------------------------------------------------------
     @property
     def fill_value(self):
-        "TODO"
+        # type: () -> T.Any
+        # TODO
         return None
 
     @abc.abstractmethod
-    def formatting_values(self) -> np.ndarray:
+    def formatting_values(self):
+        # type: () -> np.ndarray
+        # TODO: must this be an array? Can it be any sequence?
         """An array of values to be printed in, e.g. the Series repr"""
 
     @classmethod
     @abc.abstractmethod
-    def concat_same_type(to_concat):
+    def concat_same_type(cls, to_concat):
+        # type: (T.Sequence[ExtensionArray]) -> ExtensionArray
         """Concatenate multiple array
 
         Parameters
@@ -192,25 +215,30 @@ class ExtensionArray(metaclass=abc.ABCMeta):
         """
 
     @abc.abstractmethod
-    def get_values(self) -> T.Sequence:
+    def get_values(self):
+        # type: () -> ExtensionArray
+        # TODO: What is the required return value? Sequence? ndarray?, ...?
         """Get the underlying values backing your data
         """
-        # TODO: This is probably the trickiest method to make work in general.
-        # The question is how ndarray-like does this have to look?
         pass
 
     @abc.abstractmethod
     def to_dense(self):
+        # type: () -> ExtensionArray
+        # TODO: this shouldn't be abstract.
         pass
 
     @property
     @abc.abstractmethod
-    def can_hold_na(self) -> bool:
+    def can_hold_na(self):
+        # type: () -> bool
         pass
 
     @property
     def is_sparse(self):
+        # type: () -> bool
         return False
 
     def slice(self, slicer):
+        # TODO: is this right?
         return self.get_values()[slicer]
