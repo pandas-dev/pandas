@@ -273,6 +273,7 @@ class DatetimeIndex(DatelikeOps, TimelikeOps, DatetimeIndexOpsMixin,
 
     _typ = 'datetimeindex'
     _join_precedence = 10
+    _box_slices = True
 
     def _join_i8_wrapper(joinf, **kwargs):
         return DatetimeIndexOpsMixin._join_i8_wrapper(joinf, dtype='M8[ns]',

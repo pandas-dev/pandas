@@ -149,6 +149,8 @@ class Index(IndexOpsMixin, PandasObject):
     _inner_indexer = libjoin.inner_join_indexer_object
     _outer_indexer = libjoin.outer_join_indexer_object
     _box_scalars = False
+    # Whether items returned by self._data.__getitem__ need to be boxed
+    _box_slices = False
 
     _typ = 'index'
     _data = None

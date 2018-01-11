@@ -287,7 +287,11 @@ class DatetimeIndexOpsMixin(object):
         getitem = self._data.__getitem__
         if is_int:
             val = getitem(key)
-            return self._box_func(val)
+            # XXX: Period will be boxed already, datetime won't be
+            if self._box_slices:
+                return self._box_func(val)
+            else:
+                return val
         else:
             if com.is_bool_indexer(key):
                 key = np.asarray(key)

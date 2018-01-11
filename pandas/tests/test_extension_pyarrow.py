@@ -1,3 +1,5 @@
+import collections
+
 import pyarrow as pa
 
 import numpy as np
@@ -33,6 +35,13 @@ class ArrowArray(ExtensionArray):
 
     def __len__(self):
         return len(self.data)
+
+    def __getitem__(self, item):
+        result = self.data[item]
+        if isinstance(item, collections.Sequence):
+            return type(self)(result)
+        else:
+            return result
 
     @property
     def nbytes(self):

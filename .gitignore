@@ -108,3 +108,4 @@ doc/tmp.sv
 doc/source/styled.xlsx
 doc/source/templates/
 env/
+.mypy_cache

@@ -153,3 +153,8 @@ class TestPeriodIndex(object):
         exp = PeriodIndex(['2011-01', '2011-02', '2011-03'], freq='3M')
         tm.assert_index_equal(pi1.asfreq('3M'), exp)
         tm.assert_index_equal(pi1.astype('period[3M]'), exp)
+
+    def test_shallow_copy_asfreq(self):
+        result = PeriodIndex(['2017'], freq='D')._shallow_copy(freq='M')
+        expected = PeriodIndex(['2017'], freq='M')
+        tm.assert_index_equal(result, expected)
