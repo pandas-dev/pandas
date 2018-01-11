@@ -1358,7 +1358,17 @@ class Week(DateOffset):
             return self._end_apply_index(i)
 
     def _end_apply_index(self, dtindex):
-        """Offsets index to end of Period frequency"""
+        """Add self to the given DatetimeIndex, specialized for case where
+        self.weekday is non-null.
+
+        Parameters
+        ----------
+        dtindex : DatetimeIndex
+
+        Returns
+        -------
+        result : DatetimeIndex
+        """
         off = dtindex.to_perioddelta('D')
 
         base, mult = libfrequencies.get_freq_code(self.freqstr)
