@@ -1331,7 +1331,7 @@ class TestDatetimeSeriesArithmetic(object):
             ser + offset_cls(5)
             offset_cls(5) + ser
 
-    def test_dt64series_with_DateOffset(self):
+    def test_dt64series_add_mixed_tick_DateOffset(self):
         # GH 4532
         # operate with pd.offsets
         s = Series([Timestamp('20130101 9:01'), Timestamp('20130101 9:02')])
