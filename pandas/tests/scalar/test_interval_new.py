@@ -104,7 +104,8 @@ class TestIntervalIndex(Base):
     @pytest.mark.parametrize("idx_side", ['right', 'left', 'both', 'neither'])
     @pytest.mark.parametrize("ivl_side", ['right', 'left', 'both', 'neither'])
     @pytest.mark.parametrize("ivl_range", [(1, 3), (0, 3), (0, 2), (2, 4)])
-    def test_interval_covers_intervalIndex(self, idx_side, ivl_side, ivl_range):
+    def test_interval_covers_intervalIndex(self, idx_side, ivl_side,
+        ivl_range):
 
         # class Interval:
         #     def covers(self, other: IntervalIndex) -> IntegerArray1D
@@ -112,7 +113,8 @@ class TestIntervalIndex(Base):
         # class IntervalIndex:
         #     def covers(self, other: Interval) -> IntegerArray1D
 
-        idx = IntervalIndex.from_tuples([(0, 1), (2, 3), (1, 3)], closed=idx_side)
+        idx = IntervalIndex.from_tuples([(0, 1), (2, 3), (1, 3)],
+            closed=idx_side)
         ivl = Interval(*ivl_range, closed=ivl_side)
 
         should_cover = {
@@ -168,7 +170,8 @@ class TestIntervalIndex(Base):
     @pytest.mark.parametrize("idx_side", ['right', 'left', 'both', 'neither'])
     @pytest.mark.parametrize("ivl_side", ['right', 'left', 'both', 'neither'])
     @pytest.mark.parametrize("ivl_range", [(1, 3), (1, 2), (0, 2), (3, 4)])
-    def test_interval_overlaps_intervalIndex(self, idx_side, ivl_side, ivl_range):
+    def test_interval_overlaps_intervalIndex(self, idx_side, ivl_side,
+        ivl_range):
 
         # class Interval:
         #     def overlaps(self, other: IntervalIndex) -> IntegerArray1D
@@ -176,7 +179,8 @@ class TestIntervalIndex(Base):
         # class IntervalIndex:
         #     def overlaps(self, other: Interval) -> IntegerArray1D
 
-        idx = IntervalIndex.from_tuples([(0, 1), (2, 3), (1, 3)], closed=idx_side)
+        idx = IntervalIndex.from_tuples([(0, 1), (2, 3), (1, 3)],
+            closed=idx_side)
         ivl = Interval(*ivl_range, closed=ivl_side)
 
         should_overlap = {
@@ -186,9 +190,11 @@ class TestIntervalIndex(Base):
                 'right': {
                 (1, 3): [1, 2], (1, 2): [2], (0, 2): [0, 2], (3, 4): []},
                 'left': {
-                (1, 3): [0, 1, 2], (1, 2): [0, 2], (0, 2): [0, 2], (3, 4): [1, 2]},
+                (1, 3): [0, 1, 2], (1, 2): [0, 2], (0, 2): [0, 2],
+                (3, 4): [1, 2]},
                 'both': {
-                (1, 3): [0, 1, 2], (1, 2): [0, 2], (0, 2): [0, 2], (3, 4): [1, 2]},
+                (1, 3): [0, 1, 2], (1, 2): [0, 2], (0, 2): [0, 2],
+                (3, 4): [1, 2]},
                 'neither': {
                 (1, 3): [1, 2], (1, 2): [2], (0, 2): [0, 2], (3, 4): []},
             },
@@ -206,9 +212,11 @@ class TestIntervalIndex(Base):
                 'right': {
                 (1, 3): [1, 2], (1, 2): [1, 2], (0, 2): [0, 1, 2], (3, 4): []},
                 'left': {
-                (1, 3): [0, 1, 2], (1, 2): [0, 2], (0, 2): [0, 2], (3, 4): [1, 2]},
+                (1, 3): [0, 1, 2], (1, 2): [0, 2], (0, 2): [0, 2],
+                (3, 4): [1, 2]},
                 'both': {
-                (1, 3): [0, 1, 2], (1, 2): [0, 1, 2], (0, 2): [0, 1, 2], (3, 4): [1, 2]},
+                (1, 3): [0, 1, 2], (1, 2): [0, 1, 2], (0, 2): [0, 1, 2],
+                (3, 4): [1, 2]},
                 'neither': {
                 (1, 3): [1, 2], (1, 2): [2], (0, 2): [0, 2], (3, 4): []},
             },
@@ -232,25 +240,45 @@ class TestIntervalIndex(Base):
     def test_intervalIndex_covers_intervalIndex(self):
 
         # class IntervalIndex:
-        #     def covers(self, other: IntervalIndex) -> Tuple[IntegerArray1D, IntegerArray1D]
+        #     def covers(self, other: IntervalIndex) -> Tuple[IntegerArray1D,
+        #                                                       IntegerArray1D]
 
-        idx1 = IntervalIndex.from_tuples([(0, 1), (2, 3), (1, 3)], closed='right')
-        idx2 = IntervalIndex.from_tuples([(0, 1), (2, 3), (1, 3)], closed='left')
-        idx3 = IntervalIndex.from_tuples([(0, 1), (2, 3), (1, 3)], closed='both')
+        idx = IntervalIndex.from_tuples([(0, 1), (2, 3), (1, 3)],
+            closed="right")
 
-        self._compare_tuple_of_numpy_array(idx.covers(idx1), (np.array([0,1,2,2]), np.array([0,1,1,2])))
-        self._compare_tuple_of_numpy_array(idx.covers(idx2), (np.array([2]), np.array([1])))
-        self._compare_tuple_of_numpy_array(idx.covers(idx3), (np.array([0,1,2,2]), np.array([0,1,1,2])))
+        idx1 = IntervalIndex.from_tuples([(0, 1), (2, 3), (1, 3)],
+            closed="right")
+        idx2 = IntervalIndex.from_tuples([(0, 1), (2, 3), (1, 3)],
+            closed="left")
+        idx3 = IntervalIndex.from_tuples([(0, 1), (2, 3), (1, 3)],
+            closed="both")
+
+        self._compare_tuple_of_numpy_array(idx.covers(idx1),
+            (np.array([0,1,2,2]), np.array([0,1,1,2])))
+        self._compare_tuple_of_numpy_array(idx.covers(idx2),
+            (np.array([2]), np.array([1])))
+        self._compare_tuple_of_numpy_array(idx.covers(idx3),
+            (np.array([0,1,2,2]), np.array([0,1,1,2])))
 
     def test_intervalIndex_overlaps_intervalIndex(self):
 
         # class IntervalIndex:
-        #     def overlaps(self, other: IntervalIndex) -> Tuple[IntegerArray1D, IntegerArray1D]
+        #     def overlaps(self, other: IntervalIndex) -> Tuple[IntegerArray1D,
+        #                                                       IntegerArray1D]
 
-        idx1 = IntervalIndex.from_tuples([(0, 1), (2, 3), (1, 3)], closed='right')
-        idx2 = IntervalIndex.from_tuples([(0, 1), (2, 3), (1, 3)], closed='left')
-        idx3 = IntervalIndex.from_tuples([(0, 1), (2, 3), (1, 3)], closed='both')
+        idx = IntervalIndex.from_tuples([(0, 1), (2, 3), (1, 3)],
+            closed="right")
 
-        self._compare_tuple_of_numpy_array(idx.overlaps(idx1), (np.array([0,1,2,2]), np.array([0,1,1,2])))
-        self._compare_tuple_of_numpy_array(idx.overlaps(idx2), (np.array([0,0,1,1,2,2]), np.array([0,2,1,2,1,2])))
-        self._compare_tuple_of_numpy_array(idx.overlaps(idx3), (np.array([0,0,1,1,2,2]), np.array([0,2,1,2,1,2])))
+        idx1 = IntervalIndex.from_tuples([(0, 1), (2, 3), (1, 3)],
+            closed="right")
+        idx2 = IntervalIndex.from_tuples([(0, 1), (2, 3), (1, 3)],
+            closed="left")
+        idx3 = IntervalIndex.from_tuples([(0, 1), (2, 3), (1, 3)],
+            closed="both")
+
+        self._compare_tuple_of_numpy_array(idx.overlaps(idx1),
+            (np.array([0,1,2,2]), np.array([0,1,1,2])))
+        self._compare_tuple_of_numpy_array(idx.overlaps(idx2),
+            (np.array([0,0,1,1,2,2]), np.array([0,2,1,2,1,2])))
+        self._compare_tuple_of_numpy_array(idx.overlaps(idx3),
+            (np.array([0,0,1,1,2,2]), np.array([0,2,1,2,1,2])))
