@@ -473,3 +473,4 @@ Other
 
 - Improved error message when attempting to use a Python keyword as an identifier in a ``numexpr`` backed query (:issue:`18221`)
 - :func:`Timestamp.replace` will now handle Daylight Savings transitions gracefully (:issue:`18319`)
+- Bug in :class:`WeekOfMonth` and :class:`LastWeekOfMonth` where default keyword arguments for constructor raised ``ValueError`` (:issue:`19142`)
