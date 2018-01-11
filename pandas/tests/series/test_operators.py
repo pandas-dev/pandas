@@ -1555,18 +1555,6 @@ class TestSeriesOperators(TestData):
         pytest.raises(Exception, self.objSeries.__sub__,
                       np.array(1, dtype=np.int64))
 
-    def test_dt64_series_astype_object(self):
-        dt64ser = Series(date_range('20130101', periods=3))
-        result = dt64ser.astype(object)
-        assert isinstance(result.iloc[0], datetime)
-        assert result.dtype == np.object_
-
-    def test_td64_series_astype_object(self):
-        tdser = Series(['59 Days', '59 Days', 'NaT'], dtype='timedelta64[ns]')
-        result = tdser.astype(object)
-        assert isinstance(result.iloc[0], timedelta)
-        assert result.dtype == np.object_
-
     @pytest.mark.parametrize('unit', ['D', 'h', 'm', 's', 'ms', 'us', 'ns'])
     def test_timedelta64_conversions(self, unit):
         s1 = Series(['59 Days', '59 Days', 'NaT'], dtype='timedelta64[ns]')
