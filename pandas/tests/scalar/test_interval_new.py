@@ -12,13 +12,6 @@ pytestmark = pytest.mark.skip(reason="new indexing tests for issue 16316")
 
 class TestIntervalIndex(Base):
 
-    def _compare_tuple_of_numpy_array(self, result, expected):
-        lidx, ridx = result
-        lidx_expected, ridx_expected = expected
-
-        tm.assert_numpy_array_equal(lidx, lidx_expected)
-        tm.assert_numpy_array_equal(ridx, ridx_expected)
-
     @pytest.mark.parametrize("ivl_side", ['right', 'left', 'both', 'neither'])
     @pytest.mark.parametrize("oth_side", ['right', 'left', 'both', 'neither'])
     def test_interval_covers_interval(self, ivl_side, oth_side):
@@ -46,7 +39,9 @@ class TestIntervalIndex(Base):
                 'right': False, 'left': False, 'both': False, 'neither': True}
         }
 
-        assert ivl.covers(other) == should_cover[ivl_side][oth_side]
+        result = ivl.covers(other)
+        expected = should_cover[ivl_side][oth_side]
+        assert result == expected
 
     @pytest.mark.parametrize("ivl_side", ['right', 'left', 'both', 'neither'])
     @pytest.mark.parametrize("oth_side", ['right', 'left', 'both', 'neither'])
@@ -97,9 +92,11 @@ class TestIntervalIndex(Base):
             }
         }
 
-        assert ivl.overlaps(other) == \
-               should_overlap[oth_side][ivl_side][ivl_range] == \
-               other.overlaps(ivl)
+        result = ivl.overlaps(other)
+        expected = should_overlap[oth_side][ivl_side][ivl_range]
+        other_result = other.overlaps(ivl)
+
+        assert result == expected == other_result
 
     @pytest.mark.parametrize("idx_side", ['right', 'left', 'both', 'neither'])
     @pytest.mark.parametrize("ivl_side", ['right', 'left', 'both', 'neither'])
@@ -162,10 +159,12 @@ class TestIntervalIndex(Base):
             }
         }
 
-        tm.assert_numpy_array_equal(ivl.covers(idx),
-                np.array(should_cover[idx_side][ivl_side][ivl_range]))
-        tm.assert_numpy_array_equal(idx.covers(ivl),
-                np.array(should_cover[idx_side][ivl_side][ivl_range]))
+        result = ivl.covers(idx)
+        expected = np.array(should_cover[idx_side][ivl_side][ivl_range])
+        other_result = idx.covers(ivl)
+
+        tm.assert_numpy_array_equal(result, expected)
+        tm.assert_numpy_array_equal(other_result, expected)
 
     @pytest.mark.parametrize("idx_side", ['right', 'left', 'both', 'neither'])
     @pytest.mark.parametrize("ivl_side", ['right', 'left', 'both', 'neither'])
@@ -232,53 +231,9 @@ class TestIntervalIndex(Base):
             }
         }
 
-        tm.assert_numpy_array_equal(ivl.overlaps(idx),
-                np.array(should_overlap[idx_side][ivl_side][ivl_range]))
-        tm.assert_numpy_array_equal(idx.overlaps(ivl),
-                np.array(should_overlap[idx_side][ivl_side][ivl_range]))
+        result = ivl.overlaps(idx)
+        expected = np.array(should_overlap[idx_side][ivl_side][ivl_range])
+        other_result = idx.overlaps(ivl)
 
-    def test_intervalIndex_covers_intervalIndex(self):
-
-        # class IntervalIndex:
-        #     def covers(self, other: IntervalIndex) -> Tuple[IntegerArray1D,
-        #                                                       IntegerArray1D]
-
-        idx = IntervalIndex.from_tuples([(0, 1), (2, 3), (1, 3)],
-            closed="right")
-
-        idx1 = IntervalIndex.from_tuples([(0, 1), (2, 3), (1, 3)],
-            closed="right")
-        idx2 = IntervalIndex.from_tuples([(0, 1), (2, 3), (1, 3)],
-            closed="left")
-        idx3 = IntervalIndex.from_tuples([(0, 1), (2, 3), (1, 3)],
-            closed="both")
-
-        self._compare_tuple_of_numpy_array(idx.covers(idx1),
-            (np.array([0,1,2,2]), np.array([0,1,1,2])))
-        self._compare_tuple_of_numpy_array(idx.covers(idx2),
-            (np.array([2]), np.array([1])))
-        self._compare_tuple_of_numpy_array(idx.covers(idx3),
-            (np.array([0,1,2,2]), np.array([0,1,1,2])))
-
-    def test_intervalIndex_overlaps_intervalIndex(self):
-
-        # class IntervalIndex:
-        #     def overlaps(self, other: IntervalIndex) -> Tuple[IntegerArray1D,
-        #                                                       IntegerArray1D]
-
-        idx = IntervalIndex.from_tuples([(0, 1), (2, 3), (1, 3)],
-            closed="right")
-
-        idx1 = IntervalIndex.from_tuples([(0, 1), (2, 3), (1, 3)],
-            closed="right")
-        idx2 = IntervalIndex.from_tuples([(0, 1), (2, 3), (1, 3)],
-            closed="left")
-        idx3 = IntervalIndex.from_tuples([(0, 1), (2, 3), (1, 3)],
-            closed="both")
-
-        self._compare_tuple_of_numpy_array(idx.overlaps(idx1),
-            (np.array([0,1,2,2]), np.array([0,1,1,2])))
-        self._compare_tuple_of_numpy_array(idx.overlaps(idx2),
-            (np.array([0,0,1,1,2,2]), np.array([0,2,1,2,1,2])))
-        self._compare_tuple_of_numpy_array(idx.overlaps(idx3),
-            (np.array([0,0,1,1,2,2]), np.array([0,2,1,2,1,2])))
+        tm.assert_numpy_array_equal(result, expected)
+        tm.assert_numpy_array_equal(other_result, expected)
