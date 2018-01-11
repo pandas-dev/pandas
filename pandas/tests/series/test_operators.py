@@ -333,37 +333,33 @@ class TestSeriesComparisons(object):
         expected = Series([False, False, True])
         assert_series_equal(left <= right, expected)
 
+    @pytest.mark.parametrize('data', [
+        [pd.Timestamp('2011-01-01'), NaT, pd.Timestamp('2011-01-03')],
+        [pd.Timedelta('1 days'), NaT, pd.Timedelta('3 days')],
+        [pd.Period('2011-01', freq='M'), NaT, pd.Period('2011-03', freq='M')]
+    ])
     @pytest.mark.parametrize('dtype', [None, object])
-    def test_nat_comparisons_scalar(self, dtype):
-        data = [[pd.Timestamp('2011-01-01'), pd.NaT,
-                 pd.Timestamp('2011-01-03')],
+    def test_nat_comparisons_scalar(self, dtype, data):
+        left = Series(data, dtype=dtype)
 
-                [pd.Timedelta('1 days'), pd.NaT, pd.Timedelta('3 days')],
+        expected = Series([False, False, False])
+        assert_series_equal(left == pd.NaT, expected)
+        assert_series_equal(pd.NaT == left, expected)
 
-                [pd.Period('2011-01', freq='M'), pd.NaT,
-                 pd.Period('2011-03', freq='M')]]
+        expected = Series([True, True, True])
+        assert_series_equal(left != pd.NaT, expected)
+        assert_series_equal(pd.NaT != left, expected)
 
-        for l in data:
-            left = Series(l, dtype=dtype)
+        expected = Series([False, False, False])
+        assert_series_equal(left < pd.NaT, expected)
+        assert_series_equal(pd.NaT > left, expected)
+        assert_series_equal(left <= pd.NaT, expected)
+        assert_series_equal(pd.NaT >= left, expected)
 
-            expected = Series([False, False, False])
-            assert_series_equal(left == pd.NaT, expected)
-            assert_series_equal(pd.NaT == left, expected)
-
-            expected = Series([True, True, True])
-            assert_series_equal(left != pd.NaT, expected)
-            assert_series_equal(pd.NaT != left, expected)
-
-            expected = Series([False, False, False])
-            assert_series_equal(left < pd.NaT, expected)
-            assert_series_equal(pd.NaT > left, expected)
-            assert_series_equal(left <= pd.NaT, expected)
-            assert_series_equal(pd.NaT >= left, expected)
-
-            assert_series_equal(left > pd.NaT, expected)
-            assert_series_equal(pd.NaT < left, expected)
-            assert_series_equal(left >= pd.NaT, expected)
-            assert_series_equal(pd.NaT <= left, expected)
+        assert_series_equal(left > pd.NaT, expected)
+        assert_series_equal(pd.NaT < left, expected)
+        assert_series_equal(left >= pd.NaT, expected)
+        assert_series_equal(pd.NaT <= left, expected)
 
     def test_comparison_different_length(self):
         a = Series(['a', 'b', 'c'])
@@ -1271,7 +1267,7 @@ class TestDatetimeSeriesArithmetic(object):
         assert_series_equal(s - dt, exp)
         assert_series_equal(s - Timestamp(dt), exp)
 
-    def test_dt64series_with_timedelta(self):
+    def test_dt64_series_with_timedelta(self):
         # scalar timedeltas/np.timedelta64 objects
         # operate with np.timedelta64 correctly
         s = Series([Timestamp('20130101 9:01'), Timestamp('20130101 9:02')])
@@ -1290,7 +1286,7 @@ class TestDatetimeSeriesArithmetic(object):
         assert_series_equal(result, expected)
         assert_series_equal(result2, expected)
 
-    def test_dt64series_add_tick_DateOffset(self):
+    def test_dt64_series_add_tick_DateOffset(self):
         # GH 4532
         # operate with pd.offsets
         ser = Series([Timestamp('20130101 9:01'), Timestamp('20130101 9:02')])
@@ -1303,7 +1299,7 @@ class TestDatetimeSeriesArithmetic(object):
         result2 = pd.offsets.Second(5) + ser
         assert_series_equal(result2, expected)
 
-    def test_dt64series_sub_tick_DateOffset(self):
+    def test_dt64_series_sub_tick_DateOffset(self):
         # GH 4532
         # operate with pd.offsets
         ser = Series([Timestamp('20130101 9:01'), Timestamp('20130101 9:02')])
@@ -1319,7 +1315,7 @@ class TestDatetimeSeriesArithmetic(object):
         with pytest.raises(TypeError):
             pd.offsets.Second(5) - ser
 
-    def test_dt64series_with_DateOffset_smoke(self):
+    def test_dt64_series_with_DateOffset_smoke(self):
         # GH 4532
         # smoke tests for valid DateOffsets
         ser = Series([Timestamp('20130101 9:01'), Timestamp('20130101 9:02')])
@@ -1331,7 +1327,7 @@ class TestDatetimeSeriesArithmetic(object):
             ser + offset_cls(5)
             offset_cls(5) + ser
 
-    def test_dt64series_add_mixed_tick_DateOffset(self):
+    def test_dt64_series_add_mixed_tick_DateOffset(self):
         # GH 4532
         # operate with pd.offsets
         s = Series([Timestamp('20130101 9:01'), Timestamp('20130101 9:02')])
@@ -1348,7 +1344,7 @@ class TestDatetimeSeriesArithmetic(object):
                            Timestamp('20130101 9:07:00.005')])
         assert_series_equal(result, expected)
 
-    def test_dt64series_sub_NaT(self):
+    def test_dt64_series_sub_NaT(self):
         # GH#18808
         dti = pd.DatetimeIndex([pd.NaT, pd.Timestamp('19900315')])
         ser = pd.Series(dti)
@@ -1407,7 +1403,7 @@ class TestDatetimeSeriesArithmetic(object):
         with pytest.raises(TypeError):
             one / dt64_series
 
-    def test_dt64series_arith_overflow(self):
+    def test_dt64_series_arith_overflow(self):
         # GH#12534, fixed by #19024
         dt = pd.Timestamp('1700-01-31')
         td = pd.Timedelta('20000 Days')
@@ -1559,13 +1555,13 @@ class TestSeriesOperators(TestData):
         pytest.raises(Exception, self.objSeries.__sub__,
                       np.array(1, dtype=np.int64))
 
-    def test_dt64series_astype_object(self):
+    def test_dt64_series_astype_object(self):
         dt64ser = Series(date_range('20130101', periods=3))
         result = dt64ser.astype(object)
         assert isinstance(result.iloc[0], datetime)
         assert result.dtype == np.object_
 
-    def test_td64series_astype_object(self):
+    def test_td64_series_astype_object(self):
         tdser = Series(['59 Days', '59 Days', 'NaT'], dtype='timedelta64[ns]')
         result = tdser.astype(object)
         assert isinstance(result.iloc[0], timedelta)
