@@ -11,6 +11,7 @@ from pandas import compat
 from pandas.io.formats.printing import pprint_thing
 from pandas.core.common import AbstractMethodError
 from pandas.core.dtypes.common import is_number, is_file_like
+from pandas.io.s3 import is_s3_url
 
 # compat
 from pandas.errors import (ParserError, DtypeWarning,  # noqa
@@ -91,14 +92,6 @@ def _is_url(url):
         return False
 
 
-def _is_s3_url(url):
-    """Check for an s3, s3n, or s3a url"""
-    try:
-        return parse_url(url).scheme in ['s3', 's3n', 's3a']
-    except:
-        return False
-
-
 def _expand_user(filepath_or_buffer):
     """Return the argument with an initial component of ~ or ~user
        replaced by that user's home directory.
@@ -169,7 +162,7 @@ def _stringify_path(filepath_or_buffer):
 
 
 def get_filepath_or_buffer(filepath_or_buffer, encoding=None,
-                           compression=None, mode='rb'):
+                           compression=None, mode=None):
     """
     If the filepath_or_buffer is a url, translate and return the buffer.
     Otherwise passthrough.
@@ -179,7 +172,8 @@ def get_filepath_or_buffer(filepath_or_buffer, encoding=None,
     filepath_or_buffer : a url, filepath (str, py.path.local or pathlib.Path),
                          or buffer
     encoding : the encoding to use to decode py3 bytes, default is 'utf-8'
-    mode : {'rb', 'wb', 'ab'}
+    mode : {'rb', 'wb', 'ab'} applies to S3 where a write mandates opening the
+            file in 'wb' mode.
 
     Returns
     -------
@@ -196,7 +190,7 @@ def get_filepath_or_buffer(filepath_or_buffer, encoding=None,
         reader = BytesIO(req.read())
         return reader, encoding, compression
 
-    if _is_s3_url(filepath_or_buffer):
+    if is_s3_url(filepath_or_buffer):
         from pandas.io import s3
         return s3.get_filepath_or_buffer(filepath_or_buffer,
                                          encoding=encoding,

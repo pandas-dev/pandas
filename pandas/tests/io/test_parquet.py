@@ -236,12 +236,14 @@ class Base(object):
 
         with tm.ensure_clean() as path:
             self.do_round_trip(df, path, engine, expected,
-                               write_kwargs=write_kwargs, read_kwargs=read_kwargs,
+                               write_kwargs=write_kwargs,
+                               read_kwargs=read_kwargs,
                                check_names=check_names)
 
             # repeat
             self.do_round_trip(df, path, engine, expected,
-                               write_kwargs=write_kwargs, read_kwargs=read_kwargs,
+                               write_kwargs=write_kwargs,
+                               read_kwargs=read_kwargs,
                                check_names=check_names)
 
 
@@ -433,7 +435,7 @@ class TestParquetPyArrow(Base):
 
     def test_s3_roundtrip(self, df_compat, s3_resource, pa):
         # GH #19134
-        self.do_round_trip(df_compat, 's3://pandas-test/test.parquet', pa)
+        self.do_round_trip(df_compat, 's3://pandas-test/pyarrow.parquet', pa)
 
 
 class TestParquetFastParquet(Base):
@@ -495,9 +497,6 @@ class TestParquetFastParquet(Base):
         assert len(result) == 1
 
     def test_s3_roundtrip(self, df_compat, s3_resource, fp):
-        print(s3_resource, fp)
-
         # GH #19134
-        with pytest.raises(TypeError):
-            self.do_round_trip(df_compat, 's3://pandas-test/test.parquet', fp)
-
+        with pytest.raises(NotImplementedError):
+            self.do_round_trip(df_compat, 's3://pandas-test/fastparquet.parquet', fp)

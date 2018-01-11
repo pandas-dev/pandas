@@ -6,7 +6,7 @@ from pandas import DataFrame, RangeIndex, Int64Index, get_option
 from pandas.compat import string_types
 from pandas.core.common import AbstractMethodError
 from pandas.io.common import get_filepath_or_buffer
-
+from pandas.io.s3 import is_s3_url
 
 def get_engine(engine):
     """ return our implementation """
@@ -190,6 +190,10 @@ class FastParquetImpl(BaseImpl):
         self.api = fastparquet
 
     def write(self, df, path, compression='snappy', **kwargs):
+        if is_s3_url(path):
+            raise NotImplementedError("fastparquet s3 write is not implemented."
+                                      " Consider using pyarrow instead.")
+
         self.validate_dataframe(df)
         # thriftpy/protocol/compact.py:339:
         # DeprecationWarning: tostring() is deprecated.

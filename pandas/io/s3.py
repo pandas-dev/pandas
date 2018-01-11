@@ -18,8 +18,20 @@ def _strip_schema(url):
     return result.netloc + result.path
 
 
+def is_s3_url(url):
+    """Check for an s3, s3n, or s3a url"""
+    try:
+        return parse_url(url).scheme in ['s3', 's3n', 's3a']
+    except:
+        return False
+
+
 def get_filepath_or_buffer(filepath_or_buffer, encoding=None,
-                           compression=None, mode='rb'):
+                           compression=None, mode=None):
+
+    if mode is None:
+        mode = 'rb'
+
     fs = s3fs.S3FileSystem(anon=False)
     try:
         filepath_or_buffer = fs.open(_strip_schema(filepath_or_buffer), mode)
