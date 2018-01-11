@@ -101,9 +101,6 @@ time conda create -n pandas --file=${REQ} || exit 1
 
 source activate pandas
 
-# https://github.com/travis-ci/travis-ci/issues/8920#issuecomment-352661024
-python -c "import fcntl; fcntl.fcntl(1, fcntl.F_SETFL, 0)"
-
 # may have addtl installation instructions for this build
 echo
 echo "[build addtl installs]"
