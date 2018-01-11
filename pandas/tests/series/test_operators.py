@@ -680,7 +680,7 @@ class TestTimedeltaSeriesArithmetic(object):
         assert_series_equal(ts - s, expected2)
         assert_series_equal(ts + (-s), expected2)
 
-    def test_td64series_add_intlike(self):
+    def test_td64_series_add_intlike(self):
         # GH#19123
         tdi = pd.TimedeltaIndex(['59 days', '59 days', 'NaT'])
         ser = Series(tdi)
@@ -1441,9 +1441,10 @@ class TestDatetimeSeriesArithmetic(object):
         res = dt - ser
         tm.assert_series_equal(res, -expected)
 
-    def test_dt64series_add_intlike(self):
+    @pytest.mark.parametrize('tz', [None, 'Asia/Tokyo'])
+    def test_dt64_series_add_intlike(self, tz):
         # GH#19123
-        dti = pd.DatetimeIndex(['2016-01-02', '2016-02-03', 'NaT'])
+        dti = pd.DatetimeIndex(['2016-01-02', '2016-02-03', 'NaT'], tz=tz)
         ser = Series(dti)
 
         other = Series([20, 30, 40], dtype='uint8')
