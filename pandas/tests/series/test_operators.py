@@ -1315,17 +1315,16 @@ class TestDatetimeSeriesArithmetic(object):
         with pytest.raises(TypeError):
             pd.offsets.Second(5) - ser
 
-    def test_dt64_series_with_DateOffset_smoke(self):
+    @pytest.mark.parametrize('cls_name', ['Day', 'Hour', 'Minute', 'Second',
+                                          'Milli', 'Micro', 'Nano'])
+    def test_dt64_series_with_tick_DateOffset_smoke(self, cls_name):
         # GH 4532
         # smoke tests for valid DateOffsets
         ser = Series([Timestamp('20130101 9:01'), Timestamp('20130101 9:02')])
 
-        # valid DateOffsets
-        for cls_name in ['Day', 'Hour', 'Minute', 'Second',
-                         'Milli', 'Micro', 'Nano']:
-            offset_cls = getattr(pd.offsets, cls_name)
-            ser + offset_cls(5)
-            offset_cls(5) + ser
+        offset_cls = getattr(pd.offsets, cls_name)
+        ser + offset_cls(5)
+        offset_cls(5) + ser
 
     def test_dt64_series_add_mixed_tick_DateOffset(self):
         # GH 4532
