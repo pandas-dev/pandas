@@ -499,7 +499,7 @@ class TestTableOrientReader(object):
         tm.assert_frame_equal(df, result)
 
     @pytest.mark.parametrize("index_nm", [
-        None, "idx", pytest.param("index", marks=pytest.mark.xfail)])
+        None, "idx", "index"])
     @pytest.mark.parametrize("vals", [
         {'timedeltas': pd.timedelta_range('1H', periods=4, freq='T')},
         {'timezones': pd.date_range('2016-01-01', freq='d', periods=4,

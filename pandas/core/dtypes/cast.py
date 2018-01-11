@@ -690,7 +690,7 @@ def astype_nansafe(arr, dtype, copy=True):
             raise ValueError('Cannot convert non-finite values (NA or inf) to '
                              'integer')
 
-    elif arr.dtype == np.object_ and np.issubdtype(dtype.type, np.integer):
+    elif is_object_dtype(arr.dtype) and np.issubdtype(dtype.type, np.integer):
         # work around NumPy brokenness, #1987
         return lib.astype_intsafe(arr.ravel(), dtype).reshape(arr.shape)
 
@@ -703,6 +703,19 @@ def astype_nansafe(arr, dtype, copy=True):
         dtype = np.dtype(dtype.name + "[ns]")
 
     if copy:
+
+        if arr.dtype == dtype:
+            return arr.copy()
+
+        # we handle datetimelikes with pandas machinery
+        # to be robust to the input type
+        elif is_datetime64_dtype(dtype):
+            from pandas import to_datetime
+            return to_datetime(arr).values
+        elif is_timedelta64_dtype(dtype):
+            from pandas import to_timedelta
+            return to_timedelta(arr).values
+
         return arr.astype(dtype)
     return arr.view(dtype)
 
