@@ -2914,37 +2914,54 @@ class SparseBlock(NonConsolidatableMixIn, Block):
                                           placement=self.mgr_locs)
 
 
+_block_type_map = {
+    'int': IntBlock,
+    'complex': ComplexBlock,
+    'float': FloatBlock,
+    'sparse': SparseBlock,
+    'timedelta': TimeDeltaBlock,
+    'bool': BoolBlock,
+    'object': ObjectBlock,
+    'cat': CategoricalBlock,
+    'datetime': DatetimeBlock,
+    'datetime_tz': DatetimeTZBlock}
+
+
+def _get_block_type(values, dtype=None):
+    dtype = dtype or values.dtype
+    vtype = dtype.type
+
+    if is_sparse(values):
+        block_type = 'sparse'
+    elif issubclass(vtype, np.floating):
+        block_type = 'float'
+    elif issubclass(vtype, np.timedelta64):
+        assert issubclass(vtype, np.integer)
+        block_type = 'timedelta'
+    elif issubclass(vtype, np.complexfloating):
+        block_type = 'complex'
+    elif issubclass(vtype, np.datetime64):
+        assert not is_datetimetz(values)
+        block_type = 'datetime'
+    elif is_datetimetz(values):
+        block_type = 'datetime_tz'
+    elif issubclass(vtype, np.integer):
+        block_type = 'int'
+    elif dtype == np.bool_:
+        block_type = 'bool'
+    elif is_categorical(values):
+        block_type = 'cat'
+    else:
+        block_type = 'object'
+    return block_type
+
+
 def make_block(values, placement, klass=None, ndim=None, dtype=None,
                fastpath=False):
     if klass is None:
         dtype = dtype or values.dtype
-        vtype = dtype.type
-
-        if isinstance(values, SparseArray):
-            klass = SparseBlock
-        elif issubclass(vtype, np.floating):
-            klass = FloatBlock
-        elif (issubclass(vtype, np.integer) and
-              issubclass(vtype, np.timedelta64)):
-            klass = TimeDeltaBlock
-        elif (issubclass(vtype, np.integer) and
-              not issubclass(vtype, np.datetime64)):
-            klass = IntBlock
-        elif dtype == np.bool_:
-            klass = BoolBlock
-        elif issubclass(vtype, np.datetime64):
-            if hasattr(values, 'tz'):
-                klass = DatetimeTZBlock
-            else:
-                klass = DatetimeBlock
-        elif is_datetimetz(values):
-            klass = DatetimeTZBlock
-        elif issubclass(vtype, np.complexfloating):
-            klass = ComplexBlock
-        elif is_categorical(values):
-            klass = CategoricalBlock
-        else:
-            klass = ObjectBlock
+        block_type = _get_block_type(values, dtype)
+        klass = _block_type_map[block_type]
 
     elif klass is DatetimeTZBlock and not is_datetimetz(values):
         return klass(values, ndim=ndim, fastpath=fastpath,
@@ -4660,15 +4677,16 @@ def create_block_manager_from_arrays(arrays, names, axes):
 def form_blocks(arrays, names, axes):
     # put "leftover" items in float bucket, where else?
     # generalize?
-    float_items = []
-    complex_items = []
-    int_items = []
-    bool_items = []
-    object_items = []
-    sparse_items = []
-    datetime_items = []
-    datetime_tz_items = []
-    cat_items = []
+    items_dict = {'float': [],
+                  'complex': [],
+                  'int': [],
+                  'bool': [],
+                  'object': [],
+                  'sparse': [],
+                  'timedelta': [],
+                  'datetime': [],
+                  'datetime_tz': [],
+                  'cat': []}
     extra_locs = []
 
     names_idx = Index(names)
@@ -4686,72 +4704,59 @@ def form_blocks(arrays, names, axes):
         k = names[name_idx]
         v = arrays[name_idx]
 
-        if is_sparse(v):
-            sparse_items.append((i, k, v))
-        elif issubclass(v.dtype.type, np.floating):
-            float_items.append((i, k, v))
-        elif issubclass(v.dtype.type, np.complexfloating):
-            complex_items.append((i, k, v))
-        elif issubclass(v.dtype.type, np.datetime64):
-            if v.dtype != _NS_DTYPE:
-                v = conversion.ensure_datetime64ns(v)
+        block_type = _get_block_type(v)
 
-            if is_datetimetz(v):
-                datetime_tz_items.append((i, k, v))
-            else:
-                datetime_items.append((i, k, v))
-        elif is_datetimetz(v):
-            datetime_tz_items.append((i, k, v))
-        elif issubclass(v.dtype.type, np.integer):
-            int_items.append((i, k, v))
-        elif v.dtype == np.bool_:
-            bool_items.append((i, k, v))
-        elif is_categorical(v):
-            cat_items.append((i, k, v))
-        else:
-            object_items.append((i, k, v))
+        if block_type == 'datetime' and v.dtype != _NS_DTYPE:
+            # TODO: i dont think this is necessary
+            v = conversion.ensure_datetime64ns(v)
+
+        items_dict[block_type].append((i, k, v))
 
     blocks = []
-    if len(float_items):
-        float_blocks = _multi_blockify(float_items)
+    if len(items_dict['float']):
+        float_blocks = _multi_blockify(items_dict['float'])
         blocks.extend(float_blocks)
 
-    if len(complex_items):
-        complex_blocks = _multi_blockify(complex_items)
+    if len(items_dict['complex']):
+        complex_blocks = _multi_blockify(items_dict['complex'])
         blocks.extend(complex_blocks)
 
-    if len(int_items):
-        int_blocks = _multi_blockify(int_items)
+    if len(items_dict['timedelta']):
+        timedelta_blocks = _multi_blockify(items_dict['timedelta'])
+        blocks.extend(timedelta_blocks)
+
+    if len(items_dict['int']):
+        int_blocks = _multi_blockify(items_dict['int'])
         blocks.extend(int_blocks)
 
-    if len(datetime_items):
-        datetime_blocks = _simple_blockify(datetime_items, _NS_DTYPE)
+    if len(items_dict['datetime']):
+        datetime_blocks = _simple_blockify(items_dict['datetime'], _NS_DTYPE)
         blocks.extend(datetime_blocks)
 
-    if len(datetime_tz_items):
+    if len(items_dict['datetime_tz']):
         dttz_blocks = [make_block(array,
                                   klass=DatetimeTZBlock,
                                   fastpath=True,
-                                  placement=[i], )
-                       for i, _, array in datetime_tz_items]
+                                  placement=[i])
+                       for i, _, array in items_dict['datetime_tz']]
         blocks.extend(dttz_blocks)
 
-    if len(bool_items):
-        bool_blocks = _simple_blockify(bool_items, np.bool_)
+    if len(items_dict['bool']):
+        bool_blocks = _simple_blockify(items_dict['bool'], np.bool_)
         blocks.extend(bool_blocks)
 
-    if len(object_items) > 0:
-        object_blocks = _simple_blockify(object_items, np.object_)
+    if len(items_dict['object']) > 0:
+        object_blocks = _simple_blockify(items_dict['object'], np.object_)
         blocks.extend(object_blocks)
 
-    if len(sparse_items) > 0:
-        sparse_blocks = _sparse_blockify(sparse_items)
+    if len(items_dict['sparse']) > 0:
+        sparse_blocks = _sparse_blockify(items_dict['sparse'])
         blocks.extend(sparse_blocks)
 
-    if len(cat_items) > 0:
+    if len(items_dict['cat']) > 0:
         cat_blocks = [make_block(array, klass=CategoricalBlock, fastpath=True,
                                  placement=[i])
-                      for i, _, array in cat_items]
+                      for i, _, array in items_dict['cat']]
         blocks.extend(cat_blocks)
 
     if len(extra_locs):
