@@ -495,7 +495,7 @@ def test_dt64_with_DateOffsets_relativedelta(klass, assert_func):
         assert_func(klass([x - op for x in vec]), vec - op)
 
 
-@pytest.mark.parametrize('cls_name', [
+@pytest.mark.parametrize('cls_and_kwargs', [
     'YearBegin', ('YearBegin', {'month': 5}),
     'YearEnd', ('YearEnd', {'month': 5}),
     'MonthBegin', 'MonthEnd',
@@ -518,7 +518,7 @@ def test_dt64_with_DateOffsets_relativedelta(klass, assert_func):
 @pytest.mark.parametrize('klass,assert_func', [
     (Series, tm.assert_series_equal),
     (DatetimeIndex, tm.assert_index_equal)])
-def test_dt64_with_DateOffsets(klass, assert_func, normalize, cls_name):
+def test_dt64_with_DateOffsets(klass, assert_func, normalize, cls_and_kwargs):
     # GH#10699
     # assert these are equal on a piecewise basis
     vec = klass([Timestamp('2000-01-05 00:15:00'),
@@ -530,11 +530,12 @@ def test_dt64_with_DateOffsets(klass, assert_func, normalize, cls_name):
                  Timestamp('2000-05-15'),
                  Timestamp('2001-06-15')])
 
-    if isinstance(cls_name, tuple):
+    if isinstance(cls_and_kwargs, tuple):
         # If cls_name param is a tuple, then 2nd entry is kwargs for
         # the offset constructor
-        cls_name, kwargs = cls_name
+        cls_name, kwargs = cls_and_kwargs
     else:
+        cls_name = cls_and_kwargs
         kwargs = {}
 
     offset_cls = getattr(pd.offsets, cls_name)

@@ -3087,6 +3087,13 @@ def test_get_offset_day_error():
         DateOffset()._get_offset_day(datetime.now())
 
 
+def test_valid_default_arguments(offset_types):
+    # GH#19142 check that the calling the constructors without passing
+    # any keyword arguments produce valid offsets
+    cls = offset_types
+    cls()
+
+
 @pytest.mark.parametrize('kwd', sorted(list(liboffsets.relativedelta_kwds)))
 def test_valid_month_attributes(kwd, month_classes):
     # GH#18226
