@@ -2927,7 +2927,23 @@ _block_type_map = {
     'datetime_tz': DatetimeTZBlock}
 
 
-def _get_block_type(values, dtype=None):
+def get_block_type(values, dtype=None):
+    """
+    Find the appropriate Block subclass to use for the given values and dtype.
+
+    Parameters
+    ----------
+    values : ndarray-like
+    dtype : numpy or pandas dtype
+
+    Returns
+    -------
+    block_type : str
+
+    See Also
+    --------
+    _block_type_map : maps block_type to Block class objects
+    """
     dtype = dtype or values.dtype
     vtype = dtype.type
 
@@ -2960,7 +2976,7 @@ def make_block(values, placement, klass=None, ndim=None, dtype=None,
                fastpath=False):
     if klass is None:
         dtype = dtype or values.dtype
-        block_type = _get_block_type(values, dtype)
+        block_type = get_block_type(values, dtype)
         klass = _block_type_map[block_type]
 
     elif klass is DatetimeTZBlock and not is_datetimetz(values):
@@ -4677,16 +4693,7 @@ def create_block_manager_from_arrays(arrays, names, axes):
 def form_blocks(arrays, names, axes):
     # put "leftover" items in float bucket, where else?
     # generalize?
-    items_dict = {'float': [],
-                  'complex': [],
-                  'int': [],
-                  'bool': [],
-                  'object': [],
-                  'sparse': [],
-                  'timedelta': [],
-                  'datetime': [],
-                  'datetime_tz': [],
-                  'cat': []}
+    items_dict = defaultdict([])
     extra_locs = []
 
     names_idx = Index(names)
@@ -4704,12 +4711,7 @@ def form_blocks(arrays, names, axes):
         k = names[name_idx]
         v = arrays[name_idx]
 
-        block_type = _get_block_type(v)
-
-        if block_type == 'datetime' and v.dtype != _NS_DTYPE:
-            # TODO: i dont think this is necessary
-            v = conversion.ensure_datetime64ns(v)
-
+        block_type = get_block_type(v)
         items_dict[block_type].append((i, k, v))
 
     blocks = []
