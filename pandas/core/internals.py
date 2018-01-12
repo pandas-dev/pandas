@@ -4693,7 +4693,7 @@ def create_block_manager_from_arrays(arrays, names, axes):
 def form_blocks(arrays, names, axes):
     # put "leftover" items in float bucket, where else?
     # generalize?
-    items_dict = defaultdict([])
+    items_dict = defaultdict(list)
     extra_locs = []
 
     names_idx = Index(names)
