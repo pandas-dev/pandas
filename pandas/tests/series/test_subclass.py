@@ -13,24 +13,31 @@ class TestSeriesSubclassing(object):
         res = s.loc[['a', 'b']]
         exp = tm.SubclassedSeries([1, 2], index=list('ab'))
         tm.assert_series_equal(res, exp)
-        assert isinstance(res, tm.SubclassedSeries)
 
         res = s.iloc[[2, 3]]
         exp = tm.SubclassedSeries([3, 4], index=list('cd'))
         tm.assert_series_equal(res, exp)
-        assert isinstance(res, tm.SubclassedSeries)
 
         res = s.loc[['a', 'b']]
         exp = tm.SubclassedSeries([1, 2], index=list('ab'))
         tm.assert_series_equal(res, exp)
-        assert isinstance(res, tm.SubclassedSeries)
 
     def test_to_frame(self):
         s = tm.SubclassedSeries([1, 2, 3, 4], index=list('abcd'), name='xxx')
         res = s.to_frame()
         exp = tm.SubclassedDataFrame({'xxx': [1, 2, 3, 4]}, index=list('abcd'))
         tm.assert_frame_equal(res, exp)
-        assert isinstance(res, tm.SubclassedDataFrame)
+
+    def test_subclass_unstack(self):
+        # GH 15564
+        s = tm.SubclassedSeries(
+            [1, 2, 3, 4], index=[list('aabb'), list('xyxy')])
+
+        res = s.unstack()
+        exp = tm.SubclassedDataFrame(
+            {'x': [1, 3], 'y': [2, 4]}, index=['a', 'b'])
+
+        tm.assert_frame_equal(res, exp)
 
 
 class TestSparseSeriesSubclassing(object):
