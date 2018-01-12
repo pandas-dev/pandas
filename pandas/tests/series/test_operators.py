@@ -847,13 +847,6 @@ class TestTimedeltaSeriesArithmeticWithIntegers(object):
         result = tdser / two
         assert_series_equal(result, expected)
 
-        # invalid ops
-        assert_series_equal(s1 / s2.astype(float),
-                            Series([Timedelta('2 days 22:48:00'), Timedelta(
-                                '1 days 23:12:00'), Timedelta('NaT')]))
-        assert_series_equal(s1 / 2.0,
-                            Series([Timedelta('29 days 12:00:00'), Timedelta(
-                                '29 days 12:00:00'), Timedelta('NaT')]))
 
 class TestTimedeltaSeriesArithmetic(object):
     def test_td64series_add_sub_timestamp(self):
