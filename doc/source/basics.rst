@@ -226,11 +226,11 @@ We can also do elementwise :func:`divmod`:
 Missing data / operations with fill values
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-In Series and DataFrame, the arithmetic functions have the option of inputting 
-a *fill_value*, namely a value to substitute when at most one of the values at 
-a location are missing. For example, when adding two DataFrame objects, you may 
-wish to treat NaN as 0 unless both DataFrames are missing that value, in which 
-case the result will be NaN (you can later replace NaN with some other value 
+In Series and DataFrame, the arithmetic functions have the option of inputting
+a *fill_value*, namely a value to substitute when at most one of the values at
+a location are missing. For example, when adding two DataFrame objects, you may
+wish to treat NaN as 0 unless both DataFrames are missing that value, in which
+case the result will be NaN (you can later replace NaN with some other value
 using ``fillna`` if you wish).
 
 .. ipython:: python
@@ -260,8 +260,8 @@ arithmetic operations described above:
    df.gt(df2)
    df2.ne(df)
 
-These operations produce a pandas object of the same type as the left-hand-side 
-input that is of dtype ``bool``. These ``boolean`` objects can be used in 
+These operations produce a pandas object of the same type as the left-hand-side
+input that is of dtype ``bool``. These ``boolean`` objects can be used in
 indexing operations, see the section on :ref:`Boolean indexing<indexing.boolean>`.
 
 .. _basics.reductions:
@@ -452,7 +452,7 @@ So, for instance, to reproduce :meth:`~DataFrame.combine_first` as above:
 Descriptive statistics
 ----------------------
 
-There exists a large number of methods for computing descriptive statistics and 
+There exists a large number of methods for computing descriptive statistics and
 other related operations on :ref:`Series <api.series.stats>`, :ref:`DataFrame
 <api.dataframe.stats>`, and :ref:`Panel <api.panel.stats>`. Most of these
 are aggregations (hence producing a lower-dimensional result) like
@@ -540,7 +540,7 @@ will exclude NAs on Series input by default:
    np.mean(df['one'])
    np.mean(df['one'].values)
 
-:meth:`Series.nunique` will return the number of unique non-NA values in a 
+:meth:`Series.nunique` will return the number of unique non-NA values in a
 Series:
 
 .. ipython:: python
@@ -852,7 +852,7 @@ Aggregation API
 The aggregation API allows one to express possibly multiple aggregation operations in a single concise way.
 This API is similar across pandas objects, see :ref:`groupby API <groupby.aggregate>`, the
 :ref:`window functions API <stats.aggregate>`, and the :ref:`resample API <timeseries.aggregate>`.
-The entry point for aggregation is :meth:`DataFrame.aggregate`, or the alias 
+The entry point for aggregation is :meth:`DataFrame.aggregate`, or the alias
 :meth:`DataFrame.agg`.
 
 We will use a similar starting frame from above:
@@ -864,8 +864,8 @@ We will use a similar starting frame from above:
    tsdf.iloc[3:7] = np.nan
    tsdf
 
-Using a single function is equivalent to :meth:`~DataFrame.apply`. You can also 
-pass named methods as strings. These will return a ``Series`` of the aggregated 
+Using a single function is equivalent to :meth:`~DataFrame.apply`. You can also
+pass named methods as strings. These will return a ``Series`` of the aggregated
 output:
 
 .. ipython:: python
@@ -887,7 +887,7 @@ Single aggregations on a ``Series`` this will return a scalar value:
 Aggregating with multiple functions
 +++++++++++++++++++++++++++++++++++
 
-You can pass multiple aggregation arguments as a list. 
+You can pass multiple aggregation arguments as a list.
 The results of each of the passed functions will be a row in the resulting ``DataFrame``.
 These are naturally named from the aggregation function.
 
@@ -1430,7 +1430,7 @@ Series can also be used:
    df.rename(columns={'one': 'foo', 'two': 'bar'},
              index={'a': 'apple', 'b': 'banana', 'd': 'durian'})
 
-If the mapping doesn't include a column/index label, it isn't renamed. Note that 
+If the mapping doesn't include a column/index label, it isn't renamed. Note that
 extra labels in the mapping don't throw an error.
 
 .. versionadded:: 0.21.0
@@ -1740,19 +1740,26 @@ description.
 Sorting
 -------
 
-There are two obvious kinds of sorting that you may be interested in: sorting
-by label and sorting by actual values.
+Pandas supports three kinds of sorting: sorting by index labels,
+sorting by column values, and sorting by a combination of both.
+
+.. _basics.sort_index:
 
 By Index
 ~~~~~~~~
 
-The primary method for sorting axis
-labels (indexes) are the ``Series.sort_index()`` and the ``DataFrame.sort_index()`` methods.
+The :meth:`Series.sort_index` and :meth:`DataFrame.sort_index` methods are
+used to sort a pandas object by its index levels.
 
 .. ipython:: python
 
+   df = pd.DataFrame({'one' : pd.Series(np.random.randn(3), index=['a', 'b', 'c']),
+                      'two' : pd.Series(np.random.randn(4), index=['a', 'b', 'c', 'd']),
+                      'three' : pd.Series(np.random.randn(3), index=['b', 'c', 'd'])})
+
    unsorted_df = df.reindex(index=['a', 'd', 'c', 'b'],
                             columns=['three', 'two', 'one'])
+   unsorted_df
 
    # DataFrame
    unsorted_df.sort_index()
@@ -1762,20 +1769,22 @@ labels (indexes) are the ``Series.sort_index()`` and the ``DataFrame.sort_index(
    # Series
    unsorted_df['three'].sort_index()
 
+.. _basics.sort_values:
+
 By Values
 ~~~~~~~~~
 
-The :meth:`Series.sort_values` and :meth:`DataFrame.sort_values` are the entry points for **value** sorting (i.e. the values in a column or row).
-:meth:`DataFrame.sort_values` can accept an optional ``by`` argument for ``axis=0``
-which will use an arbitrary vector or a column name of the DataFrame to
-determine the sort order:
+The :meth:`Series.sort_values` method is used to sort a `Series` by its values. The
+:meth:`DataFrame.sort_values` method is used to sort a `DataFrame` by its column or row values.
+The optional ``by`` parameter to :meth:`DataFrame.sort_values` may used to specify one or more columns
+to use to determine the sorted order.
 
 .. ipython:: python
 
    df1 = pd.DataFrame({'one':[2,1,1,1],'two':[1,3,2,4],'three':[5,4,3,2]})
    df1.sort_values(by='two')
 
-The ``by`` argument can take a list of column names, e.g.:
+The ``by`` parameter can take a list of column names, e.g.:
 
 .. ipython:: python
 
@@ -1790,6 +1799,39 @@ argument:
    s.sort_values()
    s.sort_values(na_position='first')
 
+.. _basics.sort_indexes_and_values:
+
+By Indexes and Values
+~~~~~~~~~~~~~~~~~~~~~
+
+.. versionadded:: 0.23.0
+
+Strings passed as the ``by`` parameter to :meth:`DataFrame.sort_values` may
+refer to either columns or index level names.
+
+.. ipython:: python
+
+   # Build MultiIndex
+   idx = pd.MultiIndex.from_tuples([('a', 1), ('a', 2), ('a', 2),
+                                   ('b', 2), ('b', 1), ('b', 1)])
+   idx.names = ['first', 'second']
+
+   # Build DataFrame
+   df_multi = pd.DataFrame({'A': np.arange(6, 0, -1)},
+                           index=idx)
+   df_multi
+
+Sort by 'second' (index) and 'A' (column)
+
+.. ipython:: python
+
+   df_multi.sort_values(by=['second', 'A'])
+
+.. note::
+
+   If a string matches both a column name and an index level name then a
+   warning is issued and the column takes precedence. This will result in an
+   ambiguity error in a future version.
 
 .. _basics.searchsorted:
 
@@ -1881,7 +1923,7 @@ The main types stored in pandas objects are ``float``, ``int``, ``bool``,
 ``int64`` and ``int32``. See :ref:`Series with TZ <timeseries.timezone_series>`
 for more detail on ``datetime64[ns, tz]`` dtypes.
 
-A convenient :attr:`~DataFrame.dtypes` attribute for DataFrame returns a Series 
+A convenient :attr:`~DataFrame.dtypes` attribute for DataFrame returns a Series
 with the data type of each column.
 
 .. ipython:: python
@@ -1902,8 +1944,8 @@ On a ``Series`` object, use the :attr:`~Series.dtype` attribute.
 
    dft['A'].dtype
 
-If a pandas object contains data with multiple dtypes *in a single column*, the 
-dtype of the column will be chosen to accommodate all of the data types 
+If a pandas object contains data with multiple dtypes *in a single column*, the
+dtype of the column will be chosen to accommodate all of the data types
 (``object`` is the most general).
 
 .. ipython:: python
@@ -1941,7 +1983,7 @@ defaults
 ~~~~~~~~
 
 By default integer types are ``int64`` and float types are ``float64``,
-*regardless* of platform (32-bit or 64-bit). 
+*regardless* of platform (32-bit or 64-bit).
 The following will all result in ``int64`` dtypes.
 
 .. ipython:: python
@@ -2220,7 +2262,7 @@ For example, to select ``bool`` columns:
 
    df.select_dtypes(include=[bool])
 
-You can also pass the name of a dtype in the `numpy dtype hierarchy
+You can also pass the name of a dtype in the `NumPy dtype hierarchy
 <http://docs.scipy.org/doc/numpy/reference/arrays.scalars.html>`__:
 
 .. ipython:: python

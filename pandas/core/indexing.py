@@ -1479,7 +1479,7 @@ class _LocIndexer(_LocationIndexer):
                         KeyError in the future, you can use .reindex() as an alternative.
 
                         See the documentation here:
-                        http://pandas.pydata.org/pandas-docs/stable/indexing.html#deprecate-loc-reindex-listlike""")  # noqa
+                        https://pandas.pydata.org/pandas-docs/stable/indexing.html#deprecate-loc-reindex-listlike""")  # noqa
 
                         if not (ax.is_categorical() or ax.is_interval()):
                             warnings.warn(_missing_key_warning,

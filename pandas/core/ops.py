@@ -597,7 +597,15 @@ def _align_method_SERIES(left, right, align_asobject=False):
 
 
 def _construct_result(left, result, index, name, dtype):
-    return left._constructor(result, index=index, name=name, dtype=dtype)
+    """
+    If the raw op result has a non-None name (e.g. it is an Index object) and
+    the name argument is None, then passing name to the constructor will
+    not be enough; we still need to override the name attribute.
+    """
+    out = left._constructor(result, index=index, dtype=dtype)
+
+    out.name = name
+    return out
 
 
 def _construct_divmod_result(left, result, index, name, dtype):
@@ -687,21 +695,10 @@ def _arith_method_SERIES(op, name, str_rep, fill_zeros=None, default_axis=None,
                     not isinstance(lvalues, ABCDatetimeIndex)):
                 lvalues = lvalues.values
 
-        if isinstance(right, (ABCSeries, pd.Index)):
-            # `left` is always a Series object
-            res_name = _maybe_match_name(left, right)
-        else:
-            res_name = left.name
-
         result = wrap_results(safe_na_op(lvalues, rvalues))
         res_name = _get_series_op_result_name(left, right)
-        return construct_result(
-            left,
-            result,
-            index=left.index,
-            name=res_name,
-            dtype=dtype,
-        )
+        return construct_result(left, result,
+                                index=left.index, name=res_name, dtype=dtype)
 
     return wrapper
 

@@ -24,7 +24,7 @@ if [ "$LINT" ]; then
     echo "Linting setup.py DONE"
 
     echo "Linting asv_bench/benchmarks/"
-    flake8 asv_bench/benchmarks/  --exclude=asv_bench/benchmarks/[ps]*.py --ignore=F811
+    flake8 asv_bench/benchmarks/  --exclude=asv_bench/benchmarks/*.py --ignore=F811
     if [ $? -ne "0" ]; then
         RET=1
     fi
@@ -117,6 +117,14 @@ if [ "$LINT" ]; then
         fi
     done
     echo "Check for incorrect sphinx directives DONE"
+
+    echo "Check for deprecated messages without sphinx directive"
+    grep -R --include="*.py" --include="*.pyx" -E "(DEPRECATED|DEPRECATE|Deprecated)(:|,|\.)" pandas
+
+    if [ $? = "0" ]; then
+        RET=1
+    fi
+    echo "Check for deprecated messages without sphinx directive DONE"
 else
     echo "NOT Linting"
 fi

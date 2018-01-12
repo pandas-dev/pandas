@@ -84,7 +84,7 @@ of multi-axis indexing.
   ``length-1`` of the axis), but may also be used with a boolean
   array.  ``.iloc`` will raise ``IndexError`` if a requested
   indexer is out-of-bounds, except *slice* indexers which allow
-  out-of-bounds indexing.  (this conforms with python/numpy *slice*
+  out-of-bounds indexing.  (this conforms with Python/NumPy *slice*
   semantics).  Allowed inputs are:
 
   - An integer e.g. ``5``.
@@ -640,6 +640,7 @@ For getting *multiple* indexers, using ``.get_indexer``:
   dfd.iloc[[0, 2], dfd.columns.get_indexer(['A', 'B'])]
 
 
+.. _deprecate_loc_reindex_listlike:
 .. _indexing.deprecate_loc_reindex_listlike:
 
 Indexing with list with missing labels is Deprecated
@@ -1517,7 +1518,7 @@ The :meth:`~pandas.DataFrame.lookup` Method
 
 Sometimes you want to extract a set of values given a sequence of row labels
 and column labels, and the ``lookup`` method allows for this and returns a
-numpy array.  For instance:
+NumPy array.  For instance:
 
 .. ipython:: python
 

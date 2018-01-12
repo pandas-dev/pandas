@@ -93,8 +93,10 @@ _shared_doc_kwargs = dict(
 
 # see gh-16971
 def remove_na(arr):
-    """
-    DEPRECATED : this function will be removed in a future version.
+    """Remove null values from array like structure.
+
+    .. deprecated:: 0.21.0
+        Use s[s.notnull()] instead.
     """
 
     warnings.warn("remove_na is deprecated and is a private "
@@ -290,8 +292,10 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
     @classmethod
     def from_array(cls, arr, index=None, name=None, dtype=None, copy=False,
                    fastpath=False):
-        """
-        DEPRECATED: use the pd.Series(..) constructor instead.
+        """Construct Series from array.
+
+        .. deprecated :: 0.23.0
+            Use pd.Series(..) constructor instead.
 
         """
         warnings.warn("'from_array' is deprecated and will be removed in a "
@@ -450,9 +454,11 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
 
     @property
     def asobject(self):
-        """DEPRECATED: Use ``astype(object)`` instead.
+        """Return object Series which contains boxed values.
 
-        return object Series which contains boxed values
+        .. deprecated :: 0.23.0
+            Use ``astype(object) instead.
+
 
         *this is an internal non-public method*
         """
@@ -911,12 +917,10 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
                                  index=new_index).__finalize__(self)
 
     def get_value(self, label, takeable=False):
-        """
-        Quickly retrieve single value at passed index label
+        """Quickly retrieve single value at passed index label
 
         .. deprecated:: 0.21.0
-
-        Please use .at[] or .iat[] accessors.
+            Please use .at[] or .iat[] accessors.
 
         Parameters
         ----------
@@ -940,14 +944,12 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
     _get_value.__doc__ = get_value.__doc__
 
     def set_value(self, label, value, takeable=False):
-        """
-        Quickly set single value at passed label. If label is not contained, a
-        new object is created with the label placed at the end of the result
-        index
+        """Quickly set single value at passed label. If label is not contained,
+        a new object is created with the label placed at the end of the result
+        index.
 
         .. deprecated:: 0.21.0
-
-        Please use .at[] or .iat[] accessors.
+            Please use .at[] or .iat[] accessors.
 
         Parameters
         ----------
@@ -1382,13 +1384,13 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         return self.index[i]
 
     # ndarray compat
-    argmin = deprecate('argmin', idxmin,
+    argmin = deprecate('argmin', idxmin, '0.21.0',
                        msg="'argmin' is deprecated, use 'idxmin' instead. "
                            "The behavior of 'argmin' will be corrected to "
                            "return the positional minimum in the future. "
                            "Use 'series.values.argmin' to get the position of "
                            "the minimum now.")
-    argmax = deprecate('argmax', idxmax,
+    argmax = deprecate('argmax', idxmax, '0.21.0',
                        msg="'argmax' is deprecated, use 'idxmax' instead. "
                            "The behavior of 'argmax' will be corrected to "
                            "return the positional maximum in the future. "
@@ -2120,12 +2122,12 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         return algorithms.SelectNSeries(self, n=n, keep=keep).nsmallest()
 
     def sortlevel(self, level=0, ascending=True, sort_remaining=True):
-        """
-        DEPRECATED: use :meth:`Series.sort_index`
-
-        Sort Series with MultiIndex by chosen level. Data will be
+        """Sort Series with MultiIndex by chosen level. Data will be
         lexicographically sorted by the chosen level followed by the other
-        levels (in order)
+        levels (in order),
+
+        .. deprecated:: 0.20.0
+            Use :meth:`Series.sort_index`
 
         Parameters
         ----------
@@ -2670,7 +2672,12 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         return super(Series, self).shift(periods=periods, freq=freq, axis=axis)
 
     def reindex_axis(self, labels, axis=0, **kwargs):
-        """ for compatibility with higher dims """
+        """Conform Series to new index with optional filling logic.
+
+        .. deprecated:: 0.21.0
+            Use ``Series.reindex`` instead.
+        """
+        # for compatibility with higher dims
         if axis != 0:
             raise ValueError("cannot reindex series on non-zero axis!")
         msg = ("'.reindex_axis' is deprecated and will be removed in a future "
@@ -2808,9 +2815,10 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
     @classmethod
     def from_csv(cls, path, sep=',', parse_dates=True, header=None,
                  index_col=0, encoding=None, infer_datetime_format=False):
-        """
-        Read CSV file (DEPRECATED, please use :func:`pandas.read_csv`
-        instead).
+        """Read CSV file.
+
+        .. deprecated:: 0.21.0
+            Use :func:`pandas.read_csv` instead.
 
         It is preferable to use the more powerful :func:`pandas.read_csv`
         for most general purposes, but ``from_csv`` makes for an easy
@@ -2978,8 +2986,10 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
                 return self.copy()
 
     def valid(self, inplace=False, **kwargs):
-        """DEPRECATED. Series.valid will be removed in a future version.
-        Use :meth:`Series.dropna` instead.
+        """Return Series without null values.
+
+        .. deprecated:: 0.23.0
+            Use :meth:`Series.dropna` instead.
         """
         warnings.warn("Method .valid will be removed in a future version. "
                       "Use .dropna instead.", FutureWarning, stacklevel=2)

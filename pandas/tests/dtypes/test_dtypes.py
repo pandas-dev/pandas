@@ -152,7 +152,7 @@ class TestCategoricalDtype(Base):
         assert result.ordered is expected_ordered
 
     @pytest.mark.parametrize('bad_dtype', [
-        'foo', object, np.int64, PeriodDtype('Q'), IntervalDtype(object)])
+        'foo', object, np.int64, PeriodDtype('Q')])
     def test_update_dtype_errors(self, bad_dtype):
         dtype = CategoricalDtype(list('abc'), False)
         msg = 'a CategoricalDtype must be passed to perform an update, '
@@ -433,7 +433,7 @@ class TestIntervalDtype(Base):
         assert dtype2 == dtype
         assert dtype3 == dtype
         assert dtype is dtype2
-        assert dtype2 is dtype
+        assert dtype2 is dtype3
         assert dtype3 is dtype
         assert hash(dtype) == hash(dtype2)
         assert hash(dtype) == hash(dtype3)
@@ -451,26 +451,52 @@ class TestIntervalDtype(Base):
         assert hash(dtype2) == hash(dtype2)
         assert hash(dtype2) == hash(dtype3)
 
-    def test_construction(self):
-        with pytest.raises(ValueError):
-            IntervalDtype('xx')
-
-        for s in ['interval[int64]', 'Interval[int64]', 'int64']:
-            i = IntervalDtype(s)
-            assert i.subtype == np.dtype('int64')
-            assert is_interval_dtype(i)
-
-    def test_construction_generic(self):
-        # generic
-        i = IntervalDtype('interval')
-        assert i.subtype == ''
+    @pytest.mark.parametrize('subtype', [
+        'interval[int64]', 'Interval[int64]', 'int64', np.dtype('int64')])
+    def test_construction(self, subtype):
+        i = IntervalDtype(subtype)
+        assert i.subtype == np.dtype('int64')
         assert is_interval_dtype(i)
-        assert str(i) == 'interval[]'
 
-        i = IntervalDtype()
+    @pytest.mark.parametrize('subtype', [None, 'interval', 'Interval'])
+    def test_construction_generic(self, subtype):
+        # generic
+        i = IntervalDtype(subtype)
         assert i.subtype is None
         assert is_interval_dtype(i)
-        assert str(i) == 'interval'
+
+    @pytest.mark.parametrize('subtype', [
+        CategoricalDtype(list('abc'), False),
+        CategoricalDtype(list('wxyz'), True),
+        object, str, '<U10', 'interval[category]', 'interval[object]'])
+    def test_construction_not_supported(self, subtype):
+        # GH 19016
+        msg = ('category, object, and string subtypes are not supported '
+               'for IntervalDtype')
+        with tm.assert_raises_regex(TypeError, msg):
+            IntervalDtype(subtype)
+
+    def test_construction_errors(self):
+        msg = 'could not construct IntervalDtype'
+        with tm.assert_raises_regex(ValueError, msg):
+            IntervalDtype('xx')
+
+    def test_construction_from_string(self):
+        result = IntervalDtype('interval[int64]')
+        assert is_dtype_equal(self.dtype, result)
+        result = IntervalDtype.construct_from_string('interval[int64]')
+        assert is_dtype_equal(self.dtype, result)
+
+    @pytest.mark.parametrize('string', [
+        'foo', 'interval[foo]', 'foo[int64]', 0, 3.14, ('a', 'b'), None])
+    def test_construction_from_string_errors(self, string):
+        if isinstance(string, string_types):
+            error, msg = ValueError, 'could not construct IntervalDtype'
+        else:
+            error, msg = TypeError, 'a string needs to be passed, got type'
+
+        with tm.assert_raises_regex(error, msg):
+            IntervalDtype.construct_from_string(string)
 
     def test_subclass(self):
         a = IntervalDtype('interval[int64]')
@@ -495,35 +521,44 @@ class TestIntervalDtype(Base):
         assert not IntervalDtype.is_dtype(np.int64)
         assert not IntervalDtype.is_dtype(np.float64)
 
-    def test_identity(self):
-        assert (IntervalDtype('interval[int64]') ==
-                IntervalDtype('interval[int64]'))
-
     def test_coerce_to_dtype(self):
         assert (_coerce_to_dtype('interval[int64]') ==
                 IntervalDtype('interval[int64]'))
 
-    def test_construction_from_string(self):
-        result = IntervalDtype('interval[int64]')
-        assert is_dtype_equal(self.dtype, result)
-        result = IntervalDtype.construct_from_string('interval[int64]')
-        assert is_dtype_equal(self.dtype, result)
-        with pytest.raises(TypeError):
-            IntervalDtype.construct_from_string('foo')
-        with pytest.raises(TypeError):
-            IntervalDtype.construct_from_string('interval[foo]')
-        with pytest.raises(TypeError):
-            IntervalDtype.construct_from_string('foo[int64]')
-
     def test_equality(self):
         assert is_dtype_equal(self.dtype, 'interval[int64]')
-        assert is_dtype_equal(self.dtype, IntervalDtype('int64'))
         assert is_dtype_equal(self.dtype, IntervalDtype('int64'))
         assert is_dtype_equal(IntervalDtype('int64'), IntervalDtype('int64'))
 
         assert not is_dtype_equal(self.dtype, 'int64')
         assert not is_dtype_equal(IntervalDtype('int64'),
                                   IntervalDtype('float64'))
+
+    @pytest.mark.parametrize('subtype', [
+        None, 'interval', 'Interval', 'int64', 'uint64', 'float64',
+        'complex128', 'datetime64', 'timedelta64', PeriodDtype('Q')])
+    def test_equality_generic(self, subtype):
+        # GH 18980
+        dtype = IntervalDtype(subtype)
+        assert is_dtype_equal(dtype, 'interval')
+        assert is_dtype_equal(dtype, IntervalDtype())
+
+    @pytest.mark.parametrize('subtype', [
+        'int64', 'uint64', 'float64', 'complex128', 'datetime64',
+        'timedelta64', PeriodDtype('Q')])
+    def test_name_repr(self, subtype):
+        # GH 18980
+        dtype = IntervalDtype(subtype)
+        expected = 'interval[{subtype}]'.format(subtype=subtype)
+        assert str(dtype) == expected
+        assert dtype.name == 'interval'
+
+    @pytest.mark.parametrize('subtype', [None, 'interval', 'Interval'])
+    def test_name_repr_generic(self, subtype):
+        # GH 18980
+        dtype = IntervalDtype(subtype)
+        assert str(dtype) == 'interval'
+        assert dtype.name == 'interval'
 
     def test_basic(self):
         assert is_interval_dtype(self.dtype)
