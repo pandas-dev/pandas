@@ -57,7 +57,7 @@ class JSONArray(ExtensionArray):
     take_nd = take
 
     def formatting_values(self):
-        return np.array(self.data)
+        return np.array(self.data).ravel()
 
     def get_values(self):
         return np.array(self.data)

@@ -187,7 +187,6 @@ class PeriodArray(DatetimeIndexOpsMixin, ExtensionArray):
         if freq:
             freq = Period._maybe_convert_freq(freq)
 
-        # TODO: handle copy
         if data is None:
             if ordinal is not None:
                 data = np.asarray(ordinal, dtype=np.int64)
@@ -337,7 +336,6 @@ class PeriodArray(DatetimeIndexOpsMixin, ExtensionArray):
     def astype(self, dtype, copy=True, how='start'):
         dtype = pandas_dtype(dtype)
         if is_object_dtype(dtype):
-            # TODO: perf
             return np.array([Period._from_ordinal(p, self.freq)
                              for p in self], dtype='object')
         else:
