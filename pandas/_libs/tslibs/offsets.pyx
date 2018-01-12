@@ -290,27 +290,6 @@ class CacheableOffset(object):
     _cacheable = True
 
 
-class EndMixin(object):
-    # helper for vectorized offsets
-
-    def _end_apply_index(self, i, freq):
-        """Offsets index to end of Period frequency"""
-
-        off = i.to_perioddelta('D')
-
-        base, mult = get_freq_code(freq)
-        base_period = i.to_period(base)
-        if self.n > 0:
-            # when adding, dates on end roll to next
-            roll = np.where(base_period.to_timestamp(how='end') == i - off,
-                            self.n, self.n - 1)
-        else:
-            roll = self.n
-
-        base = (base_period + roll).to_timestamp(how='end')
-        return base + off
-
-
 # ---------------------------------------------------------------------
 # Base Classes
 
@@ -675,11 +654,8 @@ def shift_months(int64_t[:] dtindex, int months, object day=None):
                 months_to_roll = months
                 compare_day = get_firstbday(dts.year, dts.month)
 
-                if months_to_roll > 0 and dts.day < compare_day:
-                    months_to_roll -= 1
-                elif months_to_roll <= 0 and dts.day > compare_day:
-                    # as if rolled forward already
-                    months_to_roll += 1
+                months_to_roll = roll_convention(dts.day, months_to_roll,
+                                                 compare_day)
 
                 dts.year = year_add_months(dts, months_to_roll)
                 dts.month = month_add_months(dts, months_to_roll)
@@ -698,11 +674,8 @@ def shift_months(int64_t[:] dtindex, int months, object day=None):
                 months_to_roll = months
                 compare_day = get_lastbday(dts.year, dts.month)
 
-                if months_to_roll > 0 and dts.day < compare_day:
-                    months_to_roll -= 1
-                elif months_to_roll <= 0 and dts.day > compare_day:
-                    # as if rolled forward already
-                    months_to_roll += 1
+                months_to_roll = roll_convention(dts.day, months_to_roll,
+                                                 compare_day)
 
                 dts.year = year_add_months(dts, months_to_roll)
                 dts.month = month_add_months(dts, months_to_roll)
@@ -823,7 +796,7 @@ cpdef int get_day_of_month(datetime other, day_opt) except? -1:
         raise ValueError(day_opt)
 
 
-cpdef int roll_convention(int other, int n, int compare):
+cpdef int roll_convention(int other, int n, int compare) nogil:
     """
     Possibly increment or decrement the number of periods to shift
     based on rollforward/rollbackward conventions.
