@@ -3162,8 +3162,7 @@ class ExtensionBlock(BlockOpsMixin, NonConsolidatableMixIn):
 
     def to_dense(self):
         """The array backing your data."""
-        # XXX: this *must* be a view?
-        return self.values.to_dense()
+        return self.values.get_values()
 
     @property
     def _can_hold_na(self) -> bool:

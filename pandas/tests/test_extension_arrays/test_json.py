@@ -62,9 +62,6 @@ class JSONArray(ExtensionArray):
     def get_values(self):
         return np.array(self.data)
 
-    def to_dense(self):
-        return self.get_values()
-
     def slice(self, slicer):
         return self[slicer]
 

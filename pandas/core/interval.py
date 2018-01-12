@@ -412,9 +412,6 @@ class IntervalArray(IntervalMixin, ExtensionArray):
 
     take_nd = take
 
-    def to_dense(self):
-        return self.values
-
     def _format_data(self):
 
         # TODO: integrate with categorical and make generic

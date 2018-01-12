@@ -16,13 +16,6 @@ class ExtensionDtype(metaclass=abc.ABCMeta):
         return type(self.name, (), {})
 
     @property
-    @abc.abstractmethod
-    def base(self):
-        # type: () -> np.dtype
-        # TODO: what do we need from this?
-        pass
-
-    @property
     def kind(self):
         # type: () -> str
         """A character code (one of 'biufcmMOSUV'), default 'O'
@@ -221,12 +214,6 @@ class ExtensionArray(metaclass=abc.ABCMeta):
         # Categorical does an ndarray
         """Get the underlying values backing your data
         """
-        pass
-
-    @abc.abstractmethod
-    def to_dense(self):
-        # type: () -> ExtensionArray
-        # TODO: this shouldn't be abstract.
         pass
 
     @property

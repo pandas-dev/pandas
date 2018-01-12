@@ -366,9 +366,6 @@ class PeriodArray(DatetimeIndexOpsMixin, ExtensionArray):
         values = np.concatenate([other._data for other in to_concat])
         return cls._from_ordinals(values, freq=to_concat[0].freq)
 
-    def to_dense(self):
-        return self._data
-
     def get_values(self):
         return self._data
 

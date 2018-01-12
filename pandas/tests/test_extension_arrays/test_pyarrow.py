@@ -73,9 +73,6 @@ class ArrowArray(ExtensionArray):
     def get_values(self):
         return self.data
 
-    def to_dense(self):
-        return self.data
-
     def formatting_values(self):
         return self.data.to_pandas()
 
