@@ -37,8 +37,23 @@ class _Unstacker(object):
 
     Parameters
     ----------
+    values : ndarray
+        Values of DataFrame to "Unstack"
+    index : object
+        Pandas ``Index``
     level : int or str, default last level
         Level to "unstack". Accepts a name for the level.
+    value_columns : Index, optional
+        Pandas ``Index`` or ``MultiIndex`` object if unstacking a DataFrame
+    fill_value : scalar, optional
+        Default value to fill in missing values if subgroups do not have the
+        same set of labels. By default, missing values will be replaced with
+        the default fill value for that data type, NaN for float, NaT for
+        datetimelike, etc. For integer types, by default data will converted to
+        float and missing values will be set to NaN.
+    constructor : object
+        Pandas ``DataFrame`` or subclass used to create unstacked
+        response.  If None, DataFrame or SparseDataFrame will be used.
 
     Examples
     --------
@@ -69,7 +84,7 @@ class _Unstacker(object):
     """
 
     def __init__(self, values, index, level=-1, value_columns=None,
-                 fill_value=None):
+                 fill_value=None, constructor=None):
 
         self.is_categorical = None
         self.is_sparse = is_sparse(values)
@@ -85,6 +100,14 @@ class _Unstacker(object):
         self.values = values
         self.value_columns = value_columns
         self.fill_value = fill_value
+
+        if constructor is None:
+            if self.is_sparse:
+                self.constructor = SparseDataFrame
+            else:
+                self.constructor = DataFrame
+        else:
+            self.constructor = constructor
 
         if value_columns is None and values.shape[1] != 1:  # pragma: no cover
             raise ValueError('must pass column labels for multi-column data')
@@ -173,8 +196,7 @@ class _Unstacker(object):
                                   ordered=ordered)
                       for i in range(values.shape[-1])]
 
-        klass = SparseDataFrame if self.is_sparse else DataFrame
-        return klass(values, index=index, columns=columns)
+        return self.constructor(values, index=index, columns=columns)
 
     def get_new_values(self):
         values = self.values
@@ -374,8 +396,9 @@ def pivot(self, index=None, columns=None, values=None):
             index = self.index
         else:
             index = self[index]
-        indexed = Series(self[values].values,
-                         index=MultiIndex.from_arrays([index, self[columns]]))
+        indexed = self._constructor_sliced(
+            self[values].values,
+            index=MultiIndex.from_arrays([index, self[columns]]))
         return indexed.unstack(columns)
 
 
@@ -461,7 +484,8 @@ def unstack(obj, level, fill_value=None):
             return obj.T.stack(dropna=False)
     else:
         unstacker = _Unstacker(obj.values, obj.index, level=level,
-                               fill_value=fill_value)
+                               fill_value=fill_value,
+                               constructor=obj._constructor_expanddim)
         return unstacker.get_result()
 
 
@@ -470,12 +494,12 @@ def _unstack_frame(obj, level, fill_value=None):
         unstacker = partial(_Unstacker, index=obj.index,
                             level=level, fill_value=fill_value)
         blocks = obj._data.unstack(unstacker)
-        klass = type(obj)
-        return klass(blocks)
+        return obj._constructor(blocks)
     else:
         unstacker = _Unstacker(obj.values, obj.index, level=level,
                                value_columns=obj.columns,
-                               fill_value=fill_value)
+                               fill_value=fill_value,
+                               constructor=obj._constructor)
         return unstacker.get_result()
 
 
@@ -528,8 +552,7 @@ def stack(frame, level=-1, dropna=True):
         new_values = new_values[mask]
         new_index = new_index[mask]
 
-    klass = type(frame)._constructor_sliced
-    return klass(new_values, index=new_index)
+    return frame._constructor_sliced(new_values, index=new_index)
 
 
 def stack_multiple(frame, level, dropna=True):
@@ -628,7 +651,11 @@ def _stack_multi_columns(frame, level_num=-1, dropna=True):
     levsize = len(level_labels)
     drop_cols = []
     for key in unique_groups:
-        loc = this.columns.get_loc(key)
+        try:
+            loc = this.columns.get_loc(key)
+        except KeyError:
+            drop_cols.append(key)
+            continue
 
         # can make more efficient?
         # we almost always return a slice
@@ -639,10 +666,7 @@ def _stack_multi_columns(frame, level_num=-1, dropna=True):
         else:
             slice_len = loc.stop - loc.start
 
-        if slice_len == 0:
-            drop_cols.append(key)
-            continue
-        elif slice_len != levsize:
+        if slice_len != levsize:
             chunk = this.loc[:, this.columns[loc]]
             chunk.columns = level_vals.take(chunk.columns.labels[-1])
             value_slice = chunk.reindex(columns=level_vals_used).values
@@ -675,7 +699,7 @@ def _stack_multi_columns(frame, level_num=-1, dropna=True):
     new_index = MultiIndex(levels=new_levels, labels=new_labels,
                            names=new_names, verify_integrity=False)
 
-    result = DataFrame(new_data, index=new_index, columns=new_columns)
+    result = frame._constructor(new_data, index=new_index, columns=new_columns)
 
     # more efficient way to go about this? can do the whole masking biz but
     # will only save a small amount of time...

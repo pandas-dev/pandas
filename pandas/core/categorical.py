@@ -596,19 +596,6 @@ class Categorical(PandasObject):
 
     codes = property(fget=_get_codes, fset=_set_codes, doc=_codes_doc)
 
-    def _get_labels(self):
-        """
-        Get the category labels (deprecated).
-
-        .. deprecated:: 0.15.0
-            Use `.codes()` instead.
-        """
-        warn("'labels' is deprecated. Use 'codes' instead", FutureWarning,
-             stacklevel=2)
-        return self.codes
-
-    labels = property(fget=_get_labels, fset=_set_codes)
-
     def _set_categories(self, categories, fastpath=False):
         """ Sets new categories inplace
 

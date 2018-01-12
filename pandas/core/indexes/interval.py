@@ -4,6 +4,7 @@ import numpy as np
 
 from pandas.core.dtypes.missing import notna, isna
 from pandas.core.dtypes.dtypes import IntervalDtype
+from pandas.core.dtypes.cast import find_common_type
 from pandas.core.dtypes.common import (
     _ensure_platform_int,
     is_list_like,
@@ -12,6 +13,7 @@ from pandas.core.dtypes.common import (
     is_integer_dtype,
     is_float_dtype,
     is_interval_dtype,
+    is_object_dtype,
     is_scalar,
     is_float,
     is_number,
@@ -1148,9 +1150,25 @@ class IntervalIndex(IntervalMixin, Index):
             msg = ('can only do set operations between two IntervalIndex '
                    'objects that are closed on the same side')
             other = self._as_like_interval_index(other, msg)
+
+            # GH 19016: ensure set op will not return a prohibited dtype
+            subtypes = [self.dtype.subtype, other.dtype.subtype]
+            common_subtype = find_common_type(subtypes)
+            if is_object_dtype(common_subtype):
+                msg = ('can only do {op} between two IntervalIndex '
+                       'objects that have compatible dtypes')
+                raise TypeError(msg.format(op=op_name))
+
             result = getattr(self._multiindex, op_name)(other._multiindex)
             result_name = self.name if self.name == other.name else None
-            return type(self).from_tuples(result.values, closed=self.closed,
+
+            # GH 19101: ensure empty results have correct dtype
+            if result.empty:
+                result = result.values.astype(self.dtype.subtype)
+            else:
+                result = result.values
+
+            return type(self).from_tuples(result, closed=self.closed,
                                           name=result_name)
         return func
 

@@ -3105,10 +3105,8 @@ def make_block(values, placement, klass=None, ndim=None, dtype=None,
         elif dtype == np.bool_:
             klass = BoolBlock
         elif issubclass(vtype, np.datetime64):
-            if hasattr(values, 'tz'):
-                klass = DatetimeTZBlock
-            else:
-                klass = DatetimeBlock
+            assert not hasattr(values, 'tz')
+            klass = DatetimeBlock
         elif is_datetimetz(values):
             klass = DatetimeTZBlock
         elif issubclass(vtype, np.complexfloating):
@@ -4939,11 +4937,8 @@ def form_blocks(arrays, names, axes):
             if v.dtype != _NS_DTYPE:
                 v = conversion.ensure_datetime64ns(v)
 
-            if is_datetimetz(v):
-                datetime_tz_items.append((i, k, v))
-            else:
-                datetime_items.append((i, k, v))
-        # TODO: cleanup
+            assert not is_datetimetz(v)
+            datetime_items.append((i, k, v))
         elif is_datetimetz(v):
             datetime_tz_items.append((i, k, v))
         elif issubclass(v.dtype.type, np.integer):
