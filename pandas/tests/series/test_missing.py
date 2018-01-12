@@ -1278,3 +1278,16 @@ class TestSeriesInterpolateData(TestData):
         result = ts.reindex(new_index).interpolate(method='time')
 
         tm.assert_numpy_array_equal(result.values, exp.values)
+
+    @pytest.mark.parametrize('tz', [None, 'US/Central'])
+    def test_interpolate_dt64_values(self, tz):
+        index = pd.Index([23, 26, 30])
+        dti = pd.DatetimeIndex(['2015-09-23', '2015-09-26', '2015-09-30'],
+                               tz=tz)
+        ser = pd.Series(dti, index=index).reindex(range(23, 31))
+
+        dti_ex = pd.date_range('2015-09-23', '2015-09-30', tz=tz)
+        expected = pd.Series(dti_ex, index=ser.index)
+
+        result = ser.interpolate()
+        tm.assert_series_equal(expected, result)

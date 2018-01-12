@@ -5143,8 +5143,11 @@ class NDFrame(PandasObject, SelectionMixin):
             raise ValueError("Only `method=linear` interpolation is supported "
                              "on MultiIndexes.")
 
-        if _maybe_transposed_self._data.get_dtype_counts().get(
-                'object') == len(_maybe_transposed_self.T):
+        dtype_counts = _maybe_transposed_self._data.get_dtype_counts()
+        if ('object' in dtype_counts and
+                dtype_counts.get('object') == len(_maybe_transposed_self.T)):
+            # Checking for 'object' lets us avoid sometimes-fragile tranpose
+            # call GH#19198
             raise TypeError("Cannot interpolate with all NaNs.")
 
         # create/use the index

@@ -2588,6 +2588,58 @@ class DatetimeBlock(DatetimeLikeBlockMixin, Block):
 
         self.values[locs] = values
 
+    def _interpolate(self, method=None, index=None, values=None,
+                     fill_value=None, axis=0, limit=None,
+                     limit_direction='forward', inplace=False, downcast=None,
+                     mgr=None, **kwargs):
+        """ interpolate using scipy wrappers, adapted to datetime64 values"""
+
+        inplace = validate_bool_kwarg(inplace, 'inplace')
+        data = self.values if inplace else self.values.copy()
+
+        # only deal with floats
+        mask = isna(self.values)
+        if self.is_datetimetz:
+            # Convert to UTC for interpolation
+            data = data.tz_convert('UTC').values
+        if self.ndim > 1:
+            # DataFrame
+            data = np.atleast_2d(data)
+            mask = np.atleast_2d(mask)
+        data = data.astype(np.float64)
+        data[mask] = np.nan
+
+        if fill_value is None:
+            fill_value = self.fill_value
+
+        if method in ('krogh', 'piecewise_polynomial', 'pchip'):
+            if not index.is_monotonic:
+                raise ValueError("{0} interpolation requires that the "
+                                 "index be monotonic.".format(method))
+        # process 1-d slices in the axis direction
+
+        def func(x):
+            # process a 1-d slice, returning it
+            # should the axis argument be handled below in apply_along_axis?
+            # i.e. not an arg to missing.interpolate_1d
+            return missing.interpolate_1d(index, x, method=method, limit=limit,
+                                          limit_direction=limit_direction,
+                                          fill_value=fill_value,
+                                          bounds_error=False, **kwargs)
+
+        # interp each column independently
+        interp_values = np.apply_along_axis(func, axis, data)
+        if self.is_datetimetz:
+            interp_values = interp_values.squeeze()
+            utc_values = self._holder(interp_values, tz='UTC')
+            interp_values = utc_values.tz_convert(self.values.tz)
+        else:
+            interp_values = interp_values.astype(self.dtype)
+
+        blocks = [self.make_block(interp_values, klass=self.__class__,
+                                  fastpath=True)]
+        return self._maybe_downcast(blocks, downcast)
+
 
 class DatetimeTZBlock(NonConsolidatableMixIn, DatetimeBlock):
     """ implement a datetime64 block with a tz attribute """

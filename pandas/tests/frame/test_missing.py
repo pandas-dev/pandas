@@ -816,3 +816,16 @@ class TestDataFrameInterpolate(TestData):
         # all good
         result = df[['B', 'D']].interpolate(downcast=None)
         assert_frame_equal(result, df[['B', 'D']])
+
+    @pytest.mark.parametrize('tz', [None, 'US/Central'])
+    def test_interpolate_dt64_values(self, tz):
+        index = pd.Index([23, 26, 30])
+        dti = pd.DatetimeIndex(['2015-09-23', '2015-09-26', '2015-09-30'],
+                               tz=tz)
+        df = DataFrame(dti, index=index).reindex(range(23, 31))
+
+        dti_ex = pd.date_range('2015-09-23', '2015-09-30', tz=tz)
+        expected = DataFrame(dti_ex, index=df.index)
+
+        result = df.interpolate()
+        assert_frame_equal(expected, result)
