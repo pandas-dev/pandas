@@ -1003,8 +1003,10 @@ def maybe_cast_to_datetime(value, dtype, errors='raise'):
                         if is_datetime64:
                             value = to_datetime(value, errors=errors)._values
                         elif is_datetime64tz:
-                            # This block can be simplified once PR #17413 is
-                            # complete
+                            # The string check can be removed once issue #13712
+                            # is solved. String data that is passed with a
+                            # datetime64tz is assumed to be naive which should
+                            # be localized to the timezone.
                             is_dt_string = is_string_dtype(value)
                             value = to_datetime(value, errors=errors)
                             if is_dt_string:
