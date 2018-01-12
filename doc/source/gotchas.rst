@@ -343,9 +343,8 @@ Example of exploding nested lists into a DataFrame:
 .. ipython:: python
 
    df = pd.DataFrame({'name': ['A.J. Price'] * 3, 
-                      'opponent': ['76ers', 'blazers', 'bobcats'], 
-                      'nearest_neighbors': [['Zach LaVine', 'Jeremy Lin', 'Nate Robinson', 'Isaia']] * 3},
-                     columns=['name','opponent','attribute x','nearest_neighbors'])
+                      'opponent': ['76ers', 'blazers', 'bobcats']},
+                     columns=['name','opponent'])
    df
 
    nearest_neighbors = [['Zach LaVine', 'Jeremy Lin', 'Nate Robinson', 'Isaia']]*3
@@ -388,7 +387,7 @@ Example of exploding a list embedded in a dataframe:
    df = pd.DataFrame({'name': ['A.J. Price'] * 3, 
                       'opponent': ['76ers', 'blazers', 'bobcats'], 
                       'nearest_neighbors': [['Zach LaVine', 'Jeremy Lin', 'Nate Robinson', 'Isaia']] * 3},
-                     columns=['name','opponent','attribute x','nearest_neighbors'])
+                     columns=['name','opponent','nearest_neighbors'])
    df
 
    #. Create an index with the "parent" columns to be included in the final Dataframe
