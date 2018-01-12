@@ -20,7 +20,7 @@ from .common import (_ensure_object, is_bool, is_integer, is_float,
                      is_integer_dtype,
                      is_datetime_or_timedelta_dtype,
                      is_bool_dtype, is_scalar,
-                     _string_dtypes,
+                     is_string_dtype, _string_dtypes,
                      pandas_dtype,
                      _ensure_int8, _ensure_int16,
                      _ensure_int32, _ensure_int64,
@@ -1016,12 +1016,20 @@ def maybe_cast_to_datetime(value, dtype, errors='raise'):
                         if is_datetime64:
                             value = to_datetime(value, errors=errors)._values
                         elif is_datetime64tz:
-                            # input has to be UTC at this point, so just
-                            # localize
-                            value = (to_datetime(value, errors=errors)
-                                     .tz_localize('UTC')
-                                     .tz_convert(dtype.tz)
-                                     )
+                            # The string check can be removed once issue #13712
+                            # is solved. String data that is passed with a
+                            # datetime64tz is assumed to be naive which should
+                            # be localized to the timezone.
+                            is_dt_string = is_string_dtype(value)
+                            value = to_datetime(value, errors=errors)
+                            if is_dt_string:
+                                # Strings here are naive, so directly localize
+                                value = value.tz_localize(dtype.tz)
+                            else:
+                                # Numeric values are UTC at this point,
+                                # so localize and convert
+                                value = (value.tz_localize('UTC')
+                                         .tz_convert(dtype.tz))
                         elif is_timedelta64:
                             value = to_timedelta(value, errors=errors)._values
                     except (AttributeError, ValueError, TypeError):
