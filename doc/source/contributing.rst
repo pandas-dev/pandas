@@ -858,9 +858,9 @@ takes a regular expression.  For example, this will only run tests from a
 If you want to only run a specific group of tests from a file, you can do it
 using ``.`` as a separator. For example::
 
-    asv continuous -f 1.1 upstream/master HEAD -b groupby.groupby_agg_builtins
+    asv continuous -f 1.1 upstream/master HEAD -b groupby.GroupByMethods
 
-will only run the ``groupby_agg_builtins`` benchmark defined in ``groupby.py``.
+will only run the ``GroupByMethods`` benchmark defined in ``groupby.py``.
 
 You can also run the benchmark suite using the version of ``pandas``
 already installed in your current Python environment. This can be
