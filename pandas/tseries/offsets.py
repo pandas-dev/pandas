@@ -16,7 +16,7 @@ from dateutil.easter import easter
 from pandas._libs import tslib, Timestamp, OutOfBoundsDatetime, Timedelta
 from pandas.util._decorators import cache_readonly
 
-from pandas._libs.tslibs import ccalendar
+from pandas._libs.tslibs import ccalendar, frequencies as libfrequencies
 from pandas._libs.tslibs.timedeltas import delta_to_nanoseconds
 import pandas._libs.tslibs.offsets as liboffsets
 from pandas._libs.tslibs.offsets import (
@@ -27,7 +27,6 @@ from pandas._libs.tslibs.offsets import (
     apply_index_wraps,
     roll_yearday,
     shift_month,
-    EndMixin,
     BaseOffset)
 
 
@@ -1308,7 +1307,7 @@ class SemiMonthBegin(SemiMonthOffset):
 # ---------------------------------------------------------------------
 # Week-Based Offset Classes
 
-class Week(EndMixin, DateOffset):
+class Week(DateOffset):
     """
     Weekly offset
 
@@ -1356,7 +1355,34 @@ class Week(EndMixin, DateOffset):
             return ((i.to_period('W') + self.n).to_timestamp() +
                     i.to_perioddelta('W'))
         else:
-            return self._end_apply_index(i, self.freqstr)
+            return self._end_apply_index(i)
+
+    def _end_apply_index(self, dtindex):
+        """Add self to the given DatetimeIndex, specialized for case where
+        self.weekday is non-null.
+
+        Parameters
+        ----------
+        dtindex : DatetimeIndex
+
+        Returns
+        -------
+        result : DatetimeIndex
+        """
+        off = dtindex.to_perioddelta('D')
+
+        base, mult = libfrequencies.get_freq_code(self.freqstr)
+        base_period = dtindex.to_period(base)
+        if self.n > 0:
+            # when adding, dates on end roll to next
+            normed = dtindex - off
+            roll = np.where(base_period.to_timestamp(how='end') == normed,
+                            self.n, self.n - 1)
+        else:
+            roll = self.n
+
+        base = (base_period + roll).to_timestamp(how='end')
+        return base + off
 
     def onOffset(self, dt):
         if self.normalize and not _is_normalized(dt):
@@ -1411,9 +1437,9 @@ class WeekOfMonth(_WeekOfMonthMixin, DateOffset):
     Parameters
     ----------
     n : int
-    week : {0, 1, 2, 3, ...}, default None
+    week : {0, 1, 2, 3, ...}, default 0
         0 is 1st week of month, 1 2nd week, etc.
-    weekday : {0, 1, ..., 6}, default None
+    weekday : {0, 1, ..., 6}, default 0
         0: Mondays
         1: Tuesdays
         2: Wednesdays
@@ -1425,7 +1451,7 @@ class WeekOfMonth(_WeekOfMonthMixin, DateOffset):
     _prefix = 'WOM'
     _adjust_dst = True
 
-    def __init__(self, n=1, normalize=False, week=None, weekday=None):
+    def __init__(self, n=1, normalize=False, week=0, weekday=0):
         self.n = self._validate_n(n)
         self.normalize = normalize
         self.weekday = weekday
@@ -1488,7 +1514,7 @@ class LastWeekOfMonth(_WeekOfMonthMixin, DateOffset):
     Parameters
     ----------
     n : int, default 1
-    weekday : {0, 1, ..., 6}, default None
+    weekday : {0, 1, ..., 6}, default 0
         0: Mondays
         1: Tuesdays
         2: Wednesdays
@@ -1501,7 +1527,7 @@ class LastWeekOfMonth(_WeekOfMonthMixin, DateOffset):
     _prefix = 'LWOM'
     _adjust_dst = True
 
-    def __init__(self, n=1, normalize=False, weekday=None):
+    def __init__(self, n=1, normalize=False, weekday=0):
         self.n = self._validate_n(n)
         self.normalize = normalize
         self.weekday = weekday
