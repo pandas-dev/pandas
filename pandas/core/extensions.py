@@ -241,4 +241,5 @@ class ExtensionArray(metaclass=abc.ABCMeta):
 
     def slice(self, slicer):
         # TODO: is this right?
+        # In general, no. Probably just remove it?
         return self.get_values()[slicer]

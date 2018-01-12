@@ -1,11 +1,12 @@
 import collections
 
 import pyarrow as pa
+import pytest
 
 import numpy as np
 import pandas as pd
-import pandas.util.testing as tm
 from pandas.core.extensions import ExtensionArray, ExtensionDtype
+from .base import BaseArrayTests
 
 
 class MyDtypeType(type):
@@ -26,9 +27,10 @@ class ArrowArray(ExtensionArray):
     can_hold_na = True
 
     def __init__(self, values):
-        data = pa.array(values)
-        assert data.type == self.dtype.arrow_type
-        self.data = data
+        if not isinstance(values, pa.Array):
+            values = pa.array(values)
+        assert values.type == self.dtype.arrow_type
+        self.data = values
 
     def __iter__(self):
         return iter(self.data)
@@ -38,7 +40,7 @@ class ArrowArray(ExtensionArray):
 
     def __getitem__(self, item):
         result = self.data[item]
-        if isinstance(item, collections.Sequence):
+        if isinstance(item, (slice, collections.Sequence)):
             return type(self)(result)
         else:
             return result
@@ -77,26 +79,27 @@ class ArrowArray(ExtensionArray):
     def formatting_values(self):
         return self.data.to_pandas()
 
-
-def test_series_ctor():
-    arr = ArrowArray([1, 2, 3])
-    result = pd.Series(arr)
-    assert result.dtype == arr.dtype
-    assert len(arr) == 3
+    def slice(self, indexer):
+        return self[indexer]
 
 
-def test_concat_works():
-    arr1 = ArrowArray([1, 2, 3])
-    arr2 = ArrowArray([4, 5, 6])
-    result = pd.concat([pd.Series(arr1),
-                        pd.Series(arr2)], ignore_index=True)
-    expected = pa.array([1, 2, 3, 4, 5, 6])
-    assert result.dtype == arr1.dtype
-    assert isinstance(result.values, ArrowArray)
-    assert result.values.data.equals(expected)
+@pytest.fixture
+def test_data():
+    """Length-100 int64 arrow array for semantics test."""
+    return ArrowArray(np.arange(100))
 
 
-def test_slice_works():
-    ser = pd.Series(ArrowArray([1, 2, 3]))
-    result = ser.loc[[0, 1]]
-    assert isinstance(result.values, ArrowArray)
+class TestArrow(BaseArrayTests):
+    def test_iloc(self, test_data):
+        ser = pd.Series(test_data)
+        result = ser.iloc[:4]
+        expected = test_data[:4]
+        assert isinstance(result, pd.Series)
+        assert result.values.data.equals(expected.data)
+
+    def test_loc(self, test_data):
+        ser = pd.Series(test_data)
+        result = ser.loc[[0, 1, 2, 3]]
+        expected = test_data[:4]
+        assert isinstance(result, pd.Series)
+        assert result.values.data.equals(expected.data)

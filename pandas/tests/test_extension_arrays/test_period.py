@@ -3,8 +3,19 @@ import pytest
 import numpy as np
 import pandas as pd
 import pandas.util.testing as tm
-from pandas.core.dtypes.dtypes import PeriodDtype
 from pandas.core.period import PeriodArray
+
+from .base import BaseArrayTests
+
+
+@pytest.fixture
+def test_data():
+    """Length-100 PeriodArray for semantics test."""
+    return PeriodArray(pd.period_range("2000", periods=100))
+
+
+class TestPeriod(BaseArrayTests):
+    pass
 
 
 class TestArray:
@@ -56,22 +67,3 @@ class TestArray:
         result = PeriodArray(['2018', 'NaT'], freq='D').isna()
         expected = np.array([False, True])
         tm.assert_numpy_array_equal(result, expected)
-
-
-class TestInContainers:
-
-    def test_series_constructor(self):
-        result = pd.Series(PeriodArray([2017, 2018], freq='D'))
-        assert len(result) == 2
-        assert result.dtype == PeriodDtype('D')
-
-    def test_slice(self):
-        ser = pd.Series(PeriodArray(pd.period_range(2000, periods=100)))
-        result = ser.iloc[:4]
-        expected = pd.Series(PeriodArray(['2000-01-01', '2000-01-02',
-                                          '2000-01-03', '2000-01-04'],
-                                         freq='D'))
-        tm.assert_series_equal(result, expected)
-
-        result = ser.loc[[0, 1, 2, 3]]
-        tm.assert_series_equal(result, expected)
