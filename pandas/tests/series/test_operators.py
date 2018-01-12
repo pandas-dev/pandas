@@ -1600,13 +1600,7 @@ class TestSeriesOperators(TestData):
             lhs = op(ser, nptd)
             rhs = op(ser, pytd)
 
-            try:
-                assert_series_equal(lhs, rhs)
-            except Exception:
-                raise AssertionError(
-                    "invalid comparison [op->{0},d->{1},h->{2},m->{3},"
-                    "s->{4},us->{5}]\n{6}\n{7}\n".format(op, d, h, m, s,
-                                                         us, lhs, rhs))
+            assert_series_equal(lhs, rhs)
 
     def test_ops_nat_mixed_datetime64_timedelta64(self):
         # GH 11349
