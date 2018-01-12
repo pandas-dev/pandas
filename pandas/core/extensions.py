@@ -1,19 +1,19 @@
 """Extend pandas with custom array types.
 """
 import abc
-import typing as T
+import typing as T  # noqa
 
-import numpy as np
+import numpy as np  # noqa
 
 
 class ExtensionDtype(metaclass=abc.ABCMeta):
     """A custom data type for your array.
     """
     @property
-    @abc.abstractmethod
     def type(self):
         # type: () -> T.Any
         """Typically a metaclass inheriting from 'type' with no methods."""
+        return type(self.name, (), {})
 
     @property
     @abc.abstractmethod
@@ -196,7 +196,7 @@ class ExtensionArray(metaclass=abc.ABCMeta):
     @abc.abstractmethod
     def formatting_values(self):
         # type: () -> np.ndarray
-        # TODO: must this be an array? Can it be any sequence?
+        # At the moment, this has to be an array since we use result.dtype
         """An array of values to be printed in, e.g. the Series repr"""
 
     @classmethod
@@ -216,8 +216,9 @@ class ExtensionArray(metaclass=abc.ABCMeta):
 
     @abc.abstractmethod
     def get_values(self):
-        # type: () -> ExtensionArray
+        # type: () -> np.ndarray
         # TODO: What is the required return value? Sequence? ndarray?, ...?
+        # Categorical does an ndarray
         """Get the underlying values backing your data
         """
         pass

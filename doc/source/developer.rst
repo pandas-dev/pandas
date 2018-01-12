@@ -171,8 +171,8 @@ represent the 128-bit integer that is the IP Address.
 Extension Dtype
 '''''''''''''''
 
-This should describe your data type. The most important fields are ``name`` and
-``base``:
+This class should describe your data type. The most important fields are
+``name`` and ``base``:
 
 .. code-block:: python
 

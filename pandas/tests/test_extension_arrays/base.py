@@ -35,3 +35,7 @@ class BaseArrayTests:
         result = ser.loc[[0, 1, 2, 3]]
         expected = pd.Series(test_data[:4])
         tm.assert_series_equal(result, expected)
+
+    def test_repr(self, test_data):
+        ser = pd.Series(test_data)
+        repr(ser)
