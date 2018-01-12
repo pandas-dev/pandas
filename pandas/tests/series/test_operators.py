@@ -28,6 +28,11 @@ import pandas.util.testing as tm
 from .common import TestData
 
 
+@pytest.fixture
+def tdser():
+    return Series(['59 Days', '59 Days', 'NaT'], dtype='timedelta64[ns]')
+
+
 class TestSeriesComparisons(object):
     def test_series_comparison_scalars(self):
         series = Series(date_range('1/1/2000', periods=10))
@@ -674,31 +679,26 @@ class TestTimedeltaSeriesArithmeticWithIntegers(object):
     # ------------------------------------------------------------------
     # Addition and Subtraction
 
-    def test_td64series_add_int_series_invalid(self):
-        tdser = Series(['59 Days', '59 Days', 'NaT'], dtype='timedelta64[ns]')
+    def test_td64series_add_int_series_invalid(self, tdser):
         with pytest.raises(TypeError):
             tdser + Series([2, 3, 4])
 
     @pytest.mark.xfail(reason='GH#19123 integer interpreted as nanoseconds')
-    def test_td64series_radd_int_series_invalid(self):
-        tdser = Series(['59 Days', '59 Days', 'NaT'], dtype='timedelta64[ns]')
+    def test_td64series_radd_int_series_invalid(self, tdser):
         with pytest.raises(TypeError):
             Series([2, 3, 4]) + tdser
 
-    def test_td64series_sub_int_series_invalid(self):
-        tdser = Series(['59 Days', '59 Days', 'NaT'], dtype='timedelta64[ns]')
+    def test_td64series_sub_int_series_invalid(self, tdser):
         with pytest.raises(TypeError):
             tdser - Series([2, 3, 4])
 
     @pytest.mark.xfail(reason='GH#19123 integer interpreted as nanoseconds')
-    def test_td64series_rsub_int_series_invalid(self):
-        tdser = Series(['59 Days', '59 Days', 'NaT'], dtype='timedelta64[ns]')
+    def test_td64series_rsub_int_series_invalid(self, tdser):
         with pytest.raises(TypeError):
             Series([2, 3, 4]) - tdser
 
     @pytest.mark.parametrize('scalar', [1, 1.5, np.array(2)])
-    def test_td64series_add_sub_numeric_scalar_invalid(self, scalar):
-        tdser = Series(['59 Days', '59 Days', 'NaT'], dtype='timedelta64[ns]')
+    def test_td64series_add_sub_numeric_scalar_invalid(self, scalar, tdser):
         with pytest.raises(TypeError):
             tdser + scalar
         with pytest.raises(TypeError):
@@ -718,8 +718,8 @@ class TestTimedeltaSeriesArithmeticWithIntegers(object):
                      marks=pytest.mark.xfail(reason='GH#19123 integer '
                                                     'interpreted as nanos'))
     ])
-    def test_td64series_add_sub_numeric_array_invalid(self, vector, dtype):
-        tdser = Series(['59 Days', '59 Days', 'NaT'], dtype='timedelta64[ns]')
+    def test_td64series_add_sub_numeric_array_invalid(self, vector,
+                                                      dtype, tdser):
         vector = vector.astype(dtype)
         with pytest.raises(TypeError):
             tdser + vector
@@ -739,10 +739,9 @@ class TestTimedeltaSeriesArithmeticWithIntegers(object):
     @pytest.mark.parametrize('vector', [np.array([20, 30, 40]),
                                         pd.Index([20, 30, 40]),
                                         Series([20, 30, 40])])
-    def test_td64series_div_numeric_array(self, vector, dtype):
+    def test_td64series_div_numeric_array(self, vector, dtype, tdser):
         # GH 4521
         # divide/multiply by integers
-        tdser = Series(['59 Days', '59 Days', 'NaT'], dtype='timedelta64[ns]')
         vector = vector.astype(dtype)
         expected = Series(['2.95D', '1D 23H 12m', 'NaT'],
                           dtype='timedelta64[ns]')
@@ -759,10 +758,9 @@ class TestTimedeltaSeriesArithmeticWithIntegers(object):
     @pytest.mark.parametrize('vector', [np.array([20, 30, 40]),
                                         pd.Index([20, 30, 40]),
                                         Series([20, 30, 40])])
-    def test_td64series_mul_numeric_array(self, vector, dtype):
+    def test_td64series_mul_numeric_array(self, vector, dtype, tdser):
         # GH 4521
         # divide/multiply by integers
-        tdser = Series(['59 Days', '59 Days', 'NaT'], dtype='timedelta64[ns]')
         vector = vector.astype(dtype)
 
         expected = Series(['1180 Days', '1770 Days', 'NaT'],
@@ -782,10 +780,9 @@ class TestTimedeltaSeriesArithmeticWithIntegers(object):
                                                     'NotImplemented')),
         Series([20, 30, 40])
     ])
-    def test_td64series_rmul_numeric_array(self, vector, dtype):
+    def test_td64series_rmul_numeric_array(self, vector, dtype, tdser):
         # GH 4521
         # divide/multiply by integers
-        tdser = Series(['59 Days', '59 Days', 'NaT'], dtype='timedelta64[ns]')
         vector = vector.astype(dtype)
 
         expected = Series(['1180 Days', '1770 Days', 'NaT'],
@@ -795,10 +792,9 @@ class TestTimedeltaSeriesArithmeticWithIntegers(object):
         assert_series_equal(result, expected)
 
     @pytest.mark.parametrize('one', [1, np.array(1), 1.0, np.array(1.0)])
-    def test_td64series_mul_numeric_scalar(self, one):
+    def test_td64series_mul_numeric_scalar(self, one, tdser):
         # GH 4521
         # divide/multiply by integers
-        tdser = Series(['59 Days', '59 Days', 'NaT'], dtype='timedelta64[ns]')
         expected = Series(['-59 Days', '-59 Days', 'NaT'],
                           dtype='timedelta64[ns]')
 
@@ -824,10 +820,9 @@ class TestTimedeltaSeriesArithmeticWithIntegers(object):
                      marks=pytest.mark.xfail(reason='GH#19011 is_list_like '
                                                     'incorrectly True.')),
     ])
-    def test_td64series_div_numeric_scalar(self, two):
+    def test_td64series_div_numeric_scalar(self, two, tdser):
         # GH 4521
         # divide/multiply by integers
-        tdser = Series(['59 Days', '59 Days', 'NaT'], dtype='timedelta64[ns]')
         expected = Series(['29.5D', '29.5D', 'NaT'], dtype='timedelta64[ns]')
 
         result = tdser / two
