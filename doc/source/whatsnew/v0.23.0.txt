@@ -415,7 +415,7 @@ I/O
 - Bug in :func:`read_sas` where a file with 0 variables gave an ``AttributeError`` incorrectly. Now it gives an ``EmptyDataError`` (:issue:`18184`)
 - Bug in :func:`DataFrame.to_latex()` where pairs of braces meant to serve as invisible placeholders were escaped (:issue:`18667`)
 - Bug in :func:`read_json` where large numeric values were causing an ``OverflowError`` (:issue:`18842`)
-- Bug in :func:`DataFrame.to_parquet` where an attempt to write to S3 path fails with ``ValueError`` (:issue:`19134`)
+- Bug in :func:`DataFrame.to_parquet` exception is thrown if write destination is S3 (:issue:`19134`)
 -
 
 Plotting
