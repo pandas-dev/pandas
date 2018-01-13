@@ -8,6 +8,7 @@ from pandas.core.common import AbstractMethodError
 from pandas.io.common import get_filepath_or_buffer
 from pandas.io.s3 import is_s3_url
 
+
 def get_engine(engine):
     """ return our implementation """
 
@@ -191,7 +192,7 @@ class FastParquetImpl(BaseImpl):
 
     def write(self, df, path, compression='snappy', **kwargs):
         if is_s3_url(path):
-            raise NotImplementedError("fastparquet s3 write is not implemented."
+            raise NotImplementedError("fastparquet s3 write isn't implemented."
                                       " Consider using pyarrow instead.")
 
         self.validate_dataframe(df)

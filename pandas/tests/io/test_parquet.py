@@ -229,21 +229,26 @@ class Base(object):
             with tm.ensure_clean() as path:
                 df.to_parquet(path, engine, **write_kwargs)
                 actual = read_parquet(path, engine, **read_kwargs)
-                tm.assert_frame_equal(expected, actual, check_names=check_names)
+                tm.assert_frame_equal(expected, actual,
+                                      check_names=check_names)
 
                 # repeat
                 df.to_parquet(path, engine, **write_kwargs)
                 actual = read_parquet(path, engine, **read_kwargs)
-                tm.assert_frame_equal(expected, actual, check_names=check_names)
+                tm.assert_frame_equal(expected, actual,
+                                      check_names=check_names)
         else:
             df.to_parquet(path, engine, **write_kwargs)
             actual = read_parquet(path, engine, **read_kwargs)
-            tm.assert_frame_equal(expected, actual, check_names=check_names)
+            tm.assert_frame_equal(expected, actual,
+                                  check_names=check_names)
 
             # repeat
             df.to_parquet(path, engine, **write_kwargs)
             actual = read_parquet(path, engine, **read_kwargs)
-            tm.assert_frame_equal(expected, actual, check_names=check_names)
+            tm.assert_frame_equal(expected, actual,
+                                  check_names=check_names)
+
 
 class TestBasic(Base):
 
@@ -433,7 +438,8 @@ class TestParquetPyArrow(Base):
 
     def test_s3_roundtrip(self, df_compat, s3_resource, pa):
         # GH #19134
-        self.check_round_trip(df_compat, pa, path='s3://pandas-test/pyarrow.parquet')
+        self.check_round_trip(df_compat, pa,
+                              path='s3://pandas-test/pyarrow.parquet')
 
 
 class TestParquetFastParquet(Base):
@@ -497,4 +503,5 @@ class TestParquetFastParquet(Base):
     def test_s3_roundtrip(self, df_compat, s3_resource, fp):
         # GH #19134
         with pytest.raises(NotImplementedError):
-            self.check_round_trip(df_compat, fp, path='s3://pandas-test/fastparquet.parquet')
+            self.check_round_trip(df_compat, fp,
+                                  path='s3://pandas-test/fastparquet.parquet')
