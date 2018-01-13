@@ -1398,6 +1398,10 @@ class KdePlot(HistPlot):
             sample_range = np.nanmax(y) - np.nanmin(y)
             ind = np.linspace(np.nanmin(y) - 0.5 * sample_range,
                               np.nanmax(y) + 0.5 * sample_range, 1000)
+        elif isinstance(self.ind, (int, np.int)):
+            sample_range = np.nanmax(y) - np.nanmin(y)
+            ind = np.linspace(np.nanmin(y) - 0.5 * sample_range,
+                              np.nanmax(y) + 0.5 * sample_range, self.ind)
         else:
             ind = self.ind
         return ind
@@ -2598,12 +2602,22 @@ class SeriesPlotMethods(BasePlotMethods):
         """
         return self(kind='hist', bins=bins, **kwds)
 
-    def kde(self, **kwds):
+    def kde(self, bw_method = None, ind = None,  **kwds):
         """
         Kernel Density Estimate plot
 
         Parameters
         ----------
+        bw_method: str, scalar or callable, optional
+            The method used to calculate the estimator bandwidth.  This can be
+            'scott', 'silverman', a scalar constant or a callable.
+            If None (default), 'scott' is used.
+            See :scipy:class:`stats.gaussian_kde` for more information.
+        ind : NumPy array or integer, optional
+            Evaluation points. If None (default), 1000 equally spaced points
+            are used. If `ind` is a NumPy array, the kde is evaluated at the
+            points passed. If `ind` is an integer, `ind` number of equally 
+            spaced points are used.
         `**kwds` : optional
             Keyword arguments to pass on to :py:meth:`pandas.Series.plot`.
 
@@ -2611,7 +2625,7 @@ class SeriesPlotMethods(BasePlotMethods):
         -------
         axes : matplotlib.AxesSubplot or np.array of them
         """
-        return self(kind='kde', **kwds)
+        return self(kind='kde', bw_method = bw_method, ind = ind, **kwds)
 
     density = kde
 
@@ -2766,20 +2780,30 @@ class FramePlotMethods(BasePlotMethods):
         """
         return self(kind='hist', by=by, bins=bins, **kwds)
 
-    def kde(self, **kwds):
+    def kde(self, bw_method = None, ind = None,  **kwds):
         """
         Kernel Density Estimate plot
 
         Parameters
         ----------
+        bw_method: str, scalar or callable, optional
+            The method used to calculate the estimator bandwidth.  This can be
+            'scott', 'silverman', a scalar constant or a callable.
+            If None (default), 'scott' is used.
+            See :scipy:class:`stats.gaussian_kde` for more information.
+        ind : NumPy array or integer, optional
+            Evaluation points. If None (default), 1000 equally spaced points
+            are used. If `ind` is a NumPy array, the kde is evaluated at the
+            points passed. If `ind` is an integer, `ind` number of equally 
+            spaced points are used.
         `**kwds` : optional
-            Keyword arguments to pass on to :py:meth:`pandas.DataFrame.plot`.
+            Keyword arguments to pass on to :py:meth:`pandas.Series.plot`.
 
         Returns
         -------
         axes : matplotlib.AxesSubplot or np.array of them
         """
-        return self(kind='kde', **kwds)
+        return self(kind='kde', bw_method = bw_method, ind = ind, **kwds)
 
     density = kde
 
@@ -2866,3 +2890,4 @@ class FramePlotMethods(BasePlotMethods):
         if gridsize is not None:
             kwds['gridsize'] = gridsize
         return self(kind='hexbin', x=x, y=y, C=C, **kwds)
+
