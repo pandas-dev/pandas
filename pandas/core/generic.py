@@ -2909,6 +2909,9 @@ class NDFrame(PandasObject, SelectionMixin):
             else:
                 indexer = ~axis.isin(labels)
 
+            if all(indexer) and errors == 'raise':
+                raise ValueError('{} not found in axis'.format(labels))
+
             slicer = [slice(None)] * self.ndim
             slicer[self._get_axis_number(axis_name)] = indexer
 
