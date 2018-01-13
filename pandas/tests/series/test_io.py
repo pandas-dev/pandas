@@ -4,11 +4,14 @@
 from datetime import datetime
 import collections
 import pytest
+import gzip
+import bz2
+import lzma
 
 import numpy as np
 import pandas as pd
 
-from pandas import Series, DataFrame, compat
+from pandas import Series, DataFrame
 
 from pandas.compat import StringIO, u
 from pandas.util.testing import (assert_series_equal, assert_almost_equal,
@@ -139,67 +142,34 @@ class TestSeriesToCSV(TestData):
         csv_str = s.to_csv(path=None)
         assert isinstance(csv_str, str)
 
-    def test_to_csv_compression_gzip(self):
+    @pytest.mark.parametrize('compression, open_func', [
+        ('gzip', gzip.open),
+        ('bz2', bz2.BZ2File),
+        (pytest.param('xz', lzma.open, marks=td.skip_if_no_lzma)),
+    ])
+    def test_to_csv_compression(self, compression, open_func):
 
         s = Series([0.123456, 0.234567, 0.567567], index=['A', 'B', 'C'],
                    name='X')
 
         with ensure_clean() as filename:
 
-            s.to_csv(filename, compression="gzip", header=True)
+            s.to_csv(filename, compression=compression, header=True)
 
             # test the round trip - to_csv -> read_csv
-            rs = pd.read_csv(filename, compression="gzip", index_col=0,
+            rs = pd.read_csv(filename, compression=compression, index_col=0,
                              squeeze=True)
             assert_series_equal(s, rs)
 
-            # explicitly make sure file is gziped
-            import gzip
-            f = gzip.open(filename, 'rb')
+            # explicitly make sure file is compressed
+            f = open_func(filename, 'rb')
             text = f.read().decode('utf8')
-            f.close()
             assert s.name in text
 
-    def test_to_csv_compression_bz2(self):
+            f = open_func(filename, 'rb')
+            assert_series_equal(s, pd.read_csv(f, index_col=0,
+                                               squeeze=True))
 
-        s = Series([0.123456, 0.234567, 0.567567], index=['A', 'B', 'C'],
-                   name='X')
-
-        with ensure_clean() as filename:
-
-            s.to_csv(filename, compression="bz2", header=True)
-
-            # test the round trip - to_csv -> read_csv
-            rs = pd.read_csv(filename, compression="bz2", index_col=0,
-                             squeeze=True)
-            assert_series_equal(s, rs)
-
-            # explicitly make sure file is bz2ed
-            import bz2
-            f = bz2.BZ2File(filename, 'rb')
-            text = f.read().decode('utf8')
-            f.close()
-            assert s.name in text
-
-    @td.skip_if_no_lzma
-    def test_to_csv_compression_xz(self):
-
-        s = Series([0.123456, 0.234567, 0.567567], index=['A', 'B', 'C'],
-                   name='X')
-
-        with ensure_clean() as filename:
-
-            s.to_csv(filename, compression="xz", header=True)
-
-            # test the round trip - to_csv -> read_csv
-            rs = pd.read_csv(filename, compression="xz", index_col=0,
-                             squeeze=True)
-            assert_series_equal(s, rs)
-
-            # explicitly make sure file is xzipped
-            lzma = compat.import_lzma()
-            f = lzma.open(filename, 'rb')
-            assert_series_equal(s, pd.read_csv(f, index_col=0, squeeze=True))
             f.close()
 
 
