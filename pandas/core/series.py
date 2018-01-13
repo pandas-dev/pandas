@@ -2927,6 +2927,8 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
                            index_label=index_label, mode=mode,
                            encoding=encoding, compression=compression,
                            date_format=date_format, decimal=decimal)
+        if path is None:
+            return result
 
     @Appender(generic._shared_docs['to_excel'] % _shared_doc_kwargs)
     def to_excel(self, excel_writer, sheet_name='Sheet1', na_rep='',
