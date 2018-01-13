@@ -1047,9 +1047,9 @@ class NDFrame(PandasObject, SelectionMixin):
 
     def equals(self, other):
         """
-        Determines if two NDFrame objects have equal indices, equal
-        elements, and the same dtypes at corresponding locations. NaNs in
-        the same location are considered equal.
+        Determines if two NDFrame objects have equal columns labels, equal
+        elements, and the same dtypes at corresponding locations. NaNs in the
+        same location are considered equal.
         """
         if not isinstance(other, self._constructor):
             return False
