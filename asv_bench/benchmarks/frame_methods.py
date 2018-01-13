@@ -453,7 +453,7 @@ class frame_sort_values_by_multiple_columns(object):
               'int_same_cardinality_as_repeated_strings|int_same_cardinality_as_repeated_strings_copy']
 
     def setup(self, columns):
-        N = 10000
+        N = 1000000
 
         self.df = DataFrame(
             {'repeated_strings': Series(tm.makeStringIndex(100).take(
@@ -490,13 +490,13 @@ class SortValues(object):
     param_names = ['ascending']
 
     def setup(self, ascending):
-        self.df = DataFrame(np.random.randn(1000000, 2), columns=list('AB'))
+        self.df = DataFrame(np.random.randn(1000000, 5), columns=list('ABCDE'))
 
     def time_frame_sort_values(self, ascending):
         self.df.sort_values(by='A', ascending=ascending)
 
     def time_frame_sort_values_two_columns(self, ascending):
-        self.df.sort_values(by=['A', 'B'], ascending=ascending)
+        self.df.sort_values(by=['A', 'B', 'C', 'D', 'E'], ascending=ascending)
 
 class SortIndexByColumns(object):
 
