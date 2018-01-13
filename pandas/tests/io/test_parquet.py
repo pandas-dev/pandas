@@ -212,9 +212,9 @@ class Base(object):
             with tm.ensure_clean() as path:
                 to_parquet(df, path, engine, compression=None)
 
-    def do_round_trip(self, df, path, engine_impl, expected=None,
-                      write_kwargs=None, read_kwargs=None,
-                      check_names=True):
+    def check_round_trip(self, df, engine, expected=None, path=None,
+                         write_kwargs=None, read_kwargs=None,
+                         check_names=True):
 
         if write_kwargs is None:
             write_kwargs = {'compression': None}
@@ -222,30 +222,28 @@ class Base(object):
         if read_kwargs is None:
             read_kwargs = {}
 
-        df.to_parquet(path, engine_impl, **write_kwargs)
-        actual = read_parquet(path, engine_impl, **read_kwargs)
-
         if expected is None:
             expected = df
 
-        tm.assert_frame_equal(expected, actual, check_names=check_names)
+        if path is None:
+            with tm.ensure_clean() as path:
+                df.to_parquet(path, engine, **write_kwargs)
+                actual = read_parquet(path, engine, **read_kwargs)
+                tm.assert_frame_equal(expected, actual, check_names=check_names)
 
-    def check_round_trip(self, df, engine, expected=None,
-                         write_kwargs=None, read_kwargs=None,
-                         check_names=True):
-
-        with tm.ensure_clean() as path:
-            self.do_round_trip(df, path, engine, expected,
-                               write_kwargs=write_kwargs,
-                               read_kwargs=read_kwargs,
-                               check_names=check_names)
+                # repeat
+                df.to_parquet(path, engine, **write_kwargs)
+                actual = read_parquet(path, engine, **read_kwargs)
+                tm.assert_frame_equal(expected, actual, check_names=check_names)
+        else:
+            df.to_parquet(path, engine, **write_kwargs)
+            actual = read_parquet(path, engine, **read_kwargs)
+            tm.assert_frame_equal(expected, actual, check_names=check_names)
 
             # repeat
-            self.do_round_trip(df, path, engine, expected,
-                               write_kwargs=write_kwargs,
-                               read_kwargs=read_kwargs,
-                               check_names=check_names)
-
+            df.to_parquet(path, engine, **write_kwargs)
+            actual = read_parquet(path, engine, **read_kwargs)
+            tm.assert_frame_equal(expected, actual, check_names=check_names)
 
 class TestBasic(Base):
 
@@ -435,7 +433,7 @@ class TestParquetPyArrow(Base):
 
     def test_s3_roundtrip(self, df_compat, s3_resource, pa):
         # GH #19134
-        self.do_round_trip(df_compat, 's3://pandas-test/pyarrow.parquet', pa)
+        self.check_round_trip(df_compat, pa, path='s3://pandas-test/pyarrow.parquet')
 
 
 class TestParquetFastParquet(Base):
@@ -499,4 +497,4 @@ class TestParquetFastParquet(Base):
     def test_s3_roundtrip(self, df_compat, s3_resource, fp):
         # GH #19134
         with pytest.raises(NotImplementedError):
-            self.do_round_trip(df_compat, 's3://pandas-test/fastparquet.parquet', fp)
+            self.check_round_trip(df_compat, fp, path='s3://pandas-test/fastparquet.parquet')
