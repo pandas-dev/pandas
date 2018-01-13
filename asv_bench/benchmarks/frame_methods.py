@@ -495,6 +495,8 @@ class SortValues(object):
     def time_frame_sort_values(self, ascending):
         self.df.sort_values(by='A', ascending=ascending)
 
+    def time_frame_sort_values_two_columns(self, ascending):
+        self.df.sort_values(by=['A', 'B'], ascending=ascending)
 
 class SortIndexByColumns(object):
 
