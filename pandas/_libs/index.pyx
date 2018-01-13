@@ -694,10 +694,8 @@ cdef class BaseMultiIndexCodesEngine:
         except KeyError:
             raise KeyError(key)
 
-        # ndmin=2 because codes_to_ints expects multiple labels:
-        indices = np.array(indices, ndmin=2, dtype='uint64')
-        # ... and returns a (length 1, in this case) array of integers:
-        lab_int = self._codes_to_ints(indices)[0]
+        # Transform indices into single integer:
+        lab_int = self._codes_to_ints(np.array(indices, dtype='uint64'))
 
         return self._base.get_loc(self, lab_int)
 

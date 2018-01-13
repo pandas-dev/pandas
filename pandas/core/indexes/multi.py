@@ -55,19 +55,19 @@ class MultiIndexUIntEngine(libindex.BaseMultiIndexCodesEngine,
 
     def _codes_to_ints(self, codes):
         """
-        Transform each row of a 2d array of uint64 in a uint64, in a strictly
+        Transform combination(s) of uint64 in one uint64 (each), in a strictly
         monotonic way (i.e. respecting the lexicographic order of integer
         combinations): see BaseMultiIndexCodesEngine documentation.
 
         Parameters
         ----------
-        codes : 2-dimensional array of dtype uint64
+        codes : 1- or 2-dimensional array of dtype uint64
             Combinations of integers (one per row)
 
         Returns
         ------
-        int_keys : 1-dimensional array of dtype uint64
-            Integers representing one combination each
+        int_keys : scalar or 1-dimensional array, of dtype uint64
+            Integer(s) representing one combination (each)
         """
         # Shift the representation of each level by the pre-calculated number
         # of bits:
@@ -75,7 +75,12 @@ class MultiIndexUIntEngine(libindex.BaseMultiIndexCodesEngine,
 
         # Now sum and OR are in fact interchangeable. This is a simple
         # composition of the (disjunct) significant bits of each level (i.e.
-        # each column in "codes") in a single positive integer (per row):
+        # each column in "codes") in a single positive integer:
+        if codes.ndim == 1:
+            # Single key
+            return np.bitwise_or.reduce(codes)
+
+        # Multiple keys
         return np.bitwise_or.reduce(codes, axis=1)
 
 
@@ -90,19 +95,19 @@ class MultiIndexPyIntEngine(libindex.BaseMultiIndexCodesEngine,
 
     def _codes_to_ints(self, codes):
         """
-        Transform each row of a 2d array of uint64 in a Python integer, in a
+        Transform combination(s) of uint64 in one Python integer (each), in a
         strictly monotonic way (i.e. respecting the lexicographic order of
         integer combinations): see BaseMultiIndexCodesEngine documentation.
 
         Parameters
         ----------
-        codes : 2-dimensional array of dtype uint64
+        codes : 1- or 2-dimensional array of dtype uint64
             Combinations of integers (one per row)
 
         Returns
         ------
-        int_keys : 1-dimensional array of dtype object
-            Integers representing one combination each
+        int_keys : int, or 1-dimensional array of dtype object
+            Integer(s) representing one combination (each)
         """
 
         # Shift the representation of each level by the pre-calculated number
@@ -113,6 +118,11 @@ class MultiIndexPyIntEngine(libindex.BaseMultiIndexCodesEngine,
         # Now sum and OR are in fact interchangeable. This is a simple
         # composition of the (disjunct) significant bits of each level (i.e.
         # each column in "codes") in a single positive integer (per row):
+        if codes.ndim == 1:
+            # Single key
+            return np.bitwise_or.reduce(codes)
+
+        # Multiple keys
         return np.bitwise_or.reduce(codes, axis=1)
 
 
