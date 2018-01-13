@@ -552,10 +552,6 @@ class TestSeriesConstructors(TestData):
         s.iloc[0] = np.nan
         assert s.dtype == 'M8[ns]'
 
-        # invalid astypes
-        for t in ['s', 'D', 'us', 'ms']:
-            pytest.raises(TypeError, s.astype, 'M8[%s]' % t)
-
         # GH3414 related
         pytest.raises(TypeError, lambda x: Series(
             Series(dates).astype('int') / 1000000, dtype='M8[ms]'))
@@ -706,6 +702,20 @@ class TestSeriesConstructors(TestData):
         s = Series(pd.NaT, index=[0, 1], dtype='datetime64[ns, US/Eastern]')
         expected = Series(pd.DatetimeIndex(['NaT', 'NaT'], tz='US/Eastern'))
         assert_series_equal(s, expected)
+
+    @pytest.mark.parametrize("arr_dtype", [np.int64, np.float64])
+    @pytest.mark.parametrize("dtype", ["M8", "m8"])
+    @pytest.mark.parametrize("unit", ['ns', 'us', 'ms', 's', 'h', 'm', 'D'])
+    def test_construction_to_datetimelike_unit(self, arr_dtype, dtype, unit):
+        # tests all units
+        # gh-19223
+        dtype = "{}[{}]".format(dtype, unit)
+        arr = np.array([1, 2, 3], dtype=arr_dtype)
+        s = Series(arr)
+        result = s.astype(dtype)
+        expected = Series(arr.astype(dtype))
+
+        tm.assert_series_equal(result, expected)
 
     @pytest.mark.parametrize('arg',
                              ['2013-01-01 00:00:00', pd.NaT, np.nan, None])
