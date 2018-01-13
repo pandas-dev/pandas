@@ -523,25 +523,23 @@ class TestMerge(object):
                                columns=['entity_id', 'days'])
             tm.assert_frame_equal(result, exp)
 
-    def test_other_timedelta_unit(self):
+    @pytest.mark.parametrize("unit", ['D', 'h', 'm', 's', 'ms', 'us', 'ns'])
+    def test_other_timedelta_unit(self, unit):
         # GH 13389
         df1 = pd.DataFrame({'entity_id': [101, 102]})
         s = pd.Series([None, None], index=[101, 102], name='days')
 
-        for dtype in ['timedelta64[D]', 'timedelta64[h]', 'timedelta64[m]',
-                      'timedelta64[s]', 'timedelta64[ms]', 'timedelta64[us]',
-                      'timedelta64[ns]']:
+        dtype = "m8[{}]".format(unit)
+        df2 = s.astype(dtype).to_frame('days')
+        assert df2['days'].dtype == 'm8[ns]'
 
-            df2 = s.astype(dtype).to_frame('days')
-            assert df2['days'].dtype == dtype
+        result = df1.merge(df2, left_on='entity_id', right_index=True)
 
-            result = df1.merge(df2, left_on='entity_id', right_index=True)
-
-            exp = pd.DataFrame({'entity_id': [101, 102],
-                                'days': np.array(['nat', 'nat'],
-                                                 dtype=dtype)},
-                               columns=['entity_id', 'days'])
-            tm.assert_frame_equal(result, exp)
+        exp = pd.DataFrame({'entity_id': [101, 102],
+                            'days': np.array(['nat', 'nat'],
+                                             dtype=dtype)},
+                           columns=['entity_id', 'days'])
+        tm.assert_frame_equal(result, exp)
 
     def test_overlapping_columns_error_message(self):
         df = DataFrame({'key': [1, 2, 3],

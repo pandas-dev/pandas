@@ -631,7 +631,7 @@ class Block(PandasObject):
                 values = astype_nansafe(values.ravel(), dtype, copy=True)
                 values = values.reshape(self.shape)
 
-            newb = make_block(values, placement=self.mgr_locs, dtype=dtype,
+            newb = make_block(values, placement=self.mgr_locs,
                               klass=klass)
         except:
             if errors == 'raise':
@@ -1953,6 +1953,13 @@ class TimeDeltaBlock(DatetimeLikeBlockMixin, IntBlock):
     is_timedelta = True
     _can_hold_na = True
     is_numeric = False
+
+    def __init__(self, values, placement, fastpath=False, **kwargs):
+        if values.dtype != _TD_DTYPE:
+            values = conversion.ensure_timedelta64ns(values)
+
+        super(TimeDeltaBlock, self).__init__(values, fastpath=True,
+                                             placement=placement, **kwargs)
 
     @property
     def _box_func(self):

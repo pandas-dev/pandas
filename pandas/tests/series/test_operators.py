@@ -1649,32 +1649,26 @@ class TestSeriesOperators(TestData):
         pytest.raises(Exception, self.objSeries.__sub__,
                       np.array(1, dtype=np.int64))
 
-    def test_timedelta64_conversions(self):
+    @pytest.mark.parametrize("m", [1, 3, 10])
+    @pytest.mark.parametrize("unit", ['D', 'h', 'm', 's', 'ms', 'us', 'ns'])
+    def test_timedelta64_conversions(self, m, unit):
+
         startdate = Series(date_range('2013-01-01', '2013-01-03'))
         enddate = Series(date_range('2013-03-01', '2013-03-03'))
 
         s1 = enddate - startdate
         s1[2] = np.nan
 
-        for m in [1, 3, 10]:
-            for unit in ['D', 'h', 'm', 's', 'ms', 'us', 'ns']:
+        # op
+        expected = s1.apply(lambda x: x / np.timedelta64(m, unit))
+        result = s1 / np.timedelta64(m, unit)
+        assert_series_equal(result, expected)
 
-                # op
-                expected = s1.apply(lambda x: x / np.timedelta64(m, unit))
-                result = s1 / np.timedelta64(m, unit)
-                assert_series_equal(result, expected)
-
-                if m == 1 and unit != 'ns':
-
-                    # astype
-                    result = s1.astype("timedelta64[{0}]".format(unit))
-                    assert_series_equal(result, expected)
-
-                # reverse op
-                expected = s1.apply(
-                    lambda x: Timedelta(np.timedelta64(m, unit)) / x)
-                result = np.timedelta64(m, unit) / s1
-                assert_series_equal(result, expected)
+        # reverse op
+        expected = s1.apply(
+            lambda x: Timedelta(np.timedelta64(m, unit)) / x)
+        result = np.timedelta64(m, unit) / s1
+        assert_series_equal(result, expected)
 
         # astype
         s = Series(date_range('20130101', periods=3))

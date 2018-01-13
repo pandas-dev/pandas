@@ -4,6 +4,7 @@ import numpy as np
 from pandas.compat import (string_types, text_type, binary_type,
                            PY3, PY36)
 from pandas._libs import algos, lib
+from pandas._libs.tslibs import conversion
 from .dtypes import (CategoricalDtype, CategoricalDtypeType,
                      DatetimeTZDtype, DatetimeTZDtypeType,
                      PeriodDtype, PeriodDtypeType,
@@ -21,8 +22,8 @@ _POSSIBLY_CAST_DTYPES = set([np.dtype(t).name
                              for t in ['O', 'int8', 'uint8', 'int16', 'uint16',
                                        'int32', 'uint32', 'int64', 'uint64']])
 
-_NS_DTYPE = np.dtype('M8[ns]')
-_TD_DTYPE = np.dtype('m8[ns]')
+_NS_DTYPE = conversion.NS_DTYPE
+_TD_DTYPE = conversion.TD_DTYPE
 _INT64_DTYPE = np.dtype(np.int64)
 
 # oh the troubles to reduce import time
@@ -30,6 +31,9 @@ _is_scipy_sparse = None
 
 _ensure_float64 = algos.ensure_float64
 _ensure_float32 = algos.ensure_float32
+
+_ensure_datetime64ns = conversion.ensure_datetime64ns
+_ensure_timedelta64ns = conversion.ensure_timedelta64ns
 
 
 def _ensure_float(arr):
