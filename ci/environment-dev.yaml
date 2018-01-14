@@ -4,8 +4,11 @@ channels:
   - conda-forge
 dependencies:
   - Cython
+  - ipython
+  - matplotlib
   - NumPy
   - moto
+  - nbsphinx
   - pytest>=3.1
   - python-dateutil>=2.5.0
   - python=3
