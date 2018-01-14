@@ -3637,7 +3637,8 @@ class DataFrame(NDFrame):
             raise ValueError('Length of ascending (%d) != length of by (%d)' %
                              (len(ascending), len(by)))
         if len(by) > 1:
-            if any([is_object_dtype(self._get_label_or_level_values(x, axis=axis, stacklevel=stacklevel)) for x in by]):
+            if any([is_object_dtype(self._get_label_or_level_values(
+                    x, axis=axis, stacklevel=stacklevel)) for x in by]):
                 from pandas.core.sorting import lexsort_indexer
 
                 keys = []
@@ -3650,9 +3651,10 @@ class DataFrame(NDFrame):
                 indexer = _ensure_platform_int(indexer)
 
                 new_data = self._data.take(indexer,
-                                           axis=self._get_block_manager_axis(axis),
+                                           axis=self._get_block_manager_axis(
+                                               axis),
                                            verify=False)
-            else:  #sort non-object column faster
+            else:
                 if not is_list_like(ascending):
                     ascending = [ascending] * len(by)
                 ascending = ascending[::-1]
@@ -3661,9 +3663,8 @@ class DataFrame(NDFrame):
                 kind = 'mergesort'
 
                 for i, by_step in enumerate(by[::-1]):
-
-                    k = self._get_label_or_level_values(by_step, axis=axis,
-                                                stacklevel=stacklevel)
+                    k = self._get_label_or_level_values(
+                        by_step, axis=axis, stacklevel=stacklevel)
 
                     indexer = nargsort(k, kind=kind, ascending=ascending[i],
                                        na_position=na_position)
