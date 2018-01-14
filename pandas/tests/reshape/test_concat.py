@@ -834,13 +834,14 @@ class TestAppend(ConcatenateBase):
     @pytest.mark.parametrize("df_columns", [
         pd.RangeIndex(3),
         pd.CategoricalIndex('A B C'.split()),
+        pd.CategoricalIndex('A B C'.split(), ordered=True),
         pd.MultiIndex.from_arrays(['A B C'.split(), 'D E F'.split()]),
         pd.IntervalIndex.from_breaks([0, 1, 2, 3]),
         pd.DatetimeIndex([dt.datetime(2013, 1, 3, 0, 0),
                           dt.datetime(2013, 1, 3, 6, 10),
                           dt.datetime(2013, 1, 3, 7, 12)]),
         pd.Index([1, 2, 3]),
-    ], ids=lambda x: x.__class__.__name__)
+    ], ids=lambda x: str(x.dtype))
     def test_append_same_columns_type(self, df_columns):
         # GH18359
 
@@ -870,10 +871,11 @@ class TestAppend(ConcatenateBase):
         pd.Index([4, 5, 6]),
         pd.Index([7.5, 8.5, 9.5]),
         pd.CategoricalIndex('A B C'.split()),
+        # pd.CategoricalIndex('A B C'.split(), ordered=True),
         pd.DatetimeIndex([dt.datetime(2013, 1, 3, 0, 0),
                           dt.datetime(2013, 1, 3, 6, 10),
                           dt.datetime(2013, 1, 3, 7, 12)]),
-    ], r=2), ids=lambda x: x.__class__.__name__)
+    ], r=2), ids=lambda x: str(x.dtype))
     def test_append_different_columns_types(self, df_columns, series_index):
         # GH18359
         # see also tests 'test_append_multi_index_raises' and
@@ -895,12 +897,13 @@ class TestAppend(ConcatenateBase):
     @pytest.mark.parametrize("other_type", [
         pd.RangeIndex(3),
         pd.CategoricalIndex('A B C'.split()),
+        pd.CategoricalIndex('A B C'.split(), ordered=True),
         pd.IntervalIndex.from_breaks([0, 1, 2, 3]),
         pd.DatetimeIndex([dt.datetime(2013, 1, 3, 0, 0),
                           dt.datetime(2013, 1, 3, 6, 10),
                           dt.datetime(2013, 1, 3, 7, 12)]),
         pd.Index([4, 5, 6]),
-    ], ids=lambda x: x.__class__.__name__)
+    ], ids=lambda x: str(x.dtype))
     def test_append_multi_index_raises(self, other_type):
         # GH18359
         # .append will raise if MultiIndex appends or is appended to a
@@ -923,12 +926,13 @@ class TestAppend(ConcatenateBase):
     @pytest.mark.parametrize("other_type", [
         pd.RangeIndex(3),
         pd.CategoricalIndex('A B C'.split()),
+        pd.CategoricalIndex('A B C'.split(), ordered=True),
         pd.MultiIndex.from_arrays(['A B C'.split(), 'D E F'.split()]),
         pd.DatetimeIndex([dt.datetime(2013, 1, 3, 0, 0),
                           dt.datetime(2013, 1, 3, 6, 10),
                           dt.datetime(2013, 1, 3, 7, 12)]),
         pd.Index([4, 5, 6]),
-    ], ids=lambda x: x.__class__.__name__)
+    ], ids=lambda x: str(x.dtype))
     def test_append_interval_index_raises(self, other_type):
         # GH18359
         # .append will raise if IntervalIndex appends or is appended to a
