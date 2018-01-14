@@ -840,7 +840,7 @@ class TestAppend(ConcatenateBase):
                           dt.datetime(2013, 1, 3, 6, 10),
                           dt.datetime(2013, 1, 3, 7, 12)]),
         pd.Index([1, 2, 3]),
-    ])
+    ], ids=lambda x: x.__class__.__name__)
     def test_append_same_columns_type(self, df_columns):
         # GH18359
 
@@ -873,7 +873,7 @@ class TestAppend(ConcatenateBase):
         pd.DatetimeIndex([dt.datetime(2013, 1, 3, 0, 0),
                           dt.datetime(2013, 1, 3, 6, 10),
                           dt.datetime(2013, 1, 3, 7, 12)]),
-    ], r=2))
+    ], r=2), ids=lambda x: x.__class__.__name__)
     def test_append_different_columns_types(self, df_columns, series_index):
         # GH18359
         # see also tests 'test_append_multi_index_raises' and
@@ -900,7 +900,7 @@ class TestAppend(ConcatenateBase):
                           dt.datetime(2013, 1, 3, 6, 10),
                           dt.datetime(2013, 1, 3, 7, 12)]),
         pd.Index([4, 5, 6]),
-    ])
+    ], ids=lambda x: x.__class__.__name__)
     def test_append_multi_index_raises(self, other_type):
         # GH18359
         # .append will raise if MultiIndex appends or is appended to a
@@ -928,7 +928,7 @@ class TestAppend(ConcatenateBase):
                           dt.datetime(2013, 1, 3, 6, 10),
                           dt.datetime(2013, 1, 3, 7, 12)]),
         pd.Index([4, 5, 6]),
-    ])
+    ], ids=lambda x: x.__class__.__name__)
     def test_append_interval_index_raises(self, other_type):
         # GH18359
         # .append will raise if IntervalIndex appends or is appended to a
