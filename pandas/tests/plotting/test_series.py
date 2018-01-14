@@ -623,6 +623,7 @@ class TestSeriesPlots(TestPlotBase):
 
         from numpy import linspace
         _check_plot_works(self.ts.plot.kde, bw_method=None, ind=20)
+        _check_plot_works(self.ts.plot.kde, bw_method=None, ind=np.int(20))
         _check_plot_works(self.ts.plot.kde, bw_method=.5,
                           ind=linspace(-100, 100, 20))
         _check_plot_works(self.ts.plot.density, bw_method=.5,
@@ -898,4 +899,3 @@ class TestSeriesPlots(TestPlotBase):
             freq=CustomBusinessDay(holidays=['2014-05-26'])))
 
         _check_plot_works(s.plot)
-
