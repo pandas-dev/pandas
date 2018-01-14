@@ -8,7 +8,7 @@ import pytest
 import numpy as np
 import pandas as pd
 
-from pandas import Series, DataFrame, compat
+from pandas import Series, DataFrame
 
 from pandas.compat import StringIO, u
 from pandas.util.testing import (assert_series_equal, assert_almost_equal,
@@ -139,24 +139,6 @@ class TestSeriesToCSV(TestData):
         csv_str = s.to_csv(path=None)
         assert isinstance(csv_str, str)
 
-    def decompress_file(self, src_path, compression):
-        if compression is None:
-            f = open(src_path, 'rb')
-        elif compression == 'gzip':
-            import gzip
-            f = gzip.open(src_path, 'rb')
-        elif compression == 'bz2':
-            import bz2
-            f = bz2.BZ2File(src_path, 'rb')
-        elif compression == 'xz':
-            lzma = compat.import_lzma()
-            f = lzma.LZMAFile(src_path, 'rb')
-        else:
-            msg = 'Unrecognized compression type: {}'.format(compression)
-            raise ValueError(msg)
-
-        return f
-
     @pytest.mark.parametrize('compression', [
         None,
         'gzip',
@@ -178,12 +160,12 @@ class TestSeriesToCSV(TestData):
             assert_series_equal(s, rs)
 
             # explicitly ensure file was compressed
-            f = self.decompress_file(filename, compression=compression)
+            f = tm.decompress_file(filename, compression=compression)
             text = f.read().decode('utf8')
             assert s.name in text
             f.close()
 
-            f = self.decompress_file(filename, compression=compression)
+            f = tm.decompress_file(filename, compression=compression)
             assert_series_equal(s, pd.read_csv(f, index_col=0, squeeze=True))
             f.close()
 
