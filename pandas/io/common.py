@@ -11,7 +11,6 @@ from pandas import compat
 from pandas.io.formats.printing import pprint_thing
 from pandas.core.common import AbstractMethodError
 from pandas.core.dtypes.common import is_number, is_file_like
-from pandas.io.s3 import is_s3_url
 
 # compat
 from pandas.errors import (ParserError, DtypeWarning,  # noqa
@@ -159,6 +158,14 @@ def _stringify_path(filepath_or_buffer):
     if _PY_PATH_INSTALLED and isinstance(filepath_or_buffer, LocalPath):
         return filepath_or_buffer.strpath
     return filepath_or_buffer
+
+
+def is_s3_url(url):
+    """Check for an s3, s3n, or s3a url"""
+    try:
+        return parse_url(url).scheme in ['s3', 's3n', 's3a']
+    except:
+        return False
 
 
 def get_filepath_or_buffer(filepath_or_buffer, encoding=None,

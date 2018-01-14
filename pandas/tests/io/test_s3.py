@@ -1,4 +1,4 @@
-from pandas.io.s3 import is_s3_url
+from pandas.io.common import is_s3_url
 
 
 class TestS3URL(object):
