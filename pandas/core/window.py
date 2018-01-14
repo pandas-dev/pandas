@@ -1863,25 +1863,38 @@ def _flex_binary_moment(arg1, arg2, f, pairwise=False):
                             results[i][j] = f(*_prep_binary(arg1.iloc[:, i],
                                                             arg2.iloc[:, j]))
 
-                # TODO: not the most efficient (perf-wise)
-                # though not bad code-wise
-                from pandas import Panel, MultiIndex, concat
+                from pandas import MultiIndex, concat
 
-                with warnings.catch_warnings(record=True):
-                    p = Panel.from_dict(results).swapaxes('items', 'major')
-                    if len(p.major_axis) > 0:
-                        p.major_axis = arg1.columns[p.major_axis]
-                    if len(p.minor_axis) > 0:
-                        p.minor_axis = arg2.columns[p.minor_axis]
+                result_index = arg1.index.union(arg2.index)
+                if len(result_index):
 
-                if len(p.items):
+                    # construct result frame
                     result = concat(
-                        [p.iloc[i].T for i in range(len(p.items))],
-                        keys=p.items)
+                        [concat([results[i][j]
+                                 for j, c in enumerate(arg2.columns)],
+                                ignore_index=True)
+                         for i, c in enumerate(arg1.columns)],
+                        ignore_index=True,
+                        axis=1)
+                    result.columns = arg1.columns
+
+                    # set the index and reorder
+                    if arg2.columns.nlevels > 1:
+                        result.index = MultiIndex.from_product(
+                            arg2.columns.levels + result_index.levels)
+                        result = result.reorder_levels([2, 0, 1]).sort_index()
+                    else:
+                        result.index = MultiIndex.from_product(
+                            [range(len(arg2.columns)),
+                             range(len(result_index))])
+                        result = result.swaplevel(1, 0).sort_index()
+                        result.index = MultiIndex.from_product(
+                            result_index.levels + arg2.columns.levels)
                 else:
 
+                    # empty result
                     result = DataFrame(
-                        index=MultiIndex(levels=[arg1.index, arg1.columns],
+                        index=MultiIndex(levels=[arg1.index, arg2.columns],
                                          labels=[[], []]),
                         columns=arg2.columns,
                         dtype='float64')
@@ -1890,9 +1903,9 @@ def _flex_binary_moment(arg1, arg2, f, pairwise=False):
                 # reset our column names to arg2 names
                 # careful not to mutate the original names
                 result.columns = result.columns.set_names(
-                    arg2.columns.names)
+                    arg1.columns.names)
                 result.index = result.index.set_names(
-                    arg1.index.names + arg1.columns.names)
+                    result_index.names + arg2.columns.names)
 
                 return result
 
