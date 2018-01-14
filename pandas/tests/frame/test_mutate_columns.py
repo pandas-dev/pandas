@@ -257,21 +257,3 @@ class TestDataFrameMutateColumns(TestData):
         expected = DataFrame([[1.3, 1, 1.1], [2.3, 2, 2.2]],
                              columns=['c', 'a', 'b'])
         assert_frame_equal(result, expected)
-
-    data = [[1, 2, 3], [1, 2, 3]]
-
-    @pytest.mark.parametrize('actual', [
-        DataFrame(data=data, index=['a', 'a']),
-        DataFrame(data=data, index=['a', 'b']),
-        DataFrame(data=data, index=['a', 'b']).set_index([0, 1]),
-        DataFrame(data=data, index=['a', 'a']).set_index([0, 1])
-    ])
-    def test_raise_on_drop_duplicate_index(self, actual):
-
-        # issue 19186
-        level = 0 if isinstance(actual.index, MultiIndex) else None
-        with pytest.raises(ValueError):
-            actual.drop('c', level=level, axis=0)
-        expected_no_err = actual.drop('c', axis=0, level=level,
-                                      errors='ignore')
-        assert_frame_equal(expected_no_err, actual)
