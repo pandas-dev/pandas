@@ -534,6 +534,12 @@ class TestIntervalDtype(Base):
         assert not is_dtype_equal(IntervalDtype('int64'),
                                   IntervalDtype('float64'))
 
+        # invalid subtype comparisons do not raise when directly compared
+        dtype1 = IntervalDtype('float64')
+        dtype2 = IntervalDtype('datetime64[ns, US/Eastern]')
+        assert dtype1 != dtype2
+        assert dtype2 != dtype1
+
     @pytest.mark.parametrize('subtype', [
         None, 'interval', 'Interval', 'int64', 'uint64', 'float64',
         'complex128', 'datetime64', 'timedelta64', PeriodDtype('Q')])

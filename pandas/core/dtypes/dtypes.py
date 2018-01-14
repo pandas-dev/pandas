@@ -710,7 +710,8 @@ class IntervalDtype(ExtensionDtype):
             # None should match any subtype
             return True
         else:
-            return self.subtype == other.subtype
+            from pandas.core.dtypes.common import is_dtype_equal
+            return is_dtype_equal(self.subtype, other.subtype)
 
     @classmethod
     def is_dtype(cls, dtype):
