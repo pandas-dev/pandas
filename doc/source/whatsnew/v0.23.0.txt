@@ -408,7 +408,7 @@ Indexing
 - Bug in :func:`MultiIndex.set_labels` which would cause casting (and potentially clipping) of the new labels if the ``level`` argument is not 0 or a list like [0, 1, ... ]  (:issue:`19057`)
 - Bug in ``str.extractall`` when there were no matches empty :class:`Index` was returned instead of appropriate :class:`MultiIndex` (:issue:`19034`)
 - Bug in :class:`IntervalIndex` where set operations that returned an empty ``IntervalIndex`` had the wrong dtype (:issue:`19101`)
-- Bug in :func:`DataFrame.drop`, ``ValueError`` now raises when dropping an ``Index`` that has duplicates (:issue:`19186`)
+- Bug in :func:`DataFrame.drop`, ``KeyError`` now raises when dropping an ``Index`` or column that has duplicates (:issue:`19186`)
 -
 
 I/O
