@@ -4,14 +4,11 @@
 from datetime import datetime
 import collections
 import pytest
-import gzip
-import bz2
-import lzma
 
 import numpy as np
 import pandas as pd
 
-from pandas import Series, DataFrame
+from pandas import Series, DataFrame, compat
 
 from pandas.compat import StringIO, u
 from pandas.util.testing import (assert_series_equal, assert_almost_equal,
@@ -142,12 +139,31 @@ class TestSeriesToCSV(TestData):
         csv_str = s.to_csv(path=None)
         assert isinstance(csv_str, str)
 
-    @pytest.mark.parametrize('compression, open_func', [
-        ('gzip', gzip.open),
-        ('bz2', bz2.BZ2File),
-        (pytest.param('xz', lzma.open, marks=td.skip_if_no_lzma)),
+    def decompress_file(self, src_path, compression):
+        if compression is None:
+            f = open(src_path, 'rb')
+        elif compression == 'gzip':
+            import gzip
+            f = gzip.open(src_path, 'rb')
+        elif compression == 'bz2':
+            import bz2
+            f = bz2.BZ2File(src_path, 'rb')
+        elif compression == 'xz':
+            lzma = compat.import_lzma()
+            f = lzma.LZMAFile(src_path, 'rb')
+        else:
+            msg = 'Unrecognized compression type: {}'.format(compression)
+            raise ValueError(msg)
+
+        return f
+
+    @pytest.mark.parametrize('compression', [
+        None,
+        'gzip',
+        'bz2',
+        pytest.param('xz', marks=td.skip_if_no_lzma),
     ])
-    def test_to_csv_compression(self, compression, open_func):
+    def test_to_csv_compression(self, compression):
 
         s = Series([0.123456, 0.234567, 0.567567], index=['A', 'B', 'C'],
                    name='X')
@@ -161,15 +177,14 @@ class TestSeriesToCSV(TestData):
                              squeeze=True)
             assert_series_equal(s, rs)
 
-            # explicitly make sure file is compressed
-            f = open_func(filename, 'rb')
+            # explicitly ensure file was compressed
+            f = self.decompress_file(filename, compression=compression)
             text = f.read().decode('utf8')
             assert s.name in text
+            f.close()
 
-            f = open_func(filename, 'rb')
-            assert_series_equal(s, pd.read_csv(f, index_col=0,
-                                               squeeze=True))
-
+            f = self.decompress_file(filename, compression=compression)
+            assert_series_equal(s, pd.read_csv(f, index_col=0, squeeze=True))
             f.close()
 
 
