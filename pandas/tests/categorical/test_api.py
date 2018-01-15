@@ -400,15 +400,6 @@ class TestCategoricalAPI(object):
         out = cat.remove_unused_categories()
         assert out.get_values().tolist() == val.tolist()
 
-    def test_deprecated_labels(self):
-        # TODO: labels is deprecated and should be removed in 0.18 or 2017,
-        # whatever is earlier
-        cat = Categorical([1, 2, 3, np.nan], categories=[1, 2, 3])
-        exp = cat.codes
-        with tm.assert_produces_warning(FutureWarning):
-            res = cat.labels
-        tm.assert_numpy_array_equal(res, exp)
-
 
 class TestCategoricalAPIWithFactor(TestCategorical):
 

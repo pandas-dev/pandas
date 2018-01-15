@@ -202,6 +202,7 @@ Other Enhancements
 - ``Resampler`` objects now have a functioning :attr:`~pandas.core.resample.Resampler.pipe` method.
   Previously, calls to ``pipe`` were diverted to  the ``mean`` method (:issue:`17905`).
 - :func:`~pandas.api.types.is_scalar` now returns ``True`` for ``DateOffset`` objects (:issue:`18943`).
+- ``IntervalIndex.astype`` now supports conversions between subtypes when passed an ``IntervalDtype`` (:issue:`19197`)
 
 .. _whatsnew_0230.api_breaking:
 
@@ -270,6 +271,8 @@ Other API Changes
 - Subtraction of :class:`Series` with timezone-aware ``dtype='datetime64[ns]'`` with mis-matched timezones will raise ``TypeError`` instead of ``ValueError`` (issue:`18817`)
 - :class:`IntervalIndex` and ``IntervalDtype`` no longer support categorical, object, and string subtypes (:issue:`19016`)
 - The default ``Timedelta`` constructor now accepts an ``ISO 8601 Duration`` string as an argument (:issue:`19040`)
+- ``IntervalDtype`` now returns ``True`` when compared against ``'interval'`` regardless of subtype, and ``IntervalDtype.name`` now returns ``'interval'`` regardless of subtype (:issue:`18980`)
+- :func:`Series.to_csv` now accepts a ``compression`` argument that works in the same way as the ``compression`` argument in :func:`DataFrame.to_csv` (:issue:`18958`)
 
 .. _whatsnew_0230.deprecations:
 
@@ -314,6 +317,9 @@ Removal of prior version deprecations/changes
 - The ``Panel4D`` and ``PanelND`` classes have been removed (:issue:`13776`)
 - The ``Panel``class has dropped the ``to_long``and ``toLong`` methods (:issue:`19077`)
 - The options ``display.line_with`` and ``display.height`` are removed in favor of ``display.width`` and ``display.max_rows`` respectively (:issue:`4391`, :issue:`19107`)
+- The ``labels`` attribute of the ``Categorical`` class has been removed in favor of :attribute:`Categorical.codes` (:issue:`7768`)
+- The ``flavor`` parameter have been removed from func:`to_sql` method (:issue:`13611`)
+- The modules `pandas.tools.hashing` and `pandas.util.hashing` have been removed (:issue:`16223`)
 
 .. _whatsnew_0230.performance:
 
@@ -377,7 +383,12 @@ Conversion
 - Fixed bug where comparing :class:`DatetimeIndex` failed to raise ``TypeError`` when attempting to compare timezone-aware and timezone-naive datetimelike objects (:issue:`18162`)
 - Bug in :class:`DatetimeIndex` where the repr was not showing high-precision time values at the end of a day (e.g., 23:59:59.999999999) (:issue:`19030`)
 - Bug where dividing a scalar timedelta-like object with :class:`TimedeltaIndex` performed the reciprocal operation (:issue:`19125`)
+- Bug in :class:`WeekOfMonth` and :class:`LastWeekOfMonth` where default keyword arguments for constructor raised ``ValueError`` (:issue:`19142`)
+- Bug in localization of a naive, datetime string in a ``Series`` constructor with a ``datetime64[ns, tz]`` dtype (:issue:`174151`)
+- :func:`Timestamp.replace` will now handle Daylight Savings transitions gracefully (:issue:`18319`)
 - Bug in subtracting :class:`Series` from ``NaT`` incorrectly returning ``NaT`` (:issue:`19158`)
+- Bug in ``.astype()`` to non-ns timedelta units would hold the incorrect dtype (:issue:`19176`, :issue:`19223`, :issue:`12425`)
+
 
 Indexing
 ^^^^^^^^
@@ -401,6 +412,7 @@ Indexing
 - Bug in :func:`MultiIndex.__contains__` where non-tuple keys would return ``True`` even if they had been dropped (:issue:`19027`)
 - Bug in :func:`MultiIndex.set_labels` which would cause casting (and potentially clipping) of the new labels if the ``level`` argument is not 0 or a list like [0, 1, ... ]  (:issue:`19057`)
 - Bug in ``str.extractall`` when there were no matches empty :class:`Index` was returned instead of appropriate :class:`MultiIndex` (:issue:`19034`)
+- Bug in :class:`IntervalIndex` where set operations that returned an empty ``IntervalIndex`` had the wrong dtype (:issue:`19101`)
 
 I/O
 ^^^
@@ -445,6 +457,8 @@ Reshaping
 - Bug in :func:`cut` which fails when using readonly arrays (:issue:`18773`)
 - Bug in :func:`Dataframe.pivot_table` which fails when the ``aggfunc`` arg is of type string.  The behavior is now consistent with other methods like ``agg`` and ``apply`` (:issue:`18713`)
 - Bug in :func:`DataFrame.merge` in which merging using ``Index`` objects as vectors raised an Exception (:issue:`19038`)
+- Bug in :func:`DataFrame.stack`, :func:`DataFrame.unstack`, :func:`Series.unstack` which were not returning subclasses (:issue:`15563`)
+-
 
 Numeric
 ^^^^^^^
@@ -469,4 +483,3 @@ Other
 ^^^^^
 
 - Improved error message when attempting to use a Python keyword as an identifier in a ``numexpr`` backed query (:issue:`18221`)
-- :func:`Timestamp.replace` will now handle Daylight Savings transitions gracefully (:issue:`18319`)
