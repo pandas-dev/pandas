@@ -225,6 +225,34 @@ If installed, we now require:
    | openpyxl        | 2.4.0           |          |
    +-----------------+-----------------+----------+
 
+.. _whatsnew_0230.api_breaking.deprecate_panel:
+
+Deprecate Panel
+^^^^^^^^^^^^^^^
+
+``Panel`` was deprecated in the 0.20.x release, showing as a ``DeprecationWarning``. Using ``Panel`` will now show a ``FutureWarning``. The recommended way to represent 3-D data are
+with a ``MultiIndex`` on a ``DataFrame`` via the :meth:`~Panel.to_frame` or with the `xarray package <http://xarray.pydata.org/en/stable/>`__. Pandas
+provides a :meth:`~Panel.to_xarray` method to automate this conversion. For more details see :ref:`Deprecate Panel <dsintro.deprecate_panel>` documentation. (:issue:`13563`, :issue:`18324`).
+
+.. ipython:: python
+   :okwarning:
+
+   p = tm.makePanel()
+   p
+
+Convert to a MultiIndex DataFrame
+
+.. ipython:: python
+
+   p.to_frame()
+
+Convert to an xarray DataArray
+
+.. ipython:: python
+   :okwarning:
+
+   p.to_xarray()
+
 
 Build Changes
 ^^^^^^^^^^^^^
@@ -289,7 +317,6 @@ Deprecations
 - ``Series.valid`` is deprecated. Use :meth:`Series.dropna` instead (:issue:`18800`).
 - :func:`read_excel` has deprecated the ``skip_footer`` parameter. Use ``skipfooter`` instead (:issue:`18836`)
 - The ``is_copy`` attribute is deprecated and will be removed in a future version (:issue:`18801`).
-- ``Panel`` is now a ``FutureWarning``, previsouly a ``DeprecationWarning`` and will be removed in a future version (:issue:`18324`)
 
 
 .. _whatsnew_0230.prior_deprecations:
