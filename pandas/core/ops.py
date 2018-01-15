@@ -724,7 +724,8 @@ def dispatch_to_index_op(op, left, right, index_class):
     # avoid accidentally allowing integer add/sub.  For datetime64[tz] dtypes,
     # left_idx may inherit a freq from a cached DatetimeIndex.
     # See discussion in GH#19147.
-    left_idx.freq = None
+    if left_idx.freq is not None:
+        left_idx = left_idx._shallow_copy(freq=None)
     try:
         result = op(left_idx, right)
     except NullFrequencyError:
