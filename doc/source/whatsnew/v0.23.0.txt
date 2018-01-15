@@ -271,6 +271,7 @@ Other API Changes
 - :class:`IntervalIndex` and ``IntervalDtype`` no longer support categorical, object, and string subtypes (:issue:`19016`)
 - The default ``Timedelta`` constructor now accepts an ``ISO 8601 Duration`` string as an argument (:issue:`19040`)
 - ``IntervalDtype`` now returns ``True`` when compared against ``'interval'`` regardless of subtype, and ``IntervalDtype.name`` now returns ``'interval'`` regardless of subtype (:issue:`18980`)
+- ``KeyError`` now raises instead of ``ValueError`` when using :meth:`drop()` to remove a non-existent element in an axis of ``Series``, ``Index``, ``DataFrame`` and ``Panel`` (:issue:`19186`)
 
 .. _whatsnew_0230.deprecations:
 
@@ -408,7 +409,7 @@ Indexing
 - Bug in :func:`MultiIndex.set_labels` which would cause casting (and potentially clipping) of the new labels if the ``level`` argument is not 0 or a list like [0, 1, ... ]  (:issue:`19057`)
 - Bug in ``str.extractall`` when there were no matches empty :class:`Index` was returned instead of appropriate :class:`MultiIndex` (:issue:`19034`)
 - Bug in :class:`IntervalIndex` where set operations that returned an empty ``IntervalIndex`` had the wrong dtype (:issue:`19101`)
-- Bug in :func:`DataFrame.drop`, ``KeyError`` now raises when dropping an ``Index`` or column that has duplicates (:issue:`19186`)
+- Bug in :func:`DataFrame.drop`, where no ``Exception`` is raised when dropping a non-existent element from an axis in ``Index`` (:issue:`19186`)
 -
 
 I/O

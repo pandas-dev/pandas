@@ -3760,6 +3760,11 @@ class Index(IndexOpsMixin, PandasObject):
         Returns
         -------
         dropped : Index
+
+        Raises
+        ------
+        KeyError
+            * If labels are not found in the selected axis
         """
         arr_dtype = 'object' if self.dtype == 'object' else None
         labels = _index_labels_to_array(labels, dtype=arr_dtype)

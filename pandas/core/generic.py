@@ -2806,6 +2806,11 @@ class NDFrame(PandasObject, SelectionMixin):
         -------
         dropped : type of caller
 
+        Raises
+        ------
+        KeyError
+            * If labels are not found in the selected axis
+
         Examples
         --------
         >>> df = pd.DataFrame(np.arange(12).reshape(3,4),
