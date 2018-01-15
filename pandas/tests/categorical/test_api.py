@@ -7,7 +7,7 @@ import numpy as np
 import pandas.util.testing as tm
 from pandas import Categorical, CategoricalIndex, Index, Series, DataFrame
 
-from pandas.core.categorical import _recode_for_categories
+from pandas.core.arrays.categorical import _recode_for_categories
 from pandas.tests.categorical.common import TestCategorical
 
 
