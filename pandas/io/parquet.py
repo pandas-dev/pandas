@@ -190,22 +190,29 @@ class FastParquetImpl(BaseImpl):
         self.api = fastparquet
 
     def write(self, df, path, compression='snappy', **kwargs):
-        if is_s3_url(path):
-            raise NotImplementedError("fastparquet s3 write isn't implemented."
-                                      " Consider using pyarrow instead.")
-
         self.validate_dataframe(df)
         # thriftpy/protocol/compact.py:339:
         # DeprecationWarning: tostring() is deprecated.
         # Use tobytes() instead.
-        path, _, _ = get_filepath_or_buffer(path)
+
+        if is_s3_url(path):
+            path, _, _ = get_filepath_or_buffer(path, mode='wb')
+            kwargs['open_with'] = lambda path, _: path
+        else:
+            path, _, _ = get_filepath_or_buffer(path)
+
         with catch_warnings(record=True):
             self.api.write(path, df,
                            compression=compression, **kwargs)
 
     def read(self, path, columns=None, **kwargs):
-        path, _, _ = get_filepath_or_buffer(path)
-        parquet_file = self.api.ParquetFile(path)
+        if is_s3_url(path):
+            s3, _, _ = get_filepath_or_buffer(path)
+            parquet_file = self.api.ParquetFile(path, open_with=s3.s3.open)
+        else:
+            path, _, _ = get_filepath_or_buffer(path)
+            parquet_file = self.api.ParquetFile(path)
+
         return parquet_file.to_pandas(columns=columns, **kwargs)
 
 
