@@ -312,18 +312,20 @@ def test_nat_arithmetic_index():
     tm.assert_index_equal(NaT - tdi, tdi_nat)
 
 
-@pytest.mark.xfail(reason='NaT - Series returns NaT.  This behavior was '
-                          'introduced somewhere between 0.22.0 and '
-                          '23fb3392adedd3a')
-def test_nat_arithmetic_series():
+@pytest.mark.parametrize('box, assert_func', [
+    (TimedeltaIndex, tm.assert_index_equal),
+    pytest.param(Series, tm.assert_series_equal,
+                 marks=pytest.mark.xfail(reason='NaT - Series returns NaT'))
+])
+def test_nat_arithmetic_td64_vector(box, assert_func):
     # GH#19124
-    ser = Series(['1 day', '2 day'], dtype='timedelta64[ns]')
-    ser_nat = Series([NaT, NaT], dtype='timedelta64[ns]')
+    vec = box(['1 day', '2 day'], dtype='timedelta64[ns]')
+    box_nat = box([NaT, NaT], dtype='timedelta64[ns]')
 
-    tm.assert_series_equal(ser + NaT, ser_nat)
-    tm.assert_series_equal(NaT + ser, ser_nat)
-    tm.assert_series_equal(ser - NaT, ser_nat)
-    tm.assert_series_equal(NaT - ser, ser_nat)
+    assert_func(vec + NaT, box_nat)
+    assert_func(NaT + vec, box_nat)
+    assert_func(vec - NaT, box_nat)
+    assert_func(NaT - vec, box_nat)
 
 
 def test_nat_pinned_docstrings():
