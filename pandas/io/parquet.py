@@ -218,8 +218,8 @@ def to_parquet(df, path, engine='auto', compression='snappy', **kwargs):
         Parquet reader library to use. If 'auto', then the option
         'io.parquet.engine' is used. If 'auto', then the first
         library to be installed is used.
-    compression : {'snappy', 'gzip', 'brotli', 'None'}
-        Name of the compression to use. Use ``None`` for no compression
+    compression : {'snappy', 'gzip', 'brotli', None}, default 'snappy'
+        Name of the compression to use. Use ``None`` for no compression.
     kwargs
         Additional keyword arguments passed to the engine
     """
