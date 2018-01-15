@@ -9,7 +9,7 @@ import numpy as np
 
 import pandas as pd
 from pandas import (Series, DataFrame, bdate_range,
-                    notna, concat, Timestamp, Index)
+                    isna, notna, concat, Timestamp, Index)
 import pandas.core.window as rwindow
 import pandas.tseries.offsets as offsets
 from pandas.core.base import SpecificationError
@@ -2334,16 +2334,6 @@ class TestMomentsConsistency(Base):
 
         pytest.raises(Exception, func, A, randn(50), 20, min_periods=5)
 
-    def test_expanding_apply(self):
-        ser = Series([])
-        tm.assert_series_equal(ser, ser.expanding().apply(lambda x: x.mean()))
-
-        # GH 8080
-        s = Series([None, None, None])
-        result = s.expanding(min_periods=0).apply(lambda x: len(x))
-        expected = Series([1., 2., 3.])
-        tm.assert_series_equal(result, expected)
-
     def test_expanding_apply_args_kwargs(self):
         def mean_w_arg(x, const):
             return np.mean(x) + const
@@ -2719,6 +2709,74 @@ class TestMomentsConsistency(Base):
         # #18804 all rolling kurt for all equal values should return Nan
         a = Series([1.1] * 15).rolling(window=10).kurt()
         assert np.isnan(a).all()
+
+    @pytest.mark.parametrize('func,static_comp', [('sum', np.sum),
+                                                  ('mean', np.mean),
+                                                  ('max', np.max),
+                                                  ('min', np.min)],
+                             ids=['sum', 'mean', 'max', 'min'])
+    def test_expanding_func(self, func, static_comp):
+        def expanding_func(x, min_periods=1, center=False, axis=0):
+            exp = x.expanding(min_periods=min_periods,
+                              center=center, axis=axis)
+            return getattr(exp, func)()
+        self._check_expanding(expanding_func, static_comp, preserve_nan=False)
+
+    def test_expanding_apply(self):
+
+        def expanding_mean(x, min_periods=1):
+            exp = x.expanding(min_periods=min_periods)
+            return exp.apply(lambda x: x.mean())
+
+        self._check_expanding(expanding_mean, np.mean)
+
+        ser = Series([])
+        tm.assert_series_equal(ser, ser.expanding().apply(lambda x: x.mean()))
+
+        # GH 8080
+        s = Series([None, None, None])
+        result = s.expanding(min_periods=0).apply(lambda x: len(x))
+        expected = Series([1., 2., 3.])
+        tm.assert_series_equal(result, expected)
+
+    def _check_expanding(self, func, static_comp, has_min_periods=True,
+                         has_time_rule=True, preserve_nan=True):
+
+        series_result = func(self.series)
+        assert isinstance(series_result, Series)
+        frame_result = func(self.frame)
+        assert isinstance(frame_result, DataFrame)
+
+        result = func(self.series)
+        tm.assert_almost_equal(result[10], static_comp(self.series[:11]))
+
+        if preserve_nan:
+            assert result.iloc[self._nan_locs].isna().all()
+
+        ser = Series(randn(50))
+
+        if has_min_periods:
+            result = func(ser, min_periods=30)
+            assert result[:29].isna().all()
+            tm.assert_almost_equal(result.iloc[-1], static_comp(ser[:50]))
+
+            # min_periods is working correctly
+            result = func(ser, min_periods=15)
+            assert isna(result.iloc[13])
+            assert notna(result.iloc[14])
+
+            ser2 = Series(randn(20))
+            result = func(ser2, min_periods=5)
+            assert isna(result[3])
+            assert notna(result[4])
+
+            # min_periods=0
+            result0 = func(ser, min_periods=0)
+            result1 = func(ser, min_periods=1)
+            tm.assert_almost_equal(result0, result1)
+        else:
+            result = func(ser)
+            tm.assert_almost_equal(result.iloc[-1], static_comp(ser[:50]))
 
     def test_rolling_max_gh6297(self):
         """Replicate result expected in GH #6297"""
