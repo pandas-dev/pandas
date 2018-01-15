@@ -503,5 +503,7 @@ class TestParquetFastParquet(Base):
     def test_s3_roundtrip(self, df_compat, s3_resource, fp):
         # GH #19134
         with pytest.raises(NotImplementedError):
+            # Known limitation, fastparquet doesn't support writing to S3.
+            # https://git.io/vNCcz
             self.check_round_trip(df_compat, fp,
                                   path='s3://pandas-test/fastparquet.parquet')
