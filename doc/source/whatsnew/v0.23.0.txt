@@ -209,6 +209,7 @@ Other Enhancements
   :ref:`Registering Custom Accessors <developer.register-accessors>` for more (:issue:`14781`).
 
 
+- ``IntervalIndex.astype`` now supports conversions between subtypes when passed an ``IntervalDtype`` (:issue:`19197`)
 
 .. _whatsnew_0230.api_breaking:
 
@@ -391,6 +392,11 @@ Conversion
 - Bug in :class:`WeekOfMonth` and :class:`LastWeekOfMonth` where default keyword arguments for constructor raised ``ValueError`` (:issue:`19142`)
 - Bug in localization of a naive, datetime string in a ``Series`` constructor with a ``datetime64[ns, tz]`` dtype (:issue:`174151`)
 - :func:`Timestamp.replace` will now handle Daylight Savings transitions gracefully (:issue:`18319`)
+
+
+
+- Bug in ``.astype()`` to non-ns timedelta units would hold the incorrect dtype (:issue:`19176`, :issue:`19223`, :issue:`12425`)
+
 
 Indexing
 ^^^^^^^^

@@ -649,40 +649,48 @@ def astype_nansafe(arr, dtype, copy=True):
     if issubclass(dtype.type, text_type):
         # in Py3 that's str, in Py2 that's unicode
         return lib.astype_unicode(arr.ravel()).reshape(arr.shape)
+
     elif issubclass(dtype.type, string_types):
         return lib.astype_str(arr.ravel()).reshape(arr.shape)
+
     elif is_datetime64_dtype(arr):
-        if dtype == object:
+        if is_object_dtype(dtype):
             return tslib.ints_to_pydatetime(arr.view(np.int64))
         elif dtype == np.int64:
             return arr.view(dtype)
-        elif dtype != _NS_DTYPE:
-            raise TypeError("cannot astype a datetimelike from [{from_dtype}] "
-                            "to [{to_dtype}]".format(from_dtype=arr.dtype,
-                                                     to_dtype=dtype))
-        return arr.astype(_NS_DTYPE)
+
+        # allow frequency conversions
+        if dtype.kind == 'M':
+            return arr.astype(dtype)
+
+        raise TypeError("cannot astype a datetimelike from [{from_dtype}] "
+                        "to [{to_dtype}]".format(from_dtype=arr.dtype,
+                                                 to_dtype=dtype))
+
     elif is_timedelta64_dtype(arr):
-        if dtype == np.int64:
-            return arr.view(dtype)
-        elif dtype == object:
+        if is_object_dtype(dtype):
             return tslib.ints_to_pytimedelta(arr.view(np.int64))
+        elif dtype == np.int64:
+            return arr.view(dtype)
 
         # in py3, timedelta64[ns] are int64
-        elif ((PY3 and dtype not in [_INT64_DTYPE, _TD_DTYPE]) or
-              (not PY3 and dtype != _TD_DTYPE)):
+        if ((PY3 and dtype not in [_INT64_DTYPE, _TD_DTYPE]) or
+                (not PY3 and dtype != _TD_DTYPE)):
 
             # allow frequency conversions
+            # we return a float here!
             if dtype.kind == 'm':
                 mask = isna(arr)
                 result = arr.astype(dtype).astype(np.float64)
                 result[mask] = np.nan
                 return result
+        elif dtype == _TD_DTYPE:
+            return arr.astype(_TD_DTYPE, copy=copy)
 
-            raise TypeError("cannot astype a timedelta from [{from_dtype}] "
-                            "to [{to_dtype}]".format(from_dtype=arr.dtype,
-                                                     to_dtype=dtype))
+        raise TypeError("cannot astype a timedelta from [{from_dtype}] "
+                        "to [{to_dtype}]".format(from_dtype=arr.dtype,
+                                                 to_dtype=dtype))
 
-        return arr.astype(_TD_DTYPE)
     elif (np.issubdtype(arr.dtype, np.floating) and
           np.issubdtype(dtype, np.integer)):
 
@@ -690,9 +698,21 @@ def astype_nansafe(arr, dtype, copy=True):
             raise ValueError('Cannot convert non-finite values (NA or inf) to '
                              'integer')
 
-    elif is_object_dtype(arr.dtype) and np.issubdtype(dtype.type, np.integer):
+    elif is_object_dtype(arr):
+
         # work around NumPy brokenness, #1987
-        return lib.astype_intsafe(arr.ravel(), dtype).reshape(arr.shape)
+        if np.issubdtype(dtype.type, np.integer):
+            return lib.astype_intsafe(arr.ravel(), dtype).reshape(arr.shape)
+
+        # if we have a datetime/timedelta array of objects
+        # then coerce to a proper dtype and recall astype_nansafe
+
+        elif is_datetime64_dtype(dtype):
+            from pandas import to_datetime
+            return astype_nansafe(to_datetime(arr).values, dtype, copy=copy)
+        elif is_timedelta64_dtype(dtype):
+            from pandas import to_timedelta
+            return astype_nansafe(to_timedelta(arr).values, dtype, copy=copy)
 
     if dtype.name in ("datetime64", "timedelta64"):
         msg = ("Passing in '{dtype}' dtype with no frequency is "
@@ -703,20 +723,7 @@ def astype_nansafe(arr, dtype, copy=True):
         dtype = np.dtype(dtype.name + "[ns]")
 
     if copy:
-
-        if arr.dtype == dtype:
-            return arr.copy()
-
-        # we handle datetimelikes with pandas machinery
-        # to be robust to the input type
-        elif is_datetime64_dtype(dtype):
-            from pandas import to_datetime
-            return to_datetime(arr).values
-        elif is_timedelta64_dtype(dtype):
-            from pandas import to_timedelta
-            return to_timedelta(arr).values
-
-        return arr.astype(dtype)
+        return arr.astype(dtype, copy=True)
     return arr.view(dtype)
 
 
