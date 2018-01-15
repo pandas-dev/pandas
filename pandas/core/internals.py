@@ -323,21 +323,6 @@ class Block(PandasObject):
         return self.make_block_same_class(
             values, placement=placement or slice(0, len(values), 1))
 
-    def reindex_axis(self, indexer, method=None, axis=1, fill_value=None,
-                     limit=None, mask_info=None):
-        """
-        Reindex using pre-computed indexer information
-        """
-        if axis < 1:
-            raise AssertionError(
-                'axis must be at least 1, got {axis}'.format(axis=axis))
-        if fill_value is None:
-            fill_value = self.fill_value
-
-        new_values = algos.take_nd(self.values, indexer, axis,
-                                   fill_value=fill_value, mask_info=mask_info)
-        return self.make_block(new_values, fastpath=True)
-
     def iget(self, i):
         return self.values[i]
 
@@ -933,10 +918,10 @@ class Block(PandasObject):
 
         new_values = self.values if inplace else self.values.copy()
 
-        if hasattr(new, 'reindex_axis'):
+        if hasattr(new, 'values'):
             new = new.values
 
-        if hasattr(mask, 'reindex_axis'):
+        if hasattr(mask, 'values'):
             mask = mask.values
 
         # if we are passed a scalar None, convert it here
@@ -1295,7 +1280,7 @@ class Block(PandasObject):
         orig_other = other
         values = self.values
 
-        if hasattr(other, 'reindex_axis'):
+        if hasattr(other, 'values'):
             other = other.values
 
         # make sure that we can broadcast
@@ -1444,10 +1429,10 @@ class Block(PandasObject):
         if transpose:
             values = values.T
 
-        if hasattr(other, 'reindex_axis'):
+        if hasattr(other, 'values'):
             other = other.values
 
-        if hasattr(cond, 'reindex_axis'):
+        if hasattr(cond, 'values'):
             cond = cond.values
 
         # If the default broadcasting would go in the wrong direction, then
@@ -2883,22 +2868,6 @@ class SparseBlock(NonConsolidatableMixIn, Block):
         return [self.make_block_same_class(new_values,
                                            placement=self.mgr_locs)]
 
-    def reindex_axis(self, indexer, method=None, axis=1, fill_value=None,
-                     limit=None, mask_info=None):
-        """
-        Reindex using pre-computed indexer information
-        """
-        if axis < 1:
-            raise AssertionError(
-                'axis must be at least 1, got {axis}'.format(axis=axis))
-
-        # taking on the 0th axis always here
-        if fill_value is None:
-            fill_value = self.fill_value
-        return self.make_block_same_class(self.values.take(indexer),
-                                          fill_value=fill_value,
-                                          placement=self.mgr_locs)
-
     def sparse_reindex(self, new_index):
         """ sparse reindex and return a new block
             current reindex only works for float64 dtype! """
@@ -3299,7 +3268,7 @@ class BlockManager(PandasObject):
 
         aligned_args = dict((k, kwargs[k])
                             for k in align_keys
-                            if hasattr(kwargs[k], 'reindex_axis'))
+                            if hasattr(kwargs[k], 'values'))
 
         for b in self.blocks:
             if filter is not None:
