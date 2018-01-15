@@ -10,12 +10,14 @@ from pandas import (
     Series, Categorical, CategoricalIndex, IntervalIndex, date_range)
 
 from pandas.compat import string_types
+from pandas.core.arrays import ExtensionArray
 from pandas.core.dtypes.dtypes import (
     DatetimeTZDtype, PeriodDtype,
-    IntervalDtype, CategoricalDtype)
+    IntervalDtype, CategoricalDtype, ExtensionDtype)
 from pandas.core.dtypes.common import (
     is_categorical_dtype, is_categorical,
     is_datetime64tz_dtype, is_datetimetz,
+    is_extension_array_dtype,
     is_period_dtype, is_period,
     is_dtype_equal, is_datetime64_ns_dtype,
     is_datetime64_dtype, is_interval_dtype,
@@ -742,3 +744,35 @@ class TestCategoricalDtypeParametrized(object):
         tm.assert_index_equal(c1.categories, pd.Index(['a', 'b']))
         c1 = CategoricalDtype(CategoricalIndex(['a', 'b']))
         tm.assert_index_equal(c1.categories, pd.Index(['a', 'b']))
+
+
+class DummyArray(object):
+    pass
+
+
+class DummyDtype(object):
+    pass
+
+
+ExtensionArray.register(DummyArray)
+ExtensionDtype.register(DummyDtype)
+
+
+class TestExtensionArrayDtype(object):
+
+    @pytest.mark.parametrize('values', [
+        pd.Categorical([]),
+        pd.Categorical([]).dtype,
+        pd.Series(pd.Categorical([])),
+        DummyDtype(),
+        DummyArray(),
+    ])
+    def test_is_extension_array_dtype(self, values):
+        assert is_extension_array_dtype(values)
+
+    @pytest.mark.parametrize('values', [
+        np.array([]),
+        pd.Series(np.array([])),
+    ])
+    def test_is_not_extension_array_dtype(self, values):
+        assert not is_extension_array_dtype(values)

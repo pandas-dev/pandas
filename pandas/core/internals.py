@@ -31,6 +31,7 @@ from pandas.core.dtypes.common import (
     is_datetimelike_v_numeric,
     is_float_dtype, is_numeric_dtype,
     is_numeric_v_string_like, is_extension_type,
+    is_extension_array_dtype,
     is_list_like,
     is_re,
     is_re_compilable,
@@ -59,7 +60,7 @@ import pandas.core.algorithms as algos
 
 from pandas.core.index import Index, MultiIndex, _ensure_index
 from pandas.core.indexing import maybe_convert_indices, length_of_indexer
-from pandas.core.arrays.categorical import Categorical, _maybe_to_categorical
+from pandas.core.arrays import Categorical
 from pandas.core.indexes.datetimes import DatetimeIndex
 from pandas.io.formats.printing import pprint_thing
 
@@ -95,6 +96,7 @@ class Block(PandasObject):
     is_object = False
     is_categorical = False
     is_sparse = False
+    is_extension = False
     _box_to_block_values = True
     _can_hold_na = False
     _can_consolidate = True
@@ -107,14 +109,15 @@ class Block(PandasObject):
     def __init__(self, values, placement, ndim=None, fastpath=False):
         if ndim is None:
             ndim = values.ndim
-        elif values.ndim != ndim:
+        elif self._validate_ndim and values.ndim != ndim:
             raise ValueError('Wrong number of dimensions')
         self.ndim = ndim
 
         self.mgr_locs = placement
         self.values = values
 
-        if ndim and len(self.mgr_locs) != len(self.values):
+        if (self._validate_ndim and ndim and
+                len(self.mgr_locs) != len(self.values)):
             raise ValueError(
                 'Wrong number of items passed {val}, placement implies '
                 '{mgr}'.format(val=len(self.values), mgr=len(self.mgr_locs)))
@@ -273,7 +276,6 @@ class Block(PandasObject):
 
         return a new block that is transformed to a nd block
         """
-
         return _block2d_to_blocknd(values=self.get_values().T,
                                    placement=self.mgr_locs, shape=shape,
                                    labels=labels, ref_items=ref_items)
@@ -548,15 +550,20 @@ class Block(PandasObject):
 
     def _astype(self, dtype, copy=False, errors='raise', values=None,
                 klass=None, mgr=None, **kwargs):
-        """
-        Coerce to the new type
+        """Coerce to the new type
 
+        Parameters
+        ----------
         dtype : str, dtype convertible
         copy : boolean, default False
             copy if indicated
         errors : str, {'raise', 'ignore'}, default 'ignore'
             - ``raise`` : allow exceptions to be raised
             - ``ignore`` : suppress exceptions. On error return original object
+
+        Returns
+        -------
+        IntervalArray
         """
         errors_legal_values = ('raise', 'ignore')
 
@@ -1695,24 +1702,20 @@ class NonConsolidatableMixIn(object):
     _holder = None
 
     def __init__(self, values, placement, ndim=None, fastpath=False, **kwargs):
+        # Placement must be converted to BlockPlacement so that we can check
+        # its length
+        if not isinstance(placement, BlockPlacement):
+            placement = BlockPlacement(placement)
 
-        # Placement must be converted to BlockPlacement via property setter
-        # before ndim logic, because placement may be a slice which doesn't
-        # have a length.
-        self.mgr_locs = placement
-
-        # kludgetastic
+        # Maybe infer ndim from placement
         if ndim is None:
-            if len(self.mgr_locs) != 1:
+            if len(placement) != 1:
                 ndim = 1
             else:
                 ndim = 2
-        self.ndim = ndim
-
-        if not isinstance(values, self._holder):
-            raise TypeError("values must be {0}".format(self._holder.__name__))
-
-        self.values = values
+        super(NonConsolidatableMixIn, self).__init__(values, placement,
+                                                     ndim=ndim,
+                                                     fastpath=fastpath)
 
     @property
     def shape(self):
@@ -1763,7 +1766,7 @@ class NonConsolidatableMixIn(object):
 
         Returns
         -------
-        a new block(s), the result of the putmask
+        a new block, the result of the putmask
         """
         inplace = validate_bool_kwarg(inplace, 'inplace')
 
@@ -1819,6 +1822,130 @@ class NonConsolidatableMixIn(object):
         blocks = [self.make_block_same_class(vals, [place])
                   for vals, place in zip(new_values, new_placement)]
         return blocks, mask
+
+
+class ExtensionBlock(NonConsolidatableMixIn, Block):
+    """Block for holding extension types.
+
+    Notes
+    -----
+    This is the holds all 3rd-party extension types. It's also the immediate
+    parent class for our internal extension types' blocks, CategoricalBlock.
+
+    All extension arrays *must* be 1-D, which simplifies things a bit.
+    """
+    # Some questions / notes as comments, will be removed.
+    #
+    # Currently inherited from NCB. We'll keep it around until SparseBlock
+    # and DatetimeTZBlock are refactored.
+    # - set
+    # - iget
+    # - should_store
+    # - putmask
+    # - _slice
+    # - _try_cast_result
+    # - unstack
+
+    # Think about overriding these methods from Block
+    # - _maybe_downcast: (never downcast)
+
+    # Methods we can (probably) ignore and just use Block's:
+
+    # * replace / replace_single
+    #   Categorical got Object, but was hopefully unnescessary.
+    #   DatetimeTZ, Sparse got Block
+    # * is_view
+    #   Categorical overrides to say that it is not.
+    #   DatetimeTZ, Sparse inherits Base anyway
+
+    is_extension = True
+
+    # XXX
+    # is_bool is is a change for CategoricalBlock. Used to inherit
+    # from Object to infer from values. If this matters, we should
+    # override it directly in CategoricalBlock so that we infer from
+    # the categories, not the codes.
+    is_bool = False
+
+    def __init__(self, values, placement, ndim=None, fastpath=False):
+        self._holder = type(values)
+        super(ExtensionBlock, self).__init__(values, placement, ndim=ndim,
+                                             fastpath=fastpath)
+
+    def get_values(self, dtype=None):
+        # ExtensionArrays must be iterable, so this works.
+        values = np.asarray(self.values)
+        if values.ndim == self.ndim - 1:
+            values = values.reshape((1,) + values.shape)
+        return values
+
+    def to_dense(self):
+        return self.values.to_dense().view()
+
+    def take_nd(self, indexer, axis=0, new_mgr_locs=None, fill_tuple=None):
+        """
+        Take values according to indexer and return them as a block.bb
+        """
+        if fill_tuple is None:
+            fill_value = None
+        else:
+            fill_value = fill_tuple[0]
+
+        # axis doesn't matter; we are really a single-dim object
+        # but are passed the axis depending on the calling routing
+        # if its REALLY axis 0, then this will be a reindex and not a take
+        new_values = self.values.take_nd(indexer, fill_value=fill_value)
+
+        # if we are a 1-dim object, then always place at 0
+        if self.ndim == 1:
+            new_mgr_locs = [0]
+        else:
+            if new_mgr_locs is None:
+                new_mgr_locs = self.mgr_locs
+
+        return self.make_block_same_class(new_values, new_mgr_locs)
+
+    def _can_hold_element(self, element):
+        # XXX:
+        # Not defined on NCM.
+        # Categorical got True from ObjectBlock
+        # DatetimeTZ gets DatetimeBlock
+        # Sparse gets Block
+        # Let's just assume yes for now, but we can maybe push
+        # this onto the array.
+        return True
+
+    def convert(self, copy=True, **kwargs):
+        # We're dedicated to a type, we don't convert.
+        # Taken from CategoricalBlock / Block.
+        return self.copy() if copy else self
+
+    def _slice(self, slicer):
+        """ return a slice of my values """
+
+        # slice the category
+        # return same dims as we currently have
+
+        if isinstance(slicer, tuple) and len(slicer) == 2:
+            if not is_null_slice(slicer[0]):
+                raise AssertionError("invalid slicing for a 1-ndim "
+                                     "categorical")
+            slicer = slicer[1]
+
+        return self.values._slice(slicer)
+
+    def formatting_values(self):
+        return self.values._formatting_values()
+
+    def concat_same_type(self, to_concat, placement=None):
+        """
+        Concatenate list of single blocks of the same type.
+        """
+        values = self._holder._concat_same_type(
+            [blk.values for blk in to_concat])
+        placement = placement or slice(0, len(values), 1)
+        return self.make_block_same_class(values, ndim=self.ndim,
+                                          placement=placement)
 
 
 class NumericBlock(Block):
@@ -2334,7 +2461,7 @@ class ObjectBlock(Block):
         return block
 
 
-class CategoricalBlock(NonConsolidatableMixIn, ObjectBlock):
+class CategoricalBlock(ExtensionBlock):
     __slots__ = ()
     is_categorical = True
     _verify_integrity = True
@@ -2343,6 +2470,7 @@ class CategoricalBlock(NonConsolidatableMixIn, ObjectBlock):
     _concatenator = staticmethod(_concat._concat_categorical)
 
     def __init__(self, values, placement, fastpath=False, **kwargs):
+        from pandas.core.arrays.categorical import _maybe_to_categorical
 
         # coerce to categorical if we can
         super(CategoricalBlock, self).__init__(_maybe_to_categorical(values),
@@ -2354,25 +2482,12 @@ class CategoricalBlock(NonConsolidatableMixIn, ObjectBlock):
         """ I am never a view """
         return False
 
-    def to_dense(self):
-        return self.values.to_dense().view()
-
-    def convert(self, copy=True, **kwargs):
-        return self.copy() if copy else self
-
     @property
     def array_dtype(self):
         """ the dtype to return if I want to construct this block as an
         array
         """
         return np.object_
-
-    def _slice(self, slicer):
-        """ return a slice of my values """
-
-        # slice the category
-        # return same dims as we currently have
-        return self.values._slice(slicer)
 
     def _try_coerce_result(self, result):
         """ reverse of try_coerce_args """
@@ -2410,29 +2525,6 @@ class CategoricalBlock(NonConsolidatableMixIn, ObjectBlock):
         return self.make_block_same_class(values=self.values.shift(periods),
                                           placement=self.mgr_locs)
 
-    def take_nd(self, indexer, axis=0, new_mgr_locs=None, fill_tuple=None):
-        """
-        Take values according to indexer and return them as a block.bb
-        """
-        if fill_tuple is None:
-            fill_value = None
-        else:
-            fill_value = fill_tuple[0]
-
-        # axis doesn't matter; we are really a single-dim object
-        # but are passed the axis depending on the calling routing
-        # if its REALLY axis 0, then this will be a reindex and not a take
-        new_values = self.values.take_nd(indexer, fill_value=fill_value)
-
-        # if we are a 1-dim object, then always place at 0
-        if self.ndim == 1:
-            new_mgr_locs = [0]
-        else:
-            if new_mgr_locs is None:
-                new_mgr_locs = self.mgr_locs
-
-        return self.make_block_same_class(new_values, new_mgr_locs)
-
     def to_native_types(self, slicer=None, na_rep='', quoting=None, **kwargs):
         """ convert to our native types format, slicing if desired """
 
@@ -2447,17 +2539,6 @@ class CategoricalBlock(NonConsolidatableMixIn, ObjectBlock):
         # we are expected to return a 2-d ndarray
         return values.reshape(1, len(values))
 
-    def concat_same_type(self, to_concat, placement=None):
-        """
-        Concatenate list of single blocks of the same type.
-        """
-        values = self._concatenator([blk.values for blk in to_concat],
-                                    axis=self.ndim - 1)
-        # not using self.make_block_same_class as values can be object dtype
-        return make_block(
-            values, placement=placement or slice(0, len(values), 1),
-            ndim=self.ndim)
-
 
 class DatetimeBlock(DatetimeLikeBlockMixin, Block):
     __slots__ = ()
@@ -2465,7 +2546,8 @@ class DatetimeBlock(DatetimeLikeBlockMixin, Block):
     _can_hold_na = True
 
     def __init__(self, values, placement, fastpath=False, **kwargs):
-        if values.dtype != _NS_DTYPE:
+        if values.dtype != _NS_DTYPE and values.dtype.base != _NS_DTYPE:
+            # not datetime64 or datetime64tz
             values = conversion.ensure_datetime64ns(values)
 
         super(DatetimeBlock, self).__init__(values, fastpath=True,
@@ -2954,6 +3036,8 @@ def get_block_type(values, dtype=None):
         cls = BoolBlock
     elif is_categorical(values):
         cls = CategoricalBlock
+    elif is_extension_array_dtype(values):
+        cls = ExtensionBlock
     else:
         cls = ObjectBlock
     return cls
@@ -4681,6 +4765,7 @@ def form_blocks(arrays, names, axes):
     # generalize?
     items_dict = defaultdict(list)
     extra_locs = []
+    external_items = []
 
     names_idx = Index(names)
     if names_idx.equals(axes[0]):
@@ -4747,6 +4832,31 @@ def form_blocks(arrays, names, axes):
                                  placement=[i])
                       for i, _, array in items_dict['CategoricalBlock']]
         blocks.extend(cat_blocks)
+
+    if len(items_dict['ExtensionBlock']):
+
+        external_blocks = []
+        for i, _, array in items_dict['ExtensionBlock']:
+            if isinstance(array, ABCSeries):
+                array = array.values
+            # Allow our internal arrays to chose their block type.
+            block_type = getattr(array, '_block_type', ExtensionBlock)
+            external_blocks.append(
+                make_block(array, klass=block_type,
+                           fastpath=True, placement=[i]))
+        blocks.extend(external_blocks)
+
+    if len(external_items):
+        external_blocks = []
+        for i, _, array in external_items:
+            if isinstance(array, ABCSeries):
+                array = array.values
+            # Allow our internal arrays to chose their block type.
+            block_type = getattr(array, '_block_type', ExtensionBlock)
+            external_blocks.append(
+                make_block(array, klass=block_type,
+                           fastpath=True, placement=[i]))
+        blocks.extend(external_blocks)
 
     if len(extra_locs):
         shape = (len(extra_locs),) + tuple(len(x) for x in axes[1:])
