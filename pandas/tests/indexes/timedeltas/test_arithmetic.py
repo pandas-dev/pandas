@@ -128,40 +128,66 @@ class TestTimedeltaIndexArithmetic(object):
             with tm.assert_produces_warning(PerformanceWarning):
                 anchored - tdi
 
-    # TODO: Split by ops, better name
-    def test_numeric_compat(self):
+    def test_mul_int(self):
         idx = self._holder(np.arange(5, dtype='int64'))
-        didx = self._holder(np.arange(5, dtype='int64') ** 2)
         result = idx * 1
         tm.assert_index_equal(result, idx)
 
+    def test_rmul_int(self):
+        idx = self._holder(np.arange(5, dtype='int64'))
         result = 1 * idx
         tm.assert_index_equal(result, idx)
 
+    def test_div_int(self):
+        idx = self._holder(np.arange(5, dtype='int64'))
         result = idx / 1
         tm.assert_index_equal(result, idx)
 
+    def test_floordiv_int(self):
+        idx = self._holder(np.arange(5, dtype='int64'))
         result = idx // 1
         tm.assert_index_equal(result, idx)
 
+    def test_mul_int_array_zerodim(self):
+        rng5 = np.arange(5, dtype='int64')
+        idx = self._holder(rng5)
+        expected = self._holder(rng5 * 5)
         result = idx * np.array(5, dtype='int64')
-        tm.assert_index_equal(result,
-                              self._holder(np.arange(5, dtype='int64') * 5))
+        tm.assert_index_equal(result, expected)
 
-        result = idx * np.arange(5, dtype='int64')
+    def test_mul_int_array(self):
+        rng5 = np.arange(5, dtype='int64')
+        idx = self._holder(rng5)
+        didx = self._holder(rng5 ** 2)
+
+        result = idx * rng5
         tm.assert_index_equal(result, didx)
+
+    def test_mul_int_series(self):
+        idx = self._holder(np.arange(5, dtype='int64'))
+        didx = self._holder(np.arange(5, dtype='int64') ** 2)
 
         result = idx * Series(np.arange(5, dtype='int64'))
         tm.assert_index_equal(result, didx)
 
-        result = idx * Series(np.arange(5, dtype='float64') + 0.1)
-        tm.assert_index_equal(result, self._holder(np.arange(
-            5, dtype='float64') * (np.arange(5, dtype='float64') + 0.1)))
+    def test_mul_float_series(self):
+        idx = self._holder(np.arange(5, dtype='int64'))
 
-        # invalid
-        pytest.raises(TypeError, lambda: idx * idx)
-        pytest.raises(ValueError, lambda: idx * self._holder(np.arange(3)))
-        pytest.raises(ValueError, lambda: idx * np.array([1, 2]))
+        rng5f = np.arange(5, dtype='float64')
+        result = idx * Series(rng5f + 0.1)
+        tm.assert_index_equal(result, self._holder(rng5f * (rng5f + 0.1)))
+
+    def test_dti_mul_dti_raises(self):
+        idx = self._holder(np.arange(5, dtype='int64'))
+        with pytest.raises(TypeError):
+            idx * idx
+
+    def test_dti_mul_too_short_raises(self):
+        idx = self._holder(np.arange(5, dtype='int64'))
+        with pytest.raises(ValueError):
+            idx * self._holder(np.arange(3))
+        with pytest.raises(ValueError):
+            idx * np.array([1, 2])
 
     def test_ufunc_coercions(self):
         # normal ops are also tested in tseries/test_timedeltas.py
