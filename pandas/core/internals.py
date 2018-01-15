@@ -304,10 +304,6 @@ class Block(PandasObject):
         return self.values.shape
 
     @property
-    def itemsize(self):
-        return self.values.itemsize
-
-    @property
     def dtype(self):
         return self.values.dtype
 
@@ -1929,6 +1925,7 @@ class IntBlock(NumericBlock):
 
 
 class DatetimeLikeBlockMixin(object):
+    freq = None  # compat with Datetimelike Index subclasses
 
     @property
     def _na_value(self):
@@ -2466,6 +2463,7 @@ class DatetimeBlock(DatetimeLikeBlockMixin, Block):
     __slots__ = ()
     is_datetime = True
     _can_hold_na = True
+    tz = None
 
     def __init__(self, values, placement, fastpath=False, **kwargs):
         if values.dtype != _NS_DTYPE:
@@ -2559,7 +2557,7 @@ class DatetimeBlock(DatetimeLikeBlockMixin, Block):
 
     @property
     def _box_func(self):
-        return tslib.Timestamp
+        return lambda x: tslib.Timestamp(x, freq=self.freq, tz=self.tz)
 
     def to_native_types(self, slicer=None, na_rep=None, date_format=None,
                         quoting=None, **kwargs):
@@ -2603,6 +2601,12 @@ class DatetimeTZBlock(NonConsolidatableMixIn, DatetimeBlock):
     _concatenator = staticmethod(_concat._concat_datetime)
     is_datetimetz = True
 
+    get_values = DatetimeBlock.get_values  # override NonConsolidatableMixin
+
+    @property
+    def tz(self):
+        return self.dtype.tz
+
     def __init__(self, values, placement, ndim=2, **kwargs):
 
         if not isinstance(values, self._holder):
@@ -2633,14 +2637,6 @@ class DatetimeTZBlock(NonConsolidatableMixIn, DatetimeBlock):
         external compat with ndarray, export as a ndarray of Timestamps
         """
         return self.values.astype('datetime64[ns]').values
-
-    def get_values(self, dtype=None):
-        # return object dtype as Timestamps with the zones
-        if is_object_dtype(dtype):
-            f = lambda x: lib.Timestamp(x, tz=self.values.tz)
-            return lib.map_infer(
-                self.values.ravel(), f).reshape(self.values.shape)
-        return self.values
 
     def _slice(self, slicer):
         """ return a slice of my values """
@@ -2713,10 +2709,6 @@ class DatetimeTZBlock(NonConsolidatableMixIn, DatetimeBlock):
 
         return result
 
-    @property
-    def _box_func(self):
-        return lambda x: tslib.Timestamp(x, tz=self.dtype.tz)
-
     def shift(self, periods, axis=0, mgr=None):
         """ shift the block by periods """
 
@@ -2766,10 +2758,6 @@ class SparseBlock(NonConsolidatableMixIn, Block):
     @property
     def shape(self):
         return (len(self.mgr_locs), self.sp_index.length)
-
-    @property
-    def itemsize(self):
-        return self.dtype.itemsize
 
     @property
     def fill_value(self):
@@ -4541,10 +4529,6 @@ class SingleBlockManager(BlockManager):
         to Timestamp/Timedelta instances.
         """
         return self._block.get_values(dtype=object)
-
-    @property
-    def itemsize(self):
-        return self._block.values.itemsize
 
     @property
     def _can_hold_na(self):
