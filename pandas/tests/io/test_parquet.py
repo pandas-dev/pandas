@@ -205,8 +205,8 @@ def test_cross_engine_fp_pa(df_cross_compat, pa, fp):
 
 
 def check_round_trip_equals(df, path, engine,
-                           write_kwargs, read_kwargs,
-                           expected, check_names):
+                            write_kwargs, read_kwargs,
+                            expected, check_names):
 
     df.to_parquet(path, engine, **write_kwargs)
     actual = read_parquet(path, engine, **read_kwargs)
@@ -218,6 +218,7 @@ def check_round_trip_equals(df, path, engine,
     actual = read_parquet(path, engine, **read_kwargs)
     tm.assert_frame_equal(expected, actual,
                           check_names=check_names)
+
 
 class Base(object):
 
@@ -243,12 +244,16 @@ class Base(object):
         if path is None:
             with tm.ensure_clean() as path:
                 check_round_trip_equals(df, path, engine,
-                                        write_kwargs=write_kwargs, read_kwargs=read_kwargs,
-                                        expected=expected, check_names=check_names)
+                                        write_kwargs=write_kwargs,
+                                        read_kwargs=read_kwargs,
+                                        expected=expected,
+                                        check_names=check_names)
         else:
             check_round_trip_equals(df, path, engine,
-                                    write_kwargs=write_kwargs, read_kwargs=read_kwargs,
-                                    expected=expected, check_names=check_names)
+                                    write_kwargs=write_kwargs,
+                                    read_kwargs=read_kwargs,
+                                    expected=expected,
+                                    check_names=check_names)
 
 
 class TestBasic(Base):
