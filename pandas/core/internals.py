@@ -918,11 +918,8 @@ class Block(PandasObject):
 
         new_values = self.values if inplace else self.values.copy()
 
-        if hasattr(new, 'values'):
-            new = new.values
-
-        if hasattr(mask, 'values'):
-            mask = mask.values
+        new = getattr(new, 'values', new)
+        mask = getattr(mask, 'values', mask)
 
         # if we are passed a scalar None, convert it here
         if not is_list_like(new) and isna(new) and not self.is_object:
@@ -1280,8 +1277,7 @@ class Block(PandasObject):
         orig_other = other
         values = self.values
 
-        if hasattr(other, 'values'):
-            other = other.values
+        other = getattr(other, 'values', other)
 
         # make sure that we can broadcast
         is_transposed = False
@@ -1429,11 +1425,8 @@ class Block(PandasObject):
         if transpose:
             values = values.T
 
-        if hasattr(other, 'values'):
-            other = other.values
-
-        if hasattr(cond, 'values'):
-            cond = cond.values
+        other = getattr(other, 'values', other)
+        cond = getattr(cond, 'values', cond)
 
         # If the default broadcasting would go in the wrong direction, then
         # explicitly reshape other instead
@@ -1910,7 +1903,9 @@ class IntBlock(NumericBlock):
 
 
 class DatetimeLikeBlockMixin(object):
-    freq = None  # compat with Datetimelike Index subclasses
+    # We add a dummy `freq` attribute here to make these block subclasses
+    # behave more like the DatetimelikeIndexOpsMixin implementations
+    freq = None
 
     @property
     def _na_value(self):
@@ -2586,8 +2581,6 @@ class DatetimeTZBlock(NonConsolidatableMixIn, DatetimeBlock):
     _concatenator = staticmethod(_concat._concat_datetime)
     is_datetimetz = True
 
-    get_values = DatetimeBlock.get_values  # override NonConsolidatableMixin
-
     @property
     def tz(self):
         return self.dtype.tz
@@ -2609,6 +2602,13 @@ class DatetimeTZBlock(NonConsolidatableMixIn, DatetimeBlock):
 
         super(DatetimeTZBlock, self).__init__(values, placement=placement,
                                               ndim=ndim, **kwargs)
+
+    def get_values(self, dtype=None):
+        """
+        return object dtype as boxed values, such as Timestamps/Timedelta
+        """
+        # Note: this overrides the NonConsolidatableMixIn implementation
+        return DatetimeBlock.get_values(self, dtype)
 
     def copy(self, deep=True, mgr=None):
         """ copy constructor """
