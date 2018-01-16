@@ -151,7 +151,7 @@ class Panel(NDFrame):
                       "http://xarray.pydata.org/en/stable/.\n"
                       "Pandas provides a `.to_xarray()` method to help "
                       "automate this conversion.\n",
-                      DeprecationWarning, stacklevel=3)
+                      FutureWarning, stacklevel=3)
 
         self._init_data(data=data, items=items, major_axis=major_axis,
                         minor_axis=minor_axis, copy=copy, dtype=dtype)
