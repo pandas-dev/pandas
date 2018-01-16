@@ -2809,7 +2809,7 @@ class NDFrame(PandasObject, SelectionMixin):
         Raises
         ------
         KeyError
-            * If labels are not found in the selected axis
+            If none of the labels are found in the selected axis
 
         Examples
         --------

@@ -1143,6 +1143,7 @@ class TestDataFrameSelectReindex(TestData):
         level = 0 if isinstance(actual.index, MultiIndex) else None
         with pytest.raises(KeyError):
             actual.drop('c', level=level, axis=0)
+        with pytest.raises(KeyError):
             actual.T.drop('c', level=level, axis=1)
         expected_no_err = actual.drop('c', axis=0, level=level,
                                       errors='ignore')
