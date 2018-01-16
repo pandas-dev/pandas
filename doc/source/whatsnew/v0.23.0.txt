@@ -484,6 +484,8 @@ Reshaping
 ^^^^^^^^^
 
 - Bug in :func:`DataFrame.stack` which fails trying to sort mixed type levels under Python 3 (:issue:`18310`)
+- Bug in :func:`DataFrame.unstack` which casts int to float if ``columns`` is a ``MultiIndex`` with unused levels (:issue:`17845`)
+- Bug in :func:`DataFrame.unstack` which raises an error if ``index`` is a ``MultiIndex`` with unused labels on the unstacked level (:issue:`18562`)
 - Fixed construction of a :class:`Series` from a ``dict`` containing ``NaN`` as key (:issue:`18480`)
 - Bug in :func:`Series.rank` where ``Series`` containing ``NaT`` modifies the ``Series`` inplace (:issue:`18521`)
 - Bug in :func:`cut` which fails when using readonly arrays (:issue:`18773`)
