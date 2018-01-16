@@ -210,7 +210,7 @@ class Block(PandasObject):
 
         return make_block(values, placement=placement, ndim=ndim, **kwargs)
 
-    def make_block_scalar(self, values, **kwargs):
+    def make_block_scalar(self, values):
         """
         Create a ScalarBlock
         """
@@ -1694,7 +1694,7 @@ class NonConsolidatableMixIn(object):
     _validate_ndim = False
     _holder = None
 
-    def __init__(self, values, placement, ndim=None, **kwargs):
+    def __init__(self, values, placement, ndim=None):
 
         # Placement must be converted to BlockPlacement via property setter
         # before ndim logic, because placement may be a slice which doesn't
@@ -1952,12 +1952,12 @@ class TimeDeltaBlock(DatetimeLikeBlockMixin, IntBlock):
     _can_hold_na = True
     is_numeric = False
 
-    def __init__(self, values, placement, **kwargs):
+    def __init__(self, values, placement, ndim=None):
         if values.dtype != _TD_DTYPE:
             values = conversion.ensure_timedelta64ns(values)
 
         super(TimeDeltaBlock, self).__init__(values,
-                                             placement=placement, **kwargs)
+                                             placement=placement, ndim=ndim)
 
     @property
     def _box_func(self):
@@ -2090,13 +2090,12 @@ class ObjectBlock(Block):
     is_object = True
     _can_hold_na = True
 
-    def __init__(self, values, ndim=2, placement=None,
-                 **kwargs):
+    def __init__(self, values, placement=None, ndim=2):
         if issubclass(values.dtype.type, compat.string_types):
             values = np.array(values, dtype=object)
 
         super(ObjectBlock, self).__init__(values, ndim=ndim,
-                                          placement=placement, **kwargs)
+                                          placement=placement)
 
     @property
     def is_bool(self):
@@ -2343,11 +2342,11 @@ class CategoricalBlock(NonConsolidatableMixIn, ObjectBlock):
     _holder = Categorical
     _concatenator = staticmethod(_concat._concat_categorical)
 
-    def __init__(self, values, placement, **kwargs):
+    def __init__(self, values, placement, ndim=None):
 
         # coerce to categorical if we can
         super(CategoricalBlock, self).__init__(_maybe_to_categorical(values),
-                                               placement=placement, **kwargs)
+                                               placement=placement, ndim=ndim)
 
     @property
     def is_view(self):
@@ -2464,12 +2463,12 @@ class DatetimeBlock(DatetimeLikeBlockMixin, Block):
     is_datetime = True
     _can_hold_na = True
 
-    def __init__(self, values, placement, **kwargs):
+    def __init__(self, values, placement, ndim=None):
         if values.dtype != _NS_DTYPE:
             values = conversion.ensure_datetime64ns(values)
 
         super(DatetimeBlock, self).__init__(values,
-                                            placement=placement, **kwargs)
+                                            placement=placement, ndim=ndim)
 
     def _astype(self, dtype, mgr=None, **kwargs):
         """
@@ -2600,12 +2599,10 @@ class DatetimeTZBlock(NonConsolidatableMixIn, DatetimeBlock):
     _concatenator = staticmethod(_concat._concat_datetime)
     is_datetimetz = True
 
-    def __init__(self, values, placement, ndim=2, **kwargs):
+    def __init__(self, values, placement, ndim=2, dtype=None):
 
         if not isinstance(values, self._holder):
             values = self._holder(values)
-
-        dtype = kwargs.pop('dtype', None)
 
         if dtype is not None:
             if isinstance(dtype, compat.string_types):
@@ -2616,7 +2613,7 @@ class DatetimeTZBlock(NonConsolidatableMixIn, DatetimeBlock):
             raise ValueError("cannot create a DatetimeTZBlock without a tz")
 
         super(DatetimeTZBlock, self).__init__(values, placement=placement,
-                                              ndim=ndim, **kwargs)
+                                              ndim=ndim)
 
     def copy(self, deep=True, mgr=None):
         """ copy constructor """
@@ -2917,7 +2914,9 @@ class SparseBlock(NonConsolidatableMixIn, Block):
                                           placement=self.mgr_locs)
 
 
-def make_block(values, placement, klass=None, ndim=None, dtype=None):
+# TODO: deprecate `fastpath` kwarg after getting pyarrow to stop passing it
+def make_block(values, placement, klass=None, ndim=None, dtype=None,
+               fastpath=False):
     if klass is None:
         dtype = dtype or values.dtype
         vtype = dtype.type
