@@ -2443,6 +2443,9 @@ class DatetimeBlock(DatetimeLikeBlockMixin, Block):
     __slots__ = ()
     is_datetime = True
     _can_hold_na = True
+
+    # We add a dummy `tz` attribute here to make these block subclasses
+    # behave more like the DatetimelikeIndexOpsMixin implementations
     tz = None
 
     def __init__(self, values, placement, fastpath=False, **kwargs):
