@@ -2228,9 +2228,10 @@ round-trippable manner.
    new_df
    new_df.dtypes
 
-Please note that the string `index` is not supported with the round trip
-format, as it is used by default in ``write_json`` to indicate a missing index
-name.
+Please note that the literal string 'index' as the name of an :class:`Index`
+is not round-trippable, nor are any names beginning with 'level_' within a
+:class:`MultiIndex`. These are used by default in :func:`DataFrame.to_json` to
+indicate missing values and the subsequent read cannot distinguish the intent.
 
 .. ipython:: python
 
