@@ -156,7 +156,7 @@ cdef class _NaT(datetime):
             neg_other = -other
             return self + neg_other
 
-        elif getattr(other, '_typ', None) in ['period',
+        elif getattr(other, '_typ', None) in ['period', 'series',
                                               'periodindex', 'dateoffset']:
             return NotImplemented
 

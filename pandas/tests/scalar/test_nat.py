@@ -314,8 +314,7 @@ def test_nat_arithmetic_index():
 
 @pytest.mark.parametrize('box, assert_func', [
     (TimedeltaIndex, tm.assert_index_equal),
-    pytest.param(Series, tm.assert_series_equal,
-                 marks=pytest.mark.xfail(reason='NaT - Series returns NaT'))
+    (Series, tm.assert_series_equal)
 ])
 def test_nat_arithmetic_td64_vector(box, assert_func):
     # GH#19124
