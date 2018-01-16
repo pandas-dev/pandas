@@ -14,7 +14,7 @@ from pandas import compat
 
 from pandas.core.accessor import CachedAccessor
 from pandas.core.dtypes.generic import (
-    ABCSeries,
+    ABCSeries, ABCDataFrame,
     ABCMultiIndex,
     ABCPeriodIndex,
     ABCDateOffset)
@@ -4019,6 +4019,9 @@ class Index(IndexOpsMixin, PandasObject):
 
         def _make_evaluate_binop(op, opstr, reversed=False, constructor=Index):
             def _evaluate_numeric_binop(self, other):
+                if isinstance(other, (ABCSeries, ABCDataFrame)):
+                    return NotImplemented
+
                 other = self._validate_for_numeric_binop(other, op, opstr)
 
                 # handle time-based others
