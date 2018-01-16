@@ -1903,10 +1903,6 @@ class IntBlock(NumericBlock):
 
 
 class DatetimeLikeBlockMixin(object):
-    # We add a dummy `freq` attribute here to make these block subclasses
-    # behave more like the DatetimelikeIndexOpsMixin implementations
-    freq = None
-
     @property
     def _na_value(self):
         return tslib.NaT
@@ -2540,7 +2536,7 @@ class DatetimeBlock(DatetimeLikeBlockMixin, Block):
 
     @property
     def _box_func(self):
-        return lambda x: tslib.Timestamp(x, freq=self.freq, tz=self.tz)
+        return lambda x: tslib.Timestamp(x, tz=self.tz)
 
     def to_native_types(self, slicer=None, na_rep=None, date_format=None,
                         quoting=None, **kwargs):
