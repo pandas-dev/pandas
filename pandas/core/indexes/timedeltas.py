@@ -161,6 +161,7 @@ class TimedeltaIndex(DatetimeIndexOpsMixin, TimelikeOps, Int64Index):
 
     _typ = 'timedeltaindex'
     _join_precedence = 10
+    _box_slices = True
 
     def _join_i8_wrapper(joinf, **kwargs):
         return DatetimeIndexOpsMixin._join_i8_wrapper(

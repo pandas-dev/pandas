@@ -10,6 +10,7 @@ from pandas.core.common import _asarray_tuplesafe
 from pandas.tests.indexes.common import Base
 import pandas.util.testing as tm
 import pandas as pd
+from pandas.core.interval import IntervalArray
 
 
 @pytest.fixture(scope='class', params=['left', 'right', 'both', 'neither'])
@@ -48,8 +49,8 @@ class TestIntervalIndex(Base):
     def test_constructors(self, data, closed, name):
         left, right = data[:-1], data[1:]
         ivs = [Interval(l, r, closed=closed) for l, r in lzip(left, right)]
-        expected = IntervalIndex._simple_new(
-            left=left, right=right, closed=closed, name=name)
+        arr = IntervalArray._simple_new(left=left, right=right, closed=closed)
+        expected = IntervalIndex._simple_new(arr, name=name)
 
         # validate expected
         assert expected.closed == closed
@@ -1205,3 +1206,10 @@ class TestIntervalIndex(Base):
             assert all(isna(x) for x in result_na)
         else:
             assert isna(result_na)
+
+    def test_from_interval_array(self):
+        breaks = list(range(10))
+        arr = IntervalArray.from_breaks(breaks)
+        result = IntervalIndex(arr)
+        expected = IntervalIndex.from_breaks(breaks)
+        tm.assert_index_equal(result, expected)

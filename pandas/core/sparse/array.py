@@ -9,6 +9,7 @@ import warnings
 
 import pandas as pd
 from pandas.core.base import PandasObject
+from pandas.core.extensions import ExtensionArray
 
 from pandas import compat
 from pandas.compat import range
@@ -161,7 +162,7 @@ def _wrap_result(name, data, sparse_index, fill_value, dtype=None):
                        fill_value=fill_value, dtype=dtype)
 
 
-class SparseArray(PandasObject, np.ndarray):
+class SparseArray(PandasObject, np.ndarray, ExtensionArray):
     """Data structure for labeled, sparse floating point 1-D data
 
     Parameters
@@ -271,6 +272,14 @@ class SparseArray(PandasObject, np.ndarray):
             return 'block'
         elif isinstance(self.sp_index, IntIndex):
             return 'integer'
+
+    @property
+    def _block_type(self):
+        from pandas.core.internals import SparseBlock
+        return SparseBlock
+
+    def isna(self):
+        return np.isnan(self)
 
     def __array_wrap__(self, out_arr, context=None):
         """

@@ -572,7 +572,6 @@ def is_string_dtype(arr_or_dtype):
     """
 
     # TODO: gh-15585: consider making the checks stricter.
-
     if arr_or_dtype is None:
         return False
     try:
@@ -1628,11 +1627,13 @@ def is_bool_dtype(arr_or_dtype):
 
 def is_extension_type(arr):
     """
-    Check whether an array-like is of a pandas extension class instance.
+    Check whether an array-like is a pandas extension class instance.
 
     Extension classes include categoricals, pandas sparse objects (i.e.
     classes represented within the pandas library and not ones external
-    to it like scipy sparse matrices), and datetime-like arrays.
+    to it like scipy sparse matrices), and datetime-like arrays with
+    timezones, or any third-party objects satisfying the pandas array
+    interface.
 
     Parameters
     ----------
@@ -1650,39 +1651,44 @@ def is_extension_type(arr):
     False
     >>> is_extension_type(np.array([1, 2, 3]))
     False
-    >>>
+
+    Categoricals
     >>> cat = pd.Categorical([1, 2, 3])
-    >>>
     >>> is_extension_type(cat)
     True
     >>> is_extension_type(pd.Series(cat))
-    True
+
+    pandas' Sparse arrays
     >>> is_extension_type(pd.SparseArray([1, 2, 3]))
     True
     >>> is_extension_type(pd.SparseSeries([1, 2, 3]))
     True
-    >>>
     >>> from scipy.sparse import bsr_matrix
     >>> is_extension_type(bsr_matrix([1, 2, 3]))
     False
     >>> is_extension_type(pd.DatetimeIndex([1, 2, 3]))
     False
+
+    pandas' datetime with timezone
     >>> is_extension_type(pd.DatetimeIndex([1, 2, 3], tz="US/Eastern"))
     True
-    >>>
     >>> dtype = DatetimeTZDtype("ns", tz="US/Eastern")
     >>> s = pd.Series([], dtype=dtype)
     >>> is_extension_type(s)
     True
     """
-
-    if is_categorical(arr):
-        return True
-    elif is_sparse(arr):
-        return True
-    elif is_datetimetz(arr):
-        return True
-    return False
+    # XXX: we have many places where we call this with a `.dtype`,
+    # instead of a type. Think about supporting that too...
+    from pandas.core.extensions import ExtensionArray, ExtensionDtype
+    return (isinstance(arr, ExtensionArray) or
+            isinstance(getattr(arr, 'values', None), ExtensionArray) or
+            # XXX: I don't like this getattr('dtype'), but I think it's
+            # necessary since DatetimeIndex().values of a datetime w/ tz
+            # is just a regular numpy array, and not an instance of
+            # ExtensionArray. I think that's since
+            # datetime (without tz) is *not* an extension type, but
+            # datetime[tz] *is* an extension type.
+            isinstance(getattr(arr, 'dtype', None), ExtensionDtype))
 
 
 def is_complex_dtype(arr_or_dtype):

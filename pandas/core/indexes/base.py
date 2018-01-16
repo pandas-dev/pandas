@@ -40,6 +40,7 @@ from pandas.core.dtypes.common import (
     needs_i8_conversion,
     is_iterator, is_list_like,
     is_scalar)
+from pandas.core.extensions import ExtensionArray
 from pandas.core.common import (is_bool_indexer, _values_from_object,
                                 _asarray_tuplesafe, _not_none,
                                 _index_labels_to_array)
@@ -148,6 +149,8 @@ class Index(IndexOpsMixin, PandasObject):
     _inner_indexer = libjoin.inner_join_indexer_object
     _outer_indexer = libjoin.outer_join_indexer_object
     _box_scalars = False
+    # Whether items returned by self._data.__getitem__ need to be boxed
+    _box_slices = False
 
     _typ = 'index'
     _data = None
@@ -1953,6 +1956,8 @@ class Index(IndexOpsMixin, PandasObject):
 
         if is_categorical_dtype(values.dtype):
             values = np.array(values)
+        elif isinstance(values, ExtensionArray):
+            values = np.asarray(values._format_values())
         elif is_object_dtype(values.dtype):
             values = lib.maybe_convert_objects(values, safe=1)
 

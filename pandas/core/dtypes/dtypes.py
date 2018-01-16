@@ -4,27 +4,11 @@ import re
 import numpy as np
 from pandas import compat
 from pandas.core.dtypes.generic import ABCIndexClass, ABCCategoricalIndex
+from pandas.core.extensions import ExtensionDtype
 
 
-class ExtensionDtype(object):
-    """
-    A np.dtype duck-typed class, suitable for holding a custom dtype.
-
-    THIS IS NOT A REAL NUMPY DTYPE
-    """
-    name = None
-    names = None
-    type = None
-    subdtype = None
-    kind = None
-    str = None
-    num = 100
-    shape = tuple()
-    itemsize = 8
-    base = None
-    isbuiltin = 0
-    isnative = 0
-    _metadata = []
+class PandasExtensionMixin(object):
+    """Useful stuff that isn't in the interface"""
     _cache = {}
 
     def __unicode__(self):
@@ -62,17 +46,6 @@ class ExtensionDtype(object):
         """
         return str(self)
 
-    def __hash__(self):
-        raise NotImplementedError("sub-classes should implement an __hash__ "
-                                  "method")
-
-    def __eq__(self, other):
-        raise NotImplementedError("sub-classes should implement an __eq__ "
-                                  "method")
-
-    def __ne__(self, other):
-        return not self.__eq__(other)
-
     def __getstate__(self):
         # pickle support; we don't want to pickle the cache
         return {k: getattr(self, k, None) for k in self._metadata}
@@ -84,9 +57,6 @@ class ExtensionDtype(object):
 
     @classmethod
     def is_dtype(cls, dtype):
-        """ Return a boolean if the passed type is an actual dtype that
-        we can match (via string or type)
-        """
         if hasattr(dtype, 'dtype'):
             dtype = dtype.dtype
         if isinstance(dtype, np.dtype):
@@ -97,7 +67,7 @@ class ExtensionDtype(object):
             return True
         try:
             return cls.construct_from_string(dtype) is not None
-        except:
+        except TypeError:
             return False
 
 
@@ -108,7 +78,7 @@ class CategoricalDtypeType(type):
     pass
 
 
-class CategoricalDtype(ExtensionDtype):
+class CategoricalDtype(PandasExtensionMixin, ExtensionDtype):
     """
     Type for categorical data with the categories and orderedness
 
@@ -387,7 +357,7 @@ class DatetimeTZDtypeType(type):
     pass
 
 
-class DatetimeTZDtype(ExtensionDtype):
+class DatetimeTZDtype(PandasExtensionMixin, ExtensionDtype):
 
     """
     A np.dtype duck-typed class, suitable for holding a custom datetime with tz
@@ -501,7 +471,7 @@ class PeriodDtypeType(type):
     pass
 
 
-class PeriodDtype(ExtensionDtype):
+class PeriodDtype(PandasExtensionMixin):
     __metaclass__ = PeriodDtypeType
     """
     A Period duck-typed class, suitable for holding a period with freq dtype.
@@ -516,6 +486,7 @@ class PeriodDtype(ExtensionDtype):
     _metadata = ['freq']
     _match = re.compile(r"(P|p)eriod\[(?P<freq>.+)\]")
     _cache = {}
+    names = None  # TODO inherit and remove
 
     def __new__(cls, freq=None):
         """
@@ -619,7 +590,7 @@ class IntervalDtypeType(type):
     pass
 
 
-class IntervalDtype(ExtensionDtype):
+class IntervalDtype(PandasExtensionMixin, ExtensionDtype):
     __metaclass__ = IntervalDtypeType
     """
     A Interval duck-typed class, suitable for holding an interval
