@@ -204,6 +204,21 @@ def test_cross_engine_fp_pa(df_cross_compat, pa, fp):
         tm.assert_frame_equal(result, df[['a', 'd']])
 
 
+def check_round_trip_equals(df, path, engine,
+                           write_kwargs, read_kwargs,
+                           expected, check_names):
+
+    df.to_parquet(path, engine, **write_kwargs)
+    actual = read_parquet(path, engine, **read_kwargs)
+    tm.assert_frame_equal(expected, actual,
+                          check_names=check_names)
+
+    # repeat
+    df.to_parquet(path, engine, **write_kwargs)
+    actual = read_parquet(path, engine, **read_kwargs)
+    tm.assert_frame_equal(expected, actual,
+                          check_names=check_names)
+
 class Base(object):
 
     def check_error_on_write(self, df, engine, exc):
@@ -227,27 +242,13 @@ class Base(object):
 
         if path is None:
             with tm.ensure_clean() as path:
-                df.to_parquet(path, engine, **write_kwargs)
-                actual = read_parquet(path, engine, **read_kwargs)
-                tm.assert_frame_equal(expected, actual,
-                                      check_names=check_names)
-
-                # repeat
-                df.to_parquet(path, engine, **write_kwargs)
-                actual = read_parquet(path, engine, **read_kwargs)
-                tm.assert_frame_equal(expected, actual,
-                                      check_names=check_names)
+                check_round_trip_equals(df, path, engine,
+                                        write_kwargs=write_kwargs, read_kwargs=read_kwargs,
+                                        expected=expected, check_names=check_names)
         else:
-            df.to_parquet(path, engine, **write_kwargs)
-            actual = read_parquet(path, engine, **read_kwargs)
-            tm.assert_frame_equal(expected, actual,
-                                  check_names=check_names)
-
-            # repeat
-            df.to_parquet(path, engine, **write_kwargs)
-            actual = read_parquet(path, engine, **read_kwargs)
-            tm.assert_frame_equal(expected, actual,
-                                  check_names=check_names)
+            check_round_trip_equals(df, path, engine,
+                                    write_kwargs=write_kwargs, read_kwargs=read_kwargs,
+                                    expected=expected, check_names=check_names)
 
 
 class TestBasic(Base):

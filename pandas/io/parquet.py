@@ -196,7 +196,10 @@ class FastParquetImpl(BaseImpl):
         # Use tobytes() instead.
 
         if is_s3_url(path):
+            # path is s3:// so we need to open the s3file in 'wb' mode.
+            # TODO: Support 'ab'
             path, _, _ = get_filepath_or_buffer(path, mode='wb')
+            # And pass the opened s3file to the fastparquet internal impl.
             kwargs['open_with'] = lambda path, _: path
         else:
             path, _, _ = get_filepath_or_buffer(path)
@@ -207,6 +210,9 @@ class FastParquetImpl(BaseImpl):
 
     def read(self, path, columns=None, **kwargs):
         if is_s3_url(path):
+            # When path is s3:// an S3File is returned.
+            # We need to retain the original path(str) while also
+            # pass the S3File().open function to fsatparquet impl.
             s3, _, _ = get_filepath_or_buffer(path)
             parquet_file = self.api.ParquetFile(path, open_with=s3.s3.open)
         else:

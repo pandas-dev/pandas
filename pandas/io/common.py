@@ -179,12 +179,11 @@ def get_filepath_or_buffer(filepath_or_buffer, encoding=None,
     filepath_or_buffer : a url, filepath (str, py.path.local or pathlib.Path),
                          or buffer
     encoding : the encoding to use to decode py3 bytes, default is 'utf-8'
-    mode : {'rb', 'wb', 'ab'} applies to S3 where a write mandates opening the
-            file in 'wb' mode.
+    mode : str, optional applies when opening S3 destinations for writing
 
     Returns
     -------
-    a filepath_or_buffer, the encoding, the compression
+    a filepath_ or buffer or S3File instance, the encoding, the compression
     """
     filepath_or_buffer = _stringify_path(filepath_or_buffer)
 
