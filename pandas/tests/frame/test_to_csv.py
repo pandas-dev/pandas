@@ -949,7 +949,6 @@ class TestDataFrameToCSV(TestData):
 
             f = tm.decompress_file(filename, compression)
             assert_frame_equal(df, read_csv(f, index_col=0))
-            f.close()
 
     def test_to_csv_compression_value_error(self):
         # GH7615
