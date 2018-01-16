@@ -149,7 +149,7 @@ squeeze : boolean, default ``False``
 prefix : str, default ``None``
   Prefix to add to column numbers when no header, e.g. 'X' for X0, X1, ...
 mangle_dupe_cols : boolean, default ``True``
-  Duplicate columns will be specified as 'X.0'...'X.N', rather than 'X'...'X'.
+  Duplicate columns will be specified as 'X', 'X.1'...'X.N', rather than 'X'...'X'.
   Passing in False will cause data to be overwritten if there are duplicate
   names in the columns.
 
@@ -548,7 +548,7 @@ these names so as to prevent data overwrite:
    pd.read_csv(StringIO(data))
 
 There is no more duplicate data because ``mangle_dupe_cols=True`` by default, which modifies
-a series of duplicate columns 'X'...'X' to become 'X.0'...'X.N'.  If ``mangle_dupe_cols
+a series of duplicate columns 'X'...'X' to become 'X', 'X.1',...'X.N'.  If ``mangle_dupe_cols
 =False``, duplicate data can arise:
 
 .. code-block :: python
@@ -2228,9 +2228,10 @@ round-trippable manner.
    new_df
    new_df.dtypes
 
-Please note that the string `index` is not supported with the round trip
-format, as it is used by default in ``write_json`` to indicate a missing index
-name.
+Please note that the literal string 'index' as the name of an :class:`Index`
+is not round-trippable, nor are any names beginning with 'level_' within a
+:class:`MultiIndex`. These are used by default in :func:`DataFrame.to_json` to
+indicate missing values and the subsequent read cannot distinguish the intent.
 
 .. ipython:: python
 

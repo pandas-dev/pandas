@@ -341,12 +341,14 @@ def read_json(path_or_buf=None, orient=None, typ='frame', dtype=True,
 
     Notes
     -----
-    Specific to ``orient='table'``, if a ``DataFrame`` with a literal ``Index``
-    name of `index` gets written with ``write_json``, the subsequent read
-    operation will incorrectly set the ``Index`` name to ``None``. This is
-    because `index` is also used by ``write_json`` to denote a missing
-    ``Index`` name, and the subsequent ``read_json`` operation cannot
-    distinguish between the two.
+    Specific to ``orient='table'``, if a :class:`DataFrame` with a literal
+    :class:`Index` name of `index` gets written with :func:`to_json`, the
+    subsequent read operation will incorrectly set the :class:`Index` name to
+    ``None``. This is because `index` is also used by :func:`DataFrame.to_json`
+    to denote a missing :class:`Index` name, and the subsequent
+    :func:`read_json` operation cannot distinguish between the two. The same
+    limitation is encountered with a :class:`MultiIndex` and any names
+    beginning with 'level_'.
 
     See Also
     --------
