@@ -1881,7 +1881,7 @@ def _flex_binary_moment(arg1, arg2, f, pairwise=False):
                     # set the index and reorder
                     if arg2.columns.nlevels > 1:
                         result.index = MultiIndex.from_product(
-                            arg2.columns.levels + result_index.levels)
+                            arg2.columns.levels + [result_index])
                         result = result.reorder_levels([2, 0, 1]).sort_index()
                     else:
                         result.index = MultiIndex.from_product(
@@ -1889,7 +1889,7 @@ def _flex_binary_moment(arg1, arg2, f, pairwise=False):
                              range(len(result_index))])
                         result = result.swaplevel(1, 0).sort_index()
                         result.index = MultiIndex.from_product(
-                            result_index.levels + arg2.columns.levels)
+                            [result_index] + [arg2.columns])
                 else:
 
                     # empty result

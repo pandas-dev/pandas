@@ -1102,11 +1102,6 @@ class Index(IndexOpsMixin, PandasObject):
     def nlevels(self):
         return 1
 
-    @property
-    def levels(self):
-        """ return a list my levels """
-        return [list(self)]
-
     def _get_names(self):
         return FrozenList((self.name, ))
 
