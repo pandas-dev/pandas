@@ -1286,7 +1286,7 @@ class Expanding(_Rolling_and_Expanding):
 
     Parameters
     ----------
-    min_periods : int, default None
+    min_periods : int, default 1
         Minimum number of observations in window required to have a value
         (otherwise result is NA).
     center : boolean, default False
