@@ -920,71 +920,34 @@ class TestDataFrameToCSV(TestData):
         recons = pd.read_csv(StringIO(csv_str), index_col=0)
         assert_frame_equal(self.frame, recons)
 
-    def test_to_csv_compression_gzip(self):
-        # GH7615
-        # use the compression kw in to_csv
+    @pytest.mark.parametrize('compression', [
+        None,
+        'gzip',
+        'bz2',
+        pytest.param('xz', marks=td.skip_if_no_lzma),
+    ])
+    def test_to_csv_compression(self, compression):
+
         df = DataFrame([[0.123456, 0.234567, 0.567567],
                         [12.32112, 123123.2, 321321.2]],
                        index=['A', 'B'], columns=['X', 'Y', 'Z'])
 
         with ensure_clean() as filename:
 
-            df.to_csv(filename, compression="gzip")
+            df.to_csv(filename, compression=compression)
 
             # test the round trip - to_csv -> read_csv
-            rs = read_csv(filename, compression="gzip", index_col=0)
+            rs = read_csv(filename, compression=compression, index_col=0)
             assert_frame_equal(df, rs)
 
-            # explicitly make sure file is gziped
-            import gzip
-            f = gzip.open(filename, 'rb')
+            # explicitly make sure file is compressed
+            f = tm.decompress_file(filename, compression)
             text = f.read().decode('utf8')
-            f.close()
             for col in df.columns:
                 assert col in text
-
-    def test_to_csv_compression_bz2(self):
-        # GH7615
-        # use the compression kw in to_csv
-        df = DataFrame([[0.123456, 0.234567, 0.567567],
-                        [12.32112, 123123.2, 321321.2]],
-                       index=['A', 'B'], columns=['X', 'Y', 'Z'])
-
-        with ensure_clean() as filename:
-
-            df.to_csv(filename, compression="bz2")
-
-            # test the round trip - to_csv -> read_csv
-            rs = read_csv(filename, compression="bz2", index_col=0)
-            assert_frame_equal(df, rs)
-
-            # explicitly make sure file is bz2ed
-            import bz2
-            f = bz2.BZ2File(filename, 'rb')
-            text = f.read().decode('utf8')
             f.close()
-            for col in df.columns:
-                assert col in text
 
-    @td.skip_if_no_lzma
-    def test_to_csv_compression_xz(self):
-        # GH11852
-        # use the compression kw in to_csv
-        df = DataFrame([[0.123456, 0.234567, 0.567567],
-                        [12.32112, 123123.2, 321321.2]],
-                       index=['A', 'B'], columns=['X', 'Y', 'Z'])
-
-        with ensure_clean() as filename:
-
-            df.to_csv(filename, compression="xz")
-
-            # test the round trip - to_csv -> read_csv
-            rs = read_csv(filename, compression="xz", index_col=0)
-            assert_frame_equal(df, rs)
-
-            # explicitly make sure file is xzipped
-            lzma = compat.import_lzma()
-            f = lzma.open(filename, 'rb')
+            f = tm.decompress_file(filename, compression)
             assert_frame_equal(df, read_csv(f, index_col=0))
             f.close()
 
