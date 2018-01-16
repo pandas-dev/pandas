@@ -73,3 +73,7 @@ class NullFrequencyError(ValueError):
     that needs a non-null frequency, particularly `DatetimeIndex.shift`,
     `TimedeltaIndex.shift`, `PeriodIndex.shift`.
     """
+
+
+class AccessorRegistrationWarning(Warning):
+    """Warning for attribute conflicts in accessor registration."""

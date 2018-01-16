@@ -202,6 +202,13 @@ Other Enhancements
 - ``Resampler`` objects now have a functioning :attr:`~pandas.core.resample.Resampler.pipe` method.
   Previously, calls to ``pipe`` were diverted to  the ``mean`` method (:issue:`17905`).
 - :func:`~pandas.api.types.is_scalar` now returns ``True`` for ``DateOffset`` objects (:issue:`18943`).
+- Added :func:`pandas.api.extensions.register_dataframe_accessor`,
+  :func:`pandas.api.extensions.register_series_accessor`, and
+  :func:`pandas.api.extensions.register_index_accessor`, accessor for libraries downstream of pandas
+  to register custom accessors like ``.cat`` on pandas objects. See
+  :ref:`Registering Custom Accessors <developer.register-accessors>` for more (:issue:`14781`).
+
+
 - ``IntervalIndex.astype`` now supports conversions between subtypes when passed an ``IntervalDtype`` (:issue:`19197`)
 
 .. _whatsnew_0230.api_breaking:
