@@ -2142,6 +2142,10 @@ class CategoricalAccessor(PandasDelegate, PandasObject, NoNewAttributesMixin):
     methods return new categorical data per default (but can be called with
     `inplace=True`).
 
+    Parameters
+    ----------
+    data : Series or CategoricalIndex
+
     Examples
     --------
     >>> s.cat.categories
@@ -2157,11 +2161,18 @@ class CategoricalAccessor(PandasDelegate, PandasObject, NoNewAttributesMixin):
 
     """
 
-    def __init__(self, values, index, name):
-        self.categorical = values
-        self.index = index
-        self.name = name
+    def __init__(self, data):
+        self._validate(data)
+        self.categorical = data.values
+        self.index = data.index
+        self.name = data.name
         self._freeze()
+
+    @staticmethod
+    def _validate(data):
+        if not is_categorical_dtype(data.dtype):
+            raise AttributeError("Can only use .cat accessor with a "
+                                 "'category' dtype")
 
     def _delegate_property_get(self, name):
         return getattr(self.categorical, name)
@@ -2180,14 +2191,6 @@ class CategoricalAccessor(PandasDelegate, PandasObject, NoNewAttributesMixin):
         res = method(*args, **kwargs)
         if res is not None:
             return Series(res, index=self.index, name=self.name)
-
-    @classmethod
-    def _make_accessor(cls, data):
-        if not is_categorical_dtype(data.dtype):
-            raise AttributeError("Can only use .cat accessor with a "
-                                 "'category' dtype")
-        return CategoricalAccessor(data.values, data.index,
-                                   getattr(data, 'name', None),)
 
 
 CategoricalAccessor._add_delegate_accessors(delegate=Categorical,

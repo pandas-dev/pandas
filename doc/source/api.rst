@@ -2498,6 +2498,20 @@ Scalar introspection
     api.types.is_re_compilable
     api.types.is_scalar
 
+Extensions
+----------
+
+These are primarily intented for library authors looking to extend pandas
+objects.
+
+.. currentmodule:: pandas
+
+.. autosummary::
+   :toctree: generated/
+
+   api.extensions.register_dataframe_accessor
+   api.extensions.register_series_accessor
+   api.extensions.register_index_accessor
 
 .. This is to prevent warnings in the doc build. We don't want to encourage
 .. these methods.
