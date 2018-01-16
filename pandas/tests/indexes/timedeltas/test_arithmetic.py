@@ -152,11 +152,12 @@ class TestTimedeltaIndexArithmetic(object):
         tm.assert_index_equal(result, didx)
 
         result = idx * Series(np.arange(5, dtype='int64'))
-        tm.assert_index_equal(result, didx)
+        tm.assert_series_equal(result, Series(didx))
 
-        result = idx * Series(np.arange(5, dtype='float64') + 0.1)
-        tm.assert_index_equal(result, self._holder(np.arange(
-            5, dtype='float64') * (np.arange(5, dtype='float64') + 0.1)))
+        rng5 = np.arange(5, dtype='float64')
+        result = idx * Series(rng5 + 0.1)
+        tm.assert_series_equal(result,
+                               Series(self._holder(rng5 * (rng5 + 0.1))))
 
         # invalid
         pytest.raises(TypeError, lambda: idx * idx)
