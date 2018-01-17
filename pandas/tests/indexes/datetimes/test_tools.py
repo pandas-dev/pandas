@@ -918,15 +918,6 @@ class TestToDatetimeMisc(object):
 
         tm.assert_index_equal(rng, result)
 
-<<<<<<< HEAD
-=======
-    def test_to_datetime_freq(self):
-        xp = bdate_range('2000-1-1', periods=10, tz='UTC')
-        rs = xp.to_datetime()
-        assert xp.freq == rs.freq
-        assert xp._tz_compare(rs)
-
->>>>>>> PR_TOOL_MERGE_PR_18596
     def test_to_datetime_overflow(self):
         # gh-17637
         # we are overflowing Timedelta range here

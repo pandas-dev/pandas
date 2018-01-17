@@ -521,8 +521,7 @@ class DatetimeIndex(DatelikeOps, TimelikeOps, DatetimeIndexOpsMixin,
                 tz = tz.localize(date.replace(tzinfo=None)).tzinfo
 
         if tz is not None and inferred_tz is not None:
-            if not (timezones.get_timezone(inferred_tz) ==
-                    timezones.get_timezone(tz)):
+            if not timezones.tz_compare(inferred_tz, tz):
                 raise AssertionError("Inferred time zone not equal to passed "
                                      "time zone")
 
@@ -1181,28 +1180,6 @@ class DatetimeIndex(DatelikeOps, TimelikeOps, DatetimeIndexOpsMixin,
         return Index.join(this, other, how=how, level=level,
                           return_indexers=return_indexers, sort=sort)
 
-    def _tz_compare(self, other):
-        """
-        Compare string representations of timezones of two DatetimeIndex as
-        directly comparing equality is broken. The same timezone can be
-        represented as different instances of timezones. For example
-        `<DstTzInfo 'Europe/Paris' LMT+0:09:00 STD>` and
-        `<DstTzInfo 'Europe/Paris' CET+1:00:00 STD>` are essentially same
-        timezones but aren't evaluted such, but the string representation
-        for both of these is `'Europe/Paris'`.
-
-        Parameters
-        ----------
-        other: DatetimeIndex
-
-        Returns:
-        -------
-        compare : Boolean
-
-        """
-        # GH 18523
-        return str(self.tzinfo) == str(other.tzinfo)
-
     def _maybe_utc_convert(self, other):
         this = self
         if isinstance(other, DatetimeIndex):
@@ -1214,7 +1191,7 @@ class DatetimeIndex(DatelikeOps, TimelikeOps, DatetimeIndexOpsMixin,
                 raise TypeError('Cannot join tz-naive with tz-aware '
                                 'DatetimeIndex')
 
-            if not self._tz_compare(other):
+            if not timezones.tz_compare(self.tz, other.tz):
                 this = self.tz_convert('UTC')
                 other = other.tz_convert('UTC')
         return this, other
@@ -1318,7 +1295,7 @@ class DatetimeIndex(DatelikeOps, TimelikeOps, DatetimeIndexOpsMixin,
 
     def _wrap_union_result(self, other, result):
         name = self.name if self.name == other.name else None
-        if not self._tz_compare(other):
+        if not timezones.tz_compare(self.tz, other.tz):
             raise ValueError('Passed item and index have different timezone')
         return self._simple_new(result, name=name, freq=None, tz=self.tz)
 

@@ -5,7 +5,7 @@ cimport cython
 from tslibs.nattype import NaT
 from tslibs.conversion cimport convert_to_tsobject
 from tslibs.timedeltas cimport convert_to_timedelta64
-from tslibs.timezones cimport get_timezone
+from tslibs.timezones cimport get_timezone, tz_compare
 from datetime import datetime, timedelta
 iNaT = util.get_nat()
 
@@ -907,7 +907,7 @@ cpdef bint is_datetime_with_singletz_array(ndarray values):
                 val = values[j]
                 if val is not NaT:
                     tz = getattr(val, 'tzinfo', None)
-                    if base_tz != tz and base_tz != get_timezone(tz):
+                    if not tz_compare(base_tz, tz):
                         return False
             break
 

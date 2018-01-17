@@ -2081,7 +2081,7 @@ bar2,12,13,14,15
         idx2 = pd.date_range(start=idx1[0], end=idx1[-1], freq='H')
         df1 = pd.DataFrame({'a': [1, 2, 3]}, index=idx1)
         df2 = pd.DataFrame({'b': [1, 2, 3]}, index=idx2)
-        res = pd.concat([df1, df2], axis=1)
+        result = pd.concat([df1, df2], axis=1)
 
         exp_idx = DatetimeIndex(['2011-01-01 00:00:00+01:00',
                                  '2011-01-01 01:00:00+01:00',
@@ -2089,15 +2089,15 @@ bar2,12,13,14,15
                                 freq='H'
                                 ).tz_localize('UTC').tz_convert('Europe/Paris')
 
-        exp = pd.DataFrame([[1, 1], [2, 2], [3, 3]],
-                           index=exp_idx, columns=['a', 'b'])
+        expected = pd.DataFrame([[1, 1], [2, 2], [3, 3]],
+                                index=exp_idx, columns=['a', 'b'])
 
-        tm.assert_frame_equal(res, exp)
+        tm.assert_frame_equal(result, expected)
 
         idx3 = pd.date_range('2011-01-01', periods=3,
                              freq='H', tz='Asia/Tokyo')
         df3 = pd.DataFrame({'b': [1, 2, 3]}, index=idx3)
-        res = pd.concat([df1, df3], axis=1)
+        result = pd.concat([df1, df3], axis=1)
 
         exp_idx = DatetimeIndex(['2010-12-31 15:00:00+00:00',
                                  '2010-12-31 16:00:00+00:00',
@@ -2107,11 +2107,11 @@ bar2,12,13,14,15
                                  '2011-01-01 01:00:00+00:00']
                                 ).tz_localize('UTC')
 
-        exp = pd.DataFrame([[np.nan, 1], [np.nan, 2], [np.nan, 3],
-                           [1, np.nan], [2, np.nan], [3, np.nan]],
-                           index=exp_idx, columns=['a', 'b'])
+        expected = pd.DataFrame([[np.nan, 1], [np.nan, 2], [np.nan, 3],
+                                 [1, np.nan], [2, np.nan], [3, np.nan]],
+                                index=exp_idx, columns=['a', 'b'])
 
-        tm.assert_frame_equal(res, exp)
+        tm.assert_frame_equal(result, expected)
 
 
 @pytest.mark.parametrize('pdt', [pd.Series, pd.DataFrame, pd.Panel])
