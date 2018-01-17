@@ -398,7 +398,7 @@ def _arith_method_SERIES(op, name, str_rep, fill_zeros=None, default_axis=None,
                                     dtype=result.dtype)
 
         elif is_timedelta64_dtype(left):
-            result = op(pd.TimedeltaIndex(left), right)
+            result = dispatch_to_index_op(op, left, right, pd.TimedeltaIndex)
             res_name = _get_series_op_result_name(left, right)
             return construct_result(left, result,
                                     index=left.index, name=res_name,

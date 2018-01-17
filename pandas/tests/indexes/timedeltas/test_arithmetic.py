@@ -652,14 +652,14 @@ class TestTimedeltaIndexArithmetic(object):
         actual = -timedelta_NaT + s1
         tm.assert_series_equal(actual, sn)
 
-        actual = s1 + NA
-        tm.assert_series_equal(actual, sn)
-        actual = NA + s1
-        tm.assert_series_equal(actual, sn)
-        actual = s1 - NA
-        tm.assert_series_equal(actual, sn)
-        actual = -NA + s1
-        tm.assert_series_equal(actual, sn)
+        with pytest.raises(TypeError):
+            s1 + np.nan
+        with pytest.raises(TypeError):
+            np.nan + s1
+        with pytest.raises(TypeError):
+            s1 - np.nan
+        with pytest.raises(TypeError):
+            -np.nan + s1
 
         actual = s1 + pd.NaT
         tm.assert_series_equal(actual, sn)
