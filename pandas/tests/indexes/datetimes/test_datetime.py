@@ -290,6 +290,7 @@ class TestDatetimeIndex(object):
                                     operator.gt, operator.ge,
                                     operator.lt, operator.le])
     def test_nat_comparison_tzawareness(self, op):
+        # GH#19276
         # tzaware DatetimeIndex should not raise when compared to NaT
         dti = pd.DatetimeIndex(['2014-01-01', pd.NaT, '2014-03-01', pd.NaT,
                                 '2014-05-01', '2014-07-01'])
