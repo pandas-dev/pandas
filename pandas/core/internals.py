@@ -198,7 +198,7 @@ class Block(PandasObject):
         """
         return self.dtype
 
-    def make_block(self, values, placement=None, ndim=None, **kwargs):
+    def make_block(self, values, placement=None, ndim=None):
         """
         Create a new block, with type inference propagate any values that are
         not specified
@@ -208,7 +208,7 @@ class Block(PandasObject):
         if ndim is None:
             ndim = self.ndim
 
-        return make_block(values, placement=placement, ndim=ndim, **kwargs)
+        return make_block(values, placement=placement, ndim=ndim)
 
     def make_block_scalar(self, values):
         """
@@ -216,12 +216,13 @@ class Block(PandasObject):
         """
         return ScalarBlock(values)
 
-    def make_block_same_class(self, values, placement=None, **kwargs):
+    def make_block_same_class(self, values, placement=None, ndim=None):
         """ Wrap given values in a block of same type as self. """
         if placement is None:
             placement = self.mgr_locs
-        return make_block(values, placement=placement, klass=self.__class__,
-                          **kwargs)
+        # TODO: Why not set default for ndim like we do for self.make_block?
+        return make_block(values, placement=placement, ndim=ndim,
+                          klass=self.__class__)
 
     @mgr_locs.setter
     def mgr_locs(self, new_mgr_locs):
@@ -1160,7 +1161,7 @@ class Block(PandasObject):
                                         dtype=self.dtype)
         values = self._try_coerce_result(values)
 
-        blocks = [self.make_block(values, klass=self.__class__)]
+        blocks = [self.make_block_same_class(values, ndim=self.ndim)]
         return self._maybe_downcast(blocks, downcast)
 
     def _interpolate(self, method=None, index=None, values=None,
@@ -1200,7 +1201,7 @@ class Block(PandasObject):
         # interp each column independently
         interp_values = np.apply_along_axis(func, axis, data)
 
-        blocks = [self.make_block(interp_values, klass=self.__class__)]
+        blocks = [self.make_block_same_class(interp_values)]
         return self._maybe_downcast(blocks, downcast)
 
     def take_nd(self, indexer, axis, new_mgr_locs=None, fill_tuple=None):
@@ -2819,7 +2820,7 @@ class SparseBlock(NonConsolidatableMixIn, Block):
 
     def make_block_same_class(self, values, placement, sparse_index=None,
                               kind=None, dtype=None, fill_value=None,
-                              copy=False, **kwargs):
+                              copy=False, ndim=None):
         """ return a new block """
         if dtype is None:
             dtype = values.dtype
@@ -2914,9 +2915,12 @@ class SparseBlock(NonConsolidatableMixIn, Block):
                                           placement=self.mgr_locs)
 
 
-# TODO: deprecate `fastpath` kwarg after getting pyarrow to stop passing it
 def make_block(values, placement, klass=None, ndim=None, dtype=None,
-               fastpath=False):
+               fastpath=None):
+    if fastpath is not None:
+        # GH#19265 pyarrow is passing this
+        warnings.warn("fastpath argument is deprecated, will be removed "
+                      "in a future release.", DeprecationWarning)
     if klass is None:
         dtype = dtype or values.dtype
         vtype = dtype.type
