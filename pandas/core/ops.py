@@ -20,7 +20,7 @@ from pandas.util._decorators import Appender
 from pandas.compat import bind_method
 import pandas.core.missing as missing
 
-from pandas.errors import PerformanceWarning
+from pandas.errors import PerformanceWarning, NullFrequencyError
 from pandas.core.common import _values_from_object, _maybe_match_name
 from pandas.core.dtypes.missing import notna, isna
 from pandas.core.dtypes.common import (
@@ -391,9 +391,8 @@ def _arith_method_SERIES(op, name, str_rep, fill_zeros=None, default_axis=None,
 
         left, right = _align_method_SERIES(left, right)
         if is_datetime64_dtype(left) or is_datetime64tz_dtype(left):
-            result = op(pd.DatetimeIndex(left), right)
+            result = dispatch_to_index_op(op, left, right, pd.DatetimeIndex)
             res_name = _get_series_op_result_name(left, right)
-            result.name = res_name  # needs to be overriden if None
             return construct_result(left, result,
                                     index=left.index, name=res_name,
                                     dtype=result.dtype)
@@ -416,6 +415,40 @@ def _arith_method_SERIES(op, name, str_rep, fill_zeros=None, default_axis=None,
                                 index=left.index, name=res_name, dtype=None)
 
     return wrapper
+
+
+def dispatch_to_index_op(op, left, right, index_class):
+    """
+    Wrap Series left in the given index_class to delegate the operation op
+    to the index implementation.  DatetimeIndex and TimedeltaIndex perform
+    type checking, timezone handling, overflow checks, etc.
+
+    Parameters
+    ----------
+    op : binary operator (operator.add, operator.sub, ...)
+    left : Series
+    right : object
+    index_class : DatetimeIndex or TimedeltaIndex
+
+    Returns
+    -------
+    result : object, usually DatetimeIndex, TimedeltaIndex, or Series
+    """
+    left_idx = index_class(left)
+
+    # avoid accidentally allowing integer add/sub.  For datetime64[tz] dtypes,
+    # left_idx may inherit a freq from a cached DatetimeIndex.
+    # See discussion in GH#19147.
+    if left_idx.freq is not None:
+        left_idx = left_idx._shallow_copy(freq=None)
+    try:
+        result = op(left_idx, right)
+    except NullFrequencyError:
+        # DatetimeIndex and TimedeltaIndex with freq == None raise ValueError
+        # on add/sub of integers (or int-like).  We re-raise as a TypeError.
+        raise TypeError('incompatible type for a datetime/timedelta '
+                        'operation [{name}]'.format(name=op.__name__))
+    return result
 
 
 def _get_series_op_result_name(left, right):
