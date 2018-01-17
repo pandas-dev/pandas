@@ -39,7 +39,7 @@ from pandas.core.dtypes.cast import (
 from pandas.core.dtypes.generic import (
     ABCSeries,
     ABCDataFrame,
-    ABCIndex, ABCDatetimeIndex,
+    ABCIndex, ABCDatetimeIndex, ABCIndexClass,
     ABCPeriodIndex)
 
 # -----------------------------------------------------------------------------
@@ -715,7 +715,7 @@ def _get_series_op_result_name(left, right):
 def _comp_method_OBJECT_ARRAY(op, x, y):
     if isinstance(y, list):
         y = construct_1d_object_array_from_listlike(y)
-    if isinstance(y, (np.ndarray, ABCSeries, ABCIndex)):
+    if isinstance(y, (np.ndarray, ABCSeries, ABCIndexClass)):
         if not is_object_dtype(y.dtype):
             y = y.astype(np.object_)
 
@@ -742,8 +742,9 @@ def _comp_method_SERIES(op, name, str_rep, masker=False):
             return op(x, y)
         elif is_categorical_dtype(y) and not is_scalar(y):
             return op(y, x)
+            # TODO: Does this make sense or should op be reversed?
 
-        if is_object_dtype(x.dtype):
+        elif is_object_dtype(x.dtype):
             result = _comp_method_OBJECT_ARRAY(op, x, y)
         else:
 
@@ -764,15 +765,9 @@ def _comp_method_SERIES(op, name, str_rep, masker=False):
 
             # we have a datetime/timedelta and may need to convert
             mask = None
-            if (needs_i8_conversion(x) or
-                    (not is_scalar(y) and needs_i8_conversion(y))):
-
-                if is_scalar(y):
-                    mask = isna(x)
-                    y = libindex.convert_scalar(x, _values_from_object(y))
-                else:
-                    mask = isna(x) | isna(y)
-                    y = y.view('i8')
+            if not is_scalar(y) and needs_i8_conversion(y):
+                mask = isna(x) | isna(y)
+                y = y.view('i8')
                 x = x.view('i8')
 
             try:
@@ -788,20 +783,36 @@ def _comp_method_SERIES(op, name, str_rep, masker=False):
 
         return result
 
-    def wrapper(self, other, axis=None):
-        # Validate the axis parameter
-        if axis is not None:
-            self._get_axis_number(axis)
-
-        if isinstance(other, ABCSeries):
-            name = _maybe_match_name(self, other)
-            if not self._indexed_same(other):
-                msg = 'Can only compare identically-labeled Series objects'
-                raise ValueError(msg)
-            return self._constructor(na_op(self.values, other.values),
-                                     index=self.index, name=name)
-        elif isinstance(other, ABCDataFrame):  # pragma: no cover
+    def wrapper(self, other):
+        if isinstance(other, ABCDataFrame):  # pragma: no cover
             return NotImplemented
+
+        elif isinstance(other, ABCSeries) and not self._indexed_same(other):
+            msg = 'Can only compare identically-labeled Series objects'
+            raise ValueError(msg)
+
+        res_name = _get_series_op_result_name(self, other)
+
+        if is_timedelta64_dtype(self):
+            res = op(pd.TimedeltaIndex(self), other)
+            return self._constructor(res, index=self.index, name=res_name)
+
+        elif is_datetime64_dtype(self) or is_datetime64tz_dtype(self):
+            # kludge; DatetimeIndex refuses to compare against None or
+            # datetime.date; until the "right" behavior is resolved, we cast
+            # these types here to types that DatetimeIndex understand.
+            if type(other) is datetime.date:
+                other = datetime.datetime(other.year, other.month, other.day)
+            elif other is None:
+                other = pd.NaT
+            res = op(pd.DatetimeIndex(self), other)
+            return self._constructor(res, index=self.index, name=res_name)
+
+        elif isinstance(other, ABCSeries):
+            res = na_op(self.values, other.values)
+            return self._constructor(res,
+                                     index=self.index, name=res_name)
+
         elif isinstance(other, (np.ndarray, pd.Index)):
             # do not check length of zerodim array
             # as it will broadcast
@@ -809,33 +820,32 @@ def _comp_method_SERIES(op, name, str_rep, masker=False):
                     len(self) != len(other)):
                 raise ValueError('Lengths must match to compare')
 
-            if isinstance(other, ABCPeriodIndex):
-                # temp workaround until fixing GH 13637
-                # tested in test_nat_comparisons
-                # (pandas.tests.series.test_operators.TestSeriesOperators)
-                return self._constructor(na_op(self.values,
-                                               other.astype(object).values),
-                                         index=self.index)
-
-            return self._constructor(na_op(self.values, np.asarray(other)),
+            res = na_op(self.values, np.asarray(other))
+            return self._constructor(res,
                                      index=self.index).__finalize__(self)
+            # TODO: Why __finalize__ here but not elsewhere?
 
-        elif isinstance(other, pd.Categorical):
-            if not is_categorical_dtype(self):
-                msg = ("Cannot compare a Categorical for op {op} with Series "
-                       "of dtype {typ}.\nIf you want to compare values, use "
-                       "'series <op> np.asarray(other)'.")
-                raise TypeError(msg.format(op=op, typ=self.dtype))
-
-        if is_categorical_dtype(self):
+        elif is_categorical_dtype(self):
             # cats are a special case as get_values() would return an ndarray,
             # which would then not take categories ordering into account
             # we can go directly to op, as the na_op would just test again and
             # dispatch to it.
             with np.errstate(all='ignore'):
                 res = op(self.values, other)
+            return self._constructor(res, index=self.index,
+                                     name=res_name, dtype='bool')
+
+        elif isinstance(other, pd.Categorical):
+            # Ordering of conditions here matters; we know at this point
+            # that not is_categorical_dtype(self)
+            msg = ("Cannot compare a Categorical for op {op} with Series "
+                   "of dtype {typ}.\nIf you want to compare values, use "
+                   "'series <op> np.asarray(other)'.")
+            raise TypeError(msg.format(op=op, typ=self.dtype))
+
         else:
             values = self.get_values()
+            # TODO: why get_values() here and just values elsewhere?
             if isinstance(other, (list, np.ndarray)):
                 other = np.asarray(other)
 
@@ -848,9 +858,10 @@ def _comp_method_SERIES(op, name, str_rep, masker=False):
             # always return a full value series here
             res = _values_from_object(res)
 
-        res = pd.Series(res, index=self.index, name=self.name, dtype='bool')
-        return res
-
+            res = pd.Series(res, index=self.index, name=res_name, dtype='bool')
+            # TODO: Why not use self._constructor here?
+            # TODO: pass dtype='bool' in other locations?
+            return res
     return wrapper
 
 
@@ -868,7 +879,7 @@ def _bool_method_SERIES(op, name, str_rep):
                 y = construct_1d_object_array_from_listlike(y)
 
             if isinstance(y, (np.ndarray, ABCSeries)):
-                if (is_bool_dtype(x.dtype) and is_bool_dtype(y.dtype)):
+                if is_bool_dtype(x.dtype) and is_bool_dtype(y.dtype):
                     result = op(x, y)  # when would this be hit?
                 else:
                     x = _ensure_object(x)
