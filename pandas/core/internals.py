@@ -2939,10 +2939,6 @@ def get_block_type(values, dtype=None):
     Returns
     -------
     block_type : str
-
-    See Also
-    --------
-    _block_type_map : maps block_type to Block class objects
     """
     dtype = dtype or values.dtype
     vtype = dtype.type
@@ -2977,7 +2973,17 @@ def make_block(values, placement, klass=None, ndim=None, dtype=None,
     if klass is None:
         dtype = dtype or values.dtype
         block_type = get_block_type(values, dtype)
-        klass = _block_type_map[block_type]
+        block_type_map = {'int': IntBlock,
+                          'complex': ComplexBlock,
+                          'float': FloatBlock,
+                          'sparse': SparseBlock,
+                          'timedelta': TimeDeltaBlock,
+                          'bool': BoolBlock,
+                          'object': ObjectBlock,
+                          'cat': CategoricalBlock,
+                          'datetime': DatetimeBlock,
+                          'datetime_tz': DatetimeTZBlock}
+        klass = block_type_map[block_type]
 
     elif klass is DatetimeTZBlock and not is_datetimetz(values):
         return klass(values, ndim=ndim, fastpath=fastpath,
