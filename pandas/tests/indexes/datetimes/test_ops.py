@@ -7,6 +7,7 @@ from datetime import datetime
 
 from itertools import product
 import pandas as pd
+from pandas.errors import NullFrequencyError
 import pandas._libs.tslib as tslib
 from pandas._libs.tslibs.offsets import shift_months
 import pandas.util.testing as tm
@@ -592,6 +593,12 @@ class TestDatetimeIndexOps(Ops):
         result = idx._nat_new(box=False)
         exp = np.array([tslib.iNaT] * 5, dtype=np.int64)
         tm.assert_numpy_array_equal(result, exp)
+
+    def test_shift_no_freq(self):
+        # GH#19147
+        dti = pd.DatetimeIndex(['2011-01-01 10:00', '2011-01-01'], freq=None)
+        with pytest.raises(NullFrequencyError):
+            dti.shift(2)
 
     def test_shift(self):
         # GH 9903
