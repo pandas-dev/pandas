@@ -171,6 +171,8 @@ We'll now kick off a three-step process:
    # Create and activate the build environment
    conda env create -f ci/environment-dev.yaml
    conda activate pandas-dev
+   # or with older versions of Anaconda:
+   source activate pandas-dev
 
    # Build and install pandas
    python setup.py build_ext --inplace -j 4
@@ -456,7 +458,7 @@ Here are *some* of the more common ``cpplint`` issues:
   - we restrict line-length to 80 characters to promote readability
   - every header file must include a header guard to avoid name collisions if re-included
 
-:ref:`Continuous Integration <contributing.ci>`. will run the
+:ref:`Continuous Integration <contributing.ci>` will run the
 `cpplint <https://pypi.python.org/pypi/cpplint>`_ tool
 and report any stylistic errors in your code. Therefore, it is helpful before
 submitting code to run the check yourself::
