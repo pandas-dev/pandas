@@ -2914,19 +2914,6 @@ class SparseBlock(NonConsolidatableMixIn, Block):
                                           placement=self.mgr_locs)
 
 
-_block_type_map = {
-    'int': IntBlock,
-    'complex': ComplexBlock,
-    'float': FloatBlock,
-    'sparse': SparseBlock,
-    'timedelta': TimeDeltaBlock,
-    'bool': BoolBlock,
-    'object': ObjectBlock,
-    'cat': CategoricalBlock,
-    'datetime': DatetimeBlock,
-    'datetime_tz': DatetimeTZBlock}
-
-
 def get_block_type(values, dtype=None):
     """
     Find the appropriate Block subclass to use for the given values and dtype.
