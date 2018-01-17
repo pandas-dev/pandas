@@ -4,6 +4,7 @@ import numpy as np
 from datetime import timedelta
 
 import pandas as pd
+from pandas.errors import NullFrequencyError
 import pandas.util.testing as tm
 from pandas import (timedelta_range, date_range, Series, Timedelta,
                     TimedeltaIndex, Index, DataFrame,
@@ -49,6 +50,12 @@ class TestTimedeltaIndex(DatetimeLike):
                                    '8 days 01:00:03', '9 days 01:00:03',
                                    '10 days 01:00:03'], freq='D')
         tm.assert_index_equal(result, expected)
+
+    def test_shift_no_freq(self):
+        # GH#19147
+        tdi = TimedeltaIndex(['1 days 01:00:00', '2 days 01:00:00'], freq=None)
+        with pytest.raises(NullFrequencyError):
+            tdi.shift(2)
 
     def test_pickle_compat_construction(self):
         pass
