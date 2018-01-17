@@ -920,12 +920,6 @@ class TestDataFrameToCSV(TestData):
         recons = pd.read_csv(StringIO(csv_str), index_col=0)
         assert_frame_equal(self.frame, recons)
 
-    @pytest.mark.parametrize('compression', [
-        None,
-        'gzip',
-        'bz2',
-        pytest.param('xz', marks=td.skip_if_no_lzma),
-    ])
     def test_to_csv_compression(self, compression):
 
         df = DataFrame([[0.123456, 0.234567, 0.567567],
@@ -941,14 +935,13 @@ class TestDataFrameToCSV(TestData):
             assert_frame_equal(df, rs)
 
             # explicitly make sure file is compressed
-            f = tm.decompress_file(filename, compression)
-            text = f.read().decode('utf8')
-            for col in df.columns:
-                assert col in text
-            f.close()
+            with tm.decompress_file(filename, compression) as fh:
+                text = fh.read().decode('utf8')
+                for col in df.columns:
+                    assert col in text
 
-            f = tm.decompress_file(filename, compression)
-            assert_frame_equal(df, read_csv(f, index_col=0))
+            with tm.decompress_file(filename, compression) as fh:
+                assert_frame_equal(df, read_csv(fh, index_col=0))
 
     def test_to_csv_compression_value_error(self):
         # GH7615
