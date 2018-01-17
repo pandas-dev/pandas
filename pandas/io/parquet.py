@@ -198,6 +198,7 @@ class FastParquetImpl(BaseImpl):
         if is_s3_url(path):
             # path is s3:// so we need to open the s3file in 'wb' mode.
             # TODO: Support 'ab'
+
             path, _, _ = get_filepath_or_buffer(path, mode='wb')
             # And pass the opened s3file to the fastparquet internal impl.
             kwargs['open_with'] = lambda path, _: path
