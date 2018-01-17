@@ -23,6 +23,7 @@ from textwrap import dedent
 import numpy as np
 import numpy.ma as ma
 
+from pandas.core.accessor import CachedAccessor
 from pandas.core.dtypes.cast import (
     maybe_upcast,
     cast_scalar_to_array,
@@ -92,7 +93,6 @@ from pandas.core.indexes.period import PeriodIndex
 from pandas.core.indexes.datetimes import DatetimeIndex
 from pandas.core.indexes.timedeltas import TimedeltaIndex
 
-from pandas.core import accessor
 import pandas.core.common as com
 import pandas.core.nanops as nanops
 import pandas.core.ops as ops
@@ -1670,8 +1670,8 @@ class DataFrame(NDFrame):
             Parquet reader library to use. If 'auto', then the option
             'io.parquet.engine' is used. If 'auto', then the first
             library to be installed is used.
-        compression : {'snappy', 'gzip', 'brotli', 'None'}
-            Name of the compression to use. Use ``None`` for no compression
+        compression : {'snappy', 'gzip', 'brotli', None}, default 'snappy'
+            Name of the compression to use. Use ``None`` for no compression.
         kwargs
             Additional keyword arguments passed to the engine
         """
@@ -2417,17 +2417,18 @@ class DataFrame(NDFrame):
 
         Notes
         -----
-        * To select all *numeric* types use the numpy dtype ``numpy.number``
+        * To select all *numeric* types, use ``np.number`` or ``'number'``
         * To select strings you must use the ``object`` dtype, but note that
           this will return *all* object dtype columns
         * See the `numpy dtype hierarchy
           <http://docs.scipy.org/doc/numpy/reference/arrays.scalars.html>`__
-        * To select datetimes, use np.datetime64, 'datetime' or 'datetime64'
-        * To select timedeltas, use np.timedelta64, 'timedelta' or
-          'timedelta64'
-        * To select Pandas categorical dtypes, use 'category'
-        * To select Pandas datetimetz dtypes, use 'datetimetz' (new in 0.20.0),
-          or a 'datetime64[ns, tz]' string
+        * To select datetimes, use ``np.datetime64``, ``'datetime'`` or
+          ``'datetime64'``
+        * To select timedeltas, use ``np.timedelta64``, ``'timedelta'`` or
+          ``'timedelta64'``
+        * To select Pandas categorical dtypes, use ``'category'``
+        * To select Pandas datetimetz dtypes, use ``'datetimetz'`` (new in
+          0.20.0) or ``'datetime64[ns, tz]'``
 
         Examples
         --------
@@ -2436,12 +2437,12 @@ class DataFrame(NDFrame):
         ...                    'c': [1.0, 2.0] * 3})
         >>> df
                 a      b  c
-        0  0.3962   True  1
-        1  0.1459  False  2
-        2  0.2623   True  1
-        3  0.0764  False  2
-        4 -0.9703   True  1
-        5 -1.2094  False  2
+        0  0.3962   True  1.0
+        1  0.1459  False  2.0
+        2  0.2623   True  1.0
+        3  0.0764  False  2.0
+        4 -0.9703   True  1.0
+        5 -1.2094  False  2.0
         >>> df.select_dtypes(include='bool')
            c
         0  True
@@ -2452,12 +2453,12 @@ class DataFrame(NDFrame):
         5  False
         >>> df.select_dtypes(include=['float64'])
            c
-        0  1
-        1  2
-        2  1
-        3  2
-        4  1
-        5  2
+        0  1.0
+        1  2.0
+        2  1.0
+        3  2.0
+        4  1.0
+        5  2.0
         >>> df.select_dtypes(exclude=['floating'])
                b
         0   True
@@ -6002,8 +6003,7 @@ class DataFrame(NDFrame):
 
     # ----------------------------------------------------------------------
     # Add plotting methods to DataFrame
-    plot = accessor.AccessorProperty(gfx.FramePlotMethods,
-                                     gfx.FramePlotMethods)
+    plot = CachedAccessor("plot", gfx.FramePlotMethods)
     hist = gfx.hist_frame
     boxplot = gfx.boxplot_frame
 

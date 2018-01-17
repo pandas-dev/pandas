@@ -191,6 +191,13 @@ class Block(PandasObject):
     def mgr_locs(self):
         return self._mgr_locs
 
+    @mgr_locs.setter
+    def mgr_locs(self, new_mgr_locs):
+        if not isinstance(new_mgr_locs, BlockPlacement):
+            new_mgr_locs = BlockPlacement(new_mgr_locs)
+
+        self._mgr_locs = new_mgr_locs
+
     @property
     def array_dtype(self):
         """ the dtype to return if I want to construct this block as an
@@ -223,13 +230,6 @@ class Block(PandasObject):
             placement = self.mgr_locs
         return make_block(values, placement=placement, klass=self.__class__,
                           fastpath=fastpath, **kwargs)
-
-    @mgr_locs.setter
-    def mgr_locs(self, new_mgr_locs):
-        if not isinstance(new_mgr_locs, BlockPlacement):
-            new_mgr_locs = BlockPlacement(new_mgr_locs)
-
-        self._mgr_locs = new_mgr_locs
 
     def __unicode__(self):
 
@@ -631,7 +631,7 @@ class Block(PandasObject):
                 values = astype_nansafe(values.ravel(), dtype, copy=True)
                 values = values.reshape(self.shape)
 
-            newb = make_block(values, placement=self.mgr_locs, dtype=dtype,
+            newb = make_block(values, placement=self.mgr_locs,
                               klass=klass)
         except:
             if errors == 'raise':
@@ -840,7 +840,6 @@ class Block(PandasObject):
 
         transf = (lambda x: x.T) if self.ndim == 2 else (lambda x: x)
         values = transf(values)
-        l = len(values)
 
         # length checking
         # boolean with truth values == len of the value is ok too
@@ -855,7 +854,7 @@ class Block(PandasObject):
         # slice
         elif isinstance(indexer, slice):
 
-            if is_list_like(value) and l:
+            if is_list_like(value) and len(values):
                 if len(value) != length_of_indexer(indexer, values):
                     raise ValueError("cannot set using a slice indexer with a "
                                      "different length than the value")
@@ -1954,6 +1953,13 @@ class TimeDeltaBlock(DatetimeLikeBlockMixin, IntBlock):
     _can_hold_na = True
     is_numeric = False
 
+    def __init__(self, values, placement, fastpath=False, **kwargs):
+        if values.dtype != _TD_DTYPE:
+            values = conversion.ensure_timedelta64ns(values)
+
+        super(TimeDeltaBlock, self).__init__(values, fastpath=True,
+                                             placement=placement, **kwargs)
+
     @property
     def _box_func(self):
         return lambda x: tslib.Timedelta(x, unit='ns')
@@ -2933,10 +2939,8 @@ def make_block(values, placement, klass=None, ndim=None, dtype=None,
         elif dtype == np.bool_:
             klass = BoolBlock
         elif issubclass(vtype, np.datetime64):
-            if hasattr(values, 'tz'):
-                klass = DatetimeTZBlock
-            else:
-                klass = DatetimeBlock
+            assert not hasattr(values, 'tz')
+            klass = DatetimeBlock
         elif is_datetimetz(values):
             klass = DatetimeTZBlock
         elif issubclass(vtype, np.complexfloating):
@@ -4696,10 +4700,8 @@ def form_blocks(arrays, names, axes):
             if v.dtype != _NS_DTYPE:
                 v = conversion.ensure_datetime64ns(v)
 
-            if is_datetimetz(v):
-                datetime_tz_items.append((i, k, v))
-            else:
-                datetime_items.append((i, k, v))
+            assert not is_datetimetz(v)
+            datetime_items.append((i, k, v))
         elif is_datetimetz(v):
             datetime_tz_items.append((i, k, v))
         elif issubclass(v.dtype.type, np.integer):
