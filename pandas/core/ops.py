@@ -6,13 +6,12 @@ This is not a public API.
 # necessary to enforce truediv in Python 2.X
 from __future__ import division
 import operator
-import warnings
+
 import numpy as np
 import pandas as pd
-import datetime
 
 from pandas._libs import (lib, index as libindex,
-                          tslib as libts, algos as libalgos, iNaT)
+                          algos as libalgos)
 
 from pandas import compat
 from pandas.util._decorators import Appender
@@ -20,7 +19,7 @@ from pandas.util._decorators import Appender
 from pandas.compat import bind_method
 import pandas.core.missing as missing
 
-from pandas.errors import PerformanceWarning, NullFrequencyError
+from pandas.errors import NullFrequencyError
 from pandas.core.common import _values_from_object, _maybe_match_name
 from pandas.core.dtypes.missing import notna, isna
 from pandas.core.dtypes.common import (
@@ -28,9 +27,9 @@ from pandas.core.dtypes.common import (
     is_datetimelike_v_numeric,
     is_integer_dtype, is_categorical_dtype,
     is_object_dtype, is_timedelta64_dtype,
-    is_datetime64_dtype, is_datetime64tz_dtype, is_datetime64_ns_dtype,
-    is_bool_dtype, is_datetimetz,
-    is_list_like, is_offsetlike,
+    is_datetime64_dtype, is_datetime64tz_dtype,
+    is_bool_dtype,
+    is_list_like,
     is_scalar,
     _ensure_object)
 from pandas.core.dtypes.cast import (
@@ -39,7 +38,7 @@ from pandas.core.dtypes.cast import (
 from pandas.core.dtypes.generic import (
     ABCSeries,
     ABCDataFrame,
-    ABCIndex, ABCDatetimeIndex,
+    ABCIndex,
     ABCPeriodIndex)
 
 # -----------------------------------------------------------------------------
