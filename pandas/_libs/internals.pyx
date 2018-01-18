@@ -3,6 +3,8 @@
 cimport cython
 from cython cimport Py_ssize_t
 
+from cpython cimport PyObject
+
 cdef extern from "Python.h":
     Py_ssize_t PY_SSIZE_T_MAX
 
