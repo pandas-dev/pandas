@@ -2302,7 +2302,7 @@ class TestPanel(PanelTests, CheckIndexing, SafeForLongAndSparse,
             expected = Panel({"One": df})
             check_drop('Two', 0, ['items'], expected)
 
-            pytest.raises(ValueError, panel.drop, 'Three')
+            pytest.raises(KeyError, panel.drop, 'Three')
 
             # errors = 'ignore'
             dropped = panel.drop('Three', errors='ignore')

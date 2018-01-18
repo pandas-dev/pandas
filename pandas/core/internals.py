@@ -97,7 +97,6 @@ class Block(PandasObject):
     is_sparse = False
     _box_to_block_values = True
     _can_hold_na = False
-    _downcast_dtype = None
     _can_consolidate = True
     _verify_integrity = True
     _validate_ndim = True
@@ -191,6 +190,13 @@ class Block(PandasObject):
     def mgr_locs(self):
         return self._mgr_locs
 
+    @mgr_locs.setter
+    def mgr_locs(self, new_mgr_locs):
+        if not isinstance(new_mgr_locs, BlockPlacement):
+            new_mgr_locs = BlockPlacement(new_mgr_locs)
+
+        self._mgr_locs = new_mgr_locs
+
     @property
     def array_dtype(self):
         """ the dtype to return if I want to construct this block as an
@@ -223,13 +229,6 @@ class Block(PandasObject):
             placement = self.mgr_locs
         return make_block(values, placement=placement, klass=self.__class__,
                           fastpath=fastpath, **kwargs)
-
-    @mgr_locs.setter
-    def mgr_locs(self, new_mgr_locs):
-        if not isinstance(new_mgr_locs, BlockPlacement):
-            new_mgr_locs = BlockPlacement(new_mgr_locs)
-
-        self._mgr_locs = new_mgr_locs
 
     def __unicode__(self):
 
@@ -840,7 +839,6 @@ class Block(PandasObject):
 
         transf = (lambda x: x.T) if self.ndim == 2 else (lambda x: x)
         values = transf(values)
-        l = len(values)
 
         # length checking
         # boolean with truth values == len of the value is ok too
@@ -855,7 +853,7 @@ class Block(PandasObject):
         # slice
         elif isinstance(indexer, slice):
 
-            if is_list_like(value) and l:
+            if is_list_like(value) and len(values):
                 if len(value) != length_of_indexer(indexer, values):
                     raise ValueError("cannot set using a slice indexer with a "
                                      "different length than the value")
@@ -1842,7 +1840,6 @@ class FloatOrComplexBlock(NumericBlock):
 class FloatBlock(FloatOrComplexBlock):
     __slots__ = ()
     is_float = True
-    _downcast_dtype = 'int64'
 
     def _can_hold_element(self, element):
         tipo = maybe_infer_dtype_type(element)

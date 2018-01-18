@@ -5,7 +5,7 @@ from distutils.version import LooseVersion
 from pandas import DataFrame, RangeIndex, Int64Index, get_option
 from pandas.compat import string_types
 from pandas.core.common import AbstractMethodError
-from pandas.io.common import get_filepath_or_buffer
+from pandas.io.common import get_filepath_or_buffer, is_s3_url
 
 
 def get_engine(engine):
@@ -107,7 +107,7 @@ class PyArrowImpl(BaseImpl):
         self.validate_dataframe(df)
         if self._pyarrow_lt_070:
             self._validate_write_lt_070(df)
-        path, _, _ = get_filepath_or_buffer(path)
+        path, _, _ = get_filepath_or_buffer(path, mode='wb')
 
         if self._pyarrow_lt_060:
             table = self.api.Table.from_pandas(df, timestamps_to_ms=True)
@@ -194,14 +194,32 @@ class FastParquetImpl(BaseImpl):
         # thriftpy/protocol/compact.py:339:
         # DeprecationWarning: tostring() is deprecated.
         # Use tobytes() instead.
-        path, _, _ = get_filepath_or_buffer(path)
+
+        if is_s3_url(path):
+            # path is s3:// so we need to open the s3file in 'wb' mode.
+            # TODO: Support 'ab'
+
+            path, _, _ = get_filepath_or_buffer(path, mode='wb')
+            # And pass the opened s3file to the fastparquet internal impl.
+            kwargs['open_with'] = lambda path, _: path
+        else:
+            path, _, _ = get_filepath_or_buffer(path)
+
         with catch_warnings(record=True):
             self.api.write(path, df,
                            compression=compression, **kwargs)
 
     def read(self, path, columns=None, **kwargs):
-        path, _, _ = get_filepath_or_buffer(path)
-        parquet_file = self.api.ParquetFile(path)
+        if is_s3_url(path):
+            # When path is s3:// an S3File is returned.
+            # We need to retain the original path(str) while also
+            # pass the S3File().open function to fsatparquet impl.
+            s3, _, _ = get_filepath_or_buffer(path)
+            parquet_file = self.api.ParquetFile(path, open_with=s3.s3.open)
+        else:
+            path, _, _ = get_filepath_or_buffer(path)
+            parquet_file = self.api.ParquetFile(path)
+
         return parquet_file.to_pandas(columns=columns, **kwargs)
 
 

@@ -23,6 +23,7 @@ from textwrap import dedent
 import numpy as np
 import numpy.ma as ma
 
+from pandas.core.accessor import CachedAccessor
 from pandas.core.dtypes.cast import (
     maybe_upcast,
     cast_scalar_to_array,
@@ -92,7 +93,6 @@ from pandas.core.indexes.period import PeriodIndex
 from pandas.core.indexes.datetimes import DatetimeIndex
 from pandas.core.indexes.timedeltas import TimedeltaIndex
 
-from pandas.core import accessor
 import pandas.core.common as com
 import pandas.core.nanops as nanops
 import pandas.core.ops as ops
@@ -250,7 +250,7 @@ class DataFrame(NDFrame):
     """ Two-dimensional size-mutable, potentially heterogeneous tabular data
     structure with labeled axes (rows and columns). Arithmetic operations
     align on both row and column labels. Can be thought of as a dict-like
-    container for Series objects. The primary pandas data structure
+    container for Series objects. The primary pandas data structure.
 
     Parameters
     ----------
@@ -6003,8 +6003,7 @@ class DataFrame(NDFrame):
 
     # ----------------------------------------------------------------------
     # Add plotting methods to DataFrame
-    plot = accessor.AccessorProperty(gfx.FramePlotMethods,
-                                     gfx.FramePlotMethods)
+    plot = CachedAccessor("plot", gfx.FramePlotMethods)
     hist = gfx.hist_frame
     boxplot = gfx.boxplot_frame
 

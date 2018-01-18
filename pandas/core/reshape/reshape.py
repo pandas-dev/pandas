@@ -112,18 +112,19 @@ class _Unstacker(object):
         if value_columns is None and values.shape[1] != 1:  # pragma: no cover
             raise ValueError('must pass column labels for multi-column data')
 
-        self.index = index
+        self.index = index.remove_unused_levels()
 
         self.level = self.index._get_level_number(level)
 
         # when index includes `nan`, need to lift levels/strides by 1
         self.lift = 1 if -1 in self.index.labels[self.level] else 0
 
-        self.new_index_levels = list(index.levels)
-        self.new_index_names = list(index.names)
+        self.new_index_levels = list(self.index.levels)
+        self.new_index_names = list(self.index.names)
 
         self.removed_name = self.new_index_names.pop(self.level)
         self.removed_level = self.new_index_levels.pop(self.level)
+        self.removed_level_full = index.levels[self.level]
 
         self._make_sorted_values_labels()
         self._make_selectors()
@@ -173,20 +174,9 @@ class _Unstacker(object):
         self.compressor = comp_index.searchsorted(np.arange(ngroups))
 
     def get_result(self):
-        # TODO: find a better way than this masking business
-
-        values, value_mask = self.get_new_values()
+        values, _ = self.get_new_values()
         columns = self.get_new_columns()
         index = self.get_new_index()
-
-        # filter out missing levels
-        if values.shape[1] > 0:
-            col_inds, obs_ids = compress_group_index(self.sorted_labels[-1])
-            # rare case, level values not observed
-            if len(obs_ids) < self.full_shape[1]:
-                inds = (value_mask.sum(0) > 0).nonzero()[0]
-                values = algos.take_nd(values, inds, axis=1)
-                columns = columns[inds]
 
         # may need to coerce categoricals here
         if self.is_categorical is not None:
@@ -275,17 +265,28 @@ class _Unstacker(object):
         width = len(self.value_columns)
         propagator = np.repeat(np.arange(width), stride)
         if isinstance(self.value_columns, MultiIndex):
-            new_levels = self.value_columns.levels + (self.removed_level,)
+            new_levels = self.value_columns.levels + (self.removed_level_full,)
             new_names = self.value_columns.names + (self.removed_name,)
 
             new_labels = [lab.take(propagator)
                           for lab in self.value_columns.labels]
         else:
-            new_levels = [self.value_columns, self.removed_level]
+            new_levels = [self.value_columns, self.removed_level_full]
             new_names = [self.value_columns.name, self.removed_name]
             new_labels = [propagator]
 
-        new_labels.append(np.tile(np.arange(stride) - self.lift, width))
+        # The two indices differ only if the unstacked level had unused items:
+        if len(self.removed_level_full) != len(self.removed_level):
+            # In this case, we remap the new labels to the original level:
+            repeater = self.removed_level_full.get_indexer(self.removed_level)
+            if self.lift:
+                repeater = np.insert(repeater, 0, -1)
+        else:
+            # Otherwise, we just use each level item exactly once:
+            repeater = np.arange(stride) - self.lift
+
+        # The entire level is then just a repetition of the single chunk:
+        new_labels.append(np.tile(repeater, width))
         return MultiIndex(levels=new_levels, labels=new_labels,
                           names=new_names, verify_integrity=False)
 

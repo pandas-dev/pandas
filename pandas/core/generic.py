@@ -2806,6 +2806,11 @@ class NDFrame(PandasObject, SelectionMixin):
         -------
         dropped : type of caller
 
+        Raises
+        ------
+        KeyError
+            If none of the labels are found in the selected axis
+
         Examples
         --------
         >>> df = pd.DataFrame(np.arange(12).reshape(3,4),
@@ -2908,6 +2913,9 @@ class NDFrame(PandasObject, SelectionMixin):
                 indexer = ~axis.get_level_values(level).isin(labels)
             else:
                 indexer = ~axis.isin(labels)
+
+            if errors == 'raise' and indexer.all():
+                raise KeyError('{} not found in axis'.format(labels))
 
             slicer = [slice(None)] * self.ndim
             slicer[self._get_axis_number(axis_name)] = indexer

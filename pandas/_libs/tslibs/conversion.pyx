@@ -35,7 +35,7 @@ from timedeltas cimport cast_from_unit
 from timezones cimport (is_utc, is_tzlocal, is_fixed_offset,
                         treat_tz_as_dateutil, treat_tz_as_pytz,
                         get_utcoffset, get_dst_info,
-                        get_timezone, maybe_get_tz)
+                        get_timezone, maybe_get_tz, tz_compare)
 from parsing import parse_datetime_string
 
 from nattype import nat_strings, NaT
@@ -169,7 +169,7 @@ def datetime_to_datetime64(ndarray[object] values):
         elif PyDateTime_Check(val):
             if val.tzinfo is not None:
                 if inferred_tz is not None:
-                    if get_timezone(val.tzinfo) != inferred_tz:
+                    if not tz_compare(val.tzinfo, inferred_tz):
                         raise ValueError('Array must be all same time zone')
                 else:
                     inferred_tz = get_timezone(val.tzinfo)

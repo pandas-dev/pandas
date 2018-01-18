@@ -122,7 +122,7 @@ class TestPDApi(Base):
 
 class TestApi(Base):
 
-    allowed = ['types']
+    allowed = ['types', 'extensions']
 
     def test_api(self):
 
