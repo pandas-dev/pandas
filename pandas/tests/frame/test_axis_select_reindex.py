@@ -41,8 +41,8 @@ class TestDataFrameSelectReindex(TestData):
             assert obj.columns.name == 'second'
         assert list(df.columns) == ['d', 'e', 'f']
 
-        pytest.raises(ValueError, df.drop, ['g'])
-        pytest.raises(ValueError, df.drop, ['g'], 1)
+        pytest.raises(KeyError, df.drop, ['g'])
+        pytest.raises(KeyError, df.drop, ['g'], 1)
 
         # errors = 'ignore'
         dropped = df.drop(['g'], errors='ignore')
@@ -87,10 +87,10 @@ class TestDataFrameSelectReindex(TestData):
         assert_frame_equal(simple.drop(
             [0, 3], axis='index'), simple.loc[[1, 2], :])
 
-        pytest.raises(ValueError, simple.drop, 5)
-        pytest.raises(ValueError, simple.drop, 'C', 1)
-        pytest.raises(ValueError, simple.drop, [1, 5])
-        pytest.raises(ValueError, simple.drop, ['A', 'C'], 1)
+        pytest.raises(KeyError, simple.drop, 5)
+        pytest.raises(KeyError, simple.drop, 'C', 1)
+        pytest.raises(KeyError, simple.drop, [1, 5])
+        pytest.raises(KeyError, simple.drop, ['A', 'C'], 1)
 
         # errors = 'ignore'
         assert_frame_equal(simple.drop(5, errors='ignore'), simple)
@@ -1128,3 +1128,26 @@ class TestDataFrameSelectReindex(TestData):
         expected = df.reindex([0, 1]).reindex(columns=['a', 'b'])
 
         assert_frame_equal(result, expected)
+
+    data = [[1, 2, 3], [1, 2, 3]]
+
+    @pytest.mark.parametrize('actual', [
+        DataFrame(data=data, index=['a', 'a']),
+        DataFrame(data=data, index=['a', 'b']),
+        DataFrame(data=data, index=['a', 'b']).set_index([0, 1]),
+        DataFrame(data=data, index=['a', 'a']).set_index([0, 1])
+    ])
+    def test_raise_on_drop_duplicate_index(self, actual):
+
+        # issue 19186
+        level = 0 if isinstance(actual.index, MultiIndex) else None
+        with pytest.raises(KeyError):
+            actual.drop('c', level=level, axis=0)
+        with pytest.raises(KeyError):
+            actual.T.drop('c', level=level, axis=1)
+        expected_no_err = actual.drop('c', axis=0, level=level,
+                                      errors='ignore')
+        assert_frame_equal(expected_no_err, actual)
+        expected_no_err = actual.T.drop('c', axis=1, level=level,
+                                        errors='ignore')
+        assert_frame_equal(expected_no_err.T, actual)

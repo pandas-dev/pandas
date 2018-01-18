@@ -1838,8 +1838,8 @@ class TestSeriesIndexing(TestData):
 
         # single string/tuple-like
         s = Series(range(3), index=list('abc'))
-        pytest.raises(ValueError, s.drop, 'bc')
-        pytest.raises(ValueError, s.drop, ('a', ))
+        pytest.raises(KeyError, s.drop, 'bc')
+        pytest.raises(KeyError, s.drop, ('a', ))
 
         # errors='ignore'
         s = Series(range(3), index=list('abc'))
@@ -1861,7 +1861,7 @@ class TestSeriesIndexing(TestData):
 
         # GH 16877
         s = Series([2, 3], index=[0, 1])
-        with tm.assert_raises_regex(ValueError, 'not contained in axis'):
+        with tm.assert_raises_regex(KeyError, 'not contained in axis'):
             s.drop([False, True])
 
     def test_align(self):
