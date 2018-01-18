@@ -97,7 +97,6 @@ class Block(PandasObject):
     is_sparse = False
     _box_to_block_values = True
     _can_hold_na = False
-    _downcast_dtype = None
     _can_consolidate = True
     _verify_integrity = True
     _validate_ndim = True
@@ -1841,7 +1840,6 @@ class FloatOrComplexBlock(NumericBlock):
 class FloatBlock(FloatOrComplexBlock):
     __slots__ = ()
     is_float = True
-    _downcast_dtype = 'int64'
 
     def _can_hold_element(self, element):
         tipo = maybe_infer_dtype_type(element)
