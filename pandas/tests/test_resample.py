@@ -963,6 +963,15 @@ class TestDatetimeIndex(Base):
         rng = date_range('1/1/2000 00:00:00', '1/1/2000 00:13:00', freq='min',
                          name='index')
         s = Series(np.random.randn(14), index=rng)
+
+        # Check that wrong keyword argument strings
+        with pytest.raises(AttributeError) as e_info:
+            s.resample('5min', label='righttt').mean()
+        with pytest.raises(AttributeError) as e_info:
+            s.resample('5min', closed='righttt').mean()
+        with pytest.raises(AttributeError) as e_info:
+            s.resample('5min', convention='starttt').mean()
+
         result = s.resample('5min', closed='right', label='right').mean()
 
         exp_idx = date_range('1/1/2000', periods=4, freq='5min', name='index')
