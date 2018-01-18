@@ -11,7 +11,7 @@ import numpy as np
 import pandas as pd
 import datetime
 
-from pandas._libs import (lib, index as libindex,
+from pandas._libs import (lib,
                           tslib as libts, algos as libalgos, iNaT)
 
 from pandas import compat
@@ -39,8 +39,7 @@ from pandas.core.dtypes.cast import (
 from pandas.core.dtypes.generic import (
     ABCSeries,
     ABCDataFrame,
-    ABCIndex, ABCDatetimeIndex, ABCIndexClass,
-    ABCPeriodIndex)
+    ABCIndex, ABCDatetimeIndex, ABCIndexClass)
 
 # -----------------------------------------------------------------------------
 # Functions that add arithmetic methods to objects, given arithmetic factory
