@@ -1865,6 +1865,135 @@ bar2,12,13,14,15
         tm.assert_series_equal(result, pd.Series(x + y))
         assert result.dtype == 'datetime64[ns, tzlocal()]'
 
+    def test_concat_NaT_dataframes_all_NaT_axis_0(self):
+        # GH 12396
+
+        # tz-naive
+        first = pd.DataFrame([[pd.NaT], [pd.NaT]])
+        second = pd.DataFrame([[pd.NaT]])
+
+        result = pd.concat([first, second], axis=0)
+        expected = pd.DataFrame([pd.NaT, pd.NaT, pd.NaT], index=[0, 1, 0])
+        assert_frame_equal(result, expected)
+
+        # one side timezone-aware
+        # upcasts for mixed case
+        first = pd.DataFrame(pd.Series([pd.NaT, pd.NaT]).dt.tz_localize('UTC'))
+        result = pd.concat([first, second], axis=0)
+        expected = pd.DataFrame(
+            pd.Series([pd.NaT, pd.NaT, pd.NaT]).dt.tz_localize('UTC'),
+            index=[0, 1, 0]
+        )
+        assert_frame_equal(result, expected)
+
+        # both sides timezone-aware
+        # upcasts to tz-aware
+        second = pd.DataFrame(pd.Series([pd.NaT]).dt.tz_localize('UTC'))
+        result = pd.concat([first, second], axis=0)
+        assert_frame_equal(result, expected)
+
+    def test_concat_NaT_dataframes_all_NaT_axis_1(self):
+        # GH 12396
+
+        # tz-naive
+        first = pd.DataFrame([[pd.NaT], [pd.NaT]])
+        second = pd.DataFrame([[pd.NaT]], columns=[1])
+        expected = pd.DataFrame([[pd.NaT, pd.NaT], [pd.NaT, pd.NaT]],
+                                columns=[0, 1])
+        result = pd.concat([first, second], axis=1)
+        assert_frame_equal(result, expected)
+
+        # one side timezone-aware
+        # upcasts result to tz-aware
+        first = pd.DataFrame(pd.Series([pd.NaT, pd.NaT]).dt.tz_localize('UTC'))
+        expected = pd.DataFrame(
+            {0: pd.Series([pd.NaT, pd.NaT]).dt.tz_localize('UTC'),
+             1: pd.Series([pd.NaT, pd.NaT])}
+        )
+        result = pd.concat([first, second], axis=1)
+        assert_frame_equal(result, expected)
+
+        # both sides timezone-aware
+        # upcasts result to tz-aware
+        second[1] = second[1].dt.tz_localize('UTC')
+        expected = pd.DataFrame(
+            {0: pd.Series([pd.NaT, pd.NaT]).dt.tz_localize('UTC'),
+             1: pd.Series([pd.NaT, pd.NaT]).dt.tz_localize('UTC')}
+        )
+        result = pd.concat([first, second], axis=1)
+        assert_frame_equal(result, expected)
+
+    def test_concat_NaT_dataframes_mixed_timestamps_and_NaT(self):
+        # GH 12396
+
+        # tz-naive
+        first = pd.DataFrame([[pd.NaT], [pd.NaT]])
+        second = pd.DataFrame([[pd.Timestamp('2015/01/01')],
+                               [pd.Timestamp('2016/01/01')]],
+                              index=[2, 3])
+        expected = pd.DataFrame([pd.NaT, pd.NaT,
+                                 pd.Timestamp('2015/01/01'),
+                                 pd.Timestamp('2016/01/01')])
+
+        result = pd.concat([first, second], axis=0)
+        assert_frame_equal(result, expected)
+
+        # one side timezone-aware
+        second = second[0].dt.tz_localize('UTC')
+        expected = pd.DataFrame(
+            pd.Series([pd.NaT, pd.NaT,
+                       pd.Timestamp('2015/01/01'),
+                       pd.Timestamp('2016/01/01')]).dt.tz_localize('UTC')
+        )
+        result = pd.concat([first, second], axis=0)
+        assert_frame_equal(result, expected)
+
+    def test_concat_NaT_series_dataframe_all_NaT(self):
+        # GH 12396
+
+        # tz-naive
+        first = pd.Series([pd.NaT, pd.NaT])
+        second = pd.DataFrame([[pd.Timestamp('2015/01/01')],
+                               [pd.Timestamp('2016/01/01')]],
+                              index=[2, 3])
+
+        expected = pd.DataFrame([pd.NaT, pd.NaT,
+                                 pd.Timestamp('2015/01/01'),
+                                 pd.Timestamp('2016/01/01')])
+
+        result = pd.concat([first, second])
+        assert_frame_equal(result, expected)
+
+        # one side timezone-aware
+        second[0] = second[0].dt.tz_localize('UTC')
+        result = pd.concat([first, second])
+
+        expected = pd.DataFrame(
+            pd.Series([pd.NaT, pd.NaT,
+                       pd.Timestamp('2015/01/01'),
+                       pd.Timestamp('2016/01/01')]).dt.tz_localize('UTC')
+        )
+        assert_frame_equal(result, expected)
+
+        # both sides timezone-aware
+        first = first.dt.tz_localize('UTC')
+        result = pd.concat([first, second])
+        assert_frame_equal(result, expected)
+
+        # mixed tz
+        first = pd.DataFrame([[pd.NaT], [pd.NaT]])
+        second = pd.DataFrame([[pd.Timestamp('2015/01/01', tz='UTC')],
+                               [pd.Timestamp('2016/01/01', tz='US/Eastern')]],
+                              index=[2, 3])
+
+        expected = pd.DataFrame([pd.NaT,
+                                 pd.NaT,
+                                 pd.Timestamp('2015/01/01', tz='UTC'),
+                                 pd.Timestamp('2016/01/01', tz='US/Eastern')])
+
+        result = pd.concat([first, second], axis=0)
+        assert_frame_equal(result, expected)
+
     def test_concat_period_series(self):
         x = Series(pd.PeriodIndex(['2015-11-01', '2015-12-01'], freq='D'))
         y = Series(pd.PeriodIndex(['2015-10-01', '2016-01-01'], freq='D'))
@@ -1925,6 +2054,32 @@ bar2,12,13,14,15
         exp = pd.DataFrame({'x': [1, 2, 3], 0: [np.nan, np.nan, np.nan]},
                            columns=['x', 0])
         tm.assert_frame_equal(res, exp)
+
+        # GH 18447
+        # tz-naive
+        first = Series(pd.to_datetime([], utc=False))
+        second = Series([1, 2, 3])
+        expected = DataFrame([[pd.NaT, 1], [pd.NaT, 2], [pd.NaT, 3]])
+        result = concat([first, second], axis=1)
+        assert_frame_equal(result, expected)
+
+        # timezone-aware
+        first = Series(pd.to_datetime([], utc=True))
+        second = Series([1, 2, 3])
+        expected = DataFrame(
+            {0: pd.Series([pd.NaT, pd.NaT, pd.NaT]).dt.tz_localize('UTC'),
+             1: pd.Series([1, 2, 3])}
+        )
+        result = concat([first, second], axis=1)
+        assert_frame_equal(result, expected)
+
+        # both empty
+        first = Series(pd.to_datetime([], utc=True))
+        second = Series([])
+        result = concat([first, second], axis=1)
+        assert result.size == 0
+        assert result.dtypes[0] == 'datetime64[ns, UTC]'
+        assert result.dtypes[1] == 'float64'
 
     def test_default_index(self):
         # is_series and ignore_index
