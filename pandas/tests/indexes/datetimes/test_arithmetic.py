@@ -41,6 +41,25 @@ def addend(request):
     return request.param
 
 
+class TestDatetimeIndexComparisons(object):
+    @pytest.mark.parametrize('other', [None,
+                                       datetime(2016, 1, 1).date()])
+    def test_dti_cmp_invalid(self, tz, other):
+        # GH#19288
+        dti = pd.date_range('2016-01-01', periods=2, tz=tz)
+
+        assert not (dti == other).any()
+        assert (dti != other).all()
+        with pytest.raises(TypeError):
+            dti < other
+        with pytest.raises(TypeError):
+            dti <= other
+        with pytest.raises(TypeError):
+            dti > other
+        with pytest.raises(TypeError):
+            dti >= other
+
+
 class TestDatetimeIndexArithmetic(object):
 
     def test_dti_add_timestamp_raises(self):
