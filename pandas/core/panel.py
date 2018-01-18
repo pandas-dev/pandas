@@ -31,7 +31,7 @@ from pandas.core.indexing import maybe_droplevels
 from pandas.core.internals import (BlockManager,
                                    create_block_manager_from_arrays,
                                    create_block_manager_from_blocks)
-from pandas.core.ops import _op_descriptions
+
 from pandas.core.series import Series
 from pandas.core.reshape.util import cartesian_product
 from pandas.util._decorators import Appender
@@ -1545,9 +1545,9 @@ class Panel(NDFrame):
                 result = missing.fill_zeros(result, x, y, name, fill_zeros)
                 return result
 
-            if name in _op_descriptions:
+            if name in ops._op_descriptions:
                 op_name = name.replace('__', '')
-                op_desc = _op_descriptions[op_name]
+                op_desc = ops._op_descriptions[op_name]
                 if op_desc['reversed']:
                     equiv = 'other ' + op_desc['op'] + ' panel'
                 else:

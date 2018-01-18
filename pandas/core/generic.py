@@ -30,9 +30,7 @@ from pandas.core.dtypes.cast import maybe_promote, maybe_upcast_putmask
 from pandas.core.dtypes.inference import is_hashable
 from pandas.core.dtypes.missing import isna, notna
 from pandas.core.dtypes.generic import ABCSeries, ABCPanel, ABCDataFrame
-from pandas.core.common import (_count_not_none,
-                                _maybe_box_datetimelike, _values_from_object,
-                                AbstractMethodError, SettingWithCopyError,
+from pandas.core.common import (AbstractMethodError, SettingWithCopyError,
                                 SettingWithCopyWarning)
 
 from pandas.core.base import PandasObject, SelectionMixin
@@ -1026,7 +1024,7 @@ class NDFrame(PandasObject, SelectionMixin):
                    for a in self._AXIS_ORDERS)
 
     def __neg__(self):
-        values = _values_from_object(self)
+        values = com._values_from_object(self)
         if values.dtype == np.bool_:
             arr = operator.inv(values)
         else:
@@ -1035,7 +1033,7 @@ class NDFrame(PandasObject, SelectionMixin):
 
     def __invert__(self):
         try:
-            arr = operator.inv(_values_from_object(self))
+            arr = operator.inv(com._values_from_object(self))
             return self.__array_wrap__(arr)
         except Exception:
 
@@ -1490,7 +1488,7 @@ class NDFrame(PandasObject, SelectionMixin):
     # Array Interface
 
     def __array__(self, dtype=None):
-        return _values_from_object(self)
+        return com._values_from_object(self)
 
     def __array_wrap__(self, result, context=None):
         d = self._construct_axes_dict(self._AXIS_ORDERS, copy=False)
@@ -2696,7 +2694,7 @@ class NDFrame(PandasObject, SelectionMixin):
             # that means that their are list/ndarrays inside the Series!
             # so just return them (GH 6394)
             if not is_list_like(new_values) or self.ndim == 1:
-                return _maybe_box_datetimelike(new_values)
+                return com._maybe_box_datetimelike(new_values)
 
             result = self._constructor_sliced(
                 new_values, index=self.columns,
@@ -3557,7 +3555,7 @@ class NDFrame(PandasObject, SelectionMixin):
         """
         import re
 
-        nkw = _count_not_none(items, like, regex)
+        nkw = com._count_not_none(items, like, regex)
         if nkw > 1:
             raise TypeError('Keyword arguments `items`, `like`, or `regex` '
                             'are mutually exclusive')
@@ -6357,7 +6355,7 @@ class NDFrame(PandasObject, SelectionMixin):
                         if try_quick:
 
                             try:
-                                new_other = _values_from_object(self).copy()
+                                new_other = com._values_from_object(self).copy()
                                 new_other[icond] = other
                                 other = new_other
                             except Exception:
@@ -7318,7 +7316,7 @@ class NDFrame(PandasObject, SelectionMixin):
         rs = (data.div(data.shift(periods=periods, freq=freq, axis=axis,
                                   **kwargs)) - 1)
         if freq is None:
-            mask = isna(_values_from_object(self))
+            mask = isna(com._values_from_object(self))
             np.putmask(rs.values, mask, np.nan)
         return rs
 
@@ -7778,7 +7776,7 @@ def _make_cum_function(cls, name, name1, name2, axis_descr, desc,
         else:
             axis = self._get_axis_number(axis)
 
-        y = _values_from_object(self).copy()
+        y = com._values_from_object(self).copy()
 
         if (skipna and
                 issubclass(y.dtype.type, (np.datetime64, np.timedelta64))):

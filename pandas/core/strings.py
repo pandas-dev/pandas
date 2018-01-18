@@ -1235,7 +1235,6 @@ def str_translate(arr, table, deletechars=None):
     if deletechars is None:
         f = lambda x: x.translate(table)
     else:
-        from pandas import compat
         if compat.PY3:
             raise ValueError("deletechars is not a valid argument for "
                              "str.translate in python 3. You should simply "

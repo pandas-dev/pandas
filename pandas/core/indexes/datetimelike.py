@@ -10,6 +10,7 @@ from pandas.compat.numpy import function as nv
 from pandas.core.tools.timedeltas import to_timedelta
 
 import numpy as np
+
 from pandas.core.dtypes.common import (
     _ensure_int64,
     is_dtype_equal,
@@ -29,6 +30,8 @@ from pandas.core.dtypes.common import (
 from pandas.core.dtypes.generic import (
     ABCIndex, ABCSeries, ABCPeriodIndex, ABCIndexClass)
 from pandas.core.dtypes.missing import isna
+import pandas.core.dtypes.concat as _concat
+
 from pandas.core import common as com, algorithms
 from pandas.core.algorithms import checked_add_with_arr
 from pandas.core.common import AbstractMethodError
@@ -41,7 +44,6 @@ from pandas._libs.tslibs.timedeltas import delta_to_nanoseconds
 
 from pandas.core.indexes.base import Index, _index_shared_docs
 from pandas.util._decorators import Appender, cache_readonly
-import pandas.core.dtypes.concat as _concat
 import pandas.tseries.frequencies as frequencies
 
 import pandas.core.indexes.base as ibase
