@@ -463,6 +463,7 @@ To restore previous behavior, simply set ``expand`` to ``False``:
 Other API Changes
 ^^^^^^^^^^^^^^^^^
 
+- Unary ``+`` operator now permitted for ``Series`` and ``DataFrame`` (:issue:`16073`)
 - :func:`Series.astype` and :func:`Index.astype` with an incompatible dtype will now raise a ``TypeError`` rather than a ``ValueError`` (:issue:`18231`)
 - ``Series`` construction with an ``object`` dtyped tz-aware datetime and ``dtype=object`` specified, will now return an ``object`` dtyped ``Series``, previously this would infer the datetime dtype (:issue:`18231`)
 - A :class:`Series` of ``dtype=category`` constructed from an empty ``dict`` will now have categories of ``dtype=object`` rather than ``dtype=float64``, consistently with the case in which an empty list is passed (:issue:`18515`)
