@@ -2440,10 +2440,6 @@ class DatetimeBlock(DatetimeLikeBlockMixin, Block):
     is_datetime = True
     _can_hold_na = True
 
-    # We add a dummy `tz` attribute here to make these block subclasses
-    # behave more like the DatetimelikeIndexOpsMixin implementations
-    tz = None
-
     def __init__(self, values, placement, fastpath=False, **kwargs):
         if values.dtype != _NS_DTYPE:
             values = conversion.ensure_datetime64ns(values)
@@ -2536,7 +2532,7 @@ class DatetimeBlock(DatetimeLikeBlockMixin, Block):
 
     @property
     def _box_func(self):
-        return lambda x: tslib.Timestamp(x, tz=self.tz)
+        return tslib.Timestamp
 
     def to_native_types(self, slicer=None, na_rep=None, date_format=None,
                         quoting=None, **kwargs):
@@ -2692,6 +2688,10 @@ class DatetimeTZBlock(NonConsolidatableMixIn, DatetimeBlock):
             result = self.values._shallow_copy(result)
 
         return result
+
+    @property
+    def _box_func(self):
+        return lambda x: tslib.Timestamp(x, tz=self.dtype.tz)
 
     def shift(self, periods, axis=0, mgr=None):
         """ shift the block by periods """
