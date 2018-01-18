@@ -4737,8 +4737,7 @@ def form_blocks(arrays, names, axes):
         blocks.extend(sparse_blocks)
 
     if len(items_dict['CategoricalBlock']) > 0:
-        cat_blocks = [make_block(array, klass=CategoricalBlock,
-                                 placement=[i])
+        cat_blocks = [make_block(array, klass=CategoricalBlock, placement=[i])
                       for i, _, array in items_dict['CategoricalBlock']]
         blocks.extend(cat_blocks)
 
