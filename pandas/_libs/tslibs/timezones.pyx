@@ -298,6 +298,10 @@ cpdef bint tz_compare(object start, object end):
     timezones but aren't evaluted such, but the string representation
     for both of these is `'Europe/Paris'`.
 
+    This exists only to add a notion of equality to pytz-style zones
+    that is compatible with the notion of equality expected of tzinfo
+    subclasses.
+
     Parameters
     ----------
     start : tzinfo
