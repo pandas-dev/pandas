@@ -19,7 +19,6 @@ from pandas.core.dtypes.generic import ABCSeries, ABCIndex
 from pandas.core.dtypes.common import _NS_DTYPE
 from pandas.core.dtypes.inference import _iterable_not_string
 from pandas.core.dtypes.missing import isna, isnull, notnull  # noqa
-from pandas.api import types
 from pandas.core.dtypes import common
 from pandas.core.dtypes.cast import construct_1d_object_array_from_listlike
 
@@ -27,48 +26,54 @@ from pandas.core.dtypes.cast import construct_1d_object_array_from_listlike
 from pandas.errors import (  # noqa
     PerformanceWarning, UnsupportedFunctionCall, UnsortedIndexError)
 
-# back-compat of public API
-# deprecate these functions
-m = sys.modules['pandas.core.common']
-for t in [t for t in dir(types) if not t.startswith('_')]:
 
-    def outer(t=t):
+def _add_deprecated():
+    # back-compat of public API
+    # deprecate these functions
+    # This is called at the end of pandas.__init__, after all the imports
+    # have already been resolved, to avoid any circular imports.
+    from pandas.api import types
 
-        def wrapper(*args, **kwargs):
-            warnings.warn("pandas.core.common.{t} is deprecated. "
-                          "import from the public API: "
-                          "pandas.api.types.{t} instead".format(t=t),
-                          DeprecationWarning, stacklevel=3)
-            return getattr(types, t)(*args, **kwargs)
-        return wrapper
+    m = sys.modules['pandas.core.common']
+    for t in [t for t in dir(types) if not t.startswith('_')]:
 
-    setattr(m, t, outer(t))
+        def outer(t=t):
 
-# back-compat for non-public functions
-# deprecate these functions
-for t in ['is_datetime_arraylike',
-          'is_datetime_or_timedelta_dtype',
-          'is_datetimelike',
-          'is_datetimelike_v_numeric',
-          'is_datetimelike_v_object',
-          'is_datetimetz',
-          'is_int_or_datetime_dtype',
-          'is_period_arraylike',
-          'is_string_like',
-          'is_string_like_dtype']:
+            def wrapper(*args, **kwargs):
+                warnings.warn("pandas.core.common.{t} is deprecated. "
+                              "import from the public API: "
+                              "pandas.api.types.{t} instead".format(t=t),
+                              DeprecationWarning, stacklevel=3)
+                return getattr(types, t)(*args, **kwargs)
+            return wrapper
 
-    def outer(t=t):
+        setattr(m, t, outer(t))
 
-        def wrapper(*args, **kwargs):
-            warnings.warn("pandas.core.common.{t} is deprecated. "
-                          "These are not longer public API functions, "
-                          "but can be imported from "
-                          "pandas.api.types.{t} instead".format(t=t),
-                          DeprecationWarning, stacklevel=3)
-            return getattr(common, t)(*args, **kwargs)
-        return wrapper
+    # back-compat for non-public functions
+    # deprecate these functions
+    for t in ['is_datetime_arraylike',
+              'is_datetime_or_timedelta_dtype',
+              'is_datetimelike',
+              'is_datetimelike_v_numeric',
+              'is_datetimelike_v_object',
+              'is_datetimetz',
+              'is_int_or_datetime_dtype',
+              'is_period_arraylike',
+              'is_string_like',
+              'is_string_like_dtype']:
 
-    setattr(m, t, outer(t))
+        def outer(t=t):
+
+            def wrapper(*args, **kwargs):
+                warnings.warn("pandas.core.common.{t} is deprecated. "
+                              "These are not longer public API functions, "
+                              "but can be imported from "
+                              "pandas.api.types.{t} instead".format(t=t),
+                              DeprecationWarning, stacklevel=3)
+                return getattr(common, t)(*args, **kwargs)
+            return wrapper
+
+        setattr(m, t, outer(t))
 
 
 # deprecate array_equivalent
@@ -646,6 +651,7 @@ def _random_state(state=None):
     -------
     np.random.RandomState
     """
+    from pandas.api import types
 
     if types.is_integer(state):
         return np.random.RandomState(state)
