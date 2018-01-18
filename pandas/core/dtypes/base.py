@@ -9,13 +9,18 @@ class ExtensionDtype(object):
     """A custom data type for your array.
     """
     @property
+    @abc.abstractmethod
     def type(self):
-        """Typically a metaclass inheriting from 'type' with no methods."""
-        return type(self.name, (), {})
+        # type: () -> type
+        """The scalar type for your array, e.g. ``int`` or ``object``."""
 
     @property
     def kind(self):
+        # type () -> str
         """A character code (one of 'biufcmMOSUV'), default 'O'
+
+        This should match the NumPy dtype used when your array is
+        converted to an ndarray, which is probably 'O' for object.
 
         See Also
         --------
@@ -26,14 +31,16 @@ class ExtensionDtype(object):
     @property
     @abc.abstractmethod
     def name(self):
-        """An string identifying the data type.
+        # type: () -> str
+        """A string identifying the data type.
 
-        Will be used in, e.g. ``Series.dtype``
+        Will be used for display in, e.g. ``Series.dtype``
         """
 
     @property
     def names(self):
-        """Ordered list of field names, or None if there are no fields"""
+        # type: () -> Optional[List[str]]
+        """Ordered list of field names, or None if there are no fields."""
         return None
 
     @classmethod
@@ -58,6 +65,8 @@ class ExtensionDtype(object):
         type's name. If so, it calls your class with no arguments.
         """
         if string == cls.name:
+            # XXX: Better to mandate a ``.from_empty`` classmethod
+            # rather than imposing this on the constructor?
             return cls()
         else:
             raise TypeError("Cannot construct a '{}' from "

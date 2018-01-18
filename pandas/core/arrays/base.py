@@ -13,16 +13,26 @@ _not_implemented_message = "{} does not implement {}."
 class ExtensionArray(object):
     """Abstract base class for custom array types
 
+    Notes
+    -----
     pandas will recognize instances of this class as proper arrays
     with a custom type and will not attempt to coerce them to objects.
 
-    Subclasses are expected to implement the following methods.
+    **Restrictions on your class constructor**
+
+        * Your class should be able to be constructed with no arguments,
+          i.e. ``ExtensionArray()`` returns an instance.
+          TODO: See comment in ``ExtensionDtype.construct_from_string``
+        * Your class should be able to be constructed with instances of
+          our class, i.e. ``ExtensionArray(extension_array)`` should returns
+          an instance.
     """
     # ------------------------------------------------------------------------
     # Must be a Sequence
     # ------------------------------------------------------------------------
     @abc.abstractmethod
     def __getitem__(self, item):
+        # type (Any) -> Any
         """Select a subset of self
 
         Notes
@@ -35,7 +45,6 @@ class ExtensionArray(object):
         For scalar ``key``, you may return a scalar suitable for your type.
         The scalar need not be an instance or subclass of your array type.
         """
-        # type (Any) -> Any
 
     def __setitem__(self, key, value):
         # type: (Any, Any) -> None
@@ -63,9 +72,8 @@ class ExtensionArray(object):
     @property
     @abc.abstractmethod
     def dtype(self):
-        """An instance of 'ExtensionDtype'."""
         # type: () -> ExtensionDtype
-        pass
+        """An instance of 'ExtensionDtype'."""
 
     @property
     def shape(self):
@@ -81,18 +89,16 @@ class ExtensionArray(object):
     @property
     @abc.abstractmethod
     def nbytes(self):
-        """The number of bytes needed to store this object in memory."""
         # type: () -> int
-        pass
+        """The number of bytes needed to store this object in memory."""
 
     # ------------------------------------------------------------------------
     # Additional Methods
     # ------------------------------------------------------------------------
     @abc.abstractmethod
     def isna(self):
-        """Boolean NumPy array indicating if each value is missing."""
         # type: () -> np.ndarray
-        pass
+        """Boolean NumPy array indicating if each value is missing."""
 
     # ------------------------------------------------------------------------
     # Indexing methods
@@ -101,12 +107,6 @@ class ExtensionArray(object):
     def take(self, indexer, allow_fill=True, fill_value=None):
         # type: (Sequence, bool, Optional[Any]) -> ExtensionArray
         """For slicing"""
-
-    def take_nd(self, indexer, allow_fill=True, fill_value=None):
-        """For slicing"""
-        # TODO: this isn't really nescessary for 1-D
-        return self.take(indexer, allow_fill=allow_fill,
-                         fill_value=fill_value)
 
     @abc.abstractmethod
     def copy(self, deep=False):
@@ -118,8 +118,8 @@ class ExtensionArray(object):
     # ------------------------------------------------------------------------
     @property
     def _fill_value(self):
-        """The missing value for this type, e.g. np.nan"""
         # type: () -> Any
+        """The missing value for this type, e.g. np.nan"""
         return None
 
     @abc.abstractmethod
@@ -146,25 +146,18 @@ class ExtensionArray(object):
     @abc.abstractmethod
     def get_values(self):
         # type: () -> np.ndarray
-        """Get the underlying values backing your data
+        """A NumPy array representing your data.
         """
-        pass
 
     def _can_hold_na(self):
+        # type: () -> bool
         """Whether your array can hold missing values. True by default.
 
         Notes
         -----
         Setting this to false will optimize some operations like fillna.
         """
-        # type: () -> bool
         return True
-
-    @property
-    def is_sparse(self):
-        """Whether your array is sparse. True by default."""
-        # type: () -> bool
-        return False
 
     def _slice(self, slicer):
         # type: (Union[tuple, Sequence, int]) -> 'ExtensionArray'

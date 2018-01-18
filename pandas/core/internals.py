@@ -1880,7 +1880,7 @@ class ExtensionBlock(NonConsolidatableMixIn, Block):
         return values
 
     def to_dense(self):
-        return self.values.to_dense().view()
+        return self.values.get_values()
 
     def take_nd(self, indexer, axis=0, new_mgr_locs=None, fill_tuple=None):
         """
