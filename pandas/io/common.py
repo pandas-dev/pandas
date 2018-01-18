@@ -91,14 +91,6 @@ def _is_url(url):
         return False
 
 
-def _is_s3_url(url):
-    """Check for an s3, s3n, or s3a url"""
-    try:
-        return parse_url(url).scheme in ['s3', 's3n', 's3a']
-    except:
-        return False
-
-
 def _expand_user(filepath_or_buffer):
     """Return the argument with an initial component of ~ or ~user
        replaced by that user's home directory.
@@ -168,8 +160,16 @@ def _stringify_path(filepath_or_buffer):
     return filepath_or_buffer
 
 
+def is_s3_url(url):
+    """Check for an s3, s3n, or s3a url"""
+    try:
+        return parse_url(url).scheme in ['s3', 's3n', 's3a']
+    except:  # noqa
+        return False
+
+
 def get_filepath_or_buffer(filepath_or_buffer, encoding=None,
-                           compression=None):
+                           compression=None, mode=None):
     """
     If the filepath_or_buffer is a url, translate and return the buffer.
     Otherwise passthrough.
@@ -179,10 +179,11 @@ def get_filepath_or_buffer(filepath_or_buffer, encoding=None,
     filepath_or_buffer : a url, filepath (str, py.path.local or pathlib.Path),
                          or buffer
     encoding : the encoding to use to decode py3 bytes, default is 'utf-8'
+    mode : str, optional
 
     Returns
     -------
-    a filepath_or_buffer, the encoding, the compression
+    a filepath_ or buffer or S3File instance, the encoding, the compression
     """
     filepath_or_buffer = _stringify_path(filepath_or_buffer)
 
@@ -195,11 +196,12 @@ def get_filepath_or_buffer(filepath_or_buffer, encoding=None,
         reader = BytesIO(req.read())
         return reader, encoding, compression
 
-    if _is_s3_url(filepath_or_buffer):
+    if is_s3_url(filepath_or_buffer):
         from pandas.io import s3
         return s3.get_filepath_or_buffer(filepath_or_buffer,
                                          encoding=encoding,
-                                         compression=compression)
+                                         compression=compression,
+                                         mode=mode)
 
     if isinstance(filepath_or_buffer, (compat.string_types,
                                        compat.binary_type,
