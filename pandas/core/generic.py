@@ -1029,8 +1029,22 @@ class NDFrame(PandasObject, SelectionMixin):
         values = com._values_from_object(self)
         if values.dtype == np.bool_:
             arr = operator.inv(values)
-        else:
+        elif (is_numeric_dtype(values) or is_timedelta64_dtype(values)):
             arr = operator.neg(values)
+        else:
+            raise TypeError("Unary negative expects numeric dtype, not {}"
+                            .format(values.dtype))
+        return self.__array_wrap__(arr)
+
+    def __pos__(self):
+        values = _values_from_object(self)
+        if values.dtype == np.bool_:
+            arr = values
+        elif (is_numeric_dtype(values) or is_timedelta64_dtype(values)):
+            arr = operator.pos(values)
+        else:
+            raise TypeError("Unary plus expects numeric dtype, not {}"
+                            .format(values.dtype))
         return self.__array_wrap__(arr)
 
     def __invert__(self):
