@@ -3759,6 +3759,11 @@ class Index(IndexOpsMixin, PandasObject):
         Returns
         -------
         dropped : Index
+
+        Raises
+        ------
+        KeyError
+            If none of the labels are found in the selected axis
         """
         arr_dtype = 'object' if self.dtype == 'object' else None
         labels = _index_labels_to_array(labels, dtype=arr_dtype)
@@ -3766,8 +3771,8 @@ class Index(IndexOpsMixin, PandasObject):
         mask = indexer == -1
         if mask.any():
             if errors != 'ignore':
-                raise ValueError('labels %s not contained in axis' %
-                                 labels[mask])
+                raise KeyError(
+                    'labels %s not contained in axis' % labels[mask])
             indexer = indexer[~mask]
         return self.delete(indexer)
 
