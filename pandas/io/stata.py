@@ -24,7 +24,7 @@ from pandas import compat, to_timedelta, to_datetime, isna, DatetimeIndex
 from pandas.compat import (lrange, lmap, lzip, text_type, string_types, range,
                            zip, BytesIO)
 from pandas.core.base import StringMixin
-from pandas.core.categorical import Categorical
+from pandas.core.arrays import Categorical
 from pandas.core.dtypes.common import (is_categorical_dtype, _ensure_object,
                                        is_datetime64_dtype)
 from pandas.core.frame import DataFrame

@@ -36,7 +36,8 @@ from pandas.io.formats.printing import adjoin, pprint_thing
 from pandas.errors import PerformanceWarning
 from pandas.core.common import _asarray_tuplesafe, _all_none
 from pandas.core.algorithms import match, unique
-from pandas.core.categorical import Categorical, _factorize_from_iterables
+from pandas.core.arrays.categorical import (Categorical,
+                                            _factorize_from_iterables)
 from pandas.core.internals import (BlockManager, make_block,
                                    _block2d_to_blocknd,
                                    _factor_indexer, _block_shape)

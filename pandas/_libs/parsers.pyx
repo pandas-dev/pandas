@@ -55,7 +55,7 @@ from pandas.core.dtypes.common import (
     is_bool_dtype, is_object_dtype,
     is_datetime64_dtype,
     pandas_dtype)
-from pandas.core.categorical import Categorical
+from pandas.core.arrays import Categorical
 from pandas.core.dtypes.concat import union_categoricals
 import pandas.io.common as com
 
