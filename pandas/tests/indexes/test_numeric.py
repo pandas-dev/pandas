@@ -68,12 +68,12 @@ class Numeric(Base):
         tm.assert_index_equal(result, didx)
 
         result = idx * Series(np.arange(5, dtype=arr_dtype))
-        tm.assert_index_equal(result, didx)
+        tm.assert_series_equal(result, Series(didx))
 
-        result = idx * Series(np.arange(5, dtype='float64') + 0.1)
-        expected = Float64Index(np.arange(5, dtype='float64') *
-                                (np.arange(5, dtype='float64') + 0.1))
-        tm.assert_index_equal(result, expected)
+        rng5 = np.arange(5, dtype='float64')
+        result = idx * Series(rng5 + 0.1)
+        expected = Series(rng5 * (rng5 + 0.1))
+        tm.assert_series_equal(result, expected)
 
         # invalid
         pytest.raises(TypeError,
@@ -95,16 +95,6 @@ class Numeric(Base):
         for r, e in zip(result, expected):
             tm.assert_index_equal(r, e)
 
-        result = divmod(idx, Series(full_like(idx.values, 2)))
-        with np.errstate(all='ignore'):
-            div, mod = divmod(
-                idx.values,
-                full_like(idx.values, 2),
-            )
-            expected = Index(div), Index(mod)
-        for r, e in zip(result, expected):
-            tm.assert_index_equal(r, e)
-
         # test power calculations both ways, GH 14973
         expected = pd.Float64Index(2.0**idx.values)
         result = 2.0**idx
@@ -113,6 +103,18 @@ class Numeric(Base):
         expected = pd.Float64Index(idx.values**2.0)
         result = idx**2.0
         tm.assert_index_equal(result, expected)
+
+    @pytest.mark.xfail(reason='GH#19252 Series has no __rdivmod__')
+    def test_divmod_series(self):
+        idx = self.create_index()
+
+        result = divmod(idx, Series(full_like(idx.values, 2)))
+        with np.errstate(all='ignore'):
+            div, mod = divmod(idx.values, full_like(idx.values, 2))
+            expected = Series(div), Series(mod)
+
+        for r, e in zip(result, expected):
+            tm.assert_series_equal(r, e)
 
     def test_explicit_conversions(self):
 
