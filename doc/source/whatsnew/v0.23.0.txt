@@ -1373,6 +1373,8 @@ Reshaping
 - Bug in :class:`Series` constructor with a ``dtype=str``, previously raised in some cases (:issue:`19853`)
 - Bug in :func:`get_dummies`, and :func:`select_dtypes`, where duplicate column names caused incorrect behavior (:issue:`20848`)
 - Bug in :func:`isna`, which cannot handle ambiguous typed lists (:issue:`20675`)
+- Bug in :func:`concat` which raises an error when concatenating TZ-aware dataframes and all-NaT dataframes (:issue:`12396`)
+- Bug in :func:`concat` which raises an error when concatenating empty TZ-aware series (:issue:`18447`)
 
 Other
 ^^^^^
