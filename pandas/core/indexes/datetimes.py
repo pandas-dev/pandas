@@ -665,7 +665,10 @@ class DatetimeIndex(DatelikeOps, TimelikeOps, DatetimeIndexOpsMixin,
         if is_datetime64tz_dtype(other):
             # Get tzinfo from Series dtype
             other_tz = other.dtype.tz
-        if self.tz is None:
+        if other is libts.NaT:
+            # pd.NaT quacks both aware and naive
+            pass
+        elif self.tz is None:
             if other_tz is not None:
                 raise TypeError('Cannot compare tz-naive and tz-aware '
                                 'datetime-like objects.')
