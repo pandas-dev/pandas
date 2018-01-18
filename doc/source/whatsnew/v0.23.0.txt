@@ -307,6 +307,7 @@ Other API Changes
 - :class:`IntervalIndex` and ``IntervalDtype`` no longer support categorical, object, and string subtypes (:issue:`19016`)
 - The default ``Timedelta`` constructor now accepts an ``ISO 8601 Duration`` string as an argument (:issue:`19040`)
 - ``IntervalDtype`` now returns ``True`` when compared against ``'interval'`` regardless of subtype, and ``IntervalDtype.name`` now returns ``'interval'`` regardless of subtype (:issue:`18980`)
+- ``KeyError`` now raises instead of ``ValueError`` in :meth:`~DataFrame.drop`, :meth:`~Panel.drop`, :meth:`~Series.drop`, :meth:`~Index.drop` when dropping a non-existent element in an axis with duplicates (:issue:`19186`)
 - :func:`Series.to_csv` now accepts a ``compression`` argument that works in the same way as the ``compression`` argument in :func:`DataFrame.to_csv` (:issue:`18958`)
 - Addition or subtraction of ``NaT`` from :class:`TimedeltaIndex` will return ``TimedeltaIndex`` instead of ``DatetimeIndex`` (:issue:`19124`)
 - :func:`DatetimeIndex.shift` and :func:`TimedeltaIndex.shift` will now raise ``NullFrequencyError`` (which subclasses ``ValueError``, which was raised in older versions) when the index object frequency is ``None`` (:issue:`19147`)
@@ -428,10 +429,9 @@ Conversion
 
 
 -
--
 - Bug in ``.astype()`` to non-ns timedelta units would hold the incorrect dtype (:issue:`19176`, :issue:`19223`, :issue:`12425`)
 - Bug in subtracting :class:`Series` from ``NaT`` incorrectly returning ``NaT`` (:issue:`19158`)
-
+- Bug in comparison of timezone-aware :class:`DatetimeIndex` against ``NaT`` incorrectly raising ``TypeError`` (:issue:`19276`)
 
 Indexing
 ^^^^^^^^
@@ -456,6 +456,8 @@ Indexing
 - Bug in :func:`MultiIndex.set_labels` which would cause casting (and potentially clipping) of the new labels if the ``level`` argument is not 0 or a list like [0, 1, ... ]  (:issue:`19057`)
 - Bug in ``str.extractall`` when there were no matches empty :class:`Index` was returned instead of appropriate :class:`MultiIndex` (:issue:`19034`)
 - Bug in :class:`IntervalIndex` where set operations that returned an empty ``IntervalIndex`` had the wrong dtype (:issue:`19101`)
+- Bug in :meth:`~DataFrame.drop`, :meth:`~Panel.drop`, :meth:`~Series.drop`, :meth:`~Index.drop` where no ``KeyError`` is raised when dropping a non-existent element from an axis that contains duplicates (:issue:`19186`)
+-
 
 I/O
 ^^^
@@ -463,9 +465,11 @@ I/O
 - :func:`read_html` now rewinds seekable IO objects after parse failure, before attempting to parse with a new parser. If a parser errors and the object is non-seekable, an informative error is raised suggesting the use of a different parser (:issue:`17975`)
 - Bug in :func:`read_msgpack` with a non existent file is passed in Python 2 (:issue:`15296`)
 - Bug in :func:`read_csv` where a ``MultiIndex`` with duplicate columns was not being mangled appropriately (:issue:`18062`)
+- Bug in :func:`read_csv` where missing values were not being handled properly when ``keep_default_na=False`` with dictionary ``na_values`` (:issue:`19227`)
 - Bug in :func:`read_sas` where a file with 0 variables gave an ``AttributeError`` incorrectly. Now it gives an ``EmptyDataError`` (:issue:`18184`)
 - Bug in :func:`DataFrame.to_latex()` where pairs of braces meant to serve as invisible placeholders were escaped (:issue:`18667`)
 - Bug in :func:`read_json` where large numeric values were causing an ``OverflowError`` (:issue:`18842`)
+- Bug in :func:`DataFrame.to_parquet` where an exception was raised if the write destination is S3 (:issue:`19134`)
 -
 
 Plotting
@@ -503,6 +507,7 @@ Reshaping
 - Bug in :func:`Dataframe.pivot_table` which fails when the ``aggfunc`` arg is of type string.  The behavior is now consistent with other methods like ``agg`` and ``apply`` (:issue:`18713`)
 - Bug in :func:`DataFrame.merge` in which merging using ``Index`` objects as vectors raised an Exception (:issue:`19038`)
 - Bug in :func:`DataFrame.stack`, :func:`DataFrame.unstack`, :func:`Series.unstack` which were not returning subclasses (:issue:`15563`)
+- Bug in timezone comparisons, manifesting as a conversion of the index to UTC in ``.concat()`` (:issue:`18523`)
 -
 
 Numeric

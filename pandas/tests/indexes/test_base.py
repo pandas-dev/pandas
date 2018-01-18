@@ -1396,8 +1396,8 @@ class TestIndex(Base):
         expected = self.strIndex[lrange(5) + lrange(10, n)]
         tm.assert_index_equal(dropped, expected)
 
-        pytest.raises(ValueError, self.strIndex.drop, ['foo', 'bar'])
-        pytest.raises(ValueError, self.strIndex.drop, ['1', 'bar'])
+        pytest.raises(KeyError, self.strIndex.drop, ['foo', 'bar'])
+        pytest.raises(KeyError, self.strIndex.drop, ['1', 'bar'])
 
         # errors='ignore'
         mixed = drop.tolist() + ['foo']
@@ -1419,7 +1419,7 @@ class TestIndex(Base):
         tm.assert_index_equal(dropped, expected)
 
         # errors='ignore'
-        pytest.raises(ValueError, ser.drop, [3, 4])
+        pytest.raises(KeyError, ser.drop, [3, 4])
 
         dropped = ser.drop(4, errors='ignore')
         expected = Index([1, 2, 3])
@@ -1448,7 +1448,7 @@ class TestIndex(Base):
 
         removed = index.drop(to_drop[1])
         for drop_me in to_drop[1], [to_drop[1]]:
-            pytest.raises(ValueError, removed.drop, drop_me)
+            pytest.raises(KeyError, removed.drop, drop_me)
 
     def test_tuple_union_bug(self):
         import pandas

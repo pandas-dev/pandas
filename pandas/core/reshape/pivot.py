@@ -75,7 +75,7 @@ def pivot_table(data, values=None, index=None, columns=None, aggfunc='mean',
         for key in keys:
             try:
                 values = values.drop(key)
-            except (TypeError, ValueError):
+            except (TypeError, ValueError, KeyError):
                 pass
         values = list(values)
 
