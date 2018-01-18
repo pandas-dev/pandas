@@ -66,7 +66,9 @@ from pandas.core.config import option_context
 
 from pandas.plotting._core import boxplot_frame_groupby
 
-from pandas._libs import lib, groupby as libgroupby, Timestamp, NaT, iNaT
+from pandas._libs import (lib, reduction,
+                          groupby as libgroupby,
+                          Timestamp, NaT, iNaT)
 from pandas._libs.lib import count_level_2d
 
 _doc_template = """
@@ -1981,7 +1983,7 @@ class BaseGrouper(object):
             try:
                 values, mutated = splitter.fast_apply(f, group_keys)
                 return group_keys, values, mutated
-            except (lib.InvalidApply):
+            except reduction.InvalidApply:
                 # we detect a mutation of some kind
                 # so take slow path
                 pass
@@ -2404,8 +2406,8 @@ class BaseGrouper(object):
         obj = obj._take(indexer, convert=False).to_dense()
         group_index = algorithms.take_nd(
             group_index, indexer, allow_fill=False)
-        grouper = lib.SeriesGrouper(obj, func, group_index, ngroups,
-                                    dummy)
+        grouper = reduction.SeriesGrouper(obj, func, group_index, ngroups,
+                                          dummy)
         result, counts = grouper.get_result()
         return result, counts
 
@@ -2618,7 +2620,7 @@ class BinGrouper(BaseGrouper):
 
     def agg_series(self, obj, func):
         dummy = obj[:0]
-        grouper = lib.SeriesBinGrouper(obj, func, self.bins, dummy)
+        grouper = reduction.SeriesBinGrouper(obj, func, self.bins, dummy)
         return grouper.get_result()
 
     # ----------------------------------------------------------------------
@@ -4758,7 +4760,8 @@ class FrameSplitter(DataSplitter):
             return [], True
 
         sdata = self._get_sorted_data()
-        results, mutated = lib.apply_frame_axis0(sdata, f, names, starts, ends)
+        results, mutated = reduction.apply_frame_axis0(sdata, f, names,
+                                                       starts, ends)
 
         return results, mutated
 
