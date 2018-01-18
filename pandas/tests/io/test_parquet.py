@@ -204,6 +204,22 @@ def test_cross_engine_fp_pa(df_cross_compat, pa, fp):
         tm.assert_frame_equal(result, df[['a', 'd']])
 
 
+def check_round_trip_equals(df, path, engine,
+                            write_kwargs, read_kwargs,
+                            expected, check_names):
+
+    df.to_parquet(path, engine, **write_kwargs)
+    actual = read_parquet(path, engine, **read_kwargs)
+    tm.assert_frame_equal(expected, actual,
+                          check_names=check_names)
+
+    # repeat
+    df.to_parquet(path, engine, **write_kwargs)
+    actual = read_parquet(path, engine, **read_kwargs)
+    tm.assert_frame_equal(expected, actual,
+                          check_names=check_names)
+
+
 class Base(object):
 
     def check_error_on_write(self, df, engine, exc):
@@ -212,28 +228,32 @@ class Base(object):
             with tm.ensure_clean() as path:
                 to_parquet(df, path, engine, compression=None)
 
-    def check_round_trip(self, df, engine, expected=None,
+    def check_round_trip(self, df, engine, expected=None, path=None,
                          write_kwargs=None, read_kwargs=None,
                          check_names=True):
+
         if write_kwargs is None:
-            write_kwargs = {}
+            write_kwargs = {'compression': None}
+
         if read_kwargs is None:
             read_kwargs = {}
-        with tm.ensure_clean() as path:
-            df.to_parquet(path, engine, **write_kwargs)
-            result = read_parquet(path, engine, **read_kwargs)
 
-            if expected is None:
-                expected = df
-            tm.assert_frame_equal(result, expected, check_names=check_names)
+        if expected is None:
+            expected = df
 
-            # repeat
-            to_parquet(df, path, engine, **write_kwargs)
-            result = pd.read_parquet(path, engine, **read_kwargs)
-
-            if expected is None:
-                expected = df
-            tm.assert_frame_equal(result, expected, check_names=check_names)
+        if path is None:
+            with tm.ensure_clean() as path:
+                check_round_trip_equals(df, path, engine,
+                                        write_kwargs=write_kwargs,
+                                        read_kwargs=read_kwargs,
+                                        expected=expected,
+                                        check_names=check_names)
+        else:
+            check_round_trip_equals(df, path, engine,
+                                    write_kwargs=write_kwargs,
+                                    read_kwargs=read_kwargs,
+                                    expected=expected,
+                                    check_names=check_names)
 
 
 class TestBasic(Base):
@@ -251,7 +271,7 @@ class TestBasic(Base):
 
         # unicode
         df.columns = [u'foo', u'bar']
-        self.check_round_trip(df, engine, write_kwargs={'compression': None})
+        self.check_round_trip(df, engine)
 
     def test_columns_dtypes_invalid(self, engine):
 
@@ -292,7 +312,6 @@ class TestBasic(Base):
 
         expected = pd.DataFrame({'string': list('abc')})
         self.check_round_trip(df, engine, expected=expected,
-                              write_kwargs={'compression': None},
                               read_kwargs={'columns': ['string']})
 
     def test_write_index(self, engine):
@@ -304,7 +323,7 @@ class TestBasic(Base):
                 pytest.skip("pyarrow is < 0.7.0")
 
         df = pd.DataFrame({'A': [1, 2, 3]})
-        self.check_round_trip(df, engine, write_kwargs={'compression': None})
+        self.check_round_trip(df, engine)
 
         indexes = [
             [2, 3, 4],
@@ -315,15 +334,12 @@ class TestBasic(Base):
         # non-default index
         for index in indexes:
             df.index = index
-            self.check_round_trip(
-                df, engine,
-                write_kwargs={'compression': None},
-                check_names=check_names)
+            self.check_round_trip(df, engine, check_names=check_names)
 
         # index with meta-data
         df.index = [0, 1, 2]
         df.index.name = 'foo'
-        self.check_round_trip(df, engine, write_kwargs={'compression': None})
+        self.check_round_trip(df, engine)
 
     def test_write_multiindex(self, pa_ge_070):
         # Not suppoprted in fastparquet as of 0.1.3 or older pyarrow version
@@ -332,7 +348,7 @@ class TestBasic(Base):
         df = pd.DataFrame({'A': [1, 2, 3]})
         index = pd.MultiIndex.from_tuples([('a', 1), ('a', 2), ('b', 1)])
         df.index = index
-        self.check_round_trip(df, engine, write_kwargs={'compression': None})
+        self.check_round_trip(df, engine)
 
     def test_write_column_multiindex(self, engine):
         # column multi-index
@@ -426,6 +442,11 @@ class TestParquetPyArrow(Base):
         df = pd.DataFrame({'a': pd.Categorical(list('abc'))})
         self.check_error_on_write(df, pa, NotImplementedError)
 
+    def test_s3_roundtrip(self, df_compat, s3_resource, pa):
+        # GH #19134
+        self.check_round_trip(df_compat, pa,
+                              path='s3://pandas-test/pyarrow.parquet')
+
 
 class TestParquetFastParquet(Base):
 
@@ -436,7 +457,7 @@ class TestParquetFastParquet(Base):
         # additional supported types for fastparquet
         df['timedelta'] = pd.timedelta_range('1 day', periods=3)
 
-        self.check_round_trip(df, fp, write_kwargs={'compression': None})
+        self.check_round_trip(df, fp)
 
     @pytest.mark.skip(reason="not supported")
     def test_duplicate_columns(self, fp):
@@ -449,8 +470,7 @@ class TestParquetFastParquet(Base):
     def test_bool_with_none(self, fp):
         df = pd.DataFrame({'a': [True, None, False]})
         expected = pd.DataFrame({'a': [1.0, np.nan, 0.0]}, dtype='float16')
-        self.check_round_trip(df, fp, expected=expected,
-                              write_kwargs={'compression': None})
+        self.check_round_trip(df, fp, expected=expected)
 
     def test_unsupported(self, fp):
 
@@ -466,7 +486,7 @@ class TestParquetFastParquet(Base):
         if LooseVersion(fastparquet.__version__) < LooseVersion("0.1.3"):
             pytest.skip("CategoricalDtype not supported for older fp")
         df = pd.DataFrame({'a': pd.Categorical(list('abc'))})
-        self.check_round_trip(df, fp, write_kwargs={'compression': None})
+        self.check_round_trip(df, fp)
 
     def test_datetime_tz(self, fp):
         # doesn't preserve tz
@@ -475,8 +495,7 @@ class TestParquetFastParquet(Base):
 
         # warns on the coercion
         with catch_warnings(record=True):
-            self.check_round_trip(df, fp, df.astype('datetime64[ns]'),
-                                  write_kwargs={'compression': None})
+            self.check_round_trip(df, fp, df.astype('datetime64[ns]'))
 
     def test_filter_row_groups(self, fp):
         d = {'a': list(range(0, 3))}
@@ -486,3 +505,8 @@ class TestParquetFastParquet(Base):
                           row_group_offsets=1)
             result = read_parquet(path, fp, filters=[('a', '==', 0)])
         assert len(result) == 1
+
+    def test_s3_roundtrip(self, df_compat, s3_resource, fp):
+        # GH #19134
+        self.check_round_trip(df_compat, fp,
+                              path='s3://pandas-test/fastparquet.parquet')
