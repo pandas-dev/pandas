@@ -4765,7 +4765,6 @@ def form_blocks(arrays, names, axes):
     # generalize?
     items_dict = defaultdict(list)
     extra_locs = []
-    external_items = []
 
     names_idx = Index(names)
     if names_idx.equals(axes[0]):
@@ -4837,18 +4836,6 @@ def form_blocks(arrays, names, axes):
 
         external_blocks = []
         for i, _, array in items_dict['ExtensionBlock']:
-            if isinstance(array, ABCSeries):
-                array = array.values
-            # Allow our internal arrays to chose their block type.
-            block_type = getattr(array, '_block_type', ExtensionBlock)
-            external_blocks.append(
-                make_block(array, klass=block_type,
-                           fastpath=True, placement=[i]))
-        blocks.extend(external_blocks)
-
-    if len(external_items):
-        external_blocks = []
-        for i, _, array in external_items:
             if isinstance(array, ABCSeries):
                 array = array.values
             # Allow our internal arrays to chose their block type.
