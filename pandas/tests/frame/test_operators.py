@@ -275,7 +275,7 @@ class TestDataFrameOperators(TestData):
         numeric = pd.DataFrame({
             'a': [-1, 0, 1],
             'b': [1, 0, 1],
-            })
+        })
         boolean = pd.DataFrame({
             'a': [True, False, True],
             'b': [False, False, True]
@@ -295,7 +295,7 @@ class TestDataFrameOperators(TestData):
         numeric = pd.DataFrame({
             'a': [-1, 0, 1],
             'b': [1, 0, 1],
-            })
+        })
         boolean = pd.DataFrame({
             'a': [True, False, True],
             'b': [False, False, True]
