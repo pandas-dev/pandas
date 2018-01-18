@@ -3,7 +3,8 @@
 cimport cython
 from cython cimport Py_ssize_t
 
-from cpython cimport PyObject
+from cpython cimport PyObject, PyInt_Check
+from cpython.slice cimport PySlice_Check
 
 import numpy as np
 cimport numpy as np
@@ -33,7 +34,7 @@ cdef class BlockPlacement:
         self._has_slice = False
         self._has_array = False
 
-        if isinstance(val, slice):
+        if PySlice_Check(val):
             slc = slice_canonize(val)
 
             if slc.start != slc.stop:
@@ -127,7 +128,7 @@ cdef class BlockPlacement:
         else:
             val = self._as_array[loc]
 
-        if not isinstance(val, slice) and val.ndim == 0:
+        if not PySlice_Check(val) and val.ndim == 0:
             return val
 
         return BlockPlacement(val)
@@ -147,7 +148,7 @@ cdef class BlockPlacement:
             slice s = self._ensure_has_slice()
             Py_ssize_t other_int, start, stop, step, l
 
-        if isinstance(other, int) and s is not None:
+        if PyInt_Check(other) and s is not None:
             other_int = <Py_ssize_t>other
 
             if other_int == 0:
@@ -299,7 +300,7 @@ cdef slice_getitem(slice slc, ind):
 
     s_start, s_stop, s_step, s_len = slice_get_indices_ex(slc)
 
-    if isinstance(ind, slice):
+    if PySlice_Check(ind):
         ind_start, ind_stop, ind_step, ind_len = slice_get_indices_ex(ind,
                                                                       s_len)
 

@@ -35,13 +35,6 @@ try:
 except ImportError:
     from cpython cimport PyUnicode_GET_SIZE as PyString_GET_SIZE
 
-cdef extern from "compat_helper.h":
-
-    cdef int slice_get_indices(
-        PyObject* s, Py_ssize_t length,
-        Py_ssize_t *start, Py_ssize_t *stop, Py_ssize_t *step,
-        Py_ssize_t *slicelength) except -1
-
 cimport cpython
 
 isnan = np.isnan
