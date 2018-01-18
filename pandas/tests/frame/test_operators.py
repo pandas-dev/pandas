@@ -272,11 +272,41 @@ class TestDataFrameOperators(TestData):
         assert_series_equal(result, expected)
 
     def test_neg(self):
-        # what to do?
-        assert_frame_equal(-self.frame, -1 * self.frame)
+        numeric = pd.DataFrame({
+            'a': [-1, 0, 1],
+            'b': [1, 0, 1],
+            })
+        boolean = pd.DataFrame({
+            'a': [True, False, True],
+            'b': [False, False, True]
+        })
+        timedelta = pd.Series(pd.to_timedelta([-1, 0, 10]))
+        not_numeric = pd.DataFrame({'string': ['a', 'b', 'c']})
+        assert_frame_equal(-numeric, -1 * numeric)
+        assert_frame_equal(-boolean, ~boolean)
+        assert_series_equal(-timedelta, pd.to_timedelta(-1 * timedelta))
+        with pytest.raises(TypeError):
+            (+ not_numeric)
 
     def test_invert(self):
         assert_frame_equal(-(self.frame < 0), ~(self.frame < 0))
+
+    def test_pos(self):
+        numeric = pd.DataFrame({
+            'a': [-1, 0, 1],
+            'b': [1, 0, 1],
+            })
+        boolean = pd.DataFrame({
+            'a': [True, False, True],
+            'b': [False, False, True]
+        })
+        timedelta = pd.Series(pd.to_timedelta([-1, 0, 10]))
+        not_numeric = pd.DataFrame({'string': ['a', 'b', 'c']})
+        assert_frame_equal(+numeric, +1 * numeric)
+        assert_frame_equal(+boolean, (+1 * boolean).astype(bool))
+        assert_series_equal(+timedelta, pd.to_timedelta(+1 * timedelta))
+        with pytest.raises(TypeError):
+            (+ not_numeric)
 
     def test_arith_flex_frame(self):
         ops = ['add', 'sub', 'mul', 'div', 'truediv', 'pow', 'floordiv', 'mod']
