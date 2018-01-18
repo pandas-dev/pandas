@@ -2598,12 +2598,8 @@ class DatetimeTZBlock(NonConsolidatableMixIn, DatetimeBlock):
         super(DatetimeTZBlock, self).__init__(values, placement=placement,
                                               ndim=ndim, **kwargs)
 
-    def get_values(self, dtype=None):
-        """
-        return object dtype as boxed values, such as Timestamps/Timedelta
-        """
-        # Note: this overrides the NonConsolidatableMixIn implementation
-        return DatetimeBlock.get_values(self, dtype)
+    # override NonConsolidatableMixIn implementation of get_values
+    get_values = DatetimeLikeBlockMixin.get_values
 
     def copy(self, deep=True, mgr=None):
         """ copy constructor """
