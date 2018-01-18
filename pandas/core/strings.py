@@ -690,7 +690,7 @@ def str_extract(arr, pat, flags=0, expand=None):
     if expand:
         return _str_extract_frame(arr._orig, pat, flags=flags)
     else:
-        result, name = _str_extract_noexpand(arr._data, pat, flags=flags)
+        result, name = _str_extract_noexpand(arr._parent, pat, flags=flags)
         return arr._wrap_result(result, name=name, expand=expand)
 
 
