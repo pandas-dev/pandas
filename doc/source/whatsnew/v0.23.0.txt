@@ -432,6 +432,7 @@ Conversion
 - Bug in ``.astype()`` to non-ns timedelta units would hold the incorrect dtype (:issue:`19176`, :issue:`19223`, :issue:`12425`)
 - Bug in subtracting :class:`Series` from ``NaT`` incorrectly returning ``NaT`` (:issue:`19158`)
 - Bug in comparison of timezone-aware :class:`DatetimeIndex` against ``NaT`` incorrectly raising ``TypeError`` (:issue:`19276`)
+- Bug in comparison of :class:`DatetimeIndex` against ``None`` or ``datetime.date`` objects raising ``TypeError`` for ``==`` and ``!=`` comparisons instead of all-``False`` and all-``True``, respectively (:issue:`19301`)
 
 Indexing
 ^^^^^^^^
