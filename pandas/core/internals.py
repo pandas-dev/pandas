@@ -1106,7 +1106,7 @@ class Block(PandasObject):
         # a fill na type method
         try:
             m = missing.clean_fill_method(method)
-        except:
+        except ValueError:
             m = None
 
         if m is not None:
@@ -1121,7 +1121,7 @@ class Block(PandasObject):
         # try an interp method
         try:
             m = missing.clean_interp_method(method, **kwargs)
-        except:
+        except ValueError:
             m = None
 
         if m is not None:
@@ -1180,24 +1180,9 @@ class Block(PandasObject):
         if fill_value is None:
             fill_value = self.fill_value
 
-        if method in ('krogh', 'piecewise_polynomial', 'pchip'):
-            if not index.is_monotonic:
-                raise ValueError("{0} interpolation requires that the "
-                                 "index be monotonic.".format(method))
-        # process 1-d slices in the axis direction
-
-        def func(x):
-
-            # process a 1-d slice, returning it
-            # should the axis argument be handled below in apply_along_axis?
-            # i.e. not an arg to missing.interpolate_1d
-            return missing.interpolate_1d(index, x, method=method, limit=limit,
-                                          limit_direction=limit_direction,
-                                          fill_value=fill_value,
-                                          bounds_error=False, **kwargs)
-
-        # interp each column independently
-        interp_values = np.apply_along_axis(func, axis, data)
+        interp_values = _interpolate_values(method, data, index, axis,
+                                            limit, limit_direction,
+                                            fill_value, **kwargs)
 
         blocks = [self.make_block(interp_values, klass=self.__class__,
                                   fastpath=True)]
@@ -2616,23 +2601,9 @@ class DatetimeBlock(DatetimeLikeBlockMixin, Block):
         if fill_value is None:
             fill_value = self.fill_value
 
-        if method in ('krogh', 'piecewise_polynomial', 'pchip'):
-            if not index.is_monotonic:
-                raise ValueError("{0} interpolation requires that the "
-                                 "index be monotonic.".format(method))
-        # process 1-d slices in the axis direction
-
-        def func(x):
-            # process a 1-d slice, returning it
-            # should the axis argument be handled below in apply_along_axis?
-            # i.e. not an arg to missing.interpolate_1d
-            return missing.interpolate_1d(index, x, method=method, limit=limit,
-                                          limit_direction=limit_direction,
-                                          fill_value=fill_value,
-                                          bounds_error=False, **kwargs)
-
-        # interp each column independently
-        interp_values = np.apply_along_axis(func, axis, data)
+        interp_values = _interpolate_values(method, data, index, axis,
+                                            limit, limit_direction,
+                                            fill_value, **kwargs)
         if self.is_datetimetz:
             interp_values = interp_values.squeeze()
             utc_values = self._holder(interp_values, tz='UTC')
@@ -5727,3 +5698,26 @@ def _preprocess_slice_or_indexer(slice_or_indexer, length, allow_fill):
         if not allow_fill:
             indexer = maybe_convert_indices(indexer, length)
         return 'fancy', indexer, len(indexer)
+
+
+def _interpolate_values(method, data, index, axis, limit, limit_direction,
+                        fill_value, **kwargs):
+    """interpolate using scipy wrappers"""
+    if method in ('krogh', 'piecewise_polynomial', 'pchip'):
+        if not index.is_monotonic:
+            raise ValueError("{0} interpolation requires that the "
+                             "index be monotonic.".format(method))
+    # process 1-d slices in the axis direction
+
+    def func(x):
+        # process a 1-d slice, returning it
+        # should the axis argument be handled below in apply_along_axis?
+        # i.e. not an arg to missing.interpolate_1d
+        return missing.interpolate_1d(index, x, method=method, limit=limit,
+                                      limit_direction=limit_direction,
+                                      fill_value=fill_value,
+                                      bounds_error=False, **kwargs)
+
+    # interp each column independently
+    interp_values = np.apply_along_axis(func, axis, data)
+    return interp_values
