@@ -502,7 +502,6 @@ class PeriodDtypeType(type):
 
 
 class PeriodDtype(PandasExtensionDtype):
-    __metaclass__ = PeriodDtypeType
     """
     A Period duck-typed class, suitable for holding a period with freq dtype.
 
@@ -620,7 +619,6 @@ class IntervalDtypeType(type):
 
 
 class IntervalDtype(PandasExtensionDtype):
-    __metaclass__ = IntervalDtypeType
     """
     A Interval duck-typed class, suitable for holding an interval
 
