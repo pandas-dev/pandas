@@ -896,38 +896,6 @@ def write_csv_rows(list data, ndarray data_index,
 # ------------------------------------------------------------------------------
 # Groupby-related functions
 
-@cython.wraparound(False)
-@cython.boundscheck(False)
-def is_lexsorted(list list_of_arrays):
-    cdef:
-        int i
-        Py_ssize_t n, nlevels
-        int64_t k, cur, pre
-        ndarray arr
-
-    nlevels = len(list_of_arrays)
-    n = len(list_of_arrays[0])
-
-    cdef int64_t **vecs = <int64_t**> malloc(nlevels * sizeof(int64_t*))
-    for i from 0 <= i < nlevels:
-        arr = list_of_arrays[i]
-        vecs[i] = <int64_t *> arr.data
-
-    # Assume uniqueness??
-    for i from 1 <= i < n:
-        for k from 0 <= k < nlevels:
-            cur = vecs[k][i]
-            pre = vecs[k][i - 1]
-            if cur == pre:
-                continue
-            elif cur > pre:
-                break
-            else:
-                return False
-    free(vecs)
-    return True
-
-
 # TODO: could do even better if we know something about the data. eg, index has
 # 1-min data, binner has 5-min data, then bins are just strides in index. This
 # is a general, O(max(len(values), len(binner))) method.
