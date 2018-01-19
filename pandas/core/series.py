@@ -45,7 +45,7 @@ from pandas.core.indexing import check_bool_indexer, maybe_convert_indices
 
 from pandas.core import generic, base, algorithms, ops, nanops
 from pandas.core.internals import SingleBlockManager
-from pandas.core.categorical import Categorical, CategoricalAccessor
+from pandas.core.arrays.categorical import Categorical, CategoricalAccessor
 from pandas.core.indexes.accessors import CombinedDatetimelikeProperties
 from pandas.core.indexes.datetimes import DatetimeIndex
 from pandas.core.indexes.timedeltas import TimedeltaIndex

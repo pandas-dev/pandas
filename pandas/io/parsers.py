@@ -28,7 +28,7 @@ from pandas.core.index import (Index, MultiIndex, RangeIndex,
                                _ensure_index_from_sequences)
 from pandas.core.series import Series
 from pandas.core.frame import DataFrame
-from pandas.core.categorical import Categorical
+from pandas.core.arrays import Categorical
 from pandas.core import algorithms
 import pandas.core.common as com
 

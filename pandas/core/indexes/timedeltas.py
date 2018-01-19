@@ -392,7 +392,7 @@ class TimedeltaIndex(DatetimeIndexOpsMixin, TimelikeOps, Int64Index):
                 if opstr in ['__floordiv__']:
                     result = left // right
                 else:
-                    result = op(left, float(right))
+                    result = op(left, np.float64(right))
                 result = self._maybe_mask_results(result, convert='float64')
                 return Index(result, name=self.name, copy=False)
 

@@ -37,7 +37,8 @@ from pandas.errors import PerformanceWarning
 
 import pandas.core.common as com
 from pandas.core.algorithms import match, unique
-from pandas.core.categorical import Categorical, _factorize_from_iterables
+from pandas.core.arrays.categorical import (Categorical,
+                                            _factorize_from_iterables)
 from pandas.core.internals import (BlockManager, make_block,
                                    _block2d_to_blocknd,
                                    _factor_indexer, _block_shape)
