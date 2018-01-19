@@ -1894,7 +1894,7 @@ class ExtensionBlock(NonConsolidatableMixIn, Block):
         # axis doesn't matter; we are really a single-dim object
         # but are passed the axis depending on the calling routing
         # if its REALLY axis 0, then this will be a reindex and not a take
-        new_values = self.values.take_nd(indexer, fill_value=fill_value)
+        new_values = self.values.take(indexer, fill_value=fill_value)
 
         # if we are a 1-dim object, then always place at 0
         if self.ndim == 1:

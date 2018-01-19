@@ -112,8 +112,28 @@ class ExtensionArray(object):
     # ------------------------------------------------------------------------
     @abc.abstractmethod
     def take(self, indexer, allow_fill=True, fill_value=None):
-        # type: (Sequence, bool, Optional[Any]) -> ExtensionArray
-        """For slicing"""
+        # type: (Sequence[int], bool, Optional[Any]) -> ExtensionArray
+        """Take elements from an array
+
+        Parameters
+        ----------
+        indexer : sequence of integers
+            indices to be taken. -1 is used to indicate values
+            that are missing.
+        allow_fill : bool, default True
+            If False, indexer is assumed to contain no -1 values so no filling
+            will be done. This short-circuits computation of a mask. Result is
+            undefined if allow_fill == False and -1 is present in indexer.
+        fill_value : any, default None
+            Fill value to replace -1 values with
+
+        Notes
+        -----
+        This should follow pandas' semantics where -1 indicates missing values.
+
+        This is called by ``Series.__getitem__``, ``.loc``, ``iloc``, when the
+        indexer is a sequence of values.
+        """
 
     @abc.abstractmethod
     def copy(self, deep=False):
