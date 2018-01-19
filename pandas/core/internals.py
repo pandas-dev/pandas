@@ -2590,13 +2590,6 @@ class DatetimeBlock(DatetimeLikeBlockMixin, Block):
 
         # only deal with floats
         mask = isna(self.values)
-        if self.is_datetimetz:
-            # Convert to UTC for interpolation
-            data = data.tz_convert('UTC').values
-        if self.ndim > 1:
-            # DataFrame
-            data = np.atleast_2d(data)
-            mask = np.atleast_2d(mask)
         data = data.astype(np.float64)
         data[mask] = np.nan
 
@@ -2606,12 +2599,7 @@ class DatetimeBlock(DatetimeLikeBlockMixin, Block):
         interp_values = _interpolate_values(method, data, index, axis,
                                             limit, limit_direction,
                                             fill_value, **kwargs)
-        if self.is_datetimetz:
-            interp_values = interp_values.squeeze()
-            utc_values = self._holder(interp_values, tz='UTC')
-            interp_values = utc_values.tz_convert(self.values.tz)
-        else:
-            interp_values = interp_values.astype(self.dtype)
+        interp_values = interp_values.astype(self.dtype)
 
         blocks = [self.make_block(interp_values, klass=self.__class__,
                                   fastpath=True)]
@@ -2772,6 +2760,43 @@ class DatetimeTZBlock(NonConsolidatableMixIn, DatetimeBlock):
         # not using self.make_block_same_class as values can be non-tz dtype
         return make_block(
             values, placement=placement or slice(0, len(values), 1))
+
+    def _interpolate(self, method=None, index=None, values=None,
+                     fill_value=None, axis=0, limit=None,
+                     limit_direction='forward', inplace=False, downcast=None,
+                     mgr=None, **kwargs):
+        """ interpolate using scipy wrappers, adapted to datetime64 values"""
+
+        inplace = validate_bool_kwarg(inplace, 'inplace')
+        data = self.values if inplace else self.values.copy()
+
+        # only deal with floats
+        mask = isna(self.values)
+
+        # Convert to UTC for interpolation
+        data = data.tz_convert('UTC').values
+
+        # data is 1D because it comes from a DatetimeIndex, but we need ndim
+        # to match self.ndim
+        data = data.reshape(self.shape)
+        mask = mask.reshape(self.shape)
+        data = data.astype(np.float64)
+        data[mask] = np.nan
+
+        if fill_value is None:
+            fill_value = self.fill_value
+
+        interp_values = _interpolate_values(method, data, index, axis,
+                                            limit, limit_direction,
+                                            fill_value, **kwargs)
+
+        interp_values = interp_values.squeeze()
+        utc_values = self._holder(interp_values, tz='UTC')
+        interp_values = utc_values.tz_convert(self.values.tz)
+
+        blocks = [self.make_block(interp_values, klass=self.__class__,
+                                  fastpath=True)]
+        return self._maybe_downcast(blocks, downcast)
 
 
 class SparseBlock(NonConsolidatableMixIn, Block):
