@@ -5,7 +5,7 @@ import warnings
 from sys import getsizeof
 
 import numpy as np
-from pandas._libs import index as libindex, lib, Timestamp
+from pandas._libs import algos as libalgos, index as libindex, lib, Timestamp
 
 from pandas.compat import range, zip, lrange, lzip, map
 from pandas.compat.numpy import function as nv
@@ -1137,7 +1137,7 @@ class MultiIndex(Index):
 
         int64_labels = [_ensure_int64(lab) for lab in self.labels]
         for k in range(self.nlevels, 0, -1):
-            if lib.is_lexsorted(int64_labels[:k]):
+            if libalgos.is_lexsorted(int64_labels[:k]):
                 return k
 
         return 0
