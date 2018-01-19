@@ -964,14 +964,6 @@ class TestDatetimeIndex(Base):
                          name='index')
         s = Series(np.random.randn(14), index=rng)
 
-        # Check that wrong keyword argument strings
-        with pytest.raises(AttributeError) as e_info:
-            s.resample('5min', label='righttt').mean()
-        with pytest.raises(AttributeError) as e_info:
-            s.resample('5min', closed='righttt').mean()
-        with pytest.raises(AttributeError) as e_info:
-            s.resample('5min', convention='starttt').mean()
-
         result = s.resample('5min', closed='right', label='right').mean()
 
         exp_idx = date_range('1/1/2000', periods=4, freq='5min', name='index')
@@ -993,6 +985,19 @@ class TestDatetimeIndex(Base):
         grouper = TimeGrouper(Minute(5), closed='left', label='left')
         expect = s.groupby(grouper).agg(lambda x: x[-1])
         assert_series_equal(result, expect)
+
+    def test_resample_string_kwargs(self):
+        rng = date_range('1/1/2000 00:00:00', '1/1/2000 00:13:00', freq='min',
+                         name='index')
+        s = Series(np.random.randn(14), index=rng)
+
+        # Check that wrong keyword argument strings raise an error
+        with pytest.raises(AttributeError) as e_info:
+            s.resample('5min', label='righttt').mean()
+        with pytest.raises(AttributeError) as e_info:
+            s.resample('5min', closed='righttt').mean()
+        with pytest.raises(AttributeError) as e_info:
+            s.resample('5min', convention='starttt').mean()
 
     def test_resample_how(self):
         rng = date_range('1/1/2000 00:00:00', '1/1/2000 00:13:00', freq='min',
