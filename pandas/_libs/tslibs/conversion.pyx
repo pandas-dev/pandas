@@ -29,13 +29,13 @@ from np_datetime cimport (check_dts_bounds,
 
 from util cimport (is_string_object,
                    is_datetime64_object,
-                   is_integer_object, is_float_object)
+                   is_integer_object, is_float_object, is_array)
 
 from timedeltas cimport cast_from_unit
 from timezones cimport (is_utc, is_tzlocal, is_fixed_offset,
                         treat_tz_as_dateutil, treat_tz_as_pytz,
                         get_utcoffset, get_dst_info,
-                        get_timezone, maybe_get_tz)
+                        get_timezone, maybe_get_tz, tz_compare)
 from parsing import parse_datetime_string
 
 from nattype import nat_strings, NaT
@@ -45,6 +45,8 @@ from nattype cimport NPY_NAT, checknull_with_nat
 # Constants
 
 cdef int64_t DAY_NS = 86400000000000LL
+NS_DTYPE = np.dtype('M8[ns]')
+TD_DTYPE = np.dtype('m8[ns]')
 
 UTC = pytz.UTC
 
@@ -73,13 +75,14 @@ cdef inline int64_t get_datetime64_nanos(object val) except? -1:
     return ival
 
 
-def ensure_datetime64ns(ndarray arr):
+def ensure_datetime64ns(ndarray arr, copy=True):
     """
     Ensure a np.datetime64 array has dtype specifically 'datetime64[ns]'
 
     Parameters
     ----------
     arr : ndarray
+    copy : boolean, default True
 
     Returns
     -------
@@ -104,6 +107,8 @@ def ensure_datetime64ns(ndarray arr):
 
     unit = get_datetime64_unit(arr.flat[0])
     if unit == PANDAS_FR_ns:
+        if copy:
+            arr = arr.copy()
         result = arr
     else:
         for i in range(n):
@@ -115,6 +120,23 @@ def ensure_datetime64ns(ndarray arr):
                 iresult[i] = NPY_NAT
 
     return result
+
+
+def ensure_timedelta64ns(ndarray arr, copy=True):
+    """
+    Ensure a np.timedelta64 array has dtype specifically 'timedelta64[ns]'
+
+    Parameters
+    ----------
+    arr : ndarray
+    copy : boolean, default True
+
+    Returns
+    -------
+    result : ndarray with dtype timedelta64[ns]
+
+    """
+    return arr.astype(TD_DTYPE, copy=copy)
 
 
 def datetime_to_datetime64(ndarray[object] values):
@@ -147,7 +169,7 @@ def datetime_to_datetime64(ndarray[object] values):
         elif PyDateTime_Check(val):
             if val.tzinfo is not None:
                 if inferred_tz is not None:
-                    if get_timezone(val.tzinfo) != inferred_tz:
+                    if not tz_compare(val.tzinfo, inferred_tz):
                         raise ValueError('Array must be all same time zone')
                 else:
                     inferred_tz = get_timezone(val.tzinfo)

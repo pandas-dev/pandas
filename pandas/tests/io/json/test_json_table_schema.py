@@ -451,6 +451,20 @@ class TestTableOrient(object):
         result = set_default_names(data)
         assert getattr(result.index, prop) == nm
 
+    @pytest.mark.parametrize("idx", [
+        pd.Index([], name='index'),
+        pd.MultiIndex.from_arrays([['foo'], ['bar']],
+                                  names=('level_0', 'level_1')),
+        pd.MultiIndex.from_arrays([['foo'], ['bar']],
+                                  names=('foo', 'level_1'))
+    ])
+    def test_warns_non_roundtrippable_names(self, idx):
+        # GH 19130
+        df = pd.DataFrame([[]], index=idx)
+        df.index.name = 'index'
+        with tm.assert_produces_warning():
+            set_default_names(df)
+
     def test_timestamp_in_columns(self):
         df = pd.DataFrame([[1, 2]], columns=[pd.Timestamp('2016'),
                                              pd.Timedelta(10, unit='s')])
@@ -481,7 +495,8 @@ class TestTableOrient(object):
 class TestTableOrientReader(object):
 
     @pytest.mark.parametrize("index_nm", [
-        None, "idx", pytest.param("index", marks=pytest.mark.xfail)])
+        None, "idx", pytest.param("index", marks=pytest.mark.xfail),
+        'level_0'])
     @pytest.mark.parametrize("vals", [
         {'ints': [1, 2, 3, 4]},
         {'objects': ['a', 'b', 'c', 'd']},
@@ -492,19 +507,19 @@ class TestTableOrientReader(object):
         pytest.param({'floats': [1., 2., 3., 4.]}, marks=pytest.mark.xfail),
         {'floats': [1.1, 2.2, 3.3, 4.4]},
         {'bools': [True, False, False, True]}])
-    def test_read_json_table_orient(self, index_nm, vals):
+    def test_read_json_table_orient(self, index_nm, vals, recwarn):
         df = DataFrame(vals, index=pd.Index(range(4), name=index_nm))
         out = df.to_json(orient="table")
         result = pd.read_json(out, orient="table")
         tm.assert_frame_equal(df, result)
 
     @pytest.mark.parametrize("index_nm", [
-        None, "idx", pytest.param("index", marks=pytest.mark.xfail)])
+        None, "idx", "index"])
     @pytest.mark.parametrize("vals", [
         {'timedeltas': pd.timedelta_range('1H', periods=4, freq='T')},
         {'timezones': pd.date_range('2016-01-01', freq='d', periods=4,
                                     tz='US/Central')}])
-    def test_read_json_table_orient_raises(self, index_nm, vals):
+    def test_read_json_table_orient_raises(self, index_nm, vals, recwarn):
         df = DataFrame(vals, index=pd.Index(range(4), name=index_nm))
         out = df.to_json(orient="table")
         with tm.assert_raises_regex(NotImplementedError, 'can not yet read '):
@@ -530,7 +545,9 @@ class TestTableOrientReader(object):
         result = pd.read_json(out, orient="table")
         tm.assert_frame_equal(df, result)
 
-    @pytest.mark.parametrize("index_names", [[None, None], ['foo', 'bar']])
+    @pytest.mark.parametrize("index_names", [
+        [None, None], ['foo', 'bar'], ['foo', None], [None, 'foo'],
+        ['index', 'foo']])
     def test_multiindex(self, index_names):
         # GH 18912
         df = pd.DataFrame(

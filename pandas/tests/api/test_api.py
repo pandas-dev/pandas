@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-
+import sys
 from warnings import catch_warnings
 
 import pytest
@@ -122,7 +122,7 @@ class TestPDApi(Base):
 
 class TestApi(Base):
 
-    allowed = ['types']
+    allowed = ['types', 'extensions']
 
     def test_api(self):
 
@@ -249,3 +249,13 @@ class TestCDateRange(object):
         with tm.assert_produces_warning(FutureWarning,
                                         check_stacklevel=False):
             cdate_range('2017-01-01', '2017-12-31')
+
+
+class TestCategoricalMove(object):
+
+    def test_categorical_move(self):
+        # May have been cached by another import, e.g. pickle tests.
+        sys.modules.pop("pandas.core.categorical", None)
+
+        with tm.assert_produces_warning(FutureWarning):
+            from pandas.core.categorical import Categorical  # noqa

@@ -20,7 +20,7 @@ from .common import (_ensure_object, is_bool, is_integer, is_float,
                      is_integer_dtype,
                      is_datetime_or_timedelta_dtype,
                      is_bool_dtype, is_scalar,
-                     _string_dtypes,
+                     is_string_dtype, _string_dtypes,
                      pandas_dtype,
                      _ensure_int8, _ensure_int16,
                      _ensure_int32, _ensure_int64,
@@ -649,40 +649,48 @@ def astype_nansafe(arr, dtype, copy=True):
     if issubclass(dtype.type, text_type):
         # in Py3 that's str, in Py2 that's unicode
         return lib.astype_unicode(arr.ravel()).reshape(arr.shape)
+
     elif issubclass(dtype.type, string_types):
         return lib.astype_str(arr.ravel()).reshape(arr.shape)
+
     elif is_datetime64_dtype(arr):
-        if dtype == object:
+        if is_object_dtype(dtype):
             return tslib.ints_to_pydatetime(arr.view(np.int64))
         elif dtype == np.int64:
             return arr.view(dtype)
-        elif dtype != _NS_DTYPE:
-            raise TypeError("cannot astype a datetimelike from [{from_dtype}] "
-                            "to [{to_dtype}]".format(from_dtype=arr.dtype,
-                                                     to_dtype=dtype))
-        return arr.astype(_NS_DTYPE)
+
+        # allow frequency conversions
+        if dtype.kind == 'M':
+            return arr.astype(dtype)
+
+        raise TypeError("cannot astype a datetimelike from [{from_dtype}] "
+                        "to [{to_dtype}]".format(from_dtype=arr.dtype,
+                                                 to_dtype=dtype))
+
     elif is_timedelta64_dtype(arr):
-        if dtype == np.int64:
-            return arr.view(dtype)
-        elif dtype == object:
+        if is_object_dtype(dtype):
             return tslib.ints_to_pytimedelta(arr.view(np.int64))
+        elif dtype == np.int64:
+            return arr.view(dtype)
 
         # in py3, timedelta64[ns] are int64
-        elif ((PY3 and dtype not in [_INT64_DTYPE, _TD_DTYPE]) or
-              (not PY3 and dtype != _TD_DTYPE)):
+        if ((PY3 and dtype not in [_INT64_DTYPE, _TD_DTYPE]) or
+                (not PY3 and dtype != _TD_DTYPE)):
 
             # allow frequency conversions
+            # we return a float here!
             if dtype.kind == 'm':
                 mask = isna(arr)
                 result = arr.astype(dtype).astype(np.float64)
                 result[mask] = np.nan
                 return result
+        elif dtype == _TD_DTYPE:
+            return arr.astype(_TD_DTYPE, copy=copy)
 
-            raise TypeError("cannot astype a timedelta from [{from_dtype}] "
-                            "to [{to_dtype}]".format(from_dtype=arr.dtype,
-                                                     to_dtype=dtype))
+        raise TypeError("cannot astype a timedelta from [{from_dtype}] "
+                        "to [{to_dtype}]".format(from_dtype=arr.dtype,
+                                                 to_dtype=dtype))
 
-        return arr.astype(_TD_DTYPE)
     elif (np.issubdtype(arr.dtype, np.floating) and
           np.issubdtype(dtype, np.integer)):
 
@@ -690,9 +698,21 @@ def astype_nansafe(arr, dtype, copy=True):
             raise ValueError('Cannot convert non-finite values (NA or inf) to '
                              'integer')
 
-    elif arr.dtype == np.object_ and np.issubdtype(dtype.type, np.integer):
+    elif is_object_dtype(arr):
+
         # work around NumPy brokenness, #1987
-        return lib.astype_intsafe(arr.ravel(), dtype).reshape(arr.shape)
+        if np.issubdtype(dtype.type, np.integer):
+            return lib.astype_intsafe(arr.ravel(), dtype).reshape(arr.shape)
+
+        # if we have a datetime/timedelta array of objects
+        # then coerce to a proper dtype and recall astype_nansafe
+
+        elif is_datetime64_dtype(dtype):
+            from pandas import to_datetime
+            return astype_nansafe(to_datetime(arr).values, dtype, copy=copy)
+        elif is_timedelta64_dtype(dtype):
+            from pandas import to_timedelta
+            return astype_nansafe(to_timedelta(arr).values, dtype, copy=copy)
 
     if dtype.name in ("datetime64", "timedelta64"):
         msg = ("Passing in '{dtype}' dtype with no frequency is "
@@ -703,7 +723,7 @@ def astype_nansafe(arr, dtype, copy=True):
         dtype = np.dtype(dtype.name + "[ns]")
 
     if copy:
-        return arr.astype(dtype)
+        return arr.astype(dtype, copy=True)
     return arr.view(dtype)
 
 
@@ -1003,12 +1023,20 @@ def maybe_cast_to_datetime(value, dtype, errors='raise'):
                         if is_datetime64:
                             value = to_datetime(value, errors=errors)._values
                         elif is_datetime64tz:
-                            # input has to be UTC at this point, so just
-                            # localize
-                            value = (to_datetime(value, errors=errors)
-                                     .tz_localize('UTC')
-                                     .tz_convert(dtype.tz)
-                                     )
+                            # The string check can be removed once issue #13712
+                            # is solved. String data that is passed with a
+                            # datetime64tz is assumed to be naive which should
+                            # be localized to the timezone.
+                            is_dt_string = is_string_dtype(value)
+                            value = to_datetime(value, errors=errors)
+                            if is_dt_string:
+                                # Strings here are naive, so directly localize
+                                value = value.tz_localize(dtype.tz)
+                            else:
+                                # Numeric values are UTC at this point,
+                                # so localize and convert
+                                value = (value.tz_localize('UTC')
+                                         .tz_convert(dtype.tz))
                         elif is_timedelta64:
                             value = to_timedelta(value, errors=errors)._values
                     except (AttributeError, ValueError, TypeError):

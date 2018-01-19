@@ -415,26 +415,6 @@ class TestIntervalIndex(Base):
                 np.arange(5), closed=other_closed)
             assert not expected.equals(expected_other_closed)
 
-    def test_astype(self, closed):
-        idx = self.create_index(closed=closed)
-        result = idx.astype(object)
-        tm.assert_index_equal(result, Index(idx.values, dtype='object'))
-        assert not idx.equals(result)
-        assert idx.equals(IntervalIndex.from_intervals(result))
-
-        result = idx.astype('interval')
-        tm.assert_index_equal(result, idx)
-        assert result.equals(idx)
-
-    @pytest.mark.parametrize('dtype', [
-        np.int64, np.float64, 'period[M]', 'timedelta64', 'datetime64[ns]',
-        'datetime64[ns, US/Eastern]'])
-    def test_astype_errors(self, closed, dtype):
-        idx = self.create_index(closed=closed)
-        msg = 'Cannot cast IntervalIndex to dtype'
-        with tm.assert_raises_regex(TypeError, msg):
-            idx.astype(dtype)
-
     @pytest.mark.parametrize('klass', [list, tuple, np.array, pd.Series])
     def test_where(self, closed, klass):
         idx = self.create_index(closed=closed)
@@ -880,6 +860,16 @@ class TestIntervalIndex(Base):
         tm.assert_index_equal(index.union(index), index)
         tm.assert_index_equal(index.union(index[:1]), index)
 
+        # GH 19101: empty result, same dtype
+        index = IntervalIndex(np.array([], dtype='int64'), closed=closed)
+        result = index.union(index)
+        tm.assert_index_equal(result, index)
+
+        # GH 19101: empty result, different dtypes
+        other = IntervalIndex(np.array([], dtype='float64'), closed=closed)
+        result = index.union(other)
+        tm.assert_index_equal(result, index)
+
     def test_intersection(self, closed):
         index = self.create_index(closed=closed)
         other = IntervalIndex.from_breaks(range(5, 13), closed=closed)
@@ -893,14 +883,48 @@ class TestIntervalIndex(Base):
 
         tm.assert_index_equal(index.intersection(index), index)
 
+        # GH 19101: empty result, same dtype
+        other = IntervalIndex.from_breaks(range(300, 314), closed=closed)
+        expected = IntervalIndex(np.array([], dtype='int64'), closed=closed)
+        result = index.intersection(other)
+        tm.assert_index_equal(result, expected)
+
+        # GH 19101: empty result, different dtypes
+        breaks = np.arange(300, 314, dtype='float64')
+        other = IntervalIndex.from_breaks(breaks, closed=closed)
+        result = index.intersection(other)
+        tm.assert_index_equal(result, expected)
+
     def test_difference(self, closed):
         index = self.create_index(closed=closed)
         tm.assert_index_equal(index.difference(index[:1]), index[1:])
 
+        # GH 19101: empty result, same dtype
+        result = index.difference(index)
+        expected = IntervalIndex(np.array([], dtype='int64'), closed=closed)
+        tm.assert_index_equal(result, expected)
+
+        # GH 19101: empty result, different dtypes
+        other = IntervalIndex.from_arrays(index.left.astype('float64'),
+                                          index.right, closed=closed)
+        result = index.difference(other)
+        tm.assert_index_equal(result, expected)
+
     def test_symmetric_difference(self, closed):
-        idx = self.create_index(closed=closed)
-        result = idx[1:].symmetric_difference(idx[:-1])
-        expected = IntervalIndex([idx[0], idx[-1]])
+        index = self.create_index(closed=closed)
+        result = index[1:].symmetric_difference(index[:-1])
+        expected = IntervalIndex([index[0], index[-1]])
+        tm.assert_index_equal(result, expected)
+
+        # GH 19101: empty result, same dtype
+        result = index.symmetric_difference(index)
+        expected = IntervalIndex(np.array([], dtype='int64'), closed=closed)
+        tm.assert_index_equal(result, expected)
+
+        # GH 19101: empty result, different dtypes
+        other = IntervalIndex.from_arrays(index.left.astype('float64'),
+                                          index.right, closed=closed)
+        result = index.symmetric_difference(other)
         tm.assert_index_equal(result, expected)
 
     @pytest.mark.parametrize('op_name', [
@@ -909,16 +933,24 @@ class TestIntervalIndex(Base):
         index = self.create_index(closed=closed)
         set_op = getattr(index, op_name)
 
-        # test errors
+        # non-IntervalIndex
         msg = ('can only do set operations between two IntervalIndex objects '
                'that are closed on the same side')
         with tm.assert_raises_regex(ValueError, msg):
             set_op(Index([1, 2, 3]))
 
+        # mixed closed
         for other_closed in {'right', 'left', 'both', 'neither'} - {closed}:
             other = self.create_index(closed=other_closed)
             with tm.assert_raises_regex(ValueError, msg):
                 set_op(other)
+
+        # GH 19016: incompatible dtypes
+        other = interval_range(Timestamp('20180101'), periods=9, closed=closed)
+        msg = ('can only do {op} between two IntervalIndex objects that have '
+               'compatible dtypes').format(op=op_name)
+        with tm.assert_raises_regex(TypeError, msg):
+            set_op(other)
 
     def test_isin(self, closed):
         index = self.create_index(closed=closed)

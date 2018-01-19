@@ -12,8 +12,9 @@ from pandas.compat import range, u, set_function_name
 from pandas.compat.numpy import function as nv
 from pandas import compat
 
+from pandas.core.accessor import CachedAccessor
 from pandas.core.dtypes.generic import (
-    ABCSeries,
+    ABCSeries, ABCDataFrame,
     ABCMultiIndex,
     ABCPeriodIndex,
     ABCDateOffset)
@@ -55,8 +56,8 @@ import pandas.core.algorithms as algos
 import pandas.core.sorting as sorting
 from pandas.io.formats.printing import pprint_thing
 from pandas.core.ops import _comp_method_OBJECT_ARRAY
-from pandas.core import strings, accessor
 from pandas.core.config import get_option
+from pandas.core.strings import StringMethods
 
 
 # simplify
@@ -172,9 +173,7 @@ class Index(IndexOpsMixin, PandasObject):
     _engine_type = libindex.ObjectEngine
 
     _accessors = frozenset(['str'])
-
-    # String Methods
-    str = accessor.AccessorProperty(strings.StringMethods)
+    str = CachedAccessor("str", StringMethods)
 
     def __new__(cls, data=None, dtype=None, copy=False, name=None,
                 fastpath=False, tupleize_cols=True, **kwargs):
@@ -3760,6 +3759,11 @@ class Index(IndexOpsMixin, PandasObject):
         Returns
         -------
         dropped : Index
+
+        Raises
+        ------
+        KeyError
+            If none of the labels are found in the selected axis
         """
         arr_dtype = 'object' if self.dtype == 'object' else None
         labels = _index_labels_to_array(labels, dtype=arr_dtype)
@@ -3767,8 +3771,8 @@ class Index(IndexOpsMixin, PandasObject):
         mask = indexer == -1
         if mask.any():
             if errors != 'ignore':
-                raise ValueError('labels %s not contained in axis' %
-                                 labels[mask])
+                raise KeyError(
+                    'labels %s not contained in axis' % labels[mask])
             indexer = indexer[~mask]
         return self.delete(indexer)
 
@@ -4020,6 +4024,9 @@ class Index(IndexOpsMixin, PandasObject):
 
         def _make_evaluate_binop(op, opstr, reversed=False, constructor=Index):
             def _evaluate_numeric_binop(self, other):
+                if isinstance(other, (ABCSeries, ABCDataFrame)):
+                    return NotImplemented
+
                 other = self._validate_for_numeric_binop(other, op, opstr)
 
                 # handle time-based others

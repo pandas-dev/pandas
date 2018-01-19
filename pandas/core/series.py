@@ -13,6 +13,7 @@ from textwrap import dedent
 import numpy as np
 import numpy.ma as ma
 
+from pandas.core.accessor import CachedAccessor
 from pandas.core.dtypes.common import (
     is_categorical_dtype,
     is_bool,
@@ -52,8 +53,7 @@ from pandas.core.index import (Index, MultiIndex, InvalidIndexError,
 from pandas.core.indexing import check_bool_indexer, maybe_convert_indices
 from pandas.core import generic, base
 from pandas.core.internals import SingleBlockManager
-from pandas.core.categorical import Categorical, CategoricalAccessor
-import pandas.core.strings as strings
+from pandas.core.arrays.categorical import Categorical, CategoricalAccessor
 from pandas.core.indexes.accessors import CombinedDatetimelikeProperties
 from pandas.core.indexes.datetimes import DatetimeIndex
 from pandas.core.indexes.timedeltas import TimedeltaIndex
@@ -64,7 +64,6 @@ from pandas.compat import (
     zip, u, OrderedDict, StringIO, range, get_range_parameters)
 from pandas.compat.numpy import function as nv
 
-from pandas.core import accessor
 import pandas.core.ops as ops
 import pandas.core.algorithms as algorithms
 
@@ -77,6 +76,7 @@ from pandas.util._validators import validate_bool_kwarg
 
 from pandas._libs import index as libindex, tslib as libts, lib, iNaT
 from pandas.core.config import get_option
+from pandas.core.strings import StringMethods
 
 import pandas.plotting._core as gfx
 
@@ -2881,7 +2881,8 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
 
     def to_csv(self, path=None, index=True, sep=",", na_rep='',
                float_format=None, header=False, index_label=None,
-               mode='w', encoding=None, date_format=None, decimal='.'):
+               mode='w', encoding=None, compression=None, date_format=None,
+               decimal='.'):
         """
         Write Series to a comma-separated values (csv) file
 
@@ -2908,6 +2909,10 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         encoding : string, optional
             a string representing the encoding to use if the contents are
             non-ascii, for python versions prior to 3
+        compression : string, optional
+            a string representing the compression to use in the output file,
+            allowed values are 'gzip', 'bz2', 'xz', only used when the first
+            argument is a filename
         date_format: string, default None
             Format string for datetime objects.
         decimal: string, default '.'
@@ -2920,8 +2925,8 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         result = df.to_csv(path, index=index, sep=sep, na_rep=na_rep,
                            float_format=float_format, header=header,
                            index_label=index_label, mode=mode,
-                           encoding=encoding, date_format=date_format,
-                           decimal=decimal)
+                           encoding=encoding, compression=compression,
+                           date_format=date_format, decimal=decimal)
         if path is None:
             return result
 
@@ -3069,21 +3074,16 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         return self._constructor(new_values,
                                  index=new_index).__finalize__(self)
 
-    # -------------------------------------------------------------------------
-    # Datetimelike delegation methods
-    dt = accessor.AccessorProperty(CombinedDatetimelikeProperties)
-
-    # -------------------------------------------------------------------------
-    # Categorical methods
-    cat = accessor.AccessorProperty(CategoricalAccessor)
-
-    # String Methods
-    str = accessor.AccessorProperty(strings.StringMethods)
+    # ----------------------------------------------------------------------
+    # Accessor Methods
+    # ----------------------------------------------------------------------
+    str = CachedAccessor("str", StringMethods)
+    dt = CachedAccessor("dt", CombinedDatetimelikeProperties)
+    cat = CachedAccessor("cat", CategoricalAccessor)
+    plot = CachedAccessor("plot", gfx.SeriesPlotMethods)
 
     # ----------------------------------------------------------------------
     # Add plotting methods to Series
-    plot = accessor.AccessorProperty(gfx.SeriesPlotMethods,
-                                     gfx.SeriesPlotMethods)
     hist = gfx.hist_series
 
 

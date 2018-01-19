@@ -149,7 +149,7 @@ squeeze : boolean, default ``False``
 prefix : str, default ``None``
   Prefix to add to column numbers when no header, e.g. 'X' for X0, X1, ...
 mangle_dupe_cols : boolean, default ``True``
-  Duplicate columns will be specified as 'X.0'...'X.N', rather than 'X'...'X'.
+  Duplicate columns will be specified as 'X', 'X.1'...'X.N', rather than 'X'...'X'.
   Passing in False will cause data to be overwritten if there are duplicate
   names in the columns.
 
@@ -214,8 +214,20 @@ na_values : scalar, str, list-like, or dict, default ``None``
   for a list of the values interpreted as NaN by default.
 
 keep_default_na : boolean, default ``True``
-  If na_values are specified and keep_default_na is ``False`` the default NaN
-  values are overridden, otherwise they're appended to.
+  Whether or not to include the default NaN values when parsing the data.
+  Depending on whether `na_values` is passed in, the behavior is as follows:
+
+  * If `keep_default_na` is True, and `na_values` are specified, `na_values`
+    is appended to the default NaN values used for parsing.
+  * If `keep_default_na` is True, and `na_values` are not specified, only
+    the default NaN values are used for parsing.
+  * If `keep_default_na` is False, and `na_values` are specified, only
+    the NaN values specified `na_values` are used for parsing.
+  * If `keep_default_na` is False, and `na_values` are not specified, no
+    strings will be parsed as NaN.
+
+  Note that if `na_filter` is passed in as False, the `keep_default_na` and
+  `na_values` parameters will be ignored.
 na_filter : boolean, default ``True``
   Detect missing value markers (empty strings and the value of na_values). In
   data without any NAs, passing ``na_filter=False`` can improve the performance
@@ -548,7 +560,7 @@ these names so as to prevent data overwrite:
    pd.read_csv(StringIO(data))
 
 There is no more duplicate data because ``mangle_dupe_cols=True`` by default, which modifies
-a series of duplicate columns 'X'...'X' to become 'X.0'...'X.N'.  If ``mangle_dupe_cols
+a series of duplicate columns 'X'...'X' to become 'X', 'X.1',...'X.N'.  If ``mangle_dupe_cols
 =False``, duplicate data can arise:
 
 .. code-block :: python
@@ -2228,9 +2240,10 @@ round-trippable manner.
    new_df
    new_df.dtypes
 
-Please note that the string `index` is not supported with the round trip
-format, as it is used by default in ``write_json`` to indicate a missing index
-name.
+Please note that the literal string 'index' as the name of an :class:`Index`
+is not round-trippable, nor are any names beginning with 'level_' within a
+:class:`MultiIndex`. These are used by default in :func:`DataFrame.to_json` to
+indicate missing values and the subsequent read cannot distinguish the intent.
 
 .. ipython:: python
 
