@@ -563,7 +563,7 @@ class Block(PandasObject):
 
         Returns
         -------
-        IntervalArray
+        Block
         """
         errors_legal_values = ('raise', 'ignore')
 

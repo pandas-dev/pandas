@@ -94,8 +94,8 @@ class ExtensionDtype(object):
         -----
         The default implementation is True if
 
-        1. 'dtype' is a string that returns true for
-           ``cls.construct_from_string``
+        1. ``cls.construct_from_string(dtype)`` is an instance
+           of ``cls``.
         2. 'dtype' is ``cls`` or a subclass of ``cls``.
         """
         if isinstance(dtype, str):

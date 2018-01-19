@@ -20,9 +20,9 @@ class ExtensionArray(object):
 
     **Restrictions on your class constructor**
 
-        * Your class should be able to be constructed with instances of
-          our class, i.e. ``ExtensionArray(extension_array)`` should returns
-          an instance.
+        * Extension arrays should be able to be constructed with instances of
+          the class, i.e. ``ExtensionArray(extension_array)`` should return
+          an instance, not error.
     """
     # ------------------------------------------------------------------------
     # Must be a Sequence
@@ -70,10 +70,6 @@ class ExtensionArray(object):
     # Required attributes
     # ------------------------------------------------------------------------
     @property
-    def base(self):
-        """The base array I am a view of. None by default."""
-
-    @property
     @abc.abstractmethod
     def dtype(self):
         # type: () -> ExtensionDtype
@@ -94,7 +90,11 @@ class ExtensionArray(object):
     @abc.abstractmethod
     def nbytes(self):
         # type: () -> int
-        """The number of bytes needed to store this object in memory."""
+        """The number of bytes needed to store this object in memory.
+
+        If this is expensive to compute, return an approximate lower bound
+        on the number of bytes needed.
+        """
 
     # ------------------------------------------------------------------------
     # Additional Methods
@@ -127,6 +127,8 @@ class ExtensionArray(object):
         Notes
         -----
         This should follow pandas' semantics where -1 indicates missing values.
+        Positions where indexer is ``-1`` should be filled with the missing
+        value for this type.
 
         This is called by ``Series.__getitem__``, ``.loc``, ``iloc``, when the
         indexer is a sequence of values.
