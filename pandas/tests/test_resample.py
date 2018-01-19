@@ -992,11 +992,11 @@ class TestDatetimeIndex(Base):
         s = Series(np.random.randn(14), index=rng)
 
         # Check that wrong keyword argument strings raise an error
-        with pytest.raises(AttributeError) as e_info:
+        with pytest.raises(ValueError) as e_info:
             s.resample('5min', label='righttt').mean()
-        with pytest.raises(AttributeError) as e_info:
+        with pytest.raises(ValueError) as e_info:
             s.resample('5min', closed='righttt').mean()
-        with pytest.raises(AttributeError) as e_info:
+        with pytest.raises(ValueError) as e_info:
             s.resample('5min', convention='starttt').mean()
 
     def test_resample_how(self):
