@@ -20,9 +20,6 @@ class ExtensionArray(object):
 
     **Restrictions on your class constructor**
 
-        * Your class should be able to be constructed with no arguments,
-          i.e. ``ExtensionArray()`` returns an instance.
-          TODO: See comment in ``ExtensionDtype.construct_from_string``
         * Your class should be able to be constructed with instances of
           our class, i.e. ``ExtensionArray(extension_array)`` should returns
           an instance.

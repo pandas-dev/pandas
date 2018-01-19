@@ -12,7 +12,11 @@ class ExtensionDtype(object):
     @abc.abstractmethod
     def type(self):
         # type: () -> type
-        """The scalar type for your array, e.g. ``int`` or ``object``."""
+        """The scalar type for your array, e.g. ``int``
+
+        It's expected ``ExtensionArray[item]`` returns an instance
+        of ``ExtensionDtype.type`` for scalar ``item``.
+        """
 
     @property
     def kind(self):
@@ -20,7 +24,9 @@ class ExtensionDtype(object):
         """A character code (one of 'biufcmMOSUV'), default 'O'
 
         This should match the NumPy dtype used when your array is
-        converted to an ndarray, which is probably 'O' for object.
+        converted to an ndarray, which is probably 'O' for object if
+        your extension type cannot be represented as a built-in NumPy
+        type.
 
         See Also
         --------
