@@ -2470,7 +2470,7 @@ def _grouped_plot_by_column(plotf, data, columns=None, by=None,
 class BasePlotMethods(PandasObject):
 
     def __init__(self, data):
-        self._data = data
+        self._parent = data
 
     def __call__(self, *args, **kwargs):
         raise NotImplementedError
@@ -2498,7 +2498,7 @@ class SeriesPlotMethods(BasePlotMethods):
                  rot=None, fontsize=None, colormap=None, table=False,
                  yerr=None, xerr=None,
                  label=None, secondary_y=False, **kwds):
-        return plot_series(self._data, kind=kind, ax=ax, figsize=figsize,
+        return plot_series(self._parent, kind=kind, ax=ax, figsize=figsize,
                            use_index=use_index, title=title, grid=grid,
                            legend=legend, style=style, logx=logx, logy=logy,
                            loglog=loglog, xticks=xticks, yticks=yticks,
@@ -2655,7 +2655,7 @@ class FramePlotMethods(BasePlotMethods):
                  rot=None, fontsize=None, colormap=None, table=False,
                  yerr=None, xerr=None,
                  secondary_y=False, sort_columns=False, **kwds):
-        return plot_frame(self._data, kind=kind, x=x, y=y, ax=ax,
+        return plot_frame(self._parent, kind=kind, x=x, y=y, ax=ax,
                           subplots=subplots, sharex=sharex, sharey=sharey,
                           layout=layout, figsize=figsize, use_index=use_index,
                           title=title, grid=grid, legend=legend, style=style,
