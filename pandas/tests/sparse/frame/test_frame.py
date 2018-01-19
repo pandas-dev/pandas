@@ -1274,7 +1274,7 @@ class TestSparseDataFrameAnalytics(object):
 
     def test_assign_with_sparse_frame(self):
         # GH 19163
-        df = pd.DataFrame({"a":[1,2,3]})
+        df = pd.DataFrame({"a": [1, 2, 3]})
         res = df.to_sparse(fill_value=False).assign(newcol=False)
         exp = df.assign(newcol=False).to_sparse(fill_value=False)
 
@@ -1282,4 +1282,3 @@ class TestSparseDataFrameAnalytics(object):
 
         for column in res.columns:
             assert type(res[column]) is SparseSeries
-

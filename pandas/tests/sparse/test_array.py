@@ -113,10 +113,14 @@ class TestSparseArray(object):
         assert arr.dtype == np.int64
         assert arr.fill_value == 0
 
-    @pytest.mark.parametrize('scalar,dtype', [(False, bool), (0.0, 'float64'), (1, 'int64'), ('z', 'object')])
+    @pytest.mark.parametrize('scalar,dtype', [
+        (False, bool),
+        (0.0, 'float64'),
+        (1, 'int64'),
+        ('z', 'object')])
     def test_scalar_with_index_infer_dtype(self, scalar, dtype):
         # GH 19163
-        arr = SparseArray(scalar, index=[1,2,3], fill_value=scalar)
+        arr = SparseArray(scalar, index=[1, 2, 3], fill_value=scalar)
         exp = SparseArray([scalar, scalar, scalar], fill_value=scalar)
 
         tm.assert_sp_array_equal(arr, exp)
