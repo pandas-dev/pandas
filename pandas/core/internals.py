@@ -226,7 +226,6 @@ class Block(PandasObject):
         """ Wrap given values in a block of same type as self. """
         if placement is None:
             placement = self.mgr_locs
-        # TODO: Why not set default for ndim like we do for self.make_block?
         return make_block(values, placement=placement, ndim=ndim,
                           klass=self.__class__)
 
