@@ -509,8 +509,6 @@ Reshaping
 - Bug in :func:`DataFrame.stack`, :func:`DataFrame.unstack`, :func:`Series.unstack` which were not returning subclasses (:issue:`15563`)
 - Bug in timezone comparisons, manifesting as a conversion of the index to UTC in ``.concat()`` (:issue:`18523`)
 
->>>>>>> upstream/master
-
 Numeric
 ^^^^^^^
 

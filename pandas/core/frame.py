@@ -2714,7 +2714,6 @@ class DataFrame(NDFrame):
         8   9  0.549296  2.197225
         9  10 -0.758542  2.302585
         """
-
         data = self.copy()
 
         # do all calculations first...
