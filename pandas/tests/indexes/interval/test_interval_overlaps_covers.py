@@ -3,7 +3,7 @@ from __future__ import division
 import pytest
 import numpy as np
 
-from pandas import Interval, IntervalIndex, Int64Index
+from pandas import IntervalIndex
 from pandas.tests.indexes.common import Base
 import pandas.util.testing as tm
 
@@ -26,24 +26,24 @@ class TestIntervalIndex(Base):
         #                                                       IntegerArray1D]
 
         idx = IntervalIndex.from_tuples([(0, 1), (2, 3), (1, 3)],
-            closed="right")
+                                        closed="right")
 
         result = idx.covers(idx)
-        expected = (np.array([0,1,2,2]), np.array([0,1,1,2]))
+        expected = (np.array([0, 1, 2, 2]), np.array([0, 1, 1, 2]))
         self._compare_tuple_of_numpy_array(result, expected)
 
         idx2 = IntervalIndex.from_tuples([(0, 1), (2, 3), (1, 3)],
-            closed="left")
+                                        closed="left")
 
         result = idx.covers(idx2),
         expected = (np.array([2]), np.array([1]))
         self._compare_tuple_of_numpy_array(result, expected)
 
         idx3 = IntervalIndex.from_tuples([(0, 1), (2, 3), (1, 3)],
-            closed="both")
+                                        closed="both")
 
         result = idx.covers(idx3),
-        expected = (np.array([0,1,2,2]), np.array([0,1,1,2]))
+        expected = (np.array([0, 1, 2, 2]), np.array([0, 1, 1, 2]))
         self._compare_tuple_of_numpy_array(result, expected)
 
     def test_intervalIndex_overlaps_intervalIndex(self):
@@ -53,22 +53,22 @@ class TestIntervalIndex(Base):
         #                                                       IntegerArray1D]
 
         idx = IntervalIndex.from_tuples([(0, 1), (2, 3), (1, 3)],
-            closed="right")
+                                        closed="right")
 
         result = idx.overlaps(idx)
-        expected = (np.array([0,1,2,2]), np.array([0,1,1,2]))
+        expected = (np.array([0, 1, 2, 2]), np.array([0, 1, 1, 2]))
         self._compare_tuple_of_numpy_array(result, expected)
 
         idx2 = IntervalIndex.from_tuples([(0, 1), (2, 3), (1, 3)],
-            closed="left")
+                                        closed="left")
 
         result = idx.overlaps(idx2)
-        expected = (np.array([0,0,1,1,2,2]), np.array([0,2,1,2,1,2]))
+        expected = (np.array([0, 0, 1, 1, 2, 2]), np.array([0, 2, 1, 2, 1, 2]))
         self._compare_tuple_of_numpy_array(result, expected)
 
         idx3 = IntervalIndex.from_tuples([(0, 1), (2, 3), (1, 3)],
-            closed="both")
+                                        closed="both")
 
         result = idx.overlaps(idx3)
-        expected = (np.array([0,0,1,1,2,2]), np.array([0,2,1,2,1,2]))
+        expected = (np.array([0, 0, 1, 1, 2, 2]), np.array([0, 2, 1, 2, 1, 2]))
         self._compare_tuple_of_numpy_array(result, expected)
