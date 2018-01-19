@@ -302,6 +302,7 @@ class CheckSDist(sdist_class):
                  'pandas/_libs/hashtable.pyx',
                  'pandas/_libs/tslib.pyx',
                  'pandas/_libs/index.pyx',
+                 'pandas/_libs/internals.pyx',
                  'pandas/_libs/algos.pyx',
                  'pandas/_libs/join.pyx',
                  'pandas/_libs/indexing.pyx',
@@ -478,6 +479,8 @@ ext_data = {
         'sources': np_datetime_sources},
     '_libs.indexing': {
         'pyxfile': '_libs/indexing'},
+    '_libs.internals': {
+        'pyxfile': '_libs/internals'},
     '_libs.interval': {
         'pyxfile': '_libs/interval',
         'pxdfiles': ['_libs/hashtable'],
