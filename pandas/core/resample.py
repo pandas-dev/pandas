@@ -1069,7 +1069,7 @@ class TimeGrouper(Grouper):
             raise ValueError('Unsupported value %s for `closed`' % closed)
         if convention not in {None, 'start', 'end', 'e', 's'}:
             raise ValueError('Unsupported value %s for `convention`'
-                                 % convention)
+                             % convention)
 
         freq = to_offset(freq)
 
