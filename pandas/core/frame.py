@@ -2649,7 +2649,7 @@ class DataFrame(NDFrame):
                           allow_duplicates=allow_duplicates)
 
     def assign(self, **kwargs):
-        r"""
+        """
         Assign new columns to a DataFrame, returning a new object
         (a copy) with all the original columns in addition to the new ones.
 
@@ -2714,8 +2714,7 @@ class DataFrame(NDFrame):
         9  10 -0.758542  2.302585
         """
 
-        # See GH19163
-        data = self.copy().to_dense()
+        data = self.copy()
 
         # do all calculations first...
         results = OrderedDict()

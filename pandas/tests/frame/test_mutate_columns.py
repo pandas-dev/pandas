@@ -6,9 +6,9 @@ from pandas.compat import range, lrange
 import numpy as np
 from pandas.compat import PY36
 
-from pandas import DataFrame, Series, Index, MultiIndex
+from pandas import DataFrame, Series, Index, MultiIndex, SparseSeries
 
-from pandas.util.testing import assert_frame_equal
+from pandas.util.testing import assert_frame_equal, assert_series_equal
 
 import pandas.util.testing as tm
 
@@ -54,13 +54,6 @@ class TestDataFrameMutateColumns(TestData):
         # lambda
         result = df.assign(A=lambda x: x.A + x.B)
         assert_frame_equal(result, expected)
-
-        # SparseDataFrame
-        # See GH 19163
-        result = df.to_sparse(fill_value=False).assign(newcol=False)
-        expected = df.assign(newcol=False)
-        assert type(result) is DataFrame
-        assert_frame_equal(expected, result)
 
     def test_assign_multiple(self):
         df = DataFrame([[1, 4], [2, 5], [3, 6]], columns=['A', 'B'])

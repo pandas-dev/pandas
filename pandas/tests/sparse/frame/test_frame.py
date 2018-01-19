@@ -1271,3 +1271,15 @@ class TestSparseDataFrameAnalytics(object):
 
         tm.assert_frame_equal(result, dense_expected)
         tm.assert_sp_frame_equal(result, sparse_expected)
+
+    def test_assign_with_sparse_frame(self):
+        # GH 19163
+        df = pd.DataFrame({"a":[1,2,3]})
+        res = df.to_sparse(fill_value=False).assign(newcol=False)
+        exp = df.assign(newcol=False).to_sparse(fill_value=False)
+
+        tm.assert_sp_frame_equal(res, exp)
+
+        for column in res.columns:
+            assert type(res[column]) is SparseSeries
+
