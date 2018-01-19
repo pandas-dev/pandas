@@ -14,7 +14,6 @@ from pandas.compat import StringIO, u
 from pandas.util.testing import (assert_series_equal, assert_almost_equal,
                                  assert_frame_equal, ensure_clean)
 import pandas.util.testing as tm
-import pandas.util._test_decorators as td
 
 from .common import TestData
 

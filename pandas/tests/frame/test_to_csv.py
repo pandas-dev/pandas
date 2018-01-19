@@ -21,7 +21,6 @@ from pandas.util.testing import (assert_almost_equal,
                                  ensure_clean,
                                  makeCustomDataframe as mkdf)
 import pandas.util.testing as tm
-import pandas.util._test_decorators as td
 
 from pandas.tests.frame.common import TestData
 
