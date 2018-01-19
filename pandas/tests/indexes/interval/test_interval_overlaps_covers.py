@@ -33,14 +33,14 @@ class TestIntervalIndex(Base):
         self._compare_tuple_of_numpy_array(result, expected)
 
         idx2 = IntervalIndex.from_tuples([(0, 1), (2, 3), (1, 3)],
-                                        closed="left")
+                                         closed="left")
 
         result = idx.covers(idx2),
         expected = (np.array([2]), np.array([1]))
         self._compare_tuple_of_numpy_array(result, expected)
 
         idx3 = IntervalIndex.from_tuples([(0, 1), (2, 3), (1, 3)],
-                                        closed="both")
+                                         closed="both")
 
         result = idx.covers(idx3),
         expected = (np.array([0, 1, 2, 2]), np.array([0, 1, 1, 2]))
@@ -60,14 +60,14 @@ class TestIntervalIndex(Base):
         self._compare_tuple_of_numpy_array(result, expected)
 
         idx2 = IntervalIndex.from_tuples([(0, 1), (2, 3), (1, 3)],
-                                        closed="left")
+                                         closed="left")
 
         result = idx.overlaps(idx2)
         expected = (np.array([0, 0, 1, 1, 2, 2]), np.array([0, 2, 1, 2, 1, 2]))
         self._compare_tuple_of_numpy_array(result, expected)
 
         idx3 = IntervalIndex.from_tuples([(0, 1), (2, 3), (1, 3)],
-                                        closed="both")
+                                         closed="both")
 
         result = idx.overlaps(idx3)
         expected = (np.array([0, 0, 1, 1, 2, 2]), np.array([0, 2, 1, 2, 1, 2]))

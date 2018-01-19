@@ -3,7 +3,7 @@ from __future__ import division
 import pytest
 import numpy as np
 
-from pandas import Interval, IntervalIndex, Int64Index
+from pandas import Interval, IntervalIndex
 from pandas.tests.indexes.common import Base
 import pandas.util.testing as tm
 
