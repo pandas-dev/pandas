@@ -125,7 +125,7 @@ class CategoricalIndex(Index, accessor.PandasDelegate):
         CategoricalIndex
         """
 
-        from pandas.core.categorical import Categorical
+        from pandas.core.arrays import Categorical
         if categories is None:
             categories = self.categories
         if ordered is None:
@@ -162,7 +162,7 @@ class CategoricalIndex(Index, accessor.PandasDelegate):
         if not isinstance(data, ABCCategorical):
             if ordered is None and dtype is None:
                 ordered = False
-            from pandas.core.categorical import Categorical
+            from pandas.core.arrays import Categorical
             data = Categorical(data, categories=categories, ordered=ordered,
                                dtype=dtype)
         else:
@@ -462,7 +462,7 @@ class CategoricalIndex(Index, accessor.PandasDelegate):
             other = self._na_value
         values = np.where(cond, self.values, other)
 
-        from pandas.core.categorical import Categorical
+        from pandas.core.arrays import Categorical
         cat = Categorical(values,
                           categories=self.categories,
                           ordered=self.ordered)
@@ -775,7 +775,7 @@ class CategoricalIndex(Index, accessor.PandasDelegate):
     def _add_accessors(cls):
         """ add in Categorical accessor methods """
 
-        from pandas.core.categorical import Categorical
+        from pandas.core.arrays import Categorical
         CategoricalIndex._add_delegate_accessors(
             delegate=Categorical, accessors=["rename_categories",
                                              "reorder_categories",
