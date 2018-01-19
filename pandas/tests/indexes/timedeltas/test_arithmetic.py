@@ -279,14 +279,16 @@ class TestTimedeltaIndexArithmetic(object):
         didx = self._holder(np.arange(5, dtype='int64') ** 2)
 
         result = idx * Series(np.arange(5, dtype='int64'))
-        tm.assert_index_equal(result, didx)
+
+        tm.assert_series_equal(result, Series(didx))
  
     def test_mul_float_series(self):
         idx = self._holder(np.arange(5, dtype='int64'))
 
         rng5f = np.arange(5, dtype='float64')
         result = idx * Series(rng5f + 0.1)
-        tm.assert_index_equal(result, self._holder(rng5f * (rng5f + 0.1)))
+        expected = Series(self._holder(rng5f * (rng5f + 0.1)))
+        tm.assert_series_equal(result, expected)
  
     def test_dti_mul_dti_raises(self):
         idx = self._holder(np.arange(5, dtype='int64'))
