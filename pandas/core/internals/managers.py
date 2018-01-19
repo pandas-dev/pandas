@@ -6,8 +6,8 @@ from functools import partial
 
 import numpy as np
 
-from pandas._libs import lib
-from pandas._libs.lib import BlockPlacement
+from pandas._libs import lib, internals as libinternals
+from pandas._libs.internals import BlockPlacement
 
 from pandas.util._validators import validate_bool_kwarg
 from pandas.compat import range, map, zip, u
@@ -1988,7 +1988,7 @@ def _get_blkno_placements(blknos, blk_count, group=True):
     blknos = _ensure_int64(blknos)
 
     # FIXME: blk_count is unused, but it may avoid the use of dicts in cython
-    for blkno, indexer in lib.get_blkno_indexers(blknos, group):
+    for blkno, indexer in libinternals.get_blkno_indexers(blknos, group):
         yield blkno, BlockPlacement(indexer)
 
 
@@ -2054,8 +2054,8 @@ def _fast_count_smallints(arr):
 
 def _preprocess_slice_or_indexer(slice_or_indexer, length, allow_fill):
     if isinstance(slice_or_indexer, slice):
-        return 'slice', slice_or_indexer, lib.slice_len(slice_or_indexer,
-                                                        length)
+        return ('slice', slice_or_indexer,
+                libinternals.slice_len(slice_or_indexer, length))
     elif (isinstance(slice_or_indexer, np.ndarray) and
           slice_or_indexer.dtype == np.bool_):
         return 'mask', slice_or_indexer, slice_or_indexer.sum()

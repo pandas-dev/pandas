@@ -7,9 +7,9 @@ from datetime import datetime, timedelta, date
 
 import numpy as np
 
-from pandas._libs import lib, tslib
+from pandas._libs import lib, tslib, internals as libinternals
+from pandas._libs.internals import BlockPlacement
 from pandas._libs.tslib import Timedelta
-from pandas._libs.lib import BlockPlacement
 from pandas._libs.tslibs import conversion
 
 from pandas.util._validators import validate_bool_kwarg
@@ -1221,7 +1221,7 @@ class Block(PandasObject):
 
         if new_mgr_locs is None:
             if axis == 0:
-                slc = lib.indexer_as_slice(indexer)
+                slc = libinternals.indexer_as_slice(indexer)
                 if slc is not None:
                     new_mgr_locs = self.mgr_locs[slc]
                 else:
@@ -2963,6 +2963,7 @@ def make_block(values, placement, klass=None, ndim=None, dtype=None,
                      placement=placement, dtype=dtype)
 
     return klass(values, ndim=ndim, fastpath=fastpath, placement=placement)
+
 
 # TODO: flexible with index=None and/or items=None
 
