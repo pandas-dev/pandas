@@ -243,22 +243,22 @@ class TestTimedeltaIndexArithmetic(object):
         idx = self._holder(np.arange(5, dtype='int64'))
         result = idx * 1
         tm.assert_index_equal(result, idx)
- 
+
     def test_rmul_int(self):
         idx = self._holder(np.arange(5, dtype='int64'))
         result = 1 * idx
         tm.assert_index_equal(result, idx)
- 
+
     def test_div_int(self):
         idx = self._holder(np.arange(5, dtype='int64'))
         result = idx / 1
         tm.assert_index_equal(result, idx)
- 
+
     def test_floordiv_int(self):
         idx = self._holder(np.arange(5, dtype='int64'))
         result = idx // 1
         tm.assert_index_equal(result, idx)
- 
+
     def test_mul_int_array_zerodim(self):
         rng5 = np.arange(5, dtype='int64')
         idx = self._holder(rng5)
@@ -270,10 +270,10 @@ class TestTimedeltaIndexArithmetic(object):
         rng5 = np.arange(5, dtype='int64')
         idx = self._holder(rng5)
         didx = self._holder(rng5 ** 2)
- 
+
         result = idx * rng5
         tm.assert_index_equal(result, didx)
- 
+
     def test_mul_int_series(self):
         idx = self._holder(np.arange(5, dtype='int64'))
         didx = self._holder(np.arange(5, dtype='int64') ** 2)
@@ -281,7 +281,7 @@ class TestTimedeltaIndexArithmetic(object):
         result = idx * Series(np.arange(5, dtype='int64'))
 
         tm.assert_series_equal(result, Series(didx))
- 
+
     def test_mul_float_series(self):
         idx = self._holder(np.arange(5, dtype='int64'))
 
@@ -289,7 +289,7 @@ class TestTimedeltaIndexArithmetic(object):
         result = idx * Series(rng5f + 0.1)
         expected = Series(self._holder(rng5f * (rng5f + 0.1)))
         tm.assert_series_equal(result, expected)
- 
+
     def test_dti_mul_dti_raises(self):
         idx = self._holder(np.arange(5, dtype='int64'))
         with pytest.raises(TypeError):

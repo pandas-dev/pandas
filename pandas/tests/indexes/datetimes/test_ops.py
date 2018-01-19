@@ -590,7 +590,7 @@ class TestDatetimeIndexOps(Ops):
                                     '2011-01-01 09:00'], name='xxx', tz=tz)
             tm.assert_index_equal(idx.shift(-3, freq='H'), exp)
 
-    # TODO: moved from test_datetimelike; de-duplicated with test_shift above
+    # TODO: moved from test_datetimelike; de-duplicate with test_shift above
     def test_shift2(self):
         # test shift for datetimeIndex and non datetimeIndex
         # GH8083
