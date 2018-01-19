@@ -33,17 +33,24 @@ class ExtensionArray(object):
     @abc.abstractmethod
     def __getitem__(self, item):
         # type (Any) -> Any
-        """Select a subset of self
+        """Select a subset of self.
 
         Notes
         -----
-        As a sequence, __getitem__ should expect integer or slice ``key``.
+        ``item`` may be one of
 
-        For slice ``key``, you should return an instance of yourself, even
+            * A scalar integer position
+            * A slice object
+            * A boolean mask the same length as 'self'
+
+        For scalar ``item``, return a scalar value suitable for the array's
+        type. This should be an instance of ``self.dtype.type``.
+
+        For slice ``key``, return an instance of ``ExtensionArray``, even
         if the slice is length 0 or 1.
 
-        For scalar ``key``, you may return a scalar suitable for your type.
-        The scalar need not be an instance or subclass of your array type.
+        For a boolean mask, return an instance of ``ExtensionArray``, filtered
+        to the values where ``item`` is True.
         """
 
     def __setitem__(self, key, value):
@@ -159,23 +166,6 @@ class ExtensionArray(object):
         """
         return True
 
-    def _slice(self, slicer):
-        # type: (Union[tuple, Sequence, int]) -> 'ExtensionArray'
-        """Return a new array sliced by `slicer`.
-
-        Parameters
-        ----------
-        slicer : slice or np.ndarray
-            If an array, it should just be a boolean mask
-
-        Returns
-        -------
-        array : ExtensionArray
-            Should return an ExtensionArray, even if ``self[slicer]``
-            would return a scalar.
-        """
-        return type(self)(self[slicer])
-
     def value_counts(self, dropna=True):
         """Optional method for computing the histogram of the counts.
 
@@ -190,5 +180,5 @@ class ExtensionArray(object):
         """
         from pandas.core.algorithms import value_counts
         mask = ~np.asarray(self.isna())
-        values = self[mask]  # XXX: this imposes boolean indexing
+        values = self[mask]
         return value_counts(np.asarray(values), dropna=dropna)

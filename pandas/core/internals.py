@@ -1932,7 +1932,7 @@ class ExtensionBlock(NonConsolidatableMixIn, Block):
                                      "categorical")
             slicer = slicer[1]
 
-        return self.values._slice(slicer)
+        return self.values[slicer]
 
     def formatting_values(self):
         return self.values._formatting_values()
