@@ -31,15 +31,15 @@ class TestTimedeltaIndexComparisons(object):
         # GH 13624
         tdi = TimedeltaIndex(['1 day', '2 days'])
 
-        for l, r in [(tdi, 'a'), ('a', tdi)]:
+        for left, right in [(tdi, 'a'), ('a', tdi)]:
             with pytest.raises(TypeError):
-                l > r
+                left > right
 
             with pytest.raises(TypeError):
-                l == r
+                left == right
 
             with pytest.raises(TypeError):
-                l != r
+                left != right
 
     def test_comparisons_coverage(self):
         rng = timedelta_range('1 days', periods=10)
