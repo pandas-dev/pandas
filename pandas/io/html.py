@@ -20,7 +20,6 @@ from pandas.io.parsers import TextParser
 from pandas.compat import (lrange, lmap, u, string_types, iteritems,
                            raise_with_traceback, binary_type)
 from pandas import Series
-
 import pandas.core.common as com
 from pandas.io.formats.printing import pprint_thing
 

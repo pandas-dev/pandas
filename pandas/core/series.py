@@ -42,8 +42,7 @@ from pandas.core.dtypes.missing import isna, notna, remove_na_arraylike
 from pandas.core.index import (Index, MultiIndex, InvalidIndexError,
                                Float64Index, _ensure_index)
 from pandas.core.indexing import check_bool_indexer, maybe_convert_indices
-
-from pandas.core import generic, base, algorithms, ops, nanops
+from pandas.core import generic, base
 from pandas.core.internals import SingleBlockManager
 from pandas.core.arrays.categorical import Categorical, CategoricalAccessor
 from pandas.core.indexes.accessors import CombinedDatetimelikeProperties
@@ -56,9 +55,11 @@ from pandas.compat import (
     zip, u, OrderedDict, StringIO, range, get_range_parameters)
 from pandas.compat.numpy import function as nv
 
+import pandas.core.ops as ops
+import pandas.core.algorithms as algorithms
 
 import pandas.core.common as com
-
+import pandas.core.nanops as nanops
 import pandas.io.formats.format as fmt
 from pandas.util._decorators import (
     Appender, deprecate, deprecate_kwarg, Substitution)

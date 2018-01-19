@@ -8,9 +8,7 @@ from collections import OrderedDict
 
 import pytest
 from pandas.compat import intern
-
 import pandas.core.common as com
-
 from pandas.util._move import move_into_mutable_buffer, BadMove, stolenbuf
 from pandas.util._decorators import deprecate_kwarg, make_signature
 from pandas.util._validators import (validate_args, validate_kwargs,

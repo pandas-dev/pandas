@@ -9,7 +9,6 @@ from contextlib import contextmanager, closing
 from pandas.compat import StringIO, BytesIO, string_types, text_type
 from pandas import compat
 from pandas.io.formats.printing import pprint_thing
-
 import pandas.core.common as com
 from pandas.core.dtypes.common import is_number, is_file_like
 

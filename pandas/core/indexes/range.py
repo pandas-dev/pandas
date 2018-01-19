@@ -10,12 +10,11 @@ from pandas.core.dtypes.common import (
     is_int64_dtype)
 from pandas.core.dtypes.generic import ABCSeries
 
-import pandas.core.common as com
-
 from pandas import compat
 from pandas.compat import lrange, range, get_range_parameters
 from pandas.compat.numpy import function as nv
 
+import pandas.core.common as com
 from pandas.core.indexes.base import Index, _index_shared_docs
 from pandas.util._decorators import Appender, cache_readonly
 import pandas.core.dtypes.concat as _concat

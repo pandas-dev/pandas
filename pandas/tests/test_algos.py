@@ -18,7 +18,6 @@ from pandas._libs.hashtable import unique_label_indices
 from pandas.compat import lrange, range
 import pandas.core.algorithms as algos
 import pandas.core.common as com
-
 import pandas.util.testing as tm
 import pandas.util._test_decorators as td
 from pandas.core.dtypes.dtypes import CategoricalDtype as CDT

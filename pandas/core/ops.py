@@ -21,7 +21,6 @@ import pandas.core.missing as missing
 import pandas.core.common as com
 
 from pandas.errors import NullFrequencyError
-
 from pandas.core.dtypes.missing import notna, isna
 from pandas.core.dtypes.common import (
     needs_i8_conversion,

@@ -8,7 +8,6 @@ import warnings
 import pandas._libs.json as json
 from pandas import DataFrame
 from pandas.api.types import CategoricalDtype
-
 import pandas.core.common as com
 from pandas.core.dtypes.common import (
     is_integer_dtype, is_timedelta64_dtype, is_numeric_dtype,

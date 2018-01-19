@@ -10,7 +10,6 @@ import warnings
 import numpy as np
 
 import pandas.core.common as com
-
 from pandas.core.computation.check import _NUMEXPR_INSTALLED
 from pandas.core.config import get_option
 

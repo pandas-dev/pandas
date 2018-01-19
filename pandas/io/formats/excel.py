@@ -10,9 +10,7 @@ import numpy as np
 from pandas.compat import reduce
 from pandas.io.formats.css import CSSResolver, CSSWarning
 from pandas.io.formats.printing import pprint_thing
-
 import pandas.core.common as com
-
 from pandas.core.dtypes.common import is_float, is_scalar
 from pandas.core.dtypes import missing
 from pandas import Index, MultiIndex, PeriodIndex

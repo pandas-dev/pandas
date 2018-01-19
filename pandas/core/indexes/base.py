@@ -43,7 +43,6 @@ from pandas.core.dtypes.common import (
     is_scalar)
 
 from pandas.core.base import PandasObject, IndexOpsMixin
-
 import pandas.core.common as com
 import pandas.core.base as base
 from pandas.util._decorators import (

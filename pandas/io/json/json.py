@@ -12,7 +12,6 @@ from pandas.io.common import (get_filepath_or_buffer, _get_handle,
                               _infer_compression, _stringify_path,
                               BaseIterator)
 from pandas.io.parsers import _validate_integer
-
 import pandas.core.common as com
 from pandas.core.reshape.concat import concat
 from pandas.io.formats.printing import pprint_thing

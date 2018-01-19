@@ -6,9 +6,7 @@ from pandas import (
     Interval, IntervalIndex, Index, isna, notna, interval_range, Timestamp,
     Timedelta, date_range, timedelta_range, Categorical)
 from pandas.compat import lzip
-
 import pandas.core.common as com
-
 from pandas.tests.indexes.common import Base
 import pandas.util.testing as tm
 import pandas as pd

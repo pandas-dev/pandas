@@ -5,7 +5,6 @@ import pandas.util.testing as tm
 
 from pandas import read_csv, read_table, DataFrame
 import pandas.core.common as com
-
 from pandas._libs.lib import Timestamp
 from pandas.compat import StringIO
 

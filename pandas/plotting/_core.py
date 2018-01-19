@@ -10,7 +10,6 @@ from distutils.version import LooseVersion
 import numpy as np
 
 from pandas.util._decorators import cache_readonly
-
 import pandas.core.common as com
 from pandas.core.base import PandasObject
 from pandas.core.config import get_option

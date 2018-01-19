@@ -13,7 +13,6 @@ from pandas.core.dtypes.common import (
 from pandas import compat
 from pandas.core import algorithms
 import pandas.core.common as com
-
 from pandas.core.indexes.base import (
     Index, InvalidIndexError, _index_shared_docs)
 from pandas.util._decorators import Appender, cache_readonly

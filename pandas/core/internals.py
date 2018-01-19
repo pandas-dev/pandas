@@ -56,7 +56,6 @@ from pandas.core.dtypes.missing import (
 import pandas.core.dtypes.concat as _concat
 
 from pandas.core.dtypes.generic import ABCSeries, ABCDatetimeIndex
-
 import pandas.core.common as com
 import pandas.core.algorithms as algos
 

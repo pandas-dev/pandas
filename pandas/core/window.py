@@ -33,7 +33,6 @@ from pandas.core.dtypes.common import (
 from pandas.core.base import (PandasObject, SelectionMixin,
                               GroupByMixin)
 import pandas.core.common as com
-
 import pandas._libs.window as _window
 
 from pandas import compat

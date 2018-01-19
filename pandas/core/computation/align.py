@@ -10,9 +10,7 @@ import numpy as np
 import pandas as pd
 from pandas import compat
 from pandas.errors import PerformanceWarning
-
 import pandas.core.common as com
-
 from pandas.core.computation.common import _result_type_many
 
 

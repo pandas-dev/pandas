@@ -31,7 +31,6 @@ from pandas.core.frame import DataFrame
 from pandas.core.arrays import Categorical
 from pandas.core import algorithms
 import pandas.core.common as com
-
 from pandas.io.date_converters import generic_parser
 from pandas.errors import ParserWarning, ParserError, EmptyDataError
 from pandas.io.common import (get_filepath_or_buffer, is_file_like,
