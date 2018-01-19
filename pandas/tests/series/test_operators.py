@@ -1108,7 +1108,7 @@ class TestTimedeltaSeriesArithmetic(object):
         # check that we are getting a TypeError
         # with 'operate' (from core/ops.py) for the ops that are not
         # defined
-        pattern = 'operate|unsupported|cannot'
+        pattern = 'operate|unsupported|cannot|not supported'
         with tm.assert_raises_regex(TypeError, pattern):
             td1 * scalar_td
         with tm.assert_raises_regex(TypeError, pattern):
