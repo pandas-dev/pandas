@@ -6,9 +6,9 @@ from pandas.compat import range, lrange
 import numpy as np
 from pandas.compat import PY36
 
-from pandas import DataFrame, Series, Index, MultiIndex, SparseSeries
+from pandas import DataFrame, Series, Index, MultiIndex
 
-from pandas.util.testing import assert_frame_equal, assert_series_equal
+from pandas.util.testing import assert_frame_equal
 
 import pandas.util.testing as tm
 
