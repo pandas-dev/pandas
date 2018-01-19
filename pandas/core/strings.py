@@ -12,8 +12,8 @@ from pandas.core.dtypes.common import (
     is_scalar,
     is_integer,
     is_re)
-from pandas.core.common import _values_from_object
 
+import pandas.core.common as com
 from pandas.core.algorithms import take_1d
 import pandas.compat as compat
 from pandas.core.base import NoNewAttributesMixin
@@ -37,7 +37,7 @@ _shared_docs = dict()
 def _get_array_list(arr, others):
     from pandas.core.series import Series
 
-    if len(others) and isinstance(_values_from_object(others)[0],
+    if len(others) and isinstance(com._values_from_object(others)[0],
                                   (list, np.ndarray, Series)):
         arrays = [arr] + list(others)
     else:
@@ -461,7 +461,7 @@ def str_repeat(arr, repeats):
                 return compat.text_type.__mul__(x, r)
 
         repeats = np.asarray(repeats, dtype=object)
-        result = lib.vec_binop(_values_from_object(arr), repeats, rep)
+        result = lib.vec_binop(com._values_from_object(arr), repeats, rep)
         return result
 
 

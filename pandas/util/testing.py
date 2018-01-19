@@ -32,7 +32,7 @@ from pandas.core.dtypes.common import (
     is_list_like)
 from pandas.io.formats.printing import pprint_thing
 from pandas.core.algorithms import take_1d
-from pandas.core.common import _all_not_none
+import pandas.core.common as com
 
 import pandas.compat as compat
 from pandas.compat import (
@@ -484,7 +484,7 @@ def set_locale(new_locale, lc_var=locale.LC_ALL):
         except ValueError:
             yield new_locale
         else:
-            if _all_not_none(*normalized_locale):
+            if com._all_not_none(*normalized_locale):
                 yield '.'.join(normalized_locale)
             else:
                 yield new_locale

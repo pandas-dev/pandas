@@ -1941,30 +1941,28 @@ class DataFrame(NDFrame):
 
     # legacy pickle formats
     def _unpickle_frame_compat(self, state):  # pragma: no cover
-        from pandas.core.common import _unpickle_array
         if len(state) == 2:  # pragma: no cover
             series, idx = state
             columns = sorted(series)
         else:
             series, cols, idx = state
-            columns = _unpickle_array(cols)
+            columns = com._unpickle_array(cols)
 
-        index = _unpickle_array(idx)
+        index = com._unpickle_array(idx)
         self._data = self._init_dict(series, index, columns, None)
 
     def _unpickle_matrix_compat(self, state):  # pragma: no cover
-        from pandas.core.common import _unpickle_array
         # old unpickling
         (vals, idx, cols), object_state = state
 
-        index = _unpickle_array(idx)
-        dm = DataFrame(vals, index=index, columns=_unpickle_array(cols),
+        index = com._unpickle_array(idx)
+        dm = DataFrame(vals, index=index, columns=com._unpickle_array(cols),
                        copy=False)
 
         if object_state is not None:
             ovals, _, ocols = object_state
             objects = DataFrame(ovals, index=index,
-                                columns=_unpickle_array(ocols), copy=False)
+                                columns=com._unpickle_array(ocols), copy=False)
 
             dm = dm.join(objects)
 

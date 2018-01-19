@@ -8,7 +8,8 @@ import warnings
 import pandas._libs.json as json
 from pandas import DataFrame
 from pandas.api.types import CategoricalDtype
-from pandas.core.common import _all_not_none
+
+import pandas.core.common as com
 from pandas.core.dtypes.common import (
     is_integer_dtype, is_timedelta64_dtype, is_numeric_dtype,
     is_bool_dtype, is_datetime64_dtype, is_datetime64tz_dtype,
@@ -69,7 +70,7 @@ def as_json_table_type(x):
 
 def set_default_names(data):
     """Sets index names to 'index' for regular, or 'level_x' for Multi"""
-    if _all_not_none(*data.index.names):
+    if com._all_not_none(*data.index.names):
         nms = data.index.names
         if len(nms) == 1 and data.index.name == 'index':
             warnings.warn("Index name of 'index' is not round-trippable")

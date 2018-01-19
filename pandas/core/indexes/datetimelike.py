@@ -34,7 +34,7 @@ import pandas.core.dtypes.concat as _concat
 
 from pandas.core import common as com, algorithms
 from pandas.core.algorithms import checked_add_with_arr
-from pandas.core.common import AbstractMethodError
+
 from pandas.errors import NullFrequencyError
 
 import pandas.io.formats.printing as printing
@@ -247,7 +247,7 @@ class DatetimeIndexOpsMixin(object):
         """
         box function to get object from internal representation
         """
-        raise AbstractMethodError(self)
+        raise com.AbstractMethodError(self)
 
     def _box_values(self, values):
         """
@@ -591,7 +591,7 @@ class DatetimeIndexOpsMixin(object):
 
     @property
     def _formatter_func(self):
-        raise AbstractMethodError(self)
+        raise com.AbstractMethodError(self)
 
     def _format_attrs(self):
         """
@@ -649,7 +649,7 @@ class DatetimeIndexOpsMixin(object):
                                 type(other).__name__))
 
     def _sub_datelike(self, other):
-        raise AbstractMethodError(self)
+        raise com.AbstractMethodError(self)
 
     def _sub_period(self, other):
         return NotImplemented

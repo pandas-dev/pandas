@@ -30,8 +30,6 @@ from pandas.core.dtypes.cast import maybe_promote, maybe_upcast_putmask
 from pandas.core.dtypes.inference import is_hashable
 from pandas.core.dtypes.missing import isna, notna
 from pandas.core.dtypes.generic import ABCSeries, ABCPanel, ABCDataFrame
-from pandas.core.common import (AbstractMethodError, SettingWithCopyError,
-                                SettingWithCopyWarning)
 
 from pandas.core.base import PandasObject, SelectionMixin
 from pandas.core.index import (Index, MultiIndex, _ensure_index,
@@ -196,7 +194,7 @@ class NDFrame(PandasObject, SelectionMixin):
         """Used when a manipulation result has the same dimensions as the
         original.
         """
-        raise AbstractMethodError(self)
+        raise com.AbstractMethodError(self)
 
     def __unicode__(self):
         # unicode representation based upon iterating over self
@@ -218,7 +216,7 @@ class NDFrame(PandasObject, SelectionMixin):
         """Used when a manipulation result has one lower dimension(s) as the
         original, such as DataFrame single columns slicing.
         """
-        raise AbstractMethodError(self)
+        raise com.AbstractMethodError(self)
 
     @property
     def _constructor_expanddim(self):
@@ -2202,7 +2200,7 @@ class NDFrame(PandasObject, SelectionMixin):
         return lower
 
     def _box_item_values(self, key, values):
-        raise AbstractMethodError(self)
+        raise com.AbstractMethodError(self)
 
     def _maybe_cache_changed(self, item, value):
         """The object has called back to us saying maybe it has changed.
@@ -2395,9 +2393,10 @@ class NDFrame(PandasObject, SelectionMixin):
                      )
 
             if value == 'raise':
-                raise SettingWithCopyError(t)
+                raise com.SettingWithCopyError(t)
             elif value == 'warn':
-                warnings.warn(t, SettingWithCopyWarning, stacklevel=stacklevel)
+                warnings.warn(t, com.SettingWithCopyWarning,
+                              stacklevel=stacklevel)
 
     def __delitem__(self, key):
         """
@@ -6355,7 +6354,8 @@ class NDFrame(PandasObject, SelectionMixin):
                         if try_quick:
 
                             try:
-                                new_other = com._values_from_object(self).copy()
+                                new_other = com._values_from_object(self)
+                                new_other = new_other.copy()
                                 new_other[icond] = other
                                 other = new_other
                             except Exception:

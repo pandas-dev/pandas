@@ -9,10 +9,11 @@ from pandas.core.dtypes.common import (
     is_bool,
     is_bool_dtype,
     is_scalar)
-from pandas.core.common import _asarray_tuplesafe, _values_from_object
 
 from pandas import compat
 from pandas.core import algorithms
+import pandas.core.common as com
+
 from pandas.core.indexes.base import (
     Index, InvalidIndexError, _index_shared_docs)
 from pandas.util._decorators import Appender, cache_readonly
@@ -251,9 +252,9 @@ class UInt64Index(NumericIndex):
         # Cast the indexer to uint64 if possible so
         # that the values returned from indexing are
         # also uint64.
-        keyarr = _asarray_tuplesafe(keyarr)
+        keyarr = com._asarray_tuplesafe(keyarr)
         if is_integer_dtype(keyarr):
-            return _asarray_tuplesafe(keyarr, dtype=np.uint64)
+            return com._asarray_tuplesafe(keyarr, dtype=np.uint64)
         return keyarr
 
     @Appender(_index_shared_docs['_convert_index_indexer'])
@@ -357,9 +358,9 @@ class Float64Index(NumericIndex):
         if not is_scalar(key):
             raise InvalidIndexError
 
-        k = _values_from_object(key)
+        k = com._values_from_object(key)
         loc = self.get_loc(k)
-        new_values = _values_from_object(series)[loc]
+        new_values = com._values_from_object(series)[loc]
 
         return new_values
 

@@ -34,7 +34,7 @@ from pandas.core.dtypes.missing import isna
 
 import pandas.core.dtypes.concat as _concat
 from pandas.errors import PerformanceWarning
-from pandas.core.common import _values_from_object, _maybe_box
+
 from pandas.core.algorithms import checked_add_with_arr
 
 from pandas.core.indexes.base import Index, _index_shared_docs
@@ -126,7 +126,7 @@ def _dt_index_cmp(opname, cls, nat_result=False):
                 self._assert_tzawareness_compat(other)
 
             result = func(np.asarray(other))
-            result = _values_from_object(result)
+            result = com._values_from_object(result)
 
             if isinstance(other, Index):
                 o_mask = other.values.view('i8') == libts.iNaT
@@ -1488,8 +1488,8 @@ class DatetimeIndex(DatelikeOps, TimelikeOps, DatetimeIndexOpsMixin,
             return series.take(locs)
 
         try:
-            return _maybe_box(self, Index.get_value(self, series, key),
-                              series, key)
+            return com._maybe_box(self, Index.get_value(self, series, key),
+                                  series, key)
         except KeyError:
             try:
                 loc = self._get_string_slice(key)
@@ -1508,9 +1508,9 @@ class DatetimeIndex(DatelikeOps, TimelikeOps, DatetimeIndexOpsMixin,
             key = Timestamp(key, tz=self.tz)
         elif not isinstance(key, Timestamp):
             key = Timestamp(key)
-        values = self._engine.get_value(_values_from_object(series),
+        values = self._engine.get_value(com._values_from_object(series),
                                         key, tz=self.tz)
-        return _maybe_box(self, values, series, key)
+        return com._maybe_box(self, values, series, key)
 
     def get_loc(self, key, method=None, tolerance=None):
         """
