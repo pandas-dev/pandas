@@ -55,7 +55,7 @@ from pandas.core.dtypes.common import (
     is_bool_dtype, is_object_dtype,
     is_datetime64_dtype,
     pandas_dtype)
-from pandas.core.categorical import Categorical
+from pandas.core.arrays import Categorical
 from pandas.core.dtypes.concat import union_categoricals
 import pandas.io.common as com
 
@@ -288,7 +288,7 @@ cdef class TextReader:
         object file_handle, na_fvalues
         object true_values, false_values
         object handle
-        bint na_filter, verbose, has_usecols, has_mi_columns
+        bint na_filter, keep_default_na, verbose, has_usecols, has_mi_columns
         int64_t parser_start
         list clocks
         char *c_encoding
@@ -352,6 +352,8 @@ cdef class TextReader:
                   na_filter=True,
                   na_values=None,
                   na_fvalues=None,
+                  keep_default_na=True,
+
                   true_values=None,
                   false_values=None,
                   allow_leading_cols=True,
@@ -378,8 +380,8 @@ cdef class TextReader:
         self.parser = parser_new()
         self.parser.chunksize = tokenize_chunksize
 
-        self.mangle_dupe_cols=mangle_dupe_cols
-        self.tupleize_cols=tupleize_cols
+        self.mangle_dupe_cols = mangle_dupe_cols
+        self.tupleize_cols = tupleize_cols
 
         # For timekeeping
         self.clocks = []
@@ -477,6 +479,7 @@ cdef class TextReader:
         self.true_set = kset_from_list(self.true_values)
         self.false_set = kset_from_list(self.false_values)
 
+        self.keep_default_na = keep_default_na
         self.converters = converters
         self.na_filter = na_filter
 
@@ -1299,7 +1302,10 @@ cdef class TextReader:
             elif i in self.na_values:
                 key = i
             else:  # No na_values provided for this column.
-                return _NA_VALUES, set()
+                if self.keep_default_na:
+                    return _NA_VALUES, set()
+
+                return list(), set()
 
             values = self.na_values[key]
             if values is not None and not isinstance(values, list):

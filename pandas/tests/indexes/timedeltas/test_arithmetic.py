@@ -152,11 +152,12 @@ class TestTimedeltaIndexArithmetic(object):
         tm.assert_index_equal(result, didx)
 
         result = idx * Series(np.arange(5, dtype='int64'))
-        tm.assert_index_equal(result, didx)
+        tm.assert_series_equal(result, Series(didx))
 
-        result = idx * Series(np.arange(5, dtype='float64') + 0.1)
-        tm.assert_index_equal(result, self._holder(np.arange(
-            5, dtype='float64') * (np.arange(5, dtype='float64') + 0.1)))
+        rng5 = np.arange(5, dtype='float64')
+        result = idx * Series(rng5 + 0.1)
+        tm.assert_series_equal(result,
+                               Series(self._holder(rng5 * (rng5 + 0.1))))
 
         # invalid
         pytest.raises(TypeError, lambda: idx * idx)
@@ -651,14 +652,14 @@ class TestTimedeltaIndexArithmetic(object):
         actual = -timedelta_NaT + s1
         tm.assert_series_equal(actual, sn)
 
-        actual = s1 + NA
-        tm.assert_series_equal(actual, sn)
-        actual = NA + s1
-        tm.assert_series_equal(actual, sn)
-        actual = s1 - NA
-        tm.assert_series_equal(actual, sn)
-        actual = -NA + s1
-        tm.assert_series_equal(actual, sn)
+        with pytest.raises(TypeError):
+            s1 + np.nan
+        with pytest.raises(TypeError):
+            np.nan + s1
+        with pytest.raises(TypeError):
+            s1 - np.nan
+        with pytest.raises(TypeError):
+            -np.nan + s1
 
         actual = s1 + pd.NaT
         tm.assert_series_equal(actual, sn)

@@ -11,6 +11,8 @@ import pandas.util.testing as tm
 import pandas.util._test_decorators as td
 from pandas._libs.tslib import iNaT
 from pandas.compat import lrange, StringIO, product
+from pandas.errors import NullFrequencyError
+
 from pandas.core.indexes.timedeltas import TimedeltaIndex
 from pandas.core.indexes.datetimes import DatetimeIndex
 from pandas.tseries.offsets import BDay, BMonthEnd
@@ -123,7 +125,7 @@ class TestTimeSeries(TestData):
         tm.assert_index_equal(result.index, exp_index)
 
         idx = DatetimeIndex(['2000-01-01', '2000-01-02', '2000-01-04'])
-        pytest.raises(ValueError, idx.shift, 1)
+        pytest.raises(NullFrequencyError, idx.shift, 1)
 
     def test_shift_dst(self):
         # GH 13926

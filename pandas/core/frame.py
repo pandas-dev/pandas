@@ -77,7 +77,7 @@ from pandas.core.internals import (BlockManager,
                                    create_block_manager_from_arrays,
                                    create_block_manager_from_blocks)
 from pandas.core.series import Series
-from pandas.core.categorical import Categorical
+from pandas.core.arrays import Categorical
 import pandas.core.algorithms as algorithms
 from pandas.compat import (range, map, zip, lrange, lmap, lzip, StringIO, u,
                            OrderedDict, raise_with_traceback)
@@ -250,7 +250,7 @@ class DataFrame(NDFrame):
     """ Two-dimensional size-mutable, potentially heterogeneous tabular data
     structure with labeled axes (rows and columns). Arithmetic operations
     align on both row and column labels. Can be thought of as a dict-like
-    container for Series objects. The primary pandas data structure
+    container for Series objects. The primary pandas data structure.
 
     Parameters
     ----------
