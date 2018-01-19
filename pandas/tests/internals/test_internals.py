@@ -1253,3 +1253,11 @@ class TestCanHoldElement(object):
         result = op(s, e).dtypes
         expected = op(s, value).dtypes
         assert_series_equal(result, expected)
+
+
+def test_deprecated_fastpath():
+    # GH#19265
+    values = np.random.rand(3, 3)
+    with tm.assert_produces_warning(DeprecationWarning,
+                                    check_stacklevel=False):
+        make_block(values, placement=np.arange(3), fastpath=True)
