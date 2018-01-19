@@ -1107,7 +1107,7 @@ class Block(PandasObject):
         # a fill na type method
         try:
             m = missing.clean_fill_method(method)
-        except:
+        except ValueError:
             m = None
 
         if m is not None:
@@ -1122,7 +1122,7 @@ class Block(PandasObject):
         # try an interp method
         try:
             m = missing.clean_interp_method(method, **kwargs)
-        except:
+        except ValueError:
             m = None
 
         if m is not None:
@@ -1181,24 +1181,9 @@ class Block(PandasObject):
         if fill_value is None:
             fill_value = self.fill_value
 
-        if method in ('krogh', 'piecewise_polynomial', 'pchip'):
-            if not index.is_monotonic:
-                raise ValueError("{0} interpolation requires that the "
-                                 "index be monotonic.".format(method))
-        # process 1-d slices in the axis direction
-
-        def func(x):
-
-            # process a 1-d slice, returning it
-            # should the axis argument be handled below in apply_along_axis?
-            # i.e. not an arg to missing.interpolate_1d
-            return missing.interpolate_1d(index, x, method=method, limit=limit,
-                                          limit_direction=limit_direction,
-                                          fill_value=fill_value,
-                                          bounds_error=False, **kwargs)
-
-        # interp each column independently
-        interp_values = np.apply_along_axis(func, axis, data)
+        interp_values = _interpolate_values(method, data, index, axis,
+                                            limit, limit_direction,
+                                            fill_value, **kwargs)
 
         blocks = [self.make_block_same_class(interp_values)]
         return self._maybe_downcast(blocks, downcast)
@@ -2590,6 +2575,32 @@ class DatetimeBlock(DatetimeLikeBlockMixin, Block):
 
         self.values[locs] = values
 
+    def _interpolate(self, method=None, index=None, values=None,
+                     fill_value=None, axis=0, limit=None,
+                     limit_direction='forward', inplace=False, downcast=None,
+                     mgr=None, **kwargs):
+        """ interpolate using scipy wrappers, adapted to datetime64 values"""
+
+        inplace = validate_bool_kwarg(inplace, 'inplace')
+        data = self.values if inplace else self.values.copy()
+
+        # only deal with floats
+        mask = isna(self.values)
+        data = data.astype(np.float64)
+        data[mask] = np.nan
+
+        if fill_value is None:
+            fill_value = self.fill_value
+
+        interp_values = _interpolate_values(method, data, index, axis,
+                                            limit, limit_direction,
+                                            fill_value, **kwargs)
+        interp_values = interp_values.astype(self.dtype)
+
+        blocks = [self.make_block(interp_values, klass=self.__class__,
+                                  fastpath=True)]
+        return self._maybe_downcast(blocks, downcast)
+
 
 class DatetimeTZBlock(NonConsolidatableMixIn, DatetimeBlock):
     """ implement a datetime64 block with a tz attribute """
@@ -2743,6 +2754,43 @@ class DatetimeTZBlock(NonConsolidatableMixIn, DatetimeBlock):
         # not using self.make_block_same_class as values can be non-tz dtype
         return make_block(
             values, placement=placement or slice(0, len(values), 1))
+
+    def _interpolate(self, method=None, index=None, values=None,
+                     fill_value=None, axis=0, limit=None,
+                     limit_direction='forward', inplace=False, downcast=None,
+                     mgr=None, **kwargs):
+        """ interpolate using scipy wrappers, adapted to datetime64 values"""
+
+        inplace = validate_bool_kwarg(inplace, 'inplace')
+        data = self.values if inplace else self.values.copy()
+
+        # only deal with floats
+        mask = isna(self.values)
+
+        # Convert to UTC for interpolation
+        data = data.tz_convert('UTC').values
+
+        # data is 1D because it comes from a DatetimeIndex, but we need ndim
+        # to match self.ndim
+        data = data.reshape(self.shape)
+        mask = mask.reshape(self.shape)
+        data = data.astype(np.float64)
+        data[mask] = np.nan
+
+        if fill_value is None:
+            fill_value = self.fill_value
+
+        interp_values = _interpolate_values(method, data, index, axis,
+                                            limit, limit_direction,
+                                            fill_value, **kwargs)
+
+        interp_values = interp_values.squeeze()
+        utc_values = self._holder(interp_values, tz='UTC')
+        interp_values = utc_values.tz_convert(self.values.tz)
+
+        blocks = [self.make_block(interp_values, klass=self.__class__,
+                                  fastpath=True)]
+        return self._maybe_downcast(blocks, downcast)
 
 
 class SparseBlock(NonConsolidatableMixIn, Block):
@@ -5662,3 +5710,26 @@ def _preprocess_slice_or_indexer(slice_or_indexer, length, allow_fill):
         if not allow_fill:
             indexer = maybe_convert_indices(indexer, length)
         return 'fancy', indexer, len(indexer)
+
+
+def _interpolate_values(method, data, index, axis, limit, limit_direction,
+                        fill_value, **kwargs):
+    """interpolate using scipy wrappers"""
+    if method in ('krogh', 'piecewise_polynomial', 'pchip'):
+        if not index.is_monotonic:
+            raise ValueError("{0} interpolation requires that the "
+                             "index be monotonic.".format(method))
+    # process 1-d slices in the axis direction
+
+    def func(x):
+        # process a 1-d slice, returning it
+        # should the axis argument be handled below in apply_along_axis?
+        # i.e. not an arg to missing.interpolate_1d
+        return missing.interpolate_1d(index, x, method=method, limit=limit,
+                                      limit_direction=limit_direction,
+                                      fill_value=fill_value,
+                                      bounds_error=False, **kwargs)
+
+    # interp each column independently
+    interp_values = np.apply_along_axis(func, axis, data)
+    return interp_values
