@@ -29,20 +29,21 @@ def full_like(array, value):
 class Numeric(Base):
 
     def test_numeric_compat(self):
+        pass  # override Base method
 
+    def test_mul_int(self):
         idx = self.create_index()
-        didx = idx * idx
-
         result = idx * 1
         tm.assert_index_equal(result, idx)
+
+    def test_rmul_int(self):
+        idx = self.create_index()
 
         result = 1 * idx
         tm.assert_index_equal(result, idx)
 
-        # in general not true for RangeIndex
-        if not isinstance(idx, RangeIndex):
-            result = idx * idx
-            tm.assert_index_equal(result, idx ** 2)
+    def test_div_int(self):
+        idx = self.create_index()
 
         # truediv under PY3
         result = idx / 1
@@ -57,8 +58,15 @@ class Numeric(Base):
         expected = Index(idx.values / 2)
         tm.assert_index_equal(result, expected)
 
+    def test_floordiv_int(self):
+        idx = self.create_index()
+
         result = idx // 1
         tm.assert_index_equal(result, idx)
+
+    def test_mul_int_array(self):
+        idx = self.create_index()
+        didx = idx * idx
 
         result = idx * np.array(5, dtype='int64')
         tm.assert_index_equal(result, idx * 5)
@@ -67,19 +75,45 @@ class Numeric(Base):
         result = idx * np.arange(5, dtype=arr_dtype)
         tm.assert_index_equal(result, didx)
 
+    def test_mul_int_series(self):
+        idx = self.create_index()
+        didx = idx * idx
+
+        arr_dtype = 'uint64' if isinstance(idx, UInt64Index) else 'int64'
         result = idx * Series(np.arange(5, dtype=arr_dtype))
-        tm.assert_series_equal(result, Series(didx))
+        tm.assert_index_equal(result, didx)
 
+    def test_mul_float_series(self):
+        idx = self.create_index()
         rng5 = np.arange(5, dtype='float64')
-        result = idx * Series(rng5 + 0.1)
-        expected = Series(rng5 * (rng5 + 0.1))
-        tm.assert_series_equal(result, expected)
 
-        # invalid
-        pytest.raises(TypeError,
-                      lambda: idx * date_range('20130101', periods=5))
-        pytest.raises(ValueError, lambda: idx * idx[0:3])
-        pytest.raises(ValueError, lambda: idx * np.array([1, 2]))
+        result = idx * Series(rng5 + 0.1)
+        expected = Float64Index(rng5 * (rng5 + 0.1))
+        tm.assert_index_equal(result, expected)
+
+    def test_mul_index(self):
+        idx = self.create_index()
+
+        # in general not true for RangeIndex
+        if not isinstance(idx, RangeIndex):
+            result = idx * idx
+            tm.assert_index_equal(result, idx ** 2)
+
+    def test_mul_datelike_raises(self):
+        idx = self.create_index()
+        with pytest.raises(TypeError):
+            idx * date_range('20130101', periods=5)
+
+    def test_mul_size_mismatch_raises(self):
+        idx = self.create_index()
+
+        with pytest.raises(ValueError):
+            idx * idx[0:3]
+        with pytest.raises(ValueError):
+            idx * np.array([1, 2])
+
+    def test_divmod(self):
+        idx = self.create_index()
 
         result = divmod(idx, 2)
         with np.errstate(all='ignore'):
@@ -95,13 +129,27 @@ class Numeric(Base):
         for r, e in zip(result, expected):
             tm.assert_index_equal(r, e)
 
+        result = divmod(idx, Series(full_like(idx.values, 2)))
+        with np.errstate(all='ignore'):
+            div, mod = divmod(idx.values, full_like(idx.values, 2))
+            expected = Index(div), Index(mod)
+        for r, e in zip(result, expected):
+            tm.assert_index_equal(r, e)
+
+    def test_pow_float(self):
         # test power calculations both ways, GH 14973
-        expected = pd.Float64Index(2.0**idx.values)
-        result = 2.0**idx
-        tm.assert_index_equal(result, expected)
+        idx = self.create_index()
 
         expected = pd.Float64Index(idx.values**2.0)
         result = idx**2.0
+        tm.assert_index_equal(result, expected)
+
+    def test_rpow_float(self):
+        # test power calculations both ways, GH 14973
+        idx = self.create_index()
+
+        expected = pd.Float64Index(2.0**idx.values)
+        result = 2.0**idx
         tm.assert_index_equal(result, expected)
 
     @pytest.mark.xfail(reason='GH#19252 Series has no __rdivmod__')
