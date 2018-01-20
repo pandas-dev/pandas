@@ -5,7 +5,7 @@ import warnings
 from sys import getsizeof
 
 import numpy as np
-from pandas._libs import index as libindex, lib, Timestamp
+from pandas._libs import algos as libalgos, index as libindex, lib, Timestamp
 
 from pandas.compat import range, zip, lrange, lzip, map
 from pandas.compat.numpy import function as nv
@@ -1137,7 +1137,7 @@ class MultiIndex(Index):
 
         int64_labels = [_ensure_int64(lab) for lab in self.labels]
         for k in range(self.nlevels, 0, -1):
-            if lib.is_lexsorted(int64_labels[:k]):
+            if libalgos.is_lexsorted(int64_labels[:k]):
                 return k
 
         return 0
@@ -1182,7 +1182,7 @@ class MultiIndex(Index):
             if len(arrays[i]) != len(arrays[i - 1]):
                 raise ValueError('all arrays must be same length')
 
-        from pandas.core.categorical import _factorize_from_iterables
+        from pandas.core.arrays.categorical import _factorize_from_iterables
 
         labels, levels = _factorize_from_iterables(arrays)
         if names is None:
@@ -1276,7 +1276,7 @@ class MultiIndex(Index):
         MultiIndex.from_arrays : Convert list of arrays to MultiIndex
         MultiIndex.from_tuples : Convert list of tuples to MultiIndex
         """
-        from pandas.core.categorical import _factorize_from_iterables
+        from pandas.core.arrays.categorical import _factorize_from_iterables
         from pandas.core.reshape.util import cartesian_product
 
         if not is_list_like(iterables):
@@ -1749,7 +1749,7 @@ class MultiIndex(Index):
         for sorting, where we need to disambiguate that -1 is not
         a valid valid
         """
-        from pandas.core.categorical import Categorical
+        from pandas.core.arrays import Categorical
 
         def cats(label):
             return np.arange(np.array(label).max() + 1 if len(label) else 0,
