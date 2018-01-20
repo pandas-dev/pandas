@@ -848,7 +848,8 @@ class TestMoments(Base):
              .rolling(window=3, center=True, axis=2).mean())
 
     def test_rolling_sum(self):
-        self._check_moment_func(np.sum, name='sum')
+        self._check_moment_func(np.nansum, name='sum',
+                                zero_min_periods_equal=False)
 
     def test_rolling_count(self):
         counter = lambda x: np.isfinite(x).astype(float).sum()
@@ -1149,14 +1150,21 @@ class TestMoments(Base):
             ser.rolling(3).quantile('foo')
 
     def test_rolling_apply(self):
-        ser = Series([])
-        tm.assert_series_equal(ser,
-                               ser.rolling(10).apply(lambda x: x.mean()))
+        # suppress warnings about empty slices, as we are deliberately testing
+        # with a 0-length Series
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore",
+                                    message=".*(empty slice|0 for slice).*",
+                                    category=RuntimeWarning)
 
-        def f(x):
-            return x[np.isfinite(x)].mean()
+            ser = Series([])
+            tm.assert_series_equal(ser,
+                                   ser.rolling(10).apply(lambda x: x.mean()))
 
-        self._check_moment_func(np.mean, name='apply', func=f)
+            def f(x):
+                return x[np.isfinite(x)].mean()
+
+            self._check_moment_func(np.mean, name='apply', func=f)
 
         # GH 8080
         s = Series([None, None, None])
@@ -1232,7 +1240,8 @@ class TestMoments(Base):
 
     def _check_moment_func(self, static_comp, name, has_min_periods=True,
                            has_center=True, has_time_rule=True,
-                           fill_value=None, **kwargs):
+                           fill_value=None, zero_min_periods_equal=True,
+                           **kwargs):
 
         def get_result(obj, window, min_periods=None, center=False):
             r = obj.rolling(window=window, min_periods=min_periods,
@@ -1240,10 +1249,16 @@ class TestMoments(Base):
             return getattr(r, name)(**kwargs)
 
         series_result = get_result(self.series, window=50)
-        frame_result = get_result(self.frame, window=50)
-
         assert isinstance(series_result, Series)
-        assert type(frame_result) == DataFrame
+        tm.assert_almost_equal(series_result.iloc[-1],
+                               static_comp(self.series[-50:]))
+
+        frame_result = get_result(self.frame, window=50)
+        assert isinstance(frame_result, DataFrame)
+        tm.assert_series_equal(frame_result.iloc[-1, :],
+                               self.frame.iloc[-50:, :].apply(static_comp,
+                                                              axis=0),
+                               check_names=False)
 
         # check time_rule works
         if has_time_rule:
@@ -1274,8 +1289,72 @@ class TestMoments(Base):
                                    trunc_frame.apply(static_comp),
                                    check_names=False)
 
-        # GH 7925
+        # excluding NaNs correctly
+        obj = Series(randn(50))
+        obj[:10] = np.NaN
+        obj[-10:] = np.NaN
+        if has_min_periods:
+            result = get_result(obj, 50, min_periods=30)
+            tm.assert_almost_equal(result.iloc[-1], static_comp(obj[10:-10]))
+
+            # min_periods is working correctly
+            result = get_result(obj, 20, min_periods=15)
+            assert isna(result.iloc[23])
+            assert not isna(result.iloc[24])
+
+            assert not isna(result.iloc[-6])
+            assert isna(result.iloc[-5])
+
+            obj2 = Series(randn(20))
+            result = get_result(obj2, 10, min_periods=5)
+            assert isna(result.iloc[3])
+            assert notna(result.iloc[4])
+
+            if zero_min_periods_equal:
+                # min_periods=0 may be equivalent to min_periods=1
+                result0 = get_result(obj, 20, min_periods=0)
+                result1 = get_result(obj, 20, min_periods=1)
+                tm.assert_almost_equal(result0, result1)
+        else:
+            result = get_result(obj, 50)
+            tm.assert_almost_equal(result.iloc[-1], static_comp(obj[10:-10]))
+
+        # window larger than series length (#7297)
+        if has_min_periods:
+            for minp in (0, len(self.series) - 1, len(self.series)):
+                result = get_result(self.series, len(self.series) + 1,
+                                    min_periods=minp)
+                expected = get_result(self.series, len(self.series),
+                                      min_periods=minp)
+                nan_mask = isna(result)
+                tm.assert_series_equal(nan_mask, isna(expected))
+
+                nan_mask = ~nan_mask
+                tm.assert_almost_equal(result[nan_mask],
+                                       expected[nan_mask])
+        else:
+            result = get_result(self.series, len(self.series) + 1)
+            expected = get_result(self.series, len(self.series))
+            nan_mask = isna(result)
+            tm.assert_series_equal(nan_mask, isna(expected))
+
+            nan_mask = ~nan_mask
+            tm.assert_almost_equal(result[nan_mask], expected[nan_mask])
+
+        # check center=True
         if has_center:
+            if has_min_periods:
+                result = get_result(obj, 20, min_periods=15, center=True)
+                expected = get_result(
+                    pd.concat([obj, Series([np.NaN] * 9)]), 20,
+                    min_periods=15)[9:].reset_index(drop=True)
+            else:
+                result = get_result(obj, 20, center=True)
+                expected = get_result(
+                    pd.concat([obj, Series([np.NaN] * 9)]),
+                    20)[9:].reset_index(drop=True)
+
+            tm.assert_series_equal(result, expected)
 
             # shifter index
             s = ['x%d' % x for x in range(12)]
