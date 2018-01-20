@@ -81,7 +81,7 @@ class Numeric(Base):
 
         arr_dtype = 'uint64' if isinstance(idx, UInt64Index) else 'int64'
         result = idx * Series(np.arange(5, dtype=arr_dtype))
-        tm.assert_index_equal(result, didx)
+        tm.assert_series_equal(result, Series(didx))
 
     def test_mul_float_series(self):
         idx = self.create_index()
@@ -123,13 +123,6 @@ class Numeric(Base):
             tm.assert_index_equal(r, e)
 
         result = divmod(idx, full_like(idx.values, 2))
-        with np.errstate(all='ignore'):
-            div, mod = divmod(idx.values, full_like(idx.values, 2))
-            expected = Index(div), Index(mod)
-        for r, e in zip(result, expected):
-            tm.assert_index_equal(r, e)
-
-        result = divmod(idx, Series(full_like(idx.values, 2)))
         with np.errstate(all='ignore'):
             div, mod = divmod(idx.values, full_like(idx.values, 2))
             expected = Index(div), Index(mod)
