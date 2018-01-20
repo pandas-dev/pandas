@@ -2612,7 +2612,7 @@ class SeriesPlotMethods(BasePlotMethods):
             The method used to calculate the estimator bandwidth.  This can be
             'scott', 'silverman', a scalar constant or a callable.
             If None (default), 'scott' is used.
-            See :scipy:class:`stats.gaussian_kde` for more information.
+            See :class:`scipy.stats.gaussian_kde` for more information.
         ind : NumPy array or integer, optional
             Evaluation points. If None (default), 1000 equally spaced points
             are used. If `ind` is a NumPy array, the kde is evaluated at the
@@ -2790,7 +2790,7 @@ class FramePlotMethods(BasePlotMethods):
             The method used to calculate the estimator bandwidth.  This can be
             'scott', 'silverman', a scalar constant or a callable.
             If None (default), 'scott' is used.
-            See :scipy:class:`stats.gaussian_kde` for more information.
+            See :class:`scipy.stats.gaussian_kde` for more information.
         ind : NumPy array or integer, optional
             Evaluation points. If None (default), 1000 equally spaced points
             are used. If `ind` is a NumPy array, the kde is evaluated at the
