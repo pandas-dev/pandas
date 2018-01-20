@@ -491,7 +491,7 @@ Groupby/Resample/Rolling
 Sparse
 ^^^^^^
 
-- Bug in :class:`SparseArray` where if a scalar and index are passed in it will coerce to float64 regardless of scalar's dtype. (:issue:`19163`)
+- Bug in constructing a :class:`SparseArray`: if `data` is a scalar and `index` is defined it will coerce to float64 regardless of scalar's dtype. (:issue:`19163`)
 -
 -
 
