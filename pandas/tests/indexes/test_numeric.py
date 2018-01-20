@@ -88,8 +88,8 @@ class Numeric(Base):
         rng5 = np.arange(5, dtype='float64')
 
         result = idx * Series(rng5 + 0.1)
-        expected = Float64Index(rng5 * (rng5 + 0.1))
-        tm.assert_index_equal(result, expected)
+        expected = Series(rng5 * (rng5 + 0.1))
+        tm.assert_series_equal(result, expected)
 
     def test_mul_index(self):
         idx = self.create_index()
