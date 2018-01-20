@@ -464,7 +464,7 @@ def crosstab(index, columns, values=None, rownames=None, colnames=None,
         kwargs = {'aggfunc': aggfunc}
     added_column = list(set(df.columns.values) - original_columns_set)[0]
 
-    table = df.pivot_table('__dummy__', index=rownames, columns=colnames,
+    table = df.pivot_table(['__dummy__'], index=rownames, columns=colnames,
                            margins=margins, margins_name=margins_name,
                            dropna=dropna, **kwargs)
 
