@@ -1064,12 +1064,12 @@ class TimeGrouper(Grouper):
         # Check for correctness of the keyword arguments which would
         # otherwise silently use the default if misspelled
         if label not in {None, 'left', 'right'}:
-            raise ValueError('Unsupported value %s for `label`' % label)
+            raise ValueError('Unsupported value {} for `label`'.format(label))
         if closed not in {None, 'left', 'right'}:
-            raise ValueError('Unsupported value %s for `closed`' % closed)
+            raise ValueError('Unsupported value {} for `closed`'.format(closed))
         if convention not in {None, 'start', 'end', 'e', 's'}:
-            raise ValueError('Unsupported value %s for `convention`'
-                             % convention)
+            raise ValueError('Unsupported value {} for `convention`'
+                             .format(convention))
 
         freq = to_offset(freq)
 

@@ -987,16 +987,17 @@ class TestDatetimeIndex(Base):
         assert_series_equal(result, expect)
 
     def test_resample_string_kwargs(self):
+        # Test for issue #19303
         rng = date_range('1/1/2000 00:00:00', '1/1/2000 00:13:00', freq='min',
                          name='index')
         s = Series(np.random.randn(14), index=rng)
 
         # Check that wrong keyword argument strings raise an error
-        with pytest.raises(ValueError) as e_info:
+        with pytest.raises(ValueError):
             s.resample('5min', label='righttt').mean()
-        with pytest.raises(ValueError) as e_info:
+        with pytest.raises(ValueError):
             s.resample('5min', closed='righttt').mean()
-        with pytest.raises(ValueError) as e_info:
+        with pytest.raises(ValueError):
             s.resample('5min', convention='starttt').mean()
 
     def test_resample_how(self):
