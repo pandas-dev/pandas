@@ -20,9 +20,10 @@ from pandas import (Series, DataFrame, Panel, Index, isna,
 
 from pandas.core.dtypes.generic import ABCSeries, ABCDataFrame
 from pandas.compat import range, lrange, zip, product, OrderedDict
-from pandas.core.base import SpecificationError, AbstractMethodError
+from pandas.core.base import SpecificationError
 from pandas.errors import UnsupportedFunctionCall
 from pandas.core.groupby import DataError
+import pandas.core.common as com
 
 from pandas.tseries.frequencies import to_offset
 from pandas.core.indexes.datetimes import date_range
@@ -726,7 +727,7 @@ class Base(object):
 
     @pytest.fixture
     def _series_name(self):
-        raise AbstractMethodError(self)
+        raise com.AbstractMethodError(self)
 
     @pytest.fixture
     def _static_values(self, index):
@@ -963,6 +964,7 @@ class TestDatetimeIndex(Base):
         rng = date_range('1/1/2000 00:00:00', '1/1/2000 00:13:00', freq='min',
                          name='index')
         s = Series(np.random.randn(14), index=rng)
+
         result = s.resample('5min', closed='right', label='right').mean()
 
         exp_idx = date_range('1/1/2000', periods=4, freq='5min', name='index')
@@ -984,6 +986,20 @@ class TestDatetimeIndex(Base):
         grouper = TimeGrouper(Minute(5), closed='left', label='left')
         expect = s.groupby(grouper).agg(lambda x: x[-1])
         assert_series_equal(result, expect)
+
+    def test_resample_string_kwargs(self):
+        # Test for issue #19303
+        rng = date_range('1/1/2000 00:00:00', '1/1/2000 00:13:00', freq='min',
+                         name='index')
+        s = Series(np.random.randn(14), index=rng)
+
+        # Check that wrong keyword argument strings raise an error
+        with pytest.raises(ValueError):
+            s.resample('5min', label='righttt').mean()
+        with pytest.raises(ValueError):
+            s.resample('5min', closed='righttt').mean()
+        with pytest.raises(ValueError):
+            s.resample('5min', convention='starttt').mean()
 
     def test_resample_how(self):
         rng = date_range('1/1/2000 00:00:00', '1/1/2000 00:13:00', freq='min',
