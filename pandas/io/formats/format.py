@@ -386,8 +386,9 @@ class DataFrameFormatter(TableFormatter):
     def __init__(self, frame, buf=None, columns=None, col_space=None,
                  header=True, index=True, na_rep='NaN', formatters=None,
                  justify=None, float_format=None, sparsify=None,
-                 index_names=True, line_width=None, max_rows=None,
+                 index_names=True, line_width=None, bootstrap=False, max_rows=None,
                  max_cols=None, show_dimensions=False, decimal='.', **kwds):
+        self.bootstrap = bootstrap
         self.frame = frame
         if buf is not None:
             self.buf = _expand_user(_stringify_path(buf))
@@ -742,10 +743,18 @@ class DataFrameFormatter(TableFormatter):
                                       notebook=notebook,
                                       border=border)
         if hasattr(self.buf, 'write'):
+            if self.bootstrap:
+                self.buf.write('<link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0-beta.2/css/bootstrap.min.css" integrity="sha384-PsH8R72JQ3SOdhVi3uxftmaW6Vc51MKb0q5P2rRUpPvrszuE4W1povHYgTpBfshb" crossorigin="anonymous">')
             html_renderer.write_result(self.buf)
+            if self.bootstrap:
+                self.buf.write('''<script src="https://code.jquery.com/jquery-3.2.1.slim.min.js" integrity="sha384-KJ3o2DKtIkvYIK3UENzmM7KCkRr/rE9/Qpg6aAZGJwFDMVNA/GpGFF93hXpG5KkN" crossorigin="anonymous"></script> <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.12.3/umd/popper.min.js" integrity="sha384-vFJXuSJphROIrBnz7yo7oB41mKfc8JzQZiCq4NCceLEaO4IHwicKwpJf9c9IpFgh" crossorigin="anonymous"></script> <script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0-beta.2/js/bootstrap.min.js" integrity="sha384-alpBpkh1PFOepccYVYDB4do5UnbKysX5WZXm3XxPqe5iKTfUKjNkCk9SaVuEZflJ" crossorigin="anonymous"></script>''')
         elif isinstance(self.buf, compat.string_types):
             with open(self.buf, 'w') as f:
+                if self.bootstrap:
+                    f.write('<link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0-beta.2/css/bootstrap.min.css" integrity="sha384-PsH8R72JQ3SOdhVi3uxftmaW6Vc51MKb0q5P2rRUpPvrszuE4W1povHYgTpBfshb" crossorigin="anonymous">')
                 html_renderer.write_result(f)
+                if self.bootstrap:
+                    f.write('''<script src="https://code.jquery.com/jquery-3.2.1.slim.min.js" integrity="sha384-KJ3o2DKtIkvYIK3UENzmM7KCkRr/rE9/Qpg6aAZGJwFDMVNA/GpGFF93hXpG5KkN" crossorigin="anonymous"></script> <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.12.3/umd/popper.min.js" integrity="sha384-vFJXuSJphROIrBnz7yo7oB41mKfc8JzQZiCq4NCceLEaO4IHwicKwpJf9c9IpFgh" crossorigin="anonymous"></script> <script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0-beta.2/js/bootstrap.min.js" integrity="sha384-alpBpkh1PFOepccYVYDB4do5UnbKysX5WZXm3XxPqe5iKTfUKjNkCk9SaVuEZflJ" crossorigin="anonymous"></script>''')
         else:
             raise TypeError('buf is not a file name and it has no write '
                             ' method')
@@ -1082,7 +1091,16 @@ class HTMLFormatter(TableFormatter):
     indent_delta = 2
 
     def __init__(self, formatter, classes=None, max_rows=None, max_cols=None,
-                 notebook=False, border=None):
+                 bootstrap=False, notebook=False, border=None):
+        self.bootstrap = bootstrap
+        if self.bootstrap:
+            boostrap_table_classes = ['table', 'table-striped',
+                    'table-bordered', 'table-sm', 'table-responsive']
+            if not classes:
+                classes = bootstrap_table_classes
+            else:
+                classes.append([b for b in boostrap_classes])
+
         self.fmt = formatter
         self.classes = classes
 
@@ -1118,6 +1136,13 @@ class HTMLFormatter(TableFormatter):
         return self._write_cell(s, kind='td', indent=indent, tags=tags)
 
     def _write_cell(self, s, kind='td', indent=0, tags=None):
+        if self.bootstrap:
+            bootstrap_tags = ' class="bg-info"'
+            if tags is not None:
+                tags = tags + bootstrap_tags
+            else:
+                tags = bootstrap_tags
+
         if tags is not None:
             start_tag = '<{kind} {tags}>'.format(kind=kind, tags=tags)
         else:
