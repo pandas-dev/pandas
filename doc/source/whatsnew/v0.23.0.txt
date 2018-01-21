@@ -427,7 +427,6 @@ Timezones
 - Bug in comparing :class:`DatetimeIndex`, which failed to raise ``TypeError`` when attempting to compare timezone-aware and timezone-naive datetimelike objects (:issue:`18162`)
 - Bug in localization of a naive, datetime string in a ``Series`` constructor with a ``datetime64[ns, tz]`` dtype (:issue:`174151`)
 - :func:`Timestamp.replace` will now handle Daylight Savings transitions gracefully (:issue:`18319`)
--
 - Bug in tz-aware :class:`DatetimeIndex` where addition/subtraction with a :class:`TimedeltaIndex` or array with ``dtype='timedelta64[ns]'`` was incorrect (:issue:`17558`)
 - Bug in :func:`DatetimeIndex.insert` where inserting ``NaT`` into a timezone-aware index incorrectly raised (:issue:`16357`)
 
