@@ -486,7 +486,7 @@ Groupby/Resample/Rolling
 
 - Bug when grouping by a single column and aggregating with a class like ``list`` or ``tuple`` (:issue:`18079`)
 - Fixed regression in :func:`DataFrame.groupby` which would not emit an error when called with a tuple key not in the index (:issue:`18798`)
--
+- Bug in :func:`DataFrame.resample` which silently ignored unsupported (or mistyped) options for ``label``, ``closed`` and ``convention`` (:issue:`19303`)
 -
 
 Sparse
