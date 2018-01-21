@@ -161,7 +161,7 @@ class TestTimedeltaIndexArithmetic(object):
 
         # invalid
         pytest.raises(TypeError, lambda: idx * idx)
-        pytest.raises(ValueError, lambda: idx * self._holder(np.arange(3)))
+        pytest.raises(TypeError, lambda: idx * self._holder(np.arange(3)))
         pytest.raises(ValueError, lambda: idx * np.array([1, 2]))
 
     def test_ufunc_coercions(self):

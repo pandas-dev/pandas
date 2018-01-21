@@ -16,7 +16,7 @@ from pandas.core.accessor import CachedAccessor
 from pandas.core.dtypes.generic import (
     ABCSeries, ABCDataFrame,
     ABCMultiIndex,
-    ABCPeriodIndex,
+    ABCPeriodIndex, ABCTimedeltaIndex,
     ABCDateOffset)
 from pandas.core.dtypes.missing import isna, array_equivalent
 from pandas.core.dtypes.common import (
@@ -4025,6 +4025,9 @@ class Index(IndexOpsMixin, PandasObject):
         def _make_evaluate_binop(op, opstr, reversed=False, constructor=Index):
             def _evaluate_numeric_binop(self, other):
                 if isinstance(other, (ABCSeries, ABCDataFrame)):
+                    return NotImplemented
+                elif isinstance(other, ABCTimedeltaIndex):
+                    # Defer to subclass implementation
                     return NotImplemented
 
                 other = self._validate_for_numeric_binop(other, op, opstr)
