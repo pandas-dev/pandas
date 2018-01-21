@@ -385,33 +385,6 @@ class TestDatetimeIndexOps(Ops):
                                     tz=tz)
                 assert idx.resolution == expected
 
-    def test_comp_nat(self):
-        left = pd.DatetimeIndex([pd.Timestamp('2011-01-01'), pd.NaT,
-                                 pd.Timestamp('2011-01-03')])
-        right = pd.DatetimeIndex([pd.NaT, pd.NaT, pd.Timestamp('2011-01-03')])
-
-        for lhs, rhs in [(left, right),
-                         (left.astype(object), right.astype(object))]:
-            result = rhs == lhs
-            expected = np.array([False, False, True])
-            tm.assert_numpy_array_equal(result, expected)
-
-            result = lhs != rhs
-            expected = np.array([True, True, False])
-            tm.assert_numpy_array_equal(result, expected)
-
-            expected = np.array([False, False, False])
-            tm.assert_numpy_array_equal(lhs == pd.NaT, expected)
-            tm.assert_numpy_array_equal(pd.NaT == rhs, expected)
-
-            expected = np.array([True, True, True])
-            tm.assert_numpy_array_equal(lhs != pd.NaT, expected)
-            tm.assert_numpy_array_equal(pd.NaT != lhs, expected)
-
-            expected = np.array([False, False, False])
-            tm.assert_numpy_array_equal(lhs < pd.NaT, expected)
-            tm.assert_numpy_array_equal(pd.NaT > lhs, expected)
-
     def test_value_counts_unique(self):
         # GH 7735
         for tz in self.tz:
@@ -616,6 +589,29 @@ class TestDatetimeIndexOps(Ops):
             exp = pd.DatetimeIndex(['2011-01-01 07:00', '2011-01-01 08:00'
                                     '2011-01-01 09:00'], name='xxx', tz=tz)
             tm.assert_index_equal(idx.shift(-3, freq='H'), exp)
+
+    # TODO: moved from test_datetimelike; de-duplicate with test_shift above
+    def test_shift2(self):
+        # test shift for datetimeIndex and non datetimeIndex
+        # GH8083
+        drange = pd.date_range('20130101', periods=5)
+        result = drange.shift(1)
+        expected = pd.DatetimeIndex(['2013-01-02', '2013-01-03', '2013-01-04',
+                                     '2013-01-05',
+                                     '2013-01-06'], freq='D')
+        tm.assert_index_equal(result, expected)
+
+        result = drange.shift(-1)
+        expected = pd.DatetimeIndex(['2012-12-31', '2013-01-01', '2013-01-02',
+                                     '2013-01-03', '2013-01-04'],
+                                    freq='D')
+        tm.assert_index_equal(result, expected)
+
+        result = drange.shift(3, freq='2D')
+        expected = pd.DatetimeIndex(['2013-01-07', '2013-01-08', '2013-01-09',
+                                     '2013-01-10',
+                                     '2013-01-11'], freq='D')
+        tm.assert_index_equal(result, expected)
 
     def test_nat(self):
         assert pd.DatetimeIndex._na_value is pd.NaT

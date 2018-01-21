@@ -203,61 +203,6 @@ class TestTimedeltaIndex(DatetimeLike):
         exp = Int64Index([f(x) for x in rng])
         tm.assert_index_equal(result, exp)
 
-    def test_comparisons_nat(self):
-
-        tdidx1 = pd.TimedeltaIndex(['1 day', pd.NaT, '1 day 00:00:01', pd.NaT,
-                                    '1 day 00:00:01', '5 day 00:00:03'])
-        tdidx2 = pd.TimedeltaIndex(['2 day', '2 day', pd.NaT, pd.NaT,
-                                    '1 day 00:00:02', '5 days 00:00:03'])
-        tdarr = np.array([np.timedelta64(2, 'D'),
-                          np.timedelta64(2, 'D'), np.timedelta64('nat'),
-                          np.timedelta64('nat'),
-                          np.timedelta64(1, 'D') + np.timedelta64(2, 's'),
-                          np.timedelta64(5, 'D') + np.timedelta64(3, 's')])
-
-        cases = [(tdidx1, tdidx2), (tdidx1, tdarr)]
-
-        # Check pd.NaT is handles as the same as np.nan
-        for idx1, idx2 in cases:
-
-            result = idx1 < idx2
-            expected = np.array([True, False, False, False, True, False])
-            tm.assert_numpy_array_equal(result, expected)
-
-            result = idx2 > idx1
-            expected = np.array([True, False, False, False, True, False])
-            tm.assert_numpy_array_equal(result, expected)
-
-            result = idx1 <= idx2
-            expected = np.array([True, False, False, False, True, True])
-            tm.assert_numpy_array_equal(result, expected)
-
-            result = idx2 >= idx1
-            expected = np.array([True, False, False, False, True, True])
-            tm.assert_numpy_array_equal(result, expected)
-
-            result = idx1 == idx2
-            expected = np.array([False, False, False, False, False, True])
-            tm.assert_numpy_array_equal(result, expected)
-
-            result = idx1 != idx2
-            expected = np.array([True, True, True, True, True, False])
-            tm.assert_numpy_array_equal(result, expected)
-
-    def test_comparisons_coverage(self):
-        rng = timedelta_range('1 days', periods=10)
-
-        result = rng < rng[3]
-        exp = np.array([True, True, True] + [False] * 7)
-        tm.assert_numpy_array_equal(result, exp)
-
-        # raise TypeError for now
-        pytest.raises(TypeError, rng.__lt__, rng[3].value)
-
-        result = rng == list(rng)
-        exp = rng == rng
-        tm.assert_numpy_array_equal(result, exp)
-
     def test_total_seconds(self):
         # GH 10939
         # test index
