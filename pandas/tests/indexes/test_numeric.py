@@ -50,7 +50,7 @@ class TestIndexArithmetic(object):
                                            Timedelta(days=1).to_timedelta64(),
                                            Timedelta(days=1).to_pytimedelta()])
     def test_index_rdiv_timedelta(self, scalar_td, index):
-        expected = pd.TimedeltaIndex(['NaT', '1 Day', '12 Hours'])
+        expected = pd.TimedeltaIndex(['1 Day', '12 Hours'])
 
         result = scalar_td / index
         tm.assert_index_equal(result, expected)
