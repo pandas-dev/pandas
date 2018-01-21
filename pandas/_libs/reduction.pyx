@@ -1,8 +1,23 @@
 # -*- coding: utf-8 -*-
 # cython: profile=False
-import numpy as np
-
 from distutils.version import LooseVersion
+
+from cython cimport Py_ssize_t
+from cpython cimport Py_INCREF
+
+from libc.stdlib cimport malloc, free
+
+import numpy as np
+cimport numpy as np
+from numpy cimport (ndarray,
+                    int64_t,
+                    PyArray_SETITEM,
+                    PyArray_ITER_NEXT, PyArray_ITER_DATA, PyArray_IterNew,
+                    flatiter)
+np.import_array()
+
+cimport util
+from lib import maybe_convert_objects
 
 is_numpy_prior_1_6_2 = LooseVersion(np.__version__) < '1.6.2'
 

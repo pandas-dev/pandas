@@ -1,6 +1,6 @@
 import numpy as np
 from pandas import compat
-from pandas._libs import lib
+from pandas._libs import reduction
 from pandas.core.dtypes.common import (
     is_extension_type,
     is_sequence)
@@ -114,7 +114,7 @@ class FrameApply(object):
 
     def apply_raw(self):
         try:
-            result = lib.reduce(self.values, self.f, axis=self.axis)
+            result = reduction.reduce(self.values, self.f, axis=self.axis)
         except Exception:
             result = np.apply_along_axis(self.f, self.axis, self.values)
 
@@ -150,10 +150,10 @@ class FrameApply(object):
 
                 try:
                     labels = self.agg_axis
-                    result = lib.reduce(values, self.f,
-                                        axis=self.axis,
-                                        dummy=dummy,
-                                        labels=labels)
+                    result = reduction.reduce(values, self.f,
+                                              axis=self.axis,
+                                              dummy=dummy,
+                                              labels=labels)
                     return Series(result, index=labels)
                 except Exception:
                     pass
