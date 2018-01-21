@@ -1061,6 +1061,17 @@ class TimeGrouper(Grouper):
     def __init__(self, freq='Min', closed=None, label=None, how='mean',
                  axis=0, fill_method=None, limit=None, loffset=None,
                  kind=None, convention=None, base=0, **kwargs):
+        # Check for correctness of the keyword arguments which would
+        # otherwise silently use the default if misspelled
+        if label not in {None, 'left', 'right'}:
+            raise ValueError('Unsupported value {} for `label`'.format(label))
+        if closed not in {None, 'left', 'right'}:
+            raise ValueError('Unsupported value {} for `closed`'.format(
+                closed))
+        if convention not in {None, 'start', 'end', 'e', 's'}:
+            raise ValueError('Unsupported value {} for `convention`'
+                             .format(convention))
+
         freq = to_offset(freq)
 
         end_types = set(['M', 'A', 'Q', 'BM', 'BA', 'BQ', 'W'])
