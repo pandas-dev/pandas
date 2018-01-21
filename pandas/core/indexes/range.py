@@ -8,7 +8,7 @@ from pandas.core.dtypes.common import (
     is_integer,
     is_scalar,
     is_int64_dtype)
-from pandas.core.dtypes.generic import ABCSeries
+from pandas.core.dtypes.generic import ABCSeries, ABCTimedeltaIndex
 
 from pandas import compat
 from pandas.compat import lrange, range, get_range_parameters
@@ -586,6 +586,9 @@ class RangeIndex(Int64Index):
 
             def _evaluate_numeric_binop(self, other):
                 if isinstance(other, ABCSeries):
+                    return NotImplemented
+                elif isinstance(other, ABCTimedeltaIndex):
+                    # Defer to TimedeltaIndex implementation
                     return NotImplemented
 
                 other = self._validate_for_numeric_binop(other, op, opstr)

@@ -297,7 +297,7 @@ class TestTimedeltaIndexArithmetic(object):
 
     def test_dti_mul_too_short_raises(self):
         idx = self._holder(np.arange(5, dtype='int64'))
-        with pytest.raises(ValueError):
+        with pytest.raises(TypeError):
             idx * self._holder(np.arange(3))
         with pytest.raises(ValueError):
             idx * np.array([1, 2])
@@ -476,21 +476,19 @@ class TestTimedeltaIndexArithmetic(object):
         # don't allow division by NaT (make could in the future)
         pytest.raises(TypeError, lambda: rng / pd.NaT)
 
-    @pytest.mark.parametrize('other', [
-        np.arange(1, 11),
-        pd.Int64Index(range(1, 11)),
-        pd.UInt64Index(range(1, 11)),
-        pd.Float64Index(range(1, 11)),
-        pytest.param(pd.RangeIndex(1, 11),
-                     marks=pytest.mark.xfail(reason="RangeIndex needs to "
-                                                    "defer to TimedeltaIndex "
-                                                    "implementation"))])
+    @pytest.mark.parametrize('other', [np.arange(1, 11),
+                                       pd.Int64Index(range(1, 11)),
+                                       pd.UInt64Index(range(1, 11)),
+                                       pd.Float64Index(range(1, 11)),
+                                       pd.RangeIndex(1, 11)])
     def test_tdi_rmul_arraylike(self, other):
         tdi = TimedeltaIndex(['1 Day'] * 10)
         expected = timedelta_range('1 days', '10 days')
 
         result = other * tdi
         tm.assert_index_equal(result, expected)
+        commute = tdi * other
+        tm.assert_index_equal(commute, expected)
 
     def test_subtraction_ops(self):
         # with datetimes/timedelta and tdi/dti

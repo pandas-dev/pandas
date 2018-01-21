@@ -13,7 +13,7 @@ from pandas import (date_range, Series, Index, Float64Index,
 import pandas.util.testing as tm
 
 import pandas as pd
-from pandas._libs.lib import Timestamp
+from pandas._libs.lib import Timestamp, Timedelta
 
 from pandas.tests.indexes.common import Base
 
@@ -24,6 +24,23 @@ def full_like(array, value):
     ret = np.empty(array.shape, dtype=np.array(value).dtype)
     ret.fill(value)
     return ret
+
+
+class TestIndexArithmetic(object):
+    @pytest.mark.parametrize('index', [pd.Int64Index(range(1, 11)),
+                                       pd.UInt64Index(range(1, 11)),
+                                       pd.Float64Index(range(1, 11)),
+                                       pd.RangeIndex(1, 11)])
+    @pytest.mark.parametrize('scalar_td', [Timedelta(days=1),
+                                           Timedelta(days=1).to_timedelta64(),
+                                           Timedelta(days=1).to_pytimedelta()])
+    def test_index_mul_timdelta(self, scalar_td, index):
+        expected = pd.timedelta_range('1 days', '10 days')
+
+        result = index * scalar_td
+        tm.assert_index_equal(result, expected)
+        commute = scalar_td * index
+        tm.assert_index_equal(commute, expected)
 
 
 class Numeric(Base):
