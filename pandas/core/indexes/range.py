@@ -595,7 +595,7 @@ class RangeIndex(Int64Index):
                     self, other = other, self
 
                 try:
-                    # alppy if we have an override
+                    # apply if we have an override
                     if step:
                         with np.errstate(all='ignore'):
                             rstep = step(self._step, other)
