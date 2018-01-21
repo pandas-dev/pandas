@@ -2797,7 +2797,7 @@ class FramePlotMethods(BasePlotMethods):
             points passed. If `ind` is an integer, `ind` number of equally
             spaced points are used.
         `**kwds` : optional
-            Keyword arguments to pass on to :py:meth:`pandas.Series.plot`.
+            Keyword arguments to pass on to :py:meth:`pandas.DataFrame.plot`.
 
         Returns
         -------
