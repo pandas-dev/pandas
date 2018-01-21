@@ -12,6 +12,7 @@ from dateutil.tz import tzlocal, tzoffset
 from datetime import datetime, timedelta, tzinfo, date
 
 import pandas.util.testing as tm
+import pandas.util._test_decorators as td
 import pandas.tseries.offsets as offsets
 from pandas.compat import lrange, zip, PY3
 from pandas.core.indexes.datetimes import bdate_range, date_range
@@ -59,6 +60,10 @@ class TestTimeZoneSupportPytz(object):
 
     def localize(self, tz, x):
         return tz.localize(x)
+
+    def normalize(self, ts):
+        tzinfo = ts.tzinfo
+        return tzinfo.normalize(ts)
 
     def cmptz(self, tz1, tz2):
         # Compare two timezones. Overridden in subclass to parameterize
@@ -576,7 +581,7 @@ class TestTimeZoneSupportPytz(object):
                  '11/06/2011 03:00']
         di_test = DatetimeIndex(times, tz='US/Eastern')
 
-        # left dtype is  datetime64[ns, US/Eastern]
+        # left dtype is datetime64[ns, US/Eastern]
         # right is datetime64[ns, tzfile('/usr/share/zoneinfo/US/Eastern')]
         tm.assert_numpy_array_equal(di_test.values, localized.values)
 
@@ -934,6 +939,27 @@ class TestTimeZoneSupportPytz(object):
         assert isna(idx[1])
         assert idx[0].tzinfo is not None
 
+    def test_replace_across_dst(self):
+        # GH#18319 check that 1) timezone is correctly normalized and
+        # 2) that hour is not incorrectly changed by this normalization
+        tz = self.tz('US/Eastern')
+
+        ts_naive = Timestamp('2017-12-03 16:03:30')
+        ts_aware = self.localize(tz, ts_naive)
+
+        # Preliminary sanity-check
+        assert ts_aware == self.normalize(ts_aware)
+
+        # Replace across DST boundary
+        ts2 = ts_aware.replace(month=6)
+
+        # Check that `replace` preserves hour literal
+        assert (ts2.hour, ts2.minute) == (ts_aware.hour, ts_aware.minute)
+
+        # Check that post-replace object is appropriately normalized
+        ts2b = self.normalize(ts2)
+        assert ts2 == ts2b
+
 
 class TestTimeZoneSupportDateutil(TestTimeZoneSupportPytz):
 
@@ -958,10 +984,12 @@ class TestTimeZoneSupportDateutil(TestTimeZoneSupportPytz):
     def localize(self, tz, x):
         return x.replace(tzinfo=tz)
 
-    def test_utc_with_system_utc(self):
-        # Skipped on win32 due to dateutil bug
-        tm._skip_if_windows()
+    def normalize(self, ts):
+        # no-op for dateutil
+        return ts
 
+    @td.skip_if_windows
+    def test_utc_with_system_utc(self):
         from pandas._libs.tslibs.timezones import maybe_get_tz
 
         # from system utc to real utc
@@ -1270,6 +1298,7 @@ class TestTimeZones(object):
             assert (result_pytz.to_pydatetime().tzname() ==
                     result_dateutil.to_pydatetime().tzname())
 
+    @td.skip_if_windows
     def test_replace_tzinfo(self):
         # GH 15683
         dt = datetime(2016, 3, 27, 1)
@@ -1663,6 +1692,7 @@ class TestTimeZones(object):
         assert result.is_normalized
         assert not rng.is_normalized
 
+    @td.skip_if_windows
     def test_normalize_tz_local(self):
         # see gh-13459
         timezones = ['US/Pacific', 'US/Eastern', 'UTC', 'Asia/Kolkata',

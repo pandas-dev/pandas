@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-from pandas import compat
+from pandas import compat, Timestamp
 
 import pytest
 
@@ -209,11 +209,9 @@ class TestSeriesRank(TestData):
         pytest.param([np.iinfo(np.int64).min, -100, 0, 1, 9999, 100000,
                       1e10, np.iinfo(np.int64).max],
                      'int64',
-                     marks=pytest.mark.xfail(reason='''iNaT is equivalent to
-                                                      minimum value of dtype
-                                                      int64 pending issue
-                                                      #16674'''),
-                     ),
+                     marks=pytest.mark.xfail(
+                         reason="iNaT is equivalent to minimum value of dtype"
+                         "int64 pending issue #16674")),
         ([NegInfinity(), '1', 'A', 'BA', 'Ba', 'C', Infinity()],
          'object')
     ])
@@ -368,3 +366,13 @@ class TestSeriesRank(TestData):
         # smoke tests
         Series([np.nan] * 32).astype(object).rank(ascending=True)
         Series([np.nan] * 32).astype(object).rank(ascending=False)
+
+    def test_rank_modify_inplace(self):
+        # GH 18521
+        # Check rank does not mutate series
+        s = Series([Timestamp('2017-01-05 10:20:27.569000'), NaT])
+        expected = s.copy()
+
+        s.rank()
+        result = s
+        assert_series_equal(result, expected)

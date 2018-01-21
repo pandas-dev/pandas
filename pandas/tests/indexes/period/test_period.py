@@ -3,10 +3,11 @@ import pytest
 import numpy as np
 
 import pandas as pd
+import pandas.util._test_decorators as td
 from pandas.util import testing as tm
 from pandas import (PeriodIndex, period_range, notna, DatetimeIndex, NaT,
                     Index, Period, Int64Index, Series, DataFrame, date_range,
-                    offsets, compat)
+                    offsets)
 
 from ..datetimelike import DatetimeLike
 
@@ -38,19 +39,23 @@ class TestPeriodIndex(DatetimeLike):
                               dtype=np.int64)
         tm.assert_index_equal(result, expected)
 
+        result = idx.astype(str)
+        expected = Index(str(x) for x in idx)
+        tm.assert_index_equal(result, expected)
+
         idx = period_range('1990', '2009', freq='A')
         result = idx.astype('i8')
         tm.assert_index_equal(result, Index(idx.asi8))
         tm.assert_numpy_array_equal(result.values, idx.asi8)
 
-    def test_astype_raises(self):
+    @pytest.mark.parametrize('dtype', [
+        float, 'timedelta64', 'timedelta64[ns]'])
+    def test_astype_raises(self, dtype):
         # GH 13149, GH 13209
         idx = PeriodIndex(['2016-05-16', 'NaT', NaT, np.NaN], freq='D')
-
-        pytest.raises(TypeError, idx.astype, str)
-        pytest.raises(TypeError, idx.astype, float)
-        pytest.raises(TypeError, idx.astype, 'timedelta64')
-        pytest.raises(TypeError, idx.astype, 'timedelta64[ns]')
+        msg = 'Cannot cast PeriodIndex to dtype'
+        with tm.assert_raises_regex(TypeError, msg):
+            idx.astype(dtype)
 
     def test_pickle_compat_construction(self):
         pass
@@ -544,9 +549,8 @@ class TestPeriodIndex(DatetimeLike):
         tm.assert_index_equal(result, expected)
         assert result.name == expected.name
 
+    @td.skip_if_32bit
     def test_ndarray_compat_properties(self):
-        if compat.is_platform_32bit():
-            pytest.skip("skipping on 32bit")
         super(TestPeriodIndex, self).test_ndarray_compat_properties()
 
     def test_shift_ndarray(self):

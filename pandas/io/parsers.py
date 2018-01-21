@@ -28,9 +28,9 @@ from pandas.core.index import (Index, MultiIndex, RangeIndex,
                                _ensure_index_from_sequences)
 from pandas.core.series import Series
 from pandas.core.frame import DataFrame
-from pandas.core.categorical import Categorical
+from pandas.core.arrays import Categorical
 from pandas.core import algorithms
-from pandas.core.common import AbstractMethodError
+import pandas.core.common as com
 from pandas.io.date_converters import generic_parser
 from pandas.errors import ParserWarning, ParserError, EmptyDataError
 from pandas.io.common import (get_filepath_or_buffer, is_file_like,
@@ -51,7 +51,7 @@ from pandas._libs.tslibs import parsing
 # so we need to remove it if we see it.
 _BOM = u('\ufeff')
 
-_parser_params = """Also supports optionally iterating or breaking of the file
+_parser_params = r"""Also supports optionally iterating or breaking of the file
 into chunks.
 
 Additional help can be found in the `online docs for IO Tools
@@ -101,27 +101,20 @@ usecols : array-like or callable, default None
     be positional (i.e. integer indices into the document columns) or strings
     that correspond to column names provided either by the user in `names` or
     inferred from the document header row(s). For example, a valid array-like
-    `usecols` parameter would be [0, 1, 2] or ['foo', 'bar', 'baz'].
+    `usecols` parameter would be [0, 1, 2] or ['foo', 'bar', 'baz']. Element
+    order is ignored, so usecols=[1,0] is the same as [0,1].
 
     If callable, the callable function will be evaluated against the column
     names, returning names where the callable function evaluates to True. An
     example of a valid callable argument would be ``lambda x: x.upper() in
     ['AAA', 'BBB', 'DDD']``. Using this parameter results in much faster
     parsing time and lower memory usage.
-as_recarray : boolean, default False
-    .. deprecated:: 0.19.0
-       Please call `pd.read_csv(...).to_records()` instead.
-
-    Return a NumPy recarray instead of a DataFrame after parsing the data.
-    If set to True, this option takes precedence over the `squeeze` parameter.
-    In addition, as row indices are not available in such a format, the
-    `index_col` parameter will be ignored.
 squeeze : boolean, default False
     If the parsed data only contains one column then return a Series
 prefix : str, default None
     Prefix to add to column numbers when no header, e.g. 'X' for X0, X1, ...
 mangle_dupe_cols : boolean, default True
-    Duplicate columns will be specified as 'X.0'...'X.N', rather than
+    Duplicate columns will be specified as 'X', 'X.1', ...'X.N', rather than
     'X'...'X'. Passing in False will cause data to be overwritten if there
     are duplicate names in the columns.
 dtype : Type name or dict of column -> type, default None
@@ -148,9 +141,6 @@ skiprows : list-like or integer or callable, default None
     An example of a valid callable argument would be ``lambda x: x in [0, 2]``.
 skipfooter : int, default 0
     Number of lines at bottom of file to skip (Unsupported with engine='c')
-skip_footer : int, default 0
-    .. deprecated:: 0.19.0
-       Use the `skipfooter` parameter instead, as they are identical
 nrows : int, default None
     Number of rows of file to read. Useful for reading pieces of large files
 na_values : scalar, str, list-like, or dict, default None
@@ -159,8 +149,20 @@ na_values : scalar, str, list-like, or dict, default None
     NaN: '""" + fill("', '".join(sorted(_NA_VALUES)),
                      70, subsequent_indent="    ") + """'.
 keep_default_na : bool, default True
-    If na_values are specified and keep_default_na is False the default NaN
-    values are overridden, otherwise they're appended to.
+    Whether or not to include the default NaN values when parsing the data.
+    Depending on whether `na_values` is passed in, the behavior is as follows:
+
+    * If `keep_default_na` is True, and `na_values` are specified, `na_values`
+      is appended to the default NaN values used for parsing.
+    * If `keep_default_na` is True, and `na_values` are not specified, only
+      the default NaN values are used for parsing.
+    * If `keep_default_na` is False, and `na_values` are specified, only
+      the NaN values specified `na_values` are used for parsing.
+    * If `keep_default_na` is False, and `na_values` are not specified, no
+      strings will be parsed as NaN.
+
+    Note that if `na_filter` is passed in as False, the `keep_default_na` and
+    `na_values` parameters will be ignored.
 na_filter : boolean, default True
     Detect missing value markers (empty strings and the value of na_values). In
     data without any NAs, passing na_filter=False can improve the performance
@@ -284,24 +286,6 @@ low_memory : boolean, default True
     Note that the entire file is read into a single DataFrame regardless,
     use the `chunksize` or `iterator` parameter to return the data in chunks.
     (Only valid with C parser)
-buffer_lines : int, default None
-    .. deprecated:: 0.19.0
-       This argument is not respected by the parser
-compact_ints : boolean, default False
-    .. deprecated:: 0.19.0
-       Argument moved to ``pd.to_numeric``
-
-    If compact_ints is True, then for any column that is of integer dtype,
-    the parser will attempt to cast it as the smallest integer dtype possible,
-    either signed or unsigned depending on the specification from the
-    `use_unsigned` parameter.
-use_unsigned : boolean, default False
-    .. deprecated:: 0.19.0
-       Argument moved to ``pd.to_numeric``
-
-    If integer columns are being compacted (i.e. `compact_ints=True`), specify
-    whether the column should be compacted to the smallest signed or unsigned
-    integer dtype.
 memory_map : boolean, default False
     If a filepath is provided for `filepath_or_buffer`, map the file object
     directly onto memory and access the data directly from there. Using this
@@ -509,13 +493,9 @@ _parser_defaults = {
 
 _c_parser_defaults = {
     'delim_whitespace': False,
-    'as_recarray': False,
     'na_filter': True,
-    'compact_ints': False,
-    'use_unsigned': False,
     'low_memory': True,
     'memory_map': False,
-    'buffer_lines': None,
     'error_bad_lines': True,
     'warn_bad_lines': True,
     'tupleize_cols': False,
@@ -530,22 +510,13 @@ _fwf_defaults = {
 _c_unsupported = {'skipfooter'}
 _python_unsupported = {
     'low_memory',
-    'buffer_lines',
     'float_precision',
 }
 
 _deprecated_defaults = {
-    'as_recarray': None,
-    'buffer_lines': None,
-    'compact_ints': None,
-    'use_unsigned': None,
     'tupleize_cols': None
 }
 _deprecated_args = {
-    'as_recarray',
-    'buffer_lines',
-    'compact_ints',
-    'use_unsigned',
     'tupleize_cols',
 }
 
@@ -613,16 +584,11 @@ def _make_parser_function(name, sep=','):
                  warn_bad_lines=True,
 
                  skipfooter=0,
-                 skip_footer=0,  # deprecated
 
                  # Internal
                  doublequote=True,
                  delim_whitespace=False,
-                 as_recarray=None,
-                 compact_ints=None,
-                 use_unsigned=None,
                  low_memory=_c_parser_defaults['low_memory'],
-                 buffer_lines=None,
                  memory_map=False,
                  float_precision=None):
 
@@ -640,13 +606,6 @@ def _make_parser_function(name, sep=','):
         else:
             engine = 'c'
             engine_specified = False
-
-        if skip_footer != 0:
-            warnings.warn("The 'skip_footer' argument has "
-                          "been deprecated and will be removed "
-                          "in a future version. Please use the "
-                          "'skipfooter' argument instead.",
-                          FutureWarning, stacklevel=2)
 
         kwds = dict(delimiter=delimiter,
                     engine=engine,
@@ -682,7 +641,7 @@ def _make_parser_function(name, sep=','):
                     nrows=nrows,
                     iterator=iterator,
                     chunksize=chunksize,
-                    skipfooter=skipfooter or skip_footer,
+                    skipfooter=skipfooter,
                     converters=converters,
                     dtype=dtype,
                     usecols=usecols,
@@ -693,14 +652,10 @@ def _make_parser_function(name, sep=','):
                     float_precision=float_precision,
 
                     na_filter=na_filter,
-                    compact_ints=compact_ints,
-                    use_unsigned=use_unsigned,
                     delim_whitespace=delim_whitespace,
-                    as_recarray=as_recarray,
                     warn_bad_lines=warn_bad_lines,
                     error_bad_lines=error_bad_lines,
                     low_memory=low_memory,
-                    buffer_lines=buffer_lines,
                     mangle_dupe_cols=mangle_dupe_cols,
                     tupleize_cols=tupleize_cols,
                     infer_datetime_format=infer_datetime_format,
@@ -899,19 +854,19 @@ class TextFileReader(BaseIterator):
                                   " sep=None with delim_whitespace=False"
                 engine = 'python'
         elif sep is not None and len(sep) > 1:
-            if engine == 'c' and sep == '\s+':
+            if engine == 'c' and sep == r'\s+':
                 result['delim_whitespace'] = True
                 del result['delimiter']
             elif engine not in ('python', 'python-fwf'):
                 # wait until regex engine integrated
                 fallback_reason = "the 'c' engine does not support"\
                                   " regex separators (separators > 1 char and"\
-                                  " different from '\s+' are"\
+                                  r" different from '\s+' are"\
                                   " interpreted as regex)"
                 engine = 'python'
         elif delim_whitespace:
             if 'python' in engine:
-                result['delimiter'] = '\s+'
+                result['delimiter'] = r'\s+'
         elif sep is not None:
             encodeable = True
             try:
@@ -967,9 +922,6 @@ class TextFileReader(BaseIterator):
         na_values = options['na_values']
         skiprows = options['skiprows']
 
-        # really delete this one
-        keep_default_na = result.pop('keep_default_na')
-
         _validate_header_arg(options['header'])
 
         depr_warning = ''
@@ -982,9 +934,7 @@ class TextFileReader(BaseIterator):
                    "and will be removed in a future version."
                    .format(arg=arg))
 
-            if arg == 'as_recarray':
-                msg += ' Please call pd.to_csv(...).to_records() instead.'
-            elif arg == 'tupleize_cols':
+            if arg == 'tupleize_cols':
                 msg += (' Column tuples will then '
                         'always be converted to MultiIndex.')
 
@@ -1016,6 +966,7 @@ class TextFileReader(BaseIterator):
             converters = {}
 
         # Converting values to NA
+        keep_default_na = options['keep_default_na']
         na_values, na_fvalues = _clean_na_values(na_values, keep_default_na)
 
         # handle skiprows; this is internally handled by the
@@ -1059,7 +1010,7 @@ class TextFileReader(BaseIterator):
             self._engine = klass(self.f, **self.options)
 
     def _failover_to_python(self):
-        raise AbstractMethodError(self)
+        raise com.AbstractMethodError(self)
 
     def read(self, nrows=None):
         nrows = _validate_integer('nrows', nrows)
@@ -1069,9 +1020,6 @@ class TextFileReader(BaseIterator):
                 raise ValueError('skipfooter not supported for iteration')
 
         ret = self._engine.read(nrows)
-
-        if self.options.get('as_recarray'):
-            return ret
 
         # May alter columns / col_dict
         index, columns, col_dict = self._create_index(ret)
@@ -1287,10 +1235,10 @@ class ParserBase(object):
         self.na_values = kwds.get('na_values')
         self.na_fvalues = kwds.get('na_fvalues')
         self.na_filter = kwds.get('na_filter', False)
+        self.keep_default_na = kwds.get('keep_default_na', True)
 
         self.true_values = kwds.get('true_values')
         self.false_values = kwds.get('false_values')
-        self.as_recarray = kwds.get('as_recarray', False)
         self.tupleize_cols = kwds.get('tupleize_cols', False)
         self.mangle_dupe_cols = kwds.get('mangle_dupe_cols', True)
         self.infer_datetime_format = kwds.pop('infer_datetime_format', False)
@@ -1306,9 +1254,6 @@ class ParserBase(object):
         if isinstance(self.header, (list, tuple, np.ndarray)):
             if not all(map(is_integer, self.header)):
                 raise ValueError("header must be integer or list of integers")
-            if kwds.get('as_recarray'):
-                raise ValueError("cannot specify as_recarray when "
-                                 "specifying a multi-index header")
             if kwds.get('usecols'):
                 raise ValueError("cannot specify usecols when "
                                  "specifying a multi-index header")
@@ -1553,7 +1498,8 @@ class ParserBase(object):
                 col_name = self.index_names[i]
                 if col_name is not None:
                     col_na_values, col_na_fvalues = _get_na_values(
-                        col_name, self.na_values, self.na_fvalues)
+                        col_name, self.na_values, self.na_fvalues,
+                        self.keep_default_na)
 
             arr, _ = self._infer_types(arr, col_na_values | col_na_fvalues)
             arrays.append(arr)
@@ -1576,7 +1522,7 @@ class ParserBase(object):
 
             if self.na_filter:
                 col_na_values, col_na_fvalues = _get_na_values(
-                    c, na_values, na_fvalues)
+                    c, na_values, na_fvalues, self.keep_default_na)
             else:
                 col_na_values, col_na_fvalues = set(), set()
 
@@ -1607,14 +1553,9 @@ class ParserBase(object):
                     values, set(col_na_values) | col_na_fvalues,
                     try_num_bool)
 
-                # type specificed in dtype param
+                # type specified in dtype param
                 if cast_type and not is_dtype_equal(cvals, cast_type):
                     cvals = self._cast_types(cvals, cast_type, c)
-
-            if issubclass(cvals.dtype.type, np.integer) and self.compact_ints:
-                cvals = lib.downcast_int64(
-                    cvals, parsers.na_values,
-                    self.use_unsigned)
 
             result[c] = cvals
             if verbose and na_count:
@@ -1911,10 +1852,6 @@ class CParserWrapper(ParserBase):
         # Done with first read, next time raise StopIteration
         self._first_chunk = False
 
-        if self.as_recarray:
-            # what to do if there are leading columns?
-            return data
-
         names = self.names
 
         if self._reader.leading_cols:
@@ -2110,8 +2047,6 @@ class PythonParser(ParserBase):
         self.converters = kwds['converters']
         self.dtype = kwds['dtype']
 
-        self.compact_ints = kwds['compact_ints']
-        self.use_unsigned = kwds['use_unsigned']
         self.thousands = kwds['thousands']
         self.decimal = kwds['decimal']
 
@@ -2131,7 +2066,7 @@ class PythonParser(ParserBase):
             self.data = f
 
         # Get columns in two steps: infer from data, then
-        # infer column indices from self.usecols if is is specified.
+        # infer column indices from self.usecols if it is specified.
         self._col_indices = None
         self.columns, self.num_original_columns = self._infer_columns()
 
@@ -2317,9 +2252,6 @@ class PythonParser(ParserBase):
         columns, data = self._do_date_conversions(columns, data)
 
         data = self._convert_data(data)
-        if self.as_recarray:
-            return self._to_recarray(data, columns)
-
         index, columns = self._make_index(data, alldata, columns, indexnamerow)
 
         return index, columns, data
@@ -2386,19 +2318,6 @@ class PythonParser(ParserBase):
         return self._convert_to_ndarrays(data, clean_na_values,
                                          clean_na_fvalues, self.verbose,
                                          clean_conv, clean_dtypes)
-
-    def _to_recarray(self, data, columns):
-        dtypes = []
-        o = compat.OrderedDict()
-
-        # use the columns to "order" the keys
-        # in the unordered 'data' dictionary
-        for col in columns:
-            dtypes.append((str(col), data[col].dtype))
-            o[col] = data[col]
-
-        tuples = lzip(*o.values())
-        return np.array(tuples, dtypes)
 
     def _infer_columns(self):
         names = self.names
@@ -3190,16 +3109,23 @@ def _clean_na_values(na_values, keep_default_na=True):
             na_values = set()
         na_fvalues = set()
     elif isinstance(na_values, dict):
-        na_values = na_values.copy()  # Prevent aliasing.
-        if keep_default_na:
-            for k, v in compat.iteritems(na_values):
-                if not is_list_like(v):
-                    v = [v]
+        old_na_values = na_values.copy()
+        na_values = {}  # Prevent aliasing.
+
+        # Convert the values in the na_values dictionary
+        # into array-likes for further use. This is also
+        # where we append the default NaN values, provided
+        # that `keep_default_na=True`.
+        for k, v in compat.iteritems(old_na_values):
+            if not is_list_like(v):
+                v = [v]
+
+            if keep_default_na:
                 v = set(v) | _NA_VALUES
-                na_values[k] = v
-        na_fvalues = dict(
-            (k, _floatify_na_values(v)) for k, v in na_values.items()  # noqa
-        )
+
+            na_values[k] = v
+        na_fvalues = dict((k, _floatify_na_values(v))
+                          for k, v in na_values.items())
     else:
         if not is_list_like(na_values):
             na_values = [na_values]
@@ -3318,12 +3244,38 @@ def _stringify_na_values(na_values):
     return set(result)
 
 
-def _get_na_values(col, na_values, na_fvalues):
+def _get_na_values(col, na_values, na_fvalues, keep_default_na):
+    """
+    Get the NaN values for a given column.
+
+    Parameters
+    ----------
+    col : str
+        The name of the column.
+    na_values : array-like, dict
+        The object listing the NaN values as strings.
+    na_fvalues : array-like, dict
+        The object listing the NaN values as floats.
+    keep_default_na : bool
+        If `na_values` is a dict, and the column is not mapped in the
+        dictionary, whether to return the default NaN values or the empty set.
+
+    Returns
+    -------
+    nan_tuple : A length-two tuple composed of
+
+        1) na_values : the string NaN values for that column.
+        2) na_fvalues : the float NaN values for that column.
+    """
+
     if isinstance(na_values, dict):
         if col in na_values:
             return na_values[col], na_fvalues[col]
         else:
-            return _NA_VALUES, set()
+            if keep_default_na:
+                return _NA_VALUES, set()
+
+            return set(), set()
     else:
         return na_values, na_fvalues
 

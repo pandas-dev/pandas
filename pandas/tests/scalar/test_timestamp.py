@@ -15,9 +15,13 @@ from distutils.version import LooseVersion
 from pytz.exceptions import AmbiguousTimeError, NonExistentTimeError
 
 import pandas.util.testing as tm
-from pandas.tseries import offsets, frequencies
-from pandas._libs.tslibs.timezones import get_timezone, dateutil_gettz as gettz
+import pandas.util._test_decorators as td
+
+from pandas.tseries import offsets
+
 from pandas._libs.tslibs import conversion, period
+from pandas._libs.tslibs.timezones import get_timezone, dateutil_gettz as gettz
+from pandas._libs.tslibs.frequencies import _INVALID_FREQ_ERROR
 
 from pandas.compat import long, PY3
 from pandas.util.testing import assert_series_equal
@@ -305,36 +309,6 @@ class TestTimestampConstructors(object):
         dt_tz = stamp.to_pydatetime()
         ts = Timestamp.fromordinal(dt_tz.toordinal(), tz='US/Eastern')
         assert ts.to_pydatetime() == dt_tz
-
-    def test_constructor_offset_depr(self):
-        # see gh-12160
-        with tm.assert_produces_warning(FutureWarning,
-                                        check_stacklevel=False):
-            ts = Timestamp('2011-01-01', offset='D')
-        assert ts.freq == 'D'
-
-        with tm.assert_produces_warning(FutureWarning,
-                                        check_stacklevel=False):
-            assert ts.offset == 'D'
-
-        msg = "Can only specify freq or offset, not both"
-        with tm.assert_raises_regex(TypeError, msg):
-            Timestamp('2011-01-01', offset='D', freq='D')
-
-    def test_constructor_offset_depr_fromordinal(self):
-        # GH 12160
-        base = datetime(2000, 1, 1)
-
-        with tm.assert_produces_warning(FutureWarning,
-                                        check_stacklevel=False):
-            ts = Timestamp.fromordinal(base.toordinal(), offset='D')
-        assert Timestamp('2000-01-01') == ts
-        assert ts.freq == 'D'
-        assert base.toordinal() == ts.toordinal()
-
-        msg = "Can only specify freq or offset, not both"
-        with tm.assert_raises_regex(TypeError, msg):
-            Timestamp.fromordinal(base.toordinal(), offset='D', freq='D')
 
 
 class TestTimestamp(object):
@@ -782,8 +756,7 @@ class TestTimestamp(object):
                                ('S', Timestamp('2000-01-05 05:09:15'))]:
             _check_round(freq, expected)
 
-        msg = frequencies._INVALID_FREQ_ERROR
-        with tm.assert_raises_regex(ValueError, msg):
+        with tm.assert_raises_regex(ValueError, _INVALID_FREQ_ERROR):
             stamp.round('foo')
 
     def test_class_ops_pytz(self):
@@ -943,6 +916,7 @@ class TestTimestamp(object):
         dt = Timestamp('2100-01-01 00:00:00', tz=tz)
         assert not dt.is_leap_year
 
+    @td.skip_if_windows
     def test_timestamp(self):
         # GH#17329
         # tz-naive --> treat it as if it were UTC for purposes of timestamp()
@@ -967,6 +941,31 @@ class TestTimestamp(object):
 
 
 class TestTimestampComparison(object):
+    def test_comparison_object_array(self):
+        # GH#15183
+        ts = Timestamp('2011-01-03 00:00:00-0500', tz='US/Eastern')
+        other = Timestamp('2011-01-01 00:00:00-0500', tz='US/Eastern')
+        naive = Timestamp('2011-01-01 00:00:00')
+
+        arr = np.array([other, ts], dtype=object)
+        res = arr == ts
+        expected = np.array([False, True], dtype=bool)
+        assert (res == expected).all()
+
+        # 2D case
+        arr = np.array([[other, ts],
+                        [ts, other]],
+                       dtype=object)
+        res = arr != ts
+        expected = np.array([[True, False], [False, True]], dtype=bool)
+        assert res.shape == expected.shape
+        assert (res == expected).all()
+
+        # tzaware mismatch
+        arr = np.array([naive], dtype=object)
+        with pytest.raises(TypeError):
+            arr < ts
+
     def test_comparison(self):
         # 5-18-2012 00:00:00.000
         stamp = long(1337299200000000000)
@@ -1366,9 +1365,8 @@ class TestTimestampConversion(object):
         assert stamp == dtval
         assert stamp.tzinfo == dtval.tzinfo
 
+    @td.skip_if_windows_python_3
     def test_timestamp_to_datetime_explicit_dateutil(self):
-        tm._skip_if_windows_python_3()
-
         stamp = Timestamp('20090415', tz=gettz('US/Eastern'), freq='D')
         dtval = stamp.to_pydatetime()
         assert stamp == dtval

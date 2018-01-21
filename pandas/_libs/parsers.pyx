@@ -55,7 +55,7 @@ from pandas.core.dtypes.common import (
     is_bool_dtype, is_object_dtype,
     is_datetime64_dtype,
     pandas_dtype)
-from pandas.core.categorical import Categorical
+from pandas.core.arrays import Categorical
 from pandas.core.dtypes.concat import union_categoricals
 import pandas.io.common as com
 
@@ -91,7 +91,6 @@ except NameError:
     basestring = str
 
 cdef extern from "src/numpy_helper.h":
-    object sarr_from_data(cnp.dtype, int length, void* data)
     void transfer_object_column(char *dst, char *src, size_t stride,
                                 size_t length)
 
@@ -289,7 +288,7 @@ cdef class TextReader:
         object file_handle, na_fvalues
         object true_values, false_values
         object handle
-        bint na_filter, verbose, has_usecols, has_mi_columns
+        bint na_filter, keep_default_na, verbose, has_usecols, has_mi_columns
         int64_t parser_start
         list clocks
         char *c_encoding
@@ -302,12 +301,10 @@ cdef class TextReader:
         object delimiter, converters, delim_whitespace
         object na_values
         object memory_map
-        object as_recarray
         object header, orig_header, names, header_start, header_end
         object index_col
         object low_memory
         object skiprows
-        object compact_ints, use_unsigned
         object dtype
         object encoding
         object compression
@@ -334,8 +331,6 @@ cdef class TextReader:
 
                   converters=None,
 
-                  as_recarray=False,
-
                   skipinitialspace=False,
                   escapechar=None,
                   doublequote=True,
@@ -357,14 +352,12 @@ cdef class TextReader:
                   na_filter=True,
                   na_values=None,
                   na_fvalues=None,
+                  keep_default_na=True,
+
                   true_values=None,
                   false_values=None,
-
-                  compact_ints=False,
                   allow_leading_cols=True,
-                  use_unsigned=False,
                   low_memory=False,
-                  buffer_lines=None,
                   skiprows=None,
                   skipfooter=0,
                   verbose=False,
@@ -387,8 +380,8 @@ cdef class TextReader:
         self.parser = parser_new()
         self.parser.chunksize = tokenize_chunksize
 
-        self.mangle_dupe_cols=mangle_dupe_cols
-        self.tupleize_cols=tupleize_cols
+        self.mangle_dupe_cols = mangle_dupe_cols
+        self.tupleize_cols = tupleize_cols
 
         # For timekeeping
         self.clocks = []
@@ -433,7 +426,7 @@ cdef class TextReader:
 
         if escapechar is not None:
             if len(escapechar) != 1:
-                raise ValueError('Only length-1 escapes  supported')
+                raise ValueError('Only length-1 escapes supported')
             self.parser.escapechar = ord(escapechar)
 
         self._set_quoting(quotechar, quoting)
@@ -486,13 +479,9 @@ cdef class TextReader:
         self.true_set = kset_from_list(self.true_values)
         self.false_set = kset_from_list(self.false_values)
 
+        self.keep_default_na = keep_default_na
         self.converters = converters
-
         self.na_filter = na_filter
-        self.as_recarray = as_recarray
-
-        self.compact_ints = compact_ints
-        self.use_unsigned = use_unsigned
 
         self.verbose = verbose
         self.low_memory = low_memory
@@ -537,7 +526,7 @@ cdef class TextReader:
         else:
             if isinstance(header, list):
                 if len(header) > 1:
-                    # need to artifically skip the final line
+                    # need to artificially skip the final line
                     # which is still a header line
                     header = list(header)
                     header.append(header[-1] + 1)
@@ -563,7 +552,7 @@ cdef class TextReader:
         if not self.table_width:
             raise EmptyDataError("No columns to parse from file")
 
-        # compute buffer_lines as function of table width
+        # Compute buffer_lines as function of table width.
         heuristic = 2**20 // self.table_width
         self.buffer_lines = 1
         while self.buffer_lines * 2 < heuristic:
@@ -903,14 +892,7 @@ cdef class TextReader:
             # Don't care about memory usage
             columns = self._read_rows(rows, 1)
 
-        if self.as_recarray:
-            self._start_clock()
-            result = _to_structured_array(columns, self.header, self.usecols)
-            self._end_clock('Conversion to structured array')
-
-            return result
-        else:
-            return columns
+        return columns
 
     cdef _read_low_memory(self, rows):
         cdef:
@@ -999,7 +981,7 @@ cdef class TextReader:
         self._start_clock()
         columns = self._convert_column_data(rows=rows,
                                             footer=footer,
-                                            upcast_na=not self.as_recarray)
+                                            upcast_na=True)
         self._end_clock('Type conversion')
 
         self._start_clock()
@@ -1135,11 +1117,6 @@ cdef class TextReader:
 
             if upcast_na and na_count > 0:
                 col_res = _maybe_upcast(col_res)
-
-            if issubclass(col_res.dtype.type,
-                          np.integer) and self.compact_ints:
-                col_res = lib.downcast_int64(col_res, na_values,
-                                             self.use_unsigned)
 
             if col_res is None:
                 raise ParserError('Unable to parse column %d' % i)
@@ -1325,7 +1302,10 @@ cdef class TextReader:
             elif i in self.na_values:
                 key = i
             else:  # No na_values provided for this column.
-                return _NA_VALUES, set()
+                if self.keep_default_na:
+                    return _NA_VALUES, set()
+
+                return list(), set()
 
             values = self.na_values[key]
             if values is not None and not isinstance(values, list):
@@ -2319,77 +2299,6 @@ cdef _apply_converter(object f, parser_t *parser, int64_t col,
             result[i] = f(val)
 
     return lib.maybe_convert_objects(result)
-
-
-def _to_structured_array(dict columns, object names, object usecols):
-    cdef:
-        ndarray recs, column
-        cnp.dtype dt
-        dict fields
-
-        object name, fnames, field_type
-        Py_ssize_t i, offset, nfields, length
-        int64_t stride, elsize
-        char *buf
-
-    if names is None:
-        names = ['%d' % i for i in range(len(columns))]
-    else:
-        # single line header
-        names = names[0]
-
-    if usecols is not None:
-        names = [n for i, n in enumerate(names)
-                 if i in usecols or n in usecols]
-
-    dt = np.dtype([(str(name), columns[i].dtype)
-                   for i, name in enumerate(names)])
-    fnames = dt.names
-    fields = dt.fields
-
-    nfields = len(fields)
-
-    if PY3:
-        length = len(list(columns.values())[0])
-    else:
-        length = len(columns.values()[0])
-
-    stride = dt.itemsize
-
-    # We own the data.
-    buf = <char*> malloc(length * stride)
-
-    recs = sarr_from_data(dt, length, buf)
-    assert(recs.flags.owndata)
-
-    for i in range(nfields):
-        # XXX
-        field_type = fields[fnames[i]]
-
-        # (dtype, stride) tuple
-        offset = field_type[1]
-        elsize = field_type[0].itemsize
-        column = columns[i]
-
-        _fill_structured_column(buf + offset, <char*> column.data,
-                                elsize, stride, length,
-                                field_type[0] == np.object_)
-
-    return recs
-
-
-cdef _fill_structured_column(char *dst, char* src, int64_t elsize,
-                             int64_t stride, int64_t length, bint incref):
-    cdef:
-        int64_t i
-
-    if incref:
-        transfer_object_column(dst, src, stride, length)
-    else:
-        for i in range(length):
-            memcpy(dst, src, elsize)
-            dst += stride
-            src += elsize
 
 
 def _maybe_encode(values):

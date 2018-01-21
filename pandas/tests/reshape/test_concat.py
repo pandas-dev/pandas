@@ -178,9 +178,9 @@ class TestConcatAppendCommon(ConcatenateBase):
             tm.assert_series_equal(res, exp, check_index_type=True)
 
             # cannot append non-index
-            msg = ('cannot concatenate object of type \"(.+?)\";'
+            msg = (r'cannot concatenate object of type \"(.+?)\";'
                    ' only pd.Series, pd.DataFrame, and pd.Panel'
-                   ' \(deprecated\) objs are valid')
+                   r' \(deprecated\) objs are valid')
             with tm.assert_raises_regex(TypeError, msg):
                 pd.Series(vals1).append(vals2)
 
@@ -480,6 +480,15 @@ class TestConcatAppendCommon(ConcatenateBase):
         exp = pd.Series([10, 11, np.nan, np.nan, 1, 3, 2])
         tm.assert_series_equal(pd.concat([s1, s2], ignore_index=True), exp)
         tm.assert_series_equal(s1.append(s2, ignore_index=True), exp)
+
+    def test_union_categorical_same_categories_different_order(self):
+        # https://github.com/pandas-dev/pandas/issues/19096
+        a = pd.Series(Categorical(['a', 'b', 'c'], categories=['a', 'b', 'c']))
+        b = pd.Series(Categorical(['a', 'b', 'c'], categories=['b', 'a', 'c']))
+        result = pd.concat([a, b], ignore_index=True)
+        expected = pd.Series(Categorical(['a', 'b', 'c', 'a', 'b', 'c'],
+                                         categories=['a', 'b', 'c']))
+        tm.assert_series_equal(result, expected)
 
     def test_concat_categorical_coercion(self):
         # GH 13524
@@ -1402,39 +1411,6 @@ class TestConcatenate(ConcatenateBase):
             # it works!
             concat([panel1, panel3], axis=1, verify_integrity=True)
 
-    def test_panel4d_concat(self):
-        with catch_warnings(record=True):
-            p4d = tm.makePanel4D()
-
-            p1 = p4d.iloc[:, :, :5, :]
-            p2 = p4d.iloc[:, :, 5:, :]
-
-            result = concat([p1, p2], axis=2)
-            tm.assert_panel4d_equal(result, p4d)
-
-            p1 = p4d.iloc[:, :, :, :2]
-            p2 = p4d.iloc[:, :, :, 2:]
-
-            result = concat([p1, p2], axis=3)
-            tm.assert_panel4d_equal(result, p4d)
-
-    def test_panel4d_concat_mixed_type(self):
-        with catch_warnings(record=True):
-            p4d = tm.makePanel4D()
-
-            # if things are a bit misbehaved
-            p1 = p4d.iloc[:, :2, :, :2]
-            p2 = p4d.iloc[:, :, :, 2:]
-            p1['L5'] = 'baz'
-
-            result = concat([p1, p2], axis=3)
-
-            p2['L5'] = np.nan
-            expected = concat([p1, p2], axis=3)
-            expected = expected.loc[result.labels]
-
-            tm.assert_panel4d_equal(result, expected)
-
     def test_concat_series(self):
 
         ts = tm.makeTimeSeries()
@@ -2097,6 +2073,45 @@ bar2,12,13,14,15
         if PY2:
             expected = expected.sort_values()
         tm.assert_index_equal(result, expected)
+
+    def test_concat_datetime_timezone(self):
+        # GH 18523
+        idx1 = pd.date_range('2011-01-01', periods=3, freq='H',
+                             tz='Europe/Paris')
+        idx2 = pd.date_range(start=idx1[0], end=idx1[-1], freq='H')
+        df1 = pd.DataFrame({'a': [1, 2, 3]}, index=idx1)
+        df2 = pd.DataFrame({'b': [1, 2, 3]}, index=idx2)
+        result = pd.concat([df1, df2], axis=1)
+
+        exp_idx = DatetimeIndex(['2011-01-01 00:00:00+01:00',
+                                 '2011-01-01 01:00:00+01:00',
+                                 '2011-01-01 02:00:00+01:00'],
+                                freq='H'
+                                ).tz_localize('UTC').tz_convert('Europe/Paris')
+
+        expected = pd.DataFrame([[1, 1], [2, 2], [3, 3]],
+                                index=exp_idx, columns=['a', 'b'])
+
+        tm.assert_frame_equal(result, expected)
+
+        idx3 = pd.date_range('2011-01-01', periods=3,
+                             freq='H', tz='Asia/Tokyo')
+        df3 = pd.DataFrame({'b': [1, 2, 3]}, index=idx3)
+        result = pd.concat([df1, df3], axis=1)
+
+        exp_idx = DatetimeIndex(['2010-12-31 15:00:00+00:00',
+                                 '2010-12-31 16:00:00+00:00',
+                                 '2010-12-31 17:00:00+00:00',
+                                 '2010-12-31 23:00:00+00:00',
+                                 '2011-01-01 00:00:00+00:00',
+                                 '2011-01-01 01:00:00+00:00']
+                                ).tz_localize('UTC')
+
+        expected = pd.DataFrame([[np.nan, 1], [np.nan, 2], [np.nan, 3],
+                                 [1, np.nan], [2, np.nan], [3, np.nan]],
+                                index=exp_idx, columns=['a', 'b'])
+
+        tm.assert_frame_equal(result, expected)
 
 
 @pytest.mark.parametrize('pdt', [pd.Series, pd.DataFrame, pd.Panel])

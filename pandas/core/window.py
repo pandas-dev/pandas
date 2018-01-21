@@ -32,7 +32,7 @@ from pandas.core.dtypes.common import (
 
 from pandas.core.base import (PandasObject, SelectionMixin,
                               GroupByMixin)
-from pandas.core.common import _asarray_tuplesafe, _count_not_none
+import pandas.core.common as com
 import pandas._libs.window as _window
 
 from pandas import compat
@@ -253,8 +253,8 @@ class _Window(PandasObject, SelectionMixin):
         """
         wrap the results
 
-        Paramters
-        ---------
+        Parameters
+        ----------
         results : list of ndarrays
         blocks : list of blocks
         obj : conformed data (may be resampled)
@@ -403,7 +403,7 @@ class Window(_Window):
     3  NaN
     4  NaN
 
-    Same as above, but explicity set the min_periods
+    Same as above, but explicitly set the min_periods
 
     >>> df.rolling(2, min_periods=1).sum()
          B
@@ -508,7 +508,7 @@ class Window(_Window):
 
         window = self._get_window()
         if isinstance(window, (list, tuple, np.ndarray)):
-            return _asarray_tuplesafe(window).astype(float)
+            return com._asarray_tuplesafe(window).astype(float)
         elif is_integer(window):
             import scipy.signal as sig
 
@@ -1286,7 +1286,7 @@ class Expanding(_Rolling_and_Expanding):
 
     Parameters
     ----------
-    min_periods : int, default None
+    min_periods : int, default 1
         Minimum number of observations in window required to have a value
         (otherwise result is NA).
     center : boolean, default False
@@ -1908,33 +1908,33 @@ def _flex_binary_moment(arg1, arg2, f, pairwise=False):
         return _flex_binary_moment(arg2, arg1, f)
 
 
-def _get_center_of_mass(com, span, halflife, alpha):
-    valid_count = _count_not_none(com, span, halflife, alpha)
+def _get_center_of_mass(comass, span, halflife, alpha):
+    valid_count = com._count_not_none(comass, span, halflife, alpha)
     if valid_count > 1:
-        raise ValueError("com, span, halflife, and alpha "
+        raise ValueError("comass, span, halflife, and alpha "
                          "are mutually exclusive")
 
     # Convert to center of mass; domain checks ensure 0 < alpha <= 1
-    if com is not None:
-        if com < 0:
-            raise ValueError("com must satisfy: com >= 0")
+    if comass is not None:
+        if comass < 0:
+            raise ValueError("comass must satisfy: comass >= 0")
     elif span is not None:
         if span < 1:
             raise ValueError("span must satisfy: span >= 1")
-        com = (span - 1) / 2.
+        comass = (span - 1) / 2.
     elif halflife is not None:
         if halflife <= 0:
             raise ValueError("halflife must satisfy: halflife > 0")
         decay = 1 - np.exp(np.log(0.5) / halflife)
-        com = 1 / decay - 1
+        comass = 1 / decay - 1
     elif alpha is not None:
         if alpha <= 0 or alpha > 1:
             raise ValueError("alpha must satisfy: 0 < alpha <= 1")
-        com = (1.0 - alpha) / alpha
+        comass = (1.0 - alpha) / alpha
     else:
-        raise ValueError("Must pass one of com, span, halflife, or alpha")
+        raise ValueError("Must pass one of comass, span, halflife, or alpha")
 
-    return float(com)
+    return float(comass)
 
 
 def _offset(window, center):

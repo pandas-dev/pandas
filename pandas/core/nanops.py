@@ -20,7 +20,7 @@ from pandas.core.dtypes.common import (
 from pandas.core.dtypes.cast import _int64_max, maybe_upcast_putmask
 from pandas.core.dtypes.missing import isna, notna, na_value_for_dtype
 from pandas.core.config import get_option
-from pandas.core.common import _values_from_object
+import pandas.core.common as com
 
 _BOTTLENECK_INSTALLED = False
 _MIN_BOTTLENECK_VERSION = '1.0.0'
@@ -107,21 +107,14 @@ class bottleneck_switch(object):
                     if k not in kwds:
                         kwds[k] = v
             try:
-                if values.size == 0:
-
-                    # we either return np.nan or pd.NaT
-                    if is_numeric_dtype(values):
-                        values = values.astype('float64')
-                    fill_value = na_value_for_dtype(values.dtype)
-
-                    if values.ndim == 1:
-                        return fill_value
-                    else:
-                        result_shape = (values.shape[:axis] +
-                                        values.shape[axis + 1:])
-                        result = np.empty(result_shape, dtype=values.dtype)
-                        result.fill(fill_value)
-                        return result
+                if values.size == 0 and kwds.get('min_count') is None:
+                    # We are empty, returning NA for our type
+                    # Only applies for the default `min_count` of None
+                    # since that affects how empty arrays are handled.
+                    # TODO(GH-18976) update all the nanops methods to
+                    # correctly handle empty inputs and remove this check.
+                    # It *may* just be `var`
+                    return _na_for_min_count(values, axis)
 
                 if (_USE_BOTTLENECK and skipna and
                         _bn_ok_dtype(values.dtype, bn_name)):
@@ -212,7 +205,7 @@ def _get_values(values, skipna, fill_value=None, fill_value_typ=None,
     if necessary copy and mask using the specified fill_value
     copy = True will force the copy
     """
-    values = _values_from_object(values)
+    values = com._values_from_object(values)
     if isfinite:
         mask = _isfinite(values)
     else:
@@ -292,6 +285,36 @@ def _wrap_results(result, dtype):
     return result
 
 
+def _na_for_min_count(values, axis):
+    """Return the missing value for `values`
+
+    Parameters
+    ----------
+    values : ndarray
+    axis : int or None
+        axis for the reduction
+
+    Returns
+    -------
+    result : scalar or ndarray
+        For 1-D values, returns a scalar of the correct missing type.
+        For 2-D values, returns a 1-D array where each element is missing.
+    """
+    # we either return np.nan or pd.NaT
+    if is_numeric_dtype(values):
+        values = values.astype('float64')
+    fill_value = na_value_for_dtype(values.dtype)
+
+    if values.ndim == 1:
+        return fill_value
+    else:
+        result_shape = (values.shape[:axis] +
+                        values.shape[axis + 1:])
+        result = np.empty(result_shape, dtype=values.dtype)
+        result.fill(fill_value)
+        return result
+
+
 def nanany(values, axis=None, skipna=True):
     values, mask, dtype, _ = _get_values(values, skipna, False, copy=skipna)
     return values.any(axis)
@@ -304,7 +327,7 @@ def nanall(values, axis=None, skipna=True):
 
 @disallow('M8')
 @bottleneck_switch()
-def nansum(values, axis=None, skipna=True):
+def nansum(values, axis=None, skipna=True, min_count=0):
     values, mask, dtype, dtype_max = _get_values(values, skipna, 0)
     dtype_sum = dtype_max
     if is_float_dtype(dtype):
@@ -312,7 +335,7 @@ def nansum(values, axis=None, skipna=True):
     elif is_timedelta64_dtype(dtype):
         dtype_sum = np.float64
     the_sum = values.sum(axis, dtype=dtype_sum)
-    the_sum = _maybe_null_out(the_sum, axis, mask)
+    the_sum = _maybe_null_out(the_sum, axis, mask, min_count=min_count)
 
     return _wrap_results(the_sum, dtype)
 
@@ -418,7 +441,7 @@ def nanstd(values, axis=None, skipna=True, ddof=1):
 @bottleneck_switch(ddof=1)
 def nanvar(values, axis=None, skipna=True, ddof=1):
 
-    values = _values_from_object(values)
+    values = com._values_from_object(values)
     dtype = values.dtype
     mask = isna(values)
     if is_any_int_dtype(values):
@@ -527,7 +550,7 @@ def nanskew(values, axis=None, skipna=True):
 
     """
 
-    values = _values_from_object(values)
+    values = com._values_from_object(values)
     mask = isna(values)
     if not is_float_dtype(values.dtype):
         values = values.astype('f8')
@@ -585,7 +608,7 @@ def nankurt(values, axis=None, skipna=True):
     central moment.
 
     """
-    values = _values_from_object(values)
+    values = com._values_from_object(values)
     mask = isna(values)
     if not is_float_dtype(values.dtype):
         values = values.astype('f8')
@@ -645,13 +668,13 @@ def nankurt(values, axis=None, skipna=True):
 
 
 @disallow('M8', 'm8')
-def nanprod(values, axis=None, skipna=True):
+def nanprod(values, axis=None, skipna=True, min_count=0):
     mask = isna(values)
     if skipna and not is_any_int_dtype(values):
         values = values.copy()
         values[mask] = 1
     result = values.prod(axis)
-    return _maybe_null_out(result, axis, mask)
+    return _maybe_null_out(result, axis, mask, min_count=min_count)
 
 
 def _maybe_arg_null_out(result, axis, mask, skipna):
@@ -687,9 +710,9 @@ def _get_counts(mask, axis, dtype=float):
         return np.array(count, dtype=dtype)
 
 
-def _maybe_null_out(result, axis, mask):
+def _maybe_null_out(result, axis, mask, min_count=1):
     if axis is not None and getattr(result, 'ndim', False):
-        null_mask = (mask.shape[axis] - mask.sum(axis)) == 0
+        null_mask = (mask.shape[axis] - mask.sum(axis) - min_count) < 0
         if np.any(null_mask):
             if is_numeric_dtype(result):
                 if np.iscomplexobj(result):
@@ -702,7 +725,7 @@ def _maybe_null_out(result, axis, mask):
                 result[null_mask] = None
     elif result is not tslib.NaT:
         null_mask = mask.size - mask.sum()
-        if null_mask == 0:
+        if null_mask < min_count:
             result = np.nan
 
     return result

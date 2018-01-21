@@ -1,4 +1,4 @@
-from string import ascii_letters, digits
+from string import ascii_letters
 from itertools import product
 from functools import partial
 
@@ -16,32 +16,32 @@ class ApplyDictReturn(object):
     def setup(self):
         self.labels = np.arange(1000).repeat(10)
         self.data = Series(np.random.randn(len(self.labels)))
-        self.f = lambda x: {'first': x.values[0], 'last': x.values[(-1)]}
 
     def time_groupby_apply_dict_return(self):
-        self.data.groupby(self.labels).apply(self.f)
+        self.data.groupby(self.labels).apply(lambda x: {'first': x.values[0],
+                                                        'last': x.values[-1]})
 
 
 class Apply(object):
 
     goal_time = 0.2
 
-    def setup(self):
+    def setup_cache(self):
         N = 10**4
         labels = np.random.randint(0, 2000, size=N)
         labels2 = np.random.randint(0, 3, size=N)
-        self.df = DataFrame({'key': labels,
-                             'key2': labels2,
-                             'value1': np.random.randn(N),
-                             'value2': ['foo', 'bar', 'baz', 'qux'] * (N // 4),
-                             })
-        self.scalar_function = lambda x: 1
+        df = DataFrame({'key': labels,
+                        'key2': labels2,
+                        'value1': np.random.randn(N),
+                        'value2': ['foo', 'bar', 'baz', 'qux'] * (N // 4)
+                        })
+        return df
 
-    def time_scalar_function_multi_col(self):
-        self.df.groupby(['key', 'key2']).apply(self.scalar_function)
+    def time_scalar_function_multi_col(self, df):
+        df.groupby(['key', 'key2']).apply(lambda x: 1)
 
-    def time_scalar_function_single_col(self):
-        self.df.groupby('key').apply(self.scalar_function)
+    def time_scalar_function_single_col(self, df):
+        df.groupby('key').apply(lambda x: 1)
 
     @staticmethod
     def df_copy_function(g):
@@ -49,11 +49,11 @@ class Apply(object):
         g.name
         return g.copy()
 
-    def time_copy_function_multi_col(self):
-        self.df.groupby(['key', 'key2']).apply(self.df_copy_function)
+    def time_copy_function_multi_col(self, df):
+        df.groupby(['key', 'key2']).apply(self.df_copy_function)
 
-    def time_copy_overhead_single_col(self):
-        self.df.groupby('key').apply(self.df_copy_function)
+    def time_copy_overhead_single_col(self, df):
+        df.groupby('key').apply(self.df_copy_function)
 
 
 class Groups(object):
@@ -274,16 +274,13 @@ class GroupStrings(object):
     goal_time = 0.2
 
     def setup(self):
-        n = (5 * 7 * 11) * (1 << 9)
-        alpha = list(map(''.join, product((ascii_letters + digits), repeat=4)))
-        f = lambda k: np.repeat(np.random.choice(alpha, (n // k)), k)
-        self.df = DataFrame({'a': f(11),
-                             'b': f(7),
-                             'c': f(5),
-                             'd': f(1)})
+        n = 2 * 10**5
+        alpha = list(map(''.join, product(ascii_letters, repeat=4)))
+        data = np.random.choice(alpha, (n // 5, 4), replace=False)
+        data = np.repeat(data, 5, axis=0)
+        self.df = DataFrame(data, columns=list('abcd'))
         self.df['joe'] = (np.random.randn(len(self.df)) * 10).round(3)
-        i = np.random.permutation(len(self.df))
-        self.df = self.df.iloc[i].reset_index(drop=True)
+        self.df = self.df.sample(frac=1).reset_index(drop=True)
 
     def time_multi_columns(self):
         self.df.groupby(list('abcd')).max()
@@ -293,29 +290,29 @@ class MultiColumn(object):
 
     goal_time = 0.2
 
-    def setup(self):
+    def setup_cache(self):
         N = 10**5
         key1 = np.tile(np.arange(100, dtype=object), 1000)
         key2 = key1.copy()
         np.random.shuffle(key1)
         np.random.shuffle(key2)
-        self.df = DataFrame({'key1': key1,
-                             'key2': key2,
-                             'data1': np.random.randn(N),
-                             'data2': np.random.randn(N)})
-        self.f = lambda x: x.values.sum()
+        df = DataFrame({'key1': key1,
+                        'key2': key2,
+                        'data1': np.random.randn(N),
+                        'data2': np.random.randn(N)})
+        return df
 
-    def time_lambda_sum(self):
-        self.df.groupby(['key1', 'key2']).agg(self.f)
+    def time_lambda_sum(self, df):
+        df.groupby(['key1', 'key2']).agg(lambda x: x.values.sum())
 
-    def time_cython_sum(self):
-        self.df.groupby(['key1', 'key2']).sum()
+    def time_cython_sum(self, df):
+        df.groupby(['key1', 'key2']).sum()
 
-    def time_col_select_lambda_sum(self):
-        self.df.groupby(['key1', 'key2'])['data1'].agg(self.f)
+    def time_col_select_lambda_sum(self, df):
+        df.groupby(['key1', 'key2'])['data1'].agg(lambda x: x.values.sum())
 
-    def time_col_select_numpy_sum(self):
-        self.df.groupby(['key1', 'key2'])['data1'].agg(np.sum)
+    def time_col_select_numpy_sum(self, df):
+        df.groupby(['key1', 'key2'])['data1'].agg(np.sum)
 
 
 class Size(object):
@@ -353,10 +350,16 @@ class GroupByMethods(object):
 
     goal_time = 0.2
 
-    param_names = ['dtype', 'ngroups']
-    params = [['int', 'float'], [100, 10000]]
+    param_names = ['dtype', 'method']
+    params = [['int', 'float'],
+              ['all', 'any', 'count', 'cumcount', 'cummax', 'cummin',
+               'cumprod', 'cumsum', 'describe', 'first', 'head', 'last', 'mad',
+               'max', 'min', 'median', 'mean', 'nunique', 'pct_change', 'prod',
+               'rank', 'sem', 'shift', 'size', 'skew', 'std', 'sum', 'tail',
+               'unique', 'value_counts', 'var']]
 
-    def setup(self, dtype, ngroups):
+    def setup(self, dtype, method):
+        ngroups = 1000
         size = ngroups * 2
         rng = np.arange(ngroups)
         values = rng.take(np.random.randint(0, ngroups, size=size))
@@ -366,104 +369,11 @@ class GroupByMethods(object):
             key = np.concatenate([np.random.random(ngroups) * 0.1,
                                   np.random.random(ngroups) * 10.0])
 
-        self.df = DataFrame({'values': values,
-                             'key': key})
+        df = DataFrame({'values': values, 'key': key})
+        self.df_groupby_method = getattr(df.groupby('key')['values'], method)
 
-    def time_all(self, dtype, ngroups):
-        self.df.groupby('key')['values'].all()
-
-    def time_any(self, dtype, ngroups):
-        self.df.groupby('key')['values'].any()
-
-    def time_count(self, dtype, ngroups):
-        self.df.groupby('key')['values'].count()
-
-    def time_cumcount(self, dtype, ngroups):
-        self.df.groupby('key')['values'].cumcount()
-
-    def time_cummax(self, dtype, ngroups):
-        self.df.groupby('key')['values'].cummax()
-
-    def time_cummin(self, dtype, ngroups):
-        self.df.groupby('key')['values'].cummin()
-
-    def time_cumprod(self, dtype, ngroups):
-        self.df.groupby('key')['values'].cumprod()
-
-    def time_cumsum(self, dtype, ngroups):
-        self.df.groupby('key')['values'].cumsum()
-
-    def time_describe(self, dtype, ngroups):
-        self.df.groupby('key')['values'].describe()
-
-    def time_diff(self, dtype, ngroups):
-        self.df.groupby('key')['values'].diff()
-
-    def time_first(self, dtype, ngroups):
-        self.df.groupby('key')['values'].first()
-
-    def time_head(self, dtype, ngroups):
-        self.df.groupby('key')['values'].head()
-
-    def time_last(self, dtype, ngroups):
-        self.df.groupby('key')['values'].last()
-
-    def time_mad(self, dtype, ngroups):
-        self.df.groupby('key')['values'].mad()
-
-    def time_max(self, dtype, ngroups):
-        self.df.groupby('key')['values'].max()
-
-    def time_mean(self, dtype, ngroups):
-        self.df.groupby('key')['values'].mean()
-
-    def time_median(self, dtype, ngroups):
-        self.df.groupby('key')['values'].median()
-
-    def time_min(self, dtype, ngroups):
-        self.df.groupby('key')['values'].min()
-
-    def time_nunique(self, dtype, ngroups):
-        self.df.groupby('key')['values'].nunique()
-
-    def time_pct_change(self, dtype, ngroups):
-        self.df.groupby('key')['values'].pct_change()
-
-    def time_prod(self, dtype, ngroups):
-        self.df.groupby('key')['values'].prod()
-
-    def time_rank(self, dtype, ngroups):
-        self.df.groupby('key')['values'].rank()
-
-    def time_sem(self, dtype, ngroups):
-        self.df.groupby('key')['values'].sem()
-
-    def time_shift(self, dtype, ngroups):
-        self.df.groupby('key')['values'].shift()
-
-    def time_size(self, dtype, ngroups):
-        self.df.groupby('key')['values'].size()
-
-    def time_skew(self, dtype, ngroups):
-        self.df.groupby('key')['values'].skew()
-
-    def time_std(self, dtype, ngroups):
-        self.df.groupby('key')['values'].std()
-
-    def time_sum(self, dtype, ngroups):
-        self.df.groupby('key')['values'].sum()
-
-    def time_tail(self, dtype, ngroups):
-        self.df.groupby('key')['values'].tail()
-
-    def time_unique(self, dtype, ngroups):
-        self.df.groupby('key')['values'].unique()
-
-    def time_value_counts(self, dtype, ngroups):
-        self.df.groupby('key')['values'].value_counts()
-
-    def time_var(self, dtype, ngroups):
-        self.df.groupby('key')['values'].var()
+    def time_method(self, dtype, method):
+        self.df_groupby_method()
 
 
 class Float32(object):
@@ -582,7 +492,6 @@ class Transform(object):
         arr[2::10000, 2] = np.nan
         data = DataFrame(arr, index=index, columns=['col1', 'col20', 'col3'])
         self.df = data
-        self.f_max = lambda x: max(x)
 
         n = 20000
         self.df1 = DataFrame(np.random.randint(1, n, (n, 3)),
@@ -596,7 +505,7 @@ class Transform(object):
         self.df4['jim'] = self.df4['joe']
 
     def time_transform_lambda_max(self):
-        self.df.groupby(level='lev1').transform(self.f_max)
+        self.df.groupby(level='lev1').transform(lambda x: max(x))
 
     def time_transform_ufunc_max(self):
         self.df.groupby(level='lev1').transform(np.max)

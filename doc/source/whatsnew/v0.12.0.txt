@@ -38,7 +38,7 @@ API changes
     * ``to_clipboard``
 
 
-  - Fix modulo and integer division on Series,DataFrames to act similary to ``float`` dtypes to return
+  - Fix modulo and integer division on Series,DataFrames to act similarly to ``float`` dtypes to return
     ``np.nan`` or ``np.inf`` as appropriate (:issue:`3590`). This correct a numpy bug that treats ``integer``
     and ``float`` dtypes differently.
 
@@ -154,7 +154,7 @@ API changes
 
   - The behavior of ``datetime64`` dtypes has changed with respect to certain
     so-called reduction operations (:issue:`3726`). The following operations now
-    raise a ``TypeError`` when perfomed on a ``Series`` and return an *empty*
+    raise a ``TypeError`` when performed on a ``Series`` and return an *empty*
     ``Series`` when performed on a ``DataFrame`` similar to performing these
     operations on, for example, a ``DataFrame`` of ``slice`` objects:
 
@@ -206,11 +206,11 @@ I/O Enhancements
       :ref:`See the installation docs<install.optional_dependencies>`
 
   - Added module for reading and writing Stata files: ``pandas.io.stata`` (:issue:`1512`)
-    accessable via ``read_stata`` top-level function for reading,
+    accessible via ``read_stata`` top-level function for reading,
     and ``to_stata`` DataFrame method for writing, :ref:`See the docs<io.stata>`
 
   - Added module for reading and writing json format files: ``pandas.io.json``
-    accessable via ``read_json`` top-level function for reading,
+    accessible via ``read_json`` top-level function for reading,
     and ``to_json`` DataFrame method for writing, :ref:`See the docs<io.json>`
     various issues (:issue:`1226`, :issue:`3804`, :issue:`3876`, :issue:`3867`, :issue:`1305`)
 
@@ -220,7 +220,7 @@ I/O Enhancements
       list of the rows from which to read the index.
 
     - The option, ``tupleize_cols`` can now be specified in both ``to_csv`` and
-      ``read_csv``, to provide compatiblity for the pre 0.12 behavior of
+      ``read_csv``, to provide compatibility for the pre 0.12 behavior of
       writing and reading ``MultIndex`` columns via a list of tuples. The default in
       0.12 is to write lists of tuples and *not* interpret list of tuples as a
       ``MultiIndex`` column.

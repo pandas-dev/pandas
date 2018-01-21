@@ -38,7 +38,8 @@ def pivot_table(data, values=None, index=None, columns=None, aggfunc='mean',
                                 fill_value=fill_value, aggfunc=func,
                                 margins=margins, margins_name=margins_name)
             pieces.append(table)
-            keys.append(func.__name__)
+            keys.append(getattr(func, '__name__', func))
+
         return concat(pieces, keys=keys, axis=1)
 
     keys = index + columns
@@ -74,7 +75,7 @@ def pivot_table(data, values=None, index=None, columns=None, aggfunc='mean',
         for key in keys:
             try:
                 values = values.drop(key)
-            except (TypeError, ValueError):
+            except (TypeError, ValueError, KeyError):
                 pass
         values = list(values)
 

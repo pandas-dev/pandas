@@ -10,7 +10,6 @@ import warnings
 
 from pandas.core.dtypes.missing import isna, notna
 from pandas.core.dtypes.common import is_scalar
-from pandas.core.common import _values_from_object, _maybe_match_name
 
 from pandas.compat.numpy import function as nv
 from pandas.core.index import Index, _ensure_index, InvalidIndexError
@@ -80,7 +79,7 @@ def _arith_method(op, name, str_rep=None, default_axis=None, fill_zeros=None,
 def _sparse_series_op(left, right, op, name):
     left, right = left.align(right, join='outer', copy=False)
     new_index = left.index
-    new_name = _maybe_match_name(left, right)
+    new_name = com._maybe_match_name(left, right)
 
     result = _sparse_array_op(left.values, right.values, op, name,
                               series=True)
@@ -255,9 +254,10 @@ class SparseSeries(Series):
     @classmethod
     def from_array(cls, arr, index=None, name=None, copy=False,
                    fill_value=None, fastpath=False):
-        """
-        DEPRECATED: use the pd.SparseSeries(..) constructor instead.
+        """Construct SparseSeries from array.
 
+        .. deprecated:: 0.23.0
+            Use the pd.SparseSeries(..) constructor instead.
         """
         warnings.warn("'from_array' is deprecated and will be removed in a "
                       "future version. Please use the pd.SparseSeries(..) "
@@ -422,7 +422,7 @@ class SparseSeries(Series):
             # Could not hash item, must be array-like?
             pass
 
-        key = _values_from_object(key)
+        key = com._values_from_object(key)
         if self.index.nlevels > 1 and isinstance(key, tuple):
             # to handle MultiIndex labels
             key = self.index.get_loc(key)
@@ -571,8 +571,9 @@ class SparseSeries(Series):
 
         Parameters
         ----------
-        sparse_only: bool, default False
-            DEPRECATED: this argument will be removed in a future version.
+        sparse_only : bool, default False
+            .. deprecated:: 0.20.0
+                This argument will be removed in a future version.
 
             If True, return just the non-sparse values, or the dense version
             of `self.values` if False.
@@ -679,7 +680,7 @@ class SparseSeries(Series):
             new_array, index=self.index,
             sparse_index=new_array.sp_index).__finalize__(self)
 
-    @Appender(generic._shared_docs['isna'])
+    @Appender(generic._shared_docs['isna'] % _shared_doc_kwargs)
     def isna(self):
         arr = SparseArray(isna(self.values.sp_values),
                           sparse_index=self.values.sp_index,
@@ -687,7 +688,7 @@ class SparseSeries(Series):
         return self._constructor(arr, index=self.index).__finalize__(self)
     isnull = isna
 
-    @Appender(generic._shared_docs['notna'])
+    @Appender(generic._shared_docs['notna'] % _shared_doc_kwargs)
     def notna(self):
         arr = SparseArray(notna(self.values.sp_values),
                           sparse_index=self.values.sp_index,
@@ -701,7 +702,7 @@ class SparseSeries(Series):
         """
         # TODO: make more efficient
         axis = self._get_axis_number(axis or 0)
-        dense_valid = self.to_dense().valid()
+        dense_valid = self.to_dense().dropna()
         if inplace:
             raise NotImplementedError("Cannot perform inplace dropna"
                                       " operations on a SparseSeries")

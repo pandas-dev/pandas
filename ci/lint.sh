@@ -24,7 +24,7 @@ if [ "$LINT" ]; then
     echo "Linting setup.py DONE"
 
     echo "Linting asv_bench/benchmarks/"
-    flake8 asv_bench/benchmarks/  --exclude=asv_bench/benchmarks/[ghijoprs]*.py --ignore=F811
+    flake8 asv_bench/benchmarks/  --exclude=asv_bench/benchmarks/*.py --ignore=F811
     if [ $? -ne "0" ]; then
         RET=1
     fi
@@ -91,13 +91,22 @@ if [ "$LINT" ]; then
     fi
     echo "Check for invalid testing DONE"
 
+    # Check for imports from pandas.core.common instead
+    # of `import pandas.core.common as com`
+    echo "Check for non-standard imports"
+    grep -R --include="*.py*" -E "from pandas.core.common import " pandas
+    if [ $? = "0" ]; then
+        RET=1
+    fi
+    echo "Check for non-standard imports DONE"
+
     echo "Check for use of lists instead of generators in built-in Python functions"
 
     # Example: Avoid `any([i for i in some_iterator])` in favor of `any(i for i in some_iterator)`
     #
     # Check the following functions:
     # any(), all(), sum(), max(), min(), list(), dict(), set(), frozenset(), tuple(), str.join()
-    grep -R --include="*.py*" -E "[^_](any|all|sum|max|min|list|dict|set|frozenset|tuple|join)\(\[.* for .* in .*\]\)" *
+    grep -R --include="*.py*" -E "[^_](any|all|sum|max|min|list|dict|set|frozenset|tuple|join)\(\[.* for .* in .*\]\)" pandas
 
     if [ $? = "0" ]; then
         RET=1
@@ -117,6 +126,14 @@ if [ "$LINT" ]; then
         fi
     done
     echo "Check for incorrect sphinx directives DONE"
+
+    echo "Check for deprecated messages without sphinx directive"
+    grep -R --include="*.py" --include="*.pyx" -E "(DEPRECATED|DEPRECATE|Deprecated)(:|,|\.)" pandas
+
+    if [ $? = "0" ]; then
+        RET=1
+    fi
+    echo "Check for deprecated messages without sphinx directive DONE"
 else
     echo "NOT Linting"
 fi

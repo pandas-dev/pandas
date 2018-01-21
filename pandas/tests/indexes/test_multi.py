@@ -16,8 +16,9 @@ from pandas import (CategoricalIndex, DataFrame, Index, MultiIndex,
                     compat, date_range, period_range)
 from pandas.compat import PY3, long, lrange, lzip, range, u, PYPY
 from pandas.errors import PerformanceWarning, UnsortedIndexError
+from pandas.core.dtypes.dtypes import CategoricalDtype
 from pandas.core.indexes.base import InvalidIndexError
-from pandas._libs import lib
+from pandas.core.dtypes.cast import construct_1d_object_array_from_listlike
 from pandas._libs.lib import Timestamp
 
 import pandas.util.testing as tm
@@ -326,6 +327,21 @@ class TestMultiIndex(Base):
         assert_matching(ind2.labels, new_labels)
         assert_matching(self.index.labels, labels)
 
+        # label changing for levels of different magnitude of categories
+        ind = pd.MultiIndex.from_tuples([(0, i) for i in range(130)])
+        new_labels = range(129, -1, -1)
+        expected = pd.MultiIndex.from_tuples(
+            [(0, i) for i in new_labels])
+
+        # [w/o mutation]
+        result = ind.set_labels(labels=new_labels, level=1)
+        assert result.equals(expected)
+
+        # [w/ mutation]
+        result = ind.copy()
+        result.set_labels(labels=new_labels, level=1, inplace=True)
+        assert result.equals(expected)
+
     def test_set_levels_labels_names_bad_input(self):
         levels, labels = self.index.levels, self.index.labels
         names = self.index.names
@@ -474,10 +490,10 @@ class TestMultiIndex(Base):
             columns=['one', 'two', 'three', 'four'],
             index=idx)
         df = df.sort_index()
-        assert df.is_copy is None
+        assert df._is_copy is None
         assert df.index.names == ('Name', 'Number')
         df.at[('grethe', '4'), 'one'] = 99.34
-        assert df.is_copy is None
+        assert df._is_copy is None
         assert df.index.names == ('Name', 'Number')
 
     def test_copy_names(self):
@@ -535,15 +551,6 @@ class TestMultiIndex(Base):
         level_names = [level.name for level in index.levels]
         assert ind_names == level_names
 
-    def test_reference_duplicate_name(self):
-        idx = MultiIndex.from_tuples(
-            [('a', 'b'), ('c', 'd')], names=['x', 'x'])
-        assert idx._reference_duplicate_name('x')
-
-        idx = MultiIndex.from_tuples(
-            [('a', 'b'), ('c', 'd')], names=['x', 'y'])
-        assert not idx._reference_duplicate_name('x')
-
     def test_astype(self):
         expected = self.index.copy()
         actual = self.index.astype('O')
@@ -553,6 +560,18 @@ class TestMultiIndex(Base):
 
         with tm.assert_raises_regex(TypeError, "^Setting.*dtype.*object"):
             self.index.astype(np.dtype(int))
+
+    @pytest.mark.parametrize('ordered', [True, False])
+    def test_astype_category(self, ordered):
+        # GH 18630
+        msg = '> 1 ndim Categorical are not supported at this time'
+        with tm.assert_raises_regex(NotImplementedError, msg):
+            self.index.astype(CategoricalDtype(ordered=ordered))
+
+        if ordered is False:
+            # dtype='category' defaults to ordered=False, so only test once
+            with tm.assert_raises_regex(NotImplementedError, msg):
+                self.index.astype('category')
 
     def test_constructor_single_level(self):
         result = MultiIndex(levels=[['foo', 'bar', 'baz', 'qux']],
@@ -595,6 +614,23 @@ class TestMultiIndex(Base):
 
         with tm.assert_raises_regex(ValueError, label_error):
             self.index.copy().set_labels([[0, 0, 0, 0], [0, 0]])
+
+    @pytest.mark.parametrize('names', [['a', 'b', 'a'], [1, 1, 2],
+                                       [1, 'a', 1]])
+    def test_duplicate_level_names(self, names):
+        # GH18872
+        pytest.raises(ValueError, pd.MultiIndex.from_product,
+                      [[0, 1]] * 3, names=names)
+
+        # With .rename()
+        mi = pd.MultiIndex.from_product([[0, 1]] * 3)
+        tm.assert_raises_regex(ValueError, "Duplicated level name:",
+                               mi.rename, names)
+
+        # With .rename(., level=)
+        mi.rename(names[0], level=1, inplace=True)
+        tm.assert_raises_regex(ValueError, "Duplicated level name:",
+                               mi.rename, names[:2], level=[0, 2])
 
     def assert_multiindex_copied(self, copy, original):
         # Levels should be (at least, shallow copied)
@@ -653,11 +689,6 @@ class TestMultiIndex(Base):
         # and copies shouldn't change original
         shallow_copy.names = [name + "c" for name in shallow_copy.names]
         self.check_level_names(self.index, new_names)
-
-    def test_duplicate_names(self):
-        self.index.names = ['foo', 'foo']
-        tm.assert_raises_regex(KeyError, 'Level foo not found',
-                               self.index._get_level_number, 'foo')
 
     def test_get_level_number_integer(self):
         self.index.names = [1, 0]
@@ -900,7 +931,7 @@ class TestMultiIndex(Base):
     def test_from_product_datetimeindex(self):
         dt_index = date_range('2000-01-01', periods=2)
         mi = pd.MultiIndex.from_product([[1, 2], dt_index])
-        etalon = lib.list_to_object_array([(1, pd.Timestamp(
+        etalon = construct_1d_object_array_from_listlike([(1, pd.Timestamp(
             '2000-01-01')), (1, pd.Timestamp('2000-01-02')), (2, pd.Timestamp(
                 '2000-01-01')), (2, pd.Timestamp('2000-01-02'))])
         tm.assert_numpy_array_equal(mi.values, etalon)
@@ -925,11 +956,11 @@ class TestMultiIndex(Base):
                   (1, pd.Timestamp('2000-01-04')),
                   (2, pd.Timestamp('2000-01-02')),
                   (3, pd.Timestamp('2000-01-03'))]
-        mi = pd.MultiIndex.from_tuples(tuples)
-        tm.assert_numpy_array_equal(mi.values,
-                                    lib.list_to_object_array(tuples))
+        result = pd.MultiIndex.from_tuples(tuples)
+        expected = construct_1d_object_array_from_listlike(tuples)
+        tm.assert_numpy_array_equal(result.values, expected)
         # Check that code branches for boxed values produce identical results
-        tm.assert_numpy_array_equal(mi.values[:4], mi[:4].values)
+        tm.assert_numpy_array_equal(result.values[:4], result[:4].values)
 
     def test_append(self):
         result = self.index[:3].append(self.index[3:])
@@ -997,8 +1028,8 @@ class TestMultiIndex(Base):
         exp = CategoricalIndex([1, 2, 3, 1, 2, 3])
         tm.assert_index_equal(index.get_level_values(1), exp)
 
-    @pytest.mark.xfail(reason='GH 17924 (returns Int64Index with float data)')
     def test_get_level_values_int_with_na(self):
+        # GH 17924
         arrays = [['a', 'b', 'b'], [1, np.nan, 2]]
         index = pd.MultiIndex.from_arrays(arrays)
         result = index.get_level_values(1)
@@ -1024,14 +1055,27 @@ class TestMultiIndex(Base):
 
         arrays = [['a', 'b', 'b'], pd.DatetimeIndex([0, 1, pd.NaT])]
         index = pd.MultiIndex.from_arrays(arrays)
-        values = index.get_level_values(1)
+        result = index.get_level_values(1)
         expected = pd.DatetimeIndex([0, 1, pd.NaT])
-        tm.assert_index_equal(values, expected)
+        tm.assert_index_equal(result, expected)
 
         arrays = [[], []]
         index = pd.MultiIndex.from_arrays(arrays)
-        values = index.get_level_values(0)
-        assert values.shape == (0, )
+        result = index.get_level_values(0)
+        expected = pd.Index([], dtype=object)
+        tm.assert_index_equal(result, expected)
+
+    def test_get_level_values_all_na(self):
+        # GH 17924 when level entirely consists of nan
+        arrays = [[np.nan, np.nan, np.nan], ['a', np.nan, 1]]
+        index = pd.MultiIndex.from_arrays(arrays)
+        result = index.get_level_values(0)
+        expected = pd.Index([np.nan, np.nan, np.nan], dtype=np.float64)
+        tm.assert_index_equal(result, expected)
+
+        result = index.get_level_values(1)
+        expected = pd.Index(['a', np.nan, 1], dtype=object)
+        tm.assert_index_equal(result, expected)
 
     def test_reorder_levels(self):
         # this blows up

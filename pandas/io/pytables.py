@@ -24,7 +24,7 @@ from pandas.core.dtypes.common import (
 from pandas.core.dtypes.missing import array_equivalent
 
 import numpy as np
-from pandas import (Series, DataFrame, Panel, Panel4D, Index,
+from pandas import (Series, DataFrame, Panel, Index,
                     MultiIndex, Int64Index, isna, concat, to_datetime,
                     SparseSeries, SparseDataFrame, PeriodIndex,
                     DatetimeIndex, TimedeltaIndex)
@@ -34,9 +34,10 @@ from pandas.core.sparse.array import BlockIndex, IntIndex
 from pandas.core.base import StringMixin
 from pandas.io.formats.printing import adjoin, pprint_thing
 from pandas.errors import PerformanceWarning
-from pandas.core.common import _asarray_tuplesafe, _all_none
+import pandas.core.common as com
 from pandas.core.algorithms import match, unique
-from pandas.core.categorical import Categorical, _factorize_from_iterables
+from pandas.core.arrays.categorical import (Categorical,
+                                            _factorize_from_iterables)
 from pandas.core.internals import (BlockManager, make_block,
                                    _block2d_to_blocknd,
                                    _factor_indexer, _block_shape)
@@ -97,7 +98,7 @@ def _ensure_term(where, scope_level):
     create the terms here with a frame_level=2 (we are 2 levels down)
     """
 
-    # only consider list/tuple here as an ndarray is automaticaly a coordinate
+    # only consider list/tuple here as an ndarray is automatically a coordinate
     # list
     level = scope_level + 1
     if isinstance(where, (list, tuple)):
@@ -180,7 +181,6 @@ _TYPE_MAP = {
     DataFrame: u('frame'),
     SparseDataFrame: u('sparse_frame'),
     Panel: u('wide'),
-    Panel4D: u('ndim'),
 }
 
 # storer class map
@@ -203,7 +203,6 @@ _TABLE_MAP = {
     u('appendable_frame'): 'AppendableFrameTable',
     u('appendable_multiframe'): 'AppendableMultiFrameTable',
     u('appendable_panel'): 'AppendablePanelTable',
-    u('appendable_ndim'): 'AppendableNDimTable',
     u('worm'): 'WORMTable',
     u('legacy_frame'): 'LegacyFrameTable',
     u('legacy_panel'): 'LegacyPanelTable',
@@ -212,8 +211,7 @@ _TABLE_MAP = {
 # axes map
 _AXES_MAP = {
     DataFrame: [0],
-    Panel: [1, 2],
-    Panel4D: [1, 2, 3],
+    Panel: [1, 2]
 }
 
 # register our configuration options
@@ -301,7 +299,7 @@ def read_hdf(path_or_buf, key=None, mode='r', **kwargs):
             contains a single pandas object.
         mode : string, {'r', 'r+', 'a'}, default 'r'. Mode to use when opening
             the file. Ignored if path_or_buf is a pd.HDFStore.
-        where : list of Term (or convertable) objects, optional
+        where : list of Term (or convertible) objects, optional
         start : optional, integer (defaults to None), row number to start
             selection
         stop  : optional, integer (defaults to None), row number to stop
@@ -498,7 +496,7 @@ class HDFStore(StringMixin):
                              (type(self).__name__, name))
 
     def __contains__(self, key):
-        """ check for existance of this key
+        """ check for existence of this key
               can match the exact pathname or the pathnm w/o the leading '/'
               """
         node = self.get_node(key)
@@ -679,7 +677,7 @@ class HDFStore(StringMixin):
         Parameters
         ----------
         key : object
-        where : list of Term (or convertable) objects, optional
+        where : list of Term (or convertible) objects, optional
         start : integer (defaults to None), row number to start selection
         stop  : integer (defaults to None), row number to stop selection
         columns : a list of columns that if not None, will limit the return
@@ -724,7 +722,7 @@ class HDFStore(StringMixin):
         Parameters
         ----------
         key : object
-        where : list of Term (or convertable) objects, optional
+        where : list of Term (or convertible) objects, optional
         start : integer (defaults to None), row number to start selection
         stop  : integer (defaults to None), row number to stop selection
         """
@@ -873,7 +871,7 @@ class HDFStore(StringMixin):
         ----------
         key : string
             Node to remove or delete rows from
-        where : list of Term (or convertable) objects, optional
+        where : list of Term (or convertible) objects, optional
         start : integer (defaults to None), row number to start selection
         stop  : integer (defaults to None), row number to stop selection
 
@@ -905,7 +903,7 @@ class HDFStore(StringMixin):
             raise KeyError('No object named %s in the file' % key)
 
         # remove the node
-        if _all_none(where, start, stop):
+        if com._all_none(where, start, stop):
             s.group._f_remove(recursive=True)
 
         # delete from the table
@@ -924,7 +922,7 @@ class HDFStore(StringMixin):
         Parameters
         ----------
         key : object
-        value : {Series, DataFrame, Panel, Panel4D}
+        value : {Series, DataFrame, Panel}
         format: 'table' is the default
             table(t) : table format
                        Write as a PyTables Table structure which may perform
@@ -1250,7 +1248,7 @@ class HDFStore(StringMixin):
         # existing node (and must be a table)
         if tt is None:
 
-            # if we are a writer, determin the tt
+            # if we are a writer, determine the tt
             if value is not None:
 
                 if pt == u('series_table'):
@@ -1370,7 +1368,7 @@ class TableIterator(object):
         ----------
 
         store : the reference store
-        s     : the refered storer
+        s     : the referred storer
         func  : the function to execute the query
         where : the where of the query
         nrows : the rows to iterate on
@@ -1792,7 +1790,7 @@ class DataCol(IndexCol):
         # name values_0
         try:
             if version[0] == 0 and version[1] <= 10 and version[2] == 0:
-                m = re.search("values_block_(\d+)", name)
+                m = re.search(r"values_block_(\d+)", name)
                 if m:
                     name = "values_%s" % m.groups()[0]
         except:
@@ -2370,7 +2368,7 @@ class Fixed(StringMixin):
         support fully deleting the node in its entirety (only) - where
         specification must be None
         """
-        if _all_none(where, start, stop):
+        if com._all_none(where, start, stop):
             self._handle.remove_node(self.group, recursive=True)
             return None
 
@@ -3846,7 +3844,7 @@ class LegacyTable(Table):
                 tuple_index = long_index.values
 
                 unique_tuples = lib.fast_unique(tuple_index)
-                unique_tuples = _asarray_tuplesafe(unique_tuples)
+                unique_tuples = com._asarray_tuplesafe(unique_tuples)
 
                 indexer = match(unique_tuples, tuple_index)
                 indexer = _ensure_platform_int(indexer)
@@ -4297,7 +4295,7 @@ class AppendableMultiFrameTable(AppendableFrameTable):
     table_type = u('appendable_multiframe')
     obj_type = DataFrame
     ndim = 2
-    _re_levels = re.compile("^level_\d+$")
+    _re_levels = re.compile(r"^level_\d+$")
 
     @property
     def table_type_short(self):
@@ -4344,14 +4342,6 @@ class AppendablePanelTable(AppendableTable):
     @property
     def is_transposed(self):
         return self.data_orientation != tuple(range(self.ndim))
-
-
-class AppendableNDimTable(AppendablePanelTable):
-
-    """ suppor the new appendable table formats """
-    table_type = u('appendable_ndim')
-    ndim = 4
-    obj_type = Panel4D
 
 
 def _reindex_axis(obj, axis, labels, other=None):
@@ -4653,7 +4643,7 @@ class Selection(object):
     Parameters
     ----------
     table : a Table object
-    where : list of Terms (or convertable to)
+    where : list of Terms (or convertible to)
     start, stop: indicies to start and/or stop selection
 
     """
@@ -4718,7 +4708,7 @@ class Selection(object):
             raise ValueError(
                 "The passed where expression: {0}\n"
                 "            contains an invalid variable reference\n"
-                "            all of the variable refrences must be a "
+                "            all of the variable references must be a "
                 "reference to\n"
                 "            an axis (e.g. 'index' or 'columns'), or a "
                 "data_column\n"

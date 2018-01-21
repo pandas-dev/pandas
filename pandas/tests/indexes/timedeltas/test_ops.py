@@ -114,7 +114,7 @@ class TestTimedeltaIndexOps(Ops):
         tm.assert_index_equal(td.round(freq='H'), expected_rng)
         assert elt.round(freq='H') == expected_elt
 
-        msg = pd.tseries.frequencies._INVALID_FREQ_ERROR
+        msg = pd._libs.tslibs.frequencies._INVALID_FREQ_ERROR
         with tm.assert_raises_regex(ValueError, msg):
             td.round(freq='foo')
         with tm.assert_raises_regex(ValueError, msg):
@@ -211,33 +211,6 @@ dtype: timedelta64[ns]"""
                                  [exp1, exp2, exp3, exp4, exp5]):
             result = idx.summary()
             assert result == expected
-
-    def test_comp_nat(self):
-        left = pd.TimedeltaIndex([pd.Timedelta('1 days'), pd.NaT,
-                                  pd.Timedelta('3 days')])
-        right = pd.TimedeltaIndex([pd.NaT, pd.NaT, pd.Timedelta('3 days')])
-
-        for lhs, rhs in [(left, right),
-                         (left.astype(object), right.astype(object))]:
-            result = rhs == lhs
-            expected = np.array([False, False, True])
-            tm.assert_numpy_array_equal(result, expected)
-
-            result = rhs != lhs
-            expected = np.array([True, True, False])
-            tm.assert_numpy_array_equal(result, expected)
-
-            expected = np.array([False, False, False])
-            tm.assert_numpy_array_equal(lhs == pd.NaT, expected)
-            tm.assert_numpy_array_equal(pd.NaT == rhs, expected)
-
-            expected = np.array([True, True, True])
-            tm.assert_numpy_array_equal(lhs != pd.NaT, expected)
-            tm.assert_numpy_array_equal(pd.NaT != lhs, expected)
-
-            expected = np.array([False, False, False])
-            tm.assert_numpy_array_equal(lhs < pd.NaT, expected)
-            tm.assert_numpy_array_equal(pd.NaT > lhs, expected)
 
     def test_value_counts_unique(self):
         # GH 7735
@@ -493,23 +466,6 @@ dtype: timedelta64[ns]"""
 class TestTimedeltas(object):
     _multiprocess_can_split_ = True
 
-    def test_ops_error_str(self):
-        # GH 13624
-        tdi = TimedeltaIndex(['1 day', '2 days'])
-
-        for l, r in [(tdi, 'a'), ('a', tdi)]:
-            with pytest.raises(TypeError):
-                l + r
-
-            with pytest.raises(TypeError):
-                l > r
-
-            with pytest.raises(TypeError):
-                l == r
-
-            with pytest.raises(TypeError):
-                l != r
-
     def test_timedelta_ops(self):
         # GH4984
         # make sure ops return Timedelta
@@ -564,18 +520,3 @@ class TestTimedeltas(object):
         s = Series([Timestamp('2015-02-03'), Timestamp('2015-02-07'),
                     Timestamp('2015-02-15')])
         assert s.diff().median() == timedelta(days=6)
-
-    def test_compare_timedelta_series(self):
-        # regresssion test for GH5963
-        s = pd.Series([timedelta(days=1), timedelta(days=2)])
-        actual = s > timedelta(days=1)
-        expected = pd.Series([False, True])
-        tm.assert_series_equal(actual, expected)
-
-    def test_compare_timedelta_ndarray(self):
-        # GH11835
-        periods = [Timedelta('0 days 01:00:00'), Timedelta('0 days 01:00:00')]
-        arr = np.array(periods)
-        result = arr[0] > arr
-        expected = np.array([False, False])
-        tm.assert_numpy_array_equal(result, expected)

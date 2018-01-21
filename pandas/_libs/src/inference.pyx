@@ -5,7 +5,7 @@ cimport cython
 from tslibs.nattype import NaT
 from tslibs.conversion cimport convert_to_tsobject
 from tslibs.timedeltas cimport convert_to_timedelta64
-from tslibs.timezones cimport get_timezone
+from tslibs.timezones cimport get_timezone, tz_compare
 from datetime import datetime, timedelta
 iNaT = util.get_nat()
 
@@ -45,6 +45,8 @@ cpdef bint is_period(object val):
     """ Return a boolean if this is a Period object """
     return util.is_period_object(val)
 
+cdef inline bint is_offset(object val):
+    return getattr(val, '_typ', '_typ') == 'dateoffset'
 
 _TYPE_MAP = {
     'categorical': 'categorical',
@@ -349,7 +351,9 @@ def infer_dtype(object value, bint skipna=False):
     else:
         if not isinstance(value, list):
             value = list(value)
-        values = list_to_object_array(value)
+        from pandas.core.dtypes.cast import (
+            construct_1d_object_array_from_listlike)
+        values = construct_1d_object_array_from_listlike(value)
 
     values = getattr(values, 'values', values)
     val = _try_infer_map(values)
@@ -903,7 +907,7 @@ cpdef bint is_datetime_with_singletz_array(ndarray values):
                 val = values[j]
                 if val is not NaT:
                     tz = getattr(val, 'tzinfo', None)
-                    if base_tz != tz and base_tz != get_timezone(tz):
+                    if not tz_compare(base_tz, tz):
                         return False
             break
 
@@ -1655,74 +1659,3 @@ def fast_multiget(dict mapping, ndarray keys, default=np.nan):
             output[i] = default
 
     return maybe_convert_objects(output)
-
-
-def downcast_int64(ndarray[int64_t] arr, object na_values,
-                   bint use_unsigned=0):
-    cdef:
-        Py_ssize_t i, n = len(arr)
-        int64_t mx = INT64_MIN + 1, mn = INT64_MAX
-        int64_t NA = na_values[np.int64]
-        int64_t val
-        ndarray[uint8_t] mask
-        int na_count = 0
-
-    _mask = np.empty(n, dtype=bool)
-    mask = _mask.view(np.uint8)
-
-    for i in range(n):
-        val = arr[i]
-
-        if val == NA:
-            mask[i] = 1
-            na_count += 1
-            continue
-
-        # not NA
-        mask[i] = 0
-
-        if val > mx:
-            mx = val
-
-        if val < mn:
-            mn = val
-
-    if mn >= 0 and use_unsigned:
-        if mx <= UINT8_MAX - 1:
-            result = arr.astype(np.uint8)
-            if na_count:
-                np.putmask(result, _mask, na_values[np.uint8])
-            return result
-
-        if mx <= UINT16_MAX - 1:
-            result = arr.astype(np.uint16)
-            if na_count:
-                np.putmask(result, _mask, na_values[np.uint16])
-            return result
-
-        if mx <= UINT32_MAX - 1:
-            result = arr.astype(np.uint32)
-            if na_count:
-                np.putmask(result, _mask, na_values[np.uint32])
-            return result
-
-    else:
-        if mn >= INT8_MIN + 1 and mx <= INT8_MAX:
-            result = arr.astype(np.int8)
-            if na_count:
-                np.putmask(result, _mask, na_values[np.int8])
-            return result
-
-        if mn >= INT16_MIN + 1 and mx <= INT16_MAX:
-            result = arr.astype(np.int16)
-            if na_count:
-                np.putmask(result, _mask, na_values[np.int16])
-            return result
-
-        if mn >= INT32_MIN + 1 and mx <= INT32_MAX:
-            result = arr.astype(np.int32)
-            if na_count:
-                np.putmask(result, _mask, na_values[np.int32])
-            return result
-
-    return arr

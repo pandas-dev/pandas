@@ -156,7 +156,7 @@ cdef class _NaT(datetime):
             neg_other = -other
             return self + neg_other
 
-        elif getattr(other, '_typ', None) in ['period',
+        elif getattr(other, '_typ', None) in ['period', 'series',
                                               'periodindex', 'dateoffset']:
             return NotImplemented
 
@@ -381,7 +381,7 @@ class NaTType(_NaT):
 
         Parameters
         ----------
-        tz : string, pytz.timezone, dateutil.tz.tzfile or None
+        tz : str, pytz.timezone, dateutil.tz.tzfile or None
             Time zone for time which Timestamp will be converted to.
             None will remove timezone holding UTC time.
 
@@ -396,7 +396,7 @@ class NaTType(_NaT):
         """)
     fromordinal = _make_error_func('fromordinal',  # noqa:E128
         """
-        Timestamp.fromordinal(ordinal, freq=None, tz=None, offset=None)
+        Timestamp.fromordinal(ordinal, freq=None, tz=None)
 
         passed an ordinal, translate and convert to a ts
         note: by definition there cannot be any tz info on the ordinal itself
@@ -407,10 +407,8 @@ class NaTType(_NaT):
             date corresponding to a proleptic Gregorian ordinal
         freq : str, DateOffset
             Offset which Timestamp will have
-        tz : string, pytz.timezone, dateutil.tz.tzfile or None
+        tz : str, pytz.timezone, dateutil.tz.tzfile or None
             Time zone for time which Timestamp will have.
-        offset : str, DateOffset
-            Deprecated, use freq
         """)
 
     # _nat_methods
@@ -430,7 +428,7 @@ class NaTType(_NaT):
 
         Parameters
         ----------
-        tz : string / timezone object, default None
+        tz : str or timezone object, default None
             Timezone to localize to
         """)
     today = _make_nat_func('today',  # noqa:E128
@@ -443,7 +441,7 @@ class NaTType(_NaT):
 
         Parameters
         ----------
-        tz : string / timezone object, default None
+        tz : str or timezone object, default None
             Timezone to localize to
         """)
     round = _make_nat_func('round',  # noqa:E128
@@ -485,7 +483,7 @@ class NaTType(_NaT):
 
         Parameters
         ----------
-        tz : string, pytz.timezone, dateutil.tz.tzfile or None
+        tz : str, pytz.timezone, dateutil.tz.tzfile or None
             Time zone for time which Timestamp will be converted to.
             None will remove timezone holding UTC time.
 
@@ -505,7 +503,7 @@ class NaTType(_NaT):
 
         Parameters
         ----------
-        tz : string, pytz.timezone, dateutil.tz.tzfile or None
+        tz : str, pytz.timezone, dateutil.tz.tzfile or None
             Time zone for time which Timestamp will be converted to.
             None will remove timezone holding local time.
 

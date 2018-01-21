@@ -25,7 +25,13 @@ For more information, refer to the ``pytest`` documentation on ``skipif``.
 """
 
 import pytest
+import locale
 from distutils.version import LooseVersion
+
+from pandas.compat import (is_platform_windows, is_platform_32bit, PY3,
+                           import_lzma)
+from pandas.core.computation.expressions import (_USE_NUMEXPR,
+                                                 _NUMEXPR_INSTALLED)
 
 
 def safe_import(mod_name, min_version=None):
@@ -79,7 +85,88 @@ def _skip_if_mpl_1_5():
             mod.use("Agg", warn=False)
 
 
+def _skip_if_has_locale():
+    lang, _ = locale.getlocale()
+    if lang is not None:
+        return True
+
+
+def _skip_if_not_us_locale():
+    lang, _ = locale.getlocale()
+    if lang != 'en_US':
+        return True
+
+
+def _skip_if_no_scipy():
+    return not (safe_import('scipy.stats') and safe_import('scipy.sparse') and
+                safe_import('scipy.interpolate'))
+
+
+def _skip_if_no_lzma():
+    try:
+        import_lzma()
+    except ImportError:
+        return True
+
+
+def skip_if_no(package, min_version=None):
+    """
+    Generic function to help skip test functions when required packages are not
+    present on the testing system.
+
+    Intended for use as a decorator, this function will wrap the decorated
+    function with a pytest ``skip_if`` mark. During a pytest test suite
+    execution, that mark will attempt to import the specified ``package`` and
+    optionally ensure it meets the ``min_version``. If the import and version
+    check are unsuccessful, then the decorated function will be skipped.
+
+    Parameters
+    ----------
+    package: str
+        The name of the package required by the decorated function
+    min_version: str or None, default None
+        Optional minimum version of the package required by the decorated
+        function
+
+    Returns
+    -------
+    decorated_func: function
+        The decorated function wrapped within a pytest ``skip_if`` mark
+    """
+    def decorated_func(func):
+        msg = "Could not import '{}'".format(package)
+        if min_version:
+            msg += " satisfying a min_version of {}".format(min_version)
+        return pytest.mark.skipif(
+            not safe_import(package, min_version=min_version), reason=msg
+        )(func)
+    return decorated_func
+
+
 skip_if_no_mpl = pytest.mark.skipif(_skip_if_no_mpl(),
                                     reason="Missing matplotlib dependency")
 skip_if_mpl_1_5 = pytest.mark.skipif(_skip_if_mpl_1_5(),
                                      reason="matplotlib 1.5")
+skip_if_32bit = pytest.mark.skipif(is_platform_32bit(),
+                                   reason="skipping for 32 bit")
+skip_if_windows = pytest.mark.skipif(is_platform_windows(),
+                                     reason="Running on Windows")
+skip_if_windows_python_3 = pytest.mark.skipif(is_platform_windows() and PY3,
+                                              reason=("not used on python3/"
+                                                      "win32"))
+skip_if_has_locale = pytest.mark.skipif(_skip_if_has_locale(),
+                                        reason="Specific locale is set {lang}"
+                                        .format(lang=locale.getlocale()[0]))
+skip_if_not_us_locale = pytest.mark.skipif(_skip_if_not_us_locale(),
+                                           reason="Specific locale is set "
+                                           "{lang}".format(
+                                               lang=locale.getlocale()[0]))
+skip_if_no_scipy = pytest.mark.skipif(_skip_if_no_scipy(),
+                                      reason="Missing SciPy requirement")
+skip_if_no_lzma = pytest.mark.skipif(_skip_if_no_lzma(),
+                                     reason="need backports.lzma to run")
+skip_if_no_ne = pytest.mark.skipif(not _USE_NUMEXPR,
+                                   reason="numexpr enabled->{enabled}, "
+                                   "installed->{installed}".format(
+                                       enabled=_USE_NUMEXPR,
+                                       installed=_NUMEXPR_INSTALLED))

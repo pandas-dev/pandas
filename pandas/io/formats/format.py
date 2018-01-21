@@ -27,7 +27,7 @@ from pandas.core.dtypes.common import (
     is_list_like)
 from pandas.core.dtypes.generic import ABCSparseArray
 from pandas.core.base import PandasObject
-from pandas.core.common import _any_not_none, sentinel_factory
+import pandas.core.common as com
 from pandas.core.index import Index, MultiIndex, _ensure_index
 from pandas import compat
 from pandas.compat import (StringIO, lzip, range, map, zip, u,
@@ -962,8 +962,8 @@ class LatexFormatter(TableFormatter):
                 if self.longtable:
                     buf.write('\\endhead\n')
                     buf.write('\\midrule\n')
-                    buf.write('\\multicolumn{3}{r}{{Continued on next '
-                              'page}} \\\\\n')
+                    buf.write('\\multicolumn{{{n}}}{{r}}{{{{Continued on next '
+                              'page}}}} \\\\\n'.format(n=len(row)))
                     buf.write('\\midrule\n')
                     buf.write('\\endfoot\n\n')
                     buf.write('\\bottomrule\n')
@@ -975,7 +975,7 @@ class LatexFormatter(TableFormatter):
                          .replace('#', '\\#').replace('{', '\\{')
                          .replace('}', '\\}').replace('~', '\\textasciitilde')
                          .replace('^', '\\textasciicircum').replace('&', '\\&')
-                         if x else '{}') for x in row]
+                         if (x and x != '{}') else '{}') for x in row]
             else:
                 crow = [x if x else '{}' for x in row]
             if self.bold_rows and self.fmt.index:
@@ -1002,7 +1002,7 @@ class LatexFormatter(TableFormatter):
             buf.write('\\end{longtable}\n')
 
     def _format_multicolumn(self, row, ilevels):
-        """
+        r"""
         Combine columns belonging to a group to a single multicolumn entry
         according to self.multicolumn_format
 
@@ -1040,7 +1040,7 @@ class LatexFormatter(TableFormatter):
         return row2
 
     def _format_multirow(self, row, ilevels, i, rows):
-        """
+        r"""
         Check following rows, whether row should be a multirow
 
         e.g.:     becomes:
@@ -1071,7 +1071,7 @@ class LatexFormatter(TableFormatter):
         """
         for cl in self.clinebuf:
             if cl[0] == i:
-                buf.write('\cline{{{cl:d}-{icol:d}}}\n'
+                buf.write('\\cline{{{cl:d}-{icol:d}}}\n'
                           .format(cl=cl[1], icol=icol))
         # remove entries that have been written to buffer
         self.clinebuf = [x for x in self.clinebuf if x[0] != i]
@@ -1277,7 +1277,7 @@ class HTMLFormatter(TableFormatter):
 
             if self.fmt.sparsify:
                 # GH3547
-                sentinel = sentinel_factory()
+                sentinel = com.sentinel_factory()
             else:
                 sentinel = None
             levels = self.columns.format(sparsify=sentinel, adjoin=False,
@@ -1446,7 +1446,7 @@ class HTMLFormatter(TableFormatter):
 
         if self.fmt.sparsify:
             # GH3547
-            sentinel = sentinel_factory()
+            sentinel = com.sentinel_factory()
             levels = frame.index.format(sparsify=sentinel, adjoin=False,
                                         names=False)
 
@@ -2188,7 +2188,7 @@ def _is_dates_only(values):
     consider_values = values_int != iNaT
     one_day_nanos = (86400 * 1e9)
     even_days = np.logical_and(consider_values,
-                               values_int % one_day_nanos != 0).sum() == 0
+                               values_int % int(one_day_nanos) != 0).sum() == 0
     if even_days:
         return True
     return False
@@ -2372,7 +2372,7 @@ def single_row_table(row):  # pragma: no cover
 
 def _has_names(index):
     if isinstance(index, MultiIndex):
-        return _any_not_none(*index.names)
+        return com._any_not_none(*index.names)
     else:
         return index.name is not None
 

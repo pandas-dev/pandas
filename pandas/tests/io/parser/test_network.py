@@ -7,6 +7,7 @@ and hence require a network connection to be read.
 import pytest
 
 import pandas.util.testing as tm
+import pandas.util._test_decorators as td
 from pandas import DataFrame
 from pandas.io.parsers import read_csv, read_table
 from pandas.compat import BytesIO
@@ -14,16 +15,17 @@ from pandas.compat import BytesIO
 
 @pytest.mark.network
 @pytest.mark.parametrize(
-    "compression,extension",
-    [('gzip', '.gz'), ('bz2', '.bz2'), ('zip', '.zip'),
-     pytest.param('xz', '.xz',
-                  marks=pytest.mark.skipif(not tm._check_if_lzma(),
-                                           reason='need backports.lzma '
-                                                  'to run'))])
+    "compress_type, extension", [
+        ('gzip', '.gz'), ('bz2', '.bz2'), ('zip', '.zip'),
+        pytest.param('xz', '.xz', marks=td.skip_if_no_lzma)
+    ]
+)
 @pytest.mark.parametrize('mode', ['explicit', 'infer'])
 @pytest.mark.parametrize('engine', ['python', 'c'])
-def test_compressed_urls(salaries_table, compression, extension, mode, engine):
-    check_compressed_urls(salaries_table, compression, extension, mode, engine)
+def test_compressed_urls(salaries_table, compress_type, extension, mode,
+                         engine):
+    check_compressed_urls(salaries_table, compress_type, extension, mode,
+                          engine)
 
 
 @tm.network

@@ -4,7 +4,7 @@ from pandas import DataFrame, Series, MultiIndex, Timestamp, date_range
 try:
     from pandas.tseries.offsets import Nano, Hour
 except ImportError:
-    # For compatability with older versions
+    # For compatibility with older versions
     from pandas.core.datetools import * # noqa
 
 from .pandas_vb_common import setup # noqa
@@ -81,3 +81,15 @@ class FromRecords(object):
     def time_frame_from_records_generator(self, nrows):
         # issue-6700
         self.df = DataFrame.from_records(self.gen, nrows=nrows)
+
+
+class FromNDArray(object):
+
+    goal_time = 0.2
+
+    def setup(self):
+        N = 100000
+        self.data = np.random.randn(N)
+
+    def time_frame_from_ndarray(self):
+        self.df = DataFrame(self.data)

@@ -1,7 +1,7 @@
 .. _whatsnew_0211:
 
-v0.21.1
--------
+v0.21.1 (December 12, 2017)
+---------------------------
 
 This is a minor bug-fix release in the 0.21.x series and includes some small regression fixes,
 bug fixes and performance improvements.
@@ -10,8 +10,8 @@ We recommend that all users upgrade to this version.
 Highlights include:
 
 - Temporarily restore matplotlib datetime plotting functionality. This should
-  resolve issues for users who relied implicitly on pandas to plot datetimes
-  with matplotlib. See :ref:`here <whatsnew_0211.special>`.
+  resolve issues for users who implicitly relied on pandas to plot datetimes
+  with matplotlib. See :ref:`here <whatsnew_0211.converters>`.
 - Improvements to the Parquet IO functions introduced in 0.21.0. See
   :ref:`here <whatsnew_0211.enhancements.parquet>`.
 
@@ -21,7 +21,7 @@ Highlights include:
     :backlinks: none
 
 
-.. _whatsnew_0211.special:
+.. _whatsnew_0211.converters:
 
 Restore Matplotlib datetime Converter Registration
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -34,8 +34,8 @@ pandas``.
 In pandas 0.21.0, we required users to explicitly register the
 converter. This caused problems for some users who relied on those converters
 being present for regular ``matplotlib.pyplot`` plotting methods, so we're
-temporarily reverting that change; pandas will again register the converters on
-import.
+temporarily reverting that change; pandas 0.21.1 again registers the converters on
+import, just like before 0.21.0.
 
 We've added a new option to control the converters:
 ``pd.options.plotting.matplotlib.register_converters``. By default, they are
@@ -61,6 +61,9 @@ New features
 Improvements to the Parquet IO functionality
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+- :func:`DataFrame.to_parquet` will now write non-default indexes when the
+  underlying engine supports it. The indexes will be preserved when reading
+  back in with :func:`read_parquet` (:issue:`18581`).
 - :func:`read_parquet` now allows to specify the columns to read from a parquet file (:issue:`18154`)
 - :func:`read_parquet` now allows to specify kwargs which are passed to the respective engine (:issue:`18216`)
 
@@ -91,8 +94,6 @@ Performance Improvements
 
 Bug Fixes
 ~~~~~~~~~
--
-
 
 Conversion
 ^^^^^^^^^^
@@ -122,11 +123,12 @@ I/O
 - Bug in :func:`read_csv` when reading numeric category fields with high cardinality (:issue:`18186`)
 - Bug in :meth:`DataFrame.to_csv` when the table had ``MultiIndex`` columns, and a list of strings was passed in for ``header`` (:issue:`5539`)
 - Bug in parsing integer datetime-like columns with specified format in ``read_sql`` (:issue:`17855`).
-- Bug in :meth:`DataFrame.to_msgpack` when serializing data of the numpy.bool_ datatype (:issue:`18390`)
+- Bug in :meth:`DataFrame.to_msgpack` when serializing data of the ``numpy.bool_`` datatype (:issue:`18390`)
 - Bug in :func:`read_json` not decoding when reading line deliminted JSON from S3 (:issue:`17200`)
 - Bug in :func:`pandas.io.json.json_normalize` to avoid modification of ``meta`` (:issue:`18610`)
 - Bug in :func:`to_latex` where repeated multi-index values were not printed even though a higher level index differed from the previous row (:issue:`14484`)
 - Bug when reading NaN-only categorical columns in :class:`HDFStore` (:issue:`18413`)
+- Bug in :meth:`DataFrame.to_latex` with ``longtable=True`` where a latex multicolumn always spanned over three columns (:issue:`17959`)
 
 Plotting
 ^^^^^^^^
@@ -166,4 +168,4 @@ Categorical
 String
 ^^^^^^
 
-- :meth:`Series.str.split()` will now propogate ``NaN`` values across all expanded columns instead of ``None`` (:issue:`18450`)
+- :meth:`Series.str.split()` will now propagate ``NaN`` values across all expanded columns instead of ``None`` (:issue:`18450`)

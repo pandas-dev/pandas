@@ -7,7 +7,7 @@ import numpy as np
 import pandas.util.testing as tm
 from pandas import Categorical, CategoricalIndex, Index, Series, DataFrame
 
-from pandas.core.categorical import _recode_for_categories
+from pandas.core.arrays.categorical import _recode_for_categories
 from pandas.tests.categorical.common import TestCategorical
 
 
@@ -71,9 +71,14 @@ class TestCategoricalAPI(object):
 
         exp_cat = Index(["a", "b", "c"])
         tm.assert_index_equal(cat.categories, exp_cat)
-        res = cat.rename_categories([1, 2, 3], inplace=True)
+
+        # GH18862 (let rename_categories take callables)
+        result = cat.rename_categories(lambda x: x.upper())
+        expected = Categorical(["A", "B", "C", "A"])
+        tm.assert_categorical_equal(result, expected)
 
         # and now inplace
+        res = cat.rename_categories([1, 2, 3], inplace=True)
         assert res is None
         tm.assert_numpy_array_equal(cat.__array__(), np.array([1, 2, 3, 1],
                                                               dtype=np.int64))
@@ -394,15 +399,6 @@ class TestCategoricalAPI(object):
         cat = Categorical(values=val, categories=alpha)
         out = cat.remove_unused_categories()
         assert out.get_values().tolist() == val.tolist()
-
-    def test_deprecated_labels(self):
-        # TODO: labels is deprecated and should be removed in 0.18 or 2017,
-        # whatever is earlier
-        cat = Categorical([1, 2, 3, np.nan], categories=[1, 2, 3])
-        exp = cat.codes
-        with tm.assert_produces_warning(FutureWarning):
-            res = cat.labels
-        tm.assert_numpy_array_equal(res, exp)
 
 
 class TestCategoricalAPIWithFactor(TestCategorical):

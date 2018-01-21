@@ -5,11 +5,11 @@ import numpy as np
 import sys
 from pandas import Series, DataFrame
 import pandas.util.testing as tm
+import pandas.util._test_decorators as td
 from pandas.util.testing import (assert_almost_equal, raise_with_traceback,
                                  assert_index_equal, assert_series_equal,
                                  assert_frame_equal, assert_numpy_array_equal,
                                  RNGContext)
-from pandas.compat import is_platform_windows
 
 
 class TestAssertAlmostEqual(object):
@@ -48,12 +48,18 @@ class TestAssertAlmostEqual(object):
         self._assert_not_almost_equal_both(1, [1, ])
         self._assert_not_almost_equal_both(1, object())
 
-    def test_assert_almost_equal_edge_case_ndarrays(self):
-        self._assert_almost_equal_both(np.array([], dtype='M8[ns]'),
-                                       np.array([], dtype='float64'),
-                                       check_dtype=False)
-        self._assert_almost_equal_both(np.array([], dtype=str),
-                                       np.array([], dtype='int64'),
+    @pytest.mark.parametrize(
+        "left_dtype",
+        ['M8[ns]', 'm8[ns]', 'float64', 'int64', 'object'])
+    @pytest.mark.parametrize(
+        "right_dtype",
+        ['M8[ns]', 'm8[ns]', 'float64', 'int64', 'object'])
+    def test_assert_almost_equal_edge_case_ndarrays(
+            self, left_dtype, right_dtype):
+
+        # empty compare
+        self._assert_almost_equal_both(np.array([], dtype=left_dtype),
+                                       np.array([], dtype=right_dtype),
                                        check_dtype=False)
 
     def test_assert_almost_equal_dicts(self):
@@ -159,11 +165,8 @@ class TestUtilTesting(object):
 
 class TestAssertNumpyArrayEqual(object):
 
+    @td.skip_if_windows
     def test_numpy_array_equal_message(self):
-
-        if is_platform_windows():
-            pytest.skip("windows has incomparable line-endings "
-                        "and uses L on the shape")
 
         expected = """numpy array are different
 
@@ -287,11 +290,8 @@ Index shapes are different
             assert_almost_equal(np.array([1, 2]), np.array([3, 4, 5]),
                                 obj='Index')
 
+    @td.skip_if_windows
     def test_numpy_array_equal_object_message(self):
-
-        if is_platform_windows():
-            pytest.skip("windows has incomparable line-endings "
-                        "and uses L on the shape")
 
         a = np.array([pd.Timestamp('2011-01-01'), pd.Timestamp('2011-01-01')])
         b = np.array([pd.Timestamp('2011-01-01'), pd.Timestamp('2011-01-02')])

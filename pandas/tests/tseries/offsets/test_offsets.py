@@ -11,9 +11,9 @@ import numpy as np
 from pandas.compat.numpy import np_datetime64_compat
 
 from pandas.core.series import Series
-from pandas.tseries.frequencies import (_offset_map, get_freq_code,
-                                        _get_freq_str, _INVALID_FREQ_ERROR,
-                                        get_offset, get_standard_freq)
+from pandas._libs.tslibs.frequencies import (get_freq_code, get_freq_str,
+                                             _INVALID_FREQ_ERROR)
+from pandas.tseries.frequencies import _offset_map, get_offset
 from pandas.core.indexes.datetimes import (
     _to_m8, DatetimeIndex, _daterange_cache)
 import pandas._libs.tslibs.offsets as liboffsets
@@ -29,9 +29,7 @@ from pandas.tseries.offsets import (BDay, CDay, BQuarterEnd, BMonthEnd,
                                     QuarterEnd, BusinessMonthEnd, FY5253,
                                     Nano, Easter, FY5253Quarter,
                                     LastWeekOfMonth)
-from pandas.core.tools.datetimes import (
-    format, ole2datetime, parse_time_string,
-    to_datetime, DateParseError)
+from pandas.core.tools.datetimes import format, ole2datetime
 import pandas.tseries.offsets as offsets
 from pandas.io.pickle import read_pickle
 from pandas._libs.tslibs import timezones
@@ -65,18 +63,6 @@ def test_ole2datetime():
 
     with pytest.raises(ValueError):
         ole2datetime(60)
-
-
-def test_to_datetime1():
-    actual = to_datetime(datetime(2008, 1, 15))
-    assert actual == datetime(2008, 1, 15)
-
-    actual = to_datetime('20080115')
-    assert actual == datetime(2008, 1, 15)
-
-    # unparseable
-    s = 'Month 1, 1999'
-    assert to_datetime(s, errors='ignore') == s
 
 
 def test_normalize_date():
@@ -127,7 +113,7 @@ class Base(object):
         else:
             try:
                 klass = klass(value, normalize=normalize)
-            except:
+            except Exception:
                 klass = klass(normalize=normalize)
         return klass
 
@@ -157,10 +143,10 @@ class Base(object):
 
         except tslib.OutOfBoundsDatetime:
             raise
-        except (ValueError, KeyError) as e:
-            pytest.skip(
-                "cannot create out_of_range offset: {0} {1}".format(
-                    str(self).split('.')[-1], e))
+        except (ValueError, KeyError):
+            # we are creating an invalid offset
+            # so ignore
+            pass
 
 
 class TestCommon(Base):
@@ -2800,59 +2786,6 @@ def test_get_offset_legacy():
             get_offset(name)
 
 
-class TestParseTimeString(object):
-
-    def test_parse_time_string(self):
-        (date, parsed, reso) = parse_time_string('4Q1984')
-        (date_lower, parsed_lower, reso_lower) = parse_time_string('4q1984')
-        assert date == date_lower
-        assert parsed == parsed_lower
-        assert reso == reso_lower
-
-    def test_parse_time_quarter_w_dash(self):
-        # https://github.com/pandas-dev/pandas/issue/9688
-        pairs = [('1988-Q2', '1988Q2'), ('2Q-1988', '2Q1988'), ]
-
-        for dashed, normal in pairs:
-            (date_dash, parsed_dash, reso_dash) = parse_time_string(dashed)
-            (date, parsed, reso) = parse_time_string(normal)
-
-            assert date_dash == date
-            assert parsed_dash == parsed
-            assert reso_dash == reso
-
-        pytest.raises(DateParseError, parse_time_string, "-2Q1992")
-        pytest.raises(DateParseError, parse_time_string, "2-Q1992")
-        pytest.raises(DateParseError, parse_time_string, "4-4Q1992")
-
-
-def test_get_standard_freq():
-    with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
-        fstr = get_standard_freq('W')
-    with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
-        assert fstr == get_standard_freq('w')
-    with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
-        assert fstr == get_standard_freq('1w')
-    with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
-        assert fstr == get_standard_freq(('W', 1))
-
-    with tm.assert_raises_regex(ValueError, _INVALID_FREQ_ERROR):
-        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
-            get_standard_freq('WeEk')
-
-    with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
-        fstr = get_standard_freq('5Q')
-    with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
-        assert fstr == get_standard_freq('5q')
-
-    with tm.assert_raises_regex(ValueError, _INVALID_FREQ_ERROR):
-        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
-            get_standard_freq('5QuarTer')
-
-    with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
-        assert fstr == get_standard_freq(('q', 5))
-
-
 class TestOffsetAliases(object):
 
     def setup_method(self, method):
@@ -2893,7 +2826,7 @@ class TestOffsetAliases(object):
             code, stride = get_freq_code('3' + k)
             assert isinstance(code, int)
             assert stride == 3
-            assert k == _get_freq_str(code)
+            assert k == get_freq_str(code)
 
 
 def test_dateoffset_misc():
@@ -3056,7 +2989,7 @@ class TestDST(object):
                     t.minute == tstart.minute and
                     t.second == tstart.second)
         elif offset_name in self.valid_date_offsets_singular:
-            # expect the signular offset value to match between tstart and t
+            # expect the singular offset value to match between tstart and t
             datepart_offset = getattr(t, offset_name
                                       if offset_name != 'weekday' else
                                       'dayofweek')
@@ -3103,7 +3036,7 @@ class TestDST(object):
                 expected_utc_offset=hrs_post)
 
     def test_fallback_singular(self):
-        # in the case of signular offsets, we dont neccesarily know which utc
+        # in the case of singular offsets, we don't necessarily know which utc
         # offset the new Timestamp will wind up in (the tz for 1 month may be
         # different from 1 second) so we don't specify an expected_utc_offset
         for tz, utc_offsets in self.timezone_utc_offsets.items():
@@ -3154,6 +3087,13 @@ def test_get_offset_day_error():
         DateOffset()._get_offset_day(datetime.now())
 
 
+def test_valid_default_arguments(offset_types):
+    # GH#19142 check that the calling the constructors without passing
+    # any keyword arguments produce valid offsets
+    cls = offset_types
+    cls()
+
+
 @pytest.mark.parametrize('kwd', sorted(list(liboffsets.relativedelta_kwds)))
 def test_valid_month_attributes(kwd, month_classes):
     # GH#18226
@@ -3187,3 +3127,55 @@ def test_require_integers(offset_types):
     cls = offset_types
     with pytest.raises(ValueError):
         cls(n=1.5)
+
+
+def test_weeks_onoffset():
+    # GH#18510 Week with weekday = None, normalize = False should always
+    # be onOffset
+    offset = Week(n=2, weekday=None)
+    ts = Timestamp('1862-01-13 09:03:34.873477378+0210', tz='Africa/Lusaka')
+    fast = offset.onOffset(ts)
+    slow = (ts + offset) - offset == ts
+    assert fast == slow
+
+    # negative n
+    offset = Week(n=2, weekday=None)
+    ts = Timestamp('1856-10-24 16:18:36.556360110-0717', tz='Pacific/Easter')
+    fast = offset.onOffset(ts)
+    slow = (ts + offset) - offset == ts
+    assert fast == slow
+
+
+def test_weekofmonth_onoffset():
+    # GH#18864
+    # Make sure that nanoseconds don't trip up onOffset (and with it apply)
+    offset = WeekOfMonth(n=2, week=2, weekday=0)
+    ts = Timestamp('1916-05-15 01:14:49.583410462+0422', tz='Asia/Qyzylorda')
+    fast = offset.onOffset(ts)
+    slow = (ts + offset) - offset == ts
+    assert fast == slow
+
+    # negative n
+    offset = WeekOfMonth(n=-3, week=1, weekday=0)
+    ts = Timestamp('1980-12-08 03:38:52.878321185+0500', tz='Asia/Oral')
+    fast = offset.onOffset(ts)
+    slow = (ts + offset) - offset == ts
+    assert fast == slow
+
+
+def test_last_week_of_month_on_offset():
+    # GH#19036, GH#18977 _adjust_dst was incorrect for LastWeekOfMonth
+    offset = LastWeekOfMonth(n=4, weekday=6)
+    ts = Timestamp('1917-05-27 20:55:27.084284178+0200',
+                   tz='Europe/Warsaw')
+    slow = (ts + offset) - offset == ts
+    fast = offset.onOffset(ts)
+    assert fast == slow
+
+    # negative n
+    offset = LastWeekOfMonth(n=-4, weekday=5)
+    ts = Timestamp('2005-08-27 05:01:42.799392561-0500',
+                   tz='America/Rainy_River')
+    slow = (ts + offset) - offset == ts
+    fast = offset.onOffset(ts)
+    assert fast == slow

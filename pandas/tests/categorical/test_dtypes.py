@@ -6,7 +6,7 @@ import numpy as np
 
 import pandas.util.testing as tm
 from pandas.core.dtypes.dtypes import CategoricalDtype
-from pandas import Categorical, Index, CategoricalIndex
+from pandas import Categorical, Index, CategoricalIndex, Series
 
 
 class TestCategoricalDtypes(object):
@@ -29,6 +29,17 @@ class TestCategoricalDtypes(object):
         assert (c1.is_dtype_equal(
             CategoricalIndex(c1, categories=list('cab'))))
         assert not c1.is_dtype_equal(CategoricalIndex(c1, ordered=True))
+
+        # GH 16659
+        s1 = Series(c1)
+        s2 = Series(c2)
+        s3 = Series(c3)
+        assert c1.is_dtype_equal(s1)
+        assert c2.is_dtype_equal(s2)
+        assert c3.is_dtype_equal(s3)
+        assert c1.is_dtype_equal(s2)
+        assert not c1.is_dtype_equal(s3)
+        assert not c1.is_dtype_equal(s1.astype(object))
 
     def test_set_dtype_same(self):
         c = Categorical(['a', 'b', 'c'])
@@ -99,10 +110,54 @@ class TestCategoricalDtypes(object):
         result = result.remove_categories(['foo%05d' % i for i in range(300)])
         assert result.codes.dtype == 'int8'
 
-    def test_astype_categorical(self):
+    @pytest.mark.parametrize('ordered', [True, False])
+    def test_astype(self, ordered):
+        # string
+        cat = Categorical(list('abbaaccc'), ordered=ordered)
+        result = cat.astype(object)
+        expected = np.array(cat)
+        tm.assert_numpy_array_equal(result, expected)
 
-        cat = Categorical(['a', 'b', 'b', 'a', 'a', 'c', 'c', 'c'])
-        tm.assert_categorical_equal(cat, cat.astype('category'))
-        tm.assert_almost_equal(np.array(cat), cat.astype('object'))
+        msg = 'could not convert string to float'
+        with tm.assert_raises_regex(ValueError, msg):
+            cat.astype(float)
 
-        pytest.raises(ValueError, lambda: cat.astype(float))
+        # numeric
+        cat = Categorical([0, 1, 2, 2, 1, 0, 1, 0, 2], ordered=ordered)
+        result = cat.astype(object)
+        expected = np.array(cat, dtype=object)
+        tm.assert_numpy_array_equal(result, expected)
+
+        result = cat.astype(int)
+        expected = np.array(cat, dtype=np.int)
+        tm.assert_numpy_array_equal(result, expected)
+
+        result = cat.astype(float)
+        expected = np.array(cat, dtype=np.float)
+        tm.assert_numpy_array_equal(result, expected)
+
+    @pytest.mark.parametrize('dtype_ordered', [True, False])
+    @pytest.mark.parametrize('cat_ordered', [True, False])
+    def test_astype_category(self, dtype_ordered, cat_ordered):
+        # GH 10696/18593
+        data = list('abcaacbab')
+        cat = Categorical(data, categories=list('bac'), ordered=cat_ordered)
+
+        # standard categories
+        dtype = CategoricalDtype(ordered=dtype_ordered)
+        result = cat.astype(dtype)
+        expected = Categorical(
+            data, categories=cat.categories, ordered=dtype_ordered)
+        tm.assert_categorical_equal(result, expected)
+
+        # non-standard categories
+        dtype = CategoricalDtype(list('adc'), dtype_ordered)
+        result = cat.astype(dtype)
+        expected = Categorical(data, dtype=dtype)
+        tm.assert_categorical_equal(result, expected)
+
+        if dtype_ordered is False:
+            # dtype='category' can't specify ordered, so only test once
+            result = cat.astype('category')
+            expected = cat
+            tm.assert_categorical_equal(result, expected)

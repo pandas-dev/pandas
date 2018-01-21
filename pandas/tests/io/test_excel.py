@@ -10,10 +10,10 @@ from warnings import catch_warnings
 import numpy as np
 import pytest
 from numpy import nan
-import moto
 
 import pandas as pd
 import pandas.util.testing as tm
+import pandas.util._test_decorators as td
 from pandas import DataFrame, Index, MultiIndex
 from pandas.compat import u, range, map, BytesIO, iteritems
 from pandas.core.config import set_option, get_option
@@ -286,14 +286,14 @@ class ReadingTestsBase(SharedItems):
         tm.assert_frame_equal(df2, dfref, check_names=False)
 
         df3 = read_excel(excel, 0, index_col=0, skipfooter=1)
-        df4 = read_excel(excel, 0, index_col=0, skip_footer=1)
         tm.assert_frame_equal(df3, df1.iloc[:-1])
-        tm.assert_frame_equal(df3, df4)
+
+        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
+            df4 = read_excel(excel, 0, index_col=0, skip_footer=1)
+            tm.assert_frame_equal(df3, df4)
 
         df3 = excel.parse(0, index_col=0, skipfooter=1)
-        df4 = excel.parse(0, index_col=0, skip_footer=1)
         tm.assert_frame_equal(df3, df1.iloc[:-1])
-        tm.assert_frame_equal(df3, df4)
 
         import xlrd
         with pytest.raises(xlrd.XLRDError):
@@ -311,10 +311,7 @@ class ReadingTestsBase(SharedItems):
 
         df3 = self.get_exceldf('test1', 'Sheet1', index_col=0,
                                skipfooter=1)
-        df4 = self.get_exceldf('test1', 'Sheet1', index_col=0,
-                               skip_footer=1)
         tm.assert_frame_equal(df3, df1.iloc[:-1])
-        tm.assert_frame_equal(df3, df4)
 
     def test_reader_special_dtypes(self):
 
@@ -616,6 +613,7 @@ class XlrdTests(ReadingTestsBase):
     def test_read_from_s3_url(self):
         boto3 = pytest.importorskip('boto3')
         pytest.importorskip('s3fs')
+        moto = pytest.importorskip('moto')
 
         with moto.mock_s3():
             conn = boto3.resource("s3", region_name="us-east-1")
@@ -650,11 +648,10 @@ class XlrdTests(ReadingTestsBase):
 
         tm.assert_frame_equal(url_table, local_table)
 
+    @td.skip_if_no('pathlib')
     def test_read_from_pathlib_path(self):
 
         # GH12655
-        tm._skip_if_no_pathlib()
-
         from pathlib import Path
 
         str_path = os.path.join(self.dirpath, 'test1' + self.ext)
@@ -665,11 +662,10 @@ class XlrdTests(ReadingTestsBase):
 
         tm.assert_frame_equal(expected, actual)
 
+    @td.skip_if_no('py.path')
     def test_read_from_py_localpath(self):
 
         # GH12655
-        tm._skip_if_no_localpath()
-
         from py.path import local as LocalPath
 
         str_path = os.path.join(self.dirpath, 'test1' + self.ext)
@@ -865,8 +861,8 @@ class XlrdTests(ReadingTestsBase):
                             if (c_idx_levels == 1 and c_idx_names):
                                 continue
 
-                            # empty name case current read in as unamed levels,
-                            # not Nones
+                            # empty name case current read in as unnamed
+                            # levels, not Nones
                             check_names = True
                             if not r_idx_names and r_idx_levels > 1:
                                 check_names = False
@@ -1861,6 +1857,68 @@ class ExcelWriterBase(SharedItems):
 
             with pytest.raises(KeyError):
                 write_frame.to_excel(path, 'test1', columns=['C', 'D'])
+
+    def test_comment_arg(self):
+        # Re issue #18735
+        # Test the comment argument functionality to read_excel
+        with ensure_clean(self.ext) as path:
+
+            # Create file to read in
+            df = DataFrame({'A': ['one', '#one', 'one'],
+                            'B': ['two', 'two', '#two']})
+            df.to_excel(path, 'test_c')
+
+            # Read file without comment arg
+            result1 = read_excel(path, 'test_c')
+            result1.iloc[1, 0] = None
+            result1.iloc[1, 1] = None
+            result1.iloc[2, 1] = None
+            result2 = read_excel(path, 'test_c', comment='#')
+            tm.assert_frame_equal(result1, result2)
+
+    def test_comment_default(self):
+        # Re issue #18735
+        # Test the comment argument default to read_excel
+        with ensure_clean(self.ext) as path:
+
+            # Create file to read in
+            df = DataFrame({'A': ['one', '#one', 'one'],
+                            'B': ['two', 'two', '#two']})
+            df.to_excel(path, 'test_c')
+
+            # Read file with default and explicit comment=None
+            result1 = read_excel(path, 'test_c')
+            result2 = read_excel(path, 'test_c', comment=None)
+            tm.assert_frame_equal(result1, result2)
+
+    def test_comment_used(self):
+        # Re issue #18735
+        # Test the comment argument is working as expected when used
+        with ensure_clean(self.ext) as path:
+
+            # Create file to read in
+            df = DataFrame({'A': ['one', '#one', 'one'],
+                            'B': ['two', 'two', '#two']})
+            df.to_excel(path, 'test_c')
+
+            # Test read_frame_comment against manually produced expected output
+            expected = DataFrame({'A': ['one', None, 'one'],
+                                  'B': ['two', None, None]})
+            result = read_excel(path, 'test_c', comment='#')
+            tm.assert_frame_equal(result, expected)
+
+    def test_comment_emptyline(self):
+        # Re issue #18735
+        # Test that read_excel ignores commented lines at the end of file
+        with ensure_clean(self.ext) as path:
+
+            df = DataFrame({'a': ['1', '#2'], 'b': ['2', '3']})
+            df.to_excel(path, index=False)
+
+            # Test that all-comment lines at EoF are ignored
+            expected = DataFrame({'a': [1], 'b': [2]})
+            result = read_excel(path, comment='#')
+            tm.assert_frame_equal(result, expected)
 
     def test_datetimes(self):
 

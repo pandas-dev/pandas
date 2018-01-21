@@ -1067,7 +1067,7 @@ class TestIndex(Base):
         # GH 14626
         # windows has different precision on datetime.datetime.now (it doesn't
         # include us since the default for Timestamp shows these but Index
-        # formating does not we are skipping)
+        # formatting does not we are skipping)
         now = datetime.now()
         if not str(now).endswith("000"):
             index = Index([now])
@@ -1396,8 +1396,8 @@ class TestIndex(Base):
         expected = self.strIndex[lrange(5) + lrange(10, n)]
         tm.assert_index_equal(dropped, expected)
 
-        pytest.raises(ValueError, self.strIndex.drop, ['foo', 'bar'])
-        pytest.raises(ValueError, self.strIndex.drop, ['1', 'bar'])
+        pytest.raises(KeyError, self.strIndex.drop, ['foo', 'bar'])
+        pytest.raises(KeyError, self.strIndex.drop, ['1', 'bar'])
 
         # errors='ignore'
         mixed = drop.tolist() + ['foo']
@@ -1419,7 +1419,7 @@ class TestIndex(Base):
         tm.assert_index_equal(dropped, expected)
 
         # errors='ignore'
-        pytest.raises(ValueError, ser.drop, [3, 4])
+        pytest.raises(KeyError, ser.drop, [3, 4])
 
         dropped = ser.drop(4, errors='ignore')
         expected = Index([1, 2, 3])
@@ -1428,6 +1428,27 @@ class TestIndex(Base):
         dropped = ser.drop([3, 4, 5], errors='ignore')
         expected = Index([1, 2])
         tm.assert_index_equal(dropped, expected)
+
+    @pytest.mark.parametrize("values", [['a', 'b', ('c', 'd')],
+                                        ['a', ('c', 'd'), 'b'],
+                                        [('c', 'd'), 'a', 'b']])
+    @pytest.mark.parametrize("to_drop", [[('c', 'd'), 'a'], ['a', ('c', 'd')]])
+    def test_drop_tuple(self, values, to_drop):
+        # GH 18304
+        index = pd.Index(values)
+        expected = pd.Index(['b'])
+
+        result = index.drop(to_drop)
+        tm.assert_index_equal(result, expected)
+
+        removed = index.drop(to_drop[0])
+        for drop_me in to_drop[1], [to_drop[1]]:
+            result = removed.drop(drop_me)
+            tm.assert_index_equal(result, expected)
+
+        removed = index.drop(to_drop[1])
+        for drop_me in to_drop[1], [to_drop[1]]:
+            pytest.raises(KeyError, removed.drop, drop_me)
 
     def test_tuple_union_bug(self):
         import pandas
@@ -1683,12 +1704,6 @@ class TestIndex(Base):
 
         with pytest.raises(IndexError):
             idx.take(np.array([1, -5]))
-
-    def test_reshape_raise(self):
-        msg = "reshaping is not supported"
-        idx = pd.Index([0, 1, 2])
-        tm.assert_raises_regex(NotImplementedError, msg,
-                               idx.reshape, idx.shape)
 
     def test_reindex_preserves_name_if_target_is_list_or_ndarray(self):
         # GH6552
@@ -2246,6 +2261,26 @@ class TestMixedIntIndex(Base):
         res = i2.intersection(i1)
 
         assert len(res) == 0
+
+    @pytest.mark.parametrize('op', [operator.eq, operator.ne,
+                                    operator.gt, operator.ge,
+                                    operator.lt, operator.le])
+    def test_comparison_tzawareness_compat(self, op):
+        # GH#18162
+        dr = pd.date_range('2016-01-01', periods=6)
+        dz = dr.tz_localize('US/Pacific')
+
+        # Check that there isn't a problem aware-aware and naive-naive do not
+        # raise
+        naive_series = Series(dr)
+        aware_series = Series(dz)
+        with pytest.raises(TypeError):
+            op(dz, naive_series)
+        with pytest.raises(TypeError):
+            op(dr, aware_series)
+
+        # TODO: implement _assert_tzawareness_compat for the reverse
+        # comparison with the Series on the left-hand side
 
 
 class TestIndexUtils(object):

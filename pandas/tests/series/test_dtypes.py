@@ -3,7 +3,7 @@
 
 import pytest
 
-from datetime import datetime
+from datetime import datetime, timedelta
 
 import sys
 import string
@@ -28,6 +28,18 @@ from .common import TestData
 
 
 class TestSeriesDtypes(TestData):
+
+    def test_dt64_series_astype_object(self):
+        dt64ser = Series(date_range('20130101', periods=3))
+        result = dt64ser.astype(object)
+        assert isinstance(result.iloc[0], datetime)
+        assert result.dtype == np.object_
+
+    def test_td64_series_astype_object(self):
+        tdser = Series(['59 Days', '59 Days', 'NaT'], dtype='timedelta64[ns]')
+        result = tdser.astype(object)
+        assert isinstance(result.iloc[0], timedelta)
+        assert result.dtype == np.object_
 
     @pytest.mark.parametrize("dtype", ["float32", "float64",
                                        "int64", "int32"])
@@ -321,6 +333,44 @@ class TestSeriesDtypes(TestData):
         for invalid in [lambda x: x.astype(Categorical),
                         lambda x: x.astype('object').astype(Categorical)]:
             pytest.raises(TypeError, lambda: invalid(s))
+
+    @pytest.mark.parametrize('name', [None, 'foo'])
+    @pytest.mark.parametrize('dtype_ordered', [True, False])
+    @pytest.mark.parametrize('series_ordered', [True, False])
+    def test_astype_categorical_to_categorical(self, name, dtype_ordered,
+                                               series_ordered):
+        # GH 10696/18593
+        s_data = list('abcaacbab')
+        s_dtype = CategoricalDtype(list('bac'), ordered=series_ordered)
+        s = Series(s_data, dtype=s_dtype, name=name)
+
+        # unspecified categories
+        dtype = CategoricalDtype(ordered=dtype_ordered)
+        result = s.astype(dtype)
+        exp_dtype = CategoricalDtype(s_dtype.categories, dtype_ordered)
+        expected = Series(s_data, name=name, dtype=exp_dtype)
+        tm.assert_series_equal(result, expected)
+
+        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
+            result = s.astype('category', ordered=dtype_ordered)
+        tm.assert_series_equal(result, expected)
+
+        # different categories
+        dtype = CategoricalDtype(list('adc'), dtype_ordered)
+        result = s.astype(dtype)
+        expected = Series(s_data, name=name, dtype=dtype)
+        tm.assert_series_equal(result, expected)
+
+        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
+            result = s.astype(
+                'category', categories=list('adc'), ordered=dtype_ordered)
+        tm.assert_series_equal(result, expected)
+
+        if dtype_ordered is False:
+            # not specifying ordered, so only test once
+            expected = s
+            result = s.astype('category')
+            tm.assert_series_equal(result, expected)
 
     def test_astype_categoricaldtype(self):
         s = Series(['a', 'b', 'a'])

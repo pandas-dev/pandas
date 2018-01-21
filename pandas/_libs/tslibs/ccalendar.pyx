@@ -33,6 +33,17 @@ cdef int32_t* _month_offset = [
     0, 31, 59, 90, 120, 151, 181, 212, 243, 273, 304, 334, 365,
     0, 31, 60, 91, 121, 152, 182, 213, 244, 274, 305, 335, 366]
 
+# Canonical location for other modules to find name constants
+MONTHS = ['JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN', 'JUL',
+          'AUG', 'SEP', 'OCT', 'NOV', 'DEC']
+MONTH_NUMBERS = {name: num for num, name in enumerate(MONTHS)}
+MONTH_ALIASES = {(num + 1): name for num, name in enumerate(MONTHS)}
+MONTH_TO_CAL_NUM = {name: num + 1 for num, name in enumerate(MONTHS)}
+
+DAYS = ['MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT', 'SUN']
+int_to_weekday = {num: name for num, name in enumerate(DAYS)}
+weekday_to_int = {int_to_weekday[key]: key for key in int_to_weekday}
+
 # ----------------------------------------------------------------------
 
 
@@ -83,7 +94,7 @@ cdef int dayofweek(int y, int m, int d) nogil:
 
     See Also
     --------
-    [1] https://docs.python.org/3.6/library/calendar.html#calendar.weekday
+    [1] https://docs.python.org/3/library/calendar.html#calendar.weekday
 
     [2] https://en.wikipedia.org/wiki/\
     Determination_of_the_day_of_the_week#Sakamoto.27s_methods

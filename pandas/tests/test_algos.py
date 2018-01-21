@@ -17,8 +17,10 @@ from pandas._libs import (groupby as libgroupby, algos as libalgos,
 from pandas._libs.hashtable import unique_label_indices
 from pandas.compat import lrange, range
 import pandas.core.algorithms as algos
-from pandas.core.common import _asarray_tuplesafe
+import pandas.core.common as com
 import pandas.util.testing as tm
+import pandas.util._test_decorators as td
+from pandas.core.dtypes.dtypes import CategoricalDtype as CDT
 from pandas.compat.numpy import np_array_datetime64_compat
 from pandas.util.testing import assert_almost_equal
 
@@ -215,7 +217,8 @@ class TestFactorize(object):
         tm.assert_numpy_array_equal(result[0],
                                     np.array(expected_label, dtype=np.intp))
 
-        expected_level_array = _asarray_tuplesafe(expected_level, dtype=object)
+        expected_level_array = com._asarray_tuplesafe(expected_level,
+                                                      dtype=object)
         tm.assert_numpy_array_equal(result[1], expected_level_array)
 
     def test_complex_sorting(self):
@@ -565,8 +568,8 @@ class TestValueCounts(object):
         # assert isinstance(factor, n)
         result = algos.value_counts(factor)
         breaks = [-1.194, -0.535, 0.121, 0.777, 1.433]
-        expected_index = IntervalIndex.from_breaks(breaks).astype('category')
-        expected = Series([1, 1, 1, 1], index=expected_index)
+        index = IntervalIndex.from_breaks(breaks).astype(CDT(ordered=True))
+        expected = Series([1, 1, 1, 1], index=index)
         tm.assert_series_equal(result.sort_index(), expected.sort_index())
 
     def test_value_counts_bins(self):
@@ -786,10 +789,10 @@ class TestDuplicated(object):
                   2, 4, 1, 5, 6]),
         np.array([1.1, 2.2, 1.1, np.nan, 3.3,
                   2.2, 4.4, 1.1, np.nan, 6.6]),
-        pytest.mark.xfail(reason="Complex bug. GH 16399")(
-            np.array([1 + 1j, 2 + 2j, 1 + 1j, 5 + 5j, 3 + 3j,
-                      2 + 2j, 4 + 4j, 1 + 1j, 5 + 5j, 6 + 6j])
-        ),
+        pytest.param(np.array([1 + 1j, 2 + 2j, 1 + 1j, 5 + 5j, 3 + 3j,
+                               2 + 2j, 4 + 4j, 1 + 1j, 5 + 5j, 6 + 6j]),
+                     marks=pytest.mark.xfail(reason="Complex bug. GH 16399")
+                     ),
         np.array(['a', 'b', 'a', 'e', 'c',
                   'b', 'd', 'a', 'e', 'f'], dtype=object),
         np.array([1, 2**63, 1, 3**5, 10, 2**63, 39, 1, 3**5, 7],
@@ -1108,8 +1111,8 @@ def test_unique_label_indices():
 
 class TestRank(object):
 
+    @td.skip_if_no_scipy
     def test_scipy_compat(self):
-        tm._skip_if_no_scipy()
         from scipy.stats import rankdata
 
         def _check(arr):
