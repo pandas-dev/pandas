@@ -328,12 +328,11 @@ class TestPeriodConverter(object):
         assert rs == xp
 
         rs = self.pc.convert(
-               np_datetime64_compat('2012-01-01'), None, self.axis)
+            np_datetime64_compat('2012-01-01'), None, self.axis)
         assert rs == xp
 
         rs = self.pc.convert(
-               np_datetime64_compat('2012-01-01 00:00:00+0000'),
-               None, self.axis)
+            np_datetime64_compat('2012-01-01 00:00:00+0000'), None, self.axis)
         assert rs == xp
 
         rs = self.pc.convert(np.array([
