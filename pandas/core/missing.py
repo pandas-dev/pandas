@@ -651,8 +651,24 @@ def fill_zeros(result, x, y, name, fill):
 
 
 def _interp_limit(invalid, fw_limit, bw_limit):
-    """Get idx of values that won't be filled b/c they exceed the limits.
+    """
+    Get indexers of values that won't be filled
+    because they exceed the limits.
 
+    Parameters
+    ----------
+    invalid : boolean ndarray
+    fw_limit : int or None
+        forward limit to index
+    bw_limit : int or None
+        backward limit to index
+
+    Returns
+    -------
+    set of indexers
+
+    Notes
+    -----
     This is equivalent to the more readable, but slower
 
     .. code-block:: python
@@ -665,6 +681,8 @@ def _interp_limit(invalid, fw_limit, bw_limit):
     # 1. operate on the reversed array
     # 2. subtract the returned indicies from N - 1
     N = len(invalid)
+    f_idx = set()
+    b_idx = set()
 
     def inner(invalid, limit):
         limit = min(limit, N)
@@ -673,18 +691,25 @@ def _interp_limit(invalid, fw_limit, bw_limit):
                set(np.where((~invalid[:limit + 1]).cumsum() == 0)[0]))
         return idx
 
-    if fw_limit == 0:
-        f_idx = set(np.where(invalid)[0])
-    else:
-        f_idx = inner(invalid, fw_limit)
+    if fw_limit is not None:
 
-    if bw_limit == 0:
-        # then we don't even need to care about backwards, just use forwards
-        return f_idx
-    else:
-        b_idx = set(N - 1 - np.asarray(list(inner(invalid[::-1], bw_limit))))
         if fw_limit == 0:
-            return b_idx
+            f_idx = set(np.where(invalid)[0])
+        else:
+            f_idx = inner(invalid, fw_limit)
+
+    if bw_limit is not None:
+
+        if bw_limit == 0:
+            # then we don't even need to care about backwards
+            # just use forwards
+            return f_idx
+        else:
+            b_idx = list(inner(invalid[::-1], bw_limit))
+            b_idx = set(N - 1 - np.asarray(b_idx))
+            if fw_limit == 0:
+                return b_idx
+
     return f_idx & b_idx
 
 
