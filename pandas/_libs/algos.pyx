@@ -8,6 +8,8 @@ from cython cimport Py_ssize_t
 
 np.import_array()
 
+cdef float64_t FP_ERR = 1e-13
+
 cimport util
 
 from libc.stdlib cimport malloc, free
@@ -22,7 +24,6 @@ from numpy cimport (ndarray,
                     double_t)
 
 
-cdef float64_t FP_ERR = 1e-13
 cdef double NaN = <double> np.NaN
 cdef double nan = NaN
 
@@ -163,6 +164,36 @@ def groupsort_indexer(ndarray[int64_t] index, Py_ssize_t ngroups):
             where[label] += 1
 
     return result, counts
+
+
+@cython.boundscheck(False)
+@cython.wraparound(False)
+cpdef numeric kth_smallest(numeric[:] a, Py_ssize_t k) nogil:
+    cdef:
+        Py_ssize_t i, j, l, m, n = a.shape[0]
+        numeric x
+
+    with nogil:
+        l = 0
+        m = n - 1
+
+        while l < m:
+            x = a[k]
+            i = l
+            j = m
+
+            while 1:
+                while a[i] < x: i += 1
+                while x < a[j]: j -= 1
+                if i <= j:
+                    swap(&a[i], &a[j])
+                    i += 1; j -= 1
+
+                if i > j: break
+
+            if j < k: l = i
+            if k < i: m = j
+    return a[k]
 
 
 # ----------------------------------------------------------------------

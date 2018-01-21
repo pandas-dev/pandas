@@ -740,7 +740,7 @@ def group_median_float64(ndarray[float64_t, ndim=2] out,
             ptr += _counts[0]
             for j in range(ngroups):
                 size = _counts[j + 1]
-                out[j, i] = _median_linear(ptr, size)
+                out[j, i] = median_linear(ptr, size)
                 ptr += size
 
 

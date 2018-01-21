@@ -16,22 +16,13 @@ from numpy cimport (ndarray,
 from libc.stdlib cimport malloc, free
 
 from util cimport numeric, get_nat
+from algos cimport swap
 from algos import take_2d_axis1_float64_float64, groupsort_indexer
 
 cdef int64_t iNaT = get_nat()
 
 cdef double NaN = <double> np.NaN
 cdef double nan = NaN
-
-
-cdef inline Py_ssize_t swap(numeric *a, numeric *b) nogil:
-    cdef numeric t
-
-    # cython doesn't allow pointer dereference so use array syntax
-    t = a[0]
-    a[0] = b[0]
-    b[0] = t
-    return 0
 
 
 # TODO: aggregate multiple columns in single pass
