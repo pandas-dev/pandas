@@ -34,13 +34,26 @@ class TestIndexArithmetic(object):
     @pytest.mark.parametrize('scalar_td', [Timedelta(days=1),
                                            Timedelta(days=1).to_timedelta64(),
                                            Timedelta(days=1).to_pytimedelta()])
-    def test_index_mul_timdelta(self, scalar_td, index):
+    def test_index_mul_timedelta(self, scalar_td, index):
         expected = pd.timedelta_range('1 days', '10 days')
 
         result = index * scalar_td
         tm.assert_index_equal(result, expected)
         commute = scalar_td * index
         tm.assert_index_equal(commute, expected)
+
+    @pytest.mark.parametrize('index', [pd.Int64Index(range(1, 3)),
+                                       pd.UInt64Index(range(1, 3)),
+                                       pd.Float64Index(range(1, 3)),
+                                       pd.RangeIndex(1, 3)])
+    @pytest.mark.parametrize('scalar_td', [Timedelta(days=1),
+                                           Timedelta(days=1).to_timedelta64(),
+                                           Timedelta(days=1).to_pytimedelta()])
+    def test_index_rdiv_timedelta(self, scalar_td, index):
+        expected = pd.TimedeltaIndex(['NaT', '1 Day', '12 Hours'])
+
+        result = scalar_td / index
+        tm.assert_index_equal(result, expected)
 
 
 class Numeric(Base):
