@@ -62,12 +62,6 @@ from pandas.core.dtypes.common import (
 from pandas.core.dtypes.missing import isna, notna
 
 
-from pandas.core.common import (_try_sort,
-                                _default_index,
-                                _values_from_object,
-                                _maybe_box_datetimelike,
-                                _dict_compat,
-                                standardize_mapping)
 from pandas.core.generic import NDFrame, _shared_docs
 from pandas.core.index import (Index, MultiIndex, _ensure_index,
                                _ensure_index_from_sequences)
@@ -387,9 +381,9 @@ class DataFrame(NDFrame):
                         if isinstance(data[0], Series):
                             index = _get_names_from_index(data)
                         elif isinstance(data[0], Categorical):
-                            index = _default_index(len(data[0]))
+                            index = com._default_index(len(data[0]))
                         else:
-                            index = _default_index(len(data))
+                            index = com._default_index(len(data))
 
                     mgr = _arrays_to_mgr(arrays, columns, index, columns,
                                          dtype=dtype)
@@ -466,7 +460,7 @@ class DataFrame(NDFrame):
         else:
             keys = list(data.keys())
             if not isinstance(data, OrderedDict):
-                keys = _try_sort(keys)
+                keys = com._try_sort(keys)
             columns = data_names = Index(keys)
             arrays = [data[k] for k in keys]
 
@@ -493,12 +487,12 @@ class DataFrame(NDFrame):
             # return axes or defaults
 
             if index is None:
-                index = _default_index(N)
+                index = com._default_index(N)
             else:
                 index = _ensure_index(index)
 
             if columns is None:
-                columns = _default_index(K)
+                columns = com._default_index(K)
             else:
                 columns = _ensure_index(columns)
             return index, columns
@@ -990,7 +984,7 @@ class DataFrame(NDFrame):
                           "columns will be omitted.", UserWarning,
                           stacklevel=2)
         # GH16122
-        into_c = standardize_mapping(into)
+        into_c = com.standardize_mapping(into)
         if orient.lower().startswith('d'):
             return into_c(
                 (k, v.to_dict(into)) for k, v in compat.iteritems(self))
@@ -1000,13 +994,13 @@ class DataFrame(NDFrame):
             return into_c((('index', self.index.tolist()),
                            ('columns', self.columns.tolist()),
                            ('data', lib.map_infer(self.values.ravel(),
-                                                  _maybe_box_datetimelike)
+                                                  com._maybe_box_datetimelike)
                             .reshape(self.values.shape).tolist())))
         elif orient.lower().startswith('s'):
-            return into_c((k, _maybe_box_datetimelike(v))
+            return into_c((k, com._maybe_box_datetimelike(v))
                           for k, v in compat.iteritems(self))
         elif orient.lower().startswith('r'):
-            return [into_c((k, _maybe_box_datetimelike(v))
+            return [into_c((k, com._maybe_box_datetimelike(v))
                            for k, v in zip(self.columns, np.atleast_1d(row)))
                     for row in self.values]
         elif orient.lower().startswith('i'):
@@ -1947,30 +1941,28 @@ class DataFrame(NDFrame):
 
     # legacy pickle formats
     def _unpickle_frame_compat(self, state):  # pragma: no cover
-        from pandas.core.common import _unpickle_array
         if len(state) == 2:  # pragma: no cover
             series, idx = state
             columns = sorted(series)
         else:
             series, cols, idx = state
-            columns = _unpickle_array(cols)
+            columns = com._unpickle_array(cols)
 
-        index = _unpickle_array(idx)
+        index = com._unpickle_array(idx)
         self._data = self._init_dict(series, index, columns, None)
 
     def _unpickle_matrix_compat(self, state):  # pragma: no cover
-        from pandas.core.common import _unpickle_array
         # old unpickling
         (vals, idx, cols), object_state = state
 
-        index = _unpickle_array(idx)
-        dm = DataFrame(vals, index=index, columns=_unpickle_array(cols),
+        index = com._unpickle_array(idx)
+        dm = DataFrame(vals, index=index, columns=com._unpickle_array(cols),
                        copy=False)
 
         if object_state is not None:
             ovals, _, ocols = object_state
             objects = DataFrame(ovals, index=index,
-                                columns=_unpickle_array(ocols), copy=False)
+                                columns=com._unpickle_array(ocols), copy=False)
 
             dm = dm.join(objects)
 
@@ -2006,7 +1998,7 @@ class DataFrame(NDFrame):
 
         if takeable:
             series = self._iget_item_cache(col)
-            return _maybe_box_datetimelike(series._values[index])
+            return com._maybe_box_datetimelike(series._values[index])
 
         series = self._get_item_cache(col)
         engine = self.index._engine
@@ -3371,7 +3363,7 @@ class DataFrame(NDFrame):
                             values, mask, np.nan)
             return values
 
-        new_index = _default_index(len(new_obj))
+        new_index = com._default_index(len(new_obj))
         if level is not None:
             if not isinstance(level, (tuple, list)):
                 level = [level]
@@ -6084,7 +6076,7 @@ def extract_index(data):
                            (lengths[0], len(index)))
                     raise ValueError(msg)
             else:
-                index = _default_index(lengths[0])
+                index = com._default_index(lengths[0])
 
     return _ensure_index(index)
 
@@ -6155,7 +6147,7 @@ def _to_arrays(data, columns, coerce_float=False, dtype=None):
                                          dtype=dtype)
     elif isinstance(data[0], Categorical):
         if columns is None:
-            columns = _default_index(len(data))
+            columns = com._default_index(len(data))
         return data, columns
     elif (isinstance(data, (np.ndarray, Series, Index)) and
           data.dtype.names is not None):
@@ -6179,7 +6171,7 @@ def _masked_rec_array_to_mgr(data, index, columns, dtype, copy):
     if index is None:
         index = _get_names_from_index(fdata)
         if index is None:
-            index = _default_index(len(data))
+            index = com._default_index(len(data))
     index = _ensure_index(index)
 
     if columns is not None:
@@ -6239,14 +6231,14 @@ def _list_of_series_to_arrays(data, columns, coerce_float=False, dtype=None):
     for s in data:
         index = getattr(s, 'index', None)
         if index is None:
-            index = _default_index(len(s))
+            index = com._default_index(len(s))
 
         if id(index) in indexer_cache:
             indexer = indexer_cache[id(index)]
         else:
             indexer = indexer_cache[id(index)] = index.get_indexer(columns)
 
-        values = _values_from_object(s)
+        values = com._values_from_object(s)
         aligned_values.append(algorithms.take_1d(values, indexer))
 
     values = np.vstack(aligned_values)
@@ -6276,7 +6268,7 @@ def _list_of_dict_to_arrays(data, columns, coerce_float=False, dtype=None):
 
 def _convert_object_array(content, columns, coerce_float=False, dtype=None):
     if columns is None:
-        columns = _default_index(len(content))
+        columns = com._default_index(len(content))
     else:
         if len(columns) != len(content):  # pragma: no cover
             # caller's responsibility to check for this...
@@ -6298,7 +6290,7 @@ def _convert_object_array(content, columns, coerce_float=False, dtype=None):
 def _get_names_from_index(data):
     has_some_name = any(getattr(s, 'name', None) is not None for s in data)
     if not has_some_name:
-        return _default_index(len(data))
+        return com._default_index(len(data))
 
     index = lrange(len(data))
     count = 0
@@ -6333,7 +6325,7 @@ def _homogenize(data, index, dtype=None):
                     oindex = index.astype('O')
 
                 if isinstance(index, (DatetimeIndex, TimedeltaIndex)):
-                    v = _dict_compat(v)
+                    v = com._dict_compat(v)
                 else:
                     v = dict(v)
                 v = lib.fast_multiget(v, oindex.values, default=np.nan)

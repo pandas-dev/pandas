@@ -10,7 +10,7 @@ import numpy as np
 import pandas as pd
 from pandas import compat
 from pandas.errors import PerformanceWarning
-from pandas.core.common import flatten
+import pandas.core.common as com
 from pandas.core.computation.common import _result_type_many
 
 
@@ -117,7 +117,7 @@ def _align(terms):
     """Align a set of terms"""
     try:
         # flatten the parse tree (a nested list, really)
-        terms = list(flatten(terms))
+        terms = list(com.flatten(terms))
     except TypeError:
         # can't iterate so it must just be a constant or single variable
         if isinstance(terms.value, pd.core.generic.NDFrame):

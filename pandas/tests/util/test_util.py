@@ -8,7 +8,7 @@ from collections import OrderedDict
 
 import pytest
 from pandas.compat import intern
-from pandas.core.common import _all_none
+import pandas.core.common as com
 from pandas.util._move import move_into_mutable_buffer, BadMove, stolenbuf
 from pandas.util._decorators import deprecate_kwarg, make_signature
 from pandas.util._validators import (validate_args, validate_kwargs,
@@ -438,7 +438,7 @@ class TestLocaleUtils(object):
             pytest.skip("Only a single locale found, no point in "
                         "trying to test setting another locale")
 
-        if _all_none(*self.current_locale):
+        if com._all_none(*self.current_locale):
             # Not sure why, but on some travis runs with pytest,
             # getlocale() returned (None, None).
             pytest.skip("Current locale is not set.")

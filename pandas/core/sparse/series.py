@@ -10,7 +10,6 @@ import warnings
 
 from pandas.core.dtypes.missing import isna, notna
 from pandas.core.dtypes.common import is_scalar
-from pandas.core.common import _values_from_object, _maybe_match_name
 
 from pandas.compat.numpy import function as nv
 from pandas.core.index import Index, _ensure_index, InvalidIndexError
@@ -80,7 +79,7 @@ def _arith_method(op, name, str_rep=None, default_axis=None, fill_zeros=None,
 def _sparse_series_op(left, right, op, name):
     left, right = left.align(right, join='outer', copy=False)
     new_index = left.index
-    new_name = _maybe_match_name(left, right)
+    new_name = com._maybe_match_name(left, right)
 
     result = _sparse_array_op(left.values, right.values, op, name,
                               series=True)
@@ -423,7 +422,7 @@ class SparseSeries(Series):
             # Could not hash item, must be array-like?
             pass
 
-        key = _values_from_object(key)
+        key = com._values_from_object(key)
         if self.index.nlevels > 1 and isinstance(key, tuple):
             # to handle MultiIndex labels
             key = self.index.get_loc(key)

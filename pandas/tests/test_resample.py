@@ -20,9 +20,10 @@ from pandas import (Series, DataFrame, Panel, Index, isna,
 
 from pandas.core.dtypes.generic import ABCSeries, ABCDataFrame
 from pandas.compat import range, lrange, zip, product, OrderedDict
-from pandas.core.base import SpecificationError, AbstractMethodError
+from pandas.core.base import SpecificationError
 from pandas.errors import UnsupportedFunctionCall
 from pandas.core.groupby import DataError
+import pandas.core.common as com
 
 from pandas.tseries.frequencies import to_offset
 from pandas.core.indexes.datetimes import date_range
@@ -726,7 +727,7 @@ class Base(object):
 
     @pytest.fixture
     def _series_name(self):
-        raise AbstractMethodError(self)
+        raise com.AbstractMethodError(self)
 
     @pytest.fixture
     def _static_values(self, index):

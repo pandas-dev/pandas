@@ -9,7 +9,7 @@ from numpy import nan
 import numpy as np
 
 from pandas.compat import (lmap, range, lrange, StringIO, u)
-from pandas.core.common import _all_none
+import pandas.core.common as com
 from pandas.errors import ParserError
 from pandas import (DataFrame, Index, Series, MultiIndex, Timestamp,
                     date_range, read_csv, compat, to_datetime)
@@ -571,7 +571,7 @@ class TestDataFrameToCSV(TestData):
             df = _make_frame(True)
             df.to_csv(path, index=False)
             result = read_csv(path, header=[0, 1])
-            assert _all_none(*result.columns.names)
+            assert com._all_none(*result.columns.names)
             result.columns.names = df.columns.names
             assert_frame_equal(df, result)
 

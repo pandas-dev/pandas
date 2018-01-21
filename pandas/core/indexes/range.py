@@ -13,7 +13,8 @@ from pandas.core.dtypes.generic import ABCSeries
 from pandas import compat
 from pandas.compat import lrange, range, get_range_parameters
 from pandas.compat.numpy import function as nv
-from pandas.core.common import _all_none
+
+import pandas.core.common as com
 from pandas.core.indexes.base import Index, _index_shared_docs
 from pandas.util._decorators import Appender, cache_readonly
 import pandas.core.dtypes.concat as _concat
@@ -89,7 +90,7 @@ class RangeIndex(Int64Index):
 
             return new_value
 
-        if _all_none(start, stop, step):
+        if com._all_none(start, stop, step):
             msg = "RangeIndex(...) must be called with integers"
             raise TypeError(msg)
         elif start is None:

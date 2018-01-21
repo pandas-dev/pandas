@@ -17,7 +17,7 @@ from pandas._libs import (groupby as libgroupby, algos as libalgos,
 from pandas._libs.hashtable import unique_label_indices
 from pandas.compat import lrange, range
 import pandas.core.algorithms as algos
-from pandas.core.common import _asarray_tuplesafe
+import pandas.core.common as com
 import pandas.util.testing as tm
 import pandas.util._test_decorators as td
 from pandas.core.dtypes.dtypes import CategoricalDtype as CDT
@@ -217,7 +217,8 @@ class TestFactorize(object):
         tm.assert_numpy_array_equal(result[0],
                                     np.array(expected_label, dtype=np.intp))
 
-        expected_level_array = _asarray_tuplesafe(expected_level, dtype=object)
+        expected_level_array = com._asarray_tuplesafe(expected_level,
+                                                      dtype=object)
         tm.assert_numpy_array_equal(result[1], expected_level_array)
 
     def test_complex_sorting(self):

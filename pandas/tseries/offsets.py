@@ -9,7 +9,7 @@ import numpy as np
 
 from pandas.core.dtypes.generic import ABCSeries, ABCDatetimeIndex, ABCPeriod
 from pandas.core.tools.datetimes import to_datetime
-from pandas.core.common import AbstractMethodError
+import pandas.core.common as com
 
 # import after tools, dateutil check
 from dateutil.easter import easter
@@ -1148,7 +1148,7 @@ class SemiMonthOffset(DateOffset):
 
     def _apply(self, n, other):
         """Handle specific apply logic for child classes"""
-        raise AbstractMethodError(self)
+        raise com.AbstractMethodError(self)
 
     @apply_index_wraps
     def apply_index(self, i):
@@ -1182,11 +1182,11 @@ class SemiMonthOffset(DateOffset):
         The roll array is based on the fact that i gets rolled back to
         the first day of the month.
         """
-        raise AbstractMethodError(self)
+        raise com.AbstractMethodError(self)
 
     def _apply_index_days(self, i, roll):
         """Apply the correct day for each date in i"""
-        raise AbstractMethodError(self)
+        raise com.AbstractMethodError(self)
 
 
 class SemiMonthEnd(SemiMonthOffset):

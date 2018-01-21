@@ -91,6 +91,15 @@ if [ "$LINT" ]; then
     fi
     echo "Check for invalid testing DONE"
 
+    # Check for imports from pandas.core.common instead
+    # of `import pandas.core.common as com`
+    echo "Check for non-standard imports"
+    grep -R --include="*.py*" -E "from pandas.core.common import " pandas
+    if [ $? = "0" ]; then
+        RET=1
+    fi
+    echo "Check for non-standard imports DONE"
+
     echo "Check for use of lists instead of generators in built-in Python functions"
 
     # Example: Avoid `any([i for i in some_iterator])` in favor of `any(i for i in some_iterator)`

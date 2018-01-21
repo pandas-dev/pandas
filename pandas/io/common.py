@@ -9,7 +9,7 @@ from contextlib import contextmanager, closing
 from pandas.compat import StringIO, BytesIO, string_types, text_type
 from pandas import compat
 from pandas.io.formats.printing import pprint_thing
-from pandas.core.common import AbstractMethodError
+import pandas.core.common as com
 from pandas.core.dtypes.common import is_number, is_file_like
 
 # compat
@@ -66,7 +66,7 @@ class BaseIterator(object):
         return self
 
     def __next__(self):
-        raise AbstractMethodError(self)
+        raise com.AbstractMethodError(self)
 
 
 if not compat.PY3:

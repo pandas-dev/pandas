@@ -34,7 +34,7 @@ from pandas.core.sparse.array import BlockIndex, IntIndex
 from pandas.core.base import StringMixin
 from pandas.io.formats.printing import adjoin, pprint_thing
 from pandas.errors import PerformanceWarning
-from pandas.core.common import _asarray_tuplesafe, _all_none
+import pandas.core.common as com
 from pandas.core.algorithms import match, unique
 from pandas.core.arrays.categorical import (Categorical,
                                             _factorize_from_iterables)
@@ -903,7 +903,7 @@ class HDFStore(StringMixin):
             raise KeyError('No object named %s in the file' % key)
 
         # remove the node
-        if _all_none(where, start, stop):
+        if com._all_none(where, start, stop):
             s.group._f_remove(recursive=True)
 
         # delete from the table
@@ -2368,7 +2368,7 @@ class Fixed(StringMixin):
         support fully deleting the node in its entirety (only) - where
         specification must be None
         """
-        if _all_none(where, start, stop):
+        if com._all_none(where, start, stop):
             self._handle.remove_node(self.group, recursive=True)
             return None
 
@@ -3844,7 +3844,7 @@ class LegacyTable(Table):
                 tuple_index = long_index.values
 
                 unique_tuples = lib.fast_unique(tuple_index)
-                unique_tuples = _asarray_tuplesafe(unique_tuples)
+                unique_tuples = com._asarray_tuplesafe(unique_tuples)
 
                 indexer = match(unique_tuples, tuple_index)
                 indexer = _ensure_platform_int(indexer)

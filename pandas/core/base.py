@@ -24,7 +24,6 @@ from pandas.compat.numpy import function as nv
 from pandas.compat import PYPY
 from pandas.util._decorators import (Appender, cache_readonly,
                                      deprecate_kwarg, Substitution)
-from pandas.core.common import AbstractMethodError, _maybe_box_datetimelike
 
 from pandas.core.accessor import DirNamesMixin
 
@@ -46,7 +45,7 @@ class StringMixin(object):
     # Formatting
 
     def __unicode__(self):
-        raise AbstractMethodError(self)
+        raise com.AbstractMethodError(self)
 
     def __str__(self):
         """
@@ -278,10 +277,10 @@ class SelectionMixin(object):
             subset to act on
 
         """
-        raise AbstractMethodError(self)
+        raise com.AbstractMethodError(self)
 
     def aggregate(self, func, *args, **kwargs):
-        raise AbstractMethodError(self)
+        raise com.AbstractMethodError(self)
 
     agg = aggregate
 
@@ -815,7 +814,7 @@ class IndexOpsMixin(object):
         """
 
         if is_datetimelike(self):
-            return [_maybe_box_datetimelike(x) for x in self._values]
+            return [com._maybe_box_datetimelike(x) for x in self._values]
         else:
             return self._values.tolist()
 
@@ -1238,4 +1237,4 @@ class IndexOpsMixin(object):
     # abstracts
 
     def _update_inplace(self, result, **kwargs):
-        raise AbstractMethodError(self)
+        raise com.AbstractMethodError(self)

@@ -18,9 +18,9 @@ from pandas.util._decorators import Appender
 
 from pandas.compat import bind_method
 import pandas.core.missing as missing
+import pandas.core.common as com
 
 from pandas.errors import NullFrequencyError
-from pandas.core.common import _values_from_object, _maybe_match_name
 from pandas.core.dtypes.missing import notna, isna
 from pandas.core.dtypes.common import (
     needs_i8_conversion,
@@ -326,7 +326,7 @@ def _arith_method_SERIES(op, name, str_rep, fill_zeros=None, default_axis=None,
                 dtype = find_common_type([x.dtype, y.dtype])
                 result = np.empty(x.size, dtype=dtype)
                 mask = notna(x) & notna(y)
-                result[mask] = op(x[mask], _values_from_object(y[mask]))
+                result[mask] = op(x[mask], com._values_from_object(y[mask]))
             elif isinstance(x, np.ndarray):
                 result = np.empty(len(x), dtype=x.dtype)
                 mask = notna(x)
@@ -426,7 +426,7 @@ def dispatch_to_index_op(op, left, right, index_class):
 def _get_series_op_result_name(left, right):
     # `left` is always a pd.Series
     if isinstance(right, (ABCSeries, pd.Index)):
-        name = _maybe_match_name(left, right)
+        name = com._maybe_match_name(left, right)
     else:
         name = left.name
     return name
@@ -489,7 +489,7 @@ def _comp_method_SERIES(op, name, str_rep, masker=False):
 
                 if is_scalar(y):
                     mask = isna(x)
-                    y = libindex.convert_scalar(x, _values_from_object(y))
+                    y = libindex.convert_scalar(x, com._values_from_object(y))
                 else:
                     mask = isna(x) | isna(y)
                     y = y.view('i8')
@@ -514,7 +514,7 @@ def _comp_method_SERIES(op, name, str_rep, masker=False):
             self._get_axis_number(axis)
 
         if isinstance(other, ABCSeries):
-            name = _maybe_match_name(self, other)
+            name = com._maybe_match_name(self, other)
             if not self._indexed_same(other):
                 msg = 'Can only compare identically-labeled Series objects'
                 raise ValueError(msg)
@@ -566,7 +566,7 @@ def _comp_method_SERIES(op, name, str_rep, masker=False):
                                 .format(typ=type(other)))
 
             # always return a full value series here
-            res = _values_from_object(res)
+            res = com._values_from_object(res)
 
         res = pd.Series(res, index=self.index, name=self.name, dtype='bool')
         return res
@@ -618,7 +618,7 @@ def _bool_method_SERIES(op, name, str_rep):
         self, other = _align_method_SERIES(self, other, align_asobject=True)
 
         if isinstance(other, ABCSeries):
-            name = _maybe_match_name(self, other)
+            name = com._maybe_match_name(self, other)
             is_other_int_dtype = is_integer_dtype(other.dtype)
             other = fill_int(other) if is_other_int_dtype else fill_bool(other)
 

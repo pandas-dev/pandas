@@ -17,7 +17,6 @@ from pandas.core.dtypes.common import (
     _ensure_int64)
 from pandas.core.dtypes.missing import isna
 from pandas.core.dtypes.generic import ABCSeries
-from pandas.core.common import _maybe_box, _values_from_object
 
 from pandas.core.indexes.base import Index
 from pandas.core.indexes.numeric import Int64Index
@@ -77,7 +76,7 @@ def _td_index_cmp(opname, cls, nat_result=False):
 
             other = TimedeltaIndex(other).values
             result = func(other)
-            result = _values_from_object(result)
+            result = com._values_from_object(result)
 
             if isinstance(other, Index):
                 o_mask = other.values.view('i8') == iNaT
@@ -710,8 +709,8 @@ class TimedeltaIndex(DatetimeIndexOpsMixin, TimelikeOps, Int64Index):
             return self.get_value_maybe_box(series, key)
 
         try:
-            return _maybe_box(self, Index.get_value(self, series, key),
-                              series, key)
+            return com._maybe_box(self, Index.get_value(self, series, key),
+                                  series, key)
         except KeyError:
             try:
                 loc = self._get_string_slice(key)
@@ -727,8 +726,8 @@ class TimedeltaIndex(DatetimeIndexOpsMixin, TimelikeOps, Int64Index):
     def get_value_maybe_box(self, series, key):
         if not isinstance(key, Timedelta):
             key = Timedelta(key)
-        values = self._engine.get_value(_values_from_object(series), key)
-        return _maybe_box(self, values, series, key)
+        values = self._engine.get_value(com._values_from_object(series), key)
+        return com._maybe_box(self, values, series, key)
 
     def get_loc(self, key, method=None, tolerance=None):
         """
