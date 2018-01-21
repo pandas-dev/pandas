@@ -2587,9 +2587,6 @@ class DatetimeTZBlock(NonConsolidatableMixIn, DatetimeBlock):
         super(DatetimeTZBlock, self).__init__(values, placement=placement,
                                               ndim=ndim)
 
-    # override NonConsolidatableMixIn implementation of get_values
-    get_values = DatetimeLikeBlockMixin.get_values
-
     def copy(self, deep=True, mgr=None):
         """ copy constructor """
         values = self.values
@@ -2602,6 +2599,13 @@ class DatetimeTZBlock(NonConsolidatableMixIn, DatetimeBlock):
         external compat with ndarray, export as a ndarray of Timestamps
         """
         return self.values.astype('datetime64[ns]').values
+
+    def get_values(self, dtype=None):
+        # return object dtype as Timestamps with the zones
+        if is_object_dtype(dtype):
+            return lib.map_infer(
+                self.values.ravel(), self._box_func).reshape(self.values.shape)
+        return self.values
 
     def _slice(self, slicer):
         """ return a slice of my values """
