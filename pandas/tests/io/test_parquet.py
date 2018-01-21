@@ -112,7 +112,27 @@ def df_full():
 
 def check_round_trip(df, engine=None, path=None,
                      write_kwargs=None, read_kwargs=None,
-                     expected=None, check_names=True):
+                     expected=None, check_names=True,
+                     repeat=2):
+    """
+    Verify parquet serialize and deserialize produce the same results.
+
+    Performs a pandas to disk and disk to pandas round trip,
+    then compares the 2 resulting DataFrames to verify full
+    cycle is successful.
+
+    :param df: Dataframe to be serialized to disk
+    :param engine: str one of ['pyarrow', 'fastparquet']
+    :param path: str
+    :param write_kwargs: dict(str:str) params to be passed to the serialization
+        engine.
+    :param read_kwargs: dict(str:str) params to be passed to the
+        deserialization engine.
+    :param expected: DataFrame If provides deserialization will be
+        compared againt it.
+    :param check_names: list(str) specific columns to be compared
+    :param repeat No. of times to repeat the test.
+    """
 
     if write_kwargs is None:
         write_kwargs = {'compression': None}
@@ -127,29 +147,19 @@ def check_round_trip(df, engine=None, path=None,
     if expected is None:
         expected = df
 
+    def compare():
+        df.to_parquet(path, **write_kwargs)
+        actual = read_parquet(path, **read_kwargs)
+        tm.assert_frame_equal(expected, actual,
+                              check_names=check_names)
+
     if path is None:
         with tm.ensure_clean() as path:
-            df.to_parquet(path, **write_kwargs)
-            actual = read_parquet(path, **read_kwargs)
-            tm.assert_frame_equal(expected, actual,
-                                  check_names=check_names)
-
-            # repeat
-            df.to_parquet(path, **write_kwargs)
-            actual = read_parquet(path, **read_kwargs)
-            tm.assert_frame_equal(expected, actual,
-                                  check_names=check_names)
+            for _ in range(repeat):
+                compare()
     else:
-        df.to_parquet(path, **write_kwargs)
-        actual = read_parquet(path, **read_kwargs)
-        tm.assert_frame_equal(expected, actual,
-                              check_names=check_names)
-
-        # repeat
-        df.to_parquet(path, **write_kwargs)
-        actual = read_parquet(path, **read_kwargs)
-        tm.assert_frame_equal(expected, actual,
-                              check_names=check_names)
+        for _ in range(repeat):
+            compare()
 
 
 def test_invalid_engine(df_compat):
