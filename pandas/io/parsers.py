@@ -1351,9 +1351,9 @@ class ParserBase(object):
         for n in range(len(columns[0])):
             if all('Unnamed' in tostr(c[n]) for c in columns):
                 raise ParserError(
-                    "Passed header=[%s] are too many rows for this "
+                    "Passed header=[{header}] are too many rows for this "
                     "multi_index of columns"
-                    % ','.join(str(x) for x in self.header)
+                    .format(header=','.join(str(x) for x in self.header))
                 )
 
         # clean the column names (if we have an index_col)
@@ -1385,9 +1385,10 @@ class ParserBase(object):
                     counts[col] = cur_count + 1
 
                     if is_potential_mi:
-                        col = col[:-1] + ('%s.%d' % (col[-1], cur_count),)
+                        col = col[:-1] + ('{col}.{cnt}'.format(
+                            col=col[-1], cnt=cur_count),)
                     else:
-                        col = '%s.%d' % (col, cur_count)
+                        col = '{col}.{cnt}'.format(col=col, cnt=cur_count)
                     cur_count = counts[col]
 
                 names[i] = col
@@ -1433,7 +1434,7 @@ class ParserBase(object):
         def ix(col):
             if not isinstance(col, compat.string_types):
                 return col
-            raise ValueError('Index %s invalid' % col)
+            raise ValueError('Index {col} invalid'.format(col=col))
 
         to_remove = []
         index = []
@@ -1457,8 +1458,8 @@ class ParserBase(object):
                 return icol
 
             if col_names is None:
-                raise ValueError(('Must supply column order to use %s as '
-                                  'index') % str(icol))
+                raise ValueError(('Must supply column order to use {icol!s} '
+                                  'as index').format(icol=icol))
 
             for i, c in enumerate(col_names):
                 if i == icol:
@@ -1559,7 +1560,8 @@ class ParserBase(object):
 
             result[c] = cvals
             if verbose and na_count:
-                print('Filled %d NA values in column %s' % (na_count, str(c)))
+                print('Filled {count} NA values in column {c}'.format(
+                    count=na_count, c=str(c)))
         return result
 
     def _infer_types(self, values, na_values, try_num_bool=True):
@@ -1645,8 +1647,9 @@ class ParserBase(object):
             try:
                 values = astype_nansafe(values, cast_type, copy=True)
             except ValueError:
-                raise ValueError("Unable to convert column %s to "
-                                 "type %s" % (column, cast_type))
+                raise ValueError(
+                    "Unable to convert column {column} to type {type}".format(
+                        column=column, type=cast_type))
         return values
 
     def _do_date_conversions(self, names, data):
@@ -1707,7 +1710,7 @@ class CParserWrapper(ParserBase):
 
         if self.names is None:
             if self.prefix:
-                self.names = ['%s%d' % (self.prefix, i)
+                self.names = ['{prefix}{i}'.format(prefix=self.prefix, i=i)
                               for i in range(self._reader.table_width)]
             else:
                 self.names = lrange(self._reader.table_width)
@@ -2106,10 +2109,11 @@ class PythonParser(ParserBase):
             raise ValueError('Only length-1 decimal markers supported')
 
         if self.thousands is None:
-            self.nonnum = re.compile('[^-^0-9^%s]+' % self.decimal)
+            self.nonnum = re.compile(
+                '[^-^0-9^{decimal}]+'.format(decimal=self.decimal))
         else:
-            self.nonnum = re.compile('[^-^0-9^%s^%s]+' % (self.thousands,
-                                                          self.decimal))
+            self.nonnum = re.compile('[^-^0-9^{thousands}^{decimal}]+'.format(
+                thousands=self.thousands, decimal=self.decimal))
 
     def _set_no_thousands_columns(self):
         # Create a set of column ids that are not to be stripped of thousands
@@ -2346,8 +2350,8 @@ class PythonParser(ParserBase):
                 except StopIteration:
                     if self.line_pos < hr:
                         raise ValueError(
-                            'Passed header=%s but only %d lines in file'
-                            % (hr, self.line_pos + 1))
+                            'Passed header={hr} but only {pos} lines in '
+                            'file'.format(hr=hr, pos=(self.line_pos + 1)))
 
                     # We have an empty file, so check
                     # if columns are provided. That will
@@ -2369,10 +2373,11 @@ class PythonParser(ParserBase):
                 for i, c in enumerate(line):
                     if c == '':
                         if have_mi_columns:
-                            this_columns.append('Unnamed: %d_level_%d'
-                                                % (i, level))
+                            this_columns.append(
+                                'Unnamed: {idx}_level_{level}'.format(
+                                    idx=i, level=level))
                         else:
-                            this_columns.append('Unnamed: %d' % i)
+                            this_columns.append('Unnamed: {idx}'.format(idx=i))
                         unnamed_count += 1
                     else:
                         this_columns.append(c)
@@ -2385,7 +2390,8 @@ class PythonParser(ParserBase):
 
                         while cur_count > 0:
                             counts[col] = cur_count + 1
-                            col = "%s.%d" % (col, cur_count)
+                            col = "{columns}.{count}".format(
+                                columns=col, count=cur_count)
                             cur_count = counts[col]
 
                         this_columns[i] = col
@@ -2448,8 +2454,8 @@ class PythonParser(ParserBase):
 
             if not names:
                 if self.prefix:
-                    columns = [['%s%d' % (self.prefix, i)
-                                for i in range(ncols)]]
+                    columns = [['{prefix}{idx}'.format(
+                        prefix=self.prefix, idx=i) for i in range(ncols)]]
                 else:
                     columns = [lrange(ncols)]
                 columns = self._handle_usecols(columns, columns[0])
@@ -2878,8 +2884,9 @@ class PythonParser(ParserBase):
                     content.append(l)
 
             for row_num, actual_len in bad_lines:
-                msg = ('Expected %d fields in line %d, saw %d' %
-                       (col_len, row_num + 1, actual_len))
+                msg = ('Expected {col_len} fields in line {line}, saw '
+                       '{length}'.format(col_len=col_len, line=(row_num + 1),
+                                         length=actual_len))
                 if (self.delimiter and
                         len(self.delimiter) > 1 and
                         self.quoting != csv.QUOTE_NONE):
@@ -3050,8 +3057,9 @@ def _process_date_conversion(data_dict, converter, parse_spec,
                 new_name, col, old_names = _try_convert_dates(
                     converter, colspec, data_dict, orig_names)
                 if new_name in data_dict:
-                    raise ValueError('New date column already in dict %s' %
-                                     new_name)
+                    raise ValueError(
+                        'New date column already in dict {name}'.format(
+                            name=new_name))
                 new_data[new_name] = col
                 new_cols.append(new_name)
                 date_cols.update(old_names)
@@ -3060,8 +3068,8 @@ def _process_date_conversion(data_dict, converter, parse_spec,
         # dict of new name to column list
         for new_name, colspec in compat.iteritems(parse_spec):
             if new_name in data_dict:
-                raise ValueError('Date column %s already in dict' %
-                                 new_name)
+                raise ValueError(
+                    'Date column {name} already in dict'.format(name=new_name))
 
             _, col, old_names = _try_convert_dates(converter, colspec,
                                                    data_dict, orig_names)
@@ -3231,7 +3239,7 @@ def _stringify_na_values(na_values):
             # we are like 999 here
             if v == int(v):
                 v = int(v)
-                result.append("%s.0" % v)
+                result.append("{value}.0".format(value=v))
                 result.append(str(v))
 
             result.append(v)
@@ -3373,8 +3381,8 @@ class FixedWidthReader(BaseIterator):
 
     def detect_colspecs(self, n=100, skiprows=None):
         # Regex escape the delimiters
-        delimiters = ''.join(r'\%s' % x for x in self.delimiter)
-        pattern = re.compile('([^%s]+)' % delimiters)
+        delimiters = ''.join(r'\{dlm}'.format(dlm=[x for x in self.delimiter]))
+        pattern = re.compile('([^{dlm}]+)'.format(dlm=delimiters))
         rows = self.get_rows(n, skiprows)
         if not rows:
             raise EmptyDataError("No rows from which to infer column width")
