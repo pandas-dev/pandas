@@ -2,7 +2,7 @@ import numpy as np
 
 from pandas.compat import zip
 from pandas.core.dtypes.generic import ABCSeries, ABCIndex
-from pandas.core.dtypes.missing import isnull, notnull
+from pandas.core.dtypes.missing import isna, notna
 from pandas.core.dtypes.common import (
     is_bool_dtype,
     is_categorical_dtype,
@@ -12,11 +12,11 @@ from pandas.core.dtypes.common import (
     is_scalar,
     is_integer,
     is_re)
-from pandas.core.common import _values_from_object
 
+import pandas.core.common as com
 from pandas.core.algorithms import take_1d
 import pandas.compat as compat
-from pandas.core.base import AccessorProperty, NoNewAttributesMixin
+from pandas.core.base import NoNewAttributesMixin
 from pandas.util._decorators import Appender
 import re
 import pandas._libs.lib as lib
@@ -37,7 +37,7 @@ _shared_docs = dict()
 def _get_array_list(arr, others):
     from pandas.core.series import Series
 
-    if len(others) and isinstance(_values_from_object(others)[0],
+    if len(others) and isinstance(com._values_from_object(others)[0],
                                   (list, np.ndarray, Series)):
         arrays = [arr] + list(others)
     else:
@@ -101,7 +101,7 @@ def str_cat(arr, others=None, sep=None, na_rep=None):
         arrays = _get_array_list(arr, others)
 
         n = _length_check(arrays)
-        masks = np.array([isnull(x) for x in arrays])
+        masks = np.array([isna(x) for x in arrays])
         cats = None
 
         if na_rep is None:
@@ -129,12 +129,12 @@ def str_cat(arr, others=None, sep=None, na_rep=None):
         return result
     else:
         arr = np.asarray(arr, dtype=object)
-        mask = isnull(arr)
+        mask = isna(arr)
         if na_rep is None and mask.any():
             if sep == '':
                 na_rep = ''
             else:
-                return sep.join(arr[notnull(arr)])
+                return sep.join(arr[notna(arr)])
         return sep.join(np.where(mask, na_rep, arr))
 
 
@@ -165,7 +165,7 @@ def _map(f, arr, na_mask=False, na_value=np.nan, dtype=object):
     if not isinstance(arr, np.ndarray):
         arr = np.asarray(arr, dtype=object)
     if na_mask:
-        mask = isnull(arr)
+        mask = isna(arr)
         try:
             convert = not all(mask)
             result = lib.map_infer_mask(arr, f, mask.view(np.uint8), convert)
@@ -306,7 +306,7 @@ def str_endswith(arr, pat, na=np.nan):
 
 
 def str_replace(arr, pat, repl, n=-1, case=None, flags=0):
-    """
+    r"""
     Replace occurrences of pattern/regex in the Series/Index with
     some other string. Equivalent to :meth:`str.replace` or
     :func:`re.sub`.
@@ -461,7 +461,7 @@ def str_repeat(arr, repeats):
                 return compat.text_type.__mul__(x, r)
 
         repeats = np.asarray(repeats, dtype=object)
-        result = lib.vec_binop(_values_from_object(arr), repeats, rep)
+        result = lib.vec_binop(com._values_from_object(arr), repeats, rep)
         return result
 
 
@@ -478,7 +478,8 @@ def str_match(arr, pat, case=True, flags=0, na=np.nan, as_indexer=None):
     flags : int, default 0 (no flags)
         re module flags, e.g. re.IGNORECASE
     na : default NaN, fill value for missing values.
-    as_indexer : DEPRECATED
+    as_indexer
+        .. deprecated:: 0.21.0
 
     Returns
     -------
@@ -598,11 +599,9 @@ def _str_extract_frame(arr, pat, flags=0):
 
 
 def str_extract(arr, pat, flags=0, expand=None):
-    """
+    r"""
     For each subject string in the Series, extract groups from the
     first match of regular expression pat.
-
-    .. versionadded:: 0.13.0
 
     Parameters
     ----------
@@ -611,10 +610,11 @@ def str_extract(arr, pat, flags=0, expand=None):
     flags : int, default 0 (no flags)
         re module flags, e.g. re.IGNORECASE
 
-    .. versionadded:: 0.18.0
     expand : bool, default False
         * If True, return DataFrame.
         * If False, return Series/Index/DataFrame.
+
+        .. versionadded:: 0.18.0
 
     Returns
     -------
@@ -636,7 +636,7 @@ def str_extract(arr, pat, flags=0, expand=None):
     Non-matches will be NaN.
 
     >>> s = Series(['a1', 'b2', 'c3'])
-    >>> s.str.extract('([ab])(\d)')
+    >>> s.str.extract(r'([ab])(\d)')
          0    1
     0    a    1
     1    b    2
@@ -644,7 +644,7 @@ def str_extract(arr, pat, flags=0, expand=None):
 
     A pattern may contain optional groups.
 
-    >>> s.str.extract('([ab])?(\d)')
+    >>> s.str.extract(r'([ab])?(\d)')
          0  1
     0    a  1
     1    b  2
@@ -652,7 +652,7 @@ def str_extract(arr, pat, flags=0, expand=None):
 
     Named groups will become column names in the result.
 
-    >>> s.str.extract('(?P<letter>[ab])(?P<digit>\d)')
+    >>> s.str.extract(r'(?P<letter>[ab])(?P<digit>\d)')
       letter digit
     0      a     1
     1      b     2
@@ -661,7 +661,7 @@ def str_extract(arr, pat, flags=0, expand=None):
     A pattern with one group will return a DataFrame with one column
     if expand=True.
 
-    >>> s.str.extract('[ab](\d)', expand=True)
+    >>> s.str.extract(r'[ab](\d)', expand=True)
          0
     0    1
     1    2
@@ -669,7 +669,7 @@ def str_extract(arr, pat, flags=0, expand=None):
 
     A pattern with one group will return a Series if expand=False.
 
-    >>> s.str.extract('[ab](\d)', expand=False)
+    >>> s.str.extract(r'[ab](\d)', expand=False)
     0      1
     1      2
     2    NaN
@@ -695,7 +695,7 @@ def str_extract(arr, pat, flags=0, expand=None):
 
 
 def str_extractall(arr, pat, flags=0):
-    """
+    r"""
     For each subject string in the Series, extract groups from all
     matches of regular expression pat. When each subject string in the
     Series has exactly one match, extractall(pat).xs(0, level='match')
@@ -729,7 +729,7 @@ def str_extractall(arr, pat, flags=0):
     Indices with no matches will not appear in the result.
 
     >>> s = Series(["a1a2", "b1", "c1"], index=["A", "B", "C"])
-    >>> s.str.extractall("[ab](\d)")
+    >>> s.str.extractall(r"[ab](\d)")
              0
       match
     A 0      1
@@ -738,7 +738,7 @@ def str_extractall(arr, pat, flags=0):
 
     Capture group names are used for column names of the result.
 
-    >>> s.str.extractall("[ab](?P<digit>\d)")
+    >>> s.str.extractall(r"[ab](?P<digit>\d)")
             digit
       match
     A 0         1
@@ -747,7 +747,7 @@ def str_extractall(arr, pat, flags=0):
 
     A pattern with two groups will return a DataFrame with two columns.
 
-    >>> s.str.extractall("(?P<letter>[ab])(?P<digit>\d)")
+    >>> s.str.extractall(r"(?P<letter>[ab])(?P<digit>\d)")
             letter digit
       match
     A 0          a     1
@@ -756,7 +756,7 @@ def str_extractall(arr, pat, flags=0):
 
     Optional groups that do not match are NaN in the result.
 
-    >>> s.str.extractall("(?P<letter>[ab])?(?P<digit>\d)")
+    >>> s.str.extractall(r"(?P<letter>[ab])?(?P<digit>\d)")
             letter digit
       match
     A 0          a     1
@@ -795,12 +795,10 @@ def str_extractall(arr, pat, flags=0):
                 result_key = tuple(subject_key + (match_i, ))
                 index_list.append(result_key)
 
-    if 0 < len(index_list):
-        from pandas import MultiIndex
-        index = MultiIndex.from_tuples(
-            index_list, names=arr.index.names + ["match"])
-    else:
-        index = None
+    from pandas import MultiIndex
+    index = MultiIndex.from_tuples(
+        index_list, names=arr.index.names + ["match"])
+
     result = arr._constructor_expanddim(match_list, index=index,
                                         columns=columns)
     return result
@@ -1015,7 +1013,6 @@ def str_split(arr, pat=None, n=None):
         * If True, return DataFrame/MultiIndex expanding dimensionality.
         * If False, return Series/Index.
 
-        .. versionadded:: 0.16.1
     return_type : deprecated, use `expand`
 
     Returns
@@ -1045,8 +1042,6 @@ def str_rsplit(arr, pat=None, n=None):
     Split each string in the Series/Index by the given delimiter
     string, starting at the end of the string and working to the front.
     Equivalent to :meth:`str.rsplit`.
-
-    .. versionadded:: 0.16.2
 
     Parameters
     ----------
@@ -1240,7 +1235,6 @@ def str_translate(arr, table, deletechars=None):
     if deletechars is None:
         f = lambda x: x.translate(table)
     else:
-        from pandas import compat
         if compat.PY3:
             raise ValueError("deletechars is not a valid argument for "
                              "str.translate in python 3. You should simply "
@@ -1264,7 +1258,7 @@ def str_get(arr, i):
     -------
     items : Series/Index of objects
     """
-    f = lambda x: x[i] if len(x) > i else np.nan
+    f = lambda x: x[i] if len(x) > i >= -len(x) else np.nan
     return _na_map(f, arr)
 
 
@@ -1375,11 +1369,43 @@ class StringMethods(NoNewAttributesMixin):
     """
 
     def __init__(self, data):
+        self._validate(data)
         self._is_categorical = is_categorical_dtype(data)
         self._data = data.cat.categories if self._is_categorical else data
         # save orig to blow up categoricals to the right type
         self._orig = data
         self._freeze()
+
+    @staticmethod
+    def _validate(data):
+        from pandas.core.index import Index
+
+        if (isinstance(data, ABCSeries) and
+                not ((is_categorical_dtype(data.dtype) and
+                      is_object_dtype(data.values.categories)) or
+                     (is_object_dtype(data.dtype)))):
+            # it's neither a string series not a categorical series with
+            # strings inside the categories.
+            # this really should exclude all series with any non-string values
+            # (instead of test for object dtype), but that isn't practical for
+            # performance reasons until we have a str dtype (GH 9343)
+            raise AttributeError("Can only use .str accessor with string "
+                                 "values, which use np.object_ dtype in "
+                                 "pandas")
+        elif isinstance(data, Index):
+            # can't use ABCIndex to exclude non-str
+
+            # see scc/inferrence.pyx which can contain string values
+            allowed_types = ('string', 'unicode', 'mixed', 'mixed-integer')
+            if data.inferred_type not in allowed_types:
+                message = ("Can only use .str accessor with string values "
+                           "(i.e. inferred_type is 'string', 'unicode' or "
+                           "'mixed')")
+                raise AttributeError(message)
+            if data.nlevels > 1:
+                message = ("Can only use .str accessor with Index, not "
+                           "MultiIndex")
+                raise AttributeError(message)
 
     def __getitem__(self, key):
         if isinstance(key, slice):
@@ -1390,7 +1416,7 @@ class StringMethods(NoNewAttributesMixin):
     def __iter__(self):
         i = 0
         g = self.get(i)
-        while g.notnull().any():
+        while g.notna().any():
             yield g
             i += 1
             g = self.get(i)
@@ -1418,7 +1444,7 @@ class StringMethods(NoNewAttributesMixin):
 
         elif expand is True and not isinstance(self._orig, Index):
             # required when expand=True is explicitly specified
-            # not needed when infered
+            # not needed when inferred
 
             def cons_row(x):
                 if is_list_like(x):
@@ -1427,6 +1453,10 @@ class StringMethods(NoNewAttributesMixin):
                     return [x]
 
             result = [cons_row(x) for x in result]
+            if result:
+                # propagate nan values to match longest sequence (GH 18450)
+                max_len = max(len(x) for x in result)
+                result = [x * max_len if x[0] is np.nan else x for x in result]
 
         if not isinstance(expand, bool):
             raise ValueError("expand must be True or False")
@@ -1451,7 +1481,12 @@ class StringMethods(NoNewAttributesMixin):
 
             if expand:
                 result = list(result)
-                return MultiIndex.from_tuples(result, names=name)
+                out = MultiIndex.from_tuples(result, names=name)
+                if out.nlevels == 1:
+                    # We had all tuples of length-one, which are
+                    # better represented as a regular Index.
+                    out = out.get_level_values(0)
+                return out
             else:
                 return Index(result, name=name)
         else:
@@ -1889,50 +1924,7 @@ class StringMethods(NoNewAttributesMixin):
                                docstring=_shared_docs['ismethods'] %
                                _shared_docs['isdecimal'])
 
-
-class StringAccessorMixin(object):
-    """ Mixin to add a `.str` acessor to the class."""
-
-    # string methods
-    def _make_str_accessor(self):
-        from pandas.core.index import Index
-
-        if (isinstance(self, ABCSeries) and
-                not ((is_categorical_dtype(self.dtype) and
-                      is_object_dtype(self.values.categories)) or
-                     (is_object_dtype(self.dtype)))):
-            # it's neither a string series not a categorical series with
-            # strings inside the categories.
-            # this really should exclude all series with any non-string values
-            # (instead of test for object dtype), but that isn't practical for
-            # performance reasons until we have a str dtype (GH 9343)
-            raise AttributeError("Can only use .str accessor with string "
-                                 "values, which use np.object_ dtype in "
-                                 "pandas")
-        elif isinstance(self, Index):
-            # can't use ABCIndex to exclude non-str
-
-            # see scc/inferrence.pyx which can contain string values
-            allowed_types = ('string', 'unicode', 'mixed', 'mixed-integer')
-            if self.inferred_type not in allowed_types:
-                message = ("Can only use .str accessor with string values "
-                           "(i.e. inferred_type is 'string', 'unicode' or "
-                           "'mixed')")
-                raise AttributeError(message)
-            if self.nlevels > 1:
-                message = ("Can only use .str accessor with Index, not "
-                           "MultiIndex")
-                raise AttributeError(message)
-        return StringMethods(self)
-
-    str = AccessorProperty(StringMethods, _make_str_accessor)
-
-    def _dir_additions(self):
-        return set()
-
-    def _dir_deletions(self):
-        try:
-            getattr(self, 'str')
-        except AttributeError:
-            return set(['str'])
-        return set()
+    @classmethod
+    def _make_accessor(cls, data):
+        cls._validate(data)
+        return cls(data)

@@ -90,7 +90,8 @@ class TestUnionCategoricals(object):
         tm.assert_categorical_equal(res, exp)
 
         # all NaN
-        res = union_categoricals([pd.Categorical([np.nan, np.nan]),
+        res = union_categoricals([pd.Categorical(np.array([np.nan, np.nan],
+                                                          dtype=object)),
                                   pd.Categorical(['X'])])
         exp = Categorical([np.nan, np.nan, 'X'])
         tm.assert_categorical_equal(res, exp)
@@ -107,16 +108,10 @@ class TestUnionCategoricals(object):
         exp = Categorical([])
         tm.assert_categorical_equal(res, exp)
 
-        res = union_categoricals([pd.Categorical([]),
-                                  pd.Categorical([1.0])])
-        exp = Categorical([1.0])
+        res = union_categoricals([Categorical([]),
+                                  Categorical(['1'])])
+        exp = Categorical(['1'])
         tm.assert_categorical_equal(res, exp)
-
-        # to make dtype equal
-        nanc = pd.Categorical(np.array([np.nan], dtype=np.float64))
-        res = union_categoricals([nanc,
-                                  pd.Categorical([])])
-        tm.assert_categorical_equal(res, nanc)
 
     def test_union_categorical_same_category(self):
         # check fastpath
@@ -133,6 +128,15 @@ class TestUnionCategoricals(object):
         exp = Categorical(['z', 'z', 'z', 'x', 'x', 'x'],
                           categories=['x', 'y', 'z'])
         tm.assert_categorical_equal(res, exp)
+
+    def test_union_categorical_same_categories_different_order(self):
+        # https://github.com/pandas-dev/pandas/issues/19096
+        c1 = Categorical(['a', 'b', 'c'], categories=['a', 'b', 'c'])
+        c2 = Categorical(['a', 'b', 'c'], categories=['b', 'a', 'c'])
+        result = union_categoricals([c1, c2])
+        expected = Categorical(['a', 'b', 'c', 'a', 'b', 'c'],
+                               categories=['a', 'b', 'c'])
+        tm.assert_categorical_equal(result, expected)
 
     def test_union_categoricals_ordered(self):
         c1 = Categorical([1, 2, 3], ordered=True)
@@ -256,7 +260,7 @@ class TestUnionCategoricals(object):
         c1 = Categorical([np.nan])
         c2 = Categorical([np.nan])
         result = union_categoricals([c1, c2], sort_categories=True)
-        expected = Categorical([np.nan, np.nan], categories=[])
+        expected = Categorical([np.nan, np.nan])
         tm.assert_categorical_equal(result, expected)
 
         c1 = Categorical([])
@@ -305,7 +309,7 @@ class TestUnionCategoricals(object):
         c1 = Categorical([np.nan])
         c2 = Categorical([np.nan])
         result = union_categoricals([c1, c2], sort_categories=False)
-        expected = Categorical([np.nan, np.nan], categories=[])
+        expected = Categorical([np.nan, np.nan])
         tm.assert_categorical_equal(result, expected)
 
         c1 = Categorical([])

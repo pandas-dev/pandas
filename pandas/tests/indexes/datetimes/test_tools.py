@@ -12,22 +12,25 @@ from datetime import datetime, date, time
 from distutils.version import LooseVersion
 
 import pandas as pd
-from pandas._libs import tslib, lib
+from pandas.conftest import is_dateutil_le_261, is_dateutil_gt_261
+from pandas._libs import tslib
+from pandas._libs.tslibs import parsing
 from pandas.core.tools import datetimes as tools
-from pandas.core.tools.datetimes import normalize_date
+
 from pandas.compat import lmap
 from pandas.compat.numpy import np_array_datetime64_compat
 from pandas.core.dtypes.common import is_datetime64_ns_dtype
 from pandas.util import testing as tm
-from pandas.util.testing import assert_series_equal, _skip_if_has_locale
-from pandas import (isnull, to_datetime, Timestamp, Series, DataFrame,
-                    Index, DatetimeIndex, NaT, date_range, bdate_range,
-                    compat)
+import pandas.util._test_decorators as td
+from pandas.util.testing import assert_series_equal
+from pandas import (isna, to_datetime, Timestamp, Series, DataFrame,
+                    Index, DatetimeIndex, NaT, date_range, compat)
 
 
-class TimeConversionFormats(object):
+class TestTimeConversionFormats(object):
 
-    def test_to_datetime_format(self):
+    @pytest.mark.parametrize('cache', [True, False])
+    def test_to_datetime_format(self, cache):
         values = ['1/1/2000', '1/2/2000', '1/3/2000']
 
         results1 = [Timestamp('20000101'), Timestamp('20000201'),
@@ -42,7 +45,7 @@ class TimeConversionFormats(object):
                                 (values[2], (results1[2], results2[2]))]:
 
             for i, fmt in enumerate(['%d/%m/%Y', '%m/%d/%Y']):
-                result = to_datetime(vals, format=fmt)
+                result = to_datetime(vals, format=fmt, cache=cache)
                 expected = expecteds[i]
 
                 if isinstance(expected, Series):
@@ -52,14 +55,15 @@ class TimeConversionFormats(object):
                 else:
                     tm.assert_index_equal(result, expected)
 
-    def test_to_datetime_format_YYYYMMDD(self):
+    @pytest.mark.parametrize('cache', [True, False])
+    def test_to_datetime_format_YYYYMMDD(self, cache):
         s = Series([19801222, 19801222] + [19810105] * 5)
         expected = Series([Timestamp(x) for x in s.apply(str)])
 
-        result = to_datetime(s, format='%Y%m%d')
+        result = to_datetime(s, format='%Y%m%d', cache=cache)
         assert_series_equal(result, expected)
 
-        result = to_datetime(s.apply(str), format='%Y%m%d')
+        result = to_datetime(s.apply(str), format='%Y%m%d', cache=cache)
         assert_series_equal(result, expected)
 
         # with NaT
@@ -68,44 +72,48 @@ class TimeConversionFormats(object):
         expected[2] = np.nan
         s[2] = np.nan
 
-        result = to_datetime(s, format='%Y%m%d')
+        result = to_datetime(s, format='%Y%m%d', cache=cache)
         assert_series_equal(result, expected)
 
         # string with NaT
         s = s.apply(str)
         s[2] = 'nat'
-        result = to_datetime(s, format='%Y%m%d')
+        result = to_datetime(s, format='%Y%m%d', cache=cache)
         assert_series_equal(result, expected)
 
         # coercion
         # GH 7930
         s = Series([20121231, 20141231, 99991231])
-        result = pd.to_datetime(s, format='%Y%m%d', errors='ignore')
+        result = pd.to_datetime(s, format='%Y%m%d', errors='ignore',
+                                cache=cache)
         expected = Series([datetime(2012, 12, 31),
                            datetime(2014, 12, 31), datetime(9999, 12, 31)],
                           dtype=object)
         tm.assert_series_equal(result, expected)
 
-        result = pd.to_datetime(s, format='%Y%m%d', errors='coerce')
+        result = pd.to_datetime(s, format='%Y%m%d', errors='coerce',
+                                cache=cache)
         expected = Series(['20121231', '20141231', 'NaT'], dtype='M8[ns]')
         assert_series_equal(result, expected)
 
-    # GH 10178
-    def test_to_datetime_format_integer(self):
+    @pytest.mark.parametrize('cache', [True, False])
+    def test_to_datetime_format_integer(self, cache):
+        # GH 10178
         s = Series([2000, 2001, 2002])
         expected = Series([Timestamp(x) for x in s.apply(str)])
 
-        result = to_datetime(s, format='%Y')
+        result = to_datetime(s, format='%Y', cache=cache)
         assert_series_equal(result, expected)
 
         s = Series([200001, 200105, 200206])
         expected = Series([Timestamp(x[:4] + '-' + x[4:]) for x in s.apply(str)
                            ])
 
-        result = to_datetime(s, format='%Y%m')
+        result = to_datetime(s, format='%Y%m', cache=cache)
         assert_series_equal(result, expected)
 
-    def test_to_datetime_format_microsecond(self):
+    @pytest.mark.parametrize('cache', [True, False])
+    def test_to_datetime_format_microsecond(self, cache):
 
         # these are locale dependent
         lang, _ = locale.getlocale()
@@ -113,11 +121,12 @@ class TimeConversionFormats(object):
         val = '01-{}-2011 00:00:01.978'.format(month_abbr)
 
         format = '%d-%b-%Y %H:%M:%S.%f'
-        result = to_datetime(val, format=format)
+        result = to_datetime(val, format=format, cache=cache)
         exp = datetime.strptime(val, format)
         assert result == exp
 
-    def test_to_datetime_format_time(self):
+    @pytest.mark.parametrize('cache', [True, False])
+    def test_to_datetime_format_time(self, cache):
         data = [
             ['01/10/2010 15:20', '%m/%d/%Y %H:%M',
              Timestamp('2010-01-10 15:20')],
@@ -133,12 +142,12 @@ class TimeConversionFormats(object):
             #  Timestamp('2010-01-10 09:12:56')]
         ]
         for s, format, dt in data:
-            assert to_datetime(s, format=format) == dt
+            assert to_datetime(s, format=format, cache=cache) == dt
 
-    def test_to_datetime_with_non_exact(self):
+    @td.skip_if_has_locale
+    @pytest.mark.parametrize('cache', [True, False])
+    def test_to_datetime_with_non_exact(self, cache):
         # GH 10834
-        tm._skip_if_has_locale()
-
         # 8904
         # exact kw
         if sys.version_info < (2, 7):
@@ -146,12 +155,13 @@ class TimeConversionFormats(object):
 
         s = Series(['19MAY11', 'foobar19MAY11', '19MAY11:00:00:00',
                     '19MAY11 00:00:00Z'])
-        result = to_datetime(s, format='%d%b%y', exact=False)
+        result = to_datetime(s, format='%d%b%y', exact=False, cache=cache)
         expected = to_datetime(s.str.extract(r'(\d+\w+\d+)', expand=False),
-                               format='%d%b%y')
+                               format='%d%b%y', cache=cache)
         assert_series_equal(result, expected)
 
-    def test_parse_nanoseconds_with_formula(self):
+    @pytest.mark.parametrize('cache', [True, False])
+    def test_parse_nanoseconds_with_formula(self, cache):
 
         # GH8989
         # trunctaing the nanoseconds when a format was provided
@@ -160,44 +170,98 @@ class TimeConversionFormats(object):
                   "2012-01-01 09:00:00.001",
                   "2012-01-01 09:00:00.001000",
                   "2012-01-01 09:00:00.001000000", ]:
-            expected = pd.to_datetime(v)
-            result = pd.to_datetime(v, format="%Y-%m-%d %H:%M:%S.%f")
+            expected = pd.to_datetime(v, cache=cache)
+            result = pd.to_datetime(v, format="%Y-%m-%d %H:%M:%S.%f",
+                                    cache=cache)
             assert result == expected
 
-    def test_to_datetime_format_weeks(self):
+    @pytest.mark.parametrize('cache', [True, False])
+    def test_to_datetime_format_weeks(self, cache):
         data = [
             ['2009324', '%Y%W%w', Timestamp('2009-08-13')],
             ['2013020', '%Y%U%w', Timestamp('2013-01-13')]
         ]
         for s, format, dt in data:
-            assert to_datetime(s, format=format) == dt
+            assert to_datetime(s, format=format, cache=cache) == dt
 
 
 class TestToDatetime(object):
 
-    def test_to_datetime_dt64s(self):
+    @td.skip_if_windows  # `tm.set_timezone` does not work in windows
+    def test_to_datetime_now(self):
+        # See GH#18666
+        with tm.set_timezone('US/Eastern'):
+            npnow = np.datetime64('now').astype('datetime64[ns]')
+            pdnow = pd.to_datetime('now')
+            pdnow2 = pd.to_datetime(['now'])[0]
+
+            # These should all be equal with infinite perf; this gives
+            # a generous margin of 10 seconds
+            assert abs(pdnow.value - npnow.astype(np.int64)) < 1e10
+            assert abs(pdnow2.value - npnow.astype(np.int64)) < 1e10
+
+            assert pdnow.tzinfo is None
+            assert pdnow2.tzinfo is None
+
+    @td.skip_if_windows  # `tm.set_timezone` does not work in windows
+    def test_to_datetime_today(self):
+        # See GH#18666
+        # Test with one timezone far ahead of UTC and another far behind, so
+        # one of these will _almost_ alawys be in a different day from UTC.
+        # Unfortunately this test between 12 and 1 AM Samoa time
+        # this both of these timezones _and_ UTC will all be in the same day,
+        # so this test will not detect the regression introduced in #18666.
+        with tm.set_timezone('Pacific/Auckland'):  # 12-13 hours ahead of UTC
+            nptoday = np.datetime64('today').astype('datetime64[ns]')
+            pdtoday = pd.to_datetime('today')
+            pdtoday2 = pd.to_datetime(['today'])[0]
+
+            # These should all be equal with infinite perf; this gives
+            # a generous margin of 10 seconds
+            assert abs(pdtoday.value - nptoday.astype(np.int64)) < 1e10
+            assert abs(pdtoday2.value - nptoday.astype(np.int64)) < 1e10
+
+            assert pdtoday.tzinfo is None
+            assert pdtoday2.tzinfo is None
+
+        with tm.set_timezone('US/Samoa'):  # 11 hours behind UTC
+            nptoday = np.datetime64('today').astype('datetime64[ns]')
+            pdtoday = pd.to_datetime('today')
+            pdtoday2 = pd.to_datetime(['today'])[0]
+
+            # These should all be equal with infinite perf; this gives
+            # a generous margin of 10 seconds
+            assert abs(pdtoday.value - nptoday.astype(np.int64)) < 1e10
+            assert abs(pdtoday2.value - nptoday.astype(np.int64)) < 1e10
+
+            assert pdtoday.tzinfo is None
+            assert pdtoday2.tzinfo is None
+
+    @pytest.mark.parametrize('cache', [True, False])
+    def test_to_datetime_dt64s(self, cache):
         in_bound_dts = [
             np.datetime64('2000-01-01'),
             np.datetime64('2000-01-02'),
         ]
 
         for dt in in_bound_dts:
-            assert pd.to_datetime(dt) == Timestamp(dt)
+            assert pd.to_datetime(dt, cache=cache) == Timestamp(dt)
 
         oob_dts = [np.datetime64('1000-01-01'), np.datetime64('5000-01-02'), ]
 
         for dt in oob_dts:
             pytest.raises(ValueError, pd.to_datetime, dt, errors='raise')
             pytest.raises(ValueError, Timestamp, dt)
-            assert pd.to_datetime(dt, errors='coerce') is NaT
+            assert pd.to_datetime(dt, errors='coerce', cache=cache) is NaT
 
-    def test_to_datetime_array_of_dt64s(self):
+    @pytest.mark.parametrize('cache', [True, False])
+    def test_to_datetime_array_of_dt64s(self, cache):
         dts = [np.datetime64('2000-01-01'), np.datetime64('2000-01-02'), ]
 
         # Assuming all datetimes are in bounds, to_datetime() returns
         # an array that is equal to Timestamp() parsing
         tm.assert_numpy_array_equal(
-            pd.to_datetime(dts, box=False),
+            pd.to_datetime(dts, box=False, cache=cache),
             np.array([Timestamp(x).asm8 for x in dts])
         )
 
@@ -208,7 +272,8 @@ class TestToDatetime(object):
                       errors='raise')
 
         tm.assert_numpy_array_equal(
-            pd.to_datetime(dts_with_oob, box=False, errors='coerce'),
+            pd.to_datetime(dts_with_oob, box=False, errors='coerce',
+                           cache=cache),
             np.array(
                 [
                     Timestamp(dts_with_oob[0]).asm8,
@@ -223,20 +288,22 @@ class TestToDatetime(object):
         # are converted to their .item(), which depending on the version of
         # numpy is either a python datetime.datetime or datetime.date
         tm.assert_numpy_array_equal(
-            pd.to_datetime(dts_with_oob, box=False, errors='ignore'),
+            pd.to_datetime(dts_with_oob, box=False, errors='ignore',
+                           cache=cache),
             np.array(
                 [dt.item() for dt in dts_with_oob],
                 dtype='O'
             )
         )
 
-    def test_to_datetime_tz(self):
+    @pytest.mark.parametrize('cache', [True, False])
+    def test_to_datetime_tz(self, cache):
 
         # xref 8260
         # uniform returns a DatetimeIndex
         arr = [pd.Timestamp('2013-01-01 13:00:00-0800', tz='US/Pacific'),
                pd.Timestamp('2013-01-02 14:00:00-0800', tz='US/Pacific')]
-        result = pd.to_datetime(arr)
+        result = pd.to_datetime(arr, cache=cache)
         expected = DatetimeIndex(
             ['2013-01-01 13:00:00', '2013-01-02 14:00:00'], tz='US/Pacific')
         tm.assert_index_equal(result, expected)
@@ -244,9 +311,10 @@ class TestToDatetime(object):
         # mixed tzs will raise
         arr = [pd.Timestamp('2013-01-01 13:00:00', tz='US/Pacific'),
                pd.Timestamp('2013-01-02 14:00:00', tz='US/Eastern')]
-        pytest.raises(ValueError, lambda: pd.to_datetime(arr))
+        pytest.raises(ValueError, lambda: pd.to_datetime(arr, cache=cache))
 
-    def test_to_datetime_tz_pytz(self):
+    @pytest.mark.parametrize('cache', [True, False])
+    def test_to_datetime_tz_pytz(self, cache):
         # see gh-8260
         us_eastern = pytz.timezone('US/Eastern')
         arr = np.array([us_eastern.localize(datetime(year=2000, month=1, day=1,
@@ -254,23 +322,71 @@ class TestToDatetime(object):
                         us_eastern.localize(datetime(year=2000, month=6, day=1,
                                                      hour=3, minute=0))],
                        dtype=object)
-        result = pd.to_datetime(arr, utc=True)
+        result = pd.to_datetime(arr, utc=True, cache=cache)
         expected = DatetimeIndex(['2000-01-01 08:00:00+00:00',
                                   '2000-06-01 07:00:00+00:00'],
                                  dtype='datetime64[ns, UTC]', freq=None)
         tm.assert_index_equal(result, expected)
 
-    def test_to_datetime_utc_is_true(self):
-        # See gh-11934
-        start = pd.Timestamp('2014-01-01', tz='utc')
-        end = pd.Timestamp('2014-01-03', tz='utc')
-        date_range = pd.bdate_range(start, end)
+    @pytest.mark.parametrize('cache', [True, False])
+    @pytest.mark.parametrize("init_constructor, end_constructor, test_method",
+                             [(Index, DatetimeIndex, tm.assert_index_equal),
+                              (list, DatetimeIndex, tm.assert_index_equal),
+                              (np.array, DatetimeIndex, tm.assert_index_equal),
+                              (Series, Series, tm.assert_series_equal)])
+    def test_to_datetime_utc_true(self,
+                                  cache,
+                                  init_constructor,
+                                  end_constructor,
+                                  test_method):
+        # See gh-11934 & gh-6415
+        data = ['20100102 121314', '20100102 121315']
+        expected_data = [pd.Timestamp('2010-01-02 12:13:14', tz='utc'),
+                         pd.Timestamp('2010-01-02 12:13:15', tz='utc')]
 
-        result = pd.to_datetime(date_range, utc=True)
-        expected = pd.DatetimeIndex(data=date_range)
-        tm.assert_index_equal(result, expected)
+        result = pd.to_datetime(init_constructor(data),
+                                format='%Y%m%d %H%M%S',
+                                utc=True,
+                                cache=cache)
+        expected = end_constructor(expected_data)
+        test_method(result, expected)
 
-    def test_to_datetime_tz_psycopg2(self):
+        # Test scalar case as well
+        for scalar, expected in zip(data, expected_data):
+            result = pd.to_datetime(scalar, format='%Y%m%d %H%M%S', utc=True,
+                                    cache=cache)
+            assert result == expected
+
+    @pytest.mark.parametrize('cache', [True, False])
+    def test_to_datetime_utc_true_with_series_single_value(self, cache):
+        # GH 15760 UTC=True with Series
+        ts = 1.5e18
+        result = pd.to_datetime(pd.Series([ts]), utc=True, cache=cache)
+        expected = pd.Series([pd.Timestamp(ts, tz='utc')])
+        tm.assert_series_equal(result, expected)
+
+    @pytest.mark.parametrize('cache', [True, False])
+    def test_to_datetime_utc_true_with_series_tzaware_string(self, cache):
+        ts = '2013-01-01 00:00:00-01:00'
+        expected_ts = '2013-01-01 01:00:00'
+        data = pd.Series([ts] * 3)
+        result = pd.to_datetime(data, utc=True, cache=cache)
+        expected = pd.Series([pd.Timestamp(expected_ts, tz='utc')] * 3)
+        tm.assert_series_equal(result, expected)
+
+    @pytest.mark.parametrize('cache', [True, False])
+    @pytest.mark.parametrize('date, dtype',
+                             [('2013-01-01 01:00:00', 'datetime64[ns]'),
+                              ('2013-01-01 01:00:00', 'datetime64[ns, UTC]')])
+    def test_to_datetime_utc_true_with_series_datetime_ns(self, cache, date,
+                                                          dtype):
+        expected = pd.Series([pd.Timestamp('2013-01-01 01:00:00', tz='UTC')])
+        result = pd.to_datetime(pd.Series([date], dtype=dtype), utc=True,
+                                cache=cache)
+        tm.assert_series_equal(result, expected)
+
+    @pytest.mark.parametrize('cache', [True, False])
+    def test_to_datetime_tz_psycopg2(self, cache):
 
         # xref 8260
         try:
@@ -285,7 +401,7 @@ class TestToDatetime(object):
                         datetime(2000, 6, 1, 3, 0, tzinfo=tz2)],
                        dtype=object)
 
-        result = pd.to_datetime(arr, errors='coerce', utc=True)
+        result = pd.to_datetime(arr, errors='coerce', utc=True, cache=cache)
         expected = DatetimeIndex(['2000-01-01 08:00:00+00:00',
                                   '2000-06-01 07:00:00+00:00'],
                                  dtype='datetime64[ns, UTC]', freq=None)
@@ -298,32 +414,39 @@ class TestToDatetime(object):
         assert is_datetime64_ns_dtype(i)
 
         # tz coerceion
-        result = pd.to_datetime(i, errors='coerce')
+        result = pd.to_datetime(i, errors='coerce', cache=cache)
         tm.assert_index_equal(result, i)
 
-        result = pd.to_datetime(i, errors='coerce', utc=True)
+        result = pd.to_datetime(i, errors='coerce', utc=True, cache=cache)
         expected = pd.DatetimeIndex(['2000-01-01 13:00:00'],
                                     dtype='datetime64[ns, UTC]')
         tm.assert_index_equal(result, expected)
 
-    def test_datetime_bool(self):
+    @pytest.mark.parametrize(
+        'cache',
+        [pytest.param(True,
+                      marks=pytest.mark.skipif(True, reason="GH 18111")),
+         False])
+    def test_datetime_bool(self, cache):
         # GH13176
         with pytest.raises(TypeError):
             to_datetime(False)
-        assert to_datetime(False, errors="coerce") is NaT
-        assert to_datetime(False, errors="ignore") is False
+        assert to_datetime(False, errors="coerce", cache=cache) is NaT
+        assert to_datetime(False, errors="ignore", cache=cache) is False
         with pytest.raises(TypeError):
             to_datetime(True)
-        assert to_datetime(True, errors="coerce") is NaT
-        assert to_datetime(True, errors="ignore") is True
+        assert to_datetime(True, errors="coerce", cache=cache) is NaT
+        assert to_datetime(True, errors="ignore", cache=cache) is True
         with pytest.raises(TypeError):
-            to_datetime([False, datetime.today()])
+            to_datetime([False, datetime.today()], cache=cache)
         with pytest.raises(TypeError):
-            to_datetime(['20130101', True])
+            to_datetime(['20130101', True], cache=cache)
         tm.assert_index_equal(to_datetime([0, False, NaT, 0.0],
-                                          errors="coerce"),
-                              DatetimeIndex([to_datetime(0), NaT,
-                                             NaT, to_datetime(0)]))
+                                          errors="coerce", cache=cache),
+                              DatetimeIndex([to_datetime(0, cache=cache),
+                                             NaT,
+                                             NaT,
+                                             to_datetime(0, cache=cache)]))
 
     def test_datetime_invalid_datatype(self):
         # GH13176
@@ -333,74 +456,126 @@ class TestToDatetime(object):
         with pytest.raises(TypeError):
             pd.to_datetime(pd.to_datetime)
 
+    @pytest.mark.parametrize("utc", [True, None])
+    @pytest.mark.parametrize("format", ['%Y%m%d %H:%M:%S', None])
+    @pytest.mark.parametrize("box", [True, False])
+    @pytest.mark.parametrize("constructor", [list, tuple, np.array, pd.Index])
+    def test_to_datetime_cache(self, utc, format, box, constructor):
+        date = '20130101 00:00:00'
+        test_dates = [date] * 10**5
+        data = constructor(test_dates)
+        result = pd.to_datetime(data, utc=utc, format=format, box=box,
+                                cache=True)
+        expected = pd.to_datetime(data, utc=utc, format=format, box=box,
+                                  cache=False)
+        if box:
+            tm.assert_index_equal(result, expected)
+        else:
+            tm.assert_numpy_array_equal(result, expected)
 
-class ToDatetimeUnit(object):
+    @pytest.mark.parametrize("utc", [True, None])
+    @pytest.mark.parametrize("format", ['%Y%m%d %H:%M:%S', None])
+    def test_to_datetime_cache_series(self, utc, format):
+        date = '20130101 00:00:00'
+        test_dates = [date] * 10**5
+        data = pd.Series(test_dates)
+        result = pd.to_datetime(data, utc=utc, format=format, cache=True)
+        expected = pd.to_datetime(data, utc=utc, format=format, cache=False)
+        tm.assert_series_equal(result, expected)
 
-    def test_unit(self):
+    def test_to_datetime_cache_scalar(self):
+        date = '20130101 00:00:00'
+        result = pd.to_datetime(date, cache=True)
+        expected = pd.Timestamp('20130101 00:00:00')
+        assert result == expected
+
+    @pytest.mark.parametrize('date, format',
+                             [('2017-20', '%Y-%W'),
+                              ('20 Sunday', '%W %A'),
+                              ('20 Sun', '%W %a'),
+                              ('2017-21', '%Y-%U'),
+                              ('20 Sunday', '%U %A'),
+                              ('20 Sun', '%U %a')])
+    def test_week_without_day_and_calendar_year(self, date, format):
+        # GH16774
+
+        msg = "Cannot use '%W' or '%U' without day and year"
+        with tm.assert_raises_regex(ValueError, msg):
+            pd.to_datetime(date, format=format)
+
+
+class TestToDatetimeUnit(object):
+    @pytest.mark.parametrize('cache', [True, False])
+    def test_unit(self, cache):
         # GH 11758
         # test proper behavior with erros
 
         with pytest.raises(ValueError):
-            to_datetime([1], unit='D', format='%Y%m%d')
+            to_datetime([1], unit='D', format='%Y%m%d', cache=cache)
 
         values = [11111111, 1, 1.0, tslib.iNaT, NaT, np.nan,
                   'NaT', '']
-        result = to_datetime(values, unit='D', errors='ignore')
+        result = to_datetime(values, unit='D', errors='ignore', cache=cache)
         expected = Index([11111111, Timestamp('1970-01-02'),
                           Timestamp('1970-01-02'), NaT,
                           NaT, NaT, NaT, NaT],
                          dtype=object)
         tm.assert_index_equal(result, expected)
 
-        result = to_datetime(values, unit='D', errors='coerce')
+        result = to_datetime(values, unit='D', errors='coerce', cache=cache)
         expected = DatetimeIndex(['NaT', '1970-01-02', '1970-01-02',
                                   'NaT', 'NaT', 'NaT', 'NaT', 'NaT'])
         tm.assert_index_equal(result, expected)
 
         with pytest.raises(tslib.OutOfBoundsDatetime):
-            to_datetime(values, unit='D', errors='raise')
+            to_datetime(values, unit='D', errors='raise', cache=cache)
 
         values = [1420043460000, tslib.iNaT, NaT, np.nan, 'NaT']
 
-        result = to_datetime(values, errors='ignore', unit='s')
+        result = to_datetime(values, errors='ignore', unit='s', cache=cache)
         expected = Index([1420043460000, NaT, NaT,
                           NaT, NaT], dtype=object)
         tm.assert_index_equal(result, expected)
 
-        result = to_datetime(values, errors='coerce', unit='s')
+        result = to_datetime(values, errors='coerce', unit='s', cache=cache)
         expected = DatetimeIndex(['NaT', 'NaT', 'NaT', 'NaT', 'NaT'])
         tm.assert_index_equal(result, expected)
 
         with pytest.raises(tslib.OutOfBoundsDatetime):
-            to_datetime(values, errors='raise', unit='s')
+            to_datetime(values, errors='raise', unit='s', cache=cache)
 
         # if we have a string, then we raise a ValueError
         # and NOT an OutOfBoundsDatetime
         for val in ['foo', Timestamp('20130101')]:
             try:
-                to_datetime(val, errors='raise', unit='s')
+                to_datetime(val, errors='raise', unit='s', cache=cache)
             except tslib.OutOfBoundsDatetime:
                 raise AssertionError("incorrect exception raised")
             except ValueError:
                 pass
 
-    def test_unit_consistency(self):
+    @pytest.mark.parametrize('cache', [True, False])
+    def test_unit_consistency(self, cache):
 
         # consistency of conversions
         expected = Timestamp('1970-05-09 14:25:11')
-        result = pd.to_datetime(11111111, unit='s', errors='raise')
+        result = pd.to_datetime(11111111, unit='s', errors='raise',
+                                cache=cache)
         assert result == expected
         assert isinstance(result, Timestamp)
 
-        result = pd.to_datetime(11111111, unit='s', errors='coerce')
+        result = pd.to_datetime(11111111, unit='s', errors='coerce',
+                                cache=cache)
         assert result == expected
         assert isinstance(result, Timestamp)
 
-        result = pd.to_datetime(11111111, unit='s', errors='ignore')
+        result = pd.to_datetime(11111111, unit='s', errors='ignore',
+                                cache=cache)
         assert result == expected
         assert isinstance(result, Timestamp)
 
-    def test_unit_with_numeric(self):
+    @pytest.mark.parametrize('cache', [True, False])
+    def test_unit_with_numeric(self, cache):
 
         # GH 13180
         # coercions from floats/ints are ok
@@ -409,10 +584,10 @@ class ToDatetimeUnit(object):
         arr1 = [1.434692e+18, 1.432766e+18]
         arr2 = np.array(arr1).astype('int64')
         for errors in ['ignore', 'raise', 'coerce']:
-            result = pd.to_datetime(arr1, errors=errors)
+            result = pd.to_datetime(arr1, errors=errors, cache=cache)
             tm.assert_index_equal(result, expected)
 
-            result = pd.to_datetime(arr2, errors=errors)
+            result = pd.to_datetime(arr2, errors=errors, cache=cache)
             tm.assert_index_equal(result, expected)
 
         # but we want to make sure that we are coercing
@@ -421,7 +596,7 @@ class ToDatetimeUnit(object):
                                   '2015-06-19 05:33:20',
                                   '2015-05-27 22:33:20'])
         arr = ['foo', 1.434692e+18, 1.432766e+18]
-        result = pd.to_datetime(arr, errors='coerce')
+        result = pd.to_datetime(arr, errors='coerce', cache=cache)
         tm.assert_index_equal(result, expected)
 
         expected = DatetimeIndex(['2015-06-19 05:33:20',
@@ -429,31 +604,33 @@ class ToDatetimeUnit(object):
                                   'NaT',
                                   'NaT'])
         arr = [1.434692e+18, 1.432766e+18, 'foo', 'NaT']
-        result = pd.to_datetime(arr, errors='coerce')
+        result = pd.to_datetime(arr, errors='coerce', cache=cache)
         tm.assert_index_equal(result, expected)
 
-    def test_unit_mixed(self):
+    @pytest.mark.parametrize('cache', [True, False])
+    def test_unit_mixed(self, cache):
 
         # mixed integers/datetimes
         expected = DatetimeIndex(['2013-01-01', 'NaT', 'NaT'])
         arr = [pd.Timestamp('20130101'), 1.434692e+18, 1.432766e+18]
-        result = pd.to_datetime(arr, errors='coerce')
+        result = pd.to_datetime(arr, errors='coerce', cache=cache)
         tm.assert_index_equal(result, expected)
 
         with pytest.raises(ValueError):
-            pd.to_datetime(arr, errors='raise')
+            pd.to_datetime(arr, errors='raise', cache=cache)
 
         expected = DatetimeIndex(['NaT',
                                   'NaT',
                                   '2013-01-01'])
         arr = [1.434692e+18, 1.432766e+18, pd.Timestamp('20130101')]
-        result = pd.to_datetime(arr, errors='coerce')
+        result = pd.to_datetime(arr, errors='coerce', cache=cache)
         tm.assert_index_equal(result, expected)
 
         with pytest.raises(ValueError):
-            pd.to_datetime(arr, errors='raise')
+            pd.to_datetime(arr, errors='raise', cache=cache)
 
-    def test_dataframe(self):
+    @pytest.mark.parametrize('cache', [True, False])
+    def test_dataframe(self, cache):
 
         df = DataFrame({'year': [2015, 2016],
                         'month': [2, 3],
@@ -467,19 +644,20 @@ class ToDatetimeUnit(object):
 
         result = to_datetime({'year': df['year'],
                               'month': df['month'],
-                              'day': df['day']})
+                              'day': df['day']}, cache=cache)
         expected = Series([Timestamp('20150204 00:00:00'),
                            Timestamp('20160305 00:0:00')])
         assert_series_equal(result, expected)
 
         # dict-like
-        result = to_datetime(df[['year', 'month', 'day']].to_dict())
+        result = to_datetime(df[['year', 'month', 'day']].to_dict(),
+                             cache=cache)
         assert_series_equal(result, expected)
 
         # dict but with constructable
         df2 = df[['year', 'month', 'day']].to_dict()
         df2['month'] = 2
-        result = to_datetime(df2)
+        result = to_datetime(df2, cache=cache)
         expected2 = Series([Timestamp('20150204 00:00:00'),
                             Timestamp('20160205 00:0:00')])
         assert_series_equal(result, expected2)
@@ -500,7 +678,8 @@ class ToDatetimeUnit(object):
                  ]
 
         for d in units:
-            result = to_datetime(df[list(d.keys())].rename(columns=d))
+            result = to_datetime(df[list(d.keys())].rename(columns=d),
+                                 cache=cache)
             expected = Series([Timestamp('20150204 06:58:10'),
                                Timestamp('20160305 07:59:11')])
             assert_series_equal(result, expected)
@@ -515,65 +694,74 @@ class ToDatetimeUnit(object):
              'us': 'us',
              'ns': 'ns'}
 
-        result = to_datetime(df.rename(columns=d))
+        result = to_datetime(df.rename(columns=d), cache=cache)
         expected = Series([Timestamp('20150204 06:58:10.001002003'),
                            Timestamp('20160305 07:59:11.001002003')])
         assert_series_equal(result, expected)
 
         # coerce back to int
-        result = to_datetime(df.astype(str))
+        result = to_datetime(df.astype(str), cache=cache)
         assert_series_equal(result, expected)
 
         # passing coerce
         df2 = DataFrame({'year': [2015, 2016],
                          'month': [2, 20],
                          'day': [4, 5]})
-        with pytest.raises(ValueError):
-            to_datetime(df2)
-        result = to_datetime(df2, errors='coerce')
+
+        msg = ("cannot assemble the datetimes: time data .+ does not "
+               r"match format '%Y%m%d' \(match\)")
+        with tm.assert_raises_regex(ValueError, msg):
+            to_datetime(df2, cache=cache)
+        result = to_datetime(df2, errors='coerce', cache=cache)
         expected = Series([Timestamp('20150204 00:00:00'),
                            NaT])
         assert_series_equal(result, expected)
 
         # extra columns
-        with pytest.raises(ValueError):
+        msg = ("extra keys have been passed to the datetime assemblage: "
+               r"\[foo\]")
+        with tm.assert_raises_regex(ValueError, msg):
             df2 = df.copy()
             df2['foo'] = 1
-            to_datetime(df2)
+            to_datetime(df2, cache=cache)
 
         # not enough
+        msg = (r'to assemble mappings requires at least that \[year, month, '
+               r'day\] be specified: \[.+\] is missing')
         for c in [['year'],
                   ['year', 'month'],
                   ['year', 'month', 'second'],
                   ['month', 'day'],
                   ['year', 'day', 'second']]:
-            with pytest.raises(ValueError):
-                to_datetime(df[c])
+            with tm.assert_raises_regex(ValueError, msg):
+                to_datetime(df[c], cache=cache)
 
         # duplicates
+        msg = 'cannot assemble with duplicate keys'
         df2 = DataFrame({'year': [2015, 2016],
                          'month': [2, 20],
                          'day': [4, 5]})
         df2.columns = ['year', 'year', 'day']
-        with pytest.raises(ValueError):
-            to_datetime(df2)
+        with tm.assert_raises_regex(ValueError, msg):
+            to_datetime(df2, cache=cache)
 
         df2 = DataFrame({'year': [2015, 2016],
                          'month': [2, 20],
                          'day': [4, 5],
                          'hour': [4, 5]})
         df2.columns = ['year', 'month', 'day', 'day']
-        with pytest.raises(ValueError):
-            to_datetime(df2)
+        with tm.assert_raises_regex(ValueError, msg):
+            to_datetime(df2, cache=cache)
 
-    def test_dataframe_dtypes(self):
+    @pytest.mark.parametrize('cache', [True, False])
+    def test_dataframe_dtypes(self, cache):
         # #13451
         df = DataFrame({'year': [2015, 2016],
                         'month': [2, 3],
                         'day': [4, 5]})
 
         # int16
-        result = to_datetime(df.astype('int16'))
+        result = to_datetime(df.astype('int16'), cache=cache)
         expected = Series([Timestamp('20150204 00:00:00'),
                            Timestamp('20160305 00:00:00')])
         assert_series_equal(result, expected)
@@ -581,7 +769,7 @@ class ToDatetimeUnit(object):
         # mixed dtypes
         df['month'] = df['month'].astype('int8')
         df['day'] = df['day'].astype('int8')
-        result = to_datetime(df)
+        result = to_datetime(df, cache=cache)
         expected = Series([Timestamp('20150204 00:00:00'),
                            Timestamp('20160305 00:00:00')])
         assert_series_equal(result, expected)
@@ -591,39 +779,24 @@ class ToDatetimeUnit(object):
                         'month': [1.5, 1],
                         'day': [1, 1]})
         with pytest.raises(ValueError):
-            to_datetime(df)
+            to_datetime(df, cache=cache)
 
 
-class ToDatetimeMisc(object):
+class TestToDatetimeMisc(object):
 
-    def test_index_to_datetime(self):
-        idx = Index(['1/1/2000', '1/2/2000', '1/3/2000'])
-
-        with tm.assert_produces_warning(FutureWarning,
-                                        check_stacklevel=False):
-            result = idx.to_datetime()
-            expected = DatetimeIndex(pd.to_datetime(idx.values))
-            tm.assert_index_equal(result, expected)
-
-        with tm.assert_produces_warning(FutureWarning,
-                                        check_stacklevel=False):
-            today = datetime.today()
-            idx = Index([today], dtype=object)
-            result = idx.to_datetime()
-            expected = DatetimeIndex([today])
-            tm.assert_index_equal(result, expected)
-
-    def test_to_datetime_iso8601(self):
-        result = to_datetime(["2012-01-01 00:00:00"])
+    @pytest.mark.parametrize('cache', [True, False])
+    def test_to_datetime_iso8601(self, cache):
+        result = to_datetime(["2012-01-01 00:00:00"], cache=cache)
         exp = Timestamp("2012-01-01 00:00:00")
         assert result[0] == exp
 
-        result = to_datetime(['20121001'])  # bad iso 8601
+        result = to_datetime(['20121001'], cache=cache)  # bad iso 8601
         exp = Timestamp('2012-10-01')
         assert result[0] == exp
 
-    def test_to_datetime_default(self):
-        rs = to_datetime('2001')
+    @pytest.mark.parametrize('cache', [True, False])
+    def test_to_datetime_default(self, cache):
+        rs = to_datetime('2001', cache=cache)
         xp = datetime(2001, 1, 1)
         assert rs == xp
 
@@ -633,71 +806,79 @@ class ToDatetimeMisc(object):
         # pytest.raises(ValueError, to_datetime('01-13-2012',
         #                   dayfirst=True))
 
-    def test_to_datetime_on_datetime64_series(self):
+    @pytest.mark.parametrize('cache', [True, False])
+    def test_to_datetime_on_datetime64_series(self, cache):
         # #2699
         s = Series(date_range('1/1/2000', periods=10))
 
-        result = to_datetime(s)
+        result = to_datetime(s, cache=cache)
         assert result[0] == s[0]
 
-    def test_to_datetime_with_space_in_series(self):
+    @pytest.mark.parametrize('cache', [True, False])
+    def test_to_datetime_with_space_in_series(self, cache):
         # GH 6428
         s = Series(['10/18/2006', '10/18/2008', ' '])
-        pytest.raises(ValueError, lambda: to_datetime(s, errors='raise'))
-        result_coerce = to_datetime(s, errors='coerce')
+        pytest.raises(ValueError, lambda: to_datetime(s,
+                                                      errors='raise',
+                                                      cache=cache))
+        result_coerce = to_datetime(s, errors='coerce', cache=cache)
         expected_coerce = Series([datetime(2006, 10, 18),
                                   datetime(2008, 10, 18),
                                   NaT])
         tm.assert_series_equal(result_coerce, expected_coerce)
-        result_ignore = to_datetime(s, errors='ignore')
+        result_ignore = to_datetime(s, errors='ignore', cache=cache)
         tm.assert_series_equal(result_ignore, s)
 
-    def test_to_datetime_with_apply(self):
+    @td.skip_if_has_locale
+    @pytest.mark.parametrize('cache', [True, False])
+    def test_to_datetime_with_apply(self, cache):
         # this is only locale tested with US/None locales
-        tm._skip_if_has_locale()
-
         # GH 5195
         # with a format and coerce a single item to_datetime fails
         td = Series(['May 04', 'Jun 02', 'Dec 11'], index=[1, 2, 3])
-        expected = pd.to_datetime(td, format='%b %y')
-        result = td.apply(pd.to_datetime, format='%b %y')
+        expected = pd.to_datetime(td, format='%b %y', cache=cache)
+        result = td.apply(pd.to_datetime, format='%b %y', cache=cache)
         assert_series_equal(result, expected)
 
         td = pd.Series(['May 04', 'Jun 02', ''], index=[1, 2, 3])
         pytest.raises(ValueError,
                       lambda: pd.to_datetime(td, format='%b %y',
-                                             errors='raise'))
+                                             errors='raise',
+                                             cache=cache))
         pytest.raises(ValueError,
                       lambda: td.apply(pd.to_datetime, format='%b %y',
-                                       errors='raise'))
-        expected = pd.to_datetime(td, format='%b %y', errors='coerce')
+                                       errors='raise', cache=cache))
+        expected = pd.to_datetime(td, format='%b %y', errors='coerce',
+                                  cache=cache)
 
         result = td.apply(
-            lambda x: pd.to_datetime(x, format='%b %y', errors='coerce'))
+            lambda x: pd.to_datetime(x, format='%b %y', errors='coerce',
+                                     cache=cache))
         assert_series_equal(result, expected)
 
-    def test_to_datetime_types(self):
+    @pytest.mark.parametrize('cache', [True, False])
+    def test_to_datetime_types(self, cache):
 
         # empty string
-        result = to_datetime('')
+        result = to_datetime('', cache=cache)
         assert result is NaT
 
-        result = to_datetime(['', ''])
-        assert isnull(result).all()
+        result = to_datetime(['', ''], cache=cache)
+        assert isna(result).all()
 
         # ints
         result = Timestamp(0)
-        expected = to_datetime(0)
+        expected = to_datetime(0, cache=cache)
         assert result == expected
 
         # GH 3888 (strings)
-        expected = to_datetime(['2012'])[0]
-        result = to_datetime('2012')
+        expected = to_datetime(['2012'], cache=cache)[0]
+        result = to_datetime('2012', cache=cache)
         assert result == expected
 
         # array = ['2012','20120101','20120101 12:01:01']
         array = ['20120101', '20120101 12:01:01']
-        expected = list(to_datetime(array))
+        expected = list(to_datetime(array, cache=cache))
         result = lmap(Timestamp, array)
         tm.assert_almost_equal(result, expected)
 
@@ -706,13 +887,15 @@ class ToDatetimeMisc(object):
         # expected = to_datetime('2012')
         # assert result == expected
 
-    def test_to_datetime_unprocessable_input(self):
+    @pytest.mark.parametrize('cache', [True, False])
+    def test_to_datetime_unprocessable_input(self, cache):
         # GH 4928
         tm.assert_numpy_array_equal(
-            to_datetime([1, '1'], errors='ignore'),
+            to_datetime([1, '1'], errors='ignore', cache=cache),
             np.array([1, '1'], dtype='O')
         )
-        pytest.raises(TypeError, to_datetime, [1, '1'], errors='raise')
+        pytest.raises(TypeError, to_datetime, [1, '1'], errors='raise',
+                      cache=cache)
 
     def test_to_datetime_other_datetime64_units(self):
         # 5/25/2012
@@ -735,13 +918,15 @@ class ToDatetimeMisc(object):
 
         tm.assert_index_equal(rng, result)
 
-    def test_to_datetime_freq(self):
-        xp = bdate_range('2000-1-1', periods=10, tz='UTC')
-        rs = xp.to_datetime()
-        assert xp.freq == rs.freq
-        assert xp.tzinfo == rs.tzinfo
+    def test_to_datetime_overflow(self):
+        # gh-17637
+        # we are overflowing Timedelta range here
 
-    def test_string_na_nat_conversion(self):
+        with pytest.raises(OverflowError):
+            date_range(start='1/1/1700', freq='B', periods=100000)
+
+    @pytest.mark.parametrize('cache', [True, False])
+    def test_string_na_nat_conversion(self, cache):
         # GH #999, #858
 
         from pandas.compat import parse_date
@@ -751,7 +936,7 @@ class ToDatetimeMisc(object):
 
         expected = np.empty(4, dtype='M8[ns]')
         for i, val in enumerate(strings):
-            if isnull(val):
+            if isna(val):
                 expected[i] = tslib.iNaT
             else:
                 expected[i] = parse_date(val)
@@ -759,7 +944,7 @@ class ToDatetimeMisc(object):
         result = tslib.array_to_datetime(strings)
         tm.assert_almost_equal(result, expected)
 
-        result2 = to_datetime(strings)
+        result2 = to_datetime(strings, cache=cache)
         assert isinstance(result2, DatetimeIndex)
         tm.assert_numpy_array_equal(result, result2.values)
 
@@ -767,30 +952,33 @@ class ToDatetimeMisc(object):
 
         # GH 10636, default is now 'raise'
         pytest.raises(ValueError,
-                      lambda: to_datetime(malformed, errors='raise'))
+                      lambda: to_datetime(malformed, errors='raise',
+                                          cache=cache))
 
-        result = to_datetime(malformed, errors='ignore')
+        result = to_datetime(malformed, errors='ignore', cache=cache)
         tm.assert_numpy_array_equal(result, malformed)
 
-        pytest.raises(ValueError, to_datetime, malformed, errors='raise')
+        pytest.raises(ValueError, to_datetime, malformed, errors='raise',
+                      cache=cache)
 
         idx = ['a', 'b', 'c', 'd', 'e']
         series = Series(['1/1/2000', np.nan, '1/3/2000', np.nan,
                          '1/5/2000'], index=idx, name='foo')
-        dseries = Series([to_datetime('1/1/2000'), np.nan,
-                          to_datetime('1/3/2000'), np.nan,
-                          to_datetime('1/5/2000')], index=idx, name='foo')
+        dseries = Series([to_datetime('1/1/2000', cache=cache), np.nan,
+                          to_datetime('1/3/2000', cache=cache), np.nan,
+                          to_datetime('1/5/2000', cache=cache)],
+                         index=idx, name='foo')
 
-        result = to_datetime(series)
-        dresult = to_datetime(dseries)
+        result = to_datetime(series, cache=cache)
+        dresult = to_datetime(dseries, cache=cache)
 
         expected = Series(np.empty(5, dtype='M8[ns]'), index=idx)
         for i in range(5):
             x = series[i]
-            if isnull(x):
+            if isna(x):
                 expected[i] = tslib.iNaT
             else:
-                expected[i] = to_datetime(x)
+                expected[i] = to_datetime(x, cache=cache)
 
         assert_series_equal(result, expected, check_names=False)
         assert result.name == 'foo'
@@ -798,26 +986,29 @@ class ToDatetimeMisc(object):
         assert_series_equal(dresult, expected, check_names=False)
         assert dresult.name == 'foo'
 
-    def test_dti_constructor_numpy_timeunits(self):
+    @pytest.mark.parametrize('cache', [True, False])
+    def test_dti_constructor_numpy_timeunits(self, cache):
         # GH 9114
-        base = pd.to_datetime(['2000-01-01T00:00', '2000-01-02T00:00', 'NaT'])
+        base = pd.to_datetime(['2000-01-01T00:00', '2000-01-02T00:00', 'NaT'],
+                              cache=cache)
 
         for dtype in ['datetime64[h]', 'datetime64[m]', 'datetime64[s]',
                       'datetime64[ms]', 'datetime64[us]', 'datetime64[ns]']:
             values = base.values.astype(dtype)
 
             tm.assert_index_equal(DatetimeIndex(values), base)
-            tm.assert_index_equal(to_datetime(values), base)
+            tm.assert_index_equal(to_datetime(values, cache=cache), base)
 
-    def test_dayfirst(self):
+    @pytest.mark.parametrize('cache', [True, False])
+    def test_dayfirst(self, cache):
         # GH 5917
         arr = ['10/02/2014', '11/02/2014', '12/02/2014']
         expected = DatetimeIndex([datetime(2014, 2, 10), datetime(2014, 2, 11),
                                   datetime(2014, 2, 12)])
         idx1 = DatetimeIndex(arr, dayfirst=True)
         idx2 = DatetimeIndex(np.array(arr), dayfirst=True)
-        idx3 = to_datetime(arr, dayfirst=True)
-        idx4 = to_datetime(np.array(arr), dayfirst=True)
+        idx3 = to_datetime(arr, dayfirst=True, cache=cache)
+        idx4 = to_datetime(np.array(arr), dayfirst=True, cache=cache)
         idx5 = DatetimeIndex(Index(arr), dayfirst=True)
         idx6 = DatetimeIndex(Series(arr), dayfirst=True)
         tm.assert_index_equal(expected, idx1)
@@ -830,70 +1021,9 @@ class ToDatetimeMisc(object):
 
 class TestGuessDatetimeFormat(object):
 
-    def test_guess_datetime_format_with_parseable_formats(self):
-        tm._skip_if_not_us_locale()
-        dt_string_to_format = (('20111230', '%Y%m%d'),
-                               ('2011-12-30', '%Y-%m-%d'),
-                               ('30-12-2011', '%d-%m-%Y'),
-                               ('2011-12-30 00:00:00', '%Y-%m-%d %H:%M:%S'),
-                               ('2011-12-30T00:00:00', '%Y-%m-%dT%H:%M:%S'),
-                               ('2011-12-30 00:00:00.000000',
-                                '%Y-%m-%d %H:%M:%S.%f'), )
-
-        for dt_string, dt_format in dt_string_to_format:
-            assert tools._guess_datetime_format(dt_string) == dt_format
-
-    def test_guess_datetime_format_with_dayfirst(self):
-        ambiguous_string = '01/01/2011'
-        assert tools._guess_datetime_format(
-            ambiguous_string, dayfirst=True) == '%d/%m/%Y'
-        assert tools._guess_datetime_format(
-            ambiguous_string, dayfirst=False) == '%m/%d/%Y'
-
-    def test_guess_datetime_format_with_locale_specific_formats(self):
-        # The month names will vary depending on the locale, in which
-        # case these wont be parsed properly (dateutil can't parse them)
-        tm._skip_if_has_locale()
-
-        dt_string_to_format = (('30/Dec/2011', '%d/%b/%Y'),
-                               ('30/December/2011', '%d/%B/%Y'),
-                               ('30/Dec/2011 00:00:00', '%d/%b/%Y %H:%M:%S'), )
-
-        for dt_string, dt_format in dt_string_to_format:
-            assert tools._guess_datetime_format(dt_string) == dt_format
-
-    def test_guess_datetime_format_invalid_inputs(self):
-        # A datetime string must include a year, month and a day for it
-        # to be guessable, in addition to being a string that looks like
-        # a datetime
-        invalid_dts = [
-            '2013',
-            '01/2013',
-            '12:00:00',
-            '1/1/1/1',
-            'this_is_not_a_datetime',
-            '51a',
-            9,
-            datetime(2011, 1, 1),
-        ]
-
-        for invalid_dt in invalid_dts:
-            assert tools._guess_datetime_format(invalid_dt) is None
-
-    def test_guess_datetime_format_nopadding(self):
-        # GH 11142
-        dt_string_to_format = (('2011-1-1', '%Y-%m-%d'),
-                               ('30-1-2011', '%d-%m-%Y'),
-                               ('1/1/2011', '%m/%d/%Y'),
-                               ('2011-1-1 00:00:00', '%Y-%m-%d %H:%M:%S'),
-                               ('2011-1-1 0:0:0', '%Y-%m-%d %H:%M:%S'),
-                               ('2011-1-3T00:00:0', '%Y-%m-%dT%H:%M:%S'))
-
-        for dt_string, dt_format in dt_string_to_format:
-            assert tools._guess_datetime_format(dt_string) == dt_format
-
+    @td.skip_if_not_us_locale
+    @is_dateutil_le_261
     def test_guess_datetime_format_for_array(self):
-        tm._skip_if_not_us_locale()
         expected_format = '%Y-%m-%d %H:%M:%S.%f'
         dt_string = datetime(2011, 12, 30, 0, 0, 0).strftime(expected_format)
 
@@ -912,10 +1042,32 @@ class TestGuessDatetimeFormat(object):
                 [np.nan, np.nan, np.nan], dtype='O'))
         assert format_for_string_of_nans is None
 
+    @td.skip_if_not_us_locale
+    @is_dateutil_gt_261
+    def test_guess_datetime_format_for_array_gt_261(self):
+        expected_format = '%Y-%m-%d %H:%M:%S.%f'
+        dt_string = datetime(2011, 12, 30, 0, 0, 0).strftime(expected_format)
+
+        test_arrays = [
+            np.array([dt_string, dt_string, dt_string], dtype='O'),
+            np.array([np.nan, np.nan, dt_string], dtype='O'),
+            np.array([dt_string, 'random_string'], dtype='O'),
+        ]
+
+        for test_array in test_arrays:
+            assert tools._guess_datetime_format_for_array(
+                test_array) is None
+
+        format_for_string_of_nans = tools._guess_datetime_format_for_array(
+            np.array(
+                [np.nan, np.nan, np.nan], dtype='O'))
+        assert format_for_string_of_nans is None
+
 
 class TestToDatetimeInferFormat(object):
 
-    def test_to_datetime_infer_datetime_format_consistent_format(self):
+    @pytest.mark.parametrize('cache', [True, False])
+    def test_to_datetime_infer_datetime_format_consistent_format(self, cache):
         s = pd.Series(pd.date_range('20000101', periods=50, freq='H'))
 
         test_formats = ['%m-%d-%Y', '%m/%d/%Y %H:%M:%S.%f',
@@ -924,109 +1076,117 @@ class TestToDatetimeInferFormat(object):
         for test_format in test_formats:
             s_as_dt_strings = s.apply(lambda x: x.strftime(test_format))
 
-            with_format = pd.to_datetime(s_as_dt_strings, format=test_format)
+            with_format = pd.to_datetime(s_as_dt_strings, format=test_format,
+                                         cache=cache)
             no_infer = pd.to_datetime(s_as_dt_strings,
-                                      infer_datetime_format=False)
+                                      infer_datetime_format=False,
+                                      cache=cache)
             yes_infer = pd.to_datetime(s_as_dt_strings,
-                                       infer_datetime_format=True)
+                                       infer_datetime_format=True,
+                                       cache=cache)
 
             # Whether the format is explicitly passed, it is inferred, or
             # it is not inferred, the results should all be the same
             tm.assert_series_equal(with_format, no_infer)
             tm.assert_series_equal(no_infer, yes_infer)
 
-    def test_to_datetime_infer_datetime_format_inconsistent_format(self):
+    @pytest.mark.parametrize('cache', [True, False])
+    def test_to_datetime_infer_datetime_format_inconsistent_format(self,
+                                                                   cache):
         s = pd.Series(np.array(['01/01/2011 00:00:00',
                                 '01-02-2011 00:00:00',
                                 '2011-01-03T00:00:00']))
 
         # When the format is inconsistent, infer_datetime_format should just
         # fallback to the default parsing
-        tm.assert_series_equal(pd.to_datetime(s, infer_datetime_format=False),
-                               pd.to_datetime(s, infer_datetime_format=True))
+        tm.assert_series_equal(pd.to_datetime(s, infer_datetime_format=False,
+                                              cache=cache),
+                               pd.to_datetime(s, infer_datetime_format=True,
+                                              cache=cache))
 
         s = pd.Series(np.array(['Jan/01/2011', 'Feb/01/2011', 'Mar/01/2011']))
 
-        tm.assert_series_equal(pd.to_datetime(s, infer_datetime_format=False),
-                               pd.to_datetime(s, infer_datetime_format=True))
+        tm.assert_series_equal(pd.to_datetime(s, infer_datetime_format=False,
+                                              cache=cache),
+                               pd.to_datetime(s, infer_datetime_format=True,
+                                              cache=cache))
 
-    def test_to_datetime_infer_datetime_format_series_with_nans(self):
+    @pytest.mark.parametrize('cache', [True, False])
+    def test_to_datetime_infer_datetime_format_series_with_nans(self, cache):
         s = pd.Series(np.array(['01/01/2011 00:00:00', np.nan,
                                 '01/03/2011 00:00:00', np.nan]))
-        tm.assert_series_equal(pd.to_datetime(s, infer_datetime_format=False),
-                               pd.to_datetime(s, infer_datetime_format=True))
+        tm.assert_series_equal(pd.to_datetime(s, infer_datetime_format=False,
+                                              cache=cache),
+                               pd.to_datetime(s, infer_datetime_format=True,
+                                              cache=cache))
 
-    def test_to_datetime_infer_datetime_format_series_starting_with_nans(self):
+    @pytest.mark.parametrize('cache', [True, False])
+    def test_to_datetime_infer_datetime_format_series_start_with_nans(self,
+                                                                      cache):
         s = pd.Series(np.array([np.nan, np.nan, '01/01/2011 00:00:00',
                                 '01/02/2011 00:00:00', '01/03/2011 00:00:00']))
 
-        tm.assert_series_equal(pd.to_datetime(s, infer_datetime_format=False),
-                               pd.to_datetime(s, infer_datetime_format=True))
+        tm.assert_series_equal(pd.to_datetime(s, infer_datetime_format=False,
+                                              cache=cache),
+                               pd.to_datetime(s, infer_datetime_format=True,
+                                              cache=cache))
 
-    def test_to_datetime_iso8601_noleading_0s(self):
+    @pytest.mark.parametrize('cache', [True, False])
+    def test_to_datetime_iso8601_noleading_0s(self, cache):
         # GH 11871
         s = pd.Series(['2014-1-1', '2014-2-2', '2015-3-3'])
         expected = pd.Series([pd.Timestamp('2014-01-01'),
                               pd.Timestamp('2014-02-02'),
                               pd.Timestamp('2015-03-03')])
-        tm.assert_series_equal(pd.to_datetime(s), expected)
-        tm.assert_series_equal(pd.to_datetime(s, format='%Y-%m-%d'), expected)
+        tm.assert_series_equal(pd.to_datetime(s, cache=cache), expected)
+        tm.assert_series_equal(pd.to_datetime(s, format='%Y-%m-%d',
+                                              cache=cache), expected)
 
 
 class TestDaysInMonth(object):
     # tests for issue #10154
 
-    def test_day_not_in_month_coerce(self):
-        assert isnull(to_datetime('2015-02-29', errors='coerce'))
-        assert isnull(to_datetime('2015-02-29', format="%Y-%m-%d",
-                                  errors='coerce'))
-        assert isnull(to_datetime('2015-02-32', format="%Y-%m-%d",
-                                  errors='coerce'))
-        assert isnull(to_datetime('2015-04-31', format="%Y-%m-%d",
-                                  errors='coerce'))
+    @pytest.mark.parametrize('cache', [True, False])
+    def test_day_not_in_month_coerce(self, cache):
+        assert isna(to_datetime('2015-02-29', errors='coerce', cache=cache))
+        assert isna(to_datetime('2015-02-29', format="%Y-%m-%d",
+                                errors='coerce', cache=cache))
+        assert isna(to_datetime('2015-02-32', format="%Y-%m-%d",
+                                errors='coerce', cache=cache))
+        assert isna(to_datetime('2015-04-31', format="%Y-%m-%d",
+                                errors='coerce', cache=cache))
 
-    def test_day_not_in_month_raise(self):
+    @pytest.mark.parametrize('cache', [True, False])
+    def test_day_not_in_month_raise(self, cache):
         pytest.raises(ValueError, to_datetime, '2015-02-29',
-                      errors='raise')
+                      errors='raise', cache=cache)
         pytest.raises(ValueError, to_datetime, '2015-02-29',
-                      errors='raise', format="%Y-%m-%d")
+                      errors='raise', format="%Y-%m-%d", cache=cache)
         pytest.raises(ValueError, to_datetime, '2015-02-32',
-                      errors='raise', format="%Y-%m-%d")
+                      errors='raise', format="%Y-%m-%d", cache=cache)
         pytest.raises(ValueError, to_datetime, '2015-04-31',
-                      errors='raise', format="%Y-%m-%d")
+                      errors='raise', format="%Y-%m-%d", cache=cache)
 
-    def test_day_not_in_month_ignore(self):
-        assert to_datetime('2015-02-29', errors='ignore') == '2015-02-29'
+    @pytest.mark.parametrize('cache', [True, False])
+    def test_day_not_in_month_ignore(self, cache):
         assert to_datetime('2015-02-29', errors='ignore',
-                           format="%Y-%m-%d") == '2015-02-29'
+                           cache=cache) == '2015-02-29'
+        assert to_datetime('2015-02-29', errors='ignore',
+                           format="%Y-%m-%d", cache=cache) == '2015-02-29'
         assert to_datetime('2015-02-32', errors='ignore',
-                           format="%Y-%m-%d") == '2015-02-32'
+                           format="%Y-%m-%d", cache=cache) == '2015-02-32'
         assert to_datetime('2015-04-31', errors='ignore',
-                           format="%Y-%m-%d") == '2015-04-31'
+                           format="%Y-%m-%d", cache=cache) == '2015-04-31'
 
 
 class TestDatetimeParsingWrappers(object):
-    def test_does_not_convert_mixed_integer(self):
-        bad_date_strings = ('-50000', '999', '123.1234', 'm', 'T')
 
-        for bad_date_string in bad_date_strings:
-            assert not tslib._does_string_look_like_datetime(bad_date_string)
+    @pytest.mark.parametrize('cache', [True, False])
+    def test_parsers(self, cache):
 
-        good_date_strings = ('2012-01-01',
-                             '01/01/2012',
-                             'Mon Sep 16, 2013',
-                             '01012012',
-                             '0101',
-                             '1-1', )
-
-        for good_date_string in good_date_strings:
-            assert tslib._does_string_look_like_datetime(good_date_string)
-
-    def test_parsers(self):
-
+        # dateutil >= 2.5.0 defaults to yearfirst=True
         # https://github.com/dateutil/dateutil/issues/217
-        import dateutil
-        yearfirst = dateutil.__version__ >= LooseVersion('2.5.0')
+        yearfirst = True
 
         cases = {'2011-01-01': datetime(2011, 1, 1),
                  '2Q2005': datetime(2005, 4, 1),
@@ -1080,13 +1240,13 @@ class TestDatetimeParsingWrappers(object):
                  }
 
         for date_str, expected in compat.iteritems(cases):
-            result1, _, _ = tools.parse_time_string(date_str,
-                                                    yearfirst=yearfirst)
+            result1, _, _ = parsing.parse_time_string(date_str,
+                                                      yearfirst=yearfirst)
             result2 = to_datetime(date_str, yearfirst=yearfirst)
             result3 = to_datetime([date_str], yearfirst=yearfirst)
             # result5 is used below
             result4 = to_datetime(np.array([date_str], dtype=object),
-                                  yearfirst=yearfirst)
+                                  yearfirst=yearfirst, cache=cache)
             result6 = DatetimeIndex([date_str], yearfirst=yearfirst)
             # result7 is used below
             result8 = DatetimeIndex(Index([date_str]), yearfirst=yearfirst)
@@ -1098,7 +1258,7 @@ class TestDatetimeParsingWrappers(object):
                 exp = DatetimeIndex([pd.Timestamp(expected)])
                 tm.assert_index_equal(res, exp)
 
-            # these really need to have yearfist, but we don't support
+            # these really need to have yearfirst, but we don't support
             if not yearfirst:
                 result5 = Timestamp(date_str)
                 assert result5 == expected
@@ -1107,22 +1267,17 @@ class TestDatetimeParsingWrappers(object):
                 assert result7 == expected
 
         # NaT
-        result1, _, _ = tools.parse_time_string('NaT')
+        result1, _, _ = parsing.parse_time_string('NaT')
         result2 = to_datetime('NaT')
         result3 = Timestamp('NaT')
         result4 = DatetimeIndex(['NaT'])[0]
         assert result1 is tslib.NaT
-        assert result1 is tslib.NaT
-        assert result1 is tslib.NaT
-        assert result1 is tslib.NaT
+        assert result2 is tslib.NaT
+        assert result3 is tslib.NaT
+        assert result4 is tslib.NaT
 
-    def test_parsers_quarter_invalid(self):
-
-        cases = ['2Q 2005', '2Q-200A', '2Q-200', '22Q2005', '6Q-20', '2Q200.']
-        for case in cases:
-            pytest.raises(ValueError, tools.parse_time_string, case)
-
-    def test_parsers_dayfirst_yearfirst(self):
+    @pytest.mark.parametrize('cache', [True, False])
+    def test_parsers_dayfirst_yearfirst(self, cache):
         # OK
         # 2.5.1 10-11-12   [dayfirst=0, yearfirst=0] -> 2012-10-11 00:00:00
         # 2.5.2 10-11-12   [dayfirst=0, yearfirst=1] -> 2012-10-11 00:00:00
@@ -1163,7 +1318,7 @@ class TestDatetimeParsingWrappers(object):
         # 2.5.2 20/12/21   [dayfirst=1, yearfirst=0] -> 2021-12-20 00:00:00
         # 2.5.3 20/12/21   [dayfirst=1, yearfirst=0] -> 2021-12-20 00:00:00
 
-        is_lt_253 = dateutil.__version__ < LooseVersion('2.5.3')
+        is_lt_253 = LooseVersion(dateutil.__version__) < LooseVersion('2.5.3')
 
         # str : dayfirst, yearfirst, expected
         cases = {'10-11-12': [(False, False,
@@ -1196,9 +1351,9 @@ class TestDatetimeParsingWrappers(object):
                                         yearfirst=yearfirst)
                 assert dateutil_result == expected
 
-                result1, _, _ = tools.parse_time_string(date_str,
-                                                        dayfirst=dayfirst,
-                                                        yearfirst=yearfirst)
+                result1, _, _ = parsing.parse_time_string(date_str,
+                                                          dayfirst=dayfirst,
+                                                          yearfirst=yearfirst)
 
                 # we don't support dayfirst/yearfirst here:
                 if not dayfirst and not yearfirst:
@@ -1206,7 +1361,7 @@ class TestDatetimeParsingWrappers(object):
                     assert result2 == expected
 
                 result3 = to_datetime(date_str, dayfirst=dayfirst,
-                                      yearfirst=yearfirst)
+                                      yearfirst=yearfirst, cache=cache)
 
                 result4 = DatetimeIndex([date_str], dayfirst=dayfirst,
                                         yearfirst=yearfirst)[0]
@@ -1215,13 +1370,14 @@ class TestDatetimeParsingWrappers(object):
                 assert result3 == expected
                 assert result4 == expected
 
-    def test_parsers_timestring(self):
+    @pytest.mark.parametrize('cache', [True, False])
+    def test_parsers_timestring(self, cache):
         # must be the same as dateutil result
         cases = {'10:15': (parse('10:15'), datetime(1, 1, 1, 10, 15)),
                  '9:05': (parse('9:05'), datetime(1, 1, 1, 9, 5))}
 
         for date_str, (exp_now, exp_def) in compat.iteritems(cases):
-            result1, _, _ = tools.parse_time_string(date_str)
+            result1, _, _ = parsing.parse_time_string(date_str)
             result2 = to_datetime(date_str)
             result3 = to_datetime([date_str])
             result4 = Timestamp(date_str)
@@ -1235,9 +1391,9 @@ class TestDatetimeParsingWrappers(object):
             assert result4 == exp_now
             assert result5 == exp_now
 
+    @td.skip_if_has_locale
     def test_parsers_time(self):
         # GH11818
-        _skip_if_has_locale()
         strings = ["14:15", "1415", "2:15pm", "0215pm", "14:15:00", "141500",
                    "2:15:00pm", "021500pm", time(14, 15)]
         expected = time(14, 15)
@@ -1270,37 +1426,10 @@ class TestDatetimeParsingWrappers(object):
         assert isinstance(res, list)
         assert res == expected_arr
 
-    def test_parsers_monthfreq(self):
-        cases = {'201101': datetime(2011, 1, 1, 0, 0),
-                 '200005': datetime(2000, 5, 1, 0, 0)}
-
-        for date_str, expected in compat.iteritems(cases):
-            result1, _, _ = tools.parse_time_string(date_str, freq='M')
-            assert result1 == expected
-
-    def test_parsers_quarterly_with_freq(self):
-        msg = ('Incorrect quarterly string is given, quarter '
-               'must be between 1 and 4: 2013Q5')
-        with tm.assert_raises_regex(tslib.DateParseError, msg):
-            tools.parse_time_string('2013Q5')
-
-        # GH 5418
-        msg = ('Unable to retrieve month information from given freq: '
-               'INVLD-L-DEC-SAT')
-        with tm.assert_raises_regex(tslib.DateParseError, msg):
-            tools.parse_time_string('2013Q1', freq='INVLD-L-DEC-SAT')
-
-        cases = {('2013Q2', None): datetime(2013, 4, 1),
-                 ('2013Q2', 'A-APR'): datetime(2012, 8, 1),
-                 ('2013-Q2', 'A-DEC'): datetime(2013, 4, 1)}
-
-        for (date_str, freq), exp in compat.iteritems(cases):
-            result, _, _ = tools.parse_time_string(date_str, freq=freq)
-            assert result == exp
-
-    def test_parsers_timezone_minute_offsets_roundtrip(self):
+    @pytest.mark.parametrize('cache', [True, False])
+    def test_parsers_timezone_minute_offsets_roundtrip(self, cache):
         # GH11708
-        base = to_datetime("2013-01-01 00:00:00")
+        base = to_datetime("2013-01-01 00:00:00", cache=cache)
         dt_strings = [
             ('2013-01-01 05:45+0545',
              "Asia/Katmandu",
@@ -1311,7 +1440,7 @@ class TestDatetimeParsingWrappers(object):
         ]
 
         for dt_string, tz, dt_string_repr in dt_strings:
-            dt_time = to_datetime(dt_string)
+            dt_time = to_datetime(dt_string, cache=cache)
             assert base == dt_time
             converted_time = dt_time.tz_localize('UTC').tz_convert(tz)
             assert dt_string_repr == repr(converted_time)
@@ -1335,7 +1464,7 @@ class TestDatetimeParsingWrappers(object):
             actual = tslib._test_parse_iso8601(date_str)
             assert actual == exp
 
-        # seperators must all match - YYYYMM not valid
+        # separators must all match - YYYYMM not valid
         invalid_cases = ['2011-01/02', '2011^11^11',
                          '201401', '201111', '200101',
                          # mixed separated and unseparated
@@ -1355,14 +1484,6 @@ class TestDatetimeParsingWrappers(object):
 
 
 class TestArrayToDatetime(object):
-
-    def test_try_parse_dates(self):
-        arr = np.array(['5/1/2000', '6/1/2000', '7/1/2000'], dtype=object)
-
-        result = lib.try_parse_dates(arr, dayfirst=True)
-        expected = [parse(d, dayfirst=True) for d in arr]
-        assert np.array_equal(result, expected)
-
     def test_parsing_valid_dates(self):
         arr = np.array(['01-01-2013', '01-02-2013'], dtype=object)
         tm.assert_numpy_array_equal(
@@ -1479,12 +1600,12 @@ class TestArrayToDatetime(object):
 def test_normalize_date():
     value = date(2012, 9, 7)
 
-    result = normalize_date(value)
+    result = tslib.normalize_date(value)
     assert (result == datetime(2012, 9, 7))
 
     value = datetime(2012, 9, 7, 12)
 
-    result = normalize_date(value)
+    result = tslib.normalize_date(value)
     assert (result == datetime(2012, 9, 7))
 
 
@@ -1588,6 +1709,12 @@ class TestOrigin(object):
         with pytest.raises(exc):
             pd.to_datetime(units_from_epochs, unit=units,
                            origin=origin)
+
+    def test_invalid_origins_tzinfo(self):
+        # GH16842
+        with pytest.raises(ValueError):
+            pd.to_datetime(1, unit='D',
+                           origin=datetime(2000, 1, 1, tzinfo=pytz.utc))
 
     def test_processing_order(self):
         # make sure we handle out-of-bounds *before*

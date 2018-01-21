@@ -11,32 +11,32 @@ Where to start?
 ===============
 
 All contributions, bug reports, bug fixes, documentation improvements,
-enhancements and ideas are welcome.
+enhancements, and ideas are welcome.
 
-If you are simply looking to start working with the *pandas* codebase, navigate to the
-`GitHub "issues" tab <https://github.com/pandas-dev/pandas/issues>`_ and start looking through
-interesting issues.  There are a number of issues listed under `Docs
+If you are brand new to pandas or open-source development, we recommend going
+through the `GitHub "issues" tab <https://github.com/pandas-dev/pandas/issues>`_
+to find issues that interest you. There are a number of issues listed under `Docs
 <https://github.com/pandas-dev/pandas/issues?labels=Docs&sort=updated&state=open>`_
 and `Difficulty Novice
 <https://github.com/pandas-dev/pandas/issues?q=is%3Aopen+is%3Aissue+label%3A%22Difficulty+Novice%22>`_
-where you could start out.
-
-Or maybe through using *pandas* you have an idea of your own or are looking for something
-in the documentation and thinking 'this can be improved'...you can do something
-about it!
+where you could start out. Once you've found an interesting issue, you can
+return here to get your development environment setup.
 
 Feel free to ask questions on the `mailing list
-<https://groups.google.com/forum/?fromgroups#!forum/pydata>`_ or on `Gitter
-<https://gitter.im/pydata/pandas>`_.
+<https://groups.google.com/forum/?fromgroups#!forum/pydata>`_ or on `Gitter`_.
+
+.. _contributing.bug_reports:
 
 Bug reports and enhancement requests
 ====================================
 
-Bug reports are an important part of making *pandas* more stable.  Having a complete bug report
-will allow others to reproduce the bug and provide insight into fixing.  Because many versions of
-*pandas* are supported, knowing version information will also identify improvements made since
-previous versions. Trying the bug-producing code out on the *master* branch is often a worthwhile exercise
-to confirm the bug still exists.  It is also worth searching existing bug reports and pull requests
+Bug reports are an important part of making *pandas* more stable. Having a complete bug report
+will allow others to reproduce the bug and provide insight into fixing. See
+`this stackoverflow article <https://stackoverflow.com/help/mcve>`_ for tips on
+writing a good bug report.
+
+Trying the bug-producing code out on the *master* branch is often a worthwhile exercise
+to confirm the bug still exists. It is also worth searching existing bug reports and pull requests
 to see if the issue has already been reported and/or fixed.
 
 Bug reports must:
@@ -60,11 +60,15 @@ Bug reports must:
 
 The issue will then show up to the *pandas* community and be open to comments/ideas from others.
 
+.. _contributing.github:
+
 Working with the code
 =====================
 
 Now that you have an issue you want to fix, enhancement to add, or documentation to improve,
 you need to learn how to work with GitHub and the *pandas* code base.
+
+.. _contributing.version_control:
 
 Version control, Git, and GitHub
 --------------------------------
@@ -101,12 +105,128 @@ You will need your own fork to work on the code. Go to the `pandas project
 page <https://github.com/pandas-dev/pandas>`_ and hit the ``Fork`` button. You will
 want to clone your fork to your machine::
 
-    git clone git@github.com:your-user-name/pandas.git pandas-yourname
+    git clone https://github.com/your-user-name/pandas.git pandas-yourname
     cd pandas-yourname
-    git remote add upstream git://github.com/pandas-dev/pandas.git
+    git remote add upstream https://github.com/pandas-dev/pandas.git
 
 This creates the directory `pandas-yourname` and connects your repository to
 the upstream (main project) *pandas* repository.
+
+.. _contributing.dev_env:
+
+Creating a development environment
+----------------------------------
+
+To test out code changes, you'll need to build pandas from source, which
+requires a C compiler and Python environment. If you're making documentation
+changes, you can skip to :ref:`contributing.documentation` but you won't be able
+to build the documentation locally before pushing your changes.
+
+.. _contributiong.dev_c:
+
+Installing a C Compiler
+~~~~~~~~~~~~~~~~~~~~~~~
+
+Pandas uses C extensions (mostly written using Cython) to speed up certain
+operations. To install pandas from source, you need to compile these C
+extensions, which means you need a C compiler. This process depends on which
+platform you're using. Follow the `CPython contributing guidelines
+<https://docs.python.org/devguide/setup.html#build-dependencies>`_ for getting a
+compiler installed. You don't need to do any of the ``./configure`` or ``make``
+steps; you only need to install the compiler.
+
+For Windows developers, the following links may be helpful.
+
+- https://blogs.msdn.microsoft.com/pythonengineering/2016/04/11/unable-to-find-vcvarsall-bat/
+- https://github.com/conda/conda-recipes/wiki/Building-from-Source-on-Windows-32-bit-and-64-bit
+- https://cowboyprogrammer.org/building-python-wheels-for-windows/
+- https://blog.ionelmc.ro/2014/12/21/compiling-python-extensions-on-windows/
+- https://support.enthought.com/hc/en-us/articles/204469260-Building-Python-extensions-with-Canopy
+
+Let us know if you have any difficulties by opening an issue or reaching out on
+`Gitter`_.
+
+.. _contributiong.dev_python:
+
+Creating a Python Environment
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Now that you have a C compiler, create an isolated pandas development
+environment:
+
+- Install either `Anaconda <https://www.anaconda.com/download/>`_ or `miniconda
+  <https://conda.io/miniconda.html>`_
+- Make sure your conda is up to date (``conda update conda``)
+- Make sure that you have :ref:`cloned the repository <contributing.forking>`
+- ``cd`` to the *pandas* source directory
+
+We'll now kick off a three-step process:
+
+1. Install the build dependencies
+2. Build and install pandas
+3. Install the optional dependencies
+
+.. code-block:: none
+
+   # Create and activate the build environment
+   conda env create -f ci/environment-dev.yaml
+   conda activate pandas-dev
+   
+   # or with older versions of Anaconda:
+   source activate pandas-dev
+
+   # Build and install pandas
+   python setup.py build_ext --inplace -j 4
+   python -m pip install -e .
+
+   # Install the rest of the optional dependencies
+   conda install -c defaults -c conda-forge --file=ci/requirements-optional-conda.txt
+
+At this point you should be able to import pandas from your locally built version::
+
+   $ python  # start an interpreter
+   >>> import pandas
+   >>> print(pandas.__version__)
+   0.22.0.dev0+29.g4ad6d4d74
+
+This will create the new environment, and not touch any of your existing environments,
+nor any existing Python installation.
+
+To view your environments::
+
+      conda info -e
+
+To return to your root environment::
+
+      conda deactivate
+
+See the full conda docs `here <http://conda.pydata.org/docs>`__.
+
+.. _contributing.pip:
+
+Creating a Python Environment (pip)
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+If you aren't using conda for you development environment, follow these instructions.
+You'll need to have at least python3.5 installed on your system.
+
+.. code-block:: none
+
+   # Create a virtual environment
+   # Use an ENV_DIR of your choice. We'll use ~/virtualenvs/pandas-dev
+   # Any parent directories should already exist
+   python3 -m venv ~/virtualenvs/pandas-dev
+   # Activate the virtulaenv
+   . ~/virtualenvs/pandas-dev/bin/activate
+
+   # Install the build dependencies
+   python -m pip install -r ci/requirements_dev.txt
+   # Build and install pandas
+   python setup.py build_ext --inplace -j 4
+   python -m pip install -e .
+
+   # Install additional dependencies
+   python -m pip install -r ci/requirements-optional-pip.txt
 
 Creating a branch
 -----------------
@@ -137,133 +257,17 @@ request.  If you have uncommitted changes, you will need to ``stash`` them prior
 to updating.  This will effectively store your changes and they can be reapplied
 after updating.
 
-.. _contributing.dev_env:
-
-Creating a development environment
-----------------------------------
-
-An easy way to create a *pandas* development environment is as follows.
-
-- Install either :ref:`Anaconda <install.anaconda>` or :ref:`miniconda <install.miniconda>`
-- Make sure that you have :ref:`cloned the repository <contributing.forking>`
-- ``cd`` to the *pandas* source directory
-
-Tell conda to create a new environment, named ``pandas_dev``, or any other name you would like
-for this environment, by running::
-
-      conda create -n pandas_dev --file ci/requirements_dev.txt
-
-
-For a python 3 environment::
-
-      conda create -n pandas_dev python=3 --file ci/requirements_dev.txt
-
-.. warning::
-
-   If you are on Windows, see :ref:`here for a fully compliant Windows environment <contributing.windows>`.
-
-This will create the new environment, and not touch any of your existing environments,
-nor any existing python installation. It will install all of the basic dependencies of
-*pandas*, as well as the development and testing tools. If you would like to install
-other dependencies, you can install them as follows::
-
-      conda install -n pandas_dev -c pandas pytables scipy
-
-To install *all* pandas dependencies you can do the following::
-
-      conda install -n pandas_dev -c pandas --file ci/requirements_all.txt
-
-To work in this environment, Windows users should ``activate`` it as follows::
-
-      activate pandas_dev
-
-Mac OSX / Linux users should use::
-
-      source activate pandas_dev
-
-You will then see a confirmation message to indicate you are in the new development environment.
-
-To view your environments::
-
-      conda info -e
-
-To return to your home root environment in Windows::
-
-      deactivate
-
-To return to your home root environment in OSX / Linux::
-
-      source deactivate
-
-See the full conda docs `here <http://conda.pydata.org/docs>`__.
-
-At this point you can easily do an *in-place* install, as detailed in the next section.
-
-.. _contributing.windows:
-
-Creating a Windows development environment
-------------------------------------------
-
-To build on Windows, you need to have compilers installed to build the extensions. You will need to install the appropriate Visual Studio compilers, VS 2008 for Python 2.7, VS 2010 for 3.4, and VS 2015 for Python 3.5 and 3.6.
-
-For Python 2.7, you can install the ``mingw`` compiler which will work equivalently to VS 2008::
-
-      conda install -n pandas_dev libpython
-
-or use the `Microsoft Visual Studio VC++ compiler for Python <https://www.microsoft.com/en-us/download/details.aspx?id=44266>`__. Note that you have to check the ``x64`` box to install the ``x64`` extension building capability as this is not installed by default.
-
-For Python 3.4, you can download and install the `Windows 7.1 SDK <https://www.microsoft.com/en-us/download/details.aspx?id=8279>`__. Read the references below as there may be various gotchas during the installation.
-
-For Python 3.5 and 3.6, you can download and install the `Visual Studio 2015 Community Edition <https://www.visualstudio.com/en-us/downloads/visual-studio-2015-downloads-vs.aspx>`__.
-
-Here are some references and blogs:
-
-- https://blogs.msdn.microsoft.com/pythonengineering/2016/04/11/unable-to-find-vcvarsall-bat/
-- https://github.com/conda/conda-recipes/wiki/Building-from-Source-on-Windows-32-bit-and-64-bit
-- https://cowboyprogrammer.org/building-python-wheels-for-windows/
-- https://blog.ionelmc.ro/2014/12/21/compiling-python-extensions-on-windows/
-- https://support.enthought.com/hc/en-us/articles/204469260-Building-Python-extensions-with-Canopy
-
-.. _contributing.getting_source:
-
-Making changes
---------------
-
-Before making your code changes, it is often necessary to build the code that was
-just checked out.  There are two primary methods of doing this.
-
-#. The best way to develop *pandas* is to build the C extensions in-place by
-   running::
-
-      python setup.py build_ext --inplace
-
-   If you startup the Python interpreter in the *pandas* source directory you
-   will call the built C extensions
-
-#. Another very common option is to do a ``develop`` install of *pandas*::
-
-      python setup.py develop
-
-   This makes a symbolic link that tells the Python interpreter to import *pandas*
-   from your development directory. Thus, you can always be using the development
-   version on your system without being inside the clone directory.
-
-
 .. _contributing.documentation:
 
 Contributing to the documentation
 =================================
 
-If you're not the developer type, contributing to the documentation is still
-of huge value. You don't even have to be an expert on
-*pandas* to do so! Something as simple as rewriting small passages for clarity
-as you reference the docs is a simple but effective way to contribute. The
-next person to read that passage will be in your debt!
-
-In fact, there are sections of the docs that are worse off after being written
-by experts. If something in the docs doesn't make sense to you, updating the
-relevant section after you figure it out is a simple way to ensure it will
-help the next person.
+If you're not the developer type, contributing to the documentation is still of
+huge value. You don't even have to be an expert on *pandas* to do so! In fact,
+there are sections of the docs that are worse off after being written by
+experts. If something in the docs doesn't make sense to you, updating the
+relevant section after you figure it out is a great way to ensure it will help
+the next person.
 
 .. contents:: Documentation:
    :local:
@@ -316,6 +320,27 @@ Some other important things to know about the docs:
   doc build. This approach means that code examples will always be up to date,
   but it does make the doc building a bit more complex.
 
+- Our API documentation in ``doc/source/api.rst`` houses the auto-generated
+  documentation from the docstrings. For classes, there are a few subtleties
+  around controlling which methods and attributes have pages auto-generated.
+
+  We have two autosummary templates for classes.
+
+  1. ``_templates/autosummary/class.rst``. Use this when you want to
+     automatically generate a page for every public method and attribute on the
+     class. The ``Attributes`` and ``Methods`` sections will be automatically
+     added to the class' rendered documentation by numpydoc. See ``DataFrame``
+     for an example.
+
+  2. ``_templates/autosummary/class_without_autosummary``. Use this when you
+     want to pick a subset of methods / attributes to auto-generate pages for.
+     When using this template, you should include an ``Attributes`` and
+     ``Methods`` section in the class docstring. See ``CategoricalIndex`` for an
+     example.
+
+  Every method should be included in a ``toctree`` in ``api.rst``, else Sphinx
+  will emit a warning.
+
 .. note::
 
     The ``.rst`` files are used to automatically generate Markdown and HTML versions
@@ -330,7 +355,7 @@ The utility script ``scripts/api_rst_coverage.py`` can be used to compare
 the list of methods documented in ``doc/source/api.rst`` (which is used to generate
 the `API Reference <http://pandas.pydata.org/pandas-docs/stable/api.html>`_ page)
 and the actual public methods.
-This will identify methods documented in in ``doc/source/api.rst`` that are not actually
+This will identify methods documented in ``doc/source/api.rst`` that are not actually
 class methods, and existing methods that are not documented in ``doc/source/api.rst``.
 
 
@@ -342,30 +367,6 @@ Requirements
 
 First, you need to have a development environment to be able to build pandas
 (see the docs on :ref:`creating a development environment above <contributing.dev_env>`).
-Further, to build the docs, there are some extra requirements: you will need to
-have ``sphinx`` and ``ipython`` installed. `numpydoc
-<https://github.com/numpy/numpydoc>`_ is used to parse the docstrings that
-follow the Numpy Docstring Standard (see above), but you don't need to install
-this because a local copy of numpydoc is included in the *pandas* source
-code. `nbsphinx <https://nbsphinx.readthedocs.io/>`_ is required to build
-the Jupyter notebooks included in the documentation.
-
-If you have a conda environment named ``pandas_dev``, you can install the extra
-requirements with::
-
-      conda install -n pandas_dev sphinx ipython nbconvert nbformat
-      conda install -n pandas_dev -c conda-forge nbsphinx
-
-Furthermore, it is recommended to have all :ref:`optional dependencies <install.optional_dependencies>`.
-installed. This is not strictly necessary, but be aware that you will see some error
-messages when building the docs. This happens because all the code in the documentation
-is executed during the doc build, and so code examples using optional dependencies
-will generate errors. Run ``pd.show_versions()`` to get an overview of the installed
-version of all dependencies.
-
-.. warning::
-
-   You need to have ``sphinx`` version >= 1.3.2.
 
 Building the documentation
 ~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -386,10 +387,10 @@ If you want to do a full clean build, do::
     python make.py clean
     python make.py html
 
-Starting with *pandas* 0.13.1 you can tell ``make.py`` to compile only a single section
-of the docs, greatly reducing the turn-around time for checking your changes.
-You will be prompted to delete ``.rst`` files that aren't required. This is okay because
-the prior versions of these files can be checked out from git. However, you must make sure
+You can tell ``make.py`` to compile only a single section of the docs, greatly
+reducing the turn-around time for checking your changes. You will be prompted to
+delete ``.rst`` files that aren't required. This is okay because the prior
+versions of these files can be checked out from git. However, you must make sure
 not to commit the file deletions to your Git repository!
 
 ::
@@ -421,6 +422,8 @@ When pull requests are merged into the *pandas* ``master`` branch, the main part
 the documentation are also built by Travis-CI. These docs are then hosted `here
 <http://pandas-docs.github.io/pandas-docs-travis>`__, see also
 the :ref:`Continuous Integration <contributing.ci>` section.
+
+.. _contributing.code:
 
 Contributing to the code base
 =============================
@@ -456,7 +459,7 @@ Here are *some* of the more common ``cpplint`` issues:
   - we restrict line-length to 80 characters to promote readability
   - every header file must include a header guard to avoid name collisions if re-included
 
-:ref:`Continuous Integration <contributing.ci>`. will run the
+:ref:`Continuous Integration <contributing.ci>` will run the
 `cpplint <https://pypi.python.org/pypi/cpplint>`_ tool
 and report any stylistic errors in your code. Therefore, it is helpful before
 submitting code to run the check yourself::
@@ -480,7 +483,7 @@ Once configured, you can run the tool as follows::
     clang-format modified-c-file
 
 This will output what your file will look like if the changes are made, and to apply
-them, just run the following command::
+them, run the following command::
 
     clang-format -i modified-c-file
 
@@ -509,7 +512,7 @@ the `flake8 <http://pypi.python.org/pypi/flake8>`_ tool
 and report any stylistic errors in your code. Therefore, it is helpful before
 submitting code to run the check yourself on the diff::
 
-   git diff master --name-only -- '*.py' | flake8 --diff
+   git diff master -u -- "*.py" | flake8 --diff
 
 This command will catch any stylistic errors in your changes specifically, but
 be beware it may not catch all of them. For example, if you delete the only
@@ -518,12 +521,28 @@ unused function. However, style-checking the diff will not catch this because
 the actual import is not part of the diff. Thus, for completeness, you should
 run this command, though it will take longer::
 
-   git diff master --name-only -- '*.py' | grep 'pandas/' | xargs -r flake8
+   git diff master --name-only -- "*.py" | grep "pandas/" | xargs -r flake8
 
 Note that on OSX, the ``-r`` flag is not available, so you have to omit it and
 run this slightly modified command::
 
-   git diff master --name-only -- '*.py' | grep 'pandas/' | xargs flake8
+   git diff master --name-only -- "*.py" | grep "pandas/" | xargs flake8
+
+Note that on Windows, these commands are unfortunately not possible because
+commands like ``grep`` and ``xargs`` are not available natively. To imitate the
+behavior with the commands above, you should run::
+
+    git diff master --name-only -- "*.py"
+
+This will list all of the Python files that have been modified. The only ones
+that matter during linting are any whose directory filepath begins with "pandas."
+For each filepath, copy and paste it after the ``flake8`` command as shown below:
+
+    flake8 <python-filepath>
+
+Alternatively, you can install the ``grep`` and ``xargs`` commands via the
+`MinGW <http://www.mingw.org/>`__ toolchain, and it will allow you to run the
+commands above.
 
 Backwards Compatibility
 ~~~~~~~~~~~~~~~~~~~~~~~
@@ -531,7 +550,30 @@ Backwards Compatibility
 Please try to maintain backward compatibility. *pandas* has lots of users with lots of
 existing code, so don't break it if at all possible.  If you think breakage is required,
 clearly state why as part of the pull request.  Also, be careful when changing method
-signatures and add deprecation warnings where needed.
+signatures and add deprecation warnings where needed. Also, add the deprecated sphinx
+directive to the deprecated functions or methods.
+
+If a function with the same arguments as the one being deprecated exist, you can use
+the ``pandas.util._decorators.deprecate``:
+
+.. code-block:: python
+
+    from pandas.util._decorators import deprecate
+
+    deprecate('old_func', 'new_func', '0.21.0')
+
+Otherwise, you need to do it manually:
+
+.. code-block:: python
+
+    def old_func():
+        """Summary of the function.
+
+        .. deprecated:: 0.21.0
+           Use new_func instead.
+        """
+        warnings.warn('Use new_func instead.', FutureWarning, stacklevel=2)
+        new_func()
 
 .. _contributing.ci:
 
@@ -581,6 +623,10 @@ Like many packages, *pandas* uses `pytest
 <http://doc.pytest.org/en/latest/>`_ and the convenient
 extensions in `numpy.testing
 <http://docs.scipy.org/doc/numpy/reference/routines.testing.html>`_.
+
+.. note::
+
+   The earliest supported pytest version is 3.1.0.
 
 Writing tests
 ~~~~~~~~~~~~~
@@ -638,7 +684,9 @@ Using ``pytest``
 Here is an example of a self-contained set of tests that illustrate multiple features that we like to use.
 
 - functional style: tests are like ``test_*`` and *only* take arguments that are either fixtures or parameters
+- ``pytest.mark`` can be used to set metadata on test functions, e.g. ``skip`` or ``xfail``.
 - using ``parametrize``: allow testing of multiple cases
+- to set a mark on a parameter, ``pytest.param(..., marks=...)`` syntax should be used
 - ``fixture``, code for object construction, on a per-test basis
 - using bare ``assert`` for scalars and truth-testing
 - ``tm.assert_series_equal`` (and its counter part ``tm.assert_frame_equal``), for pandas object comparisons.
@@ -656,6 +704,13 @@ We would name this file ``test_cool_feature.py`` and put in an appropriate place
    @pytest.mark.parametrize('dtype', ['int8', 'int16', 'int32', 'int64'])
    def test_dtypes(dtype):
        assert str(np.dtype(dtype)) == dtype
+
+   @pytest.mark.parametrize('dtype', ['float32',
+       pytest.param('int16', marks=pytest.mark.skip),
+       pytest.param('int32',
+                    marks=pytest.mark.xfail(reason='to show how it works'))])
+   def test_mark(dtype):
+       assert str(np.dtype(dtype)) == 'float32'
 
    @pytest.fixture
    def series():
@@ -679,13 +734,16 @@ A test run of this yields
 
    ((pandas) bash-3.2$ pytest  test_cool_feature.py  -v
    =========================== test session starts ===========================
-   platform darwin -- Python 3.5.2, pytest-3.0.5, py-1.4.31, pluggy-0.4.0
-   collected 8 items
+   platform darwin -- Python 3.6.2, pytest-3.2.1, py-1.4.31, pluggy-0.4.0
+   collected 11 items
 
    tester.py::test_dtypes[int8] PASSED
    tester.py::test_dtypes[int16] PASSED
    tester.py::test_dtypes[int32] PASSED
    tester.py::test_dtypes[int64] PASSED
+   tester.py::test_mark[float32] PASSED
+   tester.py::test_mark[int16] SKIPPED
+   tester.py::test_mark[int32] xfail
    tester.py::test_series[int8] PASSED
    tester.py::test_series[int16] PASSED
    tester.py::test_series[int32] PASSED
@@ -698,8 +756,8 @@ Tests that we have ``parametrized`` are now accessible via the test name, for ex
 
    ((pandas) bash-3.2$ pytest  test_cool_feature.py  -v -k int8
    =========================== test session starts ===========================
-   platform darwin -- Python 3.5.2, pytest-3.0.5, py-1.4.31, pluggy-0.4.0
-   collected 8 items
+   platform darwin -- Python 3.6.2, pytest-3.2.1, py-1.4.31, pluggy-0.4.0
+   collected 11 items
 
    test_cool_feature.py::test_dtypes[int8] PASSED
    test_cool_feature.py::test_series[int8] PASSED
@@ -803,9 +861,9 @@ takes a regular expression.  For example, this will only run tests from a
 If you want to only run a specific group of tests from a file, you can do it
 using ``.`` as a separator. For example::
 
-    asv continuous -f 1.1 upstream/master HEAD -b groupby.groupby_agg_builtins
+    asv continuous -f 1.1 upstream/master HEAD -b groupby.GroupByMethods
 
-will only run the ``groupby_agg_builtins`` benchmark defined in ``groupby.py``.
+will only run the ``GroupByMethods`` benchmark defined in ``groupby.py``.
 
 You can also run the benchmark suite using the version of ``pandas``
 already installed in your current Python environment. This can be
@@ -845,12 +903,12 @@ directive is used. The sphinx syntax for that is:
 
 .. code-block:: rst
 
-  .. versionadded:: 0.17.0
+  .. versionadded:: 0.21.0
 
-This will put the text *New in version 0.17.0* wherever you put the sphinx
+This will put the text *New in version 0.21.0* wherever you put the sphinx
 directive. This should also be put in the docstring when adding a new function
-or method (`example <https://github.com/pandas-dev/pandas/blob/v0.16.2/pandas/core/generic.py#L1959>`__)
-or a new keyword argument (`example <https://github.com/pandas-dev/pandas/blob/v0.16.2/pandas/core/frame.py#L1171>`__).
+or method (`example <https://github.com/pandas-dev/pandas/blob/v0.20.2/pandas/core/frame.py#L1495>`__)
+or a new keyword argument (`example <https://github.com/pandas-dev/pandas/blob/v0.20.2/pandas/core/generic.py#L568>`__).
 
 Contributing your changes to *pandas*
 =====================================
@@ -1001,7 +1059,7 @@ delete your branch::
     git checkout master
     git merge upstream/master
 
-Then you can just do::
+Then you can do::
 
     git branch -d shiny-new-feature
 
@@ -1011,3 +1069,6 @@ branch has not actually been merged.
 The branch will still exist on GitHub, so to delete it there do::
 
     git push origin --delete shiny-new-feature
+
+
+.. _Gitter: https://gitter.im/pydata/pandas

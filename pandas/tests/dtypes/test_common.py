@@ -9,6 +9,7 @@ from pandas.core.dtypes.dtypes import (DatetimeTZDtype, PeriodDtype,
 
 import pandas.core.dtypes.common as com
 import pandas.util.testing as tm
+import pandas.util._test_decorators as td
 
 
 class TestPandasDtype(object):
@@ -132,21 +133,22 @@ def test_is_object():
     assert not com.is_object_dtype([1, 2, 3])
 
 
-def test_is_sparse():
+@pytest.mark.parametrize("check_scipy", [
+    False, pytest.param(True, marks=td.skip_if_no_scipy)
+])
+def test_is_sparse(check_scipy):
     assert com.is_sparse(pd.SparseArray([1, 2, 3]))
     assert com.is_sparse(pd.SparseSeries([1, 2, 3]))
 
     assert not com.is_sparse(np.array([1, 2, 3]))
 
-    # This test will only skip if the previous assertions
-    # pass AND scipy is not installed.
-    sparse = pytest.importorskip("scipy.sparse")
-    assert not com.is_sparse(sparse.bsr_matrix([1, 2, 3]))
+    if check_scipy:
+        import scipy.sparse
+        assert not com.is_sparse(scipy.sparse.bsr_matrix([1, 2, 3]))
 
 
+@td.skip_if_no_scipy
 def test_is_scipy_sparse():
-    tm._skip_if_no_scipy()
-
     from scipy.sparse import bsr_matrix
     assert com.is_scipy_sparse(bsr_matrix([1, 2, 3]))
 
@@ -199,10 +201,17 @@ def test_is_datetime64tz_dtype():
 
 def test_is_timedelta64_dtype():
     assert not com.is_timedelta64_dtype(object)
+    assert not com.is_timedelta64_dtype(None)
     assert not com.is_timedelta64_dtype([1, 2, 3])
+    assert not com.is_timedelta64_dtype(np.array([], dtype=np.datetime64))
+    assert not com.is_timedelta64_dtype('0 days')
+    assert not com.is_timedelta64_dtype("0 days 00:00:00")
+    assert not com.is_timedelta64_dtype(["0 days 00:00:00"])
+    assert not com.is_timedelta64_dtype("NO DATE")
 
     assert com.is_timedelta64_dtype(np.timedelta64)
     assert com.is_timedelta64_dtype(pd.Series([], dtype="timedelta64[ns]"))
+    assert com.is_timedelta64_dtype(pd.to_timedelta(['0 days', '1 days']))
 
 
 def test_is_period_dtype():
@@ -486,13 +495,18 @@ def test_is_bool_dtype():
     assert not com.is_bool_dtype(str)
     assert not com.is_bool_dtype(pd.Series([1, 2]))
     assert not com.is_bool_dtype(np.array(['a', 'b']))
+    assert not com.is_bool_dtype(pd.Index(['a', 'b']))
 
     assert com.is_bool_dtype(bool)
     assert com.is_bool_dtype(np.bool)
     assert com.is_bool_dtype(np.array([True, False]))
+    assert com.is_bool_dtype(pd.Index([True, False]))
 
 
-def test_is_extension_type():
+@pytest.mark.parametrize("check_scipy", [
+    False, pytest.param(True, marks=td.skip_if_no_scipy)
+])
+def test_is_extension_type(check_scipy):
     assert not com.is_extension_type([1, 2, 3])
     assert not com.is_extension_type(np.array([1, 2, 3]))
     assert not com.is_extension_type(pd.DatetimeIndex([1, 2, 3]))
@@ -508,10 +522,9 @@ def test_is_extension_type():
     s = pd.Series([], dtype=dtype)
     assert com.is_extension_type(s)
 
-    # This test will only skip if the previous assertions
-    # pass AND scipy is not installed.
-    sparse = pytest.importorskip("scipy.sparse")
-    assert not com.is_extension_type(sparse.bsr_matrix([1, 2, 3]))
+    if check_scipy:
+        import scipy.sparse
+        assert not com.is_extension_type(scipy.sparse.bsr_matrix([1, 2, 3]))
 
 
 def test_is_complex_dtype():
@@ -522,3 +535,94 @@ def test_is_complex_dtype():
 
     assert com.is_complex_dtype(np.complex)
     assert com.is_complex_dtype(np.array([1 + 1j, 5]))
+
+
+def test_is_offsetlike():
+    assert com.is_offsetlike(np.array([pd.DateOffset(month=3),
+                                       pd.offsets.Nano()]))
+    assert com.is_offsetlike(pd.offsets.MonthEnd())
+    assert com.is_offsetlike(pd.Index([pd.DateOffset(second=1)]))
+
+    assert not com.is_offsetlike(pd.Timedelta(1))
+    assert not com.is_offsetlike(np.array([1 + 1j, 5]))
+
+    # mixed case
+    assert not com.is_offsetlike(np.array([pd.DateOffset(), pd.Timestamp(0)]))
+
+
+@pytest.mark.parametrize('input_param,result', [
+    (int, np.dtype(int)),
+    ('int32', np.dtype('int32')),
+    (float, np.dtype(float)),
+    ('float64', np.dtype('float64')),
+    (np.dtype('float64'), np.dtype('float64')),
+    (str, np.dtype(str)),
+    (pd.Series([1, 2], dtype=np.dtype('int16')), np.dtype('int16')),
+    (pd.Series(['a', 'b']), np.dtype(object)),
+    (pd.Index([1, 2]), np.dtype('int64')),
+    (pd.Index(['a', 'b']), np.dtype(object)),
+    ('category', 'category'),
+    (pd.Categorical(['a', 'b']).dtype, CategoricalDtype(['a', 'b'])),
+    (pd.Categorical(['a', 'b']), CategoricalDtype(['a', 'b'])),
+    (pd.CategoricalIndex(['a', 'b']).dtype, CategoricalDtype(['a', 'b'])),
+    (pd.CategoricalIndex(['a', 'b']), CategoricalDtype(['a', 'b'])),
+    (CategoricalDtype(), CategoricalDtype()),
+    (CategoricalDtype(['a', 'b']), CategoricalDtype()),
+    (pd.DatetimeIndex([1, 2]), np.dtype('<M8[ns]')),
+    (pd.DatetimeIndex([1, 2]).dtype, np.dtype('<M8[ns]')),
+    ('<M8[ns]', np.dtype('<M8[ns]')),
+    ('datetime64[ns, Europe/London]', DatetimeTZDtype('ns', 'Europe/London')),
+    (pd.SparseSeries([1, 2], dtype='int32'), np.dtype('int32')),
+    (pd.SparseSeries([1, 2], dtype='int32').dtype, np.dtype('int32')),
+    (PeriodDtype(freq='D'), PeriodDtype(freq='D')),
+    ('period[D]', PeriodDtype(freq='D')),
+    (IntervalDtype(), IntervalDtype()),
+])
+def test__get_dtype(input_param, result):
+    assert com._get_dtype(input_param) == result
+
+
+@pytest.mark.parametrize('input_param', [None,
+                                         1, 1.2,
+                                         'random string',
+                                         pd.DataFrame([1, 2])])
+def test__get_dtype_fails(input_param):
+    # python objects
+    pytest.raises(TypeError, com._get_dtype, input_param)
+
+
+@pytest.mark.parametrize('input_param,result', [
+    (int, np.dtype(int).type),
+    ('int32', np.int32),
+    (float, np.dtype(float).type),
+    ('float64', np.float64),
+    (np.dtype('float64'), np.float64),
+    (str, np.dtype(str).type),
+    (pd.Series([1, 2], dtype=np.dtype('int16')), np.int16),
+    (pd.Series(['a', 'b']), np.object_),
+    (pd.Index([1, 2], dtype='int64'), np.int64),
+    (pd.Index(['a', 'b']), np.object_),
+    ('category', com.CategoricalDtypeType),
+    (pd.Categorical(['a', 'b']).dtype, com.CategoricalDtypeType),
+    (pd.Categorical(['a', 'b']), com.CategoricalDtypeType),
+    (pd.CategoricalIndex(['a', 'b']).dtype, com.CategoricalDtypeType),
+    (pd.CategoricalIndex(['a', 'b']), com.CategoricalDtypeType),
+    (pd.DatetimeIndex([1, 2]), np.datetime64),
+    (pd.DatetimeIndex([1, 2]).dtype, np.datetime64),
+    ('<M8[ns]', np.datetime64),
+    (pd.DatetimeIndex([1, 2], tz='Europe/London'), com.DatetimeTZDtypeType),
+    (pd.DatetimeIndex([1, 2], tz='Europe/London').dtype,
+     com.DatetimeTZDtypeType),
+    ('datetime64[ns, Europe/London]', com.DatetimeTZDtypeType),
+    (pd.SparseSeries([1, 2], dtype='int32'), np.int32),
+    (pd.SparseSeries([1, 2], dtype='int32').dtype, np.int32),
+    (PeriodDtype(freq='D'), com.PeriodDtypeType),
+    ('period[D]', com.PeriodDtypeType),
+    (IntervalDtype(), com.IntervalDtypeType),
+    (None, type(None)),
+    (1, type(None)),
+    (1.2, type(None)),
+    (pd.DataFrame([1, 2]), type(None)),  # composite dtype
+])
+def test__get_dtype_type(input_param, result):
+    assert com._get_dtype_type(input_param) == result

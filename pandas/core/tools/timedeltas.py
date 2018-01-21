@@ -5,6 +5,8 @@ timedelta support tools
 import numpy as np
 import pandas as pd
 import pandas._libs.tslib as tslib
+from pandas._libs.tslibs.timedeltas import (convert_to_timedelta64,
+                                            array_to_timedelta64)
 
 from pandas.core.dtypes.common import (
     _ensure_object,
@@ -61,6 +63,11 @@ def to_timedelta(arg, unit='ns', box=True, errors='raise'):
     >>> pd.to_timedelta(np.arange(5), unit='d')
     TimedeltaIndex(['0 days', '1 days', '2 days', '3 days', '4 days'],
                    dtype='timedelta64[ns]', freq=None)
+
+    See also
+    --------
+    pandas.DataFrame.astype : Cast argument to a specified dtype.
+    pandas.to_datetime : Convert argument to datetime.
     """
     unit = _validate_timedelta_unit(unit)
 
@@ -78,6 +85,9 @@ def to_timedelta(arg, unit='ns', box=True, errors='raise'):
     elif isinstance(arg, ABCIndexClass):
         return _convert_listlike(arg, unit=unit, box=box,
                                  errors=errors, name=arg.name)
+    elif is_list_like(arg) and getattr(arg, 'ndim', 1) == 0:
+        # extract array scalar and process below
+        arg = arg.item()
     elif is_list_like(arg) and getattr(arg, 'ndim', 1) == 1:
         return _convert_listlike(arg, unit=unit, box=box, errors=errors)
     elif getattr(arg, 'ndim', 1) > 1:
@@ -124,14 +134,15 @@ def _validate_timedelta_unit(arg):
     except:
         if arg is None:
             return 'ns'
-        raise ValueError("invalid timedelta unit {0} provided".format(arg))
+        raise ValueError("invalid timedelta unit {arg} provided"
+                         .format(arg=arg))
 
 
 def _coerce_scalar_to_timedelta_type(r, unit='ns', box=True, errors='raise'):
     """Convert string 'r' to a timedelta object."""
 
     try:
-        result = tslib.convert_to_timedelta64(r, unit)
+        result = convert_to_timedelta64(r, unit)
     except ValueError:
         if errors == 'raise':
             raise
@@ -156,12 +167,12 @@ def _convert_listlike(arg, unit='ns', box=True, errors='raise', name=None):
     if is_timedelta64_dtype(arg):
         value = arg.astype('timedelta64[ns]')
     elif is_integer_dtype(arg):
-        value = arg.astype('timedelta64[{0}]'.format(
-            unit)).astype('timedelta64[ns]', copy=False)
+        value = arg.astype('timedelta64[{unit}]'.format(unit=unit)).astype(
+            'timedelta64[ns]', copy=False)
     else:
         try:
-            value = tslib.array_to_timedelta64(_ensure_object(arg),
-                                               unit=unit, errors=errors)
+            value = array_to_timedelta64(_ensure_object(arg),
+                                         unit=unit, errors=errors)
             value = value.astype('timedelta64[ns]', copy=False)
         except ValueError:
             if errors == 'ignore':

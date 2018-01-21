@@ -1,8 +1,6 @@
 # cython: profile=False
 
-from numpy cimport ndarray
-
-from numpy cimport (float64_t, int32_t, int64_t, uint8_t,
+from numpy cimport (ndarray, float64_t, int32_t, int64_t, uint8_t, uint64_t,
                     NPY_DATETIME, NPY_TIMEDELTA)
 cimport cython
 
@@ -15,34 +13,19 @@ cimport util
 
 import numpy as np
 
-cimport tslib
-from hashtable cimport *
-from pandas._libs import tslib, algos, hashtable as _hash
-from pandas._libs.tslib import Timestamp, Timedelta
+from tslibs.conversion cimport maybe_datetimelike_to_i8
 
-from datetime cimport (get_datetime64_value, _pydatetime_to_dts,
-                       pandas_datetimestruct)
+from hashtable cimport HashTable
+
+from pandas._libs import algos, hashtable as _hash
+from pandas._libs.tslibs import period as periodlib
+from pandas._libs.tslib import Timestamp, Timedelta
+from datetime import datetime, timedelta, date
 
 from cpython cimport PyTuple_Check, PyList_Check
-
-cdef extern from "datetime.h":
-    bint PyDateTime_Check(object o)
-    void PyDateTime_IMPORT()
+from cpython.slice cimport PySlice_Check
 
 cdef int64_t iNaT = util.get_nat()
-
-try:
-    from dateutil.tz import tzutc as _du_utc
-    import pytz
-    UTC = pytz.utc
-    have_pytz = True
-except ImportError:
-    have_pytz = False
-
-PyDateTime_IMPORT
-
-cdef extern from "Python.h":
-    int PySlice_Check(object)
 
 
 cdef inline is_definitely_invalid_key(object val):
@@ -63,6 +46,31 @@ def get_value_at(ndarray arr, object loc):
     elif arr.descr.type_num == NPY_TIMEDELTA:
         return Timedelta(util.get_value_at(arr, loc))
     return util.get_value_at(arr, loc)
+
+
+cpdef object get_value_box(ndarray arr, object loc):
+    cdef:
+        Py_ssize_t i, sz
+
+    if util.is_float_object(loc):
+        casted = int(loc)
+        if casted == loc:
+            loc = casted
+    i = <Py_ssize_t> loc
+    sz = cnp.PyArray_SIZE(arr)
+
+    if i < 0 and sz > 0:
+        i += sz
+
+    if i >= sz or sz == 0 or i < 0:
+        raise IndexError('index out of bounds')
+
+    if arr.descr.type_num == NPY_DATETIME:
+        return Timestamp(util.get_value_1d(arr, i))
+    elif arr.descr.type_num == NPY_TIMEDELTA:
+        return Timedelta(util.get_value_1d(arr, i))
+    else:
+        return util.get_value_1d(arr, i)
 
 
 def set_value_at(ndarray arr, object loc, object val):
@@ -137,7 +145,7 @@ cdef class IndexEngine:
             if not self.is_unique:
                 return self._get_loc_duplicates(val)
             values = self._get_index_values()
-            loc = _bin_search(values, val) # .searchsorted(val, side='left')
+            loc = _bin_search(values, val)  # .searchsorted(val, side='left')
             if loc >= len(values):
                 raise KeyError(val)
             if util.get_value_at(values, loc) != val:
@@ -152,7 +160,7 @@ cdef class IndexEngine:
 
         try:
             return self.mapping.get_item(val)
-        except TypeError:
+        except (TypeError, ValueError):
             raise KeyError(val)
 
     cdef inline _get_loc_duplicates(self, object val):
@@ -212,34 +220,31 @@ cdef class IndexEngine:
     def __sizeof__(self):
         return self.sizeof()
 
-    property is_unique:
+    @property
+    def is_unique(self):
+        if self.need_unique_check:
+            self._do_unique_check()
 
-        def __get__(self):
-            if self.need_unique_check:
-                self._do_unique_check()
-
-            return self.unique == 1
+        return self.unique == 1
 
     cdef inline _do_unique_check(self):
 
         # this de-facto the same
         self._ensure_mapping_populated()
 
-    property is_monotonic_increasing:
+    @property
+    def is_monotonic_increasing(self):
+        if self.need_monotonic_check:
+            self._do_monotonic_check()
 
-        def __get__(self):
-            if self.need_monotonic_check:
-                self._do_monotonic_check()
+        return self.monotonic_inc == 1
 
-            return self.monotonic_inc == 1
+    @property
+    def is_monotonic_decreasing(self):
+        if self.need_monotonic_check:
+            self._do_monotonic_check()
 
-    property is_monotonic_decreasing:
-
-        def __get__(self):
-            if self.need_monotonic_check:
-                self._do_monotonic_check()
-
-            return self.monotonic_dec == 1
+        return self.monotonic_dec == 1
 
     cdef inline _do_monotonic_check(self):
         cdef object is_unique
@@ -271,10 +276,9 @@ cdef class IndexEngine:
     cdef _check_type(self, object val):
         hash(val)
 
-    property is_mapping_populated:
-
-        def __get__(self):
-            return self.mapping is not None
+    @property
+    def is_mapping_populated(self):
+        return self.mapping is not None
 
     cdef inline _ensure_mapping_populated(self):
         # this populates the mapping
@@ -285,12 +289,15 @@ cdef class IndexEngine:
 
             values = self._get_index_values()
             self.mapping = self._make_hash_table(len(values))
-            self.mapping.map_locations(values)
+            self._call_map_locations(values)
 
             if len(self.mapping) == len(values):
                 self.unique = 1
 
         self.need_unique_check = 0
+
+    cpdef _call_map_locations(self, values):
+        self.mapping.map_locations(values)
 
     def clear_mapping(self):
         self.mapping = None
@@ -420,12 +427,12 @@ cdef class DatetimeEngine(Int64Engine):
             if not self.is_unique:
                 return self._get_loc_duplicates(val)
             values = self._get_index_values()
-            conv = _to_i8(val)
+            conv = maybe_datetimelike_to_i8(val)
             loc = values.searchsorted(conv, side='left')
             return util.get_value_at(values, loc) == conv
 
         self._ensure_mapping_populated()
-        return _to_i8(val) in self.mapping
+        return maybe_datetimelike_to_i8(val) in self.mapping
 
     cdef _get_index_values(self):
         return self.vgetter().view('i8')
@@ -440,12 +447,12 @@ cdef class DatetimeEngine(Int64Engine):
         # Welcome to the spaghetti factory
         if self.over_size_threshold and self.is_monotonic_increasing:
             if not self.is_unique:
-                val = _to_i8(val)
+                val = maybe_datetimelike_to_i8(val)
                 return self._get_loc_duplicates(val)
             values = self._get_index_values()
 
             try:
-                conv = _to_i8(val)
+                conv = maybe_datetimelike_to_i8(val)
                 loc = values.searchsorted(conv, side='left')
             except TypeError:
                 self._date_check_type(val)
@@ -457,7 +464,7 @@ cdef class DatetimeEngine(Int64Engine):
 
         self._ensure_mapping_populated()
         if not self.unique:
-            val = _to_i8(val)
+            val = maybe_datetimelike_to_i8(val)
             return self._get_loc_duplicates(val)
 
         try:
@@ -468,9 +475,9 @@ cdef class DatetimeEngine(Int64Engine):
             pass
 
         try:
-            val = _to_i8(val)
+            val = maybe_datetimelike_to_i8(val)
             return self.mapping.get_item(val)
-        except TypeError:
+        except (TypeError, ValueError):
             self._date_check_type(val)
             raise KeyError(val)
 
@@ -490,15 +497,14 @@ cdef class DatetimeEngine(Int64Engine):
         if other.dtype != self._get_box_dtype():
             return np.repeat(-1, len(other)).astype('i4')
         other = np.asarray(other).view('i8')
-        return algos.pad_int64(self._get_index_values(), other,
-                                limit=limit)
+        return algos.pad_int64(self._get_index_values(), other, limit=limit)
 
     def get_backfill_indexer(self, other, limit=None):
         if other.dtype != self._get_box_dtype():
             return np.repeat(-1, len(other)).astype('i4')
         other = np.asarray(other).view('i8')
         return algos.backfill_int64(self._get_index_values(), other,
-                                     limit=limit)
+                                    limit=limit)
 
 
 cdef class TimedeltaEngine(DatetimeEngine):
@@ -506,51 +512,91 @@ cdef class TimedeltaEngine(DatetimeEngine):
     cdef _get_box_dtype(self):
         return 'm8[ns]'
 
+
+cdef class PeriodEngine(Int64Engine):
+
+    cdef _get_index_values(self):
+        return super(PeriodEngine, self).vgetter()
+
+    cpdef _call_map_locations(self, values):
+        super(PeriodEngine, self)._call_map_locations(values.view('i8'))
+
+    def _call_monotonic(self, values):
+        return super(PeriodEngine, self)._call_monotonic(values.view('i8'))
+
+    def get_indexer(self, values):
+        cdef ndarray[int64_t, ndim=1] ordinals
+
+        super(PeriodEngine, self)._ensure_mapping_populated()
+
+        freq = super(PeriodEngine, self).vgetter().freq
+        ordinals = periodlib.extract_ordinals(values, freq)
+
+        return self.mapping.lookup(ordinals)
+
+    def get_pad_indexer(self, other, limit=None):
+        freq = super(PeriodEngine, self).vgetter().freq
+        ordinal = periodlib.extract_ordinals(other, freq)
+
+        return algos.pad_int64(self._get_index_values(),
+                               np.asarray(ordinal), limit=limit)
+
+    def get_backfill_indexer(self, other, limit=None):
+        freq = super(PeriodEngine, self).vgetter().freq
+        ordinal = periodlib.extract_ordinals(other, freq)
+
+        return algos.backfill_int64(self._get_index_values(),
+                                    np.asarray(ordinal), limit=limit)
+
+    def get_indexer_non_unique(self, targets):
+        freq = super(PeriodEngine, self).vgetter().freq
+        ordinal = periodlib.extract_ordinals(targets, freq)
+        ordinal_array = np.asarray(ordinal)
+
+        return super(PeriodEngine, self).get_indexer_non_unique(ordinal_array)
+
+    cdef _get_index_values_for_bool_indexer(self):
+        return self._get_index_values().view('i8')
+
+
 cpdef convert_scalar(ndarray arr, object value):
+    # we don't turn integers
+    # into datetimes/timedeltas
+
+    # we don't turn bools into int/float/complex
+
     if arr.descr.type_num == NPY_DATETIME:
         if isinstance(value, np.ndarray):
             pass
-        elif isinstance(value, Timestamp):
-            return value.value
+        elif isinstance(value, (datetime, np.datetime64, date)):
+            return Timestamp(value).value
         elif value is None or value != value:
             return iNaT
-        else:
+        elif util.is_string_object(value):
             return Timestamp(value).value
+        raise ValueError("cannot set a Timestamp with a non-timestamp")
+
     elif arr.descr.type_num == NPY_TIMEDELTA:
         if isinstance(value, np.ndarray):
             pass
-        elif isinstance(value, Timedelta):
-            return value.value
+        elif isinstance(value, timedelta):
+            return Timedelta(value).value
         elif value is None or value != value:
             return iNaT
-        else:
+        elif util.is_string_object(value):
             return Timedelta(value).value
+        raise ValueError("cannot set a Timedelta with a non-timedelta")
+
+    if (issubclass(arr.dtype.type, (np.integer, np.floating, np.complex)) and
+            not issubclass(arr.dtype.type, np.bool_)):
+        if util.is_bool_object(value):
+            raise ValueError('Cannot assign bool to float/integer series')
 
     if issubclass(arr.dtype.type, (np.integer, np.bool_)):
         if util.is_float_object(value) and value != value:
             raise ValueError('Cannot assign nan to integer series')
 
     return value
-
-cdef inline _to_i8(object val):
-    cdef pandas_datetimestruct dts
-    try:
-        return val.value
-    except AttributeError:
-        if util.is_datetime64_object(val):
-            return get_datetime64_value(val)
-        elif PyDateTime_Check(val):
-            tzinfo = getattr(val, 'tzinfo', None)
-            # Save the original date value so we can get the utcoffset from it.
-            ival = _pydatetime_to_dts(val, &dts)
-            if tzinfo is not None and not _is_utc(tzinfo):
-                offset = tslib._get_utcoffset(tzinfo, val)
-                ival -= tslib._delta_to_nanoseconds(offset)
-            return ival
-        return val
-
-cdef inline bint _is_utc(object tz):
-    return tz is UTC or isinstance(tz, _du_utc)
 
 
 cdef class MultiIndexObjectEngine(ObjectEngine):

@@ -137,8 +137,10 @@ class Scope(StringMixin):
     def __unicode__(self):
         scope_keys = _get_pretty_string(list(self.scope.keys()))
         res_keys = _get_pretty_string(list(self.resolvers.keys()))
-        return '%s(scope=%s, resolvers=%s)' % (type(self).__name__, scope_keys,
-                                               res_keys)
+        unicode_str = '{name}(scope={scope_keys}, resolvers={res_keys})'
+        return unicode_str.format(name=type(self).__name__,
+                                  scope_keys=scope_keys,
+                                  res_keys=res_keys)
 
     @property
     def has_resolvers(self):
@@ -269,8 +271,9 @@ class Scope(StringMixin):
         name : basestring
             The name of the temporary variable created.
         """
-        name = '{0}_{1}_{2}'.format(type(value).__name__, self.ntemps,
-                                    _raw_hex_id(self))
+        name = '{name}_{num}_{hex_id}'.format(name=type(value).__name__,
+                                              num=self.ntemps,
+                                              hex_id=_raw_hex_id(self))
 
         # add to inner most scope
         assert name not in self.temps

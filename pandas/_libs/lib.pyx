@@ -1,30 +1,30 @@
 # cython: profile=False
-cimport numpy as np
+import operator
+
 cimport cython
+from cython cimport Py_ssize_t
+
 import numpy as np
-import sys
-
-cdef bint PY3 = (sys.version_info[0] >= 3)
-
-from numpy cimport *
-
+cimport numpy as np
+from numpy cimport (ndarray, PyArray_NDIM, PyArray_GETITEM,
+                    PyArray_ITER_DATA, PyArray_ITER_NEXT, PyArray_IterNew,
+                    flatiter, NPY_OBJECT,
+                    int64_t,
+                    float32_t, float64_t,
+                    uint8_t, uint64_t,
+                    complex128_t)
+# initialize numpy
 np.import_array()
-
-cdef extern from "numpy/arrayobject.h":
-    cdef enum NPY_TYPES:
-        NPY_intp "NPY_INTP"
+np.import_ufunc()
 
 from libc.stdlib cimport malloc, free
 
-from cpython cimport (PyDict_New, PyDict_GetItem, PyDict_SetItem,
-                      PyDict_Contains, PyDict_Keys,
-                      Py_INCREF, PyTuple_SET_ITEM,
+from cpython cimport (Py_INCREF, PyTuple_SET_ITEM,
                       PyList_Check, PyFloat_Check,
                       PyString_Check,
                       PyBytes_Check,
-                      PyTuple_SetItem,
+                      PyUnicode_Check,
                       PyTuple_New,
-                      PyObject_SetAttrString,
                       PyObject_RichCompareBool,
                       PyBytes_GET_SIZE,
                       PyUnicode_GET_SIZE,
@@ -35,53 +35,27 @@ try:
 except ImportError:
     from cpython cimport PyUnicode_GET_SIZE as PyString_GET_SIZE
 
-cdef extern from "Python.h":
-    Py_ssize_t PY_SSIZE_T_MAX
-
-cdef extern from "compat_helper.h":
-
-    cdef int slice_get_indices(
-        PyObject* s, Py_ssize_t length,
-        Py_ssize_t *start, Py_ssize_t *stop, Py_ssize_t *step,
-        Py_ssize_t *slicelength) except -1
-
 cimport cpython
 
 isnan = np.isnan
 cdef double NaN = <double> np.NaN
 cdef double nan = NaN
-cdef double NAN = nan
 
-from datetime import datetime as pydatetime
-
-# this is our tseries.pxd
-from datetime cimport *
-
-from tslib cimport (convert_to_tsobject, convert_to_timedelta64,
-                    _check_all_nulls)
-import tslib
-from tslib import NaT, Timestamp, Timedelta
-import interval
-from interval import Interval
-
-cdef int64_t NPY_NAT = util.get_nat()
-
-ctypedef unsigned char UChar
-
-cimport util
-from util cimport (is_array, _checknull, _checknan, INT64_MAX,
-                   INT64_MIN, UINT8_MAX)
-
-cdef extern from "math.h":
-    double sqrt(double x)
-    double fabs(double)
-
-# import datetime C API
+from cpython.datetime cimport (PyDateTime_Check, PyDate_Check,
+                               PyTime_Check, PyDelta_Check,
+                               PyDateTime_IMPORT)
 PyDateTime_IMPORT
 
-# initialize numpy
-import_array()
-import_ufunc()
+from tslibs.np_datetime cimport get_timedelta64_value, get_datetime64_value
+
+from tslib import NaT, Timestamp, Timedelta, array_to_datetime
+from interval import Interval
+from missing cimport checknull
+
+
+cimport util
+cdef int64_t NPY_NAT = util.get_nat()
+from util cimport is_array, _checknull
 
 
 def values_from_object(object o):
@@ -93,26 +67,6 @@ def values_from_object(object o):
         o = f()
 
     return o
-
-cpdef map_indices_list(list index):
-    """
-    Produce a dict mapping the values of the input array to their respective
-    locations.
-
-    Example:
-        array(['hi', 'there']) --> {'hi' : 0 , 'there' : 1}
-
-    Better to do this with Cython because of the enormous speed boost.
-    """
-    cdef Py_ssize_t i, length
-    cdef dict result = {}
-
-    length = len(index)
-
-    for i from 0 <= i < length:
-        result[index[i]] = i
-
-    return result
 
 
 @cython.wraparound(False)
@@ -128,113 +82,11 @@ def memory_usage_of_objects(ndarray[object, ndim=1] arr):
         s += arr[i].__sizeof__()
     return s
 
-#----------------------------------------------------------------------
-# datetime / io related
 
-cdef int _EPOCH_ORD = 719163
-
-from datetime import date as pydate
-
-cdef inline int64_t gmtime(object date):
-    cdef int y, m, d, h, mn, s, days
-
-    y = PyDateTime_GET_YEAR(date)
-    m = PyDateTime_GET_MONTH(date)
-    d = PyDateTime_GET_DAY(date)
-    h = PyDateTime_DATE_GET_HOUR(date)
-    mn = PyDateTime_DATE_GET_MINUTE(date)
-    s = PyDateTime_DATE_GET_SECOND(date)
-
-    days = pydate(y, m, 1).toordinal() - _EPOCH_ORD + d - 1
-    return ((<int64_t> (((days * 24 + h) * 60 + mn))) * 60 + s) * 1000
+# ----------------------------------------------------------------------
 
 
-cpdef object to_datetime(int64_t timestamp):
-    return pydatetime.utcfromtimestamp(timestamp / 1000.0)
-
-
-cpdef object to_timestamp(object dt):
-    return gmtime(dt)
-
-
-def array_to_timestamp(ndarray[object, ndim=1] arr):
-    cdef int i, n
-    cdef ndarray[int64_t, ndim=1] result
-
-    n = len(arr)
-    result = np.empty(n, dtype=np.int64)
-
-    for i from 0 <= i < n:
-        result[i] = gmtime(arr[i])
-
-    return result
-
-
-def time64_to_datetime(ndarray[int64_t, ndim=1] arr):
-    cdef int i, n
-    cdef ndarray[object, ndim=1] result
-
-    n = len(arr)
-    result = np.empty(n, dtype=object)
-
-    for i from 0 <= i < n:
-        result[i] = to_datetime(arr[i])
-
-    return result
-
-
-#----------------------------------------------------------------------
-# isnull / notnull related
-
-cdef double INF = <double> np.inf
-cdef double NEGINF = -INF
-
-
-cpdef bint checknull(object val):
-    if util.is_float_object(val) or util.is_complex_object(val):
-        return val != val # and val != INF and val != NEGINF
-    elif util.is_datetime64_object(val):
-        return get_datetime64_value(val) == NPY_NAT
-    elif val is NaT:
-        return True
-    elif util.is_timedelta64_object(val):
-        return get_timedelta64_value(val) == NPY_NAT
-    elif is_array(val):
-        return False
-    else:
-        return _checknull(val)
-
-
-cpdef bint checknull_old(object val):
-    if util.is_float_object(val) or util.is_complex_object(val):
-        return val != val or val == INF or val == NEGINF
-    elif util.is_datetime64_object(val):
-        return get_datetime64_value(val) == NPY_NAT
-    elif val is NaT:
-        return True
-    elif util.is_timedelta64_object(val):
-        return get_timedelta64_value(val) == NPY_NAT
-    elif is_array(val):
-        return False
-    else:
-        return util._checknull(val)
-
-
-cpdef bint isposinf_scalar(object val):
-    if util.is_float_object(val) and val == INF:
-        return True
-    else:
-        return False
-
-
-cpdef bint isneginf_scalar(object val):
-    if util.is_float_object(val) and val == NEGINF:
-        return True
-    else:
-        return False
-
-
-cpdef bint isscalar(object val):
+cpdef bint is_scalar(object val):
     """
     Return True if given value is scalar.
 
@@ -248,6 +100,7 @@ cpdef bint isscalar(object val):
     - Period
     - instances of decimal.Decimal
     - Interval
+    - DateOffset
 
     """
 
@@ -262,7 +115,8 @@ cpdef bint isscalar(object val):
             or PyTime_Check(val)
             or util.is_period_object(val)
             or is_decimal(val)
-            or is_interval(val))
+            or is_interval(val)
+            or is_offset(val))
 
 
 def item_from_zerodim(object val):
@@ -282,95 +136,6 @@ def item_from_zerodim(object val):
 
     """
     return util.unbox_if_zerodim(val)
-
-
-@cython.wraparound(False)
-@cython.boundscheck(False)
-def isnullobj(ndarray arr):
-    cdef Py_ssize_t i, n
-    cdef object val
-    cdef ndarray[uint8_t] result
-
-    assert arr.ndim == 1, "'arr' must be 1-D."
-
-    n = len(arr)
-    result = np.empty(n, dtype=np.uint8)
-    for i from 0 <= i < n:
-        val = arr[i]
-        result[i] = _check_all_nulls(val)
-    return result.view(np.bool_)
-
-
-@cython.wraparound(False)
-@cython.boundscheck(False)
-def isnullobj_old(ndarray arr):
-    cdef Py_ssize_t i, n
-    cdef object val
-    cdef ndarray[uint8_t] result
-
-    assert arr.ndim == 1, "'arr' must be 1-D."
-
-    n = len(arr)
-    result = np.zeros(n, dtype=np.uint8)
-    for i from 0 <= i < n:
-        val = arr[i]
-        result[i] = val is NaT or util._checknull_old(val)
-    return result.view(np.bool_)
-
-
-@cython.wraparound(False)
-@cython.boundscheck(False)
-def isnullobj2d(ndarray arr):
-    cdef Py_ssize_t i, j, n, m
-    cdef object val
-    cdef ndarray[uint8_t, ndim=2] result
-
-    assert arr.ndim == 2, "'arr' must be 2-D."
-
-    n, m = (<object> arr).shape
-    result = np.zeros((n, m), dtype=np.uint8)
-    for i from 0 <= i < n:
-        for j from 0 <= j < m:
-            val = arr[i, j]
-            if checknull(val):
-                result[i, j] = 1
-    return result.view(np.bool_)
-
-
-@cython.wraparound(False)
-@cython.boundscheck(False)
-def isnullobj2d_old(ndarray arr):
-    cdef Py_ssize_t i, j, n, m
-    cdef object val
-    cdef ndarray[uint8_t, ndim=2] result
-
-    assert arr.ndim == 2, "'arr' must be 2-D."
-
-    n, m = (<object> arr).shape
-    result = np.zeros((n, m), dtype=np.uint8)
-    for i from 0 <= i < n:
-        for j from 0 <= j < m:
-            val = arr[i, j]
-            if checknull_old(val):
-                result[i, j] = 1
-    return result.view(np.bool_)
-
-
-@cython.wraparound(False)
-@cython.boundscheck(False)
-cpdef ndarray[object] list_to_object_array(list obj):
-    """
-    Convert list to object ndarray. Seriously can\'t believe
-    I had to write this function.
-    """
-    cdef:
-        Py_ssize_t i, n = len(obj)
-        ndarray[object] arr = np.empty(n, dtype=object)
-
-    for i in range(n):
-        arr[i] = obj[i]
-
-    return arr
 
 
 @cython.wraparound(False)
@@ -707,7 +472,6 @@ def maybe_booleans_to_slice(ndarray[uint8_t] mask):
 @cython.wraparound(False)
 @cython.boundscheck(False)
 def scalar_compare(ndarray[object] values, object val, object op):
-    import operator
     cdef:
         Py_ssize_t i, n = len(values)
         ndarray[uint8_t, cast=True] result
@@ -742,7 +506,7 @@ def scalar_compare(ndarray[object] values, object val, object op):
                 result[i] = True
             else:
                 try:
-                    result[i] = cpython.PyObject_RichCompareBool(x, val, flag)
+                    result[i] = PyObject_RichCompareBool(x, val, flag)
                 except (TypeError):
                     result[i] = True
     elif flag == cpython.Py_EQ:
@@ -754,7 +518,7 @@ def scalar_compare(ndarray[object] values, object val, object op):
                 result[i] = False
             else:
                 try:
-                    result[i] = cpython.PyObject_RichCompareBool(x, val, flag)
+                    result[i] = PyObject_RichCompareBool(x, val, flag)
                 except (TypeError):
                     result[i] = False
 
@@ -766,7 +530,7 @@ def scalar_compare(ndarray[object] values, object val, object op):
             elif isnull_val:
                 result[i] = False
             else:
-                result[i] = cpython.PyObject_RichCompareBool(x, val, flag)
+                result[i] = PyObject_RichCompareBool(x, val, flag)
 
     return result.view(bool)
 
@@ -795,7 +559,6 @@ cpdef bint array_equivalent_object(object[:] left, object[:] right):
 @cython.wraparound(False)
 @cython.boundscheck(False)
 def vec_compare(ndarray[object] left, ndarray[object] right, object op):
-    import operator
     cdef:
         Py_ssize_t i, n = len(left)
         ndarray[uint8_t, cast=True] result
@@ -830,7 +593,7 @@ def vec_compare(ndarray[object] left, ndarray[object] right, object op):
             if checknull(x) or checknull(y):
                 result[i] = True
             else:
-                result[i] = cpython.PyObject_RichCompareBool(x, y, flag)
+                result[i] = PyObject_RichCompareBool(x, y, flag)
     else:
         for i in range(n):
             x = left[i]
@@ -839,7 +602,7 @@ def vec_compare(ndarray[object] left, ndarray[object] right, object op):
             if checknull(x) or checknull(y):
                 result[i] = False
             else:
-                result[i] = cpython.PyObject_RichCompareBool(x, y, flag)
+                result[i] = PyObject_RichCompareBool(x, y, flag)
 
     return result.view(bool)
 
@@ -853,13 +616,13 @@ def scalar_binop(ndarray[object] values, object val, object op):
         object x
 
     result = np.empty(n, dtype=object)
-    if util._checknull(val):
+    if _checknull(val):
         result.fill(val)
         return result
 
     for i in range(n):
         x = values[i]
-        if util._checknull(x):
+        if _checknull(x):
             result[i] = x
         else:
             result[i] = op(x, val)
@@ -886,9 +649,9 @@ def vec_binop(ndarray[object] left, ndarray[object] right, object op):
         try:
             result[i] = op(x, y)
         except TypeError:
-            if util._checknull(x):
+            if _checknull(x):
                 result[i] = x
-            elif util._checknull(y):
+            elif _checknull(y):
                 result[i] = y
             else:
                 raise
@@ -1057,7 +820,7 @@ def convert_json_to_lines(object arr):
             in_quotes = ~in_quotes
         if v == backslash or is_escaping:
             is_escaping = ~is_escaping
-        if v == comma: # commas that should be \n
+        if v == comma:  # commas that should be \n
             if num_open_brackets_seen == 0 and not in_quotes:
                 narr[i] = newline
         elif v == left_bracket:
@@ -1082,7 +845,7 @@ def write_csv_rows(list data, ndarray data_index,
     # In crude testing, N>100 yields little marginal improvement
     N=100
 
-    # pre-allocate  rows
+    # pre-allocate rows
     ncols = len(cols)
     rows = [[None] * (nlevels + ncols) for x in range(N)]
 
@@ -1114,59 +877,15 @@ def write_csv_rows(list data, ndarray data_index,
             if j >= N - 1 and j % N == N - 1:
                 writer.writerows(rows)
 
-    if  j >= 0 and (j < N - 1 or (j % N) != N - 1):
+    if j >= 0 and (j < N - 1 or (j % N) != N - 1):
         writer.writerows(rows[:((j + 1) % N)])
 
 
-#------------------------------------------------------------------------------
+# ------------------------------------------------------------------------------
 # Groupby-related functions
-@cython.boundscheck(False)
-def arrmap(ndarray[object] index, object func):
-    cdef int length = index.shape[0]
-    cdef int i = 0
-
-    cdef ndarray[object] result = np.empty(length, dtype=np.object_)
-
-    for i from 0 <= i < length:
-        result[i] = func(index[i])
-
-    return result
-
-
-@cython.wraparound(False)
-@cython.boundscheck(False)
-def is_lexsorted(list list_of_arrays):
-    cdef:
-        int i
-        Py_ssize_t n, nlevels
-        int64_t k, cur, pre
-        ndarray arr
-
-    nlevels = len(list_of_arrays)
-    n = len(list_of_arrays[0])
-
-    cdef int64_t **vecs = <int64_t**> malloc(nlevels * sizeof(int64_t*))
-    for i from 0 <= i < nlevels:
-        arr = list_of_arrays[i]
-        vecs[i] = <int64_t *> arr.data
-
-    # Assume uniqueness??
-    for i from 1 <= i < n:
-        for k from 0 <= k < nlevels:
-            cur = vecs[k][i]
-            pre = vecs[k][i - 1]
-            if cur == pre:
-                continue
-            elif cur > pre:
-                break
-            else:
-                return False
-    free(vecs)
-    return True
-
 
 # TODO: could do even better if we know something about the data. eg, index has
-# 1-min data, binner has 5-min data, then  bins are just strides in index. This
+# 1-min data, binner has 5-min data, then bins are just strides in index. This
 # is a general, O(max(len(values), len(binner))) method.
 @cython.boundscheck(False)
 @cython.wraparound(False)
@@ -1203,7 +922,7 @@ def generate_bins_dt64(ndarray[int64_t] values, ndarray[int64_t] binner,
     bins = np.empty(lenbin - 1, dtype=np.int64)
 
     j = 0  # index into values
-    bc = 0 # bin count
+    bc = 0  # bin count
 
     # linear scan
     if right_closed:
@@ -1298,27 +1017,6 @@ def get_level_sorter(ndarray[int64_t, ndim=1] label,
     return out
 
 
-def group_count(ndarray[int64_t] values, Py_ssize_t size):
-    cdef:
-        Py_ssize_t i, n = len(values)
-        ndarray[int64_t] counts
-
-    counts = np.zeros(size, dtype=np.int64)
-    for i in range(n):
-        counts[values[i]] += 1
-    return counts
-
-
-def lookup_values(ndarray[object] values, dict mapping):
-    cdef:
-        Py_ssize_t i, n = len(values)
-
-    result = np.empty(n, dtype='O')
-    for i in range(n):
-        result[i] = mapping[values[i]]
-    return maybe_convert_objects(result)
-
-
 @cython.boundscheck(False)
 @cython.wraparound(False)
 def count_level_2d(ndarray[uint8_t, ndim=2, cast=True] mask,
@@ -1347,70 +1045,6 @@ def count_level_2d(ndarray[uint8_t, ndim=2, cast=True] mask,
                     counts[i, labels[j]] += mask[i, j]
 
     return counts
-
-
-cdef class _PandasNull:
-
-    def __richcmp__(_PandasNull self, object other, int op):
-        if op == 2: # ==
-            return isinstance(other, _PandasNull)
-        elif op == 3: # !=
-            return not isinstance(other, _PandasNull)
-        else:
-            return False
-
-    def __hash__(self):
-        return 0
-
-pandas_null = _PandasNull()
-
-
-def fast_zip_fillna(list ndarrays, fill_value=pandas_null):
-    """
-    For zipping multiple ndarrays into an ndarray of tuples
-    """
-    cdef:
-        Py_ssize_t i, j, k, n
-        ndarray[object] result
-        flatiter it
-        object val, tup
-
-    k = len(ndarrays)
-    n = len(ndarrays[0])
-
-    result = np.empty(n, dtype=object)
-
-    # initialize tuples on first pass
-    arr = ndarrays[0]
-    it = <flatiter> PyArray_IterNew(arr)
-    for i in range(n):
-        val = PyArray_GETITEM(arr, PyArray_ITER_DATA(it))
-        tup = PyTuple_New(k)
-
-        if val != val:
-            val = fill_value
-
-        PyTuple_SET_ITEM(tup, 0, val)
-        Py_INCREF(val)
-        result[i] = tup
-        PyArray_ITER_NEXT(it)
-
-    for j in range(1, k):
-        arr = ndarrays[j]
-        it = <flatiter> PyArray_IterNew(arr)
-        if len(arr) != n:
-            raise ValueError('all arrays must be same length')
-
-        for i in range(n):
-            val = PyArray_GETITEM(arr, PyArray_ITER_DATA(it))
-            if val != val:
-                val = fill_value
-
-            PyTuple_SET_ITEM(result[i], j, val)
-            Py_INCREF(val)
-            PyArray_ITER_NEXT(it)
-
-    return result
 
 
 def generate_slices(ndarray[int64_t] labels, Py_ssize_t ngroups):
@@ -1483,425 +1117,4 @@ def indices_fast(object index, ndarray[int64_t] labels, list keys,
     return result
 
 
-@cython.boundscheck(False)
-@cython.wraparound(False)
-def get_blkno_indexers(int64_t[:] blknos, bint group=True):
-    """
-    Enumerate contiguous runs of integers in ndarray.
-
-    Iterate over elements of `blknos` yielding ``(blkno, slice(start, stop))``
-    pairs for each contiguous run found.
-
-    If `group` is True and there is more than one run for a certain blkno,
-    ``(blkno, array)`` with an array containing positions of all elements equal
-    to blkno.
-
-    Returns
-    -------
-    iter : iterator of (int, slice or array)
-
-    """
-    # There's blkno in this function's name because it's used in block &
-    # blockno handling.
-    cdef:
-        int64_t cur_blkno
-        Py_ssize_t i, start, stop, n, diff
-
-        object blkno
-        list group_order
-        dict group_slices
-        int64_t[:] res_view
-
-    n = blknos.shape[0]
-
-    if n == 0:
-        return
-
-    start = 0
-    cur_blkno = blknos[start]
-
-    if group == False:
-        for i in range(1, n):
-            if blknos[i] != cur_blkno:
-                yield cur_blkno, slice(start, i)
-
-                start = i
-                cur_blkno = blknos[i]
-
-        yield cur_blkno, slice(start, n)
-    else:
-        group_order = []
-        group_dict = {}
-
-        for i in range(1, n):
-            if blknos[i] != cur_blkno:
-                if cur_blkno not in group_dict:
-                    group_order.append(cur_blkno)
-                    group_dict[cur_blkno] = [(start, i)]
-                else:
-                    group_dict[cur_blkno].append((start, i))
-
-                start = i
-                cur_blkno = blknos[i]
-
-        if cur_blkno not in group_dict:
-            group_order.append(cur_blkno)
-            group_dict[cur_blkno] = [(start, n)]
-        else:
-            group_dict[cur_blkno].append((start, n))
-
-        for blkno in group_order:
-            slices = group_dict[blkno]
-            if len(slices) == 1:
-                yield blkno, slice(slices[0][0], slices[0][1])
-            else:
-                tot_len = sum([stop - start for start, stop in slices])
-                result = np.empty(tot_len, dtype=np.int64)
-                res_view = result
-
-                i = 0
-                for start, stop in slices:
-                    for diff in range(start, stop):
-                        res_view[i] = diff
-                        i += 1
-
-                yield blkno, result
-
-
-@cython.boundscheck(False)
-@cython.wraparound(False)
-cpdef slice indexer_as_slice(int64_t[:] vals):
-    cdef:
-        Py_ssize_t i, n, start, stop
-        int64_t d
-
-    if vals is None:
-        raise TypeError("vals must be ndarray")
-
-    n = vals.shape[0]
-
-    if n == 0 or vals[0] < 0:
-        return None
-
-    if n == 1:
-        return slice(vals[0], vals[0] + 1, 1)
-
-    if vals[1] < 0:
-        return None
-
-    # n > 2
-    d = vals[1] - vals[0]
-
-    if d == 0:
-        return None
-
-    for i in range(2, n):
-        if vals[i] < 0 or vals[i] - vals[i - 1] != d:
-            return None
-
-    start = vals[0]
-    stop = start + n * d
-    if stop < 0 and d < 0:
-        return slice(start, None, d)
-    else:
-        return slice(start, stop, d)
-
-
-cpdef slice_canonize(slice s):
-    """
-    Convert slice to canonical bounded form.
-    """
-    cdef:
-        Py_ssize_t start = 0, stop = 0, step = 1, length
-
-    if s.step is None:
-        step = 1
-    else:
-        step = <Py_ssize_t>s.step
-        if step == 0:
-            raise ValueError("slice step cannot be zero")
-
-    if step > 0:
-        if s.stop is None:
-            raise ValueError("unbounded slice")
-
-        stop = <Py_ssize_t>s.stop
-        if s.start is None:
-            start = 0
-        else:
-            start = <Py_ssize_t>s.start
-            if start > stop:
-                start = stop
-    elif step < 0:
-        if s.start is None:
-            raise ValueError("unbounded slice")
-
-        start = <Py_ssize_t>s.start
-        if s.stop is None:
-            stop = -1
-        else:
-            stop = <Py_ssize_t>s.stop
-            if stop > start:
-                stop = start
-
-    if start < 0 or (stop < 0 and s.stop is not None):
-        raise ValueError("unbounded slice")
-
-    if stop < 0:
-        return slice(start, None, step)
-    else:
-        return slice(start, stop, step)
-
-
-cpdef slice_get_indices_ex(slice slc, Py_ssize_t objlen=PY_SSIZE_T_MAX):
-    """
-    Get (start, stop, step, length) tuple for a slice.
-
-    If `objlen` is not specified, slice must be bounded, otherwise the result
-    will be wrong.
-
-    """
-    cdef:
-        Py_ssize_t start, stop, step, length
-
-    if slc is None:
-        raise TypeError("slc should be a slice")
-
-    slice_get_indices(<PyObject *>slc, objlen,
-                      &start, &stop, &step, &length)
-
-    return start, stop, step, length
-
-
-cpdef Py_ssize_t slice_len(
-        slice slc, Py_ssize_t objlen=PY_SSIZE_T_MAX) except -1:
-    """
-    Get length of a bounded slice.
-
-    The slice must not have any "open" bounds that would create dependency on
-    container size, i.e.:
-    - if ``s.step is None or s.step > 0``, ``s.stop`` is not ``None``
-    - if ``s.step < 0``, ``s.start`` is not ``None``
-
-    Otherwise, the result is unreliable.
-
-    """
-    cdef:
-        Py_ssize_t start, stop, step, length
-
-    if slc is None:
-        raise TypeError("slc must be slice")
-
-    slice_get_indices(<PyObject *>slc, objlen,
-                      &start, &stop, &step, &length)
-
-    return length
-
-
-def slice_getitem(slice slc not None, ind):
-    cdef:
-        Py_ssize_t s_start, s_stop, s_step, s_len
-        Py_ssize_t ind_start, ind_stop, ind_step, ind_len
-
-    s_start, s_stop, s_step, s_len = slice_get_indices_ex(slc)
-
-    if isinstance(ind, slice):
-        ind_start, ind_stop, ind_step, ind_len = slice_get_indices_ex(ind,
-                                                                      s_len)
-
-        if ind_step > 0 and ind_len == s_len:
-            # short-cut for no-op slice
-            if ind_len == s_len:
-                return slc
-
-        if ind_step < 0:
-            s_start = s_stop - s_step
-            ind_step = -ind_step
-
-        s_step *= ind_step
-        s_stop = s_start + ind_stop * s_step
-        s_start = s_start + ind_start * s_step
-
-        if s_step < 0 and s_stop < 0:
-            return slice(s_start, None, s_step)
-        else:
-            return slice(s_start, s_stop, s_step)
-
-    else:
-        return np.arange(s_start, s_stop, s_step, dtype=np.int64)[ind]
-
-
-cdef class BlockPlacement:
-    # __slots__ = '_as_slice', '_as_array', '_len'
-    cdef slice _as_slice
-    cdef object _as_array
-
-    cdef bint _has_slice, _has_array, _is_known_slice_like
-
-    def __init__(self, val):
-        cdef slice slc
-
-        self._has_slice = False
-        self._has_array = False
-
-        if isinstance(val, slice):
-            slc = slice_canonize(val)
-
-            if slc.start != slc.stop:
-                self._as_slice = slc
-                self._has_slice = True
-            else:
-                arr = np.empty(0, dtype=np.int64)
-                self._as_array = arr
-                self._has_array = True
-        else:
-            # Cython memoryview interface requires ndarray to be writeable.
-            arr = np.require(val, dtype=np.int64, requirements='W')
-            assert arr.ndim == 1
-            self._as_array = arr
-            self._has_array = True
-
-    def __str__(self):
-        cdef slice s = self._ensure_has_slice()
-        if s is not None:
-            v = self._as_slice
-        else:
-            v = self._as_array
-
-        return '%s(%r)' % (self.__class__.__name__, v)
-
-    __repr__ = __str__
-
-    def __len__(self):
-        cdef slice s = self._ensure_has_slice()
-        if s is not None:
-            return slice_len(s)
-        else:
-            return len(self._as_array)
-
-    def __iter__(self):
-        cdef slice s = self._ensure_has_slice()
-        cdef Py_ssize_t start, stop, step, _
-        if s is not None:
-            start, stop, step, _ = slice_get_indices_ex(s)
-            return iter(range(start, stop, step))
-        else:
-            return iter(self._as_array)
-
-    @property
-    def as_slice(self):
-        cdef slice s = self._ensure_has_slice()
-        if s is None:
-            raise TypeError('Not slice-like')
-        else:
-            return s
-
-    @property
-    def indexer(self):
-        cdef slice s = self._ensure_has_slice()
-        if s is not None:
-            return s
-        else:
-            return self._as_array
-
-    def isin(self, arr):
-        from pandas.core.index import Int64Index
-        return Int64Index(self.as_array, copy=False).isin(arr)
-
-    @property
-    def as_array(self):
-        cdef Py_ssize_t start, stop, end, _
-        if not self._has_array:
-            start, stop, step, _ = slice_get_indices_ex(self._as_slice)
-            self._as_array = np.arange(start, stop, step,
-                                       dtype=np.int64)
-            self._has_array = True
-        return self._as_array
-
-    @property
-    def is_slice_like(self):
-        cdef slice s = self._ensure_has_slice()
-        return s is not None
-
-    def __getitem__(self, loc):
-        cdef slice s = self._ensure_has_slice()
-        if s is not None:
-            val = slice_getitem(s, loc)
-        else:
-            val = self._as_array[loc]
-
-        if not isinstance(val, slice) and val.ndim == 0:
-            return val
-
-        return BlockPlacement(val)
-
-    def delete(self, loc):
-        return BlockPlacement(np.delete(self.as_array, loc, axis=0))
-
-    def append(self, others):
-        if len(others) == 0:
-            return self
-
-        return BlockPlacement(np.concatenate([self.as_array] +
-                                             [o.as_array for o in others]))
-
-    cdef iadd(self, other):
-        cdef slice s = self._ensure_has_slice()
-        cdef Py_ssize_t other_int, start, stop, step, l
-
-        if isinstance(other, int) and s is not None:
-            other_int = <Py_ssize_t>other
-
-            if other_int == 0:
-                return self
-
-            start, stop, step, l = slice_get_indices_ex(s)
-            start += other_int
-            stop += other_int
-
-            if ((step > 0 and start < 0) or
-                (step < 0 and stop < step)):
-                raise ValueError("iadd causes length change")
-
-            if stop < 0:
-                self._as_slice = slice(start, None, step)
-            else:
-                self._as_slice = slice(start, stop, step)
-
-            self._has_array = False
-            self._as_array = None
-        else:
-            newarr = self.as_array + other
-            if (newarr < 0).any():
-                raise ValueError("iadd causes length change")
-
-            self._as_array = newarr
-            self._has_array = True
-            self._has_slice = False
-            self._as_slice = None
-
-        return self
-
-    cdef BlockPlacement copy(self):
-        cdef slice s = self._ensure_has_slice()
-        if s is not None:
-            return BlockPlacement(s)
-        else:
-            return BlockPlacement(self._as_array)
-
-    def add(self, other):
-        return self.copy().iadd(other)
-
-    def sub(self, other):
-        return self.add(-other)
-
-    cdef slice _ensure_has_slice(self):
-        if not self._has_slice:
-            self._as_slice = indexer_as_slice(self._as_array)
-            self._has_slice = True
-        return self._as_slice
-
-
-include "reduce.pyx"
-include "properties.pyx"
 include "inference.pyx"

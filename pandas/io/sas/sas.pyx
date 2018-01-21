@@ -101,10 +101,12 @@ cdef np.ndarray[uint8_t, ndim=1] rle_decompress(
                 result[rpos] = 0x00
                 rpos += 1
         else:
-            raise ValueError("unknown control byte: %v", control_byte)
+            raise ValueError("unknown control byte: {byte}"
+                             .format(byte=control_byte))
 
     if len(result) != result_length:
-        raise ValueError("RLE: %v != %v", (len(result), result_length))
+        raise ValueError("RLE: {got} != {expect}".format(got=len(result),
+                                                         expect=result_length))
 
     return np.asarray(result)
 
@@ -185,7 +187,8 @@ cdef np.ndarray[uint8_t, ndim=1] rdc_decompress(
             raise ValueError("unknown RDC command")
 
     if len(outbuff) != result_length:
-        raise ValueError("RDC: %v != %v\n", len(outbuff), result_length)
+        raise ValueError("RDC: {got} != {expect}\n"
+                         .format(got=len(outbuff), expect=result_length))
 
     return np.asarray(outbuff)
 
@@ -258,7 +261,8 @@ cdef class Parser(object):
                 self.column_types[j] = column_type_string
             else:
                 raise ValueError("unknown column type: "
-                                 "%s" % self.parser.columns[j].ctype)
+                                 "{typ}"
+                                 .format(typ=self.parser.columns[j].ctype))
 
         # compression
         if parser.compression == const.rle_compression:
@@ -378,8 +382,8 @@ cdef class Parser(object):
                         return True
                 return False
             else:
-                raise ValueError("unknown page type: %s",
-                                 self.current_page_type)
+                raise ValueError("unknown page type: {typ}"
+                                 .format(typ=self.current_page_type))
 
     cdef void process_byte_array_with_data(self, int offset, int length):
 

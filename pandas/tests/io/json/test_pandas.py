@@ -4,12 +4,12 @@ import pytest
 from pandas.compat import (range, lrange, StringIO,
                            OrderedDict, is_platform_32bit)
 import os
-
 import numpy as np
 from pandas import (Series, DataFrame, DatetimeIndex, Timestamp,
                     read_json, compat)
 from datetime import timedelta
 import pandas as pd
+import json
 
 from pandas.util.testing import (assert_almost_equal, assert_frame_equal,
                                  assert_series_equal, network,
@@ -511,6 +511,53 @@ class TestPandasContainer(object):
                            by_blocks=True,
                            check_exact=True)
 
+    def test_frame_nonprintable_bytes(self):
+        # GH14256: failing column caused segfaults, if it is not the last one
+
+        class BinaryThing(object):
+
+            def __init__(self, hexed):
+                self.hexed = hexed
+                if compat.PY2:
+                    self.binary = hexed.decode('hex')
+                else:
+                    self.binary = bytes.fromhex(hexed)
+
+            def __str__(self):
+                return self.hexed
+
+        hexed = '574b4454ba8c5eb4f98a8f45'
+        binthing = BinaryThing(hexed)
+
+        # verify the proper conversion of printable content
+        df_printable = DataFrame({'A': [binthing.hexed]})
+        assert df_printable.to_json() == \
+            '{{"A":{{"0":"{hex}"}}}}'.format(hex=hexed)
+
+        # check if non-printable content throws appropriate Exception
+        df_nonprintable = DataFrame({'A': [binthing]})
+        with pytest.raises(OverflowError):
+            df_nonprintable.to_json()
+
+        # the same with multiple columns threw segfaults
+        df_mixed = DataFrame({'A': [binthing], 'B': [1]},
+                             columns=['A', 'B'])
+        with pytest.raises(OverflowError):
+            df_mixed.to_json()
+
+        # default_handler should resolve exceptions for non-string types
+        assert df_nonprintable.to_json(default_handler=str) == \
+            '{{"A":{{"0":"{hex}"}}}}'.format(hex=hexed)
+        assert df_mixed.to_json(default_handler=str) == \
+            '{{"A":{{"0":"{hex}"}},"B":{{"0":1}}}}'.format(hex=hexed)
+
+    def test_label_overflow(self):
+        # GH14256: buffer length not checked when writing label
+        df = pd.DataFrame({'foo': [1337], 'bar' * 100000: [1]})
+        assert df.to_json() == \
+            '{{"{bar}":{{"0":1}},"foo":{{"0":1337}}}}'.format(
+                bar=('bar' * 100000))
+
     def test_series_non_unique_index(self):
         s = Series(['a', 'b'], index=[1, 1])
 
@@ -985,11 +1032,28 @@ DataFrame\\.index values are different \\(100\\.0 %\\)
         df = DataFrame({'DT': dti})
         assert dumps(df, iso_dates=True) == dfexp
 
-    def test_read_jsonl(self):
+    def test_read_inline_jsonl(self):
         # GH9180
         result = read_json('{"a": 1, "b": 2}\n{"b":2, "a" :1}\n', lines=True)
         expected = DataFrame([[1, 2], [1, 2]], columns=['a', 'b'])
         assert_frame_equal(result, expected)
+
+    def test_read_s3_jsonl(self, s3_resource):
+        pytest.importorskip('s3fs')
+        # GH17200
+
+        result = read_json('s3n://pandas-test/items.jsonl', lines=True)
+        expected = DataFrame([[1, 2], [1, 2]], columns=['a', 'b'])
+        assert_frame_equal(result, expected)
+
+    def test_read_local_jsonl(self):
+        # GH17200
+        with ensure_clean('tmp_items.json') as path:
+            with open(path, 'w') as infile:
+                infile.write('{"a": 1, "b": 2}\n{"b":2, "a" :1}\n')
+            result = read_json(path, lines=True)
+            expected = DataFrame([[1, 2], [1, 2]], columns=['a', 'b'])
+            assert_frame_equal(result, expected)
 
     def test_read_jsonl_unicode_chars(self):
         # GH15132: non-ascii unicode characters
@@ -1008,6 +1072,20 @@ DataFrame\\.index values are different \\(100\\.0 %\\)
         result = read_json(json, lines=True)
         expected = DataFrame([[u"foo\u201d", "bar"], ["foo", "bar"]],
                              columns=['a', 'b'])
+        assert_frame_equal(result, expected)
+
+    def test_read_json_large_numbers(self):
+        # GH18842
+        json = '{"articleId": "1404366058080022500245"}'
+        json = StringIO(json)
+        result = read_json(json, typ="series")
+        expected = Series(1.404366e+21, index=['articleId'])
+        assert_series_equal(result, expected)
+
+        json = '{"0": {"articleId": "1404366058080022500245"}}'
+        json = StringIO(json)
+        result = read_json(json)
+        expected = DataFrame(1.404366e+21, index=['articleId'], columns=[0])
         assert_frame_equal(result, expected)
 
     def test_to_jsonl(self):
@@ -1084,3 +1162,64 @@ DataFrame\\.index values are different \\(100\\.0 %\\)
         size_after = df.memory_usage(index=True, deep=True).sum()
 
         assert size_before == size_after
+
+    @pytest.mark.parametrize('data, expected', [
+        (DataFrame([[1, 2], [4, 5]], columns=['a', 'b']),
+            {'columns': ['a', 'b'], 'data': [[1, 2], [4, 5]]}),
+        (DataFrame([[1, 2], [4, 5]], columns=['a', 'b']).rename_axis('foo'),
+            {'columns': ['a', 'b'], 'data': [[1, 2], [4, 5]]}),
+        (DataFrame([[1, 2], [4, 5]], columns=['a', 'b'],
+                   index=[['a', 'b'], ['c', 'd']]),
+            {'columns': ['a', 'b'], 'data': [[1, 2], [4, 5]]}),
+        (Series([1, 2, 3], name='A'),
+            {'name': 'A', 'data': [1, 2, 3]}),
+        (Series([1, 2, 3], name='A').rename_axis('foo'),
+            {'name': 'A', 'data': [1, 2, 3]}),
+        (Series([1, 2], name='A', index=[['a', 'b'], ['c', 'd']]),
+            {'name': 'A', 'data': [1, 2]}),
+    ])
+    def test_index_false_to_json_split(self, data, expected):
+        # GH 17394
+        # Testing index=False in to_json with orient='split'
+
+        result = data.to_json(orient='split', index=False)
+        result = json.loads(result)
+
+        assert result == expected
+
+    @pytest.mark.parametrize('data', [
+        (DataFrame([[1, 2], [4, 5]], columns=['a', 'b'])),
+        (DataFrame([[1, 2], [4, 5]], columns=['a', 'b']).rename_axis('foo')),
+        (DataFrame([[1, 2], [4, 5]], columns=['a', 'b'],
+                   index=[['a', 'b'], ['c', 'd']])),
+        (Series([1, 2, 3], name='A')),
+        (Series([1, 2, 3], name='A').rename_axis('foo')),
+        (Series([1, 2], name='A', index=[['a', 'b'], ['c', 'd']])),
+    ])
+    def test_index_false_to_json_table(self, data):
+        # GH 17394
+        # Testing index=False in to_json with orient='table'
+
+        result = data.to_json(orient='table', index=False)
+        result = json.loads(result)
+
+        expected = {
+            'schema': pd.io.json.build_table_schema(data, index=False),
+            'data': DataFrame(data).to_dict(orient='records')
+        }
+
+        assert result == expected
+
+    @pytest.mark.parametrize('orient', [
+        'records', 'index', 'columns', 'values'
+    ])
+    def test_index_false_error_to_json(self, orient):
+        # GH 17394
+        # Testing error message from to_json with index=False
+
+        df = pd.DataFrame([[1, 2], [4, 5]], columns=['a', 'b'])
+
+        with tm.assert_raises_regex(ValueError, "'index=False' is only "
+                                                "valid when 'orient' is "
+                                                "'split' or 'table'"):
+            df.to_json(orient=orient, index=False)

@@ -1,6 +1,9 @@
-from pandas.core.indexes.base import (Index, _new_Index,  # noqa
-                                 _ensure_index, _get_na_value,
-                                 InvalidIndexError)
+from pandas.core.indexes.base import (Index,
+                                      _new_Index,
+                                      _ensure_index,
+                                      _ensure_index_from_sequences,
+                                      _get_na_value,
+                                      InvalidIndexError)  # noqa
 from pandas.core.indexes.category import CategoricalIndex  # noqa
 from pandas.core.indexes.multi import MultiIndex  # noqa
 from pandas.core.indexes.interval import IntervalIndex  # noqa
@@ -22,15 +25,26 @@ __all__ = ['Index', 'MultiIndex', 'NumericIndex', 'Float64Index', 'Int64Index',
            'InvalidIndexError', 'TimedeltaIndex',
            'PeriodIndex', 'DatetimeIndex',
            '_new_Index', 'NaT',
-           '_ensure_index', '_get_na_value', '_get_combined_index',
-           '_get_distinct_indexes', '_union_indexes',
+           '_ensure_index', '_ensure_index_from_sequences', '_get_na_value',
+           '_get_combined_index',
+           '_get_objs_combined_axis', '_union_indexes',
            '_get_consensus_names',
            '_all_indexes_same']
 
 
+def _get_objs_combined_axis(objs, intersect=False, axis=0):
+    # Extract combined index: return intersection or union (depending on the
+    # value of "intersect") of indexes on given axis, or None if all objects
+    # lack indexes (e.g. they are numpy arrays)
+    obs_idxes = [obj._get_axis(axis) for obj in objs
+                 if hasattr(obj, '_get_axis')]
+    if obs_idxes:
+        return _get_combined_index(obs_idxes, intersect=intersect)
+
+
 def _get_combined_index(indexes, intersect=False):
     # TODO: handle index names!
-    indexes = _get_distinct_indexes(indexes)
+    indexes = com._get_distinct_objs(indexes)
     if len(indexes) == 0:
         return Index([])
     if len(indexes) == 1:
@@ -42,10 +56,6 @@ def _get_combined_index(indexes, intersect=False):
         return index
     union = _union_indexes(indexes)
     return _ensure_index(union)
-
-
-def _get_distinct_indexes(indexes):
-    return list(dict((id(x), x) for x in indexes).values())
 
 
 def _union_indexes(indexes):
@@ -91,7 +101,7 @@ def _union_indexes(indexes):
 
 
 def _sanitize_and_check(indexes):
-    kinds = list(set([type(index) for index in indexes]))
+    kinds = list({type(index) for index in indexes})
 
     if list in kinds:
         if len(kinds) > 1:
@@ -112,8 +122,8 @@ def _get_consensus_names(indexes):
 
     # find the non-none names, need to tupleify to make
     # the set hashable, then reverse on return
-    consensus_names = set([tuple(i.names) for i in indexes
-                           if any(n is not None for n in i.names)])
+    consensus_names = set(tuple(i.names) for i in indexes
+                          if com._any_not_none(*i.names))
     if len(consensus_names) == 1:
         return list(list(consensus_names)[0])
     return [None] * indexes[0].nlevels

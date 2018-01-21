@@ -76,7 +76,6 @@ Read a Xport file in 10,000 line chunks:
 >>> for chunk in itr:
 >>>     do_something(chunk)
 
-.. versionadded:: 0.17.0
 """ % {"_base_params_doc": _base_params_doc,
        "_format_params_doc": _format_params_doc,
        "_params2_doc": _params2_doc,

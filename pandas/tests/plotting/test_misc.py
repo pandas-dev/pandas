@@ -4,22 +4,20 @@
 
 import pytest
 
-from pandas import Series, DataFrame
+from pandas import DataFrame
 from pandas.compat import lmap
 import pandas.util.testing as tm
-from pandas.util.testing import slow
+import pandas.util._test_decorators as td
 
 import numpy as np
 from numpy import random
 from numpy.random import randn
 
 import pandas.plotting as plotting
-from pandas.tests.plotting.common import (TestPlotBase, _check_plot_works,
-                                          _ok_for_gaussian_kde)
-
-tm._skip_if_no_mpl()
+from pandas.tests.plotting.common import TestPlotBase, _check_plot_works
 
 
+@td.skip_if_no_mpl
 class TestSeriesPlots(TestPlotBase):
 
     def setup_method(self, method):
@@ -30,7 +28,7 @@ class TestSeriesPlots(TestPlotBase):
         self.ts = tm.makeTimeSeries()
         self.ts.name = 'ts'
 
-    @slow
+    @pytest.mark.slow
     def test_autocorrelation_plot(self):
         from pandas.plotting import autocorrelation_plot
         _check_plot_works(autocorrelation_plot, series=self.ts)
@@ -39,62 +37,23 @@ class TestSeriesPlots(TestPlotBase):
         ax = autocorrelation_plot(self.ts, label='Test')
         self._check_legend_labels(ax, labels=['Test'])
 
-    @slow
+    @pytest.mark.slow
     def test_lag_plot(self):
         from pandas.plotting import lag_plot
         _check_plot_works(lag_plot, series=self.ts)
         _check_plot_works(lag_plot, series=self.ts, lag=5)
 
-    @slow
+    @pytest.mark.slow
     def test_bootstrap_plot(self):
         from pandas.plotting import bootstrap_plot
         _check_plot_works(bootstrap_plot, series=self.ts, size=10)
 
 
+@td.skip_if_no_mpl
 class TestDataFramePlots(TestPlotBase):
 
-    @slow
-    def test_scatter_plot_legacy(self):
-        tm._skip_if_no_scipy()
-
-        df = DataFrame(randn(100, 2))
-
-        def scat(**kwds):
-            return plotting.scatter_matrix(df, **kwds)
-
-        with tm.assert_produces_warning(UserWarning):
-            _check_plot_works(scat)
-        with tm.assert_produces_warning(UserWarning):
-            _check_plot_works(scat, marker='+')
-        with tm.assert_produces_warning(UserWarning):
-            _check_plot_works(scat, vmin=0)
-        if _ok_for_gaussian_kde('kde'):
-            with tm.assert_produces_warning(UserWarning):
-                _check_plot_works(scat, diagonal='kde')
-        if _ok_for_gaussian_kde('density'):
-            with tm.assert_produces_warning(UserWarning):
-                _check_plot_works(scat, diagonal='density')
-        with tm.assert_produces_warning(UserWarning):
-            _check_plot_works(scat, diagonal='hist')
-        with tm.assert_produces_warning(UserWarning):
-            _check_plot_works(scat, range_padding=.1)
-        with tm.assert_produces_warning(UserWarning):
-            _check_plot_works(scat, color='rgb')
-        with tm.assert_produces_warning(UserWarning):
-            _check_plot_works(scat, c='rgb')
-        with tm.assert_produces_warning(UserWarning):
-            _check_plot_works(scat, facecolor='rgb')
-
-        def scat2(x, y, by=None, ax=None, figsize=None):
-            return plotting._core.scatter_plot(df, x, y, by, ax, figsize=None)
-
-        _check_plot_works(scat2, x=0, y=1)
-        grouper = Series(np.repeat([1, 2, 3, 4, 5], 20), df.index)
-        with tm.assert_produces_warning(UserWarning):
-            _check_plot_works(scat2, x=0, y=1, by=grouper)
-
+    @td.skip_if_no_scipy
     def test_scatter_matrix_axis(self):
-        tm._skip_if_no_scipy()
         scatter_matrix = plotting.scatter_matrix
 
         with tm.RNGContext(42):
@@ -130,7 +89,7 @@ class TestDataFramePlots(TestPlotBase):
         self._check_ticks_props(
             axes, xlabelsize=8, xrot=90, ylabelsize=8, yrot=0)
 
-    @slow
+    @pytest.mark.slow
     def test_andrews_curves(self):
         from pandas.plotting import andrews_curves
         from matplotlib import cm
@@ -195,7 +154,7 @@ class TestDataFramePlots(TestPlotBase):
         with tm.assert_produces_warning(FutureWarning):
             andrews_curves(data=df, class_column='Name')
 
-    @slow
+    @pytest.mark.slow
     def test_parallel_coordinates(self):
         from pandas.plotting import parallel_coordinates
         from matplotlib import cm
@@ -243,6 +202,7 @@ class TestDataFramePlots(TestPlotBase):
         with tm.assert_produces_warning(FutureWarning):
             parallel_coordinates(df, 'Name', colors=colors)
 
+    @pytest.mark.xfail(reason="unreliable test")
     def test_parallel_coordinates_with_sorted_labels(self):
         """ For #15908 """
         from pandas.plotting import parallel_coordinates
@@ -260,10 +220,10 @@ class TestDataFramePlots(TestPlotBase):
         prev_next_tupels = zip([i for i in ordered_color_label_tuples[0:-1]],
                                [i for i in ordered_color_label_tuples[1:]])
         for prev, nxt in prev_next_tupels:
-            # lables and colors are ordered strictly increasing
+            # labels and colors are ordered strictly increasing
             assert prev[1] < nxt[1] and prev[0] < nxt[0]
 
-    @slow
+    @pytest.mark.slow
     def test_radviz(self):
         from pandas.plotting import radviz
         from matplotlib import cm
@@ -301,7 +261,7 @@ class TestDataFramePlots(TestPlotBase):
         handles, labels = ax.get_legend_handles_labels()
         self._check_colors(handles, facecolors=colors)
 
-    @slow
+    @pytest.mark.slow
     def test_subplot_titles(self):
         df = self.iris.drop('Name', axis=1).head()
         # Use the column names as the subplot titles
@@ -326,3 +286,20 @@ class TestDataFramePlots(TestPlotBase):
                                                   title=title[:-1])
         title_list = [ax.get_title() for sublist in plot for ax in sublist]
         assert title_list == title[:3] + ['']
+
+    def test_get_standard_colors_random_seed(self):
+        # GH17525
+        df = DataFrame(np.zeros((10, 10)))
+
+        # Make sure that the random seed isn't reset by _get_standard_colors
+        plotting.parallel_coordinates(df, 0)
+        rand1 = random.random()
+        plotting.parallel_coordinates(df, 0)
+        rand2 = random.random()
+        assert rand1 != rand2
+
+        # Make sure it produces the same colors every time it's called
+        from pandas.plotting._style import _get_standard_colors
+        color1 = _get_standard_colors(1, color_type='random')
+        color2 = _get_standard_colors(1, color_type='random')
+        assert color1 == color2

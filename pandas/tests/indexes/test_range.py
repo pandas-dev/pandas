@@ -10,7 +10,7 @@ from pandas.compat import range, u, PY3
 
 import numpy as np
 
-from pandas import (notnull, Series, Index, Float64Index,
+from pandas import (isna, Series, Index, Float64Index,
                     Int64Index, RangeIndex)
 
 import pandas.util.testing as tm
@@ -25,7 +25,8 @@ class TestRangeIndex(Numeric):
     _compat_props = ['shape', 'ndim', 'size', 'itemsize']
 
     def setup_method(self, method):
-        self.indices = dict(index=RangeIndex(0, 20, 2, name='foo'))
+        self.indices = dict(index=RangeIndex(0, 20, 2, name='foo'),
+                            index_dec=RangeIndex(18, -1, -2, name='bar'))
         self.setup_indices()
 
     def create_index(self):
@@ -294,6 +295,12 @@ class TestRangeIndex(Numeric):
         # test 0th element
         tm.assert_index_equal(idx[0:4], result.insert(0, idx[0]))
 
+        # GH 18295 (test missing)
+        expected = Float64Index([0, np.nan, 1, 2, 3, 4])
+        for na in (np.nan, pd.NaT, None):
+            result = RangeIndex(5).insert(1, na)
+            tm.assert_index_equal(result, expected)
+
     def test_delete(self):
 
         idx = RangeIndex(5, name='Foo')
@@ -311,8 +318,8 @@ class TestRangeIndex(Numeric):
             # either depending on numpy version
             result = idx.delete(len(idx))
 
-    def test_view(self):
-        super(TestRangeIndex, self).test_view()
+    def test_view(self, indices):
+        super(TestRangeIndex, self).test_view(indices)
 
         i = RangeIndex(0, name='Foo')
         i_view = i.view()
@@ -331,25 +338,35 @@ class TestRangeIndex(Numeric):
         assert self.index.is_monotonic
         assert self.index.is_monotonic_increasing
         assert not self.index.is_monotonic_decreasing
+        assert self.index._is_strictly_monotonic_increasing
+        assert not self.index._is_strictly_monotonic_decreasing
 
         index = RangeIndex(4, 0, -1)
         assert not index.is_monotonic
+        assert not index._is_strictly_monotonic_increasing
         assert index.is_monotonic_decreasing
+        assert index._is_strictly_monotonic_decreasing
 
         index = RangeIndex(1, 2)
         assert index.is_monotonic
         assert index.is_monotonic_increasing
         assert index.is_monotonic_decreasing
+        assert index._is_strictly_monotonic_increasing
+        assert index._is_strictly_monotonic_decreasing
 
         index = RangeIndex(2, 1)
         assert index.is_monotonic
         assert index.is_monotonic_increasing
         assert index.is_monotonic_decreasing
+        assert index._is_strictly_monotonic_increasing
+        assert index._is_strictly_monotonic_decreasing
 
         index = RangeIndex(1, 1)
         assert index.is_monotonic
         assert index.is_monotonic_increasing
         assert index.is_monotonic_decreasing
+        assert index._is_strictly_monotonic_increasing
+        assert index._is_strictly_monotonic_decreasing
 
     def test_equals_range(self):
         equiv_pairs = [(RangeIndex(0, 9, 2), RangeIndex(0, 10, 2)),
@@ -600,6 +617,21 @@ class TestRangeIndex(Numeric):
                                                 other.values)))
         tm.assert_index_equal(result, expected)
 
+        # reversed (GH 17296)
+        result = other.intersection(self.index)
+        tm.assert_index_equal(result, expected)
+
+        # GH 17296: intersect two decreasing RangeIndexes
+        first = RangeIndex(10, -2, -2)
+        other = RangeIndex(5, -4, -1)
+        expected = first.astype(int).intersection(other.astype(int))
+        result = first.intersection(other).astype(int)
+        tm.assert_index_equal(result, expected)
+
+        # reversed
+        result = other.intersection(first).astype(int)
+        tm.assert_index_equal(result, expected)
+
         index = RangeIndex(5)
 
         # intersect of non-overlapping indices
@@ -628,15 +660,6 @@ class TestRangeIndex(Numeric):
         result = index.intersection(other)
         expected = RangeIndex(0, 0, 1)
         tm.assert_index_equal(result, expected)
-
-    def test_intersect_str_dates(self):
-        dt_dates = [datetime(2012, 2, 9), datetime(2012, 2, 22)]
-
-        i1 = Index(dt_dates, dtype=object)
-        i2 = Index(['aa'], dtype=object)
-        res = i2.intersection(i1)
-
-        assert len(res) == 0
 
     def test_union_noncomparable(self):
         from datetime import datetime, timedelta
@@ -688,7 +711,7 @@ class TestRangeIndex(Numeric):
 
         # memory savings vs int index
         i = RangeIndex(0, 1000)
-        assert i.nbytes < i.astype(int).nbytes / 10
+        assert i.nbytes < i._int64index.nbytes / 10
 
         # constant memory usage
         i2 = RangeIndex(0, 10)
@@ -756,7 +779,7 @@ class TestRangeIndex(Numeric):
     def test_explicit_conversions(self):
 
         # GH 8608
-        # add/sub are overriden explicity for Float/Int Index
+        # add/sub are overridden explicitly for Float/Int Index
         idx = RangeIndex(5)
 
         # float conversions
@@ -917,31 +940,6 @@ class TestRangeIndex(Numeric):
             i = RangeIndex(0, 5, step)
             assert len(i) == 0
 
-    def test_where(self):
-        i = self.create_index()
-        result = i.where(notnull(i))
-        expected = i
-        tm.assert_index_equal(result, expected)
-
-        _nan = i._na_value
-        cond = [False] + [True] * len(i[1:])
-        expected = pd.Index([_nan] + i[1:].tolist())
-
-        result = i.where(cond)
-        tm.assert_index_equal(result, expected)
-
-    def test_where_array_like(self):
-        i = self.create_index()
-
-        _nan = i._na_value
-        cond = [False] + [True] * (len(i) - 1)
-        klasses = [list, tuple, np.array, pd.Series]
-        expected = pd.Index([_nan] + i[1:].tolist())
-
-        for klass in klasses:
-            result = i.where(klass(cond))
-            tm.assert_index_equal(result, expected)
-
     def test_append(self):
         # GH16212
         RI = RangeIndex
@@ -954,8 +952,8 @@ class TestRangeIndex(Numeric):
                  ([RI(1, 5, 2), RI(5, 6)], RI(1, 6, 2)),
                  ([RI(1, 3, 2), RI(4, 7, 3)], RI(1, 7, 3)),
                  ([RI(-4, 3, 2), RI(4, 7, 2)], RI(-4, 7, 2)),
-                 ([RI(-4, -8), RI(-8, -12)], RI(-8, -12)),
-                 ([RI(-4, -8), RI(3, -4)], RI(3, -8)),
+                 ([RI(-4, -8), RI(-8, -12)], RI(0, 0)),
+                 ([RI(-4, -8), RI(3, -4)], RI(0, 0)),
                  ([RI(-4, -8), RI(3, 5)], RI(3, 5)),
                  ([RI(-4, -2), RI(3, 5)], I64([-4, -3, 3, 4])),
                  ([RI(-2,), RI(3, 5)], RI(3, 5)),
@@ -977,3 +975,22 @@ class TestRangeIndex(Numeric):
                 # Append single item rather than list
                 result2 = indices[0].append(indices[1])
                 tm.assert_index_equal(result2, expected, exact=True)
+
+    @pytest.mark.parametrize('start,stop,step',
+                             [(0, 400, 3), (500, 0, -6), (-10**6, 10**6, 4),
+                              (10**6, -10**6, -4), (0, 10, 20)])
+    def test_max_min(self, start, stop, step):
+        # GH17607
+        idx = RangeIndex(start, stop, step)
+        expected = idx._int64index.max()
+        result = idx.max()
+        assert result == expected
+
+        expected = idx._int64index.min()
+        result = idx.min()
+        assert result == expected
+
+        # empty
+        idx = RangeIndex(start, stop, -step)
+        assert isna(idx.max())
+        assert isna(idx.min())

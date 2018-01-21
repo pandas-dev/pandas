@@ -1,11 +1,13 @@
 import copy
 import textwrap
+import re
 
 import pytest
 import numpy as np
 import pandas as pd
 from pandas import DataFrame
 import pandas.util.testing as tm
+import pandas.util._test_decorators as td
 
 jinja2 = pytest.importorskip('jinja2')
 from pandas.io.formats.style import Styler, _get_level_lengths  # noqa
@@ -21,7 +23,8 @@ class TestStyler(object):
         self.g = lambda x: x
 
         def h(x, foo='bar'):
-            return pd.Series(['color: %s' % foo], index=x.index, name=x.name)
+            return pd.Series(
+                ['color: {foo}'.format(foo=foo)], index=x.index, name=x.name)
 
         self.h = h
         self.styler = Styler(self.df)
@@ -213,7 +216,7 @@ class TestStyler(object):
 
     def test_apply_axis(self):
         df = pd.DataFrame({'A': [0, 0], 'B': [1, 1]})
-        f = lambda x: ['val: %s' % x.max() for v in x]
+        f = lambda x: ['val: {max}'.format(max=x.max()) for v in x]
         result = df.style.apply(f, axis=1)
         assert len(result._todo) == 1
         assert len(result.ctx) == 0
@@ -262,6 +265,64 @@ class TestStyler(object):
                             for c, col in enumerate(self.df.columns)
                             if row in self.df.loc[slice_].index and
                             col in self.df.loc[slice_].columns)
+            assert result == expected
+
+    def test_where_with_one_style(self):
+        # GH 17474
+        def f(x):
+            return x > 0.5
+
+        style1 = 'foo: bar'
+
+        result = self.df.style.where(f, style1)._compute().ctx
+        expected = dict(((r, c),
+                        [style1 if f(self.df.loc[row, col]) else ''])
+                        for r, row in enumerate(self.df.index)
+                        for c, col in enumerate(self.df.columns))
+        assert result == expected
+
+    def test_where_subset(self):
+        # GH 17474
+        def f(x):
+            return x > 0.5
+
+        style1 = 'foo: bar'
+        style2 = 'baz: foo'
+
+        slices = [pd.IndexSlice[:], pd.IndexSlice[:, ['A']],
+                  pd.IndexSlice[[1], :], pd.IndexSlice[[1], ['A']],
+                  pd.IndexSlice[:2, ['A', 'B']]]
+
+        for slice_ in slices:
+            result = self.df.style.where(f, style1, style2,
+                                         subset=slice_)._compute().ctx
+            expected = dict(((r, c),
+                            [style1 if f(self.df.loc[row, col]) else style2])
+                            for r, row in enumerate(self.df.index)
+                            for c, col in enumerate(self.df.columns)
+                            if row in self.df.loc[slice_].index and
+                            col in self.df.loc[slice_].columns)
+            assert result == expected
+
+    def test_where_subset_compare_with_applymap(self):
+        # GH 17474
+        def f(x):
+            return x > 0.5
+
+        style1 = 'foo: bar'
+        style2 = 'baz: foo'
+
+        def g(x):
+            return style1 if f(x) else style2
+
+        slices = [pd.IndexSlice[:], pd.IndexSlice[:, ['A']],
+                  pd.IndexSlice[[1], :], pd.IndexSlice[[1], ['A']],
+                  pd.IndexSlice[:2, ['A', 'B']]]
+
+        for slice_ in slices:
+            result = self.df.style.where(f, style1, style2,
+                                         subset=slice_)._compute().ctx
+            expected = self.df.style.applymap(g, subset=slice_)._compute().ctx
             assert result == expected
 
     def test_empty(self):
@@ -505,6 +566,14 @@ class TestStyler(object):
         assert result is styler
         assert result.uuid == 'aaa'
 
+    def test_unique_id(self):
+        # See https://github.com/pandas-dev/pandas/issues/16780
+        df = pd.DataFrame({'a': [1, 3, 5, 6], 'b': [2, 4, 12, 21]})
+        result = df.style.render(uuid='test')
+        assert 'test' in result
+        ids = re.findall('id="(.*?)"', result)
+        assert np.unique(ids).size == len(ids)
+
     def test_table_styles(self):
         style = [{'selector': 'th', 'props': [('foo', 'bar')]}]
         styler = Styler(self.df, table_styles=style)
@@ -581,7 +650,7 @@ class TestStyler(object):
                         (0, 0): [''], (1, 0): ['']}
             assert result == expected
 
-        # separate since we cant negate the strs
+        # separate since we can't negate the strs
         df['C'] = ['a', 'b']
         result = df.style.highlight_max()._compute().ctx
         expected = {(1, 1): ['background-color: yellow']}
@@ -591,7 +660,8 @@ class TestStyler(object):
 
     def test_export(self):
         f = lambda x: 'color: red' if x > 0 else 'color: blue'
-        g = lambda x, y, z: 'color: %s' if x > 0 else 'color: %s' % z
+        g = lambda x, y, z: 'color: {z}'.format(z=z) \
+            if x > 0 else 'color: {z}'.format(z=z)
         style1 = self.styler
         style1.applymap(f)\
             .applymap(g, y='a', z='b')\
@@ -606,9 +676,10 @@ class TestStyler(object):
         df = pd.DataFrame(np.random.random(size=(2, 2)))
         ctx = df.style.format("{:0.1f}")._translate()
 
-        assert all(['display_value' in c for c in row] for row in ctx['body'])
-        assert (all([len(c['display_value']) <= 3 for c in row[1:]]
-                    for row in ctx['body']))
+        assert all(['display_value' in c for c in row]
+                   for row in ctx['body'])
+        assert all([len(c['display_value']) <= 3 for c in row[1:]]
+                   for row in ctx['body'])
         assert len(ctx['body'][0][1]['display_value'].lstrip('-')) <= 3
 
     def test_display_format_raises(self):
@@ -719,12 +790,13 @@ class TestStyler(object):
         df = pd.DataFrame({'A': [1, 2]},
                           index=pd.MultiIndex.from_arrays([['a', 'a'],
                                                            [0, 1]]))
+
         result = df.style._translate()
         body_0 = result['body'][0][0]
         expected_0 = {
             "value": "a", "display_value": "a", "is_visible": True,
             "type": "th", "attributes": ["rowspan=2"],
-            "class": "row_heading level0 row0",
+            "class": "row_heading level0 row0", "id": "level0_row0"
         }
         tm.assert_dict_equal(body_0, expected_0)
 
@@ -732,6 +804,7 @@ class TestStyler(object):
         expected_1 = {
             "value": 0, "display_value": 0, "is_visible": True,
             "type": "th", "class": "row_heading level1 row0",
+            "id": "level1_row0"
         }
         tm.assert_dict_equal(body_1, expected_1)
 
@@ -739,6 +812,7 @@ class TestStyler(object):
         expected_10 = {
             "value": 'a', "display_value": 'a', "is_visible": False,
             "type": "th", "class": "row_heading level0 row1",
+            "id": "level0_row1"
         }
         tm.assert_dict_equal(body_10, expected_10)
 
@@ -821,11 +895,125 @@ class TestStyler(object):
         ]
         assert head == expected
 
+    def test_hide_single_index(self):
+        # GH 14194
+        # single unnamed index
+        ctx = self.df.style._translate()
+        assert ctx['body'][0][0]['is_visible']
+        assert ctx['head'][0][0]['is_visible']
+        ctx2 = self.df.style.hide_index()._translate()
+        assert not ctx2['body'][0][0]['is_visible']
+        assert not ctx2['head'][0][0]['is_visible']
+
+        # single named index
+        ctx3 = self.df.set_index('A').style._translate()
+        assert ctx3['body'][0][0]['is_visible']
+        assert len(ctx3['head']) == 2  # 2 header levels
+        assert ctx3['head'][0][0]['is_visible']
+
+        ctx4 = self.df.set_index('A').style.hide_index()._translate()
+        assert not ctx4['body'][0][0]['is_visible']
+        assert len(ctx4['head']) == 1  # only 1 header levels
+        assert not ctx4['head'][0][0]['is_visible']
+
+    def test_hide_multiindex(self):
+        # GH 14194
+        df = pd.DataFrame({'A': [1, 2]}, index=pd.MultiIndex.from_arrays(
+            [['a', 'a'], [0, 1]],
+            names=['idx_level_0', 'idx_level_1'])
+        )
+        ctx1 = df.style._translate()
+        # tests for 'a' and '0'
+        assert ctx1['body'][0][0]['is_visible']
+        assert ctx1['body'][0][1]['is_visible']
+        # check for blank header rows
+        assert ctx1['head'][0][0]['is_visible']
+        assert ctx1['head'][0][1]['is_visible']
+
+        ctx2 = df.style.hide_index()._translate()
+        # tests for 'a' and '0'
+        assert not ctx2['body'][0][0]['is_visible']
+        assert not ctx2['body'][0][1]['is_visible']
+        # check for blank header rows
+        assert not ctx2['head'][0][0]['is_visible']
+        assert not ctx2['head'][0][1]['is_visible']
+
+    def test_hide_columns_single_level(self):
+        # GH 14194
+        # test hiding single column
+        ctx = self.df.style._translate()
+        assert ctx['head'][0][1]['is_visible']
+        assert ctx['head'][0][1]['display_value'] == 'A'
+        assert ctx['head'][0][2]['is_visible']
+        assert ctx['head'][0][2]['display_value'] == 'B'
+        assert ctx['body'][0][1]['is_visible']  # col A, row 1
+        assert ctx['body'][1][2]['is_visible']  # col B, row 1
+
+        ctx = self.df.style.hide_columns('A')._translate()
+        assert not ctx['head'][0][1]['is_visible']
+        assert not ctx['body'][0][1]['is_visible']  # col A, row 1
+        assert ctx['body'][1][2]['is_visible']  # col B, row 1
+
+        # test hiding mulitiple columns
+        ctx = self.df.style.hide_columns(['A', 'B'])._translate()
+        assert not ctx['head'][0][1]['is_visible']
+        assert not ctx['head'][0][2]['is_visible']
+        assert not ctx['body'][0][1]['is_visible']  # col A, row 1
+        assert not ctx['body'][1][2]['is_visible']  # col B, row 1
+
+    def test_hide_columns_mult_levels(self):
+        # GH 14194
+        # setup dataframe with multiple column levels and indices
+        i1 = pd.MultiIndex.from_arrays([['a', 'a'], [0, 1]],
+                                       names=['idx_level_0',
+                                              'idx_level_1'])
+        i2 = pd.MultiIndex.from_arrays([['b', 'b'], [0, 1]],
+                                       names=['col_level_0',
+                                              'col_level_1'])
+        df = pd.DataFrame([[1, 2], [3, 4]], index=i1, columns=i2)
+        ctx = df.style._translate()
+        # column headers
+        assert ctx['head'][0][2]['is_visible']
+        assert ctx['head'][1][2]['is_visible']
+        assert ctx['head'][1][3]['display_value'] == 1
+        # indices
+        assert ctx['body'][0][0]['is_visible']
+        # data
+        assert ctx['body'][1][2]['is_visible']
+        assert ctx['body'][1][2]['display_value'] == 3
+        assert ctx['body'][1][3]['is_visible']
+        assert ctx['body'][1][3]['display_value'] == 4
+
+        # hide top column level, which hides both columns
+        ctx = df.style.hide_columns('b')._translate()
+        assert not ctx['head'][0][2]['is_visible']  # b
+        assert not ctx['head'][1][2]['is_visible']  # 0
+        assert not ctx['body'][1][2]['is_visible']  # 3
+        assert ctx['body'][0][0]['is_visible']  # index
+
+        # hide first column only
+        ctx = df.style.hide_columns([('b', 0)])._translate()
+        assert ctx['head'][0][2]['is_visible']  # b
+        assert not ctx['head'][1][2]['is_visible']  # 0
+        assert not ctx['body'][1][2]['is_visible']  # 3
+        assert ctx['body'][1][3]['is_visible']
+        assert ctx['body'][1][3]['display_value'] == 4
+
+        # hide second column and index
+        ctx = df.style.hide_columns([('b', 1)]).hide_index()._translate()
+        assert not ctx['body'][0][0]['is_visible']  # index
+        assert ctx['head'][0][2]['is_visible']  # b
+        assert ctx['head'][1][2]['is_visible']  # 0
+        assert not ctx['head'][1][3]['is_visible']  # 1
+        assert not ctx['body'][1][3]['is_visible']  # 4
+        assert ctx['body'][1][2]['is_visible']
+        assert ctx['body'][1][2]['display_value'] == 3
+
 
 class TestStylerMatplotlibDep(object):
 
+    @td.skip_if_no_mpl
     def test_background_gradient(self):
-        tm._skip_if_no_mpl()
         df = pd.DataFrame([[1, 2], [2, 4]], columns=['A', 'B'])
 
         for c_map in [None, 'YlOrRd']:

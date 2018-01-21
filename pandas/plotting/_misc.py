@@ -5,7 +5,7 @@ from __future__ import division
 import numpy as np
 
 from pandas.util._decorators import deprecate_kwarg
-from pandas.core.dtypes.missing import notnull
+from pandas.core.dtypes.missing import notna
 from pandas.compat import range, lrange, lmap, zip
 from pandas.io.formats.printing import pprint_thing
 
@@ -62,7 +62,7 @@ def scatter_matrix(frame, alpha=0.5, figsize=None, ax=None, grid=False,
     # no gaps between subplots
     fig.subplots_adjust(wspace=0, hspace=0)
 
-    mask = notnull(df)
+    mask = notna(df)
 
     marker = _get_marker_compat(marker)
 
@@ -413,7 +413,7 @@ def parallel_coordinates(frame, class_column, cols=None, ax=None, color=None,
     axvlines_kwds: keywords, optional
         Options to be passed to axvline method for vertical lines
     sort_labels: bool, False
-        Sort class_column labels, useful when assigning colours
+        Sort class_column labels, useful when assigning colors
 
         .. versionadded:: 0.20.0
 
@@ -525,7 +525,7 @@ def lag_plot(series, lag=1, ax=None, **kwds):
     if ax is None:
         ax = plt.gca()
     ax.set_xlabel("y(t)")
-    ax.set_ylabel("y(t + %s)" % lag)
+    ax.set_ylabel("y(t + {lag})".format(lag=lag))
     ax.scatter(y1, y2, **kwds)
     return ax
 

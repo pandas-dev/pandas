@@ -16,13 +16,6 @@
 Categorical Data
 ****************
 
-.. versionadded:: 0.15
-
-.. note::
-    While there was `pandas.Categorical` in earlier versions, the ability to use
-    categorical data in `Series` and `DataFrame` is new.
-
-
 This is an introduction to pandas categorical data type, including a short comparison
 with R's ``factor``.
 
@@ -47,7 +40,7 @@ The categorical data type is useful in the following cases:
 * The lexical order of a variable is not the same as the logical order ("one", "two", "three").
   By converting to a categorical and specifying an order on the categories, sorting and
   min/max will use the logical order instead of the lexical order, see :ref:`here <categorical.sort>`.
-* As a signal to other python libraries that this column should be treated as a categorical
+* As a signal to other Python libraries that this column should be treated as a categorical
   variable (e.g. to use suitable statistical methods or plot types).
 
 See also the :ref:`API docs on categoricals<api.categorical>`.
@@ -96,12 +89,22 @@ By passing a :class:`pandas.Categorical` object to a `Series` or assigning it to
     df["B"] = raw_cat
     df
 
-You can also specify differently ordered categories or make the resulting data ordered, by passing these arguments to ``astype()``:
+Anywhere above we passed a keyword ``dtype='category'``, we used the default behavior of
+
+1. categories are inferred from the data
+2. categories are unordered.
+
+To control those behaviors, instead of passing ``'category'``, use an instance
+of :class:`~pandas.api.types.CategoricalDtype`.
 
 .. ipython:: python
 
-    s = pd.Series(["a","b","c","a"])
-    s_cat = s.astype("category", categories=["b","c","d"], ordered=False)
+    from pandas.api.types import CategoricalDtype
+
+    s = pd.Series(["a", "b", "c", "a"])
+    cat_type = CategoricalDtype(categories=["b", "c", "d"],
+                                ordered=True)
+    s_cat = s.astype(cat_type)
     s_cat
 
 Categorical data has a specific ``category`` :ref:`dtype <basics.dtypes>`:
@@ -140,6 +143,75 @@ constructor to save the factorize step during normal constructor mode:
     splitter = np.random.choice([0,1], 5, p=[0.5,0.5])
     s = pd.Series(pd.Categorical.from_codes(splitter, categories=["train", "test"]))
 
+.. _categorical.categoricaldtype:
+
+CategoricalDtype
+----------------
+
+.. versionchanged:: 0.21.0
+
+A categorical's type is fully described by
+
+1. ``categories``: a sequence of unique values and no missing values
+2. ``ordered``: a boolean
+
+This information can be stored in a :class:`~pandas.api.types.CategoricalDtype`.
+The ``categories`` argument is optional, which implies that the actual categories
+should be inferred from whatever is present in the data when the
+:class:`pandas.Categorical` is created. The categories are assumed to be unordered
+by default.      
+
+.. ipython:: python
+
+   from pandas.api.types import CategoricalDtype
+
+   CategoricalDtype(['a', 'b', 'c'])
+   CategoricalDtype(['a', 'b', 'c'], ordered=True)
+   CategoricalDtype()
+
+A :class:`~pandas.api.types.CategoricalDtype` can be used in any place pandas
+expects a `dtype`. For example :func:`pandas.read_csv`,
+:func:`pandas.DataFrame.astype`, or in the Series constructor.
+
+.. note::
+
+    As a convenience, you can use the string ``'category'`` in place of a
+    :class:`~pandas.api.types.CategoricalDtype` when you want the default behavior of
+    the categories being unordered, and equal to the set values present in the
+    array. In other words, ``dtype='category'`` is equivalent to
+    ``dtype=CategoricalDtype()``.
+
+Equality Semantics
+~~~~~~~~~~~~~~~~~~
+
+Two instances of :class:`~pandas.api.types.CategoricalDtype` compare equal
+whenever they have the same categories and orderedness. When comparing two
+unordered categoricals, the order of the ``categories`` is not considered
+
+.. ipython:: python
+
+   c1 = CategoricalDtype(['a', 'b', 'c'], ordered=False)
+
+   # Equal, since order is not considered when ordered=False
+   c1 == CategoricalDtype(['b', 'c', 'a'], ordered=False)
+
+   # Unequal, since the second CategoricalDtype is ordered
+   c1 == CategoricalDtype(['a',  'b', 'c'], ordered=True)
+
+All instances of ``CategoricalDtype`` compare equal to the string ``'category'``
+
+.. ipython:: python
+
+   c1 == 'category'
+
+.. warning::
+
+   Since ``dtype='category'`` is essentially ``CategoricalDtype(None, False)``,
+   and since all instances ``CategoricalDtype`` compare equal to ``'category'``,
+   all instances of ``CategoricalDtype`` compare equal to a
+   ``CategoricalDtype(None, False)``, regardless of ``categories`` or
+   ``ordered``.
+
 Description
 -----------
 
@@ -152,6 +224,8 @@ Using ``.describe()`` on categorical data will produce similar output to a `Seri
     df = pd.DataFrame({"cat":cat, "s":["a", "c", "c", np.nan]})
     df.describe()
     df["cat"].describe()
+
+.. _categorical.cat:
 
 Working with categories
 -----------------------
@@ -189,7 +263,7 @@ It's also possible to pass in the categories in a specific order:
 
     .. ipython:: python
 
-         s = pd.Series(list('babc')).astype('category', categories=list('abcd'))
+         s = pd.Series(list('babc')).astype(CategoricalDtype(list('abcd')))
          s
 
          # categories
@@ -211,6 +285,10 @@ by using the :func:`Categorical.rename_categories` method:
     s.cat.categories = ["Group %s" % g for g in s.cat.categories]
     s
     s.cat.rename_categories([1,2,3])
+    s
+    # You can also pass a dict-like object to map the renaming
+    s.cat.rename_categories({1: 'x', 2: 'y', 3: 'z'})
+    s
 
 .. note::
 
@@ -288,16 +366,12 @@ or simply set the categories to a predefined scale, use :func:`Categorical.set_c
 .. note::
     Be aware that :func:`Categorical.set_categories` cannot know whether some category is omitted
     intentionally or because it is misspelled or (under Python3) due to a type difference (e.g.,
-    numpys S1 dtype and python strings). This can result in surprising behaviour!
+    numpys S1 dtype and Python strings). This can result in surprising behaviour!
 
 Sorting and Order
 -----------------
 
 .. _categorical.sort:
-
-.. warning::
-
-   The default for construction has changed in v0.16.0 to ``ordered=False``, from the prior implicit ``ordered=True``
 
 If categorical data is ordered (``s.cat.ordered == True``), then the order of the categories has a
 meaning and certain operations are possible. If the categorical is unordered, ``.min()/.max()`` will raise a `TypeError`.
@@ -306,7 +380,9 @@ meaning and certain operations are possible. If the categorical is unordered, ``
 
     s = pd.Series(pd.Categorical(["a","b","c","a"], ordered=False))
     s.sort_values(inplace=True)
-    s = pd.Series(["a","b","c","a"]).astype('category', ordered=True)
+    s = pd.Series(["a","b","c","a"]).astype(
+        CategoricalDtype(ordered=True)
+    )
     s.sort_values(inplace=True)
     s
     s.min(), s.max()
@@ -406,9 +482,15 @@ categories or a categorical with any list-like object, will raise a TypeError.
 
 .. ipython:: python
 
-    cat = pd.Series([1,2,3]).astype("category", categories=[3,2,1], ordered=True)
-    cat_base = pd.Series([2,2,2]).astype("category", categories=[3,2,1], ordered=True)
-    cat_base2 = pd.Series([2,2,2]).astype("category", ordered=True)
+    cat = pd.Series([1,2,3]).astype(
+        CategoricalDtype([3, 2, 1], ordered=True)
+    )
+    cat_base = pd.Series([2,2,2]).astype(
+        CategoricalDtype([3, 2, 1], ordered=True)
+    )
+    cat_base2 = pd.Series([2,2,2]).astype(
+        CategoricalDtype(ordered=True)
+    )
 
     cat
     cat_base
@@ -549,8 +631,6 @@ To get a single value `Series` of type ``category`` pass in a list with a single
 
 String and datetime accessors
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-.. versionadded:: 0.17.1
 
 The accessors  ``.dt`` and ``.str`` will work if the ``s.cat.categories`` are of an appropriate
 type:
@@ -803,13 +883,11 @@ Following table summarizes the results of ``Categoricals`` related concatenation
 Getting Data In/Out
 -------------------
 
-.. versionadded:: 0.15.2
+You can write data that contains ``category`` dtypes to a ``HDFStore``.
+See :ref:`here <io.hdf5-categorical>` for an example and caveats.
 
-Writing data (`Series`, `Frames`) to a HDF store that contains a ``category`` dtype was implemented
-in 0.15.2. See :ref:`here <io.hdf5-categorical>` for an example and caveats.
-
-Writing data to and reading data from *Stata* format files was implemented in
-0.15.2. See :ref:`here <io.stata-categorical>` for an example and caveats.
+It is also possible to write data to and reading data from *Stata* format files.
+See :ref:`here <io.stata-categorical>` for an example and caveats.
 
 Writing to a CSV file will convert the data, effectively removing any information about the
 categorical (categories and ordering). So if you read back the CSV file you have to convert the
@@ -863,14 +941,14 @@ a code of ``-1``.
     s.cat.codes
 
 
-Methods for working with missing data, e.g. :meth:`~Series.isnull`, :meth:`~Series.fillna`,
+Methods for working with missing data, e.g. :meth:`~Series.isna`, :meth:`~Series.fillna`,
 :meth:`~Series.dropna`, all work normally:
 
 .. ipython:: python
 
     s = pd.Series(["a", "b", np.nan], dtype="category")
     s
-    pd.isnull(s)
+    pd.isna(s)
     s.fillna("a")
 
 Differences to R's `factor`
@@ -899,7 +977,7 @@ Memory Usage
 
 .. _categorical.memory:
 
-The memory usage of a ``Categorical`` is proportional to the number of categories times the length of the data. In contrast,
+The memory usage of a ``Categorical`` is proportional to the number of categories plus the length of the data. In contrast,
 an ``object`` dtype is a constant times the length of the data.
 
 .. ipython:: python
@@ -927,32 +1005,6 @@ an ``object`` dtype is a constant times the length of the data.
       # category dtype
       s.astype('category').nbytes
 
-
-Old style constructor usage
-~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-In earlier versions than pandas 0.15, a `Categorical` could be constructed by passing in precomputed
-`codes` (called then `labels`) instead of values with categories. The `codes` were interpreted as
-pointers to the categories with `-1` as `NaN`. This type of constructor usage is replaced by
-the special constructor :func:`Categorical.from_codes`.
-
-Unfortunately, in some special cases, using code which assumes the old style constructor usage
-will work with the current pandas version, resulting in subtle bugs:
-
-.. code-block:: python
-
-    >>> cat = pd.Categorical([1,2], [1,2,3])
-    >>> # old version
-    >>> cat.get_values()
-    array([2, 3], dtype=int64)
-    >>> # new version
-    >>> cat.get_values()
-    array([1, 2], dtype=int64)
-
-.. warning::
-    If you used `Categoricals` with older versions of pandas, please audit your code before
-    upgrading and change your code to use the :func:`~pandas.Categorical.from_codes`
-    constructor.
 
 `Categorical` is not a `numpy` array
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -982,8 +1034,7 @@ Dtype comparisons work:
     dtype == np.str_
     np.str_ == dtype
 
-To check if a Series contains Categorical data, with pandas 0.16 or later, use
-``hasattr(s, 'cat')``:
+To check if a Series contains Categorical data, use ``hasattr(s, 'cat')``:
 
 .. ipython:: python
 
@@ -1023,13 +1074,13 @@ basic type) and applying along columns will also convert to object.
 Categorical Index
 ~~~~~~~~~~~~~~~~~
 
-.. versionadded:: 0.16.1
-
-A new ``CategoricalIndex`` index type is introduced in version 0.16.1. See the
-:ref:`advanced indexing docs <indexing.categoricalindex>` for a more detailed
+``CategoricalIndex`` is a type of index that is useful for supporting
+indexing with duplicates. This is a container around a ``Categorical``
+and allows efficient indexing and storage of an index with a large number of duplicated elements.
+See the :ref:`advanced indexing docs <indexing.categoricalindex>` for a more detailed
 explanation.
 
-Setting the index, will create create a ``CategoricalIndex``
+Setting the index will create a ``CategoricalIndex``
 
 .. ipython:: python
 
@@ -1040,10 +1091,6 @@ Setting the index, will create create a ``CategoricalIndex``
     df.index
     # This now sorts by the categories order
     df.sort_index()
-
-In previous versions (<0.16.1) there is no index of type ``category``, so
-setting the index to categorical column will convert the categorical data to a
-"normal" dtype first and therefore remove any custom ordering of the categories.
 
 Side Effects
 ~~~~~~~~~~~~

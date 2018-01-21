@@ -15,12 +15,13 @@ from pandas._libs import lib, tslib
 from pandas import compat
 from pandas.compat import long, zip, iteritems
 from pandas.core.config import get_option
-from pandas.core.dtypes.generic import ABCSeries
+from pandas.core.dtypes.generic import ABCSeries, ABCIndex
 from pandas.core.dtypes.common import _NS_DTYPE
 from pandas.core.dtypes.inference import _iterable_not_string
-from pandas.core.dtypes.missing import isnull
+from pandas.core.dtypes.missing import isna, isnull, notnull  # noqa
 from pandas.api import types
 from pandas.core.dtypes import common
+from pandas.core.dtypes.cast import construct_1d_object_array_from_listlike
 
 # compat
 from pandas.errors import (  # noqa
@@ -96,8 +97,8 @@ class AbstractMethodError(NotImplementedError):
         self.class_instance = class_instance
 
     def __str__(self):
-        return ("This method must be defined in the concrete class of %s" %
-                self.class_instance.__class__.__name__)
+        msg = "This method must be defined in the concrete class of {name}"
+        return (msg.format(name=self.class_instance.__class__.__name__))
 
 
 def flatten(l):
@@ -150,8 +151,8 @@ def _maybe_match_name(a, b):
 def _get_info_slice(obj, indexer):
     """Slice the info axis of `obj` with `indexer`."""
     if not hasattr(obj, '_info_axis_number'):
-        raise TypeError('object of type %r has no info axis' %
-                        type(obj).__name__)
+        msg = 'object of type {typ!r} has no info axis'
+        raise TypeError(msg.format(typ=type(obj).__name__))
     slices = [slice(None)] * obj.ndim
     slices[obj._info_axis_number] = indexer
     return tuple(slices)
@@ -182,12 +183,12 @@ _values_from_object = lib.values_from_object
 
 
 def is_bool_indexer(key):
-    if isinstance(key, (ABCSeries, np.ndarray)):
+    if isinstance(key, (ABCSeries, np.ndarray, ABCIndex)):
         if key.dtype == np.object_:
             key = np.asarray(_values_from_object(key))
 
             if not lib.is_bool_array(key):
-                if isnull(key).any():
+                if isna(key).any():
                     raise ValueError('cannot index with vector containing '
                                      'NA / NaN values')
                 return False
@@ -214,8 +215,8 @@ def _mut_exclusive(**kwargs):
     label1, val1 = item1
     label2, val2 = item2
     if val1 is not None and val2 is not None:
-        raise TypeError('mutually exclusive arguments: %r and %r' %
-                        (label1, label2))
+        msg = 'mutually exclusive arguments: {label1!r} and {label2!r}'
+        raise TypeError(msg.format(label1=label1, label2=label2))
     elif val1 is not None:
         return val1
     else:
@@ -223,17 +224,36 @@ def _mut_exclusive(**kwargs):
 
 
 def _not_none(*args):
+    """Returns a generator consisting of the arguments that are not None"""
     return (arg for arg in args if arg is not None)
 
 
 def _any_none(*args):
+    """Returns a boolean indicating if any argument is None"""
     for arg in args:
         if arg is None:
             return True
     return False
 
 
+def _all_none(*args):
+    """Returns a boolean indicating if all arguments are None"""
+    for arg in args:
+        if arg is not None:
+            return False
+    return True
+
+
+def _any_not_none(*args):
+    """Returns a boolean indicating if any argument is not None"""
+    for arg in args:
+        if arg is not None:
+            return True
+    return False
+
+
 def _all_not_none(*args):
+    """Returns a boolean indicating if all arguments are not None"""
     for arg in args:
         if arg is None:
             return False
@@ -241,6 +261,7 @@ def _all_not_none(*args):
 
 
 def _count_not_none(*args):
+    """Returns the count of arguments that are not None"""
     return sum(x is not None for x in args)
 
 
@@ -284,7 +305,7 @@ def split_ranges(mask):
     ranges = [(0, len(mask))]
 
     for pos, val in enumerate(mask):
-        if not val:  # this pos should be ommited, split off the prefix range
+        if not val:  # this pos should be omitted, split off the prefix range
             r = ranges.pop()
             if pos > r[0]:  # yield non-zero range
                 yield (r[0], pos)
@@ -327,7 +348,7 @@ def map_indices_py(arr):
     Returns a dictionary with (element, index) pairs for each element in the
     given array/list
     """
-    return dict([(x, i) for i, x in enumerate(arr)])
+    return {x: i for i, x in enumerate(arr)}
 
 
 def union(*seqs):
@@ -361,7 +382,7 @@ def _asarray_tuplesafe(values, dtype=None):
         return values.values
 
     if isinstance(values, list) and dtype in [np.object_, object]:
-        return lib.list_to_object_array(values)
+        return construct_1d_object_array_from_listlike(values)
 
     result = np.asarray(values, dtype=dtype)
 
@@ -369,22 +390,27 @@ def _asarray_tuplesafe(values, dtype=None):
         result = np.asarray(values, dtype=object)
 
     if result.ndim == 2:
-        if isinstance(values, list):
-            return lib.list_to_object_array(values)
-        else:
-            # Making a 1D array that safely contains tuples is a bit tricky
-            # in numpy, leading to the following
-            try:
-                result = np.empty(len(values), dtype=object)
-                result[:] = values
-            except ValueError:
-                # we have a list-of-list
-                result[:] = [tuple(x) for x in values]
+        # Avoid building an array of arrays:
+        # TODO: verify whether any path hits this except #18819 (invalid)
+        values = [tuple(x) for x in values]
+        result = construct_1d_object_array_from_listlike(values)
 
     return result
 
 
-def _index_labels_to_array(labels):
+def _index_labels_to_array(labels, dtype=None):
+    """
+    Transform label or iterable of labels to array, for use in Index.
+
+    Parameters
+    ----------
+    dtype : dtype
+        If specified, use as dtype of the resulting array, otherwise infer.
+
+    Returns
+    -------
+    array
+    """
     if isinstance(labels, (compat.string_types, tuple)):
         labels = [labels]
 
@@ -394,7 +420,7 @@ def _index_labels_to_array(labels):
         except TypeError:  # non-iterable
             labels = [labels]
 
-    labels = _asarray_tuplesafe(labels)
+    labels = _asarray_tuplesafe(labels, dtype=dtype)
 
     return labels
 
@@ -409,6 +435,13 @@ def is_null_slice(obj):
     """ we have a null slice """
     return (isinstance(obj, slice) and obj.start is None and
             obj.stop is None and obj.step is None)
+
+
+def is_true_slices(l):
+    """
+    Find non-trivial slices in "l": return a list of booleans with same length.
+    """
+    return [isinstance(k, slice) and not is_null_slice(k) for k in l]
 
 
 def is_full_slice(obj, l):
@@ -438,17 +471,18 @@ def _apply_if_callable(maybe_callable, obj, **kwargs):
     """
     Evaluate possibly callable input using obj and kwargs if it is callable,
     otherwise return as it is
+
+    Parameters
+    ----------
+    maybe_callable : possibly a callable
+    obj : NDFrame
+    **kwargs
     """
+
     if callable(maybe_callable):
         return maybe_callable(obj, **kwargs)
+
     return maybe_callable
-
-
-def _all_none(*args):
-    for arg in args:
-        if arg is not None:
-            return False
-    return True
 
 
 def _where_compat(mask, arr1, arr2):
@@ -510,7 +544,7 @@ def standardize_mapping(into):
                 collections.defaultdict, into.default_factory)
         into = type(into)
     if not issubclass(into, collections.Mapping):
-        raise TypeError('unsupported type: {}'.format(into))
+        raise TypeError('unsupported type: {into}'.format(into=into))
     elif into == collections.defaultdict:
         raise TypeError(
             'to_dict() only accepts initialized defaultdicts')
@@ -548,7 +582,8 @@ def in_qtconsole():
     """
     check if we're inside an IPython qtconsole
 
-    DEPRECATED: This is no longer needed, or working, in IPython 3 and above.
+    .. deprecated:: 0.14.1
+       This is no longer needed, or working, in IPython 3 and above.
     """
     try:
         ip = get_ipython()  # noqa
@@ -566,8 +601,8 @@ def in_ipnb():
     """
     check if we're inside an IPython Notebook
 
-    DEPRECATED: This is no longer used in pandas, and won't work in IPython 3
-    and above.
+    .. deprecated:: 0.14.1
+       This is no longer needed, or working, in IPython 3 and above.
     """
     try:
         ip = get_ipython()  # noqa
@@ -621,3 +656,52 @@ def _random_state(state=None):
     else:
         raise ValueError("random_state must be an integer, a numpy "
                          "RandomState, or None")
+
+
+def _get_distinct_objs(objs):
+    """
+    Return a list with distinct elements of "objs" (different ids).
+    Preserves order.
+    """
+    ids = set()
+    res = []
+    for obj in objs:
+        if not id(obj) in ids:
+            ids.add(id(obj))
+            res.append(obj)
+    return res
+
+
+def _pipe(obj, func, *args, **kwargs):
+    """
+    Apply a function ``func`` to object ``obj`` either by passing obj as the
+    first argument to the function or, in the case that the func is a tuple,
+    interpret the first element of the tuple as a function and pass the obj to
+    that function as a keyword argument whose key is the value of the second
+    element of the tuple.
+
+    Parameters
+    ----------
+    func : callable or tuple of (callable, string)
+        Function to apply to this object or, alternatively, a
+        ``(callable, data_keyword)`` tuple where ``data_keyword`` is a
+        string indicating the keyword of `callable`` that expects the
+        object.
+    args : iterable, optional
+        positional arguments passed into ``func``.
+    kwargs : dict, optional
+        a dictionary of keyword arguments passed into ``func``.
+
+    Returns
+    -------
+    object : the return type of ``func``.
+    """
+    if isinstance(func, tuple):
+        func, target = func
+        if target in kwargs:
+            msg = '%s is both the pipe target and a keyword argument' % target
+            raise ValueError(msg)
+        kwargs[target] = obj
+        return func(*args, **kwargs)
+    else:
+        return func(obj, *args, **kwargs)

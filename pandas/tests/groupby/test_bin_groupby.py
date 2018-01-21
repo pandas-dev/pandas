@@ -6,10 +6,10 @@ from numpy import nan
 import numpy as np
 
 from pandas.core.dtypes.common import _ensure_int64
-from pandas import Index, isnull
+from pandas import Index, isna
 from pandas.util.testing import assert_almost_equal
 import pandas.util.testing as tm
-from pandas._libs import lib, groupby
+from pandas._libs import lib, groupby, reduction
 
 
 def test_series_grouper():
@@ -19,7 +19,7 @@ def test_series_grouper():
 
     labels = np.array([-1, -1, -1, 0, 0, 0, 1, 1, 1, 1], dtype=np.int64)
 
-    grouper = lib.SeriesGrouper(obj, np.mean, labels, 2, dummy)
+    grouper = reduction.SeriesGrouper(obj, np.mean, labels, 2, dummy)
     result, counts = grouper.get_result()
 
     expected = np.array([obj[3:6].mean(), obj[6:].mean()])
@@ -36,7 +36,7 @@ def test_series_bin_grouper():
 
     bins = np.array([3, 6])
 
-    grouper = lib.SeriesBinGrouper(obj, np.mean, bins, dummy)
+    grouper = reduction.SeriesBinGrouper(obj, np.mean, bins, dummy)
     result, counts = grouper.get_result()
 
     expected = np.array([obj[:3].mean(), obj[3:6].mean(), obj[6:].mean()])
@@ -97,7 +97,7 @@ def test_group_ohlc():
         func(out, counts, obj[:, None], labels)
 
         def _ohlc(group):
-            if isnull(group).all():
+            if isna(group).all():
                 return np.repeat(nan, 4)
             return [group[0], group.max(), group.min(), group[-1]]
 
@@ -127,26 +127,27 @@ class TestReducer(object):
         from pandas.core.series import Series
 
         arr = np.random.randn(100, 4)
-        result = lib.reduce(arr, np.sum, labels=Index(np.arange(4)))
+        result = reduction.reduce(arr, np.sum, labels=Index(np.arange(4)))
         expected = arr.sum(0)
         assert_almost_equal(result, expected)
 
-        result = lib.reduce(arr, np.sum, axis=1, labels=Index(np.arange(100)))
+        result = reduction.reduce(arr, np.sum, axis=1,
+                                  labels=Index(np.arange(100)))
         expected = arr.sum(1)
         assert_almost_equal(result, expected)
 
         dummy = Series(0., index=np.arange(100))
-        result = lib.reduce(arr, np.sum, dummy=dummy,
-                            labels=Index(np.arange(4)))
+        result = reduction.reduce(arr, np.sum, dummy=dummy,
+                                  labels=Index(np.arange(4)))
         expected = arr.sum(0)
         assert_almost_equal(result, expected)
 
         dummy = Series(0., index=np.arange(4))
-        result = lib.reduce(arr, np.sum, axis=1, dummy=dummy,
-                            labels=Index(np.arange(100)))
+        result = reduction.reduce(arr, np.sum, axis=1, dummy=dummy,
+                                  labels=Index(np.arange(100)))
         expected = arr.sum(1)
         assert_almost_equal(result, expected)
 
-        result = lib.reduce(arr, np.sum, axis=1, dummy=dummy,
-                            labels=Index(np.arange(100)))
+        result = reduction.reduce(arr, np.sum, axis=1, dummy=dummy,
+                                  labels=Index(np.arange(100)))
         assert_almost_equal(result, expected)

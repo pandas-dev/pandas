@@ -9,20 +9,26 @@ import pytest
 from datetime import datetime, timedelta, date
 import numpy as np
 
-from pandas import Timedelta, Timestamp, DatetimeIndex, DataFrame, NaT
+import pandas as pd
+from pandas import (Timedelta, Timestamp, DatetimeIndex,
+                    DataFrame, NaT, Period, Series)
 
 from pandas.core.dtypes.cast import (
     maybe_downcast_to_dtype,
     maybe_convert_objects,
+    cast_scalar_to_array,
     infer_dtype_from_scalar,
     infer_dtype_from_array,
     maybe_convert_string_to_object,
     maybe_convert_scalar,
-    find_common_type)
+    find_common_type,
+    construct_1d_object_array_from_listlike)
 from pandas.core.dtypes.dtypes import (
     CategoricalDtype,
     DatetimeTZDtype,
     PeriodDtype)
+from pandas.core.dtypes.common import (
+    is_dtype_equal)
 from pandas.util import testing as tm
 
 
@@ -33,17 +39,23 @@ class TestMaybeDowncast(object):
 
         arr = np.array([8.5, 8.6, 8.7, 8.8, 8.9999999999995])
         result = maybe_downcast_to_dtype(arr, 'infer')
-        assert (np.array_equal(result, arr))
+        tm.assert_numpy_array_equal(result, arr)
 
         arr = np.array([8., 8., 8., 8., 8.9999999999995])
         result = maybe_downcast_to_dtype(arr, 'infer')
-        expected = np.array([8, 8, 8, 8, 9])
-        assert (np.array_equal(result, expected))
+        expected = np.array([8, 8, 8, 8, 9], dtype=np.int64)
+        tm.assert_numpy_array_equal(result, expected)
 
         arr = np.array([8., 8., 8., 8., 9.0000000000005])
         result = maybe_downcast_to_dtype(arr, 'infer')
-        expected = np.array([8, 8, 8, 8, 9])
-        assert (np.array_equal(result, expected))
+        expected = np.array([8, 8, 8, 8, 9], dtype=np.int64)
+        tm.assert_numpy_array_equal(result, expected)
+
+        # GH16875 coercing of bools
+        ser = Series([True, True, False])
+        result = maybe_downcast_to_dtype(ser, np.dtype(np.float64))
+        expected = ser
+        tm.assert_series_equal(result, expected)
 
         # conversions
 
@@ -90,8 +102,8 @@ class TestMaybeDowncast(object):
 
 class TestInferDtype(object):
 
-    def test_infer_dtype_from_scalar(self):
-        # Test that _infer_dtype_from_scalar is returning correct dtype for int
+    def testinfer_dtype_from_scalar(self):
+        # Test that infer_dtype_from_scalar is returning correct dtype for int
         # and float.
 
         for dtypec in [np.uint8, np.int8, np.uint16, np.int16, np.uint32,
@@ -131,29 +143,93 @@ class TestInferDtype(object):
             dtype, val = infer_dtype_from_scalar(data)
             assert dtype == 'm8[ns]'
 
+        for tz in ['UTC', 'US/Eastern', 'Asia/Tokyo']:
+            dt = Timestamp(1, tz=tz)
+            dtype, val = infer_dtype_from_scalar(dt, pandas_dtype=True)
+            assert dtype == 'datetime64[ns, {0}]'.format(tz)
+            assert val == dt.value
+
+            dtype, val = infer_dtype_from_scalar(dt)
+            assert dtype == np.object_
+            assert val == dt
+
+        for freq in ['M', 'D']:
+            p = Period('2011-01-01', freq=freq)
+            dtype, val = infer_dtype_from_scalar(p, pandas_dtype=True)
+            assert dtype == 'period[{0}]'.format(freq)
+            assert val == p.ordinal
+
+            dtype, val = infer_dtype_from_scalar(p)
+            dtype == np.object_
+            assert val == p
+
+        # misc
         for data in [date(2000, 1, 1),
                      Timestamp(1, tz='US/Eastern'), 'foo']:
+
             dtype, val = infer_dtype_from_scalar(data)
             assert dtype == np.object_
 
-    @pytest.mark.parametrize(
-        "arr, expected",
-        [('foo', np.object_),
-         (b'foo', np.object_),
-         (1, np.int_),
-         (1.5, np.float_),
-         ([1], np.int_),
-         (np.array([1]), np.int_),
-         ([np.nan, 1, ''], np.object_),
-         (np.array([[1.0, 2.0]]), np.float_),
-         (Timestamp('20160101'), np.object_),
-         (np.datetime64('2016-01-01'), np.dtype('<M8[D]')),
-         ])
-    def test_infer_dtype_from_array(self, arr, expected):
+    def testinfer_dtype_from_scalar_errors(self):
+        with pytest.raises(ValueError):
+            infer_dtype_from_scalar(np.array([1]))
 
-        # these infer specifically to numpy dtypes
-        dtype, _ = infer_dtype_from_array(arr)
-        assert dtype == expected
+    @pytest.mark.parametrize(
+        "arr, expected, pandas_dtype",
+        [('foo', np.object_, False),
+         (b'foo', np.object_, False),
+         (1, np.int_, False),
+         (1.5, np.float_, False),
+         ([1], np.int_, False),
+         (np.array([1], dtype=np.int64), np.int64, False),
+         ([np.nan, 1, ''], np.object_, False),
+         (np.array([[1.0, 2.0]]), np.float_, False),
+         (pd.Categorical(list('aabc')), np.object_, False),
+         (pd.Categorical([1, 2, 3]), np.int64, False),
+         (pd.Categorical(list('aabc')), 'category', True),
+         (pd.Categorical([1, 2, 3]), 'category', True),
+         (Timestamp('20160101'), np.object_, False),
+         (np.datetime64('2016-01-01'), np.dtype('<M8[D]'), False),
+         (pd.date_range('20160101', periods=3),
+          np.dtype('<M8[ns]'), False),
+         (pd.date_range('20160101', periods=3, tz='US/Eastern'),
+          'datetime64[ns, US/Eastern]', True),
+         (pd.Series([1., 2, 3]), np.float64, False),
+         (pd.Series(list('abc')), np.object_, False),
+         (pd.Series(pd.date_range('20160101', periods=3, tz='US/Eastern')),
+          'datetime64[ns, US/Eastern]', True)])
+    def test_infer_dtype_from_array(self, arr, expected, pandas_dtype):
+
+        dtype, _ = infer_dtype_from_array(arr, pandas_dtype=pandas_dtype)
+        assert is_dtype_equal(dtype, expected)
+
+    def test_cast_scalar_to_array(self):
+        arr = cast_scalar_to_array((3, 2), 1, dtype=np.int64)
+        exp = np.ones((3, 2), dtype=np.int64)
+        tm.assert_numpy_array_equal(arr, exp)
+
+        arr = cast_scalar_to_array((3, 2), 1.1)
+        exp = np.empty((3, 2), dtype=np.float64)
+        exp.fill(1.1)
+        tm.assert_numpy_array_equal(arr, exp)
+
+        arr = cast_scalar_to_array((2, 3), Timestamp('2011-01-01'))
+        exp = np.empty((2, 3), dtype='datetime64[ns]')
+        exp.fill(np.datetime64('2011-01-01'))
+        tm.assert_numpy_array_equal(arr, exp)
+
+        # pandas dtype is stored as object dtype
+        obj = Timestamp('2011-01-01', tz='US/Eastern')
+        arr = cast_scalar_to_array((2, 3), obj)
+        exp = np.empty((2, 3), dtype=np.object)
+        exp.fill(obj)
+        tm.assert_numpy_array_equal(arr, exp)
+
+        obj = Period('2011-01-01', freq='D')
+        arr = cast_scalar_to_array((2, 3), obj)
+        exp = np.empty((2, 3), dtype=np.object)
+        exp.fill(obj)
+        tm.assert_numpy_array_equal(arr, exp)
 
 
 class TestMaybe(object):
@@ -332,3 +408,17 @@ class TestCommonTypes(object):
                        np.dtype('datetime64[ns]'), np.object, np.int64]:
             assert find_common_type([dtype, dtype2]) == np.object
             assert find_common_type([dtype2, dtype]) == np.object
+
+    @pytest.mark.parametrize('datum1', [1, 2., "3", (4, 5), [6, 7], None])
+    @pytest.mark.parametrize('datum2', [8, 9., "10", (11, 12), [13, 14], None])
+    def test_cast_1d_array(self, datum1, datum2):
+        data = [datum1, datum2]
+        result = construct_1d_object_array_from_listlike(data)
+
+        # Direct comparison fails: https://github.com/numpy/numpy/issues/10218
+        assert result.dtype == 'object'
+        assert list(result) == data
+
+    @pytest.mark.parametrize('val', [1, 2., None])
+    def test_cast_1d_array_invalid_scalar(self, val):
+        pytest.raises(TypeError, construct_1d_object_array_from_listlike, val)

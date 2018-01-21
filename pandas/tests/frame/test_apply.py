@@ -9,10 +9,11 @@ from datetime import datetime
 import warnings
 import numpy as np
 
-from pandas import (notnull, DataFrame, Series, MultiIndex, date_range,
+from pandas import (notna, DataFrame, Series, MultiIndex, date_range,
                     Timestamp, compat)
 import pandas as pd
 from pandas.core.dtypes.dtypes import CategoricalDtype
+from pandas.core.apply import frame_apply
 from pandas.util.testing import (assert_series_equal,
                                  assert_frame_equal)
 import pandas.util.testing as tm
@@ -153,8 +154,9 @@ class TestDataFrameApply(TestData):
         assert tapplied[d] == np.mean(self.frame.xs(d))
 
     def test_apply_ignore_failures(self):
-        result = self.mixed_frame._apply_standard(np.mean, 0,
-                                                  ignore_failures=True)
+        result = frame_apply(self.mixed_frame,
+                             np.mean, 0,
+                             ignore_failures=True).apply_standard()
         expected = self.mixed_frame._get_numeric_data().apply(np.mean)
         assert_series_equal(result, expected)
 
@@ -278,7 +280,7 @@ class TestDataFrameApply(TestData):
             return row
 
         def transform2(row):
-            if (notnull(row['C']) and row['C'].startswith('shin') and
+            if (notna(row['C']) and row['C'].startswith('shin') and
                     row['A'] == 'foo'):
                 row['D'] = 7
             return row
@@ -635,3 +637,48 @@ class TestDataFrameAggregate(TestData):
         expected = DataFrame([[6, 6., 'foobarbaz']],
                              index=['sum'], columns=['A', 'B', 'C'])
         assert_frame_equal(result, expected)
+
+    def test_non_callable_aggregates(self):
+
+        # GH 16405
+        # 'size' is a property of frame/series
+        # validate that this is working
+        df = DataFrame({'A': [None, 2, 3],
+                        'B': [1.0, np.nan, 3.0],
+                        'C': ['foo', None, 'bar']})
+
+        # Function aggregate
+        result = df.agg({'A': 'count'})
+        expected = pd.Series({'A': 2})
+
+        assert_series_equal(result, expected)
+
+        # Non-function aggregate
+        result = df.agg({'A': 'size'})
+        expected = pd.Series({'A': 3})
+
+        assert_series_equal(result, expected)
+
+        # Mix function and non-function aggs
+        result1 = df.agg(['count', 'size'])
+        result2 = df.agg({'A': ['count', 'size'],
+                          'B': ['count', 'size'],
+                          'C': ['count', 'size']})
+        expected = pd.DataFrame({'A': {'count': 2, 'size': 3},
+                                 'B': {'count': 2, 'size': 3},
+                                 'C': {'count': 2, 'size': 3}})
+
+        assert_frame_equal(result1, result2, check_like=True)
+        assert_frame_equal(result2, expected, check_like=True)
+
+        # Just functional string arg is same as calling df.arg()
+        result = df.agg('count')
+        expected = df.count()
+
+        assert_series_equal(result, expected)
+
+        # Just a string attribute arg same as calling df.arg
+        result = df.agg('size')
+        expected = df.size
+
+        assert result == expected

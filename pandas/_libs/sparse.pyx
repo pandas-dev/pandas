@@ -1,5 +1,5 @@
 from numpy cimport (ndarray, uint8_t, int64_t, int32_t, int16_t, int8_t,
-                    float64_t, float32_t, float16_t)
+                    float64_t, float32_t)
 cimport numpy as np
 
 cimport cython
@@ -12,10 +12,8 @@ from distutils.version import LooseVersion
 
 # numpy versioning
 _np_version = np.version.short_version
-_np_version_under1p8 = LooseVersion(_np_version) < '1.8'
-_np_version_under1p9 = LooseVersion(_np_version) < '1.9'
-_np_version_under1p10 = LooseVersion(_np_version) < '1.10'
-_np_version_under1p11 = LooseVersion(_np_version) < '1.11'
+_np_version_under1p10 = LooseVersion(_np_version) < LooseVersion('1.10')
+_np_version_under1p11 = LooseVersion(_np_version) < LooseVersion('1.11')
 
 np.import_array()
 np.import_ufunc()
@@ -330,7 +328,7 @@ cdef class BlockIndex(SparseIndex):
         ndarray blocs, blengths
 
     cdef:
-        object __weakref__ # need to be picklable
+        object __weakref__  # need to be picklable
         int32_t *locbuf
         int32_t *lenbuf
 
@@ -488,7 +486,7 @@ cdef class BlockIndex(SparseIndex):
                     cur_length = xlen[xi]
                     xi += 1
 
-            else: # xloc[xi] < yloc[yi]
+            else:  # xloc[xi] < yloc[yi]
                 cur_loc = yloc[yi]
                 diff = yloc[yi] - xloc[xi]
 
@@ -631,7 +629,7 @@ cdef class BlockMerge(object):
     cdef:
         BlockIndex x, y, result
         ndarray xstart, xlen, xend, ystart, ylen, yend
-        int32_t xi, yi # block indices
+        int32_t xi, yi  # block indices
 
     def __init__(self, BlockIndex x, BlockIndex y):
         self.x = x
@@ -850,3 +848,22 @@ def reindex_integer(ndarray[float64_t, ndim=1] values,
                     IntIndex sparse_index,
                     ndarray[int32_t, ndim=1] indexer):
     pass
+
+
+# -----------------------------------------------------------------------------
+# SparseArray mask create operations
+
+def make_mask_object_ndarray(ndarray[object, ndim=1] arr, object fill_value):
+    cdef object value
+    cdef Py_ssize_t i
+    cdef Py_ssize_t new_length = len(arr)
+    cdef ndarray[int8_t, ndim=1] mask
+
+    mask = np.ones(new_length, dtype=np.int8)
+
+    for i in range(new_length):
+        value = arr[i]
+        if value == fill_value and type(value) == type(fill_value):
+            mask[i] = 0
+
+    return mask.view(dtype=np.bool)

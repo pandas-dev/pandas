@@ -28,9 +28,10 @@ from pandas.core.computation.ops import (
 
 import pandas.core.computation.expr as expr
 import pandas.util.testing as tm
+import pandas.util._test_decorators as td
 from pandas.util.testing import (assert_frame_equal, randbool,
                                  assert_numpy_array_equal, assert_series_equal,
-                                 assert_produces_warning, slow)
+                                 assert_produces_warning)
 from pandas.compat import PY3, reduce
 
 _series_frame_incompatible = _bool_ops_syms
@@ -38,13 +39,14 @@ _scalar_skip = 'in', 'not in'
 
 
 @pytest.fixture(params=(
-    pytest.mark.skipif(engine == 'numexpr' and not _USE_NUMEXPR,
-                       reason='numexpr enabled->{enabled}, '
-                              'installed->{installed}'.format(
-                                  enabled=_USE_NUMEXPR,
-                                  installed=_NUMEXPR_INSTALLED))(engine)
-                       for engine in _engines  # noqa
-))
+    pytest.param(engine,
+                 marks=pytest.mark.skipif(
+                     engine == 'numexpr' and not _USE_NUMEXPR,
+                     reason='numexpr enabled->{enabled}, '
+                            'installed->{installed}'.format(
+                                enabled=_USE_NUMEXPR,
+                                installed=_NUMEXPR_INSTALLED)))
+                 for engine in _engines))  # noqa
 def engine(request):
     return request.param
 
@@ -95,11 +97,11 @@ def _is_py3_complex_incompat(result, expected):
 _good_arith_ops = com.difference(_arith_ops_syms, _special_case_arith_ops_syms)
 
 
+@td.skip_if_no_ne
 class TestEvalNumexprPandas(object):
 
     @classmethod
     def setup_class(cls):
-        tm.skip_if_no_ne()
         import numexpr as ne
         cls.ne = ne
         cls.engine = 'numexpr'
@@ -144,7 +146,7 @@ class TestEvalNumexprPandas(object):
         del self.lhses, self.rhses, self.scalar_rhses, self.scalar_lhses
         del self.pandas_rhses, self.pandas_lhses, self.current_engines
 
-    @slow
+    @pytest.mark.slow
     def test_complex_cmp_ops(self):
         cmp_ops = ('!=', '==', '<=', '>=', '<', '>')
         cmp2_ops = ('>', '<')
@@ -161,7 +163,7 @@ class TestEvalNumexprPandas(object):
         for lhs, rhs, cmp_op in product(bool_lhses, bool_rhses, self.cmp_ops):
             self.check_simple_cmp_op(lhs, cmp_op, rhs)
 
-    @slow
+    @pytest.mark.slow
     def test_binary_arith_ops(self):
         for lhs, op, rhs in product(self.lhses, self.arith_ops, self.rhses):
             self.check_binary_arith_op(lhs, op, rhs)
@@ -174,24 +176,23 @@ class TestEvalNumexprPandas(object):
         for lhs, rhs in product(self.lhses, self.rhses):
             self.check_floor_division(lhs, '//', rhs)
 
+    @td.skip_if_windows
     def test_pow(self):
-        tm._skip_if_windows()
-
         # odd failure on win32 platform, so skip
         for lhs, rhs in product(self.lhses, self.rhses):
             self.check_pow(lhs, '**', rhs)
 
-    @slow
+    @pytest.mark.slow
     def test_single_invert_op(self):
         for lhs, op, rhs in product(self.lhses, self.cmp_ops, self.rhses):
             self.check_single_invert_op(lhs, op, rhs)
 
-    @slow
+    @pytest.mark.slow
     def test_compound_invert_op(self):
         for lhs, op, rhs in product(self.lhses, self.cmp_ops, self.rhses):
             self.check_compound_invert_op(lhs, op, rhs)
 
-    @slow
+    @pytest.mark.slow
     def test_chained_cmp_op(self):
         mids = self.lhses
         cmp_ops = '<', '>'
@@ -373,7 +374,6 @@ class TestEvalNumexprPandas(object):
             tm.assert_almost_equal(expected, result)
 
             for engine in self.current_engines:
-                tm.skip_if_no_ne(engine)
                 tm.assert_almost_equal(result, pd.eval('~elb', engine=engine,
                                                        parser=self.parser))
 
@@ -399,7 +399,6 @@ class TestEvalNumexprPandas(object):
 
             # make sure the other engines work the same as this one
             for engine in self.current_engines:
-                tm.skip_if_no_ne(engine)
                 ev = pd.eval(ex, engine=self.engine, parser=self.parser)
                 tm.assert_almost_equal(ev, result)
 
@@ -717,13 +716,25 @@ class TestEvalNumexprPandas(object):
         expected = df.loc[[1], :]
         tm.assert_frame_equal(expected, result)
 
+    def test_disallow_python_keywords(self):
+        # GH 18221
+        df = pd.DataFrame([[0, 0, 0]], columns=['foo', 'bar', 'class'])
+        msg = "Python keyword not valid identifier in numexpr query"
+        with tm.assert_raises_regex(SyntaxError, msg):
+            df.query('class == 0')
 
+        df = pd.DataFrame()
+        df.index.name = 'lambda'
+        with tm.assert_raises_regex(SyntaxError, msg):
+            df.query('lambda == 0')
+
+
+@td.skip_if_no_ne
 class TestEvalNumexprPython(TestEvalNumexprPandas):
 
     @classmethod
     def setup_class(cls):
         super(TestEvalNumexprPython, cls).setup_class()
-        tm.skip_if_no_ne()
         import numexpr as ne
         cls.ne = ne
         cls.engine = 'numexpr'
@@ -870,7 +881,7 @@ class TestAlignment(object):
             res = pd.eval('df < df3', engine=engine, parser=parser)
             assert_frame_equal(res, df < df3)
 
-    @slow
+    @pytest.mark.slow
     def test_medium_complex_frame_alignment(self, engine, parser):
         args = product(self.lhs_index_types, self.index_types,
                        self.index_types, self.index_types)
@@ -974,7 +985,7 @@ class TestAlignment(object):
                     if engine == 'numexpr':
                         assert_frame_equal(a, b)
 
-    @slow
+    @pytest.mark.slow
     def test_complex_series_frame_alignment(self, engine, parser):
         import random
         args = product(self.lhs_index_types, self.index_types,
@@ -1065,11 +1076,11 @@ class TestAlignment(object):
 # ------------------------------------
 # Slightly more complex ops
 
+@td.skip_if_no_ne
 class TestOperationsNumExprPandas(object):
 
     @classmethod
     def setup_class(cls):
-        tm.skip_if_no_ne()
         cls.engine = 'numexpr'
         cls.parser = 'pandas'
         cls.arith_ops = expr._arith_ops_syms + expr._cmp_ops_syms
@@ -1311,14 +1322,6 @@ class TestOperationsNumExprPandas(object):
         expected['c'] = expected['a'] + expected['b']
         tm.assert_frame_equal(df, expected)
 
-        # Default for inplace will change
-        with tm.assert_produces_warnings(FutureWarning):
-            df.eval('c = a + b')
-
-        # but don't warn without assignment
-        with tm.assert_produces_warnings(None):
-            df.eval('a + b')
-
     def test_multi_line_expression(self):
         # GH 11149
         df = pd.DataFrame({'a': [1, 2, 3], 'b': [4, 5, 6]})
@@ -1388,13 +1391,51 @@ class TestOperationsNumExprPandas(object):
             df.query('a = 1')
         assert_frame_equal(df, df_orig)
 
-    def query_inplace(self):
-        # GH 11149
+    def test_query_inplace(self):
+        # see gh-11149
         df = pd.DataFrame({'a': [1, 2, 3], 'b': [4, 5, 6]})
         expected = df.copy()
         expected = expected[expected['a'] == 2]
         df.query('a == 2', inplace=True)
         assert_frame_equal(expected, df)
+
+        df = {}
+        expected = {"a": 3}
+
+        self.eval("a = 1 + 2", target=df, inplace=True)
+        tm.assert_dict_equal(df, expected)
+
+    @pytest.mark.parametrize("invalid_target", [1, "cat", [1, 2],
+                                                np.array([]), (1, 3)])
+    def test_cannot_item_assign(self, invalid_target):
+        msg = "Cannot assign expression output to target"
+        expression = "a = 1 + 2"
+
+        with tm.assert_raises_regex(ValueError, msg):
+            self.eval(expression, target=invalid_target, inplace=True)
+
+        if hasattr(invalid_target, "copy"):
+            with tm.assert_raises_regex(ValueError, msg):
+                self.eval(expression, target=invalid_target, inplace=False)
+
+    @pytest.mark.parametrize("invalid_target", [1, "cat", (1, 3)])
+    def test_cannot_copy_item(self, invalid_target):
+        msg = "Cannot return a copy of the target"
+        expression = "a = 1 + 2"
+
+        with tm.assert_raises_regex(ValueError, msg):
+            self.eval(expression, target=invalid_target, inplace=False)
+
+    @pytest.mark.parametrize("target", [1, "cat", [1, 2],
+                                        np.array([]), (1, 3), {1: 2}])
+    def test_inplace_no_assignment(self, target):
+        expression = "1 + 2"
+
+        assert self.eval(expression, target=target, inplace=False) == 3
+
+        msg = "Cannot operate inplace if there is no assignment"
+        with tm.assert_raises_regex(ValueError, msg):
+            self.eval(expression, target=target, inplace=True)
 
     def test_basic_period_index_boolean_expression(self):
         df = mkdf(2, 2, data_gen_f=f, c_idx_type='p', r_idx_type='i')
@@ -1485,6 +1526,7 @@ class TestOperationsNumExprPandas(object):
                         parser=self.parser)
 
 
+@td.skip_if_no_ne
 class TestOperationsNumExprPython(TestOperationsNumExprPandas):
 
     @classmethod
@@ -1492,7 +1534,6 @@ class TestOperationsNumExprPython(TestOperationsNumExprPandas):
         super(TestOperationsNumExprPython, cls).setup_class()
         cls.engine = 'numexpr'
         cls.parser = 'python'
-        tm.skip_if_no_ne(cls.engine)
         cls.arith_ops = expr._arith_ops_syms + expr._cmp_ops_syms
         cls.arith_ops = filter(lambda x: x not in ('in', 'not in'),
                                cls.arith_ops)
@@ -1580,11 +1621,11 @@ class TestOperationsPythonPandas(TestOperationsNumExprPandas):
         cls.arith_ops = expr._arith_ops_syms + expr._cmp_ops_syms
 
 
+@td.skip_if_no_ne
 class TestMathPythonPython(object):
 
     @classmethod
     def setup_class(cls):
-        tm.skip_if_no_ne()
         cls.engine = 'python'
         cls.parser = 'pandas'
         cls.unary_fns = _unary_math_ops
@@ -1739,15 +1780,15 @@ class TestScope(object):
         assert gbls == gbls2
 
 
+@td.skip_if_no_ne
 def test_invalid_engine():
-    tm.skip_if_no_ne()
     tm.assert_raises_regex(KeyError, 'Invalid engine \'asdf\' passed',
                            pd.eval, 'x + y', local_dict={'x': 1, 'y': 2},
                            engine='asdf')
 
 
+@td.skip_if_no_ne
 def test_invalid_parser():
-    tm.skip_if_no_ne()
     tm.assert_raises_regex(KeyError, 'Invalid parser \'asdf\' passed',
                            pd.eval, 'x + y', local_dict={'x': 1, 'y': 2},
                            parser='asdf')
@@ -1757,10 +1798,9 @@ _parsers = {'python': PythonExprVisitor, 'pytables': pytables.ExprVisitor,
             'pandas': PandasExprVisitor}
 
 
-@pytest.mark.parametrize('engine', _parsers)
+@pytest.mark.parametrize('engine', _engines)
 @pytest.mark.parametrize('parser', _parsers)
 def test_disallowed_nodes(engine, parser):
-    tm.skip_if_no_ne(engine)
     VisitorClass = _parsers[parser]
     uns_ops = VisitorClass.unsupported_nodes
     inst = VisitorClass('x + 1', engine, parser)

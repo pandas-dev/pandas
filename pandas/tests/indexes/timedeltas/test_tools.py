@@ -6,8 +6,7 @@ import numpy as np
 import pandas as pd
 import pandas.util.testing as tm
 from pandas.util.testing import assert_series_equal
-from pandas import (Series, Timedelta, to_timedelta, isnull,
-                    TimedeltaIndex)
+from pandas import Series, to_timedelta, isna, TimedeltaIndex
 from pandas._libs.tslib import iNaT
 
 
@@ -31,7 +30,7 @@ class TestTimedeltas(object):
         assert result.astype('int64') == iNaT
 
         result = to_timedelta(['', ''])
-        assert isnull(result).all()
+        assert isna(result).all()
 
         # pass thru
         result = to_timedelta(np.array([np.timedelta64(1, 's')]))
@@ -174,28 +173,3 @@ class TestTimedeltas(object):
 
         actual = pd.to_timedelta(pd.NaT)
         assert actual.value == timedelta_NaT.astype('int64')
-
-    def test_to_timedelta_on_nanoseconds(self):
-        # GH 9273
-        result = Timedelta(nanoseconds=100)
-        expected = Timedelta('100ns')
-        assert result == expected
-
-        result = Timedelta(days=1, hours=1, minutes=1, weeks=1, seconds=1,
-                           milliseconds=1, microseconds=1, nanoseconds=1)
-        expected = Timedelta(694861001001001)
-        assert result == expected
-
-        result = Timedelta(microseconds=1) + Timedelta(nanoseconds=1)
-        expected = Timedelta('1us1ns')
-        assert result == expected
-
-        result = Timedelta(microseconds=1) - Timedelta(nanoseconds=1)
-        expected = Timedelta('999ns')
-        assert result == expected
-
-        result = Timedelta(microseconds=1) + 5 * Timedelta(nanoseconds=-2)
-        expected = Timedelta('990ns')
-        assert result == expected
-
-        pytest.raises(TypeError, lambda: Timedelta(nanoseconds='abc'))

@@ -20,7 +20,7 @@ from pandas.core.dtypes.common import (
     _ensure_float64)
 
 from pandas.core.dtypes.cast import infer_dtype_from_array
-from pandas.core.dtypes.missing import isnull
+from pandas.core.dtypes.missing import isna
 
 
 def mask_missing(arr, values_to_mask):
@@ -36,7 +36,7 @@ def mask_missing(arr, values_to_mask):
     except Exception:
         values_to_mask = np.array(values_to_mask, dtype=object)
 
-    na_mask = isnull(values_to_mask)
+    na_mask = isna(values_to_mask)
     nonna = values_to_mask[~na_mask]
 
     mask = None
@@ -63,9 +63,9 @@ def mask_missing(arr, values_to_mask):
 
     if na_mask.any():
         if mask is None:
-            mask = isnull(arr)
+            mask = isna(arr)
         else:
-            mask |= isnull(arr)
+            mask |= isna(arr)
 
     return mask
 
@@ -88,8 +88,8 @@ def clean_fill_method(method, allow_nearest=False):
         valid_methods.append('nearest')
         expecting = 'pad (ffill), backfill (bfill) or nearest'
     if method not in valid_methods:
-        msg = ('Invalid fill method. Expecting %s. Got %s' %
-               (expecting, method))
+        msg = ('Invalid fill method. Expecting {expecting}. Got {method}'
+               .format(expecting=expecting, method=method))
         raise ValueError(msg)
     return method
 
@@ -104,8 +104,8 @@ def clean_interp_method(method, **kwargs):
         raise ValueError("You must specify the order of the spline or "
                          "polynomial.")
     if method not in valid:
-        raise ValueError("method must be one of {0}."
-                         "Got '{1}' instead.".format(valid, method))
+        raise ValueError("method must be one of {valid}. Got '{method}' "
+                         "instead.".format(valid=valid, method=method))
 
     return method
 
@@ -122,12 +122,12 @@ def interpolate_1d(xvalues, yvalues, method='linear', limit=None,
     """
     # Treat the original, non-scipy methods first.
 
-    invalid = isnull(yvalues)
+    invalid = isna(yvalues)
     valid = ~invalid
 
     if not valid.any():
         # have to call np.asarray(xvalues) since xvalues could be an Index
-        # which cant be mutated
+        # which can't be mutated
         result = np.empty_like(np.asarray(xvalues), dtype=np.float64)
         result.fill(np.nan)
         return result
@@ -143,17 +143,13 @@ def interpolate_1d(xvalues, yvalues, method='linear', limit=None,
                              'DatetimeIndex')
         method = 'values'
 
-    def _interp_limit(invalid, fw_limit, bw_limit):
-        "Get idx of values that won't be filled b/c they exceed the limits."
-        for x in np.where(invalid)[0]:
-            if invalid[max(0, x - fw_limit):x + bw_limit + 1].all():
-                yield x
-
     valid_limit_directions = ['forward', 'backward', 'both']
     limit_direction = limit_direction.lower()
     if limit_direction not in valid_limit_directions:
-        raise ValueError('Invalid limit_direction: expecting one of {}, got '
-                         '{}.'.format(valid_limit_directions, limit_direction))
+        msg = ('Invalid limit_direction: expecting one of {valid!r}, '
+               'got {invalid!r}.')
+        raise ValueError(msg.format(valid=valid_limit_directions,
+                                    invalid=limit_direction))
 
     if limit_area is not None:
         valid_limit_areas = ['inside', 'outside']
@@ -164,7 +160,8 @@ def interpolate_1d(xvalues, yvalues, method='linear', limit=None,
 
     # default limit is unlimited GH #16282
     if limit is None:
-        limit = len(xvalues)
+        # limit = len(xvalues)
+        pass
     elif not is_integer(limit):
         raise ValueError('Limit must be an integer')
     elif limit < 1:
@@ -258,7 +255,8 @@ def _interpolate_scipy_wrapper(x, y, new_x, method, fill_value=None,
         # TODO: Why is DatetimeIndex being imported here?
         from pandas import DatetimeIndex  # noqa
     except ImportError:
-        raise ImportError('{0} interpolation requires Scipy'.format(method))
+        raise ImportError('{method} interpolation requires SciPy'
+                          .format(method=method))
 
     new_x = np.asarray(new_x)
 
@@ -354,7 +352,7 @@ def _from_derivatives(xi, yi, x, order=None, der=0, extrapolate=False):
     import scipy
     from scipy import interpolate
 
-    if LooseVersion(scipy.__version__) < '0.18.0':
+    if LooseVersion(scipy.__version__) < LooseVersion('0.18.0'):
         try:
             method = interpolate.piecewise_polynomial_interpolate
             return method(xi, yi.reshape(-1, 1), x,
@@ -476,7 +474,8 @@ def pad_1d(values, limit=None, mask=None, dtype=None):
         dtype = values.dtype
     _method = None
     if is_float_dtype(values):
-        _method = getattr(algos, 'pad_inplace_%s' % dtype.name, None)
+        name = 'pad_inplace_{name}'.format(name=dtype.name)
+        _method = getattr(algos, name, None)
     elif is_datetime64_dtype(dtype) or is_datetime64tz_dtype(dtype):
         _method = _pad_1d_datetime
     elif is_integer_dtype(values):
@@ -486,10 +485,11 @@ def pad_1d(values, limit=None, mask=None, dtype=None):
         _method = algos.pad_inplace_object
 
     if _method is None:
-        raise ValueError('Invalid dtype for pad_1d [%s]' % dtype.name)
+        raise ValueError('Invalid dtype for pad_1d [{name}]'
+                         .format(name=dtype.name))
 
     if mask is None:
-        mask = isnull(values)
+        mask = isna(values)
     mask = mask.view(np.uint8)
     _method(values, mask, limit=limit)
     return values
@@ -500,7 +500,8 @@ def backfill_1d(values, limit=None, mask=None, dtype=None):
         dtype = values.dtype
     _method = None
     if is_float_dtype(values):
-        _method = getattr(algos, 'backfill_inplace_%s' % dtype.name, None)
+        name = 'backfill_inplace_{name}'.format(name=dtype.name)
+        _method = getattr(algos, name, None)
     elif is_datetime64_dtype(dtype) or is_datetime64tz_dtype(dtype):
         _method = _backfill_1d_datetime
     elif is_integer_dtype(values):
@@ -510,10 +511,11 @@ def backfill_1d(values, limit=None, mask=None, dtype=None):
         _method = algos.backfill_inplace_object
 
     if _method is None:
-        raise ValueError('Invalid dtype for backfill_1d [%s]' % dtype.name)
+        raise ValueError('Invalid dtype for backfill_1d [{name}]'
+                         .format(name=dtype.name))
 
     if mask is None:
-        mask = isnull(values)
+        mask = isna(values)
     mask = mask.view(np.uint8)
 
     _method(values, mask, limit=limit)
@@ -525,7 +527,8 @@ def pad_2d(values, limit=None, mask=None, dtype=None):
         dtype = values.dtype
     _method = None
     if is_float_dtype(values):
-        _method = getattr(algos, 'pad_2d_inplace_%s' % dtype.name, None)
+        name = 'pad_2d_inplace_{name}'.format(name=dtype.name)
+        _method = getattr(algos, name, None)
     elif is_datetime64_dtype(dtype) or is_datetime64tz_dtype(dtype):
         _method = _pad_2d_datetime
     elif is_integer_dtype(values):
@@ -535,10 +538,11 @@ def pad_2d(values, limit=None, mask=None, dtype=None):
         _method = algos.pad_2d_inplace_object
 
     if _method is None:
-        raise ValueError('Invalid dtype for pad_2d [%s]' % dtype.name)
+        raise ValueError('Invalid dtype for pad_2d [{name}]'
+                         .format(name=dtype.name))
 
     if mask is None:
-        mask = isnull(values)
+        mask = isna(values)
     mask = mask.view(np.uint8)
 
     if np.all(values.shape):
@@ -554,7 +558,8 @@ def backfill_2d(values, limit=None, mask=None, dtype=None):
         dtype = values.dtype
     _method = None
     if is_float_dtype(values):
-        _method = getattr(algos, 'backfill_2d_inplace_%s' % dtype.name, None)
+        name = 'backfill_2d_inplace_{name}'.format(name=dtype.name)
+        _method = getattr(algos, name, None)
     elif is_datetime64_dtype(dtype) or is_datetime64tz_dtype(dtype):
         _method = _backfill_2d_datetime
     elif is_integer_dtype(values):
@@ -564,10 +569,11 @@ def backfill_2d(values, limit=None, mask=None, dtype=None):
         _method = algos.backfill_2d_inplace_object
 
     if _method is None:
-        raise ValueError('Invalid dtype for backfill_2d [%s]' % dtype.name)
+        raise ValueError('Invalid dtype for backfill_2d [{name}]'
+                         .format(name=dtype.name))
 
     if mask is None:
-        mask = isnull(values)
+        mask = isna(values)
     mask = mask.view(np.uint8)
 
     if np.all(values.shape):
@@ -642,3 +648,58 @@ def fill_zeros(result, x, y, name, fill):
             result = result.reshape(shape)
 
     return result
+
+
+def _interp_limit(invalid, fw_limit, bw_limit):
+    """Get idx of values that won't be filled b/c they exceed the limits.
+
+    This is equivalent to the more readable, but slower
+
+    .. code-block:: python
+
+       for x in np.where(invalid)[0]:
+           if invalid[max(0, x - fw_limit):x + bw_limit + 1].all():
+               yield x
+    """
+    # handle forward first; the backward direction is the same except
+    # 1. operate on the reversed array
+    # 2. subtract the returned indicies from N - 1
+    N = len(invalid)
+
+    def inner(invalid, limit):
+        limit = min(limit, N)
+        windowed = _rolling_window(invalid, limit + 1).all(1)
+        idx = (set(np.where(windowed)[0] + limit) |
+               set(np.where((~invalid[:limit + 1]).cumsum() == 0)[0]))
+        return idx
+
+    if fw_limit == 0:
+        f_idx = set(np.where(invalid)[0])
+    else:
+        f_idx = inner(invalid, fw_limit)
+
+    if bw_limit == 0:
+        # then we don't even need to care about backwards, just use forwards
+        return f_idx
+    else:
+        b_idx = set(N - 1 - np.asarray(list(inner(invalid[::-1], bw_limit))))
+        if fw_limit == 0:
+            return b_idx
+    return f_idx & b_idx
+
+
+def _rolling_window(a, window):
+    """
+    [True, True, False, True, False], 2 ->
+
+    [
+        [True,  True],
+        [True, False],
+        [False, True],
+        [True, False],
+    ]
+    """
+    # https://stackoverflow.com/a/6811241
+    shape = a.shape[:-1] + (a.shape[-1] - window + 1, window)
+    strides = a.strides + (a.strides[-1],)
+    return np.lib.stride_tricks.as_strided(a, shape=shape, strides=strides)

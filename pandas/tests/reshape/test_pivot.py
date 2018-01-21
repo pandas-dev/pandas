@@ -1,3 +1,4 @@
+
 from datetime import datetime, date, timedelta
 
 import pytest
@@ -8,11 +9,11 @@ import numpy as np
 from collections import OrderedDict
 import pandas as pd
 from pandas import (DataFrame, Series, Index, MultiIndex,
-                    Grouper, date_range, concat)
+                    Grouper, date_range, concat, Categorical)
 from pandas.core.reshape.pivot import pivot_table, crosstab
 from pandas.compat import range, product
 import pandas.util.testing as tm
-from pandas.tseries.util import pivot_annual, isleapyear
+from pandas.api.types import CategoricalDtype as CDT
 
 
 class TestPivotTable(object):
@@ -90,6 +91,24 @@ class TestPivotTable(object):
         tm.assert_index_equal(pv_col.columns, m)
         tm.assert_index_equal(pv_ind.index, m)
 
+    def test_pivot_table_categorical(self):
+
+        raw_cat1 = Categorical(["a", "a", "b", "b"],
+                               categories=["a", "b", "z"], ordered=True)
+        raw_cat2 = Categorical(["c", "d", "c", "d"],
+                               categories=["c", "d", "y"], ordered=True)
+        df = DataFrame({"A": raw_cat1, "B": raw_cat2, "values": [1, 2, 3, 4]})
+        result = pd.pivot_table(df, values='values', index=['A', 'B'])
+
+        exp_index = pd.MultiIndex.from_product(
+            [Categorical(["a", "b", "z"], ordered=True),
+             Categorical(["c", "d", "y"], ordered=True)],
+            names=['A', 'B'])
+        expected = DataFrame(
+            {'values': [1, 2, np.nan, 3, 4, np.nan, np.nan, np.nan, np.nan]},
+            index=exp_index)
+        tm.assert_frame_equal(result, expected)
+
     def test_pivot_table_dropna_categoricals(self):
         # GH 15193
         categories = ['a', 'b', 'c', 'd']
@@ -98,13 +117,12 @@ class TestPivotTable(object):
                         'B': [1, 2, 3, 1, 2, 3, 1, 2, 3],
                         'C': range(0, 9)})
 
-        df['A'] = df['A'].astype('category', ordered=False,
-                                 categories=categories)
+        df['A'] = df['A'].astype(CDT(categories, ordered=False))
         result_true = df.pivot_table(index='B', columns='A', values='C',
                                      dropna=True)
         expected_columns = Series(['a', 'b', 'c'], name='A')
-        expected_columns = expected_columns.astype('category', ordered=False,
-                                                   categories=categories)
+        expected_columns = expected_columns.astype(
+            CDT(categories, ordered=False))
         expected_index = Series([1, 2, 3], name='B')
         expected_true = DataFrame([[0.0, 3.0, 6.0],
                                    [1.0, 4.0, 7.0],
@@ -115,7 +133,9 @@ class TestPivotTable(object):
 
         result_false = df.pivot_table(index='B', columns='A', values='C',
                                       dropna=False)
-        expected_columns = Series(['a', 'b', 'c', 'd'], name='A')
+        expected_columns = (
+            Series(['a', 'b', 'c', 'd'], name='A').astype('category')
+        )
         expected_false = DataFrame([[0.0, 3.0, 6.0, np.NaN],
                                     [1.0, 4.0, 7.0, np.NaN],
                                     [2.0, 5.0, 8.0, np.NaN]],
@@ -166,6 +186,24 @@ class TestPivotTable(object):
         result = z.get_dtype_counts()
         expected = Series(dict(float64=2))
         tm.assert_series_equal(result, expected)
+
+    @pytest.mark.parametrize('columns,values',
+                             [('bool1', ['float1', 'float2']),
+                              ('bool1', ['float1', 'float2', 'bool1']),
+                              ('bool2', ['float1', 'float2', 'bool1'])])
+    def test_pivot_preserve_dtypes(self, columns, values):
+        # GH 7142 regression test
+        v = np.arange(5, dtype=np.float64)
+        df = DataFrame({'float1': v, 'float2': v + 2.0,
+                        'bool1': v <= 2, 'bool2': v <= 3})
+
+        df_res = df.reset_index().pivot_table(
+            index='index', columns=columns, values=values)
+
+        result = dict(df_res.dtypes)
+        expected = {col: np.dtype('O') if col[0].startswith('b')
+                    else np.dtype('float64') for col in df_res}
+        assert result == expected
 
     def test_pivot_no_values(self):
         # GH 14380
@@ -249,7 +287,7 @@ class TestPivotTable(object):
         df.loc[1, 'b'] = df.loc[4, 'b'] = nan
 
         pv = df.pivot('a', 'b', 'c')
-        assert pv.notnull().values.sum() == len(df)
+        assert pv.notna().values.sum() == len(df)
 
         for _, row in df.iterrows():
             assert pv.loc[row['a'], row['b']] == row['c']
@@ -440,6 +478,41 @@ class TestPivotTable(object):
                                       aggfunc='sum', margins=True)
 
         tm.assert_frame_equal(result['SALARY'], expected['SALARY'])
+
+    def test_margins_dtype(self):
+        # GH 17013
+
+        df = self.data.copy()
+        df[['D', 'E', 'F']] = np.arange(len(df) * 3).reshape(len(df), 3)
+
+        mi_val = list(product(['bar', 'foo'], ['one', 'two'])) + [('All', '')]
+        mi = MultiIndex.from_tuples(mi_val, names=('A', 'B'))
+        expected = DataFrame({'dull': [12, 21, 3, 9, 45],
+                              'shiny': [33, 0, 36, 51, 120]},
+                             index=mi).rename_axis('C', axis=1)
+        expected['All'] = expected['dull'] + expected['shiny']
+
+        result = df.pivot_table(values='D', index=['A', 'B'],
+                                       columns='C', margins=True,
+                                       aggfunc=np.sum, fill_value=0)
+
+        tm.assert_frame_equal(expected, result)
+
+    @pytest.mark.xfail(reason='GH 17035 (len of floats is casted back to '
+                              'floats)')
+    def test_margins_dtype_len(self):
+        mi_val = list(product(['bar', 'foo'], ['one', 'two'])) + [('All', '')]
+        mi = MultiIndex.from_tuples(mi_val, names=('A', 'B'))
+        expected = DataFrame({'dull': [1, 1, 2, 1, 5],
+                              'shiny': [2, 0, 2, 2, 6]},
+                             index=mi).rename_axis('C', axis=1)
+        expected['All'] = expected['dull'] + expected['shiny']
+
+        result = self.data.pivot_table(values='D', index=['A', 'B'],
+                                       columns='C', margins=True,
+                                       aggfunc=len, fill_value=0)
+
+        tm.assert_frame_equal(expected, result)
 
     def test_pivot_integer_columns(self):
         # caused by upstream bug in unstack
@@ -835,6 +908,40 @@ class TestPivotTable(object):
                              index=['X', 'Y'], columns=exp_col)
         tm.assert_frame_equal(result, expected)
 
+    def test_daily(self):
+        rng = date_range('1/1/2000', '12/31/2004', freq='D')
+        ts = Series(np.random.randn(len(rng)), index=rng)
+
+        annual = pivot_table(DataFrame(ts), index=ts.index.year,
+                             columns=ts.index.dayofyear)
+        annual.columns = annual.columns.droplevel(0)
+
+        doy = np.asarray(ts.index.dayofyear)
+
+        for i in range(1, 367):
+            subset = ts[doy == i]
+            subset.index = subset.index.year
+
+            result = annual[i].dropna()
+            tm.assert_series_equal(result, subset, check_names=False)
+            assert result.name == i
+
+    def test_monthly(self):
+        rng = date_range('1/1/2000', '12/31/2004', freq='M')
+        ts = Series(np.random.randn(len(rng)), index=rng)
+
+        annual = pivot_table(pd.DataFrame(ts), index=ts.index.year,
+                             columns=ts.index.month)
+        annual.columns = annual.columns.droplevel(0)
+
+        month = ts.index.month
+        for i in range(1, 13):
+            subset = ts[month == i]
+            subset.index = subset.index.year
+            result = annual[i].dropna()
+            tm.assert_series_equal(result, subset, check_names=False)
+            assert result.name == i
+
     def test_pivot_table_with_iterator_values(self):
         # GH 12017
         aggs = {'D': 'sum', 'E': 'mean'}
@@ -876,6 +983,8 @@ class TestPivotTable(object):
         expected = pd.DataFrame(table.values, index=ix, columns=cols)
         tm.assert_frame_equal(table, expected)
 
+    @pytest.mark.xfail(reason='GH 17035 (np.mean of ints is casted back to '
+                              'ints)')
     def test_categorical_margins(self):
         # GH 10989
         df = pd.DataFrame({'x': np.arange(8),
@@ -886,14 +995,23 @@ class TestPivotTable(object):
         expected.index = Index([0, 1, 'All'], name='y')
         expected.columns = Index([0, 1, 'All'], name='z')
 
-        data = df.copy()
-        table = data.pivot_table('x', 'y', 'z', margins=True)
+        table = df.pivot_table('x', 'y', 'z', margins=True)
         tm.assert_frame_equal(table, expected)
 
-        data = df.copy()
-        data.y = data.y.astype('category')
-        data.z = data.z.astype('category')
-        table = data.pivot_table('x', 'y', 'z', margins=True)
+    @pytest.mark.xfail(reason='GH 17035 (np.mean of ints is casted back to '
+                              'ints)')
+    def test_categorical_margins_category(self):
+        df = pd.DataFrame({'x': np.arange(8),
+                           'y': np.arange(8) // 4,
+                           'z': np.arange(8) % 2})
+
+        expected = pd.DataFrame([[1.0, 2.0, 1.5], [5, 6, 5.5], [3, 4, 3.5]])
+        expected.index = Index([0, 1, 'All'], name='y')
+        expected.columns = Index([0, 1, 'All'], name='z')
+
+        df.y = df.y.astype('category')
+        df.z = df.z.astype('category')
+        table = df.pivot_table('x', 'y', 'z', margins=True)
         tm.assert_frame_equal(table, expected)
 
     def test_categorical_aggfunc(self):
@@ -981,6 +1099,61 @@ class TestPivotTable(object):
 
         tm.assert_frame_equal(result, expected)
 
+    def test_pivot_margins_name_unicode(self):
+        # issue #13292
+        greek = u'\u0394\u03bf\u03ba\u03b9\u03bc\u03ae'
+        frame = pd.DataFrame({'foo': [1, 2, 3]})
+        table = pd.pivot_table(frame, index=['foo'], aggfunc=len, margins=True,
+                               margins_name=greek)
+        index = pd.Index([1, 2, 3, greek], dtype='object', name='foo')
+        expected = pd.DataFrame(index=index)
+        tm.assert_frame_equal(table, expected)
+
+    def test_pivot_string_as_func(self):
+        # GH #18713
+        # for correctness purposes
+        data = DataFrame({'A': ['foo', 'foo', 'foo', 'foo', 'bar', 'bar',
+                                'bar', 'bar', 'foo', 'foo', 'foo'],
+                          'B': ['one', 'one', 'one', 'two', 'one', 'one',
+                                'one', 'two', 'two', 'two', 'one'],
+                          'C': range(11)})
+
+        result = pivot_table(data, index='A', columns='B', aggfunc='sum')
+        mi = MultiIndex(levels=[['C'], ['one', 'two']],
+                        labels=[[0, 0], [0, 1]], names=[None, 'B'])
+        expected = DataFrame({('C', 'one'): {'bar': 15, 'foo': 13},
+                              ('C', 'two'): {'bar': 7, 'foo': 20}},
+                             columns=mi).rename_axis('A')
+        tm.assert_frame_equal(result, expected)
+
+        result = pivot_table(data, index='A', columns='B',
+                             aggfunc=['sum', 'mean'])
+        mi = MultiIndex(levels=[['sum', 'mean'], ['C'], ['one', 'two']],
+                        labels=[[0, 0, 1, 1], [0, 0, 0, 0], [0, 1, 0, 1]],
+                        names=[None, None, 'B'])
+        expected = DataFrame({('mean', 'C', 'one'): {'bar': 5.0, 'foo': 3.25},
+                              ('mean', 'C', 'two'): {'bar': 7.0,
+                                                     'foo': 6.666666666666667},
+                              ('sum', 'C', 'one'): {'bar': 15, 'foo': 13},
+                              ('sum', 'C', 'two'): {'bar': 7, 'foo': 20}},
+                             columns=mi).rename_axis('A')
+        tm.assert_frame_equal(result, expected)
+
+    @pytest.mark.parametrize('f, f_numpy',
+                             [('sum', np.sum),
+                              ('mean', np.mean),
+                              ('std', np.std),
+                              (['sum', 'mean'], [np.sum, np.mean]),
+                              (['sum', 'std'], [np.sum, np.std]),
+                              (['std', 'mean'], [np.std, np.mean])])
+    def test_pivot_string_func_vs_func(self, f, f_numpy):
+        # GH #18713
+        # for consistency purposes
+        result = pivot_table(self.data, index='A', columns='B', aggfunc=f)
+        expected = pivot_table(self.data, index='A', columns='B',
+                               aggfunc=f_numpy)
+        tm.assert_frame_equal(result, expected)
+
 
 class TestCrosstab(object):
 
@@ -1040,6 +1213,22 @@ class TestCrosstab(object):
         assert result.index.name == 'row_0'
         assert result.columns.name == 'col_0'
 
+    def test_crosstab_non_aligned(self):
+        # GH 17005
+        a = pd.Series([0, 1, 1], index=['a', 'b', 'c'])
+        b = pd.Series([3, 4, 3, 4, 3], index=['a', 'b', 'c', 'd', 'f'])
+        c = np.array([3, 4, 3])
+
+        expected = pd.DataFrame([[1, 0], [1, 1]],
+                                index=Index([0, 1], name='row_0'),
+                                columns=Index([3, 4], name='col_0'))
+
+        result = crosstab(a, b)
+        tm.assert_frame_equal(result, expected)
+
+        result = crosstab(a, c)
+        tm.assert_frame_equal(result, expected)
+
     def test_crosstab_margins(self):
         a = np.random.randint(0, 7, size=100)
         b = np.random.randint(0, 3, size=100)
@@ -1070,6 +1259,43 @@ class TestCrosstab(object):
         exp_rows = exp_rows.reindex(all_rows.index)
         exp_rows = exp_rows.fillna(0).astype(np.int64)
         tm.assert_series_equal(all_rows, exp_rows)
+
+    def test_crosstab_margins_set_margin_name(self):
+        # GH 15972
+        a = np.random.randint(0, 7, size=100)
+        b = np.random.randint(0, 3, size=100)
+        c = np.random.randint(0, 5, size=100)
+
+        df = DataFrame({'a': a, 'b': b, 'c': c})
+
+        result = crosstab(a, [b, c], rownames=['a'], colnames=('b', 'c'),
+                          margins=True, margins_name='TOTAL')
+
+        assert result.index.names == ('a',)
+        assert result.columns.names == ['b', 'c']
+
+        all_cols = result['TOTAL', '']
+        exp_cols = df.groupby(['a']).size().astype('i8')
+        # to keep index.name
+        exp_margin = Series([len(df)], index=Index(['TOTAL'], name='a'))
+        exp_cols = exp_cols.append(exp_margin)
+        exp_cols.name = ('TOTAL', '')
+
+        tm.assert_series_equal(all_cols, exp_cols)
+
+        all_rows = result.loc['TOTAL']
+        exp_rows = df.groupby(['b', 'c']).size().astype('i8')
+        exp_rows = exp_rows.append(Series([len(df)], index=[('TOTAL', '')]))
+        exp_rows.name = 'TOTAL'
+
+        exp_rows = exp_rows.reindex(all_rows.index)
+        exp_rows = exp_rows.fillna(0).astype(np.int64)
+        tm.assert_series_equal(all_rows, exp_rows)
+
+        for margins_name in [666, None, ['a', 'b']]:
+            with pytest.raises(ValueError):
+                crosstab(a, [b, c], rownames=['a'], colnames=('b', 'c'),
+                         margins=True, margins_name=margins_name)
 
     def test_crosstab_pass_values(self):
         a = np.random.randint(0, 7, size=100)
@@ -1396,105 +1622,19 @@ class TestCrosstab(object):
                                 columns=expected_column)
         tm.assert_frame_equal(result, expected)
 
+    def test_crosstab_dup_index_names(self):
+        # GH 13279, GH 18872
+        s = pd.Series(range(3), name='foo')
+        pytest.raises(ValueError, pd.crosstab, s, s)
 
-class TestPivotAnnual(object):
-    """
-    New pandas of scikits.timeseries pivot_annual
-    """
+    @pytest.mark.parametrize("names", [['a', ('b', 'c')],
+                                       [('a', 'b'), 'c']])
+    def test_crosstab_tuple_name(self, names):
+        s1 = pd.Series(range(3), name=names[0])
+        s2 = pd.Series(range(1, 4), name=names[1])
 
-    def test_daily(self):
-        rng = date_range('1/1/2000', '12/31/2004', freq='D')
-        ts = Series(np.random.randn(len(rng)), index=rng)
+        mi = pd.MultiIndex.from_arrays([range(3), range(1, 4)], names=names)
+        expected = pd.Series(1, index=mi).unstack(1, fill_value=0)
 
-        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
-            annual = pivot_annual(ts, 'D')
-
-        doy = np.asarray(ts.index.dayofyear)
-
-        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
-            doy[(~isleapyear(ts.index.year)) & (doy >= 60)] += 1
-
-        for i in range(1, 367):
-            subset = ts[doy == i]
-            subset.index = [x.year for x in subset.index]
-
-            result = annual[i].dropna()
-            tm.assert_series_equal(result, subset, check_names=False)
-            assert result.name == i
-
-        # check leap days
-        leaps = ts[(ts.index.month == 2) & (ts.index.day == 29)]
-        day = leaps.index.dayofyear[0]
-        leaps.index = leaps.index.year
-        leaps.name = 60
-        tm.assert_series_equal(annual[day].dropna(), leaps)
-
-    def test_hourly(self):
-        rng_hourly = date_range('1/1/1994', periods=(18 * 8760 + 4 * 24),
-                                freq='H')
-        data_hourly = np.random.randint(100, 350, rng_hourly.size)
-        ts_hourly = Series(data_hourly, index=rng_hourly)
-
-        grouped = ts_hourly.groupby(ts_hourly.index.year)
-        hoy = grouped.apply(lambda x: x.reset_index(drop=True))
-        hoy = hoy.index.droplevel(0).values
-
-        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
-            hoy[~isleapyear(ts_hourly.index.year) & (hoy >= 1416)] += 24
-        hoy += 1
-
-        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
-            annual = pivot_annual(ts_hourly)
-
-        ts_hourly = ts_hourly.astype(float)
-        for i in [1, 1416, 1417, 1418, 1439, 1440, 1441, 8784]:
-            subset = ts_hourly[hoy == i]
-            subset.index = [x.year for x in subset.index]
-
-            result = annual[i].dropna()
-            tm.assert_series_equal(result, subset, check_names=False)
-            assert result.name == i
-
-        leaps = ts_hourly[(ts_hourly.index.month == 2) & (
-            ts_hourly.index.day == 29) & (ts_hourly.index.hour == 0)]
-        hour = leaps.index.dayofyear[0] * 24 - 23
-        leaps.index = leaps.index.year
-        leaps.name = 1417
-        tm.assert_series_equal(annual[hour].dropna(), leaps)
-
-    def test_weekly(self):
-        pass
-
-    def test_monthly(self):
-        rng = date_range('1/1/2000', '12/31/2004', freq='M')
-        ts = Series(np.random.randn(len(rng)), index=rng)
-
-        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
-            annual = pivot_annual(ts, 'M')
-
-        month = ts.index.month
-        for i in range(1, 13):
-            subset = ts[month == i]
-            subset.index = [x.year for x in subset.index]
-            result = annual[i].dropna()
-            tm.assert_series_equal(result, subset, check_names=False)
-            assert result.name == i
-
-    def test_period_monthly(self):
-        pass
-
-    def test_period_daily(self):
-        pass
-
-    def test_period_weekly(self):
-        pass
-
-    def test_isleapyear_deprecate(self):
-        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
-            assert isleapyear(2000)
-
-        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
-            assert not isleapyear(2001)
-
-        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
-            assert isleapyear(2004)
+        result = pd.crosstab(s1, s2)
+        tm.assert_frame_equal(result, expected)

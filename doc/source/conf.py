@@ -17,6 +17,11 @@ import inspect
 import importlib
 from pandas.compat import u, PY3
 
+try:
+    raw_input          # Python 2
+except NameError:
+    raw_input = input  # Python 3
+
 # https://github.com/sphinx-doc/sphinx/pull/2325/files
 # Workaround for sphinx-build recursion limit overflow:
 # pickle.dump(doctree, f, pickle.HIGHEST_PROTOCOL)
@@ -50,7 +55,7 @@ extensions = ['sphinx.ext.autodoc',
               'sphinx.ext.doctest',
               'sphinx.ext.extlinks',
               'sphinx.ext.todo',
-              'numpydoc', # used to parse numpy-style docstrings for autodoc
+              'numpydoc',
               'ipython_sphinxext.ipython_directive',
               'ipython_sphinxext.ipython_console_highlighting',
               'IPython.sphinxext.ipython_console_highlighting',  # lowercase didn't work
@@ -73,7 +78,7 @@ with open("index.rst") as f:
 # JP: added from sphinxdocs
 autosummary_generate = False
 
-if any([re.match("\s*api\s*", l) for l in index_rst_lines]):
+if any(re.match("\s*api\s*", l) for l in index_rst_lines):
     autosummary_generate = True
 
 files_to_delete = []
@@ -84,7 +89,7 @@ for f in os.listdir(os.path.dirname(__file__)):
 
     _file_basename = os.path.splitext(f)[0]
     _regex_to_match = "\s*{}\s*$".format(_file_basename)
-    if not any([re.match(_regex_to_match, line) for line in index_rst_lines]):
+    if not any(re.match(_regex_to_match, line) for line in index_rst_lines):
         files_to_delete.append(f)
 
 if files_to_delete:
@@ -233,8 +238,8 @@ html_static_path = ['_static']
 # https://github.com/pandas-dev/pandas/issues/16186
 
 moved_api_pages = [
-    ('pandas.core.common.isnull', 'pandas.isnull'),
-    ('pandas.core.common.notnull', 'pandas.notnull'),
+    ('pandas.core.common.isnull', 'pandas.isna'),
+    ('pandas.core.common.notnull', 'pandas.notna'),
     ('pandas.core.reshape.get_dummies', 'pandas.get_dummies'),
     ('pandas.tools.merge.concat', 'pandas.concat'),
     ('pandas.tools.merge.merge', 'pandas.merge'),
@@ -353,13 +358,12 @@ latex_documents = [
 # latex_use_modindex = True
 
 
-# Example configuration for intersphinx: refer to the Python standard library.
 intersphinx_mapping = {
     'statsmodels': ('http://www.statsmodels.org/devel/', None),
     'matplotlib': ('http://matplotlib.org/', None),
-    'python': ('http://docs.python.org/3', None),
-    'numpy': ('http://docs.scipy.org/doc/numpy', None),
-    'scipy': ('http://docs.scipy.org/doc/scipy/reference', None),
+    'python': ('https://docs.python.org/3/', None),
+    'numpy': ('https://docs.scipy.org/doc/numpy/', None),
+    'scipy': ('https://docs.scipy.org/doc/scipy/reference/', None),
     'py': ('https://pylib.readthedocs.io/en/latest/', None)
 }
 import glob
@@ -376,7 +380,7 @@ ipython_exec_lines = [
     'import pandas as pd',
     # This ensures correct rendering on system with console encoding != utf8
     # (windows). It forces pandas to encode its output reprs using utf8
-    # whereever the docs are built. The docs' target is the browser, not
+    # wherever the docs are built. The docs' target is the browser, not
     # the console, so this is fine.
     'pd.options.display.encoding="utf8"'
     ]
@@ -567,6 +571,15 @@ def linkcode_resolve(domain, info):
 def remove_flags_docstring(app, what, name, obj, options, lines):
     if what == "attribute" and name.endswith(".flags"):
         del lines[:]
+
+
+suppress_warnings = [
+    # We "overwrite" autosummary with our PandasAutosummary, but
+    # still want the regular autosummary setup to run. So we just
+    # suppress this warning.
+    'app.add_directive'
+]
+
 
 def setup(app):
     app.connect("autodoc-process-docstring", remove_flags_docstring)

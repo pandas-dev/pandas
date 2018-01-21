@@ -20,7 +20,7 @@
    pd.options.display.max_rows=15
 
    import matplotlib
-   matplotlib.style.use('ggplot')
+   # matplotlib.style.use('default')
 
    np.set_printoptions(precision=4, suppress=True)
 
@@ -41,7 +41,7 @@ above what the in-line examples offer.
 Pandas (pd) and Numpy (np) are the only two abbreviated imported modules. The rest are kept
 explicitly imported for newer users.
 
-These examples are written for python 3.4.  Minor tweaks might be necessary for earlier python
+These examples are written for Python 3.  Minor tweaks might be necessary for earlier python
 versions.
 
 Idioms
@@ -256,12 +256,6 @@ Panels
 
    pf = pd.Panel({'df1':df1,'df2':df2,'df3':df3});pf
 
-   #Assignment using Transpose  (pandas < 0.15)
-   pf = pf.transpose(2,0,1)
-   pf['E'] = pd.DataFrame(data, rng, cols)
-   pf = pf.transpose(1,2,0);pf
-
-   #Direct assignment (pandas > 0.15)
    pf.loc[:,:,'F'] = pd.DataFrame(data, rng, cols);pf
 
 `Mask a panel by using np.where and then reconstructing the panel with the new masked values
@@ -416,16 +410,6 @@ Levels
 
 `Flatten Hierarchical columns
 <http://stackoverflow.com/questions/14507794/python-pandas-how-to-flatten-a-hierarchical-index-in-columns>`__
-
-panelnd
-*******
-
-The :ref:`panelnd<dsintro.panelnd>` docs.
-
-`Construct a 5D panelnd
-<http://stackoverflow.com/questions/18748598/why-my-panelnd-factory-throwing-a-keyerror>`__
-
-.. _cookbook.missing_data:
 
 Missing Data
 ------------
@@ -756,7 +740,7 @@ Timeseries
 <http://nipunbatra.github.io/2015/06/timeseries/>`__
 
 Turn a matrix with hours in columns and days in rows into a continuous row sequence in the form of a time series.
-`How to rearrange a python pandas DataFrame?
+`How to rearrange a Python pandas DataFrame?
 <http://stackoverflow.com/questions/15432659/how-to-rearrange-a-python-pandas-dataframe>`__
 
 `Dealing with duplicates when reindexing a timeseries to a specified frequency
@@ -776,11 +760,17 @@ Resampling
 
 The :ref:`Resample <timeseries.resampling>` docs.
 
-`TimeGrouping of values grouped across time
-<http://stackoverflow.com/questions/15297053/how-can-i-divide-single-values-of-a-dataframe-by-monthly-averages>`__
+`Using Grouper instead of TimeGrouper for time grouping of values
+<https://stackoverflow.com/questions/15297053/how-can-i-divide-single-values-of-a-dataframe-by-monthly-averages>`__
 
-`TimeGrouping #2
-<http://stackoverflow.com/questions/14569223/timegrouper-pandas>`__
+`Time grouping with some missing values
+<https://stackoverflow.com/questions/33637312/pandas-grouper-by-frequency-with-completeness-requirement>`__
+
+`Valid frequency arguments to Grouper
+<http://pandas.pydata.org/pandas-docs/stable/timeseries.html#offset-aliases>`__
+
+`Grouping using a MultiIndex
+<https://stackoverflow.com/questions/41483763/pandas-timegrouper-on-multiindex>`__
 
 `Using TimeGrouper and another grouping to create subgroups, then apply a custom function
 <https://github.com/pandas-dev/pandas/issues/3791>`__
@@ -812,7 +802,7 @@ The :ref:`Concat <merging.concatenation>` docs. The :ref:`Join <merging.join>` d
    df1 = pd.DataFrame(np.random.randn(6, 3), index=rng, columns=['A', 'B', 'C'])
    df2 = df1.copy()
 
-ignore_index is needed in pandas < v0.13, and depending on df construction
+Depending on df construction, ``ignore_index`` may be needed
 
 .. ipython:: python
 
@@ -1152,7 +1142,7 @@ Storing Attributes to a group node
    store = pd.HDFStore('test.h5')
    store.put('df',df)
 
-   # you can store an arbitrary python object via pickle
+   # you can store an arbitrary Python object via pickle
    store.get_storer('df').attrs.my_attribute = dict(A = 10)
    store.get_storer('df').attrs.my_attribute
 
@@ -1167,7 +1157,7 @@ Storing Attributes to a group node
 Binary Files
 ************
 
-pandas readily accepts numpy record arrays, if you need to read in a binary
+pandas readily accepts NumPy record arrays, if you need to read in a binary
 file consisting of an array of C structs. For example, given this C program
 in a file called ``main.c`` compiled with ``gcc main.c -std=gnu99`` on a
 64-bit machine,

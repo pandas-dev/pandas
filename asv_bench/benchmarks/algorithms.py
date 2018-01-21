@@ -1,7 +1,6 @@
 from importlib import import_module
 
 import numpy as np
-
 import pandas as pd
 from pandas.util import testing as tm
 
@@ -12,113 +11,116 @@ for imp in ['pandas.util', 'pandas.tools.hashing']:
     except:
         pass
 
-class Algorithms(object):
+from .pandas_vb_common import setup # noqa
+
+
+class Factorize(object):
+
+    goal_time = 0.2
+
+    params = [True, False]
+    param_names = ['sort']
+
+    def setup(self, sort):
+        N = 10**5
+        self.int_idx = pd.Int64Index(np.arange(N).repeat(5))
+        self.float_idx = pd.Float64Index(np.random.randn(N).repeat(5))
+        self.string_idx = tm.makeStringIndex(N)
+
+    def time_factorize_int(self, sort):
+        self.int_idx.factorize(sort=sort)
+
+    def time_factorize_float(self, sort):
+        self.float_idx.factorize(sort=sort)
+
+    def time_factorize_string(self, sort):
+        self.string_idx.factorize(sort=sort)
+
+
+class Duplicated(object):
+
+    goal_time = 0.2
+
+    params = ['first', 'last', False]
+    param_names = ['keep']
+
+    def setup(self, keep):
+        N = 10**5
+        self.int_idx = pd.Int64Index(np.arange(N).repeat(5))
+        self.float_idx = pd.Float64Index(np.random.randn(N).repeat(5))
+        self.string_idx = tm.makeStringIndex(N)
+
+    def time_duplicated_int(self, keep):
+        self.int_idx.duplicated(keep=keep)
+
+    def time_duplicated_float(self, keep):
+        self.float_idx.duplicated(keep=keep)
+
+    def time_duplicated_string(self, keep):
+        self.string_idx.duplicated(keep=keep)
+
+
+class DuplicatedUniqueIndex(object):
+
     goal_time = 0.2
 
     def setup(self):
-        N = 100000
-        np.random.seed(1234)
-
-        self.int_unique = pd.Int64Index(np.arange(N * 5))
+        N = 10**5
+        self.idx_int_dup = pd.Int64Index(np.arange(N * 5))
         # cache is_unique
-        self.int_unique.is_unique
+        self.idx_int_dup.is_unique
 
-        self.int = pd.Int64Index(np.arange(N).repeat(5))
-        self.float = pd.Float64Index(np.random.randn(N).repeat(5))
+    def time_duplicated_unique_int(self):
+        self.idx_int_dup.duplicated()
 
-        # Convenience naming.
-        self.checked_add = pd.core.algorithms.checked_add_with_arr
 
-        self.arr = np.arange(1000000)
-        self.arrpos = np.arange(1000000)
-        self.arrneg = np.arange(-1000000, 0)
-        self.arrmixed = np.array([1, -1]).repeat(500000)
-        self.strings = tm.makeStringIndex(100000)
+class Match(object):
 
-        self.arr_nan = np.random.choice([True, False], size=1000000)
-        self.arrmixed_nan = np.random.choice([True, False], size=1000000)
+    goal_time = 0.2
 
-        # match
+    def setup(self):
         self.uniques = tm.makeStringIndex(1000).values
         self.all = self.uniques.repeat(10)
 
-    def time_factorize_string(self):
-        self.strings.factorize()
-
-    def time_factorize_int(self):
-        self.int.factorize()
-
-    def time_factorize_float(self):
-        self.int.factorize()
-
-    def time_duplicated_int_unique(self):
-        self.int_unique.duplicated()
-
-    def time_duplicated_int(self):
-        self.int.duplicated()
-
-    def time_duplicated_float(self):
-        self.float.duplicated()
-
-    def time_match_strings(self):
+    def time_match_string(self):
         pd.match(self.all, self.uniques)
-
-    def time_add_overflow_pos_scalar(self):
-        self.checked_add(self.arr, 1)
-
-    def time_add_overflow_neg_scalar(self):
-        self.checked_add(self.arr, -1)
-
-    def time_add_overflow_zero_scalar(self):
-        self.checked_add(self.arr, 0)
-
-    def time_add_overflow_pos_arr(self):
-        self.checked_add(self.arr, self.arrpos)
-
-    def time_add_overflow_neg_arr(self):
-        self.checked_add(self.arr, self.arrneg)
-
-    def time_add_overflow_mixed_arr(self):
-        self.checked_add(self.arr, self.arrmixed)
-
-    def time_add_overflow_first_arg_nan(self):
-        self.checked_add(self.arr, self.arrmixed, arr_mask=self.arr_nan)
-
-    def time_add_overflow_second_arg_nan(self):
-        self.checked_add(self.arr, self.arrmixed, b_mask=self.arrmixed_nan)
-
-    def time_add_overflow_both_arg_nan(self):
-        self.checked_add(self.arr, self.arrmixed, arr_mask=self.arr_nan,
-                         b_mask=self.arrmixed_nan)
 
 
 class Hashing(object):
+
     goal_time = 0.2
 
-    def setup(self):
-        N = 100000
+    def setup_cache(self):
+        N = 10**5
 
-        self.df = pd.DataFrame(
-            {'A': pd.Series(tm.makeStringIndex(100).take(
-                np.random.randint(0, 100, size=N))),
-             'B': pd.Series(tm.makeStringIndex(10000).take(
-                 np.random.randint(0, 10000, size=N))),
-             'D': np.random.randn(N),
-             'E': np.arange(N),
-             'F': pd.date_range('20110101', freq='s', periods=N),
-             'G': pd.timedelta_range('1 day', freq='s', periods=N),
-             })
-        self.df['C'] = self.df['B'].astype('category')
-        self.df.iloc[10:20] = np.nan
+        df = pd.DataFrame(
+            {'strings': pd.Series(tm.makeStringIndex(10000).take(
+                np.random.randint(0, 10000, size=N))),
+             'floats': np.random.randn(N),
+             'ints': np.arange(N),
+             'dates': pd.date_range('20110101', freq='s', periods=N),
+             'timedeltas': pd.timedelta_range('1 day', freq='s', periods=N)})
+        df['categories'] = df['strings'].astype('category')
+        df.iloc[10:20] = np.nan
+        return df
 
-    def time_frame(self):
-        hashing.hash_pandas_object(self.df)
+    def time_frame(self, df):
+        hashing.hash_pandas_object(df)
 
-    def time_series_int(self):
-        hashing.hash_pandas_object(self.df.E)
+    def time_series_int(self, df):
+        hashing.hash_pandas_object(df['ints'])
 
-    def time_series_string(self):
-        hashing.hash_pandas_object(self.df.B)
+    def time_series_string(self, df):
+        hashing.hash_pandas_object(df['strings'])
 
-    def time_series_categorical(self):
-        hashing.hash_pandas_object(self.df.C)
+    def time_series_float(self, df):
+        hashing.hash_pandas_object(df['floats'])
+
+    def time_series_categorical(self, df):
+        hashing.hash_pandas_object(df['categories'])
+
+    def time_series_timedeltas(self, df):
+        hashing.hash_pandas_object(df['timedeltas'])
+
+    def time_series_dates(self, df):
+        hashing.hash_pandas_object(df['dates'])

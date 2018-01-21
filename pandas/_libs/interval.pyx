@@ -1,12 +1,12 @@
 cimport numpy as np
 import numpy as np
-import pandas as pd
 
 cimport util
 cimport cython
 import cython
-from numpy cimport *
+from numpy cimport ndarray
 from tslib import Timestamp
+from tslibs.timezones cimport tz_compare
 
 from cpython.object cimport (Py_EQ, Py_NE, Py_GT, Py_LT, Py_GE, Py_LE,
                              PyObject_RichCompare)
@@ -14,30 +14,57 @@ from cpython.object cimport (Py_EQ, Py_NE, Py_GT, Py_LT, Py_GE, Py_LE,
 import numbers
 _VALID_CLOSED = frozenset(['left', 'right', 'both', 'neither'])
 
-cdef class IntervalMixin:
-    property closed_left:
-        def __get__(self):
-            return self.closed == 'left' or self.closed == 'both'
 
-    property closed_right:
-        def __get__(self):
-            return self.closed == 'right' or self.closed == 'both'
+cdef class IntervalMixin(object):
 
-    property open_left:
-        def __get__(self):
-            return not self.closed_left
+    @property
+    def closed_left(self):
+        """
+        Return True if the Interval is closed on the left-side, else False
+        """
+        return self.closed in ('left', 'both')
 
-    property open_right:
-        def __get__(self):
-            return not self.closed_right
+    @property
+    def closed_right(self):
+        """
+        Return True if the Interval is closed on the right-side, else False
+        """
+        return self.closed in ('right', 'both')
 
-    property mid:
-        def __get__(self):
-            try:
-                return 0.5 * (self.left + self.right)
-            except TypeError:
-                # datetime safe version
-                return self.left + 0.5 * (self.right - self.left)
+    @property
+    def open_left(self):
+        """
+        Return True if the Interval is open on the left-side, else False
+        """
+        return not self.closed_left
+
+    @property
+    def open_right(self):
+        """
+        Return True if the Interval is open on the right-side, else False
+        """
+        return not self.closed_right
+
+    @property
+    def mid(self):
+        """
+        Return the midpoint of the Interval
+        """
+        try:
+            return 0.5 * (self.left + self.right)
+        except TypeError:
+            # datetime safe version
+            return self.left + 0.5 * self.length
+
+    @property
+    def length(self):
+        """Return the length of the Interval"""
+        try:
+            return self.right - self.left
+        except TypeError:
+            # length not defined for some types, e.g. string
+            msg = 'cannot compute length between {left!r} and {right!r}'
+            raise TypeError(msg.format(left=self.left, right=self.right))
 
 
 cdef _interval_like(other):
@@ -52,25 +79,64 @@ cdef class Interval(IntervalMixin):
 
     .. versionadded:: 0.20.0
 
-    Attributes
+    Parameters
     ----------
-    left, right : values
-        Left and right bounds for each interval.
-    closed : {'left', 'right', 'both', 'neither'}
+    left : value
+        Left bound for the interval
+    right : value
+        Right bound for the interval
+    closed : {'left', 'right', 'both', 'neither'}, default 'right'
         Whether the interval is closed on the left-side, right-side, both or
-        neither. Defaults to 'right'.
+        neither
+
+    Examples
+    --------
+    >>> iv = pd.Interval(left=0, right=5)
+    >>> iv
+    Interval(0, 5, closed='right')
+    >>> 2.5 in iv
+    True
+
+    >>> year_2017 = pd.Interval(pd.Timestamp('2017-01-01'),
+    ...                         pd.Timestamp('2017-12-31'), closed='both')
+    >>> pd.Timestamp('2017-01-01 00:00') in year_2017
+    True
+
+    See Also
+    --------
+    IntervalIndex : An Index of Interval objects that are all closed on the
+                    same side.
+    cut, qcut : Convert arrays of continuous data into Categoricals/Series of
+                Interval.
     """
 
-    cdef readonly object left, right
+    cdef readonly object left
+    """Left bound for the interval"""
+
+    cdef readonly object right
+    """Right bound for the interval"""
+
     cdef readonly str closed
+    """
+    Whether the interval is closed on the left-side, right-side, both or
+    neither
+    """
 
     def __init__(self, left, right, str closed='right'):
         # note: it is faster to just do these checks than to use a special
         # constructor (__cinit__/__new__) to avoid them
         if closed not in _VALID_CLOSED:
-            raise ValueError("invalid option for 'closed': %s" % closed)
+            msg = "invalid option for 'closed': {closed}".format(closed=closed)
+            raise ValueError(msg)
         if not left <= right:
             raise ValueError('left side of interval must be <= right side')
+        if (isinstance(left, Timestamp) and
+                not tz_compare(left.tzinfo, right.tzinfo)):
+            # GH 18538
+            msg = ("left and right must have the same time zone, got "
+                   "'{left_tz}' and '{right_tz}'")
+            raise ValueError(msg.format(left_tz=left.tzinfo,
+                                        right_tz=right.tzinfo))
         self.left = left
         self.right = right
         self.closed = closed
@@ -100,10 +166,11 @@ cdef class Interval(IntervalMixin):
         if op == Py_EQ or op == Py_NE:
             return NotImplemented
         else:
+            name = type(self).__name__
+            other = type(other).__name__
             op_str = {Py_LT: '<', Py_LE: '<=', Py_GT: '>', Py_GE: '>='}[op]
-            raise TypeError(
-                'unorderable types: %s() %s %s()' %
-                (type(self).__name__, op_str, type(other).__name__))
+            raise TypeError('unorderable types: {name}() {op} {other}()'
+                            .format(name=name, op=op_str, other=other))
 
     def __reduce__(self):
         args = (self.left, self.right, self.closed)
@@ -123,15 +190,18 @@ cdef class Interval(IntervalMixin):
     def __repr__(self):
 
         left, right = self._repr_base()
-        return ('%s(%r, %r, closed=%r)' %
-                (type(self).__name__, left, right, self.closed))
+        name = type(self).__name__
+        repr_str = '{name}({left!r}, {right!r}, closed={closed!r})'.format(
+            name=name, left=left, right=right, closed=self.closed)
+        return repr_str
 
     def __str__(self):
 
         left, right = self._repr_base()
         start_symbol = '[' if self.closed_left else '('
         end_symbol = ']' if self.closed_right else ')'
-        return '%s%s, %s%s' % (start_symbol, left, right, end_symbol)
+        return '{start}{left}, {right}{end}'.format(
+            start=start_symbol, left=left, right=right, end=end_symbol)
 
     def __add__(self, y):
         if isinstance(y, numbers.Number):
@@ -189,8 +259,8 @@ cpdef intervals_to_interval_bounds(ndarray intervals):
         int64_t n = len(intervals)
         ndarray left, right
 
-    left = np.empty(n, dtype=object)
-    right = np.empty(n, dtype=object)
+    left = np.empty(n, dtype=intervals.dtype)
+    right = np.empty(n, dtype=intervals.dtype)
 
     for i in range(len(intervals)):
         interval = intervals[i]
@@ -200,8 +270,8 @@ cpdef intervals_to_interval_bounds(ndarray intervals):
             continue
 
         if not isinstance(interval, Interval):
-            raise TypeError("type {} with value {} is not an interval".format(
-                type(interval), interval))
+            raise TypeError("type {typ} with value {iv} is not an interval"
+                            .format(typ=type(interval), iv=interval))
 
         left[i] = interval.left
         right[i] = interval.right

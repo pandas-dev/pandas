@@ -27,7 +27,7 @@ json_unicode = (json.dumps if compat.PY3
                 else partial(json.dumps, encoding="utf-8"))
 
 
-class UltraJSONTests(object):
+class TestUltraJSONTests(object):
 
     @pytest.mark.skipif(compat.is_platform_32bit(),
                         reason="not compliant on 32-bit, xref #15865")
@@ -394,21 +394,21 @@ class UltraJSONTests(object):
         ]
         for test in tests:
             output = ujson.encode(test)
-            expected = '"%s"' % test.isoformat()
+            expected = '"{iso}"'.format(iso=test.isoformat())
             assert expected == output
 
     def test_encodeTimeConversion_pytz(self):
         # see gh-11473: to_json segfaults with timezone-aware datetimes
         test = datetime.time(10, 12, 15, 343243, pytz.utc)
         output = ujson.encode(test)
-        expected = '"%s"' % test.isoformat()
+        expected = '"{iso}"'.format(iso=test.isoformat())
         assert expected == output
 
     def test_encodeTimeConversion_dateutil(self):
         # see gh-11473: to_json segfaults with timezone-aware datetimes
         test = datetime.time(10, 12, 15, 343243, dateutil.tz.tzutc())
         output = ujson.encode(test)
-        expected = '"%s"' % test.isoformat()
+        expected = '"{iso}"'.format(iso=test.isoformat())
         assert expected == output
 
     def test_nat(self):
@@ -417,7 +417,7 @@ class UltraJSONTests(object):
 
     def test_npy_nat(self):
         from distutils.version import LooseVersion
-        if LooseVersion(np.__version__) < '1.7.0':
+        if LooseVersion(np.__version__) < LooseVersion('1.7.0'):
             pytest.skip("numpy version < 1.7.0, is "
                         "{0}".format(np.__version__))
 
@@ -856,9 +856,9 @@ class UltraJSONTests(object):
         boundary2 = 2**32  # noqa
         docs = (
             '{"id": 3590016419}',
-            '{"id": %s}' % 2**31,
-            '{"id": %s}' % 2**32,
-            '{"id": %s}' % ((2**32) - 1),
+            '{{"id": {low}}}'.format(low=2**31),
+            '{{"id": {high}}}'.format(high=2**32),
+            '{{"id": {one_less}}}'.format(one_less=(2**32) - 1),
         )
         results = (3590016419, 2**31, 2**32, 2**32 - 1)
         for doc, result in zip(docs, results):
@@ -944,19 +944,19 @@ class UltraJSONTests(object):
                 ujson.decode(ujson.encode(l, default_handler=str)))
 
 
-class NumpyJSONTests(object):
+class TestNumpyJSONTests(object):
 
-    def testBool(self):
+    def test_Bool(self):
         b = np.bool(True)
         assert ujson.decode(ujson.encode(b)) == b
 
-    def testBoolArray(self):
+    def test_BoolArray(self):
         inpt = np.array([True, False, True, True, False, True, False, False],
                         dtype=np.bool)
         outp = np.array(ujson.decode(ujson.encode(inpt)), dtype=np.bool)
         tm.assert_numpy_array_equal(inpt, outp)
 
-    def testInt(self):
+    def test_Int(self):
         num = np.int(2562010)
         assert np.int(ujson.decode(ujson.encode(num))) == num
 
@@ -984,7 +984,7 @@ class NumpyJSONTests(object):
         num = np.uint64(2562010)
         assert np.uint64(ujson.decode(ujson.encode(num))) == num
 
-    def testIntArray(self):
+    def test_IntArray(self):
         arr = np.arange(100, dtype=np.int)
         dtypes = (np.int, np.int8, np.int16, np.int32, np.int64,
                   np.uint, np.uint8, np.uint16, np.uint32, np.uint64)
@@ -993,7 +993,7 @@ class NumpyJSONTests(object):
             outp = np.array(ujson.decode(ujson.encode(inpt)), dtype=dtype)
             tm.assert_numpy_array_equal(inpt, outp)
 
-    def testIntMax(self):
+    def test_IntMax(self):
         num = np.int(np.iinfo(np.int).max)
         assert np.int(ujson.decode(ujson.encode(num))) == num
 
@@ -1023,7 +1023,7 @@ class NumpyJSONTests(object):
             num = np.uint64(np.iinfo(np.int64).max)
             assert np.uint64(ujson.decode(ujson.encode(num))) == num
 
-    def testFloat(self):
+    def test_Float(self):
         num = np.float(256.2013)
         assert np.float(ujson.decode(ujson.encode(num))) == num
 
@@ -1033,7 +1033,7 @@ class NumpyJSONTests(object):
         num = np.float64(256.2013)
         assert np.float64(ujson.decode(ujson.encode(num))) == num
 
-    def testFloatArray(self):
+    def test_FloatArray(self):
         arr = np.arange(12.5, 185.72, 1.7322, dtype=np.float)
         dtypes = (np.float, np.float32, np.float64)
 
@@ -1043,7 +1043,7 @@ class NumpyJSONTests(object):
                 inpt, double_precision=15)), dtype=dtype)
             tm.assert_almost_equal(inpt, outp)
 
-    def testFloatMax(self):
+    def test_FloatMax(self):
         num = np.float(np.finfo(np.float).max / 10)
         tm.assert_almost_equal(np.float(ujson.decode(
             ujson.encode(num, double_precision=15))), num, 15)
@@ -1056,7 +1056,7 @@ class NumpyJSONTests(object):
         tm.assert_almost_equal(np.float64(ujson.decode(
             ujson.encode(num, double_precision=15))), num, 15)
 
-    def testArrays(self):
+    def test_Arrays(self):
         arr = np.arange(100)
 
         arr = arr.reshape((10, 10))
@@ -1097,13 +1097,13 @@ class NumpyJSONTests(object):
         outp = ujson.decode(ujson.encode(arr), numpy=True, dtype=np.float32)
         tm.assert_almost_equal(arr, outp)
 
-    def testOdArray(self):
+    def test_OdArray(self):
         def will_raise():
             ujson.encode(np.array(1))
 
         pytest.raises(TypeError, will_raise)
 
-    def testArrayNumpyExcept(self):
+    def test_ArrayNumpyExcept(self):
 
         input = ujson.dumps([42, {}, 'a'])
         try:
@@ -1186,7 +1186,7 @@ class NumpyJSONTests(object):
         except:
             assert False, "Wrong exception"
 
-    def testArrayNumpyLabelled(self):
+    def test_ArrayNumpyLabelled(self):
         input = {'a': []}
         output = ujson.loads(ujson.dumps(input), numpy=True, labelled=True)
         assert (np.empty((1, 0)) == output[0]).all()
@@ -1220,9 +1220,9 @@ class NumpyJSONTests(object):
         assert (np.array(['a', 'b']) == output[2]).all()
 
 
-class PandasJSONTests(object):
+class TestPandasJSONTests(object):
 
-    def testDataFrame(self):
+    def test_DataFrame(self):
         df = DataFrame([[1, 2, 3], [4, 5, 6]], index=[
                        'a', 'b'], columns=['x', 'y', 'z'])
 
@@ -1252,7 +1252,7 @@ class PandasJSONTests(object):
         tm.assert_index_equal(df.transpose().columns, outp.columns)
         tm.assert_index_equal(df.transpose().index, outp.index)
 
-    def testDataFrameNumpy(self):
+    def test_DataFrameNumpy(self):
         df = DataFrame([[1, 2, 3], [4, 5, 6]], index=[
                        'a', 'b'], columns=['x', 'y', 'z'])
 
@@ -1275,7 +1275,7 @@ class PandasJSONTests(object):
         tm.assert_index_equal(df.transpose().columns, outp.columns)
         tm.assert_index_equal(df.transpose().index, outp.index)
 
-    def testDataFrameNested(self):
+    def test_DataFrameNested(self):
         df = DataFrame([[1, 2, 3], [4, 5, 6]], index=[
                        'a', 'b'], columns=['x', 'y', 'z'])
 
@@ -1301,7 +1301,7 @@ class PandasJSONTests(object):
                'df2': ujson.decode(ujson.encode(df, orient="split"))}
         assert ujson.decode(ujson.encode(nested, orient="split")) == exp
 
-    def testDataFrameNumpyLabelled(self):
+    def test_DataFrameNumpyLabelled(self):
         df = DataFrame([[1, 2, 3], [4, 5, 6]], index=[
                        'a', 'b'], columns=['x', 'y', 'z'])
 
@@ -1324,7 +1324,7 @@ class PandasJSONTests(object):
         tm.assert_index_equal(df.columns, outp.columns)
         tm.assert_index_equal(df.index, outp.index)
 
-    def testSeries(self):
+    def test_Series(self):
         s = Series([10, 20, 30, 40, 50, 60], name="series",
                    index=[6, 7, 8, 9, 10, 15]).sort_values()
 
@@ -1372,7 +1372,7 @@ class PandasJSONTests(object):
             s, orient="index"), numpy=True)).sort_values()
         tm.assert_series_equal(outp, exp)
 
-    def testSeriesNested(self):
+    def test_SeriesNested(self):
         s = Series([10, 20, 30, 40, 50, 60], name="series",
                    index=[6, 7, 8, 9, 10, 15]).sort_values()
 
@@ -1398,7 +1398,7 @@ class PandasJSONTests(object):
                's2': ujson.decode(ujson.encode(s, orient="index"))}
         assert ujson.decode(ujson.encode(nested, orient="index")) == exp
 
-    def testIndex(self):
+    def test_Index(self):
         i = Index([23, 45, 18, 98, 43, 11], name="index")
 
         # column indexed
@@ -1643,4 +1643,4 @@ class PandasJSONTests(object):
 
 
 def _clean_dict(d):
-    return dict((str(k), v) for k, v in compat.iteritems(d))
+    return {str(k): v for k, v in compat.iteritems(d)}

@@ -11,17 +11,17 @@ import pandas as pd
 
 import pandas._libs.index as _index
 from pandas.core.dtypes.common import is_integer, is_scalar
-from pandas import (Index, Series, DataFrame, isnull,
+from pandas import (Index, Series, DataFrame, isna,
                     date_range, NaT, MultiIndex,
-                    Timestamp, DatetimeIndex, Timedelta)
+                    Timestamp, DatetimeIndex, Timedelta,
+                    Categorical)
 from pandas.core.indexing import IndexingError
 from pandas.tseries.offsets import BDay
 from pandas._libs import tslib, lib
 
 from pandas.compat import lrange, range
 from pandas import compat
-from pandas.util.testing import (slow,
-                                 assert_series_equal,
+from pandas.util.testing import (assert_series_equal,
                                  assert_almost_equal,
                                  assert_frame_equal)
 import pandas.util.testing as tm
@@ -69,6 +69,21 @@ class TestSeriesIndexing(TestData):
 
         result = vc.get(True, default='Missing')
         assert result == 'Missing'
+
+    def test_get_nan(self):
+        # GH 8569
+        s = pd.Float64Index(range(10)).to_series()
+        assert s.get(np.nan) is None
+        assert s.get(np.nan, default='Missing') == 'Missing'
+
+        # ensure that fixing the above hasn't broken get
+        # with multiple elements
+        idx = [20, 30]
+        assert_series_equal(s.get(idx),
+                            Series([np.nan] * 2, index=idx))
+        idx = [np.nan, np.nan]
+        assert_series_equal(s.get(idx),
+                            Series([np.nan] * 2, index=idx))
 
     def test_delitem(self):
 
@@ -240,7 +255,7 @@ class TestSeriesIndexing(TestData):
     def test_getitem_boolean_empty(self):
         s = Series([], dtype=np.int64)
         s.index.name = 'index_name'
-        s = s[s.isnull()]
+        s = s[s.isna()]
         assert s.index.name == 'index_name'
         assert s.dtype == np.int64
 
@@ -373,7 +388,7 @@ class TestSeriesIndexing(TestData):
 
     def test_getitem_setitem_datetime_tz_dateutil(self):
         from dateutil.tz import tzutc
-        from pandas._libs.tslib import _dateutil_gettz as gettz
+        from pandas._libs.tslibs.timezones import dateutil_gettz as gettz
 
         tz = lambda x: tzutc() if x == 'UTC' else gettz(
             x)  # handle special case for utc in dateutil
@@ -435,6 +450,13 @@ class TestSeriesIndexing(TestData):
 
         lb = "1990-01-01 04:00:00"
         rb = "1990-01-01 07:00:00"
+        # GH#18435 strings get a pass from tzawareness compat
+        result = ts[(ts.index >= lb) & (ts.index <= rb)]
+        expected = ts[4:8]
+        assert_series_equal(result, expected)
+
+        lb = "1990-01-01 04:00:00-0500"
+        rb = "1990-01-01 07:00:00-0500"
         result = ts[(ts.index >= lb) & (ts.index <= rb)]
         expected = ts[4:8]
         assert_series_equal(result, expected)
@@ -460,6 +482,13 @@ class TestSeriesIndexing(TestData):
 
         lb = datetime(1990, 1, 1, 4)
         rb = datetime(1990, 1, 1, 7)
+        with pytest.raises(TypeError):
+            # tznaive vs tzaware comparison is invalid
+            # see GH#18376, GH#18162
+            ts[(ts.index >= lb) & (ts.index <= rb)]
+
+        lb = pd.Timestamp(datetime(1990, 1, 1, 4)).tz_localize(rng.tzinfo)
+        rb = pd.Timestamp(datetime(1990, 1, 1, 7)).tz_localize(rng.tzinfo)
         result = ts[(ts.index >= lb) & (ts.index <= rb)]
         expected = ts[4:8]
         assert_series_equal(result, expected)
@@ -532,6 +561,26 @@ class TestSeriesIndexing(TestData):
         result[4:8] = ts[4:8]
         assert_series_equal(result, ts)
 
+    @pytest.mark.parametrize(
+        'result_1, duplicate_item, expected_1',
+        [
+            [
+                pd.Series({1: 12, 2: [1, 2, 2, 3]}), pd.Series({1: 313}),
+                pd.Series({1: 12, }, dtype=object),
+            ],
+            [
+                pd.Series({1: [1, 2, 3], 2: [1, 2, 2, 3]}),
+                pd.Series({1: [1, 2, 3]}), pd.Series({1: [1, 2, 3], }),
+            ],
+        ])
+    def test_getitem_with_duplicates_indices(
+            self, result_1, duplicate_item, expected_1):
+        # GH 17610
+        result = result_1.append(duplicate_item)
+        expected = expected_1.append(duplicate_item)
+        assert_series_equal(result[1], expected)
+        assert result[2] == result_1[2]
+
     def test_getitem_median_slice_bug(self):
         index = date_range('20090415', '20090519', freq='2B')
         s = Series(np.random.randn(13), index=index)
@@ -576,8 +625,13 @@ class TestSeriesIndexing(TestData):
         # breaks reindex, so need to use .loc internally
         # GH 4246
         s = Series([1, 2, 3, 4], ['foo', 'bar', 'foo', 'bah'])
-        expected = s.loc[['foo', 'bar', 'bah', 'bam']]
-        result = s[['foo', 'bar', 'bah', 'bam']]
+        with tm.assert_produces_warning(FutureWarning,
+                                        check_stacklevel=False):
+            expected = s.loc[['foo', 'bar', 'bah', 'bam']]
+
+        with tm.assert_produces_warning(FutureWarning,
+                                        check_stacklevel=False):
+            result = s[['foo', 'bar', 'bah', 'bam']]
         assert_series_equal(result, expected)
 
     def test_getitem_dups(self):
@@ -781,13 +835,17 @@ class TestSeriesIndexing(TestData):
 
     def test_set_value(self):
         idx = self.ts.index[10]
-        res = self.ts.set_value(idx, 0)
+        with tm.assert_produces_warning(FutureWarning,
+                                        check_stacklevel=False):
+            res = self.ts.set_value(idx, 0)
         assert res is self.ts
         assert self.ts[idx] == 0
 
         # equiv
         s = self.series.copy()
-        res = s.set_value('foobar', 0)
+        with tm.assert_produces_warning(FutureWarning,
+                                        check_stacklevel=False):
+            res = s.set_value('foobar', 0)
         assert res is s
         assert res.index[-1] == 'foobar'
         assert res['foobar'] == 0
@@ -835,11 +893,15 @@ class TestSeriesIndexing(TestData):
         s = Series(np.random.randn(10), index=lrange(0, 20, 2))
         inds = [0, 2, 5, 7, 8]
         arr_inds = np.array([0, 2, 5, 7, 8])
-        result = s[inds]
+        with tm.assert_produces_warning(FutureWarning,
+                                        check_stacklevel=False):
+            result = s[inds]
         expected = s.reindex(inds)
         assert_series_equal(result, expected)
 
-        result = s[arr_inds]
+        with tm.assert_produces_warning(FutureWarning,
+                                        check_stacklevel=False):
+            result = s[arr_inds]
         expected = s.reindex(arr_inds)
         assert_series_equal(result, expected)
 
@@ -1052,6 +1114,34 @@ class TestSeriesIndexing(TestData):
         s.iloc[[1, 2]] = vals
         tm.assert_series_equal(s, exp)
 
+    def test_take(self):
+        s = Series([-1, 5, 6, 2, 4])
+
+        actual = s.take([1, 3, 4])
+        expected = Series([5, 2, 4], index=[1, 3, 4])
+        tm.assert_series_equal(actual, expected)
+
+        actual = s.take([-1, 3, 4])
+        expected = Series([4, 2, 4], index=[4, 3, 4])
+        tm.assert_series_equal(actual, expected)
+
+        pytest.raises(IndexError, s.take, [1, 10])
+        pytest.raises(IndexError, s.take, [2, 5])
+
+        with tm.assert_produces_warning(FutureWarning):
+            s.take([-1, 3, 4], convert=False)
+
+    def test_where_raise_on_error_deprecation(self):
+
+        # gh-14968
+        # deprecation of raise_on_error
+        s = Series(np.random.randn(5))
+        cond = s > 0
+        with tm.assert_produces_warning(FutureWarning):
+            s.where(cond, raise_on_error=True)
+        with tm.assert_produces_warning(FutureWarning):
+            s.mask(cond, raise_on_error=True)
+
     def test_where(self):
         s = Series(np.random.randn(5))
         cond = s > 0
@@ -1080,6 +1170,11 @@ class TestSeriesIndexing(TestData):
         rs = s2.where(cond[:3], -s2)
         assert_series_equal(rs, expected)
 
+    def test_where_error(self):
+
+        s = Series(np.random.randn(5))
+        cond = s > 0
+
         pytest.raises(ValueError, s.where, 1)
         pytest.raises(ValueError, s.where, cond[:3].values, -s)
 
@@ -1094,6 +1189,8 @@ class TestSeriesIndexing(TestData):
                       [0, 2, 3])
         pytest.raises(ValueError, s.__setitem__, tuple([[[True, False]]]),
                       [])
+
+    def test_where_unsafe(self):
 
         # unsafe dtype changes
         for dtype in [np.int8, np.int16, np.int32, np.int64, np.float16,
@@ -1169,11 +1266,11 @@ class TestSeriesIndexing(TestData):
         s = Series(range(10)).astype(float)
         s[8] = None
         result = s[8]
-        assert isnull(result)
+        assert isna(result)
 
         s = Series(range(10)).astype(float)
         s[s > 8] = None
-        result = s[isnull(s)]
+        result = s[isna(s)]
         expected = Series(np.nan, index=[9])
         assert_series_equal(result, expected)
 
@@ -1360,9 +1457,9 @@ class TestSeriesIndexing(TestData):
         expected = Series([5, 11, 2, 5, 11, 2], index=[0, 1, 2, 0, 1, 2])
         assert_series_equal(comb, expected)
 
-    def test_where_datetime(self):
+    def test_where_datetime_conversion(self):
         s = Series(date_range('20130102', periods=2))
-        expected = Series([10, 10], dtype='datetime64[ns]')
+        expected = Series([10, 10])
         mask = np.array([False, False])
 
         rs = s.where(mask, [10, 10])
@@ -1378,7 +1475,7 @@ class TestSeriesIndexing(TestData):
         assert_series_equal(rs, expected)
 
         rs = s.where(mask, [10.0, np.nan])
-        expected = Series([10, None], dtype='datetime64[ns]')
+        expected = Series([10, None], dtype='object')
         assert_series_equal(rs, expected)
 
         # GH 15701
@@ -1389,9 +1486,9 @@ class TestSeriesIndexing(TestData):
         expected = Series([pd.NaT, s[1]])
         assert_series_equal(rs, expected)
 
-    def test_where_timedelta(self):
+    def test_where_timedelta_coerce(self):
         s = Series([1, 2], dtype='timedelta64[ns]')
-        expected = Series([10, 10], dtype='timedelta64[ns]')
+        expected = Series([10, 10])
         mask = np.array([False, False])
 
         rs = s.where(mask, [10, 10])
@@ -1407,7 +1504,7 @@ class TestSeriesIndexing(TestData):
         assert_series_equal(rs, expected)
 
         rs = s.where(mask, [10.0, np.nan])
-        expected = Series([10, None], dtype='timedelta64[ns]')
+        expected = Series([10, None], dtype='object')
         assert_series_equal(rs, expected)
 
     def test_mask(self):
@@ -1533,7 +1630,7 @@ class TestSeriesIndexing(TestData):
     def test_setitem_boolean(self):
         mask = self.series > self.series.median()
 
-        # similiar indexed series
+        # similar indexed series
         result = self.series.copy()
         result[mask] = self.series * 2
         expected = self.series * 2
@@ -1585,7 +1682,7 @@ class TestSeriesIndexing(TestData):
         s[::2] = np.nan
         assert_series_equal(s, expected)
 
-        # get's coerced to float, right?
+        # gets coerced to float, right?
         expected = Series([np.nan, 1, np.nan, 0])
         s = Series([True, True, False, False])
         s[::2] = np.nan
@@ -1672,7 +1769,7 @@ class TestSeriesIndexing(TestData):
     def test_underlying_data_conversion(self):
 
         # GH 4080
-        df = DataFrame(dict((c, [1, 2, 3]) for c in ['a', 'b', 'c']))
+        df = DataFrame({c: [1, 2, 3] for c in ['a', 'b', 'c']})
         df.set_index(['a', 'b', 'c'], inplace=True)
         s = Series([1], index=[(2, 2, 2)])
         df['val'] = 0
@@ -1741,8 +1838,8 @@ class TestSeriesIndexing(TestData):
 
         # single string/tuple-like
         s = Series(range(3), index=list('abc'))
-        pytest.raises(ValueError, s.drop, 'bc')
-        pytest.raises(ValueError, s.drop, ('a', ))
+        pytest.raises(KeyError, s.drop, 'bc')
+        pytest.raises(KeyError, s.drop, ('a', ))
 
         # errors='ignore'
         s = Series(range(3), index=list('abc'))
@@ -1761,6 +1858,11 @@ class TestSeriesIndexing(TestData):
         result = s.drop(True)
         expected = Series([3], index=[False])
         assert_series_equal(result, expected)
+
+        # GH 16877
+        s = Series([2, 3], index=[0, 1])
+        with tm.assert_raises_regex(KeyError, 'not contained in axis'):
+            s.drop([False, True])
 
     def test_align(self):
         def _check_align(a, b, how='left', fill=None):
@@ -1967,7 +2069,7 @@ class TestSeriesIndexing(TestData):
         result = series.reindex(lrange(15))
         assert np.issubdtype(result.dtype, np.dtype('M8[ns]'))
 
-        mask = result.isnull()
+        mask = result.isna()
         assert mask[-5:].all()
         assert not mask[:-5].any()
 
@@ -2025,7 +2127,7 @@ class TestSeriesIndexing(TestData):
         result = s.reindex(new_index, method='ffill')
         assert_series_equal(result, expected)
 
-        # inferrence of new dtype
+        # inference of new dtype
         s = Series([True, False, False, True], index=list('abcd'))
         new_index = 'agc'
         result = s.reindex(list(new_index)).ffill()
@@ -2050,9 +2152,17 @@ class TestSeriesIndexing(TestData):
 
         actual = s.reindex_like(actual, method='nearest', tolerance=1)
         assert_series_equal(expected, actual)
+        actual = s.reindex_like(actual, method='nearest',
+                                tolerance=[1, 2, 3, 4])
+        assert_series_equal(expected, actual)
 
         actual = s.reindex(target, method='nearest', tolerance=0.2)
         expected = Series([0, 1, np.nan, 2], target)
+        assert_series_equal(expected, actual)
+
+        actual = s.reindex(target, method='nearest',
+                           tolerance=[0.3, 0.01, 0.4, 3])
+        expected = Series([0, np.nan, np.nan, 2], target)
         assert_series_equal(expected, actual)
 
     def test_reindex_backfill(self):
@@ -2093,7 +2203,7 @@ class TestSeriesIndexing(TestData):
         ts = self.ts[5:]
         bool_ts = Series(np.zeros(len(ts), dtype=bool), index=ts.index)
         filled_bool = bool_ts.reindex(self.ts.index, method='pad')
-        assert isnull(filled_bool[:5]).all()
+        assert isna(filled_bool[:5]).all()
 
     def test_reindex_like(self):
         other = self.ts[::2]
@@ -2162,15 +2272,54 @@ class TestSeriesIndexing(TestData):
         expected = Series([False, True, False], index=[1, 2, 3])
         assert_series_equal(result, expected)
 
-    def test_select(self):
-        n = len(self.ts)
-        result = self.ts.select(lambda x: x >= self.ts.index[n // 2])
-        expected = self.ts.reindex(self.ts.index[n // 2:])
+    def test_reindex_categorical(self):
+
+        index = date_range('20000101', periods=3)
+
+        # reindexing to an invalid Categorical
+        s = Series(['a', 'b', 'c'], dtype='category')
+        result = s.reindex(index)
+        expected = Series(Categorical(values=[np.nan, np.nan, np.nan],
+                                      categories=['a', 'b', 'c']))
+        expected.index = index
+        tm.assert_series_equal(result, expected)
+
+        # partial reindexing
+        expected = Series(Categorical(values=['b', 'c'], categories=['a', 'b',
+                                                                     'c']))
+        expected.index = [1, 2]
+        result = s.reindex([1, 2])
+        tm.assert_series_equal(result, expected)
+
+        expected = Series(Categorical(
+            values=['c', np.nan], categories=['a', 'b', 'c']))
+        expected.index = [2, 3]
+        result = s.reindex([2, 3])
+        tm.assert_series_equal(result, expected)
+
+    def test_rename(self):
+
+        # GH 17407
+        s = Series(range(1, 6), index=pd.Index(range(2, 7), name='IntIndex'))
+        result = s.rename(str)
+        expected = s.rename(lambda i: str(i))
         assert_series_equal(result, expected)
 
-        result = self.ts.select(lambda x: x.weekday() == 2)
-        expected = self.ts[self.ts.index.weekday == 2]
-        assert_series_equal(result, expected)
+        assert result.name == expected.name
+
+    def test_select(self):
+
+        # deprecated: gh-12410
+        with tm.assert_produces_warning(FutureWarning,
+                                        check_stacklevel=False):
+            n = len(self.ts)
+            result = self.ts.select(lambda x: x >= self.ts.index[n // 2])
+            expected = self.ts.reindex(self.ts.index[n // 2:])
+            assert_series_equal(result, expected)
+
+            result = self.ts.select(lambda x: x.weekday() == 2)
+            expected = self.ts[self.ts.index.weekday == 2]
+            assert_series_equal(result, expected)
 
     def test_cast_on_putmask(self):
 
@@ -2247,6 +2396,41 @@ class TestSeriesIndexing(TestData):
             series[1:3] = 1
 
         assert not array.any()
+
+    def test_categorial_assigning_ops(self):
+        orig = Series(Categorical(["b", "b"], categories=["a", "b"]))
+        s = orig.copy()
+        s[:] = "a"
+        exp = Series(Categorical(["a", "a"], categories=["a", "b"]))
+        tm.assert_series_equal(s, exp)
+
+        s = orig.copy()
+        s[1] = "a"
+        exp = Series(Categorical(["b", "a"], categories=["a", "b"]))
+        tm.assert_series_equal(s, exp)
+
+        s = orig.copy()
+        s[s.index > 0] = "a"
+        exp = Series(Categorical(["b", "a"], categories=["a", "b"]))
+        tm.assert_series_equal(s, exp)
+
+        s = orig.copy()
+        s[[False, True]] = "a"
+        exp = Series(Categorical(["b", "a"], categories=["a", "b"]))
+        tm.assert_series_equal(s, exp)
+
+        s = orig.copy()
+        s.index = ["x", "y"]
+        s["y"] = "a"
+        exp = Series(Categorical(["b", "a"], categories=["a", "b"]),
+                     index=["x", "y"])
+        tm.assert_series_equal(s, exp)
+
+        # ensure that one can set something to np.nan
+        s = Series(Categorical([1, 2, 3]))
+        exp = Series(Categorical([1, np.nan, 3], categories=[1, 2, 3]))
+        s[1] = np.nan
+        tm.assert_series_equal(s, exp)
 
 
 class TestTimeSeriesDuplicates(object):
@@ -2566,8 +2750,12 @@ class TestDatetimeIndexing(object):
         dates = [datetime(2001, 1, 1), datetime(2001, 1, 2)]
         index = DatetimeIndex(dates)
 
-        s = Series().set_value(dates[0], 1.)
-        s2 = s.set_value(dates[1], np.nan)
+        with tm.assert_produces_warning(FutureWarning,
+                                        check_stacklevel=False):
+            s = Series().set_value(dates[0], 1.)
+        with tm.assert_produces_warning(FutureWarning,
+                                        check_stacklevel=False):
+            s2 = s.set_value(dates[1], np.nan)
 
         exp = Series([1., np.nan], index=index)
 
@@ -2577,7 +2765,7 @@ class TestDatetimeIndexing(object):
         # s2 = s.set_value(dates[1], index[1])
         # assert s2.values.dtype == 'M8[ns]'
 
-    @slow
+    @pytest.mark.slow
     def test_slice_locs_indexerror(self):
         times = [datetime(2000, 1, 1) + timedelta(minutes=i * 10)
                  for i in range(100000)]

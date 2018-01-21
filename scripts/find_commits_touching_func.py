@@ -1,10 +1,10 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-# copryright 2013, y-p @ github
+# copyright 2013, y-p @ github
 
 from __future__ import print_function
-from pandas.compat import range, lrange, map
+from pandas.compat import range, lrange, map, string_types, text_type
 
 """Search the git history for all commits touching a named method
 
@@ -26,21 +26,21 @@ except ImportError:
 import argparse
 
 desc = """
-Find all commits touching a sepcified function across the codebase.
+Find all commits touching a specified function across the codebase.
 """.strip()
 argparser = argparse.ArgumentParser(description=desc)
 argparser.add_argument('funcname', metavar='FUNCNAME',
                    help='Name of function/method to search for changes on.')
 argparser.add_argument('-f', '--file-masks', metavar='f_re(,f_re)*',
                        default=["\.py.?$"],
-                   help='comma seperated list of regexes to match filenames against\n'+
+                   help='comma separated list of regexes to match filenames against\n'+
                    'defaults all .py? files')
 argparser.add_argument('-d', '--dir-masks', metavar='d_re(,d_re)*',
                        default=[],
-                   help='comma seperated list of regexes to match base path against')
+                   help='comma separated list of regexes to match base path against')
 argparser.add_argument('-p', '--path-masks', metavar='p_re(,p_re)*',
                        default=[],
-                   help='comma seperated list of regexes to match full file path against')
+                   help='comma separated list of regexes to match full file path against')
 argparser.add_argument('-y', '--saw-the-warning',
                        action='store_true',default=False,
                    help='must specify this to run, acknowledge you realize this will erase untracked files')
@@ -88,25 +88,25 @@ def get_hits(defname,files=()):
         # remove comment lines
         lines = [x for x in lines if not re.search("^\w+\s*\(.+\)\s*#",x)]
         hits = set(map(lambda x: x.split(" ")[0],lines))
-        cs.update(set([Hit(commit=c,path=f) for c in hits]))
+        cs.update(set(Hit(commit=c,path=f) for c in hits))
 
     return cs
 
 def get_commit_info(c,fmt,sep='\t'):
     r=sh.git('log', "--format={}".format(fmt), '{}^..{}'.format(c,c),"-n","1",_tty_out=False)
-    return compat.text_type(r).split(sep)
+    return text_type(r).split(sep)
 
 def get_commit_vitals(c,hlen=HASH_LEN):
     h,s,d= get_commit_info(c,'%H\t%s\t%ci',"\t")
     return h[:hlen],s,parse_date(d)
 
 def file_filter(state,dirname,fnames):
-    if args.dir_masks and not any([re.search(x,dirname) for x in args.dir_masks]):
+    if args.dir_masks and not any(re.search(x,dirname) for x in args.dir_masks):
         return
     for f in fnames:
         p = os.path.abspath(os.path.join(os.path.realpath(dirname),f))
-        if  any([re.search(x,f) for x in args.file_masks])\
-            or any([re.search(x,p) for x in args.path_masks]):
+        if  any(re.search(x,f) for x in args.file_masks)\
+            or any(re.search(x,p) for x in args.path_masks):
             if os.path.isfile(p):
                 state['files'].append(p)
 
@@ -183,11 +183,11 @@ You must specify the -y argument to ignore this warning.
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 """)
         return
-    if isinstance(args.file_masks,compat.string_types):
+    if isinstance(args.file_masks, string_types):
         args.file_masks = args.file_masks.split(',')
-    if isinstance(args.path_masks,compat.string_types):
+    if isinstance(args.path_masks, string_types):
         args.path_masks = args.path_masks.split(',')
-    if isinstance(args.dir_masks,compat.string_types):
+    if isinstance(args.dir_masks, string_types):
         args.dir_masks = args.dir_masks.split(',')
 
     logger.setLevel(getattr(logging,args.debug_level))

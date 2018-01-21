@@ -10,7 +10,7 @@
    import pandas as pd
    pd.options.display.max_rows = 15
    import matplotlib
-   matplotlib.style.use('ggplot')
+   # matplotlib.style.use('default')
    import matplotlib.pyplot as plt
    plt.close('all')
    from collections import OrderedDict
@@ -20,38 +20,38 @@ Group By: split-apply-combine
 *****************************
 
 By "group by" we are referring to a process involving one or more of the following
-steps
+steps:
 
- - **Splitting** the data into groups based on some criteria
- - **Applying** a function to each group independently
- - **Combining** the results into a data structure
+ - **Splitting** the data into groups based on some criteria.
+ - **Applying** a function to each group independently.
+ - **Combining** the results into a data structure.
 
-Of these, the split step is the most straightforward. In fact, in many
-situations you may wish to split the data set into groups and do something with
-those groups yourself. In the apply step, we might wish to one of the
+Out of these, the split step is the most straightforward. In fact, in many
+situations we may wish to split the data set into groups and do something with
+those groups. In the apply step, we might wish to one of the
 following:
 
- - **Aggregation**: computing a summary statistic (or statistics) about each
+ - **Aggregation**: compute a summary statistic (or statistics) for each
    group. Some examples:
 
-    - Compute group sums or means
-    - Compute group sizes / counts
+    - Compute group sums or means.
+    - Compute group sizes / counts.
 
  - **Transformation**: perform some group-specific computations and return a
-   like-indexed. Some examples:
+   like-indexed object. Some examples:
 
-    - Standardizing data (zscore) within group
-    - Filling NAs within groups with a value derived from each group
+    - Standardize data (zscore) within a group.
+    - Filling NAs within groups with a value derived from each group.
 
  - **Filtration**: discard some groups, according to a group-wise computation
    that evaluates True or False. Some examples:
 
-    - Discarding data that belongs to groups with only a few members
-    - Filtering out data based on the group sum or mean
+    - Discard data that belongs to groups with only a few members.
+    - Filter out data based on the group sum or mean.
 
  - Some combination of the above: GroupBy will examine the results of the apply
    step and try to return a sensibly combined result if it doesn't fit into
-   either of the above two categories
+   either of the above two categories.
 
 Since the set of object instance methods on pandas data structures are generally
 rich and expressive, we often simply want to invoke, say, a DataFrame function
@@ -68,7 +68,7 @@ We aim to make operations like this natural and easy to express using
 pandas. We'll address each area of GroupBy functionality then provide some
 non-trivial examples / use cases.
 
-See the :ref:`cookbook<cookbook.grouping>` for some advanced strategies
+See the :ref:`cookbook<cookbook.grouping>` for some advanced strategies.
 
 .. _groupby.split:
 
@@ -77,7 +77,7 @@ Splitting an object into groups
 
 pandas objects can be split on any of their axes. The abstract definition of
 grouping is to provide a mapping of labels to group names. To create a GroupBy
-object (more on what the GroupBy object is later), you do the following:
+object (more on what the GroupBy object is later), you may do the following:
 
 .. code-block:: ipython
 
@@ -88,17 +88,18 @@ object (more on what the GroupBy object is later), you do the following:
 
 The mapping can be specified many different ways:
 
-  - A Python function, to be called on each of the axis labels
-  - A list or NumPy array of the same length as the selected axis
-  - A dict or Series, providing a ``label -> group name`` mapping
-  - For DataFrame objects, a string indicating a column to be used to group. Of
-    course ``df.groupby('A')`` is just syntactic sugar for
-    ``df.groupby(df['A'])``, but it makes life simpler
-  - For DataFrame objects, a string indicating an index level to be used to group.
-  - A list of any of the above things
+  - A Python function, to be called on each of the axis labels.
+  - A list or NumPy array of the same length as the selected axis.
+  - A dict or ``Series``, providing a ``label -> group name`` mapping.
+  - For ``DataFrame`` objects, a string indicating a column to be used to group. 
+    Of course ``df.groupby('A')`` is just syntactic sugar for
+    ``df.groupby(df['A'])``, but it makes life simpler.
+  - For ``DataFrame`` objects, a string indicating an index level to be used to 
+    group.
+  - A list of any of the above things.
 
 Collectively we refer to the grouping objects as the **keys**. For example,
-consider the following DataFrame:
+consider the following ``DataFrame``:
 
 .. note::
 
@@ -119,7 +120,8 @@ consider the following DataFrame:
                       'D' : np.random.randn(8)})
    df
 
-We could naturally group by either the ``A`` or ``B`` columns or both:
+On a DataFrame, we obtain a GroupBy object by calling :meth:`~DataFrame.groupby`. 
+We could naturally group by either the ``A`` or ``B`` columns, or both:
 
 .. ipython:: python
 
@@ -140,7 +142,7 @@ columns:
 
     In [5]: grouped = df.groupby(get_letter_type, axis=1)
 
-Starting with 0.8, pandas Index objects now support duplicate values. If a
+pandas :class:`~pandas.Index` objects support duplicate values. If a
 non-unique index is used as the group key in a groupby operation, all values
 for the same index value will be considered to be in one group and thus the
 output of aggregation functions will only contain unique index values:
@@ -220,7 +222,7 @@ the length of the ``groups`` dict, so it is largely just a convenience:
 
 .. _groupby.tabcompletion:
 
-``GroupBy`` will tab complete column names (and other attributes)
+``GroupBy`` will tab complete column names (and other attributes):
 
 .. ipython:: python
    :suppress:
@@ -287,8 +289,6 @@ chosen level:
 .. ipython:: python
 
    s.sum(level='second')
-
-.. versionadded:: 0.6
 
 Grouping with multiple levels is supported.
 
@@ -360,9 +360,9 @@ Index level names may be specified as keys directly to ``groupby``.
 DataFrame column selection in GroupBy
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-Once you have created the GroupBy object from a DataFrame, for example, you
-might want to do something different for each of the columns. Thus, using
-``[]`` similar to getting a column from a DataFrame, you can do:
+Once you have created the GroupBy object from a DataFrame, you might want to do 
+something different for each of the columns. Thus, using ``[]`` similar to 
+getting a column from a DataFrame, you can do:
 
 .. ipython:: python
    :suppress:
@@ -395,7 +395,7 @@ Iterating through groups
 ------------------------
 
 With the GroupBy object in hand, iterating through the grouped data is very
-natural and functions similarly to ``itertools.groupby``:
+natural and functions similarly to :py:func:`itertools.groupby`:
 
 .. ipython::
 
@@ -421,7 +421,8 @@ statement if you wish: ``for (k1, k2), group in grouped:``.
 Selecting a group
 -----------------
 
-A single group can be selected using ``GroupBy.get_group()``:
+A single group can be selected using 
+:meth:`~pandas.core.groupby.DataFrameGroupBy.get_group`:
 
 .. ipython:: python
 
@@ -443,7 +444,9 @@ perform a computation on the grouped data. These operations are similar to the
 :ref:`aggregating API <basics.aggregate>`, :ref:`window functions API <stats.aggregate>`,
 and :ref:`resample API <timeseries.aggregate>`.
 
-An obvious one is aggregation via the ``aggregate`` or equivalently ``agg`` method:
+An obvious one is aggregation via the 
+:meth:`~pandas.core.groupby.DataFrameGroupBy.aggregate` or equivalently 
+:meth:`~pandas.core.groupby.DataFrameGroupBy.agg` method:
 
 .. ipython:: python
 
@@ -493,11 +496,34 @@ index are the group names and whose values are the sizes of each group.
    Passing ``as_index=False`` **will** return the groups that you are aggregating over, if they are
    named *columns*.
 
-   Aggregating functions are ones that reduce the dimension of the returned objects,
-   for example: ``mean, sum, size, count, std, var, sem, describe, first, last, nth, min, max``. This is
-   what happens when you do for example ``DataFrame.sum()`` and get back a ``Series``.
+Aggregating functions are the ones that reduce the dimension of the returned objects.
+Some common aggregating functions are tabulated below:
 
-   ``nth`` can act as a reducer *or* a filter, see :ref:`here <groupby.nth>`
+.. csv-table::
+    :header: "Function", "Description"
+    :widths: 20, 80
+    :delim: ;
+
+	:meth:`~pd.core.groupby.DataFrameGroupBy.mean`;Compute mean of groups
+	:meth:`~pd.core.groupby.DataFrameGroupBy.sum`;Compute sum of group values
+	:meth:`~pd.core.groupby.DataFrameGroupBy.size`;Compute group sizes
+	:meth:`~pd.core.groupby.DataFrameGroupBy.count`;Compute count of group
+	:meth:`~pd.core.groupby.DataFrameGroupBy.std`;Standard deviation of groups
+	:meth:`~pd.core.groupby.DataFrameGroupBy.var`;Compute variance of groups
+	:meth:`~pd.core.groupby.DataFrameGroupBy.sem`;Standard error of the mean of groups
+	:meth:`~pd.core.groupby.DataFrameGroupBy.describe`;Generates descriptive statistics
+	:meth:`~pd.core.groupby.DataFrameGroupBy.first`;Compute first of group values
+	:meth:`~pd.core.groupby.DataFrameGroupBy.last`;Compute last of group values
+	:meth:`~pd.core.groupby.DataFrameGroupBy.nth`;Take nth value, or a subset if n is a list
+	:meth:`~pd.core.groupby.DataFrameGroupBy.min`;Compute min of group values
+	:meth:`~pd.core.groupby.DataFrameGroupBy.max`;Compute max of group values
+	
+
+The aggregating functions above will exclude NA values. Any function which 
+reduces a :class:`Series` to a scalar value is an aggregation function and will work,
+a trivial example is ``df.groupby('A').agg(lambda ser: 1)``. Note that
+:meth:`~pd.core.groupby.DataFrameGroupBy.nth` can act as a reducer *or* a 
+filter, see :ref:`here <groupby.nth>`.
 
 .. _groupby.aggregate.multifunc:
 
@@ -563,7 +589,7 @@ must be either implemented on GroupBy or available via :ref:`dispatching
 
 .. note::
 
-    If you pass a dict to ``aggregate``, the ordering of the output colums is
+    If you pass a dict to ``aggregate``, the ordering of the output columns is
     non-deterministic. If you want to be sure the output columns will be in a specific
     order, you can use an ``OrderedDict``.  Compare the output of the following two commands:
 
@@ -705,11 +731,11 @@ and that the transformed data contains no NAs.
 
 .. note::
 
-   Some functions when applied to a groupby object will automatically transform
-   the input, returning an object of the same shape as the original. Passing
-   ``as_index=False`` will not affect these transformation methods.
+   Some functions will automatically transform the input when applied to a
+   GroupBy object, but returning an object of the same shape as the original. 
+   Passing ``as_index=False`` will not affect these transformation methods.
 
-   For example: ``fillna, ffill, bfill, shift``.
+   For example: ``fillna, ffill, bfill, shift.``.
 
    .. ipython:: python
 
@@ -767,8 +793,6 @@ missing values with the ``ffill()`` method.
 
 Filtration
 ----------
-
-.. versionadded:: 0.12
 
 The ``filter`` method returns a subset of the original object. Suppose we
 want to take only elements that belong to groups with a group sum greater
@@ -860,8 +884,6 @@ In this example, we chopped the collection of time series into yearly chunks
 then independently called :ref:`fillna <missing_data.fillna>` on the
 groups.
 
-.. versionadded:: 0.14.1
-
 The ``nlargest`` and ``nsmallest`` methods work on ``Series`` style groupbys:
 
 .. ipython:: python
@@ -904,7 +926,8 @@ The dimension of the returned result can also change:
 
     In [11]: grouped.apply(f)
 
-``apply`` on a Series can operate on a returned value from the applied function, that is itself a series, and possibly upcast the result to a DataFrame
+``apply`` on a Series can operate on a returned value from the applied function, 
+that is itself a series, and possibly upcast the result to a DataFrame:
 
 .. ipython:: python
 
@@ -933,7 +956,7 @@ The dimension of the returned result can also change:
 
         d = pd.DataFrame({"a":["x", "y"], "b":[1,2]})
         def identity(df):
-            print df
+            print(df)
             return df
 
         d.groupby("a").apply(identity)
@@ -961,15 +984,21 @@ will be (silently) dropped. Thus, this does not pose any problems:
 
    df.groupby('A').std()
 
+Note that ``df.groupby('A').colname.std().`` is more efficient than 
+``df.groupby('A').std().colname``, so if the result of an aggregation function
+is only interesting over one column (here ``colname``), it may be filtered 
+*before* applying the aggregation function.
+
 .. _groupby.missing:
 
 NA and NaT group handling
 ~~~~~~~~~~~~~~~~~~~~~~~~~
 
-If there are any NaN or NaT values in the grouping key, these will be automatically
-excluded. So there will never be an "NA group" or "NaT group". This was not the case in older
-versions of pandas, but users were generally discarding the NA group anyway
-(and supporting it was an implementation headache).
+If there are any NaN or NaT values in the grouping key, these will be 
+automatically excluded. In other words, there will never be an "NA group" or 
+"NaT group". This was not the case in older versions of pandas, but users were 
+generally discarding the NA group anyway (and supporting it was an 
+implementation headache).
 
 Grouping with ordered factors
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -1050,25 +1079,14 @@ Just like for a DataFrame or Series you can call head and tail on a groupby:
 
 This shows the first or last n rows from each group.
 
-.. warning::
-
-   Before 0.14.0 this was implemented with a fall-through apply,
-   so the result would incorrectly respect the as_index flag:
-
-   .. code-block:: python
-
-       >>> g.head(1):  # was equivalent to g.apply(lambda x: x.head(1))
-             A  B
-        A
-        1 0  1  2
-        5 2  5  6
-
 .. _groupby.nth:
 
 Taking the nth row of each group
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-To select from a DataFrame or Series the nth item, use the nth method. This is a reduction method, and will return a single row (or no row) per group if you pass an int for n:
+To select from a DataFrame or Series the nth item, use 
+:meth:`~pd.core.groupby.DataFrameGroupBy.nth`. This is a reduction method, and 
+will return a single row (or no row) per group if you pass an int for n:
 
 .. ipython:: python
 
@@ -1079,7 +1097,7 @@ To select from a DataFrame or Series the nth item, use the nth method. This is a
    g.nth(-1)
    g.nth(1)
 
-If you want to select the nth not-null item, use the ``dropna`` kwarg. For a DataFrame this should be either ``'any'`` or ``'all'`` just like you would pass to dropna, for a Series this just needs to be truthy.
+If you want to select the nth not-null item, use the ``dropna`` kwarg. For a DataFrame this should be either ``'any'`` or ``'all'`` just like you would pass to dropna:
 
 .. ipython:: python
 
@@ -1091,7 +1109,7 @@ If you want to select the nth not-null item, use the ``dropna`` kwarg. For a Dat
    g.nth(-1, dropna='any')  # NaNs denote group exhausted when using dropna
    g.last()
 
-   g.B.nth(0, dropna=True)
+   g.B.nth(0, dropna='all')
 
 As with other methods, passing ``as_index=False``, will achieve a filtration, which returns the grouped row.
 
@@ -1110,24 +1128,48 @@ You can also select multiple rows from each group by specifying multiple nth val
    business_dates = pd.date_range(start='4/1/2014', end='6/30/2014', freq='B')
    df = pd.DataFrame(1, index=business_dates, columns=['a', 'b'])
    # get the first, 4th, and last date index for each month
-   df.groupby((df.index.year, df.index.month)).nth([0, 3, -1])
+   df.groupby([df.index.year, df.index.month]).nth([0, 3, -1])
 
 Enumerate group items
 ~~~~~~~~~~~~~~~~~~~~~
-
-.. versionadded:: 0.13.0
 
 To see the order in which each row appears within its group, use the
 ``cumcount`` method:
 
 .. ipython:: python
 
-   df = pd.DataFrame(list('aaabba'), columns=['A'])
-   df
+   dfg = pd.DataFrame(list('aaabba'), columns=['A'])
+   dfg
 
-   df.groupby('A').cumcount()
+   dfg.groupby('A').cumcount()
 
-   df.groupby('A').cumcount(ascending=False)  # kwarg only
+   dfg.groupby('A').cumcount(ascending=False)
+
+.. _groupby.ngroup:
+
+Enumerate groups
+~~~~~~~~~~~~~~~~
+
+.. versionadded:: 0.20.2
+
+To see the ordering of the groups (as opposed to the order of rows
+within a group given by ``cumcount``) you can use 
+:meth:`~pandas.core.groupby.DataFrameGroupBy.ngroup`.
+
+
+
+Note that the numbers given to the groups match the order in which the
+groups would be seen when iterating over the groupby object, not the
+order they are first observed.
+
+.. ipython:: python
+
+   dfg = pd.DataFrame(list('aaabba'), columns=['A'])
+   dfg
+
+   dfg.groupby('A').ngroup()
+
+   dfg.groupby('A').ngroup(ascending=False)
 
 Plotting
 ~~~~~~~~
@@ -1162,6 +1204,55 @@ See the :ref:`visualization documentation<visualization.box>` for more.
   to ``df.boxplot(by="g")``. See :ref:`here<visualization.box.return>` for
   an explanation.
 
+.. _groupby.pipe:
+
+Piping function calls
+~~~~~~~~~~~~~~~~~~~~~
+
+.. versionadded:: 0.21.0
+
+Similar to the functionality provided by ``DataFrame`` and ``Series``, functions
+that take ``GroupBy`` objects can be chained together using a ``pipe`` method to
+allow for a cleaner, more readable syntax. To read about ``.pipe`` in general terms,
+see :ref:`here <basics.pipe>`.
+
+Combining ``.groupby`` and ``.pipe`` is often useful when you need to reuse
+GroupBy objects.
+
+For an example, imagine having a DataFrame with columns for stores, products,
+revenue and sold quantity. We'd like to do a groupwise calculation of *prices*
+(i.e. revenue/quantity) per store and per product. We could do this in a
+multi-step operation, but expressing it in terms of piping can make the
+code more readable. First we set the data:
+
+.. ipython:: python
+
+   import numpy as np
+   n = 1000
+   df = pd.DataFrame({'Store': np.random.choice(['Store_1', 'Store_2'], n),
+                      'Product': np.random.choice(['Product_1', 'Product_2', 'Product_3'], n),
+                      'Revenue': (np.random.random(n)*50+10).round(2),
+                      'Quantity': np.random.randint(1, 10, size=n)})
+   df.head(2)
+
+Now, to find prices per store/product, we can simply do:
+
+.. ipython:: python
+
+   (df.groupby(['Store', 'Product'])
+      .pipe(lambda grp: grp.Revenue.sum()/grp.Quantity.sum())
+      .unstack().round(2))
+
+Piping can also be expressive when you want to deliver a grouped object to some
+arbitrary function, for example:
+
+.. code-block:: python
+
+   (df.groupby(['Store', 'Product']).pipe(report_func)
+
+where ``report_func`` takes a GroupBy object and creates a report
+from that.
+
 Examples
 --------
 
@@ -1176,14 +1267,41 @@ Regroup columns of a DataFrame according to their sum, and sum the aggregated on
    df
    df.groupby(df.sum(), axis=1).sum()
 
+.. _groupby.multicolumn_factorization:
+
+Multi-column factorization
+~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+By using :meth:`~pandas.core.groupby.DataFrameGroupBy.ngroup`, we can extract 
+information about the groups in a way similar to :func:`factorize` (as described
+further in the :ref:`reshaping API <reshaping.factorize>`) but which applies
+naturally to multiple columns of mixed type and different
+sources. This can be useful as an intermediate categorical-like step
+in processing, when the relationships between the group rows are more
+important than their content, or as input to an algorithm which only
+accepts the integer encoding. (For more information about support in
+pandas for full categorical data, see the :ref:`Categorical
+introduction <categorical>` and the
+:ref:`API documentation <api.categorical>`.)
+
+.. ipython:: python
+
+    dfg = pd.DataFrame({"A": [1, 1, 2, 3, 2], "B": list("aaaba")})
+
+    dfg
+
+    dfg.groupby(["A", "B"]).ngroup()
+
+    dfg.groupby(["A", [0, 0, 0, 1, 1]]).ngroup()
+
 Groupby by Indexer to 'resample' data
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-Resampling produces new hypothetical samples(resamples) from already existing observed data or from a model that generates data. These new samples are similar to the pre-existing samples.
+Resampling produces new hypothetical samples (resamples) from already existing observed data or from a model that generates data. These new samples are similar to the pre-existing samples.
 
-In order to resample to work on indices that are non-datetimelike , the following procedure can be utilized.
+In order to resample to work on indices that are non-datetimelike, the following procedure can be utilized.
 
-In the following examples, **df.index // 5** returns a binary array which is used to determine what get's selected for the groupby operation.
+In the following examples, **df.index // 5** returns a binary array which is used to determine what gets selected for the groupby operation.
 
 .. note:: The below example shows how we can downsample by consolidation of samples into fewer samples. Here by using **df.index // 5**, we are aggregating the samples in bins. By applying **std()** function, we aggregate the information contained in many samples into a small subset of values which is their standard deviation thereby reducing the number of samples.
 

@@ -57,7 +57,7 @@ class TestGroupBy(MixIn):
 
         # GH 8430
         df = tm.makeTimeDataFrame()
-        g = df.groupby(pd.TimeGrouper('M'))
+        g = df.groupby(pd.Grouper(freq='M'))
         g.transform(lambda x: x - 1)
 
         # GH 9700
@@ -195,6 +195,19 @@ class TestGroupBy(MixIn):
         expected = Series(np.arange(5, 0, step=-1), name='B')
         assert_series_equal(result, expected)
 
+    def test_transform_numeric_to_boolean(self):
+        # GH 16875
+        # inconsistency in transforming boolean values
+        expected = pd.Series([True, True], name='A')
+
+        df = pd.DataFrame({'A': [1.1, 2.2], 'B': [1, 2]})
+        result = df.groupby('B').A.transform(lambda x: True)
+        assert_series_equal(result, expected)
+
+        df = pd.DataFrame({'A': [1, 2], 'B': [1, 2]})
+        result = df.groupby('B').A.transform(lambda x: True)
+        assert_series_equal(result, expected)
+
     def test_transform_datetime_to_timedelta(self):
         # GH 15429
         # transforming a datetime to timedelta
@@ -248,7 +261,7 @@ class TestGroupBy(MixIn):
         9   B-053  b76cd912ff "2014-10-08 19:17:48"
         10  B-065  b76cd912ff "2014-10-08 19:21:38"
         """
-        df = pd.read_csv(StringIO(data), sep='\s+',
+        df = pd.read_csv(StringIO(data), sep=r'\s+',
                          index_col=[0], parse_dates=['DATETIME'])
 
         result = df.groupby('ID3')['DATETIME'].transform(lambda x: x.diff())
@@ -461,32 +474,41 @@ class TestGroupBy(MixIn):
             np.timedelta64(5, 'ns')])
         tm.assert_numpy_array_equal(actual[:, 0].view('m8[ns]'), expected)
 
-    def test_cython_transform(self):
+    @pytest.mark.parametrize(
+        "op, args, targop",
+        [('cumprod', (), lambda x: x.cumprod()),
+         ('cumsum', (), lambda x: x.cumsum()),
+         ('shift', (-1, ), lambda x: x.shift(-1)),
+         ('shift', (1, ), lambda x: x.shift())])
+    def test_cython_transform_series(self, op, args, targop):
         # GH 4095
-        ops = [(('cumprod',
-                 ()), lambda x: x.cumprod()), (('cumsum', ()),
-                                               lambda x: x.cumsum()),
-               (('shift', (-1, )),
-                lambda x: x.shift(-1)), (('shift',
-                                          (1, )), lambda x: x.shift())]
-
         s = Series(np.random.randn(1000))
         s_missing = s.copy()
         s_missing.iloc[2:10] = np.nan
         labels = np.random.randint(0, 50, size=1000).astype(float)
 
         # series
-        for (op, args), targop in ops:
-            for data in [s, s_missing]:
-                # print(data.head())
-                expected = data.groupby(labels).transform(targop)
+        for data in [s, s_missing]:
+            # print(data.head())
+            expected = data.groupby(labels).transform(targop)
 
-                tm.assert_series_equal(expected,
-                                       data.groupby(labels).transform(op,
-                                                                      *args))
-                tm.assert_series_equal(expected, getattr(
-                    data.groupby(labels), op)(*args))
+            tm.assert_series_equal(
+                expected,
+                data.groupby(labels).transform(op, *args))
+            tm.assert_series_equal(expected, getattr(
+                data.groupby(labels), op)(*args))
 
+    @pytest.mark.parametrize(
+        "op, args, targop",
+        [('cumprod', (), lambda x: x.cumprod()),
+         ('cumsum', (), lambda x: x.cumsum()),
+         ('shift', (-1, ), lambda x: x.shift(-1)),
+         ('shift', (1, ), lambda x: x.shift())])
+    def test_cython_transform_frame(self, op, args, targop):
+        s = Series(np.random.randn(1000))
+        s_missing = s.copy()
+        s_missing.iloc[2:10] = np.nan
+        labels = np.random.randint(0, 50, size=1000).astype(float)
         strings = list('qwertyuiopasdfghjklz')
         strings_missing = strings[:]
         strings_missing[5] = np.nan
@@ -517,34 +539,33 @@ class TestGroupBy(MixIn):
                 if op == 'shift':
                     gb._set_group_selection()
 
-                for (op, args), targop in ops:
-                    if op != 'shift' and 'int' not in gb_target:
-                        # numeric apply fastpath promotes dtype so have
-                        # to apply seperately and concat
-                        i = gb[['int']].apply(targop)
-                        f = gb[['float', 'float_missing']].apply(targop)
-                        expected = pd.concat([f, i], axis=1)
-                    else:
-                        expected = gb.apply(targop)
+                if op != 'shift' and 'int' not in gb_target:
+                    # numeric apply fastpath promotes dtype so have
+                    # to apply separately and concat
+                    i = gb[['int']].apply(targop)
+                    f = gb[['float', 'float_missing']].apply(targop)
+                    expected = pd.concat([f, i], axis=1)
+                else:
+                    expected = gb.apply(targop)
 
-                    expected = expected.sort_index(axis=1)
-                    tm.assert_frame_equal(expected,
-                                          gb.transform(op, *args).sort_index(
-                                              axis=1))
-                    tm.assert_frame_equal(expected, getattr(gb, op)(*args))
-                    # individual columns
-                    for c in df:
-                        if c not in ['float', 'int', 'float_missing'
-                                     ] and op != 'shift':
-                            pytest.raises(DataError, gb[c].transform, op)
-                            pytest.raises(DataError, getattr(gb[c], op))
-                        else:
-                            expected = gb[c].apply(targop)
-                            expected.name = c
-                            tm.assert_series_equal(expected,
-                                                   gb[c].transform(op, *args))
-                            tm.assert_series_equal(expected,
-                                                   getattr(gb[c], op)(*args))
+                expected = expected.sort_index(axis=1)
+                tm.assert_frame_equal(expected,
+                                      gb.transform(op, *args).sort_index(
+                                          axis=1))
+                tm.assert_frame_equal(expected, getattr(gb, op)(*args))
+                # individual columns
+                for c in df:
+                    if c not in ['float', 'int', 'float_missing'
+                                 ] and op != 'shift':
+                        pytest.raises(DataError, gb[c].transform, op)
+                        pytest.raises(DataError, getattr(gb[c], op))
+                    else:
+                        expected = gb[c].apply(targop)
+                        expected.name = c
+                        tm.assert_series_equal(expected,
+                                               gb[c].transform(op, *args))
+                        tm.assert_series_equal(expected,
+                                               getattr(gb[c], op)(*args))
 
     def test_transform_with_non_scalar_group(self):
         # GH 10165

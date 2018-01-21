@@ -15,7 +15,10 @@ jinja2
 sqlalchemy
 pymysql
 feather-format
-# psycopg2 (not avail on defaults ATM)
+pyarrow
+psycopg2
+python-snappy
+fastparquet
 beautifulsoup4
 s3fs
 xarray

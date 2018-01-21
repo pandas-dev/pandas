@@ -4,6 +4,7 @@ import numpy as np
 from pandas.compat import (string_types, text_type, binary_type,
                            PY3, PY36)
 from pandas._libs import algos, lib
+from pandas._libs.tslibs import conversion
 from .dtypes import (CategoricalDtype, CategoricalDtypeType,
                      DatetimeTZDtype, DatetimeTZDtypeType,
                      PeriodDtype, PeriodDtypeType,
@@ -11,8 +12,9 @@ from .dtypes import (CategoricalDtype, CategoricalDtypeType,
                      ExtensionDtype)
 from .generic import (ABCCategorical, ABCPeriodIndex,
                       ABCDatetimeIndex, ABCSeries,
-                      ABCSparseArray, ABCSparseSeries)
-from .inference import is_string_like
+                      ABCSparseArray, ABCSparseSeries, ABCCategoricalIndex,
+                      ABCIndexClass, ABCDateOffset)
+from .inference import is_string_like, is_list_like
 from .inference import *  # noqa
 
 
@@ -20,8 +22,8 @@ _POSSIBLY_CAST_DTYPES = set([np.dtype(t).name
                              for t in ['O', 'int8', 'uint8', 'int16', 'uint16',
                                        'int32', 'uint32', 'int64', 'uint64']])
 
-_NS_DTYPE = np.dtype('M8[ns]')
-_TD_DTYPE = np.dtype('m8[ns]')
+_NS_DTYPE = conversion.NS_DTYPE
+_TD_DTYPE = conversion.TD_DTYPE
 _INT64_DTYPE = np.dtype(np.int64)
 
 # oh the troubles to reduce import time
@@ -29,6 +31,9 @@ _is_scipy_sparse = None
 
 _ensure_float64 = algos.ensure_float64
 _ensure_float32 = algos.ensure_float32
+
+_ensure_datetime64ns = conversion.ensure_datetime64ns
+_ensure_timedelta64ns = conversion.ensure_timedelta64ns
 
 
 def _ensure_float(arr):
@@ -265,6 +270,37 @@ def is_datetimetz(arr):
             is_datetime64tz_dtype(arr))
 
 
+def is_offsetlike(arr_or_obj):
+    """
+    Check if obj or all elements of list-like is DateOffset
+
+    Parameters
+    ----------
+    arr_or_obj : object
+
+    Returns
+    -------
+    boolean : Whether the object is a DateOffset or listlike of DatetOffsets
+
+    Examples
+    --------
+    >>> is_offsetlike(pd.DateOffset(days=1))
+    True
+    >>> is_offsetlike('offset')
+    False
+    >>> is_offsetlike([pd.offsets.Minute(4), pd.offsets.MonthEnd()])
+    True
+    >>> is_offsetlike(np.array([pd.DateOffset(months=3), pd.Timestamp.now()]))
+    False
+    """
+    if isinstance(arr_or_obj, ABCDateOffset):
+        return True
+    elif (is_list_like(arr_or_obj) and len(arr_or_obj) and
+          is_object_dtype(arr_or_obj)):
+        return all(isinstance(x, ABCDateOffset) for x in arr_or_obj)
+    return False
+
+
 def is_period(arr):
     """
     Check whether an array-like is a periodical index.
@@ -392,11 +428,16 @@ def is_timedelta64_dtype(arr_or_dtype):
     False
     >>> is_timedelta64_dtype(pd.Series([], dtype="timedelta64[ns]"))
     True
+    >>> is_timedelta64_dtype('0 days')
+    False
     """
 
     if arr_or_dtype is None:
         return False
-    tipo = _get_dtype_type(arr_or_dtype)
+    try:
+        tipo = _get_dtype_type(arr_or_dtype)
+    except:
+        return False
     return issubclass(tipo, np.timedelta64)
 
 
@@ -686,11 +727,44 @@ def is_dtype_equal(source, target):
         return False
 
 
-def is_any_int_dtype(arr_or_dtype):
+def is_dtype_union_equal(source, target):
     """
-    DEPRECATED: This function will be removed in a future version.
+    Check whether two arrays have compatible dtypes to do a union.
+    numpy types are checked with ``is_dtype_equal``. Extension types are
+    checked separately.
 
-    Check whether the provided array or dtype is of an integer dtype.
+    Parameters
+    ----------
+    source : The first dtype to compare
+    target : The second dtype to compare
+
+    Returns
+    ----------
+    boolean : Whether or not the two dtypes are equal.
+
+    >>> is_dtype_equal("int", int)
+    True
+
+    >>> is_dtype_equal(CategoricalDtype(['a', 'b'],
+    ...                CategoricalDtype(['b', 'c']))
+    True
+
+    >>> is_dtype_equal(CategoricalDtype(['a', 'b'],
+    ...                CategoricalDtype(['b', 'c'], ordered=True))
+    False
+    """
+    source = _get_dtype(source)
+    target = _get_dtype(target)
+    if is_categorical_dtype(source) and is_categorical_dtype(target):
+        # ordered False for both
+        return source.ordered is target.ordered
+    return is_dtype_equal(source, target)
+
+
+def is_any_int_dtype(arr_or_dtype):
+    """Check whether the provided array or dtype is of an integer dtype.
+
+    .. deprecated:: 0.20.0
 
     In this function, timedelta64 instances are also considered "any-integer"
     type objects and will return True.
@@ -1486,11 +1560,10 @@ def is_float_dtype(arr_or_dtype):
 
 
 def is_floating_dtype(arr_or_dtype):
-    """
-    DEPRECATED: This function will be removed in a future version.
-
-    Check whether the provided array or dtype is an instance of
+    """Check whether the provided array or dtype is an instance of
     numpy's float dtype.
+
+    .. deprecated:: 0.20.0
 
     Unlike, `is_float_dtype`, this check is a lot stricter, as it requires
     `isinstance` of `np.floating` and not `issubclass`.
@@ -1540,6 +1613,16 @@ def is_bool_dtype(arr_or_dtype):
     except ValueError:
         # this isn't even a dtype
         return False
+
+    if isinstance(arr_or_dtype, ABCIndexClass):
+
+        # TODO(jreback)
+        # we don't have a boolean Index class
+        # so its object, we need to infer to
+        # guess this
+        return (arr_or_dtype.is_object and
+                arr_or_dtype.inferred_type == 'boolean')
+
     return issubclass(tipo, np.bool_)
 
 
@@ -1655,7 +1738,9 @@ def _coerce_to_dtype(dtype):
     """
 
     if is_categorical_dtype(dtype):
-        dtype = CategoricalDtype()
+        categories = getattr(dtype, 'categories', None)
+        ordered = getattr(dtype, 'ordered', False)
+        dtype = CategoricalDtype(categories=categories, ordered=ordered)
     elif is_datetime64tz_dtype(dtype):
         dtype = DatetimeTZDtype(dtype)
     elif is_period_dtype(dtype):
@@ -1710,6 +1795,8 @@ def _get_dtype(arr_or_dtype):
             return PeriodDtype.construct_from_string(arr_or_dtype)
         elif is_interval_dtype(arr_or_dtype):
             return IntervalDtype.construct_from_string(arr_or_dtype)
+    elif isinstance(arr_or_dtype, (ABCCategorical, ABCCategoricalIndex)):
+        return arr_or_dtype.dtype
 
     if hasattr(arr_or_dtype, 'dtype'):
         arr_or_dtype = arr_or_dtype.dtype
@@ -1836,10 +1923,10 @@ def _validate_date_like_dtype(dtype):
     try:
         typ = np.datetime_data(dtype)[0]
     except ValueError as e:
-        raise TypeError('%s' % e)
+        raise TypeError('{error}'.format(error=e))
     if typ != 'generic' and typ != 'ns':
-        raise ValueError('%r is too specific of a frequency, try passing %r' %
-                         (dtype.name, dtype.type.__name__))
+        msg = '{name!r} is too specific of a frequency, try passing {type!r}'
+        raise ValueError(msg.format(name=dtype.name, type=dtype.type.__name__))
 
 
 _string_dtypes = frozenset(map(_get_dtype_from_object, (binary_type,
@@ -1880,7 +1967,7 @@ def pandas_dtype(dtype):
             except TypeError:
                 pass
 
-        elif dtype.startswith('interval[') or dtype.startswith('Interval['):
+        elif dtype.startswith('interval') or dtype.startswith('Interval'):
             try:
                 return IntervalDtype.construct_from_string(dtype)
             except TypeError:
@@ -1906,6 +1993,6 @@ def pandas_dtype(dtype):
     if dtype in [object, np.object_, 'object', 'O']:
         return npdtype
     elif npdtype.kind == 'O':
-        raise TypeError('dtype {0} not understood'.format(dtype))
+        raise TypeError('dtype {dtype} not understood'.format(dtype=dtype))
 
     return npdtype

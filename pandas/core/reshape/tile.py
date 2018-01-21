@@ -2,7 +2,7 @@
 Quantilization functions and related stuff
 """
 
-from pandas.core.dtypes.missing import isnull
+from pandas.core.dtypes.missing import isna
 from pandas.core.dtypes.common import (
     is_integer,
     is_scalar,
@@ -75,18 +75,18 @@ def cut(x, bins, right=True, labels=None, retbins=False, precision=3,
     Examples
     --------
     >>> pd.cut(np.array([.2, 1.4, 2.5, 6.2, 9.7, 2.1]), 3, retbins=True)
-    ([(0.191, 3.367], (0.191, 3.367], (0.191, 3.367], (3.367, 6.533],
-      (6.533, 9.7], (0.191, 3.367]]
-    Categories (3, object): [(0.191, 3.367] < (3.367, 6.533] < (6.533, 9.7]],
-    array([ 0.1905    ,  3.36666667,  6.53333333,  9.7       ]))
+    ... # doctest: +ELLIPSIS
+    ([(0.19, 3.367], (0.19, 3.367], (0.19, 3.367], (3.367, 6.533], ...
+    Categories (3, interval[float64]): [(0.19, 3.367] < (3.367, 6.533] ...
 
-    >>> pd.cut(np.array([.2, 1.4, 2.5, 6.2, 9.7, 2.1]), 3,
-               labels=["good","medium","bad"])
+    >>> pd.cut(np.array([.2, 1.4, 2.5, 6.2, 9.7, 2.1]),
+    ...        3, labels=["good", "medium", "bad"])
+    ... # doctest: +SKIP
     [good, good, good, medium, bad, good]
     Categories (3, object): [good < medium < bad]
 
     >>> pd.cut(np.ones(5), 4, labels=False)
-    array([1, 1, 1, 1, 1], dtype=int64)
+    array([1, 1, 1, 1, 1])
     """
     # NOTE: this binning code is changed a bit from histogram for var(x) == 0
 
@@ -148,7 +148,7 @@ def qcut(x, q, labels=None, retbins=False, precision=3, duplicates='raise'):
 
     Parameters
     ----------
-    x : ndarray or Series
+    x : 1d ndarray or Series
     q : integer or array of quantiles
         Number of quantiles. 10 for deciles, 4 for quartiles, etc. Alternately
         array of quantiles, e.g. [0, .25, .5, .75, 1.] for quartiles
@@ -182,15 +182,17 @@ def qcut(x, q, labels=None, retbins=False, precision=3, duplicates='raise'):
     Examples
     --------
     >>> pd.qcut(range(5), 4)
-    [[0, 1], [0, 1], (1, 2], (2, 3], (3, 4]]
-    Categories (4, object): [[0, 1] < (1, 2] < (2, 3] < (3, 4]]
+    ... # doctest: +ELLIPSIS
+    [(-0.001, 1.0], (-0.001, 1.0], (1.0, 2.0], (2.0, 3.0], (3.0, 4.0]]
+    Categories (4, interval[float64]): [(-0.001, 1.0] < (1.0, 2.0] ...
 
-    >>> pd.qcut(range(5), 3, labels=["good","medium","bad"])
+    >>> pd.qcut(range(5), 3, labels=["good", "medium", "bad"])
+    ... # doctest: +SKIP
     [good, good, medium, bad, bad]
     Categories (3, object): [good < medium < bad]
 
     >>> pd.qcut(range(5), 4, labels=False)
-    array([0, 0, 1, 2, 3], dtype=int64)
+    array([0, 0, 1, 2, 3])
     """
     x_is_series, series_index, name, x = _preprocess_for_cut(x)
 
@@ -227,9 +229,9 @@ def _bins_to_cuts(x, bins, right=True, labels=None,
     unique_bins = algos.unique(bins)
     if len(unique_bins) < len(bins) and len(bins) != 2:
         if duplicates == 'raise':
-            raise ValueError("Bin edges must be unique: {}.\nYou "
+            raise ValueError("Bin edges must be unique: {bins!r}.\nYou "
                              "can drop duplicate edges by setting "
-                             "the 'duplicates' kwarg".format(repr(bins)))
+                             "the 'duplicates' kwarg".format(bins=bins))
         else:
             bins = unique_bins
 
@@ -239,7 +241,7 @@ def _bins_to_cuts(x, bins, right=True, labels=None,
     if include_lowest:
         ids[x == bins[0]] = 1
 
-    na_mask = isnull(x) | (ids == len(bins)) | (ids == 0)
+    na_mask = isna(x) | (ids == len(bins)) | (ids == 0)
     has_nas = na_mask.any()
 
     if labels is not False:
@@ -252,7 +254,7 @@ def _bins_to_cuts(x, bins, right=True, labels=None,
                 raise ValueError('Bin labels must be one fewer than '
                                  'the number of bin edges')
         if not is_categorical_dtype(labels):
-            labels = Categorical(labels, ordered=True)
+            labels = Categorical(labels, categories=labels, ordered=True)
 
         np.putmask(ids, na_mask, 0)
         result = algos.take_nd(labels, ids - 1)
@@ -357,7 +359,7 @@ def _preprocess_for_cut(x):
     """
     handles preprocessing for cut where we convert passed
     input to array, strip the index information and store it
-    seperately
+    separately
     """
     x_is_series = isinstance(x, Series)
     series_index = None

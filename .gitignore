@@ -21,6 +21,7 @@
 .ipynb_checkpoints
 .tags
 .cache/
+.vscode/
 
 # Compiled source #
 ###################
@@ -106,3 +107,4 @@ doc/build/html/index.html
 doc/tmp.sv
 doc/source/styled.xlsx
 doc/source/templates/
+env/

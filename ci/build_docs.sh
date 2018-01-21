@@ -59,6 +59,15 @@ if [ "$DOC" ]; then
     git remote -v
 
     git push origin gh-pages -f
+
+    echo "Running doctests"
+    cd "$TRAVIS_BUILD_DIR"
+    pytest --doctest-modules \
+           pandas/core/reshape/concat.py \
+           pandas/core/reshape/pivot.py \
+           pandas/core/reshape/reshape.py \
+           pandas/core/reshape/tile.py
+
 fi
 
 exit 0

@@ -8,5 +8,5 @@ class PyperclipException(RuntimeError):
 class PyperclipWindowsException(PyperclipException):
 
     def __init__(self, message):
-        message += " (%s)" % ctypes.WinError()
+        message += " ({err})".format(err=ctypes.WinError())
         super(PyperclipWindowsException, self).__init__(message)

@@ -10,7 +10,7 @@ import numpy as np
 import pandas as pd
 from pandas import compat
 from pandas.errors import PerformanceWarning
-from pandas.core.common import flatten
+import pandas.core.common as com
 from pandas.core.computation.common import _result_type_many
 
 
@@ -89,7 +89,7 @@ def _align_core(terms):
         for axis, items in zip(range(ndim), axes):
             ti = terms[i].value
 
-            if hasattr(ti, 'reindex_axis'):
+            if hasattr(ti, 'reindex'):
                 transpose = isinstance(ti, pd.Series) and naxes > 1
                 reindexer = axes[naxes - 1] if transpose else items
 
@@ -98,18 +98,13 @@ def _align_core(terms):
 
                 ordm = np.log10(max(1, abs(reindexer_size - term_axis_size)))
                 if ordm >= 1 and reindexer_size >= 10000:
-                    warnings.warn('Alignment difference on axis {0} is larger '
-                                  'than an order of magnitude on term {1!r}, '
-                                  'by more than {2:.4g}; performance may '
-                                  'suffer'.format(axis, terms[i].name, ordm),
-                                  category=PerformanceWarning,
-                                  stacklevel=6)
+                    w = ('Alignment difference on axis {axis} is larger '
+                         'than an order of magnitude on term {term!r}, by '
+                         'more than {ordm:.4g}; performance may suffer'
+                         ).format(axis=axis, term=terms[i].name, ordm=ordm)
+                    warnings.warn(w, category=PerformanceWarning, stacklevel=6)
 
-                if transpose:
-                    f = partial(ti.reindex, index=reindexer, copy=False)
-                else:
-                    f = partial(ti.reindex_axis, reindexer, axis=axis,
-                                copy=False)
+                f = partial(ti.reindex, reindexer, axis=axis, copy=False)
 
                 terms[i].update(f())
 
@@ -122,7 +117,7 @@ def _align(terms):
     """Align a set of terms"""
     try:
         # flatten the parse tree (a nested list, really)
-        terms = list(flatten(terms))
+        terms = list(com.flatten(terms))
     except TypeError:
         # can't iterate so it must just be a constant or single variable
         if isinstance(terms.value, pd.core.generic.NDFrame):
@@ -131,7 +126,7 @@ def _align(terms):
         return np.result_type(terms.type), None
 
     # if all resolved variables are numeric scalars
-    if all(term.isscalar for term in terms):
+    if all(term.is_scalar for term in terms):
         return _result_type_many(*(term.value for term in terms)).type, None
 
     # perform the main alignment

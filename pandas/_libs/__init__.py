@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 # flake8: noqa
 
 from .tslib import iNaT, NaT, Timestamp, Timedelta, OutOfBoundsDatetime

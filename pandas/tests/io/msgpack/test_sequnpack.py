@@ -1,28 +1,26 @@
 # coding: utf-8
 
-import pytest
-
 from pandas import compat
 from pandas.io.msgpack import Unpacker, BufferFull
 from pandas.io.msgpack import OutOfData
 
+import pytest
+import pandas.util.testing as tm
+
 
 class TestPack(object):
 
-    def test_partialdata(self):
+    def test_partial_data(self):
         unpacker = Unpacker()
-        unpacker.feed(b'\xa5')
-        pytest.raises(StopIteration, next, iter(unpacker))
-        unpacker.feed(b'h')
-        pytest.raises(StopIteration, next, iter(unpacker))
-        unpacker.feed(b'a')
-        pytest.raises(StopIteration, next, iter(unpacker))
-        unpacker.feed(b'l')
-        pytest.raises(StopIteration, next, iter(unpacker))
-        unpacker.feed(b'l')
-        pytest.raises(StopIteration, next, iter(unpacker))
-        unpacker.feed(b'o')
-        assert next(iter(unpacker)) == b'hallo'
+        msg = "No more data to unpack"
+
+        for data in [b"\xa5", b"h", b"a", b"l", b"l"]:
+            unpacker.feed(data)
+            with tm.assert_raises_regex(StopIteration, msg):
+                next(iter(unpacker))
+
+        unpacker.feed(b"o")
+        assert next(iter(unpacker)) == b"hallo"
 
     def test_foobar(self):
         unpacker = Unpacker(read_size=3, use_list=1)

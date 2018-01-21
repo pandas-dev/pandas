@@ -13,10 +13,9 @@ import numpy as np
 
 from pandas.core.api import DataFrame, Panel
 from pandas.core.computation import expressions as expr
-from pandas import compat, _np_version_under1p11
+from pandas import compat, _np_version_under1p11, _np_version_under1p13
 from pandas.util.testing import (assert_almost_equal, assert_series_equal,
-                                 assert_frame_equal, assert_panel_equal,
-                                 assert_panel4d_equal, slow)
+                                 assert_frame_equal, assert_panel_equal)
 from pandas.io.formats.printing import pprint_thing
 import pandas.util.testing as tm
 
@@ -73,16 +72,10 @@ class TestExpressions(object):
     def run_arithmetic(self, df, other, assert_func, check_dtype=False,
                        test_flex=True):
         expr._MIN_ELEMENTS = 0
-        operations = ['add', 'sub', 'mul', 'mod', 'truediv', 'floordiv', 'pow']
+        operations = ['add', 'sub', 'mul', 'mod', 'truediv', 'floordiv']
         if not compat.PY3:
             operations.append('div')
         for arith in operations:
-
-            # numpy >= 1.11 doesn't handle integers
-            # raised to integer powers
-            # https://github.com/pandas-dev/pandas/issues/15363
-            if arith == 'pow' and not _np_version_under1p11:
-                continue
 
             operator_name = arith
             if arith == 'div':
@@ -124,6 +117,7 @@ class TestExpressions(object):
         expr._MIN_ELEMENTS = 0
         expr.set_test_mode(True)
         operations = ['gt', 'lt', 'ge', 'le', 'eq', 'ne']
+
         for arith in operations:
             if test_flex:
                 op = lambda x, y: getattr(df, arith)(y)
@@ -196,7 +190,7 @@ class TestExpressions(object):
     def test_integer_arithmetic_series(self):
         self.run_series(self.integer.iloc[:, 0], self.integer.iloc[:, 0])
 
-    @slow
+    @pytest.mark.slow
     def test_integer_panel(self):
         self.run_panel(_integer2_panel, np.random.randint(1, 100))
 
@@ -206,15 +200,9 @@ class TestExpressions(object):
     def test_float_arithmetic_series(self):
         self.run_series(self.frame2.iloc[:, 0], self.frame2.iloc[:, 0])
 
-    @slow
+    @pytest.mark.slow
     def test_float_panel(self):
         self.run_panel(_frame2_panel, np.random.randn() + 0.1, binary_comp=0.8)
-
-    @slow
-    def test_panel4d(self):
-        with catch_warnings(record=True):
-            self.run_panel(tm.makePanel4D(), np.random.randn() + 0.5,
-                           assert_func=assert_panel4d_equal, binary_comp=3)
 
     def test_mixed_arithmetic_frame(self):
         # TODO: FIGURE OUT HOW TO GET IT TO WORK...
@@ -226,7 +214,7 @@ class TestExpressions(object):
         for col in self.mixed2.columns:
             self.run_series(self.mixed2[col], self.mixed2[col], binary_comp=4)
 
-    @slow
+    @pytest.mark.slow
     def test_mixed_panel(self):
         self.run_panel(_mixed2_panel, np.random.randint(1, 100),
                        binary_comp=-2)
@@ -419,6 +407,10 @@ class TestExpressions(object):
         for op, name in zip(ops, names):
             f = getattr(operator, name)
             fe = getattr(operator, sub_funcs[subs[op]])
+
+            # >= 1.13.0 these are now TypeErrors
+            if op == '-' and not _np_version_under1p13:
+                continue
 
             with tm.use_numexpr(True, min_elements=5):
                 with tm.assert_produces_warning(check_stacklevel=False):

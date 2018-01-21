@@ -107,6 +107,14 @@ ARGSORT_DEFAULTS['order'] = None
 validate_argsort = CompatValidator(ARGSORT_DEFAULTS, fname='argsort',
                                    max_fname_arg_count=0, method='both')
 
+# two different signatures of argsort, this second validation
+# for when the `kind` param is supported
+ARGSORT_DEFAULTS_KIND = OrderedDict()
+ARGSORT_DEFAULTS_KIND['axis'] = -1
+ARGSORT_DEFAULTS_KIND['order'] = None
+validate_argsort_kind = CompatValidator(ARGSORT_DEFAULTS_KIND, fname='argsort',
+                                        max_fname_arg_count=0, method='both')
+
 
 def validate_argsort_with_ascending(ascending, args, kwargs):
     """
@@ -121,7 +129,7 @@ def validate_argsort_with_ascending(ascending, args, kwargs):
         args = (ascending,) + args
         ascending = True
 
-    validate_argsort(args, kwargs, max_fname_arg_count=1)
+    validate_argsort_kind(args, kwargs, max_fname_arg_count=3)
     return ascending
 
 
@@ -175,6 +183,14 @@ def validate_cum_func_with_skipna(skipna, args, kwargs, name):
     validate_cum_func(args, kwargs, fname=name)
     return skipna
 
+
+ALLANY_DEFAULTS = OrderedDict()
+ALLANY_DEFAULTS['dtype'] = None
+ALLANY_DEFAULTS['out'] = None
+validate_all = CompatValidator(ALLANY_DEFAULTS, fname='all',
+                               method='both', max_fname_arg_count=1)
+validate_any = CompatValidator(ALLANY_DEFAULTS, fname='any',
+                               method='both', max_fname_arg_count=1)
 
 LOGICAL_FUNC_DEFAULTS = dict(out=None)
 validate_logical_func = CompatValidator(LOGICAL_FUNC_DEFAULTS, method='kwargs')

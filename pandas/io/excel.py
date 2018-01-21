@@ -8,6 +8,7 @@ from datetime import datetime, date, time, MINYEAR
 
 import os
 import abc
+import warnings
 import numpy as np
 
 from pandas.core.dtypes.common import (
@@ -27,7 +28,6 @@ from pandas.compat import (map, zip, reduce, range, lrange, u, add_metaclass,
 from pandas.core import config
 from pandas.io.formats.printing import pprint_thing
 import pandas.compat as compat
-import pandas.compat.openpyxl_compat as openpyxl_compat
 from warnings import warn
 from distutils.version import LooseVersion
 from pandas.util._decorators import Appender, deprecate_kwarg
@@ -70,37 +70,53 @@ sheet_name : string, int, mixed list of strings/ints, or None, default 0
     * None -> All sheets as a dictionary of DataFrames
 
 sheetname : string, int, mixed list of strings/ints, or None, default 0
+
     .. deprecated:: 0.21.0
        Use `sheet_name` instead
 
 header : int, list of ints, default 0
     Row (0-indexed) to use for the column labels of the parsed
     DataFrame. If a list of integers is passed those row positions will
-    be combined into a ``MultiIndex``
-skiprows : list-like
-    Rows to skip at the beginning (0-indexed)
-skip_footer : int, default 0
-    Rows at the end to skip (0-indexed)
-index_col : int, list of ints, default None
-    Column (0-indexed) to use as the row labels of the DataFrame.
-    Pass None if there is no such column.  If a list is passed,
-    those columns will be combined into a ``MultiIndex``
+    be combined into a ``MultiIndex``. Use None if there is no header.
 names : array-like, default None
     List of column names to use. If file contains no header row,
     then you should explicitly pass header=None
-converters : dict, default None
-    Dict of functions for converting values in certain columns. Keys can
-    either be integers or column labels, values are functions that take one
-    input argument, the Excel cell content, and return the transformed
-    content.
+index_col : int, list of ints, default None
+    Column (0-indexed) to use as the row labels of the DataFrame.
+    Pass None if there is no such column.  If a list is passed,
+    those columns will be combined into a ``MultiIndex``.  If a
+    subset of data is selected with ``usecols``, index_col
+    is based on the subset.
+parse_cols : int or list, default None
+
+    .. deprecated:: 0.21.0
+       Pass in `usecols` instead.
+
+usecols : int or list, default None
+    * If None then parse all columns,
+    * If int then indicates last column to be parsed
+    * If list of ints then indicates list of column numbers to be parsed
+    * If string then indicates comma separated list of Excel column letters and
+      column ranges (e.g. "A:E" or "A,C,E:F").  Ranges are inclusive of
+      both sides.
+squeeze : boolean, default False
+    If the parsed data only contains one column then return a Series
 dtype : Type name or dict of column -> type, default None
     Data type for data or columns. E.g. {'a': np.float64, 'b': np.int32}
-    Use `str` or `object` to preserve and not interpret dtype.
+    Use `object` to preserve data as stored in Excel and not interpret dtype.
     If converters are specified, they will be applied INSTEAD
     of dtype conversion.
 
     .. versionadded:: 0.20.0
 
+engine: string, default None
+    If io is not a buffer or path, this must be set to identify io.
+    Acceptable values are None or xlrd
+converters : dict, default None
+    Dict of functions for converting values in certain columns. Keys can
+    either be integers or column labels, values are functions that take one
+    input argument, the Excel cell content, and return the transformed
+    content.
 true_values : list, default None
     Values to consider as True
 
@@ -111,45 +127,118 @@ false_values : list, default None
 
     .. versionadded:: 0.19.0
 
-parse_cols : int or list, default None
-    * If None then parse all columns,
-    * If int then indicates last column to be parsed
-    * If list of ints then indicates list of column numbers to be parsed
-    * If string then indicates comma separated list of column names and
-      column ranges (e.g. "A:E" or "A,C,E:F")
-squeeze : boolean, default False
-    If the parsed data only contains one column then return a Series
+skiprows : list-like
+    Rows to skip at the beginning (0-indexed)
+nrows : int, default None
+    Number of rows to parse
+
+    .. versionadded:: 0.23.0
+
 na_values : scalar, str, list-like, or dict, default None
     Additional strings to recognize as NA/NaN. If dict passed, specific
     per-column NA values. By default the following values are interpreted
-    as NaN: '""" + fill("', '".join(sorted(_NA_VALUES)), 70) + """'.
-thousands : str, default None
-    Thousands separator for parsing string columns to numeric.  Note that
-    this parameter is only necessary for columns stored as TEXT in Excel,
-    any numeric columns will automatically be parsed, regardless of display
-    format.
+    as NaN: '""" + fill("', '".join(sorted(_NA_VALUES)), 70, subsequent_indent="    ") + """'.
 keep_default_na : bool, default True
     If na_values are specified and keep_default_na is False the default NaN
     values are overridden, otherwise they're appended to.
 verbose : boolean, default False
     Indicate number of NA values placed in non-numeric columns
-engine: string, default None
-    If io is not a buffer or path, this must be set to identify io.
-    Acceptable values are None or xlrd
+thousands : str, default None
+    Thousands separator for parsing string columns to numeric.  Note that
+    this parameter is only necessary for columns stored as TEXT in Excel,
+    any numeric columns will automatically be parsed, regardless of display
+    format.
+comment : str, default None
+    Comments out remainder of line. Pass a character or characters to this
+    argument to indicate comments in the input file. Any data between the
+    comment string and the end of the current line is ignored.
+skip_footer : int, default 0
+
+    .. deprecated:: 0.23.0
+       Pass in `skipfooter` instead.
+skipfooter : int, default 0
+    Rows at the end to skip (0-indexed)
 convert_float : boolean, default True
     convert integral floats to int (i.e., 1.0 --> 1). If False, all numeric
     data will be read in as floats: Excel stores all numbers as floats
     internally
-has_index_names : boolean, default None
-    DEPRECATED: for version 0.17+ index names will be automatically
-    inferred based on index_col.  To read Excel output from 0.16.2 and
-    prior that had saved index names, use True.
 
 Returns
 -------
 parsed : DataFrame or Dict of DataFrames
     DataFrame from the passed in Excel file.  See notes in sheet_name
     argument for more information on when a Dict of Dataframes is returned.
+
+Examples
+--------
+
+An example DataFrame written to a local file
+
+>>> df_out = pd.DataFrame([('string1', 1),
+...                        ('string2', 2),
+...                        ('string3', 3)],
+...                       columns=['Name', 'Value'])
+>>> df_out
+      Name  Value
+0  string1      1
+1  string2      2
+2  string3      3
+>>> df_out.to_excel('tmp.xlsx')
+
+The file can be read using the file name as string or an open file object:
+
+>>> pd.read_excel('tmp.xlsx')
+      Name  Value
+0  string1      1
+1  string2      2
+2  string3      3
+
+>>> pd.read_excel(open('tmp.xlsx','rb'))
+      Name  Value
+0  string1      1
+1  string2      2
+2  string3      3
+
+Index and header can be specified via the `index_col` and `header` arguments
+
+>>> pd.read_excel('tmp.xlsx', index_col=None, header=None)
+     0        1      2
+0  NaN     Name  Value
+1  0.0  string1      1
+2  1.0  string2      2
+3  2.0  string3      3
+
+Column types are inferred but can be explicitly specified
+
+>>> pd.read_excel('tmp.xlsx', dtype={'Name':str, 'Value':float})
+      Name  Value
+0  string1    1.0
+1  string2    2.0
+2  string3    3.0
+
+True, False, and NA values, and thousands separators have defaults,
+but can be explicitly specified, too. Supply the values you would like
+as strings or lists of strings!
+
+>>> pd.read_excel('tmp.xlsx',
+...               na_values=['string1', 'string2'])
+      Name  Value
+0      NaN      1
+1      NaN      2
+2  string3      3
+
+Comment lines in the excel input file can be skipped using the `comment` kwarg
+
+>>> df = pd.DataFrame({'a': ['1', '#2'], 'b': ['2', '3']})
+>>> df.to_excel('tmp.xlsx', index=False)
+>>> pd.read_excel('tmp.xlsx')
+    a  b
+0   1  2
+1  #2  3
+
+>>> pd.read_excel('tmp.xlsx', comment='#')
+   a  b
+0  1  2
 """
 
 
@@ -165,53 +254,87 @@ def register_writer(klass):
         if ext.startswith('.'):
             ext = ext[1:]
         if ext not in _writer_extensions:
-            config.register_option("io.excel.%s.writer" % ext,
+            config.register_option("io.excel.{ext}.writer".format(ext=ext),
                                    engine_name, validator=str)
             _writer_extensions.append(ext)
 
 
+def _get_default_writer(ext):
+    _default_writers = {'xlsx': 'openpyxl', 'xlsm': 'openpyxl', 'xls': 'xlwt'}
+    try:
+        import xlsxwriter  # noqa
+        _default_writers['xlsx'] = 'xlsxwriter'
+    except ImportError:
+        pass
+    return _default_writers[ext]
+
+
 def get_writer(engine_name):
-    if engine_name == 'openpyxl':
-        try:
-            import openpyxl
-
-            # with version-less openpyxl engine
-            # make sure we make the intelligent choice for the user
-            if LooseVersion(openpyxl.__version__) < '2.0.0':
-                return _writers['openpyxl1']
-            elif LooseVersion(openpyxl.__version__) < '2.2.0':
-                return _writers['openpyxl20']
-            else:
-                return _writers['openpyxl22']
-        except ImportError:
-            # fall through to normal exception handling below
-            pass
-
     try:
         return _writers[engine_name]
     except KeyError:
-        raise ValueError("No Excel writer '%s'" % engine_name)
+        raise ValueError("No Excel writer '{engine}'"
+                         .format(engine=engine_name))
 
 
-@deprecate_kwarg('sheetname', 'sheet_name')
 @Appender(_read_excel_doc)
-def read_excel(io, sheet_name=0, header=0, skiprows=None, skip_footer=0,
-               index_col=None, names=None, parse_cols=None, parse_dates=False,
-               date_parser=None, na_values=None, thousands=None,
-               convert_float=True, has_index_names=None, converters=None,
-               dtype=None, true_values=None, false_values=None, engine=None,
-               squeeze=False, **kwds):
+@deprecate_kwarg("parse_cols", "usecols")
+@deprecate_kwarg("skip_footer", "skipfooter")
+def read_excel(io,
+               sheet_name=0,
+               header=0,
+               names=None,
+               index_col=None,
+               usecols=None,
+               squeeze=False,
+               dtype=None,
+               engine=None,
+               converters=None,
+               true_values=None,
+               false_values=None,
+               skiprows=None,
+               nrows=None,
+               na_values=None,
+               parse_dates=False,
+               date_parser=None,
+               thousands=None,
+               comment=None,
+               skipfooter=0,
+               convert_float=True,
+               **kwds):
+
+    # Can't use _deprecate_kwarg since sheetname=None has a special meaning
+    if is_integer(sheet_name) and sheet_name == 0 and 'sheetname' in kwds:
+        warnings.warn("The `sheetname` keyword is deprecated, use "
+                      "`sheet_name` instead", FutureWarning, stacklevel=2)
+        sheet_name = kwds.pop("sheetname")
+    elif 'sheetname' in kwds:
+        raise TypeError("Cannot specify both `sheet_name` and `sheetname`. "
+                        "Use just `sheet_name`")
 
     if not isinstance(io, ExcelFile):
         io = ExcelFile(io, engine=engine)
 
     return io._parse_excel(
-        sheetname=sheet_name, header=header, skiprows=skiprows, names=names,
-        index_col=index_col, parse_cols=parse_cols, parse_dates=parse_dates,
-        date_parser=date_parser, na_values=na_values, thousands=thousands,
-        convert_float=convert_float, has_index_names=has_index_names,
-        skip_footer=skip_footer, converters=converters, dtype=dtype,
-        true_values=true_values, false_values=false_values, squeeze=squeeze,
+        sheetname=sheet_name,
+        header=header,
+        names=names,
+        index_col=index_col,
+        usecols=usecols,
+        squeeze=squeeze,
+        dtype=dtype,
+        converters=converters,
+        true_values=true_values,
+        false_values=false_values,
+        skiprows=skiprows,
+        nrows=nrows,
+        na_values=na_values,
+        parse_dates=parse_dates,
+        date_parser=date_parser,
+        thousands=thousands,
+        comment=comment,
+        skipfooter=skipfooter,
+        convert_float=convert_float,
         **kwds)
 
 
@@ -232,12 +355,17 @@ class ExcelFile(object):
 
     def __init__(self, io, **kwds):
 
-        import xlrd  # throw an ImportError if we need to
+        err_msg = "Install xlrd >= 0.9.0 for Excel support"
 
-        ver = tuple(map(int, xlrd.__VERSION__.split(".")[:2]))
-        if ver < (0, 9):  # pragma: no cover
-            raise ImportError("pandas requires xlrd >= 0.9.0 for excel "
-                              "support, current version " + xlrd.__VERSION__)
+        try:
+            import xlrd
+        except ImportError:
+            raise ImportError(err_msg)
+        else:
+            ver = tuple(map(int, xlrd.__VERSION__.split(".")[:2]))
+            if ver < (0, 9):  # pragma: no cover
+                raise ImportError(err_msg +
+                                  ". Current version " + xlrd.__VERSION__)
 
         # could be a str, ExcelFile, Book, etc.
         self.io = io
@@ -247,7 +375,7 @@ class ExcelFile(object):
         engine = kwds.pop('engine', None)
 
         if engine is not None and engine != 'xlrd':
-            raise ValueError("Unknown engine: %s" % engine)
+            raise ValueError("Unknown engine: {engine}".format(engine=engine))
 
         # If io is a url, want to keep the data as bytes so can't pass
         # to get_filepath_or_buffer()
@@ -271,12 +399,26 @@ class ExcelFile(object):
     def __fspath__(self):
         return self._io
 
-    def parse(self, sheet_name=0, header=0, skiprows=None, skip_footer=0,
-              names=None, index_col=None, parse_cols=None, parse_dates=False,
-              date_parser=None, na_values=None, thousands=None,
-              convert_float=True, has_index_names=None,
-              converters=None, true_values=None, false_values=None,
-              squeeze=False, **kwds):
+    def parse(self,
+              sheet_name=0,
+              header=0,
+              names=None,
+              index_col=None,
+              usecols=None,
+              squeeze=False,
+              converters=None,
+              true_values=None,
+              false_values=None,
+              skiprows=None,
+              nrows=None,
+              na_values=None,
+              parse_dates=False,
+              date_parser=None,
+              thousands=None,
+              comment=None,
+              skipfooter=0,
+              convert_float=True,
+              **kwds):
         """
         Parse specified sheet(s) into a DataFrame
 
@@ -284,23 +426,27 @@ class ExcelFile(object):
         docstring for more info on accepted parameters
         """
 
-        return self._parse_excel(sheetname=sheet_name, header=header,
-                                 skiprows=skiprows, names=names,
+        return self._parse_excel(sheetname=sheet_name,
+                                 header=header,
+                                 names=names,
                                  index_col=index_col,
-                                 has_index_names=has_index_names,
-                                 parse_cols=parse_cols,
-                                 parse_dates=parse_dates,
-                                 date_parser=date_parser, na_values=na_values,
-                                 thousands=thousands,
-                                 skip_footer=skip_footer,
-                                 convert_float=convert_float,
+                                 usecols=usecols,
+                                 squeeze=squeeze,
                                  converters=converters,
                                  true_values=true_values,
                                  false_values=false_values,
-                                 squeeze=squeeze,
+                                 skiprows=skiprows,
+                                 nrows=nrows,
+                                 na_values=na_values,
+                                 parse_dates=parse_dates,
+                                 date_parser=date_parser,
+                                 thousands=thousands,
+                                 comment=comment,
+                                 skipfooter=skipfooter,
+                                 convert_float=convert_float,
                                  **kwds)
 
-    def _should_parse(self, i, parse_cols):
+    def _should_parse(self, i, usecols):
 
         def _range2cols(areas):
             """
@@ -326,31 +472,36 @@ class ExcelFile(object):
                     cols.append(_excel2num(rng))
             return cols
 
-        if isinstance(parse_cols, int):
-            return i <= parse_cols
-        elif isinstance(parse_cols, compat.string_types):
-            return i in _range2cols(parse_cols)
+        if isinstance(usecols, int):
+            return i <= usecols
+        elif isinstance(usecols, compat.string_types):
+            return i in _range2cols(usecols)
         else:
-            return i in parse_cols
+            return i in usecols
 
-    def _parse_excel(self, sheetname=0, header=0, skiprows=None, names=None,
-                     skip_footer=0, index_col=None, has_index_names=None,
-                     parse_cols=None, parse_dates=False, date_parser=None,
-                     na_values=None, thousands=None, convert_float=True,
-                     true_values=None, false_values=None, verbose=False,
-                     dtype=None, squeeze=False, **kwds):
-
-        skipfooter = kwds.pop('skipfooter', None)
-        if skipfooter is not None:
-            skip_footer = skipfooter
+    def _parse_excel(self,
+                     sheetname=0,
+                     header=0,
+                     names=None,
+                     index_col=None,
+                     usecols=None,
+                     squeeze=False,
+                     dtype=None,
+                     true_values=None,
+                     false_values=None,
+                     skiprows=None,
+                     nrows=None,
+                     na_values=None,
+                     verbose=False,
+                     parse_dates=False,
+                     date_parser=None,
+                     thousands=None,
+                     comment=None,
+                     skipfooter=0,
+                     convert_float=True,
+                     **kwds):
 
         _validate_header_arg(header)
-        if has_index_names is not None:
-            warn("\nThe has_index_names argument is deprecated; index names "
-                 "will be automatically inferred based on index_col.\n"
-                 "This argmument is still necessary if reading Excel output "
-                 "from 0.16.2 or prior with index names.", FutureWarning,
-                 stacklevel=3)
 
         if 'chunksize' in kwds:
             raise NotImplementedError("chunksize keyword of read_excel "
@@ -410,7 +561,7 @@ class ExcelFile(object):
                 cell_contents = bool(cell_contents)
             elif convert_float and cell_typ == XL_CELL_NUMBER:
                 # GH5394 - Excel 'numbers' are always floats
-                # it's a minimal perf hit and less suprising
+                # it's a minimal perf hit and less surprising
                 val = int(cell_contents)
                 if val == cell_contents:
                     cell_contents = val
@@ -441,7 +592,7 @@ class ExcelFile(object):
 
         for asheetname in sheets:
             if verbose:
-                print("Reading sheet %s" % asheetname)
+                print("Reading sheet {sheet}".format(sheet=asheetname))
 
             if isinstance(asheetname, compat.string_types):
                 sheet = self.book.sheet_by_name(asheetname)
@@ -455,10 +606,10 @@ class ExcelFile(object):
                 row = []
                 for j, (value, typ) in enumerate(zip(sheet.row_values(i),
                                                      sheet.row_types(i))):
-                    if parse_cols is not None and j not in should_parse:
-                        should_parse[j] = self._should_parse(j, parse_cols)
+                    if usecols is not None and j not in should_parse:
+                        should_parse[j] = self._should_parse(j, usecols)
 
-                    if parse_cols is None or should_parse[j]:
+                    if usecols is None or should_parse[j]:
                         row.append(_parse_cell(value, typ))
                 data.append(row)
 
@@ -502,26 +653,29 @@ class ExcelFile(object):
                         else:
                             last = data[row][col]
 
-            if is_list_like(header) and len(header) > 1:
-                has_index_names = True
+            has_index_names = is_list_like(header) and len(header) > 1
 
             # GH 12292 : error when read one empty column from excel file
             try:
-                parser = TextParser(data, header=header, index_col=index_col,
+                parser = TextParser(data,
+                                    header=header,
+                                    index_col=index_col,
                                     has_index_names=has_index_names,
-                                    na_values=na_values,
-                                    thousands=thousands,
-                                    parse_dates=parse_dates,
-                                    date_parser=date_parser,
+                                    squeeze=squeeze,
+                                    dtype=dtype,
                                     true_values=true_values,
                                     false_values=false_values,
                                     skiprows=skiprows,
-                                    skipfooter=skip_footer,
-                                    squeeze=squeeze,
-                                    dtype=dtype,
+                                    nrows=nrows,
+                                    na_values=na_values,
+                                    parse_dates=parse_dates,
+                                    date_parser=date_parser,
+                                    thousands=thousands,
+                                    comment=comment,
+                                    skipfooter=skipfooter,
                                     **kwds)
 
-                output[asheetname] = parser.read()
+                output[asheetname] = parser.read(nrows=nrows)
                 if names is not None:
                     output[asheetname].columns = names
                 if not squeeze or isinstance(output[asheetname], DataFrame):
@@ -631,7 +785,7 @@ def _conv_value(val):
     elif is_bool(val):
         val = bool(val)
     elif isinstance(val, Period):
-        val = "%s" % val
+        val = "{val}".format(val=val)
     elif is_list_like(val):
         val = str(val)
 
@@ -686,17 +840,23 @@ class ExcelWriter(object):
     # ExcelWriter.
     def __new__(cls, path, engine=None, **kwargs):
         # only switch class if generic(ExcelWriter)
+
         if issubclass(cls, ExcelWriter):
-            if engine is None:
+            if engine is None or (isinstance(engine, string_types) and
+                                  engine == 'auto'):
                 if isinstance(path, string_types):
                     ext = os.path.splitext(path)[-1][1:]
                 else:
                     ext = 'xlsx'
 
                 try:
-                    engine = config.get_option('io.excel.%s.writer' % ext)
+                    engine = config.get_option('io.excel.{ext}.writer'
+                                               .format(ext=ext))
+                    if engine == 'auto':
+                        engine = _get_default_writer(ext)
                 except KeyError:
-                    error = ValueError("No engine for filetype: '%s'" % ext)
+                    error = ValueError("No engine for filetype: '{ext}'"
+                                       .format(ext=ext))
                     raise error
             cls = get_writer(engine)
 
@@ -721,12 +881,12 @@ class ExcelWriter(object):
     def write_cells(self, cells, sheet_name=None, startrow=0, startcol=0,
                     freeze_panes=None):
         """
-        Write given formated cells into Excel an excel sheet
+        Write given formatted cells into Excel an excel sheet
 
         Parameters
         ----------
         cells : generator
-            cell of formated data to save to Excel sheet
+            cell of formatted data to save to Excel sheet
         sheet_name : string, default None
             Name of Excel sheet, if None, then use self.cur_sheet
         startrow: upper left cell row to dump data frame
@@ -784,8 +944,9 @@ class ExcelWriter(object):
         if ext.startswith('.'):
             ext = ext[1:]
         if not any(ext in extension for extension in cls.supported_extensions):
-            msg = (u("Invalid extension for engine '%s': '%s'") %
-                   (pprint_thing(cls.engine), pprint_thing(ext)))
+            msg = (u("Invalid extension for engine '{engine}': '{ext}'")
+                   .format(engine=pprint_thing(cls.engine),
+                           ext=pprint_thing(ext)))
             raise ValueError(msg)
         else:
             return True
@@ -802,20 +963,15 @@ class ExcelWriter(object):
         return self.save()
 
 
-class _Openpyxl1Writer(ExcelWriter):
-    engine = 'openpyxl1'
+class _OpenpyxlWriter(ExcelWriter):
+    engine = 'openpyxl'
     supported_extensions = ('.xlsx', '.xlsm')
-    openpyxl_majorver = 1
 
     def __init__(self, path, engine=None, **engine_kwargs):
-        if not openpyxl_compat.is_compat(major_ver=self.openpyxl_majorver):
-            raise ValueError('Installed openpyxl is not supported at this '
-                             'time. Use {0}.x.y.'
-                             .format(self.openpyxl_majorver))
         # Use the openpyxl module as the Excel writer.
         from openpyxl.workbook import Workbook
 
-        super(_Openpyxl1Writer, self).__init__(path, **engine_kwargs)
+        super(_OpenpyxlWriter, self).__init__(path, **engine_kwargs)
 
         # Create workbook object with default optimized_write=True.
         self.book = Workbook()
@@ -834,68 +990,6 @@ class _Openpyxl1Writer(ExcelWriter):
         Save workbook to disk.
         """
         return self.book.save(self.path)
-
-    def write_cells(self, cells, sheet_name=None, startrow=0, startcol=0,
-                    freeze_panes=None):
-        # Write the frame cells using openpyxl.
-        from openpyxl.cell import get_column_letter
-
-        sheet_name = self._get_sheet_name(sheet_name)
-
-        if sheet_name in self.sheets:
-            wks = self.sheets[sheet_name]
-        else:
-            wks = self.book.create_sheet()
-            wks.title = sheet_name
-            self.sheets[sheet_name] = wks
-
-        for cell in cells:
-            colletter = get_column_letter(startcol + cell.col + 1)
-            xcell = wks.cell("%s%s" % (colletter, startrow + cell.row + 1))
-            if (isinstance(cell.val, compat.string_types) and
-                    xcell.data_type_for_value(cell.val) != xcell.TYPE_STRING):
-                xcell.set_value_explicit(cell.val)
-            else:
-                xcell.value = _conv_value(cell.val)
-            style = None
-            if cell.style:
-                style = self._convert_to_style(cell.style)
-                for field in style.__fields__:
-                    xcell.style.__setattr__(field,
-                                            style.__getattribute__(field))
-
-            if isinstance(cell.val, datetime):
-                xcell.style.number_format.format_code = self.datetime_format
-            elif isinstance(cell.val, date):
-                xcell.style.number_format.format_code = self.date_format
-
-            if cell.mergestart is not None and cell.mergeend is not None:
-                cletterstart = get_column_letter(startcol + cell.col + 1)
-                cletterend = get_column_letter(startcol + cell.mergeend + 1)
-
-                wks.merge_cells('%s%s:%s%s' % (cletterstart,
-                                               startrow + cell.row + 1,
-                                               cletterend,
-                                               startrow + cell.mergestart + 1))
-
-                # Excel requires that the format of the first cell in a merged
-                # range is repeated in the rest of the merged range.
-                if style:
-                    first_row = startrow + cell.row + 1
-                    last_row = startrow + cell.mergestart + 1
-                    first_col = startcol + cell.col + 1
-                    last_col = startcol + cell.mergeend + 1
-
-                    for row in range(first_row, last_row + 1):
-                        for col in range(first_col, last_col + 1):
-                            if row == first_row and col == first_col:
-                                # Ignore first cell. It is already handled.
-                                continue
-                            colletter = get_column_letter(col)
-                            xcell = wks.cell("%s%s" % (colletter, row))
-                            for field in style.__fields__:
-                                xcell.style.__setattr__(
-                                    field, style.__getattribute__(field))
 
     @classmethod
     def _convert_to_style(cls, style_dict):
@@ -917,84 +1011,6 @@ class _Openpyxl1Writer(ExcelWriter):
                     xls_style.__getattribute__(key).__setattr__(nk, nv)
 
         return xls_style
-
-
-register_writer(_Openpyxl1Writer)
-
-
-class _OpenpyxlWriter(_Openpyxl1Writer):
-    engine = 'openpyxl'
-
-
-register_writer(_OpenpyxlWriter)
-
-
-class _Openpyxl20Writer(_Openpyxl1Writer):
-    """
-    Note: Support for OpenPyxl v2 is currently EXPERIMENTAL (GH7565).
-    """
-    engine = 'openpyxl20'
-    openpyxl_majorver = 2
-
-    def write_cells(self, cells, sheet_name=None, startrow=0, startcol=0,
-                    freeze_panes=None):
-        # Write the frame cells using openpyxl.
-        from openpyxl.cell import get_column_letter
-
-        sheet_name = self._get_sheet_name(sheet_name)
-
-        if sheet_name in self.sheets:
-            wks = self.sheets[sheet_name]
-        else:
-            wks = self.book.create_sheet()
-            wks.title = sheet_name
-            self.sheets[sheet_name] = wks
-
-        for cell in cells:
-            colletter = get_column_letter(startcol + cell.col + 1)
-            xcell = wks["%s%s" % (colletter, startrow + cell.row + 1)]
-            xcell.value = _conv_value(cell.val)
-            style_kwargs = {}
-
-            # Apply format codes before cell.style to allow override
-            if isinstance(cell.val, datetime):
-                style_kwargs.update(self._convert_to_style_kwargs({
-                    'number_format': {'format_code': self.datetime_format}}))
-            elif isinstance(cell.val, date):
-                style_kwargs.update(self._convert_to_style_kwargs({
-                    'number_format': {'format_code': self.date_format}}))
-
-            if cell.style:
-                style_kwargs.update(self._convert_to_style_kwargs(cell.style))
-
-            if style_kwargs:
-                xcell.style = xcell.style.copy(**style_kwargs)
-
-            if cell.mergestart is not None and cell.mergeend is not None:
-                cletterstart = get_column_letter(startcol + cell.col + 1)
-                cletterend = get_column_letter(startcol + cell.mergeend + 1)
-
-                wks.merge_cells('%s%s:%s%s' % (cletterstart,
-                                               startrow + cell.row + 1,
-                                               cletterend,
-                                               startrow + cell.mergestart + 1))
-
-                # Excel requires that the format of the first cell in a merged
-                # range is repeated in the rest of the merged range.
-                if style_kwargs:
-                    first_row = startrow + cell.row + 1
-                    last_row = startrow + cell.mergestart + 1
-                    first_col = startcol + cell.col + 1
-                    last_col = startcol + cell.mergeend + 1
-
-                    for row in range(first_row, last_row + 1):
-                        for col in range(first_col, last_col + 1):
-                            if row == first_row and col == first_col:
-                                # Ignore first cell. It is already handled.
-                                continue
-                            colletter = get_column_letter(col)
-                            xcell = wks["%s%s" % (colletter, row)]
-                            xcell.style = xcell.style.copy(**style_kwargs)
 
     @classmethod
     def _convert_to_style_kwargs(cls, style_dict):
@@ -1027,7 +1043,7 @@ class _Openpyxl20Writer(_Openpyxl1Writer):
         for k, v in style_dict.items():
             if k in _style_key_map:
                 k = _style_key_map[k]
-            _conv_to_x = getattr(cls, '_convert_to_{0}'.format(k),
+            _conv_to_x = getattr(cls, '_convert_to_{k}'.format(k=k),
                                  lambda x: None)
             new_v = _conv_to_x(v)
             if new_v:
@@ -1307,13 +1323,7 @@ class _Openpyxl20Writer(_Openpyxl1Writer):
         -------
         number_format : str
         """
-        try:
-            # >= 2.0.0 < 2.1.0
-            from openpyxl.styles import NumberFormat
-            return NumberFormat(**number_format_dict)
-        except:
-            # >= 2.1.0
-            return number_format_dict['format_code']
+        return number_format_dict['format_code']
 
     @classmethod
     def _convert_to_protection(cls, protection_dict):
@@ -1332,17 +1342,6 @@ class _Openpyxl20Writer(_Openpyxl1Writer):
         from openpyxl.styles import Protection
 
         return Protection(**protection_dict)
-
-
-register_writer(_Openpyxl20Writer)
-
-
-class _Openpyxl22Writer(_Openpyxl20Writer):
-    """
-    Note: Support for OpenPyxl v2.2 is currently EXPERIMENTAL (GH7565).
-    """
-    engine = 'openpyxl22'
-    openpyxl_majorver = 2
 
     def write_cells(self, cells, sheet_name=None, startrow=0, startcol=0,
                     freeze_panes=None):
@@ -1409,7 +1408,7 @@ class _Openpyxl22Writer(_Openpyxl20Writer):
                                 setattr(xcell, k, v)
 
 
-register_writer(_Openpyxl22Writer)
+register_writer(_OpenpyxlWriter)
 
 
 class _XlwtWriter(ExcelWriter):
@@ -1502,17 +1501,19 @@ class _XlwtWriter(ExcelWriter):
         """
         if hasattr(item, 'items'):
             if firstlevel:
-                it = ["%s: %s" % (key, cls._style_to_xlwt(value, False))
+                it = ["{key}: {val}"
+                      .format(key=key, val=cls._style_to_xlwt(value, False))
                       for key, value in item.items()]
-                out = "%s " % (line_sep).join(it)
+                out = "{sep} ".format(sep=(line_sep).join(it))
                 return out
             else:
-                it = ["%s %s" % (key, cls._style_to_xlwt(value, False))
+                it = ["{key} {val}"
+                      .format(key=key, val=cls._style_to_xlwt(value, False))
                       for key, value in item.items()]
-                out = "%s " % (field_sep).join(it)
+                out = "{sep} ".format(sep=(field_sep).join(it))
                 return out
         else:
-            item = "%s" % item
+            item = "{item}".format(item=item)
             item = item.replace("True", "on")
             item = item.replace("False", "off")
             return item
@@ -1540,6 +1541,149 @@ class _XlwtWriter(ExcelWriter):
 
 
 register_writer(_XlwtWriter)
+
+
+class _XlsxStyler(object):
+    # Map from openpyxl-oriented styles to flatter xlsxwriter representation
+    # Ordering necessary for both determinism and because some are keyed by
+    # prefixes of others.
+    STYLE_MAPPING = {
+        'font': [
+            (('name',), 'font_name'),
+            (('sz',), 'font_size'),
+            (('size',), 'font_size'),
+            (('color', 'rgb',), 'font_color'),
+            (('color',), 'font_color'),
+            (('b',), 'bold'),
+            (('bold',), 'bold'),
+            (('i',), 'italic'),
+            (('italic',), 'italic'),
+            (('u',), 'underline'),
+            (('underline',), 'underline'),
+            (('strike',), 'font_strikeout'),
+            (('vertAlign',), 'font_script'),
+            (('vertalign',), 'font_script'),
+        ],
+        'number_format': [
+            (('format_code',), 'num_format'),
+            ((), 'num_format',),
+        ],
+        'protection': [
+            (('locked',), 'locked'),
+            (('hidden',), 'hidden'),
+        ],
+        'alignment': [
+            (('horizontal',), 'align'),
+            (('vertical',), 'valign'),
+            (('text_rotation',), 'rotation'),
+            (('wrap_text',), 'text_wrap'),
+            (('indent',), 'indent'),
+            (('shrink_to_fit',), 'shrink'),
+        ],
+        'fill': [
+            (('patternType',), 'pattern'),
+            (('patterntype',), 'pattern'),
+            (('fill_type',), 'pattern'),
+            (('start_color', 'rgb',), 'fg_color'),
+            (('fgColor', 'rgb',), 'fg_color'),
+            (('fgcolor', 'rgb',), 'fg_color'),
+            (('start_color',), 'fg_color'),
+            (('fgColor',), 'fg_color'),
+            (('fgcolor',), 'fg_color'),
+            (('end_color', 'rgb',), 'bg_color'),
+            (('bgColor', 'rgb',), 'bg_color'),
+            (('bgcolor', 'rgb',), 'bg_color'),
+            (('end_color',), 'bg_color'),
+            (('bgColor',), 'bg_color'),
+            (('bgcolor',), 'bg_color'),
+        ],
+        'border': [
+            (('color', 'rgb',), 'border_color'),
+            (('color',), 'border_color'),
+            (('style',), 'border'),
+            (('top', 'color', 'rgb',), 'top_color'),
+            (('top', 'color',), 'top_color'),
+            (('top', 'style',), 'top'),
+            (('top',), 'top'),
+            (('right', 'color', 'rgb',), 'right_color'),
+            (('right', 'color',), 'right_color'),
+            (('right', 'style',), 'right'),
+            (('right',), 'right'),
+            (('bottom', 'color', 'rgb',), 'bottom_color'),
+            (('bottom', 'color',), 'bottom_color'),
+            (('bottom', 'style',), 'bottom'),
+            (('bottom',), 'bottom'),
+            (('left', 'color', 'rgb',), 'left_color'),
+            (('left', 'color',), 'left_color'),
+            (('left', 'style',), 'left'),
+            (('left',), 'left'),
+        ],
+    }
+
+    @classmethod
+    def convert(cls, style_dict, num_format_str=None):
+        """
+        converts a style_dict to an xlsxwriter format dict
+
+        Parameters
+        ----------
+        style_dict: style dictionary to convert
+        num_format_str: optional number format string
+        """
+
+        # Create a XlsxWriter format object.
+        props = {}
+
+        if num_format_str is not None:
+            props['num_format'] = num_format_str
+
+        if style_dict is None:
+            return props
+
+        if 'borders' in style_dict:
+            style_dict = style_dict.copy()
+            style_dict['border'] = style_dict.pop('borders')
+
+        for style_group_key, style_group in style_dict.items():
+            for src, dst in cls.STYLE_MAPPING.get(style_group_key, []):
+                # src is a sequence of keys into a nested dict
+                # dst is a flat key
+                if dst in props:
+                    continue
+                v = style_group
+                for k in src:
+                    try:
+                        v = v[k]
+                    except (KeyError, TypeError):
+                        break
+                else:
+                    props[dst] = v
+
+        if isinstance(props.get('pattern'), string_types):
+            # TODO: support other fill patterns
+            props['pattern'] = 0 if props['pattern'] == 'none' else 1
+
+        for k in ['border', 'top', 'right', 'bottom', 'left']:
+            if isinstance(props.get(k), string_types):
+                try:
+                    props[k] = ['none', 'thin', 'medium', 'dashed', 'dotted',
+                                'thick', 'double', 'hair', 'mediumDashed',
+                                'dashDot', 'mediumDashDot', 'dashDotDot',
+                                'mediumDashDotDot', 'slantDashDot'].\
+                        index(props[k])
+                except ValueError:
+                    props[k] = 2
+
+        if isinstance(props.get('font_script'), string_types):
+            props['font_script'] = ['baseline', 'superscript', 'subscript'].\
+                index(props['font_script'])
+
+        if isinstance(props.get('underline'), string_types):
+            props['underline'] = {'none': 0, 'single': 1, 'double': 2,
+                                  'singleAccounting': 33,
+                                  'doubleAccounting': 34}[props['underline']]
+
+        return props
 
 
 class _XlsxWriter(ExcelWriter):
@@ -1576,7 +1720,7 @@ class _XlsxWriter(ExcelWriter):
             wks = self.book.add_worksheet(sheet_name)
             self.sheets[sheet_name] = wks
 
-        style_dict = {}
+        style_dict = {'null': None}
 
         if _validate_freeze_panes(freeze_panes):
             wks.freeze_panes(*(freeze_panes))
@@ -1597,7 +1741,8 @@ class _XlsxWriter(ExcelWriter):
             if stylekey in style_dict:
                 style = style_dict[stylekey]
             else:
-                style = self._convert_to_style(cell.style, num_format_str)
+                style = self.book.add_format(
+                    _XlsxStyler.convert(cell.style, num_format_str))
                 style_dict[stylekey] = style
 
             if cell.mergestart is not None and cell.mergeend is not None:
@@ -1610,50 +1755,6 @@ class _XlsxWriter(ExcelWriter):
                 wks.write(startrow + cell.row,
                           startcol + cell.col,
                           val, style)
-
-    def _convert_to_style(self, style_dict, num_format_str=None):
-        """
-        converts a style_dict to an xlsxwriter format object
-        Parameters
-        ----------
-        style_dict: style dictionary to convert
-        num_format_str: optional number format string
-        """
-
-        # If there is no formatting we don't create a format object.
-        if num_format_str is None and style_dict is None:
-            return None
-
-        # Create a XlsxWriter format object.
-        xl_format = self.book.add_format()
-
-        if num_format_str is not None:
-            xl_format.set_num_format(num_format_str)
-
-        if style_dict is None:
-            return xl_format
-
-        # Map the cell font to XlsxWriter font properties.
-        if style_dict.get('font'):
-            font = style_dict['font']
-            if font.get('bold'):
-                xl_format.set_bold()
-
-        # Map the alignment to XlsxWriter alignment properties.
-        alignment = style_dict.get('alignment')
-        if alignment:
-            if (alignment.get('horizontal') and
-                    alignment['horizontal'] == 'center'):
-                xl_format.set_align('center')
-            if (alignment.get('vertical') and
-                    alignment['vertical'] == 'top'):
-                xl_format.set_align('top')
-
-        # Map the cell borders to XlsxWriter border properties.
-        if style_dict.get('borders'):
-            xl_format.set_border()
-
-        return xl_format
 
 
 register_writer(_XlsxWriter)

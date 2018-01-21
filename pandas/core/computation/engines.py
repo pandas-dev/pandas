@@ -33,8 +33,9 @@ def _check_ne_builtin_clash(expr):
 
     if overlap:
         s = ', '.join(map(repr, overlap))
-        raise NumExprClobberingError('Variables in expression "%s" '
-                                     'overlap with builtins: (%s)' % (expr, s))
+        raise NumExprClobberingError('Variables in expression "{expr}" '
+                                     'overlap with builtins: ({s})'
+                                     .format(expr=expr, s=s))
 
 
 class AbstractEngine(object):

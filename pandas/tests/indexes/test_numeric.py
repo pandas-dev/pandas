@@ -7,7 +7,7 @@ from pandas.compat import range, PY3
 
 import numpy as np
 
-from pandas import (date_range, notnull, Series, Index, Float64Index,
+from pandas import (date_range, Series, Index, Float64Index,
                     Int64Index, UInt64Index, RangeIndex)
 
 import pandas.util.testing as tm
@@ -29,20 +29,21 @@ def full_like(array, value):
 class Numeric(Base):
 
     def test_numeric_compat(self):
+        pass  # override Base method
 
+    def test_mul_int(self):
         idx = self.create_index()
-        didx = idx * idx
-
         result = idx * 1
         tm.assert_index_equal(result, idx)
+
+    def test_rmul_int(self):
+        idx = self.create_index()
 
         result = 1 * idx
         tm.assert_index_equal(result, idx)
 
-        # in general not true for RangeIndex
-        if not isinstance(idx, RangeIndex):
-            result = idx * idx
-            tm.assert_index_equal(result, idx ** 2)
+    def test_div_int(self):
+        idx = self.create_index()
 
         # truediv under PY3
         result = idx / 1
@@ -57,8 +58,15 @@ class Numeric(Base):
         expected = Index(idx.values / 2)
         tm.assert_index_equal(result, expected)
 
+    def test_floordiv_int(self):
+        idx = self.create_index()
+
         result = idx // 1
         tm.assert_index_equal(result, idx)
+
+    def test_mul_int_array(self):
+        idx = self.create_index()
+        didx = idx * idx
 
         result = idx * np.array(5, dtype='int64')
         tm.assert_index_equal(result, idx * 5)
@@ -67,19 +75,45 @@ class Numeric(Base):
         result = idx * np.arange(5, dtype=arr_dtype)
         tm.assert_index_equal(result, didx)
 
+    def test_mul_int_series(self):
+        idx = self.create_index()
+        didx = idx * idx
+
+        arr_dtype = 'uint64' if isinstance(idx, UInt64Index) else 'int64'
         result = idx * Series(np.arange(5, dtype=arr_dtype))
-        tm.assert_index_equal(result, didx)
+        tm.assert_series_equal(result, Series(didx))
 
-        result = idx * Series(np.arange(5, dtype='float64') + 0.1)
-        expected = Float64Index(np.arange(5, dtype='float64') *
-                                (np.arange(5, dtype='float64') + 0.1))
-        tm.assert_index_equal(result, expected)
+    def test_mul_float_series(self):
+        idx = self.create_index()
+        rng5 = np.arange(5, dtype='float64')
 
-        # invalid
-        pytest.raises(TypeError,
-                      lambda: idx * date_range('20130101', periods=5))
-        pytest.raises(ValueError, lambda: idx * idx[0:3])
-        pytest.raises(ValueError, lambda: idx * np.array([1, 2]))
+        result = idx * Series(rng5 + 0.1)
+        expected = Series(rng5 * (rng5 + 0.1))
+        tm.assert_series_equal(result, expected)
+
+    def test_mul_index(self):
+        idx = self.create_index()
+
+        # in general not true for RangeIndex
+        if not isinstance(idx, RangeIndex):
+            result = idx * idx
+            tm.assert_index_equal(result, idx ** 2)
+
+    def test_mul_datelike_raises(self):
+        idx = self.create_index()
+        with pytest.raises(TypeError):
+            idx * date_range('20130101', periods=5)
+
+    def test_mul_size_mismatch_raises(self):
+        idx = self.create_index()
+
+        with pytest.raises(ValueError):
+            idx * idx[0:3]
+        with pytest.raises(ValueError):
+            idx * np.array([1, 2])
+
+    def test_divmod(self):
+        idx = self.create_index()
 
         result = divmod(idx, 2)
         with np.errstate(all='ignore'):
@@ -95,29 +129,38 @@ class Numeric(Base):
         for r, e in zip(result, expected):
             tm.assert_index_equal(r, e)
 
-        result = divmod(idx, Series(full_like(idx.values, 2)))
-        with np.errstate(all='ignore'):
-            div, mod = divmod(
-                idx.values,
-                full_like(idx.values, 2),
-            )
-            expected = Index(div), Index(mod)
-        for r, e in zip(result, expected):
-            tm.assert_index_equal(r, e)
-
+    def test_pow_float(self):
         # test power calculations both ways, GH 14973
-        expected = pd.Float64Index(2.0**idx.values)
-        result = 2.0**idx
-        tm.assert_index_equal(result, expected)
+        idx = self.create_index()
 
         expected = pd.Float64Index(idx.values**2.0)
         result = idx**2.0
         tm.assert_index_equal(result, expected)
 
+    def test_rpow_float(self):
+        # test power calculations both ways, GH 14973
+        idx = self.create_index()
+
+        expected = pd.Float64Index(2.0**idx.values)
+        result = 2.0**idx
+        tm.assert_index_equal(result, expected)
+
+    @pytest.mark.xfail(reason='GH#19252 Series has no __rdivmod__')
+    def test_divmod_series(self):
+        idx = self.create_index()
+
+        result = divmod(idx, Series(full_like(idx.values, 2)))
+        with np.errstate(all='ignore'):
+            div, mod = divmod(idx.values, full_like(idx.values, 2))
+            expected = Series(div), Series(mod)
+
+        for r, e in zip(result, expected):
+            tm.assert_series_equal(r, e)
+
     def test_explicit_conversions(self):
 
         # GH 8608
-        # add/sub are overriden explicity for Float/Int Index
+        # add/sub are overridden explicitly for Float/Int Index
         idx = self._holder(np.arange(5, dtype='int64'))
 
         # float conversions
@@ -175,13 +218,34 @@ class Numeric(Base):
         expected = Index(index.values % 2)
         tm.assert_index_equal(index % 2, expected)
 
+    @pytest.mark.parametrize('klass', [list, tuple, np.array, Series])
+    def test_where(self, klass):
+        i = self.create_index()
+        cond = [True] * len(i)
+        expected = i
+        result = i.where(klass(cond))
+
+        cond = [False] + [True] * (len(i) - 1)
+        expected = Float64Index([i._na_value] + i[1:].tolist())
+        result = i.where(klass(cond))
+        tm.assert_index_equal(result, expected)
+
+    def test_insert(self):
+        # GH 18295 (test missing)
+        expected = Float64Index([0, np.nan, 1, 2, 3, 4])
+        for na in (np.nan, pd.NaT, None):
+            result = self.create_index().insert(1, na)
+            tm.assert_index_equal(result, expected)
+
 
 class TestFloat64Index(Numeric):
     _holder = Float64Index
 
     def setup_method(self, method):
         self.indices = dict(mixed=Float64Index([1.5, 2, 3, 4, 5]),
-                            float=Float64Index(np.arange(5) * 2.5))
+                            float=Float64Index(np.arange(5) * 2.5),
+                            mixed_dec=Float64Index([5, 4, 3, 2, 1.5]),
+                            float_dec=Float64Index(np.arange(4, -1, -1) * 2.5))
         self.setup_indices()
 
     def create_index(self):
@@ -228,11 +292,11 @@ class TestFloat64Index(Numeric):
 
         # nan handling
         result = Float64Index([np.nan, np.nan])
-        assert pd.isnull(result.values).all()
+        assert pd.isna(result.values).all()
         result = Float64Index(np.array([np.nan]))
-        assert pd.isnull(result.values).all()
+        assert pd.isna(result.values).all()
         result = Index(np.array([np.nan]))
-        assert pd.isnull(result.values).all()
+        assert pd.isna(result.values).all()
 
     def test_constructor_invalid(self):
 
@@ -352,6 +416,14 @@ class TestFloat64Index(Numeric):
         with tm.assert_raises_regex(ValueError, 'must be numeric'):
             idx.get_loc(1.4, method='nearest', tolerance='foo')
 
+        with pytest.raises(ValueError, match='must contain numeric elements'):
+            idx.get_loc(1.4, method='nearest', tolerance=np.array(['foo']))
+
+        with pytest.raises(
+                ValueError,
+                match='tolerance size must match target index size'):
+            idx.get_loc(1.4, method='nearest', tolerance=np.array([1, 2]))
+
     def test_get_loc_na(self):
         idx = Float64Index([np.nan, 1, 2])
         assert idx.get_loc(1) == 1
@@ -370,6 +442,14 @@ class TestFloat64Index(Numeric):
         idx = Float64Index([np.nan, 1, np.nan, np.nan])
         assert idx.get_loc(1) == 1
         pytest.raises(KeyError, idx.slice_locs, np.nan)
+
+    def test_get_loc_missing_nan(self):
+        # GH 8569
+        idx = Float64Index([1, 2])
+        assert idx.get_loc(1) == 0
+        pytest.raises(KeyError, idx.get_loc, 3)
+        pytest.raises(KeyError, idx.get_loc, np.nan)
+        pytest.raises(KeyError, idx.get_loc, [np.nan])
 
     def test_contains_nans(self):
         i = Float64Index([1.0, 2.0, np.nan])
@@ -449,8 +529,8 @@ class TestFloat64Index(Numeric):
 
 class NumericInt(Numeric):
 
-    def test_view(self):
-        super(NumericInt, self).test_view()
+    def test_view(self, indices):
+        super(NumericInt, self).test_view(indices)
 
         i = self._holder([], name='Foo')
         i_view = i.view()
@@ -465,16 +545,36 @@ class NumericInt(Numeric):
     def test_is_monotonic(self):
         assert self.index.is_monotonic
         assert self.index.is_monotonic_increasing
+        assert self.index._is_strictly_monotonic_increasing
         assert not self.index.is_monotonic_decreasing
+        assert not self.index._is_strictly_monotonic_decreasing
 
         index = self._holder([4, 3, 2, 1])
         assert not index.is_monotonic
-        assert index.is_monotonic_decreasing
+        assert not index._is_strictly_monotonic_increasing
+        assert index._is_strictly_monotonic_decreasing
 
         index = self._holder([1])
         assert index.is_monotonic
         assert index.is_monotonic_increasing
         assert index.is_monotonic_decreasing
+        assert index._is_strictly_monotonic_increasing
+        assert index._is_strictly_monotonic_decreasing
+
+    def test_is_strictly_monotonic(self):
+        index = self._holder([1, 1, 2, 3])
+        assert index.is_monotonic_increasing
+        assert not index._is_strictly_monotonic_increasing
+
+        index = self._holder([3, 2, 1, 1])
+        assert index.is_monotonic_decreasing
+        assert not index._is_strictly_monotonic_decreasing
+
+        index = self._holder([1, 1])
+        assert index.is_monotonic_increasing
+        assert index.is_monotonic_decreasing
+        assert not index._is_strictly_monotonic_increasing
+        assert not index._is_strictly_monotonic_decreasing
 
     def test_logical_compat(self):
         idx = self.create_index()
@@ -626,7 +726,8 @@ class TestInt64Index(NumericInt):
     _holder = Int64Index
 
     def setup_method(self, method):
-        self.indices = dict(index=Int64Index(np.arange(0, 20, 2)))
+        self.indices = dict(index=Int64Index(np.arange(0, 20, 2)),
+                            index_dec=Int64Index(np.arange(19, -1, -1)))
         self.setup_indices()
 
     def create_index(self):
@@ -686,31 +787,6 @@ class TestInt64Index(NumericInt):
         # but not if explicit dtype passed
         arr = Index([1, 2, 3, 4], dtype=object)
         assert isinstance(arr, Index)
-
-    def test_where(self):
-        i = self.create_index()
-        result = i.where(notnull(i))
-        expected = i
-        tm.assert_index_equal(result, expected)
-
-        _nan = i._na_value
-        cond = [False] + [True] * len(i[1:])
-        expected = pd.Index([_nan] + i[1:].tolist())
-
-        result = i.where(cond)
-        tm.assert_index_equal(result, expected)
-
-    def test_where_array_like(self):
-        i = self.create_index()
-
-        _nan = i._na_value
-        cond = [False] + [True] * (len(i) - 1)
-        klasses = [list, tuple, np.array, pd.Series]
-        expected = pd.Index([_nan] + i[1:].tolist())
-
-        for klass in klasses:
-            result = i.where(klass(cond))
-            tm.assert_index_equal(result, expected)
 
     def test_get_indexer(self):
         target = Int64Index(np.arange(10))
@@ -921,8 +997,9 @@ class TestUInt64Index(NumericInt):
     _holder = UInt64Index
 
     def setup_method(self, method):
-        self.indices = dict(index=UInt64Index([2**63, 2**63 + 10, 2**63 + 15,
-                                               2**63 + 20, 2**63 + 25]))
+        vals = [2**63, 2**63 + 10, 2**63 + 15, 2**63 + 20, 2**63 + 25]
+        self.indices = dict(index=UInt64Index(vals),
+                            index_dec=UInt64Index(reversed(vals)))
         self.setup_indices()
 
     def create_index(self):

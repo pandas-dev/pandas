@@ -7,7 +7,7 @@ import numpy as np
 
 import pandas as pd
 from pandas.compat import lrange, lmap
-from pandas import Series, DataFrame, date_range, concat, isnull
+from pandas import Series, DataFrame, date_range, concat, isna
 from pandas.util import testing as tm
 from pandas.tests.indexing.common import Base
 
@@ -173,7 +173,7 @@ class TestiLoc(Base):
         tm.assert_series_equal(result, expected)
 
         # check the length 1 Series case highlighted in GH10547
-        expected = pd.Series(['a'], index=['A'])
+        expected = Series(['a'], index=['A'])
         result = expected.iloc[[-1]]
         tm.assert_series_equal(result, expected)
 
@@ -191,7 +191,7 @@ class TestiLoc(Base):
 
         # cross-sectional indexing
         result = df.iloc[0, 0]
-        assert isnull(result)
+        assert isna(result)
 
         result = df.iloc[0, :]
         expected = Series([np.nan, 1, 3, 3], index=['A', 'B', 'A', 'B'],
@@ -269,6 +269,33 @@ class TestiLoc(Base):
         expected = Series([0, 1, 0], index=[4, 5, 6])
         tm.assert_series_equal(s, expected)
 
+    @pytest.mark.parametrize(
+        'data, indexes, values, expected_k', [
+            # test without indexer value in first level of MultiIndex
+            ([[2, 22, 5], [2, 33, 6]], [0, -1, 1], [2, 3, 1], [7, 10]),
+            # test like code sample 1 in the issue
+            ([[1, 22, 555], [1, 33, 666]], [0, -1, 1], [200, 300, 100],
+                [755, 1066]),
+            # test like code sample 2 in the issue
+            ([[1, 3, 7], [2, 4, 8]], [0, -1, 1], [10, 10, 1000], [17, 1018]),
+            # test like code sample 3 in the issue
+            ([[1, 11, 4], [2, 22, 5], [3, 33, 6]], [0, -1, 1], [4, 7, 10],
+                [8, 15, 13])
+        ])
+    def test_iloc_setitem_int_multiindex_series(
+            self, data, indexes, values, expected_k):
+        # GH17148
+        df = DataFrame(data=data, columns=['i', 'j', 'k'])
+        df = df.set_index(['i', 'j'])
+
+        series = df.k.copy()
+        for i, v in zip(indexes, values):
+            series.iloc[i] += v
+
+        df['k'] = expected_k
+        expected = df.k
+        tm.assert_series_equal(series, expected)
+
     def test_iloc_setitem_list(self):
 
         # setitem with an iloc list
@@ -281,6 +308,19 @@ class TestiLoc(Base):
             np.array([0, 101, 102, 3, 104, 105, 6, 7, 8]).reshape((3, 3)),
             index=["A", "B", "C"], columns=["A", "B", "C"])
         tm.assert_frame_equal(df, expected)
+
+    def test_iloc_setitem_pandas_object(self):
+        # GH 17193, affecting old numpy (1.7 and 1.8)
+        s_orig = Series([0, 1, 2, 3])
+        expected = Series([0, -1, -2, 3])
+
+        s = s_orig.copy()
+        s.iloc[Series([1, 2])] = [-1, -2]
+        tm.assert_series_equal(s, expected)
+
+        s = s_orig.copy()
+        s.iloc[pd.Index([1, 2])] = [-1, -2]
+        tm.assert_series_equal(s, expected)
 
     def test_iloc_setitem_dups(self):
 
@@ -555,13 +595,13 @@ class TestiLoc(Base):
         idx = np.array(lrange(30)) * 99
         expected = df.iloc[idx]
 
-        df3 = pd.concat([df, 2 * df, 3 * df])
+        df3 = concat([df, 2 * df, 3 * df])
         result = df3.iloc[idx]
 
         tm.assert_frame_equal(result, expected)
 
         df2 = DataFrame({'A': [0.1] * 1000, 'B': [1] * 1000})
-        df2 = pd.concat([df2, 2 * df2, 3 * df2])
+        df2 = concat([df2, 2 * df2, 3 * df2])
 
         sidx = df2.index.to_series()
         expected = df2.iloc[idx[idx <= sidx.max()]]
@@ -573,9 +613,9 @@ class TestiLoc(Base):
             new_list.append(s * 3)
 
         expected = DataFrame(new_list)
-        expected = pd.concat([expected, DataFrame(index=idx[idx > sidx.max()])
-                              ])
-        result = df2.loc[idx]
+        expected = concat([expected, DataFrame(index=idx[idx > sidx.max()])])
+        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
+            result = df2.loc[idx]
         tm.assert_frame_equal(result, expected, check_index_type=False)
 
     def test_iloc_empty_list_indexer_is_ok(self):
@@ -591,3 +631,21 @@ class TestiLoc(Base):
         tm.assert_frame_equal(df.iloc[[]], df.iloc[:0, :],
                               check_index_type=True,
                               check_column_type=True)
+
+    def test_identity_slice_returns_new_object(self):
+        # GH13873
+        original_df = DataFrame({'a': [1, 2, 3]})
+        sliced_df = original_df.iloc[:]
+        assert sliced_df is not original_df
+
+        # should be a shallow copy
+        original_df['a'] = [4, 4, 4]
+        assert (sliced_df['a'] == 4).all()
+
+        original_series = Series([1, 2, 3, 4, 5, 6])
+        sliced_series = original_series.iloc[:]
+        assert sliced_series is not original_series
+
+        # should also be a shallow copy
+        original_series[:3] = [7, 8, 9]
+        assert all(sliced_series[:3] == [7, 8, 9])

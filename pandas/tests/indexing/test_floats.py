@@ -169,18 +169,30 @@ class TestFloatIndexers(object):
 
         # mixed index so we have label
         # indexing
-        for idxr in [lambda x: x.ix,
-                     lambda x: x]:
+        for idxr in [lambda x: x]:
 
             def f():
-                with catch_warnings(record=True):
-                    idxr(s3)[1.0]
+                idxr(s3)[1.0]
 
             pytest.raises(TypeError, f)
 
             result = idxr(s3)[1]
             expected = 2
             assert result == expected
+
+        # mixed index so we have label
+        # indexing
+        for idxr in [lambda x: x.ix]:
+            with catch_warnings(record=True):
+
+                def f():
+                    idxr(s3)[1.0]
+
+                pytest.raises(TypeError, f)
+
+                result = idxr(s3)[1]
+                expected = 2
+                assert result == expected
 
         pytest.raises(TypeError, lambda: s3.iloc[1.0])
         pytest.raises(KeyError, lambda: s3.loc[1.0])
@@ -348,7 +360,7 @@ class TestFloatIndexers(object):
 
         # same as above, but for Integer based indexes
         # these coerce to a like integer
-        # oob indiciates if we are out of bounds
+        # oob indicates if we are out of bounds
         # of positional indexing
         for index, oob in [(tm.makeIntIndex(5), False),
                            (tm.makeRangeIndex(5), False),
@@ -479,16 +491,14 @@ class TestFloatIndexers(object):
             index = index(5)
             s = DataFrame(np.random.randn(5, 2), index=index)
 
-            for idxr in [lambda x: x.loc,
-                         lambda x: x.ix]:
+            def f(idxr):
 
                 # getitem
                 for l in [slice(0.0, 1),
                           slice(0, 1.0),
                           slice(0.0, 1.0)]:
 
-                    with catch_warnings(record=True):
-                        result = idxr(s)[l]
+                    result = idxr(s)[l]
                     indexer = slice(0, 2)
                     self.check(result, s, indexer, False)
 
@@ -516,8 +526,7 @@ class TestFloatIndexers(object):
                                (slice(0, 0.5), slice(0, 1)),
                                (slice(0.5, 1.5), slice(1, 2))]:
 
-                    with catch_warnings(record=True):
-                        result = idxr(s)[l]
+                    result = idxr(s)[l]
                     self.check(result, s, res, False)
 
                     # positional indexing
@@ -532,9 +541,8 @@ class TestFloatIndexers(object):
                           slice(3.0, 4.0)]:
 
                     sc = s.copy()
-                    with catch_warnings(record=True):
-                        idxr(sc)[l] = 0
-                        result = idxr(sc)[l].values.ravel()
+                    idxr(sc)[l] = 0
+                    result = idxr(sc)[l].values.ravel()
                     assert (result == 0).all()
 
                     # positional indexing
@@ -542,6 +550,10 @@ class TestFloatIndexers(object):
                         s[l] = 0
 
                     pytest.raises(TypeError, f)
+
+            f(lambda x: x.loc)
+            with catch_warnings(record=True):
+                f(lambda x: x.ix)
 
     def test_slice_float(self):
 

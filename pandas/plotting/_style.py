@@ -9,76 +9,9 @@ import re
 import numpy as np
 
 from pandas.core.dtypes.common import is_list_like
-from pandas.compat import range, lrange, lmap
+from pandas.compat import lrange, lmap
 import pandas.compat as compat
 from pandas.plotting._compat import _mpl_ge_2_0_0
-
-
-# Extracted from https://gist.github.com/huyng/816622
-# this is the rcParams set when setting display.with_mpl_style
-# to True.
-mpl_stylesheet = {
-    'axes.axisbelow': True,
-    'axes.color_cycle': ['#348ABD',
-                         '#7A68A6',
-                         '#A60628',
-                         '#467821',
-                         '#CF4457',
-                         '#188487',
-                         '#E24A33'],
-    'axes.edgecolor': '#bcbcbc',
-    'axes.facecolor': '#eeeeee',
-    'axes.grid': True,
-    'axes.labelcolor': '#555555',
-    'axes.labelsize': 'large',
-    'axes.linewidth': 1.0,
-    'axes.titlesize': 'x-large',
-    'figure.edgecolor': 'white',
-    'figure.facecolor': 'white',
-    'figure.figsize': (6.0, 4.0),
-    'figure.subplot.hspace': 0.5,
-    'font.family': 'monospace',
-    'font.monospace': ['Andale Mono',
-                       'Nimbus Mono L',
-                       'Courier New',
-                       'Courier',
-                       'Fixed',
-                       'Terminal',
-                       'monospace'],
-    'font.size': 10,
-    'interactive': True,
-    'keymap.all_axes': ['a'],
-    'keymap.back': ['left', 'c', 'backspace'],
-    'keymap.forward': ['right', 'v'],
-    'keymap.fullscreen': ['f'],
-    'keymap.grid': ['g'],
-    'keymap.home': ['h', 'r', 'home'],
-    'keymap.pan': ['p'],
-    'keymap.save': ['s'],
-    'keymap.xscale': ['L', 'k'],
-    'keymap.yscale': ['l'],
-    'keymap.zoom': ['o'],
-    'legend.fancybox': True,
-    'lines.antialiased': True,
-    'lines.linewidth': 1.0,
-    'patch.antialiased': True,
-    'patch.edgecolor': '#EEEEEE',
-    'patch.facecolor': '#348ABD',
-    'patch.linewidth': 0.5,
-    'toolbar': 'toolbar2',
-    'xtick.color': '#555555',
-    'xtick.direction': 'in',
-    'xtick.major.pad': 6.0,
-    'xtick.major.size': 0.0,
-    'xtick.minor.pad': 6.0,
-    'xtick.minor.size': 0.0,
-    'ytick.color': '#555555',
-    'ytick.direction': 'in',
-    'ytick.major.pad': 6.0,
-    'ytick.major.size': 0.0,
-    'ytick.minor.pad': 6.0,
-    'ytick.minor.size': 0.0
-}
 
 
 def _get_standard_colors(num_colors=None, colormap=None, color_type='default',
@@ -111,11 +44,13 @@ def _get_standard_colors(num_colors=None, colormap=None, color_type='default',
             if isinstance(colors, compat.string_types):
                 colors = list(colors)
         elif color_type == 'random':
-            import random
+            import pandas.core.common as com
 
             def random_color(column):
-                random.seed(column)
-                return [random.random() for _ in range(3)]
+                """ Returns a random color represented as a list of length 3"""
+                # GH17525 use common._random_state to avoid resetting the seed
+                rs = com._random_state(column)
+                return rs.rand(3).tolist()
 
             colors = lmap(random_color, lrange(num_colors))
         else:
@@ -132,9 +67,9 @@ def _get_standard_colors(num_colors=None, colormap=None, color_type='default',
             except ValueError:
                 return False
 
-        # check whether the string can be convertable to single color
+        # check whether the string can be convertible to single color
         maybe_single_color = _maybe_valid_colors([colors])
-        # check whether each character can be convertable to colors
+        # check whether each character can be convertible to colors
         maybe_color_cycle = _maybe_valid_colors(list(colors))
         if maybe_single_color and maybe_color_cycle and len(colors) > 1:
             # Special case for single str 'CN' match and convert to hex
@@ -196,7 +131,8 @@ class _Options(dict):
         self._warn_if_deprecated()
         key = self._get_canonical_key(key)
         if key not in self:
-            raise ValueError('%s is not a valid pandas plotting option' % key)
+            raise ValueError(
+                '{key} is not a valid pandas plotting option'.format(key=key))
         return super(_Options, self).__getitem__(key)
 
     def __setitem__(self, key, value):
@@ -207,7 +143,8 @@ class _Options(dict):
     def __delitem__(self, key):
         key = self._get_canonical_key(key)
         if key in self._DEFAULT_KEYS:
-            raise ValueError('Cannot remove default parameter %s' % key)
+            raise ValueError(
+                'Cannot remove default parameter {key}'.format(key=key))
         return super(_Options, self).__delitem__(key)
 
     def __contains__(self, key):

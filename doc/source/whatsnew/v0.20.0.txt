@@ -43,6 +43,11 @@ Check the :ref:`API Changes <whatsnew_0200.api_breaking>` and :ref:`deprecations
 New features
 ~~~~~~~~~~~~
 
+.. ipython:: python
+   :suppress:
+
+   import pandas.util.testing as tm
+
 .. _whatsnew_0200.enhancements.agg:
 
 ``agg`` API for DataFrame/Series
@@ -92,7 +97,7 @@ The API also supports a ``.transform()`` function for broadcasting results.
    df.transform(['abs', lambda x: x - x.min()])
 
 When presented with mixed dtypes that cannot be aggregated, ``.agg()`` will only take the valid
-aggregations. This is similiar to how groupby ``.agg()`` works. (:issue:`15015`)
+aggregations. This is similar to how groupby ``.agg()`` works. (:issue:`15015`)
 
 .. ipython:: python
 
@@ -514,7 +519,6 @@ Other Enhancements
 - ``parallel_coordinates()`` has gained a ``sort_labels`` keyword argument that sorts class labels and the colors assigned to them (:issue:`15908`)
 - Options added to allow one to turn on/off using ``bottleneck`` and ``numexpr``, see :ref:`here <basics.accelerate>` (:issue:`16157`)
 - ``DataFrame.style.bar()`` now accepts two more options to further customize the bar chart. Bar alignment is set with ``align='left'|'mid'|'zero'``, the default is "left", which is backward compatible; You can now pass a list of ``color=[color_negative, color_positive]``. (:issue:`14757`)
-
 
 .. _ISO 8601 duration: https://en.wikipedia.org/wiki/ISO_8601#Durations
 
@@ -1371,6 +1375,7 @@ Convert to a MultiIndex DataFrame
 Convert to an xarray DataArray
 
 .. ipython:: python
+   :okwarning:
 
    p.to_xarray()
 
@@ -1499,7 +1504,7 @@ Other Deprecations
 - ``TimedeltaIndex.searchsorted()``, ``DatetimeIndex.searchsorted()``, and ``PeriodIndex.searchsorted()`` have deprecated the ``key`` parameter in favor of ``value`` (:issue:`12662`)
 - ``DataFrame.astype()`` has deprecated the ``raise_on_error`` parameter in favor of ``errors`` (:issue:`14878`)
 - ``Series.sortlevel`` and ``DataFrame.sortlevel`` have been deprecated in favor of ``Series.sort_index`` and ``DataFrame.sort_index`` (:issue:`15099`)
-- importing ``concat`` from ``pandas.tools.merge`` has been deprecated in favor of imports from the ``pandas`` namespace. This should only affect explict imports (:issue:`15358`)
+- importing ``concat`` from ``pandas.tools.merge`` has been deprecated in favor of imports from the ``pandas`` namespace. This should only affect explicit imports (:issue:`15358`)
 - ``Series/DataFrame/Panel.consolidate()`` been deprecated as a public method. (:issue:`15483`)
 - The ``as_indexer`` keyword of ``Series.str.match()`` has been deprecated (ignored keyword) (:issue:`15257`).
 - The following top-level pandas functions have been deprecated and will be removed in a future version (:issue:`13790`, :issue:`15940`)
@@ -1706,6 +1711,7 @@ Reshaping
 - Bug in ``pd.concat()`` in which concatenating with an empty dataframe with ``join='inner'`` was being improperly handled (:issue:`15328`)
 - Bug with ``sort=True`` in ``DataFrame.join`` and ``pd.merge`` when joining on indexes (:issue:`15582`)
 - Bug in ``DataFrame.nsmallest`` and ``DataFrame.nlargest`` where identical values resulted in duplicated rows (:issue:`15297`)
+- Bug in :func:`pandas.pivot_table` incorrectly raising ``UnicodeError`` when passing unicode input for ```margins`` keyword (:issue:`13292`)
 
 Numeric
 ^^^^^^^

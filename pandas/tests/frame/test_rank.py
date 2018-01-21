@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+import pytest
 from datetime import timedelta, datetime
 from distutils.version import LooseVersion
 from numpy import nan
@@ -26,8 +27,7 @@ class TestRank(TestData):
     }
 
     def test_rank(self):
-        tm._skip_if_no_scipy()
-        from scipy.stats import rankdata
+        rankdata = pytest.importorskip('scipy.stats.rankdata')
 
         self.frame['A'][::2] = np.nan
         self.frame['B'][::3] = np.nan
@@ -120,8 +120,7 @@ class TestRank(TestData):
         tm.assert_frame_equal(df.rank(), exp)
 
     def test_rank_na_option(self):
-        tm._skip_if_no_scipy()
-        from scipy.stats import rankdata
+        rankdata = pytest.importorskip('scipy.stats.rankdata')
 
         self.frame['A'][::2] = np.nan
         self.frame['B'][::3] = np.nan
@@ -193,10 +192,9 @@ class TestRank(TestData):
         tm.assert_frame_equal(df.rank(axis=1), df.rank(axis='columns'))
 
     def test_rank_methods_frame(self):
-        tm.skip_if_no_package('scipy', min_version='0.13',
-                              app='scipy.stats.rankdata')
+        pytest.importorskip('scipy.stats.special')
+        rankdata = pytest.importorskip('scipy.stats.rankdata')
         import scipy
-        from scipy.stats import rankdata
 
         xs = np.random.randint(0, 21, (100, 26))
         xs = (xs - 10.0) / 10.0
@@ -214,7 +212,8 @@ class TestRank(TestData):
                     sprank = sprank.astype(np.float64)
                     expected = DataFrame(sprank, columns=cols)
 
-                    if LooseVersion(scipy.__version__) >= '0.17.0':
+                    if (LooseVersion(scipy.__version__) >=
+                            LooseVersion('0.17.0')):
                         expected = expected.astype('float64')
                     tm.assert_frame_equal(result, expected)
 

@@ -117,8 +117,10 @@
     // with results. If the commit is `null`, regression detection is
     // skipped for the matching benchmark.
     //
-    // "regressions_first_commits": {
-    //    "some_benchmark": "352cdf",  // Consider regressions only after this commit
-    //    "another_benchmark": null,   // Skip regression detection altogether
-    // }
+    "regressions_first_commits": {
+        ".*": "v0.20.0"
+    },
+    "regression_thresholds": {
+        ".*": 0.05
+    }
 }

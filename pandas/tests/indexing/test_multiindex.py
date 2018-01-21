@@ -61,9 +61,9 @@ class TestMultiIndexBasic(object):
                         expected = value
                     compare_fn(result, expected)
                 # GH7190
-                index = pd.MultiIndex.from_product([np.arange(0, 100),
-                                                    np.arange(0, 80)],
-                                                   names=['time', 'firm'])
+                index = MultiIndex.from_product([np.arange(0, 100),
+                                                 np.arange(0, 80)],
+                                                names=['time', 'firm'])
                 t, n = 0, 2
                 df = DataFrame(np.nan, columns=['A', 'w', 'l', 'a', 'x',
                                                 'X', 'd', 'profit'],
@@ -94,14 +94,14 @@ class TestMultiIndexBasic(object):
                       expected=3, )
 
                 # GH5206
-                df = pd.DataFrame(np.arange(25).reshape(5, 5),
-                                  columns='A,B,C,D,E'.split(','), dtype=float)
+                df = DataFrame(np.arange(25).reshape(5, 5),
+                               columns='A,B,C,D,E'.split(','), dtype=float)
                 df['F'] = 99
                 row_selection = df['A'] % 2 == 0
                 col_selection = ['B', 'C']
                 with catch_warnings(record=True):
                     df.ix[row_selection, col_selection] = df['F']
-                output = pd.DataFrame(99., index=[0, 2, 4], columns=['B', 'C'])
+                output = DataFrame(99., index=[0, 2, 4], columns=['B', 'C'])
                 with catch_warnings(record=True):
                     tm.assert_frame_equal(df.ix[row_selection, col_selection],
                                           output)
@@ -112,31 +112,31 @@ class TestMultiIndexBasic(object):
                       expected=output, )
 
                 # GH11372
-                idx = pd.MultiIndex.from_product([
+                idx = MultiIndex.from_product([
                     ['A', 'B', 'C'],
-                    pd.date_range('2015-01-01', '2015-04-01', freq='MS')])
-                cols = pd.MultiIndex.from_product([
+                    date_range('2015-01-01', '2015-04-01', freq='MS')])
+                cols = MultiIndex.from_product([
                     ['foo', 'bar'],
-                    pd.date_range('2016-01-01', '2016-02-01', freq='MS')])
+                    date_range('2016-01-01', '2016-02-01', freq='MS')])
 
-                df = pd.DataFrame(np.random.random((12, 4)),
-                                  index=idx, columns=cols)
+                df = DataFrame(np.random.random((12, 4)),
+                               index=idx, columns=cols)
 
-                subidx = pd.MultiIndex.from_tuples(
-                    [('A', pd.Timestamp('2015-01-01')),
-                     ('A', pd.Timestamp('2015-02-01'))])
-                subcols = pd.MultiIndex.from_tuples(
-                    [('foo', pd.Timestamp('2016-01-01')),
-                     ('foo', pd.Timestamp('2016-02-01'))])
+                subidx = MultiIndex.from_tuples(
+                    [('A', Timestamp('2015-01-01')),
+                     ('A', Timestamp('2015-02-01'))])
+                subcols = MultiIndex.from_tuples(
+                    [('foo', Timestamp('2016-01-01')),
+                     ('foo', Timestamp('2016-02-01'))])
 
-                vals = pd.DataFrame(np.random.random((2, 2)),
-                                    index=subidx, columns=subcols)
+                vals = DataFrame(np.random.random((2, 2)),
+                                 index=subidx, columns=subcols)
                 check(target=df,
                       indexers=(subidx, subcols),
                       value=vals,
                       compare_fn=tm.assert_frame_equal, )
                 # set all columns
-                vals = pd.DataFrame(
+                vals = DataFrame(
                     np.random.random((2, 4)), index=subidx, columns=cols)
                 check(target=df,
                       indexers=(subidx, slice(None, None, None)),
@@ -284,7 +284,7 @@ class TestMultiIndexBasic(object):
         l1 = [10, 20]
         l2 = ['a', 'b']
         df = DataFrame(index=range(2),
-                       columns=pd.MultiIndex.from_product([l1, l2]))
+                       columns=MultiIndex.from_product([l1, l2]))
         expected = DataFrame(index=range(2),
                              columns=l2)
         result = df[20]
@@ -292,14 +292,14 @@ class TestMultiIndexBasic(object):
 
         # with list
         expected = DataFrame(index=range(2),
-                             columns=pd.MultiIndex.from_product([l1[1:], l2]))
+                             columns=MultiIndex.from_product([l1[1:], l2]))
         result = df[[20]]
         tm.assert_frame_equal(result, expected)
 
         # missing item:
         with tm.assert_raises_regex(KeyError, '1'):
             df[1]
-        with tm.assert_raises_regex(KeyError, "'\[1\] not in index'"):
+        with tm.assert_raises_regex(KeyError, r"'\[1\] not in index'"):
             df[[1]]
 
     def test_loc_multiindex_indexer_none(self):
@@ -318,8 +318,8 @@ class TestMultiIndexBasic(object):
         # GH 7349
         # loc with a multi-index seems to be doing fallback
         df = DataFrame(np.arange(12).reshape(-1, 1),
-                       index=pd.MultiIndex.from_product([[1, 2, 3, 4],
-                                                         [1, 2, 3]]))
+                       index=MultiIndex.from_product([[1, 2, 3, 4],
+                                                      [1, 2, 3]]))
 
         expected = df.loc[([1, 2], ), :]
         result = df.loc[[1, 2]]
@@ -329,8 +329,8 @@ class TestMultiIndexBasic(object):
 
         # GH 7399
         # incomplete indexers
-        s = pd.Series(np.arange(15, dtype='int64'),
-                      MultiIndex.from_product([range(5), ['a', 'b', 'c']]))
+        s = Series(np.arange(15, dtype='int64'),
+                   MultiIndex.from_product([range(5), ['a', 'b', 'c']]))
         expected = s.loc[:, 'a':'c']
 
         result = s.loc[0:4, 'a':'c']
@@ -347,8 +347,8 @@ class TestMultiIndexBasic(object):
 
         # GH 7400
         # multiindexer gettitem with list of indexers skips wrong element
-        s = pd.Series(np.arange(15, dtype='int64'),
-                      MultiIndex.from_product([range(5), ['a', 'b', 'c']]))
+        s = Series(np.arange(15, dtype='int64'),
+                   MultiIndex.from_product([range(5), ['a', 'b', 'c']]))
         expected = s.iloc[[6, 7, 8, 12, 13, 14]]
         result = s.loc[2:4:2, 'a':'c']
         tm.assert_series_equal(result, expected)
@@ -436,9 +436,8 @@ class TestMultiIndexBasic(object):
                   np.array(['one', 'two', 'one', 'one', 'two', 'one']),
                   np.arange(0, 6, 1)]
 
-        df_orig = pd.DataFrame(np.random.randn(6, 3),
-                               index=arrays,
-                               columns=['A', 'B', 'C']).sort_index()
+        df_orig = DataFrame(np.random.randn(6, 3), index=arrays,
+                            columns=['A', 'B', 'C']).sort_index()
 
         expected = df_orig.loc[['bar']] * 2
         df = df_orig.copy()
@@ -521,15 +520,15 @@ class TestMultiIndexBasic(object):
 
         # GH 7866
         # multi-index slicing with missing indexers
-        idx = pd.MultiIndex.from_product([['A', 'B', 'C'],
-                                          ['foo', 'bar', 'baz']],
-                                         names=['one', 'two'])
-        s = pd.Series(np.arange(9, dtype='int64'), index=idx).sort_index()
+        idx = MultiIndex.from_product([['A', 'B', 'C'],
+                                       ['foo', 'bar', 'baz']],
+                                      names=['one', 'two'])
+        s = Series(np.arange(9, dtype='int64'), index=idx).sort_index()
 
-        exp_idx = pd.MultiIndex.from_product([['A'], ['foo', 'bar', 'baz']],
-                                             names=['one', 'two'])
-        expected = pd.Series(np.arange(3, dtype='int64'),
-                             index=exp_idx).sort_index()
+        exp_idx = MultiIndex.from_product([['A'], ['foo', 'bar', 'baz']],
+                                          names=['one', 'two'])
+        expected = Series(np.arange(3, dtype='int64'),
+                          index=exp_idx).sort_index()
 
         result = s.loc[['A']]
         tm.assert_series_equal(result, expected)
@@ -545,7 +544,7 @@ class TestMultiIndexBasic(object):
         tm.assert_series_equal(result, expected)
 
         idx = pd.IndexSlice
-        expected = pd.Series([0, 3, 6], index=pd.MultiIndex.from_product(
+        expected = Series([0, 3, 6], index=MultiIndex.from_product(
             [['A', 'B', 'C'], ['foo']], names=['one', 'two'])).sort_index()
 
         result = s.loc[idx[:, ['foo']]]
@@ -555,8 +554,8 @@ class TestMultiIndexBasic(object):
 
         # GH 8737
         # empty indexer
-        multi_index = pd.MultiIndex.from_product((['foo', 'bar', 'baz'],
-                                                  ['alpha', 'beta']))
+        multi_index = MultiIndex.from_product((['foo', 'bar', 'baz'],
+                                               ['alpha', 'beta']))
         df = DataFrame(
             np.random.randn(5, 6), index=range(5), columns=multi_index)
         df = df.sort_index(level=0, axis=1)
@@ -683,19 +682,48 @@ class TestMultiIndexBasic(object):
     def test_multiindex_slice_first_level(self):
         # GH 12697
         freq = ['a', 'b', 'c', 'd']
-        idx = pd.MultiIndex.from_product([freq, np.arange(500)])
-        df = pd.DataFrame(list(range(2000)), index=idx, columns=['Test'])
+        idx = MultiIndex.from_product([freq, np.arange(500)])
+        df = DataFrame(list(range(2000)), index=idx, columns=['Test'])
         df_slice = df.loc[pd.IndexSlice[:, 30:70], :]
         result = df_slice.loc['a']
-        expected = pd.DataFrame(list(range(30, 71)),
-                                columns=['Test'],
-                                index=range(30, 71))
+        expected = DataFrame(list(range(30, 71)),
+                             columns=['Test'], index=range(30, 71))
         tm.assert_frame_equal(result, expected)
         result = df_slice.loc['d']
-        expected = pd.DataFrame(list(range(1530, 1571)),
-                                columns=['Test'],
-                                index=range(30, 71))
+        expected = DataFrame(list(range(1530, 1571)),
+                             columns=['Test'], index=range(30, 71))
         tm.assert_frame_equal(result, expected)
+
+    def test_multiindex_symmetric_difference(self):
+        # GH 13490
+        idx = MultiIndex.from_product([['a', 'b'], ['A', 'B']],
+                                      names=['a', 'b'])
+        result = idx ^ idx
+        assert result.names == idx.names
+
+        idx2 = idx.copy().rename(['A', 'B'])
+        result = idx ^ idx2
+        assert result.names == [None, None]
+
+    def test_multiindex_contains_dropped(self):
+        # GH 19027
+        # test that dropped MultiIndex levels are not in the MultiIndex
+        # despite continuing to be in the MultiIndex's levels
+        idx = MultiIndex.from_product([[1, 2], [3, 4]])
+        assert 2 in idx
+        idx = idx.drop(2)
+
+        # drop implementation keeps 2 in the levels
+        assert 2 in idx.levels[0]
+        # but it should no longer be in the index itself
+        assert 2 not in idx
+
+        # also applies to strings
+        idx = MultiIndex.from_product([['a', 'b'], ['c', 'd']])
+        assert 'a' in idx
+        idx = idx.drop('a')
+        assert 'a' in idx.levels[0]
+        assert 'a' not in idx
 
 
 class TestMultiIndexSlicers(object):
@@ -806,9 +834,13 @@ class TestMultiIndexSlicers(object):
         assert df.index.lexsort_depth == 0
         with tm.assert_raises_regex(
                 UnsortedIndexError,
-                'MultiIndex Slicing requires the index to be fully '
-                r'lexsorted tuple len \(2\), lexsort depth \(0\)'):
-            df.loc[(slice(None), df.loc[:, ('a', 'bar')] > 5), :]
+                'MultiIndex slicing requires the index to be '
+                r'lexsorted: slicing on levels \[1\], lexsort depth 0'):
+            df.loc[(slice(None), slice('bar')), :]
+
+        # GH 16734: not sorted, but no real slicing
+        result = df.loc[(slice(None), df.loc[:, ('a', 'bar')] > 5), :]
+        tm.assert_frame_equal(result, df.iloc[[1, 3], :])
 
     def test_multiindex_slicers_non_unique(self):
 
@@ -990,9 +1022,14 @@ class TestMultiIndexSlicers(object):
 
         # not sorted
         def f():
-            df.loc['A1', (slice(None), 'foo')]
+            df.loc['A1', ('a', slice('foo'))]
 
         pytest.raises(UnsortedIndexError, f)
+
+        # GH 16734: not sorted, but no real slicing
+        tm.assert_frame_equal(df.loc['A1', (slice(None), 'foo')],
+                              df.loc['A1'].iloc[:, [0, 2]])
+
         df = df.sort_index(axis=1)
 
         # slicing
@@ -1196,10 +1233,10 @@ class TestMultiIndexPanel(object):
 
             # GH 7199
             # Panel with multi-index
-            multi_index = pd.MultiIndex.from_tuples([('ONE', 'one'),
-                                                     ('TWO', 'two'),
-                                                     ('THREE', 'three')],
-                                                    names=['UPPER', 'lower'])
+            multi_index = MultiIndex.from_tuples([('ONE', 'one'),
+                                                  ('TWO', 'two'),
+                                                  ('THREE', 'three')],
+                                                 names=['UPPER', 'lower'])
 
             simple_index = [x[0] for x in multi_index]
             wd1 = Panel(items=['First', 'Second'],
@@ -1258,21 +1295,21 @@ class TestMultiIndexPanel(object):
             tm.assert_panel_equal(p1, expected)
 
             # multi-indexes
-            axes['items'] = pd.MultiIndex.from_tuples(
+            axes['items'] = MultiIndex.from_tuples(
                 [('A', 'a'), ('B', 'b')])
             p2 = Panel(0., **axes)
             p2.iloc[0, 0, :] = [1, 2, 3]
             expected = Panel(arr, **axes)
             tm.assert_panel_equal(p2, expected)
 
-            axes['major_axis'] = pd.MultiIndex.from_tuples(
+            axes['major_axis'] = MultiIndex.from_tuples(
                 [('A', 1), ('A', 2)])
             p3 = Panel(0., **axes)
             p3.iloc[0, 0, :] = [1, 2, 3]
             expected = Panel(arr, **axes)
             tm.assert_panel_equal(p3, expected)
 
-            axes['minor_axis'] = pd.MultiIndex.from_product(
+            axes['minor_axis'] = MultiIndex.from_product(
                 [['X'], range(3)])
             p4 = Panel(0., **axes)
             p4.iloc[0, 0, :] = [1, 2, 3]

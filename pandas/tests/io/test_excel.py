@@ -1,32 +1,30 @@
 # pylint: disable=E1101
-
-from pandas.compat import u, range, map, openpyxl_compat, BytesIO, iteritems
-from datetime import datetime, date, time
-import sys
 import os
-from distutils.version import LooseVersion
-
+import sys
 import warnings
+from datetime import datetime, date, time
+from distutils.version import LooseVersion
+from functools import partial
 from warnings import catch_warnings
-import operator
-import functools
-import pytest
 
-from numpy import nan
 import numpy as np
+import pytest
+from numpy import nan
 
 import pandas as pd
+import pandas.util.testing as tm
+import pandas.util._test_decorators as td
 from pandas import DataFrame, Index, MultiIndex
+from pandas.compat import u, range, map, BytesIO, iteritems
+from pandas.core.config import set_option, get_option
+from pandas.io.common import URLError
+from pandas.io.excel import (
+    ExcelFile, ExcelWriter, read_excel, _XlwtWriter, _OpenpyxlWriter,
+    register_writer, _XlsxWriter
+)
 from pandas.io.formats.excel import ExcelFormatter
 from pandas.io.parsers import read_csv
-from pandas.io.excel import (
-    ExcelFile, ExcelWriter, read_excel, _XlwtWriter, _Openpyxl1Writer,
-    _Openpyxl20Writer, _Openpyxl22Writer, register_writer, _XlsxWriter
-)
-from pandas.io.common import URLError
 from pandas.util.testing import ensure_clean, makeCustomDataframe as mkdf
-from pandas.core.config import set_option, get_option
-import pandas.util.testing as tm
 
 
 def _skip_if_no_xlrd():
@@ -64,13 +62,6 @@ def _skip_if_no_excelsuite():
     _skip_if_no_xlrd()
     _skip_if_no_xlwt()
     _skip_if_no_openpyxl()
-
-
-def _skip_if_no_s3fs():
-    try:
-        import s3fs  # noqa
-    except ImportError:
-        pytest.skip('s3fs not installed, skipping')
 
 
 _seriesd = tm.getSeriesData()
@@ -165,56 +156,74 @@ class ReadingTestsBase(SharedItems):
         self.check_skip()
         super(ReadingTestsBase, self).setup_method(method)
 
-    def test_parse_cols_int(self):
+    def test_usecols_int(self):
 
         dfref = self.get_csv_refdf('test1')
         dfref = dfref.reindex(columns=['A', 'B', 'C'])
-        df1 = self.get_exceldf('test1', 'Sheet1', index_col=0, parse_cols=3)
+        df1 = self.get_exceldf('test1', 'Sheet1', index_col=0, usecols=3)
         df2 = self.get_exceldf('test1', 'Sheet2', skiprows=[1], index_col=0,
-                               parse_cols=3)
+                               usecols=3)
+
+        with tm.assert_produces_warning(FutureWarning):
+            df3 = self.get_exceldf('test1', 'Sheet2', skiprows=[1],
+                                   index_col=0, parse_cols=3)
+
         # TODO add index to xls file)
         tm.assert_frame_equal(df1, dfref, check_names=False)
         tm.assert_frame_equal(df2, dfref, check_names=False)
+        tm.assert_frame_equal(df3, dfref, check_names=False)
 
-    def test_parse_cols_list(self):
+    def test_usecols_list(self):
 
         dfref = self.get_csv_refdf('test1')
         dfref = dfref.reindex(columns=['B', 'C'])
         df1 = self.get_exceldf('test1', 'Sheet1', index_col=0,
-                               parse_cols=[0, 2, 3])
+                               usecols=[0, 2, 3])
         df2 = self.get_exceldf('test1', 'Sheet2', skiprows=[1], index_col=0,
-                               parse_cols=[0, 2, 3])
+                               usecols=[0, 2, 3])
+
+        with tm.assert_produces_warning(FutureWarning):
+            df3 = self.get_exceldf('test1', 'Sheet2', skiprows=[1],
+                                   index_col=0, parse_cols=[0, 2, 3])
+
         # TODO add index to xls file)
         tm.assert_frame_equal(df1, dfref, check_names=False)
         tm.assert_frame_equal(df2, dfref, check_names=False)
+        tm.assert_frame_equal(df3, dfref, check_names=False)
 
-    def test_parse_cols_str(self):
+    def test_usecols_str(self):
 
         dfref = self.get_csv_refdf('test1')
 
         df1 = dfref.reindex(columns=['A', 'B', 'C'])
         df2 = self.get_exceldf('test1', 'Sheet1', index_col=0,
-                               parse_cols='A:D')
+                               usecols='A:D')
         df3 = self.get_exceldf('test1', 'Sheet2', skiprows=[1], index_col=0,
-                               parse_cols='A:D')
+                               usecols='A:D')
+
+        with tm.assert_produces_warning(FutureWarning):
+            df4 = self.get_exceldf('test1', 'Sheet2', skiprows=[1],
+                                   index_col=0, parse_cols='A:D')
+
         # TODO add index to xls, read xls ignores index name ?
         tm.assert_frame_equal(df2, df1, check_names=False)
         tm.assert_frame_equal(df3, df1, check_names=False)
+        tm.assert_frame_equal(df4, df1, check_names=False)
 
         df1 = dfref.reindex(columns=['B', 'C'])
         df2 = self.get_exceldf('test1', 'Sheet1', index_col=0,
-                               parse_cols='A,C,D')
+                               usecols='A,C,D')
         df3 = self.get_exceldf('test1', 'Sheet2', skiprows=[1], index_col=0,
-                               parse_cols='A,C,D')
+                               usecols='A,C,D')
         # TODO add index to xls file
         tm.assert_frame_equal(df2, df1, check_names=False)
         tm.assert_frame_equal(df3, df1, check_names=False)
 
         df1 = dfref.reindex(columns=['B', 'C'])
         df2 = self.get_exceldf('test1', 'Sheet1', index_col=0,
-                               parse_cols='A,C:D')
+                               usecols='A,C:D')
         df3 = self.get_exceldf('test1', 'Sheet2', skiprows=[1], index_col=0,
-                               parse_cols='A,C:D')
+                               usecols='A,C:D')
         tm.assert_frame_equal(df2, df1, check_names=False)
         tm.assert_frame_equal(df3, df1, check_names=False)
 
@@ -277,14 +286,14 @@ class ReadingTestsBase(SharedItems):
         tm.assert_frame_equal(df2, dfref, check_names=False)
 
         df3 = read_excel(excel, 0, index_col=0, skipfooter=1)
-        df4 = read_excel(excel, 0, index_col=0, skip_footer=1)
         tm.assert_frame_equal(df3, df1.iloc[:-1])
-        tm.assert_frame_equal(df3, df4)
+
+        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
+            df4 = read_excel(excel, 0, index_col=0, skip_footer=1)
+            tm.assert_frame_equal(df3, df4)
 
         df3 = excel.parse(0, index_col=0, skipfooter=1)
-        df4 = excel.parse(0, index_col=0, skip_footer=1)
         tm.assert_frame_equal(df3, df1.iloc[:-1])
-        tm.assert_frame_equal(df3, df4)
 
         import xlrd
         with pytest.raises(xlrd.XLRDError):
@@ -302,10 +311,7 @@ class ReadingTestsBase(SharedItems):
 
         df3 = self.get_exceldf('test1', 'Sheet1', index_col=0,
                                skipfooter=1)
-        df4 = self.get_exceldf('test1', 'Sheet1', index_col=0,
-                               skip_footer=1)
         tm.assert_frame_equal(df3, df1.iloc[:-1])
-        tm.assert_frame_equal(df3, df4)
 
     def test_reader_special_dtypes(self):
 
@@ -407,7 +413,7 @@ class ReadingTestsBase(SharedItems):
         # Ensure a dict is returned.
         # See PR #9450
         basename = 'test_multisheet'
-        dfs = self.get_exceldf(basename, sheetname=None)
+        dfs = self.get_exceldf(basename, sheet_name=None)
         # ensure this is not alphabetical to test order preservation
         expected_keys = ['Charlie', 'Alpha', 'Beta']
         tm.assert_contains_all(expected_keys, dfs.keys())
@@ -424,7 +430,7 @@ class ReadingTestsBase(SharedItems):
         basename = 'test_multisheet'
         # Explicitly request duplicates. Only the set should be returned.
         expected_keys = [2, 'Charlie', 'Charlie']
-        dfs = self.get_exceldf(basename, sheetname=expected_keys)
+        dfs = self.get_exceldf(basename, sheet_name=expected_keys)
         expected_keys = list(set(expected_keys))
         tm.assert_contains_all(expected_keys, dfs.keys())
         assert len(expected_keys) == len(dfs.keys())
@@ -434,7 +440,7 @@ class ReadingTestsBase(SharedItems):
         # In the case where some sheets are blank.
         # Issue #11711
         basename = 'blank_with_header'
-        dfs = self.get_exceldf(basename, sheetname=None)
+        dfs = self.get_exceldf(basename, sheet_name=None)
         expected_keys = ['Sheet1', 'Sheet2', 'Sheet3']
         tm.assert_contains_all(expected_keys, dfs.keys())
 
@@ -464,14 +470,14 @@ class ReadingTestsBase(SharedItems):
             actual_header_none = read_excel(
                 path,
                 'no_header',
-                parse_cols=[0],
+                usecols=[0],
                 header=None
             )
 
             actual_header_zero = read_excel(
                 path,
                 'no_header',
-                parse_cols=[0],
+                usecols=[0],
                 header=0
             )
         expected = DataFrame()
@@ -493,14 +499,14 @@ class ReadingTestsBase(SharedItems):
             actual_header_none = read_excel(
                 path,
                 'with_header',
-                parse_cols=[0],
+                usecols=[0],
                 header=None
             )
 
             actual_header_zero = read_excel(
                 path,
                 'with_header',
-                parse_cols=[0],
+                usecols=[0],
                 header=0
             )
         expected_header_none = DataFrame(pd.Series([0], dtype='int64'))
@@ -551,10 +557,14 @@ class ReadingTestsBase(SharedItems):
         dfref = self.get_csv_refdf('test1')
         df1 = self.get_exceldf('test1', sheet_name='Sheet1')    # doc
         with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
-            df2 = self.get_exceldf('test1', sheetname='Sheet2')  # bkwrd compat
+            df2 = self.get_exceldf('test1', sheetname='Sheet1')  # bkwrd compat
 
         tm.assert_frame_equal(df1, dfref, check_names=False)
         tm.assert_frame_equal(df2, dfref, check_names=False)
+
+    def test_sheet_name_both_raises(self):
+        with tm.assert_raises_regex(TypeError, "Cannot specify both"):
+            self.get_exceldf('test1', sheetname='Sheet1', sheet_name='Sheet1')
 
 
 class XlrdTests(ReadingTestsBase):
@@ -589,7 +599,7 @@ class XlrdTests(ReadingTestsBase):
                 result = read_excel(xl, "SheetA")
                 tm.assert_frame_equal(df, result)
 
-            result = read_excel(book, sheetname="SheetA", engine="xlrd")
+            result = read_excel(book, sheet_name="SheetA", engine="xlrd")
             tm.assert_frame_equal(df, result)
 
     @tm.network
@@ -600,16 +610,25 @@ class XlrdTests(ReadingTestsBase):
         local_table = self.get_exceldf('test1')
         tm.assert_frame_equal(url_table, local_table)
 
-    @tm.network(check_before_test=True)
     def test_read_from_s3_url(self):
-        _skip_if_no_s3fs()
+        boto3 = pytest.importorskip('boto3')
+        pytest.importorskip('s3fs')
+        moto = pytest.importorskip('moto')
 
-        url = ('s3://pandas-test/test1' + self.ext)
-        url_table = read_excel(url)
-        local_table = self.get_exceldf('test1')
-        tm.assert_frame_equal(url_table, local_table)
+        with moto.mock_s3():
+            conn = boto3.resource("s3", region_name="us-east-1")
+            conn.create_bucket(Bucket="pandas-test")
+            file_name = os.path.join(self.dirpath, 'test1' + self.ext)
+            with open(file_name, 'rb') as f:
+                conn.Bucket("pandas-test").put_object(Key="test1" + self.ext,
+                                                      Body=f)
 
-    @tm.slow
+            url = ('s3://pandas-test/test1' + self.ext)
+            url_table = read_excel(url)
+            local_table = self.get_exceldf('test1')
+            tm.assert_frame_equal(url_table, local_table)
+
+    @pytest.mark.slow
     def test_read_from_file_url(self):
 
         # FILE
@@ -629,11 +648,10 @@ class XlrdTests(ReadingTestsBase):
 
         tm.assert_frame_equal(url_table, local_table)
 
+    @td.skip_if_no('pathlib')
     def test_read_from_pathlib_path(self):
 
         # GH12655
-        tm._skip_if_no_pathlib()
-
         from pathlib import Path
 
         str_path = os.path.join(self.dirpath, 'test1' + self.ext)
@@ -644,11 +662,10 @@ class XlrdTests(ReadingTestsBase):
 
         tm.assert_frame_equal(expected, actual)
 
+    @td.skip_if_no('py.path')
     def test_read_from_py_localpath(self):
 
         # GH12655
-        tm._skip_if_no_localpath()
-
         from py.path import local as LocalPath
 
         str_path = os.path.join(self.dirpath, 'test1' + self.ext)
@@ -691,7 +708,7 @@ class XlrdTests(ReadingTestsBase):
             with ExcelWriter(pth) as ew:
                 for sheetname, df in iteritems(dfs):
                     df.to_excel(ew, sheetname)
-            dfs_returned = read_excel(pth, sheetname=sheets)
+            dfs_returned = read_excel(pth, sheet_name=sheets)
             for s in sheets:
                 tm.assert_frame_equal(dfs[s], dfs_returned[s])
 
@@ -844,8 +861,8 @@ class XlrdTests(ReadingTestsBase):
                             if (c_idx_levels == 1 and c_idx_names):
                                 continue
 
-                            # empty name case current read in as unamed levels,
-                            # not Nones
+                            # empty name case current read in as unnamed
+                            # levels, not Nones
                             check_names = True
                             if not r_idx_names and r_idx_levels > 1:
                                 check_names = False
@@ -876,8 +893,42 @@ class XlrdTests(ReadingTestsBase):
                             tm.assert_frame_equal(
                                 df, act, check_names=check_names)
 
-    def test_excel_oldindex_format(self):
-        # GH 4679
+    def test_excel_old_index_format(self):
+        # see gh-4679
+        filename = 'test_index_name_pre17' + self.ext
+        in_file = os.path.join(self.dirpath, filename)
+
+        # We detect headers to determine if index names exist, so
+        # that "index" name in the "names" version of the data will
+        # now be interpreted as rows that include null data.
+        data = np.array([[None, None, None, None, None],
+                         ['R0C0', 'R0C1', 'R0C2', 'R0C3', 'R0C4'],
+                         ['R1C0', 'R1C1', 'R1C2', 'R1C3', 'R1C4'],
+                         ['R2C0', 'R2C1', 'R2C2', 'R2C3', 'R2C4'],
+                         ['R3C0', 'R3C1', 'R3C2', 'R3C3', 'R3C4'],
+                         ['R4C0', 'R4C1', 'R4C2', 'R4C3', 'R4C4']])
+        columns = ['C_l0_g0', 'C_l0_g1', 'C_l0_g2', 'C_l0_g3', 'C_l0_g4']
+        mi = MultiIndex(levels=[['R0', 'R_l0_g0', 'R_l0_g1',
+                                 'R_l0_g2', 'R_l0_g3', 'R_l0_g4'],
+                                ['R1', 'R_l1_g0', 'R_l1_g1',
+                                 'R_l1_g2', 'R_l1_g3', 'R_l1_g4']],
+                        labels=[[0, 1, 2, 3, 4, 5], [0, 1, 2, 3, 4, 5]],
+                        names=[None, None])
+        si = Index(['R0', 'R_l0_g0', 'R_l0_g1', 'R_l0_g2',
+                    'R_l0_g3', 'R_l0_g4'], name=None)
+
+        expected = pd.DataFrame(data, index=si, columns=columns)
+
+        actual = pd.read_excel(in_file, 'single_names')
+        tm.assert_frame_equal(actual, expected)
+
+        expected.index = mi
+
+        actual = pd.read_excel(in_file, 'multi_names')
+        tm.assert_frame_equal(actual, expected)
+
+        # The analogous versions of the "names" version data
+        # where there are explicitly no names for the indices.
         data = np.array([['R0C0', 'R0C1', 'R0C2', 'R0C3', 'R0C4'],
                          ['R1C0', 'R1C1', 'R1C2', 'R1C3', 'R1C4'],
                          ['R2C0', 'R2C1', 'R2C2', 'R2C3', 'R2C4'],
@@ -889,39 +940,18 @@ class XlrdTests(ReadingTestsBase):
                                 ['R_l1_g0', 'R_l1_g1', 'R_l1_g2',
                                  'R_l1_g3', 'R_l1_g4']],
                         labels=[[0, 1, 2, 3, 4], [0, 1, 2, 3, 4]],
-                        names=['R0', 'R1'])
+                        names=[None, None])
         si = Index(['R_l0_g0', 'R_l0_g1', 'R_l0_g2',
-                    'R_l0_g3', 'R_l0_g4'], name='R0')
-
-        in_file = os.path.join(
-            self.dirpath, 'test_index_name_pre17' + self.ext)
+                    'R_l0_g3', 'R_l0_g4'], name=None)
 
         expected = pd.DataFrame(data, index=si, columns=columns)
-        with tm.assert_produces_warning(FutureWarning):
-            actual = pd.read_excel(
-                in_file, 'single_names', has_index_names=True)
-        tm.assert_frame_equal(actual, expected)
 
-        expected.index.name = None
         actual = pd.read_excel(in_file, 'single_no_names')
-        tm.assert_frame_equal(actual, expected)
-        with tm.assert_produces_warning(FutureWarning):
-            actual = pd.read_excel(
-                in_file, 'single_no_names', has_index_names=False)
         tm.assert_frame_equal(actual, expected)
 
         expected.index = mi
-        with tm.assert_produces_warning(FutureWarning):
-            actual = pd.read_excel(
-                in_file, 'multi_names', has_index_names=True)
-        tm.assert_frame_equal(actual, expected)
 
-        expected.index.names = [None, None]
         actual = pd.read_excel(in_file, 'multi_no_names', index_col=[0, 1])
-        tm.assert_frame_equal(actual, expected, check_names=False)
-        with tm.assert_produces_warning(FutureWarning):
-            actual = pd.read_excel(in_file, 'multi_no_names', index_col=[0, 1],
-                                   has_index_names=False)
         tm.assert_frame_equal(actual, expected, check_names=False)
 
     def test_read_excel_bool_header_arg(self):
@@ -939,6 +969,7 @@ class XlrdTests(ReadingTestsBase):
 
     def test_read_excel_parse_dates(self):
         # GH 11544, 12051
+        _skip_if_no_openpyxl()
 
         df = DataFrame(
             {'col': [1, 2, 3],
@@ -982,6 +1013,33 @@ class XlrdTests(ReadingTestsBase):
                                'skiprows_list', skiprows=np.array([0, 2]))
         tm.assert_frame_equal(actual, expected)
 
+    def test_read_excel_nrows(self):
+        # GH 16645
+        num_rows_to_pull = 5
+        actual = pd.read_excel(os.path.join(self.dirpath, 'test1' + self.ext),
+                               nrows=num_rows_to_pull)
+        expected = pd.read_excel(os.path.join(self.dirpath,
+                                              'test1' + self.ext))
+        expected = expected[:num_rows_to_pull]
+        tm.assert_frame_equal(actual, expected)
+
+    def test_read_excel_nrows_greater_than_nrows_in_file(self):
+        # GH 16645
+        expected = pd.read_excel(os.path.join(self.dirpath,
+                                              'test1' + self.ext))
+        num_records_in_file = len(expected)
+        num_rows_to_pull = num_records_in_file + 10
+        actual = pd.read_excel(os.path.join(self.dirpath, 'test1' + self.ext),
+                               nrows=num_rows_to_pull)
+        tm.assert_frame_equal(actual, expected)
+
+    def test_read_excel_nrows_non_integer_parameter(self):
+        # GH 16645
+        msg = "'nrows' must be an integer >=0"
+        with tm.assert_raises_regex(ValueError, msg):
+            pd.read_excel(os.path.join(self.dirpath, 'test1' + self.ext),
+                          nrows='5')
+
     def test_read_excel_squeeze(self):
         # GH 12157
         f = os.path.join(self.dirpath, 'test_squeeze' + self.ext)
@@ -1001,19 +1059,19 @@ class XlrdTests(ReadingTestsBase):
         tm.assert_series_equal(actual, expected)
 
 
-class XlsReaderTests(XlrdTests):
+class TestXlsReaderTests(XlrdTests):
     ext = '.xls'
     engine_name = 'xlrd'
     check_skip = staticmethod(_skip_if_no_xlrd)
 
 
-class XlsxReaderTests(XlrdTests):
+class TestXlsxReaderTests(XlrdTests):
     ext = '.xlsx'
     engine_name = 'xlrd'
     check_skip = staticmethod(_skip_if_no_xlrd)
 
 
-class XlsmReaderTests(XlrdTests):
+class TestXlsmReaderTests(XlrdTests):
     ext = '.xlsm'
     engine_name = 'xlrd'
     check_skip = staticmethod(_skip_if_no_xlrd)
@@ -1790,13 +1848,77 @@ class ExcelWriterBase(SharedItems):
             write_frame = DataFrame({'A': [1, 1, 1],
                                      'B': [2, 2, 2]})
 
-            write_frame.to_excel(path, 'test1', columns=['B', 'C'])
-            expected = write_frame.loc[:, ['B', 'C']]
+            with tm.assert_produces_warning(FutureWarning,
+                                            check_stacklevel=False):
+                write_frame.to_excel(path, 'test1', columns=['B', 'C'])
+            expected = write_frame.reindex(columns=['B', 'C'])
             read_frame = read_excel(path, 'test1')
             tm.assert_frame_equal(expected, read_frame)
 
             with pytest.raises(KeyError):
                 write_frame.to_excel(path, 'test1', columns=['C', 'D'])
+
+    def test_comment_arg(self):
+        # Re issue #18735
+        # Test the comment argument functionality to read_excel
+        with ensure_clean(self.ext) as path:
+
+            # Create file to read in
+            df = DataFrame({'A': ['one', '#one', 'one'],
+                            'B': ['two', 'two', '#two']})
+            df.to_excel(path, 'test_c')
+
+            # Read file without comment arg
+            result1 = read_excel(path, 'test_c')
+            result1.iloc[1, 0] = None
+            result1.iloc[1, 1] = None
+            result1.iloc[2, 1] = None
+            result2 = read_excel(path, 'test_c', comment='#')
+            tm.assert_frame_equal(result1, result2)
+
+    def test_comment_default(self):
+        # Re issue #18735
+        # Test the comment argument default to read_excel
+        with ensure_clean(self.ext) as path:
+
+            # Create file to read in
+            df = DataFrame({'A': ['one', '#one', 'one'],
+                            'B': ['two', 'two', '#two']})
+            df.to_excel(path, 'test_c')
+
+            # Read file with default and explicit comment=None
+            result1 = read_excel(path, 'test_c')
+            result2 = read_excel(path, 'test_c', comment=None)
+            tm.assert_frame_equal(result1, result2)
+
+    def test_comment_used(self):
+        # Re issue #18735
+        # Test the comment argument is working as expected when used
+        with ensure_clean(self.ext) as path:
+
+            # Create file to read in
+            df = DataFrame({'A': ['one', '#one', 'one'],
+                            'B': ['two', 'two', '#two']})
+            df.to_excel(path, 'test_c')
+
+            # Test read_frame_comment against manually produced expected output
+            expected = DataFrame({'A': ['one', None, 'one'],
+                                  'B': ['two', None, None]})
+            result = read_excel(path, 'test_c', comment='#')
+            tm.assert_frame_equal(result, expected)
+
+    def test_comment_emptyline(self):
+        # Re issue #18735
+        # Test that read_excel ignores commented lines at the end of file
+        with ensure_clean(self.ext) as path:
+
+            df = DataFrame({'a': ['1', '#2'], 'b': ['2', '3']})
+            df.to_excel(path, index=False)
+
+            # Test that all-comment lines at EoF are ignored
+            expected = DataFrame({'a': [1], 'b': [2]})
+            result = read_excel(path, comment='#')
+            tm.assert_frame_equal(result, expected)
 
     def test_datetimes(self):
 
@@ -1872,216 +1994,25 @@ class ExcelWriterBase(SharedItems):
 
     def test_path_pathlib(self):
         df = tm.makeDataFrame()
-        result = tm.round_trip_pathlib(df.to_excel, pd.read_excel)
+        writer = partial(df.to_excel, engine=self.engine_name)
+        reader = partial(pd.read_excel)
+        result = tm.round_trip_pathlib(writer, reader,
+                                       path="foo.{}".format(self.ext))
         tm.assert_frame_equal(df, result)
 
     def test_path_localpath(self):
         df = tm.makeDataFrame()
-        result = tm.round_trip_localpath(df.to_excel, pd.read_excel)
+        writer = partial(df.to_excel, engine=self.engine_name)
+        reader = partial(pd.read_excel)
+        result = tm.round_trip_pathlib(writer, reader,
+                                       path="foo.{}".format(self.ext))
         tm.assert_frame_equal(df, result)
 
 
-def raise_wrapper(major_ver):
-    def versioned_raise_wrapper(orig_method):
-        @functools.wraps(orig_method)
-        def wrapped(self, *args, **kwargs):
-            _skip_if_no_openpyxl()
-            if openpyxl_compat.is_compat(major_ver=major_ver):
-                orig_method(self, *args, **kwargs)
-            else:
-                msg = (r'Installed openpyxl is not supported at this '
-                       r'time\. Use.+')
-                with tm.assert_raises_regex(ValueError, msg):
-                    orig_method(self, *args, **kwargs)
-        return wrapped
-    return versioned_raise_wrapper
-
-
-def raise_on_incompat_version(major_ver):
-    def versioned_raise_on_incompat_version(cls):
-        methods = filter(operator.methodcaller(
-            'startswith', 'test_'), dir(cls))
-        for method in methods:
-            setattr(cls, method, raise_wrapper(
-                major_ver)(getattr(cls, method)))
-        return cls
-    return versioned_raise_on_incompat_version
-
-
-@raise_on_incompat_version(1)
-class OpenpyxlTests(ExcelWriterBase):
+class TestOpenpyxlTests(ExcelWriterBase):
+    engine_name = 'openpyxl'
     ext = '.xlsx'
-    engine_name = 'openpyxl1'
-    check_skip = staticmethod(lambda *args, **kwargs: None)
-
-    def test_to_excel_styleconverter(self):
-        _skip_if_no_openpyxl()
-        if not openpyxl_compat.is_compat(major_ver=1):
-            pytest.skip('incompatible openpyxl version')
-
-        import openpyxl
-
-        hstyle = {"font": {"bold": True},
-                  "borders": {"top": "thin",
-                              "right": "thin",
-                              "bottom": "thin",
-                              "left": "thin"},
-                  "alignment": {"horizontal": "center", "vertical": "top"}}
-
-        xlsx_style = _Openpyxl1Writer._convert_to_style(hstyle)
-        assert xlsx_style.font.bold
-        assert (openpyxl.style.Border.BORDER_THIN ==
-                xlsx_style.borders.top.border_style)
-        assert (openpyxl.style.Border.BORDER_THIN ==
-                xlsx_style.borders.right.border_style)
-        assert (openpyxl.style.Border.BORDER_THIN ==
-                xlsx_style.borders.bottom.border_style)
-        assert (openpyxl.style.Border.BORDER_THIN ==
-                xlsx_style.borders.left.border_style)
-        assert (openpyxl.style.Alignment.HORIZONTAL_CENTER ==
-                xlsx_style.alignment.horizontal)
-        assert (openpyxl.style.Alignment.VERTICAL_TOP ==
-                xlsx_style.alignment.vertical)
-
-
-def skip_openpyxl_gt21(cls):
-    """Skip test case if openpyxl >= 2.2"""
-
-    @classmethod
-    def setup_class(cls):
-        _skip_if_no_openpyxl()
-        import openpyxl
-        ver = openpyxl.__version__
-        if (not (LooseVersion(ver) >= LooseVersion('2.0.0') and
-                 LooseVersion(ver) < LooseVersion('2.2.0'))):
-            pytest.skip("openpyxl %s >= 2.2" % str(ver))
-
-    cls.setup_class = setup_class
-    return cls
-
-
-@raise_on_incompat_version(2)
-@skip_openpyxl_gt21
-class Openpyxl20Tests(ExcelWriterBase):
-    ext = '.xlsx'
-    engine_name = 'openpyxl20'
-    check_skip = staticmethod(lambda *args, **kwargs: None)
-
-    def test_to_excel_styleconverter(self):
-        import openpyxl
-        from openpyxl import styles
-
-        hstyle = {
-            "font": {
-                "color": '00FF0000',
-                "bold": True,
-            },
-            "borders": {
-                "top": "thin",
-                "right": "thin",
-                "bottom": "thin",
-                "left": "thin",
-            },
-            "alignment": {
-                "horizontal": "center",
-                "vertical": "top",
-            },
-            "fill": {
-                "patternType": 'solid',
-                'fgColor': {
-                    'rgb': '006666FF',
-                    'tint': 0.3,
-                },
-            },
-            "number_format": {
-                "format_code": "0.00"
-            },
-            "protection": {
-                "locked": True,
-                "hidden": False,
-            },
-        }
-
-        font_color = styles.Color('00FF0000')
-        font = styles.Font(bold=True, color=font_color)
-        side = styles.Side(style=styles.borders.BORDER_THIN)
-        border = styles.Border(top=side, right=side, bottom=side, left=side)
-        alignment = styles.Alignment(horizontal='center', vertical='top')
-        fill_color = styles.Color(rgb='006666FF', tint=0.3)
-        fill = styles.PatternFill(patternType='solid', fgColor=fill_color)
-
-        # ahh openpyxl API changes
-        ver = openpyxl.__version__
-        if ver >= LooseVersion('2.0.0') and ver < LooseVersion('2.1.0'):
-            number_format = styles.NumberFormat(format_code='0.00')
-        else:
-            number_format = '0.00'  # XXX: Only works with openpyxl-2.1.0
-
-        protection = styles.Protection(locked=True, hidden=False)
-
-        kw = _Openpyxl20Writer._convert_to_style_kwargs(hstyle)
-        assert kw['font'] == font
-        assert kw['border'] == border
-        assert kw['alignment'] == alignment
-        assert kw['fill'] == fill
-        assert kw['number_format'] == number_format
-        assert kw['protection'] == protection
-
-    def test_write_cells_merge_styled(self):
-        from pandas.io.formats.excel import ExcelCell
-        from openpyxl import styles
-
-        sheet_name = 'merge_styled'
-
-        sty_b1 = {'font': {'color': '00FF0000'}}
-        sty_a2 = {'font': {'color': '0000FF00'}}
-
-        initial_cells = [
-            ExcelCell(col=1, row=0, val=42, style=sty_b1),
-            ExcelCell(col=0, row=1, val=99, style=sty_a2),
-        ]
-
-        sty_merged = {'font': {'color': '000000FF', 'bold': True}}
-        sty_kwargs = _Openpyxl20Writer._convert_to_style_kwargs(sty_merged)
-        openpyxl_sty_merged = styles.Style(**sty_kwargs)
-        merge_cells = [
-            ExcelCell(col=0, row=0, val='pandas',
-                      mergestart=1, mergeend=1, style=sty_merged),
-        ]
-
-        with ensure_clean('.xlsx') as path:
-            writer = _Openpyxl20Writer(path)
-            writer.write_cells(initial_cells, sheet_name=sheet_name)
-            writer.write_cells(merge_cells, sheet_name=sheet_name)
-
-            wks = writer.sheets[sheet_name]
-            xcell_b1 = wks['B1']
-            xcell_a2 = wks['A2']
-            assert xcell_b1.style == openpyxl_sty_merged
-            assert xcell_a2.style == openpyxl_sty_merged
-
-
-def skip_openpyxl_lt22(cls):
-    """Skip test case if openpyxl < 2.2"""
-
-    @classmethod
-    def setup_class(cls):
-        _skip_if_no_openpyxl()
-        import openpyxl
-        ver = openpyxl.__version__
-        if LooseVersion(ver) < LooseVersion('2.2.0'):
-            pytest.skip("openpyxl %s < 2.2" % str(ver))
-
-    cls.setup_class = setup_class
-    return cls
-
-
-@raise_on_incompat_version(2)
-@skip_openpyxl_lt22
-class Openpyxl22Tests(ExcelWriterBase):
-    ext = '.xlsx'
-    engine_name = 'openpyxl22'
-    check_skip = staticmethod(lambda *args, **kwargs: None)
+    check_skip = staticmethod(_skip_if_no_openpyxl)
 
     def test_to_excel_styleconverter(self):
         from openpyxl import styles
@@ -2129,7 +2060,7 @@ class Openpyxl22Tests(ExcelWriterBase):
 
         protection = styles.Protection(locked=True, hidden=False)
 
-        kw = _Openpyxl22Writer._convert_to_style_kwargs(hstyle)
+        kw = _OpenpyxlWriter._convert_to_style_kwargs(hstyle)
         assert kw['font'] == font
         assert kw['border'] == border
         assert kw['alignment'] == alignment
@@ -2138,9 +2069,6 @@ class Openpyxl22Tests(ExcelWriterBase):
         assert kw['protection'] == protection
 
     def test_write_cells_merge_styled(self):
-        if not openpyxl_compat.is_compat(major_ver=2):
-            pytest.skip('incompatible openpyxl version')
-
         from pandas.io.formats.excel import ExcelCell
 
         sheet_name = 'merge_styled'
@@ -2154,7 +2082,7 @@ class Openpyxl22Tests(ExcelWriterBase):
         ]
 
         sty_merged = {'font': {'color': '000000FF', 'bold': True}}
-        sty_kwargs = _Openpyxl22Writer._convert_to_style_kwargs(sty_merged)
+        sty_kwargs = _OpenpyxlWriter._convert_to_style_kwargs(sty_merged)
         openpyxl_sty_merged = sty_kwargs['font']
         merge_cells = [
             ExcelCell(col=0, row=0, val='pandas',
@@ -2162,7 +2090,7 @@ class Openpyxl22Tests(ExcelWriterBase):
         ]
 
         with ensure_clean('.xlsx') as path:
-            writer = _Openpyxl22Writer(path)
+            writer = _OpenpyxlWriter(path)
             writer.write_cells(initial_cells, sheet_name=sheet_name)
             writer.write_cells(merge_cells, sheet_name=sheet_name)
 
@@ -2173,7 +2101,7 @@ class Openpyxl22Tests(ExcelWriterBase):
             assert xcell_a2.font == openpyxl_sty_merged
 
 
-class XlwtTests(ExcelWriterBase):
+class TestXlwtTests(ExcelWriterBase):
     ext = '.xls'
     engine_name = 'xlwt'
     check_skip = staticmethod(_skip_if_no_xlwt)
@@ -2230,7 +2158,7 @@ class XlwtTests(ExcelWriterBase):
         assert xlwt.Alignment.VERT_TOP == xls_style.alignment.vert
 
 
-class XlsxWriterTests(ExcelWriterBase):
+class TestXlsxWriterTests(ExcelWriterBase):
     ext = '.xlsx'
     engine_name = 'xlsxwriter'
     check_skip = staticmethod(_skip_if_no_xlsxwriter)
@@ -2277,13 +2205,13 @@ class XlsxWriterTests(ExcelWriterBase):
 
             try:
                 read_num_format = cell.number_format
-            except:
+            except Exception:
                 read_num_format = cell.style.number_format._format_code
 
             assert read_num_format == num_format
 
 
-class OpenpyxlTests_NoMerge(ExcelWriterBase):
+class TestOpenpyxlTests_NoMerge(ExcelWriterBase):
     ext = '.xlsx'
     engine_name = 'openpyxl'
     check_skip = staticmethod(_skip_if_no_openpyxl)
@@ -2292,7 +2220,7 @@ class OpenpyxlTests_NoMerge(ExcelWriterBase):
     merge_cells = False
 
 
-class XlwtTests_NoMerge(ExcelWriterBase):
+class TestXlwtTests_NoMerge(ExcelWriterBase):
     ext = '.xls'
     engine_name = 'xlwt'
     check_skip = staticmethod(_skip_if_no_xlwt)
@@ -2301,7 +2229,7 @@ class XlwtTests_NoMerge(ExcelWriterBase):
     merge_cells = False
 
 
-class XlsxWriterTests_NoMerge(ExcelWriterBase):
+class TestXlsxWriterTests_NoMerge(ExcelWriterBase):
     ext = '.xlsx'
     engine_name = 'xlsxwriter'
     check_skip = staticmethod(_skip_if_no_xlsxwriter)
@@ -2310,7 +2238,7 @@ class XlsxWriterTests_NoMerge(ExcelWriterBase):
     merge_cells = False
 
 
-class ExcelWriterEngineTests(object):
+class TestExcelWriterEngineTests(object):
 
     def test_ExcelWriter_dispatch(self):
         with tm.assert_raises_regex(ValueError, 'No engine'):
@@ -2321,9 +2249,7 @@ class ExcelWriterEngineTests(object):
             writer_klass = _XlsxWriter
         except ImportError:
             _skip_if_no_openpyxl()
-            if not openpyxl_compat.is_compat(major_ver=1):
-                pytest.skip('incompatible openpyxl version')
-            writer_klass = _Openpyxl1Writer
+            writer_klass = _OpenpyxlWriter
 
         with ensure_clean('.xlsx') as path:
             writer = ExcelWriter(path)
@@ -2376,8 +2302,10 @@ class ExcelWriterEngineTests(object):
 
 
 @pytest.mark.parametrize('engine', [
-    pytest.mark.xfail('xlwt', reason='xlwt does not support '
-                                     'openpyxl-compatible style dicts'),
+    pytest.param('xlwt',
+                 marks=pytest.mark.xfail(reason='xlwt does not support '
+                                                'openpyxl-compatible '
+                                                'style dicts')),
     'xlsxwriter',
     'openpyxl',
 ])
@@ -2414,10 +2342,6 @@ def test_styler_to_excel(engine):
     pytest.importorskip('jinja2')
     pytest.importorskip(engine)
 
-    if engine == 'openpyxl' and openpyxl_compat.is_compat(major_ver=1):
-        pytest.xfail('openpyxl1 does not support some openpyxl2-compatible '
-                     'style dicts')
-
     # Prepare spreadsheets
 
     df = DataFrame(np.random.randn(10, 3))
@@ -2429,88 +2353,100 @@ def test_styler_to_excel(engine):
         styled.to_excel(writer, sheet_name='styled')
         ExcelFormatter(styled, style_converter=custom_converter).write(
             writer, sheet_name='custom')
+        writer.save()
 
-    # For engines other than openpyxl 2, we only smoke test
-    if engine != 'openpyxl':
-        return
-    if not openpyxl_compat.is_compat(major_ver=2):
-        pytest.skip('incompatible openpyxl version')
+        if engine not in ('openpyxl', 'xlsxwriter'):
+            # For other engines, we only smoke test
+            return
+        openpyxl = pytest.importorskip('openpyxl')
+        wb = openpyxl.load_workbook(path)
 
-    # (1) compare DataFrame.to_excel and Styler.to_excel when unstyled
-    n_cells = 0
-    for col1, col2 in zip(writer.sheets['frame'].columns,
-                          writer.sheets['unstyled'].columns):
-        assert len(col1) == len(col2)
-        for cell1, cell2 in zip(col1, col2):
-            assert cell1.value == cell2.value
-            assert_equal_style(cell1, cell2)
-            n_cells += 1
-
-    # ensure iteration actually happened:
-    assert n_cells == (10 + 1) * (3 + 1)
-
-    # (2) check styling with default converter
-    n_cells = 0
-    for col1, col2 in zip(writer.sheets['frame'].columns,
-                          writer.sheets['styled'].columns):
-        assert len(col1) == len(col2)
-        for cell1, cell2 in zip(col1, col2):
-            ref = '%s%d' % (cell2.column, cell2.row)
-            # XXX: this isn't as strong a test as ideal; we should
-            #      differences are exclusive
-            if ref == 'B2':
-                assert not cell1.font.bold
-                assert cell2.font.bold
-            elif ref == 'C3':
-                assert cell1.font.color.rgb != cell2.font.color.rgb
-                assert cell2.font.color.rgb == '000000FF'
-            elif ref == 'D4':
-                assert cell1.font.underline != cell2.font.underline
-                assert cell2.font.underline == 'single'
-            elif ref == 'B5':
-                assert not cell1.border.left.style
-                assert (cell2.border.top.style ==
-                        cell2.border.right.style ==
-                        cell2.border.bottom.style ==
-                        cell2.border.left.style ==
-                        'medium')
-            elif ref == 'C6':
-                assert not cell1.font.italic
-                assert cell2.font.italic
-            elif ref == 'D7':
-                assert (cell1.alignment.horizontal !=
-                        cell2.alignment.horizontal)
-                assert cell2.alignment.horizontal == 'right'
-            elif ref == 'B8':
-                assert cell1.fill.fgColor.rgb != cell2.fill.fgColor.rgb
-                assert cell1.fill.patternType != cell2.fill.patternType
-                assert cell2.fill.fgColor.rgb == '00FF0000'
-                assert cell2.fill.patternType == 'solid'
-            else:
+        # (1) compare DataFrame.to_excel and Styler.to_excel when unstyled
+        n_cells = 0
+        for col1, col2 in zip(wb['frame'].columns,
+                              wb['unstyled'].columns):
+            assert len(col1) == len(col2)
+            for cell1, cell2 in zip(col1, col2):
+                assert cell1.value == cell2.value
                 assert_equal_style(cell1, cell2)
+                n_cells += 1
 
-            assert cell1.value == cell2.value
-            n_cells += 1
+        # ensure iteration actually happened:
+        assert n_cells == (10 + 1) * (3 + 1)
 
-    assert n_cells == (10 + 1) * (3 + 1)
+        # (2) check styling with default converter
 
-    # (3) check styling with custom converter
-    n_cells = 0
-    for col1, col2 in zip(writer.sheets['frame'].columns,
-                          writer.sheets['custom'].columns):
-        assert len(col1) == len(col2)
-        for cell1, cell2 in zip(col1, col2):
-            ref = '%s%d' % (cell2.column, cell2.row)
-            if ref in ('B2', 'C3', 'D4', 'B5', 'C6', 'D7', 'B8'):
-                assert not cell1.font.bold
-                assert cell2.font.bold
-            else:
-                assert_equal_style(cell1, cell2)
+        # XXX: openpyxl (as at 2.4) prefixes colors with 00, xlsxwriter with FF
+        alpha = '00' if engine == 'openpyxl' else 'FF'
 
-            assert cell1.value == cell2.value
-            n_cells += 1
+        n_cells = 0
+        for col1, col2 in zip(wb['frame'].columns,
+                              wb['styled'].columns):
+            assert len(col1) == len(col2)
+            for cell1, cell2 in zip(col1, col2):
+                ref = '%s%d' % (cell2.column, cell2.row)
+                # XXX: this isn't as strong a test as ideal; we should
+                #      confirm that differences are exclusive
+                if ref == 'B2':
+                    assert not cell1.font.bold
+                    assert cell2.font.bold
+                elif ref == 'C3':
+                    assert cell1.font.color.rgb != cell2.font.color.rgb
+                    assert cell2.font.color.rgb == alpha + '0000FF'
+                elif ref == 'D4':
+                    # This fails with engine=xlsxwriter due to
+                    # https://bitbucket.org/openpyxl/openpyxl/issues/800
+                    if engine == 'xlsxwriter' \
+                       and (LooseVersion(openpyxl.__version__) <
+                            LooseVersion('2.4.6')):
+                        pass
+                    else:
+                        assert cell1.font.underline != cell2.font.underline
+                        assert cell2.font.underline == 'single'
+                elif ref == 'B5':
+                    assert not cell1.border.left.style
+                    assert (cell2.border.top.style ==
+                            cell2.border.right.style ==
+                            cell2.border.bottom.style ==
+                            cell2.border.left.style ==
+                            'medium')
+                elif ref == 'C6':
+                    assert not cell1.font.italic
+                    assert cell2.font.italic
+                elif ref == 'D7':
+                    assert (cell1.alignment.horizontal !=
+                            cell2.alignment.horizontal)
+                    assert cell2.alignment.horizontal == 'right'
+                elif ref == 'B8':
+                    assert cell1.fill.fgColor.rgb != cell2.fill.fgColor.rgb
+                    assert cell1.fill.patternType != cell2.fill.patternType
+                    assert cell2.fill.fgColor.rgb == alpha + 'FF0000'
+                    assert cell2.fill.patternType == 'solid'
+                else:
+                    assert_equal_style(cell1, cell2)
 
-    assert n_cells == (10 + 1) * (3 + 1)
+                assert cell1.value == cell2.value
+                n_cells += 1
+
+        assert n_cells == (10 + 1) * (3 + 1)
+
+        # (3) check styling with custom converter
+        n_cells = 0
+        for col1, col2 in zip(wb['frame'].columns,
+                              wb['custom'].columns):
+            assert len(col1) == len(col2)
+            for cell1, cell2 in zip(col1, col2):
+                ref = '%s%d' % (cell2.column, cell2.row)
+                if ref in ('B2', 'C3', 'D4', 'B5', 'C6', 'D7', 'B8'):
+                    assert not cell1.font.bold
+                    assert cell2.font.bold
+                else:
+                    assert_equal_style(cell1, cell2)
+
+                assert cell1.value == cell2.value
+                n_cells += 1
+
+        assert n_cells == (10 + 1) * (3 + 1)
 
 
 class TestFSPath(object):

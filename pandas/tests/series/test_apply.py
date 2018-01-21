@@ -8,7 +8,7 @@ from collections import Counter, defaultdict, OrderedDict
 import numpy as np
 import pandas as pd
 
-from pandas import (Index, Series, DataFrame, isnull)
+from pandas import (Index, Series, DataFrame, isna)
 from pandas.compat import lrange
 from pandas import compat
 from pandas.util.testing import assert_series_equal, assert_frame_equal
@@ -306,6 +306,22 @@ class TestSeriesAggregate(TestData):
                           name=self.series.name)
         assert_series_equal(result, expected)
 
+    def test_non_callable_aggregates(self):
+        # test agg using non-callable series attributes
+        s = Series([1, 2, None])
+
+        # Calling agg w/ just a string arg same as calling s.arg
+        result = s.agg('size')
+        expected = s.size
+        assert result == expected
+
+        # test when mixed w/ callable reducers
+        result = s.agg(['size', 'count', 'mean'])
+        expected = Series(OrderedDict([('size', 3.0),
+                                       ('count', 2.0),
+                                       ('mean', 1.5)]))
+        assert_series_equal(result[expected.index], expected)
+
 
 class TestSeriesMap(TestData):
 
@@ -361,6 +377,14 @@ class TestSeriesMap(TestData):
         exp = Series([np.nan, 'B', 'C', 'D'])
         tm.assert_series_equal(a.map(c), exp)
 
+    @pytest.mark.parametrize("index", tm.all_index_generator(10))
+    def test_map_empty(self, index):
+        s = Series(index)
+        result = s.map({})
+
+        expected = pd.Series(np.nan, index=s.index)
+        tm.assert_series_equal(result, expected)
+
     def test_map_compat(self):
         # related GH 8024
         s = Series([True, True, False], index=[1, 2, 3])
@@ -377,8 +401,8 @@ class TestSeriesMap(TestData):
 
         merged = left.map(right)
         assert merged.dtype == np.float_
-        assert isnull(merged['d'])
-        assert not isnull(merged['c'])
+        assert isna(merged['d'])
+        assert not isna(merged['c'])
 
     def test_map_type_inference(self):
         s = Series(lrange(3))
@@ -406,8 +430,10 @@ class TestSeriesMap(TestData):
         converted to a multi-index, preventing tuple values
         from being mapped properly.
         """
+        # GH 18496
         df = pd.DataFrame({'a': [(1, ), (2, ), (3, 4), (5, 6)]})
         label_mappings = {(1, ): 'A', (2, ): 'B', (3, 4): 'A', (5, 6): 'B'}
+
         df['labels'] = df['a'].map(label_mappings)
         df['expected_labels'] = pd.Series(['A', 'B', 'A', 'B'], index=df.index)
         # All labels should be filled now

@@ -8,13 +8,15 @@ from collections import OrderedDict
 
 import pytest
 from pandas.compat import intern
+import pandas.core.common as com
 from pandas.util._move import move_into_mutable_buffer, BadMove, stolenbuf
-from pandas.util._decorators import deprecate_kwarg
+from pandas.util._decorators import deprecate_kwarg, make_signature
 from pandas.util._validators import (validate_args, validate_kwargs,
                                      validate_args_and_kwargs,
                                      validate_bool_kwarg)
 
 import pandas.util.testing as tm
+import pandas.util._test_decorators as td
 
 
 class TestDecorators(object):
@@ -404,6 +406,7 @@ def test_numpy_errstate_is_default():
     assert np.geterr() == expected
 
 
+@td.skip_if_windows
 class TestLocaleUtils(object):
 
     @classmethod
@@ -413,8 +416,6 @@ class TestLocaleUtils(object):
 
         if not cls.locales:
             pytest.skip("No locales found")
-
-        tm._skip_if_windows()
 
     @classmethod
     def teardown_class(cls):
@@ -437,7 +438,7 @@ class TestLocaleUtils(object):
             pytest.skip("Only a single locale found, no point in "
                         "trying to test setting another locale")
 
-        if all(x is None for x in self.current_locale):
+        if com._all_none(*self.current_locale):
             # Not sure why, but on some travis runs with pytest,
             # getlocale() returned (None, None).
             pytest.skip("Current locale is not set.")
@@ -467,3 +468,34 @@ class TestLocaleUtils(object):
 
         current_locale = locale.getlocale()
         assert current_locale == self.current_locale
+
+
+def test_make_signature():
+    # See GH 17608
+    # Case where the func does not have default kwargs
+    sig = make_signature(validate_kwargs)
+    assert sig == (['fname', 'kwargs', 'compat_args'],
+                   ['fname', 'kwargs', 'compat_args'])
+
+    # Case where the func does have default kwargs
+    sig = make_signature(deprecate_kwarg)
+    assert sig == (['old_arg_name', 'new_arg_name',
+                    'mapping=None', 'stacklevel=2'],
+                   ['old_arg_name', 'new_arg_name', 'mapping', 'stacklevel'])
+
+
+def test_safe_import(monkeypatch):
+    assert not td.safe_import("foo")
+    assert not td.safe_import("pandas", min_version="99.99.99")
+
+    # Create dummy module to be imported
+    import types
+    import sys
+    mod_name = "hello123"
+    mod = types.ModuleType(mod_name)
+    mod.__version__ = "1.5"
+
+    assert not td.safe_import(mod_name)
+    monkeypatch.setitem(sys.modules, mod_name, mod)
+    assert not td.safe_import(mod_name, min_version="2.0")
+    assert td.safe_import(mod_name, min_version="1.0")

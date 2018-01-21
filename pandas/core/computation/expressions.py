@@ -8,8 +8,9 @@ Offer fast expression evaluation through numexpr
 
 import warnings
 import numpy as np
-from pandas.core.common import _values_from_object
-from pandas.core.computation import _NUMEXPR_INSTALLED
+
+import pandas.core.common as com
+from pandas.core.computation.check import _NUMEXPR_INSTALLED
 from pandas.core.config import get_option
 
 if _NUMEXPR_INSTALLED:
@@ -56,7 +57,7 @@ def set_numexpr_threads(n=None):
         ne.set_num_threads(n)
 
 
-def _evaluate_standard(op, op_str, a, b, raise_on_error=True, **eval_kwargs):
+def _evaluate_standard(op, op_str, a, b, **eval_kwargs):
     """ standard evaluation """
     if _TEST_MODE:
         _store_test_result(False)
@@ -71,7 +72,7 @@ def _can_use_numexpr(op, op_str, a, b, dtype_check):
         # required min elements (otherwise we are adding overhead)
         if np.prod(a.shape) > _MIN_ELEMENTS:
 
-            # check for dtype compatiblity
+            # check for dtype compatibility
             dtypes = set()
             for o in [a, b]:
                 if hasattr(o, 'get_dtype_counts'):
@@ -89,7 +90,7 @@ def _can_use_numexpr(op, op_str, a, b, dtype_check):
     return False
 
 
-def _evaluate_numexpr(op, op_str, a, b, raise_on_error=False, truediv=True,
+def _evaluate_numexpr(op, op_str, a, b, truediv=True,
                       reversed=False, **eval_kwargs):
     result = None
 
@@ -103,7 +104,7 @@ def _evaluate_numexpr(op, op_str, a, b, raise_on_error=False, truediv=True,
 
             a_value = getattr(a, "values", a)
             b_value = getattr(b, "values", b)
-            result = ne.evaluate('a_value %s b_value' % op_str,
+            result = ne.evaluate('a_value {op} b_value'.format(op=op_str),
                                  local_dict={'a_value': a_value,
                                              'b_value': b_value},
                                  casting='safe', truediv=truediv,
@@ -111,25 +112,22 @@ def _evaluate_numexpr(op, op_str, a, b, raise_on_error=False, truediv=True,
         except ValueError as detail:
             if 'unknown type object' in str(detail):
                 pass
-        except Exception as detail:
-            if raise_on_error:
-                raise
 
     if _TEST_MODE:
         _store_test_result(result is not None)
 
     if result is None:
-        result = _evaluate_standard(op, op_str, a, b, raise_on_error)
+        result = _evaluate_standard(op, op_str, a, b)
 
     return result
 
 
-def _where_standard(cond, a, b, raise_on_error=True):
-    return np.where(_values_from_object(cond), _values_from_object(a),
-                    _values_from_object(b))
+def _where_standard(cond, a, b):
+    return np.where(com._values_from_object(cond), com._values_from_object(a),
+                    com._values_from_object(b))
 
 
-def _where_numexpr(cond, a, b, raise_on_error=False):
+def _where_numexpr(cond, a, b):
     result = None
 
     if _can_use_numexpr(None, 'where', a, b, 'where'):
@@ -147,11 +145,10 @@ def _where_numexpr(cond, a, b, raise_on_error=False):
             if 'unknown type object' in str(detail):
                 pass
         except Exception as detail:
-            if raise_on_error:
-                raise TypeError(str(detail))
+            raise TypeError(str(detail))
 
     if result is None:
-        result = _where_standard(cond, a, b, raise_on_error)
+        result = _where_standard(cond, a, b)
 
     return result
 
@@ -165,7 +162,7 @@ def _has_bool_dtype(x):
         return x.dtype == bool
     except AttributeError:
         try:
-            return 'bool' in x.blocks
+            return 'bool' in x.dtypes
         except AttributeError:
             return isinstance(x, (bool, np.bool_))
 
@@ -177,19 +174,19 @@ def _bool_arith_check(op_str, a, b, not_allowed=frozenset(('/', '//', '**')),
 
     if _has_bool_dtype(a) and _has_bool_dtype(b):
         if op_str in unsupported:
-            warnings.warn("evaluating in Python space because the %r operator"
-                          " is not supported by numexpr for the bool "
-                          "dtype, use %r instead" % (op_str,
-                                                     unsupported[op_str]))
+            warnings.warn("evaluating in Python space because the {op!r} "
+                          "operator is not supported by numexpr for "
+                          "the bool dtype, use {alt_op!r} instead"
+                          .format(op=op_str, alt_op=unsupported[op_str]))
             return False
 
         if op_str in not_allowed:
-            raise NotImplementedError("operator %r not implemented for bool "
-                                      "dtypes" % op_str)
+            raise NotImplementedError("operator {op!r} not implemented for "
+                                      "bool dtypes".format(op=op_str))
     return True
 
 
-def evaluate(op, op_str, a, b, raise_on_error=False, use_numexpr=True,
+def evaluate(op, op_str, a, b, use_numexpr=True,
              **eval_kwargs):
     """ evaluate and return the expression of the op on a and b
 
@@ -200,19 +197,16 @@ def evaluate(op, op_str, a, b, raise_on_error=False, use_numexpr=True,
         op_str: the string version of the op
         a :     left operand
         b :     right operand
-        raise_on_error : pass the error to the higher level if indicated
-                         (default is False), otherwise evaluate the op with and
-                         return the results
         use_numexpr : whether to try to use numexpr (default True)
         """
+
     use_numexpr = use_numexpr and _bool_arith_check(op_str, a, b)
     if use_numexpr:
-        return _evaluate(op, op_str, a, b, raise_on_error=raise_on_error,
-                         **eval_kwargs)
-    return _evaluate_standard(op, op_str, a, b, raise_on_error=raise_on_error)
+        return _evaluate(op, op_str, a, b, **eval_kwargs)
+    return _evaluate_standard(op, op_str, a, b)
 
 
-def where(cond, a, b, raise_on_error=False, use_numexpr=True):
+def where(cond, a, b, use_numexpr=True):
     """ evaluate the where condition cond on a and b
 
         Parameters
@@ -221,20 +215,17 @@ def where(cond, a, b, raise_on_error=False, use_numexpr=True):
         cond : a boolean array
         a :    return if cond is True
         b :    return if cond is False
-        raise_on_error : pass the error to the higher level if indicated
-                         (default is False), otherwise evaluate the op with and
-                         return the results
         use_numexpr : whether to try to use numexpr (default True)
         """
 
     if use_numexpr:
-        return _where(cond, a, b, raise_on_error=raise_on_error)
-    return _where_standard(cond, a, b, raise_on_error=raise_on_error)
+        return _where(cond, a, b)
+    return _where_standard(cond, a, b)
 
 
 def set_test_mode(v=True):
     """
-    Keeps track of whether numexpr  was used.  Stores an additional ``True``
+    Keeps track of whether numexpr was used.  Stores an additional ``True``
     for every successful use of evaluate with numexpr since the last
     ``get_test_result``
     """

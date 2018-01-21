@@ -1,5 +1,4 @@
 import numpy as np
-
 import pandas as pd
 import pandas.util.testing as tm
 from pandas.tseries.offsets import Day, Second
@@ -49,3 +48,23 @@ class TestTimedeltas(object):
         expected = df.loc[pd.Timedelta('0s'):, :]
         result = df.loc['0s':, :]
         assert_frame_equal(expected, result)
+
+    def test_errors(self):
+        # not enough params
+        msg = ('Of the three parameters: start, end, and periods, '
+               'exactly two must be specified')
+        with tm.assert_raises_regex(ValueError, msg):
+            timedelta_range(start='0 days')
+
+        with tm.assert_raises_regex(ValueError, msg):
+            timedelta_range(end='5 days')
+
+        with tm.assert_raises_regex(ValueError, msg):
+            timedelta_range(periods=2)
+
+        with tm.assert_raises_regex(ValueError, msg):
+            timedelta_range()
+
+        # too many params
+        with tm.assert_raises_regex(ValueError, msg):
+            timedelta_range(start='0 days', end='5 days', periods=10)

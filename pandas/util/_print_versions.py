@@ -38,18 +38,17 @@ def get_sys_info():
         (sysname, nodename, release,
          version, machine, processor) = platform.uname()
         blob.extend([
-            ("python", "%d.%d.%d.%s.%s" % sys.version_info[:]),
+            ("python", '.'.join(map(str, sys.version_info))),
             ("python-bits", struct.calcsize("P") * 8),
-            ("OS", "%s" % (sysname)),
-            ("OS-release", "%s" % (release)),
-            # ("Version", "%s" % (version)),
-            ("machine", "%s" % (machine)),
-            ("processor", "%s" % (processor)),
-            ("byteorder", "%s" % sys.byteorder),
-            ("LC_ALL", "%s" % os.environ.get('LC_ALL', "None")),
-            ("LANG", "%s" % os.environ.get('LANG', "None")),
-            ("LOCALE", "%s.%s" % locale.getlocale()),
-
+            ("OS", "{sysname}".format(sysname=sysname)),
+            ("OS-release", "{release}".format(release=release)),
+            # ("Version", "{version}".format(version=version)),
+            ("machine", "{machine}".format(machine=machine)),
+            ("processor", "{processor}".format(processor=processor)),
+            ("byteorder", "{byteorder}".format(byteorder=sys.byteorder)),
+            ("LC_ALL", "{lc}".format(lc=os.environ.get('LC_ALL', "None"))),
+            ("LANG", "{lang}".format(lang=os.environ.get('LANG', "None"))),
+            ("LOCALE", '.'.join(map(str, locale.getlocale()))),
         ])
     except:
         pass
@@ -69,6 +68,7 @@ def show_versions(as_json=False):
         ("Cython", lambda mod: mod.__version__),
         ("numpy", lambda mod: mod.version.version),
         ("scipy", lambda mod: mod.version.version),
+        ("pyarrow", lambda mod: mod.__version__),
         ("xarray", lambda mod: mod.__version__),
         ("IPython", lambda mod: mod.__version__),
         ("sphinx", lambda mod: mod.__version__),
@@ -93,8 +93,9 @@ def show_versions(as_json=False):
         ("psycopg2", lambda mod: mod.__version__),
         ("jinja2", lambda mod: mod.__version__),
         ("s3fs", lambda mod: mod.__version__),
+        ("fastparquet", lambda mod: mod.__version__),
         ("pandas_gbq", lambda mod: mod.__version__),
-        ("pandas_datareader", lambda mod: mod.__version__)
+        ("pandas_datareader", lambda mod: mod.__version__),
     ]
 
     deps_blob = list()
@@ -129,11 +130,11 @@ def show_versions(as_json=False):
         print("------------------")
 
         for k, stat in sys_info:
-            print("%s: %s" % (k, stat))
+            print("{k}: {stat}".format(k=k, stat=stat))
 
         print("")
         for k, stat in deps_blob:
-            print("%s: %s" % (k, stat))
+            print("{k}: {stat}".format(k=k, stat=stat))
 
 
 def main():

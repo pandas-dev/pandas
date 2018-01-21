@@ -12,35 +12,16 @@ class TestDatetimeIndex(DatetimeLike):
     _holder = DatetimeIndex
 
     def setup_method(self, method):
-        self.indices = dict(index=tm.makeDateIndex(10))
+        self.indices = dict(index=tm.makeDateIndex(10),
+                            index_dec=date_range('20130110', periods=10,
+                                                 freq='-1D'))
         self.setup_indices()
 
     def create_index(self):
         return date_range('20130101', periods=5)
 
     def test_shift(self):
-
-        # test shift for datetimeIndex and non datetimeIndex
-        # GH8083
-
-        drange = self.create_index()
-        result = drange.shift(1)
-        expected = DatetimeIndex(['2013-01-02', '2013-01-03', '2013-01-04',
-                                  '2013-01-05',
-                                  '2013-01-06'], freq='D')
-        tm.assert_index_equal(result, expected)
-
-        result = drange.shift(-1)
-        expected = DatetimeIndex(['2012-12-31', '2013-01-01', '2013-01-02',
-                                  '2013-01-03', '2013-01-04'],
-                                 freq='D')
-        tm.assert_index_equal(result, expected)
-
-        result = drange.shift(3, freq='2D')
-        expected = DatetimeIndex(['2013-01-07', '2013-01-08', '2013-01-09',
-                                  '2013-01-10',
-                                  '2013-01-11'], freq='D')
-        tm.assert_index_equal(result, expected)
+        pass  # handled in test_ops
 
     def test_pickle_compat_construction(self):
         pass

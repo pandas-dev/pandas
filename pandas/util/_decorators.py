@@ -1,23 +1,65 @@
-from pandas.compat import callable, signature
-from pandas._libs.lib import cache_readonly  # noqa
+from pandas.compat import callable, signature, PY2
+from pandas._libs.properties import cache_readonly  # noqa
+import inspect
 import types
 import warnings
-from textwrap import dedent
+from textwrap import dedent, wrap
 from functools import wraps, update_wrapper
 
 
-def deprecate(name, alternative, alt_name=None):
-    alt_name = alt_name or alternative.__name__
+def deprecate(name, alternative, version, alt_name=None,
+              klass=None, stacklevel=2, msg=None):
+    """Return a new function that emits a deprecation warning on use.
 
+    To use this method for a deprecated function, another function
+    `alternative` with the same signature must exist. The deprecated
+    function will emit a deprecation warning, and in the docstring
+    it will contain the deprecation directive with the provided version
+    so it can be detected for future removal.
+
+    Parameters
+    ----------
+    name : str
+        Name of function to deprecate
+    alternative : str
+        Name of function to use instead
+    version : str
+        Version of pandas in which the method has been deprecated
+    alt_name : str, optional
+        Name to use in preference of alternative.__name__
+    klass : Warning, default FutureWarning
+    stacklevel : int, default 2
+    msg : str
+          The message to display in the warning.
+          Default is '{name} is deprecated. Use {alt_name} instead.'
+    """
+
+    alt_name = alt_name or alternative.__name__
+    klass = klass or FutureWarning
+    warning_msg = msg or '{} is deprecated, use {} instead'.format(name,
+                                                                   alt_name)
+
+    @wraps(alternative)
     def wrapper(*args, **kwargs):
-        warnings.warn("%s is deprecated. Use %s instead" % (name, alt_name),
-                      FutureWarning, stacklevel=2)
+        warnings.warn(warning_msg, klass, stacklevel=stacklevel)
         return alternative(*args, **kwargs)
+
+    # adding deprecated directive to the docstring
+    msg = msg or 'Use `{alt_name}` instead.'
+    docstring = '.. deprecated:: {}\n'.format(version)
+    docstring += dedent('    ' + ('\n'.join(wrap(msg, 70))))
+
+    if getattr(wrapper, '__doc__') is not None:
+        docstring += dedent(wrapper.__doc__)
+
+    wrapper.__doc__ = docstring
+
     return wrapper
 
 
 def deprecate_kwarg(old_arg_name, new_arg_name, mapping=None, stacklevel=2):
-    """Decorator to deprecate a keyword argument of a function
+    """
+    Decorator to deprecate a keyword argument of a function.
 
     Parameters
     ----------
@@ -54,8 +96,8 @@ def deprecate_kwarg(old_arg_name, new_arg_name, mapping=None, stacklevel=2):
     FutureWarning: old='yes' is deprecated, use new=True instead
       warnings.warn(msg, FutureWarning)
     yes!
-
     """
+
     if mapping is not None and not hasattr(mapping, 'get') and \
             not callable(mapping):
         raise TypeError("mapping from old to new argument values "
@@ -72,19 +114,24 @@ def deprecate_kwarg(old_arg_name, new_arg_name, mapping=None, stacklevel=2):
                                                     old_arg_value)
                     else:
                         new_arg_value = mapping(old_arg_value)
-                    msg = "the %s=%r keyword is deprecated, " \
-                          "use %s=%r instead" % \
-                          (old_arg_name, old_arg_value,
-                           new_arg_name, new_arg_value)
+                    msg = ("the {old_name}={old_val!r} keyword is deprecated, "
+                           "use {new_name}={new_val!r} instead"
+                           ).format(old_name=old_arg_name,
+                                    old_val=old_arg_value,
+                                    new_name=new_arg_name,
+                                    new_val=new_arg_value)
                 else:
                     new_arg_value = old_arg_value
-                    msg = "the '%s' keyword is deprecated, " \
-                          "use '%s' instead" % (old_arg_name, new_arg_name)
+                    msg = ("the '{old_name}' keyword is deprecated, "
+                           "use '{new_name}' instead"
+                           ).format(old_name=old_arg_name,
+                                    new_name=new_arg_name)
 
                 warnings.warn(msg, FutureWarning, stacklevel=stacklevel)
                 if kwargs.get(new_arg_name, None) is not None:
-                    msg = ("Can only specify '%s' or '%s', not both" %
-                           (old_arg_name, new_arg_name))
+                    msg = ("Can only specify '{old_name}' or '{new_name}', "
+                           "not both").format(old_name=old_arg_name,
+                                              new_name=new_arg_name)
                     raise TypeError(msg)
                 else:
                     kwargs[new_arg_name] = new_arg_value
@@ -92,6 +139,31 @@ def deprecate_kwarg(old_arg_name, new_arg_name, mapping=None, stacklevel=2):
         return wrapper
     return _deprecate_kwarg
 
+
+def rewrite_axis_style_signature(name, extra_params):
+    def decorate(func):
+        @wraps(func)
+        def wrapper(*args, **kwargs):
+            return func(*args, **kwargs)
+
+        if not PY2:
+            kind = inspect.Parameter.POSITIONAL_OR_KEYWORD
+            params = [
+                inspect.Parameter('self', kind),
+                inspect.Parameter(name, kind, default=None),
+                inspect.Parameter('index', kind, default=None),
+                inspect.Parameter('columns', kind, default=None),
+                inspect.Parameter('axis', kind, default=None),
+            ]
+
+            for pname, default in extra_params:
+                params.append(inspect.Parameter(pname, kind, default=default))
+
+            sig = inspect.Signature(params)
+
+            func.__signature__ = sig
+        return wrapper
+    return decorate
 
 # Substitution and Appender are derived from matplotlib.docstring (1.1.0)
 # module http://matplotlib.org/users/license.html
@@ -137,7 +209,12 @@ class Substitution(object):
         return func
 
     def update(self, *args, **kwargs):
-        "Assume self.params is a dict and update it with supplied args"
+        """
+        Update self.params with supplied args.
+
+        If called, we assume self.params is a dict.
+        """
+
         self.params.update(*args, **kwargs)
 
     @classmethod
@@ -197,23 +274,23 @@ def indent(text, indents=1):
 
 def make_signature(func):
     """
-    Returns a string repr of the arg list of a func call, with any defaults
+    Returns a string repr of the arg list of a func call, with any defaults.
 
     Examples
     --------
-
     >>> def f(a,b,c=2) :
     >>>     return a*b*c
     >>> print(_make_signature(f))
     a,b,c=2
     """
+
     spec = signature(func)
     if spec.defaults is None:
         n_wo_defaults = len(spec.args)
         defaults = ('',) * n_wo_defaults
     else:
         n_wo_defaults = len(spec.args) - len(spec.defaults)
-        defaults = ('',) * n_wo_defaults + spec.defaults
+        defaults = ('',) * n_wo_defaults + tuple(spec.defaults)
     args = []
     for i, (var, default) in enumerate(zip(spec.args, defaults)):
         args.append(var if default == '' else var + '=' + repr(default))
@@ -226,8 +303,8 @@ def make_signature(func):
 
 class docstring_wrapper(object):
     """
-    decorator to wrap a function,
-    provide a dynamically evaluated doc-string
+    Decorator to wrap a function and provide
+    a dynamically evaluated doc-string.
 
     Parameters
     ----------

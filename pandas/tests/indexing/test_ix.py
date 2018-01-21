@@ -87,7 +87,7 @@ class TestIX(object):
                 assert expected.equals(result)
 
         # failure cases for .loc, but these work for .ix
-        df = pd.DataFrame(np.random.randn(5, 4), columns=list('ABCD'))
+        df = DataFrame(np.random.randn(5, 4), columns=list('ABCD'))
         for key in [slice(1, 3), tuple([slice(0, 2), slice(0, 2)]),
                     tuple([slice(0, 2), df.columns[0:2]])]:
 
@@ -100,8 +100,8 @@ class TestIX(object):
 
                 pytest.raises(TypeError, lambda: df.loc[key])
 
-        df = pd.DataFrame(np.random.randn(5, 4), columns=list('ABCD'),
-                          index=pd.date_range('2012-01-01', periods=5))
+        df = DataFrame(np.random.randn(5, 4), columns=list('ABCD'),
+                       index=pd.date_range('2012-01-01', periods=5))
 
         for key in ['2012-01-03',
                     '2012-01-31',
@@ -227,7 +227,7 @@ class TestIX(object):
         expected = DataFrame({'a': [1, 2, 3], 'b': [100, 1, -100]})
         tm.assert_frame_equal(df, expected)
 
-        df = pd.DataFrame({'a': lrange(4)})
+        df = DataFrame({'a': lrange(4)})
         df['b'] = np.nan
         df.loc[[1, 3], 'b'] = [100, -100]
         expected = DataFrame({'a': [0, 1, 2, 3],
@@ -235,9 +235,9 @@ class TestIX(object):
         tm.assert_frame_equal(df, expected)
 
         # ok, but chained assignments are dangerous
-        # if we turn off chained assignement it will work
+        # if we turn off chained assignment it will work
         with option_context('chained_assignment', None):
-            df = pd.DataFrame({'a': lrange(4)})
+            df = DataFrame({'a': lrange(4)})
             df['b'] = np.nan
             df['b'].loc[[1, 3]] = [100, -100]
             tm.assert_frame_equal(df, expected)
@@ -296,14 +296,14 @@ class TestIX(object):
         tm.assert_frame_equal(df, expected)
 
     def test_ix_setitem_out_of_bounds_axis_0(self):
-        df = pd.DataFrame(
+        df = DataFrame(
             np.random.randn(2, 5), index=["row%s" % i for i in range(2)],
             columns=["col%s" % i for i in range(5)])
         with catch_warnings(record=True):
             pytest.raises(ValueError, df.ix.__setitem__, (2, 0), 100)
 
     def test_ix_setitem_out_of_bounds_axis_1(self):
-        df = pd.DataFrame(
+        df = DataFrame(
             np.random.randn(5, 2), index=["row%s" % i for i in range(5)],
             columns=["col%s" % i for i in range(2)])
         with catch_warnings(record=True):

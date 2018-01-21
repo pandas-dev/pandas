@@ -1,11 +1,10 @@
 # coding=utf-8
 # pylint: disable-msg=E1101,W0612
 
-import pytest
 import numpy as np
 import pandas as pd
 
-from pandas import (Index, Series, _np_version_under1p9)
+from pandas import Index, Series
 from pandas.core.indexes.datetimes import Timestamp
 from pandas.core.dtypes.common import is_integer
 import pandas.util.testing as tm
@@ -18,14 +17,14 @@ class TestSeriesQuantile(TestData):
     def test_quantile(self):
 
         q = self.ts.quantile(0.1)
-        assert q == np.percentile(self.ts.valid(), 10)
+        assert q == np.percentile(self.ts.dropna(), 10)
 
         q = self.ts.quantile(0.9)
-        assert q == np.percentile(self.ts.valid(), 90)
+        assert q == np.percentile(self.ts.dropna(), 90)
 
         # object dtype
         q = Series(self.ts, dtype=object).quantile(0.9)
-        assert q == np.percentile(self.ts.valid(), 90)
+        assert q == np.percentile(self.ts.dropna(), 90)
 
         # datetime64[ns] dtype
         dts = self.ts.index.to_series()
@@ -39,7 +38,7 @@ class TestSeriesQuantile(TestData):
 
         # GH7661
         result = Series([np.timedelta64('NaT')]).sum()
-        assert result is pd.NaT
+        assert result == pd.Timedelta(0)
 
         msg = 'percentiles should all be in the interval \\[0, 1\\]'
         for invalid in [-1, 2, [0.5, -1], [0.5, 2]]:
@@ -50,8 +49,8 @@ class TestSeriesQuantile(TestData):
 
         qs = [.1, .9]
         result = self.ts.quantile(qs)
-        expected = pd.Series([np.percentile(self.ts.valid(), 10),
-                              np.percentile(self.ts.valid(), 90)],
+        expected = pd.Series([np.percentile(self.ts.dropna(), 10),
+                              np.percentile(self.ts.dropna(), 90)],
                              index=qs, name=self.ts.name)
         tm.assert_series_equal(result, expected)
 
@@ -68,22 +67,18 @@ class TestSeriesQuantile(TestData):
             [], dtype=float))
         tm.assert_series_equal(result, expected)
 
-    @pytest.mark.skipif(_np_version_under1p9,
-                        reason="Numpy version is under 1.9")
     def test_quantile_interpolation(self):
         # see gh-10174
 
         # interpolation = linear (default case)
         q = self.ts.quantile(0.1, interpolation='linear')
-        assert q == np.percentile(self.ts.valid(), 10)
+        assert q == np.percentile(self.ts.dropna(), 10)
         q1 = self.ts.quantile(0.1)
-        assert q1 == np.percentile(self.ts.valid(), 10)
+        assert q1 == np.percentile(self.ts.dropna(), 10)
 
         # test with and without interpolation keyword
         assert q == q1
 
-    @pytest.mark.skipif(_np_version_under1p9,
-                        reason="Numpy version is under 1.9")
     def test_quantile_interpolation_dtype(self):
         # GH #10174
 
@@ -95,26 +90,6 @@ class TestSeriesQuantile(TestData):
         q = pd.Series([1, 3, 4]).quantile(0.5, interpolation='higher')
         assert q == np.percentile(np.array([1, 3, 4]), 50)
         assert is_integer(q)
-
-    @pytest.mark.skipif(not _np_version_under1p9,
-                        reason="Numpy version is greater 1.9")
-    def test_quantile_interpolation_np_lt_1p9(self):
-        # GH #10174
-
-        # interpolation = linear (default case)
-        q = self.ts.quantile(0.1, interpolation='linear')
-        assert q == np.percentile(self.ts.valid(), 10)
-        q1 = self.ts.quantile(0.1)
-        assert q1 == np.percentile(self.ts.valid(), 10)
-
-        # interpolation other than linear
-        msg = "Interpolation methods other than "
-        with tm.assert_raises_regex(ValueError, msg):
-            self.ts.quantile(0.9, interpolation='nearest')
-
-        # object dtype
-        with tm.assert_raises_regex(ValueError, msg):
-            Series(self.ts, dtype=object).quantile(0.7, interpolation='higher')
 
     def test_quantile_nan(self):
 
@@ -166,8 +141,8 @@ class TestSeriesQuantile(TestData):
 
     def test_datetime_timedelta_quantiles(self):
         # covers #9694
-        assert pd.isnull(Series([], dtype='M8[ns]').quantile(.5))
-        assert pd.isnull(Series([], dtype='m8[ns]').quantile(.5))
+        assert pd.isna(Series([], dtype='M8[ns]').quantile(.5))
+        assert pd.isna(Series([], dtype='m8[ns]').quantile(.5))
 
     def test_quantile_nat(self):
         res = Series([pd.NaT, pd.NaT]).quantile(0.5)

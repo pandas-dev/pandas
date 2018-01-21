@@ -552,8 +552,8 @@ cpdef ensure_object(object arr):
             return arr
         else:
             return arr.astype(np.object_)
-    elif hasattr(arr, 'asobject'):
-        return arr.asobject
+    elif hasattr(arr, '_box_values_as_index'):
+        return arr._box_values_as_index()
     else:
         return np.array(arr, dtype=np.object_)
 

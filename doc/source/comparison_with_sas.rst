@@ -10,7 +10,7 @@ performed in pandas.
 If you're new to pandas, you might want to first read through :ref:`10 Minutes to pandas<10min>`
 to familiarize yourself with the library.
 
-As is customary, we import pandas and numpy as follows:
+As is customary, we import pandas and NumPy as follows:
 
 .. ipython:: python
 
@@ -100,7 +100,7 @@ specifying the column names.
 
 A pandas ``DataFrame`` can be constructed in many different ways,
 but for a small number of values, it is often convenient to specify it as
-a python dictionary, where the keys are the column names
+a Python dictionary, where the keys are the column names
 and the values are the data.
 
 .. ipython:: python
@@ -357,6 +357,146 @@ takes a list of columns to sort by.
    tips = tips.sort_values(['sex', 'total_bill'])
    tips.head()
 
+
+String Processing
+-----------------
+
+Length
+~~~~~~
+
+SAS determines the length of a character string with the 
+`LENGTHN <http://support.sas.com/documentation/cdl/en/lrdict/64316/HTML/default/viewer.htm#a002284668.htm>`__  
+and `LENGTHC <http://support.sas.com/documentation/cdl/en/lrdict/64316/HTML/default/viewer.htm#a002283942.htm>`__ 
+functions. ``LENGTHN`` excludes trailing blanks and ``LENGTHC`` includes trailing blanks.
+
+.. code-block:: none
+
+   data _null_;
+   set tips;
+   put(LENGTHN(time));
+   put(LENGTHC(time));
+   run;
+
+Python determines the length of a character string with the ``len`` function.
+``len`` includes trailing blanks.  Use ``len`` and ``rstrip`` to exclude 
+trailing blanks.
+
+.. ipython:: python
+
+   tips['time'].str.len().head()
+   tips['time'].str.rstrip().str.len().head()
+
+
+Find
+~~~~
+
+SAS determines the position of a character in a string with the 
+`FINDW <http://support.sas.com/documentation/cdl/en/lrdict/64316/HTML/default/viewer.htm#a002978282.htm>`__ function. 
+``FINDW`` takes the string defined by the first argument and searches for the first position of the substring 
+you supply as the second argument.
+
+.. code-block:: none
+
+   data _null_;
+   set tips;
+   put(FINDW(sex,'ale'));
+   run;
+
+Python determines the position of a character in a string with the 
+``find`` function.  ``find`` searches for the first position of the 
+substring.  If the substring is found, the function returns its 
+position.  Keep in mind that Python indexes are zero-based and 
+the function will return -1 if it fails to find the substring.
+
+.. ipython:: python
+
+   tips['sex'].str.find("ale").head()
+
+
+Substring
+~~~~~~~~~
+
+SAS extracts a substring from a string based on its position with the 
+`SUBSTR <http://www2.sas.com/proceedings/sugi25/25/cc/25p088.pdf>`__ function. 
+
+.. code-block:: none
+
+   data _null_;
+   set tips;
+   put(substr(sex,1,1));
+   run;
+
+With pandas you can use ``[]`` notation to extract a substring
+from a string by position locations.  Keep in mind that Python 
+indexes are zero-based.
+
+.. ipython:: python
+
+   tips['sex'].str[0:1].head()
+
+
+Scan
+~~~~
+
+The SAS `SCAN <http://support.sas.com/documentation/cdl/en/lrdict/64316/HTML/default/viewer.htm#a000214639.htm>`__ 
+function returns the nth word from a string. The first argument is the string you want to parse and the 
+second argument specifies which word you want to extract.
+
+.. code-block:: none
+
+   data firstlast;
+   input String $60.;
+   First_Name = scan(string, 1);
+   Last_Name = scan(string, -1);
+   datalines2;
+   John Smith;
+   Jane Cook;
+   ;;;
+   run;   
+
+Python extracts a substring from a string based on its text 
+by using regular expressions. There are much more powerful 
+approaches, but this just shows a simple approach.
+
+.. ipython:: python
+
+   firstlast = pd.DataFrame({'String': ['John Smith', 'Jane Cook']})
+   firstlast['First_Name'] = firstlast['String'].str.split(" ", expand=True)[0]
+   firstlast['Last_Name'] = firstlast['String'].str.rsplit(" ", expand=True)[0]
+   firstlast
+
+
+Upcase, Lowcase, and Propcase
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+The SAS `UPCASE <http://support.sas.com/documentation/cdl/en/lrdict/64316/HTML/default/viewer.htm#a000245965.htm>`__ 
+`LOWCASE <http://support.sas.com/documentation/cdl/en/lrdict/64316/HTML/default/viewer.htm#a000245912.htm>`__ and 
+`PROPCASE <http://support.sas.com/documentation/cdl/en/lrdict/64316/HTML/default/a002598106.htm>`__ 
+functions change the case of the argument.
+
+.. code-block:: none
+
+   data firstlast;
+   input String $60.;
+   string_up = UPCASE(string);
+   string_low = LOWCASE(string);
+   string_prop = PROPCASE(string);
+   datalines2;
+   John Smith;
+   Jane Cook;
+   ;;;
+   run;
+
+The equivalent Python functions are ``upper``, ``lower``, and ``title``.
+
+.. ipython:: python
+
+   firstlast = pd.DataFrame({'String': ['John Smith', 'Jane Cook']})
+   firstlast['string_up'] = firstlast['String'].str.upper()
+   firstlast['string_low'] = firstlast['String'].str.lower()
+   firstlast['string_prop'] = firstlast['String'].str.title()
+   firstlast
+
 Merging
 -------
 
@@ -444,13 +584,13 @@ For example, in SAS you could do this to filter missing values.
        if value_x ^= .;
    run;
 
-Which doesn't work in in pandas.  Instead, the ``pd.isnull`` or ``pd.notnull`` functions
+Which doesn't work in in pandas.  Instead, the ``pd.isna`` or ``pd.notna`` functions
 should be used for comparisons.
 
 .. ipython:: python
 
-   outer_join[pd.isnull(outer_join['value_x'])]
-   outer_join[pd.notnull(outer_join['value_x'])]
+   outer_join[pd.isna(outer_join['value_x'])]
+   outer_join[pd.notna(outer_join['value_x'])]
 
 pandas also provides a variety of methods to work with missing data - some of
 which would be challenging to express in SAS. For example, there are methods to
@@ -570,7 +710,7 @@ machine's memory, but also that the operations on that data may be faster.
 
 If out of core processing is needed, one possibility is the
 `dask.dataframe <http://dask.pydata.org/en/latest/dataframe.html>`_
-library (currently in development) which 
+library (currently in development) which
 provides a subset of pandas functionality for an on-disk ``DataFrame``
 
 Data Interop
@@ -578,7 +718,7 @@ Data Interop
 
 pandas provides a :func:`read_sas` method that can read SAS data saved in
 the XPORT or SAS7BDAT binary format.
- 
+
 .. code-block:: none
 
    libname xportout xport 'transport-file.xpt';
@@ -613,4 +753,3 @@ to interop data between SAS and pandas is to serialize to csv.
 
    In [9]: %time df = pd.read_csv('big.csv')
    Wall time: 4.86 s
- 

@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 """
 Testing that we work in the downstream packages
 """
@@ -84,6 +85,7 @@ def test_pandas_gbq(df):
     pandas_gbq = import_module('pandas_gbq')  # noqa
 
 
+@tm.network
 def test_pandas_datareader():
 
     pandas_datareader = import_module('pandas_datareader')  # noqa

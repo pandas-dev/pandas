@@ -53,7 +53,7 @@
 <tr>
   <td>Conda</td>
   <td>
-    <a href="http://pandas.pydata.org">
+    <a href="https://pandas.pydata.org">
     <img src="http://pubbadges.s3-website-us-east-1.amazonaws.com/pkgs-downloads-pandas.png" alt="conda default downloads" />
     </a>
   </td>
@@ -61,7 +61,7 @@
 <tr>
   <td>Conda-forge</td>
   <td>
-    <a href="http://pandas.pydata.org">
+    <a href="https://pandas.pydata.org">
     <img src="https://anaconda.org/conda-forge/pandas/badges/downloads.svg" alt="conda-forge downloads" />
     </a>
   </td>
@@ -123,31 +123,31 @@ Here are just a few of the things that pandas does well:
     moving window linear regressions, date shifting and lagging, etc.
 
 
-   [missing-data]: http://pandas.pydata.org/pandas-docs/stable/missing_data.html#working-with-missing-data
-   [insertion-deletion]: http://pandas.pydata.org/pandas-docs/stable/dsintro.html#column-selection-addition-deletion
-   [alignment]: http://pandas.pydata.org/pandas-docs/stable/dsintro.html?highlight=alignment#intro-to-data-structures
-   [groupby]: http://pandas.pydata.org/pandas-docs/stable/groupby.html#group-by-split-apply-combine
-   [conversion]: http://pandas.pydata.org/pandas-docs/stable/dsintro.html#dataframe
-   [slicing]: http://pandas.pydata.org/pandas-docs/stable/indexing.html#slicing-ranges
-   [fancy-indexing]: http://pandas.pydata.org/pandas-docs/stable/indexing.html#advanced-indexing-with-ix
-   [subsetting]: http://pandas.pydata.org/pandas-docs/stable/indexing.html#boolean-indexing
-   [merging]: http://pandas.pydata.org/pandas-docs/stable/merging.html#database-style-dataframe-joining-merging
-   [joining]: http://pandas.pydata.org/pandas-docs/stable/merging.html#joining-on-index
-   [reshape]: http://pandas.pydata.org/pandas-docs/stable/reshaping.html#reshaping-and-pivot-tables
-   [pivot-table]: http://pandas.pydata.org/pandas-docs/stable/reshaping.html#pivot-tables-and-cross-tabulations
-   [mi]: http://pandas.pydata.org/pandas-docs/stable/indexing.html#hierarchical-indexing-multiindex
-   [flat-files]: http://pandas.pydata.org/pandas-docs/stable/io.html#csv-text-files
-   [excel]: http://pandas.pydata.org/pandas-docs/stable/io.html#excel-files
-   [db]: http://pandas.pydata.org/pandas-docs/stable/io.html#sql-queries
-   [hdfstore]: http://pandas.pydata.org/pandas-docs/stable/io.html#hdf5-pytables
-   [timeseries]: http://pandas.pydata.org/pandas-docs/stable/timeseries.html#time-series-date-functionality
+   [missing-data]: https://pandas.pydata.org/pandas-docs/stable/missing_data.html#working-with-missing-data
+   [insertion-deletion]: https://pandas.pydata.org/pandas-docs/stable/dsintro.html#column-selection-addition-deletion
+   [alignment]: https://pandas.pydata.org/pandas-docs/stable/dsintro.html?highlight=alignment#intro-to-data-structures
+   [groupby]: https://pandas.pydata.org/pandas-docs/stable/groupby.html#group-by-split-apply-combine
+   [conversion]: https://pandas.pydata.org/pandas-docs/stable/dsintro.html#dataframe
+   [slicing]: https://pandas.pydata.org/pandas-docs/stable/indexing.html#slicing-ranges
+   [fancy-indexing]: https://pandas.pydata.org/pandas-docs/stable/indexing.html#advanced-indexing-with-ix
+   [subsetting]: https://pandas.pydata.org/pandas-docs/stable/indexing.html#boolean-indexing
+   [merging]: https://pandas.pydata.org/pandas-docs/stable/merging.html#database-style-dataframe-joining-merging
+   [joining]: https://pandas.pydata.org/pandas-docs/stable/merging.html#joining-on-index
+   [reshape]: https://pandas.pydata.org/pandas-docs/stable/reshaping.html#reshaping-and-pivot-tables
+   [pivot-table]: https://pandas.pydata.org/pandas-docs/stable/reshaping.html#pivot-tables-and-cross-tabulations
+   [mi]: https://pandas.pydata.org/pandas-docs/stable/indexing.html#hierarchical-indexing-multiindex
+   [flat-files]: https://pandas.pydata.org/pandas-docs/stable/io.html#csv-text-files
+   [excel]: https://pandas.pydata.org/pandas-docs/stable/io.html#excel-files
+   [db]: https://pandas.pydata.org/pandas-docs/stable/io.html#sql-queries
+   [hdfstore]: https://pandas.pydata.org/pandas-docs/stable/io.html#hdf5-pytables
+   [timeseries]: https://pandas.pydata.org/pandas-docs/stable/timeseries.html#time-series-date-functionality
 
 ## Where to get it
 The source code is currently hosted on GitHub at:
-http://github.com/pandas-dev/pandas
+https://github.com/pandas-dev/pandas
 
 Binary installers for the latest released version are available at the [Python
-package index](http://pypi.python.org/pypi/pandas/) and on conda.
+package index](https://pypi.python.org/pypi/pandas) and on conda.
 
 ```sh
 # conda
@@ -160,12 +160,11 @@ pip install pandas
 ```
 
 ## Dependencies
-- [NumPy](http://www.numpy.org): 1.7.0 or higher
-- [python-dateutil](http://labix.org/python-dateutil): 1.5 or higher
-- [pytz](http://pytz.sourceforge.net)
-    - Needed for time zone support with ``pandas.date_range``
+- [NumPy](http://www.numpy.org): 1.9.0 or higher
+- [python-dateutil](https://labix.org/python-dateutil): 2.5.0 or higher
+- [pytz](https://pythonhosted.org/pytz): 2011k or higher
 
-See the [full installation instructions](http://pandas.pydata.org/pandas-docs/stable/install.html#dependencies)
+See the [full installation instructions](https://pandas.pydata.org/pandas-docs/stable/install.html#dependencies)
 for recommended and optional dependencies.
 
 ## Installation from sources
@@ -197,16 +196,13 @@ mode](https://pip.pypa.io/en/latest/reference/pip_install.html#editable-installs
 pip install -e .
 ```
 
-See the full instructions for [installing from source](http://pandas.pydata.org/pandas-docs/stable/install.html#installing-from-source).
+See the full instructions for [installing from source](https://pandas.pydata.org/pandas-docs/stable/install.html#installing-from-source).
 
 ## License
-BSD
+[BSD 3](LICENSE)
 
 ## Documentation
-The official documentation is hosted on PyData.org: http://pandas.pydata.org/pandas-docs/stable/
-
-The Sphinx documentation should provide a good starting point for learning how
-to use the library. Expect the docs to continue to expand as time goes on.
+The official documentation is hosted on PyData.org: https://pandas.pydata.org/pandas-docs/stable
 
 ## Background
 Work on ``pandas`` started at AQR (a quantitative hedge fund) in 2008 and
@@ -223,7 +219,7 @@ Most development discussion is taking place on github in this repo. Further, the
 ## Contributing to pandas
 All contributions, bug reports, bug fixes, documentation improvements, enhancements and ideas are welcome.
 
-A detailed overview on how to contribute can be found in the **[contributing guide.](http://pandas.pydata.org/pandas-docs/stable/contributing.html)**
+A detailed overview on how to contribute can be found in the **[contributing guide.](https://pandas.pydata.org/pandas-docs/stable/contributing.html)**
 
 If you are simply looking to start working with the pandas codebase, navigate to the [GitHub “issues” tab](https://github.com/pandas-dev/pandas/issues) and start looking through interesting issues. There are a number of issues listed under [Docs](https://github.com/pandas-dev/pandas/issues?labels=Docs&sort=updated&state=open) and [Difficulty Novice](https://github.com/pandas-dev/pandas/issues?q=is%3Aopen+is%3Aissue+label%3A%22Difficulty+Novice%22) where you could start out.
 

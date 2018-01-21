@@ -8,8 +8,8 @@ from math import ceil
 import numpy as np
 
 from pandas.core.dtypes.common import is_list_like
+from pandas.core.dtypes.generic import ABCSeries
 from pandas.core.index import Index
-from pandas.core.series import Series
 from pandas.compat import range
 
 
@@ -25,8 +25,7 @@ def format_date_labels(ax, rot):
         pass
 
 
-def table(ax, data, rowLabels=None, colLabels=None,
-          **kwargs):
+def table(ax, data, rowLabels=None, colLabels=None, **kwargs):
     """
     Helper function to convert DataFrame and Series to matplotlib.table
 
@@ -45,7 +44,7 @@ def table(ax, data, rowLabels=None, colLabels=None,
     matplotlib table object
     """
     from pandas import DataFrame
-    if isinstance(data, Series):
+    if isinstance(data, ABCSeries):
         data = DataFrame(data, columns=[data.name])
     elif isinstance(data, DataFrame):
         pass
@@ -85,8 +84,9 @@ def _get_layout(nplots, layout=None, layout_type='box'):
             raise ValueError(msg)
 
         if nrows * ncols < nplots:
-            raise ValueError('Layout of %sx%s must be larger than '
-                             'required size %s' % (nrows, ncols, nplots))
+            raise ValueError('Layout of {nrows}x{ncols} must be larger '
+                             'than required size {nplots}'.format(
+                                 nrows=nrows, ncols=ncols, nplots=nplots))
 
         return layout
 
@@ -142,7 +142,7 @@ def _subplots(naxes=None, sharex=False, sharey=False, squeeze=True,
         array of Axis objects are returned as numpy 1-d arrays.
         - for NxM subplots with N>1 and M>1 are returned as a 2d array.
 
-      If False, no squeezing at all is done: the returned axis object is always
+      If False, no squeezing is done: the returned axis object is always
       a 2-d array containing Axis instances, even if it ends up being 1x1.
 
     subplot_kw : dict
@@ -330,7 +330,7 @@ def _handle_shared_axes(axarr, nplots, naxes, nrows, ncols, sharex, sharey):
         if ncols > 1:
             for ax in axarr:
                 # only the first column should get y labels -> set all other to
-                # off as we only have labels in teh first column and we always
+                # off as we only have labels in the first column and we always
                 # have a subplot there, we can skip the layout test
                 if ax.is_first_col():
                     continue
@@ -362,8 +362,8 @@ def _get_xlim(lines):
     left, right = np.inf, -np.inf
     for l in lines:
         x = l.get_xdata(orig=False)
-        left = min(x[0], left)
-        right = max(x[-1], right)
+        left = min(np.nanmin(x), left)
+        right = max(np.nanmax(x), right)
     return left, right
 
 

@@ -15,7 +15,7 @@ def load_reduce(self):
     args = stack.pop()
     func = stack[-1]
 
-    if type(args[0]) is type:
+    if len(args) and type(args[0]) is type:
         n = args[0].__name__  # noqa
 
     try:
@@ -74,9 +74,17 @@ _class_locations_map = {
         ('pandas._libs.sparse', 'BlockIndex'),
     ('pandas.tslib', 'Timestamp'):
         ('pandas._libs.tslib', 'Timestamp'),
+
+    # 18543 moving period
+    ('pandas._period', 'Period'): ('pandas._libs.tslibs.period', 'Period'),
+    ('pandas._libs.period', 'Period'):
+        ('pandas._libs.tslibs.period', 'Period'),
+
+    # 18014 moved __nat_unpickle from _libs.tslib-->_libs.tslibs.nattype
     ('pandas.tslib', '__nat_unpickle'):
-        ('pandas._libs.tslib', '__nat_unpickle'),
-    ('pandas._period', 'Period'): ('pandas._libs.period', 'Period'),
+        ('pandas._libs.tslibs.nattype', '__nat_unpickle'),
+    ('pandas._libs.tslib', '__nat_unpickle'):
+        ('pandas._libs.tslibs.nattype', '__nat_unpickle'),
 
     # 15998 top-level dirs moving
     ('pandas.sparse.array', 'SparseArray'):
@@ -100,7 +108,11 @@ _class_locations_map = {
     ('pandas.tseries.index', 'DatetimeIndex'):
         ('pandas.core.indexes.datetimes', 'DatetimeIndex'),
     ('pandas.tseries.period', 'PeriodIndex'):
-        ('pandas.core.indexes.period', 'PeriodIndex')
+        ('pandas.core.indexes.period', 'PeriodIndex'),
+
+    # 19269, arrays moving
+    ('pandas.core.categorical', 'Categorical'):
+        ('pandas.core.arrays', 'Categorical'),
 }
 
 

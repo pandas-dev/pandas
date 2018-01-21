@@ -10,9 +10,11 @@ import pandas.core.indexes.period as period
 from pandas.compat import text_type, iteritems
 from pandas.compat.numpy import np_datetime64_compat
 
-from pandas._libs import tslib, period as libperiod
+from pandas._libs import tslib
+from pandas._libs.tslibs import period as libperiod
+from pandas._libs.tslibs.ccalendar import DAYS, MONTHS
+from pandas._libs.tslibs.parsing import DateParseError
 from pandas import Period, Timestamp, offsets
-from pandas.tseries.frequencies import DAYS, MONTHS
 
 
 class TestPeriodProperties(object):
@@ -245,29 +247,29 @@ class TestPeriodProperties(object):
             assert p.tz == exp.tz
 
     def test_timestamp_tz_arg_dateutil(self):
-        from pandas._libs.tslib import _dateutil_gettz as gettz
-        from pandas._libs.tslib import maybe_get_tz
+        from pandas._libs.tslibs.timezones import dateutil_gettz
+        from pandas._libs.tslibs.timezones import maybe_get_tz
         for case in ['dateutil/Europe/Brussels', 'dateutil/Asia/Tokyo',
                      'dateutil/US/Pacific']:
             p = Period('1/1/2005', freq='M').to_timestamp(
                 tz=maybe_get_tz(case))
             exp = Timestamp('1/1/2005', tz='UTC').tz_convert(case)
             assert p == exp
-            assert p.tz == gettz(case.split('/', 1)[1])
+            assert p.tz == dateutil_gettz(case.split('/', 1)[1])
             assert p.tz == exp.tz
 
             p = Period('1/1/2005',
                        freq='M').to_timestamp(freq='3H', tz=maybe_get_tz(case))
             exp = Timestamp('1/1/2005', tz='UTC').tz_convert(case)
             assert p == exp
-            assert p.tz == gettz(case.split('/', 1)[1])
+            assert p.tz == dateutil_gettz(case.split('/', 1)[1])
             assert p.tz == exp.tz
 
     def test_timestamp_tz_arg_dateutil_from_string(self):
-        from pandas._libs.tslib import _dateutil_gettz as gettz
+        from pandas._libs.tslibs.timezones import dateutil_gettz
         p = Period('1/1/2005',
                    freq='M').to_timestamp(tz='dateutil/Europe/Brussels')
-        assert p.tz == gettz('Europe/Brussels')
+        assert p.tz == dateutil_gettz('Europe/Brussels')
 
     def test_timestamp_mult(self):
         p = pd.Period('2011-01', freq='M')
@@ -512,7 +514,7 @@ class TestPeriodProperties(object):
                  "U": ["MICROSECOND", "MICROSECONDLY", "microsecond"],
                  "N": ["NANOSECOND", "NANOSECONDLY", "nanosecond"]}
 
-        msg = pd.tseries.frequencies._INVALID_FREQ_ERROR
+        msg = pd._libs.tslibs.frequencies._INVALID_FREQ_ERROR
         for exp, freqs in iteritems(cases):
             for freq in freqs:
                 with tm.assert_raises_regex(ValueError, msg):
@@ -756,7 +758,7 @@ class TestPeriodProperties(object):
         exp = Period(freq='W', year=2012, month=2, day=1)
         assert exp.days_in_month == 29
 
-        msg = pd.tseries.frequencies._INVALID_FREQ_ERROR
+        msg = pd._libs.tslibs.frequencies._INVALID_FREQ_ERROR
         with tm.assert_raises_regex(ValueError, msg):
             Period(freq='WK', year=2007, month=1, day=7)
 
@@ -886,8 +888,8 @@ class TestPeriodProperties(object):
 
     def test_badinput(self):
         pytest.raises(ValueError, Period, '-2000', 'A')
-        pytest.raises(tslib.DateParseError, Period, '0', 'A')
-        pytest.raises(tslib.DateParseError, Period, '1/1/-2000', 'A')
+        pytest.raises(DateParseError, Period, '0', 'A')
+        pytest.raises(DateParseError, Period, '1/1/-2000', 'A')
 
     def test_multiples(self):
         result1 = Period('1989', freq='2A')
@@ -1036,6 +1038,29 @@ class TestMethods(object):
 
         with tm.assert_raises_regex(TypeError, msg):
             dt1 + dt2
+
+    boxes = [lambda x: x, lambda x: pd.Series([x]), lambda x: pd.Index([x])]
+
+    @pytest.mark.parametrize('lbox', boxes)
+    @pytest.mark.parametrize('rbox', boxes)
+    def test_add_timestamp_raises(self, rbox, lbox):
+        # GH # 17983
+        ts = pd.Timestamp('2017')
+        per = pd.Period('2017', freq='M')
+
+        # We may get a different message depending on which class raises
+        # the error.
+        msg = (r"cannot add|unsupported operand|"
+               r"can only operate on a|incompatible type|"
+               r"ufunc add cannot use operands")
+        with tm.assert_raises_regex(TypeError, msg):
+            lbox(ts) + rbox(per)
+
+        with tm.assert_raises_regex(TypeError, msg):
+            lbox(per) + rbox(ts)
+
+        with tm.assert_raises_regex(TypeError, msg):
+            lbox(per) + rbox(per)
 
     def test_sub(self):
         dt1 = Period('2011-01-01', freq='D')
@@ -1406,3 +1431,14 @@ class TestMethods(object):
 
         with tm.assert_raises_regex(period.IncompatibleFrequency, msg):
             p - offsets.Hour(2)
+
+
+def test_period_immutable():
+    # see gh-17116
+    per = pd.Period('2014Q1')
+    with pytest.raises(AttributeError):
+        per.ordinal = 14
+
+    freq = per.freq
+    with pytest.raises(AttributeError):
+        per.freq = 2 * freq

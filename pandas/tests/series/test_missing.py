@@ -11,18 +11,22 @@ from numpy import nan
 import numpy as np
 import pandas as pd
 
-from pandas import (Series, DataFrame, isnull, date_range,
-                    MultiIndex, Index, Timestamp, NaT, IntervalIndex)
+from pandas import (Series, DataFrame, isna, date_range,
+                    MultiIndex, Index, Timestamp, NaT, IntervalIndex,
+                    Categorical)
 from pandas.compat import range
 from pandas._libs.tslib import iNaT
+from pandas.core.series import remove_na
 from pandas.util.testing import assert_series_equal, assert_frame_equal
 import pandas.util.testing as tm
+import pandas.util._test_decorators as td
 
 from .common import TestData
 
 try:
     import scipy
-    _is_scipy_ge_0190 = scipy.__version__ >= LooseVersion('0.19.0')
+    _is_scipy_ge_0190 = (LooseVersion(scipy.__version__) >=
+                         LooseVersion('0.19.0'))
 except:
     _is_scipy_ge_0190 = False
 
@@ -50,16 +54,21 @@ def _simple_ts(start, end, freq='D'):
 
 class TestSeriesMissingData(TestData):
 
+    def test_remove_na_deprecation(self):
+        # see gh-16971
+        with tm.assert_produces_warning(FutureWarning):
+            remove_na(Series([]))
+
     def test_timedelta_fillna(self):
         # GH 3371
-        s = Series([Timestamp('20130101'), Timestamp('20130101'), Timestamp(
-            '20130102'), Timestamp('20130103 9:01:01')])
+        s = Series([Timestamp('20130101'), Timestamp('20130101'),
+                    Timestamp('20130102'), Timestamp('20130103 9:01:01')])
         td = s.diff()
 
         # reg fillna
         result = td.fillna(0)
-        expected = Series([timedelta(0), timedelta(0), timedelta(1), timedelta(
-            days=1, seconds=9 * 3600 + 60 + 1)])
+        expected = Series([timedelta(0), timedelta(0), timedelta(1),
+                           timedelta(days=1, seconds=9 * 3600 + 60 + 1)])
         assert_series_equal(result, expected)
 
         # interprested as seconds
@@ -69,8 +78,9 @@ class TestSeriesMissingData(TestData):
         assert_series_equal(result, expected)
 
         result = td.fillna(timedelta(days=1, seconds=1))
-        expected = Series([timedelta(days=1, seconds=1), timedelta(
-            0), timedelta(1), timedelta(days=1, seconds=9 * 3600 + 60 + 1)])
+        expected = Series([timedelta(days=1, seconds=1), timedelta(0),
+                           timedelta(1),
+                           timedelta(days=1, seconds=9 * 3600 + 60 + 1)])
         assert_series_equal(result, expected)
 
         result = td.fillna(np.timedelta64(int(1e9)))
@@ -138,6 +148,7 @@ class TestSeriesMissingData(TestData):
         assert_series_equal(result, expected)
 
     def test_datetime64_tz_fillna(self):
+
         for tz in ['US/Eastern', 'Asia/Tokyo']:
             # DatetimeBlock
             s = Series([Timestamp('2011-01-01 10:00'), pd.NaT,
@@ -151,7 +162,7 @@ class TestSeriesMissingData(TestData):
                                Timestamp('2011-01-02 10:00')])
             tm.assert_series_equal(expected, result)
             # check s is not changed
-            tm.assert_series_equal(pd.isnull(s), null_loc)
+            tm.assert_series_equal(pd.isna(s), null_loc)
 
             result = s.fillna(pd.Timestamp('2011-01-02 10:00', tz=tz))
             expected = Series([Timestamp('2011-01-01 10:00'),
@@ -159,14 +170,14 @@ class TestSeriesMissingData(TestData):
                                Timestamp('2011-01-03 10:00'),
                                Timestamp('2011-01-02 10:00', tz=tz)])
             tm.assert_series_equal(expected, result)
-            tm.assert_series_equal(pd.isnull(s), null_loc)
+            tm.assert_series_equal(pd.isna(s), null_loc)
 
             result = s.fillna('AAA')
             expected = Series([Timestamp('2011-01-01 10:00'), 'AAA',
                                Timestamp('2011-01-03 10:00'), 'AAA'],
                               dtype=object)
             tm.assert_series_equal(expected, result)
-            tm.assert_series_equal(pd.isnull(s), null_loc)
+            tm.assert_series_equal(pd.isna(s), null_loc)
 
             result = s.fillna({1: pd.Timestamp('2011-01-02 10:00', tz=tz),
                                3: pd.Timestamp('2011-01-04 10:00')})
@@ -175,7 +186,7 @@ class TestSeriesMissingData(TestData):
                                Timestamp('2011-01-03 10:00'),
                                Timestamp('2011-01-04 10:00')])
             tm.assert_series_equal(expected, result)
-            tm.assert_series_equal(pd.isnull(s), null_loc)
+            tm.assert_series_equal(pd.isna(s), null_loc)
 
             result = s.fillna({1: pd.Timestamp('2011-01-02 10:00'),
                                3: pd.Timestamp('2011-01-04 10:00')})
@@ -184,14 +195,14 @@ class TestSeriesMissingData(TestData):
                                Timestamp('2011-01-03 10:00'),
                                Timestamp('2011-01-04 10:00')])
             tm.assert_series_equal(expected, result)
-            tm.assert_series_equal(pd.isnull(s), null_loc)
+            tm.assert_series_equal(pd.isna(s), null_loc)
 
             # DatetimeBlockTZ
             idx = pd.DatetimeIndex(['2011-01-01 10:00', pd.NaT,
                                     '2011-01-03 10:00', pd.NaT], tz=tz)
             s = pd.Series(idx)
             assert s.dtype == 'datetime64[ns, {0}]'.format(tz)
-            tm.assert_series_equal(pd.isnull(s), null_loc)
+            tm.assert_series_equal(pd.isna(s), null_loc)
 
             result = s.fillna(pd.Timestamp('2011-01-02 10:00'))
             expected = Series([Timestamp('2011-01-01 10:00', tz=tz),
@@ -199,7 +210,7 @@ class TestSeriesMissingData(TestData):
                                Timestamp('2011-01-03 10:00', tz=tz),
                                Timestamp('2011-01-02 10:00')])
             tm.assert_series_equal(expected, result)
-            tm.assert_series_equal(pd.isnull(s), null_loc)
+            tm.assert_series_equal(pd.isna(s), null_loc)
 
             result = s.fillna(pd.Timestamp('2011-01-02 10:00', tz=tz))
             idx = pd.DatetimeIndex(['2011-01-01 10:00', '2011-01-02 10:00',
@@ -207,7 +218,7 @@ class TestSeriesMissingData(TestData):
                                    tz=tz)
             expected = Series(idx)
             tm.assert_series_equal(expected, result)
-            tm.assert_series_equal(pd.isnull(s), null_loc)
+            tm.assert_series_equal(pd.isna(s), null_loc)
 
             result = s.fillna(pd.Timestamp('2011-01-02 10:00',
                                            tz=tz).to_pydatetime())
@@ -216,14 +227,14 @@ class TestSeriesMissingData(TestData):
                                    tz=tz)
             expected = Series(idx)
             tm.assert_series_equal(expected, result)
-            tm.assert_series_equal(pd.isnull(s), null_loc)
+            tm.assert_series_equal(pd.isna(s), null_loc)
 
             result = s.fillna('AAA')
             expected = Series([Timestamp('2011-01-01 10:00', tz=tz), 'AAA',
                                Timestamp('2011-01-03 10:00', tz=tz), 'AAA'],
                               dtype=object)
             tm.assert_series_equal(expected, result)
-            tm.assert_series_equal(pd.isnull(s), null_loc)
+            tm.assert_series_equal(pd.isna(s), null_loc)
 
             result = s.fillna({1: pd.Timestamp('2011-01-02 10:00', tz=tz),
                                3: pd.Timestamp('2011-01-04 10:00')})
@@ -232,7 +243,7 @@ class TestSeriesMissingData(TestData):
                                Timestamp('2011-01-03 10:00', tz=tz),
                                Timestamp('2011-01-04 10:00')])
             tm.assert_series_equal(expected, result)
-            tm.assert_series_equal(pd.isnull(s), null_loc)
+            tm.assert_series_equal(pd.isna(s), null_loc)
 
             result = s.fillna({1: pd.Timestamp('2011-01-02 10:00', tz=tz),
                                3: pd.Timestamp('2011-01-04 10:00', tz=tz)})
@@ -241,7 +252,7 @@ class TestSeriesMissingData(TestData):
                                Timestamp('2011-01-03 10:00', tz=tz),
                                Timestamp('2011-01-04 10:00', tz=tz)])
             tm.assert_series_equal(expected, result)
-            tm.assert_series_equal(pd.isnull(s), null_loc)
+            tm.assert_series_equal(pd.isna(s), null_loc)
 
             # filling with a naive/other zone, coerce to object
             result = s.fillna(Timestamp('20130101'))
@@ -250,7 +261,7 @@ class TestSeriesMissingData(TestData):
                                Timestamp('2011-01-03 10:00', tz=tz),
                                Timestamp('2013-01-01')])
             tm.assert_series_equal(expected, result)
-            tm.assert_series_equal(pd.isnull(s), null_loc)
+            tm.assert_series_equal(pd.isna(s), null_loc)
 
             result = s.fillna(Timestamp('20130101', tz='US/Pacific'))
             expected = Series([Timestamp('2011-01-01 10:00', tz=tz),
@@ -258,7 +269,7 @@ class TestSeriesMissingData(TestData):
                                Timestamp('2011-01-03 10:00', tz=tz),
                                Timestamp('2013-01-01', tz='US/Pacific')])
             tm.assert_series_equal(expected, result)
-            tm.assert_series_equal(pd.isnull(s), null_loc)
+            tm.assert_series_equal(pd.isna(s), null_loc)
 
         # with timezone
         # GH 15855
@@ -271,6 +282,40 @@ class TestSeriesMissingData(TestData):
         exp = pd.Series([pd.Timestamp('2012-11-11 00:00:00+01:00'),
                          pd.Timestamp('2012-11-11 00:00:00+01:00')])
         assert_series_equal(df.fillna(method='bfill'), exp)
+
+    def test_fillna_consistency(self):
+        # GH 16402
+        # fillna with a tz aware to a tz-naive, should result in object
+
+        s = Series([Timestamp('20130101'), pd.NaT])
+
+        result = s.fillna(Timestamp('20130101', tz='US/Eastern'))
+        expected = Series([Timestamp('20130101'),
+                           Timestamp('2013-01-01', tz='US/Eastern')],
+                          dtype='object')
+        assert_series_equal(result, expected)
+
+        # where (we ignore the errors=)
+        result = s.where([True, False],
+                         Timestamp('20130101', tz='US/Eastern'),
+                         errors='ignore')
+        assert_series_equal(result, expected)
+
+        result = s.where([True, False],
+                         Timestamp('20130101', tz='US/Eastern'),
+                         errors='ignore')
+        assert_series_equal(result, expected)
+
+        # with a non-datetime
+        result = s.fillna('foo')
+        expected = Series([Timestamp('20130101'),
+                           'foo'])
+        assert_series_equal(result, expected)
+
+        # assignment
+        s2 = s.copy()
+        s2[1] = 'foo'
+        assert_series_equal(s2, expected)
 
     def test_datetime64tz_fillna_round_issue(self):
         # GH 14872
@@ -321,6 +366,69 @@ class TestSeriesMissingData(TestData):
                 with pytest.raises(ValueError):
                     s.fillna(1, limit=limit, method=method)
 
+    def test_categorical_nan_equality(self):
+        cat = Series(Categorical(["a", "b", "c", np.nan]))
+        exp = Series([True, True, True, False])
+        res = (cat == cat)
+        tm.assert_series_equal(res, exp)
+
+    def test_categorical_nan_handling(self):
+
+        # NaNs are represented as -1 in labels
+        s = Series(Categorical(["a", "b", np.nan, "a"]))
+        tm.assert_index_equal(s.cat.categories, Index(["a", "b"]))
+        tm.assert_numpy_array_equal(s.values.codes,
+                                    np.array([0, 1, -1, 0], dtype=np.int8))
+
+    @pytest.mark.parametrize('fill_value, expected_output', [
+        ('a', ['a', 'a', 'b', 'a', 'a']),
+        ({1: 'a', 3: 'b', 4: 'b'}, ['a', 'a', 'b', 'b', 'b']),
+        ({1: 'a'}, ['a', 'a', 'b', np.nan, np.nan]),
+        ({1: 'a', 3: 'b'}, ['a', 'a', 'b', 'b', np.nan]),
+        (Series('a'), ['a', np.nan, 'b', np.nan, np.nan]),
+        (Series('a', index=[1]), ['a', 'a', 'b', np.nan, np.nan]),
+        (Series({1: 'a', 3: 'b'}), ['a', 'a', 'b', 'b', np.nan]),
+        (Series(['a', 'b'], index=[3, 4]), ['a', np.nan, 'b', 'a', 'b'])
+    ])
+    def test_fillna_categorical(self, fill_value, expected_output):
+        # GH 17033
+        # Test fillna for a Categorical series
+        data = ['a', np.nan, 'b', np.nan, np.nan]
+        s = Series(Categorical(data, categories=['a', 'b']))
+        exp = Series(Categorical(expected_output, categories=['a', 'b']))
+        tm.assert_series_equal(s.fillna(fill_value), exp)
+
+    def test_fillna_categorical_raise(self):
+        data = ['a', np.nan, 'b', np.nan, np.nan]
+        s = Series(Categorical(data, categories=['a', 'b']))
+
+        with tm.assert_raises_regex(ValueError,
+                                    "fill value must be in categories"):
+            s.fillna('d')
+
+        with tm.assert_raises_regex(ValueError,
+                                    "fill value must be in categories"):
+            s.fillna(Series('d'))
+
+        with tm.assert_raises_regex(ValueError,
+                                    "fill value must be in categories"):
+            s.fillna({1: 'd', 3: 'a'})
+
+        with tm.assert_raises_regex(TypeError,
+                                    '"value" parameter must be a scalar or '
+                                    'dict, but you passed a "list"'):
+            s.fillna(['a', 'b'])
+
+        with tm.assert_raises_regex(TypeError,
+                                    '"value" parameter must be a scalar or '
+                                    'dict, but you passed a "tuple"'):
+            s.fillna(('a', 'b'))
+
+        with tm.assert_raises_regex(TypeError,
+                                    '"value" parameter must be a scalar, dict '
+                                    'or Series, but you passed a "DataFrame"'):
+            s.fillna(DataFrame({1: ['a'], 3: ['b']}))
+
     def test_fillna_nat(self):
         series = Series([0, 1, 2, iNaT], dtype='M8[ns]')
 
@@ -358,11 +466,24 @@ class TestSeriesMissingData(TestData):
         assert_frame_equal(filled, expected)
         assert_frame_equal(filled2, expected)
 
-    def test_isnull_for_inf(self):
+    def test_isna_for_inf(self):
+        s = Series(['a', np.inf, np.nan, 1.0])
+        with pd.option_context('mode.use_inf_as_na', True):
+            r = s.isna()
+            dr = s.dropna()
+        e = Series([False, True, True, False])
+        de = Series(['a', 1.0], index=[0, 3])
+        tm.assert_series_equal(r, e)
+        tm.assert_series_equal(dr, de)
+
+    @tm.capture_stdout
+    def test_isnull_for_inf_deprecated(self):
+        # gh-17115
         s = Series(['a', np.inf, np.nan, 1.0])
         with pd.option_context('mode.use_inf_as_null', True):
-            r = s.isnull()
+            r = s.isna()
             dr = s.dropna()
+
         e = Series([False, True, True, False])
         de = Series(['a', 1.0], index=[0, 3])
         tm.assert_series_equal(r, e)
@@ -484,28 +605,28 @@ class TestSeriesMissingData(TestData):
         # nan ops on timedeltas
         td1 = td.copy()
         td1[0] = np.nan
-        assert isnull(td1[0])
+        assert isna(td1[0])
         assert td1[0].value == iNaT
         td1[0] = td[0]
-        assert not isnull(td1[0])
+        assert not isna(td1[0])
 
         td1[1] = iNaT
-        assert isnull(td1[1])
+        assert isna(td1[1])
         assert td1[1].value == iNaT
         td1[1] = td[1]
-        assert not isnull(td1[1])
+        assert not isna(td1[1])
 
         td1[2] = NaT
-        assert isnull(td1[2])
+        assert isna(td1[2])
         assert td1[2].value == iNaT
         td1[2] = td[2]
-        assert not isnull(td1[2])
+        assert not isna(td1[2])
 
         # boolean setting
         # this doesn't work, not sure numpy even supports it
         # result = td[(td>np.timedelta64(timedelta(days=3))) &
         # td<np.timedelta64(timedelta(days=7)))] = np.nan
-        # assert isnull(result).sum() == 7
+        # assert isna(result).sum() == 7
 
         # NumPy limitiation =(
 
@@ -571,24 +692,28 @@ class TestSeriesMissingData(TestData):
         ts = self.ts.copy()
         ts[::2] = np.NaN
 
-        result = ts.valid()
+        result = ts.dropna()
         assert len(result) == ts.count()
         tm.assert_series_equal(result, ts[1::2])
-        tm.assert_series_equal(result, ts[pd.notnull(ts)])
+        tm.assert_series_equal(result, ts[pd.notna(ts)])
 
-    def test_isnull(self):
+    def test_isna(self):
         ser = Series([0, 5.4, 3, nan, -0.001])
-        np.array_equal(ser.isnull(),
-                       Series([False, False, False, True, False]).values)
-        ser = Series(["hi", "", nan])
-        np.array_equal(ser.isnull(), Series([False, False, True]).values)
+        expected = Series([False, False, False, True, False])
+        tm.assert_series_equal(ser.isna(), expected)
 
-    def test_notnull(self):
-        ser = Series([0, 5.4, 3, nan, -0.001])
-        np.array_equal(ser.notnull(),
-                       Series([True, True, True, False, True]).values)
         ser = Series(["hi", "", nan])
-        np.array_equal(ser.notnull(), Series([True, True, False]).values)
+        expected = Series([False, False, True])
+        tm.assert_series_equal(ser.isna(), expected)
+
+    def test_notna(self):
+        ser = Series([0, 5.4, 3, nan, -0.001])
+        expected = Series([True, True, True, False, True])
+        tm.assert_series_equal(ser.notna(), expected)
+
+        ser = Series(["hi", "", nan])
+        expected = Series([True, True, False])
+        tm.assert_series_equal(ser.notna(), expected)
 
     def test_pad_nan(self):
         x = Series([np.nan, 1., np.nan, 3., np.nan], ['z', 'a', 'b', 'c', 'd'],
@@ -726,8 +851,8 @@ class TestSeriesInterpolateData(TestData):
         non_ts[0] = np.NaN
         pytest.raises(ValueError, non_ts.interpolate, method='time')
 
+    @td.skip_if_no_scipy
     def test_interpolate_pchip(self):
-        tm._skip_if_no_scipy()
         _skip_if_no_pchip()
 
         ser = Series(np.sort(np.random.uniform(size=100)))
@@ -739,8 +864,8 @@ class TestSeriesInterpolateData(TestData):
         # does not blow up, GH5977
         interp_s[49:51]
 
+    @td.skip_if_no_scipy
     def test_interpolate_akima(self):
-        tm._skip_if_no_scipy()
         _skip_if_no_akima()
 
         ser = Series([10, 11, 12, 13])
@@ -754,9 +879,8 @@ class TestSeriesInterpolateData(TestData):
         interp_s = ser.reindex(new_index).interpolate(method='akima')
         assert_series_equal(interp_s[1:3], expected)
 
+    @td.skip_if_no_scipy
     def test_interpolate_piecewise_polynomial(self):
-        tm._skip_if_no_scipy()
-
         ser = Series([10, 11, 12, 13])
 
         expected = Series([11.00, 11.25, 11.50, 11.75,
@@ -769,9 +893,8 @@ class TestSeriesInterpolateData(TestData):
             method='piecewise_polynomial')
         assert_series_equal(interp_s[1:3], expected)
 
+    @td.skip_if_no_scipy
     def test_interpolate_from_derivatives(self):
-        tm._skip_if_no_scipy()
-
         ser = Series([10, 11, 12, 13])
 
         expected = Series([11.00, 11.25, 11.50, 11.75,
@@ -784,19 +907,17 @@ class TestSeriesInterpolateData(TestData):
             method='from_derivatives')
         assert_series_equal(interp_s[1:3], expected)
 
-    def test_interpolate_corners(self):
+    @pytest.mark.parametrize("kwargs", [
+        {},
+        pytest.param({'method': 'polynomial', 'order': 1},
+                     marks=td.skip_if_no_scipy)
+    ])
+    def test_interpolate_corners(self, kwargs):
         s = Series([np.nan, np.nan])
-        assert_series_equal(s.interpolate(), s)
+        assert_series_equal(s.interpolate(**kwargs), s)
 
         s = Series([]).interpolate()
-        assert_series_equal(s.interpolate(), s)
-
-        tm._skip_if_no_scipy()
-        s = Series([np.nan, np.nan])
-        assert_series_equal(s.interpolate(method='polynomial', order=1), s)
-
-        s = Series([]).interpolate()
-        assert_series_equal(s.interpolate(method='polynomial', order=1), s)
+        assert_series_equal(s.interpolate(**kwargs), s)
 
     def test_interpolate_index_values(self):
         s = Series(np.nan, index=np.sort(np.random.rand(30)))
@@ -807,7 +928,7 @@ class TestSeriesInterpolateData(TestData):
         result = s.interpolate(method='index')
 
         expected = s.copy()
-        bad = isnull(expected.values)
+        bad = isna(expected.values)
         good = ~bad
         expected = Series(np.interp(vals[bad], vals[good],
                                     s.values[good]),
@@ -826,15 +947,15 @@ class TestSeriesInterpolateData(TestData):
         with pytest.raises(ValueError):
             s.interpolate(method='time')
 
-    # New interpolation tests
-    def test_nan_interpolate(self):
+    @pytest.mark.parametrize("kwargs", [
+        {},
+        pytest.param({'method': 'polynomial', 'order': 1},
+                     marks=td.skip_if_no_scipy)
+    ])
+    def test_nan_interpolate(self, kwargs):
         s = Series([0, 1, np.nan, 3])
-        result = s.interpolate()
+        result = s.interpolate(**kwargs)
         expected = Series([0., 1., 2., 3.])
-        assert_series_equal(result, expected)
-
-        tm._skip_if_no_scipy()
-        result = s.interpolate(method='polynomial', order=1)
         assert_series_equal(result, expected)
 
     def test_nan_irregular_index(self):
@@ -849,16 +970,15 @@ class TestSeriesInterpolateData(TestData):
         expected = Series([0., 1., 2., 2.], index=list('abcd'))
         assert_series_equal(result, expected)
 
+    @td.skip_if_no_scipy
     def test_interp_quad(self):
-        tm._skip_if_no_scipy()
         sq = Series([1, 4, np.nan, 16], index=[1, 2, 3, 4])
         result = sq.interpolate(method='quadratic')
         expected = Series([1., 4., 9., 16.], index=[1, 2, 3, 4])
         assert_series_equal(result, expected)
 
+    @td.skip_if_no_scipy
     def test_interp_scipy_basic(self):
-        tm._skip_if_no_scipy()
-
         s = Series([1, 3, np.nan, 12, np.nan, 25])
         # slinear
         expected = Series([1., 3., 7.5, 12., 18.5, 25.])
@@ -1059,9 +1179,8 @@ class TestSeriesInterpolateData(TestData):
                                limit_direction='both')
         assert_series_equal(result, expected)
 
+    @td.skip_if_no_scipy
     def test_interp_all_good(self):
-        # scipy
-        tm._skip_if_no_scipy()
         s = Series([1, 2, 3])
         result = s.interpolate(method='polynomial', order=1)
         assert_series_equal(result, s)
@@ -1070,7 +1189,11 @@ class TestSeriesInterpolateData(TestData):
         result = s.interpolate()
         assert_series_equal(result, s)
 
-    def test_interp_multiIndex(self):
+    @pytest.mark.parametrize("check_scipy", [
+        False,
+        pytest.param(True, marks=td.skip_if_no_scipy)
+    ])
+    def test_interp_multiIndex(self, check_scipy):
         idx = MultiIndex.from_tuples([(0, 'a'), (1, 'b'), (2, 'c')])
         s = Series([1, 2, np.nan], index=idx)
 
@@ -1079,18 +1202,18 @@ class TestSeriesInterpolateData(TestData):
         result = s.interpolate()
         assert_series_equal(result, expected)
 
-        tm._skip_if_no_scipy()
-        with pytest.raises(ValueError):
-            s.interpolate(method='polynomial', order=1)
+        if check_scipy:
+            with pytest.raises(ValueError):
+                s.interpolate(method='polynomial', order=1)
 
+    @td.skip_if_no_scipy
     def test_interp_nonmono_raise(self):
-        tm._skip_if_no_scipy()
         s = Series([1, np.nan, 3], index=[0, 2, 1])
         with pytest.raises(ValueError):
             s.interpolate(method='krogh')
 
+    @td.skip_if_no_scipy
     def test_interp_datetime64(self):
-        tm._skip_if_no_scipy()
         df = Series([1, np.nan, 3], index=date_range('1/1/2000', periods=3))
         result = df.interpolate(method='nearest')
         expected = Series([1., 1., 3.],
@@ -1104,25 +1227,22 @@ class TestSeriesInterpolateData(TestData):
         expected = s
         assert_series_equal(result, expected)
 
-    def test_no_order(self):
-        tm._skip_if_no_scipy()
+    @td.skip_if_no_scipy
+    @pytest.mark.parametrize("method", ['polynomial', 'spline'])
+    def test_no_order(self, method):
         s = Series([0, 1, np.nan, 3])
         with pytest.raises(ValueError):
-            s.interpolate(method='polynomial')
-        with pytest.raises(ValueError):
-            s.interpolate(method='spline')
+            s.interpolate(method=method)
 
+    @td.skip_if_no_scipy
     def test_spline(self):
-        tm._skip_if_no_scipy()
         s = Series([1, 2, np.nan, 4, 5, np.nan, 7])
         result = s.interpolate(method='spline', order=1)
         expected = Series([1., 2., 3., 4., 5., 6., 7.])
         assert_series_equal(result, expected)
 
+    @td.skip_if_no('scipy', min_version='0.15')
     def test_spline_extrapolate(self):
-        tm.skip_if_no_package(
-            'scipy', min_version='0.15',
-            app='setting ext on scipy.interpolate.UnivariateSpline')
         s = Series([1, 2, 3, 4, np.nan, 6, np.nan])
         result3 = s.interpolate(method='spline', order=1, ext=3)
         expected3 = Series([1., 2., 3., 4., 5., 6., 6.])
@@ -1132,25 +1252,23 @@ class TestSeriesInterpolateData(TestData):
         expected1 = Series([1., 2., 3., 4., 5., 6., 7.])
         assert_series_equal(result1, expected1)
 
+    @td.skip_if_no_scipy
     def test_spline_smooth(self):
-        tm._skip_if_no_scipy()
         s = Series([1, 2, np.nan, 4, 5.1, np.nan, 7])
         assert (s.interpolate(method='spline', order=3, s=0)[5] !=
                 s.interpolate(method='spline', order=3)[5])
 
+    @td.skip_if_no_scipy
     def test_spline_interpolation(self):
-        tm._skip_if_no_scipy()
-
         s = Series(np.arange(10) ** 2)
         s[np.random.randint(0, 9, 3)] = np.nan
         result1 = s.interpolate(method='spline', order=1)
         expected1 = s.interpolate(method='spline', order=1)
         assert_series_equal(result1, expected1)
 
+    @td.skip_if_no_scipy
     def test_spline_error(self):
         # see gh-10633
-        tm._skip_if_no_scipy()
-
         s = pd.Series(np.arange(10) ** 2)
         s[np.random.randint(0, 9, 3)] = np.nan
         with pytest.raises(ValueError):

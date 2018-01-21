@@ -11,12 +11,15 @@ from numpy.random import randn
 import numpy as np
 
 from pandas import (DataFrame, Series, Index,
-                    Timestamp, DatetimeIndex,
-                    to_datetime, date_range)
+                    Timestamp, DatetimeIndex, MultiIndex,
+                    to_datetime, date_range, period_range)
 import pandas as pd
 import pandas.tseries.offsets as offsets
 
-from pandas.util.testing import assert_series_equal, assert_frame_equal
+from pandas.util.testing import (assert_series_equal,
+                                 assert_frame_equal,
+                                 assert_index_equal,
+                                 assert_raises_regex)
 
 import pandas.util.testing as tm
 from pandas.compat import product
@@ -210,7 +213,7 @@ class TestDataFrameTimeSeriesMethods(TestData):
         unshifted = shifted.shift(-1)
         tm.assert_index_equal(shifted.index, ps.index)
         tm.assert_index_equal(unshifted.index, ps.index)
-        tm.assert_numpy_array_equal(unshifted.iloc[:, 0].valid().values,
+        tm.assert_numpy_array_equal(unshifted.iloc[:, 0].dropna().values,
                                     ps.iloc[:-1, 0].values)
 
         shifted2 = ps.shift(1, 'B')
@@ -265,6 +268,28 @@ class TestDataFrameTimeSeriesMethods(TestData):
         rs = df.shift(-1)
 
         assert_frame_equal(df, rs)
+
+    def test_shift_duplicate_columns(self):
+        # GH 9092; verify that position-based shifting works
+        # in the presence of duplicate columns
+        column_lists = [list(range(5)), [1] * 5, [1, 1, 2, 2, 1]]
+        data = np.random.randn(20, 5)
+
+        shifted = []
+        for columns in column_lists:
+            df = pd.DataFrame(data.copy(), columns=columns)
+            for s in range(5):
+                df.iloc[:, s] = df.iloc[:, s].shift(s + 1)
+            df.columns = range(5)
+            shifted.append(df)
+
+        # sanity check the base case
+        nulls = shifted[0].isna().sum()
+        assert_series_equal(nulls, Series(range(1, 6), dtype='int64'))
+
+        # check all answers are the same
+        assert_frame_equal(shifted[0], shifted[1])
+        assert_frame_equal(shifted[0], shifted[2])
 
     def test_tshift(self):
         # PeriodIndex
@@ -352,6 +377,33 @@ class TestDataFrameTimeSeriesMethods(TestData):
         truncated.values[:] = 5.
         assert not (self.tsframe.values[5:11] == 5).any()
 
+    def test_truncate_nonsortedindex(self):
+        # GH 17935
+
+        df = pd.DataFrame({'A': ['a', 'b', 'c', 'd', 'e']},
+                          index=[5, 3, 2, 9, 0])
+        with tm.assert_raises_regex(ValueError,
+                                    'truncate requires a sorted index'):
+            df.truncate(before=3, after=9)
+
+        rng = pd.date_range('2011-01-01', '2012-01-01', freq='W')
+        ts = pd.DataFrame({'A': np.random.randn(len(rng)),
+                           'B': np.random.randn(len(rng))},
+                          index=rng)
+        with tm.assert_raises_regex(ValueError,
+                                    'truncate requires a sorted index'):
+            ts.sort_values('A', ascending=False).truncate(before='2011-11',
+                                                          after='2011-12')
+
+        df = pd.DataFrame({3: np.random.randn(5),
+                           20: np.random.randn(5),
+                           2: np.random.randn(5),
+                           0: np.random.randn(5)},
+                          columns=[3, 20, 2, 0])
+        with tm.assert_raises_regex(ValueError,
+                                    'truncate requires a sorted index'):
+            df.truncate(before=2, after=20, axis=1)
+
     def test_asfreq(self):
         offset_monthly = self.tsframe.asfreq(offsets.BMonthEnd())
         rule_monthly = self.tsframe.asfreq('BM')
@@ -417,6 +469,11 @@ class TestDataFrameTimeSeriesMethods(TestData):
         empty = DataFrame()
         assert empty.last_valid_index() is None
         assert empty.first_valid_index() is None
+
+        # GH17400: no valid entries
+        frame[:] = nan
+        assert frame.last_valid_index() is None
+        assert frame.first_valid_index() is None
 
     def test_at_time_frame(self):
         rng = date_range('1/1/2000', '1/5/2000', freq='5min')
@@ -574,3 +631,85 @@ class TestDataFrameTimeSeriesMethods(TestData):
         tm.assert_index_equal(pts.columns, exp.columns.asfreq('M'))
 
         pytest.raises(ValueError, df.to_period, axis=2)
+
+    @pytest.mark.parametrize("fn", ['tz_localize', 'tz_convert'])
+    def test_tz_convert_and_localize(self, fn):
+        l0 = date_range('20140701', periods=5, freq='D')
+
+        # TODO: l1 should be a PeriodIndex for testing
+        #       after GH2106 is addressed
+        with pytest.raises(NotImplementedError):
+            period_range('20140701', periods=1).tz_convert('UTC')
+        with pytest.raises(NotImplementedError):
+            period_range('20140701', periods=1).tz_localize('UTC')
+        # l1 = period_range('20140701', periods=5, freq='D')
+        l1 = date_range('20140701', periods=5, freq='D')
+
+        int_idx = Index(range(5))
+
+        if fn == 'tz_convert':
+            l0 = l0.tz_localize('UTC')
+            l1 = l1.tz_localize('UTC')
+
+        for idx in [l0, l1]:
+
+            l0_expected = getattr(idx, fn)('US/Pacific')
+            l1_expected = getattr(idx, fn)('US/Pacific')
+
+            df1 = DataFrame(np.ones(5), index=l0)
+            df1 = getattr(df1, fn)('US/Pacific')
+            assert_index_equal(df1.index, l0_expected)
+
+            # MultiIndex
+            # GH7846
+            df2 = DataFrame(np.ones(5), MultiIndex.from_arrays([l0, l1]))
+
+            df3 = getattr(df2, fn)('US/Pacific', level=0)
+            assert not df3.index.levels[0].equals(l0)
+            assert_index_equal(df3.index.levels[0], l0_expected)
+            assert_index_equal(df3.index.levels[1], l1)
+            assert not df3.index.levels[1].equals(l1_expected)
+
+            df3 = getattr(df2, fn)('US/Pacific', level=1)
+            assert_index_equal(df3.index.levels[0], l0)
+            assert not df3.index.levels[0].equals(l0_expected)
+            assert_index_equal(df3.index.levels[1], l1_expected)
+            assert not df3.index.levels[1].equals(l1)
+
+            df4 = DataFrame(np.ones(5),
+                            MultiIndex.from_arrays([int_idx, l0]))
+
+            # TODO: untested
+            df5 = getattr(df4, fn)('US/Pacific', level=1)  # noqa
+
+            assert_index_equal(df3.index.levels[0], l0)
+            assert not df3.index.levels[0].equals(l0_expected)
+            assert_index_equal(df3.index.levels[1], l1_expected)
+            assert not df3.index.levels[1].equals(l1)
+
+        # Bad Inputs
+
+        # Not DatetimeIndex / PeriodIndex
+        with assert_raises_regex(TypeError, 'DatetimeIndex'):
+            df = DataFrame(index=int_idx)
+            df = getattr(df, fn)('US/Pacific')
+
+        # Not DatetimeIndex / PeriodIndex
+        with assert_raises_regex(TypeError, 'DatetimeIndex'):
+            df = DataFrame(np.ones(5),
+                           MultiIndex.from_arrays([int_idx, l0]))
+            df = getattr(df, fn)('US/Pacific', level=0)
+
+        # Invalid level
+        with assert_raises_regex(ValueError, 'not valid'):
+            df = DataFrame(index=l0)
+            df = getattr(df, fn)('US/Pacific', level=1)
+
+    @pytest.mark.parametrize('timestamps', [
+        [Timestamp('2012-01-01 13:00:00+00:00')] * 2,
+        [Timestamp('2012-01-01 13:00:00')] * 2])
+    def test_tz_aware_scalar_comparison(self, timestamps):
+        # Test for issue #15966
+        df = DataFrame({'test': timestamps})
+        expected = DataFrame({'test': [False, False]})
+        assert_frame_equal(df == -1, expected)

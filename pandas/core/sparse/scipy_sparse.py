@@ -71,7 +71,11 @@ def _to_ijv(ss, row_levels=(0, ), column_levels=(1, ), sort_labels=False):
             labels_to_i = Series(labels_to_i)
             if len(subset) > 1:
                 labels_to_i.index = MultiIndex.from_tuples(labels_to_i.index)
-            labels_to_i.index.names = [index.names[i] for i in subset]
+                labels_to_i.index.names = [index.names[i] for i in subset]
+            else:
+                labels_to_i.index = Index(x[0] for x in labels_to_i.index)
+                labels_to_i.index.name = index.names[subset[0]]
+
             labels_to_i.name = 'value'
             return (labels_to_i)
 
@@ -130,5 +134,5 @@ def _coo_to_sparse_series(A, dense_index=False):
         i = range(A.shape[0])
         j = range(A.shape[1])
         ind = MultiIndex.from_product([i, j])
-        s = s.reindex_axis(ind)
+        s = s.reindex(ind)
     return s

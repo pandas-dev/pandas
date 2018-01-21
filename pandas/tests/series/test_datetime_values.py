@@ -228,7 +228,7 @@ class TestSeriesDatetimeValues(TestData):
             results, list(sorted(set(ok_for_dt + ok_for_dt_methods))))
 
         s = Series(period_range('20130101', periods=5,
-                                freq='D', name='xxx').asobject)
+                                freq='D', name='xxx').astype(object))
         results = get_dir(s)
         tm.assert_almost_equal(
             results, list(sorted(set(ok_for_period + ok_for_period_methods))))
@@ -387,7 +387,7 @@ class TestSeriesDatetimeValues(TestData):
         assert result.dtype == 'timedelta64[ns]'
 
     def test_between(self):
-        s = Series(bdate_range('1/1/2000', periods=20).asobject)
+        s = Series(bdate_range('1/1/2000', periods=20).astype(object))
         s[::2] = np.nan
 
         result = s[s.between(s[3], s[17])]
@@ -409,3 +409,13 @@ class TestSeriesDatetimeValues(TestData):
                            date(2015, 11, 22)])
         assert_series_equal(s.dt.date, expected)
         assert_series_equal(s.apply(lambda x: x.date()), expected)
+
+    def test_datetime_understood(self):
+        # Ensures it doesn't fail to create the right series
+        # reported in issue#16726
+        series = pd.Series(pd.date_range("2012-01-01", periods=3))
+        offset = pd.offsets.DateOffset(days=6)
+        result = series - offset
+        expected = pd.Series(pd.to_datetime([
+            '2011-12-26', '2011-12-27', '2011-12-28']))
+        tm.assert_series_equal(result, expected)

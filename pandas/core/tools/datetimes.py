@@ -2,7 +2,14 @@ from datetime import datetime, timedelta, time
 import numpy as np
 from collections import MutableMapping
 
-from pandas._libs import lib, tslib
+from pandas._libs import tslib
+from pandas._libs.tslibs.strptime import array_strptime
+from pandas._libs.tslibs import parsing, conversion
+from pandas._libs.tslibs.parsing import (  # noqa
+    parse_time_string,
+    DateParseError,
+    _format_is_iso,
+    _guess_datetime_format)
 
 from pandas.core.dtypes.common import (
     _ensure_object,
@@ -18,172 +25,88 @@ from pandas.core.dtypes.common import (
 from pandas.core.dtypes.generic import (
     ABCIndexClass, ABCSeries,
     ABCDataFrame)
-from pandas.core.dtypes.missing import notnull
+from pandas.core.dtypes.missing import notna
 from pandas.core import algorithms
-
-import pandas.compat as compat
-
-_DATEUTIL_LEXER_SPLIT = None
-try:
-    # Since these are private methods from dateutil, it is safely imported
-    # here so in case this interface changes, pandas will just fallback
-    # to not using the functionality
-    from dateutil.parser import _timelex
-
-    if hasattr(_timelex, 'split'):
-        def _lexer_split_from_str(dt_str):
-            # The StringIO(str(_)) is for dateutil 2.2 compatibility
-            return _timelex.split(compat.StringIO(str(dt_str)))
-
-        _DATEUTIL_LEXER_SPLIT = _lexer_split_from_str
-except (ImportError, AttributeError):
-    pass
-
-
-def _infer_tzinfo(start, end):
-    def _infer(a, b):
-        tz = a.tzinfo
-        if b and b.tzinfo:
-            if not (tslib.get_timezone(tz) == tslib.get_timezone(b.tzinfo)):
-                raise AssertionError('Inputs must both have the same timezone,'
-                                     ' {0} != {1}'.format(tz, b.tzinfo))
-        return tz
-
-    tz = None
-    if start is not None:
-        tz = _infer(start, end)
-    elif end is not None:
-        tz = _infer(end, start)
-    return tz
-
-
-def _guess_datetime_format(dt_str, dayfirst=False,
-                           dt_str_parse=compat.parse_date,
-                           dt_str_split=_DATEUTIL_LEXER_SPLIT):
-    """
-    Guess the datetime format of a given datetime string.
-
-    Parameters
-    ----------
-    dt_str : string, datetime string to guess the format of
-    dayfirst : boolean, default False
-        If True parses dates with the day first, eg 20/01/2005
-        Warning: dayfirst=True is not strict, but will prefer to parse
-        with day first (this is a known bug).
-    dt_str_parse : function, defaults to `compat.parse_date` (dateutil)
-        This function should take in a datetime string and return
-        a `datetime.datetime` guess that the datetime string represents
-    dt_str_split : function, defaults to `_DATEUTIL_LEXER_SPLIT` (dateutil)
-        This function should take in a datetime string and return
-        a list of strings, the guess of the various specific parts
-        e.g. '2011/12/30' -> ['2011', '/', '12', '/', '30']
-
-    Returns
-    -------
-    ret : datetime format string (for `strftime` or `strptime`)
-    """
-    if dt_str_parse is None or dt_str_split is None:
-        return None
-
-    if not isinstance(dt_str, compat.string_types):
-        return None
-
-    day_attribute_and_format = (('day',), '%d', 2)
-
-    # attr name, format, padding (if any)
-    datetime_attrs_to_format = [
-        (('year', 'month', 'day'), '%Y%m%d', 0),
-        (('year',), '%Y', 0),
-        (('month',), '%B', 0),
-        (('month',), '%b', 0),
-        (('month',), '%m', 2),
-        day_attribute_and_format,
-        (('hour',), '%H', 2),
-        (('minute',), '%M', 2),
-        (('second',), '%S', 2),
-        (('microsecond',), '%f', 6),
-        (('second', 'microsecond'), '%S.%f', 0),
-    ]
-
-    if dayfirst:
-        datetime_attrs_to_format.remove(day_attribute_and_format)
-        datetime_attrs_to_format.insert(0, day_attribute_and_format)
-
-    try:
-        parsed_datetime = dt_str_parse(dt_str, dayfirst=dayfirst)
-    except:
-        # In case the datetime can't be parsed, its format cannot be guessed
-        return None
-
-    if parsed_datetime is None:
-        return None
-
-    try:
-        tokens = dt_str_split(dt_str)
-    except:
-        # In case the datetime string can't be split, its format cannot
-        # be guessed
-        return None
-
-    format_guess = [None] * len(tokens)
-    found_attrs = set()
-
-    for attrs, attr_format, padding in datetime_attrs_to_format:
-        # If a given attribute has been placed in the format string, skip
-        # over other formats for that same underlying attribute (IE, month
-        # can be represented in multiple different ways)
-        if set(attrs) & found_attrs:
-            continue
-
-        if all(getattr(parsed_datetime, attr) is not None for attr in attrs):
-            for i, token_format in enumerate(format_guess):
-                token_filled = tokens[i].zfill(padding)
-                if (token_format is None and
-                        token_filled == parsed_datetime.strftime(attr_format)):
-                    format_guess[i] = attr_format
-                    tokens[i] = token_filled
-                    found_attrs.update(attrs)
-                    break
-
-    # Only consider it a valid guess if we have a year, month and day
-    if len(set(['year', 'month', 'day']) & found_attrs) != 3:
-        return None
-
-    output_format = []
-    for i, guess in enumerate(format_guess):
-        if guess is not None:
-            # Either fill in the format placeholder (like %Y)
-            output_format.append(guess)
-        else:
-            # Or just the token separate (IE, the dashes in "01-01-2013")
-            try:
-                # If the token is numeric, then we likely didn't parse it
-                # properly, so our guess is wrong
-                float(tokens[i])
-                return None
-            except ValueError:
-                pass
-
-            output_format.append(tokens[i])
-
-    guessed_format = ''.join(output_format)
-
-    # rebuild string, capturing any inferred padding
-    dt_str = ''.join(tokens)
-    if parsed_datetime.strftime(guessed_format) == dt_str:
-        return guessed_format
 
 
 def _guess_datetime_format_for_array(arr, **kwargs):
     # Try to guess the format based on the first non-NaN element
-    non_nan_elements = notnull(arr).nonzero()[0]
+    non_nan_elements = notna(arr).nonzero()[0]
     if len(non_nan_elements):
         return _guess_datetime_format(arr[non_nan_elements[0]], **kwargs)
 
 
+def _maybe_cache(arg, format, cache, tz, convert_listlike):
+    """
+    Create a cache of unique dates from an array of dates
+
+    Parameters
+    ----------
+    arg : integer, float, string, datetime, list, tuple, 1-d array, Series
+    format : string
+        Strftime format to parse time
+    cache : boolean
+        True attempts to create a cache of converted values
+    tz : string
+        Timezone of the dates
+    convert_listlike : function
+        Conversion function to apply on dates
+
+    Returns
+    -------
+    cache_array : Series
+        Cache of converted, unique dates. Can be empty
+    """
+    from pandas import Series
+    cache_array = Series()
+    if cache:
+        # Perform a quicker unique check
+        from pandas import Index
+        if not Index(arg).is_unique:
+            unique_dates = algorithms.unique(arg)
+            cache_dates = convert_listlike(unique_dates, True, format, tz=tz)
+            cache_array = Series(cache_dates, index=unique_dates)
+    return cache_array
+
+
+def _convert_and_box_cache(arg, cache_array, box, errors, name=None):
+    """
+    Convert array of dates with a cache and box the result
+
+    Parameters
+    ----------
+    arg : integer, float, string, datetime, list, tuple, 1-d array, Series
+    cache_array : Series
+        Cache of converted, unique dates
+    box : boolean
+        True boxes result as an Index-like, False returns an ndarray
+    errors : string
+        'ignore' plus box=True will convert result to Index
+    name : string, default None
+        Name for a DatetimeIndex
+
+    Returns
+    -------
+    result : datetime of converted dates
+        Returns:
+
+        - Index-like if box=True
+        - ndarray if box=False
+    """
+    from pandas import Series, DatetimeIndex, Index
+    result = Series(arg).map(cache_array)
+    if box:
+        if errors == 'ignore':
+            return Index(result)
+        else:
+            return DatetimeIndex(result, name=name)
+    return result.values
+
+
 def to_datetime(arg, errors='raise', dayfirst=False, yearfirst=False,
                 utc=None, box=True, format=None, exact=True,
-                unit=None, infer_datetime_format=False, origin='unix'):
+                unit=None, infer_datetime_format=False, origin='unix',
+                cache=False):
     """
     Convert argument to datetime.
 
@@ -191,7 +114,7 @@ def to_datetime(arg, errors='raise', dayfirst=False, yearfirst=False,
     ----------
     arg : integer, float, string, datetime, list, tuple, 1-d array, Series
 
-        .. versionadded: 0.18.1
+        .. versionadded:: 0.18.1
 
            or DataFrame/dict-like
 
@@ -217,7 +140,7 @@ def to_datetime(arg, errors='raise', dayfirst=False, yearfirst=False,
         Warning: yearfirst=True is not strict, but will prefer to parse
         with year first (this is a known bug, based on dateutil beahavior).
 
-        .. versionadded: 0.16.1
+        .. versionadded:: 0.16.1
 
     utc : boolean, default None
         Return UTC DatetimeIndex if True (converting any tz-aware
@@ -255,7 +178,13 @@ def to_datetime(arg, errors='raise', dayfirst=False, yearfirst=False,
         - If Timestamp convertible, origin is set to Timestamp identified by
           origin.
 
-        .. versionadded: 0.20.0
+        .. versionadded:: 0.20.0
+    cache : boolean, default False
+        If True, use a cache of unique, converted dates to apply the datetime
+        conversion. May produce sigificant speed-up when parsing duplicate date
+        strings, especially ones with timezone offsets.
+
+        .. versionadded:: 0.23.0
 
     Returns
     -------
@@ -268,11 +197,11 @@ def to_datetime(arg, errors='raise', dayfirst=False, yearfirst=False,
 
         In case when it is not possible to return designated types (e.g. when
         any element of input is before Timestamp.min or after Timestamp.max)
-        return will have datetime.datetime type (or correspoding array/Series).
+        return will have datetime.datetime type (or corresponding
+        array/Series).
 
     Examples
     --------
-
     Assembling a datetime from multiple columns of a DataFrame. The keys can be
     common abbreviations like ['year', 'month', 'day', 'minute', 'second',
     'ms', 'us', 'ns']) or plurals of the same
@@ -335,6 +264,10 @@ def to_datetime(arg, errors='raise', dayfirst=False, yearfirst=False,
     1    1960-01-03
     2    1960-01-04
 
+    See also
+    --------
+    pandas.DataFrame.astype : Cast argument to a specified dtype.
+    pandas.to_timedelta : Convert argument to timedelta.
     """
     from pandas.core.indexes.datetimes import DatetimeIndex
 
@@ -410,8 +343,8 @@ def to_datetime(arg, errors='raise', dayfirst=False, yearfirst=False,
                 # fallback
                 if result is None:
                     try:
-                        result = tslib.array_strptime(arg, format, exact=exact,
-                                                      errors=errors)
+                        result = array_strptime(arg, format, exact=exact,
+                                                errors=errors)
                     except tslib.OutOfBoundsDatetime:
                         if errors == 'raise':
                             raise
@@ -441,7 +374,7 @@ def to_datetime(arg, errors='raise', dayfirst=False, yearfirst=False,
 
         except ValueError as e:
             try:
-                values, tz = tslib.datetime_to_datetime64(arg)
+                values, tz = conversion.datetime_to_datetime64(arg)
                 return DatetimeIndex._simple_new(values, name=name, tz=tz)
             except (ValueError, TypeError):
                 raise e
@@ -484,13 +417,18 @@ def to_datetime(arg, errors='raise', dayfirst=False, yearfirst=False,
 
         # we are going to offset back to unix / epoch time
         try:
-            offset = tslib.Timestamp(origin) - tslib.Timestamp(0)
+            offset = tslib.Timestamp(origin)
         except tslib.OutOfBoundsDatetime:
             raise tslib.OutOfBoundsDatetime(
-                "origin {} is Out of Bounds".format(origin))
+                "origin {origin} is Out of Bounds".format(origin=origin))
         except ValueError:
-            raise ValueError("origin {} cannot be converted "
-                             "to a Timestamp".format(origin))
+            raise ValueError("origin {origin} cannot be converted "
+                             "to a Timestamp".format(origin=origin))
+
+        if offset.tz is not None:
+            raise ValueError(
+                "origin offset {} must be tz-naive".format(offset))
+        offset -= tslib.Timestamp(0)
 
         # convert the offset to the unit of the arg
         # this should be lossless in terms of precision
@@ -505,15 +443,28 @@ def to_datetime(arg, errors='raise', dayfirst=False, yearfirst=False,
     if isinstance(arg, tslib.Timestamp):
         result = arg
     elif isinstance(arg, ABCSeries):
-        from pandas import Series
-        values = _convert_listlike(arg._values, False, format)
-        result = Series(values, index=arg.index, name=arg.name)
+        cache_array = _maybe_cache(arg, format, cache, tz, _convert_listlike)
+        if not cache_array.empty:
+            result = arg.map(cache_array)
+        else:
+            from pandas import Series
+            values = _convert_listlike(arg._values, True, format)
+            result = Series(values, index=arg.index, name=arg.name)
     elif isinstance(arg, (ABCDataFrame, MutableMapping)):
         result = _assemble_from_unit_mappings(arg, errors=errors)
     elif isinstance(arg, ABCIndexClass):
-        result = _convert_listlike(arg, box, format, name=arg.name)
+        cache_array = _maybe_cache(arg, format, cache, tz, _convert_listlike)
+        if not cache_array.empty:
+            result = _convert_and_box_cache(arg, cache_array, box, errors,
+                                            name=arg.name)
+        else:
+            result = _convert_listlike(arg, box, format, name=arg.name)
     elif is_list_like(arg):
-        result = _convert_listlike(arg, box, format)
+        cache_array = _maybe_cache(arg, format, cache, tz, _convert_listlike)
+        if not cache_array.empty:
+            result = _convert_and_box_cache(arg, cache_array, box, errors)
+        else:
+            result = _convert_listlike(arg, box, format)
     else:
         result = _convert_listlike(np.array([arg]), box, format)[0]
 
@@ -547,7 +498,7 @@ _unit_map = {'year': 'year',
 
 def _assemble_from_unit_mappings(arg, errors):
     """
-    assemble the unit specifed fields from the arg (DataFrame)
+    assemble the unit specified fields from the arg (DataFrame)
     Return a Series for actual parsing
 
     Parameters
@@ -586,16 +537,16 @@ def _assemble_from_unit_mappings(arg, errors):
     required = ['year', 'month', 'day']
     req = sorted(list(set(required) - set(unit_rev.keys())))
     if len(req):
-        raise ValueError("to assemble mappings requires at "
-                         "least that [year, month, day] be specified: "
-                         "[{0}] is missing".format(','.join(req)))
+        raise ValueError("to assemble mappings requires at least that "
+                         "[year, month, day] be specified: [{required}] "
+                         "is missing".format(required=','.join(req)))
 
     # keys we don't recognize
     excess = sorted(list(set(unit_rev.keys()) - set(_unit_map.values())))
     if len(excess):
         raise ValueError("extra keys have been passed "
                          "to the datetime assemblage: "
-                         "[{0}]".format(','.join(excess)))
+                         "[{excess}]".format(excess=','.join(excess)))
 
     def coerce(values):
         # we allow coercion to if errors allows
@@ -613,7 +564,7 @@ def _assemble_from_unit_mappings(arg, errors):
         values = to_datetime(values, format='%Y%m%d', errors=errors)
     except (TypeError, ValueError) as e:
         raise ValueError("cannot assemble the "
-                         "datetimes: {0}".format(e))
+                         "datetimes: {error}".format(error=e))
 
     for u in ['h', 'm', 's', 'ms', 'us', 'ns']:
         value = unit_rev.get(u)
@@ -623,8 +574,8 @@ def _assemble_from_unit_mappings(arg, errors):
                                        unit=u,
                                        errors=errors)
             except (TypeError, ValueError) as e:
-                raise ValueError("cannot assemble the datetimes "
-                                 "[{0}]: {1}".format(value, e))
+                raise ValueError("cannot assemble the datetimes [{value}]: "
+                                 "{error}".format(value=value, error=e))
 
     return values
 
@@ -643,9 +594,9 @@ def _attempt_YYYYMMDD(arg, errors):
     def calc(carg):
         # calculate the actual result
         carg = carg.astype(object)
-        parsed = lib.try_parse_year_month_day(carg / 10000,
-                                              carg / 100 % 100,
-                                              carg % 100)
+        parsed = parsing.try_parse_year_month_day(carg / 10000,
+                                                  carg / 100 % 100,
+                                                  carg % 100)
         return tslib.array_to_datetime(parsed, errors=errors)
 
     def calc_with_mask(carg, mask):
@@ -665,77 +616,19 @@ def _attempt_YYYYMMDD(arg, errors):
     # a float with actual np.nan
     try:
         carg = arg.astype(np.float64)
-        return calc_with_mask(carg, notnull(carg))
+        return calc_with_mask(carg, notna(carg))
     except:
         pass
 
     # string with NaN-like
     try:
-        mask = ~algorithms.isin(arg, list(tslib._nat_strings))
+        mask = ~algorithms.isin(arg, list(tslib.nat_strings))
         return calc_with_mask(arg, mask)
     except:
         pass
 
     return None
 
-
-def _format_is_iso(f):
-    """
-    Does format match the iso8601 set that can be handled by the C parser?
-    Generally of form YYYY-MM-DDTHH:MM:SS - date separator can be different
-    but must be consistent.  Leading 0s in dates and times are optional.
-    """
-    iso_template = '%Y{date_sep}%m{date_sep}%d{time_sep}%H:%M:%S.%f'.format
-    excluded_formats = ['%Y%m%d', '%Y%m', '%Y']
-
-    for date_sep in [' ', '/', '\\', '-', '.', '']:
-        for time_sep in [' ', 'T']:
-            if (iso_template(date_sep=date_sep,
-                             time_sep=time_sep
-                             ).startswith(f) and f not in excluded_formats):
-                return True
-    return False
-
-
-def parse_time_string(arg, freq=None, dayfirst=None, yearfirst=None):
-    """
-    Try hard to parse datetime string, leveraging dateutil plus some extra
-    goodies like quarter recognition.
-
-    Parameters
-    ----------
-    arg : compat.string_types
-    freq : str or DateOffset, default None
-        Helps with interpreting time string if supplied
-    dayfirst : bool, default None
-        If None uses default from print_config
-    yearfirst : bool, default None
-        If None uses default from print_config
-
-    Returns
-    -------
-    datetime, datetime/dateutil.parser._result, str
-    """
-    from pandas.core.config import get_option
-    if not isinstance(arg, compat.string_types):
-        return arg
-
-    from pandas.tseries.offsets import DateOffset
-    if isinstance(freq, DateOffset):
-        freq = freq.rule_code
-
-    if dayfirst is None:
-        dayfirst = get_option("display.date_dayfirst")
-    if yearfirst is None:
-        yearfirst = get_option("display.date_yearfirst")
-
-    return tslib.parse_datetime_string_with_reso(arg, freq=freq,
-                                                 dayfirst=dayfirst,
-                                                 yearfirst=yearfirst)
-
-
-DateParseError = tslib.DateParseError
-normalize_date = tslib.normalize_date
 
 # Fixed time formats for time parsing
 _time_formats = ["%H:%M", "%H%M", "%I:%M%p", "%I%M%p",
@@ -744,7 +637,7 @@ _time_formats = ["%H:%M", "%H%M", "%I:%M%p", "%I%M%p",
 
 def _guess_time_format_for_array(arr):
     # Try to guess the format based on the first non-NaN element
-    non_nan_elements = notnull(arr).nonzero()[0]
+    non_nan_elements = notna(arr).nonzero()[0]
     if len(non_nan_elements):
         element = arr[non_nan_elements[0]]
         for time_format in _time_formats:
@@ -807,8 +700,10 @@ def to_time(arg, format=None, infer_time_format=False, errors='raise'):
                     times.append(datetime.strptime(element, format).time())
                 except (ValueError, TypeError):
                     if errors == 'raise':
-                        raise ValueError("Cannot convert %s to a time with "
-                                         "given format %s" % (element, format))
+                        msg = ("Cannot convert {element} to a time with given "
+                               "format {format}").format(element=element,
+                                                         format=format)
+                        raise ValueError(msg)
                     elif errors == 'ignore':
                         return arg
                     else:
@@ -873,6 +768,7 @@ def ole2datetime(oledt):
     # Excel has a bug where it thinks the date 2/29/1900 exists
     # we just reject any date before 3/1/1900.
     if val < 61:
-        raise ValueError("Value is outside of acceptable range: %s " % val)
+        msg = "Value is outside of acceptable range: {value}".format(value=val)
+        raise ValueError(msg)
 
     return OLE_TIME_ZERO + timedelta(days=val)

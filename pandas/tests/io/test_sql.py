@@ -33,7 +33,7 @@ from datetime import datetime, date, time
 from pandas.core.dtypes.common import (
     is_object_dtype, is_datetime64_dtype,
     is_datetime64tz_dtype)
-from pandas import DataFrame, Series, Index, MultiIndex, isnull, concat
+from pandas import DataFrame, Series, Index, MultiIndex, isna, concat
 from pandas import date_range, to_datetime, to_timedelta, Timestamp
 import pandas.compat as compat
 from pandas.compat import range, lrange, string_types, PY36
@@ -88,6 +88,7 @@ SQL_STRINGS = {
                     "TextCol" TEXT,
                     "DateCol" TEXT,
                     "IntDateCol" INTEGER,
+                    "IntDateOnlyCol" INTEGER,
                     "FloatCol" REAL,
                     "IntCol" INTEGER,
                     "BoolCol" INTEGER,
@@ -98,6 +99,7 @@ SQL_STRINGS = {
                     `TextCol` TEXT,
                     `DateCol` DATETIME,
                     `IntDateCol` INTEGER,
+                    `IntDateOnlyCol` INTEGER,
                     `FloatCol` DOUBLE,
                     `IntCol` INTEGER,
                     `BoolCol` BOOLEAN,
@@ -109,6 +111,7 @@ SQL_STRINGS = {
                     "DateCol" TIMESTAMP,
                     "DateColWithTz" TIMESTAMP WITH TIME ZONE,
                     "IntDateCol" INTEGER,
+                    "IntDateOnlyCol" INTEGER,
                     "FloatCol" DOUBLE PRECISION,
                     "IntCol" INTEGER,
                     "BoolCol" BOOLEAN,
@@ -120,31 +123,33 @@ SQL_STRINGS = {
         'sqlite': {
             'query': """
                 INSERT INTO types_test_data
-                VALUES(?, ?, ?, ?, ?, ?, ?, ?)
+                VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?)
                 """,
             'fields': (
-                'TextCol', 'DateCol', 'IntDateCol', 'FloatCol',
-                'IntCol', 'BoolCol', 'IntColWithNull', 'BoolColWithNull'
+                'TextCol', 'DateCol', 'IntDateCol', 'IntDateOnlyCol',
+                'FloatCol', 'IntCol', 'BoolCol', 'IntColWithNull',
+                'BoolColWithNull'
             )
         },
         'mysql': {
             'query': """
                 INSERT INTO types_test_data
-                VALUES("%s", %s, %s, %s, %s, %s, %s, %s)
+                VALUES("%s", %s, %s, %s, %s, %s, %s, %s, %s)
                 """,
             'fields': (
-                'TextCol', 'DateCol', 'IntDateCol', 'FloatCol',
-                'IntCol', 'BoolCol', 'IntColWithNull', 'BoolColWithNull'
+                'TextCol', 'DateCol', 'IntDateCol', 'IntDateOnlyCol',
+                'FloatCol', 'IntCol', 'BoolCol', 'IntColWithNull',
+                'BoolColWithNull'
             )
         },
         'postgresql': {
             'query': """
                 INSERT INTO types_test_data
-                VALUES(%s, %s, %s, %s, %s, %s, %s, %s, %s)
+                VALUES(%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
                 """,
             'fields': (
                 'TextCol', 'DateCol', 'DateColWithTz',
-                'IntDateCol', 'FloatCol',
+                'IntDateCol', 'IntDateOnlyCol', 'FloatCol',
                 'IntCol', 'BoolCol', 'IntColWithNull', 'BoolColWithNull'
             )
         },
@@ -313,13 +318,13 @@ class PandasSQLTest(object):
         self.drop_table('types_test_data')
         self._get_exec().execute(SQL_STRINGS['create_test_types'][self.flavor])
         ins = SQL_STRINGS['insert_test_types'][self.flavor]
-
         data = [
             {
                 'TextCol': 'first',
                 'DateCol': '2000-01-03 00:00:00',
                 'DateColWithTz': '2000-01-01 00:00:00-08:00',
                 'IntDateCol': 535852800,
+                'IntDateOnlyCol': 20101010,
                 'FloatCol': 10.10,
                 'IntCol': 1,
                 'BoolCol': False,
@@ -331,6 +336,7 @@ class PandasSQLTest(object):
                 'DateCol': '2000-01-04 00:00:00',
                 'DateColWithTz': '2000-06-01 00:00:00-07:00',
                 'IntDateCol': 1356998400,
+                'IntDateOnlyCol': 20101212,
                 'FloatCol': 10.10,
                 'IntCol': 1,
                 'BoolCol': False,
@@ -602,7 +608,7 @@ class _TestSQLApi(PandasSQLTest):
         tm.equalContents(row, [5.1, 3.5, 1.4, 0.2, 'Iris-setosa'])
 
     def test_date_parsing(self):
-        # Test date parsing in read_sq
+        # Test date parsing in read_sql
         # No Parsing
         df = sql.read_sql_query("SELECT * FROM types_test_data", self.conn)
         assert not issubclass(df.DateCol.dtype.type, np.datetime64)
@@ -610,20 +616,42 @@ class _TestSQLApi(PandasSQLTest):
         df = sql.read_sql_query("SELECT * FROM types_test_data", self.conn,
                                 parse_dates=['DateCol'])
         assert issubclass(df.DateCol.dtype.type, np.datetime64)
+        assert df.DateCol.tolist() == [
+            pd.Timestamp(2000, 1, 3, 0, 0, 0),
+            pd.Timestamp(2000, 1, 4, 0, 0, 0)
+        ]
 
         df = sql.read_sql_query("SELECT * FROM types_test_data", self.conn,
                                 parse_dates={'DateCol': '%Y-%m-%d %H:%M:%S'})
         assert issubclass(df.DateCol.dtype.type, np.datetime64)
+        assert df.DateCol.tolist() == [
+            pd.Timestamp(2000, 1, 3, 0, 0, 0),
+            pd.Timestamp(2000, 1, 4, 0, 0, 0)
+        ]
 
         df = sql.read_sql_query("SELECT * FROM types_test_data", self.conn,
                                 parse_dates=['IntDateCol'])
-
         assert issubclass(df.IntDateCol.dtype.type, np.datetime64)
+        assert df.IntDateCol.tolist() == [
+            pd.Timestamp(1986, 12, 25, 0, 0, 0),
+            pd.Timestamp(2013, 1, 1, 0, 0, 0)
+        ]
 
         df = sql.read_sql_query("SELECT * FROM types_test_data", self.conn,
                                 parse_dates={'IntDateCol': 's'})
-
         assert issubclass(df.IntDateCol.dtype.type, np.datetime64)
+        assert df.IntDateCol.tolist() == [
+            pd.Timestamp(1986, 12, 25, 0, 0, 0),
+            pd.Timestamp(2013, 1, 1, 0, 0, 0)
+        ]
+
+        df = sql.read_sql_query("SELECT * FROM types_test_data", self.conn,
+                                parse_dates={'IntDateOnlyCol': '%Y%m%d'})
+        assert issubclass(df.IntDateOnlyCol.dtype.type, np.datetime64)
+        assert df.IntDateOnlyCol.tolist() == [
+            pd.Timestamp('2010-10-10'),
+            pd.Timestamp('2010-12-12')
+        ]
 
     def test_date_and_index(self):
         # Test case where same column appears in parse_date and index_col
@@ -816,6 +844,16 @@ class _TestSQLApi(PandasSQLTest):
         df = DataFrame([[1, 2], [3, 4]], columns=[u'\xe9', u'b'])
         df.to_sql('test_unicode', self.conn, index=False)
 
+    def test_escaped_table_name(self):
+        # GH 13206
+        df = DataFrame({'A': [0, 1, 2], 'B': [0.2, np.nan, 5.6]})
+        df.to_sql('d1187b08-4943-4c8d-a7f6', self.conn, index=False)
+
+        res = sql.read_sql_query('SELECT * FROM `d1187b08-4943-4c8d-a7f6`',
+                                 self.conn)
+
+        tm.assert_frame_equal(res, df)
+
 
 @pytest.mark.single
 class TestSQLApi(SQLAlchemyMixIn, _TestSQLApi):
@@ -938,6 +976,13 @@ class TestSQLApi(SQLAlchemyMixIn, _TestSQLApi):
 
         # using driver that will not be installed on Travis to trigger error
         # in sqlalchemy.create_engine -> test passing of this error to user
+        try:
+            # the rest of this test depends on pg8000's being absent
+            import pg8000  # noqa
+            pytest.skip("pg8000 is installed")
+        except ImportError:
+            pass
+
         db_uri = "postgresql+pg8000://user:pass@host/dbname"
         with tm.assert_raises_regex(ImportError, "pg8000"):
             sql.read_sql("select * from table", db_uri)
@@ -1254,11 +1299,13 @@ class _TestSQLAlchemy(SQLAlchemyMixIn, PandasSQLTest):
 
                 # "2000-01-01 00:00:00-08:00" should convert to
                 # "2000-01-01 08:00:00"
-                assert col[0] == Timestamp('2000-01-01 08:00:00', tz='UTC')
-
                 # "2000-06-01 00:00:00-07:00" should convert to
                 # "2000-06-01 07:00:00"
-                assert col[1] == Timestamp('2000-06-01 07:00:00', tz='UTC')
+                # GH 6415
+                expected_data = [Timestamp('2000-01-01 08:00:00', tz='UTC'),
+                                 Timestamp('2000-06-01 07:00:00', tz='UTC')]
+                expected = Series(expected_data, name=col.name)
+                tm.assert_series_equal(col, expected)
 
             else:
                 raise AssertionError("DateCol loaded with incorrect type "
@@ -1281,6 +1328,9 @@ class _TestSQLAlchemy(SQLAlchemyMixIn, PandasSQLTest):
                                self.conn, parse_dates=['DateColWithTz'])
         if not hasattr(df, 'DateColWithTz'):
             pytest.skip("no column with datetime with time zone")
+        col = df.DateColWithTz
+        assert is_datetime64tz_dtype(col.dtype)
+        assert str(col.dt.tz) == 'UTC'
         check(df.DateColWithTz)
 
         df = pd.concat(list(pd.read_sql_query("select * from types_test_data",
@@ -1290,9 +1340,9 @@ class _TestSQLAlchemy(SQLAlchemyMixIn, PandasSQLTest):
         assert is_datetime64tz_dtype(col.dtype)
         assert str(col.dt.tz) == 'UTC'
         expected = sql.read_sql_table("types_test_data", self.conn)
-        tm.assert_series_equal(df.DateColWithTz,
-                               expected.DateColWithTz
-                               .astype('datetime64[ns, UTC]'))
+        col = expected.DateColWithTz
+        assert is_datetime64tz_dtype(col.dtype)
+        tm.assert_series_equal(df.DateColWithTz, expected.DateColWithTz)
 
         # xref #7139
         # this might or might not be converted depending on the postgres driver
@@ -1371,8 +1421,10 @@ class _TestSQLAlchemy(SQLAlchemyMixIn, PandasSQLTest):
         df = DataFrame([date(2014, 1, 1), date(2014, 1, 2)], columns=["a"])
         df.to_sql('test_date', self.conn, index=False)
         res = read_sql_table('test_date', self.conn)
+        result = res['a']
+        expected = to_datetime(df['a'])
         # comes back as datetime64
-        tm.assert_series_equal(res['a'], to_datetime(df['a']))
+        tm.assert_series_equal(result, expected)
 
     def test_datetime_time(self):
         # test support for datetime.time
@@ -1513,7 +1565,7 @@ class _TestSQLAlchemy(SQLAlchemyMixIn, PandasSQLTest):
         assert isinstance(sqltypea, sqlalchemy.TEXT)
         assert isinstance(sqltypeb, sqlalchemy.TEXT)
 
-    def test_notnull_dtype(self):
+    def test_notna_dtype(self):
         cols = {'Bool': Series([True, None]),
                 'Date': Series([datetime(2012, 5, 1), None]),
                 'Int': Series([1, None], dtype='object'),
@@ -1521,7 +1573,7 @@ class _TestSQLAlchemy(SQLAlchemyMixIn, PandasSQLTest):
                 }
         df = DataFrame(cols)
 
-        tbl = 'notnull_dtype_test'
+        tbl = 'notna_dtype_test'
         df.to_sql(tbl, self.conn)
         returned_df = sql.read_sql_table(tbl, self.conn)  # noqa
         meta = sqlalchemy.schema.MetaData(bind=self.conn)
@@ -1988,7 +2040,7 @@ class TestSQLiteFallback(SQLiteMixIn, PandasSQLTest):
         assert self._get_sqlite_column_type(
             'single_dtype_test', 'B') == 'STRING'
 
-    def test_notnull_dtype(self):
+    def test_notna_dtype(self):
         if self.flavor == 'mysql':
             pytest.skip('Not applicable to MySQL legacy')
 
@@ -1999,7 +2051,7 @@ class TestSQLiteFallback(SQLiteMixIn, PandasSQLTest):
                 }
         df = DataFrame(cols)
 
-        tbl = 'notnull_dtype_test'
+        tbl = 'notna_dtype_test'
         df.to_sql(tbl, self.conn)
 
         assert self._get_sqlite_column_type(tbl, 'Bool') == 'INTEGER'
@@ -2052,7 +2104,7 @@ def format_query(sql, *args):
     """
     processed_args = []
     for arg in args:
-        if isinstance(arg, float) and isnull(arg):
+        if isinstance(arg, float) and isna(arg):
             arg = None
 
         formatter = _formatters[type(arg)]
@@ -2107,7 +2159,7 @@ class TestXSQLite(SQLiteMixIn):
 
         result = sql.read_sql("select * from test", con=self.conn)
         result.index = frame.index
-        tm.assert_frame_equal(result, frame)
+        tm.assert_frame_equal(result, frame, check_less_precise=True)
 
     def test_execute(self):
         frame = tm.makeTimeDataFrame()
@@ -2219,8 +2271,8 @@ class TestXSQLite(SQLiteMixIn):
         sql.to_sql(mono_df, con=self.conn, name='mono_df', index=False)
         # computing the sum via sql
         con_x = self.conn
-        the_sum = sum([my_c0[0]
-                       for my_c0 in con_x.execute("select * from mono_df")])
+        the_sum = sum(my_c0[0]
+                      for my_c0 in con_x.execute("select * from mono_df"))
         # it should not fail, and gives 3 ( Issue #3628 )
         assert the_sum == 3
 
@@ -2279,31 +2331,6 @@ class TestXSQLite(SQLiteMixIn):
         assert (tquery(sql_select, con=self.conn) ==
                 [(1, 'A'), (2, 'B'), (3, 'C'), (4, 'D'), (5, 'E')])
         clean_up(table_name)
-
-
-@pytest.mark.single
-class TestSQLFlavorDeprecation(object):
-    """
-    gh-13611: test that the 'flavor' parameter
-    is appropriately deprecated by checking the
-    functions that directly raise the warning
-    """
-
-    con = 1234  # don't need real connection for this
-    funcs = ['SQLiteDatabase', 'pandasSQL_builder']
-
-    def test_unsupported_flavor(self):
-        msg = 'is not supported'
-
-        for func in self.funcs:
-            tm.assert_raises_regex(ValueError, msg, getattr(sql, func),
-                                   self.con, flavor='mysql')
-
-    def test_deprecated_flavor(self):
-        for func in self.funcs:
-            with tm.assert_produces_warning(FutureWarning,
-                                            check_stacklevel=False):
-                getattr(sql, func)(self.con, flavor='sqlite')
 
 
 @pytest.mark.single
@@ -2392,7 +2419,7 @@ class TestXMySQL(MySQLMixIn):
 
         result = sql.read_sql("select * from test", con=self.conn)
         result.index = frame.index
-        tm.assert_frame_equal(result, frame)
+        tm.assert_frame_equal(result, frame, check_less_precise=True)
 
     def test_chunksize_read_type(self):
         _skip_if_no_pymysql()

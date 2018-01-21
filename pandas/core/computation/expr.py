@@ -189,8 +189,8 @@ _unsupported_nodes = ((_stmt_nodes | _mod_nodes | _handler_nodes |
 # and we don't want `stmt` and friends in their so get only the class whose
 # names are capitalized
 _base_supported_nodes = (_all_node_names - _unsupported_nodes) | _hacked_nodes
-_msg = 'cannot both support and not support {0}'.format(_unsupported_nodes &
-                                                        _base_supported_nodes)
+_msg = 'cannot both support and not support {intersection}'.format(
+    intersection=_unsupported_nodes & _base_supported_nodes)
 assert not _unsupported_nodes & _base_supported_nodes, _msg
 
 
@@ -200,8 +200,8 @@ def _node_not_implemented(node_name, cls):
     """
 
     def f(self, *args, **kwargs):
-        raise NotImplementedError("{0!r} nodes are not "
-                                  "implemented".format(node_name))
+        raise NotImplementedError("{name!r} nodes are not "
+                                  "implemented".format(name=node_name))
     return f
 
 
@@ -217,7 +217,7 @@ def disallow(nodes):
         cls.unsupported_nodes = ()
         for node in nodes:
             new_method = _node_not_implemented(node, cls)
-            name = 'visit_{0}'.format(node)
+            name = 'visit_{node}'.format(node=node)
             cls.unsupported_nodes += (name,)
             setattr(cls, name, new_method)
         return cls
@@ -251,13 +251,14 @@ def add_ops(op_classes):
     """Decorator to add default implementation of ops."""
     def f(cls):
         for op_attr_name, op_class in compat.iteritems(op_classes):
-            ops = getattr(cls, '{0}_ops'.format(op_attr_name))
-            ops_map = getattr(cls, '{0}_op_nodes_map'.format(op_attr_name))
+            ops = getattr(cls, '{name}_ops'.format(name=op_attr_name))
+            ops_map = getattr(cls, '{name}_op_nodes_map'.format(
+                name=op_attr_name))
             for op in ops:
                 op_node = ops_map[op]
                 if op_node is not None:
                     made_op = _op_maker(op_class, op)
-                    setattr(cls, 'visit_{0}'.format(op_node), made_op)
+                    setattr(cls, 'visit_{node}'.format(node=op_node), made_op)
         return cls
     return f
 
@@ -306,7 +307,14 @@ class BaseExprVisitor(ast.NodeVisitor):
     def visit(self, node, **kwargs):
         if isinstance(node, string_types):
             clean = self.preparser(node)
-            node = ast.fix_missing_locations(ast.parse(clean))
+            try:
+                node = ast.fix_missing_locations(ast.parse(clean))
+            except SyntaxError as e:
+                from keyword import iskeyword
+                if any(iskeyword(x) for x in clean.split()):
+                    e.msg = ("Python keyword not valid identifier"
+                             " in numexpr query")
+                raise e
 
         method = 'visit_' + node.__class__.__name__
         visitor = getattr(self, method)
@@ -360,11 +368,11 @@ class BaseExprVisitor(ast.NodeVisitor):
 
     def _maybe_downcast_constants(self, left, right):
         f32 = np.dtype(np.float32)
-        if left.isscalar and not right.isscalar and right.return_type == f32:
+        if left.is_scalar and not right.is_scalar and right.return_type == f32:
             # right is a float32 array, left is a scalar
             name = self.env.add_tmp(np.float32(left.value))
             left = self.term_type(name, self.env)
-        if right.isscalar and not left.isscalar and left.return_type == f32:
+        if right.is_scalar and not left.is_scalar and left.return_type == f32:
             # left is a float32 array, right is a scalar
             name = self.env.add_tmp(np.float32(right.value))
             right = self.term_type(name, self.env)
@@ -388,9 +396,10 @@ class BaseExprVisitor(ast.NodeVisitor):
         res = op(lhs, rhs)
 
         if res.has_invalid_return_type:
-            raise TypeError("unsupported operand type(s) for {0}:"
-                            " '{1}' and '{2}'".format(res.op, lhs.type,
-                                                      rhs.type))
+            raise TypeError("unsupported operand type(s) for {op}:"
+                            " '{lhs}' and '{rhs}'".format(op=res.op,
+                                                          lhs=lhs.type,
+                                                          rhs=rhs.type))
 
         if self.engine != 'pytables':
             if (res.op in _cmp_ops_syms and
@@ -527,7 +536,8 @@ class BaseExprVisitor(ast.NodeVisitor):
                 if isinstance(value, ast.Name) and value.id == attr:
                     return resolved
 
-        raise ValueError("Invalid Attribute context {0}".format(ctx.__name__))
+        raise ValueError("Invalid Attribute context {name}"
+                         .format(name=ctx.__name__))
 
     def visit_Call_35(self, node, side=None, **kwargs):
         """ in 3.5 the starargs attribute was changed to be more flexible,
@@ -549,7 +559,8 @@ class BaseExprVisitor(ast.NodeVisitor):
                     raise
 
         if res is None:
-            raise ValueError("Invalid function call {0}".format(node.func.id))
+            raise ValueError("Invalid function call {func}"
+                             .format(func=node.func.id))
         if hasattr(res, 'value'):
             res = res.value
 
@@ -558,8 +569,8 @@ class BaseExprVisitor(ast.NodeVisitor):
             new_args = [self.visit(arg) for arg in node.args]
 
             if node.keywords:
-                raise TypeError("Function \"{0}\" does not support keyword "
-                                "arguments".format(res.name))
+                raise TypeError("Function \"{name}\" does not support keyword "
+                                "arguments".format(name=res.name))
 
             return res(*new_args, **kwargs)
 
@@ -570,7 +581,7 @@ class BaseExprVisitor(ast.NodeVisitor):
             for key in node.keywords:
                 if not isinstance(key, ast.keyword):
                     raise ValueError("keyword error in function call "
-                                     "'{0}'".format(node.func.id))
+                                     "'{func}'".format(func=node.func.id))
 
                 if key.arg:
                     # TODO: bug?
@@ -598,7 +609,8 @@ class BaseExprVisitor(ast.NodeVisitor):
                     raise
 
         if res is None:
-            raise ValueError("Invalid function call {0}".format(node.func.id))
+            raise ValueError("Invalid function call {func}"
+                             .format(func=node.func.id))
         if hasattr(res, 'value'):
             res = res.value
 
@@ -609,8 +621,8 @@ class BaseExprVisitor(ast.NodeVisitor):
                 args += self.visit(node.starargs)
 
             if node.keywords or node.kwargs:
-                raise TypeError("Function \"{0}\" does not support keyword "
-                                "arguments".format(res.name))
+                raise TypeError("Function \"{name}\" does not support keyword "
+                                "arguments".format(name=res.name))
 
             return res(*args, **kwargs)
 
@@ -623,7 +635,7 @@ class BaseExprVisitor(ast.NodeVisitor):
             for key in node.keywords:
                 if not isinstance(key, ast.keyword):
                     raise ValueError("keyword error in function call "
-                                     "'{0}'".format(node.func.id))
+                                     "'{func}'".format(func=node.func.id))
                 keywords[key.arg] = self.visit(key.value).value
             if node.kwargs is not None:
                 keywords.update(self.visit(node.kwargs).value)

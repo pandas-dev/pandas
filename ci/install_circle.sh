@@ -64,9 +64,10 @@ fi
 # create envbuild deps
 echo "[create env: ${REQ_BUILD}]"
 time conda create -n pandas -q --file=${REQ_BUILD} || exit 1
-time conda install -n pandas pytest || exit 1
+time conda install -n pandas pytest>=3.1.0 || exit 1
 
 source activate pandas
+time pip install moto || exit 1
 
 # build but don't install
 echo "[build em]"
