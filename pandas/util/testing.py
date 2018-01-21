@@ -162,6 +162,7 @@ def round_trip_localpath(writer, reader, path=None):
     return obj
 
 
+@contextmanager
 def decompress_file(path, compression):
     """
     Open a compressed file and return a file object
@@ -194,7 +195,7 @@ def decompress_file(path, compression):
         msg = 'Unrecognized compression type: {}'.format(compression)
         raise ValueError(msg)
 
-    return f
+    yield f
 
 
 def assert_almost_equal(left, right, check_exact=False,
