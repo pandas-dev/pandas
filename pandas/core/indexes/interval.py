@@ -1152,12 +1152,17 @@ class IntervalIndex(IntervalMixin, Index):
         new_right = self.right.insert(loc, right_insert)
         return self._shallow_copy(new_left, new_right)
 
-    def _as_like_interval_index(self, other, error_msg):
+    def _as_like_interval_index(self, other):
         self._assert_can_do_setop(other)
         other = _ensure_index(other)
-        if (not isinstance(other, IntervalIndex) or
-                self.closed != other.closed):
-            raise ValueError(error_msg)
+        if not isinstance(other, IntervalIndex):
+            msg = ('the other index needs to be an IntervalIndex too, but '
+                   'was type {}').format(other.__class__.__name__)
+            raise TypeError(msg)
+        elif self.closed != other.closed:
+            msg = ('can only do set operations between two IntervalIndex '
+                   'objects that are closed on the same side')
+            raise ValueError(msg)
         return other
 
     def _concat_same_dtype(self, to_concat, name):
@@ -1296,9 +1301,7 @@ class IntervalIndex(IntervalMixin, Index):
 
     def _setop(op_name):
         def func(self, other):
-            msg = ('can only do set operations between two IntervalIndex '
-                   'objects that are closed on the same side')
-            other = self._as_like_interval_index(other, msg)
+            other = self._as_like_interval_index(other)
 
             # GH 19016: ensure set op will not return a prohibited dtype
             subtypes = [self.dtype.subtype, other.dtype.subtype]
