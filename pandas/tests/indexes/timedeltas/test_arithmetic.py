@@ -338,6 +338,22 @@ class TestTimedeltaIndexArithmetic(object):
         # don't allow division by NaT (make could in the future)
         pytest.raises(TypeError, lambda: rng / pd.NaT)
 
+    @pytest.mark.parametrize('other', [
+        np.arange(1, 11),
+        pd.Int64Index(range(1, 11)),
+        pd.UInt64Index(range(1, 11)),
+        pd.Float64Index(range(1, 11)),
+        pytest.param(pd.RangeIndex(1, 11),
+                     marks=pytest.mark.xfail(reason="RangeIndex needs to "
+                                                    "defer to TimedeltaIndex "
+                                                    "implementation"))])
+    def test_tdi_rmul_arraylike(self, other):
+        tdi = TimedeltaIndex(['1 Day'] * 10)
+        expected = timedelta_range('1 days', '10 days')
+
+        result = other * tdi
+        tm.assert_index_equal(result, expected)
+
     def test_subtraction_ops(self):
         # with datetimes/timedelta and tdi/dti
         tdi = TimedeltaIndex(['1 days', pd.NaT, '2 days'], name='foo')
