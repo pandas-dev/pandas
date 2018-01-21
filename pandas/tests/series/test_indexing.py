@@ -13,7 +13,8 @@ import pandas._libs.index as _index
 from pandas.core.dtypes.common import is_integer, is_scalar
 from pandas import (Index, Series, DataFrame, isna,
                     date_range, NaT, MultiIndex,
-                    Timestamp, DatetimeIndex, Timedelta)
+                    Timestamp, DatetimeIndex, Timedelta,
+                    Categorical)
 from pandas.core.indexing import IndexingError
 from pandas.tseries.offsets import BDay
 from pandas._libs import tslib, lib
@@ -449,6 +450,13 @@ class TestSeriesIndexing(TestData):
 
         lb = "1990-01-01 04:00:00"
         rb = "1990-01-01 07:00:00"
+        # GH#18435 strings get a pass from tzawareness compat
+        result = ts[(ts.index >= lb) & (ts.index <= rb)]
+        expected = ts[4:8]
+        assert_series_equal(result, expected)
+
+        lb = "1990-01-01 04:00:00-0500"
+        rb = "1990-01-01 07:00:00-0500"
         result = ts[(ts.index >= lb) & (ts.index <= rb)]
         expected = ts[4:8]
         assert_series_equal(result, expected)
@@ -474,6 +482,13 @@ class TestSeriesIndexing(TestData):
 
         lb = datetime(1990, 1, 1, 4)
         rb = datetime(1990, 1, 1, 7)
+        with pytest.raises(TypeError):
+            # tznaive vs tzaware comparison is invalid
+            # see GH#18376, GH#18162
+            ts[(ts.index >= lb) & (ts.index <= rb)]
+
+        lb = pd.Timestamp(datetime(1990, 1, 1, 4)).tz_localize(rng.tzinfo)
+        rb = pd.Timestamp(datetime(1990, 1, 1, 7)).tz_localize(rng.tzinfo)
         result = ts[(ts.index >= lb) & (ts.index <= rb)]
         expected = ts[4:8]
         assert_series_equal(result, expected)
@@ -545,6 +560,26 @@ class TestSeriesIndexing(TestData):
         result[ts.index[4:8]] = 0
         result[4:8] = ts[4:8]
         assert_series_equal(result, ts)
+
+    @pytest.mark.parametrize(
+        'result_1, duplicate_item, expected_1',
+        [
+            [
+                pd.Series({1: 12, 2: [1, 2, 2, 3]}), pd.Series({1: 313}),
+                pd.Series({1: 12, }, dtype=object),
+            ],
+            [
+                pd.Series({1: [1, 2, 3], 2: [1, 2, 2, 3]}),
+                pd.Series({1: [1, 2, 3]}), pd.Series({1: [1, 2, 3], }),
+            ],
+        ])
+    def test_getitem_with_duplicates_indices(
+            self, result_1, duplicate_item, expected_1):
+        # GH 17610
+        result = result_1.append(duplicate_item)
+        expected = expected_1.append(duplicate_item)
+        assert_series_equal(result[1], expected)
+        assert result[2] == result_1[2]
 
     def test_getitem_median_slice_bug(self):
         index = date_range('20090415', '20090519', freq='2B')
@@ -1595,7 +1630,7 @@ class TestSeriesIndexing(TestData):
     def test_setitem_boolean(self):
         mask = self.series > self.series.median()
 
-        # similiar indexed series
+        # similar indexed series
         result = self.series.copy()
         result[mask] = self.series * 2
         expected = self.series * 2
@@ -1647,7 +1682,7 @@ class TestSeriesIndexing(TestData):
         s[::2] = np.nan
         assert_series_equal(s, expected)
 
-        # get's coerced to float, right?
+        # gets coerced to float, right?
         expected = Series([np.nan, 1, np.nan, 0])
         s = Series([True, True, False, False])
         s[::2] = np.nan
@@ -1734,7 +1769,7 @@ class TestSeriesIndexing(TestData):
     def test_underlying_data_conversion(self):
 
         # GH 4080
-        df = DataFrame(dict((c, [1, 2, 3]) for c in ['a', 'b', 'c']))
+        df = DataFrame({c: [1, 2, 3] for c in ['a', 'b', 'c']})
         df.set_index(['a', 'b', 'c'], inplace=True)
         s = Series([1], index=[(2, 2, 2)])
         df['val'] = 0
@@ -1803,8 +1838,8 @@ class TestSeriesIndexing(TestData):
 
         # single string/tuple-like
         s = Series(range(3), index=list('abc'))
-        pytest.raises(ValueError, s.drop, 'bc')
-        pytest.raises(ValueError, s.drop, ('a', ))
+        pytest.raises(KeyError, s.drop, 'bc')
+        pytest.raises(KeyError, s.drop, ('a', ))
 
         # errors='ignore'
         s = Series(range(3), index=list('abc'))
@@ -1826,7 +1861,7 @@ class TestSeriesIndexing(TestData):
 
         # GH 16877
         s = Series([2, 3], index=[0, 1])
-        with tm.assert_raises_regex(ValueError, 'not contained in axis'):
+        with tm.assert_raises_regex(KeyError, 'not contained in axis'):
             s.drop([False, True])
 
     def test_align(self):
@@ -2092,7 +2127,7 @@ class TestSeriesIndexing(TestData):
         result = s.reindex(new_index, method='ffill')
         assert_series_equal(result, expected)
 
-        # inferrence of new dtype
+        # inference of new dtype
         s = Series([True, False, False, True], index=list('abcd'))
         new_index = 'agc'
         result = s.reindex(list(new_index)).ffill()
@@ -2237,6 +2272,31 @@ class TestSeriesIndexing(TestData):
         expected = Series([False, True, False], index=[1, 2, 3])
         assert_series_equal(result, expected)
 
+    def test_reindex_categorical(self):
+
+        index = date_range('20000101', periods=3)
+
+        # reindexing to an invalid Categorical
+        s = Series(['a', 'b', 'c'], dtype='category')
+        result = s.reindex(index)
+        expected = Series(Categorical(values=[np.nan, np.nan, np.nan],
+                                      categories=['a', 'b', 'c']))
+        expected.index = index
+        tm.assert_series_equal(result, expected)
+
+        # partial reindexing
+        expected = Series(Categorical(values=['b', 'c'], categories=['a', 'b',
+                                                                     'c']))
+        expected.index = [1, 2]
+        result = s.reindex([1, 2])
+        tm.assert_series_equal(result, expected)
+
+        expected = Series(Categorical(
+            values=['c', np.nan], categories=['a', 'b', 'c']))
+        expected.index = [2, 3]
+        result = s.reindex([2, 3])
+        tm.assert_series_equal(result, expected)
+
     def test_rename(self):
 
         # GH 17407
@@ -2336,6 +2396,41 @@ class TestSeriesIndexing(TestData):
             series[1:3] = 1
 
         assert not array.any()
+
+    def test_categorial_assigning_ops(self):
+        orig = Series(Categorical(["b", "b"], categories=["a", "b"]))
+        s = orig.copy()
+        s[:] = "a"
+        exp = Series(Categorical(["a", "a"], categories=["a", "b"]))
+        tm.assert_series_equal(s, exp)
+
+        s = orig.copy()
+        s[1] = "a"
+        exp = Series(Categorical(["b", "a"], categories=["a", "b"]))
+        tm.assert_series_equal(s, exp)
+
+        s = orig.copy()
+        s[s.index > 0] = "a"
+        exp = Series(Categorical(["b", "a"], categories=["a", "b"]))
+        tm.assert_series_equal(s, exp)
+
+        s = orig.copy()
+        s[[False, True]] = "a"
+        exp = Series(Categorical(["b", "a"], categories=["a", "b"]))
+        tm.assert_series_equal(s, exp)
+
+        s = orig.copy()
+        s.index = ["x", "y"]
+        s["y"] = "a"
+        exp = Series(Categorical(["b", "a"], categories=["a", "b"]),
+                     index=["x", "y"])
+        tm.assert_series_equal(s, exp)
+
+        # ensure that one can set something to np.nan
+        s = Series(Categorical([1, 2, 3]))
+        exp = Series(Categorical([1, np.nan, 3], categories=[1, 2, 3]))
+        s[1] = np.nan
+        tm.assert_series_equal(s, exp)
 
 
 class TestTimeSeriesDuplicates(object):

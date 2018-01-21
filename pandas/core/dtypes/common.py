@@ -4,6 +4,7 @@ import numpy as np
 from pandas.compat import (string_types, text_type, binary_type,
                            PY3, PY36)
 from pandas._libs import algos, lib
+from pandas._libs.tslibs import conversion
 from .dtypes import (CategoricalDtype, CategoricalDtypeType,
                      DatetimeTZDtype, DatetimeTZDtypeType,
                      PeriodDtype, PeriodDtypeType,
@@ -12,8 +13,8 @@ from .dtypes import (CategoricalDtype, CategoricalDtypeType,
 from .generic import (ABCCategorical, ABCPeriodIndex,
                       ABCDatetimeIndex, ABCSeries,
                       ABCSparseArray, ABCSparseSeries, ABCCategoricalIndex,
-                      ABCIndexClass)
-from .inference import is_string_like
+                      ABCIndexClass, ABCDateOffset)
+from .inference import is_string_like, is_list_like
 from .inference import *  # noqa
 
 
@@ -21,8 +22,8 @@ _POSSIBLY_CAST_DTYPES = set([np.dtype(t).name
                              for t in ['O', 'int8', 'uint8', 'int16', 'uint16',
                                        'int32', 'uint32', 'int64', 'uint64']])
 
-_NS_DTYPE = np.dtype('M8[ns]')
-_TD_DTYPE = np.dtype('m8[ns]')
+_NS_DTYPE = conversion.NS_DTYPE
+_TD_DTYPE = conversion.TD_DTYPE
 _INT64_DTYPE = np.dtype(np.int64)
 
 # oh the troubles to reduce import time
@@ -30,6 +31,9 @@ _is_scipy_sparse = None
 
 _ensure_float64 = algos.ensure_float64
 _ensure_float32 = algos.ensure_float32
+
+_ensure_datetime64ns = conversion.ensure_datetime64ns
+_ensure_timedelta64ns = conversion.ensure_timedelta64ns
 
 
 def _ensure_float(arr):
@@ -264,6 +268,37 @@ def is_datetimetz(arr):
     return ((isinstance(arr, ABCDatetimeIndex) and
              getattr(arr, 'tz', None) is not None) or
             is_datetime64tz_dtype(arr))
+
+
+def is_offsetlike(arr_or_obj):
+    """
+    Check if obj or all elements of list-like is DateOffset
+
+    Parameters
+    ----------
+    arr_or_obj : object
+
+    Returns
+    -------
+    boolean : Whether the object is a DateOffset or listlike of DatetOffsets
+
+    Examples
+    --------
+    >>> is_offsetlike(pd.DateOffset(days=1))
+    True
+    >>> is_offsetlike('offset')
+    False
+    >>> is_offsetlike([pd.offsets.Minute(4), pd.offsets.MonthEnd()])
+    True
+    >>> is_offsetlike(np.array([pd.DateOffset(months=3), pd.Timestamp.now()]))
+    False
+    """
+    if isinstance(arr_or_obj, ABCDateOffset):
+        return True
+    elif (is_list_like(arr_or_obj) and len(arr_or_obj) and
+          is_object_dtype(arr_or_obj)):
+        return all(isinstance(x, ABCDateOffset) for x in arr_or_obj)
+    return False
 
 
 def is_period(arr):
@@ -727,10 +762,9 @@ def is_dtype_union_equal(source, target):
 
 
 def is_any_int_dtype(arr_or_dtype):
-    """
-    DEPRECATED: This function will be removed in a future version.
+    """Check whether the provided array or dtype is of an integer dtype.
 
-    Check whether the provided array or dtype is of an integer dtype.
+    .. deprecated:: 0.20.0
 
     In this function, timedelta64 instances are also considered "any-integer"
     type objects and will return True.
@@ -1526,11 +1560,10 @@ def is_float_dtype(arr_or_dtype):
 
 
 def is_floating_dtype(arr_or_dtype):
-    """
-    DEPRECATED: This function will be removed in a future version.
-
-    Check whether the provided array or dtype is an instance of
+    """Check whether the provided array or dtype is an instance of
     numpy's float dtype.
+
+    .. deprecated:: 0.20.0
 
     Unlike, `is_float_dtype`, this check is a lot stricter, as it requires
     `isinstance` of `np.floating` and not `issubclass`.
@@ -1934,7 +1967,7 @@ def pandas_dtype(dtype):
             except TypeError:
                 pass
 
-        elif dtype.startswith('interval[') or dtype.startswith('Interval['):
+        elif dtype.startswith('interval') or dtype.startswith('Interval'):
             try:
                 return IntervalDtype.construct_from_string(dtype)
             except TypeError:

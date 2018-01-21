@@ -7,6 +7,7 @@ from datetime import datetime
 
 from itertools import product
 import pandas as pd
+from pandas.errors import NullFrequencyError
 import pandas._libs.tslib as tslib
 from pandas._libs.tslibs.offsets import shift_months
 import pandas.util.testing as tm
@@ -51,7 +52,7 @@ class TestDatetimeIndexOps(Ops):
         assert s.day == 10
         pytest.raises(AttributeError, lambda: s.weekday)
 
-    def test_asobject_tolist(self):
+    def test_astype_object(self):
         idx = pd.date_range(start='2013-01-01', periods=4, freq='M',
                             name='idx')
         expected_list = [Timestamp('2013-01-31'),
@@ -59,7 +60,7 @@ class TestDatetimeIndexOps(Ops):
                          Timestamp('2013-03-31'),
                          Timestamp('2013-04-30')]
         expected = pd.Index(expected_list, dtype=object, name='idx')
-        result = idx.asobject
+        result = idx.astype(object)
         assert isinstance(result, Index)
 
         assert result.dtype == object
@@ -74,7 +75,7 @@ class TestDatetimeIndexOps(Ops):
                          Timestamp('2013-03-31', tz='Asia/Tokyo'),
                          Timestamp('2013-04-30', tz='Asia/Tokyo')]
         expected = pd.Index(expected_list, dtype=object, name='idx')
-        result = idx.asobject
+        result = idx.astype(object)
         assert isinstance(result, Index)
         assert result.dtype == object
         tm.assert_index_equal(result, expected)
@@ -87,7 +88,7 @@ class TestDatetimeIndexOps(Ops):
                          Timestamp('2013-01-02'), pd.NaT,
                          Timestamp('2013-01-04')]
         expected = pd.Index(expected_list, dtype=object, name='idx')
-        result = idx.asobject
+        result = idx.astype(object)
         assert isinstance(result, Index)
         assert result.dtype == object
         tm.assert_index_equal(result, expected)
@@ -161,7 +162,7 @@ class TestDatetimeIndexOps(Ops):
             tm.assert_index_equal(rng.round(freq='H'), expected_rng)
             assert elt.round(freq='H') == expected_elt
 
-            msg = pd.tseries.frequencies._INVALID_FREQ_ERROR
+            msg = pd._libs.tslibs.frequencies._INVALID_FREQ_ERROR
             with tm.assert_raises_regex(ValueError, msg):
                 rng.round(freq='foo')
             with tm.assert_raises_regex(ValueError, msg):
@@ -384,32 +385,6 @@ class TestDatetimeIndexOps(Ops):
                                     tz=tz)
                 assert idx.resolution == expected
 
-    def test_comp_nat(self):
-        left = pd.DatetimeIndex([pd.Timestamp('2011-01-01'), pd.NaT,
-                                 pd.Timestamp('2011-01-03')])
-        right = pd.DatetimeIndex([pd.NaT, pd.NaT, pd.Timestamp('2011-01-03')])
-
-        for l, r in [(left, right), (left.asobject, right.asobject)]:
-            result = l == r
-            expected = np.array([False, False, True])
-            tm.assert_numpy_array_equal(result, expected)
-
-            result = l != r
-            expected = np.array([True, True, False])
-            tm.assert_numpy_array_equal(result, expected)
-
-            expected = np.array([False, False, False])
-            tm.assert_numpy_array_equal(l == pd.NaT, expected)
-            tm.assert_numpy_array_equal(pd.NaT == r, expected)
-
-            expected = np.array([True, True, True])
-            tm.assert_numpy_array_equal(l != pd.NaT, expected)
-            tm.assert_numpy_array_equal(pd.NaT != l, expected)
-
-            expected = np.array([False, False, False])
-            tm.assert_numpy_array_equal(l < pd.NaT, expected)
-            tm.assert_numpy_array_equal(pd.NaT > l, expected)
-
     def test_value_counts_unique(self):
         # GH 7735
         for tz in self.tz:
@@ -592,6 +567,12 @@ class TestDatetimeIndexOps(Ops):
         exp = np.array([tslib.iNaT] * 5, dtype=np.int64)
         tm.assert_numpy_array_equal(result, exp)
 
+    def test_shift_no_freq(self):
+        # GH#19147
+        dti = pd.DatetimeIndex(['2011-01-01 10:00', '2011-01-01'], freq=None)
+        with pytest.raises(NullFrequencyError):
+            dti.shift(2)
+
     def test_shift(self):
         # GH 9903
         for tz in self.tz:
@@ -608,6 +589,29 @@ class TestDatetimeIndexOps(Ops):
             exp = pd.DatetimeIndex(['2011-01-01 07:00', '2011-01-01 08:00'
                                     '2011-01-01 09:00'], name='xxx', tz=tz)
             tm.assert_index_equal(idx.shift(-3, freq='H'), exp)
+
+    # TODO: moved from test_datetimelike; de-duplicate with test_shift above
+    def test_shift2(self):
+        # test shift for datetimeIndex and non datetimeIndex
+        # GH8083
+        drange = pd.date_range('20130101', periods=5)
+        result = drange.shift(1)
+        expected = pd.DatetimeIndex(['2013-01-02', '2013-01-03', '2013-01-04',
+                                     '2013-01-05',
+                                     '2013-01-06'], freq='D')
+        tm.assert_index_equal(result, expected)
+
+        result = drange.shift(-1)
+        expected = pd.DatetimeIndex(['2012-12-31', '2013-01-01', '2013-01-02',
+                                     '2013-01-03', '2013-01-04'],
+                                    freq='D')
+        tm.assert_index_equal(result, expected)
+
+        result = drange.shift(3, freq='2D')
+        expected = pd.DatetimeIndex(['2013-01-07', '2013-01-08', '2013-01-09',
+                                     '2013-01-10',
+                                     '2013-01-11'], freq='D')
+        tm.assert_index_equal(result, expected)
 
     def test_nat(self):
         assert pd.DatetimeIndex._na_value is pd.NaT
@@ -636,9 +640,9 @@ class TestDatetimeIndexOps(Ops):
             idx = pd.DatetimeIndex(['2011-01-01', '2011-01-02', 'NaT'])
             assert idx.equals(idx)
             assert idx.equals(idx.copy())
-            assert idx.equals(idx.asobject)
-            assert idx.asobject.equals(idx)
-            assert idx.asobject.equals(idx.asobject)
+            assert idx.equals(idx.astype(object))
+            assert idx.astype(object).equals(idx)
+            assert idx.astype(object).equals(idx.astype(object))
             assert not idx.equals(list(idx))
             assert not idx.equals(pd.Series(idx))
 
@@ -646,8 +650,8 @@ class TestDatetimeIndexOps(Ops):
                                     tz='US/Pacific')
             assert not idx.equals(idx2)
             assert not idx.equals(idx2.copy())
-            assert not idx.equals(idx2.asobject)
-            assert not idx.asobject.equals(idx2)
+            assert not idx.equals(idx2.astype(object))
+            assert not idx.astype(object).equals(idx2)
             assert not idx.equals(list(idx2))
             assert not idx.equals(pd.Series(idx2))
 
@@ -656,8 +660,8 @@ class TestDatetimeIndexOps(Ops):
             tm.assert_numpy_array_equal(idx.asi8, idx3.asi8)
             assert not idx.equals(idx3)
             assert not idx.equals(idx3.copy())
-            assert not idx.equals(idx3.asobject)
-            assert not idx.asobject.equals(idx3)
+            assert not idx.equals(idx3.astype(object))
+            assert not idx.astype(object).equals(idx3)
             assert not idx.equals(list(idx3))
             assert not idx.equals(pd.Series(idx3))
 

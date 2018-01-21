@@ -14,8 +14,12 @@ cimport util
 
 from libc.stdlib cimport malloc, free
 
-
 from numpy cimport ndarray, double_t, int64_t, float64_t
+
+from skiplist cimport (IndexableSkiplist,
+                       node_t, skiplist_t,
+                       skiplist_init, skiplist_destroy,
+                       skiplist_get, skiplist_insert, skiplist_remove)
 
 cdef np.float32_t MINfloat32 = np.NINF
 cdef np.float64_t MINfloat64 = np.NINF
@@ -30,19 +34,10 @@ cdef inline int int_min(int a, int b): return a if a <= b else b
 
 from util cimport numeric
 
-from skiplist cimport (
-    skiplist_t,
-    skiplist_init,
-    skiplist_destroy,
-    skiplist_get,
-    skiplist_insert,
-    skiplist_remove)
-
 cdef extern from "../src/headers/math.h":
-    double sqrt(double x) nogil
     int signbit(double) nogil
+    double sqrt(double x) nogil
 
-include "skiplist.pyx"
 
 # Cython implementations of rolling sum, mean, variance, skewness,
 # other statistical moment functions
@@ -225,14 +220,16 @@ cdef class VariableWindowIndexer(WindowIndexer):
     right_closed: bint
         right endpoint closedness
         True if the right endpoint is closed, False if open
-
+    floor: optional
+        unit for flooring the unit
     """
     def __init__(self, ndarray input, int64_t win, int64_t minp,
-                 bint left_closed, bint right_closed, ndarray index):
+                 bint left_closed, bint right_closed, ndarray index,
+                 object floor=None):
 
         self.is_variable = 1
         self.N = len(index)
-        self.minp = _check_minp(win, minp, self.N)
+        self.minp = _check_minp(win, minp, self.N, floor=floor)
 
         self.start = np.empty(self.N, dtype='int64')
         self.start.fill(-1)
@@ -347,7 +344,7 @@ def get_window_indexer(input, win, minp, index, closed,
 
     if index is not None:
         indexer = VariableWindowIndexer(input, win, minp, left_closed,
-                                        right_closed, index)
+                                        right_closed, index, floor)
     elif use_mock:
         indexer = MockFixedWindowIndexer(input, win, minp, left_closed,
                                          right_closed, index, floor)
@@ -446,7 +443,7 @@ def roll_sum(ndarray[double_t] input, int64_t win, int64_t minp,
              object index, object closed):
     cdef:
         double val, prev_x, sum_x = 0
-        int64_t s, e
+        int64_t s, e, range_endpoint
         int64_t nobs = 0, i, j, N
         bint is_variable
         ndarray[int64_t] start, end
@@ -454,7 +451,8 @@ def roll_sum(ndarray[double_t] input, int64_t win, int64_t minp,
 
     start, end, N, win, minp, is_variable = get_window_indexer(input, win,
                                                                minp, index,
-                                                               closed)
+                                                               closed,
+                                                               floor=0)
     output = np.empty(N, dtype=float)
 
     # for performance we are going to iterate
@@ -494,13 +492,15 @@ def roll_sum(ndarray[double_t] input, int64_t win, int64_t minp,
 
         # fixed window
 
+        range_endpoint = int_max(minp, 1) - 1
+
         with nogil:
 
-            for i in range(0, minp - 1):
+            for i in range(0, range_endpoint):
                 add_sum(input[i], &nobs, &sum_x)
                 output[i] = NaN
 
-            for i in range(minp - 1, N):
+            for i in range(range_endpoint, N):
                 val = input[i]
                 add_sum(val, &nobs, &sum_x)
 
@@ -661,9 +661,11 @@ cdef inline void add_var(double val, double *nobs, double *mean_x,
     if val == val:
         nobs[0] = nobs[0] + 1
 
-        delta = (val - mean_x[0])
+        # a part of Welford's method for the online variance-calculation
+        # https://en.wikipedia.org/wiki/Algorithms_for_calculating_variance
+        delta = val - mean_x[0]
         mean_x[0] = mean_x[0] + delta / nobs[0]
-        ssqdm_x[0] = ssqdm_x[0] + delta * (val - mean_x[0])
+        ssqdm_x[0] = ssqdm_x[0] + ((nobs[0] - 1) * delta ** 2) / nobs[0]
 
 
 cdef inline void remove_var(double val, double *nobs, double *mean_x,
@@ -675,9 +677,11 @@ cdef inline void remove_var(double val, double *nobs, double *mean_x,
     if val == val:
         nobs[0] = nobs[0] - 1
         if nobs[0]:
-            delta = (val - mean_x[0])
+            # a part of Welford's method for the online variance-calculation
+            # https://en.wikipedia.org/wiki/Algorithms_for_calculating_variance
+            delta = val - mean_x[0]
             mean_x[0] = mean_x[0] - delta / nobs[0]
-            ssqdm_x[0] = ssqdm_x[0] - delta * (val - mean_x[0])
+            ssqdm_x[0] = ssqdm_x[0] - ((nobs[0] + 1) * delta ** 2) / nobs[0]
         else:
             mean_x[0] = 0
             ssqdm_x[0] = 0
@@ -689,7 +693,7 @@ def roll_var(ndarray[double_t] input, int64_t win, int64_t minp,
     Numerically stable implementation using Welford's method.
     """
     cdef:
-        double val, prev, mean_x = 0, ssqdm_x = 0, nobs = 0, delta
+        double val, prev, mean_x = 0, ssqdm_x = 0, nobs = 0, delta, mean_x_old
         int64_t s, e
         bint is_variable
         Py_ssize_t i, j, N
@@ -749,6 +753,9 @@ def roll_var(ndarray[double_t] input, int64_t win, int64_t minp,
                 add_var(input[i], &nobs, &mean_x, &ssqdm_x)
                 output[i] = calc_var(minp, ddof, nobs, ssqdm_x)
 
+            # a part of Welford's method for the online variance-calculation
+            # https://en.wikipedia.org/wiki/Algorithms_for_calculating_variance
+
             # After the first window, observations can both be added and
             # removed
             for i from win <= i < N:
@@ -760,10 +767,12 @@ def roll_var(ndarray[double_t] input, int64_t win, int64_t minp,
 
                         # Adding one observation and removing another one
                         delta = val - prev
-                        prev -= mean_x
+                        mean_x_old = mean_x
+
                         mean_x += delta / nobs
-                        val -= mean_x
-                        ssqdm_x += (val + prev) * delta
+                        ssqdm_x += ((nobs - 1) * val
+                                    + (nobs + 1) * prev
+                                    - 2 * nobs * mean_x_old) * delta / nobs
 
                     else:
                         add_var(val, &nobs, &mean_x, &ssqdm_x)

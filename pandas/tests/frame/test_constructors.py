@@ -19,10 +19,10 @@ from pandas.compat import (lmap, long, zip, range, lrange, lzip,
 from pandas import compat
 from pandas import (DataFrame, Index, Series, isna,
                     MultiIndex, Timedelta, Timestamp,
-                    date_range)
+                    date_range, Categorical)
 import pandas as pd
-import pandas._libs.lib as lib
 import pandas.util.testing as tm
+from pandas.core.dtypes.cast import construct_1d_object_array_from_listlike
 
 from pandas.tests.frame.common import TestData
 
@@ -120,7 +120,7 @@ class TestDataFrameConstructors(TestData):
                 assert(a.dtype == d)
             if ad is None:
                 ad = dict()
-            ad.update(dict((d, a) for d, a in zipper))
+            ad.update({d: a for d, a in zipper})
             return DataFrame(ad)
 
         def _check_mixed_dtypes(df, dtypes=None):
@@ -195,6 +195,18 @@ class TestDataFrameConstructors(TestData):
         df_crawls = DataFrame(data)
         assert df_crawls['uid'].dtype == np.uint64
 
+    @pytest.mark.parametrize("values", [np.array([2**64], dtype=object),
+                                        np.array([2**65]), [2**64 + 1],
+                                        np.array([-2**63 - 4], dtype=object),
+                                        np.array([-2**64 - 1]), [-2**65 - 2]])
+    def test_constructor_int_overflow(self, values):
+        # see gh-18584
+        value = values[0]
+        result = DataFrame(values)
+
+        assert result[0].dtype == object
+        assert result[0][0] == value
+
     def test_constructor_ordereddict(self):
         import random
         nitems = 100
@@ -268,13 +280,14 @@ class TestDataFrameConstructors(TestData):
 
         # GH10856
         # dict with scalar values should raise error, even if columns passed
-        with pytest.raises(ValueError):
+        msg = 'If using all scalar values, you must pass an index'
+        with tm.assert_raises_regex(ValueError, msg):
             DataFrame({'a': 0.7})
 
-        with pytest.raises(ValueError):
+        with tm.assert_raises_regex(ValueError, msg):
             DataFrame({'a': 0.7}, columns=['a'])
 
-        with pytest.raises(ValueError):
+        with tm.assert_raises_regex(ValueError, msg):
             DataFrame({'a': 0.7}, columns=['b'])
 
     def test_constructor_multi_index(self):
@@ -315,13 +328,13 @@ class TestDataFrameConstructors(TestData):
 
         # wrong size axis labels
         with tm.assert_raises_regex(ValueError, "Shape of passed values "
-                                    "is \(3, 2\), indices "
-                                    "imply \(3, 1\)"):
+                                    r"is \(3, 2\), indices "
+                                    r"imply \(3, 1\)"):
             DataFrame(np.random.rand(2, 3), columns=['A', 'B', 'C'], index=[1])
 
         with tm.assert_raises_regex(ValueError, "Shape of passed values "
-                                    "is \(3, 2\), indices "
-                                    "imply \(2, 2\)"):
+                                    r"is \(3, 2\), indices "
+                                    r"imply \(2, 2\)"):
             DataFrame(np.random.rand(2, 3), columns=['A', 'B'], index=[1, 2])
 
         with tm.assert_raises_regex(ValueError, "If using all scalar "
@@ -349,8 +362,8 @@ class TestDataFrameConstructors(TestData):
         data = {'col1': tm.TestSubDict((x, 10.0 * x) for x in range(10)),
                 'col2': tm.TestSubDict((x, 20.0 * x) for x in range(10))}
         df = DataFrame(data)
-        refdf = DataFrame(dict((col, dict(compat.iteritems(val)))
-                               for col, val in compat.iteritems(data)))
+        refdf = DataFrame({col: dict(compat.iteritems(val))
+                           for col, val in compat.iteritems(data)})
         tm.assert_frame_equal(refdf, df)
 
         data = tm.TestSubDict(compat.iteritems(data))
@@ -413,8 +426,7 @@ class TestDataFrameConstructors(TestData):
         data = {'a': (1, 2, 3), 'b': (4, 5, 6)}
 
         result = DataFrame(data)
-        expected = DataFrame(dict((k, list(v))
-                                  for k, v in compat.iteritems(data)))
+        expected = DataFrame({k: list(v) for k, v in compat.iteritems(data)})
         tm.assert_frame_equal(result, expected, check_dtype=False)
 
     def test_constructor_dict_multiindex(self):
@@ -447,8 +459,8 @@ class TestDataFrameConstructors(TestData):
         dates_as_str = ['1984-02-19', '1988-11-06', '1989-12-03', '1990-03-15']
 
         def create_data(constructor):
-            return dict((i, {constructor(s): 2 * i})
-                        for i, s in enumerate(dates_as_str))
+            return {i: {constructor(s): 2 * i}
+                    for i, s in enumerate(dates_as_str)}
 
         data_datetime64 = create_data(np.datetime64)
         data_datetime = create_data(lambda x: datetime.strptime(x, '%Y-%m-%d'))
@@ -472,8 +484,8 @@ class TestDataFrameConstructors(TestData):
         td_as_int = [1, 2, 3, 4]
 
         def create_data(constructor):
-            return dict((i, {constructor(s): 2 * i})
-                        for i, s in enumerate(td_as_int))
+            return {i: {constructor(s): 2 * i}
+                    for i, s in enumerate(td_as_int)}
 
         data_timedelta64 = create_data(lambda x: np.timedelta64(x, 'D'))
         data_timedelta = create_data(lambda x: timedelta(days=x))
@@ -501,8 +513,8 @@ class TestDataFrameConstructors(TestData):
         assert df['b'].dtype == 'object'
 
         # list of periods
-        df = pd.DataFrame({'a': a.asobject.tolist(),
-                           'b': b.asobject.tolist()})
+        df = pd.DataFrame({'a': a.astype(object).tolist(),
+                           'b': b.astype(object).tolist()})
         assert df['a'].dtype == 'object'
         assert df['b'].dtype == 'object'
 
@@ -696,8 +708,8 @@ class TestDataFrameConstructors(TestData):
             mrecs = mrecords.fromarrays(data, names=names)
 
             # fill the comb
-            comb = dict((k, v.filled()) if hasattr(
-                v, 'filled') else (k, v) for k, v in comb)
+            comb = {k: (v.filled() if hasattr(v, 'filled') else v)
+                    for k, v in comb}
 
             expected = DataFrame(comb, columns=names)
             result = DataFrame(mrecs)
@@ -1187,7 +1199,7 @@ class TestDataFrameConstructors(TestData):
             DataFrame.from_items(row_items, orient='index')
 
         # orient='index', but thar be tuples
-        arr = lib.list_to_object_array(
+        arr = construct_1d_object_array_from_listlike(
             [('bar', 'baz')] * len(self.mixed_frame))
         self.mixed_frame['foo'] = arr
         row_items = [(idx, list(self.mixed_frame.xs(idx)))
@@ -1204,6 +1216,19 @@ class TestDataFrameConstructors(TestData):
         xp = DataFrame([[1, 2, 3], [4, 5, 6]], index=['A', 'B'],
                        columns=['one', 'two', 'three'])
         tm.assert_frame_equal(rs, xp)
+
+    def test_constructor_from_items_scalars(self):
+        # GH 17312
+        with tm.assert_raises_regex(ValueError,
+                                    r'The value in each \(key, value\) '
+                                    'pair must be an array, Series, or dict'):
+            DataFrame.from_items([('A', 1), ('B', 4)])
+
+        with tm.assert_raises_regex(ValueError,
+                                    r'The value in each \(key, value\) '
+                                    'pair must be an array, Series, or dict'):
+            DataFrame.from_items([('A', 1), ('B', 2)], columns=['col1'],
+                                 orient='index')
 
     def test_constructor_mix_series_nonseries(self):
         df = DataFrame({'A': self.frame['A'],
@@ -1537,6 +1562,79 @@ class TestDataFrameConstructors(TestData):
         assert d['a'].dtype == np.object_
         assert not d['a'][1]
 
+    def test_constructor_categorical(self):
+
+        # GH8626
+
+        # dict creation
+        df = DataFrame({'A': list('abc')}, dtype='category')
+        expected = Series(list('abc'), dtype='category', name='A')
+        tm.assert_series_equal(df['A'], expected)
+
+        # to_frame
+        s = Series(list('abc'), dtype='category')
+        result = s.to_frame()
+        expected = Series(list('abc'), dtype='category', name=0)
+        tm.assert_series_equal(result[0], expected)
+        result = s.to_frame(name='foo')
+        expected = Series(list('abc'), dtype='category', name='foo')
+        tm.assert_series_equal(result['foo'], expected)
+
+        # list-like creation
+        df = DataFrame(list('abc'), dtype='category')
+        expected = Series(list('abc'), dtype='category', name=0)
+        tm.assert_series_equal(df[0], expected)
+
+        # ndim != 1
+        df = DataFrame([Categorical(list('abc'))])
+        expected = DataFrame({0: Series(list('abc'), dtype='category')})
+        tm.assert_frame_equal(df, expected)
+
+        df = DataFrame([Categorical(list('abc')), Categorical(list('abd'))])
+        expected = DataFrame({0: Series(list('abc'), dtype='category'),
+                              1: Series(list('abd'), dtype='category')},
+                             columns=[0, 1])
+        tm.assert_frame_equal(df, expected)
+
+        # mixed
+        df = DataFrame([Categorical(list('abc')), list('def')])
+        expected = DataFrame({0: Series(list('abc'), dtype='category'),
+                              1: list('def')}, columns=[0, 1])
+        tm.assert_frame_equal(df, expected)
+
+        # invalid (shape)
+        pytest.raises(ValueError,
+                      lambda: DataFrame([Categorical(list('abc')),
+                                         Categorical(list('abdefg'))]))
+
+        # ndim > 1
+        pytest.raises(NotImplementedError,
+                      lambda: Categorical(np.array([list('abcd')])))
+
+    def test_constructor_categorical_series(self):
+
+        l = [1, 2, 3, 1]
+        exp = Series(l).astype('category')
+        res = Series(l, dtype='category')
+        tm.assert_series_equal(res, exp)
+
+        l = ["a", "b", "c", "a"]
+        exp = Series(l).astype('category')
+        res = Series(l, dtype='category')
+        tm.assert_series_equal(res, exp)
+
+        # insert into frame with different index
+        # GH 8076
+        index = date_range('20000101', periods=3)
+        expected = Series(Categorical(values=[np.nan, np.nan, np.nan],
+                                      categories=['a', 'b', 'c']))
+        expected.index = index
+
+        expected = DataFrame({'x': expected})
+        df = DataFrame(
+            {'x': Series(['a', 'b', 'c'], dtype='category')}, index=index)
+        tm.assert_frame_equal(df, expected)
+
     def test_from_records_to_records(self):
         # from numpy documentation
         arr = np.zeros((2,), dtype=('i4,f4,a10'))
@@ -1854,8 +1952,8 @@ class TestDataFrameConstructors(TestData):
         for dtype, b in compat.iteritems(blocks):
             columns.extend(b.columns)
 
-        asdict = dict((x, y) for x, y in compat.iteritems(df))
-        asdict2 = dict((x, y.values) for x, y in compat.iteritems(df))
+        asdict = {x: y for x, y in compat.iteritems(df)}
+        asdict2 = {x: y.values for x, y in compat.iteritems(df)}
 
         # dict of series & dict of ndarrays (have dtype info)
         results = []

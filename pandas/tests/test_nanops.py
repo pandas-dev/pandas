@@ -12,6 +12,7 @@ from pandas import Series, isna
 from pandas.core.dtypes.common import is_integer_dtype
 import pandas.core.nanops as nanops
 import pandas.util.testing as tm
+import pandas.util._test_decorators as td
 
 use_bn = nanops._USE_BOTTLENECK
 
@@ -181,12 +182,17 @@ class TestnanopsDataFrame(object):
                                    check_dtype=check_dtype)
 
     def check_fun_data(self, testfunc, targfunc, testarval, targarval,
-                       targarnanval, check_dtype=True, **kwargs):
+                       targarnanval, check_dtype=True, empty_targfunc=None,
+                       **kwargs):
         for axis in list(range(targarval.ndim)) + [None]:
             for skipna in [False, True]:
                 targartempval = targarval if skipna else targarnanval
-                try:
+                if skipna and empty_targfunc and isna(targartempval).all():
+                    targ = empty_targfunc(targartempval, axis=axis, **kwargs)
+                else:
                     targ = targfunc(targartempval, axis=axis, **kwargs)
+
+                try:
                     res = testfunc(testarval, axis=axis, skipna=skipna,
                                    **kwargs)
                     self.check_results(targ, res, axis,
@@ -218,10 +224,11 @@ class TestnanopsDataFrame(object):
         except ValueError:
             return
         self.check_fun_data(testfunc, targfunc, testarval2, targarval2,
-                            targarnanval2, check_dtype=check_dtype, **kwargs)
+                            targarnanval2, check_dtype=check_dtype,
+                            empty_targfunc=empty_targfunc, **kwargs)
 
     def check_fun(self, testfunc, targfunc, testar, targar=None,
-                  targarnan=None, **kwargs):
+                  targarnan=None, empty_targfunc=None, **kwargs):
         if targar is None:
             targar = testar
         if targarnan is None:
@@ -231,7 +238,8 @@ class TestnanopsDataFrame(object):
         targarnanval = getattr(self, targarnan)
         try:
             self.check_fun_data(testfunc, targfunc, testarval, targarval,
-                                targarnanval, **kwargs)
+                                targarnanval, empty_targfunc=empty_targfunc,
+                                **kwargs)
         except BaseException as exc:
             exc.args += ('testar: %s' % testar, 'targar: %s' % targar,
                          'targarnan: %s' % targarnan)
@@ -328,7 +336,8 @@ class TestnanopsDataFrame(object):
 
     def test_nansum(self):
         self.check_funs(nanops.nansum, np.sum, allow_str=False,
-                        allow_date=False, allow_tdelta=True, check_dtype=False)
+                        allow_date=False, allow_tdelta=True, check_dtype=False,
+                        empty_targfunc=np.nansum)
 
     def test_nanmean(self):
         self.check_funs(nanops.nanmean, np.mean, allow_complex=False,
@@ -381,8 +390,8 @@ class TestnanopsDataFrame(object):
                              allow_str=False, allow_date=False,
                              allow_tdelta=True, allow_obj='convert')
 
+    @td.skip_if_no('scipy', min_version='0.17.0')
     def test_nansem(self):
-        tm.skip_if_no_package('scipy', min_version='0.17.0')
         from scipy.stats import sem
         with np.errstate(invalid='ignore'):
             self.check_funs_ddof(nanops.nansem, sem, allow_complex=False,
@@ -441,8 +450,8 @@ class TestnanopsDataFrame(object):
             return 0.
         return result
 
+    @td.skip_if_no('scipy', min_version='0.17.0')
     def test_nanskew(self):
-        tm.skip_if_no_package('scipy', min_version='0.17.0')
         from scipy.stats import skew
         func = partial(self._skew_kurt_wrap, func=skew)
         with np.errstate(invalid='ignore'):
@@ -450,8 +459,8 @@ class TestnanopsDataFrame(object):
                             allow_str=False, allow_date=False,
                             allow_tdelta=False)
 
+    @td.skip_if_no('scipy', min_version='0.17.0')
     def test_nankurt(self):
-        tm.skip_if_no_package('scipy', min_version='0.17.0')
         from scipy.stats import kurtosis
         func1 = partial(kurtosis, fisher=True)
         func = partial(self._skew_kurt_wrap, func=func1)
@@ -460,9 +469,11 @@ class TestnanopsDataFrame(object):
                             allow_str=False, allow_date=False,
                             allow_tdelta=False)
 
+    @td.skip_if_no("numpy", min_version="1.10.0")
     def test_nanprod(self):
         self.check_funs(nanops.nanprod, np.prod, allow_str=False,
-                        allow_date=False, allow_tdelta=False)
+                        allow_date=False, allow_tdelta=False,
+                        empty_targfunc=np.nanprod)
 
     def check_nancorr_nancov_2d(self, checkfun, targ0, targ1, **kwargs):
         res00 = checkfun(self.arr_float_2d, self.arr_float1_2d, **kwargs)
@@ -549,8 +560,8 @@ class TestnanopsDataFrame(object):
         self.check_nancorr_nancov_1d(nanops.nancorr, targ0, targ1,
                                      method='pearson')
 
+    @td.skip_if_no_scipy
     def test_nancorr_kendall(self):
-        tm.skip_if_no_package('scipy.stats')
         from scipy.stats import kendalltau
         targ0 = kendalltau(self.arr_float_2d, self.arr_float1_2d)[0]
         targ1 = kendalltau(self.arr_float_2d.flat, self.arr_float1_2d.flat)[0]
@@ -561,8 +572,8 @@ class TestnanopsDataFrame(object):
         self.check_nancorr_nancov_1d(nanops.nancorr, targ0, targ1,
                                      method='kendall')
 
+    @td.skip_if_no_scipy
     def test_nancorr_spearman(self):
-        tm.skip_if_no_package('scipy.stats')
         from scipy.stats import spearmanr
         targ0 = spearmanr(self.arr_float_2d, self.arr_float1_2d)[0]
         targ1 = spearmanr(self.arr_float_2d.flat, self.arr_float1_2d.flat)[0]

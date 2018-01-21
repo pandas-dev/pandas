@@ -369,7 +369,7 @@ Updated PyTables Support
       df1
       df1.get_dtype_counts()
 
-- performance improvments on table writing
+- performance improvements on table writing
 - support for arbitrarily indexed dimensions
 - ``SparseSeries`` now has a ``density`` property (:issue:`2384`)
 - enable ``Series.str.strip/lstrip/rstrip`` methods to take an input argument

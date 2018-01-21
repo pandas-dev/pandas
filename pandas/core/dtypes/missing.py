@@ -316,6 +316,10 @@ def array_equivalent(left, right, strict_nan=False):
 
     # NaNs can occur in float and complex arrays.
     if is_float_dtype(left) or is_complex_dtype(left):
+
+        # empty
+        if not (np.prod(left.shape) and np.prod(right.shape)):
+            return True
         return ((left == right) | (isna(left) & isna(right))).all()
 
     # numpy will will not allow this type of datetimelike vs integer comparison
@@ -362,20 +366,21 @@ def _infer_fill_value(val):
 
 def _maybe_fill(arr, fill_value=np.nan):
     """
-    if we have a compatiable fill_value and arr dtype, then fill
+    if we have a compatible fill_value and arr dtype, then fill
     """
     if _isna_compat(arr, fill_value):
         arr.fill(fill_value)
     return arr
 
 
-def na_value_for_dtype(dtype):
+def na_value_for_dtype(dtype, compat=True):
     """
     Return a dtype compat na value
 
     Parameters
     ----------
     dtype : string / dtype
+    compat : boolean, default True
 
     Returns
     -------
@@ -389,7 +394,9 @@ def na_value_for_dtype(dtype):
     elif is_float_dtype(dtype):
         return np.nan
     elif is_integer_dtype(dtype):
-        return 0
+        if compat:
+            return 0
+        return np.nan
     elif is_bool_dtype(dtype):
         return False
     return np.nan

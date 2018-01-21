@@ -1,5 +1,5 @@
 numpy=1.9.2
-dateutil=1.5
+python-dateutil=2.5.0
 pytz=2013b
 scipy=0.14.0
 xlwt=0.7.5

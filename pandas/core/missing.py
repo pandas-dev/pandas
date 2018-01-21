@@ -127,7 +127,7 @@ def interpolate_1d(xvalues, yvalues, method='linear', limit=None,
 
     if not valid.any():
         # have to call np.asarray(xvalues) since xvalues could be an Index
-        # which cant be mutated
+        # which can't be mutated
         result = np.empty_like(np.asarray(xvalues), dtype=np.float64)
         result.fill(np.nan)
         return result
@@ -347,7 +347,7 @@ def _from_derivatives(xi, yi, x, order=None, der=0, extrapolate=False):
     import scipy
     from scipy import interpolate
 
-    if LooseVersion(scipy.__version__) < '0.18.0':
+    if LooseVersion(scipy.__version__) < LooseVersion('0.18.0'):
         try:
             method = interpolate.piecewise_polynomial_interpolate
             return method(xi, yi.reshape(-1, 1), x,

@@ -11,6 +11,7 @@ from datetime import datetime, timedelta, time
 
 import pandas as pd
 import pandas.util.testing as tm
+import pandas.util._test_decorators as td
 from pandas import compat
 from pandas import date_range, bdate_range, offsets, DatetimeIndex, Timestamp
 from pandas.tseries.offsets import (generate_range, CDay, BDay, DateOffset,
@@ -49,8 +50,8 @@ class TestTimestampEquivDateRange(object):
         ts = Timestamp('20090415', tz=pytz.timezone('US/Eastern'), freq='D')
         assert ts == stamp
 
+    @td.skip_if_windows_python_3
     def test_date_range_timestamp_equiv_explicit_dateutil(self):
-        tm._skip_if_windows_python_3()
         from pandas._libs.tslibs.timezones import dateutil_gettz as gettz
 
         rng = date_range('20090415', '20090519', tz=gettz('US/Eastern'))
@@ -290,6 +291,22 @@ class TestGenRangeGeneration(object):
         tm.assert_index_equal(result1, expected1)
         tm.assert_index_equal(result2, expected2)
 
+    dt1, dt2 = '2017-01-01', '2017-01-01'
+    tz1, tz2 = 'US/Eastern', 'Europe/London'
+
+    @pytest.mark.parametrize("start,end", [
+        (pd.Timestamp(dt1, tz=tz1), pd.Timestamp(dt2)),
+        (pd.Timestamp(dt1), pd.Timestamp(dt2, tz=tz2)),
+        (pd.Timestamp(dt1, tz=tz1), pd.Timestamp(dt2, tz=tz2)),
+        (pd.Timestamp(dt1, tz=tz2), pd.Timestamp(dt2, tz=tz1))
+    ])
+    def test_mismatching_tz_raises_err(self, start, end):
+        # issue 18488
+        with pytest.raises(TypeError):
+            pd.date_range(start, end)
+        with pytest.raises(TypeError):
+            pd.DatetimeIndex(start, end, freq=BDay())
+
 
 class TestBusinessDateRange(object):
 
@@ -385,7 +402,7 @@ class TestBusinessDateRange(object):
         assert isinstance(result, DatetimeIndex)
 
     def test_error_with_zero_monthends(self):
-        msg = 'Offset <0 \* MonthEnds> did not increment date'
+        msg = r'Offset <0 \* MonthEnds> did not increment date'
         with tm.assert_raises_regex(ValueError, msg):
             date_range('1/1/2000', '1/1/2001', freq=MonthEnd(0))
 

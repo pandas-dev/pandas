@@ -6,6 +6,7 @@ import pytest
 
 from pandas import Series, DataFrame
 import pandas.util.testing as tm
+import pandas.util._test_decorators as td
 
 import numpy as np
 from numpy.random import randn
@@ -14,9 +15,7 @@ from pandas.plotting._core import grouped_hist
 from pandas.tests.plotting.common import (TestPlotBase, _check_plot_works)
 
 
-tm._skip_if_no_mpl()
-
-
+@td.skip_if_no_mpl
 class TestSeriesPlots(TestPlotBase):
 
     def setup_method(self, method):
@@ -141,6 +140,7 @@ class TestSeriesPlots(TestPlotBase):
             self.ts.hist(ax=ax1, figure=fig2)
 
 
+@td.skip_if_no_mpl
 class TestDataFramePlots(TestPlotBase):
 
     @pytest.mark.slow
@@ -251,6 +251,7 @@ class TestDataFramePlots(TestPlotBase):
             tm.close()
 
 
+@td.skip_if_no_mpl
 class TestDataFrameGroupByPlots(TestPlotBase):
 
     @pytest.mark.slow

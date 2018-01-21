@@ -1,8 +1,5 @@
 # -*- coding: utf-8 -*-
 # cython: profile=False
-# cython: linetrace=False
-# distutils: define_macros=CYTHON_TRACE=0
-# distutils: define_macros=CYTHON_TRACE_NOGIL=0
 """
 Functions for accessing attributes of Timestamp/datetime64/datetime-like
 objects and arrays
@@ -17,10 +14,31 @@ from numpy cimport ndarray, int64_t, int32_t, int8_t
 np.import_array()
 
 
+from ccalendar cimport (get_days_in_month, is_leapyear, dayofweek,
+                        get_week_of_year)
 from np_datetime cimport (pandas_datetimestruct, pandas_timedeltastruct,
-                          dt64_to_dtstruct, td64_to_tdstruct,
-                          days_per_month_table, is_leapyear, dayofweek)
+                          dt64_to_dtstruct, td64_to_tdstruct)
 from nattype cimport NPY_NAT
+
+
+def get_time_micros(ndarray[int64_t] dtindex):
+    """
+    Return the number of microseconds in the time component of a
+    nanosecond timestamp.
+
+    Parameters
+    ----------
+    dtindex : ndarray[int64_t]
+
+    Returns
+    -------
+    micros : ndarray[int64_t]
+    """
+    cdef:
+        ndarray[int64_t] micros
+
+    micros = np.mod(dtindex, 86400000000000, dtype=np.int64) // 1000LL
+    return micros
 
 
 def build_field_sarray(ndarray[int64_t] dtindex):
@@ -121,8 +139,8 @@ def get_start_end_field(ndarray[int64_t] dtindex, object field,
         int mo_off, dom, doy, dow, ldom
 
     _month_offset = np.array(
-        [[ 0, 31, 59, 90, 120, 151, 181, 212, 243, 273, 304, 334, 365 ],
-         [ 0, 31, 60, 91, 121, 152, 182, 213, 244, 274, 305, 335, 366 ]],
+        [[0, 31, 59, 90, 120, 151, 181, 212, 243, 273, 304, 334, 365],
+         [0, 31, 60, 91, 121, 152, 182, 213, 244, 274, 305, 335, 366]],
         dtype=np.int32)
 
     count = len(dtindex)
@@ -359,11 +377,11 @@ def get_date_field(ndarray[int64_t] dtindex, object field):
         ndarray[int32_t, ndim=2] _month_offset
         int isleap, isleap_prev
         pandas_datetimestruct dts
-        int mo_off, doy, dow, woy
+        int mo_off, doy, dow
 
     _month_offset = np.array(
-        [[ 0, 31, 59, 90, 120, 151, 181, 212, 243, 273, 304, 334, 365 ],
-         [ 0, 31, 60, 91, 121, 152, 182, 213, 244, 274, 305, 335, 366 ]],
+        [[0, 31, 59, 90, 120, 151, 181, 212, 243, 273, 304, 334, 365],
+         [0, 31, 60, 91, 121, 152, 182, 213, 244, 274, 305, 335, 366]],
         dtype=np.int32 )
 
     count = len(dtindex)
@@ -487,28 +505,7 @@ def get_date_field(ndarray[int64_t] dtindex, object field):
                     continue
 
                 dt64_to_dtstruct(dtindex[i], &dts)
-                isleap = is_leapyear(dts.year)
-                isleap_prev = is_leapyear(dts.year - 1)
-                mo_off = _month_offset[isleap, dts.month - 1]
-                doy = mo_off + dts.day
-                dow = dayofweek(dts.year, dts.month, dts.day)
-
-                # estimate
-                woy = (doy - 1) - dow + 3
-                if woy >= 0:
-                    woy = woy / 7 + 1
-
-                # verify
-                if woy < 0:
-                    if (woy > -2) or (woy == -2 and isleap_prev):
-                        woy = 53
-                    else:
-                        woy = 52
-                elif woy == 53:
-                    if 31 - dts.day + dow < 3:
-                        woy = 1
-
-                out[i] = woy
+                out[i] = get_week_of_year(dts.year, dts.month, dts.day)
         return out
 
     elif field == 'q':
@@ -531,7 +528,7 @@ def get_date_field(ndarray[int64_t] dtindex, object field):
                     continue
 
                 dt64_to_dtstruct(dtindex[i], &dts)
-                out[i] = days_in_month(dts)
+                out[i] = get_days_in_month(dts.year, dts.month)
         return out
     elif field == 'is_leap_year':
         return isleapyear_arr(get_date_field(dtindex, 'Y'))
@@ -654,10 +651,6 @@ def get_timedelta_field(ndarray[int64_t] tdindex, object field):
         return out
 
     raise ValueError("Field %s not supported" % field)
-
-
-cdef inline int days_in_month(pandas_datetimestruct dts) nogil:
-    return days_per_month_table[is_leapyear(dts.year)][dts.month - 1]
 
 
 cpdef isleapyear_arr(ndarray years):

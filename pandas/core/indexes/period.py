@@ -3,17 +3,15 @@ from datetime import datetime, timedelta
 import numpy as np
 import warnings
 
-
 from pandas.core import common as com
 from pandas.core.dtypes.common import (
     is_integer,
     is_float,
-    is_object_dtype,
     is_integer_dtype,
     is_float_dtype,
     is_scalar,
     is_datetime64_dtype,
-    is_datetime64tz_dtype,
+    is_datetime64_any_dtype,
     is_timedelta64_dtype,
     is_period_dtype,
     is_bool_dtype,
@@ -31,12 +29,12 @@ from pandas.core.tools.datetimes import parse_time_string
 import pandas.tseries.offsets as offsets
 
 from pandas._libs.lib import infer_dtype
-from pandas._libs import tslib, period, index as libindex
-from pandas._libs.period import (Period, IncompatibleFrequency,
-                                 get_period_field_arr, _validate_end_alias,
-                                 _quarter_to_myear)
+from pandas._libs import tslib, index as libindex
+from pandas._libs.tslibs.period import (Period, IncompatibleFrequency,
+                                        get_period_field_arr,
+                                        _validate_end_alias, _quarter_to_myear)
 from pandas._libs.tslibs.fields import isleapyear_arr
-from pandas._libs.tslibs import resolution
+from pandas._libs.tslibs import resolution, period
 from pandas._libs.tslibs.timedeltas import delta_to_nanoseconds
 
 from pandas.core.base import _shared_docs
@@ -418,7 +416,7 @@ class PeriodIndex(DatelikeOps, DatetimeIndexOpsMixin, Int64Index):
 
     @property
     def values(self):
-        return self.asobject.values
+        return self.astype(object).values
 
     @property
     def _values(self):
@@ -428,7 +426,7 @@ class PeriodIndex(DatelikeOps, DatetimeIndexOpsMixin, Int64Index):
         if is_integer_dtype(dtype):
             return self.asi8
         else:
-            return self.asobject.values
+            return self.astype(object).values
 
     def __array_wrap__(self, result, context=None):
         """
@@ -476,7 +474,7 @@ class PeriodIndex(DatelikeOps, DatetimeIndexOpsMixin, Int64Index):
         if dtype is not None:
             return self.astype(dtype)._to_embed(keep_tz=keep_tz)
 
-        return self.asobject.values
+        return self.astype(object).values
 
     @property
     def _formatter_func(self):
@@ -505,20 +503,14 @@ class PeriodIndex(DatelikeOps, DatetimeIndexOpsMixin, Int64Index):
     @Appender(_index_shared_docs['astype'])
     def astype(self, dtype, copy=True, how='start'):
         dtype = pandas_dtype(dtype)
-        if is_object_dtype(dtype):
-            return self.asobject
-        elif is_integer_dtype(dtype):
-            if copy:
-                return self._int64index.copy()
-            else:
-                return self._int64index
-        elif is_datetime64_dtype(dtype):
-            return self.to_timestamp(how=how)
-        elif is_datetime64tz_dtype(dtype):
-            return self.to_timestamp(how=how).tz_localize(dtype.tz)
+        if is_integer_dtype(dtype):
+            return self._int64index.copy() if copy else self._int64index
+        elif is_datetime64_any_dtype(dtype):
+            tz = getattr(dtype, 'tz', None)
+            return self.to_timestamp(how=how).tz_localize(tz)
         elif is_period_dtype(dtype):
             return self.asfreq(freq=dtype.freq)
-        raise TypeError('Cannot cast PeriodIndex to dtype %s' % dtype)
+        return super(PeriodIndex, self).astype(dtype, copy=copy)
 
     @Substitution(klass='PeriodIndex')
     @Appender(_shared_docs['searchsorted'])
@@ -611,17 +603,6 @@ class PeriodIndex(DatelikeOps, DatetimeIndexOpsMixin, Int64Index):
 
         return self._simple_new(new_data, self.name, freq=freq)
 
-    def to_datetime(self, dayfirst=False):
-        """
-        .. deprecated:: 0.19.0
-           Use :meth:`to_timestamp` instead.
-
-        Cast to DatetimeIndex.
-        """
-        warnings.warn("to_datetime is deprecated. Use self.to_timestamp(...)",
-                      FutureWarning, stacklevel=2)
-        return self.to_timestamp()
-
     year = _field_accessor('year', 0, "The year of the period")
     month = _field_accessor('month', 3, "The month as January=1, December=12")
     day = _field_accessor('day', 4, "The days of the period")
@@ -656,7 +637,7 @@ class PeriodIndex(DatelikeOps, DatetimeIndexOpsMixin, Int64Index):
 
     def _mpl_repr(self):
         # how to represent ourselves to matplotlib
-        return self.asobject.values
+        return self.astype(object).values
 
     def to_timestamp(self, freq=None, how='start'):
         """
@@ -971,7 +952,7 @@ class PeriodIndex(DatelikeOps, DatetimeIndexOpsMixin, Int64Index):
 
     def insert(self, loc, item):
         if not isinstance(item, Period) or self.freq != item.freq:
-            return self.asobject.insert(loc, item)
+            return self.astype(object).insert(loc, item)
 
         idx = np.concatenate((self[:loc].asi8, np.array([item.ordinal]),
                               self[loc:].asi8))
@@ -1018,7 +999,7 @@ class PeriodIndex(DatelikeOps, DatetimeIndexOpsMixin, Int64Index):
     def _format_native_types(self, na_rep=u('NaT'), date_format=None,
                              **kwargs):
 
-        values = self.asobject.values
+        values = self.astype(object).values
 
         if date_format:
             formatter = lambda dt: dt.strftime(date_format)
@@ -1214,8 +1195,6 @@ def _make_field_arrays(*fields):
 
 def pnow(freq=None):
     # deprecation, xref #13790
-    import warnings
-
     warnings.warn("pd.pnow() and pandas.core.indexes.period.pnow() "
                   "are deprecated. Please use Period.now()",
                   FutureWarning, stacklevel=2)

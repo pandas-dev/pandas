@@ -24,20 +24,7 @@ This file is derived from NumPy 1.7. See NUMPY_LICENSE.txt
 #include "np_datetime.h"
 
 #if PY_MAJOR_VERSION >= 3
-#define PyIntObject PyLongObject
-#define PyInt_Type PyLong_Type
-#define PyInt_Check(op) PyLong_Check(op)
-#define PyInt_CheckExact(op) PyLong_CheckExact(op)
-#define PyInt_FromString PyLong_FromString
-#define PyInt_FromUnicode PyLong_FromUnicode
-#define PyInt_FromLong PyLong_FromLong
-#define PyInt_FromSize_t PyLong_FromSize_t
-#define PyInt_FromSsize_t PyLong_FromSsize_t
 #define PyInt_AsLong PyLong_AsLong
-#define PyInt_AS_LONG PyLong_AS_LONG
-#define PyInt_AsSsize_t PyLong_AsSsize_t
-#define PyInt_AsUnsignedLongMask PyLong_AsUnsignedLongMask
-#define PyInt_AsUnsignedLongLongMask PyLong_AsUnsignedLongLongMask
 #endif
 
 const pandas_datetimestruct _NS_MIN_DTS = {
@@ -331,26 +318,19 @@ int cmp_pandas_datetimestruct(const pandas_datetimestruct *a,
 /*
  *
  * Tests for and converts a Python datetime.datetime or datetime.date
- * object into a NumPy pandas_datetimestruct.
+ * object into a NumPy pandas_datetimestruct.  Uses tzinfo (if present)
+ * to convert to UTC time.
  *
  * While the C API has PyDate_* and PyDateTime_* functions, the following
  * implementation just asks for attributes, and thus supports
  * datetime duck typing. The tzinfo time zone conversion would require
  * this style of access anyway.
  *
- * 'out_bestunit' gives a suggested unit based on whether the object
- *      was a datetime.date or datetime.datetime object.
- *
- * If 'apply_tzinfo' is 1, this function uses the tzinfo to convert
- * to UTC time, otherwise it returns the struct with the local time.
- *
  * Returns -1 on error, 0 on success, and 1 (with no error set)
- * if obj doesn't have the neeeded date or datetime attributes.
+ * if obj doesn't have the needed date or datetime attributes.
  */
 int convert_pydatetime_to_datetimestruct(PyObject *obj,
-                                         pandas_datetimestruct *out,
-                                         PANDAS_DATETIMEUNIT *out_bestunit,
-                                         int apply_tzinfo) {
+                                         pandas_datetimestruct *out) {
     PyObject *tmp;
     int isleap;
 
@@ -417,10 +397,6 @@ int convert_pydatetime_to_datetimestruct(PyObject *obj,
         !PyObject_HasAttrString(obj, "minute") ||
         !PyObject_HasAttrString(obj, "second") ||
         !PyObject_HasAttrString(obj, "microsecond")) {
-        /* The best unit for date is 'D' */
-        if (out_bestunit != NULL) {
-            *out_bestunit = PANDAS_FR_D;
-        }
         return 0;
     }
 
@@ -478,7 +454,7 @@ int convert_pydatetime_to_datetimestruct(PyObject *obj,
     }
 
     /* Apply the time zone offset if it exists */
-    if (apply_tzinfo && PyObject_HasAttrString(obj, "tzinfo")) {
+    if (PyObject_HasAttrString(obj, "tzinfo")) {
         tmp = PyObject_GetAttrString(obj, "tzinfo");
         if (tmp == NULL) {
             return -1;
@@ -519,11 +495,6 @@ int convert_pydatetime_to_datetimestruct(PyObject *obj,
         }
     }
 
-    /* The resolution of Python's datetime is 'us' */
-    if (out_bestunit != NULL) {
-        *out_bestunit = PANDAS_FR_us;
-    }
-
     return 0;
 
 invalid_date:
@@ -542,54 +513,34 @@ invalid_time:
 
 npy_datetime pandas_datetimestruct_to_datetime(PANDAS_DATETIMEUNIT fr,
                                                pandas_datetimestruct *d) {
-    pandas_datetime_metadata meta;
     npy_datetime result = PANDAS_DATETIME_NAT;
 
-    meta.base = fr;
-    meta.num = 1;
-
-    convert_datetimestruct_to_datetime(&meta, d, &result);
+    convert_datetimestruct_to_datetime(fr, d, &result);
     return result;
 }
 
 void pandas_datetime_to_datetimestruct(npy_datetime val, PANDAS_DATETIMEUNIT fr,
                                        pandas_datetimestruct *result) {
-    pandas_datetime_metadata meta;
-
-    meta.base = fr;
-    meta.num = 1;
-
-    convert_datetime_to_datetimestruct(&meta, val, result);
+    convert_datetime_to_datetimestruct(fr, val, result);
 }
 
 void pandas_timedelta_to_timedeltastruct(npy_timedelta val,
                                          PANDAS_DATETIMEUNIT fr,
-                                          pandas_timedeltastruct *result) {
-  pandas_datetime_metadata meta;
-
-  meta.base = fr;
-  meta.num - 1;
-
-  convert_timedelta_to_timedeltastruct(&meta, val, result);
+                                         pandas_timedeltastruct *result) {
+    convert_timedelta_to_timedeltastruct(fr, val, result);
 }
 
-PANDAS_DATETIMEUNIT get_datetime64_unit(PyObject *obj) {
-    return (PANDAS_DATETIMEUNIT)((PyDatetimeScalarObject *)obj)->obmeta.base;
-}
 
 /*
  * Converts a datetime from a datetimestruct to a datetime based
- * on some metadata. The date is assumed to be valid.
- *
- * TODO: If meta->num is really big, there could be overflow
+ * on a metadata unit. The date is assumed to be valid.
  *
  * Returns 0 on success, -1 on failure.
  */
-int convert_datetimestruct_to_datetime(pandas_datetime_metadata *meta,
+int convert_datetimestruct_to_datetime(PANDAS_DATETIMEUNIT base,
                                        const pandas_datetimestruct *dts,
                                        npy_datetime *out) {
     npy_datetime ret;
-    PANDAS_DATETIMEUNIT base = meta->base;
 
     if (base == PANDAS_FR_Y) {
         /* Truncate to the year */
@@ -681,100 +632,15 @@ int convert_datetimestruct_to_datetime(pandas_datetime_metadata *meta,
         }
     }
 
-    /* Divide by the multiplier */
-    if (meta->num > 1) {
-        if (ret >= 0) {
-            ret /= meta->num;
-        } else {
-            ret = (ret - meta->num + 1) / meta->num;
-        }
-    }
-
     *out = ret;
 
     return 0;
 }
 
 /*
- * This provides the casting rules for the TIMEDELTA data type units.
- *
- * Notably, there is a barrier between the nonlinear years and
- * months units, and all the other units.
- */
-npy_bool can_cast_timedelta64_units(PANDAS_DATETIMEUNIT src_unit,
-                                    PANDAS_DATETIMEUNIT dst_unit,
-                                    NPY_CASTING casting) {
-    switch (casting) {
-        /* Allow anything with unsafe casting */
-        case NPY_UNSAFE_CASTING:
-            return 1;
-
-        /*
-         * Only enforce the 'date units' vs 'time units' barrier with
-         * 'same_kind' casting.
-         */
-        case NPY_SAME_KIND_CASTING:
-            return (src_unit <= PANDAS_FR_M && dst_unit <= PANDAS_FR_M) ||
-                   (src_unit > PANDAS_FR_M && dst_unit > PANDAS_FR_M);
-
-        /*
-         * Enforce the 'date units' vs 'time units' barrier and that
-         * casting is only allowed towards more precise units with
-         * 'safe' casting.
-         */
-        case NPY_SAFE_CASTING:
-            return (src_unit <= dst_unit) &&
-                   ((src_unit <= PANDAS_FR_M && dst_unit <= PANDAS_FR_M) ||
-                    (src_unit > PANDAS_FR_M && dst_unit > PANDAS_FR_M));
-
-        /* Enforce equality with 'no' or 'equiv' casting */
-        default:
-            return src_unit == dst_unit;
-    }
-}
-
-/*
- * This provides the casting rules for the DATETIME data type units.
- *
- * Notably, there is a barrier between 'date units' and 'time units'
- * for all but 'unsafe' casting.
- */
-npy_bool can_cast_datetime64_units(PANDAS_DATETIMEUNIT src_unit,
-                                   PANDAS_DATETIMEUNIT dst_unit,
-                                   NPY_CASTING casting) {
-    switch (casting) {
-        /* Allow anything with unsafe casting */
-        case NPY_UNSAFE_CASTING:
-            return 1;
-
-        /*
-         * Only enforce the 'date units' vs 'time units' barrier with
-         * 'same_kind' casting.
-         */
-        case NPY_SAME_KIND_CASTING:
-            return (src_unit <= PANDAS_FR_D && dst_unit <= PANDAS_FR_D) ||
-                   (src_unit > PANDAS_FR_D && dst_unit > PANDAS_FR_D);
-
-        /*
-         * Enforce the 'date units' vs 'time units' barrier and that
-         * casting is only allowed towards more precise units with
-         * 'safe' casting.
-         */
-        case NPY_SAFE_CASTING:
-            return (src_unit <= dst_unit) &&
-                   ((src_unit <= PANDAS_FR_D && dst_unit <= PANDAS_FR_D) ||
-                    (src_unit > PANDAS_FR_D && dst_unit > PANDAS_FR_D));
-
-        /* Enforce equality with 'no' or 'equiv' casting */
-        default:
-            return src_unit == dst_unit;
-    }
-}
-
-/*
  * Converts a datetime based on the given metadata into a datetimestruct
  */
-int convert_datetime_to_datetimestruct(pandas_datetime_metadata *meta,
+int convert_datetime_to_datetimestruct(PANDAS_DATETIMEUNIT base,
                                        npy_datetime dt,
                                        pandas_datetimestruct *out) {
     npy_int64 perday;
@@ -785,14 +651,11 @@ int convert_datetime_to_datetimestruct(pandas_datetime_metadata *meta,
     out->month = 1;
     out->day = 1;
 
-    /* TODO: Change to a mechanism that avoids the potential overflow */
-    dt *= meta->num;
-
     /*
      * Note that care must be taken with the / and % operators
      * for negative values.
      */
-    switch (meta->base) {
+    switch (base) {
         case PANDAS_FR_Y:
             out->year = 1970 + dt;
             break;
@@ -994,14 +857,13 @@ int convert_datetime_to_datetimestruct(pandas_datetime_metadata *meta,
 
 /*
  * Converts a timedelta from a timedeltastruct to a timedelta based
- * on some metadata. The timedelta is assumed to be valid.
+ * on a metadata unit. The timedelta is assumed to be valid.
  *
  * Returns 0 on success, -1 on failure.
  */
-int convert_timedelta_to_timedeltastruct(pandas_timedelta_metadata *meta,
+int convert_timedelta_to_timedeltastruct(PANDAS_DATETIMEUNIT base,
                                          npy_timedelta td,
                                          pandas_timedeltastruct *out) {
-    npy_int64 perday;
     npy_int64 frac;
     npy_int64 sfrac;
     npy_int64 ifrac;
@@ -1011,16 +873,16 @@ int convert_timedelta_to_timedeltastruct(pandas_timedelta_metadata *meta,
     /* Initialize the output to all zeros */
     memset(out, 0, sizeof(pandas_timedeltastruct));
 
-    switch (meta->base) {
+    switch (base) {
         case PANDAS_FR_ns:
 
         // put frac in seconds
         if (td < 0 && td % (1000LL * 1000LL * 1000LL) != 0)
-          frac = td / (1000LL * 1000LL * 1000LL) - 1;
+            frac = td / (1000LL * 1000LL * 1000LL) - 1;
         else
             frac = td / (1000LL * 1000LL * 1000LL);
 
-          if (frac < 0) {
+        if (frac < 0) {
             sign = -1;
 
             // even fraction
@@ -1030,66 +892,66 @@ int convert_timedelta_to_timedeltastruct(pandas_timedelta_metadata *meta,
             } else {
               frac = -frac;
             }
-          } else {
+        } else {
             sign = 1;
             out->days = 0;
-          }
+        }
 
-          if (frac >= 86400) {
+        if (frac >= 86400) {
             out->days += frac / 86400LL;
             frac -= out->days * 86400LL;
-          }
+        }
 
-          if (frac >= 3600) {
+        if (frac >= 3600) {
             out->hrs = frac / 3600LL;
             frac -= out->hrs * 3600LL;
-          } else {
+        } else {
             out->hrs = 0;
-          }
+        }
 
-          if (frac >= 60) {
+        if (frac >= 60) {
             out->min = frac / 60LL;
             frac -= out->min * 60LL;
-          } else {
+        } else {
             out->min = 0;
-          }
+        }
 
-          if (frac >= 0) {
+        if (frac >= 0) {
             out->sec = frac;
             frac -= out->sec;
-          } else {
+        } else {
             out->sec = 0;
-          }
+        }
 
-          sfrac = (out->hrs * 3600LL + out->min * 60LL
-                   + out->sec) * (1000LL * 1000LL * 1000LL);
+        sfrac = (out->hrs * 3600LL + out->min * 60LL
+                 + out->sec) * (1000LL * 1000LL * 1000LL);
 
-          if (sign < 0)
+        if (sign < 0)
             out->days = -out->days;
 
-          ifrac = td - (out->days * DAY_NS + sfrac);
+        ifrac = td - (out->days * DAY_NS + sfrac);
 
-          if (ifrac != 0) {
+        if (ifrac != 0) {
             out->ms = ifrac / (1000LL * 1000LL);
             ifrac -= out->ms * 1000LL * 1000LL;
             out->us = ifrac / 1000LL;
             ifrac -= out->us * 1000LL;
             out->ns = ifrac;
-          } else {
+        } else {
             out->ms = 0;
             out->us = 0;
             out->ns = 0;
-          }
+        }
 
-          out->seconds = out->hrs * 3600 + out->min * 60 + out->sec;
-          out->microseconds = out->ms * 1000 + out->us;
-          out->nanoseconds = out->ns;
-          break;
+        out->seconds = out->hrs * 3600 + out->min * 60 + out->sec;
+        out->microseconds = out->ms * 1000 + out->us;
+        out->nanoseconds = out->ns;
+        break;
 
         default:
             PyErr_SetString(PyExc_RuntimeError,
-                            "NumPy datetime metadata is corrupted with invalid "
-                            "base unit");
+                            "NumPy timedelta metadata is corrupted with "
+                            "invalid base unit");
             return -1;
     }
 

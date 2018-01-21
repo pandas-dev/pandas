@@ -6,34 +6,30 @@ from datetime import datetime
 
 import pytest
 
-from pandas._libs import tslib
 from pandas import Timestamp
 
 import pandas._libs.tslibs.offsets as liboffsets
+from pandas._libs.tslibs.offsets import roll_qtrday
 
 
 def test_get_lastbday():
     dt = datetime(2017, 11, 30)
     assert dt.weekday() == 3  # i.e. this is a business day
-    wkday, days_in_month = tslib.monthrange(dt.year, dt.month)
-    assert liboffsets.get_lastbday(wkday, days_in_month) == 30
+    assert liboffsets.get_lastbday(dt.year, dt.month) == 30
 
     dt = datetime(1993, 10, 31)
     assert dt.weekday() == 6  # i.e. this is not a business day
-    wkday, days_in_month = tslib.monthrange(dt.year, dt.month)
-    assert liboffsets.get_lastbday(wkday, days_in_month) == 29
+    assert liboffsets.get_lastbday(dt.year, dt.month) == 29
 
 
 def test_get_firstbday():
     dt = datetime(2017, 4, 1)
     assert dt.weekday() == 5  # i.e. not a weekday
-    wkday, days_in_month = tslib.monthrange(dt.year, dt.month)
-    assert liboffsets.get_firstbday(wkday, days_in_month) == 3
+    assert liboffsets.get_firstbday(dt.year, dt.month) == 3
 
     dt = datetime(1993, 10, 1)
     assert dt.weekday() == 4  # i.e. a business day
-    wkday, days_in_month = tslib.monthrange(dt.year, dt.month)
-    assert liboffsets.get_firstbday(wkday, days_in_month) == 1
+    assert liboffsets.get_firstbday(dt.year, dt.month) == 1
 
 
 def test_shift_month():
@@ -100,3 +96,77 @@ def test_roll_yearday():
     assert liboffsets.roll_yearday(other, 5, month, day_opt) == 5
     assert liboffsets.roll_yearday(other, -7, month, day_opt) == -6
     assert liboffsets.roll_yearday(other, 0, month, day_opt) == 1
+
+
+def test_roll_qtrday():
+    other = Timestamp(2072, 10, 1, 6, 17, 18)  # Saturday
+    for day_opt in ['start', 'end', 'business_start', 'business_end']:
+        # as long as (other.month % 3) != (month % 3), day_opt is irrelevant
+        # the `day_opt` doesn't matter.
+        month = 5  # (other.month % 3) < (month % 3)
+        assert roll_qtrday(other, 4, month, day_opt, modby=3) == 3
+        assert roll_qtrday(other, -3, month, day_opt, modby=3) == -3
+
+        month = 3  # (other.month % 3) > (month % 3)
+        assert roll_qtrday(other, 4, month, day_opt, modby=3) == 4
+        assert roll_qtrday(other, -3, month, day_opt, modby=3) == -2
+
+    month = 2
+    other = datetime(1999, 5, 31)  # Monday
+    # has (other.month % 3) == (month % 3)
+
+    n = 2
+    assert roll_qtrday(other, n, month, 'start', modby=3) == n
+    assert roll_qtrday(other, n, month, 'end', modby=3) == n
+    assert roll_qtrday(other, n, month, 'business_start', modby=3) == n
+    assert roll_qtrday(other, n, month, 'business_end', modby=3) == n
+
+    n = -1
+    assert roll_qtrday(other, n, month, 'start', modby=3) == n + 1
+    assert roll_qtrday(other, n, month, 'end', modby=3) == n
+    assert roll_qtrday(other, n, month, 'business_start', modby=3) == n + 1
+    assert roll_qtrday(other, n, month, 'business_end', modby=3) == n
+
+    other = Timestamp(2072, 10, 1, 6, 17, 18)  # Saturday
+    month = 4  # (other.month % 3) == (month % 3)
+    n = 2
+    assert roll_qtrday(other, n, month, 'start', modby=3) == n
+    assert roll_qtrday(other, n, month, 'end', modby=3) == n - 1
+    assert roll_qtrday(other, n, month, 'business_start', modby=3) == n - 1
+    assert roll_qtrday(other, n, month, 'business_end', modby=3) == n - 1
+
+    n = -1
+    assert roll_qtrday(other, n, month, 'start', modby=3) == n
+    assert roll_qtrday(other, n, month, 'end', modby=3) == n
+    assert roll_qtrday(other, n, month, 'business_start', modby=3) == n
+    assert roll_qtrday(other, n, month, 'business_end', modby=3) == n
+
+    other = Timestamp(2072, 10, 3, 6, 17, 18)  # First businessday
+    month = 4  # (other.month % 3) == (month % 3)
+    n = 2
+    assert roll_qtrday(other, n, month, 'start', modby=3) == n
+    assert roll_qtrday(other, n, month, 'end', modby=3) == n - 1
+    assert roll_qtrday(other, n, month, 'business_start', modby=3) == n
+    assert roll_qtrday(other, n, month, 'business_end', modby=3) == n - 1
+
+    n = -1
+    assert roll_qtrday(other, n, month, 'start', modby=3) == n + 1
+    assert roll_qtrday(other, n, month, 'end', modby=3) == n
+    assert roll_qtrday(other, n, month, 'business_start', modby=3) == n
+    assert roll_qtrday(other, n, month, 'business_end', modby=3) == n
+
+
+def test_roll_convention():
+    other = 29
+    before = 1
+    after = 31
+
+    n = 42
+    assert liboffsets.roll_convention(other, n, other) == n
+    assert liboffsets.roll_convention(other, n, before) == n
+    assert liboffsets.roll_convention(other, n, after) == n - 1
+
+    n = -4
+    assert liboffsets.roll_convention(other, n, other) == n
+    assert liboffsets.roll_convention(other, n, before) == n + 1
+    assert liboffsets.roll_convention(other, n, after) == n

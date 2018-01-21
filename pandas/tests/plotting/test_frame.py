@@ -15,6 +15,7 @@ from pandas.core.dtypes.api import is_list_like
 from pandas.compat import range, lrange, lmap, lzip, u, zip, PY3
 from pandas.io.formats.printing import pprint_thing
 import pandas.util.testing as tm
+import pandas.util._test_decorators as td
 
 import numpy as np
 from numpy.random import rand, randn
@@ -24,9 +25,8 @@ from pandas.tests.plotting.common import (TestPlotBase, _check_plot_works,
                                           _skip_if_no_scipy_gaussian_kde,
                                           _ok_for_gaussian_kde)
 
-tm._skip_if_no_mpl()
 
-
+@td.skip_if_no_mpl
 class TestDataFramePlots(TestPlotBase):
 
     def setup_method(self, method):
@@ -675,7 +675,7 @@ class TestDataFramePlots(TestPlotBase):
     def _compare_stacked_y_cood(self, normal_lines, stacked_lines):
         base = np.zeros(len(normal_lines[0].get_data()[1]))
         for nl, sl in zip(normal_lines, stacked_lines):
-            base += nl.get_data()[1]  # get y coodinates
+            base += nl.get_data()[1]  # get y coordinates
             sy = sl.get_data()[1]
             tm.assert_numpy_array_equal(base, sy)
 
@@ -1398,8 +1398,8 @@ class TestDataFramePlots(TestPlotBase):
                 check_ax_title=False)
 
     @pytest.mark.slow
+    @td.skip_if_no_scipy
     def test_kde_df(self):
-        tm._skip_if_no_scipy()
         _skip_if_no_scipy_gaussian_kde()
         if not self.mpl_ge_1_5_0:
             pytest.skip("mpl is not supported")
@@ -1422,8 +1422,8 @@ class TestDataFramePlots(TestPlotBase):
         self._check_ax_scales(axes, yaxis='log')
 
     @pytest.mark.slow
+    @td.skip_if_no_scipy
     def test_kde_missing_vals(self):
-        tm._skip_if_no_scipy()
         _skip_if_no_scipy_gaussian_kde()
         if not self.mpl_ge_1_5_0:
             pytest.skip("mpl is not supported")
@@ -1949,8 +1949,8 @@ class TestDataFramePlots(TestPlotBase):
         tm.close()
 
     @pytest.mark.slow
+    @td.skip_if_no_scipy
     def test_kde_colors(self):
-        tm._skip_if_no_scipy()
         _skip_if_no_scipy_gaussian_kde()
         if not self.mpl_ge_1_5_0:
             pytest.skip("mpl is not supported")
@@ -1974,8 +1974,8 @@ class TestDataFramePlots(TestPlotBase):
         self._check_colors(ax.get_lines(), linecolors=rgba_colors)
 
     @pytest.mark.slow
+    @td.skip_if_no_scipy
     def test_kde_colors_and_styles_subplots(self):
-        tm._skip_if_no_scipy()
         _skip_if_no_scipy_gaussian_kde()
         if not self.mpl_ge_1_5_0:
             pytest.skip("mpl is not supported")
@@ -2169,6 +2169,26 @@ class TestDataFramePlots(TestPlotBase):
         df = DataFrame(randn(10, 2))
         with pytest.raises(ValueError):
             df.plot(kind='aasdf')
+
+    @pytest.mark.parametrize("x,y", [
+        (['B', 'C'], 'A'),
+        ('A', ['B', 'C'])
+    ])
+    def test_invalid_xy_args(self, x, y):
+        # GH 18671
+        df = DataFrame({"A": [1, 2], 'B': [3, 4], 'C': [5, 6]})
+        with pytest.raises(ValueError):
+            df.plot(x=x, y=y)
+
+    @pytest.mark.parametrize("x,y", [
+        ('A', 'B'),
+        ('B', 'A')
+    ])
+    def test_invalid_xy_args_dup_cols(self, x, y):
+        # GH 18671
+        df = DataFrame([[1, 3, 5], [2, 4, 6]], columns=list('AAB'))
+        with pytest.raises(ValueError):
+            df.plot(x=x, y=y)
 
     @pytest.mark.slow
     def test_hexbin_basic(self):

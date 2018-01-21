@@ -480,10 +480,10 @@ a,b,c
         # GH 14671
         data = 'a,b,c,d\n1,2,3,4\n5,6,7,8'
 
-        if self.engine == 'c':
-            msg = 'Usecols do not match names'
-        else:
-            msg = 'is not in list'
+        msg = (
+            "Usecols do not match columns, "
+            "columns expected but not found: {missing}"
+        )
 
         usecols = ['a', 'b', 'c', 'd']
         df = self.read_csv(StringIO(data), usecols=usecols)
@@ -492,11 +492,18 @@ a,b,c
         tm.assert_frame_equal(df, expected)
 
         usecols = ['a', 'b', 'c', 'f']
-        with tm.assert_raises_regex(ValueError, msg):
+        with tm.assert_raises_regex(
+                ValueError, msg.format(missing=r"\['f'\]")):
             self.read_csv(StringIO(data), usecols=usecols)
 
         usecols = ['a', 'b', 'f']
-        with tm.assert_raises_regex(ValueError, msg):
+        with tm.assert_raises_regex(
+                ValueError, msg.format(missing=r"\['f'\]")):
+            self.read_csv(StringIO(data), usecols=usecols)
+
+        usecols = ['a', 'b', 'f', 'g']
+        with tm.assert_raises_regex(
+                ValueError, msg.format(missing=r"\[('f', 'g'|'g', 'f')\]")):
             self.read_csv(StringIO(data), usecols=usecols)
 
         names = ['A', 'B', 'C', 'D']
@@ -520,9 +527,11 @@ a,b,c
         # tm.assert_frame_equal(df, expected)
 
         usecols = ['A', 'B', 'C', 'f']
-        with tm.assert_raises_regex(ValueError, msg):
+        with tm.assert_raises_regex(
+                ValueError, msg.format(missing=r"\['f'\]")):
             self.read_csv(StringIO(data), header=0, names=names,
                           usecols=usecols)
         usecols = ['A', 'B', 'f']
-        with tm.assert_raises_regex(ValueError, msg):
+        with tm.assert_raises_regex(
+                ValueError, msg.format(missing=r"\['f'\]")):
             self.read_csv(StringIO(data), names=names, usecols=usecols)

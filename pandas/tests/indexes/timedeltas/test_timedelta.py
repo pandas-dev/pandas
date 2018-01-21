@@ -4,6 +4,7 @@ import numpy as np
 from datetime import timedelta
 
 import pandas as pd
+from pandas.errors import NullFrequencyError
 import pandas.util.testing as tm
 from pandas import (timedelta_range, date_range, Series, Timedelta,
                     TimedeltaIndex, Index, DataFrame,
@@ -49,6 +50,12 @@ class TestTimedeltaIndex(DatetimeLike):
                                    '8 days 01:00:03', '9 days 01:00:03',
                                    '10 days 01:00:03'], freq='D')
         tm.assert_index_equal(result, expected)
+
+    def test_shift_no_freq(self):
+        # GH#19147
+        tdi = TimedeltaIndex(['1 days 01:00:00', '2 days 01:00:00'], freq=None)
+        with pytest.raises(NullFrequencyError):
+            tdi.shift(2)
 
     def test_pickle_compat_construction(self):
         pass
@@ -187,6 +194,7 @@ class TestTimedeltaIndex(DatetimeLike):
         assert not idx.equals(list(non_td))
 
     def test_map(self):
+        # test_map_dictlike generally tests
 
         rng = timedelta_range('1 day', periods=10)
 
@@ -194,61 +202,6 @@ class TestTimedeltaIndex(DatetimeLike):
         result = rng.map(f)
         exp = Int64Index([f(x) for x in rng])
         tm.assert_index_equal(result, exp)
-
-    def test_comparisons_nat(self):
-
-        tdidx1 = pd.TimedeltaIndex(['1 day', pd.NaT, '1 day 00:00:01', pd.NaT,
-                                    '1 day 00:00:01', '5 day 00:00:03'])
-        tdidx2 = pd.TimedeltaIndex(['2 day', '2 day', pd.NaT, pd.NaT,
-                                    '1 day 00:00:02', '5 days 00:00:03'])
-        tdarr = np.array([np.timedelta64(2, 'D'),
-                          np.timedelta64(2, 'D'), np.timedelta64('nat'),
-                          np.timedelta64('nat'),
-                          np.timedelta64(1, 'D') + np.timedelta64(2, 's'),
-                          np.timedelta64(5, 'D') + np.timedelta64(3, 's')])
-
-        cases = [(tdidx1, tdidx2), (tdidx1, tdarr)]
-
-        # Check pd.NaT is handles as the same as np.nan
-        for idx1, idx2 in cases:
-
-            result = idx1 < idx2
-            expected = np.array([True, False, False, False, True, False])
-            tm.assert_numpy_array_equal(result, expected)
-
-            result = idx2 > idx1
-            expected = np.array([True, False, False, False, True, False])
-            tm.assert_numpy_array_equal(result, expected)
-
-            result = idx1 <= idx2
-            expected = np.array([True, False, False, False, True, True])
-            tm.assert_numpy_array_equal(result, expected)
-
-            result = idx2 >= idx1
-            expected = np.array([True, False, False, False, True, True])
-            tm.assert_numpy_array_equal(result, expected)
-
-            result = idx1 == idx2
-            expected = np.array([False, False, False, False, False, True])
-            tm.assert_numpy_array_equal(result, expected)
-
-            result = idx1 != idx2
-            expected = np.array([True, True, True, True, True, False])
-            tm.assert_numpy_array_equal(result, expected)
-
-    def test_comparisons_coverage(self):
-        rng = timedelta_range('1 days', periods=10)
-
-        result = rng < rng[3]
-        exp = np.array([True, True, True] + [False] * 7)
-        tm.assert_numpy_array_equal(result, exp)
-
-        # raise TypeError for now
-        pytest.raises(TypeError, rng.__lt__, rng[3].value)
-
-        result = rng == list(rng)
-        exp = rng == rng
-        tm.assert_numpy_array_equal(result, exp)
 
     def test_total_seconds(self):
         # GH 10939

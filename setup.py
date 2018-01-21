@@ -9,9 +9,11 @@ BSD license. Parts are from lxml (https://github.com/lxml/lxml)
 import os
 from os.path import join as pjoin
 
+import pkg_resources
 import sys
 import shutil
 from distutils.version import LooseVersion
+from setuptools import setup, Command, find_packages
 
 # versioning
 import versioneer
@@ -30,7 +32,7 @@ def is_platform_mac():
     return sys.platform == 'darwin'
 
 
-min_cython_ver = '0.23'
+min_cython_ver = '0.24'
 try:
     import Cython
     ver = Cython.__version__
@@ -38,46 +40,18 @@ try:
 except ImportError:
     _CYTHON_INSTALLED = False
 
-try:
-    import pkg_resources
-    from setuptools import setup, Command
-    _have_setuptools = True
-except ImportError:
-    # no setuptools installed
-    from distutils.core import setup, Command
-    _have_setuptools = False
 
-setuptools_kwargs = {}
 min_numpy_ver = '1.9.0'
-if sys.version_info[0] >= 3:
+setuptools_kwargs = {
+    'install_requires': [
+        'python-dateutil >= 2.5.0',
+        'pytz >= 2011k',
+        'numpy >= {numpy_ver}'.format(numpy_ver=min_numpy_ver),
+    ],
+    'setup_requires': ['numpy >= {numpy_ver}'.format(numpy_ver=min_numpy_ver)],
+    'zip_safe': False,
+}
 
-    setuptools_kwargs = {'zip_safe': False,
-                         'install_requires': ['python-dateutil >= 2',
-                                              'pytz >= 2011k',
-                                              'numpy >= %s' % min_numpy_ver],
-                         'setup_requires': ['numpy >= %s' % min_numpy_ver]}
-    if not _have_setuptools:
-        sys.exit("need setuptools/distribute for Py3k"
-                 "\n$ pip install distribute")
-
-else:
-    setuptools_kwargs = {
-        'install_requires': ['python-dateutil',
-                             'pytz >= 2011k',
-                             'numpy >= %s' % min_numpy_ver],
-        'setup_requires': ['numpy >= %s' % min_numpy_ver],
-        'zip_safe': False,
-    }
-
-    if not _have_setuptools:
-        try:
-            import numpy  # noqa:F401
-            import dateutil  # noqa:F401
-            setuptools_kwargs = {}
-        except ImportError:
-            sys.exit("install requires: 'python-dateutil < 2','numpy'."
-                     "  use pip or easy_install."
-                     "\n   $ pip install 'python-dateutil < 2' 'numpy'")
 
 from distutils.extension import Extension  # noqa:E402
 from distutils.command.build import build  # noqa:E402
@@ -135,7 +109,7 @@ class build_ext(_build_ext):
         # generate template output
         if cython:
             for pxifile in _pxifiles:
-                # build pxifiles first, template extention must be .pxi.in
+                # build pxifiles first, template extension must be .pxi.in
                 assert pxifile.endswith('.pxi.in')
                 outfile = pxifile[:-3]
 
@@ -224,10 +198,6 @@ scientists, working with data is typically divided into multiple stages:
 munging and cleaning data, analyzing / modeling it, then organizing the results
 of the analysis into a form suitable for plotting or tabular display. pandas is
 the ideal tool for all of these tasks.
-
-Notes
------
-Windows binaries built against NumPy 1.8.1
 """
 
 DISTNAME = 'pandas'
@@ -331,18 +301,22 @@ class CheckSDist(sdist_class):
     _pyxfiles = ['pandas/_libs/lib.pyx',
                  'pandas/_libs/hashtable.pyx',
                  'pandas/_libs/tslib.pyx',
-                 'pandas/_libs/period.pyx',
                  'pandas/_libs/index.pyx',
+                 'pandas/_libs/internals.pyx',
                  'pandas/_libs/algos.pyx',
                  'pandas/_libs/join.pyx',
                  'pandas/_libs/indexing.pyx',
                  'pandas/_libs/interval.pyx',
                  'pandas/_libs/hashing.pyx',
                  'pandas/_libs/missing.pyx',
+                 'pandas/_libs/reduction.pyx',
                  'pandas/_libs/testing.pyx',
                  'pandas/_libs/window.pyx',
+                 'pandas/_libs/skiplist.pyx',
                  'pandas/_libs/sparse.pyx',
                  'pandas/_libs/parsers.pyx',
+                 'pandas/_libs/tslibs/ccalendar.pyx',
+                 'pandas/_libs/tslibs/period.pyx',
                  'pandas/_libs/tslibs/strptime.pyx',
                  'pandas/_libs/tslibs/np_datetime.pyx',
                  'pandas/_libs/tslibs/timedeltas.pyx',
@@ -365,8 +339,9 @@ class CheckSDist(sdist_class):
         else:
             for pyxfile in self._pyxfiles:
                 cfile = pyxfile[:-3] + 'c'
-                msg = "C-source file '%s' not found." % (cfile) +\
-                    " Run 'setup.py cython' before sdist."
+                msg = ("C-source file '{source}' not found.\n"
+                       "Run 'setup.py cython' before sdist.".format(
+                           source=cfile))
                 assert os.path.isfile(cfile), msg
         sdist_class.run(self)
 
@@ -382,10 +357,10 @@ class CheckingBuildExt(build_ext):
             for src in ext.sources:
                 if not os.path.exists(src):
                     print("{}: -> [{}]".format(ext.name, ext.sources))
-                    raise Exception("""Cython-generated file '%s' not found.
+                    raise Exception("""Cython-generated file '{src}' not found.
                 Cython is required to compile pandas from a development branch.
                 Please install Cython or download a release package of pandas.
-                """ % src)
+                """.format(src=src))
 
     def build_extensions(self):
         self.check_cython_extensions(self.extensions)
@@ -477,8 +452,7 @@ np_datetime_headers = ['pandas/_libs/src/datetime/np_datetime.h',
                        'pandas/_libs/src/datetime/np_datetime_strings.h']
 np_datetime_sources = ['pandas/_libs/src/datetime/np_datetime.c',
                        'pandas/_libs/src/datetime/np_datetime_strings.c']
-tseries_depends = np_datetime_headers + ['pandas/_libs/src/datetime.pxd',
-                                         'pandas/_libs/tslibs/np_datetime.pxd']
+tseries_depends = np_datetime_headers + ['pandas/_libs/tslibs/np_datetime.pxd']
 
 # some linux distros require it
 libraries = ['m'] if not is_platform_windows() else []
@@ -496,7 +470,7 @@ ext_data = {
         'pyxfile': '_libs/hashing'},
     '_libs.hashtable': {
         'pyxfile': '_libs/hashtable',
-        'pxdfiles': ['_libs/hashtable', '_libs/missing'],
+        'pxdfiles': ['_libs/hashtable', '_libs/missing', '_libs/khash'],
         'depends': (['pandas/_libs/src/klib/khash_python.h'] +
                     _pxi_dep['hashtable'])},
     '_libs.index': {
@@ -506,6 +480,8 @@ ext_data = {
         'sources': np_datetime_sources},
     '_libs.indexing': {
         'pyxfile': '_libs/indexing'},
+    '_libs.internals': {
+        'pyxfile': '_libs/internals'},
     '_libs.interval': {
         'pyxfile': '_libs/interval',
         'pxdfiles': ['_libs/hashtable'],
@@ -516,7 +492,9 @@ ext_data = {
         'depends': _pxi_dep['join']},
     '_libs.lib': {
         'pyxfile': '_libs/lib',
-        'pxdfiles': ['_libs/src/util', '_libs/missing'],
+        'pxdfiles': ['_libs/src/util',
+                     '_libs/missing',
+                     '_libs/tslibs/conversion'],
         'depends': lib_depends + tseries_depends},
     '_libs.missing': {
         'pyxfile': '_libs/missing',
@@ -529,8 +507,10 @@ ext_data = {
                     'pandas/_libs/src/numpy_helper.h'],
         'sources': ['pandas/_libs/src/parser/tokenizer.c',
                     'pandas/_libs/src/parser/io.c']},
-    '_libs.period': {
-        'pyxfile': '_libs/period',
+    '_libs.reduction': {
+        'pyxfile': '_libs/reduction'},
+    '_libs.tslibs.period': {
+        'pyxfile': '_libs/tslibs/period',
         'pxdfiles': ['_libs/src/util',
                      '_libs/lib',
                      '_libs/tslibs/timedeltas',
@@ -544,13 +524,15 @@ ext_data = {
     '_libs.reshape': {
         'pyxfile': '_libs/reshape',
         'depends': _pxi_dep['reshape']},
+    '_libs.skiplist': {
+        'pyxfile': '_libs/skiplist',
+        'depends': ['pandas/_libs/src/skiplist.h']},
     '_libs.sparse': {
         'pyxfile': '_libs/sparse',
         'depends': _pxi_dep['sparse']},
     '_libs.tslib': {
         'pyxfile': '_libs/tslib',
         'pxdfiles': ['_libs/src/util',
-                     '_libs/src/khash',
                      '_libs/tslibs/conversion',
                      '_libs/tslibs/timedeltas',
                      '_libs/tslibs/timestamps',
@@ -558,6 +540,8 @@ ext_data = {
                      '_libs/tslibs/nattype'],
         'depends': tseries_depends,
         'sources': np_datetime_sources},
+    '_libs.tslibs.ccalendar': {
+        'pyxfile': '_libs/tslibs/ccalendar'},
     '_libs.tslibs.conversion': {
         'pyxfile': '_libs/tslibs/conversion',
         'pxdfiles': ['_libs/src/util',
@@ -568,7 +552,8 @@ ext_data = {
         'sources': np_datetime_sources},
     '_libs.tslibs.fields': {
         'pyxfile': '_libs/tslibs/fields',
-        'pxdfiles': ['_libs/tslibs/nattype'],
+        'pxdfiles': ['_libs/tslibs/ccalendar',
+                     '_libs/tslibs/nattype'],
         'depends': tseries_depends,
         'sources': np_datetime_sources},
     '_libs.tslibs.frequencies': {
@@ -591,12 +576,11 @@ ext_data = {
         'sources': np_datetime_sources},
     '_libs.tslibs.parsing': {
         'pyxfile': '_libs/tslibs/parsing',
-        'pxdfiles': ['_libs/src/util',
-                     '_libs/src/khash']},
+        'pxdfiles': ['_libs/src/util']},
     '_libs.tslibs.resolution': {
         'pyxfile': '_libs/tslibs/resolution',
         'pxdfiles': ['_libs/src/util',
-                     '_libs/src/khash',
+                     '_libs/khash',
                      '_libs/tslibs/frequencies',
                      '_libs/tslibs/timezones'],
         'depends': tseries_depends,
@@ -616,6 +600,7 @@ ext_data = {
     '_libs.tslibs.timestamps': {
         'pyxfile': '_libs/tslibs/timestamps',
         'pxdfiles': ['_libs/src/util',
+                     '_libs/tslibs/ccalendar',
                      '_libs/tslibs/conversion',
                      '_libs/tslibs/nattype',
                      '_libs/tslibs/timedeltas',
@@ -629,9 +614,7 @@ ext_data = {
         'pyxfile': '_libs/testing'},
     '_libs.window': {
         'pyxfile': '_libs/window',
-        'pxdfiles': ['_libs/src/skiplist', '_libs/src/util'],
-        'depends': ['pandas/_libs/src/skiplist.pyx',
-                    'pandas/_libs/src/skiplist.h']},
+        'pxdfiles': ['_libs/skiplist', '_libs/src/util']},
     'io.sas._sas': {
         'pyxfile': 'io/sas/sas'}}
 
@@ -647,7 +630,7 @@ for name, data in ext_data.items():
 
     include = data.get('include', common_include)
 
-    obj = Extension('pandas.%s' % name,
+    obj = Extension('pandas.{name}'.format(name=name),
                     sources=sources,
                     depends=data.get('depends', []),
                     include_dirs=include,
@@ -695,7 +678,7 @@ extensions.append(unpacker_ext)
 # ----------------------------------------------------------------------
 # ujson
 
-if suffix == '.pyx' and 'setuptools' in sys.modules:
+if suffix == '.pyx':
     # undo dumb setuptools bug clobbering .pyx sources back to .c
     for ext in extensions:
         if ext.sources[0].endswith(('.c', '.cpp')):
@@ -729,107 +712,18 @@ _move_ext = Extension('pandas.util._move',
                       sources=['pandas/util/move.c'])
 extensions.append(_move_ext)
 
-
-if _have_setuptools:
-    setuptools_kwargs["test_suite"] = "nose.collector"
-
 # The build cache system does string matching below this point.
 # if you change something, be careful.
 
 setup(name=DISTNAME,
       maintainer=AUTHOR,
       version=versioneer.get_version(),
-      packages=['pandas',
-                'pandas.api',
-                'pandas.api.types',
-                'pandas.compat',
-                'pandas.compat.numpy',
-                'pandas.core',
-                'pandas.core.dtypes',
-                'pandas.core.indexes',
-                'pandas.core.computation',
-                'pandas.core.reshape',
-                'pandas.core.sparse',
-                'pandas.core.tools',
-                'pandas.core.util',
-                'pandas.computation',
-                'pandas.errors',
-                'pandas.formats',
-                'pandas.io',
-                'pandas.io.json',
-                'pandas.io.sas',
-                'pandas.io.msgpack',
-                'pandas.io.formats',
-                'pandas.io.clipboard',
-                'pandas._libs',
-                'pandas._libs.tslibs',
-                'pandas.plotting',
-                'pandas.stats',
-                'pandas.types',
-                'pandas.util',
-                'pandas.tests',
-                'pandas.tests.api',
-                'pandas.tests.dtypes',
-                'pandas.tests.computation',
-                'pandas.tests.sparse',
-                'pandas.tests.frame',
-                'pandas.tests.generic',
-                'pandas.tests.indexing',
-                'pandas.tests.indexes',
-                'pandas.tests.indexes.datetimes',
-                'pandas.tests.indexes.timedeltas',
-                'pandas.tests.indexes.period',
-                'pandas.tests.internals',
-                'pandas.tests.io',
-                'pandas.tests.io.json',
-                'pandas.tests.io.parser',
-                'pandas.tests.io.sas',
-                'pandas.tests.io.msgpack',
-                'pandas.tests.io.formats',
-                'pandas.tests.groupby',
-                'pandas.tests.reshape',
-                'pandas.tests.series',
-                'pandas.tests.scalar',
-                'pandas.tests.tseries',
-                'pandas.tests.tseries.offsets',
-                'pandas.tests.plotting',
-                'pandas.tests.tools',
-                'pandas.tests.util',
-                'pandas.tools',
-                'pandas.tseries',
-                ],
-      package_data={'pandas.tests': ['data/*.csv'],
-                    'pandas.tests.indexes': ['data/*.pickle'],
+      packages=find_packages(include=['pandas', 'pandas.*']),
+      package_data={'': ['data/*', 'templates/*'],
                     'pandas.tests.io': ['data/legacy_hdf/*.h5',
                                         'data/legacy_pickle/*/*.pickle',
                                         'data/legacy_msgpack/*/*.msgpack',
-                                        'data/*.csv*',
-                                        'data/*.dta',
-                                        'data/*.pickle',
-                                        'data/*.txt',
-                                        'data/*.xls',
-                                        'data/*.xlsx',
-                                        'data/*.xlsm',
-                                        'data/*.table',
-                                        'parser/data/*.csv',
-                                        'parser/data/*.gz',
-                                        'parser/data/*.bz2',
-                                        'parser/data/*.txt',
-                                        'parser/data/*.tar',
-                                        'parser/data/*.zip',
-                                        'parser/data/*.tar.gz',
-                                        'sas/data/*.csv',
-                                        'sas/data/*.xpt',
-                                        'sas/data/*.sas7bdat',
-                                        'data/*.html',
-                                        'data/html_encoding/*.html',
-                                        'json/data/*.json*'],
-                    'pandas.tests.io.formats': ['data/*.csv'],
-                    'pandas.tests.io.msgpack': ['data/*.mp'],
-                    'pandas.tests.reshape': ['data/*.csv'],
-                    'pandas.tests.tseries.offsets': ['data/*.pickle'],
-                    'pandas.io.formats': ['templates/*.tpl']
-                    },
+                                        'data/html_encoding/*.html']},
       ext_modules=extensions,
       maintainer_email=EMAIL,
       description=DESCRIPTION,

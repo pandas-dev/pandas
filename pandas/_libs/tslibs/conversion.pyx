@@ -20,32 +20,33 @@ PyDateTime_IMPORT
 
 from np_datetime cimport (check_dts_bounds,
                           pandas_datetimestruct,
+                          pandas_datetime_to_datetimestruct, _string_to_dts,
                           PANDAS_DATETIMEUNIT, PANDAS_FR_ns,
                           npy_datetime,
                           dt64_to_dtstruct, dtstruct_to_dt64,
                           get_datetime64_unit, get_datetime64_value,
                           pydatetime_to_dt64)
 
-from datetime cimport pandas_datetime_to_datetimestruct, _string_to_dts
-
 from util cimport (is_string_object,
                    is_datetime64_object,
-                   is_integer_object, is_float_object)
+                   is_integer_object, is_float_object, is_array)
 
 from timedeltas cimport cast_from_unit
-from timezones cimport (
-    is_utc, is_tzlocal, is_fixed_offset,
-    treat_tz_as_dateutil, treat_tz_as_pytz,
-    get_utcoffset, get_dst_info, get_timezone, maybe_get_tz)
+from timezones cimport (is_utc, is_tzlocal, is_fixed_offset,
+                        treat_tz_as_dateutil, treat_tz_as_pytz,
+                        get_utcoffset, get_dst_info,
+                        get_timezone, maybe_get_tz, tz_compare)
 from parsing import parse_datetime_string
 
 from nattype import nat_strings, NaT
-from nattype cimport NPY_NAT, _checknull_with_nat
+from nattype cimport NPY_NAT, checknull_with_nat
 
 # ----------------------------------------------------------------------
 # Constants
 
 cdef int64_t DAY_NS = 86400000000000LL
+NS_DTYPE = np.dtype('M8[ns]')
+TD_DTYPE = np.dtype('m8[ns]')
 
 UTC = pytz.UTC
 
@@ -74,13 +75,14 @@ cdef inline int64_t get_datetime64_nanos(object val) except? -1:
     return ival
 
 
-def ensure_datetime64ns(ndarray arr):
+def ensure_datetime64ns(ndarray arr, copy=True):
     """
     Ensure a np.datetime64 array has dtype specifically 'datetime64[ns]'
 
     Parameters
     ----------
     arr : ndarray
+    copy : boolean, default True
 
     Returns
     -------
@@ -104,15 +106,37 @@ def ensure_datetime64ns(ndarray arr):
         return result
 
     unit = get_datetime64_unit(arr.flat[0])
-    for i in range(n):
-        if ivalues[i] != NPY_NAT:
-            pandas_datetime_to_datetimestruct(ivalues[i], unit, &dts)
-            iresult[i] = dtstruct_to_dt64(&dts)
-            check_dts_bounds(&dts)
-        else:
-            iresult[i] = NPY_NAT
+    if unit == PANDAS_FR_ns:
+        if copy:
+            arr = arr.copy()
+        result = arr
+    else:
+        for i in range(n):
+            if ivalues[i] != NPY_NAT:
+                pandas_datetime_to_datetimestruct(ivalues[i], unit, &dts)
+                iresult[i] = dtstruct_to_dt64(&dts)
+                check_dts_bounds(&dts)
+            else:
+                iresult[i] = NPY_NAT
 
     return result
+
+
+def ensure_timedelta64ns(ndarray arr, copy=True):
+    """
+    Ensure a np.timedelta64 array has dtype specifically 'timedelta64[ns]'
+
+    Parameters
+    ----------
+    arr : ndarray
+    copy : boolean, default True
+
+    Returns
+    -------
+    result : ndarray with dtype timedelta64[ns]
+
+    """
+    return arr.astype(TD_DTYPE, copy=copy)
 
 
 def datetime_to_datetime64(ndarray[object] values):
@@ -140,12 +164,12 @@ def datetime_to_datetime64(ndarray[object] values):
     iresult = result.view('i8')
     for i in range(n):
         val = values[i]
-        if _checknull_with_nat(val):
+        if checknull_with_nat(val):
             iresult[i] = NPY_NAT
         elif PyDateTime_Check(val):
             if val.tzinfo is not None:
                 if inferred_tz is not None:
-                    if get_timezone(val.tzinfo) != inferred_tz:
+                    if not tz_compare(val.tzinfo, inferred_tz):
                         raise ValueError('Array must be all same time zone')
                 else:
                     inferred_tz = get_timezone(val.tzinfo)
@@ -200,9 +224,9 @@ cdef class _TSObject:
     #    int64_t value               # numpy dt64
     #    object tzinfo
 
-    property value:
-        def __get__(self):
-            return self.value
+    @property
+    def value(self):
+        return self.value
 
 
 cpdef int64_t pydt_to_i8(object pydt) except? -1:
@@ -467,7 +491,8 @@ cdef inline void _localize_tso(_TSObject obj, object tz):
     """
     cdef:
         ndarray[int64_t] trans, deltas
-        Py_ssize_t delta, posn
+        int64_t delta
+        Py_ssize_t posn
         datetime dt
 
     assert obj.tzinfo is None

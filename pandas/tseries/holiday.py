@@ -133,7 +133,7 @@ class Holiday(object):
             Name of the holiday , defaults to class name
         offset : array of pandas.tseries.offsets or
                 class from pandas.tseries.offsets
-            computes offset from  date
+            computes offset from date
         observance: function
             computes when holiday is given a pandas Timestamp
         days_of_week:
@@ -430,7 +430,7 @@ class AbstractHolidayCalendar(object):
 
         if not isinstance(other, list):
             other = [other]
-        other_holidays = dict((holiday.name, holiday) for holiday in other)
+        other_holidays = {holiday.name: holiday for holiday in other}
 
         try:
             base = base.rules
@@ -439,7 +439,7 @@ class AbstractHolidayCalendar(object):
 
         if not isinstance(base, list):
             base = [base]
-        base_holidays = dict((holiday.name, holiday) for holiday in base)
+        base_holidays = {holiday.name: holiday for holiday in base}
 
         other_holidays.update(base_holidays)
         return list(other_holidays.values())

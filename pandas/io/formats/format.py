@@ -27,7 +27,7 @@ from pandas.core.dtypes.common import (
     is_list_like)
 from pandas.core.dtypes.generic import ABCSparseArray
 from pandas.core.base import PandasObject
-from pandas.core.common import _any_not_none, sentinel_factory
+import pandas.core.common as com
 from pandas.core.index import Index, MultiIndex, _ensure_index
 from pandas import compat
 from pandas.compat import (StringIO, lzip, range, map, zip, u,
@@ -46,7 +46,6 @@ from pandas.core.indexes.period import PeriodIndex
 import pandas as pd
 import numpy as np
 
-import itertools
 import csv
 from functools import partial
 
@@ -903,6 +902,7 @@ class LatexFormatter(TableFormatter):
             name = any(self.frame.index.names)
             cname = any(self.frame.columns.names)
             lastcol = self.frame.index.nlevels - 1
+            previous_lev3 = None
             for i, lev in enumerate(self.frame.index.levels):
                 lev2 = lev.format()
                 blank = ' ' * len(lev2[0])
@@ -913,11 +913,19 @@ class LatexFormatter(TableFormatter):
                     lev3 = [blank] * clevels
                 if name:
                     lev3.append(lev.name)
-                for level_idx, group in itertools.groupby(
-                        self.frame.index.labels[i]):
-                    count = len(list(group))
-                    lev3.extend([lev2[level_idx]] + [blank] * (count - 1))
+                current_idx_val = None
+                for level_idx in self.frame.index.labels[i]:
+                    if ((previous_lev3 is None or
+                        previous_lev3[len(lev3)].isspace()) and
+                            lev2[level_idx] == current_idx_val):
+                        # same index as above row and left index was the same
+                        lev3.append(blank)
+                    else:
+                        # different value than above or left index different
+                        lev3.append(lev2[level_idx])
+                        current_idx_val = lev2[level_idx]
                 strcols.insert(i, lev3)
+                previous_lev3 = lev3
 
         column_format = self.column_format
         if column_format is None:
@@ -954,8 +962,8 @@ class LatexFormatter(TableFormatter):
                 if self.longtable:
                     buf.write('\\endhead\n')
                     buf.write('\\midrule\n')
-                    buf.write('\\multicolumn{3}{r}{{Continued on next '
-                              'page}} \\\\\n')
+                    buf.write('\\multicolumn{{{n}}}{{r}}{{{{Continued on next '
+                              'page}}}} \\\\\n'.format(n=len(row)))
                     buf.write('\\midrule\n')
                     buf.write('\\endfoot\n\n')
                     buf.write('\\bottomrule\n')
@@ -967,7 +975,7 @@ class LatexFormatter(TableFormatter):
                          .replace('#', '\\#').replace('{', '\\{')
                          .replace('}', '\\}').replace('~', '\\textasciitilde')
                          .replace('^', '\\textasciicircum').replace('&', '\\&')
-                         if x else '{}') for x in row]
+                         if (x and x != '{}') else '{}') for x in row]
             else:
                 crow = [x if x else '{}' for x in row]
             if self.bold_rows and self.fmt.index:
@@ -994,7 +1002,7 @@ class LatexFormatter(TableFormatter):
             buf.write('\\end{longtable}\n')
 
     def _format_multicolumn(self, row, ilevels):
-        """
+        r"""
         Combine columns belonging to a group to a single multicolumn entry
         according to self.multicolumn_format
 
@@ -1032,7 +1040,7 @@ class LatexFormatter(TableFormatter):
         return row2
 
     def _format_multirow(self, row, ilevels, i, rows):
-        """
+        r"""
         Check following rows, whether row should be a multirow
 
         e.g.:     becomes:
@@ -1063,7 +1071,7 @@ class LatexFormatter(TableFormatter):
         """
         for cl in self.clinebuf:
             if cl[0] == i:
-                buf.write('\cline{{{cl:d}-{icol:d}}}\n'
+                buf.write('\\cline{{{cl:d}-{icol:d}}}\n'
                           .format(cl=cl[1], icol=icol))
         # remove entries that have been written to buffer
         self.clinebuf = [x for x in self.clinebuf if x[0] != i]
@@ -1269,7 +1277,7 @@ class HTMLFormatter(TableFormatter):
 
             if self.fmt.sparsify:
                 # GH3547
-                sentinel = sentinel_factory()
+                sentinel = com.sentinel_factory()
             else:
                 sentinel = None
             levels = self.columns.format(sparsify=sentinel, adjoin=False,
@@ -1438,7 +1446,7 @@ class HTMLFormatter(TableFormatter):
 
         if self.fmt.sparsify:
             # GH3547
-            sentinel = sentinel_factory()
+            sentinel = com.sentinel_factory()
             levels = frame.index.format(sparsify=sentinel, adjoin=False,
                                         names=False)
 
@@ -2180,7 +2188,7 @@ def _is_dates_only(values):
     consider_values = values_int != iNaT
     one_day_nanos = (86400 * 1e9)
     even_days = np.logical_and(consider_values,
-                               values_int % one_day_nanos != 0).sum() == 0
+                               values_int % int(one_day_nanos) != 0).sum() == 0
     if even_days:
         return True
     return False
@@ -2231,7 +2239,7 @@ class Datetime64TZFormatter(Datetime64Formatter):
     def _format_strings(self):
         """ we by definition have a TZ """
 
-        values = self.values.asobject
+        values = self.values.astype(object)
         is_dates_only = _is_dates_only(values)
         formatter = (self.formatter or
                      _get_format_datetime64(is_dates_only,
@@ -2364,7 +2372,7 @@ def single_row_table(row):  # pragma: no cover
 
 def _has_names(index):
     if isinstance(index, MultiIndex):
-        return _any_not_none(*index.names)
+        return com._any_not_none(*index.names)
     else:
         return index.name is not None
 

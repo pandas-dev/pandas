@@ -10,7 +10,9 @@ from distutils.version import LooseVersion
 import numpy as np
 
 from pandas.util._decorators import cache_readonly
+import pandas.core.common as com
 from pandas.core.base import PandasObject
+from pandas.core.config import get_option
 from pandas.core.dtypes.missing import isna, notna, remove_na_arraylike
 from pandas.core.dtypes.common import (
     is_list_like,
@@ -18,9 +20,8 @@ from pandas.core.dtypes.common import (
     is_number,
     is_hashable,
     is_iterator)
-from pandas.core.dtypes.generic import ABCSeries
+from pandas.core.dtypes.generic import ABCSeries, ABCDataFrame
 
-from pandas.core.common import AbstractMethodError, _try_sort, _any_not_none
 from pandas.core.generic import _shared_docs, _shared_doc_kwargs
 from pandas.core.index import Index, MultiIndex
 
@@ -40,16 +41,13 @@ from pandas.plotting._tools import (_subplots, _flatten, table,
                                     _get_xlim, _set_ticks_props,
                                     format_date_labels)
 
-_registered = False
-
-
-def _setup():
-    # delay the import of matplotlib until nescessary
-    global _registered
-    if not _registered:
-        from pandas.plotting import _converter
-        _converter.register()
-        _registered = True
+try:
+    from pandas.plotting import _converter
+except ImportError:
+    pass
+else:
+    if get_option('plotting.matplotlib.register_converters'):
+        _converter.register(explicit=True)
 
 
 def _get_standard_kind(kind):
@@ -99,7 +97,7 @@ class MPLPlot(object):
                  secondary_y=False, colormap=None,
                  table=False, layout=None, **kwds):
 
-        _setup()
+        _converter._WARN = False
         self.data = data
         self.by = by
 
@@ -227,7 +225,7 @@ class MPLPlot(object):
 
         # TODO: unused?
         # if self.sort_columns:
-        #     columns = _try_sort(data.columns)
+        #     columns = com._try_sort(data.columns)
         # else:
         #     columns = data.columns
 
@@ -369,7 +367,7 @@ class MPLPlot(object):
         self.data = numeric_data
 
     def _make_plot(self):
-        raise AbstractMethodError(self)
+        raise com.AbstractMethodError(self)
 
     def _add_table(self):
         if self.table is False:
@@ -611,7 +609,7 @@ class MPLPlot(object):
     def _get_index_name(self):
         if isinstance(self.data.index, MultiIndex):
             name = self.data.index.names
-            if _any_not_none(*name):
+            if com._any_not_none(*name):
                 name = ','.join(pprint_thing(x) for x in name)
             else:
                 name = None
@@ -959,7 +957,7 @@ class LinePlot(MPLPlot):
             it = self._iter_data()
 
         stacking_id = self._get_stacking_id()
-        is_errorbar = _any_not_none(*self.errors.values())
+        is_errorbar = com._any_not_none(*self.errors.values())
 
         colors = self._get_colors()
         for i, (label, y) in enumerate(it):
@@ -1682,9 +1680,8 @@ def _plot(data, x=None, y=None, subplots=False,
     else:
         raise ValueError("%r is not a valid plot kind" % kind)
 
-    from pandas import DataFrame
     if kind in _dataframe_kinds:
-        if isinstance(data, DataFrame):
+        if isinstance(data, ABCDataFrame):
             plot_obj = klass(data, x=x, y=y, subplots=subplots, ax=ax,
                              kind=kind, **kwds)
         else:
@@ -1692,7 +1689,7 @@ def _plot(data, x=None, y=None, subplots=False,
                              % kind)
 
     elif kind in _series_kinds:
-        if isinstance(data, DataFrame):
+        if isinstance(data, ABCDataFrame):
             if y is None and subplots is False:
                 msg = "{0} requires either y column or 'subplots=True'"
                 raise ValueError(msg.format(kind))
@@ -1704,15 +1701,19 @@ def _plot(data, x=None, y=None, subplots=False,
                 data.index.name = y
         plot_obj = klass(data, subplots=subplots, ax=ax, kind=kind, **kwds)
     else:
-        if isinstance(data, DataFrame):
+        if isinstance(data, ABCDataFrame):
             if x is not None:
                 if is_integer(x) and not data.columns.holds_integer():
                     x = data.columns[x]
+                elif not isinstance(data[x], ABCSeries):
+                    raise ValueError("x must be a label or position")
                 data = data.set_index(x)
 
             if y is not None:
                 if is_integer(y) and not data.columns.holds_integer():
                     y = data.columns[y]
+                elif not isinstance(data[y], ABCSeries):
+                    raise ValueError("y must be a label or position")
                 label = kwds['label'] if 'label' in kwds else y
                 series = data[y].copy()  # Don't modify
                 series.name = label
@@ -1950,7 +1951,7 @@ _shared_docs['boxplot'] = """
     return_type : {None, 'axes', 'dict', 'both'}, default None
         The kind of object to return. The default is ``axes``
         'axes' returns the matplotlib axes the boxplot is drawn on;
-        'dict' returns a dictionary  whose values are the matplotlib
+        'dict' returns a dictionary whose values are the matplotlib
         Lines of the boxplot;
         'both' returns a namedtuple with the axes and dict.
 
@@ -2064,7 +2065,7 @@ def boxplot_frame(self, column=None, by=None, ax=None, fontsize=None, rot=0,
                   grid=True, figsize=None, layout=None,
                   return_type=None, **kwds):
     import matplotlib.pyplot as plt
-    _setup()
+    _converter._WARN = False
     ax = boxplot(self, column=column, by=by, ax=ax, fontsize=fontsize,
                  grid=grid, rot=rot, figsize=figsize, layout=layout,
                  return_type=return_type, **kwds)
@@ -2160,7 +2161,7 @@ def hist_frame(data, column=None, by=None, grid=True, xlabelsize=None,
     `**kwds` : other plotting keyword arguments
         To be passed to hist function
     """
-    _setup()
+    _converter._WARN = False
     if by is not None:
         axes = grouped_hist(data, column=column, by=by, ax=ax, grid=grid,
                             figsize=figsize, sharex=sharex, sharey=sharey,
@@ -2181,7 +2182,7 @@ def hist_frame(data, column=None, by=None, grid=True, xlabelsize=None,
                           layout=layout)
     _axes = _flatten(axes)
 
-    for i, col in enumerate(_try_sort(data.columns)):
+    for i, col in enumerate(com._try_sort(data.columns)):
         ax = _axes[i]
         ax.hist(data[col].dropna().values, bins=bins, **kwds)
         ax.set_title(col)
@@ -2294,6 +2295,8 @@ def grouped_hist(data, column=None, by=None, ax=None, bins=50, figsize=None,
     -------
     axes: collection of Matplotlib Axes
     """
+    _converter._WARN = False
+
     def plot_group(group, ax):
         ax.hist(group.dropna().values, bins=bins, **kwargs)
 
@@ -2358,7 +2361,7 @@ def boxplot_frame_groupby(grouped, subplots=True, column=None, fontsize=None,
     >>> grouped = df.unstack(level='lvl1').groupby(level=0, axis=1)
     >>> boxplot_frame_groupby(grouped, subplots=False)
     """
-    _setup()
+    _converter._WARN = False
     if subplots is True:
         naxes = len(grouped)
         fig, axes = _subplots(naxes=naxes, squeeze=False,

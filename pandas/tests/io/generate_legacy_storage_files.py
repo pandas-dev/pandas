@@ -194,7 +194,7 @@ def create_data():
                      nat=NaT,
                      tz=Timestamp('2011-01-01', tz='US/Eastern'))
 
-    if _loose_version < '0.19.2':
+    if _loose_version < LooseVersion('0.19.2'):
         timestamp['freq'] = Timestamp('2011-01-01', offset='D')
         timestamp['both'] = Timestamp('2011-01-01', tz='Asia/Tokyo',
                                       offset='M')
@@ -245,10 +245,10 @@ def create_pickle_data():
 
     # Pre-0.14.1 versions generated non-unpicklable mixed-type frames and
     # panels if their columns/items were non-unique.
-    if _loose_version < '0.14.1':
+    if _loose_version < LooseVersion('0.14.1'):
         del data['frame']['mixed_dup']
         del data['panel']['mixed_dup']
-    if _loose_version < '0.17.0':
+    if _loose_version < LooseVersion('0.17.0'):
         del data['series']['period']
         del data['scalars']['period']
     return data
@@ -260,12 +260,12 @@ def _u(x):
 
 def create_msgpack_data():
     data = create_data()
-    if _loose_version < '0.17.0':
+    if _loose_version < LooseVersion('0.17.0'):
         del data['frame']['mixed_dup']
         del data['panel']['mixed_dup']
         del data['frame']['dup']
         del data['panel']['dup']
-    if _loose_version < '0.18.0':
+    if _loose_version < LooseVersion('0.18.0'):
         del data['series']['dt_tz']
         del data['frame']['dt_mixed_tzs']
     # Not supported

@@ -17,7 +17,10 @@ from pandas._libs import (groupby as libgroupby, algos as libalgos,
 from pandas._libs.hashtable import unique_label_indices
 from pandas.compat import lrange, range
 import pandas.core.algorithms as algos
+import pandas.core.common as com
 import pandas.util.testing as tm
+import pandas.util._test_decorators as td
+from pandas.core.dtypes.dtypes import CategoricalDtype as CDT
 from pandas.compat.numpy import np_array_datetime64_compat
 from pandas.util.testing import assert_almost_equal
 
@@ -189,6 +192,34 @@ class TestFactorize(object):
         expected = np.array([2, -1, 0], dtype='int32')
         assert len(set(key)) == len(set(expected))
         tm.assert_numpy_array_equal(pd.isna(key), expected == na_sentinel)
+
+    @pytest.mark.parametrize("data,expected_label,expected_level", [
+        (
+            [(1, 1), (1, 2), (0, 0), (1, 2), 'nonsense'],
+            [0, 1, 2, 1, 3],
+            [(1, 1), (1, 2), (0, 0), 'nonsense']
+        ),
+        (
+            [(1, 1), (1, 2), (0, 0), (1, 2), (1, 2, 3)],
+            [0, 1, 2, 1, 3],
+            [(1, 1), (1, 2), (0, 0), (1, 2, 3)]
+        ),
+        (
+            [(1, 1), (1, 2), (0, 0), (1, 2)],
+            [0, 1, 2, 1],
+            [(1, 1), (1, 2), (0, 0)]
+        )
+    ])
+    def test_factorize_tuple_list(self, data, expected_label, expected_level):
+        # GH9454
+        result = pd.factorize(data)
+
+        tm.assert_numpy_array_equal(result[0],
+                                    np.array(expected_label, dtype=np.intp))
+
+        expected_level_array = com._asarray_tuplesafe(expected_level,
+                                                      dtype=object)
+        tm.assert_numpy_array_equal(result[1], expected_level_array)
 
     def test_complex_sorting(self):
         # gh 12666 - check no segfault
@@ -537,8 +568,8 @@ class TestValueCounts(object):
         # assert isinstance(factor, n)
         result = algos.value_counts(factor)
         breaks = [-1.194, -0.535, 0.121, 0.777, 1.433]
-        expected_index = IntervalIndex.from_breaks(breaks).astype('category')
-        expected = Series([1, 1, 1, 1], index=expected_index)
+        index = IntervalIndex.from_breaks(breaks).astype(CDT(ordered=True))
+        expected = Series([1, 1, 1, 1], index=index)
         tm.assert_series_equal(result.sort_index(), expected.sort_index())
 
     def test_value_counts_bins(self):
@@ -758,10 +789,10 @@ class TestDuplicated(object):
                   2, 4, 1, 5, 6]),
         np.array([1.1, 2.2, 1.1, np.nan, 3.3,
                   2.2, 4.4, 1.1, np.nan, 6.6]),
-        pytest.mark.xfail(reason="Complex bug. GH 16399")(
-            np.array([1 + 1j, 2 + 2j, 1 + 1j, 5 + 5j, 3 + 3j,
-                      2 + 2j, 4 + 4j, 1 + 1j, 5 + 5j, 6 + 6j])
-        ),
+        pytest.param(np.array([1 + 1j, 2 + 2j, 1 + 1j, 5 + 5j, 3 + 3j,
+                               2 + 2j, 4 + 4j, 1 + 1j, 5 + 5j, 6 + 6j]),
+                     marks=pytest.mark.xfail(reason="Complex bug. GH 16399")
+                     ),
         np.array(['a', 'b', 'a', 'e', 'c',
                   'b', 'd', 'a', 'e', 'f'], dtype=object),
         np.array([1, 2**63, 1, 3**5, 10, 2**63, 39, 1, 3**5, 7],
@@ -1080,8 +1111,8 @@ def test_unique_label_indices():
 
 class TestRank(object):
 
+    @td.skip_if_no_scipy
     def test_scipy_compat(self):
-        tm._skip_if_no_scipy()
         from scipy.stats import rankdata
 
         def _check(arr):
@@ -1269,11 +1300,15 @@ def test_infinity_sort():
     assert all(Inf > x or x is Inf for x in ref_nums)
     assert Inf >= Inf and Inf == Inf
     assert not Inf < Inf and not Inf > Inf
+    assert libalgos.Infinity() == libalgos.Infinity()
+    assert not libalgos.Infinity() != libalgos.Infinity()
 
     assert all(NegInf <= x for x in ref_nums)
     assert all(NegInf < x or x is NegInf for x in ref_nums)
     assert NegInf <= NegInf and NegInf == NegInf
     assert not NegInf < NegInf and not NegInf > NegInf
+    assert libalgos.NegInfinity() == libalgos.NegInfinity()
+    assert not libalgos.NegInfinity() != libalgos.NegInfinity()
 
     for perm in permutations(ref_nums):
         assert sorted(perm) == ref_nums
@@ -1281,6 +1316,25 @@ def test_infinity_sort():
     # smoke tests
     np.array([libalgos.Infinity()] * 32).argsort()
     np.array([libalgos.NegInfinity()] * 32).argsort()
+
+
+def test_infinity_against_nan():
+    Inf = libalgos.Infinity()
+    NegInf = libalgos.NegInfinity()
+
+    assert not Inf > np.nan
+    assert not Inf >= np.nan
+    assert not Inf < np.nan
+    assert not Inf <= np.nan
+    assert not Inf == np.nan
+    assert Inf != np.nan
+
+    assert not NegInf > np.nan
+    assert not NegInf >= np.nan
+    assert not NegInf < np.nan
+    assert not NegInf <= np.nan
+    assert not NegInf == np.nan
+    assert NegInf != np.nan
 
 
 def test_ensure_platform_int():

@@ -377,6 +377,14 @@ class TestSeriesMap(TestData):
         exp = Series([np.nan, 'B', 'C', 'D'])
         tm.assert_series_equal(a.map(c), exp)
 
+    @pytest.mark.parametrize("index", tm.all_index_generator(10))
+    def test_map_empty(self, index):
+        s = Series(index)
+        result = s.map({})
+
+        expected = pd.Series(np.nan, index=s.index)
+        tm.assert_series_equal(result, expected)
+
     def test_map_compat(self):
         # related GH 8024
         s = Series([True, True, False], index=[1, 2, 3])
@@ -422,8 +430,10 @@ class TestSeriesMap(TestData):
         converted to a multi-index, preventing tuple values
         from being mapped properly.
         """
+        # GH 18496
         df = pd.DataFrame({'a': [(1, ), (2, ), (3, 4), (5, 6)]})
         label_mappings = {(1, ): 'A', (2, ): 'B', (3, 4): 'A', (5, 6): 'B'}
+
         df['labels'] = df['a'].map(label_mappings)
         df['expected_labels'] = pd.Series(['A', 'B', 'A', 'B'], index=df.index)
         # All labels should be filled now

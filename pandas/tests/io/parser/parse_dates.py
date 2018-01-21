@@ -217,8 +217,8 @@ KORD6,19990127, 23:00:00, 22:56:00, -0.5900, 1.7100, 4.6000, 0.0000, 280.0000"""
             tm.assert_series_equal(expected, result.dtypes)
 
             # test with NaT for the nan_rep
-            # we don't have a method to specif the Datetime na_rep (it defaults
-            # to '')
+            # we don't have a method to specify the Datetime na_rep
+            # (it defaults to '')
             df.to_csv(path)
             result = self.read_csv(path, index_col=0, parse_dates=['B'])
             tm.assert_frame_equal(result, df)
@@ -270,7 +270,7 @@ KORD6,19990127, 23:00:00, 22:56:00, -0.5900, 1.7100, 4.6000, 0.0000, 280.0000"""
 
         # See gh-217
         import dateutil
-        if dateutil.__version__ >= LooseVersion('2.5.0'):
+        if LooseVersion(dateutil.__version__) >= LooseVersion('2.5.0'):
             pytest.skip("testing yearfirst=True not-support"
                         "on datetutil < 2.5.0 this works but"
                         "is wrong")

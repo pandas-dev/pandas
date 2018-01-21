@@ -18,14 +18,6 @@ The full license is in the LICENSE file, distributed with this software.
 
 PANDAS_INLINE npy_int64 get_nat(void) { return NPY_MIN_INT64; }
 
-PANDAS_INLINE npy_datetime get_datetime64_value(PyObject* obj) {
-    return ((PyDatetimeScalarObject*)obj)->obval;
-}
-
-PANDAS_INLINE npy_timedelta get_timedelta64_value(PyObject* obj) {
-    return ((PyTimedeltaScalarObject*)obj)->obval;
-}
-
 PANDAS_INLINE int is_integer_object(PyObject* obj) {
     return (!PyBool_Check(obj)) && PyArray_IsIntegerScalar(obj);
 }
@@ -83,19 +75,6 @@ PANDAS_INLINE PyObject* char_to_string(char* data) {
 #endif
 }
 
-PyObject* sarr_from_data(PyArray_Descr* descr, int length, void* data) {
-    PyArrayObject* result;
-    npy_intp dims[1] = {length};
-    Py_INCREF(descr);  // newfromdescr steals a reference to descr
-    result = (PyArrayObject*)PyArray_NewFromDescr(&PyArray_Type, descr, 1, dims,
-                                                  NULL, data, 0, NULL);
-
-    // Returned array doesn't own data by default
-    result->flags |= NPY_OWNDATA;
-
-    return (PyObject*)result;
-}
-
 void transfer_object_column(char* dst, char* src, size_t stride,
                             size_t length) {
     size_t i;
@@ -112,7 +91,6 @@ void transfer_object_column(char* dst, char* src, size_t stride,
         dst += stride;
     }
 }
-
 
 void set_array_not_contiguous(PyArrayObject* ao) {
     ao->flags &= ~(NPY_C_CONTIGUOUS | NPY_F_CONTIGUOUS);

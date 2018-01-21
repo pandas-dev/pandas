@@ -1,13 +1,14 @@
 """ Test cases for time series specific (freq conversion, etc) """
 
 from datetime import datetime, timedelta, date, time
+import pickle
 
 import pytest
 from pandas.compat import lrange, zip
 
 import numpy as np
 from pandas import Index, Series, DataFrame, NaT
-from pandas.compat import is_platform_mac
+from pandas.compat import is_platform_mac, PY3
 from pandas.core.indexes.datetimes import date_range, bdate_range
 from pandas.core.indexes.timedeltas import timedelta_range
 from pandas.tseries.offsets import DateOffset
@@ -16,13 +17,13 @@ from pandas.core.resample import DatetimeIndex
 
 from pandas.util.testing import assert_series_equal, ensure_clean
 import pandas.util.testing as tm
+import pandas.util._test_decorators as td
 
 from pandas.tests.plotting.common import (TestPlotBase,
                                           _skip_if_no_scipy_gaussian_kde)
 
-tm._skip_if_no_mpl()
 
-
+@td.skip_if_no_mpl
 class TestTSPlot(TestPlotBase):
 
     def setup_method(self, method):
@@ -272,7 +273,7 @@ class TestTSPlot(TestPlotBase):
 
         _, ax = self.plt.subplots()
         df2 = df.copy()
-        df2.index = df.index.asobject
+        df2.index = df.index.astype(object)
         df2.plot(ax=ax)
         diffs = Series(ax.get_lines()[0].get_xydata()[:, 0]).diff()
         assert (np.fabs(diffs[1:] - sec) < 1e-8).all()
@@ -518,6 +519,7 @@ class TestTSPlot(TestPlotBase):
             xp = Period('1/1/1999', freq='H').ordinal
         assert rs == xp
 
+    @td.skip_if_mpl_1_5
     @pytest.mark.slow
     def test_gaps(self):
         ts = tm.makeTimeSeries()
@@ -525,7 +527,6 @@ class TestTSPlot(TestPlotBase):
         _, ax = self.plt.subplots()
         ts.plot(ax=ax)
         lines = ax.get_lines()
-        tm._skip_if_mpl_1_5()
         assert len(lines) == 1
         l = lines[0]
         data = l.get_xydata()
@@ -563,6 +564,7 @@ class TestTSPlot(TestPlotBase):
         mask = data.mask
         assert mask[2:5, 1].all()
 
+    @td.skip_if_mpl_1_5
     @pytest.mark.slow
     def test_gap_upsample(self):
         low = tm.makeTimeSeries()
@@ -578,8 +580,6 @@ class TestTSPlot(TestPlotBase):
         assert len(ax.right_ax.get_lines()) == 1
         l = lines[0]
         data = l.get_xydata()
-
-        tm._skip_if_mpl_1_5()
 
         assert isinstance(data, np.ma.core.MaskedArray)
         mask = data.mask
@@ -643,10 +643,10 @@ class TestTSPlot(TestPlotBase):
         assert ax.get_yaxis().get_visible()
 
     @pytest.mark.slow
+    @td.skip_if_no_scipy
     def test_secondary_kde(self):
         if not self.mpl_ge_1_5_0:
             pytest.skip("mpl is not supported")
-        tm._skip_if_no_scipy()
         _skip_if_no_scipy_gaussian_kde()
 
         ser = Series(np.random.randn(10))
@@ -712,9 +712,9 @@ class TestTSPlot(TestPlotBase):
         assert not hasattr(ax, 'freq')
         lines = ax.get_lines()
         x1 = lines[0].get_xdata()
-        tm.assert_numpy_array_equal(x1, s2.index.asobject.values)
+        tm.assert_numpy_array_equal(x1, s2.index.astype(object).values)
         x2 = lines[1].get_xdata()
-        tm.assert_numpy_array_equal(x2, s1.index.asobject.values)
+        tm.assert_numpy_array_equal(x2, s1.index.astype(object).values)
 
     def test_mixed_freq_regular_first_df(self):
         # GH 9852
@@ -744,9 +744,9 @@ class TestTSPlot(TestPlotBase):
         assert not hasattr(ax, 'freq')
         lines = ax.get_lines()
         x1 = lines[0].get_xdata()
-        tm.assert_numpy_array_equal(x1, s2.index.asobject.values)
+        tm.assert_numpy_array_equal(x1, s2.index.astype(object).values)
         x2 = lines[1].get_xdata()
-        tm.assert_numpy_array_equal(x2, s1.index.asobject.values)
+        tm.assert_numpy_array_equal(x2, s1.index.astype(object).values)
 
     def test_mixed_freq_hf_first(self):
         idxh = date_range('1/1/1999', periods=365, freq='D')
@@ -1019,7 +1019,7 @@ class TestTSPlot(TestPlotBase):
 
         # np.datetime64
         idx = date_range('1/1/2000', periods=10)
-        idx = idx[[0, 2, 5, 9]].asobject
+        idx = idx[[0, 2, 5, 9]].astype(object)
         df = DataFrame(np.random.randn(len(idx), 3), idx)
         _, ax = self.plt.subplots()
         _check_plot_works(df.plot, ax=ax)
@@ -1032,32 +1032,40 @@ class TestTSPlot(TestPlotBase):
         df = DataFrame({'a': np.random.randn(len(ts)),
                         'b': np.random.randn(len(ts))},
                        index=ts)
-        _, ax = self.plt.subplots()
+        fig, ax = self.plt.subplots()
         df.plot(ax=ax)
 
         # verify tick labels
+        fig.canvas.draw()
         ticks = ax.get_xticks()
         labels = ax.get_xticklabels()
         for t, l in zip(ticks, labels):
             m, s = divmod(int(t), 60)
             h, m = divmod(m, 60)
-            xp = l.get_text()
-            if len(xp) > 0:
-                rs = time(h, m, s).strftime('%H:%M:%S')
+            rs = l.get_text()
+            if len(rs) > 0:
+                if s != 0:
+                    xp = time(h, m, s).strftime('%H:%M:%S')
+                else:
+                    xp = time(h, m, s).strftime('%H:%M')
                 assert xp == rs
 
         # change xlim
         ax.set_xlim('1:30', '5:00')
 
         # check tick labels again
+        fig.canvas.draw()
         ticks = ax.get_xticks()
         labels = ax.get_xticklabels()
         for t, l in zip(ticks, labels):
             m, s = divmod(int(t), 60)
             h, m = divmod(m, 60)
-            xp = l.get_text()
-            if len(xp) > 0:
-                rs = time(h, m, s).strftime('%H:%M:%S')
+            rs = l.get_text()
+            if len(rs) > 0:
+                if s != 0:
+                    xp = time(h, m, s).strftime('%H:%M:%S')
+                else:
+                    xp = time(h, m, s).strftime('%H:%M')
                 assert xp == rs
 
     @pytest.mark.slow
@@ -1069,22 +1077,29 @@ class TestTSPlot(TestPlotBase):
         df = DataFrame({'a': np.random.randn(len(ts)),
                         'b': np.random.randn(len(ts))},
                        index=ts)
-        _, ax = self.plt.subplots()
+        fig, ax = self.plt.subplots()
         ax = df.plot(ax=ax)
 
         # verify tick labels
+        fig.canvas.draw()
         ticks = ax.get_xticks()
         labels = ax.get_xticklabels()
         for t, l in zip(ticks, labels):
             m, s = divmod(int(t), 60)
 
-            # TODO: unused?
-            # us = int((t - int(t)) * 1e6)
+            us = int(round((t - int(t)) * 1e6))
 
             h, m = divmod(m, 60)
-            xp = l.get_text()
-            if len(xp) > 0:
-                rs = time(h, m, s).strftime('%H:%M:%S.%f')
+            rs = l.get_text()
+            if len(rs) > 0:
+                if (us % 1000) != 0:
+                    xp = time(h, m, s, us).strftime('%H:%M:%S.%f')
+                elif (us // 1000) != 0:
+                    xp = time(h, m, s, us).strftime('%H:%M:%S.%f')[:-3]
+                elif s != 0:
+                    xp = time(h, m, s, us).strftime('%H:%M:%S')
+                else:
+                    xp = time(h, m, s, us).strftime('%H:%M')
                 assert xp == rs
 
     @pytest.mark.slow
@@ -1481,5 +1496,12 @@ def _check_plot_works(f, freq=None, series=None, *args, **kwargs):
 
         with ensure_clean(return_filelike=True) as path:
             plt.savefig(path)
+
+        # GH18439
+        # this is supported only in Python 3 pickle since
+        # pickle in Python2 doesn't support instancemethod pickling
+        if PY3:
+            with ensure_clean(return_filelike=True) as path:
+                pickle.dump(fig, path)
     finally:
         plt.close(fig)

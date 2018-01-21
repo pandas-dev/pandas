@@ -38,7 +38,7 @@ from np_datetime cimport (check_dts_bounds,
 
 from util cimport is_string_object
 
-from nattype cimport _checknull_with_nat, NPY_NAT
+from nattype cimport checknull_with_nat, NPY_NAT
 from nattype import nat_strings
 
 
@@ -142,7 +142,7 @@ def array_strptime(ndarray[object] values, object fmt,
                 iresult[i] = NPY_NAT
                 continue
         else:
-            if _checknull_with_nat(val):
+            if checknull_with_nat(val):
                 iresult[i] = NPY_NAT
                 continue
             else:
@@ -557,7 +557,7 @@ class TimeRE(dict):
         """Convert a list to a regex string for matching a directive.
 
         Want possible matching values to be from longest to shortest.  This
-        prevents the possibility of a match occuring for a value that also
+        prevents the possibility of a match occurring for a value that also
         a substring of a larger value that should have matched (e.g., 'abc'
         matching when 'abcdef' should have been the match).
 

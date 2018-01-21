@@ -340,6 +340,33 @@ class CategoricalDtype(ExtensionDtype):
 
         return categories
 
+    def _update_dtype(self, dtype):
+        """
+        Returns a CategoricalDtype with categories and ordered taken from dtype
+        if specified, otherwise falling back to self if unspecified
+
+        Parameters
+        ----------
+        dtype : CategoricalDtype
+
+        Returns
+        -------
+        new_dtype : CategoricalDtype
+        """
+        if isinstance(dtype, compat.string_types) and dtype == 'category':
+            # dtype='category' should not change anything
+            return self
+        elif not self.is_dtype(dtype):
+            msg = ('a CategoricalDtype must be passed to perform an update, '
+                   'got {dtype!r}').format(dtype=dtype)
+            raise ValueError(msg)
+
+        # dtype is CDT: keep current categories if None (ordered can't be None)
+        new_categories = dtype.categories
+        if new_categories is None:
+            new_categories = self.categories
+        return CategoricalDtype(new_categories, dtype.ordered)
+
     @property
     def categories(self):
         """
@@ -375,7 +402,7 @@ class DatetimeTZDtype(ExtensionDtype):
     num = 101
     base = np.dtype('M8[ns]')
     _metadata = ['unit', 'tz']
-    _match = re.compile("(datetime64|M8)\[(?P<unit>.+), (?P<tz>.+)\]")
+    _match = re.compile(r"(datetime64|M8)\[(?P<unit>.+), (?P<tz>.+)\]")
     _cache = {}
 
     def __new__(cls, unit=None, tz=None):
@@ -487,7 +514,7 @@ class PeriodDtype(ExtensionDtype):
     base = np.dtype('O')
     num = 102
     _metadata = ['freq']
-    _match = re.compile("(P|p)eriod\[(?P<freq>.+)\]")
+    _match = re.compile(r"(P|p)eriod\[(?P<freq>.+)\]")
     _cache = {}
 
     def __new__(cls, freq=None):
@@ -570,8 +597,8 @@ class PeriodDtype(ExtensionDtype):
         """
 
         if isinstance(dtype, compat.string_types):
-            # PeriodDtype can be instanciated from freq string like "U",
-            # but dosn't regard freq str like "U" as dtype.
+            # PeriodDtype can be instantiated from freq string like "U",
+            # but doesn't regard freq str like "U" as dtype.
             if dtype.startswith('period[') or dtype.startswith('Period['):
                 try:
                     if cls._parse_dtype_strict(dtype) is not None:
@@ -599,13 +626,14 @@ class IntervalDtype(ExtensionDtype):
 
     THIS IS NOT A REAL NUMPY DTYPE
     """
+    name = 'interval'
     type = IntervalDtypeType
     kind = None
     str = '|O08'
     base = np.dtype('O')
     num = 103
     _metadata = ['subtype']
-    _match = re.compile("(I|i)nterval\[(?P<subtype>.+)\]")
+    _match = re.compile(r"(I|i)nterval\[(?P<subtype>.+)\]")
     _cache = {}
 
     def __new__(cls, subtype=None):
@@ -614,6 +642,8 @@ class IntervalDtype(ExtensionDtype):
         ----------
         subtype : the dtype of the Interval
         """
+        from pandas.core.dtypes.common import (
+            is_categorical_dtype, is_string_dtype, pandas_dtype)
 
         if isinstance(subtype, IntervalDtype):
             return subtype
@@ -624,24 +654,24 @@ class IntervalDtype(ExtensionDtype):
             u.subtype = None
             return u
         elif (isinstance(subtype, compat.string_types) and
-              subtype == 'interval'):
-            subtype = ''
+              subtype.lower() == 'interval'):
+            subtype = None
         else:
             if isinstance(subtype, compat.string_types):
                 m = cls._match.search(subtype)
                 if m is not None:
                     subtype = m.group('subtype')
 
-            from pandas.core.dtypes.common import pandas_dtype
             try:
                 subtype = pandas_dtype(subtype)
             except TypeError:
                 raise ValueError("could not construct IntervalDtype")
 
-        if subtype is None:
-            u = object.__new__(cls)
-            u.subtype = None
-            return u
+        if is_categorical_dtype(subtype) or is_string_dtype(subtype):
+            # GH 19016
+            msg = ('category, object, and string subtypes are not supported '
+                   'for IntervalDtype')
+            raise TypeError(msg)
 
         try:
             return cls._cache[str(subtype)]
@@ -658,20 +688,14 @@ class IntervalDtype(ExtensionDtype):
         if its not possible
         """
         if isinstance(string, compat.string_types):
-            try:
-                return cls(string)
-            except ValueError:
-                pass
-        raise TypeError("could not construct IntervalDtype")
+            return cls(string)
+        msg = "a string needs to be passed, got type {typ}"
+        raise TypeError(msg.format(typ=type(string)))
 
     def __unicode__(self):
         if self.subtype is None:
             return "interval"
         return "interval[{subtype}]".format(subtype=self.subtype)
-
-    @property
-    def name(self):
-        return str(self)
 
     def __hash__(self):
         # make myself hashable
@@ -679,10 +703,15 @@ class IntervalDtype(ExtensionDtype):
 
     def __eq__(self, other):
         if isinstance(other, compat.string_types):
-            return other == self.name or other == self.name.title()
-
-        return (isinstance(other, IntervalDtype) and
-                self.subtype == other.subtype)
+            return other.lower() in (self.name.lower(), str(self).lower())
+        elif not isinstance(other, IntervalDtype):
+            return False
+        elif self.subtype is None or other.subtype is None:
+            # None should match any subtype
+            return True
+        else:
+            from pandas.core.dtypes.common import is_dtype_equal
+            return is_dtype_equal(self.subtype, other.subtype)
 
     @classmethod
     def is_dtype(cls, dtype):

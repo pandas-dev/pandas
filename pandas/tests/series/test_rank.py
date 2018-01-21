@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-from pandas import compat
+from pandas import compat, Timestamp
 
 import pytest
 
@@ -14,6 +14,8 @@ from pandas.compat import product
 from pandas.util.testing import assert_series_equal
 import pandas.util.testing as tm
 from pandas.tests.series.common import TestData
+from pandas._libs.tslib import iNaT
+from pandas._libs.algos import Infinity, NegInfinity
 
 
 class TestSeriesRank(TestData):
@@ -195,16 +197,46 @@ class TestSeriesRank(TestData):
         s.rank(method='average')
         pytest.raises(ValueError, s.rank, 'average')
 
-    def test_rank_inf(self):
-        pytest.skip('DataFrame.rank does not currently rank '
-                    'np.inf and -np.inf properly')
-
-        values = np.array(
-            [-np.inf, -50, -1, -1e-20, -1e-25, -1e-50, 0, 1e-40, 1e-20, 1e-10,
-             2, 40, np.inf], dtype='float64')
+    @pytest.mark.parametrize('contents,dtype', [
+        ([-np.inf, -50, -1, -1e-20, -1e-25, -1e-50, 0, 1e-40, 1e-20, 1e-10,
+          2, 40, np.inf],
+         'float64'),
+        ([-np.inf, -50, -1, -1e-20, -1e-25, -1e-45, 0, 1e-40, 1e-20, 1e-10,
+          2, 40, np.inf],
+         'float32'),
+        ([np.iinfo(np.uint8).min, 1, 2, 100, np.iinfo(np.uint8).max],
+         'uint8'),
+        pytest.param([np.iinfo(np.int64).min, -100, 0, 1, 9999, 100000,
+                      1e10, np.iinfo(np.int64).max],
+                     'int64',
+                     marks=pytest.mark.xfail(
+                         reason="iNaT is equivalent to minimum value of dtype"
+                         "int64 pending issue #16674")),
+        ([NegInfinity(), '1', 'A', 'BA', 'Ba', 'C', Infinity()],
+         'object')
+    ])
+    def test_rank_inf(self, contents, dtype):
+        dtype_na_map = {
+            'float64': np.nan,
+            'float32': np.nan,
+            'int64': iNaT,
+            'object': None
+        }
+        # Insert nans at random positions if underlying dtype has missing
+        # value. Then adjust the expected order by adding nans accordingly
+        # This is for testing whether rank calculation is affected
+        # when values are interwined with nan values.
+        values = np.array(contents, dtype=dtype)
+        exp_order = np.array(range(len(values)), dtype='float64') + 1.0
+        if dtype in dtype_na_map:
+            na_value = dtype_na_map[dtype]
+            nan_indices = np.random.choice(range(len(values)), 5)
+            values = np.insert(values, nan_indices, na_value)
+            exp_order = np.insert(exp_order, nan_indices, np.nan)
+        # shuffle the testing array and expected results in the same way
         random_order = np.random.permutation(len(values))
         iseries = Series(values[random_order])
-        exp = Series(random_order + 1.0, dtype='float64')
+        exp = Series(exp_order[random_order], dtype='float64')
         iranks = iseries.rank()
         assert_series_equal(iranks, exp)
 
@@ -225,6 +257,39 @@ class TestSeriesRank(TestData):
             series = s if dtype is None else s.astype(dtype)
             _check(series, results[method], method=method)
 
+    def test_rank_tie_methods_on_infs_nans(self):
+        dtypes = [('object', None, Infinity(), NegInfinity()),
+                  ('float64', np.nan, np.inf, -np.inf)]
+        chunk = 3
+        disabled = set([('object', 'first')])
+
+        def _check(s, expected, method='average', na_option='keep'):
+            result = s.rank(method=method, na_option=na_option)
+            tm.assert_series_equal(result, Series(expected, dtype='float64'))
+
+        exp_ranks = {
+            'average': ([2, 2, 2], [5, 5, 5], [8, 8, 8]),
+            'min': ([1, 1, 1], [4, 4, 4], [7, 7, 7]),
+            'max': ([3, 3, 3], [6, 6, 6], [9, 9, 9]),
+            'first': ([1, 2, 3], [4, 5, 6], [7, 8, 9]),
+            'dense': ([1, 1, 1], [2, 2, 2], [3, 3, 3])
+        }
+        na_options = ('top', 'bottom', 'keep')
+        for dtype, na_value, pos_inf, neg_inf in dtypes:
+            in_arr = [neg_inf] * chunk + [na_value] * chunk + [pos_inf] * chunk
+            iseries = Series(in_arr, dtype=dtype)
+            for method, na_opt in product(exp_ranks.keys(), na_options):
+                ranks = exp_ranks[method]
+                if (dtype, method) in disabled:
+                    continue
+                if na_opt == 'top':
+                    order = ranks[1] + ranks[0] + ranks[2]
+                elif na_opt == 'bottom':
+                    order = ranks[0] + ranks[2] + ranks[1]
+                else:
+                    order = ranks[0] + [np.nan] * chunk + ranks[1]
+                _check(iseries, order, method, na_opt)
+
     def test_rank_methods_series(self):
         pytest.importorskip('scipy.stats.special')
         rankdata = pytest.importorskip('scipy.stats.rankdata')
@@ -244,7 +309,7 @@ class TestSeriesRank(TestData):
                 sprank = rankdata(vals, m if m != 'first' else 'ordinal')
                 expected = Series(sprank, index=index)
 
-                if LooseVersion(scipy.__version__) >= '0.17.0':
+                if LooseVersion(scipy.__version__) >= LooseVersion('0.17.0'):
                     expected = expected.astype('float64')
                 tm.assert_series_equal(result, expected)
 
@@ -301,3 +366,13 @@ class TestSeriesRank(TestData):
         # smoke tests
         Series([np.nan] * 32).astype(object).rank(ascending=True)
         Series([np.nan] * 32).astype(object).rank(ascending=False)
+
+    def test_rank_modify_inplace(self):
+        # GH 18521
+        # Check rank does not mutate series
+        s = Series([Timestamp('2017-01-05 10:20:27.569000'), NaT])
+        expected = s.copy()
+
+        s.rank()
+        result = s
+        assert_series_equal(result, expected)

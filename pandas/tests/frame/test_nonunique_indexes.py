@@ -439,7 +439,7 @@ class TestDataFrameNonuniqueIndexes(TestData):
         xp.columns = ['A', 'A', 'B']
         assert_frame_equal(rs, xp)
 
-    def test_as_matrix_duplicates(self):
+    def test_values_duplicates(self):
         df = DataFrame([[1, 2, 'a', 'b'],
                         [1, 2, 'a', 'b']],
                        columns=['one', 'one', 'two', 'two'])

@@ -12,18 +12,18 @@ from pandas.core.dtypes.common import (
     is_object_dtype,
     is_list_like,
     is_scalar,
-    is_datetimelike)
+    is_datetimelike,
+    is_extension_type)
 
 from pandas.util._validators import validate_bool_kwarg
 
-from pandas.core import common as com
+from pandas.core import common as com, algorithms
 import pandas.core.nanops as nanops
 import pandas._libs.lib as lib
 from pandas.compat.numpy import function as nv
 from pandas.compat import PYPY
 from pandas.util._decorators import (Appender, cache_readonly,
                                      deprecate_kwarg, Substitution)
-from pandas.core.common import AbstractMethodError, _maybe_box_datetimelike
 
 from pandas.core.accessor import DirNamesMixin
 
@@ -45,7 +45,7 @@ class StringMixin(object):
     # Formatting
 
     def __unicode__(self):
-        raise AbstractMethodError(self)
+        raise com.AbstractMethodError(self)
 
     def __str__(self):
         """
@@ -144,10 +144,14 @@ class NoNewAttributesMixin(object):
     # prevent adding any attribute via s.xxx.new_attribute = ...
     def __setattr__(self, key, value):
         # _cache is used by a decorator
-        # dict lookup instead of getattr as getattr is false for getter
-        # which error
-        if getattr(self, "__frozen", False) and not \
-                (key in type(self).__dict__ or key == "_cache"):
+        # We need to check both 1.) cls.__dict__ and 2.) getattr(self, key)
+        # because
+        # 1.) getattr is false for attributes that raise errors
+        # 2.) cls.__dict__ doesn't traverse into base classes
+        if (getattr(self, "__frozen", False) and not
+                (key == "_cache" or
+                 key in type(self).__dict__ or
+                 getattr(self, key, None) is not None)):
             raise AttributeError("You cannot add any new attribute '{key}'".
                                  format(key=key))
         object.__setattr__(self, key, value)
@@ -273,10 +277,10 @@ class SelectionMixin(object):
             subset to act on
 
         """
-        raise AbstractMethodError(self)
+        raise com.AbstractMethodError(self)
 
     def aggregate(self, func, *args, **kwargs):
-        raise AbstractMethodError(self)
+        raise com.AbstractMethodError(self)
 
     agg = aggregate
 
@@ -684,7 +688,7 @@ class GroupByMixin(object):
 
 
 class IndexOpsMixin(object):
-    """ common ops mixin to support a unified inteface / docs for Series /
+    """ common ops mixin to support a unified interface / docs for Series /
     Index
     """
 
@@ -810,7 +814,7 @@ class IndexOpsMixin(object):
         """
 
         if is_datetimelike(self):
-            return [_maybe_box_datetimelike(x) for x in self._values]
+            return [com._maybe_box_datetimelike(x) for x in self._values]
         else:
             return self._values.tolist()
 
@@ -837,6 +841,78 @@ class IndexOpsMixin(object):
             raise TypeError("{klass} cannot perform the operation {op}".format(
                             klass=self.__class__.__name__, op=name))
         return func(**kwds)
+
+    def _map_values(self, mapper, na_action=None):
+        """An internal function that maps values using the input
+        correspondence (which can be a dict, Series, or function).
+
+        Parameters
+        ----------
+        mapper : function, dict, or Series
+            The input correspondence object
+        na_action : {None, 'ignore'}
+            If 'ignore', propagate NA values, without passing them to the
+            mapping function
+
+        Returns
+        -------
+        applied : Union[Index, MultiIndex], inferred
+            The output of the mapping function applied to the index.
+            If the function returns a tuple with more than one element
+            a MultiIndex will be returned.
+
+        """
+
+        # we can fastpath dict/Series to an efficient map
+        # as we know that we are not going to have to yield
+        # python types
+        if isinstance(mapper, dict):
+            if hasattr(mapper, '__missing__'):
+                # If a dictionary subclass defines a default value method,
+                # convert mapper to a lookup function (GH #15999).
+                dict_with_default = mapper
+                mapper = lambda x: dict_with_default[x]
+            else:
+                # Dictionary does not have a default. Thus it's safe to
+                # convert to an Series for efficiency.
+                # we specify the keys here to handle the
+                # possibility that they are tuples
+                from pandas import Series
+                mapper = Series(mapper)
+
+        if isinstance(mapper, ABCSeries):
+            # Since values were input this means we came from either
+            # a dict or a series and mapper should be an index
+            if is_extension_type(self.dtype):
+                values = self._values
+            else:
+                values = self.values
+
+            indexer = mapper.index.get_indexer(values)
+            new_values = algorithms.take_1d(mapper._values, indexer)
+
+            return new_values
+
+        # we must convert to python types
+        if is_extension_type(self.dtype):
+            values = self._values
+            if na_action is not None:
+                raise NotImplementedError
+            map_f = lambda values, f: values.map(f)
+        else:
+            values = self.astype(object)
+            values = getattr(values, 'values', values)
+            if na_action == 'ignore':
+                def map_f(values, f):
+                    return lib.map_infer_mask(values, f,
+                                              isna(values).view(np.uint8))
+            else:
+                map_f = lib.map_infer
+
+        # mapper is a function
+        new_values = map_f(values, mapper)
+
+        return new_values
 
     def value_counts(self, normalize=False, sort=True, ascending=False,
                      bins=None, dropna=True):
@@ -1161,4 +1237,4 @@ class IndexOpsMixin(object):
     # abstracts
 
     def _update_inplace(self, result, **kwargs):
-        raise AbstractMethodError(self)
+        raise com.AbstractMethodError(self)

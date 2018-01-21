@@ -16,12 +16,14 @@ import pandas as pd
 from pandas.util.testing import assert_series_equal, assert_frame_equal
 
 import pandas.util.testing as tm
+import pandas.util._test_decorators as td
 from pandas.tests.frame.common import TestData, _check_mixed_float
 
 
 try:
     import scipy
-    _is_scipy_ge_0190 = scipy.__version__ >= LooseVersion('0.19.0')
+    _is_scipy_ge_0190 = (LooseVersion(scipy.__version__) >=
+                         LooseVersion('0.19.0'))
 except:
     _is_scipy_ge_0190 = False
 
@@ -645,9 +647,8 @@ class TestDataFrameInterpolate(TestData):
         with pytest.raises(NotImplementedError):
             df.interpolate(method='values')
 
+    @td.skip_if_no_scipy
     def test_interp_various(self):
-        tm._skip_if_no_scipy()
-
         df = DataFrame({'A': [1, 2, np.nan, 4, 5, np.nan, 7],
                         'C': [1, 2, 3, 5, 8, 13, 21]})
         df = df.set_index('C')
@@ -694,8 +695,8 @@ class TestDataFrameInterpolate(TestData):
         expected.A.loc[13] = 5
         assert_frame_equal(result, expected, check_dtype=False)
 
+    @td.skip_if_no_scipy
     def test_interp_alt_scipy(self):
-        tm._skip_if_no_scipy()
         df = DataFrame({'A': [1, 2, np.nan, 4, 5, np.nan, 7],
                         'C': [1, 2, 3, 5, 8, 13, 21]})
         result = df.interpolate(method='barycentric')
@@ -717,7 +718,7 @@ class TestDataFrameInterpolate(TestData):
         result = df.interpolate(method='pchip')
         expected.loc[2, 'A'] = 3
 
-        if LooseVersion(scipy.__version__) >= '0.17.0':
+        if LooseVersion(scipy.__version__) >= LooseVersion('0.17.0'):
             expected.loc[5, 'A'] = 6.0
         else:
             expected.loc[5, 'A'] = 6.125
@@ -738,8 +739,6 @@ class TestDataFrameInterpolate(TestData):
         expected[4] = expected[4].astype(np.float64)
         assert_frame_equal(result, expected)
 
-        # scipy route
-        tm._skip_if_no_scipy()
         result = df.interpolate(axis=1, method='values')
         assert_frame_equal(result, expected)
 
@@ -752,7 +751,10 @@ class TestDataFrameInterpolate(TestData):
                         1: [1, 2, 3, 4, 3, 2, 1, 0, -1]})
         df.interpolate(axis=0)
 
-    def test_interp_leading_nans(self):
+    @pytest.mark.parametrize("check_scipy", [
+        False, pytest.param(True, marks=td.skip_if_no_scipy)
+    ])
+    def test_interp_leading_nans(self, check_scipy):
         df = DataFrame({"A": [np.nan, np.nan, .5, .25, 0],
                         "B": [np.nan, -3, -3.5, np.nan, -4]})
         result = df.interpolate()
@@ -760,9 +762,9 @@ class TestDataFrameInterpolate(TestData):
         expected['B'].loc[3] = -3.75
         assert_frame_equal(result, expected)
 
-        tm._skip_if_no_scipy()
-        result = df.interpolate(method='polynomial', order=1)
-        assert_frame_equal(result, expected)
+        if check_scipy:
+            result = df.interpolate(method='polynomial', order=1)
+            assert_frame_equal(result, expected)
 
     def test_interp_raise_on_only_mixed(self):
         df = DataFrame({'A': [1, 2, np.nan, 4],

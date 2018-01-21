@@ -46,6 +46,15 @@ class TestDatetimeIndex(object):
         expected = i2
         tm.assert_index_equal(result, expected)
 
+    @pytest.mark.parametrize('null', [None, np.nan, pd.NaT])
+    @pytest.mark.parametrize('tz', [None, 'UTC', 'US/Eastern'])
+    def test_insert_nat(self, tz, null):
+        # GH#16537, GH#18295 (test missing)
+        idx = pd.DatetimeIndex(['2017-01-01'], tz=tz)
+        expected = pd.DatetimeIndex(['NaT', '2017-01-01'], tz=tz)
+        res = idx.insert(0, null)
+        tm.assert_index_equal(res, expected)
+
     def test_insert(self):
         idx = DatetimeIndex(
             ['2000-01-04', '2000-01-01', '2000-01-02'], name='idx')

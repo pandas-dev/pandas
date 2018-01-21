@@ -7,6 +7,7 @@ import pytest
 from pandas import DataFrame
 from pandas.compat import lmap
 import pandas.util.testing as tm
+import pandas.util._test_decorators as td
 
 import numpy as np
 from numpy import random
@@ -15,9 +16,8 @@ from numpy.random import randn
 import pandas.plotting as plotting
 from pandas.tests.plotting.common import TestPlotBase, _check_plot_works
 
-tm._skip_if_no_mpl()
 
-
+@td.skip_if_no_mpl
 class TestSeriesPlots(TestPlotBase):
 
     def setup_method(self, method):
@@ -49,10 +49,11 @@ class TestSeriesPlots(TestPlotBase):
         _check_plot_works(bootstrap_plot, series=self.ts, size=10)
 
 
+@td.skip_if_no_mpl
 class TestDataFramePlots(TestPlotBase):
 
+    @td.skip_if_no_scipy
     def test_scatter_matrix_axis(self):
-        tm._skip_if_no_scipy()
         scatter_matrix = plotting.scatter_matrix
 
         with tm.RNGContext(42):
@@ -201,9 +202,11 @@ class TestDataFramePlots(TestPlotBase):
         with tm.assert_produces_warning(FutureWarning):
             parallel_coordinates(df, 'Name', colors=colors)
 
+    @pytest.mark.xfail(reason="unreliable test")
     def test_parallel_coordinates_with_sorted_labels(self):
         """ For #15908 """
         from pandas.plotting import parallel_coordinates
+
         df = DataFrame({"feat": [i for i in range(30)],
                         "class": [2 for _ in range(10)] +
                         [3 for _ in range(10)] +
@@ -217,7 +220,7 @@ class TestDataFramePlots(TestPlotBase):
         prev_next_tupels = zip([i for i in ordered_color_label_tuples[0:-1]],
                                [i for i in ordered_color_label_tuples[1:]])
         for prev, nxt in prev_next_tupels:
-            # lables and colors are ordered strictly increasing
+            # labels and colors are ordered strictly increasing
             assert prev[1] < nxt[1] and prev[0] < nxt[0]
 
     @pytest.mark.slow

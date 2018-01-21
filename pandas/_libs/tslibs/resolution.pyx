@@ -10,22 +10,20 @@ np.import_array()
 
 from util cimport is_string_object, get_nat
 
-from khash cimport (
-    khiter_t,
-    kh_destroy_int64, kh_put_int64,
-    kh_init_int64, kh_int64_t,
-    kh_resize_int64, kh_get_int64)
+from pandas._libs.khash cimport (khiter_t,
+                                 kh_destroy_int64, kh_put_int64,
+                                 kh_init_int64, kh_int64_t,
+                                 kh_resize_int64, kh_get_int64)
 
 from cpython.datetime cimport datetime
 
-from np_datetime cimport (pandas_datetimestruct,
-                          dtstruct_to_dt64, dt64_to_dtstruct)
+from np_datetime cimport pandas_datetimestruct, dt64_to_dtstruct
 from frequencies cimport get_freq_code
-from timezones cimport (
-    is_utc, is_tzlocal,
-    maybe_get_tz, get_dst_info, get_utcoffset)
+from timezones cimport (is_utc, is_tzlocal,
+                        maybe_get_tz, get_dst_info, get_utcoffset)
 from fields import build_field_sarray
 from conversion import tz_convert
+from ccalendar import MONTH_ALIASES, int_to_weekday
 
 from pandas._libs.properties import cache_readonly
 from pandas._libs.tslib import Timestamp
@@ -51,13 +49,6 @@ _ONE_SECOND = _ONE_MILLI * 1000
 _ONE_MINUTE = 60 * _ONE_SECOND
 _ONE_HOUR = 60 * _ONE_MINUTE
 _ONE_DAY = 24 * _ONE_HOUR
-
-DAYS = ['MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT', 'SUN']
-_weekday_rule_aliases = dict((k, v) for k, v in enumerate(DAYS))
-
-_MONTHS = ['JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN', 'JUL',
-           'AUG', 'SEP', 'OCT', 'NOV', 'DEC']
-_MONTH_ALIASES = {(k + 1): v for k, v in enumerate(_MONTHS)}
 
 # ----------------------------------------------------------------------
 
@@ -356,7 +347,7 @@ class Resolution(object):
 # Frequency Inference
 
 
-# TODO: this is non performiant logic here (and duplicative) and this
+# TODO: this is non performant logic here (and duplicative) and this
 # simply should call unique_1d directly
 # plus no reason to depend on khash directly
 cdef unique_deltas(ndarray[int64_t] arr):
@@ -539,7 +530,7 @@ class _FrequencyInferer(object):
         annual_rule = self._get_annual_rule()
         if annual_rule:
             nyears = self.ydiffs[0]
-            month = _MONTH_ALIASES[self.rep_stamp.month]
+            month = MONTH_ALIASES[self.rep_stamp.month]
             alias = '{prefix}-{month}'.format(prefix=annual_rule, month=month)
             return _maybe_add_count(alias, nyears)
 
@@ -547,7 +538,7 @@ class _FrequencyInferer(object):
         if quarterly_rule:
             nquarters = self.mdiffs[0] / 3
             mod_dict = {0: 12, 2: 11, 1: 10}
-            month = _MONTH_ALIASES[mod_dict[self.rep_stamp.month % 3]]
+            month = MONTH_ALIASES[mod_dict[self.rep_stamp.month % 3]]
             alias = '{prefix}-{month}'.format(prefix=quarterly_rule,
                                               month=month)
             return _maybe_add_count(alias, nquarters)
@@ -560,7 +551,7 @@ class _FrequencyInferer(object):
             days = self.deltas[0] / _ONE_DAY
             if days % 7 == 0:
                 # Weekly
-                day = _weekday_rule_aliases[self.rep_stamp.weekday()]
+                day = int_to_weekday[self.rep_stamp.weekday()]
                 return _maybe_add_count('W-{day}'.format(day=day), days / 7)
             else:
                 return _maybe_add_count('D', days)
@@ -632,7 +623,7 @@ class _FrequencyInferer(object):
 
         # get which week
         week = week_of_months[0] + 1
-        wd = _weekday_rule_aliases[weekdays[0]]
+        wd = int_to_weekday[weekdays[0]]
 
         return 'WOM-{week}{weekday}'.format(week=week, weekday=wd)
 
@@ -644,7 +635,7 @@ class _TimedeltaFrequencyInferer(_FrequencyInferer):
             days = self.deltas[0] / _ONE_DAY
             if days % 7 == 0:
                 # Weekly
-                wd = _weekday_rule_aliases[self.rep_stamp.weekday()]
+                wd = int_to_weekday[self.rep_stamp.weekday()]
                 alias = 'W-{weekday}'.format(weekday=wd)
                 return _maybe_add_count(alias, days / 7)
             else:

@@ -208,6 +208,8 @@ def ensure_compat(dispatch, name, arg, func_kw=None, *args, **kwargs):
         if value is not None:
             kwds[k] = value
 
+    # TODO: the below is only in place temporary until this module is removed.
+    kwargs.pop('freq', None)  # freq removed in 0.23
     # how is a keyword that if not-None should be in kwds
     how = kwargs.pop('how', None)
     if how is not None:
@@ -680,7 +682,6 @@ def _expanding_func(name, desc, func_kw=None, additional_kw=''):
                              name,
                              arg,
                              min_periods=min_periods,
-                             freq=freq,
                              func_kw=func_kw,
                              **kwargs)
     return f

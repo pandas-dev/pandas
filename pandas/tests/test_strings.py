@@ -1072,28 +1072,50 @@ class TestStringMethods(object):
         e = DataFrame(['ab', 'abc', 'd', 'cd'], i)
         tm.assert_frame_equal(r, e)
 
-    def test_extractall_no_matches(self):
-        s = Series(['a3', 'b3', 'd4c2'], name='series_name')
+    @pytest.mark.parametrize('data, names', [
+        ([], (None, )),
+        ([], ('i1', )),
+        ([], (None, 'i2')),
+        ([], ('i1', 'i2')),
+        (['a3', 'b3', 'd4c2'], (None, )),
+        (['a3', 'b3', 'd4c2'], ('i1', 'i2')),
+        (['a3', 'b3', 'd4c2'], (None, 'i2')),
+        (['a3', 'b3', 'd4c2'], ('i1', 'i2')),
+    ])
+    def test_extractall_no_matches(self, data, names):
+        # GH19075 extractall with no matches should return a valid MultiIndex
+        n = len(data)
+        if len(names) == 1:
+            i = Index(range(n), name=names[0])
+        else:
+            a = (tuple([i] * (n - 1)) for i in range(n))
+            i = MultiIndex.from_tuples(a, names=names)
+        s = Series(data, name='series_name', index=i, dtype='object')
+        ei = MultiIndex.from_tuples([], names=(names + ('match',)))
+
         # one un-named group.
         r = s.str.extractall('(z)')
-        e = DataFrame(columns=[0])
+        e = DataFrame(columns=[0], index=ei)
         tm.assert_frame_equal(r, e)
+
         # two un-named groups.
         r = s.str.extractall('(z)(z)')
-        e = DataFrame(columns=[0, 1])
+        e = DataFrame(columns=[0, 1], index=ei)
         tm.assert_frame_equal(r, e)
+
         # one named group.
         r = s.str.extractall('(?P<first>z)')
-        e = DataFrame(columns=["first"])
+        e = DataFrame(columns=["first"], index=ei)
         tm.assert_frame_equal(r, e)
+
         # two named groups.
         r = s.str.extractall('(?P<first>z)(?P<second>z)')
-        e = DataFrame(columns=["first", "second"])
+        e = DataFrame(columns=["first", "second"], index=ei)
         tm.assert_frame_equal(r, e)
+
         # one named, one un-named.
         r = s.str.extractall('(z)(?P<second>z)')
-        e = DataFrame(columns=[0,
-                               "second"])
+        e = DataFrame(columns=[0, "second"], index=ei)
         tm.assert_frame_equal(r, e)
 
     def test_extractall_stringindex(self):
@@ -2085,6 +2107,18 @@ class TestStringMethods(object):
                                       ('with_no', 'nans')])
         tm.assert_index_equal(result, exp)
         assert result.nlevels == 2
+
+    def test_split_nan_expand(self):
+        # gh-18450
+        s = Series(["foo,bar,baz", NA])
+        result = s.str.split(",", expand=True)
+        exp = DataFrame([["foo", "bar", "baz"], [NA, NA, NA]])
+        tm.assert_frame_equal(result, exp)
+
+        # check that these are actually np.nan and not None
+        # TODO see GH 18463
+        # tm.assert_frame_equal does not differentiate
+        assert all(np.isnan(x) for x in result.iloc[1])
 
     def test_split_with_name(self):
         # GH 12617

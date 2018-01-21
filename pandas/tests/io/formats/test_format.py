@@ -254,8 +254,7 @@ class TestDataFrameFormatting(object):
         tm.assert_series_equal(Series(res), Series(idx))
 
     def test_repr_should_return_str(self):
-        # http://docs.python.org/py3k/reference/datamodel.html#object.__repr__
-        # http://docs.python.org/reference/datamodel.html#object.__repr__
+        # https://docs.python.org/3/reference/datamodel.html#object.__repr__
         # "...The return value must be a string object."
 
         # (str on py2.x, str (unicode) on py3)
@@ -370,7 +369,7 @@ class TestDataFrameFormatting(object):
 
     def test_auto_detect(self):
         term_width, term_height = get_terminal_size()
-        fac = 1.05  # Arbitrary large factor to exceed term widht
+        fac = 1.05  # Arbitrary large factor to exceed term width
         cols = range(int(term_width * fac))
         index = range(10)
         df = DataFrame(index=index, columns=cols)
@@ -883,6 +882,29 @@ class TestDataFrameFormatting(object):
                         '9   2011-01-01 00:00:00-05:00  10\n\n'
                         '[10 rows x 2 columns]')
             assert repr(df) == expected
+
+    @pytest.mark.parametrize('start_date', [
+        '2017-01-01 23:59:59.999999999',
+        '2017-01-01 23:59:59.99999999',
+        '2017-01-01 23:59:59.9999999',
+        '2017-01-01 23:59:59.999999',
+        '2017-01-01 23:59:59.99999',
+        '2017-01-01 23:59:59.9999',
+    ])
+    def test_datetimeindex_highprecision(self, start_date):
+        # GH19030
+        # Check that high-precision time values for the end of day are
+        # included in repr for DatetimeIndex
+        df = DataFrame({'A': date_range(start=start_date,
+                                        freq='D', periods=5)})
+        result = str(df)
+        assert start_date in result
+
+        dti = date_range(start=start_date,
+                         freq='D', periods=5)
+        df = DataFrame({'A': range(5)}, index=dti)
+        result = str(df.index)
+        assert start_date in result
 
     def test_nonunicode_nonascii_alignment(self):
         df = DataFrame([["aa\xc3\xa4\xc3\xa4", 1], ["bbbb", 2]])
@@ -1505,11 +1527,11 @@ c  10  11  12  13  14\
         max_rows = get_option('display.max_rows')
 
         h, w = max_rows - 1, max_cols - 1
-        df = DataFrame(dict((k, np.arange(1, 1 + h)) for k in np.arange(w)))
+        df = DataFrame({k: np.arange(1, 1 + h) for k in np.arange(w)})
         assert '...' not in df._repr_html_()
 
         h, w = max_rows + 1, max_cols + 1
-        df = DataFrame(dict((k, np.arange(1, 1 + h)) for k in np.arange(w)))
+        df = DataFrame({k: np.arange(1, 1 + h) for k in np.arange(w)})
         assert '...' in df._repr_html_()
 
     def test_info_repr(self):
@@ -1517,14 +1539,14 @@ c  10  11  12  13  14\
         max_cols = get_option('display.max_columns')
         # Long
         h, w = max_rows + 1, max_cols - 1
-        df = DataFrame(dict((k, np.arange(1, 1 + h)) for k in np.arange(w)))
+        df = DataFrame({k: np.arange(1, 1 + h) for k in np.arange(w)})
         assert has_vertically_truncated_repr(df)
         with option_context('display.large_repr', 'info'):
             assert has_info_repr(df)
 
         # Wide
         h, w = max_rows - 1, max_cols + 1
-        df = DataFrame(dict((k, np.arange(1, 1 + h)) for k in np.arange(w)))
+        df = DataFrame({k: np.arange(1, 1 + h) for k in np.arange(w)})
         assert has_horizontally_truncated_repr(df)
         with option_context('display.large_repr', 'info'):
             assert has_info_repr(df)
@@ -1550,14 +1572,14 @@ c  10  11  12  13  14\
         max_cols = get_option('display.max_columns')
         # Long
         h, w = max_rows + 1, max_cols - 1
-        df = DataFrame(dict((k, np.arange(1, 1 + h)) for k in np.arange(w)))
+        df = DataFrame({k: np.arange(1, 1 + h) for k in np.arange(w)})
         assert r'&lt;class' not in df._repr_html_()
         with option_context('display.large_repr', 'info'):
             assert r'&lt;class' in df._repr_html_()
 
         # Wide
         h, w = max_rows - 1, max_cols + 1
-        df = DataFrame(dict((k, np.arange(1, 1 + h)) for k in np.arange(w)))
+        df = DataFrame({k: np.arange(1, 1 + h) for k in np.arange(w)})
         assert '<class' not in df._repr_html_()
         with option_context('display.large_repr', 'info'):
             assert '&lt;class' in df._repr_html_()
@@ -1915,6 +1937,27 @@ class TestSeriesFormatting(object):
         result = str(s2.index)
         assert 'NaT' in result
 
+    @pytest.mark.parametrize('start_date', [
+        '2017-01-01 23:59:59.999999999',
+        '2017-01-01 23:59:59.99999999',
+        '2017-01-01 23:59:59.9999999',
+        '2017-01-01 23:59:59.999999',
+        '2017-01-01 23:59:59.99999',
+        '2017-01-01 23:59:59.9999'
+    ])
+    def test_datetimeindex_highprecision(self, start_date):
+        # GH19030
+        # Check that high-precision time values for the end of day are
+        # included in repr for DatetimeIndex
+        s1 = Series(date_range(start=start_date, freq='D', periods=5))
+        result = str(s1)
+        assert start_date in result
+
+        dti = date_range(start=start_date, freq='D', periods=5)
+        s2 = Series(3, index=dti)
+        result = str(s2.index)
+        assert start_date in result
+
     def test_timedelta64(self):
 
         from datetime import datetime, timedelta
@@ -2058,7 +2101,7 @@ class TestSeriesFormatting(object):
         lines = res.split('\n')
         lines = [line for line in repr(s).split('\n')
                  if not re.match(r'[^\.]*\.+', line)][:-1]
-        ncolsizes = len(set(len(line.strip()) for line in lines))
+        ncolsizes = len({len(line.strip()) for line in lines})
         assert ncolsizes == 1
 
     def test_format_explicit(self):

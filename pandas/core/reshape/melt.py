@@ -4,7 +4,7 @@ import numpy as np
 
 from pandas.core.dtypes.common import is_list_like
 from pandas import compat
-from pandas.core.categorical import Categorical
+from pandas.core.arrays import Categorical
 
 from pandas.core.dtypes.generic import ABCMultiIndex
 
@@ -13,6 +13,7 @@ from pandas.util._decorators import Appender
 
 import re
 from pandas.core.dtypes.missing import notna
+from pandas.core.tools.numeric import to_numeric
 
 
 @Appender(_shared_docs['melt'] %
@@ -79,8 +80,7 @@ def melt(frame, id_vars=None, value_vars=None, var_name=None,
         mdata[col] = np.asanyarray(frame.columns
                                    ._get_level_values(i)).repeat(N)
 
-    from pandas import DataFrame
-    return DataFrame(mdata, columns=mcolumns)
+    return frame._constructor(mdata, columns=mcolumns)
 
 
 def lreshape(data, groups, dropna=True, label=None):
@@ -149,10 +149,9 @@ def lreshape(data, groups, dropna=True, label=None):
         for c in pivot_cols:
             mask &= notna(mdata[c])
         if not mask.all():
-            mdata = dict((k, v[mask]) for k, v in compat.iteritems(mdata))
+            mdata = {k: v[mask] for k, v in compat.iteritems(mdata)}
 
-    from pandas import DataFrame
-    return DataFrame(mdata, columns=id_cols + pivot_cols)
+    return data._constructor(mdata, columns=id_cols + pivot_cols)
 
 
 def wide_to_long(df, stubnames, i, j, sep="", suffix=r'\d+'):
@@ -185,7 +184,7 @@ def wide_to_long(df, stubnames, i, j, sep="", suffix=r'\d+'):
         A character indicating the separation of the variable names
         in the wide format, to be stripped from the names in the long format.
         For example, if your column names are A-suffix1, A-suffix2, you
-        can strip the hypen by specifying `sep='-'`
+        can strip the hyphen by specifying `sep='-'`
 
         .. versionadded:: 0.20.0
 
@@ -198,6 +197,9 @@ def wide_to_long(df, stubnames, i, j, sep="", suffix=r'\d+'):
         ignore the last one by specifying `suffix='(!?one|two)'`
 
         .. versionadded:: 0.20.0
+
+        .. versionchanged:: 0.23.0
+            When all suffixes are numeric, they are cast to int64/float64.
 
     Returns
     -------
@@ -278,8 +280,8 @@ def wide_to_long(df, stubnames, i, j, sep="", suffix=r'\d+'):
 
     Going from long back to wide just takes some creative use of `unstack`
 
-    >>> w = l.reset_index().set_index(['famid', 'birth', 'age']).unstack()
-    >>> w.columns = pd.Index(w.columns).str.join('')
+    >>> w = l.unstack()
+    >>> w.columns = w.columns.map('{0[0]}{0[1]}'.format)
     >>> w.reset_index()
        famid  birth  ht1  ht2
     0      1      1  2.8  3.4
@@ -333,16 +335,63 @@ def wide_to_long(df, stubnames, i, j, sep="", suffix=r'\d+'):
     >>> list(stubnames)
     ['A(quarterly)', 'B(quarterly)']
 
+    All of the above examples have integers as suffixes. It is possible to
+    have non-integers as suffixes.
+
+    >>> df = pd.DataFrame({
+    ...     'famid': [1, 1, 1, 2, 2, 2, 3, 3, 3],
+    ...     'birth': [1, 2, 3, 1, 2, 3, 1, 2, 3],
+    ...     'ht_one': [2.8, 2.9, 2.2, 2, 1.8, 1.9, 2.2, 2.3, 2.1],
+    ...     'ht_two': [3.4, 3.8, 2.9, 3.2, 2.8, 2.4, 3.3, 3.4, 2.9]
+    ... })
+    >>> df
+       birth  famid  ht_one  ht_two
+    0      1      1     2.8     3.4
+    1      2      1     2.9     3.8
+    2      3      1     2.2     2.9
+    3      1      2     2.0     3.2
+    4      2      2     1.8     2.8
+    5      3      2     1.9     2.4
+    6      1      3     2.2     3.3
+    7      2      3     2.3     3.4
+    8      3      3     2.1     2.9
+
+    >>> l = pd.wide_to_long(df, stubnames='ht', i=['famid', 'birth'], j='age',
+                            sep='_', suffix='\w')
+    >>> l
+    ... # doctest: +NORMALIZE_WHITESPACE
+                      ht
+    famid birth age
+    1     1     one  2.8
+                two  3.4
+          2     one  2.9
+                two  3.8
+          3     one  2.2
+                two  2.9
+    2     1     one  2.0
+                two  3.2
+          2     one  1.8
+                two  2.8
+          3     one  1.9
+                two  2.4
+    3     1     one  2.2
+                two  3.3
+          2     one  2.3
+                two  3.4
+          3     one  2.1
+                two  2.9
+
     Notes
     -----
     All extra variables are left untouched. This simply uses
     `pandas.melt` under the hood, but is hard-coded to "do the right thing"
-    in a typicaly case.
+    in a typical case.
     """
     def get_var_names(df, stub, sep, suffix):
-        regex = "^{stub}{sep}{suffix}".format(
+        regex = r'^{stub}{sep}{suffix}$'.format(
             stub=re.escape(stub), sep=re.escape(sep), suffix=suffix)
-        return df.filter(regex=regex).columns.tolist()
+        pattern = re.compile(regex)
+        return [col for col in df.columns if pattern.match(col)]
 
     def melt_stub(df, stub, i, j, value_vars, sep):
         newdf = melt(df, id_vars=i, value_vars=value_vars,
@@ -350,9 +399,12 @@ def wide_to_long(df, stubnames, i, j, sep="", suffix=r'\d+'):
         newdf[j] = Categorical(newdf[j])
         newdf[j] = newdf[j].str.replace(re.escape(stub + sep), "")
 
+        # GH17627 Cast numerics suffixes to int/float
+        newdf[j] = to_numeric(newdf[j], errors='ignore')
+
         return newdf.set_index(i + [j])
 
-    if any(map(lambda s: s in df.columns.tolist(), stubnames)):
+    if any(col in stubnames for col in df.columns):
         raise ValueError("stubname can't be identical to a column name")
 
     if not is_list_like(stubnames):
@@ -368,8 +420,7 @@ def wide_to_long(df, stubnames, i, j, sep="", suffix=r'\d+'):
     if df[i].duplicated().any():
         raise ValueError("the id variables need to uniquely identify each row")
 
-    value_vars = list(map(lambda stub:
-                          get_var_names(df, stub, sep, suffix), stubnames))
+    value_vars = [get_var_names(df, stub, sep, suffix) for stub in stubnames]
 
     value_vars_flattened = [e for sublist in value_vars for e in sublist]
     id_vars = list(set(df.columns.tolist()).difference(value_vars_flattened))

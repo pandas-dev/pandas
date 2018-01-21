@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-
+import sys
 from warnings import catch_warnings
 
 import pytest
@@ -51,8 +51,7 @@ class TestPDApi(Base):
                'TimedeltaIndex', 'Timestamp', 'Interval', 'IntervalIndex']
 
     # these are already deprecated; awaiting removal
-    deprecated_classes = ['WidePanel', 'Panel4D', 'TimeGrouper',
-                          'SparseList', 'Expr', 'Term']
+    deprecated_classes = ['WidePanel', 'TimeGrouper', 'Expr', 'Term']
 
     # these should be deprecated in the future
     deprecated_classes_in_future = ['Panel']
@@ -103,7 +102,7 @@ class TestPDApi(Base):
                         'rolling_kurt', 'rolling_max', 'rolling_mean',
                         'rolling_median', 'rolling_min', 'rolling_quantile',
                         'rolling_skew', 'rolling_std', 'rolling_sum',
-                        'rolling_var', 'rolling_window', 'ordered_merge',
+                        'rolling_var', 'rolling_window',
                         'pnow', 'match', 'groupby', 'get_store',
                         'plot_params', 'scatter_matrix']
 
@@ -123,7 +122,7 @@ class TestPDApi(Base):
 
 class TestApi(Base):
 
-    allowed = ['types']
+    allowed = ['types', 'extensions']
 
     def test_api(self):
 
@@ -250,3 +249,13 @@ class TestCDateRange(object):
         with tm.assert_produces_warning(FutureWarning,
                                         check_stacklevel=False):
             cdate_range('2017-01-01', '2017-12-31')
+
+
+class TestCategoricalMove(object):
+
+    def test_categorical_move(self):
+        # May have been cached by another import, e.g. pickle tests.
+        sys.modules.pop("pandas.core.categorical", None)
+
+        with tm.assert_produces_warning(FutureWarning):
+            from pandas.core.categorical import Categorical  # noqa

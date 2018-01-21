@@ -24,18 +24,18 @@ Enhancing Performance
 Cython (Writing C extensions for pandas)
 ----------------------------------------
 
-For many use cases writing pandas in pure python and numpy is sufficient. In some
+For many use cases writing pandas in pure Python and NumPy is sufficient. In some
 computationally heavy applications however, it can be possible to achieve sizeable
 speed-ups by offloading work to `cython <http://cython.org/>`__.
 
-This tutorial assumes you have refactored as much as possible in python, for example
-trying to remove for loops and making use of numpy vectorization, it's always worth
-optimising in python first.
+This tutorial assumes you have refactored as much as possible in Python, for example
+trying to remove for loops and making use of NumPy vectorization, it's always worth
+optimising in Python first.
 
 This tutorial walks through a "typical" process of cythonizing a slow computation.
 We use an `example from the cython documentation <http://docs.cython.org/src/quickstart/cythonize.html>`__
 but in the context of pandas. Our final cythonized solution is around 100 times
-faster than the pure python.
+faster than the pure Python.
 
 .. _enhancingperf.pure:
 
@@ -52,7 +52,7 @@ We have a DataFrame to which we want to apply a function row-wise.
                       'x': 'x'})
    df
 
-Here's the function in pure python:
+Here's the function in pure Python:
 
 .. ipython:: python
 
@@ -86,16 +86,15 @@ hence we'll concentrate our efforts cythonizing these two functions.
 
 .. note::
 
-  In python 2 replacing the ``range`` with its generator counterpart (``xrange``)
-  would mean the ``range`` line would vanish. In python 3 ``range`` is already a generator.
+  In Python 2 replacing the ``range`` with its generator counterpart (``xrange``)
+  would mean the ``range`` line would vanish. In Python 3 ``range`` is already a generator.
 
 .. _enhancingperf.plain:
 
 Plain cython
 ~~~~~~~~~~~~
 
-First we're going to need to import the cython magic function to ipython (for
-cython versions  < 0.21 you can use ``%load_ext cythonmagic``):
+First we're going to need to import the cython magic function to ipython:
 
 .. ipython:: python
    :okwarning:
@@ -174,7 +173,7 @@ Using ndarray
 
 It's calling series... a lot! It's creating a Series from each row, and get-ting from both
 the index and the series (three times for each row). Function calls are expensive
-in python, so maybe we could minimise these by cythonizing the apply part.
+in Python, so maybe we could minimize these by cythonizing the apply part.
 
 .. note::
 
@@ -232,8 +231,8 @@ the rows, applying our ``integrate_f_typed``, and putting this in the zeros arra
 
 .. note::
 
-    Loops like this would be *extremely* slow in python, but in Cython looping
-    over numpy arrays is *fast*.
+    Loops like this would be *extremely* slow in Python, but in Cython looping
+    over NumPy arrays is *fast*.
 
 .. code-block:: ipython
 
@@ -316,7 +315,7 @@ Numba works by generating optimized machine code using the LLVM compiler infrast
 Jit
 ~~~
 
-Using ``numba`` to just-in-time compile your code. We simply take the plain python code from above and annotate with the ``@jit`` decorator.
+Using ``numba`` to just-in-time compile your code. We simply take the plain Python code from above and annotate with the ``@jit`` decorator.
 
 .. code-block:: python
 
@@ -392,7 +391,7 @@ Caveats
 
     ``numba`` will execute on any function, but can only accelerate certain classes of functions.
 
-``numba`` is best at accelerating functions that apply numerical functions to numpy arrays. When passed a function that only uses operations it knows how to accelerate, it will execute in ``nopython`` mode.
+``numba`` is best at accelerating functions that apply numerical functions to NumPy arrays. When passed a function that only uses operations it knows how to accelerate, it will execute in ``nopython`` mode.
 
 If ``numba`` is passed a function that includes something it doesn't know how to work with -- a category that currently includes sets, lists, dictionaries, or string functions -- it will revert to ``object mode``. In ``object mode``, numba will execute but your code will not speed up significantly. If you would prefer that ``numba`` throw an error if it cannot compile a function in a way that speeds up your code, pass numba the argument ``nopython=True`` (e.g.  ``@numba.jit(nopython=True)``). For more on troubleshooting ``numba`` modes, see the `numba troubleshooting page <http://numba.pydata.org/numba-doc/0.20.0/user/troubleshoot.html#the-compiled-code-is-too-slow>`__.
 
@@ -469,8 +468,8 @@ This Python syntax is **not** allowed:
 
 * Statements
 
-  - Neither `simple <http://docs.python.org/2/reference/simple_stmts.html>`__
-    nor `compound <http://docs.python.org/2/reference/compound_stmts.html>`__
+  - Neither `simple <https://docs.python.org/3/reference/simple_stmts.html>`__
+    nor `compound <https://docs.python.org/3/reference/compound_stmts.html>`__
     statements are allowed. This includes things like ``for``, ``while``, and
     ``if``.
 
@@ -579,7 +578,7 @@ on the original ``DataFrame`` or return a copy with the new column.
 
 .. warning::
 
-   For backwards compatability, ``inplace`` defaults to ``True`` if not
+   For backwards compatibility, ``inplace`` defaults to ``True`` if not
    specified. This will change in a future version of pandas - if your
    code depends on an inplace assignment you should update to explicitly
    set ``inplace=True``
@@ -780,7 +779,7 @@ Technical Minutia Regarding Expression Evaluation
 
 Expressions that would result in an object dtype or involve datetime operations
 (because of ``NaT``) must be evaluated in Python space. The main reason for
-this behavior is to maintain backwards compatibility with versions of numpy <
+this behavior is to maintain backwards compatibility with versions of NumPy <
 1.7. In those versions of ``numpy`` a call to ``ndarray.astype(str)`` will
 truncate any strings that are more than 60 characters in length. Second, we
 can't pass ``object`` arrays to ``numexpr`` thus string comparisons must be

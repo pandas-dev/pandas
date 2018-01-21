@@ -42,7 +42,8 @@ def hash_object_array(ndarray[object] arr, object key, object encoding='utf8'):
         bytes data, k
         uint8_t *kb
         uint64_t *lens
-        char **vecs, *cdata
+        char **vecs
+        char *cdata
         object val
 
     k = <bytes>key.encode(encoding)
@@ -79,7 +80,7 @@ def hash_object_array(ndarray[object] arr, object key, object encoding='utf8'):
         lens[i] = l
         cdata = data
 
-        # keep the refernce alive thru the end of the
+        # keep the references alive thru the end of the
         # function
         datas.append(data)
         vecs[i] = cdata
@@ -103,11 +104,6 @@ cdef inline void u32to8_le(uint8_t* p, uint32_t v) nogil:
     p[1] = <uint8_t>(v >> 8)
     p[2] = <uint8_t>(v >> 16)
     p[3] = <uint8_t>(v >> 24)
-
-
-cdef inline void u64to8_le(uint8_t* p, uint64_t v) nogil:
-    u32to8_le(p, <uint32_t>v)
-    u32to8_le(p + 4, <uint32_t>(v >> 32))
 
 
 cdef inline uint64_t u8to64_le(uint8_t* p) nogil:

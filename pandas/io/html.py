@@ -20,7 +20,7 @@ from pandas.io.parsers import TextParser
 from pandas.compat import (lrange, lmap, u, string_types, iteritems,
                            raise_with_traceback, binary_type)
 from pandas import Series
-from pandas.core.common import AbstractMethodError
+import pandas.core.common as com
 from pandas.io.formats.printing import pprint_thing
 
 _IMPORTS = False
@@ -234,7 +234,7 @@ class _HtmlFrameParser(object):
         text : str or unicode
             The text from an individual DOM node.
         """
-        raise AbstractMethodError(self)
+        raise com.AbstractMethodError(self)
 
     def _parse_td(self, obj):
         """Return the td elements from a row element.
@@ -248,7 +248,7 @@ class _HtmlFrameParser(object):
         columns : list of node-like
             These are the elements of each row, i.e., the columns.
         """
-        raise AbstractMethodError(self)
+        raise com.AbstractMethodError(self)
 
     def _parse_tables(self, doc, match, attrs):
         """Return all tables from the parsed DOM.
@@ -263,7 +263,7 @@ class _HtmlFrameParser(object):
 
         attrs : dict
             A dictionary of table attributes that can be used to disambiguate
-            mutliple tables on a page.
+            multiple tables on a page.
 
         Raises
         ------
@@ -275,7 +275,7 @@ class _HtmlFrameParser(object):
         tables : list of node-like
             A list of <table> elements to be parsed into raw data.
         """
-        raise AbstractMethodError(self)
+        raise com.AbstractMethodError(self)
 
     def _parse_tr(self, table):
         """Return the list of row elements from the parsed table element.
@@ -290,7 +290,7 @@ class _HtmlFrameParser(object):
         rows : list of node-like
             A list row elements of a table, usually <tr> or <th> elements.
         """
-        raise AbstractMethodError(self)
+        raise com.AbstractMethodError(self)
 
     def _parse_thead(self, table):
         """Return the header of a table.
@@ -305,7 +305,7 @@ class _HtmlFrameParser(object):
         thead : node-like
             A <thead>...</thead> element.
         """
-        raise AbstractMethodError(self)
+        raise com.AbstractMethodError(self)
 
     def _parse_tbody(self, table):
         """Return the body of the table.
@@ -320,7 +320,7 @@ class _HtmlFrameParser(object):
         tbody : node-like
             A <tbody>...</tbody> element.
         """
-        raise AbstractMethodError(self)
+        raise com.AbstractMethodError(self)
 
     def _parse_tfoot(self, table):
         """Return the footer of the table if any.
@@ -335,7 +335,7 @@ class _HtmlFrameParser(object):
         tfoot : node-like
             A <tfoot>...</tfoot> element.
         """
-        raise AbstractMethodError(self)
+        raise com.AbstractMethodError(self)
 
     def _build_doc(self):
         """Return a tree-like object that can be used to iterate over the DOM.
@@ -344,7 +344,7 @@ class _HtmlFrameParser(object):
         -------
         obj : tree-like
         """
-        raise AbstractMethodError(self)
+        raise com.AbstractMethodError(self)
 
     def _build_table(self, table):
         header = self._parse_raw_thead(table)
@@ -684,7 +684,7 @@ def _parser_dispatch(flavor):
             raise ImportError(
                 "BeautifulSoup4 (bs4) not found, please install it")
         import bs4
-        if bs4.__version__ == LooseVersion('4.2.0'):
+        if LooseVersion(bs4.__version__) == LooseVersion('4.2.0'):
             raise ValueError("You're using a version"
                              " of BeautifulSoup4 (4.2.0) that has been"
                              " known to cause problems on certain"

@@ -9,11 +9,11 @@ import numpy as np
 
 from pandas import (Series, Index, Float64Index, Int64Index, UInt64Index,
                     RangeIndex, MultiIndex, CategoricalIndex, DatetimeIndex,
-                    TimedeltaIndex, PeriodIndex, IntervalIndex,
-                    notna, isna)
+                    TimedeltaIndex, PeriodIndex, IntervalIndex, isna)
 from pandas.core.indexes.base import InvalidIndexError
 from pandas.core.indexes.datetimelike import DatetimeIndexOpsMixin
 from pandas.core.dtypes.common import needs_i8_conversion
+from pandas.core.dtypes.dtypes import CategoricalDtype
 from pandas._libs.tslib import iNaT
 
 import pandas.util.testing as tm
@@ -50,6 +50,25 @@ class Base(object):
         assert s.values is not idx.values
         assert s.index is not idx
         assert s.name == idx.name
+
+    def test_to_series_with_arguments(self):
+        # GH18699
+
+        # index kwarg
+        idx = self.create_index()
+        s = idx.to_series(index=idx)
+
+        assert s.values is not idx.values
+        assert s.index is idx
+        assert s.name == idx.name
+
+        # name kwarg
+        idx = self.create_index()
+        s = idx.to_series(name='__test')
+
+        assert s.values is not idx.values
+        assert s.index is not idx
+        assert s.name != idx.name
 
     def test_to_frame(self):
         # see gh-15230
@@ -529,30 +548,19 @@ class Base(object):
         tm.assert_raises_regex(ValueError, msg, np.repeat,
                                i, rep, axis=0)
 
-    def test_where(self):
+    @pytest.mark.parametrize('klass', [list, tuple, np.array, Series])
+    def test_where(self, klass):
         i = self.create_index()
-        result = i.where(notna(i))
+
+        cond = [True] * len(i)
+        result = i.where(klass(cond))
         expected = i
         tm.assert_index_equal(result, expected)
 
-        _nan = i._na_value
         cond = [False] + [True] * len(i[1:])
-        expected = pd.Index([_nan] + i[1:].tolist(), dtype=i.dtype)
-
-        result = i.where(cond)
+        expected = pd.Index([i._na_value] + i[1:].tolist(), dtype=i.dtype)
+        result = i.where(klass(cond))
         tm.assert_index_equal(result, expected)
-
-    def test_where_array_like(self):
-        i = self.create_index()
-
-        _nan = i._na_value
-        cond = [False] + [True] * (len(i) - 1)
-        klasses = [list, tuple, np.array, pd.Series]
-        expected = pd.Index([_nan] + i[1:].tolist(), dtype=i.dtype)
-
-        for klass in klasses:
-            result = i.where(klass(cond))
-            tm.assert_index_equal(result, expected)
 
     def test_setops_errorcases(self):
         for name, idx in compat.iteritems(self.indices):
@@ -1017,3 +1025,83 @@ class Base(object):
             # non-monotonic should raise.
             with pytest.raises(ValueError):
                 indices._searchsorted_monotonic(value, side='left')
+
+    def test_map(self):
+        # callable
+        index = self.create_index()
+
+        # we don't infer UInt64
+        if isinstance(index, pd.UInt64Index):
+            expected = index.astype('int64')
+        else:
+            expected = index
+
+        result = index.map(lambda x: x)
+        tm.assert_index_equal(result, expected)
+
+    @pytest.mark.parametrize(
+        "mapper",
+        [
+            lambda values, index: {i: e for e, i in zip(values, index)},
+            lambda values, index: pd.Series(values, index)])
+    def test_map_dictlike(self, mapper):
+
+        index = self.create_index()
+        if isinstance(index, (pd.CategoricalIndex, pd.IntervalIndex)):
+            pytest.skip("skipping tests for {}".format(type(index)))
+
+        identity = mapper(index.values, index)
+
+        # we don't infer to UInt64 for a dict
+        if isinstance(index, pd.UInt64Index) and isinstance(identity, dict):
+            expected = index.astype('int64')
+        else:
+            expected = index
+
+        result = index.map(identity)
+        tm.assert_index_equal(result, expected)
+
+        # empty mappable
+        expected = pd.Index([np.nan] * len(index))
+        result = index.map(mapper(expected, index))
+        tm.assert_index_equal(result, expected)
+
+    def test_putmask_with_wrong_mask(self):
+        # GH18368
+        index = self.create_index()
+
+        with pytest.raises(ValueError):
+            index.putmask(np.ones(len(index) + 1, np.bool), 1)
+
+        with pytest.raises(ValueError):
+            index.putmask(np.ones(len(index) - 1, np.bool), 1)
+
+        with pytest.raises(ValueError):
+            index.putmask('foo', 1)
+
+    @pytest.mark.parametrize('copy', [True, False])
+    @pytest.mark.parametrize('name', [None, 'foo'])
+    @pytest.mark.parametrize('ordered', [True, False])
+    def test_astype_category(self, copy, name, ordered):
+        # GH 18630
+        index = self.create_index()
+        if name:
+            index = index.rename(name)
+
+        # standard categories
+        dtype = CategoricalDtype(ordered=ordered)
+        result = index.astype(dtype, copy=copy)
+        expected = CategoricalIndex(index.values, name=name, ordered=ordered)
+        tm.assert_index_equal(result, expected)
+
+        # non-standard categories
+        dtype = CategoricalDtype(index.unique().tolist()[:-1], ordered)
+        result = index.astype(dtype, copy=copy)
+        expected = CategoricalIndex(index.values, name=name, dtype=dtype)
+        tm.assert_index_equal(result, expected)
+
+        if ordered is False:
+            # dtype='category' defaults to ordered=False, so only test once
+            result = index.astype('category', copy=copy)
+            expected = CategoricalIndex(index.values, name=name)
+            tm.assert_index_equal(result, expected)

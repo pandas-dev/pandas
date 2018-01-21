@@ -40,8 +40,6 @@ typedef enum {
 
 #define PANDAS_DATETIME_NUMUNITS 13
 
-#define PANDAS_DATETIME_MAX_ISO8601_STRLEN (21+3*5+1+3*6+6+1)
-
 #define PANDAS_DATETIME_NAT NPY_MIN_INT64
 
 typedef struct {
@@ -54,13 +52,6 @@ typedef struct {
         npy_int32 hrs, min, sec, ms, us, ns, seconds, microseconds, nanoseconds;
 } pandas_timedeltastruct;
 
-typedef struct {
-    PANDAS_DATETIMEUNIT base;
-    int num;
-} pandas_datetime_metadata;
-
-typedef pandas_datetime_metadata pandas_timedelta_metadata;
-
 extern const pandas_datetimestruct _NS_MIN_DTS;
 extern const pandas_datetimestruct _NS_MAX_DTS;
 
@@ -68,9 +59,7 @@ extern const pandas_datetimestruct _NS_MAX_DTS;
 // ----------------------------------------------------------------------------
 
 int convert_pydatetime_to_datetimestruct(PyObject *obj,
-                                         pandas_datetimestruct *out,
-                                         PANDAS_DATETIMEUNIT *out_bestunit,
-                                         int apply_tzinfo);
+                                         pandas_datetimestruct *out);
 
 npy_datetime pandas_datetimestruct_to_datetime(PANDAS_DATETIMEUNIT fr,
                                                pandas_datetimestruct *d);
@@ -90,19 +79,6 @@ extern const int days_per_month_table[2][12];
 // ----------------------------------------------------------------------------
 
 int is_leapyear(npy_int64 year);
-
-/*
- * Converts a datetime from a datetimestruct to a datetime based
- * on some metadata. The date is assumed to be valid.
- *
- * TODO: If meta->num is really big, there could be overflow
- *
- * Returns 0 on success, -1 on failure.
- */
-int
-convert_datetimestruct_to_datetime(pandas_datetime_metadata *meta,
-                                   const pandas_datetimestruct *dts,
-                                   npy_datetime *out);
 
 /*
  * Calculates the days offset from the 1970 epoch.
@@ -125,30 +101,10 @@ int cmp_pandas_datetimestruct(const pandas_datetimestruct *a,
 void
 add_minutes_to_datetimestruct(pandas_datetimestruct *dts, int minutes);
 
-/*
- * This provides the casting rules for the TIMEDELTA data type units.
- *
- * Notably, there is a barrier between the nonlinear years and
- * months units, and all the other units.
- */
-npy_bool
-can_cast_datetime64_units(PANDAS_DATETIMEUNIT src_unit,
-                          PANDAS_DATETIMEUNIT dst_unit,
-                          NPY_CASTING casting);
-
 
 int
-convert_datetime_to_datetimestruct(pandas_datetime_metadata *meta,
+convert_datetime_to_datetimestruct(PANDAS_DATETIMEUNIT base,
                                    npy_datetime dt,
                                    pandas_datetimestruct *out);
-
-int
-convert_timedelta_to_timedeltastruct(pandas_timedelta_metadata *meta,
-                                     npy_timedelta td,
-                                     pandas_timedeltastruct *out);
-
-
-PANDAS_DATETIMEUNIT get_datetime64_unit(PyObject *obj);
-
 
 #endif  // PANDAS__LIBS_SRC_DATETIME_NP_DATETIME_H_

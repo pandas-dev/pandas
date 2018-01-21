@@ -143,7 +143,7 @@ class TestStata(object):
         tm.assert_frame_equal(parsed, expected)
 
     def test_read_dta2(self):
-        if LooseVersion(sys.version) < '2.7':
+        if LooseVersion(sys.version) < LooseVersion('2.7'):
             pytest.skip('datetime interp under 2.6 is faulty')
 
         expected = DataFrame.from_records(
@@ -590,7 +590,7 @@ class TestStata(object):
 
     def test_date_export_formats(self):
         columns = ['tc', 'td', 'tw', 'tm', 'tq', 'th', 'ty']
-        conversions = dict(((c, c) for c in columns))
+        conversions = {c: c for c in columns}
         data = [datetime(2006, 11, 20, 23, 13, 20)] * len(columns)
         original = DataFrame([data], columns=columns)
         original.index.name = 'index'
@@ -774,7 +774,7 @@ class TestStata(object):
         tm.assert_frame_equal(expected, parsed_117,
                               check_datetimelike_compat=True)
 
-        date_conversion = dict((c, c[-2:]) for c in columns)
+        date_conversion = {c: c[-2:] for c in columns}
         # {c : c[-2:] for c in columns}
         with tm.ensure_clean() as path:
             expected.index.name = 'index'

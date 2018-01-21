@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 # pylint: disable-msg=W0612,E1101
 
+from warnings import catch_warnings
 import pytest
 
 from pandas import DataFrame, Series
@@ -11,7 +12,7 @@ import numpy as np
 
 from pandas.util.testing import assert_frame_equal
 
-from pandas import get_dummies
+from pandas import get_dummies, Categorical, Index
 import pandas.util.testing as tm
 from pandas.compat import u
 
@@ -340,7 +341,7 @@ class TestGetDummies(object):
         assert_frame_equal(result, expected)
 
     def test_basic_drop_first_NA(self, sparse):
-        # Test NA hadling together with drop_first
+        # Test NA handling together with drop_first
         s_NA = ['a', 'b', np.nan]
         res = get_dummies(s_NA, drop_first=True, sparse=sparse)
         exp = DataFrame({'b': [0, 1, 0]}, dtype=np.uint8)
@@ -452,6 +453,28 @@ class TestGetDummies(object):
                                  dtype=self.effective_dtype(dtype))
 
             tm.assert_frame_equal(result, expected)
+
+
+class TestCategoricalReshape(object):
+
+    def test_reshaping_panel_categorical(self):
+
+        with catch_warnings(record=True):
+            p = tm.makePanel()
+            p['str'] = 'foo'
+            df = p.to_frame()
+
+        df['category'] = df['str'].astype('category')
+        result = df['category'].unstack()
+
+        c = Categorical(['foo'] * len(p.major_axis))
+        expected = DataFrame({'A': c.copy(),
+                              'B': c.copy(),
+                              'C': c.copy(),
+                              'D': c.copy()},
+                             columns=Index(list('ABCD'), name='minor'),
+                             index=p.major_axis.set_names('major'))
+        tm.assert_frame_equal(result, expected)
 
 
 class TestMakeAxisDummies(object):

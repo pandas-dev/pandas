@@ -160,7 +160,7 @@ def merge_pr(pr_num, target_ref):
     if body is not None:
         merge_message_flags += ["-m", '\n'.join(textwrap.wrap(body))]
 
-    authors = "\n".join("Author: %s" % a for a in distinct_authorsS)
+    authors = "\n".join("Author: %s" % a for a in distinct_authors)
 
     merge_message_flags += ["-m", authors]
 
@@ -297,9 +297,15 @@ if not bool(pr["mergeable"]):
     continue_maybe(msg)
 
 print("\n=== Pull Request #%s ===" % pr_num)
-print("title\t%s\nsource\t%s\ntarget\t%s\nurl\t%s"
-      % (title, pr_repo_desc, target_ref, url))
 
+# we may have un-printable unicode in our title
+try:
+    title = title.encode('raw_unicode_escape')
+except Exception:
+    pass
+
+print("title\t{title}\nsource\t{source}\ntarget\t{target}\nurl\t{url}".format(
+    title=title, source=pr_repo_desc, target=target_ref, url=url))
 
 
 merged_refs = [target_ref]

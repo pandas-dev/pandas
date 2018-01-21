@@ -15,6 +15,28 @@ from pandas._libs.tslib import iNaT, NaT
 class TestTimedeltaArithmetic(object):
     _multiprocess_can_split_ = True
 
+    def test_arithmetic_overflow(self):
+        with pytest.raises(OverflowError):
+            pd.Timestamp('1700-01-01') + pd.Timedelta(13 * 19999, unit='D')
+
+        with pytest.raises(OverflowError):
+            pd.Timestamp('1700-01-01') + timedelta(days=13 * 19999)
+
+    def test_ops_error_str(self):
+        # GH 13624
+        td = Timedelta('1 day')
+
+        for left, right in [(td, 'a'), ('a', td)]:
+
+            with pytest.raises(TypeError):
+                left + right
+
+            with pytest.raises(TypeError):
+                left > right
+
+            assert not left == right
+            assert left != right
+
     def test_to_timedelta_on_nanoseconds(self):
         # GH 9273
         result = Timedelta(nanoseconds=100)
@@ -93,37 +115,174 @@ class TestTimedeltaArithmetic(object):
         assert Timedelta(239, unit='h') == td - pd.offsets.Hour(1)
         assert Timedelta(-239, unit='h') == pd.offsets.Hour(1) - td
 
-    # TODO: Split by op, better name
-    def test_ops(self):
+    def test_unary_ops(self):
         td = Timedelta(10, unit='d')
+
+        # __neg__, __pos__
         assert -td == Timedelta(-10, unit='d')
+        assert -td == Timedelta('-10d')
         assert +td == Timedelta(10, unit='d')
-        assert td - td == Timedelta(0, unit='ns')
-        assert (td - pd.NaT) is pd.NaT
-        assert td + td == Timedelta(20, unit='d')
-        assert (td + pd.NaT) is pd.NaT
-        assert td * 2 == Timedelta(20, unit='d')
-        assert (td * pd.NaT) is pd.NaT
-        assert td / 2 == Timedelta(5, unit='d')
-        assert td // 2 == Timedelta(5, unit='d')
+
+        # __abs__, __abs__(__neg__)
         assert abs(td) == td
         assert abs(-td) == td
-        assert td / td == 1
-        assert (td / pd.NaT) is np.nan
-        assert (td // pd.NaT) is np.nan
-
-        # invert
-        assert -td == Timedelta('-10d')
-        assert td * -1 == Timedelta('-10d')
-        assert -1 * td == Timedelta('-10d')
         assert abs(-td) == Timedelta('10d')
 
-        # invalid multiply with another timedelta
-        pytest.raises(TypeError, lambda: td * td)
+    def test_binary_ops_nat(self):
+        td = Timedelta(10, unit='d')
+
+        assert (td - pd.NaT) is pd.NaT
+        assert (td + pd.NaT) is pd.NaT
+        assert (td * pd.NaT) is pd.NaT
+        assert (td / pd.NaT) is np.nan
+        assert (td // pd.NaT) is np.nan
+        assert (td // np.timedelta64('NaT')) is np.nan
+
+    def test_binary_ops_integers(self):
+        td = Timedelta(10, unit='d')
+
+        assert td * 2 == Timedelta(20, unit='d')
+        assert td / 2 == Timedelta(5, unit='d')
+        assert td // 2 == Timedelta(5, unit='d')
+
+        # invert
+        assert td * -1 == Timedelta('-10d')
+        assert -1 * td == Timedelta('-10d')
 
         # can't operate with integers
         pytest.raises(TypeError, lambda: td + 2)
         pytest.raises(TypeError, lambda: td - 2)
+
+    def test_binary_ops_with_timedelta(self):
+        td = Timedelta(10, unit='d')
+
+        assert td - td == Timedelta(0, unit='ns')
+        assert td + td == Timedelta(20, unit='d')
+        assert td / td == 1
+
+        # invalid multiply with another timedelta
+        pytest.raises(TypeError, lambda: td * td)
+
+    def test_floordiv(self):
+        # GH#18846
+        td = Timedelta(hours=3, minutes=4)
+        scalar = Timedelta(hours=3, minutes=3)
+
+        # scalar others
+        assert td // scalar == 1
+        assert -td // scalar.to_pytimedelta() == -2
+        assert (2 * td) // scalar.to_timedelta64() == 2
+
+        assert td // np.nan is pd.NaT
+        assert np.isnan(td // pd.NaT)
+        assert np.isnan(td // np.timedelta64('NaT'))
+
+        with pytest.raises(TypeError):
+            td // np.datetime64('2016-01-01', dtype='datetime64[us]')
+
+        expected = Timedelta(hours=1, minutes=32)
+        assert td // 2 == expected
+        assert td // 2.0 == expected
+        assert td // np.float64(2.0) == expected
+        assert td // np.int32(2.0) == expected
+        assert td // np.uint8(2.0) == expected
+
+        # Array-like others
+        assert td // np.array(scalar.to_timedelta64()) == 1
+
+        res = (3 * td) // np.array([scalar.to_timedelta64()])
+        expected = np.array([3], dtype=np.int64)
+        tm.assert_numpy_array_equal(res, expected)
+
+        res = (10 * td) // np.array([scalar.to_timedelta64(),
+                                     np.timedelta64('NaT')])
+        expected = np.array([10, np.nan])
+        tm.assert_numpy_array_equal(res, expected)
+
+        ser = pd.Series([1], dtype=np.int64)
+        res = td // ser
+        assert res.dtype.kind == 'm'
+
+    def test_rfloordiv(self):
+        # GH#18846
+        td = Timedelta(hours=3, minutes=3)
+        scalar = Timedelta(hours=3, minutes=4)
+
+        # scalar others
+        # x // Timedelta is defined only for timedelta-like x. int-like,
+        # float-like, and date-like, in particular, should all either
+        # a) raise TypeError directly or
+        # b) return NotImplemented, following which the reversed
+        #    operation will raise TypeError.
+        assert td.__rfloordiv__(scalar) == 1
+        assert (-td).__rfloordiv__(scalar.to_pytimedelta()) == -2
+        assert (2 * td).__rfloordiv__(scalar.to_timedelta64()) == 0
+
+        assert np.isnan(td.__rfloordiv__(pd.NaT))
+        assert np.isnan(td.__rfloordiv__(np.timedelta64('NaT')))
+
+        dt64 = np.datetime64('2016-01-01', dtype='datetime64[us]')
+        with pytest.raises(TypeError):
+            td.__rfloordiv__(dt64)
+
+        assert td.__rfloordiv__(np.nan) is NotImplemented
+        assert td.__rfloordiv__(3.5) is NotImplemented
+        assert td.__rfloordiv__(2) is NotImplemented
+
+        with pytest.raises(TypeError):
+            td.__rfloordiv__(np.float64(2.0))
+        with pytest.raises(TypeError):
+            td.__rfloordiv__(np.int32(2.0))
+        with pytest.raises(TypeError):
+            td.__rfloordiv__(np.uint8(9))
+
+        # Array-like others
+        assert td.__rfloordiv__(np.array(scalar.to_timedelta64())) == 1
+
+        res = td.__rfloordiv__(np.array([(3 * scalar).to_timedelta64()]))
+        expected = np.array([3], dtype=np.int64)
+        tm.assert_numpy_array_equal(res, expected)
+
+        arr = np.array([(10 * scalar).to_timedelta64(),
+                        np.timedelta64('NaT')])
+        res = td.__rfloordiv__(arr)
+        expected = np.array([10, np.nan])
+        tm.assert_numpy_array_equal(res, expected)
+
+        ser = pd.Series([1], dtype=np.int64)
+        res = td.__rfloordiv__(ser)
+        assert res is NotImplemented
+        with pytest.raises(TypeError):
+            ser // td
+
+
+class TestTimedeltaComparison(object):
+    def test_comparison_object_array(self):
+        # analogous to GH#15183
+        td = Timedelta('2 days')
+        other = Timedelta('3 hours')
+
+        arr = np.array([other, td], dtype=object)
+        res = arr == td
+        expected = np.array([False, True], dtype=bool)
+        assert (res == expected).all()
+
+        # 2D case
+        arr = np.array([[other, td],
+                        [td, other]],
+                       dtype=object)
+        res = arr != td
+        expected = np.array([[True, False], [False, True]], dtype=bool)
+        assert res.shape == expected.shape
+        assert (res == expected).all()
+
+    def test_compare_timedelta_ndarray(self):
+        # GH11835
+        periods = [Timedelta('0 days 01:00:00'), Timedelta('0 days 01:00:00')]
+        arr = np.array(periods)
+        result = arr[0] > arr
+        expected = np.array([False, False])
+        tm.assert_numpy_array_equal(result, expected)
 
 
 class TestTimedeltas(object):
@@ -733,14 +892,6 @@ class TestTimedeltas(object):
             tm.assert_series_equal(result_operator, expected)
             tm.assert_series_equal(result_method, expected)
 
-    def test_arithmetic_overflow(self):
-
-        with pytest.raises(OverflowError):
-            pd.Timestamp('1700-01-01') + pd.Timedelta(13 * 19999, unit='D')
-
-        with pytest.raises(OverflowError):
-            pd.Timestamp('1700-01-01') + timedelta(days=13 * 19999)
-
     def test_apply_to_timedelta(self):
         timedelta_NaT = pd.to_timedelta('NaT')
 
@@ -804,17 +955,28 @@ class TestTimedeltas(object):
         expected = 'P0DT0H1M0S'
         assert result == expected
 
-    def test_ops_error_str(self):
-        # GH 13624
-        td = Timedelta('1 day')
+    @pytest.mark.parametrize('fmt,exp', [
+        ('P6DT0H50M3.010010012S', Timedelta(days=6, minutes=50, seconds=3,
+                                            milliseconds=10, microseconds=10,
+                                            nanoseconds=12)),
+        ('P-6DT0H50M3.010010012S', Timedelta(days=-6, minutes=50, seconds=3,
+                                             milliseconds=10, microseconds=10,
+                                             nanoseconds=12)),
+        ('P4DT12H30M5S', Timedelta(days=4, hours=12, minutes=30, seconds=5)),
+        ('P0DT0H0M0.000000123S', Timedelta(nanoseconds=123)),
+        ('P0DT0H0M0.00001S', Timedelta(microseconds=10)),
+        ('P0DT0H0M0.001S', Timedelta(milliseconds=1)),
+        ('P0DT0H1M0S', Timedelta(minutes=1)),
+        ('P1DT25H61M61S', Timedelta(days=1, hours=25, minutes=61, seconds=61))
+    ])
+    def test_iso_constructor(self, fmt, exp):
+        assert Timedelta(fmt) == exp
 
-        for l, r in [(td, 'a'), ('a', td)]:
-
-            with pytest.raises(TypeError):
-                l + r
-
-            with pytest.raises(TypeError):
-                l > r
-
-            assert not l == r
-            assert l != r
+    @pytest.mark.parametrize('fmt', [
+        'PPPPPPPPPPPP', 'PDTHMS', 'P0DT999H999M999S',
+        'P1DT0H0M0.0000000000000S', 'P1DT0H0M00000000000S',
+        'P1DT0H0M0.S'])
+    def test_iso_constructor_raises(self, fmt):
+        with tm.assert_raises_regex(ValueError, 'Invalid ISO 8601 Duration '
+                                    'format - {}'.format(fmt)):
+            Timedelta(fmt)

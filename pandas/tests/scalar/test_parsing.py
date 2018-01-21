@@ -6,10 +6,52 @@ from datetime import datetime
 import numpy as np
 import pytest
 from dateutil.parser import parse
+
+import pandas as pd
+import pandas.util._test_decorators as td
 from pandas.conftest import is_dateutil_le_261, is_dateutil_gt_261
 from pandas import compat
 from pandas.util import testing as tm
 from pandas._libs.tslibs import parsing
+from pandas._libs.tslibs.parsing import parse_time_string
+
+
+def test_to_datetime1():
+    actual = pd.to_datetime(datetime(2008, 1, 15))
+    assert actual == datetime(2008, 1, 15)
+
+    actual = pd.to_datetime('20080115')
+    assert actual == datetime(2008, 1, 15)
+
+    # unparseable
+    s = 'Month 1, 1999'
+    assert pd.to_datetime(s, errors='ignore') == s
+
+
+class TestParseQuarters(object):
+
+    def test_parse_time_string(self):
+        (date, parsed, reso) = parse_time_string('4Q1984')
+        (date_lower, parsed_lower, reso_lower) = parse_time_string('4q1984')
+        assert date == date_lower
+        assert parsed == parsed_lower
+        assert reso == reso_lower
+
+    def test_parse_time_quarter_w_dash(self):
+        # https://github.com/pandas-dev/pandas/issue/9688
+        pairs = [('1988-Q2', '1988Q2'), ('2Q-1988', '2Q1988')]
+
+        for dashed, normal in pairs:
+            (date_dash, parsed_dash, reso_dash) = parse_time_string(dashed)
+            (date, parsed, reso) = parse_time_string(normal)
+
+            assert date_dash == date
+            assert parsed_dash == parsed
+            assert reso_dash == reso
+
+        pytest.raises(parsing.DateParseError, parse_time_string, "-2Q1992")
+        pytest.raises(parsing.DateParseError, parse_time_string, "2-Q1992")
+        pytest.raises(parsing.DateParseError, parse_time_string, "4-4Q1992")
 
 
 class TestDatetimeParsingWrappers(object):
@@ -66,6 +108,7 @@ class TestDatetimeParsingWrappers(object):
 
 class TestGuessDatetimeFormat(object):
 
+    @td.skip_if_not_us_locale
     @is_dateutil_le_261
     @pytest.mark.parametrize(
         "string, format",
@@ -79,11 +122,10 @@ class TestGuessDatetimeFormat(object):
              '%Y-%m-%d %H:%M:%S.%f')])
     def test_guess_datetime_format_with_parseable_formats(
             self, string, format):
-        tm._skip_if_not_us_locale()
-
         result = parsing._guess_datetime_format(string)
         assert result == format
 
+    @td.skip_if_not_us_locale
     @is_dateutil_gt_261
     @pytest.mark.parametrize(
         "string",
@@ -92,8 +134,6 @@ class TestGuessDatetimeFormat(object):
          '2011-12-30 00:00:00.000000'])
     def test_guess_datetime_format_with_parseable_formats_gt_261(
             self, string):
-        tm._skip_if_not_us_locale()
-
         result = parsing._guess_datetime_format(string)
         assert result is None
 
@@ -118,6 +158,7 @@ class TestGuessDatetimeFormat(object):
             ambiguous_string, dayfirst=dayfirst)
         assert result is None
 
+    @td.skip_if_has_locale
     @is_dateutil_le_261
     @pytest.mark.parametrize(
         "string, format",
@@ -127,13 +168,10 @@ class TestGuessDatetimeFormat(object):
             ('30/Dec/2011 00:00:00', '%d/%b/%Y %H:%M:%S')])
     def test_guess_datetime_format_with_locale_specific_formats(
             self, string, format):
-        # The month names will vary depending on the locale, in which
-        # case these wont be parsed properly (dateutil can't parse them)
-        tm._skip_if_has_locale()
-
         result = parsing._guess_datetime_format(string)
         assert result == format
 
+    @td.skip_if_has_locale
     @is_dateutil_gt_261
     @pytest.mark.parametrize(
         "string",
@@ -143,10 +181,6 @@ class TestGuessDatetimeFormat(object):
             '30/Dec/2011 00:00:00'])
     def test_guess_datetime_format_with_locale_specific_formats_gt_261(
             self, string):
-        # The month names will vary depending on the locale, in which
-        # case these wont be parsed properly (dateutil can't parse them)
-        tm._skip_if_has_locale()
-
         result = parsing._guess_datetime_format(string)
         assert result is None
 

@@ -314,7 +314,7 @@ def union_categoricals(to_union, sort_categories=False, ignore_order=False):
     Categories (3, object): [b, c, a]
     """
     from pandas import Index, Categorical, CategoricalIndex, Series
-    from pandas.core.categorical import _recode_for_categories
+    from pandas.core.arrays.categorical import _recode_for_categories
 
     if len(to_union) == 0:
         raise ValueError('No Categoricals to union')
@@ -339,7 +339,16 @@ def union_categoricals(to_union, sort_categories=False, ignore_order=False):
         # identical categories - fastpath
         categories = first.categories
         ordered = first.ordered
-        new_codes = np.concatenate([c.codes for c in to_union])
+
+        if all(first.categories.equals(other.categories)
+               for other in to_union[1:]):
+            new_codes = np.concatenate([c.codes for c in to_union])
+        else:
+            codes = [first.codes] + [_recode_for_categories(other.codes,
+                                                            other.categories,
+                                                            first.categories)
+                                     for other in to_union[1:]]
+            new_codes = np.concatenate(codes)
 
         if sort_categories and not ignore_order and ordered:
             raise TypeError("Cannot use sort_categories=True with "
@@ -401,7 +410,7 @@ def _concat_datetime(to_concat, axis=0, typs=None):
         # if dtype is of datetimetz or timezone
         if x.dtype.kind == _NS_DTYPE.kind:
             if getattr(x, 'tz', None) is not None:
-                x = x.asobject.values
+                x = x.astype(object).values
             else:
                 shape = x.shape
                 x = tslib.ints_to_pydatetime(x.view(np.int64).ravel(),
@@ -459,7 +468,7 @@ def _concat_datetimetz(to_concat, name=None):
     it is used in DatetimeIndex.append also
     """
     # do not pass tz to set because tzlocal cannot be hashed
-    if len(set(str(x.dtype) for x in to_concat)) != 1:
+    if len({str(x.dtype) for x in to_concat}) != 1:
         raise ValueError('to_concat must have the same tz')
     tz = to_concat[0].tz
     # no need to localize because internal repr will not be changed
@@ -479,7 +488,7 @@ def _concat_index_asobject(to_concat, name=None):
     """
 
     klasses = ABCDatetimeIndex, ABCTimedeltaIndex, ABCPeriodIndex
-    to_concat = [x.asobject if isinstance(x, klasses) else x
+    to_concat = [x.astype(object) if isinstance(x, klasses) else x
                  for x in to_concat]
 
     from pandas import Index
@@ -525,7 +534,7 @@ def _concat_sparse(to_concat, axis=0, typs=None):
     if len(typs) == 1:
         # concat input as it is if all inputs are sparse
         # and have the same fill_value
-        fill_values = set(c.fill_value for c in to_concat)
+        fill_values = {c.fill_value for c in to_concat}
         if len(fill_values) == 1:
             sp_values = [c.sp_values for c in to_concat]
             indexes = [c.sp_index.to_int_index() for c in to_concat]

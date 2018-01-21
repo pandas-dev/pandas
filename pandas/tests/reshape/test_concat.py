@@ -10,7 +10,8 @@ import pandas as pd
 from pandas import (DataFrame, concat,
                     read_csv, isna, Series, date_range,
                     Index, Panel, MultiIndex, Timestamp,
-                    DatetimeIndex)
+                    DatetimeIndex, Categorical)
+from pandas.core.dtypes.dtypes import CategoricalDtype
 from pandas.util import testing as tm
 from pandas.util.testing import (assert_frame_equal,
                                  makeCustomDataframe as mkdf)
@@ -177,9 +178,9 @@ class TestConcatAppendCommon(ConcatenateBase):
             tm.assert_series_equal(res, exp, check_index_type=True)
 
             # cannot append non-index
-            msg = ('cannot concatenate object of type \"(.+?)\";'
+            msg = (r'cannot concatenate object of type \"(.+?)\";'
                    ' only pd.Series, pd.DataFrame, and pd.Panel'
-                   ' \(deprecated\) objs are valid')
+                   r' \(deprecated\) objs are valid')
             with tm.assert_raises_regex(TypeError, msg):
                 pd.Series(vals1).append(vals2)
 
@@ -479,6 +480,15 @@ class TestConcatAppendCommon(ConcatenateBase):
         exp = pd.Series([10, 11, np.nan, np.nan, 1, 3, 2])
         tm.assert_series_equal(pd.concat([s1, s2], ignore_index=True), exp)
         tm.assert_series_equal(s1.append(s2, ignore_index=True), exp)
+
+    def test_union_categorical_same_categories_different_order(self):
+        # https://github.com/pandas-dev/pandas/issues/19096
+        a = pd.Series(Categorical(['a', 'b', 'c'], categories=['a', 'b', 'c']))
+        b = pd.Series(Categorical(['a', 'b', 'c'], categories=['b', 'a', 'c']))
+        result = pd.concat([a, b], ignore_index=True)
+        expected = pd.Series(Categorical(['a', 'b', 'c', 'a', 'b', 'c'],
+                                         categories=['a', 'b', 'c']))
+        tm.assert_series_equal(result, expected)
 
     def test_concat_categorical_coercion(self):
         # GH 13524
@@ -1401,39 +1411,6 @@ class TestConcatenate(ConcatenateBase):
             # it works!
             concat([panel1, panel3], axis=1, verify_integrity=True)
 
-    def test_panel4d_concat(self):
-        with catch_warnings(record=True):
-            p4d = tm.makePanel4D()
-
-            p1 = p4d.iloc[:, :, :5, :]
-            p2 = p4d.iloc[:, :, 5:, :]
-
-            result = concat([p1, p2], axis=2)
-            tm.assert_panel4d_equal(result, p4d)
-
-            p1 = p4d.iloc[:, :, :, :2]
-            p2 = p4d.iloc[:, :, :, 2:]
-
-            result = concat([p1, p2], axis=3)
-            tm.assert_panel4d_equal(result, p4d)
-
-    def test_panel4d_concat_mixed_type(self):
-        with catch_warnings(record=True):
-            p4d = tm.makePanel4D()
-
-            # if things are a bit misbehaved
-            p1 = p4d.iloc[:, :2, :, :2]
-            p2 = p4d.iloc[:, :, :, 2:]
-            p1['L5'] = 'baz'
-
-            result = concat([p1, p2], axis=3)
-
-            p2['L5'] = np.nan
-            expected = concat([p1, p2], axis=3)
-            expected = expected.loc[result.labels]
-
-            tm.assert_panel4d_equal(result, expected)
-
     def test_concat_series(self):
 
         ts = tm.makeTimeSeries()
@@ -1927,6 +1904,144 @@ bar2,12,13,14,15
         result_no_copy = pd.concat(example_dict, names=['testname'])
         tm.assert_frame_equal(result_no_copy, expected)
 
+    def test_categorical_concat_append(self):
+        cat = Categorical(["a", "b"], categories=["a", "b"])
+        vals = [1, 2]
+        df = DataFrame({"cats": cat, "vals": vals})
+        cat2 = Categorical(["a", "b", "a", "b"], categories=["a", "b"])
+        vals2 = [1, 2, 1, 2]
+        exp = DataFrame({"cats": cat2, "vals": vals2},
+                        index=Index([0, 1, 0, 1]))
+
+        tm.assert_frame_equal(pd.concat([df, df]), exp)
+        tm.assert_frame_equal(df.append(df), exp)
+
+        # GH 13524 can concat different categories
+        cat3 = Categorical(["a", "b"], categories=["a", "b", "c"])
+        vals3 = [1, 2]
+        df_different_categories = DataFrame({"cats": cat3, "vals": vals3})
+
+        res = pd.concat([df, df_different_categories], ignore_index=True)
+        exp = DataFrame({"cats": list('abab'), "vals": [1, 2, 1, 2]})
+        tm.assert_frame_equal(res, exp)
+
+        res = df.append(df_different_categories, ignore_index=True)
+        tm.assert_frame_equal(res, exp)
+
+    def test_categorical_concat_dtypes(self):
+
+        # GH8143
+        index = ['cat', 'obj', 'num']
+        cat = Categorical(['a', 'b', 'c'])
+        obj = Series(['a', 'b', 'c'])
+        num = Series([1, 2, 3])
+        df = pd.concat([Series(cat), obj, num], axis=1, keys=index)
+
+        result = df.dtypes == 'object'
+        expected = Series([False, True, False], index=index)
+        tm.assert_series_equal(result, expected)
+
+        result = df.dtypes == 'int64'
+        expected = Series([False, False, True], index=index)
+        tm.assert_series_equal(result, expected)
+
+        result = df.dtypes == 'category'
+        expected = Series([True, False, False], index=index)
+        tm.assert_series_equal(result, expected)
+
+    def test_categorical_concat(self):
+        # See GH 10177
+        df1 = DataFrame(np.arange(18, dtype='int64').reshape(6, 3),
+                        columns=["a", "b", "c"])
+
+        df2 = DataFrame(np.arange(14, dtype='int64').reshape(7, 2),
+                        columns=["a", "c"])
+
+        cat_values = ["one", "one", "two", "one", "two", "two", "one"]
+        df2['h'] = Series(Categorical(cat_values))
+
+        res = pd.concat((df1, df2), axis=0, ignore_index=True)
+        exp = DataFrame({'a': [0, 3, 6, 9, 12, 15, 0, 2, 4, 6, 8, 10, 12],
+                         'b': [1, 4, 7, 10, 13, 16, np.nan, np.nan, np.nan,
+                               np.nan, np.nan, np.nan, np.nan],
+                         'c': [2, 5, 8, 11, 14, 17, 1, 3, 5, 7, 9, 11, 13],
+                         'h': [None] * 6 + cat_values})
+        tm.assert_frame_equal(res, exp)
+
+    def test_categorical_concat_gh7864(self):
+        # GH 7864
+        # make sure ordering is preserverd
+        df = DataFrame({"id": [1, 2, 3, 4, 5, 6], "raw_grade": list('abbaae')})
+        df["grade"] = Categorical(df["raw_grade"])
+        df['grade'].cat.set_categories(['e', 'a', 'b'])
+
+        df1 = df[0:3]
+        df2 = df[3:]
+
+        tm.assert_index_equal(df['grade'].cat.categories,
+                              df1['grade'].cat.categories)
+        tm.assert_index_equal(df['grade'].cat.categories,
+                              df2['grade'].cat.categories)
+
+        dfx = pd.concat([df1, df2])
+        tm.assert_index_equal(df['grade'].cat.categories,
+                              dfx['grade'].cat.categories)
+
+        dfa = df1.append(df2)
+        tm.assert_index_equal(df['grade'].cat.categories,
+                              dfa['grade'].cat.categories)
+
+    def test_categorical_concat_preserve(self):
+
+        # GH 8641  series concat not preserving category dtype
+        # GH 13524 can concat different categories
+        s = Series(list('abc'), dtype='category')
+        s2 = Series(list('abd'), dtype='category')
+
+        exp = Series(list('abcabd'))
+        res = pd.concat([s, s2], ignore_index=True)
+        tm.assert_series_equal(res, exp)
+
+        exp = Series(list('abcabc'), dtype='category')
+        res = pd.concat([s, s], ignore_index=True)
+        tm.assert_series_equal(res, exp)
+
+        exp = Series(list('abcabc'), index=[0, 1, 2, 0, 1, 2],
+                     dtype='category')
+        res = pd.concat([s, s])
+        tm.assert_series_equal(res, exp)
+
+        a = Series(np.arange(6, dtype='int64'))
+        b = Series(list('aabbca'))
+
+        df2 = DataFrame({'A': a,
+                         'B': b.astype(CategoricalDtype(list('cab')))})
+        res = pd.concat([df2, df2])
+        exp = DataFrame(
+            {'A': pd.concat([a, a]),
+             'B': pd.concat([b, b]).astype(CategoricalDtype(list('cab')))})
+        tm.assert_frame_equal(res, exp)
+
+    def test_categorical_index_preserver(self):
+
+        a = Series(np.arange(6, dtype='int64'))
+        b = Series(list('aabbca'))
+
+        df2 = DataFrame({'A': a,
+                         'B': b.astype(CategoricalDtype(list('cab')))
+                         }).set_index('B')
+        result = pd.concat([df2, df2])
+        expected = DataFrame(
+            {'A': pd.concat([a, a]),
+             'B': pd.concat([b, b]).astype(CategoricalDtype(list('cab')))
+             }).set_index('B')
+        tm.assert_frame_equal(result, expected)
+
+        # wrong catgories
+        df3 = DataFrame({'A': a, 'B': Categorical(b, categories=list('abe'))
+                         }).set_index('B')
+        pytest.raises(TypeError, lambda: pd.concat([df2, df3]))
+
     def test_concat_categoricalindex(self):
         # GH 16111, categories that aren't lexsorted
         categories = [9, 0, 1, 2, 3]
@@ -1958,6 +2073,45 @@ bar2,12,13,14,15
         if PY2:
             expected = expected.sort_values()
         tm.assert_index_equal(result, expected)
+
+    def test_concat_datetime_timezone(self):
+        # GH 18523
+        idx1 = pd.date_range('2011-01-01', periods=3, freq='H',
+                             tz='Europe/Paris')
+        idx2 = pd.date_range(start=idx1[0], end=idx1[-1], freq='H')
+        df1 = pd.DataFrame({'a': [1, 2, 3]}, index=idx1)
+        df2 = pd.DataFrame({'b': [1, 2, 3]}, index=idx2)
+        result = pd.concat([df1, df2], axis=1)
+
+        exp_idx = DatetimeIndex(['2011-01-01 00:00:00+01:00',
+                                 '2011-01-01 01:00:00+01:00',
+                                 '2011-01-01 02:00:00+01:00'],
+                                freq='H'
+                                ).tz_localize('UTC').tz_convert('Europe/Paris')
+
+        expected = pd.DataFrame([[1, 1], [2, 2], [3, 3]],
+                                index=exp_idx, columns=['a', 'b'])
+
+        tm.assert_frame_equal(result, expected)
+
+        idx3 = pd.date_range('2011-01-01', periods=3,
+                             freq='H', tz='Asia/Tokyo')
+        df3 = pd.DataFrame({'b': [1, 2, 3]}, index=idx3)
+        result = pd.concat([df1, df3], axis=1)
+
+        exp_idx = DatetimeIndex(['2010-12-31 15:00:00+00:00',
+                                 '2010-12-31 16:00:00+00:00',
+                                 '2010-12-31 17:00:00+00:00',
+                                 '2010-12-31 23:00:00+00:00',
+                                 '2011-01-01 00:00:00+00:00',
+                                 '2011-01-01 01:00:00+00:00']
+                                ).tz_localize('UTC')
+
+        expected = pd.DataFrame([[np.nan, 1], [np.nan, 2], [np.nan, 3],
+                                 [1, np.nan], [2, np.nan], [3, np.nan]],
+                                index=exp_idx, columns=['a', 'b'])
+
+        tm.assert_frame_equal(result, expected)
 
 
 @pytest.mark.parametrize('pdt', [pd.Series, pd.DataFrame, pd.Panel])

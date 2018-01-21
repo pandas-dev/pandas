@@ -7,6 +7,7 @@ import numpy as np
 import pandas as pd
 from pandas import DataFrame
 import pandas.util.testing as tm
+import pandas.util._test_decorators as td
 
 jinja2 = pytest.importorskip('jinja2')
 from pandas.io.formats.style import Styler, _get_level_lengths  # noqa
@@ -649,7 +650,7 @@ class TestStyler(object):
                         (0, 0): [''], (1, 0): ['']}
             assert result == expected
 
-        # separate since we cant negate the strs
+        # separate since we can't negate the strs
         df['C'] = ['a', 'b']
         result = df.style.highlight_max()._compute().ctx
         expected = {(1, 1): ['background-color: yellow']}
@@ -1011,8 +1012,8 @@ class TestStyler(object):
 
 class TestStylerMatplotlibDep(object):
 
+    @td.skip_if_no_mpl
     def test_background_gradient(self):
-        tm._skip_if_no_mpl()
         df = pd.DataFrame([[1, 2], [2, 4]], columns=['A', 'B'])
 
         for c_map in [None, 'YlOrRd']:

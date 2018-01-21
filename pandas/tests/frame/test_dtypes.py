@@ -619,6 +619,13 @@ class TestDataFrameDataTypes(TestData):
         expected = concat([a1_str, b, a2_str], axis=1)
         assert_frame_equal(result, expected)
 
+    @pytest.mark.parametrize('columns', [['x'], ['x', 'y'], ['x', 'y', 'z']])
+    def test_categorical_astype_ndim_raises(self, columns):
+        # GH 18004
+        msg = '> 1 ndim Categorical are not supported at this time'
+        with tm.assert_raises_regex(NotImplementedError, msg):
+            DataFrame(columns=columns).astype('category')
+
     @pytest.mark.parametrize("cls", [
         pd.api.types.CategoricalDtype,
         pd.api.types.DatetimeTZDtype,
@@ -632,6 +639,87 @@ class TestDataFrameDataTypes(TestData):
 
         with tm.assert_raises_regex(TypeError, xpr):
             df['A'].astype(cls)
+
+    @pytest.mark.parametrize("dtype", ["M8", "m8"])
+    @pytest.mark.parametrize("unit", ['ns', 'us', 'ms', 's', 'h', 'm', 'D'])
+    def test_astype_from_datetimelike_to_objectt(self, dtype, unit):
+        # tests astype to object dtype
+        # gh-19223 / gh-12425
+        dtype = "{}[{}]".format(dtype, unit)
+        arr = np.array([[1, 2, 3]], dtype=dtype)
+        df = DataFrame(arr)
+        result = df.astype(object)
+        assert (result.dtypes == object).all()
+
+        if dtype.startswith('M8'):
+            assert result.iloc[0, 0] == pd.to_datetime(1, unit=unit)
+        else:
+            assert result.iloc[0, 0] == pd.to_timedelta(1, unit=unit)
+
+    @pytest.mark.parametrize("arr_dtype", [np.int64, np.float64])
+    @pytest.mark.parametrize("dtype", ["M8", "m8"])
+    @pytest.mark.parametrize("unit", ['ns', 'us', 'ms', 's', 'h', 'm', 'D'])
+    def test_astype_to_datetimelike_unit(self, arr_dtype, dtype, unit):
+        # tests all units from numeric origination
+        # gh-19223 / gh-12425
+        dtype = "{}[{}]".format(dtype, unit)
+        arr = np.array([[1, 2, 3]], dtype=arr_dtype)
+        df = DataFrame(arr)
+        result = df.astype(dtype)
+        expected = DataFrame(arr.astype(dtype))
+
+        tm.assert_frame_equal(result, expected)
+
+    @pytest.mark.parametrize("unit", ['ns', 'us', 'ms', 's', 'h', 'm', 'D'])
+    def test_astype_to_datetime_unit(self, unit):
+        # tests all units from datetime origination
+        # gh-19223
+        dtype = "M8[{}]".format(unit)
+        arr = np.array([[1, 2, 3]], dtype=dtype)
+        df = DataFrame(arr)
+        result = df.astype(dtype)
+        expected = DataFrame(arr.astype(dtype))
+
+        tm.assert_frame_equal(result, expected)
+
+    @pytest.mark.parametrize("unit", ['ns'])
+    def test_astype_to_timedelta_unit_ns(self, unit):
+        # preserver the timedelta conversion
+        # gh-19223
+        dtype = "m8[{}]".format(unit)
+        arr = np.array([[1, 2, 3]], dtype=dtype)
+        df = DataFrame(arr)
+        result = df.astype(dtype)
+        expected = DataFrame(arr.astype(dtype))
+
+        tm.assert_frame_equal(result, expected)
+
+    @pytest.mark.parametrize("unit", ['us', 'ms', 's', 'h', 'm', 'D'])
+    def test_astype_to_timedelta_unit(self, unit):
+        # coerce to float
+        # gh-19223
+        dtype = "m8[{}]".format(unit)
+        arr = np.array([[1, 2, 3]], dtype=dtype)
+        df = DataFrame(arr)
+        result = df.astype(dtype)
+        expected = DataFrame(df.values.astype(dtype).astype(float))
+
+        tm.assert_frame_equal(result, expected)
+
+    @pytest.mark.parametrize("unit", ['ns', 'us', 'ms', 's', 'h', 'm', 'D'])
+    def test_astype_to_incorrect_datetimelike(self, unit):
+        # trying to astype a m to a M, or vice-versa
+        # gh-19224
+        dtype = "M8[{}]".format(unit)
+        other = "m8[{}]".format(unit)
+
+        df = DataFrame(np.array([[1, 2, 3]], dtype=dtype))
+        with pytest.raises(TypeError):
+            df.astype(other)
+
+        df = DataFrame(np.array([[1, 2, 3]], dtype=other))
+        with pytest.raises(TypeError):
+            df.astype(dtype)
 
     def test_timedeltas(self):
         df = DataFrame(dict(A=Series(date_range('2012-1-1', periods=3,
@@ -668,6 +756,25 @@ class TestDataFrameDataTypes(TestData):
             df.astype(np.int8, raise_on_error=False)
 
         df.astype(np.int8, errors='ignore')
+
+    @pytest.mark.parametrize('input_vals', [
+        ([1, 2]),
+        ([1.0, 2.0, np.nan]),
+        (['1', '2']),
+        (list(pd.date_range('1/1/2011', periods=2, freq='H'))),
+        (list(pd.date_range('1/1/2011', periods=2, freq='H',
+                            tz='US/Eastern'))),
+        ([pd.Interval(left=0, right=5)]),
+    ])
+    def test_constructor_list_str(self, input_vals):
+        # GH 16605
+        # Ensure that data elements are converted to strings when
+        # dtype is str, 'str', or 'U'
+
+        for dtype in ['str', str, 'U']:
+            result = DataFrame({'A': input_vals}, dtype=dtype)
+            expected = DataFrame({'A': input_vals}).astype({'A': dtype})
+            assert_frame_equal(result, expected)
 
 
 class TestDataFrameDatetimeWithTZ(TestData):
