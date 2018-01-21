@@ -309,6 +309,7 @@ class CheckSDist(sdist_class):
                  'pandas/_libs/interval.pyx',
                  'pandas/_libs/hashing.pyx',
                  'pandas/_libs/missing.pyx',
+                 'pandas/_libs/reduction.pyx',
                  'pandas/_libs/testing.pyx',
                  'pandas/_libs/window.pyx',
                  'pandas/_libs/skiplist.pyx',
@@ -506,6 +507,8 @@ ext_data = {
                     'pandas/_libs/src/numpy_helper.h'],
         'sources': ['pandas/_libs/src/parser/tokenizer.c',
                     'pandas/_libs/src/parser/io.c']},
+    '_libs.reduction': {
+        'pyxfile': '_libs/reduction'},
     '_libs.tslibs.period': {
         'pyxfile': '_libs/tslibs/period',
         'pxdfiles': ['_libs/src/util',

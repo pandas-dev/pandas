@@ -6,7 +6,7 @@ from cython cimport Py_ssize_t
 
 import numpy as np
 cimport numpy as np
-from numpy cimport (ndarray, PyArray_NDIM, PyArray_GETITEM, PyArray_SETITEM,
+from numpy cimport (ndarray, PyArray_NDIM, PyArray_GETITEM,
                     PyArray_ITER_DATA, PyArray_ITER_NEXT, PyArray_IterNew,
                     flatiter, NPY_OBJECT,
                     int64_t,
@@ -56,8 +56,6 @@ from missing cimport checknull
 cimport util
 cdef int64_t NPY_NAT = util.get_nat()
 from util cimport is_array, _checknull
-
-from libc.math cimport fabs, sqrt
 
 
 def values_from_object(object o):
@@ -1119,5 +1117,4 @@ def indices_fast(object index, ndarray[int64_t] labels, list keys,
     return result
 
 
-include "reduce.pyx"
 include "inference.pyx"
