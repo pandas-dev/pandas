@@ -26,8 +26,119 @@ def freq(request):
     return request.param
 
 
+class TestTimedeltaIndexComparisons(object):
+    def test_tdi_cmp_str_invalid(self):
+        # GH 13624
+        tdi = TimedeltaIndex(['1 day', '2 days'])
+
+        for left, right in [(tdi, 'a'), ('a', tdi)]:
+            with pytest.raises(TypeError):
+                left > right
+
+            with pytest.raises(TypeError):
+                left == right
+
+            with pytest.raises(TypeError):
+                left != right
+
+    def test_comparisons_coverage(self):
+        rng = timedelta_range('1 days', periods=10)
+
+        result = rng < rng[3]
+        exp = np.array([True, True, True] + [False] * 7)
+        tm.assert_numpy_array_equal(result, exp)
+
+        # raise TypeError for now
+        pytest.raises(TypeError, rng.__lt__, rng[3].value)
+
+        result = rng == list(rng)
+        exp = rng == rng
+        tm.assert_numpy_array_equal(result, exp)
+
+    def test_comp_nat(self):
+        left = pd.TimedeltaIndex([pd.Timedelta('1 days'), pd.NaT,
+                                  pd.Timedelta('3 days')])
+        right = pd.TimedeltaIndex([pd.NaT, pd.NaT, pd.Timedelta('3 days')])
+
+        for lhs, rhs in [(left, right),
+                         (left.astype(object), right.astype(object))]:
+            result = rhs == lhs
+            expected = np.array([False, False, True])
+            tm.assert_numpy_array_equal(result, expected)
+
+            result = rhs != lhs
+            expected = np.array([True, True, False])
+            tm.assert_numpy_array_equal(result, expected)
+
+            expected = np.array([False, False, False])
+            tm.assert_numpy_array_equal(lhs == pd.NaT, expected)
+            tm.assert_numpy_array_equal(pd.NaT == rhs, expected)
+
+            expected = np.array([True, True, True])
+            tm.assert_numpy_array_equal(lhs != pd.NaT, expected)
+            tm.assert_numpy_array_equal(pd.NaT != lhs, expected)
+
+            expected = np.array([False, False, False])
+            tm.assert_numpy_array_equal(lhs < pd.NaT, expected)
+            tm.assert_numpy_array_equal(pd.NaT > lhs, expected)
+
+    def test_comparisons_nat(self):
+        tdidx1 = pd.TimedeltaIndex(['1 day', pd.NaT, '1 day 00:00:01', pd.NaT,
+                                    '1 day 00:00:01', '5 day 00:00:03'])
+        tdidx2 = pd.TimedeltaIndex(['2 day', '2 day', pd.NaT, pd.NaT,
+                                    '1 day 00:00:02', '5 days 00:00:03'])
+        tdarr = np.array([np.timedelta64(2, 'D'),
+                          np.timedelta64(2, 'D'), np.timedelta64('nat'),
+                          np.timedelta64('nat'),
+                          np.timedelta64(1, 'D') + np.timedelta64(2, 's'),
+                          np.timedelta64(5, 'D') + np.timedelta64(3, 's')])
+
+        cases = [(tdidx1, tdidx2), (tdidx1, tdarr)]
+
+        # Check pd.NaT is handles as the same as np.nan
+        for idx1, idx2 in cases:
+
+            result = idx1 < idx2
+            expected = np.array([True, False, False, False, True, False])
+            tm.assert_numpy_array_equal(result, expected)
+
+            result = idx2 > idx1
+            expected = np.array([True, False, False, False, True, False])
+            tm.assert_numpy_array_equal(result, expected)
+
+            result = idx1 <= idx2
+            expected = np.array([True, False, False, False, True, True])
+            tm.assert_numpy_array_equal(result, expected)
+
+            result = idx2 >= idx1
+            expected = np.array([True, False, False, False, True, True])
+            tm.assert_numpy_array_equal(result, expected)
+
+            result = idx1 == idx2
+            expected = np.array([False, False, False, False, False, True])
+            tm.assert_numpy_array_equal(result, expected)
+
+            result = idx1 != idx2
+            expected = np.array([True, True, True, True, True, False])
+            tm.assert_numpy_array_equal(result, expected)
+
+
 class TestTimedeltaIndexArithmetic(object):
     _holder = TimedeltaIndex
+
+    # -------------------------------------------------------------
+    # Invalid Operations
+
+    def test_tdi_add_str_invalid(self):
+        # GH 13624
+        tdi = TimedeltaIndex(['1 day', '2 days'])
+
+        with pytest.raises(TypeError):
+            tdi + 'a'
+        with pytest.raises(TypeError):
+            'a' + tdi
+
+    # -------------------------------------------------------------
 
     @pytest.mark.parametrize('box', [np.array, pd.Index])
     def test_tdi_add_offset_array(self, box):
@@ -128,41 +239,68 @@ class TestTimedeltaIndexArithmetic(object):
             with tm.assert_produces_warning(PerformanceWarning):
                 anchored - tdi
 
-    # TODO: Split by ops, better name
-    def test_numeric_compat(self):
+    def test_mul_int(self):
         idx = self._holder(np.arange(5, dtype='int64'))
-        didx = self._holder(np.arange(5, dtype='int64') ** 2)
         result = idx * 1
         tm.assert_index_equal(result, idx)
 
+    def test_rmul_int(self):
+        idx = self._holder(np.arange(5, dtype='int64'))
         result = 1 * idx
         tm.assert_index_equal(result, idx)
 
+    def test_div_int(self):
+        idx = self._holder(np.arange(5, dtype='int64'))
         result = idx / 1
         tm.assert_index_equal(result, idx)
 
+    def test_floordiv_int(self):
+        idx = self._holder(np.arange(5, dtype='int64'))
         result = idx // 1
         tm.assert_index_equal(result, idx)
 
+    def test_mul_int_array_zerodim(self):
+        rng5 = np.arange(5, dtype='int64')
+        idx = self._holder(rng5)
+        expected = self._holder(rng5 * 5)
         result = idx * np.array(5, dtype='int64')
-        tm.assert_index_equal(result,
-                              self._holder(np.arange(5, dtype='int64') * 5))
+        tm.assert_index_equal(result, expected)
 
-        result = idx * np.arange(5, dtype='int64')
+    def test_mul_int_array(self):
+        rng5 = np.arange(5, dtype='int64')
+        idx = self._holder(rng5)
+        didx = self._holder(rng5 ** 2)
+
+        result = idx * rng5
         tm.assert_index_equal(result, didx)
 
+    def test_mul_int_series(self):
+        idx = self._holder(np.arange(5, dtype='int64'))
+        didx = self._holder(np.arange(5, dtype='int64') ** 2)
+
         result = idx * Series(np.arange(5, dtype='int64'))
+
         tm.assert_series_equal(result, Series(didx))
 
-        rng5 = np.arange(5, dtype='float64')
-        result = idx * Series(rng5 + 0.1)
-        tm.assert_series_equal(result,
-                               Series(self._holder(rng5 * (rng5 + 0.1))))
+    def test_mul_float_series(self):
+        idx = self._holder(np.arange(5, dtype='int64'))
 
-        # invalid
-        pytest.raises(TypeError, lambda: idx * idx)
-        pytest.raises(ValueError, lambda: idx * self._holder(np.arange(3)))
-        pytest.raises(ValueError, lambda: idx * np.array([1, 2]))
+        rng5f = np.arange(5, dtype='float64')
+        result = idx * Series(rng5f + 0.1)
+        expected = Series(self._holder(rng5f * (rng5f + 0.1)))
+        tm.assert_series_equal(result, expected)
+
+    def test_dti_mul_dti_raises(self):
+        idx = self._holder(np.arange(5, dtype='int64'))
+        with pytest.raises(TypeError):
+            idx * idx
+
+    def test_dti_mul_too_short_raises(self):
+        idx = self._holder(np.arange(5, dtype='int64'))
+        with pytest.raises(ValueError):
+            idx * self._holder(np.arange(3))
+        with pytest.raises(ValueError):
+            idx * np.array([1, 2])
 
     def test_ufunc_coercions(self):
         # normal ops are also tested in tseries/test_timedeltas.py
