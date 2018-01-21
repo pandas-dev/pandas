@@ -8,8 +8,6 @@ from cython cimport Py_ssize_t
 
 np.import_array()
 
-cdef float64_t FP_ERR = 1e-13
-
 cimport util
 
 from libc.stdlib cimport malloc, free
@@ -24,6 +22,7 @@ from numpy cimport (ndarray,
                     double_t)
 
 
+cdef float64_t FP_ERR = 1e-13
 cdef double NaN = <double> np.NaN
 cdef double nan = NaN
 
