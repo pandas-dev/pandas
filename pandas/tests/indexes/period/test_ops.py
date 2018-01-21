@@ -6,7 +6,7 @@ import pandas as pd
 import pandas._libs.tslib as tslib
 import pandas.util.testing as tm
 import pandas.core.indexes.period as period
-from pandas import (DatetimeIndex, PeriodIndex, period_range, Series, Period,
+from pandas import (DatetimeIndex, PeriodIndex, Series, Period,
                     _np_version_under1p10, Index)
 
 from pandas.tests.test_base import Ops
@@ -284,33 +284,6 @@ Freq: Q-DEC"""
 
             idx = pd.period_range(start='2013-04-01', periods=30, freq=freq)
             assert idx.resolution == expected
-
-    def test_comp_nat(self):
-        left = pd.PeriodIndex([pd.Period('2011-01-01'), pd.NaT,
-                               pd.Period('2011-01-03')])
-        right = pd.PeriodIndex([pd.NaT, pd.NaT, pd.Period('2011-01-03')])
-
-        for lhs, rhs in [(left, right),
-                         (left.astype(object), right.astype(object))]:
-            result = lhs == rhs
-            expected = np.array([False, False, True])
-            tm.assert_numpy_array_equal(result, expected)
-
-            result = lhs != rhs
-            expected = np.array([True, True, False])
-            tm.assert_numpy_array_equal(result, expected)
-
-            expected = np.array([False, False, False])
-            tm.assert_numpy_array_equal(lhs == pd.NaT, expected)
-            tm.assert_numpy_array_equal(pd.NaT == rhs, expected)
-
-            expected = np.array([True, True, True])
-            tm.assert_numpy_array_equal(lhs != pd.NaT, expected)
-            tm.assert_numpy_array_equal(pd.NaT != lhs, expected)
-
-            expected = np.array([False, False, False])
-            tm.assert_numpy_array_equal(lhs < pd.NaT, expected)
-            tm.assert_numpy_array_equal(pd.NaT > lhs, expected)
 
     def test_value_counts_unique(self):
         # GH 7735
@@ -732,77 +705,6 @@ class TestPeriodIndexSeriesMethods(object):
         self._check(idx, f, exp)
 
 
-class TestSeriesPeriod(object):
-
-    def setup_method(self, method):
-        self.series = Series(period_range('2000-01-01', periods=10, freq='D'))
-
-    def test_ops_series_timedelta(self):
-        # GH 13043
-        s = pd.Series([pd.Period('2015-01-01', freq='D'),
-                       pd.Period('2015-01-02', freq='D')], name='xxx')
-        assert s.dtype == object
-
-        exp = pd.Series([pd.Period('2015-01-02', freq='D'),
-                         pd.Period('2015-01-03', freq='D')], name='xxx')
-        tm.assert_series_equal(s + pd.Timedelta('1 days'), exp)
-        tm.assert_series_equal(pd.Timedelta('1 days') + s, exp)
-
-        tm.assert_series_equal(s + pd.tseries.offsets.Day(), exp)
-        tm.assert_series_equal(pd.tseries.offsets.Day() + s, exp)
-
-    def test_ops_series_period(self):
-        # GH 13043
-        s = pd.Series([pd.Period('2015-01-01', freq='D'),
-                       pd.Period('2015-01-02', freq='D')], name='xxx')
-        assert s.dtype == object
-
-        p = pd.Period('2015-01-10', freq='D')
-        # dtype will be object because of original dtype
-        exp = pd.Series([9, 8], name='xxx', dtype=object)
-        tm.assert_series_equal(p - s, exp)
-        tm.assert_series_equal(s - p, -exp)
-
-        s2 = pd.Series([pd.Period('2015-01-05', freq='D'),
-                        pd.Period('2015-01-04', freq='D')], name='xxx')
-        assert s2.dtype == object
-
-        exp = pd.Series([4, 2], name='xxx', dtype=object)
-        tm.assert_series_equal(s2 - s, exp)
-        tm.assert_series_equal(s - s2, -exp)
-
-
-class TestFramePeriod(object):
-
-    def test_ops_frame_period(self):
-        # GH 13043
-        df = pd.DataFrame({'A': [pd.Period('2015-01', freq='M'),
-                                 pd.Period('2015-02', freq='M')],
-                           'B': [pd.Period('2014-01', freq='M'),
-                                 pd.Period('2014-02', freq='M')]})
-        assert df['A'].dtype == object
-        assert df['B'].dtype == object
-
-        p = pd.Period('2015-03', freq='M')
-        # dtype will be object because of original dtype
-        exp = pd.DataFrame({'A': np.array([2, 1], dtype=object),
-                            'B': np.array([14, 13], dtype=object)})
-        tm.assert_frame_equal(p - df, exp)
-        tm.assert_frame_equal(df - p, -exp)
-
-        df2 = pd.DataFrame({'A': [pd.Period('2015-05', freq='M'),
-                                  pd.Period('2015-06', freq='M')],
-                            'B': [pd.Period('2015-05', freq='M'),
-                                  pd.Period('2015-06', freq='M')]})
-        assert df2['A'].dtype == object
-        assert df2['B'].dtype == object
-
-        exp = pd.DataFrame({'A': np.array([4, 4], dtype=object),
-                            'B': np.array([16, 16], dtype=object)})
-        tm.assert_frame_equal(df2 - df, exp)
-        tm.assert_frame_equal(df - df2, -exp)
-
-
 class TestPeriodIndexComparisons(object):
 
     def test_pi_pi_comp(self):
@@ -942,3 +844,31 @@ class TestPeriodIndexComparisons(object):
             with tm.assert_raises_regex(
                     period.IncompatibleFrequency, msg):
                 idx1 == diff
+
+    # TODO: De-duplicate with test_pi_nat_comp
+    def test_comp_nat(self):
+        left = pd.PeriodIndex([pd.Period('2011-01-01'), pd.NaT,
+                               pd.Period('2011-01-03')])
+        right = pd.PeriodIndex([pd.NaT, pd.NaT, pd.Period('2011-01-03')])
+
+        for lhs, rhs in [(left, right),
+                         (left.astype(object), right.astype(object))]:
+            result = lhs == rhs
+            expected = np.array([False, False, True])
+            tm.assert_numpy_array_equal(result, expected)
+
+            result = lhs != rhs
+            expected = np.array([True, True, False])
+            tm.assert_numpy_array_equal(result, expected)
+
+            expected = np.array([False, False, False])
+            tm.assert_numpy_array_equal(lhs == pd.NaT, expected)
+            tm.assert_numpy_array_equal(pd.NaT == rhs, expected)
+
+            expected = np.array([True, True, True])
+            tm.assert_numpy_array_equal(lhs != pd.NaT, expected)
+            tm.assert_numpy_array_equal(pd.NaT != lhs, expected)
+
+            expected = np.array([False, False, False])
+            tm.assert_numpy_array_equal(lhs < pd.NaT, expected)
+            tm.assert_numpy_array_equal(pd.NaT > lhs, expected)

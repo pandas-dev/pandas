@@ -35,9 +35,7 @@ from pandas.core.indexes.datetimes import date_range
 from pandas.core.indexes.timedeltas import timedelta_range
 from pandas.core.indexes.multi import MultiIndex
 from pandas.compat.numpy import function as nv
-from pandas.core.common import (
-    _all_not_none, _any_none, _asarray_tuplesafe, _count_not_none,
-    is_bool_indexer, _maybe_box_datetimelike, _not_none)
+import pandas.core.common as com
 from pandas.util._decorators import cache_readonly, Appender
 from pandas.core.config import get_option
 from pandas.tseries.frequencies import to_offset
@@ -237,7 +235,8 @@ class IntervalIndex(IntervalMixin, Index):
             data = maybe_convert_platform_interval(data)
             left, right, infer_closed = intervals_to_interval_bounds(data)
 
-            if _all_not_none(closed, infer_closed) and closed != infer_closed:
+            if (com._all_not_none(closed, infer_closed) and
+                    closed != infer_closed):
                 # GH 18421
                 msg = ("conflicting values for closed: constructor got "
                        "'{closed}', inferred from data '{infer_closed}'"
@@ -602,7 +601,7 @@ class IntervalIndex(IntervalMixin, Index):
         >>>  idx.to_tuples(na_tuple=False)
         Index([(0.0, 1.0), nan, (2.0, 3.0)], dtype='object')
         """
-        tuples = _asarray_tuplesafe(zip(self.left, self.right))
+        tuples = com._asarray_tuplesafe(zip(self.left, self.right))
         if not na_tuple:
             # GH 18756
             tuples = np.where(~self._isnan, tuples, np.nan)
@@ -975,7 +974,7 @@ class IntervalIndex(IntervalMixin, Index):
                 return self._engine.get_loc(key)
 
     def get_value(self, series, key):
-        if is_bool_indexer(key):
+        if com.is_bool_indexer(key):
             loc = key
         elif is_list_like(key):
             loc = self.get_indexer(key)
@@ -1152,12 +1151,17 @@ class IntervalIndex(IntervalMixin, Index):
         new_right = self.right.insert(loc, right_insert)
         return self._shallow_copy(new_left, new_right)
 
-    def _as_like_interval_index(self, other, error_msg):
+    def _as_like_interval_index(self, other):
         self._assert_can_do_setop(other)
         other = _ensure_index(other)
-        if (not isinstance(other, IntervalIndex) or
-                self.closed != other.closed):
-            raise ValueError(error_msg)
+        if not isinstance(other, IntervalIndex):
+            msg = ('the other index needs to be an IntervalIndex too, but '
+                   'was type {}').format(other.__class__.__name__)
+            raise TypeError(msg)
+        elif self.closed != other.closed:
+            msg = ('can only do set operations between two IntervalIndex '
+                   'objects that are closed on the same side')
+            raise ValueError(msg)
         return other
 
     def _concat_same_dtype(self, to_concat, name):
@@ -1296,9 +1300,7 @@ class IntervalIndex(IntervalMixin, Index):
 
     def _setop(op_name):
         def func(self, other):
-            msg = ('can only do set operations between two IntervalIndex '
-                   'objects that are closed on the same side')
-            other = self._as_like_interval_index(other, msg)
+            other = self._as_like_interval_index(other)
 
             # GH 19016: ensure set op will not return a prohibited dtype
             subtypes = [self.dtype.subtype, other.dtype.subtype]
@@ -1347,7 +1349,7 @@ def _is_type_compatible(a, b):
     return ((is_number(a) and is_number(b)) or
             (is_ts_compat(a) and is_ts_compat(b)) or
             (is_td_compat(a) and is_td_compat(b)) or
-            _any_none(a, b))
+            com._any_none(a, b))
 
 
 def interval_range(start=None, end=None, periods=None, freq=None,
@@ -1426,13 +1428,13 @@ def interval_range(start=None, end=None, periods=None, freq=None,
     --------
     IntervalIndex : an Index of intervals that are all closed on the same side.
     """
-    if _count_not_none(start, end, periods) != 2:
+    if com._count_not_none(start, end, periods) != 2:
         raise ValueError('Of the three parameters: start, end, and periods, '
                          'exactly two must be specified')
 
-    start = _maybe_box_datetimelike(start)
-    end = _maybe_box_datetimelike(end)
-    endpoint = next(_not_none(start, end))
+    start = com._maybe_box_datetimelike(start)
+    end = com._maybe_box_datetimelike(end)
+    endpoint = next(com._not_none(start, end))
 
     if not _is_valid_endpoint(start):
         msg = 'start must be numeric or datetime-like, got {start}'

@@ -56,7 +56,7 @@ from pandas.core.dtypes.missing import (
 import pandas.core.dtypes.concat as _concat
 
 from pandas.core.dtypes.generic import ABCSeries, ABCDatetimeIndex
-from pandas.core.common import is_null_slice, _any_not_none
+import pandas.core.common as com
 import pandas.core.algorithms as algos
 
 from pandas.core.index import Index, MultiIndex, _ensure_index
@@ -304,10 +304,6 @@ class Block(PandasObject):
         return self.values.shape
 
     @property
-    def itemsize(self):
-        return self.values.itemsize
-
-    @property
     def dtype(self):
         return self.values.dtype
 
@@ -326,21 +322,6 @@ class Block(PandasObject):
                                     axis=self.ndim - 1)
         return self.make_block_same_class(
             values, placement=placement or slice(0, len(values), 1))
-
-    def reindex_axis(self, indexer, method=None, axis=1, fill_value=None,
-                     limit=None, mask_info=None):
-        """
-        Reindex using pre-computed indexer information
-        """
-        if axis < 1:
-            raise AssertionError(
-                'axis must be at least 1, got {axis}'.format(axis=axis))
-        if fill_value is None:
-            fill_value = self.fill_value
-
-        new_values = algos.take_nd(self.values, indexer, axis,
-                                   fill_value=fill_value, mask_info=mask_info)
-        return self.make_block(new_values)
 
     def iget(self, i):
         return self.values[i]
@@ -590,7 +571,7 @@ class Block(PandasObject):
 
             categories = kwargs.get('categories', None)
             ordered = kwargs.get('ordered', None)
-            if _any_not_none(categories, ordered):
+            if com._any_not_none(categories, ordered):
                 dtype = CategoricalDtype(categories, ordered)
 
             if is_categorical_dtype(self.values):
@@ -936,11 +917,8 @@ class Block(PandasObject):
 
         new_values = self.values if inplace else self.values.copy()
 
-        if hasattr(new, 'reindex_axis'):
-            new = new.values
-
-        if hasattr(mask, 'reindex_axis'):
-            mask = mask.values
+        new = getattr(new, 'values', new)
+        mask = getattr(mask, 'values', mask)
 
         # if we are passed a scalar None, convert it here
         if not is_list_like(new) and isna(new) and not self.is_object:
@@ -1297,8 +1275,7 @@ class Block(PandasObject):
         orig_other = other
         values = self.values
 
-        if hasattr(other, 'reindex_axis'):
-            other = other.values
+        other = getattr(other, 'values', other)
 
         # make sure that we can broadcast
         is_transposed = False
@@ -1446,11 +1423,8 @@ class Block(PandasObject):
         if transpose:
             values = values.T
 
-        if hasattr(other, 'reindex_axis'):
-            other = other.values
-
-        if hasattr(cond, 'reindex_axis'):
-            cond = cond.values
+        other = getattr(other, 'values', other)
+        cond = getattr(cond, 'values', cond)
 
         # If the default broadcasting would go in the wrong direction, then
         # explicitly reshape other instead
@@ -1731,7 +1705,7 @@ class NonConsolidatableMixIn(object):
 
         if self.ndim == 2 and isinstance(col, tuple):
             col, loc = col
-            if not is_null_slice(col) and col != 0:
+            if not com.is_null_slice(col) and col != 0:
                 raise IndexError("{0} only contains one item".format(self))
             return self.values[loc]
         else:
@@ -2630,16 +2604,15 @@ class DatetimeTZBlock(NonConsolidatableMixIn, DatetimeBlock):
     def get_values(self, dtype=None):
         # return object dtype as Timestamps with the zones
         if is_object_dtype(dtype):
-            f = lambda x: lib.Timestamp(x, tz=self.values.tz)
             return lib.map_infer(
-                self.values.ravel(), f).reshape(self.values.shape)
+                self.values.ravel(), self._box_func).reshape(self.values.shape)
         return self.values
 
     def _slice(self, slicer):
         """ return a slice of my values """
         if isinstance(slicer, tuple):
             col, loc = slicer
-            if not is_null_slice(col) and col != 0:
+            if not com.is_null_slice(col) and col != 0:
                 raise IndexError("{0} only contains one item".format(self))
             return self.values[loc]
         return self.values[slicer]
@@ -2759,10 +2732,6 @@ class SparseBlock(NonConsolidatableMixIn, Block):
     @property
     def shape(self):
         return (len(self.mgr_locs), self.sp_index.length)
-
-    @property
-    def itemsize(self):
-        return self.dtype.itemsize
 
     @property
     def fill_value(self):
@@ -2886,22 +2855,6 @@ class SparseBlock(NonConsolidatableMixIn, Block):
             new_values[periods:] = fill_value
         return [self.make_block_same_class(new_values,
                                            placement=self.mgr_locs)]
-
-    def reindex_axis(self, indexer, method=None, axis=1, fill_value=None,
-                     limit=None, mask_info=None):
-        """
-        Reindex using pre-computed indexer information
-        """
-        if axis < 1:
-            raise AssertionError(
-                'axis must be at least 1, got {axis}'.format(axis=axis))
-
-        # taking on the 0th axis always here
-        if fill_value is None:
-            fill_value = self.fill_value
-        return self.make_block_same_class(self.values.take(indexer),
-                                          fill_value=fill_value,
-                                          placement=self.mgr_locs)
 
     def sparse_reindex(self, new_index):
         """ sparse reindex and return a new block
@@ -3324,7 +3277,7 @@ class BlockManager(PandasObject):
 
         aligned_args = dict((k, kwargs[k])
                             for k in align_keys
-                            if hasattr(kwargs[k], 'reindex_axis'))
+                            if hasattr(kwargs[k], 'values'))
 
         for b in self.blocks:
             if filter is not None:
@@ -4551,10 +4504,6 @@ class SingleBlockManager(BlockManager):
         to Timestamp/Timedelta instances.
         """
         return self._block.get_values(dtype=object)
-
-    @property
-    def itemsize(self):
-        return self._block.values.itemsize
 
     @property
     def _can_hold_na(self):
