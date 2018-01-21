@@ -30,15 +30,6 @@ Check the :ref:`API Changes <whatsnew_0210.api_breaking>` and :ref:`deprecations
 New features
 ~~~~~~~~~~~~
 
-<<<<<<< HEAD
-- Support for `PEP 519 -- Adding a file system path protocol
-  <https://www.python.org/dev/peps/pep-0519/>`_ on most readers and writers (:issue:`13823`)
-- Added `__fspath__` method to :class`:pandas.HDFStore`, :class:`pandas.ExcelFile`,
-  and :class:`pandas.ExcelWriter` to work properly with the file system path protocol (:issue:`13823`)
-- Added `limit_area` parameter to `DataFrame.interpolate()` method allowing further control of which NaNs are replaced.
-  Use `limit_area='inside'` to fill only NaNs surrounded by valid values or use `limit_area='outside'` to fill only NaNs outside the existing valid values while preserving those inside.  (:issue:`16284`)
-  Full documentation and examples are :ref:`here <missing_data.interp_limits>`.
-=======
 .. _whatsnew_0210.enhancements.parquet:
 
 Integration with Apache Parquet file format
@@ -295,7 +286,6 @@ as in :meth:`DataFrame.rename`.
         [0, 0, 1]
         Categories (2, int64): [0, 1]
 
->>>>>>> master
 
 .. _whatsnew_0210.enhancements.other:
 
