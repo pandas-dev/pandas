@@ -8,6 +8,13 @@ from pandas.compat import add_metaclass
 class ExtensionDtype(object):
     """A custom data type for your array.
     """
+
+    def __repr__(self):
+        return str(self)
+
+    def __str__(self):
+        return self.name
+
     @property
     @abc.abstractmethod
     def type(self):
