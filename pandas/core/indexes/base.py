@@ -4272,8 +4272,7 @@ def _ensure_index(index_like, copy=False):
 def _get_na_value(dtype):
     if is_datetime64_any_dtype(dtype) or is_timedelta64_dtype(dtype):
         return libts.NaT
-    return {np.datetime64: libts.NaT,
-            np.timedelta64: libts.NaT}.get(dtype, np.nan)
+    return np.nan
 
 
 def _ensure_has_len(seq):
