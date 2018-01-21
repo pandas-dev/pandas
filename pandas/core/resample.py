@@ -1066,7 +1066,8 @@ class TimeGrouper(Grouper):
         if label not in {None, 'left', 'right'}:
             raise ValueError('Unsupported value {} for `label`'.format(label))
         if closed not in {None, 'left', 'right'}:
-            raise ValueError('Unsupported value {} for `closed`'.format(closed))
+            raise ValueError('Unsupported value {} for `closed`'.format(
+                closed))
         if convention not in {None, 'start', 'end', 'e', 's'}:
             raise ValueError('Unsupported value {} for `convention`'
                              .format(convention))
