@@ -143,23 +143,25 @@ class TestSeriesToCSV(TestData):
         s = Series([0.123456, 0.234567, 0.567567], index=['A', 'B', 'C'],
                    name='X')
 
-        with ensure_clean() as filename:
+        if compression != 'zip':
+            with ensure_clean() as filename:
 
-            s.to_csv(filename, compression=compression, header=True)
+                s.to_csv(filename, compression=compression, header=True)
 
-            # test the round trip - to_csv -> read_csv
-            rs = pd.read_csv(filename, compression=compression, index_col=0,
-                             squeeze=True)
-            assert_series_equal(s, rs)
+                # test the round trip - to_csv -> read_csv
+                rs = pd.read_csv(filename, compression=compression,
+                                 index_col=0, squeeze=True)
+                assert_series_equal(s, rs)
 
-            # explicitly ensure file was compressed
-            with tm.decompress_file(filename, compression=compression) as fh:
-                text = fh.read().decode('utf8')
-                assert s.name in text
+                # explicitly ensure file was compressed
+                with tm.decompress_file(filename, compression) as fh:
+                    text = fh.read().decode('utf8')
+                    assert s.name in text
 
-            with tm.decompress_file(filename, compression=compression) as fh:
-                assert_series_equal(s, pd.read_csv(fh,
-                                                   index_col=0, squeeze=True))
+                with tm.decompress_file(filename, compression) as fh:
+                    assert_series_equal(s, pd.read_csv(fh,
+                                                       index_col=0,
+                                                       squeeze=True))
 
 
 class TestSeriesIO(TestData):

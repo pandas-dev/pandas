@@ -10,14 +10,15 @@ def test_compression_roundtrip(compression):
                        [12.32112, 123123.2, 321321.2]],
                       index=['A', 'B'], columns=['X', 'Y', 'Z'])
 
-    with tm.ensure_clean() as path:
-        df.to_json(path, compression=compression)
-        assert_frame_equal(df, pd.read_json(path, compression=compression))
+    if compression != 'zip':
+        with tm.ensure_clean() as path:
+            df.to_json(path, compression=compression)
+            assert_frame_equal(df, pd.read_json(path, compression=compression))
 
-        # explicitly ensure file was compressed.
-        with tm.decompress_file(path, compression) as fh:
-            result = fh.read().decode('utf8')
-        assert_frame_equal(df, pd.read_json(result))
+            # explicitly ensure file was compressed.
+            with tm.decompress_file(path, compression) as fh:
+                result = fh.read().decode('utf8')
+            assert_frame_equal(df, pd.read_json(result))
 
 
 def test_compress_zip_value_error():
@@ -61,22 +62,29 @@ def test_with_s3_url(compression):
 
 
 def test_lines_with_compression(compression):
-    with tm.ensure_clean() as path:
-        df = pd.read_json('{"a": [1, 2, 3], "b": [4, 5, 6]}')
-        df.to_json(path, orient='records', lines=True, compression=compression)
-        roundtripped_df = pd.read_json(path, lines=True,
-                                       compression=compression)
-        assert_frame_equal(df, roundtripped_df)
+
+    if compression != 'zip':
+        with tm.ensure_clean() as path:
+            df = pd.read_json('{"a": [1, 2, 3], "b": [4, 5, 6]}')
+            df.to_json(path, orient='records', lines=True,
+                       compression=compression)
+            roundtripped_df = pd.read_json(path, lines=True,
+                                           compression=compression)
+            assert_frame_equal(df, roundtripped_df)
 
 
 def test_chunksize_with_compression(compression):
-    with tm.ensure_clean() as path:
-        df = pd.read_json('{"a": ["foo", "bar", "baz"], "b": [4, 5, 6]}')
-        df.to_json(path, orient='records', lines=True, compression=compression)
 
-        roundtripped_df = pd.concat(pd.read_json(path, lines=True, chunksize=1,
-                                                 compression=compression))
-        assert_frame_equal(df, roundtripped_df)
+    if compression != 'zip':
+        with tm.ensure_clean() as path:
+            df = pd.read_json('{"a": ["foo", "bar", "baz"], "b": [4, 5, 6]}')
+            df.to_json(path, orient='records', lines=True,
+                       compression=compression)
+
+            roundtripped_df = pd.concat(pd.read_json(path, lines=True,
+                                                     chunksize=1,
+                                                     compression=compression))
+            assert_frame_equal(df, roundtripped_df)
 
 
 def test_write_unsupported_compression_type():
