@@ -934,12 +934,14 @@ class TestIntervalIndex(Base):
         set_op = getattr(index, op_name)
 
         # non-IntervalIndex
-        msg = ('can only do set operations between two IntervalIndex objects '
-               'that are closed on the same side')
-        with tm.assert_raises_regex(ValueError, msg):
+        msg = ('the other index needs to be an IntervalIndex too, but '
+               'was type Int64Index')
+        with tm.assert_raises_regex(TypeError, msg):
             set_op(Index([1, 2, 3]))
 
         # mixed closed
+        msg = ('can only do set operations between two IntervalIndex objects '
+               'that are closed on the same side')
         for other_closed in {'right', 'left', 'both', 'neither'} - {closed}:
             other = self.create_index(closed=other_closed)
             with tm.assert_raises_regex(ValueError, msg):
