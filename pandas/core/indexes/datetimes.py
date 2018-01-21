@@ -123,13 +123,11 @@ def _dt_index_cmp(opname, cls, nat_result=False):
                 # Following Timestamp convention, __eq__ is all-False
                 # and __ne__ is all True, others raise TypeError.
                 if opname == '__eq__':
-                    result = np.zeros(shape=self.shape, dtype=bool)
+                    return np.zeros(shape=self.shape, dtype=bool)
                 elif opname == '__ne__':
-                    result = np.ones(shape=self.shape, dtype=bool)
-                else:
-                    raise TypeError('%s type object %s' %
-                                    (type(other), str(other)))
-                return result
+                    return np.ones(shape=self.shape, dtype=bool)
+                raise TypeError('%s type object %s' %
+                                (type(other), str(other)))
 
             if is_datetimelike(other):
                 self._assert_tzawareness_compat(other)
