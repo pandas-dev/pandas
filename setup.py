@@ -460,11 +460,11 @@ libraries = ['m'] if not is_platform_windows() else []
 ext_data = {
     '_libs.algos': {
         'pyxfile': '_libs/algos',
-        'pxdfiles': ['_libs/src/util', '_libs/algos', '_libs/hashtable'],
+        'pxdfiles': ['_libs/src/util', '_libs/hashtable'],
         'depends': _pxi_dep['algos']},
     '_libs.groupby': {
         'pyxfile': '_libs/groupby',
-        'pxdfiles': ['_libs/src/util', '_libs/algos'],
+        'pxdfiles': ['_libs/src/util'],
         'depends': _pxi_dep['groupby']},
     '_libs.hashing': {
         'pyxfile': '_libs/hashing'},
