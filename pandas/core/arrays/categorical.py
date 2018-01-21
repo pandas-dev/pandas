@@ -28,7 +28,6 @@ from pandas.core.dtypes.common import (
     is_list_like, is_sequence,
     is_scalar,
     is_dict_like)
-from pandas.core.common import is_null_slice, _maybe_box_datetimelike
 
 from pandas.core.algorithms import factorize, take_1d, unique1d
 from pandas.core.accessor import PandasDelegate
@@ -468,7 +467,7 @@ class Categorical(PandasObject):
         (for Timestamp/Timedelta/Interval/Period)
         """
         if is_datetimelike(self.categories):
-            return [_maybe_box_datetimelike(x) for x in self]
+            return [com._maybe_box_datetimelike(x) for x in self]
         return np.array(self).tolist()
 
     @property
@@ -1686,7 +1685,7 @@ class Categorical(PandasObject):
         # only allow 1 dimensional slicing, but can
         # in a 2-d case be passd (slice(None),....)
         if isinstance(slicer, tuple) and len(slicer) == 2:
-            if not is_null_slice(slicer[0]):
+            if not com.is_null_slice(slicer[0]):
                 raise AssertionError("invalid slicing for a 1-ndim "
                                      "categorical")
             slicer = slicer[1]
@@ -1847,7 +1846,7 @@ class Categorical(PandasObject):
             # only allow 1 dimensional slicing, but can
             # in a 2-d case be passd (slice(None),....)
             if len(key) == 2:
-                if not is_null_slice(key[0]):
+                if not com.is_null_slice(key[0]):
                     raise AssertionError("invalid slicing for a 1-ndim "
                                          "categorical")
                 key = key[1]

@@ -6,7 +6,7 @@ from pandas import (
     Interval, IntervalIndex, Index, isna, notna, interval_range, Timestamp,
     Timedelta, date_range, timedelta_range, Categorical)
 from pandas.compat import lzip
-from pandas.core.common import _asarray_tuplesafe
+import pandas.core.common as com
 from pandas.tests.indexes.common import Base
 import pandas.util.testing as tm
 import pandas as pd
@@ -1179,7 +1179,7 @@ class TestIntervalIndex(Base):
         # GH 18756
         idx = IntervalIndex.from_tuples(tuples)
         result = idx.to_tuples()
-        expected = Index(_asarray_tuplesafe(tuples))
+        expected = Index(com._asarray_tuplesafe(tuples))
         tm.assert_index_equal(result, expected)
 
     @pytest.mark.parametrize('tuples', [
@@ -1195,7 +1195,7 @@ class TestIntervalIndex(Base):
         result = idx.to_tuples(na_tuple=na_tuple)
 
         # check the non-NA portion
-        expected_notna = Index(_asarray_tuplesafe(tuples[:-1]))
+        expected_notna = Index(com._asarray_tuplesafe(tuples[:-1]))
         result_notna = result[:-1]
         tm.assert_index_equal(result_notna, expected_notna)
 
