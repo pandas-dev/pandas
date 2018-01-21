@@ -6,7 +6,7 @@ from pandas import (
     Interval, IntervalIndex, Index, isna, notna, interval_range, Timestamp,
     Timedelta, date_range, timedelta_range, Categorical)
 from pandas.compat import lzip
-from pandas.core.common import _asarray_tuplesafe
+import pandas.core.common as com
 from pandas.tests.indexes.common import Base
 import pandas.util.testing as tm
 import pandas as pd
@@ -934,12 +934,14 @@ class TestIntervalIndex(Base):
         set_op = getattr(index, op_name)
 
         # non-IntervalIndex
-        msg = ('can only do set operations between two IntervalIndex objects '
-               'that are closed on the same side')
-        with tm.assert_raises_regex(ValueError, msg):
+        msg = ('the other index needs to be an IntervalIndex too, but '
+               'was type Int64Index')
+        with tm.assert_raises_regex(TypeError, msg):
             set_op(Index([1, 2, 3]))
 
         # mixed closed
+        msg = ('can only do set operations between two IntervalIndex objects '
+               'that are closed on the same side')
         for other_closed in {'right', 'left', 'both', 'neither'} - {closed}:
             other = self.create_index(closed=other_closed)
             with tm.assert_raises_regex(ValueError, msg):
@@ -1177,7 +1179,7 @@ class TestIntervalIndex(Base):
         # GH 18756
         idx = IntervalIndex.from_tuples(tuples)
         result = idx.to_tuples()
-        expected = Index(_asarray_tuplesafe(tuples))
+        expected = Index(com._asarray_tuplesafe(tuples))
         tm.assert_index_equal(result, expected)
 
     @pytest.mark.parametrize('tuples', [
@@ -1193,7 +1195,7 @@ class TestIntervalIndex(Base):
         result = idx.to_tuples(na_tuple=na_tuple)
 
         # check the non-NA portion
-        expected_notna = Index(_asarray_tuplesafe(tuples[:-1]))
+        expected_notna = Index(com._asarray_tuplesafe(tuples[:-1]))
         result_notna = result[:-1]
         tm.assert_index_equal(result_notna, expected_notna)
 
