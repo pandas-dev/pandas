@@ -1170,7 +1170,12 @@ cdef class TextReader:
         # only allow safe casts, eg. with a nan you cannot safely cast to int
         if col_res is not None and col_dtype is not None:
             try:
+                mask = None
+                if col_res.dtype == np.bool_ and na_count > 0:
+                    mask = col_res.view(np.uint8) == na_values[np.uint8]
                 col_res = col_res.astype(col_dtype, casting='safe')
+                if mask is not None:
+                    np.putmask(col_res, mask, na_values[col_dtype])
             except TypeError:
 
                 # float -> int conversions can fail the above
@@ -2243,6 +2248,8 @@ def _compute_na_values():
     uint16info = np.iinfo(np.uint16)
     uint8info = np.iinfo(np.uint8)
     na_values = {
+        np.float16: np.nan,
+        np.float32: np.nan,
         np.float64: np.nan,
         np.int64: int64info.min,
         np.int32: int32info.min,

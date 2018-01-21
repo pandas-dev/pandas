@@ -485,3 +485,14 @@ No,No,No"""
             ['x' * (1 << 20) for _ in range(2100)]))
         df = self.read_csv(csv, low_memory=False)
         assert not df.empty
+
+    def test_casting_boolean_nas(self):
+        # Test for issue #16698
+        data = "c1,c2\nfalse,1\n,1"
+        expected = DataFrame({'c1': [0.0, np.nan],
+                              'c2': [1, 1]})
+
+        expected['c1'] = expected['c1'].astype('float32')
+        result = self.read_csv(StringIO(data), dtype={'c1': 'float32'})
+
+        tm.assert_frame_equal(result, expected)
