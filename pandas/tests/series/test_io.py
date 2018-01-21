@@ -14,7 +14,6 @@ from pandas.compat import StringIO, u
 from pandas.util.testing import (assert_series_equal, assert_almost_equal,
                                  assert_frame_equal, ensure_clean)
 import pandas.util.testing as tm
-import pandas.util._test_decorators as td
 
 from .common import TestData
 
@@ -139,12 +138,6 @@ class TestSeriesToCSV(TestData):
         csv_str = s.to_csv(path=None)
         assert isinstance(csv_str, str)
 
-    @pytest.mark.parametrize('compression', [
-        None,
-        'gzip',
-        'bz2',
-        pytest.param('xz', marks=td.skip_if_no_lzma),
-    ])
     def test_to_csv_compression(self, compression):
 
         s = Series([0.123456, 0.234567, 0.567567], index=['A', 'B', 'C'],
@@ -160,14 +153,13 @@ class TestSeriesToCSV(TestData):
             assert_series_equal(s, rs)
 
             # explicitly ensure file was compressed
-            f = tm.decompress_file(filename, compression=compression)
-            text = f.read().decode('utf8')
-            assert s.name in text
-            f.close()
+            with tm.decompress_file(filename, compression=compression) as fh:
+                text = fh.read().decode('utf8')
+                assert s.name in text
 
-            f = tm.decompress_file(filename, compression=compression)
-            assert_series_equal(s, pd.read_csv(f, index_col=0, squeeze=True))
-            f.close()
+            with tm.decompress_file(filename, compression=compression) as fh:
+                assert_series_equal(s, pd.read_csv(fh,
+                                                   index_col=0, squeeze=True))
 
 
 class TestSeriesIO(TestData):
