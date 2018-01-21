@@ -5,7 +5,7 @@ import operator
 import numpy as np
 from pandas._libs import (lib, index as libindex, tslib as libts,
                           algos as libalgos, join as libjoin,
-                          Timestamp, Timedelta, )
+                          Timestamp)
 from pandas._libs.lib import is_datetime_array
 
 from pandas.compat import range, u, set_function_name
@@ -3979,7 +3979,7 @@ class Index(IndexOpsMixin, PandasObject):
         internal method called by ops
         """
         # if we are an inheritor of numeric,
-        # but not actually numeric (e.g. DatetimeIndex/PeriodInde)
+        # but not actually numeric (e.g. DatetimeIndex/PeriodIndex)
         if not self._is_numeric_dtype:
             raise TypeError("cannot evaluate a numeric op {opstr} "
                             "for type: {typ}".format(
@@ -4006,7 +4006,7 @@ class Index(IndexOpsMixin, PandasObject):
                 raise TypeError("cannot evaluate a numeric op "
                                 "with a non-numeric dtype")
         elif isinstance(other, (ABCDateOffset, np.timedelta64,
-                                Timedelta, datetime.timedelta)):
+                                datetime.timedelta)):
             # higher up to handle
             pass
         elif isinstance(other, (Timestamp, np.datetime64)):
@@ -4031,13 +4031,13 @@ class Index(IndexOpsMixin, PandasObject):
 
                 # handle time-based others
                 if isinstance(other, (ABCDateOffset, np.timedelta64,
-                                      Timedelta, datetime.timedelta)):
+                                      datetime.timedelta)):
                     return self._evaluate_with_timedelta_like(other, op, opstr,
                                                               reversed)
                 elif isinstance(other, (Timestamp, np.datetime64)):
                     return self._evaluate_with_datetime_like(other, op, opstr)
 
-                # if we are a reversed non-communative op
+                # if we are a reversed non-commutative op
                 values = self.values
                 if reversed:
                     values, other = other, values
@@ -4081,11 +4081,8 @@ class Index(IndexOpsMixin, PandasObject):
         cls.__divmod__ = _make_evaluate_binop(
             divmod,
             '__divmod__',
-            constructor=lambda result, **attrs: (
-                Index(result[0], **attrs),
-                Index(result[1], **attrs),
-            ),
-        )
+            constructor=lambda result, **attrs: (Index(result[0], **attrs),
+                                                 Index(result[1], **attrs)))
 
     @classmethod
     def _add_numeric_methods_unary(cls):

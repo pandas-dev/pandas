@@ -150,22 +150,7 @@ def _create_methods(arith_method, comp_method, bool_method,
     return new_methods
 
 
-def add_methods(cls, new_methods, force, select, exclude):
-    if select and exclude:
-        raise TypeError("May only pass either select or exclude")
-
-    if select:
-        select = set(select)
-        methods = {}
-        for key, method in new_methods.items():
-            if key in select:
-                methods[key] = method
-        new_methods = methods
-
-    if exclude:
-        for k in exclude:
-            new_methods.pop(k, None)
-
+def add_methods(cls, new_methods, force):
     for name, method in new_methods.items():
         if force or name not in cls.__dict__:
             bind_method(cls, name, method)
@@ -175,8 +160,8 @@ def add_methods(cls, new_methods, force, select, exclude):
 # Arithmetic
 def add_special_arithmetic_methods(cls, arith_method=None,
                                    comp_method=None, bool_method=None,
-                                   use_numexpr=True, force=False, select=None,
-                                   exclude=None, have_divmod=False):
+                                   use_numexpr=True, force=False,
+                                   have_divmod=False):
     """
     Adds the full suite of special arithmetic methods (``__add__``,
     ``__sub__``, etc.) to the class.
@@ -195,10 +180,6 @@ def add_special_arithmetic_methods(cls, arith_method=None,
     force : bool, default False
         if False, checks whether function is defined **on ``cls.__dict__``**
         before defining if True, always defines functions on class base
-    select : iterable of strings (optional)
-        if passed, only sets functions with names in select
-    exclude : iterable of strings (optional)
-        if passed, will not set functions with names in exclude
     have_divmod : bool, (optional)
         should a divmod method be added? this method is special because it
         returns a tuple of cls instead of a single element of type cls
@@ -247,14 +228,12 @@ def add_special_arithmetic_methods(cls, arith_method=None,
                  __ior__=_wrap_inplace_method(new_methods["__or__"]),
                  __ixor__=_wrap_inplace_method(new_methods["__xor__"])))
 
-    add_methods(cls, new_methods=new_methods, force=force, select=select,
-                exclude=exclude)
+    add_methods(cls, new_methods=new_methods, force=force)
 
 
 def add_flex_arithmetic_methods(cls, flex_arith_method,
                                 flex_comp_method=None, flex_bool_method=None,
-                                use_numexpr=True, force=False, select=None,
-                                exclude=None):
+                                use_numexpr=True, force=False):
     """
     Adds the full suite of flex arithmetic methods (``pow``, ``mul``, ``add``)
     to the class.
@@ -271,10 +250,6 @@ def add_flex_arithmetic_methods(cls, flex_arith_method,
     force : bool, default False
         if False, checks whether function is defined **on ``cls.__dict__``**
         before defining if True, always defines functions on class base
-    select : iterable of strings (optional)
-        if passed, only sets functions with names in select
-    exclude : iterable of strings (optional)
-        if passed, will not set functions with names in exclude
     """
     # in frame, default axis is 'columns', doesn't matter for series and panel
     new_methods = _create_methods(flex_arith_method,
@@ -289,8 +264,7 @@ def add_flex_arithmetic_methods(cls, flex_arith_method,
         if k in new_methods:
             new_methods.pop(k)
 
-    add_methods(cls, new_methods=new_methods, force=force, select=select,
-                exclude=exclude)
+    add_methods(cls, new_methods=new_methods, force=force)
 
 
 def _align_method_SERIES(left, right, align_asobject=False):
@@ -389,16 +363,16 @@ def _arith_method_SERIES(op, name, str_rep, fill_zeros=None, default_axis=None,
             return NotImplemented
 
         left, right = _align_method_SERIES(left, right)
+        res_name = _get_series_op_result_name(left, right)
+
         if is_datetime64_dtype(left) or is_datetime64tz_dtype(left):
             result = dispatch_to_index_op(op, left, right, pd.DatetimeIndex)
-            res_name = _get_series_op_result_name(left, right)
             return construct_result(left, result,
                                     index=left.index, name=res_name,
                                     dtype=result.dtype)
 
         elif is_timedelta64_dtype(left):
             result = dispatch_to_index_op(op, left, right, pd.TimedeltaIndex)
-            res_name = _get_series_op_result_name(left, right)
             return construct_result(left, result,
                                     index=left.index, name=res_name,
                                     dtype=result.dtype)
@@ -409,7 +383,6 @@ def _arith_method_SERIES(op, name, str_rep, fill_zeros=None, default_axis=None,
             rvalues = getattr(rvalues, 'values', rvalues)
 
         result = safe_na_op(lvalues, rvalues)
-        res_name = _get_series_op_result_name(left, right)
         return construct_result(left, result,
                                 index=left.index, name=res_name, dtype=None)
 
