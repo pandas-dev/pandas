@@ -1097,6 +1097,8 @@ class TimeGrouper(Grouper):
 
         if isinstance(loffset, compat.string_types):
             loffset = to_offset(loffset)
+        elif isinstance(loffset, np.timedelta64):
+            loffset = loffset.tolist()
         self.loffset = loffset
 
         self.how = how

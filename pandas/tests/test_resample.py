@@ -1284,24 +1284,31 @@ class TestDatetimeIndex(Base):
         rng = date_range('1/1/2000 00:00:00', '1/1/2000 00:13:00', freq='min')
         s = Series(np.random.randn(14), index=rng)
 
-        result = s.resample('5min', closed='right', label='right',
-                            loffset=timedelta(minutes=1)).mean()
+        # GH7687
+        result1 = s.resample('5min', closed='right', label='right',
+                             loffset=np.timedelta64(1, 'm')).mean()
+        result2 = s.resample('5min', closed='right', label='right',
+                             loffset=timedelta(minutes=1)).mean()
         idx = date_range('1/1/2000', periods=4, freq='5min')
         expected = Series([s[0], s[1:6].mean(), s[6:11].mean(), s[11:].mean()],
                           index=idx + timedelta(minutes=1))
-        assert_series_equal(result, expected)
+        assert_series_equal(result1, expected)
+        assert_series_equal(result2, expected)
 
         expected = s.resample(
             '5min', closed='right', label='right',
             loffset='1min').mean()
-        assert_series_equal(result, expected)
+        assert_series_equal(result1, expected)
+        assert_series_equal(result2, expected)
 
         expected = s.resample(
             '5min', closed='right', label='right',
             loffset=Minute(1)).mean()
-        assert_series_equal(result, expected)
+        assert_series_equal(result1, expected)
+        assert_series_equal(result2, expected)
 
-        assert result.index.freq == Minute(5)
+        assert result1.index.freq == Minute(5)
+        assert result2.index.freq == Minute(5)
 
         # from daily
         dti = DatetimeIndex(start=datetime(2005, 1, 1),
