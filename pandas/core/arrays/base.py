@@ -57,11 +57,6 @@ class ExtensionArray(object):
         )
 
     @abc.abstractmethod
-    def __iter__(self):
-        # type: () -> Iterator
-        pass
-
-    @abc.abstractmethod
     def __len__(self):
         # type: () -> int
         pass
@@ -167,12 +162,6 @@ class ExtensionArray(object):
         Returns
         -------
         ExtensionArray
-        """
-
-    @abc.abstractmethod
-    def get_values(self):
-        # type: () -> np.ndarray
-        """A NumPy array representing your data.
         """
 
     def _can_hold_na(self):
