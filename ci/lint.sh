@@ -89,6 +89,14 @@ if [ "$LINT" ]; then
     if [ $? = "0" ]; then
         RET=1
     fi
+
+    # Check for pytest.warns
+    grep -r -E --include '*.py' 'pytest\.warns' pandas/tests/
+
+    if [ $? = "0" ]; then
+        RET=1
+    fi
+
     echo "Check for invalid testing DONE"
 
     # Check for imports from pandas.core.common instead
