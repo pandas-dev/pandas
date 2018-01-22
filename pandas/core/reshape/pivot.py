@@ -455,21 +455,22 @@ def crosstab(index, columns, values=None, rownames=None, colnames=None,
 
     from pandas import DataFrame
     df = DataFrame(data, index=common_idx)
-    original_columns_set = set(df.columns.values)
+    common_cols_idx = df.columns
+
     if values is None:
         df['__dummy__'] = 0
         kwargs = {'aggfunc': len, 'fill_value': 0}
     else:
         df['__dummy__'] = values
         kwargs = {'aggfunc': aggfunc}
-    added_column = list(set(df.columns.values) - original_columns_set)[0]
 
     table = df.pivot_table(['__dummy__'], index=rownames, columns=colnames,
                            margins=margins, margins_name=margins_name,
                            dropna=dropna, **kwargs)
 
     if not table.empty:
-        table = table[added_column]
+        added_cols_idx= df.columns.difference(common_cols_idx).values[0]
+        table = table[added_cols_idx]
 
     # Post-process
     if normalize is not False:

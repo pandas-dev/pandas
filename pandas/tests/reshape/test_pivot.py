@@ -1640,5 +1640,19 @@ class TestCrosstab(object):
         result = pd.crosstab(s1, s2)
         tm.assert_frame_equal(result, expected)
 
+    @pytest.mark.parametrize("names", [['a', 'b'],
+                                       [('a', 'b'), 'c'],
+                                       [('a', 'b'), ('c', 'd')],
+                                       [(1, 2, 3), ('a', 'b', 'c')]])
+    def test_crosstab_cols_output(self, names):
+        s1 = pd.Series(range(3), name=names[0])
+        s2 = pd.Series(range(1, 4), name=names[1])
+        result = pd.crosstab(s1, s2)
         result_col_list = list(result.columns)
         assert result_col_list == [1, 2, 3]
+
+        s1 = pd.Series(range(0), name=names[0])
+        s2 = pd.Series(range(1, 4), name=names[1])
+        result = pd.crosstab(s1, s2)
+        result_col_list = list(result.columns)
+        assert result_col_list == []
