@@ -4192,8 +4192,7 @@ def dispatch_missing(op, left, right, result):
         result = missing.fill_zeros(result, left, right,
                                     opstr, np.nan)
     elif op is divmod:
-        res0 = missing.fill_zeros(result[0], left, right,
-                                  opstr, np.nan)
+        res0 = missing.mask_zero_div_zero(left, right, result[0])
         res1 = missing.fill_zeros(result[1], left, right,
                                   opstr, np.nan)
         result = (res0, res1)

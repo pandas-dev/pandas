@@ -197,6 +197,19 @@ class Numeric(Base):
         ser_compat = Series(idx).astype('i8') % np.array(zero).astype('i8')
         tm.assert_series_equal(ser_compat, Series(result))
 
+    @pytest.mark.parametrize('zero', zeros)
+    def test_divmod_zero(self, zero):
+        idx = self.create_index()
+
+        exleft = Index([np.nan, np.inf, np.inf, np.inf, np.inf],
+                       dtype=np.float64)
+        exright = Index([np.nan, np.nan, np.nan, np.nan, np.nan],
+                        dtype=np.float64)
+
+        result = divmod(idx, zero)
+        tm.assert_index_equal(result[0], exleft)
+        tm.assert_index_equal(result[1], exright)
+
     def test_explicit_conversions(self):
 
         # GH 8608
