@@ -595,10 +595,15 @@ class TestSeriesArithmetic(object):
 
         assert_series_equal(expected, s)
 
-    def test_i8_ser_div_i8_ser(self):
+    @pytest.mark.parametrize('dtype2', [np.int64, np.int32, np.int16, np.int8,
+                                        np.float64, np.float32, np.float16,
+                                        np.uint64, np.uint32,
+                                        np.uint16, np.uint8])
+    @pytest.mark.parametrize('dtype1', [np.int64, np.float64, np.uint64])
+    def test_ser_div_ser(self, dtype1, dtype2):
         # no longer do integer div for any ops, but deal with the 0's
-        first = Series([3, 4, 5, 8], name='first')
-        second = Series([0, 0, 0, 3], name='second')
+        first = Series([3, 4, 5, 8], name='first').astype(dtype1)
+        second = Series([0, 0, 0, 3], name='second').astype(dtype2)
 
         with np.errstate(all='ignore'):
             expected = Series(first.values.astype(np.float64) / second.values,
@@ -606,16 +611,6 @@ class TestSeriesArithmetic(object):
         expected.iloc[0:3] = np.inf
 
         result = first / second
-        assert_series_equal(result, expected)
-
-    def test_f8_ser_div_f8_ser(self):
-        # no longer do integer div for any ops, but deal with the 0's
-        first = Series([3, 4, 5, 8], name='first', dtype='float64')
-        second = Series([0, 0, 0, 3], name='second', dtype='float64')
-
-        result = first / second
-        with np.errstate(all='ignore'):
-            expected = Series(first.values / second.values)
         assert_series_equal(result, expected)
 
     def test_ser_div_ser_name_propagation(self):
@@ -626,19 +621,6 @@ class TestSeriesArithmetic(object):
         result = first / second
         assert_series_equal(result, expected)
         assert not result.equals(second / first)
-
-    def test_int_div_pyint_zero(self):
-        ser = Series([3, 4, 5, 8], name='first')
-        result = ser / 0
-        expected = Series(np.inf, index=ser.index, name='first')
-        assert_series_equal(result, expected)
-
-    def test_div_zero_inf_signs(self):
-        # inf signing
-        ser = Series([np.nan, 1., -1.])
-        result = ser / 0
-        expected = Series([np.nan, np.inf, -np.inf])
-        assert_series_equal(result, expected)
 
     def test_div_equiv_binop(self):
         # Test Series.div as well as Series.__div__
@@ -669,28 +651,28 @@ class TestSeriesArithmetic(object):
         result = pd.Series(zero_array) / pd.Series(data)
         assert_series_equal(result, expected)
 
-    def test_div_zero(self):
-        # GH#9144
-        ser = Series([-1, 0, 1])
-        expected = Series([-np.inf, np.nan, np.inf])
+    def test_div_zero_inf_signs(self):
+        # GH#9144, inf signing
+        ser = Series([-1, 0, 1], name='first')
+        expected = Series([-np.inf, np.nan, np.inf], name='first')
 
         result = ser / 0
         assert_series_equal(result, expected)
 
     def test_rdiv_zero(self):
         # GH#9144
-        ser = Series([-1, 0, 1])
-        expected = Series([0.0, np.nan, 0.0])
+        ser = Series([-1, 0, 1], name='first')
+        expected = Series([0.0, np.nan, 0.0], name='first')
 
         result = 0 / ser
         assert_series_equal(result, expected)
 
     def test_floordiv_div(self):
         # GH#9144
-        ser = Series([-1, 0, 1])
+        ser = Series([-1, 0, 1], name='first')
 
         result = ser // 0
-        expected = Series([-inf, nan, inf])
+        expected = Series([-inf, nan, inf], name='first')
         assert_series_equal(result, expected)
 
 
