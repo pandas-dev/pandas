@@ -1525,8 +1525,11 @@ class Panel(NDFrame):
     def _add_aggregate_operations(cls, use_numexpr=True):
         """ add the operations to the cls; evaluate the doc strings again """
 
-        def _panel_arith_method(op, name, str_rep=None, default_axis=None,
-                                fill_zeros=None, **eval_kwargs):
+        def _panel_arith_method(op, name, str_rep=None, default_axis=None):
+
+            eval_kwargs = ops._gen_eval_kwargs(name)
+            fill_zeros = ops._gen_fill_zeros(name)
+
             def na_op(x, y):
                 import pandas.core.computation.expressions as expressions
 
