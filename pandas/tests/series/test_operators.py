@@ -1603,6 +1603,7 @@ class TestSeriesOperators(TestData):
     @pytest.mark.parametrize('opname', ['add', 'sub', 'mul', 'floordiv',
                                         'truediv', 'div', 'pow'])
     def test_op_method(self, opname):
+        # check that Series.{opname} behaves like Series.__{opname}__,
         if opname == 'div' and compat.PY3:
             pytest.skip('div test only for Py3')
 
