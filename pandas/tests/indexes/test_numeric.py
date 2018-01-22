@@ -26,15 +26,17 @@ def full_like(array, value):
     return ret
 
 
-class TestIndexArithmetic(object):
-    @pytest.mark.parametrize('index', [pd.Int64Index(range(1, 11)),
-                                       pd.UInt64Index(range(1, 11)),
-                                       pd.Float64Index(range(1, 11)),
-                                       pd.RangeIndex(1, 11)])
+class TestIndexArithmeticWithTimedeltaScalar(object):
+
+    @pytest.mark.parametrize('index', [Int64Index(range(1, 11)),
+                                       UInt64Index(range(1, 11)),
+                                       Float64Index(range(1, 11)),
+                                       RangeIndex(1, 11)])
     @pytest.mark.parametrize('scalar_td', [Timedelta(days=1),
                                            Timedelta(days=1).to_timedelta64(),
                                            Timedelta(days=1).to_pytimedelta()])
     def test_index_mul_timedelta(self, scalar_td, index):
+        # GH#19333
         expected = pd.timedelta_range('1 days', '10 days')
 
         result = index * scalar_td
@@ -42,10 +44,10 @@ class TestIndexArithmetic(object):
         commute = scalar_td * index
         tm.assert_index_equal(commute, expected)
 
-    @pytest.mark.parametrize('index', [pd.Int64Index(range(1, 3)),
-                                       pd.UInt64Index(range(1, 3)),
-                                       pd.Float64Index(range(1, 3)),
-                                       pd.RangeIndex(1, 3)])
+    @pytest.mark.parametrize('index', [Int64Index(range(1, 3)),
+                                       UInt64Index(range(1, 3)),
+                                       Float64Index(range(1, 3)),
+                                       RangeIndex(1, 3)])
     @pytest.mark.parametrize('scalar_td', [Timedelta(days=1),
                                            Timedelta(days=1).to_timedelta64(),
                                            Timedelta(days=1).to_pytimedelta()])
@@ -54,6 +56,9 @@ class TestIndexArithmetic(object):
 
         result = scalar_td / index
         tm.assert_index_equal(result, expected)
+
+        with pytest.raises(TypeError):
+            index / scalar_td
 
 
 class Numeric(Base):
