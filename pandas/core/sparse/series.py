@@ -41,13 +41,12 @@ _shared_doc_kwargs = dict(axes='index', klass='SparseSeries',
 # Wrapper function for Series arithmetic methods
 
 
-def _arith_method(op, name, str_rep=None, default_axis=None, fill_zeros=None,
-                  **eval_kwargs):
+def _arith_method(op, name, str_rep=None, default_axis=None):
     """
     Wrapper function for Series arithmetic operations, to avoid
     code duplication.
 
-    str_rep, default_axis, fill_zeros and eval_kwargs are not used, but are
+    str_rep and default_axis are not used, but are
     present for compatibility.
     """
 

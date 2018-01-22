@@ -41,6 +41,75 @@ from pandas.core.dtypes.generic import (
     ABCIndex,
     ABCPeriodIndex)
 
+
+def _gen_eval_kwargs(name):
+    """
+    Find the keyword arguments to pass to numexpr for the given operation.
+
+    Parameters
+    ----------
+    name : str
+
+    Returns
+    -------
+    eval_kwargs : dict
+
+
+    Examples
+    --------
+    >>> _gen_eval_kwargs("__add__")
+    {}
+
+    >>> _gen_eval_kwargs("rtruediv")
+    {"reversed": True, "truediv": True}
+    """
+    kwargs = {}
+
+    # Series and Panel appear to only pass __add__, __radd__, ...
+    # but DataFrame gets both these dunder names _and_ non-dunder names
+    # add, radd, ...
+    name = name.replace('__', '')
+
+    if name.startswith('r'):
+        if name not in ['radd', 'rand', 'ror', 'rxor']:
+            # Exclude commutative operations
+            kwargs['reversed'] = True
+
+    if name in ['truediv', 'rtruediv']:
+        kwargs['truediv'] = True
+
+    if name in ['ne']:
+        kwargs['masker'] = True
+
+    return kwargs
+
+
+def _gen_fill_zeros(name):
+    """
+    Find the appropriate fill value to use when filling in undefined values
+    in the results of the given operation caused by operating on
+    (generally dividing by) zero.
+
+    Parameters
+    ----------
+    name : str
+
+    Returns
+    -------
+    fill_value : {None, np.nan, np.inf}
+    """
+    name = name.strip('__')
+    if 'div' in name:
+        # truediv, floordiv, div, and reversed variants
+        fill_value = np.inf
+    elif 'mod' in name:
+        # mod, rmod
+        fill_value = np.nan
+    else:
+        fill_value = None
+    return fill_value
+
+
 # -----------------------------------------------------------------------------
 # Functions that add arithmetic methods to objects, given arithmetic factory
 # methods
@@ -82,35 +151,31 @@ def _create_methods(arith_method, comp_method, bool_method,
         mul=arith_method(operator.mul, names('mul'), op('*'),
                          default_axis=default_axis),
         truediv=arith_method(operator.truediv, names('truediv'), op('/'),
-                             truediv=True, fill_zeros=np.inf,
                              default_axis=default_axis),
         floordiv=arith_method(operator.floordiv, names('floordiv'), op('//'),
-                              default_axis=default_axis, fill_zeros=np.inf),
+                              default_axis=default_axis),
         # Causes a floating point exception in the tests when numexpr enabled,
         # so for now no speedup
         mod=arith_method(operator.mod, names('mod'), None,
-                         default_axis=default_axis, fill_zeros=np.nan),
+                         default_axis=default_axis),
         pow=arith_method(operator.pow, names('pow'), op('**'),
                          default_axis=default_axis),
         # not entirely sure why this is necessary, but previously was included
         # so it's here to maintain compatibility
         rmul=arith_method(operator.mul, names('rmul'), op('*'),
-                          default_axis=default_axis, reversed=True),
+                          default_axis=default_axis),
         rsub=arith_method(lambda x, y: y - x, names('rsub'), op('-'),
-                          default_axis=default_axis, reversed=True),
+                          default_axis=default_axis),
         rtruediv=arith_method(lambda x, y: operator.truediv(y, x),
-                              names('rtruediv'), op('/'), truediv=True,
-                              fill_zeros=np.inf, default_axis=default_axis,
-                              reversed=True),
+                              names('rtruediv'), op('/'),
+                              default_axis=default_axis),
         rfloordiv=arith_method(lambda x, y: operator.floordiv(y, x),
                                names('rfloordiv'), op('//'),
-                               default_axis=default_axis, fill_zeros=np.inf,
-                               reversed=True),
+                               default_axis=default_axis),
         rpow=arith_method(lambda x, y: y**x, names('rpow'), op('**'),
-                          default_axis=default_axis, reversed=True),
+                          default_axis=default_axis),
         rmod=arith_method(lambda x, y: y % x, names('rmod'), op('%'),
-                          default_axis=default_axis, fill_zeros=np.nan,
-                          reversed=True),)
+                          default_axis=default_axis))
     # yapf: enable
     new_methods['div'] = new_methods['truediv']
     new_methods['rdiv'] = new_methods['rtruediv']
@@ -119,11 +184,11 @@ def _create_methods(arith_method, comp_method, bool_method,
     if comp_method:
         new_methods.update(dict(
             eq=comp_method(operator.eq, names('eq'), op('==')),
-            ne=comp_method(operator.ne, names('ne'), op('!='), masker=True),
+            ne=comp_method(operator.ne, names('ne'), op('!=')),
             lt=comp_method(operator.lt, names('lt'), op('<')),
             gt=comp_method(operator.gt, names('gt'), op('>')),
             le=comp_method(operator.le, names('le'), op('<=')),
-            ge=comp_method(operator.ge, names('ge'), op('>=')), ))
+            ge=comp_method(operator.ge, names('ge'), op('>='))))
     if bool_method:
         new_methods.update(
             dict(and_=bool_method(operator.and_, names('and_'), op('&')),
@@ -138,13 +203,10 @@ def _create_methods(arith_method, comp_method, bool_method,
                                   names('rxor'), op('^'))))
     if have_divmod:
         # divmod doesn't have an op that is supported by numexpr
-        new_methods['divmod'] = arith_method(
-            divmod,
-            names('divmod'),
-            None,
-            default_axis=default_axis,
-            construct_result=_construct_divmod_result,
-        )
+        new_methods['divmod'] = arith_method(divmod,
+                                             names('divmod'),
+                                             None,
+                                             default_axis=default_axis)
 
     new_methods = {names(k): v for k, v in new_methods.items()}
     return new_methods
@@ -170,7 +232,7 @@ def add_special_arithmetic_methods(cls, arith_method=None,
     ----------
     arith_method : function (optional)
         factory for special arithmetic methods, with op string:
-        f(op, name, str_rep, default_axis=None, fill_zeros=None, **eval_kwargs)
+        f(op, name, str_rep, default_axis=None)
     comp_method : function (optional)
         factory for rich comparison - signature: f(op, name, str_rep)
     bool_method : function (optional)
@@ -242,7 +304,7 @@ def add_flex_arithmetic_methods(cls, flex_arith_method,
     ----------
     flex_arith_method : function
         factory for special arithmetic methods, with op string:
-        f(op, name, str_rep, default_axis=None, fill_zeros=None, **eval_kwargs)
+        f(op, name, str_rep, default_axis=None)
     flex_comp_method : function, optional,
         factory for rich comparison - signature: f(op, name, str_rep)
     use_numexpr : bool, default True
@@ -310,12 +372,16 @@ def _construct_divmod_result(left, result, index, name, dtype):
     )
 
 
-def _arith_method_SERIES(op, name, str_rep, fill_zeros=None, default_axis=None,
-                         construct_result=_construct_result, **eval_kwargs):
+def _arith_method_SERIES(op, name, str_rep, default_axis=None):
     """
     Wrapper function for Series arithmetic operations, to avoid
     code duplication.
     """
+    eval_kwargs = _gen_eval_kwargs(name)
+    fill_zeros = _gen_fill_zeros(name)
+    construct_result = (_construct_divmod_result
+                        if op is divmod else _construct_result)
+
     def na_op(x, y):
         import pandas.core.computation.expressions as expressions
 
@@ -448,11 +514,12 @@ def _comp_method_OBJECT_ARRAY(op, x, y):
     return result
 
 
-def _comp_method_SERIES(op, name, str_rep, masker=False):
+def _comp_method_SERIES(op, name, str_rep):
     """
     Wrapper function for Series arithmetic operations, to avoid
     code duplication.
     """
+    masker = _gen_eval_kwargs(name).get('masker', None)
 
     def na_op(x, y):
 
@@ -700,11 +767,44 @@ _op_descriptions = {'add': {'op': '+',
                                  'reverse': None}}
 
 _op_names = list(_op_descriptions.keys())
-for k in _op_names:
-    reverse_op = _op_descriptions[k]['reverse']
-    _op_descriptions[reverse_op] = _op_descriptions[k].copy()
-    _op_descriptions[reverse_op]['reversed'] = True
-    _op_descriptions[reverse_op]['reverse'] = k
+for key in _op_names:
+    reverse_op = _op_descriptions[key]['reverse']
+    if reverse_op is not None:
+        _op_descriptions[reverse_op] = _op_descriptions[key].copy()
+        _op_descriptions[reverse_op]['reversed'] = True
+        _op_descriptions[reverse_op]['reverse'] = key
+
+
+def _make_flex_doc(op_name, typ):
+    """
+    Make the appropriate substitutions for the given operation and class-typ
+    into either _flex_doc_SERIES or _flex_doc_FRAME to return the docstring
+    to attach to a generated method.
+
+    Parameters
+    ----------
+    op_name : str
+    typ : str
+
+    Returns
+    -------
+    doc : str
+    """
+    op_name = op_name.replace('__', '')
+    op_desc = _op_descriptions[op_name]
+
+    if op_desc['reversed']:
+        equiv = 'other ' + op_desc['op'] + ' ' + typ
+    else:
+        equiv = typ + ' ' + op_desc['op'] + ' other'
+
+    if typ == 'series':
+        doc = _flex_doc_SERIES % (op_desc['desc'], op_name, equiv,
+                                  op_desc['reverse'])
+    elif typ == 'dataframe':
+        doc = _flex_doc_FRAME % (op_desc['desc'], op_name, equiv,
+                                 op_desc['reverse'])
+    return doc
 
 
 _flex_doc_SERIES = """
@@ -733,17 +833,8 @@ Series.%s
 """
 
 
-def _flex_method_SERIES(op, name, str_rep, default_axis=None, fill_zeros=None,
-                        **eval_kwargs):
-    op_name = name.replace('__', '')
-    op_desc = _op_descriptions[op_name]
-    if op_desc['reversed']:
-        equiv = 'other ' + op_desc['op'] + ' series'
-    else:
-        equiv = 'series ' + op_desc['op'] + ' other'
-
-    doc = _flex_doc_SERIES % (op_desc['desc'], op_name, equiv,
-                              op_desc['reverse'])
+def _flex_method_SERIES(op, name, str_rep, default_axis=None):
+    doc = _make_flex_doc(name, 'series')
 
     @Appender(doc)
     def flex_wrapper(self, other, level=None, fill_value=None, axis=0):
@@ -877,8 +968,10 @@ def _align_method_FRAME(left, right, axis):
     return right
 
 
-def _arith_method_FRAME(op, name, str_rep=None, default_axis='columns',
-                        fill_zeros=None, **eval_kwargs):
+def _arith_method_FRAME(op, name, str_rep=None, default_axis='columns'):
+    eval_kwargs = _gen_eval_kwargs(name)
+    fill_zeros = _gen_fill_zeros(name)
+
     def na_op(x, y):
         import pandas.core.computation.expressions as expressions
 
@@ -923,15 +1016,8 @@ def _arith_method_FRAME(op, name, str_rep=None, default_axis='columns',
         return result
 
     if name in _op_descriptions:
-        op_name = name.replace('__', '')
-        op_desc = _op_descriptions[op_name]
-        if op_desc['reversed']:
-            equiv = 'other ' + op_desc['op'] + ' dataframe'
-        else:
-            equiv = 'dataframe ' + op_desc['op'] + ' other'
-
-        doc = _flex_doc_FRAME % (op_desc['desc'], op_name, equiv,
-                                 op_desc['reverse'])
+        # i.e. include "add" but not "__add__"
+        doc = _make_flex_doc(name, 'dataframe')
     else:
         doc = _arith_doc_FRAME % name
 
@@ -955,9 +1041,10 @@ def _arith_method_FRAME(op, name, str_rep=None, default_axis='columns',
     return f
 
 
-# Masker unused for now
-def _flex_comp_method_FRAME(op, name, str_rep=None, default_axis='columns',
-                            masker=False):
+def _flex_comp_method_FRAME(op, name, str_rep=None, default_axis='columns'):
+    # Masker unused for now
+    # masker = _gen_eval_kwargs(name).get('masker', False)
+
     def na_op(x, y):
         try:
             with np.errstate(invalid='ignore'):
@@ -1003,7 +1090,7 @@ def _flex_comp_method_FRAME(op, name, str_rep=None, default_axis='columns',
     return f
 
 
-def _comp_method_FRAME(func, name, str_rep, masker=False):
+def _comp_method_FRAME(func, name, str_rep):
     @Appender('Wrapper for comparison method {name}'.format(name=name))
     def f(self, other):
         if isinstance(other, ABCDataFrame):  # Another DataFrame
@@ -1032,8 +1119,7 @@ frame_special_funcs = dict(arith_method=_arith_method_FRAME,
                            bool_method=_arith_method_FRAME)
 
 
-def _arith_method_PANEL(op, name, str_rep=None, fill_zeros=None,
-                        default_axis=None, **eval_kwargs):
+def _arith_method_PANEL(op, name, str_rep=None, default_axis=None):
 
     # work only for scalars
     def f(self, other):
@@ -1048,7 +1134,7 @@ def _arith_method_PANEL(op, name, str_rep=None, fill_zeros=None,
     return f
 
 
-def _comp_method_PANEL(op, name, str_rep=None, masker=False):
+def _comp_method_PANEL(op, name, str_rep=None):
     def na_op(x, y):
         import pandas.core.computation.expressions as expressions
 
