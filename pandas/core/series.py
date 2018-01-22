@@ -481,7 +481,8 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
 
     def nonzero(self):
         """
-        Return the indices of the elements that are non-zero
+        Return the integer locations of the elements in the series
+        that are non-zero
 
         This method is equivalent to calling `numpy.nonzero` on the
         series data. For compatibility with NumPy, the return value is
