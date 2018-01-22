@@ -595,77 +595,103 @@ class TestSeriesArithmetic(object):
 
         assert_series_equal(expected, s)
 
-    def test_div(self):
+    def test_i8_ser_div_i8_ser(self):
+        # no longer do integer div for any ops, but deal with the 0's
+        first = Series([3, 4, 5, 8], name='first')
+        second = Series([0, 0, 0, 3], name='second')
+
         with np.errstate(all='ignore'):
-            # no longer do integer div for any ops, but deal with the 0's
-            p = DataFrame({'first': [3, 4, 5, 8], 'second': [0, 0, 0, 3]})
-            result = p['first'] / p['second']
-            expected = Series(
-                p['first'].values.astype(float) / p['second'].values,
-                dtype='float64')
-            expected.iloc[0:3] = np.inf
-            assert_series_equal(result, expected)
+            expected = Series(first.values.astype(np.float64) / second.values,
+                              dtype='float64')
+        expected.iloc[0:3] = np.inf
 
-            result = p['first'] / 0
-            expected = Series(np.inf, index=p.index, name='first')
-            assert_series_equal(result, expected)
+        result = first / second
+        assert_series_equal(result, expected)
 
-            p = p.astype('float64')
-            result = p['first'] / p['second']
-            expected = Series(p['first'].values / p['second'].values)
-            assert_series_equal(result, expected)
+    def test_f8_ser_div_f8_ser(self):
+        # no longer do integer div for any ops, but deal with the 0's
+        first = Series([3, 4, 5, 8], name='first', dtype='float64')
+        second = Series([0, 0, 0, 3], name='second', dtype='float64')
 
-            p = DataFrame({'first': [3, 4, 5, 8], 'second': [1, 1, 1, 1]})
-            result = p['first'] / p['second']
-            assert_series_equal(result, p['first'].astype('float64'),
-                                check_names=False)
-            assert result.name is None
-            assert not result.equals(p['second'] / p['first'])
+        result = first / second
+        with np.errstate(all='ignore'):
+            expected = Series(first.values / second.values)
+        assert_series_equal(result, expected)
 
-            # inf signing
-            s = Series([np.nan, 1., -1.])
-            result = s / 0
-            expected = Series([np.nan, np.inf, -np.inf])
-            assert_series_equal(result, expected)
+    def test_ser_div_ser_name_propagation(self):
+        first = Series([3, 4, 5, 8], name='first')
+        second = Series([1, 1, 1, 1], name='second')
 
-            # float/integer issue
-            # GH 7785
-            p = DataFrame({'first': (1, 0), 'second': (-0.01, -0.02)})
-            expected = Series([-0.01, -np.inf])
+        expected = Series([3, 4, 5, 8], dtype='float64', name=None)
+        result = first / second
+        assert_series_equal(result, expected)
+        assert not result.equals(second / first)
 
-            result = p['second'].div(p['first'])
-            assert_series_equal(result, expected, check_names=False)
+    def test_int_div_pyint_zero(self):
+        ser = Series([3, 4, 5, 8], name='first')
+        result = ser / 0
+        expected = Series(np.inf, index=ser.index, name='first')
+        assert_series_equal(result, expected)
 
-            result = p['second'] / p['first']
-            assert_series_equal(result, expected)
+    def test_div_zero_inf_signs(self):
+        # inf signing
+        ser = Series([np.nan, 1., -1.])
+        result = ser / 0
+        expected = Series([np.nan, np.inf, -np.inf])
+        assert_series_equal(result, expected)
 
-            # GH 9144
-            s = Series([-1, 0, 1])
+    def test_div_equiv_binop(self):
+        # Test Series.div as well as Series.__div__
+        # float/integer issue
+        # GH#7785
+        first = pd.Series([1, 0], name='first')
+        second = pd.Series([-0.01, -0.02], name='second')
+        expected = Series([-0.01, -np.inf])
 
-            result = 0 / s
-            expected = Series([0.0, nan, 0.0])
-            assert_series_equal(result, expected)
+        result = second.div(first)
+        assert_series_equal(result, expected, check_names=False)
 
-            result = s / 0
-            expected = Series([-inf, nan, inf])
-            assert_series_equal(result, expected)
+        result = second / first
+        assert_series_equal(result, expected)
 
-            result = s // 0
-            expected = Series([-inf, nan, inf])
-            assert_series_equal(result, expected)
+    def test_rdiv_zero_compat(self):
+        # GH#8674
+        zero_array = np.array([0] * 5)
+        data = np.random.randn(5)
+        expected = pd.Series([0.] * 5)
 
-            # GH 8674
-            zero_array = np.array([0] * 5)
-            data = np.random.randn(5)
-            expected = pd.Series([0.] * 5)
-            result = zero_array / pd.Series(data)
-            assert_series_equal(result, expected)
+        result = zero_array / pd.Series(data)
+        assert_series_equal(result, expected)
 
-            result = pd.Series(zero_array) / data
-            assert_series_equal(result, expected)
+        result = pd.Series(zero_array) / data
+        assert_series_equal(result, expected)
 
-            result = pd.Series(zero_array) / pd.Series(data)
-            assert_series_equal(result, expected)
+        result = pd.Series(zero_array) / pd.Series(data)
+        assert_series_equal(result, expected)
+
+    def test_div_zero(self):
+        # GH#9144
+        ser = Series([-1, 0, 1])
+        expected = Series([-np.inf, np.nan, np.inf])
+
+        result = ser / 0
+        assert_series_equal(result, expected)
+
+    def test_rdiv_zero(self):
+        # GH#9144
+        ser = Series([-1, 0, 1])
+        expected = Series([0.0, np.nan, 0.0])
+
+        result = 0 / ser
+        assert_series_equal(result, expected)
+
+    def test_floordiv_div(self):
+        # GH#9144
+        ser = Series([-1, 0, 1])
+
+        result = ser // 0
+        expected = Series([-inf, nan, inf])
+        assert_series_equal(result, expected)
 
 
 class TestTimedeltaSeriesArithmeticWithIntegers(object):
@@ -1574,28 +1600,28 @@ class TestDatetimeSeriesArithmetic(object):
 
 
 class TestSeriesOperators(TestData):
-    def test_op_method(self):
+    @pytest.mark.parametrize('opname', ['add', 'sub', 'mul', 'floordiv',
+                                        'truediv', 'div', 'pow'])
+    def test_op_method(self, opname):
+        if opname == 'div' and not compat.PY3:
+            pytest.skip('div test only for Py3')
+
         def check(series, other, check_reverse=False):
-            simple_ops = ['add', 'sub', 'mul', 'floordiv', 'truediv', 'pow']
-            if not compat.PY3:
-                simple_ops.append('div')
+            op = getattr(Series, opname)
 
-            for opname in simple_ops:
-                op = getattr(Series, opname)
+            if op == 'div':
+                alt = operator.truediv
+            else:
+                alt = getattr(operator, opname)
 
-                if op == 'div':
-                    alt = operator.truediv
-                else:
-                    alt = getattr(operator, opname)
-
-                result = op(series, other)
-                expected = alt(series, other)
+            result = op(series, other)
+            expected = alt(series, other)
+            assert_almost_equal(result, expected)
+            if check_reverse:
+                rop = getattr(Series, "r" + opname)
+                result = rop(series, other)
+                expected = alt(other, series)
                 assert_almost_equal(result, expected)
-                if check_reverse:
-                    rop = getattr(Series, "r" + opname)
-                    result = rop(series, other)
-                    expected = alt(other, series)
-                    assert_almost_equal(result, expected)
 
         check(self.ts, self.ts * 2)
         check(self.ts, self.ts[::2])
@@ -1992,20 +2018,15 @@ class TestSeriesOperators(TestData):
                           index=self.ts.index[:-5], name='ts')
         tm.assert_series_equal(added[:-5], expected)
 
-    def test_operators_reverse_object(self):
+    @pytest.mark.parametrize('op', [operator.add, operator.sub, operator.mul,
+                                    operator.truediv, operator.floordiv])
+    def test_operators_reverse_object(self, op):
         # GH 56
         arr = Series(np.random.randn(10), index=np.arange(10), dtype=object)
 
-        def _check_op(arr, op):
-            result = op(1., arr)
-            expected = op(1., arr.astype(float))
-            assert_series_equal(result.astype(float), expected)
-
-        _check_op(arr, operator.add)
-        _check_op(arr, operator.sub)
-        _check_op(arr, operator.mul)
-        _check_op(arr, operator.truediv)
-        _check_op(arr, operator.floordiv)
+        result = op(1., arr)
+        expected = op(1., arr.astype(float))
+        assert_series_equal(result.astype(float), expected)
 
     def test_arith_ops_df_compat(self):
         # GH 1134
