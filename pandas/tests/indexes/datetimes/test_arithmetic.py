@@ -45,7 +45,8 @@ def addend(request):
 
 class TestDatetimeIndexComparisons(object):
     @pytest.mark.parametrize('other', [None,
-                                       datetime(2016, 1, 1).date()])
+                                       datetime(2016, 1, 1).date(),
+                                       np.nan])
     def test_dti_cmp_invalid(self, tz, other):
         # GH#19301
         dti = pd.date_range('2016-01-01', periods=2, tz=tz)
