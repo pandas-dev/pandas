@@ -1026,8 +1026,8 @@ class NDFrame(PandasObject, SelectionMixin):
                    for a in self._AXIS_ORDERS)
 
     def __neg__(self):
-        values = com._values_from_object(self)
-        if values.dtype == np.bool_:
+        values = _values_from_object(self)
+        if is_bool_dtype(values):
             arr = operator.inv(values)
         elif (is_numeric_dtype(values) or is_timedelta64_dtype(values)):
             arr = operator.neg(values)
@@ -1038,7 +1038,7 @@ class NDFrame(PandasObject, SelectionMixin):
 
     def __pos__(self):
         values = _values_from_object(self)
-        if values.dtype == np.bool_:
+        if is_bool_dtype(values):
             arr = values
         elif (is_numeric_dtype(values) or is_timedelta64_dtype(values)):
             arr = operator.pos(values)
