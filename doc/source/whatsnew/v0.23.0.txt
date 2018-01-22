@@ -253,6 +253,7 @@ Current Behavior:
 Other Enhancements
 ^^^^^^^^^^^^^^^^^^
 
+- Unary ``+`` now permitted for ``Series`` and ``DataFrame`` as  numeric operator (:issue:`16073`)
 - Better support for :func:`Dataframe.style.to_excel` output with the ``xlsxwriter`` engine. (:issue:`16149`)
 - :func:`pandas.tseries.frequencies.to_offset` now accepts leading '+' signs e.g. '+1h'. (:issue:`18171`)
 - :func:`MultiIndex.unique` now supports the ``level=`` argument, to get unique values from a specific index level (:issue:`17896`)
@@ -463,7 +464,6 @@ To restore previous behavior, simply set ``expand`` to ``False``:
 Other API Changes
 ^^^^^^^^^^^^^^^^^
 
-- Unary ``+`` operator now permitted for ``Series`` and ``DataFrame`` (:issue:`16073`)
 - :func:`Series.astype` and :func:`Index.astype` with an incompatible dtype will now raise a ``TypeError`` rather than a ``ValueError`` (:issue:`18231`)
 - ``Series`` construction with an ``object`` dtyped tz-aware datetime and ``dtype=object`` specified, will now return an ``object`` dtyped ``Series``, previously this would infer the datetime dtype (:issue:`18231`)
 - A :class:`Series` of ``dtype=category`` constructed from an empty ``dict`` will now have categories of ``dtype=object`` rather than ``dtype=float64``, consistently with the case in which an empty list is passed (:issue:`18515`)
