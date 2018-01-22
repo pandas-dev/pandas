@@ -645,6 +645,44 @@ def fill_zeros(result, x, y, name, fill):
     return result
 
 
+def mask_zero_div_zero(x, y, result):
+    """
+    Set results of 0 / 0 or 0 // 0 to np.nan, regardless of the dtypes
+    of the numerator or the denominator
+
+    Parameters
+    ----------
+    x : ndarray
+    y : ndarray
+    result : ndarray
+
+    Returns
+    -------
+    filled_result : ndarray
+    """
+    if is_scalar(y):
+        y = np.array(y)
+
+    zmask = y == 0
+    if zmask.any():
+        shape = result.shape
+
+        nan_mask = (zmask & (x == 0)).ravel()
+        neginf_mask = (zmask & (x < 0)).ravel()
+        posinf_mask = (zmask & (x > 0)).ravel()
+
+        if nan_mask.any() or neginf_mask.any() or posinf_mask.any():
+            result = result.astype('float64', copy=False).ravel()
+
+            np.putmask(result, nan_mask, np.nan)
+            np.putmask(result, posinf_mask, np.inf)
+            np.putmask(result, neginf_mask, -np.inf)
+
+            result = result.reshape(shape)
+
+    return result
+
+
 def _interp_limit(invalid, fw_limit, bw_limit):
     """Get idx of values that won't be filled b/c they exceed the limits.
 

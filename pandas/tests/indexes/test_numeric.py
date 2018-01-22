@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+import operator
 
 import pytest
 
@@ -16,6 +17,11 @@ import pandas as pd
 from pandas._libs.lib import Timestamp
 
 from pandas.tests.indexes.common import Base
+
+# For testing division by (or of) zero for Series with length 5, this
+# gives several scalar-zeros and length-5 vector-zeros
+zeros = tm.gen_zeros(5)
+zeros = [x for x in zeros if not isinstance(x, Series)]
 
 
 def full_like(array, value):
@@ -156,6 +162,40 @@ class Numeric(Base):
 
         for r, e in zip(result, expected):
             tm.assert_series_equal(r, e)
+
+    @pytest.mark.parametrize('op', [operator.div, operator.truediv])
+    @pytest.mark.parametrize('zero', zeros)
+    def test_div_zero(self, zero, op):
+        idx = self.create_index()
+
+        expected = Index([np.nan, np.inf, np.inf, np.inf, np.inf],
+                         dtype=np.float64)
+        result = op(idx, zero)
+        tm.assert_index_equal(result, expected)
+        ser_compat = op(Series(idx).astype('i8'), np.array(zero).astype('i8'))
+        tm.assert_series_equal(ser_compat, Series(result))
+
+    @pytest.mark.parametrize('zero', zeros)
+    def test_floordiv_zero(self, zero):
+        idx = self.create_index()
+        expected = Index([np.nan, np.inf, np.inf, np.inf, np.inf],
+                         dtype=np.float64)
+
+        result = idx // zero
+        tm.assert_index_equal(result, expected)
+        ser_compat = Series(idx).astype('i8') // np.array(zero).astype('i8')
+        tm.assert_series_equal(ser_compat, Series(result))
+
+    @pytest.mark.parametrize('zero', zeros)
+    def test_mod_zero(self, zero):
+        idx = self.create_index()
+
+        expected = Index([np.nan, np.nan, np.nan, np.nan, np.nan],
+                         dtype=np.float64)
+        result = idx % zero
+        tm.assert_index_equal(result, expected)
+        ser_compat = Series(idx).astype('i8') % np.array(zero).astype('i8')
+        tm.assert_series_equal(ser_compat, Series(result))
 
     def test_explicit_conversions(self):
 
