@@ -118,7 +118,7 @@ def group_last_object(ndarray[object, ndim=2] out,
                 out[i, j] = resx[i, j]
 
 
-cdef inline float64_t _median_linear(float64_t* a, int n) nogil:
+cdef inline float64_t median_linear(float64_t* a, int n) nogil:
     cdef int i, j, na_count = 0
     cdef float64_t result
     cdef float64_t* tmp

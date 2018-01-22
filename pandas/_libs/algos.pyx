@@ -196,24 +196,6 @@ cpdef numeric kth_smallest(numeric[:] a, Py_ssize_t k) nogil:
     return a[k]
 
 
-cpdef numeric median(numeric[:] arr):
-    """
-    A faster median
-    """
-    cdef Py_ssize_t n = arr.size
-
-    if n == 0:
-        return np.NaN
-
-    arr = arr.copy()
-
-    if n % 2:
-        return kth_smallest(arr, n // 2)
-    else:
-        return (kth_smallest(arr, n // 2) +
-                kth_smallest(arr, n // 2 - 1)) / 2
-
-
 # ----------------------------------------------------------------------
 # Pairwise correlation/covariance
 
