@@ -398,68 +398,81 @@ Bug Fixes
 ~~~~~~~~~
 
 
-Conversion
-^^^^^^^^^^
+Datetimelike
+^^^^^^^^^^^^
 
-- Bug in :class:`Index` constructor with ``dtype='uint64'`` where int-like floats were not coerced to :class:`UInt64Index` (:issue:`18400`)
-- Bug in the :class:`DataFrame` constructor in which data containing very large positive or very large negative numbers was causing ``OverflowError`` (:issue:`18584`)
-- Fixed a bug where creating a Series from an array that contains both tz-naive and tz-aware values will result in a Series whose dtype is tz-aware instead of object (:issue:`16406`)
+- Bug in :func:`Series.__sub__` subtracting a non-nanosecond ``np.datetime64`` object from a ``Series`` gave incorrect results (:issue:`7996`)
+- Bug in :class:`DatetimeIndex`, :class:`TimedeltaIndex` addition and subtraction of zero-dimensional integer arrays gave incorrect results (:issue:`19012`)
+- Bug in :func:`Series.__add__` adding Series with dtype ``timedelta64[ns]`` to a timezone-aware ``DatetimeIndex`` incorrectly dropped timezone information (:issue:`13905`)
+- Bug in :func:`Timedelta.__floordiv__` and :func:`Timedelta.__rfloordiv__` dividing by many incompatible numpy objects was incorrectly allowed (:issue:`18846`)
 - Adding a ``Period`` object to a ``datetime`` or ``Timestamp`` object will now correctly raise a ``TypeError`` (:issue:`17983`)
-- Fixed a bug where ``FY5253`` date offsets could incorrectly raise an ``AssertionError`` in arithmetic operatons (:issue:`14774`)
-- Bug in :meth:`Index.astype` with a categorical dtype where the resultant index is not converted to a :class:`CategoricalIndex` for all types of index (:issue:`18630`)
-- Bug in :meth:`Series.astype` and ``Categorical.astype()`` where an existing categorical data does not get updated (:issue:`10696`, :issue:`18593`)
-- Bug in :class:`Series` constructor with an int or float list where specifying ``dtype=str``, ``dtype='str'`` or ``dtype='U'`` failed to convert the data elements to strings (:issue:`16605`)
 - Bug in :class:`Timestamp` where comparison with an array of ``Timestamp`` objects would result in a ``RecursionError`` (:issue:`15183`)
-- Bug in :class:`WeekOfMonth` and class:`Week` where addition and subtraction did not roll correctly (:issue:`18510`,:issue:`18672`,:issue:`18864`)
-- Bug in :meth:`DatetimeIndex.astype` when converting between timezone aware dtypes, and converting from timezone aware to naive (:issue:`18951`)
-- Bug in :class:`FY5253` where ``datetime`` addition and subtraction incremented incorrectly for dates on the year-end but not normalized to midnight (:issue:`18854`)
 - Bug in :class:`DatetimeIndex` and :class:`TimedeltaIndex` where adding or subtracting an array-like of ``DateOffset`` objects either raised (``np.array``, ``pd.Index``) or broadcast incorrectly (``pd.Series``) (:issue:`18849`)
 - Bug in :class:`Series` floor-division where operating on a scalar ``timedelta`` raises an exception (:issue:`18846`)
-- Bug in :class:`FY5253Quarter`, :class:`LastWeekOfMonth` where rollback and rollforward behavior was inconsistent with addition and subtraction behavior (:issue:`18854`)
-- Bug in :class:`Index` constructor with ``dtype=CategoricalDtype(...)`` where ``categories`` and ``ordered`` are not maintained (issue:`19032`)
-- Bug in :class:`Index` constructor with ``dtype=CategoricalDtype(...)`` where ``categories`` and ``ordered`` are not maintained (issue:`19032`)
 - Bug in :class:`Series`` with ``dtype='timedelta64[ns]`` where addition or subtraction of ``TimedeltaIndex`` had results cast to ``dtype='int64'`` (:issue:`17250`)
 - Bug in :class:`TimedeltaIndex` where division by a ``Series`` would return a ``TimedeltaIndex`` instead of a ``Series`` (issue:`19042`)
 - Bug in :class:`Series` with ``dtype='timedelta64[ns]`` where addition or subtraction of ``TimedeltaIndex`` could return a ``Series`` with an incorrect name (issue:`19043`)
-- Fixed bug where comparing :class:`DatetimeIndex` failed to raise ``TypeError`` when attempting to compare timezone-aware and timezone-naive datetimelike objects (:issue:`18162`)
 - Bug in :class:`DatetimeIndex` where the repr was not showing high-precision time values at the end of a day (e.g., 23:59:59.999999999) (:issue:`19030`)
 - Bug where dividing a scalar timedelta-like object with :class:`TimedeltaIndex` performed the reciprocal operation (:issue:`19125`)
-- Bug in :class:`WeekOfMonth` and :class:`LastWeekOfMonth` where default keyword arguments for constructor raised ``ValueError`` (:issue:`19142`)
-- Bug in localization of a naive, datetime string in a ``Series`` constructor with a ``datetime64[ns, tz]`` dtype (:issue:`174151`)
-- :func:`Timestamp.replace` will now handle Daylight Savings transitions gracefully (:issue:`18319`)
-- Bug in :class:`Index` multiplication and division methods where operating with a ``Series`` would return an ``Index`` object instead of a ``Series`` object (:issue:`19042`)
-
-
--
 - Bug in ``.astype()`` to non-ns timedelta units would hold the incorrect dtype (:issue:`19176`, :issue:`19223`, :issue:`12425`)
 - Bug in subtracting :class:`Series` from ``NaT`` incorrectly returning ``NaT`` (:issue:`19158`)
-- Bug in comparison of timezone-aware :class:`DatetimeIndex` against ``NaT`` incorrectly raising ``TypeError`` (:issue:`19276`)
+- Bug in :func:`Series.truncate` which raises ``TypeError`` with a monotonic ``PeriodIndex`` (:issue:`17717`)
 - Bug in comparison of :class:`DatetimeIndex` against ``None`` or ``datetime.date`` objects raising ``TypeError`` for ``==`` and ``!=`` comparisons instead of all-``False`` and all-``True``, respectively (:issue:`19301`)
+
+Timezones
+^^^^^^^^^
+
+- Bug in creating a ``Series`` from an array that contains both tz-naive and tz-aware values will result in a ``Series`` whose dtype is tz-aware instead of object (:issue:`16406`)
+- Bug in comparison of timezone-aware :class:`DatetimeIndex` against ``NaT`` incorrectly raising ``TypeError`` (:issue:`19276`)
+- Bug in :meth:`DatetimeIndex.astype` when converting between timezone aware dtypes, and converting from timezone aware to naive (:issue:`18951`)
+- Bug in comparing :class:`DatetimeIndex`, which failed to raise ``TypeError`` when attempting to compare timezone-aware and timezone-naive datetimelike objects (:issue:`18162`)
+- Bug in localization of a naive, datetime string in a ``Series`` constructor with a ``datetime64[ns, tz]`` dtype (:issue:`174151`)
+- :func:`Timestamp.replace` will now handle Daylight Savings transitions gracefully (:issue:`18319`)
+- Bug in tz-aware :class:`DatetimeIndex` where addition/subtraction with a :class:`TimedeltaIndex` or array with ``dtype='timedelta64[ns]'`` was incorrect (:issue:`17558`)
+- Bug in :func:`DatetimeIndex.insert` where inserting ``NaT`` into a timezone-aware index incorrectly raised (:issue:`16357`)
+
+Offsets
+^^^^^^^
+
+- Bug in :class:`WeekOfMonth` and class:`Week` where addition and subtraction did not roll correctly (:issue:`18510`,:issue:`18672`,:issue:`18864`)
+- Bug in :class:`WeekOfMonth` and :class:`LastWeekOfMonth` where default keyword arguments for constructor raised ``ValueError`` (:issue:`19142`)
+- Bug in :class:`FY5253Quarter`, :class:`LastWeekOfMonth` where rollback and rollforward behavior was inconsistent with addition and subtraction behavior (:issue:`18854`)
+- Bug in :class:`FY5253` where ``datetime`` addition and subtraction incremented incorrectly for dates on the year-end but not normalized to midnight (:issue:`18854`)
+- Bug in :class:`FY5253` where date offsets could incorrectly raise an ``AssertionError`` in arithmetic operatons (:issue:`14774`)
+
+
+Numeric
+^^^^^^^
+- Bug in :class:`Series` constructor with an int or float list where specifying ``dtype=str``, ``dtype='str'`` or ``dtype='U'`` failed to convert the data elements to strings (:issue:`16605`)
+- Bug in :class:`Index` multiplication and division methods where operating with a ``Series`` would return an ``Index`` object instead of a ``Series`` object (:issue:`19042`)
+- Bug in the :class:`DataFrame` constructor in which data containing very large positive or very large negative numbers was causing ``OverflowError`` (:issue:`18584`)
+- Bug in :class:`Index` constructor with ``dtype='uint64'`` where int-like floats were not coerced to :class:`UInt64Index` (:issue:`18400`)
+
 
 Indexing
 ^^^^^^^^
 
-- Bug in :func:`Series.truncate` which raises ``TypeError`` with a monotonic ``PeriodIndex`` (:issue:`17717`)
-- Bug in :func:`DataFrame.groupby` where tuples were interpreted as lists of keys rather than as keys (:issue:`17979`, :issue:`18249`)
-- Bug in :func:`MultiIndex.get_level_values` which would return an invalid index on level of ints with missing values (:issue:`17924`)
-- Bug in :func:`MultiIndex.remove_unused_levels` which would fill nan values (:issue:`18417`)
-- Bug in :func:`MultiIndex.from_tuples`` which would fail to take zipped tuples in python3 (:issue:`18434`)
 - Bug in :class:`Index` construction from list of mixed type tuples (:issue:`18505`)
 - Bug in :func:`Index.drop` when passing a list of both tuples and non-tuples (:issue:`18304`)
-- Bug in :class:`IntervalIndex` where empty and purely NA data was constructed inconsistently depending on the construction method (:issue:`18421`)
-- Bug in :func:`IntervalIndex.symmetric_difference` where the symmetric difference with a non-``IntervalIndex`` did not raise (:issue:`18475`)
+- Bug in :meth:`~DataFrame.drop`, :meth:`~Panel.drop`, :meth:`~Series.drop`, :meth:`~Index.drop` where no ``KeyError`` is raised when dropping a non-existent element from an axis that contains duplicates (:issue:`19186`)
 - Bug in indexing a datetimelike ``Index`` that raised ``ValueError`` instead of ``IndexError`` (:issue:`18386`).
-- Bug in tz-aware :class:`DatetimeIndex` where addition/subtraction with a :class:`TimedeltaIndex` or array with ``dtype='timedelta64[ns]'`` was incorrect (:issue:`17558`)
 - :func:`Index.to_series` now accepts ``index`` and ``name`` kwargs (:issue:`18699`)
 - :func:`DatetimeIndex.to_series` now accepts ``index`` and ``name`` kwargs (:issue:`18699`)
 - Bug in indexing non-scalar value from ``Series`` having non-unique ``Index`` will return value flattened (:issue:`17610`)
-- Bug in :func:`DatetimeIndex.insert` where inserting ``NaT`` into a timezone-aware index incorrectly raised (:issue:`16357`)
 - Bug in ``__setitem__`` when indexing a :class:`DataFrame` with a 2-d boolean ndarray (:issue:`18582`)
+- Bug in ``str.extractall`` when there were no matches empty :class:`Index` was returned instead of appropriate :class:`MultiIndex` (:issue:`19034`)
+- Bug in :class:`IntervalIndex` where empty and purely NA data was constructed inconsistently depending on the construction method (:issue:`18421`)
+- Bug in :func:`IntervalIndex.symmetric_difference` where the symmetric difference with a non-``IntervalIndex`` did not raise (:issue:`18475`)
+- Bug in :class:`IntervalIndex` where set operations that returned an empty ``IntervalIndex`` had the wrong dtype (:issue:`19101`)
+
+MultiIndex
+^^^^^^^^^^
+
 - Bug in :func:`MultiIndex.__contains__` where non-tuple keys would return ``True`` even if they had been dropped (:issue:`19027`)
 - Bug in :func:`MultiIndex.set_labels` which would cause casting (and potentially clipping) of the new labels if the ``level`` argument is not 0 or a list like [0, 1, ... ]  (:issue:`19057`)
-- Bug in ``str.extractall`` when there were no matches empty :class:`Index` was returned instead of appropriate :class:`MultiIndex` (:issue:`19034`)
-- Bug in :class:`IntervalIndex` where set operations that returned an empty ``IntervalIndex`` had the wrong dtype (:issue:`19101`)
-- Bug in :meth:`~DataFrame.drop`, :meth:`~Panel.drop`, :meth:`~Series.drop`, :meth:`~Index.drop` where no ``KeyError`` is raised when dropping a non-existent element from an axis that contains duplicates (:issue:`19186`)
+- Bug in :func:`MultiIndex.get_level_values` which would return an invalid index on level of ints with missing values (:issue:`17924`)
+- Bug in :func:`MultiIndex.remove_unused_levels` which would fill nan values (:issue:`18417`)
+- Bug in :func:`MultiIndex.from_tuples`` which would fail to take zipped tuples in python3 (:issue:`18434`)
 -
 
 I/O
@@ -489,6 +502,7 @@ Groupby/Resample/Rolling
 - Bug when grouping by a single column and aggregating with a class like ``list`` or ``tuple`` (:issue:`18079`)
 - Fixed regression in :func:`DataFrame.groupby` which would not emit an error when called with a tuple key not in the index (:issue:`18798`)
 - Bug in :func:`DataFrame.resample` which silently ignored unsupported (or mistyped) options for ``label``, ``closed`` and ``convention`` (:issue:`19303`)
+- Bug in :func:`DataFrame.groupby` where tuples were interpreted as lists of keys rather than as keys (:issue:`17979`, :issue:`18249`)
 -
 
 Sparse
@@ -513,14 +527,6 @@ Reshaping
 - Bug in timezone comparisons, manifesting as a conversion of the index to UTC in ``.concat()`` (:issue:`18523`)
 -
 
-Numeric
-^^^^^^^
-
-- Bug in :func:`Series.__sub__` subtracting a non-nanosecond ``np.datetime64`` object from a ``Series`` gave incorrect results (:issue:`7996`)
-- Bug in :class:`DatetimeIndex`, :class:`TimedeltaIndex` addition and subtraction of zero-dimensional integer arrays gave incorrect results (:issue:`19012`)
-- Bug in :func:`Series.__add__` adding Series with dtype ``timedelta64[ns]`` to a timezone-aware ``DatetimeIndex`` incorrectly dropped timezone information (:issue:`13905`)
-- Bug in :func:`Timedelta.__floordiv__` and :func:`Timedelta.__rfloordiv__` dividing by many incompatible numpy objects was incorrectly allowed (:issue:`18846`)
--
 
 Categorical
 ^^^^^^^^^^^
@@ -530,6 +536,9 @@ Categorical
   when all the categoricals had the same categories, but in a different order.
   This affected :func:`pandas.concat` with Categorical data (:issue:`19096`).
 - Bug in ``Categorical.equals`` between two unordered categories with the same categories, but in a different order (:issue:`16603`)
+- Bug in :meth:`Index.astype` with a categorical dtype where the resultant index is not converted to a :class:`CategoricalIndex` for all types of index (:issue:`18630`)
+- Bug in :meth:`Series.astype` and ``Categorical.astype()`` where an existing categorical data does not get updated (:issue:`10696`, :issue:`18593`)
+- Bug in :class:`Index` constructor with ``dtype=CategoricalDtype(...)`` where ``categories`` and ``ordered`` are not maintained (issue:`19032`)
 -
 
 Other
