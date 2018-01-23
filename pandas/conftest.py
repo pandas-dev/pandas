@@ -83,3 +83,13 @@ def compression(request):
     Fixture for trying common compression types in compression tests
     """
     return request.param
+
+
+@pytest.fixture(params=[None, 'gzip', 'bz2',
+                        pytest.param('xz', marks=td.skip_if_no_lzma)])
+def compression_no_zip(request):
+    """
+    Fixture for trying common compression types in compression tests
+    except zip
+    """
+    return request.param
