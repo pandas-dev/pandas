@@ -1654,7 +1654,7 @@ class TestCrosstab(object):
             columns=pd.Index([1], name=names[1])
         )
         expected_ct2 = pd.DataFrame(
-            [[1, 1],[1, 1]],
+            [[1, 1], [1, 1]],
             index=pd.Index([1, 2], name=names[0]),
             columns=pd.Index([2, 3], name=names[1])
         )
