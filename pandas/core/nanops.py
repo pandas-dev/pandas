@@ -6,7 +6,7 @@ from distutils.version import LooseVersion
 
 import numpy as np
 from pandas import compat
-from pandas._libs import tslib, algos, lib
+from pandas._libs import tslib, lib
 from pandas.core.dtypes.common import (
     _get_dtype,
     is_float, is_scalar,
@@ -370,14 +370,13 @@ def nanmean(values, axis=None, skipna=True):
 @bottleneck_switch()
 def nanmedian(values, axis=None, skipna=True):
 
-    values, mask, dtype, dtype_max = _get_values(values, skipna)
-
     def get_median(x):
         mask = notna(x)
         if not skipna and not mask.all():
             return np.nan
-        return algos.median(com._values_from_object(x[mask]))
+        return np.nanmedian(x[mask])
 
+    values, mask, dtype, dtype_max = _get_values(values, skipna)
     if not is_float_dtype(values):
         values = values.astype('f8')
         values[mask] = np.nan
@@ -389,10 +388,15 @@ def nanmedian(values, axis=None, skipna=True):
 
     # an array from a frame
     if values.ndim > 1:
+
         # there's a non-empty array to apply over otherwise numpy raises
         if notempty:
-            return _wrap_results(
-                np.apply_along_axis(get_median, axis, values), dtype)
+            if not skipna:
+                return _wrap_results(
+                    np.apply_along_axis(get_median, axis, values), dtype)
+
+            # fastpath for the skipna case
+            return _wrap_results(np.nanmedian(values, axis), dtype)
 
         # must return the correct shape, but median is not defined for the
         # empty set so return nans of shape "everything but the passed axis"
