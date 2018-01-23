@@ -345,6 +345,8 @@ _dataframe_apply_whitelist = ((_common_apply_whitelist |
 _cython_transforms = frozenset(['cumprod', 'cumsum', 'shift',
                                 'cummin', 'cummax'])
 
+_cython_cast_blacklist = frozenset(['rank', 'count', 'size'])
+
 
 class Grouper(object):
     """
@@ -964,6 +966,21 @@ b  2""")
                 result = maybe_downcast_to_dtype(result, dtype)
 
         return result
+
+    def _transform_should_cast(self, func_nm):
+        """
+        Parameters:
+        -----------
+        func_nm: str
+            The name of the aggregation function being performed
+
+        Returns:
+        --------
+        bool
+            Whether transform should attempt to cast the result of aggregation
+        """
+        return (self.size().fillna(0) > 0).any() and (func_nm not in
+                                                      _cython_cast_blacklist)
 
     def _cython_transform(self, how, numeric_only=True):
         output = collections.OrderedDict()
@@ -3333,7 +3350,7 @@ class SeriesGroupBy(GroupBy):
             else:
                 # cythonized aggregation and merge
                 return self._transform_fast(
-                    lambda: getattr(self, func)(*args, **kwargs))
+                    lambda: getattr(self, func)(*args, **kwargs), func)
 
         # reg transform
         klass = self._selected_obj.__class__
@@ -3364,7 +3381,7 @@ class SeriesGroupBy(GroupBy):
         result.index = self._selected_obj.index
         return result
 
-    def _transform_fast(self, func):
+    def _transform_fast(self, func, func_nm):
         """
         fast version of transform, only applicable to
         builtin/cythonizable functions
@@ -3373,7 +3390,7 @@ class SeriesGroupBy(GroupBy):
             func = getattr(self, func)
 
         ids, _, ngroup = self.grouper.group_info
-        cast = (self.size().fillna(0) > 0).any()
+        cast = self._transform_should_cast(func_nm)
         out = algorithms.take_1d(func().values, ids)
         if cast:
             out = self._try_cast(out, self.obj)
@@ -4127,15 +4144,15 @@ class NDFrameGroupBy(GroupBy):
         if not result.columns.equals(obj.columns):
             return self._transform_general(func, *args, **kwargs)
 
-        return self._transform_fast(result, obj)
+        return self._transform_fast(result, obj, func)
 
-    def _transform_fast(self, result, obj):
+    def _transform_fast(self, result, obj, func_nm):
         """
         Fast transform path for aggregations
         """
         # if there were groups with no observations (Categorical only?)
         # try casting data to original dtype
-        cast = (self.size().fillna(0) > 0).any()
+        cast = self._transform_should_cast(func_nm)
 
         # for each col, reshape to to size of original frame
         # by take operation
