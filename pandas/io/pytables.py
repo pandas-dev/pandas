@@ -4561,7 +4561,7 @@ def _convert_string_array(data, encoding, itemsize=None):
 
     # create the sized dtype
     if itemsize is None:
-        itemsize = lib.max_len_string_array(_ensure_object(data.ravel()))
+        itemsize = libio.max_len_string_array(_ensure_object(data.ravel()))
 
     data = np.asarray(data, dtype="S%d" % itemsize)
     return data
@@ -4590,7 +4590,7 @@ def _unconvert_string_array(data, nan_rep=None, encoding=None):
     encoding = _ensure_encoding(encoding)
     if encoding is not None and len(data):
 
-        itemsize = lib.max_len_string_array(_ensure_object(data))
+        itemsize = libio.max_len_string_array(_ensure_object(data))
         if compat.PY3:
             dtype = "U{0}".format(itemsize)
         else:
