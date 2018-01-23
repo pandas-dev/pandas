@@ -38,7 +38,7 @@ from pandas.io.common import (_get_handle, UnicodeWriter, _expand_user,
                               _stringify_path)
 from pandas.io.formats.printing import adjoin, justify, pprint_thing
 from pandas.io.formats.common import get_level_lengths
-from pandas._libs import lib
+from pandas._libs import lib, io_helper as libio
 from pandas._libs.tslib import (iNaT, Timestamp, Timedelta,
                                 format_array_from_datetime)
 from pandas.core.indexes.datetimes import DatetimeIndex
@@ -1789,7 +1789,8 @@ class CSVFormatter(object):
                                         date_format=self.date_format,
                                         quoting=self.quoting)
 
-        lib.write_csv_rows(self.data, ix, self.nlevels, self.cols, self.writer)
+        libio.write_csv_rows(self.data, ix, self.nlevels,
+                             self.cols, self.writer)
 
 
 # ----------------------------------------------------------------------

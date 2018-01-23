@@ -307,6 +307,7 @@ class CheckSDist(sdist_class):
                  'pandas/_libs/join.pyx',
                  'pandas/_libs/indexing.pyx',
                  'pandas/_libs/interval.pyx',
+                 'pandas/_libs/io_helper.pyx',
                  'pandas/_libs/hashing.pyx',
                  'pandas/_libs/missing.pyx',
                  'pandas/_libs/reduction.pyx',
@@ -486,6 +487,9 @@ ext_data = {
         'pyxfile': '_libs/interval',
         'pxdfiles': ['_libs/hashtable'],
         'depends': _pxi_dep['interval']},
+    '_libs.io_helper': {
+        'pyxfile': '_libs/io_helper',
+        'pxdfiles': ['_libs/src/util']},
     '_libs.join': {
         'pyxfile': '_libs/join',
         'pxdfiles': ['_libs/src/util', '_libs/hashtable'],
