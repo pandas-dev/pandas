@@ -550,7 +550,7 @@ cpdef convert_scalar(ndarray arr, object value):
     # we don't turn bools into int/float/complex
 
     if arr.descr.type_num == NPY_DATETIME:
-        if isinstance(value, np.ndarray):
+        if util.is_array(value):
             pass
         elif isinstance(value, (datetime, np.datetime64, date)):
             return Timestamp(value).value
@@ -561,7 +561,7 @@ cpdef convert_scalar(ndarray arr, object value):
         raise ValueError("cannot set a Timestamp with a non-timestamp")
 
     elif arr.descr.type_num == NPY_TIMEDELTA:
-        if isinstance(value, np.ndarray):
+        if util.is_array(value):
             pass
         elif isinstance(value, timedelta):
             return Timedelta(value).value
