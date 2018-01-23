@@ -128,7 +128,7 @@ def check_round_trip(df, engine=None, path=None,
     write_kwargs: dict of str:str, optional
     read_kwargs: dict of str:str, optional
     expected: DataFrame, optional
-        Expected deserialization result
+        Expected deserialization result, otherwise will be equal to `df`
     check_names: list of str, optional
         Closed set of column names to be compared
     repeat: int, optional
@@ -137,7 +137,9 @@ def check_round_trip(df, engine=None, path=None,
 
     write_kwargs = write_kwargs or {'compression': None}
     read_kwargs = read_kwargs or {}
-    expected = expected or df
+
+    if expected is None:
+        expected = df
 
     if engine:
         write_kwargs['engine'] = engine
