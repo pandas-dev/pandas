@@ -169,9 +169,10 @@ class SparseSeries(Series):
                 elif not data.index.equals(index) or copy:  # pragma: no cover
                     # GH#19275 SingleBlockManager input should only be called
                     # internally
-                    raise ValueError('Cannot pass both SingleBlockManager '
-                                     '`data` argument and a different `index` '
-                                     'argument.  `copy` must be False.')
+                    raise AssertionError('Cannot pass both SingleBlockManager '
+                                         '`data` argument and a different '
+                                         '`index` argument.  `copy` must '
+                                         'be False.')
 
             else:
                 length = len(index)

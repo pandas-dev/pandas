@@ -200,9 +200,10 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
                 elif not data.index.equals(index) or copy:
                     # GH#19275 SingleBlockManager input should only be called
                     # internally
-                    raise ValueError('Cannot pass both SingleBlockManager '
-                                     '`data` argument and a different `index` '
-                                     'argument.  `copy` must be False.')
+                    raise AssertionError('Cannot pass both SingleBlockManager '
+                                         '`data` argument and a different '
+                                         '`index` argument.  `copy` must '
+                                         'be False.')
             elif isinstance(data, Categorical):
                 # GH12574: Allow dtype=category only, otherwise error
                 if ((dtype is not None) and
