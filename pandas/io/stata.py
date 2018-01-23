@@ -16,7 +16,8 @@ import sys
 
 import numpy as np
 from dateutil.relativedelta import relativedelta
-from pandas._libs.lib import max_len_string_array, infer_dtype
+from pandas._libs.lib import infer_dtype
+from pandas._libs.io_helper import max_len_string_array
 from pandas._libs.tslib import NaT, Timestamp
 
 import pandas as pd

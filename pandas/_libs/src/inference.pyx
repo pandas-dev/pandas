@@ -6,14 +6,14 @@ from tslibs.nattype import NaT
 from tslibs.conversion cimport convert_to_tsobject
 from tslibs.timedeltas cimport convert_to_timedelta64
 from tslibs.timezones cimport get_timezone, tz_compare
-from datetime import datetime, timedelta
+
 iNaT = util.get_nat()
 
 cdef bint PY2 = sys.version_info[0] == 2
 
-from util cimport (UINT8_MAX, UINT16_MAX, UINT32_MAX, UINT64_MAX,
-                   INT8_MIN, INT8_MAX, INT16_MIN, INT16_MAX,
-                   INT32_MAX, INT32_MIN, INT64_MAX, INT64_MIN)
+from util cimport UINT8_MAX, UINT64_MAX, INT64_MAX, INT64_MIN
+
+cdef double nan = <double> np.NaN
 
 # core.common import for fast inference checks
 
@@ -737,7 +737,7 @@ cdef class IntegerFloatValidator(Validator):
         return issubclass(self.dtype.type, np.integer)
 
 
-cpdef bint is_integer_float_array(ndarray values):
+cdef bint is_integer_float_array(ndarray values):
     cdef:
         IntegerFloatValidator validator = IntegerFloatValidator(
             len(values),
@@ -788,7 +788,7 @@ cdef class UnicodeValidator(Validator):
         return issubclass(self.dtype.type, np.unicode_)
 
 
-cpdef bint is_unicode_array(ndarray values, bint skipna=False):
+cdef bint is_unicode_array(ndarray values, bint skipna=False):
     cdef:
         UnicodeValidator validator = UnicodeValidator(
             len(values),
@@ -807,7 +807,7 @@ cdef class BytesValidator(Validator):
         return issubclass(self.dtype.type, np.bytes_)
 
 
-cpdef bint is_bytes_array(ndarray values, bint skipna=False):
+cdef bint is_bytes_array(ndarray values, bint skipna=False):
     cdef:
         BytesValidator validator = BytesValidator(
             len(values),
@@ -1390,34 +1390,6 @@ def maybe_convert_objects(ndarray[object] objects, bint try_float=0,
     return objects
 
 
-def convert_sql_column(x):
-    return maybe_convert_objects(x, try_float=1)
-
-
-def sanitize_objects(ndarray[object] values, set na_values,
-                     convert_empty=True):
-    cdef:
-        Py_ssize_t i, n
-        object val, onan
-        Py_ssize_t na_count = 0
-        dict memo = {}
-
-    n = len(values)
-    onan = np.nan
-
-    for i from 0 <= i < n:
-        val = values[i]
-        if (convert_empty and val == '') or (val in na_values):
-            values[i] = onan
-            na_count += 1
-        elif val in memo:
-            values[i] = memo[val]
-        else:
-            memo[val] = val
-
-    return na_count
-
-
 def maybe_convert_bool(ndarray[object] arr,
                        true_values=None, false_values=None):
     cdef:
@@ -1443,7 +1415,7 @@ def maybe_convert_bool(ndarray[object] arr,
     for i from 0 <= i < n:
         val = arr[i]
 
-        if cpython.PyBool_Check(val):
+        if PyBool_Check(val):
             if val is True:
                 result[i] = 1
             else:

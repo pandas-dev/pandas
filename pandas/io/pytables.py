@@ -47,7 +47,7 @@ from pandas.compat import u_safe as u, PY3, range, lrange, string_types, filter
 from pandas.core.config import get_option
 from pandas.core.computation.pytables import Expr, maybe_expression
 
-from pandas._libs import algos, lib
+from pandas._libs import algos, lib, io_helper as libio
 from pandas._libs.tslibs import timezones
 
 from distutils.version import LooseVersion
@@ -3843,7 +3843,7 @@ class LegacyTable(Table):
                 # need a better algorithm
                 tuple_index = long_index.values
 
-                unique_tuples = lib.fast_unique(tuple_index)
+                unique_tuples = libio.fast_unique(tuple_index)
                 unique_tuples = com._asarray_tuplesafe(unique_tuples)
 
                 indexer = match(unique_tuples, tuple_index)
@@ -4604,7 +4604,7 @@ def _unconvert_string_array(data, nan_rep=None, encoding=None):
     if nan_rep is None:
         nan_rep = 'nan'
 
-    data = lib.string_array_replace_from_nan_rep(data, nan_rep)
+    data = libio.string_array_replace_from_nan_rep(data, nan_rep)
     return data.reshape(shape)
 
 
@@ -4621,7 +4621,7 @@ def _get_converter(kind, encoding):
     if kind == 'datetime64':
         return lambda x: np.asarray(x, dtype='M8[ns]')
     elif kind == 'datetime':
-        return lib.convert_timestamps
+        return libio.convert_timestamps
     elif kind == 'string':
         return lambda x: _unconvert_string_array(x, encoding=encoding)
     else:  # pragma: no cover
