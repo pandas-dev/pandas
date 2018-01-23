@@ -4186,7 +4186,8 @@ def dispatch_missing(op, left, right, result):
     result : ndarray
     """
     opstr = '__{opname}__'.format(opname=op.__name__).replace('____', '__')
-    if op in [operator.div, operator.truediv, operator.floordiv]:
+    if op in [operator.truediv, operator.floordiv,
+              getattr(operator, 'div', None)]:
         result = missing.mask_zero_div_zero(left, right, result)
     elif op is operator.mod:
         result = missing.fill_zeros(result, left, right,
