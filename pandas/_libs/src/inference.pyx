@@ -1390,6 +1390,10 @@ def maybe_convert_objects(ndarray[object] objects, bint try_float=0,
     return objects
 
 
+def convert_sql_column(x):
+    return maybe_convert_objects(x, try_float=1)
+
+
 def maybe_convert_bool(ndarray[object] arr,
                        true_values=None, false_values=None):
     cdef:
