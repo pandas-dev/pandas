@@ -25,8 +25,7 @@ from cpython cimport (Py_INCREF, PyTuple_SET_ITEM,
                       PyTuple_New,
                       PyObject_RichCompareBool,
                       PyBytes_GET_SIZE,
-                      PyUnicode_GET_SIZE,
-                      PyObject)
+                      PyUnicode_GET_SIZE)
 
 try:
     from cpython cimport PyString_GET_SIZE
