@@ -469,7 +469,7 @@ def crosstab(index, columns, values=None, rownames=None, colnames=None,
                            dropna=dropna, **kwargs)
 
     if not table.empty:
-        added_cols_idx = df.columns.difference(common_cols_idx).values[0]
+        added_cols_idx= list(df.columns.difference(common_cols_idx))[0]
         table = table[added_cols_idx]
 
     # Post-process
