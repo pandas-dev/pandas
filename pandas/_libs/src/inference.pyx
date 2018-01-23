@@ -11,9 +11,9 @@ iNaT = util.get_nat()
 
 cdef bint PY2 = sys.version_info[0] == 2
 
-from util cimport UINT8_MAX, UINT64_MAX, INT64_MAX, INT64_MIN
-
-cdef double nan = <double> np.NaN
+from util cimport (UINT8_MAX, UINT16_MAX, UINT32_MAX, UINT64_MAX,
+                   INT8_MIN, INT8_MAX, INT16_MIN, INT16_MAX,
+                   INT32_MAX, INT32_MIN, INT64_MAX, INT64_MIN)
 
 # core.common import for fast inference checks
 
@@ -737,7 +737,7 @@ cdef class IntegerFloatValidator(Validator):
         return issubclass(self.dtype.type, np.integer)
 
 
-cdef bint is_integer_float_array(ndarray values):
+cpdef bint is_integer_float_array(ndarray values):
     cdef:
         IntegerFloatValidator validator = IntegerFloatValidator(
             len(values),
@@ -788,7 +788,7 @@ cdef class UnicodeValidator(Validator):
         return issubclass(self.dtype.type, np.unicode_)
 
 
-cdef bint is_unicode_array(ndarray values, bint skipna=False):
+cpdef bint is_unicode_array(ndarray values, bint skipna=False):
     cdef:
         UnicodeValidator validator = UnicodeValidator(
             len(values),
@@ -807,7 +807,7 @@ cdef class BytesValidator(Validator):
         return issubclass(self.dtype.type, np.bytes_)
 
 
-cdef bint is_bytes_array(ndarray values, bint skipna=False):
+cpdef bint is_bytes_array(ndarray values, bint skipna=False):
     cdef:
         BytesValidator validator = BytesValidator(
             len(values),
