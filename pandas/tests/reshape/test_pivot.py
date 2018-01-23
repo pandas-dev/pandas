@@ -1645,14 +1645,25 @@ class TestCrosstab(object):
                                        [('a', 'b'), ('c', 'd')],
                                        [(1, 2, 3), ('a', 'b', 'c')]])
     def test_crosstab_cols_output(self, names):
-        s1 = pd.Series(range(3), name=names[0])
-        s2 = pd.Series(range(1, 4), name=names[1])
-        result = pd.crosstab(s1, s2)
-        result_col_list = list(result.columns)
-        assert result_col_list == [1, 2, 3]
+        rows = [[1, 2, 3, 4], [1, 1, 2, 2], [1, 3, 1, 4]]
+        cols = [[1, 1, 1, 1], [3, 2, 2, 3], []]
 
-        s1 = pd.Series(range(0), name=names[0])
-        s2 = pd.Series(range(1, 4), name=names[1])
-        result = pd.crosstab(s1, s2)
-        result_col_list = list(result.columns)
-        assert result_col_list == []
+        expected_ct1 = pd.DataFrame(
+            [1, 1, 1, 1],
+            index=pd.Index([1, 2, 3, 4], name=names[0]),
+            columns=pd.Index([1], name=names[1])
+        )
+        expected_ct2 = pd.DataFrame(
+            [[1, 1],[1, 1]],
+            index=pd.Index([1, 2], name=names[0]),
+            columns=pd.Index([2, 3], name=names[1])
+        )
+        expected_ct3 = pd.DataFrame([])
+        expected_arr = [expected_ct1, expected_ct2, expected_ct3]
+
+        for row, col, expected_data in zip(rows, cols, expected_arr):
+            s1 = pd.Series(row, name=names[0])
+            s2 = pd.Series(col, name=names[1])
+            result = pd.crosstab(s1, s2)
+            tm.assert_frame_equal(result, expected_data,
+                                  check_column_type=True)
