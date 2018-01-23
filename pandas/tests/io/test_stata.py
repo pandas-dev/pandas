@@ -946,7 +946,7 @@ class TestStata(object):
                 cols.append((col, pd.Categorical.from_codes(codes, labels)))
             else:
                 cols.append((col, pd.Series(labels, dtype=np.float32)))
-        expected = DataFrame(dict(cols), columns=OrderedDict(cols).keys())
+        expected = DataFrame.from_dict(OrderedDict(cols))
 
         # Read with and with out categoricals, ensure order is identical
         file = getattr(self, file)

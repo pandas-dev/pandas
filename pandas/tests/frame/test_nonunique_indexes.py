@@ -328,8 +328,8 @@ class TestDataFrameNonuniqueIndexes(TestData):
 
         df1r = df1.reindex_like(df2)
         result = df1r == df2
-        expected = DataFrame([[False, True], [True, False], [False, False],
-                             [True, False]], columns=['A', 'A'])
+        expected = DataFrame([[False, True], [True, False], [False, False], [
+                             True, False]], columns=['A', 'A'])
         assert_frame_equal(result, expected)
 
         # mixed column selection

@@ -1572,8 +1572,7 @@ class StataReader(StataParser, BaseIterator):
                 else:
                     data_formatted.append((col, data[col]))
         if requires_type_conversion:
-            data = DataFrame(OrderedDict(data_formatted),
-                             columns=OrderedDict(data_formatted).keys())
+            data = DataFrame.from_dict(OrderedDict(data_formatted))
         del data_formatted
 
         self._do_convert_missing(data, convert_missing)
@@ -1611,8 +1610,7 @@ class StataReader(StataParser, BaseIterator):
                     convert = True
                 retyped_data.append((col, data[col].astype(dtype)))
             if convert:
-                data = DataFrame(OrderedDict(retyped_data),
-                                 columns=OrderedDict(retyped_data).keys())
+                data = DataFrame.from_dict(OrderedDict(retyped_data))
 
         if index_col is not None:
             data = data.set_index(data.pop(index_col))
@@ -1725,8 +1723,7 @@ class StataReader(StataParser, BaseIterator):
                 cat_converted_data.append((col, cat_data))
             else:
                 cat_converted_data.append((col, data[col]))
-        data = DataFrame(OrderedDict(cat_converted_data),
-                         columns=OrderedDict(cat_converted_data).keys())
+        data = DataFrame.from_dict(OrderedDict(cat_converted_data))
         return data
 
     def data_label(self):
@@ -2001,8 +1998,7 @@ class StataWriter(StataParser):
                 data_formatted.append((col, values))
             else:
                 data_formatted.append((col, data[col]))
-        return DataFrame(OrderedDict(data_formatted),
-                         columns=OrderedDict(data_formatted).keys())
+        return DataFrame.from_dict(OrderedDict(data_formatted))
 
     def _replace_nans(self, data):
         # return data
