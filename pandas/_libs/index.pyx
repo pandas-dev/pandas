@@ -73,10 +73,6 @@ cpdef object get_value_box(ndarray arr, object loc):
         return util.get_value_1d(arr, i)
 
 
-def set_value_at(ndarray arr, object loc, object val):
-    return util.set_value_at(arr, loc, val)
-
-
 # Don't populate hash tables in monotonic indexes larger than this
 _SIZE_CUTOFF = 1000000
 
@@ -403,18 +399,6 @@ cdef Py_ssize_t _bin_search(ndarray values, object val) except -1:
         return mid
     else:
         return mid + 1
-
-_pad_functions = {
-    'object': algos.pad_object,
-    'int64': algos.pad_int64,
-    'float64': algos.pad_float64
-}
-
-_backfill_functions = {
-    'object': algos.backfill_object,
-    'int64': algos.backfill_int64,
-    'float64': algos.backfill_float64
-}
 
 
 cdef class DatetimeEngine(Int64Engine):
