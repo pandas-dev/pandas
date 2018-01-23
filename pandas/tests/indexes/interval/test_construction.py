@@ -26,7 +26,7 @@ def name(request):
 class Base(object):
     """
     Common tests for all variations of IntervalIndex construction. Input data
-    to be supplied in breaks format, then converted by the superclass method
+    to be supplied in breaks format, then converted by the subclass method
     get_kwargs_from_breaks to the expected format.
     """
 

@@ -155,6 +155,8 @@ class IntervalIndex(IntervalMixin, Index):
     dtype : dtype or None, default None
         If None, dtype will be inferred
 
+        ..versionadded:: 0.23.0
+
     Attributes
     ----------
     left
@@ -430,6 +432,8 @@ class IntervalIndex(IntervalMixin, Index):
         dtype : dtype or None, default None
             If None, dtype will be inferred
 
+            ..versionadded:: 0.23.0
+
         Examples
         --------
         >>> pd.IntervalIndex.from_breaks([0, 1, 2, 3])
@@ -472,6 +476,8 @@ class IntervalIndex(IntervalMixin, Index):
         dtype : dtype or None, default None
             If None, dtype will be inferred
 
+            ..versionadded:: 0.23.0
+
         Examples
         --------
         >>> pd.IntervalIndex.from_arrays([0, 1, 2], [1, 2, 3])
@@ -512,6 +518,8 @@ class IntervalIndex(IntervalMixin, Index):
             by-default copy the data, this is compat only and ignored
         dtype : dtype or None, default None
             If None, dtype will be inferred
+
+            ..versionadded:: 0.23.0
 
         Examples
         --------
@@ -562,6 +570,8 @@ class IntervalIndex(IntervalMixin, Index):
         dtype : dtype or None, default None
             If None, dtype will be inferred
 
+            ..versionadded:: 0.23.0
+
         Examples
         --------
         >>>  pd.IntervalIndex.from_tuples([(0, 1), (1,2)])
@@ -597,10 +607,6 @@ class IntervalIndex(IntervalMixin, Index):
                     raise TypeError(msg)
             left.append(lhs)
             right.append(rhs)
-
-        # TODO
-        # if we have nulls and we previous had *only*
-        # integer data, then we have changed the dtype
 
         return cls.from_arrays(left, right, closed, name=name, copy=False,
                                dtype=dtype)
