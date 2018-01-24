@@ -166,9 +166,13 @@ class SparseSeries(Series):
                     data = data.astype(dtype)
                 if index is None:
                     index = data.index.view()
-                else:
-
-                    data = data.reindex(index, copy=False)
+                elif not data.index.equals(index) or copy:  # pragma: no cover
+                    # GH#19275 SingleBlockManager input should only be called
+                    # internally
+                    raise AssertionError('Cannot pass both SingleBlockManager '
+                                         '`data` argument and a different '
+                                         '`index` argument.  `copy` must '
+                                         'be False.')
 
             else:
                 length = len(index)
