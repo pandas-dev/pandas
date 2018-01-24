@@ -1582,34 +1582,36 @@ class TestDatetimeSeriesArithmetic(object):
 
 
 class TestSeriesOperators(TestData):
+    @pytest.mark.parametrize('ts', [lambda x: (x, x * 2, False),
+                                    lambda x: (x, x[::2], False),
+                                    lambda x: (x, 5, True),
+                                    lambda x: (tm.makeFloatSeries(),
+                                               tm.makeFloatSeries(),
+                                               True)])
     @pytest.mark.parametrize('opname', ['add', 'sub', 'mul', 'floordiv',
                                         'truediv', 'div', 'pow'])
-    def test_op_method(self, opname):
+    def test_op_method(self, opname, ts):
         # check that Series.{opname} behaves like Series.__{opname}__,
+        series, other, check_reverse = ts(self.ts)
+
         if opname == 'div' and compat.PY3:
             pytest.skip('div test only for Py3')
 
-        def check(series, other, check_reverse=False):
-            op = getattr(Series, opname)
+        op = getattr(Series, opname)
 
-            if op == 'div':
-                alt = operator.truediv
-            else:
-                alt = getattr(operator, opname)
+        if op == 'div':
+            alt = operator.truediv
+        else:
+            alt = getattr(operator, opname)
 
-            result = op(series, other)
-            expected = alt(series, other)
+        result = op(series, other)
+        expected = alt(series, other)
+        assert_almost_equal(result, expected)
+        if check_reverse:
+            rop = getattr(Series, "r" + opname)
+            result = rop(series, other)
+            expected = alt(other, series)
             assert_almost_equal(result, expected)
-            if check_reverse:
-                rop = getattr(Series, "r" + opname)
-                result = rop(series, other)
-                expected = alt(other, series)
-                assert_almost_equal(result, expected)
-
-        check(self.ts, self.ts * 2)
-        check(self.ts, self.ts[::2])
-        check(self.ts, 5, check_reverse=True)
-        check(tm.makeFloatSeries(), tm.makeFloatSeries(), check_reverse=True)
 
     def test_neg(self):
         assert_series_equal(-self.series, -1 * self.series)
