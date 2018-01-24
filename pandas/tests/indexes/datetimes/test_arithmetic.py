@@ -98,7 +98,7 @@ class TestDatetimeIndexComparisons(object):
 
     @pytest.mark.parametrize('other', [None,
                                        np.nan])
-    def test_dti_cmp_non_datetime(self, tz, other):
+    def test_dti_cmp_null_scalar(self, tz, other):
         # GH#19301
         dti = pd.date_range('2016-01-01', periods=2, tz=tz)
 
