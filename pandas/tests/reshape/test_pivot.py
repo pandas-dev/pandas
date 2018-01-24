@@ -1628,7 +1628,8 @@ class TestCrosstab(object):
         pytest.raises(ValueError, pd.crosstab, s, s)
 
     @pytest.mark.parametrize("names", [['a', ('b', 'c')],
-                                       [('a', 'b'), 'c']])
+                                       [('a', 'b'), 'c'],
+                                       [('a', 'b'), ('c', 'd')]])
     def test_crosstab_tuple_name(self, names):
         s1 = pd.Series(range(3), name=names[0])
         s2 = pd.Series(range(1, 4), name=names[1])
@@ -1638,3 +1639,21 @@ class TestCrosstab(object):
 
         result = pd.crosstab(s1, s2)
         tm.assert_frame_equal(result, expected)
+
+    @pytest.mark.parametrize("names, input_data, expected_data_out", [
+        (['a', 'b'], [[1, 2, 3], [1, 1, 1]], [1, 1, 1]),
+        ([('a', 'b'), 'c'], [[1, 2, 2], [1, 1, 1]], [1, 2]),
+        ([('a', 'b'), ('c', 'd')], [[1, 2, 3], [1, 2, 3]],
+         np.eye(3, dtype=int))])
+    def test_crosstab_cols_output(self, names, input_data, expected_data_out):
+        row_series = pd.Series(input_data[0], name=names[0])
+        col_series = pd.Series(input_data[1], name=names[1])
+        expected_crosstab = pd.DataFrame(
+            expected_data_out,
+            index=pd.Index(set(input_data[0]), name=names[0]),
+            columns=pd.Index(set(input_data[1]), name=names[1])
+        )
+        tm.assert_frame_equal(
+            pd.crosstab(row_series, col_series), expected_crosstab,
+            check_exact=True
+        )
