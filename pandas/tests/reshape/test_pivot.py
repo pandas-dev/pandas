@@ -1644,7 +1644,7 @@ class TestCrosstab(object):
       (['a', 'b'], [[1, 2, 3], [1, 1, 1]], [1, 1, 1]),
       ([('a', 'b'), 'c'], [[1, 2, 2], [1, 1, 1]], [1, 2]),
       ([('a', 'b'), ('c', 'd')], [[1, 2, 3], [1, 2, 3]], np.eye(3, dtype=int))
-    ])
+      ])
     def test_crosstab_cols_output(self, names, input_data, expected_data_out):
         row_series = pd.Series(input_data[0], name=names[0])
         col_series = pd.Series(input_data[1], name=names[1])
