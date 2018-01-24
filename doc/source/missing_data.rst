@@ -515,13 +515,13 @@ By default, ``NaN`` values are filled in a ``forward`` direction. Use
    ser.interpolate(limit_direction='both')
 
 By default, ``NaN`` values are filled whether they are inside (surrounded by)
-existing valid values, or outside existing valid values. Introduced in v0.21
+existing valid values, or outside existing valid values. Introduced in v0.23
 the ``limit_area`` parameter restricts filling to either inside or outside values.
 
 .. ipython:: python
 
    # fill one consecutive inside value in both directions
-   ser.interpolate(limit=1, limit_area='inside', limit_direction='both')
+   ser.interpolate(limit_direction='both', limit_area='inside', limit=1)
 
    # fill all consecutive outside values backward
    ser.interpolate(limit_direction='backward', limit_area='outside')
