@@ -38,7 +38,7 @@ cpdef bint is_decimal(object obj):
 
 
 cpdef bint is_interval(object obj):
-    return isinstance(obj, Interval)
+    return getattr(obj, '_typ', '_typ') == 'interval'
 
 
 cpdef bint is_period(object val):

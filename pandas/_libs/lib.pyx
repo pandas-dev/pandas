@@ -49,7 +49,6 @@ PyDateTime_IMPORT
 from tslibs.np_datetime cimport get_timedelta64_value, get_datetime64_value
 
 from tslib import NaT, Timestamp, Timedelta, array_to_datetime
-from interval import Interval
 from missing cimport checknull
 
 
