@@ -4045,7 +4045,7 @@ class Index(IndexOpsMixin, PandasObject):
                 with np.errstate(all='ignore'):
                     result = op(values, other)
 
-                result = dispatch_missing(op, values, other, result)
+                result = missing.dispatch_missing(op, values, other, result)
                 return constructor(result, **attrs)
 
             return _evaluate_numeric_binop
@@ -4167,37 +4167,6 @@ class Index(IndexOpsMixin, PandasObject):
 Index._add_numeric_methods_disabled()
 Index._add_logical_methods()
 Index._add_comparison_methods()
-
-
-def dispatch_missing(op, left, right, result):
-    """
-    Fill nulls caused by division by zero, casting to a diffferent dtype
-    if necessary.
-
-    Parameters
-    ----------
-    op : function (operator.add, operator.div, ...)
-    left : object, usually Index
-    right : object
-    result : ndarray
-
-    Returns
-    -------
-    result : ndarray
-    """
-    opstr = '__{opname}__'.format(opname=op.__name__).replace('____', '__')
-    if op in [operator.truediv, operator.floordiv,
-              getattr(operator, 'div', None)]:
-        result = missing.mask_zero_div_zero(left, right, result)
-    elif op is operator.mod:
-        result = missing.fill_zeros(result, left, right,
-                                    opstr, np.nan)
-    elif op is divmod:
-        res0 = missing.mask_zero_div_zero(left, right, result[0])
-        res1 = missing.fill_zeros(result[1], left, right,
-                                  opstr, np.nan)
-        result = (res0, res1)
-    return result
 
 
 def _ensure_index_from_sequences(sequences, names=None):
