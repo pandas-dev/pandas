@@ -422,11 +422,16 @@ class MultiIndex(Index):
         ``deep``, but if ``deep`` is passed it will attempt to deepcopy.
         This could be potentially expensive on large MultiIndex objects.
         """
+        from copy import deepcopy
+
         name = kwargs.get('name')
-        names = self._validate_names(name=name, names=names, deep=deep)
+
+        if name is None and names is None:
+            names = deepcopy(self.names) if deep else self.names
+        else:
+            names = self._validate_names(name=name, names=names)
 
         if deep:
-            from copy import deepcopy
             if levels is None:
                 levels = deepcopy(self.levels)
             if labels is None:
