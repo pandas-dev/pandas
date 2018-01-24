@@ -2156,10 +2156,18 @@ def hist_frame(data, column=None, by=None, grid=True, xlabelsize=None,
         The size of the figure to create in inches by default
     layout : tuple, optional
         Tuple of (rows, columns) for the layout of the histograms
-    bins : integer, default 10
-        Number of histogram bins to be used
+    bins : integer or sequence, default 10
+        Number of histogram bins to be used. If an integer is given, bins + 1 
+        bin edges are calculated and returned. If bins is a sequence, gives 
+        bin edges, including left edge of first bin and right edge of last 
+        bin. In this case, bins is returned unmodified.
     `**kwds` : other plotting keyword arguments
         To be passed to hist function
+
+    Notes
+    -----
+    See matplotlib documentation online for more on this
+
     """
     _converter._WARN = False
     if by is not None:
@@ -2219,6 +2227,11 @@ def hist_series(self, by=None, ax=None, grid=True, xlabelsize=None,
         rotation of y axis labels
     figsize : tuple, default None
         figure size in inches by default
+    bins : integer or sequence, default 10
+        Number of histogram bins to be used. If an integer is given, bins + 1 
+        bin edges are calculated and returned. If bins is a sequence, gives 
+        bin edges, including left edge of first bin and right edge of last 
+        bin. In this case, bins is returned unmodified.
     bins: integer, default 10
         Number of histogram bins to be used
     `**kwds` : keywords
