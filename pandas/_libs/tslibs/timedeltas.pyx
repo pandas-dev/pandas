@@ -492,7 +492,14 @@ def _binary_op_method_timedeltalike(op, name):
             if other.dtype.kind not in ['m', 'M']:
                 # raise rathering than letting numpy return wrong answer
                 return NotImplemented
-            return op(self.to_timedelta64(), other)
+            result = op(self.to_timedelta64(), other)
+            if other.ndim == 0:
+                if other.dtype.kind == 'm':
+                    return Timedelta(result)
+                if other.dtype.kind == 'M':
+                    from ..tslib import Timestamp
+                    return Timestamp(result)
+            return result
 
         elif not _validate_ops_compat(other):
             return NotImplemented
@@ -1046,7 +1053,10 @@ class Timedelta(_Timedelta):
     def __mul__(self, other):
         if hasattr(other, 'dtype'):
             # ndarray-like
-            return other * self.to_timedelta64()
+            result = other * self.to_timedelta64()
+            if other.ndim == 0:
+                return Timedelta(result)
+            return result
 
         elif other is NaT:
             return NaT
@@ -1061,7 +1071,10 @@ class Timedelta(_Timedelta):
 
     def __truediv__(self, other):
         if hasattr(other, 'dtype'):
-            return self.to_timedelta64() / other
+            result = self.to_timedelta64() / other
+            if other.ndim == 0 and result.dtype.kind == 'm':
+                return Timedelta(result)
+            return result
 
         elif is_integer_object(other) or is_float_object(other):
             # integers or floats
@@ -1077,7 +1090,10 @@ class Timedelta(_Timedelta):
 
     def __rtruediv__(self, other):
         if hasattr(other, 'dtype'):
-            return other / self.to_timedelta64()
+            result = other / self.to_timedelta64()
+            if other.ndim == 0 and result.dtype.kind == 'm':
+                return Timedelta(result)
+            return result
 
         elif not _validate_ops_compat(other):
             return NotImplemented
@@ -1096,6 +1112,9 @@ class Timedelta(_Timedelta):
         # just defer
         if hasattr(other, '_typ'):
             # Series, DataFrame, ...
+            if other._typ == 'dateoffset' and hasattr(other, 'delta'):
+                # Tick offset
+                return self // other.delta
             return NotImplemented
 
         if hasattr(other, 'dtype'):
@@ -1128,6 +1147,9 @@ class Timedelta(_Timedelta):
         # just defer
         if hasattr(other, '_typ'):
             # Series, DataFrame, ...
+            if other._typ == 'dateoffset' and hasattr(other, 'delta'):
+                # Tick offset
+                return other.delta // self
             return NotImplemented
 
         if hasattr(other, 'dtype'):
@@ -1148,6 +1170,23 @@ class Timedelta(_Timedelta):
         if other is NaT:
             return np.nan
         return other.value // self.value
+
+    def __mod__(self, other):
+        # Naive implementation, room for optimization
+        return self.__divmod__(other)[1]
+
+    def __rmod__(self, other):
+        # Naive implementation, room for optimization
+        return self.__rdivmod__(other)[1]
+
+    def __divmod__(self, other):
+        # Naive implementation, room for optimization
+        div = self // other
+        return div, self - div * other
+
+    def __rdivmod__(self, other):
+        div = other // self
+        return div, other - div * self
 
 
 cdef _floordiv(int64_t value, right):

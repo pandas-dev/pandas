@@ -2,7 +2,7 @@
 import pytest
 
 import numpy as np
-from datetime import timedelta
+from datetime import datetime, timedelta
 
 import pandas as pd
 import pandas.util.testing as tm
@@ -128,6 +128,57 @@ class TestTimedeltaArithmetic(object):
         assert abs(-td) == td
         assert abs(-td) == Timedelta('10d')
 
+    def test_mul(self):
+        td = Timedelta(minutes=3)
+
+        result = td * 2
+        assert result == Timedelta(minutes=6)
+
+        result = td * np.int64(1)
+        assert isinstance(result, Timedelta)
+        assert result == td
+
+        result = td * 1.5
+        assert result == Timedelta(minutes=4, seconds=30)
+
+        result = td * np.array([3, 4], dtype='int64')
+        expected = np.array([9, 12], dtype='m8[m]').astype('m8[ns]')
+        tm.assert_numpy_array_equal(result, expected)
+
+        with pytest.raises(TypeError):
+            td * pd.Timestamp(2016, 1, 2)
+
+    def test_add_datetimelike(self):
+        td = Timedelta(10, unit='d')
+
+        result = td + datetime(2016, 1, 1)
+        assert result == pd.Timestamp(2016, 1, 11)
+
+        result = td + pd.Timestamp('2018-01-12 18:09')
+        assert result == pd.Timestamp('2018-01-22 18:09')
+
+        result = td + np.datetime64('2018-01-12')
+        assert result == pd.Timestamp('2018-01-22')
+
+    def test_add_timedeltalike(self):
+        td = Timedelta(10, unit='d')
+
+        result = td + Timedelta(days=10)
+        assert isinstance(result, Timedelta)
+        assert result == Timedelta(days=20)
+
+        result = td + timedelta(days=9)
+        assert isinstance(result, Timedelta)
+        assert result == Timedelta(days=19)
+
+        result = td + pd.offsets.Hour(6)
+        assert isinstance(result, Timedelta)
+        assert result == Timedelta(days=10, hours=6)
+
+        result = td + np.timedelta64(-4, 'D')
+        assert isinstance(result, Timedelta)
+        assert result == Timedelta(days=6)
+
     def test_binary_ops_nat(self):
         td = Timedelta(10, unit='d')
 
@@ -137,6 +188,9 @@ class TestTimedeltaArithmetic(object):
         assert (td / pd.NaT) is np.nan
         assert (td // pd.NaT) is np.nan
         assert (td // np.timedelta64('NaT')) is np.nan
+
+        assert td - np.timedelta64('NaT') is pd.NaT
+        assert td + np.timedelta64('NaT') is pd.NaT
 
     def test_binary_ops_integers(self):
         td = Timedelta(10, unit='d')
@@ -172,6 +226,9 @@ class TestTimedeltaArithmetic(object):
         assert td // scalar == 1
         assert -td // scalar.to_pytimedelta() == -2
         assert (2 * td) // scalar.to_timedelta64() == 2
+
+        assert td // pd.offsets.Hour(1) == 3
+        assert td // pd.offsets.Minute(2) == 92
 
         assert td // np.nan is pd.NaT
         assert np.isnan(td // pd.NaT)
@@ -218,6 +275,8 @@ class TestTimedeltaArithmetic(object):
         assert (-td).__rfloordiv__(scalar.to_pytimedelta()) == -2
         assert (2 * td).__rfloordiv__(scalar.to_timedelta64()) == 0
 
+        assert pd.offsets.Hour(1) // Timedelta(minutes=25) == 2
+
         assert np.isnan(td.__rfloordiv__(pd.NaT))
         assert np.isnan(td.__rfloordiv__(np.timedelta64('NaT')))
 
@@ -254,6 +313,122 @@ class TestTimedeltaArithmetic(object):
         assert res is NotImplemented
         with pytest.raises(TypeError):
             ser // td
+
+    def test_mod(self):
+        td = Timedelta(hours=37)
+
+        # Timedelta-like others
+        result = td % Timedelta(hours=6)
+        assert isinstance(result, Timedelta)
+        assert result == Timedelta(hours=1)
+
+        result = td % timedelta(minutes=60)
+        assert isinstance(result, Timedelta)
+        assert result == Timedelta(0)
+
+        result = td % pd.offsets.Hour(5)
+        assert isinstance(result, Timedelta)
+        assert result == Timedelta(hours=2)
+
+        result = td % np.timedelta64(2, 'h')
+        assert isinstance(result, Timedelta)
+        assert result == Timedelta(hours=1)
+
+        result = td % NaT
+        assert result is NaT
+
+        result = td % np.timedelta64('NaT')
+        assert result is NaT
+
+        # Numeric Others
+        result = td % 2
+        assert isinstance(result, Timedelta)
+        assert result == Timedelta(0)
+
+        result = td % 1e12
+        assert isinstance(result, Timedelta)
+        assert result == Timedelta(minutes=3, seconds=20)
+
+        result = td % int(1e12)
+        assert isinstance(result, Timedelta)
+        assert result == Timedelta(minutes=3, seconds=20)
+
+        # Invalid Others
+        with pytest.raises(TypeError):
+            td % pd.Timestamp('2018-01-22')
+
+        # Array-like others
+        result = td % np.array([6, 5], dtype='timedelta64[h]')
+        expected = np.array([1, 2], dtype='timedelta64[h]').astype('m8[ns]')
+        tm.assert_numpy_array_equal(result, expected)
+
+        result = td % pd.TimedeltaIndex(['6H', '5H'])
+        expected = pd.TimedeltaIndex(['1H', '2H'])
+        tm.assert_index_equal(result, expected)
+
+        result = td % np.array([2, int(1e12)], dtype='i8')
+        expected = np.array([0, Timedelta(minutes=3, seconds=20).value],
+                            dtype='m8[ns]')
+        tm.assert_numpy_array_equal(result, expected)
+
+    def test_rmod(self):
+        td = Timedelta(minutes=3)
+
+        result = timedelta(minutes=4) % td
+        assert isinstance(result, Timedelta)
+        assert result == Timedelta(minutes=1)
+
+        result = np.timedelta64(5, 'm') % td
+        assert isinstance(result, Timedelta)
+        assert result == Timedelta(minutes=2)
+
+        result = np.array([5, 6], dtype='m8[m]') % td
+        expected = np.array([2, 0], dtype='m8[m]').astype('m8[ns]')
+        tm.assert_numpy_array_equal(result, expected)
+
+    def test_divmod(self):
+        td = Timedelta(days=2, hours=6)
+
+        result = divmod(td, timedelta(days=1))
+        assert result[0] == 2
+        assert isinstance(result[1], Timedelta)
+        assert result[1] == Timedelta(hours=6)
+
+        result = divmod(td, pd.offsets.Hour(-4))
+        assert result[0] == -14
+        assert isinstance(result[1], Timedelta)
+        assert result[1] == Timedelta(hours=-2)
+
+        result = divmod(td, 54)
+        assert result[0] == Timedelta(hours=1)
+        assert isinstance(result[1], Timedelta)
+        assert result[1] == Timedelta(0)
+
+        result = divmod(td, 53 * 3600 * 1e9)
+        assert result[0] == Timedelta(1, unit='ns')
+        assert isinstance(result[1], Timedelta)
+        assert result[1] == Timedelta(hours=1)
+
+        assert result
+        result = divmod(td, np.nan)
+        assert result[0] is pd.NaT
+        assert result[1] is pd.NaT
+
+        result = divmod(td, pd.NaT)
+        assert np.isnan(result[0])
+        assert result[1] is pd.NaT
+
+    def test_rdivmod(self):
+
+        result = divmod(timedelta(days=2, hours=6), Timedelta(days=1))
+        assert result[0] == 2
+        assert isinstance(result[1], Timedelta)
+        assert result[1] == Timedelta(hours=6)
+
+        result = divmod(pd.offsets.Hour(54), Timedelta(hours=-4))
+        assert result[0] == -14
+        assert isinstance(result[1], Timedelta)
+        assert result[1] == Timedelta(hours=-2)
 
 
 class TestTimedeltaComparison(object):
