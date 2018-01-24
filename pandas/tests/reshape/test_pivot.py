@@ -1654,4 +1654,6 @@ class TestCrosstab(object):
             columns=pd.Index(set(input_data[1]), name=names[1])
         )
         tm.assert_frame_equal(
-            pd.crosstab(row_series, col_series), expected_crosstab)
+            pd.crosstab(row_series, col_series), expected_crosstab,
+            check_exact=True
+        )
