@@ -10,10 +10,9 @@ from datetime import datetime, timedelta
 iNaT = util.get_nat()
 
 cdef bint PY2 = sys.version_info[0] == 2
+cdef double nan = <double> np.NaN
 
-from util cimport (UINT8_MAX, UINT16_MAX, UINT32_MAX, UINT64_MAX,
-                   INT8_MIN, INT8_MAX, INT16_MIN, INT16_MAX,
-                   INT32_MAX, INT32_MIN, INT64_MAX, INT64_MIN)
+from util cimport UINT8_MAX, UINT64_MAX, INT64_MAX, INT64_MIN
 
 # core.common import for fast inference checks
 
@@ -331,7 +330,7 @@ def infer_dtype(object value, bint skipna=False):
         bint seen_pdnat = False
         bint seen_val = False
 
-    if isinstance(value, np.ndarray):
+    if util.is_array(value):
         values = value
     elif hasattr(value, 'dtype'):
 
@@ -349,7 +348,7 @@ def infer_dtype(object value, bint skipna=False):
             raise ValueError("cannot infer type for {0}".format(type(value)))
 
     else:
-        if not isinstance(value, list):
+        if not PyList_Check(value):
             value = list(value)
         from pandas.core.dtypes.cast import (
             construct_1d_object_array_from_listlike)

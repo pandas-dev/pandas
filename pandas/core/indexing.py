@@ -1936,10 +1936,6 @@ class _iAtIndexer(_ScalarAccessIndexer):
         return key
 
 
-# 32-bit floating point machine epsilon
-_eps = 1.1920929e-07
-
-
 def length_of_indexer(indexer, target=None):
     """return the length of a single non-tuple indexer which could be a slice
     """
@@ -1990,19 +1986,6 @@ def convert_to_index_sliceable(obj, key):
                 return None
 
     return None
-
-
-def is_index_slice(obj):
-    def _is_valid_index(x):
-        return (is_integer(x) or is_float(x) and
-                np.allclose(x, int(x), rtol=_eps, atol=0))
-
-    def _crit(v):
-        return v is None or _is_valid_index(v)
-
-    both_none = obj.start is None and obj.stop is None
-
-    return not both_none and (_crit(obj.start) and _crit(obj.stop))
 
 
 def check_bool_indexer(ax, key):

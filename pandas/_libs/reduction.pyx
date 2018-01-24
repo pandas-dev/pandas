@@ -24,9 +24,9 @@ is_numpy_prior_1_6_2 = LooseVersion(np.__version__) < '1.6.2'
 
 cdef _get_result_array(object obj, Py_ssize_t size, Py_ssize_t cnt):
 
-    if isinstance(obj, np.ndarray) \
-            or isinstance(obj, list) and len(obj) == cnt \
-            or getattr(obj, 'shape', None) == (cnt,):
+    if (util.is_array(obj) or
+            isinstance(obj, list) and len(obj) == cnt or
+            getattr(obj, 'shape', None) == (cnt,)):
         raise ValueError('function does not reduce')
 
     return np.empty(size, dtype='O')
@@ -150,8 +150,7 @@ cdef class Reducer:
                 else:
                     res = self.f(chunk)
 
-                if hasattr(res, 'values') and isinstance(
-                        res.values, np.ndarray):
+                if hasattr(res, 'values') and util.is_array(res.values):
                     res = res.values
                 if i == 0:
                     result = _get_result_array(res,
@@ -433,10 +432,10 @@ cdef class SeriesGrouper:
 cdef inline _extract_result(object res):
     """ extract the result object, it might be a 0-dim ndarray
         or a len-1 0-dim, or a scalar """
-    if hasattr(res, 'values') and isinstance(res.values, np.ndarray):
+    if hasattr(res, 'values') and util.is_array(res.values):
         res = res.values
     if not np.isscalar(res):
-        if isinstance(res, np.ndarray):
+        if util.is_array(res):
             if res.ndim == 0:
                 res = res.item()
             elif res.ndim == 1 and len(res) == 1:
