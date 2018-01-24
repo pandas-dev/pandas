@@ -129,6 +129,7 @@ class TestTimedeltaArithmetic(object):
         assert abs(-td) == Timedelta('10d')
 
     def test_mul(self):
+        # GH#19365
         td = Timedelta(minutes=3)
 
         result = td * 2
@@ -149,6 +150,7 @@ class TestTimedeltaArithmetic(object):
             td * pd.Timestamp(2016, 1, 2)
 
     def test_add_datetimelike(self):
+        # GH#19365
         td = Timedelta(10, unit='d')
 
         result = td + datetime(2016, 1, 1)
@@ -189,6 +191,7 @@ class TestTimedeltaArithmetic(object):
         assert (td // pd.NaT) is np.nan
         assert (td // np.timedelta64('NaT')) is np.nan
 
+        # GH#19365
         assert td - np.timedelta64('NaT') is pd.NaT
         assert td + np.timedelta64('NaT') is pd.NaT
 
@@ -227,6 +230,7 @@ class TestTimedeltaArithmetic(object):
         assert -td // scalar.to_pytimedelta() == -2
         assert (2 * td) // scalar.to_timedelta64() == 2
 
+        # GH#19365
         assert td // pd.offsets.Hour(1) == 3
         assert td // pd.offsets.Minute(2) == 92
 
@@ -315,6 +319,7 @@ class TestTimedeltaArithmetic(object):
             ser // td
 
     def test_mod(self):
+        # GH#19365
         td = Timedelta(hours=37)
 
         # Timedelta-like others
@@ -372,6 +377,7 @@ class TestTimedeltaArithmetic(object):
         tm.assert_numpy_array_equal(result, expected)
 
     def test_rmod(self):
+        # GH#19365
         td = Timedelta(minutes=3)
 
         result = timedelta(minutes=4) % td
@@ -387,6 +393,7 @@ class TestTimedeltaArithmetic(object):
         tm.assert_numpy_array_equal(result, expected)
 
     def test_divmod(self):
+        # GH#19365
         td = Timedelta(days=2, hours=6)
 
         result = divmod(td, timedelta(days=1))
@@ -419,7 +426,7 @@ class TestTimedeltaArithmetic(object):
         assert result[1] is pd.NaT
 
     def test_rdivmod(self):
-
+        # GH#19365
         result = divmod(timedelta(days=2, hours=6), Timedelta(days=1))
         assert result[0] == 2
         assert isinstance(result[1], Timedelta)
