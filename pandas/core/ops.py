@@ -54,7 +54,6 @@ def _gen_eval_kwargs(name):
     -------
     eval_kwargs : dict
 
-
     Examples
     --------
     >>> _gen_eval_kwargs("__add__")
@@ -108,6 +107,229 @@ def _gen_fill_zeros(name):
     else:
         fill_value = None
     return fill_value
+
+
+# -----------------------------------------------------------------------------
+# Docstring Generation and Templates
+
+_op_descriptions = {
+    'add': {'op': '+',
+            'desc': 'Addition',
+            'reversed': False,
+            'reverse': 'radd'},
+    'sub': {'op': '-',
+            'desc': 'Subtraction',
+            'reversed': False,
+            'reverse': 'rsub'},
+    'mul': {'op': '*',
+            'desc': 'Multiplication',
+            'reversed': False,
+            'reverse': 'rmul'},
+    'mod': {'op': '%',
+            'desc': 'Modulo',
+            'reversed': False,
+            'reverse': 'rmod'},
+    'pow': {'op': '**',
+            'desc': 'Exponential power',
+            'reversed': False,
+            'reverse': 'rpow'},
+    'truediv': {'op': '/',
+                'desc': 'Floating division',
+                'reversed': False,
+                'reverse': 'rtruediv'},
+    'floordiv': {'op': '//',
+                 'desc': 'Integer division',
+                 'reversed': False,
+                 'reverse': 'rfloordiv'},
+    'divmod': {'op': 'divmod',
+               'desc': 'Integer division and modulo',
+               'reversed': False,
+               'reverse': None},
+
+    'eq': {'op': '==',
+                 'desc': 'Equal to',
+                 'reversed': False,
+                 'reverse': None},
+    'ne': {'op': '!=',
+                 'desc': 'Not equal to',
+                 'reversed': False,
+                 'reverse': None},
+    'lt': {'op': '<',
+                 'desc': 'Less than',
+                 'reversed': False,
+                 'reverse': None},
+    'le': {'op': '<=',
+                 'desc': 'Less than or equal to',
+                 'reversed': False,
+                 'reverse': None},
+    'gt': {'op': '>',
+                 'desc': 'Greater than',
+                 'reversed': False,
+                 'reverse': None},
+    'ge': {'op': '>=',
+                 'desc': 'Greater than or equal to',
+                 'reversed': False,
+                 'reverse': None}}
+
+_op_names = list(_op_descriptions.keys())
+for key in _op_names:
+    reverse_op = _op_descriptions[key]['reverse']
+    if reverse_op is not None:
+        _op_descriptions[reverse_op] = _op_descriptions[key].copy()
+        _op_descriptions[reverse_op]['reversed'] = True
+        _op_descriptions[reverse_op]['reverse'] = key
+
+_flex_doc_SERIES = """
+{desc} of series and other, element-wise (binary operator `{op_name}`).
+
+Equivalent to ``{equiv}``, but with support to substitute a fill_value for
+missing data in one of the inputs.
+
+Parameters
+----------
+other : Series or scalar value
+fill_value : None or float value, default None (NaN)
+    Fill missing (NaN) values with this value. If both Series are
+    missing, the result will be missing
+level : int or name
+    Broadcast across a level, matching Index values on the
+    passed MultiIndex level
+
+Returns
+-------
+result : Series
+
+See also
+--------
+Series.{reverse}
+"""
+
+_arith_doc_FRAME = """
+Binary operator %s with support to substitute a fill_value for missing data in
+one of the inputs
+
+Parameters
+----------
+other : Series, DataFrame, or constant
+axis : {0, 1, 'index', 'columns'}
+    For Series input, axis to match Series index on
+fill_value : None or float value, default None
+    Fill missing (NaN) values with this value. If both DataFrame locations are
+    missing, the result will be missing
+level : int or name
+    Broadcast across a level, matching Index values on the
+    passed MultiIndex level
+
+Notes
+-----
+Mismatched indices will be unioned together
+
+Returns
+-------
+result : DataFrame
+"""
+
+_flex_doc_FRAME = """
+{desc} of dataframe and other, element-wise (binary operator `{op_name}`).
+
+Equivalent to ``{equiv}``, but with support to substitute a fill_value for
+missing data in one of the inputs.
+
+Parameters
+----------
+other : Series, DataFrame, or constant
+axis : {{0, 1, 'index', 'columns'}}
+    For Series input, axis to match Series index on
+fill_value : None or float value, default None
+    Fill missing (NaN) values with this value. If both DataFrame
+    locations are missing, the result will be missing
+level : int or name
+    Broadcast across a level, matching Index values on the
+    passed MultiIndex level
+
+Notes
+-----
+Mismatched indices will be unioned together
+
+Returns
+-------
+result : DataFrame
+
+See also
+--------
+DataFrame.{reverse}
+"""
+
+_flex_doc_PANEL = """
+{desc} of series and other, element-wise (binary operator `{op_name}`).
+Equivalent to ``{equiv}``.
+
+Parameters
+----------
+other : DataFrame or Panel
+axis : {{items, major_axis, minor_axis}}
+    Axis to broadcast over
+
+Returns
+-------
+Panel
+
+See also
+--------
+Panel.{reverse}
+"""
+
+
+_agg_doc_PANEL = """
+Wrapper method for {wrp_method}
+
+Parameters
+----------
+other : {construct} or {cls_name}
+axis : {{{axis_order}}}
+    Axis to broadcast over
+
+Returns
+-------
+{cls_name}
+"""
+
+
+def _make_flex_doc(op_name, typ):
+    """
+    Make the appropriate substitutions for the given operation and class-typ
+    into either _flex_doc_SERIES or _flex_doc_FRAME to return the docstring
+    to attach to a generated method.
+
+    Parameters
+    ----------
+    op_name : str {'__add__', '__sub__', ... '__eq__', '__ne__', ...}
+    typ : str {series, 'dataframe']}
+
+    Returns
+    -------
+    doc : str
+    """
+    op_name = op_name.replace('__', '')
+    op_desc = _op_descriptions[op_name]
+
+    if op_desc['reversed']:
+        equiv = 'other ' + op_desc['op'] + ' ' + typ
+    else:
+        equiv = typ + ' ' + op_desc['op'] + ' other'
+
+    if typ == 'series':
+        base_doc = _flex_doc_SERIES
+    elif typ == 'dataframe':
+        base_doc = _flex_doc_FRAME
+    elif typ == 'panel':
+        base_doc = _flex_doc_PANEL
+    else:
+        raise AssertionError('Invalid typ argument.')
+
+    doc = base_doc.format(desc=op_desc['desc'], op_name=op_name,
+                          equiv=equiv, reverse=op_desc['reverse'])
+    return doc
 
 
 # -----------------------------------------------------------------------------
@@ -329,6 +551,9 @@ def add_flex_arithmetic_methods(cls, flex_arith_method,
     add_methods(cls, new_methods=new_methods, force=force)
 
 
+# -----------------------------------------------------------------------------
+# Series
+
 def _align_method_SERIES(left, right, align_asobject=False):
     """ align lhs and rhs Series """
 
@@ -519,7 +744,7 @@ def _comp_method_SERIES(op, name, str_rep):
     Wrapper function for Series arithmetic operations, to avoid
     code duplication.
     """
-    masker = _gen_eval_kwargs(name).get('masker', None)
+    masker = _gen_eval_kwargs(name).get('masker', False)
 
     def na_op(x, y):
 
@@ -708,131 +933,6 @@ def _bool_method_SERIES(op, name, str_rep):
     return wrapper
 
 
-_op_descriptions = {'add': {'op': '+',
-                            'desc': 'Addition',
-                            'reversed': False,
-                            'reverse': 'radd'},
-                    'sub': {'op': '-',
-                            'desc': 'Subtraction',
-                            'reversed': False,
-                            'reverse': 'rsub'},
-                    'mul': {'op': '*',
-                            'desc': 'Multiplication',
-                            'reversed': False,
-                            'reverse': 'rmul'},
-                    'mod': {'op': '%',
-                            'desc': 'Modulo',
-                            'reversed': False,
-                            'reverse': 'rmod'},
-                    'pow': {'op': '**',
-                            'desc': 'Exponential power',
-                            'reversed': False,
-                            'reverse': 'rpow'},
-                    'truediv': {'op': '/',
-                                'desc': 'Floating division',
-                                'reversed': False,
-                                'reverse': 'rtruediv'},
-                    'floordiv': {'op': '//',
-                                 'desc': 'Integer division',
-                                 'reversed': False,
-                                 'reverse': 'rfloordiv'},
-                    'divmod': {'op': 'divmod',
-                               'desc': 'Integer division and modulo',
-                               'reversed': False,
-                               'reverse': None},
-
-                    'eq': {'op': '==',
-                                 'desc': 'Equal to',
-                                 'reversed': False,
-                                 'reverse': None},
-                    'ne': {'op': '!=',
-                                 'desc': 'Not equal to',
-                                 'reversed': False,
-                                 'reverse': None},
-                    'lt': {'op': '<',
-                                 'desc': 'Less than',
-                                 'reversed': False,
-                                 'reverse': None},
-                    'le': {'op': '<=',
-                                 'desc': 'Less than or equal to',
-                                 'reversed': False,
-                                 'reverse': None},
-                    'gt': {'op': '>',
-                                 'desc': 'Greater than',
-                                 'reversed': False,
-                                 'reverse': None},
-                    'ge': {'op': '>=',
-                                 'desc': 'Greater than or equal to',
-                                 'reversed': False,
-                                 'reverse': None}}
-
-_op_names = list(_op_descriptions.keys())
-for key in _op_names:
-    reverse_op = _op_descriptions[key]['reverse']
-    if reverse_op is not None:
-        _op_descriptions[reverse_op] = _op_descriptions[key].copy()
-        _op_descriptions[reverse_op]['reversed'] = True
-        _op_descriptions[reverse_op]['reverse'] = key
-
-
-def _make_flex_doc(op_name, typ):
-    """
-    Make the appropriate substitutions for the given operation and class-typ
-    into either _flex_doc_SERIES or _flex_doc_FRAME to return the docstring
-    to attach to a generated method.
-
-    Parameters
-    ----------
-    op_name : str
-    typ : str
-
-    Returns
-    -------
-    doc : str
-    """
-    op_name = op_name.replace('__', '')
-    op_desc = _op_descriptions[op_name]
-
-    if op_desc['reversed']:
-        equiv = 'other ' + op_desc['op'] + ' ' + typ
-    else:
-        equiv = typ + ' ' + op_desc['op'] + ' other'
-
-    if typ == 'series':
-        doc = _flex_doc_SERIES % (op_desc['desc'], op_name, equiv,
-                                  op_desc['reverse'])
-    elif typ == 'dataframe':
-        doc = _flex_doc_FRAME % (op_desc['desc'], op_name, equiv,
-                                 op_desc['reverse'])
-    return doc
-
-
-_flex_doc_SERIES = """
-%s of series and other, element-wise (binary operator `%s`).
-
-Equivalent to ``%s``, but with support to substitute a fill_value for
-missing data in one of the inputs.
-
-Parameters
-----------
-other : Series or scalar value
-fill_value : None or float value, default None (NaN)
-    Fill missing (NaN) values with this value. If both Series are
-    missing, the result will be missing
-level : int or name
-    Broadcast across a level, matching Index values on the
-    passed MultiIndex level
-
-Returns
--------
-result : Series
-
-See also
---------
-Series.%s
-"""
-
-
 def _flex_method_SERIES(op, name, str_rep, default_axis=None):
     doc = _make_flex_doc(name, 'series')
 
@@ -867,62 +967,9 @@ series_special_funcs = dict(arith_method=_arith_method_SERIES,
                             bool_method=_bool_method_SERIES,
                             have_divmod=True)
 
-_arith_doc_FRAME = """
-Binary operator %s with support to substitute a fill_value for missing data in
-one of the inputs
 
-Parameters
-----------
-other : Series, DataFrame, or constant
-axis : {0, 1, 'index', 'columns'}
-    For Series input, axis to match Series index on
-fill_value : None or float value, default None
-    Fill missing (NaN) values with this value. If both DataFrame locations are
-    missing, the result will be missing
-level : int or name
-    Broadcast across a level, matching Index values on the
-    passed MultiIndex level
-
-Notes
------
-Mismatched indices will be unioned together
-
-Returns
--------
-result : DataFrame
-"""
-
-_flex_doc_FRAME = """
-%s of dataframe and other, element-wise (binary operator `%s`).
-
-Equivalent to ``%s``, but with support to substitute a fill_value for
-missing data in one of the inputs.
-
-Parameters
-----------
-other : Series, DataFrame, or constant
-axis : {0, 1, 'index', 'columns'}
-    For Series input, axis to match Series index on
-fill_value : None or float value, default None
-    Fill missing (NaN) values with this value. If both DataFrame
-    locations are missing, the result will be missing
-level : int or name
-    Broadcast across a level, matching Index values on the
-    passed MultiIndex level
-
-Notes
------
-Mismatched indices will be unioned together
-
-Returns
--------
-result : DataFrame
-
-See also
---------
-DataFrame.%s
-"""
-
+# -----------------------------------------------------------------------------
+# DataFrame
 
 def _align_method_FRAME(left, right, axis):
     """ convert rhs to meet lhs dims if input is list, tuple or np.ndarray """
@@ -1042,8 +1089,6 @@ def _arith_method_FRAME(op, name, str_rep=None, default_axis='columns'):
 
 
 def _flex_comp_method_FRAME(op, name, str_rep=None, default_axis='columns'):
-    # Masker unused for now
-    # masker = _gen_eval_kwargs(name).get('masker', False)
 
     def na_op(x, y):
         try:
@@ -1118,6 +1163,9 @@ frame_special_funcs = dict(arith_method=_arith_method_FRAME,
                            comp_method=_comp_method_FRAME,
                            bool_method=_arith_method_FRAME)
 
+
+# -----------------------------------------------------------------------------
+# Panel
 
 def _arith_method_PANEL(op, name, str_rep=None, default_axis=None):
 

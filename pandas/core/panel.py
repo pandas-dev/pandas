@@ -1547,50 +1547,10 @@ class Panel(NDFrame):
                 return result
 
             if name in ops._op_descriptions:
-                op_name = name.replace('__', '')
-                op_desc = ops._op_descriptions[op_name]
-                if op_desc['reversed']:
-                    equiv = 'other ' + op_desc['op'] + ' panel'
-                else:
-                    equiv = 'panel ' + op_desc['op'] + ' other'
-
-                _op_doc = """
-{desc} of series and other, element-wise (binary operator `{op_name}`).
-Equivalent to ``{equiv}``.
-
-Parameters
-----------
-other : {construct} or {cls_name}
-axis : {{{axis_order}}}
-    Axis to broadcast over
-
-Returns
--------
-{cls_name}
-
-See also
---------
-{cls_name}.{reverse}\n"""
-                doc = _op_doc.format(
-                    desc=op_desc['desc'], op_name=op_name, equiv=equiv,
-                    construct=cls._constructor_sliced.__name__,
-                    cls_name=cls.__name__, reverse=op_desc['reverse'],
-                    axis_order=', '.join(cls._AXIS_ORDERS))
+                doc = ops._make_flex_doc(name, 'panel')
             else:
                 # doc strings substitors
-                _agg_doc = """
-                Wrapper method for {wrp_method}
-
-                Parameters
-                ----------
-                other : {construct} or {cls_name}
-                axis : {{{axis_order}}}
-                    Axis to broadcast over
-
-                Returns
-                -------
-                {cls_name}\n"""
-                doc = _agg_doc.format(
+                doc = ops._agg_doc_PANEL.format(
                     construct=cls._constructor_sliced.__name__,
                     cls_name=cls.__name__, wrp_method=name,
                     axis_order=', '.join(cls._AXIS_ORDERS))
