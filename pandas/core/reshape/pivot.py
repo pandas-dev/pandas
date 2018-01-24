@@ -457,6 +457,7 @@ def crosstab(index, columns, values=None, rownames=None, colnames=None,
     df = DataFrame(data, index=common_idx)
     common_cols_idx = df.columns
 
+    # adding dummy column for calculation of pivot table
     if values is None:
         df['__dummy__'] = 0
         kwargs = {'aggfunc': len, 'fill_value': 0}
@@ -468,6 +469,7 @@ def crosstab(index, columns, values=None, rownames=None, colnames=None,
                            margins=margins, margins_name=margins_name,
                            dropna=dropna, **kwargs)
 
+    # since column dummy is before computing pivot table, it has to be removed
     if not table.empty:
         added_cols_idx = list(df.columns.difference(common_cols_idx))[0]
         table = table[added_cols_idx]

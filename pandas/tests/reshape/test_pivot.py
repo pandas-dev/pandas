@@ -1640,30 +1640,18 @@ class TestCrosstab(object):
         result = pd.crosstab(s1, s2)
         tm.assert_frame_equal(result, expected)
 
-    @pytest.mark.parametrize("names", [['a', 'b'],
-                                       [('a', 'b'), 'c'],
-                                       [('a', 'b'), ('c', 'd')],
-                                       [(1, 2, 3), ('a', 'b', 'c')]])
-    def test_crosstab_cols_output(self, names):
-        rows = [[1, 2, 3, 4], [1, 1, 2, 2], [1, 3, 1, 4]]
-        cols = [[1, 1, 1, 1], [3, 2, 2, 3], []]
-
-        expected_ct1 = pd.DataFrame(
-            [1, 1, 1, 1],
-            index=pd.Index([1, 2, 3, 4], name=names[0]),
-            columns=pd.Index([1], name=names[1])
+    @pytest.mark.parametrize("names, input_data, expected_data_out", [
+      (['a', 'b'], [[1, 2, 3], [1, 1, 1]], [1, 1, 1]),
+      ([('a', 'b'), 'c'], [[1, 2, 2], [1, 1, 1]], [1, 2]),
+      ([('a', 'b'), ('c', 'd')], [[1, 2, 3], [1, 2, 3]], np.eye(3, dtype=int))
+    ])
+    def test_crosstab_cols_output(self, names, input_data, expected_data_out):
+        row_series = pd.Series(input_data[0], name=names[0])
+        col_series = pd.Series(input_data[1], name=names[1])
+        expected_crosstab = pd.DataFrame(
+            expected_data_out,
+            index=pd.Index(set(input_data[0]), name=names[0]),
+            columns=pd.Index(set(input_data[1]), name=names[1])
         )
-        expected_ct2 = pd.DataFrame(
-            [[1, 1], [1, 1]],
-            index=pd.Index([1, 2], name=names[0]),
-            columns=pd.Index([2, 3], name=names[1])
-        )
-        expected_ct3 = pd.DataFrame([])
-        expected_arr = [expected_ct1, expected_ct2, expected_ct3]
-
-        for row, col, expected_data in zip(rows, cols, expected_arr):
-            s1 = pd.Series(row, name=names[0])
-            s2 = pd.Series(col, name=names[1])
-            result = pd.crosstab(s1, s2)
-            tm.assert_frame_equal(result, expected_data,
-                                  check_column_type=True)
+        tm.assert_frame_equal(
+            pd.crosstab(row_series, col_series), expected_crosstab)
