@@ -30,6 +30,13 @@ if [ "$LINT" ]; then
     fi
     echo "Linting asv_bench/benchmarks/*.py DONE"
 
+    echo "Linting scripts/*.py"
+    flake8 scripts --filename=*.py
+    if [ $? -ne "0" ]; then
+        RET=1
+    fi
+    echo "Linting scripts/*.py DONE"
+
     echo "Linting *.pyx"
     flake8 pandas --filename=*.pyx --select=E501,E302,E203,E111,E114,E221,E303,E128,E231,E126,E265,E305,E301,E127,E261,E271,E129,W291,E222,E241,E123,F403
     if [ $? -ne "0" ]; then
