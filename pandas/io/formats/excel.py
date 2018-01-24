@@ -277,7 +277,9 @@ class CSSToExcelConverter(object):
 
     NAMED_COLORS = {
         'maroon': '800000',
+        'brown': 'A52A2A',
         'red': 'FF0000',
+        'pink': 'FFC0CB',
         'orange': 'FFA500',
         'yellow': 'FFFF00',
         'olive': '808000',
@@ -291,6 +293,7 @@ class CSSToExcelConverter(object):
         'navy': '000080',
         'black': '000000',
         'gray': '808080',
+        'grey': '808080',
         'silver': 'C0C0C0',
         'white': 'FFFFFF',
     }
