@@ -4,6 +4,7 @@ from distutils.version import LooseVersion
 import numpy
 import pandas
 import dateutil
+import pandas.util._test_decorators as td
 
 
 def pytest_addoption(parser):
@@ -73,3 +74,22 @@ is_dateutil_le_261 = pytest.mark.skipif(
 is_dateutil_gt_261 = pytest.mark.skipif(
     LooseVersion(dateutil.__version__) <= LooseVersion('2.6.1'),
     reason="dateutil stable version")
+
+
+@pytest.fixture(params=[None, 'gzip', 'bz2', 'zip',
+                        pytest.param('xz', marks=td.skip_if_no_lzma)])
+def compression(request):
+    """
+    Fixture for trying common compression types in compression tests
+    """
+    return request.param
+
+
+@pytest.fixture(params=[None, 'gzip', 'bz2',
+                        pytest.param('xz', marks=td.skip_if_no_lzma)])
+def compression_no_zip(request):
+    """
+    Fixture for trying common compression types in compression tests
+    except zip
+    """
+    return request.param
