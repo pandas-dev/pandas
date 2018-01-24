@@ -14,6 +14,7 @@ from pandas.errors import PerformanceWarning
 from pandas import (Timestamp, Timedelta, Series,
                     DatetimeIndex, TimedeltaIndex,
                     date_range)
+from pandas._libs import tslib
 
 
 @pytest.fixture(params=[None, 'UTC', 'Asia/Tokyo',
@@ -44,8 +45,58 @@ def addend(request):
 
 
 class TestDatetimeIndexComparisons(object):
+    @pytest.mark.parametrize('other', [datetime(2016, 1, 1),
+                                       Timestamp('2016-01-01'),
+                                       np.datetime64('2016-01-01')])
+    def test_dti_cmp_datetimelike(self, other, tz):
+        dti = pd.date_range('2016-01-01', periods=2, tz=tz)
+        if tz is not None:
+            if isinstance(other, np.datetime64):
+                # no tzaware version available
+                return
+            elif isinstance(other, Timestamp):
+                other = other.tz_localize(dti.tzinfo)
+            else:
+                other = tslib._localize_pydatetime(other, dti.tzinfo)
+
+        result = dti == other
+        expected = np.array([True, False])
+        tm.assert_numpy_array_equal(result, expected)
+
+        result = dti > other
+        expected = np.array([False, True])
+        tm.assert_numpy_array_equal(result, expected)
+
+        result = dti >= other
+        expected = np.array([True, True])
+        tm.assert_numpy_array_equal(result, expected)
+
+        result = dti < other
+        expected = np.array([False, False])
+        tm.assert_numpy_array_equal(result, expected)
+
+        result = dti <= other
+        expected = np.array([True, False])
+        tm.assert_numpy_array_equal(result, expected)
+
+    def dti_cmp_non_datetime(self, tz):
+        # GH#19301 by convention datetime.date is not considered comparable
+        # to Timestamp or DatetimeIndex.  This may change in the future.
+        dti = pd.date_range('2016-01-01', periods=2, tz=tz)
+
+        other = datetime(2016, 1, 1).date()
+        assert not (dti == other).any()
+        assert (dti != other).all()
+        with pytest.raises(TypeError):
+            dti < other
+        with pytest.raises(TypeError):
+            dti <= other
+        with pytest.raises(TypeError):
+            dti > other
+        with pytest.raises(TypeError):
+            dti >= other
+
     @pytest.mark.parametrize('other', [None,
-                                       datetime(2016, 1, 1).date(),
                                        np.nan])
     def test_dti_cmp_non_datetime(self, tz, other):
         # GH#19301
