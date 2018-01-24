@@ -260,7 +260,7 @@ class IntervalIndex(IntervalMixin, Index):
         right = _ensure_index(right, copy=copy)
 
         if dtype is not None:
-            # GH 19262
+            # GH 19262: dtype must be an IntervalDtype to override inferred
             dtype = pandas_dtype(dtype)
             if not is_interval_dtype(dtype):
                 msg = 'dtype must be an IntervalDtype, got {dtype}'
@@ -574,7 +574,7 @@ class IntervalIndex(IntervalMixin, Index):
 
         Examples
         --------
-        >>>  pd.IntervalIndex.from_tuples([(0, 1), (1,2)])
+        >>>  pd.IntervalIndex.from_tuples([(0, 1), (1, 2)])
         IntervalIndex([(0, 1], (1, 2]],
                       closed='right', dtype='interval[int64]')
 
@@ -596,6 +596,7 @@ class IntervalIndex(IntervalMixin, Index):
                 lhs = rhs = np.nan
             else:
                 try:
+                    # need list of length 2 tuples, e.g. [(0, 1), (1, 2), ...]
                     lhs, rhs = d
                 except ValueError:
                     msg = ('IntervalIndex.from_tuples requires tuples of '

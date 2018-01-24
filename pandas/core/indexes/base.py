@@ -200,8 +200,9 @@ class Index(IndexOpsMixin, PandasObject):
         # interval
         if is_interval_dtype(data) or is_interval_dtype(dtype):
             from .interval import IntervalIndex
+            closed = kwargs.get('closed', None)
             return IntervalIndex(data, dtype=dtype, name=name, copy=copy,
-                                 **kwargs)
+                                 closed=closed)
 
         # index-like
         elif isinstance(data, (np.ndarray, Index, ABCSeries)):
