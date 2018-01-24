@@ -428,6 +428,16 @@ class TestDataFrameApply(TestData):
                 result = frame.applymap(func)
                 tm.assert_frame_equal(result, frame)
 
+    def test_applymap_box_timestamps(self):
+        # #2689, #2627
+        ser = pd.Series(date_range('1/1/2000', periods=10))
+
+        def func(x):
+            return (x.hour, x.day, x.month)
+
+        # it works!
+        pd.DataFrame(ser).applymap(func)
+
     def test_applymap_box(self):
         # ufunc will not be boxed. Same test cases as the test_map_box
         df = pd.DataFrame({'a': [pd.Timestamp('2011-01-01'),
