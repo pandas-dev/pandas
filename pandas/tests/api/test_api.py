@@ -259,3 +259,8 @@ class TestCategoricalMove(object):
 
         with tm.assert_produces_warning(FutureWarning):
             from pandas.core.categorical import Categorical  # noqa
+
+        sys.modules.pop("pandas.core.categorical", None)
+
+        with tm.assert_produces_warning(FutureWarning):
+            from pandas.core.categorical import CategoricalDtype  # noqa
