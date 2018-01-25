@@ -81,3 +81,20 @@ class TestMergeOrdered(object):
         pd.concat([pd.DataFrame()])
         pd.concat([None, pd.DataFrame()])
         pd.concat([pd.DataFrame(), None])
+
+    def test_doc_example(self):
+        left = DataFrame({'key': ['a', 'c', 'e', 'a', 'c', 'e'],
+                          'lvalue': [1, 2, 3, 1, 2, 3],
+                          'group': list('aaabbb')})
+
+        right = DataFrame({'key': ['b', 'c', 'd'],
+                           'rvalue': [1, 2, 3]})
+
+        result = merge_ordered(left, right, fill_method='ffill', left_by='group')
+
+        expected = DataFrame({'group': list('aaaaabbbbb'),
+                              'key': ['a', 'b', 'c', 'd', 'e', 'a', 'b', 'c', 'd', 'e'],
+                              'lvalue': [1, 1, 2, 2, 3, 1, 1, 2, 2, 3],
+                              'rvalue': [nan, 1, 2, 3, 3, nan, 1, 2, 3, 3]})
+
+        assert_frame_equal(result, expected)
