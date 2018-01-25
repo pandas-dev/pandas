@@ -302,6 +302,14 @@ class _BaseOffset(object):
     _normalize_cache = True
     _cacheable = False
     _day_opt = None
+    _attributes = frozenset(['n', 'normalize'])
+
+    @property
+    def kwds(self):
+        # for backwards-compatibility
+        kwds = {name: getattr(self, name, None) for name in self._attributes
+                if name not in ['n', 'normalize']}
+        return {name: kwds[name] for name in kwds if kwds[name] is not None}
 
     def __call__(self, other):
         return self.apply(other)
