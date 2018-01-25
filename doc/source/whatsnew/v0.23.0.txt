@@ -181,21 +181,7 @@ Please note that the string `index` is not supported with the round trip format,
 Index Division By Zero Fills Correctly
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Division operations on ``Index`` and subclasses will now fill positive / 0 with ``np.inf``, negative / 0 with ``-np.inf``, and 0 / 0 with ``np.nan``.  This matches existing Series behavior.
-
-Current Behavior:
-
-.. code-block:: ipython
-
-    In [3]: index = pd.Index([-1, 0, 1])
-    In [4]: index / 0
-    Out[4]: Int64Index([0, 0, 0], dtype='int64')
-    In [5]: index / 0.0
-    Out[5]: Float64Index([-inf, nan, inf], dtype='float64')
-
-    In [6]: index = pd.UInt64Index([0, 1])
-    In [7]: index / np.array([0, 0], dtype=np.uint64)
-    Out[7]: UInt64Index([0, 0], dtype='uint64')
+Division operations on ``Index`` and subclasses will now fill positive / 0 with ``np.inf``, negative / 0 with ``-np.inf``, and 0 / 0 with ``np.nan``.  This matches existing ``Series`` behavior. (:issue:`19322`, :issue:`19347`)
 
 Previous Behavior:
 
@@ -206,6 +192,17 @@ Previous Behavior:
 
    index = pd.UInt64Index([0, 1])
    index / np.array([0, 0], dtype=np.uint64)
+
+Current Behavior:
+
+.. ipython:: python
+
+    index = pd.Index([-1, 0, 1])
+    index / 0
+    index / 0.0
+
+    index = pd.UInt64Index([0, 1])
+    index / np.array([0, 0], dtype=np.uint64)
 
 .. _whatsnew_0230.enhancements.other:
 
