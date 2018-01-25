@@ -247,8 +247,6 @@ void parser_del(parser_t *self);
 
 void parser_set_default_options(parser_t *self);
 
-void debug_print_parser(parser_t *self);
-
 int tokenize_nrows(parser_t *self, size_t nrows);
 
 int tokenize_all_rows(parser_t *self);

@@ -77,6 +77,17 @@ class TestSeriesApply(TestData):
         assert result[0] == ['foo', 'bar']
         assert isinstance(result[0], list)
 
+    def test_series_map_box_timestamps(self):
+        # GH#2689, GH#2627
+        ser = Series(pd.date_range('1/1/2000', periods=10))
+
+        def func(x):
+            return (x.hour, x.day, x.month)
+
+        # it works!
+        ser.map(func)
+        ser.apply(func)
+
     def test_apply_box(self):
         # ufunc will not be boxed. Same test cases as the test_map_box
         vals = [pd.Timestamp('2011-01-01'), pd.Timestamp('2011-01-02')]
