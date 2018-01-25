@@ -2,7 +2,7 @@
 import os
 import sys
 import warnings
-from datetime import datetime, date, time
+from datetime import datetime, date, time, timedelta
 from distutils.version import LooseVersion
 from functools import partial
 from warnings import catch_warnings
@@ -1439,6 +1439,56 @@ class ExcelWriterBase(SharedItems):
                 # since the reader returns a datetime object for dates, we need
                 # to use df_expected to check the result
                 tm.assert_frame_equal(rs2, df_expected)
+
+    def test_to_excel_interval_no_labels(self):
+        # GH19242 - test writing Interval without labels
+        _skip_if_no_xlrd()
+
+        with ensure_clean(self.ext) as path:
+            frame = DataFrame(np.random.randint(-10, 10, size=(20, 1)),
+                              dtype=np.int64)
+            expected = frame.copy()
+            frame['new'] = pd.cut(frame[0], 10)
+            expected['new'] = pd.cut(expected[0], 10).astype(str)
+            frame.to_excel(path, 'test1')
+            reader = ExcelFile(path)
+            recons = read_excel(reader, 'test1')
+            tm.assert_frame_equal(expected, recons)
+
+    def test_to_excel_interval_labels(self):
+        # GH19242 - test writing Interval with labels
+        _skip_if_no_xlrd()
+
+        with ensure_clean(self.ext) as path:
+            frame = DataFrame(np.random.randint(-10, 10, size=(20, 1)),
+                              dtype=np.int64)
+            expected = frame.copy()
+            intervals = pd.cut(frame[0], 10, labels=['A', 'B', 'C', 'D', 'E',
+                                                     'F', 'G', 'H', 'I', 'J'])
+            frame['new'] = intervals
+            expected['new'] = pd.Series(list(intervals))
+            frame.to_excel(path, 'test1')
+            reader = ExcelFile(path)
+            recons = read_excel(reader, 'test1')
+            tm.assert_frame_equal(expected, recons)
+
+    def test_to_excel_timedelta(self):
+        # GH 19242, GH9155 - test writing timedelta to xls
+        _skip_if_no_xlrd()
+
+        with ensure_clean('.xls') as path:
+            frame = DataFrame(np.random.randint(-10, 10, size=(20, 1)),
+                              columns=['A'],
+                              dtype=np.int64
+                              )
+            expected = frame.copy()
+            frame['new'] = frame['A'].apply(lambda x: timedelta(seconds=x))
+            expected['new'] = expected['A'].apply(
+                lambda x: timedelta(seconds=x).total_seconds() / float(86400))
+            frame.to_excel(path, 'test1')
+            reader = ExcelFile(path)
+            recons = read_excel(reader, 'test1')
+            tm.assert_frame_equal(expected, recons)
 
     def test_to_excel_periodindex(self):
         _skip_if_no_xlrd()
