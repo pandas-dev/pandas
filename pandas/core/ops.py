@@ -362,10 +362,17 @@ def _make_flex_doc(op_name, typ):
 # methods
 
 
-def _create_methods(arith_method, comp_method, bool_method,
-                    use_numexpr, special=False, have_divmod=False):
+def _create_methods(cls, arith_method, comp_method, bool_method,
+                    special=False):
     # creates actual methods based upon arithmetic, comp and bool method
     # constructors.
+
+    subtyp = getattr(cls, '_subtyp', '')
+    use_numexpr = 'sparse' not in subtyp
+    # numexpr is available for non-sparse classes
+
+    have_divmod = issubclass(cls, ABCSeries)
+    # divmod is available for Series and SparseSeries
 
     # if we're not using numexpr, then don't pass a str_rep
     if use_numexpr:
@@ -465,16 +472,8 @@ def add_special_arithmetic_methods(cls, arith_method=None,
         if False, checks whether function is defined **on ``cls.__dict__``**
         before defining if True, always defines functions on class base
     """
-    subtyp = getattr(cls, '_subtyp', '')
-    use_numexpr = 'sparse' not in subtyp
-    # numexpr is available for non-sparse classes
-
-    have_divmod = issubclass(cls, ABCSeries)
-    # divmod is available for Series and SparseSeries
-
-    new_methods = _create_methods(arith_method, comp_method,
-                                  bool_method, use_numexpr,
-                                  special=True, have_divmod=have_divmod)
+    new_methods = _create_methods(cls, arith_method, comp_method, bool_method,
+                                  special=True)
 
     # inplace operators (I feel like these should get passed an `inplace=True`
     # or just be removed
@@ -533,12 +532,8 @@ def add_flex_arithmetic_methods(cls, flex_arith_method,
         if False, checks whether function is defined **on ``cls.__dict__``**
         before defining if True, always defines functions on class base
     """
-    subtyp = getattr(cls, '_subtyp', '')
-    use_numexpr = 'sparse' not in subtyp
-
-    new_methods = _create_methods(flex_arith_method,
+    new_methods = _create_methods(cls, flex_arith_method,
                                   flex_comp_method, flex_bool_method,
-                                  use_numexpr,
                                   special=False)
     new_methods.update(dict(multiply=new_methods['mul'],
                             subtract=new_methods['sub'],
