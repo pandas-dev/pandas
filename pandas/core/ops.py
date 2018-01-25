@@ -524,7 +524,7 @@ def add_flex_arithmetic_methods(cls, flex_arith_method,
     Parameters
     ----------
     flex_arith_method : function
-        factory for special arithmetic methods, with op string:
+        factory for flex arithmetic methods, with op string:
         f(op, name, str_rep)
     flex_comp_method : function, optional,
         factory for rich comparison - signature: f(op, name, str_rep)
