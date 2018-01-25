@@ -595,10 +595,14 @@ class TestSeriesArithmetic(object):
 
         assert_series_equal(expected, s)
 
-    @pytest.mark.parametrize('dtype2', [np.int64, np.int32, np.int16, np.int8,
-                                        np.float64, np.float32, np.float16,
-                                        np.uint64, np.uint32,
-                                        np.uint16, np.uint8])
+    @pytest.mark.parametrize(
+        'dtype2',
+        [
+            np.int64, np.int32, np.int16, np.int8,
+            np.float64, np.float32, np.float16,
+            np.uint64, np.uint32,
+            np.uint16, np.uint8
+        ])
     @pytest.mark.parametrize('dtype1', [np.int64, np.float64, np.uint64])
     def test_ser_div_ser(self, dtype1, dtype2):
         # no longer do integer div for any ops, but deal with the 0's
@@ -607,17 +611,9 @@ class TestSeriesArithmetic(object):
 
         with np.errstate(all='ignore'):
             expected = Series(first.values.astype(np.float64) / second.values,
-                              dtype='float64')
+                              dtype='float64', name=None)
         expected.iloc[0:3] = np.inf
 
-        result = first / second
-        assert_series_equal(result, expected)
-
-    def test_ser_div_ser_name_propagation(self):
-        first = Series([3, 4, 5, 8], name='first')
-        second = Series([1, 1, 1, 1], name='second')
-
-        expected = Series([3, 4, 5, 8], dtype='float64', name=None)
         result = first / second
         assert_series_equal(result, expected)
         assert not result.equals(second / first)
@@ -1582,12 +1578,14 @@ class TestDatetimeSeriesArithmetic(object):
 
 
 class TestSeriesOperators(TestData):
-    @pytest.mark.parametrize('ts', [lambda x: (x, x * 2, False),
-                                    lambda x: (x, x[::2], False),
-                                    lambda x: (x, 5, True),
-                                    lambda x: (tm.makeFloatSeries(),
-                                               tm.makeFloatSeries(),
-                                               True)])
+    @pytest.mark.parametrize(
+        'ts',
+        [
+            lambda x: (x, x * 2, False),
+            lambda x: (x, x[::2], False),
+            lambda x: (x, 5, True),
+            lambda x: (tm.makeFloatSeries(), tm.makeFloatSeries(), True)
+        ])
     @pytest.mark.parametrize('opname', ['add', 'sub', 'mul', 'floordiv',
                                         'truediv', 'div', 'pow'])
     def test_op_method(self, opname, ts):
