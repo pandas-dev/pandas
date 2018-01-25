@@ -187,11 +187,30 @@ Previous Behavior:
 
 .. code-block:: ipython
 
-   index = pd.Index([-1, 0, 1])
-   index / 0
+    In [6]: index = pd.Index([-1, 0, 1])
 
-   index = pd.UInt64Index([0, 1])
-   index / np.array([0, 0], dtype=np.uint64)
+    In [7]: index / 0
+    Out[7]: Int64Index([0, 0, 0], dtype='int64')
+
+    In [8]: index = pd.UInt64Index([0, 1])
+
+    In [9]: index / np.array([0, 0], dtype=np.uint64)
+    Out[9]: UInt64Index([0, 0], dtype='uint64')
+
+    In [10]: pd.RangeIndex(1, 5) / 0
+    ---------------------------------------------------------------------------
+    ZeroDivisionError                         Traceback (most recent call last)
+    <ipython-input-10-4c5e91d516f3> in <module>()
+    ----> 1 pd.RangeIndex(1, 5) / 0
+
+    /usr/local/lib/python2.7/site-packages/pandas/core/indexes/range.pyc in _evaluate_numeric_binop(self, other)
+        592                     if step:
+        593                         with np.errstate(all='ignore'):
+    --> 594                             rstep = step(self._step, other)
+        595 
+        596                         # we don't have a representable op
+
+    ZeroDivisionError: integer division or modulo by zero
 
 Current Behavior:
 
@@ -199,10 +218,14 @@ Current Behavior:
 
     index = pd.Index([-1, 0, 1])
     index / 0
+
+    # The result of division by zero should not depend on whether the zero is int or float
     index / 0.0
 
     index = pd.UInt64Index([0, 1])
     index / np.array([0, 0], dtype=np.uint64)
+
+    pd.RangeIndex(1, 5) / 0
 
 .. _whatsnew_0230.enhancements.other:
 
