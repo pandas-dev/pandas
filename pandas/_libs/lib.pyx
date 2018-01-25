@@ -17,8 +17,6 @@ from numpy cimport (ndarray, PyArray_NDIM, PyArray_GETITEM,
 np.import_array()
 np.import_ufunc()
 
-from libc.stdlib cimport malloc, free
-
 from cpython cimport (Py_INCREF, PyTuple_SET_ITEM,
                       PyList_Check, PyFloat_Check,
                       PyString_Check,
@@ -27,8 +25,7 @@ from cpython cimport (Py_INCREF, PyTuple_SET_ITEM,
                       PyTuple_New,
                       PyObject_RichCompareBool,
                       PyBytes_GET_SIZE,
-                      PyUnicode_GET_SIZE,
-                      PyObject)
+                      PyUnicode_GET_SIZE)
 
 try:
     from cpython cimport PyString_GET_SIZE
@@ -37,19 +34,13 @@ except ImportError:
 
 cimport cpython
 
-isnan = np.isnan
-cdef double NaN = <double> np.NaN
-cdef double nan = NaN
 
 from cpython.datetime cimport (PyDateTime_Check, PyDate_Check,
                                PyTime_Check, PyDelta_Check,
                                PyDateTime_IMPORT)
 PyDateTime_IMPORT
 
-from tslibs.np_datetime cimport get_timedelta64_value, get_datetime64_value
-
 from tslib import NaT, Timestamp, Timedelta, array_to_datetime
-from interval import Interval
 from missing cimport checknull
 
 

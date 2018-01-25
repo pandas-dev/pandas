@@ -442,39 +442,36 @@ class TestTimedeltaIndexArithmetic(object):
         res = tdi // (scalar_td)
         tm.assert_index_equal(res, expected)
 
-    # TODO: Split by operation, better name
-    def test_ops_compat(self):
+    def test_tdi_floordiv_tdlike_scalar(self, delta):
+        tdi = timedelta_range('1 days', '10 days', name='foo')
+        expected = Int64Index((np.arange(10) + 1) * 12, name='foo')
 
-        offsets = [pd.offsets.Hour(2), timedelta(hours=2),
-                   np.timedelta64(2, 'h'), Timedelta(hours=2)]
+        result = tdi // delta
+        tm.assert_index_equal(result, expected, exact=False)
 
+    def test_tdi_mul_tdlike_scalar_raises(self, delta):
         rng = timedelta_range('1 days', '10 days', name='foo')
+        with pytest.raises(TypeError):
+            rng * delta
 
-        # multiply
-        for offset in offsets:
-            pytest.raises(TypeError, lambda: rng * offset)
+    def test_tdi_div_nat_raises(self):
+        # don't allow division by NaT (make could in the future)
+        rng = timedelta_range('1 days', '10 days', name='foo')
+        with pytest.raises(TypeError):
+            rng / pd.NaT
 
-        # divide
+    def test_tdi_div_tdlike_scalar(self, delta):
+        rng = timedelta_range('1 days', '10 days', name='foo')
         expected = Int64Index((np.arange(10) + 1) * 12, name='foo')
-        for offset in offsets:
-            result = rng / offset
-            tm.assert_index_equal(result, expected, exact=False)
 
-        # floor divide
-        expected = Int64Index((np.arange(10) + 1) * 12, name='foo')
-        for offset in offsets:
-            result = rng // offset
-            tm.assert_index_equal(result, expected, exact=False)
+        result = rng / delta
+        tm.assert_index_equal(result, expected, exact=False)
 
-        # divide with nats
+    def test_tdi_div_tdlike_scalar_with_nat(self, delta):
         rng = TimedeltaIndex(['1 days', pd.NaT, '2 days'], name='foo')
         expected = Float64Index([12, np.nan, 24], name='foo')
-        for offset in offsets:
-            result = rng / offset
-            tm.assert_index_equal(result, expected)
-
-        # don't allow division by NaT (make could in the future)
-        pytest.raises(TypeError, lambda: rng / pd.NaT)
+        result = rng / delta
+        tm.assert_index_equal(result, expected)
 
     def test_subtraction_ops(self):
         # with datetimes/timedelta and tdi/dti
