@@ -1317,21 +1317,6 @@ int parser_trim_buffers(parser_t *self) {
     return 0;
 }
 
-void debug_print_parser(parser_t *self) {
-    int64_t j, line;
-    char *token;
-
-    for (line = 0; line < self->lines; ++line) {
-        printf("(Parsed) Line %lld: ", (long long)line);
-
-        for (j = 0; j < self->line_fields[j]; ++j) {
-            token = self->words[j + self->line_start[line]];
-            printf("%s ", token);
-        }
-        printf("\n");
-    }
-}
-
 /*
   nrows : number of rows to tokenize (or until reach EOF)
   all : tokenize all the data vs. certain number of rows

@@ -75,22 +75,6 @@ PANDAS_INLINE PyObject* char_to_string(char* data) {
 #endif
 }
 
-void transfer_object_column(char* dst, char* src, size_t stride,
-                            size_t length) {
-    size_t i;
-    size_t sz = sizeof(PyObject*);
-
-    for (i = 0; i < length; ++i) {
-        // uninitialized data
-
-        // Py_XDECREF(*((PyObject**) dst));
-
-        memcpy(dst, src, sz);
-        Py_INCREF(*((PyObject**)dst));
-        src += sz;
-        dst += stride;
-    }
-}
 
 void set_array_not_contiguous(PyArrayObject* ao) {
     ao->flags &= ~(NPY_C_CONTIGUOUS | NPY_F_CONTIGUOUS);
