@@ -141,12 +141,10 @@ class Index(IndexOpsMixin, PandasObject):
     _join_precedence = 1
 
     # Cython methods
-    _arrmap = libalgos.arrmap_object
     _left_indexer_unique = libjoin.left_join_indexer_unique_object
     _left_indexer = libjoin.left_join_indexer_object
     _inner_indexer = libjoin.inner_join_indexer_object
     _outer_indexer = libjoin.outer_join_indexer_object
-    _box_scalars = False
 
     _typ = 'index'
     _data = None
@@ -156,8 +154,6 @@ class Index(IndexOpsMixin, PandasObject):
     _comparables = ['name']
     _attributes = ['name']
     _allow_index_ops = True
-    _allow_datetime_index_ops = False
-    _allow_period_index_ops = False
     _is_numeric_dtype = False
     _can_hold_na = True
 
