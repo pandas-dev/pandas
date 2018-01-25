@@ -646,20 +646,33 @@ def fill_zeros(result, x, y, name, fill):
     return result
 
 
-def mask_zero_div_zero(x, y, result):
+def mask_zero_div_zero(x, y, result, copy=False):
     """
     Set results of 0 / 0 or 0 // 0 to np.nan, regardless of the dtypes
-    of the numerator or the denominator
+    of the numerator or the denominator.
 
     Parameters
     ----------
     x : ndarray
     y : ndarray
     result : ndarray
+    copy : bool (default False)
+        Whether to always create a new array or try to fill in the existing
+        array if possible.
 
     Returns
     -------
     filled_result : ndarray
+
+    Examples
+    --------
+    >>> x = np.array([1, 0, -1], dtype=np.int64)
+    >>> y = 0       # int 0; numpy behavior is different with float
+    >>> result = x / y
+    >>> result      # raw numpy result does not fill division by zero
+    array([0, 0, 0])
+    >>> mask_zero_div_zero(x, y, result)
+    array([ inf,  nan, -inf])
     """
     if is_scalar(y):
         y = np.array(y)
@@ -673,7 +686,7 @@ def mask_zero_div_zero(x, y, result):
         posinf_mask = (zmask & (x > 0)).ravel()
 
         if nan_mask.any() or neginf_mask.any() or posinf_mask.any():
-            result = result.astype('float64', copy=False).ravel()
+            result = result.astype('float64', copy=copy).ravel()
 
             np.putmask(result, nan_mask, np.nan)
             np.putmask(result, posinf_mask, np.inf)
