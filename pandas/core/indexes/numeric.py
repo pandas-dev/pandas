@@ -1,6 +1,6 @@
 import numpy as np
 from pandas._libs import (index as libindex,
-                          algos as libalgos, join as libjoin)
+                          join as libjoin)
 from pandas.core.dtypes.common import (
     is_dtype_equal,
     pandas_dtype,
