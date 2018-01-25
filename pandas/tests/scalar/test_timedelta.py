@@ -194,10 +194,10 @@ class TestTimedeltaArithmetic(object):
         assert (td // np.timedelta64('NaT')) is np.nan
 
         # GH#19365
-        assert td - np.timedelta64('NaT') is pd.NaT
-        assert td + np.timedelta64('NaT') is pd.NaT
-        assert np.timedelta64('NaT') - td is pd.NaT
-        assert np.timedelta64('NaT') + td is pd.NaT
+        assert td - np.timedelta64('NaT', 'ns') is pd.NaT
+        assert td + np.timedelta64('NaT', 'ns') is pd.NaT
+        assert np.timedelta64('NaT', 'ns') - td is pd.NaT
+        assert np.timedelta64('NaT', 'ns') + td is pd.NaT
 
     def test_binary_ops_integers(self):
         td = Timedelta(10, unit='d')
@@ -346,7 +346,7 @@ class TestTimedeltaArithmetic(object):
         result = td % NaT
         assert result is NaT
 
-        result = td % np.timedelta64('NaT')
+        result = td % np.timedelta64('NaT', 'ns')
         assert result is NaT
 
     def test_mod_numeric(self):
