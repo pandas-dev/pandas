@@ -1283,17 +1283,13 @@ class TestDataFrameConstructors(TestData):
 
         tm.assert_frame_equal(df, edf)
 
-        with tm.assert_produces_warning(FutureWarning,
-                                        check_stacklevel=False):
-            idf = DataFrame.from_items([('a', [8]), ('a', [5])],
-                                       columns=['a', 'a'])
+        idf = DataFrame.from_records([(8, 5)],
+                                     columns=['a', 'a'])
+
         tm.assert_frame_equal(idf, edf)
 
-        with tm.assert_produces_warning(FutureWarning,
-                                        check_stacklevel=False):
-            pytest.raises(ValueError, DataFrame.from_items,
-                          [('a', [8]), ('a', [5]), ('b', [6])],
-                          columns=['b', 'a', 'a'])
+        pytest.raises(ValueError, DataFrame.from_dict,
+                      OrderedDict([('b', 8), ('a', 5), ('a', 6)]))
 
     def test_constructor_empty_with_string_dtype(self):
         # GH 9428
