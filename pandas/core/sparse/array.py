@@ -43,8 +43,7 @@ from pandas.core.indexes.base import _index_shared_docs
 _sparray_doc_kwargs = dict(klass='SparseArray')
 
 
-def _arith_method(op, name, str_rep=None, default_axis=None, fill_zeros=None,
-                  **eval_kwargs):
+def _arith_method_SPARSE_ARRAY(op, name, str_rep=None, default_axis=None):
     """
     Wrapper function for Series arithmetic operations, to avoid
     code duplication.
@@ -864,7 +863,8 @@ def _make_index(length, indices, kind):
     return index
 
 
-ops.add_special_arithmetic_methods(SparseArray, arith_method=_arith_method,
-                                   comp_method=_arith_method,
-                                   bool_method=_arith_method,
+ops.add_special_arithmetic_methods(SparseArray,
+                                   arith_method=_arith_method_SPARSE_ARRAY,
+                                   comp_method=_arith_method_SPARSE_ARRAY,
+                                   bool_method=_arith_method_SPARSE_ARRAY,
                                    use_numexpr=False)
