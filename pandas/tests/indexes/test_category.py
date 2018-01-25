@@ -422,7 +422,7 @@ class TestCategoricalIndex(Base):
         expected = ii.take([0, 1, -1])
         tm.assert_index_equal(result, expected)
 
-        result = IntervalIndex.from_intervals(result.values)
+        result = IntervalIndex(result.values)
         tm.assert_index_equal(result, expected)
 
     @pytest.mark.parametrize('name', [None, 'foo'])
