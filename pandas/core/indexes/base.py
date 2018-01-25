@@ -153,7 +153,6 @@ class Index(IndexOpsMixin, PandasObject):
     asi8 = None
     _comparables = ['name']
     _attributes = ['name']
-    _allow_index_ops = True
     _is_numeric_dtype = False
     _can_hold_na = True
 
