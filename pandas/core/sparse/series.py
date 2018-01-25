@@ -41,13 +41,12 @@ _shared_doc_kwargs = dict(axes='index', klass='SparseSeries',
 # Wrapper function for Series arithmetic methods
 
 
-def _arith_method(op, name, str_rep=None, default_axis=None, fill_zeros=None,
-                  **eval_kwargs):
+def _arith_method_SPARSE_SERIES(op, name, str_rep=None, default_axis=None):
     """
     Wrapper function for Series arithmetic operations, to avoid
     code duplication.
 
-    str_rep, default_axis, fill_zeros and eval_kwargs are not used, but are
+    str_rep and default_axis are not used, but are
     present for compatibility.
     """
 
@@ -868,7 +867,8 @@ ops.add_flex_arithmetic_methods(SparseSeries, use_numexpr=False,
                                 **ops.series_flex_funcs)
 # overwrite basic arithmetic to use SparseSeries version
 # force methods to overwrite previous definitions.
-ops.add_special_arithmetic_methods(SparseSeries, _arith_method,
-                                   comp_method=_arith_method,
+ops.add_special_arithmetic_methods(SparseSeries,
+                                   arith_method=_arith_method_SPARSE_SERIES,
+                                   comp_method=_arith_method_SPARSE_SERIES,
                                    bool_method=None, use_numexpr=False,
                                    force=True)
