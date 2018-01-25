@@ -109,6 +109,31 @@ def _gen_fill_zeros(name):
     return fill_value
 
 
+def _get_frame_op_default_axis(name):
+    """
+    Only DataFrame cares about default_axis, specifically:
+    special methods have default_axis=None and flex methods
+    have default_axis='columns'.
+
+    Parameters
+    ----------
+    name : str
+
+    Returns
+    -------
+    default_axis: str or None
+    """
+    if name.replace('__r', '__') in ['__and__', '__or__', '__xor__']:
+        # bool methods
+        return 'columns'
+    elif name.startswith('__'):
+        # __add__, __mul__, ...
+        return None
+    else:
+        # add, mul, ...
+        return 'columns'
+
+
 # -----------------------------------------------------------------------------
 # Docstring Generation and Templates
 
@@ -281,17 +306,17 @@ Panel.{reverse}
 
 
 _agg_doc_PANEL = """
-Wrapper method for {wrp_method}
+Wrapper method for {op_name}
 
 Parameters
 ----------
-other : {construct} or {cls_name}
-axis : {{{axis_order}}}
+other : DataFrame or Panel
+axis : {{items, major_axis, minor_axis}}
     Axis to broadcast over
 
 Returns
 -------
-{cls_name}
+Panel
 """
 
 
@@ -338,13 +363,10 @@ def _make_flex_doc(op_name, typ):
 
 
 def _create_methods(arith_method, comp_method, bool_method,
-                    use_numexpr, special=False, default_axis='columns',
-                    have_divmod=False):
+                    use_numexpr, special=False, have_divmod=False):
     # creates actual methods based upon arithmetic, comp and bool method
     # constructors.
 
-    # NOTE: Only frame cares about default_axis, specifically: special methods
-    # have default axis None, whereas flex methods have default axis 'columns'
     # if we're not using numexpr, then don't pass a str_rep
     if use_numexpr:
         op = lambda x: x
@@ -360,44 +382,28 @@ def _create_methods(arith_method, comp_method, bool_method,
     else:
         names = lambda x: x
 
-    # Inframe, all special methods have default_axis=None, flex methods have
-    # default_axis set to the default (columns)
     # yapf: disable
     new_methods = dict(
-        add=arith_method(operator.add, names('add'), op('+'),
-                         default_axis=default_axis),
-        radd=arith_method(lambda x, y: y + x, names('radd'), op('+'),
-                          default_axis=default_axis),
-        sub=arith_method(operator.sub, names('sub'), op('-'),
-                         default_axis=default_axis),
-        mul=arith_method(operator.mul, names('mul'), op('*'),
-                         default_axis=default_axis),
-        truediv=arith_method(operator.truediv, names('truediv'), op('/'),
-                             default_axis=default_axis),
-        floordiv=arith_method(operator.floordiv, names('floordiv'), op('//'),
-                              default_axis=default_axis),
+        add=arith_method(operator.add, names('add'), op('+')),
+        radd=arith_method(lambda x, y: y + x, names('radd'), op('+')),
+        sub=arith_method(operator.sub, names('sub'), op('-')),
+        mul=arith_method(operator.mul, names('mul'), op('*')),
+        truediv=arith_method(operator.truediv, names('truediv'), op('/')),
+        floordiv=arith_method(operator.floordiv, names('floordiv'), op('//')),
         # Causes a floating point exception in the tests when numexpr enabled,
         # so for now no speedup
-        mod=arith_method(operator.mod, names('mod'), None,
-                         default_axis=default_axis),
-        pow=arith_method(operator.pow, names('pow'), op('**'),
-                         default_axis=default_axis),
+        mod=arith_method(operator.mod, names('mod'), None),
+        pow=arith_method(operator.pow, names('pow'), op('**')),
         # not entirely sure why this is necessary, but previously was included
         # so it's here to maintain compatibility
-        rmul=arith_method(operator.mul, names('rmul'), op('*'),
-                          default_axis=default_axis),
-        rsub=arith_method(lambda x, y: y - x, names('rsub'), op('-'),
-                          default_axis=default_axis),
+        rmul=arith_method(operator.mul, names('rmul'), op('*')),
+        rsub=arith_method(lambda x, y: y - x, names('rsub'), op('-')),
         rtruediv=arith_method(lambda x, y: operator.truediv(y, x),
-                              names('rtruediv'), op('/'),
-                              default_axis=default_axis),
+                              names('rtruediv'), op('/')),
         rfloordiv=arith_method(lambda x, y: operator.floordiv(y, x),
-                               names('rfloordiv'), op('//'),
-                               default_axis=default_axis),
-        rpow=arith_method(lambda x, y: y**x, names('rpow'), op('**'),
-                          default_axis=default_axis),
-        rmod=arith_method(lambda x, y: y % x, names('rmod'), op('%'),
-                          default_axis=default_axis))
+                               names('rfloordiv'), op('//')),
+        rpow=arith_method(lambda x, y: y**x, names('rpow'), op('**')),
+        rmod=arith_method(lambda x, y: y % x, names('rmod'), op('%')))
     # yapf: enable
     new_methods['div'] = new_methods['truediv']
     new_methods['rdiv'] = new_methods['rtruediv']
@@ -425,10 +431,7 @@ def _create_methods(arith_method, comp_method, bool_method,
                                   names('rxor'), op('^'))))
     if have_divmod:
         # divmod doesn't have an op that is supported by numexpr
-        new_methods['divmod'] = arith_method(divmod,
-                                             names('divmod'),
-                                             None,
-                                             default_axis=default_axis)
+        new_methods['divmod'] = arith_method(divmod, names('divmod'), None)
 
     new_methods = {names(k): v for k, v in new_methods.items()}
     return new_methods
@@ -444,8 +447,7 @@ def add_methods(cls, new_methods, force):
 # Arithmetic
 def add_special_arithmetic_methods(cls, arith_method=None,
                                    comp_method=None, bool_method=None,
-                                   use_numexpr=True, force=False,
-                                   have_divmod=False):
+                                   force=False):
     """
     Adds the full suite of special arithmetic methods (``__add__``,
     ``__sub__``, etc.) to the class.
@@ -454,26 +456,24 @@ def add_special_arithmetic_methods(cls, arith_method=None,
     ----------
     arith_method : function (optional)
         factory for special arithmetic methods, with op string:
-        f(op, name, str_rep, default_axis=None)
+        f(op, name, str_rep)
     comp_method : function (optional)
         factory for rich comparison - signature: f(op, name, str_rep)
     bool_method : function (optional)
         factory for boolean methods - signature: f(op, name, str_rep)
-    use_numexpr : bool, default True
-        whether to accelerate with numexpr, defaults to True
     force : bool, default False
         if False, checks whether function is defined **on ``cls.__dict__``**
         before defining if True, always defines functions on class base
-    have_divmod : bool, (optional)
-        should a divmod method be added? this method is special because it
-        returns a tuple of cls instead of a single element of type cls
     """
+    subtyp = getattr(cls, '_subtyp', '')
+    use_numexpr = 'sparse' not in subtyp
+    # numexpr is available for non-sparse classes
 
-    # in frame, special methods have default_axis = None, comp methods use
-    # 'columns'
+    have_divmod = issubclass(cls, ABCSeries)
+    # divmod is available for Series and SparseSeries
 
     new_methods = _create_methods(arith_method, comp_method,
-                                  bool_method, use_numexpr, default_axis=None,
+                                  bool_method, use_numexpr,
                                   special=True, have_divmod=have_divmod)
 
     # inplace operators (I feel like these should get passed an `inplace=True`
@@ -517,7 +517,7 @@ def add_special_arithmetic_methods(cls, arith_method=None,
 
 def add_flex_arithmetic_methods(cls, flex_arith_method,
                                 flex_comp_method=None, flex_bool_method=None,
-                                use_numexpr=True, force=False):
+                                force=False):
     """
     Adds the full suite of flex arithmetic methods (``pow``, ``mul``, ``add``)
     to the class.
@@ -526,19 +526,19 @@ def add_flex_arithmetic_methods(cls, flex_arith_method,
     ----------
     flex_arith_method : function
         factory for special arithmetic methods, with op string:
-        f(op, name, str_rep, default_axis=None)
+        f(op, name, str_rep)
     flex_comp_method : function, optional,
         factory for rich comparison - signature: f(op, name, str_rep)
-    use_numexpr : bool, default True
-        whether to accelerate with numexpr, defaults to True
     force : bool, default False
         if False, checks whether function is defined **on ``cls.__dict__``**
         before defining if True, always defines functions on class base
     """
-    # in frame, default axis is 'columns', doesn't matter for series and panel
+    subtyp = getattr(cls, '_subtyp', '')
+    use_numexpr = 'sparse' not in subtyp
+
     new_methods = _create_methods(flex_arith_method,
                                   flex_comp_method, flex_bool_method,
-                                  use_numexpr, default_axis='columns',
+                                  use_numexpr,
                                   special=False)
     new_methods.update(dict(multiply=new_methods['mul'],
                             subtract=new_methods['sub'],
@@ -597,7 +597,7 @@ def _construct_divmod_result(left, result, index, name, dtype):
     )
 
 
-def _arith_method_SERIES(op, name, str_rep, default_axis=None):
+def _arith_method_SERIES(op, name, str_rep):
     """
     Wrapper function for Series arithmetic operations, to avoid
     code duplication.
@@ -637,15 +637,9 @@ def _arith_method_SERIES(op, name, str_rep, default_axis=None):
             with np.errstate(all='ignore'):
                 return na_op(lvalues, rvalues)
         except Exception:
-            if isinstance(rvalues, ABCSeries):
-                if is_object_dtype(rvalues):
-                    # if dtype is object, try elementwise op
-                    return libalgos.arrmap_object(rvalues,
-                                                  lambda x: op(lvalues, x))
-            else:
-                if is_object_dtype(lvalues):
-                    return libalgos.arrmap_object(lvalues,
-                                                  lambda x: op(x, rvalues))
+            if is_object_dtype(lvalues):
+                return libalgos.arrmap_object(lvalues,
+                                              lambda x: op(x, rvalues))
             raise
 
     def wrapper(left, right, name=name, na_op=na_op):
@@ -671,7 +665,7 @@ def _arith_method_SERIES(op, name, str_rep, default_axis=None):
         lvalues = left.values
         rvalues = right
         if isinstance(rvalues, ABCSeries):
-            rvalues = getattr(rvalues, 'values', rvalues)
+            rvalues = rvalues.values
 
         result = safe_na_op(lvalues, rvalues)
         return construct_result(left, result,
@@ -933,7 +927,7 @@ def _bool_method_SERIES(op, name, str_rep):
     return wrapper
 
 
-def _flex_method_SERIES(op, name, str_rep, default_axis=None):
+def _flex_method_SERIES(op, name, str_rep):
     doc = _make_flex_doc(name, 'series')
 
     @Appender(doc)
@@ -964,8 +958,7 @@ series_flex_funcs = dict(flex_arith_method=_flex_method_SERIES,
 
 series_special_funcs = dict(arith_method=_arith_method_SERIES,
                             comp_method=_comp_method_SERIES,
-                            bool_method=_bool_method_SERIES,
-                            have_divmod=True)
+                            bool_method=_bool_method_SERIES)
 
 
 # -----------------------------------------------------------------------------
@@ -1015,9 +1008,10 @@ def _align_method_FRAME(left, right, axis):
     return right
 
 
-def _arith_method_FRAME(op, name, str_rep=None, default_axis='columns'):
+def _arith_method_FRAME(op, name, str_rep=None):
     eval_kwargs = _gen_eval_kwargs(name)
     fill_zeros = _gen_fill_zeros(name)
+    default_axis = _get_frame_op_default_axis(name)
 
     def na_op(x, y):
         import pandas.core.computation.expressions as expressions
@@ -1088,7 +1082,8 @@ def _arith_method_FRAME(op, name, str_rep=None, default_axis='columns'):
     return f
 
 
-def _flex_comp_method_FRAME(op, name, str_rep=None, default_axis='columns'):
+def _flex_comp_method_FRAME(op, name, str_rep=None):
+    default_axis = _get_frame_op_default_axis(name)
 
     def na_op(x, y):
         try:
@@ -1167,8 +1162,7 @@ frame_special_funcs = dict(arith_method=_arith_method_FRAME,
 # -----------------------------------------------------------------------------
 # Panel
 
-def _arith_method_PANEL(op, name, str_rep=None, default_axis=None):
-
+def _arith_method_PANEL(op, name, str_rep=None):
     # work only for scalars
     def f(self, other):
         if not is_scalar(other):
@@ -1225,6 +1219,40 @@ def _comp_method_PANEL(op, name, str_rep=None):
 
     f.__name__ = name
 
+    return f
+
+
+def _flex_method_PANEL(op, name, str_rep=None):
+    eval_kwargs = _gen_eval_kwargs(name)
+    fill_zeros = _gen_fill_zeros(name)
+
+    def na_op(x, y):
+        import pandas.core.computation.expressions as expressions
+
+        try:
+            result = expressions.evaluate(op, str_rep, x, y,
+                                          errors='raise',
+                                          **eval_kwargs)
+        except TypeError:
+            result = op(x, y)
+
+        # handles discrepancy between numpy and numexpr on division/mod
+        # by 0 though, given that these are generally (always?)
+        # non-scalars, I'm not sure whether it's worth it at the moment
+        result = missing.fill_zeros(result, x, y, name, fill_zeros)
+        return result
+
+    if name in _op_descriptions:
+        doc = _make_flex_doc(name, 'panel')
+    else:
+        # doc strings substitors
+        doc = _agg_doc_PANEL.format(op_name=name)
+
+    @Appender(doc)
+    def f(self, other, axis=0):
+        return self._combine(other, na_op, axis=axis)
+
+    f.__name__ = name
     return f
 
 

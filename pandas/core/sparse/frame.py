@@ -981,7 +981,5 @@ def homogenize(series_dict):
 
 
 # use unaccelerated ops for sparse objects
-ops.add_flex_arithmetic_methods(SparseDataFrame, use_numexpr=False,
-                                **ops.frame_flex_funcs)
-ops.add_special_arithmetic_methods(SparseDataFrame, use_numexpr=False,
-                                   **ops.frame_special_funcs)
+ops.add_flex_arithmetic_methods(SparseDataFrame, **ops.frame_flex_funcs)
+ops.add_special_arithmetic_methods(SparseDataFrame, **ops.frame_special_funcs)
