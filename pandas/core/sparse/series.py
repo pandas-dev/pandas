@@ -19,7 +19,7 @@ from pandas.core.internals import SingleBlockManager
 from pandas.core import generic
 import pandas.core.common as com
 import pandas.core.ops as ops
-import pandas._libs.index as _index
+import pandas._libs.index as libindex
 from pandas.util._decorators import Appender
 
 from pandas.core.sparse.array import (
@@ -166,9 +166,13 @@ class SparseSeries(Series):
                     data = data.astype(dtype)
                 if index is None:
                     index = data.index.view()
-                else:
-
-                    data = data.reindex(index, copy=False)
+                elif not data.index.equals(index) or copy:  # pragma: no cover
+                    # GH#19275 SingleBlockManager input should only be called
+                    # internally
+                    raise AssertionError('Cannot pass both SingleBlockManager '
+                                         '`data` argument and a different '
+                                         '`index` argument.  `copy` must '
+                                         'be False.')
 
             else:
                 length = len(index)
@@ -560,7 +564,7 @@ class SparseSeries(Series):
             key = key.values
 
         values = self.values.to_dense()
-        values[key] = _index.convert_scalar(values, value)
+        values[key] = libindex.convert_scalar(values, value)
         values = SparseArray(values, fill_value=self.fill_value,
                              kind=self.kind)
         self._data = SingleBlockManager(values, self.index)

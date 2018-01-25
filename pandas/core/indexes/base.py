@@ -200,7 +200,9 @@ class Index(IndexOpsMixin, PandasObject):
         # interval
         if is_interval_dtype(data) or is_interval_dtype(dtype):
             from .interval import IntervalIndex
-            return IntervalIndex(data, dtype=dtype, name=name, copy=copy)
+            closed = kwargs.get('closed', None)
+            return IntervalIndex(data, dtype=dtype, name=name, copy=copy,
+                                 closed=closed)
 
         # index-like
         elif isinstance(data, (np.ndarray, Index, ABCSeries)):
@@ -313,8 +315,7 @@ class Index(IndexOpsMixin, PandasObject):
                     return Float64Index(subarr, copy=copy, name=name)
                 elif inferred == 'interval':
                     from .interval import IntervalIndex
-                    return IntervalIndex.from_intervals(subarr, name=name,
-                                                        copy=copy)
+                    return IntervalIndex(subarr, name=name, copy=copy)
                 elif inferred == 'boolean':
                     # don't support boolean explicitly ATM
                     pass
