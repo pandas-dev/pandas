@@ -162,22 +162,24 @@ class TestTimedeltaArithmetic(object):
         result = td + np.datetime64('2018-01-12')
         assert result == pd.Timestamp('2018-01-22')
 
-    def test_add_timedeltalike(self):
+    @pytest.mark.parametrize('op', [lambda x, y: x + y,
+                                    lambda x, y: y + x])
+    def test_add_timedeltalike(self, op):
         td = Timedelta(10, unit='d')
 
-        result = td + Timedelta(days=10)
+        result = op(td, Timedelta(days=10))
         assert isinstance(result, Timedelta)
         assert result == Timedelta(days=20)
 
-        result = td + timedelta(days=9)
+        result = op(td, timedelta(days=9))
         assert isinstance(result, Timedelta)
         assert result == Timedelta(days=19)
 
-        result = td + pd.offsets.Hour(6)
+        result = op(td, pd.offsets.Hour(6))
         assert isinstance(result, Timedelta)
         assert result == Timedelta(days=10, hours=6)
 
-        result = td + np.timedelta64(-4, 'D')
+        result = op(td, np.timedelta64(-4, 'D'))
         assert isinstance(result, Timedelta)
         assert result == Timedelta(days=6)
 
@@ -194,6 +196,8 @@ class TestTimedeltaArithmetic(object):
         # GH#19365
         assert td - np.timedelta64('NaT') is pd.NaT
         assert td + np.timedelta64('NaT') is pd.NaT
+        assert np.timedelta64('NaT') - td is pd.NaT
+        assert np.timedelta64('NaT') + td is pd.NaT
 
     def test_binary_ops_integers(self):
         td = Timedelta(10, unit='d')
@@ -318,7 +322,7 @@ class TestTimedeltaArithmetic(object):
         with pytest.raises(TypeError):
             ser // td
 
-    def test_mod(self):
+    def test_mod_timedeltalike(self):
         # GH#19365
         td = Timedelta(hours=37)
 
@@ -345,6 +349,10 @@ class TestTimedeltaArithmetic(object):
         result = td % np.timedelta64('NaT')
         assert result is NaT
 
+    def test_mod_numeric(self):
+        # GH#19365
+        td = Timedelta(hours=37)
+
         # Numeric Others
         result = td % 2
         assert isinstance(result, Timedelta)
@@ -358,9 +366,9 @@ class TestTimedeltaArithmetic(object):
         assert isinstance(result, Timedelta)
         assert result == Timedelta(minutes=3, seconds=20)
 
-        # Invalid Others
-        with pytest.raises(TypeError):
-            td % pd.Timestamp('2018-01-22')
+    def test_mod_arraylike(self):
+        # GH#19365
+        td = Timedelta(hours=37)
 
         # Array-like others
         result = td % np.array([6, 5], dtype='timedelta64[h]')
@@ -375,6 +383,16 @@ class TestTimedeltaArithmetic(object):
         expected = np.array([0, Timedelta(minutes=3, seconds=20).value],
                             dtype='m8[ns]')
         tm.assert_numpy_array_equal(result, expected)
+
+    def test_mod_invalid(self):
+        # GH#19365
+        td = Timedelta(hours=37)
+
+        with pytest.raises(TypeError):
+            td % pd.Timestamp('2018-01-22')
+
+        with pytest.raises(TypeError):
+            td % []
 
     def test_rmod(self):
         # GH#19365
@@ -391,6 +409,22 @@ class TestTimedeltaArithmetic(object):
         result = np.array([5, 6], dtype='m8[m]') % td
         expected = np.array([2, 0], dtype='m8[m]').astype('m8[ns]')
         tm.assert_numpy_array_equal(result, expected)
+
+    def test_rmod_invalid(self):
+        # GH#19365
+        td = Timedelta(minutes=3)
+
+        with pytest.raises(TypeError):
+            pd.Timestamp('2018-01-22') % td
+
+        with pytest.raises(TypeError):
+            15 % td
+
+        with pytest.raises(TypeError):
+            16.0 % td
+
+        with pytest.raises(TypeError):
+            np.array([22, 24]) % td
 
     def test_divmod(self):
         # GH#19365
@@ -425,6 +459,13 @@ class TestTimedeltaArithmetic(object):
         assert np.isnan(result[0])
         assert result[1] is pd.NaT
 
+    def test_divmod_invalid(self):
+        # GH#19365
+        td = Timedelta(days=2, hours=6)
+
+        with pytest.raises(TypeError):
+            divmod(td, pd.Timestamp('2018-01-22'))
+
     def test_rdivmod(self):
         # GH#19365
         result = divmod(timedelta(days=2, hours=6), Timedelta(days=1))
@@ -436,6 +477,22 @@ class TestTimedeltaArithmetic(object):
         assert result[0] == -14
         assert isinstance(result[1], Timedelta)
         assert result[1] == Timedelta(hours=-2)
+
+    def test_rdivmod_invalid(self):
+        # GH#19365
+        td = Timedelta(minutes=3)
+
+        with pytest.raises(TypeError):
+            divmod(pd.Timestamp('2018-01-22'), td)
+
+        with pytest.raises(TypeError):
+            divmod(15, td)
+
+        with pytest.raises(TypeError):
+            divmod(16.0, td)
+
+        with pytest.raises(TypeError):
+            divmod(np.array([22, 24]), td)
 
 
 class TestTimedeltaComparison(object):
