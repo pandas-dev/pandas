@@ -96,14 +96,23 @@ class TestDatetimeIndexComparisons(object):
         with pytest.raises(TypeError):
             dti >= other
 
-    @pytest.mark.parametrize('other', [None,
-                                       np.nan])
-    def test_dti_cmp_null_scalar(self, tz, other):
+    @pytest.mark.parametrize('other', [None, np.nan, pd.NaT])
+    def test_dti_eq_null_scalar(self, other, tz):
+        # GH#19301
+        dti = pd.date_range('2016-01-01', periods=2, tz=tz)
+        assert not (dti == other).any()
+
+    @pytest.mark.parametrize('other', [None, np.nan, pd.NaT])
+    def test_dti_ne_null_scalar(self, other, tz):
+        # GH#19301
+        dti = pd.date_range('2016-01-01', periods=2, tz=tz)
+        assert (dti != other).all()
+
+    @pytest.mark.parametrize('other', [None, np.nan])
+    def test_dti_cmp_null_scalar_inequality(self, tz, other):
         # GH#19301
         dti = pd.date_range('2016-01-01', periods=2, tz=tz)
 
-        assert not (dti == other).any()
-        assert (dti != other).all()
         with pytest.raises(TypeError):
             dti < other
         with pytest.raises(TypeError):
