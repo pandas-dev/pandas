@@ -1449,6 +1449,19 @@ class TestTSPlot(TestPlotBase):
         s2.plot(ax=ax)
         s1.plot(ax=ax)
 
+    @pytest.mark.xfail(reason="GH9053 matplotlib does not use"
+                              " ax.xaxis.converter")
+    def test_add_matplotlib_datetime64(self):
+        # GH9053 - ensure that a plot with PeriodConverter still understands
+        # datetime64 data. This still fails because matplotlib overrides the
+        # ax.xaxis.converter with a DatetimeConverter
+        s = Series(np.random.randn(10),
+                   index=date_range('1970-01-02', periods=10))
+        ax = s.plot()
+        ax.plot(s.index, s.values, color='g')
+        l1, l2 = ax.lines
+        tm.assert_numpy_array_equal(l1.get_xydata(), l2.get_xydata())
+
 
 def _check_plot_works(f, freq=None, series=None, *args, **kwargs):
     import matplotlib.pyplot as plt

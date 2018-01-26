@@ -19,7 +19,7 @@ from pandas.core.internals import SingleBlockManager
 from pandas.core import generic
 import pandas.core.common as com
 import pandas.core.ops as ops
-import pandas._libs.index as _index
+import pandas._libs.index as libindex
 from pandas.util._decorators import Appender
 
 from pandas.core.sparse.array import (
@@ -41,13 +41,12 @@ _shared_doc_kwargs = dict(axes='index', klass='SparseSeries',
 # Wrapper function for Series arithmetic methods
 
 
-def _arith_method(op, name, str_rep=None, default_axis=None, fill_zeros=None,
-                  **eval_kwargs):
+def _arith_method_SPARSE_SERIES(op, name, str_rep=None, default_axis=None):
     """
     Wrapper function for Series arithmetic operations, to avoid
     code duplication.
 
-    str_rep, default_axis, fill_zeros and eval_kwargs are not used, but are
+    str_rep and default_axis are not used, but are
     present for compatibility.
     """
 
@@ -166,9 +165,13 @@ class SparseSeries(Series):
                     data = data.astype(dtype)
                 if index is None:
                     index = data.index.view()
-                else:
-
-                    data = data.reindex(index, copy=False)
+                elif not data.index.equals(index) or copy:  # pragma: no cover
+                    # GH#19275 SingleBlockManager input should only be called
+                    # internally
+                    raise AssertionError('Cannot pass both SingleBlockManager '
+                                         '`data` argument and a different '
+                                         '`index` argument.  `copy` must '
+                                         'be False.')
 
             else:
                 length = len(index)
@@ -560,7 +563,7 @@ class SparseSeries(Series):
             key = key.values
 
         values = self.values.to_dense()
-        values[key] = _index.convert_scalar(values, value)
+        values[key] = libindex.convert_scalar(values, value)
         values = SparseArray(values, fill_value=self.fill_value,
                              kind=self.kind)
         self._data = SingleBlockManager(values, self.index)
@@ -864,7 +867,8 @@ ops.add_flex_arithmetic_methods(SparseSeries, use_numexpr=False,
                                 **ops.series_flex_funcs)
 # overwrite basic arithmetic to use SparseSeries version
 # force methods to overwrite previous definitions.
-ops.add_special_arithmetic_methods(SparseSeries, _arith_method,
-                                   comp_method=_arith_method,
+ops.add_special_arithmetic_methods(SparseSeries,
+                                   arith_method=_arith_method_SPARSE_SERIES,
+                                   comp_method=_arith_method_SPARSE_SERIES,
                                    bool_method=None, use_numexpr=False,
                                    force=True)

@@ -1617,7 +1617,6 @@ IntervalIndex Components
    IntervalIndex.from_arrays
    IntervalIndex.from_tuples
    IntervalIndex.from_breaks
-   IntervalIndex.from_intervals
    IntervalIndex.contains
    IntervalIndex.left
    IntervalIndex.right

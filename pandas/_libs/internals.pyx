@@ -4,6 +4,7 @@ cimport cython
 from cython cimport Py_ssize_t
 
 from cpython cimport PyObject
+from cpython.slice cimport PySlice_Check
 
 cdef extern from "Python.h":
     Py_ssize_t PY_SSIZE_T_MAX
@@ -32,7 +33,7 @@ cdef class BlockPlacement:
         self._has_slice = False
         self._has_array = False
 
-        if isinstance(val, slice):
+        if PySlice_Check(val):
             slc = slice_canonize(val)
 
             if slc.start != slc.stop:
@@ -118,7 +119,7 @@ cdef class BlockPlacement:
         else:
             val = self._as_array[loc]
 
-        if not isinstance(val, slice) and val.ndim == 0:
+        if not PySlice_Check(val) and val.ndim == 0:
             return val
 
         return BlockPlacement(val)
@@ -288,7 +289,7 @@ def slice_getitem(slice slc not None, ind):
 
     s_start, s_stop, s_step, s_len = slice_get_indices_ex(slc)
 
-    if isinstance(ind, slice):
+    if PySlice_Check(ind):
         ind_start, ind_stop, ind_step, ind_len = slice_get_indices_ex(ind,
                                                                       s_len)
 

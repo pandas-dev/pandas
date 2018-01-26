@@ -207,9 +207,8 @@ Other Enhancements
   :func:`pandas.api.extensions.register_index_accessor`, accessor for libraries downstream of pandas
   to register custom accessors like ``.cat`` on pandas objects. See
   :ref:`Registering Custom Accessors <developer.register-accessors>` for more (:issue:`14781`).
-
-
 - ``IntervalIndex.astype`` now supports conversions between subtypes when passed an ``IntervalDtype`` (:issue:`19197`)
+- :class:`IntervalIndex` and its associated constructor methods (``from_arrays``, ``from_breaks``, ``from_tuples``) have gained a ``dtype`` parameter (:issue:`19262`)
 
 .. _whatsnew_0230.api_breaking:
 
@@ -329,6 +328,7 @@ Deprecations
 - ``Series.valid`` is deprecated. Use :meth:`Series.dropna` instead (:issue:`18800`).
 - :func:`read_excel` has deprecated the ``skip_footer`` parameter. Use ``skipfooter`` instead (:issue:`18836`)
 - The ``is_copy`` attribute is deprecated and will be removed in a future version (:issue:`18801`).
+- ``IntervalIndex.from_intervals`` is deprecated in favor of the :class:`IntervalIndex` constructor (:issue:`19263`)
 
 
 .. _whatsnew_0230.prior_deprecations:
@@ -379,6 +379,8 @@ Performance Improvements
 - Improved performance of :func:`IntervalIndex.symmetric_difference()` (:issue:`18475`)
 - Improved performance of ``DatetimeIndex`` and ``Series`` arithmetic operations with Business-Month and Business-Quarter frequencies (:issue:`18489`)
 - :func:`Series` / :func:`DataFrame` tab completion limits to 100 values, for better performance. (:issue:`18587`)
+- Improved performance of :func:`DataFrame.median` with ``axis=1`` when bottleneck is not installed (:issue:`16468`)
+
 
 .. _whatsnew_0230.docs:
 
@@ -503,6 +505,7 @@ Groupby/Resample/Rolling
 - Fixed regression in :func:`DataFrame.groupby` which would not emit an error when called with a tuple key not in the index (:issue:`18798`)
 - Bug in :func:`DataFrame.resample` which silently ignored unsupported (or mistyped) options for ``label``, ``closed`` and ``convention`` (:issue:`19303`)
 - Bug in :func:`DataFrame.groupby` where tuples were interpreted as lists of keys rather than as keys (:issue:`17979`, :issue:`18249`)
+- Bug in ``transform`` where particular aggregation functions were being incorrectly cast to match the dtype(s) of the grouped data (:issue:`19200`)
 -
 
 Sparse

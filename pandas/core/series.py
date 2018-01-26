@@ -197,8 +197,13 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
             elif isinstance(data, SingleBlockManager):
                 if index is None:
                     index = data.index
-                else:
-                    data = data.reindex(index, copy=copy)
+                elif not data.index.equals(index) or copy:
+                    # GH#19275 SingleBlockManager input should only be called
+                    # internally
+                    raise AssertionError('Cannot pass both SingleBlockManager '
+                                         '`data` argument and a different '
+                                         '`index` argument.  `copy` must '
+                                         'be False.')
             elif isinstance(data, Categorical):
                 # GH12574: Allow dtype=category only, otherwise error
                 if ((dtype is not None) and
@@ -481,7 +486,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
 
     def nonzero(self):
         """
-        Return the indices of the elements that are non-zero
+        Return the *integer* indices of the elements that are non-zero
 
         This method is equivalent to calling `numpy.nonzero` on the
         series data. For compatibility with NumPy, the return value is
@@ -497,6 +502,15 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         >>> s.iloc[s.nonzero()[0]]
         1    3
         3    4
+        dtype: int64
+
+        >>> s = pd.Series([0, 3, 0, 4], index=['a', 'b', 'c', 'd'])
+        # same return although index of s is different
+        >>> s.nonzero()
+        (array([1, 3]),)
+        >>> s.iloc[s.nonzero()[0]]
+        b    3
+        d    4
         dtype: int64
 
         See Also
