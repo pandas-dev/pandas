@@ -122,6 +122,11 @@ class TestDataFrameTimeSeriesMethods(TestData):
         edf = DataFrame({'a': expected, 'b': expected})
         assert_frame_equal(chg, edf)
 
+    def test_pct_change_periods_freq(self):
+        rs_periods = self.tsframe.pct_change(5)
+        rs_freq = self.tsframe.pct_change(periods=1, freq='5B')
+        assert_frame_equal(rs_freq, rs_periods)
+
     def test_frame_ctor_datetime64_column(self):
         rng = date_range('1/1/2000 00:00:00', '1/1/2000 1:59:50', freq='10s')
         dates = np.asarray(rng)
