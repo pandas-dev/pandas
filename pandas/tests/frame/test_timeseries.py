@@ -108,7 +108,9 @@ class TestDataFrameTimeSeriesMethods(TestData):
 
         rs = self.tsframe.pct_change(freq='5D')
         filled = self.tsframe.fillna(method='pad')
-        assert_frame_equal(rs, filled / filled.shift(freq='5D') - 1)
+        assert_frame_equal(rs,
+                           (filled / filled.shift(freq='5D') - 1)
+                           .reindex_like(filled))
 
     def test_pct_change_shift_over_nas(self):
         s = Series([1., 1.5, np.nan, 2.5, 3.])
