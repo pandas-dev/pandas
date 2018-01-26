@@ -6,7 +6,7 @@ from tslibs.nattype import NaT
 from tslibs.conversion cimport convert_to_tsobject
 from tslibs.timedeltas cimport convert_to_timedelta64
 from tslibs.timezones cimport get_timezone, tz_compare
-from datetime import datetime, timedelta
+
 iNaT = util.get_nat()
 
 cdef bint PY2 = sys.version_info[0] == 2
@@ -1387,30 +1387,6 @@ def maybe_convert_objects(ndarray[object] objects, bint try_float=0,
                     return bools.view(np.bool_)
 
     return objects
-
-
-def sanitize_objects(ndarray[object] values, set na_values,
-                     convert_empty=True):
-    cdef:
-        Py_ssize_t i, n
-        object val, onan
-        Py_ssize_t na_count = 0
-        dict memo = {}
-
-    n = len(values)
-    onan = np.nan
-
-    for i from 0 <= i < n:
-        val = values[i]
-        if (convert_empty and val == '') or (val in na_values):
-            values[i] = onan
-            na_count += 1
-        elif val in memo:
-            values[i] = memo[val]
-        else:
-            memo[val] = val
-
-    return na_count
 
 
 def maybe_convert_bool(ndarray[object] arr,

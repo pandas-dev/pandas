@@ -41,6 +41,7 @@ from pandas.core.tools import datetimes as tools
 
 from pandas.util._decorators import Appender
 
+from pandas._libs import writers as libwriters
 import pandas._libs.lib as lib
 import pandas._libs.parsers as parsers
 from pandas._libs.tslibs import parsing
@@ -1596,11 +1597,13 @@ class ParserBase(object):
             except Exception:
                 result = values
                 if values.dtype == np.object_:
-                    na_count = lib.sanitize_objects(result, na_values, False)
+                    na_count = libwriters.sanitize_objects(result, na_values,
+                                                           False)
         else:
             result = values
             if values.dtype == np.object_:
-                na_count = lib.sanitize_objects(values, na_values, False)
+                na_count = libwriters.sanitize_objects(values, na_values,
+                                                       False)
 
         if result.dtype == np.object_ and try_num_bool:
             result = lib.maybe_convert_bool(values,
