@@ -2,7 +2,7 @@
 
 cimport cython
 
-from cpython cimport (PyObject, Py_INCREF, PyList_Check, PyTuple_Check
+from cpython cimport (PyObject, Py_INCREF, PyList_Check, PyTuple_Check,
                       PyMem_Malloc, PyMem_Realloc, PyMem_Free,
                       PyString_Check, PyBytes_Check,
                       PyUnicode_Check)
