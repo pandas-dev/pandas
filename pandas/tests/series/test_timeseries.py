@@ -355,6 +355,11 @@ class TestTimeSeries(TestData):
         expected = Series([np.nan, 0.5, np.nan, 2.5 / 1.5 - 1, .2])
         assert_series_equal(chg, expected)
 
+    def test_pct_change_periods_freq(self):
+        rs_periods = self.ts.pct_change(5)
+        rs_freq = self.ts.pct_change(periods=1, freq='5B')
+        assert_series_equal(rs_freq, rs_periods)
+
     def test_autocorr(self):
         # Just run the function
         corr1 = self.ts.autocorr()
