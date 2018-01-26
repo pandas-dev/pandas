@@ -205,6 +205,7 @@ def decompress_file(path, compression):
         raise ValueError(msg)
 
     yield f
+    f.close()
 
 
 def assert_almost_equal(left, right, check_exact=False,

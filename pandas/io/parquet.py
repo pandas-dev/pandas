@@ -215,7 +215,10 @@ class FastParquetImpl(BaseImpl):
             # We need to retain the original path(str) while also
             # pass the S3File().open function to fsatparquet impl.
             s3, _, _ = get_filepath_or_buffer(path)
-            parquet_file = self.api.ParquetFile(path, open_with=s3.s3.open)
+            try:
+                parquet_file = self.api.ParquetFile(path, open_with=s3.s3.open)
+            finally:
+                s3.close()
         else:
             path, _, _ = get_filepath_or_buffer(path)
             parquet_file = self.api.ParquetFile(path)

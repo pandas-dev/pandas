@@ -148,7 +148,8 @@ def check_round_trip(df, engine=None, path=None,
     def compare(repeat):
         for _ in range(repeat):
             df.to_parquet(path, **write_kwargs)
-            actual = read_parquet(path, **read_kwargs)
+            with catch_warnings(record=True):
+                actual = read_parquet(path, **read_kwargs)
             tm.assert_frame_equal(expected, actual,
                                   check_names=check_names)
 
@@ -228,35 +229,20 @@ def test_cross_engine_fp_pa(df_cross_compat, pa, fp):
     with tm.ensure_clean() as path:
         df.to_parquet(path, engine=fp, compression=None)
 
-        result = read_parquet(path, engine=pa)
-        tm.assert_frame_equal(result, df)
+        with catch_warnings(record=True):
+            result = read_parquet(path, engine=pa)
+            tm.assert_frame_equal(result, df)
 
-        result = read_parquet(path, engine=pa, columns=['a', 'd'])
-        tm.assert_frame_equal(result, df[['a', 'd']])
-
-
-def check_round_trip_equals(df, path, engine,
-                            write_kwargs, read_kwargs,
-                            expected, check_names):
-
-    df.to_parquet(path, engine, **write_kwargs)
-    actual = read_parquet(path, engine, **read_kwargs)
-    tm.assert_frame_equal(expected, actual,
-                          check_names=check_names)
-
-    # repeat
-    df.to_parquet(path, engine, **write_kwargs)
-    actual = read_parquet(path, engine, **read_kwargs)
-    tm.assert_frame_equal(expected, actual,
-                          check_names=check_names)
+            result = read_parquet(path, engine=pa, columns=['a', 'd'])
+            tm.assert_frame_equal(result, df[['a', 'd']])
 
 
 class Base(object):
 
     def check_error_on_write(self, df, engine, exc):
         # check that we are raising the exception on writing
-        with pytest.raises(exc):
-            with tm.ensure_clean() as path:
+        with tm.ensure_clean() as path:
+            with pytest.raises(exc):
                 to_parquet(df, path, engine, compression=None)
 
 
