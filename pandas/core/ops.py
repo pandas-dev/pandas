@@ -368,9 +368,9 @@ def _create_methods(cls, arith_method, comp_method, bool_method,
     # creates actual methods based upon arithmetic, comp and bool method
     # constructors.
 
+    # numexpr is available for non-sparse classes
     subtyp = getattr(cls, '_subtyp', '')
     use_numexpr = 'sparse' not in subtyp
-    # numexpr is available for non-sparse classes
 
     have_divmod = issubclass(cls, ABCSeries)
     # divmod is available for Series and SparseSeries
