@@ -39,7 +39,8 @@ from pandas.core.dtypes.generic import (
     ABCSeries,
     ABCDataFrame,
     ABCIndex,
-    ABCPeriodIndex)
+    ABCPeriodIndex,
+    ABCSparseSeries)
 
 
 def _gen_eval_kwargs(name):
@@ -1254,3 +1255,85 @@ def _flex_method_PANEL(op, name, str_rep=None):
 panel_special_funcs = dict(arith_method=_arith_method_PANEL,
                            comp_method=_comp_method_PANEL,
                            bool_method=_arith_method_PANEL)
+
+
+# -----------------------------------------------------------------------------
+# Sparse
+
+
+def _arith_method_SPARSE_SERIES(op, name, str_rep=None):
+    """
+    Wrapper function for Series arithmetic operations, to avoid
+    code duplication.
+
+    str_rep is not used, but is present for compatibility.
+    """
+
+    def wrapper(self, other):
+        if isinstance(other, ABCDataFrame):
+            return NotImplemented
+        elif isinstance(other, ABCSeries):
+            if not isinstance(other, ABCSparseSeries):
+                other = other.to_sparse(fill_value=self.fill_value)
+            return _sparse_series_op(self, other, op, name)
+        elif is_scalar(other):
+            with np.errstate(all='ignore'):
+                new_values = op(self.values, other)
+            return self._constructor(new_values,
+                                     index=self.index,
+                                     name=self.name)
+        else:  # pragma: no cover
+            raise TypeError('operation with {other} not supported'
+                            .format(other=type(other)))
+
+    wrapper.__name__ = name
+    if name.startswith("__"):
+        # strip special method names, e.g. `__add__` needs to be `add` when
+        # passed to _sparse_series_op
+        name = name[2:-2]
+    return wrapper
+
+
+def _sparse_series_op(left, right, op, name):
+    left, right = left.align(right, join='outer', copy=False)
+    new_index = left.index
+    new_name = com._maybe_match_name(left, right)
+
+    from pandas.core.sparse.array import _sparse_array_op
+    result = _sparse_array_op(left.values, right.values, op, name,
+                              series=True)
+    return left._constructor(result, index=new_index, name=new_name)
+
+
+def _arith_method_SPARSE_ARRAY(op, name, str_rep=None):
+    """
+    Wrapper function for Series arithmetic operations, to avoid
+    code duplication.
+    """
+
+    def wrapper(self, other):
+        from pandas.core.sparse.array import (
+            SparseArray, _sparse_array_op, _wrap_result, _get_fill)
+        if isinstance(other, np.ndarray):
+            if len(self) != len(other):
+                raise AssertionError("length mismatch: {self} vs. {other}"
+                                     .format(self=len(self), other=len(other)))
+            if not isinstance(other, SparseArray):
+                dtype = getattr(other, 'dtype', None)
+                other = SparseArray(other, fill_value=self.fill_value,
+                                    dtype=dtype)
+            return _sparse_array_op(self, other, op, name)
+        elif is_scalar(other):
+            with np.errstate(all='ignore'):
+                fill = op(_get_fill(self), np.asarray(other))
+                result = op(self.sp_values, other)
+
+            return _wrap_result(name, result, self.sp_index, fill)
+        else:  # pragma: no cover
+            raise TypeError('operation with {other} not supported'
+                            .format(other=type(other)))
+
+    if name.startswith("__"):
+        name = name[2:-2]
+    wrapper.__name__ = name
+    return wrapper
