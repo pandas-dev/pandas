@@ -868,6 +868,13 @@ class TestReadHtmlLxml(ReadHtmlMixin):
         banklist_data = os.path.join(DATA_PATH, 'banklist.html')
         self.read_html(banklist_data, '.*Water.*', flavor=['lxml', 'html5lib'])
 
+    def test_to_html_timestamp(self):
+        rng = date_range('2000-01-01', periods=10)
+        df = DataFrame(np.random.randn(10, 4), index=rng)
+
+        result = df.to_html()
+        assert '2000-01-01' in result
+
     def test_parse_dates_list(self):
         df = DataFrame({'date': date_range('1/1/2001', periods=10)})
         expected = df.to_html()

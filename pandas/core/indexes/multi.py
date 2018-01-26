@@ -5,7 +5,7 @@ import warnings
 from sys import getsizeof
 
 import numpy as np
-from pandas._libs import index as libindex, lib, Timestamp
+from pandas._libs import algos as libalgos, index as libindex, lib, Timestamp
 
 from pandas.compat import range, zip, lrange, lzip, map
 from pandas.compat.numpy import function as nv
@@ -22,11 +22,6 @@ from pandas.core.dtypes.common import (
     is_scalar)
 from pandas.core.dtypes.missing import isna, array_equivalent
 from pandas.errors import PerformanceWarning, UnsortedIndexError
-from pandas.core.common import (_any_not_none,
-                                _values_from_object,
-                                is_bool_indexer,
-                                is_null_slice,
-                                is_true_slices)
 
 import pandas.core.base as base
 from pandas.util._decorators import Appender, cache_readonly, deprecate_kwarg
@@ -539,7 +534,7 @@ class MultiIndex(Index):
                                             max_seq_items=False)),
             ('labels', ibase.default_pprint(self._labels,
                                             max_seq_items=False))]
-        if _any_not_none(*self.names):
+        if com._any_not_none(*self.names):
             attrs.append(('names', ibase.default_pprint(self.names)))
         if self.sortorder is not None:
             attrs.append(('sortorder', ibase.default_pprint(self.sortorder)))
@@ -863,8 +858,8 @@ class MultiIndex(Index):
         from pandas.core.indexing import maybe_droplevels
 
         # Label-based
-        s = _values_from_object(series)
-        k = _values_from_object(key)
+        s = com._values_from_object(series)
+        k = com._values_from_object(key)
 
         def _try_mi(k):
             # TODO: what if a level contains tuples??
@@ -1137,7 +1132,7 @@ class MultiIndex(Index):
 
         int64_labels = [_ensure_int64(lab) for lab in self.labels]
         for k in range(self.nlevels, 0, -1):
-            if lib.is_lexsorted(int64_labels[:k]):
+            if libalgos.is_lexsorted(int64_labels[:k]):
                 return k
 
         return 0
@@ -1474,7 +1469,7 @@ class MultiIndex(Index):
 
             return tuple(retval)
         else:
-            if is_bool_indexer(key):
+            if com.is_bool_indexer(key):
                 key = np.asarray(key)
                 sortorder = self.sortorder
             else:
@@ -1612,7 +1607,7 @@ class MultiIndex(Index):
                     inds.append(loc)
                 elif isinstance(loc, slice):
                     inds.extend(lrange(loc.start, loc.stop))
-                elif is_bool_indexer(loc):
+                elif com.is_bool_indexer(loc):
                     if self.lexsort_depth == 0:
                         warnings.warn('dropping on a non-lexsorted multi-index'
                                       ' without a level parameter may impact '
@@ -2145,7 +2140,7 @@ class MultiIndex(Index):
                         pass
                 return key
 
-            key = _values_from_object(key)
+            key = com._values_from_object(key)
             key = tuple(map(_maybe_str_to_time_stamp, key, self.levels))
             return self._engine.get_loc(key)
 
@@ -2303,7 +2298,7 @@ class MultiIndex(Index):
                             key = tuple(self[indexer].tolist()[0])
 
                         return (self._engine.get_loc(
-                            _values_from_object(key)), None)
+                            com._values_from_object(key)), None)
 
                     else:
                         return partial_selection(key)
@@ -2463,7 +2458,7 @@ class MultiIndex(Index):
         """
 
         # must be lexsorted to at least as many levels
-        true_slices = [i for (i, s) in enumerate(is_true_slices(seq)) if s]
+        true_slices = [i for (i, s) in enumerate(com.is_true_slices(seq)) if s]
         if true_slices and true_slices[-1] >= self.lexsort_depth:
             raise UnsortedIndexError('MultiIndex slicing requires the index '
                                      'to be lexsorted: slicing on levels {0}, '
@@ -2480,7 +2475,7 @@ class MultiIndex(Index):
                 m = np.zeros(n, dtype=bool)
                 m[r] = True
                 r = m.nonzero()[0]
-            elif is_bool_indexer(r):
+            elif com.is_bool_indexer(r):
                 if len(r) != n:
                     raise ValueError("cannot index with a boolean indexer "
                                      "that is not the same length as the "
@@ -2498,7 +2493,7 @@ class MultiIndex(Index):
 
         for i, k in enumerate(seq):
 
-            if is_bool_indexer(k):
+            if com.is_bool_indexer(k):
                 # a boolean indexer, must be the same length!
                 k = np.asarray(k)
                 indexer = _update_indexer(_convert_to_indexer(k),
@@ -2527,7 +2522,7 @@ class MultiIndex(Index):
                     # no matches we are done
                     return Int64Index([])._values
 
-            elif is_null_slice(k):
+            elif com.is_null_slice(k):
                 # empty slice
                 indexer = _update_indexer(None, indexer=indexer)
 
@@ -2594,8 +2589,8 @@ class MultiIndex(Index):
             return False
 
         if not isinstance(other, MultiIndex):
-            return array_equivalent(self._values,
-                                    _values_from_object(_ensure_index(other)))
+            other_vals = com._values_from_object(_ensure_index(other))
+            return array_equivalent(self._values, other_vals)
 
         if self.nlevels != other.nlevels:
             return False

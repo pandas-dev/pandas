@@ -12,7 +12,7 @@ from pandas.io.common import (get_filepath_or_buffer, _get_handle,
                               _infer_compression, _stringify_path,
                               BaseIterator)
 from pandas.io.parsers import _validate_integer
-from pandas.core.common import AbstractMethodError
+import pandas.core.common as com
 from pandas.core.reshape.concat import concat
 from pandas.io.formats.printing import pprint_thing
 from .normalize import _convert_to_line_delimits
@@ -93,7 +93,7 @@ class Writer(object):
         self._format_axes()
 
     def _format_axes(self):
-        raise AbstractMethodError(self)
+        raise com.AbstractMethodError(self)
 
     def write(self):
         return self._write(self.obj, self.orient, self.double_precision,
@@ -648,7 +648,7 @@ class Parser(object):
                 setattr(self.obj, axis, new_axis)
 
     def _try_convert_types(self):
-        raise AbstractMethodError(self)
+        raise com.AbstractMethodError(self)
 
     def _try_convert_data(self, name, data, use_dtypes=True,
                           convert_dates=True):
@@ -761,7 +761,7 @@ class Parser(object):
         return data, False
 
     def _try_convert_dates(self):
-        raise AbstractMethodError(self)
+        raise com.AbstractMethodError(self)
 
 
 class SeriesParser(Parser):

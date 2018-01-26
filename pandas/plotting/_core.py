@@ -10,6 +10,7 @@ from distutils.version import LooseVersion
 import numpy as np
 
 from pandas.util._decorators import cache_readonly
+import pandas.core.common as com
 from pandas.core.base import PandasObject
 from pandas.core.config import get_option
 from pandas.core.dtypes.missing import isna, notna, remove_na_arraylike
@@ -21,7 +22,6 @@ from pandas.core.dtypes.common import (
     is_iterator)
 from pandas.core.dtypes.generic import ABCSeries, ABCDataFrame
 
-from pandas.core.common import AbstractMethodError, _try_sort, _any_not_none
 from pandas.core.generic import _shared_docs, _shared_doc_kwargs
 from pandas.core.index import Index, MultiIndex
 
@@ -225,7 +225,7 @@ class MPLPlot(object):
 
         # TODO: unused?
         # if self.sort_columns:
-        #     columns = _try_sort(data.columns)
+        #     columns = com._try_sort(data.columns)
         # else:
         #     columns = data.columns
 
@@ -367,7 +367,7 @@ class MPLPlot(object):
         self.data = numeric_data
 
     def _make_plot(self):
-        raise AbstractMethodError(self)
+        raise com.AbstractMethodError(self)
 
     def _add_table(self):
         if self.table is False:
@@ -609,7 +609,7 @@ class MPLPlot(object):
     def _get_index_name(self):
         if isinstance(self.data.index, MultiIndex):
             name = self.data.index.names
-            if _any_not_none(*name):
+            if com._any_not_none(*name):
                 name = ','.join(pprint_thing(x) for x in name)
             else:
                 name = None
@@ -957,7 +957,7 @@ class LinePlot(MPLPlot):
             it = self._iter_data()
 
         stacking_id = self._get_stacking_id()
-        is_errorbar = _any_not_none(*self.errors.values())
+        is_errorbar = com._any_not_none(*self.errors.values())
 
         colors = self._get_colors()
         for i, (label, y) in enumerate(it):
@@ -2182,7 +2182,7 @@ def hist_frame(data, column=None, by=None, grid=True, xlabelsize=None,
                           layout=layout)
     _axes = _flatten(axes)
 
-    for i, col in enumerate(_try_sort(data.columns)):
+    for i, col in enumerate(com._try_sort(data.columns)):
         ax = _axes[i]
         ax.hist(data[col].dropna().values, bins=bins, **kwds)
         ax.set_title(col)
