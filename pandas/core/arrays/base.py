@@ -173,20 +173,3 @@ class ExtensionArray(object):
         Setting this to false will optimize some operations like fillna.
         """
         return True
-
-    def value_counts(self, dropna=True):
-        """Optional method for computing the histogram of the counts.
-
-        Parameters
-        ----------
-        dropna : bool, default True
-            whether to exclude missing values from the computation
-
-        Returns
-        -------
-        counts : Series
-        """
-        from pandas.core.algorithms import value_counts
-        mask = ~np.asarray(self.isna())
-        values = self[mask]
-        return value_counts(np.asarray(values), dropna=dropna)
