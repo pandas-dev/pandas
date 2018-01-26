@@ -194,19 +194,17 @@ def merge_ordered(left, right, on=None,
     5   e       3     b
 
     >>> merge_ordered(A, B, fill_method='ffill', left_by='group')
-       key  lvalue group  rvalue
-    0    a       1     a     NaN
-    1    b       1     a       1
-    2    c       2     a       2
-    3    d       2     a       3
-    4    e       3     a       3
-    5    f       3     a       4
-    6    a       1     b     NaN
-    7    b       1     b       1
-    8    c       2     b       2
-    9    d       2     b       3
-    10   e       3     b       3
-    11   f       3     b       4
+      group key  lvalue  rvalue
+    0     a   a       1     NaN
+    1     a   b       1     1.0
+    2     a   c       2     2.0
+    3     a   d       2     3.0
+    4     a   e       3     3.0
+    5     b   a       1     NaN
+    6     b   b       1     1.0
+    7     b   c       2     2.0
+    8     b   d       2     3.0
+    9     b   e       3     3.0
 
     Returns
     -------
