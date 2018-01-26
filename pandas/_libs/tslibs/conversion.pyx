@@ -5,9 +5,9 @@ cimport cython
 from cython cimport Py_ssize_t
 
 import numpy as np
-cimport numpy as np
+cimport numpy as cnp
 from numpy cimport int64_t, int32_t, ndarray
-np.import_array()
+cnp.import_array()
 
 import pytz
 
