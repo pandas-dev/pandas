@@ -153,7 +153,7 @@ Libraries can use the decorators
 pandas objects. All of these follow a similar convention: you decorate a class, providing the name of attribute to add. The
 class's `__init__` method gets the object being decorated. For example:
 
-.. ipython:: python
+.. code-block:: python
 
    @pd.api.extensions.register_dataframe_accessor("geo")
    class GeoAccessor(object):
