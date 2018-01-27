@@ -95,6 +95,9 @@ class SparseDataFrame(DataFrame):
                                  dtype=dtype, copy=copy)
         elif isinstance(data, DataFrame):
             mgr = self._init_dict(data, data.index, data.columns, dtype=dtype)
+        elif isinstance(data, Series):
+            mgr = self._init_dict(data.to_frame(), data.index,
+                                  columns=None, dtype=dtype)
         elif isinstance(data, BlockManager):
             mgr = self._init_mgr(data, axes=dict(index=index, columns=columns),
                                  dtype=dtype, copy=copy)
@@ -116,6 +119,10 @@ class SparseDataFrame(DataFrame):
             mgr = to_manager(data, columns, index)
             if dtype is not None:
                 mgr = mgr.astype(dtype)
+        else:
+            msg = ('SparseDataFrame called with unkown type "{data_type}" '
+                   'for data argument')
+            raise TypeError(msg.format(data_type=type(data).__name__))
 
         generic.NDFrame.__init__(self, mgr)
 
