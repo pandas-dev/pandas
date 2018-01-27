@@ -481,6 +481,97 @@ class TestDataFrameApply(TestData):
         result = df.apply(lambda x: x)
         assert_frame_equal(result, df)
 
+    def test_gh_19359_with_and_without_tz(self):
+        # GH #19359
+        def transform_time(x):
+            from dateutil.parser import parse
+            return Series({'time': parse("22:05 UTC+1"),
+                           'title': parse("23:59")})
+
+        applied = DataFrame(["stub"]).apply(transform_time)
+        assert applied is not None
+        answer = transform_time(1)
+        answer.name = 0
+        tm.assert_series_equal(applied[0], answer)
+
+    def test_gh_19359_time_with_different_tz(self):
+        # GH #19359
+        def transform_time(x):
+            from dateutil.parser import parse
+            return Series({'time': parse("22:05 UTC+1"),
+                           'title': parse("23:59 UTC+3")})
+
+        applied = DataFrame(["stub"]).apply(transform_time)
+        assert applied is not None
+        answer = transform_time(1)
+        answer.name = 0
+        tm.assert_series_equal(applied[0], answer)
+
+    def test_gh_19359_time_with_tz_identical(self):
+        # GH #19359
+        def transform_time_identical(x):
+            from dateutil.parser import parse
+            return Series({'time': parse("22:05 UTC+1"),
+                           'title': parse("23:59 UTC+1")})
+
+        applied = DataFrame(["stub"]).apply(transform_time_identical)
+        assert applied is not None
+        answer = transform_time_identical(1)
+        answer.name = 0
+        tm.assert_series_equal(applied[0], answer)
+
+    def test_gh_19359_time_no_tz(self):
+        # GH #19359
+        def transform_time(x):
+            from dateutil.parser import parse
+            return Series({'time': parse("22:05"),
+                           'title': parse("23:59")})
+
+        applied = DataFrame(["stub"]).apply(transform_time)
+        assert applied is not None
+        answer = transform_time(1)
+        answer.name = 0
+        tm.assert_series_equal(applied[0], answer)
+
+    def test_gh_19359_with_int(self):
+        # GH #19359
+        def transform_int(x):
+            from dateutil.parser import parse
+            return Series({'time': parse("22:05 UTC+1"),
+                           'title': 2})
+
+        applied = DataFrame(["stub"]).apply(transform_int)
+        assert applied is not None
+        answer = transform_int(1)
+        answer.name = 0
+        tm.assert_series_equal(applied[0], answer)
+
+    def test_gh_19359(self):
+        # GH #19359
+        def transform(x):
+            from dateutil.parser import parse
+            return Series({'time': parse("22:05 UTC+1"),
+                           'title': 'remove this "title" to remove the error or remove timezone'})
+
+        applied = DataFrame(["stub"]).apply(transform)
+        assert applied is not None
+        answer = transform(1)
+        answer.name = 0
+        tm.assert_series_equal(applied[0], answer)
+
+    def test_gh_19359_no_tz(self):
+        # GH #19359
+        def transform(x):
+            from dateutil.parser import parse
+            return Series({'time': parse("22:05"),
+                           'title': 'remove this "title" to remove the error or remove timezone'})
+
+        applied = DataFrame(["stub"]).apply(transform)
+        assert applied is not None
+        answer = transform(1)
+        answer.name = 0
+        tm.assert_series_equal(applied[0], answer)
+
 
 def zip_frames(*frames):
     """

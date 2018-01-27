@@ -1319,10 +1319,20 @@ def maybe_convert_objects(ndarray[object] objects, bint try_float=0,
 
     # we try to coerce datetime w/tz but must all have the same tz
     if seen.datetimetz_:
-        if len({getattr(val, 'tzinfo', None) for val in objects}) == 1:
+        unique_types = set()
+        from dateutil import tz
+        for val in objects:
+            item = getattr(val, 'tzinfo', type(val).__name__)
+            if isinstance(item, tz.tzoffset):
+                unique_types.add(item.__repr__())
+            else:
+                unique_types.add(item)
+
+        if len(unique_types) == 1:
             from pandas import DatetimeIndex
             return DatetimeIndex(objects)
         seen.object_ = 1
+
 
     if not seen.object_:
         if not safe:
