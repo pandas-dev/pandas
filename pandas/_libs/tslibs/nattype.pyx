@@ -13,9 +13,9 @@ from cpython.datetime cimport (datetime,
 PyDateTime_IMPORT
 
 import numpy as np
-cimport numpy as np
+cimport numpy as cnp
 from numpy cimport int64_t
-np.import_array()
+cnp.import_array()
 
 from util cimport (get_nat,
                    is_integer_object, is_float_object,

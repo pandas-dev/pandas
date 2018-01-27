@@ -10,7 +10,6 @@ cdef extern from "Python.h":
     Py_ssize_t PY_SSIZE_T_MAX
 
 import numpy as np
-cimport numpy as np
 from numpy cimport int64_t
 
 cdef extern from "compat_helper.h":

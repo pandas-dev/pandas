@@ -50,7 +50,7 @@ def rank_1d_{{dtype}}(object in_arr, ties_method='average', ascending=True,
 
         ndarray[float64_t] ranks
         ndarray[int64_t] argsorted
-        ndarray[np.uint8_t, cast=True] sorted_mask
+        ndarray[uint8_t, cast=True] sorted_mask
 
         {{if dtype == 'uint64'}}
         {{ctype}} val

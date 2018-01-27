@@ -10,9 +10,9 @@ from cython cimport Py_ssize_t
 from cpython cimport PyUnicode_Check, Py_NE, Py_EQ, PyObject_RichCompare
 
 import numpy as np
-cimport numpy as np
+cimport numpy as cnp
 from numpy cimport int64_t, ndarray
-np.import_array()
+cnp.import_array()
 
 from cpython.datetime cimport (datetime, timedelta,
                                PyDateTime_CheckExact,

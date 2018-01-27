@@ -1,10 +1,10 @@
 # -*- coding: utf-8 -*-
 # cython: profile=False
 
-cimport numpy as np
+cimport numpy as cnp
 from numpy cimport int64_t, ndarray, float64_t
 import numpy as np
-np.import_array()
+cnp.import_array()
 
 
 from cpython cimport PyFloat_Check

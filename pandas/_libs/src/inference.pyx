@@ -609,13 +609,13 @@ cdef class Validator:
 
     cdef:
         Py_ssize_t n
-        np.dtype dtype
+        cnp.dtype dtype
         bint skipna
 
     def __cinit__(
         self,
         Py_ssize_t n,
-        np.dtype dtype=np.dtype(np.object_),
+        cnp.dtype dtype=np.dtype(np.object_),
         bint skipna=False
     ):
         self.n = n
@@ -823,7 +823,7 @@ cdef class TemporalValidator(Validator):
     def __cinit__(
         self,
         Py_ssize_t n,
-        np.dtype dtype=np.dtype(np.object_),
+        cnp.dtype dtype=np.dtype(np.object_),
         bint skipna=False
     ):
         self.n = n

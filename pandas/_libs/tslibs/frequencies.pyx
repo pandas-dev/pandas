@@ -4,10 +4,9 @@ import re
 
 cimport cython
 
-import numpy as np
-cimport numpy as np
+cimport numpy as cnp
 from numpy cimport int64_t
-np.import_array()
+cnp.import_array()
 
 from util cimport is_integer_object, is_string_object
 
