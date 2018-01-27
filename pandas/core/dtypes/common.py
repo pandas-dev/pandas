@@ -1713,7 +1713,7 @@ def is_extension_array_dtype(arr_or_dtype):
 
     # we want to unpack series, anything else?
     if isinstance(arr_or_dtype, ABCSeries):
-        arr_or_dtype = arr_or_dtype.values
+        arr_or_dtype = arr_or_dtype._values
     return isinstance(arr_or_dtype, (ExtensionDtype, ExtensionArray))
 
 
