@@ -37,8 +37,9 @@ class ExtensionArray(object):
         ``item`` may be one of
 
             * A scalar integer position
-            * A slice object
-            * A boolean mask the same length as 'self'
+            * A slice object, where 'start', 'stop', and 'step' are
+              integers or None
+            * A 1-d boolean NumPy ndarray the same length as 'self'
 
         For scalar ``item``, return a scalar value suitable for the array's
         type. This should be an instance of ``self.dtype.type``.
@@ -105,7 +106,7 @@ class ExtensionArray(object):
     @abc.abstractmethod
     def take(self, indexer, allow_fill=True, fill_value=None):
         # type: (Sequence[int], bool, Optional[Any]) -> ExtensionArray
-        """Take elements from an array
+        """Take elements from an array.
 
         Parameters
         ----------
@@ -117,7 +118,8 @@ class ExtensionArray(object):
             will be done. This short-circuits computation of a mask. Result is
             undefined if allow_fill == False and -1 is present in indexer.
         fill_value : any, default None
-            Fill value to replace -1 values with
+            Fill value to replace -1 values with. By default, this uses
+            the missing value sentinel for this type, ``self._fill_value``.
 
         Notes
         -----
@@ -127,6 +129,20 @@ class ExtensionArray(object):
 
         This is called by ``Series.__getitem__``, ``.loc``, ``iloc``, when the
         indexer is a sequence of values.
+
+        Examples
+        --------
+        Suppose the extension array is actually a NumPy structured array with
+        two fields, and that the underlying structured array is stored as
+        ``self.data``. ``take`` may be written as
+
+        >>> def take(self, indexer, allow_fill=True, fill_value=None):
+        ...     mask = indexer == -1
+        ...     result = self.data.take(indexer)
+        ...     result[mask] = self._fill_value
+        ...     return type(self)(result)
+
+        We ignore the 'allow_fill' and 'fill_value' arguments.
         """
 
     @abc.abstractmethod
