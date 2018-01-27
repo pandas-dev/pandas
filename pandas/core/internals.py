@@ -2415,7 +2415,8 @@ class CategoricalBlock(ExtensionBlock):
 
         # coerce to categorical if we can
         super(CategoricalBlock, self).__init__(_maybe_to_categorical(values),
-                                               placement=placement)
+                                               placement=placement,
+                                               ndim=ndim)
 
     @property
     def is_view(self):
