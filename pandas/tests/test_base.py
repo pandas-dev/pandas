@@ -265,8 +265,8 @@ class TestIndexOps(Ops):
 
     def setup_method(self, method):
         super(TestIndexOps, self).setup_method(method)
-        self.is_valid_objs = [o for o in self.objs if o._allow_index_ops]
-        self.not_valid_objs = [o for o in self.objs if not o._allow_index_ops]
+        self.is_valid_objs = self.objs
+        self.not_valid_objs = []
 
     def test_none_comparison(self):
 
