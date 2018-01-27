@@ -132,17 +132,17 @@ class ExtensionArray(object):
 
         Examples
         --------
-        Suppose the extension array is actually a NumPy structured array with
-        two fields, and that the underlying structured array is stored as
-        ``self.data``. ``take`` may be written as
+        Suppose the extension array somehow backed by a NumPy structured array
+        and that the underlying structured array is stored as ``self.data``.
+        Then ``take`` may be written as
 
-        >>> def take(self, indexer, allow_fill=True, fill_value=None):
-        ...     mask = indexer == -1
-        ...     result = self.data.take(indexer)
-        ...     result[mask] = self._fill_value
-        ...     return type(self)(result)
+        .. code-block:: python
 
-        We ignore the 'allow_fill' and 'fill_value' arguments.
+           def take(self, indexer, allow_fill=True, fill_value=None):
+               mask = indexer == -1
+               result = self.data.take(indexer)
+               result[mask] = self._fill_value
+               return type(self)(result)
         """
 
     @abc.abstractmethod
