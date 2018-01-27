@@ -1333,7 +1333,6 @@ def maybe_convert_objects(ndarray[object] objects, bint try_float=0,
             return DatetimeIndex(objects)
         seen.object_ = 1
 
-
     if not seen.object_:
         if not safe:
             if seen.null_:

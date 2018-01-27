@@ -551,7 +551,8 @@ class TestDataFrameApply(TestData):
         def transform(x):
             from dateutil.parser import parse
             return Series({'time': parse("22:05 UTC+1"),
-                           'title': 'remove this "title" to remove the error or remove timezone'})
+                           'title': 'remove this "title" to remove the error '
+                                    'or remove timezone'})
 
         applied = DataFrame(["stub"]).apply(transform)
         assert applied is not None
@@ -564,7 +565,8 @@ class TestDataFrameApply(TestData):
         def transform(x):
             from dateutil.parser import parse
             return Series({'time': parse("22:05"),
-                           'title': 'remove this "title" to remove the error or remove timezone'})
+                           'title': 'remove this "title" to remove the error '
+                                    'or remove timezone'})
 
         applied = DataFrame(["stub"]).apply(transform)
         assert applied is not None
