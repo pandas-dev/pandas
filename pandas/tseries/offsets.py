@@ -196,8 +196,7 @@ class DateOffset(BaseOffset):
         self.normalize = normalize
 
         self._offset, self._use_relativedelta = _determine_offset(kwds)
-        for name in kwds:
-            setattr(self, name, kwds[name])
+        self.__dict__.update(kwds)
 
     @apply_wraps
     def apply(self, other):
@@ -288,7 +287,7 @@ class DateOffset(BaseOffset):
         return (self.n == 1)
 
     def _params(self):
-        all_paras = vars(self)
+        all_paras = self.__dict__.copy()
         if 'holidays' in all_paras and not all_paras['holidays']:
             all_paras.pop('holidays')
         exclude = ['kwds', 'name', 'normalize', 'calendar']
@@ -427,9 +426,9 @@ class DateOffset(BaseOffset):
     def __setstate__(self, state):
         """Reconstruct an instance from a pickled state"""
         if 'offset' in state:
-            # Older versions have offset attribute instead of _offset
+            # Older (<0.22.0) versions have offset attribute instead of _offset
             if '_offset' in state:  # pragma: no cover
-                raise ValueError('Unexpected key `_offset`')
+                raise AssertionError('Unexpected key `_offset`')
             state['_offset'] = state.pop('offset')
             state['kwds']['offset'] = state['_offset']
 
