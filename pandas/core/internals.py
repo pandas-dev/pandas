@@ -1688,8 +1688,7 @@ class NonConsolidatableMixIn(object):
             else:
                 ndim = 2
         super(NonConsolidatableMixIn, self).__init__(values, placement,
-                                                     ndim=ndim,
-                                                     fastpath=fastpath)
+                                                     ndim=ndim)
 
     @property
     def shape(self):
@@ -1901,7 +1900,7 @@ class ExtensionBlock(NonConsolidatableMixIn, Block):
         # return same dims as we currently have
 
         if isinstance(slicer, tuple) and len(slicer) == 2:
-            if not is_null_slice(slicer[0]):
+            if not com.is_null_slice(slicer[0]):
                 raise AssertionError("invalid slicing for a 1-ndim "
                                      "categorical")
             slicer = slicer[1]
@@ -2447,7 +2446,7 @@ class CategoricalBlock(ExtensionBlock):
 
         # coerce to categorical if we can
         super(CategoricalBlock, self).__init__(_maybe_to_categorical(values),
-                                               placement=placement, ndim=ndim)
+                                               placement=placement)
 
     @property
     def is_view(self):
