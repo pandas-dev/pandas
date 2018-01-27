@@ -1805,45 +1805,14 @@ class ExtensionBlock(NonConsolidatableMixIn, Block):
     This is the holds all 3rd-party extension types. It's also the immediate
     parent class for our internal extension types' blocks, CategoricalBlock.
 
-    All extension arrays *must* be 1-D, which simplifies things a bit.
+    ExtensionArrays are limited to 1-D.
     """
-    # Some questions / notes as comments, will be removed.
-    #
-    # Currently inherited from NCB. We'll keep it around until SparseBlock
-    # and DatetimeTZBlock are refactored.
-    # - set
-    # - iget
-    # - should_store
-    # - putmask
-    # - _slice
-    # - _try_cast_result
-    # - unstack
-
-    # Think about overriding these methods from Block
-    # - _maybe_downcast: (never downcast)
-
-    # Methods we can (probably) ignore and just use Block's:
-
-    # * replace / replace_single
-    #   Categorical got Object, but was hopefully unnescessary.
-    #   DatetimeTZ, Sparse got Block
-    # * is_view
-    #   Categorical overrides to say that it is not.
-    #   DatetimeTZ, Sparse inherits Base anyway
-
     is_extension = True
-
-    # XXX
-    # is_bool is is a change for CategoricalBlock. Used to inherit
-    # from Object to infer from values. If this matters, we should
-    # override it directly in CategoricalBlock so that we infer from
-    # the categories, not the codes.
     is_bool = False
 
-    def __init__(self, values, placement, ndim=None, fastpath=False):
+    def __init__(self, values, placement, ndim=None):
         self._holder = type(values)
-        super(ExtensionBlock, self).__init__(values, placement, ndim=ndim,
-                                             fastpath=fastpath)
+        super(ExtensionBlock, self).__init__(values, placement, ndim=ndim)
 
     def get_values(self, dtype=None):
         # ExtensionArrays must be iterable, so this works.
@@ -1857,7 +1826,7 @@ class ExtensionBlock(NonConsolidatableMixIn, Block):
 
     def take_nd(self, indexer, axis=0, new_mgr_locs=None, fill_tuple=None):
         """
-        Take values according to indexer and return them as a block.bb
+        Take values according to indexer and return them as a block.
         """
         if fill_tuple is None:
             fill_value = None
@@ -2441,7 +2410,7 @@ class CategoricalBlock(ExtensionBlock):
     _holder = Categorical
     _concatenator = staticmethod(_concat._concat_categorical)
 
-    def __init__(self, values, placement):
+    def __init__(self, values, placement, ndim=None):
         from pandas.core.arrays.categorical import _maybe_to_categorical
 
         # coerce to categorical if we can
