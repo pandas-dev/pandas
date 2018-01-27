@@ -204,7 +204,6 @@ class PeriodIndex(DatelikeOps, DatetimeIndexOpsMixin, Int64Index):
     DatetimeIndex : Index with datetime64 data
     TimedeltaIndex : Index of timedelta64 data
     """
-    _box_scalars = True
     _typ = 'periodindex'
     _attributes = ['name', 'freq']
 
