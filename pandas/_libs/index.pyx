@@ -1,13 +1,18 @@
 # cython: profile=False
 
-from numpy cimport (ndarray, float64_t, int32_t, int64_t, uint8_t, uint64_t,
-                    NPY_DATETIME, NPY_TIMEDELTA)
+from numpy cimport (ndarray, float64_t, int32_t, int64_t, uint8_t, uint64_t)
 cimport cython
 
 cimport numpy as cnp
 
 cnp.import_array()
 cnp.import_ufunc()
+
+cdef extern from "numpy/arrayobject.h":
+    # These can be cimported directly from numpy in cython>=0.27.3
+    cdef enum NPY_TYPES:
+        NPY_DATETIME
+        NPY_TIMEDELTA
 
 cimport util
 
