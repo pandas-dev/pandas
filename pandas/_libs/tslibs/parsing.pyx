@@ -18,9 +18,9 @@ from datetime import datetime
 import time
 
 import numpy as np
-cimport numpy as np
+cimport numpy as cnp
 from numpy cimport int64_t, ndarray
-np.import_array()
+cnp.import_array()
 
 # Avoid import from outside _libs
 if sys.version_info.major == 2:
