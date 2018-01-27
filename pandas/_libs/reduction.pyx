@@ -8,13 +8,13 @@ from cpython cimport Py_INCREF
 from libc.stdlib cimport malloc, free
 
 import numpy as np
-cimport numpy as np
+cimport numpy as cnp
 from numpy cimport (ndarray,
                     int64_t,
                     PyArray_SETITEM,
                     PyArray_ITER_NEXT, PyArray_ITER_DATA, PyArray_IterNew,
                     flatiter)
-np.import_array()
+cnp.import_array()
 
 cimport util
 from lib import maybe_convert_objects

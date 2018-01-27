@@ -511,7 +511,7 @@ Groupby/Resample/Rolling
 Sparse
 ^^^^^^
 
--
+- Bug in which creating a ``SparseDataFrame`` from a dense ``Series`` or an unsupported type raised an uncontrolled exception (:issue:`19374`)
 -
 -
 
