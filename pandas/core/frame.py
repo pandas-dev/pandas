@@ -512,7 +512,11 @@ class DataFrame(NDFrame):
             return _arrays_to_mgr([values], columns, index, columns,
                                   dtype=dtype)
         elif is_datetimetz(values):
-            return self._init_dict({0: values}, index, columns, dtype=dtype)
+            # GH19157
+            if columns is None:
+                columns = [0]
+            return _arrays_to_mgr([values], columns, index, columns,
+                                  dtype=dtype)
 
         # by definition an array here
         # the dtypes will be coerced to a single dtype
