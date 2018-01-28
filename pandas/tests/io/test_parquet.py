@@ -463,13 +463,15 @@ class TestParquetPyArrow(Base):
 
 class TestParquetFastParquet(Base):
 
-    def test_basic(self, fp_ge_014, df_full):
+    def test_basic(self, fp, df_full):
         df = df_full
 
-        df['datetime_tz'] = pd.date_range('20130101', periods=3,
-                                          tz='US/Eastern')
+        # additional supported types for fastparquet>=0.1.4
+        if LooseVersion(pyarrow.__version__) >= LooseVersion('0.1.4'):
+            df['datetime_tz'] = pd.date_range('20130101', periods=3,
+                                              tz='US/Eastern')
         df['timedelta'] = pd.timedelta_range('1 day', periods=3)
-        check_round_trip(df, fp_ge_014)
+        check_round_trip(df, fp)
 
     @pytest.mark.skip(reason="not supported")
     def test_duplicate_columns(self, fp):
