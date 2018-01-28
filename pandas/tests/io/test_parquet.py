@@ -483,9 +483,15 @@ class TestParquetFastParquet(Base):
         check_round_trip(df, fp)
 
     def test_datetime_tz(self, fp):
-        # doesn't preserve tz
-        df = pd.DataFrame({'a': pd.date_range('20130101', periods=3,
-                                              tz='US/Eastern')})
+
+        # generic test data
+        df = pd.DataFrame({'dt': pd.date_range('20130101', periods=3)})
+
+        # fastparquet supports timezone since 0.1.4, and not before
+        import fastparquet
+        if LooseVersion(fastparquet.__version__) > LooseVersion('0.1.3'):
+            df['dt_tz'] = pd.date_range('20130101', periods=3, tz='US/Eastern')
+
         # warns on the coercion
         with catch_warnings(record=True):
             check_round_trip(df, fp)
