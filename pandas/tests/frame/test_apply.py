@@ -18,6 +18,7 @@ from pandas.util.testing import (assert_series_equal,
                                  assert_frame_equal)
 import pandas.util.testing as tm
 from pandas.tests.frame.common import TestData
+from dateutil.parser import parse
 
 
 class TestDataFrameApply(TestData):
@@ -302,6 +303,7 @@ class TestDataFrameApply(TestData):
 
         def f(r):
             return r['market']
+
         expected = positions.apply(f, axis=1)
 
         positions = DataFrame([[datetime(2013, 1, 1), 'ABC0', 50],
@@ -481,98 +483,25 @@ class TestDataFrameApply(TestData):
         result = df.apply(lambda x: x)
         assert_frame_equal(result, df)
 
-    def test_gh_19359_with_and_without_tz(self):
-        # GH #19359
-        def transform_time(x):
-            from dateutil.parser import parse
-            return Series({'time': parse("22:05 UTC+1"),
-                           'title': parse("23:59")})
-
-        applied = DataFrame(["stub"]).apply(transform_time)
-        assert applied is not None
-        answer = transform_time(1)
-        answer.name = 0
-        tm.assert_series_equal(applied[0], answer)
-
-    def test_gh_19359_time_with_different_tz(self):
-        # GH #19359
-        def transform_time(x):
-            from dateutil.parser import parse
-            return Series({'time': parse("22:05 UTC+1"),
-                           'title': parse("23:59 UTC+3")})
-
-        applied = DataFrame(["stub"]).apply(transform_time)
-        assert applied is not None
-        answer = transform_time(1)
-        answer.name = 0
-        tm.assert_series_equal(applied[0], answer)
-
-    def test_gh_19359_time_with_tz_identical(self):
-        # GH #19359
-        def transform_time_identical(x):
-            from dateutil.parser import parse
-            return Series({'time': parse("22:05 UTC+1"),
-                           'title': parse("23:59 UTC+1")})
-
-        applied = DataFrame(["stub"]).apply(transform_time_identical)
-        assert applied is not None
-        answer = transform_time_identical(1)
-        answer.name = 0
-        tm.assert_series_equal(applied[0], answer)
-
-    def test_gh_19359_time_no_tz(self):
-        # GH #19359
-        def transform_time(x):
-            from dateutil.parser import parse
-            return Series({'time': parse("22:05"),
-                           'title': parse("23:59")})
-
-        applied = DataFrame(["stub"]).apply(transform_time)
-        assert applied is not None
-        answer = transform_time(1)
-        answer.name = 0
-        tm.assert_series_equal(applied[0], answer)
-
-    def test_gh_19359_with_int(self):
-        # GH #19359
-        def transform_int(x):
-            from dateutil.parser import parse
-            return Series({'time': parse("22:05 UTC+1"),
-                           'title': 2})
-
-        applied = DataFrame(["stub"]).apply(transform_int)
-        assert applied is not None
-        answer = transform_int(1)
-        answer.name = 0
-        tm.assert_series_equal(applied[0], answer)
-
-    def test_gh_19359(self):
-        # GH #19359
+    @pytest.mark.parametrize('time_in', ['22:05 UTC+1', '22:05'])
+    @pytest.mark.parametrize("test_input", [
+        'string text',
+        parse('22:05'),
+        parse('12:13 UTC+1'),
+        parse('15:56 UTC+2'),
+        42,
+        3.14159, ])
+    def test_gh_19359(self, time_in, test_input):
         def transform(x):
-            from dateutil.parser import parse
-            return Series({'time': parse("22:05 UTC+1"),
-                           'title': 'remove this "title" to remove the error '
-                                    'or remove timezone'})
+            return Series({'time': parse(time_in),
+                           'title': test_input})
 
-        applied = DataFrame(["stub"]).apply(transform)
+        applied = DataFrame(['stub']).apply(transform)
         assert applied is not None
-        answer = transform(1)
+        answer = Series(data=[parse(time_in), test_input],
+                        index=['time', 'title'])
         answer.name = 0
-        tm.assert_series_equal(applied[0], answer)
-
-    def test_gh_19359_no_tz(self):
-        # GH #19359
-        def transform(x):
-            from dateutil.parser import parse
-            return Series({'time': parse("22:05"),
-                           'title': 'remove this "title" to remove the error '
-                                    'or remove timezone'})
-
-        applied = DataFrame(["stub"]).apply(transform)
-        assert applied is not None
-        answer = transform(1)
-        answer.name = 0
-        tm.assert_series_equal(applied[0], answer)
+        tm.assert_series_equal(answer, applied[0])
 
 
 def zip_frames(*frames):
@@ -588,13 +517,10 @@ def zip_frames(*frames):
 
 
 class TestDataFrameAggregate(TestData):
-
     _multiprocess_can_split_ = True
 
     def test_agg_transform(self):
-
         with np.errstate(all='ignore'):
-
             f_sqrt = np.sqrt(self.frame)
             f_abs = np.abs(self.frame)
 
@@ -635,16 +561,19 @@ class TestDataFrameAggregate(TestData):
         # cannot both transform and agg
         def f():
             self.frame.transform(['max', 'min'])
+
         pytest.raises(ValueError, f)
 
         def f():
             with np.errstate(all='ignore'):
                 self.frame.agg(['max', 'sqrt'])
+
         pytest.raises(ValueError, f)
 
         def f():
             with np.errstate(all='ignore'):
                 self.frame.transform(['max', 'sqrt'])
+
         pytest.raises(ValueError, f)
 
         df = pd.DataFrame({'A': range(5), 'B': 5})
@@ -671,7 +600,6 @@ class TestDataFrameAggregate(TestData):
         tm.assert_frame_equal(result.reindex_like(expected), expected)
 
     def test_agg_dict_nested_renaming_depr(self):
-
         df = pd.DataFrame({'A': range(5), 'B': 5})
 
         # nested renaming
@@ -714,7 +642,6 @@ class TestDataFrameAggregate(TestData):
         assert_frame_equal(result.reindex_like(expected), expected)
 
     def test_nuiscance_columns(self):
-
         # GH 15015
         df = DataFrame({'A': [1, 2, 3],
                         'B': [1., 2., 3.],
@@ -742,7 +669,6 @@ class TestDataFrameAggregate(TestData):
         assert_frame_equal(result, expected)
 
     def test_non_callable_aggregates(self):
-
         # GH 16405
         # 'size' is a property of frame/series
         # validate that this is working
