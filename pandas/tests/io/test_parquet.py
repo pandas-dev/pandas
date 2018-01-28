@@ -489,7 +489,7 @@ class TestParquetFastParquet(Base):
 
     def test_datetime_tz(self, fp):
         if LooseVersion(fastparquet.__version__) > LooseVersion('0.1.3'):
-            pytest.skip("timezone not supported for older fp")
+            pytest.skip("timezones supported in newer versions of fp")
 
         # fastparquet<0.1.4 doesn't preserve tz
         df = pd.DataFrame({'a': pd.date_range('20130101', periods=3,
