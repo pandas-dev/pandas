@@ -487,14 +487,16 @@ class TestParquetFastParquet(Base):
         df = pd.DataFrame({'a': pd.Categorical(list('abc'))})
         check_round_trip(df, fp)
 
-    def test_datetime_tz_old(self, fp):
-        if LooseVersion(fastparquet.__version__) < LooseVersion('0.1.4'):
-            # fastparquet<0.1.4 doesn't preserve tz
-            df = pd.DataFrame({'a': pd.date_range('20130101', periods=3,
-                                                  tz='US/Eastern')})
-            # warns on the coercion
-            with catch_warnings(record=True):
-                check_round_trip(df, fp, expected=df.astype('datetime64[ns]'))
+    def test_datetime_tz(self, fp):
+        if LooseVersion(fastparquet.__version__) > LooseVersion('0.1.3'):
+            pytest.skip("timezone not supported for older fp")
+
+        # fastparquet<0.1.4 doesn't preserve tz
+        df = pd.DataFrame({'a': pd.date_range('20130101', periods=3,
+                                              tz='US/Eastern')})
+        # warns on the coercion
+        with catch_warnings(record=True):
+            check_round_trip(df, fp, expected=df.astype('datetime64[ns]'))
 
     def test_filter_row_groups(self, fp):
         d = {'a': list(range(0, 3))}
