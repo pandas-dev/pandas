@@ -233,7 +233,7 @@ class Resampler(_GroupBy):
         return obj
 
     def _get_binner_for_time(self):
-        raise AbstractMethodError(self)
+        raise com.AbstractMethodError(self)
 
     def _set_binner(self):
         """
@@ -372,10 +372,10 @@ one pass, you can do
             arg, *args, **kwargs)
 
     def _downsample(self, f):
-        raise AbstractMethodError(self)
+        raise com.AbstractMethodError(self)
 
     def _upsample(self, f, limit=None, fill_value=None):
-        raise AbstractMethodError(self)
+        raise com.AbstractMethodError(self)
 
     def _gotitem(self, key, ndim, subset=None):
         """

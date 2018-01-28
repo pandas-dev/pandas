@@ -46,7 +46,7 @@ class StringMixin(object):
     # Formatting
 
     def __unicode__(self):
-        raise AbstractMethodError(self)
+        raise com.AbstractMethodError(self)
 
     def __str__(self):
         """
@@ -278,10 +278,10 @@ class SelectionMixin(object):
             subset to act on
 
         """
-        raise AbstractMethodError(self)
+        raise com.AbstractMethodError(self)
 
     def aggregate(self, func, *args, **kwargs):
-        raise AbstractMethodError(self)
+        raise com.AbstractMethodError(self)
 
     agg = aggregate
 
@@ -1247,4 +1247,4 @@ class IndexOpsMixin(object):
     # abstracts
 
     def _update_inplace(self, result, **kwargs):
-        raise AbstractMethodError(self)
+        raise com.AbstractMethodError(self)
