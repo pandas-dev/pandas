@@ -1814,6 +1814,11 @@ class ExtensionBlock(NonConsolidatableMixIn, Block):
         self._holder = type(values)
         super(ExtensionBlock, self).__init__(values, placement, ndim=ndim)
 
+    @property
+    def is_view(self):
+        """Extension arrays are never treated as views."""
+        return False
+
     def get_values(self, dtype=None):
         # ExtensionArrays must be iterable, so this works.
         values = np.asarray(self.values)
@@ -1822,7 +1827,7 @@ class ExtensionBlock(NonConsolidatableMixIn, Block):
         return values
 
     def to_dense(self):
-        return self.values.get_values()
+        return np.asarray(self.values)
 
     def take_nd(self, indexer, axis=0, new_mgr_locs=None, fill_tuple=None):
         """
@@ -2412,12 +2417,6 @@ class CategoricalBlock(ExtensionBlock):
         super(CategoricalBlock, self).__init__(_maybe_to_categorical(values),
                                                placement=placement,
                                                ndim=ndim)
-
-    @property
-    def is_view(self):
-        """ I am never a view """
-        return False
-
     @property
     def array_dtype(self):
         """ the dtype to return if I want to construct this block as an
@@ -2460,6 +2459,12 @@ class CategoricalBlock(ExtensionBlock):
     def shift(self, periods, axis=0, mgr=None):
         return self.make_block_same_class(values=self.values.shift(periods),
                                           placement=self.mgr_locs)
+
+    def to_dense(self):
+        # Categorical.get_values returns a DatetimeIndex for datetime
+        # categories, so we can't simply use `np.asarray(self.values)` like
+        # other types.
+        return self.values.get_values()
 
     def to_native_types(self, slicer=None, na_rep='', quoting=None, **kwargs):
         """ convert to our native types format, slicing if desired """
