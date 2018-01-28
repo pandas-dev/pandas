@@ -7,7 +7,6 @@ from datetime import timedelta
 import pandas as pd
 from pandas import offsets
 import pandas.util.testing as tm
-from pandas._libs import lib
 from pandas._libs.tslib import OutOfBoundsDatetime
 from pandas._libs.tslibs import conversion
 from pandas import (DatetimeIndex, Index, Timestamp, datetime, date_range,
@@ -537,7 +536,7 @@ class TestTimeSeries(object):
         arr = [datetime(2005, 1, 1), '1/2/2005', '1/3/2005', '2005-01-04']
         idx2 = DatetimeIndex(arr)
 
-        arr = [tslib.Timestamp(datetime(2005, 1, 1)), '1/2/2005', '1/3/2005',
+        arr = [Timestamp(datetime(2005, 1, 1)), '1/2/2005', '1/3/2005',
                '2005-01-04']
         idx3 = DatetimeIndex(arr)
 
