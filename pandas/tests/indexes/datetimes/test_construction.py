@@ -537,7 +537,7 @@ class TestTimeSeries(object):
         arr = [datetime(2005, 1, 1), '1/2/2005', '1/3/2005', '2005-01-04']
         idx2 = DatetimeIndex(arr)
 
-        arr = [lib.Timestamp(datetime(2005, 1, 1)), '1/2/2005', '1/3/2005',
+        arr = [tslib.Timestamp(datetime(2005, 1, 1)), '1/2/2005', '1/3/2005',
                '2005-01-04']
         idx3 = DatetimeIndex(arr)
 

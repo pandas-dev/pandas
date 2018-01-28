@@ -7216,9 +7216,9 @@ class NDFrame(PandasObject, SelectionMixin):
                 if is_datetime64_dtype(data):
                     asint = data.dropna().values.view('i8')
                     names += ['top', 'freq', 'first', 'last']
-                    result += [lib.Timestamp(top), freq,
-                               lib.Timestamp(asint.min()),
-                               lib.Timestamp(asint.max())]
+                    result += [tslib.Timestamp(top), freq,
+                               tslib.Timestamp(asint.min()),
+                               tslib.Timestamp(asint.max())]
                 else:
                     names += ['top', 'freq']
                     result += [top, freq]
