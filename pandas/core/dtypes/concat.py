@@ -314,7 +314,7 @@ def union_categoricals(to_union, sort_categories=False, ignore_order=False):
     Categories (3, object): [b, c, a]
     """
     from pandas import Index, Categorical, CategoricalIndex, Series
-    from pandas.core.categorical import _recode_for_categories
+    from pandas.core.arrays.categorical import _recode_for_categories
 
     if len(to_union) == 0:
         raise ValueError('No Categoricals to union')
@@ -339,7 +339,16 @@ def union_categoricals(to_union, sort_categories=False, ignore_order=False):
         # identical categories - fastpath
         categories = first.categories
         ordered = first.ordered
-        new_codes = np.concatenate([c.codes for c in to_union])
+
+        if all(first.categories.equals(other.categories)
+               for other in to_union[1:]):
+            new_codes = np.concatenate([c.codes for c in to_union])
+        else:
+            codes = [first.codes] + [_recode_for_categories(other.codes,
+                                                            other.categories,
+                                                            first.categories)
+                                     for other in to_union[1:]]
+            new_codes = np.concatenate(codes)
 
         if sort_categories and not ignore_order and ordered:
             raise TypeError("Cannot use sort_categories=True with "

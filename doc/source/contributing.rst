@@ -171,6 +171,9 @@ We'll now kick off a three-step process:
    # Create and activate the build environment
    conda env create -f ci/environment-dev.yaml
    conda activate pandas-dev
+   
+   # or with older versions of Anaconda:
+   source activate pandas-dev
 
    # Build and install pandas
    python setup.py build_ext --inplace -j 4
@@ -456,7 +459,7 @@ Here are *some* of the more common ``cpplint`` issues:
   - we restrict line-length to 80 characters to promote readability
   - every header file must include a header guard to avoid name collisions if re-included
 
-:ref:`Continuous Integration <contributing.ci>`. will run the
+:ref:`Continuous Integration <contributing.ci>` will run the
 `cpplint <https://pypi.python.org/pypi/cpplint>`_ tool
 and report any stylistic errors in your code. Therefore, it is helpful before
 submitting code to run the check yourself::
@@ -547,7 +550,30 @@ Backwards Compatibility
 Please try to maintain backward compatibility. *pandas* has lots of users with lots of
 existing code, so don't break it if at all possible.  If you think breakage is required,
 clearly state why as part of the pull request.  Also, be careful when changing method
-signatures and add deprecation warnings where needed.
+signatures and add deprecation warnings where needed. Also, add the deprecated sphinx
+directive to the deprecated functions or methods.
+
+If a function with the same arguments as the one being deprecated exist, you can use
+the ``pandas.util._decorators.deprecate``:
+
+.. code-block:: python
+
+    from pandas.util._decorators import deprecate
+
+    deprecate('old_func', 'new_func', '0.21.0')
+
+Otherwise, you need to do it manually:
+
+.. code-block:: python
+
+    def old_func():
+        """Summary of the function.
+
+        .. deprecated:: 0.21.0
+           Use new_func instead.
+        """
+        warnings.warn('Use new_func instead.', FutureWarning, stacklevel=2)
+        new_func()
 
 .. _contributing.ci:
 
@@ -835,9 +861,9 @@ takes a regular expression.  For example, this will only run tests from a
 If you want to only run a specific group of tests from a file, you can do it
 using ``.`` as a separator. For example::
 
-    asv continuous -f 1.1 upstream/master HEAD -b groupby.groupby_agg_builtins
+    asv continuous -f 1.1 upstream/master HEAD -b groupby.GroupByMethods
 
-will only run the ``groupby_agg_builtins`` benchmark defined in ``groupby.py``.
+will only run the ``GroupByMethods`` benchmark defined in ``groupby.py``.
 
 You can also run the benchmark suite using the version of ``pandas``
 already installed in your current Python environment. This can be

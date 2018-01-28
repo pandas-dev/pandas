@@ -8,11 +8,13 @@ from pandas.core.dtypes.common import (
     is_integer,
     is_scalar,
     is_int64_dtype)
+from pandas.core.dtypes.generic import ABCSeries
 
 from pandas import compat
 from pandas.compat import lrange, range, get_range_parameters
 from pandas.compat.numpy import function as nv
-from pandas.core.common import _all_none
+
+import pandas.core.common as com
 from pandas.core.indexes.base import Index, _index_shared_docs
 from pandas.util._decorators import Appender, cache_readonly
 import pandas.core.dtypes.concat as _concat
@@ -88,7 +90,7 @@ class RangeIndex(Int64Index):
 
             return new_value
 
-        if _all_none(start, stop, step):
+        if com._all_none(start, stop, step):
             msg = "RangeIndex(...) must be called with integers"
             raise TypeError(msg)
         elif start is None:
@@ -583,6 +585,8 @@ class RangeIndex(Int64Index):
             """
 
             def _evaluate_numeric_binop(self, other):
+                if isinstance(other, ABCSeries):
+                    return NotImplemented
 
                 other = self._validate_for_numeric_binop(other, op, opstr)
                 attrs = self._get_attributes_dict()
@@ -592,7 +596,7 @@ class RangeIndex(Int64Index):
                     self, other = other, self
 
                 try:
-                    # alppy if we have an override
+                    # apply if we have an override
                     if step:
                         with np.errstate(all='ignore'):
                             rstep = step(self._step, other)

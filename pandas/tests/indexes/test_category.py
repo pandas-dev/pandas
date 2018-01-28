@@ -422,7 +422,7 @@ class TestCategoricalIndex(Base):
         expected = ii.take([0, 1, -1])
         tm.assert_index_equal(result, expected)
 
-        result = IntervalIndex.from_intervals(result.values)
+        result = IntervalIndex(result.values)
         tm.assert_index_equal(result, expected)
 
     @pytest.mark.parametrize('name', [None, 'foo'])
@@ -755,6 +755,15 @@ class TestCategoricalIndex(Base):
         assert not ci.equals(CategoricalIndex(list('aabca') + [np.nan],
                                               ordered=True))
         assert ci.equals(ci.copy())
+
+    def test_equals_categoridcal_unordered(self):
+        # https://github.com/pandas-dev/pandas/issues/16603
+        a = pd.CategoricalIndex(['A'], categories=['A', 'B'])
+        b = pd.CategoricalIndex(['A'], categories=['B', 'A'])
+        c = pd.CategoricalIndex(['C'], categories=['B', 'A'])
+        assert a.equals(b)
+        assert not a.equals(c)
+        assert not b.equals(c)
 
     def test_string_categorical_index_repr(self):
         # short

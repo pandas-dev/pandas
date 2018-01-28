@@ -30,10 +30,6 @@ from pandas.core.dtypes.cast import maybe_promote, maybe_upcast_putmask
 from pandas.core.dtypes.inference import is_hashable
 from pandas.core.dtypes.missing import isna, notna
 from pandas.core.dtypes.generic import ABCSeries, ABCPanel, ABCDataFrame
-from pandas.core.common import (_count_not_none,
-                                _maybe_box_datetimelike, _values_from_object,
-                                AbstractMethodError, SettingWithCopyError,
-                                SettingWithCopyWarning)
 
 from pandas.core.base import PandasObject, SelectionMixin
 from pandas.core.index import (Index, MultiIndex, _ensure_index,
@@ -69,7 +65,7 @@ _shared_doc_kwargs = dict(
     args_transpose='axes to permute (int or label for object)',
     optional_by="""
         by : str or list of str
-            Name or list of names which refer to the axis items.""")
+            Name or list of names to sort by""")
 
 
 def _single_replace(self, to_replace, method, inplace, limit):
@@ -198,7 +194,7 @@ class NDFrame(PandasObject, SelectionMixin):
         """Used when a manipulation result has the same dimensions as the
         original.
         """
-        raise AbstractMethodError(self)
+        raise com.AbstractMethodError(self)
 
     def __unicode__(self):
         # unicode representation based upon iterating over self
@@ -220,7 +216,7 @@ class NDFrame(PandasObject, SelectionMixin):
         """Used when a manipulation result has one lower dimension(s) as the
         original, such as DataFrame single columns slicing.
         """
-        raise AbstractMethodError(self)
+        raise com.AbstractMethodError(self)
 
     @property
     def _constructor_expanddim(self):
@@ -1026,7 +1022,7 @@ class NDFrame(PandasObject, SelectionMixin):
                    for a in self._AXIS_ORDERS)
 
     def __neg__(self):
-        values = _values_from_object(self)
+        values = com._values_from_object(self)
         if values.dtype == np.bool_:
             arr = operator.inv(values)
         else:
@@ -1035,7 +1031,7 @@ class NDFrame(PandasObject, SelectionMixin):
 
     def __invert__(self):
         try:
-            arr = operator.inv(_values_from_object(self))
+            arr = operator.inv(com._values_from_object(self))
             return self.__array_wrap__(arr)
         except Exception:
 
@@ -1156,7 +1152,7 @@ class NDFrame(PandasObject, SelectionMixin):
         return (self._is_level_reference(key, axis=axis) or
                 self._is_label_reference(key, axis=axis))
 
-    def _check_label_or_level_ambiguity(self, key, axis=0):
+    def _check_label_or_level_ambiguity(self, key, axis=0, stacklevel=1):
         """
         Check whether `key` matches both a level of the input `axis` and a
         label of the other axis and raise a ``FutureWarning`` if this is the
@@ -1169,9 +1165,10 @@ class NDFrame(PandasObject, SelectionMixin):
         ----------
         key: str or object
             label or level name
-
         axis: int, default 0
             Axis that levels are associated with (0 for index, 1 for columns)
+        stacklevel: int, default 1
+            Stack level used when a FutureWarning is raised (see below).
 
         Returns
         -------
@@ -1216,12 +1213,12 @@ class NDFrame(PandasObject, SelectionMixin):
                             label_article=label_article,
                             label_type=label_type)
 
-            warnings.warn(msg, FutureWarning, stacklevel=2)
+            warnings.warn(msg, FutureWarning, stacklevel=stacklevel + 1)
             return True
         else:
             return False
 
-    def _get_label_or_level_values(self, key, axis=0):
+    def _get_label_or_level_values(self, key, axis=0, stacklevel=1):
         """
         Return a 1-D array of values associated with `key`, a label or level
         from the given `axis`.
@@ -1240,6 +1237,8 @@ class NDFrame(PandasObject, SelectionMixin):
             Label or level name.
         axis: int, default 0
             Axis that levels are associated with (0 for index, 1 for columns)
+        stacklevel: int, default 1
+            Stack level used when a FutureWarning is raised (see below).
 
         Returns
         -------
@@ -1251,6 +1250,9 @@ class NDFrame(PandasObject, SelectionMixin):
             if `key` matches neither a label nor a level
         ValueError
             if `key` matches multiple labels
+        FutureWarning
+            if `key` is ambiguous. This will become an ambiguity error in a
+            future version
         """
 
         axis = self._get_axis_number(axis)
@@ -1262,7 +1264,8 @@ class NDFrame(PandasObject, SelectionMixin):
                 .format(type=type(self)))
 
         if self._is_label_reference(key, axis=axis):
-            self._check_label_or_level_ambiguity(key, axis=axis)
+            self._check_label_or_level_ambiguity(key, axis=axis,
+                                                 stacklevel=stacklevel + 1)
             values = self.xs(key, axis=other_axes[0])._values
         elif self._is_level_reference(key, axis=axis):
             values = self.axes[axis].get_level_values(key)._values
@@ -1271,11 +1274,22 @@ class NDFrame(PandasObject, SelectionMixin):
 
         # Check for duplicates
         if values.ndim > 1:
+
+            if other_axes and isinstance(
+                    self._get_axis(other_axes[0]), MultiIndex):
+                multi_message = ('\n'
+                                 'For a multi-index, the label must be a '
+                                 'tuple with elements corresponding to '
+                                 'each level.')
+            else:
+                multi_message = ''
+
             label_axis_name = 'column' if axis == 0 else 'index'
             raise ValueError(("The {label_axis_name} label '{key}' "
-                              "is not unique")
+                              "is not unique.{multi_message}")
                              .format(key=key,
-                                     label_axis_name=label_axis_name))
+                                     label_axis_name=label_axis_name,
+                                     multi_message=multi_message))
 
         return values
 
@@ -1472,7 +1486,7 @@ class NDFrame(PandasObject, SelectionMixin):
     # Array Interface
 
     def __array__(self, dtype=None):
-        return _values_from_object(self)
+        return com._values_from_object(self)
 
     def __array_wrap__(self, result, context=None):
         d = self._construct_axes_dict(self._AXIS_ORDERS, copy=False)
@@ -1824,8 +1838,8 @@ class NDFrame(PandasObject, SelectionMixin):
         return packers.to_msgpack(path_or_buf, self, encoding=encoding,
                                   **kwargs)
 
-    def to_sql(self, name, con, flavor=None, schema=None, if_exists='fail',
-               index=True, index_label=None, chunksize=None, dtype=None):
+    def to_sql(self, name, con, schema=None, if_exists='fail', index=True,
+               index_label=None, chunksize=None, dtype=None):
         """
         Write records stored in a DataFrame to a SQL database.
 
@@ -1836,10 +1850,6 @@ class NDFrame(PandasObject, SelectionMixin):
         con : SQLAlchemy engine or DBAPI2 connection (legacy mode)
             Using SQLAlchemy makes it possible to use any DB supported by that
             library. If a DBAPI2 object, only sqlite3 is supported.
-        flavor : 'sqlite', default None
-            .. deprecated:: 0.19.0
-               'sqlite' is the only supported option if SQLAlchemy is not
-               used.
         schema : string, default None
             Specify the schema (if database flavor supports this). If None, use
             default schema.
@@ -1862,9 +1872,9 @@ class NDFrame(PandasObject, SelectionMixin):
 
         """
         from pandas.io import sql
-        sql.to_sql(self, name, con, flavor=flavor, schema=schema,
-                   if_exists=if_exists, index=index, index_label=index_label,
-                   chunksize=chunksize, dtype=dtype)
+        sql.to_sql(self, name, con, schema=schema, if_exists=if_exists,
+                   index=index, index_label=index_label, chunksize=chunksize,
+                   dtype=dtype)
 
     def to_pickle(self, path, compression='infer',
                   protocol=pkl.HIGHEST_PROTOCOL):
@@ -2190,7 +2200,7 @@ class NDFrame(PandasObject, SelectionMixin):
         return lower
 
     def _box_item_values(self, key, values):
-        raise AbstractMethodError(self)
+        raise com.AbstractMethodError(self)
 
     def _maybe_cache_changed(self, item, value):
         """The object has called back to us saying maybe it has changed.
@@ -2383,9 +2393,10 @@ class NDFrame(PandasObject, SelectionMixin):
                      )
 
             if value == 'raise':
-                raise SettingWithCopyError(t)
+                raise com.SettingWithCopyError(t)
             elif value == 'warn':
-                warnings.warn(t, SettingWithCopyWarning, stacklevel=stacklevel)
+                warnings.warn(t, com.SettingWithCopyWarning,
+                              stacklevel=stacklevel)
 
     def __delitem__(self, key):
         """
@@ -2682,7 +2693,7 @@ class NDFrame(PandasObject, SelectionMixin):
             # that means that their are list/ndarrays inside the Series!
             # so just return them (GH 6394)
             if not is_list_like(new_values) or self.ndim == 1:
-                return _maybe_box_datetimelike(new_values)
+                return com._maybe_box_datetimelike(new_values)
 
             result = self._constructor_sliced(
                 new_values, index=self.columns,
@@ -2700,10 +2711,10 @@ class NDFrame(PandasObject, SelectionMixin):
     _xs = xs
 
     def select(self, crit, axis=0):
-        """
-        Return data corresponding to axis labels matching criteria
+        """Return data corresponding to axis labels matching criteria
 
-        DEPRECATED: use df.loc[df.index.map(crit)] to select via labels
+        .. deprecated:: 0.21.0
+            Use df.loc[df.index.map(crit)] to select via labels
 
         Parameters
         ----------
@@ -2791,6 +2802,11 @@ class NDFrame(PandasObject, SelectionMixin):
         Returns
         -------
         dropped : type of caller
+
+        Raises
+        ------
+        KeyError
+            If none of the labels are found in the selected axis
 
         Examples
         --------
@@ -2895,6 +2911,9 @@ class NDFrame(PandasObject, SelectionMixin):
             else:
                 indexer = ~axis.isin(labels)
 
+            if errors == 'raise' and indexer.all():
+                raise KeyError('{} not found in axis'.format(labels))
+
             slicer = [slice(None)] * self.ndim
             slicer[self._get_axis_number(axis_name)] = indexer
 
@@ -2956,7 +2975,7 @@ class NDFrame(PandasObject, SelectionMixin):
         Parameters
         ----------%(optional_by)s
         axis : %(axes_single_arg)s, default 0
-            Axis to direct sorting
+             Axis to be sorted
         ascending : bool or list of bool, default True
              Sort ascending vs. descending. Specify list for multiple sort
              orders.  If this is a list of bools, must match the length of
@@ -3535,7 +3554,7 @@ class NDFrame(PandasObject, SelectionMixin):
         """
         import re
 
-        nkw = _count_not_none(items, like, regex)
+        nkw = com._count_not_none(items, like, regex)
         if nkw > 1:
             raise TypeError('Keyword arguments `items`, `like`, or `regex` '
                             'are mutually exclusive')
@@ -4090,8 +4109,11 @@ class NDFrame(PandasObject, SelectionMixin):
             return self._constructor(cons_data).__finalize__(self)
 
     def consolidate(self, inplace=False):
-        """
-        DEPRECATED: consolidate will be an internal implementation only.
+        """Compute NDFrame with "consolidated" internals (data of each dtype
+        grouped together in a single ndarray).
+
+        .. deprecated:: 0.20.0
+            Consolidate will be an internal implementation only.
         """
         # 15483
         warnings.warn("consolidate is deprecated and will be removed in a "
@@ -4142,11 +4164,10 @@ class NDFrame(PandasObject, SelectionMixin):
     # Internal Interface Methods
 
     def as_matrix(self, columns=None):
-        """
-        DEPRECATED: as_matrix will be removed in a future version.
-        Use :meth:`DataFrame.values` instead.
+        """Convert the frame to its Numpy-array representation.
 
-        Convert the frame to its Numpy-array representation.
+        .. deprecated:: 0.23.0
+            Use :meth:`DataFrame.values` instead.
 
         Parameters
         ----------
@@ -4461,12 +4482,11 @@ class NDFrame(PandasObject, SelectionMixin):
                                timedelta=timedelta, coerce=coerce,
                                copy=copy)).__finalize__(self)
 
-    # TODO: Remove in 0.18 or 2017, which ever is sooner
     def convert_objects(self, convert_dates=True, convert_numeric=False,
                         convert_timedeltas=True, copy=True):
-        """
-        Deprecated.
-        Attempt to infer better dtype for object columns
+        """Attempt to infer better dtype for object columns.
+
+        .. deprecated:: 0.21.0
 
         Parameters
         ----------
@@ -6334,7 +6354,8 @@ class NDFrame(PandasObject, SelectionMixin):
                         if try_quick:
 
                             try:
-                                new_other = _values_from_object(self).copy()
+                                new_other = com._values_from_object(self)
+                                new_other = new_other.copy()
                                 new_other[icond] = other
                                 other = new_other
                             except Exception:
@@ -7295,7 +7316,7 @@ class NDFrame(PandasObject, SelectionMixin):
         rs = (data.div(data.shift(periods=periods, freq=freq, axis=axis,
                                   **kwargs)) - 1)
         if freq is None:
-            mask = isna(_values_from_object(self))
+            mask = isna(com._values_from_object(self))
             np.putmask(rs.values, mask, np.nan)
         return rs
 
@@ -7755,7 +7776,7 @@ def _make_cum_function(cls, name, name1, name2, axis_descr, desc,
         else:
             axis = self._get_axis_number(axis)
 
-        y = _values_from_object(self).copy()
+        y = com._values_from_object(self).copy()
 
         if (skipna and
                 issubclass(y.dtype.type, (np.datetime64, np.timedelta64))):

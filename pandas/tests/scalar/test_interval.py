@@ -2,7 +2,7 @@ from __future__ import division
 
 import numpy as np
 from pandas import Interval, Timestamp, Timedelta
-from pandas.core.common import _any_none
+import pandas.core.common as com
 
 import pytest
 import pandas.util.testing as tm
@@ -197,6 +197,6 @@ class TestInterval(object):
         # GH 18538
         left = Timestamp('2017-01-01', tz=tz_left)
         right = Timestamp('2017-01-02', tz=tz_right)
-        error = TypeError if _any_none(tz_left, tz_right) else ValueError
+        error = TypeError if com._any_none(tz_left, tz_right) else ValueError
         with pytest.raises(error):
             Interval(left, right)

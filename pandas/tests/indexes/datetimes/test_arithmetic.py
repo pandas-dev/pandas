@@ -1,12 +1,14 @@
 # -*- coding: utf-8 -*-
 import warnings
 from datetime import datetime, timedelta
+import operator
 
 import pytest
 
 import numpy as np
 
 import pandas as pd
+from pandas.compat.numpy import np_datetime64_compat
 import pandas.util.testing as tm
 from pandas.errors import PerformanceWarning
 from pandas import (Timestamp, Timedelta, Series,
@@ -39,6 +41,187 @@ def delta(request):
     ids=lambda x: type(x).__name__)
 def addend(request):
     return request.param
+
+
+class TestDatetimeIndexComparisons(object):
+    # TODO: De-duplicate with test_comparisons_nat below
+    def test_dti_cmp_nat(self):
+        left = pd.DatetimeIndex([pd.Timestamp('2011-01-01'), pd.NaT,
+                                 pd.Timestamp('2011-01-03')])
+        right = pd.DatetimeIndex([pd.NaT, pd.NaT, pd.Timestamp('2011-01-03')])
+
+        for lhs, rhs in [(left, right),
+                         (left.astype(object), right.astype(object))]:
+            result = rhs == lhs
+            expected = np.array([False, False, True])
+            tm.assert_numpy_array_equal(result, expected)
+
+            result = lhs != rhs
+            expected = np.array([True, True, False])
+            tm.assert_numpy_array_equal(result, expected)
+
+            expected = np.array([False, False, False])
+            tm.assert_numpy_array_equal(lhs == pd.NaT, expected)
+            tm.assert_numpy_array_equal(pd.NaT == rhs, expected)
+
+            expected = np.array([True, True, True])
+            tm.assert_numpy_array_equal(lhs != pd.NaT, expected)
+            tm.assert_numpy_array_equal(pd.NaT != lhs, expected)
+
+            expected = np.array([False, False, False])
+            tm.assert_numpy_array_equal(lhs < pd.NaT, expected)
+            tm.assert_numpy_array_equal(pd.NaT > lhs, expected)
+
+    @pytest.mark.parametrize('op', [operator.eq, operator.ne,
+                                    operator.gt, operator.ge,
+                                    operator.lt, operator.le])
+    def test_comparison_tzawareness_compat(self, op):
+        # GH#18162
+        dr = pd.date_range('2016-01-01', periods=6)
+        dz = dr.tz_localize('US/Pacific')
+
+        with pytest.raises(TypeError):
+            op(dr, dz)
+        with pytest.raises(TypeError):
+            op(dr, list(dz))
+        with pytest.raises(TypeError):
+            op(dz, dr)
+        with pytest.raises(TypeError):
+            op(dz, list(dr))
+
+        # Check that there isn't a problem aware-aware and naive-naive do not
+        # raise
+        assert (dr == dr).all()
+        assert (dr == list(dr)).all()
+        assert (dz == dz).all()
+        assert (dz == list(dz)).all()
+
+        # Check comparisons against scalar Timestamps
+        ts = pd.Timestamp('2000-03-14 01:59')
+        ts_tz = pd.Timestamp('2000-03-14 01:59', tz='Europe/Amsterdam')
+
+        assert (dr > ts).all()
+        with pytest.raises(TypeError):
+            op(dr, ts_tz)
+
+        assert (dz > ts_tz).all()
+        with pytest.raises(TypeError):
+            op(dz, ts)
+
+    @pytest.mark.parametrize('op', [operator.eq, operator.ne,
+                                    operator.gt, operator.ge,
+                                    operator.lt, operator.le])
+    def test_nat_comparison_tzawareness(self, op):
+        # GH#19276
+        # tzaware DatetimeIndex should not raise when compared to NaT
+        dti = pd.DatetimeIndex(['2014-01-01', pd.NaT, '2014-03-01', pd.NaT,
+                                '2014-05-01', '2014-07-01'])
+        expected = np.array([op == operator.ne] * len(dti))
+        result = op(dti, pd.NaT)
+        tm.assert_numpy_array_equal(result, expected)
+
+        result = op(dti.tz_localize('US/Pacific'), pd.NaT)
+        tm.assert_numpy_array_equal(result, expected)
+
+    def test_comparisons_coverage(self):
+        rng = date_range('1/1/2000', periods=10)
+
+        # raise TypeError for now
+        pytest.raises(TypeError, rng.__lt__, rng[3].value)
+
+        result = rng == list(rng)
+        exp = rng == rng
+        tm.assert_numpy_array_equal(result, exp)
+
+    def test_comparisons_nat(self):
+
+        fidx1 = pd.Index([1.0, np.nan, 3.0, np.nan, 5.0, 7.0])
+        fidx2 = pd.Index([2.0, 3.0, np.nan, np.nan, 6.0, 7.0])
+
+        didx1 = pd.DatetimeIndex(['2014-01-01', pd.NaT, '2014-03-01', pd.NaT,
+                                  '2014-05-01', '2014-07-01'])
+        didx2 = pd.DatetimeIndex(['2014-02-01', '2014-03-01', pd.NaT, pd.NaT,
+                                  '2014-06-01', '2014-07-01'])
+        darr = np.array([np_datetime64_compat('2014-02-01 00:00Z'),
+                         np_datetime64_compat('2014-03-01 00:00Z'),
+                         np_datetime64_compat('nat'), np.datetime64('nat'),
+                         np_datetime64_compat('2014-06-01 00:00Z'),
+                         np_datetime64_compat('2014-07-01 00:00Z')])
+
+        cases = [(fidx1, fidx2), (didx1, didx2), (didx1, darr)]
+
+        # Check pd.NaT is handles as the same as np.nan
+        with tm.assert_produces_warning(None):
+            for idx1, idx2 in cases:
+
+                result = idx1 < idx2
+                expected = np.array([True, False, False, False, True, False])
+                tm.assert_numpy_array_equal(result, expected)
+
+                result = idx2 > idx1
+                expected = np.array([True, False, False, False, True, False])
+                tm.assert_numpy_array_equal(result, expected)
+
+                result = idx1 <= idx2
+                expected = np.array([True, False, False, False, True, True])
+                tm.assert_numpy_array_equal(result, expected)
+
+                result = idx2 >= idx1
+                expected = np.array([True, False, False, False, True, True])
+                tm.assert_numpy_array_equal(result, expected)
+
+                result = idx1 == idx2
+                expected = np.array([False, False, False, False, False, True])
+                tm.assert_numpy_array_equal(result, expected)
+
+                result = idx1 != idx2
+                expected = np.array([True, True, True, True, True, False])
+                tm.assert_numpy_array_equal(result, expected)
+
+        with tm.assert_produces_warning(None):
+            for idx1, val in [(fidx1, np.nan), (didx1, pd.NaT)]:
+                result = idx1 < val
+                expected = np.array([False, False, False, False, False, False])
+                tm.assert_numpy_array_equal(result, expected)
+                result = idx1 > val
+                tm.assert_numpy_array_equal(result, expected)
+
+                result = idx1 <= val
+                tm.assert_numpy_array_equal(result, expected)
+                result = idx1 >= val
+                tm.assert_numpy_array_equal(result, expected)
+
+                result = idx1 == val
+                tm.assert_numpy_array_equal(result, expected)
+
+                result = idx1 != val
+                expected = np.array([True, True, True, True, True, True])
+                tm.assert_numpy_array_equal(result, expected)
+
+        # Check pd.NaT is handles as the same as np.nan
+        with tm.assert_produces_warning(None):
+            for idx1, val in [(fidx1, 3), (didx1, datetime(2014, 3, 1))]:
+                result = idx1 < val
+                expected = np.array([True, False, False, False, False, False])
+                tm.assert_numpy_array_equal(result, expected)
+                result = idx1 > val
+                expected = np.array([False, False, False, False, True, True])
+                tm.assert_numpy_array_equal(result, expected)
+
+                result = idx1 <= val
+                expected = np.array([True, False, True, False, False, False])
+                tm.assert_numpy_array_equal(result, expected)
+                result = idx1 >= val
+                expected = np.array([False, False, True, False, True, True])
+                tm.assert_numpy_array_equal(result, expected)
+
+                result = idx1 == val
+                expected = np.array([False, False, True, False, False, False])
+                tm.assert_numpy_array_equal(result, expected)
+
+                result = idx1 != val
+                expected = np.array([True, True, False, True, True, True])
+                tm.assert_numpy_array_equal(result, expected)
 
 
 class TestDatetimeIndexArithmetic(object):
@@ -447,6 +630,112 @@ class TestDatetimeIndexArithmetic(object):
         tm.assert_series_equal(res3, expected_sub)
 
 
+@pytest.mark.parametrize('klass,assert_func', [
+    (Series, tm.assert_series_equal),
+    (DatetimeIndex, tm.assert_index_equal)])
+def test_dt64_with_offset_array(klass, assert_func):
+    # GH#10699
+    # array of offsets
+    box = Series if klass is Series else pd.Index
+    with tm.assert_produces_warning(PerformanceWarning):
+        s = klass([Timestamp('2000-1-1'), Timestamp('2000-2-1')])
+        result = s + box([pd.offsets.DateOffset(years=1),
+                          pd.offsets.MonthEnd()])
+        exp = klass([Timestamp('2001-1-1'), Timestamp('2000-2-29')])
+        assert_func(result, exp)
+
+        # same offset
+        result = s + box([pd.offsets.DateOffset(years=1),
+                          pd.offsets.DateOffset(years=1)])
+        exp = klass([Timestamp('2001-1-1'), Timestamp('2001-2-1')])
+        assert_func(result, exp)
+
+
+@pytest.mark.parametrize('klass,assert_func', [
+    (Series, tm.assert_series_equal),
+    (DatetimeIndex, tm.assert_index_equal)])
+def test_dt64_with_DateOffsets_relativedelta(klass, assert_func):
+    # GH#10699
+    vec = klass([Timestamp('2000-01-05 00:15:00'),
+                 Timestamp('2000-01-31 00:23:00'),
+                 Timestamp('2000-01-01'),
+                 Timestamp('2000-03-31'),
+                 Timestamp('2000-02-29'),
+                 Timestamp('2000-12-31'),
+                 Timestamp('2000-05-15'),
+                 Timestamp('2001-06-15')])
+
+    # DateOffset relativedelta fastpath
+    relative_kwargs = [('years', 2), ('months', 5), ('days', 3),
+                       ('hours', 5), ('minutes', 10), ('seconds', 2),
+                       ('microseconds', 5)]
+    for i, kwd in enumerate(relative_kwargs):
+        op = pd.DateOffset(**dict([kwd]))
+        assert_func(klass([x + op for x in vec]), vec + op)
+        assert_func(klass([x - op for x in vec]), vec - op)
+        op = pd.DateOffset(**dict(relative_kwargs[:i + 1]))
+        assert_func(klass([x + op for x in vec]), vec + op)
+        assert_func(klass([x - op for x in vec]), vec - op)
+
+
+@pytest.mark.parametrize('cls_and_kwargs', [
+    'YearBegin', ('YearBegin', {'month': 5}),
+    'YearEnd', ('YearEnd', {'month': 5}),
+    'MonthBegin', 'MonthEnd',
+    'SemiMonthEnd', 'SemiMonthBegin',
+    'Week', ('Week', {'weekday': 3}),
+    'BusinessDay', 'BDay', 'QuarterEnd', 'QuarterBegin',
+    'CustomBusinessDay', 'CDay', 'CBMonthEnd',
+    'CBMonthBegin', 'BMonthBegin', 'BMonthEnd',
+    'BusinessHour', 'BYearBegin', 'BYearEnd',
+    'BQuarterBegin', ('LastWeekOfMonth', {'weekday': 2}),
+    ('FY5253Quarter', {'qtr_with_extra_week': 1,
+                       'startingMonth': 1,
+                       'weekday': 2,
+                       'variation': 'nearest'}),
+    ('FY5253', {'weekday': 0, 'startingMonth': 2, 'variation': 'nearest'}),
+    ('WeekOfMonth', {'weekday': 2, 'week': 2}),
+    'Easter', ('DateOffset', {'day': 4}),
+    ('DateOffset', {'month': 5})])
+@pytest.mark.parametrize('normalize', [True, False])
+@pytest.mark.parametrize('klass,assert_func', [
+    (Series, tm.assert_series_equal),
+    (DatetimeIndex, tm.assert_index_equal)])
+def test_dt64_with_DateOffsets(klass, assert_func, normalize, cls_and_kwargs):
+    # GH#10699
+    # assert these are equal on a piecewise basis
+    vec = klass([Timestamp('2000-01-05 00:15:00'),
+                 Timestamp('2000-01-31 00:23:00'),
+                 Timestamp('2000-01-01'),
+                 Timestamp('2000-03-31'),
+                 Timestamp('2000-02-29'),
+                 Timestamp('2000-12-31'),
+                 Timestamp('2000-05-15'),
+                 Timestamp('2001-06-15')])
+
+    if isinstance(cls_and_kwargs, tuple):
+        # If cls_name param is a tuple, then 2nd entry is kwargs for
+        # the offset constructor
+        cls_name, kwargs = cls_and_kwargs
+    else:
+        cls_name = cls_and_kwargs
+        kwargs = {}
+
+    offset_cls = getattr(pd.offsets, cls_name)
+
+    with warnings.catch_warnings(record=True):
+        for n in [0, 5]:
+            if (cls_name in ['WeekOfMonth', 'LastWeekOfMonth',
+                             'FY5253Quarter', 'FY5253'] and n == 0):
+                # passing n = 0 is invalid for these offset classes
+                continue
+
+            offset = offset_cls(n, normalize=normalize, **kwargs)
+            assert_func(klass([x + offset for x in vec]), vec + offset)
+            assert_func(klass([x - offset for x in vec]), vec - offset)
+            assert_func(klass([offset + x for x in vec]), offset + vec)
+
+
 # GH 10699
 @pytest.mark.parametrize('klass,assert_func', zip([Series, DatetimeIndex],
                                                   [tm.assert_series_equal,
@@ -480,84 +769,3 @@ def test_datetime64_with_DateOffset(klass, assert_func):
                  Timestamp('2000-02-29', tz='US/Central')], name='a')
     assert_func(result, exp)
     assert_func(result2, exp)
-
-    # array of offsets - valid for Series only
-    if klass is Series:
-        with tm.assert_produces_warning(PerformanceWarning):
-            s = klass([Timestamp('2000-1-1'), Timestamp('2000-2-1')])
-            result = s + Series([pd.offsets.DateOffset(years=1),
-                                 pd.offsets.MonthEnd()])
-            exp = klass([Timestamp('2001-1-1'), Timestamp('2000-2-29')
-                         ])
-            assert_func(result, exp)
-
-            # same offset
-            result = s + Series([pd.offsets.DateOffset(years=1),
-                                 pd.offsets.DateOffset(years=1)])
-            exp = klass([Timestamp('2001-1-1'), Timestamp('2001-2-1')])
-            assert_func(result, exp)
-
-    s = klass([Timestamp('2000-01-05 00:15:00'),
-               Timestamp('2000-01-31 00:23:00'),
-               Timestamp('2000-01-01'),
-               Timestamp('2000-03-31'),
-               Timestamp('2000-02-29'),
-               Timestamp('2000-12-31'),
-               Timestamp('2000-05-15'),
-               Timestamp('2001-06-15')])
-
-    # DateOffset relativedelta fastpath
-    relative_kwargs = [('years', 2), ('months', 5), ('days', 3),
-                       ('hours', 5), ('minutes', 10), ('seconds', 2),
-                       ('microseconds', 5)]
-    for i, kwd in enumerate(relative_kwargs):
-        op = pd.DateOffset(**dict([kwd]))
-        assert_func(klass([x + op for x in s]), s + op)
-        assert_func(klass([x - op for x in s]), s - op)
-        op = pd.DateOffset(**dict(relative_kwargs[:i + 1]))
-        assert_func(klass([x + op for x in s]), s + op)
-        assert_func(klass([x - op for x in s]), s - op)
-
-    # assert these are equal on a piecewise basis
-    offsets = ['YearBegin', ('YearBegin', {'month': 5}),
-               'YearEnd', ('YearEnd', {'month': 5}),
-               'MonthBegin', 'MonthEnd',
-               'SemiMonthEnd', 'SemiMonthBegin',
-               'Week', ('Week', {'weekday': 3}),
-               'BusinessDay', 'BDay', 'QuarterEnd', 'QuarterBegin',
-               'CustomBusinessDay', 'CDay', 'CBMonthEnd',
-               'CBMonthBegin', 'BMonthBegin', 'BMonthEnd',
-               'BusinessHour', 'BYearBegin', 'BYearEnd',
-               'BQuarterBegin', ('LastWeekOfMonth', {'weekday': 2}),
-               ('FY5253Quarter', {'qtr_with_extra_week': 1,
-                                  'startingMonth': 1,
-                                  'weekday': 2,
-                                  'variation': 'nearest'}),
-               ('FY5253', {'weekday': 0,
-                           'startingMonth': 2,
-                           'variation':
-                           'nearest'}),
-               ('WeekOfMonth', {'weekday': 2,
-                                'week': 2}),
-               'Easter', ('DateOffset', {'day': 4}),
-               ('DateOffset', {'month': 5})]
-
-    with warnings.catch_warnings(record=True):
-        for normalize in (True, False):
-            for do in offsets:
-                if isinstance(do, tuple):
-                    do, kwargs = do
-                else:
-                    do = do
-                    kwargs = {}
-
-                    for n in [0, 5]:
-                        if (do in ['WeekOfMonth', 'LastWeekOfMonth',
-                                   'FY5253Quarter', 'FY5253'] and n == 0):
-                            continue
-                    op = getattr(pd.offsets, do)(n,
-                                                 normalize=normalize,
-                                                 **kwargs)
-                    assert_func(klass([x + op for x in s]), s + op)
-                    assert_func(klass([x - op for x in s]), s - op)
-                    assert_func(klass([op + x for x in s]), op + s)

@@ -1396,8 +1396,8 @@ class TestIndex(Base):
         expected = self.strIndex[lrange(5) + lrange(10, n)]
         tm.assert_index_equal(dropped, expected)
 
-        pytest.raises(ValueError, self.strIndex.drop, ['foo', 'bar'])
-        pytest.raises(ValueError, self.strIndex.drop, ['1', 'bar'])
+        pytest.raises(KeyError, self.strIndex.drop, ['foo', 'bar'])
+        pytest.raises(KeyError, self.strIndex.drop, ['1', 'bar'])
 
         # errors='ignore'
         mixed = drop.tolist() + ['foo']
@@ -1419,7 +1419,7 @@ class TestIndex(Base):
         tm.assert_index_equal(dropped, expected)
 
         # errors='ignore'
-        pytest.raises(ValueError, ser.drop, [3, 4])
+        pytest.raises(KeyError, ser.drop, [3, 4])
 
         dropped = ser.drop(4, errors='ignore')
         expected = Index([1, 2, 3])
@@ -1448,7 +1448,7 @@ class TestIndex(Base):
 
         removed = index.drop(to_drop[1])
         for drop_me in to_drop[1], [to_drop[1]]:
-            pytest.raises(ValueError, removed.drop, drop_me)
+            pytest.raises(KeyError, removed.drop, drop_me)
 
     def test_tuple_union_bug(self):
         import pandas
@@ -2261,6 +2261,26 @@ class TestMixedIntIndex(Base):
         res = i2.intersection(i1)
 
         assert len(res) == 0
+
+    @pytest.mark.parametrize('op', [operator.eq, operator.ne,
+                                    operator.gt, operator.ge,
+                                    operator.lt, operator.le])
+    def test_comparison_tzawareness_compat(self, op):
+        # GH#18162
+        dr = pd.date_range('2016-01-01', periods=6)
+        dz = dr.tz_localize('US/Pacific')
+
+        # Check that there isn't a problem aware-aware and naive-naive do not
+        # raise
+        naive_series = Series(dr)
+        aware_series = Series(dz)
+        with pytest.raises(TypeError):
+            op(dz, naive_series)
+        with pytest.raises(TypeError):
+            op(dr, aware_series)
+
+        # TODO: implement _assert_tzawareness_compat for the reverse
+        # comparison with the Series on the left-hand side
 
 
 class TestIndexUtils(object):

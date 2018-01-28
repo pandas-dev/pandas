@@ -450,6 +450,13 @@ class TestSeriesIndexing(TestData):
 
         lb = "1990-01-01 04:00:00"
         rb = "1990-01-01 07:00:00"
+        # GH#18435 strings get a pass from tzawareness compat
+        result = ts[(ts.index >= lb) & (ts.index <= rb)]
+        expected = ts[4:8]
+        assert_series_equal(result, expected)
+
+        lb = "1990-01-01 04:00:00-0500"
+        rb = "1990-01-01 07:00:00-0500"
         result = ts[(ts.index >= lb) & (ts.index <= rb)]
         expected = ts[4:8]
         assert_series_equal(result, expected)
@@ -475,6 +482,13 @@ class TestSeriesIndexing(TestData):
 
         lb = datetime(1990, 1, 1, 4)
         rb = datetime(1990, 1, 1, 7)
+        with pytest.raises(TypeError):
+            # tznaive vs tzaware comparison is invalid
+            # see GH#18376, GH#18162
+            ts[(ts.index >= lb) & (ts.index <= rb)]
+
+        lb = pd.Timestamp(datetime(1990, 1, 1, 4)).tz_localize(rng.tzinfo)
+        rb = pd.Timestamp(datetime(1990, 1, 1, 7)).tz_localize(rng.tzinfo)
         result = ts[(ts.index >= lb) & (ts.index <= rb)]
         expected = ts[4:8]
         assert_series_equal(result, expected)
@@ -595,6 +609,18 @@ class TestSeriesIndexing(TestData):
     def test_getitem_box_float64(self):
         value = self.ts[5]
         assert isinstance(value, np.float64)
+
+    def test_series_box_timestamp(self):
+        rng = pd.date_range('20090415', '20090519', freq='B')
+        ser = Series(rng)
+
+        assert isinstance(ser[5], pd.Timestamp)
+
+        rng = pd.date_range('20090415', '20090519', freq='B')
+        ser = Series(rng, index=rng)
+        assert isinstance(ser[5], pd.Timestamp)
+
+        assert isinstance(ser.iat[5], pd.Timestamp)
 
     def test_getitem_ambiguous_keyerror(self):
         s = Series(lrange(10), index=lrange(0, 20, 2))
@@ -1824,8 +1850,8 @@ class TestSeriesIndexing(TestData):
 
         # single string/tuple-like
         s = Series(range(3), index=list('abc'))
-        pytest.raises(ValueError, s.drop, 'bc')
-        pytest.raises(ValueError, s.drop, ('a', ))
+        pytest.raises(KeyError, s.drop, 'bc')
+        pytest.raises(KeyError, s.drop, ('a', ))
 
         # errors='ignore'
         s = Series(range(3), index=list('abc'))
@@ -1847,7 +1873,7 @@ class TestSeriesIndexing(TestData):
 
         # GH 16877
         s = Series([2, 3], index=[0, 1])
-        with tm.assert_raises_regex(ValueError, 'not contained in axis'):
+        with tm.assert_raises_regex(KeyError, 'not contained in axis'):
             s.drop([False, True])
 
     def test_align(self):
