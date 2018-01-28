@@ -6,7 +6,7 @@ from pandas.compat import add_metaclass
 
 @add_metaclass(abc.ABCMeta)
 class ExtensionDtype(object):
-    """A custom data type for your array.
+    """A custom data type, to be paired with an ExtensionArray.
     """
 
     def __str__(self):
@@ -16,7 +16,7 @@ class ExtensionDtype(object):
     @abc.abstractmethod
     def type(self):
         # type: () -> type
-        """The scalar type for your array, e.g. ``int``
+        """The scalar type for the array, e.g. ``int``
 
         It's expected ``ExtensionArray[item]`` returns an instance
         of ``ExtensionDtype.type`` for scalar ``item``.
@@ -27,9 +27,9 @@ class ExtensionDtype(object):
         # type () -> str
         """A character code (one of 'biufcmMOSUV'), default 'O'
 
-        This should match the NumPy dtype used when your array is
+        This should match the NumPy dtype used when the array is
         converted to an ndarray, which is probably 'O' for object if
-        your extension type cannot be represented as a built-in NumPy
+        the extension type cannot be represented as a built-in NumPy
         type.
 
         See Also
@@ -70,11 +70,6 @@ class ExtensionDtype(object):
         ------
         TypeError
             If a class cannot be constructed from this 'string'.
-
-        Notes
-        -----
-        The default implementation checks if 'string' matches your
-        type's name. If so, it calls your class with no arguments.
 
         Examples
         --------

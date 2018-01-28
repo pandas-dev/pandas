@@ -1686,7 +1686,7 @@ def is_extension_type(arr):
 
 
 def is_extension_array_dtype(arr_or_dtype):
-    """Check if an object is a pandas extension array type
+    """Check if an object is a pandas extension array type.
 
     Parameters
     ----------
@@ -1702,9 +1702,6 @@ def is_extension_array_dtype(arr_or_dtype):
     array interface. In pandas, this includes:
 
     * Categorical
-    * PeriodArray
-    * IntervalArray
-    * SparseArray
 
     Third-party libraries may implement arrays or types satisfying
     this interface as well.

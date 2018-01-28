@@ -1,8 +1,6 @@
 """An interface for extending pandas with custom arrays."""
 import abc
 
-import numpy as np
-
 from pandas.compat import add_metaclass
 
 
@@ -11,7 +9,7 @@ _not_implemented_message = "{} does not implement {}."
 
 @add_metaclass(abc.ABCMeta)
 class ExtensionArray(object):
-    """Abstract base class for custom array types
+    """Abstract base class for custom array types.
 
     Notes
     -----
@@ -23,6 +21,9 @@ class ExtensionArray(object):
         * Extension arrays should be able to be constructed with instances of
           the class, i.e. ``ExtensionArray(extension_array)`` should return
           an instance, not error.
+
+    Additionally, certain methods and interfaces are required for proper
+    this array to be properly stored inside a ``DataFrame`` or ``Series``.
     """
     # ------------------------------------------------------------------------
     # Must be a Sequence

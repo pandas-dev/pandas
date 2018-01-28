@@ -1848,13 +1848,8 @@ class ExtensionBlock(NonConsolidatableMixIn, Block):
         return self.make_block_same_class(new_values, new_mgr_locs)
 
     def _can_hold_element(self, element):
-        # XXX:
-        # Not defined on NCM.
-        # Categorical got True from ObjectBlock
-        # DatetimeTZ gets DatetimeBlock
-        # Sparse gets Block
-        # Let's just assume yes for now, but we can maybe push
-        # this onto the array.
+        # XXX: We may need to think about pushing this onto the array.
+        # We're doing the same as CategoricalBlock here.
         return True
 
     def convert(self, copy=True, **kwargs):

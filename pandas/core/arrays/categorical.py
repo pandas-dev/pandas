@@ -2132,8 +2132,7 @@ class Categorical(ExtensionArray, PandasObject):
         return self._constructor(values=codes, categories=self.categories,
                                  ordered=self.ordered, fastpath=True)
 
-    # Interface things
-    # can_hold_na, concat_same_type, formatting_values
+    # ExtensionArray Interface things
     @property
     def _can_hold_na(self):
         return True
