@@ -486,10 +486,9 @@ class TestParquetFastParquet(Base):
         # doesn't preserve tz
         df = pd.DataFrame({'a': pd.date_range('20130101', periods=3,
                                               tz='US/Eastern')})
-
         # warns on the coercion
         with catch_warnings(record=True):
-            check_round_trip(df, fp, expected=df.astype('datetime64[ns]'))
+            check_round_trip(df, fp)
 
     def test_filter_row_groups(self, fp):
         d = {'a': list(range(0, 3))}
