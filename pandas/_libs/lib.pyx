@@ -33,7 +33,7 @@ from cpython.datetime cimport (PyDateTime_Check, PyDate_Check,
                                PyDateTime_IMPORT)
 PyDateTime_IMPORT
 
-from tslib import NaT, Timestamp, Timedelta, array_to_datetime
+from tslib import NaT, array_to_datetime
 from missing cimport checknull
 
 

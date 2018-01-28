@@ -11,12 +11,10 @@ try:
 except ImportError:
     from cpython cimport PyUnicode_GET_SIZE as PyString_GET_SIZE
 
-
 import numpy as np
 cimport numpy as cnp
 from numpy cimport ndarray, uint8_t
 cnp.import_array()
-
 
 cimport util
 
@@ -25,30 +23,6 @@ ctypedef fused pandas_string:
     str
     unicode
     bytes
-
-
-def sanitize_objects(ndarray[object] values, set na_values,
-                     convert_empty=True):
-    cdef:
-        Py_ssize_t i, n
-        object val, onan
-        Py_ssize_t na_count = 0
-        dict memo = {}
-
-    n = len(values)
-    onan = np.nan
-
-    for i from 0 <= i < n:
-        val = values[i]
-        if (convert_empty and val == '') or (val in na_values):
-            values[i] = onan
-            na_count += 1
-        elif val in memo:
-            values[i] = memo[val]
-        else:
-            memo[val] = val
-
-    return na_count
 
 
 @cython.boundscheck(False)
@@ -187,49 +161,3 @@ def string_array_replace_from_nan_rep(
             arr[i] = replace
 
     return arr
-
-
-def convert_timestamps(ndarray values):
-    cdef:
-        object val, f, result
-        dict cache = {}
-        Py_ssize_t i, n = len(values)
-        ndarray[object] out
-
-    # for HDFStore, a bit temporary but...
-
-    from datetime import datetime
-    f = datetime.fromtimestamp
-
-    out = np.empty(n, dtype='O')
-
-    for i in range(n):
-        val = util.get_value_1d(values, i)
-        if val in cache:
-            out[i] = cache[val]
-        else:
-            cache[val] = out[i] = f(val)
-
-    return out
-
-
-@cython.wraparound(False)
-@cython.boundscheck(False)
-def fast_unique(ndarray[object] values):
-    cdef:
-        Py_ssize_t i, n = len(values)
-        list uniques = []
-        dict table = {}
-        object val, stub = 0
-
-    for i from 0 <= i < n:
-        val = values[i]
-        if val not in table:
-            table[val] = stub
-            uniques.append(val)
-    try:
-        uniques.sort()
-    except Exception:
-        pass
-
-    return uniques

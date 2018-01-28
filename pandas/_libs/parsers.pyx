@@ -2225,3 +2225,27 @@ def _maybe_encode(values):
     if values is None:
         return []
     return [x.encode('utf-8') if isinstance(x, unicode) else x for x in values]
+
+
+def sanitize_objects(ndarray[object] values, set na_values,
+                     convert_empty=True):
+    cdef:
+        Py_ssize_t i, n
+        object val, onan
+        Py_ssize_t na_count = 0
+        dict memo = {}
+
+    n = len(values)
+    onan = np.nan
+
+    for i from 0 <= i < n:
+        val = values[i]
+        if (convert_empty and val == '') or (val in na_values):
+            values[i] = onan
+            na_count += 1
+        elif val in memo:
+            values[i] = memo[val]
+        else:
+            memo[val] = val
+
+    return na_count

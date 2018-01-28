@@ -3843,7 +3843,7 @@ class LegacyTable(Table):
                 # need a better algorithm
                 tuple_index = long_index.values
 
-                unique_tuples = libwriters.fast_unique(tuple_index)
+                unique_tuples = unique(tuple_index)
                 unique_tuples = com._asarray_tuplesafe(unique_tuples)
 
                 indexer = match(unique_tuples, tuple_index)
@@ -4622,7 +4622,7 @@ def _get_converter(kind, encoding):
     if kind == 'datetime64':
         return lambda x: np.asarray(x, dtype='M8[ns]')
     elif kind == 'datetime':
-        return libwriters.convert_timestamps
+        return lambda x: to_datetime(x, cache=True).to_pydatetime()
     elif kind == 'string':
         return lambda x: _unconvert_string_array(x, encoding=encoding)
     else:  # pragma: no cover
