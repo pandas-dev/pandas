@@ -312,6 +312,7 @@ Other API Changes
 - :func:`DatetimeIndex.shift` and :func:`TimedeltaIndex.shift` will now raise ``NullFrequencyError`` (which subclasses ``ValueError``, which was raised in older versions) when the index object frequency is ``None`` (:issue:`19147`)
 - Addition and subtraction of ``NaN`` from a :class:`Series` with ``dtype='timedelta64[ns]'`` will raise a ``TypeError` instead of treating the ``NaN`` as ``NaT`` (:issue:`19274`)
 - Set operations (union, difference...) on :class:`IntervalIndex` with incompatible index types will now raise a ``TypeError`` rather than a ``ValueError`` (:issue:`19329`)
+- Compatibility in :func:`pandas.date_range` with fastparquet==0.1.4 which now supports timezone e.g. ``tz``='US/Eastern'`` (:issue:`19431`)
 
 .. _whatsnew_0230.deprecations:
 
