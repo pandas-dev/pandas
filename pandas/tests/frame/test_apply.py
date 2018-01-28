@@ -509,14 +509,16 @@ class TestInferOutputShape(object):
 
     def test_with_dictlike_columns(self):
         # gh 17602
-
         df = DataFrame([[1, 2], [1, 2]], columns=['a', 'b'])
-        result = df.apply(lambda x: {'s': x['a'] + x['b']}, 1)
+        result = df.apply(lambda x: {'s': x['a'] + x['b']},
+                          axis=1)
         expected = Series([{'s': 3} for t in df.itertuples()])
         assert_series_equal(result, expected)
 
         df['tm'] = [pd.Timestamp('2017-05-01 00:00:00'),
                     pd.Timestamp('2017-05-02 00:00:00')]
+        result = df.apply(lambda x: {'s': x['a'] + x['b']},
+                          axis=1)
         assert_series_equal(result, expected)
 
         # compose a series
@@ -534,6 +536,20 @@ class TestInferOutputShape(object):
         result = df.apply(lambda x: {}, axis=1)
         expected = Series([{}, {}, {}])
         assert_series_equal(result, expected)
+
+    def test_with_dictlike_columns_with_infer(self):
+        # gh 17602
+        df = DataFrame([[1, 2], [1, 2]], columns=['a', 'b'])
+        result = df.apply(lambda x: {'s': x['a'] + x['b']},
+                          axis=1, result_type='infer')
+        expected = DataFrame({'s': [3, 3]})
+        assert_frame_equal(result, expected)
+
+        df['tm'] = [pd.Timestamp('2017-05-01 00:00:00'),
+                    pd.Timestamp('2017-05-02 00:00:00')]
+        result = df.apply(lambda x: {'s': x['a'] + x['b']},
+                          axis=1, result_type='infer')
+        assert_frame_equal(result, expected)
 
     def test_with_listlike_columns(self):
         # gh-17348
