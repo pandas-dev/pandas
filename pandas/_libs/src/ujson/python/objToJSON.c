@@ -44,7 +44,6 @@ http://www.opensource.apple.com/source/tcl/tcl-14/tcl/license.terms
 #include <numpy/arrayobject.h>    // NOLINT(build/include_order)
 #include <numpy/arrayscalars.h>   // NOLINT(build/include_order)
 #include <numpy/npy_math.h>       // NOLINT(build/include_order)
-#include <numpy_helper.h>         // NOLINT(build/include_order)
 #include <stdio.h>                // NOLINT(build/include_order)
 #include <ultrajson.h>            // NOLINT(build/include_order)
 #include <np_datetime.h>          // NOLINT(build/include_order)
@@ -59,6 +58,8 @@ static PyTypeObject *cls_dataframe;
 static PyTypeObject *cls_series;
 static PyTypeObject *cls_index;
 static PyTypeObject *cls_nat;
+
+npy_int64 get_nat(void) { return NPY_MIN_INT64; }
 
 typedef void *(*PFN_PyTypeToJSON)(JSOBJ obj, JSONTypeContext *ti,
                                   void *outValue, size_t *_outLen);

@@ -1,17 +1,23 @@
 # cython: profile=False
+from datetime import datetime, timedelta, date
 
-from numpy cimport (ndarray, float64_t, int32_t, int64_t, uint8_t, uint64_t,
-                    NPY_DATETIME, NPY_TIMEDELTA)
 cimport cython
 
-cimport numpy as cnp
-
-cnp.import_array()
-cnp.import_ufunc()
-
-cimport util
+from cpython cimport PyTuple_Check, PyList_Check
+from cpython.slice cimport PySlice_Check
 
 import numpy as np
+cimport numpy as cnp
+from numpy cimport ndarray, float64_t, int32_t, int64_t, uint8_t, uint64_t
+cnp.import_array()
+
+cdef extern from "numpy/arrayobject.h":
+    # These can be cimported directly from numpy in cython>=0.27.3
+    cdef enum NPY_TYPES:
+        NPY_DATETIME
+        NPY_TIMEDELTA
+
+cimport util
 
 from tslibs.conversion cimport maybe_datetimelike_to_i8
 
@@ -20,10 +26,6 @@ from hashtable cimport HashTable
 from pandas._libs import algos, hashtable as _hash
 from pandas._libs.tslibs import period as periodlib
 from pandas._libs.tslib import Timestamp, Timedelta
-from datetime import datetime, timedelta, date
-
-from cpython cimport PyTuple_Check, PyList_Check
-from cpython.slice cimport PySlice_Check
 
 cdef int64_t iNaT = util.get_nat()
 
