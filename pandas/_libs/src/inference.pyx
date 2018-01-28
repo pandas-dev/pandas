@@ -1323,6 +1323,7 @@ def maybe_convert_objects(ndarray[object] objects, bint try_float=0,
         from dateutil import tz
         for val in objects:
             item = getattr(val, 'tzinfo', type(val).__name__)
+            # as tzoffset is not hashable, we use __repr__ in our set
             if isinstance(item, tz.tzoffset):
                 unique_types.add(item.__repr__())
             else:
