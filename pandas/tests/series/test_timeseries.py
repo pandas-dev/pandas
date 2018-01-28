@@ -377,7 +377,7 @@ class TestTimeSeries(TestData):
         rs_periods = self.ts.pct_change(7, fill_method='bfill', limit=3)
         assert_series_equal(rs_freq, rs_periods)
 
-        empty_ts = self.ts.apply(lambda x: np.NaN)
+        empty_ts = Series(index=self.ts.index)
         rs_freq = empty_ts.pct_change(freq='14B')
         rs_periods = empty_ts.pct_change(14)
         assert_series_equal(rs_freq, rs_periods)

@@ -146,7 +146,8 @@ class TestDataFrameTimeSeriesMethods(TestData):
         rs_periods = self.tsframe.pct_change(7, fill_method='bfill', limit=3)
         assert_frame_equal(rs_freq, rs_periods)
 
-        empty_ts = self.tsframe.applymap(lambda x: np.NaN)
+        empty_ts = \
+            DataFrame(index=self.tsframe.index, columns=self.tsframe.columns)
         rs_freq = empty_ts.pct_change(freq='14B')
         rs_periods = empty_ts.pct_change(14)
         assert_frame_equal(rs_freq, rs_periods)
