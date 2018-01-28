@@ -206,7 +206,7 @@ class Block(PandasObject):
         """
         return self.dtype
 
-    def make_block(self, values, placement=None, ndim=None):
+    def make_block(self, values, placement=None, ndim=None, dtype=None):
         """
         Create a new block, with type inference propagate any values that are
         not specified
@@ -216,7 +216,7 @@ class Block(PandasObject):
         if ndim is None:
             ndim = self.ndim
 
-        return make_block(values, placement=placement, ndim=ndim)
+        return make_block(values, placement=placement, ndim=ndim, dtype=dtype)
 
     def make_block_scalar(self, values):
         """
@@ -224,12 +224,13 @@ class Block(PandasObject):
         """
         return ScalarBlock(values)
 
-    def make_block_same_class(self, values, placement=None, ndim=None):
+    def make_block_same_class(self, values, placement=None, ndim=None,
+                              dtype=None):
         """ Wrap given values in a block of same type as self. """
         if placement is None:
             placement = self.mgr_locs
         return make_block(values, placement=placement, ndim=ndim,
-                          klass=self.__class__)
+                          klass=self.__class__, dtype=dtype)
 
     def __unicode__(self):
 
