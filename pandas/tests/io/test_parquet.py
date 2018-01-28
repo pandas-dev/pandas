@@ -81,15 +81,6 @@ def fp_lt_014():
 
 
 @pytest.fixture
-def fp_ge_014():
-    if not _HAVE_FASTPARQUET:
-        pytest.skip("fastparquet is not installed")
-    if LooseVersion(fastparquet.__version__) < LooseVersion('0.1.4'):
-        pytest.skip("fastparquet is < 0.1.4")
-    return 'fastparquet'
-
-
-@pytest.fixture
 def df_compat():
     return pd.DataFrame({'A': [1, 2, 3], 'B': 'foo'})
 
@@ -467,7 +458,7 @@ class TestParquetFastParquet(Base):
         df = df_full
 
         # additional supported types for fastparquet>=0.1.4
-        if LooseVersion(pyarrow.__version__) >= LooseVersion('0.1.4'):
+        if LooseVersion(fastparquet.__version__) >= LooseVersion('0.1.4'):
             df['datetime_tz'] = pd.date_range('20130101', periods=3,
                                               tz='US/Eastern')
         df['timedelta'] = pd.timedelta_range('1 day', periods=3)
