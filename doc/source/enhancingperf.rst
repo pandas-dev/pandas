@@ -29,20 +29,20 @@ computationally heavy applications however, it can be possible to achieve sizeab
 speed-ups by offloading work to `cython <http://cython.org/>`__.
 
 This tutorial assumes you have refactored as much as possible in Python, for example
-trying to remove for loops and making use of NumPy vectorization, it's always worth
+by trying to remove for-loops and making use of NumPy vectorization. It's always worth
 optimising in Python first.
 
 This tutorial walks through a "typical" process of cythonizing a slow computation.
 We use an `example from the cython documentation <http://docs.cython.org/src/quickstart/cythonize.html>`__
 but in the context of pandas. Our final cythonized solution is around 100 times
-faster than the pure Python.
+faster than the pure Python solution.
 
 .. _enhancingperf.pure:
 
 Pure python
 ~~~~~~~~~~~
 
-We have a DataFrame to which we want to apply a function row-wise.
+We have a ``DataFrame`` to which we want to apply a function row-wise.
 
 .. ipython:: python
 
@@ -214,8 +214,8 @@ the rows, applying our ``integrate_f_typed``, and putting this in the zeros arra
 
    You can **not pass** a ``Series`` directly as a ``ndarray`` typed parameter
    to a cython function. Instead pass the actual ``ndarray`` using the
-   ``.values`` attribute of the Series. The reason is that the cython
-   definition is specific to an ndarray and not the passed Series.
+   ``.values`` attribute of the ``Series``. The reason is that the cython
+   definition is specific to an ndarray and not the passed ``Series``.
 
    So, do not do this:
 
@@ -223,7 +223,7 @@ the rows, applying our ``integrate_f_typed``, and putting this in the zeros arra
 
         apply_integrate_f(df['a'], df['b'], df['N'])
 
-   But rather, use ``.values`` to get the underlying ``ndarray``
+   But rather, use ``.values`` to get the underlying ``ndarray``:
 
    .. code-block:: python
 
@@ -291,7 +291,8 @@ advanced cython techniques:
 
 Even faster, with the caveat that a bug in our cython code (an off-by-one error,
 for example) might cause a segfault because memory access isn't checked.
-
+For more about ``boundscheck`` and ``wraparound``, see the Cython docs on 
+`compiler directives <http://cython.readthedocs.io/en/latest/src/reference/compilation.html?highlight=wraparound#compiler-directives>`__.
 
 .. _enhancingperf.numba:
 
@@ -315,7 +316,8 @@ Numba works by generating optimized machine code using the LLVM compiler infrast
 Jit
 ~~~
 
-Using ``numba`` to just-in-time compile your code. We simply take the plain Python code from above and annotate with the ``@jit`` decorator.
+We demonstrate how to use ``numba`` to just-in-time compile our code. We simply 
+take the plain Python code from above and annotate with the ``@jit`` decorator.
 
 .. code-block:: python
 
@@ -346,12 +348,14 @@ Using ``numba`` to just-in-time compile your code. We simply take the plain Pyth
        result = apply_integrate_f_numba(df['a'].values, df['b'].values, df['N'].values)
        return pd.Series(result, index=df.index, name='result')
 
-Note that we directly pass ``numpy`` arrays to the numba function. ``compute_numba`` is just a wrapper that provides a nicer interface by passing/returning pandas objects.
+Note that we directly pass ``numpy`` arrays to the Numba function. ``compute_numba`` is just a wrapper that provides a nicer interface by passing/returning pandas objects.
 
 .. code-block:: ipython
 
     In [4]: %timeit compute_numba(df)
     1000 loops, best of 3: 798 us per loop
+
+In this example, using Numba was faster than Cython.
 
 Vectorize
 ~~~~~~~~~
@@ -448,7 +452,7 @@ These operations are supported by :func:`pandas.eval`:
 - Attribute access, e.g., ``df.a``
 - Subscript expressions, e.g., ``df[0]``
 - Simple variable evaluation, e.g., ``pd.eval('df')`` (this is not very useful)
-- Math functions, `sin`, `cos`, `exp`, `log`, `expm1`, `log1p`,
+- Math functions: `sin`, `cos`, `exp`, `log`, `expm1`, `log1p`,
   `sqrt`, `sinh`, `cosh`, `tanh`, `arcsin`, `arccos`, `arctan`, `arccosh`,
   `arcsinh`, `arctanh`, `abs` and `arctan2`.
 
@@ -581,7 +585,7 @@ on the original ``DataFrame`` or return a copy with the new column.
    For backwards compatibility, ``inplace`` defaults to ``True`` if not
    specified. This will change in a future version of pandas - if your
    code depends on an inplace assignment you should update to explicitly
-   set ``inplace=True``
+   set ``inplace=True``.
 
 .. ipython:: python
 
