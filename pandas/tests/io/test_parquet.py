@@ -448,6 +448,11 @@ class TestParquetFastParquet(Base):
     def test_basic(self, fp, df_full):
         df = df_full
 
+        # additional supported types for fastparquet >= 0.1.4
+        if LooseVersion(fastparquet.__version__) > LooseVersion('0.1.3'):
+            df['datetime_tz'] = pd.date_range('20130101', periods=3,
+                                              tz='US/Eastern')
+
         # additional supported types for fastparquet
         df['timedelta'] = pd.timedelta_range('1 day', periods=3)
 
@@ -482,19 +487,14 @@ class TestParquetFastParquet(Base):
         df = pd.DataFrame({'a': pd.Categorical(list('abc'))})
         check_round_trip(df, fp)
 
-    def test_datetime_tz(self, fp):
-
-        # generic test data
-        df = pd.DataFrame({'dt': pd.date_range('20130101', periods=3)})
-
-        # fastparquet supports timezone since 0.1.4, and not before
-        import fastparquet
-        if LooseVersion(fastparquet.__version__) > LooseVersion('0.1.3'):
-            df['dt_tz'] = pd.date_range('20130101', periods=3, tz='US/Eastern')
-
-        # warns on the coercion
-        with catch_warnings(record=True):
-            check_round_trip(df, fp)
+    def test_datetime_tz_old(self, fp):
+        if LooseVersion(fastparquet.__version__) < LooseVersion('0.1.4'):
+            # fastparquet<0.1.4 doesn't preserve tz
+            df = pd.DataFrame({'a': pd.date_range('20130101', periods=3,
+                                                  tz='US/Eastern')})
+            # warns on the coercion
+            with catch_warnings(record=True):
+                check_round_trip(df, fp, expected=df.astype('datetime64[ns]'))
 
     def test_filter_row_groups(self, fp):
         d = {'a': list(range(0, 3))}
