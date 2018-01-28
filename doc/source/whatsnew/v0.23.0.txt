@@ -548,7 +548,7 @@ Groupby/Resample/Rolling
 - Bug in :func:`DataFrame.resample` which silently ignored unsupported (or mistyped) options for ``label``, ``closed`` and ``convention`` (:issue:`19303`)
 - Bug in :func:`DataFrame.groupby` where tuples were interpreted as lists of keys rather than as keys (:issue:`17979`, :issue:`18249`)
 - Bug in ``transform`` where particular aggregation functions were being incorrectly cast to match the dtype(s) of the grouped data (:issue:`19200`)
--
+- Bug in `DataFrame.groupby` passing the `on=` kwarg, and subsequently using `.apply` (:issue:`17813`)
 
 Sparse
 ^^^^^^
