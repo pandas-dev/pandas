@@ -13,9 +13,9 @@ from cpython.datetime cimport (datetime,
 PyDateTime_IMPORT
 
 import numpy as np
-cimport numpy as np
+cimport numpy as cnp
 from numpy cimport int64_t
-np.import_array()
+cnp.import_array()
 
 from util cimport (get_nat,
                    is_integer_object, is_float_object,
@@ -156,7 +156,7 @@ cdef class _NaT(datetime):
             neg_other = -other
             return self + neg_other
 
-        elif getattr(other, '_typ', None) in ['period',
+        elif getattr(other, '_typ', None) in ['period', 'series',
                                               'periodindex', 'dateoffset']:
             return NotImplemented
 

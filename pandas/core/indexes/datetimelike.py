@@ -31,8 +31,7 @@ from pandas.core.dtypes.generic import (
 from pandas.core.dtypes.missing import isna
 from pandas.core import common as com, algorithms
 from pandas.core.algorithms import checked_add_with_arr
-from pandas.core.common import AbstractMethodError
-
+from pandas.errors import NullFrequencyError
 import pandas.io.formats.printing as printing
 from pandas._libs import lib, iNaT, NaT
 from pandas._libs.tslibs.period import Period
@@ -244,7 +243,7 @@ class DatetimeIndexOpsMixin(object):
         """
         box function to get object from internal representation
         """
-        raise AbstractMethodError(self)
+        raise com.AbstractMethodError(self)
 
     def _box_values(self, values):
         """
@@ -588,7 +587,7 @@ class DatetimeIndexOpsMixin(object):
 
     @property
     def _formatter_func(self):
-        raise AbstractMethodError(self)
+        raise com.AbstractMethodError(self)
 
     def _format_attrs(self):
         """
@@ -646,7 +645,7 @@ class DatetimeIndexOpsMixin(object):
                                 type(other).__name__))
 
     def _sub_datelike(self, other):
-        raise AbstractMethodError(self)
+        raise com.AbstractMethodError(self)
 
     def _sub_period(self, other):
         return NotImplemented
@@ -692,6 +691,9 @@ class DatetimeIndexOpsMixin(object):
                 return self._add_datelike(other)
             elif isinstance(other, Index):
                 return self._add_datelike(other)
+            elif is_integer_dtype(other) and self.freq is None:
+                # GH#19123
+                raise NullFrequencyError("Cannot shift with no freq")
             else:  # pragma: no cover
                 return NotImplemented
 
@@ -731,7 +733,9 @@ class DatetimeIndexOpsMixin(object):
                 raise TypeError("cannot subtract {typ1} and {typ2}"
                                 .format(typ1=type(self).__name__,
                                         typ2=type(other).__name__))
-
+            elif is_integer_dtype(other) and self.freq is None:
+                # GH#19123
+                raise NullFrequencyError("Cannot shift with no freq")
             else:  # pragma: no cover
                 return NotImplemented
 
@@ -831,7 +835,7 @@ class DatetimeIndexOpsMixin(object):
             return self
 
         if self.freq is None:
-            raise ValueError("Cannot shift with no freq")
+            raise NullFrequencyError("Cannot shift with no freq")
 
         start = self[0] + n * self.freq
         end = self[-1] + n * self.freq

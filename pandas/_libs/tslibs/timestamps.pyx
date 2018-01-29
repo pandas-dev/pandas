@@ -6,9 +6,9 @@ from cpython cimport (PyObject_RichCompareBool, PyObject_RichCompare,
                       Py_GT, Py_GE, Py_EQ, Py_NE, Py_LT, Py_LE)
 
 import numpy as np
-cimport numpy as np
+cimport numpy as cnp
 from numpy cimport int64_t, int32_t, ndarray
-np.import_array()
+cnp.import_array()
 
 from datetime import time as datetime_time
 from cpython.datetime cimport (datetime,
@@ -33,7 +33,8 @@ from np_datetime cimport (reverse_ops, cmp_scalar, check_dts_bounds,
                           is_leapyear)
 from timedeltas import Timedelta
 from timedeltas cimport delta_to_nanoseconds
-from timezones cimport get_timezone, is_utc, maybe_get_tz, treat_tz_as_pytz
+from timezones cimport (
+    get_timezone, is_utc, maybe_get_tz, treat_tz_as_pytz, tz_compare)
 
 # ----------------------------------------------------------------------
 # Constants
@@ -266,7 +267,7 @@ cdef class _Timestamp(datetime):
             other = Timestamp(other)
 
             # validate tz's
-            if get_timezone(self.tzinfo) != get_timezone(other.tzinfo):
+            if not tz_compare(self.tzinfo, other.tzinfo):
                 raise TypeError("Timestamp subtraction must have the "
                                 "same timezones or no timezones")
 

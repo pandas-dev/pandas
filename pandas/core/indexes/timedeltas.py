@@ -17,7 +17,6 @@ from pandas.core.dtypes.common import (
     _ensure_int64)
 from pandas.core.dtypes.missing import isna
 from pandas.core.dtypes.generic import ABCSeries
-from pandas.core.common import _maybe_box, _values_from_object
 
 from pandas.core.indexes.base import Index
 from pandas.core.indexes.numeric import Int64Index
@@ -77,7 +76,7 @@ def _td_index_cmp(opname, cls, nat_result=False):
 
             other = TimedeltaIndex(other).values
             result = func(other)
-            result = _values_from_object(result)
+            result = com._values_from_object(result)
 
             if isinstance(other, Index):
                 o_mask = other.values.view('i8') == iNaT
@@ -171,7 +170,6 @@ class TimedeltaIndex(DatetimeIndexOpsMixin, TimelikeOps, Int64Index):
     _left_indexer = _join_i8_wrapper(libjoin.left_join_indexer_int64)
     _left_indexer_unique = _join_i8_wrapper(
         libjoin.left_join_indexer_unique_int64, with_indexers=False)
-    _arrmap = None
 
     # define my properties & methods for delegation
     _other_ops = []
@@ -393,7 +391,7 @@ class TimedeltaIndex(DatetimeIndexOpsMixin, TimelikeOps, Int64Index):
                 if opstr in ['__floordiv__']:
                     result = left // right
                 else:
-                    result = op(left, float(right))
+                    result = op(left, np.float64(right))
                 result = self._maybe_mask_results(result, convert='float64')
                 return Index(result, name=self.name, copy=False)
 
@@ -403,7 +401,8 @@ class TimedeltaIndex(DatetimeIndexOpsMixin, TimelikeOps, Int64Index):
         # adding a timedeltaindex to a datetimelike
         from pandas import Timestamp, DatetimeIndex
         if other is NaT:
-            result = self._nat_new(box=False)
+            # GH#19124 pd.NaT is treated like a timedelta
+            return self._nat_new()
         else:
             other = Timestamp(other)
             i8 = self.asi8
@@ -413,12 +412,13 @@ class TimedeltaIndex(DatetimeIndexOpsMixin, TimelikeOps, Int64Index):
         return DatetimeIndex(result, name=self.name, copy=False)
 
     def _sub_datelike(self, other):
-        from pandas import DatetimeIndex
+        # GH#19124 Timedelta - datetime is not in general well-defined.
+        # We make an exception for pd.NaT, which in this case quacks
+        # like a timedelta.
         if other is NaT:
-            result = self._nat_new(box=False)
+            return self._nat_new()
         else:
             raise TypeError("cannot subtract a datelike from a TimedeltaIndex")
-        return DatetimeIndex(result, name=self.name, copy=False)
 
     def _add_offset_array(self, other):
         # Array/Index of DateOffset objects
@@ -708,8 +708,8 @@ class TimedeltaIndex(DatetimeIndexOpsMixin, TimelikeOps, Int64Index):
             return self.get_value_maybe_box(series, key)
 
         try:
-            return _maybe_box(self, Index.get_value(self, series, key),
-                              series, key)
+            return com._maybe_box(self, Index.get_value(self, series, key),
+                                  series, key)
         except KeyError:
             try:
                 loc = self._get_string_slice(key)
@@ -725,8 +725,8 @@ class TimedeltaIndex(DatetimeIndexOpsMixin, TimelikeOps, Int64Index):
     def get_value_maybe_box(self, series, key):
         if not isinstance(key, Timedelta):
             key = Timedelta(key)
-        values = self._engine.get_value(_values_from_object(series), key)
-        return _maybe_box(self, values, series, key)
+        values = self._engine.get_value(com._values_from_object(series), key)
+        return com._maybe_box(self, values, series, key)
 
     def get_loc(self, key, method=None, tolerance=None):
         """

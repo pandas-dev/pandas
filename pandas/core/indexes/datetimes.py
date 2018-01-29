@@ -34,7 +34,6 @@ from pandas.core.dtypes.missing import isna
 
 import pandas.core.dtypes.concat as _concat
 from pandas.errors import PerformanceWarning
-from pandas.core.common import _values_from_object, _maybe_box
 from pandas.core.algorithms import checked_add_with_arr
 
 from pandas.core.indexes.base import Index, _index_shared_docs
@@ -126,7 +125,7 @@ def _dt_index_cmp(opname, cls, nat_result=False):
                 self._assert_tzawareness_compat(other)
 
             result = func(np.asarray(other))
-            result = _values_from_object(result)
+            result = com._values_from_object(result)
 
             if isinstance(other, Index):
                 o_mask = other.values.view('i8') == libts.iNaT
@@ -283,7 +282,6 @@ class DatetimeIndex(DatelikeOps, TimelikeOps, DatetimeIndexOpsMixin,
     _left_indexer = _join_i8_wrapper(libjoin.left_join_indexer_int64)
     _left_indexer_unique = _join_i8_wrapper(
         libjoin.left_join_indexer_unique_int64, with_indexers=False)
-    _arrmap = None
 
     @classmethod
     def _add_comparison_methods(cls):
@@ -521,8 +519,7 @@ class DatetimeIndex(DatelikeOps, TimelikeOps, DatetimeIndexOpsMixin,
                 tz = tz.localize(date.replace(tzinfo=None)).tzinfo
 
         if tz is not None and inferred_tz is not None:
-            if not (timezones.get_timezone(inferred_tz) ==
-                    timezones.get_timezone(tz)):
+            if not timezones.tz_compare(inferred_tz, tz):
                 raise AssertionError("Inferred time zone not equal to passed "
                                      "time zone")
 
@@ -666,7 +663,10 @@ class DatetimeIndex(DatelikeOps, TimelikeOps, DatetimeIndexOpsMixin,
         if is_datetime64tz_dtype(other):
             # Get tzinfo from Series dtype
             other_tz = other.dtype.tz
-        if self.tz is None:
+        if other is libts.NaT:
+            # pd.NaT quacks both aware and naive
+            pass
+        elif self.tz is None:
             if other_tz is not None:
                 raise TypeError('Cannot compare tz-naive and tz-aware '
                                 'datetime-like objects.')
@@ -1192,7 +1192,7 @@ class DatetimeIndex(DatelikeOps, TimelikeOps, DatetimeIndexOpsMixin,
                 raise TypeError('Cannot join tz-naive with tz-aware '
                                 'DatetimeIndex')
 
-            if self.tz != other.tz:
+            if not timezones.tz_compare(self.tz, other.tz):
                 this = self.tz_convert('UTC')
                 other = other.tz_convert('UTC')
         return this, other
@@ -1296,7 +1296,7 @@ class DatetimeIndex(DatelikeOps, TimelikeOps, DatetimeIndexOpsMixin,
 
     def _wrap_union_result(self, other, result):
         name = self.name if self.name == other.name else None
-        if self.tz != other.tz:
+        if not timezones.tz_compare(self.tz, other.tz):
             raise ValueError('Passed item and index have different timezone')
         return self._simple_new(result, name=name, freq=None, tz=self.tz)
 
@@ -1486,8 +1486,8 @@ class DatetimeIndex(DatelikeOps, TimelikeOps, DatetimeIndexOpsMixin,
             return series.take(locs)
 
         try:
-            return _maybe_box(self, Index.get_value(self, series, key),
-                              series, key)
+            return com._maybe_box(self, Index.get_value(self, series, key),
+                                  series, key)
         except KeyError:
             try:
                 loc = self._get_string_slice(key)
@@ -1506,9 +1506,9 @@ class DatetimeIndex(DatelikeOps, TimelikeOps, DatetimeIndexOpsMixin,
             key = Timestamp(key, tz=self.tz)
         elif not isinstance(key, Timestamp):
             key = Timestamp(key)
-        values = self._engine.get_value(_values_from_object(series),
+        values = self._engine.get_value(com._values_from_object(series),
                                         key, tz=self.tz)
-        return _maybe_box(self, values, series, key)
+        return com._maybe_box(self, values, series, key)
 
     def get_loc(self, key, method=None, tolerance=None):
         """

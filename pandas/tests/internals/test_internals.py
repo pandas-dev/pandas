@@ -19,7 +19,6 @@ from pandas.core.internals import (BlockPlacement, SingleBlockManager,
 import pandas.core.algorithms as algos
 import pandas.util.testing as tm
 import pandas as pd
-from pandas._libs import lib
 from pandas.util.testing import (assert_almost_equal, assert_frame_equal,
                                  randn, assert_series_equal)
 from pandas.compat import zip, u
@@ -39,8 +38,8 @@ def mgr():
 def assert_block_equal(left, right):
     tm.assert_numpy_array_equal(left.values, right.values)
     assert left.dtype == right.dtype
-    assert isinstance(left.mgr_locs, lib.BlockPlacement)
-    assert isinstance(right.mgr_locs, lib.BlockPlacement)
+    assert isinstance(left.mgr_locs, BlockPlacement)
+    assert isinstance(right.mgr_locs, BlockPlacement)
     tm.assert_numpy_array_equal(left.mgr_locs.as_array,
                                 right.mgr_locs.as_array)
 
@@ -222,7 +221,7 @@ class TestBlock(object):
         _check(self.bool_block)
 
     def test_mgr_locs(self):
-        assert isinstance(self.fblock.mgr_locs, lib.BlockPlacement)
+        assert isinstance(self.fblock.mgr_locs, BlockPlacement)
         tm.assert_numpy_array_equal(self.fblock.mgr_locs.as_array,
                                     np.array([0, 2, 4], dtype=np.int64))
 
@@ -264,14 +263,14 @@ class TestBlock(object):
     def test_delete(self):
         newb = self.fblock.copy()
         newb.delete(0)
-        assert isinstance(newb.mgr_locs, lib.BlockPlacement)
+        assert isinstance(newb.mgr_locs, BlockPlacement)
         tm.assert_numpy_array_equal(newb.mgr_locs.as_array,
                                     np.array([2, 4], dtype=np.int64))
         assert (newb.values[0] == 1).all()
 
         newb = self.fblock.copy()
         newb.delete(1)
-        assert isinstance(newb.mgr_locs, lib.BlockPlacement)
+        assert isinstance(newb.mgr_locs, BlockPlacement)
         tm.assert_numpy_array_equal(newb.mgr_locs.as_array,
                                     np.array([0, 4], dtype=np.int64))
         assert (newb.values[1] == 2).all()
@@ -679,7 +678,7 @@ class TestBlockManager(object):
         assert cons.nblocks == 4
         cons = mgr.consolidate().get_numeric_data()
         assert cons.nblocks == 1
-        assert isinstance(cons.blocks[0].mgr_locs, lib.BlockPlacement)
+        assert isinstance(cons.blocks[0].mgr_locs, BlockPlacement)
         tm.assert_numpy_array_equal(cons.blocks[0].mgr_locs.as_array,
                                     np.arange(len(cons.items), dtype=np.int64))
 
@@ -1254,3 +1253,11 @@ class TestCanHoldElement(object):
         result = op(s, e).dtypes
         expected = op(s, value).dtypes
         assert_series_equal(result, expected)
+
+
+def test_deprecated_fastpath():
+    # GH#19265
+    values = np.random.rand(3, 3)
+    with tm.assert_produces_warning(DeprecationWarning,
+                                    check_stacklevel=False):
+        make_block(values, placement=np.arange(3), fastpath=True)

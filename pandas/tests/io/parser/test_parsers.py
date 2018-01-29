@@ -4,7 +4,7 @@ import os
 import pandas.util.testing as tm
 
 from pandas import read_csv, read_table, DataFrame
-from pandas.core.common import AbstractMethodError
+import pandas.core.common as com
 from pandas._libs.lib import Timestamp
 from pandas.compat import StringIO
 
@@ -43,7 +43,7 @@ class BaseParser(CommentTests, CompressionTests,
         raise NotImplementedError
 
     def float_precision_choices(self):
-        raise AbstractMethodError(self)
+        raise com.AbstractMethodError(self)
 
     def setup_method(self, method):
         self.dirpath = tm.get_data_path()

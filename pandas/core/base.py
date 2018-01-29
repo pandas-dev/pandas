@@ -24,7 +24,6 @@ from pandas.compat.numpy import function as nv
 from pandas.compat import PYPY
 from pandas.util._decorators import (Appender, cache_readonly,
                                      deprecate_kwarg, Substitution)
-from pandas.core.common import AbstractMethodError, _maybe_box_datetimelike
 
 from pandas.core.accessor import DirNamesMixin
 
@@ -46,7 +45,7 @@ class StringMixin(object):
     # Formatting
 
     def __unicode__(self):
-        raise AbstractMethodError(self)
+        raise com.AbstractMethodError(self)
 
     def __str__(self):
         """
@@ -145,10 +144,14 @@ class NoNewAttributesMixin(object):
     # prevent adding any attribute via s.xxx.new_attribute = ...
     def __setattr__(self, key, value):
         # _cache is used by a decorator
-        # dict lookup instead of getattr as getattr is false for getter
-        # which error
-        if getattr(self, "__frozen", False) and not \
-                (key in type(self).__dict__ or key == "_cache"):
+        # We need to check both 1.) cls.__dict__ and 2.) getattr(self, key)
+        # because
+        # 1.) getattr is false for attributes that raise errors
+        # 2.) cls.__dict__ doesn't traverse into base classes
+        if (getattr(self, "__frozen", False) and not
+                (key == "_cache" or
+                 key in type(self).__dict__ or
+                 getattr(self, key, None) is not None)):
             raise AttributeError("You cannot add any new attribute '{key}'".
                                  format(key=key))
         object.__setattr__(self, key, value)
@@ -274,10 +277,10 @@ class SelectionMixin(object):
             subset to act on
 
         """
-        raise AbstractMethodError(self)
+        raise com.AbstractMethodError(self)
 
     def aggregate(self, func, *args, **kwargs):
-        raise AbstractMethodError(self)
+        raise com.AbstractMethodError(self)
 
     agg = aggregate
 
@@ -811,7 +814,7 @@ class IndexOpsMixin(object):
         """
 
         if is_datetimelike(self):
-            return [_maybe_box_datetimelike(x) for x in self._values]
+            return [com._maybe_box_datetimelike(x) for x in self._values]
         else:
             return self._values.tolist()
 
@@ -1234,4 +1237,4 @@ class IndexOpsMixin(object):
     # abstracts
 
     def _update_inplace(self, result, **kwargs):
-        raise AbstractMethodError(self)
+        raise com.AbstractMethodError(self)

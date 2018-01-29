@@ -610,6 +610,18 @@ class TestSeriesIndexing(TestData):
         value = self.ts[5]
         assert isinstance(value, np.float64)
 
+    def test_series_box_timestamp(self):
+        rng = pd.date_range('20090415', '20090519', freq='B')
+        ser = Series(rng)
+
+        assert isinstance(ser[5], pd.Timestamp)
+
+        rng = pd.date_range('20090415', '20090519', freq='B')
+        ser = Series(rng, index=rng)
+        assert isinstance(ser[5], pd.Timestamp)
+
+        assert isinstance(ser.iat[5], pd.Timestamp)
+
     def test_getitem_ambiguous_keyerror(self):
         s = Series(lrange(10), index=lrange(0, 20, 2))
         pytest.raises(KeyError, s.__getitem__, 1)
@@ -1838,8 +1850,8 @@ class TestSeriesIndexing(TestData):
 
         # single string/tuple-like
         s = Series(range(3), index=list('abc'))
-        pytest.raises(ValueError, s.drop, 'bc')
-        pytest.raises(ValueError, s.drop, ('a', ))
+        pytest.raises(KeyError, s.drop, 'bc')
+        pytest.raises(KeyError, s.drop, ('a', ))
 
         # errors='ignore'
         s = Series(range(3), index=list('abc'))
@@ -1861,7 +1873,7 @@ class TestSeriesIndexing(TestData):
 
         # GH 16877
         s = Series([2, 3], index=[0, 1])
-        with tm.assert_raises_regex(ValueError, 'not contained in axis'):
+        with tm.assert_raises_regex(KeyError, 'not contained in axis'):
             s.drop([False, True])
 
     def test_align(self):

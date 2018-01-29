@@ -30,10 +30,6 @@ from pandas.core.dtypes.cast import maybe_promote, maybe_upcast_putmask
 from pandas.core.dtypes.inference import is_hashable
 from pandas.core.dtypes.missing import isna, notna
 from pandas.core.dtypes.generic import ABCSeries, ABCPanel, ABCDataFrame
-from pandas.core.common import (_count_not_none,
-                                _maybe_box_datetimelike, _values_from_object,
-                                AbstractMethodError, SettingWithCopyError,
-                                SettingWithCopyWarning)
 
 from pandas.core.base import PandasObject, SelectionMixin
 from pandas.core.index import (Index, MultiIndex, _ensure_index,
@@ -198,7 +194,7 @@ class NDFrame(PandasObject, SelectionMixin):
         """Used when a manipulation result has the same dimensions as the
         original.
         """
-        raise AbstractMethodError(self)
+        raise com.AbstractMethodError(self)
 
     def __unicode__(self):
         # unicode representation based upon iterating over self
@@ -220,7 +216,7 @@ class NDFrame(PandasObject, SelectionMixin):
         """Used when a manipulation result has one lower dimension(s) as the
         original, such as DataFrame single columns slicing.
         """
-        raise AbstractMethodError(self)
+        raise com.AbstractMethodError(self)
 
     @property
     def _constructor_expanddim(self):
@@ -1026,7 +1022,7 @@ class NDFrame(PandasObject, SelectionMixin):
                    for a in self._AXIS_ORDERS)
 
     def __neg__(self):
-        values = _values_from_object(self)
+        values = com._values_from_object(self)
         if values.dtype == np.bool_:
             arr = operator.inv(values)
         else:
@@ -1035,7 +1031,7 @@ class NDFrame(PandasObject, SelectionMixin):
 
     def __invert__(self):
         try:
-            arr = operator.inv(_values_from_object(self))
+            arr = operator.inv(com._values_from_object(self))
             return self.__array_wrap__(arr)
         except Exception:
 
@@ -1490,7 +1486,7 @@ class NDFrame(PandasObject, SelectionMixin):
     # Array Interface
 
     def __array__(self, dtype=None):
-        return _values_from_object(self)
+        return com._values_from_object(self)
 
     def __array_wrap__(self, result, context=None):
         d = self._construct_axes_dict(self._AXIS_ORDERS, copy=False)
@@ -2204,7 +2200,7 @@ class NDFrame(PandasObject, SelectionMixin):
         return lower
 
     def _box_item_values(self, key, values):
-        raise AbstractMethodError(self)
+        raise com.AbstractMethodError(self)
 
     def _maybe_cache_changed(self, item, value):
         """The object has called back to us saying maybe it has changed.
@@ -2397,9 +2393,10 @@ class NDFrame(PandasObject, SelectionMixin):
                      )
 
             if value == 'raise':
-                raise SettingWithCopyError(t)
+                raise com.SettingWithCopyError(t)
             elif value == 'warn':
-                warnings.warn(t, SettingWithCopyWarning, stacklevel=stacklevel)
+                warnings.warn(t, com.SettingWithCopyWarning,
+                              stacklevel=stacklevel)
 
     def __delitem__(self, key):
         """
@@ -2696,7 +2693,7 @@ class NDFrame(PandasObject, SelectionMixin):
             # that means that their are list/ndarrays inside the Series!
             # so just return them (GH 6394)
             if not is_list_like(new_values) or self.ndim == 1:
-                return _maybe_box_datetimelike(new_values)
+                return com._maybe_box_datetimelike(new_values)
 
             result = self._constructor_sliced(
                 new_values, index=self.columns,
@@ -2806,6 +2803,11 @@ class NDFrame(PandasObject, SelectionMixin):
         -------
         dropped : type of caller
 
+        Raises
+        ------
+        KeyError
+            If none of the labels are found in the selected axis
+
         Examples
         --------
         >>> df = pd.DataFrame(np.arange(12).reshape(3,4),
@@ -2908,6 +2910,9 @@ class NDFrame(PandasObject, SelectionMixin):
                 indexer = ~axis.get_level_values(level).isin(labels)
             else:
                 indexer = ~axis.isin(labels)
+
+            if errors == 'raise' and indexer.all():
+                raise KeyError('{} not found in axis'.format(labels))
 
             slicer = [slice(None)] * self.ndim
             slicer[self._get_axis_number(axis_name)] = indexer
@@ -3549,7 +3554,7 @@ class NDFrame(PandasObject, SelectionMixin):
         """
         import re
 
-        nkw = _count_not_none(items, like, regex)
+        nkw = com._count_not_none(items, like, regex)
         if nkw > 1:
             raise TypeError('Keyword arguments `items`, `like`, or `regex` '
                             'are mutually exclusive')
@@ -6349,7 +6354,8 @@ class NDFrame(PandasObject, SelectionMixin):
                         if try_quick:
 
                             try:
-                                new_other = _values_from_object(self).copy()
+                                new_other = com._values_from_object(self)
+                                new_other = new_other.copy()
                                 new_other[icond] = other
                                 other = new_other
                             except Exception:
@@ -7310,7 +7316,7 @@ class NDFrame(PandasObject, SelectionMixin):
         rs = (data.div(data.shift(periods=periods, freq=freq, axis=axis,
                                   **kwargs)) - 1)
         if freq is None:
-            mask = isna(_values_from_object(self))
+            mask = isna(com._values_from_object(self))
             np.putmask(rs.values, mask, np.nan)
         return rs
 
@@ -7770,7 +7776,7 @@ def _make_cum_function(cls, name, name1, name2, axis_descr, desc,
         else:
             axis = self._get_axis_number(axis)
 
-        y = _values_from_object(self).copy()
+        y = com._values_from_object(self).copy()
 
         if (skipna and
                 issubclass(y.dtype.type, (np.datetime64, np.timedelta64))):

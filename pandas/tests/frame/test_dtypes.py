@@ -640,6 +640,87 @@ class TestDataFrameDataTypes(TestData):
         with tm.assert_raises_regex(TypeError, xpr):
             df['A'].astype(cls)
 
+    @pytest.mark.parametrize("dtype", ["M8", "m8"])
+    @pytest.mark.parametrize("unit", ['ns', 'us', 'ms', 's', 'h', 'm', 'D'])
+    def test_astype_from_datetimelike_to_objectt(self, dtype, unit):
+        # tests astype to object dtype
+        # gh-19223 / gh-12425
+        dtype = "{}[{}]".format(dtype, unit)
+        arr = np.array([[1, 2, 3]], dtype=dtype)
+        df = DataFrame(arr)
+        result = df.astype(object)
+        assert (result.dtypes == object).all()
+
+        if dtype.startswith('M8'):
+            assert result.iloc[0, 0] == pd.to_datetime(1, unit=unit)
+        else:
+            assert result.iloc[0, 0] == pd.to_timedelta(1, unit=unit)
+
+    @pytest.mark.parametrize("arr_dtype", [np.int64, np.float64])
+    @pytest.mark.parametrize("dtype", ["M8", "m8"])
+    @pytest.mark.parametrize("unit", ['ns', 'us', 'ms', 's', 'h', 'm', 'D'])
+    def test_astype_to_datetimelike_unit(self, arr_dtype, dtype, unit):
+        # tests all units from numeric origination
+        # gh-19223 / gh-12425
+        dtype = "{}[{}]".format(dtype, unit)
+        arr = np.array([[1, 2, 3]], dtype=arr_dtype)
+        df = DataFrame(arr)
+        result = df.astype(dtype)
+        expected = DataFrame(arr.astype(dtype))
+
+        tm.assert_frame_equal(result, expected)
+
+    @pytest.mark.parametrize("unit", ['ns', 'us', 'ms', 's', 'h', 'm', 'D'])
+    def test_astype_to_datetime_unit(self, unit):
+        # tests all units from datetime origination
+        # gh-19223
+        dtype = "M8[{}]".format(unit)
+        arr = np.array([[1, 2, 3]], dtype=dtype)
+        df = DataFrame(arr)
+        result = df.astype(dtype)
+        expected = DataFrame(arr.astype(dtype))
+
+        tm.assert_frame_equal(result, expected)
+
+    @pytest.mark.parametrize("unit", ['ns'])
+    def test_astype_to_timedelta_unit_ns(self, unit):
+        # preserver the timedelta conversion
+        # gh-19223
+        dtype = "m8[{}]".format(unit)
+        arr = np.array([[1, 2, 3]], dtype=dtype)
+        df = DataFrame(arr)
+        result = df.astype(dtype)
+        expected = DataFrame(arr.astype(dtype))
+
+        tm.assert_frame_equal(result, expected)
+
+    @pytest.mark.parametrize("unit", ['us', 'ms', 's', 'h', 'm', 'D'])
+    def test_astype_to_timedelta_unit(self, unit):
+        # coerce to float
+        # gh-19223
+        dtype = "m8[{}]".format(unit)
+        arr = np.array([[1, 2, 3]], dtype=dtype)
+        df = DataFrame(arr)
+        result = df.astype(dtype)
+        expected = DataFrame(df.values.astype(dtype).astype(float))
+
+        tm.assert_frame_equal(result, expected)
+
+    @pytest.mark.parametrize("unit", ['ns', 'us', 'ms', 's', 'h', 'm', 'D'])
+    def test_astype_to_incorrect_datetimelike(self, unit):
+        # trying to astype a m to a M, or vice-versa
+        # gh-19224
+        dtype = "M8[{}]".format(unit)
+        other = "m8[{}]".format(unit)
+
+        df = DataFrame(np.array([[1, 2, 3]], dtype=dtype))
+        with pytest.raises(TypeError):
+            df.astype(other)
+
+        df = DataFrame(np.array([[1, 2, 3]], dtype=other))
+        with pytest.raises(TypeError):
+            df.astype(dtype)
+
     def test_timedeltas(self):
         df = DataFrame(dict(A=Series(date_range('2012-1-1', periods=3,
                                                 freq='D')),

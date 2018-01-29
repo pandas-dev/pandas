@@ -13,6 +13,7 @@ from textwrap import dedent
 import numpy as np
 import numpy.ma as ma
 
+from pandas.core.accessor import CachedAccessor
 from pandas.core.dtypes.common import (
     is_categorical_dtype,
     is_bool,
@@ -38,22 +39,12 @@ from pandas.core.dtypes.cast import (
     construct_1d_arraylike_from_scalar)
 from pandas.core.dtypes.missing import isna, notna, remove_na_arraylike
 
-from pandas.core.common import (is_bool_indexer,
-                                _default_index,
-                                _asarray_tuplesafe,
-                                _values_from_object,
-                                _maybe_match_name,
-                                SettingWithCopyError,
-                                _maybe_box_datetimelike,
-                                standardize_mapping,
-                                _any_none)
 from pandas.core.index import (Index, MultiIndex, InvalidIndexError,
                                Float64Index, _ensure_index)
 from pandas.core.indexing import check_bool_indexer, maybe_convert_indices
 from pandas.core import generic, base
 from pandas.core.internals import SingleBlockManager
-from pandas.core.categorical import Categorical, CategoricalAccessor
-import pandas.core.strings as strings
+from pandas.core.arrays.categorical import Categorical, CategoricalAccessor
 from pandas.core.indexes.accessors import CombinedDatetimelikeProperties
 from pandas.core.indexes.datetimes import DatetimeIndex
 from pandas.core.indexes.timedeltas import TimedeltaIndex
@@ -64,7 +55,6 @@ from pandas.compat import (
     zip, u, OrderedDict, StringIO, range, get_range_parameters)
 from pandas.compat.numpy import function as nv
 
-from pandas.core import accessor
 import pandas.core.ops as ops
 import pandas.core.algorithms as algorithms
 
@@ -77,6 +67,7 @@ from pandas.util._validators import validate_bool_kwarg
 
 from pandas._libs import index as libindex, tslib as libts, lib, iNaT
 from pandas.core.config import get_option
+from pandas.core.strings import StringMethods
 
 import pandas.plotting._core as gfx
 
@@ -153,7 +144,6 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
     _deprecations = generic.NDFrame._deprecations | frozenset(
         ['asobject', 'sortlevel', 'reshape', 'get_value', 'set_value',
          'from_csv', 'valid'])
-    _allow_index_ops = True
 
     def __init__(self, data=None, index=None, dtype=None, name=None,
                  copy=False, fastpath=False):
@@ -206,8 +196,13 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
             elif isinstance(data, SingleBlockManager):
                 if index is None:
                     index = data.index
-                else:
-                    data = data.reindex(index, copy=copy)
+                elif not data.index.equals(index) or copy:
+                    # GH#19275 SingleBlockManager input should only be called
+                    # internally
+                    raise AssertionError('Cannot pass both SingleBlockManager '
+                                         '`data` argument and a different '
+                                         '`index` argument.  `copy` must '
+                                         'be False.')
             elif isinstance(data, Categorical):
                 # GH12574: Allow dtype=category only, otherwise error
                 if ((dtype is not None) and
@@ -230,7 +225,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
             if index is None:
                 if not is_list_like(data):
                     data = [data]
-                index = _default_index(len(data))
+                index = com._default_index(len(data))
 
             # create/copy the manager
             if isinstance(data, SingleBlockManager):
@@ -490,7 +485,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
 
     def nonzero(self):
         """
-        Return the indices of the elements that are non-zero
+        Return the *integer* indices of the elements that are non-zero
 
         This method is equivalent to calling `numpy.nonzero` on the
         series data. For compatibility with NumPy, the return value is
@@ -506,6 +501,15 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         >>> s.iloc[s.nonzero()[0]]
         1    3
         3    4
+        dtype: int64
+
+        >>> s = pd.Series([0, 3, 0, 4], index=['a', 'b', 'c', 'd'])
+        # same return although index of s is different
+        >>> s.nonzero()
+        (array([1, 3]),)
+        >>> s.iloc[s.nonzero()[0]]
+        b    3
+        d    4
         dtype: int64
 
         See Also
@@ -688,7 +692,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
                 pass
             elif key is Ellipsis:
                 return self
-            elif is_bool_indexer(key):
+            elif com.is_bool_indexer(key):
                 pass
             else:
 
@@ -762,7 +766,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
 
     def _get_values_tuple(self, key):
         # mpl hackaround
-        if _any_none(*key):
+        if com._any_none(*key):
             return self._get_values(key)
 
         if not isinstance(self.index, MultiIndex):
@@ -787,7 +791,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
             try:
                 self._set_with_engine(key, value)
                 return
-            except (SettingWithCopyError):
+            except com.SettingWithCopyError:
                 raise
             except (KeyError, ValueError):
                 values = self._values
@@ -887,7 +891,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         if isinstance(key, Index):
             key = key.values
         else:
-            key = _asarray_tuplesafe(key)
+            key = com._asarray_tuplesafe(key)
         indexer = self.index.get_indexer(key)
         mask = indexer == -1
         if mask.any():
@@ -939,7 +943,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
 
     def _get_value(self, label, takeable=False):
         if takeable is True:
-            return _maybe_box_datetimelike(self._values[label])
+            return com._maybe_box_datetimelike(self._values[label])
         return self.index.get_value(self._values, label)
     _get_value.__doc__ = get_value.__doc__
 
@@ -1039,7 +1043,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         """
         inplace = validate_bool_kwarg(inplace, 'inplace')
         if drop:
-            new_index = _default_index(len(self))
+            new_index = com._default_index(len(self))
             if level is not None and isinstance(self.index, MultiIndex):
                 if not isinstance(level, (tuple, list)):
                     level = [level]
@@ -1182,7 +1186,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         defaultdict(<type 'list'>, {0: 1, 1: 2, 2: 3, 3: 4})
         """
         # GH16122
-        into_c = standardize_mapping(into)
+        into_c = com.standardize_mapping(into)
         return into_c(compat.iteritems(self))
 
     def to_frame(self, name=None):
@@ -1260,7 +1264,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         from pandas.core.index import _get_na_value
 
         if level is None:
-            return notna(_values_from_object(self)).sum()
+            return notna(com._values_from_object(self)).sum()
 
         if isinstance(level, compat.string_types):
             level = self.index._get_level_number(level)
@@ -1342,7 +1346,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         numpy.ndarray.argmin
         """
         skipna = nv.validate_argmin_with_skipna(skipna, args, kwargs)
-        i = nanops.nanargmin(_values_from_object(self), skipna=skipna)
+        i = nanops.nanargmin(com._values_from_object(self), skipna=skipna)
         if i == -1:
             return np.nan
         return self.index[i]
@@ -1378,7 +1382,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         numpy.ndarray.argmax
         """
         skipna = nv.validate_argmax_with_skipna(skipna, args, kwargs)
-        i = nanops.nanargmax(_values_from_object(self), skipna=skipna)
+        i = nanops.nanargmax(com._values_from_object(self), skipna=skipna)
         if i == -1:
             return np.nan
         return self.index[i]
@@ -1419,7 +1423,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
 
         """
         nv.validate_round(args, kwargs)
-        result = _values_from_object(self).round(decimals)
+        result = com._values_from_object(self).round(decimals)
         result = self._constructor(result, index=self.index).__finalize__(self)
 
         return result
@@ -1536,7 +1540,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         -------
         diffed : Series
         """
-        result = algorithms.diff(_values_from_object(self), periods)
+        result = algorithms.diff(com._values_from_object(self), periods)
         return self._constructor(result, index=self.index).__finalize__(self)
 
     def autocorr(self, lag=1):
@@ -1737,7 +1741,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
 
         with np.errstate(all='ignore'):
             result = func(this_vals, other_vals)
-        name = _maybe_match_name(self, other)
+        name = com._maybe_match_name(self, other)
         result = self._constructor(result, index=new_index, name=name)
         result = result.__finalize__(self)
         if name is None:
@@ -1778,7 +1782,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         """
         if isinstance(other, Series):
             new_index = self.index.union(other.index)
-            new_name = _maybe_match_name(self, other)
+            new_name = com._maybe_match_name(self, other)
             new_values = np.empty(len(new_index), dtype=self.dtype)
             for i, idx in enumerate(new_index):
                 lv = self.get(idx, fill_value)
@@ -1823,7 +1827,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         this = self.reindex(new_index, copy=False)
         other = other.reindex(new_index, copy=False)
         # TODO: do we need name?
-        name = _maybe_match_name(self, other)  # noqa
+        name = com._maybe_match_name(self, other)  # noqa
         rs_vals = com._where_compat(isna(this), other._values, this._values)
         return self._constructor(rs_vals, index=new_index).__finalize__(self)
 
@@ -1911,7 +1915,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         bad = isna(arr)
 
         good = ~bad
-        idx = _default_index(len(self))
+        idx = com._default_index(len(self))
 
         argsorted = _try_kind_sort(arr[good])
 
@@ -2784,7 +2788,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         dtype: bool
 
         """
-        result = algorithms.isin(_values_from_object(self), values)
+        result = algorithms.isin(com._values_from_object(self), values)
         return self._constructor(result, index=self.index).__finalize__(self)
 
     def between(self, left, right, inclusive=True):
@@ -2881,7 +2885,8 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
 
     def to_csv(self, path=None, index=True, sep=",", na_rep='',
                float_format=None, header=False, index_label=None,
-               mode='w', encoding=None, date_format=None, decimal='.'):
+               mode='w', encoding=None, compression=None, date_format=None,
+               decimal='.'):
         """
         Write Series to a comma-separated values (csv) file
 
@@ -2908,6 +2913,10 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         encoding : string, optional
             a string representing the encoding to use if the contents are
             non-ascii, for python versions prior to 3
+        compression : string, optional
+            a string representing the compression to use in the output file,
+            allowed values are 'gzip', 'bz2', 'xz', only used when the first
+            argument is a filename
         date_format: string, default None
             Format string for datetime objects.
         decimal: string, default '.'
@@ -2920,8 +2929,8 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         result = df.to_csv(path, index=index, sep=sep, na_rep=na_rep,
                            float_format=float_format, header=header,
                            index_label=index_label, mode=mode,
-                           encoding=encoding, date_format=date_format,
-                           decimal=decimal)
+                           encoding=encoding, compression=compression,
+                           date_format=date_format, decimal=decimal)
         if path is None:
             return result
 
@@ -3069,21 +3078,16 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         return self._constructor(new_values,
                                  index=new_index).__finalize__(self)
 
-    # -------------------------------------------------------------------------
-    # Datetimelike delegation methods
-    dt = accessor.AccessorProperty(CombinedDatetimelikeProperties)
-
-    # -------------------------------------------------------------------------
-    # Categorical methods
-    cat = accessor.AccessorProperty(CategoricalAccessor)
-
-    # String Methods
-    str = accessor.AccessorProperty(strings.StringMethods)
+    # ----------------------------------------------------------------------
+    # Accessor Methods
+    # ----------------------------------------------------------------------
+    str = CachedAccessor("str", StringMethods)
+    dt = CachedAccessor("dt", CombinedDatetimelikeProperties)
+    cat = CachedAccessor("cat", CategoricalAccessor)
+    plot = CachedAccessor("plot", gfx.SeriesPlotMethods)
 
     # ----------------------------------------------------------------------
     # Add plotting methods to Series
-    plot = accessor.AccessorProperty(gfx.SeriesPlotMethods,
-                                     gfx.SeriesPlotMethods)
     hist = gfx.hist_series
 
 
@@ -3253,7 +3257,7 @@ def _sanitize_array(data, index, dtype=None, copy=False,
         if isinstance(data, np.ndarray):
             raise Exception('Data must be 1-dimensional')
         else:
-            subarr = _asarray_tuplesafe(data, dtype=dtype)
+            subarr = com._asarray_tuplesafe(data, dtype=dtype)
 
     # This is to prevent mixed-type Series getting all casted to
     # NumPy string type, e.g. NaN --> '-1#IND'.

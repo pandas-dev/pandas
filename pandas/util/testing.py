@@ -32,7 +32,7 @@ from pandas.core.dtypes.common import (
     is_list_like)
 from pandas.io.formats.printing import pprint_thing
 from pandas.core.algorithms import take_1d
-from pandas.core.common import _all_not_none
+import pandas.core.common as com
 
 import pandas.compat as compat
 from pandas.compat import (
@@ -160,6 +160,52 @@ def round_trip_localpath(writer, reader, path=None):
         writer(LocalPath(path))
         obj = reader(LocalPath(path))
     return obj
+
+
+@contextmanager
+def decompress_file(path, compression):
+    """
+    Open a compressed file and return a file object
+
+    Parameters
+    ----------
+    path : str
+        The path where the file is read from
+
+    compression : {'gzip', 'bz2', 'xz', None}
+        Name of the decompression to use
+
+    Returns
+    -------
+    f : file object
+    """
+
+    if compression is None:
+        f = open(path, 'rb')
+    elif compression == 'gzip':
+        import gzip
+        f = gzip.open(path, 'rb')
+    elif compression == 'bz2':
+        import bz2
+        f = bz2.BZ2File(path, 'rb')
+    elif compression == 'xz':
+        lzma = compat.import_lzma()
+        f = lzma.LZMAFile(path, 'rb')
+    elif compression == 'zip':
+        import zipfile
+        zip_file = zipfile.ZipFile(path)
+        zip_names = zip_file.namelist()
+        if len(zip_names) == 1:
+            f = zip_file.open(zip_names.pop())
+        else:
+            raise ValueError('ZIP file {} error. Only one file per ZIP.'
+                             .format(path))
+    else:
+        msg = 'Unrecognized compression type: {}'.format(compression)
+        raise ValueError(msg)
+
+    yield f
+    f.close()
 
 
 def assert_almost_equal(left, right, check_exact=False,
@@ -449,7 +495,7 @@ def set_locale(new_locale, lc_var=locale.LC_ALL):
         except ValueError:
             yield new_locale
         else:
-            if _all_not_none(*normalized_locale):
+            if com._all_not_none(*normalized_locale):
                 yield '.'.join(normalized_locale)
             else:
                 yield new_locale

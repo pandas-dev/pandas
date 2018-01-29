@@ -171,6 +171,9 @@ We'll now kick off a three-step process:
    # Create and activate the build environment
    conda env create -f ci/environment-dev.yaml
    conda activate pandas-dev
+   
+   # or with older versions of Anaconda:
+   source activate pandas-dev
 
    # Build and install pandas
    python setup.py build_ext --inplace -j 4
@@ -456,7 +459,7 @@ Here are *some* of the more common ``cpplint`` issues:
   - we restrict line-length to 80 characters to promote readability
   - every header file must include a header guard to avoid name collisions if re-included
 
-:ref:`Continuous Integration <contributing.ci>`. will run the
+:ref:`Continuous Integration <contributing.ci>` will run the
 `cpplint <https://pypi.python.org/pypi/cpplint>`_ tool
 and report any stylistic errors in your code. Therefore, it is helpful before
 submitting code to run the check yourself::
@@ -858,9 +861,9 @@ takes a regular expression.  For example, this will only run tests from a
 If you want to only run a specific group of tests from a file, you can do it
 using ``.`` as a separator. For example::
 
-    asv continuous -f 1.1 upstream/master HEAD -b groupby.groupby_agg_builtins
+    asv continuous -f 1.1 upstream/master HEAD -b groupby.GroupByMethods
 
-will only run the ``groupby_agg_builtins`` benchmark defined in ``groupby.py``.
+will only run the ``GroupByMethods`` benchmark defined in ``groupby.py``.
 
 You can also run the benchmark suite using the version of ``pandas``
 already installed in your current Python environment. This can be

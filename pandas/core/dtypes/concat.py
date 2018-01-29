@@ -316,7 +316,7 @@ def union_categoricals(to_union, sort_categories=False, ignore_order=False):
     Categories (3, object): [b, c, a]
     """
     from pandas import Index, Categorical, CategoricalIndex, Series
-    from pandas.core.categorical import _recode_for_categories
+    from pandas.core.arrays.categorical import _recode_for_categories
 
     if len(to_union) == 0:
         raise ValueError('No Categoricals to union')

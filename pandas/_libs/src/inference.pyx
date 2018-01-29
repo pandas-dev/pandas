@@ -5,15 +5,30 @@ cimport cython
 from tslibs.nattype import NaT
 from tslibs.conversion cimport convert_to_tsobject
 from tslibs.timedeltas cimport convert_to_timedelta64
-from tslibs.timezones cimport get_timezone
+from tslibs.timezones cimport get_timezone, tz_compare
 from datetime import datetime, timedelta
 iNaT = util.get_nat()
 
 cdef bint PY2 = sys.version_info[0] == 2
+cdef double nan = <double> np.NaN
 
-from util cimport (UINT8_MAX, UINT16_MAX, UINT32_MAX, UINT64_MAX,
-                   INT8_MIN, INT8_MAX, INT16_MIN, INT16_MAX,
-                   INT32_MAX, INT32_MIN, INT64_MAX, INT64_MIN)
+cdef extern from "numpy/arrayobject.h":
+    # cython's numpy.dtype specification is incorrect, which leads to
+    # errors in issubclass(self.dtype.type, np.bool_), so we directly
+    # include the correct version
+    # https://github.com/cython/cython/issues/2022
+
+    ctypedef class numpy.dtype [object PyArray_Descr]:
+        # Use PyDataType_* macros when possible, however there are no macros
+        # for accessing some of the fields, so some are defined. Please
+        # ask on cython-dev if you need more.
+        cdef int type_num
+        cdef int itemsize "elsize"
+        cdef char byteorder
+        cdef object fields
+        cdef tuple names
+
+from util cimport UINT8_MAX, UINT64_MAX, INT64_MAX, INT64_MIN
 
 # core.common import for fast inference checks
 
@@ -38,7 +53,7 @@ cpdef bint is_decimal(object obj):
 
 
 cpdef bint is_interval(object obj):
-    return isinstance(obj, Interval)
+    return getattr(obj, '_typ', '_typ') == 'interval'
 
 
 cpdef bint is_period(object val):
@@ -331,7 +346,7 @@ def infer_dtype(object value, bint skipna=False):
         bint seen_pdnat = False
         bint seen_val = False
 
-    if isinstance(value, np.ndarray):
+    if util.is_array(value):
         values = value
     elif hasattr(value, 'dtype'):
 
@@ -349,7 +364,7 @@ def infer_dtype(object value, bint skipna=False):
             raise ValueError("cannot infer type for {0}".format(type(value)))
 
     else:
-        if not isinstance(value, list):
+        if not PyList_Check(value):
             value = list(value)
         from pandas.core.dtypes.cast import (
             construct_1d_object_array_from_listlike)
@@ -610,13 +625,13 @@ cdef class Validator:
 
     cdef:
         Py_ssize_t n
-        np.dtype dtype
+        dtype dtype
         bint skipna
 
     def __cinit__(
         self,
         Py_ssize_t n,
-        np.dtype dtype=np.dtype(np.object_),
+        dtype dtype=np.dtype(np.object_),
         bint skipna=False
     ):
         self.n = n
@@ -824,7 +839,7 @@ cdef class TemporalValidator(Validator):
     def __cinit__(
         self,
         Py_ssize_t n,
-        np.dtype dtype=np.dtype(np.object_),
+        dtype dtype=np.dtype(np.object_),
         bint skipna=False
     ):
         self.n = n
@@ -907,7 +922,7 @@ cpdef bint is_datetime_with_singletz_array(ndarray values):
                 val = values[j]
                 if val is not NaT:
                     tz = getattr(val, 'tzinfo', None)
-                    if base_tz != tz and base_tz != get_timezone(tz):
+                    if not tz_compare(base_tz, tz):
                         return False
             break
 
@@ -1388,10 +1403,6 @@ def maybe_convert_objects(ndarray[object] objects, bint try_float=0,
                     return bools.view(np.bool_)
 
     return objects
-
-
-def convert_sql_column(x):
-    return maybe_convert_objects(x, try_float=1)
 
 
 def sanitize_objects(ndarray[object] values, set na_values,

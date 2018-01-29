@@ -17,9 +17,11 @@ Usage::
     $ PYTHONPATH=.. ./api_rst_coverage.py
 
 """
-import pandas as pd
-import inspect
+import os
 import re
+import inspect
+import pandas as pd
+
 
 def main():
     # classes whose members to check
@@ -61,13 +63,17 @@ def main():
     # class members
     class_members = set()
     for cls in classes:
-        class_members.update([cls.__name__ + '.' + x[0] for x in inspect.getmembers(cls)])
+        for member in inspect.getmembers(cls):
+            class_members.add('{cls}.{member}'.format(cls=cls.__name__,
+                                                      member=member[0]))
 
     # class members referenced in api.rst
     api_rst_members = set()
-    file_name = '../doc/source/api.rst'
-    with open(file_name, 'r') as f:
-        pattern = re.compile('({})\.(\w+)'.format('|'.join(cls.__name__ for cls in classes)))
+    base_path = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    api_rst_fname = os.path.join(base_path, 'doc', 'source', 'api.rst')
+    class_names = (cls.__name__ for cls in classes)
+    pattern = re.compile('({})\.(\w+)'.format('|'.join(class_names)))
+    with open(api_rst_fname, 'r') as f:
         for line in f:
             match = pattern.search(line)
             if match:
@@ -75,7 +81,8 @@ def main():
 
     print()
     print("Documented members in api.rst that aren't actual class members:")
-    for x in sorted(api_rst_members.difference(class_members), key=class_name_sort_key):
+    for x in sorted(api_rst_members.difference(class_members),
+                    key=class_name_sort_key):
         print(x)
 
     print()
@@ -85,6 +92,7 @@ def main():
                     key=class_name_sort_key):
         if '._' not in x:
             print(add_notes(x))
+
 
 if __name__ == "__main__":
     main()
