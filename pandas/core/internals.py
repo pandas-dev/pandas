@@ -704,7 +704,9 @@ class Block(PandasObject):
                         **kwargs):
         """ convert to our native types format, slicing if desired """
 
-        values = self.values
+        # values = self.values
+        values = self.get_values()
+
         if slicer is not None:
             values = values[:, slicer]
         mask = isna(values)
