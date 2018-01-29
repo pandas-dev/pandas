@@ -4791,11 +4791,234 @@ class NDFrame(PandasObject, SelectionMixin):
         return self.fillna(method='bfill', axis=axis, inplace=inplace,
                            limit=limit, downcast=downcast)
 
+    _shared_docs['replace'] = ("""
+        Replace values given in 'to_replace' with 'value'.
+
+        Parameters
+        ----------
+        to_replace : str, regex, list, dict, Series, numeric, or None
+
+            * numeric, str or regex:
+
+                - numeric: numeric values equal to ``to_replace`` will be
+                  replaced with ``value``
+                - str: string exactly matching ``to_replace`` will be replaced
+                  with ``value``
+                - regex: regexs matching ``to_replace`` will be replaced with
+                  ``value``
+
+            * list of str, regex, or numeric:
+
+                - First, if ``to_replace`` and ``value`` are both lists, they
+                  **must** be the same length.
+                - Second, if ``regex=True`` then all of the strings in **both**
+                  lists will be interpreted as regexs otherwise they will match
+                  directly. This doesn't matter much for ``value`` since there
+                  are only a few possible substitution regexes you can use.
+                - str and regex rules apply as above.
+
+            * dict:
+
+                - Dicts can be used to specify different replacement values
+                  for different existing values. For example,
+                  {'a': 'b', 'y': 'z'} replaces the value 'a' with 'b' and
+                  'y' with 'z'. To use a dict in this way the ``value``
+                  parameter should be ``None``.
+                - For a DataFrame a dict can specify that different values
+                  should be replaced in different columns. For example,
+                  {'a': 1, 'b': 'z'} looks for the value 1 in column 'a' and
+                  the value 'z' in column 'b' and replaces these values with
+                  whatever is specified in ``value``. The ``value`` parameter
+                  should not be ``None`` in this case. You can treat this as a
+                  special case of passing two lists except that you are
+                  specifying the column to search in.
+                - For a DataFrame nested dictionaries, e.g.,
+                  {'a': {'b': np.nan}}, are read as follows: look in column 'a'
+                  for the value 'b' and replace it with NaN. The ``value``
+                  parameter should be ``None`` to use a nested dict in this
+                  way. You can nest regular expressions as well. Note that
+                  column names (the top-level dictionary keys in a nested
+                  dictionary) **cannot** be regular expressions.
+
+            * None:
+
+                - This means that the ``regex`` argument must be a string,
+                  compiled regular expression, or list, dict, ndarray or Series
+                  of such elements. If ``value`` is also ``None`` then this
+                  **must** be a nested dictionary or ``Series``.
+
+            See the examples section for examples of each of these.
+        value : scalar, dict, list, str, regex, default None
+            Value to replace any values matching ``to_replace`` with.
+            For a DataFrame a dict of values can be used to specify which
+            value to use for each column (columns not in the dict will not be
+            filled). Regular expressions, strings and lists or dicts of such
+            objects are also allowed.
+        inplace : boolean, default False
+            If True, in place. Note: this will modify any
+            other views on this object (e.g. a column from a DataFrame).
+            Returns the caller if this is True.
+        limit : int, default None
+            Maximum size gap to forward or backward fill
+        regex : bool or same types as ``to_replace``, default False
+            Whether to interpret ``to_replace`` and/or ``value`` as regular
+            expressions. If this is ``True`` then ``to_replace`` *must* be a
+            string. Alternatively, this could be a regular expression or a
+            list, dict, or array of regular expressions in which case
+            ``to_replace`` must be ``None``.
+        method : string, optional, {'pad', 'ffill', 'bfill'}
+            The method to use when for replacement, when ``to_replace`` is a
+            ``list``.
+
+        See Also
+        --------
+        %(klass)s.fillna : Fill NA/NaN values
+        %(klass)s.where : Replace values based on boolean condition
+
+        Returns
+        -------
+        filled : %(klass)s
+
+        Raises
+        ------
+        AssertionError
+            * If ``regex`` is not a ``bool`` and ``to_replace`` is not
+              ``None``.
+        TypeError
+            * If ``to_replace`` is a ``dict`` and ``value`` is not a ``list``,
+              ``dict``, ``ndarray``, or ``Series``
+            * If ``to_replace`` is ``None`` and ``regex`` is not compilable
+              into a regular expression or is a list, dict, ndarray, or
+              Series.
+            * When replacing multiple ``bool`` or ``datetime64`` objects and
+              the arguments to ``to_replace`` does not match the type of the
+              value being replaced
+        ValueError
+            * If a ``list`` or an ``ndarray`` is passed to ``to_replace`` and
+              `value` but they are not the same length.
+
+        Notes
+        -----
+        * Regex substitution is performed under the hood with ``re.sub``. The
+          rules for substitution for ``re.sub`` are the same.
+        * Regular expressions will only substitute on strings, meaning you
+          cannot provide, for example, a regular expression matching floating
+          point numbers and expect the columns in your frame that have a
+          numeric dtype to be matched. However, if those floating point
+          numbers *are* strings, then you can do this.
+        * This method has *a lot* of options. You are encouraged to experiment
+          and play with this method to gain intuition about how it works.
+
+        Examples
+        --------
+
+        >>> s = pd.Series([0, 1, 2, 3, 4])
+        >>> s.replace(0, 5)
+        0    5
+        1    1
+        2    2
+        3    3
+        4    4
+        dtype: int64
+        >>> df = pd.DataFrame({'A': [0, 1, 2, 3, 4],
+        ...                    'B': [5, 6, 7, 8, 9],
+        ...                    'C': ['a', 'b', 'c', 'd', 'e']})
+        >>> df.replace(0, 5)
+           A  B  C
+        0  5  5  a
+        1  1  6  b
+        2  2  7  c
+        3  3  8  d
+        4  4  9  e
+
+        >>> df.replace([0, 1, 2, 3], 4)
+           A  B  C
+        0  4  5  a
+        1  4  6  b
+        2  4  7  c
+        3  4  8  d
+        4  4  9  e
+        >>> df.replace([0, 1, 2, 3], [4, 3, 2, 1])
+           A  B  C
+        0  4  5  a
+        1  3  6  b
+        2  2  7  c
+        3  1  8  d
+        4  4  9  e
+        >>> s.replace([1, 2], method='bfill')
+        0    0
+        1    3
+        2    3
+        3    3
+        4    4
+        dtype: int64
+
+        >>> df.replace({0: 10, 1: 100})
+             A  B  C
+        0   10  5  a
+        1  100  6  b
+        2    2  7  c
+        3    3  8  d
+        4    4  9  e
+        >>> df.replace({'A': 0, 'B': 5}, 100)
+             A    B  C
+        0  100  100  a
+        1    1    6  b
+        2    2    7  c
+        3    3    8  d
+        4    4    9  e
+        >>> df.replace({'A': {0: 100, 4: 400}})
+             A  B  C
+        0  100  5  a
+        1    1  6  b
+        2    2  7  c
+        3    3  8  d
+        4  400  9  e
+
+        >>> df = pd.DataFrame({'A': ['bat', 'foo', 'bait'],
+        ...                    'B': ['abc', 'bar', 'xyz']})
+        >>> df.replace(to_replace=r'^ba.$', value='new', regex=True)
+              A    B
+        0   new  abc
+        1   foo  new
+        2  bait  xyz
+        >>> df.replace({'A': r'^ba.$'}, {'A': 'new'}, regex=True)
+              A    B
+        0   new  abc
+        1   foo  bar
+        2  bait  xyz
+        >>> df.replace(regex=r'^ba.$', value='new')
+              A    B
+        0   new  abc
+        1   foo  new
+        2  bait  xyz
+        >>> df.replace(regex={r'^ba.$':'new', 'foo':'xyz'})
+              A    B
+        0   new  abc
+        1   xyz  new
+        2  bait  xyz
+        >>> df.replace(regex=[r'^ba.$', 'foo'], value='new')
+              A    B
+        0   new  abc
+        1   new  new
+        2  bait  xyz
+
+        Note that when replacing multiple ``bool`` or ``datetime64`` objects,
+        the data types in the ``to_replace`` parameter must match the data
+        type of the value being replaced:
+
+        >>> df = pd.DataFrame({'A': [True, False, True],
+        ...                    'B': [False, True, False]})
+        >>> df.replace({'a string': 'new value', True: False})  # raises
+        TypeError: Cannot compare types 'ndarray(dtype=bool)' and 'str'
+
+        This raises a ``TypeError`` because one of the ``dict`` keys is not of
+        the correct type for replacement.
+    """)
+
+    @Appender(_shared_docs['replace'] % _shared_doc_kwargs)
     def replace(self, to_replace=None, value=None, inplace=False, limit=None,
                 regex=False, method='pad', axis=None):
-        """
-        Replace values given in 'to_replace' with 'value'
-        """
         inplace = validate_bool_kwarg(inplace, 'inplace')
         if not is_bool(regex) and to_replace is not None:
             raise AssertionError("'to_replace' must be 'None' if 'regex' is "

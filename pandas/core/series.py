@@ -10,7 +10,6 @@ import types
 import warnings
 from textwrap import dedent
 
-import pandas as pd
 import numpy as np
 import numpy.ma as ma
 
@@ -27,7 +26,6 @@ from pandas.core.dtypes.common import (
     is_hashable,
     is_iterator,
     is_dict_like,
-    is_re_compilable,
     is_scalar,
     _is_unorderable_exception,
     _ensure_platform_int,
@@ -40,7 +38,6 @@ from pandas.core.dtypes.cast import (
     maybe_cast_to_datetime, maybe_castable,
     construct_1d_arraylike_from_scalar)
 from pandas.core.dtypes.missing import isna, notna, remove_na_arraylike
-import pandas.core.missing as missing
 
 from pandas.core.index import (Index, MultiIndex, InvalidIndexError,
                                Float64Index, _ensure_index)
@@ -55,7 +52,7 @@ from pandas.core.indexes.period import PeriodIndex
 from pandas import compat
 from pandas.io.formats.terminal import get_terminal_size
 from pandas.compat import (
-    zip, lzip, u, OrderedDict, StringIO, range, get_range_parameters)
+    zip, u, OrderedDict, StringIO, range, get_range_parameters)
 from pandas.compat.numpy import function as nv
 
 import pandas.core.ops as ops
@@ -2674,188 +2671,9 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
                                           limit=limit, downcast=downcast,
                                           **kwargs)
 
+    @Appender(generic._shared_docs['replace'] % _shared_doc_kwargs)
     def replace(self, to_replace=None, value=None, inplace=False, limit=None,
                 regex=False, method='pad', axis=None):
-        """
-        Replace values given in 'to_replace' with 'value'.
-
-        Parameters
-        ----------
-        to_replace : str, regex, list, dict, Series, numeric, or None
-
-            * numeric, str or regex:
-                - numeric: numeric values equal to ``to_replace`` will be
-                  replaced with ``value``
-                - str: string exactly matching ``to_replace`` will be replaced
-                  with ``value``
-                - regex: regexs matching ``to_replace`` will be replaced with
-                  ``value``
-
-            * list of str, regex, or numeric:
-
-                - First, if ``to_replace`` and ``value`` are both lists, they
-                  **must** be the same length.
-                - Second, if ``regex=True`` then all of the strings in **both**
-                  lists will be interpreted as regexs otherwise they will match
-                  directly. This doesn't matter much for ``value`` since there
-                  are only a few possible substitution regexes you can use.
-                - str and regex rules apply as above.
-
-            * dict:
-
-                - Dicts can be used to specify different replacement values
-                  for different existing values. For example,
-                  {'a': 'b', 'y': 'z'} replaces the value 'a' with 'b' and
-                  'y' with 'z'. To use a dict in this way the ``value``
-                  parameter should be ``None``.
-
-            * None:
-
-                - This means that the ``regex`` argument must be a string,
-                  compiled regular expression, or list, dict, ndarray or Series
-                  of such elements. If ``value`` is also ``None`` then this
-                  **must** be a dictionary or ``Series``.
-
-            See the examples section for examples of each of these.
-        value : scalar, dict, list, str, regex, default None
-            Value to replace any values matching ``to_replace`` with. Regular
-            expressions, strings and lists or dicts of such objects are also
-            allowed.
-        inplace : boolean, default False
-            If True, in place. Note: this will modify any
-            other views on this object (e.g. a column from a DataFrame).
-            Returns the caller if this is True.
-        limit : int, default None
-            Maximum size gap to forward or backward fill
-        regex : bool or same types as ``to_replace``, default False
-            Whether to interpret ``to_replace`` and/or ``value`` as regular
-            expressions. If this is ``True`` then ``to_replace`` *must* be a
-            string. Alternatively, this could be a regular expression or a
-            list, dict, or array of regular expressions in which case
-            ``to_replace`` must be ``None``.
-        method : string, optional, {'pad', 'ffill', 'bfill'}
-            The method to use when for replacement, when ``to_replace`` is a
-            ``list``.
-
-        See Also
-        --------
-        Series.fillna : Fill NA/NaN values
-        Series.where : Replace values based on boolean condition
-
-        Returns
-        -------
-        filled : Series
-
-        Raises
-        ------
-        AssertionError
-            * If ``regex`` is not a ``bool`` and ``to_replace`` is not
-              ``None``.
-        TypeError
-            * If ``to_replace`` is a ``dict`` and ``value`` is not a ``list``,
-              ``dict``, ``ndarray``, or ``Series``
-            * If ``to_replace`` is ``None`` and ``regex`` is not compilable
-              into a
-              regular expression or is a list, dict, ndarray, or Series.
-            * When replacing multiple ``bool`` or ``datetime64`` objects and
-              the arguments to ``to_replace`` does not match the type of the
-              value being replaced
-        ValueError
-            * If a ``list`` or an ``ndarray`` is passed to ``to_replace`` and
-              ``value`` but they are not the same length.
-
-        Notes
-        -----
-        * Regex substitution is performed under the hood with ``re.sub``. The
-          rules for substitution for ``re.sub`` are the same.
-        * Regular expressions will only substitute on strings, meaning you
-          cannot provide, for example, a regular expression matching floating
-          point numbers and expect the columns in your frame that have a
-          numeric dtype to be matched. However, if those floating point numbers
-          *are* strings, then you can do this.
-        * This method has *a lot* of options. You are encouraged to experiment
-          and play with this method to gain intuition about how it works.
-
-        Examples
-        --------
-
-        >>> s = pd.Series([0, 1, 2, 3, 4])
-        >>> s.replace(0, 5)
-        0    5
-        1    1
-        2    2
-        3    3
-        4    4
-        dtype: int64
-
-        >>> s.replace([0, 1, 2], 300)
-        0    300
-        1    300
-        2    300
-        3      3
-        4      4
-        dtype: int64
-        >>> s.replace([0, 1, 2], [100, 200, 300])
-        0    100
-        1    200
-        2    300
-        3      3
-        4      4
-        dtype: int64
-        >>> s.replace([1, 2], method='bfill')
-        0    0
-        1    3
-        2    3
-        3    3
-        4    4
-        dtype: int64
-
-        >>> s.replace({0: 10, 1: 100})
-        0     10
-        1    100
-        2      2
-        3      3
-        4      4
-        dtype: int64
-
-        >>> s = pd.Series(['bat', 'foo', 'bar', 'bait'])
-        >>> s.replace(to_replace=r'^ba.$', value='new', regex=True)
-        0     new
-        1     foo
-        2     new
-        3    bait
-        dtype: object
-        >>> s.replace(regex=r'^ba.$', value='new')
-        0     new
-        1     foo
-        2     new
-        3    bait
-        dtype: object
-        >>> s.replace(regex={r'^ba.$':'new', 'foo':'xyz'})
-        0     new
-        1     xyz
-        2     new
-        3    bait
-        dtype: object
-        >>> s.replace(regex=[r'^ba.$', 'foo'], value='new')
-        0     new
-        1     new
-        2     new
-        3    bait
-        dtype: object
-
-        Note that when replacing multiple ``bool`` or ``datetime64`` objects,
-        the data types in the ``to_replace`` parameter must match the data
-        type of the value being replaced:
-
-        >>> s = pd.Series([True, False, True])
-        >>> s.replace({'a string': 'new value', True: False})  # raises
-        TypeError: Cannot compare types 'ndarray(dtype=bool)' and 'str'
-
-        This raises a ``TypeError`` because one of the ``dict`` keys is not of
-        the correct type for replacement.
-
-        """
         return super(Series, self).replace(to_replace=to_replace, value=value,
                                            inplace=inplace, limit=limit,
                                            regex=regex, method=method,
