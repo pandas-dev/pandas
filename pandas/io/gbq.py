@@ -1,4 +1,5 @@
 """ Google BigQuery support """
+import datetime
 
 
 def _try_import():
@@ -23,6 +24,8 @@ def _try_import():
 
 def read_gbq(query, project_id=None, index_col=None, col_order=None,
              reauth=False, verbose=True, private_key=None, dialect='legacy',
+             allow_large_results=False, query_dataset='query_dataset',
+             query_tableid=None,
              **kwargs):
     r"""Load data from Google BigQuery.
 
@@ -74,6 +77,17 @@ def read_gbq(query, project_id=None, index_col=None, col_order=None,
         see `BigQuery SQL Reference
         <https://cloud.google.com/bigquery/sql-reference/>`__
 
+    allow_large_results : boolean (default False)
+        Allows large queries greater than quota limit - Use when a GenericGBQException
+        error is thrown with "Reason: responseTooLarge" 
+        See: https://cloud.google.com/bigquery/docs/writing-results#large-results
+        
+    query_dataset : str (optional)
+        Google BigQuery dataset to which the results of a large query will
+        be saved
+    query_tableid : str (optional)
+        Google BigQuery tableid to which the results will be saved
+
     `**kwargs` : Arbitrary keyword arguments
         configuration (dict): query config parameters for job processing.
         For example:
@@ -90,6 +104,9 @@ def read_gbq(query, project_id=None, index_col=None, col_order=None,
 
     """
     pandas_gbq = _try_import()
+    kwargs = update_gbq_kwargs_for_big_queries(
+        kwargs, project_id, allow_large_results, query_dataset, query_tableid
+    )
     return pandas_gbq.read_gbq(
         query, project_id=project_id,
         index_col=index_col, col_order=col_order,
@@ -106,3 +123,83 @@ def to_gbq(dataframe, destination_table, project_id, chunksize=10000,
                       chunksize=chunksize,
                       verbose=verbose, reauth=reauth,
                       if_exists=if_exists, private_key=private_key)
+
+
+def update_gbq_kwargs_for_big_queries(read_gbq_kwargs, project_id,
+                                      allow_large_results, query_dataset,
+                                      query_tableid,
+                                      write_disposition="WRITE_TRUNCATE"):
+    """
+    
+    Parameters
+    ----------
+    read_gbq_kwargs: dict
+        query config parameters for job processing passed to the read_gbq function 
+        For example:
+
+            configuration = {'query': {'useQueryCache': False}}
+
+        For more information see `BigQuery SQL Reference
+        <https://cloud.google.com/bigquery/docs/reference/rest/v2/jobs#configuration.query>`__
+    project_id : str
+        Google BigQuery Account project ID.    
+    allow_large_results : boolean (default False)
+        Allows large queries greater than quota limit - Use when a GenericGBQException
+        error is thrown with "Reason: responseTooLarge" 
+        See: https://cloud.google.com/bigquery/docs/writing-results#large-results
+    intermediate_dataset : str
+        Google BigQuery dataset to which the results of a large query will
+        be saved
+    query_tableid : str
+        Google BigQuery tableid to which the results will be saved
+    write_disposition : str
+        Use "WRITE_TRUNCATE" to overwrite old intermediate BigQuery query data
+
+
+
+    Returns
+    -------
+    updated kwargs for allowing large queries from Google BigQuery
+
+    """
+
+    # Only update kwargs if user sets allow_large_results to True:
+    if not allow_large_results:
+        return read_gbq_kwargs
+    else:
+        print("Attempting to write intermediate query data to %s/%s" %
+              (project_id, query_dataset))
+
+
+    # Create tableId if left as None
+    if query_tableid is None:
+        # Generic name with timestamp unique down to the microsecond:
+        query_tableid = 'intermediate_query_results_' \
+                        + datetime.datetime.utcnow().strftime("%Y%M%d_%H%m_%f")
+
+    # New configuration for allowing large queries:
+    updated_query_config = {'query': {
+        'allowLargeResults': allow_large_results,
+        'destinationTable': {
+            'projectId': project_id,
+            'datasetId': query_dataset,
+            'tableId': query_tableid
+        },
+        'writeDisposition': write_disposition
+    }}
+
+    # Append to predefined configuration:
+    if 'configuration' not in read_gbq_kwargs:
+        read_gbq_kwargs['configuration'] = updated_query_config
+    else:
+        # Append new configuration to user prescribed query configuration:
+        read_gbq_kwargs['configuration']
+        if 'query' not in read_gbq_kwargs['configuration']:
+            read_gbq_kwargs['configuration']['query'] = updated_query_config['query']
+        else:
+            for updated_key in updated_query_config:
+                if updated_key not in read_gbq_kwargs['configuration']['query']:
+                    read_gbq_kwargs['configuration']['query'][updated_key] = \
+                        updated_query_config['query'][updated_key]
+
+    return read_gbq_kwargs
