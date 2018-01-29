@@ -104,7 +104,9 @@ def read_gbq(query, project_id=None, index_col=None, col_order=None,
 
     """
     pandas_gbq = _try_import()
-    kwargs = update_read_gbq_kwargs(kwargs, project_id, allow_large_results, query_dataset, query_tableid)
+    kwargs = update_gbq_kwargs_for_big_queries(
+        kwargs, project_id, allow_large_results, query_dataset, query_tableid
+    )
     return pandas_gbq.read_gbq(
         query, project_id=project_id,
         index_col=index_col, col_order=col_order,
@@ -123,8 +125,10 @@ def to_gbq(dataframe, destination_table, project_id, chunksize=10000,
                       if_exists=if_exists, private_key=private_key)
 
 
-def update_read_gbq_kwargs(read_gbq_kwargs, project_id, allow_large_results, query_dataset,
-                            query_tableid, write_disposition="WRITE_TRUNCATE"):
+def update_gbq_kwargs_for_big_queries(read_gbq_kwargs, project_id,
+                                      allow_large_results, query_dataset,
+                                      query_tableid,
+                                      write_disposition="WRITE_TRUNCATE"):
     """
     
     Parameters
@@ -155,14 +159,23 @@ def update_read_gbq_kwargs(read_gbq_kwargs, project_id, allow_large_results, que
 
     Returns
     -------
-    updated kwargs
+    updated kwargs for allowing large queries from Google BigQuery
 
     """
+
+    # Only update kwargs if user sets allow_large_results to True:
+    if not allow_large_results:
+        return read_gbq_kwargs
+    else:
+        print("Attempting to write intermediate query data to %s/%s" %
+              (project_id, query_dataset))
+
 
     # Create tableId if left as None
     if query_tableid is None:
         # Generic name with timestamp unique down to the microsecond:
-        query_tableid = 'intermediate_query_results_' + datetime.datetime.utcnow().strftime("%Y%M%d-%H%m-%f")
+        query_tableid = 'intermediate_query_results_' \
+                        + datetime.datetime.utcnow().strftime("%Y%M%d_%H%m_%f")
 
     # New configuration for allowing large queries:
     updated_query_config = {'query': {
@@ -186,6 +199,7 @@ def update_read_gbq_kwargs(read_gbq_kwargs, project_id, allow_large_results, que
         else:
             for updated_key in updated_query_config:
                 if updated_key not in read_gbq_kwargs['configuration']['query']:
-                    read_gbq_kwargs['configuration']['query'][updated_key] = updated_query_config['query'][updated_key]
+                    read_gbq_kwargs['configuration']['query'][updated_key] = \
+                        updated_query_config['query'][updated_key]
 
     return read_gbq_kwargs
