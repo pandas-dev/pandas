@@ -686,6 +686,7 @@ def mask_zero_div_zero(x, y, result, copy=False):
         posinf_mask = (zmask & (x > 0)).ravel()
 
         if nan_mask.any() or neginf_mask.any() or posinf_mask.any():
+            # Fill negative/0 with -inf, positive/0 with +inf, 0/0 with NaN
             result = result.astype('float64', copy=copy).ravel()
 
             np.putmask(result, nan_mask, np.nan)
