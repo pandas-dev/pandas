@@ -29,13 +29,24 @@ ctypedef fused pandas_string:
 @cython.wraparound(False)
 def write_csv_rows(list data, ndarray data_index,
                    int nlevels, ndarray cols, object writer):
+    """
+    Write the given data to the writer object, pre-allocating where possible
+    for performance improvements.
 
+    Parameters
+    ----------
+    data : list
+    data_index : ndarray
+    nlevels : int
+    cols : ndarray
+    writer : object
+    """
     cdef int N, j, i, ncols
     cdef list rows
     cdef object val
 
     # In crude testing, N>100 yields little marginal improvement
-    N=100
+    N = 100
 
     # pre-allocate rows
     ncols = len(cols)

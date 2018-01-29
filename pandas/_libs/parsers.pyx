@@ -2229,6 +2229,16 @@ def _maybe_encode(values):
 
 def sanitize_objects(ndarray[object] values, set na_values,
                      convert_empty=True):
+    """
+    Convert specified values, including the given set na_values and empty
+    strings if convert_empty is True, to np.nan.
+
+    Parameters
+    ----------
+    values : ndarray[object]
+    na_values : set
+    convert_empty : bool (default True)
+    """
     cdef:
         Py_ssize_t i, n
         object val, onan
