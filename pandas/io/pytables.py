@@ -3763,7 +3763,7 @@ class WORMTable(Table):
 class LegacyTable(Table):
 
     """ an appendable table: allow append/query/delete operations to a
-          (possibily) already existing appendable table this table ALLOWS
+          (possibly) already existing appendable table this table ALLOWS
           append (but doesn't require them), and stores the data in a format
           that can be easily searched
 
