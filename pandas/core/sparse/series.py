@@ -493,7 +493,7 @@ class SparseSeries(Series):
         values = self.to_dense()
 
         # if the label doesn't exist, we will create a new object here
-        # and possibily change the index
+        # and possibly change the index
         new_values = values._set_value(label, value, takeable=takeable)
         if new_values is not None:
             values = new_values

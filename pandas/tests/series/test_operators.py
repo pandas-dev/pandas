@@ -1163,7 +1163,7 @@ class TestTimedeltaSeriesArithmetic(object):
                                        ('NCC1701D', 'NCC1701D', 'NCC1701D')])
     def test_td64_series_with_tdi(self, names):
         # GH#17250 make sure result dtype is correct
-        # GH#19043 make sure names are propogated correctly
+        # GH#19043 make sure names are propagated correctly
         tdi = pd.TimedeltaIndex(['0 days', '1 day'], name=names[0])
         ser = Series([Timedelta(hours=3), Timedelta(hours=4)], name=names[1])
         expected = Series([Timedelta(hours=3), Timedelta(days=1, hours=4)],

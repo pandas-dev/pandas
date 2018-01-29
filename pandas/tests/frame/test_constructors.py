@@ -543,7 +543,7 @@ class TestDataFrameConstructors(TestData):
         tm.assert_frame_equal(result, df)
 
     def _check_basic_constructor(self, empty):
-        # mat: 2d matrix with shpae (3, 2) to input. empty - makes sized
+        # mat: 2d matrix with shape (3, 2) to input. empty - makes sized
         # objects
         mat = empty((2, 3), dtype=float)
         # 2-D input

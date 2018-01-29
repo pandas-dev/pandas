@@ -382,7 +382,7 @@ class TestCategoricalConstructors(object):
                                ordered=True)
         tm.assert_categorical_equal(result, expected)
 
-    def test_contructor_from_categorical_string(self):
+    def test_constructor_from_categorical_string(self):
         values = Categorical(['a', 'b', 'd'])
         # use categories, ordered
         result = Categorical(values, categories=['a', 'b', 'c'], ordered=True,

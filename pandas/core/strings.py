@@ -1395,7 +1395,7 @@ class StringMethods(NoNewAttributesMixin):
         elif isinstance(data, Index):
             # can't use ABCIndex to exclude non-str
 
-            # see scc/inferrence.pyx which can contain string values
+            # see src/inference.pyx which can contain string values
             allowed_types = ('string', 'unicode', 'mixed', 'mixed-integer')
             if data.inferred_type not in allowed_types:
                 message = ("Can only use .str accessor with string values "

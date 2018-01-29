@@ -2531,7 +2531,7 @@ class TestDatetimeIndexFormat(object):
             [datetime(2013, 1, 1), pd.NaT], utc=True).format()
         assert formatted[0] == "2013-01-01 00:00:00+00:00"
 
-    def test_date_explict_date_format(self):
+    def test_date_explicit_date_format(self):
         formatted = pd.to_datetime([datetime(2003, 2, 1), pd.NaT]).format(
             date_format="%m-%d-%Y", na_rep="UT")
         assert formatted[0] == "02-01-2003"
