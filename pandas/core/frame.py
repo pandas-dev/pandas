@@ -512,7 +512,11 @@ class DataFrame(NDFrame):
             return _arrays_to_mgr([values], columns, index, columns,
                                   dtype=dtype)
         elif is_datetimetz(values):
-            return self._init_dict({0: values}, index, columns, dtype=dtype)
+            # GH19157
+            if columns is None:
+                columns = [0]
+            return _arrays_to_mgr([values], columns, index, columns,
+                                  dtype=dtype)
 
         # by definition an array here
         # the dtypes will be coerced to a single dtype
@@ -4111,7 +4115,7 @@ class DataFrame(NDFrame):
                 series[this_mask] = fill_value
                 otherSeries[other_mask] = fill_value
 
-            # if we have different dtypes, possibily promote
+            # if we have different dtypes, possibly promote
             new_dtype = this_dtype
             if not is_dtype_equal(this_dtype, other_dtype):
                 new_dtype = find_common_type([this_dtype, other_dtype])

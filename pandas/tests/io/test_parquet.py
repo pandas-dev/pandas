@@ -72,6 +72,15 @@ def fp():
 
 
 @pytest.fixture
+def fp_lt_014():
+    if not _HAVE_FASTPARQUET:
+        pytest.skip("fastparquet is not installed")
+    if LooseVersion(fastparquet.__version__) >= LooseVersion('0.1.4'):
+        pytest.skip("fastparquet is >= 0.1.4")
+    return 'fastparquet'
+
+
+@pytest.fixture
 def df_compat():
     return pd.DataFrame({'A': [1, 2, 3], 'B': 'foo'})
 
@@ -148,7 +157,8 @@ def check_round_trip(df, engine=None, path=None,
     def compare(repeat):
         for _ in range(repeat):
             df.to_parquet(path, **write_kwargs)
-            actual = read_parquet(path, **read_kwargs)
+            with catch_warnings(record=True):
+                actual = read_parquet(path, **read_kwargs)
             tm.assert_frame_equal(expected, actual,
                                   check_names=check_names)
 
@@ -228,35 +238,20 @@ def test_cross_engine_fp_pa(df_cross_compat, pa, fp):
     with tm.ensure_clean() as path:
         df.to_parquet(path, engine=fp, compression=None)
 
-        result = read_parquet(path, engine=pa)
-        tm.assert_frame_equal(result, df)
+        with catch_warnings(record=True):
+            result = read_parquet(path, engine=pa)
+            tm.assert_frame_equal(result, df)
 
-        result = read_parquet(path, engine=pa, columns=['a', 'd'])
-        tm.assert_frame_equal(result, df[['a', 'd']])
-
-
-def check_round_trip_equals(df, path, engine,
-                            write_kwargs, read_kwargs,
-                            expected, check_names):
-
-    df.to_parquet(path, engine, **write_kwargs)
-    actual = read_parquet(path, engine, **read_kwargs)
-    tm.assert_frame_equal(expected, actual,
-                          check_names=check_names)
-
-    # repeat
-    df.to_parquet(path, engine, **write_kwargs)
-    actual = read_parquet(path, engine, **read_kwargs)
-    tm.assert_frame_equal(expected, actual,
-                          check_names=check_names)
+            result = read_parquet(path, engine=pa, columns=['a', 'd'])
+            tm.assert_frame_equal(result, df[['a', 'd']])
 
 
 class Base(object):
 
     def check_error_on_write(self, df, engine, exc):
         # check that we are raising the exception on writing
-        with pytest.raises(exc):
-            with tm.ensure_clean() as path:
+        with tm.ensure_clean() as path:
+            with pytest.raises(exc):
                 to_parquet(df, path, engine, compression=None)
 
 
@@ -449,8 +444,10 @@ class TestParquetFastParquet(Base):
         df = df_full
 
         # additional supported types for fastparquet
+        if LooseVersion(fastparquet.__version__) >= LooseVersion('0.1.4'):
+            df['datetime_tz'] = pd.date_range('20130101', periods=3,
+                                              tz='US/Eastern')
         df['timedelta'] = pd.timedelta_range('1 day', periods=3)
-
         check_round_trip(df, fp)
 
     @pytest.mark.skip(reason="not supported")
@@ -482,14 +479,15 @@ class TestParquetFastParquet(Base):
         df = pd.DataFrame({'a': pd.Categorical(list('abc'))})
         check_round_trip(df, fp)
 
-    def test_datetime_tz(self, fp):
-        # doesn't preserve tz
+    def test_datetime_tz(self, fp_lt_014):
+
+        # fastparquet<0.1.4 doesn't preserve tz
         df = pd.DataFrame({'a': pd.date_range('20130101', periods=3,
                                               tz='US/Eastern')})
-
         # warns on the coercion
         with catch_warnings(record=True):
-            check_round_trip(df, fp, expected=df.astype('datetime64[ns]'))
+            check_round_trip(df, fp_lt_014,
+                             expected=df.astype('datetime64[ns]'))
 
     def test_filter_row_groups(self, fp):
         d = {'a': list(range(0, 3))}

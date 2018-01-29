@@ -76,9 +76,7 @@ class TestCategoricalConstructors(object):
     def test_constructor_interval(self):
         result = Categorical([Interval(1, 2), Interval(2, 3), Interval(3, 6)],
                              ordered=True)
-        ii = IntervalIndex.from_intervals([Interval(1, 2),
-                                           Interval(2, 3),
-                                           Interval(3, 6)])
+        ii = IntervalIndex([Interval(1, 2), Interval(2, 3), Interval(3, 6)])
         exp = Categorical(ii, ordered=True)
         tm.assert_categorical_equal(result, exp)
         tm.assert_index_equal(result.categories, ii)
@@ -384,7 +382,7 @@ class TestCategoricalConstructors(object):
                                ordered=True)
         tm.assert_categorical_equal(result, expected)
 
-    def test_contructor_from_categorical_string(self):
+    def test_constructor_from_categorical_string(self):
         values = Categorical(['a', 'b', 'd'])
         # use categories, ordered
         result = Categorical(values, categories=['a', 'b', 'c'], ordered=True,
