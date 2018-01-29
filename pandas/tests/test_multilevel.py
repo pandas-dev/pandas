@@ -1611,7 +1611,7 @@ Thur,Lunch,Yes,51.51,17"""
             index = MultiIndex.from_tuples(keys)
             assert index.get_loc(keys[idx]) == idx
 
-            expected = np.arange(idx + 1, dtype='int64')
+            expected = np.arange(idx + 1, dtype=np.intp)
             result = index.get_indexer([keys[i] for i in expected])
             tm.assert_numpy_array_equal(result, expected)
 
