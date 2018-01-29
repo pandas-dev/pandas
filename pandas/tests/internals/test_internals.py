@@ -288,7 +288,8 @@ class TestBlock(object):
     def test_make_block_same_class(self):
         # issue 19431
         block = create_block('M8[ns, US/Eastern]', [3])
-        with pytest.warns(FutureWarning):
+        with tm.assert_produces_warning(FutureWarning,
+                                        check_stacklevel=False):
             block.make_block_same_class(block.values, dtype=block.values.dtype)
 
 
