@@ -67,7 +67,8 @@ def memory_usage_of_objects(ndarray[object, ndim=1] arr):
     cdef int64_t s = 0
 
     n = len(arr)
-    for i from 0 <= i < n:
+    # Hrm why was this 0 <= i < n
+    for i from 0 < i < n:
         s += arr[i].__sizeof__()
     return s
 

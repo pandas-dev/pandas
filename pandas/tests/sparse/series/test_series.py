@@ -971,6 +971,17 @@ class TestSparseSeries(SharedWithSparse):
         tm.assert_sp_series_equal(result, result2)
         tm.assert_sp_series_equal(result, expected)
 
+    @pytest.mark.parametrize('deep,fill_values', [([True, False],
+                                                   [0, 1, np.nan, None])])
+    def test_memory_usage_deep(self, deep, fill_values):
+        for fv in fill_values:
+            sparse_series = SparseSeries(fill_values, fill_value=fv)
+            dense_series = Series(fill_values)
+            sparse_usage = sparse_series.memory_usage(deep=deep)
+            dense_usage = dense_series.memory_usage(deep=deep)
+
+            assert sparse_usage < dense_usage
+
 
 class TestSparseHandlingMultiIndexes(object):
 
