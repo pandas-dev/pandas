@@ -444,6 +444,39 @@ def group_nth_{{name}}(ndarray[{{dest_type2}}, ndim=2] out,
                 else:
                     out[i, j] = resx[i, j]
 
+
+@cython.boundscheck(False)
+@cython.wraparound(False)
+def group_rank_{{name}}(ndarray[{{dest_type2}}, ndim=2] out,
+                        ndarray[{{c_type}}, ndim=2] values,
+                        ndarray[int64_t] labels,
+                        bint is_datetimelike):
+    """
+    Only transforms on axis=0
+    """
+    cdef:
+        Py_ssize_t i, j, N, K
+        int64_t lab, idx, counter=1
+        ndarray[int64_t] _as
+
+    N, K = (<object> values).shape
+
+    _as = np.lexsort((values[:, 0], labels))
+
+    with nogil:
+        for i in range(N):
+            idx = _as[i]
+            lab = labels[idx]
+            if i > 0 and lab == labels[_as[i-1]]:
+                counter += 1
+            else:
+                counter = 1
+            if lab < 0:
+                continue
+
+            for j in range(K):
+                out[idx, j] = counter
+
 {{endfor}}
 
 #----------------------------------------------------------------------

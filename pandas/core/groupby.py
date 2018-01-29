@@ -1770,6 +1770,12 @@ class GroupBy(_GroupBy):
 
     @Substitution(name='groupby')
     @Appender(_doc_template)
+    def rank(self, axis=0, *args, **kwargs):
+        """Rank within each group"""
+        return self._cython_transform('rank', **kwargs)
+
+    @Substitution(name='groupby')
+    @Appender(_doc_template)
     def cumprod(self, axis=0, *args, **kwargs):
         """Cumulative product for each group"""
         nv.validate_groupby_func('cumprod', args, kwargs, ['numeric_only'])
@@ -2183,6 +2189,7 @@ class BaseGrouper(object):
             'cumsum': 'group_cumsum',
             'cummin': 'group_cummin',
             'cummax': 'group_cummax',
+            'rank': 'group_rank',
         }
     }
 
