@@ -39,7 +39,6 @@ from pandas.core.dtypes.generic import (
     ABCSeries,
     ABCDataFrame,
     ABCIndex,
-    ABCPeriodIndex,
     ABCSparseSeries)
 
 
@@ -445,8 +444,11 @@ def _create_methods(cls, arith_method, comp_method, bool_method,
     return new_methods
 
 
-def add_methods(cls, new_methods, force):
+def add_methods(cls, new_methods):
     for name, method in new_methods.items():
+        # inplace SparseArray methods do not get overriden; everything else
+        # does
+        force = not (issubclass(cls, np.ndarray) and name.startswith('__i'))
         if force or name not in cls.__dict__:
             bind_method(cls, name, method)
 
@@ -454,8 +456,7 @@ def add_methods(cls, new_methods, force):
 # ----------------------------------------------------------------------
 # Arithmetic
 def add_special_arithmetic_methods(cls, arith_method=None,
-                                   comp_method=None, bool_method=None,
-                                   force=False):
+                                   comp_method=None, bool_method=None):
     """
     Adds the full suite of special arithmetic methods (``__add__``,
     ``__sub__``, etc.) to the class.
@@ -469,9 +470,6 @@ def add_special_arithmetic_methods(cls, arith_method=None,
         factory for rich comparison - signature: f(op, name, str_rep)
     bool_method : function (optional)
         factory for boolean methods - signature: f(op, name, str_rep)
-    force : bool, default False
-        if False, checks whether function is defined **on ``cls.__dict__``**
-        before defining if True, always defines functions on class base
     """
     new_methods = _create_methods(cls, arith_method, comp_method, bool_method,
                                   special=True)
@@ -512,12 +510,11 @@ def add_special_arithmetic_methods(cls, arith_method=None,
                  __ior__=_wrap_inplace_method(new_methods["__or__"]),
                  __ixor__=_wrap_inplace_method(new_methods["__xor__"])))
 
-    add_methods(cls, new_methods=new_methods, force=force)
+    add_methods(cls, new_methods=new_methods)
 
 
 def add_flex_arithmetic_methods(cls, flex_arith_method,
-                                flex_comp_method=None, flex_bool_method=None,
-                                force=False):
+                                flex_comp_method=None, flex_bool_method=None):
     """
     Adds the full suite of flex arithmetic methods (``pow``, ``mul``, ``add``)
     to the class.
@@ -529,9 +526,6 @@ def add_flex_arithmetic_methods(cls, flex_arith_method,
         f(op, name, str_rep)
     flex_comp_method : function, optional,
         factory for rich comparison - signature: f(op, name, str_rep)
-    force : bool, default False
-        if False, checks whether function is defined **on ``cls.__dict__``**
-        before defining if True, always defines functions on class base
     """
     new_methods = _create_methods(cls, flex_arith_method,
                                   flex_comp_method, flex_bool_method,
@@ -544,7 +538,7 @@ def add_flex_arithmetic_methods(cls, flex_arith_method,
         if k in new_methods:
             new_methods.pop(k)
 
-    add_methods(cls, new_methods=new_methods, force=force)
+    add_methods(cls, new_methods=new_methods)
 
 
 # -----------------------------------------------------------------------------
@@ -614,14 +608,11 @@ def _arith_method_SERIES(op, name, str_rep):
                 result = np.empty(x.size, dtype=dtype)
                 mask = notna(x) & notna(y)
                 result[mask] = op(x[mask], com._values_from_object(y[mask]))
-            elif isinstance(x, np.ndarray):
+            else:
+                assert isinstance(x, np.ndarray)
                 result = np.empty(len(x), dtype=x.dtype)
                 mask = notna(x)
                 result[mask] = op(x[mask], y)
-            else:
-                raise TypeError("{typ} cannot perform the operation "
-                                "{op}".format(typ=type(x).__name__,
-                                              op=str_rep))
 
             result, changed = maybe_upcast_putmask(result, ~mask, np.nan)
 
@@ -657,6 +648,10 @@ def _arith_method_SERIES(op, name, str_rep):
             return construct_result(left, result,
                                     index=left.index, name=res_name,
                                     dtype=result.dtype)
+
+        elif is_categorical_dtype(left):
+            raise TypeError("{typ} cannot perform the operation "
+                            "{op}".format(typ=type(left).__name__, op=str_rep))
 
         lvalues = left.values
         rvalues = right
@@ -745,8 +740,12 @@ def _comp_method_SERIES(op, name, str_rep):
         elif is_categorical_dtype(y) and not is_scalar(y):
             return op(y, x)
 
-        if is_object_dtype(x.dtype):
+        elif is_object_dtype(x.dtype):
             result = _comp_method_OBJECT_ARRAY(op, x, y)
+
+        elif is_datetimelike_v_numeric(x, y):
+            raise TypeError("invalid type comparison")
+
         else:
 
             # we want to compare like types
@@ -754,15 +753,6 @@ def _comp_method_SERIES(op, name, str_rep):
             # we are not NotImplemented, otherwise
             # we would allow datetime64 (but viewed as i8) against
             # integer comparisons
-            if is_datetimelike_v_numeric(x, y):
-                raise TypeError("invalid type comparison")
-
-            # numpy does not like comparisons vs None
-            if is_scalar(y) and isna(y):
-                if name == '__ne__':
-                    return np.ones(len(x), dtype=bool)
-                else:
-                    return np.zeros(len(x), dtype=bool)
 
             # we have a datetime/timedelta and may need to convert
             mask = None
@@ -795,15 +785,17 @@ def _comp_method_SERIES(op, name, str_rep):
         if axis is not None:
             self._get_axis_number(axis)
 
-        if isinstance(other, ABCSeries):
+        if isinstance(other, ABCDataFrame):  # pragma: no cover
+            return NotImplemented
+
+        elif isinstance(other, ABCSeries):
             name = com._maybe_match_name(self, other)
             if not self._indexed_same(other):
                 msg = 'Can only compare identically-labeled Series objects'
                 raise ValueError(msg)
-            return self._constructor(na_op(self.values, other.values),
-                                     index=self.index, name=name)
-        elif isinstance(other, ABCDataFrame):  # pragma: no cover
-            return NotImplemented
+            res_values = na_op(self.values, other.values)
+            return self._constructor(res_values, index=self.index, name=name)
+
         elif isinstance(other, (np.ndarray, pd.Index)):
             # do not check length of zerodim array
             # as it will broadcast
@@ -811,23 +803,25 @@ def _comp_method_SERIES(op, name, str_rep):
                     len(self) != len(other)):
                 raise ValueError('Lengths must match to compare')
 
-            if isinstance(other, ABCPeriodIndex):
-                # temp workaround until fixing GH 13637
-                # tested in test_nat_comparisons
-                # (pandas.tests.series.test_operators.TestSeriesOperators)
-                return self._constructor(na_op(self.values,
-                                               other.astype(object).values),
-                                         index=self.index)
-
-            return self._constructor(na_op(self.values, np.asarray(other)),
+            res_values = na_op(self.values, np.asarray(other))
+            return self._constructor(res_values,
                                      index=self.index).__finalize__(self)
 
-        elif isinstance(other, pd.Categorical):
-            if not is_categorical_dtype(self):
-                msg = ("Cannot compare a Categorical for op {op} with Series "
-                       "of dtype {typ}.\nIf you want to compare values, use "
-                       "'series <op> np.asarray(other)'.")
-                raise TypeError(msg.format(op=op, typ=self.dtype))
+        elif (isinstance(other, pd.Categorical) and
+              not is_categorical_dtype(self)):
+            raise TypeError("Cannot compare a Categorical for op {op} with "
+                            "Series of dtype {typ}.\nIf you want to compare "
+                            "values, use 'series <op> np.asarray(other)'."
+                            .format(op=op, typ=self.dtype))
+
+        elif is_scalar(other) and isna(other):
+            # numpy does not like comparisons vs None
+            if op is operator.ne:
+                res_values = np.ones(len(self), dtype=bool)
+            else:
+                res_values = np.zeros(len(self), dtype=bool)
+            return self._constructor(res_values, index=self.index,
+                                     name=self.name, dtype='bool')
 
         if is_categorical_dtype(self):
             # cats are a special case as get_values() would return an ndarray,
@@ -877,11 +871,10 @@ def _bool_method_SERIES(op, name, str_rep):
                     y = _ensure_object(y)
                     result = lib.vec_binop(x, y, op)
             else:
+                # let null fall thru
+                if not isna(y):
+                    y = bool(y)
                 try:
-
-                    # let null fall thru
-                    if not isna(y):
-                        y = bool(y)
                     result = lib.scalar_binop(x, y, op)
                 except:
                     msg = ("cannot compare a dtyped [{dtype}] array "
@@ -899,26 +892,30 @@ def _bool_method_SERIES(op, name, str_rep):
 
         self, other = _align_method_SERIES(self, other, align_asobject=True)
 
-        if isinstance(other, ABCSeries):
+        if isinstance(other, ABCDataFrame):
+            return NotImplemented
+
+        elif isinstance(other, ABCSeries):
             name = com._maybe_match_name(self, other)
             is_other_int_dtype = is_integer_dtype(other.dtype)
             other = fill_int(other) if is_other_int_dtype else fill_bool(other)
 
             filler = (fill_int if is_self_int_dtype and is_other_int_dtype
                       else fill_bool)
-            return filler(self._constructor(na_op(self.values, other.values),
-                                            index=self.index, name=name))
 
-        elif isinstance(other, ABCDataFrame):
-            return NotImplemented
+            res_values = na_op(self.values, other.values)
+            unfilled = self._constructor(res_values,
+                                         index=self.index, name=name)
+            return filler(unfilled)
 
         else:
             # scalars, list, tuple, np.array
             filler = (fill_int if is_self_int_dtype and
                       is_integer_dtype(np.asarray(other)) else fill_bool)
-            return filler(self._constructor(
-                na_op(self.values, other),
-                index=self.index)).__finalize__(self)
+
+            res_values = na_op(self.values, other)
+            unfilled = self._constructor(res_values, index=self.index)
+            return filler(unfilled).__finalize__(self)
 
     return wrapper
 
@@ -1023,21 +1020,16 @@ def _arith_method_FRAME(op, name, str_rep=None):
                 mask = notna(xrav) & notna(yrav)
                 xrav = xrav[mask]
 
-                # we may need to manually
-                # broadcast a 1 element array
-                if yrav.shape != mask.shape:
-                    yrav = np.empty(mask.shape, dtype=yrav.dtype)
-                    yrav.fill(yrav.item())
-
                 yrav = yrav[mask]
-                if np.prod(xrav.shape) and np.prod(yrav.shape):
+                if xrav.size:
                     with np.errstate(all='ignore'):
                         result[mask] = op(xrav, yrav)
-            elif hasattr(x, 'size'):
+
+            elif isinstance(x, np.ndarray):
                 result = np.empty(x.size, dtype=x.dtype)
                 mask = notna(xrav)
                 xrav = xrav[mask]
-                if np.prod(xrav.shape):
+                if xrav.size:
                     with np.errstate(all='ignore'):
                         result[mask] = op(xrav, y)
             else:
