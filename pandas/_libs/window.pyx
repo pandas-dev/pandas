@@ -1,42 +1,39 @@
 # cython: profile=False
 # cython: boundscheck=False, wraparound=False, cdivision=True
 
-from cython cimport Py_ssize_t
-
-cimport numpy as np
-import numpy as np
-
 cimport cython
-
-np.import_array()
-
-cimport util
+from cython cimport Py_ssize_t
 
 from libc.stdlib cimport malloc, free
 
+import numpy as np
+cimport numpy as cnp
 from numpy cimport ndarray, double_t, int64_t, float64_t
+cnp.import_array()
+
+
+cdef extern from "../src/headers/math.h":
+    int signbit(double) nogil
+    double sqrt(double x) nogil
+
+cimport util
+from util cimport numeric
 
 from skiplist cimport (IndexableSkiplist,
                        node_t, skiplist_t,
                        skiplist_init, skiplist_destroy,
                        skiplist_get, skiplist_insert, skiplist_remove)
 
-cdef np.float32_t MINfloat32 = np.NINF
-cdef np.float64_t MINfloat64 = np.NINF
+cdef cnp.float32_t MINfloat32 = np.NINF
+cdef cnp.float64_t MINfloat64 = np.NINF
 
-cdef np.float32_t MAXfloat32 = np.inf
-cdef np.float64_t MAXfloat64 = np.inf
+cdef cnp.float32_t MAXfloat32 = np.inf
+cdef cnp.float64_t MAXfloat64 = np.inf
 
 cdef double NaN = <double> np.NaN
 
 cdef inline int int_max(int a, int b): return a if a >= b else b
 cdef inline int int_min(int a, int b): return a if a <= b else b
-
-from util cimport numeric
-
-cdef extern from "../src/headers/math.h":
-    int signbit(double) nogil
-    double sqrt(double x) nogil
 
 
 # Cython implementations of rolling sum, mean, variance, skewness,

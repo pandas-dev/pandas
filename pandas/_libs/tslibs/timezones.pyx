@@ -18,9 +18,9 @@ UTC = pytz.utc
 
 
 import numpy as np
-cimport numpy as np
+cimport numpy as cnp
 from numpy cimport ndarray, int64_t
-np.import_array()
+cnp.import_array()
 
 # ----------------------------------------------------------------------
 from util cimport is_string_object, is_integer_object, get_nat
