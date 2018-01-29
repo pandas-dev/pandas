@@ -2427,7 +2427,7 @@ def assert_produces_warning(expected_warning=Warning, filter_level="always",
         into errors.
         Valid values are:
 
-        * "error" - turns matching warnings into exeptions
+        * "error" - turns matching warnings into exceptions
         * "ignore" - discard the warning
         * "always" - always emit a warning
         * "default" - print the warning the first time it is generated
