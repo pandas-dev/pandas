@@ -457,7 +457,7 @@ class TestParquetFastParquet(Base):
     def test_basic(self, fp, df_full):
         df = df_full
 
-        # additional supported types for fastparquet>=0.1.4
+        # additional supported types for fastparquet
         if LooseVersion(fastparquet.__version__) >= LooseVersion('0.1.4'):
             df['datetime_tz'] = pd.date_range('20130101', periods=3,
                                               tz='US/Eastern')
