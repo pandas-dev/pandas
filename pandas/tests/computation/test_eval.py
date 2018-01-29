@@ -542,66 +542,42 @@ class TestEvalNumexprPandas(object):
 
         # float
         lhs = DataFrame(randn(5, 2))
-        if self.engine == 'python':
-            with pytest.raises(TypeError):
-                result = pd.eval(expr, engine=self.engine, parser=self.parser)
-        else:
-            expect = lhs
-            result = pd.eval(expr, engine=self.engine, parser=self.parser)
-            assert_frame_equal(expect, result)
+        expect = lhs
+        result = pd.eval(expr, engine=self.engine, parser=self.parser)
+        assert_frame_equal(expect, result)
 
         # int
         lhs = DataFrame(randint(5, size=(5, 2)))
-        if self.engine == 'python':
-            with pytest.raises(TypeError):
-                result = pd.eval(expr, engine=self.engine, parser=self.parser)
-        else:
-            expect = lhs
-            result = pd.eval(expr, engine=self.engine, parser=self.parser)
-            assert_frame_equal(expect, result)
+        expect = lhs
+        result = pd.eval(expr, engine=self.engine, parser=self.parser)
+        assert_frame_equal(expect, result)
 
         # bool doesn't work with numexpr but works elsewhere
         lhs = DataFrame(rand(5, 2) > 0.5)
-        if self.engine == 'python':
-            with pytest.raises(TypeError):
-                result = pd.eval(expr, engine=self.engine, parser=self.parser)
-        else:
-            expect = lhs
-            result = pd.eval(expr, engine=self.engine, parser=self.parser)
-            assert_frame_equal(expect, result)
+        expect = lhs
+        result = pd.eval(expr, engine=self.engine, parser=self.parser)
+        assert_frame_equal(expect, result)
 
     def test_series_pos(self):
         expr = self.ex('+')
 
         # float
         lhs = Series(randn(5))
-        if self.engine == 'python':
-            with pytest.raises(TypeError):
-                result = pd.eval(expr, engine=self.engine, parser=self.parser)
-        else:
-            expect = lhs
-            result = pd.eval(expr, engine=self.engine, parser=self.parser)
-            assert_series_equal(expect, result)
+        expect = lhs
+        result = pd.eval(expr, engine=self.engine, parser=self.parser)
+        assert_series_equal(expect, result)
 
         # int
         lhs = Series(randint(5, size=5))
-        if self.engine == 'python':
-            with pytest.raises(TypeError):
-                result = pd.eval(expr, engine=self.engine, parser=self.parser)
-        else:
-            expect = lhs
-            result = pd.eval(expr, engine=self.engine, parser=self.parser)
-            assert_series_equal(expect, result)
+        expect = lhs
+        result = pd.eval(expr, engine=self.engine, parser=self.parser)
+        assert_series_equal(expect, result)
 
         # bool doesn't work with numexpr but works elsewhere
         lhs = Series(rand(5) > 0.5)
-        if self.engine == 'python':
-            with pytest.raises(TypeError):
-                result = pd.eval(expr, engine=self.engine, parser=self.parser)
-        else:
-            expect = lhs
-            result = pd.eval(expr, engine=self.engine, parser=self.parser)
-            assert_series_equal(expect, result)
+        expect = lhs
+        result = pd.eval(expr, engine=self.engine, parser=self.parser)
+        assert_series_equal(expect, result)
 
     def test_scalar_unary(self):
         with pytest.raises(TypeError):
