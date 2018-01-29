@@ -99,28 +99,7 @@ mod (%) and divmod operations are now defined on Timedelta objects when operatin
 .. ipython:: python
 
     td = pd.Timedelta(hours=37)
-    td % pd.Timedelta(hours=2)
-    divmod(td, np.array([2, 3], dtype='timedelta64[h]'))
-
-Previous Behavior:
-
-.. code-block:: ipython
-
-    In [5]: td % pd.Timedelta(hours=2)
-    ---------------------------------------------------------------------------
-    TypeError                                 Traceback (most recent call last)
-    <ipython-input-5-ceb56b94ed9f> in <module>()
-    ----> 1 td % pd.Timedelta(hours=2)
-
-    TypeError: unsupported operand type(s) for %: 'Timedelta' and 'Timedelta'
-
-    In [6]: divmod(td, np.array([2, 3], dtype='timedelta64[h]'))
-    ---------------------------------------------------------------------------
-    TypeError                                 Traceback (most recent call last)
-    <ipython-input-7-bef303ebf6cd> in <module>()
-    ----> 1 divmod(td, np.array([2, 3], dtype='timedelta64[h]'))
-
-    TypeError: unsupported operand type(s) for divmod(): 'Timedelta' and 'datetime.timedelta'
+    td
 
 Current Behavior
 

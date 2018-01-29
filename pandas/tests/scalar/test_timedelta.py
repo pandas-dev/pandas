@@ -147,6 +147,7 @@ class TestTimedeltaArithmetic(object):
         tm.assert_numpy_array_equal(result, expected)
 
         with pytest.raises(TypeError):
+            # timedelta * datetime is gibberish
             td * pd.Timestamp(2016, 1, 2)
 
     def test_add_datetimelike(self):

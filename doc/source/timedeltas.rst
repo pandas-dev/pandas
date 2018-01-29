@@ -288,8 +288,11 @@ The mod (%) and divmod operations are defined for ``Timedelta`` when operating w
 .. ipython:: python
 
    pd.Timedelta(hours=37) % datetime.timedelta(hours=2)
+
+   # divmod against a timedelta-like returns a pair (int, Timedelta)
    divmod(datetime.timedelta(hours=2), pd.Timedelta(minutes=11))
-   divmod(pd.Timedelta(days=7), np.array([2, 3], dtype='timedelta64[D]'))
+
+   # divmod against a numeric returns a pair (Timedelta, Timedelta)
    pd.Timedelta(hours=25) % 86400000000000
 
 Attributes
