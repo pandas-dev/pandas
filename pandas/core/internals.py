@@ -2792,6 +2792,13 @@ class SparseBlock(NonConsolidatableMixIn, Block):
     _holder = SparseArray
     _concatenator = staticmethod(_concat._concat_sparse)
 
+    def __init__(self, values, placement, ndim=None):
+        # Ensure that we have the underlying SparseArray here...
+        if isinstance(values, ABCSeries):
+            values = values.values
+        assert isinstance(values, SparseArray)
+        super(SparseBlock, self).__init__(values, placement, ndim=ndim)
+
     @property
     def shape(self):
         return (len(self.mgr_locs), self.sp_index.length)
