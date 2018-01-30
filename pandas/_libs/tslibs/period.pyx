@@ -372,15 +372,6 @@ cdef object _period_strftime(int64_t value, int freq, object fmt):
 ctypedef int (*accessor)(int64_t ordinal, int freq) except INT32_MIN
 
 
-def get_period_field(int code, int64_t value, int freq):
-    cdef accessor f = _get_accessor_func(code)
-    if f is NULL:
-        raise ValueError('Unrecognized period code: %d' % code)
-    if value == iNaT:
-        return np.nan
-    return f(value, freq)
-
-
 def get_period_field_arr(int code, ndarray[int64_t] arr, int freq):
     cdef:
         Py_ssize_t i, sz

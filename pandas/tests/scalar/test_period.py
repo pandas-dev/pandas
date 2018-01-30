@@ -914,9 +914,6 @@ class TestPeriodProperties(object):
 
 class TestPeriodField(object):
 
-    def test_get_period_field_raises_on_out_of_range(self):
-        pytest.raises(ValueError, libperiod.get_period_field, -1, 0, 0)
-
     def test_get_period_field_array_raises_on_out_of_range(self):
         pytest.raises(ValueError, libperiod.get_period_field_arr, -1,
                       np.empty(1), 0)

@@ -112,15 +112,6 @@ frequency conversion routines.
 
 #define INT_ERR_CODE INT32_MIN
 
-#define MEM_CHECK(item)          \
-    if (item == NULL) {          \
-        return PyErr_NoMemory(); \
-    }
-#define ERR_CHECK(item) \
-    if (item == NULL) { \
-        return NULL;    \
-    }
-
 typedef struct asfreq_info {
     int from_week_end;  // day the week ends on in the "from" frequency
     int to_week_end;    // day the week ends on in the "to" frequency
@@ -182,7 +173,6 @@ int pminute(npy_int64 ordinal, int freq);
 int psecond(npy_int64 ordinal, int freq);
 int pdays_in_month(npy_int64 ordinal, int freq);
 
-double getAbsTime(int freq, npy_int64 dailyDate, npy_int64 originalDate);
 char *c_strftime(struct date_info *dinfo, char *fmt);
 int get_yq(npy_int64 ordinal, int freq, int *quarter, int *year);
 
