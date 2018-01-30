@@ -33,15 +33,22 @@ class ExtensionArray(object):
         # type (Any) -> Any
         """Select a subset of self.
 
+        Parameters
+        ----------
+        item : int, slice, or ndarray
+            * int: The position in 'self' to get.
+
+            * slice: A slice object, where 'start', 'stop', and 'step' are
+              integers or None
+
+            * ndarray: A 1-d boolean NumPy ndarray the same length as 'self'
+
+        Returns
+        -------
+        item : scalar or ExtensionArray
+
         Notes
         -----
-        ``item`` may be one of
-
-            * A scalar integer position
-            * A slice object, where 'start', 'stop', and 'step' are
-              integers or None
-            * A 1-d boolean NumPy ndarray the same length as 'self'
-
         For scalar ``item``, return a scalar value suitable for the array's
         type. This should be an instance of ``self.dtype.type``.
 
@@ -60,6 +67,12 @@ class ExtensionArray(object):
 
     @abc.abstractmethod
     def __len__(self):
+        """Length of this array
+
+        Returns
+        -------
+        length : int
+        """
         # type: () -> int
         pass
 
@@ -149,7 +162,17 @@ class ExtensionArray(object):
     @abc.abstractmethod
     def copy(self, deep=False):
         # type: (bool) -> ExtensionArray
-        """Return a copy of the array."""
+        """Return a copy of the array.
+
+        Parameters
+        ----------
+        deep : bool, default False
+            Also copy the underlying data backing this array.
+
+        Returns
+        -------
+        ExtensionArray
+        """
 
     # ------------------------------------------------------------------------
     # Block-related methods
