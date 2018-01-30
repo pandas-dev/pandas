@@ -259,6 +259,14 @@ class TestSeriesDatetimeValues(TestData):
 
             pytest.raises(com.SettingWithCopyError, f)
 
+    def test_dt_namespace_accessor_categorical(self):
+        # GH 19468
+        dti = pd.DatetimeIndex(['20171111', '20181212']).repeat(2)
+        s = pd.Series(pd.Categorical(dti), name='foo')
+        result = s.dt.year
+        expected = pd.Series([2017, 2017, 2018, 2018], name='foo')
+        tm.assert_series_equal(result, expected)
+
     def test_dt_accessor_no_new_attributes(self):
         # https://github.com/pandas-dev/pandas/issues/10673
         s = Series(date_range('20130101', periods=5, freq='D'))
