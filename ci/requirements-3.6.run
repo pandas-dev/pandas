@@ -13,7 +13,7 @@ lxml
 html5lib
 jinja2
 sqlalchemy
-pymysql
+pymysql<0.8.0
 feather-format
 pyarrow
 psycopg2
