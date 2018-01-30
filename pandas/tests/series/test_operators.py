@@ -19,6 +19,7 @@ from pandas.core.indexes.datetimes import Timestamp
 from pandas.core.indexes.timedeltas import Timedelta
 import pandas.core.nanops as nanops
 
+from pandas.errors import PerformanceWarning
 from pandas.compat import range, zip
 from pandas import compat
 from pandas.util.testing import (assert_series_equal, assert_almost_equal,
@@ -871,8 +872,9 @@ class TestTimedeltaSeriesArithmetic(object):
         expected = Series([timedelta(minutes=4, seconds=3)] * 3)
         assert_series_equal(result, expected)
 
-        result = td + Series([pd.offsets.Minute(1), pd.offsets.Second(3),
-                              pd.offsets.Hour(2)])
+        with tm.assert_produces_warning(PerformanceWarning):
+            result = td + Series([pd.offsets.Minute(1), pd.offsets.Second(3),
+                                  pd.offsets.Hour(2)])
         expected = Series([timedelta(minutes=6, seconds=3), timedelta(
             minutes=5, seconds=6), timedelta(hours=2, minutes=5, seconds=3)])
         assert_series_equal(result, expected)
@@ -1163,7 +1165,7 @@ class TestTimedeltaSeriesArithmetic(object):
                                        ('NCC1701D', 'NCC1701D', 'NCC1701D')])
     def test_td64_series_with_tdi(self, names):
         # GH#17250 make sure result dtype is correct
-        # GH#19043 make sure names are propogated correctly
+        # GH#19043 make sure names are propagated correctly
         tdi = pd.TimedeltaIndex(['0 days', '1 day'], name=names[0])
         ser = Series([Timedelta(hours=3), Timedelta(hours=4)], name=names[1])
         expected = Series([Timedelta(hours=3), Timedelta(days=1, hours=4)],

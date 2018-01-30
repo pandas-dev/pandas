@@ -191,11 +191,21 @@ def decompress_file(path, compression):
     elif compression == 'xz':
         lzma = compat.import_lzma()
         f = lzma.LZMAFile(path, 'rb')
+    elif compression == 'zip':
+        import zipfile
+        zip_file = zipfile.ZipFile(path)
+        zip_names = zip_file.namelist()
+        if len(zip_names) == 1:
+            f = zip_file.open(zip_names.pop())
+        else:
+            raise ValueError('ZIP file {} error. Only one file per ZIP.'
+                             .format(path))
     else:
         msg = 'Unrecognized compression type: {}'.format(compression)
         raise ValueError(msg)
 
     yield f
+    f.close()
 
 
 def assert_almost_equal(left, right, check_exact=False,
@@ -2391,7 +2401,7 @@ def assert_produces_warning(expected_warning=Warning, filter_level="always",
         into errors.
         Valid values are:
 
-        * "error" - turns matching warnings into exeptions
+        * "error" - turns matching warnings into exceptions
         * "ignore" - discard the warning
         * "always" - always emit a warning
         * "default" - print the warning the first time it is generated

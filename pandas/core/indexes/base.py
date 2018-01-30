@@ -141,12 +141,10 @@ class Index(IndexOpsMixin, PandasObject):
     _join_precedence = 1
 
     # Cython methods
-    _arrmap = libalgos.arrmap_object
     _left_indexer_unique = libjoin.left_join_indexer_unique_object
     _left_indexer = libjoin.left_join_indexer_object
     _inner_indexer = libjoin.inner_join_indexer_object
     _outer_indexer = libjoin.outer_join_indexer_object
-    _box_scalars = False
 
     _typ = 'index'
     _data = None
@@ -155,9 +153,6 @@ class Index(IndexOpsMixin, PandasObject):
     asi8 = None
     _comparables = ['name']
     _attributes = ['name']
-    _allow_index_ops = True
-    _allow_datetime_index_ops = False
-    _allow_period_index_ops = False
     _is_numeric_dtype = False
     _can_hold_na = True
 
@@ -200,7 +195,9 @@ class Index(IndexOpsMixin, PandasObject):
         # interval
         if is_interval_dtype(data) or is_interval_dtype(dtype):
             from .interval import IntervalIndex
-            return IntervalIndex(data, dtype=dtype, name=name, copy=copy)
+            closed = kwargs.get('closed', None)
+            return IntervalIndex(data, dtype=dtype, name=name, copy=copy,
+                                 closed=closed)
 
         # index-like
         elif isinstance(data, (np.ndarray, Index, ABCSeries)):
@@ -313,8 +310,7 @@ class Index(IndexOpsMixin, PandasObject):
                     return Float64Index(subarr, copy=copy, name=name)
                 elif inferred == 'interval':
                     from .interval import IntervalIndex
-                    return IntervalIndex.from_intervals(subarr, name=name,
-                                                        copy=copy)
+                    return IntervalIndex(subarr, name=name, copy=copy)
                 elif inferred == 'boolean':
                     # don't support boolean explicitly ATM
                     pass

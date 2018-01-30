@@ -1,4 +1,4 @@
-cimport numpy as np
+cimport numpy as cnp
 import numpy as np
 
 cimport util
@@ -109,6 +109,7 @@ cdef class Interval(IntervalMixin):
     cut, qcut : Convert arrays of continuous data into Categoricals/Series of
                 Interval.
     """
+    _typ = "interval"
 
     cdef readonly object left
     """Left bound for the interval"""

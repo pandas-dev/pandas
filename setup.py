@@ -694,10 +694,9 @@ ujson_ext = Extension('pandas._libs.json',
                                 'pandas/_libs/src/ujson/lib/ultrajsonenc.c',
                                 'pandas/_libs/src/ujson/lib/ultrajsondec.c'] +
                                np_datetime_sources),
-                      include_dirs=(['pandas/_libs/src/ujson/python',
-                                     'pandas/_libs/src/ujson/lib',
-                                     'pandas/_libs/src/datetime'] +
-                                    common_include),
+                      include_dirs=['pandas/_libs/src/ujson/python',
+                                    'pandas/_libs/src/ujson/lib',
+                                    'pandas/_libs/src/datetime'],
                       extra_compile_args=(['-D_GNU_SOURCE'] +
                                           extra_compile_args))
 

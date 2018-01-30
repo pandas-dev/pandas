@@ -341,7 +341,7 @@ class CategoricalIndex(Index, accessor.PandasDelegate):
     def astype(self, dtype, copy=True):
         if is_interval_dtype(dtype):
             from pandas import IntervalIndex
-            return IntervalIndex.from_intervals(np.array(self))
+            return IntervalIndex(np.array(self))
         elif is_categorical_dtype(dtype):
             # GH 18630
             dtype = self.dtype._update_dtype(dtype)

@@ -5,7 +5,7 @@ cimport cython
 from cython cimport Py_ssize_t
 
 import numpy as np
-cimport numpy as np
+cimport numpy as cnp
 from numpy cimport (ndarray, PyArray_NDIM, PyArray_GETITEM,
                     PyArray_ITER_DATA, PyArray_ITER_NEXT, PyArray_IterNew,
                     flatiter, NPY_OBJECT,
@@ -13,9 +13,7 @@ from numpy cimport (ndarray, PyArray_NDIM, PyArray_GETITEM,
                     float32_t, float64_t,
                     uint8_t, uint64_t,
                     complex128_t)
-# initialize numpy
-np.import_array()
-np.import_ufunc()
+cnp.import_array()
 
 from cpython cimport (Py_INCREF, PyTuple_SET_ITEM,
                       PyList_Check, PyFloat_Check,
@@ -41,7 +39,6 @@ from cpython.datetime cimport (PyDateTime_Check, PyDate_Check,
 PyDateTime_IMPORT
 
 from tslib import NaT, Timestamp, Timedelta, array_to_datetime
-from interval import Interval
 from missing cimport checknull
 
 
@@ -96,7 +93,7 @@ cpdef bint is_scalar(object val):
 
     """
 
-    return (np.PyArray_IsAnyScalar(val)
+    return (cnp.PyArray_IsAnyScalar(val)
             # As of numpy-1.9, PyArray_IsAnyScalar misses bytearrays on Py3.
             or PyBytes_Check(val)
             # We differ from numpy (as of 1.10), which claims that None is
@@ -711,7 +708,7 @@ def clean_index_list(list obj):
 
     for i in range(n):
         v = obj[i]
-        if not (PyList_Check(v) or np.PyArray_Check(v) or hasattr(v, '_data')):
+        if not (PyList_Check(v) or util.is_array(v) or hasattr(v, '_data')):
             all_arrays = 0
             break
 

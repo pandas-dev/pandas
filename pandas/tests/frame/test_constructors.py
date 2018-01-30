@@ -543,7 +543,7 @@ class TestDataFrameConstructors(TestData):
         tm.assert_frame_equal(result, df)
 
     def _check_basic_constructor(self, empty):
-        # mat: 2d matrix with shpae (3, 2) to input. empty - makes sized
+        # mat: 2d matrix with shape (3, 2) to input. empty - makes sized
         # objects
         mat = empty((2, 3), dtype=float)
         # 2-D input
@@ -2092,3 +2092,14 @@ class TestDataFrameConstructorWithDatetimeTZ(TestData):
         result['index'].dtype == 'M8[ns]'
 
         result = df.to_records(index=False)
+
+    def test_frame_timeseries_column(self):
+        # GH19157
+        dr = date_range(start='20130101T10:00:00', periods=3, freq='T',
+                        tz='US/Eastern')
+        result = DataFrame(dr, columns=['timestamps'])
+        expected = DataFrame({'timestamps': [
+            Timestamp('20130101T10:00:00', tz='US/Eastern'),
+            Timestamp('20130101T10:01:00', tz='US/Eastern'),
+            Timestamp('20130101T10:02:00', tz='US/Eastern')]})
+        tm.assert_frame_equal(result, expected)

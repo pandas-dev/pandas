@@ -144,6 +144,25 @@ class TestDatetimeIndexOps(Ops):
             tm.assert_raises_regex(
                 ValueError, errmsg, np.argmax, dr, out=0)
 
+    def test_round_daily(self):
+        dti = pd.date_range('20130101 09:10:11', periods=5)
+        result = dti.round('D')
+        expected = pd.date_range('20130101', periods=5)
+        tm.assert_index_equal(result, expected)
+
+        dti = dti.tz_localize('UTC').tz_convert('US/Eastern')
+        result = dti.round('D')
+        expected = pd.date_range('20130101',
+                                 periods=5).tz_localize('US/Eastern')
+        tm.assert_index_equal(result, expected)
+
+        result = dti.round('s')
+        tm.assert_index_equal(result, dti)
+
+        # invalid
+        for freq in ['Y', 'M', 'foobar']:
+            pytest.raises(ValueError, lambda: dti.round(freq))
+
     def test_round(self):
         for tz in self.tz:
             rng = pd.date_range(start='2016-01-01', periods=5,
