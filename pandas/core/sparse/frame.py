@@ -120,7 +120,7 @@ class SparseDataFrame(DataFrame):
             if dtype is not None:
                 mgr = mgr.astype(dtype)
         else:
-            msg = ('SparseDataFrame called with unkown type "{data_type}" '
+            msg = ('SparseDataFrame called with unknown type "{data_type}" '
                    'for data argument')
             raise TypeError(msg.format(data_type=type(data).__name__))
 

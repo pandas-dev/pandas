@@ -4115,7 +4115,7 @@ class DataFrame(NDFrame):
                 series[this_mask] = fill_value
                 otherSeries[other_mask] = fill_value
 
-            # if we have different dtypes, possibily promote
+            # if we have different dtypes, possibly promote
             new_dtype = this_dtype
             if not is_dtype_equal(this_dtype, other_dtype):
                 new_dtype = find_common_type([this_dtype, other_dtype])

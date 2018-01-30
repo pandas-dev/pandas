@@ -1962,7 +1962,7 @@ class FloatArrayFormatter(GenericArrayFormatter):
     def get_result_as_array(self):
         """
         Returns the float values converted into strings using
-        the parameters given at initalisation, as a numpy array
+        the parameters given at initialisation, as a numpy array
         """
 
         if self.formatter is not None:
