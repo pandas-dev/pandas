@@ -535,16 +535,17 @@ they have a ``MultiIndex``:
 
    df.T.sort_index(level=1, axis=1)
 
-Indexing will work even if the data are not sorted, but will be rather
-inefficient (and show a ``PerformanceWarning``). It will also
+Indexing will work even if the data are not sorted, but partial indexing will
+be rather inefficient (and show a ``PerformanceWarning``). It will also
 return a copy of the data rather than a view:
 
 .. ipython:: python
 
    dfm = pd.DataFrame({'jim': [0, 0, 1, 1],
                        'joe': ['x', 'x', 'z', 'y'],
-                       'jolie': np.random.rand(4)})
-   dfm = dfm.set_index(['jim', 'joe'])
+                       'jolie': list('abcd'),
+                       'values' : np.random.rand(4)})
+   dfm = dfm.set_index(['jim', 'joe', 'jolie'])
    dfm
 
 .. code-block:: ipython
@@ -553,9 +554,9 @@ return a copy of the data rather than a view:
    PerformanceWarning: indexing past lexsort depth may impact performance.
 
    Out[4]:
-              jolie
-   jim joe
-   1   z    0.64094
+            values
+   jolie
+   0.879189      c
 
 .. _advanced.unsorted:
 

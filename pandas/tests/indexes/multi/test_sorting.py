@@ -114,11 +114,12 @@ def test_unsortedindex():
 
 def test_unsortedindex_doc_examples():
     # http://pandas.pydata.org/pandas-docs/stable/advanced.html#sorting-a-multiindex  # noqa
-    dfm = DataFrame({'jim': [0, 0, 1, 1],
-                     'joe': ['x', 'x', 'z', 'y'],
-                     'jolie': np.random.rand(4)})
+    dfm = pd.DataFrame({'jim': [0, 0, 1, 1],
+                        'joe': ['x', 'x', 'z', 'y'],
+                        'jolie': list('abcd'),
+                        'values': np.random.rand(4)})
 
-    dfm = dfm.set_index(['jim', 'joe'])
+    dfm = dfm.set_index(['jim', 'joe', 'jolie'])
     with tm.assert_produces_warning(PerformanceWarning):
         dfm.loc[(1, 'z')]
 
@@ -134,7 +135,7 @@ def test_unsortedindex_doc_examples():
     dfm.loc[(0, 'y'):(1, 'z')]
 
     assert dfm.index.is_lexsorted()
-    assert dfm.index.lexsort_depth == 2
+    assert dfm.index.lexsort_depth == 3
 
 
 def test_reconstruct_sort():
