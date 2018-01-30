@@ -341,7 +341,7 @@ class TestSparseDataFrameConcat(object):
         # See GH16874
         assert not res.isnull().empty
         assert not res[res.columns[0]].empty
-        assert res.iloc[0,0] == self.dense3.iloc[0,0]
+        assert res.iloc[0, 0] == self.dense3.iloc[0, 0]
 
         for column in self.dense3.columns:
             tm.assert_series_equal(res[column], exp[column])
@@ -354,7 +354,7 @@ class TestSparseDataFrameConcat(object):
         # See GH16874
         assert not res.isnull().empty
         assert not res[res.columns[0]].empty
-        assert res.iloc[0,0] == sparse.iloc[0,0]
+        assert res.iloc[0, 0] == sparse.iloc[0, 0]
         for column in self.dense3.columns:
             tm.assert_series_equal(res[column], exp[column])
         tm.assert_frame_equal(res, exp)
