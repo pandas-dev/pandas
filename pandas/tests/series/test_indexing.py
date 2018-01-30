@@ -17,7 +17,7 @@ from pandas import (Index, Series, DataFrame, isna,
                     Categorical)
 from pandas.core.indexing import IndexingError
 from pandas.tseries.offsets import BDay
-from pandas._libs import tslib, lib
+from pandas._libs import tslib
 
 from pandas.compat import lrange, range
 from pandas import compat
@@ -2707,7 +2707,7 @@ class TestDatetimeIndexing(object):
         assert s['1/2/2009'] == 48
         assert s['2009-1-2'] == 48
         assert s[datetime(2009, 1, 2)] == 48
-        assert s[tslib.Timestamp(datetime(2009, 1, 2))] == 48
+        assert s[Timestamp(datetime(2009, 1, 2))] == 48
         pytest.raises(KeyError, s.__getitem__, '2009-1-3')
 
         assert_series_equal(s['3/6/2009':'2009-06-05'],

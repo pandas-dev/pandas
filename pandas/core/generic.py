@@ -10,7 +10,7 @@ import json
 import numpy as np
 import pandas as pd
 
-from pandas._libs import tslib, lib, properties
+from pandas._libs import tslib, properties
 from pandas.core.dtypes.common import (
     _ensure_int64,
     _ensure_object,
