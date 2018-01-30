@@ -1020,6 +1020,12 @@ def _arith_method_FRAME(op, name, str_rep=None):
                 mask = notna(xrav) & notna(yrav)
                 xrav = xrav[mask]
 
+                if yrav.shape != mask.shape:
+                    # FIXME: GH#5284, GH#5035, GH#19448
+                    # Without specifically raising here we get mismatched
+                    # errors in Py3 (TypeError) vs Py2 (ValueError)
+                    raise ValueError('Cannot broadcast operands together.')
+
                 yrav = yrav[mask]
                 if xrav.size:
                     with np.errstate(all='ignore'):
