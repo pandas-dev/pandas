@@ -98,7 +98,6 @@ class Block(PandasObject):
     is_object = False
     is_categorical = False
     is_sparse = False
-    is_extension = False
     _box_to_block_values = True
     _can_hold_na = False
     _can_consolidate = True
@@ -1807,9 +1806,6 @@ class ExtensionBlock(NonConsolidatableMixIn, Block):
 
     ExtensionArrays are limited to 1-D.
     """
-    is_extension = True
-    is_bool = False
-
     def __init__(self, values, placement, ndim=None):
         self._holder = type(values)
         super(ExtensionBlock, self).__init__(values, placement, ndim=ndim)
@@ -1856,11 +1852,6 @@ class ExtensionBlock(NonConsolidatableMixIn, Block):
         # XXX: We may need to think about pushing this onto the array.
         # We're doing the same as CategoricalBlock here.
         return True
-
-    def convert(self, copy=True, **kwargs):
-        # We're dedicated to a type, we don't convert.
-        # Taken from CategoricalBlock / Block.
-        return self.copy() if copy else self
 
     def _slice(self, slicer):
         """ return a slice of my values """
@@ -2417,6 +2408,7 @@ class CategoricalBlock(ExtensionBlock):
         super(CategoricalBlock, self).__init__(_maybe_to_categorical(values),
                                                placement=placement,
                                                ndim=ndim)
+
     @property
     def array_dtype(self):
         """ the dtype to return if I want to construct this block as an
