@@ -21,6 +21,7 @@ from pandas.core.dtypes.common import (
     is_integer,
     is_float,
     is_scalar,
+    is_sparse,
     is_numeric_dtype,
     is_datetime64_dtype,
     is_timedelta64_dtype,
@@ -1803,6 +1804,8 @@ def format_array(values, formatter, float_format=None, na_rep='NaN',
         fmt_klass = CategoricalArrayFormatter
     elif is_interval_dtype(values):
         fmt_klass = IntervalArrayFormatter
+    elif is_sparse(values):
+        fmt_klass = SparseArrayFormatter
     elif is_float_dtype(values.dtype):
         fmt_klass = FloatArrayFormatter
     elif is_period_arraylike(values):
@@ -2113,6 +2116,15 @@ class CategoricalArrayFormatter(GenericArrayFormatter):
                                   na_rep=self.na_rep, digits=self.digits,
                                   space=self.space, justify=self.justify)
         return fmt_values
+
+
+class SparseArrayFormatter(GenericArrayFormatter):
+
+    def _format_strings(self):
+        return format_array(self.values.get_values(), self.formatter,
+                            float_format=self.float_format,
+                            na_rep=self.na_rep, digits=self.digits,
+                            space=self.space, justify=self.justify)
 
 
 def format_percentiles(percentiles):
