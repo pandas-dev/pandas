@@ -39,7 +39,7 @@ from pandas.core.dtypes.generic import (
     ABCSeries,
     ABCDataFrame,
     ABCIndex,
-    ABCSparseSeries)
+    ABCSparseSeries, ABCSparseArray)
 
 
 def _gen_eval_kwargs(name):
@@ -448,7 +448,8 @@ def add_methods(cls, new_methods):
     for name, method in new_methods.items():
         # inplace SparseArray methods do not get overriden; everything else
         # does
-        force = not (issubclass(cls, np.ndarray) and name.startswith('__i'))
+        force = not (issubclass(cls, ABCSparseArray) and
+                     name.startswith('__i'))
         if force or name not in cls.__dict__:
             bind_method(cls, name, method)
 
