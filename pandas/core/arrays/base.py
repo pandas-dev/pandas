@@ -9,18 +9,27 @@ _not_implemented_message = "{} does not implement {}."
 
 @add_metaclass(abc.ABCMeta)
 class ExtensionArray(object):
-    """Abstract base class for custom array types.
+    """Abstract base class for custom 1-D array types.
 
     Notes
     -----
     pandas will recognize instances of this class as proper arrays
     with a custom type and will not attempt to coerce them to objects.
 
-    **Restrictions on your class constructor**
+    ExtensionArrays are limited to 1 dimension.
 
-        * Extension arrays should be able to be constructed with instances of
-          the class, i.e. ``ExtensionArray(extension_array)`` should return
-          an instance, not error.
+    They may be backed by none, one, or many NumPy ararys. For example,
+    ``pandas.Categorical`` is an extension array backed by two arrays,
+    one for codes and one for categories. An array of IPv6 address may
+    be backed by a NumPy structured array with two fields, one for the
+    lower 64 bits and one for the upper 64 bits. Or they may be backed
+    by some other storage type, like Python lists. Pandas makes no
+    assumptions on how the data are stored, just that it can be converted
+    to a NumPy array.
+
+    Extension arrays should be able to be constructed with instances of
+    the class, i.e. ``ExtensionArray(extension_array)`` should return
+    an instance, not error.
 
     Additionally, certain methods and interfaces are required for proper
     this array to be properly stored inside a ``DataFrame`` or ``Series``.
