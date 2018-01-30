@@ -123,7 +123,7 @@ class TestDataFrameTimeSeriesMethods(TestData):
         assert_frame_equal(chg, edf)
 
     def test_pct_change_periods_freq(self):
-        # see issue #7292
+        # GH 7292
         rs_freq = self.tsframe.pct_change(freq='5B')
         rs_periods = self.tsframe.pct_change(5)
         assert_frame_equal(rs_freq, rs_periods)
@@ -136,18 +136,20 @@ class TestDataFrameTimeSeriesMethods(TestData):
         rs_periods = self.tsframe.pct_change(3, fill_method='bfill')
         assert_frame_equal(rs_freq, rs_periods)
 
-        rs_freq = \
-            self.tsframe.pct_change(freq='7B', fill_method='pad', limit=1)
+        rs_freq = self.tsframe.pct_change(freq='7B',
+                                          fill_method='pad',
+                                          limit=1)
         rs_periods = self.tsframe.pct_change(7, fill_method='pad', limit=1)
         assert_frame_equal(rs_freq, rs_periods)
 
-        rs_freq = \
-            self.tsframe.pct_change(freq='7B', fill_method='bfill', limit=3)
+        rs_freq = self.tsframe.pct_change(freq='7B',
+                                          fill_method='bfill',
+                                          limit=3)
         rs_periods = self.tsframe.pct_change(7, fill_method='bfill', limit=3)
         assert_frame_equal(rs_freq, rs_periods)
 
-        empty_ts = \
-            DataFrame(index=self.tsframe.index, columns=self.tsframe.columns)
+        empty_ts = DataFrame(index=self.tsframe.index,
+                             columns=self.tsframe.columns)
         rs_freq = empty_ts.pct_change(freq='14B')
         rs_periods = empty_ts.pct_change(14)
         assert_frame_equal(rs_freq, rs_periods)
