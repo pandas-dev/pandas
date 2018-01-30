@@ -1275,38 +1275,6 @@ npy_int64 get_python_ordinal(npy_int64 period_ordinal, int freq) {
     return toDaily(period_ordinal, 'E', &af_info) + ORD_OFFSET;
 }
 
-char *str_replace(const char *s, const char *old, const char *new) {
-    char *ret;
-    int i, count = 0;
-    size_t newlen = strlen(new);
-    size_t oldlen = strlen(old);
-
-    for (i = 0; s[i] != '\0'; i++) {
-        if (strstr(&s[i], old) == &s[i]) {
-            count++;
-            i += oldlen - 1;
-        }
-    }
-
-    ret = PyArray_malloc(i + 1 + count * (newlen - oldlen));
-    if (ret == NULL) {
-        return (char *)PyErr_NoMemory();
-    }
-
-    i = 0;
-    while (*s) {
-        if (strstr(s, old) == s) {
-            strncpy(&ret[i], new, sizeof(char) * newlen);
-            i += newlen;
-            s += oldlen;
-        } else {
-            ret[i++] = *s++;
-        }
-    }
-    ret[i] = '\0';
-
-    return ret;
-}
 
 // function to generate a nice string representation of the period
 // object, originally from DateObject_strftime
