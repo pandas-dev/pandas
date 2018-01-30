@@ -2,7 +2,6 @@ import numpy as np
 import pytest
 
 from pandas import DataFrame, Index
-from pandas.errors import PerformanceWarning
 from pandas.util import testing as tm
 from pandas.util.testing import assert_frame_equal
 
@@ -85,14 +84,7 @@ def test_sort_column_level_and_index_label(
                                   ascending=ascending,
                                   axis=1)
 
-    if len(levels) > 1:
-        # Accessing multi-level columns that are not lexsorted raises a
-        # performance warning
-        with tm.assert_produces_warning(PerformanceWarning,
-                                        check_stacklevel=False):
-            assert_frame_equal(result, expected)
-    else:
-        assert_frame_equal(result, expected)
+    assert_frame_equal(result, expected)
 
 
 def test_sort_values_column_index_level_precedence():

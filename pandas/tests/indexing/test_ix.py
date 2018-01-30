@@ -11,7 +11,6 @@ from pandas.core.dtypes.common import is_scalar
 from pandas.compat import lrange
 from pandas import Series, DataFrame, option_context, MultiIndex
 from pandas.util import testing as tm
-from pandas.errors import PerformanceWarning
 
 
 class TestIX(object):
@@ -187,9 +186,7 @@ class TestIX(object):
         df = DataFrame(data).set_index(keys=['col', 'year'])
         key = 4.0, 2012
 
-        # emits a PerformanceWarning, ok
-        with tm.assert_produces_warning(PerformanceWarning):
-            tm.assert_frame_equal(df.loc[key], df.iloc[2:])
+        tm.assert_frame_equal(df.loc[key], df.iloc[2:])
 
         # this is ok
         df.sort_index(inplace=True)

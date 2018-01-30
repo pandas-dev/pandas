@@ -16,6 +16,7 @@ from pandas.core.dtypes.dtypes import (
 from pandas.core.dtypes.common import (
     ensure_int64,
     ensure_platform_int,
+    is_integer,
     is_categorical_dtype,
     is_object_dtype,
     is_hashable,
@@ -2197,10 +2198,16 @@ class MultiIndex(Index):
             raise KeyError('Key length ({0}) exceeds index depth ({1})'
                            ''.format(keylen, self.nlevels))
 
-        if keylen == self.nlevels and self.is_unique:
-            return self._engine.get_loc(key)
+        # If the index is monotonic, the code for partial selection or
+        # non-unique index (below) is more efficient than the following:
+        if keylen == self.nlevels and not self.is_monotonic:
+            loc = self._engine.get_loc(key)
+            if not self.is_unique and is_integer(loc):
+                # Indexers expect a slice from indexing a non-unique index
+                loc = slice(loc, loc + 1)
+            return loc
 
-        # -- partial selection or non-unique index
+        # -- partial selection or non-unique index or monotonic index
         # break the key into 2 parts based on the lexsort_depth of the index;
         # the first part returns a continuous slice of the index; the 2nd part
         # needs linear search within the slice
@@ -2213,6 +2220,10 @@ class MultiIndex(Index):
             raise KeyError(key)
 
         if not follow_key:
+            # Indexers expect an integer from indexing a key in a unique index
+            if self.is_unique:
+                # Breaks if we pass a np.int64. TODO: investigate why
+                return int(start)
             return slice(start, stop)
 
         warnings.warn('indexing past lexsort depth may impact performance.',
