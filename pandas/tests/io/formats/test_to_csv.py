@@ -253,12 +253,3 @@ $1$,$2$
             df.to_csv(path, encoding='utf-8')
             with open(path, 'r') as f:
                 assert f.read() == expected_utf8
-
-    def test_to_csv_sparse_dataframe(self):
-        sdf = pd.SparseDataFrame({'a': [1, 2]})
-
-        with tm.ensure_clean('sparse_df.csv') as path:
-            sdf.to_csv(path, index=False)
-            df = pd.read_csv(path)
-
-            tm.assert_sp_frame_equal(df.to_sparse(), sdf)
