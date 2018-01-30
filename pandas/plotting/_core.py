@@ -2164,9 +2164,9 @@ def hist_frame(data, column=None, by=None, grid=True, xlabelsize=None,
     `**kwds` : other plotting keyword arguments
         To be passed to hist function
 
-    Notes
-    -----
-    See matplotlib documentation online for more on this
+    See Also
+    --------
+    matplotlib.axes.Axes.hist : Plot a histogram using matplotlib.
 
     """
     _converter._WARN = False
@@ -2237,9 +2237,9 @@ def hist_series(self, by=None, ax=None, grid=True, xlabelsize=None,
     `**kwds` : keywords
         To be passed to the actual plotting function
 
-    Notes
-    -----
-    See matplotlib documentation online for more on this
+    See Also
+    --------
+    matplotlib.axes.Axes.hist : Plot a histogram using matplotlib.
 
     """
     import matplotlib.pyplot as plt
