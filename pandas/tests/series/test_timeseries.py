@@ -356,7 +356,7 @@ class TestTimeSeries(TestData):
         assert_series_equal(chg, expected)
 
     def test_pct_change_periods_freq(self):
-        # see issue #7292
+        # GH 7292
         rs_freq = self.ts.pct_change(freq='5B')
         rs_periods = self.ts.pct_change(5)
         assert_series_equal(rs_freq, rs_periods)
