@@ -1,19 +1,29 @@
 """Extend pandas with custom array types"""
-import abc
-
-from pandas.compat import add_metaclass
+from pandas.errors import AbstractMethodError
 
 
-@add_metaclass(abc.ABCMeta)
 class ExtensionDtype(object):
     """A custom data type, to be paired with an ExtensionArray.
+
+    Notes
+    -----
+    The interface includes the following abstract methods that must
+    be implemented by subclasses:
+
+    * type
+    * name
+    * construct_from_string
+
+    This class does not inherit from 'abc.ABCMeta' for performance reasons.
+    Methods and properties required by the interface raise
+    ``pandas.errors.AbstractMethodError`` and no ``register`` method is
+    provided for registering virtual subclasses.
     """
 
     def __str__(self):
         return self.name
 
     @property
-    @abc.abstractmethod
     def type(self):
         # type: () -> type
         """The scalar type for the array, e.g. ``int``
@@ -21,6 +31,7 @@ class ExtensionDtype(object):
         It's expected ``ExtensionArray[item]`` returns an instance
         of ``ExtensionDtype.type`` for scalar ``item``.
         """
+        raise AbstractMethodError(self)
 
     @property
     def kind(self):
@@ -39,13 +50,13 @@ class ExtensionDtype(object):
         return 'O'
 
     @property
-    @abc.abstractmethod
     def name(self):
         # type: () -> str
         """A string identifying the data type.
 
         Will be used for display in, e.g. ``Series.dtype``
         """
+        raise AbstractMethodError(self)
 
     @property
     def names(self):
@@ -54,7 +65,6 @@ class ExtensionDtype(object):
         return None
 
     @classmethod
-    @abc.abstractmethod
     def construct_from_string(cls, string):
         """Attempt to construct this type from a string.
 
@@ -84,6 +94,7 @@ class ExtensionDtype(object):
         ...         raise TypeError("Cannot construct a '{}' from "
         ...                         "'{}'".format(cls, string))
         """
+        raise AbstractMethodError(cls)
 
     @classmethod
     def is_dtype(cls, dtype):

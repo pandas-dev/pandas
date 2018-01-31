@@ -1,20 +1,35 @@
 """An interface for extending pandas with custom arrays."""
-import abc
-
-from pandas.compat import add_metaclass
-
+from pandas.errors import AbstractMethodError
 
 _not_implemented_message = "{} does not implement {}."
 
 
-@add_metaclass(abc.ABCMeta)
 class ExtensionArray(object):
     """Abstract base class for custom 1-D array types.
 
+    pandas will recognize instances of this class as proper arrays
+    with a custom type and will not attempt to coerce them to objects. They
+    may be stored directly inside a :class:`DataFrame` or :class:`Series`.
+
     Notes
     -----
-    pandas will recognize instances of this class as proper arrays
-    with a custom type and will not attempt to coerce them to objects.
+    The interface includes the following abstract methods that must be
+    implemented by subclasses:
+
+    * __getitem__
+    * __len__
+    * dtype
+    * nbytes
+    * isna
+    * take
+    * copy
+    * _formatting_values
+    * _concat_same_type
+
+    This class does not inherit from 'abc.ABCMeta' for performance reasons.
+    Methods and properties required by the interface raise
+    ``pandas.errors.AbstractMethodError`` and no ``register`` method is
+    provided for registering virtual subclasses.
 
     ExtensionArrays are limited to 1 dimension.
 
@@ -37,7 +52,6 @@ class ExtensionArray(object):
     # ------------------------------------------------------------------------
     # Must be a Sequence
     # ------------------------------------------------------------------------
-    @abc.abstractmethod
     def __getitem__(self, item):
         # type (Any) -> Any
         """Select a subset of self.
@@ -67,6 +81,7 @@ class ExtensionArray(object):
         For a boolean mask, return an instance of ``ExtensionArray``, filtered
         to the values where ``item`` is True.
         """
+        raise AbstractMethodError(self)
 
     def __setitem__(self, key, value):
         # type: (Any, Any) -> None
@@ -74,7 +89,6 @@ class ExtensionArray(object):
             type(self), '__setitem__')
         )
 
-    @abc.abstractmethod
     def __len__(self):
         """Length of this array
 
@@ -83,16 +97,16 @@ class ExtensionArray(object):
         length : int
         """
         # type: () -> int
-        pass
+        raise AbstractMethodError(self)
 
     # ------------------------------------------------------------------------
     # Required attributes
     # ------------------------------------------------------------------------
     @property
-    @abc.abstractmethod
     def dtype(self):
         # type: () -> ExtensionDtype
         """An instance of 'ExtensionDtype'."""
+        raise AbstractMethodError(self)
 
     @property
     def shape(self):
@@ -106,7 +120,6 @@ class ExtensionArray(object):
         return 1
 
     @property
-    @abc.abstractmethod
     def nbytes(self):
         # type: () -> int
         """The number of bytes needed to store this object in memory.
@@ -114,19 +127,19 @@ class ExtensionArray(object):
         If this is expensive to compute, return an approximate lower bound
         on the number of bytes needed.
         """
+        raise AbstractMethodError(self)
 
     # ------------------------------------------------------------------------
     # Additional Methods
     # ------------------------------------------------------------------------
-    @abc.abstractmethod
     def isna(self):
         # type: () -> np.ndarray
         """Boolean NumPy array indicating if each value is missing."""
+        raise AbstractMethodError(self)
 
     # ------------------------------------------------------------------------
     # Indexing methods
     # ------------------------------------------------------------------------
-    @abc.abstractmethod
     def take(self, indexer, allow_fill=True, fill_value=None):
         # type: (Sequence[int], bool, Optional[Any]) -> ExtensionArray
         """Take elements from an array.
@@ -167,8 +180,8 @@ class ExtensionArray(object):
                result[mask] = self._fill_value
                return type(self)(result)
         """
+        raise AbstractMethodError(self)
 
-    @abc.abstractmethod
     def copy(self, deep=False):
         # type: (bool) -> ExtensionArray
         """Return a copy of the array.
@@ -182,6 +195,7 @@ class ExtensionArray(object):
         -------
         ExtensionArray
         """
+        raise AbstractMethodError(self)
 
     # ------------------------------------------------------------------------
     # Block-related methods
@@ -192,14 +206,13 @@ class ExtensionArray(object):
         """The missing value for this type, e.g. np.nan"""
         return None
 
-    @abc.abstractmethod
     def _formatting_values(self):
         # type: () -> np.ndarray
         # At the moment, this has to be an array since we use result.dtype
         """An array of values to be printed in, e.g. the Series repr"""
+        raise AbstractMethodError(self)
 
     @classmethod
-    @abc.abstractmethod
     def _concat_same_type(cls, to_concat):
         # type: (Sequence[ExtensionArray]) -> ExtensionArray
         """Concatenate multiple array
@@ -212,6 +225,7 @@ class ExtensionArray(object):
         -------
         ExtensionArray
         """
+        raise AbstractMethodError(cls)
 
     def _can_hold_na(self):
         # type: () -> bool

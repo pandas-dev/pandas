@@ -746,16 +746,12 @@ class TestCategoricalDtypeParametrized(object):
         tm.assert_index_equal(c1.categories, pd.Index(['a', 'b']))
 
 
-class DummyArray(object):
+class DummyArray(ExtensionArray):
     pass
 
 
-class DummyDtype(object):
+class DummyDtype(ExtensionDtype):
     pass
-
-
-ExtensionArray.register(DummyArray)
-ExtensionDtype.register(DummyDtype)
 
 
 class TestExtensionArrayDtype(object):
