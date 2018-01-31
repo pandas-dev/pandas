@@ -1,7 +1,4 @@
-from numpy cimport ndarray, NPY_C_CONTIGUOUS, NPY_F_CONTIGUOUS
-cimport numpy as cnp
-cnp.import_array()
-
+# -*- coding: utf-8 -*-
 cimport cpython
 from cpython cimport PyTypeObject
 
@@ -15,6 +12,9 @@ cdef extern from "Python.h":
     bint PyComplex_Check(object obj) nogil
     bint PyObject_TypeCheck(object obj, PyTypeObject* type) nogil
 
+cimport numpy as cnp
+from numpy cimport ndarray, NPY_C_CONTIGUOUS, NPY_F_CONTIGUOUS
+cnp.import_array()
 
 cdef extern from "numpy/arrayobject.h":
     PyTypeObject PyFloatingArrType_Type
@@ -31,76 +31,48 @@ cdef extern from "numpy/ndarrayobject.h":
 # --------------------------------------------------------------------
 # Type Checking
 
-cdef inline bint is_string_object(object obj) nogil:
+cdef bint is_string_object(object obj) nogil:
     return PyString_Check(obj) or PyUnicode_Check(obj)
 
 
-cdef inline bint is_integer_object(object obj) nogil:
+cdef bint is_integer_object(object obj) nogil:
     return not PyBool_Check(obj) and PyArray_IsIntegerScalar(obj)
 
 
-cdef inline bint is_float_object(object obj) nogil:
+cdef bint is_float_object(object obj) nogil:
     return (PyFloat_Check(obj) or
             (PyObject_TypeCheck(obj, &PyFloatingArrType_Type)))
 
 
-cdef inline bint is_complex_object(object obj) nogil:
+cdef bint is_complex_object(object obj) nogil:
     return (PyComplex_Check(obj) or
             PyObject_TypeCheck(obj, &PyComplexFloatingArrType_Type))
 
 
-cdef inline bint is_bool_object(object obj) nogil:
+cdef bint is_bool_object(object obj) nogil:
     return (PyBool_Check(obj) or
             PyObject_TypeCheck(obj, &PyBoolArrType_Type))
 
 
-cdef inline bint is_timedelta64_object(object obj) nogil:
+cdef bint is_timedelta64_object(object obj) nogil:
     return PyObject_TypeCheck(obj, &PyTimedeltaArrType_Type)
 
 
-cdef inline bint is_datetime64_object(object obj) nogil:
+cdef bint is_datetime64_object(object obj) nogil:
     return PyObject_TypeCheck(obj, &PyDatetimeArrType_Type)
+
+
+cdef bint is_array(object o):
+    return cnp.PyArray_Check(o)
+
+
+cdef bint is_period_object(object val):
+    return getattr(val, '_typ', '_typ') == 'period'
 
 # --------------------------------------------------------------------
 
-cdef extern from "numpy_helper.h":
-    void set_array_not_contiguous(ndarray ao)
 
-    int assign_value_1d(ndarray, Py_ssize_t, object) except -1
-    cnp.int64_t get_nat()
-    object get_value_1d(ndarray, Py_ssize_t)
-    char *get_c_string(object) except NULL
-    object char_to_string(char*)
-
-ctypedef fused numeric:
-    cnp.int8_t
-    cnp.int16_t
-    cnp.int32_t
-    cnp.int64_t
-
-    cnp.uint8_t
-    cnp.uint16_t
-    cnp.uint32_t
-    cnp.uint64_t
-
-    cnp.float32_t
-    cnp.float64_t
-
-cdef extern from "headers/stdint.h":
-    enum: UINT8_MAX
-    enum: UINT16_MAX
-    enum: UINT32_MAX
-    enum: UINT64_MAX
-    enum: INT8_MIN
-    enum: INT8_MAX
-    enum: INT16_MIN
-    enum: INT16_MAX
-    enum: INT32_MAX
-    enum: INT32_MIN
-    enum: INT64_MAX
-    enum: INT64_MIN
-
-cdef inline object get_value_at(ndarray arr, object loc):
+cdef object get_value_at(ndarray arr, object loc):
     cdef:
         Py_ssize_t i, sz
         int casted
@@ -119,7 +91,8 @@ cdef inline object get_value_at(ndarray arr, object loc):
 
     return get_value_1d(arr, i)
 
-cdef inline set_value_at_unsafe(ndarray arr, object loc, object value):
+
+cdef set_value_at_unsafe(ndarray arr, object loc, object value):
     """Sets a value into the array without checking the writeable flag.
 
     This should be used when setting values in a loop, check the writeable
@@ -141,7 +114,7 @@ cdef inline set_value_at_unsafe(ndarray arr, object loc, object value):
 
     assign_value_1d(arr, i, value)
 
-cdef inline set_value_at(ndarray arr, object loc, object value):
+cdef set_value_at(ndarray arr, object loc, object value):
     """Sets a value into the array after checking that the array is mutable.
     """
     if not cnp.PyArray_ISWRITEABLE(arr):
@@ -150,20 +123,15 @@ cdef inline set_value_at(ndarray arr, object loc, object value):
     set_value_at_unsafe(arr, loc, value)
 
 
-cdef inline is_array(object o):
-    return cnp.PyArray_Check(o)
-
 cdef inline bint _checknull(object val):
     try:
         return val is None or (cpython.PyFloat_Check(val) and val != val)
     except ValueError:
         return False
 
+
 cdef inline bint _checknan(object val):
     return not cnp.PyArray_Check(val) and val != val
-
-cdef inline bint is_period_object(object val):
-    return getattr(val, '_typ', '_typ') == 'period'
 
 
 cdef inline object unbox_if_zerodim(object arr):

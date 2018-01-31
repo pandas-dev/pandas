@@ -15,7 +15,7 @@ from numpy cimport int64_t
 cnp.import_array()
 
 
-from util cimport is_string_object, is_integer_object
+from ..util cimport is_string_object, is_integer_object
 
 from ccalendar import MONTHS, DAYS
 from conversion cimport tz_convert_single, pydt_to_i8

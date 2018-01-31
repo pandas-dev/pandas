@@ -8,7 +8,7 @@ cimport numpy as cnp
 from numpy cimport int64_t
 cnp.import_array()
 
-from util cimport is_integer_object, is_string_object
+from ..util cimport is_integer_object, is_string_object
 
 from ccalendar import MONTH_NUMBERS
 

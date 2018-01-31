@@ -24,8 +24,8 @@ PyDateTime_IMPORT
 from np_datetime cimport (pandas_datetimestruct, dtstruct_to_dt64,
                           dt64_to_dtstruct, is_leapyear)
 
-cimport util
-from util cimport is_period_object, is_string_object, INT32_MIN
+from ..cimport util
+from ..util cimport is_period_object, is_string_object, INT32_MIN
 
 from pandas._libs.missing cimport is_null_datetimelike
 

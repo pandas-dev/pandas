@@ -8,7 +8,7 @@ cimport numpy as cnp
 from numpy cimport ndarray, int64_t
 cnp.import_array()
 
-from util cimport is_string_object, get_nat
+from ..util cimport is_string_object, get_nat
 
 from pandas._libs.khash cimport (khiter_t,
                                  kh_destroy_int64, kh_put_int64,

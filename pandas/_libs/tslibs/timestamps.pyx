@@ -16,9 +16,9 @@ from cpython.datetime cimport (datetime,
                                PyDateTime_IMPORT)
 PyDateTime_IMPORT
 
-from util cimport (is_datetime64_object, is_timedelta64_object,
-                   is_integer_object, is_string_object, is_array,
-                   INT64_MAX)
+from ..util cimport (is_datetime64_object, is_timedelta64_object,
+                     is_integer_object, is_string_object, is_array,
+                     INT64_MAX)
 
 cimport ccalendar
 from conversion import tz_localize_to_utc, date_normalize

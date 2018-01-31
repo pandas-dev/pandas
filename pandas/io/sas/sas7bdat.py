@@ -21,7 +21,7 @@ from pandas.errors import EmptyDataError
 import numpy as np
 import struct
 import pandas.io.sas.sas_constants as const
-from pandas.io.sas._sas import Parser
+from pandas.io.sas.sas import Parser
 
 
 class _subheader_pointer(object):

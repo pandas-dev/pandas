@@ -21,10 +21,10 @@ from cpython.datetime cimport (datetime, timedelta,
 PyDateTime_IMPORT
 
 
-cimport util
-from util cimport (is_timedelta64_object, is_datetime64_object,
-                   is_integer_object, is_float_object,
-                   is_string_object)
+from ..cimport util
+from ..util cimport (is_timedelta64_object, is_datetime64_object,
+                     is_integer_object, is_float_object,
+                     is_string_object)
 
 from np_datetime cimport (cmp_scalar, reverse_ops, td64_to_tdstruct,
                           pandas_timedeltastruct)
