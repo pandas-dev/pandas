@@ -687,8 +687,7 @@ if suffix == '.pyx':
             ext.sources[0] = root + suffix
 
 ujson_ext = Extension('pandas._libs.json',
-                      depends=['pandas/_libs/src/ujson/lib/ultrajson.h',
-                               'pandas/_libs/src/numpy_helper.h'],
+                      depends=['pandas/_libs/src/ujson/lib/ultrajson.h'],
                       sources=(['pandas/_libs/src/ujson/python/ujson.c',
                                 'pandas/_libs/src/ujson/python/objToJSON.c',
                                 'pandas/_libs/src/ujson/python/JSONtoObj.c',

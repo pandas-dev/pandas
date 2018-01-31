@@ -18,33 +18,6 @@ The full license is in the LICENSE file, distributed with this software.
 
 PANDAS_INLINE npy_int64 get_nat(void) { return NPY_MIN_INT64; }
 
-PANDAS_INLINE int is_integer_object(PyObject* obj) {
-    return (!PyBool_Check(obj)) && PyArray_IsIntegerScalar(obj);
-}
-
-PANDAS_INLINE int is_float_object(PyObject* obj) {
-    return (PyFloat_Check(obj) || PyArray_IsScalar(obj, Floating));
-}
-PANDAS_INLINE int is_complex_object(PyObject* obj) {
-    return (PyComplex_Check(obj) || PyArray_IsScalar(obj, ComplexFloating));
-}
-
-PANDAS_INLINE int is_bool_object(PyObject* obj) {
-    return (PyBool_Check(obj) || PyArray_IsScalar(obj, Bool));
-}
-
-PANDAS_INLINE int is_string_object(PyObject* obj) {
-    return (PyString_Check(obj) || PyUnicode_Check(obj));
-}
-
-PANDAS_INLINE int is_datetime64_object(PyObject* obj) {
-    return PyArray_IsScalar(obj, Datetime);
-}
-
-PANDAS_INLINE int is_timedelta64_object(PyObject* obj) {
-    return PyArray_IsScalar(obj, Timedelta);
-}
-
 PANDAS_INLINE int assign_value_1d(PyArrayObject* ap, Py_ssize_t _i,
                                   PyObject* v) {
     npy_intp i = (npy_intp)_i;
@@ -78,19 +51,6 @@ PANDAS_INLINE PyObject* char_to_string(char* data) {
 
 void set_array_not_contiguous(PyArrayObject* ao) {
     ao->flags &= ~(NPY_C_CONTIGUOUS | NPY_F_CONTIGUOUS);
-}
-
-// If arr is zerodim array, return a proper array scalar (e.g. np.int64).
-// Otherwise, return arr as is.
-PANDAS_INLINE PyObject* unbox_if_zerodim(PyObject* arr) {
-    if (PyArray_IsZeroDim(arr)) {
-        PyObject* ret;
-        ret = PyArray_ToScalar(PyArray_DATA(arr), arr);
-        return ret;
-    } else {
-        Py_INCREF(arr);
-        return arr;
-    }
 }
 
 #endif  // PANDAS__LIBS_SRC_NUMPY_HELPER_H_
