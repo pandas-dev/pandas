@@ -994,7 +994,7 @@ b  2""")
         return (self.size().fillna(0) > 0).any() and (func_nm not in
                                                       _cython_cast_blacklist)
 
-    def _cython_transform(self, how, numeric_only=True):
+    def _cython_transform(self, how, numeric_only=True, **kwargs):
         output = collections.OrderedDict()
         for name, obj in self._iterate_slices():
             is_numeric = is_numeric_dtype(obj.dtype)
@@ -1002,7 +1002,7 @@ b  2""")
                 continue
 
             try:
-                result, names = self.grouper.transform(obj.values, how)
+                result, names = self.grouper.transform(obj.values, how, **kwargs)
             except NotImplementedError:
                 continue
             except AssertionError as e:
@@ -1770,9 +1770,12 @@ class GroupBy(_GroupBy):
 
     @Substitution(name='groupby')
     @Appender(_doc_template)
-    def rank(self, axis=0, *args, **kwargs):
+    def rank(self, ties_method='average', ascending=True, na_option='keep',
+             pct=False, axis=0):
         """Rank within each group"""
-        return self._cython_transform('rank', **kwargs)
+        return self._cython_transform('rank', ties_method=ties_method,
+                                      ascending=ascending, na_option=na_option,
+                                      pct=pct, axis=axis)
 
     @Substitution(name='groupby')
     @Appender(_doc_template)
@@ -2249,7 +2252,8 @@ class BaseGrouper(object):
                                       (how, dtype_str))
         return func
 
-    def _cython_operation(self, kind, values, how, axis, min_count=-1):
+    def _cython_operation(self, kind, values, how, axis, min_count=-1,
+                          **kwargs):
         assert kind in ['transform', 'aggregate']
 
         # can we do this operation with our cython functions
@@ -2341,7 +2345,8 @@ class BaseGrouper(object):
 
             # TODO: min_count
             result = self._transform(
-                result, values, labels, func, is_numeric, is_datetimelike)
+                result, values, labels, func, is_numeric, is_datetimelike,
+                **kwargs)
 
         if is_integer_dtype(result) and not is_datetimelike:
             mask = result == iNaT
@@ -2380,8 +2385,8 @@ class BaseGrouper(object):
         return self._cython_operation('aggregate', values, how, axis,
                                       min_count=min_count)
 
-    def transform(self, values, how, axis=0):
-        return self._cython_operation('transform', values, how, axis)
+    def transform(self, values, how, axis=0, **kwargs):
+        return self._cython_operation('transform', values, how, axis, **kwargs)
 
     def _aggregate(self, result, counts, values, comp_ids, agg_func,
                    is_numeric, is_datetimelike, min_count=-1):
@@ -2401,7 +2406,7 @@ class BaseGrouper(object):
         return result
 
     def _transform(self, result, values, comp_ids, transform_func,
-                   is_numeric, is_datetimelike):
+                   is_numeric, is_datetimelike, **kwargs):
 
         comp_ids, _, ngroups = self.group_info
         if values.ndim > 3:
@@ -2415,7 +2420,7 @@ class BaseGrouper(object):
                 transform_func(result[:, :, i], values,
                                comp_ids, is_datetimelike)
         else:
-            transform_func(result, values, comp_ids, is_datetimelike)
+            transform_func(result, values, comp_ids, is_datetimelike, **kwargs)
 
         return result
 

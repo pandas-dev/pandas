@@ -450,7 +450,7 @@ def group_nth_{{name}}(ndarray[{{dest_type2}}, ndim=2] out,
 def group_rank_{{name}}(ndarray[{{dest_type2}}, ndim=2] out,
                         ndarray[{{c_type}}, ndim=2] values,
                         ndarray[int64_t] labels,
-                        bint is_datetimelike):
+                        bint is_datetimelike, **kwargs):
     """
     Only transforms on axis=0
     """
