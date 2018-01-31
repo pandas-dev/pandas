@@ -77,3 +77,17 @@ class NullFrequencyError(ValueError):
 
 class AccessorRegistrationWarning(Warning):
     """Warning for attribute conflicts in accessor registration."""
+
+
+class AbstractMethodError(NotImplementedError):
+    """Raise this error instead of NotImplementedError for abstract methods
+    while keeping compatibility with Python 2 and Python 3.
+    """
+
+    def __init__(self, class_instance):
+        self.class_instance = class_instance
+
+    def __str__(self):
+        msg = "This method must be defined in the concrete class of {name}"
+        return (msg.format(name=self.class_instance.__class__.__name__))
+
