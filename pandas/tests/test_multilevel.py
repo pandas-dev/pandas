@@ -1611,13 +1611,13 @@ Thur,Lunch,Yes,51.51,17"""
             index = MultiIndex.from_tuples(keys)
             assert index.get_loc(keys[idx]) == idx
 
-            expected = np.arange(idx + 1, dtype='int64')
+            expected = np.arange(idx + 1, dtype=np.intp)
             result = index.get_indexer([keys[i] for i in expected])
             tm.assert_numpy_array_equal(result, expected)
 
         # With missing key:
         idces = range(len(keys))
-        expected = np.array([-1] + list(idces), dtype='int64')
+        expected = np.array([-1] + list(idces), dtype=np.intp)
         missing = tuple([0, 1] * 5 * N)
         result = index.get_indexer([missing] + [keys[i] for i in idces])
         tm.assert_numpy_array_equal(result, expected)
