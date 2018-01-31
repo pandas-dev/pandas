@@ -10,7 +10,7 @@ import pytest
 from numpy import nan, random
 import numpy as np
 
-from pandas.compat import lrange, range
+from pandas.compat import range
 from pandas import compat
 from pandas import (DataFrame, Series, MultiIndex, Timestamp,
                     date_range)
@@ -714,22 +714,6 @@ class TestDataFrameOperators(TestData):
         exp = DataFrame({'col': [False, True, False]})
         assert_frame_equal(result, exp)
 
-    def test_return_dtypes_bool_op_costant(self):
-        # GH15077
-        df = DataFrame({'x': [1, 2, 3], 'y': [1., 2., 3.]})
-        const = 2
-
-        # not empty DataFrame
-        for op in ['eq', 'ne', 'gt', 'lt', 'ge', 'le']:
-            result = getattr(df, op)(const).get_dtype_counts()
-            tm.assert_series_equal(result, Series([2], ['bool']))
-
-        # empty DataFrame
-        empty = df.iloc[:0]
-        for op in ['eq', 'ne', 'gt', 'lt', 'ge', 'le']:
-            result = getattr(empty, op)(const).get_dtype_counts()
-            tm.assert_series_equal(result, Series([2], ['bool']))
-
     def test_dti_tz_convert_to_utc(self):
         base = pd.DatetimeIndex(['2011-01-01', '2011-01-02',
                                  '2011-01-03'], tz='UTC')
@@ -1009,22 +993,6 @@ class TestDataFrameOperators(TestData):
             result = (missing_df < 0).values
         tm.assert_numpy_array_equal(result, expected)
 
-    def test_string_comparison(self):
-        df = DataFrame([{"a": 1, "b": "foo"}, {"a": 2, "b": "bar"}])
-        mask_a = df.a > 1
-        assert_frame_equal(df[mask_a], df.loc[1:1, :])
-        assert_frame_equal(df[-mask_a], df.loc[0:0, :])
-
-        mask_b = df.b == "foo"
-        assert_frame_equal(df[mask_b], df.loc[0:0, :])
-        assert_frame_equal(df[-mask_b], df.loc[1:1, :])
-
-    def test_float_none_comparison(self):
-        df = DataFrame(np.random.randn(8, 3), index=lrange(8),
-                       columns=['A', 'B', 'C'])
-
-        pytest.raises(TypeError, df.__eq__, None)
-
     def test_boolean_comparison(self):
 
         # GH 4576
@@ -1090,16 +1058,6 @@ class TestDataFrameOperators(TestData):
 
         result = df == tup
         assert_frame_equal(result, expected)
-
-    def test_boolean_comparison_error(self):
-
-        # GH 4576
-        # boolean comparisons with a tuple/list give unexpected results
-        df = DataFrame(np.arange(6).reshape((3, 2)))
-
-        # not shape compatible
-        pytest.raises(ValueError, lambda: df == (2, 2))
-        pytest.raises(ValueError, lambda: df == [2, 2])
 
     def test_combine_generic(self):
         df1 = self.frame
