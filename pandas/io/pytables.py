@@ -4621,8 +4621,6 @@ def _get_converter(kind, encoding):
     kind = _ensure_decoded(kind)
     if kind == 'datetime64':
         return lambda x: np.asarray(x, dtype='M8[ns]')
-    elif kind == 'datetime':
-        return lambda x: to_datetime(x, cache=True).to_pydatetime()
     elif kind == 'string':
         return lambda x: _unconvert_string_array(x, encoding=encoding)
     else:  # pragma: no cover
