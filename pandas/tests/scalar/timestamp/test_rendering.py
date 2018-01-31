@@ -2,6 +2,7 @@
 
 import pytest
 import dateutil
+import pytz  # noqa  # a test below uses pytz but only inside a `eval` call
 
 import pprint
 from distutils.version import LooseVersion
