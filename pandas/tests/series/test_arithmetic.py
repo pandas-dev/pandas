@@ -12,6 +12,9 @@ import pandas as pd
 import pandas.util.testing as tm
 
 
+# ------------------------------------------------------------------
+# Comparisons
+
 class TestSeriesComparison(object):
     def test_compare_invalid(self):
         # GH#8058
@@ -220,6 +223,63 @@ class TestPeriodSeriesComparisons(object):
 
         exp = Series([True, False, True, True])
         tm.assert_series_equal(base <= ser, exp)
+
+# ------------------------------------------------------------------
+# Arithmetic
+
+class TestSeriesArithmetic(object):
+    # Standard, numeric, or otherwise not-Timestamp/Timedelta/Period dtypes
+    @pytest.mark.parametrize('data', [
+        [1, 2, 3],
+        [1.1, 2.2, 3.3],
+        [Timestamp('2011-01-01'), Timestamp('2011-01-02'), pd.NaT],
+        ['x', 'y', 1]])
+    @pytest.mark.parametrize('dtype', [None, object])
+    def test_series_radd_str_invalid(self, dtype, data):
+        ser = Series(data, dtype=dtype)
+        with pytest.raises(TypeError):
+            'foo_' + ser
+
+    # TODO: parametrize, better name
+    def test_object_ser_add_invalid(self):
+        # invalid ops
+        obj_ser = tm.makeObjectSeries()
+        obj_ser.name = 'objects'
+        with pytest.raises(Exception):
+            obj_ser + 1
+        with pytest.raises(Exception):
+            obj_ser + np.array(1, dtype=np.int64)
+        with pytest.raises(Exception):
+            obj_ser - 1
+        with pytest.raises(Exception):
+            obj_ser - np.array(1, dtype=np.int64)
+
+    @pytest.mark.parametrize('dtype', [None, object])
+    def test_series_with_dtype_radd_nan(self, dtype):
+        ser = pd.Series([1, 2, 3], dtype=dtype)
+        expected = pd.Series([np.nan, np.nan, np.nan], dtype=dtype)
+
+        result = np.nan + ser
+        assert_series_equal(result, expected)
+
+        result = ser + np.nan
+        assert_series_equal(result, expected)
+
+    @pytest.mark.parametrize('dtype', [None, object])
+    def test_series_with_dtype_radd_int(self, dtype):
+        ser = pd.Series([1, 2, 3], dtype=dtype)
+        expected = pd.Series([2, 3, 4], dtype=dtype)
+
+        result = 1 + ser
+        assert_series_equal(result, expected)
+
+        result = ser + 1
+        assert_series_equal(result, expected)
+
+    def test_series_radd_str(self):
+        ser = pd.Series(['x', np.nan, 'x'])
+        assert_series_equal('a' + ser, pd.Series(['ax', np.nan, 'ax']))
+        assert_series_equal(ser + 'a', pd.Series(['xa', np.nan, 'xa']))
 
 
 class TestPeriodSeriesArithmetic(object):
