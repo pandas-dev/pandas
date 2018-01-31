@@ -45,6 +45,18 @@ class TestSeriesComparison(object):
 
 
 class TestTimestampSeriesComparison(object):
+    def test_dt64ser_cmp_period_scalar(self):
+        ser = Series(pd.period_range('2000-01-01', periods=10, freq='D'))
+        val = Period('2000-01-04', freq='D')
+        result = ser > val
+        expected = Series([x > val for x in ser])
+        tm.assert_series_equal(result, expected)
+
+        val = ser[5]
+        result = ser > val
+        expected = Series([x > val for x in ser])
+        tm.assert_series_equal(result, expected)
+
     def test_timestamp_compare_series(self):
         # make sure we can compare Timestamps on the right AND left hand side
         # GH#4982
@@ -108,20 +120,8 @@ class TestTimedeltaSeriesComparisons(object):
 
 
 class TestPeriodSeriesComparisons(object):
-    def test_series_comparison_scalars(self):
-        ser = Series(pd.period_range('2000-01-01', periods=10, freq='D'))
-        val = Period('2000-01-04', freq='D')
-        result = ser > val
-        expected = Series([x > val for x in ser])
-        tm.assert_series_equal(result, expected)
-
-        val = ser[5]
-        result = ser > val
-        expected = Series([x > val for x in ser])
-        tm.assert_series_equal(result, expected)
-
     @pytest.mark.paramtrize('freq', ['M', '2M', '3M'])
-    def test_comp_series_period_scalar(self, freq):
+    def test_cmp_series_period_scalar(self, freq):
         # GH 13200
         base = Series([Period(x, freq=freq) for x in
                        ['2011-01', '2011-02', '2011-03', '2011-04']])
@@ -194,7 +194,7 @@ class TestPeriodSeriesComparisons(object):
         with tm.assert_raises_regex(IncompatibleFrequency, msg):
             base <= ser2
 
-    def test_cmp_series_period_scalar(self):
+    def test_cmp_series_period_series_mixed_freq(self):
         # GH#13200
         base = Series([Period('2011', freq='A'),
                        Period('2011-02', freq='M'),
@@ -223,6 +223,7 @@ class TestPeriodSeriesComparisons(object):
 
         exp = Series([True, False, True, True])
         tm.assert_series_equal(base <= ser, exp)
+
 
 # ------------------------------------------------------------------
 # Arithmetic
@@ -260,10 +261,10 @@ class TestSeriesArithmetic(object):
         expected = pd.Series([np.nan, np.nan, np.nan], dtype=dtype)
 
         result = np.nan + ser
-        assert_series_equal(result, expected)
+        tm.assert_series_equal(result, expected)
 
         result = ser + np.nan
-        assert_series_equal(result, expected)
+        tm.assert_series_equal(result, expected)
 
     @pytest.mark.parametrize('dtype', [None, object])
     def test_series_with_dtype_radd_int(self, dtype):
@@ -271,15 +272,15 @@ class TestSeriesArithmetic(object):
         expected = pd.Series([2, 3, 4], dtype=dtype)
 
         result = 1 + ser
-        assert_series_equal(result, expected)
+        tm.assert_series_equal(result, expected)
 
         result = ser + 1
-        assert_series_equal(result, expected)
+        tm.assert_series_equal(result, expected)
 
     def test_series_radd_str(self):
         ser = pd.Series(['x', np.nan, 'x'])
-        assert_series_equal('a' + ser, pd.Series(['ax', np.nan, 'ax']))
-        assert_series_equal(ser + 'a', pd.Series(['xa', np.nan, 'xa']))
+        tm.assert_series_equal('a' + ser, pd.Series(['ax', np.nan, 'ax']))
+        tm.assert_series_equal(ser + 'a', pd.Series(['xa', np.nan, 'xa']))
 
 
 class TestPeriodSeriesArithmetic(object):
