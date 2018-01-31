@@ -100,4 +100,3 @@ class AbstractMethodError(NotImplementedError):
             name = self.class_instance.__class__.__name__
         msg = "This {methodtype} must be defined in the concrete class {name}"
         return (msg.format(methodtype=self.methodtype, name=name))
-
