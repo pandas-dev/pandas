@@ -13,5 +13,5 @@ def test_to_csv_sparse_dataframe():
         with tm.ensure_clean('sparse_df.csv') as path:
             sdf.to_csv(path, index=False)
             df = read_csv(path, skip_blank_lines=False)
-            
+
             tm.assert_sp_frame_equal(df.to_sparse(fill_value=fill_value), sdf)
