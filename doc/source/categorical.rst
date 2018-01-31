@@ -66,13 +66,13 @@ By converting an existing ``Series`` or column to a ``category`` dtype:
     df["B"] = df["A"].astype('category')
     df
 
-By using special functions, such as :func:`~pandas.cut` (:ref:`docs here 
-<reshaping.tile.cut>`):
+By using special functions, such as :func:`~pandas.cut`, which groups data into
+discrete bins. See the :ref:`example on tiling <reshaping.tile.cut>` in the docs.
 
 .. ipython:: python
 
     df = pd.DataFrame({'value': np.random.randint(0, 100, 20)})
-    labels = [ "{0} - {1}".format(i, i + 9) for i in range(0, 100, 10) ]
+    labels = ["{0} - {1}".format(i, i + 9) for i in range(0, 100, 10)]
 
     df['group'] = pd.cut(df.value, range(0, 105, 10), right=False, labels=labels)
     df.head(10)
