@@ -1817,20 +1817,6 @@ class TestSeriesOperators(TestData):
         result = (dt2.to_frame() - dt.to_frame())[0]
         assert_series_equal(result, expected)
 
-    def test_return_dtypes_bool_op_costant(self):
-        # gh15115
-        s = pd.Series([1, 3, 2], index=range(3))
-        const = 2
-        for op in ['eq', 'ne', 'gt', 'lt', 'ge', 'le']:
-            result = getattr(s, op)(const).get_dtype_counts()
-            tm.assert_series_equal(result, Series([1], ['bool']))
-
-        # empty Series
-        empty = s.iloc[:0]
-        for op in ['eq', 'ne', 'gt', 'lt', 'ge', 'le']:
-            result = getattr(empty, op)(const).get_dtype_counts()
-            tm.assert_series_equal(result, Series([1], ['bool']))
-
     def test_operators_bitwise(self):
         # GH 9016: support bitwise op for integer types
         index = list('bca')
