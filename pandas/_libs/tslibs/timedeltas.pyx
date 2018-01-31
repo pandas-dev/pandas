@@ -731,7 +731,7 @@ cdef class _Timedelta(timedelta):
         """
         Total duration of timedelta in seconds (to ns precision)
         """
-        return 1e-9 * self.value
+        return self.value / 1e9
 
     def view(self, dtype):
         """ array view compat """

@@ -329,7 +329,7 @@ Deprecations
 - :func:`read_excel` has deprecated the ``skip_footer`` parameter. Use ``skipfooter`` instead (:issue:`18836`)
 - The ``is_copy`` attribute is deprecated and will be removed in a future version (:issue:`18801`).
 - ``IntervalIndex.from_intervals`` is deprecated in favor of the :class:`IntervalIndex` constructor (:issue:`19263`)
-
+- :func:``DataFrame.from_items`` is deprecated. Use :func:``DataFrame.from_dict()`` instead, or :func:``DataFrame.from_dict(OrderedDict())`` if you wish to preserve the key order (:issue:`17320`)
 
 .. _whatsnew_0230.prior_deprecations:
 
@@ -420,6 +420,7 @@ Datetimelike
 - Bug in ``.astype()`` to non-ns timedelta units would hold the incorrect dtype (:issue:`19176`, :issue:`19223`, :issue:`12425`)
 - Bug in subtracting :class:`Series` from ``NaT`` incorrectly returning ``NaT`` (:issue:`19158`)
 - Bug in :func:`Series.truncate` which raises ``TypeError`` with a monotonic ``PeriodIndex`` (:issue:`17717`)
+- Bug in :func:`~DataFrame.pct_change` using ``periods`` and ``freq`` returned different length outputs (:issue:`7292`)
 
 Timezones
 ^^^^^^^^^
