@@ -1895,6 +1895,168 @@ class TestGroupBy(MixIn):
         expected = expected.reindex(result.index)
         assert_series_equal(result, expected)
 
+    @pytest.mark.parametrize("vals", [
+        [2, 2, 8, 2, 6], ['bar', 'bar', 'foo', 'bar', 'baz']])
+    @pytest.mark.parametrize("ties_method,ascending,pct,exp", [
+        ('average', True, False, DataFrame(
+            [2., 2., 5., 2., 4.], columns=['val'])),
+        ('average', True, True, DataFrame(
+            [0.4, 0.4, 1.0, 0.4, 0.8], columns=['val'])),
+        ('average', False, False, DataFrame(
+            [4., 4., 1., 4., 2.], columns=['val'])),
+        ('average', False, True, DataFrame(
+            [.8, .8, .2, .8, .4], columns=['val'])),
+        ('min', True, False, DataFrame(
+            [1., 1., 5., 1., 4.], columns=['val'])),
+        ('min', True, True, DataFrame(
+            [0.2, 0.2, 1.0, 0.2, 0.8], columns=['val'])),
+        ('min', False, False, DataFrame(
+            [3., 3., 1., 3., 2.], columns=['val'])),
+        ('min', False, True, DataFrame(
+            [.6, .6, .2, .6, .4], columns=['val'])),
+        ('max', True, False, DataFrame(
+            [3., 3., 5., 3., 4.], columns=['val'])),
+        ('max', True, True, DataFrame(
+            [0.6, 0.6, 1.0, 0.6, 0.8], columns=['val'])),
+        ('max', False, False, DataFrame(
+            [5., 5., 1., 5., 2.], columns=['val'])),
+        ('max', False, True, DataFrame(
+            [1., 1., .2, 1., .4], columns=['val'])),
+        ('first', True, False, DataFrame(
+            [1., 2., 5., 3., 4.], columns=['val'])),
+        ('first', True, True, DataFrame(
+            [0.2, 0.4, 1.0, 0.6, 0.8], columns=['val'])),
+        ('first', False, False, DataFrame(
+            [3., 4., 1., 5., 2.], columns=['val'])),
+        ('first', False, True, DataFrame(
+            [.6, .8, .2, 1., .4], columns=['val'])),
+        ('dense', True, False, DataFrame(
+            [1., 1., 3., 1., 2.], columns=['val'])),
+        ('dense', True, True, DataFrame(
+            [0.2, 0.2, 0.6, 0.2, 0.4], columns=['val'])),
+        ('dense', False, False, DataFrame(
+            [3., 3., 1., 3., 2.], columns=['val'])),
+        ('dense', False, True, DataFrame(
+            [.6, .6, .2, .6, .4], columns=['val'])),
+    ])
+    def test_rank_args(self, vals, ties_method, ascending, pct, exp):
+        if ties_method == 'first' and vals[0] == 'bar':
+            pytest.xfail("See GH 19482")
+        df = DataFrame({'key': ['foo']*5, 'val': vals})
+        result = df.groupby('key').rank(method=ties_method, ascending=ascending,
+                                        pct=pct)
+
+        assert_frame_equal(result, exp)
+
+    @pytest.mark.parametrize("vals", [
+        [2, 2, np.nan, 8, 2, 6, np.nan, np.nan],  # floats
+        ['bar', 'bar', np.nan, 'foo', 'bar', 'baz', np.nan, np.nan]  # objects
+    ])
+    @pytest.mark.parametrize("ties_method,ascending,na_option,pct,exp", [
+        ('average', True, 'keep', False, DataFrame(
+            [2., 2., np.nan, 5., 2., 4., np.nan, np.nan], columns=['val'])),
+        ('average', True, 'keep', True, DataFrame(
+            [0.4, 0.4, np.nan, 1.0, 0.4, 0.8, np.nan, np.nan],
+            columns=['val'])),
+        ('average', False, 'keep', False, DataFrame(
+            [4., 4., np.nan, 1., 4., 2., np.nan, np.nan], columns=['val'])),
+        ('average', False, 'keep', True, DataFrame(
+            [.8, 0.8, np.nan, 0.2, 0.8, 0.4, np.nan, np.nan], columns=['val'])),
+        ('min', True, 'keep', False, DataFrame(
+            [1., 1., np.nan, 5., 1., 4., np.nan, np.nan], columns=['val'])),
+        ('min', True, 'keep', True, DataFrame(
+            [0.2, 0.2, np.nan, 1.0, 0.2, 0.8, np.nan, np.nan],
+            columns=['val'])),
+        ('min', False, 'keep', False, DataFrame(
+            [3., 3., np.nan, 1., 3., 2., np.nan, np.nan], columns=['val'])),
+        ('min', False, 'keep', True, DataFrame(
+            [.6, 0.6, np.nan, 0.2, 0.6, 0.4, np.nan, np.nan], columns=['val'])),
+        ('max', True, 'keep', False, DataFrame(
+            [3., 3., np.nan, 5., 3., 4., np.nan, np.nan], columns=['val'])),
+        ('max', True, 'keep', True, DataFrame(
+            [0.6, 0.6, np.nan, 1.0, 0.6, 0.8, np.nan, np.nan],
+            columns=['val'])),
+        ('max', False, 'keep', False, DataFrame(
+            [5., 5., np.nan, 1., 5., 2., np.nan, np.nan], columns=['val'])),
+        ('max', False, 'keep', True, DataFrame(
+            [1., 1., np.nan, 0.2, 1., 0.4, np.nan, np.nan], columns=['val'])),
+        ('first', True, 'keep', False, DataFrame(
+            [1., 2., np.nan, 5., 3., 4., np.nan, np.nan], columns=['val'])),
+        ('first', True, 'keep', True, DataFrame(
+            [0.2, 0.4, np.nan, 1.0, 0.6, 0.8, np.nan, np.nan],
+            columns=['val'])),
+        ('first', False, 'keep', False, DataFrame(
+            [3., 4., np.nan, 1., 5., 2., np.nan, np.nan], columns=['val'])),
+        ('first', False, 'keep', True, DataFrame(
+            [.6, 0.8, np.nan, 0.2, 1., 0.4, np.nan, np.nan], columns=['val'])),
+        ('dense', True, 'keep', False, DataFrame(
+            [1., 1., np.nan, 3., 1., 2., np.nan, np.nan], columns=['val'])),
+        ('dense', True, 'keep', True, DataFrame(
+            [0.2, 0.2, np.nan, 0.6, 0.2, 0.4, np.nan, np.nan],
+            columns=['val'])),
+        ('dense', False, 'keep', False, DataFrame(
+            [3., 3., np.nan, 1., 3., 2., np.nan, np.nan], columns=['val'])),
+        ('dense', False, 'keep', True, DataFrame(
+            [.6, 0.6, np.nan, 0.2, 0.6, 0.4, np.nan, np.nan], columns=['val'])),
+        ('average', True, 'no_na', False, DataFrame(
+            [2., 2., 7., 5., 2., 4., 7., 7.], columns=['val'])),
+        ('average', True, 'no_na', True, DataFrame(
+            [0.25, 0.25, 0.875, 0.625, 0.25, 0.5, 0.875, 0.875],
+            columns=['val'])),
+        ('average', False, 'no_na', False, DataFrame(
+            [4., 4., 7.0, 1., 4., 2., 7.0, 7.0], columns=['val'])),
+        ('average', False, 'no_na', True, DataFrame(
+            [0.5, 0.5, 0.875, 0.125, 0.5, 0.25, 0.875, 0.875], columns=['val'])),
+        ('min', True, 'no_na', False, DataFrame(
+            [1., 1., 6., 5., 1., 4., 6., 6.], columns=['val'])),
+        ('min', True, 'no_na', True, DataFrame(
+            [0.125, 0.125, 0.75, 0.625, 0.125, 0.5, 0.75, 0.75],
+            columns=['val'])),
+        ('min', False, 'no_na', False, DataFrame(
+            [3., 3., 6., 1., 3., 2., 6., 6.], columns=['val'])),
+        ('min', False, 'no_na', True, DataFrame(
+            [0.375, 0.375, 0.75, 0.125, 0.375, 0.25, 0.75, 0.75],
+            columns=['val'])),
+        ('max', True, 'no_na', False, DataFrame(
+            [3., 3., 8., 5., 3., 4., 8., 8.], columns=['val'])),
+        ('max', True, 'no_na', True, DataFrame(
+            [0.375, 0.375, 1., 0.625, 0.375, 0.5, 1., 1.], columns=['val'])),
+        ('max', False, 'no_na', False, DataFrame(
+            [5., 5., 8., 1., 5., 2., 8., 8.], columns=['val'])),
+        ('max', False, 'no_na', True, DataFrame(
+            [0.625, 0.625, 1., 0.125, 0.625, 0.25, 1., 1.], columns=['val'])),
+        ('first', True, 'no_na', False, DataFrame(
+            [1., 2., 6., 5., 3., 4., 7., 8.], columns=['val'])),
+        ('first', True, 'no_na', True, DataFrame(
+            [0.125, 0.25, 0.75, 0.625, 0.375, 0.5, 0.875, 1.],
+            columns=['val'])),
+        ('first', False, 'no_na', False, DataFrame(
+            [3., 4., 6., 1., 5., 2., 7., 8.], columns=['val'])),
+        ('first', False, 'no_na', True, DataFrame(
+            [0.375, 0.5, 0.75, 0.125, 0.625, 0.25, 0.875, 1.],
+            columns=['val'])),
+        ('dense', True, 'no_na', False, DataFrame(
+            [1., 1., 4., 3., 1., 2., 4., 4.], columns=['val'])),
+        ('dense', True, 'no_na', True, DataFrame(
+            [0.125, 0.125, 0.5, 0.375, 0.125, 0.25, 0.5, 0.5],
+            columns=['val'])),
+        ('dense', False, 'no_na', False, DataFrame(
+            [3., 3., 4., 1., 3., 2., 4., 4.], columns=['val'])),
+        ('dense', False, 'no_na', True, DataFrame(
+            [0.375, 0.375, 0.5, 0.125, 0.375, 0.25, 0.5, 0.5],
+            columns=['val'])),
+    ])
+    def test_rank_args_missing(self, vals, ties_method, ascending, na_option,
+                               pct, exp):
+        if ties_method == 'first' and vals[0] == 'bar':
+            pytest.xfail("See GH 19482")
+
+        df = DataFrame({'key': ['foo']*8, 'val': vals})
+        result = df.groupby('key').rank(method=ties_method, ascending=ascending,
+                                        na_option=na_option, pct=pct)
+
+        assert_frame_equal(result, exp)
+
     def test_dont_clobber_name_column(self):
         df = DataFrame({'key': ['a', 'a', 'a', 'b', 'b', 'b'],
                         'name': ['foo', 'bar', 'baz'] * 2})
