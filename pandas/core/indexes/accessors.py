@@ -72,9 +72,12 @@ class Properties(PandasDelegate, PandasObject, NoNewAttributesMixin):
         # blow up if we operate on categories
         if self.orig is not None:
             result = take_1d(result, self.orig.cat.codes)
+            index = self.orig.index
+        else:
+            index = self.index
 
         # return the result as a Series, which is by definition a copy
-        result = Series(result, index=self.index, name=self.name)
+        result = Series(result, index=index, name=self.name)
 
         # setting this object will show a SettingWithCopyWarning/Error
         result._is_copy = ("modifications to a property of a datetimelike "
