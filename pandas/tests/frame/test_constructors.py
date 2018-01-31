@@ -871,7 +871,7 @@ class TestDataFrameConstructors(TestData):
         # GH 4297
         # support Array
         import array
-        result = DataFrame.from_items([('A', array.array('i', range(10)))])
+        result = DataFrame({'A': array.array('i', range(10))})
         expected = DataFrame({'A': list(range(10))})
         tm.assert_frame_equal(result, expected, check_dtype=False)
 
@@ -1175,28 +1175,35 @@ class TestDataFrameConstructors(TestData):
 
     def test_constructor_from_items(self):
         items = [(c, self.frame[c]) for c in self.frame.columns]
-        recons = DataFrame.from_items(items)
+        with tm.assert_produces_warning(FutureWarning,
+                                        check_stacklevel=False):
+            recons = DataFrame.from_items(items)
         tm.assert_frame_equal(recons, self.frame)
 
         # pass some columns
-        recons = DataFrame.from_items(items, columns=['C', 'B', 'A'])
+        with tm.assert_produces_warning(FutureWarning,
+                                        check_stacklevel=False):
+            recons = DataFrame.from_items(items, columns=['C', 'B', 'A'])
         tm.assert_frame_equal(recons, self.frame.loc[:, ['C', 'B', 'A']])
 
         # orient='index'
 
         row_items = [(idx, self.mixed_frame.xs(idx))
                      for idx in self.mixed_frame.index]
-
-        recons = DataFrame.from_items(row_items,
-                                      columns=self.mixed_frame.columns,
-                                      orient='index')
+        with tm.assert_produces_warning(FutureWarning,
+                                        check_stacklevel=False):
+            recons = DataFrame.from_items(row_items,
+                                          columns=self.mixed_frame.columns,
+                                          orient='index')
         tm.assert_frame_equal(recons, self.mixed_frame)
         assert recons['A'].dtype == np.float64
 
         with tm.assert_raises_regex(TypeError,
                                     "Must pass columns with "
                                     "orient='index'"):
-            DataFrame.from_items(row_items, orient='index')
+            with tm.assert_produces_warning(FutureWarning,
+                                            check_stacklevel=False):
+                DataFrame.from_items(row_items, orient='index')
 
         # orient='index', but thar be tuples
         arr = construct_1d_object_array_from_listlike(
@@ -1204,15 +1211,19 @@ class TestDataFrameConstructors(TestData):
         self.mixed_frame['foo'] = arr
         row_items = [(idx, list(self.mixed_frame.xs(idx)))
                      for idx in self.mixed_frame.index]
-        recons = DataFrame.from_items(row_items,
-                                      columns=self.mixed_frame.columns,
-                                      orient='index')
+        with tm.assert_produces_warning(FutureWarning,
+                                        check_stacklevel=False):
+            recons = DataFrame.from_items(row_items,
+                                          columns=self.mixed_frame.columns,
+                                          orient='index')
         tm.assert_frame_equal(recons, self.mixed_frame)
         assert isinstance(recons['foo'][0], tuple)
 
-        rs = DataFrame.from_items([('A', [1, 2, 3]), ('B', [4, 5, 6])],
-                                  orient='index',
-                                  columns=['one', 'two', 'three'])
+        with tm.assert_produces_warning(FutureWarning,
+                                        check_stacklevel=False):
+            rs = DataFrame.from_items([('A', [1, 2, 3]), ('B', [4, 5, 6])],
+                                      orient='index',
+                                      columns=['one', 'two', 'three'])
         xp = DataFrame([[1, 2, 3], [4, 5, 6]], index=['A', 'B'],
                        columns=['one', 'two', 'three'])
         tm.assert_frame_equal(rs, xp)
@@ -1222,12 +1233,28 @@ class TestDataFrameConstructors(TestData):
         with tm.assert_raises_regex(ValueError,
                                     r'The value in each \(key, value\) '
                                     'pair must be an array, Series, or dict'):
-            DataFrame.from_items([('A', 1), ('B', 4)])
+            with tm.assert_produces_warning(FutureWarning,
+                                            check_stacklevel=False):
+                DataFrame.from_items([('A', 1), ('B', 4)])
 
         with tm.assert_raises_regex(ValueError,
                                     r'The value in each \(key, value\) '
                                     'pair must be an array, Series, or dict'):
-            DataFrame.from_items([('A', 1), ('B', 2)], columns=['col1'],
+            with tm.assert_produces_warning(FutureWarning,
+                                            check_stacklevel=False):
+                DataFrame.from_items([('A', 1), ('B', 2)], columns=['col1'],
+                                     orient='index')
+
+    def test_from_items_deprecation(self):
+        # GH 17320
+        with tm.assert_produces_warning(FutureWarning,
+                                        check_stacklevel=False):
+            DataFrame.from_items([('A', [1, 2, 3]), ('B', [4, 5, 6])])
+
+        with tm.assert_produces_warning(FutureWarning,
+                                        check_stacklevel=False):
+            DataFrame.from_items([('A', [1, 2, 3]), ('B', [4, 5, 6])],
+                                 columns=['col1', 'col2', 'col3'],
                                  orient='index')
 
     def test_constructor_mix_series_nonseries(self):
@@ -1256,13 +1283,13 @@ class TestDataFrameConstructors(TestData):
 
         tm.assert_frame_equal(df, edf)
 
-        idf = DataFrame.from_items(
-            [('a', [8]), ('a', [5])], columns=['a', 'a'])
+        idf = DataFrame.from_records([(8, 5)],
+                                     columns=['a', 'a'])
+
         tm.assert_frame_equal(idf, edf)
 
-        pytest.raises(ValueError, DataFrame.from_items,
-                      [('a', [8]), ('a', [5]), ('b', [6])],
-                      columns=['b', 'a', 'a'])
+        pytest.raises(ValueError, DataFrame.from_dict,
+                      OrderedDict([('b', 8), ('a', 5), ('a', 6)]))
 
     def test_constructor_empty_with_string_dtype(self):
         # GH 9428

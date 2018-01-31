@@ -214,9 +214,10 @@ class TestDataFrameNonuniqueIndexes(TestData):
         for index in [df.index, pd.Index(list('edcba'))]:
             this_df = df.copy()
             expected_ser = pd.Series(index.values, index=this_df.index)
-            expected_df = DataFrame.from_items([('A', expected_ser),
-                                                ('B', this_df['B']),
-                                                ('A', expected_ser)])
+            expected_df = DataFrame({'A': expected_ser,
+                                     'B': this_df['B'],
+                                     'A': expected_ser},
+                                    columns=['A', 'B', 'A'])
             this_df['A'] = index
             check(this_df, expected_df)
 
