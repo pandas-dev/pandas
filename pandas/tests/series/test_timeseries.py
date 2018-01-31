@@ -344,7 +344,9 @@ class TestTimeSeries(TestData):
 
         rs = self.ts.pct_change(freq='5D')
         filled = self.ts.fillna(method='pad')
-        assert_series_equal(rs, filled / filled.shift(freq='5D') - 1)
+        assert_series_equal(rs,
+                            (filled / filled.shift(freq='5D') - 1)
+                            .reindex_like(filled))
 
     def test_pct_change_shift_over_nas(self):
         s = Series([1., 1.5, np.nan, 2.5, 3.])
@@ -352,6 +354,33 @@ class TestTimeSeries(TestData):
         chg = s.pct_change()
         expected = Series([np.nan, 0.5, np.nan, 2.5 / 1.5 - 1, .2])
         assert_series_equal(chg, expected)
+
+    def test_pct_change_periods_freq(self):
+        # GH 7292
+        rs_freq = self.ts.pct_change(freq='5B')
+        rs_periods = self.ts.pct_change(5)
+        assert_series_equal(rs_freq, rs_periods)
+
+        rs_freq = self.ts.pct_change(freq='3B', fill_method=None)
+        rs_periods = self.ts.pct_change(3, fill_method=None)
+        assert_series_equal(rs_freq, rs_periods)
+
+        rs_freq = self.ts.pct_change(freq='3B', fill_method='bfill')
+        rs_periods = self.ts.pct_change(3, fill_method='bfill')
+        assert_series_equal(rs_freq, rs_periods)
+
+        rs_freq = self.ts.pct_change(freq='7B', fill_method='pad', limit=1)
+        rs_periods = self.ts.pct_change(7, fill_method='pad', limit=1)
+        assert_series_equal(rs_freq, rs_periods)
+
+        rs_freq = self.ts.pct_change(freq='7B', fill_method='bfill', limit=3)
+        rs_periods = self.ts.pct_change(7, fill_method='bfill', limit=3)
+        assert_series_equal(rs_freq, rs_periods)
+
+        empty_ts = Series(index=self.ts.index)
+        rs_freq = empty_ts.pct_change(freq='14B')
+        rs_periods = empty_ts.pct_change(14)
+        assert_series_equal(rs_freq, rs_periods)
 
     def test_autocorr(self):
         # Just run the function

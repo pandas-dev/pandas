@@ -7315,6 +7315,7 @@ class NDFrame(PandasObject, SelectionMixin):
 
         rs = (data.div(data.shift(periods=periods, freq=freq, axis=axis,
                                   **kwargs)) - 1)
+        rs = rs.reindex_like(data)
         if freq is None:
             mask = isna(com._values_from_object(self))
             np.putmask(rs.values, mask, np.nan)
