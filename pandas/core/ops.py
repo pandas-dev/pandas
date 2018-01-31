@@ -446,8 +446,10 @@ def _create_methods(cls, arith_method, comp_method, bool_method,
 
 def add_methods(cls, new_methods):
     for name, method in new_methods.items():
-        # inplace SparseArray methods do not get overriden; everything else
-        # does
+        # For most methods, if we find that the class already has a method
+        # of the same name, it is OK to over-write it.  The exception is
+        # inplace methods (__iadd__, __isub__, ...) for SparseArray, which
+        # retain the np.ndarray versions.
         force = not (issubclass(cls, ABCSparseArray) and
                      name.startswith('__i'))
         if force or name not in cls.__dict__:
@@ -787,6 +789,7 @@ def _comp_method_SERIES(op, name, str_rep):
             self._get_axis_number(axis)
 
         if isinstance(other, ABCDataFrame):  # pragma: no cover
+            # Defer to DataFrame implementation; fail early
             return NotImplemented
 
         elif isinstance(other, ABCSeries):
@@ -894,6 +897,7 @@ def _bool_method_SERIES(op, name, str_rep):
         self, other = _align_method_SERIES(self, other, align_asobject=True)
 
         if isinstance(other, ABCDataFrame):
+            # Defer to DataFrame implementation; fail early
             return NotImplemented
 
         elif isinstance(other, ABCSeries):
@@ -1033,6 +1037,7 @@ def _arith_method_FRAME(op, name, str_rep=None):
                         result[mask] = op(xrav, yrav)
 
             elif isinstance(x, np.ndarray):
+                # mask is only meaningful for x
                 result = np.empty(x.size, dtype=x.dtype)
                 mask = notna(xrav)
                 xrav = xrav[mask]
