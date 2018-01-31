@@ -49,15 +49,29 @@ class Duplicates(object):
     goal_time = 0.2
 
     def setup(self):
-        size = 65536
+        size = 6553
         arrays = [np.random.randint(0, 8192, size),
                   np.random.randint(0, 1024, size)]
-        mask = np.random.rand(size) < 0.1
         self.mi_unused_levels = MultiIndex.from_arrays(arrays)
-        self.mi_unused_levels = self.mi_unused_levels[mask]
+        self.mi = self.mi_unused_levels.remove_unused_levels()
+        self.sorted = self.mi.sort_values()
+        self.key = self.mi[len(self.mi) // 2]
+        self.partial_key = (self.key[0],)
 
     def time_remove_unused_levels(self):
         self.mi_unused_levels.remove_unused_levels()
+
+    def time_duplicates_loc(self):
+        self.mi.get_loc(self.key)
+
+    def time_duplicates_partial_loc(self):
+        self.mi.get_loc(self.partial_key)
+
+    def time_duplicates_sorted_loc(self):
+        self.sorted.get_loc(self.key)
+
+    def time_duplicates_sorted_partial_loc(self):
+        self.sorted.get_loc(self.partial_key)
 
 
 class Integer(object):
@@ -91,9 +105,24 @@ class Duplicated(object):
                   1000 + np.arange(n)]
         labels = [np.random.choice(n, (k * n)) for lev in levels]
         self.mi = MultiIndex(levels=levels, labels=labels)
+        self.sorted = self.mi.sort_values()
+        self.key = self.mi[len(self.mi) // 2]
+        self.partial_key = (self.key[0], self.key[1])
 
     def time_duplicated(self):
         self.mi.duplicated()
+
+    def time_duplicated_loc(self):
+        self.mi.get_loc(self.key)
+
+    def time_duplicated_partial_loc(self):
+        self.mi.get_loc(self.partial_key)
+
+    def time_duplicates_sorted_loc(self):
+        self.sorted.get_loc(self.key)
+
+    def time_duplicates_sorted_partial_loc(self):
+        self.sorted.get_loc(self.partial_key)
 
 
 class Sortlevel(object):
