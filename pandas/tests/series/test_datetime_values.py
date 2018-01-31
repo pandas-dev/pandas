@@ -261,10 +261,10 @@ class TestSeriesDatetimeValues(TestData):
 
     def test_dt_namespace_accessor_categorical(self):
         # GH 19468
-        dti = pd.DatetimeIndex(['20171111', '20181212']).repeat(2)
-        s = pd.Series(pd.Categorical(dti), name='foo')
+        dti = DatetimeIndex(['20171111', '20181212']).repeat(2)
+        s = Series(pd.Categorical(dti), name='foo')
         result = s.dt.year
-        expected = pd.Series([2017, 2017, 2018, 2018], name='foo')
+        expected = Series([2017, 2017, 2018, 2018], name='foo')
         tm.assert_series_equal(result, expected)
 
     def test_dt_accessor_no_new_attributes(self):
