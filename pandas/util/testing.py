@@ -37,7 +37,7 @@ import pandas.core.common as com
 import pandas.compat as compat
 from pandas.compat import (
     filter, map, zip, range, unichr, lrange, lmap, lzip, u, callable, Counter,
-    raise_with_traceback, httplib, StringIO, PY3, long)
+    raise_with_traceback, httplib, StringIO, PY3)
 
 from pandas import (bdate_range, CategoricalIndex, Categorical, IntervalIndex,
                     DatetimeIndex, TimedeltaIndex, PeriodIndex, RangeIndex,
