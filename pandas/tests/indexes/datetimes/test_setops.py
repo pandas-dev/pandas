@@ -19,9 +19,9 @@ class TestDatetimeIndexSetOps(object):
 
     # TODO: moved from test_datetimelike; dedup with version below
     def test_union2(self):
-        first = self.index[:5]
-        second = self.index[5:]
-        everything = self.index
+        everything = tm.makeDateIndex(10)
+        first = everything[:5]
+        second = everything[5:]
         union = first.union(second)
         assert tm.equalContents(union, everything)
 
