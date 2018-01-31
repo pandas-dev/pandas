@@ -45,6 +45,87 @@ _index_doc_kwargs.update(
          target_klass='MultiIndex or list of tuples'))
 
 
+class MultiIndexUIntEngine(libindex.BaseMultiIndexCodesEngine,
+                           libindex.UInt64Engine):
+    """
+    This class manages a MultiIndex by mapping label combinations to positive
+    integers.
+    """
+    _base = libindex.UInt64Engine
+
+    def _codes_to_ints(self, codes):
+        """
+        Transform combination(s) of uint64 in one uint64 (each), in a strictly
+        monotonic way (i.e. respecting the lexicographic order of integer
+        combinations): see BaseMultiIndexCodesEngine documentation.
+
+        Parameters
+        ----------
+        codes : 1- or 2-dimensional array of dtype uint64
+            Combinations of integers (one per row)
+
+        Returns
+        ------
+        int_keys : scalar or 1-dimensional array, of dtype uint64
+            Integer(s) representing one combination (each)
+        """
+        # Shift the representation of each level by the pre-calculated number
+        # of bits:
+        codes <<= self.offsets
+
+        # Now sum and OR are in fact interchangeable. This is a simple
+        # composition of the (disjunct) significant bits of each level (i.e.
+        # each column in "codes") in a single positive integer:
+        if codes.ndim == 1:
+            # Single key
+            return np.bitwise_or.reduce(codes)
+
+        # Multiple keys
+        return np.bitwise_or.reduce(codes, axis=1)
+
+
+class MultiIndexPyIntEngine(libindex.BaseMultiIndexCodesEngine,
+                            libindex.ObjectEngine):
+    """
+    This class manages those (extreme) cases in which the number of possible
+    label combinations overflows the 64 bits integers, and uses an ObjectEngine
+    containing Python integers.
+    """
+    _base = libindex.ObjectEngine
+
+    def _codes_to_ints(self, codes):
+        """
+        Transform combination(s) of uint64 in one Python integer (each), in a
+        strictly monotonic way (i.e. respecting the lexicographic order of
+        integer combinations): see BaseMultiIndexCodesEngine documentation.
+
+        Parameters
+        ----------
+        codes : 1- or 2-dimensional array of dtype uint64
+            Combinations of integers (one per row)
+
+        Returns
+        ------
+        int_keys : int, or 1-dimensional array of dtype object
+            Integer(s) representing one combination (each)
+        """
+
+        # Shift the representation of each level by the pre-calculated number
+        # of bits. Since this can overflow uint64, first make sure we are
+        # working with Python integers:
+        codes = codes.astype('object') << self.offsets
+
+        # Now sum and OR are in fact interchangeable. This is a simple
+        # composition of the (disjunct) significant bits of each level (i.e.
+        # each column in "codes") in a single positive integer (per row):
+        if codes.ndim == 1:
+            # Single key
+            return np.bitwise_or.reduce(codes)
+
+        # Multiple keys
+        return np.bitwise_or.reduce(codes, axis=1)
+
+
 class MultiIndex(Index):
     """
     A multi-level, or hierarchical, index object for pandas objects
@@ -687,16 +768,25 @@ class MultiIndex(Index):
 
     @cache_readonly
     def _engine(self):
+        # Calculate the number of bits needed to represent labels in each
+        # level, as log2 of their sizes (including -1 for NaN):
+        sizes = np.ceil(np.log2([len(l) + 1 for l in self.levels]))
 
-        # choose our engine based on our size
-        # the hashing based MultiIndex for larger
-        # sizes, and the MultiIndexOjbect for smaller
-        # xref: https://github.com/pandas-dev/pandas/pull/16324
-        l = len(self)
-        if l > 10000:
-            return libindex.MultiIndexHashEngine(lambda: self, l)
+        # Sum bit counts, starting from the _right_....
+        lev_bits = np.cumsum(sizes[::-1])[::-1]
 
-        return libindex.MultiIndexObjectEngine(lambda: self.values, l)
+        # ... in order to obtain offsets such that sorting the combination of
+        # shifted codes (one for each level, resulting in a unique integer) is
+        # equivalent to sorting lexicographically the codes themselves. Notice
+        # that each level needs to be shifted by the number of bits needed to
+        # represent the _previous_ ones:
+        offsets = np.concatenate([lev_bits[1:], [0]]).astype('uint64')
+
+        # Check the total number of bits needed for our representation:
+        if lev_bits[0] > 64:
+            # The levels would overflow a 64 bit uint - use Python integers:
+            return MultiIndexPyIntEngine(self.levels, self.labels, offsets)
+        return MultiIndexUIntEngine(self.levels, self.labels, offsets)
 
     @property
     def values(self):
@@ -1885,16 +1975,11 @@ class MultiIndex(Index):
             if tolerance is not None:
                 raise NotImplementedError("tolerance not implemented yet "
                                           'for MultiIndex')
-            indexer = self._get_fill_indexer(target, method, limit)
+            indexer = self._engine.get_indexer(target, method, limit)
         elif method == 'nearest':
             raise NotImplementedError("method='nearest' not implemented yet "
                                       'for MultiIndex; see GitHub issue 9365')
         else:
-            # we may not compare equally because of hashing if we
-            # don't have the same dtypes
-            if self._inferred_type_levels != target._inferred_type_levels:
-                return Index(self.values).get_indexer(target.values)
-
             indexer = self._engine.get_indexer(target)
 
         return _ensure_platform_int(indexer)
@@ -2131,17 +2216,6 @@ class MultiIndex(Index):
                            ''.format(keylen, self.nlevels))
 
         if keylen == self.nlevels and self.is_unique:
-
-            def _maybe_str_to_time_stamp(key, lev):
-                if lev.is_all_dates and not isinstance(key, Timestamp):
-                    try:
-                        return Timestamp(key, tz=getattr(lev, 'tz', None))
-                    except Exception:
-                        pass
-                return key
-
-            key = com._values_from_object(key)
-            key = tuple(map(_maybe_str_to_time_stamp, key, self.levels))
             return self._engine.get_loc(key)
 
         # -- partial selection or non-unique index
@@ -2274,34 +2348,9 @@ class MultiIndex(Index):
                     return indexer, maybe_droplevels(indexer, ilevels,
                                                      drop_level)
 
-                if len(key) == self.nlevels:
-
-                    if self.is_unique:
-
-                        # here we have a completely specified key, but are
-                        # using some partial string matching here
-                        # GH4758
-                        all_dates = ((l.is_all_dates and
-                                      not isinstance(k, compat.string_types))
-                                     for k, l in zip(key, self.levels))
-                        can_index_exactly = any(all_dates)
-                        if (any(l.is_all_dates
-                                for k, l in zip(key, self.levels)) and
-                                not can_index_exactly):
-                            indexer = self.get_loc(key)
-
-                            # we have a multiple selection here
-                            if (not isinstance(indexer, slice) or
-                                    indexer.stop - indexer.start != 1):
-                                return partial_selection(key, indexer)
-
-                            key = tuple(self[indexer].tolist()[0])
-
-                        return (self._engine.get_loc(
-                            com._values_from_object(key)), None)
-
-                    else:
-                        return partial_selection(key)
+                if len(key) == self.nlevels and self.is_unique:
+                    # Complete key in unique index -> standard get_loc
+                    return (self._engine.get_loc(key), None)
                 else:
                     return partial_selection(key)
             else:

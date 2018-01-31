@@ -897,7 +897,7 @@ class Timedelta(_Timedelta):
     Represents a duration, the difference between two dates or times.
 
     Timedelta is the pandas equivalent of python's ``datetime.timedelta``
-    and is interchangable with it in most cases.
+    and is interchangeable with it in most cases.
 
     Parameters
     ----------

@@ -2675,7 +2675,7 @@ file, and the ``sheet_name`` indicating which sheet to parse.
 +++++++++++++++++++
 
 To facilitate working with multiple sheets from the same file, the ``ExcelFile``
-class can be used to wrap the file and can be be passed into ``read_excel``
+class can be used to wrap the file and can be passed into ``read_excel``
 There will be a performance benefit for reading multiple sheets as the file is
 read into memory only once.
 
@@ -4537,7 +4537,7 @@ See the documentation for `pyarrow <http://arrow.apache.org/docs/python/>`__ and
 .. note::
 
    These engines are very similar and should read/write nearly identical parquet format files.
-   Currently ``pyarrow`` does not support timedelta data, and ``fastparquet`` does not support timezone aware datetimes (they are coerced to UTC).
+   Currently ``pyarrow`` does not support timedelta data, ``fastparquet>=0.1.4`` supports timezone aware datetimes.
    These libraries differ by having different underlying dependencies (``fastparquet`` by using ``numba``, while ``pyarrow`` uses a c-library).
 
 .. ipython:: python
