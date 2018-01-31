@@ -17,10 +17,17 @@ from pandas._libs.lib import Timestamp
 
 from pandas.tests.indexes.common import Base
 
-# For testing division by (or of) zero for Series with length 5, this
-# gives several scalar-zeros and length-5 vector-zeros
+
 zeros = tm.gen_zeros(5)
 zeros = [x for x in zeros if not isinstance(x, Series)]
+
+@pytest.fixture(params=zeros)
+def zero(request):
+    """
+    For testing division by (or of) zero for Series with length 5, this
+    gives several scalar-zeros and length-5 vector-zeros
+    """
+    return request.param
 
 
 def full_like(array, value):
@@ -162,7 +169,6 @@ class Numeric(Base):
         for r, e in zip(result, expected):
             tm.assert_series_equal(r, e)
 
-    @pytest.mark.parametrize('zero', zeros)
     def test_div_zero(self, zero):
         idx = self.create_index()
 
@@ -173,7 +179,6 @@ class Numeric(Base):
         ser_compat = Series(idx).astype('i8') / np.array(zero).astype('i8')
         tm.assert_series_equal(ser_compat, Series(result))
 
-    @pytest.mark.parametrize('zero', zeros)
     def test_floordiv_zero(self, zero):
         idx = self.create_index()
         expected = Index([np.nan, np.inf, np.inf, np.inf, np.inf],
@@ -184,7 +189,6 @@ class Numeric(Base):
         ser_compat = Series(idx).astype('i8') // np.array(zero).astype('i8')
         tm.assert_series_equal(ser_compat, Series(result))
 
-    @pytest.mark.parametrize('zero', zeros)
     def test_mod_zero(self, zero):
         idx = self.create_index()
 
@@ -195,7 +199,6 @@ class Numeric(Base):
         ser_compat = Series(idx).astype('i8') % np.array(zero).astype('i8')
         tm.assert_series_equal(ser_compat, Series(result))
 
-    @pytest.mark.parametrize('zero', zeros)
     def test_divmod_zero(self, zero):
         idx = self.create_index()
 
