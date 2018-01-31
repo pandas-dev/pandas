@@ -1974,32 +1974,6 @@ def add_nans_panel4d(panel4d):
     return panel4d
 
 
-def gen_zeros(arr_len):
-    """
-    For testing division by (or of) zero for Series or Indexes with the given
-    length, this gives variants of scalar zeros and vector zeros with different
-    dtypes.
-
-    Generate variants of scalar zeros and all-zero arrays with the given
-    length.
-
-    Parameters
-    ----------
-    arr_len : int
-
-    Returns
-    -------
-    zeros : list
-    """
-    zeros = [box([0] * arr_len, dtype=dtype)
-             for box in [pd.Series, pd.Index, np.array]
-             for dtype in [np.int64, np.uint64, np.float64]]
-    zeros.extend([np.array(0, dtype=dtype)
-                 for dtype in [np.int64, np.uint64, np.float64]])
-    zeros.extend([0, 0.0, long(0)])
-    return zeros
-
-
 class TestSubDict(dict):
 
     def __init__(self, *args, **kwargs):

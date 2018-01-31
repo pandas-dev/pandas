@@ -18,8 +18,13 @@ from pandas._libs.lib import Timestamp
 from pandas.tests.indexes.common import Base
 
 
-zeros = tm.gen_zeros(5)
-zeros = [x for x in zeros if not isinstance(x, Series)]
+zeros = [box([0] * 5, dtype=dtype)
+         for box in [pd.Index, np.array]
+         for dtype in [np.int64, np.uint64, np.float64]]
+zeros.extend([np.array(0, dtype=dtype)
+             for dtype in [np.int64, np.uint64, np.float64]])
+zeros.extend([0, 0.0, long(0)])
+
 
 @pytest.fixture(params=zeros)
 def zero(request):
