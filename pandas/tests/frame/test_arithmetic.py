@@ -62,6 +62,53 @@ class TestFrameComparisons(object):
 # -------------------------------------------------------------------
 # Arithmetic
 
+class TestFrameArithmetic(object):
+
+    @pytest.mark.xfail(reason='GH#7996 datetime64 units not converted to nano')
+    def test_df_sub_datetime64_not_ns(self):
+        df = pd.DataFrame(pd.date_range('20130101', periods=3))
+        dt64 = np.datetime64('2013-01-01')
+        assert dt64.dtype == 'datetime64[D]'
+        res = df - dt64
+        expected = pd.DataFrame([pd.Timedelta(days=0), pd.Timedelta(days=1),
+                                 pd.Timedelta(days=2)])
+        tm.assert_frame_equal(res, expected)
+
+    @pytest.mark.parametrize('data', [
+        [1, 2, 3],
+        [1.1, 2.2, 3.3],
+        [pd.Timestamp('2011-01-01'), pd.Timestamp('2011-01-02'), pd.NaT],
+        ['x', 'y', 1]])
+    @pytest.mark.parametrize('dtype', [None, object])
+    def test_df_radd_str_invalid(self, dtype, data):
+        df = pd.DataFrame(data, dtype=dtype)
+        with pytest.raises(TypeError):
+            'foo_' + df
+
+    @pytest.mark.parametrize('dtype', [None, object])
+    def test_df_with_dtype_radd_int(self, dtype):
+        df = pd.DataFrame([1, 2, 3], dtype=dtype)
+        expected = pd.DataFrame([2, 3, 4], dtype=dtype)
+        result = 1 + df
+        tm.assert_frame_equal(result, expected)
+        result = df + 1
+        tm.assert_frame_equal(result, expected)
+
+    @pytest.mark.parametrize('dtype', [None, object])
+    def test_df_with_dtype_radd_nan(self, dtype):
+        df = pd.DataFrame([1, 2, 3], dtype=dtype)
+        expected = pd.DataFrame([np.nan, np.nan, np.nan], dtype=dtype)
+        result = np.nan + df
+        tm.assert_frame_equal(result, expected)
+        result = df + np.nan
+        tm.assert_frame_equal(result, expected)
+
+    def test_df_radd_str(self):
+        df = pd.DataFrame(['x', np.nan, 'x'])
+        tm.assert_frame_equal('a' + df, pd.DataFrame(['ax', np.nan, 'ax']))
+        tm.assert_frame_equal(df + 'a', pd.DataFrame(['xa', np.nan, 'xa']))
+
+
 class TestPeriodFrameArithmetic(object):
 
     def test_ops_frame_period(self):
