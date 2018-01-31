@@ -120,7 +120,7 @@ class TestTimedeltaSeriesComparisons(object):
 
 
 class TestPeriodSeriesComparisons(object):
-    @pytest.mark.paramtrize('freq', ['M', '2M', '3M'])
+    @pytest.mark.parametrize('freq', ['M', '2M', '3M'])
     def test_cmp_series_period_scalar(self, freq):
         # GH 13200
         base = Series([Period(x, freq=freq) for x in
@@ -159,7 +159,7 @@ class TestPeriodSeriesComparisons(object):
         with tm.assert_raises_regex(IncompatibleFrequency, msg):
             Period('2011', freq='A') >= base
 
-    @pytest.mark.paramtrize('freq', ['M', '2M', '3M'])
+    @pytest.mark.parametrize('freq', ['M', '2M', '3M'])
     def test_cmp_series_period_series(self, freq):
         # GH#13200
         base = Series([Period(x, freq=freq) for x in
