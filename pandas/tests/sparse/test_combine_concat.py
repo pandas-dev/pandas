@@ -4,8 +4,8 @@ import pytest
 import numpy as np
 import pandas as pd
 import pandas.util.testing as tm
-
 import itertools
+
 
 class TestSparseSeriesConcat(object):
 
@@ -319,10 +319,14 @@ class TestSparseDataFrameConcat(object):
         assert isinstance(res, pd.SparseDataFrame)
         tm.assert_frame_equal(res.to_dense(), exp)
 
-    @pytest.mark.parametrize('fill_value,sparse_idx,dense_idx', itertools.product([None, 0, 1, np.nan], [0,1], [1,0]))
+    @pytest.mark.parametrize('fill_value,sparse_idx,dense_idx',
+                             itertools.product([None, 0, 1, np.nan],
+                                               [0, 1],
+                                               [1, 0]))
     def test_concat_sparse_dense_rows(self, fill_value, sparse_idx, dense_idx):
         frames = [self.dense1, self.dense2]
-        sparse_frame = [frames[dense_idx], frames[sparse_idx].to_sparse(fill_value=fill_value)]
+        sparse_frame = [frames[dense_idx],
+                        frames[sparse_idx].to_sparse(fill_value=fill_value)]
         dense_frame = [frames[dense_idx], frames[sparse_idx]]
 
         for _ in range(2):
@@ -335,13 +339,17 @@ class TestSparseDataFrameConcat(object):
             sparse_frame = sparse_frame[::-1]
             dense_frame = dense_frame[::-1]
 
-    @pytest.mark.parametrize('fill_value,sparse_idx,dense_idx', itertools.product([None, 0, 1, np.nan], [0,1], [1,0]))
-    def test_concat_sparse_dense_columns(self, fill_value, sparse_idx, dense_idx):
-        dense_frames = [self.dense1, self.dense3]
+    @pytest.mark.parametrize('fill_value,sparse_idx,dense_idx',
+                             itertools.product([None, 0, 1, np.nan],
+                                               [0, 1],
+                                               [1, 0]))
+    def test_concat_sparse_dense_cols(self, fill_value, sparse_idx, dense_idx):
+        frames = [self.dense1, self.dense3]
 
-        sparse_frame = [dense_frames[dense_idx], dense_frames[sparse_idx].to_sparse(fill_value=fill_value)]
-        dense_frame = [dense_frames[dense_idx], dense_frames[sparse_idx]]
-           
+        sparse_frame = [frames[dense_idx],
+                        frames[sparse_idx].to_sparse(fill_value=fill_value)]
+        dense_frame = [frames[dense_idx], frames[sparse_idx]]
+
         for _ in range(2):
             res = pd.concat(sparse_frame, axis=1)
             exp = pd.concat(dense_frame, axis=1)
@@ -354,7 +362,7 @@ class TestSparseDataFrameConcat(object):
             assert not res[res.columns[0]].empty
             assert res.iloc[0, 0] == exp.iloc[0, 0]
 
-            for column in dense_frames[dense_idx].columns:
+            for column in frames[dense_idx].columns:
                 if dense_idx == sparse_idx:
                     tm.assert_frame_equal(res[column], exp[column])
                 else:
