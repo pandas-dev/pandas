@@ -1686,15 +1686,6 @@ class TestSeriesOperators(TestData):
         s2 = Series({'x': 0.})
         assert_series_equal(s1 * s2, Series([np.nan], index=['x']))
 
-    def test_invalid_ops(self):
-        # invalid ops
-        pytest.raises(Exception, self.objSeries.__add__, 1)
-        pytest.raises(Exception, self.objSeries.__add__,
-                      np.array(1, dtype=np.int64))
-        pytest.raises(Exception, self.objSeries.__sub__, 1)
-        pytest.raises(Exception, self.objSeries.__sub__,
-                      np.array(1, dtype=np.int64))
-
     @pytest.mark.parametrize("m", [1, 3, 10])
     @pytest.mark.parametrize("unit", ['D', 'h', 'm', 's', 'ms', 'us', 'ns'])
     def test_timedelta64_conversions(self, m, unit):
@@ -1816,20 +1807,6 @@ class TestSeriesOperators(TestData):
         expected = Series(expected, name=0)
         result = (dt2.to_frame() - dt.to_frame())[0]
         assert_series_equal(result, expected)
-
-    def test_return_dtypes_bool_op_costant(self):
-        # gh15115
-        s = pd.Series([1, 3, 2], index=range(3))
-        const = 2
-        for op in ['eq', 'ne', 'gt', 'lt', 'ge', 'le']:
-            result = getattr(s, op)(const).get_dtype_counts()
-            tm.assert_series_equal(result, Series([1], ['bool']))
-
-        # empty Series
-        empty = s.iloc[:0]
-        for op in ['eq', 'ne', 'gt', 'lt', 'ge', 'le']:
-            result = getattr(empty, op)(const).get_dtype_counts()
-            tm.assert_series_equal(result, Series([1], ['bool']))
 
     def test_operators_bitwise(self):
         # GH 9016: support bitwise op for integer types
@@ -2115,11 +2092,6 @@ class TestSeriesOperators(TestData):
         with pytest.raises(TypeError):
             self.ts + datetime.now()
 
-    def test_series_radd_str(self):
-        ser = pd.Series(['x', np.nan, 'x'])
-        assert_series_equal('a' + ser, pd.Series(['ax', np.nan, 'ax']))
-        assert_series_equal(ser + 'a', pd.Series(['xa', np.nan, 'xa']))
-
     @pytest.mark.parametrize('dtype', [None, object])
     def test_series_with_dtype_radd_timedelta(self, dtype):
         ser = pd.Series([pd.Timedelta('1 days'), pd.Timedelta('2 days'),
@@ -2132,39 +2104,6 @@ class TestSeriesOperators(TestData):
 
         result = ser + pd.Timedelta('3 days')
         assert_series_equal(result, expected)
-
-    @pytest.mark.parametrize('dtype', [None, object])
-    def test_series_with_dtype_radd_int(self, dtype):
-        ser = pd.Series([1, 2, 3], dtype=dtype)
-        expected = pd.Series([2, 3, 4], dtype=dtype)
-
-        result = 1 + ser
-        assert_series_equal(result, expected)
-
-        result = ser + 1
-        assert_series_equal(result, expected)
-
-    @pytest.mark.parametrize('dtype', [None, object])
-    def test_series_with_dtype_radd_nan(self, dtype):
-        ser = pd.Series([1, 2, 3], dtype=dtype)
-        expected = pd.Series([np.nan, np.nan, np.nan], dtype=dtype)
-
-        result = np.nan + ser
-        assert_series_equal(result, expected)
-
-        result = ser + np.nan
-        assert_series_equal(result, expected)
-
-    @pytest.mark.parametrize('data', [
-        [1, 2, 3],
-        [1.1, 2.2, 3.3],
-        [pd.Timestamp('2011-01-01'), pd.Timestamp('2011-01-02'), pd.NaT],
-        ['x', 'y', 1]])
-    @pytest.mark.parametrize('dtype', [None, object])
-    def test_series_radd_str_invalid(self, dtype, data):
-        ser = Series(data, dtype=dtype)
-        with pytest.raises(TypeError):
-            'foo_' + ser
 
     def test_operators_frame(self):
         # rpow does not work with DataFrame
