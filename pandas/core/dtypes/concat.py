@@ -93,9 +93,8 @@ def _get_frame_result_type(result, objs):
     otherwise, return 1st obj
     """
 
-    from pandas.core.sparse.api import SparseDataFrame
-
     if result.blocks and all(b.is_sparse for b in result.blocks):
+        from pandas.core.sparse.api import SparseDataFrame
         return SparseDataFrame
     else:
         return next(obj for obj in objs if not isinstance(obj,

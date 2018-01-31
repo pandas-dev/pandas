@@ -329,6 +329,7 @@ class TestSparseDataFrameConcat(object):
                         frames[sparse_idx].to_sparse(fill_value=fill_value)]
         dense_frame = [frames[dense_idx], frames[sparse_idx]]
 
+        # This will try both directions sparse + dense and dense + sparse
         for _ in range(2):
             res = pd.concat(sparse_frame)
             exp = pd.concat(dense_frame)
@@ -344,23 +345,18 @@ class TestSparseDataFrameConcat(object):
                                                [0, 1],
                                                [1, 0]))
     def test_concat_sparse_dense_cols(self, fill_value, sparse_idx, dense_idx):
+        # See GH16874, GH18914 and #18686 for why this should be a DataFrame
+
         frames = [self.dense1, self.dense3]
 
         sparse_frame = [frames[dense_idx],
                         frames[sparse_idx].to_sparse(fill_value=fill_value)]
         dense_frame = [frames[dense_idx], frames[sparse_idx]]
 
+        # This will try both directions sparse + dense and dense + sparse
         for _ in range(2):
             res = pd.concat(sparse_frame, axis=1)
             exp = pd.concat(dense_frame, axis=1)
-
-            # See GH18914 and #18686 for why this should be
-            # A DataFrame
-            assert type(res) is pd.DataFrame
-            # See GH16874
-            assert not res.isnull().empty
-            assert not res[res.columns[0]].empty
-            assert res.iloc[0, 0] == exp.iloc[0, 0]
 
             for column in frames[dense_idx].columns:
                 if dense_idx == sparse_idx:
