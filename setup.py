@@ -150,7 +150,7 @@ def _cythonize(*args, **kwargs):
         return
 
     build_ext.render_templates()
-    cythonize(*args, **kwargs)
+    return cythonize(*args, **kwargs)
 
 
 DESCRIPTION = ("Powerful data structures for data analysis, time series,"
