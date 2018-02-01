@@ -25,9 +25,7 @@ from tslibs.np_datetime cimport (check_dts_bounds,
                                  _string_to_dts,
                                  dt64_to_dtstruct, dtstruct_to_dt64,
                                  pydatetime_to_dt64, pydate_to_dt64,
-                                 get_datetime64_value,
-                                 days_per_month_table,
-                                 dayofweek, is_leapyear)
+                                 get_datetime64_value)
 from tslibs.np_datetime import OutOfBoundsDatetime
 
 from tslibs.parsing import parse_datetime_string
@@ -40,6 +38,7 @@ import pytz
 UTC = pytz.utc
 
 
+from tslibs.ccalendar cimport get_days_in_month, dayofweek
 from tslibs.timedeltas cimport cast_from_unit
 from tslibs.timedeltas import Timedelta
 from tslibs.timezones cimport (is_utc, is_tzlocal, is_fixed_offset,
@@ -749,7 +748,7 @@ def monthrange(int64_t year, int64_t month):
     if month < 1 or month > 12:
         raise ValueError("bad month number 0; must be 1-12")
 
-    days = days_per_month_table[is_leapyear(year)][month - 1]
+    days = get_days_in_month(year, month)
 
     return (dayofweek(year, month, 1), days)
 

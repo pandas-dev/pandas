@@ -72,7 +72,7 @@ cdef double NEGINF = -INF
 cdef extern from "errno.h":
     int errno
 
-cdef extern from "headers/portable.h":
+cdef extern from "src/headers/portable.h":
     # I *think* this is here so that strcasecmp is defined on Windows
     # so we don't get
     # `parsers.obj : error LNK2001: unresolved external symbol strcasecmp`
@@ -87,7 +87,7 @@ except NameError:
     basestring = str
 
 
-cdef extern from "parser/tokenizer.h":
+cdef extern from "src/parser/tokenizer.h":
 
     ctypedef enum ParserState:
         START_RECORD
@@ -243,7 +243,7 @@ cdef extern from "parser/tokenizer.h":
     int to_boolean(const char *item, uint8_t *val) nogil
 
 
-cdef extern from "parser/io.h":
+cdef extern from "src/parser/io.h":
     void *new_mmap(char *fname)
     int del_mmap(void *src)
     void* buffer_mmap_bytes(void *source, size_t nbytes,

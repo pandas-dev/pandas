@@ -12,7 +12,7 @@ from numpy cimport ndarray, double_t, int64_t, float64_t
 cnp.import_array()
 
 
-cdef extern from "../src/headers/math.h":
+cdef extern from "src/headers/math.h":
     int signbit(double) nogil
     double sqrt(double x) nogil
 

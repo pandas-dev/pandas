@@ -139,6 +139,20 @@ class build_ext(_build_ext):
         _build_ext.build_extensions(self)
 
 
+def _cythonize(*args, **kwargs):
+    """
+    Render tempita templates before calling cythonize
+
+    Avoid running cythonize on `python setup.py clean`
+    See https://github.com/cython/cython/issues/1495
+    """
+    if len(sys.argv) > 1 and 'clean' in sys.argv:
+        return
+
+    build_ext.render_templates()
+    cythonize(*args, **kwargs)
+
+
 DESCRIPTION = ("Powerful data structures for data analysis, time series,"
                "and statistics")
 LONG_DESCRIPTION = """
@@ -458,113 +472,84 @@ np_datetime_headers = ['pandas/_libs/src/datetime/np_datetime.h',
                        'pandas/_libs/src/datetime/np_datetime_strings.h']
 np_datetime_sources = ['pandas/_libs/src/datetime/np_datetime.c',
                        'pandas/_libs/src/datetime/np_datetime_strings.c']
-tseries_depends = np_datetime_headers + ['pandas/_libs/tslibs/np_datetime.pxd']
 
 # some linux distros require it
 libraries = ['m'] if not is_platform_windows() else []
 
 ext_data = {
     '_libs.algos': {
-        'pyxfile': '_libs/algos',
-        'depends': _pxi_dep['algos']},
+        'pyxfile': '_libs/algos'},
     '_libs.groupby': {
-        'pyxfile': '_libs/groupby',
-        'depends': _pxi_dep['groupby']},
+        'pyxfile': '_libs/groupby'},
     '_libs.hashing': {
         'pyxfile': '_libs/hashing'},
     '_libs.hashtable': {
-        'pyxfile': '_libs/hashtable',
-        'depends': (['pandas/_libs/src/klib/khash_python.h'] +
-                    _pxi_dep['hashtable'])},
+        'pyxfile': '_libs/hashtable'},
     '_libs.index': {
-        'pyxfile': '_libs/index',
-        'depends': _pxi_dep['index'],
-        'sources': np_datetime_sources},
+        'pyxfile': '_libs/index'},
     '_libs.indexing': {
         'pyxfile': '_libs/indexing'},
     '_libs.internals': {
         'pyxfile': '_libs/internals'},
     '_libs.interval': {
-        'pyxfile': '_libs/interval',
-        'depends': _pxi_dep['interval']},
+        'pyxfile': '_libs/interval'},
     '_libs.join': {
-        'pyxfile': '_libs/join',
-        'depends': _pxi_dep['join']},
+        'pyxfile': '_libs/join'},
     '_libs.lib': {
-        'pyxfile': '_libs/lib',
-        'depends': lib_depends + tseries_depends},
+        'pyxfile': '_libs/lib'},
     '_libs.missing': {
-        'pyxfile': '_libs/missing',
-        'depends': tseries_depends},
+        'pyxfile': '_libs/missing'},
     '_libs.parsers': {
         'pyxfile': '_libs/parsers',
         'depends': ['pandas/_libs/src/parser/tokenizer.h',
-                    'pandas/_libs/src/parser/io.h',
-                    'pandas/_libs/src/numpy_helper.h'],
+                    'pandas/_libs/src/parser/io.h'],
         'sources': ['pandas/_libs/src/parser/tokenizer.c',
                     'pandas/_libs/src/parser/io.c']},
     '_libs.reduction': {
         'pyxfile': '_libs/reduction'},
     '_libs.tslibs.period': {
         'pyxfile': '_libs/tslibs/period',
-        'depends': tseries_depends + ['pandas/_libs/src/period_helper.h'],
-        'sources': np_datetime_sources + ['pandas/_libs/src/period_helper.c']},
+        'include': ['pandas/_libs/src/period_helper.h'],
+        'sources': ['pandas/_libs/src/period_helper.c']},
     '_libs.properties': {
         'pyxfile': '_libs/properties',
         'include': []},
     '_libs.reshape': {
-        'pyxfile': '_libs/reshape',
-        'depends': _pxi_dep['reshape']},
+        'pyxfile': '_libs/reshape'},
     '_libs.skiplist': {
-        'pyxfile': '_libs/skiplist',
-        'depends': ['pandas/_libs/src/skiplist.h']},
+        'pyxfile': '_libs/skiplist'},
     '_libs.sparse': {
-        'pyxfile': '_libs/sparse',
-        'depends': _pxi_dep['sparse']},
+        'pyxfile': '_libs/sparse'},
     '_libs.tslib': {
-        'pyxfile': '_libs/tslib',
-        'depends': tseries_depends,
-        'sources': np_datetime_sources},
+        'pyxfile': '_libs/tslib'},
     '_libs.tslibs.ccalendar': {
         'pyxfile': '_libs/tslibs/ccalendar'},
     '_libs.tslibs.conversion': {
         'pyxfile': '_libs/tslibs/conversion',
-        'depends': tseries_depends,
-        'sources': np_datetime_sources},
+        'sources': np_datetime_sources,
+        'include': np_datetime_headers},
     '_libs.tslibs.fields': {
-        'pyxfile': '_libs/tslibs/fields',
-        'depends': tseries_depends,
-        'sources': np_datetime_sources},
+        'pyxfile': '_libs/tslibs/fields'},
     '_libs.tslibs.frequencies': {
         'pyxfile': '_libs/tslibs/frequencies'},
     '_libs.tslibs.nattype': {
         'pyxfile': '_libs/tslibs/nattype'},
     '_libs.tslibs.np_datetime': {
         'pyxfile': '_libs/tslibs/np_datetime',
-        'depends': np_datetime_headers,
-        'sources': np_datetime_sources},
+        'sources': np_datetime_sources,
+        'include': np_datetime_headers},
     '_libs.tslibs.offsets': {
-        'pyxfile': '_libs/tslibs/offsets',
-        'depends': tseries_depends,
-        'sources': np_datetime_sources},
+        'pyxfile': '_libs/tslibs/offsets'},
     '_libs.tslibs.parsing': {
         'pyxfile': '_libs/tslibs/parsing'},
     '_libs.tslibs.resolution': {
-        'pyxfile': '_libs/tslibs/resolution',
-        'depends': tseries_depends,
-        'sources': np_datetime_sources},
+        'pyxfile': '_libs/tslibs/resolution'},
     '_libs.tslibs.strptime': {
-        'pyxfile': '_libs/tslibs/strptime',
-        'depends': tseries_depends,
-        'sources': np_datetime_sources},
+        'pyxfile': '_libs/tslibs/strptime'},
     '_libs.tslibs.timedeltas': {
-        'pyxfile': '_libs/tslibs/timedeltas',
-        'depends': np_datetime_headers,
-        'sources': np_datetime_sources},
+        'pyxfile': '_libs/tslibs/timedeltas'},
     '_libs.tslibs.timestamps': {
-        'pyxfile': '_libs/tslibs/timestamps',
-        'depends': tseries_depends,
-        'sources': np_datetime_sources},
+        'pyxfile': '_libs/tslibs/timestamps'},
     '_libs.tslibs.timezones': {
         'pyxfile': '_libs/tslibs/timezones'},
     '_libs.testing': {
@@ -583,7 +568,7 @@ for name, data in ext_data.items():
 
     sources.extend(data.get('sources', []))
 
-    include = data.get('include', common_include)
+    include = data.get('include', [])
 
     obj = Extension('pandas.{name}'.format(name=name),
                     sources=sources,
@@ -668,7 +653,6 @@ extensions.append(_move_ext)
 # The build cache system does string matching below this point.
 # if you change something, be careful.
 
-build_ext.render_templates()
 
 setup(name=DISTNAME,
       maintainer=AUTHOR,
@@ -679,7 +663,7 @@ setup(name=DISTNAME,
                                         'data/legacy_pickle/*/*.pickle',
                                         'data/legacy_msgpack/*/*.msgpack',
                                         'data/html_encoding/*.html']},
-      ext_modules=cythonize(extensions),
+      ext_modules=_cythonize(extensions),
       maintainer_email=EMAIL,
       description=DESCRIPTION,
       license=LICENSE,
