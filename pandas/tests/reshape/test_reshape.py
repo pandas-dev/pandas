@@ -454,6 +454,15 @@ class TestGetDummies(object):
 
             tm.assert_frame_equal(result, expected)
 
+    @pytest.mark.parametrize('sparse', [True, False])
+    def test_get_dummies_dont_sparsify_all_columns(self, sparse):
+        # GH18914
+        df = DataFrame.from_items([('GDP', [1, 2]), ('Nation', ['AB', 'CD'])])
+        df = get_dummies(df, columns=['Nation'], sparse=sparse)
+        df2 = df.reindex(columns=['GDP'])
+
+        tm.assert_frame_equal(df[['GDP']], df2)
+
 
 class TestCategoricalReshape(object):
 

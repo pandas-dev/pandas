@@ -19,7 +19,7 @@ from pandas.core.dtypes.common import (
     _TD_DTYPE)
 from pandas.core.dtypes.generic import (
     ABCDatetimeIndex, ABCTimedeltaIndex,
-    ABCPeriodIndex, ABCRangeIndex)
+    ABCPeriodIndex, ABCRangeIndex, ABCSparseDataFrame)
 
 
 def get_dtype_kinds(l):
@@ -89,14 +89,16 @@ def _get_series_result_type(result, objs=None):
 def _get_frame_result_type(result, objs):
     """
     return appropriate class of DataFrame-like concat
-    if any block is SparseBlock, return SparseDataFrame
+    if all blocks are SparseBlock, return SparseDataFrame
     otherwise, return 1st obj
     """
-    if any(b.is_sparse for b in result.blocks):
+
+    if result.blocks and all(b.is_sparse for b in result.blocks):
         from pandas.core.sparse.api import SparseDataFrame
         return SparseDataFrame
     else:
-        return objs[0]
+        return next(obj for obj in objs if not isinstance(obj,
+                                                          ABCSparseDataFrame))
 
 
 def _concat_compat(to_concat, axis=0):
