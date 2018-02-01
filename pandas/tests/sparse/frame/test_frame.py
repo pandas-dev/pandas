@@ -199,6 +199,29 @@ class TestSparseDataFrame(SharedWithSparse):
         # without sparse value raises error
         # df2 = SparseDataFrame([x2_sparse, y])
 
+    def test_constructor_from_dense_series(self):
+        # GH 19393
+        # series with name
+        x = Series(np.random.randn(10000), name='a')
+        result = SparseDataFrame(x)
+        expected = x.to_frame().to_sparse()
+        tm.assert_sp_frame_equal(result, expected)
+
+        # series with no name
+        x = Series(np.random.randn(10000))
+        result = SparseDataFrame(x)
+        expected = x.to_frame().to_sparse()
+        tm.assert_sp_frame_equal(result, expected)
+
+    def test_constructor_from_unknown_type(self):
+        # GH 19393
+        class Unknown:
+            pass
+        with pytest.raises(TypeError,
+                           message='SparseDataFrame called with unknown type '
+                                   '"Unknown" for data argument'):
+            SparseDataFrame(Unknown())
+
     def test_constructor_preserve_attr(self):
         # GH 13866
         arr = pd.SparseArray([1, 0, 3, 0], dtype=np.int64, fill_value=0)

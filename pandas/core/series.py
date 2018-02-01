@@ -144,7 +144,6 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
     _deprecations = generic.NDFrame._deprecations | frozenset(
         ['asobject', 'sortlevel', 'reshape', 'get_value', 'set_value',
          'from_csv', 'valid'])
-    _allow_index_ops = True
 
     def __init__(self, data=None, index=None, dtype=None, name=None,
                  copy=False, fastpath=False):

@@ -16,7 +16,6 @@ from pandas.core.dtypes.common import (
 from pandas.core.dtypes.missing import notna
 
 import pandas.core.ops as ops
-import pandas.core.missing as missing
 import pandas.core.common as com
 from pandas import compat
 from pandas.compat import (map, zip, range, u, OrderedDict)
@@ -1521,89 +1520,6 @@ class Panel(NDFrame):
 
         return _ensure_index(index)
 
-    @classmethod
-    def _add_aggregate_operations(cls, use_numexpr=True):
-        """ add the operations to the cls; evaluate the doc strings again """
-
-        def _panel_arith_method(op, name, str_rep=None, default_axis=None,
-                                fill_zeros=None, **eval_kwargs):
-            def na_op(x, y):
-                import pandas.core.computation.expressions as expressions
-
-                try:
-                    result = expressions.evaluate(op, str_rep, x, y,
-                                                  errors='raise',
-                                                  **eval_kwargs)
-                except TypeError:
-                    result = op(x, y)
-
-                # handles discrepancy between numpy and numexpr on division/mod
-                # by 0 though, given that these are generally (always?)
-                # non-scalars, I'm not sure whether it's worth it at the moment
-                result = missing.fill_zeros(result, x, y, name, fill_zeros)
-                return result
-
-            if name in ops._op_descriptions:
-                op_name = name.replace('__', '')
-                op_desc = ops._op_descriptions[op_name]
-                if op_desc['reversed']:
-                    equiv = 'other ' + op_desc['op'] + ' panel'
-                else:
-                    equiv = 'panel ' + op_desc['op'] + ' other'
-
-                _op_doc = """
-{desc} of series and other, element-wise (binary operator `{op_name}`).
-Equivalent to ``{equiv}``.
-
-Parameters
-----------
-other : {construct} or {cls_name}
-axis : {{{axis_order}}}
-    Axis to broadcast over
-
-Returns
--------
-{cls_name}
-
-See also
---------
-{cls_name}.{reverse}\n"""
-                doc = _op_doc.format(
-                    desc=op_desc['desc'], op_name=op_name, equiv=equiv,
-                    construct=cls._constructor_sliced.__name__,
-                    cls_name=cls.__name__, reverse=op_desc['reverse'],
-                    axis_order=', '.join(cls._AXIS_ORDERS))
-            else:
-                # doc strings substitors
-                _agg_doc = """
-                Wrapper method for {wrp_method}
-
-                Parameters
-                ----------
-                other : {construct} or {cls_name}
-                axis : {{{axis_order}}}
-                    Axis to broadcast over
-
-                Returns
-                -------
-                {cls_name}\n"""
-                doc = _agg_doc.format(
-                    construct=cls._constructor_sliced.__name__,
-                    cls_name=cls.__name__, wrp_method=name,
-                    axis_order=', '.join(cls._AXIS_ORDERS))
-
-            @Appender(doc)
-            def f(self, other, axis=0):
-                return self._combine(other, na_op, axis=axis)
-
-            f.__name__ = name
-            return f
-
-        # add `div`, `mul`, `pow`, etc..
-        ops.add_flex_arithmetic_methods(
-            cls, _panel_arith_method, use_numexpr=use_numexpr,
-            flex_comp_method=ops._comp_method_PANEL)
-
 
 Panel._setup_axes(axes=['items', 'major_axis', 'minor_axis'], info_axis=0,
                   stat_axis=1, aliases={'major': 'major_axis',
@@ -1612,7 +1528,8 @@ Panel._setup_axes(axes=['items', 'major_axis', 'minor_axis'], info_axis=0,
                            'minor_axis': 'columns'})
 
 ops.add_special_arithmetic_methods(Panel, **ops.panel_special_funcs)
-Panel._add_aggregate_operations()
+ops.add_flex_arithmetic_methods(Panel, ops._flex_method_PANEL,
+                                flex_comp_method=ops._comp_method_PANEL)
 Panel._add_numeric_operations()
 
 

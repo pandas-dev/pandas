@@ -4,7 +4,7 @@ Module parse to/from Excel
 
 # ---------------------------------------------------------------------
 # ExcelFile class
-from datetime import datetime, date, time, MINYEAR
+from datetime import datetime, date, time, MINYEAR, timedelta
 
 import os
 import abc
@@ -21,7 +21,6 @@ from pandas.errors import EmptyDataError
 from pandas.io.common import (_is_url, _urlopen, _validate_header_arg,
                               get_filepath_or_buffer, _NA_VALUES,
                               _stringify_path)
-from pandas.core.indexes.period import Period
 import pandas._libs.json as json
 from pandas.compat import (map, zip, reduce, range, lrange, u, add_metaclass,
                            string_types, OrderedDict)
@@ -777,17 +776,30 @@ def _pop_header_name(row, index_col):
 
 
 def _conv_value(val):
-    # Convert numpy types to Python types for the Excel writers.
+    """ Convert numpy types to Python types for the Excel writers.
+
+        Parameters
+        ----------
+        val : object
+            Value to be written into cells
+
+        Returns
+        -------
+        If val is a numpy int, float, or bool, then the equivalent Python
+        types are returned. :obj:`datetime`, :obj:`date`, and :obj:`timedelta`
+        are passed and formatting must be handled in the writer. :obj:`str`
+        representation is returned for all other types.
+    """
     if is_integer(val):
         val = int(val)
     elif is_float(val):
         val = float(val)
     elif is_bool(val):
         val = bool(val)
-    elif isinstance(val, Period):
-        val = "{val}".format(val=val)
-    elif is_list_like(val):
-        val = str(val)
+    elif isinstance(val, (datetime, date, timedelta)):
+        pass
+    else:
+        val = compat.to_str(val)
 
     return val
 
@@ -1460,6 +1472,9 @@ class _XlwtWriter(ExcelWriter):
                 num_format_str = self.datetime_format
             elif isinstance(cell.val, date):
                 num_format_str = self.date_format
+            elif isinstance(cell.val, timedelta):
+                delta = cell.val
+                val = delta.total_seconds() / float(86400)
 
             stylekey = json.dumps(cell.style)
             if num_format_str:
