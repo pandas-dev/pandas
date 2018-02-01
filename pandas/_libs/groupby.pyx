@@ -139,13 +139,17 @@ def group_rank_object(ndarray[float64_t, ndim=2] out,
         Py_ssize_t i, j, N, K
         int64_t val_start=0, grp_start=0, dups=0, sum_ranks=0
         ndarray[int64_t] _as
-        bint pct
+        bint pct, ascending
 
     tiebreak = tiebreakers[kwargs['ties_method']]
     pct = kwargs['pct']
+    ascending = kwargs['ascending']
     N, K = (<object> values).shape
 
     _as = np.lexsort((values[:, 0], labels))
+
+    if not ascending:
+        _as = _as[::-1]
 
     for i in range(N):
         dups += 1
