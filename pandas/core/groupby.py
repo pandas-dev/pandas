@@ -1770,10 +1770,10 @@ class GroupBy(_GroupBy):
 
     @Substitution(name='groupby')
     @Appender(_doc_template)
-    def rank(self, ties_method='average', ascending=True, na_option='keep',
+    def rank(self, method='average', ascending=True, na_option='keep',
              pct=False, axis=0):
         """Rank within each group"""
-        return self._cython_transform('rank', ties_method=ties_method,
+        return self._cython_transform('rank', ties_method=method,
                                       ascending=ascending, na_option=na_option,
                                       pct=pct, axis=axis)
 

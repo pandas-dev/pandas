@@ -13,11 +13,13 @@ from numpy cimport (ndarray,
                     int8_t, int16_t, int32_t, int64_t, uint8_t, uint16_t,
                     uint32_t, uint64_t, float32_t, float64_t)
 
+from libc.math cimport isnan
 from libc.stdlib cimport malloc, free
 
 from util cimport numeric, get_nat
-from algos cimport swap
-from algos import take_2d_axis1_float64_float64, groupsort_indexer
+from algos cimport (swap, TIEBREAK_AVERAGE, TIEBREAK_MIN, TIEBREAK_MAX,
+                    TIEBREAK_FIRST, TIEBREAK_DENSE)
+from algos import take_2d_axis1_float64_float64, groupsort_indexer, tiebreakers
 
 cdef int64_t iNaT = get_nat()
 
