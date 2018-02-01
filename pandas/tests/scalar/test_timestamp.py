@@ -475,17 +475,17 @@ class TestTimestampConstructors(object):
 class TestTimestamp(object):
 
     def test_tz(self):
-        t = '2014-02-01 09:00'
-        ts = Timestamp(t)
+        tstr = '2014-02-01 09:00'
+        ts = Timestamp(tstr)
         local = ts.tz_localize('Asia/Tokyo')
         assert local.hour == 9
-        assert local == Timestamp(t, tz='Asia/Tokyo')
+        assert local == Timestamp(tstr, tz='Asia/Tokyo')
         conv = local.tz_convert('US/Eastern')
         assert conv == Timestamp('2014-01-31 19:00', tz='US/Eastern')
         assert conv.hour == 19
 
         # preserves nanosecond
-        ts = Timestamp(t) + offsets.Nano(5)
+        ts = Timestamp(tstr) + offsets.Nano(5)
         local = ts.tz_localize('Asia/Tokyo')
         assert local.hour == 9
         assert local.nanosecond == 5
