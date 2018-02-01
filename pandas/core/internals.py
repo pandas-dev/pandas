@@ -1073,8 +1073,8 @@ class Block(PandasObject):
 
     def interpolate(self, method='pad', axis=0, index=None, values=None,
                     inplace=False, limit=None, limit_direction='forward',
-                    fill_value=None, coerce=False, downcast=None, mgr=None,
-                    **kwargs):
+                    limit_area=None, fill_value=None, coerce=False,
+                    downcast=None, mgr=None, **kwargs):
 
         inplace = validate_bool_kwarg(inplace, 'inplace')
 
@@ -1115,6 +1115,7 @@ class Block(PandasObject):
             return self._interpolate(method=m, index=index, values=values,
                                      axis=axis, limit=limit,
                                      limit_direction=limit_direction,
+                                     limit_area=limit_area,
                                      fill_value=fill_value, inplace=inplace,
                                      downcast=downcast, mgr=mgr, **kwargs)
 
@@ -1148,8 +1149,8 @@ class Block(PandasObject):
 
     def _interpolate(self, method=None, index=None, values=None,
                      fill_value=None, axis=0, limit=None,
-                     limit_direction='forward', inplace=False, downcast=None,
-                     mgr=None, **kwargs):
+                     limit_direction='forward', limit_area=None,
+                     inplace=False, downcast=None, mgr=None, **kwargs):
         """ interpolate using scipy wrappers """
 
         inplace = validate_bool_kwarg(inplace, 'inplace')
@@ -1177,6 +1178,7 @@ class Block(PandasObject):
             # i.e. not an arg to missing.interpolate_1d
             return missing.interpolate_1d(index, x, method=method, limit=limit,
                                           limit_direction=limit_direction,
+                                          limit_area=limit_area,
                                           fill_value=fill_value,
                                           bounds_error=False, **kwargs)
 
@@ -2656,7 +2658,7 @@ class DatetimeTZBlock(NonConsolidatableMixIn, DatetimeBlock):
             other = other.asi8
             other_mask = isna(other)
         elif isinstance(other, (np.datetime64, datetime, date)):
-            other = lib.Timestamp(other)
+            other = tslib.Timestamp(other)
             tz = getattr(other, 'tz', None)
 
             # test we can have an equal time zone
@@ -2675,7 +2677,7 @@ class DatetimeTZBlock(NonConsolidatableMixIn, DatetimeBlock):
             if result.dtype.kind in ['i', 'f', 'O']:
                 result = result.astype('M8[ns]')
         elif isinstance(result, (np.integer, np.float, np.datetime64)):
-            result = lib.Timestamp(result, tz=self.values.tz)
+            result = tslib.Timestamp(result, tz=self.values.tz)
         if isinstance(result, np.ndarray):
             # allow passing of > 1dim if its trivial
             if result.ndim > 1:
