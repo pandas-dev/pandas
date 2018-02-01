@@ -14,7 +14,7 @@ from datetime import datetime, timedelta, tzinfo, date
 import pandas.util.testing as tm
 import pandas.util._test_decorators as td
 import pandas.tseries.offsets as offsets
-from pandas.compat import lrange, zip, PY3
+from pandas.compat import lrange, zip
 from pandas.core.indexes.datetimes import bdate_range, date_range
 from pandas.core.dtypes.dtypes import DatetimeTZDtype
 from pandas._libs import tslib
@@ -1198,64 +1198,22 @@ class TestTimeZoneSupportDateutil(TestTimeZoneSupportPytz):
 
 class TestTimeZoneCacheKey(object):
 
-    def test_cache_keys_are_distinct_for_pytz_vs_dateutil(self):
-        tzs = pytz.common_timezones
-        for tz_name in tzs:
-            if tz_name == 'UTC':
-                # skip utc as it's a special case in dateutil
-                continue
-            tz_p = timezones.maybe_get_tz(tz_name)
-            tz_d = timezones.maybe_get_tz('dateutil/' + tz_name)
-            if tz_d is None:
-                # skip timezones that dateutil doesn't know about.
-                continue
-            assert (timezones._p_tz_cache_key(tz_p) !=
-                    timezones._p_tz_cache_key(tz_d))
+    @pytest.mark.parametrize('tz_name', list(pytz.common_timezones))
+    def test_cache_keys_are_distinct_for_pytz_vs_dateutil(self, tz_name):
+        if tz_name == 'UTC':
+            # skip utc as it's a special case in dateutil
+            return
+        tz_p = timezones.maybe_get_tz(tz_name)
+        tz_d = timezones.maybe_get_tz('dateutil/' + tz_name)
+        if tz_d is None:
+            # skip timezones that dateutil doesn't know about.
+            return
+        assert (timezones._p_tz_cache_key(tz_p) !=
+                timezones._p_tz_cache_key(tz_d))
 
 
 class TestTimeZones(object):
     timezones = ['UTC', 'Asia/Tokyo', 'US/Eastern', 'dateutil/US/Pacific']
-
-    def test_replace(self):
-        # GH 14621
-        # GH 7825
-        # replacing datetime components with and w/o presence of a timezone
-        dt = Timestamp('2016-01-01 09:00:00')
-        result = dt.replace(hour=0)
-        expected = Timestamp('2016-01-01 00:00:00')
-        assert result == expected
-
-        for tz in self.timezones:
-            dt = Timestamp('2016-01-01 09:00:00', tz=tz)
-            result = dt.replace(hour=0)
-            expected = Timestamp('2016-01-01 00:00:00', tz=tz)
-            assert result == expected
-
-        # we preserve nanoseconds
-        dt = Timestamp('2016-01-01 09:00:00.000000123', tz=tz)
-        result = dt.replace(hour=0)
-        expected = Timestamp('2016-01-01 00:00:00.000000123', tz=tz)
-        assert result == expected
-
-        # test all
-        dt = Timestamp('2016-01-01 09:00:00.000000123', tz=tz)
-        result = dt.replace(year=2015, month=2, day=2, hour=0, minute=5,
-                            second=5, microsecond=5, nanosecond=5)
-        expected = Timestamp('2015-02-02 00:05:05.000005005', tz=tz)
-        assert result == expected
-
-        # error
-        def f():
-            dt.replace(foo=5)
-        pytest.raises(TypeError, f)
-
-        def f():
-            dt.replace(hour=0.1)
-        pytest.raises(ValueError, f)
-
-        # assert conversion to naive is the same as replacing tzinfo with None
-        dt = Timestamp('2013-11-03 01:59:59.999999-0400', tz='US/Eastern')
-        assert dt.tz_localize(None) == dt.replace(tzinfo=None)
 
     def test_ambiguous_compat(self):
         # validate that pytz and dateutil are compat for dst
@@ -1297,34 +1255,6 @@ class TestTimeZones(object):
             assert str(result_pytz) == str(result_dateutil)
             assert (result_pytz.to_pydatetime().tzname() ==
                     result_dateutil.to_pydatetime().tzname())
-
-    @td.skip_if_windows
-    def test_replace_tzinfo(self):
-        # GH 15683
-        dt = datetime(2016, 3, 27, 1)
-        tzinfo = pytz.timezone('CET').localize(dt, is_dst=False).tzinfo
-
-        result_dt = dt.replace(tzinfo=tzinfo)
-        result_pd = Timestamp(dt).replace(tzinfo=tzinfo)
-
-        if PY3:
-            # datetime.timestamp() converts in the local timezone
-            with tm.set_timezone('UTC'):
-                assert result_dt.timestamp() == result_pd.timestamp()
-
-        assert result_dt == result_pd
-        assert result_dt == result_pd.to_pydatetime()
-
-        result_dt = dt.replace(tzinfo=tzinfo).replace(tzinfo=None)
-        result_pd = Timestamp(dt).replace(tzinfo=tzinfo).replace(tzinfo=None)
-
-        if PY3:
-            # datetime.timestamp() converts in the local timezone
-            with tm.set_timezone('UTC'):
-                assert result_dt.timestamp() == result_pd.timestamp()
-
-        assert result_dt == result_pd
-        assert result_dt == result_pd.to_pydatetime()
 
     def test_index_equals_with_tz(self):
         left = date_range('1/1/2011', periods=100, freq='H', tz='utc')

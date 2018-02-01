@@ -35,8 +35,7 @@ class TestPDApi(Base):
            'util', 'options', 'io']
 
     # these are already deprecated; awaiting removal
-    deprecated_modules = ['stats', 'datetools', 'parser',
-                          'json', 'lib', 'tslib']
+    deprecated_modules = ['datetools', 'parser', 'json', 'lib', 'tslib']
 
     # misc
     misc = ['IndexSlice', 'NaT']
@@ -91,19 +90,7 @@ class TestPDApi(Base):
     deprecated_funcs_in_future = []
 
     # these are already deprecated; awaiting removal
-    deprecated_funcs = ['ewma', 'ewmcorr', 'ewmcov', 'ewmstd', 'ewmvar',
-                        'ewmvol', 'expanding_apply', 'expanding_corr',
-                        'expanding_count', 'expanding_cov', 'expanding_kurt',
-                        'expanding_max', 'expanding_mean', 'expanding_median',
-                        'expanding_min', 'expanding_quantile',
-                        'expanding_skew', 'expanding_std', 'expanding_sum',
-                        'expanding_var', 'rolling_apply',
-                        'rolling_corr', 'rolling_count', 'rolling_cov',
-                        'rolling_kurt', 'rolling_max', 'rolling_mean',
-                        'rolling_median', 'rolling_min', 'rolling_quantile',
-                        'rolling_skew', 'rolling_std', 'rolling_sum',
-                        'rolling_var', 'rolling_window',
-                        'pnow', 'match', 'groupby', 'get_store',
+    deprecated_funcs = ['pnow', 'match', 'groupby', 'get_store',
                         'plot_params', 'scatter_matrix']
 
     def test_api(self):
