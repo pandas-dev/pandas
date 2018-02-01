@@ -137,7 +137,7 @@ def group_rank_object(ndarray[float64_t, ndim=2] out,
     cdef:
         int tiebreak
         Py_ssize_t i, j, N, K
-        int64_t val_start=0, grp_start=0, dups=0, sum_ranks=0
+        int64_t val_start=0, grp_start=0, dups=0, sum_ranks=0, vals_seen=1
         ndarray[int64_t] _as
         bint pct, ascending
 
@@ -166,13 +166,13 @@ def group_rank_object(ndarray[float64_t, ndim=2] out,
                 out[_as[j], 0] = i - grp_start + 1
         elif tiebreak == TIEBREAK_FIRST:
             for j in range(i - dups + 1, i + 1):
-                out[_as[j], 0] = j + 1
-        elif tiebreak == TIEBREAK_FIRST_DESCENDING:
-            for j in range(i - dups + 1, i + 1):
-                out[_as[j], 0]  = 2 * (i - grp_start) - j - dups + 2
+                if ascending:
+                    out[_as[j], 0] = j + 1
+                else:
+                    out[_as[j], 0] = 2 * i - j - dups + 2
         elif tiebreak == TIEBREAK_DENSE:
             for j in range(i - dups + 1, i + 1):
-                out[_as[j], 0] = val_start - grp_start
+                out[_as[j], 0] = vals_seen
 
         if (i == N - 1 or (
                 (values[_as[i], 0] != values[_as[i+1], 0]) and not
@@ -180,6 +180,7 @@ def group_rank_object(ndarray[float64_t, ndim=2] out,
                 )):
             dups = sum_ranks = 0
             val_start = i
+            vals_seen += 1
 
         if i == N - 1 or labels[_as[i]] != labels[_as[i+1]]:
             if pct:
