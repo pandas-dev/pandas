@@ -71,6 +71,8 @@ void pandas_timedelta_to_timedeltastruct(npy_timedelta val,
                                          PANDAS_DATETIMEUNIT fr,
                                          pandas_timedeltastruct *result);
 
+void set_datetimestruct_days(npy_int64 days, pandas_datetimestruct *dts);
+
 int dayofweek(int y, int m, int d);
 
 extern const int days_per_month_table[2][12];
