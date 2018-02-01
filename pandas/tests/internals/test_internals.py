@@ -13,7 +13,6 @@ import itertools
 from pandas import (Index, MultiIndex, DataFrame, DatetimeIndex,
                     Series, Categorical, TimedeltaIndex, SparseArray)
 from pandas.compat import OrderedDict, lrange
-from pandas.core.sparse.array import SparseArray
 from pandas.core.internals import (BlockPlacement, SingleBlockManager,
                                    make_block, BlockManager)
 import pandas.core.algorithms as algos
