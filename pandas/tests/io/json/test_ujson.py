@@ -425,7 +425,7 @@ class TestUltraJSONTests(object):
         assert ujson.encode(input) == 'null', "Expected null"
 
     def test_datetime_units(self):
-        from pandas._libs.lib import Timestamp
+        from pandas._libs.tslib import Timestamp
 
         val = datetime.datetime(2013, 8, 17, 21, 17, 12, 215504)
         stamp = Timestamp(val)

@@ -24,7 +24,7 @@ import pandas.compat as compat
 from pandas.compat.numpy import function as nv
 
 from pandas._libs import lib, tslib
-from pandas._libs.lib import Timestamp
+from pandas._libs.tslib import Timestamp
 from pandas._libs.tslibs.period import IncompatibleFrequency
 
 from pandas.util._decorators import Appender, Substitution

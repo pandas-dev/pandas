@@ -268,7 +268,7 @@ def _wrap_results(result, dtype):
 
     if is_datetime64_dtype(dtype):
         if not isinstance(result, np.ndarray):
-            result = lib.Timestamp(result)
+            result = tslib.Timestamp(result)
         else:
             result = result.view(dtype)
     elif is_timedelta64_dtype(dtype):
@@ -278,7 +278,7 @@ def _wrap_results(result, dtype):
             if np.fabs(result) > _int64_max:
                 raise ValueError("overflow in timedelta operation")
 
-            result = lib.Timedelta(result, unit='ns')
+            result = tslib.Timedelta(result, unit='ns')
         else:
             result = result.astype('i8').view(dtype)
 

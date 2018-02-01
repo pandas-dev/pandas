@@ -12,7 +12,7 @@ from collections import OrderedDict
 
 import pytest
 import numpy as np
-from pandas._libs.lib import Timestamp
+from pandas._libs.tslib import Timestamp
 
 import pandas as pd
 import pandas.util.testing as tm

@@ -10,7 +10,7 @@ import json
 import numpy as np
 import pandas as pd
 
-from pandas._libs import tslib, lib, properties
+from pandas._libs import tslib, properties
 from pandas.core.dtypes.common import (
     _ensure_int64,
     _ensure_object,
@@ -7216,9 +7216,9 @@ class NDFrame(PandasObject, SelectionMixin):
                 if is_datetime64_dtype(data):
                     asint = data.dropna().values.view('i8')
                     names += ['top', 'freq', 'first', 'last']
-                    result += [lib.Timestamp(top), freq,
-                               lib.Timestamp(asint.min()),
-                               lib.Timestamp(asint.max())]
+                    result += [tslib.Timestamp(top), freq,
+                               tslib.Timestamp(asint.min()),
+                               tslib.Timestamp(asint.max())]
                 else:
                     names += ['top', 'freq']
                     result += [top, freq]

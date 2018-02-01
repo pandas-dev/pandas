@@ -328,6 +328,7 @@ class CheckSDist(sdist_class):
                  'pandas/_libs/tslibs/frequencies.pyx',
                  'pandas/_libs/tslibs/resolution.pyx',
                  'pandas/_libs/tslibs/parsing.pyx',
+                 'pandas/_libs/writers.pyx',
                  'pandas/io/sas/sas.pyx']
 
     def initialize_options(self):
@@ -616,6 +617,9 @@ ext_data = {
     '_libs.window': {
         'pyxfile': '_libs/window',
         'pxdfiles': ['_libs/skiplist', '_libs/src/util']},
+    '_libs.writers': {
+        'pyxfile': '_libs/writers',
+        'pxdfiles': ['_libs/src/util']},
     'io.sas._sas': {
         'pyxfile': 'io/sas/sas'}}
 

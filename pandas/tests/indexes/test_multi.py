@@ -19,7 +19,7 @@ from pandas.errors import PerformanceWarning, UnsortedIndexError
 from pandas.core.dtypes.dtypes import CategoricalDtype
 from pandas.core.indexes.base import InvalidIndexError
 from pandas.core.dtypes.cast import construct_1d_object_array_from_listlike
-from pandas._libs.lib import Timestamp
+from pandas._libs.tslib import Timestamp
 
 import pandas.util.testing as tm
 

@@ -29,7 +29,7 @@ import pandas.core.config as cf
 from pandas.core.indexes.datetimes import _to_m8
 
 import pandas as pd
-from pandas._libs.lib import Timestamp
+from pandas._libs.tslib import Timestamp
 
 
 class TestIndex(Base):
