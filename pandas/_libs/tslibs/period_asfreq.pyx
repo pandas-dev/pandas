@@ -11,7 +11,8 @@ from period_info cimport (dInfoCalc_SetFromAbsDateTime,
                           dInfoCalc_Leapyear,
                           absdate_from_ymd, monthToQuarter, _ISOWeek)
 from period_conversion cimport (get_daytime_conversion_factor, max_value,
-                                get_abs_time)
+                                get_abs_time,
+                                get_freq_group, get_freq_group_index)
 
 # ----------------------------------------------------------------------
 # Constants
@@ -30,31 +31,17 @@ cdef enum OFFSETS:
 cdef enum FREQS:
     FR_ANN = 1000      # Annual
     FR_QTR = 2000      # Quarterly - December year end (default quarterly)
-    FR_MTH = 3000 # Monthly
-    FR_WK = 4000     # Weekly
-    FR_BUS = 5000 # Business days
-    FR_DAY = 6000 # Daily
-    FR_HR = 7000  # Hourly
-    FR_MIN = 8000 # Minutely
-    FR_SEC = 9000 # Secondly
-    FR_MS = 10000 # Millisecondly
-    FR_US = 11000 # Microsecondly
-    FR_NS = 12000 # Nanosecondly
-
-    FR_UND = -10000 # Undefined
-
-
-# ----------------------------------------------------------------------
-# Naming Conventions
-
-@cython.cdivision
-cdef inline int get_freq_group(int freq) nogil:
-    return (freq / 1000) * 1000
-
-
-@cython.cdivision
-cdef inline int get_freq_group_index(int freq) nogil:
-    return freq / 1000
+    FR_MTH = 3000      # Monthly
+    FR_WK = 4000       # Weekly
+    FR_BUS = 5000      # Business days
+    FR_DAY = 6000      # Daily
+    FR_HR = 7000       # Hourly
+    FR_MIN = 8000      # Minutely
+    FR_SEC = 9000      # Secondly
+    FR_MS = 10000      # Millisecondly
+    FR_US = 11000      # Microsecondly
+    FR_NS = 12000      # Nanosecondly
+    FR_UND = -10000    # Undefined
 
 
 # ---------------------------------------------------------------
@@ -125,7 +112,8 @@ cdef int64_t get_python_ordinal(int64_t period_ordinal, int freq) nogil:
     return toDaily(period_ordinal, 'E', &af_info) + ORD_OFFSET
 
 
-cdef void get_asfreq_info(int fromFreq, int toFreq, asfreq_info *af_info) nogil:
+cdef void get_asfreq_info(int fromFreq, int toFreq,
+                          asfreq_info *af_info) nogil:
     cdef:
         int fromGroup = get_freq_group(fromFreq)
         int toGroup = get_freq_group(toFreq)
@@ -133,10 +121,6 @@ cdef void get_asfreq_info(int fromFreq, int toFreq, asfreq_info *af_info) nogil:
     af_info.intraday_conversion_factor = get_daytime_conversion_factor(
         get_freq_group_index(max_value(fromGroup, FR_DAY)),
         get_freq_group_index(max_value(toGroup, FR_DAY)))
-
-    #// printf("get_asfreq_info(%d, %d) %ld, %d\n", fromFreq, toFreq,
-    #// af_info->intraday_conversion_factor,
-    #// af_info->intraday_conversion_upsample);
 
     if fromGroup == FR_WK:
         af_info.from_week_end = calc_week_end(fromFreq, fromGroup)
@@ -177,10 +161,6 @@ cdef int64_t asfreq(int64_t ordinal, int freq1, int freq2, char relation):
     func = get_asfreq_func(freq1, freq2)
 
     get_asfreq_info(freq1, freq2, &finfo)
-
-    #// printf("\n%x %d %d %ld %ld\n", func, freq1, freq2,
-    #// finfo.intraday_conversion_factor, -finfo.intraday_conversion_factor);
-
     val = func(ordinal, relation, &finfo)
 
     if val == INT32_MIN:
@@ -339,9 +319,6 @@ cdef inline int64_t transform_via_day(int64_t ordinal, char relation,
                                       asfreq_info *af_info,
                                       freq_conv_func first_func,
                                       freq_conv_func second_func) nogil:
-    # // printf("transform_via_day(%ld, %ld, %d)\n", ordinal,
-    # // af_info->intraday_conversion_factor,
-    # // af_info->intraday_conversion_upsample);
     cdef:
         int64_t result
 
@@ -360,14 +337,17 @@ cdef inline int64_t upsample_daytime(int64_t ordinal,
 
 
 @cython.cdivision
-cdef inline int64_t downsample_daytime(int64_t ordinal, asfreq_info *af_info, int atEnd) nogil:
+cdef inline int64_t downsample_daytime(int64_t ordinal,
+                                       asfreq_info *af_info, int atEnd) nogil:
     return ordinal / af_info.intraday_conversion_factor
 
 
-# --------- FROM ANNUAL --------------
+# ----------------------------------------------------------------------
+# From Annual
 
 @cython.cdivision
-cdef int64_t asfreq_AtoDT(int64_t year, char relation, asfreq_info *af_info) nogil:
+cdef int64_t asfreq_AtoDT(int64_t year, char relation,
+                          asfreq_info *af_info) nogil:
     cdef:
         int64_t absdate
         int month = (af_info.from_a_year_end) % 12
@@ -394,27 +374,32 @@ cdef int64_t asfreq_AtoDT(int64_t year, char relation, asfreq_info *af_info) nog
     return upsample_daytime(absdate - ORD_OFFSET, af_info, relation != 'S')
 
 
-cdef int64_t asfreq_AtoA(int64_t ordinal, char relation, asfreq_info *af_info) nogil:
+cdef int64_t asfreq_AtoA(int64_t ordinal, char relation,
+                         asfreq_info *af_info) nogil:
     return transform_via_day(ordinal, relation, af_info, asfreq_AtoDT,
                              asfreq_DTtoA)
 
 
-cdef int64_t asfreq_AtoQ(int64_t ordinal, char relation, asfreq_info *af_info) nogil:
+cdef int64_t asfreq_AtoQ(int64_t ordinal, char relation,
+                         asfreq_info *af_info) nogil:
     return transform_via_day(ordinal, relation, af_info, asfreq_AtoDT,
                              asfreq_DTtoQ)
 
 
-cdef int64_t asfreq_AtoM(int64_t ordinal, char relation, asfreq_info *af_info) nogil:
+cdef int64_t asfreq_AtoM(int64_t ordinal, char relation,
+                         asfreq_info *af_info) nogil:
     return transform_via_day(ordinal, relation, af_info, asfreq_AtoDT,
                              asfreq_DTtoM)
 
 
-cdef int64_t asfreq_AtoW(int64_t ordinal, char relation, asfreq_info *af_info) nogil:
+cdef int64_t asfreq_AtoW(int64_t ordinal, char relation,
+                         asfreq_info *af_info) nogil:
     return transform_via_day(ordinal, relation, af_info, asfreq_AtoDT,
                              asfreq_DTtoW)
 
 
-cdef int64_t asfreq_AtoB(int64_t ordinal, char relation, asfreq_info *af_info) nogil:
+cdef int64_t asfreq_AtoB(int64_t ordinal, char relation,
+                         asfreq_info *af_info) nogil:
     cdef:
         date_info dinfo
 
@@ -464,7 +449,8 @@ cdef void QtoD_ym(int64_t ordinal, int *y, int *m, asfreq_info *af_info) nogil:
             y[0] -= 1
 
 
-cdef int64_t asfreq_QtoDT(int64_t ordinal, char relation, asfreq_info *af_info) nogil:
+cdef int64_t asfreq_QtoDT(int64_t ordinal, char relation,
+                          asfreq_info *af_info) nogil:
     cdef:
         int64_t absdate
         int y, m
@@ -484,27 +470,32 @@ cdef int64_t asfreq_QtoDT(int64_t ordinal, char relation, asfreq_info *af_info) 
     return upsample_daytime(absdate - ORD_OFFSET, af_info, relation != 'S')
 
 
-cdef int64_t asfreq_QtoQ(int64_t ordinal, char relation, asfreq_info *af_info) nogil:
+cdef int64_t asfreq_QtoQ(int64_t ordinal, char relation,
+                         asfreq_info *af_info) nogil:
     return transform_via_day(ordinal, relation, af_info, asfreq_QtoDT,
                              asfreq_DTtoQ)
 
 
-cdef int64_t asfreq_QtoA(int64_t ordinal, char relation, asfreq_info *af_info) nogil:
+cdef int64_t asfreq_QtoA(int64_t ordinal, char relation,
+                         asfreq_info *af_info) nogil:
     return transform_via_day(ordinal, relation, af_info, asfreq_QtoDT,
                              asfreq_DTtoA)
 
 
-cdef int64_t asfreq_QtoM(int64_t ordinal, char relation, asfreq_info *af_info) nogil:
+cdef int64_t asfreq_QtoM(int64_t ordinal, char relation,
+                         asfreq_info *af_info) nogil:
     return transform_via_day(ordinal, relation, af_info, asfreq_QtoDT,
                              asfreq_DTtoM)
 
 
-cdef int64_t asfreq_QtoW(int64_t ordinal, char relation, asfreq_info *af_info) nogil:
+cdef int64_t asfreq_QtoW(int64_t ordinal, char relation,
+                         asfreq_info *af_info) nogil:
     return transform_via_day(ordinal, relation, af_info, asfreq_QtoDT,
                              asfreq_DTtoW)
 
 
-cdef int64_t asfreq_QtoB(int64_t ordinal, char relation, asfreq_info *af_info) nogil:
+cdef int64_t asfreq_QtoB(int64_t ordinal, char relation,
+                         asfreq_info *af_info) nogil:
     cdef:
         date_info dinfo
 
@@ -520,14 +511,16 @@ cdef int64_t asfreq_QtoB(int64_t ordinal, char relation, asfreq_info *af_info) n
         return DtoB_WeekendToFriday(dinfo.absdate, dinfo.day_of_week)
 
 
-# --------- FROM MONTHLY --------------
+# ----------------------------------------------------------------------
+# From Monthly
 
 cdef void MtoD_ym(int64_t ordinal, int *y, int *m) nogil:
     y[0] = floordiv(ordinal, 12) + BASE_YEAR
     m[0] = mod_compat(ordinal, 12) + 1
 
 
-cdef int64_t asfreq_MtoDT(int64_t ordinal, char relation, asfreq_info *af_info) nogil:
+cdef int64_t asfreq_MtoDT(int64_t ordinal, char relation,
+                          asfreq_info *af_info) nogil:
     cdef:
         int64_t absdate
         int y, m
@@ -548,22 +541,26 @@ cdef int64_t asfreq_MtoDT(int64_t ordinal, char relation, asfreq_info *af_info) 
     return upsample_daytime(ordinal, af_info, relation != 'S')
 
 
-cdef int64_t asfreq_MtoA(int64_t ordinal, char relation, asfreq_info *af_info) nogil:
+cdef int64_t asfreq_MtoA(int64_t ordinal, char relation,
+                         asfreq_info *af_info) nogil:
     return transform_via_day(ordinal, relation, af_info, asfreq_MtoDT,
                              asfreq_DTtoA)
 
 
-cdef int64_t asfreq_MtoQ(int64_t ordinal, char relation, asfreq_info *af_info) nogil:
+cdef int64_t asfreq_MtoQ(int64_t ordinal, char relation,
+                         asfreq_info *af_info) nogil:
     return transform_via_day(ordinal, relation, af_info, asfreq_MtoDT,
                              asfreq_DTtoQ)
 
 
-cdef int64_t asfreq_MtoW(int64_t ordinal, char relation, asfreq_info *af_info) nogil:
+cdef int64_t asfreq_MtoW(int64_t ordinal, char relation,
+                         asfreq_info *af_info) nogil:
     return transform_via_day(ordinal, relation, af_info, asfreq_MtoDT,
                              asfreq_DTtoW)
 
 
-cdef int64_t asfreq_MtoB(int64_t ordinal, char relation, asfreq_info *af_info) nogil:
+cdef int64_t asfreq_MtoB(int64_t ordinal, char relation,
+                         asfreq_info *af_info) nogil:
     cdef:
         date_info dinfo
 
@@ -579,9 +576,11 @@ cdef int64_t asfreq_MtoB(int64_t ordinal, char relation, asfreq_info *af_info) n
         return DtoB_WeekendToFriday(dinfo.absdate, dinfo.day_of_week)
 
 
-# --------- FROM WEEKLY --------------
+# ----------------------------------------------------------------------
+# From Weekly
 
-cdef int64_t asfreq_WtoDT(int64_t ordinal, char relation, asfreq_info *af_info) nogil:
+cdef int64_t asfreq_WtoDT(int64_t ordinal, char relation,
+                           asfreq_info *af_info) nogil:
     ordinal += WEEK_OFFSET
     if relation != 'S':
         ordinal += 1
@@ -594,27 +593,32 @@ cdef int64_t asfreq_WtoDT(int64_t ordinal, char relation, asfreq_info *af_info) 
     return upsample_daytime(ordinal, af_info, relation != 'S')
 
 
-cdef int64_t asfreq_WtoA(int64_t ordinal, char relation, asfreq_info *af_info) nogil:
+cdef int64_t asfreq_WtoA(int64_t ordinal, char relation,
+                         asfreq_info *af_info) nogil:
     return transform_via_day(ordinal, relation, af_info, asfreq_WtoDT,
                              asfreq_DTtoA)
 
 
-cdef int64_t asfreq_WtoQ(int64_t ordinal, char relation, asfreq_info *af_info) nogil:
+cdef int64_t asfreq_WtoQ(int64_t ordinal, char relation,
+                         asfreq_info *af_info) nogil:
     return transform_via_day(ordinal, relation, af_info, asfreq_WtoDT,
                              asfreq_DTtoQ)
 
 
-cdef int64_t asfreq_WtoM(int64_t ordinal, char relation, asfreq_info *af_info) nogil:
+cdef int64_t asfreq_WtoM(int64_t ordinal, char relation,
+                         asfreq_info *af_info) nogil:
     return transform_via_day(ordinal, relation, af_info, asfreq_WtoDT,
                              asfreq_DTtoM)
 
 
-cdef int64_t asfreq_WtoW(int64_t ordinal, char relation, asfreq_info *af_info) nogil:
+cdef int64_t asfreq_WtoW(int64_t ordinal, char relation,
+                         asfreq_info *af_info) nogil:
     return transform_via_day(ordinal, relation, af_info, asfreq_WtoDT,
                              asfreq_DTtoW)
 
 
-cdef int64_t asfreq_WtoB(int64_t ordinal, char relation, asfreq_info *af_info) nogil:
+cdef int64_t asfreq_WtoB(int64_t ordinal, char relation,
+                         asfreq_info *af_info) nogil:
     cdef:
         date_info dinfo
 
@@ -630,39 +634,48 @@ cdef int64_t asfreq_WtoB(int64_t ordinal, char relation, asfreq_info *af_info) n
         return DtoB_WeekendToFriday(dinfo.absdate, dinfo.day_of_week)
 
 
-# --------- FROM BUSINESS --------------
+# ----------------------------------------------------------------------
+# From Business-Freq
 
 @cython.cdivision
-cdef int64_t asfreq_BtoDT(int64_t ordinal, char relation, asfreq_info *af_info) nogil:
+cdef int64_t asfreq_BtoDT(int64_t ordinal, char relation,
+                          asfreq_info *af_info) nogil:
     ordinal += BDAY_OFFSET
-    ordinal = (((ordinal - 1) / 5) * 7 + mod_compat(ordinal - 1, 5) + 1 - ORD_OFFSET)
+    ordinal = (((ordinal - 1) / 5) * 7 + mod_compat(ordinal - 1, 5) +
+               1 - ORD_OFFSET)
 
     return upsample_daytime(ordinal, af_info, relation != 'S')
 
 
-cdef int64_t asfreq_BtoA(int64_t ordinal, char relation, asfreq_info *af_info) nogil:
+cdef int64_t asfreq_BtoA(int64_t ordinal, char relation,
+                         asfreq_info *af_info) nogil:
     return transform_via_day(ordinal, relation, af_info, asfreq_BtoDT,
                              asfreq_DTtoA)
 
 
-cdef int64_t asfreq_BtoQ(int64_t ordinal, char relation, asfreq_info *af_info) nogil:
+cdef int64_t asfreq_BtoQ(int64_t ordinal, char relation,
+                         asfreq_info *af_info) nogil:
     return transform_via_day(ordinal, relation, af_info, asfreq_BtoDT,
                              asfreq_DTtoQ)
 
 
-cdef int64_t asfreq_BtoM(int64_t ordinal, char relation, asfreq_info *af_info) nogil:
+cdef int64_t asfreq_BtoM(int64_t ordinal, char relation,
+                         asfreq_info *af_info) nogil:
     return transform_via_day(ordinal, relation, af_info, asfreq_BtoDT,
                              asfreq_DTtoM)
 
 
-cdef int64_t asfreq_BtoW(int64_t ordinal, char relation, asfreq_info *af_info) nogil:
+cdef int64_t asfreq_BtoW(int64_t ordinal, char relation,
+                         asfreq_info *af_info) nogil:
     return transform_via_day(ordinal, relation, af_info, asfreq_BtoDT,
                              asfreq_DTtoW)
 
 
-# --------- FROM DAILY --------------
+# ----------------------------------------------------------------------
+# From Daily
 
-cdef int64_t asfreq_DTtoA(int64_t ordinal, char relation, asfreq_info *af_info) nogil:
+cdef int64_t asfreq_DTtoA(int64_t ordinal, char relation,
+                          asfreq_info *af_info) nogil:
     cdef:
         date_info dinfo
 
@@ -677,7 +690,8 @@ cdef int64_t asfreq_DTtoA(int64_t ordinal, char relation, asfreq_info *af_info) 
         return <int64_t>(dinfo.year - BASE_YEAR)
 
 
-cdef int64_t asfreq_DTtoQ(int64_t ordinal, char relation, asfreq_info *af_info) nogil:
+cdef int64_t asfreq_DTtoQ(int64_t ordinal, char relation,
+                          asfreq_info *af_info) nogil:
     cdef:
         int year, quarter
 
@@ -689,7 +703,8 @@ cdef int64_t asfreq_DTtoQ(int64_t ordinal, char relation, asfreq_info *af_info) 
     return <int64_t>((year - BASE_YEAR) * 4 + quarter - 1)
 
 
-cdef int64_t asfreq_DTtoM(int64_t ordinal, char relation, asfreq_info *af_info) nogil:
+cdef int64_t asfreq_DTtoM(int64_t ordinal, char relation,
+                          asfreq_info *af_info) nogil:
     cdef:
         date_info dinfo
 
@@ -703,12 +718,15 @@ cdef int64_t asfreq_DTtoM(int64_t ordinal, char relation, asfreq_info *af_info) 
 
 
 @cython.cdivision
-cdef int64_t asfreq_DTtoW(int64_t ordinal, char relation, asfreq_info *af_info) nogil:
+cdef int64_t asfreq_DTtoW(int64_t ordinal, char relation,
+                          asfreq_info *af_info) nogil:
     ordinal = downsample_daytime(ordinal, af_info, 0)
-    return (ordinal + ORD_OFFSET - (1 + af_info.to_week_end)) / 7 + 1 - WEEK_OFFSET
+    return ((ordinal + ORD_OFFSET - (1 + af_info.to_week_end)) / 7 +
+            1 - WEEK_OFFSET)
 
 
-cdef int64_t asfreq_DTtoB(int64_t ordinal, char relation, asfreq_info *af_info) nogil:
+cdef int64_t asfreq_DTtoB(int64_t ordinal, char relation,
+                          asfreq_info *af_info) nogil:
     cdef:
         date_info dinfo
 
@@ -724,12 +742,14 @@ cdef int64_t asfreq_DTtoB(int64_t ordinal, char relation, asfreq_info *af_info) 
         return DtoB_WeekendToMonday(dinfo.absdate, dinfo.day_of_week)
 
 
-# // all intra day calculations are now done within one function
-cdef int64_t asfreq_DownsampleWithinDay(int64_t ordinal, char relation, asfreq_info *af_info) nogil:
+# all intra day calculations are now done within one function
+cdef int64_t asfreq_DownsampleWithinDay(int64_t ordinal, char relation,
+                                        asfreq_info *af_info) nogil:
     return downsample_daytime(ordinal, af_info, relation == 'E')
 
 
-cdef int64_t asfreq_UpsampleWithinDay(int64_t ordinal, char relation, asfreq_info *af_info) nogil:
+cdef int64_t asfreq_UpsampleWithinDay(int64_t ordinal, char relation,
+                                      asfreq_info *af_info) nogil:
     return upsample_daytime(ordinal, af_info, relation == 'E')
 
 
@@ -840,8 +860,7 @@ cdef int pdays_in_month(int64_t ordinal, int freq):
     if get_date_info(ordinal, freq, &dinfo) == INT32_MIN:
         return INT32_MIN
 
-    #return get_days_in_month(dinfo.year, dinfo.month)  # assuming Gregorian, unlike period_helper version
-    days = days_in_month[dInfoCalc_Leapyear(dinfo.year, dinfo.calendar)][dinfo.month - 1]
+    days = days_in_month[dInfoCalc_Leapyear(dinfo.year, dinfo.calendar)][dinfo.month - 1]  # noqa:E501
     return days
 
 

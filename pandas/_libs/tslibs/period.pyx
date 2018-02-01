@@ -55,11 +55,12 @@ from period_asfreq cimport (asfreq_info, get_asfreq_info,
                             freq_conv_func, get_asfreq_func, DtoQ_yq,
                             get_python_ordinal, asfreq, get_date_info)
 from period_info cimport (_ISOWeek,
-                          CALENDARS, get_period_ordinal)
+                          CALENDARS, get_period_ordinal, date_info)
 from period_asfreq cimport (pqyear, pquarter, pday_of_year,
                             pweek, pweekday,
                             pyear, pmonth, pday, phour, pminute, psecond,
                             pdays_in_month)
+from period_conversion cimport get_freq_group
 
 cdef int GREGORIAN_CALENDAR = CALENDARS.GREGORIAN_CALENDAR
 cdef int JULIAN_CALENDAR = CALENDARS.JULIAN_CALENDAR
@@ -83,56 +84,29 @@ cdef enum FREQS:
     FR_UND =-10000  # Undefined
 
 
-cdef extern from "period_helper.h":
-    ctypedef struct date_info:
-        int64_t absdate
-        double abstime
-        double second
-        int minute
-        int hour
-        int day
-        int month
-        int quarter
-        int year
-        int day_of_week
-        int day_of_year
-        int calendar
-
-
-    char *c_strftime(date_info *dinfo, char *fmt)
-
-
-# ----------------------------------------------------------------------
-# Naming Conventions
-
 @cython.cdivision
-cdef inline int get_freq_group(int freq) nogil:
-    return (freq / 1000) * 1000
-
-'''
-@cython.cdivision
-cdef int _quarter_year(int64_t ordinal, int freq, int *year, int *quarter):
+cdef char* c_strftime(date_info *dinfo, char *fmt):
     cdef:
-        asfreq_info af_info
-        int qtr_freq
+        tm c_date
+        char *result
+        int result_len = strlen(fmt) + 50
 
-    ordinal = get_python_ordinal(ordinal, freq) - ORD_OFFSET
+    c_date.tm_sec = <int>dinfo.second
+    c_date.tm_min = dinfo.minute
+    c_date.tm_hour = dinfo.hour
+    c_date.tm_mday = dinfo.day
+    c_date.tm_mon = dinfo.month - 1
+    c_date.tm_year = dinfo.year - 1900
+    c_date.tm_wday = (dinfo.day_of_week + 1) % 7
+    c_date.tm_yday = dinfo.day_of_year - 1
+    c_date.tm_isdst = -1
 
-    if get_freq_group(freq) == FR_QTR:
-        qtr_freq = freq
-    else:
-        qtr_freq = FR_QTR
+    result = <char*>malloc(result_len * sizeof(char))
 
-    get_asfreq_info(FR_DAY, qtr_freq, &af_info)
+    strftime(result, result_len, fmt, &c_date)
 
-    if DtoQ_yq(ordinal, &af_info, year, quarter) == INT32_MIN:
-        return INT32_MIN
+    return result
 
-    if (qtr_freq % 1000) > 12:
-        year[0] -= 1
-
-    return 0
-'''
 
 cdef int get_yq(int64_t ordinal, int freq, int *quarter, int *year) nogil:
     cdef:
@@ -443,115 +417,6 @@ def get_period_field_arr(int code, ndarray[int64_t] arr, int freq):
 
     return out
 
-'''
-cdef int pqyear(int64_t ordinal, int freq):
-    cdef:
-        int year, quarter
-    if _quarter_year(ordinal, freq, &year, &quarter) == INT32_MIN:
-        return INT32_MIN
-    return year
-
-
-cdef int pquarter(int64_t ordinal, int freq):
-    cdef:
-        int year, quarter
-    if _quarter_year(ordinal, freq, &year, &quarter) == INT32_MIN:
-        return INT32_MIN
-    return quarter
-
-
-cdef int pday_of_year(int64_t ordinal, int freq):
-    cdef:
-        date_info dinfo
-
-    if get_date_info(ordinal, freq, &dinfo) == INT32_MIN:
-        return INT32_MIN
-    return dinfo.day_of_year
-
-
-cdef int pweek(int64_t ordinal, int freq):
-    cdef:
-        date_info dinfo
-
-    if get_date_info(ordinal, freq, &dinfo) == INT32_MIN:
-        return INT32_MIN
-    return _ISOWeek(&dinfo)
-
-
-cdef int pweekday(int64_t ordinal, int freq):
-    cdef:
-        date_info dinfo
-
-    if get_date_info(ordinal, freq, &dinfo) == INT32_MIN:
-        return INT32_MIN
-    return dinfo.day_of_week
-
-
-cdef int pyear(int64_t ordinal, int freq):
-    cdef:
-        date_info dinfo
-
-    get_date_info(ordinal, freq, &dinfo)
-    return dinfo.year
-
-
-cdef int pmonth(int64_t ordinal, int freq):
-    cdef:
-        date_info dinfo
-
-    if get_date_info(ordinal, freq, &dinfo) == INT32_MIN:
-        return INT32_MIN
-    return dinfo.month
-
-
-cdef int pday(int64_t ordinal, int freq):
-    cdef:
-        date_info dinfo
-
-    if get_date_info(ordinal, freq, &dinfo) == INT32_MIN:
-        return INT32_MIN
-    return dinfo.day
-
-
-cdef int phour(int64_t ordinal, int freq):
-    cdef:
-        date_info dinfo
-
-    if get_date_info(ordinal, freq, &dinfo) == INT32_MIN:
-        return INT32_MIN
-    return dinfo.hour
-
-
-cdef int pminute(int64_t ordinal, int freq):
-    cdef:
-        date_info dinfo
-
-    if get_date_info(ordinal, freq, &dinfo) == INT32_MIN:
-        return INT32_MIN
-    return dinfo.minute
-
-
-cdef int psecond(int64_t ordinal, int freq):
-    cdef:
-        date_info dinfo
-
-    if get_date_info(ordinal, freq, &dinfo) == INT32_MIN:
-        return INT32_MIN
-    return <int>dinfo.second
-
-
-cdef int pdays_in_month(int64_t ordinal, int freq):
-    cdef:
-        date_info dinfo
-        int days
-
-    if get_date_info(ordinal, freq, &dinfo) == INT32_MIN:
-        return INT32_MIN
-
-    return get_days_in_month(dinfo.year, dinfo.month)  # assuming Gregorian, unlike period_helper version
-    #days = days_in_month[dInfoCalc_Leapyear(dinfo.year, dinfo.calendar)][dinfo.month - 1]
-    #return days
-'''
 
 ctypedef int (*accessor)(int64_t ordinal, int freq) except INT32_MIN
 

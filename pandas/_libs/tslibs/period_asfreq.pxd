@@ -2,20 +2,7 @@
 
 from numpy cimport int64_t
 
-cdef extern from "period_helper.h":
-    ctypedef struct date_info:
-        int64_t absdate
-        double abstime
-        double second
-        int minute
-        int hour
-        int day
-        int month
-        int quarter
-        int year
-        int day_of_week
-        int day_of_year
-        int calendar
+from period_info cimport date_info
 
 
 ctypedef struct asfreq_info:

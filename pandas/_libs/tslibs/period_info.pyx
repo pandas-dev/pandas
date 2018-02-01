@@ -6,6 +6,8 @@ from numpy cimport int64_t
 
 from util cimport INT64_MAX, INT32_MIN
 
+from period_conversion cimport get_freq_group
+
 cdef double SECONDS_PER_DAY = 86400
 cdef int BASE_YEAR = 1970
 cdef int BASE_WEEK_TO_DAY_OFFSET = 1 # difference between day 0 and end of week
@@ -17,11 +19,6 @@ cdef int64_t[:, :] month_offset = np.array([
     [0, 31, 59, 90, 120, 151, 181, 212, 243, 273, 304, 334, 365],
     [0, 31, 60, 91, 121, 152, 182, 213, 244, 274, 305, 335, 366]])
 
-cdef int64_t* month_offset_leap = [0, 31, 60, 91, 121, 152, 182, 213, 244, 274, 305, 335, 366]
-cdef int64_t* month_offset_nonleap = [0, 31, 59, 90, 120, 151, 181, 212, 243, 273, 304, 334, 365]
-
-cdef int64_t* days_in_month_leap = [31, 29, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31]
-cdef int64_t* days_in_month_nonleap = [31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31]
 # Table of number of days in a month (0-based, without and with leap)
 cdef int64_t[:, :] days_in_month =  np.array([
     [31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31],
@@ -125,7 +122,7 @@ cdef int dInfoCalc_SetFromAbsDateTime(date_info *dinfo,
     # Bounds check
     if not (abstime >= 0.0 and abstime <= SECONDS_PER_DAY):
         return -1
-    #Py_AssertWithArg(abstime >= 0.0 and abstime <= SECONDS_PER_DAY,
+    # Py_AssertWithArg(abstime >= 0.0 and abstime <= SECONDS_PER_DAY,
     #                 PyExc_ValueError,
     #                 "abstime out of range (0.0 - 86400.0): %f", abstime);
 
@@ -162,6 +159,7 @@ cdef int dInfoCalc_SetFromAbsTime(date_info *dinfo, double abstime) nogil:
     return 0
 
 
+@cython.boundscheck(False)
 @cython.cdivision
 cdef int dInfoCalc_SetFromAbsDate(date_info *dinfo,
                                   int64_t absdate, int calendar) nogil:
@@ -216,10 +214,6 @@ cdef int dInfoCalc_SetFromAbsDate(date_info *dinfo,
     dinfo.calendar = calendar
 
     # Now iterate to find the month
-    #if leap:
-    #    monthoffset = month_offset_leap
-    #else:
-    #    monthoffset = month_offset_nonleap
     monthoffset = month_offset[leap]
 
     for month in range(1, 13):
@@ -228,10 +222,6 @@ cdef int dInfoCalc_SetFromAbsDate(date_info *dinfo,
 
     dinfo.month = month
     dinfo.quarter = monthToQuarter(month)
-    #if leap:
-    #    dinfo.day = dayoffset - month_offset_leap[month - 1]
-    #else:
-    #    dinfo.day = dayoffset - month_offset_nonleap[month - 1]
     dinfo.day = dayoffset - month_offset[leap][month - 1]
 
     dinfo.day_of_week = dInfoCalc_DayOfWeek(absdate)
@@ -257,7 +247,6 @@ cdef int dInfoCalc_SetFromDateAndTime(date_info *dinfo, int year,
         bint leap
         int64_t absdate
         int yearoffset
-        #int64_t* dims
 
     # Range check
     #if not year > -(INT_MAX / 366) and year < (INT_MAX / 366):
@@ -267,12 +256,8 @@ cdef int dInfoCalc_SetFromDateAndTime(date_info *dinfo, int year,
 
     # Is it a leap year?
     leap = dInfoCalc_Leapyear(year, calendar)
-    #if leap:
-    #    dims = days_in_month_leap
-    #else:
-    #    dims = days_in_month_nonleap
 
-    # Negative month values indicate months relative to the years end */
+    # Negative month values indicate months relative to the years end
     if month < 0:
         month += 13
 
@@ -280,13 +265,11 @@ cdef int dInfoCalc_SetFromDateAndTime(date_info *dinfo, int year,
         return 1
         # raise ValueError("month out of range (1-12): %i" % month)
 
-    # Negative values indicate days relative to the months end */
+    # Negative values indicate days relative to the months end
     if day < 0:
-        #day += <int>dims[month-1] + 1
         day += <int>days_in_month[leap][month - 1] + 1
 
     if not (day >= 1 and day <= days_in_month[leap][month - 1]):
-    #if not (day >= 1 and day <= <int>dims[month - 1]):
         return 1
         # raise ValueError("day out of range: %i" % day)
 
@@ -294,10 +277,6 @@ cdef int dInfoCalc_SetFromDateAndTime(date_info *dinfo, int year,
     if yearoffset == INT32_MIN:
         return INT32_MIN
 
-    #if leap:
-    #    absdate = day + month_offset_leap[month - 1] + yearoffset
-    #else:       
-    #    absdate = day + month_offset_nonleap[month - 1] + yearoffset
     absdate = day + month_offset[leap][month - 1] + yearoffset
 
     dinfo.absdate = absdate
@@ -372,7 +351,8 @@ cdef int64_t get_period_ordinal(int year, int month, int day,
             return seconds * 1000000 + microseconds
 
         elif freq == FR_NS:
-            return seconds * 1000000000 + microseconds * 1000 + picoseconds / 1000
+            return (seconds * 1000000000 +
+                    microseconds * 1000 + picoseconds / 1000)
 
         return seconds
 
@@ -407,9 +387,11 @@ cdef int64_t get_period_ordinal(int year, int month, int day,
         # return the number of business days in full weeks plus the business
         # days in the last - possible partial - week
         if delta <= BUSINESS_DAYS_PER_WEEK:
-            return <int64_t>(weeks * BUSINESS_DAYS_PER_WEEK) + delta - BDAY_OFFSET
+            return (<int64_t>(weeks * BUSINESS_DAYS_PER_WEEK) +
+                    delta - BDAY_OFFSET)
         else:
-            return <int64_t>(weeks * BUSINESS_DAYS_PER_WEEK) + BUSINESS_DAYS_PER_WEEK + 1 - BDAY_OFFSET
+            return (<int64_t>(weeks * BUSINESS_DAYS_PER_WEEK) +
+                    BUSINESS_DAYS_PER_WEEK + 1 - BDAY_OFFSET)
 
     if freq_group == FR_WK:
         ordinal = <int64_t>absdate_from_ymd(year, month, day)
@@ -445,9 +427,3 @@ cdef int64_t get_period_ordinal(int year, int month, int day,
             return year - BASE_YEAR + 1
 
     # Py_Error(PyExc_RuntimeError, "Unable to generate frequency ordinal")
-
-
-# TODO: de-duplicate
-@cython.cdivision
-cdef inline int get_freq_group(int freq) nogil:
-    return (freq / 1000) * 1000
