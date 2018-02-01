@@ -2918,6 +2918,7 @@ def make_block(values, placement, klass=None, ndim=None, dtype=None,
         # GH#19265 pyarrow is passing this
         warnings.warn("fastpath argument is deprecated, will be removed "
                       "in a future release.", DeprecationWarning)
+
     if klass is None:
         dtype = dtype or values.dtype
         klass = get_block_type(values, dtype)
@@ -2925,7 +2926,7 @@ def make_block(values, placement, klass=None, ndim=None, dtype=None,
     elif klass is DatetimeTZBlock and not is_datetimetz(values):
         return klass(values, ndim=ndim,
                      placement=placement, dtype=dtype)
-
+    
     return klass(values, ndim=ndim, placement=placement)
 
 # TODO: flexible with index=None and/or items=None
@@ -5120,14 +5121,28 @@ def concatenate_block_managers(mgrs_indexers, axes, concat_axis, copy):
         elif is_uniform_join_units(join_units):
             b = join_units[0].block.concat_same_type(
                 [ju.block for ju in join_units], placement=placement)
+        elif is_sparse_join_units(join_units):
+            values = concatenate_join_units(join_units, concat_axis, copy=copy)
+            values = values[0]
+            block = join_units[0].block
+
+            if block:
+                fill_value = block.fill_value
+            else:
+                fill_value = np.nan
+            array = SparseArray(values, fill_value=fill_value)
+            b = make_block(array, klass=SparseBlock, placement=placement)
         else:
             b = make_block(
                 concatenate_join_units(join_units, concat_axis, copy=copy),
-                placement=placement)
+                placement=placement
+                )
         blocks.append(b)
 
     return BlockManager(blocks, axes)
 
+def is_sparse_join_units(join_units):
+    return any(type(ju.block) is SparseBlock for ju in join_units)
 
 def is_uniform_join_units(join_units):
     """

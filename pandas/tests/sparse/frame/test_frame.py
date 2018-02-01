@@ -222,27 +222,30 @@ class TestSparseDataFrame(SharedWithSparse):
                                    '"Unknown" for data argument'):
             SparseDataFrame(Unknown())
 
-    def test_constructor_preserve_attr(self):
+    @pytest.mark.parametrize('fill_value', [0, 1, np.nan, None])
+    def test_constructor_preserve_attr(self, fill_value):
         # GH 13866
-        arr = pd.SparseArray([1, 0, 3, 0], dtype=np.int64, fill_value=0)
+        arr = pd.SparseArray([1, 0, 3, 0], dtype=np.int64, fill_value=fill_value)
         assert arr.dtype == np.int64
-        assert arr.fill_value == 0
+        assert arr.fill_value == fill_value
 
         df = pd.SparseDataFrame({'x': arr})
         assert df['x'].dtype == np.int64
-        assert df['x'].fill_value == 0
+        assert df['x'].fill_value == fill_value
+        assert df.default_fill_value == fill_value
 
         s = pd.SparseSeries(arr, name='x')
         assert s.dtype == np.int64
-        assert s.fill_value == 0
+        assert s.fill_value == fill_value
 
         df = pd.SparseDataFrame(s)
         assert df['x'].dtype == np.int64
-        assert df['x'].fill_value == 0
+        assert df['x'].fill_value == fill_value
 
         df = pd.SparseDataFrame({'x': s})
         assert df['x'].dtype == np.int64
-        assert df['x'].fill_value == 0
+        assert df['x'].fill_value == fill_value
+
 
     def test_constructor_nan_dataframe(self):
         # GH 10079

@@ -38,6 +38,8 @@ from pandas.core.internals import (items_overlap_with_suffix,
                                    concatenate_block_managers)
 from pandas.util._decorators import Appender, Substitution
 
+from pandas.core.sparse.array import SparseArray
+
 from pandas.core.sorting import is_int64_overflow_possible
 import pandas.core.algorithms as algos
 import pandas.core.sorting as sorting
@@ -731,7 +733,11 @@ class _MergeOperation(object):
                 if mask.all():
                     key_col = rvals
                 else:
-                    key_col = Index(lvals).where(~mask, rvals)
+                    # Might need to be IntIndex not Index
+                    if isinstance(lvals, SparseArray):
+                        key_col = Index(lvals.get_values()).where(~mask, rvals)
+                    else:
+                        key_col = Index(lvals).where(~mask, rvals)
 
                 if result._is_label_reference(name):
                     result[name] = key_col
