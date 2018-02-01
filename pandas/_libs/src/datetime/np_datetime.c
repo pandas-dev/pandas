@@ -234,8 +234,7 @@ NPY_NO_EXPORT void add_seconds_to_datetimestruct(pandas_datetimestruct *dts,
  * Fills in the year, month, day in 'dts' based on the days
  * offset from 1970.
  */
-static void set_datetimestruct_days(npy_int64 days,
-                                    pandas_datetimestruct *dts) {
+void set_datetimestruct_days(npy_int64 days, pandas_datetimestruct *dts) {
     const int *month_lengths;
     int i;
 

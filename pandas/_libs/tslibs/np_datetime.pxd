@@ -50,10 +50,6 @@ cdef extern from "../src/datetime/np_datetime.h":
         PANDAS_FR_fs
         PANDAS_FR_as
 
-    void pandas_datetime_to_datetimestruct(npy_datetime val,
-                                           PANDAS_DATETIMEUNIT fr,
-                                           pandas_datetimestruct *result) nogil
-
     int days_per_month_table[2][12]
     int dayofweek(int y, int m, int d) nogil
     int is_leapyear(int64_t year) nogil
@@ -65,6 +61,7 @@ cdef bint cmp_scalar(int64_t lhs, int64_t rhs, int op) except -1
 
 cdef check_dts_bounds(pandas_datetimestruct *dts)
 
+cdef int64_t convert_to_ns(int64_t val, PANDAS_DATETIMEUNIT unit) except? -1
 cdef int64_t dtstruct_to_dt64(pandas_datetimestruct* dts) nogil
 cdef void dt64_to_dtstruct(int64_t dt64, pandas_datetimestruct* out) nogil
 cdef void td64_to_tdstruct(int64_t td64, pandas_timedeltastruct* out) nogil
