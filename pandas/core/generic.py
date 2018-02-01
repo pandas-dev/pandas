@@ -1906,7 +1906,7 @@ class NDFrame(PandasObject, SelectionMixin):
         return to_pickle(self, path, compression=compression,
                          protocol=protocol)
 
-    def to_clipboard(self, excel=None, sep=None, **kwargs):
+    def to_clipboard(self, excel=True, sep=None, **kwargs):
         """
         Attempt to write text representation of object to the system clipboard
         This can be pasted into Excel, for example.
