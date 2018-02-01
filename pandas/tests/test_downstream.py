@@ -89,7 +89,8 @@ def test_pandas_gbq(df):
 def test_pandas_datareader():
 
     pandas_datareader = import_module('pandas_datareader')  # noqa
-    pandas_datareader.get_data_google('AAPL')
+    pandas_datareader.DataReader(
+        'F', 'quandl', '2017-01-01', '2017-02-01')
 
 
 def test_geopandas():
