@@ -8,6 +8,7 @@ class TestSparseDataFrameToCsv(object):
 
     @pytest.mark.parametrize('fill_value', fill_values)
     def test_to_csv_sparse_dataframe(self, fill_value):
+        # GH19384
         sdf = SparseDataFrame({'a': type(self).fill_values},
                               default_fill_value=fill_value)
 
