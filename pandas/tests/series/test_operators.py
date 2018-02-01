@@ -1583,16 +1583,20 @@ class TestSeriesOperators(TestData):
     @pytest.mark.parametrize(
         'ts',
         [
-            lambda x: (x, x * 2, False),
-            lambda x: (x, x[::2], False),
-            lambda x: (x, 5, True),
-            lambda x: (tm.makeFloatSeries(), tm.makeFloatSeries(), True)
+            (lambda x: x, lambda x: x * 2, False),
+            (lambda x: x, lambda x: x[::2], False),
+            (lambda x: x, lambda x: 5, True),
+            (lambda x: tm.makeFloatSeries(),
+             lambda x: tm.makeFloatSeries(),
+             True)
         ])
     @pytest.mark.parametrize('opname', ['add', 'sub', 'mul', 'floordiv',
                                         'truediv', 'div', 'pow'])
     def test_op_method(self, opname, ts):
         # check that Series.{opname} behaves like Series.__{opname}__,
-        series, other, check_reverse = ts(self.ts)
+        series = ts[0](self.ts)
+        other = ts[1](self.ts)
+        check_reverse = ts[2]
 
         if opname == 'div' and compat.PY3:
             pytest.skip('div test only for Py3')
