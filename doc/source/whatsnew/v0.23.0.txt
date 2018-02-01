@@ -13,10 +13,38 @@ version.
 New features
 ~~~~~~~~~~~~
 
--
--
--
+.. _whatsnew_0210.enhancements.limit_area:
 
+``DataFrame.interpolate`` has gained the ``limit_area`` kwarg
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+:meth:`DataFrame.interpolate` has gained a ``limit_area`` parameter to allow further control of which ``NaN`` s are replaced.
+Use `limit_area='inside'` to fill only NaNs surrounded by valid values or use `limit_area='outside'` to fill only ``NaN`` s
+outside the existing valid values while preserving those inside.  (:issue:`16284`) See the :ref:`full documentation here <missing_data.interp_limits>`.
+
+
+.. ipython:: python
+
+   ser = pd.Series([np.nan, np.nan, 5, np.nan, np.nan, np.nan, 13, np.nan, np.nan])
+   ser
+
+Fill one consecutive inside value in both directions
+
+.. ipython:: python
+
+   ser.interpolate(limit_direction='both', limit_area='inside', limit=1)
+
+Fill all consecutive outside values backward
+
+.. ipython:: python
+
+   ser.interpolate(limit_direction='backward', limit_area='outside')
+
+Fill all consecutive outside values in both directions
+
+.. ipython:: python
+
+   ser.interpolate(limit_direction='both', limit_area='outside')
 
 .. _whatsnew_0210.enhancements.get_dummies_dtype:
 
@@ -251,6 +279,7 @@ Other Enhancements
   :func:`pandas.api.extensions.register_index_accessor`, accessor for libraries downstream of pandas
   to register custom accessors like ``.cat`` on pandas objects. See
   :ref:`Registering Custom Accessors <developer.register-accessors>` for more (:issue:`14781`).
+
 - ``IntervalIndex.astype`` now supports conversions between subtypes when passed an ``IntervalDtype`` (:issue:`19197`)
 - :class:`IntervalIndex` and its associated constructor methods (``from_arrays``, ``from_breaks``, ``from_tuples``) have gained a ``dtype`` parameter (:issue:`19262`)
 
@@ -405,6 +434,8 @@ Removal of prior version deprecations/changes
 - The ``labels`` attribute of the ``Categorical`` class has been removed in favor of :attribute:`Categorical.codes` (:issue:`7768`)
 - The ``flavor`` parameter have been removed from func:`to_sql` method (:issue:`13611`)
 - The modules `pandas.tools.hashing` and `pandas.util.hashing` have been removed (:issue:`16223`)
+- The top-level functions ``pd.rolling_*``, ``pd.expanding_*`` and ``pd.ewm*`` have been removed (Deprecated since v0.18).
+  Instead, use the DataFrame/Series methods :attr:`~DataFrame.rolling`, :attr:`~DataFrame.expanding` and :attr:`~DataFrame.ewm` (:issue:`18723`)
 
 .. _whatsnew_0230.performance:
 
@@ -425,7 +456,7 @@ Performance Improvements
 - :func:`Series` / :func:`DataFrame` tab completion limits to 100 values, for better performance. (:issue:`18587`)
 - Improved performance of :func:`DataFrame.median` with ``axis=1`` when bottleneck is not installed (:issue:`16468`)
 - Improved performance of :func:`MultiIndex.get_loc` for large indexes, at the cost of a reduction in performance for small ones (:issue:`18519`)
-
+- Improved performance of pairwise ``.rolling()`` and ``.expanding()`` with ``.cov()`` and ``.corr()`` operations (:issue:`17917`)
 
 .. _whatsnew_0230.docs:
 
@@ -582,6 +613,7 @@ Reshaping
 - Bug in :func:`DataFrame.merge` in which merging using ``Index`` objects as vectors raised an Exception (:issue:`19038`)
 - Bug in :func:`DataFrame.stack`, :func:`DataFrame.unstack`, :func:`Series.unstack` which were not returning subclasses (:issue:`15563`)
 - Bug in timezone comparisons, manifesting as a conversion of the index to UTC in ``.concat()`` (:issue:`18523`)
+- Bug in :func:`concat` when concatting sparse and dense series it returns only a ``SparseDataFrame``. Should be a ``DataFrame``. (:issue:`18914`, :issue:`18686`, and :issue:`16874`)
 -
 
 
