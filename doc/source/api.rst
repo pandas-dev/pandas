@@ -2500,7 +2500,7 @@ Scalar introspection
 Extensions
 ----------
 
-These are primarily intented for library authors looking to extend pandas
+These are primarily intended for library authors looking to extend pandas
 objects.
 
 .. currentmodule:: pandas

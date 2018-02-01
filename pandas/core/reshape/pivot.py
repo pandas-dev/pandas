@@ -99,19 +99,15 @@ def pivot_table(data, values=None, index=None, columns=None, aggfunc='mean',
 
     if not dropna:
         from pandas import MultiIndex
-        try:
+        if table.index.nlevels > 1:
             m = MultiIndex.from_arrays(cartesian_product(table.index.levels),
                                        names=table.index.names)
             table = table.reindex(m, axis=0)
-        except AttributeError:
-            pass  # it's a single level
 
-        try:
+        if table.columns.nlevels > 1:
             m = MultiIndex.from_arrays(cartesian_product(table.columns.levels),
                                        names=table.columns.names)
             table = table.reindex(m, axis=1)
-        except AttributeError:
-            pass  # it's a single level or a series
 
     if isinstance(table, ABCDataFrame):
         table = table.sort_index(axis=1)
