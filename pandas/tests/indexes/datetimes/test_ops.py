@@ -7,7 +7,6 @@ from datetime import datetime
 
 from itertools import product
 import pandas as pd
-from pandas.errors import NullFrequencyError
 import pandas._libs.tslib as tslib
 from pandas._libs.tslibs.offsets import shift_months
 import pandas.util.testing as tm
@@ -143,76 +142,6 @@ class TestDatetimeIndexOps(Ops):
                 ValueError, errmsg, np.argmin, dr, out=0)
             tm.assert_raises_regex(
                 ValueError, errmsg, np.argmax, dr, out=0)
-
-    def test_round_daily(self):
-        dti = pd.date_range('20130101 09:10:11', periods=5)
-        result = dti.round('D')
-        expected = pd.date_range('20130101', periods=5)
-        tm.assert_index_equal(result, expected)
-
-        dti = dti.tz_localize('UTC').tz_convert('US/Eastern')
-        result = dti.round('D')
-        expected = pd.date_range('20130101',
-                                 periods=5).tz_localize('US/Eastern')
-        tm.assert_index_equal(result, expected)
-
-        result = dti.round('s')
-        tm.assert_index_equal(result, dti)
-
-        # invalid
-        for freq in ['Y', 'M', 'foobar']:
-            pytest.raises(ValueError, lambda: dti.round(freq))
-
-    def test_round(self):
-        for tz in self.tz:
-            rng = pd.date_range(start='2016-01-01', periods=5,
-                                freq='30Min', tz=tz)
-            elt = rng[1]
-
-            expected_rng = DatetimeIndex([
-                Timestamp('2016-01-01 00:00:00', tz=tz, freq='30T'),
-                Timestamp('2016-01-01 00:00:00', tz=tz, freq='30T'),
-                Timestamp('2016-01-01 01:00:00', tz=tz, freq='30T'),
-                Timestamp('2016-01-01 02:00:00', tz=tz, freq='30T'),
-                Timestamp('2016-01-01 02:00:00', tz=tz, freq='30T'),
-            ])
-            expected_elt = expected_rng[1]
-
-            tm.assert_index_equal(rng.round(freq='H'), expected_rng)
-            assert elt.round(freq='H') == expected_elt
-
-            msg = pd._libs.tslibs.frequencies._INVALID_FREQ_ERROR
-            with tm.assert_raises_regex(ValueError, msg):
-                rng.round(freq='foo')
-            with tm.assert_raises_regex(ValueError, msg):
-                elt.round(freq='foo')
-
-            msg = "<MonthEnd> is a non-fixed frequency"
-            tm.assert_raises_regex(ValueError, msg, rng.round, freq='M')
-            tm.assert_raises_regex(ValueError, msg, elt.round, freq='M')
-
-            # GH 14440 & 15578
-            index = pd.DatetimeIndex(['2016-10-17 12:00:00.0015'], tz=tz)
-            result = index.round('ms')
-            expected = pd.DatetimeIndex(['2016-10-17 12:00:00.002000'], tz=tz)
-            tm.assert_index_equal(result, expected)
-
-            for freq in ['us', 'ns']:
-                tm.assert_index_equal(index, index.round(freq))
-
-            index = pd.DatetimeIndex(['2016-10-17 12:00:00.00149'], tz=tz)
-            result = index.round('ms')
-            expected = pd.DatetimeIndex(['2016-10-17 12:00:00.001000'], tz=tz)
-            tm.assert_index_equal(result, expected)
-
-            index = pd.DatetimeIndex(['2016-10-17 12:00:00.001501031'])
-            result = index.round('10ns')
-            expected = pd.DatetimeIndex(['2016-10-17 12:00:00.001501030'])
-            tm.assert_index_equal(result, expected)
-
-            with tm.assert_produces_warning():
-                ts = '2016-10-17 12:00:00.001501031'
-                pd.DatetimeIndex([ts]).round('1010ns')
 
     def test_repeat_range(self):
         rng = date_range('1/1/2000', '1/1/2001')
@@ -585,52 +514,6 @@ class TestDatetimeIndexOps(Ops):
         result = idx._nat_new(box=False)
         exp = np.array([tslib.iNaT] * 5, dtype=np.int64)
         tm.assert_numpy_array_equal(result, exp)
-
-    def test_shift_no_freq(self):
-        # GH#19147
-        dti = pd.DatetimeIndex(['2011-01-01 10:00', '2011-01-01'], freq=None)
-        with pytest.raises(NullFrequencyError):
-            dti.shift(2)
-
-    def test_shift(self):
-        # GH 9903
-        for tz in self.tz:
-            idx = pd.DatetimeIndex([], name='xxx', tz=tz)
-            tm.assert_index_equal(idx.shift(0, freq='H'), idx)
-            tm.assert_index_equal(idx.shift(3, freq='H'), idx)
-
-            idx = pd.DatetimeIndex(['2011-01-01 10:00', '2011-01-01 11:00'
-                                    '2011-01-01 12:00'], name='xxx', tz=tz)
-            tm.assert_index_equal(idx.shift(0, freq='H'), idx)
-            exp = pd.DatetimeIndex(['2011-01-01 13:00', '2011-01-01 14:00'
-                                    '2011-01-01 15:00'], name='xxx', tz=tz)
-            tm.assert_index_equal(idx.shift(3, freq='H'), exp)
-            exp = pd.DatetimeIndex(['2011-01-01 07:00', '2011-01-01 08:00'
-                                    '2011-01-01 09:00'], name='xxx', tz=tz)
-            tm.assert_index_equal(idx.shift(-3, freq='H'), exp)
-
-    # TODO: moved from test_datetimelike; de-duplicate with test_shift above
-    def test_shift2(self):
-        # test shift for datetimeIndex and non datetimeIndex
-        # GH8083
-        drange = pd.date_range('20130101', periods=5)
-        result = drange.shift(1)
-        expected = pd.DatetimeIndex(['2013-01-02', '2013-01-03', '2013-01-04',
-                                     '2013-01-05',
-                                     '2013-01-06'], freq='D')
-        tm.assert_index_equal(result, expected)
-
-        result = drange.shift(-1)
-        expected = pd.DatetimeIndex(['2012-12-31', '2013-01-01', '2013-01-02',
-                                     '2013-01-03', '2013-01-04'],
-                                    freq='D')
-        tm.assert_index_equal(result, expected)
-
-        result = drange.shift(3, freq='2D')
-        expected = pd.DatetimeIndex(['2013-01-07', '2013-01-08', '2013-01-09',
-                                     '2013-01-10',
-                                     '2013-01-11'], freq='D')
-        tm.assert_index_equal(result, expected)
 
     def test_nat(self):
         assert pd.DatetimeIndex._na_value is pd.NaT

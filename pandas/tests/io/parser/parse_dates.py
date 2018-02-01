@@ -11,7 +11,7 @@ from datetime import datetime, date
 import pytest
 import numpy as np
 from pandas._libs.tslibs import parsing
-from pandas._libs.lib import Timestamp
+from pandas._libs.tslib import Timestamp
 
 import pandas as pd
 import pandas.io.parsers as parsers

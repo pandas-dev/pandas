@@ -10,7 +10,7 @@ import numpy as np
 import pandas as pd
 from pandas.compat.numpy import np_datetime64_compat
 import pandas.util.testing as tm
-from pandas.errors import PerformanceWarning
+from pandas.errors import PerformanceWarning, NullFrequencyError
 from pandas import (Timestamp, Timedelta, Series,
                     DatetimeIndex, TimedeltaIndex,
                     date_range)
@@ -353,6 +353,64 @@ class TestDatetimeIndexArithmetic(object):
                                  periods=10, tz=tz)
         rng -= one
         tm.assert_index_equal(rng, expected)
+
+    # -------------------------------------------------------------
+    # DatetimeIndex.shift is used in integer addition
+
+    def test_dti_shift_tzaware(self, tz):
+        # GH#9903
+        idx = pd.DatetimeIndex([], name='xxx', tz=tz)
+        tm.assert_index_equal(idx.shift(0, freq='H'), idx)
+        tm.assert_index_equal(idx.shift(3, freq='H'), idx)
+
+        idx = pd.DatetimeIndex(['2011-01-01 10:00', '2011-01-01 11:00'
+                                '2011-01-01 12:00'], name='xxx', tz=tz)
+        tm.assert_index_equal(idx.shift(0, freq='H'), idx)
+        exp = pd.DatetimeIndex(['2011-01-01 13:00', '2011-01-01 14:00'
+                                '2011-01-01 15:00'], name='xxx', tz=tz)
+        tm.assert_index_equal(idx.shift(3, freq='H'), exp)
+        exp = pd.DatetimeIndex(['2011-01-01 07:00', '2011-01-01 08:00'
+                                '2011-01-01 09:00'], name='xxx', tz=tz)
+        tm.assert_index_equal(idx.shift(-3, freq='H'), exp)
+
+    def test_dti_shift_freqs(self):
+        # test shift for DatetimeIndex and non DatetimeIndex
+        # GH#8083
+        drange = pd.date_range('20130101', periods=5)
+        result = drange.shift(1)
+        expected = pd.DatetimeIndex(['2013-01-02', '2013-01-03', '2013-01-04',
+                                     '2013-01-05',
+                                     '2013-01-06'], freq='D')
+        tm.assert_index_equal(result, expected)
+
+        result = drange.shift(-1)
+        expected = pd.DatetimeIndex(['2012-12-31', '2013-01-01', '2013-01-02',
+                                     '2013-01-03', '2013-01-04'],
+                                    freq='D')
+        tm.assert_index_equal(result, expected)
+
+        result = drange.shift(3, freq='2D')
+        expected = pd.DatetimeIndex(['2013-01-07', '2013-01-08', '2013-01-09',
+                                     '2013-01-10',
+                                     '2013-01-11'], freq='D')
+        tm.assert_index_equal(result, expected)
+
+    def test_dti_shift_int(self):
+        rng = date_range('1/1/2000', periods=20)
+
+        result = rng + 5
+        expected = rng.shift(5)
+        tm.assert_index_equal(result, expected)
+
+        result = rng - 5
+        expected = rng.shift(-5)
+        tm.assert_index_equal(result, expected)
+
+    def test_dti_shift_no_freq(self):
+        # GH#19147
+        dti = pd.DatetimeIndex(['2011-01-01 10:00', '2011-01-01'], freq=None)
+        with pytest.raises(NullFrequencyError):
+            dti.shift(2)
 
     # -------------------------------------------------------------
     # Binary operations DatetimeIndex and timedelta-like
