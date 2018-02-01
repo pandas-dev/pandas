@@ -529,7 +529,6 @@ I/O
 - Bug in :func:`DataFrame.to_parquet` where an exception was raised if the write destination is S3 (:issue:`19134`)
 - :class:`Interval` now supported in :func:`DataFrame.to_excel` for all Excel file types (:issue:`19242`)
 - :class:`Timedelta` now supported in :func:`DataFrame.to_excel` for xls file type (:issue:`19242`, :issue:`9155`)
--
 
 Plotting
 ^^^^^^^^
@@ -553,7 +552,7 @@ Sparse
 ^^^^^^
 
 - Bug in which creating a ``SparseDataFrame`` from a dense ``Series`` or an unsupported type raised an uncontrolled exception (:issue:`19374`)
--
+- Bug in :class:`SparseDataFrame.to_csv` causing exception (:issue:`19384`)
 -
 
 Reshaping
