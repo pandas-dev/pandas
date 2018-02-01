@@ -377,11 +377,11 @@ class _FrequencyInferer(object):
 
     @cache_readonly
     def deltas(self):
-        return unique(np.diff(self.values))
+        return np.sort(unique(np.diff(self.values)))
 
     @cache_readonly
     def deltas_asi8(self):
-        return unique(np.diff(self.index.asi8))
+        return np.sort(unique(np.diff(self.index.asi8)))
 
     @cache_readonly
     def is_unique(self):
@@ -487,11 +487,11 @@ class _FrequencyInferer(object):
     @cache_readonly
     def mdiffs(self):
         nmonths = self.fields['Y'] * 12 + self.fields['M']
-        return unique(np.diff(nmonths.astype('i8')))
+        return np.sort(unique(np.diff(nmonths.astype('i8'))))
 
     @cache_readonly
     def ydiffs(self):
-        return unique(np.diff(self.fields['Y'].astype('i8')))
+        return np.sort(unique(np.diff(self.fields['Y'].astype('i8'))))
 
     def _infer_daily_rule(self):
         annual_rule = self._get_annual_rule()
