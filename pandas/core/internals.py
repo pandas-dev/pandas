@@ -112,7 +112,7 @@ class Block(PandasObject):
         self.mgr_locs = placement
         self.values = values
 
-        if (self._validate_ndim and ndim and
+        if (self._validate_ndim and self.ndim and
                 len(self.mgr_locs) != len(self.values)):
             raise ValueError(
                 'Wrong number of items passed {val}, placement implies '
