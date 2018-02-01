@@ -9,6 +9,7 @@ import numpy as np
 from dateutil.tz import tzutc
 from pytz import utc
 
+from pandas.compat import long
 from pandas import Timestamp
 
 
