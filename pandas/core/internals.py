@@ -1830,9 +1830,11 @@ class ExtensionBlock(NonConsolidatableMixIn, Block):
 
     ExtensionArrays are limited to 1-D.
     """
-    def __init__(self, values, placement, ndim=None):
-        self._holder = type(values)
-        super(ExtensionBlock, self).__init__(values, placement, ndim=ndim)
+    @property
+    def _holder(self):
+        # For extension blocks, the holder is values-dependent so we
+        # use a property.
+        return type(self.values)
 
     @property
     def is_view(self):
