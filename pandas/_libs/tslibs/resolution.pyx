@@ -10,11 +10,6 @@ cnp.import_array()
 
 from ..util cimport is_string_object, get_nat
 
-from pandas._libs.khash cimport (khiter_t,
-                                 kh_destroy_int64, kh_put_int64,
-                                 kh_init_int64, kh_int64_t,
-                                 kh_resize_int64, kh_get_int64)
-
 from cpython.datetime cimport datetime
 
 from np_datetime cimport pandas_datetimestruct, dt64_to_dtstruct
@@ -346,34 +341,6 @@ class Resolution(object):
 # ----------------------------------------------------------------------
 # Frequency Inference
 
-
-# TODO: this is non performant logic here (and duplicative) and this
-# simply should call unique_1d directly
-# plus no reason to depend on khash directly
-cdef unique_deltas(ndarray[int64_t] arr):
-    cdef:
-        Py_ssize_t i, n = len(arr)
-        int64_t val
-        khiter_t k
-        kh_int64_t *table
-        int ret = 0
-        list uniques = []
-
-    table = kh_init_int64()
-    kh_resize_int64(table, 10)
-    for i in range(n - 1):
-        val = arr[i + 1] - arr[i]
-        k = kh_get_int64(table, val)
-        if k == table.n_buckets:
-            kh_put_int64(table, val, &ret)
-            uniques.append(val)
-    kh_destroy_int64(table)
-
-    result = np.array(uniques, dtype=np.int64)
-    result.sort()
-    return result
-
-
 def _is_multiple(us, mult):
     return us % mult == 0
 
@@ -410,11 +377,11 @@ class _FrequencyInferer(object):
 
     @cache_readonly
     def deltas(self):
-        return unique_deltas(self.values)
+        return unique(np.diff(self.values))
 
     @cache_readonly
     def deltas_asi8(self):
-        return unique_deltas(self.index.asi8)
+        return unique(np.diff(self.index.asi8))
 
     @cache_readonly
     def is_unique(self):
@@ -520,11 +487,11 @@ class _FrequencyInferer(object):
     @cache_readonly
     def mdiffs(self):
         nmonths = self.fields['Y'] * 12 + self.fields['M']
-        return unique_deltas(nmonths.astype('i8'))
+        return unique(np.diff(nmonths.astype('i8')))
 
     @cache_readonly
     def ydiffs(self):
-        return unique_deltas(self.fields['Y'].astype('i8'))
+        return unique(np.diff(self.fields['Y'].astype('i8')))
 
     def _infer_daily_rule(self):
         annual_rule = self._get_annual_rule()
