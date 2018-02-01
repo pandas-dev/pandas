@@ -1,13 +1,14 @@
 import numpy as np
+import pytest
 from pandas import SparseDataFrame, read_csv
 from pandas.util import testing as tm
 
-
-def test_to_csv_sparse_dataframe():
+class TestSparseDataFrameToCsv(object):
     fill_values = [np.nan, 0, None, 1]
 
-    for fill_value in fill_values:
-        sdf = SparseDataFrame({'a': fill_values},
+    @pytest.mark.parametrize('fill_value', fill_values)
+    def test_to_csv_sparse_dataframe(self, fill_value):
+        sdf = SparseDataFrame({'a': type(self).fill_values},
                               default_fill_value=fill_value)
 
         with tm.ensure_clean('sparse_df.csv') as path:
