@@ -70,9 +70,9 @@ def _ensure_data(values, dtype=None):
             # we are actually coercing to uint64
             # until our algos support uint8 directly (see TODO)
             return np.asarray(values).astype('uint64'), 'bool', 'uint64'
-        elif is_signed_integer_dtype(values) or is_signed_integer_dtype(dtype):
+        elif is_signed_integer_dtype(values) and is_signed_integer_dtype(dtype):
             return _ensure_int64(values), 'int64', 'int64'
-        elif (is_unsigned_integer_dtype(values) or
+        elif (is_unsigned_integer_dtype(values) and
               is_unsigned_integer_dtype(dtype)):
             return _ensure_uint64(values), 'uint64', 'uint64'
         elif is_float_dtype(values) or is_float_dtype(dtype):
