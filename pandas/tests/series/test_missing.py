@@ -1079,6 +1079,45 @@ class TestSeriesInterpolateData(TestData):
         pytest.raises(ValueError, s.interpolate, method='linear',
                       limit_direction='abc')
 
+    # limit_area introduced GH #16284
+    def test_interp_limit_area(self):
+        # These tests are for issue #9218 -- fill NaNs in both directions.
+        s = Series([nan, nan, 3, nan, nan, nan, 7, nan, nan])
+
+        expected = Series([nan, nan, 3., 4., 5., 6., 7., nan, nan])
+        result = s.interpolate(method='linear', limit_area='inside')
+        assert_series_equal(result, expected)
+
+        expected = Series([nan, nan, 3., 4., nan, nan, 7., nan, nan])
+        result = s.interpolate(method='linear', limit_area='inside',
+                               limit=1)
+
+        expected = Series([nan, nan, 3., 4., nan, 6., 7., nan, nan])
+        result = s.interpolate(method='linear', limit_area='inside',
+                               limit_direction='both', limit=1)
+        assert_series_equal(result, expected)
+
+        expected = Series([nan, nan, 3., nan, nan, nan, 7., 7., 7.])
+        result = s.interpolate(method='linear', limit_area='outside')
+        assert_series_equal(result, expected)
+
+        expected = Series([nan, nan, 3., nan, nan, nan, 7., 7., nan])
+        result = s.interpolate(method='linear', limit_area='outside',
+                               limit=1)
+
+        expected = Series([nan, 3., 3., nan, nan, nan, 7., 7., nan])
+        result = s.interpolate(method='linear', limit_area='outside',
+                               limit_direction='both', limit=1)
+        assert_series_equal(result, expected)
+
+        expected = Series([3., 3., 3., nan, nan, nan, 7., nan, nan])
+        result = s.interpolate(method='linear', limit_area='outside',
+                               direction='backward')
+
+        # raises an error even if limit type is wrong.
+        pytest.raises(ValueError, s.interpolate, method='linear',
+                      limit_area='abc')
+
     def test_interp_limit_direction(self):
         # These tests are for issue #9218 -- fill NaNs in both directions.
         s = Series([1, 3, np.nan, np.nan, np.nan, 11])

@@ -5085,6 +5085,12 @@ class NDFrame(PandasObject, SelectionMixin):
         limit : int, default None.
             Maximum number of consecutive NaNs to fill. Must be greater than 0.
         limit_direction : {'forward', 'backward', 'both'}, default 'forward'
+        limit_area : {'inside', 'outside'}, default None
+            * None: (default) no fill restriction
+            * 'inside' Only fill NaNs surrounded by valid values (interpolate).
+            * 'outside' Only fill NaNs outside valid values (extrapolate).
+            .. versionadded:: 0.21.0
+
             If limit is specified, consecutive NaNs will be filled in this
             direction.
         inplace : bool, default False
@@ -5118,7 +5124,8 @@ class NDFrame(PandasObject, SelectionMixin):
 
     @Appender(_shared_docs['interpolate'] % _shared_doc_kwargs)
     def interpolate(self, method='linear', axis=0, limit=None, inplace=False,
-                    limit_direction='forward', downcast=None, **kwargs):
+                    limit_direction='forward', limit_area=None,
+                    downcast=None, **kwargs):
         """
         Interpolate values according to different methods.
         """
@@ -5167,6 +5174,7 @@ class NDFrame(PandasObject, SelectionMixin):
         new_data = data.interpolate(method=method, axis=ax, index=index,
                                     values=_maybe_transposed_self, limit=limit,
                                     limit_direction=limit_direction,
+                                    limit_area=limit_area,
                                     inplace=inplace, downcast=downcast,
                                     **kwargs)
 
