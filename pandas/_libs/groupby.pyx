@@ -139,8 +139,10 @@ def group_rank_object(ndarray[float64_t, ndim=2] out,
         Py_ssize_t i, j, N, K
         int64_t val_start=0, grp_start=0, dups=0, sum_ranks=0
         ndarray[int64_t] _as
+        bint pct
 
     tiebreak = tiebreakers[kwargs['ties_method']]
+    pct = kwargs['pct']
     N, K = (<object> values).shape
 
     _as = np.lexsort((values[:, 0], labels))
@@ -175,8 +177,11 @@ def group_rank_object(ndarray[float64_t, ndim=2] out,
             dups = sum_ranks = 0
             val_start = i
 
-        if i == 0 or labels[_as[i]] != labels[_as[i-1]]:
-            grp_start = i
+        if i == N - 1 or labels[_as[i]] != labels[_as[i+1]]:
+            if pct:
+                for j in range(grp_start, i + 1):
+                    out[_as[j], 0] = out[_as[j], 0] / (i - grp_start + 1)
+            grp_start = i + 1
 
 
 cdef inline float64_t median_linear(float64_t* a, int n) nogil:
