@@ -1680,6 +1680,13 @@ class NonConsolidatableMixIn(object):
     _holder = None
 
     def __init__(self, values, placement, ndim=None):
+        """Initialize a non-consolidatable block.
+
+        'ndim' may be inferred from 'placement'.
+
+        This will call continue to call __init__ for the other base
+        classes mixed in with this Mixin.
+        """
         # Placement must be converted to BlockPlacement so that we can check
         # its length
         if not isinstance(placement, BlockPlacement):
@@ -1806,7 +1813,7 @@ class ExtensionBlock(NonConsolidatableMixIn, Block):
 
     Notes
     -----
-    This is the holds all 3rd-party extension types. It's also the immediate
+    This holds all 3rd-party extension array types. It's also the immediate
     parent class for our internal extension types' blocks, CategoricalBlock.
 
     ExtensionArrays are limited to 1-D.

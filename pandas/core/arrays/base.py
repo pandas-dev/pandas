@@ -26,6 +26,12 @@ class ExtensionArray(object):
     * _formatting_values
     * _concat_same_type
 
+    Some additional methods are required to satisfy pandas' internal, private
+    block API.
+
+    * _concat_same_type
+    * _can_hold_na
+
     This class does not inherit from 'abc.ABCMeta' for performance reasons.
     Methods and properties required by the interface raise
     ``pandas.errors.AbstractMethodError`` and no ``register`` method is
@@ -134,7 +140,10 @@ class ExtensionArray(object):
     # ------------------------------------------------------------------------
     def isna(self):
         # type: () -> np.ndarray
-        """Boolean NumPy array indicating if each value is missing."""
+        """Boolean NumPy array indicating if each value is missing.
+
+        This should return a 1-D array the same length as 'self'.
+        """
         raise AbstractMethodError(self)
 
     # ------------------------------------------------------------------------

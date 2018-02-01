@@ -2132,7 +2132,7 @@ class Categorical(ExtensionArray, PandasObject):
         return self._constructor(values=codes, categories=self.categories,
                                  ordered=self.ordered, fastpath=True)
 
-    # ExtensionArray Interface things
+    # Implement the ExtensionArray interface
     @property
     def _can_hold_na(self):
         return True
