@@ -3,6 +3,7 @@ import pytest
 from pandas import SparseDataFrame, read_csv
 from pandas.util import testing as tm
 
+
 class TestSparseDataFrameToCsv(object):
     fill_values = [np.nan, 0, None, 1]
 
