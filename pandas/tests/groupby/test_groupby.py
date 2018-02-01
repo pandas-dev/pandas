@@ -1945,7 +1945,6 @@ class TestGroupBy(MixIn):
         df = DataFrame({'key': ['foo']*5, 'val': vals})
         result = df.groupby('key').rank(method=ties_method, ascending=ascending,
                                         pct=pct)
-
         assert_frame_equal(result, exp)
 
     @pytest.mark.parametrize("vals", [

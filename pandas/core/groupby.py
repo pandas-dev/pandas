@@ -1007,7 +1007,10 @@ b  2""")
                 continue
             except AssertionError as e:
                 raise GroupByError(str(e))
-            output[name] = self._try_cast(result, obj)
+            if self._transform_should_cast(how):
+                output[name] = self._try_cast(result, obj)
+            else:
+                output[name] = result
 
         if len(output) == 0:
             raise DataError('No numeric types to aggregate')
@@ -2325,10 +2328,13 @@ class BaseGrouper(object):
             else:
                 raise
 
-        if is_numeric:
-            out_dtype = '%s%d' % (values.dtype.kind, values.dtype.itemsize)
+        if how == 'rank':
+            out_dtype = 'float'
         else:
-            out_dtype = 'object'
+            if is_numeric:
+                out_dtype = '%s%d' % (values.dtype.kind, values.dtype.itemsize)
+            else:
+                out_dtype = 'object'
 
         labels, _, _ = self.group_info
 

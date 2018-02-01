@@ -446,7 +446,7 @@ def group_nth_{{name}}(ndarray[{{dest_type2}}, ndim=2] out,
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
-def group_rank_{{name}}(ndarray[{{dest_type2}}, ndim=2] out,
+def group_rank_{{name}}(ndarray[float64_t, ndim=2] out,
                         ndarray[{{c_type}}, ndim=2] values,
                         ndarray[int64_t] labels,
                         bint is_datetimelike, **kwargs):
@@ -472,7 +472,21 @@ def group_rank_{{name}}(ndarray[{{dest_type2}}, ndim=2] out,
             if tiebreak == TIEBREAK_AVERAGE:
                 for j in range(i - dups + 1, i + 1):
                     out[_as[j], 0] = sum_ranks / dups
-
+            elif tiebreak == TIEBREAK_MIN:
+                for j in range(i - dups + 1, i + 1):
+                    out[_as[j], 0] = i - grp_start - dups + 2
+            elif tiebreak == TIEBREAK_MAX:
+                for j in range(i - dups + 1, i + 1):
+                    out[_as[j], 0] = i - grp_start + 1
+            elif tiebreak == TIEBREAK_FIRST:
+                for j in range(i - dups + 1, i + 1):
+                    out[_as[j], 0] = j + 1
+            elif tiebreak == TIEBREAK_FIRST_DESCENDING:
+                for j in range(i - dups + 1, i + 1):
+                   out[_as[j], 0]  = 2 * (i - grp_start) - j - dups + 2
+            elif tiebreak == TIEBREAK_DENSE:
+                for j in range(i - dups + 1, i + 1):
+                    out[_as[j], 0] = val_start - grp_start
             if (i == N - 1 or (
                     (values[_as[i], 0] != values[_as[i+1], 0]) and not
                     (isnan(values[_as[i], 0]) and
