@@ -11,7 +11,7 @@ import re
 from distutils.version import LooseVersion
 import itertools
 from pandas import (Index, MultiIndex, DataFrame, DatetimeIndex,
-                    Series, Categorical)
+                    Series, Categorical, TimedeltaIndex, SparseArray)
 from pandas.compat import OrderedDict, lrange
 from pandas.core.sparse.array import SparseArray
 from pandas.core.internals import (BlockPlacement, SingleBlockManager,
@@ -1261,6 +1261,18 @@ class TestCanHoldElement(object):
         result = op(s, e).dtypes
         expected = op(s, value).dtypes
         assert_series_equal(result, expected)
+
+
+@pytest.mark.parametrize('typestr, holder', [
+    ('category', Categorical),
+    ('M8[ns]', DatetimeIndex),
+    ('M8[ns, US/Central]', DatetimeIndex),
+    ('m8[ns]', TimedeltaIndex),
+    ('sparse', SparseArray),
+])
+def test_holder(typestr, holder):
+    blk = create_block(typestr, [1])
+    assert blk._holder is holder
 
 
 def test_deprecated_fastpath():

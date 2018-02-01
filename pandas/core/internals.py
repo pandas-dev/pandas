@@ -64,6 +64,7 @@ from pandas.core.index import Index, MultiIndex, _ensure_index
 from pandas.core.indexing import maybe_convert_indices, length_of_indexer
 from pandas.core.arrays import Categorical
 from pandas.core.indexes.datetimes import DatetimeIndex
+from pandas.core.indexes.timedeltas import TimedeltaIndex
 from pandas.io.formats.printing import pprint_thing
 
 import pandas.core.missing as missing
@@ -104,7 +105,6 @@ class Block(PandasObject):
     _verify_integrity = True
     _validate_ndim = True
     _ftype = 'dense'
-    _holder = None
     _concatenator = staticmethod(np.concatenate)
 
     def __init__(self, values, placement, ndim=None):
@@ -134,6 +134,15 @@ class Block(PandasObject):
         """
         if self._validate_ndim and values.ndim != ndim:
             raise ValueError('Wrong number of dimensions')
+
+    @property
+    def _holder(self):
+        """The array-like that can hold the underlying values.
+
+        None for 'Block', overridden by subclasses that don't
+        use an ndarray.
+        """
+        return None
 
     @property
     def _consolidate_key(self):
@@ -1689,7 +1698,6 @@ class NonConsolidatableMixIn(object):
     _can_consolidate = False
     _verify_integrity = False
     _validate_ndim = False
-    _holder = None
 
     def __init__(self, values, placement, ndim=None):
         """Initialize a non-consolidatable block.
@@ -1832,8 +1840,7 @@ class ExtensionBlock(NonConsolidatableMixIn, Block):
     """
     @property
     def _holder(self):
-        # For extension blocks, the holder is values-dependent so we
-        # use a property.
+        # For extension blocks, the holder is values-dependent.
         return type(self.values)
 
     @property
@@ -2012,6 +2019,11 @@ class IntBlock(NumericBlock):
 
 
 class DatetimeLikeBlockMixin(object):
+    """Mixin class for DatetimeBlock and DatetimeTZBlock."""
+
+    @property
+    def _holder(self):
+        return DatetimeIndex
 
     @property
     def _na_value(self):
@@ -2043,6 +2055,10 @@ class TimeDeltaBlock(DatetimeLikeBlockMixin, IntBlock):
 
         super(TimeDeltaBlock, self).__init__(values,
                                              placement=placement, ndim=ndim)
+
+    @property
+    def _holder(self):
+        return TimedeltaIndex
 
     @property
     def _box_func(self):
@@ -2424,7 +2440,6 @@ class CategoricalBlock(ExtensionBlock):
     is_categorical = True
     _verify_integrity = True
     _can_hold_na = True
-    _holder = Categorical
     _concatenator = staticmethod(_concat._concat_categorical)
 
     def __init__(self, values, placement, ndim=None):
@@ -2434,6 +2449,10 @@ class CategoricalBlock(ExtensionBlock):
         super(CategoricalBlock, self).__init__(_maybe_to_categorical(values),
                                                placement=placement,
                                                ndim=ndim)
+
+    @property
+    def _holder(self):
+        return Categorical
 
     @property
     def array_dtype(self):
@@ -2673,7 +2692,6 @@ class DatetimeBlock(DatetimeLikeBlockMixin, Block):
 class DatetimeTZBlock(NonConsolidatableMixIn, DatetimeBlock):
     """ implement a datetime64 block with a tz attribute """
     __slots__ = ()
-    _holder = DatetimeIndex
     _concatenator = staticmethod(_concat._concat_datetime)
     is_datetimetz = True
 
@@ -2856,7 +2874,6 @@ class SparseBlock(NonConsolidatableMixIn, Block):
     _box_to_block_values = False
     _can_hold_na = True
     _ftype = 'sparse'
-    _holder = SparseArray
     _concatenator = staticmethod(_concat._concat_sparse)
 
     def __init__(self, values, placement, ndim=None):
@@ -2865,6 +2882,10 @@ class SparseBlock(NonConsolidatableMixIn, Block):
             values = values.values
         assert isinstance(values, SparseArray)
         super(SparseBlock, self).__init__(values, placement, ndim=ndim)
+
+    @property
+    def _holder(self):
+        return SparseArray
 
     @property
     def shape(self):
