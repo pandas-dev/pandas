@@ -3,7 +3,7 @@
 import pytest
 
 from datetime import datetime
-from pandas.compat import range, PY3
+from pandas.compat import range, PY3, long
 
 import numpy as np
 
