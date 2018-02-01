@@ -182,6 +182,29 @@ class DateOffset(BaseOffset):
     date + BDay(0) == BDay.rollforward(date)
 
     Since 0 is a bit weird, we suggest avoiding its use.
+
+    Parameters
+    ----------
+    n : int (default 1)
+    normalize : bool (default False)
+    years : int or None
+    months : int or None
+    weeks : int or None
+    days : int or None
+    hours : int or None
+    minutes : int or None
+    seconds : int or None
+    microseconds : int or None
+    nanoseconds : int or None
+    year : int or None
+    month : int or None
+    day : int or None
+    weekday : int or None
+    hour : int or None
+    minute : int or None
+    second : int or None
+    microsecond : int or None
+    nanosecond : int or None
     """
     _use_relativedelta = False
     _adjust_dst = False
