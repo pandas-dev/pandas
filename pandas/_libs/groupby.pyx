@@ -125,6 +125,59 @@ def group_last_object(ndarray[object, ndim=2] out,
             else:
                 out[i, j] = resx[i, j]
 
+@cython.boundscheck(False)
+@cython.wraparound(False)
+def group_rank_object(ndarray[float64_t, ndim=2] out,
+                      ndarray[object, ndim=2] values,
+                      ndarray[int64_t] labels,
+                      bint is_datetimelike, **kwargs):
+    """
+    Only transforms on axis=0
+    """
+    cdef:
+        int tiebreak
+        Py_ssize_t i, j, N, K
+        int64_t val_start=0, grp_start=0, dups=0, sum_ranks=0
+        ndarray[int64_t] _as
+
+    tiebreak = tiebreakers[kwargs['ties_method']]
+    N, K = (<object> values).shape
+
+    _as = np.lexsort((values[:, 0], labels))
+
+    for i in range(N):
+        dups += 1
+        sum_ranks += i - grp_start + 1
+
+        if tiebreak == TIEBREAK_AVERAGE:
+            for j in range(i - dups + 1, i + 1):
+                out[_as[j], 0] = sum_ranks / dups
+        elif tiebreak == TIEBREAK_MIN:
+            for j in range(i - dups + 1, i + 1):
+                out[_as[j], 0] = i - grp_start - dups + 2
+        elif tiebreak == TIEBREAK_MAX:
+            for j in range(i - dups + 1, i + 1):
+                out[_as[j], 0] = i - grp_start + 1
+        elif tiebreak == TIEBREAK_FIRST:
+            for j in range(i - dups + 1, i + 1):
+                out[_as[j], 0] = j + 1
+        elif tiebreak == TIEBREAK_FIRST_DESCENDING:
+            for j in range(i - dups + 1, i + 1):
+                out[_as[j], 0]  = 2 * (i - grp_start) - j - dups + 2
+        elif tiebreak == TIEBREAK_DENSE:
+            for j in range(i - dups + 1, i + 1):
+                out[_as[j], 0] = val_start - grp_start
+
+        if (i == N - 1 or (
+                (values[_as[i], 0] != values[_as[i+1], 0]) and not
+                (values[_as[i], 0] is np.nan and values[_as[i+1], 0] is np.nan)
+                )):
+            dups = sum_ranks = 0
+            val_start = i
+
+        if i == 0 or labels[_as[i]] != labels[_as[i-1]]:
+            grp_start = i
+
 
 cdef inline float64_t median_linear(float64_t* a, int n) nogil:
     cdef int i, j, na_count = 0

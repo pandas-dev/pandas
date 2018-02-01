@@ -1776,7 +1776,7 @@ class GroupBy(_GroupBy):
     def rank(self, method='average', ascending=True, na_option='keep',
              pct=False, axis=0):
         """Rank within each group"""
-        return self._cython_transform('rank', ties_method=method,
+        return self._cython_transform('rank', numeric_only=False, ties_method=method,
                                       ascending=ascending, na_option=na_option,
                                       pct=pct, axis=axis)
 
