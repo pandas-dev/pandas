@@ -110,10 +110,10 @@ class Block(PandasObject):
     def __init__(self, values, placement, ndim=None):
         if ndim is None:
             ndim = values.ndim
-        elif self._validate_ndim and values.ndim != ndim:
-            raise ValueError('Wrong number of dimensions')
-        self.ndim = ndim
 
+        self._maybe_validate_ndim(values, ndim)
+
+        self.ndim = ndim
         self.mgr_locs = placement
         self.values = values
 
@@ -122,6 +122,18 @@ class Block(PandasObject):
             raise ValueError(
                 'Wrong number of items passed {val}, placement implies '
                 '{mgr}'.format(val=len(self.values), mgr=len(self.mgr_locs)))
+
+    def _maybe_validate_ndim(self, values, ndim):
+        """Maybe check that ``values.ndim`` matches ``ndim``.
+
+        This is not checked if ``self._validate_ndim`` is False.
+
+        Raises
+        ------
+        ValueError : the number of dimensions do not match
+        """
+        if self._validate_ndim and values.ndim != ndim:
+            raise ValueError('Wrong number of dimensions')
 
     @property
     def _consolidate_key(self):
