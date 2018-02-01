@@ -1281,3 +1281,12 @@ def test_deprecated_fastpath():
     with tm.assert_produces_warning(DeprecationWarning,
                                     check_stacklevel=False):
         make_block(values, placement=np.arange(3), fastpath=True)
+
+
+def test_validate_ndim():
+    values = np.array([1.0, 2.0])
+    placement = slice(2)
+    msg = "Wrong number of dimensions. values.ndim != ndim \[1 != 2\]"
+
+    with tm.assert_raises_regex(ValueError, msg):
+        make_block(values, placement, ndim=2)

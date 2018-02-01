@@ -108,12 +108,7 @@ class Block(PandasObject):
     _concatenator = staticmethod(np.concatenate)
 
     def __init__(self, values, placement, ndim=None):
-        if ndim is None:
-            ndim = values.ndim
-
-        self._maybe_validate_ndim(values, ndim)
-
-        self.ndim = ndim
+        self.ndim = self._check_ndim(values, ndim)
         self.mgr_locs = placement
         self.values = values
 
@@ -123,17 +118,35 @@ class Block(PandasObject):
                 'Wrong number of items passed {val}, placement implies '
                 '{mgr}'.format(val=len(self.values), mgr=len(self.mgr_locs)))
 
-    def _maybe_validate_ndim(self, values, ndim):
-        """Maybe check that ``values.ndim`` matches ``ndim``.
+    def _check_ndim(self, values, ndim):
+        """ndim inference and validation.
 
-        This is not checked if ``self._validate_ndim`` is False.
+        Infers ndim from 'values' if not provided to __init__.
+        Validates that values.ndim and ndim are consistent if and only if
+        the class variable '_validate_ndim' is True.
+
+        Parameters
+        ----------
+        values : array-like
+        ndim : int or None
+
+        Returns
+        -------
+        ndim : int
 
         Raises
         ------
         ValueError : the number of dimensions do not match
         """
+        if ndim is None:
+            ndim = values.ndim
+
         if self._validate_ndim and values.ndim != ndim:
-            raise ValueError('Wrong number of dimensions')
+            msg = ("Wrong number of dimensions. values.ndim != ndim "
+                   "[{} != {}]")
+            raise ValueError(msg.format(values.ndim, ndim))
+
+        return ndim
 
     @property
     def _holder(self):
