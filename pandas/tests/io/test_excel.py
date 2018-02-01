@@ -2,10 +2,11 @@
 import os
 import sys
 import warnings
-from datetime import datetime, date, time
+from datetime import datetime, date, time, timedelta
 from distutils.version import LooseVersion
 from functools import partial
 from warnings import catch_warnings
+from collections import OrderedDict
 
 import numpy as np
 import pytest
@@ -315,7 +316,7 @@ class ReadingTestsBase(SharedItems):
 
     def test_reader_special_dtypes(self):
 
-        expected = DataFrame.from_items([
+        expected = DataFrame.from_dict(OrderedDict([
             ("IntCol", [1, 2, -3, 4, 0]),
             ("FloatCol", [1.25, 2.25, 1.83, 1.92, 0.0000000005]),
             ("BoolCol", [True, False, True, True, False]),
@@ -325,8 +326,7 @@ class ReadingTestsBase(SharedItems):
             ("DateCol", [datetime(2013, 10, 30), datetime(2013, 10, 31),
                          datetime(1905, 1, 1), datetime(2013, 12, 14),
                          datetime(2015, 3, 14)])
-        ])
-
+        ]))
         basename = 'test_types'
 
         # should read in correctly and infer types
@@ -363,12 +363,12 @@ class ReadingTestsBase(SharedItems):
 
         basename = 'test_converters'
 
-        expected = DataFrame.from_items([
+        expected = DataFrame.from_dict(OrderedDict([
             ("IntCol", [1, 2, -3, -1000, 0]),
             ("FloatCol", [12.5, np.nan, 18.3, 19.2, 0.000000005]),
             ("BoolCol", ['Found', 'Found', 'Found', 'Not found', 'Found']),
             ("StrCol", ['1', np.nan, '3', '4', '5']),
-        ])
+        ]))
 
         converters = {'IntCol': lambda x: int(x) if x != '' else -1000,
                       'FloatCol': lambda x: 10 * x if x else np.nan,
@@ -718,32 +718,30 @@ class XlrdTests(ReadingTestsBase):
 
         if LooseVersion(xlrd.__VERSION__) >= LooseVersion("0.9.3"):
             # Xlrd >= 0.9.3 can handle Excel milliseconds.
-            expected = DataFrame.from_items([("Time",
-                                              [time(1, 2, 3),
-                                               time(2, 45, 56, 100000),
-                                               time(4, 29, 49, 200000),
-                                               time(6, 13, 42, 300000),
-                                               time(7, 57, 35, 400000),
-                                               time(9, 41, 28, 500000),
-                                               time(11, 25, 21, 600000),
-                                               time(13, 9, 14, 700000),
-                                               time(14, 53, 7, 800000),
-                                               time(16, 37, 0, 900000),
-                                               time(18, 20, 54)])])
+            expected = DataFrame.from_dict({"Time": [time(1, 2, 3),
+                                            time(2, 45, 56, 100000),
+                                            time(4, 29, 49, 200000),
+                                            time(6, 13, 42, 300000),
+                                            time(7, 57, 35, 400000),
+                                            time(9, 41, 28, 500000),
+                                            time(11, 25, 21, 600000),
+                                            time(13, 9, 14, 700000),
+                                            time(14, 53, 7, 800000),
+                                            time(16, 37, 0, 900000),
+                                            time(18, 20, 54)]})
         else:
             # Xlrd < 0.9.3 rounds Excel milliseconds.
-            expected = DataFrame.from_items([("Time",
-                                              [time(1, 2, 3),
-                                               time(2, 45, 56),
-                                               time(4, 29, 49),
-                                               time(6, 13, 42),
-                                               time(7, 57, 35),
-                                               time(9, 41, 29),
-                                               time(11, 25, 22),
-                                               time(13, 9, 15),
-                                               time(14, 53, 8),
-                                               time(16, 37, 1),
-                                               time(18, 20, 54)])])
+            expected = DataFrame.from_dict({"Time": [time(1, 2, 3),
+                                            time(2, 45, 56),
+                                            time(4, 29, 49),
+                                            time(6, 13, 42),
+                                            time(7, 57, 35),
+                                            time(9, 41, 29),
+                                            time(11, 25, 22),
+                                            time(13, 9, 15),
+                                            time(14, 53, 8),
+                                            time(16, 37, 1),
+                                            time(18, 20, 54)]})
 
         actual = self.get_exceldf('times_1900', 'Sheet1')
         tm.assert_frame_equal(actual, expected)
@@ -1440,6 +1438,56 @@ class ExcelWriterBase(SharedItems):
                 # to use df_expected to check the result
                 tm.assert_frame_equal(rs2, df_expected)
 
+    def test_to_excel_interval_no_labels(self):
+        # GH19242 - test writing Interval without labels
+        _skip_if_no_xlrd()
+
+        with ensure_clean(self.ext) as path:
+            frame = DataFrame(np.random.randint(-10, 10, size=(20, 1)),
+                              dtype=np.int64)
+            expected = frame.copy()
+            frame['new'] = pd.cut(frame[0], 10)
+            expected['new'] = pd.cut(expected[0], 10).astype(str)
+            frame.to_excel(path, 'test1')
+            reader = ExcelFile(path)
+            recons = read_excel(reader, 'test1')
+            tm.assert_frame_equal(expected, recons)
+
+    def test_to_excel_interval_labels(self):
+        # GH19242 - test writing Interval with labels
+        _skip_if_no_xlrd()
+
+        with ensure_clean(self.ext) as path:
+            frame = DataFrame(np.random.randint(-10, 10, size=(20, 1)),
+                              dtype=np.int64)
+            expected = frame.copy()
+            intervals = pd.cut(frame[0], 10, labels=['A', 'B', 'C', 'D', 'E',
+                                                     'F', 'G', 'H', 'I', 'J'])
+            frame['new'] = intervals
+            expected['new'] = pd.Series(list(intervals))
+            frame.to_excel(path, 'test1')
+            reader = ExcelFile(path)
+            recons = read_excel(reader, 'test1')
+            tm.assert_frame_equal(expected, recons)
+
+    def test_to_excel_timedelta(self):
+        # GH 19242, GH9155 - test writing timedelta to xls
+        _skip_if_no_xlrd()
+
+        with ensure_clean('.xls') as path:
+            frame = DataFrame(np.random.randint(-10, 10, size=(20, 1)),
+                              columns=['A'],
+                              dtype=np.int64
+                              )
+            expected = frame.copy()
+            frame['new'] = frame['A'].apply(lambda x: timedelta(seconds=x))
+            expected['new'] = expected['A'].apply(
+                lambda x: timedelta(seconds=x).total_seconds() / float(86400))
+            frame.to_excel(path, 'test1')
+            reader = ExcelFile(path)
+            recons = read_excel(reader, 'test1')
+            tm.assert_frame_equal(expected, recons)
+
     def test_to_excel_periodindex(self):
         _skip_if_no_xlrd()
 
@@ -1938,7 +1986,7 @@ class ExcelWriterBase(SharedItems):
                      datetime(2013, 1, 13, 18, 20, 52)]
 
         with ensure_clean(self.ext) as path:
-            write_frame = DataFrame.from_items([('A', datetimes)])
+            write_frame = DataFrame({'A': datetimes})
             write_frame.to_excel(path, 'Sheet1')
             read_frame = read_excel(path, 'Sheet1', header=0)
 

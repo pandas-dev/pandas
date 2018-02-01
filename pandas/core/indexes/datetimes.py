@@ -284,7 +284,6 @@ class DatetimeIndex(DatelikeOps, TimelikeOps, DatetimeIndexOpsMixin,
     _left_indexer = _join_i8_wrapper(libjoin.left_join_indexer_int64)
     _left_indexer_unique = _join_i8_wrapper(
         libjoin.left_join_indexer_unique_int64, with_indexers=False)
-    _arrmap = None
 
     @classmethod
     def _add_comparison_methods(cls):

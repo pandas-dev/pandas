@@ -2,16 +2,16 @@
 # cython: boundscheck=False, initializedcheck=False
 
 import numpy as np
-cimport numpy as np
-from numpy cimport uint8_t, uint16_t, int8_t, int64_t
+cimport numpy as cnp
+from numpy cimport uint8_t, uint16_t, int8_t, int64_t, ndarray
 import sas_constants as const
 
 # rle_decompress decompresses data using a Run Length Encoding
 # algorithm.  It is partially documented here:
 #
 # https://cran.r-project.org/web/packages/sas7bdat/vignettes/sas7bdat.pdf
-cdef np.ndarray[uint8_t, ndim=1] rle_decompress(
-        int result_length, np.ndarray[uint8_t, ndim=1] inbuff):
+cdef ndarray[uint8_t, ndim=1] rle_decompress(
+        int result_length, ndarray[uint8_t, ndim=1] inbuff):
 
     cdef:
         uint8_t control_byte, x
@@ -114,8 +114,8 @@ cdef np.ndarray[uint8_t, ndim=1] rle_decompress(
 # rdc_decompress decompresses data using the Ross Data Compression algorithm:
 #
 # http://collaboration.cmc.ec.gc.ca/science/rpn/biblio/ddj/Website/articles/CUJ/1992/9210/ross/ross.htm
-cdef np.ndarray[uint8_t, ndim=1] rdc_decompress(
-        int result_length, np.ndarray[uint8_t, ndim=1] inbuff):
+cdef ndarray[uint8_t, ndim=1] rdc_decompress(
+        int result_length, ndarray[uint8_t, ndim=1] inbuff):
 
     cdef:
         uint8_t cmd
@@ -226,8 +226,8 @@ cdef class Parser(object):
         int subheader_pointer_length
         int current_page_type
         bint is_little_endian
-        np.ndarray[uint8_t, ndim=1] (*decompress)(
-            int result_length, np.ndarray[uint8_t, ndim=1] inbuff)
+        ndarray[uint8_t, ndim=1] (*decompress)(
+            int result_length, ndarray[uint8_t, ndim=1] inbuff)
         object parser
 
     def __init__(self, object parser):
@@ -391,7 +391,7 @@ cdef class Parser(object):
             Py_ssize_t j
             int s, k, m, jb, js, current_row
             int64_t lngt, start, ct
-            np.ndarray[uint8_t, ndim=1] source
+            ndarray[uint8_t, ndim=1] source
             int64_t[:] column_types
             int64_t[:] lengths
             int64_t[:] offsets

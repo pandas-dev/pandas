@@ -27,7 +27,6 @@ from cpython cimport PyFloat_Check
 cimport cython
 
 import numpy as np
-cimport numpy as np
 from numpy cimport ndarray, int64_t
 
 from datetime import date as datetime_date
