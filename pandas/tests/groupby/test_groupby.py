@@ -1896,7 +1896,10 @@ class TestGroupBy(MixIn):
         assert_series_equal(result, expected)
 
     @pytest.mark.parametrize("vals", [
-        [2, 2, 8, 2, 6], ['bar', 'bar', 'foo', 'bar', 'baz']])
+        [2, 2, 8, 2, 6], ['bar', 'bar', 'foo', 'bar', 'baz'],
+        [pd.Timestamp('2018-01-02'), pd.Timestamp('2018-01-02'),
+         pd.Timestamp('2018-01-08'), pd.Timestamp('2018-01-02'),
+         pd.Timestamp('2018-01-06')]])
     @pytest.mark.parametrize("ties_method,ascending,pct,exp", [
         ('average', True, False, DataFrame(
             [2., 2., 5., 2., 4.], columns=['val'])),
@@ -1949,8 +1952,10 @@ class TestGroupBy(MixIn):
 
     @pytest.mark.parametrize("vals", [
         [2, 2, np.nan, 8, 2, 6, np.nan, np.nan],  # floats
-        ['bar', 'bar', np.nan, 'foo', 'bar', 'baz', np.nan, np.nan]  # objects
-    ])
+        ['bar', 'bar', np.nan, 'foo', 'bar', 'baz', np.nan, np.nan],  # objects
+        [pd.Timestamp('2018-01-02'), pd.Timestamp('2018-01-02'), np.nan,
+         pd.Timestamp('2018-01-08'), pd.Timestamp('2018-01-02'),
+         pd.Timestamp('2018-01-06'), np.nan, np.nan]])
     @pytest.mark.parametrize("ties_method,ascending,na_option,pct,exp", [
         ('average', True, 'keep', False, DataFrame(
             [2., 2., np.nan, 5., 2., 4., np.nan, np.nan], columns=['val'])),
@@ -2005,7 +2010,8 @@ class TestGroupBy(MixIn):
         ('average', False, 'no_na', False, DataFrame(
             [4., 4., 7.0, 1., 4., 2., 7.0, 7.0], columns=['val'])),
         ('average', False, 'no_na', True, DataFrame(
-            [0.5, 0.5, 0.875, 0.125, 0.5, 0.25, 0.875, 0.875], columns=['val'])),
+            [0.5, 0.5, 0.875, 0.125, 0.5, 0.25, 0.875, 0.875],
+            columns=['val'])),
         ('min', True, 'no_na', False, DataFrame(
             [1., 1., 6., 5., 1., 4., 6., 6.], columns=['val'])),
         ('min', True, 'no_na', True, DataFrame(
