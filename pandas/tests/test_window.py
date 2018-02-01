@@ -14,6 +14,7 @@ import pandas.core.window as rwindow
 import pandas.tseries.offsets as offsets
 from pandas.core.base import SpecificationError
 from pandas.errors import UnsupportedFunctionCall
+from pandas.core.sorting import safe_sort
 import pandas.util.testing as tm
 import pandas.util._test_decorators as td
 from pandas.compat import range, zip
@@ -1645,7 +1646,7 @@ class TestPairwise(object):
         result = result.dropna().values
         expected = expected.dropna().values
 
-        tm.assert_numpy_array_equal(result, expected)
+        tm.assert_numpy_array_equal(result, expected, check_dtype=False)
 
     @pytest.mark.parametrize('f', [lambda x: x.cov(), lambda x: x.corr()])
     def test_no_flex(self, f):
@@ -1670,15 +1671,19 @@ class TestPairwise(object):
     def test_pairwise_with_self(self, f):
 
         # DataFrame with itself, pairwise=True
-        results = [f(df) for df in self.df1s]
-        for (df, result) in zip(self.df1s, results):
+        # note that we may construct the 1st level of the MI
+        # in a non-motononic way, so compare accordingly
+        results = []
+        for i, df in enumerate(self.df1s):
+            result = f(df)
             tm.assert_index_equal(result.index.levels[0],
                                   df.index,
                                   check_names=False)
-            tm.assert_index_equal(result.index.levels[1],
-                                  df.columns,
-                                  check_names=False)
+            tm.assert_numpy_array_equal(safe_sort(result.index.levels[1]),
+                                        safe_sort(df.columns.unique()))
             tm.assert_index_equal(result.columns, df.columns)
+            results.append(df)
+
         for i, result in enumerate(results):
             if i > 0:
                 self.compare(result, results[0])
@@ -1716,9 +1721,8 @@ class TestPairwise(object):
             tm.assert_index_equal(result.index.levels[0],
                                   df.index,
                                   check_names=False)
-            tm.assert_index_equal(result.index.levels[1],
-                                  self.df2.columns,
-                                  check_names=False)
+            tm.assert_numpy_array_equal(safe_sort(result.index.levels[1]),
+                                        safe_sort(self.df2.columns.unique()))
         for i, result in enumerate(results):
             if i > 0:
                 self.compare(result, results[0])
