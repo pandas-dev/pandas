@@ -2523,12 +2523,28 @@ class DatetimeBlock(DatetimeLikeBlockMixin, Block):
     _can_hold_na = True
 
     def __init__(self, values, placement, ndim=None):
-        if values.dtype != _NS_DTYPE and values.dtype.base != _NS_DTYPE:
-            # not datetime64 or datetime64tz
-            values = conversion.ensure_datetime64ns(values)
-
+        values = self._maybe_coerce_values(values)
         super(DatetimeBlock, self).__init__(values,
                                             placement=placement, ndim=ndim)
+
+    def _maybe_coerce_values(self, values):
+        """Input validation for values passed to __init__. Ensure that
+        we have datetime64ns, coercing if nescessary.
+
+        Parametetrs
+        -----------
+        values : array-like
+            Must be convertable to datetime64
+
+        Returns
+        -------
+        values : ndarray[datetime64ns]
+
+        Overridden by DatetimeTZBlock.
+        """
+        if values.dtype != _NS_DTYPE:
+            values = conversion.ensure_datetime64ns(values)
+        return values
 
     def _astype(self, dtype, mgr=None, **kwargs):
         """
@@ -2660,7 +2676,33 @@ class DatetimeTZBlock(NonConsolidatableMixIn, DatetimeBlock):
     is_datetimetz = True
 
     def __init__(self, values, placement, ndim=2, dtype=None):
+        # XXX: This will end up calling _maybe_coerce_values twice
+        # when dtype is not None. It's relatively cheap (just an isinstance)
+        # but it'd nice to avoid.
+        #
+        # If we can remove dtype from __init__, and push that conversion
+        # push onto the callers, then we can remove this entire __init__
+        # and just use DatetimeBlock's.
+        if dtype is not None:
+            values = self._maybe_coerce_values(values, dtype=dtype)
+        super(DatetimeTZBlock, self).__init__(values, placement=placement,
+                                              ndim=ndim)
 
+    def _maybe_coerce_values(self, values, dtype=None):
+        """Input validation for values passed to __init__. Ensure that
+        we have datetime64TZ, coercing if nescessary.
+
+        Parametetrs
+        -----------
+        values : array-like
+            Must be convertable to datetime64
+        dtype : string or DatetimeTZDtype, optional
+            Does a shallow copy to this tz
+
+        Returns
+        -------
+        values : ndarray[datetime64ns]
+        """
         if not isinstance(values, self._holder):
             values = self._holder(values)
 
@@ -2672,8 +2714,7 @@ class DatetimeTZBlock(NonConsolidatableMixIn, DatetimeBlock):
         if values.tz is None:
             raise ValueError("cannot create a DatetimeTZBlock without a tz")
 
-        super(DatetimeTZBlock, self).__init__(values, placement=placement,
-                                              ndim=ndim)
+        return values
 
     def copy(self, deep=True, mgr=None):
         """ copy constructor """
