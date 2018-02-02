@@ -59,6 +59,12 @@ def memory_usage_of_objects(ndarray[object, ndim=1] arr):
     cdef Py_ssize_t i, n
     cdef int64_t s = 0
 
+    # The problem here is that... 
+    # A SparseArray of size 1 that has fill_value = the only value
+    # will cause this
+
+    # n = 1
+    #   
     n = len(arr)
     for i in range(n):
         s += arr[i].__sizeof__()

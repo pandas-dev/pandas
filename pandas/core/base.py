@@ -1069,12 +1069,18 @@ class IndexOpsMixin(object):
         --------
         numpy.ndarray.nbytes
         """
-        if hasattr(self.values, 'memory_usage'):
-            return self.values.memory_usage(deep=deep)
+        # Use sparse values if they exist for memory consumption
+        if hasattr(self.values, 'sp_values'):
+            values = self.values.sp_values
+        else:
+            values = self.values
 
-        v = self.values.nbytes
+        if hasattr(values, 'memory_usage'):
+            return values.memory_usage(deep=deep)
+
+        v = values.nbytes
         if deep and is_object_dtype(self) and not PYPY:
-            v += lib.memory_usage_of_objects(self.values)
+            v += lib.memory_usage_of_objects(values)
         return v
 
     def factorize(self, sort=False, na_sentinel=-1):
