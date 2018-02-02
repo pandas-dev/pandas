@@ -25,7 +25,8 @@ from pandas.core.dtypes.cast import construct_1d_object_array_from_listlike
 
 # compat
 from pandas.errors import (  # noqa
-    PerformanceWarning, UnsupportedFunctionCall, UnsortedIndexError)
+    PerformanceWarning, UnsupportedFunctionCall, UnsortedIndexError,
+    AbstractMethodError)
 
 # back-compat of public API
 # deprecate these functions
@@ -86,19 +87,6 @@ class SettingWithCopyError(ValueError):
 
 class SettingWithCopyWarning(Warning):
     pass
-
-
-class AbstractMethodError(NotImplementedError):
-    """Raise this error instead of NotImplementedError for abstract methods
-    while keeping compatibility with Python 2 and Python 3.
-    """
-
-    def __init__(self, class_instance):
-        self.class_instance = class_instance
-
-    def __str__(self):
-        msg = "This method must be defined in the concrete class of {name}"
-        return (msg.format(name=self.class_instance.__class__.__name__))
 
 
 def flatten(l):

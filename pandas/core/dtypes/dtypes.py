@@ -5,15 +5,15 @@ import numpy as np
 from pandas import compat
 from pandas.core.dtypes.generic import ABCIndexClass, ABCCategoricalIndex
 
+from .base import ExtensionDtype
 
-class ExtensionDtype(object):
+
+class PandasExtensionDtype(ExtensionDtype):
     """
     A np.dtype duck-typed class, suitable for holding a custom dtype.
 
     THIS IS NOT A REAL NUMPY DTYPE
     """
-    name = None
-    names = None
     type = None
     subdtype = None
     kind = None
@@ -108,7 +108,7 @@ class CategoricalDtypeType(type):
     pass
 
 
-class CategoricalDtype(ExtensionDtype):
+class CategoricalDtype(PandasExtensionDtype):
     """
     Type for categorical data with the categories and orderedness
 
@@ -387,7 +387,7 @@ class DatetimeTZDtypeType(type):
     pass
 
 
-class DatetimeTZDtype(ExtensionDtype):
+class DatetimeTZDtype(PandasExtensionDtype):
 
     """
     A np.dtype duck-typed class, suitable for holding a custom datetime with tz
@@ -501,8 +501,7 @@ class PeriodDtypeType(type):
     pass
 
 
-class PeriodDtype(ExtensionDtype):
-    __metaclass__ = PeriodDtypeType
+class PeriodDtype(PandasExtensionDtype):
     """
     A Period duck-typed class, suitable for holding a period with freq dtype.
 
@@ -619,8 +618,7 @@ class IntervalDtypeType(type):
     pass
 
 
-class IntervalDtype(ExtensionDtype):
-    __metaclass__ = IntervalDtypeType
+class IntervalDtype(PandasExtensionDtype):
     """
     A Interval duck-typed class, suitable for holding an interval
 
