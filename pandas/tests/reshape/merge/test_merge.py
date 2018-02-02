@@ -19,7 +19,10 @@ from pandas.core.dtypes.common import (
     is_categorical_dtype,
     is_object_dtype,
 )
-from pandas import DataFrame, Index, MultiIndex, Series, Categorical
+from pandas import (
+    DataFrame, Index,
+    MultiIndex, Series, Categorical
+)
 import pandas.util.testing as tm
 from pandas.api.types import CategoricalDtype as CDT
 
@@ -1845,7 +1848,7 @@ class TestMergeSparseDataFrames(object):
                 tm.assert_almost_equal(sparse_merge.default_fill_value,
                                        fill_value)
 
-            exp = dense_merge.to_sparse(fill_value=fill_value),
+            exp = dense_merge.to_sparse(fill_value=fill_value)
             tm.assert_sp_frame_equal(sparse_merge, exp,
                                      exact_indices=False,
                                      check_dtype=False)
@@ -1869,22 +1872,27 @@ class TestMergeSparseDataFrames(object):
         dense_threes = pd.DataFrame({'A': list(range(0, 300, 3)),
                                      'B': np.random.randint(0, 100, size=100)})
 
-        dense_merge = dense_evens.merge(dense_threes, how=how, on='A')
-
-        # If you merge two dense frames together it tends to default to
-        # float64 not the original dtype
-        dense_merge['B_x'] = dense_merge['B_x'].astype(np.int64,
-                                                       errors='ignore')
-        dense_merge['B_y'] = dense_merge['B_y'].astype(np.int64,
-                                                       errors='ignore')
-
         sparse_evens = dense_evens.to_sparse(fill_value=fill_value)
-        # sparse_threes = dense_threes.to_sparse(fill_value=fill_value)
 
-        sparse_merge = sparse_evens.merge(dense_threes, how=how, on='A')
+        to_merge = [sparse_evens, dense_threes]
+        to_merge_dense = [dense_evens, dense_threes]
 
-        tm.assert_almost_equal(sparse_merge.default_fill_value, fill_value)
+        for _ in range(2):
+            merged = to_merge[0].merge(to_merge[1], how=how, on='A')
+            # sparse_merge = sparse_evens.merge(dense_threes, how=how, on='A')
 
-        tm.assert_sp_frame_equal(dense_merge.to_sparse(fill_value=fill_value),
-                                 sparse_merge, exact_indices=False,
-                                 check_dtype=False)
+            dense_merge = to_merge_dense[0].merge(to_merge_dense[1],
+                                                  how=how, on='A')
+
+            # If you merge two dense frames together it tends to default to
+            # float64 not the original dtype
+            dense_merge['B_x'] = dense_merge['B_x'].astype(np.int64,
+                                                           errors='ignore')
+            dense_merge['B_y'] = dense_merge['B_y'].astype(np.int64,
+                                                           errors='ignore')
+            for column in dense_merge.columns:
+                dense_col = merged[column].to_dense()
+                tm.assert_series_equal(dense_col, dense_merge[column])
+
+            to_merge = to_merge[::-1]
+            to_merge_dense = to_merge_dense[::-1]

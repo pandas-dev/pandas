@@ -5147,7 +5147,7 @@ def concatenate_block_managers(mgrs_indexers, axes, concat_axis, copy):
 
 
 def is_sparse_join_units(join_units):
-    return any(type(ju.block) is SparseBlock for ju in join_units)
+    return all(type(ju.block) is SparseBlock for ju in join_units)
 
 
 def is_uniform_join_units(join_units):
