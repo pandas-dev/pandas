@@ -1807,7 +1807,6 @@ class TestMergeOnIndexes(object):
 
 
 class TestMergeSparseDataFrames(object):
-    # Cannot seem to get 0 or 1 working with sparse data frame
     @pytest.mark.parametrize('fill_value,how', itertools.product([0, 1,
                                                                   None,
                                                                   np.nan],

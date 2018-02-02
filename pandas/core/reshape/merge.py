@@ -667,7 +667,6 @@ class _MergeOperation(object):
             result.set_index(names_to_restore, inplace=True)
 
     def _maybe_add_join_keys(self, result, left_indexer, right_indexer):
-
         left_has_missing = None
         right_has_missing = None
 
