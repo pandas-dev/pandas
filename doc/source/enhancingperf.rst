@@ -19,6 +19,13 @@
 Enhancing Performance
 *********************
 
+In this part of the tutorial, we will investigate how to speed up certain
+functions operating on pandas ``DataFrames`` using three different techniques: 
+Cython, Numba and :func:`pandas.eval`. We will see a speed improvement of ~200 
+when we use Cython and Numba on a test function operating row-wise on the 
+``DataFrame``. Using :func:`pandas.eval` we will speed up a sum by an order of 
+~2.
+
 .. _enhancingperf.cython:
 
 Cython (Writing C extensions for pandas)
@@ -178,7 +185,7 @@ in Python, so maybe we could minimize these by cythonizing the apply part.
 .. note::
 
   We are now passing ndarrays into the Cython function, fortunately Cython plays
-  very nicely with numpy.
+  very nicely with NumPy.
 
 .. ipython::
 
@@ -296,10 +303,10 @@ For more about ``boundscheck`` and ``wraparound``, see the Cython docs on
 
 .. _enhancingperf.numba:
 
-Using numba
+Using Numba
 -----------
 
-A recent alternative to statically compiling Cython code, is to use a *dynamic jit-compiler*, ``numba``.
+A recent alternative to statically compiling Cython code, is to use a *dynamic jit-compiler*, Numba.
 
 Numba gives you the power to speed up your applications with high performance functions written directly in Python. With a few annotations, array-oriented and math-heavy Python code can be just-in-time compiled to native machine instructions, similar in performance to C, C++ and Fortran, without having to switch languages or Python interpreters.
 
@@ -307,16 +314,16 @@ Numba works by generating optimized machine code using the LLVM compiler infrast
 
 .. note::
 
-    You will need to install ``numba``. This is easy with ``conda``, by using: ``conda install numba``, see :ref:`installing using miniconda<install.miniconda>`.
+    You will need to install Numba. This is easy with ``conda``, by using: ``conda install numba``, see :ref:`installing using miniconda<install.miniconda>`.
 
 .. note::
 
-    As of ``numba`` version 0.20, pandas objects cannot be passed directly to numba-compiled functions. Instead, one must pass the ``numpy`` array underlying the ``pandas`` object to the numba-compiled function as demonstrated below.
+    As of Numba version 0.20, pandas objects cannot be passed directly to Numba-compiled functions. Instead, one must pass the NumPy array underlying the pandas object to the Numba-compiled function as demonstrated below.
 
 Jit
 ~~~
 
-We demonstrate how to use ``numba`` to just-in-time compile our code. We simply 
+We demonstrate how to use Numba to just-in-time compile our code. We simply 
 take the plain Python code from above and annotate with the ``@jit`` decorator.
 
 .. code-block:: python
@@ -348,7 +355,7 @@ take the plain Python code from above and annotate with the ``@jit`` decorator.
        result = apply_integrate_f_numba(df['a'].values, df['b'].values, df['N'].values)
        return pd.Series(result, index=df.index, name='result')
 
-Note that we directly pass ``numpy`` arrays to the Numba function. ``compute_numba`` is just a wrapper that provides a nicer interface by passing/returning pandas objects.
+Note that we directly pass NumPy arrays to the Numba function. ``compute_numba`` is just a wrapper that provides a nicer interface by passing/returning pandas objects.
 
 .. code-block:: ipython
 
@@ -360,7 +367,7 @@ In this example, using Numba was faster than Cython.
 Vectorize
 ~~~~~~~~~
 
-``numba`` can also be used to write vectorized functions that do not require the user to explicitly
+Numba can also be used to write vectorized functions that do not require the user to explicitly
 loop over the observations of a vector; a vectorized function will be applied to each row automatically.
 Consider the following toy example of doubling each observation:
 
@@ -393,13 +400,23 @@ Caveats
 
 .. note::
 
-    ``numba`` will execute on any function, but can only accelerate certain classes of functions.
+    Numba will execute on any function, but can only accelerate certain classes of functions.
 
-``numba`` is best at accelerating functions that apply numerical functions to NumPy arrays. When passed a function that only uses operations it knows how to accelerate, it will execute in ``nopython`` mode.
+Numba is best at accelerating functions that apply numerical functions to NumPy 
+arrays. When passed a function that only uses operations it knows how to 
+accelerate, it will execute in ``nopython`` mode.
 
-If ``numba`` is passed a function that includes something it doesn't know how to work with -- a category that currently includes sets, lists, dictionaries, or string functions -- it will revert to ``object mode``. In ``object mode``, numba will execute but your code will not speed up significantly. If you would prefer that ``numba`` throw an error if it cannot compile a function in a way that speeds up your code, pass numba the argument ``nopython=True`` (e.g.  ``@numba.jit(nopython=True)``). For more on troubleshooting ``numba`` modes, see the `numba troubleshooting page <http://numba.pydata.org/numba-doc/0.20.0/user/troubleshoot.html#the-compiled-code-is-too-slow>`__.
+If Numba is passed a function that includes something it doesn't know how to 
+work with -- a category that currently includes sets, lists, dictionaries, or 
+string functions -- it will revert to ``object mode``. In ``object mode``, 
+Numba will execute but your code will not speed up significantly. If you would 
+prefer that Numba throw an error if it cannot compile a function in a way that 
+speeds up your code, pass Numba the argument 
+``nopython=True`` (e.g.  ``@numba.jit(nopython=True)``). For more on 
+troubleshooting Numba modes, see the `Numba troubleshooting page 
+<http://numba.pydata.org/numba-doc/0.20.0/user/troubleshoot.html#the-compiled-code-is-too-slow>`__.
 
-Read more in the `numba docs <http://numba.pydata.org/>`__.
+Read more in the `Numba docs <http://numba.pydata.org/>`__.
 
 .. _enhancingperf.eval:
 
@@ -784,7 +801,7 @@ Technical Minutia Regarding Expression Evaluation
 Expressions that would result in an object dtype or involve datetime operations
 (because of ``NaT``) must be evaluated in Python space. The main reason for
 this behavior is to maintain backwards compatibility with versions of NumPy <
-1.7. In those versions of ``numpy`` a call to ``ndarray.astype(str)`` will
+1.7. In those versions of NumPy a call to ``ndarray.astype(str)`` will
 truncate any strings that are more than 60 characters in length. Second, we
 can't pass ``object`` arrays to ``numexpr`` thus string comparisons must be
 evaluated in Python space.
