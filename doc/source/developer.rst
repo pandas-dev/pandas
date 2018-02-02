@@ -71,6 +71,9 @@ for each column. This has JSON form:
    parquet file, they will *always* come out as unicode (in Python 2) or str
    (in Python 3).
 
+   If the column name is a subclass of or equal to ``six.binary_type``, it will
+   be decoded into a UTF-8 string.
+
 ``pandas_type`` is the logical type of the column, and is one of:
 
 * Boolean: ``'bool'``
