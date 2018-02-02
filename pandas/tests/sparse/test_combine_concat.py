@@ -168,22 +168,18 @@ class TestSparseDataFrameConcat(object):
 
         res = pd.concat([sparse, sparse])
         exp = pd.concat([self.dense1, self.dense1]).to_sparse(fill_value=0)
-        exp._default_fill_value = np.nan
         tm.assert_sp_frame_equal(res, exp)
 
         res = pd.concat([sparse2, sparse2])
         exp = pd.concat([self.dense2, self.dense2]).to_sparse(fill_value=0)
-        exp._default_fill_value = np.nan
         tm.assert_sp_frame_equal(res, exp)
 
         res = pd.concat([sparse, sparse2])
         exp = pd.concat([self.dense1, self.dense2]).to_sparse(fill_value=0)
-        exp._default_fill_value = np.nan
         tm.assert_sp_frame_equal(res, exp)
 
         res = pd.concat([sparse2, sparse])
         exp = pd.concat([self.dense2, self.dense1]).to_sparse(fill_value=0)
-        exp._default_fill_value = np.nan
         tm.assert_sp_frame_equal(res, exp)
 
     def test_concat_different_fill_value(self):
@@ -197,7 +193,6 @@ class TestSparseDataFrameConcat(object):
 
         res = pd.concat([sparse2, sparse])
         exp = pd.concat([self.dense2, self.dense1]).to_sparse(fill_value=0)
-        exp._default_fill_value = np.nan
         tm.assert_sp_frame_equal(res, exp)
 
     def test_concat_different_columns(self):
@@ -220,12 +215,10 @@ class TestSparseDataFrameConcat(object):
 
         res = pd.concat([sparse, sparse3])
         exp = pd.concat([self.dense1, self.dense3]).to_sparse(fill_value=0)
-        exp._default_fill_value = np.nan
         tm.assert_sp_frame_equal(res, exp)
 
         res = pd.concat([sparse3, sparse])
         exp = pd.concat([self.dense3, self.dense1]).to_sparse(fill_value=0)
-        exp._default_fill_value = np.nan
         tm.assert_sp_frame_equal(res, exp)
 
         # different fill values
@@ -264,13 +257,11 @@ class TestSparseDataFrameConcat(object):
             res = pd.concat([sparse, sparse2[col]])
             exp = pd.concat([self.dense1,
                              self.dense2[col]]).to_sparse(fill_value=0)
-            exp._default_fill_value = np.nan
             tm.assert_sp_frame_equal(res, exp)
 
             res = pd.concat([sparse2[col], sparse])
             exp = pd.concat([self.dense2[col],
                              self.dense1]).to_sparse(fill_value=0)
-            exp._default_fill_value = np.nan
             tm.assert_sp_frame_equal(res, exp)
 
     def test_concat_axis1(self):
@@ -294,13 +285,13 @@ class TestSparseDataFrameConcat(object):
         res = pd.concat([sparse, sparse3], axis=1)
         exp = pd.concat([self.dense1, self.dense3],
                         axis=1).to_sparse(fill_value=0)
-        exp._default_fill_value = np.nan
+        # exp._default_fill_value = np.nan
         tm.assert_sp_frame_equal(res, exp)
 
         res = pd.concat([sparse3, sparse], axis=1)
         exp = pd.concat([self.dense3, self.dense1],
                         axis=1).to_sparse(fill_value=0)
-        exp._default_fill_value = np.nan
+        # exp._default_fill_value = np.nan
         tm.assert_sp_frame_equal(res, exp)
 
         # different fill values

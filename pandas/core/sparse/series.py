@@ -544,7 +544,7 @@ class SparseSeries(Series):
             index = self.index.take(int_index.indices)
             return Series(self.sp_values, index=index, name=self.name)
         else:
-            return Series(self.values.to_dense(), index=self.index,
+            return Series(self.get_values(), index=self.index,
                           name=self.name)
 
     @property

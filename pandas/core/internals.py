@@ -5523,7 +5523,10 @@ class JoinUnit(object):
     def get_reindexed_values(self, empty_dtype, upcasted_na):
         if upcasted_na is None:
             # No upcasting is necessary
-            fill_value = self.block.fill_value
+
+            # You would think that you want self.block.fill_value here
+            # But in reality that will fill with a bunch of wrong values
+            fill_value = np.nan
             values = self.block.get_values()
         else:
             fill_value = upcasted_na
