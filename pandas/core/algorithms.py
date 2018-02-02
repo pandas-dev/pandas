@@ -404,12 +404,16 @@ def isin(comps, values):
     if not isinstance(values, (ABCIndex, ABCSeries, np.ndarray)):
         values = construct_1d_object_array_from_listlike(list(values))
 
-    from pandas.core.dtypes.common import is_datetimelike
+    from pandas.core.dtypes.common import is_datetimelike, is_float
     comps, dtype, _ = _ensure_data(comps)
-    # Convert `values` to `dtype` if `values` is datetime-like and `dtype` is datetime-like
+    # Convert `values` to `dtype` if `values` is datetime/float-like and `dtype` is datetime/float-like
     if (is_datetime_or_timedelta_dtype(dtype) and
         (is_datetime_or_timedelta_dtype(values) or
          all(is_datetimelike(i) for i in values))):
+        values, _, _ = _ensure_data(values, dtype=dtype)
+    elif (is_float_dtype(dtype) and
+          (is_float_dtype(values) or
+           all(is_float(i) for i in values))):
         values, _, _ = _ensure_data(values, dtype=dtype)
     else:
         values, _, _ = _ensure_data(values)
