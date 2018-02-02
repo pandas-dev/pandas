@@ -218,7 +218,7 @@ class TestCommon(Base):
 
         freqstr = offset.freqstr
         if freqstr not in ('<Easter>',
-                           "<DateOffset: kwds={'days': 1}>",
+                           "<DateOffset: days=1>",
                            'LWOM-SAT', ):
             code = get_offset(freqstr)
             assert offset.rule_code == code
