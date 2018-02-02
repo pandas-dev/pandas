@@ -589,6 +589,15 @@ class TestStata(object):
         df0['psch_dis'] = df0["psch_dis"].astype(np.float32)
         tm.assert_frame_equal(df.head(3), df0)
 
+    def test_value_labels_old_format(self):
+        # GH 19417
+        #
+        # Test that value_labels() returns an empty dict if the file format
+        # predates supporting value labels.
+        dpath = os.path.join(self.dirpath, 'S4_EDUC1.dta')
+        reader = StataReader(dpath)
+        assert reader.value_labels() == {}
+
     def test_date_export_formats(self):
         columns = ['tc', 'td', 'tw', 'tm', 'tq', 'th', 'ty']
         conversions = {c: c for c in columns}
