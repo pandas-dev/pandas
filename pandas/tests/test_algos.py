@@ -557,16 +557,17 @@ class TestIsin(object):
 
     def test_regression_issue_19356(self):
         # Regression test for GH19356
-        comp_list = [1, 0.5]
-        expected = np.array([True, False])
+        result1 = pd.Series([1, 0]).isin([1, 0.5])
+        expected1 = np.array([True, False])
+        tm.assert_numpy_array_equal(expected1, result1.values)
 
-        series_int = pd.Series([1, 0])
-        result_int = series_int.isin(comp_list)
-        tm.assert_numpy_array_equal(expected, result_int.values)
+        result2 = pd.Series([1.0, 0.0]).isin([1, 0.5])
+        expected2 = np.array([True, False])
+        tm.assert_numpy_array_equal(expected2, result2.values)
 
-        series_float = pd.Series([1.0, 0.0])
-        result_float = series_float.isin(comp_list)
-        tm.assert_numpy_array_equal(expected, result_float.values)
+        result3 = pd.Series([1, 0]).isin([1.0, 0.5])
+        expected3 = np.array([True, False])
+        tm.assert_numpy_array_equal(expected3, result3.values)
 
 
 class TestValueCounts(object):
