@@ -25,6 +25,7 @@ from pandas.tests.series.test_api import SharedWithSparse
 
 from itertools import product
 
+
 def _test_data1():
     # nan-based
     arr = np.arange(20, dtype=float)
