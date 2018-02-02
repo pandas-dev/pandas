@@ -40,7 +40,7 @@ where ``KeyValue`` is
    }
 
 So that a ``pandas.DataFrame`` can be faithfully reconstructed, we store a
-``pandas`` metadata key in the ``FileMetaData`` with the value stored as :
+``pandas`` metadata key in the ``FileMetaData`` with the the value stored as:
 
 .. code-block:: text
 
@@ -58,6 +58,18 @@ for each column. This has JSON form:
     'pandas_type': pandas_type,
     'numpy_type': numpy_type,
     'metadata': metadata}
+
+.. note::
+
+   Column names will be serialized using whatever type ``six.text_type``
+   corresponds to.
+
+   In Python 2, ``six.text_type`` is the ``unicode`` type, in Python 3 this is
+   the ``str`` type. Both of these types support Unicode column names.
+
+   This means that whatever the types of the column indexes are going into a
+   parquet file, they will *always* come out as unicode (in Python 2) or str
+   (in Python 3).
 
 ``pandas_type`` is the logical type of the column, and is one of:
 
