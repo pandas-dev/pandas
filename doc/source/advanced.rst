@@ -245,13 +245,13 @@ parentheses around the tuple like this:
    df.loc[('bar', 'two'), 'A']
 
 You don't have to specify all levels of the ``MultiIndex`` by passing only the
-first elements of the tuple. For example, you can use this partially indexing to
-get all elements in the ``bar`` level as follows:
+first elements of the tuple. For example, you can use *partial* indexing to
+get all elements with ``bar`` in the first level as follows:
 
 df.loc['bar']
 
-This is identical to the slightly more verbose notation ``df.loc['bar',]`` using
-a tuple with one element.
+This is a shortcut for the slightly more verbose notation ``df.loc['bar',]`` (equivalent
+to ``df.loc[('bar',)]``).
 
 "Partial" slicing also works quite nicely.
 
@@ -275,7 +275,8 @@ Passing a list of labels or tuples works similar to reindexing:
 .. warning::
 
    It is important to note that tuples and lists are not treated identically
-   in pandas.
+   in pandas. Whereas a tuple is interpreted as one multi-level key, a list is
+   used to specify several keys.
 
 Importantly, a list of tuples indexes several complete ``MultiIndex`` keys,
 whereas a tuple of lists refer to several values within a level:
