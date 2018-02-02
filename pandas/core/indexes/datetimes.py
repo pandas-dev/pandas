@@ -120,8 +120,16 @@ def _dt_index_cmp(opname, cls, nat_result=False):
         else:
             if isinstance(other, list):
                 other = DatetimeIndex(other)
-            elif not isinstance(other, (np.ndarray, Index, ABCSeries)):
-                other = _ensure_datetime64(other)
+            elif not isinstance(other, (np.datetime64, np.ndarray,
+                                        Index, ABCSeries)):
+                # Following Timestamp convention, __eq__ is all-False
+                # and __ne__ is all True, others raise TypeError.
+                if opname == '__eq__':
+                    return np.zeros(shape=self.shape, dtype=bool)
+                elif opname == '__ne__':
+                    return np.ones(shape=self.shape, dtype=bool)
+                raise TypeError('%s type object %s' %
+                                (type(other), str(other)))
 
             if is_datetimelike(other):
                 self._assert_tzawareness_compat(other)
@@ -146,12 +154,6 @@ def _dt_index_cmp(opname, cls, nat_result=False):
         return Index(result)
 
     return compat.set_function_name(wrapper, opname, cls)
-
-
-def _ensure_datetime64(other):
-    if isinstance(other, np.datetime64):
-        return other
-    raise TypeError('%s type object %s' % (type(other), str(other)))
 
 
 _midnight = time(0, 0)
