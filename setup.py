@@ -233,7 +233,6 @@ class CleanCommand(Command):
 
         base = pjoin('pandas', '_libs', 'src')
         dt = pjoin(base, 'datetime')
-        src = base
         util = pjoin('pandas', 'util')
         parser = pjoin(base, 'parser')
         ujson_python = pjoin(base, 'ujson', 'python')

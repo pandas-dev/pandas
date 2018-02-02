@@ -164,8 +164,8 @@ cdef int64_t asfreq(int64_t ordinal, int freq1, int freq2, char relation):
     val = func(ordinal, relation, &finfo)
 
     if val == INT32_MIN:
-        #// Py_Error(PyExc_ValueError, "Unable to convert to desired
-        #// frequency.");
+        # // Py_Error(PyExc_ValueError, "Unable to convert to desired
+        # // frequency.");
         return INT32_MIN
 
     return val
@@ -682,7 +682,7 @@ cdef int64_t asfreq_DTtoA(int64_t ordinal, char relation,
 
     ordinal = downsample_daytime(ordinal, af_info, 0)
     if dInfoCalc_SetFromAbsDate(&dinfo, ordinal + ORD_OFFSET,
-                                 GREGORIAN_CALENDAR):
+                                GREGORIAN_CALENDAR):
         return INT32_MIN
 
     if dinfo.month > af_info.to_a_year_end:

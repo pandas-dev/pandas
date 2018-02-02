@@ -133,6 +133,7 @@ cdef int get_yq(int64_t ordinal, int freq, int *quarter, int *year) nogil:
 
     return 0
 
+
 # ----------------------------------------------------------------------
 # Period logic
 
@@ -447,6 +448,7 @@ cdef accessor _get_accessor_func(int code):
     elif code == 11:
         return <accessor>pdays_in_month
     return NULL
+
 
 # -----------------------------------------------------------------------
 

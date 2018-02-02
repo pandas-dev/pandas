@@ -183,9 +183,8 @@ cdef int dInfoCalc_SetFromAbsDate(date_info *dinfo,
         year = <int64_t>((<double>absdate) / 365.2425)
     elif calendar == JULIAN_CALENDAR:
         year = <int64_t>((<double>absdate) / 365.25)
-    #else:
+    # else:
     #    Py_Error(PyExc_ValueError, "unknown calendar")
-
 
     if absdate > 0:
         year += 1
@@ -291,7 +290,6 @@ cdef int dInfoCalc_SetFromDateAndTime(date_info *dinfo, int year,
     dinfo.day_of_year = <short>(absdate - yearoffset)
 
     dinfo.calendar = calendar
-
 
     # Calculate the absolute time
     if not (hour >= 0 and hour <= 23):
