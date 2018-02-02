@@ -4,7 +4,8 @@ cimport cython
 import numpy as np
 from numpy cimport int64_t
 
-from util cimport INT64_MAX, INT32_MIN
+from util cimport INT32_MIN
+from libc.limits cimport INT_MAX
 
 from period_conversion cimport get_freq_group
 
@@ -250,8 +251,7 @@ cdef int dInfoCalc_SetFromDateAndTime(date_info *dinfo, int year,
         int yearoffset
 
     # Range check
-    # if not year > -(INT_MAX / 366) and year < (INT_MAX / 366):
-    if not (year > -(INT64_MAX / 366) and year < (INT64_MAX / 366)):
+    if not year > -(INT_MAX / 366) and year < (INT_MAX / 366):
         return 1
         # raise ValueError("year out of range: %i" % year)
 
