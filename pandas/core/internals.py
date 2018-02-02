@@ -2926,7 +2926,7 @@ def make_block(values, placement, klass=None, ndim=None, dtype=None,
     elif klass is DatetimeTZBlock and not is_datetimetz(values):
         return klass(values, ndim=ndim,
                      placement=placement, dtype=dtype)
-    
+
     return klass(values, ndim=ndim, placement=placement)
 
 # TODO: flexible with index=None and/or items=None
@@ -5135,14 +5135,15 @@ def concatenate_block_managers(mgrs_indexers, axes, concat_axis, copy):
         else:
             b = make_block(
                 concatenate_join_units(join_units, concat_axis, copy=copy),
-                placement=placement
-                )
+                placement=placement)
         blocks.append(b)
 
     return BlockManager(blocks, axes)
 
+
 def is_sparse_join_units(join_units):
     return any(type(ju.block) is SparseBlock for ju in join_units)
+
 
 def is_uniform_join_units(join_units):
     """
