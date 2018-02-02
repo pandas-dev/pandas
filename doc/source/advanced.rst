@@ -113,7 +113,14 @@ of the index is up to you:
    pd.DataFrame(np.random.randn(6, 6), index=index[:6], columns=index[:6])
 
 We've "sparsified" the higher levels of the indexes to make the console output a
-bit easier on the eyes.
+bit easier on the eyes. Note that how the index is displayed can be controlled using the
+``multi_sparse`` option in ``pandas.set_options()``:
+
+.. ipython:: python
+
+   pd.set_option('display.multi_sparse', False)
+   df
+   pd.set_option('display.multi_sparse', True)
 
 It's worth keeping in mind that there's nothing preventing you from using
 tuples as atomic labels on an axis:
@@ -128,15 +135,6 @@ subsequent areas of the documentation. As you will see in later sections, you
 can find yourself working with hierarchically-indexed data without creating a
 ``MultiIndex`` explicitly yourself. However, when loading data from a file, you
 may wish to generate your own ``MultiIndex`` when preparing the data set.
-
-Note that how the index is displayed by be controlled using the
-``multi_sparse`` option in ``pandas.set_options()``:
-
-.. ipython:: python
-
-   pd.set_option('display.multi_sparse', False)
-   df
-   pd.set_option('display.multi_sparse', True)
 
 .. _advanced.get_level_values:
 
@@ -180,14 +178,13 @@ For example:
 
 .. ipython:: python
 
-   # original MultiIndex
-   df.columns
+   df.columns  # original MultiIndex
 
-   # sliced
-   df[['foo','qux']].columns
+   df[['foo','qux']].columns  # sliced
 
 This is done to avoid a recomputation of the levels in order to make slicing
-highly performant. If you want to see the actual used levels.
+highly performant. If you want to see only the used levels, you can use the
+`get_level_values()` method.
 
 .. ipython:: python
 
@@ -196,7 +193,7 @@ highly performant. If you want to see the actual used levels.
    # for a specific level
    df[['foo','qux']].columns.get_level_values(0)
 
-To reconstruct the ``MultiIndex`` with only the used levels, the 
+To reconstruct the ``MultiIndex`` with only the used levels, the
 ``remove_unused_levels`` method may be used.
 
 .. versionadded:: 0.20.0
@@ -231,15 +228,30 @@ Advanced indexing with hierarchical index
 -----------------------------------------
 
 Syntactically integrating ``MultiIndex`` in advanced indexing with ``.loc`` is a
-bit challenging, but we've made every effort to do so. For example the
-following works as you would expect:
+bit challenging, but we've made every effort to do so. In general, MultiIndex
+keys take the form of tuples. For example, the following works as you would expect:
 
 .. ipython:: python
 
    df = df.T
    df
-   df.loc['bar']
    df.loc['bar', 'two']
+
+If you also want to index a specific column with ``.loc``, you have to use
+parentheses around the tuple like this:
+
+.. ipython:: python
+
+   df.loc[('bar', 'two'), 'A']
+
+You don't have to specify all levels of the ``MultiIndex`` by passing only the
+first elements of the tuple. For example, you can use this partially indexing to
+get all elements in the ``bar`` level as follows:
+
+df.loc['bar']
+
+This is identical to the slightly more verbose notation ``df.loc['bar',]`` using
+a tuple with one element.
 
 "Partial" slicing also works quite nicely.
 
@@ -259,6 +271,22 @@ Passing a list of labels or tuples works similar to reindexing:
 .. ipython:: python
 
    df.loc[[('bar', 'two'), ('qux', 'one')]]
+
+.. warning::
+
+   It is important to note that tuples and lists are not treated identically
+   in pandas.
+
+Importantly, a list of tuples indexes several complete ``MultiIndex`` keys,
+whereas a tuple of lists refer to several values within a level:
+
+.. ipython:: python
+
+   s = pd.Series([1, 2, 3, 4],
+                 index=pd.MultiIndex.from_product([["A", "B"], ["c", "d"]]))
+   s.loc[[("A", "c"), ("B", "d")]]  # list of tuples
+   s.loc[(["A", "B"], ["c", "d"])]  # tuple of lists
+
 
 .. _advanced.mi_slicers:
 
@@ -317,7 +345,7 @@ Basic multi-index slicing using slices, lists, and labels.
    dfmi.loc[(slice('A1','A3'), slice(None), ['C1', 'C3']), :]
 
 
-You can use :class:`pandas.IndexSlice` to facilitate a more natural syntax 
+You can use :class:`pandas.IndexSlice` to facilitate a more natural syntax
 using ``:``, rather than using ``slice(None)``.
 
 .. ipython:: python
@@ -626,7 +654,7 @@ Index Types
 -----------
 
 We have discussed ``MultiIndex`` in the previous sections pretty extensively. ``DatetimeIndex`` and ``PeriodIndex``
-are shown :ref:`here <timeseries.overview>`, and information about 
+are shown :ref:`here <timeseries.overview>`, and information about
 `TimedeltaIndex`` is found :ref:`here <timedeltas.timedeltas>`.
 
 In the following sub-sections we will highlight some other index types.
@@ -726,7 +754,7 @@ Int64Index and RangeIndex
 
    Indexing on an integer-based Index with floats has been clarified in 0.18.0, for a summary of the changes, see :ref:`here <whatsnew_0180.float_indexers>`.
 
-``Int64Index`` is a fundamental basic index in pandas. 
+``Int64Index`` is a fundamental basic index in pandas.
 This is an Immutable array implementing an ordered, sliceable set.
 Prior to 0.18.0, the ``Int64Index`` would provide the default index for all ``NDFrame`` objects.
 
@@ -765,7 +793,7 @@ The only positional indexing is via ``iloc``.
    sf.iloc[3]
 
 A scalar index that is not found will raise a ``KeyError``.
-Slicing is primarily on the values of the index when using ``[],ix,loc``, and 
+Slicing is primarily on the values of the index when using ``[],ix,loc``, and
 **always** positional when using ``iloc``. The exception is when the slice is
 boolean, in which case it will always be positional.
 
