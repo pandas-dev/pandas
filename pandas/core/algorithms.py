@@ -32,6 +32,7 @@ from pandas.core.dtypes.missing import isna
 from pandas.core import common as com
 from pandas._libs import algos, lib, hashtable as htable
 from pandas._libs.tslib import iNaT
+from pandas._libs.tslibs.timestamps import Timestamp
 
 
 # --------------- #
@@ -414,7 +415,8 @@ def isin(comps, values):
                     all(is_float(i) for i in values)))
     check_datetime = (is_datetime_or_timedelta_dtype(dtype) and
                       (is_datetime_or_timedelta_dtype(values) or
-                       all(is_datetimelike(i) for i in values)))
+                       all(is_datetimelike(i) for i in values) or
+                       all(isinstance(i, Timestamp) for i in values)))
     if check_int or check_float or check_datetime:
         values, _, _ = _ensure_data(values, dtype=dtype)
     else:
