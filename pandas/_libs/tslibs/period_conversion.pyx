@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+# flake8: noqa:E241,E501
 cimport cython
 
 import numpy as np
@@ -40,7 +41,7 @@ cdef int64_t[:, :] daytime_conversion_factor_matrix = np.array([
     [0, 0, 0, 0, 0, 0, 0,  0,    0,     0,        1,        1000,        1000000],
     [0, 0, 0, 0, 0, 0, 0,  0,    0,     0,        0,           1,           1000],
     [0, 0, 0, 0, 0, 0, 0,  0,    0,     0,        0,           0,              1]],
-    dtype=np.int64)  # noqa: E501
+    dtype=np.int64)  # noqa
 
 
 @cython.boundscheck(False)
@@ -84,6 +85,7 @@ cdef double get_abs_time(int freq, int64_t date_ordinal,
     start_ord = date_ordinal * per_day
     result = <double>(unit * (ordinal - start_ord))
     return result
+
 
 # ----------------------------------------------------------------------
 # Conventions

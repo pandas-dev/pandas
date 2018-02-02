@@ -113,12 +113,12 @@ cdef int get_yq(int64_t ordinal, int freq, int *quarter, int *year) nogil:
         asfreq_info af_info
         int qtr_freq
         int64_t daily_ord
-        #int64_t (*toDaily)(int64_t, char, asfreq_info *) nogil
+        # int64_t (*toDaily)(int64_t, char, asfreq_info *) nogil
 
-    #toDaily = get_asfreq_func(freq, FR_DAY)
-    #get_asfreq_info(freq, FR_DAY, &af_info)
+    # toDaily = get_asfreq_func(freq, FR_DAY)
+    # get_asfreq_info(freq, FR_DAY, &af_info)
 
-    #daily_ord = toDaily(ordinal, 'E', &af_info)
+    # daily_ord = toDaily(ordinal, 'E', &af_info)
     daily_ord = get_python_ordinal(ordinal, freq) - ORD_OFFSET
 
     if get_freq_group(freq) == FR_QTR:

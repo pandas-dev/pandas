@@ -127,7 +127,7 @@ cdef void get_asfreq_info(int fromFreq, int toFreq,
     elif fromGroup == FR_ANN:
         af_info.from_a_year_end = calc_a_year_end(fromFreq, fromGroup)
     elif fromGroup == FR_QTR:
-         af_info.from_q_year_end = calc_a_year_end(fromFreq, fromGroup)
+        af_info.from_q_year_end = calc_a_year_end(fromFreq, fromGroup)
 
     if toGroup == FR_WK:
         af_info.to_week_end = calc_week_end(toFreq, toGroup)
@@ -298,7 +298,7 @@ cdef int64_t DtoQ_yq(int64_t ordinal, asfreq_info *af_info, int *year,
         date_info dinfo
 
     if dInfoCalc_SetFromAbsDate(&dinfo, ordinal + ORD_OFFSET,
-                                 GREGORIAN_CALENDAR):
+                                GREGORIAN_CALENDAR):
         return INT32_MIN
 
     if af_info.to_q_year_end != 12:
@@ -435,7 +435,8 @@ cdef int64_t DtoB_WeekendToFriday(int64_t absdate, int day_of_week) nogil:
     return DtoB_weekday(absdate)
 
 
-# --------- FROM QUARTERLY --------------
+# ----------------------------------------------------------------------
+# From Quarterly
 
 cdef void QtoD_ym(int64_t ordinal, int *y, int *m, asfreq_info *af_info) nogil:
     y[0] = floordiv(ordinal, 4) + BASE_YEAR
@@ -580,7 +581,7 @@ cdef int64_t asfreq_MtoB(int64_t ordinal, char relation,
 # From Weekly
 
 cdef int64_t asfreq_WtoDT(int64_t ordinal, char relation,
-                           asfreq_info *af_info) nogil:
+                          asfreq_info *af_info) nogil:
     ordinal += WEEK_OFFSET
     if relation != 'S':
         ordinal += 1
@@ -716,7 +717,6 @@ cdef int64_t asfreq_DTtoM(int64_t ordinal, char relation,
     return <int64_t>((dinfo.year - BASE_YEAR) * 12 + dinfo.month - 1)
 
 
-
 @cython.cdivision
 cdef int64_t asfreq_DTtoW(int64_t ordinal, char relation,
                           asfreq_info *af_info) nogil:
@@ -733,7 +733,7 @@ cdef int64_t asfreq_DTtoB(int64_t ordinal, char relation,
     ordinal = downsample_daytime(ordinal, af_info, 0)
 
     if dInfoCalc_SetFromAbsDate(&dinfo, ordinal + ORD_OFFSET,
-                                 GREGORIAN_CALENDAR):
+                                GREGORIAN_CALENDAR):
         return INT32_MIN
 
     if relation == 'S':
@@ -864,7 +864,7 @@ cdef int pdays_in_month(int64_t ordinal, int freq):
     return days
 
 
-cdef int64_t[:, :] days_in_month =  np.array([
+cdef int64_t[:, :] days_in_month = np.array([
     [31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31],
     [31, 29, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31]])
 

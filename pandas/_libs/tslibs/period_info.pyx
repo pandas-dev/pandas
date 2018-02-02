@@ -10,7 +10,7 @@ from period_conversion cimport get_freq_group
 
 cdef double SECONDS_PER_DAY = 86400
 cdef int BASE_YEAR = 1970
-cdef int BASE_WEEK_TO_DAY_OFFSET = 1 # difference between day 0 and end of week
+cdef int BASE_WEEK_TO_DAY_OFFSET = 1  # diff between day 0 and end of week
 cdef int DAYS_PER_WEEK = 7
 cdef int BUSINESS_DAYS_PER_WEEK = 5
 
@@ -20,9 +20,10 @@ cdef int64_t[:, :] month_offset = np.array([
     [0, 31, 60, 91, 121, 152, 182, 213, 244, 274, 305, 335, 366]])
 
 # Table of number of days in a month (0-based, without and with leap)
-cdef int64_t[:, :] days_in_month =  np.array([
+cdef int64_t[:, :] days_in_month = np.array([
     [31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31],
     [31, 29, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31]])
+
 
 # ----------------------------------------------------------------------
 # ccalendar-like functions
@@ -46,13 +47,13 @@ cdef int dInfoCalc_YearOffset(int64_t year, int calendar) nogil except? -1:
     """
     year -= 1
     if calendar == GREGORIAN_CALENDAR:
-        if (year >= 0 or -1 / 4 == -1):  # TODO: DOES THIS CONDITION MAKE SENSE?
+        if (year >= 0 or -1 / 4 == -1):  # TODO: DOES THIS CONDITION MAKE SENSE
             return year * 365 + year / 4 - year / 100 + year / 400
         else:
             return (year * 365 + (year - 3) / 4 -
                     (year - 99) / 100 + (year - 399) / 400)
     elif calendar == JULIAN_CALENDAR:
-        if (year >= 0 or -1 / 4 == -1):  # TODO: DOES THIS CONDITION MAKE SENSE?
+        if (year >= 0 or -1 / 4 == -1):  # TODO: DOES THIS CONDITION MAKE SENSE
             return year * 365 + year / 4 - 2
         else:
             return year * 365 + (year - 3) / 4 - 2
@@ -249,7 +250,7 @@ cdef int dInfoCalc_SetFromDateAndTime(date_info *dinfo, int year,
         int yearoffset
 
     # Range check
-    #if not year > -(INT_MAX / 366) and year < (INT_MAX / 366):
+    # if not year > -(INT_MAX / 366) and year < (INT_MAX / 366):
     if not (year > -(INT64_MAX / 366) and year < (INT64_MAX / 366)):
         return 1
         # raise ValueError("year out of range: %i" % year)
@@ -303,8 +304,8 @@ cdef int dInfoCalc_SetFromDateAndTime(date_info *dinfo, int year,
             (second < <double>60.0 or
              (hour == 23 and minute == 59 and second < <double>61.0))):
         return 1
-        # raise ValueError("second out of range (0.0 - <60.0; <61.0 for 23:59): "
-        #                 "%f" % second)
+        # raise ValueError("second out of range (0.0 - <60.0; <61.0 for "
+        #                  "23:59): %f" % second)
 
     dinfo.abstime = <double>(hour * 3600 + minute * 60) + second
 
