@@ -28,8 +28,6 @@ from pandas.util._decorators import Appender
 import pandas.core.ops as ops
 import pandas.core.common as com
 
-from collections import Counter
-
 _shared_doc_kwargs = dict(klass='SparseDataFrame')
 
 
@@ -75,9 +73,6 @@ class SparseDataFrame(DataFrame):
             if columns is None:
                 raise Exception("cannot pass a series w/o a name or columns")
             data = {columns[0]: data}
-        elif isinstance(data, BlockManager):
-            if default_fill_value is None:
-                default_fill_value, _ = Counter([b.fill_value for b in data.blocks]).most_common(1)[0]
 
         if default_fill_value is None:
             default_fill_value = np.nan
