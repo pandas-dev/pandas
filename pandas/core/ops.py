@@ -71,7 +71,7 @@ def rmod(left, right):
 
 
 def rdivmod(left, right):
-    return divmod(right,left)
+    return divmod(right, left)
 
 
 def rpow(left, right):
