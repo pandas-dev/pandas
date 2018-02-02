@@ -819,4 +819,4 @@ ops.add_flex_arithmetic_methods(SparseSeries, **ops.series_flex_funcs)
 ops.add_special_arithmetic_methods(SparseSeries,
                                    ops._arith_method_SPARSE_SERIES,
                                    comp_method=ops._arith_method_SPARSE_SERIES,
-                                   bool_method=None, force=True)
+                                   bool_method=None)
