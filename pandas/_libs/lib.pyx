@@ -131,10 +131,10 @@ def fast_unique_multiple(list arrays):
         dict table = {}
         object val, stub = 0
 
-    for i from 0 <= i < k:
+    for i in range(k):
         buf = arrays[i]
         n = len(buf)
-        for j from 0 <= j < n:
+        for j in range(n):
             val = buf[j]
             if val not in table:
                 table[val] = stub
@@ -158,10 +158,10 @@ def fast_unique_multiple_list(list lists):
         dict table = {}
         object val, stub = 0
 
-    for i from 0 <= i < k:
+    for i in range(k):
         buf = lists[i]
         n = len(buf)
-        for j from 0 <= j < n:
+        for j in range(n):
             val = buf[j]
             if val not in table:
                 table[val] = stub
@@ -200,7 +200,7 @@ def fast_unique_multiple_list_gen(object gen, bint sort=True):
 
     for buf in gen:
         n = len(buf)
-        for j from 0 <= j < n:
+        for j in range(n): 
             val = buf[j]
             if val not in table:
                 table[val] = stub
@@ -830,15 +830,15 @@ def count_level_2d(ndarray[uint8_t, ndim=2, cast=True] mask,
     if axis == 0:
         counts = np.zeros((max_bin, k), dtype='i8')
         with nogil:
-            for i from 0 <= i < n:
-                for j from 0 <= j < k:
+            for i in range(n):
+                for j in range(n):
                     counts[labels[i], j] += mask[i, j]
 
     else:  # axis == 1
         counts = np.zeros((n, max_bin), dtype='i8')
         with nogil:
-            for i from 0 <= i < n:
-                for j from 0 <= j < k:
+            for i in range(n):
+                for j in range(k):
                     counts[i, labels[j]] += mask[i, j]
 
     return counts
