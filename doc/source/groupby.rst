@@ -1230,7 +1230,8 @@ code more readable. First we set the data:
    import numpy as np
    n = 1000
    df = pd.DataFrame({'Store': np.random.choice(['Store_1', 'Store_2'], n),
-                      'Product': np.random.choice(['Product_1','Product_2'], n),
+                      'Product': np.random.choice(['Product_1',
+                                                   'Product_2'], n),
                       'Revenue': (np.random.random(n)*50+10).round(2),
                       'Quantity': np.random.randint(1, 10, size=n)})
    df.head(2)
