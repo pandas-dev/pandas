@@ -222,29 +222,34 @@ class TestSparseDataFrame(SharedWithSparse):
                                    '"Unknown" for data argument'):
             SparseDataFrame(Unknown())
 
-    @pytest.mark.parametrize('fill_value', [0, 1, np.nan, None])
+    # Cannot use None as a fill_value cause it will overwrite as zeros
+    @pytest.mark.parametrize('fill_value', [0, 1, np.nan])
     def test_constructor_preserve_attr(self, fill_value):
         # GH 13866
         arr = pd.SparseArray([1, 0, 3, 0], dtype=np.int64,
                              fill_value=fill_value)
+
         assert arr.dtype == np.int64
-        assert arr.fill_value == fill_value
+        tm.assert_almost_equal(arr.fill_value, fill_value)
 
         df = pd.SparseDataFrame({'x': arr})
         assert df['x'].dtype == np.int64
-        assert df['x'].fill_value == fill_value
+
+        tm.assert_almost_equal(df['x'].fill_value, fill_value)
 
         s = pd.SparseSeries(arr, name='x')
         assert s.dtype == np.int64
-        assert s.fill_value == fill_value
+        tm.assert_almost_equal(s.fill_value, fill_value)
 
         df = pd.SparseDataFrame(s)
         assert df['x'].dtype == np.int64
-        assert df['x'].fill_value == fill_value
+
+        tm.assert_almost_equal(df['x'].fill_value, fill_value)
 
         df = pd.SparseDataFrame({'x': s})
         assert df['x'].dtype == np.int64
-        assert df['x'].fill_value == fill_value
+
+        tm.assert_almost_equal(df['x'].fill_value, fill_value)
 
     def test_constructor_nan_dataframe(self):
         # GH 10079

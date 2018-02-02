@@ -5123,7 +5123,12 @@ def concatenate_block_managers(mgrs_indexers, axes, concat_axis, copy):
                 [ju.block for ju in join_units], placement=placement)
         elif is_sparse_join_units(join_units):
             values = concatenate_join_units(join_units, concat_axis, copy=copy)
-            values = values[0]
+
+            if len(values.shape) == 2:
+                values = values[0]
+            elif len(values.shape) != 1:
+                raise 'WTF'
+
             block = join_units[0].block
 
             if block:
