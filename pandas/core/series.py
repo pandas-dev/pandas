@@ -45,7 +45,8 @@ from pandas.core.indexing import check_bool_indexer, maybe_convert_indices
 from pandas.core import generic, base
 from pandas.core.internals import SingleBlockManager
 from pandas.core.arrays.categorical import Categorical, CategoricalAccessor
-from pandas.core.indexes.accessors import CombinedDatetimelikeProperties
+from pandas.core.indexes.accessors import (
+    CombinedDatetimelikeProperties, IntervalAccessor)
 from pandas.core.indexes.datetimes import DatetimeIndex
 from pandas.core.indexes.timedeltas import TimedeltaIndex
 from pandas.core.indexes.period import PeriodIndex
@@ -140,7 +141,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         Copy input data
     """
     _metadata = ['name']
-    _accessors = frozenset(['dt', 'cat', 'str'])
+    _accessors = frozenset(['dt', 'cat', 'str', 'iv'])
     _deprecations = generic.NDFrame._deprecations | frozenset(
         ['asobject', 'sortlevel', 'reshape', 'get_value', 'set_value',
          'from_csv', 'valid'])
@@ -3085,6 +3086,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
     dt = CachedAccessor("dt", CombinedDatetimelikeProperties)
     cat = CachedAccessor("cat", CategoricalAccessor)
     plot = CachedAccessor("plot", gfx.SeriesPlotMethods)
+    iv = CachedAccessor("iv", IntervalAccessor)
 
     # ----------------------------------------------------------------------
     # Add plotting methods to Series

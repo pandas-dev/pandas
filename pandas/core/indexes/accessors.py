@@ -6,7 +6,7 @@ import numpy as np
 
 from pandas.core.dtypes.generic import ABCSeries
 from pandas.core.dtypes.common import (
-    is_period_arraylike,
+    is_period_arraylike, is_interval_arraylike,
     is_datetime_arraylike, is_integer_dtype,
     is_datetime64_dtype, is_datetime64tz_dtype,
     is_timedelta64_dtype, is_categorical_dtype,
@@ -15,6 +15,7 @@ from pandas.core.dtypes.common import (
 from pandas.core.accessor import PandasDelegate
 from pandas.core.base import NoNewAttributesMixin, PandasObject
 from pandas.core.indexes.datetimes import DatetimeIndex
+from pandas.core.indexes.interval import IntervalIndex
 from pandas._libs.tslibs.period import IncompatibleFrequency  # noqa
 from pandas.core.indexes.period import PeriodIndex
 from pandas.core.indexes.timedeltas import TimedeltaIndex
@@ -248,3 +249,105 @@ class CombinedDatetimelikeProperties(DatetimeProperties, TimedeltaProperties):
 
         raise AttributeError("Can only use .dt accessor with datetimelike "
                              "values")
+
+
+class IntervalAccessor(PandasDelegate, PandasObject, NoNewAttributesMixin):
+    """
+    Accessor object for interval properties of the Series values.
+
+    Parameters
+    ----------
+    data : Series
+
+    Examples
+    --------
+    >>> s.iv.left
+    >>> s.iv.right
+    >>> s.iv.mid
+    >>> s.iv.length
+    """
+
+    def __init__(self, data):
+        from pandas import Series
+
+        if not isinstance(data, ABCSeries):
+            msg = "cannot convert an object of type {typ} to an IntervalIndex"
+            raise TypeError(msg.format(typ=type(data)))
+
+        # compat with Categorical[Interval]
+        orig = data if is_categorical_dtype(data) else None
+        if orig is not None:
+            data = Series(orig.values.categories, name=orig.name, copy=False)
+
+        self._validate(data)
+        self.data = data
+        self.orig = orig
+        self.name = getattr(data, 'name', None)
+        self.index = getattr(data, 'index', None)
+        self._freeze()
+
+    @staticmethod
+    def _validate(data):
+        if not is_interval_arraylike(data):
+            msg = "Can only use .iv accessor with 'interval' dtype"
+            raise AttributeError(msg)
+
+    def _get_values(self):
+        return IntervalIndex(self.data, copy=False, name=self.name)
+
+    def _delegate_property_get(self, name):
+        from pandas import Series
+        values = self._get_values()
+        result = getattr(values, name)
+        result = np.asarray(result)
+
+        # blow up if we operate on categories
+        if self.orig is not None:
+            result = take_1d(result, self.orig.cat.codes)
+            index = self.orig.index
+        else:
+            index = self.index
+
+        # return the result as a Series, which is by definition a copy
+        result = Series(result, index=index, name=self.name)
+
+        # setting this object will show a SettingWithCopyWarning/Error
+        result._is_copy = ("modifications to a property of an IntervalIndex "
+                           "object are not supported and are discarded. "
+                           "Change values on the original.")
+
+        return result
+
+    def _delegate_property_set(self, name, value, *args, **kwargs):
+        raise ValueError("modifications to a property of an IntervalIndex "
+                         "object are not supported. Change values on the "
+                         "original.")
+
+    def _delegate_method(self, name, *args, **kwargs):
+        from pandas import Series
+        values = self._get_values()
+
+        method = getattr(values, name)
+        result = method(*args, **kwargs)
+
+        if not is_list_like(result):
+            return result
+
+        result = Series(result, index=self.index, name=self.name)
+
+        # setting this object will show a SettingWithCopyWarning/Error
+        result._is_copy = ("modifications to a method of an IntervalIndex "
+                           "object are not supported and are discarded. "
+                           "Change values on the original.")
+
+        return result
+
+
+IntervalAccessor._add_delegate_accessors(
+    delegate=IntervalIndex,
+    accessors=IntervalIndex._interval_ops,
+    typ='property')
+IntervalAccessor._add_delegate_accessors(
+    delegate=IntervalIndex,
+    accessors=IntervalIndex._interval_methods,
+    typ='method')

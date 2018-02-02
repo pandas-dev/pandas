@@ -208,6 +208,10 @@ class IntervalIndex(IntervalMixin, Index):
     _comparables = ['name']
     _attributes = ['name', 'closed']
 
+    # define my properties & methods for delegation
+    _interval_ops = ['left', 'right', 'mid', 'length']
+    _interval_methods = []
+
     # we would like our indexing holder to defer to us
     _defer_to_indexing = True
 

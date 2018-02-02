@@ -13,7 +13,7 @@ from .dtypes import (CategoricalDtype, CategoricalDtypeType,
 from .generic import (ABCCategorical, ABCPeriodIndex,
                       ABCDatetimeIndex, ABCSeries,
                       ABCSparseArray, ABCSparseSeries, ABCCategoricalIndex,
-                      ABCIndexClass, ABCDateOffset)
+                      ABCIndexClass, ABCDateOffset, ABCIntervalIndex)
 from .inference import is_string_like, is_list_like
 from .inference import *  # noqa
 
@@ -508,6 +508,39 @@ def is_interval_dtype(arr_or_dtype):
     if arr_or_dtype is None:
         return False
     return IntervalDtype.is_dtype(arr_or_dtype)
+
+
+def is_interval_arraylike(arr):
+    """
+    Check whether an array-like is interval array-like or IntervalIndex.
+
+    Parameters
+    ----------
+    arr : array-like
+        The array-like to check.
+
+    Returns
+    -------
+    boolean : Whether or not the array-like is a periodical
+              array-like or PeriodIndex instance.
+
+    Examples
+    --------
+    >>> is_interval_arraylike([1, 2, 3])
+    False
+    >>> is_interval_arraylike(pd.Index([1, 2, 3]))
+    False
+    >>> is_interval_arraylike(pd.IntervalIndex.from_breaks([0, 1, 2, 3]))
+    True
+    >>> is_interval_arraylike(pd.Series(pd.interval_range(0, 5)))
+    True
+    """
+
+    if isinstance(arr, ABCIntervalIndex):
+        return True
+    elif isinstance(arr, (np.ndarray, ABCSeries)):
+        return arr.dtype == object and lib.infer_dtype(arr) == 'interval'
+    return getattr(arr, 'inferred_type', None) == 'interval'
 
 
 def is_categorical_dtype(arr_or_dtype):
