@@ -10,7 +10,7 @@ import json
 import numpy as np
 import pandas as pd
 
-from pandas._libs import tslib, lib, properties
+from pandas._libs import tslib, properties
 from pandas.core.dtypes.common import (
     _ensure_int64,
     _ensure_object,
@@ -1906,7 +1906,7 @@ class NDFrame(PandasObject, SelectionMixin):
         return to_pickle(self, path, compression=compression,
                          protocol=protocol)
 
-    def to_clipboard(self, excel=None, sep=None, **kwargs):
+    def to_clipboard(self, excel=True, sep=None, **kwargs):
         """
         Attempt to write text representation of object to the system clipboard
         This can be pasted into Excel, for example.
@@ -5085,6 +5085,12 @@ class NDFrame(PandasObject, SelectionMixin):
         limit : int, default None.
             Maximum number of consecutive NaNs to fill. Must be greater than 0.
         limit_direction : {'forward', 'backward', 'both'}, default 'forward'
+        limit_area : {'inside', 'outside'}, default None
+            * None: (default) no fill restriction
+            * 'inside' Only fill NaNs surrounded by valid values (interpolate).
+            * 'outside' Only fill NaNs outside valid values (extrapolate).
+            .. versionadded:: 0.21.0
+
             If limit is specified, consecutive NaNs will be filled in this
             direction.
         inplace : bool, default False
@@ -5118,7 +5124,8 @@ class NDFrame(PandasObject, SelectionMixin):
 
     @Appender(_shared_docs['interpolate'] % _shared_doc_kwargs)
     def interpolate(self, method='linear', axis=0, limit=None, inplace=False,
-                    limit_direction='forward', downcast=None, **kwargs):
+                    limit_direction='forward', limit_area=None,
+                    downcast=None, **kwargs):
         """
         Interpolate values according to different methods.
         """
@@ -5167,6 +5174,7 @@ class NDFrame(PandasObject, SelectionMixin):
         new_data = data.interpolate(method=method, axis=ax, index=index,
                                     values=_maybe_transposed_self, limit=limit,
                                     limit_direction=limit_direction,
+                                    limit_area=limit_area,
                                     inplace=inplace, downcast=downcast,
                                     **kwargs)
 
@@ -7216,9 +7224,9 @@ class NDFrame(PandasObject, SelectionMixin):
                 if is_datetime64_dtype(data):
                     asint = data.dropna().values.view('i8')
                     names += ['top', 'freq', 'first', 'last']
-                    result += [lib.Timestamp(top), freq,
-                               lib.Timestamp(asint.min()),
-                               lib.Timestamp(asint.max())]
+                    result += [tslib.Timestamp(top), freq,
+                               tslib.Timestamp(asint.min()),
+                               tslib.Timestamp(asint.max())]
                 else:
                     names += ['top', 'freq']
                     result += [top, freq]
@@ -7315,6 +7323,7 @@ class NDFrame(PandasObject, SelectionMixin):
 
         rs = (data.div(data.shift(periods=periods, freq=freq, axis=axis,
                                   **kwargs)) - 1)
+        rs = rs.reindex_like(data)
         if freq is None:
             mask = isna(com._values_from_object(self))
             np.putmask(rs.values, mask, np.nan)
