@@ -297,6 +297,9 @@ class CategoricalIndex(Index, accessor.PandasDelegate):
         """ return the underlying data as an ndarray """
         return self._data.get_values()
 
+    def _as_best_array(self):
+        return self._data
+
     def tolist(self):
         return self._data.tolist()
 

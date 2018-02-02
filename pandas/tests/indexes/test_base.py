@@ -2282,6 +2282,11 @@ class TestMixedIntIndex(Base):
         # TODO: implement _assert_tzawareness_compat for the reverse
         # comparison with the Series on the left-hand side
 
+    def test_as_best_array(self):
+        result = pd.Index([0, 1, 2])._as_best_array()
+        expected = np.array([0, 1, 2])
+        tm.assert_numpy_array_equal(result, expected)
+
 
 class TestIndexUtils(object):
 

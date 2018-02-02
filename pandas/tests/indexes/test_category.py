@@ -1080,3 +1080,8 @@ class TestCategoricalIndex(Base):
         msg = "the 'mode' parameter is not supported"
         tm.assert_raises_regex(ValueError, msg, idx.take,
                                indices, mode='clip')
+
+    def test_as_best_array(self):
+        result = pd.CategoricalIndex([0, 1, 2])._as_best_array()
+        expected = pd.Categorical([0, 1, 2])
+        tm.assert_categorical_equal(result, expected)

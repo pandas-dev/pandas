@@ -56,7 +56,10 @@ from pandas.core.dtypes.missing import (
     is_null_datelike_scalar)
 import pandas.core.dtypes.concat as _concat
 
-from pandas.core.dtypes.generic import ABCSeries, ABCDatetimeIndex
+from pandas.core.dtypes.generic import (
+    ABCSeries,
+    ABCDatetimeIndex,
+    ABCIndexClass)
 import pandas.core.common as com
 import pandas.core.algorithms as algos
 
@@ -1854,6 +1857,20 @@ class ExtensionBlock(NonConsolidatableMixIn, Block):
 
     ExtensionArrays are limited to 1-D.
     """
+
+    def __init__(self, values, placement, ndim=None):
+        values = self._maybe_coerce_values(values)
+        super().__init__(values, placement, ndim)
+
+    def _maybe_coerce_values(self, values):
+        # Unboxes Series / Index
+        # Doesn't change any underlying dtypes.
+        if isinstance(values, ABCSeries):
+            values = values.values
+        elif isinstance(values, ABCIndexClass):
+            values = values._as_best_array()
+        return values
+
     @property
     def _holder(self):
         # For extension blocks, the holder is values-dependent.
@@ -4101,7 +4118,8 @@ class BlockManager(PandasObject):
         # FIXME: refactor, clearly separate broadcasting & zip-like assignment
         #        can prob also fix the various if tests for sparse/categorical
 
-        value_is_extension_type = is_extension_type(value)
+        value_is_extension_type = (is_extension_type(value) or
+                                   is_extension_array_dtype(value))
 
         # categorical/spares/datetimetz
         if value_is_extension_type:
@@ -4834,13 +4852,10 @@ def form_blocks(arrays, names, axes):
     if len(items_dict['ExtensionBlock']):
 
         external_blocks = []
+
         for i, _, array in items_dict['ExtensionBlock']:
-            if isinstance(array, ABCSeries):
-                array = array.values
-            # Allow our internal arrays to chose their block type.
-            block_type = getattr(array, '_block_type', ExtensionBlock)
             external_blocks.append(
-                make_block(array, klass=block_type,
+                make_block(array, klass=ExtensionBlock,
                            fastpath=True, placement=[i]))
         blocks.extend(external_blocks)
 

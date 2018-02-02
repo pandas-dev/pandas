@@ -13,6 +13,7 @@ from pandas.compat.numpy import function as nv
 from pandas import compat
 
 from pandas.core.accessor import CachedAccessor
+from pandas.core.arrays import ExtensionArray
 from pandas.core.dtypes.generic import (
     ABCSeries, ABCDataFrame,
     ABCMultiIndex,
@@ -1038,6 +1039,31 @@ class Index(IndexOpsMixin, PandasObject):
 
         return self.values.copy()
 
+    def _as_best_array(self):
+        # type: () -> Union[ExtensionArray, ndarary]
+        """Return the underlying values as the best array type.
+
+        Indexes backed by ExtensionArrays will return the ExtensionArray.
+        Otherwise, an ndarray is returned.
+
+        Examples
+        --------
+        >>> pd.Index([0, 1, 2])._as_best_array()
+        array([0, 1, 2])
+
+        >>> pd.CategoricalIndex(['a', 'a', 'b'])._as_best_array()
+        [a, a, b]
+        Categories (2, object): [a, b]
+
+        >>> pd.IntervalIndex.from_breaks([0, 1, 2])._as_best_array()
+        IntervalArray([(0, 1], (1, 2]])
+        """
+        # We need this since CategoricalIndex.values -> Categorical
+        #                but IntervalIndex.values    -> ndarray[object]
+        # TODO: IntervalIndex defines _array_values. Would be nice to
+        # have an unambiguous way of getting an ndarray (or just use asarray?)
+        return self.values
+
     _index_shared_docs['astype'] = """
         Create an Index with values cast to dtypes. The class of a new Index
         is determined by dtype. When conversion is impossible, a ValueError
@@ -1946,6 +1972,12 @@ class Index(IndexOpsMixin, PandasObject):
 
         if is_categorical_dtype(values.dtype):
             values = np.array(values)
+
+        elif isinstance(values, ExtensionArray):
+            # This is still un-exercised within pandas, since all our
+            # extension dtypes have custom indexes.
+            values = values._formatting_values()
+
         elif is_object_dtype(values.dtype):
             values = lib.maybe_convert_objects(values, safe=1)
 
@@ -2525,7 +2557,7 @@ class Index(IndexOpsMixin, PandasObject):
         # if we have something that is Index-like, then
         # use this, e.g. DatetimeIndex
         s = getattr(series, '_values', None)
-        if isinstance(s, Index) and is_scalar(key):
+        if isinstance(s, (ExtensionArray, Index)) and is_scalar(key):
             try:
                 return s[key]
             except (IndexError, ValueError):

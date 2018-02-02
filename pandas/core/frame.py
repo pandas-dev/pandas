@@ -39,6 +39,7 @@ from pandas.core.dtypes.common import (
     is_categorical_dtype,
     is_object_dtype,
     is_extension_type,
+    is_extension_array_dtype,
     is_datetimetz,
     is_datetime64_any_dtype,
     is_datetime64tz_dtype,
@@ -71,7 +72,7 @@ from pandas.core.internals import (BlockManager,
                                    create_block_manager_from_arrays,
                                    create_block_manager_from_blocks)
 from pandas.core.series import Series
-from pandas.core.arrays import Categorical
+from pandas.core.arrays import Categorical, ExtensionArray
 import pandas.core.algorithms as algorithms
 from pandas.compat import (range, map, zip, lrange, lmap, lzip, StringIO, u,
                            OrderedDict, raise_with_traceback)
@@ -511,7 +512,7 @@ class DataFrame(NDFrame):
             index, columns = _get_axes(len(values), 1)
             return _arrays_to_mgr([values], columns, index, columns,
                                   dtype=dtype)
-        elif is_datetimetz(values):
+        elif (is_datetimetz(values) or is_extension_array_dtype(values)):
             # GH19157
             if columns is None:
                 columns = [0]
@@ -2796,7 +2797,7 @@ class DataFrame(NDFrame):
             # now align rows
             value = reindexer(value).T
 
-        elif isinstance(value, Categorical):
+        elif isinstance(value, ExtensionArray):
             value = value.copy()
 
         elif isinstance(value, Index) or is_sequence(value):
@@ -2804,7 +2805,7 @@ class DataFrame(NDFrame):
 
             # turn me into an ndarray
             value = _sanitize_index(value, self.index, copy=False)
-            if not isinstance(value, (np.ndarray, Index)):
+            if not isinstance(value, (np.ndarray, Index, ExtensionArray)):
                 if isinstance(value, list) and len(value) > 0:
                     value = maybe_convert_platform(value)
                 else:
@@ -2826,7 +2827,7 @@ class DataFrame(NDFrame):
             value = maybe_cast_to_datetime(value, value.dtype)
 
         # return internal types directly
-        if is_extension_type(value):
+        if is_extension_type(value) or is_extension_array_dtype(value):
             return value
 
         # broadcast across multiple columns if necessary
@@ -3355,12 +3356,9 @@ class DataFrame(NDFrame):
             new_obj = self.copy()
 
         def _maybe_casted_values(index, labels=None):
-            if isinstance(index, PeriodIndex):
-                values = index.astype(object).values
-            elif isinstance(index, DatetimeIndex) and index.tz is not None:
-                values = index
-            else:
-                values = index.values
+            values = index._as_best_array()
+            # TODO: Check if nescessary...
+            if not isinstance(index, (PeriodIndex, DatetimeIndex)):
                 if values.dtype == np.object_:
                     values = lib.maybe_convert_objects(values)
 

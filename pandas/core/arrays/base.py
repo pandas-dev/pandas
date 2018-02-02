@@ -1,4 +1,6 @@
 """An interface for extending pandas with custom arrays."""
+import numpy as np
+
 from pandas.errors import AbstractMethodError
 
 _not_implemented_message = "{} does not implement {}."
@@ -24,7 +26,6 @@ class ExtensionArray(object):
     * take
     * copy
     * _formatting_values
-    * _concat_same_type
 
     Some additional methods are required to satisfy pandas' internal, private
     block API.
@@ -51,9 +52,6 @@ class ExtensionArray(object):
     Extension arrays should be able to be constructed with instances of
     the class, i.e. ``ExtensionArray(extension_array)`` should return
     an instance, not error.
-
-    Additionally, certain methods and interfaces are required for proper
-    this array to be properly stored inside a ``DataFrame`` or ``Series``.
     """
     # ------------------------------------------------------------------------
     # Must be a Sequence
@@ -177,9 +175,9 @@ class ExtensionArray(object):
 
         Examples
         --------
-        Suppose the extension array somehow backed by a NumPy structured array
-        and that the underlying structured array is stored as ``self.data``.
-        Then ``take`` may be written as
+        Suppose the extension array somehow backed by a NumPy array and that
+        the underlying structured array is stored as ``self.data``. Then
+        ``take`` may be written as
 
         .. code-block:: python
 
@@ -219,7 +217,7 @@ class ExtensionArray(object):
         # type: () -> np.ndarray
         # At the moment, this has to be an array since we use result.dtype
         """An array of values to be printed in, e.g. the Series repr"""
-        raise AbstractMethodError(self)
+        raise np.array(self)
 
     @classmethod
     def _concat_same_type(cls, to_concat):

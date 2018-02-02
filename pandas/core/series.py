@@ -14,6 +14,7 @@ import numpy as np
 import numpy.ma as ma
 
 from pandas.core.accessor import CachedAccessor
+from pandas.core.arrays import ExtensionArray
 from pandas.core.dtypes.common import (
     is_categorical_dtype,
     is_bool,
@@ -173,12 +174,15 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
                 raise NotImplementedError("initializing a Series from a "
                                           "MultiIndex is not supported")
             elif isinstance(data, Index):
-                # need to copy to avoid aliasing issues
                 if name is None:
                     name = data.name
 
-                data = data._to_embed(keep_tz=True, dtype=dtype)
-                copy = False
+                if dtype is not None:
+                    data = data.astype(dtype)
+
+                # need to copy to avoid aliasing issues
+                data = data._as_best_array().copy()
+
             elif isinstance(data, np.ndarray):
                 pass
             elif isinstance(data, Series):
@@ -234,6 +238,10 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
                                        copy=copy)
                 elif copy:
                     data = data.copy()
+            elif isinstance(data, ExtensionArray):
+                if copy:
+                    data = data.copy()
+                data = SingleBlockManager(data, index, fastpath=True)
             else:
                 data = _sanitize_array(data, index, dtype, copy,
                                        raise_cast_failure=True)
@@ -2570,7 +2578,11 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
             return self
 
         # be subclass-friendly
-        new_values = algorithms.take_1d(self.get_values(), indexer)
+        if isinstance(self.values, ExtensionArray):
+            new_values = self.values.take(indexer)
+        else:
+            new_values = algorithms.take_1d(self.get_values(), indexer)
+
         return self._constructor(new_values, index=new_index)
 
     def _needs_reindex_multi(self, axes, method, level):
@@ -3117,11 +3129,8 @@ def _sanitize_index(data, index, copy=False):
         raise ValueError('Length of values does not match length of ' 'index')
 
     if isinstance(data, ABCIndexClass) and not copy:
-        pass
-    elif isinstance(data, PeriodIndex):
-        data = data.astype(object).values
-    elif isinstance(data, DatetimeIndex):
-        data = data._to_embed(keep_tz=True)
+        data = data._as_best_array()
+
     elif isinstance(data, np.ndarray):
 
         # coerce datetimelike types
@@ -3194,11 +3203,12 @@ def _sanitize_array(data, index, dtype=None, copy=False,
             # we will try to copy be-definition here
             subarr = _try_cast(data, True)
 
-    elif isinstance(data, Categorical):
+    elif isinstance(data, ExtensionArray):
         subarr = data
 
         if copy:
             subarr = data.copy()
+        # XXX: This is the only early return. See if it can be avoided.
         return subarr
 
     elif isinstance(data, (list, tuple)) and len(data) > 0:
@@ -3221,6 +3231,7 @@ def _sanitize_array(data, index, dtype=None, copy=False,
         start, stop, step = get_range_parameters(data)
         arr = np.arange(start, stop, step, dtype='int64')
         subarr = _try_cast(arr, False)
+
     else:
         subarr = _try_cast(data, False)
 
