@@ -33,7 +33,7 @@ by trying to remove for-loops and making use of NumPy vectorization. It's always
 optimising in Python first.
 
 This tutorial walks through a "typical" process of cythonizing a slow computation.
-We use an `example from the cython documentation <http://docs.cython.org/src/quickstart/cythonize.html>`__
+We use an `example from the Cython documentation <http://docs.cython.org/src/quickstart/cythonize.html>`__
 but in the context of pandas. Our final cythonized solution is around 100 times
 faster than the pure Python solution.
 
@@ -91,10 +91,10 @@ hence we'll concentrate our efforts cythonizing these two functions.
 
 .. _enhancingperf.plain:
 
-Plain cython
+Plain Cython
 ~~~~~~~~~~~~
 
-First we're going to need to import the cython magic function to ipython:
+First we're going to need to import the Cython magic function to ipython:
 
 .. ipython:: python
    :okwarning:
@@ -102,7 +102,7 @@ First we're going to need to import the cython magic function to ipython:
    %load_ext Cython
 
 
-Now, let's simply copy our functions over to cython as is (the suffix
+Now, let's simply copy our functions over to Cython as is (the suffix
 is here to distinguish between function versions):
 
 .. ipython::
@@ -177,7 +177,7 @@ in Python, so maybe we could minimize these by cythonizing the apply part.
 
 .. note::
 
-  We are now passing ndarrays into the cython function, fortunately cython plays
+  We are now passing ndarrays into the Cython function, fortunately Cython plays
   very nicely with numpy.
 
 .. ipython::
@@ -213,8 +213,8 @@ the rows, applying our ``integrate_f_typed``, and putting this in the zeros arra
 .. warning::
 
    You can **not pass** a ``Series`` directly as a ``ndarray`` typed parameter
-   to a cython function. Instead pass the actual ``ndarray`` using the
-   ``.values`` attribute of the ``Series``. The reason is that the cython
+   to a Cython function. Instead pass the actual ``ndarray`` using the
+   ``.values`` attribute of the ``Series``. The reason is that the Cython
    definition is specific to an ndarray and not the passed ``Series``.
 
    So, do not do this:
@@ -255,7 +255,7 @@ More advanced techniques
 ~~~~~~~~~~~~~~~~~~~~~~~~
 
 There is still hope for improvement. Here's an example of using some more
-advanced cython techniques:
+advanced Cython techniques:
 
 .. ipython::
 
@@ -289,7 +289,7 @@ advanced cython techniques:
    In [4]: %timeit apply_integrate_f_wrap(df['a'].values, df['b'].values, df['N'].values)
    1000 loops, best of 3: 987 us per loop
 
-Even faster, with the caveat that a bug in our cython code (an off-by-one error,
+Even faster, with the caveat that a bug in our Cython code (an off-by-one error,
 for example) might cause a segfault because memory access isn't checked.
 For more about ``boundscheck`` and ``wraparound``, see the Cython docs on 
 `compiler directives <http://cython.readthedocs.io/en/latest/src/reference/compilation.html?highlight=wraparound#compiler-directives>`__.
@@ -299,7 +299,7 @@ For more about ``boundscheck`` and ``wraparound``, see the Cython docs on
 Using numba
 -----------
 
-A recent alternative to statically compiling cython code, is to use a *dynamic jit-compiler*, ``numba``.
+A recent alternative to statically compiling Cython code, is to use a *dynamic jit-compiler*, ``numba``.
 
 Numba gives you the power to speed up your applications with high performance functions written directly in Python. With a few annotations, array-oriented and math-heavy Python code can be just-in-time compiled to native machine instructions, similar in performance to C, C++ and Fortran, without having to switch languages or Python interpreters.
 
