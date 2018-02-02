@@ -71,9 +71,11 @@ def _field_accessor(name, field, docstring=None):
             if field in ['is_month_start', 'is_month_end',
                          'is_quarter_start', 'is_quarter_end',
                          'is_year_start', 'is_year_end']:
-                month_kw = (self.freq.kwds.get('startingMonth',
-                                               self.freq.kwds.get('month', 12))
-                            if self.freq else 12)
+                freq = self.freq
+                month_kw = 12
+                if freq:
+                    kwds = freq.kwds
+                    month_kw = kwds.get('startingMonth', kwds.get('month', 12))
 
                 result = fields.get_start_end_field(values, field,
                                                     self.freqstr, month_kw)
