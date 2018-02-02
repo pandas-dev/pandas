@@ -62,6 +62,10 @@ def rdiv(left, right):
     return right / left
 
 
+def rtruediv(left, right):
+    return right / left
+
+
 def rfloordiv(left, right):
     return right // left
 
@@ -87,7 +91,7 @@ def ror_(left, right):
 
 
 def rxor(left, right):
-    return operator.xor(y, x)
+    return operator.xor(right, left)
 
 
 # -----------------------------------------------------------------------------
