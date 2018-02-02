@@ -60,5 +60,4 @@ class TestVectorizedTimedelta(object):
         with tm.assert_raises_regex(ValueError, msg):
             td.round(freq='M')
         with tm.assert_raises_regex(ValueError, msg):
-            elt.round(freq='M')    
-
+            elt.round(freq='M')
