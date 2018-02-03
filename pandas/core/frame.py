@@ -3907,8 +3907,7 @@ class DataFrame(NDFrame):
     # ----------------------------------------------------------------------
     # Arithmetic / combination related
 
-    def _combine_frame(self, other, func, fill_value=None, level=None,
-                       try_cast=True):
+    def _combine_frame(self, other, func, fill_value=None, level=None):
         this, other = self.align(other, join='outer', level=level, copy=False)
         new_index, new_columns = this.index, this.columns
 
@@ -3960,52 +3959,40 @@ class DataFrame(NDFrame):
 
     def _combine_series(self, other, func, fill_value=None, axis=None,
                         level=None, try_cast=True):
-        if axis is not None:
-            axis = self._get_axis_name(axis)
-            if axis == 'index':
-                return self._combine_match_index(other, func, level=level,
-                                                 fill_value=fill_value,
-                                                 try_cast=try_cast)
-            else:
-                return self._combine_match_columns(other, func, level=level,
-                                                   fill_value=fill_value,
-                                                   try_cast=try_cast)
-        return self._combine_series_infer(other, func, level=level,
-                                          fill_value=fill_value,
-                                          try_cast=try_cast)
-
-    def _combine_series_infer(self, other, func, level=None,
-                              fill_value=None, try_cast=True):
-        if len(other) == 0:
-            return self * np.nan
-
-        if len(self) == 0:
-            # Ambiguous case, use _series so works with DataFrame
-            return self._constructor(data=self._series, index=self.index,
-                                     columns=self.columns)
-
-        return self._combine_match_columns(other, func, level=level,
-                                           fill_value=fill_value,
-                                           try_cast=try_cast)
-
-    def _combine_match_index(self, other, func, level=None,
-                             fill_value=None, try_cast=True):
-        left, right = self.align(other, join='outer', axis=0, level=level,
-                                 copy=False)
         if fill_value is not None:
             raise NotImplementedError("fill_value %r not supported." %
                                       fill_value)
+
+        if axis is not None:
+            axis = self._get_axis_name(axis)
+            if axis == 'index':
+                return self._combine_match_index(other, func, level=level)
+            else:
+                return self._combine_match_columns(other, func, level=level,
+                                                   try_cast=try_cast)
+        else:
+            if len(other) == 0:
+                return self * np.nan
+
+            if len(self) == 0:
+                # Ambiguous case, use _series so works with DataFrame
+                return self._constructor(data=self._series, index=self.index,
+                                         columns=self.columns)
+
+            # default axis is columns
+            return self._combine_match_columns(other, func, level=level,
+                                               try_cast=try_cast)
+
+    def _combine_match_index(self, other, func, level=None):
+        left, right = self.align(other, join='outer', axis=0, level=level,
+                                 copy=False)
         return self._constructor(func(left.values.T, right.values).T,
                                  index=left.index, columns=self.columns,
                                  copy=False)
 
-    def _combine_match_columns(self, other, func, level=None,
-                               fill_value=None, try_cast=True):
+    def _combine_match_columns(self, other, func, level=None, try_cast=True):
         left, right = self.align(other, join='outer', axis=1, level=level,
                                  copy=False)
-        if fill_value is not None:
-            raise NotImplementedError("fill_value %r not supported" %
-                                      fill_value)
 
         new_data = left._data.eval(func=func, other=right,
                                    axes=[left.columns, self.index],
