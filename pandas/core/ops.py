@@ -83,11 +83,11 @@ def rpow(left, right):
 
 
 def rand_(left, right):
-    return right and left
+    return operator.and_(right, left)
 
 
 def ror_(left, right):
-    return right or left
+    return operator.or_(right, left)
 
 
 def rxor(left, right):
