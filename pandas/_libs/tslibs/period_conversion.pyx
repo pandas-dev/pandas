@@ -4,7 +4,7 @@ cimport cython
 
 import numpy as np
 cimport numpy as cnp
-from numpy cimport int64_t
+from numpy cimport ndarray, int64_t
 cnp.import_array()
 
 
@@ -29,8 +29,10 @@ daytime_conversion_factors = [[FR_DAY, 1],   [FR_HR, 24],
                               [FR_MS, 1000], [FR_US, 1000],
                               [FR_NS, 1000], [0, 0]]
 
+
 cdef int64_t[:, :] daytime_conversion_factor_matrix = np.array(
     [[<int64_t>val for val in row] for row in
+    # Building on Windows seems to require super-explicit casting
     [
     [0, 0, 0, 0, 0, 0, 0,  0,    0,     0,        0,           0,              0],
     [0, 0, 0, 0, 0, 0, 0,  0,    0,     0,        0,           0,              0],

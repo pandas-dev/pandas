@@ -9,7 +9,8 @@ from util cimport INT32_MIN
 from period_info cimport (dInfoCalc_SetFromAbsDateTime,
                           dInfoCalc_SetFromAbsDate,
                           dInfoCalc_Leapyear,
-                          absdate_from_ymd, monthToQuarter, _ISOWeek)
+                          absdate_from_ymd, monthToQuarter, _ISOWeek,
+                          days_in_month)
 from period_conversion cimport (get_daytime_conversion_factor, max_value,
                                 get_abs_time,
                                 get_freq_group, get_freq_group_index)
@@ -42,7 +43,6 @@ cdef enum FREQS:
     FR_US = 11000      # Microsecondly
     FR_NS = 12000      # Nanosecondly
     FR_UND = -10000    # Undefined
-
 
 # ---------------------------------------------------------------
 # Code derived from scikits.timeseries
@@ -852,21 +852,19 @@ cdef int psecond(int64_t ordinal, int freq):
     return <int>dinfo.second
 
 
+@cython.boundscheck(False)
 cdef int pdays_in_month(int64_t ordinal, int freq):
     cdef:
         date_info dinfo
         int days
+        Py_ssize_t leap
 
     if get_date_info(ordinal, freq, &dinfo) == INT32_MIN:
         return INT32_MIN
 
-    days = days_in_month[dInfoCalc_Leapyear(dinfo.year, dinfo.calendar)][dinfo.month - 1]  # noqa:E501
+    leap = <Py_ssize_t>dInfoCalc_Leapyear(dinfo.year, dinfo.calendar)
+    days = days_in_month[leap][dinfo.month - 1]
     return days
-
-
-cdef int64_t[:, :] days_in_month = np.array([
-    [31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31],
-    [31, 29, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31]])
 
 
 @cython.cdivision
