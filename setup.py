@@ -103,6 +103,7 @@ for module, files in _pxi_dep_template.items():
     _pxifiles.extend(pxi_files)
     _pxi_dep[module] = pxi_files
 
+numpy_incl = pkg_resources.resource_filename('numpy', 'core/include')
 
 class build_ext(_build_ext):
     @classmethod
@@ -130,8 +131,6 @@ class build_ext(_build_ext):
     def build_extensions(self):
         self.render_templates()
 
-        numpy_incl = pkg_resources.resource_filename('numpy', 'core/include')
-
         for ext in self.extensions:
             if (hasattr(ext, 'include_dirs') and
                     numpy_incl not in ext.include_dirs):
@@ -139,7 +138,7 @@ class build_ext(_build_ext):
         _build_ext.build_extensions(self)
 
 
-def _cythonize(*args, **kwargs):
+def _cythonize(extensions, *args, **kwargs):
     """
     Render tempita templates before calling cythonize
 
@@ -149,8 +148,13 @@ def _cythonize(*args, **kwargs):
     if len(sys.argv) > 1 and 'clean' in sys.argv:
         return
 
+    for ext in extensions:
+        if (hasattr(ext, 'include_dirs') and
+                      numpy_incl not in ext.include_dirs):
+                  ext.include_dirs.append(numpy_incl)
+
     build_ext.render_templates()
-    return cythonize(*args, **kwargs)
+    return cythonize(extensions, *args, **kwargs)
 
 
 DESCRIPTION = ("Powerful data structures for data analysis, time series,"
@@ -571,7 +575,7 @@ for name, data in ext_data.items():
 
     sources.extend(data.get('sources', []))
 
-    include = data.get('include', [])
+    include = data.get('include', common_include)
 
     obj = Extension('pandas.{name}'.format(name=name),
                     sources=sources,
