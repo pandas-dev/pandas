@@ -227,7 +227,7 @@ class CategoricalIndex(Index, accessor.PandasDelegate):
         """
         if is_categorical_dtype(other):
             if isinstance(other, CategoricalIndex):
-                other = other._values
+                other = other.values
             if not other.is_dtype_equal(self):
                 raise TypeError("categories must match existing categories "
                                 "when appending")
@@ -292,6 +292,23 @@ class CategoricalIndex(Index, accessor.PandasDelegate):
     def values(self):
         """ return the underlying data, which is a Categorical """
         return self._data
+
+    @property
+    def _values(self):
+        return self._data
+
+    @property
+    def _ndarray_values(self):
+        return self._data.codes
+
+    @property
+    def itemsize(self):
+        return self.values.itemsize
+
+    @property
+    def nbytes(self):
+        """ return the number of bytes in the underlying data """
+        return self.values.nbytes
 
     def get_values(self):
         """ return the underlying data as an ndarray """
@@ -386,8 +403,8 @@ class CategoricalIndex(Index, accessor.PandasDelegate):
     def unique(self, level=None):
         if level is not None:
             self._validate_index_level(level)
-        result = base.IndexOpsMixin.unique(self)
-        # CategoricalIndex._shallow_copy uses keeps original categories
+        result = self.values.unique()
+        # CategoricalIndex._shallow_copy keeps original categories
         # and ordered if not otherwise specified
         return self._shallow_copy(result, categories=result.categories,
                                   ordered=result.ordered)
@@ -762,7 +779,7 @@ class CategoricalIndex(Index, accessor.PandasDelegate):
 
     def _delegate_method(self, name, *args, **kwargs):
         """ method delegation to the ._values """
-        method = getattr(self._values, name)
+        method = getattr(self.values, name)
         if 'inplace' in kwargs:
             raise ValueError("cannot use inplace with CategoricalIndex")
         res = method(*args, **kwargs)

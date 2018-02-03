@@ -480,7 +480,7 @@ def _concat_datetimetz(to_concat, name=None):
 
 def _concat_index_same_dtype(indexes, klass=None):
     klass = klass if klass is not None else indexes[0].__class__
-    return klass(np.concatenate([x._values for x in indexes]))
+    return klass(np.concatenate([x._ndarray_values for x in indexes]))
 
 
 def _concat_index_asobject(to_concat, name=None):
@@ -498,9 +498,16 @@ def _concat_index_asobject(to_concat, name=None):
     attribs = self._get_attributes_dict()
     attribs['name'] = name
 
-    to_concat = [x._values if isinstance(x, Index) else x
-                 for x in to_concat]
-    return self._shallow_copy_with_infer(np.concatenate(to_concat), **attribs)
+    arrays = []
+    for x in to_concat:
+        if is_categorical_dtype(x):
+            arrays.append(np.asarray(x, dtype=object))
+        elif isinstance(x, Index):
+            arrays.append(x._values)
+        else:
+            arrays.append(x)
+
+    return self._shallow_copy_with_infer(np.concatenate(arrays), **attribs)
 
 
 def _concat_sparse(to_concat, axis=0, typs=None):

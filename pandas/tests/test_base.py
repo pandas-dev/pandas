@@ -338,8 +338,9 @@ class TestIndexOps(Ops):
                 if not isinstance(o, PeriodIndex):
                     expected = getattr(o.values, op)()
                 else:
-                    expected = pd.Period(ordinal=getattr(o._values, op)(),
-                                         freq=o.freq)
+                    expected = pd.Period(
+                        ordinal=getattr(o._ndarray_values, op)(),
+                        freq=o.freq)
                 try:
                     assert result == expected
                 except TypeError:
@@ -450,7 +451,7 @@ class TestIndexOps(Ops):
             for orig in self.objs:
                 o = orig.copy()
                 klass = type(o)
-                values = o._values
+                values = o._ndarray_values
 
                 if not self._allow_na_ops(o):
                     continue
@@ -1175,3 +1176,61 @@ class TestToIterable(object):
             assert isinstance(res, pd.Period)
             assert res.freq == 'M'
             assert res == exp
+
+
+@pytest.mark.parametrize('arr, expected', [
+    (pd.DatetimeIndex(['2017', '2017']), pd.DatetimeIndex(['2017'])),
+    (pd.DatetimeIndex(['2017', '2017'], tz='US/Eastern'),
+     pd.DatetimeIndex(['2017'], tz='US/Eastern')),
+])
+def test_unique_datetime_index(arr, expected):
+    result = arr.unique()
+
+    if isinstance(expected, np.ndarray):
+        tm.assert_numpy_array_equal(result, expected)
+    if isinstance(expected, pd.Series):
+        tm.assert_series_equal(result, expected)
+    if isinstance(expected, pd.DatetimeIndex):
+        tm.assert_index_equal(result, expected)
+
+
+@pytest.mark.parametrize('arr, expected', [
+    (pd.Series(pd.DatetimeIndex(['2017', '2017'])),
+     np.array(['2017'], dtype='M8[ns]')),
+    (pd.Series(pd.DatetimeIndex(['2017', '2017'], tz='US/Eastern')),
+     np.array([pd.Timestamp('2017', tz="US/Eastern")], dtype=object)),
+])
+def test_unique_datetime_series(arr, expected):
+    result = arr.unique()
+
+    if isinstance(expected, np.ndarray):
+        tm.assert_numpy_array_equal(result, expected)
+    if isinstance(expected, pd.Series):
+        tm.assert_series_equal(result, expected)
+    if isinstance(expected, pd.DatetimeIndex):
+        tm.assert_index_equal(result, expected)
+
+
+@pytest.mark.parametrize('array, expected_type', [
+    (np.array([0, 1]), np.ndarray),
+    (np.array(['a', 'b']), np.ndarray),
+    (pd.Categorical(['a', 'b']), pd.Categorical),
+    (pd.DatetimeIndex(['2017', '2018']), np.ndarray),
+    (pd.PeriodIndex([2018, 2019], freq='A'), np.ndarray),
+    (pd.IntervalIndex.from_breaks([0, 1, 2]), np.ndarray),
+    (pd.DatetimeIndex(['2017', '2018'], tz="US/Central"), pd.DatetimeIndex),
+])
+def test_values_consistent(array, expected_type):
+    l_values = pd.Series(array)._values
+    r_values = pd.Index(array)._values
+    assert type(l_values) is expected_type
+    assert type(l_values) is type(r_values)
+
+    if isinstance(l_values, np.ndarray):
+        tm.assert_numpy_array_equal(l_values, r_values)
+    elif isinstance(l_values, pd.Index):
+        tm.assert_index_equal(l_values, r_values)
+    elif pd.api.types.is_categorical(l_values):
+        tm.assert_categorical_equal(l_values, r_values)
+    else:
+        raise TypeError("Unexpected type {}".format(type(l_values)))

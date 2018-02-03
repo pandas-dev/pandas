@@ -205,7 +205,7 @@ class TestPeriodIndex(DatetimeLike):
         tm.assert_numpy_array_equal(idx.values, exp)
         tm.assert_numpy_array_equal(idx.get_values(), exp)
         exp = np.array([], dtype=np.int64)
-        tm.assert_numpy_array_equal(idx._values, exp)
+        tm.assert_numpy_array_equal(idx._ndarray_values, exp)
 
         idx = pd.PeriodIndex(['2011-01', pd.NaT], freq='M')
 
@@ -213,7 +213,7 @@ class TestPeriodIndex(DatetimeLike):
         tm.assert_numpy_array_equal(idx.values, exp)
         tm.assert_numpy_array_equal(idx.get_values(), exp)
         exp = np.array([492, -9223372036854775808], dtype=np.int64)
-        tm.assert_numpy_array_equal(idx._values, exp)
+        tm.assert_numpy_array_equal(idx._ndarray_values, exp)
 
         idx = pd.PeriodIndex(['2011-01-01', pd.NaT], freq='D')
 
@@ -222,7 +222,7 @@ class TestPeriodIndex(DatetimeLike):
         tm.assert_numpy_array_equal(idx.values, exp)
         tm.assert_numpy_array_equal(idx.get_values(), exp)
         exp = np.array([14975, -9223372036854775808], dtype=np.int64)
-        tm.assert_numpy_array_equal(idx._values, exp)
+        tm.assert_numpy_array_equal(idx._ndarray_values, exp)
 
     def test_period_index_length(self):
         pi = PeriodIndex(freq='A', start='1/1/2001', end='12/1/2009')

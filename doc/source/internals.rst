@@ -89,6 +89,21 @@ not check (or care) whether the levels themselves are sorted. Fortunately, the
 constructors ``from_tuples`` and ``from_arrays`` ensure that this is true, but
 if you compute the levels and labels yourself, please be careful.
 
+Values
+~~~~~~
+
+Pandas extends NumPy's type system in a few places, so we have multiple notions of "values" floating around.
+For 1-D containers (``Index`` classes and ``Series``) we have the following convention:
+
+* ``cls._ndarray_values`` is *always* and ``ndarray``
+* ``cls._values`` refers is the "best possible" array. This could be an ``ndarray``, ``ExtensionArray``, or
+  in ``Index`` subclass (note: we're in the process of removing the index subclasses here so that it's
+  always an ``ndarray`` or ``ExtensionArray``).
+
+So, for example, ``Series[category]._values`` is a ``Categorical``, while ``Series[category]._ndarray_values`` is
+the underlying ndarray.
+
+
 .. _ref-subclassing-pandas:
 
 Subclassing pandas Data Structures

@@ -1884,7 +1884,7 @@ class GenericArrayFormatter(object):
 
         vals = self.values
         if isinstance(vals, Index):
-            vals = vals._values
+            vals = vals._ndarray_values
         elif isinstance(vals, ABCSparseArray):
             vals = vals.values
 

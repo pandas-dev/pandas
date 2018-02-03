@@ -392,7 +392,7 @@ class Index(IndexOpsMixin, PandasObject):
                 values = np.array(values, copy=False)
                 if is_object_dtype(values):
                     values = cls(values, name=name, dtype=dtype,
-                                 **kwargs)._values
+                                 **kwargs)._ndarray_values
 
         result = object.__new__(cls)
         result._data = values
@@ -644,7 +644,7 @@ class Index(IndexOpsMixin, PandasObject):
         --------
         numpy.ndarray.ravel
         """
-        return self._values.ravel(order=order)
+        return self._ndarray_values.ravel(order=order)
 
     # construction helpers
     @classmethod
@@ -1577,7 +1577,7 @@ class Index(IndexOpsMixin, PandasObject):
     @cache_readonly
     def _engine(self):
         # property, for now, slow to look up
-        return self._engine_type(lambda: self._values, len(self))
+        return self._engine_type(lambda: self._ndarray_values, len(self))
 
     def _validate_index_level(self, level):
         """
@@ -2208,27 +2208,37 @@ class Index(IndexOpsMixin, PandasObject):
             other = other.astype('O')
             return this.union(other)
 
+        if is_categorical_dtype(self):
+            lvals = self.values
+        else:
+            lvals = self._ndarray_values
+
+        if is_categorical_dtype(other):
+            rvals = other.values
+        else:
+            rvals = other._ndarray_values
+
         if self.is_monotonic and other.is_monotonic:
             try:
-                result = self._outer_indexer(self._values, other._values)[0]
+                result = self._outer_indexer(lvals, rvals)[0]
             except TypeError:
                 # incomparable objects
-                result = list(self._values)
+                result = list(lvals)
 
                 # worth making this faster? a very unusual case
-                value_set = set(self._values)
-                result.extend([x for x in other._values if x not in value_set])
+                value_set = set(lvals)
+                result.extend([x for x in rvals if x not in value_set])
         else:
             indexer = self.get_indexer(other)
             indexer, = (indexer == -1).nonzero()
 
             if len(indexer) > 0:
-                other_diff = algos.take_nd(other._values, indexer,
+                other_diff = algos.take_nd(rvals, indexer,
                                            allow_fill=False)
-                result = _concat._concat_compat((self._values, other_diff))
+                result = _concat._concat_compat((lvals, other_diff))
 
                 try:
-                    self._values[0] < other_diff[0]
+                    lvals[0] < other_diff[0]
                 except TypeError as e:
                     warnings.warn("%s, sort order is undefined for "
                                   "incomparable objects" % e, RuntimeWarning,
@@ -2240,7 +2250,7 @@ class Index(IndexOpsMixin, PandasObject):
                         result.sort()
 
             else:
-                result = self._values
+                result = lvals
 
                 try:
                     result = np.sort(result)
@@ -2293,18 +2303,21 @@ class Index(IndexOpsMixin, PandasObject):
 
         if self.is_monotonic and other.is_monotonic:
             try:
-                result = self._inner_indexer(self._values, other._values)[0]
+                result = self._inner_indexer(self._ndarray_values,
+                                             other._ndarray_values)[0]
                 return self._wrap_union_result(other, result)
             except TypeError:
                 pass
 
         try:
-            indexer = Index(other._values).get_indexer(self._values)
+            indexer = Index(other._ndarray_values).get_indexer(
+                self._ndarray_values)
             indexer = indexer.take((indexer != -1).nonzero()[0])
         except Exception:
             # duplicates
             indexer = algos.unique1d(
-                Index(other._values).get_indexer_non_unique(self._values)[0])
+                Index(other._ndarray_values).get_indexer_non_unique(
+                    self._ndarray_values)[0])
             indexer = indexer[indexer != -1]
 
         taken = other.take(indexer)
@@ -2680,7 +2693,7 @@ class Index(IndexOpsMixin, PandasObject):
                 raise ValueError('limit argument only valid if doing pad, '
                                  'backfill or nearest reindexing')
 
-            indexer = self._engine.get_indexer(target._values)
+            indexer = self._engine.get_indexer(target._ndarray_values)
 
         return _ensure_platform_int(indexer)
 
@@ -2696,12 +2709,13 @@ class Index(IndexOpsMixin, PandasObject):
         if self.is_monotonic_increasing and target.is_monotonic_increasing:
             method = (self._engine.get_pad_indexer if method == 'pad' else
                       self._engine.get_backfill_indexer)
-            indexer = method(target._values, limit)
+            indexer = method(target._ndarray_values, limit)
         else:
             indexer = self._get_fill_indexer_searchsorted(target, method,
                                                           limit)
         if tolerance is not None:
-            indexer = self._filter_indexer_tolerance(target._values, indexer,
+            indexer = self._filter_indexer_tolerance(target._ndarray_values,
+                                                     indexer,
                                                      tolerance)
         return indexer
 
@@ -2792,7 +2806,7 @@ class Index(IndexOpsMixin, PandasObject):
             self = Index(self.asi8)
             tgt_values = target.asi8
         else:
-            tgt_values = target._values
+            tgt_values = target._ndarray_values
 
         indexer, missing = self._engine.get_indexer_non_unique(tgt_values)
         return _ensure_platform_int(indexer), missing
@@ -3227,16 +3241,17 @@ class Index(IndexOpsMixin, PandasObject):
     def _join_non_unique(self, other, how='left', return_indexers=False):
         from pandas.core.reshape.merge import _get_join_indexers
 
-        left_idx, right_idx = _get_join_indexers([self._values],
-                                                 [other._values], how=how,
+        left_idx, right_idx = _get_join_indexers([self._ndarray_values],
+                                                 [other._ndarray_values],
+                                                 how=how,
                                                  sort=True)
 
         left_idx = _ensure_platform_int(left_idx)
         right_idx = _ensure_platform_int(right_idx)
 
-        join_index = np.asarray(self._values.take(left_idx))
+        join_index = np.asarray(self._ndarray_values.take(left_idx))
         mask = left_idx == -1
-        np.putmask(join_index, mask, other._values.take(right_idx))
+        np.putmask(join_index, mask, other._ndarray_values.take(right_idx))
 
         join_index = self._wrap_joined_index(join_index, other)
 
@@ -3383,8 +3398,8 @@ class Index(IndexOpsMixin, PandasObject):
             else:
                 return ret_index
 
-        sv = self._values
-        ov = other._values
+        sv = self._ndarray_values
+        ov = other._ndarray_values
 
         if self.is_unique and other.is_unique:
             # We can perform much better than the general case
@@ -3736,7 +3751,7 @@ class Index(IndexOpsMixin, PandasObject):
             item = self._na_value
 
         _self = np.asarray(self)
-        item = self._coerce_scalar_to_index(item)._values
+        item = self._coerce_scalar_to_index(item)._ndarray_values
         idx = np.concatenate((_self[:loc], item, _self[loc:]))
         return self._shallow_copy_with_infer(idx)
 

@@ -7,7 +7,8 @@ from pandas.compat import builtins
 import numpy as np
 
 from pandas.core.dtypes.missing import isna
-from pandas.core.dtypes.generic import ABCDataFrame, ABCSeries, ABCIndexClass
+from pandas.core.dtypes.generic import (
+    ABCDataFrame, ABCSeries, ABCIndexClass, ABCDatetimeIndex)
 from pandas.core.dtypes.common import (
     is_object_dtype,
     is_list_like,
@@ -706,7 +707,7 @@ class IndexOpsMixin(object):
     @property
     def shape(self):
         """ return a tuple of the shape of the underlying data """
-        return self._values.shape
+        return self._ndarray_values.shape
 
     @property
     def ndim(self):
@@ -734,22 +735,22 @@ class IndexOpsMixin(object):
     @property
     def itemsize(self):
         """ return the size of the dtype of the item of the underlying data """
-        return self._values.itemsize
+        return self._ndarray_values.itemsize
 
     @property
     def nbytes(self):
         """ return the number of bytes in the underlying data """
-        return self._values.nbytes
+        return self._ndarray_values.nbytes
 
     @property
     def strides(self):
         """ return the strides of the underlying data """
-        return self._values.strides
+        return self._ndarray_values.strides
 
     @property
     def size(self):
         """ return the number of elements in the underlying data """
-        return self._values.size
+        return self._ndarray_values.size
 
     @property
     def flags(self):
@@ -764,8 +765,33 @@ class IndexOpsMixin(object):
         return self.values.base
 
     @property
+    def _ndarray_values(self):
+        """The data as an ndarray. See '_values' for more."""
+        # type: () -> np.ndarray
+        return self.values
+
+    @property
     def _values(self):
-        """ the internal implementation """
+        # type: () -> Union[ExtensionArray, Index]
+        # TODO: remove index types as they become is extension arrays
+        """ The best array representation.
+
+        This is an ndarray, ExtensionArray, or Index subclass. This differs
+        from '._ndarray_values', which always returns an ndarray. It may differ
+        from the public '.values'
+
+        index             | values          | _values
+        ----------------- | -------------- -| ----------
+        CategoricalIndex  | Categorical     | Categorical
+        DatetimeIndex[tz] | ndarray[M8ns]   | DTI[tz]
+        PeriodIndex       | ndarray[Period] | ndarray[Pd] (soon PeriodArray)
+        IntervalIndex     | ndarray[IV]     | ndarray[IV] (soon IntervalArray)
+
+        See Also
+        --------
+        values
+        _ndarray_values
+        """
         return self.values
 
     @property
@@ -816,7 +842,7 @@ class IndexOpsMixin(object):
         if is_datetimelike(self):
             return [com._maybe_box_datetimelike(x) for x in self._values]
         else:
-            return self._values.tolist()
+            return self._ndarray_values.tolist()
 
     def __iter__(self):
         """
@@ -973,8 +999,12 @@ class IndexOpsMixin(object):
     @Appender(_shared_docs['unique'] % _indexops_doc_kwargs)
     def unique(self):
         values = self._values
-
+        if isinstance(values, ABCDatetimeIndex):
+            values = values._ndarray_values
+        # TODO: Make unique part of the ExtensionArray interface.
+        # else, this could be surprising.
         if hasattr(values, 'unique'):
+
             result = values.unique()
         else:
             from pandas.core.algorithms import unique1d

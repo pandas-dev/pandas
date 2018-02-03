@@ -679,6 +679,15 @@ class DatetimeIndex(DatelikeOps, TimelikeOps, DatetimeIndexOpsMixin,
                             'datetime-like objects')
 
     @property
+    def _values(self):
+        # tz-naive -> ndarray
+        # tz-aware -> DatetimeIndex
+        if self.tz is not None:
+            return self
+        else:
+            return self.values
+
+    @property
     def tzinfo(self):
         """
         Alias for tz attribute
