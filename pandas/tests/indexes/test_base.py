@@ -2284,7 +2284,7 @@ class TestMixedIntIndex(Base):
 
     def test_as_best_array(self):
         result = pd.Index([0, 1, 2])._as_best_array()
-        expected = np.array([0, 1, 2])
+        expected = np.array([0, 1, 2], dtype=np.int64)
         tm.assert_numpy_array_equal(result, expected)
 
 
