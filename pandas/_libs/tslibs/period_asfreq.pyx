@@ -9,8 +9,7 @@ from util cimport INT32_MIN
 from period_info cimport (dInfoCalc_SetFromAbsDateTime,
                           dInfoCalc_SetFromAbsDate,
                           dInfoCalc_Leapyear,
-                          absdate_from_ymd, monthToQuarter, _ISOWeek,
-                          days_in_month)
+                          absdate_from_ymd, monthToQuarter, _ISOWeek)
 from period_conversion cimport (get_daytime_conversion_factor, max_value,
                                 get_abs_time,
                                 get_freq_group, get_freq_group_index)
@@ -43,6 +42,14 @@ cdef enum FREQS:
     FR_US = 11000      # Microsecondly
     FR_NS = 12000      # Nanosecondly
     FR_UND = -10000    # Undefined
+
+# Table of number of days in a month (0-based, without and with leap)
+cdef int64_t[:, :] days_in_month = np.array(
+    [[<int64_t>val for val in row] for row in
+    # Windows builds seem to require super-explicit casting
+    [[31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31],
+     [31, 29, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31]]],
+    dtype=np.int64)
 
 # ---------------------------------------------------------------
 # Code derived from scikits.timeseries

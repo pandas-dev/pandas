@@ -84,15 +84,6 @@ cdef enum FREQS:
     FR_UND = -10000   # Undefined
 
 
-# Table of number of days in a month (0-based, without and with leap)
-cdef int64_t[:, :] days_in_month = np.array(
-    [[<int64_t>val for val in row] for row in
-    # Windows builds seem to require super-explicit casting
-    [[31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31],
-     [31, 29, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31]]],
-    dtype=np.int64)
-
-
 cdef int dInfoCalc_SetFromAbsDateTime(date_info *dinfo,
                                       int64_t absdate, double abstime,
                                       int calendar) nogil except -1
