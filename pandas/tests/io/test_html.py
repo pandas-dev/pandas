@@ -65,9 +65,6 @@ def _skip_if_none_of(module_names):
                 pytest.skip("Bad version of bs4: 4.2.0")
 
 
-DATA_PATH = tm.get_data_path()
-
-
 def assert_framelist_equal(list1, list2, *args, **kwargs):
     assert len(list1) == len(list2), ('lists are not of equal size '
                                       'len(list1) == {0}, '
@@ -86,8 +83,8 @@ def test_bs4_version_fails():
     _skip_if_none_of(('bs4', 'html5lib'))
     import bs4
     if LooseVersion(bs4.__version__) == LooseVersion('4.2.0'):
-        tm.assert_raises(AssertionError, read_html, os.path.join(DATA_PATH,
-                                                                 "spam.html"),
+        tm.assert_raises(AssertionError, read_html,
+                         os.path.join(tm.get_data_path(), "spam.html"),
                          flavor='bs4')
 
 
@@ -100,15 +97,16 @@ class ReadHtmlMixin(object):
 
 class TestReadHtml(ReadHtmlMixin):
     flavor = 'bs4'
-    spam_data = os.path.join(DATA_PATH, 'spam.html')
-    spam_data_kwargs = {}
-    if PY3:
-        spam_data_kwargs['encoding'] = 'UTF-8'
-    banklist_data = os.path.join(DATA_PATH, 'banklist.html')
 
     @classmethod
     def setup_class(cls):
         _skip_if_none_of(('bs4', 'html5lib'))
+
+        cls.spam_data = os.path.join(tm.get_data_path(), 'spam.html')
+        cls.spam_data_kwargs = {}
+        if PY3:
+            cls.spam_data_kwargs['encoding'] = 'UTF-8'
+        cls.banklist_data = os.path.join(tm.get_data_path(), 'banklist.html')
 
     def test_to_html_compat(self):
         df = mkdf(4, 3, data_gen_f=lambda *args: rand(), c_idx_names=False,
@@ -382,7 +380,7 @@ class TestReadHtml(ReadHtmlMixin):
     @pytest.mark.slow
     def test_thousands_macau_stats(self):
         all_non_nan_table_index = -2
-        macau_data = os.path.join(DATA_PATH, 'macau.html')
+        macau_data = os.path.join(tm.get_data_path(), 'macau.html')
         dfs = self.read_html(macau_data, index_col=0,
                              attrs={'class': 'style1'})
         df = dfs[all_non_nan_table_index]
@@ -392,7 +390,7 @@ class TestReadHtml(ReadHtmlMixin):
     @pytest.mark.slow
     def test_thousands_macau_index_col(self):
         all_non_nan_table_index = -2
-        macau_data = os.path.join(DATA_PATH, 'macau.html')
+        macau_data = os.path.join(tm.get_data_path(), 'macau.html')
         dfs = self.read_html(macau_data, index_col=0, header=0)
         df = dfs[all_non_nan_table_index]
 
@@ -520,7 +518,7 @@ class TestReadHtml(ReadHtmlMixin):
         assert_framelist_equal(res1, res2)
 
     def test_nyse_wsj_commas_table(self):
-        data = os.path.join(DATA_PATH, 'nyse_wsj.html')
+        data = os.path.join(tm.get_data_path(), 'nyse_wsj.html')
         df = self.read_html(data, index_col=0, header=0,
                             attrs={'class': 'mdcTable'})[0]
 
@@ -542,7 +540,8 @@ class TestReadHtml(ReadHtmlMixin):
 
         df = self.read_html(self.banklist_data, 'Metcalf',
                             attrs={'id': 'table'})[0]
-        ground_truth = read_csv(os.path.join(DATA_PATH, 'banklist.csv'),
+        ground_truth = read_csv(os.path.join(tm.get_data_path(),
+                                             'banklist.csv'),
                                 converters={'Updated Date': Timestamp,
                                             'Closing Date': Timestamp})
         assert df.shape == ground_truth.shape
@@ -660,7 +659,7 @@ class TestReadHtml(ReadHtmlMixin):
         tm.assert_frame_equal(newdf, res[0])
 
     def test_computer_sales_page(self):
-        data = os.path.join(DATA_PATH, 'computer_sales_page.html')
+        data = os.path.join(tm.get_data_path(), 'computer_sales_page.html')
         with tm.assert_raises_regex(ParserError,
                                     r"Passed header=\[0,1\] are "
                                     r"too many rows for this "
@@ -668,7 +667,7 @@ class TestReadHtml(ReadHtmlMixin):
             self.read_html(data, header=[0, 1])
 
     def test_wikipedia_states_table(self):
-        data = os.path.join(DATA_PATH, 'wikipedia_states.html')
+        data = os.path.join(tm.get_data_path(), 'wikipedia_states.html')
         assert os.path.isfile(data), '%r is not a file' % data
         assert os.path.getsize(data), '%r is an empty file' % data
         result = self.read_html(data, 'Arizona', header=1)[0]
@@ -788,11 +787,14 @@ def _lang_enc(filename):
 
 
 class TestReadHtmlEncoding(object):
-    files = glob.glob(os.path.join(DATA_PATH, 'html_encoding', '*.html'))
     flavor = 'bs4'
 
     @classmethod
     def setup_class(cls):
+        cls.files = glob.glob(os.path.join(tm.get_data_path(),
+                                           'html_encoding',
+                                           '*.html'))
+
         _skip_if_none_of((cls.flavor, 'html5lib'))
 
     def read_html(self, *args, **kwargs):
@@ -847,8 +849,8 @@ class TestReadHtmlLxml(ReadHtmlMixin):
 
     def test_data_fail(self):
         from lxml.etree import XMLSyntaxError
-        spam_data = os.path.join(DATA_PATH, 'spam.html')
-        banklist_data = os.path.join(DATA_PATH, 'banklist.html')
+        spam_data = os.path.join(tm.get_data_path(), 'spam.html')
+        banklist_data = os.path.join(tm.get_data_path(), 'banklist.html')
 
         with pytest.raises(XMLSyntaxError):
             self.read_html(spam_data)
@@ -857,7 +859,7 @@ class TestReadHtmlLxml(ReadHtmlMixin):
             self.read_html(banklist_data)
 
     def test_works_on_valid_markup(self):
-        filename = os.path.join(DATA_PATH, 'valid_markup.html')
+        filename = os.path.join(tm.get_data_path(), 'valid_markup.html')
         dfs = self.read_html(filename, index_col=0)
         assert isinstance(dfs, list)
         assert isinstance(dfs[0], DataFrame)
@@ -865,7 +867,7 @@ class TestReadHtmlLxml(ReadHtmlMixin):
     @pytest.mark.slow
     def test_fallback_success(self):
         _skip_if_none_of(('bs4', 'html5lib'))
-        banklist_data = os.path.join(DATA_PATH, 'banklist.html')
+        banklist_data = os.path.join(tm.get_data_path(), 'banklist.html')
         self.read_html(banklist_data, '.*Water.*', flavor=['lxml', 'html5lib'])
 
     def test_to_html_timestamp(self):
@@ -893,7 +895,7 @@ class TestReadHtmlLxml(ReadHtmlMixin):
         tm.assert_frame_equal(newdf, res[0])
 
     def test_computer_sales_page(self):
-        data = os.path.join(DATA_PATH, 'computer_sales_page.html')
+        data = os.path.join(tm.get_data_path(), 'computer_sales_page.html')
         self.read_html(data, header=[0, 1])
 
 
@@ -914,7 +916,7 @@ def get_elements_from_file(url, element='table'):
 
 @pytest.mark.slow
 def test_bs4_finds_tables():
-    filepath = os.path.join(DATA_PATH, "spam.html")
+    filepath = os.path.join(tm.get_data_path(), "spam.html")
     with warnings.catch_warnings():
         warnings.filterwarnings('ignore')
         assert get_elements_from_file(filepath, 'table')
@@ -929,19 +931,19 @@ def get_lxml_elements(url, element):
 
 @pytest.mark.slow
 def test_lxml_finds_tables():
-    filepath = os.path.join(DATA_PATH, "spam.html")
+    filepath = os.path.join(tm.get_data_path(), "spam.html")
     assert get_lxml_elements(filepath, 'table')
 
 
 @pytest.mark.slow
 def test_lxml_finds_tbody():
-    filepath = os.path.join(DATA_PATH, "spam.html")
+    filepath = os.path.join(tm.get_data_path(), "spam.html")
     assert get_lxml_elements(filepath, 'tbody')
 
 
 def test_same_ordering():
     _skip_if_none_of(['bs4', 'lxml', 'html5lib'])
-    filename = os.path.join(DATA_PATH, 'valid_markup.html')
+    filename = os.path.join(tm.get_data_path(), 'valid_markup.html')
     dfs_lxml = read_html(filename, index_col=0, flavor=['lxml'])
     dfs_bs4 = read_html(filename, index_col=0, flavor=['bs4'])
     assert_framelist_equal(dfs_lxml, dfs_bs4)
@@ -965,7 +967,7 @@ def test_importcheck_thread_safety():
     pytest.importorskip('lxml')
     reload(pandas.io.html)
 
-    filename = os.path.join(DATA_PATH, 'valid_markup.html')
+    filename = os.path.join(tm.get_data_path(), 'valid_markup.html')
     helper_thread1 = ErrorThread(target=read_html, args=(filename,))
     helper_thread2 = ErrorThread(target=read_html, args=(filename,))
 

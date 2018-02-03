@@ -166,6 +166,8 @@ bar2,12,13,14,15
     ])
     def test_read_fspath_all(self, reader, module, path):
         pytest.importorskip(module)
+        if not os.path.exists(path):
+            pytest.skip("Data files not included in pandas distribution.")
 
         mypath = CustomFSPath(path)
         result = reader(mypath)

@@ -9,19 +9,30 @@ HERE = os.path.dirname(__file__)
 @pytest.fixture(scope='module')
 def tips_file():
     """Path to the tips dataset"""
-    return os.path.join(HERE, 'parser', 'data', 'tips.csv')
+    path = os.path.join(HERE, 'parser', 'data', 'tips.csv')
+    if not os.path.exists(path):
+        pytest.skip("Data files not included in pandas distribution.")
+
+    return path
 
 
 @pytest.fixture(scope='module')
 def jsonl_file():
     """Path a JSONL dataset"""
-    return os.path.join(HERE, 'parser', 'data', 'items.jsonl')
+    path = os.path.join(HERE, 'parser', 'data', 'items.jsonl')
+    if not os.path.exists(path):
+        pytest.skip("Data files not included in pandas distribution.")
+
+    return path
 
 
 @pytest.fixture(scope='module')
 def salaries_table():
     """DataFrame with the salaries dataset"""
     path = os.path.join(HERE, 'parser', 'data', 'salaries.csv')
+    if not os.path.exists(path):
+        pytest.skip("Data files not included in pandas distribution.")
+
     return read_table(path)
 
 
@@ -53,6 +64,9 @@ def s3_resource(tips_file, jsonl_file):
 
     def add_tips_files(bucket_name):
         for s3_key, file_name in test_s3_files:
+            if not os.path.exists(file_name):
+                pytest.skip("Data files not included in pandas distribution.")
+
             with open(file_name, 'rb') as f:
                 conn.Bucket(bucket_name).put_object(
                     Key=s3_key,

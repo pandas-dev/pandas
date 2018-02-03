@@ -830,6 +830,8 @@ class TestEncoding(TestPackers):
 def legacy_packers_versions():
     # yield the packers versions
     path = tm.get_data_path('legacy_msgpack')
+    if not os.path.exists(path):
+        raise pytest.skip("Data file {} does not exist.".format(path))
     for v in os.listdir(path):
         p = os.path.join(path, v)
         if os.path.isdir(p):

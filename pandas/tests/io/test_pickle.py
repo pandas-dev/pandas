@@ -191,6 +191,8 @@ def compare_sp_frame_float(result, expected, typ, version):
 def legacy_pickle_versions():
     # yield the pickle versions
     path = tm.get_data_path('legacy_pickle')
+    if not os.path.exists(path):
+        raise pytest.skip("Data path {} does not exists.".format(path))
     for v in os.listdir(path):
         p = os.path.join(path, v)
         if os.path.isdir(p):

@@ -77,6 +77,10 @@ class TestPlotBase(object):
         from pandas import read_csv
         base = os.path.join(os.path.dirname(curpath()), os.pardir)
         path = os.path.join(base, 'tests', 'data', 'iris.csv')
+
+        if not os.path.exists(path):
+            pytest.skip("Data files not included in pandas distribution.")
+
         self.iris = read_csv(path)
 
         n = 100
