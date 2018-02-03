@@ -1512,11 +1512,13 @@ class TestMergeDtypes(object):
                                                           '2011-01-02']),
         (pd.date_range('1/1/2011', periods=2, freq='D'), [0, 1]),
         (pd.date_range('1/1/2011', periods=2, freq='D'), [0.0, 1.0]),
+        (pd.date_range('20130101', periods=3),
+            pd.date_range('20130101', periods=3, tz='US/Eastern')),
         ([0, 1, 2], Series(['a', 'b', 'a']).astype('category')),
         ([0.0, 1.0, 2.0], Series(['a', 'b', 'a']).astype('category')),
     ])
     def test_merge_incompat_dtypes(self, df1_vals, df2_vals):
-        # GH 9780
+        # GH 9780, GH 15800
         # Raise a ValueError when a user tries to merge on
         # dtypes that are incompatible (e.g., obj and int/float)
 

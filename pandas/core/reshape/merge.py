@@ -940,6 +940,11 @@ class _MergeOperation(object):
             elif is_dtype_equal(lk.dtype, rk.dtype):
                 continue
 
+            msg = ("You are trying to merge on {lk_dtype} and "
+                   "{rk_dtype} columns. If you wish to proceed "
+                   "you should use pd.concat".format(lk_dtype=lk.dtype,
+                                                     rk_dtype=rk.dtype))
+
             # if we are numeric, then allow differing
             # kinds to proceed, eg. int64 and int8, int and float
             # further if we are object, but we infer to
@@ -968,30 +973,18 @@ class _MergeOperation(object):
                     pass
 
             # Check if we are trying to merge on obviously
-            # incompatible dtypes GH 9780
+            # incompatible dtypes GH 9780, GH 15800
             elif is_numeric_dtype(lk) and not is_numeric_dtype(rk):
-                msg = ("You are trying to merge on {lk_dtype} and "
-                       "{rk_dtype} columns. If you wish to proceed "
-                       "you should use pd.concat".format(lk_dtype=lk.dtype,
-                                                         rk_dtype=rk.dtype))
                 raise ValueError(msg)
             elif not is_numeric_dtype(lk) and is_numeric_dtype(rk):
-                msg = ("You are trying to merge on {lk_dtype} and "
-                       "{rk_dtype} columns. If you wish to proceed "
-                       "you should use pd.concat".format(lk_dtype=lk.dtype,
-                                                         rk_dtype=rk.dtype))
                 raise ValueError(msg)
             elif is_datetimelike(lk) and not is_datetimelike(rk):
-                msg = ("You are trying to merge on {lk_dtype} and "
-                       "{rk_dtype} columns. If you wish to proceed "
-                       "you should use pd.concat".format(lk_dtype=lk.dtype,
-                                                         rk_dtype=rk.dtype))
                 raise ValueError(msg)
             elif not is_datetimelike(lk) and is_datetimelike(rk):
-                msg = ("You are trying to merge on {lk_dtype} and "
-                       "{rk_dtype} columns. If you wish to proceed "
-                       "you should use pd.concat".format(lk_dtype=lk.dtype,
-                                                         rk_dtype=rk.dtype))
+                raise ValueError(msg)
+            elif is_datetime64tz_dtype(lk) and not is_datetime64tz_dtype(rk):
+                raise ValueError(msg)
+            elif not is_datetime64tz_dtype(lk) and is_datetime64tz_dtype(rk):
                 raise ValueError(msg)
 
             # Houston, we have a problem!
