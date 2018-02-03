@@ -10,7 +10,7 @@ from .common import (is_string_dtype, is_datetimelike,
                      is_datetimelike_v_numeric, is_float_dtype,
                      is_datetime64_dtype, is_datetime64tz_dtype,
                      is_timedelta64_dtype, is_interval_dtype,
-                     is_complex_dtype, is_categorical_dtype,
+                     is_complex_dtype,
                      is_string_like_dtype, is_bool_dtype,
                      is_integer_dtype, is_dtype_equal,
                      is_extension_array_dtype,
@@ -128,20 +128,15 @@ def _use_inf_as_na(key):
 
 
 def _isna_ndarraylike(obj):
-    from ..arrays import ExtensionArray
-
     values = getattr(obj, 'values', obj)
     dtype = values.dtype
 
-    if isinstance(values, ExtensionArray):
-        result = values.isna()
+    if is_extension_array_dtype(obj):
+        # work on the original object
+        result = obj.isna()
     elif is_string_dtype(dtype):
-        if is_categorical_dtype(values):
-            from pandas import Categorical
-            if not isinstance(values, Categorical):
-                values = values.values
-            result = values.isna()
-        elif is_interval_dtype(values):
+        if is_interval_dtype(values):
+            # TODO(IntervalArray): remove this if block
             from pandas import IntervalIndex
             result = IntervalIndex(obj).isna()
         else:
