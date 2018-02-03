@@ -81,7 +81,7 @@ class TestFrameMulDiv(object):
         # GH#3590, modulo as ints
         df = pd.DataFrame({'first': [3, 4, 5, 8], 'second': [0, 0, 0, 3]})
 
-        # this is technically wrong as the integer portion is coerced to float
+        # this is technically wrong, as the integer portion is coerced to float
         # ###
         first = pd.Series([0, 0, 0, 0], dtype='float64')
         second = pd.Series([np.nan, np.nan, np.nan, 0])
@@ -93,13 +93,13 @@ class TestFrameMulDiv(object):
         # GH#3590, modulo as ints
         df = pd.DataFrame({'first': [3, 4, 5, 8], 'second': [0, 0, 0, 3]})
 
-        # this is technically wrong as the integer portion is coerced to float
+        # this is technically wrong, as the integer portion is coerced to float
         # ###
         first = pd.Series([0, 0, 0, 0], dtype='float64')
         second = pd.Series([np.nan, np.nan, np.nan, 0])
         expected = pd.DataFrame({'first': first, 'second': second})
 
-        # numpy has a slightly different (wrong) treatement
+        # numpy has a slightly different (wrong) treatment
         with np.errstate(all='ignore'):
             arr = df.values % df.values
         result2 = pd.DataFrame(arr, index=df.index,
@@ -115,7 +115,7 @@ class TestFrameMulDiv(object):
         expected = pd.DataFrame(np.nan, index=df.index, columns=df.columns)
         tm.assert_frame_equal(result, expected)
 
-        # numpy has a slightly different (wrong) treatement
+        # numpy has a slightly different (wrong) treatment
         with np.errstate(all='ignore'):
             arr = df.values.astype('float64') % 0
         result2 = pd.DataFrame(arr, index=df.index, columns=df.columns)
@@ -166,7 +166,7 @@ class TestFrameMulDiv(object):
         expected.iloc[0:3, 1] = np.nan
         tm.assert_frame_equal(result, expected)
 
-        # numpy has a slightly different (wrong) treatement
+        # numpy has a slightly different (wrong) treatment
         with np.errstate(all='ignore'):
             arr = df.values.astype('float64') / 0
         result2 = pd.DataFrame(arr, index=df.index,
