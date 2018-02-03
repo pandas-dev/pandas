@@ -741,6 +741,7 @@ def _comp_method_SERIES(op, name, str_rep):
         if is_categorical_dtype(x):
             return op(x, y)
         elif is_categorical_dtype(y) and not is_scalar(y):
+            # the `not is_scalar(y)` check avoids catching string "category"
             return op(y, x)
 
         elif is_object_dtype(x.dtype):
@@ -750,7 +751,6 @@ def _comp_method_SERIES(op, name, str_rep):
             raise TypeError("invalid type comparison")
 
         else:
-
             # we want to compare like types
             # we only want to convert to integer like if
             # we are not NotImplemented, otherwise
@@ -759,23 +759,18 @@ def _comp_method_SERIES(op, name, str_rep):
 
             # we have a datetime/timedelta and may need to convert
             mask = None
-            if (needs_i8_conversion(x) or
-                    (not is_scalar(y) and needs_i8_conversion(y))):
-
-                if is_scalar(y):
-                    mask = isna(x)
-                    y = libindex.convert_scalar(x, com._values_from_object(y))
-                else:
-                    mask = isna(x) | isna(y)
-                    y = y.view('i8')
+            if not is_scalar(y) and needs_i8_conversion(y):
+                mask = isna(x) | isna(y)
+                y = y.view('i8')
                 x = x.view('i8')
 
-            try:
+            method = getattr(x, name, None)
+            if method is not None:
                 with np.errstate(all='ignore'):
                     result = getattr(x, name)(y)
                 if result is NotImplemented:
                     raise TypeError("invalid type comparison")
-            except AttributeError:
+            else:
                 result = op(x, y)
 
             if mask is not None and mask.any():
@@ -788,17 +783,36 @@ def _comp_method_SERIES(op, name, str_rep):
         if axis is not None:
             self._get_axis_number(axis)
 
+        res_name = _get_series_op_result_name(self, other)
+
         if isinstance(other, ABCDataFrame):  # pragma: no cover
             # Defer to DataFrame implementation; fail early
             return NotImplemented
 
+        elif isinstance(other, ABCSeries) and not self._indexed_same(other):
+            raise ValueError('Can only compare identically-labeled Series '
+                             'objects')
+
+        elif is_datetime64_dtype(self) or is_datetime64tz_dtype(self):
+            res_values = dispatch_to_index_op(op, self, other,
+                                              pd.DatetimeIndex)
+            return _construct_result(self, res_values,
+                                     index=self.index, name=res_name,
+                                     dtype=res_values.dtype)
+
+        elif is_timedelta64_dtype(self):
+            res_values = dispatch_to_index_op(op, self, other,
+                                              pd.TimedeltaIndex)
+            return _construct_result(self, res_values,
+                                     index=self.index, name=res_name,
+                                     dtype=res_values.dtype)
+
         elif isinstance(other, ABCSeries):
+            # By this point we know that self._indexed_same(other)
             name = com._maybe_match_name(self, other)
-            if not self._indexed_same(other):
-                msg = 'Can only compare identically-labeled Series objects'
-                raise ValueError(msg)
             res_values = na_op(self.values, other.values)
-            return self._constructor(res_values, index=self.index, name=name)
+            return self._constructor(res_values, index=self.index,
+                                     name=res_name)
 
         elif isinstance(other, (np.ndarray, pd.Index)):
             # do not check length of zerodim array
@@ -836,7 +850,7 @@ def _comp_method_SERIES(op, name, str_rep):
                 res = op(self.values, other)
         else:
             values = self.get_values()
-            if isinstance(other, (list, np.ndarray)):
+            if isinstance(other, list):
                 other = np.asarray(other)
 
             with np.errstate(all='ignore'):
