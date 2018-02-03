@@ -80,6 +80,26 @@ def _try_get_item(x):
         return x
 
 
+def _make_invalid_op(name):
+    """
+    Return a binary method that always raises a TypeError.
+
+    Parameters
+    ----------
+    name : str
+
+    Returns
+    -------
+    invalid_op : function
+    """
+    def invalid_op(self, other=None):
+        raise TypeError("cannot perform {name} with this index type: "
+                        "{typ}".format(name=name, typ=type(self)))
+
+    invalid_op.__name__ = name
+    return invalid_op
+
+
 class InvalidIndexError(Exception):
     pass
 
@@ -4134,26 +4154,6 @@ class Index(IndexOpsMixin, PandasObject):
 Index._add_numeric_methods_disabled()
 Index._add_logical_methods()
 Index._add_comparison_methods()
-
-
-def _make_invalid_op(name):
-    """
-    Return a binary method that always raises a TypeError.
-
-    Parameters
-    ----------
-    name : str
-
-    Returns
-    -------
-    invalid_op : function
-    """
-    def invalid_op(self, other=None):
-        raise TypeError("cannot perform {name} with this index type: "
-                        "{typ}".format(name=name, typ=type(self)))
-
-    invalid_op.__name__ = name
-    return invalid_op
 
 
 def _ensure_index_from_sequences(sequences, names=None):
