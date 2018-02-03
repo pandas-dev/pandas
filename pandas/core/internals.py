@@ -1860,7 +1860,7 @@ class ExtensionBlock(NonConsolidatableMixIn, Block):
 
     def __init__(self, values, placement, ndim=None):
         values = self._maybe_coerce_values(values)
-        super().__init__(values, placement, ndim)
+        super(ExtensionBlock, self).__init__(values, placement, ndim)
 
     def _maybe_coerce_values(self, values):
         # Unboxes Series / Index
