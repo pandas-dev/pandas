@@ -132,8 +132,13 @@ def _isna_ndarraylike(obj):
     dtype = values.dtype
 
     if is_extension_array_dtype(obj):
-        # work on the original object
-        result = obj.isna()
+        if isinstance(obj, ABCIndexClass):
+            values = obj._as_best_array()
+        elif isinstance(obj, ABCSeries):
+            values = obj._values
+        else:
+            values = obj
+        result = values.isna()
     elif is_string_dtype(dtype):
         if is_interval_dtype(values):
             # TODO(IntervalArray): remove this if block
