@@ -10,8 +10,7 @@ import operator
 import numpy as np
 import pandas as pd
 
-from pandas._libs import (lib, index as libindex,
-                          algos as libalgos)
+from pandas._libs import lib, algos as libalgos
 
 from pandas import compat
 from pandas.util._decorators import Appender
