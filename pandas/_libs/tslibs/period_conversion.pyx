@@ -3,7 +3,9 @@
 cimport cython
 
 import numpy as np
+cimport numpy as cnp
 from numpy cimport int64_t
+cnp.import_array()
 
 
 cdef enum FREQS:
@@ -27,7 +29,9 @@ daytime_conversion_factors = [[FR_DAY, 1],   [FR_HR, 24],
                               [FR_MS, 1000], [FR_US, 1000],
                               [FR_NS, 1000], [0, 0]]
 
-cdef int64_t[:, :] daytime_conversion_factor_matrix = np.array([
+cdef int64_t[:, :] daytime_conversion_factor_matrix = np.array(
+    [[<int64_t>val for val in row] for row in
+    [
     [0, 0, 0, 0, 0, 0, 0,  0,    0,     0,        0,           0,              0],
     [0, 0, 0, 0, 0, 0, 0,  0,    0,     0,        0,           0,              0],
     [0, 0, 0, 0, 0, 0, 0,  0,    0,     0,        0,           0,              0],
@@ -40,13 +44,20 @@ cdef int64_t[:, :] daytime_conversion_factor_matrix = np.array([
     [0, 0, 0, 0, 0, 0, 0,  0,    0,     1,     1000,     1000000,     1000000000],
     [0, 0, 0, 0, 0, 0, 0,  0,    0,     0,        1,        1000,        1000000],
     [0, 0, 0, 0, 0, 0, 0,  0,    0,     0,        0,           1,           1000],
-    [0, 0, 0, 0, 0, 0, 0,  0,    0,     0,        0,           0,              1]],
+    [0, 0, 0, 0, 0, 0, 0,  0,    0,     0,        0,           0,              1]]],
     dtype=np.int64)  # noqa
+
+
 
 
 @cython.boundscheck(False)
 cdef int64_t get_daytime_conversion_factor(int from_index, int to_index) nogil:
-    return daytime_conversion_factor_matrix[min_value(from_index, to_index)][max_value(from_index, to_index)]  # noqa:E501
+    cdef:
+        Py_ssize_t row, col
+
+    row = min_value(from_index, to_index)
+    col = max_value(from_index, to_index)
+    return daytime_conversion_factor_matrix[row][col]
 
 
 cdef inline int max_value(int a, int b) nogil:
