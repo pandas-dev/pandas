@@ -789,8 +789,8 @@ def _comp_method_SERIES(op, name, str_rep):
             return NotImplemented
 
         elif isinstance(other, ABCSeries) and not self._indexed_same(other):
-            raise ValueError('Can only compare identically-labeled Series '
-                             'objects')
+            raise ValueError('Can only compare identically-labeled '
+                             'Series objects')
 
         elif is_datetime64_dtype(self) or is_datetime64tz_dtype(self):
             res_values = dispatch_to_index_op(op, self, other,
@@ -807,7 +807,7 @@ def _comp_method_SERIES(op, name, str_rep):
                                      dtype=res_values.dtype)
 
         elif isinstance(other, ABCSeries):
-            # By this point we know that self._indexed_same(other)
+            # By this point, we know that self._indexed_same(other)
             res_values = na_op(self.values, other.values)
             return self._constructor(res_values, index=self.index,
                                      name=res_name)
