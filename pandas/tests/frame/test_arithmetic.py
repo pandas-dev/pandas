@@ -168,7 +168,7 @@ class TestFrameFlexArithmetic(object):
         tm.assert_frame_equal(result, frame * np.nan)
 
     def test_df_flex_add_fill_value_raises(self):
-        # corner case NotImplementeError
+        # corner case NotImplementedError
         frame = pd.DataFrame(tm.getSeriesData())
         with tm.assert_raises_regex(NotImplementedError, 'fill_value'):
             frame.add(frame.iloc[0], fill_value=3)
@@ -294,7 +294,7 @@ class TestFrameFlexArithmetic(object):
             tm.assert_frame_equal(result, expected)
             _check_mixed_float(result, dtype={'C': None})
 
-        except:
+        except Exception:
             import pandas.io.formats.printing as printing
             printing.pprint_thing("Failing operation %r" % opname)
             raise
@@ -340,24 +340,23 @@ class TestFrameFlexArithmetic(object):
         df = pd.DataFrame(np.arange(1, 10).reshape(3, 3),
                           columns=['one', 'two', 'three'],
                           index=['a', 'b', 'c'])
-        row = df.xs('a')
         col = df['two']
         # after arithmetic refactor, add truediv here
 
         result = df.add(col, axis=0)
-        expected = df.T + row
+        expected = df.T + col
         tm.assert_frame_equal(result, expected.T)
 
         result = df.sub(col, axis=0)
-        expected = df.T - row
+        expected = df.T - col
         tm.assert_frame_equal(result, expected.T)
 
         result = df.mul(col, axis=0)
-        expected = df.T * row
+        expected = df.T * col
         tm.assert_frame_equal(result, expected.T)
 
         result = df.mod(col, axis=0)
-        expected = df.T % row
+        expected = df.T % col
         tm.assert_frame_equal(result, expected.T)
 
     def test_df_flex_arith_corner_cases(self):
