@@ -4815,7 +4815,7 @@ class NDFrame(PandasObject, SelectionMixin):
                   lists will be interpreted as regexs otherwise they will match
                   directly. This doesn't matter much for ``value`` since there
                   are only a few possible substitution regexes you can use.
-                - str and regex rules apply as above.
+                - str, regex and numeric rules apply as above.
 
             * dict:
 
