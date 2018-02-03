@@ -809,7 +809,6 @@ def _comp_method_SERIES(op, name, str_rep):
 
         elif isinstance(other, ABCSeries):
             # By this point we know that self._indexed_same(other)
-            name = com._maybe_match_name(self, other)
             res_values = na_op(self.values, other.values)
             return self._constructor(res_values, index=self.index,
                                      name=res_name)
