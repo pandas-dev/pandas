@@ -4870,10 +4870,11 @@ class DataFrame(NDFrame):
             while guessing, exceptions raised by func will be ignored). If
             reduce is True a Series will always be returned, and if False a
             DataFrame will always be returned.
+
         result_type : {'infer', 'broadcast, None}
             These only act when axis=1 {columns}
-            * infer : list-like results will be turned into columns
-            * broadcast : scalar results will be broadcast to all rows
+            * 'infer' : list-like results will be turned into columns
+            * 'broadcast' : scalar results will be broadcast to all columns
             * None : list-like results will be returned as a list
               in a single column. However if the apply function
               returns a Series these are expanded to columns.

@@ -121,22 +121,58 @@ class TestDataFrameApply(TestData):
             expected = getattr(self.frame, arg)(axis=1)
             tm.assert_series_equal(result, expected)
 
+    def test_apply_broadcast_deprecated(self):
+        with tm.assert_produces_warning(FutureWarning):
+            self.frame.apply(np.mean, broadcast=True)
+
     def test_apply_broadcast(self):
-        with tm.assert_produces_warning(FutureWarning):
-            broadcasted = self.frame.apply(np.mean, broadcast=True)
-        agged = self.frame.apply(np.mean)
 
-        for col, ts in compat.iteritems(broadcasted):
-            assert (ts == agged[col]).all()
+        # scalars
+        result = self.frame.apply(np.mean, result_type='broadcast')
+        expected = DataFrame([self.frame.mean()], index=self.frame.index)
+        tm.assert_frame_equal(result, expected)
 
-        with tm.assert_produces_warning(FutureWarning):
-            broadcasted = self.frame.apply(np.mean, axis=1, broadcast=True)
-        agged = self.frame.apply(np.mean, axis=1)
-        for idx in broadcasted.index:
-            assert (broadcasted.xs(idx) == agged[idx]).all()
+        result = self.frame.apply(np.mean, axis=1, result_type='broadcast')
+        m = self.frame.mean(axis=1)
+        expected = DataFrame({c: m for c in self.frame.columns})
+        tm.assert_frame_equal(result, expected)
 
-        with tm.assert_produces_warning(FutureWarning):
-            self.frame.apply(np.mean, axis=1, broadcast=False)
+        # lists
+        result = self.frame.apply(
+            lambda x: list(range(len(self.frame.columns))),
+            axis=1,
+            result_type='broadcast')
+        m = list(range(len(self.frame.columns)))
+        expected = DataFrame([m] * len(self.frame.index),
+                             dtype='float64',
+                             index=self.frame.index,
+                             columns=self.frame.columns)
+        tm.assert_frame_equal(result, expected)
+
+        result = self.frame.apply(lambda x: list(range(len(self.frame.index))),
+                                  result_type='broadcast')
+        m = list(range(len(self.frame.index)))
+        expected = DataFrame({c: m for c in self.frame.columns},
+                             dtype='float64',
+                             index=self.frame.index)
+        tm.assert_frame_equal(result, expected)
+
+    def test_apply_broadcast_error(self):
+        df = DataFrame(
+            np.tile(np.arange(3, dtype='int64'), 6).reshape(6, -1) + 1,
+            columns=['A', 'B', 'C'])
+
+        # > 1 ndim
+        with pytest.raises(ValueError):
+            df.apply(lambda x: np.array([1, 2]).reshape(-1, 2),
+                     axis=1,
+                     result_type='broadcast')
+
+        # cannot broadcast
+        with pytest.raises(ValueError):
+            df.apply(lambda x: [1, 2],
+                     axis=1,
+                     result_type='broadcast')
 
     def test_apply_raw(self):
         result0 = self.frame.apply(np.mean, raw=True)
@@ -213,8 +249,7 @@ class TestDataFrameApply(TestData):
             _check(no_index, lambda x: x)
             _check(no_index, lambda x: x.mean())
 
-        with tm.assert_produces_warning(FutureWarning):
-            result = no_cols.apply(lambda x: x.mean(), broadcast=True)
+        result = no_cols.apply(lambda x: x.mean(), result_type='broadcast')
         assert isinstance(result, DataFrame)
 
     def test_apply_with_args_kwds(self):
@@ -678,6 +713,35 @@ class TestInferOutputShape(object):
         result = df.apply(lambda x: [1, 2], axis=1, result_type='infer')
         expected = df[['A', 'B']].copy()
         expected.columns = [0, 1]
+        assert_frame_equal(result, expected)
+
+        # broadcast result
+        result = df.apply(lambda x: [1, 2, 3], axis=1, result_type='broadcast')
+        expected = df.copy()
+        assert_frame_equal(result, expected)
+
+        columns = ['other', 'col', 'names']
+        result = df.apply(
+            lambda x: pd.Series([1, 2, 3],
+                                index=columns),
+            axis=1,
+            result_type='broadcast')
+        expected = df.copy()
+        expected.columns = columns
+        assert_frame_equal(result, expected)
+
+        # series result
+        result = df.apply(lambda x: Series([1, 2, 3], index=x.index), axis=1)
+        expected = df.copy()
+        assert_frame_equal(result, expected)
+
+        # series result with other index
+        columns = ['other', 'col', 'names']
+        result = df.apply(
+            lambda x: pd.Series([1, 2, 3], index=columns),
+            axis=1)
+        expected = df.copy()
+        expected.columns = columns
         assert_frame_equal(result, expected)
 
     @pytest.mark.parametrize(

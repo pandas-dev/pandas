@@ -793,8 +793,12 @@ The :meth:`~DataFrame.apply` method will also dispatch on a string method name.
    df.apply('mean')
    df.apply('mean', axis=1)
 
-Depending on the return type of the function passed to :meth:`~DataFrame.apply`,
-the result will either be of lower dimension or the same dimension.
+The return type of the function passed to :meth:`~DataFrame.apply` affects the
+type of the ultimate output from DataFrame.apply
+
+* If the applied function returns a ``Series``, the ultimate output is a ``DataFrame``.
+  The columns match the index ``Series`` returned by the applied function.
+* If the applied function returns any other type, the ultimate output is a ``Series``.
 
 :meth:`~DataFrame.apply` combined with some cleverness can be used to answer many questions
 about a data set. For example, suppose we wanted to extract the date where the

@@ -43,7 +43,8 @@ class FrameApply(object):
         if broadcast is not None:
             warnings.warn("The broadcast argument is deprecated and will "
                           "be removed in a future version. You can specify "
-                          "result_type='broadcast' broadcast a scalar result",
+                          "result_type='broadcast' to broadcast the result "
+                          "to the original dimensions",
                           FutureWarning, stacklevel=4)
             if broadcast:
                 result_type = 'broadcast'
@@ -160,11 +161,32 @@ class FrameApply(object):
 
     def apply_broadcast(self, target):
         result_values = np.empty_like(target.values)
-        columns = target.columns
-        for i, col in enumerate(columns):
-            result_values[:, i] = self.f(target[col])
 
-        result = self.obj._constructor(result_values, index=target.index,
+        # axis which we want to compare compliance
+        result_compare = target.shape[0]
+
+        index = target.index
+        for i, col in enumerate(target.columns):
+            res = self.f(target[col])
+            ares = np. asarray(res).ndim
+
+            # must be a scalar or 1d
+            if ares > 1:
+                raise ValueError("too many dims to broadcast")
+            elif ares == 1:
+
+                # must match return dim
+                if result_compare != len(res):
+                    raise ValueError("cannot broadcast result")
+
+                # if we have a Series result, then then index
+                # is our result
+                if isinstance(res, ABCSeries):
+                    index = res.index
+
+            result_values[:, i] = res
+
+        result = self.obj._constructor(result_values, index=index,
                                        columns=target.columns)
         return result
 
