@@ -105,6 +105,7 @@ for module, files in _pxi_dep_template.items():
 
 numpy_incl = pkg_resources.resource_filename('numpy', 'core/include')
 
+
 class build_ext(_build_ext):
     @classmethod
     def render_templates(cls):
@@ -150,8 +151,8 @@ def _cythonize(extensions, *args, **kwargs):
 
     for ext in extensions:
         if (hasattr(ext, 'include_dirs') and
-                      numpy_incl not in ext.include_dirs):
-                  ext.include_dirs.append(numpy_incl)
+                numpy_incl not in ext.include_dirs):
+            ext.include_dirs.append(numpy_incl)
 
     build_ext.render_templates()
     return cythonize(extensions, *args, **kwargs)
