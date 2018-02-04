@@ -783,7 +783,6 @@ class TestToDatetimeUnit(object):
 
 
 class TestToDatetimeMisc(object):
-
     @pytest.mark.parametrize('cache', [True, False])
     def test_to_datetime_iso8601(self, cache):
         result = to_datetime(["2012-01-01 00:00:00"], cache=cache)
@@ -1595,6 +1594,19 @@ class TestArrayToDatetime(object):
                 dtype='M8[ns]'
             )
         )
+
+    def test_to_datetime_barely_out_of_bounds(self):
+        # GH#19382 close enough to bounds that dropping nanos would result
+        # in an in-bounds datetime
+        arr = np.array(['2262-04-11 23:47:16.854775808'], dtype=object)
+
+        with pytest.raises(tslib.OutOfBoundsDatetime):
+            to_datetime(arr)
+
+        with pytest.raises(tslib.OutOfBoundsDatetime):
+            # Essentially the same as above, but more directly calling
+            # the relevant function
+            tslib.array_to_datetime(arr)
 
 
 def test_normalize_date():
