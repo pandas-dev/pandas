@@ -3968,8 +3968,8 @@ class DataFrame(NDFrame):
     def _combine_series(self, other, func, fill_value=None, axis=None,
                         level=None, try_cast=True):
         if fill_value is not None:
-            raise NotImplementedError("fill_value %r not supported." %
-                                      fill_value)
+            raise NotImplementedError("fill_value {fill} not supported."
+                                      .format(fill=fill_value))
 
         if axis is not None:
             axis = self._get_axis_name(axis)
@@ -3979,10 +3979,10 @@ class DataFrame(NDFrame):
                 return self._combine_match_columns(other, func, level=level,
                                                    try_cast=try_cast)
         else:
-            if len(other) == 0:
+            if not len(other):
                 return self * np.nan
 
-            if len(self) == 0:
+            if not len(self):
                 # Ambiguous case, use _series so works with DataFrame
                 return self._constructor(data=self._series, index=self.index,
                                          columns=self.columns)
