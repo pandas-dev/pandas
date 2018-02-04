@@ -50,6 +50,7 @@ class TestSeriesComparison(object):
                                        ('foo', 'bar', None),
                                        ('baz', 'baz', 'baz')])
     def test_ser_cmp_result_names(self, names, op):
+        # GH#19524
         # so far only for timedelta, and datetime dtypes
 
         # datetime64 dtype
