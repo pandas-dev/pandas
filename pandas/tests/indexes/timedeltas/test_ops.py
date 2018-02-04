@@ -420,7 +420,6 @@ dtype: timedelta64[ns]"""
 
 
 class TestTimedeltas(object):
-    _multiprocess_can_split_ = True
 
     def test_timedelta_ops(self):
         # GH4984
