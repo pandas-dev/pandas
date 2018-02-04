@@ -17,18 +17,19 @@ cdef int BUSINESS_DAYS_PER_WEEK = 5
 
 # Table of number of days in a month (0-based, without and with leap)
 cdef int64_t[:, :] days_in_month = np.array(
-    [[<int64_t>val for val in row] for row in
     # Windows builds seem to require super-explicit casting
-    [[31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31],
-     [31, 29, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31]]],
+    [[<int64_t>val for val in row] for row in
+     [[31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31],
+      [31, 29, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31]]],
     dtype=np.int64)
 
 # Table with day offsets for each month (0-based, without and with leap)
 cdef int64_t[:, :] month_offset = np.array(
     [[<int64_t>val for val in row] for row in
-    [[0, 31, 59, 90, 120, 151, 181, 212, 243, 273, 304, 334, 365],
-     [0, 31, 60, 91, 121, 152, 182, 213, 244, 274, 305, 335, 366]]],
+     [[0, 31, 59, 90, 120, 151, 181, 212, 243, 273, 304, 334, 365],
+      [0, 31, 60, 91, 121, 152, 182, 213, 244, 274, 305, 335, 366]]],
     dtype=np.int64)
+
 
 # ----------------------------------------------------------------------
 # ccalendar-like functions
