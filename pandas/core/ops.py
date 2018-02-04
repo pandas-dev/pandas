@@ -41,6 +41,60 @@ from pandas.core.dtypes.generic import (
     ABCSparseSeries, ABCSparseArray)
 
 
+# -----------------------------------------------------------------------------
+# Reversed Operations not available in the stdlib operator module.
+# Defining these instead of using lambdas allows us to reference them by name.
+
+def radd(left, right):
+    return right + left
+
+
+def rsub(left, right):
+    return right - left
+
+
+def rmul(left, right):
+    return right * left
+
+
+def rdiv(left, right):
+    return right / left
+
+
+def rtruediv(left, right):
+    return right / left
+
+
+def rfloordiv(left, right):
+    return right // left
+
+
+def rmod(left, right):
+    return right % left
+
+
+def rdivmod(left, right):
+    return divmod(right, left)
+
+
+def rpow(left, right):
+    return right ** left
+
+
+def rand_(left, right):
+    return operator.and_(right, left)
+
+
+def ror_(left, right):
+    return operator.or_(right, left)
+
+
+def rxor(left, right):
+    return operator.xor(right, left)
+
+
+# -----------------------------------------------------------------------------
+
 def _gen_eval_kwargs(name):
     """
     Find the keyword arguments to pass to numexpr for the given operation.
@@ -139,64 +193,51 @@ def _get_frame_op_default_axis(name):
 _op_descriptions = {
     'add': {'op': '+',
             'desc': 'Addition',
-            'reversed': False,
             'reverse': 'radd'},
     'sub': {'op': '-',
             'desc': 'Subtraction',
-            'reversed': False,
             'reverse': 'rsub'},
     'mul': {'op': '*',
             'desc': 'Multiplication',
-            'reversed': False,
             'reverse': 'rmul'},
     'mod': {'op': '%',
             'desc': 'Modulo',
-            'reversed': False,
             'reverse': 'rmod'},
     'pow': {'op': '**',
             'desc': 'Exponential power',
-            'reversed': False,
             'reverse': 'rpow'},
     'truediv': {'op': '/',
                 'desc': 'Floating division',
-                'reversed': False,
                 'reverse': 'rtruediv'},
     'floordiv': {'op': '//',
                  'desc': 'Integer division',
-                 'reversed': False,
                  'reverse': 'rfloordiv'},
     'divmod': {'op': 'divmod',
                'desc': 'Integer division and modulo',
-               'reversed': False,
                'reverse': None},
 
     'eq': {'op': '==',
                  'desc': 'Equal to',
-                 'reversed': False,
                  'reverse': None},
     'ne': {'op': '!=',
                  'desc': 'Not equal to',
-                 'reversed': False,
                  'reverse': None},
     'lt': {'op': '<',
                  'desc': 'Less than',
-                 'reversed': False,
                  'reverse': None},
     'le': {'op': '<=',
                  'desc': 'Less than or equal to',
-                 'reversed': False,
                  'reverse': None},
     'gt': {'op': '>',
                  'desc': 'Greater than',
-                 'reversed': False,
                  'reverse': None},
     'ge': {'op': '>=',
                  'desc': 'Greater than or equal to',
-                 'reversed': False,
                  'reverse': None}}
 
 _op_names = list(_op_descriptions.keys())
 for key in _op_names:
+    _op_descriptions[key]['reversed'] = False
     reverse_op = _op_descriptions[key]['reverse']
     if reverse_op is not None:
         _op_descriptions[reverse_op] = _op_descriptions[key].copy()
@@ -391,7 +432,7 @@ def _create_methods(cls, arith_method, comp_method, bool_method,
     # yapf: disable
     new_methods = dict(
         add=arith_method(operator.add, names('add'), op('+')),
-        radd=arith_method(lambda x, y: y + x, names('radd'), op('+')),
+        radd=arith_method(radd, names('radd'), op('+')),
         sub=arith_method(operator.sub, names('sub'), op('-')),
         mul=arith_method(operator.mul, names('mul'), op('*')),
         truediv=arith_method(operator.truediv, names('truediv'), op('/')),
@@ -403,13 +444,11 @@ def _create_methods(cls, arith_method, comp_method, bool_method,
         # not entirely sure why this is necessary, but previously was included
         # so it's here to maintain compatibility
         rmul=arith_method(operator.mul, names('rmul'), op('*')),
-        rsub=arith_method(lambda x, y: y - x, names('rsub'), op('-')),
-        rtruediv=arith_method(lambda x, y: operator.truediv(y, x),
-                              names('rtruediv'), op('/')),
-        rfloordiv=arith_method(lambda x, y: operator.floordiv(y, x),
-                               names('rfloordiv'), op('//')),
-        rpow=arith_method(lambda x, y: y**x, names('rpow'), op('**')),
-        rmod=arith_method(lambda x, y: y % x, names('rmod'), op('%')))
+        rsub=arith_method(rsub, names('rsub'), op('-')),
+        rtruediv=arith_method(rtruediv, names('rtruediv'), op('/')),
+        rfloordiv=arith_method(rfloordiv, names('rfloordiv'), op('//')),
+        rpow=arith_method(rpow, names('rpow'), op('**')),
+        rmod=arith_method(rmod, names('rmod'), op('%')))
     # yapf: enable
     new_methods['div'] = new_methods['truediv']
     new_methods['rdiv'] = new_methods['rtruediv']
@@ -429,12 +468,9 @@ def _create_methods(cls, arith_method, comp_method, bool_method,
                  or_=bool_method(operator.or_, names('or_'), op('|')),
                  # For some reason ``^`` wasn't used in original.
                  xor=bool_method(operator.xor, names('xor'), op('^')),
-                 rand_=bool_method(lambda x, y: operator.and_(y, x),
-                                   names('rand_'), op('&')),
-                 ror_=bool_method(lambda x, y: operator.or_(y, x),
-                                  names('ror_'), op('|')),
-                 rxor=bool_method(lambda x, y: operator.xor(y, x),
-                                  names('rxor'), op('^'))))
+                 rand_=bool_method(rand_, names('rand_'), op('&')),
+                 ror_=bool_method(ror_, names('ror_'), op('|')),
+                 rxor=bool_method(rxor, names('rxor'), op('^'))))
     if have_divmod:
         # divmod doesn't have an op that is supported by numexpr
         new_methods['divmod'] = arith_method(divmod, names('divmod'), None)
