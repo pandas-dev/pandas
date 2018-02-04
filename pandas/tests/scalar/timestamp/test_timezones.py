@@ -4,9 +4,14 @@ Tests for Timestamp timezone-related methods
 """
 
 import pytest
+import pytz
 from pytz.exceptions import AmbiguousTimeError, NonExistentTimeError
+import dateutil
+from dateutil.tz import gettz, tzoffset
+from distutils.version import LooseVersion
 
 import pandas.util.testing as tm
+import pandas.util._test_decorators as td
 from pandas import Timestamp, NaT
 
 
@@ -70,6 +75,55 @@ class TestTimestampTZOperations(object):
         assert reset == ts
         assert reset.tzinfo is None
 
+    def test_tz_localize_ambiguous_compat(self):
+        # validate that pytz and dateutil are compat for dst
+        # when the transition happens
+        naive = Timestamp('2013-10-27 01:00:00')
+
+        pytz_zone = 'Europe/London'
+        dateutil_zone = 'dateutil/Europe/London'
+        result_pytz = naive.tz_localize(pytz_zone, ambiguous=0)
+        result_dateutil = naive.tz_localize(dateutil_zone, ambiguous=0)
+        assert result_pytz.value == result_dateutil.value
+        assert result_pytz.value == 1382835600000000000
+
+        if LooseVersion(dateutil.__version__) < LooseVersion('2.6.0'):
+            # dateutil 2.6 buggy w.r.t. ambiguous=0
+            # see gh-14621
+            # see https://github.com/dateutil/dateutil/issues/321
+            assert (result_pytz.to_pydatetime().tzname() ==
+                    result_dateutil.to_pydatetime().tzname())
+            assert str(result_pytz) == str(result_dateutil)
+        elif LooseVersion(dateutil.__version__) > LooseVersion('2.6.0'):
+            # fixed ambiguous behavior
+            assert result_pytz.to_pydatetime().tzname() == 'GMT'
+            assert result_dateutil.to_pydatetime().tzname() == 'BST'
+            assert str(result_pytz) != str(result_dateutil)
+
+        # 1 hour difference
+        result_pytz = naive.tz_localize(pytz_zone, ambiguous=1)
+        result_dateutil = naive.tz_localize(dateutil_zone, ambiguous=1)
+        assert result_pytz.value == result_dateutil.value
+        assert result_pytz.value == 1382832000000000000
+
+        # dateutil < 2.6 is buggy w.r.t. ambiguous timezones
+        if LooseVersion(dateutil.__version__) > LooseVersion('2.5.3'):
+            # see gh-14621
+            assert str(result_pytz) == str(result_dateutil)
+            assert (result_pytz.to_pydatetime().tzname() ==
+                    result_dateutil.to_pydatetime().tzname())
+
+    @pytest.mark.parametrize('tz', [pytz.timezone('US/Eastern'),
+                                    gettz('US/Eastern'),
+                                    'US/Eastern', 'dateutil/US/Eastern'])
+    def test_timestamp_tz_localize(self, tz):
+        stamp = Timestamp('3/11/2012 04:00')
+
+        result = stamp.tz_localize(tz)
+        expected = Timestamp('3/11/2012 04:00', tz=tz)
+        assert result.hour == expected.hour
+        assert result == expected
+
     # ------------------------------------------------------------------
     # Timestamp.tz_convert
 
@@ -85,3 +139,80 @@ class TestTimestampTZOperations(object):
         assert reset == Timestamp(stamp)
         assert reset.tzinfo is None
         assert reset == converted.tz_convert('UTC').tz_localize(None)
+
+    @pytest.mark.parametrize('tzstr', ['US/Eastern', 'dateutil/US/Eastern'])
+    def test_astimezone(self, tzstr):
+        utcdate = Timestamp('3/11/2012 22:00', tz='UTC')
+        expected = utcdate.tz_convert(tzstr)
+        result = utcdate.astimezone(tzstr)
+        assert expected == result
+        assert isinstance(result, Timestamp)
+
+    @td.skip_if_windows
+    def test_tz_convert_utc_with_system_utc(self):
+        from pandas._libs.tslibs.timezones import maybe_get_tz
+
+        # from system utc to real utc
+        ts = Timestamp('2001-01-05 11:56', tz=maybe_get_tz('dateutil/UTC'))
+        # check that the time hasn't changed.
+        assert ts == ts.tz_convert(dateutil.tz.tzutc())
+
+        # from system utc to real utc
+        ts = Timestamp('2001-01-05 11:56', tz=maybe_get_tz('dateutil/UTC'))
+        # check that the time hasn't changed.
+        assert ts == ts.tz_convert(dateutil.tz.tzutc())
+
+    # ------------------------------------------------------------------
+
+    def test_timestamp_to_datetime_tzoffset(self):
+        tzinfo = tzoffset(None, 7200)
+        expected = Timestamp('3/11/2012 04:00', tz=tzinfo)
+        result = Timestamp(expected.to_pydatetime())
+        assert expected == result
+
+    def test_timestamp_constructor_near_dst_boundary(self):
+        # GH#11481 & GH#15777
+        # Naive string timestamps were being localized incorrectly
+        # with tz_convert_single instead of tz_localize_to_utc
+
+        for tz in ['Europe/Brussels', 'Europe/Prague']:
+            result = Timestamp('2015-10-25 01:00', tz=tz)
+            expected = Timestamp('2015-10-25 01:00').tz_localize(tz)
+            assert result == expected
+
+            with pytest.raises(pytz.AmbiguousTimeError):
+                Timestamp('2015-10-25 02:00', tz=tz)
+
+        result = Timestamp('2017-03-26 01:00', tz='Europe/Paris')
+        expected = Timestamp('2017-03-26 01:00').tz_localize('Europe/Paris')
+        assert result == expected
+
+        with pytest.raises(pytz.NonExistentTimeError):
+            Timestamp('2017-03-26 02:00', tz='Europe/Paris')
+
+        # GH#11708
+        naive = Timestamp('2015-11-18 10:00:00')
+        result = naive.tz_localize('UTC').tz_convert('Asia/Kolkata')
+        expected = Timestamp('2015-11-18 15:30:00+0530', tz='Asia/Kolkata')
+        assert result == expected
+
+        # GH#15823
+        result = Timestamp('2017-03-26 00:00', tz='Europe/Paris')
+        expected = Timestamp('2017-03-26 00:00:00+0100', tz='Europe/Paris')
+        assert result == expected
+
+        result = Timestamp('2017-03-26 01:00', tz='Europe/Paris')
+        expected = Timestamp('2017-03-26 01:00:00+0100', tz='Europe/Paris')
+        assert result == expected
+
+        with pytest.raises(pytz.NonExistentTimeError):
+            Timestamp('2017-03-26 02:00', tz='Europe/Paris')
+
+        result = Timestamp('2017-03-26 02:00:00+0100', tz='Europe/Paris')
+        naive = Timestamp(result.value)
+        expected = naive.tz_localize('UTC').tz_convert('Europe/Paris')
+        assert result == expected
+
+        result = Timestamp('2017-03-26 03:00', tz='Europe/Paris')
+        expected = Timestamp('2017-03-26 03:00:00+0200', tz='Europe/Paris')
+        assert result == expected
