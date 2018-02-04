@@ -853,9 +853,9 @@ class SparseDataFrame(DataFrame):
                This argument will be removed in a future version, replaced
                by result_type='broadcast'.
 
-        result_type : {'infer', 'broadcast, None}
+        result_type : {'expand', 'broadcast, None}
             These only act when axis=1 {columns}
-            * 'infer' : list-like results will be turned into columns
+            * 'expand' : list-like results will be turned into columns
             * 'broadcast' : scalar results will be broadcast to all columns
             * None : list-like results will be returned as a list
               in a single column. However if the apply function

@@ -576,14 +576,14 @@ class TestInferOutputShape(object):
         # gh 17602
         df = DataFrame([[1, 2], [1, 2]], columns=['a', 'b'])
         result = df.apply(lambda x: {'s': x['a'] + x['b']},
-                          axis=1, result_type='infer')
+                          axis=1, result_type='expand')
         expected = DataFrame({'s': [3, 3]})
         assert_frame_equal(result, expected)
 
         df['tm'] = [pd.Timestamp('2017-05-01 00:00:00'),
                     pd.Timestamp('2017-05-02 00:00:00')]
         result = df.apply(lambda x: {'s': x['a'] + x['b']},
-                          axis=1, result_type='infer')
+                          axis=1, result_type='expand')
         assert_frame_equal(result, expected)
 
     def test_with_listlike_columns(self):
@@ -705,12 +705,12 @@ class TestInferOutputShape(object):
             np.tile(np.arange(3, dtype='int64'), 6).reshape(6, -1) + 1,
             columns=['A', 'B', 'C'])
 
-        result = df.apply(lambda x: [1, 2, 3], axis=1, result_type='infer')
+        result = df.apply(lambda x: [1, 2, 3], axis=1, result_type='expand')
         expected = df.copy()
         expected.columns = [0, 1, 2]
         assert_frame_equal(result, expected)
 
-        result = df.apply(lambda x: [1, 2], axis=1, result_type='infer')
+        result = df.apply(lambda x: [1, 2], axis=1, result_type='expand')
         expected = df[['A', 'B']].copy()
         expected.columns = [0, 1]
         assert_frame_equal(result, expected)
@@ -760,7 +760,7 @@ class TestInferOutputShape(object):
         expected = Series([box([1, 2]) for t in df.itertuples()])
         assert_series_equal(result, expected)
 
-        result = df.apply(lambda x: box([1, 2]), axis=1, result_type='infer')
+        result = df.apply(lambda x: box([1, 2]), axis=1, result_type='expand')
         expected = DataFrame(
             np.tile(np.arange(2, dtype='int64'), 6).reshape(6, -1) + 1)
         assert_frame_equal(result, expected)

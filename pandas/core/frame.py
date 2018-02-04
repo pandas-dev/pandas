@@ -4871,9 +4871,9 @@ class DataFrame(NDFrame):
             reduce is True a Series will always be returned, and if False a
             DataFrame will always be returned.
 
-        result_type : {'infer', 'broadcast, None}
+        result_type : {'expand', 'broadcast, None}
             These only act when axis=1 {columns}
-            * 'infer' : list-like results will be turned into columns
+            * 'expand' : list-like results will be turned into columns
             * 'broadcast' : scalar results will be broadcast to all columns
             * None : list-like results will be returned as a list
               in a single column. However if the apply function
@@ -4948,10 +4948,10 @@ class DataFrame(NDFrame):
         4    [1, 2]
         5    [1, 2]
 
-        Passing result_type='infer' will expand list-like results
+        Passing result_type='expand' will expand list-like results
         to columns of a Dataframe
 
-        >>> df.apply(lambda x: [1, 2], axis=1, result_type='infer')
+        >>> df.apply(lambda x: [1, 2], axis=1, result_type='expand')
            0  1
         0  1  2
         1  1  2

@@ -358,8 +358,8 @@ class FrameColumnApply(FrameApply):
         """ return the results for the columns """
         results = self.results
 
-        # we have requested inference
-        if self.result_type == 'infer':
+        # we have requested to expand
+        if self.result_type == 'expand':
             result = self.infer_to_same_shape()
 
         # we have a non-series and don't want inference
