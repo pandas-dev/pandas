@@ -15,10 +15,10 @@ import pandas.util._test_decorators as td
 
 from pandas.tseries import offsets
 
-from pandas._libs.tslib import OutOfBoundsDatetime
 from pandas._libs.tslibs import conversion
 from pandas._libs.tslibs.timezones import get_timezone, dateutil_gettz as gettz
 
+from pandas.errors import OutOfBoundsDatetime
 from pandas.compat import long, PY3
 from pandas.compat.numpy import np_datetime64_compat
 from pandas import Timestamp, Period, Timedelta
@@ -412,6 +412,7 @@ class TestTimestampConstructors(object):
             Timestamp('2263-01-01')
 
     def test_barely_out_of_bounds(self):
+        # GH#19529
         # GH#19382 close enough to bounds that dropping nanos would result
         # in an in-bounds datetime
         with pytest.raises(OutOfBoundsDatetime):

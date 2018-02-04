@@ -17,6 +17,7 @@ from pandas._libs import tslib
 from pandas._libs.tslibs import parsing
 from pandas.core.tools import datetimes as tools
 
+from pandas.errors import OutOfBoundsDatetime
 from pandas.compat import lmap
 from pandas.compat.numpy import np_array_datetime64_compat
 from pandas.core.dtypes.common import is_datetime64_ns_dtype
@@ -1596,14 +1597,15 @@ class TestArrayToDatetime(object):
         )
 
     def test_to_datetime_barely_out_of_bounds(self):
+        # GH#19529
         # GH#19382 close enough to bounds that dropping nanos would result
         # in an in-bounds datetime
         arr = np.array(['2262-04-11 23:47:16.854775808'], dtype=object)
 
-        with pytest.raises(tslib.OutOfBoundsDatetime):
+        with pytest.raises(OutOfBoundsDatetime):
             to_datetime(arr)
 
-        with pytest.raises(tslib.OutOfBoundsDatetime):
+        with pytest.raises(OutOfBoundsDatetime):
             # Essentially the same as above, but more directly calling
             # the relevant function
             tslib.array_to_datetime(arr)

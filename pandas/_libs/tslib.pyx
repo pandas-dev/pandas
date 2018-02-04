@@ -614,9 +614,15 @@ cpdef array_to_datetime(ndarray[object] values, errors='raise',
                     # dateutil parser will return incorrect result because
                     # it will ignore nanoseconds
                     if require_iso8601:
-                        if _handle_error_require_iso8601(val, &iresult[i],
-                                                         is_coerce, is_raise):
+                        if _parse_today_now(val, &iresult[i]):
                             continue
+                        elif is_coerce:
+                            iresult[i] = NPY_NAT
+                            continue
+                        elif is_raise:
+                            raise ValueError("time data {val} doesn't match "
+                                             "format specified"
+                                             .format(val=val))
                         return values
                     elif is_coerce:
                         iresult[i] = NPY_NAT
@@ -625,9 +631,15 @@ cpdef array_to_datetime(ndarray[object] values, errors='raise',
                 except ValueError:
                     # if requiring iso8601 strings, skip trying other formats
                     if require_iso8601:
-                        if _handle_error_require_iso8601(val, &iresult[i],
-                                                         is_coerce, is_raise):
+                        if _parse_today_now(val, &iresult[i]):
                             continue
+                        elif is_coerce:
+                            iresult[i] = NPY_NAT
+                            continue
+                        elif is_raise:
+                            raise ValueError("time data {val} doesn't match "
+                                             "format specified"
+                                             .format(val=val))
                         return values
 
                     try:
@@ -729,21 +741,6 @@ cpdef array_to_datetime(ndarray[object] values, errors='raise',
                 return values
 
         return oresult
-
-
-cdef bint _handle_error_require_iso8601(object val, int64_t* iresult,
-                                        bint is_coerce,
-                                        bint is_raise) except? -1:
-    # Return True to continue, False to return values, or raise
-    if _parse_today_now(val, iresult):
-        return True
-    elif is_coerce:
-        iresult[0] = NPY_NAT
-        return True
-    elif is_raise:
-        raise ValueError("time data {val} doesn't match format "
-                         "specified".format(val=val))
-    return False
 
 
 cdef inline bint _parse_today_now(str val, int64_t* iresult):
