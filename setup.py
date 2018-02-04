@@ -233,14 +233,12 @@ class CleanCommand(Command):
 
         base = pjoin('pandas', '_libs', 'src')
         dt = pjoin(base, 'datetime')
-        src = base
         util = pjoin('pandas', 'util')
         parser = pjoin(base, 'parser')
         ujson_python = pjoin(base, 'ujson', 'python')
         ujson_lib = pjoin(base, 'ujson', 'lib')
         self._clean_exclude = [pjoin(dt, 'np_datetime.c'),
                                pjoin(dt, 'np_datetime_strings.c'),
-                               pjoin(src, 'period_helper.c'),
                                pjoin(parser, 'tokenizer.c'),
                                pjoin(parser, 'io.c'),
                                pjoin(ujson_python, 'ujson.c'),
@@ -317,6 +315,9 @@ class CheckSDist(sdist_class):
                  'pandas/_libs/parsers.pyx',
                  'pandas/_libs/tslibs/ccalendar.pyx',
                  'pandas/_libs/tslibs/period.pyx',
+                 'pandas/_libs/tslibs/period_asfreq.pyx',
+                 'pandas/_libs/tslibs/period_info.pyx',
+                 'pandas/_libs/tslibs/period_conversion.pyx',
                  'pandas/_libs/tslibs/strptime.pyx',
                  'pandas/_libs/tslibs/np_datetime.pyx',
                  'pandas/_libs/tslibs/timedeltas.pyx',
@@ -517,9 +518,23 @@ ext_data = {
                      '_libs/missing',
                      '_libs/tslibs/timedeltas',
                      '_libs/tslibs/timezones',
-                     '_libs/tslibs/nattype'],
-        'depends': tseries_depends + ['pandas/_libs/src/period_helper.h'],
-        'sources': np_datetime_sources + ['pandas/_libs/src/period_helper.c']},
+                     '_libs/tslibs/nattype',
+                     '_libs/tslibs/period_asfreq',
+                     '_libs/tslibs/period_info',
+                     '_libs/tslibs/period_conversion'],
+        'depends': tseries_depends,
+        'sources': np_datetime_sources},
+    '_libs.tslibs.period_asfreq': {
+        'pyxfile': '_libs/tslibs/period_asfreq',
+        'pxdfiles': ['_libs/tslibs/period_conversion',
+                     '_libs/tslibs/period_info']},
+    '_libs.tslibs.period_info': {
+        'pyxfile': '_libs/tslibs/period_info',
+        'pxdfiles': ['_libs/src/util',
+                     '_libs/tslibs/period_conversion']},
+    '_libs.tslibs.period_conversion': {
+        'pyxfile': '_libs/tslibs/period_conversion',
+        'pxdfiles': ['_libs/src/util']},
     '_libs.properties': {
         'pyxfile': '_libs/properties',
         'include': []},
