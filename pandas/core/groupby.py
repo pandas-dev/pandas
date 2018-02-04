@@ -230,7 +230,7 @@ object : the return type of ``func``.
 Notes
 -----
 See more `here
-<http://pandas.pydata.org/pandas-docs/stable/groupby.html#pipe>`_
+<http://pandas.pydata.org/pandas-docs/stable/groupby.html#piping-function-calls>`_
 
 Examples
 --------
