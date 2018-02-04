@@ -524,6 +524,7 @@ Deprecations
 - ``IntervalIndex.from_intervals`` is deprecated in favor of the :class:`IntervalIndex` constructor (:issue:`19263`)
 - :func:``DataFrame.from_items`` is deprecated. Use :func:``DataFrame.from_dict()`` instead, or :func:``DataFrame.from_dict(OrderedDict())`` if you wish to preserve the key order (:issue:`17320`)
 - The ``broadcast`` parameter of ``.apply()`` is removed in favor of ``result_type='broadcast'`` (:issue:`18577`)
+- The ``reduce`` parameter of ``.apply()`` is removed in favor of ``result_type='reduce'`` (:issue:`18577`)
 
 .. _whatsnew_0230.prior_deprecations:
 

@@ -82,23 +82,29 @@ class TestDataFrameApply(TestData):
         rs = xp.apply(lambda x: x['a'], axis=1)
         assert_frame_equal(xp, rs)
 
+    def test_apply_with_reduce_empty(self):
         # reduce with an empty DataFrame
         x = []
-        result = self.empty.apply(x.append, axis=1, reduce=False)
+        result = self.empty.apply(x.append, axis=1, result_type='expand')
         assert_frame_equal(result, self.empty)
-        result = self.empty.apply(x.append, axis=1, reduce=True)
+        result = self.empty.apply(x.append, axis=1, result_type='reduce')
         assert_series_equal(result, Series(
             [], index=pd.Index([], dtype=object)))
 
         empty_with_cols = DataFrame(columns=['a', 'b', 'c'])
-        result = empty_with_cols.apply(x.append, axis=1, reduce=False)
+        result = empty_with_cols.apply(x.append, axis=1, result_type='expand')
         assert_frame_equal(result, empty_with_cols)
-        result = empty_with_cols.apply(x.append, axis=1, reduce=True)
+        result = empty_with_cols.apply(x.append, axis=1, result_type='reduce')
         assert_series_equal(result, Series(
             [], index=pd.Index([], dtype=object)))
 
         # Ensure that x.append hasn't been called
         assert x == []
+
+    def test_apply_deprecate_reduce(self):
+        with warnings.catch_warnings(record=True):
+            x = []
+            self.empty.apply(x.append, axis=1, result_type='reduce')
 
     def test_apply_standard_nonunique(self):
         df = DataFrame(
@@ -419,9 +425,9 @@ class TestDataFrameApply(TestData):
         fn = lambda x: x.to_dict()
 
         for df, dicts in [(A, A_dicts), (B, B_dicts)]:
-            reduce_true = df.apply(fn, reduce=True)
-            reduce_false = df.apply(fn, reduce=False)
-            reduce_none = df.apply(fn, reduce=None)
+            reduce_true = df.apply(fn, result_type='reduce')
+            reduce_false = df.apply(fn, result_type='expand')
+            reduce_none = df.apply(fn)
 
             assert_series_equal(reduce_true, dicts)
             assert_frame_equal(reduce_false, df)

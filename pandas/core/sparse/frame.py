@@ -835,7 +835,7 @@ class SparseDataFrame(DataFrame):
         return self._apply_columns(lambda x: x.notna())
     notnull = notna
 
-    def apply(self, func, axis=0, broadcast=None, reduce=False,
+    def apply(self, func, axis=0, broadcast=None, reduce=None,
               result_type=None):
         """
         Analogous to DataFrame.apply, for SparseDataFrame
@@ -853,9 +853,24 @@ class SparseDataFrame(DataFrame):
                This argument will be removed in a future version, replaced
                by result_type='broadcast'.
 
-        result_type : {'expand', 'broadcast, None}
+        reduce : boolean or None, default None
+            Try to apply reduction procedures. If the DataFrame is empty,
+            apply will use reduce to determine whether the result should be a
+            Series or a DataFrame. If reduce is None (the default), apply's
+            return value will be guessed by calling func an empty Series (note:
+            while guessing, exceptions raised by func will be ignored). If
+            reduce is True a Series will always be returned, and if False a
+            DataFrame will always be returned.
+
+            .. deprecated:: 0.23.0
+               This argument will be removed in a future version, replaced
+               by result_type='reduce'.
+
+        result_type : {'expand', 'reduce', 'broadcast, None}
             These only act when axis=1 {columns}
             * 'expand' : list-like results will be turned into columns
+            * 'reduce' : return a Series if possible rather than expanding
+              list-like results. This is the opposite to 'expand'
             * 'broadcast' : scalar results will be broadcast to all columns
             * None : list-like results will be returned as a list
               in a single column. However if the apply function

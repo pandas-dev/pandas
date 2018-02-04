@@ -35,7 +35,6 @@ class FrameApply(object):
                  ignore_failures, args, kwds):
         self.obj = obj
         self.raw = raw
-        self.reduce = reduce
         self.ignore_failures = ignore_failures
         self.args = args or ()
         self.kwds = kwds or {}
@@ -48,6 +47,20 @@ class FrameApply(object):
                           FutureWarning, stacklevel=4)
             if broadcast:
                 result_type = 'broadcast'
+
+        if reduce is not None:
+            warnings.warn("The reduce argument is deprecated and will "
+                          "be removed in a future version. You can specify "
+                          "result_type='reduce' to try to reduce the result "
+                          "to the original dimensions",
+                          FutureWarning, stacklevel=4)
+            if reduce:
+
+                if result_type is not None:
+                    raise ValueError(
+                        "cannot pass both reduce=True and result_type")
+
+                result_type = 'reduce'
 
         self.result_type = result_type
 
@@ -126,11 +139,16 @@ class FrameApply(object):
         series in order to see if this is a reduction function
         """
 
-        from pandas import Series
-        reduce = self.reduce
+        # we are not asked to reduce or infer reduction
+        # so just return a copy of the existing object
+        if self.result_type not in ['reduce', None]:
+            return self.obj.copy()
 
-        if reduce is None:
-            reduce = False
+        # we may need to infer
+        reduce = self.result_type == 'reduce'
+
+        from pandas import Series
+        if not reduce:
 
             EMPTY_SERIES = Series([])
             try:
@@ -191,9 +209,6 @@ class FrameApply(object):
         return result
 
     def apply_standard(self):
-        reduce = self.reduce
-        if reduce is None:
-            reduce = True
 
         # try to reduce first (by default)
         # this only matters if the reduction in values is of different dtype
@@ -201,8 +216,7 @@ class FrameApply(object):
 
         # we cannot reduce using non-numpy dtypes,
         # as demonstrated in gh-12244
-        if (reduce and
-                self.result_type is None and
+        if (self.result_type in ['reduce', None] and
                 not self.dtypes.apply(is_extension_type).any()):
 
             # Create a dummy Series from an empty array
