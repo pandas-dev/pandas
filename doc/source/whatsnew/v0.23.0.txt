@@ -332,7 +332,6 @@ New Behavior:
     s = pd.Series(['number 10', '12 eggs'])
     extracted = s.str.extract('.*(\d\d).*')
     extracted
-
     type(extracted)
 
 To restore previous behavior, simply set ``expand`` to ``False``:
@@ -342,7 +341,6 @@ To restore previous behavior, simply set ``expand`` to ``False``:
     s = pd.Series(['number 10', '12 eggs'])
     extracted = s.str.extract('.*(\d\d).*', expand=False)
     extracted
-
     type(extracted)
 
 .. _whatsnew_0230.api:
