@@ -16,13 +16,11 @@ import pandas.util._test_decorators as td
 import pandas.tseries.offsets as offsets
 from pandas.compat import lrange, zip
 from pandas.core.indexes.datetimes import bdate_range, date_range
-from pandas.core.dtypes.dtypes import DatetimeTZDtype
 from pandas._libs import tslib
 from pandas._libs.tslibs import timezones, conversion
-from pandas import (Index, Series, DataFrame, isna, Timestamp, NaT,
+from pandas import (Index, Series, isna, Timestamp, NaT,
                     DatetimeIndex, to_datetime)
-from pandas.util.testing import (assert_frame_equal, assert_series_equal,
-                                 set_timezone)
+from pandas.util.testing import assert_series_equal, set_timezone
 
 
 class FixedOffset(tzinfo):
@@ -786,29 +784,6 @@ class TestTimeZoneSupportPytz(object):
         result = to_datetime(arr, utc=True)
         assert result.tz is pytz.utc
 
-    def test_frame_no_datetime64_dtype(self):
-
-        # after 7822
-        # these retain the timezones on dict construction
-
-        dr = date_range('2011/1/1', '2012/1/1', freq='W-FRI')
-        dr_tz = dr.tz_localize(self.tzstr('US/Eastern'))
-        e = DataFrame({'A': 'foo', 'B': dr_tz}, index=dr)
-        tz_expected = DatetimeTZDtype('ns', dr_tz.tzinfo)
-        assert e['B'].dtype == tz_expected
-
-        # GH 2810 (with timezones)
-        datetimes_naive = [ts.to_pydatetime() for ts in dr]
-        datetimes_with_tz = [ts.to_pydatetime() for ts in dr_tz]
-        df = DataFrame({'dr': dr,
-                        'dr_tz': dr_tz,
-                        'datetimes_naive': datetimes_naive,
-                        'datetimes_with_tz': datetimes_with_tz})
-        result = df.get_dtype_counts().sort_index()
-        expected = Series({'datetime64[ns]': 2,
-                           str(tz_expected): 2}).sort_index()
-        assert_series_equal(result, expected)
-
     def test_hongkong_tz_convert(self):
         # #1673
         dr = date_range('2012-01-01', '2012-01-10', freq='D', tz='Hongkong')
@@ -871,21 +846,6 @@ class TestTimeZoneSupportPytz(object):
         tm.assert_index_equal(dr, dr2)
         assert dr.tz == dr2.tz
         assert dr2.name == 'foo'
-
-    def test_frame_from_records_utc(self):
-        rec = {'datum': 1.5,
-               'begin_time': datetime(2006, 4, 27, tzinfo=pytz.utc)}
-
-        # it works
-        DataFrame.from_records([rec], index='begin_time')
-
-    def test_frame_reset_index(self):
-        dr = date_range('2012-06-02', periods=10, tz=self.tzstr('US/Eastern'))
-        df = DataFrame(np.random.randn(len(dr)), dr)
-        roundtripped = df.reset_index().set_index('index')
-        xp = df.index.tz
-        rs = roundtripped.index.tz
-        assert xp == rs
 
     def test_dateutil_tzoffset_support(self):
         values = [188.5, 328.25]
@@ -1289,7 +1249,7 @@ class TestTimeZones(object):
                 tm.assert_index_equal(reset, idx)
                 assert reset.tzinfo is None
 
-    def test_series_frame_tz_localize(self):
+    def test_series_tz_localize(self):
 
         rng = date_range('1/1/2011', periods=100, freq='H')
         ts = Series(1, index=rng)
@@ -1297,40 +1257,18 @@ class TestTimeZones(object):
         result = ts.tz_localize('utc')
         assert result.index.tz.zone == 'UTC'
 
-        df = DataFrame({'a': 1}, index=rng)
-        result = df.tz_localize('utc')
-        expected = DataFrame({'a': 1}, rng.tz_localize('UTC'))
-        assert result.index.tz.zone == 'UTC'
-        assert_frame_equal(result, expected)
-
-        df = df.T
-        result = df.tz_localize('utc', axis=1)
-        assert result.columns.tz.zone == 'UTC'
-        assert_frame_equal(result, expected.T)
-
         # Can't localize if already tz-aware
         rng = date_range('1/1/2011', periods=100, freq='H', tz='utc')
         ts = Series(1, index=rng)
         tm.assert_raises_regex(TypeError, 'Already tz-aware',
                                ts.tz_localize, 'US/Eastern')
 
-    def test_series_frame_tz_convert(self):
+    def test_series_tz_convert(self):
         rng = date_range('1/1/2011', periods=200, freq='D', tz='US/Eastern')
         ts = Series(1, index=rng)
 
         result = ts.tz_convert('Europe/Berlin')
         assert result.index.tz.zone == 'Europe/Berlin'
-
-        df = DataFrame({'a': 1}, index=rng)
-        result = df.tz_convert('Europe/Berlin')
-        expected = DataFrame({'a': 1}, rng.tz_convert('Europe/Berlin'))
-        assert result.index.tz.zone == 'Europe/Berlin'
-        assert_frame_equal(result, expected)
-
-        df = df.T
-        result = df.tz_convert('Europe/Berlin', axis=1)
-        assert result.columns.tz.zone == 'Europe/Berlin'
-        assert_frame_equal(result, expected.T)
 
         # can't convert tz-naive
         rng = date_range('1/1/2011', periods=200, freq='D')
@@ -1389,20 +1327,6 @@ class TestTimeZones(object):
         pytest.raises(Exception, ts.__add__, ts_utc)
         pytest.raises(Exception, ts_utc.__add__, ts)
 
-        test1 = DataFrame(np.zeros((6, 3)),
-                          index=date_range("2012-11-15 00:00:00", periods=6,
-                                           freq="100L", tz="US/Central"))
-        test2 = DataFrame(np.zeros((3, 3)),
-                          index=date_range("2012-11-15 00:00:00", periods=3,
-                                           freq="250L", tz="US/Central"),
-                          columns=lrange(3, 6))
-
-        result = test1.join(test2, how='outer')
-        ex_index = test1.index.union(test2.index)
-
-        tm.assert_index_equal(result.index, ex_index)
-        assert result.index.tz.zone == 'US/Central'
-
         # non-overlapping
         rng = date_range("2012-11-15 00:00:00", periods=6, freq="H",
                          tz="US/Central")
@@ -1413,34 +1337,13 @@ class TestTimeZones(object):
         result = rng.union(rng2)
         assert result.tz.zone == 'UTC'
 
-    def test_align_aware(self):
+    def test_series_align_aware(self):
         idx1 = date_range('2001', periods=5, freq='H', tz='US/Eastern')
-        idx2 = date_range('2001', periods=5, freq='2H', tz='US/Eastern')
-        df1 = DataFrame(np.random.randn(len(idx1), 3), idx1)
-        df2 = DataFrame(np.random.randn(len(idx2), 3), idx2)
-        new1, new2 = df1.align(df2)
-        assert df1.index.tz == new1.index.tz
-        assert df2.index.tz == new2.index.tz
-
+        ser = Series(np.random.randn(len(idx1)), index=idx1)
+        ser_central = ser.tz_convert('US/Central')
         # # different timezones convert to UTC
 
-        # frame
-        df1_central = df1.tz_convert('US/Central')
-        new1, new2 = df1.align(df1_central)
-        assert new1.index.tz == pytz.UTC
-        assert new2.index.tz == pytz.UTC
-
-        # series
-        new1, new2 = df1[0].align(df1_central[0])
-        assert new1.index.tz == pytz.UTC
-        assert new2.index.tz == pytz.UTC
-
-        # combination
-        new1, new2 = df1.align(df1_central[0], axis=0)
-        assert new1.index.tz == pytz.UTC
-        assert new2.index.tz == pytz.UTC
-
-        df1[0].align(df1_central, axis=0)
+        new1, new2 = ser.align(ser_central)
         assert new1.index.tz == pytz.UTC
         assert new2.index.tz == pytz.UTC
 
@@ -1523,7 +1426,7 @@ class TestTimeZones(object):
         assert ts_result.index.equals(ts1.index.astype(object).append(
             ts2.index))
 
-    def test_equal_join_ensure_utc(self):
+    def test_series_add_tz_mismatch_converts_to_utc(self):
         rng = date_range('1/1/2011', periods=10, freq='H', tz='US/Eastern')
         ts = Series(np.random.randn(len(rng)), index=rng)
 
@@ -1533,14 +1436,6 @@ class TestTimeZones(object):
         assert result.index.tz is pytz.utc
 
         result = ts_moscow + ts
-        assert result.index.tz is pytz.utc
-
-        df = DataFrame({'a': ts})
-        df_moscow = df.tz_convert('Europe/Moscow')
-        result = df + df_moscow
-        assert result.index.tz is pytz.utc
-
-        result = df_moscow + df
         assert result.index.tz is pytz.utc
 
     def test_arith_utc_convert(self):
