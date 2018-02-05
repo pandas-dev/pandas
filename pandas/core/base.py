@@ -1070,10 +1070,10 @@ class IndexOpsMixin(object):
         numpy.ndarray.nbytes
         """
         # Use sparse values if they exist for memory consumption
-        if hasattr(self.values, 'sp_values'):
-            values = self.values.sp_values
-        else:
-            values = self.values
+        # if hasattr(self.values, 'sp_values'):
+        #    values = self.values.sp_values
+        # else:
+        values = self.values
 
         if hasattr(values, 'memory_usage'):
             return values.memory_usage(deep=deep)
