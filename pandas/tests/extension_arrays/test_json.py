@@ -83,11 +83,9 @@ class JSONArray(ExtensionArray):
         return cls(data)
 
 
-
 def make_data():
     return [{random.choice(string.ascii_letters): random.randint(0, 100)
-             for _ in range(random.randint(0, 10))}
-             for _ in range(100)]
+             for _ in range(random.randint(0, 10))} for _ in range(100)]
 
 
 class TestJSONDtype(BaseDtypeTests):
@@ -115,40 +113,3 @@ class TestJSON(BaseArrayTests):
     @pytest.mark.skip(reason="Unorderable")
     def test_reduction_orderable(self, data, method):
         pass
-
-    
-
-# def test_concat_mixed_closed_raises():
-#     one = IntervalArray.from_breaks([0, 1, 2], closed='left')
-#     two = IntervalArray.from_breaks([1, 2, 3], closed='right')
-#
-#     with tm.assert_raises_regex(ValueError, "Intervals must all be closed"):
-#         IntervalArray._concat_same_type([one, two])
-#
-#
-# def test_series_constructor_intervalindex():
-#     result = pd.Series(pd.IntervalIndex.from_breaks([0, 1, 2]))
-#     assert result.dtype == 'interval[int64]'
-#
-#
-# def dataframe_constructor_intervalindex():
-#     result = pd.DataFrame({"A": pd.IntervalIndex.from_breaks([0, 1, 2])})
-#     assert result.dtypes['A'] == 'interval[int64]'
-#
-#
-# def dataframe_set_intervalarray():
-#     df = pd.DataFrame({"A": [1, 2]})
-#     arr = IntervalArray.from_breaks([0, 1, 2])
-#     df['B'] = arr
-#
-#     expected = pd.DataFrame({"A": [1, 2], "B": arr})
-#     tm.assert_frame_equal(df, expected)
-#
-#
-# def dataframe_set_intervalindex():
-#     df = pd.DataFrame({"A": [1, 2]})
-#     arr = pd.IntervalIndex.from_breaks([0, 1, 2])
-#     df['B'] = arr
-#
-#     expected = pd.DataFrame({"A": [1, 2], "B": arr})
-#     tm.assert_frame_equal(df, expected)
