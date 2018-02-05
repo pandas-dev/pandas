@@ -1560,11 +1560,11 @@ def makeBoolIndex(k=10, name=None):
 
 
 def makeIntIndex(k=10, name=None):
-    return Index(lrange(k), name=name)
+    return Index(lrange(1, k) + [0], name=name)[:k]
 
 
 def makeUIntIndex(k=10, name=None):
-    return Index([2**63 + i for i in lrange(k)], name=name)
+    return Index([2**63 + i for i in (lrange(1, k) + [0])], name=name)[:k]
 
 
 def makeRangeIndex(k=10, name=None):
