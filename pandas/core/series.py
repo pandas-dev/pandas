@@ -144,7 +144,6 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
     _deprecations = generic.NDFrame._deprecations | frozenset(
         ['asobject', 'sortlevel', 'reshape', 'get_value', 'set_value',
          'from_csv', 'valid'])
-    _allow_index_ops = True
 
     def __init__(self, data=None, index=None, dtype=None, name=None,
                  copy=False, fastpath=False):
@@ -2671,6 +2670,14 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
                                           axis=axis, inplace=inplace,
                                           limit=limit, downcast=downcast,
                                           **kwargs)
+
+    @Appender(generic._shared_docs['replace'] % _shared_doc_kwargs)
+    def replace(self, to_replace=None, value=None, inplace=False, limit=None,
+                regex=False, method='pad', axis=None):
+        return super(Series, self).replace(to_replace=to_replace, value=value,
+                                           inplace=inplace, limit=limit,
+                                           regex=regex, method=method,
+                                           axis=axis)
 
     @Appender(generic._shared_docs['shift'] % _shared_doc_kwargs)
     def shift(self, periods=1, freq=None, axis=0):

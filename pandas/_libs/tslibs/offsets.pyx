@@ -10,9 +10,9 @@ from cpython.datetime cimport datetime, timedelta, time as dt_time
 from dateutil.relativedelta import relativedelta
 
 import numpy as np
-cimport numpy as np
+cimport numpy as cnp
 from numpy cimport int64_t
-np.import_array()
+cnp.import_array()
 
 
 from util cimport is_string_object, is_integer_object
@@ -302,6 +302,14 @@ class _BaseOffset(object):
     _normalize_cache = True
     _cacheable = False
     _day_opt = None
+    _attributes = frozenset(['n', 'normalize'])
+
+    @property
+    def kwds(self):
+        # for backwards-compatibility
+        kwds = {name: getattr(self, name, None) for name in self._attributes
+                if name not in ['n', 'normalize']}
+        return {name: kwds[name] for name in kwds if kwds[name] is not None}
 
     def __call__(self, other):
         return self.apply(other)

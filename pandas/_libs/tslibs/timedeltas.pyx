@@ -10,9 +10,9 @@ from cython cimport Py_ssize_t
 from cpython cimport PyUnicode_Check, Py_NE, Py_EQ, PyObject_RichCompare
 
 import numpy as np
-cimport numpy as np
+cimport numpy as cnp
 from numpy cimport int64_t, ndarray
-np.import_array()
+cnp.import_array()
 
 from cpython.datetime cimport (datetime, timedelta,
                                PyDateTime_CheckExact,
@@ -897,7 +897,7 @@ class Timedelta(_Timedelta):
     Represents a duration, the difference between two dates or times.
 
     Timedelta is the pandas equivalent of python's ``datetime.timedelta``
-    and is interchangable with it in most cases.
+    and is interchangeable with it in most cases.
 
     Parameters
     ----------

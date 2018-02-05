@@ -328,6 +328,7 @@ class CheckSDist(sdist_class):
                  'pandas/_libs/tslibs/frequencies.pyx',
                  'pandas/_libs/tslibs/resolution.pyx',
                  'pandas/_libs/tslibs/parsing.pyx',
+                 'pandas/_libs/writers.pyx',
                  'pandas/io/sas/sas.pyx']
 
     def initialize_options(self):
@@ -416,7 +417,7 @@ else:
     cmdclass['build_src'] = DummyBuildSrc
     cmdclass['build_ext'] = CheckingBuildExt
 
-lib_depends = ['reduce', 'inference']
+lib_depends = ['inference']
 
 
 def srcpath(name=None, suffix='.pyx', subdir='src'):
@@ -508,11 +509,12 @@ ext_data = {
         'sources': ['pandas/_libs/src/parser/tokenizer.c',
                     'pandas/_libs/src/parser/io.c']},
     '_libs.reduction': {
-        'pyxfile': '_libs/reduction'},
+        'pyxfile': '_libs/reduction',
+        'pxdfiles': ['_libs/src/util']},
     '_libs.tslibs.period': {
         'pyxfile': '_libs/tslibs/period',
         'pxdfiles': ['_libs/src/util',
-                     '_libs/lib',
+                     '_libs/missing',
                      '_libs/tslibs/timedeltas',
                      '_libs/tslibs/timezones',
                      '_libs/tslibs/nattype'],
@@ -615,6 +617,9 @@ ext_data = {
     '_libs.window': {
         'pyxfile': '_libs/window',
         'pxdfiles': ['_libs/skiplist', '_libs/src/util']},
+    '_libs.writers': {
+        'pyxfile': '_libs/writers',
+        'pxdfiles': ['_libs/src/util']},
     'io.sas._sas': {
         'pyxfile': 'io/sas/sas'}}
 
@@ -686,18 +691,16 @@ if suffix == '.pyx':
             ext.sources[0] = root + suffix
 
 ujson_ext = Extension('pandas._libs.json',
-                      depends=['pandas/_libs/src/ujson/lib/ultrajson.h',
-                               'pandas/_libs/src/numpy_helper.h'],
+                      depends=['pandas/_libs/src/ujson/lib/ultrajson.h'],
                       sources=(['pandas/_libs/src/ujson/python/ujson.c',
                                 'pandas/_libs/src/ujson/python/objToJSON.c',
                                 'pandas/_libs/src/ujson/python/JSONtoObj.c',
                                 'pandas/_libs/src/ujson/lib/ultrajsonenc.c',
                                 'pandas/_libs/src/ujson/lib/ultrajsondec.c'] +
                                np_datetime_sources),
-                      include_dirs=(['pandas/_libs/src/ujson/python',
-                                     'pandas/_libs/src/ujson/lib',
-                                     'pandas/_libs/src/datetime'] +
-                                    common_include),
+                      include_dirs=['pandas/_libs/src/ujson/python',
+                                    'pandas/_libs/src/ujson/lib',
+                                    'pandas/_libs/src/datetime'],
                       extra_compile_args=(['-D_GNU_SOURCE'] +
                                           extra_compile_args))
 
