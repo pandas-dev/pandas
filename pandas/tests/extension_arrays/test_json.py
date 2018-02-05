@@ -65,7 +65,7 @@ class JSONArray(ExtensionArray):
         return type(self)(output)
 
     def copy(self, deep=False):
-        return type(self)(self.data.copy(deep=deep))
+        return type(self)(self.data[:])
 
     @property
     def _fill_value(self):
