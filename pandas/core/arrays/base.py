@@ -20,18 +20,20 @@ class ExtensionArray(object):
 
     * __getitem__
     * __len__
+    * __iter__
     * dtype
     * nbytes
     * isna
     * take
     * copy
-    * _formatting_values
+    * _concat_same_type
 
     Some additional methods are required to satisfy pandas' internal, private
     block API.
 
-    * _concat_same_type
     * _can_hold_na
+    * _formatting_values
+    * _fill_value
 
     This class does not inherit from 'abc.ABCMeta' for performance reasons.
     Methods and properties required by the interface raise
@@ -217,7 +219,7 @@ class ExtensionArray(object):
         # type: () -> np.ndarray
         # At the moment, this has to be an array since we use result.dtype
         """An array of values to be printed in, e.g. the Series repr"""
-        raise np.array(self)
+        return np.array(self)
 
     @classmethod
     def _concat_same_type(cls, to_concat):

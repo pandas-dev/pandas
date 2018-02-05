@@ -1,4 +1,6 @@
 """Extend pandas with custom array types"""
+import inspect
+
 from pandas.errors import AbstractMethodError
 
 
@@ -106,7 +108,8 @@ class ExtensionDtype(object):
 
         Parameters
         ----------
-        dtype : str or dtype
+        dtype : str, object, or type
+            The dtype to check.
 
         Returns
         -------
@@ -118,12 +121,15 @@ class ExtensionDtype(object):
 
         1. ``cls.construct_from_string(dtype)`` is an instance
            of ``cls``.
-        2. 'dtype' is ``cls`` or a subclass of ``cls``.
+        2. ``dtype`` is an object and is an instance of ``cls``
+        3. 'dtype' is a class and is ``cls`` or a subclass of ``cls``.
         """
         if isinstance(dtype, str):
             try:
                 return isinstance(cls.construct_from_string(dtype), cls)
             except TypeError:
                 return False
-        else:
+        elif inspect.isclass(dtype):
             return issubclass(dtype, cls)
+        else:
+            return isinstance(dtype, cls)

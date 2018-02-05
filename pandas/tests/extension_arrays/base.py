@@ -49,17 +49,17 @@ class BaseArrayTests(object):
 
     Subclasses should implement the following fixtures
 
-    * test_data
-    * test_data_missing
+    * data
+    * data_missing
     """
 
     @pytest.fixture
-    def test_data(self):
+    def data(self):
         """Length-100 array for this type."""
         raise NotImplementedError
 
     @pytest.fixture
-    def test_data_missing(self):
+    def data_missing(self):
         """Length-2 array with [NA, Valid]"""
         raise NotImplementedError
 
@@ -74,142 +74,142 @@ class BaseArrayTests(object):
         """
         return operator.is_
 
-    def test_len(self, test_data):
-        assert len(test_data) == 100
+    def test_len(self, data):
+        assert len(data) == 100
 
-    def test_ndim(self, test_data):
-        assert test_data.ndim == 1
+    def test_ndim(self, data):
+        assert data.ndim == 1
 
-    def test_can_hold_na_valid(self, test_data):
-        assert test_data._can_hold_na() in {True, False}
+    def test_can_hold_na_valid(self, data):
+        assert data._can_hold_na() in {True, False}
 
-    def test_series_constructor(self, test_data):
-        result = pd.Series(test_data)
-        assert result.dtype == test_data.dtype
-        assert len(result) == len(test_data)
+    def test_series_constructor(self, data):
+        result = pd.Series(data)
+        assert result.dtype == data.dtype
+        assert len(result) == len(data)
         assert isinstance(result._data.blocks[0], ExtensionBlock)
 
     @pytest.mark.parametrize("from_series", [True, False])
-    def test_dataframe_constructor(self, test_data, from_series):
+    def dataframe_constructor(self, data, from_series):
         if from_series:
-            test_data = pd.Series(test_data)
-        result = pd.DataFrame({"A": test_data})
-        assert result.dtypes['A'] == test_data.dtype
-        assert result.shape == (len(test_data), 1)
+            data = pd.Series(data)
+        result = pd.DataFrame({"A": data})
+        assert result.dtypes['A'] == data.dtype
+        assert result.shape == (len(data), 1)
         assert isinstance(result._data.blocks[0], ExtensionBlock)
 
-    def test_concat(self, test_data):
+    def test_concat(self, data):
         result = pd.concat([
-            pd.Series(test_data),
-            pd.Series(test_data),
+            pd.Series(data),
+            pd.Series(data),
         ], ignore_index=True)
-        assert len(result) == len(test_data) * 2
+        assert len(result) == len(data) * 2
 
-    def test_iloc(self, test_data):
-        ser = pd.Series(test_data)
+    def test_iloc(self, data):
+        ser = pd.Series(data)
         result = ser.iloc[:4]
-        expected = pd.Series(test_data[:4])
+        expected = pd.Series(data[:4])
         tm.assert_series_equal(result, expected)
 
         result = ser.iloc[[0, 1, 2, 3]]
         tm.assert_series_equal(result, expected)
 
-    def test_loc(self, test_data):
-        ser = pd.Series(test_data)
+    def test_loc(self, data):
+        ser = pd.Series(data)
         result = ser.loc[:3]
-        expected = pd.Series(test_data[:4])
+        expected = pd.Series(data[:4])
         tm.assert_series_equal(result, expected)
 
         result = ser.loc[[0, 1, 2, 3]]
         tm.assert_series_equal(result, expected)
 
-    def test_repr(self, test_data):
-        ser = pd.Series(test_data)
-        assert test_data.dtype.name in repr(ser)
+    def test_repr(self, data):
+        ser = pd.Series(data)
+        assert data.dtype.name in repr(ser)
 
-        df = pd.DataFrame({"A": test_data})
+        df = pd.DataFrame({"A": data})
         repr(df)
 
-    def test_dtype_name_in_info(self, test_data):
+    def test_dtype_name_in_info(self, data):
         buf = StringIO()
-        pd.DataFrame({"A": test_data}).info(buf=buf)
+        pd.DataFrame({"A": data}).info(buf=buf)
         result = buf.getvalue()
-        assert test_data.dtype.name in result
+        assert data.dtype.name in result
 
-    def test_memory_usage(self, test_data):
-        s = pd.Series(test_data)
+    def test_memory_usage(self, data):
+        s = pd.Series(data)
         result = s.memory_usage(index=False)
         assert result == s.nbytes
 
-    def test_is_extension_array_dtype(self, test_data):
-        assert is_extension_array_dtype(test_data)
-        assert is_extension_array_dtype(test_data.dtype)
-        assert is_extension_array_dtype(pd.Series(test_data))
-        assert isinstance(test_data.dtype, ExtensionDtype)
+    def test_is_extension_array_dtype(self, data):
+        assert is_extension_array_dtype(data)
+        assert is_extension_array_dtype(data.dtype)
+        assert is_extension_array_dtype(pd.Series(data))
+        assert isinstance(data.dtype, ExtensionDtype)
 
-    def test_array_interface(self, test_data):
-        result = np.array(test_data)
-        assert result[0] == test_data[0]
+    def test_array_interface(self, data):
+        result = np.array(data)
+        assert result[0] == data[0]
 
-    def test_getitem_scalar(self, test_data):
-        result = test_data[0]
-        assert isinstance(result, test_data.dtype.type)
+    def test_getitem_scalar(self, data):
+        result = data[0]
+        assert isinstance(result, data.dtype.type)
 
-        result = pd.Series(test_data)[0]
-        assert isinstance(result, test_data.dtype.type)
+        result = pd.Series(data)[0]
+        assert isinstance(result, data.dtype.type)
 
-    def test_getitem_scalar_na(self, test_data_missing, na_cmp):
-        result = test_data_missing[0]
-        assert na_cmp(result, test_data_missing._fill_value)
+    def test_getitem_scalar_na(self, data_missing, na_cmp):
+        result = data_missing[0]
+        assert na_cmp(result, data_missing._fill_value)
 
-    def test_getitem_mask(self, test_data):
+    def test_getitem_mask(self, data):
         # Empty mask, raw array
-        mask = np.zeros(len(test_data), dtype=bool)
-        result = test_data[mask]
+        mask = np.zeros(len(data), dtype=bool)
+        result = data[mask]
         assert len(result) == 0
-        assert isinstance(result, type(test_data))
+        assert isinstance(result, type(data))
 
         # Empty mask, in series
-        mask = np.zeros(len(test_data), dtype=bool)
-        result = pd.Series(test_data)[mask]
+        mask = np.zeros(len(data), dtype=bool)
+        result = pd.Series(data)[mask]
         assert len(result) == 0
-        assert result.dtype == test_data.dtype
+        assert result.dtype == data.dtype
 
         # non-empty mask, raw array
         mask[0] = True
-        result = test_data[mask]
+        result = data[mask]
         assert len(result) == 1
-        assert isinstance(result, type(test_data))
+        assert isinstance(result, type(data))
 
         # non-empty mask, in series
-        result = pd.Series(test_data)[mask]
+        result = pd.Series(data)[mask]
         assert len(result) == 1
-        assert result.dtype == test_data.dtype
+        assert result.dtype == data.dtype
 
-    def test_getitem_slice(self, test_data):
+    def test_getitem_slice(self, data):
         # getitem[slice] should return an array
-        result = test_data[slice(0)]  # empty
-        assert isinstance(result, type(test_data))
+        result = data[slice(0)]  # empty
+        assert isinstance(result, type(data))
 
-        result = test_data[slice(1)]  # scalar
-        assert isinstance(result, type(test_data))
+        result = data[slice(1)]  # scalar
+        assert isinstance(result, type(data))
 
-    def test_take_sequence(self, test_data):
-        result = pd.Series(test_data[[0, 1, 3]])
-        assert result.iloc[0] == test_data[0]
-        assert result.iloc[1] == test_data[1]
-        assert result.iloc[2] == test_data[3]
+    def test_take_sequence(self, data):
+        result = pd.Series(data[[0, 1, 3]])
+        assert result.iloc[0] == data[0]
+        assert result.iloc[1] == data[1]
+        assert result.iloc[2] == data[3]
 
-    def test_isna(self, test_data_missing):
-        if test_data_missing._can_hold_na:
+    def test_isna(self, data_missing):
+        if data_missing._can_hold_na:
             expected = np.array([True, False])
         else:
             expected = np.array([False, False])
 
-        result = pd.isna(test_data_missing)
+        result = pd.isna(data_missing)
         tm.assert_numpy_array_equal(result, expected)
 
-        result = pd.Series(test_data_missing).isna()
+        result = pd.Series(data_missing).isna()
         expected = pd.Series(expected)
         tm.assert_series_equal(result, expected)
 
@@ -217,35 +217,35 @@ class BaseArrayTests(object):
         "mean", "sum", "prod", "mad", "sem", "var", "std",
         "skew", "kurt", "median"
     ])
-    def test_nuisance_dropped(self, test_data, method):
-        test_data = test_data[:5]
+    def test_nuisance_dropped(self, data, method):
+        data = data[:5]
         func = operator.methodcaller(method)
-        df = pd.DataFrame({"A": np.arange(len(test_data)),
-                           "B": test_data})
+        df = pd.DataFrame({"A": np.arange(len(data)),
+                           "B": data})
         assert len(func(df)) == 1
 
     @pytest.mark.parametrize("method", [min, max])
-    def test_reduction_orderable(self, test_data, method):
-        test_data = test_data[:5]
+    def test_reduction_orderable(self, data, method):
+        data = data[:5]
         func = operator.methodcaller(method.__name__)
-        df = pd.DataFrame({"A": np.arange(len(test_data)),
-                           "B": test_data})
+        df = pd.DataFrame({"A": np.arange(len(data)),
+                           "B": data})
         result = func(df)
         assert len(result) == 2
 
-        expected = method(test_data)
+        expected = method(data)
         assert result['B'] == expected
 
     @pytest.mark.parametrize("method", ['cummax', 'cummin'])
     @pytest.mark.xfail(reason="Assumes comparable to floating.")
-    def test_cumulative_orderable(self, test_data, method):
+    def test_cumulative_orderable(self, data, method):
         # Upcast to object
         # https://github.com/pandas-dev/pandas/issues/19296
-        # assert result.dtypes['B'] == test_data.dtype
-        test_data = test_data[:5]
+        # assert result.dtypes['B'] == data.dtype
+        data = data[:5]
         func = operator.methodcaller(method)
-        df = pd.DataFrame({"A": np.arange(len(test_data)),
-                           "B": test_data})
+        df = pd.DataFrame({"A": np.arange(len(data)),
+                           "B": data})
         result = func(df)
         assert result.shape == df.shape
 
@@ -258,14 +258,14 @@ class BaseArrayTests(object):
         operator.gt,
         operator.pow,
     ], ids=lambda x: x.__name__)
-    def test_binops(self, test_data, binop):
+    def test_binops(self, data, binop):
         # Assert that binops work between DataFrames / Series with this type
         # if binops work between arrays of this type. Extra tests will be
         # needed for, e.g., Array + scalar
-        test_data = test_data[:5]
+        data = data[:5]
         df = pd.DataFrame({
-            "A": np.arange(len(test_data)),
-            "B": test_data
+            "A": np.arange(len(data)),
+            "B": data
         })
 
         try:
@@ -275,7 +275,7 @@ class BaseArrayTests(object):
             })
         except Exception:
             msg = "{} not supported for {}".format(binop.__name__,
-                                                   test_data.dtype.name)
+                                                   data.dtype.name)
             raise pytest.skip(msg)
 
         result = binop(df, df)
@@ -289,24 +289,24 @@ class BaseArrayTests(object):
         result = binop(df['B'], df['B'])
         tm.assert_series_equal(result, expected['B'])
 
-    def test_as_ndarray(self, test_data):
-        np.array(test_data, dtype=test_data.dtype.kind)
+    def test_as_ndarray(self, data):
+        np.array(data, dtype=data.dtype.kind)
 
-    def test_align(self, test_data):
-        a = test_data[:3]
-        b = test_data[2:5]
+    def test_align(self, data):
+        a = data[:3]
+        b = data[2:5]
         r1, r2 = pd.Series(a).align(pd.Series(b, index=[1, 2, 3]))
 
         # TODO: assumes that the ctor can take a list of scalars of the type
-        e1 = pd.Series(type(test_data)(list(a) + [test_data._fill_value]))
-        e2 = pd.Series(type(test_data)([test_data._fill_value] + list(b)))
+        e1 = pd.Series(type(data)(list(a) + [data._fill_value]))
+        e2 = pd.Series(type(data)([data._fill_value] + list(b)))
         tm.assert_series_equal(r1, e1)
         tm.assert_series_equal(r2, e2)
 
     @pytest.mark.xfail(reason="GH-19342")
-    def test_series_given_index(self, test_data):
-        result = pd.Series(test_data[:3], index=[0, 1, 2, 3, 4])
-        assert result.dtype == test_data.dtype
+    def test_series_given_index(self, data):
+        result = pd.Series(data[:3], index=[0, 1, 2, 3, 4])
+        assert result.dtype == data.dtype
         assert len(result) == 5
         assert len(result.values) == 5
         assert pd.isna(result.loc[[3, 4]]).all()
