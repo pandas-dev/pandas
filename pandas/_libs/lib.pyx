@@ -59,14 +59,8 @@ def memory_usage_of_objects(ndarray[object, ndim=1] arr):
     cdef Py_ssize_t i, n
     cdef int64_t s = 0
 
-    # The problem here is that... 
-    # A SparseArray of size 1 that has fill_value = the only value
-    # will cause this
-
-    # n = 1
-    #   
     n = len(arr)
-    for i in range(n):
+    for i from 0 <= i < n:
         s += arr[i].__sizeof__()
     return s
 
@@ -137,10 +131,10 @@ def fast_unique_multiple(list arrays):
         dict table = {}
         object val, stub = 0
 
-    for i in range(k):
+    for i from 0 <= i < k:
         buf = arrays[i]
         n = len(buf)
-        for j in range(n):
+        for j from 0 <= j < n:
             val = buf[j]
             if val not in table:
                 table[val] = stub
@@ -164,10 +158,10 @@ def fast_unique_multiple_list(list lists):
         dict table = {}
         object val, stub = 0
 
-    for i in range(k):
+    for i from 0 <= i < k:
         buf = lists[i]
         n = len(buf)
-        for j in range(n):
+        for j from 0 <= j < n:
             val = buf[j]
             if val not in table:
                 table[val] = stub
@@ -206,7 +200,7 @@ def fast_unique_multiple_list_gen(object gen, bint sort=True):
 
     for buf in gen:
         n = len(buf)
-        for j in range(n): 
+        for j from 0 <= j < n:
             val = buf[j]
             if val not in table:
                 table[val] = stub
@@ -836,15 +830,15 @@ def count_level_2d(ndarray[uint8_t, ndim=2, cast=True] mask,
     if axis == 0:
         counts = np.zeros((max_bin, k), dtype='i8')
         with nogil:
-            for i in range(n):
-                for j in range(n):
+            for i from 0 <= i < n:
+                for j from 0 <= j < k:
                     counts[labels[i], j] += mask[i, j]
 
     else:  # axis == 1
         counts = np.zeros((n, max_bin), dtype='i8')
         with nogil:
-            for i in range(n):
-                for j in range(k):
+            for i from 0 <= i < n:
+                for j from 0 <= j < k:
                     counts[i, labels[j]] += mask[i, j]
 
     return counts
