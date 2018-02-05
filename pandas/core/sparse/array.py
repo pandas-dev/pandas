@@ -26,7 +26,8 @@ from pandas.core.dtypes.common import (
     is_scalar, is_dtype_equal)
 from pandas.core.dtypes.cast import (
     maybe_convert_platform, maybe_promote,
-    astype_nansafe, find_common_type, infer_dtype_from_scalar)
+    astype_nansafe, find_common_type, infer_dtype_from_scalar,
+    construct_1d_arraylike_from_scalar)
 from pandas.core.dtypes.missing import isna, notna, na_value_for_dtype
 
 import pandas._libs.sparse as splib
@@ -161,10 +162,9 @@ class SparseArray(PandasObject, np.ndarray):
                 data = np.nan
             if not is_scalar(data):
                 raise Exception("must only pass scalars with an index ")
-            values = np.empty(len(index),
-                              dtype=infer_dtype_from_scalar(data)[0])
-            values.fill(data)
-            data = values
+            dtype = infer_dtype_from_scalar(data)[0]
+            data = construct_1d_arraylike_from_scalar(data, len(index),
+                                                      dtype)
 
         if isinstance(data, ABCSparseSeries):
             data = data.values
