@@ -581,6 +581,15 @@ class TestSparseDataFrame(SharedWithSparse):
                                   self.frame['F'].reindex(index),
                                   check_names=False)
 
+    def test_setitem_chained_no_consolidate(self):
+        # https://github.com/pandas-dev/pandas/pull/19268
+        # issuecomment-361696418
+        # chained setitem used to cause consolidation
+        sdf = pd.SparseDataFrame([[np.nan, 1], [2, np.nan]])
+        with pd.option_context('mode.chained_assignment', None):
+            sdf[0][1] = 2
+        assert len(sdf._data.blocks) == 2
+
     def test_delitem(self):
         A = self.frame['A']
         C = self.frame['C']

@@ -1,18 +1,14 @@
 """ test the scalar Timestamp """
 
-import sys
 import pytz
 import pytest
 import dateutil
-import operator
 import calendar
 import numpy as np
 
 from dateutil.tz import tzutc
 from pytz import timezone, utc
 from datetime import datetime, timedelta
-from distutils.version import LooseVersion
-from pytz.exceptions import AmbiguousTimeError, NonExistentTimeError
 
 import pandas.util.testing as tm
 import pandas.util._test_decorators as td
@@ -21,78 +17,10 @@ from pandas.tseries import offsets
 
 from pandas._libs.tslibs import conversion
 from pandas._libs.tslibs.timezones import get_timezone, dateutil_gettz as gettz
-from pandas._libs.tslibs.frequencies import _INVALID_FREQ_ERROR
 
 from pandas.compat import long, PY3
 from pandas.compat.numpy import np_datetime64_compat
-from pandas import Timestamp, Period, Timedelta, NaT
-
-
-class TestTimestampArithmetic(object):
-    def test_overflow_offset(self):
-        # xref https://github.com/statsmodels/statsmodels/issues/3374
-        # ends up multiplying really large numbers which overflow
-
-        stamp = Timestamp('2017-01-13 00:00:00', freq='D')
-        offset = 20169940 * offsets.Day(1)
-
-        with pytest.raises(OverflowError):
-            stamp + offset
-
-        with pytest.raises(OverflowError):
-            offset + stamp
-
-        with pytest.raises(OverflowError):
-            stamp - offset
-
-    def test_delta_preserve_nanos(self):
-        val = Timestamp(long(1337299200000000123))
-        result = val + timedelta(1)
-        assert result.nanosecond == val.nanosecond
-
-    def test_timestamp_sub_datetime(self):
-        dt = datetime(2013, 10, 12)
-        ts = Timestamp(datetime(2013, 10, 13))
-        assert (ts - dt).days == 1
-        assert (dt - ts).days == -1
-
-    def test_addition_subtraction_types(self):
-        # Assert on the types resulting from Timestamp +/- various date/time
-        # objects
-        dt = datetime(2014, 3, 4)
-        td = timedelta(seconds=1)
-        # build a timestamp with a frequency, since then it supports
-        # addition/subtraction of integers
-        ts = Timestamp(dt, freq='D')
-
-        assert type(ts + 1) == Timestamp
-        assert type(ts - 1) == Timestamp
-
-        # Timestamp + datetime not supported, though subtraction is supported
-        # and yields timedelta more tests in tseries/base/tests/test_base.py
-        assert type(ts - dt) == Timedelta
-        assert type(ts + td) == Timestamp
-        assert type(ts - td) == Timestamp
-
-        # Timestamp +/- datetime64 not supported, so not tested (could possibly
-        # assert error raised?)
-        td64 = np.timedelta64(1, 'D')
-        assert type(ts + td64) == Timestamp
-        assert type(ts - td64) == Timestamp
-
-    def test_addition_subtraction_preserve_frequency(self):
-        ts = Timestamp('2014-03-05', freq='D')
-        td = timedelta(days=1)
-        original_freq = ts.freq
-
-        assert (ts + 1).freq == original_freq
-        assert (ts - 1).freq == original_freq
-        assert (ts + td).freq == original_freq
-        assert (ts - td).freq == original_freq
-
-        td64 = np.timedelta64(1, 'D')
-        assert (ts + td64).freq == original_freq
-        assert (ts - td64).freq == original_freq
+from pandas import Timestamp, Period, Timedelta
 
 
 class TestTimestampProperties(object):
@@ -508,168 +436,8 @@ class TestTimestampConstructors(object):
         # Ensure that Timestamp.max is a valid Timestamp
         Timestamp(Timestamp.max)
 
-
-class TestTimestamp(object):
-    @pytest.mark.parametrize('freq', ['D', 'M', 'S', 'N'])
-    @pytest.mark.parametrize('date', ['2014-03-07', '2014-01-01 09:00',
-                                      '2014-01-01 00:00:00.000000001'])
-    def test_repr(self, date, freq):
-        # dateutil zone change (only matters for repr)
-        if LooseVersion(dateutil.__version__) >= LooseVersion('2.6.0'):
-            timezones = ['UTC', 'Asia/Tokyo', 'US/Eastern',
-                         'dateutil/US/Pacific']
-        else:
-            timezones = ['UTC', 'Asia/Tokyo', 'US/Eastern',
-                         'dateutil/America/Los_Angeles']
-
-        for tz in timezones:
-
-            # avoid to match with timezone name
-            freq_repr = "'{0}'".format(freq)
-            if tz.startswith('dateutil'):
-                tz_repr = tz.replace('dateutil', '')
-            else:
-                tz_repr = tz
-
-            date_only = Timestamp(date)
-            assert date in repr(date_only)
-            assert tz_repr not in repr(date_only)
-            assert freq_repr not in repr(date_only)
-            assert date_only == eval(repr(date_only))
-
-            date_tz = Timestamp(date, tz=tz)
-            assert date in repr(date_tz)
-            assert tz_repr in repr(date_tz)
-            assert freq_repr not in repr(date_tz)
-            assert date_tz == eval(repr(date_tz))
-
-            date_freq = Timestamp(date, freq=freq)
-            assert date in repr(date_freq)
-            assert tz_repr not in repr(date_freq)
-            assert freq_repr in repr(date_freq)
-            assert date_freq == eval(repr(date_freq))
-
-            date_tz_freq = Timestamp(date, tz=tz, freq=freq)
-            assert date in repr(date_tz_freq)
-            assert tz_repr in repr(date_tz_freq)
-            assert freq_repr in repr(date_tz_freq)
-            assert date_tz_freq == eval(repr(date_tz_freq))
-
-    def test_repr_utcoffset(self):
-        # This can cause the tz field to be populated, but it's redundant to
-        # include this information in the date-string.
-        date_with_utc_offset = Timestamp('2014-03-13 00:00:00-0400', tz=None)
-        assert '2014-03-13 00:00:00-0400' in repr(date_with_utc_offset)
-        assert 'tzoffset' not in repr(date_with_utc_offset)
-        assert 'pytz.FixedOffset(-240)' in repr(date_with_utc_offset)
-        expr = repr(date_with_utc_offset).replace("'pytz.FixedOffset(-240)'",
-                                                  'pytz.FixedOffset(-240)')
-        assert date_with_utc_offset == eval(expr)
-
-    def test_timestamp_repr_pre1900(self):
-        # pre-1900
-        stamp = Timestamp('1850-01-01', tz='US/Eastern')
-        repr(stamp)
-
-        iso8601 = '1850-01-01 01:23:45.012345'
-        stamp = Timestamp(iso8601, tz='US/Eastern')
-        result = repr(stamp)
-        assert iso8601 in result
-
-    def test_tz(self):
-        t = '2014-02-01 09:00'
-        ts = Timestamp(t)
-        local = ts.tz_localize('Asia/Tokyo')
-        assert local.hour == 9
-        assert local == Timestamp(t, tz='Asia/Tokyo')
-        conv = local.tz_convert('US/Eastern')
-        assert conv == Timestamp('2014-01-31 19:00', tz='US/Eastern')
-        assert conv.hour == 19
-
-        # preserves nanosecond
-        ts = Timestamp(t) + offsets.Nano(5)
-        local = ts.tz_localize('Asia/Tokyo')
-        assert local.hour == 9
-        assert local.nanosecond == 5
-        conv = local.tz_convert('US/Eastern')
-        assert conv.nanosecond == 5
-        assert conv.hour == 19
-
-    def test_tz_localize_ambiguous(self):
-
-        ts = Timestamp('2014-11-02 01:00')
-        ts_dst = ts.tz_localize('US/Eastern', ambiguous=True)
-        ts_no_dst = ts.tz_localize('US/Eastern', ambiguous=False)
-
-        assert (ts_no_dst.value - ts_dst.value) / 1e9 == 3600
-        with pytest.raises(ValueError):
-            ts.tz_localize('US/Eastern', ambiguous='infer')
-
-        # GH 8025
-        with tm.assert_raises_regex(TypeError,
-                                    'Cannot localize tz-aware Timestamp, '
-                                    'use tz_convert for conversions'):
-            Timestamp('2011-01-01', tz='US/Eastern').tz_localize('Asia/Tokyo')
-
-        with tm.assert_raises_regex(TypeError,
-                                    'Cannot convert tz-naive Timestamp, '
-                                    'use tz_localize to localize'):
-            Timestamp('2011-01-01').tz_convert('Asia/Tokyo')
-
-    def test_tz_localize_nonexistent(self):
-        # see gh-13057
-        times = ['2015-03-08 02:00', '2015-03-08 02:30',
-                 '2015-03-29 02:00', '2015-03-29 02:30']
-        timezones = ['US/Eastern', 'US/Pacific',
-                     'Europe/Paris', 'Europe/Belgrade']
-        for t, tz in zip(times, timezones):
-            ts = Timestamp(t)
-            pytest.raises(NonExistentTimeError, ts.tz_localize,
-                          tz)
-            pytest.raises(NonExistentTimeError, ts.tz_localize,
-                          tz, errors='raise')
-            assert ts.tz_localize(tz, errors='coerce') is NaT
-
-    def test_tz_localize_errors_ambiguous(self):
-        # see gh-13057
-        ts = Timestamp('2015-11-1 01:00')
-        pytest.raises(AmbiguousTimeError,
-                      ts.tz_localize, 'US/Pacific', errors='coerce')
-
-    @pytest.mark.parametrize('tz', ['UTC', 'Asia/Tokyo',
-                                    'US/Eastern', 'dateutil/US/Pacific'])
-    def test_tz_localize_roundtrip(self, tz):
-        for t in ['2014-02-01 09:00', '2014-07-08 09:00',
-                  '2014-11-01 17:00', '2014-11-05 00:00']:
-            ts = Timestamp(t)
-            localized = ts.tz_localize(tz)
-            assert localized == Timestamp(t, tz=tz)
-
-            with pytest.raises(TypeError):
-                localized.tz_localize(tz)
-
-            reset = localized.tz_localize(None)
-            assert reset == ts
-            assert reset.tzinfo is None
-
-    @pytest.mark.parametrize('tz', ['UTC', 'Asia/Tokyo',
-                                    'US/Eastern', 'dateutil/US/Pacific'])
-    def test_tz_convert_roundtrip(self, tz):
-        for t in ['2014-02-01 09:00', '2014-07-08 09:00',
-                  '2014-11-01 17:00', '2014-11-05 00:00']:
-            ts = Timestamp(t, tz='UTC')
-            converted = ts.tz_convert(tz)
-
-            reset = converted.tz_convert(None)
-            assert reset == Timestamp(t)
-            assert reset.tzinfo is None
-            assert reset == converted.tz_convert('UTC').tz_localize(None)
-
-    def test_utc_z_designator(self):
-        assert get_timezone(Timestamp('2014-11-02 01:00Z').tzinfo) == 'UTC'
-
     def test_now(self):
-        # #9000
+        # GH#9000
         ts_from_string = Timestamp('now')
         ts_from_method = Timestamp.now()
         ts_datetime = datetime.now()
@@ -687,7 +455,6 @@ class TestTimestamp(object):
                     ts_from_method_tz.tz_localize(None)) < delta)
 
     def test_today(self):
-
         ts_from_string = Timestamp('today')
         ts_from_method = Timestamp.today()
         ts_datetime = datetime.today()
@@ -704,6 +471,31 @@ class TestTimestamp(object):
         assert (abs(ts_from_string_tz.tz_localize(None) -
                     ts_from_method_tz.tz_localize(None)) < delta)
 
+
+class TestTimestamp(object):
+
+    def test_tz(self):
+        tstr = '2014-02-01 09:00'
+        ts = Timestamp(tstr)
+        local = ts.tz_localize('Asia/Tokyo')
+        assert local.hour == 9
+        assert local == Timestamp(tstr, tz='Asia/Tokyo')
+        conv = local.tz_convert('US/Eastern')
+        assert conv == Timestamp('2014-01-31 19:00', tz='US/Eastern')
+        assert conv.hour == 19
+
+        # preserves nanosecond
+        ts = Timestamp(tstr) + offsets.Nano(5)
+        local = ts.tz_localize('Asia/Tokyo')
+        assert local.hour == 9
+        assert local.nanosecond == 5
+        conv = local.tz_convert('US/Eastern')
+        assert conv.nanosecond == 5
+        assert conv.hour == 19
+
+    def test_utc_z_designator(self):
+        assert get_timezone(Timestamp('2014-11-02 01:00Z').tzinfo) == 'UTC'
+
     def test_asm8(self):
         np.random.seed(7960929)
         ns = [Timestamp.min.value, Timestamp.max.value, 1000]
@@ -714,110 +506,6 @@ class TestTimestamp(object):
 
         assert (Timestamp('nat').asm8.view('i8') ==
                 np.datetime64('nat', 'ns').view('i8'))
-
-    def test_pprint(self):
-        # GH12622
-        import pprint
-        nested_obj = {'foo': 1,
-                      'bar': [{'w': {'a': Timestamp('2011-01-01')}}] * 10}
-        result = pprint.pformat(nested_obj, width=50)
-        expected = r"""{'bar': [{'w': {'a': Timestamp('2011-01-01 00:00:00')}},
-         {'w': {'a': Timestamp('2011-01-01 00:00:00')}},
-         {'w': {'a': Timestamp('2011-01-01 00:00:00')}},
-         {'w': {'a': Timestamp('2011-01-01 00:00:00')}},
-         {'w': {'a': Timestamp('2011-01-01 00:00:00')}},
-         {'w': {'a': Timestamp('2011-01-01 00:00:00')}},
-         {'w': {'a': Timestamp('2011-01-01 00:00:00')}},
-         {'w': {'a': Timestamp('2011-01-01 00:00:00')}},
-         {'w': {'a': Timestamp('2011-01-01 00:00:00')}},
-         {'w': {'a': Timestamp('2011-01-01 00:00:00')}}],
- 'foo': 1}"""
-        assert result == expected
-
-    def test_round(self):
-
-        # round
-        dt = Timestamp('20130101 09:10:11')
-        result = dt.round('D')
-        expected = Timestamp('20130101')
-        assert result == expected
-
-        dt = Timestamp('20130101 19:10:11')
-        result = dt.round('D')
-        expected = Timestamp('20130102')
-        assert result == expected
-
-        dt = Timestamp('20130201 12:00:00')
-        result = dt.round('D')
-        expected = Timestamp('20130202')
-        assert result == expected
-
-        dt = Timestamp('20130104 12:00:00')
-        result = dt.round('D')
-        expected = Timestamp('20130105')
-        assert result == expected
-
-        dt = Timestamp('20130104 12:32:00')
-        result = dt.round('30Min')
-        expected = Timestamp('20130104 12:30:00')
-        assert result == expected
-
-        # floor
-        dt = Timestamp('20130101 09:10:11')
-        result = dt.floor('D')
-        expected = Timestamp('20130101')
-        assert result == expected
-
-        # ceil
-        dt = Timestamp('20130101 09:10:11')
-        result = dt.ceil('D')
-        expected = Timestamp('20130102')
-        assert result == expected
-
-        # round with tz
-        dt = Timestamp('20130101 09:10:11', tz='US/Eastern')
-        result = dt.round('D')
-        expected = Timestamp('20130101', tz='US/Eastern')
-        assert result == expected
-
-        dt = Timestamp('20130101 09:10:11', tz='US/Eastern')
-        result = dt.round('s')
-        assert result == dt
-
-        # GH 14440 & 15578
-        result = Timestamp('2016-10-17 12:00:00.0015').round('ms')
-        expected = Timestamp('2016-10-17 12:00:00.002000')
-        assert result == expected
-
-        result = Timestamp('2016-10-17 12:00:00.00149').round('ms')
-        expected = Timestamp('2016-10-17 12:00:00.001000')
-        assert result == expected
-
-        ts = Timestamp('2016-10-17 12:00:00.0015')
-        for freq in ['us', 'ns']:
-            assert ts == ts.round(freq)
-
-        result = Timestamp('2016-10-17 12:00:00.001501031').round('10ns')
-        expected = Timestamp('2016-10-17 12:00:00.001501030')
-        assert result == expected
-
-        with tm.assert_produces_warning():
-            Timestamp('2016-10-17 12:00:00.001501031').round('1010ns')
-
-    def test_round_misc(self):
-        stamp = Timestamp('2000-01-05 05:09:15.13')
-
-        def _check_round(freq, expected):
-            result = stamp.round(freq=freq)
-            assert result == expected
-
-        for freq, expected in [('D', Timestamp('2000-01-05 00:00:00')),
-                               ('H', Timestamp('2000-01-05 05:00:00')),
-                               ('S', Timestamp('2000-01-05 05:09:15'))]:
-            _check_round(freq, expected)
-
-        with tm.assert_raises_regex(ValueError, _INVALID_FREQ_ERROR):
-            stamp.round('foo')
 
     def test_class_ops_pytz(self):
         def compare(x, y):
@@ -959,210 +647,6 @@ class TestTimestamp(object):
         d = {datetime(2011, 1, 1): 5}
         stamp = Timestamp(datetime(2011, 1, 1))
         assert d[stamp] == 5
-
-    @td.skip_if_windows
-    def test_timestamp(self):
-        # GH#17329
-        # tz-naive --> treat it as if it were UTC for purposes of timestamp()
-        ts = Timestamp.now()
-        uts = ts.replace(tzinfo=utc)
-        assert ts.timestamp() == uts.timestamp()
-
-        tsc = Timestamp('2014-10-11 11:00:01.12345678', tz='US/Central')
-        utsc = tsc.tz_convert('UTC')
-
-        # utsc is a different representation of the same time
-        assert tsc.timestamp() == utsc.timestamp()
-
-        if PY3:
-
-            # datetime.timestamp() converts in the local timezone
-            with tm.set_timezone('UTC'):
-
-                # should agree with datetime.timestamp method
-                dt = ts.to_pydatetime()
-                assert dt.timestamp() == ts.timestamp()
-
-
-class TestTimestampComparison(object):
-    def test_comparison_object_array(self):
-        # GH#15183
-        ts = Timestamp('2011-01-03 00:00:00-0500', tz='US/Eastern')
-        other = Timestamp('2011-01-01 00:00:00-0500', tz='US/Eastern')
-        naive = Timestamp('2011-01-01 00:00:00')
-
-        arr = np.array([other, ts], dtype=object)
-        res = arr == ts
-        expected = np.array([False, True], dtype=bool)
-        assert (res == expected).all()
-
-        # 2D case
-        arr = np.array([[other, ts],
-                        [ts, other]],
-                       dtype=object)
-        res = arr != ts
-        expected = np.array([[True, False], [False, True]], dtype=bool)
-        assert res.shape == expected.shape
-        assert (res == expected).all()
-
-        # tzaware mismatch
-        arr = np.array([naive], dtype=object)
-        with pytest.raises(TypeError):
-            arr < ts
-
-    def test_comparison(self):
-        # 5-18-2012 00:00:00.000
-        stamp = long(1337299200000000000)
-
-        val = Timestamp(stamp)
-
-        assert val == val
-        assert not val != val
-        assert not val < val
-        assert val <= val
-        assert not val > val
-        assert val >= val
-
-        other = datetime(2012, 5, 18)
-        assert val == other
-        assert not val != other
-        assert not val < other
-        assert val <= other
-        assert not val > other
-        assert val >= other
-
-        other = Timestamp(stamp + 100)
-
-        assert val != other
-        assert val != other
-        assert val < other
-        assert val <= other
-        assert other > val
-        assert other >= val
-
-    def test_compare_invalid(self):
-        # GH 8058
-        val = Timestamp('20130101 12:01:02')
-        assert not val == 'foo'
-        assert not val == 10.0
-        assert not val == 1
-        assert not val == long(1)
-        assert not val == []
-        assert not val == {'foo': 1}
-        assert not val == np.float64(1)
-        assert not val == np.int64(1)
-
-        assert val != 'foo'
-        assert val != 10.0
-        assert val != 1
-        assert val != long(1)
-        assert val != []
-        assert val != {'foo': 1}
-        assert val != np.float64(1)
-        assert val != np.int64(1)
-
-    def test_cant_compare_tz_naive_w_aware(self):
-        # see gh-1404
-        a = Timestamp('3/12/2012')
-        b = Timestamp('3/12/2012', tz='utc')
-
-        pytest.raises(Exception, a.__eq__, b)
-        pytest.raises(Exception, a.__ne__, b)
-        pytest.raises(Exception, a.__lt__, b)
-        pytest.raises(Exception, a.__gt__, b)
-        pytest.raises(Exception, b.__eq__, a)
-        pytest.raises(Exception, b.__ne__, a)
-        pytest.raises(Exception, b.__lt__, a)
-        pytest.raises(Exception, b.__gt__, a)
-
-        if sys.version_info < (3, 3):
-            pytest.raises(Exception, a.__eq__, b.to_pydatetime())
-            pytest.raises(Exception, a.to_pydatetime().__eq__, b)
-        else:
-            assert not a == b.to_pydatetime()
-            assert not a.to_pydatetime() == b
-
-    def test_cant_compare_tz_naive_w_aware_explicit_pytz(self):
-        # see gh-1404
-        a = Timestamp('3/12/2012')
-        b = Timestamp('3/12/2012', tz=utc)
-
-        pytest.raises(Exception, a.__eq__, b)
-        pytest.raises(Exception, a.__ne__, b)
-        pytest.raises(Exception, a.__lt__, b)
-        pytest.raises(Exception, a.__gt__, b)
-        pytest.raises(Exception, b.__eq__, a)
-        pytest.raises(Exception, b.__ne__, a)
-        pytest.raises(Exception, b.__lt__, a)
-        pytest.raises(Exception, b.__gt__, a)
-
-        if sys.version_info < (3, 3):
-            pytest.raises(Exception, a.__eq__, b.to_pydatetime())
-            pytest.raises(Exception, a.to_pydatetime().__eq__, b)
-        else:
-            assert not a == b.to_pydatetime()
-            assert not a.to_pydatetime() == b
-
-    def test_cant_compare_tz_naive_w_aware_dateutil(self):
-        # see gh-1404
-        a = Timestamp('3/12/2012')
-        b = Timestamp('3/12/2012', tz=tzutc())
-
-        pytest.raises(Exception, a.__eq__, b)
-        pytest.raises(Exception, a.__ne__, b)
-        pytest.raises(Exception, a.__lt__, b)
-        pytest.raises(Exception, a.__gt__, b)
-        pytest.raises(Exception, b.__eq__, a)
-        pytest.raises(Exception, b.__ne__, a)
-        pytest.raises(Exception, b.__lt__, a)
-        pytest.raises(Exception, b.__gt__, a)
-
-        if sys.version_info < (3, 3):
-            pytest.raises(Exception, a.__eq__, b.to_pydatetime())
-            pytest.raises(Exception, a.to_pydatetime().__eq__, b)
-        else:
-            assert not a == b.to_pydatetime()
-            assert not a.to_pydatetime() == b
-
-    def test_timestamp_compare_scalars(self):
-        # case where ndim == 0
-        lhs = np.datetime64(datetime(2013, 12, 6))
-        rhs = Timestamp('now')
-        nat = Timestamp('nat')
-
-        ops = {'gt': 'lt',
-               'lt': 'gt',
-               'ge': 'le',
-               'le': 'ge',
-               'eq': 'eq',
-               'ne': 'ne'}
-
-        for left, right in ops.items():
-            left_f = getattr(operator, left)
-            right_f = getattr(operator, right)
-            expected = left_f(lhs, rhs)
-
-            result = right_f(rhs, lhs)
-            assert result == expected
-
-            expected = left_f(rhs, nat)
-            result = right_f(nat, rhs)
-            assert result == expected
-
-    def test_timestamp_compare_with_early_datetime(self):
-        # e.g. datetime.min
-        stamp = Timestamp('2012-01-01')
-
-        assert not stamp == datetime.min
-        assert not stamp == datetime(1600, 1, 1)
-        assert not stamp == datetime(2700, 1, 1)
-        assert stamp != datetime.min
-        assert stamp != datetime(1600, 1, 1)
-        assert stamp != datetime(2700, 1, 1)
-        assert stamp > datetime(1600, 1, 1)
-        assert stamp >= datetime(1600, 1, 1)
-        assert stamp < datetime(2700, 1, 1)
-        assert stamp <= datetime(2700, 1, 1)
 
 
 class TestTimestampNsOperations(object):

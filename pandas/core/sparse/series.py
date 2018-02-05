@@ -108,7 +108,10 @@ class SparseSeries(Series):
                 if sparse_index is None:
                     res = make_sparse(data, kind=kind, fill_value=fill_value)
                     data, sparse_index, fill_value = res
+                elif sparse_index is not None and index is not None:
+                    import ipdb; ipdb.set_trace()
                 else:
+                    import ipdb; ipdb.set_trace()
                     assert (len(data) == sparse_index.npoints)
 
             elif isinstance(data, SingleBlockManager):
@@ -175,7 +178,8 @@ class SparseSeries(Series):
 
     def __array__(self, result=None):
         """ the array interface, return my values """
-        return self.block.values
+
+        return self.block.values.values
 
     def get_values(self):
         """ same as values """
@@ -271,6 +275,8 @@ class SparseSeries(Series):
 
         See SparseArray.__array_wrap__ for detail.
         """
+
+        import ipdb; ipdb.set_trace()
         if isinstance(context, tuple) and len(context) == 3:
             ufunc, args, domain = context
             args = [getattr(a, 'fill_value', a) for a in args]
@@ -819,4 +825,4 @@ ops.add_flex_arithmetic_methods(SparseSeries, **ops.series_flex_funcs)
 ops.add_special_arithmetic_methods(SparseSeries,
                                    ops._arith_method_SPARSE_SERIES,
                                    comp_method=ops._arith_method_SPARSE_SERIES,
-                                   bool_method=None, force=True)
+                                   bool_method=None)
