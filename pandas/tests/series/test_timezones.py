@@ -18,69 +18,23 @@ from pandas import Series, Timestamp, DatetimeIndex, Index
 
 
 class TestSeriesTimezones(object):
-    def test_dateutil_tzoffset_support(self):
-        values = [188.5, 328.25]
-        tzinfo = tzoffset(None, 7200)
-        index = [datetime(2012, 5, 11, 11, tzinfo=tzinfo),
-                 datetime(2012, 5, 11, 12, tzinfo=tzinfo)]
-        series = Series(data=values, index=index)
+    # -----------------------------------------------------------------
+    # Series.tz_localize
+    def test_series_tz_localize(self):
 
-        assert series.index.tz == tzinfo
+        rng = date_range('1/1/2011', periods=100, freq='H')
+        ts = Series(1, index=rng)
 
-        # it works! #2443
-        repr(series.index[0])
+        result = ts.tz_localize('utc')
+        assert result.index.tz.zone == 'UTC'
 
-    @pytest.mark.parametrize('tz', ['US/Eastern', 'dateutil/US/Eastern'])
-    def test_tz_aware_asfreq(self, tz):
-        dr = date_range('2011-12-01', '2012-07-20', freq='D', tz=tz)
-
-        ser = Series(np.random.randn(len(dr)), index=dr)
-
-        # it works!
-        ser.asfreq('T')
-
-    @pytest.mark.parametrize('tz', ['US/Eastern', 'dateutil/US/Eastern'])
-    def test_string_index_alias_tz_aware(self, tz):
-        rng = date_range('1/1/2000', periods=10, tz=tz)
-        ser = Series(np.random.randn(len(rng)), index=rng)
-
-        result = ser['1/3/2000']
-        tm.assert_almost_equal(result, ser[2])
-
-    # TODO: De-duplicate with test below
-    def test_series_add_tz_mismatch_converts_to_utc_duplicate(self):
-        rng = date_range('1/1/2011', periods=10, freq='H', tz='US/Eastern')
-        ser = Series(np.random.randn(len(rng)), index=rng)
-
-        ts_moscow = ser.tz_convert('Europe/Moscow')
-
-        result = ser + ts_moscow
-        assert result.index.tz is pytz.utc
-
-        result = ts_moscow + ser
-        assert result.index.tz is pytz.utc
-
-    def test_series_add_tz_mismatch_converts_to_utc(self):
+        # Can't localize if already tz-aware
         rng = date_range('1/1/2011', periods=100, freq='H', tz='utc')
+        ts = Series(1, index=rng)
+        tm.assert_raises_regex(TypeError, 'Already tz-aware',
+                               ts.tz_localize, 'US/Eastern')
 
-        perm = np.random.permutation(100)[:90]
-        ser1 = Series(np.random.randn(90),
-                      index=rng.take(perm).tz_convert('US/Eastern'))
-
-        perm = np.random.permutation(100)[:90]
-        ser2 = Series(np.random.randn(90),
-                      index=rng.take(perm).tz_convert('Europe/Berlin'))
-
-        result = ser1 + ser2
-
-        uts1 = ser1.tz_convert('utc')
-        uts2 = ser2.tz_convert('utc')
-        expected = uts1 + uts2
-
-        assert result.index.tz == pytz.UTC
-        tm.assert_series_equal(result, expected)
-
-    def test_ambiguous_bool(self):
+    def test_series_tz_localize_ambiguous_bool(self):
         # make sure that we are correctly accepting bool values as ambiguous
 
         # GH#14402
@@ -107,19 +61,19 @@ class TestSeriesTimezones(object):
         result = ser.dt.tz_localize('US/Central', ambiguous=[False])
         tm.assert_series_equal(result, expected1)
 
-    def test_series_tz_localize(self):
+    @pytest.mark.parametrize('tzstr', ['US/Eastern', 'dateutil/US/Eastern'])
+    def test_series_tz_localize_empty(self, tzstr):
+        # GH#2248
+        ser = Series()
 
-        rng = date_range('1/1/2011', periods=100, freq='H')
-        ts = Series(1, index=rng)
+        ser2 = ser.tz_localize('utc')
+        assert ser2.index.tz == pytz.utc
 
-        result = ts.tz_localize('utc')
-        assert result.index.tz.zone == 'UTC'
+        ser2 = ser.tz_localize(tzstr)
+        timezones.tz_compare(ser2.index.tz, timezones.maybe_get_tz(tzstr))
 
-        # Can't localize if already tz-aware
-        rng = date_range('1/1/2011', periods=100, freq='H', tz='utc')
-        ts = Series(1, index=rng)
-        tm.assert_raises_regex(TypeError, 'Already tz-aware',
-                               ts.tz_localize, 'US/Eastern')
+    # -----------------------------------------------------------------
+    # Series.tz_convert
 
     def test_series_tz_convert(self):
         rng = date_range('1/1/2011', periods=200, freq='D', tz='US/Eastern')
@@ -134,27 +88,8 @@ class TestSeriesTimezones(object):
         tm.assert_raises_regex(TypeError, "Cannot convert tz-naive",
                                ts.tz_convert, 'US/Eastern')
 
-    def test_series_add_aware_naive_raises(self):
-        rng = date_range('1/1/2011', periods=10, freq='H')
-        ser = Series(np.random.randn(len(rng)), index=rng)
-
-        ser_utc = ser.tz_localize('utc')
-
-        with pytest.raises(Exception):
-            ser + ser_utc
-
-        with pytest.raises(Exception):
-            ser_utc + ser
-
-    def test_series_align_aware(self):
-        idx1 = date_range('2001', periods=5, freq='H', tz='US/Eastern')
-        ser = Series(np.random.randn(len(idx1)), index=idx1)
-        ser_central = ser.tz_convert('US/Central')
-        # # different timezones convert to UTC
-
-        new1, new2 = ser.align(ser_central)
-        assert new1.index.tz == pytz.UTC
-        assert new2.index.tz == pytz.UTC
+    # -----------------------------------------------------------------
+    # Series.append
 
     def test_series_append_aware(self):
         rng1 = date_range('1/1/2011 01:00', periods=1, freq='H',
@@ -236,16 +171,91 @@ class TestSeriesTimezones(object):
         tm.assert_series_equal(ts_result, exp)
         assert ts_result.index.tz == rng1.tz
 
-    @pytest.mark.parametrize('tzstr', ['US/Eastern', 'dateutil/US/Eastern'])
-    def test_tz_localize_empty_series(self, tzstr):
-        # GH#2248
-        ser = Series()
+    # -----------------------------------------------------------------
 
-        ser2 = ser.tz_localize('utc')
-        assert ser2.index.tz == pytz.utc
+    def test_dateutil_tzoffset_support(self):
+        values = [188.5, 328.25]
+        tzinfo = tzoffset(None, 7200)
+        index = [datetime(2012, 5, 11, 11, tzinfo=tzinfo),
+                 datetime(2012, 5, 11, 12, tzinfo=tzinfo)]
+        series = Series(data=values, index=index)
 
-        ser2 = ser.tz_localize(tzstr)
-        timezones.tz_compare(ser2.index.tz, timezones.maybe_get_tz(tzstr))
+        assert series.index.tz == tzinfo
+
+        # it works! #2443
+        repr(series.index[0])
+
+    @pytest.mark.parametrize('tz', ['US/Eastern', 'dateutil/US/Eastern'])
+    def test_tz_aware_asfreq(self, tz):
+        dr = date_range('2011-12-01', '2012-07-20', freq='D', tz=tz)
+
+        ser = Series(np.random.randn(len(dr)), index=dr)
+
+        # it works!
+        ser.asfreq('T')
+
+    @pytest.mark.parametrize('tz', ['US/Eastern', 'dateutil/US/Eastern'])
+    def test_string_index_alias_tz_aware(self, tz):
+        rng = date_range('1/1/2000', periods=10, tz=tz)
+        ser = Series(np.random.randn(len(rng)), index=rng)
+
+        result = ser['1/3/2000']
+        tm.assert_almost_equal(result, ser[2])
+
+    # TODO: De-duplicate with test below
+    def test_series_add_tz_mismatch_converts_to_utc_duplicate(self):
+        rng = date_range('1/1/2011', periods=10, freq='H', tz='US/Eastern')
+        ser = Series(np.random.randn(len(rng)), index=rng)
+
+        ts_moscow = ser.tz_convert('Europe/Moscow')
+
+        result = ser + ts_moscow
+        assert result.index.tz is pytz.utc
+
+        result = ts_moscow + ser
+        assert result.index.tz is pytz.utc
+
+    def test_series_add_tz_mismatch_converts_to_utc(self):
+        rng = date_range('1/1/2011', periods=100, freq='H', tz='utc')
+
+        perm = np.random.permutation(100)[:90]
+        ser1 = Series(np.random.randn(90),
+                      index=rng.take(perm).tz_convert('US/Eastern'))
+
+        perm = np.random.permutation(100)[:90]
+        ser2 = Series(np.random.randn(90),
+                      index=rng.take(perm).tz_convert('Europe/Berlin'))
+
+        result = ser1 + ser2
+
+        uts1 = ser1.tz_convert('utc')
+        uts2 = ser2.tz_convert('utc')
+        expected = uts1 + uts2
+
+        assert result.index.tz == pytz.UTC
+        tm.assert_series_equal(result, expected)
+
+    def test_series_add_aware_naive_raises(self):
+        rng = date_range('1/1/2011', periods=10, freq='H')
+        ser = Series(np.random.randn(len(rng)), index=rng)
+
+        ser_utc = ser.tz_localize('utc')
+
+        with pytest.raises(Exception):
+            ser + ser_utc
+
+        with pytest.raises(Exception):
+            ser_utc + ser
+
+    def test_series_align_aware(self):
+        idx1 = date_range('2001', periods=5, freq='H', tz='US/Eastern')
+        ser = Series(np.random.randn(len(idx1)), index=idx1)
+        ser_central = ser.tz_convert('US/Central')
+        # # different timezones convert to UTC
+
+        new1, new2 = ser.align(ser_central)
+        assert new1.index.tz == pytz.UTC
+        assert new2.index.tz == pytz.UTC
 
     @pytest.mark.parametrize('tzstr', ['US/Eastern', 'dateutil/US/Eastern'])
     def test_localized_at_time_between_time(self, tzstr):
