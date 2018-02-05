@@ -5311,7 +5311,7 @@ def concatenate_block_managers(mgrs_indexers, axes, concat_axis, copy):
             if len(values.shape) == 2:
                 values = values[0]
             else:
-                assert len(values).shape == 1
+                assert len(values.shape) == 1
 
             block = join_units[0].block
 
