@@ -8,7 +8,7 @@ import numpy as np
 import warnings
 
 import pandas as pd
-from pandas.core.base import PandasObject
+from pandas.core.base import PandasObject, IndexOpsMixin
 
 from pandas import compat
 from pandas.compat import range, PYPY
@@ -239,33 +239,9 @@ class SparseArray(PandasObject, np.ndarray):
         elif isinstance(self.sp_index, IntIndex):
             return 'integer'
 
+    @Appender(IndexOpsMixin.memory_usage.__doc__)
     def memory_usage(self, deep=False):
-        """Memory usage of SparseArray
-
-        Parameters
-        ----------
-        deep : bool
-            Introspect the data deeply, interrogate
-            `object` dtypes for system-level memory consumption
-
-        Returns
-        -------
-        scalar bytes of memory consumed
-
-        Notes
-        -----
-        Memory usage does not include memory of empty cells filled by
-        fill_value. And it does not include memory consumed by
-        elements that are not components of the array if deep=False
-
-        See also
-        --------
-        Series.memory_usage
-        """
-
         values = self.sp_values
-        if hasattr(values, 'memory_usage'):
-            return values.memory_usage(deep=deep)
 
         v = values.nbytes
 
