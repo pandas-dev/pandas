@@ -39,21 +39,15 @@ class JSONArray(ExtensionArray):
         self.data = values
 
     def __getitem__(self, item):
-        # TDOO: fancy indexing
         if isinstance(item, numbers.Integral):
             return self.data[item]
         elif isinstance(item, np.ndarray) and item.dtype == 'bool':
             return type(self)([x for x, m in zip(self, item) if m])
-        elif isinstance(item, collections.Sequence):
-            return type(self)([self.data[i] for i in item])
         else:
             return type(self)(self.data[item])
 
     def __len__(self):
         return len(self.data)
-
-    def __iter__(self):
-        return iter(self.data)
 
     def __repr__(self):
         return 'JSONArary({!r})'.format(self.data)
