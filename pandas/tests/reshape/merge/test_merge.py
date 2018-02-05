@@ -1838,9 +1838,9 @@ class TestMergeSparseDataFrames(object):
 
             # If you merge two dense frames together it tends to default to
             # float64 not the original dtype
-            dense_merge['B_x'] = dense_merge['B_x'].astype(np.int64,
+            dense_merge['B_x'] = dense_merge['B_x'].astype(dense_evens.A.dtype,
                                                            errors='ignore')
-            dense_merge['B_y'] = dense_merge['B_y'].astype(np.int64,
+            dense_merge['B_y'] = dense_merge['B_y'].astype(dense_evens.A.dtype,
                                                            errors='ignore')
 
             if fill_value is None or fill_value is np.nan:
