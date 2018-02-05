@@ -108,10 +108,7 @@ class SparseSeries(Series):
                 if sparse_index is None:
                     res = make_sparse(data, kind=kind, fill_value=fill_value)
                     data, sparse_index, fill_value = res
-                elif sparse_index is not None and index is not None:
-                    import ipdb; ipdb.set_trace()
                 else:
-                    import ipdb; ipdb.set_trace()
                     assert (len(data) == sparse_index.npoints)
 
             elif isinstance(data, SingleBlockManager):
@@ -276,7 +273,6 @@ class SparseSeries(Series):
         See SparseArray.__array_wrap__ for detail.
         """
 
-        import ipdb; ipdb.set_trace()
         if isinstance(context, tuple) and len(context) == 3:
             ufunc, args, domain = context
             args = [getattr(a, 'fill_value', a) for a in args]
@@ -285,8 +281,18 @@ class SparseSeries(Series):
         else:
             fill_value = self.fill_value
 
+        # GH 14167
+        # Since we are returning a dense representation of 
+        # SparseSeries sparse_index might not align when calling
+        # ufunc on the array. There doesn't seem to be a better way
+        # to do this unfortunately.
+        if len(result) != self.sp_index.npoints:
+            sparse_index = None
+        else:
+            sparse_index = self.sp_index
+
         return self._constructor(result, index=self.index,
-                                 sparse_index=self.sp_index,
+                                 sparse_index=sparse_index,
                                  fill_value=fill_value,
                                  copy=False).__finalize__(self)
 
@@ -408,8 +414,11 @@ class SparseSeries(Series):
         -------
         abs: type of caller
         """
-        return self._constructor(np.abs(self.values),
-                                 index=self.index).__finalize__(self)
+        # import ipdb; ipdb.set_trace()
+        return np.abs(self)
+        #return self._constructor(np.abs(self.get_values()),
+        #                         index=self.index,
+        #                         fill_value=self.fill_value).__finalize__(self)
 
     def get(self, label, default=None):
         """

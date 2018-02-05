@@ -625,7 +625,7 @@ class TestSparseDataFrameIndexing(object):
         sparse = orig.to_sparse(fill_value=fill_value)
 
         tm.assert_sp_series_equal(sparse['y'],
-                                  orig['y'].to_sparse(fill_value=0))
+                                  orig['y'].to_sparse(fill_value=fill_value))
 
         exp = orig[['x']].to_sparse(fill_value=fill_value)
         tm.assert_sp_frame_equal(sparse[['x']], exp)
