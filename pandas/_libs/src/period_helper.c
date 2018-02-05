@@ -14,6 +14,7 @@ See end of file for stuff pandas uses (search for 'pandas').
 */
 
 #include "period_helper.h"
+#include "../datetime/np_datetime.h"
 
 /* ------------------------------------------------------------------
  * Code derived from scikits.timeseries
@@ -42,28 +43,6 @@ static int month_offset[2][13] = {
     {0, 31, 59, 90, 120, 151, 181, 212, 243, 273, 304, 334, 365},
     {0, 31, 60, 91, 121, 152, 182, 213, 244, 274, 305, 335, 366}};
 
-/* Table of number of days in a month (0-based, without and with leap) */
-static int days_in_month[2][12] = {
-    {31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31},
-    {31, 29, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31}};
-
-/* Return 1/0 iff year points to a leap year.
- * Assumes GREGORIAN_CALENDAR */
-static int dInfoCalc_Leapyear(npy_int64 year) {
-    return (year % 4 == 0) && ((year % 100 != 0) || (year % 400 == 0));
-}
-
-/* Return the day of the week for the given absolute date. */
-static int dInfoCalc_DayOfWeek(npy_int64 absdate) {
-    int day_of_week;
-
-    if (absdate >= 1) {
-        day_of_week = (absdate - 1) % 7;
-    } else {
-        day_of_week = 6 - ((-absdate) % 7);
-    }
-    return day_of_week;
-}
 
 static int monthToQuarter(int month) { return ((month - 1) / 3) + 1; }
 
@@ -106,7 +85,7 @@ static int dInfoCalc_SetFromDateAndTime(struct date_info *dinfo, int year,
                          PyExc_ValueError, "year out of range: %i", year);
 
         /* Is it a leap year ? */
-        leap = dInfoCalc_Leapyear(year);
+        leap = is_leapyear(year);
 
         /* Negative month values indicate months relative to the years end */
         if (month < 0) month += 13;
@@ -114,12 +93,12 @@ static int dInfoCalc_SetFromDateAndTime(struct date_info *dinfo, int year,
                          "month out of range (1-12): %i", month);
 
         /* Negative values indicate days relative to the months end */
-        if (day < 0) day += days_in_month[leap][month - 1] + 1;
-        Py_AssertWithArg(day >= 1 && day <= days_in_month[leap][month - 1],
+        if (day < 0) day += days_per_month_table[leap][month - 1] + 1;
+        Py_AssertWithArg(day >= 1 &&
+                            day <= days_per_month_table[leap][month - 1],
                          PyExc_ValueError, "day out of range: %i", day);
 
         yearoffset = dInfoCalc_YearOffset(year);
-        if (yearoffset == INT_ERR_CODE) goto onError;
 
         absdate = day + month_offset[leap][month - 1] + yearoffset;
 
@@ -127,11 +106,9 @@ static int dInfoCalc_SetFromDateAndTime(struct date_info *dinfo, int year,
 
         dinfo->year = year;
         dinfo->month = month;
-        dinfo->quarter = ((month - 1) / 3) + 1;
+        dinfo->quarter = monthToQuarter(month);
         dinfo->day = day;
 
-        dinfo->day_of_week = dInfoCalc_DayOfWeek(absdate);
-        dinfo->day_of_year = (short)(absdate - yearoffset);
     }
 
     /* Calculate the absolute time */
@@ -146,8 +123,6 @@ static int dInfoCalc_SetFromDateAndTime(struct date_info *dinfo, int year,
                  (hour == 23 && minute == 59 && second < (double)61.0)),
             PyExc_ValueError,
             "second out of range (0.0 - <60.0; <61.0 for 23:59): %f", second);
-
-        dinfo->abstime = (double)(hour * 3600 + minute * 60) + second;
 
         dinfo->hour = hour;
         dinfo->minute = minute;
@@ -180,7 +155,6 @@ static int dInfoCalc_SetFromAbsDate(register struct date_info *dinfo,
     while (1) {
         /* Calculate the year offset */
         yearoffset = dInfoCalc_YearOffset(year);
-        if (yearoffset == INT_ERR_CODE) goto onError;
 
         /* Backward correction: absdate must be greater than the
            yearoffset */
@@ -190,7 +164,7 @@ static int dInfoCalc_SetFromAbsDate(register struct date_info *dinfo,
         }
 
         dayoffset = absdate - yearoffset;
-        leap = dInfoCalc_Leapyear(year);
+        leap = is_leapyear(year);
 
         /* Forward correction: non leap years only have 365 days */
         if (dayoffset > 365 && !leap) {
@@ -216,14 +190,9 @@ static int dInfoCalc_SetFromAbsDate(register struct date_info *dinfo,
         dinfo->day = dayoffset - month_offset[leap][month - 1];
     }
 
-    dinfo->day_of_week = dInfoCalc_DayOfWeek(absdate);
-    dinfo->day_of_year = dayoffset;
     dinfo->absdate = absdate;
 
     return 0;
-
-onError:
-    return INT_ERR_CODE;
 }
 
 ///////////////////////////////////////////////
@@ -373,18 +342,21 @@ static npy_int64 DtoB_weekday(npy_int64 absdate) {
     return (((absdate) / 7) * 5) + (absdate) % 7 - BDAY_OFFSET;
 }
 
-static npy_int64 DtoB_WeekendToMonday(npy_int64 absdate, int day_of_week) {
-    if (day_of_week > 4) {
-        // change to Monday after weekend
-        absdate += (7 - day_of_week);
-    }
-    return DtoB_weekday(absdate);
-}
+static npy_int64 DtoB(struct date_info *dinfo, int roll_back) {
+    int day_of_week = dayofweek(dinfo->year, dinfo->month, dinfo->day);
+    npy_int64 absdate = dinfo->absdate;
 
-static npy_int64 DtoB_WeekendToFriday(npy_int64 absdate, int day_of_week) {
-    if (day_of_week > 4) {
-        // change to friday before weekend
-        absdate -= (day_of_week - 4);
+    if (roll_back == 1) {
+        if (day_of_week > 4) {
+            // change to friday before weekend
+            absdate -= (day_of_week - 4);
+        }
+    }
+    else {
+        if (day_of_week > 4) {
+            // change to Monday after weekend
+            absdate += (7 - day_of_week);
+        }
     }
     return DtoB_weekday(absdate);
 }
@@ -403,8 +375,7 @@ static npy_int64 asfreq_DTtoA(npy_int64 ordinal, char relation,
                               asfreq_info *af_info) {
     struct date_info dinfo;
     ordinal = downsample_daytime(ordinal, af_info, 0);
-    if (dInfoCalc_SetFromAbsDate(&dinfo, ordinal + ORD_OFFSET))
-        return INT_ERR_CODE;
+    dInfoCalc_SetFromAbsDate(&dinfo, ordinal + ORD_OFFSET);
     if (dinfo.month > af_info->to_a_year_end) {
         return (npy_int64)(dinfo.year + 1 - BASE_YEAR);
     } else {
@@ -415,8 +386,7 @@ static npy_int64 asfreq_DTtoA(npy_int64 ordinal, char relation,
 static npy_int64 DtoQ_yq(npy_int64 ordinal, asfreq_info *af_info, int *year,
                          int *quarter) {
     struct date_info dinfo;
-    if (dInfoCalc_SetFromAbsDate(&dinfo, ordinal + ORD_OFFSET))
-        return INT_ERR_CODE;
+    dInfoCalc_SetFromAbsDate(&dinfo, ordinal + ORD_OFFSET);
     if (af_info->to_q_year_end != 12) {
         dinfo.month -= af_info->to_q_year_end;
         if (dinfo.month <= 0) {
@@ -452,8 +422,7 @@ static npy_int64 asfreq_DTtoM(npy_int64 ordinal, char relation,
 
     ordinal = downsample_daytime(ordinal, af_info, 0);
 
-    if (dInfoCalc_SetFromAbsDate(&dinfo, ordinal + ORD_OFFSET))
-        return INT_ERR_CODE;
+    dInfoCalc_SetFromAbsDate(&dinfo, ordinal + ORD_OFFSET);
     return (npy_int64)((dinfo.year - BASE_YEAR) * 12 + dinfo.month - 1);
 }
 
@@ -467,17 +436,15 @@ static npy_int64 asfreq_DTtoW(npy_int64 ordinal, char relation,
 static npy_int64 asfreq_DTtoB(npy_int64 ordinal, char relation,
                               asfreq_info *af_info) {
     struct date_info dinfo;
+    int roll_back;
 
     ordinal = downsample_daytime(ordinal, af_info, 0);
 
-    if (dInfoCalc_SetFromAbsDate(&dinfo, ordinal + ORD_OFFSET))
-        return INT_ERR_CODE;
+    dInfoCalc_SetFromAbsDate(&dinfo, ordinal + ORD_OFFSET);
 
-    if (relation == 'S') {
-        return DtoB_WeekendToFriday(dinfo.absdate, dinfo.day_of_week);
-    } else {
-        return DtoB_WeekendToMonday(dinfo.absdate, dinfo.day_of_week);
-    }
+    // This usage defines roll_back the opposite way from the others
+    roll_back = (relation == 'S') ? 1 : 0;
+    return DtoB(&dinfo, roll_back);
 }
 
 // all intra day calculations are now done within one function
@@ -570,15 +537,12 @@ static npy_int64 asfreq_WtoW(npy_int64 ordinal, char relation,
 static npy_int64 asfreq_WtoB(npy_int64 ordinal, char relation,
                              asfreq_info *af_info) {
     struct date_info dinfo;
-    if (dInfoCalc_SetFromAbsDate(
-            &dinfo, asfreq_WtoDT(ordinal, relation, af_info) + ORD_OFFSET))
-        return INT_ERR_CODE;
+    int roll_back;
+    dInfoCalc_SetFromAbsDate(
+            &dinfo, asfreq_WtoDT(ordinal, relation, af_info) + ORD_OFFSET);
 
-    if (relation == 'S') {
-        return DtoB_WeekendToMonday(dinfo.absdate, dinfo.day_of_week);
-    } else {
-        return DtoB_WeekendToFriday(dinfo.absdate, dinfo.day_of_week);
-    }
+    roll_back = (relation == 'S') ? 0 : 1;
+    return DtoB(&dinfo, roll_back);
 }
 
 //************ FROM MONTHLY ***************
@@ -628,16 +592,13 @@ static npy_int64 asfreq_MtoW(npy_int64 ordinal, char relation,
 static npy_int64 asfreq_MtoB(npy_int64 ordinal, char relation,
                              asfreq_info *af_info) {
     struct date_info dinfo;
+    int roll_back;
 
-    if (dInfoCalc_SetFromAbsDate(
-            &dinfo, asfreq_MtoDT(ordinal, relation, af_info) + ORD_OFFSET))
-        return INT_ERR_CODE;
+    dInfoCalc_SetFromAbsDate(
+            &dinfo, asfreq_MtoDT(ordinal, relation, af_info) + ORD_OFFSET);
 
-    if (relation == 'S') {
-        return DtoB_WeekendToMonday(dinfo.absdate, dinfo.day_of_week);
-    } else {
-        return DtoB_WeekendToFriday(dinfo.absdate, dinfo.day_of_week);
-    }
+    roll_back = (relation == 'S') ? 0 : 1;
+    return DtoB(&dinfo, roll_back);
 }
 
 //************ FROM QUARTERLY ***************
@@ -704,15 +665,12 @@ static npy_int64 asfreq_QtoW(npy_int64 ordinal, char relation,
 static npy_int64 asfreq_QtoB(npy_int64 ordinal, char relation,
                              asfreq_info *af_info) {
     struct date_info dinfo;
-    if (dInfoCalc_SetFromAbsDate(
-            &dinfo, asfreq_QtoDT(ordinal, relation, af_info) + ORD_OFFSET))
-        return INT_ERR_CODE;
+    int roll_back;
+    dInfoCalc_SetFromAbsDate(
+            &dinfo, asfreq_QtoDT(ordinal, relation, af_info) + ORD_OFFSET);
 
-    if (relation == 'S') {
-        return DtoB_WeekendToMonday(dinfo.absdate, dinfo.day_of_week);
-    } else {
-        return DtoB_WeekendToFriday(dinfo.absdate, dinfo.day_of_week);
-    }
+    roll_back = (relation == 'S') ? 0 : 1;
+    return DtoB(&dinfo, roll_back);
 }
 
 //************ FROM ANNUAL ***************
@@ -775,15 +733,12 @@ static npy_int64 asfreq_AtoW(npy_int64 ordinal, char relation,
 static npy_int64 asfreq_AtoB(npy_int64 ordinal, char relation,
                              asfreq_info *af_info) {
     struct date_info dinfo;
-    if (dInfoCalc_SetFromAbsDate(
-            &dinfo, asfreq_AtoDT(ordinal, relation, af_info) + ORD_OFFSET))
-        return INT_ERR_CODE;
+    int roll_back;
+    dInfoCalc_SetFromAbsDate(
+            &dinfo, asfreq_AtoDT(ordinal, relation, af_info) + ORD_OFFSET);
 
-    if (relation == 'S') {
-        return DtoB_WeekendToMonday(dinfo.absdate, dinfo.day_of_week);
-    } else {
-        return DtoB_WeekendToFriday(dinfo.absdate, dinfo.day_of_week);
-    }
+    roll_back = (relation == 'S') ? 0 : 1;
+    return DtoB(&dinfo, roll_back);
 }
 
 static npy_int64 nofunc(npy_int64 ordinal, char relation,
@@ -1062,9 +1017,6 @@ static int dInfoCalc_SetFromAbsTime(struct date_info *dinfo, double abstime) {
     dinfo->hour = hour;
     dinfo->minute = minute;
     dinfo->second = second;
-
-    dinfo->abstime = abstime;
-
     return 0;
 }
 
@@ -1078,10 +1030,10 @@ static int dInfoCalc_SetFromAbsDateTime(struct date_info *dinfo,
                      "abstime out of range (0.0 - 86400.0): %f", abstime);
 
     /* Calculate the date */
-    if (dInfoCalc_SetFromAbsDate(dinfo, absdate)) goto onError;
+    dInfoCalc_SetFromAbsDate(dinfo, absdate);
 
     /* Calculate the time */
-    if (dInfoCalc_SetFromAbsTime(dinfo, abstime)) goto onError;
+    dInfoCalc_SetFromAbsTime(dinfo, abstime);
 
     return 0;
 onError:
@@ -1246,32 +1198,6 @@ npy_int64 get_python_ordinal(npy_int64 period_ordinal, int freq) {
 }
 
 
-// function to generate a nice string representation of the period
-// object, originally from DateObject_strftime
-
-char *c_strftime(struct date_info *tmp, char *fmt) {
-    struct tm c_date;
-    char *result;
-    struct date_info dinfo = *tmp;
-    int result_len = strlen(fmt) + 50;
-
-    c_date.tm_sec = (int)dinfo.second;
-    c_date.tm_min = dinfo.minute;
-    c_date.tm_hour = dinfo.hour;
-    c_date.tm_mday = dinfo.day;
-    c_date.tm_mon = dinfo.month - 1;
-    c_date.tm_year = dinfo.year - 1900;
-    c_date.tm_wday = (dinfo.day_of_week + 1) % 7;
-    c_date.tm_yday = dinfo.day_of_year - 1;
-    c_date.tm_isdst = -1;
-
-    result = malloc(result_len * sizeof(char));
-
-    strftime(result, result_len, fmt, &c_date);
-
-    return result;
-}
-
 int get_yq(npy_int64 ordinal, int freq, int *quarter, int *year) {
     asfreq_info af_info;
     int qtr_freq;
@@ -1295,7 +1221,7 @@ int get_yq(npy_int64 ordinal, int freq, int *quarter, int *year) {
     return 0;
 }
 
-static int _quarter_year(npy_int64 ordinal, int freq, int *year, int *quarter) {
+int _quarter_year(npy_int64 ordinal, int freq, int *year, int *quarter) {
     asfreq_info af_info;
     int qtr_freq;
 
@@ -1316,29 +1242,6 @@ static int _quarter_year(npy_int64 ordinal, int freq, int *year, int *quarter) {
     return 0;
 }
 
-static int _ISOWeek(struct date_info *dinfo) {
-    int week;
-
-    /* Estimate */
-    week = (dinfo->day_of_year - 1) - dinfo->day_of_week + 3;
-    if (week >= 0) week = week / 7 + 1;
-
-    /* Verify */
-    if (week < 0) {
-        /* The day lies in last week of the previous year */
-        if ((week > -2) || (week == -2 && dInfoCalc_Leapyear(dinfo->year - 1)))
-            week = 53;
-        else
-            week = 52;
-    } else if (week == 53) {
-        /* Check if the week belongs to year or year+1 */
-        if (31 - dinfo->day + dinfo->day_of_week < 3) {
-            week = 1;
-        }
-    }
-
-    return week;
-}
 
 int get_date_info(npy_int64 ordinal, int freq, struct date_info *dinfo) {
     npy_int64 absdate = get_python_ordinal(ordinal, freq);
@@ -1357,97 +1260,4 @@ int get_date_info(npy_int64 ordinal, int freq, struct date_info *dinfo) {
         return INT_ERR_CODE;
 
     return 0;
-}
-
-int pyear(npy_int64 ordinal, int freq) {
-    struct date_info dinfo;
-    get_date_info(ordinal, freq, &dinfo);
-    return dinfo.year;
-}
-
-int pqyear(npy_int64 ordinal, int freq) {
-    int year, quarter;
-    if (_quarter_year(ordinal, freq, &year, &quarter) == INT_ERR_CODE)
-        return INT_ERR_CODE;
-    return year;
-}
-
-int pquarter(npy_int64 ordinal, int freq) {
-    int year, quarter;
-    if (_quarter_year(ordinal, freq, &year, &quarter) == INT_ERR_CODE)
-        return INT_ERR_CODE;
-    return quarter;
-}
-
-int pmonth(npy_int64 ordinal, int freq) {
-    struct date_info dinfo;
-    if (get_date_info(ordinal, freq, &dinfo) == INT_ERR_CODE)
-        return INT_ERR_CODE;
-    return dinfo.month;
-}
-
-int pday(npy_int64 ordinal, int freq) {
-    struct date_info dinfo;
-    if (get_date_info(ordinal, freq, &dinfo) == INT_ERR_CODE)
-        return INT_ERR_CODE;
-    return dinfo.day;
-}
-
-int pweekday(npy_int64 ordinal, int freq) {
-    struct date_info dinfo;
-    if (get_date_info(ordinal, freq, &dinfo) == INT_ERR_CODE)
-        return INT_ERR_CODE;
-    return dinfo.day_of_week;
-}
-
-int pday_of_week(npy_int64 ordinal, int freq) {
-    struct date_info dinfo;
-    if (get_date_info(ordinal, freq, &dinfo) == INT_ERR_CODE)
-        return INT_ERR_CODE;
-    return dinfo.day_of_week;
-}
-
-int pday_of_year(npy_int64 ordinal, int freq) {
-    struct date_info dinfo;
-    if (get_date_info(ordinal, freq, &dinfo) == INT_ERR_CODE)
-        return INT_ERR_CODE;
-    return dinfo.day_of_year;
-}
-
-int pweek(npy_int64 ordinal, int freq) {
-    struct date_info dinfo;
-    if (get_date_info(ordinal, freq, &dinfo) == INT_ERR_CODE)
-        return INT_ERR_CODE;
-    return _ISOWeek(&dinfo);
-}
-
-int phour(npy_int64 ordinal, int freq) {
-    struct date_info dinfo;
-    if (get_date_info(ordinal, freq, &dinfo) == INT_ERR_CODE)
-        return INT_ERR_CODE;
-    return dinfo.hour;
-}
-
-int pminute(npy_int64 ordinal, int freq) {
-    struct date_info dinfo;
-    if (get_date_info(ordinal, freq, &dinfo) == INT_ERR_CODE)
-        return INT_ERR_CODE;
-    return dinfo.minute;
-}
-
-int psecond(npy_int64 ordinal, int freq) {
-    struct date_info dinfo;
-    if (get_date_info(ordinal, freq, &dinfo) == INT_ERR_CODE)
-        return INT_ERR_CODE;
-    return (int)dinfo.second;
-}
-
-int pdays_in_month(npy_int64 ordinal, int freq) {
-    int days;
-    struct date_info dinfo;
-    if (get_date_info(ordinal, freq, &dinfo) == INT_ERR_CODE)
-        return INT_ERR_CODE;
-
-    days = days_in_month[dInfoCalc_Leapyear(dinfo.year)][dinfo.month - 1];
-    return days;
 }
