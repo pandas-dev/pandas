@@ -26,6 +26,8 @@ cdef int64_t iNaT = get_nat()
 cdef double NaN = <double> np.NaN
 cdef double nan = NaN
 
+import missing
+
 
 # TODO: aggregate multiple columns in single pass
 # ----------------------------------------------------------------------
@@ -142,11 +144,25 @@ def group_rank_object(ndarray[float64_t, ndim=2] out,
         bint pct, ascending
 
     tiebreak = tiebreakers[kwargs['ties_method']]
-    pct = kwargs['pct']
     ascending = kwargs['ascending']
+    pct = kwargs['pct']
+    keep_na = kwargs['na_option'] == 'keep'
     N, K = (<object> values).shape
 
-    _as = np.lexsort((values[:, 0], labels))
+    vals = np.array(values[:, 0], copy=True)
+    mask = missing.isnaobj(vals)
+
+    try:
+        _as = np.lexsort((vals, labels))
+    except TypeError:
+        # lexsort fails when missing data and objects are mixed
+        # fallback to argsort
+        order = (vals, mask, labels)
+        _values = np.asarray(list(zip(order[0], order[1], order[2])),
+                             dtype=[('values', 'O'), ('mask', '?'),
+                                    ('labels', 'i8')])
+        _as = np.argsort(_values, kind='mergesort', order=('labels',
+                                                           'mask', 'values'))
 
     if not ascending:
         _as = _as[::-1]
@@ -155,24 +171,27 @@ def group_rank_object(ndarray[float64_t, ndim=2] out,
         dups += 1
         sum_ranks += i - grp_start + 1
 
-        if tiebreak == TIEBREAK_AVERAGE:
-            for j in range(i - dups + 1, i + 1):
-                out[_as[j], 0] = sum_ranks / dups
-        elif tiebreak == TIEBREAK_MIN:
-            for j in range(i - dups + 1, i + 1):
-                out[_as[j], 0] = i - grp_start - dups + 2
-        elif tiebreak == TIEBREAK_MAX:
-            for j in range(i - dups + 1, i + 1):
-                out[_as[j], 0] = i - grp_start + 1
-        elif tiebreak == TIEBREAK_FIRST:
-            for j in range(i - dups + 1, i + 1):
-                if ascending:
-                    out[_as[j], 0] = j + 1
-                else:
-                    out[_as[j], 0] = 2 * i - j - dups + 2
-        elif tiebreak == TIEBREAK_DENSE:
-            for j in range(i - dups + 1, i + 1):
-                out[_as[j], 0] = vals_seen
+        if keep_na and mask[_as[i]]:
+            out[_as[i], 0] = np.nan
+        else:
+            if tiebreak == TIEBREAK_AVERAGE:
+                for j in range(i - dups + 1, i + 1):
+                    out[_as[j], 0] = sum_ranks / dups
+            elif tiebreak == TIEBREAK_MIN:
+                for j in range(i - dups + 1, i + 1):
+                    out[_as[j], 0] = i - grp_start - dups + 2
+            elif tiebreak == TIEBREAK_MAX:
+                for j in range(i - dups + 1, i + 1):
+                    out[_as[j], 0] = i - grp_start + 1
+            elif tiebreak == TIEBREAK_FIRST:
+                for j in range(i - dups + 1, i + 1):
+                    if ascending:
+                        out[_as[j], 0] = j + 1
+                    else:
+                        out[_as[j], 0] = 2 * i - j - dups + 2
+            elif tiebreak == TIEBREAK_DENSE:
+                for j in range(i - dups + 1, i + 1):
+                    out[_as[j], 0] = vals_seen
 
         if (i == N - 1 or (
                 (values[_as[i], 0] != values[_as[i+1], 0]) and not

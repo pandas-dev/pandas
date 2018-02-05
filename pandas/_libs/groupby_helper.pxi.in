@@ -458,15 +458,35 @@ def group_rank_{{name}}(ndarray[float64_t, ndim=2] out,
         int tiebreak
         Py_ssize_t i, j, N, K
         int64_t val_start=0, grp_start=0, dups=0, sum_ranks=0, vals_seen=1
+        int64_t grp_na_count=0
         ndarray[int64_t] _as
-        bint pct, ascending
+        ndarray[{{c_type}}] _values
+        ndarray[uint8_t] mask
+        bint pct, ascending, keep_na
 
     tiebreak = tiebreakers[kwargs['ties_method']]
     ascending = kwargs['ascending']
     pct = kwargs['pct']
+    keep_na = kwargs['na_option'] == 'keep'
     N, K = (<object> values).shape
 
-    _as = np.lexsort((values[:, 0], labels))
+    _values = np.array(values[:, 0], copy=True)
+
+    mask = np.isnan(_values).astype(np.uint8)
+    {{if name == 'int64' }}
+    order = (_values, labels)
+    {{else}}
+    if ascending ^ (kwargs['na_option'] == 'top'):
+        nan_value = np.inf
+        order = (_values, mask, labels)
+    else:
+        nan_value = -np.inf
+        order = (_values, ~mask, labels)
+    np.putmask(_values, mask, nan_value)
+    {{endif}}
+
+    _as = np.lexsort(order)
+
 
     if not ascending:
         _as = _as[::-1]
@@ -476,38 +496,45 @@ def group_rank_{{name}}(ndarray[float64_t, ndim=2] out,
             dups += 1
             sum_ranks += i - grp_start + 1
 
-            if tiebreak == TIEBREAK_AVERAGE:
-                for j in range(i - dups + 1, i + 1):
-                    out[_as[j], 0] = sum_ranks / dups
-            elif tiebreak == TIEBREAK_MIN:
-                for j in range(i - dups + 1, i + 1):
-                    out[_as[j], 0] = i - grp_start - dups + 2
-            elif tiebreak == TIEBREAK_MAX:
-                for j in range(i - dups + 1, i + 1):
-                    out[_as[j], 0] = i - grp_start + 1
-            elif tiebreak == TIEBREAK_FIRST:
-                for j in range(i - dups + 1, i + 1):
-                    if ascending:
-                        out[_as[j], 0] = j + 1
-                    else:
-                        out[_as[j], 0] = 2 * i - j - dups + 2
-            elif tiebreak == TIEBREAK_DENSE:
-                for j in range(i - dups + 1, i + 1):
-                    out[_as[j], 0] = vals_seen
+            if keep_na and (values[_as[i], 0] != values[_as[i], 0]):
+                grp_na_count += 1
+                out[_as[i], 0] = {{nan_val}}
+            else:
+                if tiebreak == TIEBREAK_AVERAGE:
+                    for j in range(i - dups + 1, i + 1):
+                        out[_as[j], 0] = sum_ranks / dups
+                elif tiebreak == TIEBREAK_MIN:
+                    for j in range(i - dups + 1, i + 1):
+                        out[_as[j], 0] = i - grp_start - dups + 2
+                elif tiebreak == TIEBREAK_MAX:
+                    for j in range(i - dups + 1, i + 1):
+                        out[_as[j], 0] = i - grp_start + 1
+                elif tiebreak == TIEBREAK_FIRST:
+                    for j in range(i - dups + 1, i + 1):
+                        if ascending:
+                            out[_as[j], 0] = j + 1
+                        else:
+                            out[_as[j], 0] = 2 * i - j - dups + 2
+                elif tiebreak == TIEBREAK_DENSE:
+                    for j in range(i - dups + 1, i + 1):
+                        out[_as[j], 0] = vals_seen
 
             if (i == N - 1 or (
-                    (values[_as[i], 0] != values[_as[i+1], 0]) and not
-                    (isnan(values[_as[i], 0]) and
-                     isnan(values[_as[i+1], 0])
+                    (_values[_as[i]] != _values[_as[i+1]]) and not
+                    (isnan(_values[_as[i]]) and
+                     isnan(_values[_as[i+1]])
                     ))):
                 dups = sum_ranks = 0
                 val_start = i
                 vals_seen += 1
 
+            # Move to the next group, cleaning up any values
             if i == N - 1 or labels[_as[i]] != labels[_as[i+1]]:
                 if pct:
                     for j in range(grp_start, i + 1):
-                        out[_as[j], 0] = out[_as[j], 0] / (i - grp_start + 1)
+                        out[_as[j], 0] = out[_as[j], 0] / (i - grp_start + 1
+                                                           - grp_na_count)
+                grp_na_count = 0
                 grp_start = i + 1
                 vals_seen = 1
 
