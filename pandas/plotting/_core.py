@@ -1398,6 +1398,10 @@ class KdePlot(HistPlot):
             sample_range = np.nanmax(y) - np.nanmin(y)
             ind = np.linspace(np.nanmin(y) - 0.5 * sample_range,
                               np.nanmax(y) + 0.5 * sample_range, 1000)
+        elif is_integer(self.ind):
+            sample_range = np.nanmax(y) - np.nanmin(y)
+            ind = np.linspace(np.nanmin(y) - 0.5 * sample_range,
+                              np.nanmax(y) + 0.5 * sample_range, self.ind)
         else:
             ind = self.ind
         return ind
@@ -2156,10 +2160,18 @@ def hist_frame(data, column=None, by=None, grid=True, xlabelsize=None,
         The size of the figure to create in inches by default
     layout : tuple, optional
         Tuple of (rows, columns) for the layout of the histograms
-    bins : integer, default 10
-        Number of histogram bins to be used
+    bins : integer or sequence, default 10
+        Number of histogram bins to be used. If an integer is given, bins + 1
+        bin edges are calculated and returned. If bins is a sequence, gives
+        bin edges, including left edge of first bin and right edge of last
+        bin. In this case, bins is returned unmodified.
     `**kwds` : other plotting keyword arguments
         To be passed to hist function
+
+    See Also
+    --------
+    matplotlib.axes.Axes.hist : Plot a histogram using matplotlib.
+
     """
     _converter._WARN = False
     if by is not None:
@@ -2219,14 +2231,19 @@ def hist_series(self, by=None, ax=None, grid=True, xlabelsize=None,
         rotation of y axis labels
     figsize : tuple, default None
         figure size in inches by default
+    bins : integer or sequence, default 10
+        Number of histogram bins to be used. If an integer is given, bins + 1
+        bin edges are calculated and returned. If bins is a sequence, gives
+        bin edges, including left edge of first bin and right edge of last
+        bin. In this case, bins is returned unmodified.
     bins: integer, default 10
         Number of histogram bins to be used
     `**kwds` : keywords
         To be passed to the actual plotting function
 
-    Notes
-    -----
-    See matplotlib documentation online for more on this
+    See Also
+    --------
+    matplotlib.axes.Axes.hist : Plot a histogram using matplotlib.
 
     """
     import matplotlib.pyplot as plt
@@ -2585,12 +2602,22 @@ class SeriesPlotMethods(BasePlotMethods):
         """
         return self(kind='hist', bins=bins, **kwds)
 
-    def kde(self, **kwds):
+    def kde(self, bw_method=None, ind=None, **kwds):
         """
         Kernel Density Estimate plot
 
         Parameters
         ----------
+        bw_method: str, scalar or callable, optional
+            The method used to calculate the estimator bandwidth.  This can be
+            'scott', 'silverman', a scalar constant or a callable.
+            If None (default), 'scott' is used.
+            See :class:`scipy.stats.gaussian_kde` for more information.
+        ind : NumPy array or integer, optional
+            Evaluation points. If None (default), 1000 equally spaced points
+            are used. If `ind` is a NumPy array, the kde is evaluated at the
+            points passed. If `ind` is an integer, `ind` number of equally
+            spaced points are used.
         `**kwds` : optional
             Keyword arguments to pass on to :py:meth:`pandas.Series.plot`.
 
@@ -2598,7 +2625,7 @@ class SeriesPlotMethods(BasePlotMethods):
         -------
         axes : matplotlib.AxesSubplot or np.array of them
         """
-        return self(kind='kde', **kwds)
+        return self(kind='kde', bw_method=bw_method, ind=ind, **kwds)
 
     density = kde
 
@@ -2753,12 +2780,22 @@ class FramePlotMethods(BasePlotMethods):
         """
         return self(kind='hist', by=by, bins=bins, **kwds)
 
-    def kde(self, **kwds):
+    def kde(self, bw_method=None, ind=None, **kwds):
         """
         Kernel Density Estimate plot
 
         Parameters
         ----------
+        bw_method: str, scalar or callable, optional
+            The method used to calculate the estimator bandwidth.  This can be
+            'scott', 'silverman', a scalar constant or a callable.
+            If None (default), 'scott' is used.
+            See :class:`scipy.stats.gaussian_kde` for more information.
+        ind : NumPy array or integer, optional
+            Evaluation points. If None (default), 1000 equally spaced points
+            are used. If `ind` is a NumPy array, the kde is evaluated at the
+            points passed. If `ind` is an integer, `ind` number of equally
+            spaced points are used.
         `**kwds` : optional
             Keyword arguments to pass on to :py:meth:`pandas.DataFrame.plot`.
 
@@ -2766,7 +2803,7 @@ class FramePlotMethods(BasePlotMethods):
         -------
         axes : matplotlib.AxesSubplot or np.array of them
         """
-        return self(kind='kde', **kwds)
+        return self(kind='kde', bw_method=bw_method, ind=ind, **kwds)
 
     density = kde
 
