@@ -13,14 +13,14 @@ from pandas.core.dtypes.generic import (
     ABCIndexClass, ABCCategorical)
 from pandas.core.dtypes.common import (
     is_unsigned_integer_dtype, is_signed_integer_dtype,
-    is_integer_dtype, is_complex_dtype, is_integer, is_float,
+    is_integer_dtype, is_complex_dtype,
     is_object_dtype,
     is_categorical_dtype, is_sparse,
     is_period_dtype,
     is_numeric_dtype, is_float_dtype,
     is_bool_dtype, needs_i8_conversion,
     is_categorical, is_datetimetz, is_datetime_or_timedelta_dtype,
-    is_datetime64_any_dtype, is_datetime64tz_dtype, is_datetimelike,
+    is_datetime64_any_dtype, is_datetime64tz_dtype,
     is_timedelta64_dtype, is_interval_dtype,
     is_scalar, is_list_like,
     _ensure_platform_int, _ensure_object,
@@ -405,22 +405,19 @@ def isin(comps, values):
     if not isinstance(values, (ABCIndex, ABCSeries, np.ndarray)):
         values = construct_1d_object_array_from_listlike(list(values))
 
-    comps, dtype, _ = _ensure_data(comps)
-    # Convert `values` to `dtype` if dtype of `values` is like `dtype`
-    check_int = (is_integer_dtype(dtype) and
-                 (is_integer_dtype(values) or
-                  all(is_integer(i) for i in values)))
-    check_float = (is_float_dtype(dtype) and
-                   (is_float_dtype(values) or
-                    all(is_float(i) for i in values)))
-    check_datetime = (is_datetime_or_timedelta_dtype(dtype) and
-                      (is_datetime_or_timedelta_dtype(values) or
-                       all(is_datetimelike(i) for i in values) or
-                       all(isinstance(i, Timestamp) for i in values)))
-    if check_int or check_float or check_datetime:
-        values, _, _ = _ensure_data(values, dtype=dtype)
-    else:
-        values, _, _ = _ensure_data(values)
+    comps, dtype_comps, _ = _ensure_data(comps)
+    values, _, _ = _ensure_data(values)
+    # If items of `values` are of the same dtype...
+    dtypes_values_set = set([type(v) for v in values])
+    if len(dtypes_values_set) == 1:
+        dtype_values_items = dtypes_values_set.pop()
+        # ...and if this dtype matches the dtype of `comps`...
+        is_time_like = lambda x: (is_datetime_or_timedelta_dtype(x) or
+                                  x == Timestamp)
+        if (dtype_comps == dtype_values_items or
+           (is_time_like(dtype_values_items) and is_time_like(dtype_comps))):
+            #...then coerce `values` to type of `comps`.
+            values, _, _ = _ensure_data(values, dtype=dtype_comps)
 
     # faster for larger cases to use np.in1d
     f = lambda x, y: htable.ismember_object(x, values)
