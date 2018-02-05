@@ -348,8 +348,7 @@ def _format_labels(bins, precision, right=True,
         # account that we are all right closed
         v = adjust(labels[0].left)
 
-        i = IntervalIndex.from_intervals(
-            [Interval(v, labels[0].right, closed='right')])
+        i = IntervalIndex([Interval(v, labels[0].right, closed='right')])
         labels = i.append(labels[1:])
 
     return labels

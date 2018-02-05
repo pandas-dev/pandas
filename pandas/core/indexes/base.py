@@ -5,7 +5,7 @@ import operator
 import numpy as np
 from pandas._libs import (lib, index as libindex, tslib as libts,
                           algos as libalgos, join as libjoin,
-                          Timestamp, Timedelta, )
+                          Timestamp)
 from pandas._libs.lib import is_datetime_array
 
 from pandas.compat import range, u, set_function_name
@@ -41,11 +41,9 @@ from pandas.core.dtypes.common import (
     needs_i8_conversion,
     is_iterator, is_list_like,
     is_scalar)
-from pandas.core.common import (is_bool_indexer, _values_from_object,
-                                _asarray_tuplesafe, _not_none,
-                                _index_labels_to_array)
 
 from pandas.core.base import PandasObject, IndexOpsMixin
+import pandas.core.common as com
 import pandas.core.base as base
 from pandas.util._decorators import (
     Appender, Substitution, cache_readonly, deprecate_kwarg)
@@ -143,12 +141,10 @@ class Index(IndexOpsMixin, PandasObject):
     _join_precedence = 1
 
     # Cython methods
-    _arrmap = libalgos.arrmap_object
     _left_indexer_unique = libjoin.left_join_indexer_unique_object
     _left_indexer = libjoin.left_join_indexer_object
     _inner_indexer = libjoin.inner_join_indexer_object
     _outer_indexer = libjoin.outer_join_indexer_object
-    _box_scalars = False
 
     _typ = 'index'
     _data = None
@@ -157,9 +153,6 @@ class Index(IndexOpsMixin, PandasObject):
     asi8 = None
     _comparables = ['name']
     _attributes = ['name']
-    _allow_index_ops = True
-    _allow_datetime_index_ops = False
-    _allow_period_index_ops = False
     _is_numeric_dtype = False
     _can_hold_na = True
 
@@ -202,7 +195,9 @@ class Index(IndexOpsMixin, PandasObject):
         # interval
         if is_interval_dtype(data) or is_interval_dtype(dtype):
             from .interval import IntervalIndex
-            return IntervalIndex(data, dtype=dtype, name=name, copy=copy)
+            closed = kwargs.get('closed', None)
+            return IntervalIndex(data, dtype=dtype, name=name, copy=copy,
+                                 closed=closed)
 
         # index-like
         elif isinstance(data, (np.ndarray, Index, ABCSeries)):
@@ -292,7 +287,7 @@ class Index(IndexOpsMixin, PandasObject):
             elif issubclass(data.dtype.type, np.bool) or is_bool_dtype(data):
                 subarr = data.astype('object')
             else:
-                subarr = _asarray_tuplesafe(data, dtype=object)
+                subarr = com._asarray_tuplesafe(data, dtype=object)
 
             # _asarray_tuplesafe does not always copy underlying data,
             # so need to make sure that this happens
@@ -315,8 +310,7 @@ class Index(IndexOpsMixin, PandasObject):
                     return Float64Index(subarr, copy=copy, name=name)
                 elif inferred == 'interval':
                     from .interval import IntervalIndex
-                    return IntervalIndex.from_intervals(subarr, name=name,
-                                                        copy=copy)
+                    return IntervalIndex(subarr, name=name, copy=copy)
                 elif inferred == 'boolean':
                     # don't support boolean explicitly ATM
                     pass
@@ -361,7 +355,7 @@ class Index(IndexOpsMixin, PandasObject):
                     return MultiIndex.from_tuples(
                         data, names=name or kwargs.get('names'))
             # other iterable of some kind
-            subarr = _asarray_tuplesafe(data, dtype=object)
+            subarr = com._asarray_tuplesafe(data, dtype=object)
             return Index(subarr, dtype=dtype, copy=copy, name=name, **kwargs)
 
     """
@@ -1498,7 +1492,7 @@ class Index(IndexOpsMixin, PandasObject):
 
     @Appender(_index_shared_docs['_convert_arr_indexer'])
     def _convert_arr_indexer(self, keyarr):
-        keyarr = _asarray_tuplesafe(keyarr)
+        keyarr = com._asarray_tuplesafe(keyarr)
         return keyarr
 
     _index_shared_docs['_convert_index_indexer'] = """
@@ -1736,10 +1730,10 @@ class Index(IndexOpsMixin, PandasObject):
             # pessimization of basic indexing.
             return promote(getitem(key))
 
-        if is_bool_indexer(key):
+        if com.is_bool_indexer(key):
             key = np.asarray(key)
 
-        key = _values_from_object(key)
+        key = com._values_from_object(key)
         result = getitem(key)
         if not is_scalar(result):
             return promote(result)
@@ -2022,8 +2016,8 @@ class Index(IndexOpsMixin, PandasObject):
             return other.equals(self)
 
         try:
-            return array_equivalent(_values_from_object(self),
-                                    _values_from_object(other))
+            return array_equivalent(com._values_from_object(self),
+                                    com._values_from_object(other))
         except Exception:
             return False
 
@@ -2539,8 +2533,8 @@ class Index(IndexOpsMixin, PandasObject):
                 # invalid type as an indexer
                 pass
 
-        s = _values_from_object(series)
-        k = _values_from_object(key)
+        s = com._values_from_object(series)
+        k = com._values_from_object(key)
 
         k = self._convert_scalar_indexer(k, kind='getitem')
         try:
@@ -2573,8 +2567,8 @@ class Index(IndexOpsMixin, PandasObject):
         Fast lookup of value from 1-dimensional ndarray. Only use this if you
         know what you're doing
         """
-        self._engine.set_value(_values_from_object(arr),
-                               _values_from_object(key), value)
+        self._engine.set_value(com._values_from_object(arr),
+                               com._values_from_object(key), value)
 
     def _get_level_values(self, level):
         """
@@ -3193,8 +3187,8 @@ class Index(IndexOpsMixin, PandasObject):
         other_is_mi = isinstance(other, MultiIndex)
 
         # figure out join names
-        self_names = _not_none(*self.names)
-        other_names = _not_none(*other.names)
+        self_names = com._not_none(*self.names)
+        other_names = com._not_none(*other.names)
         overlap = list(set(self_names) & set(other_names))
 
         # need at least 1 in common, but not more than 1
@@ -3766,7 +3760,7 @@ class Index(IndexOpsMixin, PandasObject):
             If none of the labels are found in the selected axis
         """
         arr_dtype = 'object' if self.dtype == 'object' else None
-        labels = _index_labels_to_array(labels, dtype=arr_dtype)
+        labels = com._index_labels_to_array(labels, dtype=arr_dtype)
         indexer = self.get_indexer(labels)
         mask = indexer == -1
         if mask.any():
@@ -3979,7 +3973,7 @@ class Index(IndexOpsMixin, PandasObject):
         internal method called by ops
         """
         # if we are an inheritor of numeric,
-        # but not actually numeric (e.g. DatetimeIndex/PeriodInde)
+        # but not actually numeric (e.g. DatetimeIndex/PeriodIndex)
         if not self._is_numeric_dtype:
             raise TypeError("cannot evaluate a numeric op {opstr} "
                             "for type: {typ}".format(
@@ -4001,12 +3995,12 @@ class Index(IndexOpsMixin, PandasObject):
             if len(self) != len(other):
                 raise ValueError("cannot evaluate a numeric op with "
                                  "unequal lengths")
-            other = _values_from_object(other)
+            other = com._values_from_object(other)
             if other.dtype.kind not in ['f', 'i', 'u']:
                 raise TypeError("cannot evaluate a numeric op "
                                 "with a non-numeric dtype")
         elif isinstance(other, (ABCDateOffset, np.timedelta64,
-                                Timedelta, datetime.timedelta)):
+                                datetime.timedelta)):
             # higher up to handle
             pass
         elif isinstance(other, (Timestamp, np.datetime64)):
@@ -4031,13 +4025,13 @@ class Index(IndexOpsMixin, PandasObject):
 
                 # handle time-based others
                 if isinstance(other, (ABCDateOffset, np.timedelta64,
-                                      Timedelta, datetime.timedelta)):
+                                      datetime.timedelta)):
                     return self._evaluate_with_timedelta_like(other, op, opstr,
                                                               reversed)
                 elif isinstance(other, (Timestamp, np.datetime64)):
                     return self._evaluate_with_datetime_like(other, op, opstr)
 
-                # if we are a reversed non-communative op
+                # if we are a reversed non-commutative op
                 values = self.values
                 if reversed:
                     values, other = other, values
@@ -4081,11 +4075,8 @@ class Index(IndexOpsMixin, PandasObject):
         cls.__divmod__ = _make_evaluate_binop(
             divmod,
             '__divmod__',
-            constructor=lambda result, **attrs: (
-                Index(result[0], **attrs),
-                Index(result[1], **attrs),
-            ),
-        )
+            constructor=lambda result, **attrs: (Index(result[0], **attrs),
+                                                 Index(result[1], **attrs)))
 
     @classmethod
     def _add_numeric_methods_unary(cls):
@@ -4275,8 +4266,7 @@ def _ensure_index(index_like, copy=False):
 def _get_na_value(dtype):
     if is_datetime64_any_dtype(dtype) or is_timedelta64_dtype(dtype):
         return libts.NaT
-    return {np.datetime64: libts.NaT,
-            np.timedelta64: libts.NaT}.get(dtype, np.nan)
+    return np.nan
 
 
 def _ensure_has_len(seq):

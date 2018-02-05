@@ -27,7 +27,7 @@ from pandas.core.dtypes.common import (
     is_list_like)
 from pandas.core.dtypes.generic import ABCSparseArray
 from pandas.core.base import PandasObject
-from pandas.core.common import _any_not_none, sentinel_factory
+import pandas.core.common as com
 from pandas.core.index import Index, MultiIndex, _ensure_index
 from pandas import compat
 from pandas.compat import (StringIO, lzip, range, map, zip, u,
@@ -38,7 +38,7 @@ from pandas.io.common import (_get_handle, UnicodeWriter, _expand_user,
                               _stringify_path)
 from pandas.io.formats.printing import adjoin, justify, pprint_thing
 from pandas.io.formats.common import get_level_lengths
-from pandas._libs import lib
+from pandas._libs import lib, writers as libwriters
 from pandas._libs.tslib import (iNaT, Timestamp, Timedelta,
                                 format_array_from_datetime)
 from pandas.core.indexes.datetimes import DatetimeIndex
@@ -1277,7 +1277,7 @@ class HTMLFormatter(TableFormatter):
 
             if self.fmt.sparsify:
                 # GH3547
-                sentinel = sentinel_factory()
+                sentinel = com.sentinel_factory()
             else:
                 sentinel = None
             levels = self.columns.format(sparsify=sentinel, adjoin=False,
@@ -1446,7 +1446,7 @@ class HTMLFormatter(TableFormatter):
 
         if self.fmt.sparsify:
             # GH3547
-            sentinel = sentinel_factory()
+            sentinel = com.sentinel_factory()
             levels = frame.index.format(sparsify=sentinel, adjoin=False,
                                         names=False)
 
@@ -1789,7 +1789,8 @@ class CSVFormatter(object):
                                         date_format=self.date_format,
                                         quoting=self.quoting)
 
-        lib.write_csv_rows(self.data, ix, self.nlevels, self.cols, self.writer)
+        libwriters.write_csv_rows(self.data, ix, self.nlevels,
+                                  self.cols, self.writer)
 
 
 # ----------------------------------------------------------------------
@@ -1961,7 +1962,7 @@ class FloatArrayFormatter(GenericArrayFormatter):
     def get_result_as_array(self):
         """
         Returns the float values converted into strings using
-        the parameters given at initalisation, as a numpy array
+        the parameters given at initialisation, as a numpy array
         """
 
         if self.formatter is not None:
@@ -2372,7 +2373,7 @@ def single_row_table(row):  # pragma: no cover
 
 def _has_names(index):
     if isinstance(index, MultiIndex):
-        return _any_not_none(*index.names)
+        return com._any_not_none(*index.names)
     else:
         return index.name is not None
 

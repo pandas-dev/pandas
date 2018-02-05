@@ -42,7 +42,7 @@ doc_txt = '''\
   -------
   out : ndarray
       The drawn samples, arranged according to `shape`.  If the
-      shape given is (m,n,...), then the shape of `out` is is
+      shape given is (m,n,...), then the shape of `out` is
       (m,n,...,N).
 
       In other words, each entry ``out[i,j,...,:]`` is an N-dimensional
@@ -222,7 +222,7 @@ Returns
 -------
 out : ndarray
     The drawn samples, arranged according to `shape`.  If the
-    shape given is (m,n,...), then the shape of `out` is is
+    shape given is (m,n,...), then the shape of `out` is
     (m,n,...,N).
 
     In other words, each entry ``out[i,j,...,:]`` is an N-dimensional
@@ -340,7 +340,7 @@ of the one-dimensional normal distribution to higher dimensions.
     **out** : ndarray
 
         The drawn samples, arranged according to `shape`.  If the
-        shape given is (m,n,...), then the shape of `out` is is
+        shape given is (m,n,...), then the shape of `out` is
         (m,n,...,N).
 
         In other words, each entry ``out[i,j,...,:]`` is an N-dimensional

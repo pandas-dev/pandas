@@ -4,7 +4,7 @@ from warnings import catch_warnings
 from distutils.version import LooseVersion
 from pandas import DataFrame, RangeIndex, Int64Index, get_option
 from pandas.compat import string_types
-from pandas.core.common import AbstractMethodError
+import pandas.core.common as com
 from pandas.io.common import get_filepath_or_buffer, is_s3_url
 
 
@@ -64,10 +64,10 @@ class BaseImpl(object):
             raise ValueError("Index level names must be strings")
 
     def write(self, df, path, compression, **kwargs):
-        raise AbstractMethodError(self)
+        raise com.AbstractMethodError(self)
 
     def read(self, path, columns=None, **kwargs):
-        raise AbstractMethodError(self)
+        raise com.AbstractMethodError(self)
 
 
 class PyArrowImpl(BaseImpl):
@@ -215,7 +215,10 @@ class FastParquetImpl(BaseImpl):
             # We need to retain the original path(str) while also
             # pass the S3File().open function to fsatparquet impl.
             s3, _, _ = get_filepath_or_buffer(path)
-            parquet_file = self.api.ParquetFile(path, open_with=s3.s3.open)
+            try:
+                parquet_file = self.api.ParquetFile(path, open_with=s3.s3.open)
+            finally:
+                s3.close()
         else:
             path, _, _ = get_filepath_or_buffer(path)
             parquet_file = self.api.ParquetFile(path)

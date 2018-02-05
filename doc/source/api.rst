@@ -1617,7 +1617,6 @@ IntervalIndex Components
    IntervalIndex.from_arrays
    IntervalIndex.from_tuples
    IntervalIndex.from_breaks
-   IntervalIndex.from_intervals
    IntervalIndex.contains
    IntervalIndex.left
    IntervalIndex.right
@@ -2501,7 +2500,7 @@ Scalar introspection
 Extensions
 ----------
 
-These are primarily intented for library authors looking to extend pandas
+These are primarily intended for library authors looking to extend pandas
 objects.
 
 .. currentmodule:: pandas

@@ -10,9 +10,9 @@ from cpython.datetime cimport datetime, timedelta, time as dt_time
 from dateutil.relativedelta import relativedelta
 
 import numpy as np
-cimport numpy as np
+cimport numpy as cnp
 from numpy cimport int64_t
-np.import_array()
+cnp.import_array()
 
 
 from util cimport is_string_object, is_integer_object
@@ -302,12 +302,20 @@ class _BaseOffset(object):
     _normalize_cache = True
     _cacheable = False
     _day_opt = None
+    _attributes = frozenset(['n', 'normalize'])
+
+    @property
+    def kwds(self):
+        # for backwards-compatibility
+        kwds = {name: getattr(self, name, None) for name in self._attributes
+                if name not in ['n', 'normalize']}
+        return {name: kwds[name] for name in kwds if kwds[name] is not None}
 
     def __call__(self, other):
         return self.apply(other)
 
-    def __mul__(self, someInt):
-        return self.__class__(n=someInt * self.n, normalize=self.normalize,
+    def __mul__(self, other):
+        return self.__class__(n=other * self.n, normalize=self.normalize,
                               **self.kwds)
 
     def __neg__(self):
@@ -374,8 +382,8 @@ class _BaseOffset(object):
 
 class BaseOffset(_BaseOffset):
     # Here we add __rfoo__ methods that don't play well with cdef classes
-    def __rmul__(self, someInt):
-        return self.__mul__(someInt)
+    def __rmul__(self, other):
+        return self.__mul__(other)
 
     def __radd__(self, other):
         return self.__add__(other)
@@ -840,6 +848,8 @@ cpdef int roll_qtrday(datetime other, int n, int month, object day_opt,
     -------
     n : int number of periods to increment
     """
+    cdef:
+        int months_since
     # TODO: Merge this with roll_yearday by setting modby=12 there?
     #       code de-duplication versus perf hit?
     # TODO: with small adjustments this could be used in shift_quarters

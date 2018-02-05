@@ -194,19 +194,17 @@ def merge_ordered(left, right, on=None,
     5   e       3     b
 
     >>> merge_ordered(A, B, fill_method='ffill', left_by='group')
-       key  lvalue group  rvalue
-    0    a       1     a     NaN
-    1    b       1     a       1
-    2    c       2     a       2
-    3    d       2     a       3
-    4    e       3     a       3
-    5    f       3     a       4
-    6    a       1     b     NaN
-    7    b       1     b       1
-    8    c       2     b       2
-    9    d       2     b       3
-    10   e       3     b       3
-    11   f       3     b       4
+      group key  lvalue  rvalue
+    0     a   a       1     NaN
+    1     a   b       1     1.0
+    2     a   c       2     2.0
+    3     a   d       2     3.0
+    4     a   e       3     3.0
+    5     b   a       1     NaN
+    6     b   b       1     1.0
+    7     b   c       2     2.0
+    8     b   d       2     3.0
+    9     b   e       3     3.0
 
     Returns
     -------
@@ -942,6 +940,11 @@ class _MergeOperation(object):
             elif is_dtype_equal(lk.dtype, rk.dtype):
                 continue
 
+            msg = ("You are trying to merge on {lk_dtype} and "
+                   "{rk_dtype} columns. If you wish to proceed "
+                   "you should use pd.concat".format(lk_dtype=lk.dtype,
+                                                     rk_dtype=rk.dtype))
+
             # if we are numeric, then allow differing
             # kinds to proceed, eg. int64 and int8, int and float
             # further if we are object, but we infer to
@@ -970,30 +973,18 @@ class _MergeOperation(object):
                     pass
 
             # Check if we are trying to merge on obviously
-            # incompatible dtypes GH 9780
+            # incompatible dtypes GH 9780, GH 15800
             elif is_numeric_dtype(lk) and not is_numeric_dtype(rk):
-                msg = ("You are trying to merge on {lk_dtype} and "
-                       "{rk_dtype} columns. If you wish to proceed "
-                       "you should use pd.concat".format(lk_dtype=lk.dtype,
-                                                         rk_dtype=rk.dtype))
                 raise ValueError(msg)
             elif not is_numeric_dtype(lk) and is_numeric_dtype(rk):
-                msg = ("You are trying to merge on {lk_dtype} and "
-                       "{rk_dtype} columns. If you wish to proceed "
-                       "you should use pd.concat".format(lk_dtype=lk.dtype,
-                                                         rk_dtype=rk.dtype))
                 raise ValueError(msg)
             elif is_datetimelike(lk) and not is_datetimelike(rk):
-                msg = ("You are trying to merge on {lk_dtype} and "
-                       "{rk_dtype} columns. If you wish to proceed "
-                       "you should use pd.concat".format(lk_dtype=lk.dtype,
-                                                         rk_dtype=rk.dtype))
                 raise ValueError(msg)
             elif not is_datetimelike(lk) and is_datetimelike(rk):
-                msg = ("You are trying to merge on {lk_dtype} and "
-                       "{rk_dtype} columns. If you wish to proceed "
-                       "you should use pd.concat".format(lk_dtype=lk.dtype,
-                                                         rk_dtype=rk.dtype))
+                raise ValueError(msg)
+            elif is_datetime64tz_dtype(lk) and not is_datetime64tz_dtype(rk):
+                raise ValueError(msg)
+            elif not is_datetime64tz_dtype(lk) and is_datetime64tz_dtype(rk):
                 raise ValueError(msg)
 
             # Houston, we have a problem!

@@ -30,7 +30,7 @@ from pandas.core.series import Series
 from pandas.core.frame import DataFrame
 from pandas.core.arrays import Categorical
 from pandas.core import algorithms
-from pandas.core.common import AbstractMethodError
+import pandas.core.common as com
 from pandas.io.date_converters import generic_parser
 from pandas.errors import ParserWarning, ParserError, EmptyDataError
 from pandas.io.common import (get_filepath_or_buffer, is_file_like,
@@ -1010,7 +1010,7 @@ class TextFileReader(BaseIterator):
             self._engine = klass(self.f, **self.options)
 
     def _failover_to_python(self):
-        raise AbstractMethodError(self)
+        raise com.AbstractMethodError(self)
 
     def read(self, nrows=None):
         nrows = _validate_integer('nrows', nrows)
@@ -1596,11 +1596,12 @@ class ParserBase(object):
             except Exception:
                 result = values
                 if values.dtype == np.object_:
-                    na_count = lib.sanitize_objects(result, na_values, False)
+                    na_count = parsers.sanitize_objects(result, na_values,
+                                                        False)
         else:
             result = values
             if values.dtype == np.object_:
-                na_count = lib.sanitize_objects(values, na_values, False)
+                na_count = parsers.sanitize_objects(values, na_values, False)
 
         if result.dtype == np.object_ and try_num_bool:
             result = lib.maybe_convert_bool(values,

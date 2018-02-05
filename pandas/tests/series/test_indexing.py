@@ -17,7 +17,7 @@ from pandas import (Index, Series, DataFrame, isna,
                     Categorical)
 from pandas.core.indexing import IndexingError
 from pandas.tseries.offsets import BDay
-from pandas._libs import tslib, lib
+from pandas._libs import tslib
 
 from pandas.compat import lrange, range
 from pandas import compat
@@ -609,6 +609,18 @@ class TestSeriesIndexing(TestData):
     def test_getitem_box_float64(self):
         value = self.ts[5]
         assert isinstance(value, np.float64)
+
+    def test_series_box_timestamp(self):
+        rng = pd.date_range('20090415', '20090519', freq='B')
+        ser = Series(rng)
+
+        assert isinstance(ser[5], pd.Timestamp)
+
+        rng = pd.date_range('20090415', '20090519', freq='B')
+        ser = Series(rng, index=rng)
+        assert isinstance(ser[5], pd.Timestamp)
+
+        assert isinstance(ser.iat[5], pd.Timestamp)
 
     def test_getitem_ambiguous_keyerror(self):
         s = Series(lrange(10), index=lrange(0, 20, 2))
@@ -2695,7 +2707,7 @@ class TestDatetimeIndexing(object):
         assert s['1/2/2009'] == 48
         assert s['2009-1-2'] == 48
         assert s[datetime(2009, 1, 2)] == 48
-        assert s[lib.Timestamp(datetime(2009, 1, 2))] == 48
+        assert s[Timestamp(datetime(2009, 1, 2))] == 48
         pytest.raises(KeyError, s.__getitem__, '2009-1-3')
 
         assert_series_equal(s['3/6/2009':'2009-06-05'],

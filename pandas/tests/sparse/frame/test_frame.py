@@ -199,6 +199,29 @@ class TestSparseDataFrame(SharedWithSparse):
         # without sparse value raises error
         # df2 = SparseDataFrame([x2_sparse, y])
 
+    def test_constructor_from_dense_series(self):
+        # GH 19393
+        # series with name
+        x = Series(np.random.randn(10000), name='a')
+        result = SparseDataFrame(x)
+        expected = x.to_frame().to_sparse()
+        tm.assert_sp_frame_equal(result, expected)
+
+        # series with no name
+        x = Series(np.random.randn(10000))
+        result = SparseDataFrame(x)
+        expected = x.to_frame().to_sparse()
+        tm.assert_sp_frame_equal(result, expected)
+
+    def test_constructor_from_unknown_type(self):
+        # GH 19393
+        class Unknown:
+            pass
+        with pytest.raises(TypeError,
+                           message='SparseDataFrame called with unknown type '
+                                   '"Unknown" for data argument'):
+            SparseDataFrame(Unknown())
+
     def test_constructor_preserve_attr(self):
         # GH 13866
         arr = pd.SparseArray([1, 0, 3, 0], dtype=np.int64, fill_value=0)
@@ -550,6 +573,15 @@ class TestSparseDataFrame(SharedWithSparse):
         tm.assert_sp_series_equal(self.frame['E'].reindex(index),
                                   self.frame['F'].reindex(index),
                                   check_names=False)
+
+    def test_setitem_chained_no_consolidate(self):
+        # https://github.com/pandas-dev/pandas/pull/19268
+        # issuecomment-361696418
+        # chained setitem used to cause consolidation
+        sdf = pd.SparseDataFrame([[np.nan, 1], [2, np.nan]])
+        with pd.option_context('mode.chained_assignment', None):
+            sdf[0][1] = 2
+        assert len(sdf._data.blocks) == 2
 
     def test_delitem(self):
         A = self.frame['A']

@@ -39,10 +39,6 @@ from pandas.core.dtypes.common import (
 from pandas.core.dtypes.cast import maybe_downcast_to_dtype
 from pandas.core.dtypes.missing import isna, notna, _maybe_fill
 
-from pandas.core.common import (_values_from_object, AbstractMethodError,
-                                _default_index, _not_none, _get_callable_name,
-                                _asarray_tuplesafe, _pipe)
-
 from pandas.core.base import (PandasObject, SelectionMixin, GroupByError,
                               DataError, SpecificationError)
 from pandas.core.index import (Index, MultiIndex,
@@ -61,12 +57,15 @@ from pandas.util._decorators import (cache_readonly, Substitution,
 from pandas.io.formats.printing import pprint_thing
 from pandas.util._validators import validate_kwargs
 
+import pandas.core.common as com
 import pandas.core.algorithms as algorithms
 from pandas.core.config import option_context
 
 from pandas.plotting._core import boxplot_frame_groupby
 
-from pandas._libs import lib, groupby as libgroupby, Timestamp, NaT, iNaT
+from pandas._libs import (lib, reduction,
+                          groupby as libgroupby,
+                          Timestamp, NaT, iNaT)
 from pandas._libs.lib import count_level_2d
 
 _doc_template = """
@@ -231,7 +230,7 @@ object : the return type of ``func``.
 Notes
 -----
 See more `here
-<http://pandas.pydata.org/pandas-docs/stable/groupby.html#pipe>`_
+<http://pandas.pydata.org/pandas-docs/stable/groupby.html#piping-function-calls>`_
 
 Examples
 --------
@@ -345,6 +344,8 @@ _dataframe_apply_whitelist = ((_common_apply_whitelist |
 
 _cython_transforms = frozenset(['cumprod', 'cumsum', 'shift',
                                 'cummin', 'cummax'])
+
+_cython_cast_blacklist = frozenset(['rank', 'count', 'size'])
 
 
 class Grouper(object):
@@ -751,7 +752,7 @@ a  2
 b  2""")
     @Appender(_pipe_template)
     def pipe(self, func, *args, **kwargs):
-        return _pipe(self, func, *args, **kwargs)
+        return com._pipe(self, func, *args, **kwargs)
 
     plot = property(GroupByPlot)
 
@@ -895,7 +896,7 @@ b  2""")
         yield self._selection_name, self._selected_obj
 
     def transform(self, func, *args, **kwargs):
-        raise AbstractMethodError(self)
+        raise com.AbstractMethodError(self)
 
     def _cumcount_array(self, ascending=True):
         """
@@ -965,6 +966,21 @@ b  2""")
                 result = maybe_downcast_to_dtype(result, dtype)
 
         return result
+
+    def _transform_should_cast(self, func_nm):
+        """
+        Parameters:
+        -----------
+        func_nm: str
+            The name of the aggregation function being performed
+
+        Returns:
+        --------
+        bool
+            Whether transform should attempt to cast the result of aggregation
+        """
+        return (self.size().fillna(0) > 0).any() and (func_nm not in
+                                                      _cython_cast_blacklist)
 
     def _cython_transform(self, how, numeric_only=True):
         output = collections.OrderedDict()
@@ -1037,7 +1053,7 @@ b  2""")
         return self._wrap_aggregated_output(output)
 
     def _wrap_applied_output(self, *args, **kwargs):
-        raise AbstractMethodError(self)
+        raise com.AbstractMethodError(self)
 
     def _concat_objects(self, keys, values, not_indexed_same=False):
         from pandas.core.reshape.concat import concat
@@ -1045,7 +1061,7 @@ b  2""")
         def reset_identity(values):
             # reset the identities of the components
             # of the values to prevent aliasing
-            for v in _not_none(*values):
+            for v in com._not_none(*values):
                 ax = v._get_axis(self.axis)
                 ax._reset_identity()
             return values
@@ -1975,13 +1991,13 @@ class BaseGrouper(object):
         group_keys = self._get_group_keys()
 
         # oh boy
-        f_name = _get_callable_name(f)
+        f_name = com._get_callable_name(f)
         if (f_name not in _plotting_methods and
                 hasattr(splitter, 'fast_apply') and axis == 0):
             try:
                 values, mutated = splitter.fast_apply(f, group_keys)
                 return group_keys, values, mutated
-            except (lib.InvalidApply):
+            except reduction.InvalidApply:
                 # we detect a mutation of some kind
                 # so take slow path
                 pass
@@ -2009,7 +2025,7 @@ class BaseGrouper(object):
             return self.groupings[0].indices
         else:
             label_list = [ping.labels for ping in self.groupings]
-            keys = [_values_from_object(ping.group_index)
+            keys = [com._values_from_object(ping.group_index)
                     for ping in self.groupings]
             return get_indexer_dict(label_list, keys)
 
@@ -2404,8 +2420,8 @@ class BaseGrouper(object):
         obj = obj._take(indexer, convert=False).to_dense()
         group_index = algorithms.take_nd(
             group_index, indexer, allow_fill=False)
-        grouper = lib.SeriesGrouper(obj, func, group_index, ngroups,
-                                    dummy)
+        grouper = reduction.SeriesGrouper(obj, func, group_index, ngroups,
+                                          dummy)
         result, counts = grouper.get_result()
         return result, counts
 
@@ -2618,7 +2634,7 @@ class BinGrouper(BaseGrouper):
 
     def agg_series(self, obj, func):
         dummy = obj[:0]
-        grouper = lib.SeriesBinGrouper(obj, func, self.bins, dummy)
+        grouper = reduction.SeriesBinGrouper(obj, func, self.bins, dummy)
         return grouper.get_result()
 
     # ----------------------------------------------------------------------
@@ -2707,7 +2723,7 @@ class Grouping(object):
                 self.grouper = self.obj[self.name]
 
             elif isinstance(self.grouper, (list, tuple)):
-                self.grouper = _asarray_tuplesafe(self.grouper)
+                self.grouper = com._asarray_tuplesafe(self.grouper)
 
             # a passed Categorical
             elif is_categorical_dtype(self.grouper):
@@ -2934,7 +2950,7 @@ def _get_grouper(obj, key=None, axis=0, level=None, sort=True,
     if not any_callable and not all_in_columns_index and \
        not any_arraylike and not any_groupers and \
        match_axis_length and level is None:
-        keys = [_asarray_tuplesafe(keys)]
+        keys = [com._asarray_tuplesafe(keys)]
 
     if isinstance(level, (tuple, list)):
         if key is None:
@@ -3229,7 +3245,7 @@ class SeriesGroupBy(GroupBy):
                     columns.append(f)
                 else:
                     # protect against callables without names
-                    columns.append(_get_callable_name(f))
+                    columns.append(com._get_callable_name(f))
             arg = lzip(columns, arg)
 
         results = {}
@@ -3334,7 +3350,7 @@ class SeriesGroupBy(GroupBy):
             else:
                 # cythonized aggregation and merge
                 return self._transform_fast(
-                    lambda: getattr(self, func)(*args, **kwargs))
+                    lambda: getattr(self, func)(*args, **kwargs), func)
 
         # reg transform
         klass = self._selected_obj.__class__
@@ -3365,7 +3381,7 @@ class SeriesGroupBy(GroupBy):
         result.index = self._selected_obj.index
         return result
 
-    def _transform_fast(self, func):
+    def _transform_fast(self, func, func_nm):
         """
         fast version of transform, only applicable to
         builtin/cythonizable functions
@@ -3374,7 +3390,7 @@ class SeriesGroupBy(GroupBy):
             func = getattr(self, func)
 
         ids, _, ngroup = self.grouper.group_info
-        cast = (self.size().fillna(0) > 0).any()
+        cast = self._transform_should_cast(func_nm)
         out = algorithms.take_1d(func().values, ids)
         if cast:
             out = self._try_cast(out, self.obj)
@@ -3829,7 +3845,7 @@ class NDFrameGroupBy(GroupBy):
         return self._wrap_generic_output(result, obj)
 
     def _wrap_aggregated_output(self, output, names=None):
-        raise AbstractMethodError(self)
+        raise com.AbstractMethodError(self)
 
     def _aggregate_item_by_item(self, func, *args, **kwargs):
         # only for axis==0
@@ -3891,7 +3907,7 @@ class NDFrameGroupBy(GroupBy):
         # GH12824.
         def first_not_none(values):
             try:
-                return next(_not_none(*values))
+                return next(com._not_none(*values))
             except StopIteration:
                 return None
 
@@ -4128,15 +4144,15 @@ class NDFrameGroupBy(GroupBy):
         if not result.columns.equals(obj.columns):
             return self._transform_general(func, *args, **kwargs)
 
-        return self._transform_fast(result, obj)
+        return self._transform_fast(result, obj, func)
 
-    def _transform_fast(self, result, obj):
+    def _transform_fast(self, result, obj, func_nm):
         """
         Fast transform path for aggregations
         """
         # if there were groups with no observations (Categorical only?)
         # try casting data to original dtype
-        cast = (self.size().fillna(0) > 0).any()
+        cast = self._transform_should_cast(func_nm)
 
         # for each col, reshape to to size of original frame
         # by take operation
@@ -4585,7 +4601,7 @@ class DataFrameGroupBy(NDFrameGroupBy):
             results = concat(results, axis=1)
 
         if not self.as_index:
-            results.index = _default_index(len(results))
+            results.index = com._default_index(len(results))
         return results
 
     boxplot = boxplot_frame_groupby
@@ -4675,7 +4691,7 @@ class PanelGroupBy(NDFrameGroupBy):
             raise ValueError("axis value must be greater than 0")
 
     def _wrap_aggregated_output(self, output, names=None):
-        raise AbstractMethodError(self)
+        raise com.AbstractMethodError(self)
 
 
 class NDArrayGroupBy(GroupBy):
@@ -4731,7 +4747,7 @@ class DataSplitter(object):
         return sdata.iloc[slice_obj]
 
     def apply(self, f):
-        raise AbstractMethodError(self)
+        raise com.AbstractMethodError(self)
 
 
 class ArraySplitter(DataSplitter):
@@ -4758,7 +4774,8 @@ class FrameSplitter(DataSplitter):
             return [], True
 
         sdata = self._get_sorted_data()
-        results, mutated = lib.apply_frame_axis0(sdata, f, names, starts, ends)
+        results, mutated = reduction.apply_frame_axis0(sdata, f, names,
+                                                       starts, ends)
 
         return results, mutated
 

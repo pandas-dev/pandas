@@ -28,7 +28,6 @@ from pandas.core.dtypes.common import (
     is_list_like, is_sequence,
     is_scalar,
     is_dict_like)
-from pandas.core.common import is_null_slice, _maybe_box_datetimelike
 
 from pandas.core.algorithms import factorize, take_1d, unique1d
 from pandas.core.accessor import PandasDelegate
@@ -43,6 +42,8 @@ from pandas.util._decorators import (
 from pandas.io.formats.terminal import get_terminal_size
 from pandas.util._validators import validate_bool_kwarg
 from pandas.core.config import get_option
+
+from .base import ExtensionArray
 
 
 def _cat_compare_op(op):
@@ -149,7 +150,7 @@ setter to change values in the categorical.
 """
 
 
-class Categorical(PandasObject):
+class Categorical(ExtensionArray, PandasObject):
     """
     Represents a categorical variable in classic R / S-plus fashion
 
@@ -468,7 +469,7 @@ class Categorical(PandasObject):
         (for Timestamp/Timedelta/Interval/Period)
         """
         if is_datetimelike(self.categories):
-            return [_maybe_box_datetimelike(x) for x in self]
+            return [com._maybe_box_datetimelike(x) for x in self]
         return np.array(self).tolist()
 
     @property
@@ -1686,7 +1687,7 @@ class Categorical(PandasObject):
         # only allow 1 dimensional slicing, but can
         # in a 2-d case be passd (slice(None),....)
         if isinstance(slicer, tuple) and len(slicer) == 2:
-            if not is_null_slice(slicer[0]):
+            if not com.is_null_slice(slicer[0]):
                 raise AssertionError("invalid slicing for a 1-ndim "
                                      "categorical")
             slicer = slicer[1]
@@ -1847,7 +1848,7 @@ class Categorical(PandasObject):
             # only allow 1 dimensional slicing, but can
             # in a 2-d case be passd (slice(None),....)
             if len(key) == 2:
-                if not is_null_slice(key[0]):
+                if not com.is_null_slice(key[0]):
                     raise AssertionError("invalid slicing for a 1-ndim "
                                          "categorical")
                 key = key[1]
@@ -2130,6 +2131,20 @@ class Categorical(PandasObject):
         codes = self._codes.repeat(repeats)
         return self._constructor(values=codes, categories=self.categories,
                                  ordered=self.ordered, fastpath=True)
+
+    # Implement the ExtensionArray interface
+    @property
+    def _can_hold_na(self):
+        return True
+
+    @classmethod
+    def _concat_same_type(self, to_concat):
+        from pandas.core.dtypes.concat import _concat_categorical
+
+        return _concat_categorical(to_concat)
+
+    def _formatting_values(self):
+        return self
 
 # The Series.cat accessor
 
