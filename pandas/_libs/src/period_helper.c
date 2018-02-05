@@ -289,10 +289,7 @@ static npy_int64 asfreq_DTtoQ(npy_int64 ordinal, char relation,
 
     ordinal = downsample_daytime(ordinal, af_info, 0);
 
-    if (DtoQ_yq(ordinal, af_info, &year, &quarter) == INT_ERR_CODE) {
-        return INT_ERR_CODE;
-    }
-
+    DtoQ_yq(ordinal, af_info, &year, &quarter);
     return (npy_int64)((year - BASE_YEAR) * 4 + quarter - 1);
 }
 
@@ -1096,8 +1093,7 @@ int get_yq(npy_int64 ordinal, int freq, int *quarter, int *year) {
     }
     get_asfreq_info(FR_DAY, qtr_freq, &af_info);
 
-    if (DtoQ_yq(daily_ord, &af_info, year, quarter) == INT_ERR_CODE) return -1;
-
+    DtoQ_yq(daily_ord, &af_info, year, quarter);
     return 0;
 }
 
@@ -1114,8 +1110,7 @@ int _quarter_year(npy_int64 ordinal, int freq, int *year, int *quarter) {
 
     get_asfreq_info(FR_DAY, qtr_freq, &af_info);
 
-    if (DtoQ_yq(ordinal, &af_info, year, quarter) == INT_ERR_CODE)
-        return INT_ERR_CODE;
+    DtoQ_yq(ordinal, &af_info, year, quarter);
 
     if ((qtr_freq % 1000) > 12) *year -= 1;
 
