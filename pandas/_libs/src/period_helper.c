@@ -234,8 +234,7 @@ static npy_int64 DtoB(struct date_info *dinfo, int roll_back) {
             // change to friday before weekend
             absdate -= (day_of_week - 4);
         }
-    }
-    else {
+    } else {
         if (day_of_week > 4) {
             // change to Monday after weekend
             absdate += (7 - day_of_week);
