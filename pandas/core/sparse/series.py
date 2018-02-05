@@ -175,7 +175,6 @@ class SparseSeries(Series):
 
     def __array__(self, result=None):
         """ the array interface, return my values """
-
         return self.block.values.values
 
     def get_values(self):
@@ -282,7 +281,7 @@ class SparseSeries(Series):
             fill_value = self.fill_value
 
         # GH 14167
-        # Since we are returning a dense representation of 
+        # Since we are returning a dense representation of
         # SparseSeries sparse_index might not align when calling
         # ufunc on the array. There doesn't seem to be a better way
         # to do this unfortunately.
@@ -414,11 +413,8 @@ class SparseSeries(Series):
         -------
         abs: type of caller
         """
-        # import ipdb; ipdb.set_trace()
+
         return np.abs(self)
-        #return self._constructor(np.abs(self.get_values()),
-        #                         index=self.index,
-        #                         fill_value=self.fill_value).__finalize__(self)
 
     def get(self, label, default=None):
         """
