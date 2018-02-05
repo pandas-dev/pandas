@@ -830,15 +830,16 @@ class TestIndex(Base):
 
         # Test that returning a single tuple from an Index
         #   returns an Index.
-        boolean_index = tm.makeIntIndex(3).map(lambda x: (x,))
-        expected = Index([(0,), (1,), (2,)])
-        tm.assert_index_equal(boolean_index, expected)
+        idx = tm.makeIntIndex(3)
+        result = tm.makeIntIndex(3).map(lambda x: (x,))
+        expected = Index([(i,) for i in idx])
+        tm.assert_index_equal(result, expected)
 
         # Test that returning a tuple from a map of a single index
         #   returns a MultiIndex object.
-        boolean_index = tm.makeIntIndex(3).map(lambda x: (x, x == 1))
-        expected = MultiIndex.from_tuples([(0, False), (1, True), (2, False)])
-        tm.assert_index_equal(boolean_index, expected)
+        result = idx.map(lambda x: (x, x == 1))
+        expected = MultiIndex.from_tuples([(i, i == 1) for i in idx])
+        tm.assert_index_equal(result, expected)
 
         # Test that returning a single object from a MultiIndex
         #   returns an Index.
@@ -870,7 +871,8 @@ class TestIndex(Base):
     def test_map_dictlike(self, mapper):
         # GH 12756
         expected = Index(['foo', 'bar', 'baz'])
-        result = tm.makeIntIndex(3).map(mapper(expected.values, [0, 1, 2]))
+        idx = tm.makeIntIndex(3)
+        result = idx.map(mapper(expected.values, idx))
         tm.assert_index_equal(result, expected)
 
         for name in self.indices.keys():
