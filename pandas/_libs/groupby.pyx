@@ -140,8 +140,10 @@ def group_rank_object(ndarray[float64_t, ndim=2] out,
         int tiebreak
         Py_ssize_t i, j, N, K
         int64_t val_start=0, grp_start=0, dups=0, sum_ranks=0, vals_seen=1
+        int64_t grp_na_count=0
         ndarray[int64_t] _as
-        bint pct, ascending
+        ndarray[object] _values
+        bint pct, ascending, keep_na
 
     tiebreak = tiebreakers[kwargs['ties_method']]
     ascending = kwargs['ascending']
@@ -149,20 +151,26 @@ def group_rank_object(ndarray[float64_t, ndim=2] out,
     keep_na = kwargs['na_option'] == 'keep'
     N, K = (<object> values).shape
 
-    vals = np.array(values[:, 0], copy=True)
-    mask = missing.isnaobj(vals)
+    _values = np.array(values[:, 0], copy=True)
+    mask = missing.isnaobj(_values)
 
+    if ascending ^ (kwargs['na_option'] == 'top'):
+        nan_value = np.inf
+        order = (_values, mask, labels)
+    else:
+        nan_value = -np.inf
+        order = (_values, ~mask, labels)
+    np.putmask(_values, mask, nan_value)
     try:
-        _as = np.lexsort((vals, labels))
+        _as = np.lexsort(order)
     except TypeError:
         # lexsort fails when missing data and objects are mixed
         # fallback to argsort
-        order = (vals, mask, labels)
-        _values = np.asarray(list(zip(order[0], order[1], order[2])),
-                             dtype=[('values', 'O'), ('mask', '?'),
-                                    ('labels', 'i8')])
-        _as = np.argsort(_values, kind='mergesort', order=('labels',
-                                                           'mask', 'values'))
+        _arr = np.asarray(list(zip(order[0], order[1], order[2])),
+                          dtype=[('values', 'O'), ('mask', '?'),
+                          ('labels', 'i8')])
+        _as = np.argsort(_arr, kind='mergesort', order=('labels',
+                                                        'mask', 'values'))
 
     if not ascending:
         _as = _as[::-1]
@@ -171,7 +179,8 @@ def group_rank_object(ndarray[float64_t, ndim=2] out,
         dups += 1
         sum_ranks += i - grp_start + 1
 
-        if keep_na and mask[_as[i]]:
+        if keep_na and (values[_as[i], 0] != values[_as[i], 0]):
+            grp_na_count += 1
             out[_as[i], 0] = np.nan
         else:
             if tiebreak == TIEBREAK_AVERAGE:
@@ -204,8 +213,11 @@ def group_rank_object(ndarray[float64_t, ndim=2] out,
         if i == N - 1 or labels[_as[i]] != labels[_as[i+1]]:
             if pct:
                 for j in range(grp_start, i + 1):
-                    out[_as[j], 0] = out[_as[j], 0] / (i - grp_start + 1)
+                    out[_as[j], 0] = out[_as[j], 0] / (i - grp_start + 1
+                                                       - grp_na_count)
+            grp_na_count = 0
             grp_start = i + 1
+            vals_seen = 1
 
 
 cdef inline float64_t median_linear(float64_t* a, int n) nogil:

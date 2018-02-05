@@ -471,8 +471,8 @@ def group_rank_{{name}}(ndarray[float64_t, ndim=2] out,
     N, K = (<object> values).shape
 
     _values = np.array(values[:, 0], copy=True)
-
     mask = np.isnan(_values).astype(np.uint8)
+
     {{if name == 'int64' }}
     order = (_values, labels)
     {{else}}
@@ -486,7 +486,6 @@ def group_rank_{{name}}(ndarray[float64_t, ndim=2] out,
     {{endif}}
 
     _as = np.lexsort(order)
-
 
     if not ascending:
         _as = _as[::-1]
