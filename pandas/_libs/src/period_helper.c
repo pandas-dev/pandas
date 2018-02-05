@@ -437,8 +437,7 @@ static npy_int64 asfreq_MtoDT(npy_int64 ordinal, char relation,
         ordinal += 1;
     }
     MtoD_ym(ordinal, &y, &m);
-    if ((absdate = absdate_from_ymd(y, m, 1)) == INT_ERR_CODE)
-        return INT_ERR_CODE;
+    absdate = absdate_from_ymd(y, m, 1);
     ordinal = absdate - ORD_OFFSET;
 
     if (relation == 'E') {
@@ -505,8 +504,7 @@ static npy_int64 asfreq_QtoDT(npy_int64 ordinal, char relation,
 
     QtoD_ym(ordinal, &y, &m, af_info);
 
-    if ((absdate = absdate_from_ymd(y, m, 1)) == INT_ERR_CODE)
-        return INT_ERR_CODE;
+    absdate = absdate_from_ymd(y, m, 1);
 
     if (relation == 'E') {
         absdate -= 1;
@@ -984,9 +982,7 @@ npy_int64 get_period_ordinal(int year, int month, int day, int hour, int minute,
     }
 
     if (freq == FR_HR) {
-        if ((absdays = absdate_from_ymd(year, month, day)) == INT_ERR_CODE) {
-            goto onError;
-        }
+        absdays = absdate_from_ymd(year, month, day);
         delta = (absdays - ORD_OFFSET);
         return (npy_int64)(delta * 24 + hour);
     }
@@ -1000,9 +996,7 @@ npy_int64 get_period_ordinal(int year, int month, int day, int hour, int minute,
     }
 
     if (freq == FR_BUS) {
-        if ((days = absdate_from_ymd(year, month, day)) == INT_ERR_CODE) {
-            goto onError;
-        }
+        days = absdate_from_ymd(year, month, day);
         // calculate the current week assuming sunday as last day of a week
         weeks = (days - BASE_WEEK_TO_DAY_OFFSET) / DAYS_PER_WEEK;
         // calculate the current weekday (in range 1 .. 7)
@@ -1016,10 +1010,7 @@ npy_int64 get_period_ordinal(int year, int month, int day, int hour, int minute,
     }
 
     if (freq_group == FR_WK) {
-        if ((ordinal = (npy_int64)absdate_from_ymd(year, month, day)) ==
-            INT_ERR_CODE) {
-            goto onError;
-        }
+        ordinal = (npy_int64)absdate_from_ymd(year, month, day);
         day_adj = freq - FR_WK;
         return (ordinal - (1 + day_adj)) / 7 + 1 - WEEK_OFFSET;
     }
