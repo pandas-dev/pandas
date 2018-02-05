@@ -37,6 +37,7 @@ from pandas.core.dtypes.common import (
     _ensure_categorical,
     _ensure_float)
 from pandas.core.dtypes.cast import maybe_downcast_to_dtype
+from pandas.core.dtypes.generic import ABCSeries
 from pandas.core.dtypes.missing import isna, notna, _maybe_fill
 
 from pandas.core.base import (PandasObject, SelectionMixin, GroupByError,
@@ -423,6 +424,7 @@ class Grouper(object):
         self.obj = None
         self.indexer = None
         self.binner = None
+        self._grouper = None
 
     @property
     def ax(self):
@@ -465,12 +467,22 @@ class Grouper(object):
             raise ValueError(
                 "The Grouper cannot specify both a key and a level!")
 
+        # Keep self.grouper value before overriding
+        if self._grouper is None:
+            self._grouper = self.grouper
+
         # the key must be a valid info item
         if self.key is not None:
             key = self.key
-            if key not in obj._info_axis:
-                raise KeyError("The grouper name {0} is not found".format(key))
-            ax = Index(obj[key], name=key)
+            # The 'on' is already defined
+            if getattr(self.grouper, 'name', None) == key and \
+                    isinstance(obj, ABCSeries):
+                ax = self._grouper.take(obj.index)
+            else:
+                if key not in obj._info_axis:
+                    raise KeyError(
+                        "The grouper name {0} is not found".format(key))
+                ax = Index(obj[key], name=key)
 
         else:
             ax = obj._get_axis(self.axis)
