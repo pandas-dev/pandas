@@ -13,7 +13,6 @@ from pandas._libs.tslib import iNaT, NaT
 
 
 class TestTimedeltaArithmetic(object):
-    _multiprocess_can_split_ = True
 
     def test_arithmetic_overflow(self):
         with pytest.raises(OverflowError):
@@ -286,7 +285,6 @@ class TestTimedeltaComparison(object):
 
 
 class TestTimedeltas(object):
-    _multiprocess_can_split_ = True
 
     def setup_method(self, method):
         pass

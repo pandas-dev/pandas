@@ -289,12 +289,63 @@ Convert to an xarray DataArray
    p.to_xarray()
 
 
+.. _whatsnew_0230.api_breaking.build_changes:
+
 Build Changes
 ^^^^^^^^^^^^^
 
 - Building pandas for development now requires ``cython >= 0.24`` (:issue:`18613`)
 - Building from source now explicitly requires ``setuptools`` in ``setup.py`` (:issue:`18113`)
 - Updated conda recipe to be in compliance with conda-build 3.0+ (:issue:`18002`)
+
+.. _whatsnew_0230.api_breaking.extract:
+
+Extraction of matching patterns from strings
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+By default, extracting matching patterns from strings with :func:`str.extract` used to return a
+``Series`` if a single group was being extracted (a ``DataFrame`` if more than one group was
+extracted``). As of Pandas 0.23.0 :func:`str.extract` always returns a ``DataFrame``, unless
+``expand`` is set to ``False`` (:issue:`11386`).
+
+Also, ``None`` was an accepted value for the ``expand`` parameter (which was equivalent to
+``False``), but now raises a ``ValueError``.
+
+Previous Behavior:
+
+.. code-block:: ipython
+
+    In [1]: s = pd.Series(['number 10', '12 eggs'])
+
+    In [2]: extracted = s.str.extract('.*(\d\d).*')
+
+    In [3]: extracted
+    Out [3]:
+    0    10
+    1    12
+    dtype: object
+
+    In [4]: type(extracted)
+    Out [4]:
+    pandas.core.series.Series
+
+New Behavior:
+
+.. ipython:: python
+
+    s = pd.Series(['number 10', '12 eggs'])
+    extracted = s.str.extract('.*(\d\d).*')
+    extracted
+    type(extracted)
+
+To restore previous behavior, simply set ``expand`` to ``False``:
+
+.. ipython:: python
+
+    s = pd.Series(['number 10', '12 eggs'])
+    extracted = s.str.extract('.*(\d\d).*', expand=False)
+    extracted
+    type(extracted)
 
 .. _whatsnew_0230.api:
 
@@ -342,6 +393,7 @@ Other API Changes
 - Addition and subtraction of ``NaN`` from a :class:`Series` with ``dtype='timedelta64[ns]'`` will raise a ``TypeError` instead of treating the ``NaN`` as ``NaT`` (:issue:`19274`)
 - Set operations (union, difference...) on :class:`IntervalIndex` with incompatible index types will now raise a ``TypeError`` rather than a ``ValueError`` (:issue:`19329`)
 - :class:`DateOffset` objects render more simply, e.g. "<DateOffset: days=1>" instead of "<DateOffset: kwds={'days': 1}>" (:issue:`19403`)
+- :func:`pandas.merge` provides a more informative error message when trying to merge on timezone-aware and timezone-naive columns (:issue:`15800`)
 
 .. _whatsnew_0230.deprecations:
 
@@ -549,8 +601,8 @@ Groupby/Resample/Rolling
 - Fixed regression in :func:`DataFrame.groupby` which would not emit an error when called with a tuple key not in the index (:issue:`18798`)
 - Bug in :func:`DataFrame.resample` which silently ignored unsupported (or mistyped) options for ``label``, ``closed`` and ``convention`` (:issue:`19303`)
 - Bug in :func:`DataFrame.groupby` where tuples were interpreted as lists of keys rather than as keys (:issue:`17979`, :issue:`18249`)
-- Bug in ``transform`` where particular aggregation functions were being incorrectly cast to match the dtype(s) of the grouped data (:issue:`19200`)
--
+- Bug in :func:`DataFrame.transform` where particular aggregation functions were being incorrectly cast to match the dtype(s) of the grouped data (:issue:`19200`)
+- Bug in :func:`DataFrame.groupby` passing the `on=` kwarg, and subsequently using ``.apply()`` (:issue:`17813`)
 
 Sparse
 ^^^^^^
