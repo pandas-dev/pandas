@@ -57,7 +57,6 @@ cdef extern from "period_helper.h":
         int hour
         int day
         int month
-        int quarter
         int year
 
     ctypedef struct asfreq_info:
