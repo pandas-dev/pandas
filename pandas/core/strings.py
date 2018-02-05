@@ -598,7 +598,7 @@ def _str_extract_frame(arr, pat, flags=0):
         dtype=object)
 
 
-def str_extract(arr, pat, flags=0, expand=None):
+def str_extract(arr, pat, flags=0, expand=True):
     r"""
     For each subject string in the Series, extract groups from the
     first match of regular expression pat.
@@ -610,7 +610,7 @@ def str_extract(arr, pat, flags=0, expand=None):
     flags : int, default 0 (no flags)
         re module flags, e.g. re.IGNORECASE
 
-    expand : bool, default False
+    expand : bool, default True
         * If True, return DataFrame.
         * If False, return Series/Index/DataFrame.
 
@@ -676,15 +676,6 @@ def str_extract(arr, pat, flags=0, expand=None):
     dtype: object
 
     """
-    if expand is None:
-        warnings.warn(
-            "currently extract(expand=None) " +
-            "means expand=False (return Index/Series/DataFrame) " +
-            "but in a future version of pandas this will be changed " +
-            "to expand=True (return DataFrame)",
-            FutureWarning,
-            stacklevel=3)
-        expand = False
     if not isinstance(expand, bool):
         raise ValueError("expand must be True or False")
     if expand:
@@ -1739,7 +1730,7 @@ class StringMethods(NoNewAttributesMixin):
     findall = _pat_wrapper(str_findall, flags=True)
 
     @copy(str_extract)
-    def extract(self, pat, flags=0, expand=None):
+    def extract(self, pat, flags=0, expand=True):
         return str_extract(self, pat, flags=flags, expand=expand)
 
     @copy(str_extractall)

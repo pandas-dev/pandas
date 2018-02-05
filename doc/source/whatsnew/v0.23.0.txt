@@ -296,6 +296,53 @@ Build Changes
 - Building from source now explicitly requires ``setuptools`` in ``setup.py`` (:issue:`18113`)
 - Updated conda recipe to be in compliance with conda-build 3.0+ (:issue:`18002`)
 
+Extraction of matching patterns from strings
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+By default, extracting matching patterns from strings with :func:`str.extract` used to return a
+``Series`` if a single group was being extracted (a ``DataFrame`` if more than one group was
+extracted``). As of Pandas 0.23.0 :func:`str.extract` always returns a ``DataFrame``, unless
+``expand`` is set to ``False`` (:issue:`11386`).
+
+Also, ``None`` was an accepted value for the ``expand`` parameter (which was equivalent to
+``False``), but now raises a ``ValueError``.
+
+Previous Behavior:
+
+.. code-block:: ipython
+
+    In [1]: s = pd.Series(['number 10', '12 eggs'])
+
+    In [2]: extracted = s.str.extract('.*(\d\d).*')
+
+    In [3]: extracted
+    Out [3]:
+    0    10
+    1    12
+    dtype: object
+
+    In [4]: type(extracted)
+    Out [4]:
+    pandas.core.series.Series
+
+New Behavior:
+
+.. ipython:: python
+
+    s = pd.Series(['number 10', '12 eggs'])
+    extracted = s.str.extract('.*(\d\d).*')
+    extracted
+    type(extracted)
+
+To restore previous behavior, simply set ``expand`` to ``False``:
+
+.. ipython:: python
+
+    s = pd.Series(['number 10', '12 eggs'])
+    extracted = s.str.extract('.*(\d\d).*', expand=False)
+    extracted
+    type(extracted)
+
 .. _whatsnew_0230.api:
 
 Other API Changes
