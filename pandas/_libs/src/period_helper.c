@@ -38,160 +38,43 @@ static int floordiv(int x, int divisor) {
     }
 }
 
-/* Table with day offsets for each month (0-based, without and with leap) */
-static int month_offset[2][13] = {
-    {0, 31, 59, 90, 120, 151, 181, 212, 243, 273, 304, 334, 365},
-    {0, 31, 60, 91, 121, 152, 182, 213, 244, 274, 305, 335, 366}};
-
 
 static int monthToQuarter(int month) { return ((month - 1) / 3) + 1; }
 
-/* Return the year offset, that is the absolute date of the day
-   31.12.(year-1)
-
-   Assumes GREGORIAN_CALENDAR
-
-   This is equivalent to:
-
-       (datetime(year, 1, 1) - datetime(1970, 1, 1)).days
-
-   Note:
-   For the Julian calendar we shift the absdate (which is measured
-   using the Gregorian Epoch) value by two days because the Epoch
-   (0001-01-01) in the Julian calendar lies 2 days before the Epoch in
-   the Gregorian calendar. */
-static int dInfoCalc_YearOffset(npy_int64 year) {
-    year--;
-    if (year >= 0 || -1 / 4 == -1)
-        return year * 365 + year / 4 - year / 100 + year / 400;
-    else
-        return year * 365 + (year - 3) / 4 - (year - 99) / 100 +
-                   (year - 399) / 400;
-}
 
 /* Set the instance's value using the given date and time.
  * Assumes GREGORIAN_CALENDAR */
 static int dInfoCalc_SetFromDateAndTime(struct date_info *dinfo, int year,
-                                        int month, int day, int hour,
-                                        int minute, double second) {
+                                        int month, int day) {
     /* Calculate the absolute date */
-    {
-        int leap;
-        npy_int64 absdate;
-        int yearoffset;
+    pandas_datetimestruct dts;
+    npy_int64 unix_date;
 
-        /* Range check */
-        Py_AssertWithArg(year > -(INT_MAX / 366) && year < (INT_MAX / 366),
-                         PyExc_ValueError, "year out of range: %i", year);
+    memset(&dts, 0, sizeof(pandas_datetimestruct));
+    dts.year = year;
+    dts.month = month;
+    dts.day = day;
+    unix_date = pandas_datetimestruct_to_datetime(PANDAS_FR_D, &dts);
 
-        /* Is it a leap year ? */
-        leap = is_leapyear(year);
-
-        /* Negative month values indicate months relative to the years end */
-        if (month < 0) month += 13;
-        Py_AssertWithArg(month >= 1 && month <= 12, PyExc_ValueError,
-                         "month out of range (1-12): %i", month);
-
-        /* Negative values indicate days relative to the months end */
-        if (day < 0) day += days_per_month_table[leap][month - 1] + 1;
-        Py_AssertWithArg(day >= 1 &&
-                            day <= days_per_month_table[leap][month - 1],
-                         PyExc_ValueError, "day out of range: %i", day);
-
-        yearoffset = dInfoCalc_YearOffset(year);
-
-        absdate = day + month_offset[leap][month - 1] + yearoffset;
-
-        dinfo->absdate = absdate;
-
-        dinfo->year = year;
-        dinfo->month = month;
-        dinfo->quarter = monthToQuarter(month);
-        dinfo->day = day;
-
-    }
-
-    /* Calculate the absolute time */
-    {
-        Py_AssertWithArg(hour >= 0 && hour <= 23, PyExc_ValueError,
-                         "hour out of range (0-23): %i", hour);
-        Py_AssertWithArg(minute >= 0 && minute <= 59, PyExc_ValueError,
-                         "minute out of range (0-59): %i", minute);
-        Py_AssertWithArg(
-            second >= (double)0.0 &&
-                (second < (double)60.0 ||
-                 (hour == 23 && minute == 59 && second < (double)61.0)),
-            PyExc_ValueError,
-            "second out of range (0.0 - <60.0; <61.0 for 23:59): %f", second);
-
-        dinfo->hour = hour;
-        dinfo->minute = minute;
-        dinfo->second = second;
-    }
+    dinfo->absdate = ORD_OFFSET + unix_date;
+    dinfo->hour = 0;
+    dinfo->minute = 0;
+    dinfo->second = 0;
     return 0;
-
-onError:
-    return INT_ERR_CODE;
 }
 
 /* Sets the date part of the date_info struct
-   Assumes GREGORIAN_CALENDAR
-
-   XXX This could also be done using some integer arithmetics rather
-       than with this iterative approach... */
+   Assumes GREGORIAN_CALENDAR */
 static int dInfoCalc_SetFromAbsDate(register struct date_info *dinfo,
                                     npy_int64 absdate) {
-    register npy_int64 year;
-    npy_int64 yearoffset;
-    int leap, dayoffset;
-    int *monthoffset;
+    pandas_datetimestruct dts;
 
-    /* Approximate year */
-    year = (npy_int64)(((double)absdate) / 365.2425);
-
-    if (absdate > 0) year++;
-
-    /* Apply corrections to reach the correct year */
-    while (1) {
-        /* Calculate the year offset */
-        yearoffset = dInfoCalc_YearOffset(year);
-
-        /* Backward correction: absdate must be greater than the
-           yearoffset */
-        if (yearoffset >= absdate) {
-            year--;
-            continue;
-        }
-
-        dayoffset = absdate - yearoffset;
-        leap = is_leapyear(year);
-
-        /* Forward correction: non leap years only have 365 days */
-        if (dayoffset > 365 && !leap) {
-            year++;
-            continue;
-        }
-        break;
-    }
-
-    dinfo->year = year;
-
-    /* Now iterate to find the month */
-    monthoffset = month_offset[leap];
-    {
-        register int month;
-
-        for (month = 1; month < 13; month++) {
-            if (monthoffset[month] >= dayoffset) break;
-        }
-
-        dinfo->month = month;
-        dinfo->quarter = monthToQuarter(month);
-        dinfo->day = dayoffset - month_offset[leap][month - 1];
-    }
+    pandas_datetime_to_datetimestruct(absdate - ORD_OFFSET, PANDAS_FR_D, &dts);
+    dinfo->year = dts.year;
+    dinfo->month = dts.month;
+    dinfo->day = dts.day;
 
     dinfo->absdate = absdate;
-
     return 0;
 }
 
@@ -363,9 +246,7 @@ static npy_int64 DtoB(struct date_info *dinfo, int roll_back) {
 
 static npy_int64 absdate_from_ymd(int y, int m, int d) {
     struct date_info tempDate;
-    if (dInfoCalc_SetFromDateAndTime(&tempDate, y, m, d, 0, 0, 0)) {
-        return INT_ERR_CODE;
-    }
+    dInfoCalc_SetFromDateAndTime(&tempDate, y, m, d);
     return tempDate.absdate;
 }
 
@@ -394,11 +275,10 @@ static npy_int64 DtoQ_yq(npy_int64 ordinal, asfreq_info *af_info, int *year,
         } else {
             dinfo.year += 1;
         }
-        dinfo.quarter = monthToQuarter(dinfo.month);
     }
 
     *year = dinfo.year;
-    *quarter = dinfo.quarter;
+    *quarter = monthToQuarter(dinfo.month);
 
     return 0;
 }

@@ -130,7 +130,6 @@ typedef struct date_info {
     int hour;
     int day;
     int month;
-    int quarter;
     int year;
 } date_info;
 
