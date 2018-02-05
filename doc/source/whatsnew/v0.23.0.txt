@@ -555,7 +555,7 @@ Sparse
 
 - Bug in which creating a ``SparseDataFrame`` from a dense ``Series`` or an unsupported type raised an uncontrolled exception (:issue:`19374`)
 - Bug in :class:`SparseDataFrame.to_csv` causing exception (:issue:`19384`)
--
+- Bug in :class:`SparseArray.memory_usage` which caused segfault by accessing non sparse elements (:issue:`19368`)
 
 Reshaping
 ^^^^^^^^^
@@ -591,4 +591,3 @@ Other
 ^^^^^
 
 - Improved error message when attempting to use a Python keyword as an identifier in a ``numexpr`` backed query (:issue:`18221`)
-- Bug in `Series.memory_usage` which assumes series will always have more than one element (:issue:`19368`)
