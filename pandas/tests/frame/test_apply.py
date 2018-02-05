@@ -750,6 +750,18 @@ class TestInferOutputShape(object):
         expected.columns = columns
         assert_frame_equal(result, expected)
 
+    @pytest.mark.parametrize("result_type", ['foo', 1])
+    def test_result_type_error(self, result_type):
+        # allowed result_type
+        df = DataFrame(
+            np.tile(np.arange(3, dtype='int64'), 6).reshape(6, -1) + 1,
+            columns=['A', 'B', 'C'])
+
+        with pytest.raises(ValueError):
+            df.apply(lambda x: [1, 2, 3],
+                     axis=1,
+                     result_type=result_type)
+
     @pytest.mark.parametrize(
         "box",
         [lambda x: list(x),

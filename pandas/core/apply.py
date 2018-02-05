@@ -39,6 +39,10 @@ class FrameApply(object):
         self.args = args or ()
         self.kwds = kwds or {}
 
+        if result_type not in [None, 'reduce', 'broadcast', 'expand']:
+            raise ValueError("invalid value for result_type, must be one "
+                             "of {None, 'reduce', 'broadcast', 'expand'}")
+
         if broadcast is not None:
             warnings.warn("The broadcast argument is deprecated and will "
                           "be removed in a future version. You can specify "

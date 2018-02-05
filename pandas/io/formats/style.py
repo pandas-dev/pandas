@@ -510,7 +510,7 @@ class Styler(object):
         data = self.data.loc[subset]
         if axis is not None:
             result = data.apply(func, axis=axis,
-                                result_type='infer', **kwargs)
+                                result_type='expand', **kwargs)
             result.columns = data.columns
         else:
             result = func(data, **kwargs)
