@@ -597,6 +597,7 @@ class TestStata(object):
         dpath = os.path.join(self.dirpath, 'S4_EDUC1.dta')
         reader = StataReader(dpath)
         assert reader.value_labels() == {}
+        reader.close()
 
     def test_date_export_formats(self):
         columns = ['tc', 'td', 'tw', 'tm', 'tq', 'th', 'ty']
