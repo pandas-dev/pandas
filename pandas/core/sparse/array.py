@@ -255,7 +255,7 @@ class SparseArray(PandasObject, np.ndarray):
         Notes
         -----
         Memory usage does not include memory of empty cells filled by
-        fill_value. And it does not include memory consumed by 
+        fill_value. And it does not include memory consumed by
         elements that are not components of the array if deep=False
 
         See also
