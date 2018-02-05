@@ -24,9 +24,6 @@ frequency conversion routines.
  * declarations from period here
  */
 
-#define GREGORIAN_CALENDAR 0
-#define JULIAN_CALENDAR 1
-
 #define SECONDS_PER_DAY ((double)86400.0)
 
 #define Py_AssertWithArg(x, errortype, errorstr, a1) \
@@ -138,7 +135,6 @@ typedef struct date_info {
     int year;
     int day_of_week;
     int day_of_year;
-    int calendar;
 } date_info;
 
 typedef npy_int64 (*freq_conv_func)(npy_int64, char, asfreq_info *);

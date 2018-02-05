@@ -47,13 +47,10 @@ static int days_in_month[2][12] = {
     {31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31},
     {31, 29, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31}};
 
-/* Return 1/0 iff year points to a leap year in calendar. */
-static int dInfoCalc_Leapyear(npy_int64 year, int calendar) {
-    if (calendar == GREGORIAN_CALENDAR) {
-        return (year % 4 == 0) && ((year % 100 != 0) || (year % 400 == 0));
-    } else {
-        return (year % 4 == 0);
-    }
+/* Return 1/0 iff year points to a leap year.
+ * Assumes GREGORIAN_CALENDAR */
+static int dInfoCalc_Leapyear(npy_int64 year) {
+    return (year % 4 == 0) && ((year % 100 != 0) || (year % 400 == 0));
 }
 
 /* Return the day of the week for the given absolute date. */
@@ -71,40 +68,33 @@ static int dInfoCalc_DayOfWeek(npy_int64 absdate) {
 static int monthToQuarter(int month) { return ((month - 1) / 3) + 1; }
 
 /* Return the year offset, that is the absolute date of the day
-   31.12.(year-1) in the given calendar.
+   31.12.(year-1)
+
+   Assumes GREGORIAN_CALENDAR
+
+   This is equivalent to:
+
+       (datetime(year, 1, 1) - datetime(1970, 1, 1)).days
 
    Note:
    For the Julian calendar we shift the absdate (which is measured
    using the Gregorian Epoch) value by two days because the Epoch
    (0001-01-01) in the Julian calendar lies 2 days before the Epoch in
    the Gregorian calendar. */
-static int dInfoCalc_YearOffset(npy_int64 year, int calendar) {
+static int dInfoCalc_YearOffset(npy_int64 year) {
     year--;
-    if (calendar == GREGORIAN_CALENDAR) {
-        if (year >= 0 || -1 / 4 == -1)
-            return year * 365 + year / 4 - year / 100 + year / 400;
-        else
-            return year * 365 + (year - 3) / 4 - (year - 99) / 100 +
+    if (year >= 0 || -1 / 4 == -1)
+        return year * 365 + year / 4 - year / 100 + year / 400;
+    else
+        return year * 365 + (year - 3) / 4 - (year - 99) / 100 +
                    (year - 399) / 400;
-    } else if (calendar == JULIAN_CALENDAR) {
-        if (year >= 0 || -1 / 4 == -1)
-            return year * 365 + year / 4 - 2;
-        else
-            return year * 365 + (year - 3) / 4 - 2;
-    }
-    Py_Error(PyExc_ValueError, "unknown calendar");
-onError:
-    return INT_ERR_CODE;
 }
 
-/* Set the instance's value using the given date and time. calendar may be set
- * to the flags: GREGORIAN_CALENDAR, JULIAN_CALENDAR to indicate the calendar
- * to be used. */
-
+/* Set the instance's value using the given date and time.
+ * Assumes GREGORIAN_CALENDAR */
 static int dInfoCalc_SetFromDateAndTime(struct date_info *dinfo, int year,
                                         int month, int day, int hour,
-                                        int minute, double second,
-                                        int calendar) {
+                                        int minute, double second) {
     /* Calculate the absolute date */
     {
         int leap;
@@ -116,7 +106,7 @@ static int dInfoCalc_SetFromDateAndTime(struct date_info *dinfo, int year,
                          PyExc_ValueError, "year out of range: %i", year);
 
         /* Is it a leap year ? */
-        leap = dInfoCalc_Leapyear(year, calendar);
+        leap = dInfoCalc_Leapyear(year);
 
         /* Negative month values indicate months relative to the years end */
         if (month < 0) month += 13;
@@ -128,7 +118,7 @@ static int dInfoCalc_SetFromDateAndTime(struct date_info *dinfo, int year,
         Py_AssertWithArg(day >= 1 && day <= days_in_month[leap][month - 1],
                          PyExc_ValueError, "day out of range: %i", day);
 
-        yearoffset = dInfoCalc_YearOffset(year, calendar);
+        yearoffset = dInfoCalc_YearOffset(year);
         if (yearoffset == INT_ERR_CODE) goto onError;
 
         absdate = day + month_offset[leap][month - 1] + yearoffset;
@@ -142,8 +132,6 @@ static int dInfoCalc_SetFromDateAndTime(struct date_info *dinfo, int year,
 
         dinfo->day_of_week = dInfoCalc_DayOfWeek(absdate);
         dinfo->day_of_year = (short)(absdate - yearoffset);
-
-        dinfo->calendar = calendar;
     }
 
     /* Calculate the absolute time */
@@ -171,33 +159,27 @@ onError:
     return INT_ERR_CODE;
 }
 
-/* Sets the date part of the date_info struct using the indicated
-   calendar.
+/* Sets the date part of the date_info struct
+   Assumes GREGORIAN_CALENDAR
 
    XXX This could also be done using some integer arithmetics rather
        than with this iterative approach... */
 static int dInfoCalc_SetFromAbsDate(register struct date_info *dinfo,
-                                    npy_int64 absdate, int calendar) {
+                                    npy_int64 absdate) {
     register npy_int64 year;
     npy_int64 yearoffset;
     int leap, dayoffset;
     int *monthoffset;
 
     /* Approximate year */
-    if (calendar == GREGORIAN_CALENDAR) {
-        year = (npy_int64)(((double)absdate) / 365.2425);
-    } else if (calendar == JULIAN_CALENDAR) {
-        year = (npy_int64)(((double)absdate) / 365.25);
-    } else {
-        Py_Error(PyExc_ValueError, "unknown calendar");
-    }
+    year = (npy_int64)(((double)absdate) / 365.2425);
 
     if (absdate > 0) year++;
 
     /* Apply corrections to reach the correct year */
     while (1) {
         /* Calculate the year offset */
-        yearoffset = dInfoCalc_YearOffset(year, calendar);
+        yearoffset = dInfoCalc_YearOffset(year);
         if (yearoffset == INT_ERR_CODE) goto onError;
 
         /* Backward correction: absdate must be greater than the
@@ -208,7 +190,7 @@ static int dInfoCalc_SetFromAbsDate(register struct date_info *dinfo,
         }
 
         dayoffset = absdate - yearoffset;
-        leap = dInfoCalc_Leapyear(year, calendar);
+        leap = dInfoCalc_Leapyear(year);
 
         /* Forward correction: non leap years only have 365 days */
         if (dayoffset > 365 && !leap) {
@@ -219,7 +201,6 @@ static int dInfoCalc_SetFromAbsDate(register struct date_info *dinfo,
     }
 
     dinfo->year = year;
-    dinfo->calendar = calendar;
 
     /* Now iterate to find the month */
     monthoffset = month_offset[leap];
@@ -410,8 +391,7 @@ static npy_int64 DtoB_WeekendToFriday(npy_int64 absdate, int day_of_week) {
 
 static npy_int64 absdate_from_ymd(int y, int m, int d) {
     struct date_info tempDate;
-    if (dInfoCalc_SetFromDateAndTime(&tempDate, y, m, d, 0, 0, 0,
-                                     GREGORIAN_CALENDAR)) {
+    if (dInfoCalc_SetFromDateAndTime(&tempDate, y, m, d, 0, 0, 0)) {
         return INT_ERR_CODE;
     }
     return tempDate.absdate;
@@ -423,8 +403,7 @@ static npy_int64 asfreq_DTtoA(npy_int64 ordinal, char relation,
                               asfreq_info *af_info) {
     struct date_info dinfo;
     ordinal = downsample_daytime(ordinal, af_info, 0);
-    if (dInfoCalc_SetFromAbsDate(&dinfo, ordinal + ORD_OFFSET,
-                                 GREGORIAN_CALENDAR))
+    if (dInfoCalc_SetFromAbsDate(&dinfo, ordinal + ORD_OFFSET))
         return INT_ERR_CODE;
     if (dinfo.month > af_info->to_a_year_end) {
         return (npy_int64)(dinfo.year + 1 - BASE_YEAR);
@@ -436,8 +415,7 @@ static npy_int64 asfreq_DTtoA(npy_int64 ordinal, char relation,
 static npy_int64 DtoQ_yq(npy_int64 ordinal, asfreq_info *af_info, int *year,
                          int *quarter) {
     struct date_info dinfo;
-    if (dInfoCalc_SetFromAbsDate(&dinfo, ordinal + ORD_OFFSET,
-                                 GREGORIAN_CALENDAR))
+    if (dInfoCalc_SetFromAbsDate(&dinfo, ordinal + ORD_OFFSET))
         return INT_ERR_CODE;
     if (af_info->to_q_year_end != 12) {
         dinfo.month -= af_info->to_q_year_end;
@@ -474,8 +452,7 @@ static npy_int64 asfreq_DTtoM(npy_int64 ordinal, char relation,
 
     ordinal = downsample_daytime(ordinal, af_info, 0);
 
-    if (dInfoCalc_SetFromAbsDate(&dinfo, ordinal + ORD_OFFSET,
-                                 GREGORIAN_CALENDAR))
+    if (dInfoCalc_SetFromAbsDate(&dinfo, ordinal + ORD_OFFSET))
         return INT_ERR_CODE;
     return (npy_int64)((dinfo.year - BASE_YEAR) * 12 + dinfo.month - 1);
 }
@@ -493,8 +470,7 @@ static npy_int64 asfreq_DTtoB(npy_int64 ordinal, char relation,
 
     ordinal = downsample_daytime(ordinal, af_info, 0);
 
-    if (dInfoCalc_SetFromAbsDate(&dinfo, ordinal + ORD_OFFSET,
-                                 GREGORIAN_CALENDAR))
+    if (dInfoCalc_SetFromAbsDate(&dinfo, ordinal + ORD_OFFSET))
         return INT_ERR_CODE;
 
     if (relation == 'S') {
@@ -595,8 +571,7 @@ static npy_int64 asfreq_WtoB(npy_int64 ordinal, char relation,
                              asfreq_info *af_info) {
     struct date_info dinfo;
     if (dInfoCalc_SetFromAbsDate(
-            &dinfo, asfreq_WtoDT(ordinal, relation, af_info) + ORD_OFFSET,
-            GREGORIAN_CALENDAR))
+            &dinfo, asfreq_WtoDT(ordinal, relation, af_info) + ORD_OFFSET))
         return INT_ERR_CODE;
 
     if (relation == 'S') {
@@ -655,8 +630,7 @@ static npy_int64 asfreq_MtoB(npy_int64 ordinal, char relation,
     struct date_info dinfo;
 
     if (dInfoCalc_SetFromAbsDate(
-            &dinfo, asfreq_MtoDT(ordinal, relation, af_info) + ORD_OFFSET,
-            GREGORIAN_CALENDAR))
+            &dinfo, asfreq_MtoDT(ordinal, relation, af_info) + ORD_OFFSET))
         return INT_ERR_CODE;
 
     if (relation == 'S') {
@@ -731,8 +705,7 @@ static npy_int64 asfreq_QtoB(npy_int64 ordinal, char relation,
                              asfreq_info *af_info) {
     struct date_info dinfo;
     if (dInfoCalc_SetFromAbsDate(
-            &dinfo, asfreq_QtoDT(ordinal, relation, af_info) + ORD_OFFSET,
-            GREGORIAN_CALENDAR))
+            &dinfo, asfreq_QtoDT(ordinal, relation, af_info) + ORD_OFFSET))
         return INT_ERR_CODE;
 
     if (relation == 'S') {
@@ -803,8 +776,7 @@ static npy_int64 asfreq_AtoB(npy_int64 ordinal, char relation,
                              asfreq_info *af_info) {
     struct date_info dinfo;
     if (dInfoCalc_SetFromAbsDate(
-            &dinfo, asfreq_AtoDT(ordinal, relation, af_info) + ORD_OFFSET,
-            GREGORIAN_CALENDAR))
+            &dinfo, asfreq_AtoDT(ordinal, relation, af_info) + ORD_OFFSET))
         return INT_ERR_CODE;
 
     if (relation == 'S') {
@@ -1096,19 +1068,17 @@ static int dInfoCalc_SetFromAbsTime(struct date_info *dinfo, double abstime) {
     return 0;
 }
 
-/* Set the instance's value using the given date and time. calendar
-   may be set to the flags: GREGORIAN_CALENDAR, JULIAN_CALENDAR to
-   indicate the calendar to be used. */
+/* Set the instance's value using the given date and time.
+   Assumes GREGORIAN_CALENDAR. */
 static int dInfoCalc_SetFromAbsDateTime(struct date_info *dinfo,
-                                        npy_int64 absdate, double abstime,
-                                        int calendar) {
+                                        npy_int64 absdate, double abstime) {
     /* Bounds check */
     Py_AssertWithArg(abstime >= 0.0 && abstime <= SECONDS_PER_DAY,
                      PyExc_ValueError,
                      "abstime out of range (0.0 - 86400.0): %f", abstime);
 
     /* Calculate the date */
-    if (dInfoCalc_SetFromAbsDate(dinfo, absdate, calendar)) goto onError;
+    if (dInfoCalc_SetFromAbsDate(dinfo, absdate)) goto onError;
 
     /* Calculate the time */
     if (dInfoCalc_SetFromAbsTime(dinfo, abstime)) goto onError;
@@ -1356,8 +1326,7 @@ static int _ISOWeek(struct date_info *dinfo) {
     /* Verify */
     if (week < 0) {
         /* The day lies in last week of the previous year */
-        if ((week > -2) || (week == -2 && dInfoCalc_Leapyear(dinfo->year - 1,
-                                                             dinfo->calendar)))
+        if ((week > -2) || (week == -2 && dInfoCalc_Leapyear(dinfo->year - 1)))
             week = 53;
         else
             week = 52;
@@ -1384,8 +1353,7 @@ int get_date_info(npy_int64 ordinal, int freq, struct date_info *dinfo) {
         absdate += 1;
     }
 
-    if (dInfoCalc_SetFromAbsDateTime(dinfo, absdate, abstime,
-                                     GREGORIAN_CALENDAR))
+    if (dInfoCalc_SetFromAbsDateTime(dinfo, absdate, abstime))
         return INT_ERR_CODE;
 
     return 0;
@@ -1480,7 +1448,6 @@ int pdays_in_month(npy_int64 ordinal, int freq) {
     if (get_date_info(ordinal, freq, &dinfo) == INT_ERR_CODE)
         return INT_ERR_CODE;
 
-    days = days_in_month[dInfoCalc_Leapyear(dinfo.year, dinfo.calendar)]
-                        [dinfo.month - 1];
+    days = days_in_month[dInfoCalc_Leapyear(dinfo.year)][dinfo.month - 1];
     return days;
 }
