@@ -14,7 +14,6 @@ from ..datetimelike import DatetimeLike
 
 class TestPeriodIndex(DatetimeLike):
     _holder = PeriodIndex
-    _multiprocess_can_split_ = True
 
     def setup_method(self, method):
         self.indices = dict(index=tm.makePeriodIndex(10),
