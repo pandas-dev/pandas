@@ -569,10 +569,6 @@ static npy_int64 asfreq_AtoDT(npy_int64 year, char relation,
 
     absdate = absdate_from_ymd(year, month, 1);
 
-    if (absdate == INT_ERR_CODE) {
-        return INT_ERR_CODE;
-    }
-
     if (relation == 'E') {
         absdate -= 1;
     }
@@ -899,9 +895,8 @@ static int dInfoCalc_SetFromAbsTime(struct date_info *dinfo, double abstime) {
 static int dInfoCalc_SetFromAbsDateTime(struct date_info *dinfo,
                                         npy_int64 absdate, double abstime) {
     /* Bounds check */
-    Py_AssertWithArg(abstime >= 0.0 && abstime <= SECONDS_PER_DAY,
-                     PyExc_ValueError,
-                     "abstime out of range (0.0 - 86400.0): %f", abstime);
+    // The calling function is responsible for ensuring that
+    // abstime >= 0.0 && abstime <= SECONDS_PER_DAY
 
     /* Calculate the date */
     dInfoCalc_SetFromAbsDate(dinfo, absdate);
@@ -910,8 +905,6 @@ static int dInfoCalc_SetFromAbsDateTime(struct date_info *dinfo,
     dInfoCalc_SetFromAbsTime(dinfo, abstime);
 
     return 0;
-onError:
-    return INT_ERR_CODE;
 }
 
 /* ------------------------------------------------------------------
@@ -936,11 +929,9 @@ npy_int64 asfreq(npy_int64 period_ordinal, int freq1, int freq2,
     if (val == INT_ERR_CODE) {
         // Py_Error(PyExc_ValueError, "Unable to convert to desired
         // frequency.");
-        goto onError;
+        return INT_ERR_CODE;
     }
     return val;
-onError:
-    return INT_ERR_CODE;
 }
 
 /* generate an ordinal in period space */
@@ -1121,8 +1112,6 @@ int get_date_info(npy_int64 ordinal, int freq, struct date_info *dinfo) {
         absdate += 1;
     }
 
-    if (dInfoCalc_SetFromAbsDateTime(dinfo, absdate, abstime))
-        return INT_ERR_CODE;
-
+    dInfoCalc_SetFromAbsDateTime(dinfo, absdate, abstime);
     return 0;
 }

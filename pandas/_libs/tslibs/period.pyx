@@ -83,7 +83,7 @@ cdef extern from "period_helper.h":
                                int freq) nogil except INT32_MIN
 
     int get_date_info(int64_t ordinal, int freq,
-                      date_info *dinfo) nogil except INT32_MIN
+                      date_info *dinfo) nogil
 
     int get_yq(int64_t ordinal, int freq, int *quarter, int *year)
     int _quarter_year(int64_t ordinal, int freq, int *year, int *quarter)
@@ -397,16 +397,14 @@ cdef int pyear(int64_t ordinal, int freq):
 cdef int pqyear(int64_t ordinal, int freq):
     cdef:
         int year, quarter
-    if _quarter_year(ordinal, freq, &year, &quarter) == INT32_MIN:
-        return INT32_MIN
+    _quarter_year(ordinal, freq, &year, &quarter)
     return year
 
 
 cdef int pquarter(int64_t ordinal, int freq):
     cdef:
         int year, quarter
-    if _quarter_year(ordinal, freq, &year, &quarter) == INT32_MIN:
-        return INT32_MIN
+    _quarter_year(ordinal, freq, &year, &quarter)
     return quarter
 
 
