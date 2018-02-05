@@ -15,6 +15,7 @@ from pandas.core.dtypes.common import (
     is_unsigned_integer_dtype, is_signed_integer_dtype,
     is_integer_dtype, is_complex_dtype,
     is_object_dtype,
+    is_extension_array_dtype,
     is_categorical_dtype, is_sparse,
     is_period_dtype,
     is_numeric_dtype, is_float_dtype,
@@ -542,7 +543,7 @@ def value_counts(values, sort=True, ascending=False, normalize=False,
 
     else:
 
-        if is_categorical_dtype(values) or is_sparse(values):
+        if is_extension_array_dtype(values) or is_sparse(values):
 
             # handle Categorical and sparse,
             result = Series(values).values.value_counts(dropna=dropna)

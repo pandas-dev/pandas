@@ -254,3 +254,11 @@ class ExtensionArray(object):
         Setting this to false will optimize some operations like fillna.
         """
         return True
+
+    def value_counts(self, dropna=True):
+        from pandas import value_counts
+
+        if dropna:
+            self = self[~self.isna()]
+
+        return value_counts(np.array(self))
