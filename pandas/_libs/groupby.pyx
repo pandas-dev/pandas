@@ -139,7 +139,7 @@ def group_rank_object(ndarray[float64_t, ndim=2] out,
     cdef:
         int tiebreak
         Py_ssize_t i, j, N, K
-        int64_t val_start=0, grp_start=0, dups=0, sum_ranks=0, vals_seen=1
+        int64_t val_start=0, grp_start=0, dups=0, sum_ranks=0, grp_vals_seen=1
         int64_t grp_na_count=0
         ndarray[int64_t] _as
         ndarray[object] _values
@@ -151,16 +151,16 @@ def group_rank_object(ndarray[float64_t, ndim=2] out,
     keep_na = kwargs['na_option'] == 'keep'
     N, K = (<object> values).shape
 
-    _values = np.array(values[:, 0], copy=True)
-    mask = missing.isnaobj(_values)
+    masked_vals = np.array(values[:, 0], copy=True)
+    mask = missing.isnaobj(masked_vals)
 
     if ascending ^ (kwargs['na_option'] == 'top'):
-        nan_value = np.inf
-        order = (_values, mask, labels)
+        nan_fill_val = np.inf
+        order = (masked_vals, mask, labels)
     else:
-        nan_value = -np.inf
-        order = (_values, ~mask, labels)
-    np.putmask(_values, mask, nan_value)
+        nan_fill_val = -np.inf
+        order = (masked_vals, ~mask, labels)
+    np.putmask(masked_vals, mask, nan_fill_val)
     try:
         _as = np.lexsort(order)
     except TypeError:
@@ -200,7 +200,7 @@ def group_rank_object(ndarray[float64_t, ndim=2] out,
                         out[_as[j], 0] = 2 * i - j - dups + 2 - grp_start
             elif tiebreak == TIEBREAK_DENSE:
                 for j in range(i - dups + 1, i + 1):
-                    out[_as[j], 0] = vals_seen
+                    out[_as[j], 0] = grp_vals_seen
 
         if (i == N - 1 or (
                 (values[_as[i], 0] != values[_as[i+1], 0]) and not
@@ -208,7 +208,7 @@ def group_rank_object(ndarray[float64_t, ndim=2] out,
                 )):
             dups = sum_ranks = 0
             val_start = i
-            vals_seen += 1
+            grp_vals_seen += 1
 
         if i == N - 1 or labels[_as[i]] != labels[_as[i+1]]:
             if pct:
@@ -217,7 +217,7 @@ def group_rank_object(ndarray[float64_t, ndim=2] out,
                                                        - grp_na_count)
             grp_na_count = 0
             grp_start = i + 1
-            vals_seen = 1
+            grp_vals_seen = 1
 
 
 cdef inline float64_t median_linear(float64_t* a, int n) nogil:

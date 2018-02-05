@@ -457,13 +457,13 @@ def group_rank_{{name}}(ndarray[float64_t, ndim=2] out,
     cdef:
         int tiebreak
         Py_ssize_t i, j, N, K
-        int64_t val_start=0, grp_start=0, dups=0, sum_ranks=0, vals_seen=1
+        int64_t val_start=0, grp_start=0, dups=0, sum_ranks=0, grp_vals_seen=1
         int64_t grp_na_count=0
         ndarray[int64_t] _as
-        ndarray[{{c_type}}] _values
+        ndarray[{{c_type}}] masked_vals
         ndarray[uint8_t] mask
         bint pct, ascending, keep_na
-        {{c_type}} nan_value
+        {{c_type}} nan_fill_val
 
     tiebreak = tiebreakers[kwargs['ties_method']]
     ascending = kwargs['ascending']
@@ -471,28 +471,28 @@ def group_rank_{{name}}(ndarray[float64_t, ndim=2] out,
     keep_na = kwargs['na_option'] == 'keep'
     N, K = (<object> values).shape
 
-    _values = np.array(values[:, 0], copy=True)
+    masked_vals = np.array(values[:, 0], copy=True)
     {{if name=='int64'}}
-    mask = (_values == {{nan_val}}).astype(np.uint8)
+    mask = (masked_vals == {{nan_val}}).astype(np.uint8)
     {{else}}
-    mask = np.isnan(_values).astype(np.uint8)
+    mask = np.isnan(masked_vals).astype(np.uint8)
     {{endif}}
 
     if ascending ^ (kwargs['na_option'] == 'top'):
         {{if name == 'int64'}}
-        nan_value = np.iinfo(np.int64).max
+        nan_fill_val = np.iinfo(np.int64).max
         {{else}}
-        nan_value = np.inf
+        nan_fill_val = np.inf
         {{endif}}
-        order = (_values, mask, labels)
+        order = (masked_vals, mask, labels)
     else:
         {{if name == 'int64'}}
-        nan_value = np.iinfo(np.int64).min
+        nan_fill_val = np.iinfo(np.int64).min
         {{else}}
-        nan_value = -np.inf
+        nan_fill_val = -np.inf
         {{endif}}
-        order = (_values, ~mask, labels)
-    np.putmask(_values, mask, nan_value)
+        order = (masked_vals, ~mask, labels)
+    np.putmask(masked_vals, mask, nan_fill_val)
 
     _as = np.lexsort(order)
 
@@ -504,7 +504,7 @@ def group_rank_{{name}}(ndarray[float64_t, ndim=2] out,
             dups += 1
             sum_ranks += i - grp_start + 1
 
-            if keep_na and _values[_as[i]] == nan_value:
+            if keep_na and masked_vals[_as[i]] == nan_fill_val:
                 grp_na_count += 1
                 out[_as[i], 0] = nan
             else:
@@ -525,24 +525,24 @@ def group_rank_{{name}}(ndarray[float64_t, ndim=2] out,
                             out[_as[j], 0] = 2 * i - j - dups + 2 - grp_start
                 elif tiebreak == TIEBREAK_DENSE:
                     for j in range(i - dups + 1, i + 1):
-                        out[_as[j], 0] = vals_seen
+                        out[_as[j], 0] = grp_vals_seen
 
             {{if name=='int64'}}
             if (i == N - 1 or (
-                    (_values[_as[i]] != _values[_as[i+1]]) and not
-                    (_values[_as[i]] == nan_value and
-                     _values[_as[i+1]] == nan_value
+                    (masked_vals[_as[i]] != masked_vals[_as[i+1]]) and not
+                    (masked_vals[_as[i]] == nan_fill_val and
+                     masked_vals[_as[i+1]] == nan_fill_val
                     ))):
             {{else}}
             if (i == N - 1 or (
-                    (_values[_as[i]] != _values[_as[i+1]]) and not
-                    (isnan(_values[_as[i]]) and
-                     isnan(_values[_as[i+1]])
+                    (masked_vals[_as[i]] != masked_vals[_as[i+1]]) and not
+                    (isnan(masked_vals[_as[i]]) and
+                     isnan(masked_vals[_as[i+1]])
                     ))):
             {{endif}}
                 dups = sum_ranks = 0
                 val_start = i
-                vals_seen += 1
+                grp_vals_seen += 1
 
             # Move to the next group, cleaning up any values
             if i == N - 1 or labels[_as[i]] != labels[_as[i+1]]:
@@ -552,7 +552,7 @@ def group_rank_{{name}}(ndarray[float64_t, ndim=2] out,
                                                            - grp_na_count)
                 grp_na_count = 0
                 grp_start = i + 1
-                vals_seen = 1
+                grp_vals_seen = 1
 
 {{endfor}}
 
