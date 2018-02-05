@@ -11,7 +11,6 @@ from pandas._libs.tslib import iNaT
 
 
 class TestTimedeltas(object):
-    _multiprocess_can_split_ = True
 
     def test_to_timedelta(self):
         def conv(v):

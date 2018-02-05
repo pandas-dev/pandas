@@ -164,8 +164,6 @@ class TestSeriesApply(TestData):
 
 class TestSeriesAggregate(TestData):
 
-    _multiprocess_can_split_ = True
-
     def test_transform(self):
         # transforming functions
 
