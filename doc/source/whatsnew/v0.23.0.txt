@@ -289,12 +289,16 @@ Convert to an xarray DataArray
    p.to_xarray()
 
 
+.. _whatsnew_0230.api_breaking.build_changes:
+
 Build Changes
 ^^^^^^^^^^^^^
 
 - Building pandas for development now requires ``cython >= 0.24`` (:issue:`18613`)
 - Building from source now explicitly requires ``setuptools`` in ``setup.py`` (:issue:`18113`)
 - Updated conda recipe to be in compliance with conda-build 3.0+ (:issue:`18002`)
+
+.. _whatsnew_0230.api_breaking.extract:
 
 Extraction of matching patterns from strings
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -594,8 +598,8 @@ Groupby/Resample/Rolling
 - Fixed regression in :func:`DataFrame.groupby` which would not emit an error when called with a tuple key not in the index (:issue:`18798`)
 - Bug in :func:`DataFrame.resample` which silently ignored unsupported (or mistyped) options for ``label``, ``closed`` and ``convention`` (:issue:`19303`)
 - Bug in :func:`DataFrame.groupby` where tuples were interpreted as lists of keys rather than as keys (:issue:`17979`, :issue:`18249`)
-- Bug in ``transform`` where particular aggregation functions were being incorrectly cast to match the dtype(s) of the grouped data (:issue:`19200`)
--
+- Bug in :func:`DataFrame.transform` where particular aggregation functions were being incorrectly cast to match the dtype(s) of the grouped data (:issue:`19200`)
+- Bug in :func:`DataFrame.groupby` passing the `on=` kwarg, and subsequently using ``.apply()`` (:issue:`17813`)
 
 Sparse
 ^^^^^^
