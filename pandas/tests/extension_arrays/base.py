@@ -63,6 +63,13 @@ class BaseArrayTests(object):
         """Length-2 array with [NA, Valid]"""
         raise NotImplementedError
 
+    @pytest.fixture(params=['data', 'data_missing'])
+    def all_data(self, request, data, data_missing):
+        if request.param == 'data':
+            return data
+        elif request.param == 'data_missing':
+            return data_missing
+
     @pytest.fixture
     def na_cmp(self):
         """Binary operator for comparing NA values.
@@ -222,7 +229,10 @@ class BaseArrayTests(object):
         func = operator.methodcaller(method)
         df = pd.DataFrame({"A": np.arange(len(data)),
                            "B": data})
-        assert len(func(df)) == 1
+        obj = pd.DataFrame({"A": np.arange(len(data)),
+                            "B": np.array(data, dtype=object)})
+
+        assert len(func(df)) == len(func(obj))
 
     @pytest.mark.parametrize("method", [min, max])
     def test_reduction_orderable(self, data, method):
@@ -310,3 +320,16 @@ class BaseArrayTests(object):
         assert len(result) == 5
         assert len(result.values) == 5
         assert pd.isna(result.loc[[3, 4]]).all()
+
+    @pytest.mark.parametrize('dropna', [True, False])
+    def test_value_counts(self, all_data, dropna):
+        all_data = all_data[:10]
+        if dropna:
+            other = np.array(all_data[~all_data.isna()])
+        else:
+            other = all_data
+
+        result = pd.Series(all_data).value_counts(dropna=dropna).sort_index()
+        expected = pd.Series(other).value_counts(dropna=dropna).sort_index()
+
+        tm.assert_series_equal(result, expected)

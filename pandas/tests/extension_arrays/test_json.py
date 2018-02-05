@@ -34,7 +34,7 @@ class JSONArray(ExtensionArray):
 
     def __init__(self, values):
         for val in values:
-            if not isinstance(val, collections.Mapping):
+            if not isinstance(val, self.dtype.type):
                 raise TypeError
         self.data = values
 
@@ -57,10 +57,10 @@ class JSONArray(ExtensionArray):
         return sys.getsizeof(self.data)
 
     def isna(self):
-        return np.array([x == {} for x in self.data])
+        return np.array([x == self._fill_value for x in self.data])
 
     def take(self, indexer, allow_fill=True, fill_value=None):
-        output = [self.data[loc] if loc != -1 else {}
+        output = [self.data[loc] if loc != -1 else self._fill_value
                   for loc in indexer]
         return type(self)(output)
 
@@ -106,4 +106,8 @@ class TestJSON(BaseArrayTests):
 
     @pytest.mark.skip(reason="Unorderable")
     def test_reduction_orderable(self, data, method):
+        pass
+
+    @pytest.mark.skip(reason="Unhashable")
+    def test_value_counts(self, all_data, dropna):
         pass
