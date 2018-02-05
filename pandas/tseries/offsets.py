@@ -187,6 +187,9 @@ class DateOffset(BaseOffset):
     ----------
     n : int (default 1)
     normalize : bool (default False)
+
+    Parameters that ADD to the offset (like Timedelta)
+    --------------------------------------------------
     years : int or None
     months : int or None
     weeks : int or None
@@ -196,6 +199,9 @@ class DateOffset(BaseOffset):
     seconds : int or None
     microseconds : int or None
     nanoseconds : int or None
+
+    Parameters that REPLACE the offset value
+    ----------------------------------------
     year : int or None
     month : int or None
     day : int or None
@@ -205,6 +211,20 @@ class DateOffset(BaseOffset):
     second : int or None
     microsecond : int or None
     nanosecond : int or None
+
+    Examples
+    --------
+    >>> ts = pd.Timestamp('2017-01-01 09:10:11')
+    >>> ts + DateOffset(months=3)
+    Timestamp('2017-04-01 09:10:11')
+
+    >>> ts = pd.Timestamp('2017-01-01 09:10:11')
+    >>> ts + DateOffset(month=3)
+    Timestamp('2017-03-01 09:10:11')
+
+    See Also
+    --------
+    dateutil.relativedelta.relativedelta
     """
     _use_relativedelta = False
     _adjust_dst = False
