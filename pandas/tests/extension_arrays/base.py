@@ -220,6 +220,11 @@ class BaseArrayTests(object):
         expected = pd.Series(expected)
         tm.assert_series_equal(result, expected)
 
+    def test_dropna(self, data_missing):
+        result = pd.Series(data_missing).dropna()
+        expected = pd.Series(data_missing).iloc[[1]]
+        tm.assert_series_equal(result, expected)
+
     @pytest.mark.parametrize("method", [
         "mean", "sum", "prod", "mad", "sem", "var", "std",
         "skew", "kurt", "median"

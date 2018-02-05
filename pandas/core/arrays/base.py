@@ -245,6 +245,7 @@ class ExtensionArray(object):
         """
         raise AbstractMethodError(cls)
 
+    @property
     def _can_hold_na(self):
         # type: () -> bool
         """Whether your array can hold missing values. True by default.

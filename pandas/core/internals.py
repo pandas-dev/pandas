@@ -1877,6 +1877,11 @@ class ExtensionBlock(NonConsolidatableMixIn, Block):
         return type(self.values)
 
     @property
+    def _can_hold_na(self):
+        # The default ExtensionBlock._can_hold_na is True
+        return self._holder._can_hold_na
+
+    @property
     def is_view(self):
         """Extension arrays are never treated as views."""
         return False
