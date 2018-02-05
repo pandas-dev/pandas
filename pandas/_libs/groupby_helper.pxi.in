@@ -463,6 +463,7 @@ def group_rank_{{name}}(ndarray[float64_t, ndim=2] out,
         ndarray[{{c_type}}] _values
         ndarray[uint8_t] mask
         bint pct, ascending, keep_na
+        {{c_type}} nan_value
 
     tiebreak = tiebreakers[kwargs['ties_method']]
     ascending = kwargs['ascending']
@@ -471,19 +472,27 @@ def group_rank_{{name}}(ndarray[float64_t, ndim=2] out,
     N, K = (<object> values).shape
 
     _values = np.array(values[:, 0], copy=True)
-    mask = np.isnan(_values).astype(np.uint8)
-
-    {{if name == 'int64' }}
-    order = (_values, labels)
+    {{if name=='int64'}}
+    mask = (_values == {{nan_val}}).astype(np.uint8)
     {{else}}
+    mask = np.isnan(_values).astype(np.uint8)
+    {{endif}}
+
     if ascending ^ (kwargs['na_option'] == 'top'):
+        {{if name == 'int64'}}
+        nan_value = np.iinfo(np.int64).max
+        {{else}}
         nan_value = np.inf
+        {{endif}}
         order = (_values, mask, labels)
     else:
+        {{if name == 'int64'}}
+        nan_value = np.iinfo(np.int64).min
+        {{else}}
         nan_value = -np.inf
+        {{endif}}
         order = (_values, ~mask, labels)
     np.putmask(_values, mask, nan_value)
-    {{endif}}
 
     _as = np.lexsort(order)
 
@@ -495,9 +504,9 @@ def group_rank_{{name}}(ndarray[float64_t, ndim=2] out,
             dups += 1
             sum_ranks += i - grp_start + 1
 
-            if keep_na and (values[_as[i], 0] != values[_as[i], 0]):
+            if keep_na and _values[_as[i]] == nan_value:
                 grp_na_count += 1
-                out[_as[i], 0] = {{nan_val}}
+                out[_as[i], 0] = nan
             else:
                 if tiebreak == TIEBREAK_AVERAGE:
                     for j in range(i - dups + 1, i + 1):
@@ -518,11 +527,19 @@ def group_rank_{{name}}(ndarray[float64_t, ndim=2] out,
                     for j in range(i - dups + 1, i + 1):
                         out[_as[j], 0] = vals_seen
 
+            {{if name=='int64'}}
+            if (i == N - 1 or (
+                    (_values[_as[i]] != _values[_as[i+1]]) and not
+                    (_values[_as[i]] == nan_value and
+                     _values[_as[i+1]] == nan_value
+                    ))):
+            {{else}}
             if (i == N - 1 or (
                     (_values[_as[i]] != _values[_as[i+1]]) and not
                     (isnan(_values[_as[i]]) and
                      isnan(_values[_as[i+1]])
                     ))):
+            {{endif}}
                 dups = sum_ranks = 0
                 val_start = i
                 vals_seen += 1

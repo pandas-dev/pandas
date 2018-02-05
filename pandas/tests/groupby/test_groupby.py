@@ -1953,9 +1953,9 @@ class TestGroupBy(MixIn):
     @pytest.mark.parametrize("vals", [
         [2, 2, np.nan, 8, 2, 6, np.nan, np.nan],  # floats
         ['bar', 'bar', np.nan, 'foo', 'bar', 'baz', np.nan, np.nan],  # objects
-        #[pd.Timestamp('2018-01-02'), pd.Timestamp('2018-01-02'), np.nan,
-        # pd.Timestamp('2018-01-08'), pd.Timestamp('2018-01-02'),
-        # pd.Timestamp('2018-01-06'), np.nan, np.nan]
+        [pd.Timestamp('2018-01-02'), pd.Timestamp('2018-01-02'), np.nan,
+         pd.Timestamp('2018-01-08'), pd.Timestamp('2018-01-02'),
+         pd.Timestamp('2018-01-06'), np.nan, np.nan]
     ])
     @pytest.mark.parametrize("ties_method,ascending,na_option,pct,exp", [
         ('average', True, 'keep', False, DataFrame(
