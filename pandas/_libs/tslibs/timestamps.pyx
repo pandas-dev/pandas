@@ -291,14 +291,6 @@ cdef class _Timestamp(datetime):
             val = tz_convert_single(self.value, 'UTC', self.tz)
         return val
 
-    cpdef int _get_field(self, field):
-        cdef:
-            int64_t val
-            ndarray[int32_t] out
-        val = self._maybe_convert_value_to_local()
-        out = get_date_field(np.array([val], dtype=np.int64), field)
-        return int(out[0])
-
     cpdef bint _get_start_end_field(self, str field):
         cdef:
             int64_t val
@@ -695,14 +687,11 @@ class Timestamp(_Timestamp):
 
     @property
     def dayofyear(self):
-        return self._get_field('doy')
+        return ccalendar.get_day_of_year(self.year, self.month, self.day)
 
     @property
     def week(self):
-        if self.freq is None:
-            # fastpath for non-business
-            return ccalendar.get_week_of_year(self.year, self.month, self.day)
-        return self._get_field('woy')
+        return ccalendar.get_week_of_year(self.year, self.month, self.day)
 
     weekofyear = week
 
