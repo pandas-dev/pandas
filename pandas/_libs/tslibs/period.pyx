@@ -34,7 +34,7 @@ from timezones cimport is_utc, is_tzlocal, get_utcoffset, get_dst_info
 from timedeltas cimport delta_to_nanoseconds
 
 from ccalendar import MONTH_NUMBERS
-from ccalendar cimport is_leapyer
+from ccalendar cimport is_leapyear
 from frequencies cimport (get_freq_code, get_base_alias,
                           get_to_timestamp_base, get_freq_str,
                           get_rule_month)
