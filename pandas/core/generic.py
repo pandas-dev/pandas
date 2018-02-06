@@ -5691,6 +5691,10 @@ class NDFrame(PandasObject, SelectionMixin):
             reduce the dimensionality of the return type if possible,
             otherwise return a consistent type
 
+        Returns
+        -------
+        GroupBy object
+
         Examples
         --------
         DataFrame results
@@ -5702,10 +5706,15 @@ class NDFrame(PandasObject, SelectionMixin):
 
         >>> data.groupby(['col1', 'col2']).mean()
 
-        Returns
-        -------
-        GroupBy object
+        Notes
+        -----
+        See the `user guide
+        <http://pandas.pydata.org/pandas-docs/stable/groupby.html>`_ for more.
 
+        See also
+        --------
+        resample : Convenience method for frequency conversion and resampling
+            of time series.
         """
         from pandas.core.groupby import groupby
 
@@ -5904,8 +5913,16 @@ class NDFrame(PandasObject, SelectionMixin):
 
             .. versionadded:: 0.19.0
 
+        Returns
+        -------
+        Resampler object
+
         Notes
         -----
+        See the `user guide
+        <http://pandas.pydata.org/pandas-docs/stable/timeseries.html#resampling>`_
+        for more.
+
         To learn more about the offset strings, please see `this link
         <http://pandas.pydata.org/pandas-docs/stable/timeseries.html#offset-aliases>`__.
 
@@ -6071,6 +6088,10 @@ class NDFrame(PandasObject, SelectionMixin):
                              a  b   c   d
         2000-01-01 00:00:00  0  6  12  18
         2000-01-01 00:03:00  0  4   8  12
+
+        See also
+        --------
+        groupby : Group by mapping, function, label, or list of labels.
         """
         from pandas.core.resample import (resample,
                                           _maybe_process_deprecations)

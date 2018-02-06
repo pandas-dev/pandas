@@ -18,7 +18,6 @@ randn = np.random.randn
 
 class TestTimedeltaIndex(DatetimeLike):
     _holder = TimedeltaIndex
-    _multiprocess_can_split_ = True
 
     def setup_method(self, method):
         self.indices = dict(index=tm.makeTimedeltaIndex(10))
@@ -300,7 +299,6 @@ class TestTimedeltaIndex(DatetimeLike):
 
 
 class TestTimeSeries(object):
-    _multiprocess_can_split_ = True
 
     def test_series_box_timedelta(self):
         rng = timedelta_range('1 day 1 s', periods=5, freq='h')

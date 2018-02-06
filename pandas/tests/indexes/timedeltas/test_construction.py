@@ -9,7 +9,6 @@ from pandas import TimedeltaIndex, timedelta_range, to_timedelta
 
 
 class TestTimedeltaIndex(object):
-    _multiprocess_can_split_ = True
 
     def test_construction_base_constructor(self):
         arr = [pd.Timedelta('1 days'), pd.NaT, pd.Timedelta('3 days')]

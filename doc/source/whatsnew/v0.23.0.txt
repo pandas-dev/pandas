@@ -204,6 +204,50 @@ Please note that the string `index` is not supported with the round trip format,
    new_df
    print(new_df.index.name)
 
+.. _whatsnew_0230.enhancements.index_division_by_zero:
+
+Index Division By Zero Fills Correctly
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+Division operations on ``Index`` and subclasses will now fill division of positive numbers by zero with ``np.inf``, division of negative numbers by zero with ``-np.inf`` and `0 / 0` with ``np.nan``.  This matches existing ``Series`` behavior. (:issue:`19322`, :issue:`19347`)
+
+Previous Behavior:
+
+.. code-block:: ipython
+
+    In [6]: index = pd.Int64Index([-1, 0, 1])
+
+    In [7]: index / 0
+    Out[7]: Int64Index([0, 0, 0], dtype='int64')
+
+    # Previous behavior yielded different results depending on the type of zero in the divisor
+    In [8]: index / 0.0
+    Out[8]: Float64Index([-inf, nan, inf], dtype='float64')
+
+    In [9]: index = pd.UInt64Index([0, 1])
+
+    In [10]: index / np.array([0, 0], dtype=np.uint64)
+    Out[10]: UInt64Index([0, 0], dtype='uint64')
+
+    In [11]: pd.RangeIndex(1, 5) / 0
+    ZeroDivisionError: integer division or modulo by zero
+
+Current Behavior:
+
+.. ipython:: python
+
+    index = pd.Int64Index([-1, 0, 1])
+    # division by zero gives -infinity where negative, +infinity where positive, and NaN for 0 / 0
+    index / 0
+
+    # The result of division by zero should not depend on whether the zero is int or float
+    index / 0.0
+
+    index = pd.UInt64Index([0, 1])
+    index / np.array([0, 0], dtype=np.uint64)
+
+    pd.RangeIndex(1, 5) / 0
+
 .. _whatsnew_0230.enhancements.other:
 
 Other Enhancements
@@ -289,12 +333,63 @@ Convert to an xarray DataArray
    p.to_xarray()
 
 
+.. _whatsnew_0230.api_breaking.build_changes:
+
 Build Changes
 ^^^^^^^^^^^^^
 
 - Building pandas for development now requires ``cython >= 0.24`` (:issue:`18613`)
 - Building from source now explicitly requires ``setuptools`` in ``setup.py`` (:issue:`18113`)
 - Updated conda recipe to be in compliance with conda-build 3.0+ (:issue:`18002`)
+
+.. _whatsnew_0230.api_breaking.extract:
+
+Extraction of matching patterns from strings
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+By default, extracting matching patterns from strings with :func:`str.extract` used to return a
+``Series`` if a single group was being extracted (a ``DataFrame`` if more than one group was
+extracted``). As of Pandas 0.23.0 :func:`str.extract` always returns a ``DataFrame``, unless
+``expand`` is set to ``False`` (:issue:`11386`).
+
+Also, ``None`` was an accepted value for the ``expand`` parameter (which was equivalent to
+``False``), but now raises a ``ValueError``.
+
+Previous Behavior:
+
+.. code-block:: ipython
+
+    In [1]: s = pd.Series(['number 10', '12 eggs'])
+
+    In [2]: extracted = s.str.extract('.*(\d\d).*')
+
+    In [3]: extracted
+    Out [3]:
+    0    10
+    1    12
+    dtype: object
+
+    In [4]: type(extracted)
+    Out [4]:
+    pandas.core.series.Series
+
+New Behavior:
+
+.. ipython:: python
+
+    s = pd.Series(['number 10', '12 eggs'])
+    extracted = s.str.extract('.*(\d\d).*')
+    extracted
+    type(extracted)
+
+To restore previous behavior, simply set ``expand`` to ``False``:
+
+.. ipython:: python
+
+    s = pd.Series(['number 10', '12 eggs'])
+    extracted = s.str.extract('.*(\d\d).*', expand=False)
+    extracted
+    type(extracted)
 
 .. _whatsnew_0230.api:
 
@@ -548,15 +643,15 @@ Groupby/Resample/Rolling
 - Fixed regression in :func:`DataFrame.groupby` which would not emit an error when called with a tuple key not in the index (:issue:`18798`)
 - Bug in :func:`DataFrame.resample` which silently ignored unsupported (or mistyped) options for ``label``, ``closed`` and ``convention`` (:issue:`19303`)
 - Bug in :func:`DataFrame.groupby` where tuples were interpreted as lists of keys rather than as keys (:issue:`17979`, :issue:`18249`)
-- Bug in ``transform`` where particular aggregation functions were being incorrectly cast to match the dtype(s) of the grouped data (:issue:`19200`)
--
+- Bug in :func:`DataFrame.transform` where particular aggregation functions were being incorrectly cast to match the dtype(s) of the grouped data (:issue:`19200`)
+- Bug in :func:`DataFrame.groupby` passing the `on=` kwarg, and subsequently using ``.apply()`` (:issue:`17813`)
 
 Sparse
 ^^^^^^
 
 - Bug in which creating a ``SparseDataFrame`` from a dense ``Series`` or an unsupported type raised an uncontrolled exception (:issue:`19374`)
 - Bug in :class:`SparseDataFrame.to_csv` causing exception (:issue:`19384`)
--
+- Bug in :class:`SparseSeries.memory_usage` which caused segfault by accessing non sparse elements (:issue:`19368`)
 
 Reshaping
 ^^^^^^^^^

@@ -3077,6 +3077,15 @@ class TestResamplerGrouper(object):
         result = r['buyer'].count()
         assert_series_equal(result, expected)
 
+    def test_groupby_resample_on_api_with_getitem(self):
+        # GH 17813
+        df = pd.DataFrame({'id': list('aabbb'),
+                           'date': pd.date_range('1-1-2016', periods=5),
+                           'data': 1})
+        exp = df.set_index('date').groupby('id').resample('2D')['data'].sum()
+        result = df.groupby('id').resample('2D', on='date')['data'].sum()
+        assert_series_equal(result, exp)
+
     def test_nearest(self):
 
         # GH 17496

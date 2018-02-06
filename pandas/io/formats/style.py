@@ -364,7 +364,7 @@ class Styler(object):
         >>> df = pd.DataFrame(np.random.randn(4, 2), columns=['a', 'b'])
         >>> df.style.format("{:.2%}")
         >>> df['c'] = ['a', 'b', 'c', 'd']
-        >>> df.style.format({'C': str.upper})
+        >>> df.style.format({'c': str.upper})
         """
         if subset is None:
             row_locs = range(len(self.data))
