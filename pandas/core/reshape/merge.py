@@ -1021,7 +1021,12 @@ class _MergeOperation(object):
                 common_cols = self.left.columns.intersection(
                     self.right.columns)
                 if len(common_cols) == 0:
-                    raise MergeError('No common columns to perform merge on')
+                    raise MergeError(
+                        'No common columns to perform merge on. '
+                        'Merge options: left_on={lon}, right_on={ron}, '
+                        'left_index={lidx}, right_index={ridx}'
+                        .format(lon=self.left_on, ron=self.right_on,
+                                lidx=self.left_index, ridx=self.right_index))
                 if not common_cols.is_unique:
                     raise MergeError("Data columns not unique: {common!r}"
                                      .format(common=common_cols))
