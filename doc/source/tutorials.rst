@@ -19,7 +19,7 @@ pandas Cookbook
 The goal of this cookbook (by `Julia Evans <http://jvns.ca>`_) is to
 give you some concrete examples for getting started with pandas. These
 are examples with real-world data, and all the bugs and weirdness that
-that entails.
+entails.
 
 Here are links to the v0.1 release. For an up-to-date table of contents, see the `pandas-cookbook GitHub
 repository <http://github.com/jvns/pandas-cookbook>`_. To run the examples in this tutorial, you'll need to

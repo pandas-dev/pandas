@@ -512,7 +512,7 @@ a same sized result as the input.
 
 When using ``.resample()`` with an offset. Construct a new index that is the frequency of the offset. For each frequency
 bin, aggregate points from the input within a backwards-in-time looking window that fall in that bin. The result of this
-aggregation is the output for that frequency point. The windows are fixed size size in the frequency space. Your result
+aggregation is the output for that frequency point. The windows are fixed size in the frequency space. Your result
 will have the shape of a regular frequency between the min and the max of the original input object.
 
 To summarize, ``.rolling()`` is a time-based window operation, while ``.resample()`` is a frequency-based window operation.
