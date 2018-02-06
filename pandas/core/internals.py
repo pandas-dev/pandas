@@ -5693,6 +5693,8 @@ class JoinUnit(object):
             if not values._null_fill_value and values.sp_index.ngaps > 0:
                 return False
             values_flat = values.ravel(order='K')
+        elif isinstance(self.block, ExtensionBlock):
+            values_flat = values
         else:
             values_flat = values.ravel(order='K')
         total_len = values_flat.shape[0]

@@ -88,7 +88,7 @@ class BaseArrayTests(object):
         assert data.ndim == 1
 
     def test_can_hold_na_valid(self, data):
-        assert data._can_hold_na() in {True, False}
+        assert data._can_hold_na in {True, False}
 
     def test_series_constructor(self, data):
         result = pd.Series(data)
