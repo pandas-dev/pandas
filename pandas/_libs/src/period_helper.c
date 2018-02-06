@@ -257,6 +257,8 @@ PANDAS_INLINE npy_int64 get_daytime_conversion_factor(int from_index,
                                                       int to_index) {
     int row = min_value(from_index, to_index);
     int col = max_value(from_index, to_index);
+    // row or col < 6 means frequency strictly lower than Daily, which
+    // do not use daytime_conversion_factors
     if (row < 6) {
         return 0;
     } else if (col < 6) {
