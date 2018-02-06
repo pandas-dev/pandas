@@ -1002,7 +1002,8 @@ b  2""")
                 continue
 
             try:
-                result, names = self.grouper.transform(obj.values, how, **kwargs)
+                result, names = self.grouper.transform(obj.values, how,
+                                                       **kwargs)
             except NotImplementedError:
                 continue
             except AssertionError as e:
@@ -1776,9 +1777,9 @@ class GroupBy(_GroupBy):
     def rank(self, method='average', ascending=True, na_option='keep',
              pct=False, axis=0):
         """Rank within each group"""
-        return self._cython_transform('rank', numeric_only=False, ties_method=method,
-                                      ascending=ascending, na_option=na_option,
-                                      pct=pct, axis=axis)
+        return self._cython_transform('rank', numeric_only=False,
+                                      ties_method=method, ascending=ascending,
+                                      na_option=na_option, pct=pct, axis=axis)
 
     @Substitution(name='groupby')
     @Appender(_doc_template)

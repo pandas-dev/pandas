@@ -1930,8 +1930,8 @@ class TestGroupBy(MixIn):
         key = np.repeat(grps, len(vals))
         vals = vals * len(grps)
         df = DataFrame({'key': key, 'val': vals})
-        result = df.groupby('key').rank(method=ties_method, ascending=ascending,
-                                        pct=pct)
+        result = df.groupby('key').rank(method=ties_method,
+                                        ascending=ascending, pct=pct)
 
         exp_df = DataFrame(exp * len(grps), columns=['val'])
         assert_frame_equal(result, exp_df)
@@ -2024,7 +2024,8 @@ class TestGroupBy(MixIn):
         key = np.repeat(grps, len(vals))
         vals = vals * len(grps)
         df = DataFrame({'key': key, 'val': vals})
-        result = df.groupby('key').rank(method=ties_method, ascending=ascending,
+        result = df.groupby('key').rank(method=ties_method,
+                                        ascending=ascending,
                                         na_option=na_option, pct=pct)
 
         exp_df = DataFrame(exp * len(grps), columns=['val'])
