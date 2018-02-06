@@ -28,7 +28,7 @@ See LICENSE for the license
 
 #include "../headers/stdint.h"
 
-#include "khash.h"
+#include "../klib/khash.h"
 
 #define CHUNKSIZE 1024 * 256
 #define KB 1024

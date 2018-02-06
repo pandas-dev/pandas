@@ -17,8 +17,7 @@ from cpython.datetime cimport (datetime,
 PyDateTime_IMPORT
 
 from util cimport (is_datetime64_object, is_timedelta64_object,
-                   is_integer_object, is_string_object, is_array,
-                   INT64_MAX)
+                   is_integer_object, is_string_object, is_array)
 
 cimport ccalendar
 from conversion import tz_localize_to_utc, date_normalize
@@ -29,8 +28,7 @@ from nattype import NaT
 from nattype cimport NPY_NAT
 from np_datetime import OutOfBoundsDatetime
 from np_datetime cimport (reverse_ops, cmp_scalar, check_dts_bounds,
-                          pandas_datetimestruct, dt64_to_dtstruct,
-                          is_leapyear)
+                          pandas_datetimestruct, dt64_to_dtstruct)
 from timedeltas import Timedelta
 from timedeltas cimport delta_to_nanoseconds
 from timezones cimport (
@@ -764,7 +762,7 @@ class Timestamp(_Timestamp):
 
     @property
     def is_leap_year(self):
-        return bool(is_leapyear(self.year))
+        return bool(ccalendar.is_leapyear(self.year))
 
     def tz_localize(self, tz, ambiguous='raise', errors='raise'):
         """
@@ -1006,7 +1004,7 @@ class Timestamp(_Timestamp):
 
 
 # Add the min and max fields at the class level
-cdef int64_t _NS_UPPER_BOUND = INT64_MAX
+cdef int64_t _NS_UPPER_BOUND = np.iinfo(np.int64).max
 # the smallest value we could actually represent is
 #   INT64_MIN + 1 == -9223372036854775807
 # but to allow overflow free conversion with a microsecond resolution
