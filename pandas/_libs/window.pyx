@@ -3,6 +3,7 @@
 
 cimport cython
 from cython cimport Py_ssize_t
+from libcpp.deque cimport deque
 
 from libc.stdlib cimport malloc, free
 
@@ -1224,6 +1225,7 @@ cdef _roll_min_max(ndarray[numeric] input, int64_t win, int64_t minp,
         bint is_variable, should_replace
         int64_t s, e, N, i, j, removed
         Py_ssize_t nobs = 0
+        deque Q[int64_t]
         ndarray[int64_t] starti, endi
         ndarray[numeric, ndim=1] output
     cdef:
@@ -1242,29 +1244,48 @@ cdef _roll_min_max(ndarray[numeric] input, int64_t win, int64_t minp,
 
     output = np.empty(N, dtype=input.dtype)
 
+    Q = deque[int64_t]() 
+
     if is_variable:
 
         with nogil:
 
-            for i in range(N):
-                s = starti[i]
-                e = endi[i]
+            for i from 0 <= i < win:
+                while not Q.empty() and input[i] >= input[Q.back()]:
+                    Q.pop_back()
+                Q.push_back(i)
 
-                r = input[s]
-                nobs = 0
-                for j in range(s, e):
+            for i from win <= i < N:
+                output[i-1] = input[Q.front()]
 
-                    # adds, death at the i offset
-                    ai = init_mm(input[j], &nobs, is_max)
+                while not Q.empty() and input[i] >= input[Q.back()]:
+                    Q.pop_back()
 
-                    if is_max:
-                        if ai > r:
-                            r = ai
-                    else:
-                        if ai < r:
-                            r = ai
+                while not Q.empty() and Q.front() <= i-win:
+                    Q.pop_front()
 
-                output[i] = calc_mm(minp, nobs, r)
+                Q.push_back(i)
+
+            output[N-1] = input[Q[0]]
+#            for i in range(N):
+#                s = starti[i]
+#                e = endi[i]
+#
+#                r = input[s]
+#                nobs = 0
+#                for j in range(s, e):
+#
+#                    # adds, death at the i offset
+#                    ai = init_mm(input[j], &nobs, is_max)
+#
+#                    if is_max:
+#                        if ai > r:
+#                            r = ai
+#                    else:
+#                        if ai < r:
+#                            r = ai
+#
+#                output[i] = calc_mm(minp, nobs, r)
 
     else:
 
