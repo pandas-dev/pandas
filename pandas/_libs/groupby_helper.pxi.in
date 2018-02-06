@@ -456,7 +456,7 @@ def group_rank_{{name}}(ndarray[float64_t, ndim=2] out,
     Only transforms on axis=0
     """
     cdef:
-        int tiebreak
+        TiebreakEnumType tiebreak
         Py_ssize_t i, j, N, K
         int64_t val_start=0, grp_start=0, dups=0, sum_ranks=0, grp_vals_seen=1
         int64_t grp_na_count=0
@@ -507,22 +507,22 @@ def group_rank_{{name}}(ndarray[float64_t, ndim=2] out,
                 grp_na_count += 1
                 out[_as[i], 0] = nan
             else:
-                if tiebreak == TIEBREAK_AVERAGE:
+                if tiebreak == TiebreakEnumType.TIEBREAK_AVERAGE:
                     for j in range(i - dups + 1, i + 1):
                         out[_as[j], 0] = sum_ranks / dups
-                elif tiebreak == TIEBREAK_MIN:
+                elif tiebreak == TiebreakEnumType.TIEBREAK_MIN:
                     for j in range(i - dups + 1, i + 1):
                         out[_as[j], 0] = i - grp_start - dups + 2
-                elif tiebreak == TIEBREAK_MAX:
+                elif tiebreak == TiebreakEnumType.TIEBREAK_MAX:
                     for j in range(i - dups + 1, i + 1):
                         out[_as[j], 0] = i - grp_start + 1
-                elif tiebreak == TIEBREAK_FIRST:
+                elif tiebreak == TiebreakEnumType.TIEBREAK_FIRST:
                     for j in range(i - dups + 1, i + 1):
                         if ascending:
                             out[_as[j], 0] = j + 1 - grp_start
                         else:
                             out[_as[j], 0] = 2 * i - j - dups + 2 - grp_start
-                elif tiebreak == TIEBREAK_DENSE:
+                elif tiebreak == TiebreakEnumType.TIEBREAK_DENSE:
                     for j in range(i - dups + 1, i + 1):
                         out[_as[j], 0] = grp_vals_seen
 
