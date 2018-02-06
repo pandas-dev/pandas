@@ -2171,6 +2171,12 @@ class BaseGrouper(object):
     # ------------------------------------------------------------
     # Aggregation functions
 
+    def _group_rank_wrapper(func, *args, **kwargs):
+        return func(*args, kwargs.get('ties_method', 'average'),
+                    kwargs.get('ascending', True),
+                    kwargs.get('pct', False),
+                    kwargs.get('na_option', 'keep'))
+
     _cython_functions = {
         'aggregate': {
             'add': 'group_add',
@@ -2195,7 +2201,10 @@ class BaseGrouper(object):
             'cumsum': 'group_cumsum',
             'cummin': 'group_cummin',
             'cummax': 'group_cummax',
-            'rank': 'group_rank',
+            'rank': {
+                'name': 'group_rank',
+                'f': _group_rank_wrapper
+            }
         }
     }
 
@@ -2424,7 +2433,7 @@ class BaseGrouper(object):
 
                 chunk = chunk.squeeze()
                 transform_func(result[:, :, i], values,
-                               comp_ids, is_datetimelike)
+                               comp_ids, is_datetimelike, **kwargs)
         else:
             transform_func(result, values, comp_ids, is_datetimelike, **kwargs)
 

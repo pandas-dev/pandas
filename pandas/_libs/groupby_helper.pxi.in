@@ -450,7 +450,8 @@ def group_nth_{{name}}(ndarray[{{dest_type2}}, ndim=2] out,
 def group_rank_{{name}}(ndarray[float64_t, ndim=2] out,
                         ndarray[{{c_type}}, ndim=2] values,
                         ndarray[int64_t] labels,
-                        bint is_datetimelike, **kwargs):
+                        bint is_datetimelike, object ties_method,
+                        bint ascending, bint pct, object na_option):
     """
     Only transforms on axis=0
     """
@@ -462,13 +463,11 @@ def group_rank_{{name}}(ndarray[float64_t, ndim=2] out,
         ndarray[int64_t] _as
         ndarray[{{c_type}}] masked_vals
         ndarray[uint8_t] mask
-        bint pct, ascending, keep_na
+        bint keep_na
         {{c_type}} nan_fill_val
 
-    tiebreak = tiebreakers[kwargs['ties_method']]
-    ascending = kwargs['ascending']
-    pct = kwargs['pct']
-    keep_na = kwargs['na_option'] == 'keep'
+    tiebreak = tiebreakers[ties_method]
+    keep_na = na_option == 'keep'
     N, K = (<object> values).shape
 
     masked_vals = np.array(values[:, 0], copy=True)
@@ -478,7 +477,7 @@ def group_rank_{{name}}(ndarray[float64_t, ndim=2] out,
     mask = np.isnan(masked_vals).astype(np.uint8)
     {{endif}}
 
-    if ascending ^ (kwargs['na_option'] == 'top'):
+    if ascending ^ (na_option == 'top'):
         {{if name == 'int64'}}
         nan_fill_val = np.iinfo(np.int64).max
         {{else}}

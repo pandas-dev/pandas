@@ -132,7 +132,8 @@ def group_last_object(ndarray[object, ndim=2] out,
 def group_rank_object(ndarray[float64_t, ndim=2] out,
                       ndarray[object, ndim=2] values,
                       ndarray[int64_t] labels,
-                      bint is_datetimelike, **kwargs):
+                      bint is_datetimelike, object ties_method,
+                      bint ascending, bint pct, object na_option):
     """
     Only transforms on axis=0
     """
@@ -143,18 +144,16 @@ def group_rank_object(ndarray[float64_t, ndim=2] out,
         int64_t grp_na_count=0
         ndarray[int64_t] _as
         ndarray[object] _values
-        bint pct, ascending, keep_na
+        bint keep_na
 
-    tiebreak = tiebreakers[kwargs['ties_method']]
-    ascending = kwargs['ascending']
-    pct = kwargs['pct']
-    keep_na = kwargs['na_option'] == 'keep'
+    tiebreak = tiebreakers[ties_method]
+    keep_na = na_option == 'keep'
     N, K = (<object> values).shape
 
     masked_vals = np.array(values[:, 0], copy=True)
     mask = missing.isnaobj(masked_vals)
 
-    if ascending ^ (kwargs['na_option'] == 'top'):
+    if ascending ^ (na_option == 'top'):
         nan_fill_val = np.inf
         order = (masked_vals, mask, labels)
     else:
