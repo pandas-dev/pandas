@@ -380,11 +380,11 @@ New Behavior. The behavior is consistent. These will *always* return a ``Series`
     df.apply(lambda x: [1, 2, 3], axis=1)
     df.apply(lambda x: [1, 2], axis=1)
 
-To have expanded columns, you can use ``result_type='infer'``
+To have expanded columns, you can use ``result_type='expand'``
 
 .. ipython:: python
 
-    df.apply(lambda x: [1, 2, 3], axis=1, result_type='infer')
+    df.apply(lambda x: [1, 2, 3], axis=1, result_type='expand')
 
 To have broadcast the result across, you can use ``result_type='broadcast'``. The shape
 must match the original columns.
