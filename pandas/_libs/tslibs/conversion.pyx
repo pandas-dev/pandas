@@ -26,6 +26,7 @@ from np_datetime cimport (check_dts_bounds,
                           dt64_to_dtstruct, dtstruct_to_dt64,
                           get_datetime64_unit, get_datetime64_value,
                           pydatetime_to_dt64)
+from np_datetime import OutOfBoundsDatetime
 
 from util cimport (is_string_object,
                    is_datetime64_object,
@@ -472,6 +473,13 @@ cdef _TSObject convert_str_to_tsobject(object ts, object tz, object unit,
                     ts = tz_localize_to_utc(np.array([ts], dtype='i8'), tz,
                                             ambiguous='raise',
                                             errors='raise')[0]
+
+        except OutOfBoundsDatetime:
+            # GH#19382 for just-barely-OutOfBounds falling back to dateutil
+            # parser will return incorrect result because it will ignore
+            # nanoseconds
+            raise
+
         except ValueError:
             try:
                 ts = parse_datetime_string(ts, dayfirst=dayfirst,

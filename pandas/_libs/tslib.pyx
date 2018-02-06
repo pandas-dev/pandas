@@ -609,20 +609,38 @@ cpdef array_to_datetime(ndarray[object] values, errors='raise',
                         value = tz_convert_single(value, tz, 'UTC')
                     iresult[i] = value
                     check_dts_bounds(&dts)
+                except OutOfBoundsDatetime:
+                    # GH#19382 for just-barely-OutOfBounds falling back to
+                    # dateutil parser will return incorrect result because
+                    # it will ignore nanoseconds
+                    if require_iso8601:
+                        if _parse_today_now(val, &iresult[i]):
+                            continue
+                        elif is_coerce:
+                            iresult[i] = NPY_NAT
+                            continue
+                        elif is_raise:
+                            raise ValueError("time data {val} doesn't match "
+                                             "format specified"
+                                             .format(val=val))
+                        return values
+                    elif is_coerce:
+                        iresult[i] = NPY_NAT
+                        continue
+                    raise
                 except ValueError:
                     # if requiring iso8601 strings, skip trying other formats
                     if require_iso8601:
                         if _parse_today_now(val, &iresult[i]):
                             continue
-                        if is_coerce:
+                        elif is_coerce:
                             iresult[i] = NPY_NAT
                             continue
                         elif is_raise:
-                            raise ValueError(
-                                "time data %r doesn't match format "
-                                "specified" % (val,))
-                        else:
-                            return values
+                            raise ValueError("time data {val} doesn't match "
+                                             "format specified"
+                                             .format(val=val))
+                        return values
 
                     try:
                         py_dt = parse_datetime_string(val, dayfirst=dayfirst,
