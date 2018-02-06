@@ -12,7 +12,8 @@ import numpy as np
 from numpy import nan
 import pandas as pd
 
-from pandas import bdate_range, DataFrame, Index, Series
+from pandas import (bdate_range, DataFrame, Index, Series, Timestamp,
+                    Timedelta, NaT)
 from pandas.core.groupby import DataError
 import pandas.util.testing as tm
 
@@ -187,3 +188,19 @@ def test_cython_agg_empty_buckets_nanops():
         {"a": [1, 1, 1716, 1]},
         index=pd.CategoricalIndex(intervals, name='a', ordered=True))
     tm.assert_frame_equal(result, expected)
+
+
+@pytest.mark.parametrize('op', ['first', 'last', 'max', 'min'])
+@pytest.mark.parametrize('data', [
+    Timestamp('2016-10-14 21:00:44.557'),
+    Timedelta('17088 days 21:00:44.557'), ])
+def test_cython_with_timestamp_and_nat(op, data):
+    # https://github.com/pandas-dev/pandas/issues/19526
+    df = DataFrame({'a': [0, 1], 'b': [data, NaT]})
+    index = Index([0, 1], name='a')
+
+    # We will group by a and test the cython aggregations
+    expected = DataFrame({'b': [data, NaT]}, index=index)
+
+    result = df.groupby('a').aggregate(op)
+    tm.assert_frame_equal(expected, result)

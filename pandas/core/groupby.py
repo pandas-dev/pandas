@@ -2336,7 +2336,7 @@ class BaseGrouper(object):
             result = self._transform(
                 result, values, labels, func, is_numeric, is_datetimelike)
 
-        if is_integer_dtype(result):
+        if is_integer_dtype(result) and not is_datetimelike:
             mask = result == iNaT
             if mask.any():
                 result = result.astype('float64')
