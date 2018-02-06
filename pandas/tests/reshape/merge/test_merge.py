@@ -1886,7 +1886,8 @@ class TestMergeSparseDataFrames(object):
 
             for column in dense_merge.columns:
                 dense_col = merged[column].to_dense()
-                tm.assert_series_equal(dense_col, dense_merge[column], check_dtype=False)
+                tm.assert_series_equal(dense_col, dense_merge[column],
+                                       check_dtype=False)
 
             to_merge = to_merge[::-1]
             to_merge_dense = to_merge_dense[::-1]
