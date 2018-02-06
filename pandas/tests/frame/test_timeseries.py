@@ -738,12 +738,3 @@ class TestDataFrameTimeSeriesMethods(TestData):
         with assert_raises_regex(ValueError, 'not valid'):
             df = DataFrame(index=l0)
             df = getattr(df, fn)('US/Pacific', level=1)
-
-    @pytest.mark.parametrize('timestamps', [
-        [Timestamp('2012-01-01 13:00:00+00:00')] * 2,
-        [Timestamp('2012-01-01 13:00:00')] * 2])
-    def test_tz_aware_scalar_comparison(self, timestamps):
-        # Test for issue #15966
-        df = DataFrame({'test': timestamps})
-        expected = DataFrame({'test': [False, False]})
-        assert_frame_equal(df == -1, expected)
