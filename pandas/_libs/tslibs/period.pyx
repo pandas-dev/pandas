@@ -47,6 +47,9 @@ from pandas.tseries import offsets
 from pandas.tseries import frequencies
 
 
+cdef extern from "../src/numpy_helper.h":
+    object char_to_string(char*)
+
 cdef extern from "../src/headers/stdint.h":
     enum: INT32_MIN
 
@@ -343,7 +346,7 @@ cdef object _period_strftime(int64_t value, int freq, object fmt):
 
     formatted = c_strftime(&dinfo, <char*> fmt)
 
-    result = util.char_to_string(formatted)
+    result = char_to_string(formatted)
     free(formatted)
 
     for i in range(len(extra_fmts)):
