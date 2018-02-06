@@ -884,12 +884,12 @@ class TestDatetimeIndexTimezones(object):
 
         arr = np.array([dt], dtype=object)
 
-        result = DatetimeIndex(arr, utc=True)
+        result = to_datetime(arr, utc=True)
         assert result.tz is pytz.utc
 
         rng = date_range('2012-11-03 03:00', '2012-11-05 03:00', tz=tzlocal())
         arr = rng.to_pydatetime()
-        result = DatetimeIndex(arr, utc=True)
+        result = to_datetime(arr, utc=True)
         assert result.tz is pytz.utc
 
     def test_dti_to_pydatetime_fizedtz(self):
@@ -959,7 +959,7 @@ class TestDatetimeIndexTimezones(object):
         result = DatetimeIndex(dates_aware)
         assert timezones.tz_compare(result.tz, tz)
 
-        converted = DatetimeIndex(dates_aware, utc=True)
+        converted = to_datetime(dates_aware, utc=True)
         ex_vals = np.array([Timestamp(x).value for x in dates_aware])
         tm.assert_numpy_array_equal(converted.asi8, ex_vals)
         assert converted.tz is pytz.utc
