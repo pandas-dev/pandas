@@ -282,7 +282,7 @@ def maybe_promote(dtype, fill_value=np.nan):
                     fill_value = iNaT
             elif issubclass(dtype.type, np.timedelta64):
                 try:
-                    fill_value = lib.Timedelta(fill_value).value
+                    fill_value = tslib.Timedelta(fill_value).value
                 except Exception:
                     # as for datetimes, cannot upcast to object
                     fill_value = iNaT

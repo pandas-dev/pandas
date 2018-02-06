@@ -612,13 +612,16 @@ class TestStringMethods(object):
 
     def test_extract_expand_None(self):
         values = Series(['fooBAD__barBAD', NA, 'foo'])
-        with tm.assert_produces_warning(FutureWarning):
+        with tm.assert_raises_regex(ValueError,
+                                    'expand must be True or False'):
             values.str.extract('.*(BAD[_]+).*(BAD)', expand=None)
 
     def test_extract_expand_unspecified(self):
         values = Series(['fooBAD__barBAD', NA, 'foo'])
-        with tm.assert_produces_warning(FutureWarning):
-            values.str.extract('.*(BAD[_]+).*(BAD)')
+        result_unspecified = values.str.extract('.*(BAD[_]+).*')
+        assert isinstance(result_unspecified, DataFrame)
+        result_true = values.str.extract('.*(BAD[_]+).*', expand=True)
+        tm.assert_frame_equal(result_unspecified, result_true)
 
     def test_extract_expand_False(self):
         # Contains tests like those in test_match and some others.

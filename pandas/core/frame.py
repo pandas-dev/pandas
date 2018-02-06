@@ -313,7 +313,7 @@ class DataFrame(NDFrame):
 
     _constructor_sliced = Series
     _deprecations = NDFrame._deprecations | frozenset(
-        ['sortlevel', 'get_value', 'set_value', 'from_csv'])
+        ['sortlevel', 'get_value', 'set_value', 'from_csv', 'from_items'])
 
     @property
     def _constructor_expanddim(self):
@@ -1246,6 +1246,12 @@ class DataFrame(NDFrame):
     @classmethod
     def from_items(cls, items, columns=None, orient='columns'):
         """
+        .. deprecated:: 0.23.0
+            from_items is deprecated and will be removed in a
+            future version. Use :meth:`DataFrame.from_dict(dict())`
+            instead. :meth:`DataFrame.from_dict(OrderedDict(...))` may be used
+            to preserve the key order.
+
         Convert (key, value) pairs to DataFrame. The keys will be the axis
         index (usually the columns, but depends on the specified
         orientation). The values should be arrays or Series.
@@ -1266,6 +1272,13 @@ class DataFrame(NDFrame):
         -------
         frame : DataFrame
         """
+
+        warnings.warn("from_items is deprecated. Please use "
+                      "DataFrame.from_dict(dict()) instead. "
+                      "DataFrame.from_dict(OrderedDict()) may be used to "
+                      "preserve the key order.",
+                      FutureWarning, stacklevel=2)
+
         keys, values = lzip(*items)
 
         if orient == 'columns':
@@ -3066,6 +3079,14 @@ class DataFrame(NDFrame):
                      self).fillna(value=value, method=method, axis=axis,
                                   inplace=inplace, limit=limit,
                                   downcast=downcast, **kwargs)
+
+    @Appender(_shared_docs['replace'] % _shared_doc_kwargs)
+    def replace(self, to_replace=None, value=None, inplace=False, limit=None,
+                regex=False, method='pad', axis=None):
+        return super(DataFrame, self).replace(to_replace=to_replace,
+                                              value=value, inplace=inplace,
+                                              limit=limit, regex=regex,
+                                              method=method, axis=axis)
 
     @Appender(_shared_docs['shift'] % _shared_doc_kwargs)
     def shift(self, periods=1, freq=None, axis=0):

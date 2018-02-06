@@ -13,11 +13,13 @@ http://www.statsmodels.org/devel/
 import datetime
 import struct
 import sys
+from collections import OrderedDict
 
 import numpy as np
 from dateutil.relativedelta import relativedelta
-from pandas._libs.lib import max_len_string_array, infer_dtype
+from pandas._libs.lib import infer_dtype
 from pandas._libs.tslib import NaT, Timestamp
+from pandas._libs.writers import max_len_string_array
 
 import pandas as pd
 from pandas import compat, to_timedelta, to_datetime, isna, DatetimeIndex
@@ -1571,7 +1573,7 @@ class StataReader(StataParser, BaseIterator):
                 else:
                     data_formatted.append((col, data[col]))
         if requires_type_conversion:
-            data = DataFrame.from_items(data_formatted)
+            data = DataFrame.from_dict(OrderedDict(data_formatted))
         del data_formatted
 
         self._do_convert_missing(data, convert_missing)
@@ -1609,7 +1611,7 @@ class StataReader(StataParser, BaseIterator):
                     convert = True
                 retyped_data.append((col, data[col].astype(dtype)))
             if convert:
-                data = DataFrame.from_items(retyped_data)
+                data = DataFrame.from_dict(OrderedDict(retyped_data))
 
         if index_col is not None:
             data = data.set_index(data.pop(index_col))
@@ -1722,7 +1724,7 @@ class StataReader(StataParser, BaseIterator):
                 cat_converted_data.append((col, cat_data))
             else:
                 cat_converted_data.append((col, data[col]))
-        data = DataFrame.from_items(cat_converted_data)
+        data = DataFrame.from_dict(OrderedDict(cat_converted_data))
         return data
 
     def data_label(self):
@@ -1997,7 +1999,7 @@ class StataWriter(StataParser):
                 data_formatted.append((col, values))
             else:
                 data_formatted.append((col, data[col]))
-        return DataFrame.from_items(data_formatted)
+        return DataFrame.from_dict(OrderedDict(data_formatted))
 
     def _replace_nans(self, data):
         # return data

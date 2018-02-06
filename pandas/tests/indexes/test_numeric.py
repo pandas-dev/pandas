@@ -13,7 +13,7 @@ from pandas import (date_range, Series, Index, Float64Index,
 import pandas.util.testing as tm
 
 import pandas as pd
-from pandas._libs.lib import Timestamp
+from pandas._libs.tslib import Timestamp
 
 from pandas.tests.indexes.common import Base
 
@@ -156,6 +156,48 @@ class Numeric(Base):
 
         for r, e in zip(result, expected):
             tm.assert_series_equal(r, e)
+
+    def test_div_zero(self, zero):
+        idx = self.create_index()
+
+        expected = Index([np.nan, np.inf, np.inf, np.inf, np.inf],
+                         dtype=np.float64)
+        result = idx / zero
+        tm.assert_index_equal(result, expected)
+        ser_compat = Series(idx).astype('i8') / np.array(zero).astype('i8')
+        tm.assert_series_equal(ser_compat, Series(result))
+
+    def test_floordiv_zero(self, zero):
+        idx = self.create_index()
+        expected = Index([np.nan, np.inf, np.inf, np.inf, np.inf],
+                         dtype=np.float64)
+
+        result = idx // zero
+        tm.assert_index_equal(result, expected)
+        ser_compat = Series(idx).astype('i8') // np.array(zero).astype('i8')
+        tm.assert_series_equal(ser_compat, Series(result))
+
+    def test_mod_zero(self, zero):
+        idx = self.create_index()
+
+        expected = Index([np.nan, np.nan, np.nan, np.nan, np.nan],
+                         dtype=np.float64)
+        result = idx % zero
+        tm.assert_index_equal(result, expected)
+        ser_compat = Series(idx).astype('i8') % np.array(zero).astype('i8')
+        tm.assert_series_equal(ser_compat, Series(result))
+
+    def test_divmod_zero(self, zero):
+        idx = self.create_index()
+
+        exleft = Index([np.nan, np.inf, np.inf, np.inf, np.inf],
+                       dtype=np.float64)
+        exright = Index([np.nan, np.nan, np.nan, np.nan, np.nan],
+                        dtype=np.float64)
+
+        result = divmod(idx, zero)
+        tm.assert_index_equal(result[0], exleft)
+        tm.assert_index_equal(result[1], exright)
 
     def test_explicit_conversions(self):
 

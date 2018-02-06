@@ -190,7 +190,7 @@ Sum/Prod of Empties/Nans
 .. warning::
 
    This behavior is now standard as of v0.21.0; previously sum/prod would give different
-   results if the ``bottleneck`` package was installed. 
+   results if the ``bottleneck`` package was installed.
    See the :ref:`v0.21.0 whatsnew <whatsnew_0210.api_breaking.bottleneck>`.
 
 With ``sum`` or ``prod`` on an empty or all-``NaN`` ``Series``, or columns of a ``DataFrame``, the result will be all-``NaN``.
@@ -353,7 +353,11 @@ examined :ref:`in the API <api.dataframe.missing>`.
 Interpolation
 ~~~~~~~~~~~~~
 
-Both Series and DataFrame objects have an :meth:`~DataFrame.interpolate` method 
+.. versionadded:: 0.21.0
+
+  The ``limit_area`` keyword argument was added.
+
+Both Series and DataFrame objects have an :meth:`~DataFrame.interpolate` method
 that, by default, performs linear interpolation at missing datapoints.
 
 .. ipython:: python
@@ -477,32 +481,53 @@ at the new values.
 .. _documentation: http://docs.scipy.org/doc/scipy/reference/interpolate.html#univariate-interpolation
 .. _guide: http://docs.scipy.org/doc/scipy/reference/tutorial/interpolate.html
 
+.. _missing_data.interp_limits:
+
 Interpolation Limits
 ^^^^^^^^^^^^^^^^^^^^
 
 Like other pandas fill methods, ``interpolate`` accepts a ``limit`` keyword
-argument. Use this argument to limit the number of consecutive interpolations,
-keeping ``NaN`` values for interpolations that are too far from the last valid
-observation:
+argument. Use this argument to limit the number of consecutive ``NaN`` values
+filled since the last valid observation:
 
 .. ipython:: python
 
-   ser = pd.Series([np.nan, np.nan, 5, np.nan, np.nan, np.nan, 13])
-   ser.interpolate(limit=2)
+   ser = pd.Series([np.nan, np.nan, 5, np.nan, np.nan, np.nan, 13, np.nan, np.nan])
 
-By default, ``limit`` applies in a forward direction, so that only ``NaN``
-values after a non-``NaN`` value can be filled. If you provide ``'backward'`` or
-``'both'`` for the ``limit_direction`` keyword argument, you can fill ``NaN``
-values before non-``NaN`` values, or both before and after non-``NaN`` values,
-respectively:
+   # fill all consecutive values in a forward direction
+   ser.interpolate()
+
+   # fill one consecutive value in a forward direction
+   ser.interpolate(limit=1)
+
+By default, ``NaN`` values are filled in a ``forward`` direction. Use
+``limit_direction`` parameter to fill ``backward`` or from ``both`` directions.
 
 .. ipython:: python
 
-   ser.interpolate(limit=1)  # limit_direction == 'forward'
-
+   # fill one consecutive value backwards
    ser.interpolate(limit=1, limit_direction='backward')
 
+   # fill one consecutive value in both directions
    ser.interpolate(limit=1, limit_direction='both')
+
+   # fill all consecutive values in both directions
+   ser.interpolate(limit_direction='both')
+
+By default, ``NaN`` values are filled whether they are inside (surrounded by)
+existing valid values, or outside existing valid values. Introduced in v0.23
+the ``limit_area`` parameter restricts filling to either inside or outside values.
+
+.. ipython:: python
+
+   # fill one consecutive inside value in both directions
+   ser.interpolate(limit_direction='both', limit_area='inside', limit=1)
+
+   # fill all consecutive outside values backward
+   ser.interpolate(limit_direction='backward', limit_area='outside')
+
+   # fill all consecutive outside values in both directions
+   ser.interpolate(limit_direction='both', limit_area='outside')
 
 .. _missing_data.replace:
 

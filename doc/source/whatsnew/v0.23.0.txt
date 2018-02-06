@@ -13,10 +13,38 @@ version.
 New features
 ~~~~~~~~~~~~
 
--
--
--
+.. _whatsnew_0210.enhancements.limit_area:
 
+``DataFrame.interpolate`` has gained the ``limit_area`` kwarg
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+:meth:`DataFrame.interpolate` has gained a ``limit_area`` parameter to allow further control of which ``NaN`` s are replaced.
+Use `limit_area='inside'` to fill only NaNs surrounded by valid values or use `limit_area='outside'` to fill only ``NaN`` s
+outside the existing valid values while preserving those inside.  (:issue:`16284`) See the :ref:`full documentation here <missing_data.interp_limits>`.
+
+
+.. ipython:: python
+
+   ser = pd.Series([np.nan, np.nan, 5, np.nan, np.nan, np.nan, 13, np.nan, np.nan])
+   ser
+
+Fill one consecutive inside value in both directions
+
+.. ipython:: python
+
+   ser.interpolate(limit_direction='both', limit_area='inside', limit=1)
+
+Fill all consecutive outside values backward
+
+.. ipython:: python
+
+   ser.interpolate(limit_direction='backward', limit_area='outside')
+
+Fill all consecutive outside values in both directions
+
+.. ipython:: python
+
+   ser.interpolate(limit_direction='both', limit_area='outside')
 
 .. _whatsnew_0210.enhancements.get_dummies_dtype:
 
@@ -195,6 +223,50 @@ Please note that the string `index` is not supported with the round trip format,
    new_df
    print(new_df.index.name)
 
+.. _whatsnew_0230.enhancements.index_division_by_zero:
+
+Index Division By Zero Fills Correctly
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+Division operations on ``Index`` and subclasses will now fill division of positive numbers by zero with ``np.inf``, division of negative numbers by zero with ``-np.inf`` and `0 / 0` with ``np.nan``.  This matches existing ``Series`` behavior. (:issue:`19322`, :issue:`19347`)
+
+Previous Behavior:
+
+.. code-block:: ipython
+
+    In [6]: index = pd.Int64Index([-1, 0, 1])
+
+    In [7]: index / 0
+    Out[7]: Int64Index([0, 0, 0], dtype='int64')
+
+    # Previous behavior yielded different results depending on the type of zero in the divisor
+    In [8]: index / 0.0
+    Out[8]: Float64Index([-inf, nan, inf], dtype='float64')
+
+    In [9]: index = pd.UInt64Index([0, 1])
+
+    In [10]: index / np.array([0, 0], dtype=np.uint64)
+    Out[10]: UInt64Index([0, 0], dtype='uint64')
+
+    In [11]: pd.RangeIndex(1, 5) / 0
+    ZeroDivisionError: integer division or modulo by zero
+
+Current Behavior:
+
+.. ipython:: python
+
+    index = pd.Int64Index([-1, 0, 1])
+    # division by zero gives -infinity where negative, +infinity where positive, and NaN for 0 / 0
+    index / 0
+
+    # The result of division by zero should not depend on whether the zero is int or float
+    index / 0.0
+
+    index = pd.UInt64Index([0, 1])
+    index / np.array([0, 0], dtype=np.uint64)
+
+    pd.RangeIndex(1, 5) / 0
+
 .. _whatsnew_0230.enhancements.other:
 
 Other Enhancements
@@ -226,6 +298,7 @@ Other Enhancements
   :func:`pandas.api.extensions.register_index_accessor`, accessor for libraries downstream of pandas
   to register custom accessors like ``.cat`` on pandas objects. See
   :ref:`Registering Custom Accessors <developer.register-accessors>` for more (:issue:`14781`).
+
 - ``IntervalIndex.astype`` now supports conversions between subtypes when passed an ``IntervalDtype`` (:issue:`19197`)
 - :class:`IntervalIndex` and its associated constructor methods (``from_arrays``, ``from_breaks``, ``from_tuples``) have gained a ``dtype`` parameter (:issue:`19262`)
 
@@ -279,12 +352,63 @@ Convert to an xarray DataArray
    p.to_xarray()
 
 
+.. _whatsnew_0230.api_breaking.build_changes:
+
 Build Changes
 ^^^^^^^^^^^^^
 
 - Building pandas for development now requires ``cython >= 0.24`` (:issue:`18613`)
 - Building from source now explicitly requires ``setuptools`` in ``setup.py`` (:issue:`18113`)
 - Updated conda recipe to be in compliance with conda-build 3.0+ (:issue:`18002`)
+
+.. _whatsnew_0230.api_breaking.extract:
+
+Extraction of matching patterns from strings
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+By default, extracting matching patterns from strings with :func:`str.extract` used to return a
+``Series`` if a single group was being extracted (a ``DataFrame`` if more than one group was
+extracted``). As of Pandas 0.23.0 :func:`str.extract` always returns a ``DataFrame``, unless
+``expand`` is set to ``False`` (:issue:`11386`).
+
+Also, ``None`` was an accepted value for the ``expand`` parameter (which was equivalent to
+``False``), but now raises a ``ValueError``.
+
+Previous Behavior:
+
+.. code-block:: ipython
+
+    In [1]: s = pd.Series(['number 10', '12 eggs'])
+
+    In [2]: extracted = s.str.extract('.*(\d\d).*')
+
+    In [3]: extracted
+    Out [3]:
+    0    10
+    1    12
+    dtype: object
+
+    In [4]: type(extracted)
+    Out [4]:
+    pandas.core.series.Series
+
+New Behavior:
+
+.. ipython:: python
+
+    s = pd.Series(['number 10', '12 eggs'])
+    extracted = s.str.extract('.*(\d\d).*')
+    extracted
+    type(extracted)
+
+To restore previous behavior, simply set ``expand`` to ``False``:
+
+.. ipython:: python
+
+    s = pd.Series(['number 10', '12 eggs'])
+    extracted = s.str.extract('.*(\d\d).*', expand=False)
+    extracted
+    type(extracted)
 
 .. _whatsnew_0230.api:
 
@@ -331,6 +455,8 @@ Other API Changes
 - :func:`DatetimeIndex.shift` and :func:`TimedeltaIndex.shift` will now raise ``NullFrequencyError`` (which subclasses ``ValueError``, which was raised in older versions) when the index object frequency is ``None`` (:issue:`19147`)
 - Addition and subtraction of ``NaN`` from a :class:`Series` with ``dtype='timedelta64[ns]'`` will raise a ``TypeError` instead of treating the ``NaN`` as ``NaT`` (:issue:`19274`)
 - Set operations (union, difference...) on :class:`IntervalIndex` with incompatible index types will now raise a ``TypeError`` rather than a ``ValueError`` (:issue:`19329`)
+- :class:`DateOffset` objects render more simply, e.g. "<DateOffset: days=1>" instead of "<DateOffset: kwds={'days': 1}>" (:issue:`19403`)
+- :func:`pandas.merge` provides a more informative error message when trying to merge on timezone-aware and timezone-naive columns (:issue:`15800`)
 - :func:`Timedelta.__mod__`, :func:`Timedelta.__divmod__` now accept timedelta-like and numeric arguments instead of raising ``TypeError`` (:issue:`19365`)
 
 .. _whatsnew_0230.deprecations:
@@ -349,7 +475,7 @@ Deprecations
 - :func:`read_excel` has deprecated the ``skip_footer`` parameter. Use ``skipfooter`` instead (:issue:`18836`)
 - The ``is_copy`` attribute is deprecated and will be removed in a future version (:issue:`18801`).
 - ``IntervalIndex.from_intervals`` is deprecated in favor of the :class:`IntervalIndex` constructor (:issue:`19263`)
-
+- :func:``DataFrame.from_items`` is deprecated. Use :func:``DataFrame.from_dict()`` instead, or :func:``DataFrame.from_dict(OrderedDict())`` if you wish to preserve the key order (:issue:`17320`)
 
 .. _whatsnew_0230.prior_deprecations:
 
@@ -381,6 +507,8 @@ Removal of prior version deprecations/changes
 - The ``labels`` attribute of the ``Categorical`` class has been removed in favor of :attribute:`Categorical.codes` (:issue:`7768`)
 - The ``flavor`` parameter have been removed from func:`to_sql` method (:issue:`13611`)
 - The modules `pandas.tools.hashing` and `pandas.util.hashing` have been removed (:issue:`16223`)
+- The top-level functions ``pd.rolling_*``, ``pd.expanding_*`` and ``pd.ewm*`` have been removed (Deprecated since v0.18).
+  Instead, use the DataFrame/Series methods :attr:`~DataFrame.rolling`, :attr:`~DataFrame.expanding` and :attr:`~DataFrame.ewm` (:issue:`18723`)
 
 .. _whatsnew_0230.performance:
 
@@ -401,7 +529,7 @@ Performance Improvements
 - :func:`Series` / :func:`DataFrame` tab completion limits to 100 values, for better performance. (:issue:`18587`)
 - Improved performance of :func:`DataFrame.median` with ``axis=1`` when bottleneck is not installed (:issue:`16468`)
 - Improved performance of :func:`MultiIndex.get_loc` for large indexes, at the cost of a reduction in performance for small ones (:issue:`18519`)
-
+- Improved performance of pairwise ``.rolling()`` and ``.expanding()`` with ``.cov()`` and ``.corr()`` operations (:issue:`17917`)
 
 .. _whatsnew_0230.docs:
 
@@ -440,6 +568,9 @@ Datetimelike
 - Bug in ``.astype()`` to non-ns timedelta units would hold the incorrect dtype (:issue:`19176`, :issue:`19223`, :issue:`12425`)
 - Bug in subtracting :class:`Series` from ``NaT`` incorrectly returning ``NaT`` (:issue:`19158`)
 - Bug in :func:`Series.truncate` which raises ``TypeError`` with a monotonic ``PeriodIndex`` (:issue:`17717`)
+- Bug in :func:`~DataFrame.pct_change` using ``periods`` and ``freq`` returned different length outputs (:issue:`7292`)
+- Bug in comparison of :class:`DatetimeIndex` against ``None`` or ``datetime.date`` objects raising ``TypeError`` for ``==`` and ``!=`` comparisons instead of all-``False`` and all-``True``, respectively (:issue:`19301`)
+-
 
 
 Timezones
@@ -471,8 +602,6 @@ Numeric
 - Bug in :class:`Index` multiplication and division methods where operating with a ``Series`` would return an ``Index`` object instead of a ``Series`` object (:issue:`19042`)
 - Bug in the :class:`DataFrame` constructor in which data containing very large positive or very large negative numbers was causing ``OverflowError`` (:issue:`18584`)
 - Bug in :class:`Index` constructor with ``dtype='uint64'`` where int-like floats were not coerced to :class:`UInt64Index` (:issue:`18400`)
-
--
 
 
 Indexing
@@ -518,14 +647,13 @@ I/O
 - Bug in :func:`DataFrame.to_parquet` where an exception was raised if the write destination is S3 (:issue:`19134`)
 - :class:`Interval` now supported in :func:`DataFrame.to_excel` for all Excel file types (:issue:`19242`)
 - :class:`Timedelta` now supported in :func:`DataFrame.to_excel` for xls file type (:issue:`19242`, :issue:`9155`)
--
 
 Plotting
 ^^^^^^^^
 
 - :func: `DataFrame.plot` now raises a ``ValueError`` when the ``x`` or ``y`` argument is improperly formed (:issue:`18671`)
 - Bug in formatting tick labels with ``datetime.time()`` and fractional seconds (:issue:`18478`).
--
+- :meth:`Series.plot.kde` has exposed the args ``ind`` and ``bw_method`` in the docstring (:issue:`18461`). The argument ``ind`` may now also be an integer (number of sample points).
 -
 
 Groupby/Resample/Rolling
@@ -535,15 +663,15 @@ Groupby/Resample/Rolling
 - Fixed regression in :func:`DataFrame.groupby` which would not emit an error when called with a tuple key not in the index (:issue:`18798`)
 - Bug in :func:`DataFrame.resample` which silently ignored unsupported (or mistyped) options for ``label``, ``closed`` and ``convention`` (:issue:`19303`)
 - Bug in :func:`DataFrame.groupby` where tuples were interpreted as lists of keys rather than as keys (:issue:`17979`, :issue:`18249`)
-- Bug in ``transform`` where particular aggregation functions were being incorrectly cast to match the dtype(s) of the grouped data (:issue:`19200`)
--
+- Bug in :func:`DataFrame.transform` where particular aggregation functions were being incorrectly cast to match the dtype(s) of the grouped data (:issue:`19200`)
+- Bug in :func:`DataFrame.groupby` passing the `on=` kwarg, and subsequently using ``.apply()`` (:issue:`17813`)
 
 Sparse
 ^^^^^^
 
 - Bug in which creating a ``SparseDataFrame`` from a dense ``Series`` or an unsupported type raised an uncontrolled exception (:issue:`19374`)
--
--
+- Bug in :class:`SparseDataFrame.to_csv` causing exception (:issue:`19384`)
+- Bug in :class:`SparseSeries.memory_usage` which caused segfault by accessing non sparse elements (:issue:`19368`)
 
 Reshaping
 ^^^^^^^^^
@@ -558,6 +686,7 @@ Reshaping
 - Bug in :func:`DataFrame.merge` in which merging using ``Index`` objects as vectors raised an Exception (:issue:`19038`)
 - Bug in :func:`DataFrame.stack`, :func:`DataFrame.unstack`, :func:`Series.unstack` which were not returning subclasses (:issue:`15563`)
 - Bug in timezone comparisons, manifesting as a conversion of the index to UTC in ``.concat()`` (:issue:`18523`)
+- Bug in :func:`concat` when concatting sparse and dense series it returns only a ``SparseDataFrame``. Should be a ``DataFrame``. (:issue:`18914`, :issue:`18686`, and :issue:`16874`)
 -
 
 

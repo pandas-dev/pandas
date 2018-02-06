@@ -98,32 +98,6 @@ class TestTimedeltaIndexOps(Ops):
             tm.assert_raises_regex(
                 ValueError, errmsg, np.argmax, td, out=0)
 
-    def test_round(self):
-        td = pd.timedelta_range(start='16801 days', periods=5, freq='30Min')
-        elt = td[1]
-
-        expected_rng = TimedeltaIndex([
-            Timedelta('16801 days 00:00:00'),
-            Timedelta('16801 days 00:00:00'),
-            Timedelta('16801 days 01:00:00'),
-            Timedelta('16801 days 02:00:00'),
-            Timedelta('16801 days 02:00:00'),
-        ])
-        expected_elt = expected_rng[1]
-
-        tm.assert_index_equal(td.round(freq='H'), expected_rng)
-        assert elt.round(freq='H') == expected_elt
-
-        msg = pd._libs.tslibs.frequencies._INVALID_FREQ_ERROR
-        with tm.assert_raises_regex(ValueError, msg):
-            td.round(freq='foo')
-        with tm.assert_raises_regex(ValueError, msg):
-            elt.round(freq='foo')
-
-        msg = "<MonthEnd> is a non-fixed frequency"
-        tm.assert_raises_regex(ValueError, msg, td.round, freq='M')
-        tm.assert_raises_regex(ValueError, msg, elt.round, freq='M')
-
     def test_representation(self):
         idx1 = TimedeltaIndex([], freq='D')
         idx2 = TimedeltaIndex(['1 days'], freq='D')
@@ -387,25 +361,7 @@ dtype: timedelta64[ns]"""
         tm.assert_numpy_array_equal(result, exp)
 
     def test_shift(self):
-        # GH 9903
-        idx = pd.TimedeltaIndex([], name='xxx')
-        tm.assert_index_equal(idx.shift(0, freq='H'), idx)
-        tm.assert_index_equal(idx.shift(3, freq='H'), idx)
-
-        idx = pd.TimedeltaIndex(['5 hours', '6 hours', '9 hours'], name='xxx')
-        tm.assert_index_equal(idx.shift(0, freq='H'), idx)
-        exp = pd.TimedeltaIndex(['8 hours', '9 hours', '12 hours'], name='xxx')
-        tm.assert_index_equal(idx.shift(3, freq='H'), exp)
-        exp = pd.TimedeltaIndex(['2 hours', '3 hours', '6 hours'], name='xxx')
-        tm.assert_index_equal(idx.shift(-3, freq='H'), exp)
-
-        tm.assert_index_equal(idx.shift(0, freq='T'), idx)
-        exp = pd.TimedeltaIndex(['05:03:00', '06:03:00', '9:03:00'],
-                                name='xxx')
-        tm.assert_index_equal(idx.shift(3, freq='T'), exp)
-        exp = pd.TimedeltaIndex(['04:57:00', '05:57:00', '8:57:00'],
-                                name='xxx')
-        tm.assert_index_equal(idx.shift(-3, freq='T'), exp)
+        pass  # handled in test_arithmetic.py
 
     def test_repeat(self):
         index = pd.timedelta_range('1 days', periods=2, freq='D')
@@ -464,7 +420,6 @@ dtype: timedelta64[ns]"""
 
 
 class TestTimedeltas(object):
-    _multiprocess_can_split_ = True
 
     def test_timedelta_ops(self):
         # GH4984

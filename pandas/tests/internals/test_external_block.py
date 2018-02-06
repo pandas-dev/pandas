@@ -5,12 +5,12 @@ import numpy as np
 
 import pandas as pd
 from pandas.core.internals import (
-    Block, BlockManager, SingleBlockManager, NonConsolidatableMixIn)
+    BlockManager, SingleBlockManager, ExtensionBlock)
 
 import pytest
 
 
-class CustomBlock(NonConsolidatableMixIn, Block):
+class CustomBlock(ExtensionBlock):
 
     _holder = np.ndarray
 

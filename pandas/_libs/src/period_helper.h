@@ -24,9 +24,6 @@ frequency conversion routines.
  * declarations from period here
  */
 
-#define GREGORIAN_CALENDAR 0
-#define JULIAN_CALENDAR 1
-
 #define SECONDS_PER_DAY ((double)86400.0)
 
 #define Py_AssertWithArg(x, errortype, errorstr, a1) \
@@ -112,15 +109,6 @@ frequency conversion routines.
 
 #define INT_ERR_CODE INT32_MIN
 
-#define MEM_CHECK(item)          \
-    if (item == NULL) {          \
-        return PyErr_NoMemory(); \
-    }
-#define ERR_CHECK(item) \
-    if (item == NULL) { \
-        return NULL;    \
-    }
-
 typedef struct asfreq_info {
     int from_week_end;  // day the week ends on in the "from" frequency
     int to_week_end;    // day the week ends on in the "to" frequency
@@ -147,7 +135,6 @@ typedef struct date_info {
     int year;
     int day_of_week;
     int day_of_year;
-    int calendar;
 } date_info;
 
 typedef npy_int64 (*freq_conv_func)(npy_int64, char, asfreq_info *);
@@ -182,7 +169,6 @@ int pminute(npy_int64 ordinal, int freq);
 int psecond(npy_int64 ordinal, int freq);
 int pdays_in_month(npy_int64 ordinal, int freq);
 
-double getAbsTime(int freq, npy_int64 dailyDate, npy_int64 originalDate);
 char *c_strftime(struct date_info *dinfo, char *fmt);
 int get_yq(npy_int64 ordinal, int freq, int *quarter, int *year);
 

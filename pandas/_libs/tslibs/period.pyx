@@ -59,7 +59,6 @@ cdef extern from "period_helper.h":
         int year
         int day_of_week
         int day_of_year
-        int calendar
 
     ctypedef struct asfreq_info:
         int from_week_end
@@ -370,15 +369,6 @@ cdef object _period_strftime(int64_t value, int freq, object fmt):
 # period accessors
 
 ctypedef int (*accessor)(int64_t ordinal, int freq) except INT32_MIN
-
-
-def get_period_field(int code, int64_t value, int freq):
-    cdef accessor f = _get_accessor_func(code)
-    if f is NULL:
-        raise ValueError('Unrecognized period code: %d' % code)
-    if value == iNaT:
-        return np.nan
-    return f(value, freq)
 
 
 def get_period_field_arr(int code, ndarray[int64_t] arr, int freq):
