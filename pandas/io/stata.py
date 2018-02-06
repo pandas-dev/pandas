@@ -1341,11 +1341,13 @@ class StataReader(StataParser, BaseIterator):
                 return s
 
     def _read_value_labels(self):
-        if self.format_version <= 108:
-            # Value labels are not supported in version 108 and earlier.
-            return
         if self._value_labels_read:
             # Don't read twice
+            return
+        if self.format_version <= 108:
+            # Value labels are not supported in version 108 and earlier.
+            self._value_labels_read = True
+            self.value_label_dict = dict()
             return
 
         if self.format_version >= 117:
