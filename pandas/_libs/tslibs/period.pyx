@@ -59,7 +59,6 @@ cdef extern from "period_helper.h":
         int year
         int day_of_week
         int day_of_year
-        int calendar
 
     ctypedef struct asfreq_info:
         int from_week_end

@@ -233,7 +233,7 @@ See also
 --------
 merge_ordered
 merge_asof
-
+DataFrame.join
 """
 
 # -----------------------------------------------------------------------
@@ -3079,6 +3079,14 @@ class DataFrame(NDFrame):
                      self).fillna(value=value, method=method, axis=axis,
                                   inplace=inplace, limit=limit,
                                   downcast=downcast, **kwargs)
+
+    @Appender(_shared_docs['replace'] % _shared_doc_kwargs)
+    def replace(self, to_replace=None, value=None, inplace=False, limit=None,
+                regex=False, method='pad', axis=None):
+        return super(DataFrame, self).replace(to_replace=to_replace,
+                                              value=value, inplace=inplace,
+                                              limit=limit, regex=regex,
+                                              method=method, axis=axis)
 
     @Appender(_shared_docs['shift'] % _shared_doc_kwargs)
     def shift(self, periods=1, freq=None, axis=0):

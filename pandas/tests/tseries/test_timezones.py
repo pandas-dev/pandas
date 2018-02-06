@@ -8,21 +8,19 @@ import numpy as np
 from dateutil.parser import parse
 from pytz import NonExistentTimeError
 from distutils.version import LooseVersion
-from dateutil.tz import tzlocal, tzoffset
-from datetime import datetime, timedelta, tzinfo, date
+from dateutil.tz import tzlocal
+from datetime import datetime, timedelta, tzinfo
 
 import pandas.util.testing as tm
 import pandas.util._test_decorators as td
 import pandas.tseries.offsets as offsets
 from pandas.compat import lrange, zip
 from pandas.core.indexes.datetimes import bdate_range, date_range
-from pandas.core.dtypes.dtypes import DatetimeTZDtype
 from pandas._libs import tslib
 from pandas._libs.tslibs import timezones, conversion
-from pandas import (Index, Series, DataFrame, isna, Timestamp, NaT,
+from pandas import (Index, isna, Timestamp, NaT,
                     DatetimeIndex, to_datetime)
-from pandas.util.testing import (assert_frame_equal, assert_series_equal,
-                                 set_timezone)
+from pandas.util.testing import set_timezone
 
 
 class FixedOffset(tzinfo):
@@ -121,120 +119,6 @@ class TestTimeZoneSupportPytz(object):
         pytest.raises(NonExistentTimeError, rng.tz_localize,
                       self.tz('US/Eastern'))
 
-    def test_timestamp_tz_localize(self):
-        stamp = Timestamp('3/11/2012 04:00')
-
-        result = stamp.tz_localize(self.tzstr('US/Eastern'))
-        expected = Timestamp('3/11/2012 04:00', tz=self.tzstr('US/Eastern'))
-        assert result.hour == expected.hour
-        assert result == expected
-
-    def test_timestamp_tz_localize_explicit(self):
-        stamp = Timestamp('3/11/2012 04:00')
-
-        result = stamp.tz_localize(self.tz('US/Eastern'))
-        expected = Timestamp('3/11/2012 04:00', tz=self.tz('US/Eastern'))
-        assert result.hour == expected.hour
-        assert result == expected
-
-    def test_timestamp_constructed_by_date_and_tz(self):
-        # Fix Issue 2993, Timestamp cannot be constructed by datetime.date
-        # and tz correctly
-
-        result = Timestamp(date(2012, 3, 11), tz=self.tzstr('US/Eastern'))
-
-        expected = Timestamp('3/11/2012', tz=self.tzstr('US/Eastern'))
-        assert result.hour == expected.hour
-        assert result == expected
-
-    def test_timestamp_constructed_by_date_and_tz_explicit(self):
-        # Fix Issue 2993, Timestamp cannot be constructed by datetime.date
-        # and tz correctly
-
-        result = Timestamp(date(2012, 3, 11), tz=self.tz('US/Eastern'))
-
-        expected = Timestamp('3/11/2012', tz=self.tz('US/Eastern'))
-        assert result.hour == expected.hour
-        assert result == expected
-
-    def test_timestamp_constructor_near_dst_boundary(self):
-        # GH 11481 & 15777
-        # Naive string timestamps were being localized incorrectly
-        # with tz_convert_single instead of tz_localize_to_utc
-
-        for tz in ['Europe/Brussels', 'Europe/Prague']:
-            result = Timestamp('2015-10-25 01:00', tz=tz)
-            expected = Timestamp('2015-10-25 01:00').tz_localize(tz)
-            assert result == expected
-
-            with pytest.raises(pytz.AmbiguousTimeError):
-                Timestamp('2015-10-25 02:00', tz=tz)
-
-        result = Timestamp('2017-03-26 01:00', tz='Europe/Paris')
-        expected = Timestamp('2017-03-26 01:00').tz_localize('Europe/Paris')
-        assert result == expected
-
-        with pytest.raises(pytz.NonExistentTimeError):
-            Timestamp('2017-03-26 02:00', tz='Europe/Paris')
-
-        # GH 11708
-        result = to_datetime("2015-11-18 15:30:00+05:30").tz_localize(
-            'UTC').tz_convert('Asia/Kolkata')
-        expected = Timestamp('2015-11-18 15:30:00+0530', tz='Asia/Kolkata')
-        assert result == expected
-
-        # GH 15823
-        result = Timestamp('2017-03-26 00:00', tz='Europe/Paris')
-        expected = Timestamp('2017-03-26 00:00:00+0100', tz='Europe/Paris')
-        assert result == expected
-
-        result = Timestamp('2017-03-26 01:00', tz='Europe/Paris')
-        expected = Timestamp('2017-03-26 01:00:00+0100', tz='Europe/Paris')
-        assert result == expected
-
-        with pytest.raises(pytz.NonExistentTimeError):
-            Timestamp('2017-03-26 02:00', tz='Europe/Paris')
-        result = Timestamp('2017-03-26 02:00:00+0100', tz='Europe/Paris')
-        expected = Timestamp(result.value).tz_localize(
-            'UTC').tz_convert('Europe/Paris')
-        assert result == expected
-
-        result = Timestamp('2017-03-26 03:00', tz='Europe/Paris')
-        expected = Timestamp('2017-03-26 03:00:00+0200', tz='Europe/Paris')
-        assert result == expected
-
-    def test_timestamp_to_datetime_tzoffset(self):
-        tzinfo = tzoffset(None, 7200)
-        expected = Timestamp('3/11/2012 04:00', tz=tzinfo)
-        result = Timestamp(expected.to_pydatetime())
-        assert expected == result
-
-    def test_timedelta_push_over_dst_boundary(self):
-        # #1389
-
-        # 4 hours before DST transition
-        stamp = Timestamp('3/10/2012 22:00', tz=self.tzstr('US/Eastern'))
-
-        result = stamp + timedelta(hours=6)
-
-        # spring forward, + "7" hours
-        expected = Timestamp('3/11/2012 05:00', tz=self.tzstr('US/Eastern'))
-
-        assert result == expected
-
-    def test_timedelta_push_over_dst_boundary_explicit(self):
-        # #1389
-
-        # 4 hours before DST transition
-        stamp = Timestamp('3/10/2012 22:00', tz=self.tz('US/Eastern'))
-
-        result = stamp + timedelta(hours=6)
-
-        # spring forward, + "7" hours
-        expected = Timestamp('3/11/2012 05:00', tz=self.tz('US/Eastern'))
-
-        assert result == expected
-
     def test_tz_localize_dti(self):
         dti = DatetimeIndex(start='1/1/2005', end='1/1/2005 0:00:30.256',
                             freq='L')
@@ -258,24 +142,6 @@ class TestTimeZoneSupportPytz(object):
         pytest.raises(pytz.NonExistentTimeError, dti.tz_localize,
                       self.tzstr('US/Eastern'))
 
-    def test_tz_localize_empty_series(self):
-        # #2248
-
-        ts = Series()
-
-        ts2 = ts.tz_localize('utc')
-        assert ts2.index.tz == pytz.utc
-
-        ts2 = ts.tz_localize(self.tzstr('US/Eastern'))
-        assert self.cmptz(ts2.index.tz, self.tz('US/Eastern'))
-
-    def test_astimezone(self):
-        utc = Timestamp('3/11/2012 22:00', tz='UTC')
-        expected = utc.tz_convert(self.tzstr('US/Eastern'))
-        result = utc.astimezone(self.tzstr('US/Eastern'))
-        assert expected == result
-        assert isinstance(result, Timestamp)
-
     def test_create_with_tz(self):
         stamp = Timestamp('3/11/2012 05:00', tz=self.tzstr('US/Eastern'))
         assert stamp.hour == 5
@@ -284,13 +150,6 @@ class TestTimeZoneSupportPytz(object):
                          tz=self.tzstr('US/Eastern'))
 
         assert stamp == rng[1]
-
-        utc_stamp = Timestamp('3/11/2012 05:00', tz='utc')
-        assert utc_stamp.tzinfo is pytz.utc
-        assert utc_stamp.hour == 5
-
-        utc_stamp = Timestamp('3/11/2012 05:00').tz_localize('utc')
-        assert utc_stamp.hour == 5
 
     def test_create_with_fixed_tz(self):
         off = FixedOffset(420, '+07:00')
@@ -585,44 +444,6 @@ class TestTimeZoneSupportPytz(object):
         # right is datetime64[ns, tzfile('/usr/share/zoneinfo/US/Eastern')]
         tm.assert_numpy_array_equal(di_test.values, localized.values)
 
-    def test_ambiguous_bool(self):
-        # make sure that we are correctly accepting bool values as ambiguous
-
-        # gh-14402
-        t = Timestamp('2015-11-01 01:00:03')
-        expected0 = Timestamp('2015-11-01 01:00:03-0500', tz='US/Central')
-        expected1 = Timestamp('2015-11-01 01:00:03-0600', tz='US/Central')
-
-        def f():
-            t.tz_localize('US/Central')
-        pytest.raises(pytz.AmbiguousTimeError, f)
-
-        result = t.tz_localize('US/Central', ambiguous=True)
-        assert result == expected0
-
-        result = t.tz_localize('US/Central', ambiguous=False)
-        assert result == expected1
-
-        s = Series([t])
-        expected0 = Series([expected0])
-        expected1 = Series([expected1])
-
-        def f():
-            s.dt.tz_localize('US/Central')
-        pytest.raises(pytz.AmbiguousTimeError, f)
-
-        result = s.dt.tz_localize('US/Central', ambiguous=True)
-        assert_series_equal(result, expected0)
-
-        result = s.dt.tz_localize('US/Central', ambiguous=[True])
-        assert_series_equal(result, expected0)
-
-        result = s.dt.tz_localize('US/Central', ambiguous=False)
-        assert_series_equal(result, expected1)
-
-        result = s.dt.tz_localize('US/Central', ambiguous=[False])
-        assert_series_equal(result, expected1)
-
     def test_nonexistent_raise_coerce(self):
         # See issue 13057
         from pytz.exceptions import NonExistentTimeError
@@ -705,34 +526,6 @@ class TestTimeZoneSupportPytz(object):
             assert x == exval
             assert x.tzinfo == exval.tzinfo
 
-    def test_localized_at_time_between_time(self):
-        from datetime import time
-
-        rng = date_range('4/16/2012', '5/1/2012', freq='H')
-        ts = Series(np.random.randn(len(rng)), index=rng)
-
-        ts_local = ts.tz_localize(self.tzstr('US/Eastern'))
-
-        result = ts_local.at_time(time(10, 0))
-        expected = ts.at_time(time(10, 0)).tz_localize(self.tzstr(
-            'US/Eastern'))
-        assert_series_equal(result, expected)
-        assert self.cmptz(result.index.tz, self.tz('US/Eastern'))
-
-        t1, t2 = time(10, 0), time(11, 0)
-        result = ts_local.between_time(t1, t2)
-        expected = ts.between_time(t1,
-                                   t2).tz_localize(self.tzstr('US/Eastern'))
-        assert_series_equal(result, expected)
-        assert self.cmptz(result.index.tz, self.tz('US/Eastern'))
-
-    def test_string_index_alias_tz_aware(self):
-        rng = date_range('1/1/2000', periods=10, tz=self.tzstr('US/Eastern'))
-        ts = Series(np.random.randn(len(rng)), index=rng)
-
-        result = ts['1/3/2000']
-        tm.assert_almost_equal(result, ts[2])
-
     def test_fixed_offset(self):
         dates = [datetime(2000, 1, 1, tzinfo=fixed_off),
                  datetime(2000, 1, 2, tzinfo=fixed_off),
@@ -786,29 +579,6 @@ class TestTimeZoneSupportPytz(object):
         result = to_datetime(arr, utc=True)
         assert result.tz is pytz.utc
 
-    def test_frame_no_datetime64_dtype(self):
-
-        # after 7822
-        # these retain the timezones on dict construction
-
-        dr = date_range('2011/1/1', '2012/1/1', freq='W-FRI')
-        dr_tz = dr.tz_localize(self.tzstr('US/Eastern'))
-        e = DataFrame({'A': 'foo', 'B': dr_tz}, index=dr)
-        tz_expected = DatetimeTZDtype('ns', dr_tz.tzinfo)
-        assert e['B'].dtype == tz_expected
-
-        # GH 2810 (with timezones)
-        datetimes_naive = [ts.to_pydatetime() for ts in dr]
-        datetimes_with_tz = [ts.to_pydatetime() for ts in dr_tz]
-        df = DataFrame({'dr': dr,
-                        'dr_tz': dr_tz,
-                        'datetimes_naive': datetimes_naive,
-                        'datetimes_with_tz': datetimes_with_tz})
-        result = df.get_dtype_counts().sort_index()
-        expected = Series({'datetime64[ns]': 2,
-                           str(tz_expected): 2}).sort_index()
-        assert_series_equal(result, expected)
-
     def test_hongkong_tz_convert(self):
         # #1673
         dr = date_range('2012-01-01', '2012-01-10', freq='D', tz='Hongkong')
@@ -830,15 +600,6 @@ class TestTimeZoneSupportPytz(object):
 
         result = dr_tz.shift(1, '10T')
         assert result.tz == dr_tz.tz
-
-    def test_tz_aware_asfreq(self):
-        dr = date_range('2011-12-01', '2012-07-20', freq='D',
-                        tz=self.tzstr('US/Eastern'))
-
-        s = Series(np.random.randn(len(dr)), index=dr)
-
-        # it works!
-        s.asfreq('T')
 
     def test_static_tzinfo(self):
         # it works!
@@ -871,43 +632,6 @@ class TestTimeZoneSupportPytz(object):
         tm.assert_index_equal(dr, dr2)
         assert dr.tz == dr2.tz
         assert dr2.name == 'foo'
-
-    def test_frame_from_records_utc(self):
-        rec = {'datum': 1.5,
-               'begin_time': datetime(2006, 4, 27, tzinfo=pytz.utc)}
-
-        # it works
-        DataFrame.from_records([rec], index='begin_time')
-
-    def test_frame_reset_index(self):
-        dr = date_range('2012-06-02', periods=10, tz=self.tzstr('US/Eastern'))
-        df = DataFrame(np.random.randn(len(dr)), dr)
-        roundtripped = df.reset_index().set_index('index')
-        xp = df.index.tz
-        rs = roundtripped.index.tz
-        assert xp == rs
-
-    def test_dateutil_tzoffset_support(self):
-        values = [188.5, 328.25]
-        tzinfo = tzoffset(None, 7200)
-        index = [datetime(2012, 5, 11, 11, tzinfo=tzinfo),
-                 datetime(2012, 5, 11, 12, tzinfo=tzinfo)]
-        series = Series(data=values, index=index)
-
-        assert series.index.tz == tzinfo
-
-        # it works! #2443
-        repr(series.index[0])
-
-    def test_getitem_pydatetime_tz(self):
-        index = date_range(start='2012-12-24 16:00', end='2012-12-24 18:00',
-                           freq='H', tz=self.tzstr('Europe/Berlin'))
-        ts = Series(index=index, data=index.hour)
-        time_pandas = Timestamp('2012-12-24 17:00',
-                                tz=self.tzstr('Europe/Berlin'))
-        time_datetime = self.localize(
-            self.tz('Europe/Berlin'), datetime(2012, 12, 24, 17, 0))
-        assert ts[time_pandas] == ts[time_datetime]
 
     def test_index_drop_dont_lose_tz(self):
         # #2621
@@ -987,20 +711,6 @@ class TestTimeZoneSupportDateutil(TestTimeZoneSupportPytz):
     def normalize(self, ts):
         # no-op for dateutil
         return ts
-
-    @td.skip_if_windows
-    def test_utc_with_system_utc(self):
-        from pandas._libs.tslibs.timezones import maybe_get_tz
-
-        # from system utc to real utc
-        ts = Timestamp('2001-01-05 11:56', tz=maybe_get_tz('dateutil/UTC'))
-        # check that the time hasn't changed.
-        assert ts == ts.tz_convert(dateutil.tz.tzutc())
-
-        # from system utc to real utc
-        ts = Timestamp('2001-01-05 11:56', tz=maybe_get_tz('dateutil/UTC'))
-        # check that the time hasn't changed.
-        assert ts == ts.tz_convert(dateutil.tz.tzutc())
 
     def test_tz_convert_hour_overflow_dst(self):
         # Regression test for:
@@ -1215,47 +925,6 @@ class TestTimeZoneCacheKey(object):
 class TestTimeZones(object):
     timezones = ['UTC', 'Asia/Tokyo', 'US/Eastern', 'dateutil/US/Pacific']
 
-    def test_ambiguous_compat(self):
-        # validate that pytz and dateutil are compat for dst
-        # when the transition happens
-
-        pytz_zone = 'Europe/London'
-        dateutil_zone = 'dateutil/Europe/London'
-        result_pytz = (Timestamp('2013-10-27 01:00:00')
-                       .tz_localize(pytz_zone, ambiguous=0))
-        result_dateutil = (Timestamp('2013-10-27 01:00:00')
-                           .tz_localize(dateutil_zone, ambiguous=0))
-        assert result_pytz.value == result_dateutil.value
-        assert result_pytz.value == 1382835600000000000
-
-        if LooseVersion(dateutil.__version__) < LooseVersion('2.6.0'):
-            # dateutil 2.6 buggy w.r.t. ambiguous=0
-            # see gh-14621
-            # see https://github.com/dateutil/dateutil/issues/321
-            assert (result_pytz.to_pydatetime().tzname() ==
-                    result_dateutil.to_pydatetime().tzname())
-            assert str(result_pytz) == str(result_dateutil)
-        elif LooseVersion(dateutil.__version__) > LooseVersion('2.6.0'):
-            # fixed ambiguous behavior
-            assert result_pytz.to_pydatetime().tzname() == 'GMT'
-            assert result_dateutil.to_pydatetime().tzname() == 'BST'
-            assert str(result_pytz) != str(result_dateutil)
-
-        # 1 hour difference
-        result_pytz = (Timestamp('2013-10-27 01:00:00')
-                       .tz_localize(pytz_zone, ambiguous=1))
-        result_dateutil = (Timestamp('2013-10-27 01:00:00')
-                           .tz_localize(dateutil_zone, ambiguous=1))
-        assert result_pytz.value == result_dateutil.value
-        assert result_pytz.value == 1382832000000000000
-
-        # dateutil < 2.6 is buggy w.r.t. ambiguous timezones
-        if LooseVersion(dateutil.__version__) > LooseVersion('2.5.3'):
-            # see gh-14621
-            assert str(result_pytz) == str(result_dateutil)
-            assert (result_pytz.to_pydatetime().tzname() ==
-                    result_dateutil.to_pydatetime().tzname())
-
     def test_index_equals_with_tz(self):
         left = date_range('1/1/2011', periods=100, freq='H', tz='utc')
         right = date_range('1/1/2011', periods=100, freq='H', tz='US/Eastern')
@@ -1288,55 +957,6 @@ class TestTimeZones(object):
                 reset = localized.tz_localize(None)
                 tm.assert_index_equal(reset, idx)
                 assert reset.tzinfo is None
-
-    def test_series_frame_tz_localize(self):
-
-        rng = date_range('1/1/2011', periods=100, freq='H')
-        ts = Series(1, index=rng)
-
-        result = ts.tz_localize('utc')
-        assert result.index.tz.zone == 'UTC'
-
-        df = DataFrame({'a': 1}, index=rng)
-        result = df.tz_localize('utc')
-        expected = DataFrame({'a': 1}, rng.tz_localize('UTC'))
-        assert result.index.tz.zone == 'UTC'
-        assert_frame_equal(result, expected)
-
-        df = df.T
-        result = df.tz_localize('utc', axis=1)
-        assert result.columns.tz.zone == 'UTC'
-        assert_frame_equal(result, expected.T)
-
-        # Can't localize if already tz-aware
-        rng = date_range('1/1/2011', periods=100, freq='H', tz='utc')
-        ts = Series(1, index=rng)
-        tm.assert_raises_regex(TypeError, 'Already tz-aware',
-                               ts.tz_localize, 'US/Eastern')
-
-    def test_series_frame_tz_convert(self):
-        rng = date_range('1/1/2011', periods=200, freq='D', tz='US/Eastern')
-        ts = Series(1, index=rng)
-
-        result = ts.tz_convert('Europe/Berlin')
-        assert result.index.tz.zone == 'Europe/Berlin'
-
-        df = DataFrame({'a': 1}, index=rng)
-        result = df.tz_convert('Europe/Berlin')
-        expected = DataFrame({'a': 1}, rng.tz_convert('Europe/Berlin'))
-        assert result.index.tz.zone == 'Europe/Berlin'
-        assert_frame_equal(result, expected)
-
-        df = df.T
-        result = df.tz_convert('Europe/Berlin', axis=1)
-        assert result.columns.tz.zone == 'Europe/Berlin'
-        assert_frame_equal(result, expected.T)
-
-        # can't convert tz-naive
-        rng = date_range('1/1/2011', periods=200, freq='D')
-        ts = Series(1, index=rng)
-        tm.assert_raises_regex(TypeError, "Cannot convert tz-naive",
-                               ts.tz_convert, 'US/Eastern')
 
     def test_tz_convert_roundtrip(self):
         for tz in self.timezones:
@@ -1382,26 +1002,6 @@ class TestTimeZones(object):
 
     def test_join_aware(self):
         rng = date_range('1/1/2011', periods=10, freq='H')
-        ts = Series(np.random.randn(len(rng)), index=rng)
-
-        ts_utc = ts.tz_localize('utc')
-
-        pytest.raises(Exception, ts.__add__, ts_utc)
-        pytest.raises(Exception, ts_utc.__add__, ts)
-
-        test1 = DataFrame(np.zeros((6, 3)),
-                          index=date_range("2012-11-15 00:00:00", periods=6,
-                                           freq="100L", tz="US/Central"))
-        test2 = DataFrame(np.zeros((3, 3)),
-                          index=date_range("2012-11-15 00:00:00", periods=3,
-                                           freq="250L", tz="US/Central"),
-                          columns=lrange(3, 6))
-
-        result = test1.join(test2, how='outer')
-        ex_index = test1.index.union(test2.index)
-
-        tm.assert_index_equal(result.index, ex_index)
-        assert result.index.tz.zone == 'US/Central'
 
         # non-overlapping
         rng = date_range("2012-11-15 00:00:00", periods=6, freq="H",
@@ -1412,156 +1012,6 @@ class TestTimeZones(object):
 
         result = rng.union(rng2)
         assert result.tz.zone == 'UTC'
-
-    def test_align_aware(self):
-        idx1 = date_range('2001', periods=5, freq='H', tz='US/Eastern')
-        idx2 = date_range('2001', periods=5, freq='2H', tz='US/Eastern')
-        df1 = DataFrame(np.random.randn(len(idx1), 3), idx1)
-        df2 = DataFrame(np.random.randn(len(idx2), 3), idx2)
-        new1, new2 = df1.align(df2)
-        assert df1.index.tz == new1.index.tz
-        assert df2.index.tz == new2.index.tz
-
-        # # different timezones convert to UTC
-
-        # frame
-        df1_central = df1.tz_convert('US/Central')
-        new1, new2 = df1.align(df1_central)
-        assert new1.index.tz == pytz.UTC
-        assert new2.index.tz == pytz.UTC
-
-        # series
-        new1, new2 = df1[0].align(df1_central[0])
-        assert new1.index.tz == pytz.UTC
-        assert new2.index.tz == pytz.UTC
-
-        # combination
-        new1, new2 = df1.align(df1_central[0], axis=0)
-        assert new1.index.tz == pytz.UTC
-        assert new2.index.tz == pytz.UTC
-
-        df1[0].align(df1_central, axis=0)
-        assert new1.index.tz == pytz.UTC
-        assert new2.index.tz == pytz.UTC
-
-    def test_append_aware(self):
-        rng1 = date_range('1/1/2011 01:00', periods=1, freq='H',
-                          tz='US/Eastern')
-        rng2 = date_range('1/1/2011 02:00', periods=1, freq='H',
-                          tz='US/Eastern')
-        ts1 = Series([1], index=rng1)
-        ts2 = Series([2], index=rng2)
-        ts_result = ts1.append(ts2)
-
-        exp_index = DatetimeIndex(['2011-01-01 01:00', '2011-01-01 02:00'],
-                                  tz='US/Eastern')
-        exp = Series([1, 2], index=exp_index)
-        assert_series_equal(ts_result, exp)
-        assert ts_result.index.tz == rng1.tz
-
-        rng1 = date_range('1/1/2011 01:00', periods=1, freq='H', tz='UTC')
-        rng2 = date_range('1/1/2011 02:00', periods=1, freq='H', tz='UTC')
-        ts1 = Series([1], index=rng1)
-        ts2 = Series([2], index=rng2)
-        ts_result = ts1.append(ts2)
-
-        exp_index = DatetimeIndex(['2011-01-01 01:00', '2011-01-01 02:00'],
-                                  tz='UTC')
-        exp = Series([1, 2], index=exp_index)
-        assert_series_equal(ts_result, exp)
-        utc = rng1.tz
-        assert utc == ts_result.index.tz
-
-        # GH 7795
-        # different tz coerces to object dtype, not UTC
-        rng1 = date_range('1/1/2011 01:00', periods=1, freq='H',
-                          tz='US/Eastern')
-        rng2 = date_range('1/1/2011 02:00', periods=1, freq='H',
-                          tz='US/Central')
-        ts1 = Series([1], index=rng1)
-        ts2 = Series([2], index=rng2)
-        ts_result = ts1.append(ts2)
-        exp_index = Index([Timestamp('1/1/2011 01:00', tz='US/Eastern'),
-                           Timestamp('1/1/2011 02:00', tz='US/Central')])
-        exp = Series([1, 2], index=exp_index)
-        assert_series_equal(ts_result, exp)
-
-    def test_append_dst(self):
-        rng1 = date_range('1/1/2016 01:00', periods=3, freq='H',
-                          tz='US/Eastern')
-        rng2 = date_range('8/1/2016 01:00', periods=3, freq='H',
-                          tz='US/Eastern')
-        ts1 = Series([1, 2, 3], index=rng1)
-        ts2 = Series([10, 11, 12], index=rng2)
-        ts_result = ts1.append(ts2)
-
-        exp_index = DatetimeIndex(['2016-01-01 01:00', '2016-01-01 02:00',
-                                   '2016-01-01 03:00', '2016-08-01 01:00',
-                                   '2016-08-01 02:00', '2016-08-01 03:00'],
-                                  tz='US/Eastern')
-        exp = Series([1, 2, 3, 10, 11, 12], index=exp_index)
-        assert_series_equal(ts_result, exp)
-        assert ts_result.index.tz == rng1.tz
-
-    def test_append_aware_naive(self):
-        rng1 = date_range('1/1/2011 01:00', periods=1, freq='H')
-        rng2 = date_range('1/1/2011 02:00', periods=1, freq='H',
-                          tz='US/Eastern')
-        ts1 = Series(np.random.randn(len(rng1)), index=rng1)
-        ts2 = Series(np.random.randn(len(rng2)), index=rng2)
-        ts_result = ts1.append(ts2)
-
-        assert ts_result.index.equals(ts1.index.astype(object).append(
-            ts2.index.astype(object)))
-
-        # mixed
-        rng1 = date_range('1/1/2011 01:00', periods=1, freq='H')
-        rng2 = lrange(100)
-        ts1 = Series(np.random.randn(len(rng1)), index=rng1)
-        ts2 = Series(np.random.randn(len(rng2)), index=rng2)
-        ts_result = ts1.append(ts2)
-        assert ts_result.index.equals(ts1.index.astype(object).append(
-            ts2.index))
-
-    def test_equal_join_ensure_utc(self):
-        rng = date_range('1/1/2011', periods=10, freq='H', tz='US/Eastern')
-        ts = Series(np.random.randn(len(rng)), index=rng)
-
-        ts_moscow = ts.tz_convert('Europe/Moscow')
-
-        result = ts + ts_moscow
-        assert result.index.tz is pytz.utc
-
-        result = ts_moscow + ts
-        assert result.index.tz is pytz.utc
-
-        df = DataFrame({'a': ts})
-        df_moscow = df.tz_convert('Europe/Moscow')
-        result = df + df_moscow
-        assert result.index.tz is pytz.utc
-
-        result = df_moscow + df
-        assert result.index.tz is pytz.utc
-
-    def test_arith_utc_convert(self):
-        rng = date_range('1/1/2011', periods=100, freq='H', tz='utc')
-
-        perm = np.random.permutation(100)[:90]
-        ts1 = Series(np.random.randn(90),
-                     index=rng.take(perm).tz_convert('US/Eastern'))
-
-        perm = np.random.permutation(100)[:90]
-        ts2 = Series(np.random.randn(90),
-                     index=rng.take(perm).tz_convert('Europe/Berlin'))
-
-        result = ts1 + ts2
-
-        uts1 = ts1.tz_convert('utc')
-        uts2 = ts2.tz_convert('utc')
-        expected = uts1 + uts2
-
-        assert result.index.tz == pytz.UTC
-        assert_series_equal(result, expected)
 
     def test_intersection(self):
         rng = date_range('1/1/2011', periods=100, freq='H', tz='utc')

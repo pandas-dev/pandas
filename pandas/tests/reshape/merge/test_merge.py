@@ -270,6 +270,14 @@ class TestMerge(object):
         df2 = DataFrame({'y': ['b', 'c']}, index=[dt, dt])
         pytest.raises(MergeError, merge, df1, df2)
 
+        msg = ('No common columns to perform merge on. '
+               'Merge options: left_on={lon}, right_on={ron}, '
+               'left_index={lidx}, right_index={ridx}'
+               .format(lon=None, ron=None, lidx=False, ridx=False))
+
+        with tm.assert_raises_regex(MergeError, msg):
+            merge(df1, df2)
+
     def test_merge_non_unique_indexes(self):
 
         dt = datetime(2012, 5, 1)
