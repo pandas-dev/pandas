@@ -1880,20 +1880,13 @@ class TestMergeSparseDataFrames(object):
 
         for _ in range(2):
             merged = to_merge[0].merge(to_merge[1], how=how, on='A')
-            # sparse_merge = sparse_evens.merge(dense_threes, how=how, on='A')
 
             dense_merge = to_merge_dense[0].merge(to_merge_dense[1],
                                                   how=how, on='A')
 
-            # If you merge two dense frames together it tends to default to
-            # float64 not the original dtype
-            dense_merge['B_x'] = dense_merge['B_x'].astype(dense_evens.A.dtype,
-                                                           errors='ignore')
-            dense_merge['B_y'] = dense_merge['B_y'].astype(dense_evens.A.dtype,
-                                                           errors='ignore')
             for column in dense_merge.columns:
                 dense_col = merged[column].to_dense()
-                tm.assert_series_equal(dense_col, dense_merge[column])
+                tm.assert_series_equal(dense_col, dense_merge[column], check_dtype=False)
 
             to_merge = to_merge[::-1]
             to_merge_dense = to_merge_dense[::-1]
