@@ -514,17 +514,9 @@ static npy_int64 asfreq_BtoW(npy_int64 ordinal, asfreq_info *af_info) {
 //************ FROM WEEKLY ***************
 
 static npy_int64 asfreq_WtoDT(npy_int64 ordinal, asfreq_info *af_info) {
-    if (af_info->is_end) {
-        ordinal += 1;
-    }
-
-    ordinal = (ordinal + WEEK_OFFSET) * 7 - 6 +
-               af_info->from_week_end - ORD_OFFSET;
-
-    if (af_info->is_end) {
-        ordinal -= 1;
-    }
-
+    ordinal = (ordinal + WEEK_OFFSET) * 7 +
+               af_info->from_week_end - ORD_OFFSET +
+               (7 - 1) * (af_info->is_end - 1);
     return upsample_daytime(ordinal, af_info);
 }
 
@@ -567,18 +559,13 @@ static npy_int64 asfreq_MtoDT(npy_int64 ordinal, asfreq_info *af_info) {
     npy_int64 absdate;
     int y, m;
 
-    if (af_info->is_end) {
-        ordinal += 1;
-    }
+    ordinal += af_info->is_end;
     MtoD_ym(ordinal, &y, &m);
     if ((absdate = absdate_from_ymd(y, m, 1)) == INT_ERR_CODE)
         return INT_ERR_CODE;
     ordinal = absdate - ORD_OFFSET;
 
-    if (af_info->is_end) {
-        ordinal -= 1;
-    }
-
+    ordinal -= af_info->is_end;
     return upsample_daytime(ordinal, af_info);
 }
 
@@ -628,19 +615,13 @@ static npy_int64 asfreq_QtoDT(npy_int64 ordinal, asfreq_info *af_info) {
     npy_int64 absdate;
     int y, m;
 
-    if (af_info->is_end) {
-        ordinal += 1;
-    }
-
+    ordinal += af_info->is_end;
     QtoD_ym(ordinal, &y, &m, af_info);
 
     if ((absdate = absdate_from_ymd(y, m, 1)) == INT_ERR_CODE)
         return INT_ERR_CODE;
 
-    if (af_info->is_end) {
-        absdate -= 1;
-    }
-
+    absdate -= af_info->is_end;
     return upsample_daytime(absdate - ORD_OFFSET, af_info);
 }
 
@@ -677,29 +658,23 @@ static npy_int64 asfreq_QtoB(npy_int64 ordinal, asfreq_info *af_info) {
 
 static npy_int64 asfreq_AtoDT(npy_int64 ordinal, asfreq_info *af_info) {
     npy_int64 absdate;
-    int month = (af_info->from_a_year_end % 12) + 1;
 
     // start from 1970
     npy_int64 year = ordinal + BASE_YEAR;
 
+    int month = (af_info->from_a_year_end % 12) + 1;
     if (af_info->from_a_year_end != 12) {
         year -= 1;
     }
 
-    if (af_info->is_end) {
-        year += 1;
-    }
-
+    year += af_info->is_end;
     absdate = absdate_from_ymd(year, month, 1);
 
     if (absdate == INT_ERR_CODE) {
         return INT_ERR_CODE;
     }
 
-    if (af_info->is_end) {
-        absdate -= 1;
-    }
-
+    absdate -= af_info->is_end;
     return upsample_daytime(absdate - ORD_OFFSET, af_info);
 }
 
