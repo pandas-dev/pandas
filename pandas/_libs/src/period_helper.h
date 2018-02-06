@@ -24,15 +24,6 @@ frequency conversion routines.
  * declarations from period here
  */
 
-#define SECONDS_PER_DAY ((double)86400.0)
-
-#define Py_AssertWithArg(x, errortype, errorstr, a1) \
-    {                                                \
-        if (!(x)) {                                  \
-            PyErr_Format(errortype, errorstr, a1);   \
-            goto onError;                            \
-        }                                            \
-    }
 #define Py_Error(errortype, errorstr)         \
     {                                         \
         PyErr_SetString(errortype, errorstr); \

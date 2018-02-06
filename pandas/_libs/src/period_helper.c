@@ -42,10 +42,10 @@ static int floordiv(int x, int divisor) {
 static int monthToQuarter(int month) { return ((month - 1) / 3) + 1; }
 
 
-/* Set the instance's value using the given date and time.
+/* Find the absdate (days elapsed since datetime(1, 1, 1)
+ * for the given year/month/day.
  * Assumes GREGORIAN_CALENDAR */
-static int dInfoCalc_SetFromDateAndTime(struct date_info *dinfo, int year,
-                                        int month, int day) {
+static npy_int64 dInfoCalc_SetFromDateAndTime(int year, int month, int day) {
     /* Calculate the absolute date */
     pandas_datetimestruct dts;
     npy_int64 unix_date;
@@ -55,12 +55,7 @@ static int dInfoCalc_SetFromDateAndTime(struct date_info *dinfo, int year,
     dts.month = month;
     dts.day = day;
     unix_date = pandas_datetimestruct_to_datetime(PANDAS_FR_D, &dts);
-
-    dinfo->absdate = ORD_OFFSET + unix_date;
-    dinfo->hour = 0;
-    dinfo->minute = 0;
-    dinfo->second = 0;
-    return 0;
+    return ORD_OFFSET + unix_date;
 }
 
 /* Sets the date part of the date_info struct
@@ -210,9 +205,6 @@ PANDAS_INLINE npy_int64 transform_via_day(npy_int64 ordinal, char relation,
                                           asfreq_info *af_info,
                                           freq_conv_func first_func,
                                           freq_conv_func second_func) {
-    // printf("transform_via_day(%ld, %ld, %d)\n", ordinal,
-    // af_info->intraday_conversion_factor,
-    // af_info->intraday_conversion_upsample);
     npy_int64 result;
 
     result = (*first_func)(ordinal, relation, af_info);
@@ -244,9 +236,7 @@ static npy_int64 DtoB(struct date_info *dinfo, int roll_back) {
 }
 
 static npy_int64 absdate_from_ymd(int y, int m, int d) {
-    struct date_info tempDate;
-    dInfoCalc_SetFromDateAndTime(&tempDate, y, m, d);
-    return tempDate.absdate;
+    return dInfoCalc_SetFromDateAndTime(y, m, d);
 }
 
 //************ FROM DAILY ***************
@@ -640,10 +630,6 @@ void get_asfreq_info(int fromFreq, int toFreq, asfreq_info *af_info) {
         get_freq_group_index(max_value(fromGroup, FR_DAY)),
         get_freq_group_index(max_value(toGroup, FR_DAY)));
 
-    // printf("get_asfreq_info(%d, %d) %ld, %d\n", fromFreq, toFreq,
-    // af_info->intraday_conversion_factor,
-    // af_info->intraday_conversion_upsample);
-
     switch (fromGroup) {
         case FR_WK:
             af_info->from_week_end = calc_week_end(fromFreq, fromGroup);
@@ -839,8 +825,6 @@ freq_conv_func get_asfreq_func(int fromFreq, int toFreq) {
 }
 
 double get_abs_time(int freq, npy_int64 date_ordinal, npy_int64 ordinal) {
-    // printf("get_abs_time %d %lld %lld\n", freq, date_ordinal, ordinal);
-
     int freq_index, day_index, base_index;
     npy_int64 per_day, start_ord;
     double unit, result;
@@ -853,23 +837,15 @@ double get_abs_time(int freq, npy_int64 date_ordinal, npy_int64 ordinal) {
     day_index = get_freq_group_index(FR_DAY);
     base_index = get_freq_group_index(FR_SEC);
 
-    // printf("  indices: day %d, freq %d, base %d\n", day_index, freq_index,
-    // base_index);
-
     per_day = get_daytime_conversion_factor(day_index, freq_index);
     unit = get_daytime_conversion_factor(freq_index, base_index);
 
-    // printf("  per_day: %lld, unit: %f\n", per_day, unit);
-
     if (base_index < freq_index) {
         unit = 1 / unit;
-        // printf("  corrected unit: %f\n", unit);
     }
 
     start_ord = date_ordinal * per_day;
-    // printf("start_ord: %lld\n", start_ord);
     result = (double)(unit * (ordinal - start_ord));
-    // printf("  result: %f\n", result);
     return result;
 }
 
@@ -896,7 +872,7 @@ static int dInfoCalc_SetFromAbsDateTime(struct date_info *dinfo,
                                         npy_int64 absdate, double abstime) {
     /* Bounds check */
     // The calling function is responsible for ensuring that
-    // abstime >= 0.0 && abstime <= SECONDS_PER_DAY
+    // abstime >= 0.0 && abstime <= 86400
 
     /* Calculate the date */
     dInfoCalc_SetFromAbsDate(dinfo, absdate);
@@ -921,16 +897,7 @@ npy_int64 asfreq(npy_int64 period_ordinal, int freq1, int freq2,
 
     get_asfreq_info(freq1, freq2, &finfo);
 
-    // printf("\n%x %d %d %ld %ld\n", func, freq1, freq2,
-    // finfo.intraday_conversion_factor, -finfo.intraday_conversion_factor);
-
     val = (*func)(period_ordinal, relation, &finfo);
-
-    if (val == INT_ERR_CODE) {
-        // Py_Error(PyExc_ValueError, "Unable to convert to desired
-        // frequency.");
-        return INT_ERR_CODE;
-    }
     return val;
 }
 
