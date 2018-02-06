@@ -61,6 +61,8 @@ cdef extern from "period_helper.h":
         int day_of_year
 
     ctypedef struct asfreq_info:
+        int is_end
+
         int from_week_end
         int to_week_end
 
@@ -70,13 +72,14 @@ cdef extern from "period_helper.h":
         int from_q_year_end
         int to_q_year_end
 
-    ctypedef int64_t (*freq_conv_func)(int64_t, char, asfreq_info*)
+    ctypedef int64_t (*freq_conv_func)(int64_t, asfreq_info*)
 
     void initialize_daytime_conversion_factor_matrix()
     int64_t asfreq(int64_t dtordinal, int freq1, int freq2,
                    char relation) except INT32_MIN
     freq_conv_func get_asfreq_func(int fromFreq, int toFreq)
-    void get_asfreq_info(int fromFreq, int toFreq, asfreq_info *af_info)
+    void get_asfreq_info(int fromFreq, int toFreq, char relation,
+                         asfreq_info *af_info)
 
     int64_t get_period_ordinal(int year, int month, int day,
                                int hour, int minute, int second,
@@ -209,26 +212,26 @@ def period_asfreq_arr(ndarray[int64_t] arr, int freq1, int freq2, bint end):
     n = len(arr)
     result = np.empty(n, dtype=np.int64)
 
-    func = get_asfreq_func(freq1, freq2)
-    get_asfreq_info(freq1, freq2, &finfo)
-
     if end:
         relation = END
     else:
         relation = START
+
+    func = get_asfreq_func(freq1, freq2)
+    get_asfreq_info(freq1, freq2, relation, &finfo)
 
     mask = arr == iNaT
     if mask.any():      # NaT process
         for i in range(n):
             val = arr[i]
             if val != iNaT:
-                val = func(val, relation, &finfo)
+                val = func(val, &finfo)
                 if val == INT32_MIN:
                     raise ValueError("Unable to convert to desired frequency.")
             result[i] = val
     else:
         for i in range(n):
-            val = func(arr[i], relation, &finfo)
+            val = func(arr[i], &finfo)
             if val == INT32_MIN:
                 raise ValueError("Unable to convert to desired frequency.")
             result[i] = val
