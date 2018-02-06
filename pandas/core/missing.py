@@ -1,6 +1,7 @@
 """
 Routines for filling missing data
 """
+import operator
 
 import numpy as np
 from distutils.version import LooseVersion
@@ -647,6 +648,87 @@ def fill_zeros(result, x, y, name, fill):
 
             result = result.reshape(shape)
 
+    return result
+
+
+def mask_zero_div_zero(x, y, result, copy=False):
+    """
+    Set results of 0 / 0 or 0 // 0 to np.nan, regardless of the dtypes
+    of the numerator or the denominator.
+
+    Parameters
+    ----------
+    x : ndarray
+    y : ndarray
+    result : ndarray
+    copy : bool (default False)
+        Whether to always create a new array or try to fill in the existing
+        array if possible.
+
+    Returns
+    -------
+    filled_result : ndarray
+
+    Examples
+    --------
+    >>> x = np.array([1, 0, -1], dtype=np.int64)
+    >>> y = 0       # int 0; numpy behavior is different with float
+    >>> result = x / y
+    >>> result      # raw numpy result does not fill division by zero
+    array([0, 0, 0])
+    >>> mask_zero_div_zero(x, y, result)
+    array([ inf,  nan, -inf])
+    """
+    if is_scalar(y):
+        y = np.array(y)
+
+    zmask = y == 0
+    if zmask.any():
+        shape = result.shape
+
+        nan_mask = (zmask & (x == 0)).ravel()
+        neginf_mask = (zmask & (x < 0)).ravel()
+        posinf_mask = (zmask & (x > 0)).ravel()
+
+        if nan_mask.any() or neginf_mask.any() or posinf_mask.any():
+            # Fill negative/0 with -inf, positive/0 with +inf, 0/0 with NaN
+            result = result.astype('float64', copy=copy).ravel()
+
+            np.putmask(result, nan_mask, np.nan)
+            np.putmask(result, posinf_mask, np.inf)
+            np.putmask(result, neginf_mask, -np.inf)
+
+            result = result.reshape(shape)
+
+    return result
+
+
+def dispatch_missing(op, left, right, result):
+    """
+    Fill nulls caused by division by zero, casting to a diffferent dtype
+    if necessary.
+
+    Parameters
+    ----------
+    op : function (operator.add, operator.div, ...)
+    left : object (Index for non-reversed ops)
+    right : object (Index fof reversed ops)
+    result : ndarray
+
+    Returns
+    -------
+    result : ndarray
+    """
+    opstr = '__{opname}__'.format(opname=op.__name__).replace('____', '__')
+    if op in [operator.truediv, operator.floordiv,
+              getattr(operator, 'div', None)]:
+        result = mask_zero_div_zero(left, right, result)
+    elif op is operator.mod:
+        result = fill_zeros(result, left, right, opstr, np.nan)
+    elif op is divmod:
+        res0 = mask_zero_div_zero(left, right, result[0])
+        res1 = fill_zeros(result[1], left, right, opstr, np.nan)
+        result = (res0, res1)
     return result
 
 
