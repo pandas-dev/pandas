@@ -235,11 +235,14 @@ onError:
 
 // helpers for frequency conversion routines //
 
-static int daytime_conversion_factors[][2] = {
-    {FR_DAY, 1},   {FR_HR, 24},   {FR_MIN, 60},  {FR_SEC, 60},
-    {FR_MS, 1000}, {FR_US, 1000}, {FR_NS, 1000}, {0, 0}};
-
-static npy_int64 **daytime_conversion_factor_matrix = NULL;
+static npy_int64 daytime_conversion_factor_matrix[7][7] = {
+    {1, 24, 1440, 86400, 86400000, 86400000000, 86400000000000},
+    {0,  1,   60,  3600,  3600000,  3600000000,  3600000000000},
+    {0,  0,   1,     60,    60000,    60000000,    60000000000},
+    {0,  0,   0,      1,     1000,     1000000,     1000000000},
+    {0,  0,   0,      0,        1,        1000,        1000000},
+    {0,  0,   0,      0,        0,           1,           1000},
+    {0,  0,   0,      0,        0,           0,              1}};
 
 PANDAS_INLINE int max_value(int a, int b) { return a > b ? a : b; }
 
@@ -249,95 +252,17 @@ PANDAS_INLINE int get_freq_group(int freq) { return (freq / 1000) * 1000; }
 
 PANDAS_INLINE int get_freq_group_index(int freq) { return freq / 1000; }
 
-static int calc_conversion_factors_matrix_size(void) {
-    int matrix_size = 0;
-    int index;
-    for (index = 0;; index++) {
-        int period_value =
-            get_freq_group_index(daytime_conversion_factors[index][0]);
-        if (period_value == 0) {
-            break;
-        }
-        matrix_size = max_value(matrix_size, period_value);
-    }
-    return matrix_size + 1;
-}
-
-static void alloc_conversion_factors_matrix(int matrix_size) {
-    int row_index;
-    int column_index;
-    daytime_conversion_factor_matrix =
-        malloc(matrix_size * sizeof(**daytime_conversion_factor_matrix));
-    for (row_index = 0; row_index < matrix_size; row_index++) {
-        daytime_conversion_factor_matrix[row_index] =
-            malloc(matrix_size * sizeof(**daytime_conversion_factor_matrix));
-        for (column_index = 0; column_index < matrix_size; column_index++) {
-            daytime_conversion_factor_matrix[row_index][column_index] = 0;
-        }
-    }
-}
-
-static npy_int64 calculate_conversion_factor(int start_value, int end_value) {
-    npy_int64 conversion_factor = 0;
-    int index;
-    for (index = 0;; index++) {
-        int freq_group = daytime_conversion_factors[index][0];
-
-        if (freq_group == 0) {
-            conversion_factor = 0;
-            break;
-        }
-
-        if (freq_group == start_value) {
-            conversion_factor = 1;
-        } else {
-            conversion_factor *= daytime_conversion_factors[index][1];
-        }
-
-        if (freq_group == end_value) {
-            break;
-        }
-    }
-    return conversion_factor;
-}
-
-static void populate_conversion_factors_matrix(void) {
-    int row_index_index;
-    int row_value, row_index;
-    int column_index_index;
-    int column_value, column_index;
-
-    for (row_index_index = 0;; row_index_index++) {
-        row_value = daytime_conversion_factors[row_index_index][0];
-        if (row_value == 0) {
-            break;
-        }
-        row_index = get_freq_group_index(row_value);
-        for (column_index_index = row_index_index;; column_index_index++) {
-            column_value = daytime_conversion_factors[column_index_index][0];
-            if (column_value == 0) {
-                break;
-            }
-            column_index = get_freq_group_index(column_value);
-
-            daytime_conversion_factor_matrix[row_index][column_index] =
-                calculate_conversion_factor(row_value, column_value);
-        }
-    }
-}
-
-void initialize_daytime_conversion_factor_matrix() {
-    if (daytime_conversion_factor_matrix == NULL) {
-        int matrix_size = calc_conversion_factors_matrix_size();
-        alloc_conversion_factors_matrix(matrix_size);
-        populate_conversion_factors_matrix();
-    }
-}
 
 PANDAS_INLINE npy_int64 get_daytime_conversion_factor(int from_index,
                                                       int to_index) {
-    return daytime_conversion_factor_matrix[min_value(from_index, to_index)]
-                                           [max_value(from_index, to_index)];
+    int row = min_value(from_index, to_index);
+    int col = max_value(from_index, to_index);
+    if (row < 6) {
+        return 0;
+    } else if (col < 6) {
+        return 0;
+    }
+    return daytime_conversion_factor_matrix[row - 6][col - 6];
 }
 
 PANDAS_INLINE npy_int64 upsample_daytime(npy_int64 ordinal,
