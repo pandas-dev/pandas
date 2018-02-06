@@ -462,7 +462,7 @@ class TestDataFrameOperators(TestData):
             df.add(ser_len0, fill_value='E')
 
         with tm.assert_raises_regex(NotImplementedError, 'fill_value'):
-            df_len0.sub(df[0], axis=None, fill_value=3)
+            df_len0.sub(df['A'], axis=None, fill_value=3)
 
     def test_binary_ops_align(self):
 
