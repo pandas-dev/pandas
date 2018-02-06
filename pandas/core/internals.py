@@ -5331,6 +5331,14 @@ def concatenate_block_managers(mgrs_indexers, axes, concat_axis, copy):
 
 
 def is_sparse_join_units(join_units):
+    """
+    Check if all of the join units are sparse. This leads to building
+    SparseArray over dense array representations so that we can merge
+    SparseSeries / SparseDataFrame
+
+    This is very similar to how pandas.concat works for conatting two
+    SparseDataFrame / SparseSeries
+    """
     return all(type(ju.block) is SparseBlock for ju in join_units)
 
 
