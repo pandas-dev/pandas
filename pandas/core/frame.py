@@ -4966,6 +4966,33 @@ class DataFrame(NDFrame):
         4  1  2
         5  1  2
 
+        Return a Series inside the function is similar to passing
+        Passing result_type='expand'. The resulting column names
+        will be the Series index.
+
+        >>> df.apply(lambda x: Series([1, 2], index=['foo', 'bar']), axis=1)
+           foo  bar
+        0    1    2
+        1    1    2
+        2    1    2
+        3    1    2
+        4    1    2
+        5    1    2
+
+
+        Passing result_type='broadcast' will take a same shape
+        result, whether list-like or scalar and broadcast it
+        along the axis. The resulting column names will be the originals.
+
+        >>> df.apply(lambda x: [1, 2, 3], axis=1, result_type='broadcast')
+           A  B  C
+        0  1  2  3
+        1  1  2  3
+        2  1  2  3
+        3  1  2  3
+        4  1  2  3
+        5  1  2  3
+
         See also
         --------
         DataFrame.applymap: For elementwise operations
