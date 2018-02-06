@@ -23,9 +23,6 @@ def test_foo():
 
 For more information, refer to the ``pytest`` documentation on ``skipif``.
 """
-import functools
-import os
-
 import pytest
 import locale
 from distutils.version import LooseVersion
