@@ -1251,22 +1251,34 @@ cdef _roll_min_max(ndarray[numeric] input, int64_t win, int64_t minp,
         with nogil:
 
             for i from 0 <= i < win:
-                while not Q.empty() and input[i] >= input[Q.back()]:
-                    Q.pop_back()
+                ai = init_mm(input[i], &nobs, is_max)
+
+                if is_max:
+                    while not Q.empty() and ai >= input[Q.back()]:
+                        Q.pop_back()
+                else:
+                    while not Q.empty() and ai <= input[Q.back()]:
+                        Q.pop_back()
                 Q.push_back(i)
 
             for i from win <= i < N:
-                output[i-1] = input[Q.front()]
+                output[i-1] = calc_mm(minp, nobs, input[Q.front()])
 
-                while not Q.empty() and input[i] >= input[Q.back()]:
-                    Q.pop_back()
+                ai = init_mm(input[i], &nobs, is_max)
+
+                if is_max:
+                    while not Q.empty() and ai >= input[Q.back()]:
+                        Q.pop_back()
+                else:
+                    while not Q.empty() and ai <= input[Q.back()]:
+                        Q.pop_back()
 
                 while not Q.empty() and Q.front() <= i-win:
                     Q.pop_front()
 
                 Q.push_back(i)
 
-            output[N-1] = input[Q[0]]
+            output[N-1] = calc_mm(minp, nobs, input[Q[0]])
 #            for i in range(N):
 #                s = starti[i]
 #                e = endi[i]
@@ -1288,7 +1300,6 @@ cdef _roll_min_max(ndarray[numeric] input, int64_t win, int64_t minp,
 #                output[i] = calc_mm(minp, nobs, r)
 
     else:
-
         # setup the rings of death!
         ring = <numeric *>malloc(win * sizeof(numeric))
         death = <int64_t *>malloc(win * sizeof(int64_t))
