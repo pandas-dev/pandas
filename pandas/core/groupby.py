@@ -2173,7 +2173,10 @@ class BaseGrouper(object):
     # Aggregation functions
 
     def _group_rank_wrapper(func, *args, **kwargs):
-        return func(*args, kwargs.get('ties_method', 'average'),
+        # Need to explicity unpack *args to support Py < 3.5
+        # See PEP 448
+        return func(args[0], args[1], args[2], args[3],
+                    kwargs.get('ties_method', 'average'),
                     kwargs.get('ascending', True),
                     kwargs.get('pct', False),
                     kwargs.get('na_option', 'keep'))

@@ -17,7 +17,8 @@ from libc.math cimport isnan
 from libc.stdlib cimport malloc, free
 
 from util cimport numeric, get_nat
-from algos cimport swap, TiebreakEnumType
+from algos cimport (swap, TiebreakEnumType, TIEBREAK_AVERAGE, TIEBREAK_MIN,
+                    TIEBREAK_MAX, TIEBREAK_FIRST, TIEBREAK_DENSE)
 from algos import take_2d_axis1_float64_float64, groupsort_indexer, tiebreakers
 
 cdef int64_t iNaT = get_nat()
@@ -181,22 +182,22 @@ def group_rank_object(ndarray[float64_t, ndim=2] out,
             grp_na_count += 1
             out[_as[i], 0] = np.nan
         else:
-            if tiebreak == TiebreakEnumType.TIEBREAK_AVERAGE:
+            if tiebreak == TIEBREAK_AVERAGE:
                 for j in range(i - dups + 1, i + 1):
                     out[_as[j], 0] = sum_ranks / dups
-            elif tiebreak == TiebreakEnumType.TIEBREAK_MIN:
+            elif tiebreak == TIEBREAK_MIN:
                 for j in range(i - dups + 1, i + 1):
                     out[_as[j], 0] = i - grp_start - dups + 2
-            elif tiebreak == TiebreakEnumType.TIEBREAK_MAX:
+            elif tiebreak == TIEBREAK_MAX:
                 for j in range(i - dups + 1, i + 1):
                     out[_as[j], 0] = i - grp_start + 1
-            elif tiebreak == TiebreakEnumType.TIEBREAK_FIRST:
+            elif tiebreak == TIEBREAK_FIRST:
                 for j in range(i - dups + 1, i + 1):
                     if ascending:
                         out[_as[j], 0] = j + 1 - grp_start
                     else:
                         out[_as[j], 0] = 2 * i - j - dups + 2 - grp_start
-            elif tiebreak == TiebreakEnumType.TIEBREAK_DENSE:
+            elif tiebreak == TIEBREAK_DENSE:
                 for j in range(i - dups + 1, i + 1):
                     out[_as[j], 0] = grp_vals_seen
 

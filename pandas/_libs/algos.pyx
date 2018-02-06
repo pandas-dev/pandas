@@ -32,11 +32,11 @@ cdef double nan = NaN
 cdef int64_t iNaT = get_nat()
 
 tiebreakers = {
-    'average': TiebreakEnumType.TIEBREAK_AVERAGE,
-    'min': TiebreakEnumType.TIEBREAK_MIN,
-    'max': TiebreakEnumType.TIEBREAK_MAX,
-    'first': TiebreakEnumType.TIEBREAK_FIRST,
-    'dense': TiebreakEnumType.TIEBREAK_DENSE,
+    'average': TIEBREAK_AVERAGE,
+    'min': TIEBREAK_MIN,
+    'max': TIEBREAK_MAX,
+    'first': TIEBREAK_FIRST,
+    'dense': TIEBREAK_DENSE,
 }
 
 
