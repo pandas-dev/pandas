@@ -697,35 +697,6 @@ class TestDatetimeIndexTimezones(object):
         for other in [idx2, idx3, idx4]:
             tm.assert_index_equal(idx1, other)
 
-    # ------------------------------------------------------------
-    # Arithmetic; may belong in test_arithmetic
-
-    @pytest.mark.parametrize('tzstr', ['US/Eastern', 'dateutil/US/Eastern'])
-    def test_dti_shift_localized(self, tzstr):
-        dr = date_range('2011/1/1', '2012/1/1', freq='W-FRI')
-        dr_tz = dr.tz_localize(tzstr)
-
-        result = dr_tz.shift(1, '10T')
-        assert result.tz == dr_tz.tz
-
-    def test_dti_add_offset_tzaware(self):
-        dates = date_range('2012-11-01', periods=3, tz='US/Pacific')
-        offset = dates + pd.offsets.Hour(5)
-        assert dates[0] + pd.offsets.Hour(5) == offset[0]
-
-        # GH#6818
-        for tz in ['UTC', 'US/Pacific', 'Asia/Tokyo']:
-            dates = date_range('2010-11-01 00:00', periods=3, tz=tz, freq='H')
-            expected = DatetimeIndex(['2010-11-01 05:00', '2010-11-01 06:00',
-                                      '2010-11-01 07:00'], freq='H', tz=tz)
-
-            offset = dates + pd.offsets.Hour(5)
-            tm.assert_index_equal(offset, expected)
-            offset = dates + np.timedelta64(5, 'h')
-            tm.assert_index_equal(offset, expected)
-            offset = dates + timedelta(hours=5)
-            tm.assert_index_equal(offset, expected)
-
     # -------------------------------------------------------------
     # Unsorted
 
