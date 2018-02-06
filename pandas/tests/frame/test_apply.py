@@ -198,6 +198,11 @@ class TestDataFrameApply(TestData):
                      axis=1,
                      result_type='broadcast')
 
+        with pytest.raises(ValueError):
+            df.apply(lambda x: Series([1, 2]),
+                     axis=1,
+                     result_type='broadcast')
+
     def test_apply_raw(self):
         result0 = self.frame.apply(np.mean, raw=True)
         result1 = self.frame.apply(np.mean, axis=1, raw=True)
