@@ -4072,6 +4072,8 @@ class Index(IndexOpsMixin, PandasObject):
                 attrs = self._maybe_update_attributes(attrs)
                 with np.errstate(all='ignore'):
                     result = op(values, other)
+
+                result = missing.dispatch_missing(op, values, other, result)
                 return constructor(result, **attrs)
 
             return _evaluate_numeric_binop

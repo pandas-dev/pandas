@@ -496,8 +496,6 @@ def zip_frames(*frames):
 
 class TestDataFrameAggregate(TestData):
 
-    _multiprocess_can_split_ = True
-
     def test_agg_transform(self):
 
         with np.errstate(all='ignore'):
