@@ -1689,7 +1689,6 @@ class EWM(_Rolling):
         y : type of input argument
 
         """
-        import ipdb; ipdb.set_trace()
         blocks, obj, index = self._create_blocks()
         results = []
         for b in blocks:
