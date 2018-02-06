@@ -204,6 +204,50 @@ Please note that the string `index` is not supported with the round trip format,
    new_df
    print(new_df.index.name)
 
+.. _whatsnew_0230.enhancements.index_division_by_zero:
+
+Index Division By Zero Fills Correctly
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+Division operations on ``Index`` and subclasses will now fill division of positive numbers by zero with ``np.inf``, division of negative numbers by zero with ``-np.inf`` and `0 / 0` with ``np.nan``.  This matches existing ``Series`` behavior. (:issue:`19322`, :issue:`19347`)
+
+Previous Behavior:
+
+.. code-block:: ipython
+
+    In [6]: index = pd.Int64Index([-1, 0, 1])
+
+    In [7]: index / 0
+    Out[7]: Int64Index([0, 0, 0], dtype='int64')
+
+    # Previous behavior yielded different results depending on the type of zero in the divisor
+    In [8]: index / 0.0
+    Out[8]: Float64Index([-inf, nan, inf], dtype='float64')
+
+    In [9]: index = pd.UInt64Index([0, 1])
+
+    In [10]: index / np.array([0, 0], dtype=np.uint64)
+    Out[10]: UInt64Index([0, 0], dtype='uint64')
+
+    In [11]: pd.RangeIndex(1, 5) / 0
+    ZeroDivisionError: integer division or modulo by zero
+
+Current Behavior:
+
+.. ipython:: python
+
+    index = pd.Int64Index([-1, 0, 1])
+    # division by zero gives -infinity where negative, +infinity where positive, and NaN for 0 / 0
+    index / 0
+
+    # The result of division by zero should not depend on whether the zero is int or float
+    index / 0.0
+
+    index = pd.UInt64Index([0, 1])
+    index / np.array([0, 0], dtype=np.uint64)
+
+    pd.RangeIndex(1, 5) / 0
+
 .. _whatsnew_0230.enhancements.other:
 
 Other Enhancements
@@ -606,7 +650,7 @@ Sparse
 
 - Bug in which creating a ``SparseDataFrame`` from a dense ``Series`` or an unsupported type raised an uncontrolled exception (:issue:`19374`)
 - Bug in :class:`SparseDataFrame.to_csv` causing exception (:issue:`19384`)
--
+- Bug in :class:`SparseSeries.memory_usage` which caused segfault by accessing non sparse elements (:issue:`19368`)
 
 Reshaping
 ^^^^^^^^^

@@ -1048,7 +1048,7 @@ class IndexOpsMixin(object):
 
     def memory_usage(self, deep=False):
         """
-        Memory usage of my values
+        Memory usage of the values
 
         Parameters
         ----------
