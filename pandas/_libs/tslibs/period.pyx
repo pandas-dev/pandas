@@ -24,8 +24,8 @@ PyDateTime_IMPORT
 from np_datetime cimport (pandas_datetimestruct, dtstruct_to_dt64,
                           dt64_to_dtstruct)
 
-from ..cimport util
-from ..util cimport is_period_object, is_string_object, INT32_MIN
+cimport util
+from util cimport is_period_object, is_string_object
 
 from pandas._libs.missing cimport is_null_datetimelike
 
@@ -46,6 +46,9 @@ from nattype cimport _nat_scalar_rules, NPY_NAT
 from pandas.tseries import offsets
 from pandas.tseries import frequencies
 
+
+cdef extern from "../src/headers/stdint.h":
+    enum: INT32_MIN
 
 cdef extern from "../src/period_helper.h":
     ctypedef struct date_info:

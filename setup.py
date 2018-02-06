@@ -352,6 +352,7 @@ class CheckSDist(sdist_class):
                  'pandas/_libs/tslibs/frequencies.pyx',
                  'pandas/_libs/tslibs/resolution.pyx',
                  'pandas/_libs/tslibs/parsing.pyx',
+                 'pandas/_libs/tslibs/util.pyx',
                  'pandas/_libs/util.pyx',
                  'pandas/_libs/writers.pyx',
                  'pandas/io/sas/sas.pyx']
@@ -558,6 +559,8 @@ ext_data = {
         'pyxfile': '_libs/tslibs/timestamps'},
     '_libs.tslibs.timezones': {
         'pyxfile': '_libs/tslibs/timezones'},
+    '_libs.tslibs.util': {
+        'pyxfile': '_libs/tslibs/util'},
     '_libs.testing': {
         'pyxfile': '_libs/testing'},
     '_libs.util': {

@@ -27,9 +27,9 @@ from np_datetime cimport (check_dts_bounds,
                           get_datetime64_unit, get_datetime64_value,
                           pydatetime_to_dt64)
 
-from ..util cimport (is_string_object,
-                     is_datetime64_object,
-                     is_integer_object, is_float_object, is_array)
+from util cimport (is_string_object,
+                   is_datetime64_object,
+                   is_integer_object, is_float_object, is_array)
 
 from timedeltas cimport cast_from_unit
 from timezones cimport (is_utc, is_tzlocal, is_fixed_offset,

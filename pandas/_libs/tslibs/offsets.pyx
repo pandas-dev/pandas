@@ -15,7 +15,7 @@ from numpy cimport int64_t
 cnp.import_array()
 
 
-from ..util cimport is_string_object, is_integer_object
+from util cimport is_string_object, is_integer_object
 
 from ccalendar import MONTHS, DAYS
 from ccalendar cimport get_days_in_month, dayofweek

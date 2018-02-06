@@ -23,7 +23,7 @@ from numpy cimport ndarray, int64_t
 cnp.import_array()
 
 # ----------------------------------------------------------------------
-from ..util cimport is_string_object, is_integer_object, get_nat
+from util cimport is_string_object, is_integer_object, get_nat
 
 cdef int64_t NPY_NAT = get_nat()
 

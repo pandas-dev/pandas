@@ -44,19 +44,13 @@ cdef extern from "src/numpy_helper.h":
     object char_to_string(char*)
 
 
-cdef bint is_string_object(object obj) nogil
-cdef bint is_integer_object(object obj) nogil
-cdef bint is_float_object(object obj) nogil
-cdef bint is_complex_object(object obj) nogil
-cdef bint is_bool_object(object obj) nogil
-cdef bint is_timedelta64_object(object obj) nogil
-cdef bint is_datetime64_object(object obj) nogil
+from tslibs.util cimport (is_string_object,
+                          is_integer_object, is_float_object,
+                          is_complex_object, is_bool_object,
+                          is_timedelta64_object, is_datetime64_object,
+                          is_array,
+                          is_period_object, _checknull, _checknan)
 
-cdef bint is_array(object o)
-cdef bint is_period_object(object val)
-
-cdef bint _checknull(object val)
-cdef bint _checknan(object val)
 
 cdef object unbox_if_zerodim(object arr)
 

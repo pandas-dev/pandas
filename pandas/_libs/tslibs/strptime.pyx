@@ -35,7 +35,7 @@ from cpython.datetime cimport datetime
 from np_datetime cimport (check_dts_bounds,
                           dtstruct_to_dt64, pandas_datetimestruct)
 
-from ..util cimport is_string_object
+from util cimport is_string_object
 
 from nattype cimport checknull_with_nat, NPY_NAT
 from nattype import nat_strings
