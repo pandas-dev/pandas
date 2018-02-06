@@ -46,6 +46,18 @@ class JSONArray(ExtensionArray):
         else:
             return type(self)(self.data[item])
 
+    def __setitem__(self, key, value):
+        if isinstance(key, numbers.Integral):
+            self.data[key] = value
+        else:
+            if not isinstance(value, collections.Sequence):
+                # broadcast value
+                value = itertools.cycle([value])
+
+            for k, v in zip(key, value):
+                assert isinstance(v, self.dtype.type)
+                self.data[k] = v
+
     def __len__(self):
         return len(self.data)
 

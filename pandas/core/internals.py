@@ -1938,6 +1938,11 @@ class ExtensionBlock(NonConsolidatableMixIn, Block):
 
         return self.values[slicer]
 
+    def setitem(self, indexer, value, mgr=None):
+        print(indexer, value)
+        self.values[indexer] = value
+        return self
+
     def formatting_values(self):
         return self.values._formatting_values()
 

@@ -207,6 +207,35 @@ class BaseArrayTests(object):
         assert result.iloc[1] == data[1]
         assert result.iloc[2] == data[3]
 
+    def test_setitem_scalar(self, data):
+        arr = pd.Series(data)
+        arr[0] = data[1]
+        assert arr[0] == data[1]
+
+    def test_setitem_sequence(self, data):
+        arr = pd.Series(data)
+        original = data.copy()
+
+        arr[[0, 1]] = [data[1], data[0]]
+        assert arr[0] == original[1]
+        assert arr[1] == original[0]
+
+    def test_setitem_sequence_broadcasts(self, data):
+        arr = pd.Series(data)
+
+        arr[[0, 1]] = data[2]
+        assert arr[0] == data[2]
+        assert arr[1] == data[2]
+
+    def test_loc_set_scalar(self, data):
+        arr = pd.Series(data)
+        arr.loc[0] = data[1]
+        assert arr[0] == data[1]
+
+        df = pd.DataFrame({"A": data})
+        df.loc[0, 'A'] = data[1]
+        assert df.loc[0, 'A'] == data[1]
+
     def test_isna(self, data_missing):
         if data_missing._can_hold_na:
             expected = np.array([True, False])

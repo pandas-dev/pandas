@@ -89,7 +89,37 @@ class ExtensionArray(object):
         raise AbstractMethodError(self)
 
     def __setitem__(self, key, value):
-        # type: (Any, Any) -> None
+        # type: (Union[int, np.ndarray], Any) -> None
+        """Set one or more values inplace.
+
+        Parameters
+        ----------
+        key : int or ndarray
+            When called from, e.g. ``Series.__setitem__``, ``key`` will
+            always be an ndarray of integers.
+        value : ExtensionDtype.type, Sequence[ExtensionDtype.type], or object
+            ExtensionArrays may
+
+        Notes
+        -----
+        This method is not required to satisfy the interface. If an
+        ExtensionArray chooses to implement __setitem__, then some semantics
+        should be observed.
+
+        * Setting multiple values : ExtensionArrays should support setting
+          multiple values at once, ``key`` will be a sequence of integers.
+
+        * Broadcasting : For a sequence ``key`` and a scalar ``value``,
+          each position in ``key`` should be set to ``value``.
+
+        * Coercion : Most users will expect basic coercion to work. For
+          example, a string like ``'2018-01-01'`` is coerced to a datetime
+          when setting on a datetime64ns array. In general, if the
+        ``__init__`` method coerces that value, then so should ``__setitem__``.
+
+        When called from, e.g. ``Series.__setitem__``, ``key`` will always
+        be an ndarray of positions.
+        """
         raise NotImplementedError(_not_implemented_message.format(
             type(self), '__setitem__')
         )
