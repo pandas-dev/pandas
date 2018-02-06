@@ -22,7 +22,7 @@ from cpython.datetime cimport PyDateTime_Check, PyDateTime_IMPORT
 PyDateTime_IMPORT
 
 from np_datetime cimport (pandas_datetimestruct, dtstruct_to_dt64,
-                          dt64_to_dtstruct, is_leapyear)
+                          dt64_to_dtstruct)
 
 cimport util
 from util cimport is_period_object, is_string_object, INT32_MIN
@@ -34,11 +34,12 @@ from timezones cimport is_utc, is_tzlocal, get_utcoffset, get_dst_info
 from timedeltas cimport delta_to_nanoseconds
 
 from ccalendar import MONTH_NUMBERS
+from ccalendar cimport is_leapyer
 from frequencies cimport (get_freq_code, get_base_alias,
                           get_to_timestamp_base, get_freq_str,
                           get_rule_month)
 from parsing import parse_time_string, NAT_SENTINEL
-from resolution import resolution, Resolution
+from resolution import Resolution
 from nattype import nat_strings, NaT, iNaT
 from nattype cimport _nat_scalar_rules, NPY_NAT
 
