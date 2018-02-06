@@ -127,6 +127,7 @@ def group_last_object(ndarray[object, ndim=2] out,
             else:
                 out[i, j] = resx[i, j]
 
+
 @cython.boundscheck(False)
 @cython.wraparound(False)
 def group_rank_object(ndarray[float64_t, ndim=2] out,
@@ -201,10 +202,10 @@ def group_rank_object(ndarray[float64_t, ndim=2] out,
                 for j in range(i - dups + 1, i + 1):
                     out[_as[j], 0] = grp_vals_seen
 
-        if (i == N - 1 or (
+        if i == N - 1 or (
                 (values[_as[i], 0] != values[_as[i+1], 0]) and not
                 (values[_as[i], 0] is np.nan and values[_as[i+1], 0] is np.nan)
-                )):
+        ):
             dups = sum_ranks = 0
             val_start = i
             grp_vals_seen += 1
