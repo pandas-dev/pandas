@@ -486,6 +486,7 @@ Numeric
 - Bug in :class:`Index` multiplication and division methods where operating with a ``Series`` would return an ``Index`` object instead of a ``Series`` object (:issue:`19042`)
 - Bug in the :class:`DataFrame` constructor in which data containing very large positive or very large negative numbers was causing ``OverflowError`` (:issue:`18584`)
 - Bug in :class:`Index` constructor with ``dtype='uint64'`` where int-like floats were not coerced to :class:`UInt64Index` (:issue:`18400`)
+- Bug in :class:`DataFrame` flex arithmetic methods that failed to raise ``NotImplementedError` in cases where either argument has length zero (:issue:`19522`)
 
 
 Indexing
