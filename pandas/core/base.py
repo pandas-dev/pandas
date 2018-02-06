@@ -771,30 +771,6 @@ class IndexOpsMixin(object):
         return self.values
 
     @property
-    def _values(self):
-        # type: () -> Union[ExtensionArray, Index]
-        # TODO: remove index types as they become is extension arrays
-        """ The best array representation.
-
-        This is an ndarray, ExtensionArray, or Index subclass. This differs
-        from '._ndarray_values', which always returns an ndarray. It may differ
-        from the public '.values'
-
-        index             | values          | _values
-        ----------------- | -------------- -| ----------
-        CategoricalIndex  | Categorical     | Categorical
-        DatetimeIndex[tz] | ndarray[M8ns]   | DTI[tz]
-        PeriodIndex       | ndarray[Period] | ndarray[Pd] (soon PeriodArray)
-        IntervalIndex     | ndarray[IV]     | ndarray[IV] (soon IntervalArray)
-
-        See Also
-        --------
-        values
-        _ndarray_values
-        """
-        return self.values
-
-    @property
     def empty(self):
         return not self.size
 
