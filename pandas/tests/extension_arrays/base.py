@@ -131,6 +131,7 @@ class BaseArrayTests(object):
         assert result.dtype == data.dtype
         assert len(result) == len(data)
         assert isinstance(result._data.blocks[0], ExtensionBlock)
+        assert result._data.blocks[0].values is data
 
     @pytest.mark.parametrize("from_series", [True, False])
     def dataframe_constructor(self, data, from_series):
@@ -159,12 +160,14 @@ class BaseArrayTests(object):
             pd.Series(data),
         ], ignore_index=True)
         assert len(result) == len(data) * 2
+        assert result.dtype == data.dtype
+        assert isinstance(result._data.blocks[0], ExtensionBlock)
 
     # ------------------------------------------------------------------------
     # Indexing - getting
     # ------------------------------------------------------------------------
 
-    def test_iloc(self, data):
+    def test_iloc_series(self, data):
         ser = pd.Series(data)
         result = ser.iloc[:4]
         expected = pd.Series(data[:4])
@@ -173,13 +176,57 @@ class BaseArrayTests(object):
         result = ser.iloc[[0, 1, 2, 3]]
         tm.assert_series_equal(result, expected)
 
-    def test_loc(self, data):
+    def test_iloc_frame(self, data):
+        df = pd.DataFrame({"A": data, 'B': np.arange(len(data))})
+        expected = pd.DataFrame({"A": data[:4]})
+
+        # slice -> frame
+        result = df.iloc[:4, [0]]
+        tm.assert_frame_equal(result, expected)
+
+        # sequence -> frame
+        result = df.iloc[[0, 1, 2, 3], [0]]
+        tm.assert_frame_equal(result, expected)
+
+        expected = pd.Series(data[:4], name='A')
+
+        # slice -> series
+        result = df.iloc[:4, 0]
+        tm.assert_series_equal(result, expected)
+
+        # sequence -> series
+        result = df.iloc[:4, 0]
+        tm.assert_series_equal(result, expected)
+
+    def test_loc_series(self, data):
         ser = pd.Series(data)
         result = ser.loc[:3]
         expected = pd.Series(data[:4])
         tm.assert_series_equal(result, expected)
 
         result = ser.loc[[0, 1, 2, 3]]
+        tm.assert_series_equal(result, expected)
+
+    def test_loc_frame(self, data):
+        df = pd.DataFrame({"A": data, 'B': np.arange(len(data))})
+        expected = pd.DataFrame({"A": data[:4]})
+
+        # slice -> frame
+        result = df.loc[:3, ['A']]
+        tm.assert_frame_equal(result, expected)
+
+        # sequence -> frame
+        result = df.loc[[0, 1, 2, 3], ['A']]
+        tm.assert_frame_equal(result, expected)
+
+        expected = pd.Series(data[:4], name='A')
+
+        # slice -> series
+        result = df.loc[:3, 'A']
+        tm.assert_series_equal(result, expected)
+
+        # sequence -> series
+        result = df.loc[:3, 'A']
         tm.assert_series_equal(result, expected)
 
     def test_is_extension_array_dtype(self, data):
@@ -297,6 +344,24 @@ class BaseArrayTests(object):
         df = pd.DataFrame({"A": data, "B": data})
         df.iloc[10, 1] = data[1]
         assert df.loc[10, 'B'] == data[1]
+
+    def test_set_mask_aligned(self, data):
+        ser = pd.Series(data)
+        mask = np.zeros(len(data), dtype=bool)
+        mask[:2] = True
+
+        ser[mask] = data[5:7]
+        assert ser[0] == data[5]
+        assert ser[1] == data[6]
+
+    def test_set_mask_broadcast(self, data):
+        ser = pd.Series(data)
+        mask = np.zeros(len(data), dtype=bool)
+        mask[:2] = True
+
+        ser[mask] = data[10]
+        assert ser[0] == data[10]
+        assert ser[1] == data[10]
 
     def test_setitem_expand_columns(self, data):
         df = pd.DataFrame({"A": data})
