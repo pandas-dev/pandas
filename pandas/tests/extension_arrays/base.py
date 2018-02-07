@@ -142,14 +142,6 @@ class BaseArrayTests(object):
         assert result.shape == (len(data), 1)
         assert isinstance(result._data.blocks[0], ExtensionBlock)
 
-    @pytest.mark.xfail(reason="GH-19342")
-    def test_series_given_index(self, data):
-        result = pd.Series(data[:3], index=[0, 1, 2, 3, 4])
-        assert result.dtype == data.dtype
-        assert len(result) == 5
-        assert len(result.values) == 5
-        assert pd.isna(result.loc[[3, 4]]).all()
-
     # ------------------------------------------------------------------------
     # Reshaping
     # ------------------------------------------------------------------------
