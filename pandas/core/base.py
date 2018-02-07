@@ -975,10 +975,8 @@ class IndexOpsMixin(object):
     @Appender(_shared_docs['unique'] % _indexops_doc_kwargs)
     def unique(self):
         values = self._values
-        if isinstance(values, ABCDatetimeIndex):
-            values = values._ndarray_values
+
         # TODO: Make unique part of the ExtensionArray interface.
-        # else, this could be surprising.
         if hasattr(values, 'unique'):
 
             result = values.unique()

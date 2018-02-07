@@ -1303,9 +1303,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
             # to return an object array of tz-aware Timestamps
 
             # TODO: it must return DatetimeArray with tz in pandas 2.0
-            # XXX: This surely will have issues around DST boundaries.
-            result = (DatetimeIndex(result, tz='UTC').tz_convert(self.dtype.tz)
-                      .astype(object).values)
+            result = result.astype(object).values
 
         return result
 
