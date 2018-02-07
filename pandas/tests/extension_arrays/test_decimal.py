@@ -113,10 +113,6 @@ class TestDecimalArray(BaseArrayTests):
     def na_cmp(self):
         return lambda x, y: x.is_nan() and y.is_nan()
 
-    @pytest.mark.skip(reason="Who knows.")
-    def test_repr(self, data):
-        super().test_repr(data)
-
     def test_align(self, data):
         a = data[:3]
         b = data[2:5]
