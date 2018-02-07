@@ -737,7 +737,7 @@ class TestCategoricalDtypeParametrized(object):
         if expected_ordered is None:
             expected_ordered = dtype.ordered
 
-        result = dtype._update_dtype(new_dtype)
+        result = dtype.update_dtype(new_dtype)
         tm.assert_index_equal(result.categories, expected_categories)
         assert result.ordered is expected_ordered
 
@@ -745,7 +745,7 @@ class TestCategoricalDtypeParametrized(object):
         dtype = CategoricalDtype(list('abc'), ordered)
         expected_categories = dtype.categories
         expected_ordered = dtype.ordered
-        result = dtype._update_dtype('category')
+        result = dtype.update_dtype('category')
         tm.assert_index_equal(result.categories, expected_categories)
         assert result.ordered is expected_ordered
 
@@ -755,4 +755,4 @@ class TestCategoricalDtypeParametrized(object):
         dtype = CategoricalDtype(list('abc'), False)
         msg = 'a CategoricalDtype must be passed to perform an update, '
         with tm.assert_raises_regex(ValueError, msg):
-            dtype._update_dtype(bad_dtype)
+            dtype.update_dtype(bad_dtype)

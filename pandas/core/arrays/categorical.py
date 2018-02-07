@@ -294,7 +294,7 @@ class Categorical(ExtensionArray, PandasObject):
 
         if fastpath:
             self._codes = coerce_indexer_dtype(values, categories)
-            self._dtype = self._dtype._update_dtype(dtype)
+            self._dtype = self._dtype.update_dtype(dtype)
             return
 
         # null_mask indicates missing values we want to exclude from inference.
@@ -358,7 +358,7 @@ class Categorical(ExtensionArray, PandasObject):
             full_codes[~null_mask] = codes
             codes = full_codes
 
-        self._dtype = self._dtype._update_dtype(dtype)
+        self._dtype = self._dtype.update_dtype(dtype)
         self._codes = coerce_indexer_dtype(codes, dtype.categories)
 
     @property
@@ -438,7 +438,7 @@ class Categorical(ExtensionArray, PandasObject):
         """
         if is_categorical_dtype(dtype):
             # GH 10696/18593
-            dtype = self.dtype._update_dtype(dtype)
+            dtype = self.dtype.update_dtype(dtype)
             self = self.copy() if copy else self
             if dtype == self.dtype:
                 return self
@@ -560,7 +560,7 @@ class Categorical(ExtensionArray, PandasObject):
             raise ValueError(
                 "codes need to be convertible to an arrays of integers")
 
-        categories = CategoricalDtype._validate_categories(categories)
+        categories = CategoricalDtype.validate_categories(categories)
 
         if len(codes) and (codes.max() >= len(categories) or codes.min() < -1):
             raise ValueError("codes need to be between -1 and "
@@ -1165,7 +1165,7 @@ class Categorical(ExtensionArray, PandasObject):
 
         # Provide compatibility with pre-0.15.0 Categoricals.
         if '_categories' not in state and '_levels' in state:
-            state['_categories'] = self.dtype._validate_categories(state.pop(
+            state['_categories'] = self.dtype.validate_categories(state.pop(
                 '_levels'))
         if '_codes' not in state and 'labels' in state:
             state['_codes'] = coerce_indexer_dtype(

@@ -181,11 +181,11 @@ class CategoricalDtype(PandasExtensionDtype):
     def _finalize(self, categories, ordered, fastpath=False):
 
         if ordered is not None:
-            self._validate_ordered(ordered)
+            self.validate_ordered(ordered)
 
         if categories is not None:
-            categories = self._validate_categories(categories,
-                                                   fastpath=fastpath)
+            categories = self.validate_categories(categories,
+                                                  fastpath=fastpath)
 
         self._categories = categories
         self._ordered = ordered
@@ -286,7 +286,7 @@ class CategoricalDtype(PandasExtensionDtype):
         raise TypeError("cannot construct a CategoricalDtype")
 
     @staticmethod
-    def _validate_ordered(ordered):
+    def validate_ordered(ordered):
         """
         Validates that we have a valid ordered parameter. If
         it is not a boolean, a TypeError will be raised.
@@ -306,7 +306,7 @@ class CategoricalDtype(PandasExtensionDtype):
             raise TypeError("'ordered' must either be 'True' or 'False'")
 
     @staticmethod
-    def _validate_categories(categories, fastpath=False):
+    def validate_categories(categories, fastpath=False):
         """
         Validates that we have good categories
 
@@ -338,7 +338,7 @@ class CategoricalDtype(PandasExtensionDtype):
 
         return categories
 
-    def _update_dtype(self, dtype):
+    def update_dtype(self, dtype):
         """
         Returns a CategoricalDtype with categories and ordered taken from dtype
         if specified, otherwise falling back to self if unspecified
