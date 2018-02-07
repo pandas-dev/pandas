@@ -8,7 +8,7 @@ from pandas._libs.tslibs import ccalendar
 
 def test_get_day_of_year():
     assert ccalendar.get_day_of_year(2001, 3, 1) == 60
-    assert ccalendar.ccalendar.get_day_of_year(2004, 3, 1) == 61
+    assert ccalendar.get_day_of_year(2004, 3, 1) == 61
     assert ccalendar.get_day_of_year(1907, 12, 31) == 365
     assert ccalendar.get_day_of_year(2004, 12, 31) == 366
 
