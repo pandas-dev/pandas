@@ -412,14 +412,16 @@ class BaseArrayTests(object):
         })
 
         try:
-            expected = pd.DataFrame({
-                "A": binop(df['A'], df['A']),
-                "B": binop(df['B'].values, df['B'].values),
-            })
-        except Exception:
+            expected_array = binop(data, data)
+        except TypeError:
             msg = "{} not supported for {}".format(binop.__name__,
                                                    data.dtype.name)
-            raise pytest.skip(msg)
+            pytest.skip(msg)
+
+        expected = pd.DataFrame({
+            "A": binop(df['A'], df['A']),
+            "B": expected_array,
+        })
 
         result = binop(df, df)
         tm.assert_frame_equal(result, expected)
