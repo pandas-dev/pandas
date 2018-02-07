@@ -754,7 +754,6 @@ class CategoricalIndex(Index, accessor.PandasDelegate):
                                         "attributes")
 
                 result = op(self.values, other)
-                #result = getattr(self.values, opname)(other)
                 if isinstance(result, ABCSeries):
                     # Dispatch to pd.Categorical returned NotImplemented
                     # and we got a Series back; down-cast to ndarray
