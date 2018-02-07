@@ -533,11 +533,11 @@ Categorical
 
 .. warning::
 
-   A class of bugs were introduced in 0.21 with ``CategoricalDtype`` that affect
-   the correctness of operations like ``merge``, ``concat``, and indexing when
-   comparing multiple unordered ``Categorical`` arrays that have the same categories
-   in a different order. We highly recommend upgrading or manually aligning your
-   categories.
+   A class of bugs were introduced in pandas 0.21 with ``CategoricalDtype`` that
+   affects the correctness of operations like ``merge``, ``concat``, and
+   indexing when comparing multiple unordered ``Categorical`` arrays that have
+   the same categories, but in a different order. We highly recommend upgrading
+   or manually aligning your categories before doing these operations.
 
 - Bug in ``Categorical.equals`` returning the wrong result when comparing two
   unordered ``Categorical`` arrays with the same categories, but in a different
