@@ -642,11 +642,22 @@ class TestCategoricalDtypeParametrized(object):
     @pytest.mark.parametrize('ordered1', [True, False, None])
     @pytest.mark.parametrize('ordered2', [True, False, None])
     def test_categorical_equality(self, ordered1, ordered2):
-        # same categories
+        # same categories, same order
+        # any combination of None/False are equal
+        # True/True is the only combination with True that are equal
         c1 = CategoricalDtype(list('abc'), ordered1)
         c2 = CategoricalDtype(list('abc'), ordered2)
         result = c1 == c2
-        expected = (ordered1 is ordered2) or not any([ordered1, ordered2])
+        expected = bool(ordered1) is bool(ordered2)
+        assert result is expected
+
+        # same categories, different order
+        # any combination of None/False are equal (order doesn't matter)
+        # any combination with True are not equal (different order of cats)
+        c1 = CategoricalDtype(list('abc'), ordered1)
+        c2 = CategoricalDtype(list('cab'), ordered2)
+        result = c1 == c2
+        expected = (bool(ordered1) is False) and (bool(ordered2) is False)
         assert result is expected
 
         # different categories
