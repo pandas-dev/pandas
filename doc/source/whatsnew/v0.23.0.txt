@@ -142,7 +142,7 @@ Previous Behavior:
     4    NaN
     dtype: float64
 
-Current Behavior
+Current Behavior:
 
 .. ipython:: python
 
@@ -167,7 +167,7 @@ Previous Behavior:
     3    2.5
     dtype: float64
 
-Current Behavior
+Current Behavior:
 
 .. ipython:: python
 
@@ -332,6 +332,73 @@ Convert to an xarray DataArray
 
    p.to_xarray()
 
+.. _whatsnew_0230.api_breaking.apply:
+
+Apply Changes
+~~~~~~~~~~~~~
+
+:func:`DataFrame.apply` was inconsistent when applying an arbitrary user-defined-function that returned a list-like with ``axis=1``. Several bugs and inconsistencies
+are resolved. If the applied function returns a Series, then pandas will return a DataFrame; otherwise a Series will be returned, this includes the case
+where a list-like (e.g. ``tuple`` or ``list`` is returned), (:issue:`16353`, :issue:`17437`, :issue:`17970`, :issue:`17348`, :issue:`17892`, :issue:`18573`,
+:issue:`17602`, :issue:`18775`, :issue:`18901`, :issue:`18919`)
+
+.. ipython:: python
+
+    df = pd.DataFrame(np.tile(np.arange(3), 6).reshape(6, -1) + 1, columns=['A', 'B', 'C'])
+    df
+
+Previous Behavior. If the returned shape happened to match the original columns, this would return a ``DataFrame``.
+If the return shape did not match, a ``Series`` with lists was returned.
+
+.. code-block:: python
+
+   In [3]: df.apply(lambda x: [1, 2, 3], axis=1)
+   Out[3]:
+      A  B  C
+   0  1  2  3
+   1  1  2  3
+   2  1  2  3
+   3  1  2  3
+   4  1  2  3
+   5  1  2  3
+
+   In [4]: df.apply(lambda x: [1, 2], axis=1)
+   Out[4]:
+   0    [1, 2]
+   1    [1, 2]
+   2    [1, 2]
+   3    [1, 2]
+   4    [1, 2]
+   5    [1, 2]
+   dtype: object
+
+
+New Behavior. The behavior is consistent. These will *always* return a ``Series``.
+
+.. ipython:: python
+
+    df.apply(lambda x: [1, 2, 3], axis=1)
+    df.apply(lambda x: [1, 2], axis=1)
+
+To have expanded columns, you can use ``result_type='expand'``
+
+.. ipython:: python
+
+    df.apply(lambda x: [1, 2, 3], axis=1, result_type='expand')
+
+To have broadcast the result across, you can use ``result_type='broadcast'``. The shape
+must match the original columns.
+
+.. ipython:: python
+
+    df.apply(lambda x: [1, 2, 3], axis=1, result_type='broadcast')
+
+Returning a ``Series`` allows one to control the exact return structure and column names:
+
+.. ipython:: python
+
+    df.apply(lambda x: Series([1, 2, 3], index=x.index), axis=1)
+
 
 .. _whatsnew_0230.api_breaking.build_changes:
 
@@ -456,6 +523,8 @@ Deprecations
 - The ``is_copy`` attribute is deprecated and will be removed in a future version (:issue:`18801`).
 - ``IntervalIndex.from_intervals`` is deprecated in favor of the :class:`IntervalIndex` constructor (:issue:`19263`)
 - :func:``DataFrame.from_items`` is deprecated. Use :func:``DataFrame.from_dict()`` instead, or :func:``DataFrame.from_dict(OrderedDict())`` if you wish to preserve the key order (:issue:`17320`)
+- The ``broadcast`` parameter of ``.apply()`` is removed in favor of ``result_type='broadcast'`` (:issue:`18577`)
+- The ``reduce`` parameter of ``.apply()`` is removed in favor of ``result_type='reduce'`` (:issue:`18577`)
 
 .. _whatsnew_0230.prior_deprecations:
 
