@@ -1,4 +1,5 @@
 """ pickle compat """
+import warnings
 
 import numpy as np
 from numpy.lib.format import read_array, write_array
@@ -96,7 +97,8 @@ def read_pickle(path, compression='infer'):
         # cpickle
         # GH 6899
         try:
-            return read_wrapper(lambda f: pkl.load(f))
+            with warnings.simplefilter('ignore'):
+                return read_wrapper(lambda f: pkl.load(f))
         except Exception:
             # reg/patched pickle
             try:
