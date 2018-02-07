@@ -1879,7 +1879,9 @@ class ExtensionBlock(NonConsolidatableMixIn, Block):
     @property
     def _can_hold_na(self):
         # The default ExtensionBlock._can_hold_na is True
-        return self._holder._can_hold_na
+        # Needed getattr to pass our old extension tests
+        # Check if geopandas needs this.
+        return getattr(self._holder, '_can_hold_na', True)
 
     @property
     def is_view(self):
