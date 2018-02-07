@@ -20,7 +20,6 @@ from pandas import (Series, DataFrame, Panel, Index, isna,
 
 from pandas.core.dtypes.generic import ABCSeries, ABCDataFrame
 from pandas.compat import range, lrange, zip, product, OrderedDict
-from pandas.core.base import SpecificationError
 from pandas.errors import UnsupportedFunctionCall
 from pandas.core.groupby import DataError
 import pandas.core.common as com
@@ -614,7 +613,7 @@ class TestResampleAPI(object):
                     t[['A']].agg({'A': ['sum', 'std'],
                                   'B': ['mean', 'std']})
 
-            pytest.raises(SpecificationError, f)
+            pytest.raises(KeyError, f)
 
     def test_agg_nested_dicts(self):
 
@@ -658,6 +657,21 @@ class TestResampleAPI(object):
                 result = t.agg({'A': {'ra': ['mean', 'std']},
                                 'B': {'rb': ['mean', 'std']}})
             assert_frame_equal(result, expected, check_like=True)
+
+    def test_try_aggregate_non_existing_column(self):
+        # GH 16766
+        data = [
+            {'dt': datetime(2017, 6, 1, 0), 'x': 1.0, 'y': 2.0},
+            {'dt': datetime(2017, 6, 1, 1), 'x': 2.0, 'y': 2.0},
+            {'dt': datetime(2017, 6, 1, 2), 'x': 3.0, 'y': 1.5}
+        ]
+        df = DataFrame(data).set_index('dt')
+
+        # Error as we don't have 'z' column
+        with pytest.raises(KeyError):
+            df.resample('30T').agg({'x': ['mean'],
+                                    'y': ['median'],
+                                    'z': ['sum']})
 
     def test_selection_api_validation(self):
         # GH 13500
