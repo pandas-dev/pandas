@@ -55,7 +55,7 @@ import pandas.core.tools.datetimes as tools
 from pandas._libs import (lib, index as libindex, tslib as libts,
                           join as libjoin, Timestamp)
 from pandas._libs.tslibs import (timezones, conversion, fields, parsing,
-                                 period as libperiod)
+                                 resolution as libresolution)
 
 # -------- some conversion wrapper functions
 
@@ -1816,7 +1816,7 @@ class DatetimeIndex(DatelikeOps, TimelikeOps, DatetimeIndexOpsMixin,
 
     @cache_readonly
     def _resolution(self):
-        return libperiod.resolution(self.asi8, self.tz)
+        return libresolution.resolution(self.asi8, self.tz)
 
     def insert(self, loc, item):
         """
