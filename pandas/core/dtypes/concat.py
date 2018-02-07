@@ -493,20 +493,11 @@ def _concat_index_asobject(to_concat, name=None):
     to_concat = [x.astype(object) if isinstance(x, klasses) else x
                  for x in to_concat]
 
-    from pandas import Index
     self = to_concat[0]
     attribs = self._get_attributes_dict()
     attribs['name'] = name
 
-    arrays = []
-    for x in to_concat:
-        if is_categorical_dtype(x):
-            arrays.append(np.asarray(x, dtype=object))
-        elif isinstance(x, Index):
-            arrays.append(x._values)
-        else:
-            arrays.append(x)
-
+    arrays = [np.array(x, copy=False, dtype=object) for x in to_concat]
     return self._shallow_copy_with_infer(np.concatenate(arrays), **attribs)
 
 
