@@ -305,7 +305,7 @@ def str_endswith(arr, pat, na=np.nan):
     return _na_map(f, arr, na, dtype=bool)
 
 
-def str_replace(arr, pat, repl, n=-1, case=None, flags=0):
+def str_replace(arr, pat, repl, n=-1, case=None, flags=0, regex=True):
     r"""
     Replace occurrences of pattern/regex in the Series/Index with
     some other string. Equivalent to :meth:`str.replace` or
@@ -336,6 +336,11 @@ def str_replace(arr, pat, repl, n=-1, case=None, flags=0):
     flags : int, default 0 (no flags)
         - re module flags, e.g. re.IGNORECASE
         - Cannot be set if `pat` is a compiled regex
+    regex : boolean, default True
+        - If True, assumes the passed-in pattern is a regular expression.
+        - If False, treats the pattern as a literal string
+        - Cannot be set to False if `pat` is a compiled regex or `repl` is
+          a callable.
 
     Returns
     -------
@@ -344,17 +349,27 @@ def str_replace(arr, pat, repl, n=-1, case=None, flags=0):
     Notes
     -----
     When `pat` is a compiled regex, all flags should be included in the
-    compiled regex. Use of `case` or `flags` with a compiled regex will
-    raise an error.
+    compiled regex. Use of `case`, `flags`, or `regex` with a compiled regex
+    will raise an error.
 
     Examples
     --------
-    When `repl` is a string, every `pat` is replaced as with
-    :meth:`str.replace`. NaN value(s) in the Series are left as is.
+    When `pat` is a string and `regex` is False, every `pat` is replaced with
+    `repl` as with :meth:`str.replace`. NaN value(s) in the Series are left as
+    is.
 
-    >>> pd.Series(['foo', 'fuz', np.nan]).str.replace('f', 'b')
-    0    boo
-    1    buz
+    >>> pd.Series(['f.o', 'fuz', np.nan]).str.replace('f.', 'ba', regex=False)
+    0    bao
+    1    fuz
+    2    NaN
+    dtype: object
+
+    When `pat` is a string and `regex` is True, the given `pat` is compiled
+    as a regex. When `repl` is a string, it replaces matching regex patterns
+    literally as with :meth:`re.sub`:
+    >>> pd.Series(['foo', 'fuz', np.nan]).str.replace('f.', 'ba', regex=True)
+    0    bao
+    1    baz
     2    NaN
     dtype: object
 
@@ -403,27 +418,33 @@ def str_replace(arr, pat, repl, n=-1, case=None, flags=0):
         raise TypeError("repl must be a string or callable")
 
     is_compiled_re = is_re(pat)
-    if is_compiled_re:
-        if (case is not None) or (flags != 0):
-            raise ValueError("case and flags cannot be set"
-                             " when pat is a compiled regex")
+    if regex:
+        if is_compiled_re:
+            if (case is not None) or (flags != 0):
+                raise ValueError("case and flags cannot be set"
+                                 " when pat is a compiled regex")
+        else:
+            # not a compiled regex
+            # set default case
+            if case is None:
+                case = True
+
+            # add case flag, if provided
+            if case is False:
+                flags |= re.IGNORECASE
+        if is_compiled_re or len(pat) > 1 or flags or callable(repl):
+            n = n if n >= 0 else 0
+            compiled = re.compile(pat, flags=flags)
+            f = lambda x: compiled.sub(repl=repl, string=x, count=n)
+        else:
+            f = lambda x: x.replace(pat, repl, n)
     else:
-        # not a compiled regex
-        # set default case
-        if case is None:
-            case = True
-
-        # add case flag, if provided
-        if case is False:
-            flags |= re.IGNORECASE
-
-    use_re = is_compiled_re or len(pat) > 1 or flags or callable(repl)
-
-    if use_re:
-        n = n if n >= 0 else 0
-        regex = re.compile(pat, flags=flags)
-        f = lambda x: regex.sub(repl=repl, string=x, count=n)
-    else:
+        if is_compiled_re:
+            raise ValueError("Cannot use a compiled regex as replacement "
+                             "pattern with regex=False")
+        if callable(repl):
+            raise ValueError("Cannot use a callable replacement when "
+                             "regex=False")
         f = lambda x: x.replace(pat, repl, n)
 
     return _na_map(f, arr)
@@ -1595,9 +1616,9 @@ class StringMethods(NoNewAttributesMixin):
         return self._wrap_result(result)
 
     @copy(str_replace)
-    def replace(self, pat, repl, n=-1, case=None, flags=0):
+    def replace(self, pat, repl, n=-1, case=None, flags=0, regex=True):
         result = str_replace(self._data, pat, repl, n=n, case=case,
-                             flags=flags)
+                             flags=flags, regex=regex)
         return self._wrap_result(result)
 
     @copy(str_repeat)
