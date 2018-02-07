@@ -1223,7 +1223,7 @@ cdef _roll_min_max(ndarray[numeric] input, int64_t win, int64_t minp,
     cdef:
         numeric ai
         bint is_variable, should_replace
-        int64_t N, i, removed
+        int64_t N, i, removed, window_i
         Py_ssize_t nobs = 0
         deque Q[int64_t]
         ndarray[int64_t] starti, endi
@@ -1250,7 +1250,7 @@ cdef _roll_min_max(ndarray[numeric] input, int64_t win, int64_t minp,
 
         with nogil:
 
-            for i from 0 <= i < endi[0]:
+            for i from starti[0] <= i < endi[0]:
                 ai = init_mm(input[i], &nobs, is_max)
 
                 if is_max:
@@ -1273,7 +1273,7 @@ cdef _roll_min_max(ndarray[numeric] input, int64_t win, int64_t minp,
                     while not Q.empty() and ai <= input[Q.back()]:
                         Q.pop_back()
 
-                while not Q.empty() and Q.front() <= i-win:
+                while not Q.empty() and Q.front() <= i - (endi[i] - starti[i]):
                     Q.pop_front()
 
                 Q.push_back(i)
