@@ -191,8 +191,7 @@ cpdef int32_t get_day_of_year(int year, int month, int day) nogil:
     cdef:
         bint isleap
         int32_t mo_off
-        int32_t doy, dow
-        int woy
+        int day_of_year
 
     isleap = is_leapyear(year)
 
