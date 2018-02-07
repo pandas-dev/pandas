@@ -29,8 +29,7 @@ from nattype import NaT
 from nattype cimport NPY_NAT
 from np_datetime import OutOfBoundsDatetime
 from np_datetime cimport (reverse_ops, cmp_scalar, check_dts_bounds,
-                          pandas_datetimestruct, dt64_to_dtstruct,
-                          is_leapyear)
+                          pandas_datetimestruct, dt64_to_dtstruct)
 from timedeltas import Timedelta
 from timedeltas cimport delta_to_nanoseconds
 from timezones cimport (
@@ -290,14 +289,6 @@ cdef class _Timestamp(datetime):
         if self.tz is not None and not is_utc(self.tz):
             val = tz_convert_single(self.value, 'UTC', self.tz)
         return val
-
-    cpdef int _get_field(self, field):
-        cdef:
-            int64_t val
-            ndarray[int32_t] out
-        val = self._maybe_convert_value_to_local()
-        out = get_date_field(np.array([val], dtype=np.int64), field)
-        return int(out[0])
 
     cpdef bint _get_start_end_field(self, str field):
         cdef:
@@ -695,14 +686,11 @@ class Timestamp(_Timestamp):
 
     @property
     def dayofyear(self):
-        return self._get_field('doy')
+        return ccalendar.get_day_of_year(self.year, self.month, self.day)
 
     @property
     def week(self):
-        if self.freq is None:
-            # fastpath for non-business
-            return ccalendar.get_week_of_year(self.year, self.month, self.day)
-        return self._get_field('woy')
+        return ccalendar.get_week_of_year(self.year, self.month, self.day)
 
     weekofyear = week
 
@@ -764,7 +752,7 @@ class Timestamp(_Timestamp):
 
     @property
     def is_leap_year(self):
-        return bool(is_leapyear(self.year))
+        return bool(ccalendar.is_leapyear(self.year))
 
     def tz_localize(self, tz, ambiguous='raise', errors='raise'):
         """
