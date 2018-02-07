@@ -1,5 +1,6 @@
 import numpy as np
 from pandas._libs import index as libindex
+from pandas._libs import join as libjoin
 
 from pandas import compat
 from pandas.compat.numpy import function as nv
@@ -8,6 +9,8 @@ from pandas.core.dtypes.dtypes import CategoricalDtype
 from pandas.core.dtypes.common import (
     is_categorical_dtype,
     _ensure_platform_int,
+    _ensure_int32,
+    _ensure_int64,
     is_list_like,
     is_interval_dtype,
     is_scalar)
@@ -213,6 +216,14 @@ class CategoricalIndex(Index, accessor.PandasDelegate):
         return super(CategoricalIndex, self)._shallow_copy(
             values=values, categories=categories,
             ordered=ordered, **kwargs)
+
+    @cache_readonly
+    def _inner_indexer(self):
+        if self.codes.dtype.itemsize <= 4:
+            # int8, int16, int32
+            return libjoin.inner_join_indexer_int32
+        else:
+            return libjoin.inner_join_indexer_int64
 
     def _is_dtype_compat(self, other):
         """
@@ -786,6 +797,12 @@ class CategoricalIndex(Index, accessor.PandasDelegate):
         if is_scalar(res):
             return res
         return CategoricalIndex(res, name=self.name)
+
+    def _ensure_join(self, values):
+        if self.codes.dtype.itemsize <= 4:
+            return _ensure_int32(values)
+        else:
+            return _ensure_int64(values)
 
     @classmethod
     def _add_accessors(cls):

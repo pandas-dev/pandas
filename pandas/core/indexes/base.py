@@ -2310,6 +2310,24 @@ class Index(IndexOpsMixin, PandasObject):
         name = self.name if self.name == other.name else None
         return self.__class__(result, name=name)
 
+    def _ensure_join(self, values):
+        """Ensure that the 'values' are ready for our join indexer.
+
+        The default join indexers are object, so this just returns 'values'.
+        This is called before calling those.
+
+
+        Parameters
+        ----------
+        values : array-like
+
+        Returns
+        -------
+        values : ndarray
+            Expected to have the correct type for self.inner_indexer
+        """
+        return values
+
     def intersection(self, other):
         """
         Form the intersection of two Index objects.
@@ -2347,7 +2365,9 @@ class Index(IndexOpsMixin, PandasObject):
 
         if self.is_monotonic and other.is_monotonic:
             try:
-                result = self._inner_indexer(self._values, other._values)[0]
+                lvals = self._ensure_join(self._ndarray_values)
+                rvals = self._ensure_join(other._ndarray_values)
+                result = self._inner_indexer(lvals, rvals)[0]
                 return self._wrap_union_result(other, result)
             except TypeError:
                 pass
