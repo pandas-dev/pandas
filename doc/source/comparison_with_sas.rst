@@ -279,7 +279,7 @@ date/datetime columns.
 
 The equivalent pandas operations are shown below.  In addition to these
 functions pandas supports other Time Series features
-not available in Base SAS (such as resampling and and custom offsets) -
+not available in Base SAS (such as resampling and custom offsets) -
 see the :ref:`timeseries documentation<timeseries>` for more details.
 
 .. ipython:: python
@@ -584,7 +584,7 @@ For example, in SAS you could do this to filter missing values.
        if value_x ^= .;
    run;
 
-Which doesn't work in in pandas.  Instead, the ``pd.isna`` or ``pd.notna`` functions
+Which doesn't work in pandas.  Instead, the ``pd.isna`` or ``pd.notna`` functions
 should be used for comparisons.
 
 .. ipython:: python
