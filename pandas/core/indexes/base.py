@@ -2347,8 +2347,7 @@ class Index(IndexOpsMixin, PandasObject):
 
         if self.is_monotonic and other.is_monotonic:
             try:
-                result = self._inner_indexer(self._ndarray_values,
-                                             other._ndarray_values)[0]
+                result = self._inner_indexer(self._values, other._values)[0]
                 return self._wrap_union_result(other, result)
             except TypeError:
                 pass
