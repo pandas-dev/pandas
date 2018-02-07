@@ -1898,7 +1898,7 @@ class TestGroupBy(MixIn):
     @pytest.mark.parametrize("grps", [
         ['qux'], ['qux', 'quux']])
     @pytest.mark.parametrize("vals", [
-        [2, 2, 8, 2, 6], ['bar', 'bar', 'foo', 'bar', 'baz'],
+        [2, 2, 8, 2, 6],
         [pd.Timestamp('2018-01-02'), pd.Timestamp('2018-01-02'),
          pd.Timestamp('2018-01-08'), pd.Timestamp('2018-01-02'),
          pd.Timestamp('2018-01-06')]])
@@ -1925,8 +1925,6 @@ class TestGroupBy(MixIn):
         ('dense', False, True, [.6, .6, .2, .6, .4]),
     ])
     def test_rank_args(self, grps, vals, ties_method, ascending, pct, exp):
-        if ties_method == 'first' and vals[0] == 'bar':
-            pytest.xfail("See GH 19482")
         key = np.repeat(grps, len(vals))
         vals = vals * len(grps)
         df = DataFrame({'key': key, 'val': vals})
@@ -1940,7 +1938,6 @@ class TestGroupBy(MixIn):
         ['qux'], ['qux', 'quux']])
     @pytest.mark.parametrize("vals", [
         [2, 2, np.nan, 8, 2, 6, np.nan, np.nan],  # floats
-        ['bar', 'bar', np.nan, 'foo', 'bar', 'baz', np.nan, np.nan],  # objects
         [pd.Timestamp('2018-01-02'), pd.Timestamp('2018-01-02'), np.nan,
          pd.Timestamp('2018-01-08'), pd.Timestamp('2018-01-02'),
          pd.Timestamp('2018-01-06'), np.nan, np.nan]
@@ -2019,8 +2016,6 @@ class TestGroupBy(MixIn):
     ])
     def test_rank_args_missing(self, grps, vals, ties_method, ascending,
                                na_option, pct, exp):
-        if ties_method == 'first' and vals[0] == 'bar':
-            pytest.xfail("See GH 19482")
         key = np.repeat(grps, len(vals))
         vals = vals * len(grps)
         df = DataFrame({'key': key, 'val': vals})
@@ -2030,6 +2025,24 @@ class TestGroupBy(MixIn):
 
         exp_df = DataFrame(exp * len(grps), columns=['val'])
         assert_frame_equal(result, exp_df)
+
+    @pytest.mark.parametrize("ties_method", [
+        'average', 'min', 'max', 'first', 'dense'])
+    @pytest.mark.parametrize("ascending", [True, False])
+    @pytest.mark.parametrize("na_option", ["keep", "top", "bottom"])
+    @pytest.mark.parametrize("pct", [True, False])
+    @pytest.mark.parametrize("vals", [
+        ['bar', 'bar', 'foo', 'bar', 'baz'],
+        ['bar', np.nan, 'foo', np.nan, 'baz']
+    ])
+    def test_rank_object_raises(self, ties_method, ascending, na_option,
+                                pct, vals):
+        df = DataFrame({'key': ['foo'] * 5, 'val': vals})
+        with tm.assert_raises_regex(ValueError,
+                                    "rank not supported for object dtypes"):
+            df.groupby('key').rank(method=ties_method,
+                                   ascending=ascending,
+                                   na_option=na_option, pct=pct)
 
     def test_dont_clobber_name_column(self):
         df = DataFrame({'key': ['a', 'a', 'a', 'b', 'b', 'b'],
