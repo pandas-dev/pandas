@@ -381,6 +381,19 @@ class TestDataFrameOperators(TestData):
         with tm.assert_raises_regex(NotImplementedError, 'fill_value'):
             self.frame.add(self.frame.iloc[0], axis='index', fill_value=3)
 
+    def test_arith_flex_zero_len_raises(self):
+        # GH#19522 passing fill_value to frame flex arith methods should
+        # raise even in the zero-length special cases
+        ser_len0 = pd.Series([])
+        df_len0 = pd.DataFrame([], columns=['A', 'B'])
+        df = pd.DataFrame([[1, 2], [3, 4]], columns=['A', 'B'])
+
+        with tm.assert_raises_regex(NotImplementedError, 'fill_value'):
+            df.add(ser_len0, fill_value='E')
+
+        with tm.assert_raises_regex(NotImplementedError, 'fill_value'):
+            df_len0.sub(df['A'], axis=None, fill_value=3)
+
     def test_binary_ops_align(self):
 
         # test aligning binary ops

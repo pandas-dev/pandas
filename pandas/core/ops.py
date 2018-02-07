@@ -1106,12 +1106,13 @@ def _arith_method_FRAME(op, name, str_rep=None):
         if isinstance(other, ABCDataFrame):  # Another DataFrame
             return self._combine_frame(other, na_op, fill_value, level)
         elif isinstance(other, ABCSeries):
-            return self._combine_series(other, na_op, fill_value, axis, level)
+            return self._combine_series(other, na_op, fill_value, axis, level,
+                                        try_cast=True)
         else:
             if fill_value is not None:
                 self = self.fillna(fill_value)
 
-            return self._combine_const(other, na_op)
+            return self._combine_const(other, na_op, try_cast=True)
 
     f.__name__ = name
 
@@ -1172,7 +1173,8 @@ def _comp_method_FRAME(func, name, str_rep):
         if isinstance(other, ABCDataFrame):  # Another DataFrame
             return self._compare_frame(other, func, str_rep)
         elif isinstance(other, ABCSeries):
-            return self._combine_series_infer(other, func, try_cast=False)
+            return self._combine_series(other, func,
+                                        axis=None, try_cast=False)
         else:
 
             # straight boolean comparisons we want to allow all columns
