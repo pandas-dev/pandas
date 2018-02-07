@@ -540,8 +540,7 @@ class SparseDataFrame(DataFrame):
     # ----------------------------------------------------------------------
     # Arithmetic-related methods
 
-    def _combine_frame(self, other, func, fill_value=None, level=None,
-                       try_cast=True):
+    def _combine_frame(self, other, func, fill_value=None, level=None):
         this, other = self.align(other, join='outer', level=level, copy=False)
         new_index, new_columns = this.index, this.columns
 
@@ -584,12 +583,9 @@ class SparseDataFrame(DataFrame):
                                  default_fill_value=new_fill_value
                                  ).__finalize__(self)
 
-    def _combine_match_index(self, other, func, level=None, fill_value=None,
-                             try_cast=True):
+    def _combine_match_index(self, other, func, level=None):
         new_data = {}
 
-        if fill_value is not None:
-            raise NotImplementedError("'fill_value' argument is not supported")
         if level is not None:
             raise NotImplementedError("'level' argument is not supported")
 
@@ -605,6 +601,7 @@ class SparseDataFrame(DataFrame):
             new_data[col] = func(series.values, other.values)
 
         # fill_value is a function of our operator
+        fill_value = None
         if isna(other.fill_value) or isna(self.default_fill_value):
             fill_value = np.nan
         else:
@@ -615,15 +612,12 @@ class SparseDataFrame(DataFrame):
             new_data, index=new_index, columns=self.columns,
             default_fill_value=fill_value).__finalize__(self)
 
-    def _combine_match_columns(self, other, func, level=None, fill_value=None,
-                               try_cast=True):
+    def _combine_match_columns(self, other, func, level=None, try_cast=True):
         # patched version of DataFrame._combine_match_columns to account for
         # NumPy circumventing __rsub__ with float64 types, e.g.: 3.0 - series,
         # where 3.0 is numpy.float64 and series is a SparseSeries. Still
         # possible for this to happen, which is bothersome
 
-        if fill_value is not None:
-            raise NotImplementedError("'fill_value' argument is not supported")
         if level is not None:
             raise NotImplementedError("'level' argument is not supported")
 
