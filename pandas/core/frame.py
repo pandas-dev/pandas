@@ -4877,10 +4877,11 @@ class DataFrame(NDFrame):
 
         result_type : {'expand', 'reduce', 'broadcast, None}
             These only act when axis=1 {columns}
-            * 'expand' : list-like results will be turned into columns
+            * 'expand' : list-like results will be turned into columns.
             * 'reduce' : return a Series if possible rather than expanding
-              list-like results. This is the opposite to 'expand'
-            * 'broadcast' : scalar results will be broadcast to all columns
+              list-like results. This is the opposite to 'expand'.
+            * 'broadcast' : results will be broadcast to the original shape
+              of the frame, the original index & columns will be retained.
             * None : list-like results will be returned as a list
               in a single column. However if the apply function
               returns a Series these are expanded to columns.

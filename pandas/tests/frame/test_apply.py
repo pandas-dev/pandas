@@ -171,14 +171,12 @@ class TestDataFrameApply(TestData):
                           result_type='broadcast')
         tm.assert_frame_equal(result, df)
 
-        # columms come from the returned Series
         df = DataFrame(np.tile(np.arange(3), 6).reshape(6, -1) + 1,
                        columns=list('ABC'))
         result = df.apply(lambda x: Series([1, 2, 3], index=list('abc')),
                           axis=1,
                           result_type='broadcast')
         expected = df.copy()
-        expected.columns = list('abc')
         tm.assert_frame_equal(result, expected)
 
     def test_apply_broadcast_error(self):
@@ -756,7 +754,6 @@ class TestInferOutputShape(object):
             axis=1,
             result_type='broadcast')
         expected = df.copy()
-        expected.columns = columns
         assert_frame_equal(result, expected)
 
         # series result

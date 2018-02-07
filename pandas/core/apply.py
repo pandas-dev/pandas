@@ -187,7 +187,6 @@ class FrameApply(object):
         # axis which we want to compare compliance
         result_compare = target.shape[0]
 
-        index = None
         for i, col in enumerate(target.columns):
             res = self.f(target[col])
             ares = np. asarray(res).ndim
@@ -201,19 +200,11 @@ class FrameApply(object):
                 if result_compare != len(res):
                     raise ValueError("cannot broadcast result")
 
-                # if we have a Series result, then then index
-                # is our result
-                if isinstance(res, ABCSeries):
-                    index = res.index
-
             result_values[:, i] = res
 
-        # if we are returning a list-like
-        # then preserve the original index
-        if index is None:
-            index = target.index
-
-        result = self.obj._constructor(result_values, index=index,
+        # we *always* preserve the original index / columns
+        result = self.obj._constructor(result_values,
+                                       index=target.index,
                                        columns=target.columns)
         return result
 
