@@ -126,6 +126,27 @@ class TestDatetimeIndexOps(object):
             ts = '2016-10-17 12:00:00.001501031'
             DatetimeIndex([ts]).round('1010ns')
 
+    @pytest.mark.parametrize('test_input, rounder, freq, expected', [
+        (['2117-01-01 00:00:45'], 'floor', '15s', ['2117-01-01 00:00:45']),
+        (['2117-01-01 00:00:45'], 'ceil', '15s', ['2117-01-01 00:00:45']),
+        (['2117-01-01 00:00:45.000000012'], 'floor', '10ns',
+         ['2117-01-01 00:00:45.000000010']),
+        (['1823-01-01 00:00:01.000000012'], 'ceil', '10ns',
+         ['1823-01-01 00:00:01.000000020']),
+        (['1823-01-01 00:00:01'], 'floor', '1s', ['1823-01-01 00:00:01']),
+        (['1823-01-01 00:00:01'], 'ceil', '1s', ['1823-01-01 00:00:01']),
+        (('NaT', '1823-01-01 00:00:01'), 'floor', '1s',
+         ('NaT', '1823-01-01 00:00:01')),
+        (('NaT', '1823-01-01 00:00:01'), 'ceil', '1s',
+         ('NaT', '1823-01-01 00:00:01'))
+    ])
+    def test_ceil_floor_edge(self, tz, test_input, rounder, freq, expected):
+        dt = DatetimeIndex(list(test_input))
+        func = getattr(dt, rounder)
+        result = func(freq)
+        expected = DatetimeIndex(list(expected))
+        assert expected.equals(result)
+
     # ----------------------------------------------------------------
     # DatetimeIndex.normalize
 

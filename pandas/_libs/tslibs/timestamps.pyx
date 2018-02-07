@@ -58,6 +58,46 @@ cdef inline object create_timestamp_from_ts(int64_t value,
     return ts_base
 
 
+def round_ns(values, rounder, freq):
+    """
+    Applies rounding function at given frequency
+
+    Parameters
+    ----------
+    values : int, :obj:`ndarray`
+    rounder : function
+    freq : str, obj
+
+    Returns
+    -------
+    int or :obj:`ndarray`
+    """
+    from pandas.tseries.frequencies import to_offset
+    unit = to_offset(freq).nanos
+    if unit < 1000:
+        # for nano rounding, work with the last 6 digits separately
+        # due to float precision
+        buff = 1000000
+        r = (buff * (values // buff) + unit *
+             (rounder((values % buff) * (1 / float(unit)))).astype('i8'))
+    else:
+        if unit % 1000 != 0:
+            msg = 'Precision will be lost using frequency: {}'
+            warnings.warn(msg.format(freq))
+
+        # GH19206
+        # to deal with round-off when unit is large
+        if unit >= 1e9:
+            divisor = 10 ** int(np.log10(unit / 1e7))
+        else:
+            divisor = 10
+
+        r = (unit * rounder((values * (divisor / float(unit))) / divisor)
+             .astype('i8'))
+
+    return r
+
+
 # This is PITA. Because we inherit from datetime, which has very specific
 # construction requirements, we need to do object instantiation in python
 # (see Timestamp class above). This will serve as a C extension type that
@@ -581,28 +621,12 @@ class Timestamp(_Timestamp):
         return create_timestamp_from_ts(ts.value, ts.dts, ts.tzinfo, freq)
 
     def _round(self, freq, rounder):
-
-        cdef:
-            int64_t unit, r, value, buff = 1000000
-            object result
-
-        from pandas.tseries.frequencies import to_offset
-        unit = to_offset(freq).nanos
         if self.tz is not None:
             value = self.tz_localize(None).value
         else:
             value = self.value
-        if unit < 1000 and unit % 1000 != 0:
-            # for nano rounding, work with the last 6 digits separately
-            # due to float precision
-            r = (buff * (value // buff) + unit *
-                 (rounder((value % buff) / float(unit))).astype('i8'))
-        elif unit >= 1000 and unit % 1000 != 0:
-            msg = 'Precision will be lost using frequency: {}'
-            warnings.warn(msg.format(freq))
-            r = (unit * rounder(value / float(unit)).astype('i8'))
-        else:
-            r = (unit * rounder(value / float(unit)).astype('i8'))
+
+        r = round_ns(value, rounder, freq)
         result = Timestamp(r, unit='ns')
         if self.tz is not None:
             result = result.tz_localize(self.tz)
