@@ -130,96 +130,12 @@ def group_last_object(ndarray[object, ndim=2] out,
                 out[i, j] = resx[i, j]
 
 
-@cython.boundscheck(False)
-@cython.wraparound(False)
 def group_rank_object(ndarray[float64_t, ndim=2] out,
                       ndarray[object, ndim=2] values,
                       ndarray[int64_t] labels,
                       bint is_datetimelike, object ties_method,
                       bint ascending, bint pct, object na_option):
-    """
-    Only transforms on axis=0
-    """
-    cdef:
-        TiebreakEnumType tiebreak
-        Py_ssize_t i, j, N, K
-        int64_t val_start=0, grp_start=0, dups=0, sum_ranks=0, grp_vals_seen=1
-        int64_t grp_na_count=0
-        ndarray[int64_t] _as
-        ndarray[object] _values
-        bint keep_na
-
-    tiebreak = tiebreakers[ties_method]
-    keep_na = na_option == 'keep'
-    N, K = (<object> values).shape
-
-    masked_vals = np.array(values[:, 0], copy=True)
-    mask = missing.isnaobj(masked_vals)
-
-    if ascending ^ (na_option == 'top'):
-        nan_fill_val = np.inf
-        order = (masked_vals, mask, labels)
-    else:
-        nan_fill_val = -np.inf
-        order = (masked_vals, ~mask, labels)
-    np.putmask(masked_vals, mask, nan_fill_val)
-    try:
-        _as = np.lexsort(order)
-    except TypeError:
-        # lexsort fails when missing data and objects are mixed
-        # fallback to argsort
-        _arr = np.asarray(list(zip(order[0], order[1], order[2])),
-                          dtype=[('values', 'O'), ('mask', '?'),
-                          ('labels', 'i8')])
-        _as = np.argsort(_arr, kind='mergesort', order=('labels',
-                                                        'mask', 'values'))
-
-    if not ascending:
-        _as = _as[::-1]
-
-    for i in range(N):
-        dups += 1
-        sum_ranks += i - grp_start + 1
-
-        if keep_na and (values[_as[i], 0] != values[_as[i], 0]):
-            grp_na_count += 1
-            out[_as[i], 0] = np.nan
-        else:
-            if tiebreak == TIEBREAK_AVERAGE:
-                for j in range(i - dups + 1, i + 1):
-                    out[_as[j], 0] = sum_ranks / dups
-            elif tiebreak == TIEBREAK_MIN:
-                for j in range(i - dups + 1, i + 1):
-                    out[_as[j], 0] = i - grp_start - dups + 2
-            elif tiebreak == TIEBREAK_MAX:
-                for j in range(i - dups + 1, i + 1):
-                    out[_as[j], 0] = i - grp_start + 1
-            elif tiebreak == TIEBREAK_FIRST:
-                for j in range(i - dups + 1, i + 1):
-                    if ascending:
-                        out[_as[j], 0] = j + 1 - grp_start
-                    else:
-                        out[_as[j], 0] = 2 * i - j - dups + 2 - grp_start
-            elif tiebreak == TIEBREAK_DENSE:
-                for j in range(i - dups + 1, i + 1):
-                    out[_as[j], 0] = grp_vals_seen
-
-        if i == N - 1 or (
-                (values[_as[i], 0] != values[_as[i+1], 0]) and not
-                (values[_as[i], 0] is np.nan and values[_as[i+1], 0] is np.nan)
-        ):
-            dups = sum_ranks = 0
-            val_start = i
-            grp_vals_seen += 1
-
-        if i == N - 1 or labels[_as[i]] != labels[_as[i+1]]:
-            if pct:
-                for j in range(grp_start, i + 1):
-                    out[_as[j], 0] = out[_as[j], 0] / (i - grp_start + 1
-                                                       - grp_na_count)
-            grp_na_count = 0
-            grp_start = i + 1
-            grp_vals_seen = 1
+    raise ValueError("rank not supported for object dtypes")
 
 
 cdef inline float64_t median_linear(float64_t* a, int n) nogil:
