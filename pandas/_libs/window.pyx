@@ -1226,8 +1226,7 @@ cdef _roll_min_max(ndarray[numeric] input, int64_t win, int64_t minp,
         int64_t N, i, removed
         Py_ssize_t nobs = 0
         deque Q[int64_t]
-        ndarray[int64_t] _
-        # ndarray[int64_t] starti, endi
+        ndarray[int64_t] starti, endi
         ndarray[numeric, ndim=1] output
     cdef:
         int64_t* death
@@ -1239,7 +1238,7 @@ cdef _roll_min_max(ndarray[numeric] input, int64_t win, int64_t minp,
     cdef:
         cdef numeric r
 
-    _, _ , N, win, minp, is_variable = get_window_indexer(
+    starti, endi , N, win, minp, is_variable = get_window_indexer(
         input, win,
         minp, index, closed)
 
@@ -1251,7 +1250,7 @@ cdef _roll_min_max(ndarray[numeric] input, int64_t win, int64_t minp,
 
         with nogil:
 
-            for i from 0 <= i < win:
+            for i from 0 <= i < endi[0]:
                 ai = init_mm(input[i], &nobs, is_max)
 
                 if is_max:
@@ -1262,7 +1261,7 @@ cdef _roll_min_max(ndarray[numeric] input, int64_t win, int64_t minp,
                         Q.pop_back()
                 Q.push_back(i)
 
-            for i from win <= i < N:
+            for i from endi[0] <= i < N:
                 output[i-1] = calc_mm(minp, nobs, input[Q.front()])
 
                 ai = init_mm(input[i], &nobs, is_max)
@@ -1279,7 +1278,7 @@ cdef _roll_min_max(ndarray[numeric] input, int64_t win, int64_t minp,
 
                 Q.push_back(i)
 
-            output[N-1] = calc_mm(minp, nobs, input[Q[0]])
+            output[N-1] = calc_mm(minp, nobs, input[Q.front()])
 
     else:
         # setup the rings of death!
