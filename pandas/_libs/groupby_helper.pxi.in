@@ -535,8 +535,8 @@ def group_rank_{{name}}(ndarray[float64_t, ndim=2] out,
             {{else}}
             if (i == N - 1 or (
                     (masked_vals[_as[i]] != masked_vals[_as[i+1]]) and not
-                    (isnan(masked_vals[_as[i]]) and
-                     isnan(masked_vals[_as[i+1]])
+                    (npy_isnan(masked_vals[_as[i]]) and
+                     npy_isnan(masked_vals[_as[i+1]])
                     ))):
             {{endif}}
                 dups = sum_ranks = 0

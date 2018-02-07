@@ -13,7 +13,6 @@ from numpy cimport (ndarray,
                     int8_t, int16_t, int32_t, int64_t, uint8_t, uint16_t,
                     uint32_t, uint64_t, float32_t, float64_t)
 
-from libc.math cimport isnan
 from libc.stdlib cimport malloc, free
 
 from util cimport numeric, get_nat
@@ -25,6 +24,9 @@ cdef int64_t iNaT = get_nat()
 
 cdef double NaN = <double> np.NaN
 cdef double nan = NaN
+
+cdef extern from "numpy/npy_math.h" nogil:
+    bint npy_isnan(double x)
 
 import missing
 
