@@ -849,8 +849,10 @@ def _comp_method_SERIES(op, name, str_rep):
         elif isinstance(other, ABCSeries):
             # By this point we have checked that self._indexed_same(other)
             res_values = na_op(self.values, other.values)
+            # rename is needed in case res_name is None and res_values.name
+            # is not.
             return self._constructor(res_values, index=self.index,
-                                     name=res_name)
+                                     name=res_name).rename(res_name)
 
         elif isinstance(other, (np.ndarray, pd.Index)):
             # do not check length of zerodim array
@@ -860,8 +862,10 @@ def _comp_method_SERIES(op, name, str_rep):
                 raise ValueError('Lengths must match to compare')
 
             res_values = na_op(self.values, np.asarray(other))
-            return self._constructor(res_values,
-                                     index=self.index).__finalize__(self)
+            result = self._constructor(res_values, index=self.index)
+            # rename is needed in case res_name is None and self.name
+            # is not.
+            return result.__finalize__(self).rename(res_name)
 
         elif isinstance(other, pd.Categorical):
             # ordering of checks matters; by this point we know
