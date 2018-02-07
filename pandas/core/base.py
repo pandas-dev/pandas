@@ -394,7 +394,7 @@ class SelectionMixin(object):
                         nested_renaming_depr()
                     elif isinstance(obj, ABCDataFrame) and \
                             k not in obj.columns:
-                        raise ValueError(
+                        raise KeyError(
                             "Column '{col}' does not exist!".format(col=k))
 
                 arg = new_arg
