@@ -613,7 +613,7 @@ class TestResampleAPI(object):
                     t[['A']].agg({'A': ['sum', 'std'],
                                   'B': ['mean', 'std']})
 
-            pytest.raises(ValueError, f)
+            pytest.raises(KeyError, f)
 
     def test_agg_nested_dicts(self):
 
@@ -668,7 +668,7 @@ class TestResampleAPI(object):
         df = DataFrame(data).set_index('dt')
 
         # Error as we don't have 'z' column
-        with pytest.raises(ValueError):
+        with pytest.raises(KeyError):
             df.resample('30T').agg({'x': ['mean'],
                                     'y': ['median'],
                                     'z': ['sum']})

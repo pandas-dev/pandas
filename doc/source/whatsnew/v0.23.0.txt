@@ -647,7 +647,7 @@ Groupby/Resample/Rolling
 - Bug in :func:`DataFrame.groupby` where aggregation by ``first``/``last``/``min``/``max`` was causing timestamps to lose precision (:issue:`19526`)
 - Bug in :func:`DataFrame.transform` where particular aggregation functions were being incorrectly cast to match the dtype(s) of the grouped data (:issue:`19200`)
 - Bug in :func:`DataFrame.groupby` passing the `on=` kwarg, and subsequently using ``.apply()`` (:issue:`17813`)
-- Bug in :func:`DataFrame.resample().aggregate` not raising a `ValueError` when aggregating a non-existent column (:issue:`16766`)
+- Bug in :func:`DataFrame.resample().aggregate` not raising a ``KeyError`` when aggregating a non-existent column (:issue:`16766`, :issue:`19566`)
 
 Sparse
 ^^^^^^
