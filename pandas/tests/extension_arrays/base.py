@@ -53,6 +53,9 @@ class BaseArrayTests(object):
     * data_missing
     """
 
+    # ------------------------------------------------------------------------
+    # Fixtures
+    # ------------------------------------------------------------------------
     @pytest.fixture
     def data(self):
         """Length-100 array for this type."""
@@ -81,6 +84,10 @@ class BaseArrayTests(object):
         """
         return operator.is_
 
+    # ------------------------------------------------------------------------
+    # Interface
+    # ------------------------------------------------------------------------
+
     def test_len(self, data):
         assert len(data) == 100
 
@@ -89,6 +96,35 @@ class BaseArrayTests(object):
 
     def test_can_hold_na_valid(self, data):
         assert data._can_hold_na in {True, False}
+
+    def test_memory_usage(self, data):
+        s = pd.Series(data)
+        result = s.memory_usage(index=False)
+        assert result == s.nbytes
+
+    def test_array_interface(self, data):
+        result = np.array(data)
+        assert result[0] == data[0]
+
+    def test_as_ndarray_with_dtype_kind(self, data):
+        np.array(data, dtype=data.dtype.kind)
+
+    def test_repr(self, data):
+        ser = pd.Series(data)
+        assert data.dtype.name in repr(ser)
+
+        df = pd.DataFrame({"A": data})
+        repr(df)
+
+    def test_dtype_name_in_info(self, data):
+        buf = StringIO()
+        pd.DataFrame({"A": data}).info(buf=buf)
+        result = buf.getvalue()
+        assert data.dtype.name in result
+
+    # ------------------------------------------------------------------------
+    # Constructors
+    # ------------------------------------------------------------------------
 
     def test_series_constructor(self, data):
         result = pd.Series(data)
@@ -105,12 +141,28 @@ class BaseArrayTests(object):
         assert result.shape == (len(data), 1)
         assert isinstance(result._data.blocks[0], ExtensionBlock)
 
+    @pytest.mark.xfail(reason="GH-19342")
+    def test_series_given_index(self, data):
+        result = pd.Series(data[:3], index=[0, 1, 2, 3, 4])
+        assert result.dtype == data.dtype
+        assert len(result) == 5
+        assert len(result.values) == 5
+        assert pd.isna(result.loc[[3, 4]]).all()
+
+    # ------------------------------------------------------------------------
+    # Reshaping
+    # ------------------------------------------------------------------------
+
     def test_concat(self, data):
         result = pd.concat([
             pd.Series(data),
             pd.Series(data),
         ], ignore_index=True)
         assert len(result) == len(data) * 2
+
+    # ------------------------------------------------------------------------
+    # Indexing - getting
+    # ------------------------------------------------------------------------
 
     def test_iloc(self, data):
         ser = pd.Series(data)
@@ -130,33 +182,11 @@ class BaseArrayTests(object):
         result = ser.loc[[0, 1, 2, 3]]
         tm.assert_series_equal(result, expected)
 
-    def test_repr(self, data):
-        ser = pd.Series(data)
-        assert data.dtype.name in repr(ser)
-
-        df = pd.DataFrame({"A": data})
-        repr(df)
-
-    def test_dtype_name_in_info(self, data):
-        buf = StringIO()
-        pd.DataFrame({"A": data}).info(buf=buf)
-        result = buf.getvalue()
-        assert data.dtype.name in result
-
-    def test_memory_usage(self, data):
-        s = pd.Series(data)
-        result = s.memory_usage(index=False)
-        assert result == s.nbytes
-
     def test_is_extension_array_dtype(self, data):
         assert is_extension_array_dtype(data)
         assert is_extension_array_dtype(data.dtype)
         assert is_extension_array_dtype(pd.Series(data))
         assert isinstance(data.dtype, ExtensionDtype)
-
-    def test_array_interface(self, data):
-        result = np.array(data)
-        assert result[0] == data[0]
 
     def test_getitem_scalar(self, data):
         result = data[0]
@@ -207,6 +237,10 @@ class BaseArrayTests(object):
         assert result.iloc[1] == data[1]
         assert result.iloc[2] == data[3]
 
+    # ------------------------------------------------------------------------
+    # Indexing - Setting
+    # ------------------------------------------------------------------------
+
     def test_setitem_scalar(self, data):
         arr = pd.Series(data)
         arr[0] = data[1]
@@ -227,14 +261,51 @@ class BaseArrayTests(object):
         assert arr[0] == data[2]
         assert arr[1] == data[2]
 
-    def test_loc_set_scalar(self, data):
+    @pytest.mark.parametrize('setter', ['loc', 'iloc'])
+    def test_set_scalar(self, data, setter):
         arr = pd.Series(data)
-        arr.loc[0] = data[1]
+        setter = getattr(arr, setter)
+        operator.setitem(setter, 0, data[1])
         assert arr[0] == data[1]
 
+    def test_set_loc_scalar_mixed(self, data):
+        df = pd.DataFrame({"A": np.arange(len(data)), "B": data})
+        df.loc[0, 'B'] = data[1]
+        assert df.loc[0, 'B'] == data[1]
+
+    def test_set_loc_scalar_single(self, data):
+        df = pd.DataFrame({"B": data})
+        df.loc[10, 'B'] = data[1]
+        assert df.loc[10, 'B'] == data[1]
+
+    def test_set_loc_scalar_multiple_homogoneous(self, data):
+        df = pd.DataFrame({"A": data, "B": data})
+        df.loc[10, 'B'] = data[1]
+        assert df.loc[10, 'B'] == data[1]
+
+    def test_set_iloc_scalar_mixed(self, data):
+        df = pd.DataFrame({"A": np.arange(len(data)), "B": data})
+        df.iloc[0, 1] = data[1]
+        assert df.loc[0, 'B'] == data[1]
+
+    def test_set_iloc_scalar_single(self, data):
+        df = pd.DataFrame({"B": data})
+        df.iloc[10, 0] = data[1]
+        assert df.loc[10, 'B'] == data[1]
+
+    def test_set_iloc_scalar_multiple_homogoneous(self, data):
+        df = pd.DataFrame({"A": data, "B": data})
+        df.iloc[10, 1] = data[1]
+        assert df.loc[10, 'B'] == data[1]
+
+    def test_setitem_expand_columns(self, data):
         df = pd.DataFrame({"A": data})
-        df.loc[0, 'A'] = data[1]
-        assert df.loc[0, 'A'] == data[1]
+        df['B'] = 1
+        assert len(df.columns) == 2
+
+    # ------------------------------------------------------------------------
+    # Methods
+    # ------------------------------------------------------------------------
 
     def test_isna(self, data_missing):
         if data_missing._can_hold_na:
@@ -253,6 +324,34 @@ class BaseArrayTests(object):
         result = pd.Series(data_missing).dropna()
         expected = pd.Series(data_missing).iloc[[1]]
         tm.assert_series_equal(result, expected)
+
+    def test_align(self, data):
+        a = data[:3]
+        b = data[2:5]
+        r1, r2 = pd.Series(a).align(pd.Series(b, index=[1, 2, 3]))
+
+        # TODO: assumes that the ctor can take a list of scalars of the type
+        e1 = pd.Series(type(data)(list(a) + [data._fill_value]))
+        e2 = pd.Series(type(data)([data._fill_value] + list(b)))
+        tm.assert_series_equal(r1, e1)
+        tm.assert_series_equal(r2, e2)
+
+    @pytest.mark.parametrize('dropna', [True, False])
+    def test_value_counts(self, all_data, dropna):
+        all_data = all_data[:10]
+        if dropna:
+            other = np.array(all_data[~all_data.isna()])
+        else:
+            other = all_data
+
+        result = pd.Series(all_data).value_counts(dropna=dropna).sort_index()
+        expected = pd.Series(other).value_counts(dropna=dropna).sort_index()
+
+        tm.assert_series_equal(result, expected)
+
+    # ------------------------------------------------------------------------
+    # Ops
+    # ------------------------------------------------------------------------
 
     @pytest.mark.parametrize("method", [
         "mean", "sum", "prod", "mad", "sem", "var", "std",
@@ -332,38 +431,3 @@ class BaseArrayTests(object):
         # series
         result = binop(df['B'], df['B'])
         tm.assert_series_equal(result, expected['B'])
-
-    def test_as_ndarray(self, data):
-        np.array(data, dtype=data.dtype.kind)
-
-    def test_align(self, data):
-        a = data[:3]
-        b = data[2:5]
-        r1, r2 = pd.Series(a).align(pd.Series(b, index=[1, 2, 3]))
-
-        # TODO: assumes that the ctor can take a list of scalars of the type
-        e1 = pd.Series(type(data)(list(a) + [data._fill_value]))
-        e2 = pd.Series(type(data)([data._fill_value] + list(b)))
-        tm.assert_series_equal(r1, e1)
-        tm.assert_series_equal(r2, e2)
-
-    @pytest.mark.xfail(reason="GH-19342")
-    def test_series_given_index(self, data):
-        result = pd.Series(data[:3], index=[0, 1, 2, 3, 4])
-        assert result.dtype == data.dtype
-        assert len(result) == 5
-        assert len(result.values) == 5
-        assert pd.isna(result.loc[[3, 4]]).all()
-
-    @pytest.mark.parametrize('dropna', [True, False])
-    def test_value_counts(self, all_data, dropna):
-        all_data = all_data[:10]
-        if dropna:
-            other = np.array(all_data[~all_data.isna()])
-        else:
-            other = all_data
-
-        result = pd.Series(all_data).value_counts(dropna=dropna).sort_index()
-        expected = pd.Series(other).value_counts(dropna=dropna).sort_index()
-
-        tm.assert_series_equal(result, expected)

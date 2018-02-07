@@ -1939,7 +1939,9 @@ class ExtensionBlock(NonConsolidatableMixIn, Block):
         return self.values[slicer]
 
     def setitem(self, indexer, value, mgr=None):
-        print(indexer, value)
+        print(indexer)
+        if isinstance(indexer, tuple):
+            indexer = indexer[0]
         self.values[indexer] = value
         return self
 
