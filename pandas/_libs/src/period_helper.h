@@ -142,7 +142,6 @@ npy_int64 get_period_ordinal(int year, int month, int day, int hour, int minute,
 
 npy_int64 get_python_ordinal(npy_int64 period_ordinal, int freq);
 
-int get_date_info(npy_int64 ordinal, int freq, struct date_info *dinfo);
 freq_conv_func get_asfreq_func(int fromFreq, int toFreq);
 void get_asfreq_info(int fromFreq, int toFreq, char relation,
                      asfreq_info *af_info);

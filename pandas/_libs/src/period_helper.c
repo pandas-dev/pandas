@@ -45,7 +45,7 @@ static int monthToQuarter(int month) { return ((month - 1) / 3) + 1; }
 /* Find the absdate (days elapsed since datetime(1, 1, 1)
  * for the given year/month/day.
  * Assumes GREGORIAN_CALENDAR */
-static npy_int64 dInfoCalc_SetFromDateAndTime(int year, int month, int day) {
+static npy_int64 absdate_from_ymd(int year, int month, int day) {
     /* Calculate the absolute date */
     pandas_datetimestruct dts;
     npy_int64 unix_date;
@@ -161,9 +161,6 @@ static npy_int64 DtoB(struct date_info *dinfo, int roll_back) {
     return DtoB_weekday(absdate);
 }
 
-static npy_int64 absdate_from_ymd(int y, int m, int d) {
-    return dInfoCalc_SetFromDateAndTime(y, m, d);
-}
 
 //************ FROM DAILY ***************
 
@@ -674,65 +671,6 @@ freq_conv_func get_asfreq_func(int fromFreq, int toFreq) {
     }
 }
 
-double get_abs_time(int freq, npy_int64 date_ordinal, npy_int64 ordinal) {
-    int freq_index, day_index, base_index;
-    npy_int64 per_day, start_ord;
-    double unit, result;
-
-    if (freq <= FR_DAY) {
-        return 0;
-    }
-
-    freq_index = get_freq_group_index(freq);
-    day_index = get_freq_group_index(FR_DAY);
-    base_index = get_freq_group_index(FR_SEC);
-
-    per_day = get_daytime_conversion_factor(day_index, freq_index);
-    unit = get_daytime_conversion_factor(freq_index, base_index);
-
-    if (base_index < freq_index) {
-        unit = 1 / unit;
-    }
-
-    start_ord = date_ordinal * per_day;
-    result = (double)(unit * (ordinal - start_ord));
-    return result;
-}
-
-/* Sets the time part of the DateTime object. */
-static int dInfoCalc_SetFromAbsTime(struct date_info *dinfo, double abstime) {
-    int inttime;
-    int hour, minute;
-    double second;
-
-    inttime = (int)abstime;
-    hour = inttime / 3600;
-    minute = (inttime % 3600) / 60;
-    second = abstime - (double)(hour * 3600 + minute * 60);
-
-    dinfo->hour = hour;
-    dinfo->minute = minute;
-    dinfo->second = second;
-    return 0;
-}
-
-/* Set the instance's value using the given date and time.
-   Assumes GREGORIAN_CALENDAR. */
-static int dInfoCalc_SetFromAbsDateTime(struct date_info *dinfo,
-                                        npy_int64 absdate, double abstime) {
-    /* Bounds check */
-    // The calling function is responsible for ensuring that
-    // abstime >= 0.0 && abstime <= 86400
-
-    /* Calculate the date */
-    dInfoCalc_SetFromAbsDate(dinfo, absdate);
-
-    /* Calculate the time */
-    dInfoCalc_SetFromAbsTime(dinfo, abstime);
-
-    return 0;
-}
-
 /* ------------------------------------------------------------------
  * New pandas API-helper code, to expose to cython
  * ------------------------------------------------------------------*/
@@ -894,36 +832,8 @@ int _quarter_year(npy_int64 ordinal, int freq, int *year, int *quarter) {
     asfreq_info af_info;
     int qtr_freq;
 
-    ordinal = get_python_ordinal(ordinal, freq) - ORD_OFFSET;
-
-    if (get_freq_group(freq) == FR_QTR)
-        qtr_freq = freq;
-    else
-        qtr_freq = FR_QTR;
-
-    get_asfreq_info(FR_DAY, qtr_freq, 'E', &af_info);
-
-    DtoQ_yq(ordinal, &af_info, year, quarter);
-
+    qtr_freq = get_yq(ordinal, freq, quarter, year);
     if ((qtr_freq % 1000) > 12) *year -= 1;
 
-    return 0;
-}
-
-
-int get_date_info(npy_int64 ordinal, int freq, struct date_info *dinfo) {
-    npy_int64 absdate = get_python_ordinal(ordinal, freq);
-    double abstime = get_abs_time(freq, absdate - ORD_OFFSET, ordinal);
-
-    while (abstime < 0) {
-        abstime += 86400;
-        absdate -= 1;
-    }
-    while (abstime >= 86400) {
-        abstime -= 86400;
-        absdate += 1;
-    }
-
-    dInfoCalc_SetFromAbsDateTime(dinfo, absdate, abstime);
     return 0;
 }
