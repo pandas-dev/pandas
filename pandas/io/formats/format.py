@@ -77,7 +77,11 @@ common_docstring = """
     index_names : bool, optional
         Prints the names of the indexes, default True
     line_width : int, optional
-        Width to wrap a line in characters, default no wrap"""
+        Width to wrap a line in characters, default no wrap
+    table_id : str, optional
+        id for the <table> element create by to_html
+
+        .. versionadded:: 0.23.0"""
 
 _VALID_JUSTIFY_PARAMETERS = ("left", "right", "center", "justify",
                              "justify-all", "start", "end", "inherit",
@@ -387,7 +391,8 @@ class DataFrameFormatter(TableFormatter):
                  header=True, index=True, na_rep='NaN', formatters=None,
                  justify=None, float_format=None, sparsify=None,
                  index_names=True, line_width=None, max_rows=None,
-                 max_cols=None, show_dimensions=False, decimal='.', **kwds):
+                 max_cols=None, show_dimensions=False, decimal='.',
+                 table_id=None, **kwds):
         self.frame = frame
         if buf is not None:
             self.buf = _expand_user(_stringify_path(buf))
@@ -413,6 +418,7 @@ class DataFrameFormatter(TableFormatter):
         self.max_rows_displayed = min(max_rows or len(self.frame),
                                       len(self.frame))
         self.show_dimensions = show_dimensions
+        self.table_id = table_id
 
         if justify is None:
             self.justify = get_option("display.colheader_justify")
@@ -740,7 +746,8 @@ class DataFrameFormatter(TableFormatter):
                                       max_rows=self.max_rows,
                                       max_cols=self.max_cols,
                                       notebook=notebook,
-                                      border=border)
+                                      border=border,
+                                      table_id = self.table_id)
         if hasattr(self.buf, 'write'):
             html_renderer.write_result(self.buf)
         elif isinstance(self.buf, compat.string_types):
@@ -1082,7 +1089,7 @@ class HTMLFormatter(TableFormatter):
     indent_delta = 2
 
     def __init__(self, formatter, classes=None, max_rows=None, max_cols=None,
-                 notebook=False, border=None):
+                 notebook=False, border=None, table_id=None):
         self.fmt = formatter
         self.classes = classes
 
@@ -1101,6 +1108,7 @@ class HTMLFormatter(TableFormatter):
         if border is None:
             border = get_option('display.html.border')
         self.border = border
+        self.table_id = table_id
 
     def write(self, s, indent=0):
         rs = pprint_thing(s)
@@ -1220,8 +1228,11 @@ class HTMLFormatter(TableFormatter):
             self.write('<div{style}>'.format(style=div_style))
 
         self.write_style()
-        self.write('<table border="{border}" class="{cls}">'
-                   .format(border=self.border, cls=' '.join(_classes)), indent)
+        id_section = ' id="{table_id}"'.format(table_id=self.table_id)\
+                     if self.table_id is not None else ""
+        self.write('<table border="{border}" class="{cls}"{id_section}>'
+                   .format(border=self.border, cls=' '.join(_classes),
+                           id_section=id_section), indent)
 
         indent += self.indent_delta
         indent = self._write_header(indent)
