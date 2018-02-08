@@ -77,7 +77,6 @@ cdef extern from "period_helper.h":
     int ORD_OFFSET
     int WEEK_OFFSET
     int BDAY_OFFSET
-    int BASE_WEEK_TO_DAY_OFFSET
 
     ctypedef struct date_info:
         double second
@@ -229,9 +228,11 @@ cdef int64_t get_period_ordinal(int year, int month, int day,
 
     elif freq == FR_BUS:
         # calculate the current week assuming sunday as last day of a week
-        weeks = (unix_date + ORD_OFFSET - BASE_WEEK_TO_DAY_OFFSET) / 7
+        # Jan 1 0001 is a Monday, so subtract 1 to get to end-of-week
+        # Jan 1 1970 was a Thursday, so subtract 3 to get to end-of-week (Sun)
+        weeks = (unix_date + ORD_OFFSET - 1) / 7
         # calculate the current weekday (in range 1 .. 7)
-        delta = (unix_date + ORD_OFFSET - BASE_WEEK_TO_DAY_OFFSET) % 7 + 1
+        delta = (unix_date + ORD_OFFSET - 1) % 7 + 1
         # return the number of business days in full weeks plus the business
         # days in the last - possible partial - week
         if delta <= 5:
