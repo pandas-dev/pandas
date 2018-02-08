@@ -470,6 +470,9 @@ def group_rank_{{name}}(ndarray[float64_t, ndim=2] out,
     keep_na = na_option == 'keep'
     N, K = (<object> values).shape
 
+    # Copy values into new array in order to fill missing data
+    # with mask, without obfuscating location of missing data
+    # in values array
     masked_vals = np.array(values[:, 0], copy=True)
     {{if name=='int64'}}
     mask = (masked_vals == {{nan_val}}).astype(np.uint8)
@@ -493,20 +496,47 @@ def group_rank_{{name}}(ndarray[float64_t, ndim=2] out,
         order = (masked_vals, ~mask, labels)
     np.putmask(masked_vals, mask, nan_fill_val)
 
+    # lexsort using labels, then mask, then actual values
+    # each label corresponds to a different group value,
+    # the mask helps you differentiate missing values before
+    # performing sort on the actual values
     _as = np.lexsort(order)
 
     if not ascending:
         _as = _as[::-1]
 
     with nogil:
+        # Loop over the length of the value array
+        # each incremental i value can be looked up in the _as array
+        # that we sorted previously, which gives us the location of
+        # that sorted value for retrieval back from the original
+        # values / masked_vals arrays
         for i in range(N):
+            # dups and sum_ranks will be incremented each loop where
+            # the value / group remains the same, and should be reset
+            # when either of those change
+            # Used to calculate tiebreakers
             dups += 1
             sum_ranks += i - grp_start + 1
 
+            # if keep_na, check for missing values and assign back
+            # to the result where appropriate
             if keep_na and masked_vals[_as[i]] == nan_fill_val:
                 grp_na_count += 1
                 out[_as[i], 0] = nan
             else:
+                # this implementation is inefficient because it will
+                # continue overwriting previously encountered dups
+                # i.e. if 5 duplicated values are encountered it will
+                # write to the result as follows (assumes avg tiebreaker):
+                # 1
+                # .5  .5
+                # .33 .33 .33
+                # .25 .25 .25 .25
+                # .2  .2  .2  .2  .2
+                #
+                # could potentially be optimized to only write to the
+                # result once the last duplicate value is encountered
                 if tiebreak == TIEBREAK_AVERAGE:
                     for j in range(i - dups + 1, i + 1):
                         out[_as[j], 0] = sum_ranks / dups
@@ -526,6 +556,11 @@ def group_rank_{{name}}(ndarray[float64_t, ndim=2] out,
                     for j in range(i - dups + 1, i + 1):
                         out[_as[j], 0] = grp_vals_seen
 
+            # look forward to the next value (using the sorting in _as)
+            # if the value does not equal the current value then we need to
+            # reset the dups and sum_ranks, knowing that a new value is coming
+            # up. the conditional also needs to handle nan equality and the
+            # end of iteration
             {{if name=='int64'}}
             if (i == N - 1 or (
                     (masked_vals[_as[i]] != masked_vals[_as[i+1]]) and not
@@ -543,7 +578,11 @@ def group_rank_{{name}}(ndarray[float64_t, ndim=2] out,
                 val_start = i
                 grp_vals_seen += 1
 
-            # Move to the next group, cleaning up any values
+            # Similar to the previous conditional, check now if we are moving to a
+            # new group. If so, keep track of the index where the new group occurs,
+            # so the tiebreaker calculations can decrement that from their position
+            # if the pct flag is True, go back and overwrite the result for
+            # the group to be divided by the size of the group (excluding na values)
             if i == N - 1 or labels[_as[i]] != labels[_as[i+1]]:
                 if pct:
                     for j in range(grp_start, i + 1):
