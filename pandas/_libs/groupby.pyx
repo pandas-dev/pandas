@@ -28,8 +28,6 @@ cdef double nan = NaN
 cdef extern from "numpy/npy_math.h" nogil:
     bint npy_isnan(double x)
 
-import missing
-
 
 # TODO: aggregate multiple columns in single pass
 # ----------------------------------------------------------------------
