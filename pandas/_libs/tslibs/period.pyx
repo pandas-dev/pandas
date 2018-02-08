@@ -97,8 +97,17 @@ cdef extern from "period_helper.h":
 @cython.cdivision
 cdef char* c_strftime(date_info *dinfo, char *fmt):
     """
-    function to generate a nice string representation of the period
+    Generate a nice string representation of the period
     object, originally from DateObject_strftime
+
+    Parameters
+    ----------
+    dinfo : date_info*
+    fmt : char*
+
+    Returns
+    -------
+    result : char*
     """
     cdef:
         tm c_date

@@ -231,7 +231,7 @@ static npy_int64 asfreq_DTtoB(npy_int64 ordinal, asfreq_info *af_info) {
     dInfoCalc_SetFromAbsDate(&dinfo, ordinal + ORD_OFFSET);
 
     // This usage defines roll_back the opposite way from the others
-    roll_back = 1 - af_info->roll_back;
+    roll_back = 1 - af_info->is_end;
     return DtoB(&dinfo, roll_back);
 }
 
@@ -300,7 +300,7 @@ static npy_int64 asfreq_WtoB(npy_int64 ordinal, asfreq_info *af_info) {
     struct date_info dinfo;
     int roll_back = af_info->is_end;
     dInfoCalc_SetFromAbsDate(
-            &dinfo, asfreq_WtoDT(ordinal, relation, af_info) + ORD_OFFSET);
+            &dinfo, asfreq_WtoDT(ordinal, af_info) + ORD_OFFSET);
 
     return DtoB(&dinfo, roll_back);
 }
@@ -341,7 +341,7 @@ static npy_int64 asfreq_MtoB(npy_int64 ordinal, asfreq_info *af_info) {
     int roll_back = af_info->is_end;
 
     dInfoCalc_SetFromAbsDate(
-            &dinfo, asfreq_MtoDT(ordinal, relation, af_info) + ORD_OFFSET);
+            &dinfo, asfreq_MtoDT(ordinal, af_info) + ORD_OFFSET);
 
     return DtoB(&dinfo, roll_back);
 }
@@ -396,7 +396,7 @@ static npy_int64 asfreq_QtoB(npy_int64 ordinal, asfreq_info *af_info) {
     int roll_back = af_info->is_end;
 
     dInfoCalc_SetFromAbsDate(
-            &dinfo, asfreq_QtoDT(ordinal, relation, af_info) + ORD_OFFSET);
+            &dinfo, asfreq_QtoDT(ordinal, af_info) + ORD_OFFSET);
 
     return DtoB(&dinfo, roll_back);
 }
@@ -441,7 +441,7 @@ static npy_int64 asfreq_AtoB(npy_int64 ordinal, asfreq_info *af_info) {
     struct date_info dinfo;
     int roll_back = af_info->is_end;
     dInfoCalc_SetFromAbsDate(
-            &dinfo, asfreq_AtoDT(ordinal, relation, af_info) + ORD_OFFSET);
+            &dinfo, asfreq_AtoDT(ordinal, af_info) + ORD_OFFSET);
 
     return DtoB(&dinfo, roll_back);
 }
