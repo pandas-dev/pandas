@@ -2038,8 +2038,7 @@ class TestGroupBy(MixIn):
     def test_rank_object_raises(self, ties_method, ascending, na_option,
                                 pct, vals):
         df = DataFrame({'key': ['foo'] * 5, 'val': vals})
-        with tm.assert_raises_regex(ValueError,
-                                    "rank not supported for object dtypes"):
+        with tm.assert_raises_regex(TypeError, "not callable"):
             df.groupby('key').rank(method=ties_method,
                                    ascending=ascending,
                                    na_option=na_option, pct=pct)

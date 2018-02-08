@@ -130,14 +130,6 @@ def group_last_object(ndarray[object, ndim=2] out,
                 out[i, j] = resx[i, j]
 
 
-def group_rank_object(ndarray[float64_t, ndim=2] out,
-                      ndarray[object, ndim=2] values,
-                      ndarray[int64_t] labels,
-                      bint is_datetimelike, object ties_method,
-                      bint ascending, bint pct, object na_option):
-    raise ValueError("rank not supported for object dtypes")
-
-
 cdef inline float64_t median_linear(float64_t* a, int n) nogil:
     cdef int i, j, na_count = 0
     cdef float64_t result
