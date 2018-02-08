@@ -315,7 +315,7 @@ class TestPeriodSeriesArithmetic(object):
         # dtype will be object because of original dtype
         expected = pd.Series([9, 8], name='xxx', dtype=object)
         tm.assert_series_equal(per - ser, expected)
-        tm.assert_series_equal(ser - per, -expected)
+        tm.assert_series_equal(ser - per, -1 * expected)
 
         s2 = pd.Series([pd.Period('2015-01-05', freq='D'),
                         pd.Period('2015-01-04', freq='D')], name='xxx')
@@ -323,7 +323,7 @@ class TestPeriodSeriesArithmetic(object):
 
         expected = pd.Series([4, 2], name='xxx', dtype=object)
         tm.assert_series_equal(s2 - ser, expected)
-        tm.assert_series_equal(ser - s2, -expected)
+        tm.assert_series_equal(ser - s2, -1 * expected)
 
 
 class TestTimestampSeriesArithmetic(object):

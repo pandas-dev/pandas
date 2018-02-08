@@ -271,12 +271,49 @@ class TestDataFrameOperators(TestData):
         expected = Series([True, True])
         assert_series_equal(result, expected)
 
-    def test_neg(self):
-        # what to do?
-        assert_frame_equal(-self.frame, -1 * self.frame)
+    @pytest.mark.parametrize('df,expected', [
+        (pd.DataFrame({'a': [-1, 1]}), pd.DataFrame({'a': [1, -1]})),
+        (pd.DataFrame({'a': [False, True]}),
+            pd.DataFrame({'a': [True, False]})),
+        (pd.DataFrame({'a': pd.Series(pd.to_timedelta([-1, 1]))}),
+            pd.DataFrame({'a': pd.Series(pd.to_timedelta([1, -1]))}))
+    ])
+    def test_neg_numeric(self, df, expected):
+        assert_frame_equal(-df, expected)
+        assert_series_equal(-df['a'], expected['a'])
+
+    @pytest.mark.parametrize('df', [
+        pd.DataFrame({'a': ['a', 'b']}),
+        pd.DataFrame({'a': pd.to_datetime(['2017-01-22', '1970-01-01'])}),
+    ])
+    def test_neg_raises(self, df):
+        with pytest.raises(TypeError):
+            (- df)
+        with pytest.raises(TypeError):
+            (- df['a'])
 
     def test_invert(self):
         assert_frame_equal(-(self.frame < 0), ~(self.frame < 0))
+
+    @pytest.mark.parametrize('df', [
+        pd.DataFrame({'a': [-1, 1]}),
+        pd.DataFrame({'a': [False, True]}),
+        pd.DataFrame({'a': pd.Series(pd.to_timedelta([-1, 1]))}),
+    ])
+    def test_pos_numeric(self, df):
+        # GH 16073
+        assert_frame_equal(+df, df)
+        assert_series_equal(+df['a'], df['a'])
+
+    @pytest.mark.parametrize('df', [
+        pd.DataFrame({'a': ['a', 'b']}),
+        pd.DataFrame({'a': pd.to_datetime(['2017-01-22', '1970-01-01'])}),
+    ])
+    def test_pos_raises(self, df):
+        with pytest.raises(TypeError):
+            (+ df)
+        with pytest.raises(TypeError):
+            (+ df['a'])
 
     def test_arith_flex_frame(self):
         ops = ['add', 'sub', 'mul', 'div', 'truediv', 'pow', 'floordiv', 'mod']
