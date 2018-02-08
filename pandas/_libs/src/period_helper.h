@@ -101,6 +101,10 @@ frequency conversion routines.
 #define INT_ERR_CODE INT32_MIN
 
 typedef struct asfreq_info {
+    int is_end;
+    // char relation == 'S' (for START) --> is_end = 0
+    // char relation == 'E' (for END) --> is_end = 1
+
     int from_week_end;  // day the week ends on in the "from" frequency
     int to_week_end;    // day the week ends on in the "to" frequency
 
@@ -124,7 +128,7 @@ typedef struct date_info {
     int year;
 } date_info;
 
-typedef npy_int64 (*freq_conv_func)(npy_int64, char, asfreq_info *);
+typedef npy_int64 (*freq_conv_func)(npy_int64, asfreq_info *af_info);
 
 /*
  * new pandas API helper functions here
@@ -140,11 +144,10 @@ npy_int64 get_python_ordinal(npy_int64 period_ordinal, int freq);
 
 int get_date_info(npy_int64 ordinal, int freq, struct date_info *dinfo);
 freq_conv_func get_asfreq_func(int fromFreq, int toFreq);
-void get_asfreq_info(int fromFreq, int toFreq, asfreq_info *af_info);
+void get_asfreq_info(int fromFreq, int toFreq, char relation,
+                     asfreq_info *af_info);
 
 int get_yq(npy_int64 ordinal, int freq, int *quarter, int *year);
 int _quarter_year(npy_int64 ordinal, int freq, int *year, int *quarter);
-
-void initialize_daytime_conversion_factor_matrix(void);
 
 #endif  // PANDAS__LIBS_SRC_PERIOD_HELPER_H_
