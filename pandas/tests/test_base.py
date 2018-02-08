@@ -1216,10 +1216,11 @@ def test_unique_datetime_series(arr, expected):
     (np.array(['a', 'b']), np.ndarray, 'object'),
     (pd.Categorical(['a', 'b']), pd.Categorical, 'category'),
     (pd.DatetimeIndex(['2017', '2018']), np.ndarray, 'datetime64[ns]'),
-    (pd.PeriodIndex([2018, 2019], freq='A'), np.ndarray, 'object'),
-    (pd.IntervalIndex.from_breaks([0, 1, 2]), np.ndarray, 'object'),
     (pd.DatetimeIndex(['2017', '2018'], tz="US/Central"), pd.DatetimeIndex,
      'datetime64[ns, US/Central]'),
+    (pd.TimedeltaIndex([10**10]), np.ndarray, 'm8[ns]'),
+    (pd.PeriodIndex([2018, 2019], freq='A'), np.ndarray, 'object'),
+    (pd.IntervalIndex.from_breaks([0, 1, 2]), np.ndarray, 'object'),
 ])
 def test_values_consistent(array, expected_type, dtype):
     l_values = pd.Series(array)._values
@@ -1245,3 +1246,24 @@ def test_values_periodindex():
     result = arr._values
     expected = np.array(arr.astype(object))
     tm.assert_numpy_array_equal(result, expected)
+
+
+@pytest.mark.parametrize('array, expected', [
+    (np.array([0, 1]), np.array([0, 1])),
+    (np.array(['0', '1']), np.array(['0', '1'], dtype=object)),
+    (pd.Categorical(['a', 'a']), np.array([0, 0], dtype='int8')),
+    (pd.DatetimeIndex(['2017-01-01T00:00:00']),
+     np.array(['2017-01-01T00:00:00'], dtype='M8[ns]')),
+    (pd.DatetimeIndex(['2017-01-01T00:00:00'], tz="US/Eastern"),
+     np.array(['2017-01-01T05:00:00'], dtype='M8[ns]')),
+    (pd.TimedeltaIndex([10**10]), np.array([10**10], dtype='m8[ns]')),
+    pytest.mark.xfail(reason='PeriodArray not implemented')((
+        pd.PeriodIndex(['2017', '2018'], freq='D'),
+        np.array([17167, 17532]),
+    )),
+])
+def test_ndarray_values(array, expected):
+    l_values = pd.Series(array)._ndarray_values
+    r_values = pd.Index(array)._ndarray_values
+    tm.assert_numpy_array_equal(l_values, r_values)
+    tm.assert_numpy_array_equal(l_values, expected)
