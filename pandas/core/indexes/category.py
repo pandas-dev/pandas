@@ -805,12 +805,6 @@ class CategoricalIndex(Index, accessor.PandasDelegate):
             return res
         return CategoricalIndex(res, name=self.name)
 
-    def _ensure_join(self, values):
-        if self.codes.dtype.itemsize <= 4:
-            return _ensure_int32(values)
-        else:
-            return _ensure_int64(values)
-
     @classmethod
     def _add_accessors(cls):
         """ add in Categorical accessor methods """

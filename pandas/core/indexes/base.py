@@ -31,12 +31,14 @@ from pandas.core.dtypes.common import (
     is_object_dtype,
     is_categorical_dtype,
     is_interval_dtype,
+    is_period_dtype,
     is_bool,
     is_bool_dtype,
     is_signed_integer_dtype,
     is_unsigned_integer_dtype,
     is_integer_dtype, is_float_dtype,
     is_datetime64_any_dtype,
+    is_datetime64tz_dtype,
     is_timedelta64_dtype,
     needs_i8_conversion,
     is_iterator, is_list_like,
@@ -2252,15 +2254,15 @@ class Index(IndexOpsMixin, PandasObject):
             other = other.astype('O')
             return this.union(other)
 
-        if is_categorical_dtype(self):
-            lvals = self.values
-        else:
+        # TODO: setops-refactor, clean all this up
+        if is_period_dtype(self) or is_datetime64tz_dtype(self):
             lvals = self._ndarray_values
-
-        if is_categorical_dtype(other):
-            rvals = other.values
         else:
+            lvals = self._values
+        if is_period_dtype(other) or is_datetime64tz_dtype(other):
             rvals = other._ndarray_values
+        else:
+            rvals = other._values
 
         if self.is_monotonic and other.is_monotonic:
             try:
@@ -2310,24 +2312,6 @@ class Index(IndexOpsMixin, PandasObject):
         name = self.name if self.name == other.name else None
         return self.__class__(result, name=name)
 
-    def _ensure_join(self, values):
-        """Ensure that the 'values' are ready for our join indexer.
-
-        The default join indexers are object, so this just returns 'values'.
-        This is called before calling those.
-
-
-        Parameters
-        ----------
-        values : array-like
-
-        Returns
-        -------
-        values : ndarray
-            Expected to have the correct type for self.inner_indexer
-        """
-        return values
-
     def intersection(self, other):
         """
         Form the intersection of two Index objects.
@@ -2363,24 +2347,30 @@ class Index(IndexOpsMixin, PandasObject):
             other = other.astype('O')
             return this.intersection(other)
 
+        # TODO: setops-refactor, clean all this up
+        if is_period_dtype(self):
+            lvals = self._ndarray_values
+        else:
+            lvals = self._values
+        if is_period_dtype(other):
+            rvals = other._ndarray_values
+        else:
+            rvals = other._values
+
         if self.is_monotonic and other.is_monotonic:
             try:
-                lvals = self._ensure_join(self._ndarray_values)
-                rvals = self._ensure_join(other._ndarray_values)
                 result = self._inner_indexer(lvals, rvals)[0]
                 return self._wrap_union_result(other, result)
             except TypeError:
                 pass
 
         try:
-            indexer = Index(other._ndarray_values).get_indexer(
-                self._ndarray_values)
+            indexer = Index(rvals).get_indexer(lvals)
             indexer = indexer.take((indexer != -1).nonzero()[0])
         except Exception:
-            # duplicates
+            # duplicateters
             indexer = algos.unique1d(
-                Index(other._ndarray_values).get_indexer_non_unique(
-                    self._ndarray_values)[0])
+                Index(rvals).get_indexer_non_unique(lvals)[0])
             indexer = indexer[indexer != -1]
 
         taken = other.take(indexer)
