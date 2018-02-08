@@ -283,4 +283,5 @@ class TestSeriesAlterAxes(TestData):
         # Supporting axis for compatibility, detailed in GH-18589
         s = Series(range(5))
         s.rename({}, axis=0)
-        s.rename({}, axis=5)
+        with tm.assert_raises_regex(ValueError, 'No axis named 5'):
+            s.rename({}, axis=5)

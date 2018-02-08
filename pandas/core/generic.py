@@ -862,7 +862,9 @@ class NDFrame(PandasObject, SelectionMixin):
         copy = kwargs.pop('copy', True)
         inplace = kwargs.pop('inplace', False)
         level = kwargs.pop('level', None)
-        kwargs.pop('axis', None)
+        axis = kwargs.pop('axis', None)
+        if axis is not None:
+            self._get_axis_number(axis)
 
         if kwargs:
             raise TypeError('rename() got an unexpected keyword '
