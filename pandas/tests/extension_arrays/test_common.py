@@ -27,8 +27,10 @@ def test_astype():
 def test_astype_raises():
     arr = DummyArray(np.array([1, 2, 3]))
 
+    # type  int for py2
+    # class int for py3
     xpr = ("DummyArray can only be coerced to 'object' dtype, not "
-           "'<class 'int'>'")
+           "'<.* 'int'>'")
 
     with tm.assert_raises_regex(ValueError, xpr):
         arr.astype(int)
