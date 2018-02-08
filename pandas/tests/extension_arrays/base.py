@@ -405,3 +405,35 @@ class BaseArrayTests(object):
         expected = pd.Series(other).value_counts(dropna=dropna).sort_index()
 
         tm.assert_series_equal(result, expected)
+
+    def test_count(self, data_missing):
+        df = pd.DataFrame({"A": data_missing})
+        result = df.count(axis='columns')
+        expected = pd.Series([0, 1])
+        tm.assert_series_equal(result, expected)
+
+    def test_dropna_series(self, data_missing):
+        ser = pd.Series(data_missing)
+        result = ser.dropna()
+        expected = ser.iloc[[1]]
+        tm.assert_series_equal(result, expected)
+
+    def test_dropna_frame(self, data_missing):
+        df = pd.DataFrame({"A": data_missing})
+
+        # defaults
+        result = df.dropna()
+        expected = df.iloc[[1]]
+        tm.assert_frame_equal(result, expected)
+
+        # axis = 1
+        result = df.dropna(axis='columns')
+        expected = pd.DataFrame(index=[0, 1])
+        tm.assert_frame_equal(result, expected)
+
+        # multiple
+        df = pd.DataFrame({"A": data_missing,
+                           "B": [1, np.nan]})
+        result = df.dropna()
+        expected = df.iloc[:0]
+        tm.assert_frame_equal(result, expected)

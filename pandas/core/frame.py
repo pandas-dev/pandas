@@ -5622,7 +5622,7 @@ class DataFrame(NDFrame):
         if len(frame._get_axis(axis)) == 0:
             result = Series(0, index=frame._get_agg_axis(axis))
         else:
-            if frame._is_mixed_type:
+            if frame._is_mixed_type or frame._data.any_extension_types:
                 result = notna(frame).sum(axis=axis)
             else:
                 counts = notna(frame.values).sum(axis=axis)

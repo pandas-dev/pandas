@@ -103,6 +103,7 @@ class Block(PandasObject):
     is_object = False
     is_categorical = False
     is_sparse = False
+    is_extension = False
     _box_to_block_values = True
     _can_hold_na = False
     _can_consolidate = True
@@ -1858,6 +1859,7 @@ class ExtensionBlock(NonConsolidatableMixIn, Block):
 
     ExtensionArrays are limited to 1-D.
     """
+    is_extension = True
 
     def __init__(self, values, placement, ndim=None):
         values = self._maybe_coerce_values(values)
@@ -3726,6 +3728,11 @@ class BlockManager(PandasObject):
         # Warning, consolidation needs to get checked upstairs
         self._consolidate_inplace()
         return any(block.is_datelike for block in self.blocks)
+
+    @property
+    def any_extension_types(self):
+        """Whether any of the blocks in this manager are extension blocks"""
+        return any(block.is_extension for block in self.blocks)
 
     @property
     def is_view(self):
