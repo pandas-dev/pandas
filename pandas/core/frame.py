@@ -4809,13 +4809,18 @@ class DataFrame(NDFrame):
 
         # TODO: flipped axis
         result = None
-        if axis == 0 or axis == 1:
+        if axis == 0:
             try:
                 result, how = self._aggregate(func,
-                                              _axis=axis,
+                                              _axis=0,
                                               *args, **kwargs)
             except TypeError:
                 pass
+        elif axis == 1:
+            try:
+                result, how = self.T._aggregate(func,
+                                                _axis=0,
+                                                *args, **kwargs).T
         if result is None:
             return self.apply(func, axis=axis, args=args, **kwargs)
         return result
