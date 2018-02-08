@@ -86,7 +86,6 @@ cdef extern from "period_helper.h":
         int day
         int month
         int year
-        int64_t absdate
 
     ctypedef struct asfreq_info:
         int is_end
@@ -109,7 +108,6 @@ cdef extern from "period_helper.h":
                          asfreq_info *af_info) nogil
 
     int get_yq(int64_t ordinal, int freq, int *quarter, int *year)
-    int _quarter_year(int64_t ordinal, int freq, int *year, int *quarter)
     int64_t get_daytime_conversion_factor(int from_index, int to_index) nogil
 
 
@@ -164,80 +162,12 @@ cdef int64_t get_period_ordinal(int year, int month, int day,
                                 int freq) nogil:
     """generate an ordinal in period space"""
     cdef:
-        int64_t absdays, delta, seconds
-        int64_t weeks, days
-        int64_t ordinal, day_adj
+        int64_t absdays, unix_date, seconds, delta
+        int64_t weeks
+        int64_t day_adj
         int freq_group, fmonth, mdiff
 
     freq_group = get_freq_group(freq)
-
-    if freq >= FR_SEC:
-        absdays = absdate_from_ymd(year, month, day)
-        delta = absdays - ORD_OFFSET
-        seconds = <int64_t>(delta * 86400 + hour * 3600 + minute * 60 + second)
-
-        if freq == FR_MS:
-            return seconds * 1000 + microseconds / 1000
-
-        elif freq == FR_US:
-            return seconds * 1000000 + microseconds
-
-        elif freq == FR_NS:
-            return seconds * 1000000000 + microseconds * 1000 + picoseconds / 1000
-
-        else:
-            return seconds
-
-    if freq == FR_MIN:
-        absdays = absdate_from_ymd(year, month, day)
-        delta = absdays - ORD_OFFSET
-        return <int64_t>(delta * 1440 + hour * 60 + minute)
-
-    if freq == FR_HR:
-        absdays = absdate_from_ymd(year, month, day)
-        delta = absdays - ORD_OFFSET
-        return <int64_t>(delta * 24 + hour)
-
-    if freq == FR_DAY:
-        return <int64_t>(absdate_from_ymd(year, month, day) - ORD_OFFSET)
-
-    if freq == FR_UND:
-        return <int64_t>(absdate_from_ymd(year, month, day) - ORD_OFFSET)
-
-    if freq == FR_BUS:
-        days = absdate_from_ymd(year, month, day);
-        # calculate the current week assuming sunday as last day of a week
-        weeks = (days - BASE_WEEK_TO_DAY_OFFSET) / 7
-        # calculate the current weekday (in range 1 .. 7)
-        delta = (days - BASE_WEEK_TO_DAY_OFFSET) % 7 + 1
-        # return the number of business days in full weeks plus the business
-        # days in the last - possible partial - week
-        if delta <= 5:
-            return <int64_t>(weeks * 5) + delta - BDAY_OFFSET
-        else:
-            return <int64_t>(weeks * 5) + (5 + 1) - BDAY_OFFSET
-
-    if freq_group == FR_WK:
-        ordinal = <int64_t>absdate_from_ymd(year, month, day)
-        day_adj = freq - FR_WK
-        return (ordinal - (1 + day_adj)) / 7 + 1 - WEEK_OFFSET
-
-    if freq == FR_MTH:
-        return (year - 1970) * 12 + month - 1;
-
-    if freq_group == FR_QTR:
-        fmonth = freq - FR_QTR
-        if fmonth == 0:
-            fmonth = 12
-
-        mdiff = month - fmonth
-        # TODO: Aren't the next two conditions equivalent to unconditional incrementing?
-        if mdiff < 0:
-            mdiff += 12
-        if month >= fmonth:
-            mdiff += 12
-
-        return (year - 1970) * 4 + (mdiff - 1) / 3
 
     if freq_group == FR_ANN:
         fmonth = freq - FR_ANN
@@ -247,6 +177,71 @@ cdef int64_t get_period_ordinal(int year, int month, int day,
             return year - 1970
         else:
             return year - 1970 + 1
+    
+    elif freq_group == FR_QTR:
+        fmonth = freq - FR_QTR
+        if fmonth == 0:
+            fmonth = 12
+
+        mdiff = month - fmonth
+        # TODO: Aren't the next two conditions equivalent to
+        # unconditional incrementing?
+        if mdiff < 0:
+            mdiff += 12
+        if month >= fmonth:
+            mdiff += 12
+
+        return (year - 1970) * 4 + (mdiff - 1) / 3
+
+    elif freq == FR_MTH:
+        return (year - 1970) * 12 + month - 1;
+
+    absdays = absdate_from_ymd(year, month, day)
+    unix_date = absdays - ORD_OFFSET
+
+    if freq >= FR_SEC:
+        seconds = unix_date * 86400 + hour * 3600 + minute * 60 + second
+
+        if freq == FR_MS:
+            return seconds * 1000 + microseconds / 1000
+
+        elif freq == FR_US:
+            return seconds * 1000000 + microseconds
+
+        elif freq == FR_NS:
+            return (seconds * 1000000000 +
+                    microseconds * 1000 + picoseconds / 1000)
+
+        else:
+            return seconds
+
+    elif freq == FR_MIN:
+        return unix_date * 1440 + hour * 60 + minute
+
+    elif freq == FR_HR:
+        return unix_date * 24 + hour
+
+    elif freq == FR_DAY:
+        return unix_date
+
+    elif freq == FR_UND:
+        return unix_date
+
+    elif freq == FR_BUS:
+        # calculate the current week assuming sunday as last day of a week
+        weeks = (unix_date + ORD_OFFSET - BASE_WEEK_TO_DAY_OFFSET) / 7
+        # calculate the current weekday (in range 1 .. 7)
+        delta = (unix_date + ORD_OFFSET - BASE_WEEK_TO_DAY_OFFSET) % 7 + 1
+        # return the number of business days in full weeks plus the business
+        # days in the last - possible partial - week
+        if delta <= 5:
+            return (weeks * 5) + delta - BDAY_OFFSET
+        else:
+            return (weeks * 5) + (5 + 1) - BDAY_OFFSET
+
+    elif freq_group == FR_WK:
+        day_adj = freq - FR_WK
+        return (unix_date + ORD_OFFSET - (1 + day_adj)) / 7 + 1 - WEEK_OFFSET
 
     # raise ValueError
 
@@ -298,7 +293,7 @@ cdef int dInfoCalc_SetFromAbsDateTime(date_info *dinfo,
     """
     # Bounds check
     # The calling function is responsible for ensuring that
-    # abstime >= 0.0 && abstime <= 86400
+    # abstime >= 0.0 and abstime <= 86400
 
     # Calculate the date
     dInfoCalc_SetFromAbsDate(dinfo, absdate)
@@ -320,8 +315,6 @@ cdef int dInfoCalc_SetFromAbsDate(date_info *dinfo, int64_t absdate) nogil:
     dinfo.year = dts.year
     dinfo.month = dts.month
     dinfo.day = dts.day
-
-    dinfo.absdate = absdate
     return 0
 
 
@@ -358,8 +351,8 @@ cdef double get_abs_time(int freq, int64_t date_ordinal,
         return 0
 
     freq_index = freq // 1000
-    day_index = 6000 // 1000
-    base_index = 9000 // 1000
+    day_index = FR_DAY // 1000
+    base_index = FR_SEC // 1000
 
     per_day = get_daytime_conversion_factor(day_index, freq_index)
     unit = get_daytime_conversion_factor(freq_index, base_index)
@@ -455,8 +448,7 @@ cdef char START = 'S'
 cdef char END = 'E'
 
 
-cpdef int64_t period_asfreq(int64_t period_ordinal, int freq1, int freq2,
-                            bint end):
+cpdef int64_t period_asfreq(int64_t ordinal, int freq1, int freq2, bint end):
     """
     Convert period ordinal from one frequency to another, and if upsampling,
     choose to use start ('S') or end ('E') of period.
@@ -464,13 +456,13 @@ cpdef int64_t period_asfreq(int64_t period_ordinal, int freq1, int freq2,
     cdef:
         int64_t retval
 
-    if period_ordinal == iNaT:
+    if ordinal == iNaT:
         return iNaT
 
     if end:
-        retval = asfreq(period_ordinal, freq1, freq2, END)
+        retval = asfreq(ordinal, freq1, freq2, END)
     else:
-        retval = asfreq(period_ordinal, freq1, freq2, START)
+        retval = asfreq(ordinal, freq1, freq2, START)
 
     if retval == INT32_MIN:
         raise ValueError('Frequency conversion failed')
@@ -487,7 +479,7 @@ def period_asfreq_arr(ndarray[int64_t] arr, int freq1, int freq2, bint end):
         ndarray[int64_t] result
         Py_ssize_t i, n
         freq_conv_func func
-        asfreq_info finfo
+        asfreq_info af_info
         int64_t val
         char relation
 
@@ -500,20 +492,20 @@ def period_asfreq_arr(ndarray[int64_t] arr, int freq1, int freq2, bint end):
         relation = START
 
     func = get_asfreq_func(freq1, freq2)
-    get_asfreq_info(freq1, freq2, relation, &finfo)
+    get_asfreq_info(freq1, freq2, relation, &af_info)
 
     mask = arr == iNaT
     if mask.any():      # NaT process
         for i in range(n):
             val = arr[i]
             if val != iNaT:
-                val = func(val, &finfo)
+                val = func(val, &af_info)
                 if val == INT32_MIN:
                     raise ValueError("Unable to convert to desired frequency.")
             result[i] = val
     else:
         for i in range(n):
-            val = func(arr[i], &finfo)
+            val = func(arr[i], &af_info)
             if val == INT32_MIN:
                 raise ValueError("Unable to convert to desired frequency.")
             result[i] = val
@@ -665,17 +657,22 @@ cdef int pyear(int64_t ordinal, int freq):
     return dinfo.year
 
 
+@cython.cdivision
 cdef int pqyear(int64_t ordinal, int freq):
     cdef:
-        int year, quarter
-    _quarter_year(ordinal, freq, &year, &quarter)
+        int year, quarter, qtr_freq
+    qtr_freq = get_yq(ordinal, freq, &quarter, &year)
+    if (qtr_freq % 1000) > 12:
+        year -= 1
     return year
 
 
 cdef int pquarter(int64_t ordinal, int freq):
     cdef:
-        int year, quarter
-    _quarter_year(ordinal, freq, &year, &quarter)
+        int year, quarter, qtr_freq
+    qtr_freq = get_yq(ordinal, freq, &quarter, &year)
+    if (qtr_freq % 1000) > 12:
+        year -= 1
     return quarter
 
 

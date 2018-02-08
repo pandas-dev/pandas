@@ -118,8 +118,6 @@ typedef struct asfreq_info {
 } asfreq_info;
 
 typedef struct date_info {
-    npy_int64 absdate;
-
     double second;
     int minute;
     int hour;
@@ -143,7 +141,6 @@ void get_asfreq_info(int fromFreq, int toFreq, char relation,
                      asfreq_info *af_info);
 
 int get_yq(npy_int64 ordinal, int freq, int *quarter, int *year);
-int _quarter_year(npy_int64 ordinal, int freq, int *year, int *quarter);
 npy_int64 get_daytime_conversion_factor(int from_index, int to_index);
 
 #endif  // PANDAS__LIBS_SRC_PERIOD_HELPER_H_

@@ -68,8 +68,6 @@ static int dInfoCalc_SetFromAbsDate(register struct date_info *dinfo,
     dinfo->year = dts.year;
     dinfo->month = dts.month;
     dinfo->day = dts.day;
-
-    dinfo->absdate = absdate;
     return 0;
 }
 
@@ -143,9 +141,9 @@ static npy_int64 DtoB_weekday(npy_int64 absdate) {
     return (((absdate) / 7) * 5) + (absdate) % 7 - BDAY_OFFSET;
 }
 
-static npy_int64 DtoB(struct date_info *dinfo, int roll_back) {
+static npy_int64 DtoB(struct date_info *dinfo,
+                      int roll_back, npy_int64 absdate) {
     int day_of_week = dayofweek(dinfo->year, dinfo->month, dinfo->day);
-    npy_int64 absdate = dinfo->absdate;
 
     if (roll_back == 1) {
         if (day_of_week > 4) {
@@ -220,15 +218,16 @@ static npy_int64 asfreq_DTtoW(npy_int64 ordinal, asfreq_info *af_info) {
 
 static npy_int64 asfreq_DTtoB(npy_int64 ordinal, asfreq_info *af_info) {
     struct date_info dinfo;
+    npy_int64 absdate;
     int roll_back;
 
     ordinal = downsample_daytime(ordinal, af_info);
-
-    dInfoCalc_SetFromAbsDate(&dinfo, ordinal + ORD_OFFSET);
+    absdate = ordinal + ORD_OFFSET;
+    dInfoCalc_SetFromAbsDate(&dinfo, absdate);
 
     // This usage defines roll_back the opposite way from the others
     roll_back = 1 - af_info->is_end;
-    return DtoB(&dinfo, roll_back);
+    return DtoB(&dinfo, roll_back, absdate);
 }
 
 // all intra day calculations are now done within one function
@@ -294,11 +293,11 @@ static npy_int64 asfreq_WtoW(npy_int64 ordinal, asfreq_info *af_info) {
 
 static npy_int64 asfreq_WtoB(npy_int64 ordinal, asfreq_info *af_info) {
     struct date_info dinfo;
+    npy_int64 absdate = asfreq_WtoDT(ordinal, af_info) + ORD_OFFSET;
     int roll_back = af_info->is_end;
-    dInfoCalc_SetFromAbsDate(
-            &dinfo, asfreq_WtoDT(ordinal, af_info) + ORD_OFFSET);
+    dInfoCalc_SetFromAbsDate(&dinfo, absdate);
 
-    return DtoB(&dinfo, roll_back);
+    return DtoB(&dinfo, roll_back, absdate);
 }
 
 //************ FROM MONTHLY ***************
@@ -334,12 +333,12 @@ static npy_int64 asfreq_MtoW(npy_int64 ordinal, asfreq_info *af_info) {
 
 static npy_int64 asfreq_MtoB(npy_int64 ordinal, asfreq_info *af_info) {
     struct date_info dinfo;
+    npy_int64 absdate = asfreq_MtoDT(ordinal, af_info) + ORD_OFFSET;
     int roll_back = af_info->is_end;
 
-    dInfoCalc_SetFromAbsDate(
-            &dinfo, asfreq_MtoDT(ordinal, af_info) + ORD_OFFSET);
+    dInfoCalc_SetFromAbsDate(&dinfo, absdate);
 
-    return DtoB(&dinfo, roll_back);
+    return DtoB(&dinfo, roll_back, absdate);
 }
 
 //************ FROM QUARTERLY ***************
@@ -389,12 +388,12 @@ static npy_int64 asfreq_QtoW(npy_int64 ordinal, asfreq_info *af_info) {
 
 static npy_int64 asfreq_QtoB(npy_int64 ordinal, asfreq_info *af_info) {
     struct date_info dinfo;
+    npy_int64 absdate = asfreq_QtoDT(ordinal, af_info) + ORD_OFFSET;
     int roll_back = af_info->is_end;
 
-    dInfoCalc_SetFromAbsDate(
-            &dinfo, asfreq_QtoDT(ordinal, af_info) + ORD_OFFSET);
+    dInfoCalc_SetFromAbsDate(&dinfo, absdate);
 
-    return DtoB(&dinfo, roll_back);
+    return DtoB(&dinfo, roll_back, absdate);
 }
 
 //************ FROM ANNUAL ***************
@@ -435,11 +434,11 @@ static npy_int64 asfreq_AtoW(npy_int64 ordinal, asfreq_info *af_info) {
 
 static npy_int64 asfreq_AtoB(npy_int64 ordinal, asfreq_info *af_info) {
     struct date_info dinfo;
+    npy_int64 absdate = asfreq_AtoDT(ordinal, af_info) + ORD_OFFSET;
     int roll_back = af_info->is_end;
-    dInfoCalc_SetFromAbsDate(
-            &dinfo, asfreq_AtoDT(ordinal, af_info) + ORD_OFFSET);
+    dInfoCalc_SetFromAbsDate(&dinfo, absdate);
 
-    return DtoB(&dinfo, roll_back);
+    return DtoB(&dinfo, roll_back, absdate);
 }
 
 static npy_int64 nofunc(npy_int64 ordinal, asfreq_info *af_info) {
@@ -724,14 +723,4 @@ int get_yq(npy_int64 ordinal, int freq, int *quarter, int *year) {
 
     DtoQ_yq(daily_ord, &af_info, year, quarter);
     return qtr_freq;
-}
-
-int _quarter_year(npy_int64 ordinal, int freq, int *year, int *quarter) {
-    asfreq_info af_info;
-    int qtr_freq;
-
-    qtr_freq = get_yq(ordinal, freq, quarter, year);
-    if ((qtr_freq % 1000) > 12) *year -= 1;
-
-    return 0;
 }
