@@ -45,7 +45,7 @@ static int monthToQuarter(int month) { return ((month - 1) / 3) + 1; }
 /* Find the absdate (days elapsed since datetime(1, 1, 1)
  * for the given year/month/day.
  * Assumes GREGORIAN_CALENDAR */
-static npy_int64 absdate_from_ymd(int year, int month, int day) {
+npy_int64 absdate_from_ymd(int year, int month, int day) {
     /* Calculate the absolute date */
     pandas_datetimestruct dts;
     npy_int64 unix_date;
@@ -686,108 +686,6 @@ npy_int64 asfreq(npy_int64 period_ordinal, int freq1, int freq2,
     get_asfreq_info(freq1, freq2, relation, &finfo);
     val = (*func)(period_ordinal, &finfo);
     return val;
-}
-
-/* generate an ordinal in period space */
-npy_int64 get_period_ordinal(int year, int month, int day, int hour, int minute,
-                             int second, int microseconds, int picoseconds,
-                             int freq) {
-    npy_int64 absdays, delta, seconds;
-    npy_int64 weeks, days;
-    npy_int64 ordinal, day_adj;
-    int freq_group, fmonth, mdiff;
-    freq_group = get_freq_group(freq);
-
-    if (freq == FR_SEC || freq == FR_MS || freq == FR_US || freq == FR_NS) {
-        absdays = absdate_from_ymd(year, month, day);
-        delta = (absdays - ORD_OFFSET);
-        seconds =
-            (npy_int64)(delta * 86400 + hour * 3600 + minute * 60 + second);
-
-        switch (freq) {
-            case FR_MS:
-                return seconds * 1000 + microseconds / 1000;
-
-            case FR_US:
-                return seconds * 1000000 + microseconds;
-
-            case FR_NS:
-                return seconds * 1000000000 + microseconds * 1000 +
-                       picoseconds / 1000;
-        }
-
-        return seconds;
-    }
-
-    if (freq == FR_MIN) {
-        absdays = absdate_from_ymd(year, month, day);
-        delta = (absdays - ORD_OFFSET);
-        return (npy_int64)(delta * 1440 + hour * 60 + minute);
-    }
-
-    if (freq == FR_HR) {
-        absdays = absdate_from_ymd(year, month, day);
-        delta = (absdays - ORD_OFFSET);
-        return (npy_int64)(delta * 24 + hour);
-    }
-
-    if (freq == FR_DAY) {
-        return (npy_int64)(absdate_from_ymd(year, month, day) - ORD_OFFSET);
-    }
-
-    if (freq == FR_UND) {
-        return (npy_int64)(absdate_from_ymd(year, month, day) - ORD_OFFSET);
-    }
-
-    if (freq == FR_BUS) {
-        days = absdate_from_ymd(year, month, day);
-        // calculate the current week assuming sunday as last day of a week
-        weeks = (days - BASE_WEEK_TO_DAY_OFFSET) / DAYS_PER_WEEK;
-        // calculate the current weekday (in range 1 .. 7)
-        delta = (days - BASE_WEEK_TO_DAY_OFFSET) % DAYS_PER_WEEK + 1;
-        // return the number of business days in full weeks plus the business
-        // days in the last - possible partial - week
-        return (npy_int64)(weeks * BUSINESS_DAYS_PER_WEEK) +
-               (delta <= BUSINESS_DAYS_PER_WEEK ? delta
-                                                : BUSINESS_DAYS_PER_WEEK + 1) -
-               BDAY_OFFSET;
-    }
-
-    if (freq_group == FR_WK) {
-        ordinal = (npy_int64)absdate_from_ymd(year, month, day);
-        day_adj = freq - FR_WK;
-        return (ordinal - (1 + day_adj)) / 7 + 1 - WEEK_OFFSET;
-    }
-
-    if (freq == FR_MTH) {
-        return (year - BASE_YEAR) * 12 + month - 1;
-    }
-
-    if (freq_group == FR_QTR) {
-        fmonth = freq - FR_QTR;
-        if (fmonth == 0) fmonth = 12;
-
-        mdiff = month - fmonth;
-        if (mdiff < 0) mdiff += 12;
-        if (month >= fmonth) mdiff += 12;
-
-        return (year - BASE_YEAR) * 4 + (mdiff - 1) / 3;
-    }
-
-    if (freq_group == FR_ANN) {
-        fmonth = freq - FR_ANN;
-        if (fmonth == 0) fmonth = 12;
-        if (month <= fmonth) {
-            return year - BASE_YEAR;
-        } else {
-            return year - BASE_YEAR + 1;
-        }
-    }
-
-    Py_Error(PyExc_RuntimeError, "Unable to generate frequency ordinal");
-
-onError:
-    return INT_ERR_CODE;
 }
 
 /*

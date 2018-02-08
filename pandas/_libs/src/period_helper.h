@@ -136,10 +136,6 @@ typedef npy_int64 (*freq_conv_func)(npy_int64, asfreq_info *af_info);
 
 npy_int64 asfreq(npy_int64 period_ordinal, int freq1, int freq2, char relation);
 
-npy_int64 get_period_ordinal(int year, int month, int day, int hour, int minute,
-                             int second, int microseconds, int picoseconds,
-                             int freq);
-
 npy_int64 get_python_ordinal(npy_int64 period_ordinal, int freq);
 
 freq_conv_func get_asfreq_func(int fromFreq, int toFreq);
