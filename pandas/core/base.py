@@ -772,6 +772,11 @@ class IndexOpsMixin(object):
     def _ndarray_values(self):
         """The data as an ndarray. See '_values' for more."""
         # type: () -> np.ndarray
+        from pandas.core.dtypes.common import is_categorical_dtype
+
+        if is_categorical_dtype(self):
+            return self._values.codes
+
         return self.values
 
     @property
