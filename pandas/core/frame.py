@@ -4807,8 +4807,8 @@ class DataFrame(NDFrame):
     def aggregate(self, func, axis=0, *args, **kwargs):
         axis = self._get_axis_number(axis)
 
-        # TODO: flipped axis
         result = None
+
         if axis == 0:
             try:
                 result, how = self._aggregate(func,
@@ -4821,6 +4821,8 @@ class DataFrame(NDFrame):
                 result, how = self.T._aggregate(func,
                                                 _axis=0,
                                                 *args, **kwargs).T
+            except TypeError:
+                pass
         if result is None:
             return self.apply(func, axis=axis, args=args, **kwargs)
         return result
