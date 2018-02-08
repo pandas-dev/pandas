@@ -588,7 +588,9 @@ def group_rank_{{name}}(ndarray[float64_t, ndim=2] out,
                     for j in range(grp_start, i + 1):
                         out[_as[j], 0] = out[_as[j], 0] / (i - grp_start + 1
                                                            - grp_na_count)
+                dups = sum_ranks = 0
                 grp_na_count = 0
+                val_start = i + 1
                 grp_start = i + 1
                 grp_vals_seen = 1
 
