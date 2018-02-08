@@ -1105,7 +1105,8 @@ class DatetimeIndex(DatelikeOps, TimelikeOps, DatetimeIndexOpsMixin,
         else:
             naive = self
         result = super(DatetimeIndex, naive).unique(level=level)
-        return self._simple_new(result, name=self.name, tz=self.tz, freq=self.freq)
+        return self._simple_new(result, name=self.name, tz=self.tz,
+                                freq=self.freq)
 
     def union(self, other):
         """
