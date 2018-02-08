@@ -12,6 +12,7 @@ import pandas.compat as compat
 
 from pandas import (Categorical, DataFrame,
                     Index, MultiIndex, Timedelta)
+from pandas.core.arrays.categorical import _recode_for_categories
 from pandas.core.frame import _merge_doc
 from pandas.core.dtypes.common import (
     is_datetime64tz_dtype,
@@ -1540,8 +1541,15 @@ def _factorize_keys(lk, rk, sort=True):
             is_categorical_dtype(rk) and
             lk.is_dtype_equal(rk)):
         klass = libhashtable.Int64Factorizer
+
+        if lk.categories.equals(rk.categories):
+            rk = rk.codes
+        else:
+            # Same categories in different orders -> recode
+            rk = _recode_for_categories(rk.codes, rk.categories, lk.categories)
+
         lk = _ensure_int64(lk.codes)
-        rk = _ensure_int64(rk.codes)
+        rk = _ensure_int64(rk)
     elif is_int_or_datetime_dtype(lk) and is_int_or_datetime_dtype(rk):
         klass = libhashtable.Int64Factorizer
         lk = _ensure_int64(com._values_from_object(lk))
