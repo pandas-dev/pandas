@@ -4820,7 +4820,8 @@ class DataFrame(NDFrame):
             try:
                 result, how = self.T._aggregate(func,
                                                 _axis=0,
-                                                *args, **kwargs).T
+                                                *args, **kwargs)
+                result = result.T
             except TypeError:
                 pass
         if result is None:
