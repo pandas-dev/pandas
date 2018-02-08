@@ -100,8 +100,7 @@ PANDAS_INLINE int get_freq_group(int freq) { return (freq / 1000) * 1000; }
 PANDAS_INLINE int get_freq_group_index(int freq) { return freq / 1000; }
 
 
-PANDAS_INLINE npy_int64 get_daytime_conversion_factor(int from_index,
-                                                      int to_index) {
+npy_int64 get_daytime_conversion_factor(int from_index, int to_index) {
     int row = min_value(from_index, to_index);
     int col = max_value(from_index, to_index);
     // row or col < 6 means frequency strictly lower than Daily, which
@@ -877,12 +876,8 @@ int get_yq(npy_int64 ordinal, int freq, int *quarter, int *year) {
     asfreq_info af_info;
     int qtr_freq;
     npy_int64 daily_ord;
-    freq_conv_func toDaily = NULL;
 
-    toDaily = get_asfreq_func(freq, FR_DAY);
-    get_asfreq_info(freq, FR_DAY, 'E', &af_info);
-
-    daily_ord = toDaily(ordinal, &af_info);
+    daily_ord = get_python_ordinal(ordinal, freq) - ORD_OFFSET;
 
     if (get_freq_group(freq) == FR_QTR) {
         qtr_freq = freq;
@@ -892,7 +887,7 @@ int get_yq(npy_int64 ordinal, int freq, int *quarter, int *year) {
     get_asfreq_info(FR_DAY, qtr_freq, 'E', &af_info);
 
     DtoQ_yq(daily_ord, &af_info, year, quarter);
-    return 0;
+    return qtr_freq;
 }
 
 int _quarter_year(npy_int64 ordinal, int freq, int *year, int *quarter) {

@@ -24,7 +24,9 @@ from cpython.datetime cimport PyDateTime_Check, PyDateTime_IMPORT
 PyDateTime_IMPORT
 
 from np_datetime cimport (pandas_datetimestruct, dtstruct_to_dt64,
-                          dt64_to_dtstruct)
+                          dt64_to_dtstruct,
+                          PANDAS_FR_D,
+                          pandas_datetime_to_datetimestruct)
 
 cimport util
 from util cimport is_period_object, is_string_object, INT32_MIN
@@ -52,6 +54,9 @@ from pandas.tseries import frequencies
 
 
 cdef extern from "period_helper.h":
+    int ORD_OFFSET
+    int FR_DAY
+
     ctypedef struct date_info:
         double second
         int minute
@@ -59,6 +64,7 @@ cdef extern from "period_helper.h":
         int day
         int month
         int year
+        int64_t absdate
 
     ctypedef struct asfreq_info:
         int is_end
@@ -72,24 +78,22 @@ cdef extern from "period_helper.h":
         int from_q_year_end
         int to_q_year_end
 
-    ctypedef int64_t (*freq_conv_func)(int64_t, asfreq_info*)
+    ctypedef int64_t (*freq_conv_func)(int64_t, asfreq_info*) nogil
 
     int64_t asfreq(int64_t dtordinal, int freq1, int freq2,
                    char relation) except INT32_MIN
-    freq_conv_func get_asfreq_func(int fromFreq, int toFreq)
+    freq_conv_func get_asfreq_func(int fromFreq, int toFreq) nogil
     void get_asfreq_info(int fromFreq, int toFreq, char relation,
-                         asfreq_info *af_info)
+                         asfreq_info *af_info) nogil
 
     int64_t get_period_ordinal(int year, int month, int day,
                                int hour, int minute, int second,
                                int microseconds, int picoseconds,
                                int freq) nogil except INT32_MIN
 
-    int get_date_info(int64_t ordinal, int freq,
-                      date_info *dinfo) nogil
-
     int get_yq(int64_t ordinal, int freq, int *quarter, int *year)
     int _quarter_year(int64_t ordinal, int freq, int *year, int *quarter)
+    int64_t get_daytime_conversion_factor(int from_index, int to_index) nogil
 
 
 @cython.cdivision
@@ -128,6 +132,130 @@ cdef char* c_strftime(date_info *dinfo, char *fmt):
 
     return result
 
+
+# ----------------------------------------------------------------------
+# Conversion between date_info and pandas_datetimestruct
+
+
+cdef int get_date_info(int64_t ordinal, int freq, date_info *dinfo) nogil:
+    cdef:
+        int64_t absdate
+        double abstime
+
+    absdate = get_python_ordinal(ordinal, freq);
+    abstime = get_abs_time(freq, absdate - ORD_OFFSET, ordinal)
+
+    while abstime < 0:
+        abstime += 86400
+        absdate -= 1
+
+    while abstime >= 86400:
+        abstime -= 86400
+        absdate += 1
+
+    dInfoCalc_SetFromAbsDateTime(dinfo, absdate, abstime)
+    return 0
+
+
+cdef int64_t get_python_ordinal(int64_t period_ordinal, int freq) nogil:
+    """
+    Returns the proleptic Gregorian ordinal of the date, as an integer.
+    This corresponds to the number of days since Jan., 1st, 1AD.
+    When the instance has a frequency less than daily, the proleptic date
+    is calculated for the last day of the period.
+    """
+    cdef:
+        asfreq_info af_info
+        freq_conv_func toDaily = NULL
+
+    if freq == FR_DAY:
+        return period_ordinal + ORD_OFFSET
+
+    toDaily = get_asfreq_func(freq, FR_DAY)
+    get_asfreq_info(freq, FR_DAY, 'E', &af_info)
+    return toDaily(period_ordinal, &af_info) + ORD_OFFSET
+
+
+cdef int dInfoCalc_SetFromAbsDateTime(date_info *dinfo,
+                                      int64_t absdate, double abstime) nogil:
+    """
+    Set the instance's value using the given date and time.
+    Assumes GREGORIAN_CALENDAR.
+    """
+    # Bounds check
+    # The calling function is responsible for ensuring that
+    # abstime >= 0.0 && abstime <= 86400
+
+    # Calculate the date
+    dInfoCalc_SetFromAbsDate(dinfo, absdate)
+
+    # Calculate the time
+    dInfoCalc_SetFromAbsTime(dinfo, abstime)
+    return 0
+
+
+cdef int dInfoCalc_SetFromAbsDate(date_info *dinfo, int64_t absdate) nogil:
+    """
+    Sets the date part of the date_info struct
+    Assumes GREGORIAN_CALENDAR
+    """
+    cdef:
+        pandas_datetimestruct dts
+
+    pandas_datetime_to_datetimestruct(absdate - ORD_OFFSET, PANDAS_FR_D, &dts)
+    dinfo.year = dts.year
+    dinfo.month = dts.month
+    dinfo.day = dts.day
+
+    dinfo.absdate = absdate
+    return 0
+
+
+@cython.cdivision
+cdef int dInfoCalc_SetFromAbsTime(date_info *dinfo, double abstime) nogil:
+    """
+    Sets the time part of the DateTime object.
+    """
+    cdef:
+        int inttime
+        int hour, minute
+        double second
+
+    inttime = <int>abstime
+    hour = inttime / 3600
+    minute = (inttime % 3600) / 60
+    second = abstime - <double>(hour * 3600 + minute * 60)
+
+    dinfo.hour = hour
+    dinfo.minute = minute
+    dinfo.second = second
+    return 0
+
+
+@cython.cdivision
+cdef double get_abs_time(int freq, int64_t date_ordinal,
+                         int64_t ordinal) nogil:
+    cdef:
+        int freq_index, day_index, base_index
+        int64_t per_day, start_ord
+        double unit, result
+
+    if freq <= FR_DAY:
+        return 0
+
+    freq_index = freq // 1000
+    day_index = 6000 // 1000
+    base_index = 9000 // 1000
+
+    per_day = get_daytime_conversion_factor(day_index, freq_index)
+    unit = get_daytime_conversion_factor(freq_index, base_index)
+
+    if base_index < freq_index:
+        unit = 1 / unit
+
+    start_ord = date_ordinal * per_day
+    result = <double>(unit * (ordinal - start_ord))
+    return result
 
 # ----------------------------------------------------------------------
 # Period logic
