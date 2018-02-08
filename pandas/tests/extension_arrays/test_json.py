@@ -16,6 +16,10 @@ from pandas.core.arrays import ExtensionArray
 from .base import BaseArrayTests, BaseDtypeTests
 
 
+pytestmark = pytest.mark.skipif(sys.version_info[0] == 2,
+                                reason="Py2 doesn't have a UserDict")
+
+
 class JSONDtype(ExtensionDtype):
     type = collections.Mapping
     name = 'json'
