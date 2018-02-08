@@ -1,9 +1,13 @@
 import numpy as np
 import pandas.util.testing as tm
-from pandas import (DataFrame, Series, rolling_median, rolling_mean,
-                    rolling_min, rolling_max, rolling_var, rolling_skew,
-                    rolling_kurt, rolling_std, read_csv, factorize, date_range)
+from pandas import DataFrame, Series, read_csv, factorize, date_range
 from pandas.core.algorithms import take_1d
+try:
+    from pandas import (rolling_median, rolling_mean, rolling_min, rolling_max,
+                        rolling_var, rolling_skew, rolling_kurt, rolling_std)
+    have_rolling_methods = True
+except ImportError:
+    have_rolling_methods = False
 try:
     from pandas._libs import algos
 except ImportError:
@@ -171,8 +175,7 @@ class ParallelDatetimeFields(object):
 class ParallelRolling(object):
 
     goal_time = 0.2
-    params = ['rolling_median', 'rolling_mean', 'rolling_min', 'rolling_max',
-              'rolling_var', 'rolling_skew', 'rolling_kurt', 'rolling_std']
+    params = ['median', 'mean', 'min', 'max', 'var', 'skew', 'kurt', 'std']
     param_names = ['method']
 
     def setup(self, method):
@@ -181,34 +184,28 @@ class ParallelRolling(object):
         win = 100
         arr = np.random.rand(100000)
         if hasattr(DataFrame, 'rolling'):
-            rolling = {'rolling_median': 'median',
-                       'rolling_mean': 'mean',
-                       'rolling_min': 'min',
-                       'rolling_max': 'max',
-                       'rolling_var': 'var',
-                       'rolling_skew': 'skew',
-                       'rolling_kurt': 'kurt',
-                       'rolling_std': 'std'}
             df = DataFrame(arr).rolling(win)
 
             @test_parallel(num_threads=2)
             def parallel_rolling():
-                getattr(df, rolling[method])()
+                getattr(df, method)()
             self.parallel_rolling = parallel_rolling
-        else:
-            rolling = {'rolling_median': rolling_median,
-                       'rolling_mean': rolling_mean,
-                       'rolling_min': rolling_min,
-                       'rolling_max': rolling_max,
-                       'rolling_var': rolling_var,
-                       'rolling_skew': rolling_skew,
-                       'rolling_kurt': rolling_kurt,
-                       'rolling_std': rolling_std}
+        elif have_rolling_methods:
+            rolling = {'median': rolling_median,
+                       'mean': rolling_mean,
+                       'min': rolling_min,
+                       'max': rolling_max,
+                       'var': rolling_var,
+                       'skew': rolling_skew,
+                       'kurt': rolling_kurt,
+                       'std': rolling_std}
 
             @test_parallel(num_threads=2)
             def parallel_rolling():
                 rolling[method](arr, win)
             self.parallel_rolling = parallel_rolling
+        else:
+            raise NotImplementedError
 
     def time_rolling(self, method):
         self.parallel_rolling()

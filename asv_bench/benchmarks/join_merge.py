@@ -1,3 +1,4 @@
+import warnings
 import string
 
 import numpy as np
@@ -26,7 +27,8 @@ class Append(object):
         self.mdf1['obj2'] = 'bar'
         self.mdf1['int1'] = 5
         try:
-            self.mdf1.consolidate(inplace=True)
+            with warnings.catch_warnings(record=True):
+                self.mdf1.consolidate(inplace=True)
         except:
             pass
         self.mdf2 = self.mdf1.copy()
@@ -75,16 +77,23 @@ class ConcatPanels(object):
     param_names = ['axis', 'ignore_index']
 
     def setup(self, axis, ignore_index):
-        panel_c = Panel(np.zeros((10000, 200, 2), dtype=np.float32, order='C'))
-        self.panels_c = [panel_c] * 20
-        panel_f = Panel(np.zeros((10000, 200, 2), dtype=np.float32, order='F'))
-        self.panels_f = [panel_f] * 20
+        with warnings.catch_warnings(record=True):
+            panel_c = Panel(np.zeros((10000, 200, 2),
+                                     dtype=np.float32,
+                                     order='C'))
+            self.panels_c = [panel_c] * 20
+            panel_f = Panel(np.zeros((10000, 200, 2),
+                            dtype=np.float32,
+                            order='F'))
+            self.panels_f = [panel_f] * 20
 
     def time_c_ordered(self, axis, ignore_index):
-        concat(self.panels_c, axis=axis, ignore_index=ignore_index)
+        with warnings.catch_warnings(record=True):
+            concat(self.panels_c, axis=axis, ignore_index=ignore_index)
 
     def time_f_ordered(self, axis, ignore_index):
-        concat(self.panels_f, axis=axis, ignore_index=ignore_index)
+        with warnings.catch_warnings(record=True):
+            concat(self.panels_f, axis=axis, ignore_index=ignore_index)
 
 
 class ConcatDataFrames(object):

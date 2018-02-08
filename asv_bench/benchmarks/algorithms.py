@@ -1,3 +1,4 @@
+import warnings
 from importlib import import_module
 
 import numpy as np
@@ -83,7 +84,8 @@ class Match(object):
         self.all = self.uniques.repeat(10)
 
     def time_match_string(self):
-        pd.match(self.all, self.uniques)
+        with warnings.catch_warnings(record=True):
+            pd.match(self.all, self.uniques)
 
 
 class Hashing(object):

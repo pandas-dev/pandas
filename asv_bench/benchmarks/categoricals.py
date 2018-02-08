@@ -1,3 +1,5 @@
+import warnings
+
 import numpy as np
 import pandas as pd
 import pandas.util.testing as tm
@@ -119,11 +121,15 @@ class Rank(object):
 
         self.s_str = pd.Series(tm.makeCategoricalIndex(N, ncats)).astype(str)
         self.s_str_cat = self.s_str.astype('category')
-        self.s_str_cat_ordered = self.s_str.astype('category', ordered=True)
+        with warnings.catch_warnings(record=True):
+            self.s_str_cat_ordered = self.s_str.astype('category',
+                                                       ordered=True)
 
         self.s_int = pd.Series(np.random.randint(0, ncats, size=N))
         self.s_int_cat = self.s_int.astype('category')
-        self.s_int_cat_ordered = self.s_int.astype('category', ordered=True)
+        with warnings.catch_warnings(record=True):
+            self.s_int_cat_ordered = self.s_int.astype('category',
+                                                       ordered=True)
 
     def time_rank_string(self):
         self.s_str.rank()

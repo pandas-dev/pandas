@@ -104,9 +104,9 @@ class WideToLong(object):
         self.letters = list('ABCD')
         yrvars = [l + str(num)
                   for l, num in product(self.letters, range(1, nyrs + 1))]
-
+        columns = [str(i) for i in range(nidvars)] + yrvars
         self.df = DataFrame(np.random.randn(N, nidvars + len(yrvars)),
-                            columns=list(range(nidvars)) + yrvars)
+                            columns=columns)
         self.df['id'] = self.df.index
 
     def time_wide_to_long_big(self):
