@@ -1,4 +1,6 @@
 import string
+import warnings
+
 import numpy as np
 import pandas.util.testing as tm
 from pandas import (DataFrame, Series, MultiIndex, date_range, period_range,
@@ -15,7 +17,8 @@ class GetNumericData(object):
         self.df = DataFrame(np.random.randn(10000, 25))
         self.df['foo'] = 'bar'
         self.df['bar'] = 'baz'
-        self.df = self.df.consolidate()
+        with warnings.catch_warnings(record=True):
+            self.df = self.df.consolidate()
 
     def time_frame_get_numeric_data(self):
         self.df._get_numeric_data()
@@ -141,8 +144,8 @@ class Repr(object):
     def setup(self):
         nrows = 10000
         data = np.random.randn(nrows, 10)
-        idx = MultiIndex.from_arrays(np.tile(np.random.randn(3, nrows / 100),
-                                             100))
+        arrays = np.tile(np.random.randn(3, int(nrows / 100)), 100)
+        idx = MultiIndex.from_arrays(arrays)
         self.df3 = DataFrame(data, index=idx)
         self.df4 = DataFrame(data, index=np.random.randn(nrows))
         self.df_tall = DataFrame(np.random.randn(nrows, 10))
