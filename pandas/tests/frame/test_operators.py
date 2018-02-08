@@ -203,76 +203,6 @@ class TestDataFrameOperators(TestData):
             result = right_f(Timestamp('nat'), df)
             assert_frame_equal(result, expected)
 
-    def test_modulo(self):
-        # GH3590, modulo as ints
-        p = DataFrame({'first': [3, 4, 5, 8], 'second': [0, 0, 0, 3]})
-
-        # this is technically wrong as the integer portion is coerced to float
-        # ###
-        expected = DataFrame({'first': Series([0, 0, 0, 0], dtype='float64'),
-                              'second': Series([np.nan, np.nan, np.nan, 0])})
-        result = p % p
-        assert_frame_equal(result, expected)
-
-        # numpy has a slightly different (wrong) treatement
-        with np.errstate(all='ignore'):
-            arr = p.values % p.values
-        result2 = DataFrame(arr, index=p.index,
-                            columns=p.columns, dtype='float64')
-        result2.iloc[0:3, 1] = np.nan
-        assert_frame_equal(result2, expected)
-
-        result = p % 0
-        expected = DataFrame(np.nan, index=p.index, columns=p.columns)
-        assert_frame_equal(result, expected)
-
-        # numpy has a slightly different (wrong) treatement
-        with np.errstate(all='ignore'):
-            arr = p.values.astype('float64') % 0
-        result2 = DataFrame(arr, index=p.index, columns=p.columns)
-        assert_frame_equal(result2, expected)
-
-        # not commutative with series
-        p = DataFrame(np.random.randn(10, 5))
-        s = p[0]
-        res = s % p
-        res2 = p % s
-        assert not res.fillna(0).equals(res2.fillna(0))
-
-    def test_div(self):
-
-        # integer div, but deal with the 0's (GH 9144)
-        p = DataFrame({'first': [3, 4, 5, 8], 'second': [0, 0, 0, 3]})
-        result = p / p
-
-        expected = DataFrame({'first': Series([1.0, 1.0, 1.0, 1.0]),
-                              'second': Series([nan, nan, nan, 1])})
-        assert_frame_equal(result, expected)
-
-        with np.errstate(all='ignore'):
-            arr = p.values.astype('float') / p.values
-        result2 = DataFrame(arr, index=p.index,
-                            columns=p.columns)
-        assert_frame_equal(result2, expected)
-
-        result = p / 0
-        expected = DataFrame(np.inf, index=p.index, columns=p.columns)
-        expected.iloc[0:3, 1] = nan
-        assert_frame_equal(result, expected)
-
-        # numpy has a slightly different (wrong) treatement
-        with np.errstate(all='ignore'):
-            arr = p.values.astype('float64') / 0
-        result2 = DataFrame(arr, index=p.index,
-                            columns=p.columns)
-        assert_frame_equal(result2, expected)
-
-        p = DataFrame(np.random.randn(10, 5))
-        s = p[0]
-        res = s / p
-        res2 = p / s
-        assert not res.fillna(0).equals(res2.fillna(0))
-
     def test_logical_operators(self):
 
         def _check_bin_op(op):
@@ -450,6 +380,19 @@ class TestDataFrameOperators(TestData):
             self.frame.add(self.frame.iloc[0], fill_value=3)
         with tm.assert_raises_regex(NotImplementedError, 'fill_value'):
             self.frame.add(self.frame.iloc[0], axis='index', fill_value=3)
+
+    def test_arith_flex_zero_len_raises(self):
+        # GH#19522 passing fill_value to frame flex arith methods should
+        # raise even in the zero-length special cases
+        ser_len0 = pd.Series([])
+        df_len0 = pd.DataFrame([], columns=['A', 'B'])
+        df = pd.DataFrame([[1, 2], [3, 4]], columns=['A', 'B'])
+
+        with tm.assert_raises_regex(NotImplementedError, 'fill_value'):
+            df.add(ser_len0, fill_value='E')
+
+        with tm.assert_raises_regex(NotImplementedError, 'fill_value'):
+            df_len0.sub(df['A'], axis=None, fill_value=3)
 
     def test_binary_ops_align(self):
 

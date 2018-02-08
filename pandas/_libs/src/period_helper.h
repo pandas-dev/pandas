@@ -24,15 +24,6 @@ frequency conversion routines.
  * declarations from period here
  */
 
-#define SECONDS_PER_DAY ((double)86400.0)
-
-#define Py_AssertWithArg(x, errortype, errorstr, a1) \
-    {                                                \
-        if (!(x)) {                                  \
-            PyErr_Format(errortype, errorstr, a1);   \
-            goto onError;                            \
-        }                                            \
-    }
 #define Py_Error(errortype, errorstr)         \
     {                                         \
         PyErr_SetString(errortype, errorstr); \
@@ -128,17 +119,13 @@ typedef struct asfreq_info {
 
 typedef struct date_info {
     npy_int64 absdate;
-    double abstime;
 
     double second;
     int minute;
     int hour;
     int day;
     int month;
-    int quarter;
     int year;
-    int day_of_week;
-    int day_of_year;
 } date_info;
 
 typedef npy_int64 (*freq_conv_func)(npy_int64, asfreq_info *af_info);
@@ -160,21 +147,7 @@ freq_conv_func get_asfreq_func(int fromFreq, int toFreq);
 void get_asfreq_info(int fromFreq, int toFreq, char relation,
                      asfreq_info *af_info);
 
-int pyear(npy_int64 ordinal, int freq);
-int pqyear(npy_int64 ordinal, int freq);
-int pquarter(npy_int64 ordinal, int freq);
-int pmonth(npy_int64 ordinal, int freq);
-int pday(npy_int64 ordinal, int freq);
-int pweekday(npy_int64 ordinal, int freq);
-int pday_of_week(npy_int64 ordinal, int freq);
-int pday_of_year(npy_int64 ordinal, int freq);
-int pweek(npy_int64 ordinal, int freq);
-int phour(npy_int64 ordinal, int freq);
-int pminute(npy_int64 ordinal, int freq);
-int psecond(npy_int64 ordinal, int freq);
-int pdays_in_month(npy_int64 ordinal, int freq);
-
-char *c_strftime(struct date_info *dinfo, char *fmt);
 int get_yq(npy_int64 ordinal, int freq, int *quarter, int *year);
+int _quarter_year(npy_int64 ordinal, int freq, int *year, int *quarter);
 
 #endif  // PANDAS__LIBS_SRC_PERIOD_HELPER_H_

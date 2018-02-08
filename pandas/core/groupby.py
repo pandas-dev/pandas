@@ -2240,7 +2240,7 @@ class BaseGrouper(object):
             raise NotImplementedError("function is not implemented for this"
                                       "dtype: [how->%s,dtype->%s]" %
                                       (how, dtype_str))
-        return func, dtype_str
+        return func
 
     def _cython_operation(self, kind, values, how, axis, min_count=-1):
         assert kind in ['transform', 'aggregate']
@@ -2304,12 +2304,12 @@ class BaseGrouper(object):
             values = values.astype(object)
 
         try:
-            func, dtype_str = self._get_cython_function(
+            func = self._get_cython_function(
                 kind, how, values, is_numeric)
         except NotImplementedError:
             if is_numeric:
                 values = _ensure_float64(values)
-                func, dtype_str = self._get_cython_function(
+                func = self._get_cython_function(
                     kind, how, values, is_numeric)
             else:
                 raise
@@ -2336,7 +2336,7 @@ class BaseGrouper(object):
             result = self._transform(
                 result, values, labels, func, is_numeric, is_datetimelike)
 
-        if is_integer_dtype(result):
+        if is_integer_dtype(result) and not is_datetimelike:
             mask = result == iNaT
             if mask.any():
                 result = result.astype('float64')
