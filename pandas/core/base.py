@@ -392,6 +392,10 @@ class SelectionMixin(object):
 
                     elif isinstance(obj, ABCSeries):
                         nested_renaming_depr()
+                    elif isinstance(obj, ABCDataFrame) and \
+                            k not in obj.columns:
+                        raise KeyError(
+                            "Column '{col}' does not exist!".format(col=k))
 
                 arg = new_arg
 
@@ -1048,7 +1052,7 @@ class IndexOpsMixin(object):
 
     def memory_usage(self, deep=False):
         """
-        Memory usage of my values
+        Memory usage of the values
 
         Parameters
         ----------

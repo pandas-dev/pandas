@@ -37,6 +37,7 @@ from pandas.core.dtypes.common import (
     _ensure_categorical,
     _ensure_float)
 from pandas.core.dtypes.cast import maybe_downcast_to_dtype
+from pandas.core.dtypes.generic import ABCSeries
 from pandas.core.dtypes.missing import isna, notna, _maybe_fill
 
 from pandas.core.base import (PandasObject, SelectionMixin, GroupByError,
@@ -230,7 +231,7 @@ object : the return type of ``func``.
 Notes
 -----
 See more `here
-<http://pandas.pydata.org/pandas-docs/stable/groupby.html#pipe>`_
+<http://pandas.pydata.org/pandas-docs/stable/groupby.html#piping-function-calls>`_
 
 Examples
 --------
@@ -423,6 +424,7 @@ class Grouper(object):
         self.obj = None
         self.indexer = None
         self.binner = None
+        self._grouper = None
 
     @property
     def ax(self):
@@ -465,12 +467,22 @@ class Grouper(object):
             raise ValueError(
                 "The Grouper cannot specify both a key and a level!")
 
+        # Keep self.grouper value before overriding
+        if self._grouper is None:
+            self._grouper = self.grouper
+
         # the key must be a valid info item
         if self.key is not None:
             key = self.key
-            if key not in obj._info_axis:
-                raise KeyError("The grouper name {0} is not found".format(key))
-            ax = Index(obj[key], name=key)
+            # The 'on' is already defined
+            if getattr(self.grouper, 'name', None) == key and \
+                    isinstance(obj, ABCSeries):
+                ax = self._grouper.take(obj.index)
+            else:
+                if key not in obj._info_axis:
+                    raise KeyError(
+                        "The grouper name {0} is not found".format(key))
+                ax = Index(obj[key], name=key)
 
         else:
             ax = obj._get_axis(self.axis)
@@ -2228,7 +2240,7 @@ class BaseGrouper(object):
             raise NotImplementedError("function is not implemented for this"
                                       "dtype: [how->%s,dtype->%s]" %
                                       (how, dtype_str))
-        return func, dtype_str
+        return func
 
     def _cython_operation(self, kind, values, how, axis, min_count=-1):
         assert kind in ['transform', 'aggregate']
@@ -2292,12 +2304,12 @@ class BaseGrouper(object):
             values = values.astype(object)
 
         try:
-            func, dtype_str = self._get_cython_function(
+            func = self._get_cython_function(
                 kind, how, values, is_numeric)
         except NotImplementedError:
             if is_numeric:
                 values = _ensure_float64(values)
-                func, dtype_str = self._get_cython_function(
+                func = self._get_cython_function(
                     kind, how, values, is_numeric)
             else:
                 raise
@@ -2324,7 +2336,7 @@ class BaseGrouper(object):
             result = self._transform(
                 result, values, labels, func, is_numeric, is_datetimelike)
 
-        if is_integer_dtype(result):
+        if is_integer_dtype(result) and not is_datetimelike:
             mask = result == iNaT
             if mask.any():
                 result = result.astype('float64')

@@ -14,6 +14,7 @@ from pandas.errors import PerformanceWarning, NullFrequencyError
 from pandas import (Timestamp, Timedelta, Series,
                     DatetimeIndex, TimedeltaIndex,
                     date_range)
+from pandas._libs import tslib
 
 
 @pytest.fixture(params=[None, 'UTC', 'Asia/Tokyo',
@@ -44,7 +45,83 @@ def addend(request):
 
 
 class TestDatetimeIndexComparisons(object):
-    # TODO: De-duplicate with test_comparisons_nat below
+    @pytest.mark.parametrize('other', [datetime(2016, 1, 1),
+                                       Timestamp('2016-01-01'),
+                                       np.datetime64('2016-01-01')])
+    def test_dti_cmp_datetimelike(self, other, tz):
+        dti = pd.date_range('2016-01-01', periods=2, tz=tz)
+        if tz is not None:
+            if isinstance(other, np.datetime64):
+                # no tzaware version available
+                return
+            elif isinstance(other, Timestamp):
+                other = other.tz_localize(dti.tzinfo)
+            else:
+                other = tslib._localize_pydatetime(other, dti.tzinfo)
+
+        result = dti == other
+        expected = np.array([True, False])
+        tm.assert_numpy_array_equal(result, expected)
+
+        result = dti > other
+        expected = np.array([False, True])
+        tm.assert_numpy_array_equal(result, expected)
+
+        result = dti >= other
+        expected = np.array([True, True])
+        tm.assert_numpy_array_equal(result, expected)
+
+        result = dti < other
+        expected = np.array([False, False])
+        tm.assert_numpy_array_equal(result, expected)
+
+        result = dti <= other
+        expected = np.array([True, False])
+        tm.assert_numpy_array_equal(result, expected)
+
+    def dti_cmp_non_datetime(self, tz):
+        # GH#19301 by convention datetime.date is not considered comparable
+        # to Timestamp or DatetimeIndex.  This may change in the future.
+        dti = pd.date_range('2016-01-01', periods=2, tz=tz)
+
+        other = datetime(2016, 1, 1).date()
+        assert not (dti == other).any()
+        assert (dti != other).all()
+        with pytest.raises(TypeError):
+            dti < other
+        with pytest.raises(TypeError):
+            dti <= other
+        with pytest.raises(TypeError):
+            dti > other
+        with pytest.raises(TypeError):
+            dti >= other
+
+    @pytest.mark.parametrize('other', [None, np.nan, pd.NaT])
+    def test_dti_eq_null_scalar(self, other, tz):
+        # GH#19301
+        dti = pd.date_range('2016-01-01', periods=2, tz=tz)
+        assert not (dti == other).any()
+
+    @pytest.mark.parametrize('other', [None, np.nan, pd.NaT])
+    def test_dti_ne_null_scalar(self, other, tz):
+        # GH#19301
+        dti = pd.date_range('2016-01-01', periods=2, tz=tz)
+        assert (dti != other).all()
+
+    @pytest.mark.parametrize('other', [None, np.nan])
+    def test_dti_cmp_null_scalar_inequality(self, tz, other):
+        # GH#19301
+        dti = pd.date_range('2016-01-01', periods=2, tz=tz)
+
+        with pytest.raises(TypeError):
+            dti < other
+        with pytest.raises(TypeError):
+            dti <= other
+        with pytest.raises(TypeError):
+            dti > other
+        with pytest.raises(TypeError):
+            dti >= other
+
     def test_dti_cmp_nat(self):
         left = pd.DatetimeIndex([pd.Timestamp('2011-01-01'), pd.NaT,
                                  pd.Timestamp('2011-01-03')])
@@ -72,69 +149,7 @@ class TestDatetimeIndexComparisons(object):
             tm.assert_numpy_array_equal(lhs < pd.NaT, expected)
             tm.assert_numpy_array_equal(pd.NaT > lhs, expected)
 
-    @pytest.mark.parametrize('op', [operator.eq, operator.ne,
-                                    operator.gt, operator.ge,
-                                    operator.lt, operator.le])
-    def test_comparison_tzawareness_compat(self, op):
-        # GH#18162
-        dr = pd.date_range('2016-01-01', periods=6)
-        dz = dr.tz_localize('US/Pacific')
-
-        with pytest.raises(TypeError):
-            op(dr, dz)
-        with pytest.raises(TypeError):
-            op(dr, list(dz))
-        with pytest.raises(TypeError):
-            op(dz, dr)
-        with pytest.raises(TypeError):
-            op(dz, list(dr))
-
-        # Check that there isn't a problem aware-aware and naive-naive do not
-        # raise
-        assert (dr == dr).all()
-        assert (dr == list(dr)).all()
-        assert (dz == dz).all()
-        assert (dz == list(dz)).all()
-
-        # Check comparisons against scalar Timestamps
-        ts = pd.Timestamp('2000-03-14 01:59')
-        ts_tz = pd.Timestamp('2000-03-14 01:59', tz='Europe/Amsterdam')
-
-        assert (dr > ts).all()
-        with pytest.raises(TypeError):
-            op(dr, ts_tz)
-
-        assert (dz > ts_tz).all()
-        with pytest.raises(TypeError):
-            op(dz, ts)
-
-    @pytest.mark.parametrize('op', [operator.eq, operator.ne,
-                                    operator.gt, operator.ge,
-                                    operator.lt, operator.le])
-    def test_nat_comparison_tzawareness(self, op):
-        # GH#19276
-        # tzaware DatetimeIndex should not raise when compared to NaT
-        dti = pd.DatetimeIndex(['2014-01-01', pd.NaT, '2014-03-01', pd.NaT,
-                                '2014-05-01', '2014-07-01'])
-        expected = np.array([op == operator.ne] * len(dti))
-        result = op(dti, pd.NaT)
-        tm.assert_numpy_array_equal(result, expected)
-
-        result = op(dti.tz_localize('US/Pacific'), pd.NaT)
-        tm.assert_numpy_array_equal(result, expected)
-
-    def test_comparisons_coverage(self):
-        rng = date_range('1/1/2000', periods=10)
-
-        # raise TypeError for now
-        pytest.raises(TypeError, rng.__lt__, rng[3].value)
-
-        result = rng == list(rng)
-        exp = rng == rng
-        tm.assert_numpy_array_equal(result, exp)
-
-    def test_comparisons_nat(self):
-
+    def test_dti_cmp_nat_behaves_like_float_cmp_nan(self):
         fidx1 = pd.Index([1.0, np.nan, 3.0, np.nan, 5.0, 7.0])
         fidx2 = pd.Index([2.0, 3.0, np.nan, np.nan, 6.0, 7.0])
 
@@ -222,6 +237,71 @@ class TestDatetimeIndexComparisons(object):
                 result = idx1 != val
                 expected = np.array([True, True, False, True, True, True])
                 tm.assert_numpy_array_equal(result, expected)
+
+    @pytest.mark.parametrize('op', [operator.eq, operator.ne,
+                                    operator.gt, operator.ge,
+                                    operator.lt, operator.le])
+    def test_comparison_tzawareness_compat(self, op):
+        # GH#18162
+        dr = pd.date_range('2016-01-01', periods=6)
+        dz = dr.tz_localize('US/Pacific')
+
+        with pytest.raises(TypeError):
+            op(dr, dz)
+        with pytest.raises(TypeError):
+            op(dr, list(dz))
+        with pytest.raises(TypeError):
+            op(dz, dr)
+        with pytest.raises(TypeError):
+            op(dz, list(dr))
+
+        # Check that there isn't a problem aware-aware and naive-naive do not
+        # raise
+        assert (dr == dr).all()
+        assert (dr == list(dr)).all()
+        assert (dz == dz).all()
+        assert (dz == list(dz)).all()
+
+        # Check comparisons against scalar Timestamps
+        ts = pd.Timestamp('2000-03-14 01:59')
+        ts_tz = pd.Timestamp('2000-03-14 01:59', tz='Europe/Amsterdam')
+
+        assert (dr > ts).all()
+        with pytest.raises(TypeError):
+            op(dr, ts_tz)
+
+        assert (dz > ts_tz).all()
+        with pytest.raises(TypeError):
+            op(dz, ts)
+
+    @pytest.mark.parametrize('op', [operator.eq, operator.ne,
+                                    operator.gt, operator.ge,
+                                    operator.lt, operator.le])
+    def test_nat_comparison_tzawareness(self, op):
+        # GH#19276
+        # tzaware DatetimeIndex should not raise when compared to NaT
+        dti = pd.DatetimeIndex(['2014-01-01', pd.NaT, '2014-03-01', pd.NaT,
+                                '2014-05-01', '2014-07-01'])
+        expected = np.array([op == operator.ne] * len(dti))
+        result = op(dti, pd.NaT)
+        tm.assert_numpy_array_equal(result, expected)
+
+        result = op(dti.tz_localize('US/Pacific'), pd.NaT)
+        tm.assert_numpy_array_equal(result, expected)
+
+    def test_dti_cmp_int_raises(self):
+        rng = date_range('1/1/2000', periods=10)
+
+        # raise TypeError for now
+        with pytest.raises(TypeError):
+            rng < rng[3].value
+
+    def test_dti_cmp_list(self):
+        rng = date_range('1/1/2000', periods=10)
+
+        result = rng == list(rng)
+        expected = rng == rng
+        tm.assert_numpy_array_equal(result, expected)
 
 
 class TestDatetimeIndexArithmetic(object):
@@ -331,6 +411,14 @@ class TestDatetimeIndexArithmetic(object):
         dti = pd.DatetimeIndex(['2011-01-01 10:00', '2011-01-01'], freq=None)
         with pytest.raises(NullFrequencyError):
             dti.shift(2)
+
+    @pytest.mark.parametrize('tzstr', ['US/Eastern', 'dateutil/US/Eastern'])
+    def test_dti_shift_localized(self, tzstr):
+        dr = date_range('2011/1/1', '2012/1/1', freq='W-FRI')
+        dr_tz = dr.tz_localize(tzstr)
+
+        result = dr_tz.shift(1, '10T')
+        assert result.tz == dr_tz.tz
 
     # -------------------------------------------------------------
     # Binary operations DatetimeIndex and timedelta-like
@@ -686,6 +774,24 @@ class TestDatetimeIndexArithmetic(object):
         with tm.assert_produces_warning(PerformanceWarning):
             res3 = dti - other
         tm.assert_series_equal(res3, expected_sub)
+
+    def test_dti_add_offset_tzaware(self):
+        dates = date_range('2012-11-01', periods=3, tz='US/Pacific')
+        offset = dates + pd.offsets.Hour(5)
+        assert dates[0] + pd.offsets.Hour(5) == offset[0]
+
+        # GH#6818
+        for tz in ['UTC', 'US/Pacific', 'Asia/Tokyo']:
+            dates = date_range('2010-11-01 00:00', periods=3, tz=tz, freq='H')
+            expected = DatetimeIndex(['2010-11-01 05:00', '2010-11-01 06:00',
+                                      '2010-11-01 07:00'], freq='H', tz=tz)
+
+            offset = dates + pd.offsets.Hour(5)
+            tm.assert_index_equal(offset, expected)
+            offset = dates + np.timedelta64(5, 'h')
+            tm.assert_index_equal(offset, expected)
+            offset = dates + timedelta(hours=5)
+            tm.assert_index_equal(offset, expected)
 
 
 @pytest.mark.parametrize('klass,assert_func', [

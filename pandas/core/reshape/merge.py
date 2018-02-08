@@ -12,6 +12,7 @@ import pandas.compat as compat
 
 from pandas import (Categorical, DataFrame,
                     Index, MultiIndex, Timedelta)
+from pandas.core.arrays.categorical import _recode_for_categories
 from pandas.core.frame import _merge_doc
 from pandas.core.dtypes.common import (
     is_datetime64tz_dtype,
@@ -940,6 +941,11 @@ class _MergeOperation(object):
             elif is_dtype_equal(lk.dtype, rk.dtype):
                 continue
 
+            msg = ("You are trying to merge on {lk_dtype} and "
+                   "{rk_dtype} columns. If you wish to proceed "
+                   "you should use pd.concat".format(lk_dtype=lk.dtype,
+                                                     rk_dtype=rk.dtype))
+
             # if we are numeric, then allow differing
             # kinds to proceed, eg. int64 and int8, int and float
             # further if we are object, but we infer to
@@ -968,30 +974,18 @@ class _MergeOperation(object):
                     pass
 
             # Check if we are trying to merge on obviously
-            # incompatible dtypes GH 9780
+            # incompatible dtypes GH 9780, GH 15800
             elif is_numeric_dtype(lk) and not is_numeric_dtype(rk):
-                msg = ("You are trying to merge on {lk_dtype} and "
-                       "{rk_dtype} columns. If you wish to proceed "
-                       "you should use pd.concat".format(lk_dtype=lk.dtype,
-                                                         rk_dtype=rk.dtype))
                 raise ValueError(msg)
             elif not is_numeric_dtype(lk) and is_numeric_dtype(rk):
-                msg = ("You are trying to merge on {lk_dtype} and "
-                       "{rk_dtype} columns. If you wish to proceed "
-                       "you should use pd.concat".format(lk_dtype=lk.dtype,
-                                                         rk_dtype=rk.dtype))
                 raise ValueError(msg)
             elif is_datetimelike(lk) and not is_datetimelike(rk):
-                msg = ("You are trying to merge on {lk_dtype} and "
-                       "{rk_dtype} columns. If you wish to proceed "
-                       "you should use pd.concat".format(lk_dtype=lk.dtype,
-                                                         rk_dtype=rk.dtype))
                 raise ValueError(msg)
             elif not is_datetimelike(lk) and is_datetimelike(rk):
-                msg = ("You are trying to merge on {lk_dtype} and "
-                       "{rk_dtype} columns. If you wish to proceed "
-                       "you should use pd.concat".format(lk_dtype=lk.dtype,
-                                                         rk_dtype=rk.dtype))
+                raise ValueError(msg)
+            elif is_datetime64tz_dtype(lk) and not is_datetime64tz_dtype(rk):
+                raise ValueError(msg)
+            elif not is_datetime64tz_dtype(lk) and is_datetime64tz_dtype(rk):
                 raise ValueError(msg)
 
             # Houston, we have a problem!
@@ -1028,7 +1022,12 @@ class _MergeOperation(object):
                 common_cols = self.left.columns.intersection(
                     self.right.columns)
                 if len(common_cols) == 0:
-                    raise MergeError('No common columns to perform merge on')
+                    raise MergeError(
+                        'No common columns to perform merge on. '
+                        'Merge options: left_on={lon}, right_on={ron}, '
+                        'left_index={lidx}, right_index={ridx}'
+                        .format(lon=self.left_on, ron=self.right_on,
+                                lidx=self.left_index, ridx=self.right_index))
                 if not common_cols.is_unique:
                     raise MergeError("Data columns not unique: {common!r}"
                                      .format(common=common_cols))
@@ -1542,8 +1541,15 @@ def _factorize_keys(lk, rk, sort=True):
             is_categorical_dtype(rk) and
             lk.is_dtype_equal(rk)):
         klass = libhashtable.Int64Factorizer
+
+        if lk.categories.equals(rk.categories):
+            rk = rk.codes
+        else:
+            # Same categories in different orders -> recode
+            rk = _recode_for_categories(rk.codes, rk.categories, lk.categories)
+
         lk = _ensure_int64(lk.codes)
-        rk = _ensure_int64(rk.codes)
+        rk = _ensure_int64(rk)
     elif is_int_or_datetime_dtype(lk) and is_int_or_datetime_dtype(rk):
         klass = libhashtable.Int64Factorizer
         lk = _ensure_int64(com._values_from_object(lk))

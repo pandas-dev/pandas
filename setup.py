@@ -515,6 +515,7 @@ ext_data = {
         'pyxfile': '_libs/tslibs/period',
         'pxdfiles': ['_libs/src/util',
                      '_libs/missing',
+                     '_libs/tslibs/ccalendar',
                      '_libs/tslibs/timedeltas',
                      '_libs/tslibs/timezones',
                      '_libs/tslibs/nattype'],

@@ -9,7 +9,6 @@ from pandas import TimedeltaIndex, timedelta_range, compat, Index, Timedelta
 
 
 class TestTimedeltaIndex(object):
-    _multiprocess_can_split_ = True
 
     def test_insert(self):
 

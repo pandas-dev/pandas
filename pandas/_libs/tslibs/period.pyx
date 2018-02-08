@@ -11,7 +11,9 @@ from numpy cimport int64_t, import_array, ndarray
 import numpy as np
 import_array()
 
-from libc.stdlib cimport free
+from libc.stdlib cimport free, malloc
+from libc.time cimport strftime, tm
+from libc.string cimport strlen
 
 from pandas.compat import PY2
 
@@ -22,7 +24,7 @@ from cpython.datetime cimport PyDateTime_Check, PyDateTime_IMPORT
 PyDateTime_IMPORT
 
 from np_datetime cimport (pandas_datetimestruct, dtstruct_to_dt64,
-                          dt64_to_dtstruct, is_leapyear)
+                          dt64_to_dtstruct)
 
 cimport util
 from util cimport is_period_object, is_string_object, INT32_MIN
@@ -33,12 +35,15 @@ from timestamps import Timestamp
 from timezones cimport is_utc, is_tzlocal, get_utcoffset, get_dst_info
 from timedeltas cimport delta_to_nanoseconds
 
+cimport ccalendar
+from ccalendar cimport dayofweek, get_day_of_year
 from ccalendar import MONTH_NUMBERS
+from ccalendar cimport is_leapyear
 from frequencies cimport (get_freq_code, get_base_alias,
                           get_to_timestamp_base, get_freq_str,
                           get_rule_month)
 from parsing import parse_time_string, NAT_SENTINEL
-from resolution import resolution, Resolution
+from resolution import Resolution
 from nattype import nat_strings, NaT, iNaT
 from nattype cimport _nat_scalar_rules, NPY_NAT
 
@@ -48,18 +53,12 @@ from pandas.tseries import frequencies
 
 cdef extern from "period_helper.h":
     ctypedef struct date_info:
-        int64_t absdate
-        double abstime
         double second
         int minute
         int hour
         int day
         int month
-        int quarter
         int year
-        int day_of_week
-        int day_of_year
-        int calendar
 
     ctypedef struct asfreq_info:
         int from_week_end
@@ -85,27 +84,42 @@ cdef extern from "period_helper.h":
                                int freq) nogil except INT32_MIN
 
     int get_date_info(int64_t ordinal, int freq,
-                      date_info *dinfo) nogil except INT32_MIN
+                      date_info *dinfo) nogil
 
-    int pyear(int64_t ordinal, int freq) except INT32_MIN
-    int pqyear(int64_t ordinal, int freq) except INT32_MIN
-    int pquarter(int64_t ordinal, int freq) except INT32_MIN
-    int pmonth(int64_t ordinal, int freq) except INT32_MIN
-    int pday(int64_t ordinal, int freq) except INT32_MIN
-    int pweekday(int64_t ordinal, int freq) except INT32_MIN
-    int pday_of_week(int64_t ordinal, int freq) except INT32_MIN
-    # TODO: pday_of_week and pweekday are identical.  Make one an alias instead
-    # of importing them separately.
-    int pday_of_year(int64_t ordinal, int freq) except INT32_MIN
-    int pweek(int64_t ordinal, int freq) except INT32_MIN
-    int phour(int64_t ordinal, int freq) except INT32_MIN
-    int pminute(int64_t ordinal, int freq) except INT32_MIN
-    int psecond(int64_t ordinal, int freq) except INT32_MIN
-    int pdays_in_month(int64_t ordinal, int freq) except INT32_MIN
-    char *c_strftime(date_info *dinfo, char *fmt)
     int get_yq(int64_t ordinal, int freq, int *quarter, int *year)
+    int _quarter_year(int64_t ordinal, int freq, int *year, int *quarter)
+
 
 initialize_daytime_conversion_factor_matrix()
+
+
+@cython.cdivision
+cdef char* c_strftime(date_info *dinfo, char *fmt):
+    """
+    function to generate a nice string representation of the period
+    object, originally from DateObject_strftime
+    """
+    cdef:
+        tm c_date
+        char *result
+        int result_len = strlen(fmt) + 50
+
+    c_date.tm_sec = <int>dinfo.second
+    c_date.tm_min = dinfo.minute
+    c_date.tm_hour = dinfo.hour
+    c_date.tm_mday = dinfo.day
+    c_date.tm_mon = dinfo.month - 1
+    c_date.tm_year = dinfo.year - 1900
+    c_date.tm_wday = (dayofweek(dinfo.year, dinfo.month, dinfo.day) + 1) % 7
+    c_date.tm_yday = get_day_of_year(dinfo.year, dinfo.month, dinfo.day) - 1
+    c_date.tm_isdst = -1
+
+    result = <char*>malloc(result_len * sizeof(char))
+
+    strftime(result, result_len, fmt, &c_date)
+
+    return result
+
 
 # ----------------------------------------------------------------------
 # Period logic
@@ -367,9 +381,95 @@ cdef object _period_strftime(int64_t value, int freq, object fmt):
 
     return result
 
+
+# ----------------------------------------------------------------------
 # period accessors
 
 ctypedef int (*accessor)(int64_t ordinal, int freq) except INT32_MIN
+
+
+cdef int pyear(int64_t ordinal, int freq):
+    cdef:
+        date_info dinfo
+    get_date_info(ordinal, freq, &dinfo)
+    return dinfo.year
+
+
+cdef int pqyear(int64_t ordinal, int freq):
+    cdef:
+        int year, quarter
+    _quarter_year(ordinal, freq, &year, &quarter)
+    return year
+
+
+cdef int pquarter(int64_t ordinal, int freq):
+    cdef:
+        int year, quarter
+    _quarter_year(ordinal, freq, &year, &quarter)
+    return quarter
+
+
+cdef int pmonth(int64_t ordinal, int freq):
+    cdef:
+        date_info dinfo
+    get_date_info(ordinal, freq, &dinfo)
+    return dinfo.month
+
+
+cdef int pday(int64_t ordinal, int freq):
+    cdef:
+        date_info dinfo
+    get_date_info(ordinal, freq, &dinfo)
+    return dinfo.day
+
+
+cdef int pweekday(int64_t ordinal, int freq):
+    cdef:
+        date_info dinfo
+    get_date_info(ordinal, freq, &dinfo)
+    return dayofweek(dinfo.year, dinfo.month, dinfo.day)
+
+
+cdef int pday_of_year(int64_t ordinal, int freq):
+    cdef:
+        date_info dinfo
+    get_date_info(ordinal, freq, &dinfo)
+    return get_day_of_year(dinfo.year, dinfo.month, dinfo.day)
+
+
+cdef int pweek(int64_t ordinal, int freq):
+    cdef:
+        date_info dinfo
+    get_date_info(ordinal, freq, &dinfo)
+    return ccalendar.get_week_of_year(dinfo.year, dinfo.month, dinfo.day)
+
+
+cdef int phour(int64_t ordinal, int freq):
+    cdef:
+        date_info dinfo
+    get_date_info(ordinal, freq, &dinfo)
+    return dinfo.hour
+
+
+cdef int pminute(int64_t ordinal, int freq):
+    cdef:
+        date_info dinfo
+    get_date_info(ordinal, freq, &dinfo)
+    return dinfo.minute
+
+
+cdef int psecond(int64_t ordinal, int freq):
+    cdef:
+        date_info dinfo
+    get_date_info(ordinal, freq, &dinfo)
+    return <int>dinfo.second
+
+
+cdef int pdays_in_month(int64_t ordinal, int freq):
+    cdef:
+        date_info dinfo
+    get_date_info(ordinal, freq, &dinfo)
+    return ccalendar.get_days_in_month(dinfo.year, dinfo.month)
 
 
 def get_period_field_arr(int code, ndarray[int64_t] arr, int freq):
@@ -378,8 +478,8 @@ def get_period_field_arr(int code, ndarray[int64_t] arr, int freq):
         ndarray[int64_t] out
         accessor f
 
-    f = _get_accessor_func(code)
-    if f is NULL:
+    func = _get_accessor_func(code)
+    if func is NULL:
         raise ValueError('Unrecognized period code: %d' % code)
 
     sz = len(arr)
@@ -389,36 +489,36 @@ def get_period_field_arr(int code, ndarray[int64_t] arr, int freq):
         if arr[i] == iNaT:
             out[i] = -1
             continue
-        out[i] = f(arr[i], freq)
+        out[i] = func(arr[i], freq)
 
     return out
 
 
 cdef accessor _get_accessor_func(int code):
     if code == 0:
-        return &pyear
+        return <accessor>pyear
     elif code == 1:
-        return &pqyear
+        return <accessor>pqyear
     elif code == 2:
-        return &pquarter
+        return <accessor>pquarter
     elif code == 3:
-        return &pmonth
+        return <accessor>pmonth
     elif code == 4:
-        return &pday
+        return <accessor>pday
     elif code == 5:
-        return &phour
+        return <accessor>phour
     elif code == 6:
-        return &pminute
+        return <accessor>pminute
     elif code == 7:
-        return &psecond
+        return <accessor>psecond
     elif code == 8:
-        return &pweek
+        return <accessor>pweek
     elif code == 9:
-        return &pday_of_year
+        return <accessor>pday_of_year
     elif code == 10:
-        return &pweekday
+        return <accessor>pweekday
     elif code == 11:
-        return &pdays_in_month
+        return <accessor>pdays_in_month
     return NULL
 
 

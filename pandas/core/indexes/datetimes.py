@@ -55,7 +55,7 @@ import pandas.core.tools.datetimes as tools
 from pandas._libs import (lib, index as libindex, tslib as libts,
                           join as libjoin, Timestamp)
 from pandas._libs.tslibs import (timezones, conversion, fields, parsing,
-                                 period as libperiod)
+                                 resolution as libresolution)
 
 # -------- some conversion wrapper functions
 
@@ -71,9 +71,11 @@ def _field_accessor(name, field, docstring=None):
             if field in ['is_month_start', 'is_month_end',
                          'is_quarter_start', 'is_quarter_end',
                          'is_year_start', 'is_year_end']:
-                month_kw = (self.freq.kwds.get('startingMonth',
-                                               self.freq.kwds.get('month', 12))
-                            if self.freq else 12)
+                freq = self.freq
+                month_kw = 12
+                if freq:
+                    kwds = freq.kwds
+                    month_kw = kwds.get('startingMonth', kwds.get('month', 12))
 
                 result = fields.get_start_end_field(values, field,
                                                     self.freqstr, month_kw)
@@ -118,8 +120,16 @@ def _dt_index_cmp(opname, cls, nat_result=False):
         else:
             if isinstance(other, list):
                 other = DatetimeIndex(other)
-            elif not isinstance(other, (np.ndarray, Index, ABCSeries)):
-                other = _ensure_datetime64(other)
+            elif not isinstance(other, (np.datetime64, np.ndarray,
+                                        Index, ABCSeries)):
+                # Following Timestamp convention, __eq__ is all-False
+                # and __ne__ is all True, others raise TypeError.
+                if opname == '__eq__':
+                    return np.zeros(shape=self.shape, dtype=bool)
+                elif opname == '__ne__':
+                    return np.ones(shape=self.shape, dtype=bool)
+                raise TypeError('%s type object %s' %
+                                (type(other), str(other)))
 
             if is_datetimelike(other):
                 self._assert_tzawareness_compat(other)
@@ -144,12 +154,6 @@ def _dt_index_cmp(opname, cls, nat_result=False):
         return Index(result)
 
     return compat.set_function_name(wrapper, opname, cls)
-
-
-def _ensure_datetime64(other):
-    if isinstance(other, np.datetime64):
-        return other
-    raise TypeError('%s type object %s' % (type(other), str(other)))
 
 
 _midnight = time(0, 0)
@@ -1791,7 +1795,7 @@ class DatetimeIndex(DatelikeOps, TimelikeOps, DatetimeIndexOpsMixin,
 
     @cache_readonly
     def _resolution(self):
-        return libperiod.resolution(self.asi8, self.tz)
+        return libresolution.resolution(self.asi8, self.tz)
 
     def insert(self, loc, item):
         """
