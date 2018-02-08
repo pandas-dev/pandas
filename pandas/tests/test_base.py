@@ -1211,16 +1211,17 @@ def test_unique_datetime_series(arr, expected):
         tm.assert_index_equal(result, expected)
 
 
-@pytest.mark.parametrize('array, expected_type', [
-    (np.array([0, 1]), np.ndarray),
-    (np.array(['a', 'b']), np.ndarray),
-    (pd.Categorical(['a', 'b']), pd.Categorical),
-    (pd.DatetimeIndex(['2017', '2018']), np.ndarray),
-    (pd.PeriodIndex([2018, 2019], freq='A'), np.ndarray),
-    (pd.IntervalIndex.from_breaks([0, 1, 2]), np.ndarray),
-    (pd.DatetimeIndex(['2017', '2018'], tz="US/Central"), pd.DatetimeIndex),
+@pytest.mark.parametrize('array, expected_type, dtype', [
+    (np.array([0, 1]), np.ndarray, 'int64'),
+    (np.array(['a', 'b']), np.ndarray, 'object'),
+    (pd.Categorical(['a', 'b']), pd.Categorical, 'category'),
+    (pd.DatetimeIndex(['2017', '2018']), np.ndarray, 'datetime64[ns]'),
+    (pd.PeriodIndex([2018, 2019], freq='A'), np.ndarray, 'object'),
+    (pd.IntervalIndex.from_breaks([0, 1, 2]), np.ndarray, 'object'),
+    (pd.DatetimeIndex(['2017', '2018'], tz="US/Central"), pd.DatetimeIndex,
+     'datetime64[ns, US/Central]'),
 ])
-def test_values_consistent(array, expected_type):
+def test_values_consistent(array, expected_type, dtype):
     l_values = pd.Series(array)._values
     r_values = pd.Index(array)._values
     assert type(l_values) is expected_type
@@ -1234,3 +1235,13 @@ def test_values_consistent(array, expected_type):
         tm.assert_categorical_equal(l_values, r_values)
     else:
         raise TypeError("Unexpected type {}".format(type(l_values)))
+
+    assert l_values.dtype == dtype
+    assert r_values.dtype == dtype
+
+
+def test_values_periodindex():
+    arr = pd.period_range("2017", periods=4, freq='D')
+    result = arr._values
+    expected = np.array(arr.astype(object))
+    tm.assert_numpy_array_equal(result, expected)
