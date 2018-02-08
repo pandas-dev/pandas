@@ -598,6 +598,32 @@ Documentation Changes
 Bug Fixes
 ~~~~~~~~~
 
+Categorical
+^^^^^^^^^^^
+
+.. warning::
+
+   A class of bugs were introduced in pandas 0.21 with ``CategoricalDtype`` that
+   affects the correctness of operations like ``merge``, ``concat``, and
+   indexing when comparing multiple unordered ``Categorical`` arrays that have
+   the same categories, but in a different order. We highly recommend upgrading
+   or manually aligning your categories before doing these operations.
+
+- Bug in ``Categorical.equals`` returning the wrong result when comparing two
+  unordered ``Categorical`` arrays with the same categories, but in a different
+  order (:issue:`16603`)
+- Bug in :func:`pandas.api.types.union_categoricals` returning the wrong result
+  when for unordered categoricals with the categories in a different order.
+  This affected :func:`pandas.concat` with Categorical data (:issue:`19096`).
+- Bug in :func:`pandas.merge` returning the wrong result when joining on an
+  unordered ``Categorical`` that had the same categories but in a different
+  order (:issue:`19551`)
+- Bug in :meth:`CategoricalIndex.get_indexer` returning the wrong result when
+  ``target`` was an unordered ``Categorical`` that had the same categories as
+  ``self`` but in a different order (:issue:`19551`)
+- Bug in :meth:`Index.astype` with a categorical dtype where the resultant index is not converted to a :class:`CategoricalIndex` for all types of index (:issue:`18630`)
+- Bug in :meth:`Series.astype` and ``Categorical.astype()`` where an existing categorical data does not get updated (:issue:`10696`, :issue:`18593`)
+- Bug in :class:`Index` constructor with ``dtype=CategoricalDtype(...)`` where ``categories`` and ``ordered`` are not maintained (issue:`19032`)
 
 Datetimelike
 ^^^^^^^^^^^^
@@ -743,20 +769,6 @@ Reshaping
 - Bug in timezone comparisons, manifesting as a conversion of the index to UTC in ``.concat()`` (:issue:`18523`)
 - Bug in :func:`concat` when concatting sparse and dense series it returns only a ``SparseDataFrame``. Should be a ``DataFrame``. (:issue:`18914`, :issue:`18686`, and :issue:`16874`)
 - Improved error message for :func:`DataFrame.merge` when there is no common merge key (:issue:`19427`)
--
-
-
-Categorical
-^^^^^^^^^^^
-
--
-- Bug in :func:`pandas.api.types.union_categoricals` returning the wrong result
-  when all the categoricals had the same categories, but in a different order.
-  This affected :func:`pandas.concat` with Categorical data (:issue:`19096`).
-- Bug in ``Categorical.equals`` between two unordered categories with the same categories, but in a different order (:issue:`16603`)
-- Bug in :meth:`Index.astype` with a categorical dtype where the resultant index is not converted to a :class:`CategoricalIndex` for all types of index (:issue:`18630`)
-- Bug in :meth:`Series.astype` and ``Categorical.astype()`` where an existing categorical data does not get updated (:issue:`10696`, :issue:`18593`)
-- Bug in :class:`Index` constructor with ``dtype=CategoricalDtype(...)`` where ``categories`` and ``ordered`` are not maintained (issue:`19032`)
 -
 
 Other
