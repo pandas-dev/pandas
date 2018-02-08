@@ -251,12 +251,12 @@ cdef class HashTable:
 {{py:
 
 # name, dtype, null_condition, float_group
-dtypes = [('Float64', 'float64', 'val != val', True),
-          ('UInt64', 'uint64', 'False', False),
-          ('Int64', 'int64', 'val == iNaT', False)]
+dtypes = [('Float64', 'float64', 'val != val', True, 'NAN'),
+          ('UInt64', 'uint64', 'False', False, 'NAN'),
+          ('Int64', 'int64', 'val == iNaT', False, 'iNaT')]
 
 def get_dispatch(dtypes):
-  for (name, dtype, null_condition, float_group) in dtypes:
+  for (name, dtype, null_condition, float_group, na_value) in dtypes:
     unique_template = """\
         cdef:
            Py_ssize_t i, n = len(values)
@@ -314,11 +314,11 @@ def get_dispatch(dtypes):
 
     unique_template = unique_template.format(name=name, dtype=dtype, null_condition=null_condition, float_group=float_group)
 
-    yield (name, dtype, null_condition, float_group, unique_template)
+    yield (name, dtype, null_condition, float_group, unique_template, na_value)
 }}
 
 
-{{for name, dtype, null_condition, float_group, unique_template in get_dispatch(dtypes)}}
+{{for name, dtype, null_condition, float_group, unique_template, na_value in get_dispatch(dtypes)}}
 
 cdef class {{name}}HashTable(HashTable):
 
@@ -419,21 +419,26 @@ cdef class {{name}}HashTable(HashTable):
         labels = self.get_labels(values, uniques, 0, 0)
         return uniques.to_array(), labels
 
+    # This seems like duplicate code from def uniques to me...
+    # Why does this exist?
     @cython.boundscheck(False)
     def get_labels(self, {{dtype}}_t[:] values, {{name}}Vector uniques,
                    Py_ssize_t count_prior, Py_ssize_t na_sentinel,
-                   bint check_null=True):
+                   bint check_null=True, fill_value={{na_value}}, ngaps=0):
         cdef:
             Py_ssize_t i, n = len(values)
             int64_t[:] labels
             Py_ssize_t idx, count = count_prior
             int ret = 0
-            {{dtype}}_t val
+            {{dtype}}_t val, fill_value_val, ngaps_val
             khiter_t k
             {{name}}VectorData *ud
 
         labels = np.empty(n, dtype=np.int64)
         ud = uniques.data
+
+        if ngaps > 0:
+            print("Hello world")
 
         with nogil:
             for i in range(n):
@@ -510,7 +515,7 @@ cdef class {{name}}HashTable(HashTable):
         return np.asarray(labels), arr_uniques
 
     @cython.boundscheck(False)
-    def unique(self, ndarray[{{dtype}}_t, ndim=1] values, fill_value=np.nan, ngaps=0):
+    def unique(self, ndarray[{{dtype}}_t, ndim=1] values, fill_value={{na_value}}, ngaps=0):
         if values.flags.writeable:
           # If the value is writeable (mutable) then use memview
           return self.unique_memview(values, fill_value=fill_value, ngaps=ngaps)
@@ -522,7 +527,7 @@ cdef class {{name}}HashTable(HashTable):
 {{unique_template}}
 
     @cython.boundscheck(False)
-    def unique_memview(self, {{dtype}}_t[:] values, fill_value=np.nan, ngaps=0):
+    def unique_memview(self, {{dtype}}_t[:] values, fill_value={{na_value}}, ngaps=0):
 {{unique_template}}
 
 {{endfor}}

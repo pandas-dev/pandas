@@ -363,9 +363,10 @@ def unique(values):
     htable, _, values, dtype, ndtype = _get_hashtable_algo(values)
 
     table = htable(len(values))
-    import ipdb; ipdb.set_trace()
+
     if isinstance(values, ABCSparseArray):
-        uniques = table.unique(values, fill_value=values.fill_value, ngaps=values.sp_index.ngaps)
+        uniques = table.unique(values, fill_value=values.fill_value,
+                               ngaps=values.sp_index.ngaps)
     else:
         uniques = table.unique(values)
     uniques = _reconstruct_data(uniques, dtype, original)
@@ -466,7 +467,6 @@ def factorize(values, sort=False, order=None, na_sentinel=-1, size_hint=None):
     PeriodIndex
     """
 
-    import ipdb; ipdb.set_trace()
     values = _ensure_arraylike(values)
     original = values
     values, dtype, _ = _ensure_data(values)
@@ -475,7 +475,13 @@ def factorize(values, sort=False, order=None, na_sentinel=-1, size_hint=None):
     table = hash_klass(size_hint or len(values))
     uniques = vec_klass()
     check_nulls = not is_integer_dtype(original)
-    labels = table.get_labels(values, uniques, 0, na_sentinel, check_nulls)
+
+    if isinstance(values, ABCSparseArray):
+        labels = table.get_labels(values, uniques, 0, na_sentinel, check_nulls,
+                                  fill_value=values.fill_value,
+                                  ngaps=values.sp_index.ngaps)
+    else:
+        labels = table.get_labels(values, uniques, 0, na_sentinel, check_nulls)
 
     labels = _ensure_platform_int(labels)
     uniques = uniques.to_array()
