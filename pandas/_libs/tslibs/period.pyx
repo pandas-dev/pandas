@@ -92,8 +92,6 @@ cdef extern from "period_helper.h":
     int _quarter_year(int64_t ordinal, int freq, int *year, int *quarter)
 
 
-
-
 @cython.cdivision
 cdef char* c_strftime(date_info *dinfo, char *fmt):
     """
