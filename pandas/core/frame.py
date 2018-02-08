@@ -4809,9 +4809,9 @@ class DataFrame(NDFrame):
 
         # TODO: flipped axis
         result = None
-        if axis == 0:
+        if axis == 0 or axis == 1:
             try:
-                result, how = self._aggregate(func, axis=0, *args, **kwargs)
+                result, how = self._aggregate(func, _axis=axis, *args, **kwargs)
             except TypeError:
                 pass
         if result is None:
