@@ -2026,6 +2026,24 @@ class TestGroupBy(MixIn):
         exp_df = DataFrame(exp * len(grps), columns=['val'])
         assert_frame_equal(result, exp_df)
 
+    @pytest.mark.parametrize("pct,exp", [
+        (False, [3., 3., 3., 3., 3.]),
+        (True, [.6, .6, .6, .6, .6])])
+    def test_rank_resets_each_group(self, pct, exp):
+        df = DataFrame(
+            {'key': ['a', 'a', 'a', 'a', 'a', 'b', 'b', 'b', 'b', 'b'],
+             'val': [1] * 10}
+        )
+        result = df.groupby('key').rank(pct=pct)
+        exp_df = DataFrame(exp * 2, columns=['val'])
+        assert_frame_equal(result, exp_df)
+
+    def test_rank_avg_even_vals(self):
+        df = DataFrame({'key': ['a'] * 4, 'val': [1] * 4})
+        result = df.groupby('key').rank()
+        exp_df = DataFrame([2.5, 2.5, 2.5, 2.5], columns=['val'])
+        assert_frame_equal(result, exp_df)
+
     @pytest.mark.parametrize("ties_method", [
         'average', 'min', 'max', 'first', 'dense'])
     @pytest.mark.parametrize("ascending", [True, False])
