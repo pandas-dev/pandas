@@ -770,7 +770,14 @@ class IndexOpsMixin(object):
 
     @property
     def _ndarray_values(self):
-        """The data as an ndarray. See '_values' for more."""
+        """The data as an ndarray, possibly losing information.
+
+        The expectation is that this is cheap to compute.
+
+        - categorical -> codes
+
+        See '_values' for more.
+        """
         # type: () -> np.ndarray
         from pandas.core.dtypes.common import is_categorical_dtype
 

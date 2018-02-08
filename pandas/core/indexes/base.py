@@ -603,15 +603,24 @@ class Index(IndexOpsMixin, PandasObject):
         """The best array representation.
 
         This is an ndarray, ExtensionArray, or Index subclass. This differs
-        from '._ndarray_values', which always returns an ndarray. It may differ
-        from the public '.values'
+        from ``_ndarray_values``, which always returns an ndarray.
 
-        index             | values          | _values
-        ----------------- | -------------- -| ----------
-        CategoricalIndex  | Categorical     | Categorical
-        DatetimeIndex[tz] | ndarray[M8ns]   | DTI[tz]
-        PeriodIndex       | ndarray[Period] | ndarray[Pd] (soon PeriodArray)
-        IntervalIndex     | ndarray[IV]     | ndarray[IV] (soon IntervalArray)
+        Both ``_values`` and ``_ndarray_values`` are consistent between
+        ``Series`` and ``Index``.
+
+        It may differ from the public '.values' method.
+
+        index             | values          | _values     | _ndarray_values |
+        ----------------- | -------------- -| ----------- | --------------- |
+        CategoricalIndex  | Categorical     | Categorical | codes           |
+        DatetimeIndex[tz] | ndarray[M8ns]   | DTI[tz]     | datetime@UTC    |
+
+        In the near-future, we'll implement two more.
+
+        index             | values          | _values     | _ndarray_values |
+        ----------------- | --------------- | ----------- | --------------- |
+        PeriodIndex       | ndarray[object] | PeriodArray | ordinals        |
+        IntervalIndex     | ndarray[object] | IVArray     | ndarray[object] |
 
         See Also
         --------
