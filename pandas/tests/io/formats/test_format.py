@@ -1491,8 +1491,9 @@ c  10  11  12  13  14\
                             'A': np.arange(1, 1 + h),
                             'B': np.arange(41, 41 + h)}).set_index('idx')
             reg_repr = df._repr_html_()
+            print (reg_repr)
             assert '..' not in reg_repr
-            assert str(40 + h) in reg_repr
+            assert '<td>{num}</td>'.format(num=str(40 + h)) in reg_repr
 
             h = max_rows + 1
             df = DataFrame({'idx': np.linspace(-10, 10, h),
@@ -1500,7 +1501,7 @@ c  10  11  12  13  14\
                             'B': np.arange(41, 41 + h)}).set_index('idx')
             long_repr = df._repr_html_()
             assert '..' in long_repr
-            assert '31' not in long_repr
+            assert '<td>{num}</td>'.format(num='31') not in long_repr
             assert u('{h} rows ').format(h=h) in long_repr
             assert u('2 columns') in long_repr
 
