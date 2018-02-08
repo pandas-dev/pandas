@@ -457,9 +457,8 @@ def group_rank_{{name}}(ndarray[float64_t, ndim=2] out,
     """
     cdef:
         TiebreakEnumType tiebreak
-        Py_ssize_t i, j, N, K
-        int64_t val_start=0, grp_start=0, dups=0, sum_ranks=0, grp_vals_seen=1
-        int64_t grp_na_count=0
+        Py_ssize_t i, j, N, K, val_start=0, grp_start=0, dups=0, sum_ranks=0
+        Py_ssize_t grp_vals_seen=1, grp_na_count=0
         ndarray[int64_t] _as
         ndarray[{{c_type}}] masked_vals
         ndarray[uint8_t] mask
@@ -539,7 +538,7 @@ def group_rank_{{name}}(ndarray[float64_t, ndim=2] out,
                 # result once the last duplicate value is encountered
                 if tiebreak == TIEBREAK_AVERAGE:
                     for j in range(i - dups + 1, i + 1):
-                        out[_as[j], 0] = sum_ranks / dups
+                        out[_as[j], 0] = sum_ranks / <float64_t>dups
                 elif tiebreak == TIEBREAK_MIN:
                     for j in range(i - dups + 1, i + 1):
                         out[_as[j], 0] = i - grp_start - dups + 2
@@ -583,6 +582,7 @@ def group_rank_{{name}}(ndarray[float64_t, ndim=2] out,
             # so the tiebreaker calculations can decrement that from their position
             # if the pct flag is True, go back and overwrite the result for
             # the group to be divided by the size of the group (excluding na values)
+            # also be sure to reset any of the items helping to calculate dups
             if i == N - 1 or labels[_as[i]] != labels[_as[i+1]]:
                 if pct:
                     for j in range(grp_start, i + 1):
