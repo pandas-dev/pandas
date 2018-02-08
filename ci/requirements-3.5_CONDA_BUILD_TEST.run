@@ -1,5 +1,4 @@
 pytz
-numpy=1.13*
 openpyxl
 xlsxwriter
 xlrd
