@@ -618,6 +618,8 @@ class _NDFrameIndexer(_NDFrameIndexerBase):
                     return
 
             if isinstance(value, (ABCSeries, dict)):
+                # TODO (maybe) this causes issues with setting for
+                # extensionarrays that store dicts.
                 value = self._align_series(indexer, Series(value))
 
             elif isinstance(value, ABCDataFrame):

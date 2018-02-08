@@ -50,13 +50,21 @@ class JSONArray(ExtensionArray):
         if isinstance(key, numbers.Integral):
             self.data[key] = value
         else:
-            if not isinstance(value, collections.Sequence):
+            if not isinstance(value, (type(self),
+                                      collections.Sequence)):
                 # broadcast value
                 value = itertools.cycle([value])
 
-            for k, v in zip(key, value):
-                assert isinstance(v, self.dtype.type)
-                self.data[k] = v
+            if isinstance(key, np.ndarray) and key.dtype == 'bool':
+                # masking
+                for i, (k, v) in enumerate(zip(key, value)):
+                    if k:
+                        assert isinstance(v, self.dtype.type)
+                        self.data[i] = v
+            else:
+                for k, v in zip(key, value):
+                    assert isinstance(v, self.dtype.type)
+                    self.data[k] = v
 
     def __len__(self):
         return len(self.data)
@@ -90,8 +98,10 @@ class JSONArray(ExtensionArray):
 
 
 def make_data():
-    return [{random.choice(string.ascii_letters): random.randint(0, 100)
-             for _ in range(random.randint(0, 10))} for _ in range(100)]
+    # TODO: Use a regular dict. See _NDFrameIndexer._setitem_with_indexer
+    return [collections.UserDict([
+        (random.choice(string.ascii_letters), random.randint(0, 100))
+        for _ in range(random.randint(0, 10))]) for _ in range(100)]
 
 
 class TestJSONDtype(BaseDtypeTests):
@@ -120,30 +130,42 @@ class TestJSON(BaseArrayTests):
     def test_value_counts(self, all_data, dropna):
         pass
 
-    @pytest.mark.xfail(reason="Difficulty setting sized objects.")
-    def test_set_scalar(self):
-        pass
+    # @pytest.mark.xfail(reason="Difficulty setting sized objects.")
+    # def test_set_scalar(self):
+    #     pass
+    #
 
     @pytest.mark.xfail(reason="Difficulty setting sized objects.")
     def test_set_loc_scalar_mixed(self):
+        # This fails on an np.ndarary(dict) call in _setitem_with_indexer
         pass
 
-    @pytest.mark.xfail(reason="Difficulty setting sized objects.")
-    def test_set_loc_scalar_single(self):
-        pass
+    # @pytest.mark.xfail(reason="Difficulty setting sized objects.")
+    # def test_set_loc_scalar_single(self):
+    #     pass
+    #
 
     @pytest.mark.xfail(reason="Difficulty setting sized objects.")
     def test_set_loc_scalar_multiple_homogoneous(self):
+        # This fails in _setitem_with_indexer with a
+        # ValueError: Must have equal len keys and value when setting with
+        # and iterable
         pass
 
     @pytest.mark.xfail(reason="Difficulty setting sized objects.")
     def test_set_iloc_scalar_mixed(self):
+        # This fails in _setitem_with_indexer with a
+        # ValueError: Must have equal len keys and value when setting with an
+        # iterable
         pass
 
-    @pytest.mark.xfail(reason="Difficulty setting sized objects.")
-    def test_set_iloc_scalar_single(self):
-        pass
-
+    # @pytest.mark.xfail(reason="Difficulty setting sized objects.")
+    # def test_set_iloc_scalar_single(self):
+    #     pass
+    #
     @pytest.mark.xfail(reason="Difficulty setting sized objects.")
     def test_set_iloc_scalar_multiple_homogoneous(self):
+        # this fails in _setitem_with_indexer with a
+        # ValueError: Must have equal len keys and value when setting with an
+        # iterable
         pass

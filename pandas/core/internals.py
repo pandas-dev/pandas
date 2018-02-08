@@ -15,6 +15,7 @@ from pandas._libs import internals as libinternals
 
 from pandas.core.base import PandasObject
 
+from pandas.core.arrays import ExtensionArray
 from pandas.core.dtypes.dtypes import (
     ExtensionDtype, DatetimeTZDtype,
     CategoricalDtype)
@@ -3481,7 +3482,9 @@ class BlockManager(PandasObject):
 
         aligned_args = dict((k, kwargs[k])
                             for k in align_keys
-                            if hasattr(kwargs[k], 'values'))
+                            if hasattr(kwargs[k], 'values')
+                            # eww
+                            and not isinstance(kwargs[k], ExtensionArray))
 
         for b in self.blocks:
             if filter is not None:
