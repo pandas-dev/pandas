@@ -497,6 +497,24 @@ class TestIntervalIndex(Base):
         pytest.raises(KeyError, self.index.get_loc,
                       Interval(-1, 0, 'left'))
 
+    def test_get_loc_exact(self):
+        # GH19353
+        assert self.index.get_loc_exact(Interval(0, 1)) == 0
+        with pytest.raises(KeyError):
+            self.index.get_loc_exact(1)
+        with pytest.raises(KeyError):
+            self.index.get_loc_exact(Interval(0, 1, 'left'))
+        with pytest.raises(KeyError):
+            self.index.get_loc_exact(Interval(0, 0.5))
+        with pytest.raises(KeyError):
+            self.index.get_loc_exact(Interval(2, 3))
+        with pytest.raises(KeyError):
+            self.index.get_loc_exact(Interval(-1, 0, 'left'))
+
+        # The below tests if get_loc_exact interferes with caching
+        # used for index.get_loc. See #19353#issuecomment-364295029
+        assert self.index.get_loc(Interval(0, 1)) == 0
+
     # To be removed, replaced by test_interval_new.py (see #16316, #16386)
     def test_get_indexer(self):
         actual = self.index.get_indexer([-1, 0, 0.5, 1, 1.5, 2, 3])

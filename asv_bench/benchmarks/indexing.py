@@ -229,6 +229,10 @@ class IntervalIndexing(object):
     def time_loc_list(self, monotonic):
         monotonic.loc[80000:]
 
+    def time_get_loc_exact(self, monotonic):
+        interval = monotonic.index[80000]
+        monotonic.index.get_loc_exact(interval)
+
 
 class PanelIndexing(object):
 

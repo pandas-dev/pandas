@@ -283,6 +283,7 @@ Other Enhancements
 
 - ``IntervalIndex.astype`` now supports conversions between subtypes when passed an ``IntervalDtype`` (:issue:`19197`)
 - :class:`IntervalIndex` and its associated constructor methods (``from_arrays``, ``from_breaks``, ``from_tuples``) have gained a ``dtype`` parameter (:issue:`19262`)
+- New :meth:`IntervalIndex.get_loc_exact` has been added to find exact Interval matches only (:issue:`19349`)
 
 .. _whatsnew_0230.api_breaking:
 

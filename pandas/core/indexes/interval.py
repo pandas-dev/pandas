@@ -899,15 +899,11 @@ class IntervalIndex(IntervalMixin, Index):
 
     def _get_loc_only_exact_matches(self, key):
         if isinstance(key, Interval):
-
             if not self.is_unique:
                 raise ValueError("cannot index with a slice Interval"
                                  " and a non-unique index")
-
-            # TODO: this expands to a tuple index, see if we can
-            # do better
-            return Index(self._multiindex.values).get_loc(key)
-        raise KeyError
+            return self.get_loc_exact(key)
+        raise KeyError(key)
 
     def _find_non_overlapping_monotonic_bounds(self, key):
         if isinstance(key, IntervalMixin):
@@ -970,6 +966,10 @@ class IntervalIndex(IntervalMixin, Index):
         >>> overlapping_index = pd.IntervalIndex([i2, i3])
         >>> overlapping_index.get_loc(1.5)
         array([0, 1], dtype=int64)
+
+        See Also
+        --------
+        get_loc_exact : Exact matches only
         """
         self._check_method(method)
 
@@ -1002,6 +1002,62 @@ class IntervalIndex(IntervalMixin, Index):
                 return self._engine.get_loc_interval(left, right)
             else:
                 return self._engine.get_loc(key)
+
+    def get_loc_exact(self, key, method=None):
+        """Get integer location, slice or boolean mask for exact
+        Interval matches only.
+
+        Parameters
+        ----------
+        key : Interval
+            The label we want to find locations for. Must have type
+            :class:`Interval`
+        method : {None}, optional
+            * default: matches where the label exactly matches a given
+              :class:`Interval`.
+
+        Returns
+        -------
+        loc : int if unique index, slice if monotonic index, else mask
+
+        Raises
+        ------
+        KeyError if key is not found
+
+        Examples
+        ---------
+        >>> i1, i2 = pd.Interval(0, 1), pd.Interval(1, 2)
+        >>> index = pd.IntervalIndex([i1, i2])
+        >>> index.get_loc_exact(i1)
+        0
+
+        If an exact match is not found, a KeyError is raised
+
+        >>> index.get_loc_exact(pd.Interval(0.5, 1.5))
+        KeyError: Interval(0.5, 1.5, closed='right')
+
+        If a label is in several locations, you get all the relevant
+        locations.
+
+        >>> index = pd.IntervalIndex([i1, i2, i1])
+        >>> index.get_loc_exact(i1)
+        array([0, 2], dtype=int64)
+
+        See Also
+        --------
+        get_loc
+        """
+        all_matches = self.get_loc(key, method=method)
+        exact_matches = self[all_matches] == key
+        if is_scalar(all_matches):
+            if exact_matches:
+                return all_matches
+        else:
+            if (exact_matches).all():
+                return all_matches
+            elif (exact_matches).any():
+                return all_matches[exact_matches]
+        raise KeyError(key)
 
     def get_value(self, series, key):
         if com.is_bool_indexer(key):

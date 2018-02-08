@@ -2536,6 +2536,21 @@ class Index(IndexOpsMixin, PandasObject):
             raise KeyError(key)
         return loc
 
+    def get_loc_exact(self, key, method=None):
+        """Get integer location, slice or boolean mask for exact
+        matches only.
+
+        This method dispatches to :meth:`get_loc`. The use for
+        ``get_loc_exact`` is mainly in :class:`IntervalIndex`,
+        when a exact match is needed.
+
+        See Also
+        --------
+        get_loc
+        pandas.IntervalIndex.get_loc_exact
+        """
+        return self.get_loc(key, method=method)
+
     def get_value(self, series, key):
         """
         Fast lookup of value from 1-dimensional ndarray. Only use this if you
