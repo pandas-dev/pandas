@@ -36,7 +36,8 @@ def group_nth_object(ndarray[object, ndim=2] out,
                      ndarray[int64_t] counts,
                      ndarray[object, ndim=2] values,
                      ndarray[int64_t] labels,
-                     int64_t rank):
+                     int64_t rank,
+                     Py_ssize_t min_count=-1):
     """
     Only aggregates on axis=0
     """
@@ -46,6 +47,8 @@ def group_nth_object(ndarray[object, ndim=2] out,
         float64_t count
         ndarray[int64_t, ndim=2] nobs
         ndarray[object, ndim=2] resx
+
+    assert min_count == -1, "'min_count' only used in add and prod"
 
     nobs = np.zeros((<object> out).shape, dtype=np.int64)
     resx = np.empty((<object> out).shape, dtype=object)
@@ -80,7 +83,8 @@ def group_nth_object(ndarray[object, ndim=2] out,
 def group_last_object(ndarray[object, ndim=2] out,
                       ndarray[int64_t] counts,
                       ndarray[object, ndim=2] values,
-                      ndarray[int64_t] labels):
+                      ndarray[int64_t] labels,
+                      Py_ssize_t min_count=-1):
     """
     Only aggregates on axis=0
     """
@@ -90,6 +94,8 @@ def group_last_object(ndarray[object, ndim=2] out,
         float64_t count
         ndarray[object, ndim=2] resx
         ndarray[int64_t, ndim=2] nobs
+
+    assert min_count == -1, "'min_count' only used in add and prod"
 
     nobs = np.zeros((<object> out).shape, dtype=np.int64)
     resx = np.empty((<object> out).shape, dtype=object)

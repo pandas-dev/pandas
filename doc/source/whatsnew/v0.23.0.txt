@@ -746,6 +746,7 @@ Groupby/Resample/Rolling
 - Bug in :func:`DataFrame.transform` where particular aggregation functions were being incorrectly cast to match the dtype(s) of the grouped data (:issue:`19200`)
 - Bug in :func:`DataFrame.groupby` passing the `on=` kwarg, and subsequently using ``.apply()`` (:issue:`17813`)
 - Bug in :func:`DataFrame.resample().aggregate` not raising a ``KeyError`` when aggregating a non-existent column (:issue:`16766`, :issue:`19566`)
+- Fixed a performance regression for ``GroupBy.nth`` and ``GroupBy.last`` with some object columns (:issue:`19283`)
 
 Sparse
 ^^^^^^
