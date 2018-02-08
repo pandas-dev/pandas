@@ -617,10 +617,10 @@ class Index(IndexOpsMixin, PandasObject):
 
         In the near-future, we'll implement two more.
 
-        index             | values          | _values     | _ndarray_values |
-        ----------------- | --------------- | ----------- | --------------- |
-        PeriodIndex       | ndarray[object] | PeriodArray | ordinals        |
-        IntervalIndex     | ndarray[object] | IVArray     | ndarray[object] |
+        index             | values          | _values     | ndarray_values |
+        ----------------- | --------------- | ----------- | -------------- |
+        PeriodIndex       | ndarray[object] | PeriodArray
+        IntervalIndex     | IntervalArray   | ndarray[Interval]
 
         See Also
         --------
