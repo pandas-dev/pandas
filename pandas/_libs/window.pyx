@@ -1238,13 +1238,13 @@ cdef _roll_min_max(ndarray[numeric] input, int64_t win, int64_t minp,
     cdef:
         cdef numeric r
 
-    starti, endi , N, win, minp, is_variable = get_window_indexer(
+    starti, endi, N, win, minp, is_variable = get_window_indexer(
         input, win,
         minp, index, closed)
 
     output = np.empty(N, dtype=input.dtype)
 
-    Q = deque[int64_t]() 
+    Q = deque[int64_t]()
 
     if is_variable:
 
