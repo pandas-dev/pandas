@@ -452,8 +452,29 @@ def group_rank_{{name}}(ndarray[float64_t, ndim=2] out,
                         ndarray[int64_t] labels,
                         bint is_datetimelike, object ties_method,
                         bint ascending, bint pct, object na_option):
-    """
-    Only transforms on axis=0
+    """Provides the rank of values within each group
+
+    Parameters
+    ----------
+    out : array of float64_t values which this method will write its results to
+    values : array of {{c_type}} values to be ranked
+    labels : array containing unique label for each group, with its ordering
+        matching up to the corresponding record in `values`
+    is_datetimelike : bool
+        unused in this method but provided for call compatability with other
+        Cython transformations
+    ties_method :  {'keep', 'top', 'bottom'}
+        * keep: leave NA values where they are
+        * top: smallest rank if ascending
+        * bottom: smallest rank if descending
+    ascending : boolean
+        False for ranks by high (1) to low (N)
+    pct : boolean
+        Compute percentage rank of data within each group
+
+    Notes
+    -----
+    This method modifies the `out` parameter rather than returning an object
     """
     cdef:
         TiebreakEnumType tiebreak
