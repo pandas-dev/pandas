@@ -1,3 +1,4 @@
+import warnings
 from string import ascii_letters
 from itertools import product
 from functools import partial
@@ -340,7 +341,8 @@ class Size(object):
         self.df.groupby(['dates']).size()
 
     def time_dt_timegrouper_size(self):
-        self.df.groupby(TimeGrouper(key='dates', freq='M')).size()
+        with warnings.catch_warnings(record=True):
+            self.df.groupby(TimeGrouper(key='dates', freq='M')).size()
 
     def time_category_size(self):
         self.draws.groupby(self.cats).size()
@@ -467,7 +469,7 @@ class SumMultiLevel(object):
 
     def setup(self):
         N = 50
-        self.df = DataFrame({'A': range(N) * 2,
+        self.df = DataFrame({'A': list(range(N)) * 2,
                              'B': range(N * 2),
                              'C': 1}).set_index(['A', 'B'])
 

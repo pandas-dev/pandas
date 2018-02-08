@@ -1,3 +1,5 @@
+import warnings
+
 import numpy as np
 from pandas import Series
 import pandas.util.testing as tm
@@ -23,7 +25,8 @@ class Methods(object):
         self.s.str.endswith('A')
 
     def time_extract(self):
-        self.s.str.extract('(\\w*)A(\\w*)')
+        with warnings.catch_warnings(record=True):
+            self.s.str.extract('(\\w*)A(\\w*)')
 
     def time_findall(self):
         self.s.str.findall('[A-Z]+')
