@@ -97,7 +97,8 @@ def read_pickle(path, compression='infer'):
         # cpickle
         # GH 6899
         try:
-            with warnings.simplefilter('ignore'):
+            with warnings.catch_warnings():
+                warnings.simplefilter('ignore')
                 return read_wrapper(lambda f: pkl.load(f))
         except Exception:
             # reg/patched pickle
