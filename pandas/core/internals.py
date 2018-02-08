@@ -1941,12 +1941,6 @@ class ExtensionBlock(NonConsolidatableMixIn, Block):
 
         return self.values[slicer]
 
-    def setitem(self, indexer, value, mgr=None):
-        if isinstance(indexer, tuple):
-            indexer = indexer[0]
-        self.values[indexer] = value
-        return self
-
     def formatting_values(self):
         return self.values._formatting_values()
 
@@ -3482,11 +3476,11 @@ class BlockManager(PandasObject):
         else:
             align_keys = []
 
+        # TODO: may interfere with ExtensionBlock.setitem for blocks
+        # with a .values attribute.
         aligned_args = dict((k, kwargs[k])
                             for k in align_keys
-                            if hasattr(kwargs[k], 'values')
-                            # eww
-                            and not isinstance(kwargs[k], ExtensionArray))
+                            if hasattr(kwargs[k], 'values'))
 
         for b in self.blocks:
             if filter is not None:

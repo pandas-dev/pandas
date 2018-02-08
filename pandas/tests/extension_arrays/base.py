@@ -288,11 +288,13 @@ class BaseArrayTests(object):
     # Indexing - Setting
     # ------------------------------------------------------------------------
 
+    @pytest.mark.xfail(reason="ExtensionBlock.__setitem__ not implemented.")
     def test_setitem_scalar(self, data):
         arr = pd.Series(data)
         arr[0] = data[1]
         assert arr[0] == data[1]
 
+    @pytest.mark.xfail(reason="ExtensionBlock.__setitem__ not implemented.")
     def test_setitem_sequence(self, data):
         arr = pd.Series(data)
         original = data.copy()
@@ -301,6 +303,7 @@ class BaseArrayTests(object):
         assert arr[0] == original[1]
         assert arr[1] == original[0]
 
+    @pytest.mark.xfail(reason="ExtensionBlock.__setitem__ not implemented.")
     def test_setitem_sequence_broadcasts(self, data):
         arr = pd.Series(data)
 
@@ -308,6 +311,7 @@ class BaseArrayTests(object):
         assert arr[0] == data[2]
         assert arr[1] == data[2]
 
+    @pytest.mark.xfail(reason="ExtensionBlock.__setitem__ not implemented.")
     @pytest.mark.parametrize('setter', ['loc', 'iloc'])
     def test_set_scalar(self, data, setter):
         arr = pd.Series(data)
@@ -315,36 +319,43 @@ class BaseArrayTests(object):
         operator.setitem(setter, 0, data[1])
         assert arr[0] == data[1]
 
+    @pytest.mark.xfail(reason="ExtensionBlock.__setitem__ not implemented.")
     def test_set_loc_scalar_mixed(self, data):
         df = pd.DataFrame({"A": np.arange(len(data)), "B": data})
         df.loc[0, 'B'] = data[1]
         assert df.loc[0, 'B'] == data[1]
 
+    @pytest.mark.xfail(reason="ExtensionBlock.__setitem__ not implemented.")
     def test_set_loc_scalar_single(self, data):
         df = pd.DataFrame({"B": data})
         df.loc[10, 'B'] = data[1]
         assert df.loc[10, 'B'] == data[1]
 
+    @pytest.mark.xfail(reason="ExtensionBlock.__setitem__ not implemented.")
     def test_set_loc_scalar_multiple_homogoneous(self, data):
         df = pd.DataFrame({"A": data, "B": data})
         df.loc[10, 'B'] = data[1]
         assert df.loc[10, 'B'] == data[1]
 
+    @pytest.mark.xfail(reason="ExtensionBlock.__setitem__ not implemented.")
     def test_set_iloc_scalar_mixed(self, data):
         df = pd.DataFrame({"A": np.arange(len(data)), "B": data})
         df.iloc[0, 1] = data[1]
         assert df.loc[0, 'B'] == data[1]
 
+    @pytest.mark.xfail(reason="ExtensionBlock.__setitem__ not implemented.")
     def test_set_iloc_scalar_single(self, data):
         df = pd.DataFrame({"B": data})
         df.iloc[10, 0] = data[1]
         assert df.loc[10, 'B'] == data[1]
 
+    @pytest.mark.xfail(reason="ExtensionBlock.__setitem__ not implemented.")
     def test_set_iloc_scalar_multiple_homogoneous(self, data):
         df = pd.DataFrame({"A": data, "B": data})
         df.iloc[10, 1] = data[1]
         assert df.loc[10, 'B'] == data[1]
 
+    @pytest.mark.xfail(reason="ExtensionBlock.__setitem__ not implemented.")
     def test_set_mask_aligned(self, data):
         ser = pd.Series(data)
         mask = np.zeros(len(data), dtype=bool)
@@ -354,6 +365,7 @@ class BaseArrayTests(object):
         assert ser[0] == data[5]
         assert ser[1] == data[6]
 
+    @pytest.mark.xfail(reason="ExtensionBlock.__setitem__ not implemented.")
     def test_set_mask_broadcast(self, data):
         ser = pd.Series(data)
         mask = np.zeros(len(data), dtype=bool)
@@ -363,6 +375,7 @@ class BaseArrayTests(object):
         assert ser[0] == data[10]
         assert ser[1] == data[10]
 
+    @pytest.mark.xfail(reason="ExtensionBlock.__setitem__ not implemented.")
     def test_setitem_expand_columns(self, data):
         df = pd.DataFrame({"A": data})
         df['B'] = 1
