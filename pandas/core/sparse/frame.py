@@ -861,14 +861,18 @@ class SparseDataFrame(DataFrame):
                by result_type='reduce'.
 
         result_type : {'expand', 'reduce', 'broadcast, None}
-            These only act when axis=1 {columns}
-            * 'expand' : list-like results will be turned into columns
+            These only act when axis=1 {columns}:
+
+            * 'expand' : list-like results will be turned into columns.
             * 'reduce' : return a Series if possible rather than expanding
-              list-like results. This is the opposite to 'expand'
-            * 'broadcast' : scalar results will be broadcast to all columns
-            * None : list-like results will be returned as a list
-              in a single column. However if the apply function
-              returns a Series these are expanded to columns.
+              list-like results. This is the opposite to 'expand'.
+            * 'broadcast' : results will be broadcast to the original shape
+              of the frame, the original index & columns will be retained.
+
+            The default behaviour (None) depends on the return value of the
+            applied function: list-like results will be returned as a Series
+            of those. However if the apply function returns a Series these
+            are expanded to columns.
 
             .. versionadded:: 0.23.0
 

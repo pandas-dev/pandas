@@ -4822,12 +4822,12 @@ class DataFrame(NDFrame):
 
     def apply(self, func, axis=0, broadcast=None, raw=False, reduce=None,
               result_type=None, args=(), **kwds):
-        """Applies function along input axis of DataFrame.
+        """Applies function along an axis of the DataFrame.
 
         Objects passed to functions are Series objects having index
         either the DataFrame's index (axis=0) or the columns (axis=1).
-        Return type depends on whether passed function aggregates, or the
-        reduce argument if the DataFrame is empty.
+        Final return type depends on the return type of the applied function,
+        or on the `result_type` argument.
 
         Parameters
         ----------
@@ -4863,15 +4863,18 @@ class DataFrame(NDFrame):
                by result_type='reduce'.
 
         result_type : {'expand', 'reduce', 'broadcast, None}
-            These only act when axis=1 {columns}
+            These only act when axis=1 {columns}:
+
             * 'expand' : list-like results will be turned into columns.
             * 'reduce' : return a Series if possible rather than expanding
               list-like results. This is the opposite to 'expand'.
             * 'broadcast' : results will be broadcast to the original shape
               of the frame, the original index & columns will be retained.
-            * None : list-like results will be returned as a list
-              in a single column. However if the apply function
-              returns a Series these are expanded to columns.
+
+            The default behaviour (None) depends on the return value of the
+            applied function: list-like results will be returned as a Series
+            of those. However if the apply function returns a Series these
+            are expanded to columns.
 
             .. versionadded:: 0.23.0
 
@@ -4893,8 +4896,8 @@ class DataFrame(NDFrame):
 
         We use this DataFrame to illustrate
 
-        >>> df = DataFrame(np.tile(np.arange(3), 6).reshape(6, -1) + 1,
-        ...                columns=['A', 'B', 'C'])
+        >>> df = pd.DataFrame(np.tile(np.arange(3), 6).reshape(6, -1) + 1,
+        ...                   columns=['A', 'B', 'C'])
         >>> df
            A  B  C
         0  1  2  3
@@ -4904,7 +4907,8 @@ class DataFrame(NDFrame):
         4  1  2  3
         5  1  2  3
 
-        Using a ufunc
+        Using a numpy universal function (in this case the same as
+        ``np.sqrt(df)``):
 
         >>> df.apply(np.sqrt)
              A         B         C
@@ -4954,8 +4958,8 @@ class DataFrame(NDFrame):
         4  1  2
         5  1  2
 
-        Return a Series inside the function is similar to passing
-        Passing result_type='expand'. The resulting column names
+        Returning a Series inside the function is similar to passing
+        ``result_type='expand'``. The resulting column names
         will be the Series index.
 
         >>> df.apply(lambda x: Series([1, 2], index=['foo', 'bar']), axis=1)
@@ -4967,10 +4971,10 @@ class DataFrame(NDFrame):
         4    1    2
         5    1    2
 
-
-        Passing result_type='broadcast' will take a same shape
-        result, whether list-like or scalar and broadcast it
-        along the axis. The resulting column names will be the originals.
+        Passing ``result_type='broadcast'`` will ensure the same shape
+        result, whether list-like or scalar is returned by the function,
+        and broadcast it along the axis. The resulting column names will
+        be the originals.
 
         >>> df.apply(lambda x: [1, 2, 3], axis=1, result_type='broadcast')
            A  B  C
