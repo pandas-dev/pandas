@@ -424,6 +424,7 @@ cdef int64_t DtoQ_yq(int64_t ordinal, asfreq_info *af_info,
 cdef inline int monthToQuarter(int month):
     return (month - 1) // 3 + 1
 
+
 # ----------------------------------------------------------------------
 # Period logic
 
