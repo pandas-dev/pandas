@@ -1035,6 +1035,7 @@ b  2""")
         return self._wrap_aggregated_output(output, names)
 
     def _python_agg_general(self, func, *args, **kwargs):
+        import ipdb; ipdb.set_trace()
         func = self._is_builtin_func(func)
         f = lambda x: func(x, *args, **kwargs)
 
@@ -1224,6 +1225,7 @@ class GroupBy(_GroupBy):
     @Substitution(name='groupby')
     @Appender(_doc_template)
     def mean(self, *args, **kwargs):
+        import ipdb; ipdb.set_trace()
         """
         Compute mean of groups, excluding missing values
 
@@ -1948,6 +1950,7 @@ class BaseGrouper(object):
 
     def __init__(self, axis, groupings, sort=True, group_keys=True,
                  mutated=False, indexer=None):
+        import ipdb; ipdb.set_trace()
         self._filter_empty_groups = self.compressed = len(groupings) != 1
         self.axis = axis
         self.groupings = groupings
@@ -2097,6 +2100,7 @@ class BaseGrouper(object):
 
     @cache_readonly
     def group_info(self):
+        import ipdb; ipdb.set_trace()
         comp_ids, obs_group_ids = self._get_compressed_labels()
 
         ngroups = len(obs_group_ids)
@@ -2607,6 +2611,7 @@ class BinGrouper(BaseGrouper):
 
     @cache_readonly
     def group_info(self):
+        import ipdb; ipdb.set_trace()
         ngroups = self.ngroups
         obs_group_ids = np.arange(ngroups)
         rep = np.diff(np.r_[0, self.bins])
@@ -2684,6 +2689,7 @@ class Grouping(object):
     def __init__(self, index, grouper=None, obj=None, name=None, level=None,
                  sort=True, in_axis=False):
 
+        import ipdb; ipdb.set_trace()
         self.name = name
         self.level = level
         self.grouper = _convert_grouper(index, grouper)
@@ -2816,6 +2822,7 @@ class Grouping(object):
         return self._group_index
 
     def _make_labels(self):
+        import ipdb; ipdb.set_trace()
         if self._labels is None or self._group_index is None:
             # we have a list of groupers
             if isinstance(self.grouper, BaseGrouper):
@@ -2993,6 +3000,7 @@ def _get_grouper(obj, key=None, axis=0, level=None, sort=True,
 
     for i, (gpr, level) in enumerate(zip(keys, levels)):
 
+        import ipdb; ipdb.set_trace()
         if is_in_obj(gpr):  # df.groupby(df['name'])
             in_axis, name = True, gpr.name
             exclusions.append(name)
@@ -3024,6 +3032,7 @@ def _get_grouper(obj, key=None, axis=0, level=None, sort=True,
 
         # create the Grouping
         # allow us to passing the actual Grouping as the gpr
+
         ping = Grouping(group_axis,
                         gpr,
                         obj=obj,

@@ -261,15 +261,29 @@ def get_dispatch(dtypes):
         cdef:
            Py_ssize_t i, n = len(values)
            int ret = 0
-           {dtype}_t val
+           {dtype}_t val, fill_value_val, ngaps_val
            khiter_t k
            bint seen_na = 0
            {name}Vector uniques = {name}Vector()
            {name}VectorData *ud
 
         ud = uniques.data
-
+        fill_value_val = fill_value
+        ngaps_val = ngaps
+        
         with nogil:
+            # If this is a sparse structure we need to append
+            # The fill value as well assuming the ngaps are greater than 0
+
+            if ngaps_val > 0:
+                k = kh_get_{dtype}(self.table, fill_value_val)
+                if k == self.table.n_buckets:
+                    kh_put_{dtype}(self.table, fill_value_val, &ret)
+                    if needs_resize(ud):
+                        with gil:
+                            uniques.resize()
+                    append_data_{dtype}(ud, fill_value_val)
+
             for i in range(n):
                 val = values[i]
                 IF {float_group}:
@@ -496,10 +510,10 @@ cdef class {{name}}HashTable(HashTable):
         return np.asarray(labels), arr_uniques
 
     @cython.boundscheck(False)
-    def unique(self, ndarray[{{dtype}}_t, ndim=1] values):
+    def unique(self, ndarray[{{dtype}}_t, ndim=1] values, fill_value=np.nan, ngaps=0):
         if values.flags.writeable:
           # If the value is writeable (mutable) then use memview
-          return self.unique_memview(values)
+          return self.unique_memview(values, fill_value=fill_value, ngaps=ngaps)
 
         # We cannot use the memoryview version on readonly-buffers due to
         # a limitation of Cython's typed memoryviews. Instead we can use
@@ -508,7 +522,7 @@ cdef class {{name}}HashTable(HashTable):
 {{unique_template}}
 
     @cython.boundscheck(False)
-    def unique_memview(self, {{dtype}}_t[:] values):
+    def unique_memview(self, {{dtype}}_t[:] values, fill_value=np.nan, ngaps=0):
 {{unique_template}}
 
 {{endfor}}

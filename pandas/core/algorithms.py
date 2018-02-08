@@ -10,7 +10,8 @@ from pandas.core.dtypes.cast import (
     maybe_promote, construct_1d_object_array_from_listlike)
 from pandas.core.dtypes.generic import (
     ABCSeries, ABCIndex,
-    ABCIndexClass, ABCCategorical)
+    ABCIndexClass, ABCCategorical,
+    ABCSparseArray)
 from pandas.core.dtypes.common import (
     is_unsigned_integer_dtype, is_signed_integer_dtype,
     is_integer_dtype, is_complex_dtype,
@@ -362,7 +363,11 @@ def unique(values):
     htable, _, values, dtype, ndtype = _get_hashtable_algo(values)
 
     table = htable(len(values))
-    uniques = table.unique(values)
+    import ipdb; ipdb.set_trace()
+    if isinstance(values, ABCSparseArray):
+        uniques = table.unique(values, fill_value=values.fill_value, ngaps=values.sp_index.ngaps)
+    else:
+        uniques = table.unique(values)
     uniques = _reconstruct_data(uniques, dtype, original)
 
     if isinstance(original, ABCSeries) and is_datetime64tz_dtype(dtype):
@@ -461,6 +466,7 @@ def factorize(values, sort=False, order=None, na_sentinel=-1, size_hint=None):
     PeriodIndex
     """
 
+    import ipdb; ipdb.set_trace()
     values = _ensure_arraylike(values)
     original = values
     values, dtype, _ = _ensure_data(values)
