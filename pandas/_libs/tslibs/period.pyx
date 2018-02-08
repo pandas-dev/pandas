@@ -106,7 +106,6 @@ cdef extern from "period_helper.h":
     void get_asfreq_info(int fromFreq, int toFreq, char relation,
                          asfreq_info *af_info) nogil
 
-    int get_yq(int64_t ordinal, int freq, int *quarter, int *year)
     int64_t get_daytime_conversion_factor(int from_index, int to_index) nogil
 
 
@@ -176,7 +175,7 @@ cdef int64_t get_period_ordinal(int year, int month, int day,
             return year - 1970
         else:
             return year - 1970 + 1
-    
+
     elif freq_group == FR_QTR:
         fmonth = freq - FR_QTR
         if fmonth == 0:
@@ -193,7 +192,7 @@ cdef int64_t get_period_ordinal(int year, int month, int day,
         return (year - 1970) * 4 + (mdiff - 1) / 3
 
     elif freq == FR_MTH:
-        return (year - 1970) * 12 + month - 1;
+        return (year - 1970) * 12 + month - 1
 
     absdays = absdate_from_ymd(year, month, day)
     unix_date = absdays - ORD_OFFSET
@@ -229,7 +228,6 @@ cdef int64_t get_period_ordinal(int year, int month, int day,
     elif freq == FR_BUS:
         # calculate the current week assuming sunday as last day of a week
         # Jan 1 0001 is a Monday, so subtract 1 to get to end-of-week
-        # Jan 1 1970 was a Thursday, so subtract 3 to get to end-of-week (Sun)
         weeks = (unix_date + ORD_OFFSET - 1) / 7
         # calculate the current weekday (in range 1 .. 7)
         delta = (unix_date + ORD_OFFSET - 1) % 7 + 1
@@ -384,6 +382,47 @@ cdef int64_t absdate_from_ymd(int year, int month, int day) nogil:
     unix_date = pandas_datetimestruct_to_datetime(PANDAS_FR_D, &dts)
     return ORD_OFFSET + unix_date
 
+
+cdef int get_yq(int64_t ordinal, int freq, int *quarter, int *year):
+    cdef:
+        asfreq_info af_info
+        int qtr_freq
+        int64_t daily_ord
+
+    daily_ord = get_python_ordinal(ordinal, freq) - ORD_OFFSET
+
+    if get_freq_group(freq) == FR_QTR:
+        qtr_freq = freq
+    else:
+        qtr_freq = FR_QTR
+
+    get_asfreq_info(FR_DAY, qtr_freq, 'E', &af_info)
+
+    DtoQ_yq(daily_ord, &af_info, year, quarter)
+    return qtr_freq
+
+
+cdef int64_t DtoQ_yq(int64_t ordinal, asfreq_info *af_info,
+                     int *year, int *quarter):
+    cdef:
+        date_info dinfo
+
+    dInfoCalc_SetFromAbsDate(&dinfo, ordinal + ORD_OFFSET)
+
+    if af_info.to_q_year_end != 12:
+        dinfo.month -= af_info.to_q_year_end
+        if dinfo.month <= 0:
+            dinfo.month += 12
+        else:
+            dinfo.year += 1
+
+    year[0] = dinfo.year
+    quarter[0] = monthToQuarter(dinfo.month)
+    return 0
+
+
+cdef inline int monthToQuarter(int month):
+    return (month - 1) // 3 + 1
 
 # ----------------------------------------------------------------------
 # Period logic
