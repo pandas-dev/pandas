@@ -1303,6 +1303,9 @@ class _IXIndexer(_NDFrameIndexer):
     """A primarily label-location based indexer, with integer position
     fallback.
 
+    Warning: Starting in 0.20.0, the .ix indexer is deprecated, in
+    favor of the more strict .iloc and .loc indexers.
+
     ``.ix[]`` supports mixed integer and label based access. It is
     primarily label based, but will fall back to integer positional
     access unless the corresponding axis is of integer type.

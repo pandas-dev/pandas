@@ -253,6 +253,7 @@ Current Behavior:
 Other Enhancements
 ^^^^^^^^^^^^^^^^^^
 
+- Unary ``+`` now permitted for ``Series`` and ``DataFrame`` as  numeric operator (:issue:`16073`)
 - Better support for :func:`Dataframe.style.to_excel` output with the ``xlsxwriter`` engine. (:issue:`16149`)
 - :func:`pandas.tseries.frequencies.to_offset` now accepts leading '+' signs e.g. '+1h'. (:issue:`18171`)
 - :func:`MultiIndex.unique` now supports the ``level=`` argument, to get unique values from a specific index level (:issue:`17896`)
@@ -334,20 +335,20 @@ Convert to an xarray DataArray
 
 .. _whatsnew_0230.api_breaking.apply:
 
-Apply Changes
-~~~~~~~~~~~~~
+Changes to make output of ``DataFrame.apply`` consistent
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 :func:`DataFrame.apply` was inconsistent when applying an arbitrary user-defined-function that returned a list-like with ``axis=1``. Several bugs and inconsistencies
 are resolved. If the applied function returns a Series, then pandas will return a DataFrame; otherwise a Series will be returned, this includes the case
-where a list-like (e.g. ``tuple`` or ``list`` is returned), (:issue:`16353`, :issue:`17437`, :issue:`17970`, :issue:`17348`, :issue:`17892`, :issue:`18573`,
-:issue:`17602`, :issue:`18775`, :issue:`18901`, :issue:`18919`)
+where a list-like (e.g. ``tuple`` or ``list`` is returned) (:issue:`16353`, :issue:`17437`, :issue:`17970`, :issue:`17348`, :issue:`17892`, :issue:`18573`,
+:issue:`17602`, :issue:`18775`, :issue:`18901`, :issue:`18919`).
 
 .. ipython:: python
 
     df = pd.DataFrame(np.tile(np.arange(3), 6).reshape(6, -1) + 1, columns=['A', 'B', 'C'])
     df
 
-Previous Behavior. If the returned shape happened to match the original columns, this would return a ``DataFrame``.
+Previous Behavior: if the returned shape happened to match the length of original columns, this would return a ``DataFrame``.
 If the return shape did not match, a ``Series`` with lists was returned.
 
 .. code-block:: python
@@ -373,7 +374,7 @@ If the return shape did not match, a ``Series`` with lists was returned.
    dtype: object
 
 
-New Behavior. The behavior is consistent. These will *always* return a ``Series``.
+New Behavior: When the applied function returns a list-like, this will now *always* return a ``Series``.
 
 .. ipython:: python
 
@@ -386,8 +387,9 @@ To have expanded columns, you can use ``result_type='expand'``
 
     df.apply(lambda x: [1, 2, 3], axis=1, result_type='expand')
 
-To have broadcast the result across, you can use ``result_type='broadcast'``. The shape
-must match the original columns.
+To broadcast the result across the original columns (the old behaviour for
+list-likes of the correct length), you can use ``result_type='broadcast'``.
+The shape must match the original columns.
 
 .. ipython:: python
 
@@ -397,7 +399,7 @@ Returning a ``Series`` allows one to control the exact return structure and colu
 
 .. ipython:: python
 
-    df.apply(lambda x: Series([1, 2, 3], index=x.index), axis=1)
+    df.apply(lambda x: Series([1, 2, 3], index=['D', 'E', 'F']]), axis=1)
 
 
 .. _whatsnew_0230.api_breaking.build_changes:
@@ -523,8 +525,8 @@ Deprecations
 - The ``is_copy`` attribute is deprecated and will be removed in a future version (:issue:`18801`).
 - ``IntervalIndex.from_intervals`` is deprecated in favor of the :class:`IntervalIndex` constructor (:issue:`19263`)
 - :func:``DataFrame.from_items`` is deprecated. Use :func:``DataFrame.from_dict()`` instead, or :func:``DataFrame.from_dict(OrderedDict())`` if you wish to preserve the key order (:issue:`17320`)
-- The ``broadcast`` parameter of ``.apply()`` is removed in favor of ``result_type='broadcast'`` (:issue:`18577`)
-- The ``reduce`` parameter of ``.apply()`` is removed in favor of ``result_type='reduce'`` (:issue:`18577`)
+- The ``broadcast`` parameter of ``.apply()`` is deprecated in favor of ``result_type='broadcast'`` (:issue:`18577`)
+- The ``reduce`` parameter of ``.apply()`` is deprecated in favor of ``result_type='reduce'`` (:issue:`18577`)
 
 .. _whatsnew_0230.prior_deprecations:
 
@@ -597,6 +599,32 @@ Documentation Changes
 Bug Fixes
 ~~~~~~~~~
 
+Categorical
+^^^^^^^^^^^
+
+.. warning::
+
+   A class of bugs were introduced in pandas 0.21 with ``CategoricalDtype`` that
+   affects the correctness of operations like ``merge``, ``concat``, and
+   indexing when comparing multiple unordered ``Categorical`` arrays that have
+   the same categories, but in a different order. We highly recommend upgrading
+   or manually aligning your categories before doing these operations.
+
+- Bug in ``Categorical.equals`` returning the wrong result when comparing two
+  unordered ``Categorical`` arrays with the same categories, but in a different
+  order (:issue:`16603`)
+- Bug in :func:`pandas.api.types.union_categoricals` returning the wrong result
+  when for unordered categoricals with the categories in a different order.
+  This affected :func:`pandas.concat` with Categorical data (:issue:`19096`).
+- Bug in :func:`pandas.merge` returning the wrong result when joining on an
+  unordered ``Categorical`` that had the same categories but in a different
+  order (:issue:`19551`)
+- Bug in :meth:`CategoricalIndex.get_indexer` returning the wrong result when
+  ``target`` was an unordered ``Categorical`` that had the same categories as
+  ``self`` but in a different order (:issue:`19551`)
+- Bug in :meth:`Index.astype` with a categorical dtype where the resultant index is not converted to a :class:`CategoricalIndex` for all types of index (:issue:`18630`)
+- Bug in :meth:`Series.astype` and ``Categorical.astype()`` where an existing categorical data does not get updated (:issue:`10696`, :issue:`18593`)
+- Bug in :class:`Index` constructor with ``dtype=CategoricalDtype(...)`` where ``categories`` and ``ordered`` are not maintained (issue:`19032`)
 
 Datetimelike
 ^^^^^^^^^^^^
@@ -689,6 +717,7 @@ I/O
 ^^^
 
 - :func:`read_html` now rewinds seekable IO objects after parse failure, before attempting to parse with a new parser. If a parser errors and the object is non-seekable, an informative error is raised suggesting the use of a different parser (:issue:`17975`)
+- :meth:`DataFrame.to_html` now has an option to add an id to the leading `<table>` tag (:issue:`8496`)
 - Bug in :func:`read_msgpack` with a non existent file is passed in Python 2 (:issue:`15296`)
 - Bug in :func:`read_csv` where a ``MultiIndex`` with duplicate columns was not being mangled appropriately (:issue:`18062`)
 - Bug in :func:`read_csv` where missing values were not being handled properly when ``keep_default_na=False`` with dictionary ``na_values`` (:issue:`19227`)
@@ -719,6 +748,7 @@ Groupby/Resample/Rolling
 - Bug in :func:`DataFrame.transform` where particular aggregation functions were being incorrectly cast to match the dtype(s) of the grouped data (:issue:`19200`)
 - Bug in :func:`DataFrame.groupby` passing the `on=` kwarg, and subsequently using ``.apply()`` (:issue:`17813`)
 - Bug in :func:`DataFrame.resample().aggregate` not raising a ``KeyError`` when aggregating a non-existent column (:issue:`16766`, :issue:`19566`)
+- Fixed a performance regression for ``GroupBy.nth`` and ``GroupBy.last`` with some object columns (:issue:`19283`)
 
 Sparse
 ^^^^^^
@@ -742,20 +772,6 @@ Reshaping
 - Bug in timezone comparisons, manifesting as a conversion of the index to UTC in ``.concat()`` (:issue:`18523`)
 - Bug in :func:`concat` when concatting sparse and dense series it returns only a ``SparseDataFrame``. Should be a ``DataFrame``. (:issue:`18914`, :issue:`18686`, and :issue:`16874`)
 - Improved error message for :func:`DataFrame.merge` when there is no common merge key (:issue:`19427`)
--
-
-
-Categorical
-^^^^^^^^^^^
-
--
-- Bug in :func:`pandas.api.types.union_categoricals` returning the wrong result
-  when all the categoricals had the same categories, but in a different order.
-  This affected :func:`pandas.concat` with Categorical data (:issue:`19096`).
-- Bug in ``Categorical.equals`` between two unordered categories with the same categories, but in a different order (:issue:`16603`)
-- Bug in :meth:`Index.astype` with a categorical dtype where the resultant index is not converted to a :class:`CategoricalIndex` for all types of index (:issue:`18630`)
-- Bug in :meth:`Series.astype` and ``Categorical.astype()`` where an existing categorical data does not get updated (:issue:`10696`, :issue:`18593`)
-- Bug in :class:`Index` constructor with ``dtype=CategoricalDtype(...)`` where ``categories`` and ``ordered`` are not maintained (issue:`19032`)
 -
 
 Other
