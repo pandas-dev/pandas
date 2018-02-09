@@ -1212,7 +1212,7 @@ def test_unique_datetime_series(arr, expected):
 
 
 @pytest.mark.parametrize('array, expected_type, dtype', [
-    (np.array([0, 1]), np.ndarray, 'int64'),
+    (np.array([0, 1], dtype=np.int64), np.ndarray, 'int64'),
     (np.array(['a', 'b']), np.ndarray, 'object'),
     (pd.Categorical(['a', 'b']), pd.Categorical, 'category'),
     (pd.DatetimeIndex(['2017', '2018']), np.ndarray, 'datetime64[ns]'),
@@ -1242,7 +1242,7 @@ def test_values_consistent(array, expected_type, dtype):
 
 
 @pytest.mark.parametrize('array, expected', [
-    (np.array([0, 1]), np.array([0, 1])),
+    (np.array([0, 1], dtype=np.int64), np.array([0, 1], dtype=np.int64)),
     (np.array(['0', '1']), np.array(['0', '1'], dtype=object)),
     (pd.Categorical(['a', 'a']), np.array([0, 0], dtype='int8')),
     (pd.DatetimeIndex(['2017-01-01T00:00:00']),
