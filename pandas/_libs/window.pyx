@@ -1250,6 +1250,11 @@ cdef _roll_min_max(ndarray[numeric] input, int64_t win, int64_t minp,
 
         with nogil:
 
+            # This is using a modified version of the C++ code in this
+            # SO post: http://bit.ly/2nOoHlY
+            # The original impl didn't deal with variable window sizes
+            # So the code was optimized for that
+
             for i from starti[0] <= i < endi[0]:
                 ai = init_mm(input[i], &nobs, is_max)
 
