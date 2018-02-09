@@ -2292,25 +2292,6 @@ class TestGroupBy(MixIn):
         t = getattr(grpd, method)(*data['args'])
         assert_frame_equal(t, df_out)
 
-    @pytest.mark.parametrize("method,exp,args", [
-        ('first', [('bar', 'quuz'), ('foo', 'baz')], []),
-        ('last', [('bar', 'grault'), ('foo', 'quux')], []),
-        ('nth', [('bar', 'corge'), ('foo', 'qux')], [1]),
-    ])
-    def test_groupby_get_nth_object(self, method, exp, args):
-        df = pd.DataFrame(
-            [{'a': 'foo', 'b': 'baz'},
-             {'a': 'foo', 'b': 'qux'},
-             {'a': 'foo', 'b': 'quux'},
-             {'a': 'bar', 'b': 'quuz'},
-             {'a': 'bar', 'b': 'corge'},
-             {'a': 'bar', 'b': 'grault'}])
-        exp_df = pd.DataFrame(exp, columns=['a', 'b'])
-        exp_df.set_index('a', inplace=True)
-        grpd = df.groupby('a')
-        t = getattr(grpd, method)(*args)
-        assert_frame_equal(t, exp_df)
-
     def test_groupby_non_arithmetic_agg_intlike_precision(self):
         # GH9311, GH6620
         c = 24650000000000000
