@@ -693,7 +693,6 @@ cpdef array_to_datetime(ndarray[object] values, errors='raise',
 
         return result
     except OutOfBoundsDatetime:
-        raise
         if is_raise:
             raise
 
@@ -716,7 +715,6 @@ cpdef array_to_datetime(ndarray[object] values, errors='raise',
                 oresult[i] = val
         return oresult
     except TypeError:
-        raise
         oresult = np.empty(n, dtype=object)
 
         for i in range(n):
