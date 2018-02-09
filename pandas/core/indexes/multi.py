@@ -2505,6 +2505,7 @@ class MultiIndex(Index):
         MultiIndex.slice_locs : Get slice location given start label(s) and
                                 end label(s).
         """
+        from .numeric import Int64Index
 
         # must be lexsorted to at least as many levels
         true_slices = [i for (i, s) in enumerate(com.is_true_slices(seq)) if s]
@@ -2530,7 +2531,6 @@ class MultiIndex(Index):
                                      "that is not the same length as the "
                                      "index")
                 r = r.nonzero()[0]
-            from .numeric import Int64Index
             return Int64Index(r)
 
         def _update_indexer(idxr, indexer=indexer):
@@ -2567,7 +2567,6 @@ class MultiIndex(Index):
                 if indexers is not None:
                     indexer = _update_indexer(indexers, indexer=indexer)
                 else:
-                    from .numeric import Int64Index
                     # no matches we are done
                     return Int64Index([])._values
 
