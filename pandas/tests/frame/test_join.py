@@ -31,6 +31,11 @@ def right():
     return DataFrame({'b': [300, 100, 200]}, index=[3, 1, 2])
 
 
+@pytest.fixture
+def right_non_unique():
+    return DataFrame({'c': [400, 500, 600]}, index=[2, 2, 4])
+
+
 @pytest.mark.parametrize(
     "how, sort, expected",
     [('inner', False, DataFrame({'a': [20, 10],
@@ -165,3 +170,11 @@ def test_join_period_index(frame_with_period_index):
         index=frame_with_period_index.index)
 
     tm.assert_frame_equal(joined, expected)
+
+
+def test_join_left_sequence_non_unique_index(left, right, right_non_unique):
+    # left join sequence of dataframes with non-unique indices (issue #19607)
+    joined = left.join([right_non_unique], how='left')
+    tm.assert_index_equal(
+        joined.index.unique().sort_values(),
+        left.index.sort_values())
