@@ -25,9 +25,6 @@ cdef int64_t iNaT = get_nat()
 cdef double NaN = <double> np.NaN
 cdef double nan = NaN
 
-cdef extern from "numpy/npy_math.h" nogil:
-    bint npy_isnan(double x)
-
 
 # TODO: aggregate multiple columns in single pass
 # ----------------------------------------------------------------------

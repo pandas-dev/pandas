@@ -581,19 +581,9 @@ def group_rank_{{name}}(ndarray[float64_t, ndim=2] out,
             # reset the dups and sum_ranks, knowing that a new value is coming
             # up. the conditional also needs to handle nan equality and the
             # end of iteration
-            {{if name=='int64'}}
             if (i == N - 1 or (
                     (masked_vals[_as[i]] != masked_vals[_as[i+1]]) and not
-                    (masked_vals[_as[i]] == nan_fill_val and
-                     masked_vals[_as[i+1]] == nan_fill_val
-                    ))):
-            {{else}}
-            if (i == N - 1 or (
-                    (masked_vals[_as[i]] != masked_vals[_as[i+1]]) and not
-                    (npy_isnan(masked_vals[_as[i]]) and
-                     npy_isnan(masked_vals[_as[i+1]])
-                    ))):
-            {{endif}}
+                    (mask[_as[i]] and mask[_as[i+1]]))):
                 dups = sum_ranks = 0
                 val_start = i
                 grp_vals_seen += 1
