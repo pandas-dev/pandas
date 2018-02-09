@@ -433,7 +433,7 @@ def mask_arith_op(x, y, op):
             # errors in Py3 (TypeError) vs Py2 (ValueError)
             raise ValueError('Cannot broadcast operands together.')
 
-        yrav = com._values_from_object(y[mask])
+        yrav = com._values_from_object(yrav[mask])
         if xrav.size:
             # Avoid the operation if it is on an empty array
             with np.errstate(all='ignore'):
