@@ -415,47 +415,6 @@ def fill_binop(left, right, fill_value):
     return left, right
 
 
-def mask_arith_op(x, y, op):
-    xrav = x.ravel()
-    if isinstance(y, (np.ndarray, ABCSeries, pd.Index)):
-        # The ABCSeries and pd.Index cases are only reached for Series ops,
-        # DataFrame casts these inputs to Series in align_method_FRAME
-        dtype = find_common_type([x.dtype, y.dtype])
-        result = np.empty(x.size, dtype=dtype)
-        yrav = y.ravel()
-        mask = notna(xrav) & notna(yrav)
-        xrav = xrav[mask]
-
-        if yrav.shape != mask.shape:
-            # Only a risk for DataFrame.
-            # FIXME: GH#5284, GH#5035, GH#19448
-            # Without specifically raising here we get mismatched
-            # errors in Py3 (TypeError) vs Py2 (ValueError)
-            raise ValueError('Cannot broadcast operands together.')
-
-        yrav = com._values_from_object(yrav[mask])
-        if xrav.size:
-            # Avoid the operation if it is on an empty array
-            with np.errstate(all='ignore'):
-                result[mask] = op(xrav, yrav)
-
-    elif isinstance(x, np.ndarray):
-        # this always holds for Series, never for DataFrame
-        result = np.empty(x.size, dtype=x.dtype)
-        mask = notna(x)
-        result[mask] = op(x[mask], y)
-
-    else:
-        # Raise otherwise; only relevant for DataFrame
-        raise TypeError("cannot perform operation {op} between "
-                        "objects of type {x} and {y}".format(op=name,
-                                                             x=type(x),
-                                                             y=type(y)))
-
-    result, changed = maybe_upcast_putmask(result, ~mask, np.nan)
-    return result.reshape(x.shape)
-
-
 def mask_cmp_op(x, y, op, allowed_types):
     # TODO: Can we make the allowed_types arg unnecessary?
     xrav = x.ravel()
@@ -721,7 +680,18 @@ def _arith_method_SERIES(op, name, str_rep):
         try:
             result = expressions.evaluate(op, str_rep, x, y, **eval_kwargs)
         except TypeError:
-            result = mask_arith_op(x, y, op)
+            if isinstance(y, (np.ndarray, ABCSeries, pd.Index)):
+                dtype = find_common_type([x.dtype, y.dtype])
+                result = np.empty(x.size, dtype=dtype)
+                mask = notna(x) & notna(y)
+                result[mask] = op(x[mask], com._values_from_object(y[mask]))
+            else:
+                assert isinstance(x, np.ndarray)
+                result = np.empty(len(x), dtype=x.dtype)
+                mask = notna(x)
+                result[mask] = op(x[mask], y)
+
+            result, changed = maybe_upcast_putmask(result, ~mask, np.nan)
 
         result = missing.fill_zeros(result, x, y, name, fill_zeros)
         return result
@@ -1121,7 +1091,40 @@ def _arith_method_FRAME(op, name, str_rep=None):
         try:
             result = expressions.evaluate(op, str_rep, x, y, **eval_kwargs)
         except TypeError:
-            result = mask_arith_op(x, y, op)
+            xrav = x.ravel()
+            if isinstance(y, (np.ndarray, ABCSeries)):
+                dtype = np.find_common_type([x.dtype, y.dtype], [])
+                result = np.empty(x.size, dtype=dtype)
+                yrav = y.ravel()
+                mask = notna(xrav) & notna(yrav)
+                xrav = xrav[mask]
+
+                if yrav.shape != mask.shape:
+                    # FIXME: GH#5284, GH#5035, GH#19448
+                    # Without specifically raising here we get mismatched
+                    # errors in Py3 (TypeError) vs Py2 (ValueError)
+                    raise ValueError('Cannot broadcast operands together.')
+
+                yrav = yrav[mask]
+                if xrav.size:
+                    with np.errstate(all='ignore'):
+                        result[mask] = op(xrav, yrav)
+
+            elif isinstance(x, np.ndarray):
+                # mask is only meaningful for x
+                result = np.empty(x.size, dtype=x.dtype)
+                mask = notna(xrav)
+                xrav = xrav[mask]
+                if xrav.size:
+                    with np.errstate(all='ignore'):
+                        result[mask] = op(xrav, y)
+            else:
+                raise TypeError("cannot perform operation {op} between "
+                                "objects of type {x} and {y}".format(
+                                    op=name, x=type(x), y=type(y)))
+
+            result, changed = maybe_upcast_putmask(result, ~mask, np.nan)
+            result = result.reshape(x.shape)
 
         result = missing.fill_zeros(result, x, y, name, fill_zeros)
 
