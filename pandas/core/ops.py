@@ -974,8 +974,8 @@ def _flex_method_SERIES(op, name, str_rep):
         elif isinstance(other, (np.ndarray, list, tuple)):
             if len(other) != len(self):
                 raise ValueError('Lengths must be equal')
-            return self._binop(self._constructor(other, self.index), op,
-                               level=level, fill_value=fill_value)
+            other = self._constructor(other, self.index)
+            return self._binop(other, op, level=level, fill_value=fill_value)
         else:
             if fill_value is not None:
                 self = self.fillna(fill_value)
@@ -997,6 +997,33 @@ series_special_funcs = dict(arith_method=_arith_method_SERIES,
 
 # -----------------------------------------------------------------------------
 # DataFrame
+
+def _combine_series_frame(self, other, func, fill_value=None, axis=None,
+                          level=None, try_cast=True):
+    if fill_value is not None:
+        raise NotImplementedError("fill_value {fill} not supported."
+                                  .format(fill=fill_value))
+
+    if axis is not None:
+        axis = self._get_axis_name(axis)
+        if axis == 'index':
+            return self._combine_match_index(other, func, level=level)
+        else:
+            return self._combine_match_columns(other, func, level=level,
+                                               try_cast=try_cast)
+    else:
+        if not len(other):
+            return self * np.nan
+
+        if not len(self):
+            # Ambiguous case, use _series so works with DataFrame
+            return self._constructor(data=self._series, index=self.index,
+                                     columns=self.columns)
+
+        # default axis is columns
+        return self._combine_match_columns(other, func, level=level,
+                                           try_cast=try_cast)
+
 
 def _align_method_FRAME(left, right, axis):
     """ convert rhs to meet lhs dims if input is list, tuple or np.ndarray """
@@ -1106,8 +1133,9 @@ def _arith_method_FRAME(op, name, str_rep=None):
         if isinstance(other, ABCDataFrame):  # Another DataFrame
             return self._combine_frame(other, na_op, fill_value, level)
         elif isinstance(other, ABCSeries):
-            return self._combine_series(other, na_op, fill_value, axis, level,
-                                        try_cast=True)
+            return _combine_series_frame(self, other, na_op,
+                                         fill_value=fill_value, axis=axis,
+                                         level=level, try_cast=True)
         else:
             if fill_value is not None:
                 self = self.fillna(fill_value)
@@ -1152,13 +1180,17 @@ def _flex_comp_method_FRAME(op, name, str_rep=None):
 
         other = _align_method_FRAME(self, other, axis)
 
-        if isinstance(other, ABCDataFrame):  # Another DataFrame
-            return self._flex_compare_frame(other, na_op, str_rep, level,
-                                            try_cast=False)
+        if isinstance(other, ABCDataFrame):
+            # Another DataFrame
+            if not self._indexed_same(other):
+                self, other = self.align(other, 'outer',
+                                         level=level, copy=False)
+            return self._compare_frame(other, na_op, str_rep, try_cast=False)
 
         elif isinstance(other, ABCSeries):
-            return self._combine_series(other, na_op, None, axis, level,
-                                        try_cast=False)
+            return _combine_series_frame(self, other, na_op,
+                                         fill_value=None, axis=axis,
+                                         level=level, try_cast=False)
         else:
             return self._combine_const(other, na_op, try_cast=False)
 
@@ -1170,11 +1202,17 @@ def _flex_comp_method_FRAME(op, name, str_rep=None):
 def _comp_method_FRAME(func, name, str_rep):
     @Appender('Wrapper for comparison method {name}'.format(name=name))
     def f(self, other):
-        if isinstance(other, ABCDataFrame):  # Another DataFrame
-            return self._compare_frame(other, func, str_rep)
+        if isinstance(other, ABCDataFrame):
+            # Another DataFrame
+            if not self._indexed_same(other):
+                raise ValueError('Can only compare identically-labeled '
+                                 'DataFrame objects')
+            return self._compare_frame(other, func, str_rep, try_cast=True)
+
         elif isinstance(other, ABCSeries):
-            return self._combine_series(other, func,
-                                        axis=None, try_cast=False)
+            return _combine_series_frame(self, other, func,
+                                         fill_value=None, axis=None,
+                                         level=None, try_cast=False)
         else:
 
             # straight boolean comparisons we want to allow all columns
