@@ -615,12 +615,13 @@ class Index(IndexOpsMixin, PandasObject):
         CategoricalIndex  | Categorical     | Categorical | codes           |
         DatetimeIndex[tz] | ndarray[M8ns]   | DTI[tz]     | ndarray[M8ns]   |
 
-        In the near-future, we'll implement two more.
+        For the following, the ``._values`` is currently ``ndarray[object]``,
+        but will soon be an ``ExtensionArray``
 
-        index             | values          | _values     | _ndarray_values |
-        ----------------- | --------------- | ----------- | --------------- |
-        PeriodIndex       | ndarray[object] | PeriodArray | ndarray[int]    |
-        IntervalIndex     | ndarray[object] | PeriodArray | ndarray[object] |
+        index             | values          | _values      | _ndarray_values |
+        ----------------- | --------------- | ------------ | --------------- |
+        PeriodIndex       | ndarray[object] | ndarray[obj] | ndarray[int]    |
+        IntervalIndex     | ndarray[object] | ndarray[obj] | ndarray[object] |
 
         See Also
         --------
@@ -2377,7 +2378,7 @@ class Index(IndexOpsMixin, PandasObject):
             indexer = Index(rvals).get_indexer(lvals)
             indexer = indexer.take((indexer != -1).nonzero()[0])
         except Exception:
-            # duplicateters
+            # duplicates
             indexer = algos.unique1d(
                 Index(rvals).get_indexer_non_unique(lvals)[0])
             indexer = indexer[indexer != -1]
