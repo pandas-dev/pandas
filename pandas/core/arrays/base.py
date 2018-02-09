@@ -143,8 +143,6 @@ class ExtensionArray(object):
     def astype(self, dtype, copy=True):
         """Cast to a NumPy array with 'dtype'.
 
-        The default implementation only allows casting to 'object' dtype.
-
         Parameters
         ----------
         dtype : str or dtype
@@ -159,14 +157,7 @@ class ExtensionArray(object):
         array : ndarray
             NumPy ndarray with 'dtype' for its dtype.
         """
-        np_dtype = np.dtype(dtype)
-
-        if np_dtype != 'object':
-            msg = ("{} can only be coerced to 'object' dtype, "
-                   "not '{}'.").format(type(self).__name__, dtype)
-            raise ValueError(msg)
-
-        return np.array(self, dtype=np_dtype, copy=copy)
+        return np.array(self, dtype=dtype, copy=copy)
 
     def isna(self):
         # type: () -> np.ndarray
