@@ -506,8 +506,11 @@ to be inserted (for example, a ``Series`` or NumPy array), or a function
 of one argument to be called on the ``DataFrame``. A *copy* of the original
 DataFrame is returned, with the new values inserted.
 
-Starting from Python 3.6 ``**kwargs`` is an ordered dictionary and :func:`DataFrame.assign`
-respects the order of the keyword arguments. You can use assign in the following way:
+.. versionmodified:: 0.23.0
+
+Starting with Python 3.6 the order of ``**kwargs`` is preserved. This allows
+for *dependent* assignment, where an expression later in ``**kwargs`` can refer
+to a column created earlier in the same :meth:`~DataFrame.assign`.
 
 .. ipython:: python
 
@@ -516,25 +519,55 @@ respects the order of the keyword arguments. You can use assign in the following
    dfa.assign(C=lambda x: x['A'] + x['B'],
               D=lambda x: x['A'] + x['C'])
 
+In the second expression, ``x['C']`` will refer to the newly created column,
+that's equal to ``dfa['A'] + dfa['B']``.
+
 .. warning::
 
-   Prior to Python 3.6, this may subtly change the behavior of your code when you are
-   using :func:`DataFrame.assign` to update an existing column.
+   Dependent assignment maybe subtly change the behavior of your code between
+   Python 3.6 and older versions of Python.
 
-   Since the function signature of ``assign`` is ``**kwargs``, a dictionary,
-   the order of the new columns in the resulting DataFrame cannot be guaranteed
-   to match the order you pass in. To make things predictable, items are inserted
-   alphabetically (by key) at the end of the DataFrame.
+If you wish write code that supports versions of python before and after 3.6,
+you'll need to take care when passing ``assign`` expressions that
 
-   .. ipython::
-      :verbatim:
+   1. Updating an existing column
+   2. Refering to the newly updated column in the same ``assign``
 
-      In [1]: # Don't do this, bad reference to `C`
-              df.assign(C = lambda x: x['A'] + x['B'],
-                        D = lambda x: x['A'] + x['C'])
-      In [2]: # Instead, break it into two assigns
-              (df.assign(C = lambda x: x['A'] + x['B'])
-                 .assign(D = lambda x: x['A'] + x['C']))
+   For example, we'll update column "A" and then refer to it when creating "B".
+
+   .. code-block:: python
+
+      >>> dependent = pd.DataFrame({"A": [1, 1, 1]})
+      >>> dependent.assign(A=lambda x: x["A"] + 1,
+                           B=lambda x: x["A"] + 2)
+
+   For Python 3.5 and earlier the expression creating ``B`` refers to the
+   "old" value of ``A``, ``[1, 1, 1]``. The output is then
+
+   .. code-block:: python
+
+         A  B
+      0  2  3
+      1  2  3
+      2  2  3
+
+   For Python 3.6 and later, the expression creating ``A`` refers to the
+   "new" value of ``A``, ``[2, 2, 2]``, which results in
+
+   .. code-block:: python
+
+         A  B
+      0  2  4
+      1  2  4
+      2  2  4
+
+To write code compatible with all versions of Python, split the assignment in two.
+
+.. ipython:: python
+
+   dependent = pd.DataFrame({"A": [1, 1, 1]})
+   (dependent.assign(A=lambda x: x['A'] + 1)
+             .assign(B=lambda x: x['A'] + 2))
 
 
 Indexing / Selection
