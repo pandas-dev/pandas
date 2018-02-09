@@ -1,8 +1,8 @@
 #ifndef _PANDAS_MATH_H_
 #define _PANDAS_MATH_H_
 
-# In older versions of Visual Studio there wasn't a std::signbit defined
-# This defines it using _copysign
+// In older versions of Visual Studio there wasn't a std::signbit defined
+// This defines it using _copysign
 #if defined(_MSC_VER) && (_MSC_VER < 1800)
 #include <cmath>
 namespace std {
