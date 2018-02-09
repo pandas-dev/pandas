@@ -481,6 +481,7 @@ def group_rank_{{name}}(ndarray[float64_t, ndim=2] out,
         Py_ssize_t i, j, N, K, val_start=0, grp_start=0, dups=0, sum_ranks=0
         Py_ssize_t grp_vals_seen=1, grp_na_count=0
         ndarray[int64_t] _as
+        ndarray[float64_t, ndim=2] grp_sizes
         ndarray[{{c_type}}] masked_vals
         ndarray[uint8_t] mask
         bint keep_na
@@ -489,6 +490,7 @@ def group_rank_{{name}}(ndarray[float64_t, ndim=2] out,
     tiebreak = tiebreakers[ties_method]
     keep_na = na_option == 'keep'
     N, K = (<object> values).shape
+    grp_sizes = np.ones_like(out)
 
     # Copy values into new array in order to fill missing data
     # with mask, without obfuscating location of missing data
@@ -588,24 +590,26 @@ def group_rank_{{name}}(ndarray[float64_t, ndim=2] out,
                 val_start = i
                 grp_vals_seen += 1
 
-            # Similar to the previous conditional, check now if we are moving to a
-            # new group. If so, keep track of the index where the new group occurs,
-            # so the tiebreaker calculations can decrement that from their position
-            # if the pct flag is True, go back and overwrite the result for
-            # the group to be divided by the size of the group (excluding na values)
-            # also be sure to reset any of the items helping to calculate dups
+            # Similar to the previous conditional, check now if we are moving
+            # to a new group. If so, keep track of the index where the new
+            # group occurs, so the tiebreaker calculations can decrement that
+            # from their position. fill in the size of each group encountered
+            # (used by pct calculations later). also be sure to reset any of
+            # the items helping to calculate dups
             if i == N - 1 or labels[_as[i]] != labels[_as[i+1]]:
-                if pct:
-                    for j in range(grp_start, i + 1):
-                        out[_as[j], 0] = out[_as[j], 0] / (i - grp_start + 1
-                                                           - grp_na_count)
+                for j in range(grp_start, i + 1):
+                    grp_sizes[_as[j], 0] = i - grp_start + 1 - grp_na_count
                 dups = sum_ranks = 0
                 grp_na_count = 0
                 val_start = i + 1
                 grp_start = i + 1
                 grp_vals_seen = 1
 
+        if pct:
+            for i in range(N):
+                out[i, 0] = out[i, 0] / grp_sizes[i, 0]
 {{endfor}}
+
 
 #----------------------------------------------------------------------
 # group_min, group_max
