@@ -7,7 +7,7 @@ import numpy as np
 cnp.import_array()
 
 
-from cpython cimport PyFloat_Check
+from cpython cimport PyFloat_Check, PyUnicode_Check
 
 from util cimport (is_integer_object, is_float_object, is_string_object,
                    is_datetime64_object)
@@ -598,6 +598,8 @@ cpdef array_to_datetime(ndarray[object] values, errors='raise',
                 if len(val) == 0 or val in nat_strings:
                     iresult[i] = NPY_NAT
                     continue
+                if PyUnicode_Check(val):
+                    val = val.encode('utf-8')
 
                 try:
                     _string_to_dts(val, &dts, &out_local, &out_tzoffset)
@@ -691,6 +693,7 @@ cpdef array_to_datetime(ndarray[object] values, errors='raise',
 
         return result
     except OutOfBoundsDatetime:
+        raise
         if is_raise:
             raise
 
@@ -713,6 +716,7 @@ cpdef array_to_datetime(ndarray[object] values, errors='raise',
                 oresult[i] = val
         return oresult
     except TypeError:
+        raise
         oresult = np.empty(n, dtype=object)
 
         for i in range(n):
@@ -743,14 +747,14 @@ cpdef array_to_datetime(ndarray[object] values, errors='raise',
         return oresult
 
 
-cdef inline bint _parse_today_now(str val, int64_t* iresult):
+cdef inline bint _parse_today_now(bytes val, int64_t* iresult):
     # We delay this check for as long as possible
     # because it catches relatively rare cases
-    if val == 'now':
+    if val == b'now':
         # Note: this is *not* the same as Timestamp('now')
         iresult[0] = Timestamp.utcnow().value
         return True
-    elif val == 'today':
+    elif val == b'today':
         # Note: this is *not* the same as Timestamp('today')
         iresult[0] = Timestamp.now().normalize().value
         return True
