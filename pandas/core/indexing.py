@@ -618,9 +618,9 @@ class _NDFrameIndexer(_NDFrameIndexerBase):
                     return
 
             if isinstance(value, (ABCSeries, dict)):
-                # TODO: ExtensionBlock.setitem this causes issues with setting for
-                # extensionarrays that store dicts. Need to decide if it's worth
-                # supporting that case.
+                # TODO: ExtensionBlock.setitem this causes issues with setting
+                # for extensionarrays that store dicts. Need to decide if it's
+                # worth supporting that or now
                 value = self._align_series(indexer, Series(value))
 
             elif isinstance(value, ABCDataFrame):

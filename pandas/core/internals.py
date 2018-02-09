@@ -15,7 +15,6 @@ from pandas._libs import internals as libinternals
 
 from pandas.core.base import PandasObject
 
-from pandas.core.arrays import ExtensionArray
 from pandas.core.dtypes.dtypes import (
     ExtensionDtype, DatetimeTZDtype,
     CategoricalDtype)
