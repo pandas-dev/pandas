@@ -1212,7 +1212,7 @@ def test_unique_datetime_series(arr, expected):
 
 
 @pytest.mark.parametrize('array, expected_type, dtype', [
-    (np.array([0, 1]), np.ndarray, 'int64'),
+    (np.array([0, 1], dtype=np.int64), np.ndarray, 'int64'),
     (np.array(['a', 'b']), np.ndarray, 'object'),
     (pd.Categorical(['a', 'b']), pd.Categorical, 'category'),
     (pd.DatetimeIndex(['2017', '2018']), np.ndarray, 'datetime64[ns]'),
@@ -1242,7 +1242,7 @@ def test_values_consistent(array, expected_type, dtype):
 
 
 @pytest.mark.parametrize('array, expected', [
-    (np.array([0, 1]), np.array([0, 1])),
+    (np.array([0, 1], dtype=np.int64), np.array([0, 1], dtype=np.int64)),
     (np.array(['0', '1']), np.array(['0', '1'], dtype=object)),
     (pd.Categorical(['a', 'a']), np.array([0, 0], dtype='int8')),
     (pd.DatetimeIndex(['2017-01-01T00:00:00']),
@@ -1262,7 +1262,7 @@ def test_ndarray_values(array, expected):
     tm.assert_numpy_array_equal(l_values, expected)
 
 
-def test_values_multiindex_datetimesindex():
+def test_values_multiindex_datetimeindex():
     # Test to ensure we hit the boxing / nobox part of MI.values
     ints = np.arange(10**18, 10**18 + 5)
     naive = pd.DatetimeIndex(ints)
@@ -1287,7 +1287,7 @@ def test_values_multiindex_datetimesindex():
     tm.assert_index_equal(inner, aware[:2])
 
 
-def test_values_multiindex_datetimesindex():
+def test_values_multiindex_periodindex():
     # Test to ensure we hit the boxing / nobox part of MI.values
     ints = np.arange(2007, 2012)
     pidx = pd.PeriodIndex(ints, freq='D')

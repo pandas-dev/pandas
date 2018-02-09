@@ -7,8 +7,7 @@ from pandas.compat import builtins
 import numpy as np
 
 from pandas.core.dtypes.missing import isna
-from pandas.core.dtypes.generic import (
-    ABCDataFrame, ABCSeries, ABCIndexClass, ABCDatetimeIndex)
+from pandas.core.dtypes.generic import ABCDataFrame, ABCSeries, ABCIndexClass
 from pandas.core.dtypes.common import (
     is_object_dtype,
     is_list_like,
