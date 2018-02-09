@@ -419,11 +419,6 @@ class PeriodIndex(DatelikeOps, DatetimeIndexOpsMixin, Int64Index):
         return self.astype(object).values
 
     @property
-    def _values(self):
-        # TODO: return PeriodArray
-        return self.values
-
-    @property
     def _ndarray_values(self):
         # Ordinals
         return self._data
