@@ -549,10 +549,10 @@ cpdef array_to_datetime(ndarray[object] values, errors='raise',
                         raise
 
             elif PyDate_Check(val):
+                seen_datetime = 1
                 iresult[i] = pydate_to_dt64(val, &dts)
                 try:
                     check_dts_bounds(&dts)
-                    seen_datetime = 1
                 except ValueError:
                     if is_coerce:
                         iresult[i] = NPY_NAT
@@ -560,12 +560,12 @@ cpdef array_to_datetime(ndarray[object] values, errors='raise',
                     raise
 
             elif is_datetime64_object(val):
+                seen_datetime = 1
                 if get_datetime64_value(val) == NPY_NAT:
                     iresult[i] = NPY_NAT
                 else:
                     try:
                         iresult[i] = get_datetime64_nanos(val)
-                        seen_datetime = 1
                     except ValueError:
                         if is_coerce:
                             iresult[i] = NPY_NAT
@@ -574,19 +574,18 @@ cpdef array_to_datetime(ndarray[object] values, errors='raise',
 
             elif is_integer_object(val) or is_float_object(val):
                 # these must be ns unit by-definition
+                seen_integer = 1
 
                 if val != val or val == NPY_NAT:
                     iresult[i] = NPY_NAT
                 elif is_raise or is_ignore:
                     iresult[i] = val
-                    seen_integer = 1
                 else:
                     # coerce
                     # we now need to parse this as if unit='ns'
                     # we can ONLY accept integers at this point
                     # if we have previously (or in future accept
                     # datetimes/strings, then we must coerce)
-                    seen_integer = 1
                     try:
                         iresult[i] = cast_from_unit(val, 'ns')
                     except:
@@ -594,12 +593,11 @@ cpdef array_to_datetime(ndarray[object] values, errors='raise',
 
             elif is_string_object(val):
                 # string
+                seen_string = 1
 
                 if len(val) == 0 or val in nat_strings:
                     iresult[i] = NPY_NAT
                     continue
-
-                seen_string = 1
 
                 try:
                     _string_to_dts(val, &dts, &out_local, &out_tzoffset)
