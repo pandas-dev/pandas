@@ -3950,7 +3950,7 @@ class DataFrame(NDFrame):
             return result
 
         else:
-            result = _arith_op(self.values, other.values)
+            result = _arith_op(this.values, other.values)
 
         return self._constructor(result, index=new_index, columns=new_columns,
                                  copy=False)
