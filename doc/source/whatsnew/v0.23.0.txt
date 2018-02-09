@@ -122,7 +122,7 @@ resetting indexes. See the :ref:`Sorting by Indexes and Values
 Timedelta mod method
 ^^^^^^^^^^^^^^^^^^^^
 
-mod (%) and divmod operations are now defined on Timedelta objects when operating with either timedelta-like or with numeric arguments. (:issue:`19365`)
+``mod`` (%) and ``divmod`` operations are now defined on ``Timedelta`` objects when operating with either timedelta-like or with numeric arguments. (:issue:`19365`)
 
 .. ipython:: python
 

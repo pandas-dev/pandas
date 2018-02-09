@@ -105,15 +105,6 @@ class TestTimedeltaArithmetic(object):
             result = base - offset
             assert result == expected_sub
 
-    def test_ops_offsets(self):
-        td = Timedelta(10, unit='d')
-        assert Timedelta(241, unit='h') == td + pd.offsets.Hour(1)
-        assert Timedelta(241, unit='h') == pd.offsets.Hour(1) + td
-        assert 240 == td / pd.offsets.Hour(1)
-        assert 1 / 240.0 == pd.offsets.Hour(1) / td
-        assert Timedelta(239, unit='h') == td - pd.offsets.Hour(1)
-        assert Timedelta(-239, unit='h') == pd.offsets.Hour(1) - td
-
     def test_unary_ops(self):
         td = Timedelta(10, unit='d')
 
@@ -183,6 +174,17 @@ class TestTimedeltaArithmetic(object):
         assert isinstance(result, Timedelta)
         assert result == Timedelta(days=6)
 
+    def test_sub_timedeltalike(self):
+        td = Timedelta(10, unit='d')
+
+        result = td - pd.offsets.Hour(1)
+        assert isinstance(result, Timedelta)
+        assert result == Timedelta(239, unit='h')
+
+        result = pd.offsets.Hour(1) - td
+        assert isinstance(result, Timedelta)
+        assert result == Timedelta(-239, unit='h')
+
     def test_binary_ops_nat(self):
         td = Timedelta(10, unit='d')
 
@@ -223,6 +225,16 @@ class TestTimedeltaArithmetic(object):
 
         # invalid multiply with another timedelta
         pytest.raises(TypeError, lambda: td * td)
+
+    def test_div(self):
+        td = Timedelta(10, unit='d')
+        result = td / pd.offsets.Hour(1)
+        assert result == 240
+
+    def test_rdiv(self):
+        td = Timedelta(10, unit='d')
+        result = pd.offsets.Hour(1) / td
+        assert result == 1 / 240.0
 
     def test_floordiv(self):
         # GH#18846
