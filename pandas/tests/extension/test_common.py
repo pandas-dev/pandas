@@ -12,6 +12,10 @@ class DummyArray(ExtensionArray):
     def __array__(self, dtype):
         return self.data
 
+    @property
+    def dtype(self):
+        return self.data.dtype
+
 
 def test_astype():
     arr = DummyArray(np.array([1, 2, 3]))
@@ -24,13 +28,11 @@ def test_astype():
     tm.assert_numpy_array_equal(result, expected)
 
 
-def test_astype_raises():
-    arr = DummyArray(np.array([1, 2, 3]))
+def test_astype_no_copy():
+    arr = DummyArray(np.array([1, 2, 3], dtype=np.int64))
+    result = arr.astype(arr.dtype, copy=False)
 
-    # type  int for py2
-    # class int for py3
-    xpr = ("DummyArray can only be coerced to 'object' dtype, not "
-           "'<.* 'int'>'")
+    assert arr.data is result
 
-    with tm.assert_raises_regex(ValueError, xpr):
-        arr.astype(int)
+    result = arr.astype(arr.dtype)
+    assert arr.data is not result
