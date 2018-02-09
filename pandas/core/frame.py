@@ -3370,8 +3370,7 @@ class DataFrame(NDFrame):
             new_obj = self.copy()
 
         def _maybe_casted_values(index, labels=None):
-            values = index._as_best_array()
-            # TODO: Check if nescessary...
+            values = index._values
             if not isinstance(index, (PeriodIndex, DatetimeIndex)):
                 if values.dtype == np.object_:
                     values = lib.maybe_convert_objects(values)

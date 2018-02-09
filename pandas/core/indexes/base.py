@@ -1095,31 +1095,6 @@ class Index(IndexOpsMixin, PandasObject):
 
         return self.values.copy()
 
-    def _as_best_array(self):
-        # type: () -> Union[ExtensionArray, ndarary]
-        """Return the underlying values as the best array type.
-
-        Indexes backed by ExtensionArrays will return the ExtensionArray.
-        Otherwise, an ndarray is returned.
-
-        Examples
-        --------
-        >>> pd.Index([0, 1, 2])._as_best_array()
-        array([0, 1, 2])
-
-        >>> pd.CategoricalIndex(['a', 'a', 'b'])._as_best_array()
-        [a, a, b]
-        Categories (2, object): [a, b]
-
-        >>> pd.IntervalIndex.from_breaks([0, 1, 2])._as_best_array()
-        IntervalArray([(0, 1], (1, 2]])
-        """
-        # We need this since CategoricalIndex.values -> Categorical
-        #                but IntervalIndex.values    -> ndarray[object]
-        # TODO: IntervalIndex defines _array_values. Would be nice to
-        # have an unambiguous way of getting an ndarray (or just use asarray?)
-        return self.values
-
     _index_shared_docs['astype'] = """
         Create an Index with values cast to dtypes. The class of a new Index
         is determined by dtype. When conversion is impossible, a ValueError

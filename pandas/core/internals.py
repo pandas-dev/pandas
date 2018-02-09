@@ -1868,10 +1868,8 @@ class ExtensionBlock(NonConsolidatableMixIn, Block):
     def _maybe_coerce_values(self, values):
         # Unboxes Series / Index
         # Doesn't change any underlying dtypes.
-        if isinstance(values, ABCSeries):
+        if isinstance(values, (ABCIndexClass, ABCSeries)):
             values = values.values
-        elif isinstance(values, ABCIndexClass):
-            values = values._as_best_array()
         return values
 
     @property
@@ -4133,8 +4131,7 @@ class BlockManager(PandasObject):
         # FIXME: refactor, clearly separate broadcasting & zip-like assignment
         #        can prob also fix the various if tests for sparse/categorical
 
-        value_is_extension_type = (is_extension_type(value) or
-                                   is_extension_array_dtype(value))
+        value_is_extension_type = is_extension_type(value)
 
         # categorical/spares/datetimetz
         if value_is_extension_type:

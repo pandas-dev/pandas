@@ -132,9 +132,7 @@ def _isna_ndarraylike(obj):
     dtype = values.dtype
 
     if is_extension_array_dtype(obj):
-        if isinstance(obj, ABCIndexClass):
-            values = obj._as_best_array()
-        elif isinstance(obj, ABCSeries):
+        if isinstance(obj, (ABCIndexClass, ABCSeries)):
             values = obj._values
         else:
             values = obj

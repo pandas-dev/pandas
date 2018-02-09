@@ -83,16 +83,3 @@ class DatetimeLike(Base):
         with tm.assert_produces_warning(FutureWarning):
             i = d.asobject
         assert isinstance(i, pd.Index)
-
-    def test_as_best_array(self):
-        result = pd.DatetimeIndex(['2017-01-01T00:00:00',
-                                   '2017-01-02T00:00:00'])._as_best_array()
-        expected = np.array(['2017-01-01T00:00:00',
-                             '2017-01-02T00:00:00'], dtype='M8[ns]')
-        tm.assert_numpy_array_equal(result, expected)
-
-    def test_as_best_array_tz(self):
-        arr = pd.DatetimeIndex(['2017-01-01T00:00:00',
-                                '2017-01-02T00:00:00'], tz='US/Central')
-        result = arr._as_best_array()
-        tm.assert_index_equal(arr, result)

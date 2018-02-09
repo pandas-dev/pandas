@@ -2150,7 +2150,6 @@ class Categorical(ExtensionArray, PandasObject):
     def _formatting_values(self):
         return self
 
-
 # The Series.cat accessor
 
 

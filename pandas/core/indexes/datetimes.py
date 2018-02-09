@@ -1043,13 +1043,6 @@ class DatetimeIndex(DatelikeOps, TimelikeOps, DatetimeIndexOpsMixin,
 
         return self.values.copy()
 
-    def _as_best_array(self):
-        # no-tz -> ndarray
-        # tz    -> DatetimeIndex (for now)
-        if self.tz is not None:
-            return self
-        return self.values
-
     def to_pydatetime(self):
         """
         Return DatetimeIndex as object ndarray of datetime.datetime objects

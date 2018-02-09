@@ -181,7 +181,8 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
                     data = data.astype(dtype)
 
                 # need to copy to avoid aliasing issues
-                data = data._as_best_array().copy()
+                data = data._values.copy()
+                copy = False
 
             elif isinstance(data, np.ndarray):
                 pass
@@ -3137,7 +3138,9 @@ def _sanitize_index(data, index, copy=False):
         raise ValueError('Length of values does not match length of ' 'index')
 
     if isinstance(data, ABCIndexClass) and not copy:
-        data = data._as_best_array()
+        pass
+    elif isinstance(data, (PeriodIndex, DatetimeIndex)):
+        data = data._values
 
     elif isinstance(data, np.ndarray):
 
@@ -3216,7 +3219,6 @@ def _sanitize_array(data, index, dtype=None, copy=False,
 
         if copy:
             subarr = data.copy()
-        # XXX: This is the only early return. See if it can be avoided.
         return subarr
 
     elif isinstance(data, (list, tuple)) and len(data) > 0:
@@ -3239,7 +3241,6 @@ def _sanitize_array(data, index, dtype=None, copy=False,
         start, stop, step = get_range_parameters(data)
         arr = np.arange(start, stop, step, dtype='int64')
         subarr = _try_cast(arr, False)
-
     else:
         subarr = _try_cast(data, False)
 
