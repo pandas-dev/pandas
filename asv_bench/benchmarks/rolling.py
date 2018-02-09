@@ -23,13 +23,19 @@ class Methods(object):
         getattr(self.roll, method)()
 
 class VariableWindowMethods(Methods):
-    params[1] = ['50s', '1h', '1d']
+    sample_time = 0.2
+    params = (['DataFrame', 'Series'],
+              ['50s', '1h', '1d'],
+              ['int', 'float'],
+              ['median', 'mean', 'max', 'min', 'std', 'count', 'skew', 'kurt',
+               'sum'])
+    param_names = ['contructor', 'window', 'dtype', 'method']
 
     def setup(self, constructor, window, dtype, method):
         N = 10**5
         arr = (100 * np.random.random(N)).astype(dtype)
         index = pd.date_range('2017-01-01', periods=N, freq='5s')
-        self.roll = getattr(pd, constructor)(arr, index=index)
+        self.roll = getattr(pd, constructor)(arr, index=index).rolling(window)
 
 class Pairwise(object):
 
