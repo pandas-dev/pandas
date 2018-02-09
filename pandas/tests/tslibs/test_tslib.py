@@ -6,6 +6,8 @@ import numpy as np
 from pandas._libs.tslib import array_to_datetime, iNaT
 from pandas import Timestamp
 
+import pandas.util.testing as tm
+
 
 class TestArrayToDatetime(object):
     def test_coerce_out_of_bounds_utc(self):
@@ -13,4 +15,5 @@ class TestArrayToDatetime(object):
         dt = ts.to_pydatetime() - timedelta(days=365 * 300)  # ~1600AD
         arr = np.array([dt])
         result = array_to_datetime(arr, utc=True, errors='coerce')
-        assert (result == iNaT).all()
+        expected = np.array(['NaT'], dtype='datetime64[ns]')
+        tm.assert_numpy_array_equal(result, expected)
