@@ -1196,7 +1196,7 @@ def test_unique_datetime_index(arr, expected):
 
 @pytest.mark.parametrize('arr, expected', [
     (pd.Series(pd.DatetimeIndex(['2017', '2017'])),
-     np.array(['2017'], dtype='M8[ns]')),
+     np.array(['2017-01-01T00:00:00'], dtype='M8[ns]')),
     (pd.Series(pd.DatetimeIndex(['2017', '2017'], tz='US/Eastern')),
      np.array([pd.Timestamp('2017', tz="US/Eastern")], dtype=object)),
 ])
