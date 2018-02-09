@@ -480,7 +480,7 @@ def _concat_datetimetz(to_concat, name=None):
 
 def _concat_index_same_dtype(indexes, klass=None):
     klass = klass if klass is not None else indexes[0].__class__
-    return klass(np.concatenate([x._values for x in indexes]))
+    return klass(np.concatenate([x._ndarray_values for x in indexes]))
 
 
 def _concat_index_asobject(to_concat, name=None):
@@ -488,12 +488,14 @@ def _concat_index_asobject(to_concat, name=None):
     concat all inputs as object. DatetimeIndex, TimedeltaIndex and
     PeriodIndex are converted to object dtype before concatenation
     """
+    from pandas import Index
+    from pandas.core.arrays import ExtensionArray
 
-    klasses = ABCDatetimeIndex, ABCTimedeltaIndex, ABCPeriodIndex
+    klasses = (ABCDatetimeIndex, ABCTimedeltaIndex, ABCPeriodIndex,
+               ExtensionArray)
     to_concat = [x.astype(object) if isinstance(x, klasses) else x
                  for x in to_concat]
 
-    from pandas import Index
     self = to_concat[0]
     attribs = self._get_attributes_dict()
     attribs['name'] = name

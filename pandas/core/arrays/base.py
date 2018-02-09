@@ -177,6 +177,34 @@ class ExtensionArray(object):
     # ------------------------------------------------------------------------
     # Additional Methods
     # ------------------------------------------------------------------------
+    def astype(self, dtype, copy=True):
+        """Cast to a NumPy array with 'dtype'.
+
+        The default implementation only allows casting to 'object' dtype.
+
+        Parameters
+        ----------
+        dtype : str or dtype
+            Typecode or data-type to which the array is cast.
+        copy : bool, default True
+            Whether to copy the data, even if not necessary. If False,
+            a copy is made only if the old dtype does not match the
+            new dtype.
+
+        Returns
+        -------
+        array : ndarray
+            NumPy ndarray with 'dtype' for its dtype.
+        """
+        np_dtype = np.dtype(dtype)
+
+        if np_dtype != 'object':
+            msg = ("{} can only be coerced to 'object' dtype, "
+                   "not '{}'.").format(type(self).__name__, dtype)
+            raise ValueError(msg)
+
+        return np.array(self, dtype=np_dtype, copy=copy)
+
     def isna(self):
         # type: () -> np.ndarray
         """Boolean NumPy array indicating if each value is missing.

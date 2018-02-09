@@ -7,12 +7,14 @@ from pandas.compat import builtins
 import numpy as np
 
 from pandas.core.dtypes.missing import isna
-from pandas.core.dtypes.generic import ABCDataFrame, ABCSeries, ABCIndexClass
+from pandas.core.dtypes.generic import (
+    ABCDataFrame, ABCSeries, ABCIndexClass, ABCDatetimeIndex)
 from pandas.core.dtypes.common import (
     is_object_dtype,
     is_list_like,
     is_scalar,
     is_datetimelike,
+    is_categorical_dtype,
     is_extension_type)
 
 from pandas.util._validators import validate_bool_kwarg
@@ -710,7 +712,7 @@ class IndexOpsMixin(object):
     @property
     def shape(self):
         """ return a tuple of the shape of the underlying data """
-        return self._values.shape
+        return self._ndarray_values.shape
 
     @property
     def ndim(self):
@@ -738,22 +740,22 @@ class IndexOpsMixin(object):
     @property
     def itemsize(self):
         """ return the size of the dtype of the item of the underlying data """
-        return self._values.itemsize
+        return self._ndarray_values.itemsize
 
     @property
     def nbytes(self):
         """ return the number of bytes in the underlying data """
-        return self._values.nbytes
+        return self._ndarray_values.nbytes
 
     @property
     def strides(self):
         """ return the strides of the underlying data """
-        return self._values.strides
+        return self._ndarray_values.strides
 
     @property
     def size(self):
         """ return the number of elements in the underlying data """
-        return self._values.size
+        return self._ndarray_values.size
 
     @property
     def flags(self):
@@ -768,8 +770,21 @@ class IndexOpsMixin(object):
         return self.values.base
 
     @property
-    def _values(self):
-        """ the internal implementation """
+    def _ndarray_values(self):
+        """The data as an ndarray, possibly losing information.
+
+        The expectation is that this is cheap to compute.
+
+        - categorical -> codes
+
+        See '_values' for more.
+        """
+        # type: () -> np.ndarray
+        from pandas.core.dtypes.common import is_categorical_dtype
+
+        if is_categorical_dtype(self):
+            return self._values.codes
+
         return self.values
 
     @property
@@ -819,8 +834,10 @@ class IndexOpsMixin(object):
 
         if is_datetimelike(self):
             return [com._maybe_box_datetimelike(x) for x in self._values]
+        elif is_categorical_dtype(self):
+            return self.values.tolist()
         else:
-            return self._values.tolist()
+            return self._ndarray_values.tolist()
 
     def __iter__(self):
         """
@@ -978,7 +995,9 @@ class IndexOpsMixin(object):
     def unique(self):
         values = self._values
 
+        # TODO: Make unique part of the ExtensionArray interface.
         if hasattr(values, 'unique'):
+
             result = values.unique()
         else:
             from pandas.core.algorithms import unique1d

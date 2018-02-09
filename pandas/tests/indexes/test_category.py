@@ -353,6 +353,14 @@ class TestCategoricalIndex(Base):
         expected = Index(list('caaabbca'))
         tm.assert_index_equal(result, expected, exact=True)
 
+    def test_append_to_another(self):
+        # hits _concat_index_asobject
+        fst = Index(['a', 'b'])
+        snd = CategoricalIndex(['d', 'e'])
+        result = fst.append(snd)
+        expected = Index(['a', 'b', 'd', 'e'])
+        tm.assert_index_equal(result, expected)
+
     def test_insert(self):
 
         ci = self.create_index()
