@@ -797,7 +797,7 @@ class CategoricalIndex(Index, accessor.PandasDelegate):
 
     def _delegate_method(self, name, *args, **kwargs):
         """ method delegation to the ._values """
-        method = getattr(self.values, name)
+        method = getattr(self._values, name)
         if 'inplace' in kwargs:
             raise ValueError("cannot use inplace with CategoricalIndex")
         res = method(*args, **kwargs)

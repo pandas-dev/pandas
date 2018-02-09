@@ -1241,13 +1241,6 @@ def test_values_consistent(array, expected_type, dtype):
     assert r_values.dtype == dtype
 
 
-def test_values_periodindex():
-    arr = pd.period_range("2017", periods=4, freq='D')
-    result = arr._values
-    expected = np.array(arr.astype(object))
-    tm.assert_numpy_array_equal(result, expected)
-
-
 @pytest.mark.parametrize('array, expected', [
     (np.array([0, 1]), np.array([0, 1])),
     (np.array(['0', '1']), np.array(['0', '1'], dtype=object)),
@@ -1267,3 +1260,52 @@ def test_ndarray_values(array, expected):
     r_values = pd.Index(array)._ndarray_values
     tm.assert_numpy_array_equal(l_values, r_values)
     tm.assert_numpy_array_equal(l_values, expected)
+
+
+def test_values_multiindex_datetimesindex():
+    # Test to ensure we hit the boxing / nobox part of MI.values
+    ints = np.arange(10**18, 10**18 + 5)
+    naive = pd.DatetimeIndex(ints)
+    aware = pd.DatetimeIndex(ints, tz='US/Central')
+
+    idx = pd.MultiIndex.from_arrays([naive, aware])
+    result = idx.values
+
+    outer = pd.DatetimeIndex([x[0] for x in result])
+    tm.assert_index_equal(outer, naive)
+
+    inner = pd.DatetimeIndex([x[1] for x in result])
+    tm.assert_index_equal(inner, aware)
+
+    # n_lev > n_lab
+    result = idx[:2].values
+
+    outer = pd.DatetimeIndex([x[0] for x in result])
+    tm.assert_index_equal(outer, naive[:2])
+
+    inner = pd.DatetimeIndex([x[1] for x in result])
+    tm.assert_index_equal(inner, aware[:2])
+
+
+def test_values_multiindex_datetimesindex():
+    # Test to ensure we hit the boxing / nobox part of MI.values
+    ints = np.arange(2007, 2012)
+    pidx = pd.PeriodIndex(ints, freq='D')
+
+    idx = pd.MultiIndex.from_arrays([ints, pidx])
+    result = idx.values
+
+    outer = pd.Int64Index([x[0] for x in result])
+    tm.assert_index_equal(outer, pd.Int64Index(ints))
+
+    inner = pd.PeriodIndex([x[1] for x in result])
+    tm.assert_index_equal(inner, pidx)
+
+    # n_lev > n_lab
+    result = idx[:2].values
+
+    outer = pd.Int64Index([x[0] for x in result])
+    tm.assert_index_equal(outer, pd.Int64Index(ints[:2]))
+
+    inner = pd.PeriodIndex([x[1] for x in result])
+    tm.assert_index_equal(inner, pidx[:2])

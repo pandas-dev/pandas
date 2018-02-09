@@ -613,14 +613,14 @@ class Index(IndexOpsMixin, PandasObject):
         index             | values          | _values     | _ndarray_values |
         ----------------- | -------------- -| ----------- | --------------- |
         CategoricalIndex  | Categorical     | Categorical | codes           |
-        DatetimeIndex[tz] | ndarray[M8ns]   | DTI[tz]     | datetime@UTC    |
+        DatetimeIndex[tz] | ndarray[M8ns]   | DTI[tz]     | ndarray[M8ns]   |
 
         In the near-future, we'll implement two more.
 
-        index             | values          | _values     | ndarray_values |
-        ----------------- | --------------- | ----------- | -------------- |
-        PeriodIndex       | ndarray[object] | PeriodArray
-        IntervalIndex     | IntervalArray   | ndarray[Interval]
+        index             | values          | _values     | _ndarray_values |
+        ----------------- | --------------- | ----------- | --------------- |
+        PeriodIndex       | ndarray[object] | PeriodArray | ndarray[int]    |
+        IntervalIndex     | ndarray[object] | PeriodArray | ndarray[object] |
 
         See Also
         --------

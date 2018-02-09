@@ -799,7 +799,7 @@ class MultiIndex(Index):
             box = hasattr(lev, '_box_values')
             # Try to minimize boxing.
             if box and len(lev) > len(lab):
-                taken = lev._box_values(algos.take_1d(lev._values,
+                taken = lev._box_values(algos.take_1d(lev._ndarray_values,
                                                       lab))
             elif box:
                 taken = algos.take_1d(lev._box_values(lev._ndarray_values),
