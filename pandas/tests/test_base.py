@@ -1262,7 +1262,7 @@ def test_ndarray_values(array, expected):
     tm.assert_numpy_array_equal(l_values, expected)
 
 
-def test_values_multiindex_datetimesindex():
+def test_values_multiindex_datetimeindex():
     # Test to ensure we hit the boxing / nobox part of MI.values
     ints = np.arange(10**18, 10**18 + 5)
     naive = pd.DatetimeIndex(ints)
@@ -1287,7 +1287,7 @@ def test_values_multiindex_datetimesindex():
     tm.assert_index_equal(inner, aware[:2])
 
 
-def test_values_multiindex_datetimesindex():
+def test_values_multiindex_periodindex():
     # Test to ensure we hit the boxing / nobox part of MI.values
     ints = np.arange(2007, 2012)
     pidx = pd.PeriodIndex(ints, freq='D')
