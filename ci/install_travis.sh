@@ -110,7 +110,7 @@ if [ -e ${REQ} ]; then
 fi
 
 time conda install -n pandas pytest>=3.1.0
-time pip install pytest-xdist moto
+time pip install -q pytest-xdist moto
 
 if [ "$LINT" ]; then
    conda install flake8=3.4.1
@@ -181,10 +181,10 @@ elif [ "$CONDA_BUILD_TEST" ]; then
 
     # build & install testing
     echo "[building conda recipe]"
-    time conda build ./conda.recipe --numpy 1.13 --python 3.5 -q --no-test
+    time conda build ./conda.recipe --python 3.5 -q --no-test || exit 1
 
     echo "[installing]"
-    conda install pandas --use-local
+    conda install pandas --use-local || exit 1
 
 else
 
