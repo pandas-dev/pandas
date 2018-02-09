@@ -2086,7 +2086,19 @@ class TestGroupBy(MixIn):
         expected = df.groupby(bins).agg(lambda x: x.median())
         assert_frame_equal(result, expected)
 
-    def test_groupby_non_arithmetic_agg_types(self):
+    @pytest.mark.parametrize("dtype", [
+        'int8', 'int16', 'int32', 'int64', 'float32', 'float64'])
+    @pytest.mark.parametrize("method,data", [
+        ('first', {'df': [{'a': 1, 'b': 1}, {'a': 2, 'b': 3}]}),
+        ('last', {'df': [{'a': 1, 'b': 2}, {'a': 2, 'b': 4}]}),
+        ('min', {'df': [{'a': 1, 'b': 1}, {'a': 2, 'b': 3}]}),
+        ('max', {'df': [{'a': 1, 'b': 2}, {'a': 2, 'b': 4}]}),
+        ('nth', {'df': [{'a': 1, 'b': 2}, {'a': 2, 'b': 4}],
+                 'args': [1]}),
+        ('count', {'df': [{'a': 1, 'b': 2}, {'a': 2, 'b': 2}],
+                   'out_type': 'int64'})
+    ])
+    def test_groupby_non_arithmetic_agg_types(self, dtype, method, data):
         # GH9311, GH6620
         df = pd.DataFrame(
             [{'a': 1, 'b': 1},
@@ -2094,39 +2106,44 @@ class TestGroupBy(MixIn):
              {'a': 2, 'b': 3},
              {'a': 2, 'b': 4}])
 
-        dtypes = ['int8', 'int16', 'int32', 'int64', 'float32', 'float64']
+        df['b'] = df.b.astype(dtype)
 
-        grp_exp = {'first': {'df': [{'a': 1, 'b': 1}, {'a': 2, 'b': 3}]},
-                   'last': {'df': [{'a': 1, 'b': 2}, {'a': 2, 'b': 4}]},
-                   'min': {'df': [{'a': 1, 'b': 1}, {'a': 2, 'b': 3}]},
-                   'max': {'df': [{'a': 1, 'b': 2}, {'a': 2, 'b': 4}]},
-                   'nth': {'df': [{'a': 1, 'b': 2}, {'a': 2, 'b': 4}],
-                           'args': [1]},
-                   'count': {'df': [{'a': 1, 'b': 2}, {'a': 2, 'b': 2}],
-                             'out_type': 'int64'}}
+        if 'args' not in data:
+            data['args'] = []
 
-        for dtype in dtypes:
-            df_in = df.copy()
-            df_in['b'] = df_in.b.astype(dtype)
+        if 'out_type' in data:
+            out_type = data['out_type']
+        else:
+            out_type = dtype
 
-            for method, data in compat.iteritems(grp_exp):
-                if 'args' not in data:
-                    data['args'] = []
+        exp = data['df']
+        df_out = pd.DataFrame(exp)
 
-                if 'out_type' in data:
-                    out_type = data['out_type']
-                else:
-                    out_type = dtype
+        df_out['b'] = df_out.b.astype(out_type)
+        df_out.set_index('a', inplace=True)
 
-                exp = data['df']
-                df_out = pd.DataFrame(exp)
+        grpd = df.groupby('a')
+        t = getattr(grpd, method)(*data['args'])
+        assert_frame_equal(t, df_out)
 
-                df_out['b'] = df_out.b.astype(out_type)
-                df_out.set_index('a', inplace=True)
-
-                grpd = df_in.groupby('a')
-                t = getattr(grpd, method)(*data['args'])
-                assert_frame_equal(t, df_out)
+    @pytest.mark.parametrize("method,exp,args", [
+        ('first', [('bar', 'quuz'), ('foo', 'baz')], []),
+        ('last', [('bar', 'grault'), ('foo', 'quux')], []),
+        ('nth', [('bar', 'corge'), ('foo', 'qux')], [1]),
+    ])
+    def test_groupby_get_nth_object(self, method, exp, args):
+        df = pd.DataFrame(
+            [{'a': 'foo', 'b': 'baz'},
+             {'a': 'foo', 'b': 'qux'},
+             {'a': 'foo', 'b': 'quux'},
+             {'a': 'bar', 'b': 'quuz'},
+             {'a': 'bar', 'b': 'corge'},
+             {'a': 'bar', 'b': 'grault'}])
+        exp_df = pd.DataFrame(exp, columns=['a', 'b'])
+        exp_df.set_index('a', inplace=True)
+        grpd = df.groupby('a')
+        t = getattr(grpd, method)(*args)
+        assert_frame_equal(t, exp_df)
 
     def test_groupby_non_arithmetic_agg_intlike_precision(self):
         # GH9311, GH6620
