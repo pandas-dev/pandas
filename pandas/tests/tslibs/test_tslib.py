@@ -3,7 +3,7 @@ from datetime import timedelta
 
 import numpy as np
 
-from pandas._libs.tslib import array_to_datetime, iNaT
+from pandas._libs.tslib import array_to_datetime
 from pandas import Timestamp
 
 import pandas.util.testing as tm
