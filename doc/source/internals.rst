@@ -92,16 +92,20 @@ if you compute the levels and labels yourself, please be careful.
 Values
 ~~~~~~
 
-Pandas extends NumPy's type system in a few places, so we have multiple notions of "values" floating around.
-For 1-D containers (``Index`` classes and ``Series``) we have the following convention:
+Pandas extends NumPy's type system with custom types, like ``Categorical`` or
+datetimes with a timezone, so we have multiple notions of "values". For 1-D
+containers (``Index`` classes and ``Series``) we have the following convention:
 
-* ``cls._ndarray_values`` is *always* and ``ndarray``
-* ``cls._values`` refers is the "best possible" array. This could be an ``ndarray``, ``ExtensionArray``, or
-  in ``Index`` subclass (note: we're in the process of removing the index subclasses here so that it's
-  always an ``ndarray`` or ``ExtensionArray``).
+* ``cls._ndarray_values`` is *always* a NumPy ``ndarray``. Ideally,
+  ``_ndarray_values`` is cheap to compute. For example, for a ``Categorical``,
+  this returns the codes, not the array of objects.
+* ``cls._values`` refers is the "best possible" array. This could be an
+  ``ndarray``, ``ExtensionArray``, or in ``Index`` subclass (note: we're in the
+  process of removing the index subclasses here so that it's always an
+  ``ndarray`` or ``ExtensionArray``).
 
-So, for example, ``Series[category]._values`` is a ``Categorical``, while ``Series[category]._ndarray_values`` is
-the underlying ndarray.
+So, for example, ``Series[category]._values`` is a ``Categorical``, while
+``Series[category]._ndarray_values`` is the underlying codes.
 
 
 .. _ref-subclassing-pandas:
