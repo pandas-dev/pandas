@@ -344,7 +344,7 @@ class CategoricalIndex(Index, accessor.PandasDelegate):
             return IntervalIndex(np.array(self))
         elif is_categorical_dtype(dtype):
             # GH 18630
-            dtype = self.dtype._update_dtype(dtype)
+            dtype = self.dtype.update_dtype(dtype)
             if dtype == self.dtype:
                 return self.copy() if copy else self
 
