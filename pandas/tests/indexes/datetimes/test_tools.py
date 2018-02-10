@@ -8,7 +8,7 @@ import calendar
 import dateutil
 import numpy as np
 from dateutil.parser import parse
-from datetime import datetime, date, time
+from datetime import datetime, time
 from distutils.version import LooseVersion
 
 import pandas as pd
