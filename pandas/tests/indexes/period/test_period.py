@@ -453,16 +453,6 @@ class TestPeriodIndex(DatetimeLike):
         with pytest.raises(ValueError):
             period_range('2011-1-1', '2012-1-1', 'B')
 
-    def test_start_time(self):
-        index = PeriodIndex(freq='M', start='2016-01-01', end='2016-05-31')
-        expected_index = date_range('2016-01-01', end='2016-05-31', freq='MS')
-        tm.assert_index_equal(index.start_time, expected_index)
-
-    def test_end_time(self):
-        index = PeriodIndex(freq='M', start='2016-01-01', end='2016-05-31')
-        expected_index = date_range('2016-01-01', end='2016-05-31', freq='M')
-        tm.assert_index_equal(index.end_time, expected_index)
-
     def test_index_duplicate_periods(self):
         # monotonic
         idx = PeriodIndex([2000, 2007, 2007, 2009, 2009], freq='A-JUN')
@@ -504,40 +494,6 @@ class TestPeriodIndex(DatetimeLike):
         expected = PeriodIndex(['2013-01-02', '2013-01-03', '2013-01-04',
                                 '2013-01-05', '2013-01-06'], freq='D')
         tm.assert_index_equal(result, expected)
-
-    def test_shift(self):
-        pi1 = PeriodIndex(freq='A', start='1/1/2001', end='12/1/2009')
-        pi2 = PeriodIndex(freq='A', start='1/1/2002', end='12/1/2010')
-
-        tm.assert_index_equal(pi1.shift(0), pi1)
-
-        assert len(pi1) == len(pi2)
-        tm.assert_index_equal(pi1.shift(1), pi2)
-
-        pi1 = PeriodIndex(freq='A', start='1/1/2001', end='12/1/2009')
-        pi2 = PeriodIndex(freq='A', start='1/1/2000', end='12/1/2008')
-        assert len(pi1) == len(pi2)
-        tm.assert_index_equal(pi1.shift(-1), pi2)
-
-        pi1 = PeriodIndex(freq='M', start='1/1/2001', end='12/1/2009')
-        pi2 = PeriodIndex(freq='M', start='2/1/2001', end='1/1/2010')
-        assert len(pi1) == len(pi2)
-        tm.assert_index_equal(pi1.shift(1), pi2)
-
-        pi1 = PeriodIndex(freq='M', start='1/1/2001', end='12/1/2009')
-        pi2 = PeriodIndex(freq='M', start='12/1/2000', end='11/1/2009')
-        assert len(pi1) == len(pi2)
-        tm.assert_index_equal(pi1.shift(-1), pi2)
-
-        pi1 = PeriodIndex(freq='D', start='1/1/2001', end='12/1/2009')
-        pi2 = PeriodIndex(freq='D', start='1/2/2001', end='12/2/2009')
-        assert len(pi1) == len(pi2)
-        tm.assert_index_equal(pi1.shift(1), pi2)
-
-        pi1 = PeriodIndex(freq='D', start='1/1/2001', end='12/1/2009')
-        pi2 = PeriodIndex(freq='D', start='12/31/2000', end='11/30/2009')
-        assert len(pi1) == len(pi2)
-        tm.assert_index_equal(pi1.shift(-1), pi2)
 
     def test_shift_nat(self):
         idx = PeriodIndex(['2011-01', '2011-02', 'NaT',

@@ -250,6 +250,42 @@ class TestPeriodIndexArithmetic(object):
         rng -= 1
         tm.assert_index_equal(rng, expected)
 
+    # PeriodIndex.shift is used by __add__ and __sub__
+
+    def test_shift(self):
+        pi1 = PeriodIndex(freq='A', start='1/1/2001', end='12/1/2009')
+        pi2 = PeriodIndex(freq='A', start='1/1/2002', end='12/1/2010')
+
+        tm.assert_index_equal(pi1.shift(0), pi1)
+
+        assert len(pi1) == len(pi2)
+        tm.assert_index_equal(pi1.shift(1), pi2)
+
+        pi1 = PeriodIndex(freq='A', start='1/1/2001', end='12/1/2009')
+        pi2 = PeriodIndex(freq='A', start='1/1/2000', end='12/1/2008')
+        assert len(pi1) == len(pi2)
+        tm.assert_index_equal(pi1.shift(-1), pi2)
+
+        pi1 = PeriodIndex(freq='M', start='1/1/2001', end='12/1/2009')
+        pi2 = PeriodIndex(freq='M', start='2/1/2001', end='1/1/2010')
+        assert len(pi1) == len(pi2)
+        tm.assert_index_equal(pi1.shift(1), pi2)
+
+        pi1 = PeriodIndex(freq='M', start='1/1/2001', end='12/1/2009')
+        pi2 = PeriodIndex(freq='M', start='12/1/2000', end='11/1/2009')
+        assert len(pi1) == len(pi2)
+        tm.assert_index_equal(pi1.shift(-1), pi2)
+
+        pi1 = PeriodIndex(freq='D', start='1/1/2001', end='12/1/2009')
+        pi2 = PeriodIndex(freq='D', start='1/2/2001', end='12/2/2009')
+        assert len(pi1) == len(pi2)
+        tm.assert_index_equal(pi1.shift(1), pi2)
+
+        pi1 = PeriodIndex(freq='D', start='1/1/2001', end='12/1/2009')
+        pi2 = PeriodIndex(freq='D', start='12/31/2000', end='11/30/2009')
+        assert len(pi1) == len(pi2)
+        tm.assert_index_equal(pi1.shift(-1), pi2)
+
 
 class TestPeriodIndexSeriesMethods(object):
     """ Test PeriodIndex and Period Series Ops consistency """
