@@ -137,27 +137,14 @@ class TestDatetimeIndex(object):
         tm.assert_index_equal(casted, Index(exp_values, dtype=np.object_))
         assert casted.tolist() == exp_values
 
+    @pytest.mark.parametrize('tz', [None, 'Asia/Toyko'])
+    def test_astype_object_tz(self, tz):
         idx = pd.date_range(start='2013-01-01', periods=4, freq='M',
-                            name='idx')
-        expected_list = [Timestamp('2013-01-31'),
-                         Timestamp('2013-02-28'),
-                         Timestamp('2013-03-31'),
-                         Timestamp('2013-04-30')]
-        expected = pd.Index(expected_list, dtype=object, name='idx')
-        result = idx.astype(object)
-        assert isinstance(result, Index)
-
-        assert result.dtype == object
-        tm.assert_index_equal(result, expected)
-        assert result.name == expected.name
-        assert idx.tolist() == expected_list
-
-        idx = pd.date_range(start='2013-01-01', periods=4, freq='M',
-                            name='idx', tz='Asia/Tokyo')
-        expected_list = [Timestamp('2013-01-31', tz='Asia/Tokyo'),
-                         Timestamp('2013-02-28', tz='Asia/Tokyo'),
-                         Timestamp('2013-03-31', tz='Asia/Tokyo'),
-                         Timestamp('2013-04-30', tz='Asia/Tokyo')]
+                            name='idx', tz=tz)
+        expected_list = [Timestamp('2013-01-31', tz=tz),
+                         Timestamp('2013-02-28', tz=tz),
+                         Timestamp('2013-03-31', tz=tz),
+                         Timestamp('2013-04-30', tz=tz)]
         expected = pd.Index(expected_list, dtype=object, name='idx')
         result = idx.astype(object)
         assert isinstance(result, Index)
@@ -166,6 +153,7 @@ class TestDatetimeIndex(object):
         assert result.name == expected.name
         assert idx.tolist() == expected_list
 
+    def test_astype_object_with_nat(self):
         idx = DatetimeIndex([datetime(2013, 1, 1), datetime(2013, 1, 2),
                              pd.NaT, datetime(2013, 1, 4)], name='idx')
         expected_list = [Timestamp('2013-01-01'),
