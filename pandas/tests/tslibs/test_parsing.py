@@ -3,29 +3,17 @@
 Tests for Timestamp parsing, aimed at pandas/_libs/tslibs/parsing.pyx
 """
 from datetime import datetime
+
 import numpy as np
 import pytest
 from dateutil.parser import parse
 
-import pandas as pd
 import pandas.util._test_decorators as td
 from pandas.conftest import is_dateutil_le_261, is_dateutil_gt_261
 from pandas import compat
 from pandas.util import testing as tm
 from pandas._libs.tslibs import parsing
 from pandas._libs.tslibs.parsing import parse_time_string
-
-
-def test_to_datetime1():
-    actual = pd.to_datetime(datetime(2008, 1, 15))
-    assert actual == datetime(2008, 1, 15)
-
-    actual = pd.to_datetime('20080115')
-    assert actual == datetime(2008, 1, 15)
-
-    # unparseable
-    s = 'Month 1, 1999'
-    assert pd.to_datetime(s, errors='ignore') == s
 
 
 class TestParseQuarters(object):
