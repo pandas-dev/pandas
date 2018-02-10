@@ -39,6 +39,7 @@ cimport ccalendar
 from ccalendar cimport dayofweek, get_day_of_year
 from ccalendar import MONTH_NUMBERS
 from ccalendar cimport is_leapyear
+from conversion cimport tz_convert_utc_to_tzlocal
 from frequencies cimport (get_freq_code, get_base_alias,
                           get_to_timestamp_base, get_freq_str,
                           get_rule_month)
@@ -591,6 +592,7 @@ cdef ndarray[int64_t] localize_dt64arr_to_period(ndarray[int64_t] stamps,
         ndarray[int64_t] result = np.empty(n, dtype=np.int64)
         ndarray[int64_t] trans, deltas, pos
         pandas_datetimestruct dts
+        int64_t local_val
 
     if is_utc(tz):
         for i in range(n):
@@ -607,11 +609,8 @@ cdef ndarray[int64_t] localize_dt64arr_to_period(ndarray[int64_t] stamps,
             if stamps[i] == NPY_NAT:
                 result[i] = NPY_NAT
                 continue
-            dt64_to_dtstruct(stamps[i], &dts)
-            dt = datetime(dts.year, dts.month, dts.day, dts.hour,
-                          dts.min, dts.sec, dts.us, tz)
-            delta = int(get_utcoffset(tz, dt).total_seconds()) * 1000000000
-            dt64_to_dtstruct(stamps[i] + delta, &dts)
+            local_val = tz_convert_utc_to_tzlocal(stamps[i], tz)
+            dt64_to_dtstruct(local_val, &dts)
             result[i] = get_period_ordinal(dts.year, dts.month, dts.day,
                                            dts.hour, dts.min, dts.sec,
                                            dts.us, dts.ps, freq)

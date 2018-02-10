@@ -499,7 +499,7 @@ cdef inline void _localize_tso(_TSObject obj, object tz):
     """
     cdef:
         ndarray[int64_t] trans, deltas
-        int64_t delta
+        int64_t delta, local_val
         Py_ssize_t posn
         datetime dt
 
@@ -510,11 +510,8 @@ cdef inline void _localize_tso(_TSObject obj, object tz):
     elif obj.value == NPY_NAT:
         pass
     elif is_tzlocal(tz):
-        dt64_to_dtstruct(obj.value, &obj.dts)
-        dt = datetime(obj.dts.year, obj.dts.month, obj.dts.day, obj.dts.hour,
-                      obj.dts.min, obj.dts.sec, obj.dts.us, tz)
-        delta = int(get_utcoffset(tz, dt).total_seconds()) * 1000000000
-        dt64_to_dtstruct(obj.value + delta, &obj.dts)
+        local_val = tz_convert_utc_to_tzlocal(obj.value, tz)
+        dt64_to_dtstruct(local_val, &obj.dts)
     else:
         # Adjust datetime64 timestamp, recompute datetimestruct
         trans, deltas, typ = get_dst_info(tz)
@@ -556,6 +553,66 @@ cdef inline datetime _localize_pydatetime(datetime dt, tzinfo tz):
 # ----------------------------------------------------------------------
 # Timezone Conversion
 
+cdef inline int64_t tz_convert_tzlocal_to_utc(int64_t val, tzinfo tz):
+    """
+    Parameters
+    ----------
+    val : int64_t
+    tz : tzinfo
+
+    Returns
+    -------
+    utc_date : int64_t
+
+    See Also
+    --------
+    tz_convert_utc_to_tzlocal
+    """
+    cdef:
+        pandas_datetimestruct dts
+        int64_t utc_date, delta
+        datetime dt
+
+    dt64_to_dtstruct(val, &dts)
+    dt = datetime(dts.year, dts.month, dts.day, dts.hour,
+                  dts.min, dts.sec, dts.us, tz)
+    delta = int(get_utcoffset(tz, dt).total_seconds()) * 1000000000
+    utc_date = val - delta
+    return utc_date
+
+
+cdef inline int64_t tz_convert_utc_to_tzlocal(int64_t utc_val, tzinfo tz):
+    """
+    Parameters
+    ----------
+    utc_val : int64_t
+    tz : tzinfo
+
+    Returns
+    -------
+    local_val : int64_t
+
+    See Also
+    --------
+    tz_convert_tzlocal_to_utc
+
+    Notes
+    -----
+    The key difference between this and tz_convert_tzlocal_to_utc is a
+    an addition flipped to a subtraction in the last line.
+    """
+    cdef:
+        pandas_datetimestruct dts
+        int64_t local_val, delta
+        datetime dt
+
+    dt64_to_dtstruct(utc_val, &dts)
+    dt = datetime(dts.year, dts.month, dts.day, dts.hour,
+                  dts.min, dts.sec, dts.us, tz)
+    delta = int(get_utcoffset(tz, dt).total_seconds()) * 1000000000
+    local_val = utc_val + delta
+    return local_val
+
 
 cpdef int64_t tz_convert_single(int64_t val, object tz1, object tz2):
     """
@@ -590,11 +647,7 @@ cpdef int64_t tz_convert_single(int64_t val, object tz1, object tz2):
 
     # Convert to UTC
     if is_tzlocal(tz1):
-        dt64_to_dtstruct(val, &dts)
-        dt = datetime(dts.year, dts.month, dts.day, dts.hour,
-                      dts.min, dts.sec, dts.us, tz1)
-        delta = int(get_utcoffset(tz1, dt).total_seconds()) * 1000000000
-        utc_date = val - delta
+        utc_date = tz_convert_tzlocal_to_utc(val, tz1)
     elif get_timezone(tz1) != 'UTC':
         trans, deltas, typ = get_dst_info(tz1)
         pos = trans.searchsorted(val, side='right') - 1
@@ -608,11 +661,7 @@ cpdef int64_t tz_convert_single(int64_t val, object tz1, object tz2):
     if get_timezone(tz2) == 'UTC':
         return utc_date
     elif is_tzlocal(tz2):
-        dt64_to_dtstruct(utc_date, &dts)
-        dt = datetime(dts.year, dts.month, dts.day, dts.hour,
-                      dts.min, dts.sec, dts.us, tz2)
-        delta = int(get_utcoffset(tz2, dt).total_seconds()) * 1000000000
-        return utc_date + delta
+        return tz_convert_utc_to_tzlocal(utc_date, tz2)
 
     # Convert UTC to other timezone
     trans, deltas, typ = get_dst_info(tz2)
@@ -662,12 +711,7 @@ def tz_convert(ndarray[int64_t] vals, object tz1, object tz2):
                 if v == NPY_NAT:
                     utc_dates[i] = NPY_NAT
                 else:
-                    dt64_to_dtstruct(v, &dts)
-                    dt = datetime(dts.year, dts.month, dts.day, dts.hour,
-                                  dts.min, dts.sec, dts.us, tz1)
-                    delta = (int(get_utcoffset(tz1, dt).total_seconds()) *
-                             1000000000)
-                    utc_dates[i] = v - delta
+                    utc_dates[i] = tz_convert_tzlocal_to_utc(v, tz1)
         else:
             trans, deltas, typ = get_dst_info(tz1)
 
@@ -702,12 +746,7 @@ def tz_convert(ndarray[int64_t] vals, object tz1, object tz2):
             if v == NPY_NAT:
                 result[i] = NPY_NAT
             else:
-                dt64_to_dtstruct(v, &dts)
-                dt = datetime(dts.year, dts.month, dts.day, dts.hour,
-                              dts.min, dts.sec, dts.us, tz2)
-                delta = (int(get_utcoffset(tz2, dt).total_seconds()) *
-                         1000000000)
-                result[i] = v + delta
+                result[i] = tz_convert_utc_to_tzlocal(v, tz2)
         return result
 
     # Convert UTC to other timezone
@@ -777,11 +816,7 @@ def tz_localize_to_utc(ndarray[int64_t] vals, object tz, object ambiguous=None,
     if is_tzlocal(tz):
         for i in range(n):
             v = vals[i]
-            dt64_to_dtstruct(v, &dts)
-            dt = datetime(dts.year, dts.month, dts.day, dts.hour,
-                          dts.min, dts.sec, dts.us, tz)
-            delta = int(get_utcoffset(tz, dt).total_seconds()) * 1000000000
-            result[i] = v - delta
+            result[i] = tz_convert_tzlocal_to_utc(v, tz)
         return result
 
     if is_string_object(ambiguous):
@@ -1024,11 +1059,8 @@ cdef ndarray[int64_t] _normalize_local(ndarray[int64_t] stamps, object tz):
             if stamps[i] == NPY_NAT:
                 result[i] = NPY_NAT
                 continue
-            dt64_to_dtstruct(stamps[i], &dts)
-            dt = datetime(dts.year, dts.month, dts.day, dts.hour,
-                          dts.min, dts.sec, dts.us, tz)
-            delta = int(get_utcoffset(tz, dt).total_seconds()) * 1000000000
-            dt64_to_dtstruct(stamps[i] + delta, &dts)
+            local_val = tz_convert_utc_to_tzlocal(stamps[i], tz)
+            dt64_to_dtstruct(local_val, &dts)
             result[i] = _normalized_stamp(&dts)
     else:
         # Adjust datetime64 timestamp, recompute datetimestruct
@@ -1097,7 +1129,7 @@ def is_date_array_normalized(ndarray[int64_t] stamps, tz=None):
         Py_ssize_t i, n = len(stamps)
         ndarray[int64_t] trans, deltas
         pandas_datetimestruct dts
-        datetime dt
+        int64_t local_val
 
     if tz is None or is_utc(tz):
         for i in range(n):
@@ -1106,11 +1138,9 @@ def is_date_array_normalized(ndarray[int64_t] stamps, tz=None):
                 return False
     elif is_tzlocal(tz):
         for i in range(n):
-            dt64_to_dtstruct(stamps[i], &dts)
-            dt = datetime(dts.year, dts.month, dts.day, dts.hour, dts.min,
-                          dts.sec, dts.us, tz)
-            dt = dt + tz.utcoffset(dt)
-            if (dt.hour + dt.minute + dt.second + dt.microsecond) > 0:
+            local_val = tz_convert_utc_to_tzlocal(stamps[i], tz)
+            dt64_to_dtstruct(local_val, &dts)
+            if (dts.hour + dts.min + dts.sec + dts.us) > 0:
                 return False
     else:
         trans, deltas, typ = get_dst_info(tz)
