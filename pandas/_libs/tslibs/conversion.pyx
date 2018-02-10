@@ -313,9 +313,9 @@ cdef convert_to_tsobject(object ts, object tz, object unit,
         localize_tso(obj, tz)
 
     if obj.value != NPY_NAT:
-        # check_silent_overflows needs to run after localize_tso
+        # check_overflows needs to run after localize_tso
         check_dts_bounds(&obj.dts)
-        check_silent_overflows(obj)
+        check_overflows(obj)
     return obj
 
 
@@ -392,7 +392,7 @@ cdef _TSObject convert_datetime_to_tsobject(datetime ts, object tz,
         obj.dts.ps = nanos * 1000
 
     check_dts_bounds(&obj.dts)
-    check_silent_overflows(obj)
+    check_overflows(obj)
     return obj
 
 
@@ -456,7 +456,7 @@ cdef _TSObject convert_str_to_tsobject(object ts, object tz, object unit,
                 obj.value = tz_convert_single(obj.value, obj.tzinfo, 'UTC')
                 if tz is None:
                     check_dts_bounds(&obj.dts)
-                    check_silent_overflows(obj)
+                    check_overflows(obj)
                     return obj
                 else:
                     # Keep the converter same as PyDateTime's
@@ -493,8 +493,22 @@ cdef _TSObject convert_str_to_tsobject(object ts, object tz, object unit,
     return convert_to_tsobject(ts, tz, unit, dayfirst, yearfirst)
 
 
-cdef inline check_silent_overflows(_TSObject obj):
-    # Check that we haven't silently overflowed in timezone conversion
+cdef inline check_overflows(_TSObject obj):
+    """
+    Check that we haven't silently overflowed in timezone conversion
+    
+    Parameters
+    ----------
+    obj : _TSObject
+
+    Returns
+    -------
+    None
+
+    Raises
+    ------
+    OutOfBoundsDatetime
+    """
     # GH#12677
     if obj.dts.year == 1677:
         if not (obj.value < 0):
@@ -519,7 +533,7 @@ cdef inline void localize_tso(_TSObject obj, tzinfo tz):
 
     Returns
     -------
-    (void)
+    None
 
     Notes
     -----
