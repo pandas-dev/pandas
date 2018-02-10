@@ -8,7 +8,7 @@ import calendar
 import dateutil
 import numpy as np
 from dateutil.parser import parse
-from datetime import datetime, date, time
+from datetime import datetime, date, time, timedelta
 from distutils.version import LooseVersion
 
 import pandas as pd
@@ -1491,6 +1491,14 @@ class TestDatetimeParsingWrappers(object):
 
 
 class TestArrayToDatetime(object):
+    def test_coerce_out_of_bounds_utc(self):
+        ts = Timestamp('1900-01-01', tz='US/Pacific')
+        dt = ts.to_pydatetime() - timedelta(days=365 * 300)  # ~1600AD
+        arr = np.array([dt])
+        result = tslib.array_to_datetime(arr, utc=True, errors='coerce')
+        expected = np.array(['NaT'], dtype='datetime64[ns]')
+        tm.assert_numpy_array_equal(result, expected)
+
     def test_parsing_valid_dates(self):
         arr = np.array(['01-01-2013', '01-02-2013'], dtype=object)
         tm.assert_numpy_array_equal(
