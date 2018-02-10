@@ -522,16 +522,24 @@ to a column created earlier in the same :meth:`~DataFrame.assign`.
 In the second expression, ``x['C']`` will refer to the newly created column,
 that's equal to ``dfa['A'] + dfa['B']``.
 
+To write code compatible with all versions of Python, split the assignment in two.
+
+.. ipython:: python
+
+   dependent = pd.DataFrame({"A": [1, 1, 1]})
+   (dependent.assign(A=lambda x: x['A'] + 1)
+             .assign(B=lambda x: x['A'] + 2))
+
 .. warning::
 
    Dependent assignment maybe subtly change the behavior of your code between
    Python 3.6 and older versions of Python.
 
-If you wish write code that supports versions of python before and after 3.6,
-you'll need to take care when passing ``assign`` expressions that
+   If you wish write code that supports versions of python before and after 3.6,
+   you'll need to take care when passing ``assign`` expressions that
 
-   1. Updating an existing column
-   2. Refering to the newly updated column in the same ``assign``
+   * Updating an existing column
+   * Refering to the newly updated column in the same ``assign``
 
    For example, we'll update column "A" and then refer to it when creating "B".
 
@@ -561,13 +569,6 @@ you'll need to take care when passing ``assign`` expressions that
       1  2  4
       2  2  4
 
-To write code compatible with all versions of Python, split the assignment in two.
-
-.. ipython:: python
-
-   dependent = pd.DataFrame({"A": [1, 1, 1]})
-   (dependent.assign(A=lambda x: x['A'] + 1)
-             .assign(B=lambda x: x['A'] + 2))
 
 
 Indexing / Selection
