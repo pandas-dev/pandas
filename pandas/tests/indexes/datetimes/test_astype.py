@@ -14,7 +14,6 @@ from pandas import (DatetimeIndex, date_range, Series, NaT, Index, Timestamp,
 
 
 class TestDatetimeIndex(object):
-
     def test_astype(self):
         # GH 13149, GH 13209
         idx = DatetimeIndex(['2016-05-16', 'NaT', NaT, np.NaN])
@@ -137,6 +136,48 @@ class TestDatetimeIndex(object):
 
         tm.assert_index_equal(casted, Index(exp_values, dtype=np.object_))
         assert casted.tolist() == exp_values
+
+        idx = pd.date_range(start='2013-01-01', periods=4, freq='M',
+                            name='idx')
+        expected_list = [Timestamp('2013-01-31'),
+                         Timestamp('2013-02-28'),
+                         Timestamp('2013-03-31'),
+                         Timestamp('2013-04-30')]
+        expected = pd.Index(expected_list, dtype=object, name='idx')
+        result = idx.astype(object)
+        assert isinstance(result, Index)
+
+        assert result.dtype == object
+        tm.assert_index_equal(result, expected)
+        assert result.name == expected.name
+        assert idx.tolist() == expected_list
+
+        idx = pd.date_range(start='2013-01-01', periods=4, freq='M',
+                            name='idx', tz='Asia/Tokyo')
+        expected_list = [Timestamp('2013-01-31', tz='Asia/Tokyo'),
+                         Timestamp('2013-02-28', tz='Asia/Tokyo'),
+                         Timestamp('2013-03-31', tz='Asia/Tokyo'),
+                         Timestamp('2013-04-30', tz='Asia/Tokyo')]
+        expected = pd.Index(expected_list, dtype=object, name='idx')
+        result = idx.astype(object)
+        assert isinstance(result, Index)
+        assert result.dtype == object
+        tm.assert_index_equal(result, expected)
+        assert result.name == expected.name
+        assert idx.tolist() == expected_list
+
+        idx = DatetimeIndex([datetime(2013, 1, 1), datetime(2013, 1, 2),
+                             pd.NaT, datetime(2013, 1, 4)], name='idx')
+        expected_list = [Timestamp('2013-01-01'),
+                         Timestamp('2013-01-02'), pd.NaT,
+                         Timestamp('2013-01-04')]
+        expected = pd.Index(expected_list, dtype=object, name='idx')
+        result = idx.astype(object)
+        assert isinstance(result, Index)
+        assert result.dtype == object
+        tm.assert_index_equal(result, expected)
+        assert result.name == expected.name
+        assert idx.tolist() == expected_list
 
     @pytest.mark.parametrize('dtype', [
         float, 'timedelta64', 'timedelta64[ns]', 'datetime64',
