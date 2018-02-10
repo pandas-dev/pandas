@@ -26,6 +26,105 @@ cdef double NaN = <double> np.NaN
 cdef double nan = NaN
 
 
+# TODO: aggregate multiple columns in single pass
+# ----------------------------------------------------------------------
+# first, nth, last
+
+
+@cython.boundscheck(False)
+@cython.wraparound(False)
+def group_nth_object(ndarray[object, ndim=2] out,
+                     ndarray[int64_t] counts,
+                     ndarray[object, ndim=2] values,
+                     ndarray[int64_t] labels,
+                     int64_t rank,
+                     Py_ssize_t min_count=-1):
+    """
+    Only aggregates on axis=0
+    """
+    cdef:
+        Py_ssize_t i, j, N, K, lab
+        object val
+        float64_t count
+        ndarray[int64_t, ndim=2] nobs
+        ndarray[object, ndim=2] resx
+
+    assert min_count == -1, "'min_count' only used in add and prod"
+
+    nobs = np.zeros((<object> out).shape, dtype=np.int64)
+    resx = np.empty((<object> out).shape, dtype=object)
+
+    N, K = (<object> values).shape
+
+    for i in range(N):
+        lab = labels[i]
+        if lab < 0:
+            continue
+
+        counts[lab] += 1
+        for j in range(K):
+            val = values[i, j]
+
+            # not nan
+            if val == val:
+                nobs[lab, j] += 1
+                if nobs[lab, j] == rank:
+                    resx[lab, j] = val
+
+    for i in range(len(counts)):
+        for j in range(K):
+            if nobs[i, j] == 0:
+                out[i, j] = <object> nan
+            else:
+                out[i, j] = resx[i, j]
+
+
+@cython.boundscheck(False)
+@cython.wraparound(False)
+def group_last_object(ndarray[object, ndim=2] out,
+                      ndarray[int64_t] counts,
+                      ndarray[object, ndim=2] values,
+                      ndarray[int64_t] labels,
+                      Py_ssize_t min_count=-1):
+    """
+    Only aggregates on axis=0
+    """
+    cdef:
+        Py_ssize_t i, j, N, K, lab
+        object val
+        float64_t count
+        ndarray[object, ndim=2] resx
+        ndarray[int64_t, ndim=2] nobs
+
+    assert min_count == -1, "'min_count' only used in add and prod"
+
+    nobs = np.zeros((<object> out).shape, dtype=np.int64)
+    resx = np.empty((<object> out).shape, dtype=object)
+
+    N, K = (<object> values).shape
+
+    for i in range(N):
+        lab = labels[i]
+        if lab < 0:
+            continue
+
+        counts[lab] += 1
+        for j in range(K):
+            val = values[i, j]
+
+            # not nan
+            if val == val:
+                nobs[lab, j] += 1
+                resx[lab, j] = val
+
+    for i in range(len(counts)):
+        for j in range(K):
+            if nobs[i, j] == 0:
+                out[i, j] = nan
+            else:
+                out[i, j] = resx[i, j]
+
+
 cdef inline float64_t median_linear(float64_t* a, int n) nogil:
     cdef int i, j, na_count = 0
     cdef float64_t result
