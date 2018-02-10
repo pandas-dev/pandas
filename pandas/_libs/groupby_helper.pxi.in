@@ -317,7 +317,7 @@ def group_ohlc_{{name}}(ndarray[{{dest_type2}}, ndim=2] out,
 {{endfor}}
 
 #----------------------------------------------------------------------
-# group_nth, group_last
+# group_nth, group_last, group_rank
 #----------------------------------------------------------------------
 
 {{py:
@@ -325,7 +325,8 @@ def group_ohlc_{{name}}(ndarray[{{dest_type2}}, ndim=2] out,
 # name, c_type, dest_type2, nan_val
 dtypes = [('float64', 'float64_t', 'float64_t', 'NAN'),
           ('float32', 'float32_t', 'float32_t', 'NAN'),
-          ('int64', 'int64_t', 'int64_t', 'iNaT')]
+          ('int64', 'int64_t', 'int64_t', 'iNaT'),
+          ('object', 'object', 'object', 'NAN')]
 
 def get_dispatch(dtypes):
 
@@ -350,7 +351,7 @@ def group_last_{{name}}(ndarray[{{dest_type2}}, ndim=2] out,
     """
     cdef:
         Py_ssize_t i, j, N, K, lab, ncounts = len(counts)
-        {{dest_type2}} val, count
+        {{dest_type2}} val
         ndarray[{{dest_type2}}, ndim=2] resx
         ndarray[int64_t, ndim=2] nobs
 
@@ -360,11 +361,19 @@ def group_last_{{name}}(ndarray[{{dest_type2}}, ndim=2] out,
         raise AssertionError("len(index) != len(labels)")
 
     nobs = np.zeros((<object> out).shape, dtype=np.int64)
+    {{if name=='object'}}
+    resx = np.empty((<object> out).shape, dtype=object)
+    {{else}}
     resx = np.empty_like(out)
+    {{endif}}
 
     N, K = (<object> values).shape
 
+    {{if name == "object"}}
+    if True:  # make templating happy
+    {{else}}
     with nogil:
+    {{endif}}
         for i in range(N):
             lab = labels[i]
             if lab < 0:
@@ -375,11 +384,7 @@ def group_last_{{name}}(ndarray[{{dest_type2}}, ndim=2] out,
                 val = values[i, j]
 
                 # not nan
-                {{if name == 'int64'}}
-                if val != {{nan_val}}:
-                {{else}}
                 if val == val and val != {{nan_val}}:
-                {{endif}}
                     nobs[lab, j] += 1
                     resx[lab, j] = val
 
@@ -389,7 +394,6 @@ def group_last_{{name}}(ndarray[{{dest_type2}}, ndim=2] out,
                     out[i, j] = {{nan_val}}
                 else:
                     out[i, j] = resx[i, j]
-
 
 @cython.wraparound(False)
 @cython.boundscheck(False)
@@ -403,7 +407,7 @@ def group_nth_{{name}}(ndarray[{{dest_type2}}, ndim=2] out,
     """
     cdef:
         Py_ssize_t i, j, N, K, lab, ncounts = len(counts)
-        {{dest_type2}} val, count
+        {{dest_type2}} val
         ndarray[{{dest_type2}}, ndim=2] resx
         ndarray[int64_t, ndim=2] nobs
 
@@ -413,11 +417,19 @@ def group_nth_{{name}}(ndarray[{{dest_type2}}, ndim=2] out,
         raise AssertionError("len(index) != len(labels)")
 
     nobs = np.zeros((<object> out).shape, dtype=np.int64)
+    {{if name=='object'}}
+    resx = np.empty((<object> out).shape, dtype=object)
+    {{else}}
     resx = np.empty_like(out)
+    {{endif}}
 
     N, K = (<object> values).shape
 
+    {{if name == "object"}}
+    if True:  # make templating happy
+    {{else}}
     with nogil:
+    {{endif}}
         for i in range(N):
             lab = labels[i]
             if lab < 0:
@@ -428,11 +440,7 @@ def group_nth_{{name}}(ndarray[{{dest_type2}}, ndim=2] out,
                 val = values[i, j]
 
                 # not nan
-                {{if name == 'int64'}}
-                if val != {{nan_val}}:
-                {{else}}
                 if val == val and val != {{nan_val}}:
-                {{endif}}
                     nobs[lab, j] += 1
                     if nobs[lab, j] == rank:
                         resx[lab, j] = val
@@ -445,6 +453,7 @@ def group_nth_{{name}}(ndarray[{{dest_type2}}, ndim=2] out,
                     out[i, j] = resx[i, j]
 
 
+{{if name != 'object'}}
 @cython.boundscheck(False)
 @cython.wraparound(False)
 def group_rank_{{name}}(ndarray[float64_t, ndim=2] out,
@@ -608,6 +617,7 @@ def group_rank_{{name}}(ndarray[float64_t, ndim=2] out,
         if pct:
             for i in range(N):
                 out[i, 0] = out[i, 0] / grp_sizes[i, 0]
+{{endif}}
 {{endfor}}
 
 
