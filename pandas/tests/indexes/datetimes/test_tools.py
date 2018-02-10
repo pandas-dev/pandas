@@ -18,7 +18,7 @@ from pandas._libs.tslibs import parsing
 from pandas.core.tools import datetimes as tools
 
 from pandas.errors import OutOfBoundsDatetime
-from pandas.compat import lmap
+from pandas.compat import lmap, PY3
 from pandas.compat.numpy import np_array_datetime64_compat
 from pandas.core.dtypes.common import is_datetime64_ns_dtype
 from pandas.util import testing as tm
@@ -237,6 +237,13 @@ class TestToDatetime(object):
 
             assert pdtoday.tzinfo is None
             assert pdtoday2.tzinfo is None
+
+    def test_to_datetime_today_now_unicode_bytes(self):
+        to_datetime([u'now'])
+        to_datetime([u'today'])
+        if not PY3:
+            to_datetime(['now'])
+            to_datetime(['today'])
 
     @pytest.mark.parametrize('cache', [True, False])
     def test_to_datetime_dt64s(self, cache):
