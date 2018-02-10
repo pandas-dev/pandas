@@ -402,6 +402,27 @@ def _make_flex_doc(op_name, typ):
 # Masking NA values and fallbacks for operations numpy does not support
 
 def fill_binop(left, right, fill_value):
+    """
+    If a non-None fill_value is given, replace null entries in left and right
+    with this value, but only in positions where _one_ of left/right is null,
+    not both.
+
+    Parameters
+    ----------
+    left : array-like
+    right : array-like
+    fill_value : object
+
+    Returns
+    -------
+    left : array-like
+    right : array-like
+
+    Notes
+    -----
+    Makes copies if fill_value is not None
+    """
+    # TODO: can we make a no-copy implementation?
     if fill_value is not None:
         left_mask = isna(left)
         right_mask = isna(right)
@@ -416,6 +437,20 @@ def fill_binop(left, right, fill_value):
 
 
 def mask_cmp_op(x, y, op, allowed_types):
+    """
+    Apply the function `op` to only non-null points in x and y.
+
+    Parameters
+    ----------
+    x : array-like
+    y : array-like
+    op : binary operation
+    allowed_types : class or tuple of classes
+
+    Returns
+    -------
+    result : ndarray[bool]
+    """
     # TODO: Can we make the allowed_types arg unnecessary?
     xrav = x.ravel()
     result = np.empty(x.size, dtype=bool)
