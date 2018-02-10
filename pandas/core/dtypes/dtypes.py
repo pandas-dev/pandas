@@ -159,11 +159,11 @@ class CategoricalDtype(PandasExtensionDtype):
     _metadata = ['categories', 'ordered']
     _cache = {}
 
-    def __init__(self, categories=None, ordered=False):
+    def __init__(self, categories=None, ordered=None):
         self._finalize(categories, ordered, fastpath=False)
 
     @classmethod
-    def _from_fastpath(cls, categories=None, ordered=False):
+    def _from_fastpath(cls, categories=None, ordered=None):
         self = cls.__new__(cls)
         self._finalize(categories, ordered, fastpath=True)
         return self
@@ -180,14 +180,12 @@ class CategoricalDtype(PandasExtensionDtype):
 
     def _finalize(self, categories, ordered, fastpath=False):
 
-        if ordered is None:
-            ordered = False
-        else:
-            self._validate_ordered(ordered)
+        if ordered is not None:
+            self.validate_ordered(ordered)
 
         if categories is not None:
-            categories = self._validate_categories(categories,
-                                                   fastpath=fastpath)
+            categories = self.validate_categories(categories,
+                                                  fastpath=fastpath)
 
         self._categories = categories
         self._ordered = ordered
@@ -208,6 +206,17 @@ class CategoricalDtype(PandasExtensionDtype):
         return int(self._hash_categories(self.categories, self.ordered))
 
     def __eq__(self, other):
+        """
+        Rules for CDT equality:
+        1) Any CDT is equal to the string 'category'
+        2) Any CDT is equal to a CDT with categories=None regardless of ordered
+        3) A CDT with ordered=True is only equal to another CDT with
+           ordered=True and identical categories in the same order
+        4) A CDT with ordered={False, None} is only equal to another CDT with
+           ordered={False, None} and identical categories, but same order is
+           not required. There is no distinction between False/None.
+        5) Any other comparison returns False
+        """
         if isinstance(other, compat.string_types):
             return other == self.name
 
@@ -220,12 +229,16 @@ class CategoricalDtype(PandasExtensionDtype):
             # CDT(., .) = CDT(None, False) and *all*
             # CDT(., .) = CDT(None, True).
             return True
-        elif self.ordered:
-            return other.ordered and self.categories.equals(other.categories)
-        elif other.ordered:
-            return False
+        elif self.ordered or other.ordered:
+            # At least one has ordered=True; equal if both have ordered=True
+            # and the same values for categories in the same order.
+            return ((self.ordered == other.ordered) and
+                    self.categories.equals(other.categories))
         else:
-            # both unordered; this could probably be optimized / cached
+            # Neither has ordered=True; equal if both have the same categories,
+            # but same order is not necessary.  There is no distinction between
+            # ordered=False and ordered=None: CDT(., False) and CDT(., None)
+            # will be equal if they have the same categories.
             return hash(self) == hash(other)
 
     def __repr__(self):
@@ -288,7 +301,7 @@ class CategoricalDtype(PandasExtensionDtype):
         raise TypeError("cannot construct a CategoricalDtype")
 
     @staticmethod
-    def _validate_ordered(ordered):
+    def validate_ordered(ordered):
         """
         Validates that we have a valid ordered parameter. If
         it is not a boolean, a TypeError will be raised.
@@ -308,7 +321,7 @@ class CategoricalDtype(PandasExtensionDtype):
             raise TypeError("'ordered' must either be 'True' or 'False'")
 
     @staticmethod
-    def _validate_categories(categories, fastpath=False):
+    def validate_categories(categories, fastpath=False):
         """
         Validates that we have good categories
 
@@ -340,7 +353,7 @@ class CategoricalDtype(PandasExtensionDtype):
 
         return categories
 
-    def _update_dtype(self, dtype):
+    def update_dtype(self, dtype):
         """
         Returns a CategoricalDtype with categories and ordered taken from dtype
         if specified, otherwise falling back to self if unspecified
@@ -361,11 +374,16 @@ class CategoricalDtype(PandasExtensionDtype):
                    'got {dtype!r}').format(dtype=dtype)
             raise ValueError(msg)
 
-        # dtype is CDT: keep current categories if None (ordered can't be None)
+        # dtype is CDT: keep current categories/ordered if None
         new_categories = dtype.categories
         if new_categories is None:
             new_categories = self.categories
-        return CategoricalDtype(new_categories, dtype.ordered)
+
+        new_ordered = dtype.ordered
+        if new_ordered is None:
+            new_ordered = self.ordered
+
+        return CategoricalDtype(new_categories, new_ordered)
 
     @property
     def categories(self):

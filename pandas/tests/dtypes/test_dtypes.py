@@ -24,6 +24,11 @@ from pandas.core.dtypes.common import (
 import pandas.util.testing as tm
 
 
+@pytest.fixture(params=[True, False, None])
+def ordered(request):
+    return request.param
+
+
 class Base(object):
 
     def setup_method(self, method):
@@ -123,41 +128,6 @@ class TestCategoricalDtype(Base):
         categories = [(1, 'a'), (2, 'b'), (3, 'c')]
         result = CategoricalDtype(categories)
         assert all(result.categories == categories)
-
-    @pytest.mark.parametrize('dtype', [
-        CategoricalDtype(list('abc'), False),
-        CategoricalDtype(list('abc'), True)])
-    @pytest.mark.parametrize('new_dtype', [
-        'category',
-        CategoricalDtype(None, False),
-        CategoricalDtype(None, True),
-        CategoricalDtype(list('abc'), False),
-        CategoricalDtype(list('abc'), True),
-        CategoricalDtype(list('cba'), False),
-        CategoricalDtype(list('cba'), True),
-        CategoricalDtype(list('wxyz'), False),
-        CategoricalDtype(list('wxyz'), True)])
-    def test_update_dtype(self, dtype, new_dtype):
-        if isinstance(new_dtype, string_types) and new_dtype == 'category':
-            expected_categories = dtype.categories
-            expected_ordered = dtype.ordered
-        else:
-            expected_categories = new_dtype.categories
-            if expected_categories is None:
-                expected_categories = dtype.categories
-            expected_ordered = new_dtype.ordered
-
-        result = dtype._update_dtype(new_dtype)
-        tm.assert_index_equal(result.categories, expected_categories)
-        assert result.ordered is expected_ordered
-
-    @pytest.mark.parametrize('bad_dtype', [
-        'foo', object, np.int64, PeriodDtype('Q')])
-    def test_update_dtype_errors(self, bad_dtype):
-        dtype = CategoricalDtype(list('abc'), False)
-        msg = 'a CategoricalDtype must be passed to perform an update, '
-        with tm.assert_raises_regex(ValueError, msg):
-            dtype._update_dtype(bad_dtype)
 
 
 class TestDatetimeTZDtype(Base):
@@ -609,17 +579,12 @@ class TestIntervalDtype(Base):
 
 class TestCategoricalDtypeParametrized(object):
 
-    @pytest.mark.parametrize('categories, ordered', [
-        (['a', 'b', 'c', 'd'], False),
-        (['a', 'b', 'c', 'd'], True),
-        (np.arange(1000), False),
-        (np.arange(1000), True),
-        (['a', 'b', 10, 2, 1.3, True], False),
-        ([True, False], True),
-        ([True, False], False),
-        (pd.date_range('2017', periods=4), True),
-        (pd.date_range('2017', periods=4), False),
-    ])
+    @pytest.mark.parametrize('categories', [
+        list('abcd'),
+        np.arange(1000),
+        ['a', 'b', 10, 2, 1.3, True],
+        [True, False],
+        pd.date_range('2017', periods=4)])
     def test_basic(self, categories, ordered):
         c1 = CategoricalDtype(categories, ordered=ordered)
         tm.assert_index_equal(c1.categories, pd.Index(categories))
@@ -627,21 +592,24 @@ class TestCategoricalDtypeParametrized(object):
 
     def test_order_matters(self):
         categories = ['a', 'b']
-        c1 = CategoricalDtype(categories, ordered=False)
-        c2 = CategoricalDtype(categories, ordered=True)
+        c1 = CategoricalDtype(categories, ordered=True)
+        c2 = CategoricalDtype(categories, ordered=False)
+        c3 = CategoricalDtype(categories, ordered=None)
         assert c1 is not c2
+        assert c1 is not c3
 
-    def test_unordered_same(self):
-        c1 = CategoricalDtype(['a', 'b'])
-        c2 = CategoricalDtype(['b', 'a'])
+    @pytest.mark.parametrize('ordered', [False, None])
+    def test_unordered_same(self, ordered):
+        c1 = CategoricalDtype(['a', 'b'], ordered=ordered)
+        c2 = CategoricalDtype(['b', 'a'], ordered=ordered)
         assert hash(c1) == hash(c2)
 
     def test_categories(self):
         result = CategoricalDtype(['a', 'b', 'c'])
         tm.assert_index_equal(result.categories, pd.Index(['a', 'b', 'c']))
-        assert result.ordered is False
+        assert result.ordered is None
 
-    def test_equal_but_different(self):
+    def test_equal_but_different(self, ordered):
         c1 = CategoricalDtype([1, 2, 3])
         c2 = CategoricalDtype([1., 2., 3.])
         assert c1 is not c2
@@ -652,9 +620,11 @@ class TestCategoricalDtypeParametrized(object):
         ([1, 2, 3], [3, 2, 1]),
     ])
     def test_order_hashes_different(self, v1, v2):
-        c1 = CategoricalDtype(v1)
+        c1 = CategoricalDtype(v1, ordered=False)
         c2 = CategoricalDtype(v2, ordered=True)
+        c3 = CategoricalDtype(v1, ordered=None)
         assert c1 is not c2
+        assert c1 is not c3
 
     def test_nan_invalid(self):
         with pytest.raises(ValueError):
@@ -669,26 +639,46 @@ class TestCategoricalDtypeParametrized(object):
         c2 = CategoricalDtype(['b', 'a'], ordered=True)
         assert c1 is not c2
 
-    @pytest.mark.parametrize('ordered, other, expected', [
-        (True, CategoricalDtype(['a', 'b'], True), True),
-        (False, CategoricalDtype(['a', 'b'], False), True),
-        (True, CategoricalDtype(['a', 'b'], False), False),
-        (False, CategoricalDtype(['a', 'b'], True), False),
-        (True, CategoricalDtype([1, 2], False), False),
-        (False, CategoricalDtype([1, 2], True), False),
-        (False, CategoricalDtype(None, True), True),
-        (True, CategoricalDtype(None, True), True),
-        (False, CategoricalDtype(None, False), True),
-        (True, CategoricalDtype(None, False), True),
-        (True, 'category', True),
-        (False, 'category', True),
-        (True, 'not a category', False),
-        (False, 'not a category', False),
-    ])
-    def test_categorical_equality(self, ordered, other, expected):
-        c1 = CategoricalDtype(['a', 'b'], ordered)
+    @pytest.mark.parametrize('ordered1', [True, False, None])
+    @pytest.mark.parametrize('ordered2', [True, False, None])
+    def test_categorical_equality(self, ordered1, ordered2):
+        # same categories, same order
+        # any combination of None/False are equal
+        # True/True is the only combination with True that are equal
+        c1 = CategoricalDtype(list('abc'), ordered1)
+        c2 = CategoricalDtype(list('abc'), ordered2)
+        result = c1 == c2
+        expected = bool(ordered1) is bool(ordered2)
+        assert result is expected
+
+        # same categories, different order
+        # any combination of None/False are equal (order doesn't matter)
+        # any combination with True are not equal (different order of cats)
+        c1 = CategoricalDtype(list('abc'), ordered1)
+        c2 = CategoricalDtype(list('cab'), ordered2)
+        result = c1 == c2
+        expected = (bool(ordered1) is False) and (bool(ordered2) is False)
+        assert result is expected
+
+        # different categories
+        c2 = CategoricalDtype([1, 2, 3], ordered2)
+        assert c1 != c2
+
+        # none categories
+        c1 = CategoricalDtype(list('abc'), ordered1)
+        c2 = CategoricalDtype(None, ordered2)
+        c3 = CategoricalDtype(None, ordered1)
+        assert c1 == c2
+        assert c2 == c1
+        assert c2 == c3
+
+    @pytest.mark.parametrize('categories', [list('abc'), None])
+    @pytest.mark.parametrize('other', ['category', 'not a category'])
+    def test_categorical_equality_strings(self, categories, ordered, other):
+        c1 = CategoricalDtype(categories, ordered)
         result = c1 == other
-        assert result == expected
+        expected = other == 'category'
+        assert result is expected
 
     def test_invalid_raises(self):
         with tm.assert_raises_regex(TypeError, 'ordered'):
@@ -729,12 +719,12 @@ class TestCategoricalDtypeParametrized(object):
             c1, categories=[1, 2], ordered=False)
         assert result == CategoricalDtype([1, 2], ordered=False)
 
-    def test_str_vs_repr(self):
-        c1 = CategoricalDtype(['a', 'b'])
+    def test_str_vs_repr(self, ordered):
+        c1 = CategoricalDtype(['a', 'b'], ordered=ordered)
         assert str(c1) == 'category'
         # Py2 will have unicode prefixes
-        pat = r"CategoricalDtype\(categories=\[.*\], ordered=False\)"
-        assert re.match(pat, repr(c1))
+        pat = r"CategoricalDtype\(categories=\[.*\], ordered={ordered}\)"
+        assert re.match(pat.format(ordered=ordered), repr(c1))
 
     def test_categorical_categories(self):
         # GH17884
@@ -742,3 +732,38 @@ class TestCategoricalDtypeParametrized(object):
         tm.assert_index_equal(c1.categories, pd.Index(['a', 'b']))
         c1 = CategoricalDtype(CategoricalIndex(['a', 'b']))
         tm.assert_index_equal(c1.categories, pd.Index(['a', 'b']))
+
+    @pytest.mark.parametrize('new_categories', [
+        list('abc'), list('cba'), list('wxyz'), None])
+    @pytest.mark.parametrize('new_ordered', [True, False, None])
+    def test_update_dtype(self, ordered, new_categories, new_ordered):
+        dtype = CategoricalDtype(list('abc'), ordered)
+        new_dtype = CategoricalDtype(new_categories, new_ordered)
+
+        expected_categories = new_dtype.categories
+        if expected_categories is None:
+            expected_categories = dtype.categories
+
+        expected_ordered = new_dtype.ordered
+        if expected_ordered is None:
+            expected_ordered = dtype.ordered
+
+        result = dtype.update_dtype(new_dtype)
+        tm.assert_index_equal(result.categories, expected_categories)
+        assert result.ordered is expected_ordered
+
+    def test_update_dtype_string(self, ordered):
+        dtype = CategoricalDtype(list('abc'), ordered)
+        expected_categories = dtype.categories
+        expected_ordered = dtype.ordered
+        result = dtype.update_dtype('category')
+        tm.assert_index_equal(result.categories, expected_categories)
+        assert result.ordered is expected_ordered
+
+    @pytest.mark.parametrize('bad_dtype', [
+        'foo', object, np.int64, PeriodDtype('Q')])
+    def test_update_dtype_errors(self, bad_dtype):
+        dtype = CategoricalDtype(list('abc'), False)
+        msg = 'a CategoricalDtype must be passed to perform an update, '
+        with tm.assert_raises_regex(ValueError, msg):
+            dtype.update_dtype(bad_dtype)
