@@ -268,28 +268,6 @@ class TestPeriodIndexArithmetic(object):
                                 '2010-12'], freq='M', name='idx')
         tm.assert_index_equal(result, expected)
 
-    # TODO: De-dup with test_shift below; moved from test_ops vs test_period
-    def test_shift2(self):
-        # GH#9903
-        idx = pd.PeriodIndex([], name='xxx', freq='H')
-
-        with pytest.raises(TypeError):
-            # period shift doesn't accept freq
-            idx.shift(1, freq='H')
-
-        tm.assert_index_equal(idx.shift(0), idx)
-        tm.assert_index_equal(idx.shift(3), idx)
-
-        idx = pd.PeriodIndex(['2011-01-01 10:00', '2011-01-01 11:00'
-                              '2011-01-01 12:00'], name='xxx', freq='H')
-        tm.assert_index_equal(idx.shift(0), idx)
-        exp = pd.PeriodIndex(['2011-01-01 13:00', '2011-01-01 14:00'
-                              '2011-01-01 15:00'], name='xxx', freq='H')
-        tm.assert_index_equal(idx.shift(3), exp)
-        exp = pd.PeriodIndex(['2011-01-01 07:00', '2011-01-01 08:00'
-                              '2011-01-01 09:00'], name='xxx', freq='H')
-        tm.assert_index_equal(idx.shift(-3), exp)
-
     def test_shift(self):
         pi1 = PeriodIndex(freq='A', start='1/1/2001', end='12/1/2009')
         pi2 = PeriodIndex(freq='A', start='1/1/2002', end='12/1/2010')
@@ -323,6 +301,27 @@ class TestPeriodIndexArithmetic(object):
         pi2 = PeriodIndex(freq='D', start='12/31/2000', end='11/30/2009')
         assert len(pi1) == len(pi2)
         tm.assert_index_equal(pi1.shift(-1), pi2)
+
+    def test_shift_corner_cases(self):
+        # GH#9903
+        idx = pd.PeriodIndex([], name='xxx', freq='H')
+
+        with pytest.raises(TypeError):
+            # period shift doesn't accept freq
+            idx.shift(1, freq='H')
+
+        tm.assert_index_equal(idx.shift(0), idx)
+        tm.assert_index_equal(idx.shift(3), idx)
+
+        idx = pd.PeriodIndex(['2011-01-01 10:00', '2011-01-01 11:00'
+                              '2011-01-01 12:00'], name='xxx', freq='H')
+        tm.assert_index_equal(idx.shift(0), idx)
+        exp = pd.PeriodIndex(['2011-01-01 13:00', '2011-01-01 14:00'
+                              '2011-01-01 15:00'], name='xxx', freq='H')
+        tm.assert_index_equal(idx.shift(3), exp)
+        exp = pd.PeriodIndex(['2011-01-01 07:00', '2011-01-01 08:00'
+                              '2011-01-01 09:00'], name='xxx', freq='H')
+        tm.assert_index_equal(idx.shift(-3), exp)
 
     def test_shift_nat(self):
         idx = PeriodIndex(['2011-01', '2011-02', 'NaT',
