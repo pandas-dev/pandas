@@ -45,7 +45,7 @@ static int monthToQuarter(int month) { return ((month - 1) / 3) + 1; }
 /* Find the absdate (days elapsed since datetime(1, 1, 1)
  * for the given year/month/day.
  * Assumes GREGORIAN_CALENDAR */
-static npy_int64 dInfoCalc_SetFromDateAndTime(int year, int month, int day) {
+npy_int64 absdate_from_ymd(int year, int month, int day) {
     /* Calculate the absolute date */
     pandas_datetimestruct dts;
     npy_int64 unix_date;
@@ -68,8 +68,6 @@ static int dInfoCalc_SetFromAbsDate(register struct date_info *dinfo,
     dinfo->year = dts.year;
     dinfo->month = dts.month;
     dinfo->day = dts.day;
-
-    dinfo->absdate = absdate;
     return 0;
 }
 
@@ -100,8 +98,7 @@ PANDAS_INLINE int get_freq_group(int freq) { return (freq / 1000) * 1000; }
 PANDAS_INLINE int get_freq_group_index(int freq) { return freq / 1000; }
 
 
-PANDAS_INLINE npy_int64 get_daytime_conversion_factor(int from_index,
-                                                      int to_index) {
+npy_int64 get_daytime_conversion_factor(int from_index, int to_index) {
     int row = min_value(from_index, to_index);
     int col = max_value(from_index, to_index);
     // row or col < 6 means frequency strictly lower than Daily, which
@@ -144,9 +141,9 @@ static npy_int64 DtoB_weekday(npy_int64 absdate) {
     return (((absdate) / 7) * 5) + (absdate) % 7 - BDAY_OFFSET;
 }
 
-static npy_int64 DtoB(struct date_info *dinfo, int roll_back) {
+static npy_int64 DtoB(struct date_info *dinfo,
+                      int roll_back, npy_int64 absdate) {
     int day_of_week = dayofweek(dinfo->year, dinfo->month, dinfo->day);
-    npy_int64 absdate = dinfo->absdate;
 
     if (roll_back == 1) {
         if (day_of_week > 4) {
@@ -162,9 +159,6 @@ static npy_int64 DtoB(struct date_info *dinfo, int roll_back) {
     return DtoB_weekday(absdate);
 }
 
-static npy_int64 absdate_from_ymd(int y, int m, int d) {
-    return dInfoCalc_SetFromDateAndTime(y, m, d);
-}
 
 //************ FROM DAILY ***************
 
@@ -224,15 +218,16 @@ static npy_int64 asfreq_DTtoW(npy_int64 ordinal, asfreq_info *af_info) {
 
 static npy_int64 asfreq_DTtoB(npy_int64 ordinal, asfreq_info *af_info) {
     struct date_info dinfo;
+    npy_int64 absdate;
     int roll_back;
 
     ordinal = downsample_daytime(ordinal, af_info);
-
-    dInfoCalc_SetFromAbsDate(&dinfo, ordinal + ORD_OFFSET);
+    absdate = ordinal + ORD_OFFSET;
+    dInfoCalc_SetFromAbsDate(&dinfo, absdate);
 
     // This usage defines roll_back the opposite way from the others
     roll_back = 1 - af_info->is_end;
-    return DtoB(&dinfo, roll_back);
+    return DtoB(&dinfo, roll_back, absdate);
 }
 
 // all intra day calculations are now done within one function
@@ -298,11 +293,11 @@ static npy_int64 asfreq_WtoW(npy_int64 ordinal, asfreq_info *af_info) {
 
 static npy_int64 asfreq_WtoB(npy_int64 ordinal, asfreq_info *af_info) {
     struct date_info dinfo;
+    npy_int64 absdate = asfreq_WtoDT(ordinal, af_info) + ORD_OFFSET;
     int roll_back = af_info->is_end;
-    dInfoCalc_SetFromAbsDate(
-            &dinfo, asfreq_WtoDT(ordinal, af_info) + ORD_OFFSET);
+    dInfoCalc_SetFromAbsDate(&dinfo, absdate);
 
-    return DtoB(&dinfo, roll_back);
+    return DtoB(&dinfo, roll_back, absdate);
 }
 
 //************ FROM MONTHLY ***************
@@ -338,12 +333,12 @@ static npy_int64 asfreq_MtoW(npy_int64 ordinal, asfreq_info *af_info) {
 
 static npy_int64 asfreq_MtoB(npy_int64 ordinal, asfreq_info *af_info) {
     struct date_info dinfo;
+    npy_int64 absdate = asfreq_MtoDT(ordinal, af_info) + ORD_OFFSET;
     int roll_back = af_info->is_end;
 
-    dInfoCalc_SetFromAbsDate(
-            &dinfo, asfreq_MtoDT(ordinal, af_info) + ORD_OFFSET);
+    dInfoCalc_SetFromAbsDate(&dinfo, absdate);
 
-    return DtoB(&dinfo, roll_back);
+    return DtoB(&dinfo, roll_back, absdate);
 }
 
 //************ FROM QUARTERLY ***************
@@ -393,12 +388,12 @@ static npy_int64 asfreq_QtoW(npy_int64 ordinal, asfreq_info *af_info) {
 
 static npy_int64 asfreq_QtoB(npy_int64 ordinal, asfreq_info *af_info) {
     struct date_info dinfo;
+    npy_int64 absdate = asfreq_QtoDT(ordinal, af_info) + ORD_OFFSET;
     int roll_back = af_info->is_end;
 
-    dInfoCalc_SetFromAbsDate(
-            &dinfo, asfreq_QtoDT(ordinal, af_info) + ORD_OFFSET);
+    dInfoCalc_SetFromAbsDate(&dinfo, absdate);
 
-    return DtoB(&dinfo, roll_back);
+    return DtoB(&dinfo, roll_back, absdate);
 }
 
 //************ FROM ANNUAL ***************
@@ -439,11 +434,11 @@ static npy_int64 asfreq_AtoW(npy_int64 ordinal, asfreq_info *af_info) {
 
 static npy_int64 asfreq_AtoB(npy_int64 ordinal, asfreq_info *af_info) {
     struct date_info dinfo;
+    npy_int64 absdate = asfreq_AtoDT(ordinal, af_info) + ORD_OFFSET;
     int roll_back = af_info->is_end;
-    dInfoCalc_SetFromAbsDate(
-            &dinfo, asfreq_AtoDT(ordinal, af_info) + ORD_OFFSET);
+    dInfoCalc_SetFromAbsDate(&dinfo, absdate);
 
-    return DtoB(&dinfo, roll_back);
+    return DtoB(&dinfo, roll_back, absdate);
 }
 
 static npy_int64 nofunc(npy_int64 ordinal, asfreq_info *af_info) {
@@ -675,65 +670,6 @@ freq_conv_func get_asfreq_func(int fromFreq, int toFreq) {
     }
 }
 
-double get_abs_time(int freq, npy_int64 date_ordinal, npy_int64 ordinal) {
-    int freq_index, day_index, base_index;
-    npy_int64 per_day, start_ord;
-    double unit, result;
-
-    if (freq <= FR_DAY) {
-        return 0;
-    }
-
-    freq_index = get_freq_group_index(freq);
-    day_index = get_freq_group_index(FR_DAY);
-    base_index = get_freq_group_index(FR_SEC);
-
-    per_day = get_daytime_conversion_factor(day_index, freq_index);
-    unit = get_daytime_conversion_factor(freq_index, base_index);
-
-    if (base_index < freq_index) {
-        unit = 1 / unit;
-    }
-
-    start_ord = date_ordinal * per_day;
-    result = (double)(unit * (ordinal - start_ord));
-    return result;
-}
-
-/* Sets the time part of the DateTime object. */
-static int dInfoCalc_SetFromAbsTime(struct date_info *dinfo, double abstime) {
-    int inttime;
-    int hour, minute;
-    double second;
-
-    inttime = (int)abstime;
-    hour = inttime / 3600;
-    minute = (inttime % 3600) / 60;
-    second = abstime - (double)(hour * 3600 + minute * 60);
-
-    dinfo->hour = hour;
-    dinfo->minute = minute;
-    dinfo->second = second;
-    return 0;
-}
-
-/* Set the instance's value using the given date and time.
-   Assumes GREGORIAN_CALENDAR. */
-static int dInfoCalc_SetFromAbsDateTime(struct date_info *dinfo,
-                                        npy_int64 absdate, double abstime) {
-    /* Bounds check */
-    // The calling function is responsible for ensuring that
-    // abstime >= 0.0 && abstime <= 86400
-
-    /* Calculate the date */
-    dInfoCalc_SetFromAbsDate(dinfo, absdate);
-
-    /* Calculate the time */
-    dInfoCalc_SetFromAbsTime(dinfo, abstime);
-
-    return 0;
-}
-
 /* ------------------------------------------------------------------
  * New pandas API-helper code, to expose to cython
  * ------------------------------------------------------------------*/
@@ -749,186 +685,4 @@ npy_int64 asfreq(npy_int64 period_ordinal, int freq1, int freq2,
     get_asfreq_info(freq1, freq2, relation, &finfo);
     val = (*func)(period_ordinal, &finfo);
     return val;
-}
-
-/* generate an ordinal in period space */
-npy_int64 get_period_ordinal(int year, int month, int day, int hour, int minute,
-                             int second, int microseconds, int picoseconds,
-                             int freq) {
-    npy_int64 absdays, delta, seconds;
-    npy_int64 weeks, days;
-    npy_int64 ordinal, day_adj;
-    int freq_group, fmonth, mdiff;
-    freq_group = get_freq_group(freq);
-
-    if (freq == FR_SEC || freq == FR_MS || freq == FR_US || freq == FR_NS) {
-        absdays = absdate_from_ymd(year, month, day);
-        delta = (absdays - ORD_OFFSET);
-        seconds =
-            (npy_int64)(delta * 86400 + hour * 3600 + minute * 60 + second);
-
-        switch (freq) {
-            case FR_MS:
-                return seconds * 1000 + microseconds / 1000;
-
-            case FR_US:
-                return seconds * 1000000 + microseconds;
-
-            case FR_NS:
-                return seconds * 1000000000 + microseconds * 1000 +
-                       picoseconds / 1000;
-        }
-
-        return seconds;
-    }
-
-    if (freq == FR_MIN) {
-        absdays = absdate_from_ymd(year, month, day);
-        delta = (absdays - ORD_OFFSET);
-        return (npy_int64)(delta * 1440 + hour * 60 + minute);
-    }
-
-    if (freq == FR_HR) {
-        absdays = absdate_from_ymd(year, month, day);
-        delta = (absdays - ORD_OFFSET);
-        return (npy_int64)(delta * 24 + hour);
-    }
-
-    if (freq == FR_DAY) {
-        return (npy_int64)(absdate_from_ymd(year, month, day) - ORD_OFFSET);
-    }
-
-    if (freq == FR_UND) {
-        return (npy_int64)(absdate_from_ymd(year, month, day) - ORD_OFFSET);
-    }
-
-    if (freq == FR_BUS) {
-        days = absdate_from_ymd(year, month, day);
-        // calculate the current week assuming sunday as last day of a week
-        weeks = (days - BASE_WEEK_TO_DAY_OFFSET) / DAYS_PER_WEEK;
-        // calculate the current weekday (in range 1 .. 7)
-        delta = (days - BASE_WEEK_TO_DAY_OFFSET) % DAYS_PER_WEEK + 1;
-        // return the number of business days in full weeks plus the business
-        // days in the last - possible partial - week
-        return (npy_int64)(weeks * BUSINESS_DAYS_PER_WEEK) +
-               (delta <= BUSINESS_DAYS_PER_WEEK ? delta
-                                                : BUSINESS_DAYS_PER_WEEK + 1) -
-               BDAY_OFFSET;
-    }
-
-    if (freq_group == FR_WK) {
-        ordinal = (npy_int64)absdate_from_ymd(year, month, day);
-        day_adj = freq - FR_WK;
-        return (ordinal - (1 + day_adj)) / 7 + 1 - WEEK_OFFSET;
-    }
-
-    if (freq == FR_MTH) {
-        return (year - BASE_YEAR) * 12 + month - 1;
-    }
-
-    if (freq_group == FR_QTR) {
-        fmonth = freq - FR_QTR;
-        if (fmonth == 0) fmonth = 12;
-
-        mdiff = month - fmonth;
-        if (mdiff < 0) mdiff += 12;
-        if (month >= fmonth) mdiff += 12;
-
-        return (year - BASE_YEAR) * 4 + (mdiff - 1) / 3;
-    }
-
-    if (freq_group == FR_ANN) {
-        fmonth = freq - FR_ANN;
-        if (fmonth == 0) fmonth = 12;
-        if (month <= fmonth) {
-            return year - BASE_YEAR;
-        } else {
-            return year - BASE_YEAR + 1;
-        }
-    }
-
-    Py_Error(PyExc_RuntimeError, "Unable to generate frequency ordinal");
-
-onError:
-    return INT_ERR_CODE;
-}
-
-/*
-   Returns the proleptic Gregorian ordinal of the date, as an integer.
-   This corresponds to the number of days since Jan., 1st, 1AD.
-   When the instance has a frequency less than daily, the proleptic date
-   is calculated for the last day of the period.
- */
-
-npy_int64 get_python_ordinal(npy_int64 period_ordinal, int freq) {
-    asfreq_info af_info;
-    freq_conv_func toDaily = NULL;
-
-    if (freq == FR_DAY) return period_ordinal + ORD_OFFSET;
-
-    toDaily = get_asfreq_func(freq, FR_DAY);
-    get_asfreq_info(freq, FR_DAY, 'E', &af_info);
-
-    return toDaily(period_ordinal, &af_info) + ORD_OFFSET;
-}
-
-
-int get_yq(npy_int64 ordinal, int freq, int *quarter, int *year) {
-    asfreq_info af_info;
-    int qtr_freq;
-    npy_int64 daily_ord;
-    freq_conv_func toDaily = NULL;
-
-    toDaily = get_asfreq_func(freq, FR_DAY);
-    get_asfreq_info(freq, FR_DAY, 'E', &af_info);
-
-    daily_ord = toDaily(ordinal, &af_info);
-
-    if (get_freq_group(freq) == FR_QTR) {
-        qtr_freq = freq;
-    } else {
-        qtr_freq = FR_QTR;
-    }
-    get_asfreq_info(FR_DAY, qtr_freq, 'E', &af_info);
-
-    DtoQ_yq(daily_ord, &af_info, year, quarter);
-    return 0;
-}
-
-int _quarter_year(npy_int64 ordinal, int freq, int *year, int *quarter) {
-    asfreq_info af_info;
-    int qtr_freq;
-
-    ordinal = get_python_ordinal(ordinal, freq) - ORD_OFFSET;
-
-    if (get_freq_group(freq) == FR_QTR)
-        qtr_freq = freq;
-    else
-        qtr_freq = FR_QTR;
-
-    get_asfreq_info(FR_DAY, qtr_freq, 'E', &af_info);
-
-    DtoQ_yq(ordinal, &af_info, year, quarter);
-
-    if ((qtr_freq % 1000) > 12) *year -= 1;
-
-    return 0;
-}
-
-
-int get_date_info(npy_int64 ordinal, int freq, struct date_info *dinfo) {
-    npy_int64 absdate = get_python_ordinal(ordinal, freq);
-    double abstime = get_abs_time(freq, absdate - ORD_OFFSET, ordinal);
-
-    while (abstime < 0) {
-        abstime += 86400;
-        absdate -= 1;
-    }
-    while (abstime >= 86400) {
-        abstime -= 86400;
-        absdate += 1;
-    }
-
-    dInfoCalc_SetFromAbsDateTime(dinfo, absdate, abstime);
-    return 0;
 }

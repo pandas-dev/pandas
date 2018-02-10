@@ -118,8 +118,6 @@ typedef struct asfreq_info {
 } asfreq_info;
 
 typedef struct date_info {
-    npy_int64 absdate;
-
     double second;
     int minute;
     int hour;
@@ -136,18 +134,10 @@ typedef npy_int64 (*freq_conv_func)(npy_int64, asfreq_info *af_info);
 
 npy_int64 asfreq(npy_int64 period_ordinal, int freq1, int freq2, char relation);
 
-npy_int64 get_period_ordinal(int year, int month, int day, int hour, int minute,
-                             int second, int microseconds, int picoseconds,
-                             int freq);
-
-npy_int64 get_python_ordinal(npy_int64 period_ordinal, int freq);
-
-int get_date_info(npy_int64 ordinal, int freq, struct date_info *dinfo);
 freq_conv_func get_asfreq_func(int fromFreq, int toFreq);
 void get_asfreq_info(int fromFreq, int toFreq, char relation,
                      asfreq_info *af_info);
 
-int get_yq(npy_int64 ordinal, int freq, int *quarter, int *year);
-int _quarter_year(npy_int64 ordinal, int freq, int *year, int *quarter);
+npy_int64 get_daytime_conversion_factor(int from_index, int to_index);
 
 #endif  // PANDAS__LIBS_SRC_PERIOD_HELPER_H_
