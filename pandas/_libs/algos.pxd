@@ -11,3 +11,11 @@ cdef inline Py_ssize_t swap(numeric *a, numeric *b) nogil:
     a[0] = b[0]
     b[0] = t
     return 0
+
+cdef enum TiebreakEnumType:
+    TIEBREAK_AVERAGE
+    TIEBREAK_MIN,
+    TIEBREAK_MAX
+    TIEBREAK_FIRST
+    TIEBREAK_FIRST_DESCENDING
+    TIEBREAK_DENSE

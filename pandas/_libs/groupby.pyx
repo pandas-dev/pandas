@@ -16,8 +16,9 @@ from numpy cimport (ndarray,
 from libc.stdlib cimport malloc, free
 
 from util cimport numeric, get_nat
-from algos cimport swap
-from algos import take_2d_axis1_float64_float64, groupsort_indexer
+from algos cimport (swap, TiebreakEnumType, TIEBREAK_AVERAGE, TIEBREAK_MIN,
+                    TIEBREAK_MAX, TIEBREAK_FIRST, TIEBREAK_DENSE)
+from algos import take_2d_axis1_float64_float64, groupsort_indexer, tiebreakers
 
 cdef int64_t iNaT = get_nat()
 

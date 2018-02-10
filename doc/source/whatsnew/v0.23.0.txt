@@ -581,6 +581,7 @@ Performance Improvements
 - Improved performance of :func:`DataFrame.median` with ``axis=1`` when bottleneck is not installed (:issue:`16468`)
 - Improved performance of :func:`MultiIndex.get_loc` for large indexes, at the cost of a reduction in performance for small ones (:issue:`18519`)
 - Improved performance of pairwise ``.rolling()`` and ``.expanding()`` with ``.cov()`` and ``.corr()`` operations (:issue:`17917`)
+- Improved performance of :func:`DataFrameGroupBy.rank` (:issue:`15779`)
 
 .. _whatsnew_0230.docs:
 
