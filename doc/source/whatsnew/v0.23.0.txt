@@ -460,6 +460,29 @@ To restore previous behavior, simply set ``expand`` to ``False``:
     extracted
     type(extracted)
 
+.. _whatsnew_0230.api_breaking.cdt_ordered:
+
+Default value for the ``ordered`` parameter of ``CategoricalDtype``
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+The default value of the ``ordered`` parameter for :class:`~pandas.api.types.CategoricalDtype` has changed from ``False`` to ``None`` to allow updating of ``categories`` without impacting ``ordered``.  Behavior should remain consistent for downstream objects, such as :class:`Categorical` (:issue:`18790`)
+
+In previous versions, the default value for the ``ordered`` parameter was ``False``.  This could potentially lead to the ``ordered`` parameter unintentionally being changed from ``True`` to ``False`` when users attempt to update ``categories`` if ``ordered`` is not explicitly specified, as it would silently default to ``False``.  The new behavior for ``ordered=None`` is to retain the existing value of ``ordered``.
+
+New Behavior:
+
+.. ipython:: python
+
+    from pandas.api.types import CategoricalDtype
+    cat = pd.Categorical(list('abcaba'), ordered=True, categories=list('cba'))
+    cat
+    cdt = CategoricalDtype(categories=list('cbad'))
+    cat.astype(cdt)
+
+Notice in the example above that the converted ``Categorical`` has retained ``ordered=True``.  Had the default value for ``ordered`` remained as ``False``, the converted ``Categorical`` would have become unordered, despite ``ordered=False`` never being explicitly specified.  To change the value of ``ordered``, explicitly pass it to the new dtype, e.g. ``CategoricalDtype(categories=list('cbad'), ordered=False)``.
+
+Note that the unintenional conversion of ``ordered`` discussed above did not arise in previous versions due to separate bugs that prevented ``astype`` from doing any type of category to category conversion (:issue:`10696`, :issue:`18593`).  These bugs have been fixed in this release, and motivated changing the default value of ``ordered``.
+
 .. _whatsnew_0230.api:
 
 Other API Changes
@@ -507,7 +530,6 @@ Other API Changes
 - Set operations (union, difference...) on :class:`IntervalIndex` with incompatible index types will now raise a ``TypeError`` rather than a ``ValueError`` (:issue:`19329`)
 - :class:`DateOffset` objects render more simply, e.g. "<DateOffset: days=1>" instead of "<DateOffset: kwds={'days': 1}>" (:issue:`19403`)
 - :func:`pandas.merge` provides a more informative error message when trying to merge on timezone-aware and timezone-naive columns (:issue:`15800`)
-- The default value of the ``ordered`` parameter for :class:`~pandas.api.types.CategoricalDtype` has changed from ``False`` to ``None`` to allow updating of ``categories`` without impacting ``ordered``.  Behavior should remain consistent for downstream objects, such as :class:`Categorical` (:issue:`18790`)
 
 .. _whatsnew_0230.deprecations:
 
