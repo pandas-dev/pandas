@@ -15,7 +15,7 @@ import pandas.util.testing as tm
 import pandas.util._test_decorators as td
 
 from pandas import Timestamp, NaT
-from pandas._libs.tslib import OutOfBoundsDatetime
+from pandas.errors import OutOfBoundsDatetime
 
 
 class TestTimestampTZOperations(object):
