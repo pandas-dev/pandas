@@ -89,10 +89,34 @@ class TestDataFrameMutateColumns(TestData):
             df.assign(lambda x: x.A)
         with pytest.raises(AttributeError):
             df.assign(C=df.A, D=df.A + df.C)
+
+    @pytest.mark.skipif(PY36, reason="""Issue #14207: valid for python
+                        3.6 and above""")
+    def test_assign_dependent_old_python(self):
+        df = DataFrame({'A': [1, 2, 3], 'B': [4, 5, 6]})
+
+        # Key C does not exist at defition time of df
         with pytest.raises(KeyError):
-            df.assign(C=lambda df: df.A, D=lambda df: df['A'] + df['C'])
+            df.assign(C=lambda df: df.A,
+                      D=lambda df: df['A'] + df['C'])
         with pytest.raises(KeyError):
             df.assign(C=df.A, D=lambda x: x['A'] + x['C'])
+
+    @pytest.mark.skipif(not PY36, reason="""Issue #14207: not valid for
+                        python 3.5 and below""")
+    def test_assign_dependent(self):
+        df = DataFrame({'A': [1, 2], 'B': [3, 4]})
+
+        result = df.assign(C=df.A, D=lambda x: x['A'] + x['C'])
+        expected = DataFrame([[1, 3, 1, 2], [2, 4, 2, 4]],
+                             columns=list('ABCD'))
+        assert_frame_equal(result, expected)
+
+        result = df.assign(C=lambda df: df.A,
+                           D=lambda df: df['A'] + df['C'])
+        expected = DataFrame([[1, 3, 1, 2], [2, 4, 2, 4]],
+                             columns=list('ABCD'))
+        assert_frame_equal(result, expected)
 
     def test_insert_error_msmgs(self):
 

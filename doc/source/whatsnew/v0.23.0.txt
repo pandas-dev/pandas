@@ -248,6 +248,46 @@ Current Behavior:
 
     pd.RangeIndex(1, 5) / 0
 
+.. _whatsnew_0230.enhancements.assign_dependent:
+
+``.assign()`` accepts dependent arguments
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+The :func:`DataFrame.assign` now accepts dependent keyword arguments for python version later than 3.6 (see also `PEP 468
+<https://www.python.org/dev/peps/pep-0468/>`_). Later keyword arguments may now refer to earlier ones if the argument is a callable. See the
+:ref:`documentation here <dsintro.chained_assignment>` (:issue:`14207`)
+
+.. ipython:: python
+
+    df = pd.DataFrame({'A': [1, 2, 3]})
+    df
+    df.assign(B=df.A, C=lambda x:x['A']+ x['B'])
+
+.. warning::
+
+  This may subtly change the behavior of your code when you're
+  using ``.assign()`` to update an existing column. Previously, callables
+  referring to other variables being updated would get the "old" values
+
+  Previous Behaviour:
+
+  .. code-block:: ipython
+
+      In [2]: df = pd.DataFrame({"A": [1, 2, 3]})
+
+      In [3]: df.assign(A=lambda df: df.A + 1, C=lambda df: df.A * -1)
+      Out[3]:
+         A  C
+      0  2 -1
+      1  3 -2
+      2  4 -3
+
+  New Behaviour:
+
+  .. ipython:: python
+
+      df.assign(A=df.A+1, C= lambda df: df.A* -1)
+
 .. _whatsnew_0230.enhancements.other:
 
 Other Enhancements
