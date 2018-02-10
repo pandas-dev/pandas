@@ -33,19 +33,13 @@ from pandas.core.tools.datetimes import format, ole2datetime
 import pandas.tseries.offsets as offsets
 from pandas.io.pickle import read_pickle
 from pandas._libs.tslibs import timezones
-from pandas._libs.tslib import normalize_date, NaT, Timestamp
+from pandas._libs.tslib import NaT, Timestamp
 import pandas._libs.tslib as tslib
 import pandas.util.testing as tm
 from pandas.tseries.holiday import USFederalHolidayCalendar
 
 from .common import assert_offset_equal, assert_onOffset
 
-
-def test_monthrange():
-    import calendar
-    for y in range(2000, 2013):
-        for m in range(1, 13):
-            assert tslib.monthrange(y, m) == calendar.monthrange(y, m)
 
 ####
 # Misc function tests
@@ -63,11 +57,6 @@ def test_ole2datetime():
 
     with pytest.raises(ValueError):
         ole2datetime(60)
-
-
-def test_normalize_date():
-    actual = normalize_date(datetime(2007, 10, 1, 1, 12, 5, 10))
-    assert actual == datetime(2007, 10, 1)
 
 
 def test_to_m8():

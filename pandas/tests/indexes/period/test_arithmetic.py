@@ -250,6 +250,79 @@ class TestPeriodIndexArithmetic(object):
         rng -= 1
         tm.assert_index_equal(rng, expected)
 
+    # ------------------------------------------------------------------
+    # PeriodIndex.shift is used by __add__ and __sub__
+
+    def test_shift(self):
+        pi1 = PeriodIndex(freq='A', start='1/1/2001', end='12/1/2009')
+        pi2 = PeriodIndex(freq='A', start='1/1/2002', end='12/1/2010')
+
+        tm.assert_index_equal(pi1.shift(0), pi1)
+
+        assert len(pi1) == len(pi2)
+        tm.assert_index_equal(pi1.shift(1), pi2)
+
+        pi1 = PeriodIndex(freq='A', start='1/1/2001', end='12/1/2009')
+        pi2 = PeriodIndex(freq='A', start='1/1/2000', end='12/1/2008')
+        assert len(pi1) == len(pi2)
+        tm.assert_index_equal(pi1.shift(-1), pi2)
+
+        pi1 = PeriodIndex(freq='M', start='1/1/2001', end='12/1/2009')
+        pi2 = PeriodIndex(freq='M', start='2/1/2001', end='1/1/2010')
+        assert len(pi1) == len(pi2)
+        tm.assert_index_equal(pi1.shift(1), pi2)
+
+        pi1 = PeriodIndex(freq='M', start='1/1/2001', end='12/1/2009')
+        pi2 = PeriodIndex(freq='M', start='12/1/2000', end='11/1/2009')
+        assert len(pi1) == len(pi2)
+        tm.assert_index_equal(pi1.shift(-1), pi2)
+
+        pi1 = PeriodIndex(freq='D', start='1/1/2001', end='12/1/2009')
+        pi2 = PeriodIndex(freq='D', start='1/2/2001', end='12/2/2009')
+        assert len(pi1) == len(pi2)
+        tm.assert_index_equal(pi1.shift(1), pi2)
+
+        pi1 = PeriodIndex(freq='D', start='1/1/2001', end='12/1/2009')
+        pi2 = PeriodIndex(freq='D', start='12/31/2000', end='11/30/2009')
+        assert len(pi1) == len(pi2)
+        tm.assert_index_equal(pi1.shift(-1), pi2)
+
+    def test_shift_ndarray(self):
+        idx = PeriodIndex(['2011-01', '2011-02', 'NaT',
+                           '2011-04'], freq='M', name='idx')
+        result = idx.shift(np.array([1, 2, 3, 4]))
+        expected = PeriodIndex(['2011-02', '2011-04', 'NaT',
+                                '2011-08'], freq='M', name='idx')
+        tm.assert_index_equal(result, expected)
+
+        idx = PeriodIndex(['2011-01', '2011-02', 'NaT',
+                           '2011-04'], freq='M', name='idx')
+        result = idx.shift(np.array([1, -2, 3, -4]))
+        expected = PeriodIndex(['2011-02', '2010-12', 'NaT',
+                                '2010-12'], freq='M', name='idx')
+        tm.assert_index_equal(result, expected)
+
+    def test_shift_corner_cases(self):
+        # GH#9903
+        idx = PeriodIndex([], name='xxx', freq='H')
+
+        with pytest.raises(TypeError):
+            # period shift doesn't accept freq
+            idx.shift(1, freq='H')
+
+        tm.assert_index_equal(idx.shift(0), idx)
+        tm.assert_index_equal(idx.shift(3), idx)
+
+        idx = PeriodIndex(['2011-01-01 10:00', '2011-01-01 11:00'
+                           '2011-01-01 12:00'], name='xxx', freq='H')
+        tm.assert_index_equal(idx.shift(0), idx)
+        exp = PeriodIndex(['2011-01-01 13:00', '2011-01-01 14:00'
+                           '2011-01-01 15:00'], name='xxx', freq='H')
+        tm.assert_index_equal(idx.shift(3), exp)
+        exp = PeriodIndex(['2011-01-01 07:00', '2011-01-01 08:00'
+                           '2011-01-01 09:00'], name='xxx', freq='H')
+        tm.assert_index_equal(idx.shift(-3), exp)
+
 
 class TestPeriodIndexSeriesMethods(object):
     """ Test PeriodIndex and Period Series Ops consistency """
