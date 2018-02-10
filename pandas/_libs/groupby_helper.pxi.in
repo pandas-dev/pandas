@@ -317,7 +317,7 @@ def group_ohlc_{{name}}(ndarray[{{dest_type2}}, ndim=2] out,
 {{endfor}}
 
 #----------------------------------------------------------------------
-# group_nth, group_last
+# group_nth, group_last, group_rank
 #----------------------------------------------------------------------
 
 {{py:
@@ -453,6 +453,7 @@ def group_nth_{{name}}(ndarray[{{dest_type2}}, ndim=2] out,
                     out[i, j] = resx[i, j]
 
 
+{{if name != 'object'}}
 @cython.boundscheck(False)
 @cython.wraparound(False)
 def group_rank_{{name}}(ndarray[float64_t, ndim=2] out,
@@ -616,6 +617,7 @@ def group_rank_{{name}}(ndarray[float64_t, ndim=2] out,
         if pct:
             for i in range(N):
                 out[i, 0] = out[i, 0] / grp_sizes[i, 0]
+{{endif}}
 {{endfor}}
 
 
