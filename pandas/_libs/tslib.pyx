@@ -56,6 +56,8 @@ from tslibs.timestamps cimport (create_timestamp_from_ts,
                                 _NS_UPPER_BOUND, _NS_LOWER_BOUND)
 from tslibs.timestamps import Timestamp
 
+cdef bint PY2 = str == bytes
+
 
 cdef inline object create_datetime_from_ts(
         int64_t value, pandas_datetimestruct dts,
@@ -598,7 +600,7 @@ cpdef array_to_datetime(ndarray[object] values, errors='raise',
                 if len(val) == 0 or val in nat_strings:
                     iresult[i] = NPY_NAT
                     continue
-                if PyUnicode_Check(val):
+                if PyUnicode_Check(val) and PY2:
                     val = val.encode('utf-8')
 
                 try:
@@ -745,14 +747,14 @@ cpdef array_to_datetime(ndarray[object] values, errors='raise',
         return oresult
 
 
-cdef inline bint _parse_today_now(bytes val, int64_t* iresult):
+cdef inline bint _parse_today_now(str val, int64_t* iresult):
     # We delay this check for as long as possible
     # because it catches relatively rare cases
-    if val == b'now':
+    if val == 'now':
         # Note: this is *not* the same as Timestamp('now')
         iresult[0] = Timestamp.utcnow().value
         return True
-    elif val == b'today':
+    elif val == 'today':
         # Note: this is *not* the same as Timestamp('today')
         iresult[0] = Timestamp.now().normalize().value
         return True
