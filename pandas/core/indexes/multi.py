@@ -2201,7 +2201,9 @@ class MultiIndex(Index):
             mask[loc] = True
             return mask
 
-        if not isinstance(key, tuple):
+        if isinstance(key, slice):
+            return key
+        elif not isinstance(key, tuple):
             loc = self._get_level_indexer(key, level=0)
 
             # _get_level_indexer returns an empty slice if the key has
