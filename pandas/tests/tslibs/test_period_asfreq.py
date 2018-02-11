@@ -15,7 +15,7 @@ class TestPeriodFreqConversion(object):
     def test_asfreq_near_zero(self, freq):
         # GH#19643
         per = Period('0001-01-01', freq=freq)
-        tup = (per.year, per.hour, per.day)
+        tup1 = (per.year, per.hour, per.day)
 
         prev = per - 1
         assert (per - 1).ordinal == per.ordinal - 1
