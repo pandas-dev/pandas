@@ -180,7 +180,7 @@ def read_msgpack(path_or_buf, encoding='utf-8', iterator=False, **kwargs):
     obj : type of object stored in file
 
     """
-    path_or_buf, _, _ = get_filepath_or_buffer(path_or_buf)
+    path_or_buf, _, _, should_close = get_filepath_or_buffer(path_or_buf)
     if iterator:
         return Iterator(path_or_buf)
 
@@ -188,6 +188,12 @@ def read_msgpack(path_or_buf, encoding='utf-8', iterator=False, **kwargs):
         l = list(unpack(fh, encoding=encoding, **kwargs))
         if len(l) == 1:
             return l[0]
+
+        if should_close:
+            try:
+                path_or_buf.close()
+            except:
+                pass
         return l
 
     # see if we have an actual file
