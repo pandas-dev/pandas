@@ -2792,7 +2792,7 @@ class TestGroupBy(MixIn):
         tm.assert_series_equal(result, expected)
 
         # Also check result equal to manually taking x.is_monotonic_increasing.
-        expecteAd = (
+        expected = (
             df.groupby(['B']).C.apply(lambda x: x.is_monotonic_increasing))
         tm.assert_series_equal(result, expected)
 
