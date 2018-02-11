@@ -49,49 +49,6 @@ class TestDatetimeIndexOps(Ops):
         assert s.day == 10
         pytest.raises(AttributeError, lambda: s.weekday)
 
-    def test_astype_object(self):
-        idx = pd.date_range(start='2013-01-01', periods=4, freq='M',
-                            name='idx')
-        expected_list = [Timestamp('2013-01-31'),
-                         Timestamp('2013-02-28'),
-                         Timestamp('2013-03-31'),
-                         Timestamp('2013-04-30')]
-        expected = pd.Index(expected_list, dtype=object, name='idx')
-        result = idx.astype(object)
-        assert isinstance(result, Index)
-
-        assert result.dtype == object
-        tm.assert_index_equal(result, expected)
-        assert result.name == expected.name
-        assert idx.tolist() == expected_list
-
-        idx = pd.date_range(start='2013-01-01', periods=4, freq='M',
-                            name='idx', tz='Asia/Tokyo')
-        expected_list = [Timestamp('2013-01-31', tz='Asia/Tokyo'),
-                         Timestamp('2013-02-28', tz='Asia/Tokyo'),
-                         Timestamp('2013-03-31', tz='Asia/Tokyo'),
-                         Timestamp('2013-04-30', tz='Asia/Tokyo')]
-        expected = pd.Index(expected_list, dtype=object, name='idx')
-        result = idx.astype(object)
-        assert isinstance(result, Index)
-        assert result.dtype == object
-        tm.assert_index_equal(result, expected)
-        assert result.name == expected.name
-        assert idx.tolist() == expected_list
-
-        idx = DatetimeIndex([datetime(2013, 1, 1), datetime(2013, 1, 2),
-                             pd.NaT, datetime(2013, 1, 4)], name='idx')
-        expected_list = [Timestamp('2013-01-01'),
-                         Timestamp('2013-01-02'), pd.NaT,
-                         Timestamp('2013-01-04')]
-        expected = pd.Index(expected_list, dtype=object, name='idx')
-        result = idx.astype(object)
-        assert isinstance(result, Index)
-        assert result.dtype == object
-        tm.assert_index_equal(result, expected)
-        assert result.name == expected.name
-        assert idx.tolist() == expected_list
-
     def test_minmax(self):
         for tz in self.tz:
             # monotonic
