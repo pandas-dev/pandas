@@ -19,6 +19,7 @@ from pandas.core.indexes.datetimes import Timestamp
 from pandas.core.indexes.timedeltas import Timedelta
 import pandas.core.nanops as nanops
 
+from pandas.errors import PerformanceWarning
 from pandas.compat import range, zip
 from pandas import compat
 from pandas.util.testing import (assert_series_equal, assert_almost_equal,
@@ -26,6 +27,11 @@ from pandas.util.testing import (assert_series_equal, assert_almost_equal,
 import pandas.util.testing as tm
 
 from .common import TestData
+
+
+@pytest.fixture
+def tdser():
+    return Series(['59 Days', '59 Days', 'NaT'], dtype='timedelta64[ns]')
 
 
 class TestSeriesComparisons(object):
@@ -178,18 +184,18 @@ class TestSeriesComparisons(object):
         assert_series_equal(result, expected)
 
     def test_comparison_operators_with_nas(self):
-        s = Series(bdate_range('1/1/2000', periods=10), dtype=object)
-        s[::2] = np.nan
+        ser = Series(bdate_range('1/1/2000', periods=10), dtype=object)
+        ser[::2] = np.nan
 
         # test that comparisons work
         ops = ['lt', 'le', 'gt', 'ge', 'eq', 'ne']
         for op in ops:
-            val = s[5]
+            val = ser[5]
 
             f = getattr(operator, op)
-            result = f(s, val)
+            result = f(ser, val)
 
-            expected = f(s.dropna(), val).reindex(s.index)
+            expected = f(ser.dropna(), val).reindex(ser.index)
 
             if op == 'ne':
                 expected = expected.fillna(True).astype(bool)
@@ -206,28 +212,28 @@ class TestSeriesComparisons(object):
             # boolean &, |, ^ should work with object arrays and propagate NAs
 
         ops = ['and_', 'or_', 'xor']
-        mask = s.isna()
+        mask = ser.isna()
         for bool_op in ops:
-            f = getattr(operator, bool_op)
+            func = getattr(operator, bool_op)
 
-            filled = s.fillna(s[0])
+            filled = ser.fillna(ser[0])
 
-            result = f(s < s[9], s > s[3])
+            result = func(ser < ser[9], ser > ser[3])
 
-            expected = f(filled < filled[9], filled > filled[3])
+            expected = func(filled < filled[9], filled > filled[3])
             expected[mask] = False
             assert_series_equal(result, expected)
 
     def test_comparison_object_numeric_nas(self):
-        s = Series(np.random.randn(10), dtype=object)
-        shifted = s.shift(2)
+        ser = Series(np.random.randn(10), dtype=object)
+        shifted = ser.shift(2)
 
         ops = ['lt', 'le', 'gt', 'ge', 'eq', 'ne']
         for op in ops:
-            f = getattr(operator, op)
+            func = getattr(operator, op)
 
-            result = f(s, shifted)
-            expected = f(s.astype(float), shifted.astype(float))
+            result = func(ser, shifted)
+            expected = func(ser.astype(float), shifted.astype(float))
             assert_series_equal(result, expected)
 
     def test_comparison_invalid(self):
@@ -272,98 +278,94 @@ class TestSeriesComparisons(object):
         tm.assert_series_equal(cat == "d", Series([False, False, False]))
         tm.assert_series_equal(cat != "d", Series([True, True, True]))
 
-    def test_more_na_comparisons(self):
-        for dtype in [None, object]:
-            left = Series(['a', np.nan, 'c'], dtype=dtype)
-            right = Series(['a', np.nan, 'd'], dtype=dtype)
+    @pytest.mark.parametrize('dtype', [None, object])
+    def test_more_na_comparisons(self, dtype):
+        left = Series(['a', np.nan, 'c'], dtype=dtype)
+        right = Series(['a', np.nan, 'd'], dtype=dtype)
 
-            result = left == right
-            expected = Series([True, False, False])
-            assert_series_equal(result, expected)
+        result = left == right
+        expected = Series([True, False, False])
+        assert_series_equal(result, expected)
 
-            result = left != right
-            expected = Series([False, True, True])
-            assert_series_equal(result, expected)
+        result = left != right
+        expected = Series([False, True, True])
+        assert_series_equal(result, expected)
 
-            result = left == np.nan
-            expected = Series([False, False, False])
-            assert_series_equal(result, expected)
+        result = left == np.nan
+        expected = Series([False, False, False])
+        assert_series_equal(result, expected)
 
-            result = left != np.nan
-            expected = Series([True, True, True])
-            assert_series_equal(result, expected)
+        result = left != np.nan
+        expected = Series([True, True, True])
+        assert_series_equal(result, expected)
 
-    def test_nat_comparisons(self):
-        data = [([pd.Timestamp('2011-01-01'), pd.NaT,
-                  pd.Timestamp('2011-01-03')],
-                 [pd.NaT, pd.NaT, pd.Timestamp('2011-01-03')]),
+    @pytest.mark.parametrize('pair', [
+        ([pd.Timestamp('2011-01-01'), NaT, pd.Timestamp('2011-01-03')],
+         [NaT, NaT, pd.Timestamp('2011-01-03')]),
 
-                ([pd.Timedelta('1 days'), pd.NaT,
-                  pd.Timedelta('3 days')],
-                 [pd.NaT, pd.NaT, pd.Timedelta('3 days')]),
+        ([pd.Timedelta('1 days'), NaT, pd.Timedelta('3 days')],
+         [NaT, NaT, pd.Timedelta('3 days')]),
 
-                ([pd.Period('2011-01', freq='M'), pd.NaT,
-                  pd.Period('2011-03', freq='M')],
-                 [pd.NaT, pd.NaT, pd.Period('2011-03', freq='M')])]
+        ([pd.Period('2011-01', freq='M'), NaT, pd.Period('2011-03', freq='M')],
+         [NaT, NaT, pd.Period('2011-03', freq='M')])])
+    @pytest.mark.parametrize('reverse', [True, False])
+    @pytest.mark.parametrize('box', [Series, Index])
+    @pytest.mark.parametrize('dtype', [None, object])
+    def test_nat_comparisons(self, dtype, box, reverse, pair):
+        l, r = pair
+        if reverse:
+            # add lhs / rhs switched data
+            l, r = r, l
 
-        # add lhs / rhs switched data
-        data = data + [(r, l) for l, r in data]
+        left = Series(l, dtype=dtype)
+        right = box(r, dtype=dtype)
+        # Series, Index
 
-        for l, r in data:
-            for dtype in [None, object]:
-                left = Series(l, dtype=dtype)
+        expected = Series([False, False, True])
+        assert_series_equal(left == right, expected)
 
-                # Series, Index
-                for right in [Series(r, dtype=dtype), Index(r, dtype=dtype)]:
-                    expected = Series([False, False, True])
-                    assert_series_equal(left == right, expected)
+        expected = Series([True, True, False])
+        assert_series_equal(left != right, expected)
 
-                    expected = Series([True, True, False])
-                    assert_series_equal(left != right, expected)
+        expected = Series([False, False, False])
+        assert_series_equal(left < right, expected)
 
-                    expected = Series([False, False, False])
-                    assert_series_equal(left < right, expected)
+        expected = Series([False, False, False])
+        assert_series_equal(left > right, expected)
 
-                    expected = Series([False, False, False])
-                    assert_series_equal(left > right, expected)
+        expected = Series([False, False, True])
+        assert_series_equal(left >= right, expected)
 
-                    expected = Series([False, False, True])
-                    assert_series_equal(left >= right, expected)
+        expected = Series([False, False, True])
+        assert_series_equal(left <= right, expected)
 
-                    expected = Series([False, False, True])
-                    assert_series_equal(left <= right, expected)
+    @pytest.mark.parametrize('data', [
+        [pd.Timestamp('2011-01-01'), NaT, pd.Timestamp('2011-01-03')],
+        [pd.Timedelta('1 days'), NaT, pd.Timedelta('3 days')],
+        [pd.Period('2011-01', freq='M'), NaT, pd.Period('2011-03', freq='M')]
+    ])
+    @pytest.mark.parametrize('dtype', [None, object])
+    def test_nat_comparisons_scalar(self, dtype, data):
+        left = Series(data, dtype=dtype)
 
-    def test_nat_comparisons_scalar(self):
-        data = [[pd.Timestamp('2011-01-01'), pd.NaT,
-                 pd.Timestamp('2011-01-03')],
+        expected = Series([False, False, False])
+        assert_series_equal(left == pd.NaT, expected)
+        assert_series_equal(pd.NaT == left, expected)
 
-                [pd.Timedelta('1 days'), pd.NaT, pd.Timedelta('3 days')],
+        expected = Series([True, True, True])
+        assert_series_equal(left != pd.NaT, expected)
+        assert_series_equal(pd.NaT != left, expected)
 
-                [pd.Period('2011-01', freq='M'), pd.NaT,
-                 pd.Period('2011-03', freq='M')]]
+        expected = Series([False, False, False])
+        assert_series_equal(left < pd.NaT, expected)
+        assert_series_equal(pd.NaT > left, expected)
+        assert_series_equal(left <= pd.NaT, expected)
+        assert_series_equal(pd.NaT >= left, expected)
 
-        for l in data:
-            for dtype in [None, object]:
-                left = Series(l, dtype=dtype)
-
-                expected = Series([False, False, False])
-                assert_series_equal(left == pd.NaT, expected)
-                assert_series_equal(pd.NaT == left, expected)
-
-                expected = Series([True, True, True])
-                assert_series_equal(left != pd.NaT, expected)
-                assert_series_equal(pd.NaT != left, expected)
-
-                expected = Series([False, False, False])
-                assert_series_equal(left < pd.NaT, expected)
-                assert_series_equal(pd.NaT > left, expected)
-                assert_series_equal(left <= pd.NaT, expected)
-                assert_series_equal(pd.NaT >= left, expected)
-
-                assert_series_equal(left > pd.NaT, expected)
-                assert_series_equal(pd.NaT < left, expected)
-                assert_series_equal(left >= pd.NaT, expected)
-                assert_series_equal(pd.NaT <= left, expected)
+        assert_series_equal(left > pd.NaT, expected)
+        assert_series_equal(pd.NaT < left, expected)
+        assert_series_equal(left >= pd.NaT, expected)
+        assert_series_equal(pd.NaT <= left, expected)
 
     def test_comparison_different_length(self):
         a = Series(['a', 'b', 'c'])
@@ -554,27 +556,27 @@ class TestSeriesComparisons(object):
         s3 = pd.Series([1, 2, 3], index=list('ABC'), name='x')
         s4 = pd.Series([2, 2, 2, 2], index=list('ABCD'), name='x')
 
-        for l, r in [(s1, s2), (s2, s1), (s3, s4), (s4, s3)]:
+        for left, right in [(s1, s2), (s2, s1), (s3, s4), (s4, s3)]:
 
             msg = "Can only compare identically-labeled Series objects"
             with tm.assert_raises_regex(ValueError, msg):
-                l == r
+                left == right
 
             with tm.assert_raises_regex(ValueError, msg):
-                l != r
+                left != right
 
             with tm.assert_raises_regex(ValueError, msg):
-                l < r
+                left < right
 
             msg = "Can only compare identically-labeled DataFrame objects"
             with tm.assert_raises_regex(ValueError, msg):
-                l.to_frame() == r.to_frame()
+                left.to_frame() == right.to_frame()
 
             with tm.assert_raises_regex(ValueError, msg):
-                l.to_frame() != r.to_frame()
+                left.to_frame() != right.to_frame()
 
             with tm.assert_raises_regex(ValueError, msg):
-                l.to_frame() < r.to_frame()
+                left.to_frame() < right.to_frame()
 
 
 class TestSeriesArithmetic(object):
@@ -594,156 +596,274 @@ class TestSeriesArithmetic(object):
 
         assert_series_equal(expected, s)
 
-    def test_div(self):
+    @pytest.mark.parametrize(
+        'dtype2',
+        [
+            np.int64, np.int32, np.int16, np.int8,
+            np.float64, np.float32, np.float16,
+            np.uint64, np.uint32,
+            np.uint16, np.uint8
+        ])
+    @pytest.mark.parametrize('dtype1', [np.int64, np.float64, np.uint64])
+    def test_ser_div_ser(self, dtype1, dtype2):
+        # no longer do integer div for any ops, but deal with the 0's
+        first = Series([3, 4, 5, 8], name='first').astype(dtype1)
+        second = Series([0, 0, 0, 3], name='second').astype(dtype2)
+
         with np.errstate(all='ignore'):
-            # no longer do integer div for any ops, but deal with the 0's
-            p = DataFrame({'first': [3, 4, 5, 8], 'second': [0, 0, 0, 3]})
-            result = p['first'] / p['second']
-            expected = Series(
-                p['first'].values.astype(float) / p['second'].values,
-                dtype='float64')
-            expected.iloc[0:3] = np.inf
-            assert_series_equal(result, expected)
+            expected = Series(first.values.astype(np.float64) / second.values,
+                              dtype='float64', name=None)
+        expected.iloc[0:3] = np.inf
 
-            result = p['first'] / 0
-            expected = Series(np.inf, index=p.index, name='first')
-            assert_series_equal(result, expected)
+        result = first / second
+        assert_series_equal(result, expected)
+        assert not result.equals(second / first)
 
-            p = p.astype('float64')
-            result = p['first'] / p['second']
-            expected = Series(p['first'].values / p['second'].values)
-            assert_series_equal(result, expected)
+    def test_div_equiv_binop(self):
+        # Test Series.div as well as Series.__div__
+        # float/integer issue
+        # GH#7785
+        first = pd.Series([1, 0], name='first')
+        second = pd.Series([-0.01, -0.02], name='second')
+        expected = Series([-0.01, -np.inf])
 
-            p = DataFrame({'first': [3, 4, 5, 8], 'second': [1, 1, 1, 1]})
-            result = p['first'] / p['second']
-            assert_series_equal(result, p['first'].astype('float64'),
-                                check_names=False)
-            assert result.name is None
-            assert not result.equals(p['second'] / p['first'])
+        result = second.div(first)
+        assert_series_equal(result, expected, check_names=False)
 
-            # inf signing
-            s = Series([np.nan, 1., -1.])
-            result = s / 0
-            expected = Series([np.nan, np.inf, -np.inf])
-            assert_series_equal(result, expected)
+        result = second / first
+        assert_series_equal(result, expected)
 
-            # float/integer issue
-            # GH 7785
-            p = DataFrame({'first': (1, 0), 'second': (-0.01, -0.02)})
-            expected = Series([-0.01, -np.inf])
+    def test_rdiv_zero_compat(self):
+        # GH#8674
+        zero_array = np.array([0] * 5)
+        data = np.random.randn(5)
+        expected = pd.Series([0.] * 5)
 
-            result = p['second'].div(p['first'])
-            assert_series_equal(result, expected, check_names=False)
+        result = zero_array / pd.Series(data)
+        assert_series_equal(result, expected)
 
-            result = p['second'] / p['first']
-            assert_series_equal(result, expected)
+        result = pd.Series(zero_array) / data
+        assert_series_equal(result, expected)
 
-            # GH 9144
-            s = Series([-1, 0, 1])
+        result = pd.Series(zero_array) / pd.Series(data)
+        assert_series_equal(result, expected)
 
-            result = 0 / s
-            expected = Series([0.0, nan, 0.0])
-            assert_series_equal(result, expected)
+    def test_div_zero_inf_signs(self):
+        # GH#9144, inf signing
+        ser = Series([-1, 0, 1], name='first')
+        expected = Series([-np.inf, np.nan, np.inf], name='first')
 
-            result = s / 0
-            expected = Series([-inf, nan, inf])
-            assert_series_equal(result, expected)
+        result = ser / 0
+        assert_series_equal(result, expected)
 
-            result = s // 0
-            expected = Series([-inf, nan, inf])
-            assert_series_equal(result, expected)
+    def test_rdiv_zero(self):
+        # GH#9144
+        ser = Series([-1, 0, 1], name='first')
+        expected = Series([0.0, np.nan, 0.0], name='first')
 
-            # GH 8674
-            zero_array = np.array([0] * 5)
-            data = np.random.randn(5)
-            expected = pd.Series([0.] * 5)
-            result = zero_array / pd.Series(data)
-            assert_series_equal(result, expected)
+        result = 0 / ser
+        assert_series_equal(result, expected)
 
-            result = pd.Series(zero_array) / data
-            assert_series_equal(result, expected)
+    def test_floordiv_div(self):
+        # GH#9144
+        ser = Series([-1, 0, 1], name='first')
 
-            result = pd.Series(zero_array) / pd.Series(data)
-            assert_series_equal(result, expected)
+        result = ser // 0
+        expected = Series([-inf, nan, inf], name='first')
+        assert_series_equal(result, expected)
+
+
+class TestTimedeltaSeriesArithmeticWithIntegers(object):
+    # Tests for Series with dtype 'timedelta64[ns]' arithmetic operations
+    # with integer and int-like others
+
+    # ------------------------------------------------------------------
+    # Addition and Subtraction
+
+    def test_td64series_add_int_series_invalid(self, tdser):
+        with pytest.raises(TypeError):
+            tdser + Series([2, 3, 4])
+
+    @pytest.mark.xfail(reason='GH#19123 integer interpreted as nanoseconds')
+    def test_td64series_radd_int_series_invalid(self, tdser):
+        with pytest.raises(TypeError):
+            Series([2, 3, 4]) + tdser
+
+    def test_td64series_sub_int_series_invalid(self, tdser):
+        with pytest.raises(TypeError):
+            tdser - Series([2, 3, 4])
+
+    @pytest.mark.xfail(reason='GH#19123 integer interpreted as nanoseconds')
+    def test_td64series_rsub_int_series_invalid(self, tdser):
+        with pytest.raises(TypeError):
+            Series([2, 3, 4]) - tdser
+
+    def test_td64_series_add_intlike(self):
+        # GH#19123
+        tdi = pd.TimedeltaIndex(['59 days', '59 days', 'NaT'])
+        ser = Series(tdi)
+
+        other = Series([20, 30, 40], dtype='uint8')
+
+        pytest.raises(TypeError, ser.__add__, 1)
+        pytest.raises(TypeError, ser.__sub__, 1)
+
+        pytest.raises(TypeError, ser.__add__, other)
+        pytest.raises(TypeError, ser.__sub__, other)
+
+        pytest.raises(TypeError, ser.__add__, other.values)
+        pytest.raises(TypeError, ser.__sub__, other.values)
+
+        pytest.raises(TypeError, ser.__add__, pd.Index(other))
+        pytest.raises(TypeError, ser.__sub__, pd.Index(other))
+
+    @pytest.mark.parametrize('scalar', [1, 1.5, np.array(2)])
+    def test_td64series_add_sub_numeric_scalar_invalid(self, scalar, tdser):
+        with pytest.raises(TypeError):
+            tdser + scalar
+        with pytest.raises(TypeError):
+            scalar + tdser
+        with pytest.raises(TypeError):
+            tdser - scalar
+        with pytest.raises(TypeError):
+            scalar - tdser
+
+    @pytest.mark.parametrize('dtype', ['int64', 'int32', 'int16',
+                                       'uint64', 'uint32', 'uint16', 'uint8',
+                                       'float64', 'float32', 'float16'])
+    @pytest.mark.parametrize('vector', [
+        np.array([1, 2, 3]),
+        pd.Index([1, 2, 3]),
+        pytest.param(Series([1, 2, 3]),
+                     marks=pytest.mark.xfail(reason='GH#19123 integer '
+                                                    'interpreted as nanos'))
+    ])
+    def test_td64series_add_sub_numeric_array_invalid(self, vector,
+                                                      dtype, tdser):
+        vector = vector.astype(dtype)
+        with pytest.raises(TypeError):
+            tdser + vector
+        with pytest.raises(TypeError):
+            vector + tdser
+        with pytest.raises(TypeError):
+            tdser - vector
+        with pytest.raises(TypeError):
+            vector - tdser
+
+    # ------------------------------------------------------------------
+    # Multiplicaton and Division
+
+    @pytest.mark.parametrize('dtype', ['int64', 'int32', 'int16',
+                                       'uint64', 'uint32', 'uint16', 'uint8',
+                                       'float64', 'float32', 'float16'])
+    @pytest.mark.parametrize('vector', [np.array([20, 30, 40]),
+                                        pd.Index([20, 30, 40]),
+                                        Series([20, 30, 40])])
+    def test_td64series_div_numeric_array(self, vector, dtype, tdser):
+        # GH 4521
+        # divide/multiply by integers
+        vector = vector.astype(dtype)
+        expected = Series(['2.95D', '1D 23H 12m', 'NaT'],
+                          dtype='timedelta64[ns]')
+
+        result = tdser / vector
+        assert_series_equal(result, expected)
+
+        with pytest.raises(TypeError):
+            vector / tdser
+
+    @pytest.mark.parametrize('dtype', ['int64', 'int32', 'int16',
+                                       'uint64', 'uint32', 'uint16', 'uint8',
+                                       'float64', 'float32', 'float16'])
+    @pytest.mark.parametrize('vector', [np.array([20, 30, 40]),
+                                        pd.Index([20, 30, 40]),
+                                        Series([20, 30, 40])])
+    def test_td64series_mul_numeric_array(self, vector, dtype, tdser):
+        # GH 4521
+        # divide/multiply by integers
+        vector = vector.astype(dtype)
+
+        expected = Series(['1180 Days', '1770 Days', 'NaT'],
+                          dtype='timedelta64[ns]')
+
+        result = tdser * vector
+        assert_series_equal(result, expected)
+
+    @pytest.mark.parametrize('dtype', ['int64', 'int32', 'int16',
+                                       'uint64', 'uint32', 'uint16', 'uint8',
+                                       'float64', 'float32', 'float16'])
+    @pytest.mark.parametrize('vector', [
+        np.array([20, 30, 40]),
+        pytest.param(pd.Index([20, 30, 40]),
+                     marks=pytest.mark.xfail(reason='__mul__ raises '
+                                                    'instead of returning '
+                                                    'NotImplemented')),
+        Series([20, 30, 40])
+    ])
+    def test_td64series_rmul_numeric_array(self, vector, dtype, tdser):
+        # GH 4521
+        # divide/multiply by integers
+        vector = vector.astype(dtype)
+
+        expected = Series(['1180 Days', '1770 Days', 'NaT'],
+                          dtype='timedelta64[ns]')
+
+        result = vector * tdser
+        assert_series_equal(result, expected)
+
+    @pytest.mark.parametrize('one', [1, np.array(1), 1.0, np.array(1.0)])
+    def test_td64series_mul_numeric_scalar(self, one, tdser):
+        # GH 4521
+        # divide/multiply by integers
+        expected = Series(['-59 Days', '-59 Days', 'NaT'],
+                          dtype='timedelta64[ns]')
+
+        result = tdser * (-one)
+        assert_series_equal(result, expected)
+        result = (-one) * tdser
+        assert_series_equal(result, expected)
+
+        expected = Series(['118 Days', '118 Days', 'NaT'],
+                          dtype='timedelta64[ns]')
+
+        result = tdser * (2 * one)
+        assert_series_equal(result, expected)
+        result = (2 * one) * tdser
+        assert_series_equal(result, expected)
+
+    @pytest.mark.parametrize('two', [
+        2, 2.0,
+        pytest.param(np.array(2),
+                     marks=pytest.mark.xfail(reason='GH#19011 is_list_like '
+                                                    'incorrectly True.')),
+        pytest.param(np.array(2.0),
+                     marks=pytest.mark.xfail(reason='GH#19011 is_list_like '
+                                                    'incorrectly True.')),
+    ])
+    def test_td64series_div_numeric_scalar(self, two, tdser):
+        # GH 4521
+        # divide/multiply by integers
+        expected = Series(['29.5D', '29.5D', 'NaT'], dtype='timedelta64[ns]')
+
+        result = tdser / two
+        assert_series_equal(result, expected)
 
 
 class TestTimedeltaSeriesArithmetic(object):
-    def test_timedelta_series_ops(self):
+    def test_td64series_add_sub_timestamp(self):
         # GH11925
-        s = Series(timedelta_range('1 day', periods=3))
+        tdser = Series(timedelta_range('1 day', periods=3))
         ts = Timestamp('2012-01-01')
         expected = Series(date_range('2012-01-02', periods=3))
-        assert_series_equal(ts + s, expected)
-        assert_series_equal(s + ts, expected)
+        assert_series_equal(ts + tdser, expected)
+        assert_series_equal(tdser + ts, expected)
 
         expected2 = Series(date_range('2011-12-31', periods=3, freq='-1D'))
-        assert_series_equal(ts - s, expected2)
-        assert_series_equal(ts + (-s), expected2)
+        assert_series_equal(ts - tdser, expected2)
+        assert_series_equal(ts + (-tdser), expected2)
 
-    def test_timedelta64_operations_with_integers(self):
-        # GH 4521
-        # divide/multiply by integers
-        startdate = Series(date_range('2013-01-01', '2013-01-03'))
-        enddate = Series(date_range('2013-03-01', '2013-03-03'))
-
-        s1 = enddate - startdate
-        s1[2] = np.nan
-        s2 = Series([2, 3, 4])
-        expected = Series(s1.values.astype(np.int64) / s2, dtype='m8[ns]')
-        expected[2] = np.nan
-        result = s1 / s2
-        assert_series_equal(result, expected)
-
-        s2 = Series([20, 30, 40])
-        expected = Series(s1.values.astype(np.int64) / s2, dtype='m8[ns]')
-        expected[2] = np.nan
-        result = s1 / s2
-        assert_series_equal(result, expected)
-
-        result = s1 / 2
-        expected = Series(s1.values.astype(np.int64) / 2, dtype='m8[ns]')
-        expected[2] = np.nan
-        assert_series_equal(result, expected)
-
-        s2 = Series([20, 30, 40])
-        expected = Series(s1.values.astype(np.int64) * s2, dtype='m8[ns]')
-        expected[2] = np.nan
-        result = s1 * s2
-        assert_series_equal(result, expected)
-
-        for dtype in ['int32', 'int16', 'uint32', 'uint64', 'uint32', 'uint16',
-                      'uint8']:
-            s2 = Series([20, 30, 40], dtype=dtype)
-            expected = Series(
-                s1.values.astype(np.int64) * s2.astype(np.int64),
-                dtype='m8[ns]')
-            expected[2] = np.nan
-            result = s1 * s2
-            assert_series_equal(result, expected)
-
-        result = s1 * 2
-        expected = Series(s1.values.astype(np.int64) * 2, dtype='m8[ns]')
-        expected[2] = np.nan
-        assert_series_equal(result, expected)
-
-        result = s1 * -1
-        expected = Series(s1.values.astype(np.int64) * -1, dtype='m8[ns]')
-        expected[2] = np.nan
-        assert_series_equal(result, expected)
-
-        # invalid ops
-        assert_series_equal(s1 / s2.astype(float),
-                            Series([Timedelta('2 days 22:48:00'), Timedelta(
-                                '1 days 23:12:00'), Timedelta('NaT')]))
-        assert_series_equal(s1 / 2.0,
-                            Series([Timedelta('29 days 12:00:00'), Timedelta(
-                                '29 days 12:00:00'), Timedelta('NaT')]))
-
-        for op in ['__add__', '__sub__']:
-            sop = getattr(s1, op, None)
-            if sop is not None:
-                pytest.raises(TypeError, sop, 1)
-                pytest.raises(TypeError, sop, s2.values)
+        with pytest.raises(TypeError):
+            tdser - ts
 
     def test_timedelta64_operations_with_DateOffset(self):
         # GH 10699
@@ -756,8 +876,9 @@ class TestTimedeltaSeriesArithmetic(object):
         expected = Series([timedelta(minutes=4, seconds=3)] * 3)
         assert_series_equal(result, expected)
 
-        result = td + Series([pd.offsets.Minute(1), pd.offsets.Second(3),
-                              pd.offsets.Hour(2)])
+        with tm.assert_produces_warning(PerformanceWarning):
+            result = td + Series([pd.offsets.Minute(1), pd.offsets.Second(3),
+                                  pd.offsets.Hour(2)])
         expected = Series([timedelta(minutes=6, seconds=3), timedelta(
             minutes=5, seconds=6), timedelta(hours=2, minutes=5, seconds=3)])
         assert_series_equal(result, expected)
@@ -993,7 +1114,7 @@ class TestTimedeltaSeriesArithmetic(object):
         # check that we are getting a TypeError
         # with 'operate' (from core/ops.py) for the ops that are not
         # defined
-        pattern = 'operate|unsupported|cannot'
+        pattern = 'operate|unsupported|cannot|not supported'
         with tm.assert_raises_regex(TypeError, pattern):
             td1 * scalar_td
         with tm.assert_raises_regex(TypeError, pattern):
@@ -1005,9 +1126,7 @@ class TestTimedeltaSeriesArithmetic(object):
 
     @pytest.mark.parametrize('scalar_td', [
         timedelta(minutes=5, seconds=4),
-        pytest.param(Timedelta('5m4s'),
-                     marks=pytest.mark.xfail(reason="Timedelta.__floordiv__ "
-                                                    "bug GH#18846")),
+        Timedelta('5m4s'),
         Timedelta('5m4s').to_timedelta64()])
     def test_timedelta_rfloordiv(self, scalar_td):
         # GH#18831
@@ -1050,7 +1169,7 @@ class TestTimedeltaSeriesArithmetic(object):
                                        ('NCC1701D', 'NCC1701D', 'NCC1701D')])
     def test_td64_series_with_tdi(self, names):
         # GH#17250 make sure result dtype is correct
-        # GH#19043 make sure names are propogated correctly
+        # GH#19043 make sure names are propagated correctly
         tdi = pd.TimedeltaIndex(['0 days', '1 day'], name=names[0])
         ser = Series([Timedelta(hours=3), Timedelta(hours=4)], name=names[1])
         expected = Series([Timedelta(hours=3), Timedelta(days=1, hours=4)],
@@ -1132,16 +1251,6 @@ class TestDatetimeSeriesArithmetic(object):
 
         res = dt64 - obj
         assert_func(res, -expected)
-
-    @pytest.mark.xfail(reason='GH#7996 datetime64 units not converted to nano')
-    def test_frame_sub_datetime64_not_ns(self):
-        df = pd.DataFrame(date_range('20130101', periods=3))
-        dt64 = np.datetime64('2013-01-01')
-        assert dt64.dtype == 'datetime64[D]'
-        res = df - dt64
-        expected = pd.DataFrame([Timedelta(days=0), Timedelta(days=1),
-                                 Timedelta(days=2)])
-        tm.assert_frame_equal(res, expected)
 
     def test_operators_datetimelike(self):
         def run_ops(ops, get_ser, test_ser):
@@ -1283,7 +1392,7 @@ class TestDatetimeSeriesArithmetic(object):
         assert_series_equal(s - dt, exp)
         assert_series_equal(s - Timestamp(dt), exp)
 
-    def test_datetime_series_with_timedelta(self):
+    def test_dt64_series_with_timedelta(self):
         # scalar timedeltas/np.timedelta64 objects
         # operate with np.timedelta64 correctly
         s = Series([Timestamp('20130101 9:01'), Timestamp('20130101 9:02')])
@@ -1302,24 +1411,50 @@ class TestDatetimeSeriesArithmetic(object):
         assert_series_equal(result, expected)
         assert_series_equal(result2, expected)
 
-    def test_datetime_series_with_DateOffset(self):
+    def test_dt64_series_add_tick_DateOffset(self):
+        # GH 4532
+        # operate with pd.offsets
+        ser = Series([Timestamp('20130101 9:01'), Timestamp('20130101 9:02')])
+        expected = Series([Timestamp('20130101 9:01:05'),
+                           Timestamp('20130101 9:02:05')])
+
+        result = ser + pd.offsets.Second(5)
+        assert_series_equal(result, expected)
+
+        result2 = pd.offsets.Second(5) + ser
+        assert_series_equal(result2, expected)
+
+    def test_dt64_series_sub_tick_DateOffset(self):
+        # GH 4532
+        # operate with pd.offsets
+        ser = Series([Timestamp('20130101 9:01'), Timestamp('20130101 9:02')])
+        expected = Series([Timestamp('20130101 9:00:55'),
+                           Timestamp('20130101 9:01:55')])
+
+        result = ser - pd.offsets.Second(5)
+        assert_series_equal(result, expected)
+
+        result2 = -pd.offsets.Second(5) + ser
+        assert_series_equal(result2, expected)
+
+        with pytest.raises(TypeError):
+            pd.offsets.Second(5) - ser
+
+    @pytest.mark.parametrize('cls_name', ['Day', 'Hour', 'Minute', 'Second',
+                                          'Milli', 'Micro', 'Nano'])
+    def test_dt64_series_with_tick_DateOffset_smoke(self, cls_name):
+        # GH 4532
+        # smoke tests for valid DateOffsets
+        ser = Series([Timestamp('20130101 9:01'), Timestamp('20130101 9:02')])
+
+        offset_cls = getattr(pd.offsets, cls_name)
+        ser + offset_cls(5)
+        offset_cls(5) + ser
+
+    def test_dt64_series_add_mixed_tick_DateOffset(self):
         # GH 4532
         # operate with pd.offsets
         s = Series([Timestamp('20130101 9:01'), Timestamp('20130101 9:02')])
-
-        result = s + pd.offsets.Second(5)
-        result2 = pd.offsets.Second(5) + s
-        expected = Series([Timestamp('20130101 9:01:05'),
-                           Timestamp('20130101 9:02:05')])
-        assert_series_equal(result, expected)
-        assert_series_equal(result2, expected)
-
-        result = s - pd.offsets.Second(5)
-        result2 = -pd.offsets.Second(5) + s
-        expected = Series([Timestamp('20130101 9:00:55'),
-                           Timestamp('20130101 9:01:55')])
-        assert_series_equal(result, expected)
-        assert_series_equal(result2, expected)
 
         result = s + pd.offsets.Milli(5)
         result2 = pd.offsets.Milli(5) + s
@@ -1333,14 +1468,7 @@ class TestDatetimeSeriesArithmetic(object):
                            Timestamp('20130101 9:07:00.005')])
         assert_series_equal(result, expected)
 
-        # valid DateOffsets
-        for do in ['Hour', 'Minute', 'Second', 'Day', 'Micro', 'Milli',
-                   'Nano']:
-            op = getattr(pd.offsets, do)
-            s + op(5)
-            op(5) + s
-
-    def test_dt64_sub_NaT(self):
+    def test_dt64_series_sub_NaT(self):
         # GH#18808
         dti = pd.DatetimeIndex([pd.NaT, pd.Timestamp('19900315')])
         ser = pd.Series(dti)
@@ -1381,23 +1509,25 @@ class TestDatetimeSeriesArithmetic(object):
         assert_series_equal(NaT + nat_series_dtype_timestamp,
                             nat_series_dtype_timestamp)
 
+    @pytest.mark.parametrize('dt64_series', [
+        Series([Timestamp('19900315'), Timestamp('19900315')]),
+        Series([NaT, Timestamp('19900315')]),
+        Series([NaT, NaT], dtype='datetime64[ns]')])
+    @pytest.mark.parametrize('one', [1, 1.0, np.array(1)])
+    def test_dt64_mul_div_numeric_invalid(self, one, dt64_series):
         # multiplication
         with pytest.raises(TypeError):
-            datetime_series * 1
+            dt64_series * one
         with pytest.raises(TypeError):
-            nat_series_dtype_timestamp * 1
-        with pytest.raises(TypeError):
-            datetime_series * 1.0
-        with pytest.raises(TypeError):
-            nat_series_dtype_timestamp * 1.0
+            one * dt64_series
 
         # division
         with pytest.raises(TypeError):
-            nat_series_dtype_timestamp / 1.0
+            dt64_series / one
         with pytest.raises(TypeError):
-            nat_series_dtype_timestamp / 1
+            one / dt64_series
 
-    def test_dt64series_arith_overflow(self):
+    def test_dt64_series_arith_overflow(self):
         # GH#12534, fixed by #19024
         dt = pd.Timestamp('1700-01-31')
         td = pd.Timedelta('20000 Days')
@@ -1428,35 +1558,64 @@ class TestDatetimeSeriesArithmetic(object):
         res = dt - ser
         tm.assert_series_equal(res, -expected)
 
+    @pytest.mark.parametrize('tz', [None, 'Asia/Tokyo'])
+    def test_dt64_series_add_intlike(self, tz):
+        # GH#19123
+        dti = pd.DatetimeIndex(['2016-01-02', '2016-02-03', 'NaT'], tz=tz)
+        ser = Series(dti)
+
+        other = Series([20, 30, 40], dtype='uint8')
+
+        pytest.raises(TypeError, ser.__add__, 1)
+        pytest.raises(TypeError, ser.__sub__, 1)
+
+        pytest.raises(TypeError, ser.__add__, other)
+        pytest.raises(TypeError, ser.__sub__, other)
+
+        pytest.raises(TypeError, ser.__add__, other.values)
+        pytest.raises(TypeError, ser.__sub__, other.values)
+
+        pytest.raises(TypeError, ser.__add__, pd.Index(other))
+        pytest.raises(TypeError, ser.__sub__, pd.Index(other))
+
 
 class TestSeriesOperators(TestData):
-    def test_op_method(self):
-        def check(series, other, check_reverse=False):
-            simple_ops = ['add', 'sub', 'mul', 'floordiv', 'truediv', 'pow']
-            if not compat.PY3:
-                simple_ops.append('div')
+    @pytest.mark.parametrize(
+        'ts',
+        [
+            (lambda x: x, lambda x: x * 2, False),
+            (lambda x: x, lambda x: x[::2], False),
+            (lambda x: x, lambda x: 5, True),
+            (lambda x: tm.makeFloatSeries(),
+             lambda x: tm.makeFloatSeries(),
+             True)
+        ])
+    @pytest.mark.parametrize('opname', ['add', 'sub', 'mul', 'floordiv',
+                                        'truediv', 'div', 'pow'])
+    def test_op_method(self, opname, ts):
+        # check that Series.{opname} behaves like Series.__{opname}__,
+        series = ts[0](self.ts)
+        other = ts[1](self.ts)
+        check_reverse = ts[2]
 
-            for opname in simple_ops:
-                op = getattr(Series, opname)
+        if opname == 'div' and compat.PY3:
+            pytest.skip('div test only for Py3')
 
-                if op == 'div':
-                    alt = operator.truediv
-                else:
-                    alt = getattr(operator, opname)
+        op = getattr(Series, opname)
 
-                result = op(series, other)
-                expected = alt(series, other)
-                assert_almost_equal(result, expected)
-                if check_reverse:
-                    rop = getattr(Series, "r" + opname)
-                    result = rop(series, other)
-                    expected = alt(other, series)
-                    assert_almost_equal(result, expected)
+        if op == 'div':
+            alt = operator.truediv
+        else:
+            alt = getattr(operator, opname)
 
-        check(self.ts, self.ts * 2)
-        check(self.ts, self.ts[::2])
-        check(self.ts, 5, check_reverse=True)
-        check(tm.makeFloatSeries(), tm.makeFloatSeries(), check_reverse=True)
+        result = op(series, other)
+        expected = alt(series, other)
+        assert_almost_equal(result, expected)
+        if check_reverse:
+            rop = getattr(Series, "r" + opname)
+            result = rop(series, other)
+            expected = alt(other, series)
+            assert_almost_equal(result, expected)
 
     def test_neg(self):
         assert_series_equal(-self.series, -1 * self.series)
@@ -1540,50 +1699,26 @@ class TestSeriesOperators(TestData):
         s2 = Series({'x': 0.})
         assert_series_equal(s1 * s2, Series([np.nan], index=['x']))
 
-    def test_invalid_ops(self):
-        # invalid ops
-        pytest.raises(Exception, self.objSeries.__add__, 1)
-        pytest.raises(Exception, self.objSeries.__add__,
-                      np.array(1, dtype=np.int64))
-        pytest.raises(Exception, self.objSeries.__sub__, 1)
-        pytest.raises(Exception, self.objSeries.__sub__,
-                      np.array(1, dtype=np.int64))
+    @pytest.mark.parametrize("m", [1, 3, 10])
+    @pytest.mark.parametrize("unit", ['D', 'h', 'm', 's', 'ms', 'us', 'ns'])
+    def test_timedelta64_conversions(self, m, unit):
 
-    def test_timedelta64_conversions(self):
         startdate = Series(date_range('2013-01-01', '2013-01-03'))
         enddate = Series(date_range('2013-03-01', '2013-03-03'))
 
         s1 = enddate - startdate
         s1[2] = np.nan
 
-        for m in [1, 3, 10]:
-            for unit in ['D', 'h', 'm', 's', 'ms', 'us', 'ns']:
+        # op
+        expected = s1.apply(lambda x: x / np.timedelta64(m, unit))
+        result = s1 / np.timedelta64(m, unit)
+        assert_series_equal(result, expected)
 
-                # op
-                expected = s1.apply(lambda x: x / np.timedelta64(m, unit))
-                result = s1 / np.timedelta64(m, unit)
-                assert_series_equal(result, expected)
-
-                if m == 1 and unit != 'ns':
-
-                    # astype
-                    result = s1.astype("timedelta64[{0}]".format(unit))
-                    assert_series_equal(result, expected)
-
-                # reverse op
-                expected = s1.apply(
-                    lambda x: Timedelta(np.timedelta64(m, unit)) / x)
-                result = np.timedelta64(m, unit) / s1
-
-        # astype
-        s = Series(date_range('20130101', periods=3))
-        result = s.astype(object)
-        assert isinstance(result.iloc[0], datetime)
-        assert result.dtype == np.object_
-
-        result = s1.astype(object)
-        assert isinstance(result.iloc[0], timedelta)
-        assert result.dtype == np.object_
+        # reverse op
+        expected = s1.apply(
+            lambda x: Timedelta(np.timedelta64(m, unit)) / x)
+        result = np.timedelta64(m, unit) / s1
+        assert_series_equal(result, expected)
 
     @pytest.mark.parametrize('op', [operator.add, operator.sub])
     def test_timedelta64_equal_timedelta_supported_ops(self, op):
@@ -1610,13 +1745,7 @@ class TestSeriesOperators(TestData):
             lhs = op(ser, nptd)
             rhs = op(ser, pytd)
 
-            try:
-                assert_series_equal(lhs, rhs)
-            except:
-                raise AssertionError(
-                    "invalid comparison [op->{0},d->{1},h->{2},m->{3},"
-                    "s->{4},us->{5}]\n{6}\n{7}\n".format(op, d, h, m, s,
-                                                         us, lhs, rhs))
+            assert_series_equal(lhs, rhs)
 
     def test_ops_nat_mixed_datetime64_timedelta64(self):
         # GH 11349
@@ -1691,20 +1820,6 @@ class TestSeriesOperators(TestData):
         expected = Series(expected, name=0)
         result = (dt2.to_frame() - dt.to_frame())[0]
         assert_series_equal(result, expected)
-
-    def test_return_dtypes_bool_op_costant(self):
-        # gh15115
-        s = pd.Series([1, 3, 2], index=range(3))
-        const = 2
-        for op in ['eq', 'ne', 'gt', 'lt', 'ge', 'le']:
-            result = getattr(s, op)(const).get_dtype_counts()
-            tm.assert_series_equal(result, Series([1], ['bool']))
-
-        # empty Series
-        empty = s.iloc[:0]
-        for op in ['eq', 'ne', 'gt', 'lt', 'ge', 'le']:
-            result = getattr(empty, op)(const).get_dtype_counts()
-            tm.assert_series_equal(result, Series([1], ['bool']))
 
     def test_operators_bitwise(self):
         # GH 9016: support bitwise op for integer types
@@ -1869,20 +1984,15 @@ class TestSeriesOperators(TestData):
                           index=self.ts.index[:-5], name='ts')
         tm.assert_series_equal(added[:-5], expected)
 
-    def test_operators_reverse_object(self):
+    @pytest.mark.parametrize('op', [operator.add, operator.sub, operator.mul,
+                                    operator.truediv, operator.floordiv])
+    def test_operators_reverse_object(self, op):
         # GH 56
         arr = Series(np.random.randn(10), index=np.arange(10), dtype=object)
 
-        def _check_op(arr, op):
-            result = op(1., arr)
-            expected = op(1., arr.astype(float))
-            assert_series_equal(result.astype(float), expected)
-
-        _check_op(arr, operator.add)
-        _check_op(arr, operator.sub)
-        _check_op(arr, operator.mul)
-        _check_op(arr, operator.truediv)
-        _check_op(arr, operator.floordiv)
+        result = op(1., arr)
+        expected = op(1., arr.astype(float))
+        assert_series_equal(result.astype(float), expected)
 
     def test_arith_ops_df_compat(self):
         # GH 1134
@@ -1990,72 +2100,18 @@ class TestSeriesOperators(TestData):
         with pytest.raises(TypeError):
             self.ts + datetime.now()
 
-    def test_series_radd_more(self):
-        data = [[1, 2, 3],
-                [1.1, 2.2, 3.3],
-                [pd.Timestamp('2011-01-01'), pd.Timestamp('2011-01-02'),
-                 pd.NaT],
-                ['x', 'y', 1]]
+    @pytest.mark.parametrize('dtype', [None, object])
+    def test_series_with_dtype_radd_timedelta(self, dtype):
+        ser = pd.Series([pd.Timedelta('1 days'), pd.Timedelta('2 days'),
+                         pd.Timedelta('3 days')], dtype=dtype)
+        expected = pd.Series([pd.Timedelta('4 days'), pd.Timedelta('5 days'),
+                              pd.Timedelta('6 days')])
 
-        for d in data:
-            for dtype in [None, object]:
-                s = Series(d, dtype=dtype)
-                with pytest.raises(TypeError):
-                    'foo_' + s
+        result = pd.Timedelta('3 days') + ser
+        assert_series_equal(result, expected)
 
-        for dtype in [None, object]:
-            res = 1 + pd.Series([1, 2, 3], dtype=dtype)
-            exp = pd.Series([2, 3, 4], dtype=dtype)
-            assert_series_equal(res, exp)
-            res = pd.Series([1, 2, 3], dtype=dtype) + 1
-            assert_series_equal(res, exp)
-
-            res = np.nan + pd.Series([1, 2, 3], dtype=dtype)
-            exp = pd.Series([np.nan, np.nan, np.nan], dtype=dtype)
-            assert_series_equal(res, exp)
-            res = pd.Series([1, 2, 3], dtype=dtype) + np.nan
-            assert_series_equal(res, exp)
-
-            s = pd.Series([pd.Timedelta('1 days'), pd.Timedelta('2 days'),
-                           pd.Timedelta('3 days')], dtype=dtype)
-            exp = pd.Series([pd.Timedelta('4 days'), pd.Timedelta('5 days'),
-                             pd.Timedelta('6 days')])
-            assert_series_equal(pd.Timedelta('3 days') + s, exp)
-            assert_series_equal(s + pd.Timedelta('3 days'), exp)
-
-        s = pd.Series(['x', np.nan, 'x'])
-        assert_series_equal('a' + s, pd.Series(['ax', np.nan, 'ax']))
-        assert_series_equal(s + 'a', pd.Series(['xa', np.nan, 'xa']))
-
-    def test_frame_radd_more(self):
-        data = [[1, 2, 3],
-                [1.1, 2.2, 3.3],
-                [pd.Timestamp('2011-01-01'), pd.Timestamp('2011-01-02'),
-                 pd.NaT],
-                ['x', 'y', 1]]
-
-        for d in data:
-            for dtype in [None, object]:
-                s = DataFrame(d, dtype=dtype)
-                with pytest.raises(TypeError):
-                    'foo_' + s
-
-        for dtype in [None, object]:
-            res = 1 + pd.DataFrame([1, 2, 3], dtype=dtype)
-            exp = pd.DataFrame([2, 3, 4], dtype=dtype)
-            assert_frame_equal(res, exp)
-            res = pd.DataFrame([1, 2, 3], dtype=dtype) + 1
-            assert_frame_equal(res, exp)
-
-            res = np.nan + pd.DataFrame([1, 2, 3], dtype=dtype)
-            exp = pd.DataFrame([np.nan, np.nan, np.nan], dtype=dtype)
-            assert_frame_equal(res, exp)
-            res = pd.DataFrame([1, 2, 3], dtype=dtype) + np.nan
-            assert_frame_equal(res, exp)
-
-        df = pd.DataFrame(['x', np.nan, 'x'])
-        assert_frame_equal('a' + df, pd.DataFrame(['ax', np.nan, 'ax']))
-        assert_frame_equal(df + 'a', pd.DataFrame(['xa', np.nan, 'xa']))
+        result = ser + pd.Timedelta('3 days')
+        assert_series_equal(result, expected)
 
     def test_operators_frame(self):
         # rpow does not work with DataFrame
@@ -2150,24 +2206,23 @@ class TestSeriesOperators(TestData):
         assert_series_equal(result, expected)
 
     def test_datetime64_with_index(self):
-
         # arithmetic integer ops with an index
-        s = Series(np.random.randn(5))
-        expected = s - s.index.to_series()
-        result = s - s.index
+        ser = Series(np.random.randn(5))
+        expected = ser - ser.index.to_series()
+        result = ser - ser.index
         assert_series_equal(result, expected)
 
         # GH 4629
         # arithmetic datetime64 ops with an index
-        s = Series(date_range('20130101', periods=5),
-                   index=date_range('20130101', periods=5))
-        expected = s - s.index.to_series()
-        result = s - s.index
+        ser = Series(date_range('20130101', periods=5),
+                     index=date_range('20130101', periods=5))
+        expected = ser - ser.index.to_series()
+        result = ser - ser.index
         assert_series_equal(result, expected)
 
         with pytest.raises(TypeError):
             # GH#18850
-            result = s - s.index.to_period()
+            result = ser - ser.index.to_period()
 
         df = DataFrame(np.random.randn(5, 2),
                        index=date_range('20130101', periods=5))

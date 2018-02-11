@@ -12,11 +12,11 @@ from pandas.io.common import (get_filepath_or_buffer, _get_handle,
                               _infer_compression, _stringify_path,
                               BaseIterator)
 from pandas.io.parsers import _validate_integer
-from pandas.core.common import AbstractMethodError
+import pandas.core.common as com
 from pandas.core.reshape.concat import concat
 from pandas.io.formats.printing import pprint_thing
 from .normalize import _convert_to_line_delimits
-from .table_schema import build_table_schema
+from .table_schema import build_table_schema, parse_table_schema
 from pandas.core.dtypes.common import is_period_dtype
 
 loads = json.loads
@@ -93,7 +93,7 @@ class Writer(object):
         self._format_axes()
 
     def _format_axes(self):
-        raise AbstractMethodError(self)
+        raise com.AbstractMethodError(self)
 
     def write(self):
         return self._write(self.obj, self.orient, self.double_precision,
@@ -261,12 +261,15 @@ def read_json(path_or_buf=None, orient=None, typ='frame', dtype=True,
         * when ``typ == 'frame'``,
 
           - allowed orients are ``{'split','records','index',
-            'columns','values'}``
+            'columns','values', 'table'}``
           - default is ``'columns'``
           - The DataFrame index must be unique for orients ``'index'`` and
             ``'columns'``.
           - The DataFrame columns must be unique for orients ``'index'``,
             ``'columns'``, and ``'records'``.
+
+        .. versionadded:: 0.23.0
+           'table' as an allowed value for the ``orient`` argument
 
     typ : type of object to recover (series or frame), default 'frame'
     dtype : boolean or dict, default True
@@ -335,6 +338,17 @@ def read_json(path_or_buf=None, orient=None, typ='frame', dtype=True,
     Returns
     -------
     result : Series or DataFrame, depending on the value of `typ`.
+
+    Notes
+    -----
+    Specific to ``orient='table'``, if a :class:`DataFrame` with a literal
+    :class:`Index` name of `index` gets written with :func:`to_json`, the
+    subsequent read operation will incorrectly set the :class:`Index` name to
+    ``None``. This is because `index` is also used by :func:`DataFrame.to_json`
+    to denote a missing :class:`Index` name, and the subsequent
+    :func:`read_json` operation cannot distinguish between the two. The same
+    limitation is encountered with a :class:`MultiIndex` and any names
+    beginning with 'level_'.
 
     See Also
     --------
@@ -634,7 +648,7 @@ class Parser(object):
                 setattr(self.obj, axis, new_axis)
 
     def _try_convert_types(self):
-        raise AbstractMethodError(self)
+        raise com.AbstractMethodError(self)
 
     def _try_convert_data(self, name, data, use_dtypes=True,
                           convert_dates=True):
@@ -747,7 +761,7 @@ class Parser(object):
         return data, False
 
     def _try_convert_dates(self):
-        raise AbstractMethodError(self)
+        raise com.AbstractMethodError(self)
 
 
 class SeriesParser(Parser):
@@ -839,6 +853,9 @@ class FrameParser(Parser):
         elif orient == "index":
             self.obj = DataFrame(
                 loads(json, precise_float=self.precise_float), dtype=None).T
+        elif orient == 'table':
+            self.obj = parse_table_schema(json,
+                                          precise_float=self.precise_float)
         else:
             self.obj = DataFrame(
                 loads(json, precise_float=self.precise_float), dtype=None)

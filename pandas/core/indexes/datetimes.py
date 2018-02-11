@@ -13,14 +13,14 @@ from pandas.core.dtypes.common import (
     _INT64_DTYPE,
     _NS_DTYPE,
     is_object_dtype,
-    is_datetime64_dtype,
+    is_datetime64_dtype, is_datetime64tz_dtype,
     is_datetimetz,
     is_dtype_equal,
     is_timedelta64_dtype,
     is_integer,
     is_float,
     is_integer_dtype,
-    is_datetime64_ns_dtype,
+    is_datetime64_ns_dtype, is_datetimelike,
     is_period_dtype,
     is_bool_dtype,
     is_string_like,
@@ -34,7 +34,6 @@ from pandas.core.dtypes.missing import isna
 
 import pandas.core.dtypes.concat as _concat
 from pandas.errors import PerformanceWarning
-from pandas.core.common import _values_from_object, _maybe_box
 from pandas.core.algorithms import checked_add_with_arr
 
 from pandas.core.indexes.base import Index, _index_shared_docs
@@ -56,7 +55,7 @@ import pandas.core.tools.datetimes as tools
 from pandas._libs import (lib, index as libindex, tslib as libts,
                           join as libjoin, Timestamp)
 from pandas._libs.tslibs import (timezones, conversion, fields, parsing,
-                                 period as libperiod)
+                                 resolution as libresolution)
 
 # -------- some conversion wrapper functions
 
@@ -72,9 +71,11 @@ def _field_accessor(name, field, docstring=None):
             if field in ['is_month_start', 'is_month_end',
                          'is_quarter_start', 'is_quarter_end',
                          'is_year_start', 'is_year_end']:
-                month_kw = (self.freq.kwds.get('startingMonth',
-                                               self.freq.kwds.get('month', 12))
-                            if self.freq else 12)
+                freq = self.freq
+                month_kw = 12
+                if freq:
+                    kwds = freq.kwds
+                    month_kw = kwds.get('startingMonth', kwds.get('month', 12))
 
                 result = fields.get_start_end_field(values, field,
                                                     self.freqstr, month_kw)
@@ -106,8 +107,12 @@ def _dt_index_cmp(opname, cls, nat_result=False):
 
     def wrapper(self, other):
         func = getattr(super(DatetimeIndex, self), opname)
-        if (isinstance(other, datetime) or
-                isinstance(other, compat.string_types)):
+
+        if isinstance(other, (datetime, compat.string_types)):
+            if isinstance(other, datetime):
+                # GH#18435 strings get a pass from tzawareness compat
+                self._assert_tzawareness_compat(other)
+
             other = _to_m8(other, tz=self.tz)
             result = func(other)
             if isna(other):
@@ -115,10 +120,22 @@ def _dt_index_cmp(opname, cls, nat_result=False):
         else:
             if isinstance(other, list):
                 other = DatetimeIndex(other)
-            elif not isinstance(other, (np.ndarray, Index, ABCSeries)):
-                other = _ensure_datetime64(other)
+            elif not isinstance(other, (np.datetime64, np.ndarray,
+                                        Index, ABCSeries)):
+                # Following Timestamp convention, __eq__ is all-False
+                # and __ne__ is all True, others raise TypeError.
+                if opname == '__eq__':
+                    return np.zeros(shape=self.shape, dtype=bool)
+                elif opname == '__ne__':
+                    return np.ones(shape=self.shape, dtype=bool)
+                raise TypeError('%s type object %s' %
+                                (type(other), str(other)))
+
+            if is_datetimelike(other):
+                self._assert_tzawareness_compat(other)
+
             result = func(np.asarray(other))
-            result = _values_from_object(result)
+            result = com._values_from_object(result)
 
             if isinstance(other, Index):
                 o_mask = other.values.view('i8') == libts.iNaT
@@ -137,12 +154,6 @@ def _dt_index_cmp(opname, cls, nat_result=False):
         return Index(result)
 
     return compat.set_function_name(wrapper, opname, cls)
-
-
-def _ensure_datetime64(other):
-    if isinstance(other, np.datetime64):
-        return other
-    raise TypeError('%s type object %s' % (type(other), str(other)))
 
 
 _midnight = time(0, 0)
@@ -275,7 +286,6 @@ class DatetimeIndex(DatelikeOps, TimelikeOps, DatetimeIndexOpsMixin,
     _left_indexer = _join_i8_wrapper(libjoin.left_join_indexer_int64)
     _left_indexer_unique = _join_i8_wrapper(
         libjoin.left_join_indexer_unique_int64, with_indexers=False)
-    _arrmap = None
 
     @classmethod
     def _add_comparison_methods(cls):
@@ -513,8 +523,7 @@ class DatetimeIndex(DatelikeOps, TimelikeOps, DatetimeIndexOpsMixin,
                 tz = tz.localize(date.replace(tzinfo=None)).tzinfo
 
         if tz is not None and inferred_tz is not None:
-            if not (timezones.get_timezone(inferred_tz) ==
-                    timezones.get_timezone(tz)):
+            if not timezones.tz_compare(inferred_tz, tz):
                 raise AssertionError("Inferred time zone not equal to passed "
                                      "time zone")
 
@@ -651,6 +660,23 @@ class DatetimeIndex(DatelikeOps, TimelikeOps, DatetimeIndexOpsMixin,
         result.tz = timezones.maybe_get_tz(tz)
         result._reset_identity()
         return result
+
+    def _assert_tzawareness_compat(self, other):
+        # adapted from _Timestamp._assert_tzawareness_compat
+        other_tz = getattr(other, 'tzinfo', None)
+        if is_datetime64tz_dtype(other):
+            # Get tzinfo from Series dtype
+            other_tz = other.dtype.tz
+        if other is libts.NaT:
+            # pd.NaT quacks both aware and naive
+            pass
+        elif self.tz is None:
+            if other_tz is not None:
+                raise TypeError('Cannot compare tz-naive and tz-aware '
+                                'datetime-like objects.')
+        elif other_tz is None:
+            raise TypeError('Cannot compare tz-naive and tz-aware '
+                            'datetime-like objects')
 
     @property
     def tzinfo(self):
@@ -1170,7 +1196,7 @@ class DatetimeIndex(DatelikeOps, TimelikeOps, DatetimeIndexOpsMixin,
                 raise TypeError('Cannot join tz-naive with tz-aware '
                                 'DatetimeIndex')
 
-            if self.tz != other.tz:
+            if not timezones.tz_compare(self.tz, other.tz):
                 this = self.tz_convert('UTC')
                 other = other.tz_convert('UTC')
         return this, other
@@ -1274,7 +1300,7 @@ class DatetimeIndex(DatelikeOps, TimelikeOps, DatetimeIndexOpsMixin,
 
     def _wrap_union_result(self, other, result):
         name = self.name if self.name == other.name else None
-        if self.tz != other.tz:
+        if not timezones.tz_compare(self.tz, other.tz):
             raise ValueError('Passed item and index have different timezone')
         return self._simple_new(result, name=name, freq=None, tz=self.tz)
 
@@ -1464,8 +1490,8 @@ class DatetimeIndex(DatelikeOps, TimelikeOps, DatetimeIndexOpsMixin,
             return series.take(locs)
 
         try:
-            return _maybe_box(self, Index.get_value(self, series, key),
-                              series, key)
+            return com._maybe_box(self, Index.get_value(self, series, key),
+                                  series, key)
         except KeyError:
             try:
                 loc = self._get_string_slice(key)
@@ -1484,9 +1510,9 @@ class DatetimeIndex(DatelikeOps, TimelikeOps, DatetimeIndexOpsMixin,
             key = Timestamp(key, tz=self.tz)
         elif not isinstance(key, Timestamp):
             key = Timestamp(key)
-        values = self._engine.get_value(_values_from_object(series),
+        values = self._engine.get_value(com._values_from_object(series),
                                         key, tz=self.tz)
-        return _maybe_box(self, values, series, key)
+        return com._maybe_box(self, values, series, key)
 
     def get_loc(self, key, method=None, tolerance=None):
         """
@@ -1769,7 +1795,7 @@ class DatetimeIndex(DatelikeOps, TimelikeOps, DatetimeIndexOpsMixin,
 
     @cache_readonly
     def _resolution(self):
-        return libperiod.resolution(self.asi8, self.tz)
+        return libresolution.resolution(self.asi8, self.tz)
 
     def insert(self, loc, item):
         """

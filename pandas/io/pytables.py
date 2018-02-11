@@ -34,9 +34,10 @@ from pandas.core.sparse.array import BlockIndex, IntIndex
 from pandas.core.base import StringMixin
 from pandas.io.formats.printing import adjoin, pprint_thing
 from pandas.errors import PerformanceWarning
-from pandas.core.common import _asarray_tuplesafe, _all_none
+import pandas.core.common as com
 from pandas.core.algorithms import match, unique
-from pandas.core.categorical import Categorical, _factorize_from_iterables
+from pandas.core.arrays.categorical import (Categorical,
+                                            _factorize_from_iterables)
 from pandas.core.internals import (BlockManager, make_block,
                                    _block2d_to_blocknd,
                                    _factor_indexer, _block_shape)
@@ -46,7 +47,7 @@ from pandas.compat import u_safe as u, PY3, range, lrange, string_types, filter
 from pandas.core.config import get_option
 from pandas.core.computation.pytables import Expr, maybe_expression
 
-from pandas._libs import algos, lib
+from pandas._libs import algos, lib, writers as libwriters
 from pandas._libs.tslibs import timezones
 
 from distutils.version import LooseVersion
@@ -902,7 +903,7 @@ class HDFStore(StringMixin):
             raise KeyError('No object named %s in the file' % key)
 
         # remove the node
-        if _all_none(where, start, stop):
+        if com._all_none(where, start, stop):
             s.group._f_remove(recursive=True)
 
         # delete from the table
@@ -2367,7 +2368,7 @@ class Fixed(StringMixin):
         support fully deleting the node in its entirety (only) - where
         specification must be None
         """
-        if _all_none(where, start, stop):
+        if com._all_none(where, start, stop):
             self._handle.remove_node(self.group, recursive=True)
             return None
 
@@ -3762,7 +3763,7 @@ class WORMTable(Table):
 class LegacyTable(Table):
 
     """ an appendable table: allow append/query/delete operations to a
-          (possibily) already existing appendable table this table ALLOWS
+          (possibly) already existing appendable table this table ALLOWS
           append (but doesn't require them), and stores the data in a format
           that can be easily searched
 
@@ -3842,8 +3843,8 @@ class LegacyTable(Table):
                 # need a better algorithm
                 tuple_index = long_index.values
 
-                unique_tuples = lib.fast_unique(tuple_index)
-                unique_tuples = _asarray_tuplesafe(unique_tuples)
+                unique_tuples = unique(tuple_index)
+                unique_tuples = com._asarray_tuplesafe(unique_tuples)
 
                 indexer = match(unique_tuples, tuple_index)
                 indexer = _ensure_platform_int(indexer)
@@ -4560,7 +4561,8 @@ def _convert_string_array(data, encoding, itemsize=None):
 
     # create the sized dtype
     if itemsize is None:
-        itemsize = lib.max_len_string_array(_ensure_object(data.ravel()))
+        ensured = _ensure_object(data.ravel())
+        itemsize = libwriters.max_len_string_array(ensured)
 
     data = np.asarray(data, dtype="S%d" % itemsize)
     return data
@@ -4589,7 +4591,7 @@ def _unconvert_string_array(data, nan_rep=None, encoding=None):
     encoding = _ensure_encoding(encoding)
     if encoding is not None and len(data):
 
-        itemsize = lib.max_len_string_array(_ensure_object(data))
+        itemsize = libwriters.max_len_string_array(_ensure_object(data))
         if compat.PY3:
             dtype = "U{0}".format(itemsize)
         else:
@@ -4603,7 +4605,7 @@ def _unconvert_string_array(data, nan_rep=None, encoding=None):
     if nan_rep is None:
         nan_rep = 'nan'
 
-    data = lib.string_array_replace_from_nan_rep(data, nan_rep)
+    data = libwriters.string_array_replace_from_nan_rep(data, nan_rep)
     return data.reshape(shape)
 
 
@@ -4620,7 +4622,7 @@ def _get_converter(kind, encoding):
     if kind == 'datetime64':
         return lambda x: np.asarray(x, dtype='M8[ns]')
     elif kind == 'datetime':
-        return lib.convert_timestamps
+        return lambda x: to_datetime(x, cache=True).to_pydatetime()
     elif kind == 'string':
         return lambda x: _unconvert_string_array(x, encoding=encoding)
     else:  # pragma: no cover

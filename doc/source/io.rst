@@ -149,7 +149,7 @@ squeeze : boolean, default ``False``
 prefix : str, default ``None``
   Prefix to add to column numbers when no header, e.g. 'X' for X0, X1, ...
 mangle_dupe_cols : boolean, default ``True``
-  Duplicate columns will be specified as 'X.0'...'X.N', rather than 'X'...'X'.
+  Duplicate columns will be specified as 'X', 'X.1'...'X.N', rather than 'X'...'X'.
   Passing in False will cause data to be overwritten if there are duplicate
   names in the columns.
 
@@ -214,8 +214,20 @@ na_values : scalar, str, list-like, or dict, default ``None``
   for a list of the values interpreted as NaN by default.
 
 keep_default_na : boolean, default ``True``
-  If na_values are specified and keep_default_na is ``False`` the default NaN
-  values are overridden, otherwise they're appended to.
+  Whether or not to include the default NaN values when parsing the data.
+  Depending on whether `na_values` is passed in, the behavior is as follows:
+
+  * If `keep_default_na` is True, and `na_values` are specified, `na_values`
+    is appended to the default NaN values used for parsing.
+  * If `keep_default_na` is True, and `na_values` are not specified, only
+    the default NaN values are used for parsing.
+  * If `keep_default_na` is False, and `na_values` are specified, only
+    the NaN values specified `na_values` are used for parsing.
+  * If `keep_default_na` is False, and `na_values` are not specified, no
+    strings will be parsed as NaN.
+
+  Note that if `na_filter` is passed in as False, the `keep_default_na` and
+  `na_values` parameters will be ignored.
 na_filter : boolean, default ``True``
   Detect missing value markers (empty strings and the value of na_values). In
   data without any NAs, passing ``na_filter=False`` can improve the performance
@@ -548,7 +560,7 @@ these names so as to prevent data overwrite:
    pd.read_csv(StringIO(data))
 
 There is no more duplicate data because ``mangle_dupe_cols=True`` by default, which modifies
-a series of duplicate columns 'X'...'X' to become 'X.0'...'X.N'.  If ``mangle_dupe_cols
+a series of duplicate columns 'X'...'X' to become 'X', 'X.1',...'X.N'.  If ``mangle_dupe_cols
 =False``, duplicate data can arise:
 
 .. code-block :: python
@@ -1648,7 +1660,7 @@ with optional parameters:
 
   DataFrame
       - default is ``columns``
-      - allowed values are {``split``, ``records``, ``index``, ``columns``, ``values``}
+      - allowed values are {``split``, ``records``, ``index``, ``columns``, ``values``, ``table``}
 
   The format of the JSON string
 
@@ -1731,6 +1743,9 @@ values, index and columns. Name is also included for ``Series``:
 
   dfjo.to_json(orient="split")
   sjo.to_json(orient="split")
+
+**Table oriented** serializes to the JSON `Table Schema`_, allowing for the
+preservation of metadata including but not limited to dtypes and index names.
 
 .. note::
 
@@ -1833,7 +1848,7 @@ is ``None``. To explicitly force ``Series`` parsing, pass ``typ=series``
 
   DataFrame
       - default is ``columns``
-      - allowed values are {``split``, ``records``, ``index``, ``columns``, ``values``}
+      - allowed values are {``split``, ``records``, ``index``, ``columns``, ``values``, ``table``}
 
   The format of the JSON string
 
@@ -1846,6 +1861,8 @@ is ``None``. To explicitly force ``Series`` parsing, pass ``typ=series``
      ``index``; dict like {index -> {column -> value}}
      ``columns``; dict like {column -> {index -> value}}
      ``values``; just the values array
+     ``table``; adhering to the JSON `Table Schema`_
+
 
 - ``dtype`` : if True, infer dtypes, if a dict of column to dtype, then use those, if False, then don't infer dtypes at all, default is True, apply only to the data
 - ``convert_axes`` : boolean, try to convert the axes to the proper dtypes, default is True
@@ -2202,7 +2219,40 @@ A few notes on the generated table schema:
     then ``level_<i>`` is used.
 
 
-_Table Schema: http://specs.frictionlessdata.io/json-table-schema/
+.. versionadded:: 0.23.0
+
+``read_json`` also accepts ``orient='table'`` as an argument. This allows for
+the preserveration of metadata such as dtypes and index names in a
+round-trippable manner.
+
+  .. ipython:: python
+
+   df = pd.DataFrame({'foo': [1, 2, 3, 4],
+		      'bar': ['a', 'b', 'c', 'd'],
+		      'baz': pd.date_range('2018-01-01', freq='d', periods=4),
+		      'qux': pd.Categorical(['a', 'b', 'c', 'c'])
+		      }, index=pd.Index(range(4), name='idx'))
+   df
+   df.dtypes
+
+   df.to_json('test.json', orient='table')
+   new_df = pd.read_json('test.json', orient='table')
+   new_df
+   new_df.dtypes
+
+Please note that the literal string 'index' as the name of an :class:`Index`
+is not round-trippable, nor are any names beginning with 'level_' within a
+:class:`MultiIndex`. These are used by default in :func:`DataFrame.to_json` to
+indicate missing values and the subsequent read cannot distinguish the intent.
+
+.. ipython:: python
+
+   df.index.name = 'index'
+   df.to_json('test.json', orient='table')
+   new_df = pd.read_json('test.json', orient='table')
+   print(new_df.index.name)
+
+.. _Table Schema: http://specs.frictionlessdata.io/json-table-schema/
 
 HTML
 ----
@@ -2625,7 +2675,7 @@ file, and the ``sheet_name`` indicating which sheet to parse.
 +++++++++++++++++++
 
 To facilitate working with multiple sheets from the same file, the ``ExcelFile``
-class can be used to wrap the file and can be be passed into ``read_excel``
+class can be used to wrap the file and can be passed into ``read_excel``
 There will be a performance benefit for reading multiple sheets as the file is
 read into memory only once.
 
@@ -4479,7 +4529,7 @@ Several caveats.
   on an attempt at serialization.
 
 You can specify an ``engine`` to direct the serialization. This can be one of ``pyarrow``, or ``fastparquet``, or ``auto``.
-If the engine is NOT specified, then the ``pd.options.io.parquet.engine`` option is checked; if this is also ``auto``, then
+If the engine is NOT specified, then the ``pd.options.io.parquet.engine`` option is checked; if this is also ``auto``, 
 then ``pyarrow`` is tried, and falling back to ``fastparquet``.
 
 See the documentation for `pyarrow <http://arrow.apache.org/docs/python/>`__ and `fastparquet <https://fastparquet.readthedocs.io/en/latest/>`__
@@ -4487,7 +4537,7 @@ See the documentation for `pyarrow <http://arrow.apache.org/docs/python/>`__ and
 .. note::
 
    These engines are very similar and should read/write nearly identical parquet format files.
-   Currently ``pyarrow`` does not support timedelta data, and ``fastparquet`` does not support timezone aware datetimes (they are coerced to UTC).
+   Currently ``pyarrow`` does not support timedelta data, ``fastparquet>=0.1.4`` supports timezone aware datetimes.
    These libraries differ by having different underlying dependencies (``fastparquet`` by using ``numba``, while ``pyarrow`` uses a c-library).
 
 .. ipython:: python

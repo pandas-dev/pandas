@@ -5,15 +5,15 @@ import numpy as np
 from pandas import compat
 from pandas.core.dtypes.generic import ABCIndexClass, ABCCategoricalIndex
 
+from .base import ExtensionDtype
 
-class ExtensionDtype(object):
+
+class PandasExtensionDtype(ExtensionDtype):
     """
     A np.dtype duck-typed class, suitable for holding a custom dtype.
 
     THIS IS NOT A REAL NUMPY DTYPE
     """
-    name = None
-    names = None
     type = None
     subdtype = None
     kind = None
@@ -108,7 +108,7 @@ class CategoricalDtypeType(type):
     pass
 
 
-class CategoricalDtype(ExtensionDtype):
+class CategoricalDtype(PandasExtensionDtype):
     """
     Type for categorical data with the categories and orderedness
 
@@ -159,11 +159,11 @@ class CategoricalDtype(ExtensionDtype):
     _metadata = ['categories', 'ordered']
     _cache = {}
 
-    def __init__(self, categories=None, ordered=False):
+    def __init__(self, categories=None, ordered=None):
         self._finalize(categories, ordered, fastpath=False)
 
     @classmethod
-    def _from_fastpath(cls, categories=None, ordered=False):
+    def _from_fastpath(cls, categories=None, ordered=None):
         self = cls.__new__(cls)
         self._finalize(categories, ordered, fastpath=True)
         return self
@@ -180,14 +180,12 @@ class CategoricalDtype(ExtensionDtype):
 
     def _finalize(self, categories, ordered, fastpath=False):
 
-        if ordered is None:
-            ordered = False
-        else:
-            self._validate_ordered(ordered)
+        if ordered is not None:
+            self.validate_ordered(ordered)
 
         if categories is not None:
-            categories = self._validate_categories(categories,
-                                                   fastpath=fastpath)
+            categories = self.validate_categories(categories,
+                                                  fastpath=fastpath)
 
         self._categories = categories
         self._ordered = ordered
@@ -208,6 +206,17 @@ class CategoricalDtype(ExtensionDtype):
         return int(self._hash_categories(self.categories, self.ordered))
 
     def __eq__(self, other):
+        """
+        Rules for CDT equality:
+        1) Any CDT is equal to the string 'category'
+        2) Any CDT is equal to a CDT with categories=None regardless of ordered
+        3) A CDT with ordered=True is only equal to another CDT with
+           ordered=True and identical categories in the same order
+        4) A CDT with ordered={False, None} is only equal to another CDT with
+           ordered={False, None} and identical categories, but same order is
+           not required. There is no distinction between False/None.
+        5) Any other comparison returns False
+        """
         if isinstance(other, compat.string_types):
             return other == self.name
 
@@ -220,12 +229,16 @@ class CategoricalDtype(ExtensionDtype):
             # CDT(., .) = CDT(None, False) and *all*
             # CDT(., .) = CDT(None, True).
             return True
-        elif self.ordered:
-            return other.ordered and self.categories.equals(other.categories)
-        elif other.ordered:
-            return False
+        elif self.ordered or other.ordered:
+            # At least one has ordered=True; equal if both have ordered=True
+            # and the same values for categories in the same order.
+            return ((self.ordered == other.ordered) and
+                    self.categories.equals(other.categories))
         else:
-            # both unordered; this could probably be optimized / cached
+            # Neither has ordered=True; equal if both have the same categories,
+            # but same order is not necessary.  There is no distinction between
+            # ordered=False and ordered=None: CDT(., False) and CDT(., None)
+            # will be equal if they have the same categories.
             return hash(self) == hash(other)
 
     def __repr__(self):
@@ -288,7 +301,7 @@ class CategoricalDtype(ExtensionDtype):
         raise TypeError("cannot construct a CategoricalDtype")
 
     @staticmethod
-    def _validate_ordered(ordered):
+    def validate_ordered(ordered):
         """
         Validates that we have a valid ordered parameter. If
         it is not a boolean, a TypeError will be raised.
@@ -308,7 +321,7 @@ class CategoricalDtype(ExtensionDtype):
             raise TypeError("'ordered' must either be 'True' or 'False'")
 
     @staticmethod
-    def _validate_categories(categories, fastpath=False):
+    def validate_categories(categories, fastpath=False):
         """
         Validates that we have good categories
 
@@ -340,7 +353,7 @@ class CategoricalDtype(ExtensionDtype):
 
         return categories
 
-    def _update_dtype(self, dtype):
+    def update_dtype(self, dtype):
         """
         Returns a CategoricalDtype with categories and ordered taken from dtype
         if specified, otherwise falling back to self if unspecified
@@ -361,11 +374,16 @@ class CategoricalDtype(ExtensionDtype):
                    'got {dtype!r}').format(dtype=dtype)
             raise ValueError(msg)
 
-        # dtype is CDT: keep current categories if None (ordered can't be None)
+        # dtype is CDT: keep current categories/ordered if None
         new_categories = dtype.categories
         if new_categories is None:
             new_categories = self.categories
-        return CategoricalDtype(new_categories, dtype.ordered)
+
+        new_ordered = dtype.ordered
+        if new_ordered is None:
+            new_ordered = self.ordered
+
+        return CategoricalDtype(new_categories, new_ordered)
 
     @property
     def categories(self):
@@ -387,7 +405,7 @@ class DatetimeTZDtypeType(type):
     pass
 
 
-class DatetimeTZDtype(ExtensionDtype):
+class DatetimeTZDtype(PandasExtensionDtype):
 
     """
     A np.dtype duck-typed class, suitable for holding a custom datetime with tz
@@ -501,8 +519,7 @@ class PeriodDtypeType(type):
     pass
 
 
-class PeriodDtype(ExtensionDtype):
-    __metaclass__ = PeriodDtypeType
+class PeriodDtype(PandasExtensionDtype):
     """
     A Period duck-typed class, suitable for holding a period with freq dtype.
 
@@ -619,13 +636,13 @@ class IntervalDtypeType(type):
     pass
 
 
-class IntervalDtype(ExtensionDtype):
-    __metaclass__ = IntervalDtypeType
+class IntervalDtype(PandasExtensionDtype):
     """
     A Interval duck-typed class, suitable for holding an interval
 
     THIS IS NOT A REAL NUMPY DTYPE
     """
+    name = 'interval'
     type = IntervalDtypeType
     kind = None
     str = '|O08'
@@ -653,8 +670,8 @@ class IntervalDtype(ExtensionDtype):
             u.subtype = None
             return u
         elif (isinstance(subtype, compat.string_types) and
-              subtype == 'interval'):
-            subtype = ''
+              subtype.lower() == 'interval'):
+            subtype = None
         else:
             if isinstance(subtype, compat.string_types):
                 m = cls._match.search(subtype)
@@ -665,11 +682,6 @@ class IntervalDtype(ExtensionDtype):
                 subtype = pandas_dtype(subtype)
             except TypeError:
                 raise ValueError("could not construct IntervalDtype")
-
-        if subtype is None:
-            u = object.__new__(cls)
-            u.subtype = None
-            return u
 
         if is_categorical_dtype(subtype) or is_string_dtype(subtype):
             # GH 19016
@@ -692,20 +704,14 @@ class IntervalDtype(ExtensionDtype):
         if its not possible
         """
         if isinstance(string, compat.string_types):
-            try:
-                return cls(string)
-            except ValueError:
-                pass
-        raise TypeError("could not construct IntervalDtype")
+            return cls(string)
+        msg = "a string needs to be passed, got type {typ}"
+        raise TypeError(msg.format(typ=type(string)))
 
     def __unicode__(self):
         if self.subtype is None:
             return "interval"
         return "interval[{subtype}]".format(subtype=self.subtype)
-
-    @property
-    def name(self):
-        return str(self)
 
     def __hash__(self):
         # make myself hashable
@@ -713,10 +719,15 @@ class IntervalDtype(ExtensionDtype):
 
     def __eq__(self, other):
         if isinstance(other, compat.string_types):
-            return other == self.name or other == self.name.title()
-
-        return (isinstance(other, IntervalDtype) and
-                self.subtype == other.subtype)
+            return other.lower() in (self.name.lower(), str(self).lower())
+        elif not isinstance(other, IntervalDtype):
+            return False
+        elif self.subtype is None or other.subtype is None:
+            # None should match any subtype
+            return True
+        else:
+            from pandas.core.dtypes.common import is_dtype_equal
+            return is_dtype_equal(self.subtype, other.subtype)
 
     @classmethod
     def is_dtype(cls, dtype):

@@ -78,6 +78,23 @@ def test_is_list_like_fails(ll):
     assert not inference.is_list_like(ll)
 
 
+def test_is_array_like():
+    assert inference.is_array_like(Series([]))
+    assert inference.is_array_like(Series([1, 2]))
+    assert inference.is_array_like(np.array(["a", "b"]))
+    assert inference.is_array_like(Index(["2016-01-01"]))
+
+    class DtypeList(list):
+        dtype = "special"
+
+    assert inference.is_array_like(DtypeList())
+
+    assert not inference.is_array_like([1, 2, 3])
+    assert not inference.is_array_like(tuple())
+    assert not inference.is_array_like("foo")
+    assert not inference.is_array_like(123)
+
+
 @pytest.mark.parametrize('inner', [
     [], [1], (1, ), (1, 2), {'a': 1}, set([1, 'a']), Series([1]),
     Series([]), Series(['a']).str, (x for x in range(5))

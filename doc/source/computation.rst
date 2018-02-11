@@ -209,19 +209,12 @@ Window Functions
 
 .. currentmodule:: pandas.core.window
 
-.. warning::
-
-   Prior to version 0.18.0, ``pd.rolling_*``, ``pd.expanding_*``, and ``pd.ewm*`` were module level
-   functions and are now deprecated. These are replaced by using the :class:`~pandas.core.window.Rolling`, :class:`~pandas.core.window.Expanding` and :class:`~pandas.core.window.EWM`. objects and a corresponding method call.
-
-   The deprecation warning will show the new syntax, see an example :ref:`here <whatsnew_0180.window_deprecations>`.
-
-For working with data, a number of windows functions are provided for
+For working with data, a number of window functions are provided for
 computing common *window* or *rolling* statistics. Among these are count, sum,
 mean, median, correlation, variance, covariance, standard deviation, skewness,
 and kurtosis.
 
-Starting in version 0.18.1, the ``rolling()`` and ``expanding()``
+The ``rolling()`` and ``expanding()``
 functions can be used directly from DataFrameGroupBy objects,
 see the :ref:`groupby docs <groupby.transform.window_resample>`.
 
@@ -519,7 +512,7 @@ a same sized result as the input.
 
 When using ``.resample()`` with an offset. Construct a new index that is the frequency of the offset. For each frequency
 bin, aggregate points from the input within a backwards-in-time looking window that fall in that bin. The result of this
-aggregation is the output for that frequency point. The windows are fixed size size in the frequency space. Your result
+aggregation is the output for that frequency point. The windows are fixed size in the frequency space. Your result
 will have the shape of a regular frequency between the min and the max of the original input object.
 
 To summarize, ``.rolling()`` is a time-based window operation, while ``.resample()`` is a frequency-based window operation.

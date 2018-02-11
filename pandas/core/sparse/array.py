@@ -8,14 +8,13 @@ import numpy as np
 import warnings
 
 import pandas as pd
-from pandas.core.base import PandasObject
+from pandas.core.base import PandasObject, IndexOpsMixin
 
 from pandas import compat
-from pandas.compat import range
+from pandas.compat import range, PYPY
 from pandas.compat.numpy import function as nv
 
-from pandas.core.dtypes.generic import (
-    ABCSparseArray, ABCSparseSeries)
+from pandas.core.dtypes.generic import ABCSparseSeries
 from pandas.core.dtypes.common import (
     _ensure_platform_int,
     is_float, is_integer,
@@ -31,6 +30,7 @@ from pandas.core.dtypes.cast import (
 from pandas.core.dtypes.missing import isna, notna, na_value_for_dtype
 
 import pandas._libs.sparse as splib
+import pandas._libs.lib as lib
 from pandas._libs.sparse import SparseIndex, BlockIndex, IntIndex
 from pandas._libs import index as libindex
 import pandas.core.algorithms as algos
@@ -41,39 +41,6 @@ from pandas.core.indexes.base import _index_shared_docs
 
 
 _sparray_doc_kwargs = dict(klass='SparseArray')
-
-
-def _arith_method(op, name, str_rep=None, default_axis=None, fill_zeros=None,
-                  **eval_kwargs):
-    """
-    Wrapper function for Series arithmetic operations, to avoid
-    code duplication.
-    """
-
-    def wrapper(self, other):
-        if isinstance(other, np.ndarray):
-            if len(self) != len(other):
-                raise AssertionError("length mismatch: {self} vs. {other}"
-                                     .format(self=len(self), other=len(other)))
-            if not isinstance(other, ABCSparseArray):
-                dtype = getattr(other, 'dtype', None)
-                other = SparseArray(other, fill_value=self.fill_value,
-                                    dtype=dtype)
-            return _sparse_array_op(self, other, op, name)
-        elif is_scalar(other):
-            with np.errstate(all='ignore'):
-                fill = op(_get_fill(self), np.asarray(other))
-                result = op(self.sp_values, other)
-
-            return _wrap_result(name, result, self.sp_index, fill)
-        else:  # pragma: no cover
-            raise TypeError('operation with {other} not supported'
-                            .format(other=type(other)))
-
-    if name.startswith("__"):
-        name = name[2:-2]
-    wrapper.__name__ = name
-    return wrapper
 
 
 def _get_fill(arr):
@@ -271,6 +238,17 @@ class SparseArray(PandasObject, np.ndarray):
             return 'block'
         elif isinstance(self.sp_index, IntIndex):
             return 'integer'
+
+    @Appender(IndexOpsMixin.memory_usage.__doc__)
+    def memory_usage(self, deep=False):
+        values = self.sp_values
+
+        v = values.nbytes
+
+        if deep and is_object_dtype(self) and not PYPY:
+            v += lib.memory_usage_of_objects(values)
+
+        return v
 
     def __array_wrap__(self, out_arr, context=None):
         """
@@ -864,7 +842,7 @@ def _make_index(length, indices, kind):
     return index
 
 
-ops.add_special_arithmetic_methods(SparseArray, arith_method=_arith_method,
-                                   comp_method=_arith_method,
-                                   bool_method=_arith_method,
-                                   use_numexpr=False)
+ops.add_special_arithmetic_methods(SparseArray,
+                                   arith_method=ops._arith_method_SPARSE_ARRAY,
+                                   comp_method=ops._arith_method_SPARSE_ARRAY,
+                                   bool_method=ops._arith_method_SPARSE_ARRAY)

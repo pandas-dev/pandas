@@ -2,5 +2,5 @@ python=3.5*
 python-dateutil
 pytz
 nomkl
-numpy=1.13*
+numpy
 cython

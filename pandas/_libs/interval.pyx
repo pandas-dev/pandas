@@ -1,4 +1,4 @@
-cimport numpy as np
+cimport numpy as cnp
 import numpy as np
 
 cimport util
@@ -6,7 +6,7 @@ cimport cython
 import cython
 from numpy cimport ndarray
 from tslib import Timestamp
-from tslibs.timezones cimport get_timezone
+from tslibs.timezones cimport tz_compare
 
 from cpython.object cimport (Py_EQ, Py_NE, Py_GT, Py_LT, Py_GE, Py_LE,
                              PyObject_RichCompare)
@@ -109,6 +109,7 @@ cdef class Interval(IntervalMixin):
     cut, qcut : Convert arrays of continuous data into Categoricals/Series of
                 Interval.
     """
+    _typ = "interval"
 
     cdef readonly object left
     """Left bound for the interval"""
@@ -131,7 +132,7 @@ cdef class Interval(IntervalMixin):
         if not left <= right:
             raise ValueError('left side of interval must be <= right side')
         if (isinstance(left, Timestamp) and
-                get_timezone(left.tzinfo) != get_timezone(right.tzinfo)):
+                not tz_compare(left.tzinfo, right.tzinfo)):
             # GH 18538
             msg = ("left and right must have the same time zone, got "
                    "'{left_tz}' and '{right_tz}'")

@@ -20,9 +20,6 @@ from pandas.core.dtypes.missing import isna, _infer_fill_value
 from pandas.core.index import Index, MultiIndex
 
 import pandas.core.common as com
-from pandas.core.common import (is_bool_indexer, _asarray_tuplesafe,
-                                is_null_slice, is_full_slice,
-                                _values_from_object)
 from pandas._libs.indexing import _NDFrameIndexerBase
 
 
@@ -314,7 +311,7 @@ class _NDFrameIndexer(_NDFrameIndexerBase):
                 # (not null slices) then we must take the split path, xref
                 # GH 10360
                 if (isinstance(ax, MultiIndex) and
-                        not (is_integer(i) or is_null_slice(i))):
+                        not (is_integer(i) or com.is_null_slice(i))):
                     take_split_path = True
                     break
 
@@ -519,8 +516,8 @@ class _NDFrameIndexer(_NDFrameIndexerBase):
                 # multi-dim object
                 # GH6149 (null slice), GH10408 (full bounds)
                 if (isinstance(pi, tuple) and
-                        all(is_null_slice(idx) or
-                            is_full_slice(idx, len(self.obj))
+                        all(com.is_null_slice(idx) or
+                            com.is_full_slice(idx, len(self.obj))
                             for idx in pi)):
                     s = v
                 else:
@@ -613,8 +610,10 @@ class _NDFrameIndexer(_NDFrameIndexerBase):
                 # logic here
                 if (len(indexer) > info_axis and
                         is_integer(indexer[info_axis]) and
-                        all(is_null_slice(idx) for i, idx in enumerate(indexer)
-                            if i != info_axis) and item_labels.is_unique):
+                        all(com.is_null_slice(idx)
+                            for i, idx in enumerate(indexer)
+                            if i != info_axis) and
+                        item_labels.is_unique):
                     self.obj[item_labels[indexer[info_axis]]] = value
                     return
 
@@ -667,7 +666,7 @@ class _NDFrameIndexer(_NDFrameIndexerBase):
             ravel = lambda i: i.ravel() if isinstance(i, np.ndarray) else i
             indexer = tuple(map(ravel, indexer))
 
-            aligners = [not is_null_slice(idx) for idx in indexer]
+            aligners = [not com.is_null_slice(idx) for idx in indexer]
             sum_aligners = sum(aligners)
             single_aligner = sum_aligners == 1
             is_frame = self.obj.ndim == 2
@@ -706,7 +705,7 @@ class _NDFrameIndexer(_NDFrameIndexerBase):
 
                 # multiple aligners (or null slices)
                 if is_sequence(idx) or isinstance(idx, slice):
-                    if single_aligner and is_null_slice(idx):
+                    if single_aligner and com.is_null_slice(idx):
                         continue
                     new_ix = ax[idx]
                     if not is_list_like_indexer(new_ix):
@@ -767,7 +766,7 @@ class _NDFrameIndexer(_NDFrameIndexerBase):
 
         if isinstance(indexer, tuple):
 
-            aligners = [not is_null_slice(idx) for idx in indexer]
+            aligners = [not com.is_null_slice(idx) for idx in indexer]
             sum_aligners = sum(aligners)
             # TODO: single_aligner is not used
             single_aligner = sum_aligners == 1  # noqa
@@ -869,7 +868,7 @@ class _NDFrameIndexer(_NDFrameIndexerBase):
             if i >= self.obj.ndim:
                 raise IndexingError('Too many indexers')
 
-            if is_null_slice(key):
+            if com.is_null_slice(key):
                 continue
 
             retval = getattr(retval, self.name)._getitem_axis(key, axis=i)
@@ -890,7 +889,7 @@ class _NDFrameIndexer(_NDFrameIndexerBase):
         for indexer, ax in zip(tup, self.obj._data.axes):
             if isinstance(ax, MultiIndex):
                 return False
-            elif is_bool_indexer(indexer):
+            elif com.is_bool_indexer(indexer):
                 return False
             elif not ax.is_unique:
                 return False
@@ -915,7 +914,7 @@ class _NDFrameIndexer(_NDFrameIndexerBase):
             axis = self.axis or 0
         labels = self.obj._get_axis(axis)
 
-        if is_bool_indexer(key):
+        if com.is_bool_indexer(key):
             key = check_bool_indexer(labels, key)
             return labels[key]
         else:
@@ -923,7 +922,7 @@ class _NDFrameIndexer(_NDFrameIndexerBase):
                 keyarr = labels._convert_index_indexer(key)
             else:
                 # asarray can be unsafe, NumPy strings are weird
-                keyarr = _asarray_tuplesafe(key)
+                keyarr = com._asarray_tuplesafe(key)
 
             if is_integer_dtype(keyarr):
                 # Cast the indexer to uint64 if possible so
@@ -1011,7 +1010,7 @@ class _NDFrameIndexer(_NDFrameIndexerBase):
 
                 # Slices should return views, but calling iloc/loc with a null
                 # slice returns a new object.
-                if is_null_slice(new_key):
+                if com.is_null_slice(new_key):
                     return section
                 # This is an elided recursive call to iloc/loc/etc'
                 return getattr(section, self.name)[new_key]
@@ -1040,7 +1039,7 @@ class _NDFrameIndexer(_NDFrameIndexerBase):
         axis = 0
         for i, key in enumerate(tup):
 
-            if is_null_slice(key):
+            if com.is_null_slice(key):
                 axis += 1
                 continue
 
@@ -1113,7 +1112,7 @@ class _NDFrameIndexer(_NDFrameIndexerBase):
 
         labels = self.obj._get_axis(axis)
 
-        if is_bool_indexer(key):
+        if com.is_bool_indexer(key):
             key = check_bool_indexer(labels, key)
             inds, = key.nonzero()
             return self.obj._take(inds, axis=axis, convert=False)
@@ -1235,7 +1234,7 @@ class _NDFrameIndexer(_NDFrameIndexerBase):
 
         elif is_list_like_indexer(obj):
 
-            if is_bool_indexer(obj):
+            if com.is_bool_indexer(obj):
                 obj = check_bool_indexer(labels, obj)
                 inds, = obj.nonzero()
                 return inds
@@ -1265,7 +1264,7 @@ class _NDFrameIndexer(_NDFrameIndexerBase):
                     raise KeyError('{mask} not in index'
                                    .format(mask=objarr[mask]))
 
-                return _values_from_object(indexer)
+                return com._values_from_object(indexer)
 
         else:
             try:
@@ -1300,6 +1299,9 @@ class _NDFrameIndexer(_NDFrameIndexerBase):
 class _IXIndexer(_NDFrameIndexer):
     """A primarily label-location based indexer, with integer position
     fallback.
+
+    Warning: Starting in 0.20.0, the .ix indexer is deprecated, in
+    favor of the more strict .iloc and .loc indexers.
 
     ``.ix[]`` supports mixed integer and label based access. It is
     primarily label based, but will fall back to integer positional
@@ -1336,7 +1338,7 @@ class _IXIndexer(_NDFrameIndexer):
         if isinstance(key, slice):
             return True
 
-        elif is_bool_indexer(key):
+        elif com.is_bool_indexer(key):
             return True
 
         elif is_list_like_indexer(key):
@@ -1448,7 +1450,7 @@ class _LocIndexer(_LocationIndexer):
         if isinstance(key, slice):
             return True
 
-        elif is_bool_indexer(key):
+        elif com.is_bool_indexer(key):
             return True
 
         elif is_list_like_indexer(key):
@@ -1479,7 +1481,7 @@ class _LocIndexer(_LocationIndexer):
                         KeyError in the future, you can use .reindex() as an alternative.
 
                         See the documentation here:
-                        http://pandas.pydata.org/pandas-docs/stable/indexing.html#deprecate-loc-reindex-listlike""")  # noqa
+                        https://pandas.pydata.org/pandas-docs/stable/indexing.html#deprecate-loc-reindex-listlike""")  # noqa
 
                         if not (ax.is_categorical() or ax.is_interval()):
                             warnings.warn(_missing_key_warning,
@@ -1576,7 +1578,7 @@ class _LocIndexer(_LocationIndexer):
         if isinstance(key, slice):
             self._has_valid_type(key, axis)
             return self._get_slice_axis(key, axis=axis)
-        elif is_bool_indexer(key):
+        elif com.is_bool_indexer(key):
             return self._getbool_axis(key, axis=axis)
         elif is_list_like_indexer(key):
 
@@ -1653,7 +1655,7 @@ class _iLocIndexer(_LocationIndexer):
     _exception = IndexError
 
     def _has_valid_type(self, key, axis):
-        if is_bool_indexer(key):
+        if com.is_bool_indexer(key):
             if hasattr(key, 'index') and isinstance(key.index, Index):
                 if key.index.inferred_type == 'integer':
                     raise NotImplementedError("iLocation based boolean "
@@ -1743,7 +1745,7 @@ class _iLocIndexer(_LocationIndexer):
             if i >= self.obj.ndim:
                 raise IndexingError('Too many indexers')
 
-            if is_null_slice(key):
+            if com.is_null_slice(key):
                 axis += 1
                 continue
 
@@ -1807,7 +1809,7 @@ class _iLocIndexer(_LocationIndexer):
             except TypeError:  # pragma: no cover
                 pass
 
-        if is_bool_indexer(key):
+        if com.is_bool_indexer(key):
             self._has_valid_type(key, axis)
             return self._getbool_axis(key, axis=axis)
 
@@ -1937,10 +1939,6 @@ class _iAtIndexer(_ScalarAccessIndexer):
         return key
 
 
-# 32-bit floating point machine epsilon
-_eps = 1.1920929e-07
-
-
 def length_of_indexer(indexer, target=None):
     """return the length of a single non-tuple indexer which could be a slice
     """
@@ -1991,19 +1989,6 @@ def convert_to_index_sliceable(obj, key):
                 return None
 
     return None
-
-
-def is_index_slice(obj):
-    def _is_valid_index(x):
-        return (is_integer(x) or is_float(x) and
-                np.allclose(x, int(x), rtol=_eps, atol=0))
-
-    def _crit(v):
-        return v is None or _is_valid_index(v)
-
-    both_none = obj.start is None and obj.stop is None
-
-    return not both_none and (_crit(obj.start) and _crit(obj.stop))
 
 
 def check_bool_indexer(ax, key):

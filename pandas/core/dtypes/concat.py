@@ -19,7 +19,7 @@ from pandas.core.dtypes.common import (
     _TD_DTYPE)
 from pandas.core.dtypes.generic import (
     ABCDatetimeIndex, ABCTimedeltaIndex,
-    ABCPeriodIndex, ABCRangeIndex)
+    ABCPeriodIndex, ABCRangeIndex, ABCSparseDataFrame)
 
 
 def get_dtype_kinds(l):
@@ -89,14 +89,16 @@ def _get_series_result_type(result, objs=None):
 def _get_frame_result_type(result, objs):
     """
     return appropriate class of DataFrame-like concat
-    if any block is SparseBlock, return SparseDataFrame
+    if all blocks are SparseBlock, return SparseDataFrame
     otherwise, return 1st obj
     """
-    if any(b.is_sparse for b in result.blocks):
+
+    if result.blocks and all(b.is_sparse for b in result.blocks):
         from pandas.core.sparse.api import SparseDataFrame
         return SparseDataFrame
     else:
-        return objs[0]
+        return next(obj for obj in objs if not isinstance(obj,
+                                                          ABCSparseDataFrame))
 
 
 def _concat_compat(to_concat, axis=0):
@@ -314,7 +316,7 @@ def union_categoricals(to_union, sort_categories=False, ignore_order=False):
     Categories (3, object): [b, c, a]
     """
     from pandas import Index, Categorical, CategoricalIndex, Series
-    from pandas.core.categorical import _recode_for_categories
+    from pandas.core.arrays.categorical import _recode_for_categories
 
     if len(to_union) == 0:
         raise ValueError('No Categoricals to union')
@@ -339,7 +341,16 @@ def union_categoricals(to_union, sort_categories=False, ignore_order=False):
         # identical categories - fastpath
         categories = first.categories
         ordered = first.ordered
-        new_codes = np.concatenate([c.codes for c in to_union])
+
+        if all(first.categories.equals(other.categories)
+               for other in to_union[1:]):
+            new_codes = np.concatenate([c.codes for c in to_union])
+        else:
+            codes = [first.codes] + [_recode_for_categories(other.codes,
+                                                            other.categories,
+                                                            first.categories)
+                                     for other in to_union[1:]]
+            new_codes = np.concatenate(codes)
 
         if sort_categories and not ignore_order and ordered:
             raise TypeError("Cannot use sort_categories=True with "

@@ -12,8 +12,8 @@ from pandas.core.dtypes.common import (
     is_scalar,
     is_integer,
     is_re)
-from pandas.core.common import _values_from_object
 
+import pandas.core.common as com
 from pandas.core.algorithms import take_1d
 import pandas.compat as compat
 from pandas.core.base import NoNewAttributesMixin
@@ -37,7 +37,7 @@ _shared_docs = dict()
 def _get_array_list(arr, others):
     from pandas.core.series import Series
 
-    if len(others) and isinstance(_values_from_object(others)[0],
+    if len(others) and isinstance(com._values_from_object(others)[0],
                                   (list, np.ndarray, Series)):
         arrays = [arr] + list(others)
     else:
@@ -461,7 +461,7 @@ def str_repeat(arr, repeats):
                 return compat.text_type.__mul__(x, r)
 
         repeats = np.asarray(repeats, dtype=object)
-        result = lib.vec_binop(_values_from_object(arr), repeats, rep)
+        result = lib.vec_binop(com._values_from_object(arr), repeats, rep)
         return result
 
 
@@ -478,7 +478,8 @@ def str_match(arr, pat, case=True, flags=0, na=np.nan, as_indexer=None):
     flags : int, default 0 (no flags)
         re module flags, e.g. re.IGNORECASE
     na : default NaN, fill value for missing values.
-    as_indexer : DEPRECATED - Keyword is ignored.
+    as_indexer
+        .. deprecated:: 0.21.0
 
     Returns
     -------
@@ -597,7 +598,7 @@ def _str_extract_frame(arr, pat, flags=0):
         dtype=object)
 
 
-def str_extract(arr, pat, flags=0, expand=None):
+def str_extract(arr, pat, flags=0, expand=True):
     r"""
     For each subject string in the Series, extract groups from the
     first match of regular expression pat.
@@ -609,7 +610,7 @@ def str_extract(arr, pat, flags=0, expand=None):
     flags : int, default 0 (no flags)
         re module flags, e.g. re.IGNORECASE
 
-    expand : bool, default False
+    expand : bool, default True
         * If True, return DataFrame.
         * If False, return Series/Index/DataFrame.
 
@@ -675,15 +676,6 @@ def str_extract(arr, pat, flags=0, expand=None):
     dtype: object
 
     """
-    if expand is None:
-        warnings.warn(
-            "currently extract(expand=None) " +
-            "means expand=False (return Index/Series/DataFrame) " +
-            "but in a future version of pandas this will be changed " +
-            "to expand=True (return DataFrame)",
-            FutureWarning,
-            stacklevel=3)
-        expand = False
     if not isinstance(expand, bool):
         raise ValueError("expand must be True or False")
     if expand:
@@ -1234,7 +1226,6 @@ def str_translate(arr, table, deletechars=None):
     if deletechars is None:
         f = lambda x: x.translate(table)
     else:
-        from pandas import compat
         if compat.PY3:
             raise ValueError("deletechars is not a valid argument for "
                              "str.translate in python 3. You should simply "
@@ -1369,11 +1360,43 @@ class StringMethods(NoNewAttributesMixin):
     """
 
     def __init__(self, data):
+        self._validate(data)
         self._is_categorical = is_categorical_dtype(data)
         self._data = data.cat.categories if self._is_categorical else data
         # save orig to blow up categoricals to the right type
         self._orig = data
         self._freeze()
+
+    @staticmethod
+    def _validate(data):
+        from pandas.core.index import Index
+
+        if (isinstance(data, ABCSeries) and
+                not ((is_categorical_dtype(data.dtype) and
+                      is_object_dtype(data.values.categories)) or
+                     (is_object_dtype(data.dtype)))):
+            # it's neither a string series not a categorical series with
+            # strings inside the categories.
+            # this really should exclude all series with any non-string values
+            # (instead of test for object dtype), but that isn't practical for
+            # performance reasons until we have a str dtype (GH 9343)
+            raise AttributeError("Can only use .str accessor with string "
+                                 "values, which use np.object_ dtype in "
+                                 "pandas")
+        elif isinstance(data, Index):
+            # can't use ABCIndex to exclude non-str
+
+            # see src/inference.pyx which can contain string values
+            allowed_types = ('string', 'unicode', 'mixed', 'mixed-integer')
+            if data.inferred_type not in allowed_types:
+                message = ("Can only use .str accessor with string values "
+                           "(i.e. inferred_type is 'string', 'unicode' or "
+                           "'mixed')")
+                raise AttributeError(message)
+            if data.nlevels > 1:
+                message = ("Can only use .str accessor with Index, not "
+                           "MultiIndex")
+                raise AttributeError(message)
 
     def __getitem__(self, key):
         if isinstance(key, slice):
@@ -1707,7 +1730,7 @@ class StringMethods(NoNewAttributesMixin):
     findall = _pat_wrapper(str_findall, flags=True)
 
     @copy(str_extract)
-    def extract(self, pat, flags=0, expand=None):
+    def extract(self, pat, flags=0, expand=True):
         return str_extract(self, pat, flags=flags, expand=expand)
 
     @copy(str_extractall)
@@ -1894,32 +1917,5 @@ class StringMethods(NoNewAttributesMixin):
 
     @classmethod
     def _make_accessor(cls, data):
-        from pandas.core.index import Index
-
-        if (isinstance(data, ABCSeries) and
-                not ((is_categorical_dtype(data.dtype) and
-                      is_object_dtype(data.values.categories)) or
-                     (is_object_dtype(data.dtype)))):
-            # it's neither a string series not a categorical series with
-            # strings inside the categories.
-            # this really should exclude all series with any non-string values
-            # (instead of test for object dtype), but that isn't practical for
-            # performance reasons until we have a str dtype (GH 9343)
-            raise AttributeError("Can only use .str accessor with string "
-                                 "values, which use np.object_ dtype in "
-                                 "pandas")
-        elif isinstance(data, Index):
-            # can't use ABCIndex to exclude non-str
-
-            # see scc/inferrence.pyx which can contain string values
-            allowed_types = ('string', 'unicode', 'mixed', 'mixed-integer')
-            if data.inferred_type not in allowed_types:
-                message = ("Can only use .str accessor with string values "
-                           "(i.e. inferred_type is 'string', 'unicode' or "
-                           "'mixed')")
-                raise AttributeError(message)
-            if data.nlevels > 1:
-                message = ("Can only use .str accessor with Index, not "
-                           "MultiIndex")
-                raise AttributeError(message)
+        cls._validate(data)
         return cls(data)

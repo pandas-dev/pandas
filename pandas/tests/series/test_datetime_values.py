@@ -11,7 +11,7 @@ import pandas as pd
 from pandas.core.dtypes.common import is_integer_dtype, is_list_like
 from pandas import (Index, Series, DataFrame, bdate_range,
                     date_range, period_range, timedelta_range,
-                    PeriodIndex, Timestamp, DatetimeIndex, TimedeltaIndex)
+                    PeriodIndex, DatetimeIndex, TimedeltaIndex)
 import pandas.core.common as com
 
 from pandas.util.testing import assert_series_equal
@@ -259,6 +259,14 @@ class TestSeriesDatetimeValues(TestData):
 
             pytest.raises(com.SettingWithCopyError, f)
 
+    def test_dt_namespace_accessor_categorical(self):
+        # GH 19468
+        dti = DatetimeIndex(['20171111', '20181212']).repeat(2)
+        s = Series(pd.Categorical(dti), name='foo')
+        result = s.dt.year
+        expected = Series([2017, 2017, 2018, 2018], name='foo')
+        tm.assert_series_equal(result, expected)
+
     def test_dt_accessor_no_new_attributes(self):
         # https://github.com/pandas-dev/pandas/issues/10673
         s = Series(date_range('20130101', periods=5, freq='D'))
@@ -376,15 +384,6 @@ class TestSeriesDatetimeValues(TestData):
                                         "only use .dt accessor"):
                 s.dt
             assert not hasattr(s, 'dt')
-
-    def test_sub_of_datetime_from_TimeSeries(self):
-        from pandas.core.tools.timedeltas import to_timedelta
-        from datetime import datetime
-        a = Timestamp(datetime(1993, 0o1, 0o7, 13, 30, 00))
-        b = datetime(1993, 6, 22, 13, 30)
-        a = Series([a])
-        result = to_timedelta(np.abs(a - b))
-        assert result.dtype == 'timedelta64[ns]'
 
     def test_between(self):
         s = Series(bdate_range('1/1/2000', periods=20).astype(object))

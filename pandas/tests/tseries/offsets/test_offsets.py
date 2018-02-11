@@ -218,7 +218,7 @@ class TestCommon(Base):
 
         freqstr = offset.freqstr
         if freqstr not in ('<Easter>',
-                           "<DateOffset: kwds={'days': 1}>",
+                           "<DateOffset: days=1>",
                            'LWOM-SAT', ):
             code = get_offset(freqstr)
             assert offset.rule_code == code
@@ -3085,6 +3085,13 @@ def test_get_offset_day_error():
 
     with pytest.raises(NotImplementedError):
         DateOffset()._get_offset_day(datetime.now())
+
+
+def test_valid_default_arguments(offset_types):
+    # GH#19142 check that the calling the constructors without passing
+    # any keyword arguments produce valid offsets
+    cls = offset_types
+    cls()
 
 
 @pytest.mark.parametrize('kwd', sorted(list(liboffsets.relativedelta_kwds)))

@@ -29,7 +29,7 @@ import pandas.core.config as cf
 from pandas.core.indexes.datetimes import _to_m8
 
 import pandas as pd
-from pandas._libs.lib import Timestamp
+from pandas._libs.tslib import Timestamp
 
 
 class TestIndex(Base):
@@ -830,15 +830,16 @@ class TestIndex(Base):
 
         # Test that returning a single tuple from an Index
         #   returns an Index.
-        boolean_index = tm.makeIntIndex(3).map(lambda x: (x,))
-        expected = Index([(0,), (1,), (2,)])
-        tm.assert_index_equal(boolean_index, expected)
+        idx = tm.makeIntIndex(3)
+        result = tm.makeIntIndex(3).map(lambda x: (x,))
+        expected = Index([(i,) for i in idx])
+        tm.assert_index_equal(result, expected)
 
         # Test that returning a tuple from a map of a single index
         #   returns a MultiIndex object.
-        boolean_index = tm.makeIntIndex(3).map(lambda x: (x, x == 1))
-        expected = MultiIndex.from_tuples([(0, False), (1, True), (2, False)])
-        tm.assert_index_equal(boolean_index, expected)
+        result = idx.map(lambda x: (x, x == 1))
+        expected = MultiIndex.from_tuples([(i, i == 1) for i in idx])
+        tm.assert_index_equal(result, expected)
 
         # Test that returning a single object from a MultiIndex
         #   returns an Index.
@@ -870,7 +871,8 @@ class TestIndex(Base):
     def test_map_dictlike(self, mapper):
         # GH 12756
         expected = Index(['foo', 'bar', 'baz'])
-        result = tm.makeIntIndex(3).map(mapper(expected.values, [0, 1, 2]))
+        idx = tm.makeIntIndex(3)
+        result = idx.map(mapper(expected.values, idx))
         tm.assert_index_equal(result, expected)
 
         for name in self.indices.keys():
@@ -1396,8 +1398,8 @@ class TestIndex(Base):
         expected = self.strIndex[lrange(5) + lrange(10, n)]
         tm.assert_index_equal(dropped, expected)
 
-        pytest.raises(ValueError, self.strIndex.drop, ['foo', 'bar'])
-        pytest.raises(ValueError, self.strIndex.drop, ['1', 'bar'])
+        pytest.raises(KeyError, self.strIndex.drop, ['foo', 'bar'])
+        pytest.raises(KeyError, self.strIndex.drop, ['1', 'bar'])
 
         # errors='ignore'
         mixed = drop.tolist() + ['foo']
@@ -1419,7 +1421,7 @@ class TestIndex(Base):
         tm.assert_index_equal(dropped, expected)
 
         # errors='ignore'
-        pytest.raises(ValueError, ser.drop, [3, 4])
+        pytest.raises(KeyError, ser.drop, [3, 4])
 
         dropped = ser.drop(4, errors='ignore')
         expected = Index([1, 2, 3])
@@ -1448,7 +1450,7 @@ class TestIndex(Base):
 
         removed = index.drop(to_drop[1])
         for drop_me in to_drop[1], [to_drop[1]]:
-            pytest.raises(ValueError, removed.drop, drop_me)
+            pytest.raises(KeyError, removed.drop, drop_me)
 
     def test_tuple_union_bug(self):
         import pandas
@@ -2261,6 +2263,26 @@ class TestMixedIntIndex(Base):
         res = i2.intersection(i1)
 
         assert len(res) == 0
+
+    @pytest.mark.parametrize('op', [operator.eq, operator.ne,
+                                    operator.gt, operator.ge,
+                                    operator.lt, operator.le])
+    def test_comparison_tzawareness_compat(self, op):
+        # GH#18162
+        dr = pd.date_range('2016-01-01', periods=6)
+        dz = dr.tz_localize('US/Pacific')
+
+        # Check that there isn't a problem aware-aware and naive-naive do not
+        # raise
+        naive_series = Series(dr)
+        aware_series = Series(dz)
+        with pytest.raises(TypeError):
+            op(dz, naive_series)
+        with pytest.raises(TypeError):
+            op(dr, aware_series)
+
+        # TODO: implement _assert_tzawareness_compat for the reverse
+        # comparison with the Series on the left-hand side
 
 
 class TestIndexUtils(object):

@@ -114,7 +114,7 @@ class TestPandasDelegate(object):
     def setup_method(self, method):
         pass
 
-    def test_invalida_delgation(self):
+    def test_invalid_delegation(self):
         # these show that in order for the delegation to work
         # the _delegate_* methods need to be overridden to not raise
         # a TypeError
@@ -265,8 +265,8 @@ class TestIndexOps(Ops):
 
     def setup_method(self, method):
         super(TestIndexOps, self).setup_method(method)
-        self.is_valid_objs = [o for o in self.objs if o._allow_index_ops]
-        self.not_valid_objs = [o for o in self.objs if not o._allow_index_ops]
+        self.is_valid_objs = self.objs
+        self.not_valid_objs = []
 
     def test_none_comparison(self):
 

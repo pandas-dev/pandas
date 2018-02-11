@@ -5,7 +5,7 @@ import copy
 from textwrap import dedent
 
 import pandas as pd
-from pandas.core.base import AbstractMethodError, GroupByMixin
+from pandas.core.base import GroupByMixin
 
 from pandas.core.groupby import (BinGrouper, Grouper, _GroupBy, GroupBy,
                                  SeriesGroupBy, groupby, PanelGroupBy,
@@ -24,7 +24,7 @@ import pandas.compat as compat
 from pandas.compat.numpy import function as nv
 
 from pandas._libs import lib, tslib
-from pandas._libs.lib import Timestamp
+from pandas._libs.tslib import Timestamp
 from pandas._libs.tslibs.period import IncompatibleFrequency
 
 from pandas.util._decorators import Appender, Substitution
@@ -233,7 +233,7 @@ class Resampler(_GroupBy):
         return obj
 
     def _get_binner_for_time(self):
-        raise AbstractMethodError(self)
+        raise com.AbstractMethodError(self)
 
     def _set_binner(self):
         """
@@ -372,10 +372,10 @@ one pass, you can do
             arg, *args, **kwargs)
 
     def _downsample(self, f):
-        raise AbstractMethodError(self)
+        raise com.AbstractMethodError(self)
 
     def _upsample(self, f, limit=None, fill_value=None):
-        raise AbstractMethodError(self)
+        raise com.AbstractMethodError(self)
 
     def _gotitem(self, key, ndim, subset=None):
         """
@@ -557,7 +557,8 @@ one pass, you can do
 
     @Appender(_shared_docs['interpolate'] % _shared_docs_kwargs)
     def interpolate(self, method='linear', axis=0, limit=None, inplace=False,
-                    limit_direction='forward', downcast=None, **kwargs):
+                    limit_direction='forward', limit_area=None,
+                    downcast=None, **kwargs):
         """
         Interpolate values according to different methods.
 
@@ -567,6 +568,7 @@ one pass, you can do
         return result.interpolate(method=method, axis=axis, limit=limit,
                                   inplace=inplace,
                                   limit_direction=limit_direction,
+                                  limit_area=limit_area,
                                   downcast=downcast, **kwargs)
 
     def asfreq(self, fill_value=None):
@@ -1061,6 +1063,17 @@ class TimeGrouper(Grouper):
     def __init__(self, freq='Min', closed=None, label=None, how='mean',
                  axis=0, fill_method=None, limit=None, loffset=None,
                  kind=None, convention=None, base=0, **kwargs):
+        # Check for correctness of the keyword arguments which would
+        # otherwise silently use the default if misspelled
+        if label not in {None, 'left', 'right'}:
+            raise ValueError('Unsupported value {} for `label`'.format(label))
+        if closed not in {None, 'left', 'right'}:
+            raise ValueError('Unsupported value {} for `closed`'.format(
+                closed))
+        if convention not in {None, 'start', 'end', 'e', 's'}:
+            raise ValueError('Unsupported value {} for `convention`'
+                             .format(convention))
+
         freq = to_offset(freq)
 
         end_types = set(['M', 'A', 'Q', 'BM', 'BA', 'BQ', 'W'])
