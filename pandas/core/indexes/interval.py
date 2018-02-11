@@ -1050,7 +1050,7 @@ class IntervalIndex(IntervalMixin, Index):
 
         all_matches = self.get_loc(key, method=method)
         exact_matches = self[all_matches] == key
-        if np.all(all_matches):
+        if np.all(exact_matches):
             return all_matches
         elif np.any(exact_matches):
             return all_matches[exact_matches]
