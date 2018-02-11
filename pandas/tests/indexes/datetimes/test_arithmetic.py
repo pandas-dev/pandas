@@ -15,6 +15,7 @@ from pandas import (Timestamp, Timedelta, Series,
                     DatetimeIndex, TimedeltaIndex,
                     date_range)
 from pandas._libs import tslib
+from pandas._libs.tslibs.offsets import shift_months
 
 
 @pytest.fixture(params=[None, 'UTC', 'Asia/Tokyo',
@@ -933,3 +934,19 @@ def test_datetime64_with_DateOffset(klass, assert_func):
                  Timestamp('2000-02-29', tz='US/Central')], name='a')
     assert_func(result, exp)
     assert_func(result2, exp)
+
+
+@pytest.mark.parametrize('years', [-1, 0, 1])
+@pytest.mark.parametrize('months', [-2, 0, 2])
+def test_shift_months(years, months):
+    s = DatetimeIndex([Timestamp('2000-01-05 00:15:00'),
+                       Timestamp('2000-01-31 00:23:00'),
+                       Timestamp('2000-01-01'),
+                       Timestamp('2000-02-29'),
+                       Timestamp('2000-12-31')])
+    actual = DatetimeIndex(shift_months(s.asi8, years * 12 + months))
+
+    raw = [x + pd.offsets.DateOffset(years=years, months=months)
+           for x in s]
+    expected = DatetimeIndex(raw)
+    tm.assert_index_equal(actual, expected)
