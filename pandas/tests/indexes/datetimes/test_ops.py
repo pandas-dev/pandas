@@ -5,10 +5,8 @@ import warnings
 import numpy as np
 from datetime import datetime
 
-from itertools import product
 import pandas as pd
 import pandas._libs.tslib as tslib
-from pandas._libs.tslibs.offsets import shift_months
 import pandas.util.testing as tm
 from pandas import (DatetimeIndex, PeriodIndex, Series, Timestamp,
                     date_range, _np_version_under1p10, Index,
@@ -566,19 +564,6 @@ class TestDatetimeIndexOps(Ops):
             assert not idx.astype(object).equals(idx3)
             assert not idx.equals(list(idx3))
             assert not idx.equals(pd.Series(idx3))
-
-
-@pytest.mark.parametrize('years,months', product([-1, 0, 1], [-2, 0, 2]))
-def test_shift_months(years, months):
-    s = DatetimeIndex([Timestamp('2000-01-05 00:15:00'),
-                       Timestamp('2000-01-31 00:23:00'),
-                       Timestamp('2000-01-01'),
-                       Timestamp('2000-02-29'),
-                       Timestamp('2000-12-31')])
-    actual = DatetimeIndex(shift_months(s.asi8, years * 12 + months))
-    expected = DatetimeIndex([x + pd.offsets.DateOffset(
-        years=years, months=months) for x in s])
-    tm.assert_index_equal(actual, expected)
 
 
 class TestBusinessDatetimeIndex(object):
