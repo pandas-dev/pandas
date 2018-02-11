@@ -159,7 +159,25 @@ cdef int64_t get_period_ordinal(int year, int month, int day,
                                 int hour, int minute, int second,
                                 int microseconds, int picoseconds,
                                 int freq) nogil:
-    """generate an ordinal in period space"""
+    """
+    Generate an ordinal in period space
+
+    Parameters
+    ----------
+    year : int
+    month : int
+    day : int
+    hour : int
+    minute : int
+    second : int
+    microseconds : int
+    picoseconds : int
+    freq : int
+
+    Returns
+    -------
+    period_ordinal : int64_t
+    """
     cdef:
         int64_t absdays, unix_date, seconds, delta
         int64_t weeks
@@ -272,6 +290,15 @@ cdef int64_t get_python_ordinal(int64_t period_ordinal, int freq) nogil:
     This corresponds to the number of days since Jan., 1st, 1AD.
     When the instance has a frequency less than daily, the proleptic date
     is calculated for the last day of the period.
+
+    Parameters
+    ----------
+    period_ordinal : int64_t
+    freq : int
+
+    Returns
+    -------
+    absdate : int64_t number of days since datetime(1, 1, 1)
     """
     cdef:
         asfreq_info af_info
@@ -290,6 +317,20 @@ cdef int dInfoCalc_SetFromAbsDateTime(date_info *dinfo,
     """
     Set the instance's value using the given date and time.
     Assumes GREGORIAN_CALENDAR.
+
+    Parameters
+    ----------
+    dinfo : date_info*
+    absdate : int64_t (as returned from get_python_ordinal or absdate_from_ymd)
+    abstime : double
+
+    Returns
+    -------
+    code : int (always 0)
+
+    Notes
+    -----
+    Updates dinfo inplace
     """
     # Bounds check
     # The calling function is responsible for ensuring that
@@ -307,6 +348,19 @@ cdef int dInfoCalc_SetFromAbsDate(date_info *dinfo, int64_t absdate) nogil:
     """
     Sets the date part of the date_info struct
     Assumes GREGORIAN_CALENDAR
+
+    Parameters
+    ----------
+    dinfo : date_info*
+    unix_date : int64_t
+
+    Returns
+    -------
+    code : int (always 0)
+
+    Notes
+    -----
+    Updates dinfo inplace
     """
     cdef:
         pandas_datetimestruct dts
@@ -322,6 +376,19 @@ cdef int dInfoCalc_SetFromAbsDate(date_info *dinfo, int64_t absdate) nogil:
 cdef int dInfoCalc_SetFromAbsTime(date_info *dinfo, double abstime) nogil:
     """
     Sets the time part of the DateTime object.
+
+    Parameters
+    ----------
+    dinfo : date_info*
+    abstime : double
+
+    Returns
+    -------
+    code : int (always 0)
+
+    Notes
+    -----
+    Updates dinfo inplace
     """
     cdef:
         int inttime
@@ -370,7 +437,18 @@ cdef int64_t absdate_from_ymd(int year, int month, int day) nogil:
     Find the absdate (days elapsed since datetime(1, 1, 1)
     for the given year/month/day.
     Assumes GREGORIAN_CALENDAR
+
+    Parameters
+    ----------
+    year : int
+    month : int
+    day : int
+
+    Returns
+    -------
+    absdate : int days elapsed since datetime(1, 1, 1)
     """
+
     # /* Calculate the absolute date
     cdef:
         pandas_datetimestruct dts
@@ -385,6 +463,24 @@ cdef int64_t absdate_from_ymd(int year, int month, int day) nogil:
 
 
 cdef int get_yq(int64_t ordinal, int freq, int *quarter, int *year):
+    """
+    Find the year and quarter of a Period with the given ordinal and frequency
+
+    Parameters
+    ----------
+    ordinal : int64_t
+    freq : int
+    quarter : *int
+    year : *int
+
+    Returns
+    -------
+    qtr_freq : int describing the implied quarterly frequency
+
+    Notes
+    -----
+    Sets quarter and year inplace
+    """
     cdef:
         asfreq_info af_info
         int qtr_freq

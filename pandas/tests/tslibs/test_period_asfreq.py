@@ -11,12 +11,16 @@ from pandas.util import testing as tm
 
 
 class TestPeriodFreqConversion(object):
-    def test_asfreq_near_zero(self):
+    @pytest.mark.parametrize('freq', ['A', 'Q', 'M', 'W', 'B', 'D'])
+    def test_asfreq_near_zero(self, freq):
         # GH#19643
-        per = Period('0001-01-01', freq='B')
+        per = Period('0001-01-01', freq=freq)
+        tup = (per.year, per.hour, per.day)
+
+        prev = per - 1
         assert (per - 1).ordinal == per.ordinal - 1
-        assert (per - 1).year == 0
-        assert (per - 1).month == 12
+        tup2 = (prev.year, prev.month, prev.day)
+        assert tup2 < tup1
 
     @pytest.mark.xfail
     def test_to_timestamp_out_of_bounds(self):
