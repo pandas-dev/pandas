@@ -443,7 +443,7 @@ def _read(filepath_or_buffer, kwds):
     if should_close:
         try:
             filepath_or_buffer.close()
-        except:
+        except:  # noqa: flake8
             pass
 
     return data

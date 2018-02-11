@@ -192,7 +192,7 @@ def read_msgpack(path_or_buf, encoding='utf-8', iterator=False, **kwargs):
         if should_close:
             try:
                 path_or_buf.close()
-            except:
+            except:  # noqa: flake8
                 pass
         return l
 

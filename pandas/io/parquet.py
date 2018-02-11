@@ -132,7 +132,7 @@ class PyArrowImpl(BaseImpl):
         if should_close:
             try:
                 path.close()
-            except:
+            except:  # noqa: flake8
                 pass
 
         return result

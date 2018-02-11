@@ -77,7 +77,7 @@ def s3_resource(tips_file, jsonl_file):
         conn.create_bucket(Bucket='cant_get_it', ACL='private')
         add_tips_files('cant_get_it')
         yield conn
-    except:
+    except:  # noqa: flake8
         pytest.skip("failure to use s3 resource")
     finally:
         s3.stop()

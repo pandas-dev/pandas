@@ -423,7 +423,7 @@ def read_json(path_or_buf=None, orient=None, typ='frame', dtype=True,
     if should_close:
         try:
             filepath_or_buffer.close()
-        except:
+        except:  # noqa: flake8
             pass
     return result
 
