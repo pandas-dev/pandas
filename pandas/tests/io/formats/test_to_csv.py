@@ -11,9 +11,16 @@ from pandas.util import testing as tm
 class TestToCSV(object):
 
     @pytest.mark.xfail((3, 6, 5) > sys.version_info >= (3, 5),
-                       reason='Python csv library bug')
+                       reason=("Python csv library bug "
+                               "(see https://bugs.python.org/issue32255)"))
     def test_to_csv_with_single_column(self):
-        # GH18676
+        # see gh-18676, https://bugs.python.org/issue32255
+        #
+        # Python's CSV library adds an extraneous '""'
+        # before the newline when the NaN-value is in
+        # the first row. Otherwise, only the newline
+        # character is added. This behavior is inconsistent
+        # and was patched in https://bugs.python.org/pull_request4672.
         df1 = DataFrame([None, 1])
         expected1 = """\
 ""
