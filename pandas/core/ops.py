@@ -529,7 +529,11 @@ def _create_methods(cls, arith_method, comp_method, bool_method,
         # divmod doesn't have an op that is supported by numexpr
         new_methods['divmod'] = arith_method(cls, divmod, special)
 
-    new_methods = {v.__name__: v for k, v in new_methods.items()}
+    if special:
+        dunderize = lambda x: '__{name}__'.format(name=x.strip('_'))
+    else:
+        dunderize = lambda x: x
+    new_methods = {dunderize(k): v for k, v in new_methods.items()}
     return new_methods
 
 
@@ -565,7 +569,6 @@ def add_special_arithmetic_methods(cls, arith_method=None,
     """
     new_methods = _create_methods(cls, arith_method, comp_method, bool_method,
                                   special=True)
-
     # inplace operators (I feel like these should get passed an `inplace=True`
     # or just be removed
 
@@ -1368,7 +1371,7 @@ panel_special_funcs = dict(arith_method=_arith_method_PANEL,
                            comp_method=_comp_method_PANEL,
                            bool_method=_arith_method_PANEL)
 
-panel_flex_funcs = dict(arith_method=_flex_method_PANEL,
+panel_flex_funcs = dict(flex_arith_method=_flex_method_PANEL,
                         flex_comp_method=_comp_method_PANEL)
 
 # -----------------------------------------------------------------------------
