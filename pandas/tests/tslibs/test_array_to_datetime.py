@@ -4,31 +4,30 @@ from datetime import datetime, date
 import numpy as np
 import pytest
 
-from pandas import compat
 from pandas._libs import tslib
 from pandas.compat.numpy import np_array_datetime64_compat
 import pandas.util.testing as tm
 
 
 class TestParseISO8601(object):
-    def test_parsers_iso8601(self):
+    @pytest.mark.parametrize('date_str, exp', [
+        ('2011-01-02', datetime(2011, 1, 2)),
+        ('2011-1-2', datetime(2011, 1, 2)),
+        ('2011-01', datetime(2011, 1, 1)),
+        ('2011-1', datetime(2011, 1, 1)),
+        ('2011 01 02', datetime(2011, 1, 2)),
+        ('2011.01.02', datetime(2011, 1, 2)),
+        ('2011/01/02', datetime(2011, 1, 2)),
+        ('2011\\01\\02', datetime(2011, 1, 2)),
+        ('2013-01-01 05:30:00', datetime(2013, 1, 1, 5, 30)),
+        ('2013-1-1 5:30:00', datetime(2013, 1, 1, 5, 30))])
+    def test_parsers_iso8601(self, date_str, exp):
         # GH#12060
         # test only the iso parser - flexibility to different
         # separators and leadings 0s
         # Timestamp construction falls back to dateutil
-        cases = {'2011-01-02': datetime(2011, 1, 2),
-                 '2011-1-2': datetime(2011, 1, 2),
-                 '2011-01': datetime(2011, 1, 1),
-                 '2011-1': datetime(2011, 1, 1),
-                 '2011 01 02': datetime(2011, 1, 2),
-                 '2011.01.02': datetime(2011, 1, 2),
-                 '2011/01/02': datetime(2011, 1, 2),
-                 '2011\\01\\02': datetime(2011, 1, 2),
-                 '2013-01-01 05:30:00': datetime(2013, 1, 1, 5, 30),
-                 '2013-1-1 5:30:00': datetime(2013, 1, 1, 5, 30)}
-        for date_str, exp in compat.iteritems(cases):
-            actual = tslib._test_parse_iso8601(date_str)
-            assert actual == exp
+        actual = tslib._test_parse_iso8601(date_str)
+        assert actual == exp
 
     @pytest.mark.parametrize('date_str', ['2011-01/02', '2011^11^11',
                                           '201401', '201111', '200101',
@@ -113,7 +112,7 @@ class TestArrayToDatetime(object):
         arr = np.array(['1/1/1000', '1/1/2000'], dtype=object)
         result = tslib.array_to_datetime(arr, errors='coerce')
         expected = [tslib.iNaT,
-                    '2000-01-01T00:00:00.000000000-0000'],
+                    '2000-01-01T00:00:00.000000000-0000']
         tm.assert_numpy_array_equal(result,
                                     np_array_datetime64_compat(expected,
                                                                dtype='M8[ns]'))
