@@ -14,6 +14,7 @@ from pandas import (DatetimeIndex, date_range, Series, NaT, Index, Timestamp,
 
 
 class TestDatetimeIndex(object):
+
     def test_astype(self):
         # GH 13149, GH 13209
         idx = DatetimeIndex(['2016-05-16', 'NaT', NaT, np.NaN])
@@ -137,7 +138,7 @@ class TestDatetimeIndex(object):
         tm.assert_index_equal(casted, Index(exp_values, dtype=np.object_))
         assert casted.tolist() == exp_values
 
-    @pytest.mark.parametrize('tz', [None, 'Asia/Toyko'])
+    @pytest.mark.parametrize('tz', [None, 'Asia/Tokyo'])
     def test_astype_object_tz(self, tz):
         idx = pd.date_range(start='2013-01-01', periods=4, freq='M',
                             name='idx', tz=tz)
