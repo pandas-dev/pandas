@@ -154,7 +154,7 @@ cdef inline int get_freq_group(int freq) nogil:
     return (freq // 1000) * 1000
 
 
-@cython.cdivision
+@cython.cdivision(False)  # specifically _dont_ use cdvision GH#19643
 cdef int64_t get_period_ordinal(int year, int month, int day,
                                 int hour, int minute, int second,
                                 int microseconds, int picoseconds,
@@ -190,7 +190,7 @@ cdef int64_t get_period_ordinal(int year, int month, int day,
         if month >= fmonth:
             mdiff += 12
 
-        return (year - 1970) * 4 + (mdiff - 1) / 3
+        return (year - 1970) * 4 + (mdiff - 1) // 3
 
     elif freq == FR_MTH:
         return (year - 1970) * 12 + month - 1
@@ -202,14 +202,14 @@ cdef int64_t get_period_ordinal(int year, int month, int day,
         seconds = unix_date * 86400 + hour * 3600 + minute * 60 + second
 
         if freq == FR_MS:
-            return seconds * 1000 + microseconds / 1000
+            return seconds * 1000 + microseconds // 1000
 
         elif freq == FR_US:
             return seconds * 1000000 + microseconds
 
         elif freq == FR_NS:
             return (seconds * 1000000000 +
-                    microseconds * 1000 + picoseconds / 1000)
+                    microseconds * 1000 + picoseconds // 1000)
 
         else:
             return seconds
@@ -229,7 +229,7 @@ cdef int64_t get_period_ordinal(int year, int month, int day,
     elif freq == FR_BUS:
         # calculate the current week assuming sunday as last day of a week
         # Jan 1 0001 is a Monday, so subtract 1 to get to end-of-week
-        weeks = (unix_date + ORD_OFFSET - 1) / 7
+        weeks = (unix_date + ORD_OFFSET - 1) // 7
         # calculate the current weekday (in range 1 .. 7)
         delta = (unix_date + ORD_OFFSET - 1) % 7 + 1
         # return the number of business days in full weeks plus the business
@@ -241,7 +241,7 @@ cdef int64_t get_period_ordinal(int year, int month, int day,
 
     elif freq_group == FR_WK:
         day_adj = freq - FR_WK
-        return (unix_date + ORD_OFFSET - (1 + day_adj)) / 7 + 1 - WEEK_OFFSET
+        return (unix_date + ORD_OFFSET - (1 + day_adj)) // 7 + 1 - WEEK_OFFSET
 
     # raise ValueError
 
