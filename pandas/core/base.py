@@ -830,10 +830,8 @@ class IndexOpsMixin(object):
 
         if is_datetimelike(self):
             return [com._maybe_box_datetimelike(x) for x in self._values]
-        elif is_categorical_dtype(self):
-            return self.values.tolist()
         else:
-            return self._ndarray_values.tolist()
+            return self._values.tolist()
 
     def __iter__(self):
         """
