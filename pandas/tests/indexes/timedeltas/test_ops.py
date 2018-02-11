@@ -8,7 +8,7 @@ import pandas.util.testing as tm
 from pandas import to_timedelta
 from pandas import (Series, Timedelta, Timestamp, TimedeltaIndex,
                     timedelta_range,
-                    _np_version_under1p10, Index)
+                    _np_version_under1p10)
 from pandas._libs.tslib import iNaT
 from pandas.tests.test_base import Ops
 
@@ -24,31 +24,6 @@ class TestTimedeltaIndexOps(Ops):
         f = lambda x: isinstance(x, TimedeltaIndex)
         self.check_ops_properties(TimedeltaIndex._field_ops, f)
         self.check_ops_properties(TimedeltaIndex._object_ops, f)
-
-    def test_astype_object(self):
-        idx = timedelta_range(start='1 days', periods=4, freq='D', name='idx')
-        expected_list = [Timedelta('1 days'), Timedelta('2 days'),
-                         Timedelta('3 days'), Timedelta('4 days')]
-        expected = pd.Index(expected_list, dtype=object, name='idx')
-        result = idx.astype(object)
-        assert isinstance(result, Index)
-
-        assert result.dtype == object
-        tm.assert_index_equal(result, expected)
-        assert result.name == expected.name
-        assert idx.tolist() == expected_list
-
-        idx = TimedeltaIndex([timedelta(days=1), timedelta(days=2), pd.NaT,
-                              timedelta(days=4)], name='idx')
-        expected_list = [Timedelta('1 days'), Timedelta('2 days'), pd.NaT,
-                         Timedelta('4 days')]
-        expected = pd.Index(expected_list, dtype=object, name='idx')
-        result = idx.astype(object)
-        assert isinstance(result, Index)
-        assert result.dtype == object
-        tm.assert_index_equal(result, expected)
-        assert result.name == expected.name
-        assert idx.tolist() == expected_list
 
     def test_minmax(self):
 
