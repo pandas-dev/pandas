@@ -148,10 +148,7 @@ class TestDatetimeIndex(object):
                          Timestamp('2013-04-30', tz=tz)]
         expected = pd.Index(expected_list, dtype=object, name='idx')
         result = idx.astype(object)
-        assert isinstance(result, Index)
-        assert result.dtype == object
         tm.assert_index_equal(result, expected)
-        assert result.name == expected.name
         assert idx.tolist() == expected_list
 
     def test_astype_object_with_nat(self):
@@ -162,10 +159,7 @@ class TestDatetimeIndex(object):
                          Timestamp('2013-01-04')]
         expected = pd.Index(expected_list, dtype=object, name='idx')
         result = idx.astype(object)
-        assert isinstance(result, Index)
-        assert result.dtype == object
         tm.assert_index_equal(result, expected)
-        assert result.name == expected.name
         assert idx.tolist() == expected_list
 
     @pytest.mark.parametrize('dtype', [
