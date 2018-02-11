@@ -13,7 +13,7 @@ import pandas.core.indexes.period as period
 
 class TestPeriodIndexComparisons(object):
     @pytest.mark.parametrize('freq', ['M', '2M', '3M'])
-    def test_pi_pi_comp(self, freq):
+    def test_pi_cmp_pi(self, freq):
         base = PeriodIndex(['2011-01', '2011-02', '2011-03', '2011-04'],
                            freq=freq)
         per = Period('2011-02', freq=freq)
@@ -63,7 +63,12 @@ class TestPeriodIndexComparisons(object):
         exp = np.array([True, False, True, True])
         tm.assert_numpy_array_equal(base <= idx, exp)
 
+    @pytest.mark.parametrize('freq', ['M', '2M', '3M'])
+    def test_pi_cmp_pi_mismatched_freq_raises(self, freq):
         # different base freq
+        base = PeriodIndex(['2011-01', '2011-02', '2011-03', '2011-04'],
+                           freq=freq)
+
         msg = "Input has different freq=A-DEC from PeriodIndex"
         with tm.assert_raises_regex(period.IncompatibleFrequency, msg):
             base <= Period('2011', freq='A')
@@ -71,8 +76,8 @@ class TestPeriodIndexComparisons(object):
         with tm.assert_raises_regex(period.IncompatibleFrequency, msg):
             Period('2011', freq='A') >= base
 
+        idx = PeriodIndex(['2011', '2012', '2013', '2014'], freq='A')
         with tm.assert_raises_regex(period.IncompatibleFrequency, msg):
-            idx = PeriodIndex(['2011', '2012', '2013', '2014'], freq='A')
             base <= idx
 
         # Different frequency
@@ -83,12 +88,12 @@ class TestPeriodIndexComparisons(object):
         with tm.assert_raises_regex(period.IncompatibleFrequency, msg):
             Period('2011', freq='4M') >= base
 
+        idx = PeriodIndex(['2011', '2012', '2013', '2014'], freq='4M')
         with tm.assert_raises_regex(period.IncompatibleFrequency, msg):
-            idx = PeriodIndex(['2011', '2012', '2013', '2014'], freq='4M')
             base <= idx
 
     @pytest.mark.parametrize('freq', ['M', '2M', '3M'])
-    def test_pi_nat_comp(self, freq):
+    def test_pi_cmp_nat(self, freq):
         idx1 = PeriodIndex(['2011-01', '2011-02', 'NaT', '2011-05'], freq=freq)
 
         result = idx1 > Period('2011-02', freq=freq)
@@ -109,8 +114,7 @@ class TestPeriodIndexComparisons(object):
         result = Period('NaT', freq=freq) != idx1
         tm.assert_numpy_array_equal(result, exp)
 
-        idx2 = PeriodIndex(['2011-02', '2011-01', '2011-04',
-                            'NaT'], freq=freq)
+        idx2 = PeriodIndex(['2011-02', '2011-01', '2011-04', 'NaT'], freq=freq)
         result = idx1 < idx2
         exp = np.array([True, False, False, False])
         tm.assert_numpy_array_equal(result, exp)
@@ -131,18 +135,19 @@ class TestPeriodIndexComparisons(object):
         exp = np.array([False, False, True, False])
         tm.assert_numpy_array_equal(result, exp)
 
-        diff = PeriodIndex(['2011-02', '2011-01', '2011-04',
-                            'NaT'], freq='4M')
+    @pytest.mark.parametrize('freq', ['M', '2M', '3M'])
+    def test_pi_cmp_nat_mismatched_freq_raises(self, freq):
+        idx1 = PeriodIndex(['2011-01', '2011-02', 'NaT', '2011-05'], freq=freq)
+
+        diff = PeriodIndex(['2011-02', '2011-01', '2011-04', 'NaT'], freq='4M')
         msg = "Input has different freq=4M from PeriodIndex"
-        with tm.assert_raises_regex(
-                period.IncompatibleFrequency, msg):
+        with tm.assert_raises_regex(period.IncompatibleFrequency, msg):
             idx1 > diff
 
-        with tm.assert_raises_regex(
-                period.IncompatibleFrequency, msg):
+        with tm.assert_raises_regex(period.IncompatibleFrequency, msg):
             idx1 == diff
 
-    # TODO: De-duplicate with test_pi_nat_comp
+    # TODO: De-duplicate with test_pi_cmp_nat
     def test_comp_nat(self):
         left = pd.PeriodIndex([pd.Period('2011-01-01'), pd.NaT,
                                pd.Period('2011-01-03')])
