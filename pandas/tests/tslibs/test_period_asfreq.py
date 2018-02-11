@@ -13,7 +13,7 @@ from pandas.util import testing as tm
 class TestPeriodFreqConversion(object):
     @pytest.mark.parametrize('freq', ['A', 'Q', 'M', 'W', 'B', 'D'])
     def test_asfreq_near_zero(self, freq):
-        # GH#19643
+        # GH#19643, GH#19650
         per = Period('0001-01-01', freq=freq)
         tup1 = (per.year, per.hour, per.day)
 
