@@ -1178,39 +1178,6 @@ class TestToIterable(object):
             assert res == exp
 
 
-@pytest.mark.parametrize('arr, expected', [
-    (pd.DatetimeIndex(['2017', '2017']), pd.DatetimeIndex(['2017'])),
-    (pd.DatetimeIndex(['2017', '2017'], tz='US/Eastern'),
-     pd.DatetimeIndex(['2017'], tz='US/Eastern')),
-])
-def test_unique_datetime_index(arr, expected):
-    result = arr.unique()
-
-    if isinstance(expected, np.ndarray):
-        tm.assert_numpy_array_equal(result, expected)
-    if isinstance(expected, pd.Series):
-        tm.assert_series_equal(result, expected)
-    if isinstance(expected, pd.DatetimeIndex):
-        tm.assert_index_equal(result, expected)
-
-
-@pytest.mark.parametrize('arr, expected', [
-    (pd.Series(pd.DatetimeIndex(['2017', '2017'])),
-     np.array(['2017-01-01T00:00:00'], dtype='M8[ns]')),
-    (pd.Series(pd.DatetimeIndex(['2017', '2017'], tz='US/Eastern')),
-     np.array([pd.Timestamp('2017', tz="US/Eastern")], dtype=object)),
-])
-def test_unique_datetime_series(arr, expected):
-    result = arr.unique()
-
-    if isinstance(expected, np.ndarray):
-        tm.assert_numpy_array_equal(result, expected)
-    if isinstance(expected, pd.Series):
-        tm.assert_series_equal(result, expected)
-    if isinstance(expected, pd.DatetimeIndex):
-        tm.assert_index_equal(result, expected)
-
-
 @pytest.mark.parametrize('array, expected_type, dtype', [
     (np.array([0, 1], dtype=np.int64), np.ndarray, 'int64'),
     (np.array(['a', 'b']), np.ndarray, 'object'),
@@ -1260,52 +1227,3 @@ def test_ndarray_values(array, expected):
     r_values = pd.Index(array)._ndarray_values
     tm.assert_numpy_array_equal(l_values, r_values)
     tm.assert_numpy_array_equal(l_values, expected)
-
-
-def test_values_multiindex_datetimeindex():
-    # Test to ensure we hit the boxing / nobox part of MI.values
-    ints = np.arange(10**18, 10**18 + 5)
-    naive = pd.DatetimeIndex(ints)
-    aware = pd.DatetimeIndex(ints, tz='US/Central')
-
-    idx = pd.MultiIndex.from_arrays([naive, aware])
-    result = idx.values
-
-    outer = pd.DatetimeIndex([x[0] for x in result])
-    tm.assert_index_equal(outer, naive)
-
-    inner = pd.DatetimeIndex([x[1] for x in result])
-    tm.assert_index_equal(inner, aware)
-
-    # n_lev > n_lab
-    result = idx[:2].values
-
-    outer = pd.DatetimeIndex([x[0] for x in result])
-    tm.assert_index_equal(outer, naive[:2])
-
-    inner = pd.DatetimeIndex([x[1] for x in result])
-    tm.assert_index_equal(inner, aware[:2])
-
-
-def test_values_multiindex_periodindex():
-    # Test to ensure we hit the boxing / nobox part of MI.values
-    ints = np.arange(2007, 2012)
-    pidx = pd.PeriodIndex(ints, freq='D')
-
-    idx = pd.MultiIndex.from_arrays([ints, pidx])
-    result = idx.values
-
-    outer = pd.Int64Index([x[0] for x in result])
-    tm.assert_index_equal(outer, pd.Int64Index(ints))
-
-    inner = pd.PeriodIndex([x[1] for x in result])
-    tm.assert_index_equal(inner, pidx)
-
-    # n_lev > n_lab
-    result = idx[:2].values
-
-    outer = pd.Int64Index([x[0] for x in result])
-    tm.assert_index_equal(outer, pd.Int64Index(ints[:2]))
-
-    inner = pd.PeriodIndex([x[1] for x in result])
-    tm.assert_index_equal(inner, pidx[:2])
