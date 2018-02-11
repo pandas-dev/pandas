@@ -1731,13 +1731,16 @@ class _TestMySQLAlchemy(object):
     @classmethod
     def connect(cls):
         url = 'mysql+{driver}://root@localhost/pandas_nosetest'
-        return sqlalchemy.create_engine(url.format(driver=cls.driver))
+        return sqlalchemy.create_engine(url.format(driver=cls.driver),
+                                        connect_args=cls.connect_args)
 
     @classmethod
     def setup_driver(cls):
         try:
             import pymysql  # noqa
             cls.driver = 'pymysql'
+            from pymysql.constants import CLIENT
+            cls.connect_args = {'client_flag': CLIENT.MULTI_STATEMENTS}
         except ImportError:
             pytest.skip('pymysql not installed')
 
