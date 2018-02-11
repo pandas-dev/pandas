@@ -8,7 +8,7 @@ import calendar
 import dateutil
 import numpy as np
 from dateutil.parser import parse
-from datetime import datetime, date, time
+from datetime import datetime, date, time, timedelta
 from distutils.version import LooseVersion
 
 import pandas as pd
@@ -18,7 +18,7 @@ from pandas._libs.tslibs import parsing
 from pandas.core.tools import datetimes as tools
 
 from pandas.errors import OutOfBoundsDatetime
-from pandas.compat import lmap
+from pandas.compat import lmap, PY3
 from pandas.compat.numpy import np_array_datetime64_compat
 from pandas.core.dtypes.common import is_datetime64_ns_dtype
 from pandas.util import testing as tm
@@ -187,6 +187,18 @@ class TestTimeConversionFormats(object):
 
 
 class TestToDatetime(object):
+    def test_to_datetime_pydatetime(self):
+        actual = pd.to_datetime(datetime(2008, 1, 15))
+        assert actual == datetime(2008, 1, 15)
+
+    def test_to_datetime_YYYYMMDD(self):
+        actual = pd.to_datetime('20080115')
+        assert actual == datetime(2008, 1, 15)
+
+    def test_to_datetime_unparseable_ignore(self):
+        # unparseable
+        s = 'Month 1, 1999'
+        assert pd.to_datetime(s, errors='ignore') == s
 
     @td.skip_if_windows  # `tm.set_timezone` does not work in windows
     def test_to_datetime_now(self):
@@ -237,6 +249,13 @@ class TestToDatetime(object):
 
             assert pdtoday.tzinfo is None
             assert pdtoday2.tzinfo is None
+
+    def test_to_datetime_today_now_unicode_bytes(self):
+        to_datetime([u'now'])
+        to_datetime([u'today'])
+        if not PY3:
+            to_datetime(['now'])
+            to_datetime(['today'])
 
     @pytest.mark.parametrize('cache', [True, False])
     def test_to_datetime_dt64s(self, cache):
@@ -1484,6 +1503,15 @@ class TestDatetimeParsingWrappers(object):
 
 
 class TestArrayToDatetime(object):
+    def test_coerce_out_of_bounds_utc(self):
+        # GH#19612
+        ts = Timestamp('1900-01-01', tz='US/Pacific')
+        dt = ts.to_pydatetime() - timedelta(days=365 * 300)  # ~1600AD
+        arr = np.array([dt])
+        result = tslib.array_to_datetime(arr, utc=True, errors='coerce')
+        expected = np.array(['NaT'], dtype='datetime64[ns]')
+        tm.assert_numpy_array_equal(result, expected)
+
     def test_parsing_valid_dates(self):
         arr = np.array(['01-01-2013', '01-02-2013'], dtype=object)
         tm.assert_numpy_array_equal(
