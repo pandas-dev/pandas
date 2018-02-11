@@ -524,11 +524,10 @@ cpdef array_to_datetime(ndarray[object] values, errors='raise',
                 seen_datetime = 1
                 if val.tzinfo is not None:
                     if utc_convert:
-                        _ts = convert_datetime_to_tsobject(val, None)
-                        iresult[i] = _ts.value
                         try:
-                            check_dts_bounds(&_ts.dts)
-                        except ValueError:
+                            _ts = convert_datetime_to_tsobject(val, None)
+                            iresult[i] = _ts.value
+                        except OutOfBoundsDatetime:
                             if is_coerce:
                                 iresult[i] = NPY_NAT
                                 continue
@@ -544,7 +543,7 @@ cpdef array_to_datetime(ndarray[object] values, errors='raise',
                         iresult[i] += val.nanosecond
                     try:
                         check_dts_bounds(&dts)
-                    except ValueError:
+                    except OutOfBoundsDatetime:
                         if is_coerce:
                             iresult[i] = NPY_NAT
                             continue
@@ -555,7 +554,7 @@ cpdef array_to_datetime(ndarray[object] values, errors='raise',
                 iresult[i] = pydate_to_dt64(val, &dts)
                 try:
                     check_dts_bounds(&dts)
-                except ValueError:
+                except OutOfBoundsDatetime:
                     if is_coerce:
                         iresult[i] = NPY_NAT
                         continue
@@ -568,7 +567,7 @@ cpdef array_to_datetime(ndarray[object] values, errors='raise',
                 else:
                     try:
                         iresult[i] = get_datetime64_nanos(val)
-                    except ValueError:
+                    except OutOfBoundsDatetime:
                         if is_coerce:
                             iresult[i] = NPY_NAT
                             continue
