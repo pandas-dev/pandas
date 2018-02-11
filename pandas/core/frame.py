@@ -3920,7 +3920,9 @@ class DataFrame(NDFrame):
         new_index, new_columns = this.index, this.columns
 
         def _arith_op(left, right):
-            # analogous to Series._binop
+            # for the mixed_type case where we iterate over columns,
+            # _arith_op(left, right) is equivalent to
+            # left._binop(right, func, fill_value=fill_value)
             if fill_value is not None:
                 left_mask = isna(left)
                 right_mask = isna(right)
@@ -3938,12 +3940,13 @@ class DataFrame(NDFrame):
             # iterate over columns
             if this.columns.is_unique:
                 # unique columns
-                result = {col: func(this[col], other[col]) for col in this}
+                result = {col: _arith_op(this[col], other[col])
+                          for col in this}
                 result = self._constructor(result, index=new_index,
                                            columns=new_columns, copy=False)
             else:
                 # non-unique columns
-                result = {i: func(this.iloc[:, i], other.iloc[:, i])
+                result = {i: _arith_op(this.iloc[:, i], other.iloc[:, i])
                           for i, col in enumerate(this.columns)}
                 result = self._constructor(result, index=new_index, copy=False)
                 result.columns = new_columns
