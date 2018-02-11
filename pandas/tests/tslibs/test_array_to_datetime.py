@@ -45,8 +45,6 @@ class TestParseISO8601(object):
         # separators must all match - YYYYMM not valid
         with pytest.raises(ValueError):
             tslib._test_parse_iso8601(date_str)
-            # If no ValueError raised, let me know which case failed.
-            raise Exception(date_str)
 
 
 class TestArrayToDatetime(object):
@@ -94,11 +92,12 @@ class TestArrayToDatetime(object):
         result = tslib.array_to_datetime(arr, errors='ignore')
         tm.assert_numpy_array_equal(result, arr)
 
-    @pytest.mark.parametrize('invalid_date', [date(1000, 1, 1),
-                                              datetime(1000, 1, 1),
-                                              '1000-01-01',
-                                              'Jan 1, 1000',
-                                              np.datetime64('1000-01-01')])
+    @pytest.mark.parametrize('invalid_date', [
+        date(1000, 1, 1),
+        datetime(1000, 1, 1),
+        '1000-01-01',
+        'Jan 1, 1000',
+        np.datetime64('1000-01-01')])
     def test_coerce_outside_ns_bounds(self, invalid_date):
         arr = np.array([invalid_date], dtype='object')
         with pytest.raises(ValueError):
