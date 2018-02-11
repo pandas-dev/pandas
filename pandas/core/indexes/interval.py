@@ -1047,16 +1047,13 @@ class IntervalIndex(IntervalMixin, Index):
         --------
         get_loc
         """
+
         all_matches = self.get_loc(key, method=method)
         exact_matches = self[all_matches] == key
-        if is_scalar(all_matches):
-            if exact_matches:
-                return all_matches
-        else:
-            if (exact_matches).all():
-                return all_matches
-            elif (exact_matches).any():
-                return all_matches[exact_matches]
+        if np.all(all_matches):
+            return all_matches
+        elif np.any(exact_matches):
+            return all_matches[exact_matches]
         raise KeyError(key)
 
     def get_value(self, series, key):
