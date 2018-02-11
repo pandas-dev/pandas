@@ -389,8 +389,6 @@ cdef class TextReader:
         if delim_whitespace:
             self.parser.delim_whitespace = delim_whitespace
         else:
-            if len(delimiter) > 1:
-                raise ValueError('only length-1 separators excluded right now')
             self.parser.delimiter = ord(delimiter)
 
         # ----------------------------------------
@@ -401,8 +399,6 @@ cdef class TextReader:
         self.parser.skip_empty_lines = skip_blank_lines
 
         if lineterminator is not None:
-            if len(lineterminator) != 1:
-                raise ValueError('Only length-1 line terminators supported')
             self.parser.lineterminator = ord(lineterminator)
 
         if len(decimal) != 1:
