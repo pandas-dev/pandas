@@ -187,6 +187,18 @@ class TestTimeConversionFormats(object):
 
 
 class TestToDatetime(object):
+    def test_to_datetime_pydatetime(self):
+        actual = pd.to_datetime(datetime(2008, 1, 15))
+        assert actual == datetime(2008, 1, 15)
+
+    def test_to_datetime_YYYYMMDD(self):
+        actual = pd.to_datetime('20080115')
+        assert actual == datetime(2008, 1, 15)
+
+    def test_to_datetime_unparseable_ignore(self):
+        # unparseable
+        s = 'Month 1, 1999'
+        assert pd.to_datetime(s, errors='ignore') == s
 
     @td.skip_if_windows  # `tm.set_timezone` does not work in windows
     def test_to_datetime_now(self):
