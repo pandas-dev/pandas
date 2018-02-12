@@ -478,6 +478,16 @@ class PeriodIndex(DatelikeOps, DatetimeIndexOpsMixin, Int64Index):
         return self.astype(object).values
 
     @property
+    def size(self):
+        # Avoid materializing self._values
+        return self._ndarray_values.size
+
+    @property
+    def shape(self):
+        # Avoid materializing self._values
+        return self._ndarray_values.shape
+
+    @property
     def _formatter_func(self):
         return lambda x: "'%s'" % x
 
