@@ -2061,6 +2061,25 @@ class TestGroupBy(MixIn):
                                    ascending=ascending,
                                    na_option=na_option, pct=pct)
 
+    @pytest.mark.parametrize("fill_method,limit,exp_vals", [
+        ("ffill", None,
+         [np.nan, np.nan, 'foo', 'foo', 'foo', 'bar', 'bar', 'bar']),
+        ("ffill", 1,
+         [np.nan, np.nan, 'foo', 'foo', np.nan, 'bar', 'bar', np.nan]),
+        ("bfill", None,
+         ['foo', 'foo', 'foo', 'bar', 'bar', 'bar', np.nan, np.nan]),
+        ("bfill", 1,
+         [np.nan, 'foo', 'foo', np.nan, 'bar', 'bar', np.nan, np.nan])
+    ])
+    def test_group_fill_methods(self, fill_method, limit, exp_vals):
+        vals = [np.nan, np.nan, 'foo', np.nan, np.nan, 'bar', np.nan, np.nan]
+        keys = ['a'] * len(vals) + ['b'] * len(vals)
+        df = DataFrame({'key': keys, 'val': vals * 2})
+        result = getattr(df.groupby('key'), fill_method)(limit=limit)
+
+        exp = DataFrame({'key': keys, 'val': exp_vals * 2})
+        assert_frame_equal(result, exp)
+
     def test_dont_clobber_name_column(self):
         df = DataFrame({'key': ['a', 'a', 'a', 'b', 'b', 'b'],
                         'name': ['foo', 'bar', 'baz'] * 2})
