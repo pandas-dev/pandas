@@ -400,16 +400,9 @@ class TestIntervalIndex(Base):
                                              closed=closed)
         tm.assert_index_equal(result, expected)
 
-    # To be removed, replaced by test_interval_new.py (see #16316, #16386)
+    # To be removed after overlapping/non-monotonic/duplicate cases have been
+    # added to test_get_loc_scalar below
     def test_get_loc_value(self):
-        pytest.raises(KeyError, self.index.get_loc, 0)
-        assert self.index.get_loc(0.5) == 0
-        assert self.index.get_loc(1) == 0
-        assert self.index.get_loc(1.5) == 1
-        assert self.index.get_loc(2) == 1
-        pytest.raises(KeyError, self.index.get_loc, -1)
-        pytest.raises(KeyError, self.index.get_loc, 3)
-
         idx = IntervalIndex.from_tuples([(0, 2), (1, 3)])
         assert idx.get_loc(0.5) == 0
         assert idx.get_loc(1) == 0
@@ -420,8 +413,26 @@ class TestIntervalIndex(Base):
         assert idx.get_loc(3) == 1
         pytest.raises(KeyError, idx.get_loc, 3.5)
 
-        idx = IntervalIndex.from_arrays([0, 2], [1, 3])
-        pytest.raises(KeyError, idx.get_loc, 1.5)
+    # TODO: add overlapping/non-monotonic/duplicate index tests
+    @pytest.mark.parametrize("scalar", [-0.5, 0, 0.5, 1, 1.5, 2, 2.5, 3, 3.5])
+    def test_get_loc_scalar(self, closed, scalar):
+
+        # correct = {side: {query: answer}}.
+        # If query is not in the dict, that query should raise a KeyError
+        correct = {'right': {0.5: 0, 1: 0, 2.5: 1, 3: 1},
+                   'left': {0: 0, 0.5: 0, 2: 1, 2.5: 1},
+                   'both': {0: 0, 0.5: 0, 1: 0, 2: 1, 2.5: 1, 3: 1},
+                   'neither': {0.5: 0, 2.5: 1}}
+
+        idx = IntervalIndex.from_tuples([(0, 1), (2, 3)], closed=closed)
+
+        # if get_loc is supplied a scalar, it should return the index of
+        # the interval which contains the scalar, or KeyError.
+        if scalar in correct[closed].keys():
+            assert idx.get_loc(scalar) == correct[closed][scalar]
+        else:
+            with pytest.raises(KeyError):
+                idx.get_loc(scalar)
 
     # To be removed, replaced by test_interval_new.py (see #16316, #16386)
     def slice_locs_cases(self, breaks):
@@ -482,11 +493,18 @@ class TestIntervalIndex(Base):
     def test_slice_locs_decreasing_float64(self):
         self.slice_locs_cases([(2., 4.), (1., 3.), (0., 2.)])
 
-    # To be removed, replaced by test_interval_new.py (see #16316, #16386)
-    def test_slice_locs_fails(self):
-        index = IntervalIndex.from_tuples([(1, 2), (0, 1), (2, 3)])
+    @pytest.mark.parametrize('query', [
+        [0, 1], [0, 2], [0, 3], [3, 1], [3, 4], [0, 4]], ids=str)
+    @pytest.mark.parametrize('tuples', [
+        [(0, 2), (1, 3), (2, 4)],  # increasing overlapping
+        [(2, 4), (1, 3), (0, 2)],  # decreasing overlapping
+        [(0, 2), (0, 2), (2, 4)],  # sorted duplicates
+        [(0, 2), (2, 4), (0, 2)],  # unsorted duplicates
+        [(0, 2), (0, 2), (2, 4), (1, 3)]])  # another unsorted duplicates
+    def test_slice_locs_with_ints_and_floats_fails(self, query, tuples):
+        index = IntervalIndex.from_tuples(tuples)
         with pytest.raises(KeyError):
-            index.slice_locs(1, 2)
+            index.slice_locs(query)
 
     # To be removed, replaced by test_interval_new.py (see #16316, #16386)
     def test_get_loc_interval(self):

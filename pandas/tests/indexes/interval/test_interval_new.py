@@ -21,45 +21,25 @@ class TestIntervalIndex(object):
 
     @pytest.mark.parametrize("idx_side", ['right', 'left', 'both', 'neither'])
     @pytest.mark.parametrize("side", ['right', 'left', 'both', 'neither'])
-    def test_get_loc_interval(self, idx_side, side):
-
+    @pytest.mark.parametrize("bound", [
+        [0, 1], [1, 2], [2, 3], [3, 4], [0, 2], [2.5, 3], [-1, 4]], ids=str)
+    def test_get_loc_interval(self, idx_side, side, bound):
+        # TODO: add overlapping/non-monotonic/dupe index tests
         idx = IntervalIndex.from_tuples([(0, 1), (2, 3)], closed=idx_side)
 
-        for bound in [[0, 1], [1, 2], [2, 3], [3, 4],
-                      [0, 2], [2.5, 3], [-1, 4]]:
-            # if get_loc is supplied an interval, it should only search
-            # for exact matches, not overlaps or covers, else KeyError.
-            if idx_side == side:
-                if bound == [0, 1]:
-                    assert idx.get_loc(Interval(0, 1, closed=side)) == 0
-                elif bound == [2, 3]:
-                    assert idx.get_loc(Interval(2, 3, closed=side)) == 1
-                else:
-                    with pytest.raises(KeyError):
-                        idx.get_loc(Interval(*bound, closed=side))
+        # if get_loc is supplied an interval, it should only search
+        # for exact matches, not overlaps or covers, else KeyError.
+        if idx_side == side:
+            if bound == [0, 1]:
+                assert idx.get_loc(Interval(0, 1, closed=side)) == 0
+            elif bound == [2, 3]:
+                assert idx.get_loc(Interval(2, 3, closed=side)) == 1
             else:
                 with pytest.raises(KeyError):
                     idx.get_loc(Interval(*bound, closed=side))
-
-    @pytest.mark.parametrize("idx_side", ['right', 'left', 'both', 'neither'])
-    @pytest.mark.parametrize("scalar", [-0.5, 0, 0.5, 1, 1.5, 2, 2.5, 3, 3.5])
-    def test_get_loc_scalar(self, idx_side, scalar):
-
-        # correct = {side: {query: answer}}.
-        # If query is not in the dict, that query should raise a KeyError
-        correct = {'right': {0.5: 0, 1: 0, 2.5: 1, 3: 1},
-                   'left': {0: 0, 0.5: 0, 2: 1, 2.5: 1},
-                   'both': {0: 0, 0.5: 0, 1: 0, 2: 1, 2.5: 1, 3: 1},
-                   'neither': {0.5: 0, 2.5: 1}}
-
-        idx = IntervalIndex.from_tuples([(0, 1), (2, 3)], closed=idx_side)
-
-        # if get_loc is supplied a scalar, it should return the index of
-        # the interval which contains the scalar, or KeyError.
-        if scalar in correct[idx_side].keys():
-            assert idx.get_loc(scalar) == correct[idx_side][scalar]
         else:
-            pytest.raises(KeyError, idx.get_loc, scalar)
+            with pytest.raises(KeyError):
+                idx.get_loc(Interval(*bound, closed=side))
 
     def test_slice_locs_with_interval(self):
 
@@ -138,30 +118,6 @@ class TestIntervalIndex(object):
         assert index.slice_locs(3, 1) == (1, 2)
         assert index.slice_locs(3, 4) == (1, 0)
         assert index.slice_locs(0, 4) == (3, 0)
-
-    @pytest.mark.parametrize("query", [[0, 1], [0, 2], [0, 3],
-                                       [3, 1], [3, 4], [0, 4]])
-    def test_slice_locs_with_ints_and_floats_fails(self, query):
-
-        # increasing overlapping
-        index = IntervalIndex.from_tuples([(0, 2), (1, 3), (2, 4)])
-        pytest.raises(KeyError, index.slice_locs, query)
-
-        # decreasing overlapping
-        index = IntervalIndex.from_tuples([(2, 4), (1, 3), (0, 2)])
-        pytest.raises(KeyError, index.slice_locs, query)
-
-        # sorted duplicates
-        index = IntervalIndex.from_tuples([(0, 2), (0, 2), (2, 4)])
-        pytest.raises(KeyError, index.slice_locs, query)
-
-        # unsorted duplicates
-        index = IntervalIndex.from_tuples([(0, 2), (2, 4), (0, 2)])
-        pytest.raises(KeyError, index.slice_locs, query)
-
-        # another unsorted duplicates
-        index = IntervalIndex.from_tuples([(0, 2), (0, 2), (2, 4), (1, 3)])
-        pytest.raises(KeyError, index.slice_locs, query)
 
     @pytest.mark.parametrize("query", [
         Interval(1, 3, closed='right'),
@@ -303,13 +259,13 @@ class TestIntervalIndex(object):
         assert index.contains(0.5)
         assert index.contains(1)
 
-        assert index.contains(Interval(0, 1), closed='right')
-        assert not index.contains(Interval(0, 1), closed='left')
-        assert not index.contains(Interval(0, 1), closed='both')
-        assert not index.contains(Interval(0, 2), closed='right')
+        assert index.contains(Interval(0, 1, closed='right'))
+        assert not index.contains(Interval(0, 1, closed='left'))
+        assert not index.contains(Interval(0, 1, closed='both'))
+        assert not index.contains(Interval(0, 2, closed='right'))
 
-        assert not index.contains(Interval(0, 3), closed='right')
-        assert not index.contains(Interval(1, 3), closed='right')
+        assert not index.contains(Interval(0, 3, closed='right'))
+        assert not index.contains(Interval(1, 3, closed='right'))
 
         assert not index.contains(20)
         assert not index.contains(-20)
