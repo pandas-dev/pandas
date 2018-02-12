@@ -14,7 +14,7 @@ from pandas import compat
 
 from pandas.core.accessor import CachedAccessor
 from pandas.core.dtypes.generic import (
-    ABCSeries, ABCDataFrame,
+    ABCSeries, ABCDataFrame, ABCSparseArray,
     ABCMultiIndex,
     ABCPeriodIndex,
     ABCDateOffset)
@@ -617,6 +617,9 @@ class Index(IndexOpsMixin, PandasObject):
     def where(self, cond, other=None):
         if other is None:
             other = self._na_value
+
+        if isinstance(other, ABCSparseArray):
+            other = other.values
 
         dtype = self.dtype
         values = self.values
