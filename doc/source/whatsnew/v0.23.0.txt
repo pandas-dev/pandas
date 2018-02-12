@@ -323,7 +323,7 @@ Other Enhancements
 
 - ``IntervalIndex.astype`` now supports conversions between subtypes when passed an ``IntervalDtype`` (:issue:`19197`)
 - :class:`IntervalIndex` and its associated constructor methods (``from_arrays``, ``from_breaks``, ``from_tuples``) have gained a ``dtype`` parameter (:issue:`19262`)
-- :func:`groupby.is_monotonic_increasing` and :func:`.is_monotonic_decreasing` extend `:func: Series.is_monotonic_increasing` to groups, returning whether each group is monotonically increasing or decreasing, respectively. (:issue:`17015`)
+- Added :func:`SeriesGroupBy.is_monotonic_increasing` and :func:`SeriesGroupBy.is_monotonic_decreasing` (:issue:`17015`)
 
 .. _whatsnew_0230.api_breaking:
 
