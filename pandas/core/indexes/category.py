@@ -294,10 +294,6 @@ class CategoricalIndex(Index, accessor.PandasDelegate):
         return self._data
 
     @property
-    def _ndarray_values(self):
-        return self._data.codes
-
-    @property
     def itemsize(self):
         return self.values.itemsize
 

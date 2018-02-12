@@ -469,3 +469,18 @@ class TestDatetimeIndex(object):
             arr, res = obj.factorize()
             tm.assert_numpy_array_equal(arr, np.arange(12, dtype=np.intp))
             tm.assert_index_equal(res, idx)
+
+    @pytest.mark.parametrize('arr, expected', [
+        (pd.DatetimeIndex(['2017', '2017']), pd.DatetimeIndex(['2017'])),
+        (pd.DatetimeIndex(['2017', '2017'], tz='US/Eastern'),
+         pd.DatetimeIndex(['2017'], tz='US/Eastern')),
+    ])
+    def test_unique(self, arr, expected):
+        result = arr.unique()
+
+        if isinstance(expected, np.ndarray):
+            tm.assert_numpy_array_equal(result, expected)
+        if isinstance(expected, pd.Series):
+            tm.assert_series_equal(result, expected)
+        if isinstance(expected, pd.DatetimeIndex):
+            tm.assert_index_equal(result, expected)

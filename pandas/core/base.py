@@ -14,7 +14,8 @@ from pandas.core.dtypes.common import (
     is_scalar,
     is_datetimelike,
     is_categorical_dtype,
-    is_extension_type)
+    is_extension_type,
+    is_extension_array_dtype)
 
 from pandas.util._validators import validate_bool_kwarg
 
@@ -772,18 +773,14 @@ class IndexOpsMixin(object):
     def _ndarray_values(self):
         """The data as an ndarray, possibly losing information.
 
-        The expectation is that this is cheap to compute.
+        The expectation is that this is cheap to compute, and is primarily
+        used for interacting with our indexers.
 
         - categorical -> codes
-
-        See '_values' for more.
         """
         # type: () -> np.ndarray
-        from pandas.core.dtypes.common import is_categorical_dtype
-
-        if is_categorical_dtype(self):
-            return self._values.codes
-
+        if is_extension_array_dtype(self):
+            return self.values._ndarray_values
         return self.values
 
     @property
@@ -833,10 +830,8 @@ class IndexOpsMixin(object):
 
         if is_datetimelike(self):
             return [com._maybe_box_datetimelike(x) for x in self._values]
-        elif is_categorical_dtype(self):
-            return self.values.tolist()
         else:
-            return self._ndarray_values.tolist()
+            return self._values.tolist()
 
     def __iter__(self):
         """
