@@ -13,7 +13,6 @@ from pandas.core.dtypes.common import (
     is_list_like,
     is_scalar,
     is_datetimelike,
-    is_categorical_dtype,
     is_extension_type,
     is_extension_array_dtype)
 
