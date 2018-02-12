@@ -154,7 +154,9 @@ cdef inline int get_freq_group(int freq) nogil:
     return (freq // 1000) * 1000
 
 
-@cython.cdivision(False)  # specifically _dont_ use cdvision GH#19643
+# specifically _dont_ use cdvision or else ordinals near -1 are assigned to
+# incorrect dates GH#19643
+@cython.cdivision(False)
 cdef int64_t get_period_ordinal(int year, int month, int day,
                                 int hour, int minute, int second,
                                 int microseconds, int picoseconds,
