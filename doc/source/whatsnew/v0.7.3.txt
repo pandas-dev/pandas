@@ -22,7 +22,7 @@ New features
    from pandas.tools.plotting import scatter_matrix
    scatter_matrix(df, alpha=0.2)
 
-.. image:: _static/scatter_matrix_kde.png
+.. image:: savefig/scatter_matrix_kde.png
    :width: 5in
 
 - Add ``stacked`` argument to Series and DataFrame's ``plot`` method for
@@ -32,14 +32,14 @@ New features
 
    df.plot(kind='bar', stacked=True)
 
-.. image:: _static/bar_plot_stacked_ex.png
+.. image:: savefig/bar_plot_stacked_ex.png
    :width: 4in
 
 .. code-block:: python
 
    df.plot(kind='barh', stacked=True)
 
-.. image:: _static/barh_plot_stacked_ex.png
+.. image:: savefig/barh_plot_stacked_ex.png
    :width: 4in
 
 - Add log x and y :ref:`scaling options <visualization.basic>` to
