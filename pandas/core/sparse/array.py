@@ -164,8 +164,8 @@ class SparseArray(PandasObject, np.ndarray):
             if not is_scalar(data):
                 raise Exception("must only pass scalars with an index ")
             dtype = infer_dtype_from_scalar(data)[0]
-            data = construct_1d_arraylike_from_scalar(data, len(index),
-                                                      dtype)
+            data = construct_1d_arraylike_from_scalar(
+                data, len(index), dtype)
 
         if isinstance(data, ABCSparseSeries):
             data = data.values
