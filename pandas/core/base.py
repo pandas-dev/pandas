@@ -745,7 +745,7 @@ class IndexOpsMixin(object):
     @property
     def nbytes(self):
         """ return the number of bytes in the underlying data """
-        return self._ndarray_values.nbytes
+        return self.values.nbytes
 
     @property
     def strides(self):
