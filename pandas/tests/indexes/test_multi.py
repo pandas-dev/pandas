@@ -986,8 +986,7 @@ class TestMultiIndex(Base):
         inner = pd.DatetimeIndex([x[1] for x in result])
         tm.assert_index_equal(inner, aware[:2])
 
-
-    def test_values_multiindex_periodindex():
+    def test_values_multiindex_periodindex(self):
         # Test to ensure we hit the boxing / nobox part of MI.values
         ints = np.arange(2007, 2012)
         pidx = pd.PeriodIndex(ints, freq='D')
