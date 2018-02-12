@@ -29,18 +29,20 @@ class TestParseISO8601(object):
         actual = tslib._test_parse_iso8601(date_str)
         assert actual == exp
 
-    @pytest.mark.parametrize('date_str', ['2011-01/02', '2011^11^11',
-                                          '201401', '201111', '200101',
-                                          # mixed separated and unseparated
-                                          '2005-0101', '200501-01',
-                                          '20010101 12:3456',
-                                          '20010101 1234:56',
-                                          # HHMMSS must have two digits in
-                                          # each component if unseparated
-                                          '20010101 1', '20010101 123',
-                                          '20010101 12345', '20010101 12345Z',
-                                          # wrong separator for HHMMSS
-                                          '2001-01-01 12-34-56'])
+    @pytest.mark.parametrize(
+        'date_str',
+        ['2011-01/02', '2011^11^11',
+         '201401', '201111', '200101',
+         # mixed separated and unseparated
+         '2005-0101', '200501-01',
+         '20010101 12:3456',
+         '20010101 1234:56',
+         # HHMMSS must have two digits in
+         # each component if unseparated
+         '20010101 1', '20010101 123',
+         '20010101 12345', '20010101 12345Z',
+         # wrong separator for HHMMSS
+         '2001-01-01 12-34-56'])
     def test_parsers_iso8601_invalid(self, date_str):
         # separators must all match - YYYYMM not valid
         with pytest.raises(ValueError):
@@ -53,17 +55,17 @@ class TestArrayToDatetime(object):
         result = tslib.array_to_datetime(arr)
         expected = ['2013-01-01T00:00:00.000000000-0000',
                     '2013-01-02T00:00:00.000000000-0000']
-        tm.assert_numpy_array_equal(result,
-                                    np_array_datetime64_compat(expected,
-                                                               dtype='M8[ns]'))
+        tm.assert_numpy_array_equal(
+            result,
+            np_array_datetime64_compat(expected, dtype='M8[ns]'))
 
         arr = np.array(['Mon Sep 16 2013', 'Tue Sep 17 2013'], dtype=object)
         result = tslib.array_to_datetime(arr)
         expected = ['2013-09-16T00:00:00.000000000-0000',
                     '2013-09-17T00:00:00.000000000-0000']
-        tm.assert_numpy_array_equal(result,
-                                    np_array_datetime64_compat(expected,
-                                                               dtype='M8[ns]'))
+        tm.assert_numpy_array_equal(
+            result,
+            np_array_datetime64_compat(expected, dtype='M8[ns]'))
 
     @pytest.mark.parametrize('dt_string', [
         '01-01-2013 08:00:00+08:00',
@@ -112,9 +114,9 @@ class TestArrayToDatetime(object):
         result = tslib.array_to_datetime(arr, errors='coerce')
         expected = [tslib.iNaT,
                     '2000-01-01T00:00:00.000000000-0000']
-        tm.assert_numpy_array_equal(result,
-                                    np_array_datetime64_compat(expected,
-                                                               dtype='M8[ns]'))
+        tm.assert_numpy_array_equal(
+            result,
+            np_array_datetime64_compat(expected, dtype='M8[ns]'))
 
     def test_coerce_of_invalid_datetimes(self):
         arr = np.array(['01-01-2013', 'not_a_date', '1'], dtype=object)
@@ -130,9 +132,9 @@ class TestArrayToDatetime(object):
                     tslib.iNaT,
                     tslib.iNaT]
 
-        tm.assert_numpy_array_equal(result,
-                                    np_array_datetime64_compat(expected,
-                                                               dtype='M8[ns]'))
+        tm.assert_numpy_array_equal(
+            result,
+            np_array_datetime64_compat(expected, dtype='M8[ns]'))
 
     def test_to_datetime_barely_out_of_bounds(self):
         # GH#19529
