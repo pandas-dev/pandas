@@ -342,6 +342,8 @@ def str_replace(arr, pat, repl, n=-1, case=None, flags=0, regex=True):
         - Cannot be set to False if `pat` is a compiled regex or `repl` is
           a callable.
 
+        .. versionadded:: 0.23.0
+
     Returns
     -------
     replaced : Series/Index of objects
