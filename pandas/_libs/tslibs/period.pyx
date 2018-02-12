@@ -321,8 +321,9 @@ cdef int dInfoCalc_SetFromAbsDateTime(date_info *dinfo,
     Parameters
     ----------
     dinfo : date_info*
-    absdate : int64_t (as returned from get_python_ordinal or absdate_from_ymd)
+    absdate : int64_t days elapsed since datetime(1, 1, 1)
     abstime : double
+        seconds elapsed since beginning of day described by absdate
 
     Returns
     -------
@@ -373,7 +374,7 @@ cdef int dInfoCalc_SetFromAbsDate(date_info *dinfo, int64_t absdate) nogil:
 
 
 @cython.cdivision
-cdef int dInfoCalc_SetFromAbsTime(date_info *dinfo, double abstime) nogil:
+cdef void dInfoCalc_SetFromAbsTime(date_info *dinfo, double abstime) nogil:
     """
     Sets the time part of the DateTime object.
 
@@ -381,10 +382,11 @@ cdef int dInfoCalc_SetFromAbsTime(date_info *dinfo, double abstime) nogil:
     ----------
     dinfo : date_info*
     abstime : double
+        seconds elapsed since beginning of day described by absdate
 
     Returns
     -------
-    code : int (always 0)
+    None
 
     Notes
     -----
@@ -403,7 +405,7 @@ cdef int dInfoCalc_SetFromAbsTime(date_info *dinfo, double abstime) nogil:
     dinfo.hour = hour
     dinfo.minute = minute
     dinfo.second = second
-    return 0
+    return
 
 
 @cython.cdivision
