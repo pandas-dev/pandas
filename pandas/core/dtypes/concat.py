@@ -480,7 +480,7 @@ def _concat_datetimetz(to_concat, name=None):
 
 def _concat_index_same_dtype(indexes, klass=None):
     klass = klass if klass is not None else indexes[0].__class__
-    return klass(np.concatenate([x._ndarray_values for x in indexes]))
+    return klass(np.concatenate([x._values for x in indexes]))
 
 
 def _concat_index_asobject(to_concat, name=None):

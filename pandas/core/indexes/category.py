@@ -295,12 +295,8 @@ class CategoricalIndex(Index, accessor.PandasDelegate):
 
     @property
     def itemsize(self):
+        # Size of the items in categories, not codes.
         return self.values.itemsize
-
-    @property
-    def nbytes(self):
-        """ return the number of bytes in the underlying data """
-        return self.values.nbytes
 
     def get_values(self):
         """ return the underlying data as an ndarray """
