@@ -279,7 +279,6 @@ class TestUnique(object):
         assert isinstance(result, np.ndarray)
         assert len(result) == 3
 
-
     def test_on_index_object(self):
 
         mindex = pd.MultiIndex.from_arrays([np.arange(5).repeat(5), np.tile(
