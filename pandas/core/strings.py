@@ -368,7 +368,8 @@ def str_replace(arr, pat, repl, n=-1, case=None, flags=0, regex=True):
 
     When `pat` is a string and `regex` is True, the given `pat` is compiled
     as a regex. When `repl` is a string, it replaces matching regex patterns
-    literally as with :meth:`re.sub`:
+    as with :meth:`re.sub`:
+
     >>> pd.Series(['foo', 'fuz', np.nan]).str.replace('f.', 'ba', regex=True)
     0    bao
     1    baz
