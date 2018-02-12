@@ -13,7 +13,6 @@ from pandas.core.dtypes.common import (
     is_list_like,
     is_scalar,
     is_datetimelike,
-    is_categorical_dtype,
     is_extension_type,
     is_extension_array_dtype)
 
@@ -712,7 +711,7 @@ class IndexOpsMixin(object):
     @property
     def shape(self):
         """ return a tuple of the shape of the underlying data """
-        return self._ndarray_values.shape
+        return self._values.shape
 
     @property
     def ndim(self):
@@ -755,7 +754,7 @@ class IndexOpsMixin(object):
     @property
     def size(self):
         """ return the number of elements in the underlying data """
-        return self._ndarray_values.size
+        return self._values.size
 
     @property
     def flags(self):
