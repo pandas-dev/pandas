@@ -252,7 +252,7 @@ cdef class HashTable:
 
 # name, dtype, null_condition, float_group
 dtypes = [('Float64', 'float64', 'val != val', True, 'NAN'),
-          ('UInt64', 'uint64', 'False', False, 'NAN'),
+          ('UInt64', 'uint64', 'False', False, '0'),
           ('Int64', 'int64', 'val == iNaT', False, 'iNaT')]
 
 def get_dispatch(dtypes):
