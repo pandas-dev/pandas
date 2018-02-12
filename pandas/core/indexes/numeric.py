@@ -1,23 +1,20 @@
 import numpy as np
 from pandas._libs import (index as libindex,
-                          algos as libalgos, join as libjoin)
+                          join as libjoin)
 from pandas.core.dtypes.common import (
     is_dtype_equal,
     pandas_dtype,
-    is_float_dtype,
-    is_object_dtype,
+    needs_i8_conversion,
     is_integer_dtype,
-    is_categorical_dtype,
     is_bool,
     is_bool_dtype,
     is_scalar)
-from pandas.core.common import _asarray_tuplesafe, _values_from_object
 
 from pandas import compat
 from pandas.core import algorithms
+import pandas.core.common as com
 from pandas.core.indexes.base import (
     Index, InvalidIndexError, _index_shared_docs)
-from pandas.core.indexes.category import CategoricalIndex
 from pandas.util._decorators import Appender, cache_readonly
 import pandas.core.dtypes.concat as _concat
 import pandas.core.indexes.base as ibase
@@ -41,7 +38,7 @@ class NumericIndex(Index):
         if fastpath:
             return cls._simple_new(data, name=name)
 
-        # isscalar, generators handled in coerce_to_ndarray
+        # is_scalar, generators handled in coerce_to_ndarray
         data = cls._coerce_to_ndarray(data)
 
         if issubclass(data.dtype.type, compat.string_types):
@@ -161,7 +158,6 @@ class Int64Index(NumericIndex):
     __doc__ = _num_index_shared_docs['class_descr'] % _int64_descr_args
 
     _typ = 'int64index'
-    _arrmap = libalgos.arrmap_int64
     _left_indexer_unique = libjoin.left_join_indexer_unique_int64
     _left_indexer = libjoin.left_join_indexer_int64
     _inner_indexer = libjoin.inner_join_indexer_int64
@@ -220,7 +216,6 @@ class UInt64Index(NumericIndex):
     __doc__ = _num_index_shared_docs['class_descr'] % _uint64_descr_args
 
     _typ = 'uint64index'
-    _arrmap = libalgos.arrmap_uint64
     _left_indexer_unique = libjoin.left_join_indexer_unique_uint64
     _left_indexer = libjoin.left_join_indexer_uint64
     _inner_indexer = libjoin.inner_join_indexer_uint64
@@ -254,9 +249,9 @@ class UInt64Index(NumericIndex):
         # Cast the indexer to uint64 if possible so
         # that the values returned from indexing are
         # also uint64.
-        keyarr = _asarray_tuplesafe(keyarr)
+        keyarr = com._asarray_tuplesafe(keyarr)
         if is_integer_dtype(keyarr):
-            return _asarray_tuplesafe(keyarr, dtype=np.uint64)
+            return com._asarray_tuplesafe(keyarr, dtype=np.uint64)
         return keyarr
 
     @Appender(_index_shared_docs['_convert_index_indexer'])
@@ -299,7 +294,6 @@ class Float64Index(NumericIndex):
 
     _typ = 'float64index'
     _engine_type = libindex.Float64Engine
-    _arrmap = libalgos.arrmap_float64
     _left_indexer_unique = libjoin.left_join_indexer_unique_float64
     _left_indexer = libjoin.left_join_indexer_float64
     _inner_indexer = libjoin.inner_join_indexer_float64
@@ -315,22 +309,14 @@ class Float64Index(NumericIndex):
     @Appender(_index_shared_docs['astype'])
     def astype(self, dtype, copy=True):
         dtype = pandas_dtype(dtype)
-        if is_float_dtype(dtype):
-            values = self._values.astype(dtype, copy=copy)
-        elif is_integer_dtype(dtype):
-            if self.hasnans:
-                raise ValueError('cannot convert float NaN to integer')
-            values = self._values.astype(dtype, copy=copy)
-        elif is_object_dtype(dtype):
-            values = self._values.astype('object', copy=copy)
-        elif is_categorical_dtype(dtype):
-            return CategoricalIndex(self, name=self.name, dtype=dtype,
-                                    copy=copy)
-        else:
-            raise TypeError('Setting {cls} dtype to anything other than '
-                            'float64, object, or category is not supported'
-                            .format(cls=self.__class__))
-        return Index(values, name=self.name, dtype=dtype)
+        if needs_i8_conversion(dtype):
+            msg = ('Cannot convert Float64Index to dtype {dtype}; integer '
+                   'values are required for conversion').format(dtype=dtype)
+            raise TypeError(msg)
+        elif is_integer_dtype(dtype) and self.hasnans:
+            # GH 13149
+            raise ValueError('Cannot convert NA to integer')
+        return super(Float64Index, self).astype(dtype, copy=copy)
 
     @Appender(_index_shared_docs['_convert_scalar_indexer'])
     def _convert_scalar_indexer(self, key, kind=None):
@@ -368,9 +354,9 @@ class Float64Index(NumericIndex):
         if not is_scalar(key):
             raise InvalidIndexError
 
-        k = _values_from_object(key)
+        k = com._values_from_object(key)
         loc = self.get_loc(k)
-        new_values = _values_from_object(series)[loc]
+        new_values = com._values_from_object(series)[loc]
 
         return new_values
 

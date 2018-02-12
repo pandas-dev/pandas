@@ -216,7 +216,7 @@ class TestSeriesMisc(TestData, SharedWithSparse):
         assert 'dt' not in dir(s)
         assert 'cat' not in dir(s)
 
-        # similiarly for .dt
+        # similarly for .dt
         s = Series(date_range('1/1/2015', periods=5))
         assert 'dt' in dir(s)
         assert 'str' not in dir(s)
@@ -511,7 +511,7 @@ class TestCategoricalSeries(object):
 
     def test_cat_accessor_api(self):
         # GH 9322
-        from pandas.core.categorical import CategoricalAccessor
+        from pandas.core.arrays.categorical import CategoricalAccessor
         assert Series.cat is CategoricalAccessor
         s = Series(list('aabbcde')).astype('category')
         assert isinstance(s.cat, CategoricalAccessor)

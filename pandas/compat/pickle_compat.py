@@ -108,7 +108,11 @@ _class_locations_map = {
     ('pandas.tseries.index', 'DatetimeIndex'):
         ('pandas.core.indexes.datetimes', 'DatetimeIndex'),
     ('pandas.tseries.period', 'PeriodIndex'):
-        ('pandas.core.indexes.period', 'PeriodIndex')
+        ('pandas.core.indexes.period', 'PeriodIndex'),
+
+    # 19269, arrays moving
+    ('pandas.core.categorical', 'Categorical'):
+        ('pandas.core.arrays', 'Categorical'),
 }
 
 

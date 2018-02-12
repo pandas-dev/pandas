@@ -1731,13 +1731,16 @@ class _TestMySQLAlchemy(object):
     @classmethod
     def connect(cls):
         url = 'mysql+{driver}://root@localhost/pandas_nosetest'
-        return sqlalchemy.create_engine(url.format(driver=cls.driver))
+        return sqlalchemy.create_engine(url.format(driver=cls.driver),
+                                        connect_args=cls.connect_args)
 
     @classmethod
     def setup_driver(cls):
         try:
             import pymysql  # noqa
             cls.driver = 'pymysql'
+            from pymysql.constants import CLIENT
+            cls.connect_args = {'client_flag': CLIENT.MULTI_STATEMENTS}
         except ImportError:
             pytest.skip('pymysql not installed')
 
@@ -2331,31 +2334,6 @@ class TestXSQLite(SQLiteMixIn):
         assert (tquery(sql_select, con=self.conn) ==
                 [(1, 'A'), (2, 'B'), (3, 'C'), (4, 'D'), (5, 'E')])
         clean_up(table_name)
-
-
-@pytest.mark.single
-class TestSQLFlavorDeprecation(object):
-    """
-    gh-13611: test that the 'flavor' parameter
-    is appropriately deprecated by checking the
-    functions that directly raise the warning
-    """
-
-    con = 1234  # don't need real connection for this
-    funcs = ['SQLiteDatabase', 'pandasSQL_builder']
-
-    def test_unsupported_flavor(self):
-        msg = 'is not supported'
-
-        for func in self.funcs:
-            tm.assert_raises_regex(ValueError, msg, getattr(sql, func),
-                                   self.con, flavor='mysql')
-
-    def test_deprecated_flavor(self):
-        for func in self.funcs:
-            with tm.assert_produces_warning(FutureWarning,
-                                            check_stacklevel=False):
-                getattr(sql, func)(self.con, flavor='sqlite')
 
 
 @pytest.mark.single

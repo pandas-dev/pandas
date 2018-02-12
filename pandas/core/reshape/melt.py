@@ -4,7 +4,7 @@ import numpy as np
 
 from pandas.core.dtypes.common import is_list_like
 from pandas import compat
-from pandas.core.categorical import Categorical
+from pandas.core.arrays import Categorical
 
 from pandas.core.dtypes.generic import ABCMultiIndex
 
@@ -80,8 +80,7 @@ def melt(frame, id_vars=None, value_vars=None, var_name=None,
         mdata[col] = np.asanyarray(frame.columns
                                    ._get_level_values(i)).repeat(N)
 
-    from pandas import DataFrame
-    return DataFrame(mdata, columns=mcolumns)
+    return frame._constructor(mdata, columns=mcolumns)
 
 
 def lreshape(data, groups, dropna=True, label=None):
@@ -152,8 +151,7 @@ def lreshape(data, groups, dropna=True, label=None):
         if not mask.all():
             mdata = {k: v[mask] for k, v in compat.iteritems(mdata)}
 
-    from pandas import DataFrame
-    return DataFrame(mdata, columns=id_cols + pivot_cols)
+    return data._constructor(mdata, columns=id_cols + pivot_cols)
 
 
 def wide_to_long(df, stubnames, i, j, sep="", suffix=r'\d+'):
@@ -186,7 +184,7 @@ def wide_to_long(df, stubnames, i, j, sep="", suffix=r'\d+'):
         A character indicating the separation of the variable names
         in the wide format, to be stripped from the names in the long format.
         For example, if your column names are A-suffix1, A-suffix2, you
-        can strip the hypen by specifying `sep='-'`
+        can strip the hyphen by specifying `sep='-'`
 
         .. versionadded:: 0.20.0
 

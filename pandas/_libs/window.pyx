@@ -1,42 +1,39 @@
 # cython: profile=False
 # cython: boundscheck=False, wraparound=False, cdivision=True
 
-from cython cimport Py_ssize_t
-
-cimport numpy as np
-import numpy as np
-
 cimport cython
-
-np.import_array()
-
-cimport util
+from cython cimport Py_ssize_t
 
 from libc.stdlib cimport malloc, free
 
+import numpy as np
+cimport numpy as cnp
 from numpy cimport ndarray, double_t, int64_t, float64_t
+cnp.import_array()
+
+
+cdef extern from "../src/headers/math.h":
+    int signbit(double) nogil
+    double sqrt(double x) nogil
+
+cimport util
+from util cimport numeric
 
 from skiplist cimport (IndexableSkiplist,
                        node_t, skiplist_t,
                        skiplist_init, skiplist_destroy,
                        skiplist_get, skiplist_insert, skiplist_remove)
 
-cdef np.float32_t MINfloat32 = np.NINF
-cdef np.float64_t MINfloat64 = np.NINF
+cdef cnp.float32_t MINfloat32 = np.NINF
+cdef cnp.float64_t MINfloat64 = np.NINF
 
-cdef np.float32_t MAXfloat32 = np.inf
-cdef np.float64_t MAXfloat64 = np.inf
+cdef cnp.float32_t MAXfloat32 = np.inf
+cdef cnp.float64_t MAXfloat64 = np.inf
 
 cdef double NaN = <double> np.NaN
 
 cdef inline int int_max(int a, int b): return a if a >= b else b
 cdef inline int int_min(int a, int b): return a if a <= b else b
-
-from util cimport numeric
-
-cdef extern from "../src/headers/math.h":
-    int signbit(double) nogil
-    double sqrt(double x) nogil
 
 
 # Cython implementations of rolling sum, mean, variance, skewness,
@@ -220,14 +217,16 @@ cdef class VariableWindowIndexer(WindowIndexer):
     right_closed: bint
         right endpoint closedness
         True if the right endpoint is closed, False if open
-
+    floor: optional
+        unit for flooring the unit
     """
     def __init__(self, ndarray input, int64_t win, int64_t minp,
-                 bint left_closed, bint right_closed, ndarray index):
+                 bint left_closed, bint right_closed, ndarray index,
+                 object floor=None):
 
         self.is_variable = 1
         self.N = len(index)
-        self.minp = _check_minp(win, minp, self.N)
+        self.minp = _check_minp(win, minp, self.N, floor=floor)
 
         self.start = np.empty(self.N, dtype='int64')
         self.start.fill(-1)
@@ -342,7 +341,7 @@ def get_window_indexer(input, win, minp, index, closed,
 
     if index is not None:
         indexer = VariableWindowIndexer(input, win, minp, left_closed,
-                                        right_closed, index)
+                                        right_closed, index, floor)
     elif use_mock:
         indexer = MockFixedWindowIndexer(input, win, minp, left_closed,
                                          right_closed, index, floor)
@@ -441,7 +440,7 @@ def roll_sum(ndarray[double_t] input, int64_t win, int64_t minp,
              object index, object closed):
     cdef:
         double val, prev_x, sum_x = 0
-        int64_t s, e
+        int64_t s, e, range_endpoint
         int64_t nobs = 0, i, j, N
         bint is_variable
         ndarray[int64_t] start, end
@@ -449,7 +448,8 @@ def roll_sum(ndarray[double_t] input, int64_t win, int64_t minp,
 
     start, end, N, win, minp, is_variable = get_window_indexer(input, win,
                                                                minp, index,
-                                                               closed)
+                                                               closed,
+                                                               floor=0)
     output = np.empty(N, dtype=float)
 
     # for performance we are going to iterate
@@ -489,13 +489,15 @@ def roll_sum(ndarray[double_t] input, int64_t win, int64_t minp,
 
         # fixed window
 
+        range_endpoint = int_max(minp, 1) - 1
+
         with nogil:
 
-            for i in range(0, minp - 1):
+            for i in range(0, range_endpoint):
                 add_sum(input[i], &nobs, &sum_x)
                 output[i] = NaN
 
-            for i in range(minp - 1, N):
+            for i in range(range_endpoint, N):
                 val = input[i]
                 add_sum(val, &nobs, &sum_x)
 

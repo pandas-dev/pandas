@@ -88,7 +88,7 @@ Numeric dtypes will propagate and can coexist in DataFrames. If a dtype is passe
 Dtype Conversion
 ~~~~~~~~~~~~~~~~
 
-This is lower-common-denomicator upcasting, meaning you get the dtype which can accomodate all of the types
+This is lower-common-denominator upcasting, meaning you get the dtype which can accommodate all of the types
 
 .. ipython:: python
 
@@ -193,7 +193,7 @@ Furthermore ``datetime64[ns]`` columns are created by default, when passed datet
    df.loc[df.index[2:4], ['A','timestamp']] = np.nan
    df
 
-Astype conversion on ``datetime64[ns]`` to ``object``, implicity converts ``NaT`` to ``np.nan``
+Astype conversion on ``datetime64[ns]`` to ``object``, implicitly converts ``NaT`` to ``np.nan``
 
 .. ipython:: python
 

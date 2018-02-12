@@ -38,7 +38,7 @@ class ParserError(ValueError):
 
 class DtypeWarning(Warning):
     """
-    Warning that is raised for a dtype incompatiblity. This
+    Warning that is raised for a dtype incompatibility. This
     can happen whenever `pd.read_csv` encounters non-
     uniform dtypes in a column(s) of a given CSV file.
     """
@@ -56,7 +56,7 @@ class ParserWarning(Warning):
     Warning that is raised in `pd.read_csv` whenever it is necessary
     to change parsers (generally from 'c' to 'python') contrary to the
     one specified by the user due to lack of support or functionality for
-    parsing particular attributes of a CSV file with the requsted engine.
+    parsing particular attributes of a CSV file with the requested engine.
     """
 
 
@@ -65,3 +65,38 @@ class MergeError(ValueError):
     Error raised when problems arise during merging due to problems
     with input data. Subclass of `ValueError`.
     """
+
+
+class NullFrequencyError(ValueError):
+    """
+    Error raised when a null `freq` attribute is used in an operation
+    that needs a non-null frequency, particularly `DatetimeIndex.shift`,
+    `TimedeltaIndex.shift`, `PeriodIndex.shift`.
+    """
+
+
+class AccessorRegistrationWarning(Warning):
+    """Warning for attribute conflicts in accessor registration."""
+
+
+class AbstractMethodError(NotImplementedError):
+    """Raise this error instead of NotImplementedError for abstract methods
+    while keeping compatibility with Python 2 and Python 3.
+    """
+
+    def __init__(self, class_instance, methodtype='method'):
+        types = {'method', 'classmethod', 'staticmethod', 'property'}
+        if methodtype not in types:
+            msg = 'methodtype must be one of {}, got {} instead.'.format(
+                methodtype, types)
+            raise ValueError(msg)
+        self.methodtype = methodtype
+        self.class_instance = class_instance
+
+    def __str__(self):
+        if self.methodtype == 'classmethod':
+            name = self.class_instance.__name__
+        else:
+            name = self.class_instance.__class__.__name__
+        msg = "This {methodtype} must be defined in the concrete class {name}"
+        return (msg.format(methodtype=self.methodtype, name=name))

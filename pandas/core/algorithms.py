@@ -68,7 +68,7 @@ def _ensure_data(values, dtype=None):
             return _ensure_object(np.asarray(values)), 'object', 'object'
         if is_bool_dtype(values) or is_bool_dtype(dtype):
             # we are actually coercing to uint64
-            # until our algos suppport uint8 directly (see TODO)
+            # until our algos support uint8 directly (see TODO)
             return np.asarray(values).astype('uint64'), 'bool', 'uint64'
         elif is_signed_integer_dtype(values) or is_signed_integer_dtype(dtype):
             return _ensure_int64(values), 'int64', 'int64'
@@ -120,7 +120,7 @@ def _ensure_data(values, dtype=None):
         dtype = 'category'
 
         # we are actually coercing to int64
-        # until our algos suppport int* directly (not all do)
+        # until our algos support int* directly (not all do)
         values = _ensure_int64(values)
 
         return values, dtype, 'int64'
@@ -750,7 +750,7 @@ def checked_add_with_arr(arr, b, arr_mask=None, b_mask=None):
         Helper function to broadcast arrays / scalars to the desired shape.
         """
         if _np_version_under1p10:
-            if lib.isscalar(arr_or_scalar):
+            if is_scalar(arr_or_scalar):
                 out = np.empty(shape)
                 out.fill(arr_or_scalar)
             else:

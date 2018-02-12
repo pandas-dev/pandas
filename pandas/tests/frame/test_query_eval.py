@@ -366,12 +366,6 @@ class TestDataFrameQueryWithMultiIndex(object):
         with pytest.raises(NotImplementedError):
             pd.eval('p + 1', parser=parser, engine=engine)
 
-    def test_raise_on_panel4d_with_multiindex(self, parser, engine):
-        p4d = tm.makePanel4D(7)
-        p4d.items = tm.makeCustomIndex(len(p4d.items), nlevels=2)
-        with pytest.raises(NotImplementedError):
-            pd.eval('p4d + 1', parser=parser, engine=engine)
-
 
 @td.skip_if_no_ne
 class TestDataFrameQueryNumExprPandas(object):
@@ -1040,6 +1034,6 @@ class TestDataFrameEvalWithFrame(object):
         ops = '+', '-', '*', '/'
         for op in ops:
             with tm.assert_raises_regex(TypeError,
-                                        "unsupported operand type\(s\) "
+                                        r"unsupported operand type\(s\) "
                                         "for .+: '.+' and '.+'"):
                 df.eval('a {0} b'.format(op), engine=engine, parser=parser)

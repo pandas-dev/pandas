@@ -3,7 +3,7 @@ from pandas import compat, get_option, option_context, DataFrame
 from pandas.compat import StringIO, PY2
 
 
-def read_clipboard(sep='\s+', **kwargs):  # pragma: no cover
+def read_clipboard(sep=r'\s+', **kwargs):  # pragma: no cover
     r"""
     Read text from clipboard and pass to read_table. See read_table for the
     full argument list
@@ -55,15 +55,15 @@ def read_clipboard(sep='\s+', **kwargs):  # pragma: no cover
 
     counts = {x.lstrip().count('\t') for x in lines}
     if len(lines) > 1 and len(counts) == 1 and counts.pop() != 0:
-        sep = '\t'
+        sep = r'\t'
 
     if sep is None and kwargs.get('delim_whitespace') is None:
-        sep = '\s+'
+        sep = r'\s+'
 
     return read_table(StringIO(text), sep=sep, **kwargs)
 
 
-def to_clipboard(obj, excel=None, sep=None, **kwargs):  # pragma: no cover
+def to_clipboard(obj, excel=True, sep=None, **kwargs):  # pragma: no cover
     """
     Attempt to write text representation of object to the system clipboard
     The clipboard can be then pasted into Excel for example.
@@ -99,7 +99,7 @@ def to_clipboard(obj, excel=None, sep=None, **kwargs):  # pragma: no cover
     if excel:
         try:
             if sep is None:
-                sep = '\t'
+                sep = r'\t'
             buf = StringIO()
             # clipboard_set (pyperclip) expects unicode
             obj.to_csv(buf, sep=sep, encoding='utf-8', **kwargs)

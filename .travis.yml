@@ -75,9 +75,12 @@ matrix:
     # In allow_failures
     - dist: trusty
       env:
+        - JOB="3.6_ASV" ASV=true
+    # In allow_failures
+    - dist: trusty
+      env:
         - JOB="3.6_DOC" DOC=true
     allow_failures:
-      # TODO(jreback)
       - dist: trusty
         env:
           - JOB="3.5_CONDA_BUILD_TEST" TEST_ARGS="--skip-slow --skip-network" CONDA_BUILD_TEST=true
@@ -96,10 +99,16 @@ matrix:
           - JOB="3.6_NUMPY_DEV" TEST_ARGS="--skip-slow --skip-network" PANDAS_TESTING_MODE="deprecate"
       - dist: trusty
         env:
+          - JOB="3.6_ASV" ASV=true
+      - dist: trusty
+        env:
           - JOB="3.6_DOC" DOC=true
 
 before_install:
   - echo "before_install"
+  # set non-blocking IO on travis
+  # https://github.com/travis-ci/travis-ci/issues/8920#issuecomment-352661024
+  - python -c 'import os,sys,fcntl; flags = fcntl.fcntl(sys.stdout, fcntl.F_GETFL); fcntl.fcntl(sys.stdout, fcntl.F_SETFL, flags&~os.O_NONBLOCK);'
   - source ci/travis_process_gbq_encryption.sh
   - export PATH="$HOME/miniconda3/bin:$PATH"
   - df -h
@@ -126,6 +135,7 @@ script:
   - ci/script_single.sh
   - ci/script_multi.sh
   - ci/lint.sh
+  - ci/asv.sh
   - echo "checking imports"
   - source activate pandas && python ci/check_imports.py
   - echo "script done"

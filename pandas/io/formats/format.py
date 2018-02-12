@@ -27,7 +27,7 @@ from pandas.core.dtypes.common import (
     is_list_like)
 from pandas.core.dtypes.generic import ABCSparseArray
 from pandas.core.base import PandasObject
-from pandas.core.common import _any_not_none, sentinel_factory
+import pandas.core.common as com
 from pandas.core.index import Index, MultiIndex, _ensure_index
 from pandas import compat
 from pandas.compat import (StringIO, lzip, range, map, zip, u,
@@ -38,7 +38,7 @@ from pandas.io.common import (_get_handle, UnicodeWriter, _expand_user,
                               _stringify_path)
 from pandas.io.formats.printing import adjoin, justify, pprint_thing
 from pandas.io.formats.common import get_level_lengths
-from pandas._libs import lib
+from pandas._libs import lib, writers as libwriters
 from pandas._libs.tslib import (iNaT, Timestamp, Timedelta,
                                 format_array_from_datetime)
 from pandas.core.indexes.datetimes import DatetimeIndex
@@ -77,7 +77,11 @@ common_docstring = """
     index_names : bool, optional
         Prints the names of the indexes, default True
     line_width : int, optional
-        Width to wrap a line in characters, default no wrap"""
+        Width to wrap a line in characters, default no wrap
+    table_id : str, optional
+        id for the <table> element create by to_html
+
+        .. versionadded:: 0.23.0"""
 
 _VALID_JUSTIFY_PARAMETERS = ("left", "right", "center", "justify",
                              "justify-all", "start", "end", "inherit",
@@ -387,7 +391,8 @@ class DataFrameFormatter(TableFormatter):
                  header=True, index=True, na_rep='NaN', formatters=None,
                  justify=None, float_format=None, sparsify=None,
                  index_names=True, line_width=None, max_rows=None,
-                 max_cols=None, show_dimensions=False, decimal='.', **kwds):
+                 max_cols=None, show_dimensions=False, decimal='.',
+                 table_id=None, **kwds):
         self.frame = frame
         if buf is not None:
             self.buf = _expand_user(_stringify_path(buf))
@@ -413,6 +418,7 @@ class DataFrameFormatter(TableFormatter):
         self.max_rows_displayed = min(max_rows or len(self.frame),
                                       len(self.frame))
         self.show_dimensions = show_dimensions
+        self.table_id = table_id
 
         if justify is None:
             self.justify = get_option("display.colheader_justify")
@@ -740,7 +746,8 @@ class DataFrameFormatter(TableFormatter):
                                       max_rows=self.max_rows,
                                       max_cols=self.max_cols,
                                       notebook=notebook,
-                                      border=border)
+                                      border=border,
+                                      table_id=self.table_id)
         if hasattr(self.buf, 'write'):
             html_renderer.write_result(self.buf)
         elif isinstance(self.buf, compat.string_types):
@@ -1002,7 +1009,7 @@ class LatexFormatter(TableFormatter):
             buf.write('\\end{longtable}\n')
 
     def _format_multicolumn(self, row, ilevels):
-        """
+        r"""
         Combine columns belonging to a group to a single multicolumn entry
         according to self.multicolumn_format
 
@@ -1040,7 +1047,7 @@ class LatexFormatter(TableFormatter):
         return row2
 
     def _format_multirow(self, row, ilevels, i, rows):
-        """
+        r"""
         Check following rows, whether row should be a multirow
 
         e.g.:     becomes:
@@ -1071,7 +1078,7 @@ class LatexFormatter(TableFormatter):
         """
         for cl in self.clinebuf:
             if cl[0] == i:
-                buf.write('\cline{{{cl:d}-{icol:d}}}\n'
+                buf.write('\\cline{{{cl:d}-{icol:d}}}\n'
                           .format(cl=cl[1], icol=icol))
         # remove entries that have been written to buffer
         self.clinebuf = [x for x in self.clinebuf if x[0] != i]
@@ -1082,7 +1089,7 @@ class HTMLFormatter(TableFormatter):
     indent_delta = 2
 
     def __init__(self, formatter, classes=None, max_rows=None, max_cols=None,
-                 notebook=False, border=None):
+                 notebook=False, border=None, table_id=None):
         self.fmt = formatter
         self.classes = classes
 
@@ -1101,6 +1108,7 @@ class HTMLFormatter(TableFormatter):
         if border is None:
             border = get_option('display.html.border')
         self.border = border
+        self.table_id = table_id
 
     def write(self, s, indent=0):
         rs = pprint_thing(s)
@@ -1197,6 +1205,7 @@ class HTMLFormatter(TableFormatter):
 
     def write_result(self, buf):
         indent = 0
+        id_section = ""
         frame = self.frame
 
         _classes = ['dataframe']  # Default class.
@@ -1220,8 +1229,12 @@ class HTMLFormatter(TableFormatter):
             self.write('<div{style}>'.format(style=div_style))
 
         self.write_style()
-        self.write('<table border="{border}" class="{cls}">'
-                   .format(border=self.border, cls=' '.join(_classes)), indent)
+
+        if self.table_id is not None:
+            id_section = ' id="{table_id}"'.format(table_id=self.table_id)
+        self.write('<table border="{border}" class="{cls}"{id_section}>'
+                   .format(border=self.border, cls=' '.join(_classes),
+                           id_section=id_section), indent)
 
         indent += self.indent_delta
         indent = self._write_header(indent)
@@ -1277,7 +1290,7 @@ class HTMLFormatter(TableFormatter):
 
             if self.fmt.sparsify:
                 # GH3547
-                sentinel = sentinel_factory()
+                sentinel = com.sentinel_factory()
             else:
                 sentinel = None
             levels = self.columns.format(sparsify=sentinel, adjoin=False,
@@ -1446,7 +1459,7 @@ class HTMLFormatter(TableFormatter):
 
         if self.fmt.sparsify:
             # GH3547
-            sentinel = sentinel_factory()
+            sentinel = com.sentinel_factory()
             levels = frame.index.format(sparsify=sentinel, adjoin=False,
                                         names=False)
 
@@ -1789,7 +1802,8 @@ class CSVFormatter(object):
                                         date_format=self.date_format,
                                         quoting=self.quoting)
 
-        lib.write_csv_rows(self.data, ix, self.nlevels, self.cols, self.writer)
+        libwriters.write_csv_rows(self.data, ix, self.nlevels,
+                                  self.cols, self.writer)
 
 
 # ----------------------------------------------------------------------
@@ -1961,7 +1975,7 @@ class FloatArrayFormatter(GenericArrayFormatter):
     def get_result_as_array(self):
         """
         Returns the float values converted into strings using
-        the parameters given at initalisation, as a numpy array
+        the parameters given at initialisation, as a numpy array
         """
 
         if self.formatter is not None:
@@ -2188,7 +2202,7 @@ def _is_dates_only(values):
     consider_values = values_int != iNaT
     one_day_nanos = (86400 * 1e9)
     even_days = np.logical_and(consider_values,
-                               values_int % one_day_nanos != 0).sum() == 0
+                               values_int % int(one_day_nanos) != 0).sum() == 0
     if even_days:
         return True
     return False
@@ -2372,7 +2386,7 @@ def single_row_table(row):  # pragma: no cover
 
 def _has_names(index):
     if isinstance(index, MultiIndex):
-        return _any_not_none(*index.names)
+        return com._any_not_none(*index.names)
     else:
         return index.name is not None
 

@@ -19,7 +19,7 @@ from pandas.errors import PerformanceWarning, UnsortedIndexError
 from pandas.core.dtypes.dtypes import CategoricalDtype
 from pandas.core.indexes.base import InvalidIndexError
 from pandas.core.dtypes.cast import construct_1d_object_array_from_listlike
-from pandas._libs.lib import Timestamp
+from pandas._libs.tslib import Timestamp
 
 import pandas.util.testing as tm
 
@@ -327,6 +327,21 @@ class TestMultiIndex(Base):
         assert_matching(ind2.labels, new_labels)
         assert_matching(self.index.labels, labels)
 
+        # label changing for levels of different magnitude of categories
+        ind = pd.MultiIndex.from_tuples([(0, i) for i in range(130)])
+        new_labels = range(129, -1, -1)
+        expected = pd.MultiIndex.from_tuples(
+            [(0, i) for i in new_labels])
+
+        # [w/o mutation]
+        result = ind.set_labels(labels=new_labels, level=1)
+        assert result.equals(expected)
+
+        # [w/ mutation]
+        result = ind.copy()
+        result.set_labels(labels=new_labels, level=1, inplace=True)
+        assert result.equals(expected)
+
     def test_set_levels_labels_names_bad_input(self):
         levels, labels = self.index.levels, self.index.labels
         names = self.index.names
@@ -536,15 +551,6 @@ class TestMultiIndex(Base):
         level_names = [level.name for level in index.levels]
         assert ind_names == level_names
 
-    def test_reference_duplicate_name(self):
-        idx = MultiIndex.from_tuples(
-            [('a', 'b'), ('c', 'd')], names=['x', 'x'])
-        assert idx._reference_duplicate_name('x')
-
-        idx = MultiIndex.from_tuples(
-            [('a', 'b'), ('c', 'd')], names=['x', 'y'])
-        assert not idx._reference_duplicate_name('x')
-
     def test_astype(self):
         expected = self.index.copy()
         actual = self.index.astype('O')
@@ -609,6 +615,23 @@ class TestMultiIndex(Base):
         with tm.assert_raises_regex(ValueError, label_error):
             self.index.copy().set_labels([[0, 0, 0, 0], [0, 0]])
 
+    @pytest.mark.parametrize('names', [['a', 'b', 'a'], [1, 1, 2],
+                                       [1, 'a', 1]])
+    def test_duplicate_level_names(self, names):
+        # GH18872
+        pytest.raises(ValueError, pd.MultiIndex.from_product,
+                      [[0, 1]] * 3, names=names)
+
+        # With .rename()
+        mi = pd.MultiIndex.from_product([[0, 1]] * 3)
+        tm.assert_raises_regex(ValueError, "Duplicated level name:",
+                               mi.rename, names)
+
+        # With .rename(., level=)
+        mi.rename(names[0], level=1, inplace=True)
+        tm.assert_raises_regex(ValueError, "Duplicated level name:",
+                               mi.rename, names[:2], level=[0, 2])
+
     def assert_multiindex_copied(self, copy, original):
         # Levels should be (at least, shallow copied)
         tm.assert_copy(copy.levels, original.levels)
@@ -666,11 +689,6 @@ class TestMultiIndex(Base):
         # and copies shouldn't change original
         shallow_copy.names = [name + "c" for name in shallow_copy.names]
         self.check_level_names(self.index, new_names)
-
-    def test_duplicate_names(self):
-        self.index.names = ['foo', 'foo']
-        tm.assert_raises_regex(KeyError, 'Level foo not found',
-                               self.index._get_level_number, 'foo')
 
     def test_get_level_number_integer(self):
         self.index.names = [1, 0]
@@ -1240,6 +1258,17 @@ class TestMultiIndex(Base):
         assert result == expected
         assert new_index.equals(index.droplevel(0))
 
+    @pytest.mark.parametrize('level', [0, 1])
+    @pytest.mark.parametrize('null_val', [np.nan, pd.NaT, None])
+    def test_get_loc_nan(self, level, null_val):
+        # GH 18485 : NaN in MultiIndex
+        levels = [['a', 'b'], ['c', 'd']]
+        key = ['b', 'd']
+        levels[level] = np.array([0, null_val], dtype=type(null_val))
+        key[level] = null_val
+        idx = MultiIndex.from_product(levels)
+        assert idx.get_loc(tuple(key)) == 3
+
     def test_get_loc_missing_nan(self):
         # GH 8569
         idx = MultiIndex.from_arrays([[1.0, 2.0], [3.0, 4.0]])
@@ -1247,6 +1276,38 @@ class TestMultiIndex(Base):
         pytest.raises(KeyError, idx.get_loc, 3)
         pytest.raises(KeyError, idx.get_loc, np.nan)
         pytest.raises(KeyError, idx.get_loc, [np.nan])
+
+    @pytest.mark.parametrize('dtype1', [int, float, bool, str])
+    @pytest.mark.parametrize('dtype2', [int, float, bool, str])
+    def test_get_loc_multiple_dtypes(self, dtype1, dtype2):
+        # GH 18520
+        levels = [np.array([0, 1]).astype(dtype1),
+                  np.array([0, 1]).astype(dtype2)]
+        idx = pd.MultiIndex.from_product(levels)
+        assert idx.get_loc(idx[2]) == 2
+
+    @pytest.mark.parametrize('level', [0, 1])
+    @pytest.mark.parametrize('dtypes', [[int, float], [float, int]])
+    def test_get_loc_implicit_cast(self, level, dtypes):
+        # GH 18818, GH 15994 : as flat index, cast int to float and vice-versa
+        levels = [['a', 'b'], ['c', 'd']]
+        key = ['b', 'd']
+        lev_dtype, key_dtype = dtypes
+        levels[level] = np.array([0, 1], dtype=lev_dtype)
+        key[level] = key_dtype(1)
+        idx = MultiIndex.from_product(levels)
+        assert idx.get_loc(tuple(key)) == 3
+
+    def test_get_loc_cast_bool(self):
+        # GH 19086 : int is casted to bool, but not vice-versa
+        levels = [[False, True], np.arange(2, dtype='int64')]
+        idx = MultiIndex.from_product(levels)
+
+        assert idx.get_loc((0, 1)) == 1
+        assert idx.get_loc((1, 0)) == 2
+
+        pytest.raises(KeyError, idx.get_loc, (False, True))
+        pytest.raises(KeyError, idx.get_loc, (True, False))
 
     def test_slice_locs(self):
         df = tm.makeTimeDataFrame()

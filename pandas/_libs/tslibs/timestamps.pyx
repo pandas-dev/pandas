@@ -6,9 +6,9 @@ from cpython cimport (PyObject_RichCompareBool, PyObject_RichCompare,
                       Py_GT, Py_GE, Py_EQ, Py_NE, Py_LT, Py_LE)
 
 import numpy as np
-cimport numpy as np
+cimport numpy as cnp
 from numpy cimport int64_t, int32_t, ndarray
-np.import_array()
+cnp.import_array()
 
 from datetime import time as datetime_time
 from cpython.datetime cimport (datetime,
@@ -29,11 +29,11 @@ from nattype import NaT
 from nattype cimport NPY_NAT
 from np_datetime import OutOfBoundsDatetime
 from np_datetime cimport (reverse_ops, cmp_scalar, check_dts_bounds,
-                          pandas_datetimestruct, dt64_to_dtstruct,
-                          is_leapyear)
+                          pandas_datetimestruct, dt64_to_dtstruct)
 from timedeltas import Timedelta
 from timedeltas cimport delta_to_nanoseconds
-from timezones cimport get_timezone, is_utc, maybe_get_tz
+from timezones cimport (
+    get_timezone, is_utc, maybe_get_tz, treat_tz_as_pytz, tz_compare)
 
 # ----------------------------------------------------------------------
 # Constants
@@ -56,6 +56,46 @@ cdef inline object create_timestamp_from_ts(int64_t value,
     ts_base.nanosecond = dts.ps / 1000
 
     return ts_base
+
+
+def round_ns(values, rounder, freq):
+    """
+    Applies rounding function at given frequency
+
+    Parameters
+    ----------
+    values : int, :obj:`ndarray`
+    rounder : function
+    freq : str, obj
+
+    Returns
+    -------
+    int or :obj:`ndarray`
+    """
+    from pandas.tseries.frequencies import to_offset
+    unit = to_offset(freq).nanos
+    if unit < 1000:
+        # for nano rounding, work with the last 6 digits separately
+        # due to float precision
+        buff = 1000000
+        r = (buff * (values // buff) + unit *
+             (rounder((values % buff) * (1 / float(unit)))).astype('i8'))
+    else:
+        if unit % 1000 != 0:
+            msg = 'Precision will be lost using frequency: {}'
+            warnings.warn(msg.format(freq))
+
+        # GH19206
+        # to deal with round-off when unit is large
+        if unit >= 1e9:
+            divisor = 10 ** int(np.log10(unit / 1e7))
+        else:
+            divisor = 10
+
+        r = (unit * rounder((values * (divisor / float(unit))) / divisor)
+             .astype('i8'))
+
+    return r
 
 
 # This is PITA. Because we inherit from datetime, which has very specific
@@ -266,7 +306,7 @@ cdef class _Timestamp(datetime):
             other = Timestamp(other)
 
             # validate tz's
-            if get_timezone(self.tzinfo) != get_timezone(other.tzinfo):
+            if not tz_compare(self.tzinfo, other.tzinfo):
                 raise TypeError("Timestamp subtraction must have the "
                                 "same timezones or no timezones")
 
@@ -289,14 +329,6 @@ cdef class _Timestamp(datetime):
         if self.tz is not None and not is_utc(self.tz):
             val = tz_convert_single(self.value, 'UTC', self.tz)
         return val
-
-    cpdef int _get_field(self, field):
-        cdef:
-            int64_t val
-            ndarray[int32_t] out
-        val = self._maybe_convert_value_to_local()
-        out = get_date_field(np.array([val], dtype=np.int64), field)
-        return int(out[0])
 
     cpdef bint _get_start_end_field(self, str field):
         cdef:
@@ -373,7 +405,7 @@ class Timestamp(_Timestamp):
     """Pandas replacement for datetime.datetime
 
     Timestamp is the pandas equivalent of python's Datetime
-    and is interchangable with it in most cases. It's the type used
+    and is interchangeable with it in most cases. It's the type used
     for the entries that make up a DatetimeIndex, and other timeseries
     oriented data structures in pandas.
 
@@ -389,9 +421,6 @@ class Timestamp(_Timestamp):
         Unit used for conversion if ts_input is of type int or float. The
         valid values are 'D', 'h', 'm', 's', 'ms', 'us', and 'ns'. For
         example, 's' means seconds and 'ms' means milliseconds.
-    offset : str, DateOffset
-        Deprecated, use freq
-
     year, month, day : int
         .. versionadded:: 0.19.0
     hour, minute, second, microsecond : int, optional, default 0
@@ -435,9 +464,9 @@ class Timestamp(_Timestamp):
     """
 
     @classmethod
-    def fromordinal(cls, ordinal, freq=None, tz=None, offset=None):
+    def fromordinal(cls, ordinal, freq=None, tz=None):
         """
-        Timestamp.fromordinal(ordinal, freq=None, tz=None, offset=None)
+        Timestamp.fromordinal(ordinal, freq=None, tz=None)
 
         passed an ordinal, translate and convert to a ts
         note: by definition there cannot be any tz info on the ordinal itself
@@ -450,11 +479,9 @@ class Timestamp(_Timestamp):
             Offset which Timestamp will have
         tz : str, pytz.timezone, dateutil.tz.tzfile or None
             Time zone for time which Timestamp will have.
-        offset : str, DateOffset
-            Deprecated, use freq
         """
         return cls(datetime.fromordinal(ordinal),
-                   freq=freq, tz=tz, offset=offset)
+                   freq=freq, tz=tz)
 
     @classmethod
     def now(cls, tz=None):
@@ -529,8 +556,7 @@ class Timestamp(_Timestamp):
                 object freq=None, tz=None, unit=None,
                 year=None, month=None, day=None,
                 hour=None, minute=None, second=None, microsecond=None,
-                tzinfo=None,
-                object offset=None):
+                tzinfo=None):
         # The parameter list folds together legacy parameter names (the first
         # four) and positional and keyword parameter names from pydatetime.
         #
@@ -553,15 +579,6 @@ class Timestamp(_Timestamp):
         # Mixing pydatetime positional and keyword arguments is forbidden!
 
         cdef _TSObject ts
-
-        if offset is not None:
-            # deprecate offset kwd in 0.19.0, GH13593
-            if freq is not None:
-                msg = "Can only specify freq or offset, not both"
-                raise TypeError(msg)
-            warnings.warn("offset is deprecated. Use freq instead",
-                          FutureWarning)
-            freq = offset
 
         if tzinfo is not None:
             if not PyTZInfo_Check(tzinfo):
@@ -604,28 +621,12 @@ class Timestamp(_Timestamp):
         return create_timestamp_from_ts(ts.value, ts.dts, ts.tzinfo, freq)
 
     def _round(self, freq, rounder):
-
-        cdef:
-            int64_t unit, r, value, buff = 1000000
-            object result
-
-        from pandas.tseries.frequencies import to_offset
-        unit = to_offset(freq).nanos
         if self.tz is not None:
             value = self.tz_localize(None).value
         else:
             value = self.value
-        if unit < 1000 and unit % 1000 != 0:
-            # for nano rounding, work with the last 6 digits separately
-            # due to float precision
-            r = (buff * (value // buff) + unit *
-                 (rounder((value % buff) / float(unit))).astype('i8'))
-        elif unit >= 1000 and unit % 1000 != 0:
-            msg = 'Precision will be lost using frequency: {}'
-            warnings.warn(msg.format(freq))
-            r = (unit * rounder(value / float(unit)).astype('i8'))
-        else:
-            r = (unit * rounder(value / float(unit)).astype('i8'))
+
+        r = round_ns(value, rounder, freq)
         result = Timestamp(r, unit='ns')
         if self.tz is not None:
             result = result.tz_localize(self.tz)
@@ -676,12 +677,6 @@ class Timestamp(_Timestamp):
         """
         return self.tzinfo
 
-    @property
-    def offset(self):
-        warnings.warn(".offset is deprecated. Use .freq instead",
-                      FutureWarning)
-        return self.freq
-
     def __setstate__(self, state):
         self.value = state[0]
         self.freq = state[1]
@@ -715,14 +710,11 @@ class Timestamp(_Timestamp):
 
     @property
     def dayofyear(self):
-        return self._get_field('doy')
+        return ccalendar.get_day_of_year(self.year, self.month, self.day)
 
     @property
     def week(self):
-        if self.freq is None:
-            # fastpath for non-business
-            return ccalendar.get_week_of_year(self.year, self.month, self.day)
-        return self._get_field('woy')
+        return ccalendar.get_week_of_year(self.year, self.month, self.day)
 
     weekofyear = week
 
@@ -784,7 +776,7 @@ class Timestamp(_Timestamp):
 
     @property
     def is_leap_year(self):
-        return bool(is_leapyear(self.year))
+        return bool(ccalendar.is_leapyear(self.year))
 
     def tz_localize(self, tz, ambiguous='raise', errors='raise'):
         """
@@ -940,8 +932,18 @@ class Timestamp(_Timestamp):
             _tzinfo = tzinfo
 
         # reconstruct & check bounds
-        ts_input = datetime(dts.year, dts.month, dts.day, dts.hour, dts.min,
-                            dts.sec, dts.us, tzinfo=_tzinfo)
+        if _tzinfo is not None and treat_tz_as_pytz(_tzinfo):
+            # replacing across a DST boundary may induce a new tzinfo object
+            # see GH#18319
+            ts_input = _tzinfo.localize(datetime(dts.year, dts.month, dts.day,
+                                                 dts.hour, dts.min, dts.sec,
+                                                 dts.us))
+            _tzinfo = ts_input.tzinfo
+        else:
+            ts_input = datetime(dts.year, dts.month, dts.day,
+                                dts.hour, dts.min, dts.sec, dts.us,
+                                tzinfo=_tzinfo)
+
         ts = convert_datetime_to_tsobject(ts_input, _tzinfo)
         value = ts.value + (dts.ps // 1000)
         if value != NPY_NAT:

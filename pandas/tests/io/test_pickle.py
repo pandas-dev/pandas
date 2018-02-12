@@ -38,7 +38,7 @@ def current_pickle_data():
 
 
 # ---------------------
-# comparision functions
+# comparison functions
 # ---------------------
 def compare_element(result, expected, typ, version=None):
     if isinstance(expected, Index):
@@ -352,42 +352,7 @@ class TestCompression(object):
                 f.write(fh.read())
             f.close()
 
-    def decompress_file(self, src_path, dest_path, compression):
-        if compression is None:
-            shutil.copyfile(src_path, dest_path)
-            return
-
-        if compression == 'gzip':
-            import gzip
-            f = gzip.open(src_path, "r")
-        elif compression == 'bz2':
-            import bz2
-            f = bz2.BZ2File(src_path, "r")
-        elif compression == 'zip':
-            import zipfile
-            zip_file = zipfile.ZipFile(src_path)
-            zip_names = zip_file.namelist()
-            if len(zip_names) == 1:
-                f = zip_file.open(zip_names.pop())
-            else:
-                raise ValueError('ZIP file {} error. Only one file per ZIP.'
-                                 .format(src_path))
-        elif compression == 'xz':
-            lzma = pandas.compat.import_lzma()
-            f = lzma.LZMAFile(src_path, "r")
-        else:
-            msg = 'Unrecognized compression type: {}'.format(compression)
-            raise ValueError(msg)
-
-        with open(dest_path, "wb") as fh:
-            fh.write(f.read())
-        f.close()
-
-    @pytest.mark.parametrize('compression', [
-        None, 'gzip', 'bz2',
-        pytest.param('xz', marks=td.skip_if_no_lzma)  # issue 11666
-    ])
-    def test_write_explicit(self, compression, get_random_path):
+    def test_write_explicit(self, compression_no_zip, get_random_path):
         base = get_random_path
         path1 = base + ".compressed"
         path2 = base + ".raw"
@@ -396,10 +361,12 @@ class TestCompression(object):
             df = tm.makeDataFrame()
 
             # write to compressed file
-            df.to_pickle(p1, compression=compression)
+            df.to_pickle(p1, compression=compression_no_zip)
 
             # decompress
-            self.decompress_file(p1, p2, compression=compression)
+            with tm.decompress_file(p1, compression=compression_no_zip) as f:
+                with open(p2, "wb") as fh:
+                    fh.write(f.read())
 
             # read decompressed file
             df2 = pd.read_pickle(p2, compression=None)
@@ -435,17 +402,15 @@ class TestCompression(object):
             df.to_pickle(p1)
 
             # decompress
-            self.decompress_file(p1, p2, compression=compression)
+            with tm.decompress_file(p1, compression=compression) as f:
+                with open(p2, "wb") as fh:
+                    fh.write(f.read())
 
             # read decompressed file
             df2 = pd.read_pickle(p2, compression=None)
 
             tm.assert_frame_equal(df, df2)
 
-    @pytest.mark.parametrize('compression', [
-        None, 'gzip', 'bz2', "zip",
-        pytest.param('xz', marks=td.skip_if_no_lzma)
-    ])
     def test_read_explicit(self, compression, get_random_path):
         base = get_random_path
         path1 = base + ".raw"

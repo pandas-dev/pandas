@@ -10,14 +10,16 @@ import numpy as np
 from pandas.compat import range, lzip, zip, map, filter
 import pandas.compat as compat
 
-from pandas import (Categorical, Series, DataFrame,
+from pandas import (Categorical, DataFrame,
                     Index, MultiIndex, Timedelta)
+from pandas.core.arrays.categorical import _recode_for_categories
 from pandas.core.frame import _merge_doc
 from pandas.core.dtypes.common import (
     is_datetime64tz_dtype,
     is_datetime64_dtype,
     needs_i8_conversion,
     is_int64_dtype,
+    is_array_like,
     is_categorical_dtype,
     is_integer_dtype,
     is_float_dtype,
@@ -193,19 +195,17 @@ def merge_ordered(left, right, on=None,
     5   e       3     b
 
     >>> merge_ordered(A, B, fill_method='ffill', left_by='group')
-       key  lvalue group  rvalue
-    0    a       1     a     NaN
-    1    b       1     a       1
-    2    c       2     a       2
-    3    d       2     a       3
-    4    e       3     a       3
-    5    f       3     a       4
-    6    a       1     b     NaN
-    7    b       1     b       1
-    8    c       2     b       2
-    9    d       2     b       3
-    10   e       3     b       3
-    11   f       3     b       4
+      group key  lvalue  rvalue
+    0     a   a       1     NaN
+    1     a   b       1     1.0
+    2     a   c       2     2.0
+    3     a   d       2     3.0
+    4     a   e       3     3.0
+    5     b   a       1     NaN
+    6     b   b       1     1.0
+    7     b   c       2     2.0
+    8     b   d       2     3.0
+    9     b   e       3     3.0
 
     Returns
     -------
@@ -814,12 +814,12 @@ class _MergeOperation(object):
         join_names = []
         right_drop = []
         left_drop = []
-        left, right = self.left, self.right
 
-        is_lkey = lambda x: isinstance(
-            x, (np.ndarray, Series)) and len(x) == len(left)
-        is_rkey = lambda x: isinstance(
-            x, (np.ndarray, Series)) and len(x) == len(right)
+        left, right = self.left, self.right
+        stacklevel = 5  # Number of stack levels from df.merge
+
+        is_lkey = lambda x: is_array_like(x) and len(x) == len(left)
+        is_rkey = lambda x: is_array_like(x) and len(x) == len(right)
 
         # Note that pd.merge_asof() has separate 'on' and 'by' parameters. A
         # user could, for example, request 'left_index' and 'left_by'. In a
@@ -842,7 +842,8 @@ class _MergeOperation(object):
                     else:
                         if rk is not None:
                             right_keys.append(
-                                right._get_label_or_level_values(rk))
+                                right._get_label_or_level_values(
+                                    rk, stacklevel=stacklevel))
                             join_names.append(rk)
                         else:
                             # work-around for merge_asof(right_index=True)
@@ -852,7 +853,8 @@ class _MergeOperation(object):
                     if not is_rkey(rk):
                         if rk is not None:
                             right_keys.append(
-                                right._get_label_or_level_values(rk))
+                                right._get_label_or_level_values(
+                                    rk, stacklevel=stacklevel))
                         else:
                             # work-around for merge_asof(right_index=True)
                             right_keys.append(right.index)
@@ -865,7 +867,8 @@ class _MergeOperation(object):
                     else:
                         right_keys.append(rk)
                     if lk is not None:
-                        left_keys.append(left._get_label_or_level_values(lk))
+                        left_keys.append(left._get_label_or_level_values(
+                            lk, stacklevel=stacklevel))
                         join_names.append(lk)
                     else:
                         # work-around for merge_asof(left_index=True)
@@ -877,7 +880,8 @@ class _MergeOperation(object):
                     left_keys.append(k)
                     join_names.append(None)
                 else:
-                    left_keys.append(left._get_label_or_level_values(k))
+                    left_keys.append(left._get_label_or_level_values(
+                        k, stacklevel=stacklevel))
                     join_names.append(k)
             if isinstance(self.right.index, MultiIndex):
                 right_keys = [lev._values.take(lab)
@@ -891,7 +895,8 @@ class _MergeOperation(object):
                     right_keys.append(k)
                     join_names.append(None)
                 else:
-                    right_keys.append(right._get_label_or_level_values(k))
+                    right_keys.append(right._get_label_or_level_values(
+                        k, stacklevel=stacklevel))
                     join_names.append(k)
             if isinstance(self.left.index, MultiIndex):
                 left_keys = [lev._values.take(lab)
@@ -936,6 +941,11 @@ class _MergeOperation(object):
             elif is_dtype_equal(lk.dtype, rk.dtype):
                 continue
 
+            msg = ("You are trying to merge on {lk_dtype} and "
+                   "{rk_dtype} columns. If you wish to proceed "
+                   "you should use pd.concat".format(lk_dtype=lk.dtype,
+                                                     rk_dtype=rk.dtype))
+
             # if we are numeric, then allow differing
             # kinds to proceed, eg. int64 and int8, int and float
             # further if we are object, but we infer to
@@ -964,30 +974,18 @@ class _MergeOperation(object):
                     pass
 
             # Check if we are trying to merge on obviously
-            # incompatible dtypes GH 9780
+            # incompatible dtypes GH 9780, GH 15800
             elif is_numeric_dtype(lk) and not is_numeric_dtype(rk):
-                msg = ("You are trying to merge on {lk_dtype} and "
-                       "{rk_dtype} columns. If you wish to proceed "
-                       "you should use pd.concat".format(lk_dtype=lk.dtype,
-                                                         rk_dtype=rk.dtype))
                 raise ValueError(msg)
             elif not is_numeric_dtype(lk) and is_numeric_dtype(rk):
-                msg = ("You are trying to merge on {lk_dtype} and "
-                       "{rk_dtype} columns. If you wish to proceed "
-                       "you should use pd.concat".format(lk_dtype=lk.dtype,
-                                                         rk_dtype=rk.dtype))
                 raise ValueError(msg)
             elif is_datetimelike(lk) and not is_datetimelike(rk):
-                msg = ("You are trying to merge on {lk_dtype} and "
-                       "{rk_dtype} columns. If you wish to proceed "
-                       "you should use pd.concat".format(lk_dtype=lk.dtype,
-                                                         rk_dtype=rk.dtype))
                 raise ValueError(msg)
             elif not is_datetimelike(lk) and is_datetimelike(rk):
-                msg = ("You are trying to merge on {lk_dtype} and "
-                       "{rk_dtype} columns. If you wish to proceed "
-                       "you should use pd.concat".format(lk_dtype=lk.dtype,
-                                                         rk_dtype=rk.dtype))
+                raise ValueError(msg)
+            elif is_datetime64tz_dtype(lk) and not is_datetime64tz_dtype(rk):
+                raise ValueError(msg)
+            elif not is_datetime64tz_dtype(lk) and is_datetime64tz_dtype(rk):
                 raise ValueError(msg)
 
             # Houston, we have a problem!
@@ -1024,7 +1022,12 @@ class _MergeOperation(object):
                 common_cols = self.left.columns.intersection(
                     self.right.columns)
                 if len(common_cols) == 0:
-                    raise MergeError('No common columns to perform merge on')
+                    raise MergeError(
+                        'No common columns to perform merge on. '
+                        'Merge options: left_on={lon}, right_on={ron}, '
+                        'left_index={lidx}, right_index={ridx}'
+                        .format(lon=self.left_on, ron=self.right_on,
+                                lidx=self.left_index, ridx=self.right_index))
                 if not common_cols.is_unique:
                     raise MergeError("Data columns not unique: {common!r}"
                                      .format(common=common_cols))
@@ -1538,8 +1541,15 @@ def _factorize_keys(lk, rk, sort=True):
             is_categorical_dtype(rk) and
             lk.is_dtype_equal(rk)):
         klass = libhashtable.Int64Factorizer
+
+        if lk.categories.equals(rk.categories):
+            rk = rk.codes
+        else:
+            # Same categories in different orders -> recode
+            rk = _recode_for_categories(rk.codes, rk.categories, lk.categories)
+
         lk = _ensure_int64(lk.codes)
-        rk = _ensure_int64(rk.codes)
+        rk = _ensure_int64(rk)
     elif is_int_or_datetime_dtype(lk) and is_int_or_datetime_dtype(rk):
         klass = libhashtable.Int64Factorizer
         lk = _ensure_int64(com._values_from_object(lk))

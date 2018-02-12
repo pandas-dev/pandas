@@ -11,7 +11,7 @@ from datetime import datetime, date
 import pytest
 import numpy as np
 from pandas._libs.tslibs import parsing
-from pandas._libs.lib import Timestamp
+from pandas._libs.tslib import Timestamp
 
 import pandas as pd
 import pandas.io.parsers as parsers
@@ -217,8 +217,8 @@ KORD6,19990127, 23:00:00, 22:56:00, -0.5900, 1.7100, 4.6000, 0.0000, 280.0000"""
             tm.assert_series_equal(expected, result.dtypes)
 
             # test with NaT for the nan_rep
-            # we don't have a method to specif the Datetime na_rep (it defaults
-            # to '')
+            # we don't have a method to specify the Datetime na_rep
+            # (it defaults to '')
             df.to_csv(path)
             result = self.read_csv(path, index_col=0, parse_dates=['B'])
             tm.assert_frame_equal(result, df)

@@ -480,12 +480,9 @@ class TestSeriesMissingData(TestData):
     def test_isnull_for_inf_deprecated(self):
         # gh-17115
         s = Series(['a', np.inf, np.nan, 1.0])
-        with tm.assert_produces_warning(DeprecationWarning,
-                                        check_stacklevel=False):
-            pd.set_option('mode.use_inf_as_null', True)
+        with pd.option_context('mode.use_inf_as_null', True):
             r = s.isna()
             dr = s.dropna()
-            pd.reset_option('mode.use_inf_as_null')
 
         e = Series([False, True, True, False])
         de = Series(['a', 1.0], index=[0, 3])
@@ -1081,6 +1078,45 @@ class TestSeriesInterpolateData(TestData):
         # raises an error even if no limit is specified.
         pytest.raises(ValueError, s.interpolate, method='linear',
                       limit_direction='abc')
+
+    # limit_area introduced GH #16284
+    def test_interp_limit_area(self):
+        # These tests are for issue #9218 -- fill NaNs in both directions.
+        s = Series([nan, nan, 3, nan, nan, nan, 7, nan, nan])
+
+        expected = Series([nan, nan, 3., 4., 5., 6., 7., nan, nan])
+        result = s.interpolate(method='linear', limit_area='inside')
+        assert_series_equal(result, expected)
+
+        expected = Series([nan, nan, 3., 4., nan, nan, 7., nan, nan])
+        result = s.interpolate(method='linear', limit_area='inside',
+                               limit=1)
+
+        expected = Series([nan, nan, 3., 4., nan, 6., 7., nan, nan])
+        result = s.interpolate(method='linear', limit_area='inside',
+                               limit_direction='both', limit=1)
+        assert_series_equal(result, expected)
+
+        expected = Series([nan, nan, 3., nan, nan, nan, 7., 7., 7.])
+        result = s.interpolate(method='linear', limit_area='outside')
+        assert_series_equal(result, expected)
+
+        expected = Series([nan, nan, 3., nan, nan, nan, 7., 7., nan])
+        result = s.interpolate(method='linear', limit_area='outside',
+                               limit=1)
+
+        expected = Series([nan, 3., 3., nan, nan, nan, 7., 7., nan])
+        result = s.interpolate(method='linear', limit_area='outside',
+                               limit_direction='both', limit=1)
+        assert_series_equal(result, expected)
+
+        expected = Series([3., 3., 3., nan, nan, nan, 7., nan, nan])
+        result = s.interpolate(method='linear', limit_area='outside',
+                               direction='backward')
+
+        # raises an error even if limit type is wrong.
+        pytest.raises(ValueError, s.interpolate, method='linear',
+                      limit_area='abc')
 
     def test_interp_limit_direction(self):
         # These tests are for issue #9218 -- fill NaNs in both directions.

@@ -7,8 +7,8 @@ from pandas import compat, DataFrame, Series, Index, MultiIndex
 from pandas.core.index import (_get_objs_combined_axis,
                                _ensure_index, _get_consensus_names,
                                _all_indexes_same)
-from pandas.core.categorical import (_factorize_from_iterable,
-                                     _factorize_from_iterables)
+from pandas.core.arrays.categorical import (_factorize_from_iterable,
+                                            _factorize_from_iterables)
 from pandas.core.internals import concatenate_block_managers
 from pandas.core import common as com
 from pandas.core.generic import NDFrame
@@ -276,7 +276,7 @@ class _Concatenator(object):
             ndims.add(obj.ndim)
 
         # get the sample
-        # want the higest ndim that we have, and must be non-empty
+        # want the highest ndim that we have, and must be non-empty
         # unless all objs are empty
         sample = None
         if len(ndims) > 1:

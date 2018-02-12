@@ -100,6 +100,8 @@ Subclassing pandas Data Structures
 
   2. Use *composition*. See `here <http://en.wikipedia.org/wiki/Composition_over_inheritance>`_.
 
+  3. Extending by :ref:`registering an accessor <internals.register-accessors>`
+
 This section describes how to subclass ``pandas`` data structures to meet more specific needs. There are 2 points which need attention:
 
 1. Override constructor properties.
@@ -217,7 +219,7 @@ Below is an example to define 2 original properties, "internal_cache" as a tempo
 
 .. code-block:: python
 
-   >>> df = SubclassedDataFrame2({'A', [1, 2, 3], 'B': [4, 5, 6], 'C': [7, 8, 9]})
+   >>> df = SubclassedDataFrame2({'A': [1, 2, 3], 'B': [4, 5, 6], 'C': [7, 8, 9]})
    >>> df
       A  B  C
    0  1  4  7

@@ -7,7 +7,7 @@ import numpy as np
 import pandas.util.testing as tm
 from pandas import Categorical, CategoricalIndex, Index, Series, DataFrame
 
-from pandas.core.categorical import _recode_for_categories
+from pandas.core.arrays.categorical import _recode_for_categories
 from pandas.tests.categorical.common import TestCategorical
 
 
@@ -399,15 +399,6 @@ class TestCategoricalAPI(object):
         cat = Categorical(values=val, categories=alpha)
         out = cat.remove_unused_categories()
         assert out.get_values().tolist() == val.tolist()
-
-    def test_deprecated_labels(self):
-        # TODO: labels is deprecated and should be removed in 0.18 or 2017,
-        # whatever is earlier
-        cat = Categorical([1, 2, 3, np.nan], categories=[1, 2, 3])
-        exp = cat.codes
-        with tm.assert_produces_warning(FutureWarning):
-            res = cat.labels
-        tm.assert_numpy_array_equal(res, exp)
 
 
 class TestCategoricalAPIWithFactor(TestCategorical):

@@ -24,11 +24,18 @@ if [ "$LINT" ]; then
     echo "Linting setup.py DONE"
 
     echo "Linting asv_bench/benchmarks/"
-    flake8 asv_bench/benchmarks/  --exclude=asv_bench/benchmarks/[ijoprs]*.py --ignore=F811
+    flake8 asv_bench/benchmarks/  --exclude=asv_bench/benchmarks/*.py --ignore=F811
     if [ $? -ne "0" ]; then
         RET=1
     fi
     echo "Linting asv_bench/benchmarks/*.py DONE"
+
+    echo "Linting scripts/*.py"
+    flake8 scripts --filename=*.py
+    if [ $? -ne "0" ]; then
+        RET=1
+    fi
+    echo "Linting scripts/*.py DONE"
 
     echo "Linting *.pyx"
     flake8 pandas --filename=*.pyx --select=E501,E302,E203,E111,E114,E221,E303,E128,E231,E126,E265,E305,E301,E127,E261,E271,E129,W291,E222,E241,E123,F403
@@ -89,7 +96,24 @@ if [ "$LINT" ]; then
     if [ $? = "0" ]; then
         RET=1
     fi
+
+    # Check for pytest.warns
+    grep -r -E --include '*.py' 'pytest\.warns' pandas/tests/
+
+    if [ $? = "0" ]; then
+        RET=1
+    fi
+
     echo "Check for invalid testing DONE"
+
+    # Check for imports from pandas.core.common instead
+    # of `import pandas.core.common as com`
+    echo "Check for non-standard imports"
+    grep -R --include="*.py*" -E "from pandas.core.common import " pandas
+    if [ $? = "0" ]; then
+        RET=1
+    fi
+    echo "Check for non-standard imports DONE"
 
     echo "Check for use of lists instead of generators in built-in Python functions"
 
@@ -117,6 +141,14 @@ if [ "$LINT" ]; then
         fi
     done
     echo "Check for incorrect sphinx directives DONE"
+
+    echo "Check for deprecated messages without sphinx directive"
+    grep -R --include="*.py" --include="*.pyx" -E "(DEPRECATED|DEPRECATE|Deprecated)(:|,|\.)" pandas
+
+    if [ $? = "0" ]; then
+        RET=1
+    fi
+    echo "Check for deprecated messages without sphinx directive DONE"
 else
     echo "NOT Linting"
 fi

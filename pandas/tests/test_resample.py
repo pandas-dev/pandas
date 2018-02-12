@@ -4,6 +4,7 @@ from warnings import catch_warnings
 from datetime import datetime, timedelta
 from functools import partial
 from textwrap import dedent
+from operator import methodcaller
 
 import pytz
 import pytest
@@ -19,9 +20,9 @@ from pandas import (Series, DataFrame, Panel, Index, isna,
 
 from pandas.core.dtypes.generic import ABCSeries, ABCDataFrame
 from pandas.compat import range, lrange, zip, product, OrderedDict
-from pandas.core.base import SpecificationError, AbstractMethodError
 from pandas.errors import UnsupportedFunctionCall
 from pandas.core.groupby import DataError
+import pandas.core.common as com
 
 from pandas.tseries.frequencies import to_offset
 from pandas.core.indexes.datetimes import date_range
@@ -234,6 +235,21 @@ class TestResampleAPI(object):
 
         result = df.groupby('key').resample('D', on='dates').mean()
         assert_frame_equal(result, expected)
+
+    def test_pipe(self):
+        # GH17905
+
+        # series
+        r = self.series.resample('H')
+        expected = r.max() - r.mean()
+        result = r.pipe(lambda x: x.max() - x.mean())
+        tm.assert_series_equal(result, expected)
+
+        # dataframe
+        r = self.frame.resample('H')
+        expected = r.max() - r.mean()
+        result = r.pipe(lambda x: x.max() - x.mean())
+        tm.assert_frame_equal(result, expected)
 
     @td.skip_if_no_mpl
     def test_plot_api(self):
@@ -597,7 +613,7 @@ class TestResampleAPI(object):
                     t[['A']].agg({'A': ['sum', 'std'],
                                   'B': ['mean', 'std']})
 
-            pytest.raises(SpecificationError, f)
+            pytest.raises(KeyError, f)
 
     def test_agg_nested_dicts(self):
 
@@ -641,6 +657,21 @@ class TestResampleAPI(object):
                 result = t.agg({'A': {'ra': ['mean', 'std']},
                                 'B': {'rb': ['mean', 'std']}})
             assert_frame_equal(result, expected, check_like=True)
+
+    def test_try_aggregate_non_existing_column(self):
+        # GH 16766
+        data = [
+            {'dt': datetime(2017, 6, 1, 0), 'x': 1.0, 'y': 2.0},
+            {'dt': datetime(2017, 6, 1, 1), 'x': 2.0, 'y': 2.0},
+            {'dt': datetime(2017, 6, 1, 2), 'x': 3.0, 'y': 1.5}
+        ]
+        df = DataFrame(data).set_index('dt')
+
+        # Error as we don't have 'z' column
+        with pytest.raises(KeyError):
+            df.resample('30T').agg({'x': ['mean'],
+                                    'y': ['median'],
+                                    'z': ['sum']})
 
     def test_selection_api_validation(self):
         # GH 13500
@@ -710,7 +741,7 @@ class Base(object):
 
     @pytest.fixture
     def _series_name(self):
-        raise AbstractMethodError(self)
+        raise com.AbstractMethodError(self)
 
     @pytest.fixture
     def _static_values(self, index):
@@ -947,6 +978,7 @@ class TestDatetimeIndex(Base):
         rng = date_range('1/1/2000 00:00:00', '1/1/2000 00:13:00', freq='min',
                          name='index')
         s = Series(np.random.randn(14), index=rng)
+
         result = s.resample('5min', closed='right', label='right').mean()
 
         exp_idx = date_range('1/1/2000', periods=4, freq='5min', name='index')
@@ -968,6 +1000,20 @@ class TestDatetimeIndex(Base):
         grouper = TimeGrouper(Minute(5), closed='left', label='left')
         expect = s.groupby(grouper).agg(lambda x: x[-1])
         assert_series_equal(result, expect)
+
+    def test_resample_string_kwargs(self):
+        # Test for issue #19303
+        rng = date_range('1/1/2000 00:00:00', '1/1/2000 00:13:00', freq='min',
+                         name='index')
+        s = Series(np.random.randn(14), index=rng)
+
+        # Check that wrong keyword argument strings raise an error
+        with pytest.raises(ValueError):
+            s.resample('5min', label='righttt').mean()
+        with pytest.raises(ValueError):
+            s.resample('5min', closed='righttt').mean()
+        with pytest.raises(ValueError):
+            s.resample('5min', convention='starttt').mean()
 
     def test_resample_how(self):
         rng = date_range('1/1/2000 00:00:00', '1/1/2000 00:13:00', freq='min',
@@ -3045,6 +3091,15 @@ class TestResamplerGrouper(object):
         result = r['buyer'].count()
         assert_series_equal(result, expected)
 
+    def test_groupby_resample_on_api_with_getitem(self):
+        # GH 17813
+        df = pd.DataFrame({'id': list('aabbb'),
+                           'date': pd.date_range('1-1-2016', periods=5),
+                           'data': 1})
+        exp = df.set_index('date').groupby('id').resample('2D')['data'].sum()
+        result = df.groupby('id').resample('2D', on='date')['data'].sum()
+        assert_series_equal(result, exp)
+
     def test_nearest(self):
 
         # GH 17496
@@ -3367,8 +3422,45 @@ class TestTimeGrouper(object):
             assert_frame_equal(expected, dt_result)
         """
 
-    def test_aggregate_with_nat(self):
+    @pytest.mark.parametrize('method, unit', [
+        ('sum', 0),
+        ('prod', 1),
+    ])
+    def test_resample_entirly_nat_window(self, method, unit):
+        s = pd.Series([0] * 2 + [np.nan] * 2,
+                      index=pd.date_range('2017', periods=4))
+        # 0 / 1 by default
+        result = methodcaller(method)(s.resample("2d"))
+        expected = pd.Series([0.0, unit],
+                             index=pd.to_datetime(['2017-01-01',
+                                                   '2017-01-03']))
+        tm.assert_series_equal(result, expected)
+
+        # min_count=0
+        result = methodcaller(method, min_count=0)(s.resample("2d"))
+        expected = pd.Series([0.0, unit],
+                             index=pd.to_datetime(['2017-01-01',
+                                                   '2017-01-03']))
+        tm.assert_series_equal(result, expected)
+
+        # min_count=1
+        result = methodcaller(method, min_count=1)(s.resample("2d"))
+        expected = pd.Series([0.0, np.nan],
+                             index=pd.to_datetime(['2017-01-01',
+                                                   '2017-01-03']))
+        tm.assert_series_equal(result, expected)
+
+    @pytest.mark.parametrize('func, fill_value', [
+        ('min', np.nan),
+        ('max', np.nan),
+        ('sum', 0),
+        ('prod', 1),
+        ('count', 0),
+    ])
+    def test_aggregate_with_nat(self, func, fill_value):
         # check TimeGrouper's aggregation is identical as normal groupby
+        # if NaT is included, 'var', 'std', 'mean', 'first','last'
+        # and 'nth' doesn't work yet
 
         n = 20
         data = np.random.randn(n, 4).astype('int64')
@@ -3382,42 +3474,42 @@ class TestTimeGrouper(object):
         normal_grouped = normal_df.groupby('key')
         dt_grouped = dt_df.groupby(TimeGrouper(key='key', freq='D'))
 
-        for func in ['min', 'max', 'sum', 'prod']:
-            normal_result = getattr(normal_grouped, func)()
-            dt_result = getattr(dt_grouped, func)()
-            pad = DataFrame([[np.nan, np.nan, np.nan, np.nan]], index=[3],
-                            columns=['A', 'B', 'C', 'D'])
-            expected = normal_result.append(pad)
-            expected = expected.sort_index()
-            expected.index = date_range(start='2013-01-01', freq='D',
-                                        periods=5, name='key')
-            assert_frame_equal(expected, dt_result)
+        normal_result = getattr(normal_grouped, func)()
+        dt_result = getattr(dt_grouped, func)()
 
-        for func in ['count']:
-            normal_result = getattr(normal_grouped, func)()
-            pad = DataFrame([[0, 0, 0, 0]], index=[3],
-                            columns=['A', 'B', 'C', 'D'])
-            expected = normal_result.append(pad)
-            expected = expected.sort_index()
-            expected.index = date_range(start='2013-01-01', freq='D',
-                                        periods=5, name='key')
-            dt_result = getattr(dt_grouped, func)()
-            assert_frame_equal(expected, dt_result)
+        pad = DataFrame([[fill_value] * 4], index=[3],
+                        columns=['A', 'B', 'C', 'D'])
+        expected = normal_result.append(pad)
+        expected = expected.sort_index()
+        expected.index = date_range(start='2013-01-01', freq='D',
+                                    periods=5, name='key')
+        assert_frame_equal(expected, dt_result)
+        assert dt_result.index.name == 'key'
 
-        for func in ['size']:
-            normal_result = getattr(normal_grouped, func)()
-            pad = Series([0], index=[3])
-            expected = normal_result.append(pad)
-            expected = expected.sort_index()
-            expected.index = date_range(start='2013-01-01', freq='D',
-                                        periods=5, name='key')
-            dt_result = getattr(dt_grouped, func)()
-            assert_series_equal(expected, dt_result)
-            # GH 9925
-            assert dt_result.index.name == 'key'
+    def test_aggregate_with_nat_size(self):
+        # GH 9925
+        n = 20
+        data = np.random.randn(n, 4).astype('int64')
+        normal_df = DataFrame(data, columns=['A', 'B', 'C', 'D'])
+        normal_df['key'] = [1, 2, np.nan, 4, 5] * 4
 
-            # if NaT is included, 'var', 'std', 'mean', 'first','last'
-            # and 'nth' doesn't work yet
+        dt_df = DataFrame(data, columns=['A', 'B', 'C', 'D'])
+        dt_df['key'] = [datetime(2013, 1, 1), datetime(2013, 1, 2), pd.NaT,
+                        datetime(2013, 1, 4), datetime(2013, 1, 5)] * 4
+
+        normal_grouped = normal_df.groupby('key')
+        dt_grouped = dt_df.groupby(TimeGrouper(key='key', freq='D'))
+
+        normal_result = normal_grouped.size()
+        dt_result = dt_grouped.size()
+
+        pad = Series([0], index=[3])
+        expected = normal_result.append(pad)
+        expected = expected.sort_index()
+        expected.index = date_range(start='2013-01-01', freq='D',
+                                    periods=5, name='key')
+        assert_series_equal(expected, dt_result)
+        assert dt_result.index.name == 'key'
 
     def test_repr(self):
         # GH18203
@@ -3426,3 +3518,34 @@ class TestTimeGrouper(object):
                     "closed='left', label='left', how='mean', "
                     "convention='e', base=0)")
         assert result == expected
+
+    @pytest.mark.parametrize('method, unit', [
+        ('sum', 0),
+        ('prod', 1),
+    ])
+    def test_upsample_sum(self, method, unit):
+        s = pd.Series(1, index=pd.date_range("2017", periods=2, freq="H"))
+        resampled = s.resample("30T")
+        index = pd.to_datetime(['2017-01-01T00:00:00',
+                                '2017-01-01T00:30:00',
+                                '2017-01-01T01:00:00'])
+
+        # 0 / 1 by default
+        result = methodcaller(method)(resampled)
+        expected = pd.Series([1, unit, 1], index=index)
+        tm.assert_series_equal(result, expected)
+
+        # min_count=0
+        result = methodcaller(method, min_count=0)(resampled)
+        expected = pd.Series([1, unit, 1], index=index)
+        tm.assert_series_equal(result, expected)
+
+        # min_count=1
+        result = methodcaller(method, min_count=1)(resampled)
+        expected = pd.Series([1, np.nan, 1], index=index)
+        tm.assert_series_equal(result, expected)
+
+        # min_count>1
+        result = methodcaller(method, min_count=2)(resampled)
+        expected = pd.Series([np.nan, np.nan, np.nan], index=index)
+        tm.assert_series_equal(result, expected)

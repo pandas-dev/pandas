@@ -56,11 +56,6 @@ if [ "$CONDA_BUILD_TEST" ]; then
     conda install conda-build
 fi
 
-# TODO(jreback)
-echo
-echo "[fix conda version]"
-conda install conda=4.3.30
-
 echo
 echo "[add channels]"
 conda config --remove channels defaults || exit 1
@@ -115,7 +110,7 @@ if [ -e ${REQ} ]; then
 fi
 
 time conda install -n pandas pytest>=3.1.0
-time pip install pytest-xdist moto
+time pip install -q pytest-xdist moto
 
 if [ "$LINT" ]; then
    conda install flake8=3.4.1
@@ -178,18 +173,18 @@ if [ "$PIP_BUILD_TEST" ]; then
 
     # build & install testing
     echo "[building release]"
-    bash scripts/build_dist_for_release.sh
+    time bash scripts/build_dist_for_release.sh || exit 1
     conda uninstall -y cython
-    time pip install dist/*tar.gz --quiet || exit 1
+    time pip install dist/*tar.gz || exit 1
 
 elif [ "$CONDA_BUILD_TEST" ]; then
 
     # build & install testing
     echo "[building conda recipe]"
-    conda build ./conda.recipe --numpy 1.13 --python 3.5 -q --no-test
+    time conda build ./conda.recipe --python 3.5 -q --no-test || exit 1
 
     echo "[installing]"
-    conda install pandas --use-local
+    conda install pandas --use-local || exit 1
 
 else
 

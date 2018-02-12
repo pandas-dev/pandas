@@ -10,9 +10,9 @@ from cpython.datetime cimport datetime, timedelta, time as dt_time
 from dateutil.relativedelta import relativedelta
 
 import numpy as np
-cimport numpy as np
+cimport numpy as cnp
 from numpy cimport int64_t
-np.import_array()
+cnp.import_array()
 
 
 from util cimport is_string_object, is_integer_object
@@ -104,7 +104,7 @@ cpdef bint _is_normalized(dt):
 
 def apply_index_wraps(func):
     # Note: normally we would use `@functools.wraps(func)`, but this does
-    # not play nicely wtih cython class methods
+    # not play nicely with cython class methods
     def wrapper(self, other):
         result = func(self, other)
         if self.normalize:
@@ -290,45 +290,32 @@ class CacheableOffset(object):
     _cacheable = True
 
 
-class EndMixin(object):
-    # helper for vectorized offsets
-
-    def _end_apply_index(self, i, freq):
-        """Offsets index to end of Period frequency"""
-
-        off = i.to_perioddelta('D')
-
-        base, mult = get_freq_code(freq)
-        base_period = i.to_period(base)
-        if self.n > 0:
-            # when adding, dates on end roll to next
-            roll = np.where(base_period.to_timestamp(how='end') == i - off,
-                            self.n, self.n - 1)
-        else:
-            roll = self.n
-
-        base = (base_period + roll).to_timestamp(how='end')
-        return base + off
-
-
 # ---------------------------------------------------------------------
 # Base Classes
 
 class _BaseOffset(object):
     """
-    Base class for DateOffset methods that are not overriden by subclasses
+    Base class for DateOffset methods that are not overridden by subclasses
     and will (after pickle errors are resolved) go into a cdef class.
     """
     _typ = "dateoffset"
     _normalize_cache = True
     _cacheable = False
     _day_opt = None
+    _attributes = frozenset(['n', 'normalize'])
+
+    @property
+    def kwds(self):
+        # for backwards-compatibility
+        kwds = {name: getattr(self, name, None) for name in self._attributes
+                if name not in ['n', 'normalize']}
+        return {name: kwds[name] for name in kwds if kwds[name] is not None}
 
     def __call__(self, other):
         return self.apply(other)
 
-    def __mul__(self, someInt):
-        return self.__class__(n=someInt * self.n, normalize=self.normalize,
+    def __mul__(self, other):
+        return self.__class__(n=other * self.n, normalize=self.normalize,
                               **self.kwds)
 
     def __neg__(self):
@@ -395,8 +382,8 @@ class _BaseOffset(object):
 
 class BaseOffset(_BaseOffset):
     # Here we add __rfoo__ methods that don't play well with cdef classes
-    def __rmul__(self, someInt):
-        return self.__mul__(someInt)
+    def __rmul__(self, other):
+        return self.__mul__(other)
 
     def __radd__(self, other):
         return self.__add__(other)
@@ -523,11 +510,9 @@ def shift_quarters(int64_t[:] dtindex, int quarters,
                 n = quarters
 
                 months_since = (dts.month - q1start_month) % modby
-                compare_month = dts.month - months_since
-                compare_month = compare_month or 12
                 # compare_day is only relevant for comparison in the case
                 # where months_since == 0.
-                compare_day = get_firstbday(dts.year, compare_month)
+                compare_day = get_firstbday(dts.year, dts.month)
 
                 if n <= 0 and (months_since != 0 or
                                (months_since == 0 and dts.day > compare_day)):
@@ -556,11 +541,9 @@ def shift_quarters(int64_t[:] dtindex, int quarters,
                 n = quarters
 
                 months_since = (dts.month - q1start_month) % modby
-                compare_month = dts.month - months_since
-                compare_month = compare_month or 12
                 # compare_day is only relevant for comparison in the case
                 # where months_since == 0.
-                compare_day = get_lastbday(dts.year, compare_month)
+                compare_day = get_lastbday(dts.year, dts.month)
 
                 if n <= 0 and (months_since != 0 or
                                (months_since == 0 and dts.day > compare_day)):
@@ -679,11 +662,8 @@ def shift_months(int64_t[:] dtindex, int months, object day=None):
                 months_to_roll = months
                 compare_day = get_firstbday(dts.year, dts.month)
 
-                if months_to_roll > 0 and dts.day < compare_day:
-                    months_to_roll -= 1
-                elif months_to_roll <= 0 and dts.day > compare_day:
-                    # as if rolled forward already
-                    months_to_roll += 1
+                months_to_roll = roll_convention(dts.day, months_to_roll,
+                                                 compare_day)
 
                 dts.year = year_add_months(dts, months_to_roll)
                 dts.month = month_add_months(dts, months_to_roll)
@@ -702,11 +682,8 @@ def shift_months(int64_t[:] dtindex, int months, object day=None):
                 months_to_roll = months
                 compare_day = get_lastbday(dts.year, dts.month)
 
-                if months_to_roll > 0 and dts.day < compare_day:
-                    months_to_roll -= 1
-                elif months_to_roll <= 0 and dts.day > compare_day:
-                    # as if rolled forward already
-                    months_to_roll += 1
+                months_to_roll = roll_convention(dts.day, months_to_roll,
+                                                 compare_day)
 
                 dts.year = year_add_months(dts, months_to_roll)
                 dts.month = month_add_months(dts, months_to_roll)
@@ -787,7 +764,7 @@ cpdef int get_day_of_month(datetime other, day_opt) except? -1:
     other : datetime or Timestamp
     day_opt : 'start', 'end'
         'start': returns 1
-        'end': returns last day  of the month
+        'end': returns last day of the month
 
     Returns
     -------
@@ -827,7 +804,32 @@ cpdef int get_day_of_month(datetime other, day_opt) except? -1:
         raise ValueError(day_opt)
 
 
-cpdef int roll_yearday(other, n, month, day_opt='start') except? -1:
+cpdef int roll_convention(int other, int n, int compare) nogil:
+    """
+    Possibly increment or decrement the number of periods to shift
+    based on rollforward/rollbackward conventions.
+
+    Parameters
+    ----------
+    other : int, generally the day component of a datetime
+    n : number of periods to increment, before adjusting for rolling
+    compare : int, generally the day component of a datetime, in the same
+              month as the datetime form which `other` was taken.
+
+    Returns
+    -------
+    n : int number of periods to increment
+    """
+    if n > 0 and other < compare:
+        n -= 1
+    elif n <= 0 and other > compare:
+        # as if rolled forward already
+        n += 1
+    return n
+
+
+cpdef int roll_qtrday(datetime other, int n, int month, object day_opt,
+                      int modby=3) except? -1:
     """
     Possibly increment or decrement the number of periods to shift
     based on rollforward/rollbackward conventions.
@@ -836,9 +838,53 @@ cpdef int roll_yearday(other, n, month, day_opt='start') except? -1:
     ----------
     other : datetime or Timestamp
     n : number of periods to increment, before adjusting for rolling
+    month : int reference month giving the first month of the year
+    day_opt : 'start', 'end', 'business_start', 'business_end'
+        The convention to use in finding the day in a given month against
+        which to compare for rollforward/rollbackward decisions.
+    modby : int 3 for quarters, 12 for years
+
+    Returns
+    -------
+    n : int number of periods to increment
+    """
+    cdef:
+        int months_since
+    # TODO: Merge this with roll_yearday by setting modby=12 there?
+    #       code de-duplication versus perf hit?
+    # TODO: with small adjustments this could be used in shift_quarters
+    months_since = other.month % modby - month % modby
+
+    if n > 0:
+        if months_since < 0 or (months_since == 0 and
+                                other.day < get_day_of_month(other,
+                                                             day_opt)):
+            # pretend to roll back if on same month but
+            # before compare_day
+            n -= 1
+    else:
+        if months_since > 0 or (months_since == 0 and
+                                other.day > get_day_of_month(other,
+                                                             day_opt)):
+            # make sure to roll forward, so negate
+            n += 1
+    return n
+
+
+cpdef int roll_yearday(datetime other, int n, int month,
+                       object day_opt) except? -1:
+    """
+    Possibly increment or decrement the number of periods to shift
+    based on rollforward/rollbackward conventions.
+
+    Parameters
+    ----------
+    other : datetime or Timestamp
+    n : number of periods to increment, before adjusting for rolling
+    month : reference month giving the first month of the year
     day_opt : 'start', 'end'
         'start': returns 1
-        'end': returns last day  of the month
+        'end': returns last day of the month
 
     Returns
     -------
@@ -846,7 +892,7 @@ cpdef int roll_yearday(other, n, month, day_opt='start') except? -1:
 
     Notes
     -----
-    * Mirrors `roll_check` in tslib.shift_months
+    * Mirrors `roll_check` in shift_months
 
     Examples
     -------
@@ -888,7 +934,7 @@ cpdef int roll_yearday(other, n, month, day_opt='start') except? -1:
                                    other.day < get_day_of_month(other,
                                                                 day_opt)):
             n -= 1
-    elif n <= 0:
+    else:
         if other.month > month or (other.month == month and
                                    other.day > get_day_of_month(other,
                                                                 day_opt)):

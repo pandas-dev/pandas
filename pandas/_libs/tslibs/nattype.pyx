@@ -13,9 +13,9 @@ from cpython.datetime cimport (datetime,
 PyDateTime_IMPORT
 
 import numpy as np
-cimport numpy as np
+cimport numpy as cnp
 from numpy cimport int64_t
-np.import_array()
+cnp.import_array()
 
 from util cimport (get_nat,
                    is_integer_object, is_float_object,
@@ -156,7 +156,7 @@ cdef class _NaT(datetime):
             neg_other = -other
             return self + neg_other
 
-        elif getattr(other, '_typ', None) in ['period',
+        elif getattr(other, '_typ', None) in ['period', 'series',
                                               'periodindex', 'dateoffset']:
             return NotImplemented
 
@@ -396,7 +396,7 @@ class NaTType(_NaT):
         """)
     fromordinal = _make_error_func('fromordinal',  # noqa:E128
         """
-        Timestamp.fromordinal(ordinal, freq=None, tz=None, offset=None)
+        Timestamp.fromordinal(ordinal, freq=None, tz=None)
 
         passed an ordinal, translate and convert to a ts
         note: by definition there cannot be any tz info on the ordinal itself
@@ -409,8 +409,6 @@ class NaTType(_NaT):
             Offset which Timestamp will have
         tz : str, pytz.timezone, dateutil.tz.tzfile or None
             Time zone for time which Timestamp will have.
-        offset : str, DateOffset
-            Deprecated, use freq
         """)
 
     # _nat_methods

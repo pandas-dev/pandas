@@ -236,7 +236,7 @@ class TestCut(object):
 
         ii = qcut(values, 4)
 
-        ex_levels = IntervalIndex.from_intervals(
+        ex_levels = IntervalIndex(
             [Interval(-0.001, 2.25),
              Interval(2.25, 4.5),
              Interval(4.5, 6.75),
@@ -333,8 +333,7 @@ class TestCut(object):
     def test_qcut_duplicates_bin(self):
         # GH 7751
         values = [0, 0, 0, 0, 1, 2, 3]
-        expected = IntervalIndex.from_intervals([Interval(-0.001, 1),
-                                                 Interval(1, 3)])
+        expected = IntervalIndex([Interval(-0.001, 1), Interval(1, 3)])
 
         result = qcut(values, 3, duplicates='drop')
         tm.assert_index_equal(result.categories, expected)
@@ -447,7 +446,7 @@ class TestCut(object):
 
         result, bins = cut(data, 3, retbins=True)
         expected = (
-            Series(IntervalIndex.from_intervals([
+            Series(IntervalIndex([
                 Interval(Timestamp('2012-12-31 23:57:07.200000'),
                          Timestamp('2013-01-01 16:00:00')),
                 Interval(Timestamp('2013-01-01 16:00:00'),
@@ -480,7 +479,7 @@ class TestCut(object):
         data = [np.datetime64('2012-12-13'), np.datetime64('2012-12-15')]
         bin_data = ['2012-12-12', '2012-12-14', '2012-12-16']
         expected = (
-            Series(IntervalIndex.from_intervals([
+            Series(IntervalIndex([
                 Interval(Timestamp(bin_data[0]), Timestamp(bin_data[1])),
                 Interval(Timestamp(bin_data[1]), Timestamp(bin_data[2]))]))
             .astype(CDT(ordered=True)))
@@ -512,7 +511,18 @@ class TestCut(object):
         tm.assert_numpy_array_equal(
             mask, np.array([False, True, True, True, True]))
 
+    @pytest.mark.parametrize(
+        "array_1_writeable, array_2_writeable",
+        [(True, True), (True, False), (False, False)])
+    def test_cut_read_only(self, array_1_writeable, array_2_writeable):
+        # issue 18773
+        array_1 = np.arange(0, 100, 10)
+        array_1.flags.writeable = array_1_writeable
 
-def curpath():
-    pth, _ = os.path.split(os.path.abspath(__file__))
-    return pth
+        array_2 = np.arange(0, 100, 10)
+        array_2.flags.writeable = array_2_writeable
+
+        hundred_elements = np.arange(100)
+
+        tm.assert_categorical_equal(cut(hundred_elements, array_1),
+                                    cut(hundred_elements, array_2))

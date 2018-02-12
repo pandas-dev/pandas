@@ -11,8 +11,6 @@ from pandas.core.dtypes.common import (
     is_list_like,
     is_interval_dtype,
     is_scalar)
-from pandas.core.common import (_asarray_tuplesafe,
-                                _values_from_object)
 from pandas.core.dtypes.missing import array_equivalent, isna
 from pandas.core.algorithms import take_1d
 
@@ -21,6 +19,7 @@ from pandas.util._decorators import Appender, cache_readonly
 from pandas.core.config import get_option
 from pandas.core.indexes.base import Index, _index_shared_docs
 from pandas.core import accessor
+import pandas.core.common as com
 import pandas.core.base as base
 import pandas.core.missing as missing
 import pandas.core.indexes.base as ibase
@@ -125,7 +124,7 @@ class CategoricalIndex(Index, accessor.PandasDelegate):
         CategoricalIndex
         """
 
-        from pandas.core.categorical import Categorical
+        from pandas.core.arrays import Categorical
         if categories is None:
             categories = self.categories
         if ordered is None:
@@ -162,7 +161,7 @@ class CategoricalIndex(Index, accessor.PandasDelegate):
         if not isinstance(data, ABCCategorical):
             if ordered is None and dtype is None:
                 ordered = False
-            from pandas.core.categorical import Categorical
+            from pandas.core.arrays import Categorical
             data = Categorical(data, categories=categories, ordered=ordered,
                                dtype=dtype)
         else:
@@ -342,10 +341,10 @@ class CategoricalIndex(Index, accessor.PandasDelegate):
     def astype(self, dtype, copy=True):
         if is_interval_dtype(dtype):
             from pandas import IntervalIndex
-            return IntervalIndex.from_intervals(np.array(self))
+            return IntervalIndex(np.array(self))
         elif is_categorical_dtype(dtype):
             # GH 18630
-            dtype = self.dtype._update_dtype(dtype)
+            dtype = self.dtype.update_dtype(dtype)
             if dtype == self.dtype:
                 return self.copy() if copy else self
 
@@ -442,7 +441,7 @@ class CategoricalIndex(Index, accessor.PandasDelegate):
         know what you're doing
         """
         try:
-            k = _values_from_object(key)
+            k = com._values_from_object(key)
             k = self._convert_scalar_indexer(k, kind='getitem')
             indexer = self.get_loc(k)
             return series.iloc[indexer]
@@ -462,7 +461,7 @@ class CategoricalIndex(Index, accessor.PandasDelegate):
             other = self._na_value
         values = np.where(cond, self.values, other)
 
-        from pandas.core.categorical import Categorical
+        from pandas.core.arrays import Categorical
         cat = Categorical(values,
                           categories=self.categories,
                           ordered=self.ordered)
@@ -522,7 +521,7 @@ class CategoricalIndex(Index, accessor.PandasDelegate):
         # we always want to return an Index type here
         # to be consistent with .reindex for other index types (e.g. they don't
         # coerce based on the actual values, only on the dtype)
-        # unless we had an inital Categorical to begin with
+        # unless we had an initial Categorical to begin with
         # in which case we are going to conform to the passed Categorical
         new_target = np.asarray(new_target)
         if is_categorical_dtype(target):
@@ -554,6 +553,8 @@ class CategoricalIndex(Index, accessor.PandasDelegate):
 
     @Appender(_index_shared_docs['get_indexer'] % _index_doc_kwargs)
     def get_indexer(self, target, method=None, limit=None, tolerance=None):
+        from pandas.core.arrays.categorical import _recode_for_categories
+
         method = missing.clean_reindex_fill_method(method)
         target = ibase._ensure_index(target)
 
@@ -569,8 +570,13 @@ class CategoricalIndex(Index, accessor.PandasDelegate):
 
         if (isinstance(target, CategoricalIndex) and
                 self.values.is_dtype_equal(target)):
-            # we have the same codes
-            codes = target.codes
+            if self.values.equals(target.values):
+                # we have the same codes
+                codes = target.codes
+            else:
+                codes = _recode_for_categories(target.codes,
+                                               target.categories,
+                                               self.values.categories)
         else:
             if isinstance(target, CategoricalIndex):
                 code_indexer = self.categories.get_indexer(target.categories)
@@ -620,7 +626,7 @@ class CategoricalIndex(Index, accessor.PandasDelegate):
 
     @Appender(_index_shared_docs['_convert_arr_indexer'])
     def _convert_arr_indexer(self, keyarr):
-        keyarr = _asarray_tuplesafe(keyarr)
+        keyarr = com._asarray_tuplesafe(keyarr)
 
         if self.categories._defer_to_indexing:
             return keyarr
@@ -746,7 +752,7 @@ class CategoricalIndex(Index, accessor.PandasDelegate):
 
                 if isinstance(other, ABCCategorical):
                     if not self.values.is_dtype_equal(other):
-                        raise TypeError("categorical index comparisions must "
+                        raise TypeError("categorical index comparisons must "
                                         "have the same categories and ordered "
                                         "attributes")
 
@@ -775,7 +781,7 @@ class CategoricalIndex(Index, accessor.PandasDelegate):
     def _add_accessors(cls):
         """ add in Categorical accessor methods """
 
-        from pandas.core.categorical import Categorical
+        from pandas.core.arrays import Categorical
         CategoricalIndex._add_delegate_accessors(
             delegate=Categorical, accessors=["rename_categories",
                                              "reorder_categories",

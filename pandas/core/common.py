@@ -25,7 +25,8 @@ from pandas.core.dtypes.cast import construct_1d_object_array_from_listlike
 
 # compat
 from pandas.errors import (  # noqa
-    PerformanceWarning, UnsupportedFunctionCall, UnsortedIndexError)
+    PerformanceWarning, UnsupportedFunctionCall, UnsortedIndexError,
+    AbstractMethodError)
 
 # back-compat of public API
 # deprecate these functions
@@ -86,19 +87,6 @@ class SettingWithCopyError(ValueError):
 
 class SettingWithCopyWarning(Warning):
     pass
-
-
-class AbstractMethodError(NotImplementedError):
-    """Raise this error instead of NotImplementedError for abstract methods
-    while keeping compatibility with Python 2 and Python 3.
-    """
-
-    def __init__(self, class_instance):
-        self.class_instance = class_instance
-
-    def __str__(self):
-        msg = "This method must be defined in the concrete class of {name}"
-        return (msg.format(name=self.class_instance.__class__.__name__))
 
 
 def flatten(l):
@@ -305,7 +293,7 @@ def split_ranges(mask):
     ranges = [(0, len(mask))]
 
     for pos, val in enumerate(mask):
-        if not val:  # this pos should be ommited, split off the prefix range
+        if not val:  # this pos should be omitted, split off the prefix range
             r = ranges.pop()
             if pos > r[0]:  # yield non-zero range
                 yield (r[0], pos)
@@ -398,7 +386,19 @@ def _asarray_tuplesafe(values, dtype=None):
     return result
 
 
-def _index_labels_to_array(labels):
+def _index_labels_to_array(labels, dtype=None):
+    """
+    Transform label or iterable of labels to array, for use in Index.
+
+    Parameters
+    ----------
+    dtype : dtype
+        If specified, use as dtype of the resulting array, otherwise infer.
+
+    Returns
+    -------
+    array
+    """
     if isinstance(labels, (compat.string_types, tuple)):
         labels = [labels]
 
@@ -408,7 +408,7 @@ def _index_labels_to_array(labels):
         except TypeError:  # non-iterable
             labels = [labels]
 
-    labels = _asarray_tuplesafe(labels)
+    labels = _asarray_tuplesafe(labels, dtype=dtype)
 
     return labels
 

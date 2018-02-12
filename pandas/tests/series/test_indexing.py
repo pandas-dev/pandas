@@ -17,7 +17,7 @@ from pandas import (Index, Series, DataFrame, isna,
                     Categorical)
 from pandas.core.indexing import IndexingError
 from pandas.tseries.offsets import BDay
-from pandas._libs import tslib, lib
+from pandas._libs import tslib
 
 from pandas.compat import lrange, range
 from pandas import compat
@@ -450,6 +450,13 @@ class TestSeriesIndexing(TestData):
 
         lb = "1990-01-01 04:00:00"
         rb = "1990-01-01 07:00:00"
+        # GH#18435 strings get a pass from tzawareness compat
+        result = ts[(ts.index >= lb) & (ts.index <= rb)]
+        expected = ts[4:8]
+        assert_series_equal(result, expected)
+
+        lb = "1990-01-01 04:00:00-0500"
+        rb = "1990-01-01 07:00:00-0500"
         result = ts[(ts.index >= lb) & (ts.index <= rb)]
         expected = ts[4:8]
         assert_series_equal(result, expected)
@@ -475,6 +482,13 @@ class TestSeriesIndexing(TestData):
 
         lb = datetime(1990, 1, 1, 4)
         rb = datetime(1990, 1, 1, 7)
+        with pytest.raises(TypeError):
+            # tznaive vs tzaware comparison is invalid
+            # see GH#18376, GH#18162
+            ts[(ts.index >= lb) & (ts.index <= rb)]
+
+        lb = pd.Timestamp(datetime(1990, 1, 1, 4)).tz_localize(rng.tzinfo)
+        rb = pd.Timestamp(datetime(1990, 1, 1, 7)).tz_localize(rng.tzinfo)
         result = ts[(ts.index >= lb) & (ts.index <= rb)]
         expected = ts[4:8]
         assert_series_equal(result, expected)
@@ -595,6 +609,18 @@ class TestSeriesIndexing(TestData):
     def test_getitem_box_float64(self):
         value = self.ts[5]
         assert isinstance(value, np.float64)
+
+    def test_series_box_timestamp(self):
+        rng = pd.date_range('20090415', '20090519', freq='B')
+        ser = Series(rng)
+
+        assert isinstance(ser[5], pd.Timestamp)
+
+        rng = pd.date_range('20090415', '20090519', freq='B')
+        ser = Series(rng, index=rng)
+        assert isinstance(ser[5], pd.Timestamp)
+
+        assert isinstance(ser.iat[5], pd.Timestamp)
 
     def test_getitem_ambiguous_keyerror(self):
         s = Series(lrange(10), index=lrange(0, 20, 2))
@@ -1616,7 +1642,7 @@ class TestSeriesIndexing(TestData):
     def test_setitem_boolean(self):
         mask = self.series > self.series.median()
 
-        # similiar indexed series
+        # similar indexed series
         result = self.series.copy()
         result[mask] = self.series * 2
         expected = self.series * 2
@@ -1668,7 +1694,7 @@ class TestSeriesIndexing(TestData):
         s[::2] = np.nan
         assert_series_equal(s, expected)
 
-        # get's coerced to float, right?
+        # gets coerced to float, right?
         expected = Series([np.nan, 1, np.nan, 0])
         s = Series([True, True, False, False])
         s[::2] = np.nan
@@ -1824,8 +1850,8 @@ class TestSeriesIndexing(TestData):
 
         # single string/tuple-like
         s = Series(range(3), index=list('abc'))
-        pytest.raises(ValueError, s.drop, 'bc')
-        pytest.raises(ValueError, s.drop, ('a', ))
+        pytest.raises(KeyError, s.drop, 'bc')
+        pytest.raises(KeyError, s.drop, ('a', ))
 
         # errors='ignore'
         s = Series(range(3), index=list('abc'))
@@ -1847,7 +1873,7 @@ class TestSeriesIndexing(TestData):
 
         # GH 16877
         s = Series([2, 3], index=[0, 1])
-        with tm.assert_raises_regex(ValueError, 'not contained in axis'):
+        with tm.assert_raises_regex(KeyError, 'not contained in axis'):
             s.drop([False, True])
 
     def test_align(self):
@@ -2113,7 +2139,7 @@ class TestSeriesIndexing(TestData):
         result = s.reindex(new_index, method='ffill')
         assert_series_equal(result, expected)
 
-        # inferrence of new dtype
+        # inference of new dtype
         s = Series([True, False, False, True], index=list('abcd'))
         new_index = 'agc'
         result = s.reindex(list(new_index)).ffill()
@@ -2681,7 +2707,7 @@ class TestDatetimeIndexing(object):
         assert s['1/2/2009'] == 48
         assert s['2009-1-2'] == 48
         assert s[datetime(2009, 1, 2)] == 48
-        assert s[lib.Timestamp(datetime(2009, 1, 2))] == 48
+        assert s[Timestamp(datetime(2009, 1, 2))] == 48
         pytest.raises(KeyError, s.__getitem__, '2009-1-3')
 
         assert_series_equal(s['3/6/2009':'2009-06-05'],

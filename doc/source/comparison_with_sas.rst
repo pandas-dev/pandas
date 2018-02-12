@@ -10,7 +10,7 @@ performed in pandas.
 If you're new to pandas, you might want to first read through :ref:`10 Minutes to pandas<10min>`
 to familiarize yourself with the library.
 
-As is customary, we import pandas and numpy as follows:
+As is customary, we import pandas and NumPy as follows:
 
 .. ipython:: python
 
@@ -100,7 +100,7 @@ specifying the column names.
 
 A pandas ``DataFrame`` can be constructed in many different ways,
 but for a small number of values, it is often convenient to specify it as
-a python dictionary, where the keys are the column names
+a Python dictionary, where the keys are the column names
 and the values are the data.
 
 .. ipython:: python
@@ -279,7 +279,7 @@ date/datetime columns.
 
 The equivalent pandas operations are shown below.  In addition to these
 functions pandas supports other Time Series features
-not available in Base SAS (such as resampling and and custom offsets) -
+not available in Base SAS (such as resampling and custom offsets) -
 see the :ref:`timeseries documentation<timeseries>` for more details.
 
 .. ipython:: python
@@ -584,7 +584,7 @@ For example, in SAS you could do this to filter missing values.
        if value_x ^= .;
    run;
 
-Which doesn't work in in pandas.  Instead, the ``pd.isna`` or ``pd.notna`` functions
+Which doesn't work in pandas.  Instead, the ``pd.isna`` or ``pd.notna`` functions
 should be used for comparisons.
 
 .. ipython:: python

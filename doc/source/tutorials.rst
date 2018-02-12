@@ -19,7 +19,7 @@ pandas Cookbook
 The goal of this cookbook (by `Julia Evans <http://jvns.ca>`_) is to
 give you some concrete examples for getting started with pandas. These
 are examples with real-world data, and all the bugs and weirdness that
-that entails.
+entails.
 
 Here are links to the v0.1 release. For an up-to-date table of contents, see the `pandas-cookbook GitHub
 repository <http://github.com/jvns/pandas-cookbook>`_. To run the examples in this tutorial, you'll need to
@@ -161,6 +161,7 @@ Modern Pandas
 - `Performance <http://tomaugspurger.github.io/modern-4-performance.html>`_
 - `Tidy Data <http://tomaugspurger.github.io/modern-5-tidy.html>`_
 - `Visualization <http://tomaugspurger.github.io/modern-6-visualization.html>`_
+- `Timeseries <http://tomaugspurger.github.io/modern-7-timeseries.html>`_
 
 Excel charts with pandas, vincent and xlsxwriter
 ------------------------------------------------
@@ -173,7 +174,7 @@ Various Tutorials
 - `Wes McKinney's (pandas BDFL) blog <http://blog.wesmckinney.com/>`_
 - `Statistical analysis made easy in Python with SciPy and pandas DataFrames, by Randal Olson <http://www.randalolson.com/2012/08/06/statistical-analysis-made-easy-in-python/>`_
 - `Statistical Data Analysis in Python, tutorial videos, by Christopher Fonnesbeck from SciPy 2013 <http://conference.scipy.org/scipy2013/tutorial_detail.php?id=109>`_
-- `Financial analysis in python, by Thomas Wiecki <http://nbviewer.ipython.org/github/twiecki/financial-analysis-python-tutorial/blob/master/1.%20Pandas%20Basics.ipynb>`_
+- `Financial analysis in Python, by Thomas Wiecki <http://nbviewer.ipython.org/github/twiecki/financial-analysis-python-tutorial/blob/master/1.%20Pandas%20Basics.ipynb>`_
 - `Intro to pandas data structures, by Greg Reda <http://www.gregreda.com/2013/10/26/intro-to-pandas-data-structures/>`_
 - `Pandas and Python: Top 10, by Manish Amde <http://manishamde.github.io/blog/2013/03/07/pandas-and-python-top-10/>`_
 - `Pandas Tutorial, by Mikhail Semeniuk <http://www.bearrelroll.com/2013/05/python-pandas-tutorial>`_

@@ -327,7 +327,7 @@ int cmp_pandas_datetimestruct(const pandas_datetimestruct *a,
  * this style of access anyway.
  *
  * Returns -1 on error, 0 on success, and 1 (with no error set)
- * if obj doesn't have the neeeded date or datetime attributes.
+ * if obj doesn't have the needed date or datetime attributes.
  */
 int convert_pydatetime_to_datetimestruct(PyObject *obj,
                                          pandas_datetimestruct *out) {

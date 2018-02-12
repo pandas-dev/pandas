@@ -13,18 +13,20 @@ http://www.statsmodels.org/devel/
 import datetime
 import struct
 import sys
+from collections import OrderedDict
 
 import numpy as np
 from dateutil.relativedelta import relativedelta
-from pandas._libs.lib import max_len_string_array, infer_dtype
+from pandas._libs.lib import infer_dtype
 from pandas._libs.tslib import NaT, Timestamp
+from pandas._libs.writers import max_len_string_array
 
 import pandas as pd
 from pandas import compat, to_timedelta, to_datetime, isna, DatetimeIndex
 from pandas.compat import (lrange, lmap, lzip, text_type, string_types, range,
                            zip, BytesIO)
 from pandas.core.base import StringMixin
-from pandas.core.categorical import Categorical
+from pandas.core.arrays import Categorical
 from pandas.core.dtypes.common import (is_categorical_dtype, _ensure_object,
                                        is_datetime64_dtype)
 from pandas.core.frame import DataFrame
@@ -645,7 +647,7 @@ class StataValueLabel(object):
 
     def _encode(self, s):
         """
-        Python 3 compatability shim
+        Python 3 compatibility shim
         """
         if compat.PY3:
             return s.encode(self._encoding)
@@ -968,7 +970,7 @@ class StataReader(StataParser, BaseIterator):
         self._order_categoricals = order_categoricals
         if encoding is not None:
             if encoding not in VALID_ENCODINGS:
-                raise ValueError('Unknown encoding. Only latin-1 and  ascii '
+                raise ValueError('Unknown encoding. Only latin-1 and ascii '
                                  'supported.')
         self._encoding = encoding
         self._chunksize = chunksize
@@ -1339,11 +1341,13 @@ class StataReader(StataParser, BaseIterator):
                 return s
 
     def _read_value_labels(self):
-        if self.format_version <= 108:
-            # Value labels are not supported in version 108 and earlier.
-            return
         if self._value_labels_read:
             # Don't read twice
+            return
+        if self.format_version <= 108:
+            # Value labels are not supported in version 108 and earlier.
+            self._value_labels_read = True
+            self.value_label_dict = dict()
             return
 
         if self.format_version >= 117:
@@ -1571,7 +1575,7 @@ class StataReader(StataParser, BaseIterator):
                 else:
                     data_formatted.append((col, data[col]))
         if requires_type_conversion:
-            data = DataFrame.from_items(data_formatted)
+            data = DataFrame.from_dict(OrderedDict(data_formatted))
         del data_formatted
 
         self._do_convert_missing(data, convert_missing)
@@ -1609,7 +1613,7 @@ class StataReader(StataParser, BaseIterator):
                     convert = True
                 retyped_data.append((col, data[col].astype(dtype)))
             if convert:
-                data = DataFrame.from_items(retyped_data)
+                data = DataFrame.from_dict(OrderedDict(retyped_data))
 
         if index_col is not None:
             data = data.set_index(data.pop(index_col))
@@ -1722,7 +1726,7 @@ class StataReader(StataParser, BaseIterator):
                 cat_converted_data.append((col, cat_data))
             else:
                 cat_converted_data.append((col, data[col]))
-        data = DataFrame.from_items(cat_converted_data)
+        data = DataFrame.from_dict(OrderedDict(cat_converted_data))
         return data
 
     def data_label(self):
@@ -1881,7 +1885,7 @@ class StataWriter(StataParser):
         Input to save
     convert_dates : dict
         Dictionary mapping columns containing datetime types to stata internal
-        format to use when wirting the dates. Options are 'tc', 'td', 'tm',
+        format to use when writing the dates. Options are 'tc', 'td', 'tm',
         'tw', 'th', 'tq', 'ty'. Column can be either an integer or a name.
         Datetime columns that do not have a conversion type specified will be
         converted to 'tc'. Raises NotImplementedError if a datetime column has
@@ -1913,7 +1917,7 @@ class StataWriter(StataParser):
     NotImplementedError
         * If datetimes contain timezone information
     ValueError
-        * Columns listed in convert_dates are noth either datetime64[ns]
+        * Columns listed in convert_dates are neither datetime64[ns]
           or datetime.datetime
         * Column dtype is not representable in Stata
         * Column listed in convert_dates is not in DataFrame
@@ -1997,7 +2001,7 @@ class StataWriter(StataParser):
                 data_formatted.append((col, values))
             else:
                 data_formatted.append((col, data[col]))
-        return DataFrame.from_items(data_formatted)
+        return DataFrame.from_dict(OrderedDict(data_formatted))
 
     def _replace_nans(self, data):
         # return data

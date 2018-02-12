@@ -11,7 +11,7 @@ import numpy as np
 import pandas.util.testing as tm
 
 from pandas import DataFrame, Index
-from pandas._libs.lib import Timestamp
+from pandas._libs.tslib import Timestamp
 from pandas.compat import StringIO
 
 
@@ -492,16 +492,18 @@ a,b,c
         tm.assert_frame_equal(df, expected)
 
         usecols = ['a', 'b', 'c', 'f']
-        with tm.assert_raises_regex(ValueError, msg.format(missing="\['f'\]")):
+        with tm.assert_raises_regex(
+                ValueError, msg.format(missing=r"\['f'\]")):
             self.read_csv(StringIO(data), usecols=usecols)
 
         usecols = ['a', 'b', 'f']
-        with tm.assert_raises_regex(ValueError, msg.format(missing="\['f'\]")):
+        with tm.assert_raises_regex(
+                ValueError, msg.format(missing=r"\['f'\]")):
             self.read_csv(StringIO(data), usecols=usecols)
 
         usecols = ['a', 'b', 'f', 'g']
         with tm.assert_raises_regex(
-                ValueError, msg.format(missing="\[('f', 'g'|'g', 'f')\]")):
+                ValueError, msg.format(missing=r"\[('f', 'g'|'g', 'f')\]")):
             self.read_csv(StringIO(data), usecols=usecols)
 
         names = ['A', 'B', 'C', 'D']
@@ -525,9 +527,11 @@ a,b,c
         # tm.assert_frame_equal(df, expected)
 
         usecols = ['A', 'B', 'C', 'f']
-        with tm.assert_raises_regex(ValueError, msg.format(missing="\['f'\]")):
+        with tm.assert_raises_regex(
+                ValueError, msg.format(missing=r"\['f'\]")):
             self.read_csv(StringIO(data), header=0, names=names,
                           usecols=usecols)
         usecols = ['A', 'B', 'f']
-        with tm.assert_raises_regex(ValueError, msg.format(missing="\['f'\]")):
+        with tm.assert_raises_regex(
+                ValueError, msg.format(missing=r"\['f'\]")):
             self.read_csv(StringIO(data), names=names, usecols=usecols)

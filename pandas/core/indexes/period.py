@@ -7,16 +7,14 @@ from pandas.core import common as com
 from pandas.core.dtypes.common import (
     is_integer,
     is_float,
-    is_object_dtype,
     is_integer_dtype,
     is_float_dtype,
     is_scalar,
     is_datetime64_dtype,
-    is_datetime64tz_dtype,
+    is_datetime64_any_dtype,
     is_timedelta64_dtype,
     is_period_dtype,
     is_bool_dtype,
-    is_categorical_dtype,
     pandas_dtype,
     _ensure_object)
 from pandas.core.dtypes.dtypes import PeriodDtype
@@ -24,7 +22,6 @@ from pandas.core.dtypes.generic import ABCSeries
 
 import pandas.tseries.frequencies as frequencies
 from pandas.tseries.frequencies import get_freq_code as _gfc
-from pandas.core.indexes.category import CategoricalIndex
 from pandas.core.indexes.datetimes import DatetimeIndex, Int64Index, Index
 from pandas.core.indexes.timedeltas import TimedeltaIndex
 from pandas.core.indexes.datetimelike import DatelikeOps, DatetimeIndexOpsMixin
@@ -207,7 +204,6 @@ class PeriodIndex(DatelikeOps, DatetimeIndexOpsMixin, Int64Index):
     DatetimeIndex : Index with datetime64 data
     TimedeltaIndex : Index of timedelta64 data
     """
-    _box_scalars = True
     _typ = 'periodindex'
     _attributes = ['name', 'freq']
 
@@ -506,23 +502,14 @@ class PeriodIndex(DatelikeOps, DatetimeIndexOpsMixin, Int64Index):
     @Appender(_index_shared_docs['astype'])
     def astype(self, dtype, copy=True, how='start'):
         dtype = pandas_dtype(dtype)
-        if is_object_dtype(dtype):
-            return self._box_values_as_index()
-        elif is_integer_dtype(dtype):
-            if copy:
-                return self._int64index.copy()
-            else:
-                return self._int64index
-        elif is_datetime64_dtype(dtype):
-            return self.to_timestamp(how=how)
-        elif is_datetime64tz_dtype(dtype):
-            return self.to_timestamp(how=how).tz_localize(dtype.tz)
+        if is_integer_dtype(dtype):
+            return self._int64index.copy() if copy else self._int64index
+        elif is_datetime64_any_dtype(dtype):
+            tz = getattr(dtype, 'tz', None)
+            return self.to_timestamp(how=how).tz_localize(tz)
         elif is_period_dtype(dtype):
             return self.asfreq(freq=dtype.freq)
-        elif is_categorical_dtype(dtype):
-            return CategoricalIndex(self.values, name=self.name, dtype=dtype,
-                                    copy=copy)
-        raise TypeError('Cannot cast PeriodIndex to dtype %s' % dtype)
+        return super(PeriodIndex, self).astype(dtype, copy=copy)
 
     @Substitution(klass='PeriodIndex')
     @Appender(_shared_docs['searchsorted'])

@@ -8,6 +8,7 @@ import sys
 import warnings
 from datetime import datetime
 from distutils.version import LooseVersion
+from collections import OrderedDict
 
 import numpy as np
 import pandas as pd
@@ -588,6 +589,16 @@ class TestStata(object):
         df0['psch_dis'] = df0["psch_dis"].astype(np.float32)
         tm.assert_frame_equal(df.head(3), df0)
 
+    def test_value_labels_old_format(self):
+        # GH 19417
+        #
+        # Test that value_labels() returns an empty dict if the file format
+        # predates supporting value labels.
+        dpath = os.path.join(self.dirpath, 'S4_EDUC1.dta')
+        reader = StataReader(dpath)
+        assert reader.value_labels() == {}
+        reader.close()
+
     def test_date_export_formats(self):
         columns = ['tc', 'td', 'tw', 'tm', 'tq', 'th', 'ty']
         conversions = {c: c for c in columns}
@@ -945,7 +956,7 @@ class TestStata(object):
                 cols.append((col, pd.Categorical.from_codes(codes, labels)))
             else:
                 cols.append((col, pd.Series(labels, dtype=np.float32)))
-        expected = DataFrame.from_items(cols)
+        expected = DataFrame.from_dict(OrderedDict(cols))
 
         # Read with and with out categoricals, ensure order is identical
         file = getattr(self, file)
