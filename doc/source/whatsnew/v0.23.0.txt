@@ -703,7 +703,7 @@ Datetimelike
 - Bug in :class:`Series` floor-division where operating on a scalar ``timedelta`` raises an exception (:issue:`18846`)
 - Bug in :class:`Series`` with ``dtype='timedelta64[ns]`` where addition or subtraction of ``TimedeltaIndex`` had results cast to ``dtype='int64'`` (:issue:`17250`)
 - Bug in :class:`TimedeltaIndex` where division by a ``Series`` would return a ``TimedeltaIndex`` instead of a ``Series`` (issue:`19042`)
-- Bug in :class:`Series` with ``dtype='timedelta64[ns]`` where addition or subtraction of ``TimedeltaIndex`` could return a ``Series`` with an incorrect name (issue:`19043`)
+- Bug in :class:`Series` with ``dtype='timedelta64[ns]`` where addition or subtraction of ``TimedeltaIndex`` could return a ``Series`` with an incorrect name (:issue:`19043`)
 - Bug in :class:`DatetimeIndex` where the repr was not showing high-precision time values at the end of a day (e.g., 23:59:59.999999999) (:issue:`19030`)
 - Bug where dividing a scalar timedelta-like object with :class:`TimedeltaIndex` performed the reciprocal operation (:issue:`19125`)
 - Bug in ``.astype()`` to non-ns timedelta units would hold the incorrect dtype (:issue:`19176`, :issue:`19223`, :issue:`12425`)
@@ -713,6 +713,7 @@ Datetimelike
 - Bug in comparison of :class:`DatetimeIndex` against ``None`` or ``datetime.date`` objects raising ``TypeError`` for ``==`` and ``!=`` comparisons instead of all-``False`` and all-``True``, respectively (:issue:`19301`)
 - Bug in :class:`Timestamp` and :func:`to_datetime` where a string representing a barely out-of-bounds timestamp would be incorrectly rounded down instead of raising ``OutOfBoundsDatetime`` (:issue:`19382`)
 - Bug in :func:`Timestamp.floor` :func:`DatetimeIndex.floor` where time stamps far in the future and past were not rounded correctly (:issue:`19206`)
+- Bug in :func:`to_datetime` where passing an out-of-bounds datetime with ``errors='coerce'`` and ``utc=True`` would raise ``OutOfBoundsDatetime`` instead of parsing to ``NaT`` (:issue:`19612`)
 -
 
 Timezones
@@ -727,6 +728,7 @@ Timezones
 - Bug in tz-aware :class:`DatetimeIndex` where addition/subtraction with a :class:`TimedeltaIndex` or array with ``dtype='timedelta64[ns]'`` was incorrect (:issue:`17558`)
 - Bug in :func:`DatetimeIndex.insert` where inserting ``NaT`` into a timezone-aware index incorrectly raised (:issue:`16357`)
 - Bug in the :class:`DataFrame` constructor, where tz-aware Datetimeindex and a given column name will result in an empty ``DataFrame`` (:issue:`19157`)
+- Bug in :func:`Timestamp.tz_localize` where localizing a timestamp near the minimum or maximum valid values could overflow and return a timestamp with an incorrect nanosecond value (:issue:`12677`)
 
 Offsets
 ^^^^^^^
@@ -820,6 +822,7 @@ Sparse
 - Bug in which creating a ``SparseDataFrame`` from a dense ``Series`` or an unsupported type raised an uncontrolled exception (:issue:`19374`)
 - Bug in :class:`SparseDataFrame.to_csv` causing exception (:issue:`19384`)
 - Bug in :class:`SparseSeries.memory_usage` which caused segfault by accessing non sparse elements (:issue:`19368`)
+- Bug in constructing a ``SparseArray``: if ``data`` is a scalar and ``index`` is defined it will coerce to ``float64`` regardless of scalar's dtype. (:issue:`19163`)
 
 Reshaping
 ^^^^^^^^^
