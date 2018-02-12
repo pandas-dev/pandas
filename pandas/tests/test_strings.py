@@ -431,16 +431,6 @@ class TestStringMethods(object):
                     values = klass(data)
                     pytest.raises(TypeError, values.str.replace, 'a', repl)
 
-        # GH16808 literal replace (regex=False vs regex=True)
-        values = Series(['f.o', 'foo', NA])
-        exp = Series(['bao', 'bao', NA])
-        result = values.str.replace('f.', 'ba')
-        tm.assert_series_equal(result, exp)
-
-        exp = Series(['bao', 'foo', NA])
-        result = values.str.replace('f.', 'ba', regex=False)
-        tm.assert_series_equal(result, exp)
-
     def test_replace_callable(self):
         # GH 15055
         values = Series(['fooBAD__barBAD', NA])
@@ -450,8 +440,6 @@ class TestStringMethods(object):
         result = values.str.replace('[a-z][A-Z]{2}', repl, n=2)
         exp = Series(['foObaD__baRbaD', NA])
         tm.assert_series_equal(result, exp)
-
-        pytest.raises(ValueError, values.str.replace, 'abc', repl, regex=False)
 
         # test with wrong number of arguments, raising an error
         if compat.PY2:
@@ -534,8 +522,6 @@ class TestStringMethods(object):
                                     "case and flags cannot be"):
             result = values.str.replace(pat, '', case=True)
 
-        pytest.raises(ValueError, values.str.replace, pat, '', regex=False)
-
         # test with callable
         values = Series(['fooBAD__barBAD', NA])
         repl = lambda m: m.group(0).swapcase()
@@ -543,6 +529,24 @@ class TestStringMethods(object):
         result = values.str.replace(pat, repl, n=2)
         exp = Series(['foObaD__baRbaD', NA])
         tm.assert_series_equal(result, exp)
+
+    def test_replace_literal(self):
+        # GH16808 literal replace (regex=False vs regex=True)
+        values = Series(['f.o', 'foo', NA])
+        exp = Series(['bao', 'bao', NA])
+        result = values.str.replace('f.', 'ba')
+        tm.assert_series_equal(result, exp)
+
+        exp = Series(['bao', 'foo', NA])
+        result = values.str.replace('f.', 'ba', regex=False)
+        tm.assert_series_equal(result, exp)
+
+        # Cannot do a literal replace if given a callable repl or compiled pattern
+        callable_repl = lambda m: m.group(0).swapcase()
+        compiled_pat = re.compile('[a-z][A-Z]{2}')
+
+        pytest.raises(ValueError, values.str.replace, 'abc', callable_repl, regex=False)
+        pytest.raises(ValueError, values.str.replace, compiled_pat, '', regex=False)
 
     def test_repeat(self):
         values = Series(['a', 'b', NA, 'c', NA, 'd'])
