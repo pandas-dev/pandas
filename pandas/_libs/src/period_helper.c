@@ -245,7 +245,8 @@ static npy_int64 asfreq_UpsampleWithinDay(npy_int64 ordinal,
 static npy_int64 asfreq_BtoDT(npy_int64 ordinal, asfreq_info *af_info) {
     ordinal += BDAY_OFFSET;
     ordinal =
-        (floordiv(ordinal - 1, 5) * 7 + mod_compat(ordinal - 1, 5) + 1 - ORD_OFFSET);
+        (floordiv(ordinal - 1, 5) * 7 + mod_compat(ordinal - 1, 5) + 1 -
+         ORD_OFFSET);
 
     return upsample_daytime(ordinal, af_info);
 }
