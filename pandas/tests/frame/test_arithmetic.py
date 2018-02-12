@@ -1,7 +1,8 @@
 # -*- coding: utf-8 -*-
-
 import pytest
 import numpy as np
+
+from pandas.compat import range
 
 import pandas as pd
 import pandas.util.testing as tm
@@ -58,9 +59,128 @@ class TestFrameComparisons(object):
         result = getattr(empty, opname)(const).get_dtype_counts()
         tm.assert_series_equal(result, pd.Series([2], ['bool']))
 
+    @pytest.mark.parametrize('timestamps', [
+        [pd.Timestamp('2012-01-01 13:00:00+00:00')] * 2,
+        [pd.Timestamp('2012-01-01 13:00:00')] * 2])
+    def test_tz_aware_scalar_comparison(self, timestamps):
+        # Test for issue #15966
+        df = pd.DataFrame({'test': timestamps})
+        expected = pd.DataFrame({'test': [False, False]})
+        tm.assert_frame_equal(df == -1, expected)
+
 
 # -------------------------------------------------------------------
 # Arithmetic
+
+class TestFrameMulDiv(object):
+    """Tests for DataFrame multiplication and division"""
+    # ------------------------------------------------------------------
+    # Mod By Zero
+
+    def test_df_mod_zero_df(self):
+        # GH#3590, modulo as ints
+        df = pd.DataFrame({'first': [3, 4, 5, 8], 'second': [0, 0, 0, 3]})
+
+        # this is technically wrong, as the integer portion is coerced to float
+        # ###
+        first = pd.Series([0, 0, 0, 0], dtype='float64')
+        second = pd.Series([np.nan, np.nan, np.nan, 0])
+        expected = pd.DataFrame({'first': first, 'second': second})
+        result = df % df
+        tm.assert_frame_equal(result, expected)
+
+    def test_df_mod_zero_array(self):
+        # GH#3590, modulo as ints
+        df = pd.DataFrame({'first': [3, 4, 5, 8], 'second': [0, 0, 0, 3]})
+
+        # this is technically wrong, as the integer portion is coerced to float
+        # ###
+        first = pd.Series([0, 0, 0, 0], dtype='float64')
+        second = pd.Series([np.nan, np.nan, np.nan, 0])
+        expected = pd.DataFrame({'first': first, 'second': second})
+
+        # numpy has a slightly different (wrong) treatment
+        with np.errstate(all='ignore'):
+            arr = df.values % df.values
+        result2 = pd.DataFrame(arr, index=df.index,
+                               columns=df.columns, dtype='float64')
+        result2.iloc[0:3, 1] = np.nan
+        tm.assert_frame_equal(result2, expected)
+
+    def test_df_mod_zero_int(self):
+        # GH#3590, modulo as ints
+        df = pd.DataFrame({'first': [3, 4, 5, 8], 'second': [0, 0, 0, 3]})
+
+        result = df % 0
+        expected = pd.DataFrame(np.nan, index=df.index, columns=df.columns)
+        tm.assert_frame_equal(result, expected)
+
+        # numpy has a slightly different (wrong) treatment
+        with np.errstate(all='ignore'):
+            arr = df.values.astype('float64') % 0
+        result2 = pd.DataFrame(arr, index=df.index, columns=df.columns)
+        tm.assert_frame_equal(result2, expected)
+
+    def test_df_mod_zero_series_does_not_commute(self):
+        # GH#3590, modulo as ints
+        # not commutative with series
+        df = pd.DataFrame(np.random.randn(10, 5))
+        ser = df[0]
+        res = ser % df
+        res2 = df % ser
+        assert not res.fillna(0).equals(res2.fillna(0))
+
+    # ------------------------------------------------------------------
+    # Division By Zero
+
+    def test_df_div_zero_df(self):
+        # integer div, but deal with the 0's (GH#9144)
+        df = pd.DataFrame({'first': [3, 4, 5, 8], 'second': [0, 0, 0, 3]})
+        result = df / df
+
+        first = pd.Series([1.0, 1.0, 1.0, 1.0])
+        second = pd.Series([np.nan, np.nan, np.nan, 1])
+        expected = pd.DataFrame({'first': first, 'second': second})
+        tm.assert_frame_equal(result, expected)
+
+    def test_df_div_zero_array(self):
+        # integer div, but deal with the 0's (GH#9144)
+        df = pd.DataFrame({'first': [3, 4, 5, 8], 'second': [0, 0, 0, 3]})
+
+        first = pd.Series([1.0, 1.0, 1.0, 1.0])
+        second = pd.Series([np.nan, np.nan, np.nan, 1])
+        expected = pd.DataFrame({'first': first, 'second': second})
+
+        with np.errstate(all='ignore'):
+            arr = df.values.astype('float') / df.values
+        result = pd.DataFrame(arr, index=df.index,
+                              columns=df.columns)
+        tm.assert_frame_equal(result, expected)
+
+    def test_df_div_zero_int(self):
+        # integer div, but deal with the 0's (GH#9144)
+        df = pd.DataFrame({'first': [3, 4, 5, 8], 'second': [0, 0, 0, 3]})
+
+        result = df / 0
+        expected = pd.DataFrame(np.inf, index=df.index, columns=df.columns)
+        expected.iloc[0:3, 1] = np.nan
+        tm.assert_frame_equal(result, expected)
+
+        # numpy has a slightly different (wrong) treatment
+        with np.errstate(all='ignore'):
+            arr = df.values.astype('float64') / 0
+        result2 = pd.DataFrame(arr, index=df.index,
+                               columns=df.columns)
+        tm.assert_frame_equal(result2, expected)
+
+    def test_df_div_zero_series_does_not_commute(self):
+        # integer div, but deal with the 0's (GH#9144)
+        df = pd.DataFrame(np.random.randn(10, 5))
+        ser = df[0]
+        res = ser / df
+        res2 = df / ser
+        assert not res.fillna(0).equals(res2.fillna(0))
+
 
 class TestFrameArithmetic(object):
 
@@ -125,7 +245,7 @@ class TestPeriodFrameArithmetic(object):
         exp = pd.DataFrame({'A': np.array([2, 1], dtype=object),
                             'B': np.array([14, 13], dtype=object)})
         tm.assert_frame_equal(p - df, exp)
-        tm.assert_frame_equal(df - p, -exp)
+        tm.assert_frame_equal(df - p, -1 * exp)
 
         df2 = pd.DataFrame({'A': [pd.Period('2015-05', freq='M'),
                                   pd.Period('2015-06', freq='M')],
@@ -137,4 +257,4 @@ class TestPeriodFrameArithmetic(object):
         exp = pd.DataFrame({'A': np.array([4, 4], dtype=object),
                             'B': np.array([16, 16], dtype=object)})
         tm.assert_frame_equal(df2 - df, exp)
-        tm.assert_frame_equal(df - df2, -exp)
+        tm.assert_frame_equal(df - df2, -1 * exp)

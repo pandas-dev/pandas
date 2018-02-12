@@ -24,15 +24,6 @@ frequency conversion routines.
  * declarations from period here
  */
 
-#define SECONDS_PER_DAY ((double)86400.0)
-
-#define Py_AssertWithArg(x, errortype, errorstr, a1) \
-    {                                                \
-        if (!(x)) {                                  \
-            PyErr_Format(errortype, errorstr, a1);   \
-            goto onError;                            \
-        }                                            \
-    }
 #define Py_Error(errortype, errorstr)         \
     {                                         \
         PyErr_SetString(errortype, errorstr); \
@@ -110,6 +101,10 @@ frequency conversion routines.
 #define INT_ERR_CODE INT32_MIN
 
 typedef struct asfreq_info {
+    int is_end;
+    // char relation == 'S' (for START) --> is_end = 0
+    // char relation == 'E' (for END) --> is_end = 1
+
     int from_week_end;  // day the week ends on in the "from" frequency
     int to_week_end;    // day the week ends on in the "to" frequency
 
@@ -123,21 +118,15 @@ typedef struct asfreq_info {
 } asfreq_info;
 
 typedef struct date_info {
-    npy_int64 absdate;
-    double abstime;
-
     double second;
     int minute;
     int hour;
     int day;
     int month;
-    int quarter;
     int year;
-    int day_of_week;
-    int day_of_year;
 } date_info;
 
-typedef npy_int64 (*freq_conv_func)(npy_int64, char, asfreq_info *);
+typedef npy_int64 (*freq_conv_func)(npy_int64, asfreq_info *af_info);
 
 /*
  * new pandas API helper functions here
@@ -145,33 +134,10 @@ typedef npy_int64 (*freq_conv_func)(npy_int64, char, asfreq_info *);
 
 npy_int64 asfreq(npy_int64 period_ordinal, int freq1, int freq2, char relation);
 
-npy_int64 get_period_ordinal(int year, int month, int day, int hour, int minute,
-                             int second, int microseconds, int picoseconds,
-                             int freq);
-
-npy_int64 get_python_ordinal(npy_int64 period_ordinal, int freq);
-
-int get_date_info(npy_int64 ordinal, int freq, struct date_info *dinfo);
 freq_conv_func get_asfreq_func(int fromFreq, int toFreq);
-void get_asfreq_info(int fromFreq, int toFreq, asfreq_info *af_info);
+void get_asfreq_info(int fromFreq, int toFreq, char relation,
+                     asfreq_info *af_info);
 
-int pyear(npy_int64 ordinal, int freq);
-int pqyear(npy_int64 ordinal, int freq);
-int pquarter(npy_int64 ordinal, int freq);
-int pmonth(npy_int64 ordinal, int freq);
-int pday(npy_int64 ordinal, int freq);
-int pweekday(npy_int64 ordinal, int freq);
-int pday_of_week(npy_int64 ordinal, int freq);
-int pday_of_year(npy_int64 ordinal, int freq);
-int pweek(npy_int64 ordinal, int freq);
-int phour(npy_int64 ordinal, int freq);
-int pminute(npy_int64 ordinal, int freq);
-int psecond(npy_int64 ordinal, int freq);
-int pdays_in_month(npy_int64 ordinal, int freq);
-
-char *c_strftime(struct date_info *dinfo, char *fmt);
-int get_yq(npy_int64 ordinal, int freq, int *quarter, int *year);
-
-void initialize_daytime_conversion_factor_matrix(void);
+npy_int64 get_daytime_conversion_factor(int from_index, int to_index);
 
 #endif  // PANDAS__LIBS_SRC_PERIOD_HELPER_H_
