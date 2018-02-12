@@ -29,7 +29,7 @@ def salaries_table(parser_data):
     return read_table(path)
 
 
-@pytest.yield_fixture
+@pytest.fixture
 def s3_resource(tips_file, jsonl_file):
     """Fixture for mocking S3 interaction.
 
