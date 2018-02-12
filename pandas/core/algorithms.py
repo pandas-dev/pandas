@@ -1315,6 +1315,14 @@ def take_nd(arr, indexer, axis=0, out=None, fill_value=np.nan, mask_info=None,
         undefined if allow_fill == False and -1 is present in indexer.
     """
 
+    if is_sparse(arr):
+        return arr.take(indexer, axis=axis, allow_fill=allow_fill,
+                        fill_value=fill_value)
+
+    #    return take_nd(arr.get_values(), indexer, axis=axis, out=out,
+    #                   fill_value=fill_value, mask_info=mask_info,
+    #                   allow_fill=allow_fill)
+
     # dispatch to internal type takes
     if is_categorical(arr):
         return arr.take_nd(indexer, fill_value=fill_value,

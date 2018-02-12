@@ -39,7 +39,6 @@ import pandas.io.formats.printing as printing
 from pandas.util._decorators import Appender
 from pandas.core.indexes.base import _index_shared_docs
 
-
 _sparray_doc_kwargs = dict(klass='SparseArray')
 
 
@@ -271,6 +270,7 @@ class SparseArray(PandasObject, np.ndarray):
             ufunc, args, domain = context
             # to apply ufunc only to fill_value (to avoid recursive call)
             args = [getattr(a, 'fill_value', a) for a in args]
+
             with np.errstate(all='ignore'):
                 fill_value = ufunc(self.fill_value, *args[1:])
         else:
@@ -304,9 +304,9 @@ class SparseArray(PandasObject, np.ndarray):
         self._fill_value = fill_value
 
     def __len__(self):
-        try:
+        if hasattr(self, 'sp_index'):
             return self.sp_index.length
-        except:
+        else:
             return 0
 
     def __unicode__(self):

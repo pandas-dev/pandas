@@ -73,6 +73,10 @@ class SparseDataFrame(DataFrame):
             if columns is None:
                 raise Exception("cannot pass a series w/o a name or columns")
             data = {columns[0]: data}
+        elif isinstance(data, BlockManager):
+            fill_value_size = len(set(b.fill_value for b in data.blocks))
+            if default_fill_value is None and fill_value_size == 1:
+                default_fill_value = data.blocks[0].fill_value
 
         if default_fill_value is None:
             default_fill_value = np.nan

@@ -615,32 +615,29 @@ class TestSparseDataFrameIndexing(object):
         tm.assert_sp_frame_equal(sparse.iloc[[1, 2]],
                                  orig.iloc[[1, 2]].to_sparse())
 
-    def test_getitem_fill_value(self):
+    @pytest.mark.parametrize('fill_value', [0, 1, np.nan, None])
+    def test_getitem_fill_value(self, fill_value):
         orig = pd.DataFrame([[1, np.nan, 0],
                              [2, 3, np.nan],
                              [0, np.nan, 4],
                              [0, np.nan, 5]],
                             columns=list('xyz'))
-        sparse = orig.to_sparse(fill_value=0)
+        sparse = orig.to_sparse(fill_value=fill_value)
 
         tm.assert_sp_series_equal(sparse['y'],
-                                  orig['y'].to_sparse(fill_value=0))
+                                  orig['y'].to_sparse(fill_value=fill_value))
 
-        exp = orig[['x']].to_sparse(fill_value=0)
-        exp._default_fill_value = np.nan
+        exp = orig[['x']].to_sparse(fill_value=fill_value)
         tm.assert_sp_frame_equal(sparse[['x']], exp)
 
-        exp = orig[['z', 'x']].to_sparse(fill_value=0)
-        exp._default_fill_value = np.nan
+        exp = orig[['z', 'x']].to_sparse(fill_value=fill_value)
         tm.assert_sp_frame_equal(sparse[['z', 'x']], exp)
 
         indexer = [True, False, True, True]
-        exp = orig[indexer].to_sparse(fill_value=0)
-        exp._default_fill_value = np.nan
+        exp = orig[indexer].to_sparse(fill_value=fill_value)
         tm.assert_sp_frame_equal(sparse[indexer], exp)
 
-        exp = orig.iloc[[1, 2]].to_sparse(fill_value=0)
-        exp._default_fill_value = np.nan
+        exp = orig.iloc[[1, 2]].to_sparse(fill_value=fill_value)
         tm.assert_sp_frame_equal(sparse.iloc[[1, 2]], exp)
 
     def test_loc(self):
@@ -877,24 +874,22 @@ class TestSparseDataFrameIndexing(object):
         tm.assert_sp_frame_equal(sparse.take([-1, -2]),
                                  orig.take([-1, -2]).to_sparse())
 
-    def test_take_fill_value(self):
+    @pytest.mark.parametrize('fill_value', [0, 1, np.nan, None])
+    def test_take_fill_value(self, fill_value):
         orig = pd.DataFrame([[1, np.nan, 0],
                              [2, 3, np.nan],
                              [0, np.nan, 4],
                              [0, np.nan, 5]],
                             columns=list('xyz'))
-        sparse = orig.to_sparse(fill_value=0)
+        sparse = orig.to_sparse(fill_value=fill_value)
 
-        exp = orig.take([0]).to_sparse(fill_value=0)
-        exp._default_fill_value = np.nan
+        exp = orig.take([0]).to_sparse(fill_value=fill_value)
         tm.assert_sp_frame_equal(sparse.take([0]), exp)
 
-        exp = orig.take([0, 1]).to_sparse(fill_value=0)
-        exp._default_fill_value = np.nan
+        exp = orig.take([0, 1]).to_sparse(fill_value=fill_value)
         tm.assert_sp_frame_equal(sparse.take([0, 1]), exp)
 
-        exp = orig.take([-1, -2]).to_sparse(fill_value=0)
-        exp._default_fill_value = np.nan
+        exp = orig.take([-1, -2]).to_sparse(fill_value=fill_value)
         tm.assert_sp_frame_equal(sparse.take([-1, -2]), exp)
 
     def test_reindex(self):

@@ -175,7 +175,7 @@ class SparseSeries(Series):
 
     def __array__(self, result=None):
         """ the array interface, return my values """
-        return self.block.values
+        return self.block.values.values
 
     def get_values(self):
         """ same as values """
@@ -271,6 +271,7 @@ class SparseSeries(Series):
 
         See SparseArray.__array_wrap__ for detail.
         """
+
         if isinstance(context, tuple) and len(context) == 3:
             ufunc, args, domain = context
             args = [getattr(a, 'fill_value', a) for a in args]
@@ -279,8 +280,18 @@ class SparseSeries(Series):
         else:
             fill_value = self.fill_value
 
+        # GH 14167
+        # Since we are returning a dense representation of
+        # SparseSeries sparse_index might not align when calling
+        # ufunc on the array. There doesn't seem to be a better way
+        # to do this unfortunately.
+        if len(result) != self.sp_index.npoints:
+            sparse_index = None
+        else:
+            sparse_index = self.sp_index
+
         return self._constructor(result, index=self.index,
-                                 sparse_index=self.sp_index,
+                                 sparse_index=sparse_index,
                                  fill_value=fill_value,
                                  copy=False).__finalize__(self)
 
@@ -402,8 +413,8 @@ class SparseSeries(Series):
         -------
         abs: type of caller
         """
-        return self._constructor(np.abs(self.values),
-                                 index=self.index).__finalize__(self)
+
+        return np.abs(self)
 
     def get(self, label, default=None):
         """
@@ -544,7 +555,7 @@ class SparseSeries(Series):
             index = self.index.take(int_index.indices)
             return Series(self.sp_values, index=index, name=self.name)
         else:
-            return Series(self.values.to_dense(), index=self.index,
+            return Series(self.get_values(), index=self.index,
                           name=self.name)
 
     @property

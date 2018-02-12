@@ -7,6 +7,7 @@ from numpy import nan
 import numpy as np
 import random
 import re
+import itertools
 
 import pandas as pd
 from pandas.compat import lrange, lzip
@@ -18,7 +19,10 @@ from pandas.core.dtypes.common import (
     is_categorical_dtype,
     is_object_dtype,
 )
-from pandas import DataFrame, Index, MultiIndex, Series, Categorical
+from pandas import (
+    DataFrame, Index,
+    MultiIndex, Series, Categorical
+)
 import pandas.util.testing as tm
 from pandas.api.types import CategoricalDtype as CDT
 
@@ -1829,3 +1833,88 @@ class TestMergeOnIndexes(object):
                           how=how,
                           sort=sort)
         tm.assert_frame_equal(result, expected)
+
+
+class TestMergeSparseDataFrames(object):
+    @pytest.mark.parametrize('fill_value,how', itertools.product([0, 1,
+                                                                  None,
+                                                                  np.nan],
+                                                                 ['left',
+                                                                  'right',
+                                                                  'outer',
+                                                                  'inner']))
+    def test_merge_two_sparse_frames(self, fill_value, how):
+        dense_evens = pd.DataFrame({'A': list(range(0, 200, 2)),
+                                    'B': np.random.randint(0, 100, size=100)})
+        dense_threes = pd.DataFrame({'A': list(range(0, 300, 3)),
+                                     'B': np.random.randint(0, 100, size=100)})
+
+        sparse_evens = dense_evens.to_sparse(fill_value=fill_value)
+        sparse_threes = dense_threes.to_sparse(fill_value=fill_value)
+
+        to_merge_sparse = [sparse_evens, sparse_threes]
+
+        to_merge_dense = [dense_evens, dense_threes]
+
+        for _ in range(2):
+            sparse_merge = to_merge_sparse[0].merge(to_merge_sparse[1],
+                                                    how=how, on='A')
+
+            dense_merge = to_merge_dense[0].merge(to_merge_dense[1],
+                                                  how=how, on='A')
+
+            # If you merge two dense frames together it tends to default to
+            # float64 not the original dtype
+            dense_merge['B_x'] = dense_merge['B_x'].astype(dense_evens.A.dtype,
+                                                           errors='ignore')
+            dense_merge['B_y'] = dense_merge['B_y'].astype(dense_evens.A.dtype,
+                                                           errors='ignore')
+
+            if fill_value is None or fill_value is np.nan:
+                assert sparse_merge.default_fill_value is np.nan
+            else:
+                tm.assert_almost_equal(sparse_merge.default_fill_value,
+                                       fill_value)
+
+            exp = dense_merge.to_sparse(fill_value=fill_value)
+            tm.assert_sp_frame_equal(sparse_merge, exp,
+                                     exact_indices=False,
+                                     check_dtype=False)
+
+            to_merge_sparse = to_merge_sparse[::-1]
+            to_merge_dense = to_merge_dense[::-1]
+
+    @pytest.mark.parametrize('fill_value,how', itertools.product([0, 1,
+                                                                  None,
+                                                                  np.nan],
+                                                                 ['left',
+                                                                  'right',
+                                                                  'outer',
+                                                                  'inner']))
+    def test_merge_dense_sparse_frames(self, fill_value, how):
+        fill_value = np.nan
+
+        dense_evens = pd.DataFrame({'A': list(range(0, 200, 2)),
+                                    'B': np.random.randint(0, 100, size=100)})
+
+        dense_threes = pd.DataFrame({'A': list(range(0, 300, 3)),
+                                     'B': np.random.randint(0, 100, size=100)})
+
+        sparse_evens = dense_evens.to_sparse(fill_value=fill_value)
+
+        to_merge = [sparse_evens, dense_threes]
+        to_merge_dense = [dense_evens, dense_threes]
+
+        for _ in range(2):
+            merged = to_merge[0].merge(to_merge[1], how=how, on='A')
+
+            dense_merge = to_merge_dense[0].merge(to_merge_dense[1],
+                                                  how=how, on='A')
+
+            for column in dense_merge.columns:
+                dense_col = merged[column].to_dense()
+                tm.assert_series_equal(dense_col, dense_merge[column],
+                                       check_dtype=False)
+
+            to_merge = to_merge[::-1]
+            to_merge_dense = to_merge_dense[::-1]
