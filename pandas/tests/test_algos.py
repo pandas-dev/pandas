@@ -271,6 +271,7 @@ class TestUnique(object):
 
     @pytest.mark.parametrize('fill_value', [0, 1, np.nan, None])
     def test_sparse(self, fill_value):
+        # GH 19595
         arr = SparseArray([0, 1, np.nan, None], fill_value=fill_value)
 
         result = algos.unique(arr)
