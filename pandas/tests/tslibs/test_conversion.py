@@ -23,7 +23,7 @@ def compare_local_to_utc(tz_didx, utc_didx):
     tm.assert_numpy_array_equal(result, result_single)
 
 
-class TestTslib(object):
+class TestTZConvert(object):
 
     @pytest.mark.parametrize('tz', ['UTC', 'Asia/Tokyo',
                                     'US/Eastern', 'Europe/Moscow'])
@@ -33,6 +33,7 @@ class TestTslib(object):
         tz_didx = date_range('2014-03-01', '2015-01-10', freq='H', tz=tz)
         utc_didx = date_range('2014-03-01', '2015-01-10', freq='H')
         compare_utc_to_local(tz_didx, utc_didx)
+
         # local tz to UTC can be differ in hourly (or higher) freqs because
         # of DST
         compare_local_to_utc(tz_didx, utc_didx)
@@ -46,17 +47,10 @@ class TestTslib(object):
         compare_utc_to_local(tz_didx, utc_didx)
         compare_local_to_utc(tz_didx, utc_didx)
 
-    def test_tz_convert_empty(self):
-        # Check empty array
-        arr = np.array([], dtype=np.int64)
-        result = conversion.tz_convert(arr,
-                                       timezones.maybe_get_tz('US/Eastern'),
-                                       timezones.maybe_get_tz('Asia/Tokyo'))
-        tm.assert_numpy_array_equal(result, arr)
-
-    def test_tz_convert_nat(self):
-        # Check all-NaT array
-        arr = np.array([iNaT], dtype=np.int64)
+    @pytest.mark.parametrize('arr', [
+        pytest.param(np.array([], dtype=np.int64), id='empty'),
+        pytest.param(np.array([iNaT], dtype=np.int64), id='all_nat')])
+    def test_tz_convert_corner(self, arr):
         result = conversion.tz_convert(arr,
                                        timezones.maybe_get_tz('US/Eastern'),
                                        timezones.maybe_get_tz('Asia/Tokyo'))

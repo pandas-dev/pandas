@@ -9,20 +9,17 @@ from pandas._libs.tslibs import timezones
 from pandas import Timestamp
 
 
-class TestTimeZoneCacheKey(object):
-
-    @pytest.mark.parametrize('tz_name', list(pytz.common_timezones))
-    def test_cache_keys_are_distinct_for_pytz_vs_dateutil(self, tz_name):
-        if tz_name == 'UTC':
-            # skip utc as it's a special case in dateutil
-            return
-        tz_p = timezones.maybe_get_tz(tz_name)
-        tz_d = timezones.maybe_get_tz('dateutil/' + tz_name)
-        if tz_d is None:
-            # skip timezones that dateutil doesn't know about.
-            return
-        assert (timezones._p_tz_cache_key(tz_p) !=
-                timezones._p_tz_cache_key(tz_d))
+@pytest.mark.parametrize('tz_name', list(pytz.common_timezones))
+def test_cache_keys_are_distinct_for_pytz_vs_dateutil(tz_name):
+    if tz_name == 'UTC':
+        # skip utc as it's a special case in dateutil
+        return
+    tz_p = timezones.maybe_get_tz(tz_name)
+    tz_d = timezones.maybe_get_tz('dateutil/' + tz_name)
+    if tz_d is None:
+        # skip timezones that dateutil doesn't know about.
+        return
+    assert timezones._p_tz_cache_key(tz_p) != timezones._p_tz_cache_key(tz_d)
 
 
 def test_tzlocal():
