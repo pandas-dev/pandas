@@ -38,7 +38,7 @@ from pandas.core.internals import (items_overlap_with_suffix,
                                    concatenate_block_managers)
 from pandas.util._decorators import Appender, Substitution
 
-from pandas.core.sparse.array import SparseArray
+from pandas.core.dtypes.generic import ABCSparseArray
 
 from pandas.core.sorting import is_int64_overflow_possible
 import pandas.core.algorithms as algos
@@ -733,7 +733,7 @@ class _MergeOperation(object):
                     key_col = rvals
                 else:
                     # Might need to be IntIndex not Index
-                    if isinstance(lvals, SparseArray):
+                    if isinstance(lvals, ABCSparseArray):
                         key_col = Index(lvals.get_values()).where(~mask, rvals)
                     else:
                         key_col = Index(lvals).where(~mask, rvals)
