@@ -286,8 +286,8 @@ whereas a tuple of lists refer to several values within a level:
 
 .. ipython:: python
 
-   s = pd.Series([1, 2, 3, 4],
-                 index=pd.MultiIndex.from_product([["A", "B"], ["c", "d"]]))
+   s = pd.Series([1, 2, 3, 4, 5, 6],
+                 index=pd.MultiIndex.from_product([["A", "B"], ["c", "d", "e"]]))
    s.loc[[("A", "c"), ("B", "d")]]  # list of tuples
    s.loc[(["A", "B"], ["c", "d"])]  # tuple of lists
 
@@ -703,9 +703,9 @@ The ``CategoricalIndex`` is **preserved** after indexing:
 
    df2.loc['a'].index
 
-Sorting the index will sort by the order of the categories (Recall that we 
-created the index with ``CategoricalDtype(list('cab'))``, so the sorted 
-order is ``cab``.). 
+Sorting the index will sort by the order of the categories (recall that we
+created the index with ``CategoricalDtype(list('cab'))``, so the sorted
+order is ``cab``).
 
 .. ipython:: python
 
