@@ -627,9 +627,9 @@ class DatetimeIndexOpsMixin(object):
                 ._convert_scalar_indexer(key, kind=kind))
 
     def _add_datelike(self, other):
-        raise TypeError("cannot add {0} and {1}"
-                        .format(type(self).__name__,
-                                type(other).__name__))
+        raise TypeError("cannot add {cls} and {typ}"
+                        .format(cls=type(self).__name__,
+                                typ=type(other).__name__))
 
     def _sub_datelike(self, other):
         raise com.AbstractMethodError(self)
@@ -670,8 +670,9 @@ class DatetimeIndexOpsMixin(object):
             elif isinstance(self, TimedeltaIndex) and isinstance(other, Index):
                 if hasattr(other, '_add_delta'):
                     return other._add_delta(self)
-                raise TypeError("cannot add TimedeltaIndex and {typ}"
-                                .format(typ=type(other)))
+                raise TypeError("cannot add {cls} and {typ}"
+                                .format(cls=type(self).__name__,
+                                        typ=type(other).__name__))
             elif is_integer(other):
                 return self.shift(other)
             elif isinstance(other, (datetime, np.datetime64)):
@@ -705,8 +706,9 @@ class DatetimeIndexOpsMixin(object):
                 return self._sub_offset_array(other)
             elif isinstance(self, TimedeltaIndex) and isinstance(other, Index):
                 if not isinstance(other, TimedeltaIndex):
-                    raise TypeError("cannot subtract TimedeltaIndex and {typ}"
-                                    .format(typ=type(other).__name__))
+                    raise TypeError("cannot subtract {cls} and {typ}"
+                                    .format(cls=type(self).__name__,
+                                            typ=type(other).__name__))
                 return self._add_delta(-other)
             elif isinstance(other, DatetimeIndex):
                 return self._sub_datelike(other)
@@ -794,7 +796,7 @@ class DatetimeIndexOpsMixin(object):
 
     def shift(self, n, freq=None):
         """
-        Specialized shift which produces a DatetimeIndex
+        Specialized shift which produces a new object of the same type as self
 
         Parameters
         ----------
@@ -804,7 +806,7 @@ class DatetimeIndexOpsMixin(object):
 
         Returns
         -------
-        shifted : DatetimeIndex
+        shifted : type(self)
         """
         if freq is not None and freq != self.freq:
             if isinstance(freq, compat.string_types):

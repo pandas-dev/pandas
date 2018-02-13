@@ -37,7 +37,7 @@ from pandas.errors import PerformanceWarning
 from pandas.core.algorithms import checked_add_with_arr
 
 from pandas.core.indexes.base import Index, _index_shared_docs
-from pandas.core.indexes.numeric import Int64Index, Float64Index
+from pandas.core.indexes.numeric import Int64Index
 import pandas.compat as compat
 from pandas.tseries.frequencies import to_offset, get_period_alias, Resolution
 from pandas.core.indexes.datetimelike import (
@@ -93,7 +93,7 @@ def _field_accessor(name, field, docstring=None):
             result = fields.get_date_field(values, field)
             result = self._maybe_mask_results(result, convert='float64')
 
-        return Index(result, name=self.name)
+        return self._base_constructor(result, name=self.name)
 
     f.__name__ = name
     f.__doc__ = docstring
@@ -119,7 +119,7 @@ def _dt_index_cmp(opname, cls, nat_result=False):
                 result.fill(nat_result)
         else:
             if isinstance(other, list):
-                other = DatetimeIndex(other)
+                other = self.__class__(other)
             elif not isinstance(other, (np.datetime64, np.ndarray,
                                         Index, ABCSeries)):
                 # Following Timestamp convention, __eq__ is all-False
@@ -151,7 +151,7 @@ def _dt_index_cmp(opname, cls, nat_result=False):
         # support of bool dtype indexers
         if is_bool_dtype(result):
             return result
-        return Index(result)
+        return self._base_constructor(result)
 
     return compat.set_function_name(wrapper, opname, cls)
 
@@ -826,18 +826,18 @@ class DatetimeIndex(DatelikeOps, TimelikeOps, DatetimeIndexOpsMixin,
         # adding a timedeltaindex to a datetimelike
         if other is libts.NaT:
             return self._nat_new(box=True)
-        raise TypeError("cannot add {0} and {1}"
-                        .format(type(self).__name__,
-                                type(other).__name__))
+        raise TypeError("cannot add {cls} and {typ}"
+                        .format(cls=type(self).__name__,
+                                typ=type(other).__name__))
 
     def _sub_datelike(self, other):
         # subtract a datetime from myself, yielding a TimedeltaIndex
-        from pandas import TimedeltaIndex
         if isinstance(other, DatetimeIndex):
             # require tz compat
             if not self._has_same_tz(other):
-                raise TypeError("DatetimeIndex subtraction must have the same "
-                                "timezones or no timezones")
+                raise TypeError("{cls} subtraction must have the same "
+                                "timezones or no timezones"
+                                .format(cls=type(self).__name__))
             result = self._sub_datelike_dti(other)
         elif isinstance(other, (datetime, np.datetime64)):
             other = Timestamp(other)
@@ -854,9 +854,11 @@ class DatetimeIndex(DatelikeOps, TimelikeOps, DatetimeIndexOpsMixin,
                 result = self._maybe_mask_results(result,
                                                   fill_value=libts.iNaT)
         else:
-            raise TypeError("cannot subtract DatetimeIndex and {typ}"
-                            .format(typ=type(other).__name__))
-        return TimedeltaIndex(result, name=self.name, copy=False)
+            raise TypeError("cannot subtract {cls} and {typ}"
+                            .format(cls=type(self).__name__,
+                                    typ=type(other).__name__))
+        return self._base_constructor(result, name=self.name,
+                                      copy=False, dtype='timedelta64[ns]')
 
     def _sub_datelike_dti(self, other):
         """subtraction of two DatetimeIndexes"""
@@ -890,7 +892,7 @@ class DatetimeIndex(DatelikeOps, TimelikeOps, DatetimeIndexOpsMixin,
             new_values = self._add_delta_td(delta)
         elif is_timedelta64_dtype(delta):
             if not isinstance(delta, TimedeltaIndex):
-                delta = TimedeltaIndex(delta)
+                delta = self._base_constructor(delta, dtype='timedelta64[ns]')
             else:
                 # update name when delta is Index
                 name = com._maybe_match_name(self, delta)
@@ -901,7 +903,7 @@ class DatetimeIndex(DatelikeOps, TimelikeOps, DatetimeIndexOpsMixin,
             new_values = self.astype('O') + delta
 
         tz = 'UTC' if self.tz is not None else None
-        result = DatetimeIndex(new_values, tz=tz, name=name, freq='infer')
+        result = self.__class__(new_values, tz=tz, name=name, freq='infer')
         if self.tz is not None and self.tz is not utc:
             result = result.tz_convert(self.tz)
         return result
@@ -918,8 +920,8 @@ class DatetimeIndex(DatelikeOps, TimelikeOps, DatetimeIndexOpsMixin,
             return result
 
         except NotImplementedError:
-            warnings.warn("Non-vectorized DateOffset being applied to Series "
-                          "or DatetimeIndex", PerformanceWarning)
+            warnings.warn("Non-vectorized DateOffset being applied to {cls}"
+                          .format(cls=type(self).__name__), PerformanceWarning)
             return self.astype('O') + offset
 
     def _add_offset_array(self, other):
@@ -930,8 +932,8 @@ class DatetimeIndex(DatelikeOps, TimelikeOps, DatetimeIndexOpsMixin,
             return self + other[0]
         else:
             warnings.warn("Adding/subtracting array of DateOffsets to "
-                          "{} not vectorized".format(type(self)),
-                          PerformanceWarning)
+                          "{cls} not vectorized"
+                          .format(cls=type(self).__name__), PerformanceWarning)
             return self.astype('O') + np.array(other)
             # TODO: This works for __add__ but loses dtype in __sub__
 
@@ -943,8 +945,8 @@ class DatetimeIndex(DatelikeOps, TimelikeOps, DatetimeIndexOpsMixin,
             return self - other[0]
         else:
             warnings.warn("Adding/subtracting array of DateOffsets to "
-                          "{} not vectorized".format(type(self)),
-                          PerformanceWarning)
+                          "{cls} not vectorized"
+                          .format(cls=type(self).__name__), PerformanceWarning)
             res_values = self.astype('O').values - np.array(other)
             return self.__class__(res_values, freq='infer')
 
@@ -1753,8 +1755,8 @@ class DatetimeIndex(DatelikeOps, TimelikeOps, DatetimeIndexOpsMixin,
         normalized : DatetimeIndex
         """
         new_values = conversion.date_normalize(self.asi8, self.tz)
-        return DatetimeIndex(new_values, freq='infer', name=self.name,
-                             tz=self.tz)
+        return self.__class__(new_values, freq='infer',
+                              name=self.name, tz=self.tz)
 
     @Substitution(klass='DatetimeIndex')
     @Appender(_shared_docs['searchsorted'])
@@ -2060,19 +2062,20 @@ class DatetimeIndex(DatelikeOps, TimelikeOps, DatetimeIndexOpsMixin,
         testarr = month < 3
         year[testarr] -= 1
         month[testarr] += 12
-        return Float64Index(day +
-                            np.fix((153 * month - 457) / 5) +
-                            365 * year +
-                            np.floor(year / 4) -
-                            np.floor(year / 100) +
-                            np.floor(year / 400) +
-                            1721118.5 +
-                            (self.hour +
-                             self.minute / 60.0 +
-                             self.second / 3600.0 +
-                             self.microsecond / 3600.0 / 1e+6 +
-                             self.nanosecond / 3600.0 / 1e+9
-                             ) / 24.0)
+        result = (day +
+                  np.fix((153 * month - 457) / 5) +
+                  365 * year +
+                  np.floor(year / 4) -
+                  np.floor(year / 100) +
+                  np.floor(year / 400) +
+                  1721118.5 +
+                  (self.hour +
+                   self.minute / 60.0 +
+                   self.second / 3600.0 +
+                   self.microsecond / 3600.0 / 1e+6 +
+                   self.nanosecond / 3600.0 / 1e+9
+                   ) / 24.0)
+        return self._base_constructor(result, dtype=np.float64)
 
 
 DatetimeIndex._add_comparison_methods()

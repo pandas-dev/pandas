@@ -46,7 +46,7 @@ def _field_accessor(name, alias, docstring=None):
         if self.hasnans:
             result = self._maybe_mask_results(result, convert='float64')
 
-        return Index(result, name=self.name)
+        return self._base_constructor(result, name=self.name)
 
     f.__name__ = name
     f.__doc__ = docstring
@@ -74,7 +74,7 @@ def _td_index_cmp(opname, cls, nat_result=False):
             if not is_list_like(other):
                 raise TypeError(msg.format(type(other)))
 
-            other = TimedeltaIndex(other).values
+            other = self.__class__(other).values
             result = func(other)
             result = com._values_from_object(result)
 
@@ -92,7 +92,7 @@ def _td_index_cmp(opname, cls, nat_result=False):
         # support of bool dtype indexers
         if is_bool_dtype(result):
             return result
-        return Index(result)
+        return self._base_constructor(result)
 
     return compat.set_function_name(wrapper, opname, cls)
 
@@ -364,10 +364,11 @@ class TimedeltaIndex(DatetimeIndexOpsMixin, TimelikeOps, Int64Index):
             # update name when delta is index
             name = com._maybe_match_name(self, delta)
         else:
-            raise TypeError("cannot add the type {0} to a TimedeltaIndex"
-                            .format(type(delta)))
+            raise TypeError("cannot add the type {typ} to a {cls}"
+                            .format(typ=type(delta).__name__,
+                                    cls=type(self).__name__))
 
-        result = TimedeltaIndex(new_values, freq='infer', name=name)
+        result = self.__class__(new_values, freq='infer', name=name)
         return result
 
     def _evaluate_with_timedelta_like(self, other, op, opstr, reversed=False):
@@ -393,13 +394,14 @@ class TimedeltaIndex(DatetimeIndexOpsMixin, TimelikeOps, Int64Index):
                 else:
                     result = op(left, np.float64(right))
                 result = self._maybe_mask_results(result, convert='float64')
-                return Index(result, name=self.name, copy=False)
+                return self._base_constructor(result,
+                                              name=self.name, copy=False)
 
         return NotImplemented
 
     def _add_datelike(self, other):
         # adding a timedeltaindex to a datetimelike
-        from pandas import Timestamp, DatetimeIndex
+        from pandas import Timestamp
         if other is NaT:
             # GH#19124 pd.NaT is treated like a timedelta
             return self._nat_new()
@@ -409,7 +411,14 @@ class TimedeltaIndex(DatetimeIndexOpsMixin, TimelikeOps, Int64Index):
             result = checked_add_with_arr(i8, other.value,
                                           arr_mask=self._isnan)
             result = self._maybe_mask_results(result, fill_value=iNaT)
-        return DatetimeIndex(result, name=self.name, copy=False)
+            dtype = 'datetime64[ns]'
+            if other.tz is not None:
+                # TODO: This should be a function in dtypes.dtypes(?)
+                from pandas.core.dtypes.dtypes import DatetimeTZDtype
+                dtype = DatetimeTZDtype(unit='ns', tz=other.tz)
+            return self._base_constructor(result,
+                                          name=self.name, copy=False,
+                                          dtype=dtype, tz=other.tz)
 
     def _sub_datelike(self, other):
         # GH#19124 Timedelta - datetime is not in general well-defined.
@@ -418,7 +427,8 @@ class TimedeltaIndex(DatetimeIndexOpsMixin, TimelikeOps, Int64Index):
         if other is NaT:
             return self._nat_new()
         else:
-            raise TypeError("cannot subtract a datelike from a TimedeltaIndex")
+            raise TypeError("cannot subtract a datelike from a {cls}"
+                            .format(cls=type(self).__name__))
 
     def _add_offset_array(self, other):
         # Array/Index of DateOffset objects
@@ -433,12 +443,14 @@ class TimedeltaIndex(DatetimeIndexOpsMixin, TimelikeOps, Int64Index):
             else:
                 from pandas.errors import PerformanceWarning
                 warnings.warn("Adding/subtracting array of DateOffsets to "
-                              "{} not vectorized".format(type(self)),
+                              "{cls} not vectorized"
+                              .format(cls=type(self).__name__),
                               PerformanceWarning)
                 return self.astype('O') + np.array(other)
                 # TODO: This works for __add__ but loses dtype in __sub__
         except AttributeError:
-            raise TypeError("Cannot add non-tick DateOffset to TimedeltaIndex")
+            raise TypeError("Cannot add non-tick DateOffset to {cls}"
+                            .format(cls=type(self).__name__))
 
     def _sub_offset_array(self, other):
         # Array/Index of DateOffset objects
@@ -453,13 +465,14 @@ class TimedeltaIndex(DatetimeIndexOpsMixin, TimelikeOps, Int64Index):
             else:
                 from pandas.errors import PerformanceWarning
                 warnings.warn("Adding/subtracting array of DateOffsets to "
-                              "{} not vectorized".format(type(self)),
+                              "{cls} not vectorized"
+                              .format(cls=type(self).__name__),
                               PerformanceWarning)
                 res_values = self.astype('O').values - np.array(other)
                 return self.__class__(res_values, freq='infer')
         except AttributeError:
-            raise TypeError("Cannot subtrack non-tick DateOffset from"
-                            " TimedeltaIndex")
+            raise TypeError("Cannot subtrack non-tick DateOffset "
+                            "from {cls}".format(cls=type(self).__name__))
 
     def _format_native_types(self, na_rep=u('NaT'),
                              date_format=None, **kwargs):
@@ -514,8 +527,8 @@ class TimedeltaIndex(DatetimeIndexOpsMixin, TimelikeOps, Int64Index):
         """
         Total duration of each element expressed in seconds.
         """
-        return Index(self._maybe_mask_results(1e-9 * self.asi8),
-                     name=self.name)
+        result = self._maybe_mask_results(1e-9 * self.asi8)
+        return self._base_constructor(result, name=self.name)
 
     def to_pytimedelta(self):
         """
@@ -928,7 +941,7 @@ class TimedeltaIndex(DatetimeIndexOpsMixin, TimelikeOps, Int64Index):
 
     def delete(self, loc):
         """
-        Make a new DatetimeIndex with passed location(s) deleted.
+        Make a new TimedeltaIndex with passed location(s) deleted.
 
         Parameters
         ----------
