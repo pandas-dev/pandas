@@ -163,7 +163,7 @@ class TestPeriodIndexComparisons(object):
 
         if dtype is not None:
             left = left.astype(dtype)
-            right = right.dtype
+            right = right.astype(dtype)
 
         result = left == right
         expected = np.array([False, False, True])
