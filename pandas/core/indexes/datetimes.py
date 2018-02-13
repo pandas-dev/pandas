@@ -873,6 +873,11 @@ class DatetimeIndex(DatelikeOps, TimelikeOps, DatetimeIndexOpsMixin,
             new_values[mask] = libts.iNaT
         return new_values.view('i8')
 
+    @Substitution(klass='DatetimeIndex')
+    @Appender(DatetimeIndexOpsMixin.shift.__doc__)
+    def shift(self, n, freq=None):
+        return super(DatetimeIndex, self).shift(n, freq)
+
     def _maybe_update_attributes(self, attrs):
         """ Update Index attributes (e.g. freq) depending on op """
         freq = attrs.get('freq', None)

@@ -468,6 +468,11 @@ class TimedeltaIndex(DatetimeIndexOpsMixin, TimelikeOps, Int64Index):
             raise TypeError("Cannot subtrack non-tick DateOffset "
                             "from {cls}".format(cls=type(self).__name__))
 
+    @Substitution(klass='TimedeltaIndex')
+    @Appender(DatetimeIndexOpsMixin.shift.__doc__)
+    def shift(self, n, freq=None):
+        return super(TimedeltaIndex, self).shift(n, freq)
+
     def _format_native_types(self, na_rep=u('NaT'),
                              date_format=None, **kwargs):
         from pandas.io.formats.format import Timedelta64Formatter

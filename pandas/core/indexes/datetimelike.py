@@ -796,7 +796,7 @@ class DatetimeIndexOpsMixin(object):
 
     def shift(self, n, freq=None):
         """
-        Specialized shift which produces a new object of the same type as self
+        Specialized shift which produces a %(klass)s
 
         Parameters
         ----------
@@ -806,7 +806,7 @@ class DatetimeIndexOpsMixin(object):
 
         Returns
         -------
-        shifted : type(self)
+        shifted : %(klass)s
         """
         if freq is not None and freq != self.freq:
             if isinstance(freq, compat.string_types):
