@@ -2687,12 +2687,17 @@ class DataFrame(NDFrame):
 
         Notes
         -----
-        For python 3.6 and above, the columns are inserted in the order of
-        \*\*kwargs. For python 3.5 and earlier, since \*\*kwargs is unordered,
-        the columns are inserted in alphabetical order at the end of your
-        DataFrame.  Assigning multiple columns within the same ``assign``
-        is possible, but you cannot reference other columns created within
-        the same ``assign`` call.
+        Assigning multiple columns within the same ``assign`` is possible.
+        For Python 3.6 and above, later items in '\*\*kwargs' may refer to
+        newly created or modified columns in 'df'; items are computed and
+        assigned into 'df' in order.  For Python 3.5 and below, the order of
+        keyword arguments is not specified, you cannot refer to newly created
+        or modified columns. All items are computed first, and then assigned
+        in alphabetical order.
+
+        .. versionmodified :: 0.23.0
+
+            Keyword argument order is maintained for Python 3.6 and later.
 
         Examples
         --------
@@ -2728,22 +2733,34 @@ class DataFrame(NDFrame):
         7   8 -1.495604  2.079442
         8   9  0.549296  2.197225
         9  10 -0.758542  2.302585
+
+        Where the keyword arguments depend on each other
+
+        >>> df = pd.DataFrame({'A': [1, 2, 3]})
+
+        >>> df.assign(B=df.A, C=lambda x:x['A']+ x['B'])
+            A  B  C
+         0  1  1  2
+         1  2  2  4
+         2  3  3  6
         """
         data = self.copy()
 
-        # do all calculations first...
-        results = OrderedDict()
-        for k, v in kwargs.items():
-            results[k] = com._apply_if_callable(v, data)
-
-        # preserve order for 3.6 and later, but sort by key for 3.5 and earlier
+        # >= 3.6 preserve order of kwargs
         if PY36:
-            results = results.items()
+            for k, v in kwargs.items():
+                data[k] = com._apply_if_callable(v, data)
         else:
+            # <= 3.5: do all calculations first...
+            results = OrderedDict()
+            for k, v in kwargs.items():
+                results[k] = com._apply_if_callable(v, data)
+
+            # <= 3.5 and earlier
             results = sorted(results.items())
-        # ... and then assign
-        for k, v in results:
-            data[k] = v
+            # ... and then assign
+            for k, v in results:
+                data[k] = v
         return data
 
     def _sanitize_column(self, key, value, broadcast=True):
@@ -3926,17 +3943,7 @@ class DataFrame(NDFrame):
         new_index, new_columns = this.index, this.columns
 
         def _arith_op(left, right):
-            if fill_value is not None:
-                left_mask = isna(left)
-                right_mask = isna(right)
-                left = left.copy()
-                right = right.copy()
-
-                # one but not both
-                mask = left_mask ^ right_mask
-                left[left_mask & mask] = fill_value
-                right[right_mask & mask] = fill_value
-
+            left, right = ops.fill_binop(left, right, fill_value)
             return func(left, right)
 
         if this._is_mixed_type or other._is_mixed_type:
@@ -5328,18 +5335,17 @@ class DataFrame(NDFrame):
                 raise ValueError('Joining multiple DataFrames only supported'
                                  ' for joining on index')
 
-            # join indexes only using concat
-            if how == 'left':
-                how = 'outer'
-                join_axes = [self.index]
-            else:
-                join_axes = None
-
             frames = [self] + list(other)
 
             can_concat = all(df.index.is_unique for df in frames)
 
+            # join indexes only using concat
             if can_concat:
+                if how == 'left':
+                    how = 'outer'
+                    join_axes = [self.index]
+                else:
+                    join_axes = None
                 return concat(frames, axis=1, join=how, join_axes=join_axes,
                               verify_integrity=True)
 

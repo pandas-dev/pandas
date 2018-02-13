@@ -5,10 +5,8 @@ import warnings
 import numpy as np
 from datetime import datetime
 
-from itertools import product
 import pandas as pd
 import pandas._libs.tslib as tslib
-from pandas._libs.tslibs.offsets import shift_months
 import pandas.util.testing as tm
 from pandas import (DatetimeIndex, PeriodIndex, Series, Timestamp,
                     date_range, _np_version_under1p10, Index,
@@ -50,49 +48,6 @@ class TestDatetimeIndexOps(Ops):
         assert s.month == 1
         assert s.day == 10
         pytest.raises(AttributeError, lambda: s.weekday)
-
-    def test_astype_object(self):
-        idx = pd.date_range(start='2013-01-01', periods=4, freq='M',
-                            name='idx')
-        expected_list = [Timestamp('2013-01-31'),
-                         Timestamp('2013-02-28'),
-                         Timestamp('2013-03-31'),
-                         Timestamp('2013-04-30')]
-        expected = pd.Index(expected_list, dtype=object, name='idx')
-        result = idx.astype(object)
-        assert isinstance(result, Index)
-
-        assert result.dtype == object
-        tm.assert_index_equal(result, expected)
-        assert result.name == expected.name
-        assert idx.tolist() == expected_list
-
-        idx = pd.date_range(start='2013-01-01', periods=4, freq='M',
-                            name='idx', tz='Asia/Tokyo')
-        expected_list = [Timestamp('2013-01-31', tz='Asia/Tokyo'),
-                         Timestamp('2013-02-28', tz='Asia/Tokyo'),
-                         Timestamp('2013-03-31', tz='Asia/Tokyo'),
-                         Timestamp('2013-04-30', tz='Asia/Tokyo')]
-        expected = pd.Index(expected_list, dtype=object, name='idx')
-        result = idx.astype(object)
-        assert isinstance(result, Index)
-        assert result.dtype == object
-        tm.assert_index_equal(result, expected)
-        assert result.name == expected.name
-        assert idx.tolist() == expected_list
-
-        idx = DatetimeIndex([datetime(2013, 1, 1), datetime(2013, 1, 2),
-                             pd.NaT, datetime(2013, 1, 4)], name='idx')
-        expected_list = [Timestamp('2013-01-01'),
-                         Timestamp('2013-01-02'), pd.NaT,
-                         Timestamp('2013-01-04')]
-        expected = pd.Index(expected_list, dtype=object, name='idx')
-        result = idx.astype(object)
-        assert isinstance(result, Index)
-        assert result.dtype == object
-        tm.assert_index_equal(result, expected)
-        assert result.name == expected.name
-        assert idx.tolist() == expected_list
 
     def test_minmax(self):
         for tz in self.tz:
@@ -566,19 +521,6 @@ class TestDatetimeIndexOps(Ops):
             assert not idx.astype(object).equals(idx3)
             assert not idx.equals(list(idx3))
             assert not idx.equals(pd.Series(idx3))
-
-
-@pytest.mark.parametrize('years,months', product([-1, 0, 1], [-2, 0, 2]))
-def test_shift_months(years, months):
-    s = DatetimeIndex([Timestamp('2000-01-05 00:15:00'),
-                       Timestamp('2000-01-31 00:23:00'),
-                       Timestamp('2000-01-01'),
-                       Timestamp('2000-02-29'),
-                       Timestamp('2000-12-31')])
-    actual = DatetimeIndex(shift_months(s.asi8, years * 12 + months))
-    expected = DatetimeIndex([x + pd.offsets.DateOffset(
-        years=years, months=months) for x in s])
-    tm.assert_index_equal(actual, expected)
 
 
 class TestBusinessDatetimeIndex(object):
