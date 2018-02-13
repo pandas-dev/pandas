@@ -273,7 +273,7 @@ def group_ohlc_{{name}}(ndarray[{{dest_type2}}, ndim=2] out,
 {{endfor}}
 
 #----------------------------------------------------------------------
-# group_nth, group_last, group_rank, group_fillna
+# group_nth, group_last, group_rank
 #----------------------------------------------------------------------
 
 {{py:
@@ -574,75 +574,6 @@ def group_rank_{{name}}(ndarray[float64_t, ndim=2] out,
             for i in range(N):
                 out[i, 0] = out[i, 0] / grp_sizes[i, 0]
 {{endif}}
-
-@cython.wraparound(False)
-@cython.boundscheck(False)
-def group_fillna_{{name}}(ndarray[{{dest_type2}}, ndim=2] out,
-                          ndarray[{{c_type}}, ndim=2] values,
-                          ndarray[int64_t] labels,
-                          object method,
-                          int64_t limit):
-    """Fills values forwards or backwards within a group
-
-    Parameters
-    ----------
-    out : array of {{dest_type2}} values which this method will write its
-        results to
-    values : array of {{c_type}} values which may require filling
-    labels : array containing unique label for each group, with its ordering
-        matching up to the corresponding record in `values`
-    method : {'ffill', 'bfill'}
-        Direction for fill to be applied (forwards or backwards, respectively)
-    limit : Consecutive values to fill before stopping, or -1 for no limit
-
-    Notes
-    -----
-    This method modifies the `out` parameter rather than returning an object
-    """
-    cdef:
-        Py_ssize_t i, N
-        ndarray[uint8_t] mask
-        ndarray[int64_t] sorted_labels
-        {{dest_type2}} curr_fill_val = {{nan_val}}
-        int64_t idx, filled_vals=0
-
-    N, K = (<object> values).shape
-
-    {{if name=='int64'}}
-    mask = (values[:, 0] == {{nan_val}}).astype(np.uint8)
-    {{elif name=='object'}}
-    mask = np.array([x != x for x in values[:, 0]]).astype(np.uint8)
-    {{else}}
-    mask = np.isnan(values[:, 0]).astype(np.uint8)
-    {{endif}}
-
-    sorted_labels = np.argsort(labels)
-    if method == 'bfill':
-        sorted_labels = sorted_labels[::-1]
-
-    {{if name == 'object'}}
-    if True:  # make templating happy
-    {{else}}
-    with nogil:
-    {{endif}}
-        for i in range(N):
-            idx = sorted_labels[i]
-            if mask[idx]:  # is missing
-                if limit == -1 or filled_vals < limit:
-                    out[idx, 0] = curr_fill_val
-                else:
-                    out[idx, 0] == {{nan_val}}
-                filled_vals += 1
-            else:  # reset items when not missing
-                filled_vals = 0
-                curr_fill_val = values[idx, 0]
-                out[idx, 0] = values[idx, 0]
-
-            # If we move to the next group, reset
-            # the fill_val and counter
-            if i == N - 1 or labels[idx] != labels[sorted_labels[i+1]]:
-                curr_fill_val = {{nan_val}}
-                filled_vals = 0
 {{endfor}}
 
 
