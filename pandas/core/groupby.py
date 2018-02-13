@@ -2041,31 +2041,37 @@ class BaseGrouper(object):
                                           self.levels,
                                           self.labels)
 
-    def _cython_apply(self, f, data, axis, **kwargs):
-        output = collections.OrderedDict()
-        for col in data.columns:
-            if col in self.names:
-                output[col] = data[col].values
-            else:
-                # duplicative of _get_cython_function; needs refactor
-                dtype_str = data[col].dtype.name
-                values = data[col].values[:, None]
-                func = afunc = self._get_func(f['name'], dtype_str)
-                f = f.get('f')
+    def _cython_apply(self, ftype, data, axis, **kwargs):
+        def _generate_output(ser):
+            # duplicative of _get_cython_function; needs refactor
+            dtype_str = ser.dtype.name
+            values = ser.values[:, None]
+            func = afunc = self._get_func(ftype['name'], dtype_str)
+            f = ftype.get('f')
 
-                def wrapper(*args, **kwargs):
-                    return f(afunc, *args, **kwargs)
+            def wrapper(*args, **kwargs):
+                return f(afunc, *args, **kwargs)
 
-                func = wrapper
-                labels, _, _ = self.group_info
+            func = wrapper
+            labels, _, _ = self.group_info
 
-                result = _maybe_fill(np.empty_like(values, dtype=dtype_str),
-                                     fill_value=np.nan)
-                func(result, values, labels, **kwargs)
-                output[col] = result[:, 0]
+            result = _maybe_fill(np.empty_like(values, dtype=dtype_str),
+                                 fill_value=np.nan)
+            func(result, values, labels, **kwargs)
 
-        # Ugh
-        return DataFrame(output, index=data.index)
+            return result[:, 0]
+
+        # Using introspection to determine result; not ideal needs refactor
+        if type(data) is Series:
+            return Series(_generate_output(data), name=data.name)
+        else:
+            output = collections.OrderedDict()
+            for col in data.columns:
+                if col in self.names:
+                    output[col] = data[col].values
+                else:
+                    output[col] = _generate_output(data[col])
+            return DataFrame(output, index=data.index)
 
     def apply(self, f, data, axis=0):
         mutated = self.mutated
