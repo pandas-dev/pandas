@@ -351,6 +351,18 @@ Returns
 -------
 result : DataFrame
 
+Examples
+--------
+>>> a = pd.Series([1, 1, 1, np.nan], index=['a', 'b', 'c', 'd'])
+>>> b = pd.Series([1, np.nan, 1, np.nan], index=['a', 'b', 'c_', 'd'])
+>>> a.add(b, fill_value=0)
+      0
+a   2.0
+b   1.0
+c   1.0
+c_  1.0
+d   NaN
+
 See also
 --------
 DataFrame.{reverse}
