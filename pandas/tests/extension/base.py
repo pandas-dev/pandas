@@ -398,17 +398,12 @@ class BaseArrayTests(object):
         expected = pd.Series(expected)
         tm.assert_series_equal(result, expected)
 
-    def test_dropna(self, data_missing):
-        result = pd.Series(data_missing).dropna()
-        expected = pd.Series(data_missing).iloc[[1]]
-        tm.assert_series_equal(result, expected)
-
     def test_align(self, data):
         a = data[:3]
         b = data[2:5]
         r1, r2 = pd.Series(a).align(pd.Series(b, index=[1, 2, 3]))
 
-        # TODO: assumes that the ctor can take a list of scalars of the type
+        # Assumes that the ctor can take a list of scalars of the type
         e1 = pd.Series(type(data)(list(a) + [data._fill_value]))
         e2 = pd.Series(type(data)([data._fill_value] + list(b)))
         tm.assert_series_equal(r1, e1)

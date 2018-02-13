@@ -3473,7 +3473,7 @@ class BlockManager(PandasObject):
         else:
             align_keys = []
 
-        # TODO: may interfere with ExtensionBlock.setitem for blocks
+        # TODO(EA): may interfere with ExtensionBlock.setitem for blocks
         # with a .values attribute.
         aligned_args = dict((k, kwargs[k])
                             for k in align_keys

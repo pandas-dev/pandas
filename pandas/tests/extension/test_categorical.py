@@ -50,7 +50,6 @@ class TestCategoricalArray(BaseArrayTests):
         b = data[2:5]
         r1, r2 = pd.Series(a).align(pd.Series(b, index=[1, 2, 3]))
 
-        # TODO: assumes that the ctor can take a list of scalars of the type
         e1 = pd.Series(type(data)(list(a) + [data._fill_value],
                                   dtype=data.dtype))
         e2 = pd.Series(type(data)([data._fill_value] + list(b),
