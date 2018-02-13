@@ -877,21 +877,28 @@ b  2""")
 
         func = self._is_builtin_func(func)
 
-        # this is needed so we don't try and wrap strings. If we could
-        # resolve functions to their callable functions prior, this
-        # wouldn't be needed
-        if args or kwargs:
-            if callable(func):
+        # Try to go down the Cython path first
+        try:
+            f = self.grouper._cython_functions['apply'][func]
+            return self.grouper._cython_apply(f, self._selected_obj, self.axis,
+                                              **kwargs)
+        except KeyError:
+            # this is needed so we don't try and wrap strings. If we could
+            # resolve functions to their callable functions prior, this
+            # wouldn't be needed
+            if args or kwargs:
+                if callable(func):
 
-                @wraps(func)
-                def f(g):
-                    with np.errstate(all='ignore'):
-                        return func(g, *args, **kwargs)
+                    @wraps(func)
+                    def f(g):
+                        with np.errstate(all='ignore'):
+                            return func(g, *args, **kwargs)
+                else:
+                    raise ValueError('func must be a callable if args or '
+                                     'kwargs are supplied and func is not '
+                                     'implemented in Cython')
             else:
-                raise ValueError('func must be a callable if args or '
-                                 'kwargs are supplied')
-        else:
-            f = func
+                f = func
 
         # ignore SettingWithCopy here in case the user mutates
         with option_context('mode.chained_assignment', None):
@@ -1474,7 +1481,7 @@ class GroupBy(_GroupBy):
         Series.fillna
         DataFrame.fillna
         """
-        return self.apply(lambda x: x.ffill(limit=limit))
+        return self.apply('ffill', limit=limit)
     ffill = pad
 
     @Substitution(name='groupby')
@@ -1494,7 +1501,7 @@ class GroupBy(_GroupBy):
         Series.fillna
         DataFrame.fillna
         """
-        return self.apply(lambda x: x.bfill(limit=limit))
+        return self.apply('bfill', limit=limit)
     bfill = backfill
 
     @Substitution(name='groupby')
@@ -2034,6 +2041,32 @@ class BaseGrouper(object):
                                           self.levels,
                                           self.labels)
 
+    def _cython_apply(self, f, data, axis, **kwargs):
+        output = collections.OrderedDict()
+        for col in data.columns:
+            if col in self.names:
+                output[col] = data[col].values
+            else:
+                # duplicative of _get_cython_function; needs refactor
+                dtype_str = data[col].dtype.name
+                values = data[col].values[:, None]
+                func = afunc = self._get_func(f['name'], dtype_str)
+                f = f.get('f')
+
+                def wrapper(*args, **kwargs):
+                    return f(afunc, *args, **kwargs)
+
+                func = wrapper
+                labels, _, _ = self.group_info
+
+                result = _maybe_fill(np.empty_like(values, dtype=dtype_str),
+                                     fill_value=np.nan)
+                func(result, values, labels, **kwargs)
+                output[col] = result[:, 0]
+
+        # Ugh
+        return DataFrame(output, index=data.index)
+
     def apply(self, f, data, axis=0):
         mutated = self.mutated
         splitter = self._get_splitter(data, axis=axis)
@@ -2230,6 +2263,22 @@ class BaseGrouper(object):
                     kwargs.get('na_option', 'keep')
                 )
             }
+        },
+        'apply': {
+            'ffill': {
+                'name': 'group_fillna',
+                'f': lambda func, a, b, c, **kwargs: func(
+                    a, b, c,
+                    'ffill', kwargs['limit'] if kwargs['limit'] else -1
+                )
+            },
+            'bfill': {
+                'name': 'group_fillna',
+                'f': lambda func, a, b, c, **kwargs: func(
+                    a, b, c,
+                    'bfill', kwargs['limit'] if kwargs['limit'] else -1
+                )
+            }
         }
     }
 
@@ -2248,27 +2297,28 @@ class BaseGrouper(object):
         """
         return SelectionMixin._builtin_table.get(arg, arg)
 
+    def _get_func(self, fname, dtype_str=None, is_numeric=False):
+        # see if there is a fused-type version of function
+        # only valid for numeric
+        f = getattr(libgroupby, fname, None)
+        if f is not None and is_numeric:
+            return f
+
+        # otherwise find dtype-specific version, falling back to object
+        for dt in [dtype_str, 'object']:
+            f = getattr(libgroupby, "%s_%s" % (fname, dtype_str), None)
+            if f is not None:
+                return f
+
     def _get_cython_function(self, kind, how, values, is_numeric):
 
         dtype_str = values.dtype.name
 
-        def get_func(fname):
-            # see if there is a fused-type version of function
-            # only valid for numeric
-            f = getattr(libgroupby, fname, None)
-            if f is not None and is_numeric:
-                return f
-
-            # otherwise find dtype-specific version, falling back to object
-            for dt in [dtype_str, 'object']:
-                f = getattr(libgroupby, "%s_%s" % (fname, dtype_str), None)
-                if f is not None:
-                    return f
-
         ftype = self._cython_functions[kind][how]
 
         if isinstance(ftype, dict):
-            func = afunc = get_func(ftype['name'])
+            func = afunc = self._get_func(ftype['name'], dtype_str=dtype_str,
+                                          is_numeric=is_numeric)
 
             # a sub-function
             f = ftype.get('f')
@@ -2281,7 +2331,8 @@ class BaseGrouper(object):
                 func = wrapper
 
         else:
-            func = get_func(ftype)
+            func = self._get_func(ftype, dtype_str=dtype_str,
+                                  is_numeric=is_numeric)
 
         if func is None:
             raise NotImplementedError("function is not implemented for this"
