@@ -255,9 +255,9 @@ Parameters
 ----------
 other : Series or scalar value
 fill_value : None or float value, default None (NaN)
-    Fill existing missing (NaN) values, and any new element needed for 
-    successful array alignment, with this value before computation. 
-    If data in both corresponding DataFrame locations is missing 
+    Fill existing missing (NaN) values, and any new element needed for
+    successful array alignment, with this value before computation.
+    If data in both corresponding Series locations is missing
     the result will be missing
 level : int or name
     Broadcast across a level, matching Index values on the
@@ -294,9 +294,9 @@ other : Series, DataFrame, or constant
 axis : {0, 1, 'index', 'columns'}
     For Series input, axis to match Series index on
 fill_value : None or float value, default None
-    Fill existing missing (NaN) values, and any new element needed for 
-    successful array alignment, with this value before computation. 
-    If data in both corresponding DataFrame locations is missing 
+    Fill existing missing (NaN) values, and any new element needed for
+    successful array alignment, with this value before computation.
+    If data in both corresponding DataFrame locations is missing
     the result will be missing
 level : int or name
     Broadcast across a level, matching Index values on the
@@ -312,15 +312,15 @@ result : DataFrame
 
 Examples
 --------
->>> a = pd.Series([1, 1, 1, np.nan], index=['a', 'b', 'c', 'd'])
->>> b = pd.Series([1, np.nan, 1, np.nan], index=['a', 'b', 'c_', 'd'])
+>>> a = pd.DataFrame([1, 1, 1, np.nan], index=['a', 'b', 'c', 'd'])
+>>> b = pd.DataFrame([1, np.nan, 1, np.nan], index=['a', 'b', 'c_', 'd'])
 >>> a.add(b, fill_value=0)
-a     2.0
-b     1.0
-c     1.0
-c_    1.0
-d     NaN
-dtype: float64
+      0
+a   2.0
+b   1.0
+c   1.0
+c_  1.0
+d   NaN
 """
 
 _flex_doc_FRAME = """
@@ -335,9 +335,9 @@ other : Series, DataFrame, or constant
 axis : {{0, 1, 'index', 'columns'}}
     For Series input, axis to match Series index on
 fill_value : None or float value, default None
-    Fill existing missing (NaN) values, and any new element needed for 
-    successful array alignment, with this value before computation. 
-    If data in both corresponding DataFrame locations is missing 
+    Fill existing missing (NaN) values, and any new element needed for
+    successful array alignment, with this value before computation.
+    If data in both corresponding DataFrame locations is missing
     the result will be missing
 level : int or name
     Broadcast across a level, matching Index values on the
@@ -353,8 +353,8 @@ result : DataFrame
 
 Examples
 --------
->>> a = pd.Series([1, 1, 1, np.nan], index=['a', 'b', 'c', 'd'])
->>> b = pd.Series([1, np.nan, 1, np.nan], index=['a', 'b', 'c_', 'd'])
+>>> a = pd.DataFrame([1, 1, 1, np.nan], index=['a', 'b', 'c', 'd'])
+>>> b = pd.DataFrame([1, np.nan, 1, np.nan], index=['a', 'b', 'c_', 'd'])
 >>> a.add(b, fill_value=0)
       0
 a   2.0
