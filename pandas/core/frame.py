@@ -1678,10 +1678,9 @@ class DataFrame(NDFrame):
         fname : str
             string file path
         engine : {'auto', 'pyarrow', 'fastparquet'}, default 'auto'
-            Parquet library to use. If 'auto', the value from
-            ``io.parquet.engine`` is used. The default ``io.parquet.engine``
-            behavior is to try 'pyarrow', falling back to 'fastparquet' if
-            'pyarrow' is unavailable.
+            Parquet library to use. If 'auto', then the option
+            'io.parquet.engine' is used. If 'auto', then the first
+            library to be installed is used.
         compression : {'snappy', 'gzip', 'brotli', None}, default 'snappy'
             Name of the compression to use. Use ``None`` for no compression.
         kwargs
