@@ -335,8 +335,10 @@ other : Series, DataFrame, or constant
 axis : {{0, 1, 'index', 'columns'}}
     For Series input, axis to match Series index on
 fill_value : None or float value, default None
-    Fill missing (NaN) values with this value. If both DataFrame
-    locations are missing, the result will be missing
+    Fill existing missing (NaN) values, and any new element needed for 
+    successful array alignment, with this value before computation. 
+    If data in both corresponding DataFrame locations is missing 
+    the result will be missing
 level : int or name
     Broadcast across a level, matching Index values on the
     passed MultiIndex level
