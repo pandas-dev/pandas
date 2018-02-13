@@ -658,6 +658,39 @@ Notice in the example above that the converted ``Categorical`` has retained ``or
 
 Note that the unintenional conversion of ``ordered`` discussed above did not arise in previous versions due to separate bugs that prevented ``astype`` from doing any type of category to category conversion (:issue:`10696`, :issue:`18593`).  These bugs have been fixed in this release, and motivated changing the default value of ``ordered``.
 
++.. _whatsnew_0230.api_breaking.pretty_printing:
+
+Better pretty-printing of DataFrames in a terminal
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+Previously, the default values for the maximum number of rows and columns were
+``pd.options.display.max_rows=60`` and ``pd.options.display.max_columns=120``,
+respectively. This meant that relatively large frames would not fit within the
+terminal width or height, and Pandas would introduce line breaks to display
+these 20 columns. This resulted in an output that was relatively difficult to
+read:
+
+.. image:: print_df_old.png
+
+Starting with Pandas 0.22, the default value of ``pd.options.display.max_rows``
+was changed to `20`. Furthermore, if Python runs in a terminal, the maximum
+number of columns is determined automatically so that the printed frame fits
+within the current terminal width (``pd.options.display.max_columns=0``). If
+Python runs as a Jupyter kernel (such as the Jupyter QtConsole or a Jupyter
+notebook, as well as in many IDEs), this value cannot be inferred automatically
+and is thus set to `20` as previously. In a terminal, this results in a much
+nicer output:
+
+.. image:: print_df_new.png
+
+Note that if you don't like the new defaults, you can always set these values
+yourself. To revert to the old settings, you can run these lines:
+
+.. code:: python
+  pd.options.display.max_rows = 60
+  pd.options.display.max_columns = 20
+
+.. _whatsnew_0230.api:
+
 .. _whatsnew_0230.api.datetimelike:
 
 Datetimelike API Changes
