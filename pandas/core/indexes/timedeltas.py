@@ -46,7 +46,7 @@ def _field_accessor(name, alias, docstring=None):
         if self.hasnans:
             result = self._maybe_mask_results(result, convert='float64')
 
-        return self._base_constructor(result, name=self.name)
+        return Index(result, name=self.name)
 
     f.__name__ = name
     f.__doc__ = docstring
@@ -74,7 +74,7 @@ def _td_index_cmp(opname, cls, nat_result=False):
             if not is_list_like(other):
                 raise TypeError(msg.format(type(other)))
 
-            other = self.__class__(other).values
+            other = TimedeltaIndex(other).values
             result = func(other)
             result = com._values_from_object(result)
 
@@ -92,7 +92,7 @@ def _td_index_cmp(opname, cls, nat_result=False):
         # support of bool dtype indexers
         if is_bool_dtype(result):
             return result
-        return self._base_constructor(result)
+        return Index(result)
 
     return compat.set_function_name(wrapper, opname, cls)
 
@@ -368,7 +368,7 @@ class TimedeltaIndex(DatetimeIndexOpsMixin, TimelikeOps, Int64Index):
                             .format(typ=type(delta).__name__,
                                     cls=type(self).__name__))
 
-        result = self.__class__(new_values, freq='infer', name=name)
+        result = TimedeltaIndex(new_values, freq='infer', name=name)
         return result
 
     def _evaluate_with_timedelta_like(self, other, op, opstr, reversed=False):
@@ -394,14 +394,13 @@ class TimedeltaIndex(DatetimeIndexOpsMixin, TimelikeOps, Int64Index):
                 else:
                     result = op(left, np.float64(right))
                 result = self._maybe_mask_results(result, convert='float64')
-                return self._base_constructor(result,
-                                              name=self.name, copy=False)
+                return Index(result, name=self.name, copy=False)
 
         return NotImplemented
 
     def _add_datelike(self, other):
         # adding a timedeltaindex to a datetimelike
-        from pandas import Timestamp
+        from pandas import Timestamp, DatetimeIndex
         if other is NaT:
             # GH#19124 pd.NaT is treated like a timedelta
             return self._nat_new()
@@ -411,14 +410,7 @@ class TimedeltaIndex(DatetimeIndexOpsMixin, TimelikeOps, Int64Index):
             result = checked_add_with_arr(i8, other.value,
                                           arr_mask=self._isnan)
             result = self._maybe_mask_results(result, fill_value=iNaT)
-            dtype = 'datetime64[ns]'
-            if other.tz is not None:
-                # TODO: This should be a function in dtypes.dtypes(?)
-                from pandas.core.dtypes.dtypes import DatetimeTZDtype
-                dtype = DatetimeTZDtype(unit='ns', tz=other.tz)
-            return self._base_constructor(result,
-                                          name=self.name, copy=False,
-                                          dtype=dtype, tz=other.tz)
+            return DatetimeIndex(result, name=self.name, copy=False)
 
     def _sub_datelike(self, other):
         # GH#19124 Timedelta - datetime is not in general well-defined.
@@ -527,8 +519,8 @@ class TimedeltaIndex(DatetimeIndexOpsMixin, TimelikeOps, Int64Index):
         """
         Total duration of each element expressed in seconds.
         """
-        result = self._maybe_mask_results(1e-9 * self.asi8)
-        return self._base_constructor(result, name=self.name)
+        return Index(self._maybe_mask_results(1e-9 * self.asi8),
+                     name=self.name)
 
     def to_pytimedelta(self):
         """

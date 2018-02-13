@@ -188,14 +188,6 @@ class Index(IndexOpsMixin, PandasObject):
     _accessors = frozenset(['str'])
     str = CachedAccessor("str", StringMethods)
 
-    @property
-    def _base_constructor(self):
-        """
-        _base_constructor returns a base class for type(self) to create
-        a new object of similar type, but possibly with a different dtype.
-        """
-        return Index
-
     def __new__(cls, data=None, dtype=None, copy=False, name=None,
                 fastpath=False, tupleize_cols=True, **kwargs):
 
