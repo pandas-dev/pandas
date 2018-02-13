@@ -118,9 +118,8 @@ bit easier on the eyes. Note that how the index is displayed can be controlled u
 
 .. ipython:: python
 
-   pd.set_option('display.multi_sparse', False)
-   df
-   pd.set_option('display.multi_sparse', True)
+   with pd.option_context('display.multi_sparse', False):
+       df
 
 It's worth keeping in mind that there's nothing preventing you from using
 tuples as atomic labels on an axis:
@@ -184,7 +183,7 @@ For example:
 
 This is done to avoid a recomputation of the levels in order to make slicing
 highly performant. If you want to see only the used levels, you can use the
-`get_level_values()` method.
+:func:`MultiIndex.get_level_values` method.
 
 .. ipython:: python
 
@@ -235,23 +234,26 @@ keys take the form of tuples. For example, the following works as you would expe
 
    df = df.T
    df
-   df.loc['bar', 'two']
+   df.loc[('bar', 'two'),]
 
-If you also want to index a specific column with ``.loc``, you have to use
-parentheses around the tuple like this:
+Note that ``df.loc['bar', 'two']`` would also work in this example, but this shorthand
+notation can lead to ambiguity in general.
+
+If you also want to index a specific column with ``.loc``, you must use a tuple
+like this:
 
 .. ipython:: python
 
    df.loc[('bar', 'two'), 'A']
 
 You don't have to specify all levels of the ``MultiIndex`` by passing only the
-first elements of the tuple. For example, you can use *partial* indexing to
+first elements of the tuple. For example, you can use "partial" indexing to
 get all elements with ``bar`` in the first level as follows:
 
 df.loc['bar']
 
-This is a shortcut for the slightly more verbose notation ``df.loc['bar',]`` (equivalent
-to ``df.loc[('bar',)]``).
+This is a shortcut for the slightly more verbose notation ``df.loc[('bar',),]`` (equivalent
+to ``df.loc['bar',]`` in this example).
 
 "Partial" slicing also works quite nicely.
 
@@ -272,11 +274,12 @@ Passing a list of labels or tuples works similar to reindexing:
 
    df.loc[[('bar', 'two'), ('qux', 'one')]]
 
-.. warning::
+.. info::
 
    It is important to note that tuples and lists are not treated identically
-   in pandas. Whereas a tuple is interpreted as one multi-level key, a list is
-   used to specify several keys.
+   in pandas when it comes to indexing. Whereas a tuple is interpreted as one
+   multi-level key, a list is used to specify several keys. Or in other words,
+   tuples go horizontally (traversing levels), lists go vertically (scanning levels).
 
 Importantly, a list of tuples indexes several complete ``MultiIndex`` keys,
 whereas a tuple of lists refer to several values within a level:
