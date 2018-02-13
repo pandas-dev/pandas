@@ -1023,3 +1023,58 @@ def group_shift_indexer(int64_t[:] out, int64_t[:] labels,
                     out[ii] = -1
 
                 label_indexer[lab, idxer_slot] = ii
+
+@cython.wraparound(False)
+@cython.boundscheck(False)
+def group_fillna_indexer(ndarray[int64_t] out,
+                         ndarray[uint8_t] mask,
+                         ndarray[int64_t] labels,
+                         object method,
+                         int64_t limit):
+    """Fills values forwards or backwards within a group
+
+    Parameters
+    ----------
+    out : array of int64_t values which this method will write its results to
+        Missing values will be written to with a value of -1
+    mask : array of int64_t values where a 1 indicates a missing value
+    labels : array containing unique label for each group, with its ordering
+        matching up to the corresponding record in `values`
+    method : {'ffill', 'bfill'}
+        Direction for fill to be applied (forwards or backwards, respectively)
+    limit : Consecutive values to fill before stopping, or -1 for no limit
+
+    Notes
+    -----
+    This method modifies the `out` parameter rather than returning an object
+    """
+    cdef:
+        Py_ssize_t i, N
+        ndarray[int64_t] sorted_labels
+        int64_t curr_fill_idx=-1
+        int64_t idx, filled_vals=0
+
+    N = len(out)
+
+    sorted_labels = np.argsort(labels)
+    if method == 'bfill':
+        sorted_labels = sorted_labels[::-1]
+
+    with nogil:
+        for i in range(N):
+            idx = sorted_labels[i]
+            if mask[idx] == 1:  # is missing
+                # Stop filling once we've hit the limit
+                if filled_vals >= limit and limit != -1:
+                    curr_fill_idx = -1
+                filled_vals += 1
+            else:  # reset items when not missing
+                filled_vals = 0
+                curr_fill_idx = idx
+
+            out[idx] = curr_fill_idx
+            # If we move to the next group, reset
+            # the fill_idx and counter
+            if i == N - 1 or labels[idx] != labels[sorted_labels[i+1]]:
+                curr_fill_idx = -1
+                filled_vals = 0
