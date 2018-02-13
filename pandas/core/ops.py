@@ -96,6 +96,26 @@ def rxor(left, right):
 
 # -----------------------------------------------------------------------------
 
+def make_invalid_op(name):
+    """
+    Return a binary method that always raises a TypeError.
+
+    Parameters
+    ----------
+    name : str
+
+    Returns
+    -------
+    invalid_op : function
+    """
+    def invalid_op(self, other=None):
+        raise TypeError("cannot perform {name} with this index type: "
+                        "{typ}".format(name=name, typ=type(self)))
+
+    invalid_op.__name__ = name
+    return invalid_op
+
+
 def _gen_eval_kwargs(name):
     """
     Find the keyword arguments to pass to numexpr for the given operation.
