@@ -19,27 +19,67 @@ class TestIntervalIndex(object):
         tm.assert_numpy_array_equal(lidx, lidx_expected)
         tm.assert_numpy_array_equal(ridx, ridx_expected)
 
-    @pytest.mark.parametrize("idx_side", ['right', 'left', 'both', 'neither'])
-    @pytest.mark.parametrize("side", ['right', 'left', 'both', 'neither'])
-    @pytest.mark.parametrize("bound", [
-        [0, 1], [1, 2], [2, 3], [3, 4], [0, 2], [2.5, 3], [-1, 4]], ids=str)
-    def test_get_loc_interval(self, idx_side, side, bound):
-        # TODO: add overlapping/non-monotonic/dupe index tests
-        idx = IntervalIndex.from_tuples([(0, 1), (2, 3)], closed=idx_side)
+    def check_get_loc_result(self, idx, key, correct):
+        """
+        helper function to check the result for get_loc related tests
 
-        # if get_loc is supplied an interval, it should only search
-        # for exact matches, not overlaps or covers, else KeyError.
-        if idx_side == side:
-            if bound == [0, 1]:
-                assert idx.get_loc(Interval(0, 1, closed=side)) == 0
-            elif bound == [2, 3]:
-                assert idx.get_loc(Interval(2, 3, closed=side)) == 1
-            else:
-                with pytest.raises(KeyError):
-                    idx.get_loc(Interval(*bound, closed=side))
-        else:
+        Parameters
+        ----------
+
+        idx: IntervalIndex
+            IntervalIndex over which get_loc checks will be run
+
+        key: scalar or Interval
+
+        correct: dict
+            dictionary of the form {key: expected} denoting the expected loc's
+            to be returned for each given key; keys not in the dictionary are
+            assumed to raise a KeyError
+        """
+        expected = correct.get(key, None)
+        if expected is None:
+            # no expected in dict means KeyError
             with pytest.raises(KeyError):
-                idx.get_loc(Interval(*bound, closed=side))
+                idx.get_loc(key)
+        elif isinstance(expected, list):
+            # multiple loc's returned -> numpy array
+            expected = np.array(expected, dtype='int64')
+            result = idx.get_loc(key)
+            tm.assert_numpy_array_equal(result, expected)
+        else:
+            # otherwise single loc returned as an integer
+            result = idx.get_loc(key)
+            assert result == expected
+
+    @pytest.mark.parametrize('ii_closed', ['right', 'left', 'both', 'neither'])
+    @pytest.mark.parametrize('iv_closed', ['right', 'left', 'both', 'neither'])
+    @pytest.mark.parametrize('iv_tuple', [
+        (-2, -1), (-1, 0.5), (0, 1), (0.25, 0.75), (0, 2), (0, 3), (1, 3),
+        (2, 3), (2.5, 4), (4, 5)], ids=str)
+    def test_get_loc_interval(self, ii_closed, iv_closed, iv_tuple):
+        """
+        if get_loc is supplied an interval, it should only search for exact
+        matches, not overlaps or covers, else KeyError
+        """
+        # construct interval to test against
+        iv = Interval(iv_tuple[0], iv_tuple[1], iv_closed)
+
+        # non-overlapping monotonic
+        idx = IntervalIndex.from_tuples([(0, 1), (2, 3)], closed=ii_closed)
+        correct = {Interval(0, 1, ii_closed): 0, Interval(2, 3, ii_closed): 1}
+        self.check_get_loc_result(idx, iv, correct)
+
+        # non-monotonic with dupes
+        idx = IntervalIndex.from_tuples([(0, 1), (2, 3), (0, 1)],
+                                        closed=ii_closed)
+        correct = {Interval(0, 1, ii_closed): [0, 2],
+                   Interval(2, 3, ii_closed): 1}
+        self.check_get_loc_result(idx, iv, correct)
+
+        # overlapping
+        idx = IntervalIndex.from_tuples([(0, 2), (1, 3)], closed=ii_closed)
+        correct = {Interval(0, 2, ii_closed): 0, Interval(1, 3, ii_closed): 1}
+        self.check_get_loc_result(idx, iv, correct)
 
     def test_slice_locs_with_interval(self):
 

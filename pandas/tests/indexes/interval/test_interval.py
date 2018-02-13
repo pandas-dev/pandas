@@ -400,39 +400,72 @@ class TestIntervalIndex(Base):
                                              closed=closed)
         tm.assert_index_equal(result, expected)
 
-    # To be removed after overlapping/non-monotonic/duplicate cases have been
-    # added to test_get_loc_scalar below
-    def test_get_loc_value(self):
-        idx = IntervalIndex.from_tuples([(0, 2), (1, 3)])
-        assert idx.get_loc(0.5) == 0
-        assert idx.get_loc(1) == 0
-        tm.assert_numpy_array_equal(idx.get_loc(1.5),
-                                    np.array([0, 1], dtype='int64'))
-        tm.assert_numpy_array_equal(np.sort(idx.get_loc(2)),
-                                    np.array([0, 1], dtype='int64'))
-        assert idx.get_loc(3) == 1
-        pytest.raises(KeyError, idx.get_loc, 3.5)
+    def check_get_loc_result(self, idx, key, correct):
+        """
+        helper function to check the result for get_loc related tests
 
-    # TODO: add overlapping/non-monotonic/duplicate index tests
-    @pytest.mark.parametrize("scalar", [-0.5, 0, 0.5, 1, 1.5, 2, 2.5, 3, 3.5])
-    def test_get_loc_scalar(self, closed, scalar):
+        Parameters
+        ----------
 
-        # correct = {side: {query: answer}}.
-        # If query is not in the dict, that query should raise a KeyError
+        idx: IntervalIndex
+            IntervalIndex over which get_loc checks will be run
+
+        key: scalar or Interval
+
+        correct: dict
+            dictionary of the form {key: expected} denoting the expected loc's
+            to be returned for each given key; keys not in the dictionary are
+            assumed to raise a KeyError
+        """
+        expected = correct.get(key, None)
+        if expected is None:
+            # no expected in dict means KeyError
+            with pytest.raises(KeyError):
+                idx.get_loc(key)
+        elif isinstance(expected, list):
+            # multiple loc's returned -> numpy array
+            expected = np.array(expected, dtype='int64')
+            result = idx.get_loc(key)
+            tm.assert_numpy_array_equal(result, expected)
+        else:
+            # otherwise single loc returned as an integer
+            result = idx.get_loc(key)
+            assert result == expected
+
+    @pytest.mark.parametrize('scalar', [-0.5, 0, 0.5, 1, 1.5, 2, 2.5, 3, 3.5])
+    def test_get_loc_scalar(self, scalar, closed):
+        """
+        if get_loc is supplied a scalar, it should return the index of the
+        interval which contains the scalar, else KeyError.
+        """
+        # non-overlapping monotonic
+        idx = IntervalIndex.from_tuples([(0, 1), (2, 3)], closed=closed)
         correct = {'right': {0.5: 0, 1: 0, 2.5: 1, 3: 1},
                    'left': {0: 0, 0.5: 0, 2: 1, 2.5: 1},
                    'both': {0: 0, 0.5: 0, 1: 0, 2: 1, 2.5: 1, 3: 1},
                    'neither': {0.5: 0, 2.5: 1}}
+        self.check_get_loc_result(idx, scalar, correct[closed])
 
-        idx = IntervalIndex.from_tuples([(0, 1), (2, 3)], closed=closed)
+        # non-monotonic with dupes
+        idx = IntervalIndex.from_tuples(
+            [(0, 1), (2, 3), (0, 1)], closed=closed)
+        correct = {'right': {0.5: [0, 2], 1: [0, 2], 2.5: 1, 3: 1},
+                   'left': {0: [0, 2], 0.5: [0, 2], 2: 1, 2.5: 1},
+                   'both': {0: [0, 2], 0.5: [0, 2], 1: [0, 2],
+                            2: 1, 2.5: 1, 3: 1},
+                   'neither': {0.5: [0, 2], 2.5: 1}}
+        self.check_get_loc_result(idx, scalar, correct[closed])
 
-        # if get_loc is supplied a scalar, it should return the index of
-        # the interval which contains the scalar, or KeyError.
-        if scalar in correct[closed].keys():
-            assert idx.get_loc(scalar) == correct[closed][scalar]
-        else:
-            with pytest.raises(KeyError):
-                idx.get_loc(scalar)
+        # overlapping
+        idx = IntervalIndex.from_tuples([(0, 2), (1, 3)], closed=closed)
+        correct = {'right': {0.5: 0, 1: 0, 1.5: [0, 1], 2: [0, 1],
+                             2.5: 1, 3: 1},
+                   'left': {0: 0, 0.5: 0, 1: [0, 1], 1.5: [0, 1], 2: 1,
+                            2.5: 1},
+                   'both': {0: 0, 0.5: 0, 1: [0, 1], 1.5: [0, 1], 2: [0, 1],
+                            2.5: 1, 3: 1},
+                   'neither': {0.5: 0, 1: 0, 1.5: [0, 1], 2: 1, 2.5: 1}}
+        self.check_get_loc_result(idx, scalar, correct[closed])
 
     # To be removed, replaced by test_interval_new.py (see #16316, #16386)
     def slice_locs_cases(self, breaks):
