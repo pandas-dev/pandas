@@ -53,3 +53,23 @@ class TestCategoricalMissing(object):
 
         exp = Categorical([1, np.nan, 3], categories=[1, 2, 3])
         tm.assert_categorical_equal(cat, exp)
+
+    def test_fillna_raises(self):
+        # https://github.com/pandas-dev/pandas/issues/19682
+
+        cat = Categorical([1, 2, 3])
+
+        xpr = "Cannot specify both 'value' and 'method'."
+
+        with tm.assert_raises_regex(ValueError, xpr):
+            cat.fillna(value=1, method='ffill')
+
+        xpr = "Must specify a fill 'value' or 'method'."
+
+        with tm.assert_raises_regex(ValueError, xpr):
+            cat.fillna()
+
+        xpr = "Invalid fill method. Expecting .* bad"
+
+        with tm.assert_raises_regex(ValueError, xpr):
+            cat.fillna(method='bad')

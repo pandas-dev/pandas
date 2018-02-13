@@ -54,7 +54,7 @@ from pandas.core.ops import _align_method_FRAME
 import pandas.core.nanops as nanops
 from pandas.util._decorators import (Appender, Substitution,
                                      deprecate_kwarg)
-from pandas.util._validators import validate_bool_kwarg
+from pandas.util._validators import validate_bool_kwarg, validate_fillna_kwargs
 from pandas.core import config
 
 # goal is to be able to define the docs close to function, while still being
@@ -4694,10 +4694,8 @@ class NDFrame(PandasObject, SelectionMixin):
     def fillna(self, value=None, method=None, axis=None, inplace=False,
                limit=None, downcast=None):
         inplace = validate_bool_kwarg(inplace, 'inplace')
+        value, method = validate_fillna_kwargs(value, method)
 
-        if isinstance(value, (list, tuple)):
-            raise TypeError('"value" parameter must be a scalar or dict, but '
-                            'you passed a "{0}"'.format(type(value).__name__))
         self._consolidate_inplace()
 
         # set the default here, so functions examining the signaure
@@ -4708,8 +4706,7 @@ class NDFrame(PandasObject, SelectionMixin):
         method = missing.clean_fill_method(method)
         from pandas import DataFrame
         if value is None:
-            if method is None:
-                raise ValueError('must specify a fill method or value')
+
             if self._is_mixed_type and axis == 1:
                 if inplace:
                     raise NotImplementedError()
@@ -4743,9 +4740,6 @@ class NDFrame(PandasObject, SelectionMixin):
                                                   coerce=True,
                                                   downcast=downcast)
         else:
-            if method is not None:
-                raise ValueError('cannot specify both a fill method and value')
-
             if len(self._get_axis(axis)) == 0:
                 return self
 
