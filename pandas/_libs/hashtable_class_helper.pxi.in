@@ -251,36 +251,25 @@ cdef class HashTable:
 {{py:
 
 # name, dtype, null_condition, float_group
-dtypes = [('Float64', 'float64', 'val != val', True, 'NAN'),
-          ('UInt64', 'uint64', 'False', False, '0'),
-          ('Int64', 'int64', 'val == iNaT', False, 'iNaT')]
+dtypes = [('Float64', 'float64', 'val != val', True),
+          ('UInt64', 'uint64', 'False', False),
+          ('Int64', 'int64', 'val == iNaT', False)]
 
 def get_dispatch(dtypes):
-  for (name, dtype, null_condition, float_group, na_value) in dtypes:
+  for (name, dtype, null_condition, float_group) in dtypes:
     unique_template = """\
         cdef:
            Py_ssize_t i, n = len(values)
            int ret = 0
-           {dtype}_t val, fill_value_val, ngaps_val
+           {dtype}_t val
            khiter_t k
            bint seen_na = 0
            {name}Vector uniques = {name}Vector()
            {name}VectorData *ud
 
         ud = uniques.data
-        fill_value_val = fill_value
-        ngaps_val = ngaps
-        
-        with nogil:
-            if ngaps_val > 0:
-                k = kh_get_{dtype}(self.table, fill_value_val)
-                if k == self.table.n_buckets:
-                    kh_put_{dtype}(self.table, fill_value_val, &ret)
-                    if needs_resize(ud):
-                        with gil:
-                            uniques.resize()
-                    append_data_{dtype}(ud, fill_value_val)
 
+        with nogil:
             for i in range(n):
                 val = values[i]
                 IF {float_group}:
@@ -311,11 +300,11 @@ def get_dispatch(dtypes):
 
     unique_template = unique_template.format(name=name, dtype=dtype, null_condition=null_condition, float_group=float_group)
 
-    yield (name, dtype, null_condition, float_group, unique_template, na_value)
+    yield (name, dtype, null_condition, float_group, unique_template)
 }}
 
 
-{{for name, dtype, null_condition, float_group, unique_template, na_value in get_dispatch(dtypes)}}
+{{for name, dtype, null_condition, float_group, unique_template in get_dispatch(dtypes)}}
 
 cdef class {{name}}HashTable(HashTable):
 
@@ -419,13 +408,13 @@ cdef class {{name}}HashTable(HashTable):
     @cython.boundscheck(False)
     def get_labels(self, {{dtype}}_t[:] values, {{name}}Vector uniques,
                    Py_ssize_t count_prior, Py_ssize_t na_sentinel,
-                   bint check_null=True, fill_value={{na_value}}, ngaps=0):
+                   bint check_null=True):
         cdef:
             Py_ssize_t i, n = len(values)
             int64_t[:] labels
             Py_ssize_t idx, count = count_prior
             int ret = 0
-            {{dtype}}_t val, fill_value_val, ngaps_val
+            {{dtype}}_t val
             khiter_t k
             {{name}}VectorData *ud
 
@@ -507,10 +496,10 @@ cdef class {{name}}HashTable(HashTable):
         return np.asarray(labels), arr_uniques
 
     @cython.boundscheck(False)
-    def unique(self, ndarray[{{dtype}}_t, ndim=1] values, fill_value={{na_value}}, ngaps=0):
+    def unique(self, ndarray[{{dtype}}_t, ndim=1] values):
         if values.flags.writeable:
           # If the value is writeable (mutable) then use memview
-          return self.unique_memview(values, fill_value=fill_value, ngaps=ngaps)
+          return self.unique_memview(values)
 
         # We cannot use the memoryview version on readonly-buffers due to
         # a limitation of Cython's typed memoryviews. Instead we can use
@@ -519,7 +508,7 @@ cdef class {{name}}HashTable(HashTable):
 {{unique_template}}
 
     @cython.boundscheck(False)
-    def unique_memview(self, {{dtype}}_t[:] values, fill_value={{na_value}}, ngaps=0):
+    def unique_memview(self, {{dtype}}_t[:] values):
 {{unique_template}}
 
 {{endfor}}

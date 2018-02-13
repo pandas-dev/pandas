@@ -365,8 +365,11 @@ def unique(values):
     table = htable(len(values))
 
     if isinstance(values, ABCSparseArray):
-        uniques = table.unique(values, fill_value=values.fill_value,
-                               ngaps=values.sp_index.ngaps)
+        import ipdb; ipdb.set_trace()
+        to_unique = values.sp_values
+        if values.sp_index.ngaps > 0:
+            to_unique = np.append(to_unique, [values.fill_value])
+        uniques = table.unique(to_unique)
     else:
         uniques = table.unique(values)
     uniques = _reconstruct_data(uniques, dtype, original)
@@ -476,12 +479,7 @@ def factorize(values, sort=False, order=None, na_sentinel=-1, size_hint=None):
     uniques = vec_klass()
     check_nulls = not is_integer_dtype(original)
 
-    if isinstance(values, ABCSparseArray):
-        labels = table.get_labels(values, uniques, 0, na_sentinel, check_nulls,
-                                  fill_value=values.fill_value,
-                                  ngaps=values.sp_index.ngaps)
-    else:
-        labels = table.get_labels(values, uniques, 0, na_sentinel, check_nulls)
+    labels = table.get_labels(values, uniques, 0, na_sentinel, check_nulls)
 
     labels = _ensure_platform_int(labels)
     uniques = uniques.to_array()
