@@ -32,10 +32,7 @@ class TestIndexArithmeticWithTimedeltaScalar(object):
         Int64Index(range(1, 11)),
         UInt64Index(range(1, 11)),
         Float64Index(range(1, 11)),
-        pytest.param(RangeIndex(1, 11),
-                     marks=pytest.mark.xfail(reason='GH#19333 Unexplained '
-                                                    'failure only in '
-                                                    'CircleCI'))])
+        RangeIndex(1, 11)])
     @pytest.mark.parametrize('scalar_td', [Timedelta(days=1),
                                            Timedelta(days=1).to_timedelta64(),
                                            Timedelta(days=1).to_pytimedelta()])
