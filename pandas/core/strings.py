@@ -351,8 +351,8 @@ def str_replace(arr, pat, repl, n=-1, case=None, flags=0, regex=True):
     Notes
     -----
     When `pat` is a compiled regex, all flags should be included in the
-    compiled regex. Use of `case`, `flags`, or `regex` with a compiled regex
-    will raise an error.
+    compiled regex. Use of `case`, `flags`, or `regex=False` with a compiled
+    regex will raise an error.
 
     Examples
     --------
