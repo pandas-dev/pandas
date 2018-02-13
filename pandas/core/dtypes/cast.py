@@ -927,7 +927,7 @@ def maybe_infer_to_datetimelike(value, convert_dates=False):
         # will try first with a string & object conversion
         from pandas import to_timedelta
         try:
-            return to_timedelta(v)._values.reshape(shape)
+            return to_timedelta(v)._ndarray_values.reshape(shape)
         except Exception:
             return v.reshape(shape)
 

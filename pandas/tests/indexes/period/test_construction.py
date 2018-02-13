@@ -119,8 +119,8 @@ class TestPeriodIndex(object):
         tm.assert_index_equal(PeriodIndex(idx.values), idx)
         tm.assert_index_equal(PeriodIndex(list(idx.values)), idx)
 
-        pytest.raises(ValueError, PeriodIndex, idx._values)
-        pytest.raises(ValueError, PeriodIndex, list(idx._values))
+        pytest.raises(ValueError, PeriodIndex, idx._ndarray_values)
+        pytest.raises(ValueError, PeriodIndex, list(idx._ndarray_values))
         pytest.raises(TypeError, PeriodIndex,
                       data=Period('2007', freq='A'))
 

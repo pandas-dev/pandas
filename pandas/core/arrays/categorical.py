@@ -411,6 +411,10 @@ class Categorical(ExtensionArray, PandasObject):
         return self._dtype
 
     @property
+    def _ndarray_values(self):
+        return self.codes
+
+    @property
     def _constructor(self):
         return Categorical
 

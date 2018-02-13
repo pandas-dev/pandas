@@ -962,6 +962,53 @@ class TestMultiIndex(Base):
         # Check that code branches for boxed values produce identical results
         tm.assert_numpy_array_equal(result.values[:4], result[:4].values)
 
+    def test_values_multiindex_datetimeindex(self):
+        # Test to ensure we hit the boxing / nobox part of MI.values
+        ints = np.arange(10**18, 10**18 + 5)
+        naive = pd.DatetimeIndex(ints)
+        aware = pd.DatetimeIndex(ints, tz='US/Central')
+
+        idx = pd.MultiIndex.from_arrays([naive, aware])
+        result = idx.values
+
+        outer = pd.DatetimeIndex([x[0] for x in result])
+        tm.assert_index_equal(outer, naive)
+
+        inner = pd.DatetimeIndex([x[1] for x in result])
+        tm.assert_index_equal(inner, aware)
+
+        # n_lev > n_lab
+        result = idx[:2].values
+
+        outer = pd.DatetimeIndex([x[0] for x in result])
+        tm.assert_index_equal(outer, naive[:2])
+
+        inner = pd.DatetimeIndex([x[1] for x in result])
+        tm.assert_index_equal(inner, aware[:2])
+
+    def test_values_multiindex_periodindex(self):
+        # Test to ensure we hit the boxing / nobox part of MI.values
+        ints = np.arange(2007, 2012)
+        pidx = pd.PeriodIndex(ints, freq='D')
+
+        idx = pd.MultiIndex.from_arrays([ints, pidx])
+        result = idx.values
+
+        outer = pd.Int64Index([x[0] for x in result])
+        tm.assert_index_equal(outer, pd.Int64Index(ints))
+
+        inner = pd.PeriodIndex([x[1] for x in result])
+        tm.assert_index_equal(inner, pidx)
+
+        # n_lev > n_lab
+        result = idx[:2].values
+
+        outer = pd.Int64Index([x[0] for x in result])
+        tm.assert_index_equal(outer, pd.Int64Index(ints[:2]))
+
+        inner = pd.PeriodIndex([x[1] for x in result])
+        tm.assert_index_equal(inner, pidx[:2])
+
     def test_append(self):
         result = self.index[:3].append(self.index[3:])
         assert result.equals(self.index)

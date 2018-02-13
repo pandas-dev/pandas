@@ -314,7 +314,8 @@ class Base(object):
                 # .values an object array of Period, thus copied
                 result = index_type(ordinal=index.asi8, copy=False,
                                     **init_kwargs)
-                tm.assert_numpy_array_equal(index._values, result._values,
+                tm.assert_numpy_array_equal(index._ndarray_values,
+                                            result._ndarray_values,
                                             check_same='same')
             elif isinstance(index, IntervalIndex):
                 # checked in test_interval.py
@@ -323,7 +324,8 @@ class Base(object):
                 result = index_type(index.values, copy=False, **init_kwargs)
                 tm.assert_numpy_array_equal(index.values, result.values,
                                             check_same='same')
-                tm.assert_numpy_array_equal(index._values, result._values,
+                tm.assert_numpy_array_equal(index._ndarray_values,
+                                            result._ndarray_values,
                                             check_same='same')
 
     def test_copy_and_deepcopy(self, indices):

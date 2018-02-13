@@ -680,6 +680,16 @@ class IntervalIndex(IntervalMixin, Index):
                    'e.g. Intervals with string endpoints')
             raise TypeError(msg)
 
+    @property
+    def size(self):
+        # Avoid materializing self.values
+        return self.left.size
+
+    @property
+    def shape(self):
+        # Avoid materializing self.values
+        return self.left.shape
+
     def __len__(self):
         return len(self.left)
 
