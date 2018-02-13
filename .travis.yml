@@ -20,6 +20,7 @@ env:
     # cd pandas-dev/pandas
     # travis encrypt 'PANDAS_GH_TOKEN=personal_access_token' -r pandas-dev/pandas
     - secure: "EkWLZhbrp/mXJOx38CHjs7BnjXafsqHtwxPQrqWy457VDFWhIY1DMnIR/lOWG+a20Qv52sCsFtiZEmMfUjf0pLGXOqurdxbYBGJ7/ikFLk9yV2rDwiArUlVM9bWFnFxHvdz9zewBH55WurrY4ShZWyV+x2dWjjceWG5VpWeI6sA="
+    - PANDAS_TESTING_MODE: "deprecate"
 
 git:
     # for cloning
@@ -55,7 +56,7 @@ matrix:
         - JOB="3.5_CONDA_BUILD_TEST" TEST_ARGS="--skip-slow --skip-network" CONDA_BUILD_TEST=true
     - dist: trusty
       env:
-        - JOB="3.6" TEST_ARGS="--skip-slow --skip-network" PANDAS_TESTING_MODE="deprecate" CONDA_FORGE=true COVERAGE=true
+        - JOB="3.6" TEST_ARGS="--skip-slow --skip-network" CONDA_FORGE=true COVERAGE=true
     # In allow_failures
     - dist: trusty
       env:
@@ -71,7 +72,7 @@ matrix:
     # In allow_failures
     - dist: trusty
       env:
-        - JOB="3.6_NUMPY_DEV" TEST_ARGS="--skip-slow --skip-network" PANDAS_TESTING_MODE="deprecate"
+        - JOB="3.6_NUMPY_DEV" TEST_ARGS="--skip-slow --skip-network"
     # In allow_failures
     - dist: trusty
       env:
@@ -96,7 +97,7 @@ matrix:
             - xsel
       - dist: trusty
         env:
-          - JOB="3.6_NUMPY_DEV" TEST_ARGS="--skip-slow --skip-network" PANDAS_TESTING_MODE="deprecate"
+          - JOB="3.6_NUMPY_DEV" TEST_ARGS="--skip-slow --skip-network"
       - dist: trusty
         env:
           - JOB="3.6_ASV" ASV=true
