@@ -380,7 +380,6 @@ extlinks = {'issue': ('https://github.com/pandas-dev/pandas/issues/%s',
 
 # ignore all deprecation warnings from Panel during doc build
 # (to avoid the need to add :okwarning: in many places)
-import warnings
 warnings.filterwarnings("ignore", message="\nPanel is deprecated",
                         category=FutureWarning)
 
