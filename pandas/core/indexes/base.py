@@ -600,7 +600,7 @@ class Index(IndexOpsMixin, PandasObject):
     @property
     def _values(self):
         # type: () -> Union[ExtensionArray, Index]
-        # TODO: remove index types as they become is extension arrays
+        # TODO(EA): remove index types as they become extension arrays
         """The best array representation.
 
         This is an ndarray, ExtensionArray, or Index subclass. This differs
@@ -2271,7 +2271,7 @@ class Index(IndexOpsMixin, PandasObject):
             other = other.astype('O')
             return this.union(other)
 
-        # TODO: setops-refactor, clean all this up
+        # TODO(EA): setops-refactor, clean all this up
         if is_period_dtype(self) or is_datetime64tz_dtype(self):
             lvals = self._ndarray_values
         else:
@@ -2364,7 +2364,7 @@ class Index(IndexOpsMixin, PandasObject):
             other = other.astype('O')
             return this.intersection(other)
 
-        # TODO: setops-refactor, clean all this up
+        # TODO(EA): setops-refactor, clean all this up
         if is_period_dtype(self):
             lvals = self._ndarray_values
         else:

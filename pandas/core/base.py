@@ -744,7 +744,7 @@ class IndexOpsMixin(object):
     @property
     def nbytes(self):
         """ return the number of bytes in the underlying data """
-        return self.values.nbytes
+        return self._values.nbytes
 
     @property
     def strides(self):
@@ -988,7 +988,6 @@ class IndexOpsMixin(object):
     def unique(self):
         values = self._values
 
-        # TODO: Make unique part of the ExtensionArray interface.
         if hasattr(values, 'unique'):
 
             result = values.unique()

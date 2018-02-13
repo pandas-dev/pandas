@@ -708,6 +708,13 @@ class DatetimeIndex(DatelikeOps, TimelikeOps, DatetimeIndexOpsMixin,
         # for TZ-aware
         return self._ndarray_values.shape
 
+    @property
+    def nbytes(self):
+        # TODO: Remove this when we have a DatetimeTZArray
+        # Necessary to avoid recursion error since DTI._values is a DTI
+        # for TZ-aware
+        return self._ndarray_values.nbytes
+
     @cache_readonly
     def _timezone(self):
         """ Comparable timezone both for pytz / dateutil"""

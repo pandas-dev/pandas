@@ -31,14 +31,6 @@ cdef double nan = NaN
 
 cdef int64_t iNaT = get_nat()
 
-cdef:
-    int TIEBREAK_AVERAGE = 0
-    int TIEBREAK_MIN = 1
-    int TIEBREAK_MAX = 2
-    int TIEBREAK_FIRST = 3
-    int TIEBREAK_FIRST_DESCENDING = 4
-    int TIEBREAK_DENSE = 5
-
 tiebreakers = {
     'average': TIEBREAK_AVERAGE,
     'min': TIEBREAK_MIN,
