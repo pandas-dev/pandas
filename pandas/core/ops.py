@@ -1073,6 +1073,24 @@ series_special_funcs = dict(arith_method=_arith_method_SERIES,
 
 def _combine_series_frame(self, other, func, fill_value=None, axis=None,
                           level=None, try_cast=True):
+    """
+    Apply binary operator `func` to self, other using alignment and fill
+    conventions determined by the fill_value, axis, level, and try_cast kwargs.
+
+    Parameters
+    ----------
+    self : DataFrame
+    other : Series
+    func : binary operator
+    fill_value : object (default None)
+    axis : {0, 1, 'columns', 'index', None} (default None)
+    level : int or None (default None)
+    try_cast : bool (default True)
+
+    Returns
+    -------
+    result : DataFrame
+    """
     if fill_value is not None:
         raise NotImplementedError("fill_value {fill} not supported."
                                   .format(fill=fill_value))
