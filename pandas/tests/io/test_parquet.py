@@ -154,10 +154,21 @@ def check_round_trip(df, engine=None, path=None,
         write_kwargs['engine'] = engine
         read_kwargs['engine'] = engine
 
+    should_warn = (engine == 'pyarrow' and
+                   pyarrow.__version__ <= LooseVersion("0.8.0") and
+                   any(pd.api.types.is_datetime64tz_dtype(dtype)
+                       for dtype in df.dtypes))
+
+    if should_warn:
+        warning_type = DeprecationWarning
+    else:
+        warning_type = None
+
     def compare(repeat):
         for _ in range(repeat):
             df.to_parquet(path, **write_kwargs)
-            with catch_warnings(record=True):
+            with tm.assert_produces_warning(warning_type,
+                                            check_stacklevel=False):
                 actual = read_parquet(path, **read_kwargs)
             tm.assert_frame_equal(expected, actual,
                                   check_names=check_names)
