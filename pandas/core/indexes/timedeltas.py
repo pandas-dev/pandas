@@ -60,7 +60,7 @@ def _td_index_cmp(opname, cls, nat_result=False):
 
     def wrapper(self, other):
         msg = "cannot compare a {cls} with type {typ}"
-        func = getattr(super(TimedeltaIndex, self), opname)
+        binop = getattr(Index, opname)
         if _is_convertible_to_td(other) or other is NaT:
             try:
                 other = _to_m8(other)
@@ -68,7 +68,7 @@ def _td_index_cmp(opname, cls, nat_result=False):
                 # failed to parse as timedelta
                 raise TypeError(msg.format(cls=type(self).__name__,
                                            typ=type(other).__name__))
-            result = func(other)
+            result = binop(self, other)
             if isna(other):
                 result.fill(nat_result)
         else:
@@ -77,7 +77,7 @@ def _td_index_cmp(opname, cls, nat_result=False):
                                            typ=type(other).__name__))
 
             other = TimedeltaIndex(other).values
-            result = func(other)
+            result = binop(self, other)
             result = com._values_from_object(result)
 
             if isinstance(other, Index):

@@ -106,7 +106,7 @@ def _dt_index_cmp(opname, cls, nat_result=False):
     """
 
     def wrapper(self, other):
-        func = getattr(super(DatetimeIndex, self), opname)
+        binop = getattr(Index, opname)
 
         if isinstance(other, (datetime, compat.string_types)):
             if isinstance(other, datetime):
@@ -114,7 +114,7 @@ def _dt_index_cmp(opname, cls, nat_result=False):
                 self._assert_tzawareness_compat(other)
 
             other = _to_m8(other, tz=self.tz)
-            result = func(other)
+            result = binop(self, other)
             if isna(other):
                 result.fill(nat_result)
         else:
@@ -134,7 +134,7 @@ def _dt_index_cmp(opname, cls, nat_result=False):
             if is_datetimelike(other):
                 self._assert_tzawareness_compat(other)
 
-            result = func(np.asarray(other))
+            result = binop(self, np.asarray(other))
             result = com._values_from_object(result)
 
             if isinstance(other, Index):
