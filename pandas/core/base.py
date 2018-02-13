@@ -187,15 +187,25 @@ class SelectionMixin(object):
         builtins.max: 'max',
         builtins.min: 'min',
         np.sum: 'sum',
+        np.nansum: 'sum',
         np.mean: 'mean',
+        np.nanmean: 'mean',
         np.prod: 'prod',
+        np.nanprod: 'prod',
         np.std: 'std',
+        np.nanstd: 'std',
         np.var: 'var',
+        np.nanvar: 'var',
         np.median: 'median',
+        np.nanmedian: 'median',
         np.max: 'max',
+        np.nanmax: 'max',
         np.min: 'min',
+        np.nanmin: 'min',
         np.cumprod: 'cumprod',
-        np.cumsum: 'cumsum'
+        np.nancumprod: 'cumprod',
+        np.cumsum: 'cumsum',
+        np.nancumsum: 'cumsum'
     }
 
     @property
