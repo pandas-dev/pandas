@@ -212,8 +212,8 @@ class TestDatetimeIndexRendering(object):
         rng[2:2].summary()
 
     def test_dti_custom_business_summary_pytz(self):
-        bdate_range('1/1/2005', '1/1/2009', freq='C', tz=pytz.utc).summary()
+        pd.bdate_range('1/1/2005', '1/1/2009', freq='C', tz=pytz.utc).summary()
 
     def test_dti_custom_business_summary_dateutil(self):
-        bdate_range('1/1/2005', '1/1/2009', freq='C',
-                    tz=dateutil.tz.tzutc()).summary()
+        pd.bdate_range('1/1/2005', '1/1/2009', freq='C',
+                       tz=dateutil.tz.tzutc()).summary()
