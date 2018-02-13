@@ -621,52 +621,6 @@ class TestSparseDataFrame(SharedWithSparse):
         tm.assert_sp_frame_equal(appended.iloc[:, :3], self.frame.iloc[:, :3],
                                  exact_indices=False)
 
-    def test_apply(self):
-        applied = self.frame.apply(np.sqrt)
-        assert isinstance(applied, SparseDataFrame)
-        tm.assert_almost_equal(applied.values, np.sqrt(self.frame.values))
-
-        applied = self.fill_frame.apply(np.sqrt)
-        assert applied['A'].fill_value == np.sqrt(2)
-
-        # agg / broadcast
-        broadcasted = self.frame.apply(np.sum, broadcast=True)
-        assert isinstance(broadcasted, SparseDataFrame)
-
-        exp = self.frame.to_dense().apply(np.sum, broadcast=True)
-        tm.assert_frame_equal(broadcasted.to_dense(), exp)
-
-        assert self.empty.apply(np.sqrt) is self.empty
-
-        from pandas.core import nanops
-        applied = self.frame.apply(np.sum)
-        tm.assert_series_equal(applied,
-                               self.frame.to_dense().apply(nanops.nansum))
-
-    def test_apply_nonuq(self):
-        orig = DataFrame([[1, 2, 3], [4, 5, 6], [7, 8, 9]],
-                         index=['a', 'a', 'c'])
-        sparse = orig.to_sparse()
-        res = sparse.apply(lambda s: s[0], axis=1)
-        exp = orig.apply(lambda s: s[0], axis=1)
-        # dtype must be kept
-        assert res.dtype == np.int64
-        # ToDo: apply must return subclassed dtype
-        assert isinstance(res, pd.Series)
-        tm.assert_series_equal(res.to_dense(), exp)
-
-        # df.T breaks
-        sparse = orig.T.to_sparse()
-        res = sparse.apply(lambda s: s[0], axis=0)  # noqa
-        exp = orig.T.apply(lambda s: s[0], axis=0)
-        # TODO: no non-unique columns supported in sparse yet
-        # tm.assert_series_equal(res.to_dense(), exp)
-
-    def test_applymap(self):
-        # just test that it works
-        result = self.frame.applymap(lambda x: x * 2)
-        assert isinstance(result, SparseDataFrame)
-
     def test_astype(self):
         sparse = pd.SparseDataFrame({'A': SparseArray([1, 2, 3, 4],
                                                       dtype=np.int64),
@@ -1303,3 +1257,14 @@ class TestSparseDataFrameAnalytics(object):
 
         tm.assert_frame_equal(result, dense_expected)
         tm.assert_sp_frame_equal(result, sparse_expected)
+
+    def test_assign_with_sparse_frame(self):
+        # GH 19163
+        df = pd.DataFrame({"a": [1, 2, 3]})
+        res = df.to_sparse(fill_value=False).assign(newcol=False)
+        exp = df.assign(newcol=False).to_sparse(fill_value=False)
+
+        tm.assert_sp_frame_equal(res, exp)
+
+        for column in res.columns:
+            assert type(res[column]) is SparseSeries

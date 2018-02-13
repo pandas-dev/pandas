@@ -994,7 +994,7 @@ b  2""")
         return (self.size().fillna(0) > 0).any() and (func_nm not in
                                                       _cython_cast_blacklist)
 
-    def _cython_transform(self, how, numeric_only=True):
+    def _cython_transform(self, how, numeric_only=True, **kwargs):
         output = collections.OrderedDict()
         for name, obj in self._iterate_slices():
             is_numeric = is_numeric_dtype(obj.dtype)
@@ -1002,12 +1002,16 @@ b  2""")
                 continue
 
             try:
-                result, names = self.grouper.transform(obj.values, how)
+                result, names = self.grouper.transform(obj.values, how,
+                                                       **kwargs)
             except NotImplementedError:
                 continue
             except AssertionError as e:
                 raise GroupByError(str(e))
-            output[name] = self._try_cast(result, obj)
+            if self._transform_should_cast(how):
+                output[name] = self._try_cast(result, obj)
+            else:
+                output[name] = result
 
         if len(output) == 0:
             raise DataError('No numeric types to aggregate')
@@ -1770,6 +1774,37 @@ class GroupBy(_GroupBy):
 
     @Substitution(name='groupby')
     @Appender(_doc_template)
+    def rank(self, method='average', ascending=True, na_option='keep',
+             pct=False, axis=0):
+        """Provides the rank of values within each group
+
+        Parameters
+        ----------
+        method : {'average', 'min', 'max', 'first', 'dense'}, efault 'average'
+            * average: average rank of group
+            * min: lowest rank in group
+            * max: highest rank in group
+            * first: ranks assigned in order they appear in the array
+            * dense: like 'min', but rank always increases by 1 between groups
+        method :  {'keep', 'top', 'bottom'}, default 'keep'
+            * keep: leave NA values where they are
+            * top: smallest rank if ascending
+            * bottom: smallest rank if descending
+        ascending : boolean, default True
+            False for ranks by high (1) to low (N)
+        pct : boolean, default False
+            Compute percentage rank of data within each group
+
+        Returns
+        -----
+        DataFrame with ranking of values within each group
+        """
+        return self._cython_transform('rank', numeric_only=False,
+                                      ties_method=method, ascending=ascending,
+                                      na_option=na_option, pct=pct, axis=axis)
+
+    @Substitution(name='groupby')
+    @Appender(_doc_template)
     def cumprod(self, axis=0, *args, **kwargs):
         """Cumulative product for each group"""
         nv.validate_groupby_func('cumprod', args, kwargs, ['numeric_only'])
@@ -2183,6 +2218,16 @@ class BaseGrouper(object):
             'cumsum': 'group_cumsum',
             'cummin': 'group_cummin',
             'cummax': 'group_cummax',
+            'rank': {
+                'name': 'group_rank',
+                'f': lambda func, a, b, c, d, **kwargs: func(
+                    a, b, c, d,
+                    kwargs.get('ties_method', 'average'),
+                    kwargs.get('ascending', True),
+                    kwargs.get('pct', False),
+                    kwargs.get('na_option', 'keep')
+                )
+            }
         }
     }
 
@@ -2240,9 +2285,10 @@ class BaseGrouper(object):
             raise NotImplementedError("function is not implemented for this"
                                       "dtype: [how->%s,dtype->%s]" %
                                       (how, dtype_str))
-        return func, dtype_str
+        return func
 
-    def _cython_operation(self, kind, values, how, axis, min_count=-1):
+    def _cython_operation(self, kind, values, how, axis, min_count=-1,
+                          **kwargs):
         assert kind in ['transform', 'aggregate']
 
         # can we do this operation with our cython functions
@@ -2304,20 +2350,23 @@ class BaseGrouper(object):
             values = values.astype(object)
 
         try:
-            func, dtype_str = self._get_cython_function(
+            func = self._get_cython_function(
                 kind, how, values, is_numeric)
         except NotImplementedError:
             if is_numeric:
                 values = _ensure_float64(values)
-                func, dtype_str = self._get_cython_function(
+                func = self._get_cython_function(
                     kind, how, values, is_numeric)
             else:
                 raise
 
-        if is_numeric:
-            out_dtype = '%s%d' % (values.dtype.kind, values.dtype.itemsize)
+        if how == 'rank':
+            out_dtype = 'float'
         else:
-            out_dtype = 'object'
+            if is_numeric:
+                out_dtype = '%s%d' % (values.dtype.kind, values.dtype.itemsize)
+            else:
+                out_dtype = 'object'
 
         labels, _, _ = self.group_info
 
@@ -2334,9 +2383,10 @@ class BaseGrouper(object):
 
             # TODO: min_count
             result = self._transform(
-                result, values, labels, func, is_numeric, is_datetimelike)
+                result, values, labels, func, is_numeric, is_datetimelike,
+                **kwargs)
 
-        if is_integer_dtype(result):
+        if is_integer_dtype(result) and not is_datetimelike:
             mask = result == iNaT
             if mask.any():
                 result = result.astype('float64')
@@ -2373,8 +2423,8 @@ class BaseGrouper(object):
         return self._cython_operation('aggregate', values, how, axis,
                                       min_count=min_count)
 
-    def transform(self, values, how, axis=0):
-        return self._cython_operation('transform', values, how, axis)
+    def transform(self, values, how, axis=0, **kwargs):
+        return self._cython_operation('transform', values, how, axis, **kwargs)
 
     def _aggregate(self, result, counts, values, comp_ids, agg_func,
                    is_numeric, is_datetimelike, min_count=-1):
@@ -2394,7 +2444,7 @@ class BaseGrouper(object):
         return result
 
     def _transform(self, result, values, comp_ids, transform_func,
-                   is_numeric, is_datetimelike):
+                   is_numeric, is_datetimelike, **kwargs):
 
         comp_ids, _, ngroups = self.group_info
         if values.ndim > 3:
@@ -2406,9 +2456,9 @@ class BaseGrouper(object):
 
                 chunk = chunk.squeeze()
                 transform_func(result[:, :, i], values,
-                               comp_ids, is_datetimelike)
+                               comp_ids, is_datetimelike, **kwargs)
         else:
-            transform_func(result, values, comp_ids, is_datetimelike)
+            transform_func(result, values, comp_ids, is_datetimelike, **kwargs)
 
         return result
 

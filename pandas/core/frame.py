@@ -233,7 +233,7 @@ See also
 --------
 merge_ordered
 merge_asof
-
+DataFrame.join
 """
 
 # -----------------------------------------------------------------------
@@ -1727,7 +1727,7 @@ class DataFrame(NDFrame):
                 sparsify=None, index_names=True, justify=None, bold_rows=True,
                 classes=None, escape=True, max_rows=None, max_cols=None,
                 show_dimensions=False, notebook=False, decimal='.',
-                border=None):
+                border=None, table_id=None):
         """
         Render a DataFrame as an HTML table.
 
@@ -1755,6 +1755,12 @@ class DataFrame(NDFrame):
             `<table>` tag. Default ``pd.options.html.border``.
 
             .. versionadded:: 0.19.0
+
+        table_id : str, optional
+            A css id is included in the opening `<table>` tag if specified.
+
+            .. versionadded:: 0.23.0
+
         """
 
         if (justify is not None and
@@ -1772,7 +1778,7 @@ class DataFrame(NDFrame):
                                            max_rows=max_rows,
                                            max_cols=max_cols,
                                            show_dimensions=show_dimensions,
-                                           decimal=decimal)
+                                           decimal=decimal, table_id=table_id)
         # TODO: a generic formatter wld b in DataFrameFormatter
         formatter.to_html(classes=classes, notebook=notebook, border=border)
 
@@ -2681,12 +2687,17 @@ class DataFrame(NDFrame):
 
         Notes
         -----
-        For python 3.6 and above, the columns are inserted in the order of
-        \*\*kwargs. For python 3.5 and earlier, since \*\*kwargs is unordered,
-        the columns are inserted in alphabetical order at the end of your
-        DataFrame.  Assigning multiple columns within the same ``assign``
-        is possible, but you cannot reference other columns created within
-        the same ``assign`` call.
+        Assigning multiple columns within the same ``assign`` is possible.
+        For Python 3.6 and above, later items in '\*\*kwargs' may refer to
+        newly created or modified columns in 'df'; items are computed and
+        assigned into 'df' in order.  For Python 3.5 and below, the order of
+        keyword arguments is not specified, you cannot refer to newly created
+        or modified columns. All items are computed first, and then assigned
+        in alphabetical order.
+
+        .. versionmodified :: 0.23.0
+
+            Keyword argument order is maintained for Python 3.6 and later.
 
         Examples
         --------
@@ -2722,22 +2733,34 @@ class DataFrame(NDFrame):
         7   8 -1.495604  2.079442
         8   9  0.549296  2.197225
         9  10 -0.758542  2.302585
+
+        Where the keyword arguments depend on each other
+
+        >>> df = pd.DataFrame({'A': [1, 2, 3]})
+
+        >>> df.assign(B=df.A, C=lambda x:x['A']+ x['B'])
+            A  B  C
+         0  1  1  2
+         1  2  2  4
+         2  3  3  6
         """
         data = self.copy()
 
-        # do all calculations first...
-        results = OrderedDict()
-        for k, v in kwargs.items():
-            results[k] = com._apply_if_callable(v, data)
-
-        # preserve order for 3.6 and later, but sort by key for 3.5 and earlier
+        # >= 3.6 preserve order of kwargs
         if PY36:
-            results = results.items()
+            for k, v in kwargs.items():
+                data[k] = com._apply_if_callable(v, data)
         else:
+            # <= 3.5: do all calculations first...
+            results = OrderedDict()
+            for k, v in kwargs.items():
+                results[k] = com._apply_if_callable(v, data)
+
+            # <= 3.5 and earlier
             results = sorted(results.items())
-        # ... and then assign
-        for k, v in results:
-            data[k] = v
+            # ... and then assign
+            for k, v in results:
+                data[k] = v
         return data
 
     def _sanitize_column(self, key, value, broadcast=True):
@@ -3915,23 +3938,12 @@ class DataFrame(NDFrame):
     # ----------------------------------------------------------------------
     # Arithmetic / combination related
 
-    def _combine_frame(self, other, func, fill_value=None, level=None,
-                       try_cast=True):
+    def _combine_frame(self, other, func, fill_value=None, level=None):
         this, other = self.align(other, join='outer', level=level, copy=False)
         new_index, new_columns = this.index, this.columns
 
         def _arith_op(left, right):
-            if fill_value is not None:
-                left_mask = isna(left)
-                right_mask = isna(right)
-                left = left.copy()
-                right = right.copy()
-
-                # one but not both
-                mask = left_mask ^ right_mask
-                left[left_mask & mask] = fill_value
-                right[right_mask & mask] = fill_value
-
+            left, right = ops.fill_binop(left, right, fill_value)
             return func(left, right)
 
         if this._is_mixed_type or other._is_mixed_type:
@@ -3968,52 +3980,40 @@ class DataFrame(NDFrame):
 
     def _combine_series(self, other, func, fill_value=None, axis=None,
                         level=None, try_cast=True):
+        if fill_value is not None:
+            raise NotImplementedError("fill_value {fill} not supported."
+                                      .format(fill=fill_value))
+
         if axis is not None:
             axis = self._get_axis_name(axis)
             if axis == 'index':
-                return self._combine_match_index(other, func, level=level,
-                                                 fill_value=fill_value,
-                                                 try_cast=try_cast)
+                return self._combine_match_index(other, func, level=level)
             else:
                 return self._combine_match_columns(other, func, level=level,
-                                                   fill_value=fill_value,
                                                    try_cast=try_cast)
-        return self._combine_series_infer(other, func, level=level,
-                                          fill_value=fill_value,
-                                          try_cast=try_cast)
+        else:
+            if not len(other):
+                return self * np.nan
 
-    def _combine_series_infer(self, other, func, level=None,
-                              fill_value=None, try_cast=True):
-        if len(other) == 0:
-            return self * np.nan
+            if not len(self):
+                # Ambiguous case, use _series so works with DataFrame
+                return self._constructor(data=self._series, index=self.index,
+                                         columns=self.columns)
 
-        if len(self) == 0:
-            # Ambiguous case, use _series so works with DataFrame
-            return self._constructor(data=self._series, index=self.index,
-                                     columns=self.columns)
+            # default axis is columns
+            return self._combine_match_columns(other, func, level=level,
+                                               try_cast=try_cast)
 
-        return self._combine_match_columns(other, func, level=level,
-                                           fill_value=fill_value,
-                                           try_cast=try_cast)
-
-    def _combine_match_index(self, other, func, level=None,
-                             fill_value=None, try_cast=True):
+    def _combine_match_index(self, other, func, level=None):
         left, right = self.align(other, join='outer', axis=0, level=level,
                                  copy=False)
-        if fill_value is not None:
-            raise NotImplementedError("fill_value %r not supported." %
-                                      fill_value)
         return self._constructor(func(left.values.T, right.values).T,
                                  index=left.index, columns=self.columns,
                                  copy=False)
 
-    def _combine_match_columns(self, other, func, level=None,
-                               fill_value=None, try_cast=True):
+    def _combine_match_columns(self, other, func, level=None, try_cast=True):
         left, right = self.align(other, join='outer', axis=1, level=level,
                                  copy=False)
-        if fill_value is not None:
-            raise NotImplementedError("fill_value %r not supported" %
-                                      fill_value)
 
         new_data = left._data.eval(func=func, other=right,
                                    axes=[left.columns, self.index],
@@ -4833,14 +4833,14 @@ class DataFrame(NDFrame):
 
     agg = aggregate
 
-    def apply(self, func, axis=0, broadcast=False, raw=False, reduce=None,
-              args=(), **kwds):
-        """Applies function along input axis of DataFrame.
+    def apply(self, func, axis=0, broadcast=None, raw=False, reduce=None,
+              result_type=None, args=(), **kwds):
+        """Applies function along an axis of the DataFrame.
 
         Objects passed to functions are Series objects having index
         either the DataFrame's index (axis=0) or the columns (axis=1).
-        Return type depends on whether passed function aggregates, or the
-        reduce argument if the DataFrame is empty.
+        Final return type depends on the return type of the applied function,
+        or on the `result_type` argument.
 
         Parameters
         ----------
@@ -4849,9 +4849,14 @@ class DataFrame(NDFrame):
         axis : {0 or 'index', 1 or 'columns'}, default 0
             * 0 or 'index': apply function to each column
             * 1 or 'columns': apply function to each row
-        broadcast : boolean, default False
+        broadcast : boolean, optional
             For aggregation functions, return object of same size with values
             propagated
+
+            .. deprecated:: 0.23.0
+               This argument will be removed in a future version, replaced
+               by result_type='broadcast'.
+
         raw : boolean, default False
             If False, convert each row or column into a Series. If raw=True the
             passed function will receive ndarray objects instead. If you are
@@ -4865,6 +4870,27 @@ class DataFrame(NDFrame):
             while guessing, exceptions raised by func will be ignored). If
             reduce is True a Series will always be returned, and if False a
             DataFrame will always be returned.
+
+            .. deprecated:: 0.23.0
+               This argument will be removed in a future version, replaced
+               by result_type='reduce'.
+
+        result_type : {'expand', 'reduce', 'broadcast, None}
+            These only act when axis=1 {columns}:
+
+            * 'expand' : list-like results will be turned into columns.
+            * 'reduce' : return a Series if possible rather than expanding
+              list-like results. This is the opposite to 'expand'.
+            * 'broadcast' : results will be broadcast to the original shape
+              of the frame, the original index & columns will be retained.
+
+            The default behaviour (None) depends on the return value of the
+            applied function: list-like results will be returned as a Series
+            of those. However if the apply function returns a Series these
+            are expanded to columns.
+
+            .. versionadded:: 0.23.0
+
         args : tuple
             Positional arguments to pass to function in addition to the
             array/series
@@ -4880,9 +4906,97 @@ class DataFrame(NDFrame):
 
         Examples
         --------
-        >>> df.apply(numpy.sqrt) # returns DataFrame
-        >>> df.apply(numpy.sum, axis=0) # equiv to df.sum(0)
-        >>> df.apply(numpy.sum, axis=1) # equiv to df.sum(1)
+
+        We use this DataFrame to illustrate
+
+        >>> df = pd.DataFrame(np.tile(np.arange(3), 6).reshape(6, -1) + 1,
+        ...                   columns=['A', 'B', 'C'])
+        >>> df
+           A  B  C
+        0  1  2  3
+        1  1  2  3
+        2  1  2  3
+        3  1  2  3
+        4  1  2  3
+        5  1  2  3
+
+        Using a numpy universal function (in this case the same as
+        ``np.sqrt(df)``):
+
+        >>> df.apply(np.sqrt)
+             A         B         C
+        0  1.0  1.414214  1.732051
+        1  1.0  1.414214  1.732051
+        2  1.0  1.414214  1.732051
+        3  1.0  1.414214  1.732051
+        4  1.0  1.414214  1.732051
+        5  1.0  1.414214  1.732051
+
+        Using a reducing function on either axis
+
+        >>> df.apply(np.sum, axis=0)
+        A     6
+        B    12
+        C    18
+        dtype: int64
+
+        >>> df.apply(np.sum, axis=1)
+        0    6
+        1    6
+        2    6
+        3    6
+        4    6
+        5    6
+        dtype: int64
+
+        Retuning a list-like will result in a Series
+
+        >>> df.apply(lambda x: [1, 2], axis=1)
+        0    [1, 2]
+        1    [1, 2]
+        2    [1, 2]
+        3    [1, 2]
+        4    [1, 2]
+        5    [1, 2]
+
+        Passing result_type='expand' will expand list-like results
+        to columns of a Dataframe
+
+        >>> df.apply(lambda x: [1, 2], axis=1, result_type='expand')
+           0  1
+        0  1  2
+        1  1  2
+        2  1  2
+        3  1  2
+        4  1  2
+        5  1  2
+
+        Returning a Series inside the function is similar to passing
+        ``result_type='expand'``. The resulting column names
+        will be the Series index.
+
+        >>> df.apply(lambda x: Series([1, 2], index=['foo', 'bar']), axis=1)
+           foo  bar
+        0    1    2
+        1    1    2
+        2    1    2
+        3    1    2
+        4    1    2
+        5    1    2
+
+        Passing ``result_type='broadcast'`` will ensure the same shape
+        result, whether list-like or scalar is returned by the function,
+        and broadcast it along the axis. The resulting column names will
+        be the originals.
+
+        >>> df.apply(lambda x: [1, 2, 3], axis=1, result_type='broadcast')
+           A  B  C
+        0  1  2  3
+        1  1  2  3
+        2  1  2  3
+        3  1  2  3
+        4  1  2  3
+        5  1  2  3
 
         See also
         --------
@@ -4901,7 +5015,9 @@ class DataFrame(NDFrame):
                          broadcast=broadcast,
                          raw=raw,
                          reduce=reduce,
-                         args=args, **kwds)
+                         result_type=result_type,
+                         args=args,
+                         kwds=kwds)
         return op.get_result()
 
     def applymap(self, func):
@@ -5219,18 +5335,17 @@ class DataFrame(NDFrame):
                 raise ValueError('Joining multiple DataFrames only supported'
                                  ' for joining on index')
 
-            # join indexes only using concat
-            if how == 'left':
-                how = 'outer'
-                join_axes = [self.index]
-            else:
-                join_axes = None
-
             frames = [self] + list(other)
 
             can_concat = all(df.index.is_unique for df in frames)
 
+            # join indexes only using concat
             if can_concat:
+                if how == 'left':
+                    how = 'outer'
+                    join_axes = [self.index]
+                else:
+                    join_axes = None
                 return concat(frames, axis=1, join=how, join_axes=join_axes,
                               verify_integrity=True)
 
@@ -5605,12 +5720,16 @@ class DataFrame(NDFrame):
                         # numeric_only and yet we have tried a
                         # column-by-column reduction, where we have mixed type.
                         # So let's just do what we can
-                        result = self.apply(f, reduce=False,
-                                            ignore_failures=True)
+                        from pandas.core.apply import frame_apply
+                        opa = frame_apply(self,
+                                          func=f,
+                                          result_type='expand',
+                                          ignore_failures=True)
+                        result = opa.get_result()
                         if result.ndim == self.ndim:
                             result = result.iloc[0]
                         return result
-                    except:
+                    except Exception:
                         pass
 
                 if filter_type is None or filter_type == 'numeric':

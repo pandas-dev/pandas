@@ -142,17 +142,13 @@ cpdef int32_t get_week_of_year(int year, int month, int day) nogil:
     Assumes the inputs describe a valid date.
     """
     cdef:
-        bint isleap, isleap_prev
-        int32_t mo_off
+        bint isleap
         int32_t doy, dow
         int woy
 
     isleap = is_leapyear(year)
-    isleap_prev = is_leapyear(year - 1)
 
-    mo_off = _month_offset[isleap * 13 + month - 1]
-
-    doy = mo_off + day
+    doy = get_day_of_year(year, month, day)
     dow = dayofweek(year, month, day)
 
     # estimate
@@ -162,7 +158,7 @@ cpdef int32_t get_week_of_year(int year, int month, int day) nogil:
 
     # verify
     if woy < 0:
-        if (woy > -2) or (woy == -2 and isleap_prev):
+        if (woy > -2) or (woy == -2 and is_leapyear(year - 1)):
             woy = 53
         else:
             woy = 52
@@ -171,3 +167,35 @@ cpdef int32_t get_week_of_year(int year, int month, int day) nogil:
             woy = 1
 
     return woy
+
+
+@cython.wraparound(False)
+@cython.boundscheck(False)
+cpdef int32_t get_day_of_year(int year, int month, int day) nogil:
+    """Return the ordinal day-of-year for the given day.
+
+    Parameters
+    ----------
+    year : int
+    month : int
+    day : int
+
+    Returns
+    -------
+    day_of_year : int32_t
+
+    Notes
+    -----
+    Assumes the inputs describe a valid date.
+    """
+    cdef:
+        bint isleap
+        int32_t mo_off
+        int day_of_year
+
+    isleap = is_leapyear(year)
+
+    mo_off = _month_offset[isleap * 13 + month - 1]
+
+    day_of_year = mo_off + day
+    return day_of_year

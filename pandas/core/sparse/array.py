@@ -8,10 +8,10 @@ import numpy as np
 import warnings
 
 import pandas as pd
-from pandas.core.base import PandasObject
+from pandas.core.base import PandasObject, IndexOpsMixin
 
 from pandas import compat
-from pandas.compat import range
+from pandas.compat import range, PYPY
 from pandas.compat.numpy import function as nv
 
 from pandas.core.dtypes.generic import ABCSparseSeries
@@ -26,10 +26,12 @@ from pandas.core.dtypes.common import (
     is_scalar, is_dtype_equal)
 from pandas.core.dtypes.cast import (
     maybe_convert_platform, maybe_promote,
-    astype_nansafe, find_common_type)
+    astype_nansafe, find_common_type, infer_dtype_from_scalar,
+    construct_1d_arraylike_from_scalar)
 from pandas.core.dtypes.missing import isna, notna, na_value_for_dtype
 
 import pandas._libs.sparse as splib
+import pandas._libs.lib as lib
 from pandas._libs.sparse import SparseIndex, BlockIndex, IntIndex
 from pandas._libs import index as libindex
 import pandas.core.algorithms as algos
@@ -161,9 +163,9 @@ class SparseArray(PandasObject, np.ndarray):
                 data = np.nan
             if not is_scalar(data):
                 raise Exception("must only pass scalars with an index ")
-            values = np.empty(len(index), dtype='float64')
-            values.fill(data)
-            data = values
+            dtype = infer_dtype_from_scalar(data)[0]
+            data = construct_1d_arraylike_from_scalar(
+                data, len(index), dtype)
 
         if isinstance(data, ABCSparseSeries):
             data = data.values
@@ -237,6 +239,17 @@ class SparseArray(PandasObject, np.ndarray):
             return 'block'
         elif isinstance(self.sp_index, IntIndex):
             return 'integer'
+
+    @Appender(IndexOpsMixin.memory_usage.__doc__)
+    def memory_usage(self, deep=False):
+        values = self.sp_values
+
+        v = values.nbytes
+
+        if deep and is_object_dtype(self) and not PYPY:
+            v += lib.memory_usage_of_objects(values)
+
+        return v
 
     def __array_wrap__(self, out_arr, context=None):
         """

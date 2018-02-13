@@ -378,7 +378,7 @@ class Float64Index(NumericIndex):
             if (not is_dtype_equal(self.dtype, other.dtype) or
                     self.shape != other.shape):
                 return False
-            left, right = self._values, other._values
+            left, right = self._ndarray_values, other._ndarray_values
             return ((left == right) | (self._isnan & other._isnan)).all()
         except (TypeError, ValueError):
             return False

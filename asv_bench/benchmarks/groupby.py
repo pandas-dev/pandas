@@ -1,3 +1,4 @@
+import warnings
 from string import ascii_letters
 from itertools import product
 from functools import partial
@@ -157,6 +158,22 @@ class Nth(object):
 
     def time_series_nth(self, df):
         df[1].groupby(df[0]).nth(0)
+
+
+class NthObject(object):
+
+    goal_time = 0.2
+
+    def setup_cache(self):
+        df = DataFrame(np.random.randint(1, 100, (10000,)), columns=['g'])
+        df['obj'] = ['a'] * 5000 + ['b'] * 5000
+        return df
+
+    def time_nth(self, df):
+        df.groupby('g').nth(5)
+
+    def time_nth_last(self, df):
+        df.groupby('g').last()
 
 
 class DateAttributes(object):
@@ -340,7 +357,8 @@ class Size(object):
         self.df.groupby(['dates']).size()
 
     def time_dt_timegrouper_size(self):
-        self.df.groupby(TimeGrouper(key='dates', freq='M')).size()
+        with warnings.catch_warnings(record=True):
+            self.df.groupby(TimeGrouper(key='dates', freq='M')).size()
 
     def time_category_size(self):
         self.draws.groupby(self.cats).size()
@@ -467,7 +485,7 @@ class SumMultiLevel(object):
 
     def setup(self):
         N = 50
-        self.df = DataFrame({'A': range(N) * 2,
+        self.df = DataFrame({'A': list(range(N)) * 2,
                              'B': range(N * 2),
                              'C': 1}).set_index(['A', 'B'])
 

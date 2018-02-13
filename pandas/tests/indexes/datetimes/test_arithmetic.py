@@ -15,6 +15,7 @@ from pandas import (Timestamp, Timedelta, Series,
                     DatetimeIndex, TimedeltaIndex,
                     date_range)
 from pandas._libs import tslib
+from pandas._libs.tslibs.offsets import shift_months
 
 
 @pytest.fixture(params=[None, 'UTC', 'Asia/Tokyo',
@@ -412,6 +413,14 @@ class TestDatetimeIndexArithmetic(object):
         with pytest.raises(NullFrequencyError):
             dti.shift(2)
 
+    @pytest.mark.parametrize('tzstr', ['US/Eastern', 'dateutil/US/Eastern'])
+    def test_dti_shift_localized(self, tzstr):
+        dr = date_range('2011/1/1', '2012/1/1', freq='W-FRI')
+        dr_tz = dr.tz_localize(tzstr)
+
+        result = dr_tz.shift(1, '10T')
+        assert result.tz == dr_tz.tz
+
     # -------------------------------------------------------------
     # Binary operations DatetimeIndex and timedelta-like
 
@@ -767,6 +776,24 @@ class TestDatetimeIndexArithmetic(object):
             res3 = dti - other
         tm.assert_series_equal(res3, expected_sub)
 
+    def test_dti_add_offset_tzaware(self):
+        dates = date_range('2012-11-01', periods=3, tz='US/Pacific')
+        offset = dates + pd.offsets.Hour(5)
+        assert dates[0] + pd.offsets.Hour(5) == offset[0]
+
+        # GH#6818
+        for tz in ['UTC', 'US/Pacific', 'Asia/Tokyo']:
+            dates = date_range('2010-11-01 00:00', periods=3, tz=tz, freq='H')
+            expected = DatetimeIndex(['2010-11-01 05:00', '2010-11-01 06:00',
+                                      '2010-11-01 07:00'], freq='H', tz=tz)
+
+            offset = dates + pd.offsets.Hour(5)
+            tm.assert_index_equal(offset, expected)
+            offset = dates + np.timedelta64(5, 'h')
+            tm.assert_index_equal(offset, expected)
+            offset = dates + timedelta(hours=5)
+            tm.assert_index_equal(offset, expected)
+
 
 @pytest.mark.parametrize('klass,assert_func', [
     (Series, tm.assert_series_equal),
@@ -907,3 +934,19 @@ def test_datetime64_with_DateOffset(klass, assert_func):
                  Timestamp('2000-02-29', tz='US/Central')], name='a')
     assert_func(result, exp)
     assert_func(result2, exp)
+
+
+@pytest.mark.parametrize('years', [-1, 0, 1])
+@pytest.mark.parametrize('months', [-2, 0, 2])
+def test_shift_months(years, months):
+    s = DatetimeIndex([Timestamp('2000-01-05 00:15:00'),
+                       Timestamp('2000-01-31 00:23:00'),
+                       Timestamp('2000-01-01'),
+                       Timestamp('2000-02-29'),
+                       Timestamp('2000-12-31')])
+    actual = DatetimeIndex(shift_months(s.asi8, years * 12 + months))
+
+    raw = [x + pd.offsets.DateOffset(years=years, months=months)
+           for x in s]
+    expected = DatetimeIndex(raw)
+    tm.assert_index_equal(actual, expected)

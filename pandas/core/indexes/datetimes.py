@@ -55,7 +55,7 @@ import pandas.core.tools.datetimes as tools
 from pandas._libs import (lib, index as libindex, tslib as libts,
                           join as libjoin, Timestamp)
 from pandas._libs.tslibs import (timezones, conversion, fields, parsing,
-                                 period as libperiod)
+                                 resolution as libresolution)
 
 # -------- some conversion wrapper functions
 
@@ -679,11 +679,41 @@ class DatetimeIndex(DatelikeOps, TimelikeOps, DatetimeIndexOpsMixin,
                             'datetime-like objects')
 
     @property
+    def _values(self):
+        # tz-naive -> ndarray
+        # tz-aware -> DatetimeIndex
+        if self.tz is not None:
+            return self
+        else:
+            return self.values
+
+    @property
     def tzinfo(self):
         """
         Alias for tz attribute
         """
         return self.tz
+
+    @property
+    def size(self):
+        # TODO: Remove this when we have a DatetimeTZArray
+        # Necessary to avoid recursion error since DTI._values is a DTI
+        # for TZ-aware
+        return self._ndarray_values.size
+
+    @property
+    def shape(self):
+        # TODO: Remove this when we have a DatetimeTZArray
+        # Necessary to avoid recursion error since DTI._values is a DTI
+        # for TZ-aware
+        return self._ndarray_values.shape
+
+    @property
+    def nbytes(self):
+        # TODO: Remove this when we have a DatetimeTZArray
+        # Necessary to avoid recursion error since DTI._values is a DTI
+        # for TZ-aware
+        return self._ndarray_values.nbytes
 
     @cache_readonly
     def _timezone(self):
@@ -1085,6 +1115,19 @@ class DatetimeIndex(DatelikeOps, TimelikeOps, DatetimeIndexOpsMixin,
 
         # we know it conforms; skip check
         return DatetimeIndex(snapped, freq=freq, verify_integrity=False)
+
+    def unique(self, level=None):
+        # Override here since IndexOpsMixin.unique uses self._values.unique
+        # For DatetimeIndex with TZ, that's a DatetimeIndex -> recursion error
+        # So we extract the tz-naive DatetimeIndex, unique that, and wrap the
+        # result with out TZ.
+        if self.tz is not None:
+            naive = type(self)(self._ndarray_values, copy=False)
+        else:
+            naive = self
+        result = super(DatetimeIndex, naive).unique(level=level)
+        return self._simple_new(result, name=self.name, tz=self.tz,
+                                freq=self.freq)
 
     def union(self, other):
         """
@@ -1795,7 +1838,7 @@ class DatetimeIndex(DatelikeOps, TimelikeOps, DatetimeIndexOpsMixin,
 
     @cache_readonly
     def _resolution(self):
-        return libperiod.resolution(self.asi8, self.tz)
+        return libresolution.resolution(self.asi8, self.tz)
 
     def insert(self, loc, item):
         """

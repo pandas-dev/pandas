@@ -293,6 +293,11 @@ class CategoricalIndex(Index, accessor.PandasDelegate):
         """ return the underlying data, which is a Categorical """
         return self._data
 
+    @property
+    def itemsize(self):
+        # Size of the items in categories, not codes.
+        return self.values.itemsize
+
     def get_values(self):
         """ return the underlying data as an ndarray """
         return self._data.get_values()
@@ -344,7 +349,7 @@ class CategoricalIndex(Index, accessor.PandasDelegate):
             return IntervalIndex(np.array(self))
         elif is_categorical_dtype(dtype):
             # GH 18630
-            dtype = self.dtype._update_dtype(dtype)
+            dtype = self.dtype.update_dtype(dtype)
             if dtype == self.dtype:
                 return self.copy() if copy else self
 
@@ -386,8 +391,8 @@ class CategoricalIndex(Index, accessor.PandasDelegate):
     def unique(self, level=None):
         if level is not None:
             self._validate_index_level(level)
-        result = base.IndexOpsMixin.unique(self)
-        # CategoricalIndex._shallow_copy uses keeps original categories
+        result = self.values.unique()
+        # CategoricalIndex._shallow_copy keeps original categories
         # and ordered if not otherwise specified
         return self._shallow_copy(result, categories=result.categories,
                                   ordered=result.ordered)
@@ -553,6 +558,8 @@ class CategoricalIndex(Index, accessor.PandasDelegate):
 
     @Appender(_index_shared_docs['get_indexer'] % _index_doc_kwargs)
     def get_indexer(self, target, method=None, limit=None, tolerance=None):
+        from pandas.core.arrays.categorical import _recode_for_categories
+
         method = missing.clean_reindex_fill_method(method)
         target = ibase._ensure_index(target)
 
@@ -568,8 +575,13 @@ class CategoricalIndex(Index, accessor.PandasDelegate):
 
         if (isinstance(target, CategoricalIndex) and
                 self.values.is_dtype_equal(target)):
-            # we have the same codes
-            codes = target.codes
+            if self.values.equals(target.values):
+                # we have the same codes
+                codes = target.codes
+            else:
+                codes = _recode_for_categories(target.codes,
+                                               target.categories,
+                                               self.values.categories)
         else:
             if isinstance(target, CategoricalIndex):
                 code_indexer = self.categories.get_indexer(target.categories)

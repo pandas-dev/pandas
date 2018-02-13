@@ -381,7 +381,7 @@ class ExcelFile(object):
         if _is_url(self._io):
             io = _urlopen(self._io)
         elif not isinstance(self.io, (ExcelFile, xlrd.Book)):
-            io, _, _ = get_filepath_or_buffer(self._io)
+            io, _, _, _ = get_filepath_or_buffer(self._io)
 
         if engine == 'xlrd' and isinstance(io, xlrd.Book):
             self.book = io
