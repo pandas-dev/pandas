@@ -618,7 +618,7 @@ def group_fillna_{{name}}(ndarray[{{dest_type2}}, ndim=2] out,
 
     sorted_labels = np.argsort(labels)
     if method == 'bfill':
-        sorted_labels[::-1].sort()
+        sorted_labels = sorted_labels[::-1]
 
     {{if name == 'object'}}
     if True:  # make templating happy
