@@ -90,7 +90,7 @@ class SAS7BDATReader(BaseIterator):
         self._current_row_on_page_index = 0
         self._current_row_in_file_index = 0
 
-        self._path_or_buf, _, _ = get_filepath_or_buffer(path_or_buf)
+        self._path_or_buf, _, _, _ = get_filepath_or_buffer(path_or_buf)
         if isinstance(self._path_or_buf, compat.string_types):
             self._path_or_buf = open(self._path_or_buf, 'rb')
             self.handle = self._path_or_buf
