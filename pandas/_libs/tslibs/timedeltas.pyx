@@ -1047,13 +1047,10 @@ class Timedelta(_Timedelta):
     __rsub__ = _binary_op_method_timedeltalike(lambda x, y: y - x, '__rsub__')
 
     def __mul__(self, other):
-        if is_integer_object(other) or is_float_object(other):
-            # includes numpy scalars that would otherwise be caught by dtype
-            # check below
-            return Timedelta(other * self.value, unit='ns')
-
-        if hasattr(other, 'dtype'):
-            # ndarray-like
+        if (hasattr(other, 'dtype') and
+                not (is_integer_object(other) or is_float_object(other))):
+            # ndarray-like; the integer/float object checks exclude
+            # numpy scalars
             return other * self.to_timedelta64()
 
         elif other is NaT:
@@ -1118,10 +1115,10 @@ class Timedelta(_Timedelta):
         elif is_timedelta64_object(other):
             return self // Timedelta(other)
 
-        elif is_integer_object(other) or is_float_object(other):
-            return Timedelta(self.value // other, unit='ns')
-
-        if hasattr(other, 'dtype'):
+        if (hasattr(other, 'dtype') and
+                not (is_integer_object(other) or is_float_object(other))):
+            # ndarray-like; the integer/float object checks exclude
+            # numpy scalars
             if other.dtype.kind == 'm':
                 # also timedelta-like
                 return _broadcast_floordiv_td64(self.value, other, _floordiv)
