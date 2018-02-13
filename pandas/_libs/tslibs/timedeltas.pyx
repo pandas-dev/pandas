@@ -1115,8 +1115,10 @@ class Timedelta(_Timedelta):
         elif is_timedelta64_object(other):
             return self // Timedelta(other)
 
-        if (hasattr(other, 'dtype') and
-                not (is_integer_object(other) or is_float_object(other))):
+        elif is_integer_object(other) or is_float_object(other):
+            return Timedelta(self.value // other, unit='ns')
+
+        elif hasattr(other, 'dtype'):
             # ndarray-like; the integer/float object checks exclude
             # numpy scalars
             if other.dtype.kind == 'm':
