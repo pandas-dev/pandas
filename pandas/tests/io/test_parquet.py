@@ -154,12 +154,19 @@ def check_round_trip(df, engine=None, path=None,
         write_kwargs['engine'] = engine
         read_kwargs['engine'] = engine
 
-    should_warn = (engine == 'pyarrow' and
-                   pyarrow.__version__ <= LooseVersion("0.8.0") and
-                   any(pd.api.types.is_datetime64tz_dtype(dtype)
-                       for dtype in df.dtypes))
-
-    if should_warn:
+    if (engine == 'pyarrow' and
+            pyarrow.__version__ <= LooseVersion("0.8.0") and
+            any(pd.api.types.is_datetime64tz_dtype(dtype)
+                for dtype in df.dtypes)):
+        # Use of deprecated fastpath in make_block
+        warning_type = DeprecationWarning
+    elif (engine == 'fastparquet' and
+          fastparquet.__version__ <= LooseVersion("0.1.4") and
+          df.select_dtypes(['bool', 'object'])
+            .isin([True, False]).any().any()
+          and (path is None or not path.startswith('s3://'))):
+        # use of deprecated np.fromstring for boolean columns
+        # https://github.com/dask/fastparquet/issues/302
         warning_type = DeprecationWarning
     else:
         warning_type = None
