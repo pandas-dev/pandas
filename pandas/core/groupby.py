@@ -3074,7 +3074,6 @@ def _get_grouper(obj, key=None, axis=0, level=None, sort=True,
 
         # create the Grouping
         # allow us to passing the actual Grouping as the gpr
-
         ping = Grouping(group_axis,
                         gpr,
                         obj=obj,
