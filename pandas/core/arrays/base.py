@@ -204,6 +204,25 @@ class ExtensionArray(object):
         """
         raise AbstractMethodError(self)
 
+    def value_counts(self, dropna=True):
+        """Compute a histogram of the counts of non-null values.
+
+        Parameters
+        ----------
+        dropna : bool, default True
+            Don't include counts of NaN
+
+        Returns
+        -------
+        value_counts : Series
+        """
+        from pandas import value_counts
+
+        if dropna:
+            self = self[~self.isna()]
+
+        return value_counts(np.array(self))
+
     # ------------------------------------------------------------------------
     # Indexing methods
     # ------------------------------------------------------------------------
@@ -235,9 +254,8 @@ class ExtensionArray(object):
 
         Examples
         --------
-        Suppose the extension array somehow backed by a NumPy array and that
-        the underlying structured array is stored as ``self.data``. Then
-        ``take`` may be written as
+        Suppose the extension array is backed by a NumPy array stored as
+        ``self.data``. Then ``take`` may be written as
 
         .. code-block:: python
 
@@ -246,6 +264,10 @@ class ExtensionArray(object):
                result = self.data.take(indexer)
                result[mask] = self._fill_value
                return type(self)(result)
+
+        See Also
+        --------
+        numpy.take
         """
         raise AbstractMethodError(self)
 
@@ -304,14 +326,6 @@ class ExtensionArray(object):
         Setting this to false will optimize some operations like fillna.
         """
         return True
-
-    def value_counts(self, dropna=True):
-        from pandas import value_counts
-
-        if dropna:
-            self = self[~self.isna()]
-
-        return value_counts(np.array(self))
 
     @property
     def _ndarray_values(self):
