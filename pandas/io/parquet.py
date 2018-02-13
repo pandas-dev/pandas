@@ -244,7 +244,7 @@ def to_parquet(df, path, engine='auto', compression='snappy', **kwargs):
     path : string
         File path
     engine : {'auto', 'pyarrow', 'fastparquet'}, default 'auto'
-        Parquet library to use. If 'auto', the value from
+        Parquet library to use. If 'auto', then the option
         ``io.parquet.engine`` is used. The default ``io.parquet.engine``
         behavior is to try 'pyarrow', falling back to 'fastparquet' if
         'pyarrow' is unavailable.
@@ -272,7 +272,7 @@ def read_parquet(path, engine='auto', columns=None, **kwargs):
 
         .. versionadded 0.21.1
     engine : {'auto', 'pyarrow', 'fastparquet'}, default 'auto'
-        Parquet library to use. If 'auto', the value from
+        Parquet library to use. If 'auto', then the option
         ``io.parquet.engine`` is used. The default ``io.parquet.engine``
         behavior is to try 'pyarrow', falling back to 'fastparquet' if
         'pyarrow' is unavailable.
