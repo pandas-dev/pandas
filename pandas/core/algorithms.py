@@ -365,7 +365,6 @@ def unique(values):
     table = htable(len(values))
 
     if isinstance(values, ABCSparseArray):
-        import ipdb; ipdb.set_trace()
         to_unique = values.sp_values
         if values.sp_index.ngaps > 0:
             to_unique = np.append(to_unique, [values.fill_value])
