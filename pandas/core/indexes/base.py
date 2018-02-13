@@ -2004,11 +2004,6 @@ class Index(IndexOpsMixin, PandasObject):
         if is_categorical_dtype(values.dtype):
             values = np.array(values)
 
-        elif isinstance(values, ExtensionArray):
-            # This is still un-exercised within pandas, since all our
-            # extension dtypes have custom indexes.
-            values = values._formatting_values()
-
         elif is_object_dtype(values.dtype):
             values = lib.maybe_convert_objects(values, safe=1)
 
