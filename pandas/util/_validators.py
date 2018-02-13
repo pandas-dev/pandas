@@ -336,14 +336,13 @@ def validate_fillna_kwargs(value, method, validate_scalar_dict_value=True):
     Returns
     -------
     value, method : object
-        These aren't modified in any way. Just validated.
     """
     from pandas.core.missing import clean_fill_method
 
     if value is None and method is None:
         raise ValueError("Must specify a fill 'value' or 'method'.")
     elif value is None and method is not None:
-        clean_fill_method(method)
+        method = clean_fill_method(method)
 
     elif value is not None and method is None:
         if validate_scalar_dict_value and isinstance(value, (list, tuple)):
