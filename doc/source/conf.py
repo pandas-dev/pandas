@@ -15,6 +15,8 @@ import os
 import re
 import inspect
 import importlib
+import warnings
+
 from pandas.compat import u, PY3
 
 try:
@@ -375,12 +377,15 @@ extlinks = {'issue': ('https://github.com/pandas-dev/pandas/issues/%s',
             'wiki': ('https://github.com/pandas-dev/pandas/wiki/%s',
                      'wiki ')}
 
+
+# ignore all deprecation warnings from Panel during doc build
+# (to avoid the need to add :okwarning: in many places)
+import warnings
+warnings.filterwarnings("ignore", message="\nPanel is deprecated",
+                        category=FutureWarning)
+
+
 ipython_exec_lines = [
-    # ignore all deprecation warnings from Panel
-    # (to avoid the need to add :okwarning: in many places)
-    'import warnings',
-    'warnings.filterwarnings("ignore", message="\nPanel is deprecated", category=FutureWarning)'  # noqa
-    # standard imports
     'import numpy as np',
     'import pandas as pd',
     # This ensures correct rendering on system with console encoding != utf8
