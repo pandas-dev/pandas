@@ -262,7 +262,7 @@ class TestPeriodFrameArithmetic(object):
         exp = pd.DataFrame({'A': np.array([2, 1], dtype=object),
                             'B': np.array([14, 13], dtype=object)})
         tm.assert_frame_equal(p - df, exp)
-        tm.assert_frame_equal(df - p, -exp)
+        tm.assert_frame_equal(df - p, -1 * exp)
 
         df2 = pd.DataFrame({'A': [pd.Period('2015-05', freq='M'),
                                   pd.Period('2015-06', freq='M')],
@@ -274,4 +274,4 @@ class TestPeriodFrameArithmetic(object):
         exp = pd.DataFrame({'A': np.array([4, 4], dtype=object),
                             'B': np.array([16, 16], dtype=object)})
         tm.assert_frame_equal(df2 - df, exp)
-        tm.assert_frame_equal(df - df2, -exp)
+        tm.assert_frame_equal(df - df2, -1 * exp)

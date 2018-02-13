@@ -1725,19 +1725,8 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
                                      copy=False)
             new_index = this.index
 
-        this_vals = this.values
-        other_vals = other.values
-
-        if fill_value is not None:
-            this_mask = isna(this_vals)
-            other_mask = isna(other_vals)
-            this_vals = this_vals.copy()
-            other_vals = other_vals.copy()
-
-            # one but not both
-            mask = this_mask ^ other_mask
-            this_vals[this_mask & mask] = fill_value
-            other_vals[other_mask & mask] = fill_value
+        this_vals, other_vals = ops.fill_binop(this.values, other.values,
+                                               fill_value)
 
         with np.errstate(all='ignore'):
             result = func(this_vals, other_vals)
