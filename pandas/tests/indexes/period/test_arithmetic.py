@@ -11,6 +11,38 @@ from pandas import (Timedelta,
 import pandas.core.indexes.period as period
 
 
+_common_mismatch = [pd.offsets.YearBegin(2),
+                    pd.offsets.MonthBegin(1),
+                    pd.offsets.Minute()]
+
+not_hourly_offsets = [timedelta(minutes=30),
+                      np.timedelta64(30, 's'),
+                      Timedelta(seconds=30)] + _common_mismatch
+
+not_daily_offsets = [np.timedelta64(4, 'h'),
+                     timedelta(hours=23),
+                     Timedelta('23:00:00')] + _common_mismatch
+
+mismatched_offsets = [np.timedelta64(365, 'D'),
+                      timedelta(365),
+                      Timedelta(days=365)] + _common_mismatch
+
+three_days = [pd.offsets.Day(3),
+              timedelta(days=3),
+              np.timedelta64(3, 'D'),
+              pd.offsets.Hour(72),
+              timedelta(minutes=60 * 24 * 3),
+              np.timedelta64(72, 'h'),
+              Timedelta('72:00:00')]
+
+two_hours = [pd.offsets.Hour(2),
+             timedelta(hours=2),
+             np.timedelta64(2, 'h'),
+             pd.offsets.Minute(120),
+             timedelta(minutes=120),
+             np.timedelta64(120, 'm')]
+
+
 class TestPeriodIndexComparisons(object):
     def test_pi_cmp_period(self):
         idx = period_range('2007-01', periods=20, freq='M')
@@ -284,14 +316,7 @@ class TestPeriodIndexArithmetic(object):
     # Timedelta-like (timedelta, timedelta64, Timedelta, Tick)
     # TODO: Some of these are misnomers because of non-Tick DateOffsets
 
-    @pytest.mark.parametrize('other', [
-        pd.offsets.Day(3),
-        timedelta(days=3),
-        np.timedelta64(3, 'D'),
-        pd.offsets.Hour(72),
-        timedelta(minutes=60 * 24 * 3),
-        np.timedelta64(72, 'h'),
-        Timedelta('72:00:00')])
+    @pytest.mark.parametrize('other', three_days)
     def test_pi_add_iadd_timedeltalike_daily(self, other):
         # Tick
         rng = pd.period_range('2014-05-01', '2014-05-15', freq='D')
@@ -303,13 +328,7 @@ class TestPeriodIndexArithmetic(object):
         rng += other
         tm.assert_index_equal(rng, expected)
 
-    @pytest.mark.parametrize('other', [
-        pd.offsets.Day(3),
-        timedelta(days=3),
-        np.timedelta64(3, 'D'),
-        pd.offsets.Hour(72),
-        timedelta(minutes=60 * 24 * 3),
-        np.timedelta64(72, 'h')])
+    @pytest.mark.parametrize('other', three_days)
     def test_pi_sub_isub_timedeltalike_daily(self, other):
         # Tick-like 3 Days
         rng = pd.period_range('2014-05-01', '2014-05-15', freq='D')
@@ -321,13 +340,7 @@ class TestPeriodIndexArithmetic(object):
         rng -= other
         tm.assert_index_equal(rng, expected)
 
-    @pytest.mark.parametrize('other', [
-        pd.offsets.YearBegin(2),
-        pd.offsets.MonthBegin(1),
-        pd.offsets.Minute(),
-        np.timedelta64(4, 'h'),
-        timedelta(hours=23),
-        Timedelta('23:00:00')])
+    @pytest.mark.parametrize('other', not_daily_offsets)
     def test_pi_add_iadd_timedeltalike_freq_mismatch_daily(self, other):
         rng = pd.period_range('2014-05-01', '2014-05-15', freq='D')
         msg = 'Input has different freq(=.+)? from PeriodIndex\\(freq=D\\)'
@@ -336,26 +349,14 @@ class TestPeriodIndexArithmetic(object):
         with tm.assert_raises_regex(period.IncompatibleFrequency, msg):
             rng += other
 
-    @pytest.mark.parametrize('other', [
-        pd.offsets.YearBegin(2),
-        pd.offsets.MonthBegin(1),
-        pd.offsets.Minute(),
-        np.timedelta64(4, 'h'),
-        timedelta(hours=23)])
+    @pytest.mark.parametrize('other', not_daily_offsets)
     def test_pi_sub_timedeltalike_freq_mismatch_daily(self, other):
         rng = pd.period_range('2014-05-01', '2014-05-15', freq='D')
         msg = 'Input has different freq(=.+)? from PeriodIndex\\(freq=D\\)'
         with tm.assert_raises_regex(period.IncompatibleFrequency, msg):
             rng - other
 
-    @pytest.mark.parametrize('other', [
-        pd.offsets.Hour(2),
-        timedelta(hours=2),
-        np.timedelta64(2, 'h'),
-        pd.offsets.Minute(120),
-        timedelta(minutes=120),
-        np.timedelta64(120, 'm'),
-        Timedelta(minutes=120)])
+    @pytest.mark.parametrize('other', two_hours)
     def test_pi_add_iadd_timedeltalike_hourly(self, other):
         rng = pd.period_range('2014-01-01 10:00', '2014-01-05 10:00', freq='H')
         expected = pd.period_range('2014-01-01 12:00', '2014-01-05 12:00',
@@ -367,11 +368,7 @@ class TestPeriodIndexArithmetic(object):
         rng += other
         tm.assert_index_equal(rng, expected)
 
-    @pytest.mark.parametrize('other', [
-        pd.offsets.YearBegin(2),
-        timedelta(minutes=30),
-        np.timedelta64(30, 's'),
-        Timedelta(seconds=30)])
+    @pytest.mark.parametrize('other', not_hourly_offsets)
     def test_pi_add_timedeltalike_mismatched_freq_hourly(self, other):
         rng = pd.period_range('2014-01-01 10:00', '2014-01-05 10:00', freq='H')
         msg = 'Input has different freq(=.+)? from PeriodIndex\\(freq=H\\)'
@@ -382,13 +379,7 @@ class TestPeriodIndexArithmetic(object):
         with tm.assert_raises_regex(period.IncompatibleFrequency, msg):
             rng += other
 
-    @pytest.mark.parametrize('other', [
-        pd.offsets.Hour(2),
-        timedelta(hours=2),
-        np.timedelta64(2, 'h'),
-        pd.offsets.Minute(120),
-        timedelta(minutes=120),
-        np.timedelta64(120, 'm')])
+    @pytest.mark.parametrize('other', two_hours)
     def test_pi_sub_isub_timedeltalike_hourly(self, other):
         rng = pd.period_range('2014-01-01 10:00', '2014-01-05 10:00', freq='H')
         expected = pd.period_range('2014-01-01 08:00', '2014-01-05 08:00',
@@ -410,13 +401,7 @@ class TestPeriodIndexArithmetic(object):
         rng += pd.offsets.YearEnd(5)
         tm.assert_index_equal(rng, expected)
 
-    @pytest.mark.parametrize('other', [
-        pd.offsets.YearBegin(2),
-        pd.offsets.MonthBegin(1),
-        pd.offsets.Minute(),
-        np.timedelta64(365, 'D'),
-        timedelta(365),
-        Timedelta(days=365)])
+    @pytest.mark.parametrize('other', mismatched_offsets)
     def test_pi_add_iadd_timedeltalike_freq_mismatch_annual(self, other):
         rng = pd.period_range('2014', '2024', freq='A')
         msg = ('Input has different freq(=.+)? '
@@ -426,12 +411,7 @@ class TestPeriodIndexArithmetic(object):
         with tm.assert_raises_regex(period.IncompatibleFrequency, msg):
             rng += other
 
-    @pytest.mark.parametrize('other', [
-        pd.offsets.YearBegin(2),
-        pd.offsets.MonthBegin(1),
-        pd.offsets.Minute(),
-        np.timedelta64(365, 'D'),
-        timedelta(365)])
+    @pytest.mark.parametrize('other', mismatched_offsets)
     def test_pi_sub_isub_timedeltalike_freq_mismatch_annual(self, other):
         rng = pd.period_range('2014', '2024', freq='A')
         msg = ('Input has different freq(=.+)? '
@@ -451,13 +431,7 @@ class TestPeriodIndexArithmetic(object):
         rng += pd.offsets.MonthEnd(5)
         tm.assert_index_equal(rng, expected)
 
-    @pytest.mark.parametrize('other', [
-        pd.offsets.YearBegin(2),
-        pd.offsets.MonthBegin(1),
-        pd.offsets.Minute(),
-        np.timedelta64(365, 'D'),
-        timedelta(365),
-        Timedelta(days=365)])
+    @pytest.mark.parametrize('other', mismatched_offsets)
     def test_pi_add_iadd_timedeltalike_freq_mismatch_monthly(self, other):
         rng = pd.period_range('2014-01', '2016-12', freq='M')
         msg = 'Input has different freq(=.+)? from PeriodIndex\\(freq=M\\)'
@@ -466,12 +440,7 @@ class TestPeriodIndexArithmetic(object):
         with tm.assert_raises_regex(period.IncompatibleFrequency, msg):
             rng += other
 
-    @pytest.mark.parametrize('other', [
-        pd.offsets.YearBegin(2),
-        pd.offsets.MonthBegin(1),
-        pd.offsets.Minute(),
-        np.timedelta64(365, 'D'),
-        timedelta(365)])
+    @pytest.mark.parametrize('other', mismatched_offsets)
     def test_pi_sub_isub_timedeltalike_freq_mismatch_monthly(self, other):
         rng = pd.period_range('2014-01', '2016-12', freq='M')
         msg = 'Input has different freq(=.+)? from PeriodIndex\\(freq=M\\)'
