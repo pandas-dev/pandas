@@ -205,6 +205,22 @@ No,No,No"""
 
         tm.assert_frame_equal(result, expected)
 
+    def test_crlf_lineterminator(self):
+        # #19601
+        data = 'a,b,c\r\n1,2,3\r\n4,5,6'
+
+        result = self.read_csv(StringIO(data), lineterminator='\r\n')
+        expected = self.read_csv(StringIO(data.replace('\r\n', '\n')))
+
+        tm.assert_frame_equal(result, expected)
+
+    def test_arbitrary_lineterminator(self):
+        data = 'a,b,c~~1,2,3~~4,5,6'
+        result = self.read_csv(StringIO(data), lineterminator='~~')
+        expected = self.read_csv(StringIO(data.replace('~~', '\n')))
+
+        tm.assert_frame_equal(result, expected)
+
     def test_parse_ragged_csv(self):
         data = """1,2,3
 1,2,3,4

@@ -84,11 +84,6 @@ x   q   30      3    -0.6662 -0.5243 -0.3580  0.89145  2.5838"""
         with tm.assert_raises_regex(ValueError, msg):
             read_csv(StringIO(data), thousands='')
 
-        msg = "Only length-1 line terminators supported"
-        data = 'a,b,c~~1,2,3~~4,5,6'
-        with tm.assert_raises_regex(ValueError, msg):
-            read_csv(StringIO(data), lineterminator='~~')
-
     def test_python_engine(self, python_engine):
         from pandas.io.parsers import _python_unsupported as py_unsupported
 
