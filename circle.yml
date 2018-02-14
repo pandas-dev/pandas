@@ -2,6 +2,7 @@ machine:
   environment:
     # these are globally set
     MINICONDA_DIR: /home/ubuntu/miniconda3
+    PANDAS_TESTING_MODE: deprecate
 
 
 database:
