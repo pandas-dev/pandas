@@ -166,13 +166,18 @@ def check_round_trip(df, engine=None, path=None,
           LooseVersion(fastparquet.__version__) <= LooseVersion("0.1.4") and
           LooseVersion(np.__version__) >= LooseVersion("1.14.0") and
           df.select_dtypes(['bool', 'object'])
-            .isin([True, False]).any().any() and
-          (path is None or not path.startswith('s3://'))):
+            .isin([True, False]).any().any()):
         # use of deprecated np.fromstring for boolean columns
         # Deprecated in numpy 1.14
         # Used in fastparquet <= 0.1.4
         # Remove when all fastparquet builds >= 0.1.5
         # https://github.com/dask/fastparquet/issues/302
+        warning_type = DeprecationWarning
+    elif (engine == 'fastparquet' and
+          LooseVersion(fastparquet.__version__) <= LooseVersion("0.1.4") and
+          any(pd.api.types.is_bool_dtype(df[col]) for col in df.columns)):
+        # Use of deprecated `dtype` in `make_block` that's hit only for
+        # bool dtypes with no Nones.
         warning_type = DeprecationWarning
     else:
         warning_type = None
@@ -248,7 +253,16 @@ def test_cross_engine_pa_fp(df_cross_compat, pa, fp):
     with tm.ensure_clean() as path:
         df.to_parquet(path, engine=pa, compression=None)
 
-        result = read_parquet(path, engine=fp)
+        if (LooseVersion(fastparquet.__version__) <= LooseVersion('0.1.4') and
+                LooseVersion(np.__version__) >= LooseVersion('1.14.0')):
+            # fastparquet used np.fromstring, deprecated in numpy 1.14.0
+            expected_warning = DeprecationWarning
+        else:
+            expected_warning = None
+
+        with tm.assert_produces_warning(expected_warning):
+            result = read_parquet(path, engine=fp)
+
         tm.assert_frame_equal(result, df)
 
         result = read_parquet(path, engine=fp, columns=['a', 'd'])
