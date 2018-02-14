@@ -1059,7 +1059,7 @@ class DataFrame(NDFrame):
         private_key : str (optional)
             Service account private key in JSON format. Can be file path
             or string contents. This is useful for remote server
-            authentication (eg. jupyter iPython notebook on remote host)
+            authentication (eg. Jupyter/IPython notebook on remote host)
         """
 
         from pandas.io import gbq

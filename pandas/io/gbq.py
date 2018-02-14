@@ -65,7 +65,7 @@ def read_gbq(query, project_id=None, index_col=None, col_order=None,
     private_key : str (optional)
         Service account private key in JSON format. Can be file path
         or string contents. This is useful for remote server
-        authentication (eg. jupyter iPython notebook on remote host)
+        authentication (eg. Jupyter/IPython notebook on remote host)
 
     dialect : {'legacy', 'standard'}, default 'legacy'
         'legacy' : Use BigQuery's legacy SQL dialect.
