@@ -50,12 +50,6 @@ conda config --set ssl_verify false || exit 1
 conda config --set quiet true --set always_yes true --set changeps1 false || exit 1
 conda update -q conda
 
-if [ "$CONDA_BUILD_TEST" ]; then
-    echo
-    echo "[installing conda-build]"
-    conda install conda-build
-fi
-
 echo
 echo "[add channels]"
 conda config --remove channels defaults || exit 1
@@ -122,7 +116,7 @@ if [ "$COVERAGE" ]; then
 fi
 
 echo
-if [ -z "$PIP_BUILD_TEST" ] && [ -z "$CONDA_BUILD_TEST" ]; then
+if [ -z "$PIP_BUILD_TEST" ] ; then
 
     # build but don't install
     echo "[build em]"
@@ -176,15 +170,6 @@ if [ "$PIP_BUILD_TEST" ]; then
     time bash scripts/build_dist_for_release.sh || exit 1
     conda uninstall -y cython
     time pip install dist/*tar.gz || exit 1
-
-elif [ "$CONDA_BUILD_TEST" ]; then
-
-    # build & install testing
-    echo "[building conda recipe]"
-    time conda build ./conda.recipe --python 3.5 -q --no-test || exit 1
-
-    echo "[installing]"
-    conda install pandas --use-local || exit 1
 
 else
 
