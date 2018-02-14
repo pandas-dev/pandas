@@ -617,7 +617,8 @@ ext_data = {
         'pyxfile': '_libs/testing'},
     '_libs.window': {
         'pyxfile': '_libs/window',
-        'pxdfiles': ['_libs/skiplist', '_libs/src/util']},
+        'pxdfiles': ['_libs/skiplist', '_libs/src/util'],
+        'language': 'c++'},
     '_libs.writers': {
         'pyxfile': '_libs/writers',
         'pxdfiles': ['_libs/src/util']},
@@ -640,10 +641,10 @@ for name, data in ext_data.items():
                     sources=sources,
                     depends=data.get('depends', []),
                     include_dirs=include,
+                    language=data.get('language', 'c'),
                     extra_compile_args=extra_compile_args)
 
     extensions.append(obj)
-
 
 # ----------------------------------------------------------------------
 # msgpack
