@@ -3943,8 +3943,8 @@ class Index(IndexOpsMixin, PandasObject):
     def _evaluate_with_datetime_like(self, other, op, opstr):
         raise TypeError("can only perform ops with datetime like values")
 
-    def _evaluate_compare(self, op):
-        raise base.AbstractMethodError(self)
+    def _evaluate_compare(self, other, op):
+        raise com.AbstractMethodError(self)
 
     @classmethod
     def _add_comparison_methods(cls):
