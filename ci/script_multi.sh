@@ -42,6 +42,8 @@ elif [ "$COVERAGE" ]; then
     pytest -s -n 2 -m "not single" --cov=pandas --cov-report xml:/tmp/cov-multiple.xml --junitxml=/tmp/multiple.xml --strict $TEST_ARGS pandas
 
 elif [ "$SLOW" ]; then
+    conda install -c conda-forge/label/rc matplotlib -c conda-forge
+
     TEST_ARGS="--only-slow --skip-network"
     echo pytest -r xX -m "not single and slow" -v --junitxml=/tmp/multiple.xml --strict $TEST_ARGS pandas
     pytest -r xX -m "not single and slow" -v --junitxml=/tmp/multiple.xml --strict $TEST_ARGS pandas
