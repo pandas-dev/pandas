@@ -531,7 +531,7 @@ def group_rank_{{name}}(ndarray[float64_t, ndim=2] out,
     # each label corresponds to a different group value,
     # the mask helps you differentiate missing values before
     # performing sort on the actual values
-    _as = np.lexsort(order).view(dtype=np.int64)
+    _as = np.lexsort(order).astype(np.int64, copy=False)
 
     if not ascending:
         _as = _as[::-1]
