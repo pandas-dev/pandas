@@ -17,7 +17,7 @@ import pandas.util._test_decorators as td
 import pandas as pd
 from pandas._libs import tslib
 from pandas._libs.tslibs import timezones
-from pandas.compat import lrange, zip
+from pandas.compat import lrange, zip, PY3
 from pandas import (DatetimeIndex, date_range, bdate_range,
                     Timestamp, isna, to_datetime, Index)
 
@@ -948,6 +948,17 @@ class TestDatetimeIndexTimezones(object):
 
         result = rng.union(rng2)
         assert result.tz.zone == 'UTC'
+
+    @pytest.mark.parametrize('tz', [None, 'UTC', "US/Central",
+                                    dateutil.tz.tzoffset(None, -28800)])
+    @pytest.mark.usefixtures("datetime_tz_utc")
+    @pytest.mark.skipif(not PY3, reason="datetime.timezone not in PY2")
+    def test_iteration_preserves_nanoseconds(self, tz):
+        # GH 19603
+        index = DatetimeIndex(["2018-02-08 15:00:00.168456358",
+                               "2018-02-08 15:00:00.168456359"], tz=tz)
+        for i, ts in enumerate(index):
+            assert ts == index[i]
 
 
 class TestDateRange(object):
