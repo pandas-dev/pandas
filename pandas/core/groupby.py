@@ -1465,8 +1465,9 @@ class GroupBy(_GroupBy):
             limit = -1
         output = {}
         if type(self) is DataFrameGroupBy:
-            for nm in self.grouper.names:
-                output[nm] = self.obj[nm].values
+            for grp in self.grouper.groupings:
+                ser = grp.group_index.take(grp.labels)
+                output[ser.name] = ser.values
         for name, obj in self._iterate_slices():
             indexer = np.zeros_like(labels)
             mask = isnull(obj.values).view(np.uint8)
