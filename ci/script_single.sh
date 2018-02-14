@@ -22,9 +22,6 @@ if [ "$PIP_BUILD_TEST" ] || [ "$CONDA_BUILD_TEST" ]; then
 elif [ "$DOC" ]; then
     echo "We are not running pytest as this is a doc-build"
 
-elif [ "$ASV" ]; then
-    echo "We are not running pytest as this is an asv-build"
-
 elif [ "$COVERAGE" ]; then
     echo pytest -s -m "single" --strict --cov=pandas --cov-report xml:/tmp/cov-single.xml --junitxml=/tmp/single.xml $TEST_ARGS pandas
     pytest -s -m "single" --strict --cov=pandas --cov-report xml:/tmp/cov-single.xml --junitxml=/tmp/single.xml $TEST_ARGS pandas
