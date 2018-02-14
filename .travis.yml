@@ -75,10 +75,6 @@ matrix:
     # In allow_failures
     - dist: trusty
       env:
-        - JOB="3.6_ASV" ASV=true
-    # In allow_failures
-    - dist: trusty
-      env:
         - JOB="3.6_DOC" DOC=true
     allow_failures:
       - dist: trusty
@@ -97,9 +93,6 @@ matrix:
       - dist: trusty
         env:
           - JOB="3.6_NUMPY_DEV" TEST_ARGS="--skip-slow --skip-network" PANDAS_TESTING_MODE="deprecate"
-      - dist: trusty
-        env:
-          - JOB="3.6_ASV" ASV=true
       - dist: trusty
         env:
           - JOB="3.6_DOC" DOC=true
