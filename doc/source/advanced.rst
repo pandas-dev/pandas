@@ -672,7 +672,7 @@ The ``CategoricalIndex`` is **preserved** after indexing:
    df2.loc['a'].index
 
 Sorting the index will sort by the order of the categories (Recall that we 
-created the index with with ``CategoricalDtype(list('cab'))``, so the sorted 
+created the index with ``CategoricalDtype(list('cab'))``, so the sorted 
 order is ``cab``.). 
 
 .. ipython:: python

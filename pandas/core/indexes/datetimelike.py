@@ -36,6 +36,7 @@ import pandas.io.formats.printing as printing
 from pandas._libs import lib, iNaT, NaT
 from pandas._libs.tslibs.period import Period
 from pandas._libs.tslibs.timedeltas import delta_to_nanoseconds
+from pandas._libs.tslibs.timestamps import round_ns
 
 from pandas.core.indexes.base import Index, _index_shared_docs
 from pandas.util._decorators import Appender, cache_readonly
@@ -90,23 +91,9 @@ class TimelikeOps(object):
         """)
 
     def _round(self, freq, rounder):
-
-        from pandas.tseries.frequencies import to_offset
-        unit = to_offset(freq).nanos
         # round the local times
         values = _ensure_datetimelike_to_i8(self)
-        if unit < 1000 and unit % 1000 != 0:
-            # for nano rounding, work with the last 6 digits separately
-            # due to float precision
-            buff = 1000000
-            result = (buff * (values // buff) + unit *
-                      (rounder((values % buff) / float(unit))).astype('i8'))
-        elif unit >= 1000 and unit % 1000 != 0:
-            msg = 'Precision will be lost using frequency: {}'
-            warnings.warn(msg.format(freq))
-            result = (unit * rounder(values / float(unit)).astype('i8'))
-        else:
-            result = (unit * rounder(values / float(unit)).astype('i8'))
+        result = round_ns(values, rounder, freq)
         result = self._maybe_mask_results(result, fill_value=NaT)
 
         attribs = self._get_attributes_dict()
@@ -389,7 +376,7 @@ class DatetimeIndexOpsMixin(object):
             sorted_index = self.take(_as)
             return sorted_index, _as
         else:
-            sorted_values = np.sort(self._values)
+            sorted_values = np.sort(self._ndarray_values)
             attribs = self._get_attributes_dict()
             freq = attribs['freq']
 

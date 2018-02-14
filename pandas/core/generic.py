@@ -25,6 +25,7 @@ from pandas.core.dtypes.common import (
     is_list_like,
     is_dict_like,
     is_re_compilable,
+    is_period_arraylike,
     pandas_dtype)
 from pandas.core.dtypes.cast import maybe_promote, maybe_upcast_putmask
 from pandas.core.dtypes.inference import is_hashable
@@ -1027,10 +1028,24 @@ class NDFrame(PandasObject, SelectionMixin):
 
     def __neg__(self):
         values = com._values_from_object(self)
-        if values.dtype == np.bool_:
+        if is_bool_dtype(values):
             arr = operator.inv(values)
-        else:
+        elif (is_numeric_dtype(values) or is_timedelta64_dtype(values)):
             arr = operator.neg(values)
+        else:
+            raise TypeError("Unary negative expects numeric dtype, not {}"
+                            .format(values.dtype))
+        return self.__array_wrap__(arr)
+
+    def __pos__(self):
+        values = com._values_from_object(self)
+        if (is_bool_dtype(values) or is_period_arraylike(values)):
+            arr = values
+        elif (is_numeric_dtype(values) or is_timedelta64_dtype(values)):
+            arr = operator.pos(values)
+        else:
+            raise TypeError("Unary plus expects numeric dtype, not {}"
+                            .format(values.dtype))
         return self.__array_wrap__(arr)
 
     def __invert__(self):
@@ -5691,6 +5706,10 @@ class NDFrame(PandasObject, SelectionMixin):
             reduce the dimensionality of the return type if possible,
             otherwise return a consistent type
 
+        Returns
+        -------
+        GroupBy object
+
         Examples
         --------
         DataFrame results
@@ -5702,10 +5721,15 @@ class NDFrame(PandasObject, SelectionMixin):
 
         >>> data.groupby(['col1', 'col2']).mean()
 
-        Returns
-        -------
-        GroupBy object
+        Notes
+        -----
+        See the `user guide
+        <http://pandas.pydata.org/pandas-docs/stable/groupby.html>`_ for more.
 
+        See also
+        --------
+        resample : Convenience method for frequency conversion and resampling
+            of time series.
         """
         from pandas.core.groupby import groupby
 
@@ -5904,8 +5928,16 @@ class NDFrame(PandasObject, SelectionMixin):
 
             .. versionadded:: 0.19.0
 
+        Returns
+        -------
+        Resampler object
+
         Notes
         -----
+        See the `user guide
+        <http://pandas.pydata.org/pandas-docs/stable/timeseries.html#resampling>`_
+        for more.
+
         To learn more about the offset strings, please see `this link
         <http://pandas.pydata.org/pandas-docs/stable/timeseries.html#offset-aliases>`__.
 
@@ -6071,6 +6103,10 @@ class NDFrame(PandasObject, SelectionMixin):
                              a  b   c   d
         2000-01-01 00:00:00  0  6  12  18
         2000-01-01 00:03:00  0  4   8  12
+
+        See also
+        --------
+        groupby : Group by mapping, function, label, or list of labels.
         """
         from pandas.core.resample import (resample,
                                           _maybe_process_deprecations)

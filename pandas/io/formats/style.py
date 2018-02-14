@@ -364,7 +364,7 @@ class Styler(object):
         >>> df = pd.DataFrame(np.random.randn(4, 2), columns=['a', 'b'])
         >>> df.style.format("{:.2%}")
         >>> df['c'] = ['a', 'b', 'c', 'd']
-        >>> df.style.format({'C': str.upper})
+        >>> df.style.format({'c': str.upper})
         """
         if subset is None:
             row_locs = range(len(self.data))
@@ -509,7 +509,9 @@ class Styler(object):
         subset = _non_reducing_slice(subset)
         data = self.data.loc[subset]
         if axis is not None:
-            result = data.apply(func, axis=axis, **kwargs)
+            result = data.apply(func, axis=axis,
+                                result_type='expand', **kwargs)
+            result.columns = data.columns
         else:
             result = func(data, **kwargs)
             if not isinstance(result, pd.DataFrame):

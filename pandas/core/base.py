@@ -13,7 +13,8 @@ from pandas.core.dtypes.common import (
     is_list_like,
     is_scalar,
     is_datetimelike,
-    is_extension_type)
+    is_extension_type,
+    is_extension_array_dtype)
 
 from pandas.util._validators import validate_bool_kwarg
 
@@ -392,6 +393,10 @@ class SelectionMixin(object):
 
                     elif isinstance(obj, ABCSeries):
                         nested_renaming_depr()
+                    elif isinstance(obj, ABCDataFrame) and \
+                            k not in obj.columns:
+                        raise KeyError(
+                            "Column '{col}' does not exist!".format(col=k))
 
                 arg = new_arg
 
@@ -734,7 +739,7 @@ class IndexOpsMixin(object):
     @property
     def itemsize(self):
         """ return the size of the dtype of the item of the underlying data """
-        return self._values.itemsize
+        return self._ndarray_values.itemsize
 
     @property
     def nbytes(self):
@@ -744,7 +749,7 @@ class IndexOpsMixin(object):
     @property
     def strides(self):
         """ return the strides of the underlying data """
-        return self._values.strides
+        return self._ndarray_values.strides
 
     @property
     def size(self):
@@ -764,8 +769,17 @@ class IndexOpsMixin(object):
         return self.values.base
 
     @property
-    def _values(self):
-        """ the internal implementation """
+    def _ndarray_values(self):
+        """The data as an ndarray, possibly losing information.
+
+        The expectation is that this is cheap to compute, and is primarily
+        used for interacting with our indexers.
+
+        - categorical -> codes
+        """
+        # type: () -> np.ndarray
+        if is_extension_array_dtype(self):
+            return self.values._ndarray_values
         return self.values
 
     @property
@@ -975,6 +989,7 @@ class IndexOpsMixin(object):
         values = self._values
 
         if hasattr(values, 'unique'):
+
             result = values.unique()
         else:
             from pandas.core.algorithms import unique1d
@@ -1048,7 +1063,7 @@ class IndexOpsMixin(object):
 
     def memory_usage(self, deep=False):
         """
-        Memory usage of my values
+        Memory usage of the values
 
         Parameters
         ----------

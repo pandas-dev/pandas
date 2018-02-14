@@ -398,6 +398,79 @@ def _make_flex_doc(op_name, typ):
 
 
 # -----------------------------------------------------------------------------
+# Masking NA values and fallbacks for operations numpy does not support
+
+def fill_binop(left, right, fill_value):
+    """
+    If a non-None fill_value is given, replace null entries in left and right
+    with this value, but only in positions where _one_ of left/right is null,
+    not both.
+
+    Parameters
+    ----------
+    left : array-like
+    right : array-like
+    fill_value : object
+
+    Returns
+    -------
+    left : array-like
+    right : array-like
+
+    Notes
+    -----
+    Makes copies if fill_value is not None
+    """
+    # TODO: can we make a no-copy implementation?
+    if fill_value is not None:
+        left_mask = isna(left)
+        right_mask = isna(right)
+        left = left.copy()
+        right = right.copy()
+
+        # one but not both
+        mask = left_mask ^ right_mask
+        left[left_mask & mask] = fill_value
+        right[right_mask & mask] = fill_value
+    return left, right
+
+
+def mask_cmp_op(x, y, op, allowed_types):
+    """
+    Apply the function `op` to only non-null points in x and y.
+
+    Parameters
+    ----------
+    x : array-like
+    y : array-like
+    op : binary operation
+    allowed_types : class or tuple of classes
+
+    Returns
+    -------
+    result : ndarray[bool]
+    """
+    # TODO: Can we make the allowed_types arg unnecessary?
+    xrav = x.ravel()
+    result = np.empty(x.size, dtype=bool)
+    if isinstance(y, allowed_types):
+        yrav = y.ravel()
+        mask = notna(xrav) & notna(yrav)
+        result[mask] = op(np.array(list(xrav[mask])),
+                          np.array(list(yrav[mask])))
+    else:
+        mask = notna(xrav)
+        result[mask] = op(np.array(list(xrav[mask])), y)
+
+    if op == operator.ne:  # pragma: no cover
+        np.putmask(result, ~mask, True)
+    else:
+        np.putmask(result, ~mask, False)
+    result = result.reshape(x.shape)
+    return result
+
+
+# -----------------------------------------------------------------------------
 # Functions that add arithmetic methods to objects, given arithmetic factory
 # methods
 
@@ -1118,12 +1191,13 @@ def _arith_method_FRAME(op, name, str_rep=None):
         if isinstance(other, ABCDataFrame):  # Another DataFrame
             return self._combine_frame(other, na_op, fill_value, level)
         elif isinstance(other, ABCSeries):
-            return self._combine_series(other, na_op, fill_value, axis, level)
+            return self._combine_series(other, na_op, fill_value, axis, level,
+                                        try_cast=True)
         else:
             if fill_value is not None:
                 self = self.fillna(fill_value)
 
-            return self._combine_const(other, na_op)
+            return self._combine_const(other, na_op, try_cast=True)
 
     f.__name__ = name
 
@@ -1138,23 +1212,7 @@ def _flex_comp_method_FRAME(op, name, str_rep=None):
             with np.errstate(invalid='ignore'):
                 result = op(x, y)
         except TypeError:
-            xrav = x.ravel()
-            result = np.empty(x.size, dtype=bool)
-            if isinstance(y, (np.ndarray, ABCSeries)):
-                yrav = y.ravel()
-                mask = notna(xrav) & notna(yrav)
-                result[mask] = op(np.array(list(xrav[mask])),
-                                  np.array(list(yrav[mask])))
-            else:
-                mask = notna(xrav)
-                result[mask] = op(np.array(list(xrav[mask])), y)
-
-            if op == operator.ne:  # pragma: no cover
-                np.putmask(result, ~mask, True)
-            else:
-                np.putmask(result, ~mask, False)
-            result = result.reshape(x.shape)
-
+            result = mask_cmp_op(x, y, op, (np.ndarray, ABCSeries))
         return result
 
     @Appender('Wrapper for flexible comparison methods {name}'
@@ -1184,7 +1242,8 @@ def _comp_method_FRAME(func, name, str_rep):
         if isinstance(other, ABCDataFrame):  # Another DataFrame
             return self._compare_frame(other, func, str_rep)
         elif isinstance(other, ABCSeries):
-            return self._combine_series_infer(other, func, try_cast=False)
+            return self._combine_series(other, func,
+                                        axis=None, try_cast=False)
         else:
 
             # straight boolean comparisons we want to allow all columns
@@ -1231,23 +1290,7 @@ def _comp_method_PANEL(op, name, str_rep=None):
         try:
             result = expressions.evaluate(op, str_rep, x, y)
         except TypeError:
-            xrav = x.ravel()
-            result = np.empty(x.size, dtype=bool)
-            if isinstance(y, np.ndarray):
-                yrav = y.ravel()
-                mask = notna(xrav) & notna(yrav)
-                result[mask] = op(np.array(list(xrav[mask])),
-                                  np.array(list(yrav[mask])))
-            else:
-                mask = notna(xrav)
-                result[mask] = op(np.array(list(xrav[mask])), y)
-
-            if op == operator.ne:  # pragma: no cover
-                np.putmask(result, ~mask, True)
-            else:
-                np.putmask(result, ~mask, False)
-            result = result.reshape(x.shape)
-
+            result = mask_cmp_op(x, y, op, np.ndarray)
         return result
 
     @Appender('Wrapper for comparison method {name}'.format(name=name))

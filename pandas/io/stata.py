@@ -988,7 +988,7 @@ class StataReader(StataParser, BaseIterator):
         self._native_byteorder = _set_endianness(sys.byteorder)
         path_or_buf = _stringify_path(path_or_buf)
         if isinstance(path_or_buf, str):
-            path_or_buf, encoding, _ = get_filepath_or_buffer(
+            path_or_buf, encoding, _, should_close = get_filepath_or_buffer(
                 path_or_buf, encoding=self._default_encoding
             )
 
@@ -1341,11 +1341,13 @@ class StataReader(StataParser, BaseIterator):
                 return s
 
     def _read_value_labels(self):
-        if self.format_version <= 108:
-            # Value labels are not supported in version 108 and earlier.
-            return
         if self._value_labels_read:
             # Don't read twice
+            return
+        if self.format_version <= 108:
+            # Value labels are not supported in version 108 and earlier.
+            self._value_labels_read = True
+            self.value_label_dict = dict()
             return
 
         if self.format_version >= 117:
