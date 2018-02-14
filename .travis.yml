@@ -52,7 +52,7 @@ matrix:
     # In allow_failures
     - dist: trusty
       env:
-        - JOB="3.5_CONDA_BUILD_TEST" TEST_ARGS="--skip-slow --skip-network" CONDA_BUILD_TEST=true
+        - JOB="3.5" TEST_ARGS="--skip-slow --skip-network"
     - dist: trusty
       env:
         - JOB="3.6" TEST_ARGS="--skip-slow --skip-network" PANDAS_TESTING_MODE="deprecate" CONDA_FORGE=true COVERAGE=true
@@ -83,7 +83,7 @@ matrix:
     allow_failures:
       - dist: trusty
         env:
-          - JOB="3.5_CONDA_BUILD_TEST" TEST_ARGS="--skip-slow --skip-network" CONDA_BUILD_TEST=true
+          - JOB="3.5" TEST_ARGS="--skip-slow --skip-network"
       - dist: trusty
         env:
           - JOB="2.7_SLOW" SLOW=true
