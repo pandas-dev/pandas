@@ -2098,7 +2098,7 @@ class Index(IndexOpsMixin, PandasObject):
         try:
             loc = self.get_loc(label, method='pad')
         except KeyError:
-            return _get_na_value(self.dtype)
+            return self._na_value
         else:
             if isinstance(loc, slice):
                 loc = loc.indices(len(self))[-1]
@@ -4317,6 +4317,8 @@ def _ensure_index(index_like, copy=False):
 
 
 def _get_na_value(dtype):
+    # TODO: remove; this may require a deprecation cycle because this is
+    # listed in indexes.api.__all_
     if is_datetime64_any_dtype(dtype) or is_timedelta64_dtype(dtype):
         return libts.NaT
     return np.nan
