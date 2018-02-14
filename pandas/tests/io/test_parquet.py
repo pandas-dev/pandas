@@ -260,7 +260,8 @@ def test_cross_engine_pa_fp(df_cross_compat, pa, fp):
         else:
             expected_warning = None
 
-        with tm.assert_produces_warning(expected_warning):
+        with tm.assert_produces_warning(expected_warning,
+                                        check_stacklevel=False):
             result = read_parquet(path, engine=fp)
 
         tm.assert_frame_equal(result, df)
