@@ -336,7 +336,9 @@ _common_apply_whitelist = frozenset([
 ]) | _plotting_methods
 
 _series_apply_whitelist = ((_common_apply_whitelist |
-                            {'nlargest', 'nsmallest'}) -
+                            {'nlargest', 'nsmallest',
+                             'is_monotonic_increasing',
+                             'is_monotonic_decreasing'}) -
                            {'boxplot'}) | frozenset(['dtype', 'unique'])
 
 _dataframe_apply_whitelist = ((_common_apply_whitelist |

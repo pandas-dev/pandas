@@ -2240,6 +2240,8 @@ The following methods are available only for ``SeriesGroupBy`` objects.
    SeriesGroupBy.nunique
    SeriesGroupBy.unique
    SeriesGroupBy.value_counts
+   SeriesGroupBy.is_monotonic_increasing
+   SeriesGroupBy.is_monotonic_decreasing
 
 The following methods are available only for ``DataFrameGroupBy`` objects.
 
