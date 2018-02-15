@@ -3980,7 +3980,8 @@ class Index(IndexOpsMixin, PandasObject):
     @classmethod
     def _add_numeric_methods_disabled(cls):
         """ add in numeric methods to disable other than add/sub """
-        cls.__pow__ = cls.__rpow__ = make_invalid_op('__pow__')
+        cls.__pow__ = make_invalid_op('__pow__')
+        cls.__rpow__ = make_invalid_op('__rpow__')
         cls.__mul__ = cls.__rmul__ = make_invalid_op('__mul__')
         cls.__floordiv__ = cls.__rfloordiv__ = make_invalid_op('__floordiv__')
         cls.__truediv__ = cls.__rtruediv__ = make_invalid_op('__truediv__')
