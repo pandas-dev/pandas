@@ -154,6 +154,15 @@ def check_round_trip(df, engine=None, path=None,
         write_kwargs['engine'] = engine
         read_kwargs['engine'] = engine
 
+    fastparquet_make_block_dtype = (
+        # Use of deprecated `dtype` in `make_block` that's hit only for
+        # bool dtypes with no Nones.
+        engine == 'fastparquet' and
+        LooseVersion("0.1.1") < LooseVersion(fastparquet.__version__) <=
+        LooseVersion("0.1.4") and
+        any(pd.api.types.is_bool_dtype(df[col]) for col in df.columns)
+    )
+
     if (engine == 'pyarrow' and
             LooseVersion(pyarrow.__version__) <= LooseVersion("0.8.0") and
             any(pd.api.types.is_datetime64tz_dtype(dtype)
@@ -173,11 +182,7 @@ def check_round_trip(df, engine=None, path=None,
         # Remove when all fastparquet builds >= 0.1.5
         # https://github.com/dask/fastparquet/issues/302
         warning_type = DeprecationWarning
-    elif (engine == 'fastparquet' and
-          LooseVersion(fastparquet.__version__) <= LooseVersion("0.1.4") and
-          any(pd.api.types.is_bool_dtype(df[col]) for col in df.columns)):
-        # Use of deprecated `dtype` in `make_block` that's hit only for
-        # bool dtypes with no Nones.
+    elif fastparquet_make_block_dtype:
         warning_type = DeprecationWarning
     else:
         warning_type = None
