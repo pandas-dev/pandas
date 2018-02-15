@@ -158,8 +158,7 @@ def check_round_trip(df, engine=None, path=None,
         # Use of deprecated `dtype` in `make_block` that's hit only for
         # bool dtypes with no Nones.
         engine == 'fastparquet' and
-        LooseVersion("0.1.1") < LooseVersion(fastparquet.__version__) <=
-        LooseVersion("0.1.4") and
+        LooseVersion(fastparquet.__version__) == LooseVersion("0.1.4") and
         any(pd.api.types.is_bool_dtype(df[col]) for col in df.columns)
     )
 
@@ -171,6 +170,9 @@ def check_round_trip(df, engine=None, path=None,
         # Deprecated in pandas 0.23 and removed in pyarrow 0.9
         # Remove this when all pyarrow builds >= 0.9
         warning_type = DeprecationWarning
+    # elif (engine == 'fastparquet' and
+    #         LooseVersion(fastparquet.__version__) == LooseVersion('0.1.3')):
+    #     warning_type = DeprecationWarning
     elif (engine == 'fastparquet' and
           LooseVersion(fastparquet.__version__) <= LooseVersion("0.1.4") and
           LooseVersion(np.__version__) >= LooseVersion("1.14.0") and
