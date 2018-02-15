@@ -987,7 +987,7 @@ def group_fillna_indexer(ndarray[int64_t] out,
 
     N = len(out)
 
-    sorted_labels = np.argsort(labels).view(dtype=np.int64)
+    sorted_labels = np.argsort(labels).astype(np.int64, copy=False)
     if method == 'bfill':
         sorted_labels = sorted_labels[::-1]
 
