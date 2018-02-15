@@ -9,6 +9,7 @@ from datetime import datetime
 from pandas import (date_range, bdate_range, Timestamp,
                     Index, MultiIndex, DataFrame, Series,
                     concat, Panel, DatetimeIndex, read_csv)
+from pandas.core.dtypes.missing import isna
 from pandas.errors import UnsupportedFunctionCall, PerformanceWarning
 from pandas.util.testing import (assert_frame_equal, assert_index_equal,
                                  assert_series_equal, assert_almost_equal)
@@ -2115,6 +2116,27 @@ class TestGroupBy(MixIn):
             result = getattr(df.groupby('key'), fill_method)(limit=limit)
             exp = DataFrame({'key': keys, 'val': _exp_vals})
             assert_frame_equal(result, exp)
+
+    @pytest.mark.parametrize("skipna", [True, False])
+    @pytest.mark.parametrize("vals,exp", [
+        (['foo', 'bar', 'baz'], True), (['foo', '', ''], True),
+        (['', '', ''], False), ([1, 2, 3], True), ([1, 0, 0], True),
+        ([0, 0, 0], False), ([1., 2., 3.], True), ([1., 0., 0.], True),
+        ([0., 0., 0.], False), ([True, True, True], True),
+        ([True, False, False], True), ([False, False, False], False),
+        ([np.nan, np.nan, np.nan], False)
+    ])
+    def test_groupby_any(self, skipna, vals, exp):
+        df = DataFrame({'key': ['a'] * 3 + ['b'] * 3, 'val': vals * 2})
+
+        # edge case for missing data with skipna=False
+        if not(skipna) and all(isna(vals)):
+            exp = True
+
+        exp_df = DataFrame([exp] * 2, columns=['val'], index=pd.Index(
+            ['a', 'b'], name='key'))
+        result = df.groupby('key').any(skipna=skipna)
+        assert_frame_equal(result, exp_df)
 
     def test_dont_clobber_name_column(self):
         df = DataFrame({'key': ['a', 'a', 'a', 'b', 'b', 'b'],
