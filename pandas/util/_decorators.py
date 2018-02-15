@@ -1,5 +1,5 @@
 from pandas.compat import callable, signature, PY2
-from pandas._libs.properties import cache_readonly  # noqa
+from pandas._libs.properties import cache_readonly, maybe_cache  # noqa
 import inspect
 import types
 import warnings

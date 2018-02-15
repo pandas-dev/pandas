@@ -5,6 +5,7 @@ import pytest
 import numpy as np
 from pandas._libs import lib, writers as libwriters
 import pandas.util.testing as tm
+import pandas as pd
 
 
 class TestMisc(object):
@@ -198,3 +199,22 @@ class TestIndexing(object):
         result = lib.get_reverse_indexer(indexer, 5)
         expected = np.array([4, 2, 3, 6, 7], dtype=np.int64)
         tm.assert_numpy_array_equal(result, expected)
+
+
+def test_maybe_cache():
+    # GH#19700
+    idx = pd.Index([0, 1])
+    assert not idx.hasnans
+    assert 'hasnans' in idx._cache
+    ser = idx.to_series()
+    assert not ser.hasnans
+    assert not hasattr(ser, '_cache')
+    ser.iloc[-1] = np.nan
+    assert ser.hasnans
+
+
+def test_cache_decorators_preserve_docstrings():
+    # GH#19700 accessing class attributes that are cache_readonly or
+    # maybe_cache should a) not return None and b) reflect original docstrings
+    assert "perf" in pd.Index.hasnans.__doc__  # uses maybe_cache
+    assert "dtype str " in pd.Index.dtype_str.__doc__  # uses cache_readonly

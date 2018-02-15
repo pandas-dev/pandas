@@ -119,6 +119,7 @@ class NDFrame(PandasObject, SelectionMixin):
                                'consolidate', 'convert_objects', 'is_copy'])
     _metadata = []
     _is_copy = None
+    _immutable = False
 
     def __init__(self, data, axes=None, copy=False, dtype=None,
                  fastpath=False):

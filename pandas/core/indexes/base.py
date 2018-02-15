@@ -48,7 +48,7 @@ from pandas.core.base import PandasObject, IndexOpsMixin
 import pandas.core.common as com
 import pandas.core.base as base
 from pandas.util._decorators import (
-    Appender, Substitution, cache_readonly, deprecate_kwarg)
+    Appender, Substitution, cache_readonly, maybe_cache, deprecate_kwarg)
 from pandas.core.indexes.frozen import FrozenList
 import pandas.core.dtypes.concat as _concat
 import pandas.core.missing as missing
@@ -177,6 +177,7 @@ class Index(IndexOpsMixin, PandasObject):
     _attributes = ['name']
     _is_numeric_dtype = False
     _can_hold_na = True
+    _immutable = True
 
     # would we like our indexing holder to defer to us
     _defer_to_indexing = False

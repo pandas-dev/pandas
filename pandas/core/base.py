@@ -23,7 +23,7 @@ import pandas.core.nanops as nanops
 import pandas._libs.lib as lib
 from pandas.compat.numpy import function as nv
 from pandas.compat import PYPY
-from pandas.util._decorators import (Appender, cache_readonly,
+from pandas.util._decorators import (Appender, cache_readonly, maybe_cache,
                                      deprecate_kwarg, Substitution)
 
 from pandas.core.accessor import DirNamesMixin
@@ -842,7 +842,7 @@ class IndexOpsMixin(object):
         """
         return iter(self.tolist())
 
-    @cache_readonly
+    @maybe_cache
     def hasnans(self):
         """ return if I have any nans; enables various perf speedups """
         return isna(self).any()
