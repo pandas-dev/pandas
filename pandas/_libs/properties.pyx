@@ -21,6 +21,10 @@ cdef class cache_readonly(object):
     def __call__(self, func, doc=None):
         self.func = func
         self.name = func.__name__
+        if doc is not None:
+            self.__doc__ = doc
+        else:
+            self.__doc__ = func.__doc__
         return self
 
     def __get__(self, obj, typ):

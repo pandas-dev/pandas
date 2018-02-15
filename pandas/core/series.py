@@ -145,6 +145,8 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         ['asobject', 'sortlevel', 'reshape', 'get_value', 'set_value',
          'from_csv', 'valid'])
 
+    hasnans = property(base.IndexOpsMixin.hasnans.func)
+
     def __init__(self, data=None, index=None, dtype=None, name=None,
                  copy=False, fastpath=False):
 

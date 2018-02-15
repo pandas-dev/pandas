@@ -8,6 +8,7 @@ from datetime import datetime
 from numpy import nan
 import numpy as np
 
+import pandas as pd
 from pandas import Series
 from pandas.core.indexes.datetimes import Timestamp
 import pandas._libs.lib as lib
@@ -309,3 +310,16 @@ class TestSeriesInternals(object):
         r = s._convert(datetime=True, numeric=True)
         e = Series([False, True, False, False], dtype=bool)
         tm.assert_series_equal(r, e)
+
+
+def test_hasnans_unchached_for_series():
+    # GH#19700
+    idx = pd.Index([0, 1])
+    assert not idx.hasnans
+    assert 'hasnans' in idx._cache
+    ser = idx.to_series()
+    assert not ser.hasnans
+    assert not hasattr(ser, '_cache')
+    ser.iloc[-1] = np.nan
+    assert ser.hasnans
+    assert 'enables' in pd.Series.hasnans.__doc__
