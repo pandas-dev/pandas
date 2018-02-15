@@ -4316,14 +4316,6 @@ def _ensure_index(index_like, copy=False):
     return Index(index_like)
 
 
-def _get_na_value(dtype):
-    # TODO: remove; this may require a deprecation cycle because this is
-    # listed in indexes.api.__all_
-    if is_datetime64_any_dtype(dtype) or is_timedelta64_dtype(dtype):
-        return libts.NaT
-    return np.nan
-
-
 def _ensure_has_len(seq):
     """If seq is an iterator, put its values into a list."""
     try:
