@@ -689,6 +689,7 @@ Performance Improvements
 - Improved performance of pairwise ``.rolling()`` and ``.expanding()`` with ``.cov()`` and ``.corr()`` operations (:issue:`17917`)
 - Improved performance of :func:`DataFrameGroupBy.rank` (:issue:`15779`)
 - Improved performance of variable ``.rolling()`` on ``.min()`` and ``.max()`` (:issue:`19521`)
+- Improved performance of :func:`GroupBy.ffill` and :func:`GroupBy.bfill` (:issue:`11296`)
 
 .. _whatsnew_0230.docs:
 
