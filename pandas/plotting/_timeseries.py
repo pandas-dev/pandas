@@ -108,8 +108,8 @@ def _upsample_others(ax, freq, kwargs):
         lines.extend(rlines)
         labels.extend(rlabels)
 
-    if (legend is not None and kwargs.get('legend', True) and
-            len(lines) > 0):
+    if legend is not None and kwargs.get('legend', True) and
+            len(lines) > 0:
         title = legend.get_title().get_text()
         if title == 'None':
             title = None
@@ -234,7 +234,7 @@ def _use_dynamic_x(ax, data):
     if isinstance(data.index, DatetimeIndex):
         base = frequencies.get_freq(freq)
         x = data.index
-        if (base <= frequencies.FreqGroup.FR_DAY):
+        if base <= frequencies.FreqGroup.FR_DAY:
             return x[:1].is_normalized
         return Period(x[0], freq).to_timestamp(tz=x.tz) == x[0]
     return True
