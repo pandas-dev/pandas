@@ -507,6 +507,9 @@ def _binary_op_method_timedeltalike(op, name):
             # failed to parse as timedelta
             return NotImplemented
 
+        if other is NaT:
+            # e.g. if original other was np.timedelta64('NaT')
+            return NaT
         return Timedelta(op(self.value, other.value), unit='ns')
 
     f.__name__ = name
