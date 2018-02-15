@@ -5,6 +5,7 @@ import pytest
 import numpy as np
 from pandas._libs import lib, writers as libwriters
 import pandas.util.testing as tm
+import pandas as pd
 
 
 class TestMisc(object):
@@ -198,3 +199,10 @@ class TestIndexing(object):
         result = lib.get_reverse_indexer(indexer, 5)
         expected = np.array([4, 2, 3, 6, 7], dtype=np.int64)
         tm.assert_numpy_array_equal(result, expected)
+
+
+def test_cache_readonly_preserve_docstrings():
+    # GH#19700 accessing class attributes that are cache_readonly
+    # should a) not return None and b) reflect original docstrings
+    assert "perf" in pd.Index.hasnans.__doc__
+    assert "dtype str " in pd.Index.dtype_str.__doc__
