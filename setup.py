@@ -311,7 +311,6 @@ class CheckSDist(sdist_class):
                  'pandas/_libs/missing.pyx',
                  'pandas/_libs/reduction.pyx',
                  'pandas/_libs/testing.pyx',
-                 'pandas/_libs/window.pyx',
                  'pandas/_libs/skiplist.pyx',
                  'pandas/_libs/sparse.pyx',
                  'pandas/_libs/parsers.pyx',
@@ -331,6 +330,8 @@ class CheckSDist(sdist_class):
                  'pandas/_libs/writers.pyx',
                  'pandas/io/sas/sas.pyx']
 
+    _cpp_pyxfiles =['pandas/_libs/window.pyx']
+
     def initialize_options(self):
         sdist_class.initialize_options(self)
 
@@ -338,12 +339,15 @@ class CheckSDist(sdist_class):
         if 'cython' in cmdclass:
             self.run_command('cython')
         else:
-            for pyxfile in self._pyxfiles:
-                cfile = pyxfile[:-3] + 'c'
-                msg = ("C-source file '{source}' not found.\n"
-                       "Run 'setup.py cython' before sdist.".format(
-                           source=cfile))
-                assert os.path.isfile(cfile), msg
+            pyx_files = [(self._pyxfiles, 'c'), (self._cpp_pyxfiles, 'cpp')]
+
+            for pyxfiles, extension in pyx_files:
+                for pyxfile in pyxfiles:
+                    sourcefile = pyxfile[:-3] + extension
+                    msg = ("{extension}-source file '{source}' not found.\n"
+                           "Run 'setup.py cython' before sdist.".format(
+                               source=cfile, extension=extension))
+                    assert os.path.isfile(sourcefile), msg
         sdist_class.run(self)
 
 
@@ -618,7 +622,8 @@ ext_data = {
     '_libs.window': {
         'pyxfile': '_libs/window',
         'pxdfiles': ['_libs/skiplist', '_libs/src/util'],
-        'language': 'c++'},
+        'language': 'c++',
+        'suffix': '.cpp'},
     '_libs.writers': {
         'pyxfile': '_libs/writers',
         'pxdfiles': ['_libs/src/util']},
@@ -628,7 +633,9 @@ ext_data = {
 extensions = []
 
 for name, data in ext_data.items():
-    sources = [srcpath(data['pyxfile'], suffix=suffix, subdir='')]
+    source_suffix = suffix if suffix == '.pyx' else data.get('suffix', '.c')
+
+    sources = [srcpath(data['pyxfile'], suffix=source_suffix, subdir='')]
     pxds = [pxd(x) for x in data.get('pxdfiles', [])]
     if suffix == '.pyx' and pxds:
         sources.extend(pxds)
