@@ -330,7 +330,7 @@ class CheckSDist(sdist_class):
                  'pandas/_libs/writers.pyx',
                  'pandas/io/sas/sas.pyx']
 
-    _cpp_pyxfiles =['pandas/_libs/window.pyx']
+    _cpp_pyxfiles = ['pandas/_libs/window.pyx']
 
     def initialize_options(self):
         sdist_class.initialize_options(self)
