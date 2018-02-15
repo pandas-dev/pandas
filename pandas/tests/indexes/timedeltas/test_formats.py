@@ -1,11 +1,14 @@
 # -*- coding: utf-8 -*-
 
+import pytest
+
 import pandas as pd
 from pandas import TimedeltaIndex
 
 
 class TestTimedeltaIndexRendering(object):
-    def test_representation(self):
+    @pytest.mark.parametrize('method', ['__repr__', '__unicode__', '__str__'])
+    def test_representation(self, method):
         idx1 = TimedeltaIndex([], freq='D')
         idx2 = TimedeltaIndex(['1 days'], freq='D')
         idx3 = TimedeltaIndex(['1 days', '2 days'], freq='D')
@@ -29,9 +32,8 @@ class TestTimedeltaIndexRendering(object):
         with pd.option_context('display.width', 300):
             for idx, expected in zip([idx1, idx2, idx3, idx4, idx5],
                                      [exp1, exp2, exp3, exp4, exp5]):
-                for func in ['__repr__', '__unicode__', '__str__']:
-                    result = getattr(idx, func)()
-                    assert result == expected
+                result = getattr(idx, method)()
+                assert result == expected
 
     def test_representation_to_series(self):
         idx1 = TimedeltaIndex([], freq='D')
@@ -42,22 +44,22 @@ class TestTimedeltaIndexRendering(object):
 
         exp1 = """Series([], dtype: timedelta64[ns])"""
 
-        exp2 = """0   1 days
-dtype: timedelta64[ns]"""
+        exp2 = ("0   1 days\n"
+                "dtype: timedelta64[ns]")
 
-        exp3 = """0   1 days
-1   2 days
-dtype: timedelta64[ns]"""
+        exp3 = ("0   1 days\n"
+                "1   2 days\n"
+                "dtype: timedelta64[ns]")
 
-        exp4 = """0   1 days
-1   2 days
-2   3 days
-dtype: timedelta64[ns]"""
+        exp4 = ("0   1 days\n"
+                "1   2 days\n"
+                "2   3 days\n"
+                "dtype: timedelta64[ns]")
 
-        exp5 = """0   1 days 00:00:01
-1   2 days 00:00:00
-2   3 days 00:00:00
-dtype: timedelta64[ns]"""
+        exp5 = ("0   1 days 00:00:01\n"
+                "1   2 days 00:00:00\n"
+                "2   3 days 00:00:00\n"
+                "dtype: timedelta64[ns]")
 
         with pd.option_context('display.width', 300):
             for idx, expected in zip([idx1, idx2, idx3, idx4, idx5],

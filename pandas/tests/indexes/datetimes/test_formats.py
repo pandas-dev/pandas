@@ -4,6 +4,7 @@ from pandas import DatetimeIndex, Series
 import numpy as np
 import dateutil.tz
 import pytz
+import pytest
 
 import pandas.util.testing as tm
 import pandas as pd
@@ -61,19 +62,20 @@ class TestDatetimeIndexRendering(object):
         dr = pd.date_range(start='1/1/2012', periods=3)
         repr(dr)
 
-    def test_dti_representation(self):
-        idx = []
-        idx.append(DatetimeIndex([], freq='D'))
-        idx.append(DatetimeIndex(['2011-01-01'], freq='D'))
-        idx.append(DatetimeIndex(['2011-01-01', '2011-01-02'], freq='D'))
-        idx.append(DatetimeIndex(
-            ['2011-01-01', '2011-01-02', '2011-01-03'], freq='D'))
-        idx.append(DatetimeIndex(
+    @pytest.mark.parametrize('method', ['__repr__', '__unicode__', '__str__'])
+    def test_dti_representation(self, method):
+        idxs = []
+        idxs.append(DatetimeIndex([], freq='D'))
+        idxs.append(DatetimeIndex(['2011-01-01'], freq='D'))
+        idxs.append(DatetimeIndex(['2011-01-01', '2011-01-02'], freq='D'))
+        idxs.append(DatetimeIndex(['2011-01-01', '2011-01-02', '2011-01-03'],
+                                  freq='D'))
+        idxs.append(DatetimeIndex(
             ['2011-01-01 09:00', '2011-01-01 10:00', '2011-01-01 11:00'
              ], freq='H', tz='Asia/Tokyo'))
-        idx.append(DatetimeIndex(
+        idxs.append(DatetimeIndex(
             ['2011-01-01 09:00', '2011-01-01 10:00', pd.NaT], tz='US/Eastern'))
-        idx.append(DatetimeIndex(
+        idxs.append(DatetimeIndex(
             ['2011-01-01 09:00', '2011-01-01 10:00', pd.NaT], tz='UTC'))
 
         exp = []
@@ -95,10 +97,9 @@ class TestDatetimeIndexRendering(object):
                    "dtype='datetime64[ns, UTC]', freq=None)""")
 
         with pd.option_context('display.width', 300):
-            for indx, expected in zip(idx, exp):
-                for func in ['__repr__', '__unicode__', '__str__']:
-                    result = getattr(indx, func)()
-                    assert result == expected
+            for indx, expected in zip(idxs, exp):
+                result = getattr(indx, method)()
+                assert result == expected
 
     def test_dti_representation_to_series(self):
         idx1 = DatetimeIndex([], freq='D')
