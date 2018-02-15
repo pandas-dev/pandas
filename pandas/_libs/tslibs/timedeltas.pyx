@@ -488,7 +488,8 @@ def _binary_op_method_timedeltalike(op, name):
             # defined by Timestamp methods.
 
         elif is_timedelta64_object(other):
-            return op(self, Timedelta(other))
+            # other coerced to Timedelta below
+            pass
 
         elif hasattr(other, 'dtype'):
             # nd-array like
