@@ -12,6 +12,7 @@ from pandas.core.dtypes.generic import (
     ABCSeries, ABCIndex,
     ABCIndexClass, ABCCategorical)
 from pandas.core.dtypes.common import (
+    is_array_like,
     is_unsigned_integer_dtype, is_signed_integer_dtype,
     is_integer_dtype, is_complex_dtype,
     is_object_dtype,
@@ -168,8 +169,7 @@ def _ensure_arraylike(values):
     """
     ensure that we are arraylike if not already
     """
-    if not isinstance(values, (np.ndarray, ABCCategorical,
-                               ABCIndexClass, ABCSeries)):
+    if not is_array_like(values):
         inferred = lib.infer_dtype(values)
         if inferred in ['mixed', 'string', 'unicode']:
             if isinstance(values, tuple):
@@ -356,7 +356,7 @@ def unique(values):
     # categorical is a fast-path
     # this will coerce Categorical, CategoricalIndex,
     # and category dtypes Series to same return of Category
-    if is_categorical_dtype(values):
+    if is_extension_array_dtype(values):
         values = getattr(values, '.values', values)
         return values.unique()
 
