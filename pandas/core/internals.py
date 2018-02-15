@@ -4867,7 +4867,7 @@ def form_blocks(arrays, names, axes):
         for i, _, array in items_dict['ExtensionBlock']:
             external_blocks.append(
                 make_block(array, klass=ExtensionBlock,
-                           fastpath=True, placement=[i]))
+                           placement=[i]))
         blocks.extend(external_blocks)
 
     if len(extra_locs):
