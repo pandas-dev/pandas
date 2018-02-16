@@ -133,12 +133,23 @@ class BaseArrayTests(object):
         assert isinstance(result._data.blocks[0], ExtensionBlock)
         assert result._data.blocks[0].values is data
 
+        # Series[EA] is unboxed / boxed correctly
+        result2 = pd.Series(result)
+        assert result2.dtype == data.dtype
+        assert isinstance(result2._data.blocks[0], ExtensionBlock)
+
     @pytest.mark.parametrize("from_series", [True, False])
-    def dataframe_constructor(self, data, from_series):
+    def test_dataframe_constructor_from_dict(self, data, from_series):
         if from_series:
             data = pd.Series(data)
         result = pd.DataFrame({"A": data})
         assert result.dtypes['A'] == data.dtype
+        assert result.shape == (len(data), 1)
+        assert isinstance(result._data.blocks[0], ExtensionBlock)
+
+    def test_dataframe_from_series(self, data):
+        result = pd.DataFrame(pd.Series(data))
+        assert result.dtypes[0] == data.dtype
         assert result.shape == (len(data), 1)
         assert isinstance(result._data.blocks[0], ExtensionBlock)
 
