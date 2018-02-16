@@ -293,6 +293,11 @@ class CategoricalIndex(Index, accessor.PandasDelegate):
         """ return the underlying data, which is a Categorical """
         return self._data
 
+    @property
+    def itemsize(self):
+        # Size of the items in categories, not codes.
+        return self.values.itemsize
+
     def get_values(self):
         """ return the underlying data as an ndarray """
         return self._data.get_values()
@@ -386,8 +391,8 @@ class CategoricalIndex(Index, accessor.PandasDelegate):
     def unique(self, level=None):
         if level is not None:
             self._validate_index_level(level)
-        result = base.IndexOpsMixin.unique(self)
-        # CategoricalIndex._shallow_copy uses keeps original categories
+        result = self.values.unique()
+        # CategoricalIndex._shallow_copy keeps original categories
         # and ordered if not otherwise specified
         return self._shallow_copy(result, categories=result.categories,
                                   ordered=result.ordered)
