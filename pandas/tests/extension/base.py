@@ -43,6 +43,12 @@ class BaseDtypeTests(object):
         result = type(dtype).is_dtype(dtype)
         assert result is True
 
+    def test_is_not_string_type(self, dtype):
+        return not pd.api.types.is_string_dtype(dtype)
+
+    def test_is_not_object_type(self, dtype):
+        return not pd.api.types.is_object_dtype(dtype)
+
 
 class BaseArrayTests(object):
     """Base class for extension array classes.
