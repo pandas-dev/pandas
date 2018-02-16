@@ -700,6 +700,7 @@ Performance Improvements
 - Improved performance of :func:`DataFrameGroupBy.rank` (:issue:`15779`)
 - Improved performance of variable ``.rolling()`` on ``.min()`` and ``.max()`` (:issue:`19521`)
 - Improved performance of ``GroupBy.ffill`` and ``GroupBy.bfill`` (:issue:`11296`)
+- Improved performance of :func:`GroupBy.any` (:issue:`15435`)
 
 .. _whatsnew_0230.docs:
 
