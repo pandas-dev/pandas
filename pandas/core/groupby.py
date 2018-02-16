@@ -1223,18 +1223,12 @@ class GroupBy(_GroupBy):
     @Appender(_doc_template)
     def any(self, skipna=True):
         """Returns True if any value in the group is truthful, else False"""
-        obj = self._obj_with_exclusions
-
         labels, _, _ = self.grouper.group_info
-
         output = collections.OrderedDict()
+
         for name, obj in self._iterate_slices():
             result = np.zeros(self.ngroups, dtype=np.int64)
-            if obj.dtype is np.object:
-                mask = np.array(bool(x) for x in obj.values)
-            else:
-                mask = obj.values.astype(np.bool)
-            libgroupby.group_any(result, mask.astype(np.int64), labels, skipna)
+            libgroupby.group_any(result, obj.values, labels, skipna)
             output[name] = result.astype(np.bool)
 
         return self._wrap_aggregated_output(output)
