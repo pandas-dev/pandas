@@ -20,6 +20,10 @@ _common_mismatch = [pd.offsets.YearBegin(2),
                         np.timedelta64(30, 's'),
                         Timedelta(seconds=30)] + _common_mismatch)
 def not_hourly(request):
+    """
+    Several timedelta-like and DateOffset instances that are _not_
+    compatible with Hourly frequencies.
+    """
     return request.param
 
 
@@ -27,6 +31,10 @@ def not_hourly(request):
                         timedelta(hours=23),
                         Timedelta('23:00:00')] + _common_mismatch)
 def not_daily(request):
+    """
+    Several timedelta-like and DateOffset instances that are _not_
+    compatible with Daily frequencies.
+    """
     return request.param
 
 
@@ -34,6 +42,10 @@ def not_daily(request):
                         timedelta(365),
                         Timedelta(days=365)] + _common_mismatch)
 def mismatched(request):
+    """
+    Several timedelta-like and DateOffset instances that are _not_
+    compatible with Monthly or Annual frequencies.
+    """
     return request.param
 
 
@@ -45,7 +57,10 @@ def mismatched(request):
                         np.timedelta64(72, 'h'),
                         Timedelta('72:00:00')])
 def three_days(request):
-    # several timedelta/offset-like objects representing a 3-day timedelta
+    """
+    Several timedelta-like and DateOffset objects that each represent
+    a 3-day timedelta
+    """
     return request.param
 
 
@@ -56,7 +71,10 @@ def three_days(request):
                         timedelta(minutes=120),
                         np.timedelta64(120, 'm')])
 def two_hours(request):
-    # several timedelta/offset-like objects representing a 2-hour timedelta
+    """
+    Several timedelta-like and DateOffset objects that each represent
+    a 2-hour timedelta
+    """
     return request.param
 
 
