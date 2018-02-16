@@ -137,22 +137,20 @@ def _isna_ndarraylike(obj):
         else:
             values = obj
         result = values.isna()
+    elif is_interval_dtype(values):
+         # TODO(IntervalArray): remove this if block
+         from pandas import IntervalIndex
+         result = IntervalIndex(obj).isna()
     elif is_string_dtype(dtype):
-        if is_interval_dtype(values):
-            # TODO(IntervalArray): remove this if block
-            from pandas import IntervalIndex
-            result = IntervalIndex(obj).isna()
+        # Working around NumPy ticket 1542
+        shape = values.shape
+
+        if is_string_like_dtype(dtype):
+            result = np.zeros(values.shape, dtype=bool)
         else:
-
-            # Working around NumPy ticket 1542
-            shape = values.shape
-
-            if is_string_like_dtype(dtype):
-                result = np.zeros(values.shape, dtype=bool)
-            else:
-                result = np.empty(shape, dtype=bool)
-                vec = libmissing.isnaobj(values.ravel())
-                result[...] = vec.reshape(shape)
+            result = np.empty(shape, dtype=bool)
+            vec = libmissing.isnaobj(values.ravel())
+            result[...] = vec.reshape(shape)
 
     elif needs_i8_conversion(obj):
         # this is the NaT pattern
