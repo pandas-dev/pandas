@@ -2568,8 +2568,8 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
             return self
 
         # be subclass-friendly
-        if isinstance(self.values, ExtensionArray):
-            new_values = self.values.take(indexer)
+        if isinstance(self._values, ExtensionArray):
+            new_values = self._values.take(indexer)
         else:
             new_values = algorithms.take_1d(self.get_values(), indexer)
 
