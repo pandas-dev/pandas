@@ -3655,6 +3655,10 @@ class DataFrame(NDFrame):
               isinstance(subset, tuple) and subset in self.columns):
             subset = subset,
 
+        for name in subset:
+            if name not in self.columns:
+                raise KeyError(name)
+
         vals = (col.values for name, col in self.iteritems()
                 if name in subset)
         labels, shape = map(list, zip(*map(f, vals)))
