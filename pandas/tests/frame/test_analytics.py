@@ -1492,6 +1492,15 @@ class TestDataFrameAnalytics(TestData):
         for keep in ['first', 'last', False]:
             assert df.duplicated(keep=keep).sum() == 0
 
+    def test_drop_duplicates_with_misspelled_column_name(self):
+        # GH 18XXX
+        df = pd.DataFrame({'A': [0, 1, 2, 3, 4, 5],
+                           'B': [0, 1, 2, 3, 4, 5],
+                           'C': [0, 1, 2, 3, 4, 6]})
+
+        with pytest.raises(KeyError):
+            df.drop_duplicates(['a', 'B'])
+
     def test_drop_duplicates_with_duplicate_column_names(self):
         # GH17836
         df = DataFrame([
