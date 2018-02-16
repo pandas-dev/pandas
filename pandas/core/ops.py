@@ -1102,10 +1102,10 @@ def _combine_series_frame(self, other, func, fill_value=None, axis=None,
     self : DataFrame
     other : Series
     func : binary operator
-    fill_value : object (default None)
-    axis : {0, 1, 'columns', 'index', None} (default None)
-    level : int or None (default None)
-    try_cast : bool (default True)
+    fill_value : object, default None
+    axis : {0, 1, 'columns', 'index', None}, default None
+    level : int or None, default None
+    try_cast : bool, default True
 
     Returns
     -------
@@ -1116,8 +1116,8 @@ def _combine_series_frame(self, other, func, fill_value=None, axis=None,
                                   .format(fill=fill_value))
 
     if axis is not None:
-        axis = self._get_axis_name(axis)
-        if axis == 'index':
+        axis = self._get_axis_numer(axis)
+        if axis == 0:
             return self._combine_match_index(other, func, level=level)
         else:
             return self._combine_match_columns(other, func, level=level,
