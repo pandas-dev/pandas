@@ -671,9 +671,8 @@ class DatetimeIndexOpsMixin(object):
                 if hasattr(other, '_add_delta'):
                     # i.e. DatetimeIndex, TimedeltaIndex, or PeriodIndex
                     return other._add_delta(self)
-                raise TypeError("cannot add {cls} and {typ}"
-                                .format(cls=type(self).__name__,
-                                        typ=type(other)))
+                raise TypeError("cannot add TimedeltaIndex and {typ}"
+                                .format(typ=type(other)))
             elif is_integer(other):
                 return self.shift(other)
             elif isinstance(other, (datetime, np.datetime64)):
@@ -713,9 +712,8 @@ class DatetimeIndexOpsMixin(object):
                 assert not is_timedelta64_dtype(other)
                 # We checked above for timedelta64_dtype(other) so this
                 # must be invalid.
-                raise TypeError("cannot subtract {cls} and {typ}"
-                                .format(cls=type(self).__name__,
-                                        typ=type(other).__name__))
+                raise TypeError("cannot subtract TimedeltaIndex and {typ}"
+                                .format(typ=type(other).__name__))
             elif isinstance(other, DatetimeIndex):
                 return self._sub_datelike(other)
             elif is_integer(other):
