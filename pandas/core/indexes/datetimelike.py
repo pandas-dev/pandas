@@ -27,7 +27,7 @@ from pandas.core.dtypes.common import (
     is_string_dtype,
     is_timedelta64_dtype)
 from pandas.core.dtypes.generic import (
-    ABCIndex, ABCSeries, ABCPeriodIndex, ABCIndexClass, ABCDateOffset)
+    ABCIndex, ABCSeries, ABCPeriodIndex, ABCIndexClass)
 from pandas.core.dtypes.missing import isna
 from pandas.core import common as com, algorithms
 from pandas.core.algorithms import checked_add_with_arr
@@ -655,13 +655,14 @@ class DatetimeIndexOpsMixin(object):
         def __add__(self, other):
             from pandas.core.index import Index
             from pandas.core.indexes.timedeltas import TimedeltaIndex
+            from pandas.tseries.offsets import DateOffset
 
             other = lib.item_from_zerodim(other)
             if isinstance(other, ABCSeries):
                 return NotImplemented
             elif is_timedelta64_dtype(other):
                 return self._add_delta(other)
-            elif isinstance(other, (ABCDateOffset, timedelta)):
+            elif isinstance(other, (DateOffset, timedelta)):
                 return self._add_delta(other)
             elif is_offsetlike(other):
                 # Array/Index of DateOffset objects
@@ -696,13 +697,14 @@ class DatetimeIndexOpsMixin(object):
             from pandas.core.index import Index
             from pandas.core.indexes.datetimes import DatetimeIndex
             from pandas.core.indexes.timedeltas import TimedeltaIndex
+            from pandas.tseries.offsets import DateOffset
 
             other = lib.item_from_zerodim(other)
             if isinstance(other, ABCSeries):
                 return NotImplemented
             elif is_timedelta64_dtype(other):
                 return self._add_delta(-other)
-            elif isinstance(other, (ABCDateOffset, timedelta)):
+            elif isinstance(other, (DateOffset, timedelta)):
                 return self._add_delta(-other)
             elif is_offsetlike(other):
                 # Array/Index of DateOffset objects
