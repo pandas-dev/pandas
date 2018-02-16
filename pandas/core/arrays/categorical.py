@@ -2143,7 +2143,7 @@ class Categorical(ExtensionArray, PandasObject):
 
     @property
     def _fill_value(self):
-        return np.nan
+        return self.categories._na_value
 
     @classmethod
     def _concat_same_type(self, to_concat):

@@ -27,7 +27,7 @@ class ExtensionArray(object):
     * copy
     * _concat_same_type
 
-    Some additional methods are required to satisfy pandas' internal, private
+    Some additional methods are available to satisfy pandas' internal, private
     block API.
 
     * _can_hold_na
@@ -98,16 +98,17 @@ class ExtensionArray(object):
             When called from, e.g. ``Series.__setitem__``, ``key`` will
             always be an ndarray of integers.
         value : ExtensionDtype.type, Sequence[ExtensionDtype.type], or object
-            ExtensionArrays may
+            value or values to be set of ``key``.
 
         Notes
         -----
         This method is not required to satisfy the interface. If an
         ExtensionArray chooses to implement __setitem__, then some semantics
-        should be observed.
+        should be observed:
 
         * Setting multiple values : ExtensionArrays should support setting
-          multiple values at once, ``key`` will be a sequence of integers.
+          multiple values at once, ``key`` will be a sequence of integers and
+          ``value`` will be a same-length sequence.
 
         * Broadcasting : For a sequence ``key`` and a scalar ``value``,
           each position in ``key`` should be set to ``value``.
@@ -116,9 +117,6 @@ class ExtensionArray(object):
           example, a string like ``'2018-01-01'`` is coerced to a datetime
           when setting on a datetime64ns array. In general, if the
         ``__init__`` method coerces that value, then so should ``__setitem__``.
-
-        When called from, e.g. ``Series.__setitem__``, ``key`` will always
-        be an ndarray of positions.
         """
         raise NotImplementedError(_not_implemented_message.format(
             type(self), '__setitem__')
@@ -240,8 +238,8 @@ class ExtensionArray(object):
             will be done. This short-circuits computation of a mask. Result is
             undefined if allow_fill == False and -1 is present in indexer.
         fill_value : any, default None
-            Fill value to replace -1 values with. By default, this uses
-            the missing value sentinel for this type, ``self._fill_value``.
+            Fill value to replace -1 values with. If applicable, this should
+            use the sentinel missing value for this type.
 
         Notes
         -----
@@ -262,7 +260,7 @@ class ExtensionArray(object):
            def take(self, indexer, allow_fill=True, fill_value=None):
                mask = indexer == -1
                result = self.data.take(indexer)
-               result[mask] = self._fill_value
+               result[mask] = self._fill_value  # NA for this type
                return type(self)(result)
 
         See Also
@@ -292,7 +290,11 @@ class ExtensionArray(object):
     @property
     def _fill_value(self):
         # type: () -> Any
-        """The missing value for this type, e.g. np.nan"""
+        """The missing value for this type, e.g. np.nan. Default None.
+
+        This is not currently used by pandas directly. It is used in the
+        provided test suite for extension arrays.
+        """
         return None
 
     def _formatting_values(self):

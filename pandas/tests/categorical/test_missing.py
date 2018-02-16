@@ -1,9 +1,10 @@
 # -*- coding: utf-8 -*-
-
 import numpy as np
+import pytest
 
 import pandas.util.testing as tm
-from pandas import (Categorical, Index, isna)
+from pandas import (Categorical, Index, DatetimeIndex, isna, NaT,
+                    TimedeltaIndex)
 from pandas.compat import lrange
 from pandas.core.dtypes.dtypes import CategoricalDtype
 
@@ -53,3 +54,23 @@ class TestCategoricalMissing(object):
 
         exp = Categorical([1, np.nan, 3], categories=[1, 2, 3])
         tm.assert_categorical_equal(cat, exp)
+
+    @pytest.mark.parametrize('arr', [
+        DatetimeIndex(['2017', '2018']),
+        DatetimeIndex(['2017', '2018'], tz='US/Central'),
+        DatetimeIndex(['2017', '2018'], tz='US/Central'),
+        TimedeltaIndex(['10s', '201s']),
+    ])
+    def test_fill_value_nat(self, arr):
+        cat = Categorical(arr)
+        assert cat._fill_value is NaT
+
+    @pytest.mark.parametrize('arr', [
+        [0, 1],
+        [True, False],
+        ['a', 'b'],
+        [0.0, 1.0],
+    ])
+    def test_fill_value_nan(self, arr):
+        cat = Categorical(arr)
+        assert isna(cat._fill_value)

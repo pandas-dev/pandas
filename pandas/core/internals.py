@@ -1878,7 +1878,7 @@ class ExtensionBlock(NonConsolidatableMixIn, Block):
 
     @property
     def _can_hold_na(self):
-        # The default ExtensionBlock._can_hold_na is True
+        # The default ExtensionArray._can_hold_na is True
         return self._holder._can_hold_na
 
     @property
@@ -4862,12 +4862,11 @@ def form_blocks(arrays, names, axes):
 
     if len(items_dict['ExtensionBlock']):
 
-        external_blocks = []
+        external_blocks = [
+            make_block(array, klass=ExtensionBlock, placement=[i])
+            for i, _, array in items_dict['ExtensionBlock']
+        ]
 
-        for i, _, array in items_dict['ExtensionBlock']:
-            external_blocks.append(
-                make_block(array, klass=ExtensionBlock,
-                           placement=[i]))
         blocks.extend(external_blocks)
 
     if len(extra_locs):
