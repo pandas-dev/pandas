@@ -1261,8 +1261,6 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         -------
         nobs : int or Series (if level specified)
         """
-        from pandas.core.index import _get_na_value
-
         if level is None:
             return notna(com._values_from_object(self)).sum()
 
@@ -1275,7 +1273,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         mask = lab == -1
         if mask.any():
             lab[mask] = cnt = len(lev)
-            lev = lev.insert(cnt, _get_na_value(lev.dtype.type))
+            lev = lev.insert(cnt, lev._na_value)
 
         obs = lab[notna(self.values)]
         out = np.bincount(obs, minlength=len(lev) or None)
