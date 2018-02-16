@@ -2267,10 +2267,6 @@ class Index(IndexOpsMixin, PandasObject):
         raise TypeError("cannot perform __sub__ with this index type: "
                         "{typ}".format(typ=type(self).__name__))
 
-    def __rsub__(self, other):
-        # TODO: name etc?  __radd__ doesn't pass it.
-        return Index(other - np.array(self))
-
     def __and__(self, other):
         return self.intersection(other)
 

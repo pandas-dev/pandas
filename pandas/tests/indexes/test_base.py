@@ -2308,6 +2308,9 @@ class TestIndexUtils(object):
                                     'pow', 'rpow', 'mod', 'divmod'])
 def test_generated_op_names(opname, indices):
     index = indices
+    if type(index) is pd.Index and opname == 'rsub':
+        # method doesn't exist, see GH#19723
+        return
     opname = '__{name}__'.format(name=opname)
     method = getattr(index, opname)
     assert method.__name__ == opname
