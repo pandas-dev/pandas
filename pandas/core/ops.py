@@ -110,7 +110,7 @@ def make_invalid_op(name):
     """
     def invalid_op(self, other=None):
         raise TypeError("cannot perform {name} with this index type: "
-                        "{typ}".format(name=name, typ=type(self)))
+                        "{typ}".format(name=name, typ=type(self).__name__))
 
     invalid_op.__name__ = name
     return invalid_op
