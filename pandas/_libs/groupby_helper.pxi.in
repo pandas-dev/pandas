@@ -794,24 +794,19 @@ def group_cummax_{{name}}(ndarray[{{dest_type2}}, ndim=2] out,
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
-def group_any(ndarray[uint8_t, ndim=2] out,
-              ndarray[int64_t] counts,
-              ndarray[:, :] values,
+def group_any(ndarray[int64_t] out,
+              ndarray[int64_t] mask,
               ndarray[int64_t] labels,
               bint skipna):
     cdef:
-        Py_ssize_t i, N
-        ndarray[uint8_t] mask
+        Py_ssize_t i, N=len(labels)
+        int64_t lab
 
-    N, _ = (<object> labels).shape
+    with nogil:
+        for i in range(N):
+            lab = labels[i]
+            if lab < 0:
+                continue
 
-    out = np.zeros_like(out)
-    mask = values[:, 0].astype(np.bool)
-
-    for i in range(N):
-        lab = labels[i]
-        if lab < 0:
-            continue
-
-        if mask[lab]:
-            out[lab, 0] = 1
+            if mask[i]:
+                out[lab] = 1
