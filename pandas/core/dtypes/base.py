@@ -122,7 +122,7 @@ class ExtensionDtype(object):
         1. ``cls.construct_from_string(dtype)`` is an instance
            of ``cls``.
         2. ``dtype`` is an object and is an instance of ``cls``
-        3. 'dtype' is a class and is ``cls`` or a subclass of ``cls``.
+        3. ``dtype`` is a class and is ``cls`` or a subclass of ``cls``.
         """
         if isinstance(dtype, str):
             try:

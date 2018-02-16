@@ -54,6 +54,7 @@ class ExtensionArray(object):
     the class, i.e. ``ExtensionArray(extension_array)`` should return
     an instance, not error.
     """
+    _typ = 'extension'  # For pandas.core.dtypes.generic.ABCExtensionArray
     # ------------------------------------------------------------------------
     # Must be a Sequence
     # ------------------------------------------------------------------------

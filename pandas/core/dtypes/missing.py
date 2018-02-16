@@ -5,7 +5,8 @@ import numpy as np
 from pandas._libs import lib, missing as libmissing
 from pandas._libs.tslib import NaT, iNaT
 from .generic import (ABCMultiIndex, ABCSeries,
-                      ABCIndexClass, ABCGeneric)
+                      ABCIndexClass, ABCGeneric,
+                      ABCExtensionArray)
 from .common import (is_string_dtype, is_datetimelike,
                      is_datetimelike_v_numeric, is_float_dtype,
                      is_datetime64_dtype, is_datetime64tz_dtype,
@@ -53,15 +54,13 @@ isnull = isna
 
 
 def _isna_new(obj):
-    from ..arrays import ExtensionArray
-
     if is_scalar(obj):
         return libmissing.checknull(obj)
     # hack (for now) because MI registers as ndarray
     elif isinstance(obj, ABCMultiIndex):
         raise NotImplementedError("isna is not defined for MultiIndex")
     elif isinstance(obj, (ABCSeries, np.ndarray, ABCIndexClass,
-                          ExtensionArray)):
+                          ABCExtensionArray)):
         return _isna_ndarraylike(obj)
     elif isinstance(obj, ABCGeneric):
         return obj._constructor(obj._data.isna(func=isna))
