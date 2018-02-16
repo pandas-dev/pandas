@@ -15,6 +15,7 @@ from pandas.compat import lrange, range, get_range_parameters
 from pandas.compat.numpy import function as nv
 
 import pandas.core.common as com
+from pandas.core import ops
 from pandas.core.indexes.base import Index, _index_shared_docs
 from pandas.util._decorators import Appender, cache_readonly
 import pandas.core.dtypes.concat as _concat
@@ -569,16 +570,12 @@ class RangeIndex(Int64Index):
     def _add_numeric_methods_binary(cls):
         """ add in numeric methods, specialized to RangeIndex """
 
-        def _make_evaluate_binop(op, opstr, reversed=False, step=False):
+        def _make_evaluate_binop(op, step=False):
             """
             Parameters
             ----------
             op : callable that accepts 2 parms
                 perform the binary op
-            opstr : string
-                string name of ops
-            reversed : boolean, default False
-                if this is a reversed op, e.g. radd
             step : callable, optional, default to False
                 op to apply to the step parm if not None
                 if False, use the existing step
@@ -588,13 +585,11 @@ class RangeIndex(Int64Index):
                 if isinstance(other, ABCSeries):
                     return NotImplemented
 
-                other = self._validate_for_numeric_binop(other, op, opstr)
+                other = self._validate_for_numeric_binop(other, op)
                 attrs = self._get_attributes_dict()
                 attrs = self._maybe_update_attributes(attrs)
 
                 left, right = self, other
-                if reversed:
-                    left, right = right, left
 
                 try:
                     # apply if we have an override
@@ -628,43 +623,27 @@ class RangeIndex(Int64Index):
 
                     return result
 
-                except (ValueError, TypeError, AttributeError,
+                except (ValueError, TypeError,
                         ZeroDivisionError):
                     # Defer to Int64Index implementation
-                    if reversed:
-                        return op(other, self._int64index)
                     return op(self._int64index, other)
+                    # TODO: Do attrs get handled reliably?
 
             return _evaluate_numeric_binop
 
-        cls.__add__ = cls.__radd__ = _make_evaluate_binop(
-            operator.add, '__add__')
-        cls.__sub__ = _make_evaluate_binop(operator.sub, '__sub__')
-        cls.__rsub__ = _make_evaluate_binop(
-            operator.sub, '__sub__', reversed=True)
-        cls.__mul__ = cls.__rmul__ = _make_evaluate_binop(
-            operator.mul,
-            '__mul__',
-            step=operator.mul)
-        cls.__truediv__ = _make_evaluate_binop(
-            operator.truediv,
-            '__truediv__',
-            step=operator.truediv)
-        cls.__rtruediv__ = _make_evaluate_binop(
-            operator.truediv,
-            '__truediv__',
-            reversed=True,
-            step=operator.truediv)
+        cls.__add__ = _make_evaluate_binop(operator.add)
+        cls.__radd__ = _make_evaluate_binop(ops.radd)
+        cls.__sub__ = _make_evaluate_binop(operator.sub)
+        cls.__rsub__ = _make_evaluate_binop(ops.rsub)
+        cls.__mul__ = _make_evaluate_binop(operator.mul, step=operator.mul)
+        cls.__rmul__ = _make_evaluate_binop(ops.rmul, step=ops.rmul)
+        cls.__truediv__ = _make_evaluate_binop(operator.truediv,
+                                               step=operator.truediv)
+        cls.__rtruediv__ = _make_evaluate_binop(ops.rtruediv,
+                                                step=ops.rtruediv)
         if not compat.PY3:
-            cls.__div__ = _make_evaluate_binop(
-                operator.div,
-                '__div__',
-                step=operator.div)
-            cls.__rdiv__ = _make_evaluate_binop(
-                operator.div,
-                '__div__',
-                reversed=True,
-                step=operator.div)
+            cls.__div__ = _make_evaluate_binop(operator.div, step=operator.div)
+            cls.__rdiv__ = _make_evaluate_binop(ops.rdiv, step=ops.rdiv)
 
 
 RangeIndex._add_numeric_methods()

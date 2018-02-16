@@ -2301,7 +2301,11 @@ class TestIndexUtils(object):
         tm.assert_index_equal(result, expected)
 
 
-@pytest.mark.parametrize('opname', ['eq', 'ne', 'le', 'lt', 'ge', 'gt'])
+@pytest.mark.parametrize('opname', ['eq', 'ne', 'le', 'lt', 'ge', 'gt',
+                                    'add', 'radd', 'sub', 'rsub',
+                                    'mul', 'rmul', 'truediv', 'rtruediv',
+                                    'floordiv', 'rfloordiv',
+                                    'pow', 'rpow', 'mod', 'divmod'])
 def test_generated_op_names(opname, indices):
     index = indices
     opname = '__{name}__'.format(name=opname)
