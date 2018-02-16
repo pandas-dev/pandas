@@ -270,6 +270,14 @@ class TestSeriesConstructors(TestData):
         tm.assert_index_equal(result.cat.categories, pd.Index(['b', 'a']))
         assert result.cat.ordered is False
 
+        # GH 19565 - Check broadcasting of scalar with Categorical dtype
+        result = Series('a', index=[0, 1],
+                        dtype=CategoricalDtype(['a', 'b'], ordered=True))
+        expected = Series(['a', 'a'], index=[0, 1],
+                          dtype=CategoricalDtype(['a', 'b'], ordered=True))
+        tm.assert_series_equal(result, expected, check_categorical=True)
+
+
     def test_categorical_sideeffects_free(self):
         # Passing a categorical to a Series and then changing values in either
         # the series or the categorical should not change the values in the
