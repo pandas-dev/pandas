@@ -4430,7 +4430,7 @@ def _convert_index(index, encoding=None, format_type=None):
     elif isinstance(index, (Int64Index, PeriodIndex)):
         atom = _tables().Int64Col()
         # avoid to store ndarray of Period objects
-        return IndexCol(index._values, 'integer', atom,
+        return IndexCol(index._ndarray_values, 'integer', atom,
                         freq=getattr(index, 'freq', None),
                         index_name=index_name)
 
