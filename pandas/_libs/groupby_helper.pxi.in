@@ -798,6 +798,22 @@ def group_any(ndarray[int64_t] out,
               ndarray values,
               ndarray[int64_t] labels,
               bint skipna):
+    """Aggregated boolean values to show if any group element is truthful
+
+    Parameters
+    ----------
+    out : array of int64_t values which this method will write its results to
+    values : array of values to be truth-tested
+    labels : array containing unique label for each group, with its ordering
+        matching up to the corresponding record in `values`
+    skipna : boolean
+        Flag to ignore nan values during truth testing
+
+    Notes
+    -----
+    This method modifies the `out` parameter rather than returning an object.
+    The returned values will either be 0 or 1 (False or True, respectively).
+    """
     cdef:
         Py_ssize_t i, N=len(labels)
         int64_t lab

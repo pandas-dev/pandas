@@ -1222,7 +1222,13 @@ class GroupBy(_GroupBy):
     @Substitution(name='groupby')
     @Appender(_doc_template)
     def any(self, skipna=True):
-        """Returns True if any value in the group is truthful, else False"""
+        """Returns True if any value in the group is truthful, else False
+
+        Parameters
+        ----------
+        skipna : bool, default True
+            Flag to ignore nan values during truth testing
+        """
         labels, _, _ = self.grouper.group_info
         output = collections.OrderedDict()
 
