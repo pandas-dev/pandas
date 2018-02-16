@@ -1116,7 +1116,7 @@ def _combine_series_frame(self, other, func, fill_value=None, axis=None,
                                   .format(fill=fill_value))
 
     if axis is not None:
-        axis = self._get_axis_numer(axis)
+        axis = self._get_axis_number(axis)
         if axis == 0:
             return self._combine_match_index(other, func, level=level)
         else:
