@@ -560,6 +560,7 @@ Other API Changes
 - Subtracting ``NaT`` from a :class:`Series` with ``dtype='datetime64[ns]'`` returns a ``Series`` with ``dtype='timedelta64[ns]'`` instead of ``dtype='datetime64[ns]'``(:issue:`18808`)
 - Operations between a :class:`Series` with dtype ``dtype='datetime64[ns]'`` and a :class:`PeriodIndex` will correctly raises ``TypeError`` (:issue:`18850`)
 - Subtraction of :class:`Series` with timezone-aware ``dtype='datetime64[ns]'`` with mis-matched timezones will raise ``TypeError`` instead of ``ValueError`` (issue:`18817`)
+- Comparing :class:`Series` with ``dtype='datetime64[ns]'`` with ``datetime.date`` objects will raise a ``TypeError`` for comparisons other than ``==`` and ``!=``.  This ensures that ``Series`` behavior matches ``DatetimeIndex`` and ``Timestamp`` behavior (:issue:`19524`)
 - :class:`IntervalIndex` and ``IntervalDtype`` no longer support categorical, object, and string subtypes (:issue:`19016`)
 - The default ``Timedelta`` constructor now accepts an ``ISO 8601 Duration`` string as an argument (:issue:`19040`)
 - ``IntervalDtype`` now returns ``True`` when compared against ``'interval'`` regardless of subtype, and ``IntervalDtype.name`` now returns ``'interval'`` regardless of subtype (:issue:`18980`)
