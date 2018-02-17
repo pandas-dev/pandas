@@ -98,7 +98,7 @@ class TestAsOfMerge(object):
                                     '20160525 13:30:00.048',
                                     '20160525 13:30:00.048',
                                     '20160525 13:30:00.048']),
-            'ticker': ['MSFT', 'MSFT','GOOG',
+            'ticker': ['MSFT', 'MSFT','GOOG', 
                        'GOOG', 'AAPL'],
             'price': [51.95, 51.95,
                       720.77, 720.92, 98.00],
