@@ -2570,12 +2570,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
                 return self.copy()
             return self
 
-        # be subclass-friendly
-        if isinstance(self._values, ExtensionArray):
-            new_values = self._values.take(indexer)
-        else:
-            new_values = algorithms.take_1d(self.get_values(), indexer)
-
+        new_values = algorithms.take_1d(self._values, indexer)
         return self._constructor(new_values, index=new_index)
 
     def _needs_reindex_multi(self, axes, method, level):

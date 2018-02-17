@@ -1291,10 +1291,12 @@ def take_nd(arr, indexer, axis=0, out=None, fill_value=np.nan, mask_info=None,
     """
     Specialized Cython take which sets NaN values in one pass
 
+    This dispatches to ``take`` defined on ExtensionArrays.
+
     Parameters
     ----------
-    arr : ndarray
-        Input array
+    arr : ndarray, ExtensionArray, DatetimeIndex, IntervalIndex, SparseArray
+        Input array. SparseArray is densified with ``get_values``
     indexer : ndarray
         1-D array of indices to take, subarrays corresponding to -1 value
         indicies are filed with fill_value
@@ -1314,16 +1316,23 @@ def take_nd(arr, indexer, axis=0, out=None, fill_value=np.nan, mask_info=None,
         If False, indexer is assumed to contain no -1 values so no filling
         will be done.  This short-circuits computation of a mask.  Result is
         undefined if allow_fill == False and -1 is present in indexer.
+
+    Returns
+    -------
+    subarray : object
+        May be the same type as the input, or cast to an ndarray.
     """
 
+    # TODO(EA): Remove these if / elifs as datetimeTZ, interval, become EAs
     # dispatch to internal type takes
-    if is_categorical(arr):
-        return arr.take_nd(indexer, fill_value=fill_value,
-                           allow_fill=allow_fill)
+    if is_extension_array_dtype(arr):
+        return arr.take(indexer, fill_value=fill_value, allow_fill=allow_fill)
     elif is_datetimetz(arr):
         return arr.take(indexer, fill_value=fill_value, allow_fill=allow_fill)
     elif is_interval_dtype(arr):
         return arr.take(indexer, fill_value=fill_value, allow_fill=allow_fill)
+    elif is_sparse(arr):
+        arr = arr.get_values()
 
     if indexer is None:
         indexer = np.arange(arr.shape[axis], dtype=np.int64)
