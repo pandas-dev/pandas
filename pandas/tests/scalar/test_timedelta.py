@@ -872,7 +872,7 @@ class TestTimedeltaConstructor(object):
         # offset
         assert to_timedelta(pd.offsets.Hour(2)) == Timedelta(hours=2)
         assert Timedelta(pd.offsets.Hour(2)) == Timedelta(hours=2)
-        assert Timedelta(pd.offsets.Second(2)) == Timedelta(minutes=2)
+        assert Timedelta(pd.offsets.Second(2)) == Timedelta(seconds=2)
 
         # GH#11995: unicode
         expected = Timedelta('1H')
