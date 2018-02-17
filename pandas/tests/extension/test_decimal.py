@@ -170,13 +170,6 @@ class TestMethods(base.BaseMethodsTests):
         tm.assert_series_equal(result, expected)
 
 
-def test_series_constructor_with_dtype_coercion_raises():
-    xpr = ("Cannot coerce data to extension dtype 'decimal'. Pass the "
-           "extension array for 'decimal' directly instead.")
-    with tm.assert_raises_regex(ValueError, xpr):
-        pd.Series([0, 1, 2], dtype=DecimalDtype())
-
-
 def test_series_constructor_with_same_dtype_ok():
     arr = DecimalArray([decimal.Decimal('10.0')])
     result = pd.Series(arr, dtype=DecimalDtype())

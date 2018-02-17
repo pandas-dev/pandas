@@ -3152,13 +3152,6 @@ def _sanitize_array(data, index, dtype=None, copy=False,
     if dtype is not None:
         dtype = pandas_dtype(dtype)
 
-    if is_extension_array_dtype(dtype) and not is_extension_array_dtype(data):
-        # Just check for any extension dtype data here. We validatate that
-        # the exact types match later.
-        raise ValueError("Cannot coerce data to extension dtype '{type}'. "
-                         "Pass the extension array for '{type}' "
-                         "directly instead.".format(type=dtype))
-
     if isinstance(data, ma.MaskedArray):
         mask = ma.getmaskarray(data)
         if mask.any():
