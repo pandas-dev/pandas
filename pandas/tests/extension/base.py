@@ -139,14 +139,14 @@ class BaseReshapingTests(object):
         assert result.dtype == data.dtype
         assert isinstance(result._data.blocks[0], ExtensionBlock)
 
-    def test_align(self, data):
+    def test_align(self, data, na_value):
         a = data[:3]
         b = data[2:5]
         r1, r2 = pd.Series(a).align(pd.Series(b, index=[1, 2, 3]))
 
         # Assumes that the ctor can take a list of scalars of the type
-        e1 = pd.Series(type(data)(list(a) + [data._fill_value]))
-        e2 = pd.Series(type(data)([data._fill_value] + list(b)))
+        e1 = pd.Series(type(data)(list(a) + [na_value]))
+        e2 = pd.Series(type(data)([na_value] + list(b)))
         tm.assert_series_equal(r1, e1)
         tm.assert_series_equal(r2, e2)
 
@@ -223,9 +223,9 @@ class BaseGetitemTests(object):
         result = pd.Series(data)[0]
         assert isinstance(result, data.dtype.type)
 
-    def test_getitem_scalar_na(self, data_missing, na_cmp):
+    def test_getitem_scalar_na(self, data_missing, na_cmp, na_value):
         result = data_missing[0]
-        assert na_cmp(result, data_missing._fill_value)
+        assert na_cmp(result, na_value)
 
     def test_getitem_mask(self, data):
         # Empty mask, raw array

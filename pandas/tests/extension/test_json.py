@@ -80,10 +80,10 @@ class JSONArray(ExtensionArray):
         return sys.getsizeof(self.data)
 
     def isna(self):
-        return np.array([x == self._fill_value for x in self.data])
+        return np.array([x == self._na_value for x in self.data])
 
     def take(self, indexer, allow_fill=True, fill_value=None):
-        output = [self.data[loc] if loc != -1 else self._fill_value
+        output = [self.data[loc] if loc != -1 else self._na_value
                   for loc in indexer]
         return type(self)(output)
 
@@ -91,7 +91,7 @@ class JSONArray(ExtensionArray):
         return type(self)(self.data[:])
 
     @property
-    def _fill_value(self):
+    def _na_value(self):
         return {}
 
     @classmethod
@@ -122,6 +122,11 @@ def data():
 def data_missing():
     """Length 2 array with [NA, Valid]"""
     return JSONArray([{}, {'a': 10}])
+
+
+@pytest.fixture
+def na_value():
+    return {}
 
 
 @pytest.fixture

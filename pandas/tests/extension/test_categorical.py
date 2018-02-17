@@ -31,6 +31,11 @@ def data_missing():
     return Categorical([np.nan, 'A'])
 
 
+@pytest.fixture
+def na_value():
+    return np.nan
+
+
 class TestDtype(base.BaseDtypeTests):
     pass
 
@@ -47,15 +52,15 @@ class TestConstructors(base.BaseConstructorsTests):
 
 
 class TestReshaping(base.BaseReshapingTests):
-    def test_align(self, data):
+    def test_align(self, data, na_value):
         # Override to pass through dtype
         a = data[:3]
         b = data[2:5]
         r1, r2 = pd.Series(a).align(pd.Series(b, index=[1, 2, 3]))
 
-        e1 = pd.Series(type(data)(list(a) + [data._fill_value],
+        e1 = pd.Series(type(data)(list(a) + [na_value],
                                   dtype=data.dtype))
-        e2 = pd.Series(type(data)([data._fill_value] + list(b),
+        e2 = pd.Series(type(data)([na_value] + list(b),
                                   dtype=data.dtype))
         tm.assert_series_equal(r1, e1)
         tm.assert_series_equal(r2, e2)

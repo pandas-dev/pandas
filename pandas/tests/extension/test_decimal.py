@@ -75,12 +75,12 @@ class DecimalArray(ExtensionArray):
         mask = indexer == -1
 
         out = self.values.take(indexer)
-        out[mask] = self._fill_value
+        out[mask] = self._na_value
 
         return type(self)(out)
 
     @property
-    def _fill_value(self):
+    def _na_value(self):
         return decimal.Decimal('NaN')
 
     @classmethod
@@ -112,6 +112,11 @@ def na_cmp():
     return lambda x, y: x.is_nan() and y.is_nan()
 
 
+@pytest.fixture
+def na_value():
+    return decimal.Decimal("NaN")
+
+
 class TestDtype(base.BaseDtypeTests):
     pass
 
@@ -125,14 +130,14 @@ class TestConstructors(base.BaseConstructorsTests):
 
 
 class TestReshaping(base.BaseReshapingTests):
-    def test_align(self, data):
+    def test_align(self, data, na_value):
         a = data[:3]
         b = data[2:5]
         r1, r2 = pd.Series(a).align(pd.Series(b, index=[1, 2, 3]))
 
         # NaN handling
-        e1 = pd.Series(type(data)(list(a) + [data._fill_value]))
-        e2 = pd.Series(type(data)([data._fill_value] + list(b)))
+        e1 = pd.Series(type(data)(list(a) + [na_value]))
+        e2 = pd.Series(type(data)([na_value] + list(b)))
         tm.assert_series_equal(r1.iloc[:3], e1.iloc[:3])
         assert r1[3].is_nan()
         assert e1[3].is_nan()

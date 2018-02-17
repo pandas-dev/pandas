@@ -39,3 +39,9 @@ def na_cmp():
     By defult, uses ``operator.or``
     """
     return operator.is_
+
+
+@pytest.fixture
+def na_value(self):
+    """The scalar missing value for this type."""
+    return None

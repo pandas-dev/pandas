@@ -2141,10 +2141,6 @@ class Categorical(ExtensionArray, PandasObject):
     def _can_hold_na(self):
         return True
 
-    @property
-    def _fill_value(self):
-        return self.categories._na_value
-
     @classmethod
     def _concat_same_type(self, to_concat):
         from pandas.core.dtypes.concat import _concat_categorical

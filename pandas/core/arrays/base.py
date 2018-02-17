@@ -32,7 +32,6 @@ class ExtensionArray(object):
 
     * _can_hold_na
     * _formatting_values
-    * _fill_value
 
     This class does not inherit from 'abc.ABCMeta' for performance reasons.
     Methods and properties required by the interface raise
@@ -294,15 +293,6 @@ class ExtensionArray(object):
     # ------------------------------------------------------------------------
     # Block-related methods
     # ------------------------------------------------------------------------
-    @property
-    def _fill_value(self):
-        # type: () -> Any
-        """The missing value for this type, e.g. np.nan. Default None.
-
-        This is not currently used by pandas directly. It is used in the
-        provided test suite for extension arrays.
-        """
-        return None
 
     def _formatting_values(self):
         # type: () -> np.ndarray
