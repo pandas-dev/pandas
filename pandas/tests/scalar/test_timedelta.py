@@ -145,7 +145,6 @@ class TestTimedeltaArithmetic(object):
         result = pd.offsets.Hour(1) / td
         assert result == 1 / 240.0
 
-        assert np.isnan(np.timedelta64('NaT') / td)
         assert np.timedelta64(60, 'h') / td == 0.25
 
     def test_arithmetic_overflow(self):
