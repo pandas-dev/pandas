@@ -217,7 +217,7 @@ class TestTimestampUnaryOps(object):
         assert result_dt == result_pd
         assert result_dt == result_pd.to_pydatetime()
 
-    @pytest.mark.parameterize('tz, normalize', [
+    @pytest.mark.parametrize('tz, normalize', [
         (pytz.timezone('US/Eastern'), lambda x: x.tzinfo.normalize(x)),
         (gettz('US/Eastern'), lambda x: x)])
     def test_replace_across_dst(self, tz, normalize):
