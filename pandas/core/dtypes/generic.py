@@ -58,7 +58,7 @@ ABCDateOffset = create_pandas_abc_type("ABCDateOffset", "_typ",
                                        ("dateoffset",))
 ABCInterval = create_pandas_abc_type("ABCInterval", "_typ", ("interval", ))
 ABCExtensionArray = create_pandas_abc_type("ABCExtensionArray", "_typ",
-                                           ("extension",))
+                                           ("extension", "categorical",))
 
 
 class _ABCGeneric(type):

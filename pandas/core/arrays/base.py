@@ -53,7 +53,9 @@ class ExtensionArray(object):
     the class, i.e. ``ExtensionArray(extension_array)`` should return
     an instance, not error.
     """
-    _typ = 'extension'  # For pandas.core.dtypes.generic.ABCExtensionArray
+    # '_typ' is for pandas.core.dtypes.generic.ABCExtensionArray.
+    # Don't override this.
+    _typ = 'extension'
     # ------------------------------------------------------------------------
     # Must be a Sequence
     # ------------------------------------------------------------------------
@@ -267,7 +269,7 @@ class ExtensionArray(object):
            def take(self, indexer, allow_fill=True, fill_value=None):
                mask = indexer == -1
                result = self.data.take(indexer)
-               result[mask] = self._fill_value  # NA for this type
+               result[mask] = np.nan  # NA for this type
                return type(self)(result)
 
         See Also
