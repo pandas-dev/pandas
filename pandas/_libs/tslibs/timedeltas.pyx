@@ -1129,8 +1129,10 @@ class Timedelta(_Timedelta):
                 # also timedelta-like
                 return _broadcast_floordiv_td64(self.value, other, _floordiv)
             elif other.dtype.kind in ['i', 'u', 'f']:
-                return self.to_timedelta64() // other
-
+                if other.ndim == 0:
+                    return Timedelta(self.value // other)
+                else:
+                    return self.to_timedelta64() // other
             raise TypeError('Invalid dtype {dtype} for '
                             '{op}'.format(dtype=other.dtype,
                                           op='__floordiv__'))
