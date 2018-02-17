@@ -301,7 +301,10 @@ class TestPeriodIndexArithmetic(object):
         tm.assert_index_equal(rng, expected)
 
     def test_pi_sub_isub_int(self, one):
-        # int
+        """
+        PeriodIndex.__sub__ and __isub__ with several representations of
+        the integer 1, e.g. int, long, np.int64, np.uint8, ...
+        """
         rng = pd.period_range('2000-01-01 09:00', freq='H', periods=10)
         result = rng - one
         expected = pd.period_range('2000-01-01 08:00', freq='H', periods=10)
