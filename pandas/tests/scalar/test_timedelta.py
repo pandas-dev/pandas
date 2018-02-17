@@ -265,10 +265,6 @@ class TestTimedeltaArithmetic(object):
     def test_binary_ops_integers(self):
         td = Timedelta(10, unit='d')
 
-        assert td * 2 == Timedelta(20, unit='d')
-        assert td / 2 == Timedelta(5, unit='d')
-        assert td // 2 == Timedelta(5, unit='d')
-
         # invert
         assert td * -1 == Timedelta('-10d')
         assert -1 * td == Timedelta('-10d')
