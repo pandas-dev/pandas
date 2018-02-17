@@ -1059,7 +1059,7 @@ class DataFrame(NDFrame):
         private_key : str (optional)
             Service account private key in JSON format. Can be file path
             or string contents. This is useful for remote server
-            authentication (eg. jupyter iPython notebook on remote host)
+            authentication (eg. Jupyter/IPython notebook on remote host)
         """
 
         from pandas.io import gbq
@@ -1678,9 +1678,10 @@ class DataFrame(NDFrame):
         fname : str
             string file path
         engine : {'auto', 'pyarrow', 'fastparquet'}, default 'auto'
-            Parquet reader library to use. If 'auto', then the option
-            'io.parquet.engine' is used. If 'auto', then the first
-            library to be installed is used.
+            Parquet library to use. If 'auto', then the option
+            ``io.parquet.engine`` is used. The default ``io.parquet.engine``
+            behavior is to try 'pyarrow', falling back to 'fastparquet' if
+            'pyarrow' is unavailable.
         compression : {'snappy', 'gzip', 'brotli', None}, default 'snappy'
             Name of the compression to use. Use ``None`` for no compression.
         kwargs
@@ -3943,17 +3944,7 @@ class DataFrame(NDFrame):
         new_index, new_columns = this.index, this.columns
 
         def _arith_op(left, right):
-            if fill_value is not None:
-                left_mask = isna(left)
-                right_mask = isna(right)
-                left = left.copy()
-                right = right.copy()
-
-                # one but not both
-                mask = left_mask ^ right_mask
-                left[left_mask & mask] = fill_value
-                right[right_mask & mask] = fill_value
-
+            left, right = ops.fill_binop(left, right, fill_value)
             return func(left, right)
 
         if this._is_mixed_type or other._is_mixed_type:

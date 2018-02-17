@@ -183,7 +183,10 @@ def get_filepath_or_buffer(filepath_or_buffer, encoding=None,
 
     Returns
     -------
-    a filepath_ or buffer or S3File instance, the encoding, the compression
+    tuple of ({a filepath_ or buffer or S3File instance},
+              encoding, str,
+              compression, str,
+              should_close, bool)
     """
     filepath_or_buffer = _stringify_path(filepath_or_buffer)
 
@@ -194,7 +197,8 @@ def get_filepath_or_buffer(filepath_or_buffer, encoding=None,
             # Override compression based on Content-Encoding header
             compression = 'gzip'
         reader = BytesIO(req.read())
-        return reader, encoding, compression
+        req.close()
+        return reader, encoding, compression, True
 
     if is_s3_url(filepath_or_buffer):
         from pandas.io import s3
@@ -206,13 +210,13 @@ def get_filepath_or_buffer(filepath_or_buffer, encoding=None,
     if isinstance(filepath_or_buffer, (compat.string_types,
                                        compat.binary_type,
                                        mmap.mmap)):
-        return _expand_user(filepath_or_buffer), None, compression
+        return _expand_user(filepath_or_buffer), None, compression, False
 
     if not is_file_like(filepath_or_buffer):
         msg = "Invalid file path or buffer object type: {_type}"
         raise ValueError(msg.format(_type=type(filepath_or_buffer)))
 
-    return filepath_or_buffer, None, compression
+    return filepath_or_buffer, None, compression, False
 
 
 def file_path_to_url(path):
@@ -309,6 +313,7 @@ def _get_handle(path_or_buf, mode, encoding=None, compression=None,
     is_text : boolean, default True
         whether file/buffer is in text format (csv, json, etc.), or in binary
         mode (pickle, etc.)
+
     Returns
     -------
     f : file-like

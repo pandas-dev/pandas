@@ -93,3 +93,9 @@ def compression_no_zip(request):
     except zip
     """
     return request.param
+
+
+@pytest.fixture(scope='module')
+def datetime_tz_utc():
+    from datetime import timezone
+    return timezone.utc
