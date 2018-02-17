@@ -1,10 +1,13 @@
 """ test the scalar Timedelta """
+from datetime import datetime, timedelta
+import operator
+
 import pytest
 
 import numpy as np
-from datetime import timedelta
 
 import pandas as pd
+from pandas.core import ops
 import pandas.util.testing as tm
 from pandas.core.tools.timedeltas import _coerce_scalar_to_timedelta_type as ct
 from pandas import (Timedelta, TimedeltaIndex, timedelta_range, Series,
@@ -13,6 +16,137 @@ from pandas._libs.tslib import iNaT, NaT
 
 
 class TestTimedeltaArithmetic(object):
+    @pytest.mark.parametrize('op', [operator.add, ops.radd])
+    def test_td_add_datetimelike(self, op):
+        # GH#19365
+        td = Timedelta(10, unit='d')
+
+        result = op(td, datetime(2016, 1, 1))
+        if op is operator.add:
+            # datetime + Timedelta does _not_ call Timedelta.__radd__,
+            # so we get a datetime back instead of a Timestamp
+            assert isinstance(result, pd.Timestamp)
+        assert result == pd.Timestamp(2016, 1, 11)
+
+        result = op(td, pd.Timestamp('2018-01-12 18:09'))
+        assert isinstance(result, pd.Timestamp)
+        assert result == pd.Timestamp('2018-01-22 18:09')
+
+        result = op(td, np.datetime64('2018-01-12'))
+        assert isinstance(result, pd.Timestamp)
+        assert result == pd.Timestamp('2018-01-22')
+
+    @pytest.mark.parametrize('op', [operator.add, ops.radd])
+    def test_td_add_timedeltalike(self, op):
+        td = Timedelta(10, unit='d')
+
+        result = op(td, Timedelta(days=10))
+        assert isinstance(result, Timedelta)
+        assert result == Timedelta(days=20)
+
+        result = op(td, timedelta(days=9))
+        assert isinstance(result, Timedelta)
+        assert result == Timedelta(days=19)
+
+        result = op(td, np.timedelta64(-4, 'D'))
+        assert isinstance(result, Timedelta)
+        assert result == Timedelta(days=6)
+
+        result = op(td, pd.offsets.Hour(6))
+        assert isinstance(result, Timedelta)
+        assert result == Timedelta(days=10, hours=6)
+
+    def test_td_sub_timedeltalike(self):
+        td = Timedelta(10, unit='d')
+
+        expected = Timedelta(0, unit='ns')
+        result = td - td
+        assert isinstance(result, Timedelta)
+        assert result == expected
+
+        result = td - td.to_pytimedelta()
+        assert isinstance(result, Timedelta)
+        assert result == expected
+
+        result = td - td.to_timedelta64()
+        assert isinstance(result, Timedelta)
+        assert result == expected
+
+        result = td - pd.offsets.Hour(1)
+        assert isinstance(result, Timedelta)
+        assert result == Timedelta(239, unit='h')
+
+    def test_td_rsub_timedeltalike(self):
+        td = Timedelta(10, unit='d')
+
+        expected = Timedelta(0, unit='ns')
+
+        result = td.to_pytimedelta() - td
+        assert isinstance(result, Timedelta)
+        assert result == expected
+
+        result = td.to_timedelta64() - td
+        assert isinstance(result, Timedelta)
+        assert result == expected
+
+        result = pd.offsets.Hour(1) - td
+        assert isinstance(result, Timedelta)
+        assert result == Timedelta(-239, unit='h')
+
+    @pytest.mark.parametrize('op', [operator.mul, ops.rmul])
+    def test_td_mul_scalar(self, op):
+        # GH#19365
+        td = Timedelta(minutes=3)
+
+        result = op(td, 2)
+        assert result == Timedelta(minutes=6)
+
+        result = op(td, 1.5)
+        assert result == Timedelta(minutes=4, seconds=30)
+
+        assert op(td, np.nan) is NaT
+
+        with pytest.raises(TypeError):
+            # timedelta * datetime is gibberish
+            op(td, pd.Timestamp(2016, 1, 2))
+
+        with pytest.raises(TypeError):
+            # invalid multiply with another timedelta
+            op(td, td)
+
+    def test_td_div_timedeltalike_scalar(self):
+        # GH#19365
+        td = Timedelta(10, unit='d')
+
+        result = td / pd.offsets.Hour(1)
+        assert result == 240
+
+        assert td / td == 1
+        assert td / np.timedelta64(60, 'h') == 4
+
+        assert np.isnan(td / np.timedelta64('NaT'))
+        assert np.isnan(td / NaT)
+
+    def test_td_div_numeric_scalar(self):
+        # GH#19365
+        td = Timedelta(10, unit='d')
+
+        result = td / 2
+        assert isinstance(result, Timedelta)
+        assert result == Timedelta(days=5)
+
+        result = td / 5.0
+        assert isinstance(result, Timedelta)
+        assert result == Timedelta(days=2)
+
+    def test_td_rdiv_timedeltalike_scalar(self):
+        # GH#19365
+        td = Timedelta(10, unit='d')
+        result = pd.offsets.Hour(1) / td
+        assert result == 1 / 240.0
+
+        assert np.isnan(np.timedelta64('NaT') / td)
+        assert np.timedelta64(60, 'h') / td == 0.25
 
     def test_arithmetic_overflow(self):
         with pytest.raises(OverflowError):
@@ -105,15 +239,6 @@ class TestTimedeltaArithmetic(object):
             result = base - offset
             assert result == expected_sub
 
-    def test_ops_offsets(self):
-        td = Timedelta(10, unit='d')
-        assert Timedelta(241, unit='h') == td + pd.offsets.Hour(1)
-        assert Timedelta(241, unit='h') == pd.offsets.Hour(1) + td
-        assert 240 == td / pd.offsets.Hour(1)
-        assert 1 / 240.0 == pd.offsets.Hour(1) / td
-        assert Timedelta(239, unit='h') == td - pd.offsets.Hour(1)
-        assert Timedelta(-239, unit='h') == pd.offsets.Hour(1) - td
-
     def test_unary_ops(self):
         td = Timedelta(10, unit='d')
 
@@ -152,15 +277,11 @@ class TestTimedeltaArithmetic(object):
         pytest.raises(TypeError, lambda: td + 2)
         pytest.raises(TypeError, lambda: td - 2)
 
-    def test_binary_ops_with_timedelta(self):
-        td = Timedelta(10, unit='d')
-
-        assert td - td == Timedelta(0, unit='ns')
-        assert td + td == Timedelta(20, unit='d')
-        assert td / td == 1
-
-        # invalid multiply with another timedelta
-        pytest.raises(TypeError, lambda: td * td)
+    def test_td_floordiv_offsets(self):
+        # GH19365
+        td = Timedelta(hours=3, minutes=4)
+        assert td // pd.offsets.Hour(1) == 3
+        assert td // pd.offsets.Minute(2) == 92
 
     def test_floordiv(self):
         # GH#18846
@@ -201,6 +322,10 @@ class TestTimedeltaArithmetic(object):
         ser = pd.Series([1], dtype=np.int64)
         res = td // ser
         assert res.dtype.kind == 'm'
+
+    def test_td_rfloordiv_offsets(self):
+        # GH#19365
+        assert pd.offsets.Hour(1) // Timedelta(minutes=25) == 2
 
     def test_rfloordiv(self):
         # GH#18846
@@ -370,7 +495,7 @@ class TestTimedeltas(object):
             days=10, hours=1, minutes=1, seconds=1)
         assert Timedelta('-10 days 1 h 1m 1s 3us') == -timedelta(
             days=10, hours=1, minutes=1, seconds=1, microseconds=3)
-        assert Timedelta('-10 days 1 h 1.5m 1s 3us'), -timedelta(
+        assert Timedelta('-10 days 1 h 1.5m 1s 3us') == -timedelta(
             days=10, hours=1, minutes=1, seconds=31, microseconds=3)
 
         # Currently invalid as it has a - on the hh:mm:dd part
