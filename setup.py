@@ -330,7 +330,9 @@ class CheckSDist(sdist_class):
                  'pandas/_libs/writers.pyx',
                  'pandas/io/sas/sas.pyx']
 
-    _cpp_pyxfiles = ['pandas/_libs/window.pyx']
+    _cpp_pyxfiles = ['pandas/_libs/window.pyx',
+                     'pandas/io/msgpack/_packer.pyx',
+                     'pandas/io/msgpack/_unpacker.pyx']
 
     def initialize_options(self):
         sdist_class.initialize_options(self)
@@ -339,6 +341,7 @@ class CheckSDist(sdist_class):
         if 'cython' in cmdclass:
             self.run_command('cython')
         else:
+            # If we are not running cython then compile the extensions correctly
             pyx_files = [(self._pyxfiles, 'c'), (self._cpp_pyxfiles, 'cpp')]
 
             for pyxfiles, extension in pyx_files:
