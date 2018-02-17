@@ -198,7 +198,7 @@ class TestTimedeltaIndexArithmetic(object):
                                        ('foo', 'bar', None),
                                        ('foo', 'foo', 'foo')])
     def test_tdi_add_offset_index(self, names):
-        # GH#18849
+        # GH#18849, GH#19744
         tdi = TimedeltaIndex(['1 days 00:00:00', '3 days 04:00:00'],
                              name=names[0])
         other = pd.Index([pd.offsets.Hour(n=1), pd.offsets.Minute(n=-2)],
@@ -235,7 +235,7 @@ class TestTimedeltaIndexArithmetic(object):
                                        ('foo', 'bar', None),
                                        ('foo', 'foo', 'foo')])
     def test_tdi_sub_offset_index(self, names):
-        # GH#18824
+        # GH#18824, GH#19744
         tdi = TimedeltaIndex(['1 days 00:00:00', '3 days 04:00:00'],
                              name=names[0])
         other = pd.Index([pd.offsets.Hour(n=1), pd.offsets.Minute(n=-2)],

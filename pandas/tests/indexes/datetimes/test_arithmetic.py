@@ -740,7 +740,7 @@ class TestDatetimeIndexArithmetic(object):
                                        ('foo', 'bar', None),
                                        ('foo', 'foo', 'foo')])
     def test_dti_add_offset_index(self, tz, names):
-        # GH#18849
+        # GH#18849, GH#19744
         dti = pd.date_range('2017-01-01', periods=2, tz=tz, name=names[0])
         other = pd.Index([pd.offsets.MonthEnd(), pd.offsets.Day(n=2)],
                          name=names[1])
@@ -770,7 +770,7 @@ class TestDatetimeIndexArithmetic(object):
                                        ('foo', 'bar', None),
                                        ('foo', 'foo', 'foo')])
     def test_dti_sub_offset_index(self, tz, names):
-        # GH#18824
+        # GH#18824, GH#19744
         dti = pd.date_range('2017-01-01', periods=2, tz=tz, name=names[0])
         other = pd.Index([pd.offsets.MonthEnd(), pd.offsets.Day(n=2)],
                          name=names[1])
