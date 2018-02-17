@@ -328,4 +328,3 @@ class BaseMethodsTests(object):
         result = df.count(axis='columns')
         expected = pd.Series([0, 1])
         tm.assert_series_equal(result, expected)
-

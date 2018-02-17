@@ -57,6 +57,7 @@ class ExtensionArray(object):
     # ------------------------------------------------------------------------
     # Must be a Sequence
     # ------------------------------------------------------------------------
+
     def __getitem__(self, item):
         # type (Any) -> Any
         """Select a subset of self.
