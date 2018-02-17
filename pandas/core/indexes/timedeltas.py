@@ -358,17 +358,13 @@ class TimedeltaIndex(DatetimeIndexOpsMixin, TimelikeOps, Int64Index):
     def _add_delta(self, delta):
         if isinstance(delta, (Tick, timedelta, np.timedelta64)):
             new_values = self._add_delta_td(delta)
-            name = self.name
         elif isinstance(delta, TimedeltaIndex):
             new_values = self._add_delta_tdi(delta)
-            # update name when delta is index
-            name = com._maybe_match_name(self, delta)
         else:
             raise TypeError("cannot add the type {0} to a TimedeltaIndex"
                             .format(type(delta)))
 
-        result = TimedeltaIndex(new_values, freq='infer', name=name)
-        return result
+        return TimedeltaIndex(new_values, freq='infer')
 
     def _evaluate_with_timedelta_like(self, other, op, opstr, reversed=False):
         if isinstance(other, ABCSeries):
@@ -409,7 +405,7 @@ class TimedeltaIndex(DatetimeIndexOpsMixin, TimelikeOps, Int64Index):
             result = checked_add_with_arr(i8, other.value,
                                           arr_mask=self._isnan)
             result = self._maybe_mask_results(result, fill_value=iNaT)
-        return DatetimeIndex(result, name=self.name, copy=False)
+            return DatetimeIndex(result)
 
     def _sub_datelike(self, other):
         # GH#19124 Timedelta - datetime is not in general well-defined.
@@ -426,9 +422,7 @@ class TimedeltaIndex(DatetimeIndexOpsMixin, TimelikeOps, Int64Index):
             # TimedeltaIndex can only operate with a subset of DateOffset
             # subclasses.  Incompatible classes will raise AttributeError,
             # which we re-raise as TypeError
-            if isinstance(other, ABCSeries):
-                return NotImplemented
-            elif len(other) == 1:
+            if len(other) == 1:
                 return self + other[0]
             else:
                 from pandas.errors import PerformanceWarning
@@ -436,6 +430,7 @@ class TimedeltaIndex(DatetimeIndexOpsMixin, TimelikeOps, Int64Index):
                               "{} not vectorized".format(type(self)),
                               PerformanceWarning)
                 return self.astype('O') + np.array(other)
+                # TODO: pass freq='infer' like we do in _sub_offset_array?
                 # TODO: This works for __add__ but loses dtype in __sub__
         except AttributeError:
             raise TypeError("Cannot add non-tick DateOffset to TimedeltaIndex")
@@ -446,9 +441,7 @@ class TimedeltaIndex(DatetimeIndexOpsMixin, TimelikeOps, Int64Index):
             # TimedeltaIndex can only operate with a subset of DateOffset
             # subclasses.  Incompatible classes will raise AttributeError,
             # which we re-raise as TypeError
-            if isinstance(other, ABCSeries):
-                return NotImplemented
-            elif len(other) == 1:
+            if len(other) == 1:
                 return self - other[0]
             else:
                 from pandas.errors import PerformanceWarning
