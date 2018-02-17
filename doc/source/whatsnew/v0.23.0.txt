@@ -129,13 +129,6 @@ Timedelta mod method
     td = pd.Timedelta(hours=37)
     td
 
-Current Behavior
-
-.. ipython:: python
-    
-    td % pd.Timedelta(hours=2)
-    divmod(td, np.array([2, 3], dtype='timedelta64[h]'))
-
 .. _whatsnew_0230.enhancements.ran_inf:
 
 ``.rank()`` handles ``inf`` values when ``NaN`` are present
@@ -737,7 +730,6 @@ Datetimelike
 - Bug in :func:`Timestamp.floor` :func:`DatetimeIndex.floor` where time stamps far in the future and past were not rounded correctly (:issue:`19206`)
 - Bug in :func:`to_datetime` where passing an out-of-bounds datetime with ``errors='coerce'`` and ``utc=True`` would raise ``OutOfBoundsDatetime`` instead of parsing to ``NaT`` (:issue:`19612`)
 -
-
 
 Timezones
 ^^^^^^^^^
