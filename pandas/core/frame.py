@@ -5638,6 +5638,8 @@ class DataFrame(NDFrame):
             result = Series(0, index=frame._get_agg_axis(axis))
         else:
             if frame._is_mixed_type or frame._data.any_extension_types:
+                # the or any_extension_types is really only hit for single-
+                # column frames with an extension array
                 result = notna(frame).sum(axis=axis)
             else:
                 counts = notna(frame.values).sum(axis=axis)

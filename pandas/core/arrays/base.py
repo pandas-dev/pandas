@@ -96,8 +96,14 @@ class ExtensionArray(object):
         Parameters
         ----------
         key : int or ndarray
-            When called from, e.g. ``Series.__setitem__``, ``key`` will
-            always be an ndarray of integers.
+            When called from, e.g. ``Series.__setitem__``, ``key`` will be
+            one of
+
+            * scalar int
+            * ndarray of integers.
+            * boolean ndarray
+            * slice object
+
         value : ExtensionDtype.type, Sequence[ExtensionDtype.type], or object
             value or values to be set of ``key``.
 
