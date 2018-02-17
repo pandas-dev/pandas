@@ -41,7 +41,7 @@ def test_tzlocal():
 @pytest.mark.parametrize('eastern, localize', [
     (pytz.timezone('US/Eastern'), lambda tz, x: tz.localize(x)),
     (dateutil.tz.gettz('US/Eastern'), lambda tz, x: x.replace(tzinfo=tz))])
-def test_infer_tz(self, eastern, localize):
+def test_infer_tz(eastern, localize):
     utc = pytz.utc
 
     start_naive = datetime(2001, 1, 1)
