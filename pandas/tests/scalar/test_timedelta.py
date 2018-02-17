@@ -18,7 +18,7 @@ from pandas._libs.tslib import iNaT, NaT
 class TestTimedeltaArithmetic(object):
     @pytest.mark.parametrize('op', [operator.add, ops.radd])
     def test_td_add_datetimelike(self, op):
-        # GH#19365
+        # GH#19738
         td = Timedelta(10, unit='d')
 
         result = op(td, datetime(2016, 1, 1))
@@ -95,7 +95,7 @@ class TestTimedeltaArithmetic(object):
 
     @pytest.mark.parametrize('op', [operator.mul, ops.rmul])
     def test_td_mul_scalar(self, op):
-        # GH#19365
+        # GH#19738
         td = Timedelta(minutes=3)
 
         result = op(td, 2)
@@ -115,7 +115,7 @@ class TestTimedeltaArithmetic(object):
             op(td, td)
 
     def test_td_div_timedeltalike_scalar(self):
-        # GH#19365
+        # GH#19738
         td = Timedelta(10, unit='d')
 
         result = td / pd.offsets.Hour(1)
@@ -128,7 +128,7 @@ class TestTimedeltaArithmetic(object):
         assert np.isnan(td / NaT)
 
     def test_td_div_numeric_scalar(self):
-        # GH#19365
+        # GH#19738
         td = Timedelta(10, unit='d')
 
         result = td / 2
@@ -140,7 +140,7 @@ class TestTimedeltaArithmetic(object):
         assert result == Timedelta(days=2)
 
     def test_td_rdiv_timedeltalike_scalar(self):
-        # GH#19365
+        # GH#19738
         td = Timedelta(10, unit='d')
         result = pd.offsets.Hour(1) / td
         assert result == 1 / 240.0
@@ -278,7 +278,7 @@ class TestTimedeltaArithmetic(object):
         pytest.raises(TypeError, lambda: td - 2)
 
     def test_td_floordiv_offsets(self):
-        # GH19365
+        # GH#19738
         td = Timedelta(hours=3, minutes=4)
         assert td // pd.offsets.Hour(1) == 3
         assert td // pd.offsets.Minute(2) == 92
@@ -324,7 +324,7 @@ class TestTimedeltaArithmetic(object):
         assert res.dtype.kind == 'm'
 
     def test_td_rfloordiv_offsets(self):
-        # GH#19365
+        # GH#19738
         assert pd.offsets.Hour(1) // Timedelta(minutes=25) == 2
 
     def test_rfloordiv(self):
