@@ -38,7 +38,7 @@ def test_tzlocal():
     assert ts.value + offset == Timestamp('2011-01-01').value
 
 
-@pytest.mark.parameterize('eastern, localize', [
+@pytest.mark.parametrize('eastern, localize', [
     (pytz.timezone('US/Eastern'), lambda tz, x: tz.localize(x)),
     (dateutil.tz.gettz('US/Eastern'), lambda tz, x: x.replace(tzinfo=tz))])
 def test_infer_tz(self, eastern, localize):
