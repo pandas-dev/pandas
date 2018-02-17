@@ -29,6 +29,7 @@ from pandas.core.dtypes.common import (
     is_iterator,
     is_dict_like,
     is_scalar,
+    is_sparse,
     _is_unorderable_exception,
     _ensure_platform_int,
     pandas_dtype)
@@ -2570,7 +2571,12 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
                 return self.copy()
             return self
 
-        new_values = algorithms.take_1d(self._values, indexer)
+        if is_sparse(self):
+            arr = self.get_values()
+        else:
+            arr = self._values
+
+        new_values = algorithms.take_1d(arr, indexer)
         return self._constructor(new_values, index=new_index)
 
     def _needs_reindex_multi(self, axes, method, level):

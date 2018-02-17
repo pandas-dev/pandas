@@ -20,7 +20,7 @@ from pandas.core.dtypes.common import (
     is_period_dtype,
     is_numeric_dtype, is_float_dtype,
     is_bool_dtype, needs_i8_conversion,
-    is_categorical, is_datetimetz,
+    is_datetimetz,
     is_datetime64_any_dtype, is_datetime64tz_dtype,
     is_timedelta64_dtype, is_interval_dtype,
     is_scalar, is_list_like,
@@ -1291,12 +1291,13 @@ def take_nd(arr, indexer, axis=0, out=None, fill_value=np.nan, mask_info=None,
     """
     Specialized Cython take which sets NaN values in one pass
 
-    This dispatches to ``take`` defined on ExtensionArrays.
+    This dispatches to ``take`` defined on ExtensionArrays. It does not
+    currently dispatch to ``SparseArray.take`` for sparse ``arr``.
 
     Parameters
     ----------
     arr : ndarray, ExtensionArray, DatetimeIndex, IntervalIndex, SparseArray
-        Input array. SparseArray is densified with ``get_values``
+        Input array.
     indexer : ndarray
         1-D array of indices to take, subarrays corresponding to -1 value
         indicies are filed with fill_value
@@ -1331,8 +1332,6 @@ def take_nd(arr, indexer, axis=0, out=None, fill_value=np.nan, mask_info=None,
         return arr.take(indexer, fill_value=fill_value, allow_fill=allow_fill)
     elif is_interval_dtype(arr):
         return arr.take(indexer, fill_value=fill_value, allow_fill=allow_fill)
-    elif is_sparse(arr):
-        arr = arr.get_values()
 
     if indexer is None:
         indexer = np.arange(arr.shape[axis], dtype=np.int64)
