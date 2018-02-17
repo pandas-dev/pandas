@@ -124,7 +124,6 @@ class TestTimedeltaArithmetic(object):
         assert td / td == 1
         assert td / np.timedelta64(60, 'h') == 4
 
-        assert np.isnan(td / np.timedelta64('NaT'))
         assert np.isnan(td / NaT)
 
     def test_td_div_numeric_scalar(self):
