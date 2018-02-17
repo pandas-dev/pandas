@@ -1191,6 +1191,7 @@ class Timedelta(_Timedelta):
         return div, self - div * other
 
     def __rdivmod__(self, other):
+        # Naive implementation, room for optimization
         div = other // self
         return div, other - div * self
 
