@@ -3134,6 +3134,8 @@ def _sanitize_index(data, index, copy=False):
         pass
     elif isinstance(data, (PeriodIndex, DatetimeIndex)):
         data = data._values
+        if copy:
+            data = data.copy()
 
     elif isinstance(data, np.ndarray):
 
