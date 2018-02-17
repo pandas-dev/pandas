@@ -421,6 +421,11 @@ else:
     cmdclass['build_src'] = DummyBuildSrc
     cmdclass['build_ext'] = CheckingBuildExt
 
+if sys.byteorder == 'big':
+    endian_macro = [('__BIG_ENDIAN__', '1')]
+else:
+    endian_macro = [('__LITTLE_ENDIAN__', '1')]
+
 lib_depends = ['inference']
 
 
@@ -457,6 +462,7 @@ np_datetime_headers = ['pandas/_libs/src/datetime/np_datetime.h',
                        'pandas/_libs/src/datetime/np_datetime_strings.h']
 np_datetime_sources = ['pandas/_libs/src/datetime/np_datetime.c',
                        'pandas/_libs/src/datetime/np_datetime_strings.c']
+
 tseries_depends = np_datetime_headers + ['pandas/_libs/tslibs/np_datetime.pxd']
 
 # some linux distros require it
@@ -628,7 +634,28 @@ ext_data = {
         'pyxfile': '_libs/writers',
         'pxdfiles': ['_libs/src/util']},
     'io.sas._sas': {
-        'pyxfile': 'io/sas/sas'}}
+        'pyxfile': 'io/sas/sas'},
+    'io.msgpack._packer': {
+        'macros': endian_macro,
+        'depends': ['pandas/_libs/src/msgpack/pack.h',
+                    'pandas/_libs/src/msgpack/pack_template.h'],
+        'include': ['pandas/_libs/src/msgpack'] + common_include,
+        'language': 'c++',
+        'suffix': '.cpp',
+        'pyxfile': 'io/msgpack/_packer',
+        'subdir': 'io/msgpack'},
+    'io.msgpack._unpacker': {
+        'depends': ['pandas/_libs/src/msgpack/unpack.h',
+                    'pandas/_libs/src/msgpack/unpack_define.h',
+                    'pandas/_libs/src/msgpack/unpack_template.h'],
+        'macros': endian_macro,
+        'include': ['pandas/_libs/src/msgpack'] + common_include,
+        'language': 'c++',
+        'suffix': '.cpp',
+        'pyxfile': 'io/msgpack/_unpacker',
+        'subdir': 'io/msgpack'
+    }
+}
 
 extensions = []
 
@@ -636,6 +663,7 @@ for name, data in ext_data.items():
     source_suffix = suffix if suffix == '.pyx' else data.get('suffix', '.c')
 
     sources = [srcpath(data['pyxfile'], suffix=source_suffix, subdir='')]
+
     pxds = [pxd(x) for x in data.get('pxdfiles', [])]
     if suffix == '.pyx' and pxds:
         sources.extend(pxds)
@@ -649,45 +677,10 @@ for name, data in ext_data.items():
                     depends=data.get('depends', []),
                     include_dirs=include,
                     language=data.get('language', 'c'),
+                    define_macros=data.get('macros', []),
                     extra_compile_args=extra_compile_args)
 
     extensions.append(obj)
-
-# ----------------------------------------------------------------------
-# msgpack
-
-if sys.byteorder == 'big':
-    macros = [('__BIG_ENDIAN__', '1')]
-else:
-    macros = [('__LITTLE_ENDIAN__', '1')]
-
-msgpack_include = ['pandas/_libs/src/msgpack'] + common_include
-msgpack_suffix = suffix if suffix == '.pyx' else '.cpp'
-unpacker_depends = ['pandas/_libs/src/msgpack/unpack.h',
-                    'pandas/_libs/src/msgpack/unpack_define.h',
-                    'pandas/_libs/src/msgpack/unpack_template.h']
-
-packer_ext = Extension('pandas.io.msgpack._packer',
-                       depends=['pandas/_libs/src/msgpack/pack.h',
-                                'pandas/_libs/src/msgpack/pack_template.h'],
-                       sources=[srcpath('_packer',
-                                suffix=msgpack_suffix,
-                                subdir='io/msgpack')],
-                       language='c++',
-                       include_dirs=msgpack_include,
-                       define_macros=macros,
-                       extra_compile_args=extra_compile_args)
-unpacker_ext = Extension('pandas.io.msgpack._unpacker',
-                         depends=unpacker_depends,
-                         sources=[srcpath('_unpacker',
-                                  suffix=msgpack_suffix,
-                                  subdir='io/msgpack')],
-                         language='c++',
-                         include_dirs=msgpack_include,
-                         define_macros=macros,
-                         extra_compile_args=extra_compile_args)
-extensions.append(packer_ext)
-extensions.append(unpacker_ext)
 
 # ----------------------------------------------------------------------
 # ujson
