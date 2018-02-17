@@ -23,6 +23,7 @@ def data_missing():
 
 @pytest.fixture(params=['data', 'data_missing'])
 def all_data(request, data, data_missing):
+    """Parametrized fixture giving 'data' and 'data_missing'"""
     if request.param == 'data':
         return data
     elif request.param == 'data_missing':
@@ -43,5 +44,5 @@ def na_cmp():
 
 @pytest.fixture
 def na_value(self):
-    """The scalar missing value for this type."""
+    """The scalar missing value for this type. Default 'None'"""
     return None

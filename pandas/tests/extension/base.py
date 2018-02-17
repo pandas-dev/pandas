@@ -1,3 +1,37 @@
+"""Base test suite for extension arrays.
+
+These tests are intended for third-party libraries to subclass to validate
+that their extension arrays and dtypes satisfy the interface. Moving or
+renaming the tests should not be done lightly.
+
+Libraries are expected to implement a few pytest fixtures to provide data
+for the tests. The fixtures may be located in either
+
+* The same module as your test class.
+* A ``conftest.py`` in the same directory as your test class.
+
+The full list of fixtures may be found in the ``conftest.py`` next to this
+file.
+
+.. code-block:: python
+
+   import pytest
+   from pandas.tests.extension.base import BaseDtypeTests
+
+
+   @pytest.fixture
+   def dtype():
+       return MyDtype()
+
+
+   class TestMyDtype(BaseDtypeTests):
+       pass
+
+
+Your class ``TestDtype`` will inherit all the tests defined on
+``BaseDtypeTests``. pytest's fixture discover will supply your ``dtype``
+wherever the test requires it. You're free to implement additional tests.
+"""
 import numpy as np
 import pytest
 
@@ -130,13 +164,21 @@ class BaseConstructorsTests(object):
 
 class BaseReshapingTests(object):
     """Tests for reshaping and concatenation."""
-    def test_concat(self, data):
-        result = pd.concat([
-            pd.Series(data),
-            pd.Series(data),
-        ], ignore_index=True)
+    @pytest.mark.parametrize('in_frame', [True, False])
+    def test_concat(self, data, in_frame):
+        wrapped = pd.Series(data)
+        if in_frame:
+            wrapped = pd.DataFrame(wrapped)
+        result = pd.concat([wrapped, wrapped], ignore_index=True)
+
         assert len(result) == len(data) * 2
-        assert result.dtype == data.dtype
+
+        if in_frame:
+            dtype = result.dtypes[0]
+        else:
+            dtype = result.dtype
+
+        assert dtype == data.dtype
         assert isinstance(result._data.blocks[0], ExtensionBlock)
 
     def test_align(self, data, na_value):
@@ -149,6 +191,19 @@ class BaseReshapingTests(object):
         e2 = pd.Series(type(data)([na_value] + list(b)))
         tm.assert_series_equal(r1, e1)
         tm.assert_series_equal(r2, e2)
+
+    def test_align_frame(self, data, na_value):
+        a = data[:3]
+        b = data[2:5]
+        r1, r2 = pd.DataFrame({'A': a}).align(
+            pd.DataFrame({'A': b}, index=[1, 2, 3])
+        )
+
+        # Assumes that the ctor can take a list of scalars of the type
+        e1 = pd.DataFrame({'A': type(data)(list(a) + [na_value])})
+        e2 = pd.DataFrame({'A': type(data)([na_value] + list(b))})
+        tm.assert_frame_equal(r1, e1)
+        tm.assert_frame_equal(r2, e2)
 
 
 class BaseGetitemTests(object):

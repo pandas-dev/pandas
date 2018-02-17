@@ -3,8 +3,6 @@ import string
 import pytest
 import numpy as np
 
-import pandas as pd
-import pandas.util.testing as tm
 from pandas.api.types import CategoricalDtype
 from pandas import Categorical
 from . import base
@@ -52,18 +50,13 @@ class TestConstructors(base.BaseConstructorsTests):
 
 
 class TestReshaping(base.BaseReshapingTests):
+    @pytest.mark.skip(reason="Unobserved categories preseved in concat.")
     def test_align(self, data, na_value):
-        # Override to pass through dtype
-        a = data[:3]
-        b = data[2:5]
-        r1, r2 = pd.Series(a).align(pd.Series(b, index=[1, 2, 3]))
+        pass
 
-        e1 = pd.Series(type(data)(list(a) + [na_value],
-                                  dtype=data.dtype))
-        e2 = pd.Series(type(data)([na_value] + list(b),
-                                  dtype=data.dtype))
-        tm.assert_series_equal(r1, e1)
-        tm.assert_series_equal(r2, e2)
+    @pytest.mark.skip(reason="Unobserved categories preseved in concat.")
+    def test_align_frame(self, data, na_value):
+        pass
 
 
 class TestGetitem(base.BaseGetitemTests):
@@ -82,6 +75,6 @@ class TestMissing(base.BaseMissingTests):
 class TestMethods(base.BaseMethodsTests):
     pass
 
-    @pytest.mark.skip(reason="Different value_counts semantics.")
+    @pytest.mark.skip(reason="Unobserved categories included")
     def test_value_counts(self, all_data, dropna):
         pass
