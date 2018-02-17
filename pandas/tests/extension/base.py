@@ -1,5 +1,3 @@
-import operator
-
 import numpy as np
 import pytest
 
@@ -13,11 +11,6 @@ from pandas.core.dtypes.dtypes import ExtensionDtype
 
 class BaseDtypeTests(object):
     """Base class for ExtensionDtype classes"""
-
-    @pytest.fixture
-    def dtype(self):
-        """A fixture providing the ExtensionDtype to validate."""
-        raise NotImplementedError
 
     def test_name(self, dtype):
         assert isinstance(dtype.name, str)
@@ -50,46 +43,8 @@ class BaseDtypeTests(object):
         return not pd.api.types.is_object_dtype(dtype)
 
 
-class BaseArrayTests(object):
-    """Base class for extension array classes.
-
-    Subclasses should implement the following fixtures
-
-    * data
-    * data_missing
-    """
-
-    # ------------------------------------------------------------------------
-    # Fixtures
-    # ------------------------------------------------------------------------
-    @pytest.fixture
-    def data(self):
-        """Length-100 array for this type."""
-        raise NotImplementedError
-
-    @pytest.fixture
-    def data_missing(self):
-        """Length-2 array with [NA, Valid]"""
-        raise NotImplementedError
-
-    @pytest.fixture(params=['data', 'data_missing'])
-    def all_data(self, request, data, data_missing):
-        if request.param == 'data':
-            return data
-        elif request.param == 'data_missing':
-            return data_missing
-
-    @pytest.fixture
-    def na_cmp(self):
-        """Binary operator for comparing NA values.
-
-        Should return a function of two arguments that returns
-        True if both arguments are (scalar) NA for your type.
-
-        By defult, uses ``operator.or``
-        """
-        return operator.is_
-
+class BaseInterfaceTests(object):
+    """Tests that the basic interface is satisfied."""
     # ------------------------------------------------------------------------
     # Interface
     # ------------------------------------------------------------------------
@@ -128,9 +83,14 @@ class BaseArrayTests(object):
         result = buf.getvalue()
         assert data.dtype.name in result
 
-    # ------------------------------------------------------------------------
-    # Constructors
-    # ------------------------------------------------------------------------
+    def test_is_extension_array_dtype(self, data):
+        assert is_extension_array_dtype(data)
+        assert is_extension_array_dtype(data.dtype)
+        assert is_extension_array_dtype(pd.Series(data))
+        assert isinstance(data.dtype, ExtensionDtype)
+
+
+class BaseConstructorsTests(object):
 
     def test_series_constructor(self, data):
         result = pd.Series(data)
@@ -167,10 +127,9 @@ class BaseArrayTests(object):
 
         assert m.match(msg)
 
-    # ------------------------------------------------------------------------
-    # Reshaping
-    # ------------------------------------------------------------------------
 
+class BaseReshapingTests(object):
+    """Tests for reshaping and concatenation."""
     def test_concat(self, data):
         result = pd.concat([
             pd.Series(data),
@@ -180,9 +139,20 @@ class BaseArrayTests(object):
         assert result.dtype == data.dtype
         assert isinstance(result._data.blocks[0], ExtensionBlock)
 
-    # ------------------------------------------------------------------------
-    # Indexing - getting
-    # ------------------------------------------------------------------------
+    def test_align(self, data):
+        a = data[:3]
+        b = data[2:5]
+        r1, r2 = pd.Series(a).align(pd.Series(b, index=[1, 2, 3]))
+
+        # Assumes that the ctor can take a list of scalars of the type
+        e1 = pd.Series(type(data)(list(a) + [data._fill_value]))
+        e2 = pd.Series(type(data)([data._fill_value] + list(b)))
+        tm.assert_series_equal(r1, e1)
+        tm.assert_series_equal(r2, e2)
+
+
+class BaseGetitemTests(object):
+    """Tests for ExtensionArray.__getitem__."""
 
     def test_iloc_series(self, data):
         ser = pd.Series(data)
@@ -246,12 +216,6 @@ class BaseArrayTests(object):
         result = df.loc[:3, 'A']
         tm.assert_series_equal(result, expected)
 
-    def test_is_extension_array_dtype(self, data):
-        assert is_extension_array_dtype(data)
-        assert is_extension_array_dtype(data.dtype)
-        assert is_extension_array_dtype(pd.Series(data))
-        assert isinstance(data.dtype, ExtensionDtype)
-
     def test_getitem_scalar(self, data):
         result = data[0]
         assert isinstance(result, data.dtype.type)
@@ -301,107 +265,8 @@ class BaseArrayTests(object):
         assert result.iloc[1] == data[1]
         assert result.iloc[2] == data[3]
 
-    # ------------------------------------------------------------------------
-    # Indexing - Setting
-    # ------------------------------------------------------------------------
 
-    @pytest.mark.xfail(reason="ExtensionBlock.__setitem__ not implemented.")
-    def test_setitem_scalar(self, data):
-        arr = pd.Series(data)
-        arr[0] = data[1]
-        assert arr[0] == data[1]
-
-    @pytest.mark.xfail(reason="ExtensionBlock.__setitem__ not implemented.")
-    def test_setitem_sequence(self, data):
-        arr = pd.Series(data)
-        original = data.copy()
-
-        arr[[0, 1]] = [data[1], data[0]]
-        assert arr[0] == original[1]
-        assert arr[1] == original[0]
-
-    @pytest.mark.xfail(reason="ExtensionBlock.__setitem__ not implemented.")
-    def test_setitem_sequence_broadcasts(self, data):
-        arr = pd.Series(data)
-
-        arr[[0, 1]] = data[2]
-        assert arr[0] == data[2]
-        assert arr[1] == data[2]
-
-    @pytest.mark.xfail(reason="ExtensionBlock.__setitem__ not implemented.")
-    @pytest.mark.parametrize('setter', ['loc', 'iloc'])
-    def test_set_scalar(self, data, setter):
-        arr = pd.Series(data)
-        setter = getattr(arr, setter)
-        operator.setitem(setter, 0, data[1])
-        assert arr[0] == data[1]
-
-    @pytest.mark.xfail(reason="ExtensionBlock.__setitem__ not implemented.")
-    def test_set_loc_scalar_mixed(self, data):
-        df = pd.DataFrame({"A": np.arange(len(data)), "B": data})
-        df.loc[0, 'B'] = data[1]
-        assert df.loc[0, 'B'] == data[1]
-
-    @pytest.mark.xfail(reason="ExtensionBlock.__setitem__ not implemented.")
-    def test_set_loc_scalar_single(self, data):
-        df = pd.DataFrame({"B": data})
-        df.loc[10, 'B'] = data[1]
-        assert df.loc[10, 'B'] == data[1]
-
-    @pytest.mark.xfail(reason="ExtensionBlock.__setitem__ not implemented.")
-    def test_set_loc_scalar_multiple_homogoneous(self, data):
-        df = pd.DataFrame({"A": data, "B": data})
-        df.loc[10, 'B'] = data[1]
-        assert df.loc[10, 'B'] == data[1]
-
-    @pytest.mark.xfail(reason="ExtensionBlock.__setitem__ not implemented.")
-    def test_set_iloc_scalar_mixed(self, data):
-        df = pd.DataFrame({"A": np.arange(len(data)), "B": data})
-        df.iloc[0, 1] = data[1]
-        assert df.loc[0, 'B'] == data[1]
-
-    @pytest.mark.xfail(reason="ExtensionBlock.__setitem__ not implemented.")
-    def test_set_iloc_scalar_single(self, data):
-        df = pd.DataFrame({"B": data})
-        df.iloc[10, 0] = data[1]
-        assert df.loc[10, 'B'] == data[1]
-
-    @pytest.mark.xfail(reason="ExtensionBlock.__setitem__ not implemented.")
-    def test_set_iloc_scalar_multiple_homogoneous(self, data):
-        df = pd.DataFrame({"A": data, "B": data})
-        df.iloc[10, 1] = data[1]
-        assert df.loc[10, 'B'] == data[1]
-
-    @pytest.mark.xfail(reason="ExtensionBlock.__setitem__ not implemented.")
-    def test_set_mask_aligned(self, data):
-        ser = pd.Series(data)
-        mask = np.zeros(len(data), dtype=bool)
-        mask[:2] = True
-
-        ser[mask] = data[5:7]
-        assert ser[0] == data[5]
-        assert ser[1] == data[6]
-
-    @pytest.mark.xfail(reason="ExtensionBlock.__setitem__ not implemented.")
-    def test_set_mask_broadcast(self, data):
-        ser = pd.Series(data)
-        mask = np.zeros(len(data), dtype=bool)
-        mask[:2] = True
-
-        ser[mask] = data[10]
-        assert ser[0] == data[10]
-        assert ser[1] == data[10]
-
-    @pytest.mark.xfail(reason="ExtensionBlock.__setitem__ not implemented.")
-    def test_setitem_expand_columns(self, data):
-        df = pd.DataFrame({"A": data})
-        df['B'] = 1
-        assert len(df.columns) == 2
-
-    # ------------------------------------------------------------------------
-    # Methods
-    # ------------------------------------------------------------------------
-
+class BaseMissingTests(object):
     def test_isna(self, data_missing):
         if data_missing._can_hold_na:
             expected = np.array([True, False])
@@ -413,36 +278,6 @@ class BaseArrayTests(object):
 
         result = pd.Series(data_missing).isna()
         expected = pd.Series(expected)
-        tm.assert_series_equal(result, expected)
-
-    def test_align(self, data):
-        a = data[:3]
-        b = data[2:5]
-        r1, r2 = pd.Series(a).align(pd.Series(b, index=[1, 2, 3]))
-
-        # Assumes that the ctor can take a list of scalars of the type
-        e1 = pd.Series(type(data)(list(a) + [data._fill_value]))
-        e2 = pd.Series(type(data)([data._fill_value] + list(b)))
-        tm.assert_series_equal(r1, e1)
-        tm.assert_series_equal(r2, e2)
-
-    @pytest.mark.parametrize('dropna', [True, False])
-    def test_value_counts(self, all_data, dropna):
-        all_data = all_data[:10]
-        if dropna:
-            other = np.array(all_data[~all_data.isna()])
-        else:
-            other = all_data
-
-        result = pd.Series(all_data).value_counts(dropna=dropna).sort_index()
-        expected = pd.Series(other).value_counts(dropna=dropna).sort_index()
-
-        tm.assert_series_equal(result, expected)
-
-    def test_count(self, data_missing):
-        df = pd.DataFrame({"A": data_missing})
-        result = df.count(axis='columns')
-        expected = pd.Series([0, 1])
         tm.assert_series_equal(result, expected)
 
     def test_dropna_series(self, data_missing):
@@ -470,3 +305,27 @@ class BaseArrayTests(object):
         result = df.dropna()
         expected = df.iloc[:0]
         tm.assert_frame_equal(result, expected)
+
+
+class BaseMethodsTests(object):
+    """Various Series and DataFrame methods."""
+
+    @pytest.mark.parametrize('dropna', [True, False])
+    def test_value_counts(self, all_data, dropna):
+        all_data = all_data[:10]
+        if dropna:
+            other = np.array(all_data[~all_data.isna()])
+        else:
+            other = all_data
+
+        result = pd.Series(all_data).value_counts(dropna=dropna).sort_index()
+        expected = pd.Series(other).value_counts(dropna=dropna).sort_index()
+
+        tm.assert_series_equal(result, expected)
+
+    def test_count(self, data_missing):
+        df = pd.DataFrame({"A": data_missing})
+        result = df.count(axis='columns')
+        expected = pd.Series([0, 1])
+        tm.assert_series_equal(result, expected)
+

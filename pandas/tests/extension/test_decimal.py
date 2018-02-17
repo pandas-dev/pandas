@@ -11,7 +11,7 @@ import pytest
 from pandas.core.arrays import ExtensionArray
 from pandas.core.dtypes.base import ExtensionDtype
 
-from .base import BaseDtypeTests, BaseArrayTests
+from . import base
 
 
 class DecimalDtype(ExtensionDtype):
@@ -92,27 +92,39 @@ def make_data():
     return [decimal.Decimal(random.random()) for _ in range(100)]
 
 
-class TestDecimalDtype(BaseDtypeTests):
-
-    @pytest.fixture
-    def dtype(self):
-        return DecimalDtype()
+@pytest.fixture
+def dtype():
+    return DecimalDtype()
 
 
-class TestDecimalArray(BaseArrayTests):
+@pytest.fixture
+def data():
+    return DecimalArray(make_data())
 
-    @pytest.fixture
-    def data(self):
-        return DecimalArray(make_data())
 
-    @pytest.fixture
-    def data_missing(self):
-        return DecimalArray([decimal.Decimal('NaN'), decimal.Decimal(1)])
+@pytest.fixture
+def data_missing():
+    return DecimalArray([decimal.Decimal('NaN'), decimal.Decimal(1)])
 
-    @pytest.fixture
-    def na_cmp(self):
-        return lambda x, y: x.is_nan() and y.is_nan()
 
+@pytest.fixture
+def na_cmp():
+    return lambda x, y: x.is_nan() and y.is_nan()
+
+
+class TestDtype(base.BaseDtypeTests):
+    pass
+
+
+class TestInterface(base.BaseInterfaceTests):
+    pass
+
+
+class TestConstructors(base.BaseConstructorsTests):
+    pass
+
+
+class TestReshaping(base.BaseReshapingTests):
     def test_align(self, data):
         a = data[:3]
         b = data[2:5]
@@ -129,7 +141,17 @@ class TestDecimalArray(BaseArrayTests):
         assert r2[0].is_nan()
         assert e2[0].is_nan()
 
-    @pytest.mark.skip(reason="NaN Sorting")
+
+class TestGetitem(base.BaseGetitemTests):
+    pass
+
+
+class TestMissing(base.BaseMissingTests):
+    pass
+
+
+class TestMethods(base.BaseMethodsTests):
+    @pytest.mark.xfail(reason="NaN Sorting")
     def test_value_counts(self, all_data, dropna):
         all_data = all_data[:10]
         if dropna:
