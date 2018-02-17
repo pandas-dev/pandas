@@ -2137,11 +2137,30 @@ def _generate_regular_range(start, end, periods, offset):
             tz = start.tz
         elif start is not None:
             b = Timestamp(start).value
-            e = b + np.int64(periods) * stride
+            try:
+                with np.errstate(over='raise'):
+                    # raise instead of incorrectly wrapping around
+                    e = b + np.int64(periods) * stride
+            except (FloatingPointError, OverflowError):
+                raise libts.OutOfBoundsDatetime('Cannot generate range with '
+                                                'start={start} and '
+                                                'periods={periods}'
+                                                .format(start=start,
+                                                        periods=periods))
+
             tz = start.tz
         elif end is not None:
             e = Timestamp(end).value + stride
-            b = e - np.int64(periods) * stride
+            try:
+                with np.errstate(over='raise'):
+                    # raise instead of incorrectly wrapping around
+                    b = e - np.int64(periods) * stride
+            except (FloatingPointError, OverflowError):
+                raise libts.OutOfBoundsDatetime('Cannot generate range with '
+                                                'start={start} and '
+                                                'periods={periods}'
+                                                .format(start=start,
+                                                        periods=periods))
             tz = end.tz
         else:
             raise ValueError("at least 'start' or 'end' should be specified "
