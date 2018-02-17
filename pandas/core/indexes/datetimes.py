@@ -2139,7 +2139,7 @@ def _generate_regular_range(start, end, periods, offset):
             b = Timestamp(start).value
             try:
                 with np.errstate(over='raise'):
-                    # raise instead of incorrectly wrapping around
+                    # raise instead of incorrectly wrapping around GH#19740
                     e = b + np.int64(periods) * stride
             except (FloatingPointError, OverflowError):
                 raise libts.OutOfBoundsDatetime('Cannot generate range with '
@@ -2153,7 +2153,7 @@ def _generate_regular_range(start, end, periods, offset):
             e = Timestamp(end).value + stride
             try:
                 with np.errstate(over='raise'):
-                    # raise instead of incorrectly wrapping around
+                    # raise instead of incorrectly wrapping around GH#19740
                     b = e - np.int64(periods) * stride
             except (FloatingPointError, OverflowError):
                 raise libts.OutOfBoundsDatetime('Cannot generate range with '
