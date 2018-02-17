@@ -36,31 +36,6 @@ class TestTimedeltaArithmetic(object):
             assert not left == right
             assert left != right
 
-    def test_to_timedelta_on_nanoseconds(self):
-        # GH 9273
-        result = Timedelta(nanoseconds=100)
-        expected = Timedelta('100ns')
-        assert result == expected
-
-        result = Timedelta(days=1, hours=1, minutes=1, weeks=1, seconds=1,
-                           milliseconds=1, microseconds=1, nanoseconds=1)
-        expected = Timedelta(694861001001001)
-        assert result == expected
-
-        result = Timedelta(microseconds=1) + Timedelta(nanoseconds=1)
-        expected = Timedelta('1us1ns')
-        assert result == expected
-
-        result = Timedelta(microseconds=1) - Timedelta(nanoseconds=1)
-        expected = Timedelta('999ns')
-        assert result == expected
-
-        result = Timedelta(microseconds=1) + 5 * Timedelta(nanoseconds=-2)
-        expected = Timedelta('990ns')
-        assert result == expected
-
-        pytest.raises(TypeError, lambda: Timedelta(nanoseconds='abc'))
-
     def test_ops_notimplemented(self):
         class Other:
             pass
@@ -866,15 +841,16 @@ class TestTimedeltaConstructor(object):
 
         # Currently invalid as it has a - on the hh:mm:dd part
         # (only allowed on the days)
-        pytest.raises(ValueError,
-                      lambda: Timedelta('-10 days -1 h 1.5m 1s 3us'))
+        with pytest.raises(ValueError):
+            Timedelta('-10 days -1 h 1.5m 1s 3us')
 
         # only leading neg signs are allowed
-        pytest.raises(ValueError,
-                      lambda: Timedelta('10 days -1 h 1.5m 1s 3us'))
+        with pytest.raises(ValueError):
+            Timedelta('10 days -1 h 1.5m 1s 3us')
 
         # no units specified
-        pytest.raises(ValueError, lambda: Timedelta('3.1415'))
+        with pytest.raises(ValueError):
+            Timedelta('3.1415')
 
         # invalid construction
         tm.assert_raises_regex(ValueError, "cannot construct a Timedelta",
@@ -940,7 +916,8 @@ class TestTimedeltaConstructor(object):
     def test_overflow_on_construction(self):
         # xref https://github.com/statsmodels/statsmodels/issues/3374
         value = pd.Timedelta('1day').value * 20169940
-        pytest.raises(OverflowError, pd.Timedelta, value)
+        with pytest.raises(OverflowError):
+            pd.Timedelta(value)
 
         # xref GH#17637
         with pytest.raises(OverflowError):
@@ -974,3 +951,29 @@ class TestTimedeltaConstructor(object):
         with tm.assert_raises_regex(ValueError, 'Invalid ISO 8601 Duration '
                                     'format - {}'.format(fmt)):
             Timedelta(fmt)
+
+    def test_td_constructor_on_nanoseconds(self):
+        # GH#9273
+        result = Timedelta(nanoseconds=100)
+        expected = Timedelta('100ns')
+        assert result == expected
+
+        result = Timedelta(days=1, hours=1, minutes=1, weeks=1, seconds=1,
+                           milliseconds=1, microseconds=1, nanoseconds=1)
+        expected = Timedelta(694861001001001)
+        assert result == expected
+
+        result = Timedelta(microseconds=1) + Timedelta(nanoseconds=1)
+        expected = Timedelta('1us1ns')
+        assert result == expected
+
+        result = Timedelta(microseconds=1) - Timedelta(nanoseconds=1)
+        expected = Timedelta('999ns')
+        assert result == expected
+
+        result = Timedelta(microseconds=1) + 5 * Timedelta(nanoseconds=-2)
+        expected = Timedelta('990ns')
+        assert result == expected
+
+        with pytest.raises(TypeError):
+            Timedelta(nanoseconds='abc')
