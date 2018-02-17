@@ -25,42 +25,6 @@ class TestPeriodIndexOps(Ops):
         self.check_ops_properties(PeriodIndex._object_ops, f)
         self.check_ops_properties(PeriodIndex._bool_ops, f)
 
-    def test_astype_object(self):
-        idx = pd.period_range(start='2013-01-01', periods=4, freq='M',
-                              name='idx')
-        expected_list = [pd.Period('2013-01-31', freq='M'),
-                         pd.Period('2013-02-28', freq='M'),
-                         pd.Period('2013-03-31', freq='M'),
-                         pd.Period('2013-04-30', freq='M')]
-        expected = pd.Index(expected_list, dtype=object, name='idx')
-        result = idx.astype(object)
-        assert isinstance(result, Index)
-        assert result.dtype == object
-        tm.assert_index_equal(result, expected)
-        assert result.name == expected.name
-        assert idx.tolist() == expected_list
-
-        idx = PeriodIndex(['2013-01-01', '2013-01-02', 'NaT',
-                           '2013-01-04'], freq='D', name='idx')
-        expected_list = [pd.Period('2013-01-01', freq='D'),
-                         pd.Period('2013-01-02', freq='D'),
-                         pd.Period('NaT', freq='D'),
-                         pd.Period('2013-01-04', freq='D')]
-        expected = pd.Index(expected_list, dtype=object, name='idx')
-        result = idx.astype(object)
-        assert isinstance(result, Index)
-        assert result.dtype == object
-        tm.assert_index_equal(result, expected)
-        for i in [0, 1, 3]:
-            assert result[i] == expected[i]
-        assert result[2] is pd.NaT
-        assert result.name == expected.name
-
-        result_list = idx.tolist()
-        for i in [0, 1, 3]:
-            assert result_list[i] == expected_list[i]
-        assert result_list[2] is pd.NaT
-
     def test_minmax(self):
 
         # monotonic
