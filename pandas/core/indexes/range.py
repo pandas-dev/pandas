@@ -623,8 +623,7 @@ class RangeIndex(Int64Index):
 
                     return result
 
-                except (ValueError, TypeError,
-                        ZeroDivisionError):
+                except (ValueError, TypeError, ZeroDivisionError):
                     # Defer to Int64Index implementation
                     return op(self._int64index, other)
                     # TODO: Do attrs get handled reliably?
