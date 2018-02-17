@@ -709,7 +709,6 @@ class DatetimeIndexOpsMixin(object):
                 # Array/Index of DateOffset objects
                 return self._sub_offset_array(other)
             elif isinstance(self, TimedeltaIndex) and isinstance(other, Index):
-                assert not is_timedelta64_dtype(other)
                 # We checked above for timedelta64_dtype(other) so this
                 # must be invalid.
                 raise TypeError("cannot subtract TimedeltaIndex and {typ}"
