@@ -154,46 +154,10 @@ def check_round_trip(df, engine=None, path=None,
         write_kwargs['engine'] = engine
         read_kwargs['engine'] = engine
 
-    fastparquet_make_block_dtype = (
-        # Use of deprecated `dtype` in `make_block` that's hit only for
-        # bool dtypes with no Nones.
-        engine == 'fastparquet' and
-        LooseVersion(fastparquet.__version__) == LooseVersion("0.1.4") and
-        any(pd.api.types.is_bool_dtype(df[col]) for col in df.columns)
-    )
-
-    if (engine == 'pyarrow' and
-            LooseVersion(pyarrow.__version__) <= LooseVersion("0.8.0") and
-            any(pd.api.types.is_datetime64tz_dtype(dtype)
-                for dtype in df.dtypes)):
-        # Use of deprecated fastpath in make_block
-        # Deprecated in pandas 0.23 and removed in pyarrow 0.9
-        # Remove this when all pyarrow builds >= 0.9
-        warning_type = DeprecationWarning
-    # elif (engine == 'fastparquet' and
-    #         LooseVersion(fastparquet.__version__) == LooseVersion('0.1.3')):
-    #     warning_type = DeprecationWarning
-    elif (engine == 'fastparquet' and
-          LooseVersion(fastparquet.__version__) <= LooseVersion("0.1.4") and
-          LooseVersion(np.__version__) >= LooseVersion("1.14.0") and
-          df.select_dtypes(['bool', 'object'])
-            .isin([True, False]).any().any()):
-        # use of deprecated np.fromstring for boolean columns
-        # Deprecated in numpy 1.14
-        # Used in fastparquet <= 0.1.4
-        # Remove when all fastparquet builds >= 0.1.5
-        # https://github.com/dask/fastparquet/issues/302
-        warning_type = DeprecationWarning
-    elif fastparquet_make_block_dtype:
-        warning_type = DeprecationWarning
-    else:
-        warning_type = None
-
     def compare(repeat):
         for _ in range(repeat):
             df.to_parquet(path, **write_kwargs)
-            with tm.assert_produces_warning(warning_type,
-                                            check_stacklevel=False):
+            with catch_warnings(record=True):
                 actual = read_parquet(path, **read_kwargs)
             tm.assert_frame_equal(expected, actual,
                                   check_names=check_names)
@@ -260,17 +224,7 @@ def test_cross_engine_pa_fp(df_cross_compat, pa, fp):
     with tm.ensure_clean() as path:
         df.to_parquet(path, engine=pa, compression=None)
 
-        if (LooseVersion(fastparquet.__version__) <= LooseVersion('0.1.4') and
-                LooseVersion(np.__version__) >= LooseVersion('1.14.0')):
-            # fastparquet used np.fromstring, deprecated in numpy 1.14.0
-            expected_warning = DeprecationWarning
-        else:
-            expected_warning = None
-
-        with tm.assert_produces_warning(expected_warning,
-                                        check_stacklevel=False):
-            result = read_parquet(path, engine=fp)
-
+        result = read_parquet(path, engine=fp)
         tm.assert_frame_equal(result, df)
 
         result = read_parquet(path, engine=fp, columns=['a', 'd'])
