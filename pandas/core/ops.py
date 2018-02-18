@@ -256,7 +256,7 @@ Parameters
 other : Series or scalar value
 fill_value : None or float value, default None (NaN)
     Fill existing missing (NaN) values, and any new element needed for
-    successful array alignment, with this value before computation.
+    successful Series alignment, with this value before computation.
     If data in both corresponding Series locations is missing
     the result will be missing
 level : int or name
@@ -305,7 +305,7 @@ axis : {0, 1, 'index', 'columns'}
     For Series input, axis to match Series index on
 fill_value : None or float value, default None
     Fill existing missing (NaN) values, and any new element needed for
-    successful array alignment, with this value before computation.
+    successful DataFrame alignment, with this value before computation.
     If data in both corresponding DataFrame locations is missing
     the result will be missing
 level : int or name
@@ -322,20 +322,23 @@ result : DataFrame
 
 Examples
 --------
->>> a = pd.DataFrame([1, 1, 1, np.nan], index=['a', 'b', 'c', 'd'])
-     0
+>>> a = pd.DataFrame([1, 1, 1, np.nan], index=['a', 'b', 'c', 'd'],
+                     columns=['one'])
+   one
 a  1.0
 b  1.0
 c  1.0
 d  NaN
->>> b = pd.DataFrame([[1, np.nan], [np.nan, 2], [1, np.nan], [np.nan, 2]], index=['a', 'b', 'c_', 'd'])
-      0    1
+>>> b = pd.DataFrame({'one': [1, np.nan, 1, np.nan],
+                      'two': [np.nan, 2, np.nan, 2]}, 
+                     index=['a', 'b', 'c_', 'd'])
+    one  two
 a   1.0  NaN
 b   NaN  2.0
 c_  1.0  NaN
 d   NaN  2.0
 >>> a.add(b, fill_value=0)
-      0    1
+    one  two
 a   2.0  NaN
 b   1.0  2.0
 c   1.0  NaN
@@ -356,7 +359,7 @@ axis : {{0, 1, 'index', 'columns'}}
     For Series input, axis to match Series index on
 fill_value : None or float value, default None
     Fill existing missing (NaN) values, and any new element needed for
-    successful array alignment, with this value before computation.
+    successful DataFrame alignment, with this value before computation.
     If data in both corresponding DataFrame locations is missing
     the result will be missing
 level : int or name
@@ -373,20 +376,23 @@ result : DataFrame
 
 Examples
 --------
->>> a = pd.DataFrame([1, 1, 1, np.nan], index=['a', 'b', 'c', 'd'])
-     0
+>>> a = pd.DataFrame([1, 1, 1, np.nan], index=['a', 'b', 'c', 'd'],
+                     columns=['one'])
+   one
 a  1.0
 b  1.0
 c  1.0
 d  NaN
->>> b = pd.DataFrame([1, np.nan, 1, np.nan], index=['a', 'b', 'c_', 'd'])
-      0    1
+>>> b = pd.DataFrame({'one': [1, np.nan, 1, np.nan],
+                      'two': [np.nan, 2, np.nan, 2]}, 
+                     index=['a', 'b', 'c_', 'd'])
+    one  two
 a   1.0  NaN
 b   NaN  2.0
 c_  1.0  NaN
 d   NaN  2.0
 >>> a.add(b, fill_value=0)
-      0    1
+    one  two
 a   2.0  NaN
 b   1.0  2.0
 c   1.0  NaN
