@@ -948,7 +948,7 @@ def _comp_method_SERIES(op, name, str_rep):
         if axis is not None:
             self._get_axis_number(axis)
 
-        res_name = _get_series_op_result_name(self, other)
+        res_name = get_op_result_name(self, other)
 
         if isinstance(other, ABCDataFrame):  # pragma: no cover
             # Defer to DataFrame implementation; fail early
