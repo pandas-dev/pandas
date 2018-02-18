@@ -790,6 +790,7 @@ class Base(object):
         series_d = Series(array_d)
         with tm.assert_raises_regex(ValueError, "Lengths must match"):
             index_a == series_b
+
         tm.assert_numpy_array_equal(index_a == series_a, expected1)
         tm.assert_numpy_array_equal(index_a == series_c, expected2)
 

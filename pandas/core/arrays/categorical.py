@@ -53,6 +53,9 @@ def _cat_compare_op(op):
         # results depending whether categories are the same or not is kind of
         # insane, so be a bit stricter here and use the python3 idea of
         # comparing only things of equal type.
+        if isinstance(other, ABCSeries):
+            return NotImplemented
+
         if not self.ordered:
             if op in ['__lt__', '__gt__', '__le__', '__ge__']:
                 raise TypeError("Unordered Categoricals can only compare "

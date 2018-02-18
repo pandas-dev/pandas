@@ -1,3 +1,5 @@
+import operator
+
 import numpy as np
 from pandas._libs import index as libindex
 
@@ -738,7 +740,9 @@ class CategoricalIndex(Index, accessor.PandasDelegate):
     def _add_comparison_methods(cls):
         """ add in comparison methods """
 
-        def _make_compare(opname):
+        def _make_compare(op):
+            opname = '__{op}__'.format(op=op.__name__)
+
             def _evaluate_compare(self, other):
 
                 # if we have a Categorical type, then must have the same
@@ -761,16 +765,21 @@ class CategoricalIndex(Index, accessor.PandasDelegate):
                                         "have the same categories and ordered "
                                         "attributes")
 
-                return getattr(self.values, opname)(other)
+                result = op(self.values, other)
+                if isinstance(result, ABCSeries):
+                    # Dispatch to pd.Categorical returned NotImplemented
+                    # and we got a Series back; down-cast to ndarray
+                    result = result.values
+                return result
 
             return compat.set_function_name(_evaluate_compare, opname, cls)
 
-        cls.__eq__ = _make_compare('__eq__')
-        cls.__ne__ = _make_compare('__ne__')
-        cls.__lt__ = _make_compare('__lt__')
-        cls.__gt__ = _make_compare('__gt__')
-        cls.__le__ = _make_compare('__le__')
-        cls.__ge__ = _make_compare('__ge__')
+        cls.__eq__ = _make_compare(operator.eq)
+        cls.__ne__ = _make_compare(operator.ne)
+        cls.__lt__ = _make_compare(operator.lt)
+        cls.__gt__ = _make_compare(operator.gt)
+        cls.__le__ = _make_compare(operator.le)
+        cls.__ge__ = _make_compare(operator.ge)
 
     def _delegate_method(self, name, *args, **kwargs):
         """ method delegation to the ._values """
