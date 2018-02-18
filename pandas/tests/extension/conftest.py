@@ -43,6 +43,6 @@ def na_cmp():
 
 
 @pytest.fixture
-def na_value(self):
+def na_value():
     """The scalar missing value for this type. Default 'None'"""
     return None
