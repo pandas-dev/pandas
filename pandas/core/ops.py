@@ -270,7 +270,17 @@ result : Series
 Examples
 --------
 >>> a = pd.Series([1, 1, 1, np.nan], index=['a', 'b', 'c', 'd'])
+a    1.0
+b    1.0
+c    1.0
+d    NaN
+dtype: float64
 >>> b = pd.Series([1, np.nan, 1, np.nan], index=['a', 'b', 'c_', 'd'])
+a     1.0
+b     NaN
+c_    1.0
+d     NaN
+dtype: float64
 >>> a.add(b, fill_value=0)
 a     2.0
 b     1.0
@@ -313,14 +323,24 @@ result : DataFrame
 Examples
 --------
 >>> a = pd.DataFrame([1, 1, 1, np.nan], index=['a', 'b', 'c', 'd'])
->>> b = pd.DataFrame([1, np.nan, 1, np.nan], index=['a', 'b', 'c_', 'd'])
+     0
+a  1.0
+b  1.0
+c  1.0
+d  NaN
+>>> b = pd.DataFrame([[1, np.nan], [np.nan, 2], [1, np.nan], [np.nan, 2]], index=['a', 'b', 'c_', 'd'])
+      0    1
+a   1.0  NaN
+b   NaN  2.0
+c_  1.0  NaN
+d   NaN  2.0
 >>> a.add(b, fill_value=0)
-      0
-a   2.0
-b   1.0
-c   1.0
-c_  1.0
-d   NaN
+      0    1
+a   2.0  NaN
+b   1.0  2.0
+c   1.0  NaN
+c_  1.0  NaN
+d   NaN  2.0
 """
 
 _flex_doc_FRAME = """
@@ -354,14 +374,24 @@ result : DataFrame
 Examples
 --------
 >>> a = pd.DataFrame([1, 1, 1, np.nan], index=['a', 'b', 'c', 'd'])
+     0
+a  1.0
+b  1.0
+c  1.0
+d  NaN
 >>> b = pd.DataFrame([1, np.nan, 1, np.nan], index=['a', 'b', 'c_', 'd'])
+      0    1
+a   1.0  NaN
+b   NaN  2.0
+c_  1.0  NaN
+d   NaN  2.0
 >>> a.add(b, fill_value=0)
-      0
-a   2.0
-b   1.0
-c   1.0
-c_  1.0
-d   NaN
+      0    1
+a   2.0  NaN
+b   1.0  2.0
+c   1.0  NaN
+c_  1.0  NaN
+d   NaN  2.0
 
 See also
 --------
