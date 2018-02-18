@@ -1728,7 +1728,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
 
         with np.errstate(all='ignore'):
             result = func(this_vals, other_vals)
-        name = com._maybe_match_name(self, other)
+        name = ops._maybe_match_name(self, other)
         result = self._constructor(result, index=new_index, name=name)
         result = result.__finalize__(self)
         if name is None:
@@ -1769,7 +1769,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         """
         if isinstance(other, Series):
             new_index = self.index.union(other.index)
-            new_name = com._maybe_match_name(self, other)
+            new_name = ops._maybe_match_name(self, other)
             new_values = np.empty(len(new_index), dtype=self.dtype)
             for i, idx in enumerate(new_index):
                 lv = self.get(idx, fill_value)
@@ -1814,7 +1814,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         this = self.reindex(new_index, copy=False)
         other = other.reindex(new_index, copy=False)
         # TODO: do we need name?
-        name = com._maybe_match_name(self, other)  # noqa
+        name = ops._maybe_match_name(self, other)  # noqa
         rs_vals = com._where_compat(isna(this), other._values, this._values)
         return self._constructor(rs_vals, index=new_index).__finalize__(self)
 

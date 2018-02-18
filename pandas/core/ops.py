@@ -62,10 +62,25 @@ def get_op_result_name(left, right):
     """
     # `left` is always a pd.Series when called from within ops
     if isinstance(right, (ABCSeries, pd.Index)):
-        name = com._maybe_match_name(left, right)
+        name = _maybe_match_name(left, right)
     else:
         name = left.name
     return name
+
+
+def _maybe_match_name(a, b):
+    a_has = hasattr(a, 'name')
+    b_has = hasattr(b, 'name')
+    if a_has and b_has:
+        if a.name == b.name:
+            return a.name
+        else:
+            return None
+    elif a_has:
+        return a.name
+    elif b_has:
+        return b.name
+    return None
 
 
 # -----------------------------------------------------------------------------
@@ -1059,7 +1074,7 @@ def _bool_method_SERIES(op, name, str_rep):
             return NotImplemented
 
         elif isinstance(other, ABCSeries):
-            name = com._maybe_match_name(self, other)
+            name = _maybe_match_name(self, other)
             is_other_int_dtype = is_integer_dtype(other.dtype)
             other = fill_int(other) if is_other_int_dtype else fill_bool(other)
 
@@ -1485,7 +1500,7 @@ def _arith_method_SPARSE_SERIES(op, name, str_rep=None):
 def _sparse_series_op(left, right, op, name):
     left, right = left.align(right, join='outer', copy=False)
     new_index = left.index
-    new_name = com._maybe_match_name(left, right)
+    new_name = _maybe_match_name(left, right)
 
     from pandas.core.sparse.array import _sparse_array_op
     result = _sparse_array_op(left.values, right.values, op, name,
