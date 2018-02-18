@@ -24,8 +24,9 @@ DataFrame memory usage
 ----------------------
 The memory usage of a ``DataFrame`` (including the index) is shown when calling
 the :meth:`~DataFrame.info`. A configuration option, ``display.memory_usage`` 
-(see :ref:`options`), specifies if the ``DataFrame``'s memory usage will be 
-displayed when invoking the ``df.info()`` method.
+(see :ref:`the list of options <options.available>`), specifies if the 
+``DataFrame``'s memory usage will be displayed when invoking the ``df.info()`` 
+method.
 
 For example, the memory usage of the ``DataFrame`` below is shown
 when calling :meth:`~DataFrame.info`:
@@ -36,7 +37,7 @@ when calling :meth:`~DataFrame.info`:
               'complex128', 'object', 'bool']
     n = 5000
     data = dict([(t, np.random.randint(100, size=n).astype(t))
-                    for t in dtypes])
+                  for t in dtypes])
     df = pd.DataFrame(data)
     df['categorical'] = df['object'].astype('category')
 
@@ -323,8 +324,8 @@ symptom of this issue is an error like:
 
 To deal
 with this issue you should convert the underlying NumPy array to the native
-system byte order *before* passing it to ``Series``/``DataFrame`` constructors
-using something similar to the following:
+system byte order *before* passing it to ``Series`` or ``DataFrame`` 
+constructors using something similar to the following:
 
 .. ipython:: python
 
