@@ -1,6 +1,4 @@
-import pytz
 import pytest
-import dateutil
 import warnings
 import numpy as np
 from datetime import datetime
@@ -152,130 +150,6 @@ class TestDatetimeIndexOps(Ops):
             tm.assert_index_equal(np.repeat(rng, reps), expected_rng)
             tm.assert_raises_regex(ValueError, msg, np.repeat,
                                    rng, reps, axis=1)
-
-    def test_representation(self):
-
-        idx = []
-        idx.append(DatetimeIndex([], freq='D'))
-        idx.append(DatetimeIndex(['2011-01-01'], freq='D'))
-        idx.append(DatetimeIndex(['2011-01-01', '2011-01-02'], freq='D'))
-        idx.append(DatetimeIndex(
-            ['2011-01-01', '2011-01-02', '2011-01-03'], freq='D'))
-        idx.append(DatetimeIndex(
-            ['2011-01-01 09:00', '2011-01-01 10:00', '2011-01-01 11:00'
-             ], freq='H', tz='Asia/Tokyo'))
-        idx.append(DatetimeIndex(
-            ['2011-01-01 09:00', '2011-01-01 10:00', pd.NaT], tz='US/Eastern'))
-        idx.append(DatetimeIndex(
-            ['2011-01-01 09:00', '2011-01-01 10:00', pd.NaT], tz='UTC'))
-
-        exp = []
-        exp.append("""DatetimeIndex([], dtype='datetime64[ns]', freq='D')""")
-        exp.append("DatetimeIndex(['2011-01-01'], dtype='datetime64[ns]', "
-                   "freq='D')")
-        exp.append("DatetimeIndex(['2011-01-01', '2011-01-02'], "
-                   "dtype='datetime64[ns]', freq='D')")
-        exp.append("DatetimeIndex(['2011-01-01', '2011-01-02', '2011-01-03'], "
-                   "dtype='datetime64[ns]', freq='D')")
-        exp.append("DatetimeIndex(['2011-01-01 09:00:00+09:00', "
-                   "'2011-01-01 10:00:00+09:00', '2011-01-01 11:00:00+09:00']"
-                   ", dtype='datetime64[ns, Asia/Tokyo]', freq='H')")
-        exp.append("DatetimeIndex(['2011-01-01 09:00:00-05:00', "
-                   "'2011-01-01 10:00:00-05:00', 'NaT'], "
-                   "dtype='datetime64[ns, US/Eastern]', freq=None)")
-        exp.append("DatetimeIndex(['2011-01-01 09:00:00+00:00', "
-                   "'2011-01-01 10:00:00+00:00', 'NaT'], "
-                   "dtype='datetime64[ns, UTC]', freq=None)""")
-
-        with pd.option_context('display.width', 300):
-            for indx, expected in zip(idx, exp):
-                for func in ['__repr__', '__unicode__', '__str__']:
-                    result = getattr(indx, func)()
-                    assert result == expected
-
-    def test_representation_to_series(self):
-        idx1 = DatetimeIndex([], freq='D')
-        idx2 = DatetimeIndex(['2011-01-01'], freq='D')
-        idx3 = DatetimeIndex(['2011-01-01', '2011-01-02'], freq='D')
-        idx4 = DatetimeIndex(
-            ['2011-01-01', '2011-01-02', '2011-01-03'], freq='D')
-        idx5 = DatetimeIndex(['2011-01-01 09:00', '2011-01-01 10:00',
-                              '2011-01-01 11:00'], freq='H', tz='Asia/Tokyo')
-        idx6 = DatetimeIndex(['2011-01-01 09:00', '2011-01-01 10:00', pd.NaT],
-                             tz='US/Eastern')
-        idx7 = DatetimeIndex(['2011-01-01 09:00', '2011-01-02 10:15'])
-
-        exp1 = """Series([], dtype: datetime64[ns])"""
-
-        exp2 = ("0   2011-01-01\n"
-                "dtype: datetime64[ns]")
-
-        exp3 = ("0   2011-01-01\n"
-                "1   2011-01-02\n"
-                "dtype: datetime64[ns]")
-
-        exp4 = ("0   2011-01-01\n"
-                "1   2011-01-02\n"
-                "2   2011-01-03\n"
-                "dtype: datetime64[ns]")
-
-        exp5 = ("0   2011-01-01 09:00:00+09:00\n"
-                "1   2011-01-01 10:00:00+09:00\n"
-                "2   2011-01-01 11:00:00+09:00\n"
-                "dtype: datetime64[ns, Asia/Tokyo]")
-
-        exp6 = ("0   2011-01-01 09:00:00-05:00\n"
-                "1   2011-01-01 10:00:00-05:00\n"
-                "2                         NaT\n"
-                "dtype: datetime64[ns, US/Eastern]")
-
-        exp7 = ("0   2011-01-01 09:00:00\n"
-                "1   2011-01-02 10:15:00\n"
-                "dtype: datetime64[ns]")
-
-        with pd.option_context('display.width', 300):
-            for idx, expected in zip([idx1, idx2, idx3, idx4,
-                                      idx5, idx6, idx7],
-                                     [exp1, exp2, exp3, exp4,
-                                      exp5, exp6, exp7]):
-                result = repr(Series(idx))
-                assert result == expected
-
-    def test_summary(self):
-        # GH9116
-        idx1 = DatetimeIndex([], freq='D')
-        idx2 = DatetimeIndex(['2011-01-01'], freq='D')
-        idx3 = DatetimeIndex(['2011-01-01', '2011-01-02'], freq='D')
-        idx4 = DatetimeIndex(
-            ['2011-01-01', '2011-01-02', '2011-01-03'], freq='D')
-        idx5 = DatetimeIndex(['2011-01-01 09:00', '2011-01-01 10:00',
-                              '2011-01-01 11:00'],
-                             freq='H', tz='Asia/Tokyo')
-        idx6 = DatetimeIndex(['2011-01-01 09:00', '2011-01-01 10:00', pd.NaT],
-                             tz='US/Eastern')
-
-        exp1 = ("DatetimeIndex: 0 entries\n"
-                "Freq: D")
-
-        exp2 = ("DatetimeIndex: 1 entries, 2011-01-01 to 2011-01-01\n"
-                "Freq: D")
-
-        exp3 = ("DatetimeIndex: 2 entries, 2011-01-01 to 2011-01-02\n"
-                "Freq: D")
-
-        exp4 = ("DatetimeIndex: 3 entries, 2011-01-01 to 2011-01-03\n"
-                "Freq: D")
-
-        exp5 = ("DatetimeIndex: 3 entries, 2011-01-01 09:00:00+09:00 "
-                "to 2011-01-01 11:00:00+09:00\n"
-                "Freq: H")
-
-        exp6 = """DatetimeIndex: 3 entries, 2011-01-01 09:00:00-05:00 to NaT"""
-
-        for idx, expected in zip([idx1, idx2, idx3, idx4, idx5, idx6],
-                                 [exp1, exp2, exp3, exp4, exp5, exp6]):
-            result = idx.summary()
-            assert result == expected
 
     def test_resolution(self):
         for freq, expected in zip(['A', 'Q', 'M', 'D', 'H', 'T',
@@ -544,10 +418,6 @@ class TestBusinessDatetimeIndex(object):
         repr(cp)
         tm.assert_index_equal(cp, self.rng)
 
-    def test_repr(self):
-        # only really care that it works
-        repr(self.rng)
-
     def test_shift(self):
         shifted = self.rng.shift(5)
         assert shifted[0] == self.rng[5]
@@ -564,16 +434,6 @@ class TestBusinessDatetimeIndex(object):
         rng = date_range(START, END, freq=BMonthEnd())
         shifted = rng.shift(1, freq=BDay())
         assert shifted[0] == rng[0] + BDay()
-
-    def test_summary(self):
-        self.rng.summary()
-        self.rng[2:2].summary()
-
-    def test_summary_pytz(self):
-        bdate_range('1/1/2005', '1/1/2009', tz=pytz.utc).summary()
-
-    def test_summary_dateutil(self):
-        bdate_range('1/1/2005', '1/1/2009', tz=dateutil.tz.tzutc()).summary()
 
     def test_equals(self):
         assert not self.rng.equals(list(self.rng))
@@ -612,10 +472,6 @@ class TestCustomDatetimeIndex(object):
         repr(cp)
         tm.assert_index_equal(cp, self.rng)
 
-    def test_repr(self):
-        # only really care that it works
-        repr(self.rng)
-
     def test_shift(self):
 
         shifted = self.rng.shift(5)
@@ -639,17 +495,6 @@ class TestCustomDatetimeIndex(object):
     def test_pickle_unpickle(self):
         unpickled = tm.round_trip_pickle(self.rng)
         assert unpickled.offset is not None
-
-    def test_summary(self):
-        self.rng.summary()
-        self.rng[2:2].summary()
-
-    def test_summary_pytz(self):
-        bdate_range('1/1/2005', '1/1/2009', freq='C', tz=pytz.utc).summary()
-
-    def test_summary_dateutil(self):
-        bdate_range('1/1/2005', '1/1/2009', freq='C',
-                    tz=dateutil.tz.tzutc()).summary()
 
     def test_equals(self):
         assert not self.rng.equals(list(self.rng))
