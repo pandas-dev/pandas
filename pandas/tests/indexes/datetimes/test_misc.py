@@ -83,16 +83,6 @@ class TestTimeSeries(object):
                              '1970-01-03', '1970-01-04'])
         tm.assert_index_equal(idx, exp)
 
-    def test_datetimeindex_repr_short(self):
-        dr = date_range(start='1/1/2012', periods=1)
-        repr(dr)
-
-        dr = date_range(start='1/1/2012', periods=2)
-        repr(dr)
-
-        dr = date_range(start='1/1/2012', periods=3)
-        repr(dr)
-
 
 class TestDatetime64(object):
 
