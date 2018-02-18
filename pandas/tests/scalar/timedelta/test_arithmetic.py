@@ -21,6 +21,42 @@ class TestTimedeltaAdditionSubtraction(object):
         __add__, __radd__,
         __sub__, __rsub__
     """
+    @pytest.mark.parametrize('ten_seconds', [
+        Timedelta(10, unit='s'),
+        timedelta(seconds=10),
+        np.timedelta64(10, 's'),
+        np.timedelta64(10000000000, 'ns'),
+        pd.offsets.Second(10)])
+    def test_td_add_sub_ten_seconds(self, ten_seconds):
+        # GH#6808
+        base = Timestamp('20130101 09:01:12.123456')
+        expected_add = Timestamp('20130101 09:01:22.123456')
+        expected_sub = Timestamp('20130101 09:01:02.123456')
+
+        result = base + ten_seconds
+        assert result == expected_add
+
+        result = base - ten_seconds
+        assert result == expected_sub
+
+    @pytest.mark.parametrize('one_day_ten_secs', [
+        Timedelta('1 day, 00:00:10'),
+        Timedelta('1 days, 00:00:10'),
+        timedelta(days=1, seconds=10),
+        np.timedelta64(1, 'D') + np.timedelta64(10, 's'),
+        pd.offsets.Day() + pd.offsets.Second(10)])
+    def test_td_add_sub_one_day_ten_seconds(self, one_day_ten_secs):
+        # GH#6808
+        base = Timestamp('20130102 09:01:12.123456')
+        expected_add = Timestamp('20130103 09:01:22.123456')
+        expected_sub = Timestamp('20130101 09:01:02.123456')
+
+        result = base + one_day_ten_secs
+        assert result == expected_add
+
+        result = base - one_day_ten_secs
+        assert result == expected_sub
+
     @pytest.mark.parametrize('op', [operator.add, ops.radd])
     def test_td_add_datetimelike_scalar(self, op):
         # GH#19738
