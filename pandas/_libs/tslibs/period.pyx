@@ -266,7 +266,7 @@ cdef int64_t get_period_ordinal(int year, int month, int day,
     # raise ValueError
 
 
-cdef int get_date_info(int64_t ordinal, int freq, date_info *dinfo) nogil:
+cdef void get_date_info(int64_t ordinal, int freq, date_info *dinfo) nogil:
     cdef:
         int64_t absdate
         double abstime
@@ -283,7 +283,6 @@ cdef int get_date_info(int64_t ordinal, int freq, date_info *dinfo) nogil:
         absdate += 1
 
     dInfoCalc_SetFromAbsDateTime(dinfo, absdate, abstime)
-    return 0
 
 
 cdef int64_t get_python_ordinal(int64_t period_ordinal, int freq) nogil:
@@ -314,8 +313,8 @@ cdef int64_t get_python_ordinal(int64_t period_ordinal, int freq) nogil:
     return toDaily(period_ordinal, &af_info) + ORD_OFFSET
 
 
-cdef int dInfoCalc_SetFromAbsDateTime(date_info *dinfo,
-                                      int64_t absdate, double abstime) nogil:
+cdef void dInfoCalc_SetFromAbsDateTime(date_info *dinfo,
+                                       int64_t absdate, double abstime) nogil:
     """
     Set the instance's value using the given date and time.
     Assumes GREGORIAN_CALENDAR.
@@ -323,13 +322,10 @@ cdef int dInfoCalc_SetFromAbsDateTime(date_info *dinfo,
     Parameters
     ----------
     dinfo : date_info*
-    absdate : int64_t days elapsed since datetime(1, 1, 1)
+    absdate : int64_t
+        days elapsed since datetime(1, 1, 1)
     abstime : double
         seconds elapsed since beginning of day described by absdate
-
-    Returns
-    -------
-    code : int (always 0)
 
     Notes
     -----
@@ -344,10 +340,9 @@ cdef int dInfoCalc_SetFromAbsDateTime(date_info *dinfo,
 
     # Calculate the time
     dInfoCalc_SetFromAbsTime(dinfo, abstime)
-    return 0
 
 
-cdef int dInfoCalc_SetFromAbsDate(date_info *dinfo, int64_t absdate) nogil:
+cdef void dInfoCalc_SetFromAbsDate(date_info *dinfo, int64_t absdate) nogil:
     """
     Sets the date part of the date_info struct
     Assumes GREGORIAN_CALENDAR
@@ -356,10 +351,6 @@ cdef int dInfoCalc_SetFromAbsDate(date_info *dinfo, int64_t absdate) nogil:
     ----------
     dinfo : date_info*
     unix_date : int64_t
-
-    Returns
-    -------
-    code : int (always 0)
 
     Notes
     -----
@@ -372,7 +363,6 @@ cdef int dInfoCalc_SetFromAbsDate(date_info *dinfo, int64_t absdate) nogil:
     dinfo.year = dts.year
     dinfo.month = dts.month
     dinfo.day = dts.day
-    return 0
 
 
 @cython.cdivision
@@ -385,10 +375,6 @@ cdef void dInfoCalc_SetFromAbsTime(date_info *dinfo, double abstime) nogil:
     dinfo : date_info*
     abstime : double
         seconds elapsed since beginning of day described by absdate
-
-    Returns
-    -------
-    None
 
     Notes
     -----
@@ -407,7 +393,6 @@ cdef void dInfoCalc_SetFromAbsTime(date_info *dinfo, double abstime) nogil:
     dinfo.hour = hour
     dinfo.minute = minute
     dinfo.second = second
-    return
 
 
 @cython.cdivision
@@ -450,7 +435,8 @@ cdef int64_t absdate_from_ymd(int year, int month, int day) nogil:
 
     Returns
     -------
-    absdate : int days elapsed since datetime(1, 1, 1)
+    absdate : int
+        days elapsed since datetime(1, 1, 1)
     """
 
     # /* Calculate the absolute date
@@ -479,7 +465,8 @@ cdef int get_yq(int64_t ordinal, int freq, int *quarter, int *year):
 
     Returns
     -------
-    qtr_freq : int describing the implied quarterly frequency
+    qtr_freq : int
+        describes the implied quarterly frequency associated with `freq`
 
     Notes
     -----
@@ -503,8 +490,8 @@ cdef int get_yq(int64_t ordinal, int freq, int *quarter, int *year):
     return qtr_freq
 
 
-cdef int64_t DtoQ_yq(int64_t ordinal, asfreq_info *af_info,
-                     int *year, int *quarter):
+cdef void DtoQ_yq(int64_t ordinal, asfreq_info *af_info,
+                  int *year, int *quarter):
     cdef:
         date_info dinfo
 
@@ -519,7 +506,6 @@ cdef int64_t DtoQ_yq(int64_t ordinal, asfreq_info *af_info,
 
     year[0] = dinfo.year
     quarter[0] = monthToQuarter(dinfo.month)
-    return 0
 
 
 cdef inline int monthToQuarter(int month):
