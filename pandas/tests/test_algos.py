@@ -555,6 +555,20 @@ class TestIsin(object):
         result = algos.isin(vals, empty)
         tm.assert_numpy_array_equal(expected, result)
 
+    def test_regression_issue_19356(self):
+        # Regression test for GH19356
+        result1 = pd.Series([1, 0]).isin([1, 0.5])
+        expected1 = np.array([True, False])
+        tm.assert_numpy_array_equal(expected1, result1.values)
+
+        result2 = pd.Series([1.0, 0.0]).isin([1, 0.5])
+        expected2 = np.array([True, False])
+        tm.assert_numpy_array_equal(expected2, result2.values)
+
+        result3 = pd.Series([1, 0]).isin([1.0, 0.5])
+        expected3 = np.array([True, False])
+        tm.assert_numpy_array_equal(expected3, result3.values)
+
 
 class TestValueCounts(object):
 

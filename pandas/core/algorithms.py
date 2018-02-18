@@ -19,7 +19,7 @@ from pandas.core.dtypes.common import (
     is_period_dtype,
     is_numeric_dtype, is_float_dtype,
     is_bool_dtype, needs_i8_conversion,
-    is_categorical, is_datetimetz,
+    is_categorical, is_datetimetz, is_datetime_or_timedelta_dtype,
     is_datetime64_any_dtype, is_datetime64tz_dtype,
     is_timedelta64_dtype, is_interval_dtype,
     is_scalar, is_list_like,
@@ -32,6 +32,7 @@ from pandas.core.dtypes.missing import isna
 from pandas.core import common as com
 from pandas._libs import algos, lib, hashtable as htable
 from pandas._libs.tslib import iNaT
+from pandas._libs.tslibs.timestamps import Timestamp
 
 
 # --------------- #
@@ -404,8 +405,19 @@ def isin(comps, values):
     if not isinstance(values, (ABCIndex, ABCSeries, np.ndarray)):
         values = construct_1d_object_array_from_listlike(list(values))
 
-    comps, dtype, _ = _ensure_data(comps)
-    values, _, _ = _ensure_data(values, dtype=dtype)
+    comps, dtype_comps, _ = _ensure_data(comps)
+    values, _, _ = _ensure_data(values)
+    # If items of `values` are of the same dtype...
+    dtypes_values_set = set([type(v) for v in values])
+    if len(dtypes_values_set) == 1:
+        dtype_values_items = dtypes_values_set.pop()
+        # ...and if this dtype matches the dtype of `comps`...
+        is_time_like = lambda x: (is_datetime_or_timedelta_dtype(x) or
+                                  x == Timestamp)
+        if (dtype_comps == dtype_values_items or
+           (is_time_like(dtype_values_items) and is_time_like(dtype_comps))):
+            #...then coerce `values` to type of `comps`.
+            values, _, _ = _ensure_data(values, dtype=dtype_comps)
 
     # faster for larger cases to use np.in1d
     f = lambda x, y: htable.ismember_object(x, values)
@@ -414,7 +426,7 @@ def isin(comps, values):
     # Ensure np.in1d doesn't get object types or it *may* throw an exception
     if len(comps) > 1000000 and not is_object_dtype(comps):
         f = lambda x, y: np.in1d(x, y)
-    elif is_integer_dtype(comps):
+    elif is_integer_dtype(comps) and is_integer_dtype(values):
         try:
             values = values.astype('int64', copy=False)
             comps = comps.astype('int64', copy=False)
@@ -423,7 +435,7 @@ def isin(comps, values):
             values = values.astype(object)
             comps = comps.astype(object)
 
-    elif is_float_dtype(comps):
+    elif is_float_dtype(comps) and is_float_dtype(values):
         try:
             values = values.astype('float64', copy=False)
             comps = comps.astype('float64', copy=False)
@@ -432,6 +444,9 @@ def isin(comps, values):
         except (TypeError, ValueError):
             values = values.astype(object)
             comps = comps.astype(object)
+    else:
+        values = values.astype(object)
+        comps = comps.astype(object)
 
     return f(comps, values)
 
