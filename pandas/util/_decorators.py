@@ -65,8 +65,9 @@ def deprecate_kwarg(old_arg_name, new_arg_name, mapping=None, stacklevel=2):
     ----------
     old_arg_name : str
         Name of argument in function to deprecate
-    new_arg_name : str
-        Name of preferred argument in function
+    new_arg_name : str | None
+        Name of preferred argument in function. Use none to raise warning that
+        ``old_arg_name`` keyword is deprecated.
     mapping : dict or callable
         If mapping is present, use it to translate old arguments to
         new arguments. A callable must do its own value checking;
@@ -107,6 +108,16 @@ def deprecate_kwarg(old_arg_name, new_arg_name, mapping=None, stacklevel=2):
         @wraps(func)
         def wrapper(*args, **kwargs):
             old_arg_value = kwargs.pop(old_arg_name, None)
+
+            if new_arg_name is None and old_arg_value is not None:
+                msg = (
+                    "the '{old_name}' keyword is no longer supported"
+                    "please takes steps to stop use of '{old_name}'"
+                ).format(old_name=old_arg_name)
+                warnings.warn(msg, FutureWarning, stacklevel=stacklevel)
+                kwargs[old_arg_name] = old_arg_value
+                return func(*args, **kwargs)
+
             if old_arg_value is not None:
                 if mapping is not None:
                     if hasattr(mapping, 'get'):
