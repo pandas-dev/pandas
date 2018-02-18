@@ -910,6 +910,24 @@ class DatetimeIndex(DatelikeOps, TimelikeOps, DatetimeIndexOpsMixin,
         return attrs
 
     def _add_delta(self, delta):
+        """
+        Add a timedelta-like, DateOffset, or TimedeltaIndex-like object
+        to self.
+
+        Parameters
+        ----------
+        delta : {timedelta, np.timedelta64, DateOffset,
+                 TimedelaIndex, ndarray[timedelta64]}
+
+        Returns
+        -------
+        result : DatetimeIndex
+
+        Notes
+        -----
+        The result's name is set outside of _add_delta by the calling
+        method (__add__ or __sub__)
+        """
         from pandas import TimedeltaIndex
 
         if isinstance(delta, (Tick, timedelta, np.timedelta64)):

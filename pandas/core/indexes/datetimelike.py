@@ -688,8 +688,8 @@ class DatetimeIndexOpsMixin(object):
                 return NotImplemented
 
             if result is not NotImplemented:
-                res_name = ops._get_series_op_result_name(self, other)
-                result = result.rename(name=res_name)
+                res_name = ops.get_op_result_name(self, other)
+                result = result.rename(name=res_name, inplace=True)
             return result
 
         cls.__add__ = __add__
@@ -737,8 +737,8 @@ class DatetimeIndexOpsMixin(object):
                 return NotImplemented
 
             if result is not NotImplemented:
-                res_name = ops._get_series_op_result_name(self, other)
-                result = result.rename(name=res_name)
+                res_name = ops.get_op_result_name(self, other)
+                result = result.rename(name=res_name, inplace=True)
             return result
 
         cls.__sub__ = __sub__

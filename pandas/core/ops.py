@@ -43,6 +43,32 @@ from pandas.core.dtypes.generic import (
 
 
 # -----------------------------------------------------------------------------
+# Ops Wrapping Utilities
+
+def get_op_result_name(left, right):
+    """
+    Find the appropriate name to pin to an operation result.  This result
+    should always be either an Index or a Series.
+
+    Parameters
+    ----------
+    left : {Series, Index}
+    right : object
+
+    Returns
+    -------
+    name : object
+        Usually a string
+    """
+    # `left` is always a pd.Series when called from within ops
+    if isinstance(right, (ABCSeries, pd.Index)):
+        name = com._maybe_match_name(left, right)
+    else:
+        name = left.name
+    return name
+
+
+# -----------------------------------------------------------------------------
 # Reversed Operations not available in the stdlib operator module.
 # Defining these instead of using lambdas allows us to reference them by name.
 
@@ -747,7 +773,7 @@ def _arith_method_SERIES(op, name, str_rep):
             return NotImplemented
 
         left, right = _align_method_SERIES(left, right)
-        res_name = _get_series_op_result_name(left, right)
+        res_name = get_op_result_name(left, right)
 
         if is_datetime64_dtype(left) or is_datetime64tz_dtype(left):
             result = dispatch_to_index_op(op, left, right, pd.DatetimeIndex)
@@ -809,15 +835,6 @@ def dispatch_to_index_op(op, left, right, index_class):
         raise TypeError('incompatible type for a datetime/timedelta '
                         'operation [{name}]'.format(name=op.__name__))
     return result
-
-
-def _get_series_op_result_name(left, right):
-    # `left` is always a pd.Series
-    if isinstance(right, (ABCSeries, pd.Index)):
-        name = com._maybe_match_name(left, right)
-    else:
-        name = left.name
-    return name
 
 
 def _comp_method_OBJECT_ARRAY(op, x, y):
