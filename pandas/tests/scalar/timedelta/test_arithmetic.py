@@ -41,6 +41,14 @@ class TestTimedeltaAdditionSubtraction(object):
         assert isinstance(result, Timestamp)
         assert result == Timestamp('2018-01-22')
 
+        result = op(td, NaT)
+        assert result is NaT
+
+        with pytest.raises(TypeError):
+            op(td, 2)
+        with pytest.raises(TypeError):
+            op(td, 2.0)
+
     @pytest.mark.parametrize('op', [operator.add, ops.radd])
     def test_td_add_td(self, op):
         td = Timedelta(10, unit='d')
@@ -63,7 +71,7 @@ class TestTimedeltaAdditionSubtraction(object):
         result = op(td, np.timedelta64(-4, 'D'))
         assert isinstance(result, Timedelta)
         assert result == Timedelta(days=6)
-    
+
     @pytest.mark.parametrize('op', [operator.add, ops.radd])
     def test_td_add_offset(self, op):
         td = Timedelta(10, unit='d')
@@ -89,16 +97,35 @@ class TestTimedeltaAdditionSubtraction(object):
     @pytest.mark.xfail(reason='GH#19738 argument not converted to Timedelta')
     def test_td_sub_timedelta64(self):
         td = Timedelta(10, unit='d')
+        expected = Timedelta(0, unit='ns')
         result = td - td.to_timedelta64()
         assert isinstance(result, Timedelta)
         # comparison fails even if we comment out the isinstance assertion
-        assert result == expected  
+        assert result == expected
+
+    def test_td_sub_nat(self):
+        td = Timedelta(10, unit='d')
+        result = td - NaT
+        assert result is NaT
+
+    @pytest.mark.xfail(reason='GH#19738 argument not converted to Timedelta')
+    def test_td_sub_td64_nat(self):
+        td = Timedelta(10, unit='d')
+        result = td - np.timedelta64('NaT')
+        assert result is NaT
 
     def test_td_sub_offset(self):
         td = Timedelta(10, unit='d')
         result = td - pd.offsets.Hour(1)
         assert isinstance(result, Timedelta)
         assert result == Timedelta(239, unit='h')
+
+    def test_td_sub_numeric_raises(self):
+        td = td = Timedelta(10, unit='d')
+        with pytest.raises(TypeError):
+            td - 2
+        with pytest.raises(TypeError):
+            td - 2.0
 
     def test_td_rsub_pytimedelta(self):
         td = Timedelta(10, unit='d')
@@ -117,10 +144,31 @@ class TestTimedeltaAdditionSubtraction(object):
         assert isinstance(result, Timedelta)
         assert result == expected
 
+    def test_td_rsub_nat(self):
+        td = Timedelta(10, unit='d')
+        result = NaT - td
+        assert result is NaT
+
+        result = np.datetime64('NaT') - td
+        assert result is NaT
+
+    @pytest.mark.xfail(reason='GH#19738 argument not converted to Timedelta')
+    def test_td_rsub_td64_nat(self):
+        td = Timedelta(10, unit='d')
+        result = np.timedelta64('NaT') - td
+        assert result is NaT
+
     def test_td_rsub_offset(self):
         result = pd.offsets.Hour(1) - Timedelta(10, unit='d')
         assert isinstance(result, Timedelta)
         assert result == Timedelta(-239, unit='h')
+
+    def test_td_rsub_numeric_raises(self):
+        td = td = Timedelta(10, unit='d')
+        with pytest.raises(TypeError):
+            2 - td
+        with pytest.raises(TypeError):
+            2.0 - td
 
 
 class TestTimedeltaMultiplicationDivision(object):
@@ -150,6 +198,9 @@ class TestTimedeltaMultiplicationDivision(object):
         assert result == Timedelta(minutes=4, seconds=30)
 
         assert op(td, np.nan) is NaT
+
+        assert op(-1, td).value == -1 * td.value
+        assert op(-1.0, td).value == -1.0 * td.value
 
         with pytest.raises(TypeError):
             # timedelta * datetime is gibberish

@@ -120,22 +120,8 @@ class TestTimedeltaArithmetic(object):
 
     def test_binary_ops_nat(self):
         td = Timedelta(10, unit='d')
-
-        assert (td - pd.NaT) is pd.NaT
-        assert (td + pd.NaT) is pd.NaT
         # FIXME: The next test is wrong: td * NaT should raise
         assert (td * pd.NaT) is pd.NaT
-
-    def test_binary_ops_integers(self):
-        td = Timedelta(10, unit='d')
-
-        # invert
-        assert td * -1 == Timedelta('-10d')
-        assert -1 * td == Timedelta('-10d')
-
-        # can't operate with integers
-        pytest.raises(TypeError, lambda: td + 2)
-        pytest.raises(TypeError, lambda: td - 2)
 
 
 class TestTimedeltaComparison(object):
