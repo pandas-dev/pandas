@@ -102,7 +102,10 @@ usecols : array-like or callable, default None
     that correspond to column names provided either by the user in `names` or
     inferred from the document header row(s). For example, a valid array-like
     `usecols` parameter would be [0, 1, 2] or ['foo', 'bar', 'baz']. Element
-    order is ignored, so usecols=[1,0] is the same as [0,1].
+    order is ignored, so usecols=[1,0] is the same as [0,1]. To instantiate a
+    DataFrame with element order preserved use
+    ``pd.read_csv(usecols=[0, 1])[[0, 1]]`` for columns in ``[1, 0]``
+    order or ``pd.read_csv(usecols=[0, 1])[[0, 1]]`` for ``[0, 1]`` order.
 
     If callable, the callable function will be evaluated against the column
     names, returning names where the callable function evaluates to True. An
