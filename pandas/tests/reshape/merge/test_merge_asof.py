@@ -111,10 +111,10 @@ class TestAsOfMerge(object):
                      'bid', 'ask'])
 
         result = pd.merge_asof(trades, quotes,
-                      on='time',
-                      by='ticker',
-                      tolerance=pd.Timedelta('10ms'),
-                      allow_exact_matches=False)
+                               on='time',
+                               by='ticker',
+                               tolerance=pd.Timedelta('10ms'),
+                               allow_exact_matches=False)
         assert_frame_equal(result, expected)
 
     def test_examples3(self):
