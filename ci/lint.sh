@@ -160,7 +160,7 @@ if [ "$LINT" ]; then
     echo "Checking for '.. ipython:: python' lines missing the 'python' word"
     # Check for '.. ipython:: python' with missing
     grep -R --include="*.rst" -E "\.{2}.+ipython" -h doc | grep 'python' -v -i
-        if [ $? = "0" ]; then
+    if [ $? = "0" ]; then
         RET=1
     fi
     echo "Checking for '.. ipython:: python' lines missing the 'python' word DONE"
