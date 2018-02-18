@@ -27,7 +27,7 @@ the :meth:`~DataFrame.info`. A configuration option, ``display.memory_usage``
 (see :ref:`options`), specifies if the ``DataFrame``'s memory usage will be 
 displayed when invoking the ``df.info()`` method.
 
-For example, the memory usage of the `DataFrame` below is shown
+For example, the memory usage of the ``DataFrame`` below is shown
 when calling :meth:`~DataFrame.info`:
 
 .. ipython:: python
@@ -61,7 +61,7 @@ The memory usage of each column can be found by calling the
 :meth:`~DataFrame.memory_usage` method. This returns a ``Series`` with an index 
 represented by column names and memory usage of each column shown in bytes. For 
 the ``DataFrame`` above, the memory usage of each column and the total memory 
-usage of the ``DataFrame`` can be found with the ``memory_usage`` method:
+usage can be found with the ``memory_usage`` method:
 
 .. ipython:: python
 
@@ -92,7 +92,7 @@ Using If/Truth Statements with pandas
 
 pandas follows the NumPy convention of raising an error when you try to convert 
 something to a ``bool``. This happens in an ``if``-statement or when using the 
-boolean operations, ``and``, ``or``, or ``not``. It is not clear what the result
+boolean operations: ``and``, ``or``, and ``not``. It is not clear what the result
 of the following code should be:
 
 .. code-block:: python
@@ -100,7 +100,7 @@ of the following code should be:
     >>> if pd.Series([False, True, False]):
          ...
 
-Should it be ``True`` because it's not zero-length, or``False`` because there 
+Should it be ``True`` because it's not zero-length, or ``False`` because there 
 are ``False`` values? It is unclear, so instead, pandas raises a ``ValueError``:
 
 .. code-block:: python
@@ -111,9 +111,8 @@ are ``False`` values? It is unclear, so instead, pandas raises a ``ValueError``:
         ...
     ValueError: The truth value of an array is ambiguous. Use a.empty, a.any() or a.all().
 
-Instead you need to explicitly choose what you want to do with it 
-(e.g., use :meth:`~DataFrame.any`, :meth:`~DataFrame.all` or 
-:meth:`~DataFrame.empty`).
+You need to explicitly choose what you want to do with the ``DataFrame``, e.g.
+use :meth:`~DataFrame.any`, :meth:`~DataFrame.all` or :meth:`~DataFrame.empty`.
 Alternatively, you might want to compare if the pandas object is ``None``:
 
 .. code-block:: python
@@ -123,7 +122,7 @@ Alternatively, you might want to compare if the pandas object is ``None``:
     >>> I was not None
 
 
-Below is how to check if any of the values equals ``True``:
+Below is how to check if any of the values are ``True``:
 
 .. code-block:: python
 
