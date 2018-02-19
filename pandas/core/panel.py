@@ -1020,7 +1020,7 @@ class Panel(NDFrame):
 
         Equivalent to previous:
 
-        >>> p.apply(lambda x: x.sum(), axis='minor')
+        >>> p.apply(lambda x: x.sum(), axis='major')
 
         Return the shapes of each DataFrame over axis 2 (i.e the shapes of
         items x major), as a Series
