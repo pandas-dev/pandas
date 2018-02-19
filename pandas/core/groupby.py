@@ -1,5 +1,5 @@
 import types
-from functools import wraps
+from functools import wraps, partial
 import numpy as np
 import datetime
 import collections
@@ -1457,25 +1457,14 @@ class GroupBy(_GroupBy):
         from pandas.core.window import ExpandingGroupby
         return ExpandingGroupby(self, *args, **kwargs)
 
-    def _fill(self, how, limit=None):
-        labels, _, _ = self.grouper.group_info
-
+    def _fill(self, direction, limit=None):
         # Need int value for Cython
         if limit is None:
             limit = -1
-        output = {}
-        if type(self) is DataFrameGroupBy:
-            for grp in self.grouper.groupings:
-                ser = grp.group_index.take(grp.labels)
-                output[ser.name] = ser.values
-        for name, obj in self._iterate_slices():
-            indexer = np.zeros_like(labels)
-            mask = isnull(obj.values).view(np.uint8)
-            libgroupby.group_fillna_indexer(indexer, mask, labels, how,
-                                            limit)
-            output[name] = algorithms.take_nd(obj.values, indexer)
 
-        return self._wrap_transformed_output(output)
+        return self._get_cythonized_result('group_fillna_indexer',
+                                           self.grouper, needs_mask=True,
+                                           direction=direction, limit=limit)
 
     @Substitution(name='groupby')
     def pad(self, limit=None):
@@ -1863,6 +1852,52 @@ class GroupBy(_GroupBy):
 
         return self._cython_transform('cummax', numeric_only=False)
 
+    def _get_cythonized_result(self, how, grouper, needs_mask=False,
+                               needs_ngroups=False, **kwargs):
+        """Get result for Cythonized functions
+
+        Parameters
+        ----------
+        how : str, Cythonized function name to be called
+        grouper : Grouper object containing pertinent group info
+        needs_mask : bool, default False
+            Whether boolean mask needs to be part of the Cython call signature
+        needs_ngroups : bool, default False
+            Whether number of groups part of the Cython call signature
+        **kwargs : dict
+            Extra arguments required for the given function. This method
+            internally stores an OrderedDict that maps those keywords to
+            positional arguments before calling the Cython layer
+
+        Returns
+        -------
+        GroupBy object populated with appropriate result(s)
+        """
+        exp_kwds = collections.OrderedDict([
+            (('group_fillna_indexer'), ('direction', 'limit')),
+            (('group_shift_indexer'), ('nperiods',))])
+
+        labels, _, ngroups = grouper.group_info
+        output = collections.OrderedDict()
+        base_func = getattr(libgroupby, how)
+
+        for name, obj in self._iterate_slices():
+            indexer = np.zeros_like(labels)
+            func = partial(base_func, indexer, labels)
+            if needs_mask:
+                mask = isnull(obj.values).astype(np.uint8, copy=False)
+                func = partial(func, mask)
+
+            if needs_ngroups:
+                func = partial(func, ngroups)
+
+            # Convert any keywords into positional arguments
+            func = partial(func, *(kwargs[x] for x in exp_kwds[how]))
+            func()  # Call func to modify indexer values in place
+            output[name] = algorithms.take_nd(obj.values, indexer)
+
+        return self._wrap_transformed_output(output)
+
     @Substitution(name='groupby')
     @Appender(_doc_template)
     def shift(self, periods=1, freq=None, axis=0):
@@ -1880,17 +1915,10 @@ class GroupBy(_GroupBy):
         if freq is not None or axis != 0:
             return self.apply(lambda x: x.shift(periods, freq, axis))
 
-        labels, _, ngroups = self.grouper.group_info
+        return self._get_cythonized_result('group_shift_indexer',
+                                           self.grouper, needs_ngroups=True,
+                                           nperiods=periods)
 
-        # filled in by Cython
-        indexer = np.zeros_like(labels)
-        libgroupby.group_shift_indexer(indexer, labels, ngroups, periods)
-
-        output = {}
-        for name, obj in self._iterate_slices():
-            output[name] = algorithms.take_nd(obj.values, indexer)
-
-        return self._wrap_transformed_output(output)
 
     @Substitution(name='groupby')
     @Appender(_doc_template)
@@ -3597,7 +3625,6 @@ class SeriesGroupBy(GroupBy):
     def value_counts(self, normalize=False, sort=True, ascending=False,
                      bins=None, dropna=True):
 
-        from functools import partial
         from pandas.core.reshape.tile import cut
         from pandas.core.reshape.merge import _get_join_indexers
 
@@ -4605,9 +4632,18 @@ class DataFrameGroupBy(NDFrameGroupBy):
              in self._iterate_column_groupbys()),
             keys=self._selected_obj.columns, axis=1)
 
+    def _fill(self, direction, limit=None):
+        """Overriden method to concat grouped columns in output"""
+        res = super()._fill(direction, limit=limit)
+        output = collections.OrderedDict()
+        for grp in self.grouper.groupings:
+            ser = grp.group_index.take(grp.labels)
+            output[ser.name] = ser.values
+
+        return self._wrap_transformed_output(output).join(res)
+
     def count(self):
         """ Compute count of group, excluding missing values """
-        from functools import partial
         from pandas.core.dtypes.missing import _isna_ndarraylike as isna
 
         data, _ = self._get_data_to_aggregate()
