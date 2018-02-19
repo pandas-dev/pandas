@@ -844,6 +844,4 @@ def _make_index(length, indices, kind):
 
 
 ops.add_special_arithmetic_methods(SparseArray,
-                                   arith_method=ops._arith_method_SPARSE_ARRAY,
-                                   comp_method=ops._arith_method_SPARSE_ARRAY,
-                                   bool_method=ops._arith_method_SPARSE_ARRAY)
+                                   **ops.sparse_array_special_funcs)

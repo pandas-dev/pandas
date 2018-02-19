@@ -817,6 +817,4 @@ ops.add_flex_arithmetic_methods(SparseSeries, **ops.series_flex_funcs)
 # overwrite basic arithmetic to use SparseSeries version
 # force methods to overwrite previous definitions.
 ops.add_special_arithmetic_methods(SparseSeries,
-                                   ops._arith_method_SPARSE_SERIES,
-                                   comp_method=ops._arith_method_SPARSE_SERIES,
-                                   bool_method=None)
+                                   **ops.sparse_series_special_funcs)
