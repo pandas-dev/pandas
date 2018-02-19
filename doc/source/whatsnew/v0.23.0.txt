@@ -197,6 +197,7 @@ A ``DataFrame`` can now be written to and subsequently read back via JSON while 
 Please note that the string `index` is not supported with the round trip format, as it is used by default in ``write_json`` to indicate a missing index name.
 
 .. ipython:: python
+   :okwarning:
 
    df.index.name = 'index'
    df.to_json('test.json', orient='table')
