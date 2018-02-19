@@ -31,6 +31,26 @@ def all_data(request, data, data_missing):
 
 
 @pytest.fixture
+def data_for_sorting():
+    """Length-3 array with a known sort order.
+
+    This should be three items [B, C, A] with
+    A < B < C
+    """
+    raise NotImplementedError
+
+
+@pytest.fixture
+def data_missing_for_sorting():
+    """Length-3 array with a known sort order.
+
+    This should be three items [B, NA, A] with
+    A < B and NA missing.
+    """
+    raise NotImplementedError
+
+
+@pytest.fixture
 def na_cmp():
     """Binary operator for comparing NA values.
 

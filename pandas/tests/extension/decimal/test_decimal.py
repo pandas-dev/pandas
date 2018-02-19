@@ -26,6 +26,20 @@ def data_missing():
 
 
 @pytest.fixture
+def data_for_sorting():
+    return DecimalArray([decimal.Decimal('1'),
+                         decimal.Decimal('2'),
+                         decimal.Decimal('0')])
+
+
+@pytest.fixture
+def data_missing_for_sorting():
+    return DecimalArray([decimal.Decimal('1'),
+                         decimal.Decimal('NaN'),
+                         decimal.Decimal('0')])
+
+
+@pytest.fixture
 def na_cmp():
     return lambda x, y: x.is_nan() and y.is_nan()
 
@@ -35,19 +49,32 @@ def na_value():
     return decimal.Decimal("NaN")
 
 
-class TestDtype(base.BaseDtypeTests):
+class BaseDecimal(object):
+    @staticmethod
+    def assert_series_equal(left, right, *args, **kwargs):
+
+        left_na = left.isna()
+        right_na = right.isna()
+
+        tm.assert_series_equal(left_na, right_na)
+        return tm.assert_series_equal(left[~left_na],
+                                      right[~right_na],
+                                      *args, **kwargs)
+
+
+class TestDtype(BaseDecimal, base.BaseDtypeTests):
     pass
 
 
-class TestInterface(base.BaseInterfaceTests):
+class TestInterface(BaseDecimal, base.BaseInterfaceTests):
     pass
 
 
-class TestConstructors(base.BaseConstructorsTests):
+class TestConstructors(BaseDecimal, base.BaseConstructorsTests):
     pass
 
 
-class TestReshaping(base.BaseReshapingTests):
+class TestReshaping(BaseDecimal, base.BaseReshapingTests):
 
     def test_align(self, data, na_value):
         # Have to override since assert_series_equal doesn't
@@ -88,15 +115,15 @@ class TestReshaping(base.BaseReshapingTests):
         assert e2.loc[0, 'A'].is_nan()
 
 
-class TestGetitem(base.BaseGetitemTests):
+class TestGetitem(BaseDecimal, base.BaseGetitemTests):
     pass
 
 
-class TestMissing(base.BaseMissingTests):
+class TestMissing(BaseDecimal, base.BaseMissingTests):
     pass
 
 
-class TestMethods(base.BaseMethodsTests):
+class TestMethods(BaseDecimal, base.BaseMethodsTests):
     @pytest.mark.parametrize('dropna', [True, False])
     @pytest.mark.xfail(reason="value_counts not implemented yet.")
     def test_value_counts(self, all_data, dropna):
@@ -112,7 +139,7 @@ class TestMethods(base.BaseMethodsTests):
         tm.assert_series_equal(result, expected)
 
 
-class TestCasting(base.BaseCastingTests):
+class TestCasting(BaseDecimal, base.BaseCastingTests):
     pass
 
 

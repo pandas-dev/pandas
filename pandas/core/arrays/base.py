@@ -216,6 +216,27 @@ class ExtensionArray(object):
         """
         raise AbstractMethodError(self)
 
+    def argsort(self, axis=-1, kind='quicksort', order=None):
+        """Returns the indices that would sort this array.
+
+        Parameters
+        ----------
+        axis : int or None, optional
+            Axis along which to sort. ExtensionArrays are 1-dimensional,
+            so this is only included for compatibility with NumPy.
+        kind : {'quicksort', 'mergesort', 'heapsort'}, optional
+            Sorting algorithm.
+        order : str or list of str, optional
+            Included for NumPy compatibility.
+
+        Returns
+        -------
+        index_array : ndarray
+            Array of indices that sort ``self``.
+
+        """
+        return np.array(self).argsort(kind=kind)
+
     # ------------------------------------------------------------------------
     # Indexing methods
     # ------------------------------------------------------------------------

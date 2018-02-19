@@ -30,6 +30,16 @@ def data_missing():
 
 
 @pytest.fixture
+def data_for_sorting():
+    return JSONArray([{'b': 1}, {'c': 4}, {'a': 2, 'c': 3}])
+
+
+@pytest.fixture
+def data_missing_for_sorting():
+    return JSONArray([{'b': 1}, {}, {'c': 4}])
+
+
+@pytest.fixture
 def na_value():
     return {}
 
@@ -66,6 +76,26 @@ class TestMissing(base.BaseMissingTests):
 class TestMethods(base.BaseMethodsTests):
     @pytest.mark.skip(reason="Unhashable")
     def test_value_counts(self, all_data, dropna):
+        pass
+
+    @pytest.mark.skip(reason="Dictionaries are not orderable.")
+    def test_argsort(self):
+        pass
+
+    @pytest.mark.skip(reason="Dictionaries are not orderable.")
+    def test_argsort_missing(self):
+        pass
+
+    @pytest.mark.skip(reason="Dictionaries are not orderable.")
+    def test_sort_values(self):
+        pass
+
+    @pytest.mark.skip(reason="Dictionaries are not orderable.")
+    def test_sort_values_missing(self):
+        pass
+
+    @pytest.mark.skip(reason="Dictionaries are not orderable.")
+    def test_sort_values_frame(self):
         pass
 
 
