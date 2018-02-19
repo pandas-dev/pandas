@@ -388,6 +388,23 @@ Convert to an xarray DataArray
 
    p.to_xarray()
 
+
+
+.. _whatsnew_0230.api_breaking.core_common:
+
+pandas.core.common removals
+~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+The following error & warning messages are removed from ``pandas.core.common`` (:issue:`13634`, :issue:`19769`):
+
+- ``PerformanceWarning``
+- ``UnsupportedFunctionCall``
+- ``UnsortedIndexError``
+- ``AbstractMethodError``
+
+These are available from import from ``pandas.errors`` (since 0.19.0).
+
+
 .. _whatsnew_0230.api_breaking.apply:
 
 Changes to make output of ``DataFrame.apply`` consistent
@@ -638,7 +655,7 @@ Removal of prior version deprecations/changes
 - The modules `pandas.tools.hashing` and `pandas.util.hashing` have been removed (:issue:`16223`)
 - The top-level functions ``pd.rolling_*``, ``pd.expanding_*`` and ``pd.ewm*`` have been removed (Deprecated since v0.18).
   Instead, use the DataFrame/Series methods :attr:`~DataFrame.rolling`, :attr:`~DataFrame.expanding` and :attr:`~DataFrame.ewm` (:issue:`18723`)
-- Imports from ``pandas.core.common`` for api like functions such as ``is_datetime64_dtype`` are now removed. These are located in ``pandas.api.types``. Furthermore, errors are removed as well from ``pandas.core.common`` and are available in ``pandas.errors`` (:issue:`13990`)
+- Imports from ``pandas.core.common`` for functions such as ``is_datetime64_dtype`` are now removed. These are located in ``pandas.api.types``. (:issue:`13634`, :issue:`19769`)
 
 .. _whatsnew_0230.performance:
 
