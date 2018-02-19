@@ -100,7 +100,6 @@ class TestTimedeltaAdditionSubtraction(object):
         assert isinstance(result, Timedelta)
         assert result == Timedelta(days=19)
 
-    @pytest.mark.xfail(reason='GH#19738 argument not converted to Timedelta')
     @pytest.mark.parametrize('op', [operator.add, ops.radd])
     def test_td_add_timedelta64(self, op):
         td = Timedelta(10, unit='d')
@@ -130,13 +129,11 @@ class TestTimedeltaAdditionSubtraction(object):
         assert isinstance(result, Timedelta)
         assert result == expected
 
-    @pytest.mark.xfail(reason='GH#19738 argument not converted to Timedelta')
     def test_td_sub_timedelta64(self):
         td = Timedelta(10, unit='d')
         expected = Timedelta(0, unit='ns')
         result = td - td.to_timedelta64()
         assert isinstance(result, Timedelta)
-        # comparison fails even if we comment out the isinstance assertion
         assert result == expected
 
     def test_td_sub_nat(self):
@@ -144,7 +141,6 @@ class TestTimedeltaAdditionSubtraction(object):
         result = td - NaT
         assert result is NaT
 
-    @pytest.mark.xfail(reason='GH#19738 argument not converted to Timedelta')
     def test_td_sub_td64_nat(self):
         td = Timedelta(10, unit='d')
         result = td - np.timedelta64('NaT')
@@ -171,7 +167,6 @@ class TestTimedeltaAdditionSubtraction(object):
         assert isinstance(result, Timedelta)
         assert result == expected
 
-    @pytest.mark.xfail(reason='GH#19738 argument not converted to Timedelta')
     def test_td_rsub_timedelta64(self):
         td = Timedelta(10, unit='d')
         expected = Timedelta(0, unit='ns')
@@ -188,7 +183,6 @@ class TestTimedeltaAdditionSubtraction(object):
         result = np.datetime64('NaT') - td
         assert result is NaT
 
-    @pytest.mark.xfail(reason='GH#19738 argument not converted to Timedelta')
     def test_td_rsub_td64_nat(self):
         td = Timedelta(10, unit='d')
         result = np.timedelta64('NaT') - td
@@ -304,6 +298,12 @@ class TestTimedeltaMultiplicationDivision(object):
         assert np.isnan(td // NaT)
         assert np.isnan(td // np.timedelta64('NaT'))
 
+    def test_td_floordiv_offsets(self):
+        # GH#19738
+        td = Timedelta(hours=3, minutes=4)
+        assert td // pd.offsets.Hour(1) == 3
+        assert td // pd.offsets.Minute(2) == 92
+
     def test_td_floordiv_invalid_scalar(self):
         # GH#18846
         td = Timedelta(hours=3, minutes=4)
@@ -322,7 +322,7 @@ class TestTimedeltaMultiplicationDivision(object):
         assert td // np.int32(2.0) == expected
         assert td // np.uint8(2.0) == expected
 
-    def test_floordiv_timedeltalike_array(self):
+    def test_td_floordiv_timedeltalike_array(self):
         # GH#18846
         td = Timedelta(hours=3, minutes=4)
         scalar = Timedelta(hours=3, minutes=3)
@@ -370,6 +370,10 @@ class TestTimedeltaMultiplicationDivision(object):
 
         assert np.isnan(td.__rfloordiv__(NaT))
         assert np.isnan(td.__rfloordiv__(np.timedelta64('NaT')))
+
+    def test_td_rfloordiv_offsets(self):
+        # GH#19738
+        assert pd.offsets.Hour(1) // Timedelta(minutes=25) == 2
 
     def test_td_rfloordiv_invalid_scalar(self):
         # GH#18846
