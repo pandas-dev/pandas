@@ -4637,7 +4637,7 @@ class DataFrameGroupBy(NDFrameGroupBy):
         res = super()._fill(direction, limit=limit)
         output = collections.OrderedDict(
             (grp.name, grp.group_index.take(grp.labels)) for grp in
-             self.grouper.groupings)
+            self.grouper.groupings)
 
         return self._wrap_transformed_output(output).join(res)
 
