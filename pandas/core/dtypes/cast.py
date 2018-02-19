@@ -860,7 +860,9 @@ def maybe_castable(arr):
     return arr.dtype.name not in _POSSIBLY_CAST_DTYPES
 
 
-def maybe_infer_to_datetimelike(value, convert_dates=False):
+def maybe_infer_to_datetimelike(value,
+                                convert_dates=False,
+                                require_iso8601=False):
     """
     we might have a array (or single object) that is datetime like,
     and no dtype is passed don't change the value unless we find a
@@ -875,6 +877,8 @@ def maybe_infer_to_datetimelike(value, convert_dates=False):
     convert_dates : boolean, default False
        if True try really hard to convert dates (such as datetime.date), other
        leave inferred dtype 'date' alone
+    require_iso8601 : boolean, default False
+        If True, only try to infer ISO8601-compliant datetime string.
 
     """
 
@@ -901,18 +905,19 @@ def maybe_infer_to_datetimelike(value, convert_dates=False):
     if not len(v):
         return value
 
-    def try_datetime(v):
+    def try_datetime(v, require_iso8601=require_iso8601):
         # safe coerce to datetime64
         try:
-            v = tslib.array_to_datetime(v, errors='raise')
+            v = tslib.array_to_datetime(v,
+                                        require_iso8601=require_iso8601,
+                                        errors='raise')
         except ValueError:
-
             # we might have a sequence of the same-datetimes with tz's
             # if so coerce to a DatetimeIndex; if they are not the same,
             # then these stay as object dtype
             try:
                 from pandas import to_datetime
-                return to_datetime(v)
+                return to_datetime(v, require_iso8601=require_iso8601)
             except Exception:
                 pass
 
@@ -933,6 +938,7 @@ def maybe_infer_to_datetimelike(value, convert_dates=False):
 
     inferred_type = lib.infer_datetimelike_array(_ensure_object(v))
 
+    # TODO if any column is datetime and others are numeric or object, the inferred_type will be datetime.
     if inferred_type == 'date' and convert_dates:
         value = try_datetime(v)
     elif inferred_type == 'datetime':
@@ -957,7 +963,8 @@ def maybe_infer_to_datetimelike(value, convert_dates=False):
     return value
 
 
-def maybe_cast_to_datetime(value, dtype, errors='raise'):
+def maybe_cast_to_datetime(value, dtype, require_iso8601=False,
+                           errors='raise'):
     """ try to cast the array/value to a datetimelike dtype, converting float
     nan to iNaT
     """
@@ -1074,7 +1081,9 @@ def maybe_cast_to_datetime(value, dtype, errors='raise'):
         # conversion
         elif not (is_array and not (issubclass(value.dtype.type, np.integer) or
                                     value.dtype == np.object_)):
-            value = maybe_infer_to_datetimelike(value)
+            value = \
+                maybe_infer_to_datetimelike(value,
+                                            require_iso8601=require_iso8601)
 
     return value
 
