@@ -767,7 +767,6 @@ class DataFrame(NDFrame):
                       require_iso8601=require_iso8601)
             yield k, s
 
-
     def itertuples(self, index=True, name="Pandas"):
         """
         Iterate over DataFrame rows as namedtuples, with index value as first
