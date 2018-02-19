@@ -29,7 +29,7 @@ from pandas.core.sorting import (get_group_index, get_compressed_ids,
 import pandas.core.algorithms as algos
 from pandas._libs import algos as _algos, reshape as _reshape
 
-from pandas.core.index import Index, MultiIndex, _get_na_value
+from pandas.core.index import Index, MultiIndex
 
 
 class _Unstacker(object):
@@ -260,7 +260,7 @@ class _Unstacker(object):
                 return self.removed_level
 
             lev = self.removed_level
-            return lev.insert(0, _get_na_value(lev.dtype.type))
+            return lev.insert(0, lev._na_value)
 
         stride = len(self.removed_level) + self.lift
         width = len(self.value_columns)
@@ -299,7 +299,7 @@ class _Unstacker(object):
         if len(self.new_index_levels) == 1:
             lev, lab = self.new_index_levels[0], result_labels[0]
             if (lab == -1).any():
-                lev = lev.insert(len(lev), _get_na_value(lev.dtype.type))
+                lev = lev.insert(len(lev), lev._na_value)
             return lev.take(lab)
 
         return MultiIndex(levels=self.new_index_levels, labels=result_labels,

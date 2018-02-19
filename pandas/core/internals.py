@@ -3604,8 +3604,8 @@ class BlockManager(PandasObject):
                         placement=np.arange(len(values)))],
             axes[0])
 
-    def isna(self, **kwargs):
-        return self.apply('apply', **kwargs)
+    def isna(self, func, **kwargs):
+        return self.apply('apply', func=func, **kwargs)
 
     def where(self, **kwargs):
         return self.apply('where', **kwargs)
