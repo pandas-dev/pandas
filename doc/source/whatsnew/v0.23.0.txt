@@ -833,6 +833,7 @@ MultiIndex
 - Bug in :func:`MultiIndex.get_loc` which would cast boolean to integer labels (:issue:`19086`)
 - Bug in :func:`MultiIndex.get_loc` which would fail to locate keys containing ``NaN`` (:issue:`18485`)
 - Bug in :func:`MultiIndex.get_loc` in large :class:`MultiIndex`, would fail when levels had different dtypes (:issue:`18520`)
+- Bug in indexing where nested indexers having only numpy arrays are handled incorrectly (:issue:`19686`)
 
 
 I/O
