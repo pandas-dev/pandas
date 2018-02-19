@@ -1403,7 +1403,7 @@ cdef class _Period(object):
         Examples
         --------
 
-        >>> a = Period(freq='Q@JUL', year=2006, quarter=1)
+        >>> a = Period(freq='Q-JUL', year=2006, quarter=1)
         >>> a.strftime('%F-Q%q')
         '2006-Q1'
         >>> # Output the last month in the quarter of this date
