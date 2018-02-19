@@ -938,7 +938,6 @@ def maybe_infer_to_datetimelike(value,
 
     inferred_type = lib.infer_datetimelike_array(_ensure_object(v))
 
-    # TODO if any column is datetime and others are numeric or object, the inferred_type will be datetime.
     if inferred_type == 'date' and convert_dates:
         value = try_datetime(v)
     elif inferred_type == 'datetime':
