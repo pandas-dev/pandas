@@ -23,23 +23,7 @@ fi
 export PYTHONHASHSEED=$(python -c 'import random; print(random.randint(1, 4294967295))')
 echo PYTHONHASHSEED=$PYTHONHASHSEED
 
-if [ "$PIP_BUILD_TEST" ] ; then
-    echo "[build-test]"
-
-    echo "[env]"
-    pip list --format columns |grep pandas
-
-    echo "[running]"
-    cd /tmp
-    unset PYTHONPATH
-
-    echo "[build-test: single]"
-    python -c 'import pandas; pandas.test(["--skip-slow", "--skip-network", "-r xX", "-m single"])'
-
-    echo "[build-test: not single]"
-    python -c 'import pandas; pandas.test(["-n 2", "--skip-slow", "--skip-network", "-r xX", "-m not single"])'
-
-elif [ "$DOC" ]; then
+if [ "$DOC" ]; then
     echo "We are not running pytest as this is a doc-build"
 
 elif [ "$COVERAGE" ]; then

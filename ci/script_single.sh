@@ -21,10 +21,7 @@ if echo "$TEST_ARGS" | grep -e --skip-network -q; then
     export http_proxy=http://1.2.3.4 https_proxy=http://1.2.3.4;
 fi
 
-if [ "$PIP_BUILD_TEST" ]; then
-    echo "We are not running pytest as this is a build test."
-
-elif [ "$DOC" ]; then
+if [ "$DOC" ]; then
     echo "We are not running pytest as this is a doc-build"
 
 elif [ "$COVERAGE" ]; then

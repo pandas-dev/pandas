@@ -115,15 +115,6 @@ if [ "$COVERAGE" ]; then
     pip install coverage pytest-cov
 fi
 
-echo
-if [ -z "$PIP_BUILD_TEST" ] ; then
-
-    # build but don't install
-    echo "[build em]"
-    time python setup.py build_ext --inplace || exit 1
-
-fi
-
 # we may have run installations
 echo
 echo "[conda installs]"
@@ -161,23 +152,8 @@ conda list pandas
 pip list --format columns |grep pandas
 
 # build and install
-echo
-
-if [ "$PIP_BUILD_TEST" ]; then
-
-    # build & install testing
-    echo "[building release]"
-    time bash scripts/build_dist_for_release.sh || exit 1
-    conda uninstall -y cython
-    time pip install dist/*tar.gz || exit 1
-
-else
-
-    # install our pandas
-    echo "[running setup.py develop]"
-    python setup.py develop  || exit 1
-
-fi
+echo "[running setup.py develop]"
+python setup.py develop  || exit 1
 
 echo
 echo "[show pandas]"
