@@ -1882,10 +1882,10 @@ class GroupBy(_GroupBy):
         base_func = getattr(libgroupby, how)
 
         for name, obj in self._iterate_slices():
-            indexer = np.zeros_like(labels)
+            indexer = np.zeros_like(labels, dtype=np.int64)
             func = partial(base_func, indexer, labels)
             if needs_mask:
-                mask = isnull(obj.values).astype(np.uint8, copy=False)
+                mask = isnull(obj.values).view(np.uint8)
                 func = partial(func, mask)
 
             if needs_ngroups:
@@ -4633,12 +4633,11 @@ class DataFrameGroupBy(NDFrameGroupBy):
             keys=self._selected_obj.columns, axis=1)
 
     def _fill(self, direction, limit=None):
-        """Overriden method to concat grouped columns in output"""
+        """Overriden method to join grouped columns in output"""
         res = super()._fill(direction, limit=limit)
-        output = collections.OrderedDict()
-        for grp in self.grouper.groupings:
-            ser = grp.group_index.take(grp.labels)
-            output[ser.name] = ser.values
+        output = collections.OrderedDict(
+            (grp.name, grp.group_index.take(grp.labels)) for grp in
+             self.grouper.groupings)
 
         return self._wrap_transformed_output(output).join(res)
 
