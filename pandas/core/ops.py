@@ -270,12 +270,14 @@ result : Series
 Examples
 --------
 >>> a = pd.Series([1, 1, 1, np.nan], index=['a', 'b', 'c', 'd'])
+>>> a
 a    1.0
 b    1.0
 c    1.0
 d    NaN
 dtype: float64
 >>> b = pd.Series([1, np.nan, 1, np.nan], index=['a', 'b', 'c_', 'd'])
+>>> b
 a     1.0
 b     NaN
 c_    1.0
@@ -324,6 +326,7 @@ Examples
 --------
 >>> a = pd.DataFrame([1, 1, 1, np.nan], index=['a', 'b', 'c', 'd'],
                      columns=['one'])
+>>> a
    one
 a  1.0
 b  1.0
@@ -332,6 +335,7 @@ d  NaN
 >>> b = pd.DataFrame({'one': [1, np.nan, 1, np.nan],
                       'two': [np.nan, 2, np.nan, 2]}, 
                      index=['a', 'b', 'c_', 'd'])
+>>> b
     one  two
 a   1.0  NaN
 b   NaN  2.0
@@ -378,6 +382,7 @@ Examples
 --------
 >>> a = pd.DataFrame([1, 1, 1, np.nan], index=['a', 'b', 'c', 'd'],
                      columns=['one'])
+>>> a
    one
 a  1.0
 b  1.0
@@ -386,6 +391,7 @@ d  NaN
 >>> b = pd.DataFrame({'one': [1, np.nan, 1, np.nan],
                       'two': [np.nan, 2, np.nan, 2]}, 
                      index=['a', 'b', 'c_', 'd'])
+>>> b
     one  two
 a   1.0  NaN
 b   NaN  2.0
