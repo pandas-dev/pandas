@@ -3,7 +3,6 @@
 import pytest
 
 from warnings import catch_warnings
-import numpy as np
 
 import pandas
 from pandas.api import types

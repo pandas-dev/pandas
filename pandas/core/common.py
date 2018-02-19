@@ -2,8 +2,6 @@
 Misc tools for implementing data structures
 """
 
-import sys
-import warnings
 from datetime import datetime, timedelta
 from functools import partial
 import inspect
@@ -20,7 +18,6 @@ from pandas.core.dtypes.common import _NS_DTYPE
 from pandas.core.dtypes.inference import _iterable_not_string
 from pandas.core.dtypes.missing import isna, isnull, notnull  # noqa
 from pandas.api import types
-from pandas.core.dtypes import common
 from pandas.core.dtypes.cast import construct_1d_object_array_from_listlike
 
 
