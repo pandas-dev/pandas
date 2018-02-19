@@ -92,11 +92,30 @@ class TestAsOfMerge(object):
                       by='ticker',
                       tolerance=pd.Timedelta('2ms'))
 
-        pd.merge_asof(trades, quotes,
-                      on='time',
-                      by='ticker',
-                      tolerance=pd.Timedelta('10ms'),
-                      allow_exact_matches=False)
+        expected = pd.DataFrame({
+            'time': pd.to_datetime(['20160525 13:30:00.023',
+                                    '20160525 13:30:00.038',
+                                    '20160525 13:30:00.048',
+                                    '20160525 13:30:00.048',
+                                    '20160525 13:30:00.048']),
+            'ticker': ['MSFT', 'MSFT', 'GOOG', 'GOOG', 'AAPL'],
+            'price': [51.95, 51.95,
+                      720.77, 720.92, 98.00],
+            'quantity': [75, 155,
+                         100, 100, 100],
+            'bid': [np.nan, 51.97, np.nan,
+                    np.nan, np.nan],
+            'ask': [np.nan, 51.98, np.nan,
+                    np.nan, np.nan]},
+            columns=['time', 'ticker', 'price', 'quantity',
+                     'bid', 'ask'])
+
+        result = pd.merge_asof(trades, quotes,
+                               on='time',
+                               by='ticker',
+                               tolerance=pd.Timedelta('10ms'),
+                               allow_exact_matches=False)
+        assert_frame_equal(result, expected)
 
     def test_examples3(self):
         """ doc-string examples """
