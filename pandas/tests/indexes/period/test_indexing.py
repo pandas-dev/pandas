@@ -14,9 +14,6 @@ from pandas._libs.tslibs import period as libperiod
 
 class TestGetItem(object):
 
-    def setup_method(self, method):
-        pass
-
     def test_getitem(self):
         idx1 = pd.period_range('2011-01-01', '2011-01-31', freq='D',
                                name='idx')

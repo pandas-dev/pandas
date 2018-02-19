@@ -12,13 +12,18 @@ if [ -n "$LOCALE_OVERRIDE" ]; then
     python -c "$pycmd"
 fi
 
+# Enforce absent network during testing by faking a proxy
+if echo "$TEST_ARGS" | grep -e --skip-network -q; then
+    export http_proxy=http://1.2.3.4 https_proxy=http://1.2.3.4;
+fi
+
 # Workaround for pytest-xdist flaky collection order
 # https://github.com/pytest-dev/pytest/issues/920
 # https://github.com/pytest-dev/pytest/issues/1075
 export PYTHONHASHSEED=$(python -c 'import random; print(random.randint(1, 4294967295))')
 echo PYTHONHASHSEED=$PYTHONHASHSEED
 
-if [ "$PIP_BUILD_TEST" ] || [ "$CONDA_BUILD_TEST" ]; then
+if [ "$PIP_BUILD_TEST" ] ; then
     echo "[build-test]"
 
     echo "[env]"
@@ -36,9 +41,6 @@ if [ "$PIP_BUILD_TEST" ] || [ "$CONDA_BUILD_TEST" ]; then
 
 elif [ "$DOC" ]; then
     echo "We are not running pytest as this is a doc-build"
-
-elif [ "$ASV" ]; then
-    echo "We are not running pytest as this is an asv-build"
 
 elif [ "$COVERAGE" ]; then
     echo pytest -s -n 2 -m "not single" --cov=pandas --cov-report xml:/tmp/cov-multiple.xml --junitxml=/tmp/multiple.xml --strict $TEST_ARGS pandas
