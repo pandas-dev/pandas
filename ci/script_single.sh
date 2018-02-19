@@ -16,6 +16,11 @@ if [ "$SLOW" ]; then
     TEST_ARGS="--only-slow --skip-network"
 fi
 
+# Enforce absent network during testing by faking a proxy
+if echo "$TEST_ARGS" | grep -e --skip-network -q; then
+    export http_proxy=http://1.2.3.4 https_proxy=http://1.2.3.4;
+fi
+
 if [ "$PIP_BUILD_TEST" ]; then
     echo "We are not running pytest as this is a build test."
 
