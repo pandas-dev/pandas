@@ -117,6 +117,20 @@ resetting indexes. See the :ref:`Sorting by Indexes and Values
    # Sort by 'second' (index) and 'A' (column)
    df_multi.sort_values(by=['second', 'A'])
 
+.. _whatsnew_0230.enhancements.timedelta_mod
+
+Timedelta mod method
+^^^^^^^^^^^^^^^^^^^^
+
+``mod`` (%) and ``divmod`` operations are now defined on ``Timedelta`` objects
+when operating with either timedelta-like or with numeric arguments.
+See the :ref:`documentation here <timedeltas.mod_divmod>`. (:issue:`19365`)
+
+.. ipython:: python
+
+    td = pd.Timedelta(hours=37)
+    td % pd.Timedelta(minutes=45)
+
 .. _whatsnew_0230.enhancements.ran_inf:
 
 ``.rank()`` handles ``inf`` values when ``NaN`` are present

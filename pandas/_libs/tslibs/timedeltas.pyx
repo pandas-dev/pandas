@@ -1149,6 +1149,24 @@ class Timedelta(_Timedelta):
             return np.nan
         return other.value // self.value
 
+    def __mod__(self, other):
+        # Naive implementation, room for optimization
+        return self.__divmod__(other)[1]
+
+    def __rmod__(self, other):
+        # Naive implementation, room for optimization
+        return self.__rdivmod__(other)[1]
+
+    def __divmod__(self, other):
+        # Naive implementation, room for optimization
+        div = self // other
+        return div, self - div * other
+
+    def __rdivmod__(self, other):
+        # Naive implementation, room for optimization
+        div = other // self
+        return div, other - div * self
+
 
 cdef _floordiv(int64_t value, right):
     return value // right
