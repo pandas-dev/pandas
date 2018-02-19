@@ -585,7 +585,6 @@ Other API Changes
 - Set operations (union, difference...) on :class:`IntervalIndex` with incompatible index types will now raise a ``TypeError`` rather than a ``ValueError`` (:issue:`19329`)
 - :class:`DateOffset` objects render more simply, e.g. "<DateOffset: days=1>" instead of "<DateOffset: kwds={'days': 1}>" (:issue:`19403`)
 - :func:`pandas.merge` provides a more informative error message when trying to merge on timezone-aware and timezone-naive columns (:issue:`15800`)
-- :func:`Timedelta.__mod__`, :func:`Timedelta.__divmod__` now accept timedelta-like and numeric arguments instead of raising ``TypeError`` (:issue:`19365`)
 
 .. _whatsnew_0230.deprecations:
 
