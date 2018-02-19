@@ -56,36 +56,19 @@ def group_add_{{name}}(ndarray[{{dest_type2}}, ndim=2] out,
 
     with nogil:
 
-        if K > 1:
+        for i in range(N):
+            lab = labels[i]
+            if lab < 0:
+                continue
 
-            for i in range(N):
-                lab = labels[i]
-                if lab < 0:
-                    continue
-
-                counts[lab] += 1
-                for j in range(K):
-                    val = values[i, j]
-
-                    # not nan
-                    if val == val:
-                        nobs[lab, j] += 1
-                        sumx[lab, j] += val
-
-        else:
-
-            for i in range(N):
-                lab = labels[i]
-                if lab < 0:
-                    continue
-
-                counts[lab] += 1
-                val = values[i, 0]
+            counts[lab] += 1
+            for j in range(K):
+                val = values[i, j]
 
                 # not nan
                 if val == val:
-                    nobs[lab, 0] += 1
-                    sumx[lab, 0] += val
+                    nobs[lab, j] += 1
+                    sumx[lab, j] += val
 
         for i in range(ncounts):
             for j in range(K):
@@ -119,33 +102,19 @@ def group_prod_{{name}}(ndarray[{{dest_type2}}, ndim=2] out,
     N, K = (<object> values).shape
 
     with nogil:
-        if K > 1:
-            for i in range(N):
-                lab = labels[i]
-                if lab < 0:
-                    continue
+        for i in range(N):
+            lab = labels[i]
+            if lab < 0:
+                continue
 
-                counts[lab] += 1
-                for j in range(K):
-                    val = values[i, j]
-
-                    # not nan
-                    if val == val:
-                        nobs[lab, j] += 1
-                        prodx[lab, j] *= val
-        else:
-            for i in range(N):
-                lab = labels[i]
-                if lab < 0:
-                    continue
-
-                counts[lab] += 1
-                val = values[i, 0]
+            counts[lab] += 1
+            for j in range(K):
+                val = values[i, j]
 
                 # not nan
                 if val == val:
-                    nobs[lab, 0] += 1
-                    prodx[lab, 0] *= val
+                    nobs[lab, j] += 1
+                    prodx[lab, j] *= val
 
         for i in range(ncounts):
             for j in range(K):
@@ -231,31 +200,18 @@ def group_mean_{{name}}(ndarray[{{dest_type2}}, ndim=2] out,
     N, K = (<object> values).shape
 
     with nogil:
-        if K > 1:
-            for i in range(N):
-                lab = labels[i]
-                if lab < 0:
-                    continue
+        for i in range(N):
+            lab = labels[i]
+            if lab < 0:
+                continue
 
-                counts[lab] += 1
-                for j in range(K):
-                    val = values[i, j]
-                    # not nan
-                    if val == val:
-                        nobs[lab, j] += 1
-                        sumx[lab, j] += val
-        else:
-            for i in range(N):
-                lab = labels[i]
-                if lab < 0:
-                    continue
-
-                counts[lab] += 1
-                val = values[i, 0]
+            counts[lab] += 1
+            for j in range(K):
+                val = values[i, j]
                 # not nan
                 if val == val:
-                    nobs[lab, 0] += 1
-                    sumx[lab, 0] += val
+                    nobs[lab, j] += 1
+                    sumx[lab, j] += val
 
         for i in range(ncounts):
             for j in range(K):
@@ -670,33 +626,14 @@ def group_max_{{name}}(ndarray[{{dest_type2}}, ndim=2] out,
     N, K = (<object> values).shape
 
     with nogil:
-        if K > 1:
-            for i in range(N):
-                lab = labels[i]
-                if lab < 0:
-                    continue
+        for i in range(N):
+            lab = labels[i]
+            if lab < 0:
+                continue
 
-                counts[lab] += 1
-                for j in range(K):
-                    val = values[i, j]
-
-                    # not nan
-                    {{if name == 'int64'}}
-                    if val != {{nan_val}}:
-                    {{else}}
-                    if val == val and val != {{nan_val}}:
-                    {{endif}}
-                        nobs[lab, j] += 1
-                        if val > maxx[lab, j]:
-                            maxx[lab, j] = val
-        else:
-            for i in range(N):
-                lab = labels[i]
-                if lab < 0:
-                    continue
-
-                counts[lab] += 1
-                val = values[i, 0]
+            counts[lab] += 1
+            for j in range(K):
+                val = values[i, j]
 
                 # not nan
                 {{if name == 'int64'}}
@@ -704,9 +641,9 @@ def group_max_{{name}}(ndarray[{{dest_type2}}, ndim=2] out,
                 {{else}}
                 if val == val and val != {{nan_val}}:
                 {{endif}}
-                    nobs[lab, 0] += 1
-                    if val > maxx[lab, 0]:
-                        maxx[lab, 0] = val
+                    nobs[lab, j] += 1
+                    if val > maxx[lab, j]:
+                        maxx[lab, j] = val
 
         for i in range(ncounts):
             for j in range(K):
@@ -744,33 +681,14 @@ def group_min_{{name}}(ndarray[{{dest_type2}}, ndim=2] out,
     N, K = (<object> values).shape
 
     with nogil:
-        if K > 1:
-            for i in range(N):
-                lab = labels[i]
-                if lab < 0:
-                    continue
+        for i in range(N):
+            lab = labels[i]
+            if lab < 0:
+                continue
 
-                counts[lab] += 1
-                for j in range(K):
-                    val = values[i, j]
-
-                    # not nan
-                    {{if name == 'int64'}}
-                    if val != {{nan_val}}:
-                    {{else}}
-                    if val == val and val != {{nan_val}}:
-                    {{endif}}
-                        nobs[lab, j] += 1
-                        if val < minx[lab, j]:
-                            minx[lab, j] = val
-        else:
-            for i in range(N):
-                lab = labels[i]
-                if lab < 0:
-                    continue
-
-                counts[lab] += 1
-                val = values[i, 0]
+            counts[lab] += 1
+            for j in range(K):
+                val = values[i, j]
 
                 # not nan
                 {{if name == 'int64'}}
@@ -778,9 +696,9 @@ def group_min_{{name}}(ndarray[{{dest_type2}}, ndim=2] out,
                 {{else}}
                 if val == val and val != {{nan_val}}:
                 {{endif}}
-                    nobs[lab, 0] += 1
-                    if val < minx[lab, 0]:
-                        minx[lab, 0] = val
+                    nobs[lab, j] += 1
+                    if val < minx[lab, j]:
+                        minx[lab, j] = val
 
         for i in range(ncounts):
             for j in range(K):

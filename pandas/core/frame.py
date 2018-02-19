@@ -1678,9 +1678,10 @@ class DataFrame(NDFrame):
         fname : str
             string file path
         engine : {'auto', 'pyarrow', 'fastparquet'}, default 'auto'
-            Parquet reader library to use. If 'auto', then the option
-            'io.parquet.engine' is used. If 'auto', then the first
-            library to be installed is used.
+            Parquet library to use. If 'auto', then the option
+            ``io.parquet.engine`` is used. The default ``io.parquet.engine``
+            behavior is to try 'pyarrow', falling back to 'fastparquet' if
+            'pyarrow' is unavailable.
         compression : {'snappy', 'gzip', 'brotli', None}, default 'snappy'
             Name of the compression to use. Use ``None`` for no compression.
         kwargs
@@ -3943,34 +3944,27 @@ class DataFrame(NDFrame):
         new_index, new_columns = this.index, this.columns
 
         def _arith_op(left, right):
+            # for the mixed_type case where we iterate over columns,
+            # _arith_op(left, right) is equivalent to
+            # left._binop(right, func, fill_value=fill_value)
             left, right = ops.fill_binop(left, right, fill_value)
             return func(left, right)
 
         if this._is_mixed_type or other._is_mixed_type:
-
-            # unique
+            # iterate over columns
             if this.columns.is_unique:
-
-                def f(col):
-                    r = _arith_op(this[col].values, other[col].values)
-                    return self._constructor_sliced(r, index=new_index,
-                                                    dtype=r.dtype)
-
-                result = {col: f(col) for col in this}
-
-            # non-unique
+                # unique columns
+                result = {col: _arith_op(this[col], other[col])
+                          for col in this}
+                result = self._constructor(result, index=new_index,
+                                           columns=new_columns, copy=False)
             else:
-
-                def f(i):
-                    r = _arith_op(this.iloc[:, i].values,
-                                  other.iloc[:, i].values)
-                    return self._constructor_sliced(r, index=new_index,
-                                                    dtype=r.dtype)
-
-                result = {i: f(i) for i, col in enumerate(this.columns)}
+                # non-unique columns
+                result = {i: _arith_op(this.iloc[:, i], other.iloc[:, i])
+                          for i, col in enumerate(this.columns)}
                 result = self._constructor(result, index=new_index, copy=False)
                 result.columns = new_columns
-                return result
+            return result
 
         else:
             result = _arith_op(this.values, other.values)
@@ -3978,36 +3972,11 @@ class DataFrame(NDFrame):
         return self._constructor(result, index=new_index, columns=new_columns,
                                  copy=False)
 
-    def _combine_series(self, other, func, fill_value=None, axis=None,
-                        level=None, try_cast=True):
-        if fill_value is not None:
-            raise NotImplementedError("fill_value {fill} not supported."
-                                      .format(fill=fill_value))
-
-        if axis is not None:
-            axis = self._get_axis_name(axis)
-            if axis == 'index':
-                return self._combine_match_index(other, func, level=level)
-            else:
-                return self._combine_match_columns(other, func, level=level,
-                                                   try_cast=try_cast)
-        else:
-            if not len(other):
-                return self * np.nan
-
-            if not len(self):
-                # Ambiguous case, use _series so works with DataFrame
-                return self._constructor(data=self._series, index=self.index,
-                                         columns=self.columns)
-
-            # default axis is columns
-            return self._combine_match_columns(other, func, level=level,
-                                               try_cast=try_cast)
-
     def _combine_match_index(self, other, func, level=None):
         left, right = self.align(other, join='outer', axis=0, level=level,
                                  copy=False)
-        return self._constructor(func(left.values.T, right.values).T,
+        new_data = func(left.values.T, right.values).T
+        return self._constructor(new_data,
                                  index=left.index, columns=self.columns,
                                  copy=False)
 
@@ -4026,7 +3995,8 @@ class DataFrame(NDFrame):
                                    try_cast=try_cast)
         return self._constructor(new_data)
 
-    def _compare_frame_evaluate(self, other, func, str_rep, try_cast=True):
+    def _compare_frame(self, other, func, str_rep, try_cast=True):
+        # compare_frame assumes self._indexed_same(other)
 
         import pandas.core.computation.expressions as expressions
         # unique
@@ -4050,19 +4020,6 @@ class DataFrame(NDFrame):
                                        copy=False)
             result.columns = self.columns
             return result
-
-    def _compare_frame(self, other, func, str_rep, try_cast=True):
-        if not self._indexed_same(other):
-            raise ValueError('Can only compare identically-labeled '
-                             'DataFrame objects')
-        return self._compare_frame_evaluate(other, func, str_rep,
-                                            try_cast=try_cast)
-
-    def _flex_compare_frame(self, other, func, str_rep, level, try_cast=True):
-        if not self._indexed_same(other):
-            self, other = self.align(other, 'outer', level=level, copy=False)
-        return self._compare_frame_evaluate(other, func, str_rep,
-                                            try_cast=try_cast)
 
     def combine(self, other, func, fill_value=None, overwrite=True):
         """
