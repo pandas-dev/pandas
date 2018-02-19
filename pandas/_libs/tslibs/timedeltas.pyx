@@ -478,11 +478,16 @@ def _binary_op_method_timedeltalike(op, name):
         elif other is NaT:
             return NaT
 
+        elif is_timedelta64_object(other):
+            # convert to Timedelta below; avoid catching this in
+            # has-dtype check before then
+            pass
+
         elif is_datetime64_object(other) or PyDateTime_CheckExact(other):
             # the PyDateTime_CheckExact case is for a datetime object that
             # is specifically *not* a Timestamp, as the Timestamp case will be
             # handled after `_validate_ops_compat` returns False below
-            from ..tslib import Timestamp
+            from timestamps import Timestamp
             return op(self, Timestamp(other))
             # We are implicitly requiring the canonical behavior to be
             # defined by Timestamp methods.
@@ -1096,6 +1101,9 @@ class Timedelta(_Timedelta):
         # just defer
         if hasattr(other, '_typ'):
             # Series, DataFrame, ...
+            if other._typ == 'dateoffset' and hasattr(other, 'delta'):
+                # Tick offset
+                return self // other.delta
             return NotImplemented
 
         if hasattr(other, 'dtype'):
@@ -1128,6 +1136,9 @@ class Timedelta(_Timedelta):
         # just defer
         if hasattr(other, '_typ'):
             # Series, DataFrame, ...
+            if other._typ == 'dateoffset' and hasattr(other, 'delta'):
+                # Tick offset
+                return other.delta // self
             return NotImplemented
 
         if hasattr(other, 'dtype'):
