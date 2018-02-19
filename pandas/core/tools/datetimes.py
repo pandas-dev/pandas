@@ -105,8 +105,8 @@ def _convert_and_box_cache(arg, cache_array, box, errors, name=None):
 
 def to_datetime(arg, errors='raise', dayfirst=False, yearfirst=False,
                 utc=None, box=True, format=None, exact=True,
-                unit=None, infer_datetime_format=False, origin='unix',
-                cache=False):
+                unit=None, infer_datetime_format=False, require_iso8601=False,
+                origin='unix', cache=False):
     """
     Convert argument to datetime.
 
@@ -167,6 +167,8 @@ def to_datetime(arg, errors='raise', dayfirst=False, yearfirst=False,
         datetime strings, and if it can be inferred, switch to a faster
         method of parsing them. In some cases this can increase the parsing
         speed by ~5-10x.
+    require_iso8601 : boolean, default False
+        If True, only try to infer ISO8601-compliant datetime string.
     origin : scalar, default is 'unix'
         Define the reference date. The numeric values would be parsed as number
         of units (defined by `unit`) since this reference date.
@@ -273,7 +275,8 @@ def to_datetime(arg, errors='raise', dayfirst=False, yearfirst=False,
 
     tz = 'utc' if utc else None
 
-    def _convert_listlike(arg, box, format, name=None, tz=tz):
+    def _convert_listlike(arg, box, format, name=None, tz=tz,
+                          require_iso8601=require_iso8601):
 
         if isinstance(arg, (list, tuple)):
             arg = np.array(arg, dtype='O')
@@ -313,11 +316,8 @@ def to_datetime(arg, errors='raise', dayfirst=False, yearfirst=False,
                             '1-d array, or Series')
 
         arg = _ensure_object(arg)
-        require_iso8601 = False
-
         if infer_datetime_format and format is None:
             format = _guess_datetime_format_for_array(arg, dayfirst=dayfirst)
-
         if format is not None:
             # There is a special fast-path for iso8601 formatted
             # datetime strings, so in those cases don't use the inferred
