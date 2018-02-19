@@ -124,7 +124,7 @@ Timedelta mod method
 
 ``mod`` (%) and ``divmod`` operations are now defined on ``Timedelta`` objects
 when operating with either timedelta-like or with numeric arguments.
-See the :ref:`<_timedeltas.mod_divmod>` documentation section. (:issue:`19365`)
+See the :ref:`documentation here <timedeltas.mod_divmod>`. (:issue:`19365`)
 
 .. ipython:: python
 

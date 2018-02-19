@@ -285,7 +285,7 @@ Rounded division (floor-division) of a ``timedelta64[ns]`` Series by a scalar
 
 .. _timedeltas.mod_divmod:
 
-The mod (%) and divmod operations are defined for ``Timedelta`` when operating with another timedelta-like or with a numeric argument. (:issue:`19365`)
+The mod (%) and divmod operations are defined for ``Timedelta`` when operating with another timedelta-like or with a numeric argument.
 
 .. ipython:: python
 
