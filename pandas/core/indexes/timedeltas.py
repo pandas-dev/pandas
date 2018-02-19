@@ -59,23 +59,25 @@ def _td_index_cmp(opname, cls, nat_result=False):
     """
 
     def wrapper(self, other):
-        msg = "cannot compare a TimedeltaIndex with type {0}"
-        func = getattr(super(TimedeltaIndex, self), opname)
+        msg = "cannot compare a {cls} with type {typ}"
+        binop = getattr(Index, opname)
         if _is_convertible_to_td(other) or other is NaT:
             try:
                 other = _to_m8(other)
             except ValueError:
                 # failed to parse as timedelta
-                raise TypeError(msg.format(type(other)))
-            result = func(other)
+                raise TypeError(msg.format(cls=type(self).__name__,
+                                           typ=type(other).__name__))
+            result = binop(self, other)
             if isna(other):
                 result.fill(nat_result)
         else:
             if not is_list_like(other):
-                raise TypeError(msg.format(type(other)))
+                raise TypeError(msg.format(cls=type(self).__name__,
+                                           typ=type(other).__name__))
 
             other = TimedeltaIndex(other).values
-            result = func(other)
+            result = binop(self, other)
             result = com._values_from_object(result)
 
             if isinstance(other, Index):
@@ -364,8 +366,9 @@ class TimedeltaIndex(DatetimeIndexOpsMixin, TimelikeOps, Int64Index):
             # update name when delta is index
             name = com._maybe_match_name(self, delta)
         else:
-            raise TypeError("cannot add the type {0} to a TimedeltaIndex"
-                            .format(type(delta)))
+            raise TypeError("cannot add the type {typ} to a {cls}"
+                            .format(typ=type(delta).__name__,
+                                    cls=type(self).__name__))
 
         result = TimedeltaIndex(new_values, freq='infer', name=name)
         return result
@@ -409,7 +412,7 @@ class TimedeltaIndex(DatetimeIndexOpsMixin, TimelikeOps, Int64Index):
             result = checked_add_with_arr(i8, other.value,
                                           arr_mask=self._isnan)
             result = self._maybe_mask_results(result, fill_value=iNaT)
-        return DatetimeIndex(result, name=self.name, copy=False)
+            return DatetimeIndex(result, name=self.name, copy=False)
 
     def _sub_datelike(self, other):
         # GH#19124 Timedelta - datetime is not in general well-defined.
@@ -418,7 +421,8 @@ class TimedeltaIndex(DatetimeIndexOpsMixin, TimelikeOps, Int64Index):
         if other is NaT:
             return self._nat_new()
         else:
-            raise TypeError("cannot subtract a datelike from a TimedeltaIndex")
+            raise TypeError("cannot subtract a datelike from a {cls}"
+                            .format(cls=type(self).__name__))
 
     def _add_offset_array(self, other):
         # Array/Index of DateOffset objects
@@ -433,12 +437,14 @@ class TimedeltaIndex(DatetimeIndexOpsMixin, TimelikeOps, Int64Index):
             else:
                 from pandas.errors import PerformanceWarning
                 warnings.warn("Adding/subtracting array of DateOffsets to "
-                              "{} not vectorized".format(type(self)),
+                              "{cls} not vectorized"
+                              .format(cls=type(self).__name__),
                               PerformanceWarning)
                 return self.astype('O') + np.array(other)
                 # TODO: This works for __add__ but loses dtype in __sub__
         except AttributeError:
-            raise TypeError("Cannot add non-tick DateOffset to TimedeltaIndex")
+            raise TypeError("Cannot add non-tick DateOffset to {cls}"
+                            .format(cls=type(self).__name__))
 
     def _sub_offset_array(self, other):
         # Array/Index of DateOffset objects
@@ -453,13 +459,19 @@ class TimedeltaIndex(DatetimeIndexOpsMixin, TimelikeOps, Int64Index):
             else:
                 from pandas.errors import PerformanceWarning
                 warnings.warn("Adding/subtracting array of DateOffsets to "
-                              "{} not vectorized".format(type(self)),
+                              "{cls} not vectorized"
+                              .format(cls=type(self).__name__),
                               PerformanceWarning)
                 res_values = self.astype('O').values - np.array(other)
                 return self.__class__(res_values, freq='infer')
         except AttributeError:
-            raise TypeError("Cannot subtrack non-tick DateOffset from"
-                            " TimedeltaIndex")
+            raise TypeError("Cannot subtrack non-tick DateOffset "
+                            "from {cls}".format(cls=type(self).__name__))
+
+    @Substitution(klass='TimedeltaIndex')
+    @Appender(DatetimeIndexOpsMixin.shift.__doc__)
+    def shift(self, n, freq=None):
+        return super(TimedeltaIndex, self).shift(n, freq)
 
     def _format_native_types(self, na_rep=u('NaT'),
                              date_format=None, **kwargs):
@@ -928,7 +940,7 @@ class TimedeltaIndex(DatetimeIndexOpsMixin, TimelikeOps, Int64Index):
 
     def delete(self, loc):
         """
-        Make a new DatetimeIndex with passed location(s) deleted.
+        Make a new TimedeltaIndex with passed location(s) deleted.
 
         Parameters
         ----------

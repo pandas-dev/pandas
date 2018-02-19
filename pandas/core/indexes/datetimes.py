@@ -106,7 +106,7 @@ def _dt_index_cmp(opname, cls, nat_result=False):
     """
 
     def wrapper(self, other):
-        func = getattr(super(DatetimeIndex, self), opname)
+        binop = getattr(Index, opname)
 
         if isinstance(other, (datetime, compat.string_types)):
             if isinstance(other, datetime):
@@ -114,7 +114,7 @@ def _dt_index_cmp(opname, cls, nat_result=False):
                 self._assert_tzawareness_compat(other)
 
             other = _to_m8(other, tz=self.tz)
-            result = func(other)
+            result = binop(self, other)
             if isna(other):
                 result.fill(nat_result)
         else:
@@ -134,7 +134,7 @@ def _dt_index_cmp(opname, cls, nat_result=False):
             if is_datetimelike(other):
                 self._assert_tzawareness_compat(other)
 
-            result = func(np.asarray(other))
+            result = binop(self, np.asarray(other))
             result = com._values_from_object(result)
 
             if isinstance(other, Index):
@@ -856,9 +856,9 @@ class DatetimeIndex(DatelikeOps, TimelikeOps, DatetimeIndexOpsMixin,
         # adding a timedeltaindex to a datetimelike
         if other is libts.NaT:
             return self._nat_new(box=True)
-        raise TypeError("cannot add {0} and {1}"
-                        .format(type(self).__name__,
-                                type(other).__name__))
+        raise TypeError("cannot add {cls} and {typ}"
+                        .format(cls=type(self).__name__,
+                                typ=type(other).__name__))
 
     def _sub_datelike(self, other):
         # subtract a datetime from myself, yielding a TimedeltaIndex
@@ -866,8 +866,9 @@ class DatetimeIndex(DatelikeOps, TimelikeOps, DatetimeIndexOpsMixin,
         if isinstance(other, DatetimeIndex):
             # require tz compat
             if not self._has_same_tz(other):
-                raise TypeError("DatetimeIndex subtraction must have the same "
-                                "timezones or no timezones")
+                raise TypeError("{cls} subtraction must have the same "
+                                "timezones or no timezones"
+                                .format(cls=type(self).__name__))
             result = self._sub_datelike_dti(other)
         elif isinstance(other, (datetime, np.datetime64)):
             other = Timestamp(other)
@@ -884,8 +885,9 @@ class DatetimeIndex(DatelikeOps, TimelikeOps, DatetimeIndexOpsMixin,
                 result = self._maybe_mask_results(result,
                                                   fill_value=libts.iNaT)
         else:
-            raise TypeError("cannot subtract DatetimeIndex and {typ}"
-                            .format(typ=type(other).__name__))
+            raise TypeError("cannot subtract {cls} and {typ}"
+                            .format(cls=type(self).__name__,
+                                    typ=type(other).__name__))
         return TimedeltaIndex(result, name=self.name, copy=False)
 
     def _sub_datelike_dti(self, other):
@@ -900,6 +902,11 @@ class DatetimeIndex(DatelikeOps, TimelikeOps, DatetimeIndexOpsMixin,
             mask = (self._isnan) | (other._isnan)
             new_values[mask] = libts.iNaT
         return new_values.view('i8')
+
+    @Substitution(klass='DatetimeIndex')
+    @Appender(DatetimeIndexOpsMixin.shift.__doc__)
+    def shift(self, n, freq=None):
+        return super(DatetimeIndex, self).shift(n, freq)
 
     def _maybe_update_attributes(self, attrs):
         """ Update Index attributes (e.g. freq) depending on op """
@@ -948,8 +955,8 @@ class DatetimeIndex(DatelikeOps, TimelikeOps, DatetimeIndexOpsMixin,
             return result
 
         except NotImplementedError:
-            warnings.warn("Non-vectorized DateOffset being applied to Series "
-                          "or DatetimeIndex", PerformanceWarning)
+            warnings.warn("Non-vectorized DateOffset being applied to {cls}"
+                          .format(cls=type(self).__name__), PerformanceWarning)
             return self.astype('O') + offset
 
     def _add_offset_array(self, other):
@@ -960,8 +967,8 @@ class DatetimeIndex(DatelikeOps, TimelikeOps, DatetimeIndexOpsMixin,
             return self + other[0]
         else:
             warnings.warn("Adding/subtracting array of DateOffsets to "
-                          "{} not vectorized".format(type(self)),
-                          PerformanceWarning)
+                          "{cls} not vectorized"
+                          .format(cls=type(self).__name__), PerformanceWarning)
             return self.astype('O') + np.array(other)
             # TODO: This works for __add__ but loses dtype in __sub__
 
@@ -973,8 +980,8 @@ class DatetimeIndex(DatelikeOps, TimelikeOps, DatetimeIndexOpsMixin,
             return self - other[0]
         else:
             warnings.warn("Adding/subtracting array of DateOffsets to "
-                          "{} not vectorized".format(type(self)),
-                          PerformanceWarning)
+                          "{cls} not vectorized"
+                          .format(cls=type(self).__name__), PerformanceWarning)
             res_values = self.astype('O').values - np.array(other)
             return self.__class__(res_values, freq='infer')
 
