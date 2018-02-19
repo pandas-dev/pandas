@@ -420,3 +420,189 @@ class TestTimedeltaMultiplicationDivision(object):
         assert res is NotImplemented
         with pytest.raises(TypeError):
             ser // td
+
+    def test_mod_timedeltalike(self):
+        # GH#19365
+        td = Timedelta(hours=37)
+
+        # Timedelta-like others
+        result = td % Timedelta(hours=6)
+        assert isinstance(result, Timedelta)
+        assert result == Timedelta(hours=1)
+
+        result = td % timedelta(minutes=60)
+        assert isinstance(result, Timedelta)
+        assert result == Timedelta(0)
+
+        result = td % NaT
+        assert result is NaT
+
+    @pytest.mark.xfail(reason='GH#19378 floordiv td64 returns td64')
+    def test_mod_timedelta64_nat(self):
+        # GH#19365
+        td = Timedelta(hours=37)
+
+        result = td % np.timedelta64('NaT', 'ns')
+        assert result is NaT
+
+    @pytest.mark.xfail(reason='GH#19378 floordiv td64 returns td64')
+    def test_mod_timedelta64(self):
+        # GH#19365
+        td = Timedelta(hours=37)
+
+        result = td % np.timedelta64(2, 'h')
+        assert isinstance(result, Timedelta)
+        assert result == Timedelta(hours=1)
+
+    @pytest.mark.xfail(reason='GH#19378 floordiv by Tick not implemented')
+    def test_mod_offset(self):
+        # GH#19365
+        td = Timedelta(hours=37)
+
+        result = td % pd.offsets.Hour(5)
+        assert isinstance(result, Timedelta)
+        assert result == Timedelta(hours=2)
+
+    # ----------------------------------------------------------------
+    # Timedelta.__mod__, __rmod__
+
+    def test_mod_numeric(self):
+        # GH#19365
+        td = Timedelta(hours=37)
+
+        # Numeric Others
+        result = td % 2
+        assert isinstance(result, Timedelta)
+        assert result == Timedelta(0)
+
+        result = td % 1e12
+        assert isinstance(result, Timedelta)
+        assert result == Timedelta(minutes=3, seconds=20)
+
+        result = td % int(1e12)
+        assert isinstance(result, Timedelta)
+        assert result == Timedelta(minutes=3, seconds=20)
+
+    def test_mod_invalid(self):
+        # GH#19365
+        td = Timedelta(hours=37)
+
+        with pytest.raises(TypeError):
+            td % pd.Timestamp('2018-01-22')
+
+        with pytest.raises(TypeError):
+            td % []
+
+    def test_rmod_pytimedelta(self):
+        # GH#19365
+        td = Timedelta(minutes=3)
+
+        result = timedelta(minutes=4) % td
+        assert isinstance(result, Timedelta)
+        assert result == Timedelta(minutes=1)
+
+    @pytest.mark.xfail(reason='GH#19378 floordiv by Tick not implemented')
+    def test_rmod_timedelta64(self):
+        # GH#19365
+        td = Timedelta(minutes=3)
+        result = np.timedelta64(5, 'm') % td
+        assert isinstance(result, Timedelta)
+        assert result == Timedelta(minutes=2)
+
+    def test_rmod_invalid(self):
+        # GH#19365
+        td = Timedelta(minutes=3)
+
+        with pytest.raises(TypeError):
+            pd.Timestamp('2018-01-22') % td
+
+        with pytest.raises(TypeError):
+            15 % td
+
+        with pytest.raises(TypeError):
+            16.0 % td
+
+        with pytest.raises(TypeError):
+            np.array([22, 24]) % td
+
+    # ----------------------------------------------------------------
+    # Timedelta.__divmod__, __rdivmod__
+
+    def test_divmod_numeric(self):
+        # GH#19365
+        td = Timedelta(days=2, hours=6)
+
+        result = divmod(td, 53 * 3600 * 1e9)
+        assert result[0] == Timedelta(1, unit='ns')
+        assert isinstance(result[1], Timedelta)
+        assert result[1] == Timedelta(hours=1)
+
+        assert result
+        result = divmod(td, np.nan)
+        assert result[0] is pd.NaT
+        assert result[1] is pd.NaT
+
+    def test_divmod(self):
+        # GH#19365
+        td = Timedelta(days=2, hours=6)
+
+        result = divmod(td, timedelta(days=1))
+        assert result[0] == 2
+        assert isinstance(result[1], Timedelta)
+        assert result[1] == Timedelta(hours=6)
+
+        result = divmod(td, 54)
+        assert result[0] == Timedelta(hours=1)
+        assert isinstance(result[1], Timedelta)
+        assert result[1] == Timedelta(0)
+
+        result = divmod(td, pd.NaT)
+        assert np.isnan(result[0])
+        assert result[1] is pd.NaT
+
+    @pytest.mark.xfail(reason='GH#19378 floordiv by Tick not implemented')
+    def test_divmod_offset(self):
+        # GH#19365
+        td = Timedelta(days=2, hours=6)
+
+        result = divmod(td, pd.offsets.Hour(-4))
+        assert result[0] == -14
+        assert isinstance(result[1], Timedelta)
+        assert result[1] == Timedelta(hours=-2)
+
+    def test_divmod_invalid(self):
+        # GH#19365
+        td = Timedelta(days=2, hours=6)
+
+        with pytest.raises(TypeError):
+            divmod(td, pd.Timestamp('2018-01-22'))
+
+    def test_rdivmod_pytimedelta(self):
+        # GH#19365
+        result = divmod(timedelta(days=2, hours=6), Timedelta(days=1))
+        assert result[0] == 2
+        assert isinstance(result[1], Timedelta)
+        assert result[1] == Timedelta(hours=6)
+
+    @pytest.mark.xfail(reason='GH#19378 floordiv by Tick not implemented')
+    def test_rdivmod_offset(self):
+        result = divmod(pd.offsets.Hour(54), Timedelta(hours=-4))
+        assert result[0] == -14
+        assert isinstance(result[1], Timedelta)
+        assert result[1] == Timedelta(hours=-2)
+
+    def test_rdivmod_invalid(self):
+        # GH#19365
+        td = Timedelta(minutes=3)
+
+        with pytest.raises(TypeError):
+            divmod(pd.Timestamp('2018-01-22'), td)
+
+        with pytest.raises(TypeError):
+            divmod(15, td)
+
+        with pytest.raises(TypeError):
+            divmod(16.0, td)
+
+        with pytest.raises(TypeError):
+            divmod(np.array([22, 24]), td)

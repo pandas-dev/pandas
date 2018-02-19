@@ -283,6 +283,20 @@ Rounded division (floor-division) of a ``timedelta64[ns]`` Series by a scalar
    td // pd.Timedelta(days=3, hours=4)
    pd.Timedelta(days=3, hours=4) // td
 
+.. _timedeltas.mod_divmod:
+
+The mod (%) and divmod operations are defined for ``Timedelta`` when operating with another timedelta-like or with a numeric argument.
+
+.. ipython:: python
+
+   pd.Timedelta(hours=37) % datetime.timedelta(hours=2)
+
+   # divmod against a timedelta-like returns a pair (int, Timedelta)
+   divmod(datetime.timedelta(hours=2), pd.Timedelta(minutes=11))
+
+   # divmod against a numeric returns a pair (Timedelta, Timedelta)
+   divmod(pd.Timedelta(hours=25), 86400000000000)
+
 Attributes
 ----------
 
