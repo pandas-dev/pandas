@@ -23,63 +23,6 @@ from pandas.api import types
 from pandas.core.dtypes import common
 from pandas.core.dtypes.cast import construct_1d_object_array_from_listlike
 
-# compat
-from pandas.errors import (  # noqa
-    PerformanceWarning, UnsupportedFunctionCall, UnsortedIndexError,
-    AbstractMethodError)
-
-# back-compat of public API
-# deprecate these functions
-m = sys.modules['pandas.core.common']
-for t in [t for t in dir(types) if not t.startswith('_')]:
-
-    def outer(t=t):
-
-        def wrapper(*args, **kwargs):
-            warnings.warn("pandas.core.common.{t} is deprecated. "
-                          "import from the public API: "
-                          "pandas.api.types.{t} instead".format(t=t),
-                          DeprecationWarning, stacklevel=3)
-            return getattr(types, t)(*args, **kwargs)
-        return wrapper
-
-    setattr(m, t, outer(t))
-
-# back-compat for non-public functions
-# deprecate these functions
-for t in ['is_datetime_arraylike',
-          'is_datetime_or_timedelta_dtype',
-          'is_datetimelike',
-          'is_datetimelike_v_numeric',
-          'is_datetimelike_v_object',
-          'is_datetimetz',
-          'is_int_or_datetime_dtype',
-          'is_period_arraylike',
-          'is_string_like',
-          'is_string_like_dtype']:
-
-    def outer(t=t):
-
-        def wrapper(*args, **kwargs):
-            warnings.warn("pandas.core.common.{t} is deprecated. "
-                          "These are not longer public API functions, "
-                          "but can be imported from "
-                          "pandas.api.types.{t} instead".format(t=t),
-                          DeprecationWarning, stacklevel=3)
-            return getattr(common, t)(*args, **kwargs)
-        return wrapper
-
-    setattr(m, t, outer(t))
-
-
-# deprecate array_equivalent
-
-def array_equivalent(*args, **kwargs):
-    warnings.warn("'pandas.core.common.array_equivalent' is deprecated and "
-                  "is no longer public API", DeprecationWarning, stacklevel=2)
-    from pandas.core.dtypes import missing
-    return missing.array_equivalent(*args, **kwargs)
-
 
 class SettingWithCopyError(ValueError):
     pass
