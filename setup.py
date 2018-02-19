@@ -341,7 +341,8 @@ class CheckSDist(sdist_class):
         if 'cython' in cmdclass:
             self.run_command('cython')
         else:
-            # If we are not running cython then compile the extensions correctly
+            # If we are not running cython then
+            # compile the extensions correctly
             pyx_files = [(self._pyxfiles, 'c'), (self._cpp_pyxfiles, 'cpp')]
 
             for pyxfiles, extension in pyx_files:
