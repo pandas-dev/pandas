@@ -243,10 +243,6 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
                                        copy=copy)
                 elif copy:
                     data = data.copy()
-            elif isinstance(data, ExtensionArray):
-                if copy:
-                    data = data.copy()
-                data = SingleBlockManager(data, index, fastpath=True)
             else:
                 data = _sanitize_array(data, index, dtype, copy,
                                        raise_cast_failure=True)
