@@ -1865,17 +1865,12 @@ class GroupBy(_GroupBy):
         needs_ngroups : bool, default False
             Whether number of groups part of the Cython call signature
         **kwargs : dict
-            Extra arguments required for the given function. This method
-            internally stores an OrderedDict that maps those keywords to
-            positional arguments before calling the Cython layer
+            Extra arguments to be passed back to Cython funcs
 
         Returns
         -------
         GroupBy object populated with appropriate result(s)
         """
-        exp_kwds = collections.OrderedDict([
-            (('group_fillna_indexer'), ('direction', 'limit')),
-            (('group_shift_indexer'), ('nperiods',))])
 
         labels, _, ngroups = grouper.group_info
         output = collections.OrderedDict()
@@ -1891,9 +1886,7 @@ class GroupBy(_GroupBy):
             if needs_ngroups:
                 func = partial(func, ngroups)
 
-            # Convert any keywords into positional arguments
-            func = partial(func, *(kwargs[x] for x in exp_kwds[how]))
-            func()  # Call func to modify indexer values in place
+            func(**kwargs)  # Call func to modify indexer values in place
             output[name] = algorithms.take_nd(obj.values, indexer)
 
         return self._wrap_transformed_output(output)
@@ -1917,7 +1910,7 @@ class GroupBy(_GroupBy):
 
         return self._get_cythonized_result('group_shift_indexer',
                                            self.grouper, needs_ngroups=True,
-                                           nperiods=periods)
+                                           periods=periods)
 
     @Substitution(name='groupby')
     @Appender(_doc_template)
