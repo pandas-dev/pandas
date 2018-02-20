@@ -2262,6 +2262,7 @@ is not round-trippable, nor are any names beginning with 'level_' within a
 indicate missing values and the subsequent read cannot distinguish the intent.
 
 .. ipython:: python
+   :okwarning:
 
    df.index.name = 'index'
    df.to_json('test.json', orient='table')

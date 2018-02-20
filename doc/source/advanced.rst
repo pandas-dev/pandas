@@ -274,7 +274,7 @@ Passing a list of labels or tuples works similar to reindexing:
 
    df.loc[[('bar', 'two'), ('qux', 'one')]]
 
-.. info::
+.. note::
 
    It is important to note that tuples and lists are not treated identically
    in pandas when it comes to indexing. Whereas a tuple is interpreted as one

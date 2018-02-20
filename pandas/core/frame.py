@@ -114,7 +114,7 @@ _shared_doc_kwargs = dict(
             - if `axis` is 1 or `'columns'` then `by` may contain column
               levels and/or index labels
 
-        .. versionmodified:: 0.23.0
+        .. versionchanged:: 0.23.0
            Allow specifying index or column level names.""",
     versionadded_to_excel='',
     optional_labels="""labels : array-like, optional
@@ -2696,7 +2696,7 @@ class DataFrame(NDFrame):
         or modified columns. All items are computed first, and then assigned
         in alphabetical order.
 
-        .. versionmodified :: 0.23.0
+        .. versionchanged :: 0.23.0
 
             Keyword argument order is maintained for Python 3.6 and later.
 

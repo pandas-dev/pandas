@@ -217,12 +217,12 @@ nanosecond support (the ``nanosecond`` field store the nanosecond value between
 ``DatetimeIndex`` to regular NumPy arrays.
 
 If you have code that requires an array of ``datetime.datetime`` objects, you
-have a couple of options. First, the ``asobject`` property of ``DatetimeIndex``
+have a couple of options. First, the ``astype(object)`` method of ``DatetimeIndex``
 produces an array of ``Timestamp`` objects:
 
 .. ipython:: python
 
-   stamp_array = rng.asobject
+   stamp_array = rng.astype(object)
    stamp_array
    stamp_array[5]
 
