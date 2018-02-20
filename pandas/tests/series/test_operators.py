@@ -9,7 +9,6 @@ from datetime import datetime, timedelta
 import operator
 from itertools import product, starmap
 
-from numpy import nan, inf
 import numpy as np
 import pandas as pd
 
@@ -670,7 +669,7 @@ class TestSeriesArithmetic(object):
         ser = Series([-1, 0, 1], name='first')
 
         result = ser // 0
-        expected = Series([-inf, nan, inf], name='first')
+        expected = Series([-np.inf, np.nan, np.inf], name='first')
         assert_series_equal(result, expected)
 
 
@@ -1069,9 +1068,9 @@ class TestTimedeltaSeriesArithmetic(object):
         assert_series_equal(1.5 * timedelta_series,
                             Series([NaT, Timedelta('1.5s')]))
 
-        assert_series_equal(timedelta_series * nan,
+        assert_series_equal(timedelta_series * np.nan,
                             nat_series_dtype_timedelta)
-        assert_series_equal(nan * timedelta_series,
+        assert_series_equal(np.nan * timedelta_series,
                             nat_series_dtype_timedelta)
 
         # division
@@ -1079,7 +1078,7 @@ class TestTimedeltaSeriesArithmetic(object):
                             Series([NaT, Timedelta('0.5s')]))
         assert_series_equal(timedelta_series / 2.0,
                             Series([NaT, Timedelta('0.5s')]))
-        assert_series_equal(timedelta_series / nan,
+        assert_series_equal(timedelta_series / np.nan,
                             nat_series_dtype_timedelta)
 
     def test_td64_sub_NaT(self):
@@ -2183,12 +2182,12 @@ class TestSeriesOperators(TestData):
                 with np.errstate(all='ignore'):
                     if amask[i]:
                         if bmask[i]:
-                            exp_values.append(nan)
+                            exp_values.append(np.nan)
                             continue
                         exp_values.append(op(fill_value, b[i]))
                     elif bmask[i]:
                         if amask[i]:
-                            exp_values.append(nan)
+                            exp_values.append(np.nan)
                             continue
                         exp_values.append(op(a[i], fill_value))
                     else:
@@ -2198,8 +2197,8 @@ class TestSeriesOperators(TestData):
             expected = Series(exp_values, exp_index)
             assert_series_equal(result, expected)
 
-        a = Series([nan, 1., 2., 3., nan], index=np.arange(5))
-        b = Series([nan, 1, nan, 3, nan, 4.], index=np.arange(6))
+        a = Series([np.nan, 1., 2., 3., np.nan], index=np.arange(5))
+        b = Series([np.nan, 1, np.nan, 3, np.nan, 4.], index=np.arange(6))
 
         pairings = []
         for op in ['add', 'sub', 'mul', 'pow', 'truediv', 'floordiv']:
