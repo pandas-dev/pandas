@@ -712,8 +712,8 @@ class TestTimedeltas(object):
         assert Timedelta('0').total_seconds() == 0.0
         assert Timedelta('-2S').total_seconds() == -2.0
         assert Timedelta('5.324S').total_seconds() == 5.324
-        assert (Timedelta('30S').total_seconds() - 30.0)<1e-20
-        assert (30.0 - Timedelta('30S').total_seconds())<1e-20
+        assert (Timedelta('30S').total_seconds() - 30.0) < 1e-20
+        assert (30.0 - Timedelta('30S').total_seconds()) < 1e-20
 
     def test_timedelta_arithmetic(self):
         data = pd.Series(['nat', '32 days'], dtype='timedelta64[ns]')
