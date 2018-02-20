@@ -69,12 +69,32 @@ def get_op_result_name(left, right):
 
 
 def _maybe_match_name(a, b):
+    """
+    Try to find a name to attach to the result of an operation between
+    a and b.  If only one of these has a `name` attribute, return that
+    name.  Otherwise return a consensus name if they match of None if
+    they have different names.
+
+    Parameters
+    ----------
+    a : object
+    b : object
+
+    Returns
+    -------
+    name : str or None
+
+    See also
+    --------
+    pandas.core.common._consensus_name_attr
+    """
     a_has = hasattr(a, 'name')
     b_has = hasattr(b, 'name')
     if a_has and b_has:
         if a.name == b.name:
             return a.name
         else:
+            # TODO: what if they both have np.nan for their names?
             return None
     elif a_has:
         return a.name
@@ -1132,7 +1152,7 @@ def _bool_method_SERIES(cls, op, special):
             return NotImplemented
 
         elif isinstance(other, ABCSeries):
-            name = _maybe_match_name(self, other)
+            name = get_op_result_name(self, other)
             is_other_int_dtype = is_integer_dtype(other.dtype)
             other = fill_int(other) if is_other_int_dtype else fill_bool(other)
 
@@ -1574,7 +1594,7 @@ def _arith_method_SPARSE_SERIES(cls, op, special):
 def _sparse_series_op(left, right, op, name):
     left, right = left.align(right, join='outer', copy=False)
     new_index = left.index
-    new_name = _maybe_match_name(left, right)
+    new_name = get_op_result_name(left, right)
 
     from pandas.core.sparse.array import _sparse_array_op
     result = _sparse_array_op(left.values, right.values, op, name,
