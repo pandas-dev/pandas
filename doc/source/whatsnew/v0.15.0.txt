@@ -1044,7 +1044,7 @@ Other:
 
       idx = MultiIndex.from_product([['a'], range(3), list("pqr")], names=['foo', 'bar', 'baz'])
       idx.set_names('qux', level=0)
-      idx.set_names(['qux','baz'], level=[0,1])
+      idx.set_names(['qux','corge'], level=[0,1])
       idx.set_levels(['a','b','c'], level='bar')
       idx.set_levels([['a','b','c'],[1,2,3]], level=[1,2])
 
