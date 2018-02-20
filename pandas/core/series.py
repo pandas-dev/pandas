@@ -146,7 +146,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
          'from_csv', 'valid'])
 
     def __init__(self, data=None, index=None, dtype=None, name=None,
-                 copy=False, fastpath=False, require_iso8601=False):
+                 copy=False, fastpath=False):
 
         # we are called internally, so short-circuit
         if fastpath:
@@ -236,8 +236,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
                     data = data.copy()
             else:
                 data = _sanitize_array(data, index, dtype, copy,
-                                       raise_cast_failure=True,
-                                       require_iso8601=require_iso8601)
+                                       raise_cast_failure=True)
 
                 data = SingleBlockManager(data, index, fastpath=True)
 
@@ -3130,7 +3129,7 @@ def _sanitize_index(data, index, copy=False):
 
 
 def _sanitize_array(data, index, dtype=None, copy=False,
-                    raise_cast_failure=False, require_iso8601=False):
+                    raise_cast_failure=False):
     """ sanitize input data to an ndarray, copy if specified, coerce to the
     dtype if specified
     """
@@ -3146,7 +3145,7 @@ def _sanitize_array(data, index, dtype=None, copy=False,
         else:
             data = data.copy()
 
-    def _try_cast(arr, take_fast_path, require_iso8601=require_iso8601):
+    def _try_cast(arr, take_fast_path):
 
         # perf shortcut as this is the most common case
         if take_fast_path:
@@ -3154,9 +3153,7 @@ def _sanitize_array(data, index, dtype=None, copy=False,
                 return arr
 
         try:
-            subarr = maybe_cast_to_datetime(arr,
-                                            dtype,
-                                            require_iso8601=require_iso8601)
+            subarr = maybe_cast_to_datetime(arr, dtype)
             if not is_extension_type(subarr):
                 subarr = np.array(subarr, dtype=dtype, copy=copy)
         except (ValueError, TypeError):
@@ -3214,9 +3211,7 @@ def _sanitize_array(data, index, dtype=None, copy=False,
         else:
             subarr = maybe_convert_platform(data)
 
-        subarr = maybe_cast_to_datetime(subarr,
-                                        dtype,
-                                        require_iso8601=require_iso8601)
+        subarr = maybe_cast_to_datetime(subarr, dtype)
 
     elif isinstance(data, range):
         # GH 16804
@@ -3238,9 +3233,7 @@ def _sanitize_array(data, index, dtype=None, copy=False,
                 dtype, value = infer_dtype_from_scalar(value)
             else:
                 # need to possibly convert the value here
-                value = maybe_cast_to_datetime(subarr,
-                                               dtype,
-                                               require_iso8601=require_iso8601)
+                value = maybe_cast_to_datetime(value, dtype)
 
             subarr = construct_1d_arraylike_from_scalar(
                 value, len(index), dtype)
