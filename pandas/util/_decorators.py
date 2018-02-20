@@ -97,6 +97,24 @@ def deprecate_kwarg(old_arg_name, new_arg_name, mapping=None, stacklevel=2):
     FutureWarning: old='yes' is deprecated, use new=True instead
       warnings.warn(msg, FutureWarning)
     yes!
+
+
+    To raise a warning that a keyword will be removed entirely in the future
+
+    >>> @deprecate_kwarg(old_arg_name='cols', new_arg_name=None)
+    ... def f(cols='', another_param=''):
+    ...     print(cols)
+    ...
+    >>> f(cols='should raise warning')
+    FutureWarning: the 'cols' keyword is deprecated and will be removed in a
+    future version please takes steps to stop use of 'cols'
+    should raise warning
+    >>> f(another_param='should not raise warning')
+    should not raise warning
+    >>> f(cols='should raise warning', another_param='')
+    FutureWarning: the 'cols' keyword is deprecated and will be removed in a
+    future version please takes steps to stop use of 'cols'
+    should raise warning
     """
 
     if mapping is not None and not hasattr(mapping, 'get') and \
@@ -111,8 +129,8 @@ def deprecate_kwarg(old_arg_name, new_arg_name, mapping=None, stacklevel=2):
 
             if new_arg_name is None and old_arg_value is not None:
                 msg = (
-                    "the '{old_name}' keyword is deprecated and will be"
-                    "removed in a future version"
+                    "the '{old_name}' keyword is deprecated and will be "
+                    "removed in a future version "
                     "please takes steps to stop use of '{old_name}'"
                 ).format(old_name=old_arg_name)
                 warnings.warn(msg, FutureWarning, stacklevel=stacklevel)

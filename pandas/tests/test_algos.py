@@ -249,6 +249,8 @@ class TestFactorize(object):
         tm.assert_numpy_array_equal(uniques, exp_uniques)
 
     def test_deprecate_order(self):
+        # gh 19727 - check warning is raised for deprecated keyword, order.
+        # Test not valid once order keyword is removed.
         data = np.array([2**63, 1, 2**63], dtype=np.uint64)
         with tm.assert_produces_warning(expected_warning=FutureWarning):
             algos.factorize(data, order=True)
