@@ -333,8 +333,8 @@ def validate_fillna_kwargs(value, method, validate_scalar_dict_value=True):
     value, method : object
         The 'value' and 'method' keyword arguments for 'fillna'.
     validate_scalar_dict_value : bool, default True
-        Whether to validate that 'value' is a scalar or dict; specifically
-        that it is not a list or tuple.
+        Whether to validate that 'value' is a scalar or dict. Specifically,
+        validate that it is not a list or tuple.
 
     Returns
     -------
