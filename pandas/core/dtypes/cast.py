@@ -904,6 +904,7 @@ def maybe_infer_to_datetimelike(value, convert_dates=False):
     def try_datetime(v):
         # safe coerce to datetime64
         try:
+            # GH19671
             v = tslib.array_to_datetime(v,
                                         require_iso8601=True,
                                         errors='raise')
@@ -914,6 +915,7 @@ def maybe_infer_to_datetimelike(value, convert_dates=False):
             # then these stay as object dtype
             try:
                 from pandas import to_datetime
+                # GH19671
                 return to_datetime(v, require_iso8601=True)
             except Exception:
                 pass
