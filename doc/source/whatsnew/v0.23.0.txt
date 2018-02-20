@@ -733,6 +733,7 @@ Datetimelike
 - Bug in :func:`to_datetime` where passing an out-of-bounds datetime with ``errors='coerce'`` and ``utc=True`` would raise ``OutOfBoundsDatetime`` instead of parsing to ``NaT`` (:issue:`19612`)
 - Bug in :func:`Timedelta.__add__`, :func:`Timedelta.__sub__` where adding or subtracting a ``np.timedelta64`` object would return another ``np.timedelta64`` instead of a ``Timedelta`` (:issue:`19738`)
 - Bug in :func:`Timedelta.__floordiv__`, :func:`Timedelta.__rfloordiv__` where operating with a ``Tick`` object would raise a ``TypeError`` instead of returning a numeric value (:issue:`19738`)
+- Bug in :func:`Timedelta.total_seconds()` causing precision errors i.e. `Timedelta('30S').total_seconds()==30.000000000000004` (:issue:`19458`)
 
 
 Timezones
