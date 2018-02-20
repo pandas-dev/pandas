@@ -478,11 +478,16 @@ def _binary_op_method_timedeltalike(op, name):
         elif other is NaT:
             return NaT
 
+        elif is_timedelta64_object(other):
+            # convert to Timedelta below; avoid catching this in
+            # has-dtype check before then
+            pass
+
         elif is_datetime64_object(other) or PyDateTime_CheckExact(other):
             # the PyDateTime_CheckExact case is for a datetime object that
             # is specifically *not* a Timestamp, as the Timestamp case will be
             # handled after `_validate_ops_compat` returns False below
-            from ..tslib import Timestamp
+            from timestamps import Timestamp
             return op(self, Timestamp(other))
             # We are implicitly requiring the canonical behavior to be
             # defined by Timestamp methods.
@@ -503,6 +508,9 @@ def _binary_op_method_timedeltalike(op, name):
             # failed to parse as timedelta
             return NotImplemented
 
+        if other is NaT:
+            # e.g. if original other was timedelta64('NaT')
+            return NaT
         return Timedelta(op(self.value, other.value), unit='ns')
 
     f.__name__ = name
@@ -1096,6 +1104,9 @@ class Timedelta(_Timedelta):
         # just defer
         if hasattr(other, '_typ'):
             # Series, DataFrame, ...
+            if other._typ == 'dateoffset' and hasattr(other, 'delta'):
+                # Tick offset
+                return self // other.delta
             return NotImplemented
 
         if hasattr(other, 'dtype'):
@@ -1128,6 +1139,9 @@ class Timedelta(_Timedelta):
         # just defer
         if hasattr(other, '_typ'):
             # Series, DataFrame, ...
+            if other._typ == 'dateoffset' and hasattr(other, 'delta'):
+                # Tick offset
+                return other.delta // self
             return NotImplemented
 
         if hasattr(other, 'dtype'):
@@ -1148,6 +1162,24 @@ class Timedelta(_Timedelta):
         if other is NaT:
             return np.nan
         return other.value // self.value
+
+    def __mod__(self, other):
+        # Naive implementation, room for optimization
+        return self.__divmod__(other)[1]
+
+    def __rmod__(self, other):
+        # Naive implementation, room for optimization
+        return self.__rdivmod__(other)[1]
+
+    def __divmod__(self, other):
+        # Naive implementation, room for optimization
+        div = self // other
+        return div, self - div * other
+
+    def __rdivmod__(self, other):
+        # Naive implementation, room for optimization
+        div = other // self
+        return div, other - div * self
 
 
 cdef _floordiv(int64_t value, right):
