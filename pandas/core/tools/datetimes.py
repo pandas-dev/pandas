@@ -168,7 +168,9 @@ def to_datetime(arg, errors='raise', dayfirst=False, yearfirst=False,
         method of parsing them. In some cases this can increase the parsing
         speed by ~5-10x.
     require_iso8601 : boolean, default False
-        If True, only try to infer ISO8601-compliant datetime string.
+        If True, only try to infer ISO8601-compliant datetime strings.
+
+        .. versionadded:: 0.23.0
     origin : scalar, default is 'unix'
         Define the reference date. The numeric values would be parsed as number
         of units (defined by `unit`) since this reference date.
