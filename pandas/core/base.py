@@ -1154,32 +1154,26 @@ class IndexOpsMixin(object):
         dtype: int64
 
         >>> x.searchsorted(4)
-        array([3])
+        array([3], dtype=int64)
 
         >>> x.searchsorted([0, 4])
-        array([0, 3])
+        array([0, 3], dtype=int64)
 
         >>> x.searchsorted([1, 3], side='left')
-        array([0, 2])
+        array([0, 2], dtype=int64)
 
         >>> x.searchsorted([1, 3], side='right')
-        array([1, 3])
+        array([1, 3], dtype=int64)
 
-        >>> x = pd.Categorical(['apple', 'bread', 'bread', 'cheese', 'milk' ])
+        >>> x = pd.Categorical(['apple', 'bread', 'bread', 'cheese', 'milk'], ordered=True)
         [apple, bread, bread, cheese, milk]
         Categories (4, object): [apple < bread < cheese < milk]
 
         >>> x.searchsorted('bread')
-        array([1])     # Note: an array, not a scalar
+        array([1], dtype=int64)     # Note: an array, not a scalar
 
-        >>> x.searchsorted(['bread'])
-        array([1])
-
-        >>> x.searchsorted(['bread', 'eggs'])
-        array([1, 4])
-
-        >>> x.searchsorted(['bread', 'eggs'], side='right')
-        array([3, 4])    # eggs before milk
+        >>> x.searchsorted(['bread'], side='right')
+        array([3], dtype=int64)
         """)
 
     @Substitution(klass='IndexOpsMixin')
