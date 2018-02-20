@@ -65,7 +65,7 @@ def deprecate_kwarg(old_arg_name, new_arg_name, mapping=None, stacklevel=2):
     ----------
     old_arg_name : str
         Name of argument in function to deprecate
-    new_arg_name : str | None
+    new_arg_name : str or None
         Name of preferred argument in function. Use None to raise warning that
         ``old_arg_name`` keyword is deprecated.
     mapping : dict or callable
