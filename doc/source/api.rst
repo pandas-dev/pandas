@@ -246,6 +246,24 @@ Testing
 
    test
 
+.. currentmodule:: pandas.plotting
+
+Plotting
+--------
+
+Miscellaneous
+~~~~~~~~~~~~~
+
+.. autosummary::
+   :toctree: generated/
+
+   andrews_curves
+   bootstrap_plot
+   lag_plot
+   parallel_coordinates
+   radviz
+   scatter_matrix
+
 .. _api.series:
 
 Series
