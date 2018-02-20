@@ -83,12 +83,15 @@ def deprecate_kwarg(old_arg_name, new_arg_name, mapping=None, stacklevel=2):
     ...
     >>> f(columns='should work ok')
     should work ok
+
     >>> f(cols='should raise warning')
     FutureWarning: cols is deprecated, use columns instead
       warnings.warn(msg, FutureWarning)
     should raise warning
+
     >>> f(cols='should error', columns="can\'t pass do both")
     TypeError: Can only specify 'cols' or 'columns', not both
+
     >>> @deprecate_kwarg('old', 'new', {'yes': True, 'no': False})
     ... def f(new=False):
     ...     print('yes!' if new else 'no!')
@@ -111,6 +114,7 @@ def deprecate_kwarg(old_arg_name, new_arg_name, mapping=None, stacklevel=2):
     should raise warning
     >>> f(another_param='should not raise warning')
     should not raise warning
+
     >>> f(cols='should raise warning', another_param='')
     FutureWarning: the 'cols' keyword is deprecated and will be removed in a
     future version please takes steps to stop use of 'cols'
