@@ -34,7 +34,7 @@ from pandas.core.config import get_option
 
 from pandas.core.indexes.base import (
     Index, _ensure_index,
-    _get_na_value, InvalidIndexError,
+    InvalidIndexError,
     _index_shared_docs)
 from pandas.core.indexes.frozen import (
     FrozenNDArray, FrozenList, _ensure_frozen)
@@ -804,7 +804,7 @@ class MultiIndex(Index):
             elif box:
                 taken = algos.take_1d(lev._box_values(lev._ndarray_values),
                                       lab,
-                                      fill_value=_get_na_value(lev.dtype.type))
+                                      fill_value=lev._na_value)
             else:
                 taken = algos.take_1d(np.asarray(lev._values), lab)
             values.append(taken)
