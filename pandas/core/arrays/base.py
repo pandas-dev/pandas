@@ -95,9 +95,12 @@ class ExtensionArray(object):
         # type: (Union[int, np.ndarray], Any) -> None
         """Set one or more values inplace.
 
+        This method is not required to satisfy the pandas extension array
+        interface.
+
         Parameters
         ----------
-        key : int or ndarray
+        key : int, ndarray, or slice
             When called from, e.g. ``Series.__setitem__``, ``key`` will be
             one of
 
@@ -109,24 +112,26 @@ class ExtensionArray(object):
         value : ExtensionDtype.type, Sequence[ExtensionDtype.type], or object
             value or values to be set of ``key``.
 
-        Notes
-        -----
-        This method is not required to satisfy the interface. If an
-        ExtensionArray chooses to implement __setitem__, then some semantics
-        should be observed:
-
-        * Setting multiple values : ExtensionArrays should support setting
-          multiple values at once, ``key`` will be a sequence of integers and
-          ``value`` will be a same-length sequence.
-
-        * Broadcasting : For a sequence ``key`` and a scalar ``value``,
-          each position in ``key`` should be set to ``value``.
-
-        * Coercion : Most users will expect basic coercion to work. For
-          example, a string like ``'2018-01-01'`` is coerced to a datetime
-          when setting on a datetime64ns array. In general, if the
-        ``__init__`` method coerces that value, then so should ``__setitem__``.
+        Returns
+        -------
+        None
         """
+        # Some notes to the ExtensionArray implementor who may have ended up
+        # here. While this method is not required for the interface, if you
+        # *do* choose to implement __setitem__, then some semantics should be
+        # observed:
+        #
+        # * Setting multiple values : ExtensionArrays should support setting
+        #   multiple values at once, 'key' will be a sequence of integers and
+        #  'value' will be a same-length sequence.
+        #
+        # * Broadcasting : For a sequence 'key' and a scalar 'value',
+        #   each position in 'key' should be set to 'value'.
+        #
+        # * Coercion : Most users will expect basic coercion to work. For
+        #   example, a string like '2018-01-01' is coerced to a datetime
+        #   when setting on a datetime64ns array. In general, if the
+        #   __init__ method coerces that value, then so should __setitem__
         raise NotImplementedError(_not_implemented_message.format(
             type(self), '__setitem__')
         )
@@ -210,25 +215,6 @@ class ExtensionArray(object):
         This should return a 1-D array the same length as 'self'.
         """
         raise AbstractMethodError(self)
-
-    def value_counts(self, dropna=True):
-        """Compute a histogram of the counts of non-null values.
-
-        Parameters
-        ----------
-        dropna : bool, default True
-            Don't include counts of NaN
-
-        Returns
-        -------
-        value_counts : Series
-        """
-        from pandas import value_counts
-
-        if dropna:
-            self = self[~self.isna()]
-
-        return value_counts(np.array(self))
 
     # ------------------------------------------------------------------------
     # Indexing methods

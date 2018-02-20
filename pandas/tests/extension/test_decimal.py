@@ -177,7 +177,8 @@ class TestMissing(base.BaseMissingTests):
 
 
 class TestMethods(base.BaseMethodsTests):
-    @pytest.mark.xfail(reason="NaN Sorting")
+    @pytest.mark.parametrize('dropna', [True, False])
+    @pytest.mark.xfail(reason="value_counts not implemented yet.")
     def test_value_counts(self, all_data, dropna):
         all_data = all_data[:10]
         if dropna:
