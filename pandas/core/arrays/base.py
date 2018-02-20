@@ -147,12 +147,12 @@ class ExtensionArray(object):
         raise AbstractMethodError(self)
 
     def __iter__(self):
-        """Iterate over elements.
+        """Iterate over elements of the array.
 
-        This needs to be implemented so that pandas recognizes extension arrays
-        as list-like. The default implementation makes successive calls to
-        ``__getitem__``, which may be slower than necessary.
         """
+        # This needs to be implemented so that pandas recognizes extension arrays
+        # as list-like. The default implementation makes successive calls to
+        # ``__getitem__``, which may be slower than necessary.
         for i in range(len(self)):
             yield self[i]
 
@@ -181,9 +181,9 @@ class ExtensionArray(object):
         # type: () -> int
         """The number of bytes needed to store this object in memory.
 
-        If this is expensive to compute, return an approximate lower bound
-        on the number of bytes needed.
         """
+        # If this is expensive to compute, return an approximate lower bound
+        # on the number of bytes needed.
         raise AbstractMethodError(self)
 
     # ------------------------------------------------------------------------
