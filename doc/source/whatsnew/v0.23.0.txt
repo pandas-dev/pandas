@@ -571,6 +571,7 @@ Other API Changes
 - Set operations (union, difference...) on :class:`IntervalIndex` with incompatible index types will now raise a ``TypeError`` rather than a ``ValueError`` (:issue:`19329`)
 - :class:`DateOffset` objects render more simply, e.g. "<DateOffset: days=1>" instead of "<DateOffset: kwds={'days': 1}>" (:issue:`19403`)
 - :func:`pandas.merge` provides a more informative error message when trying to merge on timezone-aware and timezone-naive columns (:issue:`15800`)
+- :func:`util._decorators.deprecate_kwarg` now has the ability to deprecate a keyword entirely. Previously, using ``@deprecate_kwarg`` required that an alternative keyword be provided in favor of the deprecated keyword.
 
 .. _whatsnew_0230.deprecations:
 
@@ -624,6 +625,7 @@ Removal of prior version deprecations/changes
 - The modules `pandas.tools.hashing` and `pandas.util.hashing` have been removed (:issue:`16223`)
 - The top-level functions ``pd.rolling_*``, ``pd.expanding_*`` and ``pd.ewm*`` have been removed (Deprecated since v0.18).
   Instead, use the DataFrame/Series methods :attr:`~DataFrame.rolling`, :attr:`~DataFrame.expanding` and :attr:`~DataFrame.ewm` (:issue:`18723`)
+- Warnings against the obsolete usage of the order keyword in ``core.algorithms.factorize``.  For example, ``core.algorithms.factorize(data, order)``, emits a warning that the order keyword will be deprecated (:issue:`19727`)
 
 .. _whatsnew_0230.performance:
 
