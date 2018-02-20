@@ -10,7 +10,7 @@ import numpy as np
 import pandas as pd
 import pandas.compat as compat
 from pandas.core.dtypes.common import (
-    is_object_dtype, is_datetimetz,
+    is_object_dtype, is_datetimetz, is_datetime64_dtype,
     needs_i8_conversion)
 import pandas.util.testing as tm
 from pandas import (Series, Index, DatetimeIndex, TimedeltaIndex,
@@ -296,14 +296,16 @@ class TestIndexOps(Ops):
                 # result = None != o  # noqa
                 # assert result.iat[0]
                 # assert result.iat[1]
+                if not (is_datetime64_dtype(o) or is_datetimetz(o)):
+                    # Following DatetimeIndex (and Timestamp) convention,
+                    # inequality comparisons with Series[datetime64] raise
+                    result = None > o
+                    assert not result.iat[0]
+                    assert not result.iat[1]
 
-                result = None > o
-                assert not result.iat[0]
-                assert not result.iat[1]
-
-                result = o < None
-                assert not result.iat[0]
-                assert not result.iat[1]
+                    result = o < None
+                    assert not result.iat[0]
+                    assert not result.iat[1]
 
     def test_ndarray_compat_properties(self):
 
