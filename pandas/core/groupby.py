@@ -1919,7 +1919,6 @@ class GroupBy(_GroupBy):
                                            self.grouper, needs_ngroups=True,
                                            nperiods=periods)
 
-
     @Substitution(name='groupby')
     @Appender(_doc_template)
     def head(self, n=5):
