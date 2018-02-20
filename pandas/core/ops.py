@@ -332,8 +332,8 @@ a  1.0
 b  1.0
 c  1.0
 d  NaN
->>> b = pd.DataFrame({'one': [1, np.nan, 1, np.nan],
-                      'two': [np.nan, 2, np.nan, 2]}, 
+>>> b = pd.DataFrame(dict(one=[1, np.nan, 1, np.nan],
+                          two=[np.nan, 2, np.nan, 2]),
                      index=['a', 'b', 'c_', 'd'])
 >>> b
     one  two
@@ -388,8 +388,8 @@ a  1.0
 b  1.0
 c  1.0
 d  NaN
->>> b = pd.DataFrame({'one': [1, np.nan, 1, np.nan],
-                      'two': [np.nan, 2, np.nan, 2]}, 
+>>> b = pd.DataFrame(dict(one=[1, np.nan, 1, np.nan],
+                          two=[np.nan, 2, np.nan, 2]),
                      index=['a', 'b', 'c_', 'd'])
 >>> b
     one  two
@@ -476,7 +476,6 @@ def _make_flex_doc(op_name, typ):
         base_doc = _flex_doc_PANEL
     else:
         raise AssertionError('Invalid typ argument.')
-
     doc = base_doc.format(desc=op_desc['desc'], op_name=op_name,
                           equiv=equiv, reverse=op_desc['reverse'])
     return doc
