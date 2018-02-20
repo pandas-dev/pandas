@@ -613,7 +613,8 @@ class TestPeriodIndexSeriesMethods(object):
         exp = pd.Index([0, -1, -2, -3], name='idx')
         tm.assert_index_equal(result, exp)
 
-    def test_pi_ops_errors(self):
+    @pytest.mark.parametrize('ng', ["str", 1.5])
+    def test_pi_ops_errors(self, ng):
         idx = PeriodIndex(['2011-01', '2011-02', '2011-03', '2011-04'],
                           freq='M', name='idx')
         ser = pd.Series(idx)
@@ -621,34 +622,33 @@ class TestPeriodIndexSeriesMethods(object):
         msg = r"unsupported operand type\(s\)"
 
         for obj in [idx, ser]:
-            for ng in ["str", 1.5]:
-                with tm.assert_raises_regex(TypeError, msg):
-                    obj + ng
+            with tm.assert_raises_regex(TypeError, msg):
+                obj + ng
 
+            with pytest.raises(TypeError):
+                # error message differs between PY2 and 3
+                ng + obj
+
+            with tm.assert_raises_regex(TypeError, msg):
+                obj - ng
+
+            with pytest.raises(TypeError):
+                np.add(obj, ng)
+
+            if _np_version_under1p10:
+                assert np.add(ng, obj) is NotImplemented
+            else:
                 with pytest.raises(TypeError):
-                    # error message differs between PY2 and 3
-                    ng + obj
+                    np.add(ng, obj)
 
-                with tm.assert_raises_regex(TypeError, msg):
-                    obj - ng
+            with pytest.raises(TypeError):
+                np.subtract(obj, ng)
 
+            if _np_version_under1p10:
+                assert np.subtract(ng, obj) is NotImplemented
+            else:
                 with pytest.raises(TypeError):
-                    np.add(obj, ng)
-
-                if _np_version_under1p10:
-                    assert np.add(ng, obj) is NotImplemented
-                else:
-                    with pytest.raises(TypeError):
-                        np.add(ng, obj)
-
-                with pytest.raises(TypeError):
-                    np.subtract(obj, ng)
-
-                if _np_version_under1p10:
-                    assert np.subtract(ng, obj) is NotImplemented
-                else:
-                    with pytest.raises(TypeError):
-                        np.subtract(ng, obj)
+                    np.subtract(ng, obj)
 
     def test_pi_ops_nat(self):
         idx = PeriodIndex(['2011-01', '2011-02', 'NaT', '2011-04'],

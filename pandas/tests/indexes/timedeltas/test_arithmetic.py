@@ -654,19 +654,19 @@ class TestTimedeltaIndexArithmetic(object):
         expected = DatetimeIndex(['20121231', pd.NaT, '20130101'])
         tm.assert_index_equal(result, expected)
 
-    def test_sub_period(self):
+    @pytest.mark.parametrize('freq', [None, 'H'])
+    def test_sub_period(self, freq):
         # GH 13078
         # not supported, check TypeError
         p = pd.Period('2011-01-01', freq='D')
 
-        for freq in [None, 'H']:
-            idx = pd.TimedeltaIndex(['1 hours', '2 hours'], freq=freq)
+        idx = pd.TimedeltaIndex(['1 hours', '2 hours'], freq=freq)
 
-            with pytest.raises(TypeError):
-                idx - p
+        with pytest.raises(TypeError):
+            idx - p
 
-            with pytest.raises(TypeError):
-                p - idx
+        with pytest.raises(TypeError):
+            p - idx
 
     def test_addition_ops(self):
         # with datetimes/timedelta and tdi/dti

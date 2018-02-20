@@ -96,37 +96,37 @@ class TestDatetimeIndexOps(Ops):
             tm.assert_raises_regex(
                 ValueError, errmsg, np.argmax, dr, out=0)
 
-    def test_repeat_range(self):
+    @pytest.mark.parametrize('tz', tz)
+    def test_repeat_range(self, tz):
         rng = date_range('1/1/2000', '1/1/2001')
 
         result = rng.repeat(5)
         assert result.freq is None
         assert len(result) == 5 * len(rng)
 
-        for tz in self.tz:
-            index = pd.date_range('2001-01-01', periods=2, freq='D', tz=tz)
-            exp = pd.DatetimeIndex(['2001-01-01', '2001-01-01',
-                                    '2001-01-02', '2001-01-02'], tz=tz)
-            for res in [index.repeat(2), np.repeat(index, 2)]:
-                tm.assert_index_equal(res, exp)
-                assert res.freq is None
+        index = pd.date_range('2001-01-01', periods=2, freq='D', tz=tz)
+        exp = pd.DatetimeIndex(['2001-01-01', '2001-01-01',
+                                '2001-01-02', '2001-01-02'], tz=tz)
+        for res in [index.repeat(2), np.repeat(index, 2)]:
+            tm.assert_index_equal(res, exp)
+            assert res.freq is None
 
-            index = pd.date_range('2001-01-01', periods=2, freq='2D', tz=tz)
-            exp = pd.DatetimeIndex(['2001-01-01', '2001-01-01',
-                                    '2001-01-03', '2001-01-03'], tz=tz)
-            for res in [index.repeat(2), np.repeat(index, 2)]:
-                tm.assert_index_equal(res, exp)
-                assert res.freq is None
+        index = pd.date_range('2001-01-01', periods=2, freq='2D', tz=tz)
+        exp = pd.DatetimeIndex(['2001-01-01', '2001-01-01',
+                                '2001-01-03', '2001-01-03'], tz=tz)
+        for res in [index.repeat(2), np.repeat(index, 2)]:
+            tm.assert_index_equal(res, exp)
+            assert res.freq is None
 
-            index = pd.DatetimeIndex(['2001-01-01', 'NaT', '2003-01-01'],
-                                     tz=tz)
-            exp = pd.DatetimeIndex(['2001-01-01', '2001-01-01', '2001-01-01',
-                                    'NaT', 'NaT', 'NaT',
-                                    '2003-01-01', '2003-01-01', '2003-01-01'],
-                                   tz=tz)
-            for res in [index.repeat(3), np.repeat(index, 3)]:
-                tm.assert_index_equal(res, exp)
-                assert res.freq is None
+        index = pd.DatetimeIndex(['2001-01-01', 'NaT', '2003-01-01'],
+                                 tz=tz)
+        exp = pd.DatetimeIndex(['2001-01-01', '2001-01-01', '2001-01-01',
+                                'NaT', 'NaT', 'NaT',
+                                '2003-01-01', '2003-01-01', '2003-01-01'],
+                               tz=tz)
+        for res in [index.repeat(3), np.repeat(index, 3)]:
+            tm.assert_index_equal(res, exp)
+            assert res.freq is None
 
     @pytest.mark.parametrize('tz', tz)
     def test_repeat(self, tz):
@@ -151,16 +151,16 @@ class TestDatetimeIndexOps(Ops):
         tm.assert_raises_regex(ValueError, msg, np.repeat,
                                rng, reps, axis=1)
 
-    def test_resolution(self):
+    @pytest.mark.parametrize('tz', tz)
+    def test_resolution(self, tz):
         for freq, expected in zip(['A', 'Q', 'M', 'D', 'H', 'T',
                                    'S', 'L', 'U'],
                                   ['day', 'day', 'day', 'day', 'hour',
                                    'minute', 'second', 'millisecond',
                                    'microsecond']):
-            for tz in self.tz:
-                idx = pd.date_range(start='2013-04-01', periods=30, freq=freq,
-                                    tz=tz)
-                assert idx.resolution == expected
+            idx = pd.date_range(start='2013-04-01', periods=30, freq=freq,
+                                tz=tz)
+            assert idx.resolution == expected
 
     @pytest.mark.parametrize('tz', tz)
     def test_value_counts_unique(self, tz):
