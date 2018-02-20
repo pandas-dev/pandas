@@ -248,6 +248,13 @@ class TestFactorize(object):
         tm.assert_numpy_array_equal(labels, exp_labels)
         tm.assert_numpy_array_equal(uniques, exp_uniques)
 
+    def test_deprecate_order(self):
+        data = np.array([2**63, 1, 2**63], dtype=np.uint64)
+        with tm.assert_produces_warning(expected_warning=FutureWarning):
+            algos.factorize(data, order=True)
+        with tm.assert_produces_warning(False):
+            algos.factorize(data)
+
 
 class TestUnique(object):
 
