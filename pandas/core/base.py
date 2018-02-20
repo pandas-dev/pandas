@@ -1165,7 +1165,8 @@ class IndexOpsMixin(object):
         >>> x.searchsorted([1, 3], side='right')
         array([1, 3], dtype=int64)
 
-        >>> x = pd.Categorical(['apple', 'bread', 'bread', 'cheese', 'milk'], ordered=True)
+        >>> x = pd.Categorical(['apple', 'bread', 'bread',
+                                'cheese', 'milk'], ordered=True)
         [apple, bread, bread, cheese, milk]
         Categories (4, object): [apple < bread < cheese < milk]
 
