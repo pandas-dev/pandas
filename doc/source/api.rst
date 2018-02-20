@@ -246,24 +246,6 @@ Testing
 
    test
 
-.. currentmodule:: pandas.plotting
-
-Plotting
---------
-
-Miscellaneous
-~~~~~~~~~~~~~
-
-.. autosummary::
-   :toctree: generated/
-
-   andrews_curves
-   bootstrap_plot
-   lag_plot
-   parallel_coordinates
-   radviz
-   scatter_matrix
-
 .. _api.series:
 
 Series
@@ -2398,13 +2380,21 @@ Style Export and Import
 Plotting
 ~~~~~~~~
 
-.. currentmodule:: pandas
+.. currentmodule:: pandas.plotting
+
+The following functions are contained in the `pandas.plotting` module.
 
 .. autosummary::
    :toctree: generated/
 
-   plotting.register_matplotlib_converters
-   plotting.deregister_matplotlib_converters
+   andrews_curves
+   bootstrap_plot
+   deregister_matplotlib_converters
+   lag_plot
+   parallel_coordinates
+   radviz
+   register_matplotlib_converters
+   scatter_matrix
 
 .. currentmodule:: pandas
 
