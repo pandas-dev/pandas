@@ -1988,6 +1988,17 @@ Index([u'a', u'bb', u'ccc', u'a', u'bb', u'ccc', u'a', u'bb', u'ccc', u'a',
         tm.assert_index_equal(idx - idx, 0 * idx)
         assert not (idx - idx).empty
 
+    def test_iadd_preserves_name(self):
+        # GH#17067, GH#19723 __iadd__ and __isub__ should preserve index name
+        ser = pd.Series([1, 2, 3])
+        ser.index.name = 'foo'
+
+        ser.index += 1
+        assert ser.index.name == "foo"
+
+        ser.index -= 1
+        assert ser.index.name == "foo"
+
 
 class TestMixedIntIndex(Base):
     # Mostly the tests from common.py for which the results differ
