@@ -59,6 +59,7 @@ import pandas.core.dtypes.concat as _concat
 from pandas.core.dtypes.generic import (
     ABCSeries,
     ABCDatetimeIndex,
+    ABCExtensionArray,
     ABCIndexClass)
 import pandas.core.common as com
 import pandas.core.algorithms as algos
@@ -4141,7 +4142,10 @@ class BlockManager(PandasObject):
         # FIXME: refactor, clearly separate broadcasting & zip-like assignment
         #        can prob also fix the various if tests for sparse/categorical
 
-        value_is_extension_type = is_extension_type(value)
+        # TODO(EA): Remove an is_extension_ when all extension types satisfy
+        # the interface
+        value_is_extension_type = (is_extension_type(value) or
+                                   is_extension_array_dtype(value))
 
         # categorical/spares/datetimetz
         if value_is_extension_type:
@@ -5198,7 +5202,7 @@ def _safe_reshape(arr, new_shape):
     """
     if isinstance(arr, ABCSeries):
         arr = arr._values
-    if not isinstance(arr, Categorical):
+    if not isinstance(arr, ABCExtensionArray):
         arr = arr.reshape(new_shape)
     return arr
 

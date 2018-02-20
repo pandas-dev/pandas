@@ -205,6 +205,18 @@ class BaseReshapingTests(object):
         tm.assert_frame_equal(r1, e1)
         tm.assert_frame_equal(r2, e2)
 
+    def test_set_frame_expand_regular_with_extension(self, data):
+        df = pd.DataFrame({"A": [1] * len(data)})
+        df['B'] = data
+        expected = pd.DataFrame({"A": [1] * len(data), "B": data})
+        tm.assert_frame_equal(df, expected)
+
+    def test_set_frame_expand_extension_with_regular(self, data):
+        df = pd.DataFrame({'A': data})
+        df['B'] = [1] * len(data)
+        expected = pd.DataFrame({"A": data, "B": [1] * len(data)})
+        tm.assert_frame_equal(df, expected)
+
 
 class BaseGetitemTests(object):
     """Tests for ExtensionArray.__getitem__."""
