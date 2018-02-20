@@ -710,15 +710,9 @@ class DataFrame(NDFrame):
             for i, k in enumerate(self.columns):
                 yield k, self._ixs(i, axis=1)
 
-    def iterrows(self, require_iso8601=False):
+    def iterrows(self):
         """
         Iterate over DataFrame rows as (index, Series) pairs.
-
-        Parameters
-        ----------
-        require_iso8601 : boolean, default False
-            If True, only try to infer ISO8601-compliant datetime string in
-            iterated rows.
 
         Notes
         -----
@@ -761,10 +755,7 @@ class DataFrame(NDFrame):
         columns = self.columns
         klass = self._constructor_sliced
         for k, v in zip(self.index, self.values):
-            s = klass(v,
-                      index=columns,
-                      name=k,
-                      require_iso8601=require_iso8601)
+            s = klass(v, index=columns, name=k)
             yield k, s
 
     def itertuples(self, index=True, name="Pandas"):
