@@ -3659,7 +3659,7 @@ class DataFrame(NDFrame):
         # Otherwise, raise a KeyError, same as if you try to __getitem__ with a
         # key that doesn't exist.
         diff = Index(subset).difference(self.columns)
-        if len(diff):
+        if not diff.empty:
             raise KeyError(diff)
 
         vals = (col.values for name, col in self.iteritems()
