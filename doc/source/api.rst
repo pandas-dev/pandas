@@ -2378,7 +2378,7 @@ Style Export and Import
    Styler.to_excel
 
 Plotting
-~~~~~~~~
+--------
 
 .. currentmodule:: pandas.plotting
 
