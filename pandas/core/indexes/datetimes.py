@@ -142,6 +142,9 @@ def _dt_index_cmp(opname, cls, nat_result=False):
             else:
                 o_mask = other.view('i8') == libts.iNaT
 
+            # for older numpys we need to be careful not to pass a Series
+            # as a mask below
+            o_mask = com._values_from_object(o_mask)
             if o_mask.any():
                 result[o_mask] = nat_result
 
