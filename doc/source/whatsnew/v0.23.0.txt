@@ -866,3 +866,4 @@ Other
 ^^^^^
 
 - Improved error message when attempting to use a Python keyword as an identifier in a ``numexpr`` backed query (:issue:`18221`)
+- Boolean operations ``&, |, ^`` between a ``Series`` and an ``Index`` will no longer raise ``TypeError`` (:issue:`19792`)

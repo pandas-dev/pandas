@@ -1853,6 +1853,17 @@ class TestSeriesOperators(TestData):
         result = s_0123 & Series([0.1, 4, -3.14, 2])
         assert_series_equal(result, s_ftft)
 
+    @pytest.mark.xfail(reason='GH#19792 Series op doesnt support categorical')
+    def test_operators_bitwise_with_int_categorical(self):
+        # GH#9016: support bitwise op for integer types
+        # GH#??? allow for operating with Index
+        s_0123 = Series(range(4), dtype='int64').astype('category')
+        s_3333 = Series([3] * 4).astype('category')
+
+        res = s_0123 & pd.Categorical(s_3333)
+        expected = Series(range(4), dtype='int64').astype('category')
+        assert_series_equal(res, expected)
+
     @pytest.mark.parametrize('box', [np.array, pd.Index, pd.Series])
     def test_operators_bitwise_with_int_arraylike(self, box):
         # GH#9016: support bitwise op for integer types
