@@ -162,3 +162,8 @@ class TestMethods(base.BaseMethodsTests):
     @pytest.mark.skip(reason="Unhashable")
     def test_value_counts(self, all_data, dropna):
         pass
+
+
+class TestCasting(base.BaseCastingTests):
+    pass
+

@@ -192,6 +192,10 @@ class TestMethods(base.BaseMethodsTests):
         tm.assert_series_equal(result, expected)
 
 
+class TestCasting(base.BaseCastingTests):
+    pass
+
+
 def test_series_constructor_coerce_data_to_extension_dtype_raises():
     xpr = ("Cannot cast data to extension dtype 'decimal'. Pass the "
            "extension array directly.")

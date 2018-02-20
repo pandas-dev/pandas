@@ -78,3 +78,8 @@ class TestMethods(base.BaseMethodsTests):
     @pytest.mark.skip(reason="Unobserved categories included")
     def test_value_counts(self, all_data, dropna):
         pass
+
+
+class TestCasting(base.BaseCastingTests):
+    pass
+

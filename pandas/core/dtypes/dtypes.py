@@ -66,13 +66,6 @@ class PandasExtensionDtype(ExtensionDtype):
         raise NotImplementedError("sub-classes should implement an __hash__ "
                                   "method")
 
-    def __eq__(self, other):
-        raise NotImplementedError("sub-classes should implement an __eq__ "
-                                  "method")
-
-    def __ne__(self, other):
-        return not self.__eq__(other)
-
     def __getstate__(self):
         # pickle support; we don't want to pickle the cache
         return {k: getattr(self, k, None) for k in self._metadata}

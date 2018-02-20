@@ -38,7 +38,7 @@ import pytest
 import pandas as pd
 import pandas.util.testing as tm
 from pandas.compat import StringIO
-from pandas.core.internals import ExtensionBlock
+from pandas.core.internals import ExtensionBlock, ObjectBlock
 from pandas.core.dtypes.common import is_extension_array_dtype
 from pandas.core.dtypes.dtypes import ExtensionDtype
 
@@ -75,6 +75,13 @@ class BaseDtypeTests(object):
 
     def test_is_not_object_type(self, dtype):
         return not pd.api.types.is_object_dtype(dtype)
+
+    def test_eq_with_str(self, dtype):
+        assert dtype == dtype.name
+        assert dtype != dtype.name + '-suffix'
+
+    def test_eq_with_numpy_object(self, dtype):
+        assert dtype != np.dtype('object')
 
 
 class BaseInterfaceTests(object):
@@ -395,3 +402,17 @@ class BaseMethodsTests(object):
         result = df.count(axis='columns')
         expected = pd.Series([0, 1])
         tm.assert_series_equal(result, expected)
+
+    def test_apply_simple_series(self, data):
+        result = pd.Series(data).apply(id)
+        assert isinstance(result, pd.Series)
+
+
+class BaseCastingTests(object):
+    """Casting to and from ExtensionDtypes"""
+
+    def test_astype_object_series(self, all_data):
+        ser = pd.Series({"A": all_data})
+        result = ser.astype(object)
+        assert isinstance(result._data.blocks[0], ObjectBlock)
+
