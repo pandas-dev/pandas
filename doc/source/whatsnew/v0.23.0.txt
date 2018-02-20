@@ -677,7 +677,7 @@ Documentation Changes
   Rewrote some sentences for greater clarity, added more dynamic references
   to functions, methods and classes.
   (:issue:`18941`, :issue:`18948`, :issue:`18973`, :issue:`19017`)
-
+- Added a reference to :func:`DataFrame.assign` in the concatenate section of the merging documentation (:issue:`18665`)
 
 .. _whatsnew_0230.bug_fixes:
 
