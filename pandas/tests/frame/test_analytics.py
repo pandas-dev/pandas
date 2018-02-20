@@ -1492,14 +1492,18 @@ class TestDataFrameAnalytics(TestData):
         for keep in ['first', 'last', False]:
             assert df.duplicated(keep=keep).sum() == 0
 
-    def test_drop_duplicates_with_misspelled_column_name(self):
-        # GH 18XXX
-        df = pd.DataFrame({'A': [0, 1, 2, 3, 4, 5],
-                           'B': [0, 1, 2, 3, 4, 5],
-                           'C': [0, 1, 2, 3, 4, 6]})
+    @pytest.mark.parametrize('subset', ['a', ['a'], ['a', 'B']])
+    def test_duplicated_with_misspelled_column_name(self, subset):
+        # GH 19730
+        df = pd.DataFrame({'A': [0, 0, 1],
+                           'B': [0, 0, 1],
+                           'C': [0, 0, 1]})
 
         with pytest.raises(KeyError):
-            df.drop_duplicates(['a', 'B'])
+            df.duplicated(subset)
+
+        with pytest.raises(KeyError):
+            df.drop_duplicates(subset)
 
     def test_drop_duplicates_with_duplicate_column_names(self):
         # GH17836

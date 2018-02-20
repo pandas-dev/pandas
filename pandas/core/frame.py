@@ -3655,9 +3655,12 @@ class DataFrame(NDFrame):
               isinstance(subset, tuple) and subset in self.columns):
             subset = subset,
 
-        for name in subset:
-            if name not in self.columns:
-                raise KeyError(name)
+        # Verify all columns in subset exist in the queried dataframe
+        # Otherwise, raise a KeyError, same as if you try to __getitem__ with a
+        # key that doesn't exist.
+        diff = Index(subset).difference(self.columns)
+        if len(diff):
+            raise KeyError(diff)
 
         vals = (col.values for name, col in self.iteritems()
                 if name in subset)
