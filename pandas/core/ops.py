@@ -953,7 +953,7 @@ def _comp_method_SERIES(cls, op, special):
             method = getattr(x, name, None)
             if method is not None:
                 with np.errstate(all='ignore'):
-                    result = getattr(x, name)(y)
+                    result = method(y)
                 if result is NotImplemented:
                     raise TypeError("invalid type comparison")
             else:
