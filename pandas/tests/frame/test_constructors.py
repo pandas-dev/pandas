@@ -1362,9 +1362,8 @@ class TestDataFrameConstructors(TestData):
             expected['float64'] = 1
             expected[floatname] = 1
 
-        result.sort_index()
-        expected = Series(expected)
-        expected.sort_index()
+        result = result.sort_index()
+        expected = Series(expected).sort_index()
         tm.assert_series_equal(result, expected)
 
         # check with ndarray construction ndim>0
@@ -1373,7 +1372,7 @@ class TestDataFrameConstructors(TestData):
                         intname: np.array([1] * 10, dtype=intname)},
                        index=np.arange(10))
         result = df.get_dtype_counts()
-        result.sort_index()
+        result = result.sort_index()
         tm.assert_series_equal(result, expected)
 
         # GH 2809
@@ -1384,8 +1383,8 @@ class TestDataFrameConstructors(TestData):
         df = DataFrame({'datetime_s': datetime_s})
         result = df.get_dtype_counts()
         expected = Series({datetime64name: 1})
-        result.sort_index()
-        expected.sort_index()
+        result = result.sort_index()
+        expected = expected.sort_index()
         tm.assert_series_equal(result, expected)
 
         # GH 2810
@@ -1395,8 +1394,8 @@ class TestDataFrameConstructors(TestData):
         df = DataFrame({'datetimes': datetimes, 'dates': dates})
         result = df.get_dtype_counts()
         expected = Series({datetime64name: 1, objectname: 1})
-        result.sort_index()
-        expected.sort_index()
+        result = result.sort_index()
+        expected = expected.sort_index()
         tm.assert_series_equal(result, expected)
 
         # GH 7594
@@ -1519,8 +1518,8 @@ class TestDataFrameConstructors(TestData):
         result = df.get_dtype_counts()
         expected = Series(
             {'int64': 1, 'float64': 2, datetime64name: 1, objectname: 1})
-        result.sort_index()
-        expected.sort_index()
+        result = result.sort_index()
+        expected = expected.sort_index()
         tm.assert_series_equal(result, expected)
 
     def test_constructor_frame_copy(self):
@@ -1832,7 +1831,7 @@ class TestDataFrameConstructors(TestData):
         rows.append([datetime(2010, 1, 1), 1])
         rows.append([datetime(2010, 1, 2), 1])
         df2_obj = DataFrame.from_records(rows, columns=['date', 'test'])
-        results = df2_obj.get_dtype_counts()
+        results = df2_obj.get_dtype_counts().sort_index()
         expected = Series({'datetime64[ns]': 1, 'int64': 1})
         tm.assert_series_equal(results, expected)
 
