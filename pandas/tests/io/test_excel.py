@@ -28,16 +28,6 @@ from pandas.io.parsers import read_csv
 from pandas.util.testing import ensure_clean, makeCustomDataframe as mkdf
 
 
-def _skip_if_no_xlrd():
-    try:
-        import xlrd
-        ver = tuple(map(int, xlrd.__VERSION__.split(".")[:2]))
-        if ver < (0, 9):
-            pytest.skip('xlrd < 0.9, skipping')
-    except ImportError:
-        pytest.skip('xlrd not installed, skipping')
-
-
 def _skip_if_no_xlwt():
     try:
         import xlwt  # NOQA
@@ -59,12 +49,6 @@ def _skip_if_no_xlsxwriter():
         pytest.skip('xlsxwriter not installed, skipping')
 
 
-def _skip_if_no_excelsuite():
-    _skip_if_no_xlrd()
-    _skip_if_no_xlwt()
-    _skip_if_no_openpyxl()
-
-
 _seriesd = tm.getSeriesData()
 _tsd = tm.getTimeSeriesData()
 _frame = DataFrame(_seriesd)[:10]
@@ -74,6 +58,7 @@ _mixed_frame = _frame.copy()
 _mixed_frame['foo'] = 'bar'
 
 
+@td.skip_if_no('xlrd', '0.9')
 class SharedItems(object):
 
     def setup_method(self, method):
@@ -554,7 +539,6 @@ class ReadingTestsBase(SharedItems):
             self.get_exceldf('test1', ext, sheetname='Sheet1', sheet_name='Sheet1')
 
 
-@td.skip_if_no('xlrd', '0.9')
 @pytest.mark.parametrize("ext", ['.xls', '.xlsx', '.xlsm'])
 class TestXlrdReader(ReadingTestsBase):
     """
@@ -1069,7 +1053,6 @@ class ExcelWriterBase(SharedItems):
         set_option(self.option_name, self.prev_engine)
 
     def test_excel_sheet_by_name_raise(self):
-        _skip_if_no_xlrd()
         import xlrd
 
         with ensure_clean(self.ext) as pth:
@@ -1083,8 +1066,6 @@ class ExcelWriterBase(SharedItems):
                 read_excel(xl, '0')
 
     def test_excelwriter_contextmanager(self):
-        _skip_if_no_xlrd()
-
         with ensure_clean(self.ext) as pth:
             with ExcelWriter(pth) as writer:
                 self.frame.to_excel(writer, 'Data1')
@@ -1097,8 +1078,6 @@ class ExcelWriterBase(SharedItems):
                 tm.assert_frame_equal(found_df2, self.frame2)
 
     def test_roundtrip(self):
-        _skip_if_no_xlrd()
-
         with ensure_clean(self.ext) as path:
             self.frame['A'][:5] = nan
 
@@ -1147,8 +1126,6 @@ class ExcelWriterBase(SharedItems):
             tm.assert_frame_equal(s.to_frame(), recons)
 
     def test_mixed(self):
-        _skip_if_no_xlrd()
-
         with ensure_clean(self.ext) as path:
             self.mixed_frame.to_excel(path, 'test1')
             reader = ExcelFile(path)
@@ -1156,8 +1133,6 @@ class ExcelWriterBase(SharedItems):
             tm.assert_frame_equal(self.mixed_frame, recons)
 
     def test_tsframe(self):
-        _skip_if_no_xlrd()
-
         df = tm.makeTimeDataFrame()[:5]
 
         with ensure_clean(self.ext) as path:
@@ -1167,7 +1142,6 @@ class ExcelWriterBase(SharedItems):
             tm.assert_frame_equal(df, recons)
 
     def test_basics_with_nan(self):
-        _skip_if_no_xlrd()
         with ensure_clean(self.ext) as path:
             self.frame['A'][:5] = nan
             self.frame.to_excel(path, 'test1')
@@ -1176,8 +1150,6 @@ class ExcelWriterBase(SharedItems):
             self.frame.to_excel(path, 'test1', index=False)
 
     def test_int_types(self):
-        _skip_if_no_xlrd()
-
         for np_type in (np.int8, np.int16, np.int32, np.int64):
 
             with ensure_clean(self.ext) as path:
@@ -1201,8 +1173,6 @@ class ExcelWriterBase(SharedItems):
                                       check_column_type=False)
 
     def test_float_types(self):
-        _skip_if_no_xlrd()
-
         for np_type in (np.float16, np.float32, np.float64):
             with ensure_clean(self.ext) as path:
                 # Test np.float values read come back as float.
@@ -1213,8 +1183,6 @@ class ExcelWriterBase(SharedItems):
                 tm.assert_frame_equal(frame, recons, check_dtype=False)
 
     def test_bool_types(self):
-        _skip_if_no_xlrd()
-
         for np_type in (np.bool8, np.bool_):
             with ensure_clean(self.ext) as path:
                 # Test np.bool values read come back as float.
@@ -1225,8 +1193,6 @@ class ExcelWriterBase(SharedItems):
                 tm.assert_frame_equal(frame, recons)
 
     def test_inf_roundtrip(self):
-        _skip_if_no_xlrd()
-
         frame = DataFrame([(1, np.inf), (2, 3), (5, -np.inf)])
         with ensure_clean(self.ext) as path:
             frame.to_excel(path, 'test1')
@@ -1235,8 +1201,6 @@ class ExcelWriterBase(SharedItems):
             tm.assert_frame_equal(frame, recons)
 
     def test_sheets(self):
-        _skip_if_no_xlrd()
-
         with ensure_clean(self.ext) as path:
             self.frame['A'][:5] = nan
 
@@ -1260,8 +1224,6 @@ class ExcelWriterBase(SharedItems):
             assert 'test2' == reader.sheet_names[1]
 
     def test_colaliases(self):
-        _skip_if_no_xlrd()
-
         with ensure_clean(self.ext) as path:
             self.frame['A'][:5] = nan
 
@@ -1280,8 +1242,6 @@ class ExcelWriterBase(SharedItems):
             tm.assert_frame_equal(xp, rs)
 
     def test_roundtrip_indexlabels(self):
-        _skip_if_no_xlrd()
-
         with ensure_clean(self.ext) as path:
 
             self.frame['A'][:5] = nan
@@ -1342,8 +1302,6 @@ class ExcelWriterBase(SharedItems):
             tm.assert_frame_equal(df, recons, check_less_precise=True)
 
     def test_excel_roundtrip_indexname(self):
-        _skip_if_no_xlrd()
-
         df = DataFrame(np.random.randn(10, 4))
         df.index.name = 'foo'
 
@@ -1358,8 +1316,6 @@ class ExcelWriterBase(SharedItems):
             assert result.index.name == 'foo'
 
     def test_excel_roundtrip_datetime(self):
-        _skip_if_no_xlrd()
-
         # datetime.date, not sure what to test here exactly
         tsf = self.tsframe.copy()
         with ensure_clean(self.ext) as path:
@@ -1372,7 +1328,6 @@ class ExcelWriterBase(SharedItems):
 
     # GH4133 - excel output format strings
     def test_excel_date_datetime_format(self):
-        _skip_if_no_xlrd()
         df = DataFrame([[date(2014, 1, 31),
                          date(1999, 9, 24)],
                         [datetime(1998, 5, 26, 23, 33, 4),
@@ -1411,8 +1366,6 @@ class ExcelWriterBase(SharedItems):
 
     def test_to_excel_interval_no_labels(self):
         # GH19242 - test writing Interval without labels
-        _skip_if_no_xlrd()
-
         with ensure_clean(self.ext) as path:
             frame = DataFrame(np.random.randint(-10, 10, size=(20, 1)),
                               dtype=np.int64)
@@ -1426,8 +1379,6 @@ class ExcelWriterBase(SharedItems):
 
     def test_to_excel_interval_labels(self):
         # GH19242 - test writing Interval with labels
-        _skip_if_no_xlrd()
-
         with ensure_clean(self.ext) as path:
             frame = DataFrame(np.random.randint(-10, 10, size=(20, 1)),
                               dtype=np.int64)
@@ -1443,8 +1394,6 @@ class ExcelWriterBase(SharedItems):
 
     def test_to_excel_timedelta(self):
         # GH 19242, GH9155 - test writing timedelta to xls
-        _skip_if_no_xlrd()
-
         with ensure_clean('.xls') as path:
             frame = DataFrame(np.random.randint(-10, 10, size=(20, 1)),
                               columns=['A'],
@@ -1460,8 +1409,6 @@ class ExcelWriterBase(SharedItems):
             tm.assert_frame_equal(expected, recons)
 
     def test_to_excel_periodindex(self):
-        _skip_if_no_xlrd()
-
         frame = self.tsframe
         xp = frame.resample('M', kind='period').mean()
 
@@ -1473,8 +1420,6 @@ class ExcelWriterBase(SharedItems):
             tm.assert_frame_equal(xp, rs.to_period('M'))
 
     def test_to_excel_multiindex(self):
-        _skip_if_no_xlrd()
-
         frame = self.frame
         arrays = np.arange(len(frame.index) * 2).reshape(2, -1)
         new_index = MultiIndex.from_arrays(arrays,
@@ -1493,8 +1438,6 @@ class ExcelWriterBase(SharedItems):
 
     # GH13511
     def test_to_excel_multiindex_nan_label(self):
-        _skip_if_no_xlrd()
-
         frame = pd.DataFrame({'A': [None, 2, 3],
                               'B': [10, 20, 30],
                               'C': np.random.sample(3)})
@@ -1509,8 +1452,6 @@ class ExcelWriterBase(SharedItems):
     # sure they are handled correctly for either setting of
     # merge_cells
     def test_to_excel_multiindex_cols(self):
-        _skip_if_no_xlrd()
-
         frame = self.frame
         arrays = np.arange(len(frame.index) * 2).reshape(2, -1)
         new_index = MultiIndex.from_arrays(arrays,
@@ -1537,8 +1478,6 @@ class ExcelWriterBase(SharedItems):
             tm.assert_frame_equal(frame, df)
 
     def test_to_excel_multiindex_dates(self):
-        _skip_if_no_xlrd()
-
         # try multiindex with dates
         tsframe = self.tsframe.copy()
         new_index = [tsframe.index, np.arange(len(tsframe.index))]
@@ -1555,8 +1494,6 @@ class ExcelWriterBase(SharedItems):
             assert recons.index.names == ('time', 'foo')
 
     def test_to_excel_multiindex_no_write_index(self):
-        _skip_if_no_xlrd()
-
         # Test writing and re-reading a MI witout the index. GH 5616.
 
         # Initial non-MI frame.
@@ -1580,8 +1517,6 @@ class ExcelWriterBase(SharedItems):
             tm.assert_frame_equal(frame1, frame3)
 
     def test_to_excel_float_format(self):
-        _skip_if_no_xlrd()
-
         df = DataFrame([[0.123456, 0.234567, 0.567567],
                         [12.32112, 123123.2, 321321.2]],
                        index=['A', 'B'], columns=['X', 'Y', 'Z'])
@@ -1597,8 +1532,6 @@ class ExcelWriterBase(SharedItems):
             tm.assert_frame_equal(rs, xp)
 
     def test_to_excel_output_encoding(self):
-        _skip_if_no_xlrd()
-
         # avoid mixed inferred_type
         df = DataFrame([[u'\u0192', u'\u0193', u'\u0194'],
                         [u'\u0195', u'\u0196', u'\u0197']],
@@ -1612,7 +1545,6 @@ class ExcelWriterBase(SharedItems):
             tm.assert_frame_equal(result, df)
 
     def test_to_excel_unicode_filename(self):
-        _skip_if_no_xlrd()
         with ensure_clean(u('\u0192u.') + self.ext) as filename:
             try:
                 f = open(filename, 'wb')
@@ -1735,8 +1667,6 @@ class ExcelWriterBase(SharedItems):
     #     os.remove(filename)
 
     def test_excel_010_hemstring(self):
-        _skip_if_no_xlrd()
-
         if self.merge_cells:
             pytest.skip('Skip tests for merged MI format.')
 
@@ -1790,8 +1720,6 @@ class ExcelWriterBase(SharedItems):
     def test_excel_010_hemstring_raises_NotImplementedError(self):
         # This test was failing only for j>1 and header=False,
         # So I reproduced a simple test.
-        _skip_if_no_xlrd()
-
         if self.merge_cells:
             pytest.skip('Skip tests for merged MI format.')
 
@@ -1818,8 +1746,6 @@ class ExcelWriterBase(SharedItems):
 
     def test_duplicated_columns(self):
         # Test for issue #5235
-        _skip_if_no_xlrd()
-
         with ensure_clean(self.ext) as path:
             write_frame = DataFrame([[1, 2, 3], [1, 2, 3], [1, 2, 3]])
             colnames = ['A', 'B', 'B']
@@ -1847,8 +1773,6 @@ class ExcelWriterBase(SharedItems):
 
     def test_swapped_columns(self):
         # Test for issue #5427.
-        _skip_if_no_xlrd()
-
         with ensure_clean(self.ext) as path:
             write_frame = DataFrame({'A': [1, 1, 1],
                                      'B': [2, 2, 2]})
@@ -1861,8 +1785,6 @@ class ExcelWriterBase(SharedItems):
 
     def test_invalid_columns(self):
         # 10982
-        _skip_if_no_xlrd()
-
         with ensure_clean(self.ext) as path:
             write_frame = DataFrame({'A': [1, 1, 1],
                                      'B': [2, 2, 2]})
@@ -1942,8 +1864,6 @@ class ExcelWriterBase(SharedItems):
     def test_datetimes(self):
 
         # Test writing and reading datetimes. For issue #9139. (xref #9185)
-        _skip_if_no_xlrd()
-
         datetimes = [datetime(2013, 1, 13, 1, 2, 3),
                      datetime(2013, 1, 13, 2, 45, 56),
                      datetime(2013, 1, 13, 4, 29, 49),
@@ -1965,8 +1885,6 @@ class ExcelWriterBase(SharedItems):
 
     # GH7074
     def test_bytes_io(self):
-        _skip_if_no_xlrd()
-
         bio = BytesIO()
         df = DataFrame(np.random.randn(10, 2))
         # pass engine explicitly as there is no file path to infer from
@@ -1979,8 +1897,6 @@ class ExcelWriterBase(SharedItems):
 
     # GH8188
     def test_write_lists_dict(self):
-        _skip_if_no_xlrd()
-
         df = DataFrame({'mixed': ['a', ['b', 'c'], {'d': 'e', 'f': 2}],
                         'numeric': [1, 2, 3.0],
                         'str': ['apple', 'banana', 'cherry']})
