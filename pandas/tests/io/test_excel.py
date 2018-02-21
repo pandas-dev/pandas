@@ -165,8 +165,8 @@ class ReadingTestsBase(SharedItems):
         df1 = dfref.reindex(columns=['B', 'C'])
         df2 = self.get_exceldf('test1', ext, 'Sheet1', index_col=0,
                                usecols='A,C,D')
-        df3 = self.get_exceldf('test1', ext, 'Sheet2', skiprows=[1], index_col=0,
-                               usecols='A,C,D')
+        df3 = self.get_exceldf('test1', ext, 'Sheet2', skiprows=[1],
+                               index_col=0, usecols='A,C,D')
         # TODO add index to xls file
         tm.assert_frame_equal(df2, df1, check_names=False)
         tm.assert_frame_equal(df3, df1, check_names=False)
@@ -174,8 +174,8 @@ class ReadingTestsBase(SharedItems):
         df1 = dfref.reindex(columns=['B', 'C'])
         df2 = self.get_exceldf('test1', ext, 'Sheet1', index_col=0,
                                usecols='A,C:D')
-        df3 = self.get_exceldf('test1', ext, 'Sheet2', skiprows=[1], index_col=0,
-                               usecols='A,C:D')
+        df3 = self.get_exceldf('test1', ext, 'Sheet2', skiprows=[1],
+                               index_col=0, usecols='A,C:D')
         tm.assert_frame_equal(df2, df1, check_names=False)
         tm.assert_frame_equal(df3, df1, check_names=False)
 
@@ -1473,7 +1473,8 @@ class TestExcelWriter(_WriterBase):
             tm.assert_frame_equal(tsframe, recons)
             assert recons.index.names == ('time', 'foo')
 
-    def test_to_excel_multiindex_no_write_index(self, merge_cells, engine, ext):
+    def test_to_excel_multiindex_no_write_index(self, merge_cells, engine,
+                                                ext):
         # Test writing and re-reading a MI witout the index. GH 5616.
 
         # Initial non-MI frame.
@@ -1697,7 +1698,7 @@ class TestExcelWriter(_WriterBase):
         assert res.iloc[0, 0] is not np.nan
 
     def test_excel_010_hemstring_raises_NotImplementedError(self, merge_cells,
-                                                            engine,ext):
+                                                            engine, ext):
         # This test was failing only for j>1 and header=False,
         # So I reproduced a simple test.
         if merge_cells:
