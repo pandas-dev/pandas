@@ -876,4 +876,4 @@ Other
 ^^^^^
 
 - Improved error message when attempting to use a Python keyword as an identifier in a ``numexpr`` backed query (:issue:`18221`)
-- Bug in :func:`pandas.core.DictWrapper.__getattr__` when looking up a non-existent key (:issue:`19789`)
+- Bug in :func:`pandas.core.DictWrapper.__getattr__` which raised ``KeyError`` instead of (a subclass of) ``AttributeError`` when looking up a non-existent key (:issue:`19789`)
