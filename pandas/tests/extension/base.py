@@ -415,4 +415,3 @@ class BaseCastingTests(object):
         ser = pd.Series({"A": all_data})
         result = ser.astype(object)
         assert isinstance(result._data.blocks[0], ObjectBlock)
-

@@ -166,4 +166,3 @@ class TestMethods(base.BaseMethodsTests):
 
 class TestCasting(base.BaseCastingTests):
     pass
-
