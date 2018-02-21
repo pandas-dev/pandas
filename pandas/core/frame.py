@@ -3655,6 +3655,13 @@ class DataFrame(NDFrame):
               isinstance(subset, tuple) and subset in self.columns):
             subset = subset,
 
+        # Verify all columns in subset exist in the queried dataframe
+        # Otherwise, raise a KeyError, same as if you try to __getitem__ with a
+        # key that doesn't exist.
+        diff = Index(subset).difference(self.columns)
+        if not diff.empty:
+            raise KeyError(diff)
+
         vals = (col.values for name, col in self.iteritems()
                 if name in subset)
         labels, shape = map(list, zip(*map(f, vals)))
