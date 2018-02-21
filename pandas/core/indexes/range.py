@@ -1,5 +1,6 @@
 from sys import getsizeof
 import operator
+from datetime import timedelta
 
 import numpy as np
 from pandas._libs import index as libindex
@@ -590,6 +591,10 @@ class RangeIndex(Int64Index):
                 elif isinstance(other, ABCTimedeltaIndex):
                     # Defer to TimedeltaIndex implementation
                     return NotImplemented
+                elif isinstance(other, (timedelta, np.timedelta64)):
+                    # GH#19333 is_integer evaluated True on timedelta64,
+                    # so we need to catch these explicitly
+                    return op(self._int64index, other)
 
                 other = self._validate_for_numeric_binop(other, op, opstr)
                 attrs = self._get_attributes_dict()
