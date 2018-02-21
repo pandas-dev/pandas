@@ -735,6 +735,7 @@ Datetimelike
 Timedelta
 ^^^^^^^^^
 
+- Bug in :func:`Timedelta.__mul__` where multiplying by ``NaT`` returned ``NaT`` instead of raising a ``TypeError`` (:issue:`????`)
 - Bug in :class:`Series` with ``dtype='timedelta64[ns]`` where addition or subtraction of ``TimedeltaIndex`` had results cast to ``dtype='int64'`` (:issue:`17250`)
 - Bug in :class:`Series` with ``dtype='timedelta64[ns]`` where addition or subtraction of ``TimedeltaIndex`` could return a ``Series`` with an incorrect name (:issue:`19043`)
 - Bug in :func:`Timedelta.__floordiv__` and :func:`Timedelta.__rfloordiv__` dividing by many incompatible numpy objects was incorrectly allowed (:issue:`18846`)
