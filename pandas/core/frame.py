@@ -3995,7 +3995,7 @@ class DataFrame(NDFrame):
                                    try_cast=try_cast)
         return self._constructor(new_data)
 
-    def _compare_frame(self, other, func, str_rep, try_cast=True):
+    def _compare_frame(self, other, func, str_rep):
         # compare_frame assumes self._indexed_same(other)
 
         import pandas.core.computation.expressions as expressions
