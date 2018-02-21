@@ -250,6 +250,23 @@ def to_datetime(arg, errors='raise', dayfirst=False, yearfirst=False,
     >>> %timeit pd.to_datetime(s,infer_datetime_format=False)
     1 loop, best of 3: 471 ms per loop
 
+    Passing require_iso8601=True will only parse ISO8601-compliant datetime
+    strings and treat others as non-parseable dates.
+
+    >>> s = pd.Series(['M1809', 'M1701', pd.Timestamp('20130101')])
+
+    >>> pd.to_datetime(s, require_iso8601=False, errors='raise')
+    0   1809-01-01
+    1   1701-01-01
+    2   2013-01-01
+    dtype: datetime64[ns]
+
+    >>> pd.to_datetime(s, require_iso8601=True, errors='coerce')
+    0          NaT
+    1          NaT
+    2   2013-01-01
+    dtype: datetime64[ns]
+
     Using a unix epoch time
 
     >>> pd.to_datetime(1490195805, unit='s')
