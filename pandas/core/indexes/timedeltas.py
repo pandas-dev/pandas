@@ -928,7 +928,7 @@ class TimedeltaIndex(DatetimeIndexOpsMixin, TimelikeOps, Int64Index):
 
     def delete(self, loc):
         """
-        Make a new DatetimeIndex with passed location(s) deleted.
+        Make a new TimedeltaIndex with passed location(s) deleted.
 
         Parameters
         ----------
