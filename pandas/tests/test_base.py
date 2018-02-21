@@ -296,9 +296,14 @@ class TestIndexOps(Ops):
                 # result = None != o  # noqa
                 # assert result.iat[0]
                 # assert result.iat[1]
-                if not (is_datetime64_dtype(o) or is_datetimetz(o)):
+                if (is_datetime64_dtype(o) or is_datetimetz(o)):
                     # Following DatetimeIndex (and Timestamp) convention,
                     # inequality comparisons with Series[datetime64] raise
+                    with pytest.raises(TypeError):
+                        None > o
+                    with pytest.raises(TypeError):
+                        o > None
+                else:
                     result = None > o
                     assert not result.iat[0]
                     assert not result.iat[1]
