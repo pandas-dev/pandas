@@ -196,10 +196,10 @@ class DictWrapper(object):
         if prefix:
             prefix += "."
         prefix += key
-        d = object.__getattribute__(self, "d")
-        if key not in d:
+        try:
+            v = object.__getattribute__(self, "d")[key]
+        except KeyError:
             raise OptionError("No such option")
-        v = d[key]
         if isinstance(v, dict):
             return DictWrapper(v, prefix)
         else:
