@@ -277,7 +277,6 @@ class TestSeriesConstructors(TestData):
                           dtype=CategoricalDtype(['a', 'b'], ordered=True))
         tm.assert_series_equal(result, expected, check_categorical=True)
 
-
     def test_categorical_sideeffects_free(self):
         # Passing a categorical to a Series and then changing values in either
         # the series or the categorical should not change the values in the
