@@ -137,8 +137,17 @@ def _dt_index_cmp(opname, cls, nat_result=False):
             result = func(np.asarray(other))
             result = com._values_from_object(result)
 
-            if isinstance(other, (Index, ABCSeries)):
+            if isinstance(other, Index):
                 o_mask = other.values.view('i8') == libts.iNaT
+            elif isinstance(other, ABCSeries):
+                try:
+                    # GH#19800 On 32-bit Windows builds this fails, but we can
+                    # infer that the mask should be all-False
+                    view = other.values.view('i8')
+                except ValueError:
+                    o_mask = np.zeros(shape=other.shape, dtype=bool)
+                else:
+                    o_mask = view == libts.iNaT
             else:
                 o_mask = other.view('i8') == libts.iNaT
 
