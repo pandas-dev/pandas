@@ -1640,6 +1640,16 @@ class DataFrame(NDFrame):
         Or with dates
 
         >>> data.to_stata('./date_data_file.dta', {2 : 'tw'})
+
+        Alternatively you can create an instance of the StataWriter class
+
+        >>> writer = StataWriter('./data_file.dta', data)
+        >>> writer.write_file()
+
+        With dates:
+
+        >>> writer = StataWriter('./date_data_file.dta', data, {2 : 'tw'})
+        >>> writer.write_file()
         """
         from pandas.io.stata import StataWriter
         writer = StataWriter(fname, self, convert_dates=convert_dates,
