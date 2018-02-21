@@ -1,31 +1,10 @@
 # -*- coding: utf-8 -*-
 
-import pytest
-
-from pandas.errors import OutOfBoundsDatetime
 from pandas._libs.tslibs.frequencies import get_freq
-from pandas._libs.tslibs.period import period_ordinal, period_asfreq, Period
+from pandas._libs.tslibs.period import period_ordinal, period_asfreq
 
 
 class TestPeriodFreqConversion(object):
-    @pytest.mark.parametrize('freq', ['A', 'Q', 'M', 'W', 'B', 'D'])
-    def test_asfreq_near_zero(self, freq):
-        # GH#19643, GH#19650
-        per = Period('0001-01-01', freq=freq)
-        tup1 = (per.year, per.hour, per.day)
-
-        prev = per - 1
-        assert (per - 1).ordinal == per.ordinal - 1
-        tup2 = (prev.year, prev.month, prev.day)
-        assert tup2 < tup1
-
-    @pytest.mark.xfail(reason='GH#19643 period_helper asfreq functions fail '
-                              'to check for overflows')
-    def test_to_timestamp_out_of_bounds(self):
-        # GH#19643, currently gives Timestamp('1754-08-30 22:43:41.128654848')
-        per = Period('0001-01-01', freq='B')
-        with pytest.raises(OutOfBoundsDatetime):
-            per.to_timestamp()
 
     def test_intraday_conversion_factors(self):
         assert period_asfreq(1, get_freq('D'), get_freq('H'), False) == 24
