@@ -276,19 +276,19 @@ b    1.0
 c    1.0
 d    NaN
 dtype: float64
->>> b = pd.Series([1, np.nan, 1, np.nan], index=['a', 'b', 'c_', 'd'])
+>>> b = pd.Series([1, np.nan, 1, np.nan], index=['a', 'b', 'd', 'e'])
 >>> b
-a     1.0
-b     NaN
-c_    1.0
-d     NaN
+a    1.0
+b    NaN
+d    1.0
+e    NaN
 dtype: float64
 >>> a.add(b, fill_value=0)
-a     2.0
-b     1.0
-c     1.0
-c_    1.0
-d     NaN
+a    2.0
+b    1.0
+c    1.0
+d    1.0
+e    NaN
 dtype: float64
 
 See also
@@ -334,20 +334,20 @@ c  1.0
 d  NaN
 >>> b = pd.DataFrame(dict(one=[1, np.nan, 1, np.nan],
                           two=[np.nan, 2, np.nan, 2]),
-                     index=['a', 'b', 'c_', 'd'])
+                     index=['a', 'b', 'd', 'e'])
 >>> b
-    one  two
-a   1.0  NaN
-b   NaN  2.0
-c_  1.0  NaN
-d   NaN  2.0
+   one  two
+a  1.0  NaN
+b  NaN  2.0
+d  1.0  NaN
+e  NaN  2.0
 >>> a.add(b, fill_value=0)
-    one  two
-a   2.0  NaN
-b   1.0  2.0
-c   1.0  NaN
-c_  1.0  NaN
-d   NaN  2.0
+   one  two
+a  2.0  NaN
+b  1.0  2.0
+c  1.0  NaN
+d  1.0  NaN
+e  NaN  2.0
 """
 
 _flex_doc_FRAME = """
@@ -390,20 +390,20 @@ c  1.0
 d  NaN
 >>> b = pd.DataFrame(dict(one=[1, np.nan, 1, np.nan],
                           two=[np.nan, 2, np.nan, 2]),
-                     index=['a', 'b', 'c_', 'd'])
+                     index=['a', 'b', 'd', 'e'])
 >>> b
-    one  two
-a   1.0  NaN
-b   NaN  2.0
-c_  1.0  NaN
-d   NaN  2.0
+   one  two
+a  1.0  NaN
+b  NaN  2.0
+d  1.0  NaN
+e  NaN  2.0
 >>> a.add(b, fill_value=0)
-    one  two
-a   2.0  NaN
-b   1.0  2.0
-c   1.0  NaN
-c_  1.0  NaN
-d   NaN  2.0
+   one  two
+a  2.0  NaN
+b  1.0  2.0
+c  1.0  NaN
+d  1.0  NaN
+e  NaN  2.0
 
 See also
 --------
