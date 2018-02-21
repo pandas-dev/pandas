@@ -811,10 +811,7 @@ class SparseSeries(Series):
         return _coo_to_sparse_series(A, dense_index=dense_index)
 
 
-# overwrite series methods with unaccelerated versions
-ops.add_special_arithmetic_methods(SparseSeries, **ops.series_special_funcs)
+# overwrite series methods with unaccelerated Sparse-specific versions
 ops.add_flex_arithmetic_methods(SparseSeries, **ops.series_flex_funcs)
-# overwrite basic arithmetic to use SparseSeries version
-# force methods to overwrite previous definitions.
 ops.add_special_arithmetic_methods(SparseSeries,
                                    **ops.sparse_series_special_funcs)
