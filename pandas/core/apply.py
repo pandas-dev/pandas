@@ -152,11 +152,11 @@ class FrameApply(object):
         reduce = self.result_type == 'reduce'
 
         if not reduce:
-
-            EMPTY_SERIES = self.obj._constructor_sliced([])
+            from pandas import Series
+            EMPTY_SERIES = Series([])
             try:
                 r = self.f(EMPTY_SERIES, *self.args, **self.kwds)
-                reduce = not isinstance(r, self.obj._constructor_sliced)
+                reduce = not isinstance(r, Series)
             except Exception:
                 pass
 
@@ -175,9 +175,12 @@ class FrameApply(object):
 
         # TODO: mixed type case
         if result.ndim == 2:
-            return self.obj._constructor(result, index=self.index, columns=self.columns)
+            return self.obj._constructor(result,
+                                         index=self.index,
+                                         columns=self.columns)
         else:
-            return self.obj._constructor_sliced(result, index=self.agg_axis)
+            return self.obj._constructor_sliced(result,
+                                                index=self.agg_axis)
 
     def apply_broadcast(self, target):
         result_values = np.empty_like(target.values)
@@ -218,11 +221,12 @@ class FrameApply(object):
                 not self.dtypes.apply(is_extension_type).any()):
 
             # Create a dummy Series from an empty array
+            from pandas import Series
             values = self.values
             index = self.obj._get_axis(self.axis)
             labels = self.agg_axis
             empty_arr = np.empty(len(index), dtype=values.dtype)
-            dummy = self.obj._constructor_sliced(empty_arr, index=index, dtype=values.dtype)
+            dummy = Series(empty_arr, index=index, dtype=values.dtype)
 
             try:
                 result = reduction.reduce(values, self.f,
@@ -374,15 +378,15 @@ class FrameColumnApply(FrameApply):
 
         # we have a non-series and don't want inference
         elif not isinstance(results[0], ABCSeries):
-
-            result = self.obj._constructor_sliced(results)
+            from pandas import Series
+            result = Series(results)
             result.index = self.res_index
 
         # we may want to infer results
         else:
             result = self.infer_to_same_shape()
 
-        return result
+        return self.obj._constructor_sliced(result)
 
     def infer_to_same_shape(self):
         """ infer the results to the same shape as the input object """
