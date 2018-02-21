@@ -1029,6 +1029,18 @@ class TestXlrdReader(ReadingTestsBase):
         tm.assert_series_equal(actual, expected)
 
 
+class _WriterBase(SharedItems):
+    """Provides fixture to set / reset options for all writer tests"""
+
+    @pytest.fixture(autouse=True)
+    def set_options(self, request, merge_cells, engine, ext):
+        option_name = 'io.excel.{ext}.writer'.format(ext=ext.strip('.'))
+        prev_engine = get_option(option_name)
+        set_option(option_name, engine)
+        yield
+        set_option(option_name, prev_engine)
+
+
 @pytest.mark.parametrize("merge_cells", [True, False])
 @pytest.mark.parametrize("engine,ext", [
     pytest.param('openpyxl', '.xlsx', marks=pytest.mark.skipif(
@@ -1038,9 +1050,8 @@ class TestXlrdReader(ReadingTestsBase):
     pytest.param('xlsxwriter', '.xlsx', marks=pytest.mark.skipif(
         not td.safe_import('xlsxwriter'), reason='No xlsxwriter'))
 ])
-class TestExcelWriter(SharedItems):
+class TestExcelWriter(_WriterBase):
     # Base class for test cases to run with different Excel writers.
-    merge_cells = True
 
     def test_excel_sheet_by_name_raise(self, merge_cells, engine, ext):
         import xlrd
@@ -1935,10 +1946,11 @@ class TestExcelWriter(SharedItems):
 
 
 @td.skip_if_no('openpyxl')
-@pytest.mark.parametrize("ext", ['.xlsx'])
-class TestOpenpyxlTests(SharedItems):
+@pytest.mark.parametrize("merge_cells,ext,engine", [
+    (None, '.xlsx', 'openpyxl')])
+class TestOpenpyxlTests(_WriterBase):
 
-    def test_to_excel_styleconverter(self, ext):
+    def test_to_excel_styleconverter(self, merge_cells, ext, engine):
         from openpyxl import styles
 
         hstyle = {
@@ -1992,7 +2004,7 @@ class TestOpenpyxlTests(SharedItems):
         assert kw['number_format'] == number_format
         assert kw['protection'] == protection
 
-    def test_write_cells_merge_styled(self, ext):
+    def test_write_cells_merge_styled(self, merge_cells, ext, engine):
         from pandas.io.formats.excel import ExcelCell
 
         sheet_name = 'merge_styled'
@@ -2026,10 +2038,12 @@ class TestOpenpyxlTests(SharedItems):
 
 
 @td.skip_if_no('xlwt')
-@pytest.mark.parametrize("ext", ['.xls'])
-class TestXlwtTests(SharedItems):
+@pytest.mark.parametrize("merge_cells,ext,engine", [
+    (None, '.xls', 'xlwt')])
+class TestXlwtTests(_WriterBase):
 
-    def test_excel_raise_error_on_multiindex_columns_and_no_index(self, ext):
+    def test_excel_raise_error_on_multiindex_columns_and_no_index(
+            self, merge_cells, ext, engine):
         # MultiIndex as columns is not yet implemented 9794
         cols = MultiIndex.from_tuples([('site', ''),
                                        ('2014', 'height'),
@@ -2039,7 +2053,8 @@ class TestXlwtTests(SharedItems):
             with ensure_clean(ext) as path:
                 df.to_excel(path, index=False)
 
-    def test_excel_multiindex_columns_and_index_true(self, ext):
+    def test_excel_multiindex_columns_and_index_true(self, merge_cells, ext,
+                                                     engine):
         cols = MultiIndex.from_tuples([('site', ''),
                                        ('2014', 'height'),
                                        ('2014', 'weight')])
@@ -2047,7 +2062,7 @@ class TestXlwtTests(SharedItems):
         with ensure_clean(ext) as path:
             df.to_excel(path, index=True)
 
-    def test_excel_multiindex_index(self, ext):
+    def test_excel_multiindex_index(self, merge_cells, ext, engine):
         # MultiIndex as index works so assert no error #9794
         cols = MultiIndex.from_tuples([('site', ''),
                                        ('2014', 'height'),
@@ -2056,7 +2071,7 @@ class TestXlwtTests(SharedItems):
         with ensure_clean(ext) as path:
             df.to_excel(path, index=False)
 
-    def test_to_excel_styleconverter(self, ext):
+    def test_to_excel_styleconverter(self, merge_cells, ext, engine):
         import xlwt
 
         hstyle = {"font": {"bold": True},
@@ -2077,10 +2092,11 @@ class TestXlwtTests(SharedItems):
 
 
 @td.skip_if_no('xlsxwriter')
-@pytest.mark.parametrize("ext", ['.xlsx'])
-class TestXlsxWriterTests(SharedItems):
+@pytest.mark.parametrize("merge_cells,ext,engine", [
+    (None, '.xlsx', 'xlsxwriter')])
+class TestXlsxWriterTests(_WriterBase):
 
-    def test_column_format(self, ext):
+    def test_column_format(self, merge_cells, ext, engine):
         # Test that column formats are applied to cells. Test for issue #9167.
         # Applicable to xlsxwriter only.
         with warnings.catch_warnings():
