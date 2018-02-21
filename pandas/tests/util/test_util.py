@@ -34,9 +34,14 @@ class TestDecorators(object):
         def _f3(new=0):
             return new
 
+        @deprecate_kwarg('old', None)
+        def _f4(old=True, unchanged=True):
+            return old
+
         self.f1 = _f1
         self.f2 = _f2
         self.f3 = _f3
+        self.f4 = _f4
 
     def test_deprecate_kwarg(self):
         x = 78
@@ -71,6 +76,15 @@ class TestDecorators(object):
             @deprecate_kwarg('old', 'new', 0)
             def f4(new=None):
                 pass
+
+    def test_deprecate_keyword(self):
+        x = 9
+        with tm.assert_produces_warning(FutureWarning):
+            result = self.f4(old=x)
+        assert result is x
+        with tm.assert_produces_warning(None):
+            result = self.f4(unchanged=x)
+        assert result is True
 
 
 def test_rands():

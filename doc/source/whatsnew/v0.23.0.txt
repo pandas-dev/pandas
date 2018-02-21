@@ -610,6 +610,7 @@ Deprecations
 
 - The ``broadcast`` parameter of ``.apply()`` is deprecated in favor of ``result_type='broadcast'`` (:issue:`18577`)
 - The ``reduce`` parameter of ``.apply()`` is deprecated in favor of ``result_type='reduce'`` (:issue:`18577`)
+- The ``order`` parameter of :func:`factorize` is deprecated and will be removed in a future release (:issue:`19727`)
 
 .. _whatsnew_0230.prior_deprecations:
 
