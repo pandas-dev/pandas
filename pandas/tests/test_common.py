@@ -9,6 +9,7 @@ import numpy as np
 from pandas import Series, Timestamp
 from pandas.compat import range, lmap
 import pandas.core.common as com
+from pandas.core import ops
 import pandas.util.testing as tm
 
 
@@ -167,26 +168,26 @@ def test_random_state():
 
 def test_maybe_match_name():
 
-    matched = com._maybe_match_name(
+    matched = ops._maybe_match_name(
         Series([1], name='x'), Series(
             [2], name='x'))
     assert (matched == 'x')
 
-    matched = com._maybe_match_name(
+    matched = ops._maybe_match_name(
         Series([1], name='x'), Series(
             [2], name='y'))
     assert (matched is None)
 
-    matched = com._maybe_match_name(Series([1]), Series([2], name='x'))
+    matched = ops._maybe_match_name(Series([1]), Series([2], name='x'))
     assert (matched is None)
 
-    matched = com._maybe_match_name(Series([1], name='x'), Series([2]))
+    matched = ops._maybe_match_name(Series([1], name='x'), Series([2]))
     assert (matched is None)
 
-    matched = com._maybe_match_name(Series([1], name='x'), [2])
+    matched = ops._maybe_match_name(Series([1], name='x'), [2])
     assert (matched == 'x')
 
-    matched = com._maybe_match_name([1], Series([2], name='y'))
+    matched = ops._maybe_match_name([1], Series([2], name='y'))
     assert (matched == 'y')
 
 

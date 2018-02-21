@@ -731,6 +731,8 @@ Datetimelike
 - Bug in :class:`Timestamp` and :func:`to_datetime` where a string representing a barely out-of-bounds timestamp would be incorrectly rounded down instead of raising ``OutOfBoundsDatetime`` (:issue:`19382`)
 - Bug in :func:`Timestamp.floor` :func:`DatetimeIndex.floor` where time stamps far in the future and past were not rounded correctly (:issue:`19206`)
 - Bug in :func:`to_datetime` where passing an out-of-bounds datetime with ``errors='coerce'`` and ``utc=True`` would raise ``OutOfBoundsDatetime`` instead of parsing to ``NaT`` (:issue:`19612`)
+- Bug in :class:`DatetimeIndex` and :class:`TimedeltaIndex` addition and subtraction where name of the returned object was not always set consistently. (:issue:`19744`)
+-
 
 Timedelta
 ^^^^^^^^^
