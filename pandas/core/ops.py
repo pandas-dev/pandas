@@ -721,9 +721,7 @@ def add_flex_arithmetic_methods(cls, flex_arith_method, flex_comp_method=None):
                             subtract=new_methods['sub'],
                             divide=new_methods['div']))
     # opt out of bool flex methods for now
-    for k in ('ror_', 'rxor', 'rand_'):
-        if k in new_methods:
-            new_methods.pop(k)
+    assert not any(kname in new_methods for kname in ('ror_', 'rxor', 'rand_'))
 
     add_methods(cls, new_methods=new_methods)
 
@@ -1239,10 +1237,10 @@ def _align_method_FRAME(left, right, axis):
 
         elif right.ndim == 2:
             if left.shape != right.shape:
-                msg = ("Unable to coerce to DataFrame, shape "
-                       "must be {req_shape}: given {given_shape}"
-                       ).format(req_shape=left.shape, given_shape=right.shape)
-                raise ValueError(msg)
+                raise ValueError("Unable to coerce to DataFrame, shape "
+                                 "must be {req_shape}: given {given_shape}"
+                                 .format(req_shape=left.shape,
+                                         given_shape=right.shape))
 
             right = left._constructor(right, index=left.index,
                                       columns=left.columns)
@@ -1300,8 +1298,8 @@ def _arith_method_FRAME(cls, op, special):
                         result[mask] = op(xrav, y)
             else:
                 raise TypeError("cannot perform operation {op} between "
-                                "objects of type {x} and {y}".format(
-                                    op=name, x=type(x), y=type(y)))
+                                "objects of type {x} and {y}"
+                                .format(op=name, x=type(x), y=type(y)))
 
             result, changed = maybe_upcast_putmask(result, ~mask, np.nan)
             result = result.reshape(x.shape)
@@ -1362,7 +1360,7 @@ def _flex_comp_method_FRAME(cls, op, special):
             if not self._indexed_same(other):
                 self, other = self.align(other, 'outer',
                                          level=level, copy=False)
-            return self._compare_frame(other, na_op, str_rep, try_cast=False)
+            return self._compare_frame(other, na_op, str_rep)
 
         elif isinstance(other, ABCSeries):
             return _combine_series_frame(self, other, na_op,
@@ -1387,7 +1385,7 @@ def _comp_method_FRAME(cls, func, special):
             if not self._indexed_same(other):
                 raise ValueError('Can only compare identically-labeled '
                                  'DataFrame objects')
-            return self._compare_frame(other, func, str_rep, try_cast=True)
+            return self._compare_frame(other, func, str_rep)
 
         elif isinstance(other, ABCSeries):
             return _combine_series_frame(self, other, func,
@@ -1539,10 +1537,6 @@ def _arith_method_SPARSE_SERIES(cls, op, special):
                             .format(other=type(other)))
 
     wrapper.__name__ = name
-    if name.startswith("__"):
-        # strip special method names, e.g. `__add__` needs to be `add` when
-        # passed to _sparse_series_op
-        name = name[2:-2]
     return wrapper
 
 
@@ -1575,7 +1569,7 @@ def _arith_method_SPARSE_ARRAY(cls, op, special):
                 dtype = getattr(other, 'dtype', None)
                 other = SparseArray(other, fill_value=self.fill_value,
                                     dtype=dtype)
-            return _sparse_array_op(self, other, op, name)
+            return _sparse_array_op(self, other, op, name, series=False)
         elif is_scalar(other):
             with np.errstate(all='ignore'):
                 fill = op(_get_fill(self), np.asarray(other))
@@ -1586,8 +1580,6 @@ def _arith_method_SPARSE_ARRAY(cls, op, special):
             raise TypeError('operation with {other} not supported'
                             .format(other=type(other)))
 
-    if name.startswith("__"):
-        name = name[2:-2]
     wrapper.__name__ = name
     return wrapper
 
@@ -1598,4 +1590,5 @@ sparse_array_special_funcs = dict(arith_method=_arith_method_SPARSE_ARRAY,
 
 sparse_series_special_funcs = dict(arith_method=_arith_method_SPARSE_SERIES,
                                    comp_method=_arith_method_SPARSE_SERIES,
-                                   bool_method=None)
+                                   bool_method=_bool_method_SERIES)
+# TODO: I don't think the functions defined by bool_method are tested

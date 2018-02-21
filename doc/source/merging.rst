@@ -323,6 +323,13 @@ the name of the ``Series``.
           labels=['df1', 's1'], vertical=False);
    plt.close('all');
 
+.. note::
+
+   Since we're concatenating a ``Series`` to a ``DataFrame``, we could have
+   achieved the same result with :meth:`DataFrame.assign`. To concatenate an
+   arbitrary number of pandas objects (``DataFrame`` or ``Series``), use
+   ``concat``.
+
 If unnamed ``Series`` are passed they will be numbered consecutively.
 
 .. ipython:: python
