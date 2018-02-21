@@ -594,6 +594,8 @@ class RangeIndex(Int64Index):
                 elif isinstance(other, (timedelta, np.timedelta64)):
                     # GH#19333 is_integer evaluated True on timedelta64,
                     # so we need to catch these explicitly
+                    if reversed:
+                        return op(other, self._int64index)
                     return op(self._int64index, other)
 
                 other = self._validate_for_numeric_binop(other, op, opstr)
