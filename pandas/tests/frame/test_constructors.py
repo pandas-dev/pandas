@@ -1095,7 +1095,8 @@ class TestDataFrameConstructors(TestData):
         # GH 18529
         # Test new columns parameter for from_dict that was added to make
         # from_items(..., orient='index', columns=[...]) easier to replicate
-        result = DataFrame.from_dict(dict([('A', [1, 2]), ('B', [4, 5])]),
+        result = DataFrame.from_dict(OrderedDict([('A', [1, 2]),
+                                                  ('B', [4, 5])]),
                                      orient='index', columns=['one', 'two'])
         expected = DataFrame([[1, 2], [4, 5]], index=['A', 'B'],
                              columns=['one', 'two'])
