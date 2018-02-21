@@ -7,6 +7,7 @@ from datetime import datetime, timedelta
 from collections import defaultdict
 
 import pandas.util.testing as tm
+from pandas.core.dtypes.generic import ABCIndex
 from pandas.core.dtypes.common import is_unsigned_integer_dtype
 from pandas.core.indexes.api import Index, MultiIndex
 from pandas.tests.indexes.common import Base
@@ -2319,8 +2320,9 @@ class TestIndexUtils(object):
                                     'pow', 'rpow', 'mod', 'divmod'])
 def test_generated_op_names(opname, indices):
     index = indices
-    if type(index) is pd.Index and opname == 'rsub':
-        # method doesn't exist, see GH#19723
+    if isinstance(index, ABCIndex) and opname == 'rsub':
+        # pd.Index.__rsub__ does not exist; though the method does exist
+        # for subclasses.  see GH#19723
         return
     opname = '__{name}__'.format(name=opname)
     method = getattr(index, opname)
