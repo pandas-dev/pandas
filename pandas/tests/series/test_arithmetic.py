@@ -15,6 +15,9 @@ import pandas.util.testing as tm
 
 @pytest.fixture
 def tdser():
+    """
+    Return a Series with dtype='timedelta64[ns]', including a NaT.
+    """
     return Series(['59 Days', '59 Days', 'NaT'], dtype='timedelta64[ns]')
 
 
