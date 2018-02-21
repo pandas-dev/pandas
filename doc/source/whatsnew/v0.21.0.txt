@@ -894,16 +894,13 @@ imported. Matplotlib plot methods (``plt.plot``, ``ax.plot``, ...), will not
 nicely format the x-axis for ``DatetimeIndex`` or ``PeriodIndex`` values. You
 must explicitly register these methods:
 
-.. ipython:: python
-
-   from pandas.tseries import converter
-   converter.register()
-
-   fig, ax = plt.subplots()
-   plt.plot(pd.date_range('2017', periods=6), range(6))
-
 Pandas built-in ``Series.plot`` and ``DataFrame.plot`` *will* register these
 converters on first-use (:issue:17710).
+
+.. note::
+
+  This change has been temporarily reverted in pandas 0.21.1,
+  for more details see :ref:`here <whatsnew_0211.converters>`.
 
 .. _whatsnew_0210.api:
 
