@@ -212,58 +212,58 @@ class TestPeriodProperties(object):
         with tm.assert_raises_regex(ValueError, msg):
             Period('2011-01', freq='1D1W')
 
-    @pytest.mark.parametrize('case', ['Europe/Brussels',
-                                      'Asia/Tokyo', 'US/Pacific'])
-    def test_timestamp_tz_arg(self, case):
-        p = Period('1/1/2005', freq='M').to_timestamp(tz=case)
-        exp = Timestamp('1/1/2005', tz='UTC').tz_convert(case)
-        exp_zone = pytz.timezone(case).normalize(p)
+    @pytest.mark.parametrize('tzstr', ['Europe/Brussels',
+                                       'Asia/Tokyo', 'US/Pacific'])
+    def test_timestamp_tz_arg(self, tzstr):
+        p = Period('1/1/2005', freq='M').to_timestamp(tz=tzstr)
+        exp = Timestamp('1/1/2005', tz='UTC').tz_convert(tzstr)
+        exp_zone = pytz.timezone(tzstr).normalize(p)
 
         assert p == exp
         assert p.tz == exp_zone.tzinfo
         assert p.tz == exp.tz
 
-        p = Period('1/1/2005', freq='3H').to_timestamp(tz=case)
-        exp = Timestamp('1/1/2005', tz='UTC').tz_convert(case)
-        exp_zone = pytz.timezone(case).normalize(p)
+        p = Period('1/1/2005', freq='3H').to_timestamp(tz=tzstr)
+        exp = Timestamp('1/1/2005', tz='UTC').tz_convert(tzstr)
+        exp_zone = pytz.timezone(tzstr).normalize(p)
 
         assert p == exp
         assert p.tz == exp_zone.tzinfo
         assert p.tz == exp.tz
 
-        p = Period('1/1/2005', freq='A').to_timestamp(freq='A', tz=case)
-        exp = Timestamp('31/12/2005', tz='UTC').tz_convert(case)
-        exp_zone = pytz.timezone(case).normalize(p)
+        p = Period('1/1/2005', freq='A').to_timestamp(freq='A', tz=tzstr)
+        exp = Timestamp('31/12/2005', tz='UTC').tz_convert(tzstr)
+        exp_zone = pytz.timezone(tzstr).normalize(p)
 
         assert p == exp
         assert p.tz == exp_zone.tzinfo
         assert p.tz == exp.tz
 
-        p = Period('1/1/2005', freq='A').to_timestamp(freq='3H', tz=case)
-        exp = Timestamp('1/1/2005', tz='UTC').tz_convert(case)
-        exp_zone = pytz.timezone(case).normalize(p)
+        p = Period('1/1/2005', freq='A').to_timestamp(freq='3H', tz=tzstr)
+        exp = Timestamp('1/1/2005', tz='UTC').tz_convert(tzstr)
+        exp_zone = pytz.timezone(tzstr).normalize(p)
 
         assert p == exp
         assert p.tz == exp_zone.tzinfo
         assert p.tz == exp.tz
 
-    @pytest.mark.parametrize('case', ['dateutil/Europe/Brussels',
-                                      'dateutil/Asia/Tokyo',
-                                      'dateutil/US/Pacific'])
-    def test_timestamp_tz_arg_dateutil(self, case):
+    @pytest.mark.parametrize('tzstr', ['dateutil/Europe/Brussels',
+                                       'dateutil/Asia/Tokyo',
+                                       'dateutil/US/Pacific'])
+    def test_timestamp_tz_arg_dateutil(self, tzstr):
         from pandas._libs.tslibs.timezones import dateutil_gettz
         from pandas._libs.tslibs.timezones import maybe_get_tz
-        tz = maybe_get_tz(case)
+        tz = maybe_get_tz(tzstr)
         p = Period('1/1/2005', freq='M').to_timestamp(tz=tz)
-        exp = Timestamp('1/1/2005', tz='UTC').tz_convert(case)
+        exp = Timestamp('1/1/2005', tz='UTC').tz_convert(tzstr)
         assert p == exp
-        assert p.tz == dateutil_gettz(case.split('/', 1)[1])
+        assert p.tz == dateutil_gettz(tzstr.split('/', 1)[1])
         assert p.tz == exp.tz
 
         p = Period('1/1/2005', freq='M').to_timestamp(freq='3H', tz=tz)
-        exp = Timestamp('1/1/2005', tz='UTC').tz_convert(case)
+        exp = Timestamp('1/1/2005', tz='UTC').tz_convert(tzstr)
         assert p == exp
-        assert p.tz == dateutil_gettz(case.split('/', 1)[1])
+        assert p.tz == dateutil_gettz(tzstr.split('/', 1)[1])
         assert p.tz == exp.tz
 
     def test_timestamp_tz_arg_dateutil_from_string(self):
