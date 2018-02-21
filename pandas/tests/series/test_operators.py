@@ -9,6 +9,7 @@ from datetime import datetime, timedelta
 import operator
 from itertools import product, starmap
 
+from numpy import nan, inf
 import numpy as np
 import pandas as pd
 
@@ -669,7 +670,7 @@ class TestSeriesArithmetic(object):
         ser = Series([-1, 0, 1], name='first')
 
         result = ser // 0
-        expected = Series([-np.inf, np.nan, np.inf], name='first')
+        expected = Series([-inf, nan, inf], name='first')
         assert_series_equal(result, expected)
 
 
@@ -1068,9 +1069,9 @@ class TestTimedeltaSeriesArithmetic(object):
         assert_series_equal(1.5 * timedelta_series,
                             Series([NaT, Timedelta('1.5s')]))
 
-        assert_series_equal(timedelta_series * np.nan,
+        assert_series_equal(timedelta_series * nan,
                             nat_series_dtype_timedelta)
-        assert_series_equal(np.nan * timedelta_series,
+        assert_series_equal(nan * timedelta_series,
                             nat_series_dtype_timedelta)
 
         # division
@@ -1078,7 +1079,7 @@ class TestTimedeltaSeriesArithmetic(object):
                             Series([NaT, Timedelta('0.5s')]))
         assert_series_equal(timedelta_series / 2.0,
                             Series([NaT, Timedelta('0.5s')]))
-        assert_series_equal(timedelta_series / np.nan,
+        assert_series_equal(timedelta_series / nan,
                             nat_series_dtype_timedelta)
 
     def test_td64_sub_NaT(self):
@@ -1853,21 +1854,10 @@ class TestSeriesOperators(TestData):
         result = s_0123 & Series([0.1, 4, -3.14, 2])
         assert_series_equal(result, s_ftft)
 
-    @pytest.mark.xfail(reason='GH#19792 Series op doesnt support categorical')
-    def test_operators_bitwise_with_int_categorical(self):
-        # GH#9016: support bitwise op for integer types
-        # GH#??? allow for operating with Index
-        s_0123 = Series(range(4), dtype='int64').astype('category')
-        s_3333 = Series([3] * 4).astype('category')
-
-        res = s_0123 & pd.Categorical(s_3333)
-        expected = Series(range(4), dtype='int64').astype('category')
-        assert_series_equal(res, expected)
-
     @pytest.mark.parametrize('box', [np.array, pd.Index, pd.Series])
     def test_operators_bitwise_with_int_arraylike(self, box):
         # GH#9016: support bitwise op for integer types
-        # GH#??? allow for operating with Index
+        # GH#19795 allow for operating with Index
         s_0123 = Series(range(4), dtype='int64')
         s_3333 = Series([3] * 4)
         s_4444 = Series([4] * 4)
@@ -1902,19 +1892,21 @@ class TestSeriesOperators(TestData):
         s_fff = Series([False, False, False], index=index)
         s_0123 = Series(range(4), dtype='int64')
 
-        res = s_tft & 0
+        n0 = 0
+        res = s_tft & n0
         expected = s_fff
         assert_series_equal(res, expected)
 
-        res = s_0123 & 0
+        res = s_0123 & n0
         expected = Series([0] * 4)
         assert_series_equal(res, expected)
 
-        res = s_tft & 1
+        n1 = 1
+        res = s_tft & n1
         expected = s_tft
         assert_series_equal(res, expected)
 
-        res = s_0123 & 1
+        res = s_0123 & n1
         expected = Series([0, 1, 0, 1])
         assert_series_equal(res, expected)
 
@@ -1952,19 +1944,16 @@ class TestSeriesOperators(TestData):
             # unable to sort incompatible object via .union.
             exp = Series([False] * 7, index=['b', 'c', 'a', 0, 1, 2, 3])
             with tm.assert_produces_warning(RuntimeWarning):
-                result = s_tft & s_0123
-                assert_series_equal(result, exp)
+                assert_series_equal(s_tft & s_0123, exp)
         else:
             exp = Series([False] * 7, index=[0, 1, 2, 3, 'a', 'b', 'c'])
-            result = s_tft & s_0123
-            assert_series_equal(result, exp)
+            assert_series_equal(s_tft & s_0123, exp)
 
         # s_tft will be all false now because of reindexing like s_0123
         if compat.PY3:
             # unable to sort incompatible object via .union.
             exp = Series([False] * 7, index=[0, 1, 2, 3, 'b', 'c', 'a'])
             with tm.assert_produces_warning(RuntimeWarning):
-                result = s_0123 & s_tft
                 assert_series_equal(s_0123 & s_tft, exp)
         else:
             exp = Series([False] * 7, index=[0, 1, 2, 3, 'a', 'b', 'c'])
@@ -1980,9 +1969,9 @@ class TestSeriesOperators(TestData):
 
         s_ftft = Series([False, True, False, True])
         s_abNd = Series(['a', 'b', np.NaN, 'd'])
-        result = s_0123 & s_abNd
+        res = s_0123 & s_abNd
         expected = s_ftft
-        assert_series_equal(result, expected)
+        assert_series_equal(res, expected)
 
     def test_scalar_na_cmp_corners(self):
         s = Series([2, 3, 4, 5, 6, 7, 8, 9, 10])
@@ -2193,12 +2182,12 @@ class TestSeriesOperators(TestData):
                 with np.errstate(all='ignore'):
                     if amask[i]:
                         if bmask[i]:
-                            exp_values.append(np.nan)
+                            exp_values.append(nan)
                             continue
                         exp_values.append(op(fill_value, b[i]))
                     elif bmask[i]:
                         if amask[i]:
-                            exp_values.append(np.nan)
+                            exp_values.append(nan)
                             continue
                         exp_values.append(op(a[i], fill_value))
                     else:
@@ -2208,8 +2197,8 @@ class TestSeriesOperators(TestData):
             expected = Series(exp_values, exp_index)
             assert_series_equal(result, expected)
 
-        a = Series([np.nan, 1., 2., 3., np.nan], index=np.arange(5))
-        b = Series([np.nan, 1, np.nan, 3, np.nan, 4.], index=np.arange(6))
+        a = Series([nan, 1., 2., 3., nan], index=np.arange(5))
+        b = Series([nan, 1, nan, 3, nan, 4.], index=np.arange(6))
 
         pairings = []
         for op in ['add', 'sub', 'mul', 'pow', 'truediv', 'floordiv']:
