@@ -428,3 +428,7 @@ class TestConfig(object):
 
         # Ensure the current context is reset
         assert self.cf.get_option(option_name) == original_value
+
+    def test_dictwrapper_getattr(self):
+        options = self.cf.options
+        assert not hasattr(options, 'bananas')
