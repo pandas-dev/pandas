@@ -1935,11 +1935,10 @@ class TestExcelWriter(SharedItems):
 
 
 @td.skip_if_no('openpyxl')
+@pytest.mark.parametrize("ext", ['.xlsx'])
 class TestOpenpyxlTests(SharedItems):
-    engine_name = 'openpyxl'
-    ext = '.xlsx'
 
-    def test_to_excel_styleconverter(self):
+    def test_to_excel_styleconverter(self, ext):
         from openpyxl import styles
 
         hstyle = {
@@ -1993,7 +1992,7 @@ class TestOpenpyxlTests(SharedItems):
         assert kw['number_format'] == number_format
         assert kw['protection'] == protection
 
-    def test_write_cells_merge_styled(self):
+    def test_write_cells_merge_styled(self, ext):
         from pandas.io.formats.excel import ExcelCell
 
         sheet_name = 'merge_styled'
@@ -2014,7 +2013,7 @@ class TestOpenpyxlTests(SharedItems):
                       mergestart=1, mergeend=1, style=sty_merged),
         ]
 
-        with ensure_clean('.xlsx') as path:
+        with ensure_clean(ext) as path:
             writer = _OpenpyxlWriter(path)
             writer.write_cells(initial_cells, sheet_name=sheet_name)
             writer.write_cells(merge_cells, sheet_name=sheet_name)
@@ -2031,7 +2030,6 @@ class TestOpenpyxlTests(SharedItems):
 class TestXlwtTests(SharedItems):
 
     def test_excel_raise_error_on_multiindex_columns_and_no_index(self, ext):
-        _skip_if_no_xlwt()
         # MultiIndex as columns is not yet implemented 9794
         cols = MultiIndex.from_tuples([('site', ''),
                                        ('2014', 'height'),
@@ -2042,7 +2040,6 @@ class TestXlwtTests(SharedItems):
                 df.to_excel(path, index=False)
 
     def test_excel_multiindex_columns_and_index_true(self, ext):
-        _skip_if_no_xlwt()
         cols = MultiIndex.from_tuples([('site', ''),
                                        ('2014', 'height'),
                                        ('2014', 'weight')])
@@ -2051,7 +2048,6 @@ class TestXlwtTests(SharedItems):
             df.to_excel(path, index=True)
 
     def test_excel_multiindex_index(self, ext):
-        _skip_if_no_xlwt()
         # MultiIndex as index works so assert no error #9794
         cols = MultiIndex.from_tuples([('site', ''),
                                        ('2014', 'height'),
@@ -2061,8 +2057,6 @@ class TestXlwtTests(SharedItems):
             df.to_excel(path, index=False)
 
     def test_to_excel_styleconverter(self, ext):
-        _skip_if_no_xlwt()
-
         import xlwt
 
         hstyle = {"font": {"bold": True},
@@ -2083,15 +2077,12 @@ class TestXlwtTests(SharedItems):
 
 
 @td.skip_if_no('xlsxwriter')
+@pytest.mark.parametrize("ext", ['.xlsx'])
 class TestXlsxWriterTests(SharedItems):
-    ext = '.xlsx'
-    engine_name = 'xlsxwriter'
 
-    def test_column_format(self):
+    def test_column_format(self, ext):
         # Test that column formats are applied to cells. Test for issue #9167.
         # Applicable to xlsxwriter only.
-        _skip_if_no_xlsxwriter()
-
         with warnings.catch_warnings():
             # Ignore the openpyxl lxml warning.
             warnings.simplefilter("ignore")
