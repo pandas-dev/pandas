@@ -151,18 +151,17 @@ class FrameApply(object):
         # we may need to infer
         reduce = self.result_type == 'reduce'
 
-        from pandas import Series
         if not reduce:
 
-            EMPTY_SERIES = Series([])
+            EMPTY_SERIES = self.obj._constructor_sliced([])
             try:
                 r = self.f(EMPTY_SERIES, *self.args, **self.kwds)
-                reduce = not isinstance(r, Series)
+                reduce = not isinstance(r, self.obj._constructor_sliced)
             except Exception:
                 pass
 
         if reduce:
-            return Series(np.nan, index=self.agg_axis)
+            return self.obj._constructor_sliced(np.nan, index=self.agg_axis)
         else:
             return self.obj.copy()
 
@@ -175,11 +174,10 @@ class FrameApply(object):
             result = np.apply_along_axis(self.f, self.axis, self.values)
 
         # TODO: mixed type case
-        from pandas import DataFrame, Series
         if result.ndim == 2:
-            return DataFrame(result, index=self.index, columns=self.columns)
+            return self.obj._constructor(result, index=self.index, columns=self.columns)
         else:
-            return Series(result, index=self.agg_axis)
+            return self.obj._constructor_sliced(result, index=self.agg_axis)
 
     def apply_broadcast(self, target):
         result_values = np.empty_like(target.values)
@@ -220,19 +218,18 @@ class FrameApply(object):
                 not self.dtypes.apply(is_extension_type).any()):
 
             # Create a dummy Series from an empty array
-            from pandas import Series
             values = self.values
             index = self.obj._get_axis(self.axis)
             labels = self.agg_axis
             empty_arr = np.empty(len(index), dtype=values.dtype)
-            dummy = Series(empty_arr, index=index, dtype=values.dtype)
+            dummy = self.obj._constructor_sliced(empty_arr, index=index, dtype=values.dtype)
 
             try:
                 result = reduction.reduce(values, self.f,
                                           axis=self.axis,
                                           dummy=dummy,
                                           labels=labels)
-                return Series(result, index=labels)
+                return self.obj._constructor_sliced(result, index=labels)
             except Exception:
                 pass
 
@@ -291,8 +288,7 @@ class FrameApply(object):
             return self.wrap_results_for_axis()
 
         # dict of scalars
-        from pandas import Series
-        result = Series(results)
+        result = self.obj._constructor_sliced(results)
         result.index = self.res_index
 
         return result
@@ -378,9 +374,8 @@ class FrameColumnApply(FrameApply):
 
         # we have a non-series and don't want inference
         elif not isinstance(results[0], ABCSeries):
-            from pandas import Series
 
-            result = Series(results)
+            result = self.obj._constructor_sliced(results)
             result.index = self.res_index
 
         # we may want to infer results
