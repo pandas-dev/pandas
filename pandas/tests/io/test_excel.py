@@ -146,16 +146,10 @@ class ReadingTestsBase(SharedItems):
     #
     # Base class for test cases to run with different Excel readers.
     # To add a reader test, define the following:
-    # 1. A check_skip function that skips your tests if your reader isn't
-    #    installed.
-    # 2. Add a property ext, which is the file extension that your reader
+    # 1. Add a property ext, which is the file extension that your reader
     #    reades from. (needs to start with '.' so it's a valid path)
-    # 3. Add a property engine_name, which is the name of the reader class.
+    # 2. Add a property engine_name, which is the name of the reader class.
     #    For the reader this is not used for anything at the moment.
-
-    def setup_method(self, method):
-        self.check_skip()
-        super(ReadingTestsBase, self).setup_method(method)
 
     def test_usecols_int(self):
 
@@ -567,6 +561,7 @@ class ReadingTestsBase(SharedItems):
             self.get_exceldf('test1', sheetname='Sheet1', sheet_name='Sheet1')
 
 
+@td.skip_if_no('xlrd', '0.9')
 class XlrdTests(ReadingTestsBase):
     """
     This is the base class for the xlrd tests, and 3 different file formats
@@ -589,7 +584,6 @@ class XlrdTests(ReadingTestsBase):
     def test_read_xlrd_Book(self):
         _skip_if_no_xlwt()
 
-        import xlrd
         df = self.frame
         with ensure_clean('.xls') as pth:
             df.to_excel(pth, "SheetA")
@@ -713,9 +707,9 @@ class XlrdTests(ReadingTestsBase):
                 tm.assert_frame_equal(dfs[s], dfs_returned[s])
 
     def test_reader_seconds(self):
-        # Test reading times with and without milliseconds. GH5945.
         import xlrd
 
+        # Test reading times with and without milliseconds. GH5945.
         if LooseVersion(xlrd.__VERSION__) >= LooseVersion("0.9.3"):
             # Xlrd >= 0.9.3 can handle Excel milliseconds.
             expected = DataFrame.from_dict({"Time": [time(1, 2, 3),
@@ -1061,19 +1055,16 @@ class XlrdTests(ReadingTestsBase):
 class TestXlsReaderTests(XlrdTests):
     ext = '.xls'
     engine_name = 'xlrd'
-    check_skip = staticmethod(_skip_if_no_xlrd)
 
 
 class TestXlsxReaderTests(XlrdTests):
     ext = '.xlsx'
     engine_name = 'xlrd'
-    check_skip = staticmethod(_skip_if_no_xlrd)
 
 
 class TestXlsmReaderTests(XlrdTests):
     ext = '.xlsm'
     engine_name = 'xlrd'
-    check_skip = staticmethod(_skip_if_no_xlrd)
 
 
 class ExcelWriterBase(SharedItems):
