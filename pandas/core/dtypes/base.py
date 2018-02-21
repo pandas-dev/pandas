@@ -135,7 +135,7 @@ class ExtensionDtype(object):
 
         Parameters
         ----------
-        dtype : str, object, or type
+        dtype : object
             The object to check.
 
         Returns
@@ -149,8 +149,7 @@ class ExtensionDtype(object):
         1. ``cls.construct_from_string(dtype)`` is an instance
            of ``cls``.
         2. ``dtype`` is an object and is an instance of ``cls``
-        3. ``dtype`` is a class and is ``cls`` or a subclass of ``cls``.
-        4. ``dtype`` has a ``dtype`` attribute, and any of the above
+        3. ``dtype`` has a ``dtype`` attribute, and any of the above
            conditions is true for ``dtype.dtype``.
         """
         dtype = getattr(dtype, 'dtype', dtype)
