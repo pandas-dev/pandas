@@ -562,6 +562,8 @@ class TestXlrdReader(ReadingTestsBase):
 
     @td.skip_if_no('xlwt')
     def test_read_xlrd_Book(self, ext):
+        import xlrd
+
         df = self.frame
         with ensure_clean('.xls') as pth:
             df.to_excel(pth, "SheetA")
@@ -2025,11 +2027,10 @@ class TestOpenpyxlTests(SharedItems):
 
 
 @td.skip_if_no('xlwt')
+@pytest.mark.parametrize("ext", ['.xls'])
 class TestXlwtTests(SharedItems):
-    ext = '.xls'
-    engine_name = 'xlwt'
 
-    def test_excel_raise_error_on_multiindex_columns_and_no_index(self):
+    def test_excel_raise_error_on_multiindex_columns_and_no_index(self, ext):
         _skip_if_no_xlwt()
         # MultiIndex as columns is not yet implemented 9794
         cols = MultiIndex.from_tuples([('site', ''),
@@ -2040,7 +2041,7 @@ class TestXlwtTests(SharedItems):
             with ensure_clean(ext) as path:
                 df.to_excel(path, index=False)
 
-    def test_excel_multiindex_columns_and_index_true(self):
+    def test_excel_multiindex_columns_and_index_true(self, ext):
         _skip_if_no_xlwt()
         cols = MultiIndex.from_tuples([('site', ''),
                                        ('2014', 'height'),
@@ -2049,7 +2050,7 @@ class TestXlwtTests(SharedItems):
         with ensure_clean(ext) as path:
             df.to_excel(path, index=True)
 
-    def test_excel_multiindex_index(self):
+    def test_excel_multiindex_index(self, ext):
         _skip_if_no_xlwt()
         # MultiIndex as index works so assert no error #9794
         cols = MultiIndex.from_tuples([('site', ''),
@@ -2059,7 +2060,7 @@ class TestXlwtTests(SharedItems):
         with ensure_clean(ext) as path:
             df.to_excel(path, index=False)
 
-    def test_to_excel_styleconverter(self):
+    def test_to_excel_styleconverter(self, ext):
         _skip_if_no_xlwt()
 
         import xlwt
