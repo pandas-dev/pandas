@@ -28,27 +28,6 @@ from pandas.io.parsers import read_csv
 from pandas.util.testing import ensure_clean, makeCustomDataframe as mkdf
 
 
-def _skip_if_no_xlwt():
-    try:
-        import xlwt  # NOQA
-    except ImportError:
-        pytest.skip('xlwt not installed, skipping')
-
-
-def _skip_if_no_openpyxl():
-    try:
-        import openpyxl  # NOQA
-    except ImportError:
-        pytest.skip('openpyxl not installed, skipping')
-
-
-def _skip_if_no_xlsxwriter():
-    try:
-        import xlsxwriter  # NOQA
-    except ImportError:
-        pytest.skip('xlsxwriter not installed, skipping')
-
-
 _seriesd = tm.getSeriesData()
 _tsd = tm.getTimeSeriesData()
 _frame = DataFrame(_seriesd)[:10]
@@ -2096,13 +2075,13 @@ class TestXlwtTests(_WriterBase):
     (None, '.xlsx', 'xlsxwriter')])
 class TestXlsxWriterTests(_WriterBase):
 
+    @td.skip_if_no('openpyxl')
     def test_column_format(self, merge_cells, ext, engine):
         # Test that column formats are applied to cells. Test for issue #9167.
         # Applicable to xlsxwriter only.
         with warnings.catch_warnings():
             # Ignore the openpyxl lxml warning.
             warnings.simplefilter("ignore")
-            _skip_if_no_openpyxl()
             import openpyxl
 
         with ensure_clean(ext) as path:
@@ -2144,25 +2123,26 @@ class TestXlsxWriterTests(_WriterBase):
 
 class TestExcelWriterEngineTests(object):
 
-    def test_ExcelWriter_dispatch(self):
+    @pytest.mark.parametrize('klass,ext', [
+        pytest.param(_XlsxWriter, '.xlsx', marks=pytest.mark.skipif(
+            not td.safe_import('xlsxwriter'), reason='No xlsxwriter')),
+        pytest.param(_OpenpyxlWriter, '.xlsx', marks=pytest.mark.skipif(
+            not td.safe_import('openpyxl'), reason='No openpyxl')),
+        pytest.param(_XlwtWriter, '.xls', marks=pytest.mark.skipif(
+            not td.safe_import('xlwt'), reason='No xlwt'))
+    ])
+    def test_ExcelWriter_dispatch(self, klass, ext):
+        with ensure_clean(ext) as path:
+            writer = ExcelWriter(path)
+            if ext == '.xlsx' and td.safe_import('xlsxwriter'):
+                # xlsxwriter has preference over openpyxl if both installed
+                assert isinstance(writer, _XlsxWriter)
+            else:
+                assert isinstance(writer, klass)
+
+    def test_ExcelWriter_dispatch_raises(self):
         with tm.assert_raises_regex(ValueError, 'No engine'):
             ExcelWriter('nothing')
-
-        try:
-            import xlsxwriter  # noqa
-            writer_klass = _XlsxWriter
-        except ImportError:
-            _skip_if_no_openpyxl()
-            writer_klass = _OpenpyxlWriter
-
-        with ensure_clean('.xlsx') as path:
-            writer = ExcelWriter(path)
-            assert isinstance(writer, writer_klass)
-
-        _skip_if_no_xlwt()
-        with ensure_clean('.xls') as path:
-            writer = ExcelWriter(path)
-            assert isinstance(writer, _XlwtWriter)
 
     def test_register_writer(self):
         # some awkward mocking to test out dispatch and such actually works
@@ -2353,11 +2333,11 @@ def test_styler_to_excel(engine):
         assert n_cells == (10 + 1) * (3 + 1)
 
 
+@td.skip_if_no('openpyxl')
 class TestFSPath(object):
 
     @pytest.mark.skipif(sys.version_info < (3, 6), reason='requires fspath')
     def test_excelfile_fspath(self):
-        _skip_if_no_openpyxl()
         with tm.ensure_clean('foo.xlsx') as path:
             df = DataFrame({"A": [1, 2]})
             df.to_excel(path)
@@ -2368,7 +2348,6 @@ class TestFSPath(object):
     @pytest.mark.skipif(sys.version_info < (3, 6), reason='requires fspath')
     # @pytest.mark.xfail
     def test_excelwriter_fspath(self):
-        _skip_if_no_openpyxl()
         with tm.ensure_clean('foo.xlsx') as path:
             writer = ExcelWriter(path)
             assert os.fspath(writer) == str(path)
