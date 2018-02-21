@@ -33,6 +33,7 @@ from pandas.core.dtypes.missing import isna
 from pandas.core import common as com
 from pandas._libs import algos, lib, hashtable as htable
 from pandas._libs.tslib import iNaT
+from pandas.util._decorators import deprecate_kwarg
 
 
 # --------------- #
@@ -437,6 +438,7 @@ def isin(comps, values):
     return f(comps, values)
 
 
+@deprecate_kwarg(old_arg_name='order', new_arg_name=None)
 def factorize(values, sort=False, order=None, na_sentinel=-1, size_hint=None):
     """
     Encode input values as an enumerated type or categorical variable
