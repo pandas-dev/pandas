@@ -151,8 +151,8 @@ class FrameApply(object):
         # we may need to infer
         reduce = self.result_type == 'reduce'
 
+        from pandas import Series
         if not reduce:
-            from pandas import Series
             EMPTY_SERIES = Series([])
             try:
                 r = self.f(EMPTY_SERIES, *self.args, **self.kwds)
@@ -386,7 +386,7 @@ class FrameColumnApply(FrameApply):
         else:
             result = self.infer_to_same_shape()
 
-        return self.obj._constructor_sliced(result)
+        return result
 
     def infer_to_same_shape(self):
         """ infer the results to the same shape as the input object """
