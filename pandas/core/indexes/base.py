@@ -3949,10 +3949,6 @@ class Index(IndexOpsMixin, PandasObject):
                         result = _comp_method_OBJECT_ARRAY(
                             op, self.values, other)
                 else:
-                    if isinstance(other, ABCSeries):
-                        # Windows builds with some numpy versions (1.13)
-                        # require specifically unwrapping Series GH#19800
-                        other = other.values
                     with np.errstate(all='ignore'):
                         result = op(self.values, np.asarray(other))
 
