@@ -968,6 +968,7 @@ class XlrdTests(ReadingTestsBase):
     def test_read_excel_parse_dates(self):
         # GH 11544, 12051
         _skip_if_no_openpyxl()
+        _skip_if_no_xlwt()  # for df2.to_excel
 
         df = DataFrame(
             {'col': [1, 2, 3],
