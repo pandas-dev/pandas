@@ -55,7 +55,7 @@ import pandas.core.missing as missing
 import pandas.core.algorithms as algos
 import pandas.core.sorting as sorting
 from pandas.io.formats.printing import pprint_thing
-from pandas.core.ops import _comp_method_OBJECT_ARRAY
+from pandas.core.ops import _comp_method_OBJECT_ARRAY, make_invalid_op
 from pandas.core.config import get_option
 from pandas.core.strings import StringMethods
 
@@ -80,26 +80,6 @@ def _try_get_item(x):
         return x.item()
     except AttributeError:
         return x
-
-
-def _make_invalid_op(name):
-    """
-    Return a binary method that always raises a TypeError.
-
-    Parameters
-    ----------
-    name : str
-
-    Returns
-    -------
-    invalid_op : function
-    """
-    def invalid_op(self, other=None):
-        raise TypeError("cannot perform {name} with this index type: "
-                        "{typ}".format(name=name, typ=type(self)))
-
-    invalid_op.__name__ = name
-    return invalid_op
 
 
 class InvalidIndexError(Exception):
@@ -2098,7 +2078,7 @@ class Index(IndexOpsMixin, PandasObject):
         try:
             loc = self.get_loc(label, method='pad')
         except KeyError:
-            return _get_na_value(self.dtype)
+            return self._na_value
         else:
             if isinstance(loc, slice):
                 loc = loc.indices(len(self))[-1]
@@ -3957,8 +3937,8 @@ class Index(IndexOpsMixin, PandasObject):
     def _evaluate_with_datetime_like(self, other, op, opstr):
         raise TypeError("can only perform ops with datetime like values")
 
-    def _evaluate_compare(self, op):
-        raise base.AbstractMethodError(self)
+    def _evaluate_compare(self, other, op):
+        raise com.AbstractMethodError(self)
 
     @classmethod
     def _add_comparison_methods(cls):
@@ -4008,22 +3988,23 @@ class Index(IndexOpsMixin, PandasObject):
     @classmethod
     def _add_numeric_methods_add_sub_disabled(cls):
         """ add in the numeric add/sub methods to disable """
-        cls.__add__ = cls.__radd__ = __iadd__ = _make_invalid_op('__add__')  # noqa
-        cls.__sub__ = __isub__ = _make_invalid_op('__sub__')  # noqa
+        cls.__add__ = cls.__radd__ = __iadd__ = make_invalid_op('__add__')  # noqa
+        cls.__sub__ = __isub__ = make_invalid_op('__sub__')  # noqa
 
     @classmethod
     def _add_numeric_methods_disabled(cls):
         """ add in numeric methods to disable other than add/sub """
-        cls.__pow__ = cls.__rpow__ = _make_invalid_op('__pow__')
-        cls.__mul__ = cls.__rmul__ = _make_invalid_op('__mul__')
-        cls.__floordiv__ = cls.__rfloordiv__ = _make_invalid_op('__floordiv__')
-        cls.__truediv__ = cls.__rtruediv__ = _make_invalid_op('__truediv__')
+        cls.__pow__ = make_invalid_op('__pow__')
+        cls.__rpow__ = make_invalid_op('__rpow__')
+        cls.__mul__ = cls.__rmul__ = make_invalid_op('__mul__')
+        cls.__floordiv__ = cls.__rfloordiv__ = make_invalid_op('__floordiv__')
+        cls.__truediv__ = cls.__rtruediv__ = make_invalid_op('__truediv__')
         if not compat.PY3:
-            cls.__div__ = cls.__rdiv__ = _make_invalid_op('__div__')
-        cls.__neg__ = _make_invalid_op('__neg__')
-        cls.__pos__ = _make_invalid_op('__pos__')
-        cls.__abs__ = _make_invalid_op('__abs__')
-        cls.__inv__ = _make_invalid_op('__inv__')
+            cls.__div__ = cls.__rdiv__ = make_invalid_op('__div__')
+        cls.__neg__ = make_invalid_op('__neg__')
+        cls.__pos__ = make_invalid_op('__pos__')
+        cls.__abs__ = make_invalid_op('__abs__')
+        cls.__inv__ = make_invalid_op('__inv__')
 
     def _maybe_update_attributes(self, attrs):
         """ Update Index attributes (e.g. freq) depending on op """
@@ -4224,8 +4205,8 @@ class Index(IndexOpsMixin, PandasObject):
     @classmethod
     def _add_logical_methods_disabled(cls):
         """ add in logical methods to disable """
-        cls.all = _make_invalid_op('all')
-        cls.any = _make_invalid_op('any')
+        cls.all = make_invalid_op('all')
+        cls.any = make_invalid_op('any')
 
 
 Index._add_numeric_methods_disabled()
@@ -4331,12 +4312,6 @@ def _ensure_index(index_like, copy=False):
             index_like = copy(index_like)
 
     return Index(index_like)
-
-
-def _get_na_value(dtype):
-    if is_datetime64_any_dtype(dtype) or is_timedelta64_dtype(dtype):
-        return libts.NaT
-    return np.nan
 
 
 def _ensure_has_len(seq):

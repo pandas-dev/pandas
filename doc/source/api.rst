@@ -1682,6 +1682,16 @@ MultiIndex Components
    MultiIndex.reorder_levels
    MultiIndex.remove_unused_levels
 
+MultiIndex Selecting
+~~~~~~~~~~~~~~~~~~~~
+
+.. autosummary::
+   :toctree: generated/
+
+   MultiIndex.get_loc
+   MultiIndex.get_indexer
+   MultiIndex.get_level_values
+
 .. _api.datetimeindex:
 
 DatetimeIndex
@@ -2240,6 +2250,8 @@ The following methods are available only for ``SeriesGroupBy`` objects.
    SeriesGroupBy.nunique
    SeriesGroupBy.unique
    SeriesGroupBy.value_counts
+   SeriesGroupBy.is_monotonic_increasing
+   SeriesGroupBy.is_monotonic_decreasing
 
 The following methods are available only for ``DataFrameGroupBy`` objects.
 
