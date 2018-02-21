@@ -66,6 +66,9 @@ class BaseDtypeTests(object):
         result = type(dtype).is_dtype(dtype.name)
         assert result is True
 
+    def test_is_dtype_unboxes_dtype(self, data, dtype):
+        assert dtype.is_dtype(data) is True
+
     def test_is_dtype_from_self(self, dtype):
         result = type(dtype).is_dtype(dtype)
         assert result is True
