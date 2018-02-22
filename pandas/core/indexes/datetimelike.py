@@ -694,6 +694,7 @@ class DatetimeIndexOpsMixin(object):
 
             # array-like others
             elif is_timedelta64_dtype(other):
+                # TimedeltaIndex, ndarray[timedelta64]
                 result = self._add_delta(other)
             elif is_offsetlike(other):
                 # Array/Index of DateOffset objects
@@ -744,6 +745,7 @@ class DatetimeIndexOpsMixin(object):
 
             # array-like others
             elif is_timedelta64_dtype(other):
+                # TimedeltaIndex, ndarray[timedelta64]
                 result = self._add_delta(-other)
             elif is_offsetlike(other):
                 # Array/Index of DateOffset objects
