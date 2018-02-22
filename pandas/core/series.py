@@ -29,7 +29,6 @@ from pandas.core.dtypes.common import (
     is_iterator,
     is_dict_like,
     is_scalar,
-    is_sparse,
     _is_unorderable_exception,
     _ensure_platform_int,
     pandas_dtype)
