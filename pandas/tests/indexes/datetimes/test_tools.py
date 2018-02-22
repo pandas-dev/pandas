@@ -8,7 +8,7 @@ import calendar
 import dateutil
 import numpy as np
 from dateutil.parser import parse
-from datetime import datetime, date, time
+from datetime import datetime, timedelta, date, time
 from distutils.version import LooseVersion
 
 import pandas as pd
@@ -182,6 +182,63 @@ class TestTimeConversionFormats(object):
         ]
         for s, format, dt in data:
             assert to_datetime(s, format=format, cache=cache) == dt
+
+    @pytest.mark.skipif(not PY3,
+                        reason="datetime.timezone not supported in PY2")
+    def test_to_datetime_parse_timezone(self):
+        from datetime import timezone
+        # %Z parsing only
+        fmt = '%Y-%m-%d %H:%M:%S %Z'
+        dates = ['2010-01-01 12:00:00 UTC'] * 2
+        result = pd.to_datetime(dates, format=fmt)
+        expected_dates = [pd.Timestamp('2010-01-01 12:00:00', tz='UTC')] * 2
+        expected = pd.DatetimeIndex(expected_dates)
+        tm.assert_index_equal(result, expected)
+
+        result = pd.to_datetime(dates, format=fmt, box=False)
+        expected = np.array(expected_dates, dtype=object)
+        tm.assert_numpy_array_equal(result, expected)
+
+        dates = ['2010-01-01 12:00:00 UTC', '2010-01-01 12:00:00 GMT']
+        result = pd.to_datetime(dates, format=fmt)
+        expected_dates = [pd.Timestamp('2010-01-01 12:00:00', tz='UTC'),
+                          pd.Timestamp('2010-01-01 12:00:00', tz='GMT')]
+        expected = np.array(expected_dates, dtype=object)
+        tm.assert_numpy_array_equal(result, expected)
+
+        # %z parsing only
+        dates = ['2010-01-01 12:00:00 +0100'] * 2
+        fmt = '%Y-%m-%d %H:%M:%S %z'
+        result = pd.to_datetime(dates, format=fmt)
+        expected_dates = [pd.Timestamp('2010-01-01 12:00:00',
+                                       tzinfo=pytz.FixedOffset(60))] * 2
+        expected = pd.DatetimeIndex(expected_dates)
+        tm.assert_index_equal(result, expected)
+
+        result = pd.to_datetime(dates, format=fmt, box=False)
+        expected = np.array(expected_dates, dtype=object)
+        tm.assert_numpy_array_equal(result, expected)
+
+        dates = ['2010-01-01 12:00:00 +0100', '2010-01-01 12:00:00 -0100']
+        result = pd.to_datetime(dates, format=fmt)
+        expected_dates = [pd.Timestamp('2010-01-01 12:00:00',
+                                       tzinfo=pytz.FixedOffset(60)),
+                          pd.Timestamp('2010-01-01 12:00:00',
+                                       tzinfo=pytz.FixedOffset(-60))]
+        expected = np.array(expected_dates, dtype=object)
+        tm.assert_numpy_array_equal(result, expected)
+
+        # %z and %Z parsing
+        dates = ['2010-01-01 12:00:00 UTC +0100'] * 2
+        fmt = '%Y-%m-%d %H:%M:%S %Z %z'
+        result = pd.to_datetime(dates, format=fmt)
+        tzinfo = timezone(timedelta(minutes=60), 'UTC')
+        expected_dates = [pd.Timestamp('2010-01-01 13:00:00', tzinfo=tzinfo)]
+        expected = np.array(expected_dates * 2, dtype=object)
+        tm.assert_numpy_array_equal(result, expected)
+
+        with pytest.raises(ValueError):
+            pd.to_datetime(dates, format=fmt, utc=True)
 
 
 class TestToDatetime(object):
