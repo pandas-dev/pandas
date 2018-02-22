@@ -451,7 +451,6 @@ class TestTimedeltaMultiplicationDivision(object):
         result = td % NaT
         assert result is NaT
 
-    @pytest.mark.xfail(reason='GH#19378 floordiv td64 returns td64')
     def test_mod_timedelta64_nat(self):
         # GH#19365
         td = Timedelta(hours=37)
@@ -459,7 +458,6 @@ class TestTimedeltaMultiplicationDivision(object):
         result = td % np.timedelta64('NaT', 'ns')
         assert result is NaT
 
-    @pytest.mark.xfail(reason='GH#19378 floordiv td64 returns td64')
     def test_mod_timedelta64(self):
         # GH#19365
         td = Timedelta(hours=37)
@@ -468,7 +466,6 @@ class TestTimedeltaMultiplicationDivision(object):
         assert isinstance(result, Timedelta)
         assert result == Timedelta(hours=1)
 
-    @pytest.mark.xfail(reason='GH#19378 floordiv by Tick not implemented')
     def test_mod_offset(self):
         # GH#19365
         td = Timedelta(hours=37)
@@ -515,7 +512,6 @@ class TestTimedeltaMultiplicationDivision(object):
         assert isinstance(result, Timedelta)
         assert result == Timedelta(minutes=1)
 
-    @pytest.mark.xfail(reason='GH#19378 floordiv by Tick not implemented')
     def test_rmod_timedelta64(self):
         # GH#19365
         td = Timedelta(minutes=3)
@@ -574,7 +570,6 @@ class TestTimedeltaMultiplicationDivision(object):
         assert np.isnan(result[0])
         assert result[1] is pd.NaT
 
-    @pytest.mark.xfail(reason='GH#19378 floordiv by Tick not implemented')
     def test_divmod_offset(self):
         # GH#19365
         td = Timedelta(days=2, hours=6)
@@ -598,7 +593,6 @@ class TestTimedeltaMultiplicationDivision(object):
         assert isinstance(result[1], Timedelta)
         assert result[1] == Timedelta(hours=6)
 
-    @pytest.mark.xfail(reason='GH#19378 floordiv by Tick not implemented')
     def test_rdivmod_offset(self):
         result = divmod(pd.offsets.Hour(54), Timedelta(hours=-4))
         assert result[0] == -14
