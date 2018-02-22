@@ -5,7 +5,7 @@ import numpy as np
 
 from pandas.api.types import CategoricalDtype
 from pandas import Categorical
-from . import base
+from pandas.tests.extension import base
 
 
 def make_data():

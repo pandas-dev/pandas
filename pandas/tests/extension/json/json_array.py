@@ -1,22 +1,14 @@
 import collections
 import itertools
 import numbers
-import operator
 import random
 import string
 import sys
 
 import numpy as np
-import pytest
-
 
 from pandas.core.dtypes.base import ExtensionDtype
 from pandas.core.arrays import ExtensionArray
-
-from . import base
-
-pytestmark = pytest.mark.skipif(sys.version_info[0] == 2,
-                                reason="Py2 doesn't have a UserDict")
 
 
 class JSONDtype(ExtensionDtype):
@@ -105,64 +97,3 @@ def make_data():
     return [collections.UserDict([
         (random.choice(string.ascii_letters), random.randint(0, 100))
         for _ in range(random.randint(0, 10))]) for _ in range(100)]
-
-
-@pytest.fixture
-def dtype():
-    return JSONDtype()
-
-
-@pytest.fixture
-def data():
-    """Length-100 PeriodArray for semantics test."""
-    return JSONArray(make_data())
-
-
-@pytest.fixture
-def data_missing():
-    """Length 2 array with [NA, Valid]"""
-    return JSONArray([{}, {'a': 10}])
-
-
-@pytest.fixture
-def na_value():
-    return {}
-
-
-@pytest.fixture
-def na_cmp():
-    return operator.eq
-
-
-class TestDtype(base.BaseDtypeTests):
-    pass
-
-
-class TestInterface(base.BaseInterfaceTests):
-    pass
-
-
-class TestConstructors(base.BaseConstructorsTests):
-    pass
-
-
-class TestReshaping(base.BaseReshapingTests):
-    pass
-
-
-class TestGetitem(base.BaseGetitemTests):
-    pass
-
-
-class TestMissing(base.BaseMissingTests):
-    pass
-
-
-class TestMethods(base.BaseMethodsTests):
-    @pytest.mark.skip(reason="Unhashable")
-    def test_value_counts(self, all_data, dropna):
-        pass
-
-
-class TestCasting(base.BaseCastingTests):
-    pass
