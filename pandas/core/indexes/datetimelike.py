@@ -25,6 +25,7 @@ from pandas.core.dtypes.common import (
     is_integer_dtype,
     is_object_dtype,
     is_string_dtype,
+    is_datetime64_dtype,
     is_timedelta64_dtype)
 from pandas.core.dtypes.generic import (
     ABCIndex, ABCSeries, ABCPeriodIndex, ABCIndexClass)
@@ -744,6 +745,11 @@ class DatetimeIndexOpsMixin(object):
         cls.__sub__ = __sub__
 
         def __rsub__(self, other):
+            if is_datetime64_dtype(other) and is_timedelta64_dtype(self):
+                # ndarray[datetime64] cannot be subtracted from self, so
+                # we need to wrap in DatetimeIndex and flip the operation
+                from pandas.core.indexes.datetimes import DatetimeIndex
+                return DatetimeIndex(other) - self
             return -(self - other)
         cls.__rsub__ = __rsub__
 

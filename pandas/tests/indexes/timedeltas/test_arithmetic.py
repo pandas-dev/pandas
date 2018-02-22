@@ -494,6 +494,18 @@ class TestTimedeltaIndexArithmetic(object):
         expected = DatetimeIndex(['2011-01-02', '2011-01-03'])
         tm.assert_index_equal(result, expected)
 
+    def test_tdi_sub_dt64_array(self):
+        dti = pd.date_range('2016-01-01', periods=3)
+        tdi = dti - dti.shift(1)
+        dtarr = dti.values
+
+        expected = pd.DatetimeIndex(dtarr) - tdi
+        result = dtarr - tdi
+        tm.assert_index_equal(result, expected)
+
+        with pytest.raises(TypeError):
+            tdi - dtarr
+
     # -------------------------------------------------------------
 
     @pytest.mark.parametrize('scalar_td', [
