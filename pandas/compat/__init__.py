@@ -365,6 +365,18 @@ except NameError:
         return any("__call__" in klass.__dict__ for klass in type(obj).__mro__)
 
 
+if sys.version_info[0:2] < (3, 4):
+    def wraps(wrapped, assigned=functools.WRAPPER_ASSIGNMENTS,
+              updated=functools.WRAPPER_UPDATES):
+        def wrapper(f):
+            f = functools.wraps(wrapped, assigned, updated)(f)
+            f.__wrapped__ = wrapped
+            return f
+        return wrapper
+else:
+    wraps = functools.wraps
+
+
 def add_metaclass(metaclass):
     """Class decorator for creating a class with a metaclass."""
     def wrapper(cls):
