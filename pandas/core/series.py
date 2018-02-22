@@ -131,7 +131,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
     index : array-like or Index (1d)
         Values must be hashable and have the same length as `data`.
         Non-unique index values are allowed. Will default to
-        RangeIndex(len(data)) if not provided. If both a dict and index
+        RangeIndex (0, 1, 2, ..., n) if not provided. If both a dict and index
         sequence are used, the index will override the keys found in the
         dict.
     dtype : numpy.dtype or None
