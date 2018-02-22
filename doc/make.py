@@ -18,6 +18,7 @@ import subprocess
 import argparse
 from contextlib import contextmanager
 import jinja2
+import shutil
 import webbrowser
 
 
@@ -50,7 +51,9 @@ def _generate_index(include_api=True, single_doc=None):
 
 
 def _generate_exclude_pattern(include_api=True, single_doc=None):
+    """
 
+    """
     if not include_api:
         rst_files = ['api.rst', 'generated/*.rst']
     elif single_doc is not None:
@@ -67,33 +70,59 @@ def _generate_exclude_pattern(include_api=True, single_doc=None):
     return exclude_patterns
 
 
-def _write_temp_file2(classtype, module, function):
+def _generate_temp_docstring_file(method):
+    """
+    """
+    fname = os.path.join(SOURCE_PATH, 'generated', '{}.rst'.format(method))
 
-    s = """{1}.{2}
-=================================
+    # # remove the target file to make sure it is updated again (to build
+    # # latest version)
+    # try:
+    #     os.remove(fname)
+    # except OSError:
+    #     pass
+    #
+    # # generate docstring pages
+    # print("Running sphinx-autogen to generate docstring stub pages")
+    # os.system("sphinx-autogen -t _templates -o source/generated source/*.rst")
 
-.. currentmodule:: {1}
+    # create the temporary directory in which we will link the target file
+    try:
+        os.makedirs(os.path.join(SOURCE_PATH, 'generated_temp'))
+    except OSError:
+        pass
 
-.. auto{0}:: {2}""".format(classtype, module, function)
+    if os.path.exists(fname):
+        # link the target file
+        try:
+            # os.symlink(fname, os.path.join(SOURCE_PATH, 'generated_temp',
+            #                                '{}.rst'.format(method)),
+            #            target_is_directory=False)
+            # copying to make sure sphinx always thinks it is new
+            # and needs to be re-generated (to pick source code changes)
+            shutil.copy(fname, os.path.join(SOURCE_PATH, 'generated_temp'))
+            linked = True
+        except:  # noqa
+            linked = False
+    else:
+        linked = False
 
-    with open(os.path.join(SOURCE_PATH, "temp.rst"), 'w') as f:
-        f.write(s)
-
-
-def _write_temp_file(classtype, module, function):
-
-    s = """API docs
-========
+    s = """Built docstrings
+================
 
 .. autosummary::
-   :toctree: generated_temp/
+    {toctree}
+    {name}
 
-   {0}.{1}
-
-""".format(module, function)
+    """.format(name=method,
+               toctree=':toctree: generated_temp/\n' if not linked else '')
 
     with open(os.path.join(SOURCE_PATH, "temp.rst"), 'w') as f:
         f.write(s)
+
+    if not linked:
+        print("Running sphinx-autogen on manually created file")
+        os.system("sphinx-autogen -o source/generated_temp source/temp.rst")
 
 
 @contextmanager
@@ -310,13 +339,20 @@ def main():
     os.environ['PYTHONPATH'] = args.python_path
 
     if args.docstring is not None:
-        _write_temp_file('method', 'pandas', args.docstring)
+        shutil.rmtree(os.path.join(BUILD_PATH, 'html', 'generated_temp'),
+                      ignore_errors=True)
+        _generate_temp_docstring_file(args.docstring)
         exclude_patterns = _generate_exclude_pattern(single_doc='temp.rst')
         _generate_index(single_doc='temp.rst')
         DocBuilder(args.num_jobs, exclude_patterns).build_docstring()
-        url = "file://" + os.getcwd() + "/build/html/temp.html"
+        # open generated page in new browser tab
+        url = os.path.join("file://", DOC_PATH, "build", "html",
+                           "generated_temp", "{}.html".format(args.docstring))
         webbrowser.open(url, new=2)
-        #os.remove('source/temp.rst')
+        # clean-up generated files
+        os.remove('source/temp.rst')
+        shutil.rmtree(os.path.join(SOURCE_PATH, 'generated_temp'),
+                      ignore_errors=True)
 
     else:
         _generate_index(not args.no_api, args.single)
