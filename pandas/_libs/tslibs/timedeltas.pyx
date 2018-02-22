@@ -1057,7 +1057,7 @@ class Timedelta(_Timedelta):
             return other * self.to_timedelta64()
 
         elif other is NaT:
-            return NaT
+            raise TypeError('Cannot multiply Timedelta with NaT')
 
         elif not (is_integer_object(other) or is_float_object(other)):
             # only integers and floats allowed
