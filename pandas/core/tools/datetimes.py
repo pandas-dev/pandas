@@ -251,7 +251,7 @@ def to_datetime(arg, errors='raise', dayfirst=False, yearfirst=False,
     1 loop, best of 3: 471 ms per loop
 
     Passing require_iso8601=True will only parse datetime strings compliant to
-    `ISO8601 <https://en.wikipedia.org/wiki/ISO_8601/>`_ and treat others as
+    `ISO8601 <https://en.wikipedia.org/wiki/ISO_8601>`_ and treat others as
     non-parseable dates.
 
     >>> s = pd.Series(['M1809', 'M1701', pd.Timestamp('20130101')])
