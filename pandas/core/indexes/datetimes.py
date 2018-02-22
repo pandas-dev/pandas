@@ -963,29 +963,6 @@ class DatetimeIndex(DatelikeOps, TimelikeOps, DatetimeIndexOpsMixin,
                           "or DatetimeIndex", PerformanceWarning)
             return self.astype('O') + offset
 
-    def _add_offset_array(self, other):
-        # Array/Index of DateOffset objects
-        if len(other) == 1:
-            return self + other[0]
-        else:
-            warnings.warn("Adding/subtracting array of DateOffsets to "
-                          "{} not vectorized".format(type(self)),
-                          PerformanceWarning)
-            return self.astype('O') + np.array(other)
-            # TODO: pass freq='infer' like we do in _sub_offset_array?
-            # TODO: This works for __add__ but loses dtype in __sub__
-
-    def _sub_offset_array(self, other):
-        # Array/Index of DateOffset objects
-        if len(other) == 1:
-            return self - other[0]
-        else:
-            warnings.warn("Adding/subtracting array of DateOffsets to "
-                          "{} not vectorized".format(type(self)),
-                          PerformanceWarning)
-            res_values = self.astype('O').values - np.array(other)
-            return self.__class__(res_values, freq='infer')
-
     def _format_native_types(self, na_rep='NaT', date_format=None, **kwargs):
         from pandas.io.formats.format import _get_format_datetime64_from_values
         format = _get_format_datetime64_from_values(self, date_format)

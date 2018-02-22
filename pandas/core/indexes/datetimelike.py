@@ -2,7 +2,7 @@
 Base and utility classes for tseries type pandas objects.
 """
 import warnings
-
+import operator
 from datetime import datetime, timedelta
 
 from pandas import compat
@@ -25,13 +25,14 @@ from pandas.core.dtypes.common import (
     is_integer_dtype,
     is_object_dtype,
     is_string_dtype,
+    is_period_dtype,
     is_timedelta64_dtype)
 from pandas.core.dtypes.generic import (
     ABCIndex, ABCSeries, ABCPeriodIndex, ABCIndexClass)
 from pandas.core.dtypes.missing import isna
 from pandas.core import common as com, algorithms, ops
 from pandas.core.algorithms import checked_add_with_arr
-from pandas.errors import NullFrequencyError
+from pandas.errors import NullFrequencyError, PerformanceWarning
 import pandas.io.formats.printing as printing
 from pandas._libs import lib, iNaT, NaT
 from pandas._libs.tslibs.period import Period
@@ -637,13 +638,33 @@ class DatetimeIndexOpsMixin(object):
     def _sub_period(self, other):
         return NotImplemented
 
-    def _add_offset_array(self, other):
-        # Array/Index of DateOffset objects
-        return NotImplemented
+    def _addsub_offset_array(self, other, op):
+        # Add or subtract Array-like of DateOffset objects
+        """
+        Add or subtract array-like of DateOffset objects
 
-    def _sub_offset_array(self, other):
-        # Array/Index of DateOffset objects
-        return NotImplemented
+        Parameters
+        ----------
+        other : Index, np.ndarray
+            object-dtype containing pd.DateOffset objects
+        op : {operator.add, operator.sub}
+
+        Returns
+        -------
+        result : same class as self
+        """
+        if len(other) == 1:
+            return op(self, other[0])
+
+        warnings.warn("Adding/subtracting array of DateOffsets to "
+                      "{cls} not vectorized"
+                      .format(cls=type(self).__name__), PerformanceWarning)
+
+        res_values = op(self.astype('O').values, np.array(other))
+        kwargs = {}
+        if not is_period_dtype(self):
+            kwargs['freq'] = 'infer'
+        return self.__class__(res_values, **kwargs)
 
     @classmethod
     def _add_datetimelike_methods(cls):
@@ -666,7 +687,7 @@ class DatetimeIndexOpsMixin(object):
                 result = self._add_delta(other)
             elif is_offsetlike(other):
                 # Array/Index of DateOffset objects
-                result = self._add_offset_array(other)
+                result = self._addsub_offset_array(other, operator.add)
             elif isinstance(self, TimedeltaIndex) and isinstance(other, Index):
                 if hasattr(other, '_add_delta'):
                     result = other._add_delta(self)
@@ -710,7 +731,7 @@ class DatetimeIndexOpsMixin(object):
                 result = self._add_delta(-other)
             elif is_offsetlike(other):
                 # Array/Index of DateOffset objects
-                result = self._sub_offset_array(other)
+                result = self._addsub_offset_array(other, operator.sub)
             elif isinstance(self, TimedeltaIndex) and isinstance(other, Index):
                 if not isinstance(other, TimedeltaIndex):
                     raise TypeError("cannot subtract TimedeltaIndex and {typ}"
