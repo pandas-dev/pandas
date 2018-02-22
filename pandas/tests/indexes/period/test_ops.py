@@ -1,5 +1,6 @@
 
 import numpy as np
+import pytest
 
 import pandas as pd
 import pandas._libs.tslib as tslib
@@ -368,37 +369,37 @@ class TestPeriodIndexOps(Ops):
         tm.assert_numpy_array_equal(idx._nan_idxs,
                                     np.array([1], dtype=np.intp))
 
-    def test_equals(self):
-        # GH 13107
-        for freq in ['D', 'M']:
-            idx = pd.PeriodIndex(['2011-01-01', '2011-01-02', 'NaT'],
-                                 freq=freq)
-            assert idx.equals(idx)
-            assert idx.equals(idx.copy())
-            assert idx.equals(idx.astype(object))
-            assert idx.astype(object).equals(idx)
-            assert idx.astype(object).equals(idx.astype(object))
-            assert not idx.equals(list(idx))
-            assert not idx.equals(pd.Series(idx))
+    @pytest.mark.parametrize('freq', ['D', 'M'])
+    def test_equals(self, freq):
+        # GH#13107
+        idx = pd.PeriodIndex(['2011-01-01', '2011-01-02', 'NaT'],
+                             freq=freq)
+        assert idx.equals(idx)
+        assert idx.equals(idx.copy())
+        assert idx.equals(idx.astype(object))
+        assert idx.astype(object).equals(idx)
+        assert idx.astype(object).equals(idx.astype(object))
+        assert not idx.equals(list(idx))
+        assert not idx.equals(pd.Series(idx))
 
-            idx2 = pd.PeriodIndex(['2011-01-01', '2011-01-02', 'NaT'],
-                                  freq='H')
-            assert not idx.equals(idx2)
-            assert not idx.equals(idx2.copy())
-            assert not idx.equals(idx2.astype(object))
-            assert not idx.astype(object).equals(idx2)
-            assert not idx.equals(list(idx2))
-            assert not idx.equals(pd.Series(idx2))
+        idx2 = pd.PeriodIndex(['2011-01-01', '2011-01-02', 'NaT'],
+                              freq='H')
+        assert not idx.equals(idx2)
+        assert not idx.equals(idx2.copy())
+        assert not idx.equals(idx2.astype(object))
+        assert not idx.astype(object).equals(idx2)
+        assert not idx.equals(list(idx2))
+        assert not idx.equals(pd.Series(idx2))
 
-            # same internal, different tz
-            idx3 = pd.PeriodIndex._simple_new(idx.asi8, freq='H')
-            tm.assert_numpy_array_equal(idx.asi8, idx3.asi8)
-            assert not idx.equals(idx3)
-            assert not idx.equals(idx3.copy())
-            assert not idx.equals(idx3.astype(object))
-            assert not idx.astype(object).equals(idx3)
-            assert not idx.equals(list(idx3))
-            assert not idx.equals(pd.Series(idx3))
+        # same internal, different tz
+        idx3 = pd.PeriodIndex._simple_new(idx.asi8, freq='H')
+        tm.assert_numpy_array_equal(idx.asi8, idx3.asi8)
+        assert not idx.equals(idx3)
+        assert not idx.equals(idx3.copy())
+        assert not idx.equals(idx3.astype(object))
+        assert not idx.astype(object).equals(idx3)
+        assert not idx.equals(list(idx3))
+        assert not idx.equals(pd.Series(idx3))
 
 
 class TestPeriodIndexSeriesMethods(object):

@@ -614,19 +614,19 @@ class TestDatetimeIndexArithmetic(object):
         result = dti2 - dti1
         tm.assert_index_equal(result, expected)
 
-    def test_sub_period(self):
-        # GH 13078
+    @pytest.mark.parametrize('freq', [None, 'D'])
+    def test_sub_period(self, freq):
+        # GH#13078
         # not supported, check TypeError
         p = pd.Period('2011-01-01', freq='D')
 
-        for freq in [None, 'D']:
-            idx = pd.DatetimeIndex(['2011-01-01', '2011-01-02'], freq=freq)
+        idx = pd.DatetimeIndex(['2011-01-01', '2011-01-02'], freq=freq)
 
-            with pytest.raises(TypeError):
-                idx - p
+        with pytest.raises(TypeError):
+            idx - p
 
-            with pytest.raises(TypeError):
-                p - idx
+        with pytest.raises(TypeError):
+            p - idx
 
     def test_ufunc_coercions(self):
         idx = date_range('2011-01-01', periods=3, freq='2D', name='x')

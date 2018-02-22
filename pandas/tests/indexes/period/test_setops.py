@@ -14,24 +14,21 @@ def _permute(obj):
 
 class TestPeriodIndex(object):
 
-    def setup_method(self, method):
-        pass
-
-    def test_joins(self):
+    @pytest.mark.parametrize('kind', ['inner', 'outer', 'left', 'right'])
+    def test_joins(self, kind):
         index = period_range('1/1/2000', '1/20/2000', freq='D')
 
-        for kind in ['inner', 'outer', 'left', 'right']:
-            joined = index.join(index[:-5], how=kind)
+        joined = index.join(index[:-5], how=kind)
 
-            assert isinstance(joined, PeriodIndex)
-            assert joined.freq == index.freq
+        assert isinstance(joined, PeriodIndex)
+        assert joined.freq == index.freq
 
-    def test_join_self(self):
+    @pytest.mark.parametrize('kind', ['inner', 'outer', 'left', 'right'])
+    def test_join_self(self, kind):
         index = period_range('1/1/2000', '1/20/2000', freq='D')
 
-        for kind in ['inner', 'outer', 'left', 'right']:
-            res = index.join(index, how=kind)
-            assert index is res
+        res = index.join(index, how=kind)
+        assert index is res
 
     def test_join_does_not_recur(self):
         df = tm.makeCustomDataframe(

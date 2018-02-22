@@ -102,13 +102,11 @@ class TestTimedeltaIndex(DatetimeLike):
         tm.assert_numpy_array_equal(arr, exp_arr)
         tm.assert_index_equal(idx, idx3)
 
-    def test_join_self(self):
-
+    @pytest.mark.parametrize('kind', ['outer', 'inner', 'left', 'right'])
+    def test_join_self(self, kind):
         index = timedelta_range('1 day', periods=10)
-        kinds = 'outer', 'inner', 'left', 'right'
-        for kind in kinds:
-            joined = index.join(index, how=kind)
-            tm.assert_index_equal(index, joined)
+        joined = index.join(index, how=kind)
+        tm.assert_index_equal(index, joined)
 
     def test_does_not_convert_mixed_integer(self):
         df = tm.makeCustomDataframe(10, 10,
