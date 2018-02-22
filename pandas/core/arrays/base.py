@@ -1,4 +1,6 @@
 """An interface for extending pandas with custom arrays."""
+import itertools
+
 import numpy as np
 
 from pandas.errors import AbstractMethodError
@@ -215,6 +217,88 @@ class ExtensionArray(object):
         This should return a 1-D array the same length as 'self'.
         """
         raise AbstractMethodError(self)
+
+    def tolist(self):
+        # type: () -> list
+        """Convert the array to a list of scalars."""
+        return list(self)
+
+    def fillna(self, value=None, method=None, limit=None):
+        """ Fill NA/NaN values using the specified method.
+
+        Parameters
+        ----------
+        method : {'backfill', 'bfill', 'pad', 'ffill', None}, default None
+            Method to use for filling holes in reindexed Series
+            pad / ffill: propagate last valid observation forward to next valid
+            backfill / bfill: use NEXT valid observation to fill gap
+        value : scalar, array-like
+            If a scalar value is passed it is used to fill all missing values.
+            Alternatively, an array-like 'value' can be given. It's expected
+            that the array-like have the same length as 'self'.
+        limit : int, default None
+            (Not implemented yet for ExtensionArray!)
+            If method is specified, this is the maximum number of consecutive
+            NaN values to forward/backward fill. In other words, if there is
+            a gap with more than this number of consecutive NaNs, it will only
+            be partially filled. If method is not specified, this is the
+            maximum number of entries along the entire axis where NaNs will be
+            filled.
+
+        Returns
+        -------
+        filled : ExtensionArray with NA/NaN filled
+        """
+        from pandas.api.types import is_scalar
+        from pandas.util._validators import validate_fillna_kwargs
+
+        value, method = validate_fillna_kwargs(value, method)
+
+        if not is_scalar(value):
+            if len(value) != len(self):
+                raise ValueError("Length of 'value' does not match. Got ({}) "
+                                 " expected {}".format(len(value), len(self)))
+        else:
+            value = itertools.cycle([value])
+
+        if limit is not None:
+            msg = ("Specifying 'limit' for 'fillna' has not been implemented "
+                   "yet for {} typed data".format(self.dtype))
+            raise NotImplementedError(msg)
+
+        mask = self.isna()
+
+        if mask.any():
+            # ffill / bfill
+            if method is not None:
+                if method == 'backfill':
+                    data = reversed(self)
+                    mask = reversed(mask)
+                    last_valid = self[len(self) - 1]
+                else:
+                    last_valid = self[0]
+                    data = self
+
+                new_values = []
+
+                for is_na, val in zip(mask, data):
+                    if is_na:
+                        new_values.append(last_valid)
+                    else:
+                        new_values.append(val)
+                        last_valid = val
+
+                if method in {'bfill', 'backfill'}:
+                    new_values = list(reversed(new_values))
+            else:
+                # fill with value
+                new_values = [
+                    val if is_na else original
+                    for is_na, original, val in zip(mask, self, value)
+                ]
+        else:
+            new_values = self
+        return type(self)(new_values)
 
     # ------------------------------------------------------------------------
     # Indexing methods

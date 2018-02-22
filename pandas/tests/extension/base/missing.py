@@ -1,4 +1,5 @@
 import numpy as np
+import pytest
 
 import pandas as pd
 import pandas.util.testing as tm
@@ -44,4 +45,83 @@ class BaseMissingTests(BaseExtensionTests):
                            "B": [1, np.nan]})
         result = df.dropna()
         expected = df.iloc[:0]
+        self.assert_frame_equal(result, expected)
+
+    def test_fillna_limit_raises(self, data_missing):
+        ser = pd.Series(data_missing)
+        fill_value = data_missing[1]
+        xpr = "Specifying 'limit' for 'fillna'.*{}".format(data_missing.dtype)
+
+        with tm.assert_raises_regex(NotImplementedError, xpr):
+            ser.fillna(fill_value, limit=2)
+
+    def test_fillna_series(self, data_missing):
+        fill_value = data_missing[1]
+        ser = pd.Series(data_missing)
+
+        result = ser.fillna(fill_value)
+        expected = pd.Series(type(data_missing)([fill_value, fill_value]))
+        self.assert_series_equal(result, expected)
+
+        # Fill with a series
+        result = ser.fillna(expected)
+        self.assert_series_equal(result, expected)
+
+        # Fill with a series not affecting the missing values
+        result = ser.fillna(ser)
+        self.assert_series_equal(result, ser)
+
+    @pytest.mark.xfail(reason="Too magical?")
+    def test_fillna_series_with_dict(self, data_missing):
+        fill_value = data_missing[1]
+        ser = pd.Series(data_missing)
+        expected = pd.Series(type(data_missing)([fill_value, fill_value]))
+
+        # Fill with a dict
+        result = ser.fillna({0: fill_value})
+        self.assert_series_equal(result, expected)
+
+        # Fill with a dict not affecting the missing values
+        result = ser.fillna({1: fill_value})
+        ser = pd.Series(data_missing)
+        self.assert_series_equal(result, ser)
+
+    @pytest.mark.parametrize('method', ['ffill', 'bfill'])
+    def test_fillna_series_method(self, data_missing, method):
+        fill_value = data_missing[1]
+
+        if method == 'ffill':
+            data_missing = type(data_missing)(data_missing[::-1])
+
+        result = pd.Series(data_missing).fillna(method=method)
+        expected = pd.Series(type(data_missing)([fill_value, fill_value]))
+
+        self.assert_series_equal(result, expected)
+
+    def test_fillna_frame(self, data_missing):
+        fill_value = data_missing[1]
+
+        result = pd.DataFrame({
+            "A": data_missing,
+            "B": [1, 2]
+        }).fillna(fill_value)
+
+        expected = pd.DataFrame({
+            "A": type(data_missing)([fill_value, fill_value]),
+            "B": [1, 2],
+        })
+
+        self.assert_frame_equal(result, expected)
+
+    def test_fillna_fill_other(self, data):
+        result = pd.DataFrame({
+            "A": data,
+            "B": [np.nan] * len(data)
+        }).fillna({"B": 0.0})
+
+        expected = pd.DataFrame({
+            "A": data,
+            "B": [0.0] * len(result),
+        })
+
         self.assert_frame_equal(result, expected)
