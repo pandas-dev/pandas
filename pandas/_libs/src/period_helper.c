@@ -173,9 +173,10 @@ static npy_int64 asfreq_DTtoA(npy_int64 ordinal, asfreq_info *af_info) {
     }
 }
 
-static npy_int64 DtoQ_yq(npy_int64 ordinal, asfreq_info *af_info, int *year,
-                         int *quarter) {
+static int DtoQ_yq(npy_int64 ordinal, asfreq_info *af_info, int *year) {
     struct date_info dinfo;
+    int quarter;
+
     dInfoCalc_SetFromAbsDate(&dinfo, ordinal);
     if (af_info->to_q_year_end != 12) {
         dinfo.month -= af_info->to_q_year_end;
@@ -187,9 +188,8 @@ static npy_int64 DtoQ_yq(npy_int64 ordinal, asfreq_info *af_info, int *year,
     }
 
     *year = dinfo.year;
-    *quarter = monthToQuarter(dinfo.month);
-
-    return 0;
+    quarter = monthToQuarter(dinfo.month);
+    return quarter;
 }
 
 static npy_int64 asfreq_DTtoQ(npy_int64 ordinal, asfreq_info *af_info) {
@@ -197,7 +197,7 @@ static npy_int64 asfreq_DTtoQ(npy_int64 ordinal, asfreq_info *af_info) {
 
     ordinal = downsample_daytime(ordinal, af_info);
 
-    DtoQ_yq(ordinal, af_info, &year, &quarter);
+    quarter = DtoQ_yq(ordinal, af_info, &year);
     return (npy_int64)((year - 1970) * 4 + quarter - 1);
 }
 

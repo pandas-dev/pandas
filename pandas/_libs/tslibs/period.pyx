@@ -308,8 +308,10 @@ cdef int64_t get_unix_date(int64_t period_ordinal, int freq) nogil:
     return toDaily(period_ordinal, &af_info)
 
 
+@cython.cdivision
 cdef void date_info_from_days_and_time(date_info *dinfo,
-                                       int64_t unix_date, double abstime) nogil:
+                                       int64_t unix_date,
+                                       double abstime) nogil:
     """
     Set the instance's value using the given date and time.
 
@@ -325,61 +327,23 @@ cdef void date_info_from_days_and_time(date_info *dinfo,
     -----
     Updates dinfo inplace
     """
+    cdef:
+        pandas_datetimestruct dts
+        int inttime
+        int hour, minute
+        double second
+
     # Bounds check
     # The calling function is responsible for ensuring that
     # abstime >= 0.0 and abstime <= 86400
 
     # Calculate the date
-    set_date_info_ymd(dinfo, unix_date)
-
-    # Calculate the time
-    set_date_info_hms(dinfo, abstime)
-
-
-cdef void set_date_info_ymd(date_info *dinfo, int64_t unix_date) nogil:
-    """
-    Sets the date part of the date_info struct
-    Assumes GREGORIAN_CALENDAR
-
-    Parameters
-    ----------
-    dinfo : date_info*
-    unix_date : int64_t
-        days elapsed since datetime(1970, 1, 1)
-
-    Notes
-    -----
-    Updates dinfo inplace
-    """
-    cdef:
-        pandas_datetimestruct dts
-
     pandas_datetime_to_datetimestruct(unix_date, PANDAS_FR_D, &dts)
     dinfo.year = dts.year
     dinfo.month = dts.month
     dinfo.day = dts.day
 
-
-@cython.cdivision
-cdef void set_date_info_hms(date_info *dinfo, double abstime) nogil:
-    """
-    Sets the time part of the DateTime object.
-
-    Parameters
-    ----------
-    dinfo : date_info*
-    abstime : double
-        seconds elapsed since beginning of day described by unix_date
-
-    Notes
-    -----
-    Updates dinfo inplace
-    """
-    cdef:
-        int inttime
-        int hour, minute
-        double second
-
+    # Calculate the time
     inttime = <int>abstime
     hour = inttime / 3600
     minute = (inttime % 3600) / 60
@@ -477,16 +441,16 @@ cdef int get_yq(int64_t ordinal, int freq, int *quarter, int *year):
 
     get_asfreq_info(FR_DAY, qtr_freq, 'E', &af_info)
 
-    DtoQ_yq(unix_date, &af_info, year, quarter)
+    quarter[0] = DtoQ_yq(unix_date, &af_info, year)
     return qtr_freq
 
 
-cdef void DtoQ_yq(int64_t unix_date, asfreq_info *af_info,
-                  int *year, int *quarter):
+cdef int DtoQ_yq(int64_t unix_date, asfreq_info *af_info, int *year):
     cdef:
         date_info dinfo
+        int quarter
 
-    set_date_info_ymd(&dinfo, unix_date)
+    date_info_from_days_and_time(&dinfo, unix_date, 0)
 
     if af_info.to_q_year_end != 12:
         dinfo.month -= af_info.to_q_year_end
@@ -496,10 +460,11 @@ cdef void DtoQ_yq(int64_t unix_date, asfreq_info *af_info,
             dinfo.year += 1
 
     year[0] = dinfo.year
-    quarter[0] = monthToQuarter(dinfo.month)
+    quarter = month_to_quarter(dinfo.month)
+    return quarter
 
 
-cdef inline int monthToQuarter(int month):
+cdef inline int month_to_quarter(int month):
     return (month - 1) // 3 + 1
 
 
@@ -669,7 +634,7 @@ def period_format(int64_t value, int freq, object fmt=None):
         return repr(NaT)
 
     if fmt is None:
-        freq_group = (freq // 1000) * 1000
+        freq_group = get_freq_group(freq)
         if freq_group == 1000:    # FR_ANN
             fmt = b'%Y'
         elif freq_group == 2000:  # FR_QTR
