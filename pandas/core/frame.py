@@ -251,11 +251,11 @@ class DataFrame(NDFrame):
     data : numpy ndarray (structured or homogeneous), dict, or DataFrame
         Dict can contain Series, arrays, constants, or list-like objects
     index : Index or array-like
-        Index to use for resulting frame. Will default to np.arange(n) if
+        Index to use for resulting frame. Will default to RangeIndex if
         no indexing information part of input data and no index provided
     columns : Index or array-like
         Column labels to use for resulting frame. Will default to
-        np.arange(n) if no column labels are provided
+        RangeIndex (0, 1, 2, ..., n) if no column labels are provided
     dtype : dtype, default None
         Data type to force. Only a single dtype is allowed. If None, infer
     copy : boolean, default False
@@ -876,7 +876,7 @@ class DataFrame(NDFrame):
     # IO methods (to / from other formats)
 
     @classmethod
-    def from_dict(cls, data, orient='columns', dtype=None):
+    def from_dict(cls, data, orient='columns', dtype=None, columns=None):
         """
         Construct DataFrame from dict of array-like or dicts
 
@@ -890,12 +890,17 @@ class DataFrame(NDFrame):
             (default). Otherwise if the keys should be rows, pass 'index'.
         dtype : dtype, default None
             Data type to force, otherwise infer
+        columns: list, default None
+            Column labels to use when orient='index'. Raises a ValueError
+            if used with orient='columns'
+
+            .. versionadded:: 0.23.0
 
         Returns
         -------
         DataFrame
         """
-        index, columns = None, None
+        index = None
         orient = orient.lower()
         if orient == 'index':
             if len(data) > 0:
@@ -904,7 +909,11 @@ class DataFrame(NDFrame):
                     data = _from_nested_dict(data)
                 else:
                     data, index = list(data.values()), list(data.keys())
-        elif orient != 'columns':  # pragma: no cover
+        elif orient == 'columns':
+            if columns is not None:
+                raise ValueError("cannot use columns parameter with "
+                                 "orient='columns'")
+        else:  # pragma: no cover
             raise ValueError('only recognize index or columns for orient')
 
         return cls(data, index=index, columns=columns, dtype=dtype)
@@ -1612,7 +1621,7 @@ class DataFrame(NDFrame):
         time_stamp : datetime
             A datetime to use as file creation date.  Default is the current
             time.
-        dataset_label : str
+        data_label : str
             A label for the data set.  Must be 80 characters or smaller.
         variable_labels : dict
             Dictionary containing columns as keys and variable labels as
@@ -1635,10 +1644,18 @@ class DataFrame(NDFrame):
 
         Examples
         --------
+        >>> data.to_stata('./data_file.dta')
+
+        Or with dates
+
+        >>> data.to_stata('./date_data_file.dta', {2 : 'tw'})
+
+        Alternatively you can create an instance of the StataWriter class
+
         >>> writer = StataWriter('./data_file.dta', data)
         >>> writer.write_file()
 
-        Or with dates
+        With dates:
 
         >>> writer = StataWriter('./date_data_file.dta', data, {2 : 'tw'})
         >>> writer.write_file()
@@ -3655,6 +3672,13 @@ class DataFrame(NDFrame):
               isinstance(subset, tuple) and subset in self.columns):
             subset = subset,
 
+        # Verify all columns in subset exist in the queried dataframe
+        # Otherwise, raise a KeyError, same as if you try to __getitem__ with a
+        # key that doesn't exist.
+        diff = Index(subset).difference(self.columns)
+        if not diff.empty:
+            raise KeyError(diff)
+
         vals = (col.values for name, col in self.iteritems()
                 if name in subset)
         labels, shape = map(list, zip(*map(f, vals)))
@@ -3995,7 +4019,7 @@ class DataFrame(NDFrame):
                                    try_cast=try_cast)
         return self._constructor(new_data)
 
-    def _compare_frame(self, other, func, str_rep, try_cast=True):
+    def _compare_frame(self, other, func, str_rep):
         # compare_frame assumes self._indexed_same(other)
 
         import pandas.core.computation.expressions as expressions

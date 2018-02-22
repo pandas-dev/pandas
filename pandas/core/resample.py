@@ -16,7 +16,7 @@ from pandas.core.indexes.datetimes import DatetimeIndex, date_range
 from pandas.core.indexes.timedeltas import TimedeltaIndex
 from pandas.tseries.offsets import DateOffset, Tick, Day, delta_to_nanoseconds
 from pandas.core.indexes.period import PeriodIndex
-import pandas.core.common as com
+from pandas.errors import AbstractMethodError
 import pandas.core.algorithms as algos
 from pandas.core.dtypes.generic import ABCDataFrame, ABCSeries
 
@@ -205,10 +205,10 @@ class Resampler(_GroupBy):
     def __getitem__(self, key):
         try:
             return super(Resampler, self).__getitem__(key)
-        except (KeyError, com.AbstractMethodError):
+        except (KeyError, AbstractMethodError):
 
             # compat for deprecated
-            if isinstance(self.obj, com.ABCSeries):
+            if isinstance(self.obj, ABCSeries):
                 return self._deprecated('__getitem__')[key]
 
             raise
@@ -233,7 +233,7 @@ class Resampler(_GroupBy):
         return obj
 
     def _get_binner_for_time(self):
-        raise com.AbstractMethodError(self)
+        raise AbstractMethodError(self)
 
     def _set_binner(self):
         """
@@ -372,10 +372,10 @@ one pass, you can do
             arg, *args, **kwargs)
 
     def _downsample(self, f):
-        raise com.AbstractMethodError(self)
+        raise AbstractMethodError(self)
 
     def _upsample(self, f, limit=None, fill_value=None):
-        raise com.AbstractMethodError(self)
+        raise AbstractMethodError(self)
 
     def _gotitem(self, key, ndim, subset=None):
         """
@@ -464,7 +464,7 @@ one pass, you can do
 
     def _wrap_result(self, result):
         """ potentially wrap any results """
-        if isinstance(result, com.ABCSeries) and self._selection is not None:
+        if isinstance(result, ABCSeries) and self._selection is not None:
             result.name = self._selection
 
         if isinstance(result, ABCSeries) and result.empty:

@@ -1057,7 +1057,7 @@ class Timedelta(_Timedelta):
             return other * self.to_timedelta64()
 
         elif other is NaT:
-            return NaT
+            raise TypeError('Cannot multiply Timedelta with NaT')
 
         elif not (is_integer_object(other) or is_float_object(other)):
             # only integers and floats allowed
@@ -1109,7 +1109,11 @@ class Timedelta(_Timedelta):
                 return self // other.delta
             return NotImplemented
 
-        if hasattr(other, 'dtype'):
+        elif is_timedelta64_object(other):
+            # convert to Timedelta below
+            pass
+
+        elif hasattr(other, 'dtype'):
             if other.dtype.kind == 'm':
                 # also timedelta-like
                 return _broadcast_floordiv_td64(self.value, other, _floordiv)
@@ -1144,7 +1148,11 @@ class Timedelta(_Timedelta):
                 return other.delta // self
             return NotImplemented
 
-        if hasattr(other, 'dtype'):
+        elif is_timedelta64_object(other):
+            # convert to Timedelta below
+            pass
+
+        elif hasattr(other, 'dtype'):
             if other.dtype.kind == 'm':
                 # also timedelta-like
                 return _broadcast_floordiv_td64(self.value, other, _rfloordiv)
