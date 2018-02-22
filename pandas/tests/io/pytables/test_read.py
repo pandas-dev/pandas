@@ -1,9 +1,6 @@
 import pytest
 from warnings import catch_warnings
 
-from pathlib import Path
-from py.path import local as LocalPath
-
 import numpy as np
 import pandas as pd
 from pandas import Series, DataFrame
@@ -107,6 +104,7 @@ def test_read_nokey_empty():
 @td.skip_if_no('pathlib')
 def test_read_from_pathlib_path():
     # GH11773
+    Path = pytest.importorskip('pathlib').Path
     expected = DataFrame(np.random.rand(4, 5),
                          index=list('abcd'),
                          columns=list('ABCDE'))
@@ -122,6 +120,7 @@ def test_read_from_pathlib_path():
 @td.skip_if_no('py.path')
 def test_read_from_py_localpath():
     # GH11773
+    LocalPath = pytest.importorskip('py.path').local
     expected = DataFrame(np.random.rand(4, 5),
                          index=list('abcd'),
                          columns=list('ABCDE'))

@@ -1,11 +1,12 @@
 import pytest
-import tables
 
 import numpy as np
 import pandas as pd
 from pandas import DataFrame
 import pandas.util.testing as tm
 from pandas.tests.io.pytables.common import ensure_clean_path
+
+tables = pytest.importorskip('tables')
 
 
 def test_complibs_default_settings():

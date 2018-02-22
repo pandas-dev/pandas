@@ -3,10 +3,11 @@ import tempfile
 from contextlib import contextmanager
 from distutils.version import LooseVersion
 
-import tables
+import pytest
 import pandas.util.testing as tm
 from pandas.io.pytables import HDFStore
 
+tables = pytest.importorskip('tables')
 _default_compressor = ('blosc' if LooseVersion(tables.__version__) >=
                        LooseVersion('2.2') else 'zlib')
 

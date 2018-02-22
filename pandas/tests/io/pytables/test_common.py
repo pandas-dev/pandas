@@ -5,11 +5,11 @@ from distutils.version import LooseVersion
 import tempfile
 import datetime
 
-import tables
 import numpy as np
 import pandas as pd
 from pandas import (Series, DataFrame, date_range, Index, Timestamp,
                     DatetimeIndex, compat, concat, isna)
+tables = pytest.importorskip('tables')
 from pandas.tests.io.pytables.common import (ensure_clean_store, safe_close,
                                              _check_roundtrip, safe_remove,
                                              _check_roundtrip_table,
