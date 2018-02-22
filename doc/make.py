@@ -67,7 +67,7 @@ def _generate_exclude_pattern(include_api=True, single_doc=None):
     return exclude_patterns
 
 
-def _write_temp_file(classtype, module, function):
+def _write_temp_file2(classtype, module, function):
 
     s = """{1}.{2}
 =================================
@@ -75,6 +75,22 @@ def _write_temp_file(classtype, module, function):
 .. currentmodule:: {1}
 
 .. auto{0}:: {2}""".format(classtype, module, function)
+
+    with open(os.path.join(SOURCE_PATH, "temp.rst"), 'w') as f:
+        f.write(s)
+
+
+def _write_temp_file(classtype, module, function):
+
+    s = """API docs
+========
+
+.. autosummary::
+   :toctree: generated_temp/
+
+   {0}.{1}
+
+""".format(module, function)
 
     with open(os.path.join(SOURCE_PATH, "temp.rst"), 'w') as f:
         f.write(s)
@@ -242,7 +258,8 @@ class DocBuilder:
                 '-Dexclude_patterns={}'.format(self.exclude_patterns),
                 SOURCE_PATH,
                 os.path.join(BUILD_PATH, 'html'),
-                os.path.join(SOURCE_PATH, 'temp.rst')
+                os.path.join(SOURCE_PATH, 'temp.rst'),
+                os.path.join(SOURCE_PATH, 'generated_temp/*.rst'),
                 )
         # for some reason it does not work with run_os, but it does if I
         # directly call the joined command
@@ -299,7 +316,7 @@ def main():
         DocBuilder(args.num_jobs, exclude_patterns).build_docstring()
         url = "file://" + os.getcwd() + "/build/html/temp.html"
         webbrowser.open(url, new=2)
-        os.remove('source/temp.rst')
+        #os.remove('source/temp.rst')
 
     else:
         _generate_index(not args.no_api, args.single)
