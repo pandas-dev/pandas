@@ -2829,7 +2829,7 @@ class DataFrame(NDFrame):
 
             # turn me into an ndarray
             value = _sanitize_index(value, self.index, copy=False)
-            if not isinstance(value, (np.ndarray, Index, ExtensionArray)):
+            if not isinstance(value, (np.ndarray, Index)):
                 if isinstance(value, list) and len(value) > 0:
                     value = maybe_convert_platform(value)
                 else:
