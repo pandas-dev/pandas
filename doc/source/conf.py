@@ -405,9 +405,8 @@ ipython_exec_lines = [
 
 import sphinx
 from sphinx.util import rpartition
-from sphinx.ext.autodoc import (Documenter,
-                                MethodDocumenter,
-                                AttributeDocumenter)
+from sphinx.ext.autodoc import (
+    Documenter, MethodDocumenter, AttributeDocumenter)
 from sphinx.ext.autosummary import Autosummary
 
 
