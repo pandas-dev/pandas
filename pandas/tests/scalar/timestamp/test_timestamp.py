@@ -385,6 +385,27 @@ class TestTimestampConstructors(object):
         ts = Timestamp.fromordinal(dt_tz.toordinal(), tz='US/Eastern')
         assert ts.to_pydatetime() == dt_tz
 
+    @pytest.mark.parametrize('result', [
+        Timestamp(datetime(2000, 1, 2, 3, 4, 5, 6), nanosecond=1),
+        Timestamp(year=2000, month=1, day=2, hour=3, minute=4, second=5,
+                  microsecond=6, nanosecond=1),
+        Timestamp(year=2000, month=1, day=2, hour=3, minute=4, second=5,
+                  microsecond=6, nanosecond=1, tz='UTC'),
+        Timestamp(2000, 1, 2, 3, 4, 5, 6, 1, None),
+        Timestamp(2000, 1, 2, 3, 4, 5, 6, 1, pytz.UTC)])
+    def test_constructor_nanosecond(self, result):
+        # GH 18898
+        expected = Timestamp(datetime(2000, 1, 2, 3, 4, 5, 6), tz=result.tz)
+        expected = expected + Timedelta(nanoseconds=1)
+        assert result == expected
+
+    @pytest.mark.parametrize('arg', ['year', 'month', 'day', 'hour', 'minute',
+                                     'second', 'microsecond', 'nanosecond'])
+    def test_invalid_date_kwarg_with_string_input(self, arg):
+        kwarg = {arg: 1}
+        with pytest.raises(ValueError):
+            ts = Timestamp('2010-10-10 12:59:59.999999999', **kwarg)
+
     def test_out_of_bounds_value(self):
         one_us = np.timedelta64(1).astype('timedelta64[us]')
 
