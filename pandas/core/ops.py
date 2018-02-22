@@ -408,8 +408,10 @@ Parameters
 ----------
 other : Series or scalar value
 fill_value : None or float value, default None (NaN)
-    Fill missing (NaN) values with this value. If both Series are
-    missing, the result will be missing
+    Fill existing missing (NaN) values, and any new element needed for
+    successful Series alignment, with this value before computation.
+    If data in both corresponding Series locations is missing
+    the result will be missing
 level : int or name
     Broadcast across a level, matching Index values on the
     passed MultiIndex level
@@ -417,6 +419,30 @@ level : int or name
 Returns
 -------
 result : Series
+
+Examples
+--------
+>>> a = pd.Series([1, 1, 1, np.nan], index=['a', 'b', 'c', 'd'])
+>>> a
+a    1.0
+b    1.0
+c    1.0
+d    NaN
+dtype: float64
+>>> b = pd.Series([1, np.nan, 1, np.nan], index=['a', 'b', 'd', 'e'])
+>>> b
+a    1.0
+b    NaN
+d    1.0
+e    NaN
+dtype: float64
+>>> a.add(b, fill_value=0)
+a    2.0
+b    1.0
+c    1.0
+d    1.0
+e    NaN
+dtype: float64
 
 See also
 --------
@@ -433,8 +459,10 @@ other : Series, DataFrame, or constant
 axis : {0, 1, 'index', 'columns'}
     For Series input, axis to match Series index on
 fill_value : None or float value, default None
-    Fill missing (NaN) values with this value. If both DataFrame locations are
-    missing, the result will be missing
+    Fill existing missing (NaN) values, and any new element needed for
+    successful DataFrame alignment, with this value before computation.
+    If data in both corresponding DataFrame locations is missing
+    the result will be missing
 level : int or name
     Broadcast across a level, matching Index values on the
     passed MultiIndex level
@@ -446,6 +474,33 @@ Mismatched indices will be unioned together
 Returns
 -------
 result : DataFrame
+
+Examples
+--------
+>>> a = pd.DataFrame([1, 1, 1, np.nan], index=['a', 'b', 'c', 'd'],
+                     columns=['one'])
+>>> a
+   one
+a  1.0
+b  1.0
+c  1.0
+d  NaN
+>>> b = pd.DataFrame(dict(one=[1, np.nan, 1, np.nan],
+                          two=[np.nan, 2, np.nan, 2]),
+                     index=['a', 'b', 'd', 'e'])
+>>> b
+   one  two
+a  1.0  NaN
+b  NaN  2.0
+d  1.0  NaN
+e  NaN  2.0
+>>> a.add(b, fill_value=0)
+   one  two
+a  2.0  NaN
+b  1.0  2.0
+c  1.0  NaN
+d  1.0  NaN
+e  NaN  2.0
 """
 
 _flex_doc_FRAME = """
@@ -460,8 +515,10 @@ other : Series, DataFrame, or constant
 axis : {{0, 1, 'index', 'columns'}}
     For Series input, axis to match Series index on
 fill_value : None or float value, default None
-    Fill missing (NaN) values with this value. If both DataFrame
-    locations are missing, the result will be missing
+    Fill existing missing (NaN) values, and any new element needed for
+    successful DataFrame alignment, with this value before computation.
+    If data in both corresponding DataFrame locations is missing
+    the result will be missing
 level : int or name
     Broadcast across a level, matching Index values on the
     passed MultiIndex level
@@ -473,6 +530,33 @@ Mismatched indices will be unioned together
 Returns
 -------
 result : DataFrame
+
+Examples
+--------
+>>> a = pd.DataFrame([1, 1, 1, np.nan], index=['a', 'b', 'c', 'd'],
+                     columns=['one'])
+>>> a
+   one
+a  1.0
+b  1.0
+c  1.0
+d  NaN
+>>> b = pd.DataFrame(dict(one=[1, np.nan, 1, np.nan],
+                          two=[np.nan, 2, np.nan, 2]),
+                     index=['a', 'b', 'd', 'e'])
+>>> b
+   one  two
+a  1.0  NaN
+b  NaN  2.0
+d  1.0  NaN
+e  NaN  2.0
+>>> a.add(b, fill_value=0)
+   one  two
+a  2.0  NaN
+b  1.0  2.0
+c  1.0  NaN
+d  1.0  NaN
+e  NaN  2.0
 
 See also
 --------
@@ -545,7 +629,6 @@ def _make_flex_doc(op_name, typ):
         base_doc = _flex_doc_PANEL
     else:
         raise AssertionError('Invalid typ argument.')
-
     doc = base_doc.format(desc=op_desc['desc'], op_name=op_name,
                           equiv=equiv, reverse=op_desc['reverse'])
     return doc
