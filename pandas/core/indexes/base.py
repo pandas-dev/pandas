@@ -120,6 +120,9 @@ def _make_arithmetic_op(op, cls):
     def index_arithmetic_method(self, other):
         if isinstance(other, (ABCSeries, ABCDataFrame)):
             return NotImplemented
+        elif isinstance(other, ABCTimedeltaIndex):
+            # Defer to subclass implementation
+            return NotImplemented
 
         other = self._validate_for_numeric_binop(other, op)
 
