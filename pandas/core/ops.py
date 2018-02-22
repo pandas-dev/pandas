@@ -1199,8 +1199,7 @@ def _bool_method_SERIES(cls, op, special):
         except TypeError:
             assert not isinstance(y, (list, ABCSeries, pd.Index))
             if isinstance(y, np.ndarray):
-                # This next assertion is here because there used to be
-                # a branch that specifically caught this case.
+                # bool-bool dtype operations should be OK, should not get here
                 assert not (is_bool_dtype(x) and is_bool_dtype(y))
                 x = _ensure_object(x)
                 y = _ensure_object(y)
