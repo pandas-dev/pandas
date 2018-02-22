@@ -6,7 +6,7 @@
 Installation
 ============
 
-The easiest way for the majority of users to install pandas is to install it
+The easiest way to install pandas is to install it
 as part of the `Anaconda <http://docs.continuum.io/anaconda/>`__ distribution, a
 cross platform distribution for data analysis and scientific computing.
 This is the recommended installation method for most users.
@@ -40,7 +40,7 @@ packages that make up the `SciPy <http://www.scipy.org/>`__ stack
 (Linux, Mac OS X, Windows) Python distribution for data analytics and
 scientific computing.
 
-After running a simple installer, the user will have access to pandas and the
+After running the installer, the user will have access to pandas and the
 rest of the `SciPy <http://www.scipy.org/>`__ stack without needing to install
 anything else, and without needing to wait for any software to be compiled.
 
@@ -51,9 +51,9 @@ A full list of the packages available as part of the
 `Anaconda <http://docs.continuum.io/anaconda/>`__ distribution
 `can be found here <http://docs.continuum.io/anaconda/pkg-docs.html>`__.
 
-An additional advantage of installing with Anaconda is that you don't require
-admin rights to install it, it will install in the user's home directory, and
-this also makes it trivial to delete Anaconda at a later date (just delete
+Another advantage to installing Anaconda is that you don't need
+admin rights to install it. Anaconda can install in the user's home directory,
+which makes it trivial to delete Anaconda if you decide (just delete
 that folder).
 
 .. _install.miniconda:
@@ -85,9 +85,9 @@ downloading and running the `Miniconda
 will do this for you. The installer
 `can be found here <http://conda.pydata.org/miniconda.html>`__
 
-The next step is to create a new conda environment (these are analogous to a
-virtualenv but they also allow you to specify precisely which Python version
-to install also). Run the following commands from a terminal window::
+The next step is to create a new conda environment. A conda environment is like a
+virtualenv that allows you to specify a specific version of Python and set of libraries.
+Run the following commands from a terminal window::
 
     conda create -n name_of_my_env python
 
@@ -118,8 +118,8 @@ distribution::
 
     conda install anaconda
 
-If you require any packages that are available to pip but not conda, simply
-install pip, and use pip to install these packages::
+If you need packages that are available to pip but not conda, then
+install pip, and then use pip to install those packages::
 
     conda install pip
     pip install django
@@ -134,15 +134,12 @@ pandas can be installed via pip from
 
     pip install pandas
 
-This will likely require the installation of a number of dependencies,
-including NumPy, will require a compiler to compile required bits of code,
-and can take a few minutes to complete.
 
 Installing using your Linux distribution's package manager.
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 The commands in this table will install pandas for Python 3 from your distribution.
-To install pandas for Python 2 you may need to use the package ``python-pandas``.
+To install pandas for Python 2, you may need to use the ``python-pandas`` package.
 
 .. csv-table::
     :header: "Distribution", "Status", "Download / Repository Link", "Install method"
@@ -169,9 +166,9 @@ See the :ref:`contributing documentation <contributing>` for complete instructio
 Running the test suite
 ~~~~~~~~~~~~~~~~~~~~~~
 
-pandas is equipped with an exhaustive set of unit tests covering about 97% of
+pandas is equipped with an exhaustive set of unit tests, covering about 97% of
 the codebase as of this writing. To run it on your machine to verify that
-everything is working (and you have all of the dependencies, soft and hard,
+everything is working (and that you have all of the dependencies, soft and hard,
 installed), make sure you have `pytest
 <http://doc.pytest.org/en/latest/>`__ and run:
 
@@ -214,8 +211,8 @@ Recommended Dependencies
 
 .. note::
 
-   You are highly encouraged to install these libraries, as they provide large speedups, especially
-   if working with large data sets.
+   You are highly encouraged to install these libraries, as they provide speed improvements, especially
+   when working with large data sets.
 
 
 .. _install.optional_dependencies:
