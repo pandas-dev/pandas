@@ -346,25 +346,25 @@ class TestDatetimeIndex(object):
                                indices, mode='clip')
 
     # TODO: This method came from test_datetime; de-dup with version above
-    def test_take2(self):
+    @pytest.mark.parametrize('tz', [None, 'US/Eastern', 'Asia/Tokyo'])
+    def test_take2(self, tz):
         dates = [datetime(2010, 1, 1, 14), datetime(2010, 1, 1, 15),
                  datetime(2010, 1, 1, 17), datetime(2010, 1, 1, 21)]
 
-        for tz in [None, 'US/Eastern', 'Asia/Tokyo']:
-            idx = DatetimeIndex(start='2010-01-01 09:00',
-                                end='2010-02-01 09:00', freq='H', tz=tz,
-                                name='idx')
-            expected = DatetimeIndex(dates, freq=None, name='idx', tz=tz)
+        idx = DatetimeIndex(start='2010-01-01 09:00',
+                            end='2010-02-01 09:00', freq='H', tz=tz,
+                            name='idx')
+        expected = DatetimeIndex(dates, freq=None, name='idx', tz=tz)
 
-            taken1 = idx.take([5, 6, 8, 12])
-            taken2 = idx[[5, 6, 8, 12]]
+        taken1 = idx.take([5, 6, 8, 12])
+        taken2 = idx[[5, 6, 8, 12]]
 
-            for taken in [taken1, taken2]:
-                tm.assert_index_equal(taken, expected)
-                assert isinstance(taken, DatetimeIndex)
-                assert taken.freq is None
-                assert taken.tz == expected.tz
-                assert taken.name == expected.name
+        for taken in [taken1, taken2]:
+            tm.assert_index_equal(taken, expected)
+            assert isinstance(taken, DatetimeIndex)
+            assert taken.freq is None
+            assert taken.tz == expected.tz
+            assert taken.name == expected.name
 
     def test_take_fill_value(self):
         # GH 12631

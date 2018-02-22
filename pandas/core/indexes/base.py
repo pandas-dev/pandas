@@ -5,7 +5,7 @@ import operator
 import numpy as np
 from pandas._libs import (lib, index as libindex, tslib as libts,
                           algos as libalgos, join as libjoin,
-                          Timestamp)
+                          Timestamp, Timedelta)
 from pandas._libs.lib import is_datetime_array
 
 from pandas.compat import range, u, set_function_name
@@ -16,7 +16,7 @@ from pandas.core.accessor import CachedAccessor
 from pandas.core.dtypes.generic import (
     ABCSeries, ABCDataFrame,
     ABCMultiIndex,
-    ABCPeriodIndex,
+    ABCPeriodIndex, ABCTimedeltaIndex,
     ABCDateOffset)
 from pandas.core.dtypes.missing import isna, array_equivalent
 from pandas.core.dtypes.common import (
@@ -3918,7 +3918,21 @@ class Index(IndexOpsMixin, PandasObject):
         return self._shallow_copy()
 
     def _evaluate_with_timedelta_like(self, other, op, opstr, reversed=False):
-        raise TypeError("can only perform ops with timedelta like values")
+        # Timedelta knows how to operate with np.array, so dispatch to that
+        # operation and then wrap the results
+        other = Timedelta(other)
+        values = self.values
+        if reversed:
+            values, other = other, values
+
+        with np.errstate(all='ignore'):
+            result = op(values, other)
+
+        attrs = self._get_attributes_dict()
+        attrs = self._maybe_update_attributes(attrs)
+        if op == divmod:
+            return Index(result[0], **attrs), Index(result[1], **attrs)
+        return Index(result, **attrs)
 
     def _evaluate_with_datetime_like(self, other, op, opstr):
         raise TypeError("can only perform ops with datetime like values")
@@ -4060,6 +4074,9 @@ class Index(IndexOpsMixin, PandasObject):
         def _make_evaluate_binop(op, opstr, reversed=False, constructor=Index):
             def _evaluate_numeric_binop(self, other):
                 if isinstance(other, (ABCSeries, ABCDataFrame)):
+                    return NotImplemented
+                elif isinstance(other, ABCTimedeltaIndex):
+                    # Defer to subclass implementation
                     return NotImplemented
 
                 other = self._validate_for_numeric_binop(other, op, opstr)
