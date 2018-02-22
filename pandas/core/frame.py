@@ -876,7 +876,7 @@ class DataFrame(NDFrame):
     # IO methods (to / from other formats)
 
     @classmethod
-    def from_dict(cls, data, orient='columns', dtype=None):
+    def from_dict(cls, data, orient='columns', dtype=None, columns=None):
         """
         Construct DataFrame from dict of array-like or dicts
 
@@ -890,12 +890,17 @@ class DataFrame(NDFrame):
             (default). Otherwise if the keys should be rows, pass 'index'.
         dtype : dtype, default None
             Data type to force, otherwise infer
+        columns: list, default None
+            Column labels to use when orient='index'. Raises a ValueError
+            if used with orient='columns'
+
+            .. versionadded:: 0.23.0
 
         Returns
         -------
         DataFrame
         """
-        index, columns = None, None
+        index = None
         orient = orient.lower()
         if orient == 'index':
             if len(data) > 0:
@@ -904,7 +909,11 @@ class DataFrame(NDFrame):
                     data = _from_nested_dict(data)
                 else:
                     data, index = list(data.values()), list(data.keys())
-        elif orient != 'columns':  # pragma: no cover
+        elif orient == 'columns':
+            if columns is not None:
+                raise ValueError("cannot use columns parameter with "
+                                 "orient='columns'")
+        else:  # pragma: no cover
             raise ValueError('only recognize index or columns for orient')
 
         return cls(data, index=index, columns=columns, dtype=dtype)
