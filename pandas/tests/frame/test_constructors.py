@@ -1091,6 +1091,25 @@ class TestDataFrameConstructors(TestData):
         xp = DataFrame.from_dict(a).T.reindex(list(a.keys()))
         tm.assert_frame_equal(rs, xp)
 
+    def test_from_dict_columns_parameter(self):
+        # GH 18529
+        # Test new columns parameter for from_dict that was added to make
+        # from_items(..., orient='index', columns=[...]) easier to replicate
+        result = DataFrame.from_dict(OrderedDict([('A', [1, 2]),
+                                                  ('B', [4, 5])]),
+                                     orient='index', columns=['one', 'two'])
+        expected = DataFrame([[1, 2], [4, 5]], index=['A', 'B'],
+                             columns=['one', 'two'])
+        tm.assert_frame_equal(result, expected)
+
+        msg = "cannot use columns parameter with orient='columns'"
+        with tm.assert_raises_regex(ValueError, msg):
+            DataFrame.from_dict(dict([('A', [1, 2]), ('B', [4, 5])]),
+                                orient='columns', columns=['one', 'two'])
+        with tm.assert_raises_regex(ValueError, msg):
+            DataFrame.from_dict(dict([('A', [1, 2]), ('B', [4, 5])]),
+                                columns=['one', 'two'])
+
     def test_constructor_Series_named(self):
         a = Series([1, 2, 3], index=['a', 'b', 'c'], name='x')
         df = DataFrame(a)
