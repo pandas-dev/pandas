@@ -1576,8 +1576,8 @@ class Period(_Period):
         return cls._from_ordinal(ordinal, freq)
 
 
-def _ordinal_from_fields(year, month, quarter, day,
-                         hour, minute, second, freq):
+cdef int64_t _ordinal_from_fields(year, month, quarter, day,
+                                  hour, minute, second, freq):
     base, mult = get_freq_code(freq)
     if quarter is not None:
         year, month = _quarter_to_myear(year, quarter, freq)

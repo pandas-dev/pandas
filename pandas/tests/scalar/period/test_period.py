@@ -1442,7 +1442,7 @@ def test_period_immutable():
         per.freq = 2 * freq
 
 
-@pytest.mark.xfail(reason='GH#??? Period parsing error')
+@pytest.mark.xfail(reason='GH#19834 Period parsing error')
 def test_small_year_parsing():
     per1 = Period('0001-01-07', 'D')
     assert per1.year == 1
