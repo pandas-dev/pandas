@@ -9,6 +9,7 @@ from pandas import (Timedelta,
                     period_range, Period, PeriodIndex,
                     _np_version_under1p10)
 import pandas.core.indexes.period as period
+from pandas.errors import PerformanceWarning
 
 
 _common_mismatch = [pd.offsets.YearBegin(2),
@@ -254,31 +255,56 @@ class TestPeriodIndexComparisons(object):
 
 
 class TestPeriodIndexArithmetic(object):
-    def test_pi_add_offset_array(self):
+    @pytest.mark.parametrize('box', [np.array, pd.Index])
+    def test_pi_add_offset_array(self, box):
         # GH#18849
         pi = pd.PeriodIndex([pd.Period('2015Q1'), pd.Period('2016Q2')])
-        offs = np.array([pd.offsets.QuarterEnd(n=1, startingMonth=12),
-                         pd.offsets.QuarterEnd(n=-2, startingMonth=12)])
-        res = pi + offs
+        offs = box([pd.offsets.QuarterEnd(n=1, startingMonth=12),
+                    pd.offsets.QuarterEnd(n=-2, startingMonth=12)])
         expected = pd.PeriodIndex([pd.Period('2015Q2'), pd.Period('2015Q4')])
+
+        with tm.assert_produces_warning(PerformanceWarning):
+            res = pi + offs
         tm.assert_index_equal(res, expected)
+
+        with tm.assert_produces_warning(PerformanceWarning):
+            res2 = offs + pi
+        tm.assert_index_equal(res2, expected)
 
         unanchored = np.array([pd.offsets.Hour(n=1),
                                pd.offsets.Minute(n=-2)])
+        # addition/subtraction ops with incompatible offsets should issue
+        # a PerformanceWarning and _then_ raise a TypeError.
         with pytest.raises(period.IncompatibleFrequency):
-            pi + unanchored
-        with pytest.raises(TypeError):
-            unanchored + pi
+            with tm.assert_produces_warning(PerformanceWarning):
+                pi + unanchored
+        with pytest.raises(period.IncompatibleFrequency):
+            with tm.assert_produces_warning(PerformanceWarning):
+                unanchored + pi
 
-    @pytest.mark.xfail(reason='GH#18824 radd doesnt implement this case')
-    def test_pi_radd_offset_array(self):
-        # GH#18849
+    @pytest.mark.parametrize('box', [np.array, pd.Index])
+    def test_pi_sub_offset_array(self, box):
+        # GH#18824
         pi = pd.PeriodIndex([pd.Period('2015Q1'), pd.Period('2016Q2')])
-        offs = np.array([pd.offsets.QuarterEnd(n=1, startingMonth=12),
-                         pd.offsets.QuarterEnd(n=-2, startingMonth=12)])
-        res = offs + pi
-        expected = pd.PeriodIndex([pd.Period('2015Q2'), pd.Period('2015Q4')])
+        other = box([pd.offsets.QuarterEnd(n=1, startingMonth=12),
+                     pd.offsets.QuarterEnd(n=-2, startingMonth=12)])
+
+        expected = PeriodIndex([pi[n] - other[n] for n in range(len(pi))])
+
+        with tm.assert_produces_warning(PerformanceWarning):
+            res = pi - other
         tm.assert_index_equal(res, expected)
+
+        anchored = box([pd.offsets.MonthEnd(), pd.offsets.Day(n=2)])
+
+        # addition/subtraction ops with anchored offsets should issue
+        # a PerformanceWarning and _then_ raise a TypeError.
+        with pytest.raises(period.IncompatibleFrequency):
+            with tm.assert_produces_warning(PerformanceWarning):
+                pi - anchored
+        with pytest.raises(period.IncompatibleFrequency):
+            with tm.assert_produces_warning(PerformanceWarning):
+                anchored - pi
 
     def test_pi_add_iadd_pi_raises(self):
         rng = pd.period_range('1/1/2000', freq='D', periods=5)
