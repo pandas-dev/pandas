@@ -730,7 +730,15 @@ class TestIndex(Base):
         union = Index([]).union(first)
         assert union is first
 
-        # preserve names
+        # preserve names only when they are the same
+        # GH 9943 9862
+
+        first = Index(list('ab'), name='A')
+        second = Index(list('abc'), name='A')
+        union = first.union(second)
+        expected = Index(list('abc'), name='A')
+        tm.assert_index_equal(union, expected)
+
         first = Index(list('ab'), name='A')
         second = Index(list('ab'), name='B')
         union = first.union(second)
@@ -752,37 +760,66 @@ class TestIndex(Base):
         first = Index(list('ab'))
         second = Index(list('ab'), name='B')
         union = first.union(second)
-        expected = Index(list('ab'), name='B')
+        expected = Index(list('ab'), name=None)
+        tm.assert_index_equal(union, expected)
+
+        # GH 9943 9862
+        first = Index(list('abc'))
+        second = Index(list('ab'), name='B')
+        union = first.union(second)
+        expected = Index(list('abc'), name=None)
         tm.assert_index_equal(union, expected)
 
         first = Index([])
         second = Index(list('ab'), name='B')
         union = first.union(second)
-        expected = Index(list('ab'), name='B')
+        expected = Index(list('ab'), name=None)
         tm.assert_index_equal(union, expected)
 
         first = Index(list('ab'))
         second = Index([], name='B')
         union = first.union(second)
-        expected = Index(list('ab'), name='B')
+        expected = Index(list('ab'), name=None)
         tm.assert_index_equal(union, expected)
 
         first = Index(list('ab'), name='A')
         second = Index(list('ab'))
         union = first.union(second)
-        expected = Index(list('ab'), name='A')
+        expected = Index(list('ab'), name=None)
+        tm.assert_index_equal(union, expected)
+
+        # GH 9943 9862
+        first = Index(list('ab'), name='A')
+        second = Index(list('abc'))
+        union = first.union(second)
+        expected = Index(list('abc'), name=None)
         tm.assert_index_equal(union, expected)
 
         first = Index(list('ab'), name='A')
         second = Index([])
         union = first.union(second)
-        expected = Index(list('ab'), name='A')
+        expected = Index(list('ab'), name=None)
         tm.assert_index_equal(union, expected)
 
         first = Index([], name='A')
         second = Index(list('ab'))
         union = first.union(second)
-        expected = Index(list('ab'), name='A')
+        expected = Index(list('ab'), name=None)
+        tm.assert_index_equal(union, expected)
+
+        # Chained unions handles names correctly
+        i1 = Index([1, 2], name='i1')
+        i2 = Index([3, 4], name='i2')
+        i3 = Index([5, 6], name='i3')
+        union = i1.union(i2.union(i3))
+        expected = i1.union(i2).union(i3)
+        tm.assert_index_equal(union, expected)
+
+        j1 = Index([1, 2], name='j1')
+        j2 = Index([], name='j2')
+        j3 = Index([], name='j3')
+        union = j1.union(j2.union(j3))
+        expected = j1.union(j2).union(j3)
         tm.assert_index_equal(union, expected)
 
         with tm.assert_produces_warning(RuntimeWarning):
