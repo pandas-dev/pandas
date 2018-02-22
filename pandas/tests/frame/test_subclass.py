@@ -516,10 +516,15 @@ class TestDataFrameSubclassing(TestData):
         tm.assert_frame_equal(long_frame, expected)
 
     def test_subclassed_apply(self):
-        #GH 19822
+        # GH 19822
 
-        def check_row_subclass( row ):
+        def check_row_subclass(row):
             assert isinstance(row, tm.SubclassedSeries)
+
+        def strech(row):
+            if row["variable"] == "height":
+                row["value"] += 0.5
+            return row
 
         df = tm.SubclassedDataFrame([
             ['John', 'Doe', 'height', 5.5],
@@ -528,5 +533,38 @@ class TestDataFrameSubclassing(TestData):
             ['Mary', 'Bo', 'weight', 150]],
             columns=['first', 'last', 'variable', 'value'])
 
+        expected1 = tm.SubclassedDataFrame([
+            ['John', 'Doe', 'height', 6.0],
+            ['Mary', 'Bo', 'height', 6.5],
+            ['John', 'Doe', 'weight', 130],
+            ['Mary', 'Bo', 'weight', 150]],
+            columns=['first', 'last', 'variable', 'value'])
+
+        expected2 = tm.SubclassedDataFrame([
+            [1, 2, 3],
+            [1, 2, 3],
+            [1, 2, 3],
+            [1, 2, 3],])
+
+        expected3 = DesignSeries([[1,2,3],[1,2,3],[1,2,3],[1,2,3],])
+
         df.apply(lambda x: check_row_subclass(x))
         df.apply(lambda x: check_row_subclass(x), axis=1)
+
+        result1 = df.apply(lambda x: strech(x), axis=1)
+        assert isinstance(result1, tm.SubclassedDataFrame)
+        tm.assert_frame_equal(result1, expected1)
+
+        result2 = df.apply(lambda x: DesignSeries([1, 2, 3]), axis=1)
+        assert isinstance(result2, tm.SubclassedDataFrame)
+        tm.assert_frame_equal(result2, expected2)
+
+        result3 = df.apply(lambda x: [1, 2, 3], axis=1)
+        assert not isinstance(result3, tm.SubclassedDataFrame)
+        tm.assert_series_equal(result3, expected3)
+
+        result4 = df.apply(lambda x: [1, 2, 3], axis=1, result_type="expand")
+        assert isinstance(result4, tm.SubclassedDataFrame)
+        tm.assert_frame_equal(result4, expected2)
+
+

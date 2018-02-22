@@ -295,7 +295,7 @@ Other Enhancements
 - ``IntervalIndex.astype`` now supports conversions between subtypes when passed an ``IntervalDtype`` (:issue:`19197`)
 - :class:`IntervalIndex` and its associated constructor methods (``from_arrays``, ``from_breaks``, ``from_tuples``) have gained a ``dtype`` parameter (:issue:`19262`)
 - Added :func:`SeriesGroupBy.is_monotonic_increasing` and :func:`SeriesGroupBy.is_monotonic_decreasing` (:issue:`17015`)
-- :func:``DataFrame.apply`` keeps provides the specified ``Series`` subclass when `DataFrame._constructor_sliced`` is defined (:issue:`19822`)
+- :func:``DataFrame.apply`` keeps the specified ``Series`` subclass when ``Series`` and ``DataFrame`` subclasses are defined (:issue:`19822`)
 
 .. _whatsnew_0230.api_breaking:
 
