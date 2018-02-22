@@ -4652,7 +4652,8 @@ class DataFrameGroupBy(NDFrameGroupBy):
             (grp.name, grp.group_index.take(grp.labels)) for grp in
             self.grouper.groupings)
 
-        return self._wrap_transformed_output(output).join(res)
+        from pandas.core.reshape.concat import concat
+        return concat((self._wrap_transformed_output(output), res), axis=1)
 
     def count(self):
         """ Compute count of group, excluding missing values """
