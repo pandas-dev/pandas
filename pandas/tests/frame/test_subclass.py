@@ -544,9 +544,9 @@ class TestDataFrameSubclassing(TestData):
             [1, 2, 3],
             [1, 2, 3],
             [1, 2, 3],
-            [1, 2, 3],])
+            [1, 2, 3]])
 
-        expected3 = DesignSeries([[1,2,3],[1,2,3],[1,2,3],[1,2,3],])
+        expected3 = DesignSeries([[1, 2, 3], [1, 2, 3], [1, 2, 3], [1, 2, 3]])
 
         df.apply(lambda x: check_row_subclass(x))
         df.apply(lambda x: check_row_subclass(x), axis=1)
@@ -566,5 +566,3 @@ class TestDataFrameSubclassing(TestData):
         result4 = df.apply(lambda x: [1, 2, 3], axis=1, result_type="expand")
         assert isinstance(result4, tm.SubclassedDataFrame)
         tm.assert_frame_equal(result4, expected2)
-
-
