@@ -251,11 +251,11 @@ class DataFrame(NDFrame):
     data : numpy ndarray (structured or homogeneous), dict, or DataFrame
         Dict can contain Series, arrays, constants, or list-like objects
     index : Index or array-like
-        Index to use for resulting frame. Will default to np.arange(n) if
+        Index to use for resulting frame. Will default to RangeIndex if
         no indexing information part of input data and no index provided
     columns : Index or array-like
         Column labels to use for resulting frame. Will default to
-        np.arange(n) if no column labels are provided
+        RangeIndex (0, 1, 2, ..., n) if no column labels are provided
     dtype : dtype, default None
         Data type to force. Only a single dtype is allowed. If None, infer
     copy : boolean, default False
