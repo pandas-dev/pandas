@@ -145,8 +145,10 @@ def _isna_ndarraylike(obj):
         shape = values.shape
 
         if is_string_like_dtype(dtype):
+            # object array of strings
             result = np.zeros(values.shape, dtype=bool)
         else:
+            # object array of non-strings
             result = np.empty(shape, dtype=bool)
             vec = libmissing.isnaobj(values.ravel())
             result[...] = vec.reshape(shape)

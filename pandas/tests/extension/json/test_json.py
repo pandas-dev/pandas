@@ -6,7 +6,7 @@ import pytest
 
 from pandas.tests.extension import base
 
-from .json_array import JSONArray, JSONDtype, make_data
+from .array import JSONArray, JSONDtype, make_data
 
 pytestmark = pytest.mark.skipif(sys.version_info[0] == 2,
                                 reason="Py2 doesn't have a UserDict")
