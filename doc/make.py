@@ -70,10 +70,11 @@ def _generate_exclude_pattern(include_api=True, single_doc=None):
     return exclude_patterns
 
 
-def _generate_temp_docstring_file(method):
+def _generate_temp_docstring_file(methods):
     """
     """
-    fname = os.path.join(SOURCE_PATH, 'generated', '{}.rst'.format(method))
+    fnames = [os.path.join(SOURCE_PATH, 'generated', '{}.rst'.format(method))
+              for method in methods]
 
     # # remove the target file to make sure it is updated again (to build
     # # latest version)
@@ -92,20 +93,21 @@ def _generate_temp_docstring_file(method):
     except OSError:
         pass
 
-    if os.path.exists(fname):
-        # link the target file
-        try:
-            # os.symlink(fname, os.path.join(SOURCE_PATH, 'generated_temp',
-            #                                '{}.rst'.format(method)),
-            #            target_is_directory=False)
-            # copying to make sure sphinx always thinks it is new
-            # and needs to be re-generated (to pick source code changes)
-            shutil.copy(fname, os.path.join(SOURCE_PATH, 'generated_temp'))
-            linked = True
-        except:  # noqa
+    for fname in fnames:
+        if os.path.exists(fname):
+            # link the target file
+            try:
+                # os.symlink(fname, os.path.join(SOURCE_PATH, 'generated_temp',
+                #                                '{}.rst'.format(method)),
+                #            target_is_directory=False)
+                # copying to make sure sphinx always thinks it is new
+                # and needs to be re-generated (to pick source code changes)
+                shutil.copy(fname, os.path.join(SOURCE_PATH, 'generated_temp'))
+                linked = True
+            except:  # noqa
+                linked = False
+        else:
             linked = False
-    else:
-        linked = False
 
     s = """Built docstrings
 ================
@@ -114,7 +116,7 @@ def _generate_temp_docstring_file(method):
     {toctree}
     {name}
 
-    """.format(name=method,
+    """.format(name='\n    '.join(methods),
                toctree=':toctree: generated_temp/\n' if not linked else '')
 
     with open(os.path.join(SOURCE_PATH, "temp.rst"), 'w') as f:
@@ -327,6 +329,7 @@ def main():
     argparser.add_argument('--docstring',
                            metavar='FILENAME',
                            type=str,
+                           nargs='*',
                            default=None,
                            help=('method or function name to compile, '
                                  'e.g. "DataFrame.join"'))
@@ -346,8 +349,13 @@ def main():
         _generate_index(single_doc='temp.rst')
         DocBuilder(args.num_jobs, exclude_patterns).build_docstring()
         # open generated page in new browser tab
-        url = os.path.join("file://", DOC_PATH, "build", "html",
-                           "generated_temp", "{}.html".format(args.docstring))
+        if len(args.docstring) == 1:
+            url = os.path.join(
+                "file://", DOC_PATH, "build", "html",
+                "generated_temp", "{}.html".format(args.docstring[0]))
+        else:
+            url = os.path.join(
+                "file://", DOC_PATH, "build", "html", "temp.html")
         webbrowser.open(url, new=2)
         # clean-up generated files
         os.remove('source/temp.rst')
