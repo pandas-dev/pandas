@@ -2565,12 +2565,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
                 return self.copy()
             return self
 
-        if is_sparse(self):
-            arr = self.get_values()
-        else:
-            arr = self._values
-
-        new_values = algorithms.take_1d(arr, indexer)
+        new_values = algorithms.take_1d(self._values, indexer)
         return self._constructor(new_values, index=new_index)
 
     def _needs_reindex_multi(self, axes, method, level):
