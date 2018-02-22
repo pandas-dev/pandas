@@ -665,17 +665,16 @@ Better pretty-printing of DataFrames in a terminal
 Previously, the default values for the maximum number of rows and columns were
 ``pd.options.display.max_rows=60`` and ``pd.options.display.max_columns=120``,
 respectively. This meant that relatively large frames would not fit within the
-terminal width or height, and Pandas would introduce line breaks to display
+terminal width or height, and pandas would introduce line breaks to display
 these 20 columns. This resulted in an output that was relatively difficult to
 read:
 
 .. image:: print_df_old.png
 
-Starting with Pandas 0.22, the default value of ``pd.options.display.max_rows``
-was changed to `20`. Furthermore, if Python runs in a terminal, the maximum
-number of columns is determined automatically so that the printed frame fits
-within the current terminal width (``pd.options.display.max_columns=0``). If
-Python runs as a Jupyter kernel (such as the Jupyter QtConsole or a Jupyter
+The default value of ``pd.options.display.max_rows`` is now `20`. Furthermore,
+if Python runs in a terminal, the maximum number of columns is determined automatically
+so that the printed frame fits within the current terminal width (``pd.options.display.max_columns=0``).
+If Python runs as a Jupyter kernel (such as the Jupyter QtConsole or a Jupyter
 notebook, as well as in many IDEs), this value cannot be inferred automatically
 and is thus set to `20` as previously. In a terminal, this results in a much
 nicer output:
@@ -685,7 +684,8 @@ nicer output:
 Note that if you don't like the new defaults, you can always set these values
 yourself. To revert to the old settings, you can run these lines:
 
-.. code:: python
+.. code-block:: python
+
   pd.options.display.max_rows = 60
   pd.options.display.max_columns = 20
 
