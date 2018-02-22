@@ -18,6 +18,7 @@ import subprocess
 import argparse
 from contextlib import contextmanager
 import jinja2
+import webbrowser
 
 
 DOC_PATH = os.path.dirname(os.path.abspath(__file__))
@@ -26,7 +27,7 @@ BUILD_PATH = os.path.join(DOC_PATH, 'build')
 BUILD_DIRS = ['doctrees', 'html', 'latex', 'plots', '_static', '_templates']
 
 
-def _generate_index(include_api, single_doc=None):
+def _generate_index(include_api=True, single_doc=None):
     """Create index.rst file with the specified sections.
 
     Parameters
@@ -46,6 +47,37 @@ def _generate_index(include_api, single_doc=None):
     with open(os.path.join(SOURCE_PATH, 'index.rst'), 'w') as f:
         f.write(t.render(include_api=include_api,
                          single_doc=single_doc))
+
+
+def _generate_exclude_pattern(include_api=True, single_doc=None):
+
+    if not include_api:
+        rst_files = ['api.rst', 'generated/*.rst']
+    elif single_doc is not None:
+        rst_files = [f for f in os.listdir(SOURCE_PATH)
+                     if ((f.endswith('.rst') or f.endswith('.ipynb'))
+                         and (f != 'index.rst') and (f != single_doc))]
+        rst_files += ['generated/*.rst']
+    else:
+        rst_files = []
+
+    exclude_patterns = ",".join(
+        ['{!r}'.format(i) for i in ['**.ipynb_checkpoints'] + rst_files])
+
+    return exclude_patterns
+
+
+def _write_temp_file(classtype, module, function):
+
+    s = """{1}.{2}
+=================================
+
+.. currentmodule:: {1}
+
+.. auto{0}:: {2}""".format(classtype, module, function)
+
+    with open(os.path.join(SOURCE_PATH, "temp.rst"), 'w') as f:
+        f.write(s)
 
 
 @contextmanager
@@ -96,8 +128,9 @@ class DocBuilder:
     All public methods of this class can be called as parameters of the
     script.
     """
-    def __init__(self, num_jobs=1):
+    def __init__(self, num_jobs=1, exclude_patterns=None):
         self.num_jobs = num_jobs
+        self.exclude_patterns = exclude_patterns
 
     @staticmethod
     def _create_build_structure():
@@ -142,8 +175,8 @@ class DocBuilder:
         self._run_os('sphinx-build',
                      '-j{}'.format(self.num_jobs),
                      '-b{}'.format(kind),
-                     '-d{}'.format(os.path.join(BUILD_PATH,
-                                                'doctrees')),
+                     '-d{}'.format(os.path.join(BUILD_PATH, 'doctrees')),
+                     # TODO integrate exclude_patterns
                      SOURCE_PATH,
                      os.path.join(BUILD_PATH, kind))
 
@@ -199,6 +232,23 @@ class DocBuilder:
                      '-q',
                      *fnames)
 
+    def build_docstring(self):
+        """Build single docstring page"""
+        self._create_build_structure()
+
+        args = ('sphinx-build',
+                '-bhtml',
+                '-d{}'.format(os.path.join(BUILD_PATH, 'doctrees')),
+                '-Dexclude_patterns={}'.format(self.exclude_patterns),
+                SOURCE_PATH,
+                os.path.join(BUILD_PATH, 'html'),
+                os.path.join(SOURCE_PATH, 'temp.rst')
+                )
+        # for some reason it does not work with run_os, but it does if I
+        # directly call the joined command
+        # self._run_os(*args)
+        os.system(" ".join(args))
+
 
 def main():
     cmds = [method for method in dir(DocBuilder) if not method.startswith('_')]
@@ -228,6 +278,12 @@ def main():
                            type=str,
                            default=os.path.join(DOC_PATH, '..'),
                            help='path')
+    argparser.add_argument('--docstring',
+                           metavar='FILENAME',
+                           type=str,
+                           default=None,
+                           help=('method or function name to compile, '
+                                 'e.g. "DataFrame.join"'))
     args = argparser.parse_args()
 
     if args.command not in cmds:
@@ -235,8 +291,21 @@ def main():
             args.command, ', '.join(cmds)))
 
     os.environ['PYTHONPATH'] = args.python_path
-    _generate_index(not args.no_api, args.single)
-    getattr(DocBuilder(args.num_jobs), args.command)()
+
+    if args.docstring is not None:
+        _write_temp_file('method', 'pandas', args.docstring)
+        exclude_patterns = _generate_exclude_pattern(single_doc='temp.rst')
+        _generate_index(single_doc='temp.rst')
+        DocBuilder(args.num_jobs, exclude_patterns).build_docstring()
+        url = "file://" + os.getcwd() + "/build/html/temp.html"
+        webbrowser.open(url, new=2)
+        os.remove('source/temp.rst')
+
+    else:
+        _generate_index(not args.no_api, args.single)
+        exclude_patterns = _generate_exclude_pattern(
+            not args.no_api, args.single)
+        getattr(DocBuilder(args.num_jobs, exclude_patterns), args.command)()
 
 
 if __name__ == '__main__':

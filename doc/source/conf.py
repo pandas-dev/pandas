@@ -83,36 +83,6 @@ autosummary_generate = False
 if any(re.match("\s*api\s*", l) for l in index_rst_lines):
     autosummary_generate = True
 
-files_to_delete = []
-for f in os.listdir(os.path.dirname(__file__)):
-    if (not f.endswith(('.ipynb', '.rst')) or
-            f.startswith('.') or os.path.basename(f) == 'index.rst'):
-        continue
-
-    _file_basename = os.path.splitext(f)[0]
-    _regex_to_match = "\s*{}\s*$".format(_file_basename)
-    if not any(re.match(_regex_to_match, line) for line in index_rst_lines):
-        files_to_delete.append(f)
-
-if files_to_delete:
-    print("I'm about to DELETE the following:\n%s\n" % list(sorted(files_to_delete)))
-    sys.stdout.write("WARNING: I'd like to delete those to speed up processing (yes/no)? ")
-    if PY3:
-        answer = input()
-    else:
-        answer = raw_input()
-
-    if answer.lower().strip() in ('y','yes'):
-        for f in files_to_delete:
-            f = os.path.join(os.path.join(os.path.dirname(__file__),f))
-            f= os.path.abspath(f)
-            try:
-                print("Deleting %s" % f)
-                os.unlink(f)
-            except:
-                print("Error deleting %s" % f)
-                pass
-
 # Add any paths that contain templates here, relative to this directory.
 templates_path = ['../_templates']
 
