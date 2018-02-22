@@ -1298,7 +1298,7 @@ def take_nd(arr, indexer, axis=0, out=None, fill_value=np.nan, mask_info=None,
 
     Parameters
     ----------
-    arr : ndarray, ExtensionArray, DatetimeIndex, IntervalIndex, SparseArray
+    arr : array-like
         Input array.
     indexer : ndarray
         1-D array of indices to take, subarrays corresponding to -1 value
@@ -1322,7 +1322,7 @@ def take_nd(arr, indexer, axis=0, out=None, fill_value=np.nan, mask_info=None,
 
     Returns
     -------
-    subarray : object
+    subarray : array-like
         May be the same type as the input, or cast to an ndarray.
     """
 
