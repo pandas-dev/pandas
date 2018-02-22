@@ -639,7 +639,6 @@ class DatetimeIndexOpsMixin(object):
         return NotImplemented
 
     def _addsub_offset_array(self, other, op):
-        # Add or subtract Array-like of DateOffset objects
         """
         Add or subtract array-like of DateOffset objects
 
