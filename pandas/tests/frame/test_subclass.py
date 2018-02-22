@@ -546,7 +546,7 @@ class TestDataFrameSubclassing(TestData):
             [1, 2, 3],
             [1, 2, 3]])
 
-        expected3 = DesignSeries([[1, 2, 3], [1, 2, 3], [1, 2, 3], [1, 2, 3]])
+        expected3 = tm.SubclassedSeries([[1, 2, 3], [1, 2, 3], [1, 2, 3], [1, 2, 3]])
 
         df.apply(lambda x: check_row_subclass(x))
         df.apply(lambda x: check_row_subclass(x), axis=1)
