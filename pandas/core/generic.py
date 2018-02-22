@@ -7867,8 +7867,8 @@ min_count : int, default 0
 
     .. versionadded :: 0.22.0
 
-       Added with the default being 1. This means the sum or product
-       of an all-NA or empty series is ``NaN``.
+       Added with the default being 0. This means the sum or product
+       of an all-NA or empty series is ``NaN`` if min_count=1.
 """
 
 
