@@ -180,10 +180,11 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
                     name = data.name
 
                 if dtype is not None:
+                    # astype copies
                     data = data.astype(dtype)
-
-                # need to copy to avoid aliasing issues
-                data = data._values.copy()
+                else:
+                    # need to copy to avoid aliasing issues
+                    data = data._values.copy()
                 copy = False
 
             elif isinstance(data, np.ndarray):
