@@ -356,12 +356,11 @@ class TestDatetimeIndex(object):
         assert cols.dtype == joined.dtype
         tm.assert_numpy_array_equal(cols.values, joined.values)
 
-    def test_join_self(self):
+    @pytest.mark.parametrize('how', ['outer', 'inner', 'left', 'right'])
+    def test_join_self(self, how):
         index = date_range('1/1/2000', periods=10)
-        kinds = 'outer', 'inner', 'left', 'right'
-        for kind in kinds:
-            joined = index.join(index, how=kind)
-            assert index is joined
+        joined = index.join(index, how=how)
+        assert index is joined
 
     def assert_index_parameters(self, index):
         assert index.freq == '40960N'
@@ -381,18 +380,17 @@ class TestDatetimeIndex(object):
                                      freq=index.freq)
         self.assert_index_parameters(new_index)
 
-    def test_join_with_period_index(self):
+    @pytest.mark.parametrize('how', ['left', 'right', 'inner', 'outer'])
+    def test_join_with_period_index(self, how):
         df = tm.makeCustomDataframe(
             10, 10, data_gen_f=lambda *args: np.random.randint(2),
             c_idx_type='p', r_idx_type='dt')
         s = df.iloc[:5, 0]
-        joins = 'left', 'right', 'inner', 'outer'
 
-        for join in joins:
-            with tm.assert_raises_regex(ValueError,
-                                        'can only call with other '
-                                        'PeriodIndex-ed objects'):
-                df.columns.join(s.index, how=join)
+        with tm.assert_raises_regex(ValueError,
+                                    'can only call with other '
+                                    'PeriodIndex-ed objects'):
+            df.columns.join(s.index, how=how)
 
     def test_factorize(self):
         idx1 = DatetimeIndex(['2014-01', '2014-01', '2014-02', '2014-02',
@@ -439,18 +437,18 @@ class TestDatetimeIndex(object):
         tm.assert_numpy_array_equal(arr, exp_arr)
         tm.assert_index_equal(idx, idx3)
 
-    def test_factorize_tz(self):
-        # GH 13750
-        for tz in [None, 'UTC', 'US/Eastern', 'Asia/Tokyo']:
-            base = pd.date_range('2016-11-05', freq='H', periods=100, tz=tz)
-            idx = base.repeat(5)
+    @pytest.mark.parametrize('tz', [None, 'UTC', 'US/Eastern', 'Asia/Tokyo'])
+    def test_factorize_tz(self, tz):
+        # GH#13750
+        base = pd.date_range('2016-11-05', freq='H', periods=100, tz=tz)
+        idx = base.repeat(5)
 
-            exp_arr = np.arange(100, dtype=np.intp).repeat(5)
+        exp_arr = np.arange(100, dtype=np.intp).repeat(5)
 
-            for obj in [idx, pd.Series(idx)]:
-                arr, res = obj.factorize()
-                tm.assert_numpy_array_equal(arr, exp_arr)
-                tm.assert_index_equal(res, base)
+        for obj in [idx, pd.Series(idx)]:
+            arr, res = obj.factorize()
+            tm.assert_numpy_array_equal(arr, exp_arr)
+            tm.assert_index_equal(res, base)
 
     def test_factorize_dst(self):
         # GH 13750
@@ -469,3 +467,12 @@ class TestDatetimeIndex(object):
             arr, res = obj.factorize()
             tm.assert_numpy_array_equal(arr, np.arange(12, dtype=np.intp))
             tm.assert_index_equal(res, idx)
+
+    @pytest.mark.parametrize('arr, expected', [
+        (pd.DatetimeIndex(['2017', '2017']), pd.DatetimeIndex(['2017'])),
+        (pd.DatetimeIndex(['2017', '2017'], tz='US/Eastern'),
+         pd.DatetimeIndex(['2017'], tz='US/Eastern')),
+    ])
+    def test_unique(self, arr, expected):
+        result = arr.unique()
+        tm.assert_index_equal(result, expected)

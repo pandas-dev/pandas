@@ -40,7 +40,7 @@ from pandas.util._decorators import (
     Appender, cache_readonly, deprecate_kwarg, Substitution)
 
 from pandas.io.formats.terminal import get_terminal_size
-from pandas.util._validators import validate_bool_kwarg
+from pandas.util._validators import validate_bool_kwarg, validate_fillna_kwargs
 from pandas.core.config import get_option
 
 from .base import ExtensionArray
@@ -53,6 +53,9 @@ def _cat_compare_op(op):
         # results depending whether categories are the same or not is kind of
         # insane, so be a bit stricter here and use the python3 idea of
         # comparing only things of equal type.
+        if isinstance(other, ABCSeries):
+            return NotImplemented
+
         if not self.ordered:
             if op in ['__lt__', '__gt__', '__le__', '__ge__']:
                 raise TypeError("Unordered Categoricals can only compare "
@@ -243,7 +246,7 @@ class Categorical(ExtensionArray, PandasObject):
     # For comparisons, so that numpy uses our implementation if the compare
     # ops, which raise
     __array_priority__ = 1000
-    _dtype = CategoricalDtype()
+    _dtype = CategoricalDtype(ordered=False)
     _deprecations = frozenset(['labels'])
     _typ = 'categorical'
 
@@ -294,7 +297,7 @@ class Categorical(ExtensionArray, PandasObject):
 
         if fastpath:
             self._codes = coerce_indexer_dtype(values, categories)
-            self._dtype = dtype
+            self._dtype = self._dtype.update_dtype(dtype)
             return
 
         # null_mask indicates missing values we want to exclude from inference.
@@ -358,7 +361,7 @@ class Categorical(ExtensionArray, PandasObject):
             full_codes[~null_mask] = codes
             codes = full_codes
 
-        self._dtype = dtype
+        self._dtype = self._dtype.update_dtype(dtype)
         self._codes = coerce_indexer_dtype(codes, dtype.categories)
 
     @property
@@ -411,6 +414,10 @@ class Categorical(ExtensionArray, PandasObject):
         return self._dtype
 
     @property
+    def _ndarray_values(self):
+        return self.codes
+
+    @property
     def _constructor(self):
         return Categorical
 
@@ -438,7 +445,7 @@ class Categorical(ExtensionArray, PandasObject):
         """
         if is_categorical_dtype(dtype):
             # GH 10696/18593
-            dtype = self.dtype._update_dtype(dtype)
+            dtype = self.dtype.update_dtype(dtype)
             self = self.copy() if copy else self
             if dtype == self.dtype:
                 return self
@@ -560,7 +567,7 @@ class Categorical(ExtensionArray, PandasObject):
             raise ValueError(
                 "codes need to be convertible to an arrays of integers")
 
-        categories = CategoricalDtype._validate_categories(categories)
+        categories = CategoricalDtype.validate_categories(categories)
 
         if len(codes) and (codes.max() >= len(categories) or codes.min() < -1):
             raise ValueError("codes need to be between -1 and "
@@ -1165,7 +1172,7 @@ class Categorical(ExtensionArray, PandasObject):
 
         # Provide compatibility with pre-0.15.0 Categoricals.
         if '_categories' not in state and '_levels' in state:
-            state['_categories'] = self.dtype._validate_categories(state.pop(
+            state['_categories'] = self.dtype.validate_categories(state.pop(
                 '_levels'))
         if '_codes' not in state and 'labels' in state:
             state['_codes'] = coerce_indexer_dtype(
@@ -1603,6 +1610,9 @@ class Categorical(ExtensionArray, PandasObject):
         -------
         filled : Categorical with NA/NaN filled
         """
+        value, method = validate_fillna_kwargs(
+            value, method, validate_scalar_dict_value=False
+        )
 
         if value is None:
             value = np.nan

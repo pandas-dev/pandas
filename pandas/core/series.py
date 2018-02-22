@@ -131,7 +131,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
     index : array-like or Index (1d)
         Values must be hashable and have the same length as `data`.
         Non-unique index values are allowed. Will default to
-        RangeIndex(len(data)) if not provided. If both a dict and index
+        RangeIndex (0, 1, 2, ..., n) if not provided. If both a dict and index
         sequence are used, the index will override the keys found in the
         dict.
     dtype : numpy.dtype or None
@@ -1015,7 +1015,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         >>> s = pd.Series([1, 2, 3, 4], index=pd.Index(['a', 'b', 'c', 'd'],
         ...                                            name = 'idx'))
         >>> s.reset_index()
-           index  0
+             idx  0
         0      0  1
         1      1  2
         2      2  3
@@ -1261,8 +1261,6 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         -------
         nobs : int or Series (if level specified)
         """
-        from pandas.core.index import _get_na_value
-
         if level is None:
             return notna(com._values_from_object(self)).sum()
 
@@ -1275,7 +1273,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         mask = lab == -1
         if mask.any():
             lab[mask] = cnt = len(lev)
-            lev = lev.insert(cnt, _get_na_value(lev.dtype.type))
+            lev = lev.insert(cnt, lev._na_value)
 
         obs = lab[notna(self.values)]
         out = np.bincount(obs, minlength=len(lev) or None)
@@ -1725,23 +1723,12 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
                                      copy=False)
             new_index = this.index
 
-        this_vals = this.values
-        other_vals = other.values
-
-        if fill_value is not None:
-            this_mask = isna(this_vals)
-            other_mask = isna(other_vals)
-            this_vals = this_vals.copy()
-            other_vals = other_vals.copy()
-
-            # one but not both
-            mask = this_mask ^ other_mask
-            this_vals[this_mask & mask] = fill_value
-            other_vals[other_mask & mask] = fill_value
+        this_vals, other_vals = ops.fill_binop(this.values, other.values,
+                                               fill_value)
 
         with np.errstate(all='ignore'):
             result = func(this_vals, other_vals)
-        name = com._maybe_match_name(self, other)
+        name = ops.get_op_result_name(self, other)
         result = self._constructor(result, index=new_index, name=name)
         result = result.__finalize__(self)
         if name is None:
@@ -1782,7 +1769,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         """
         if isinstance(other, Series):
             new_index = self.index.union(other.index)
-            new_name = com._maybe_match_name(self, other)
+            new_name = ops.get_op_result_name(self, other)
             new_values = np.empty(len(new_index), dtype=self.dtype)
             for i, idx in enumerate(new_index):
                 lv = self.get(idx, fill_value)
@@ -1827,7 +1814,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         this = self.reindex(new_index, copy=False)
         other = other.reindex(new_index, copy=False)
         # TODO: do we need name?
-        name = com._maybe_match_name(self, other)  # noqa
+        name = ops.get_op_result_name(self, other)  # noqa
         rs_vals = com._where_compat(isna(this), other._values, this._values)
         return self._constructor(rs_vals, index=new_index).__finalize__(self)
 
@@ -2670,6 +2657,14 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
                                           axis=axis, inplace=inplace,
                                           limit=limit, downcast=downcast,
                                           **kwargs)
+
+    @Appender(generic._shared_docs['replace'] % _shared_doc_kwargs)
+    def replace(self, to_replace=None, value=None, inplace=False, limit=None,
+                regex=False, method='pad', axis=None):
+        return super(Series, self).replace(to_replace=to_replace, value=value,
+                                           inplace=inplace, limit=limit,
+                                           regex=regex, method=method,
+                                           axis=axis)
 
     @Appender(generic._shared_docs['shift'] % _shared_doc_kwargs)
     def shift(self, periods=1, freq=None, axis=0):

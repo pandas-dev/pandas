@@ -114,7 +114,7 @@ _shared_doc_kwargs = dict(
             - if `axis` is 1 or `'columns'` then `by` may contain column
               levels and/or index labels
 
-        .. versionmodified:: 0.23.0
+        .. versionchanged:: 0.23.0
            Allow specifying index or column level names.""",
     versionadded_to_excel='',
     optional_labels="""labels : array-like, optional
@@ -233,7 +233,7 @@ See also
 --------
 merge_ordered
 merge_asof
-
+DataFrame.join
 """
 
 # -----------------------------------------------------------------------
@@ -251,11 +251,11 @@ class DataFrame(NDFrame):
     data : numpy ndarray (structured or homogeneous), dict, or DataFrame
         Dict can contain Series, arrays, constants, or list-like objects
     index : Index or array-like
-        Index to use for resulting frame. Will default to np.arange(n) if
+        Index to use for resulting frame. Will default to RangeIndex if
         no indexing information part of input data and no index provided
     columns : Index or array-like
         Column labels to use for resulting frame. Will default to
-        np.arange(n) if no column labels are provided
+        RangeIndex (0, 1, 2, ..., n) if no column labels are provided
     dtype : dtype, default None
         Data type to force. Only a single dtype is allowed. If None, infer
     copy : boolean, default False
@@ -876,7 +876,7 @@ class DataFrame(NDFrame):
     # IO methods (to / from other formats)
 
     @classmethod
-    def from_dict(cls, data, orient='columns', dtype=None):
+    def from_dict(cls, data, orient='columns', dtype=None, columns=None):
         """
         Construct DataFrame from dict of array-like or dicts
 
@@ -890,12 +890,17 @@ class DataFrame(NDFrame):
             (default). Otherwise if the keys should be rows, pass 'index'.
         dtype : dtype, default None
             Data type to force, otherwise infer
+        columns: list, default None
+            Column labels to use when orient='index'. Raises a ValueError
+            if used with orient='columns'
+
+            .. versionadded:: 0.23.0
 
         Returns
         -------
         DataFrame
         """
-        index, columns = None, None
+        index = None
         orient = orient.lower()
         if orient == 'index':
             if len(data) > 0:
@@ -904,7 +909,11 @@ class DataFrame(NDFrame):
                     data = _from_nested_dict(data)
                 else:
                     data, index = list(data.values()), list(data.keys())
-        elif orient != 'columns':  # pragma: no cover
+        elif orient == 'columns':
+            if columns is not None:
+                raise ValueError("cannot use columns parameter with "
+                                 "orient='columns'")
+        else:  # pragma: no cover
             raise ValueError('only recognize index or columns for orient')
 
         return cls(data, index=index, columns=columns, dtype=dtype)
@@ -1059,7 +1068,7 @@ class DataFrame(NDFrame):
         private_key : str (optional)
             Service account private key in JSON format. Can be file path
             or string contents. This is useful for remote server
-            authentication (eg. jupyter iPython notebook on remote host)
+            authentication (eg. Jupyter/IPython notebook on remote host)
         """
 
         from pandas.io import gbq
@@ -1612,7 +1621,7 @@ class DataFrame(NDFrame):
         time_stamp : datetime
             A datetime to use as file creation date.  Default is the current
             time.
-        dataset_label : str
+        data_label : str
             A label for the data set.  Must be 80 characters or smaller.
         variable_labels : dict
             Dictionary containing columns as keys and variable labels as
@@ -1635,10 +1644,18 @@ class DataFrame(NDFrame):
 
         Examples
         --------
+        >>> data.to_stata('./data_file.dta')
+
+        Or with dates
+
+        >>> data.to_stata('./date_data_file.dta', {2 : 'tw'})
+
+        Alternatively you can create an instance of the StataWriter class
+
         >>> writer = StataWriter('./data_file.dta', data)
         >>> writer.write_file()
 
-        Or with dates
+        With dates:
 
         >>> writer = StataWriter('./date_data_file.dta', data, {2 : 'tw'})
         >>> writer.write_file()
@@ -1678,9 +1695,10 @@ class DataFrame(NDFrame):
         fname : str
             string file path
         engine : {'auto', 'pyarrow', 'fastparquet'}, default 'auto'
-            Parquet reader library to use. If 'auto', then the option
-            'io.parquet.engine' is used. If 'auto', then the first
-            library to be installed is used.
+            Parquet library to use. If 'auto', then the option
+            ``io.parquet.engine`` is used. The default ``io.parquet.engine``
+            behavior is to try 'pyarrow', falling back to 'fastparquet' if
+            'pyarrow' is unavailable.
         compression : {'snappy', 'gzip', 'brotli', None}, default 'snappy'
             Name of the compression to use. Use ``None`` for no compression.
         kwargs
@@ -1727,7 +1745,7 @@ class DataFrame(NDFrame):
                 sparsify=None, index_names=True, justify=None, bold_rows=True,
                 classes=None, escape=True, max_rows=None, max_cols=None,
                 show_dimensions=False, notebook=False, decimal='.',
-                border=None):
+                border=None, table_id=None):
         """
         Render a DataFrame as an HTML table.
 
@@ -1755,6 +1773,12 @@ class DataFrame(NDFrame):
             `<table>` tag. Default ``pd.options.html.border``.
 
             .. versionadded:: 0.19.0
+
+        table_id : str, optional
+            A css id is included in the opening `<table>` tag if specified.
+
+            .. versionadded:: 0.23.0
+
         """
 
         if (justify is not None and
@@ -1772,7 +1796,7 @@ class DataFrame(NDFrame):
                                            max_rows=max_rows,
                                            max_cols=max_cols,
                                            show_dimensions=show_dimensions,
-                                           decimal=decimal)
+                                           decimal=decimal, table_id=table_id)
         # TODO: a generic formatter wld b in DataFrameFormatter
         formatter.to_html(classes=classes, notebook=notebook, border=border)
 
@@ -2681,12 +2705,17 @@ class DataFrame(NDFrame):
 
         Notes
         -----
-        For python 3.6 and above, the columns are inserted in the order of
-        \*\*kwargs. For python 3.5 and earlier, since \*\*kwargs is unordered,
-        the columns are inserted in alphabetical order at the end of your
-        DataFrame.  Assigning multiple columns within the same ``assign``
-        is possible, but you cannot reference other columns created within
-        the same ``assign`` call.
+        Assigning multiple columns within the same ``assign`` is possible.
+        For Python 3.6 and above, later items in '\*\*kwargs' may refer to
+        newly created or modified columns in 'df'; items are computed and
+        assigned into 'df' in order.  For Python 3.5 and below, the order of
+        keyword arguments is not specified, you cannot refer to newly created
+        or modified columns. All items are computed first, and then assigned
+        in alphabetical order.
+
+        .. versionchanged :: 0.23.0
+
+            Keyword argument order is maintained for Python 3.6 and later.
 
         Examples
         --------
@@ -2722,22 +2751,34 @@ class DataFrame(NDFrame):
         7   8 -1.495604  2.079442
         8   9  0.549296  2.197225
         9  10 -0.758542  2.302585
+
+        Where the keyword arguments depend on each other
+
+        >>> df = pd.DataFrame({'A': [1, 2, 3]})
+
+        >>> df.assign(B=df.A, C=lambda x:x['A']+ x['B'])
+            A  B  C
+         0  1  1  2
+         1  2  2  4
+         2  3  3  6
         """
         data = self.copy()
 
-        # do all calculations first...
-        results = OrderedDict()
-        for k, v in kwargs.items():
-            results[k] = com._apply_if_callable(v, data)
-
-        # preserve order for 3.6 and later, but sort by key for 3.5 and earlier
+        # >= 3.6 preserve order of kwargs
         if PY36:
-            results = results.items()
+            for k, v in kwargs.items():
+                data[k] = com._apply_if_callable(v, data)
         else:
+            # <= 3.5: do all calculations first...
+            results = OrderedDict()
+            for k, v in kwargs.items():
+                results[k] = com._apply_if_callable(v, data)
+
+            # <= 3.5 and earlier
             results = sorted(results.items())
-        # ... and then assign
-        for k, v in results:
-            data[k] = v
+            # ... and then assign
+            for k, v in results:
+                data[k] = v
         return data
 
     def _sanitize_column(self, key, value, broadcast=True):
@@ -3079,6 +3120,14 @@ class DataFrame(NDFrame):
                      self).fillna(value=value, method=method, axis=axis,
                                   inplace=inplace, limit=limit,
                                   downcast=downcast, **kwargs)
+
+    @Appender(_shared_docs['replace'] % _shared_doc_kwargs)
+    def replace(self, to_replace=None, value=None, inplace=False, limit=None,
+                regex=False, method='pad', axis=None):
+        return super(DataFrame, self).replace(to_replace=to_replace,
+                                              value=value, inplace=inplace,
+                                              limit=limit, regex=regex,
+                                              method=method, axis=axis)
 
     @Appender(_shared_docs['shift'] % _shared_doc_kwargs)
     def shift(self, periods=1, freq=None, axis=0):
@@ -3623,6 +3672,13 @@ class DataFrame(NDFrame):
               isinstance(subset, tuple) and subset in self.columns):
             subset = subset,
 
+        # Verify all columns in subset exist in the queried dataframe
+        # Otherwise, raise a KeyError, same as if you try to __getitem__ with a
+        # key that doesn't exist.
+        diff = Index(subset).difference(self.columns)
+        if not diff.empty:
+            raise KeyError(diff)
+
         vals = (col.values for name, col in self.iteritems()
                 if name in subset)
         labels, shape = map(list, zip(*map(f, vals)))
@@ -3907,50 +3963,32 @@ class DataFrame(NDFrame):
     # ----------------------------------------------------------------------
     # Arithmetic / combination related
 
-    def _combine_frame(self, other, func, fill_value=None, level=None,
-                       try_cast=True):
+    def _combine_frame(self, other, func, fill_value=None, level=None):
         this, other = self.align(other, join='outer', level=level, copy=False)
         new_index, new_columns = this.index, this.columns
 
         def _arith_op(left, right):
-            if fill_value is not None:
-                left_mask = isna(left)
-                right_mask = isna(right)
-                left = left.copy()
-                right = right.copy()
-
-                # one but not both
-                mask = left_mask ^ right_mask
-                left[left_mask & mask] = fill_value
-                right[right_mask & mask] = fill_value
-
+            # for the mixed_type case where we iterate over columns,
+            # _arith_op(left, right) is equivalent to
+            # left._binop(right, func, fill_value=fill_value)
+            left, right = ops.fill_binop(left, right, fill_value)
             return func(left, right)
 
         if this._is_mixed_type or other._is_mixed_type:
-
-            # unique
+            # iterate over columns
             if this.columns.is_unique:
-
-                def f(col):
-                    r = _arith_op(this[col].values, other[col].values)
-                    return self._constructor_sliced(r, index=new_index,
-                                                    dtype=r.dtype)
-
-                result = {col: f(col) for col in this}
-
-            # non-unique
+                # unique columns
+                result = {col: _arith_op(this[col], other[col])
+                          for col in this}
+                result = self._constructor(result, index=new_index,
+                                           columns=new_columns, copy=False)
             else:
-
-                def f(i):
-                    r = _arith_op(this.iloc[:, i].values,
-                                  other.iloc[:, i].values)
-                    return self._constructor_sliced(r, index=new_index,
-                                                    dtype=r.dtype)
-
-                result = {i: f(i) for i, col in enumerate(this.columns)}
+                # non-unique columns
+                result = {i: _arith_op(this.iloc[:, i], other.iloc[:, i])
+                          for i, col in enumerate(this.columns)}
                 result = self._constructor(result, index=new_index, copy=False)
                 result.columns = new_columns
-                return result
+            return result
 
         else:
             result = _arith_op(this.values, other.values)
@@ -3958,54 +3996,17 @@ class DataFrame(NDFrame):
         return self._constructor(result, index=new_index, columns=new_columns,
                                  copy=False)
 
-    def _combine_series(self, other, func, fill_value=None, axis=None,
-                        level=None, try_cast=True):
-        if axis is not None:
-            axis = self._get_axis_name(axis)
-            if axis == 'index':
-                return self._combine_match_index(other, func, level=level,
-                                                 fill_value=fill_value,
-                                                 try_cast=try_cast)
-            else:
-                return self._combine_match_columns(other, func, level=level,
-                                                   fill_value=fill_value,
-                                                   try_cast=try_cast)
-        return self._combine_series_infer(other, func, level=level,
-                                          fill_value=fill_value,
-                                          try_cast=try_cast)
-
-    def _combine_series_infer(self, other, func, level=None,
-                              fill_value=None, try_cast=True):
-        if len(other) == 0:
-            return self * np.nan
-
-        if len(self) == 0:
-            # Ambiguous case, use _series so works with DataFrame
-            return self._constructor(data=self._series, index=self.index,
-                                     columns=self.columns)
-
-        return self._combine_match_columns(other, func, level=level,
-                                           fill_value=fill_value,
-                                           try_cast=try_cast)
-
-    def _combine_match_index(self, other, func, level=None,
-                             fill_value=None, try_cast=True):
+    def _combine_match_index(self, other, func, level=None):
         left, right = self.align(other, join='outer', axis=0, level=level,
                                  copy=False)
-        if fill_value is not None:
-            raise NotImplementedError("fill_value %r not supported." %
-                                      fill_value)
-        return self._constructor(func(left.values.T, right.values).T,
+        new_data = func(left.values.T, right.values).T
+        return self._constructor(new_data,
                                  index=left.index, columns=self.columns,
                                  copy=False)
 
-    def _combine_match_columns(self, other, func, level=None,
-                               fill_value=None, try_cast=True):
+    def _combine_match_columns(self, other, func, level=None, try_cast=True):
         left, right = self.align(other, join='outer', axis=1, level=level,
                                  copy=False)
-        if fill_value is not None:
-            raise NotImplementedError("fill_value %r not supported" %
-                                      fill_value)
 
         new_data = left._data.eval(func=func, other=right,
                                    axes=[left.columns, self.index],
@@ -4018,7 +4019,8 @@ class DataFrame(NDFrame):
                                    try_cast=try_cast)
         return self._constructor(new_data)
 
-    def _compare_frame_evaluate(self, other, func, str_rep, try_cast=True):
+    def _compare_frame(self, other, func, str_rep):
+        # compare_frame assumes self._indexed_same(other)
 
         import pandas.core.computation.expressions as expressions
         # unique
@@ -4042,19 +4044,6 @@ class DataFrame(NDFrame):
                                        copy=False)
             result.columns = self.columns
             return result
-
-    def _compare_frame(self, other, func, str_rep, try_cast=True):
-        if not self._indexed_same(other):
-            raise ValueError('Can only compare identically-labeled '
-                             'DataFrame objects')
-        return self._compare_frame_evaluate(other, func, str_rep,
-                                            try_cast=try_cast)
-
-    def _flex_compare_frame(self, other, func, str_rep, level, try_cast=True):
-        if not self._indexed_same(other):
-            self, other = self.align(other, 'outer', level=level, copy=False)
-        return self._compare_frame_evaluate(other, func, str_rep,
-                                            try_cast=try_cast)
 
     def combine(self, other, func, fill_value=None, overwrite=True):
         """
@@ -4825,14 +4814,14 @@ class DataFrame(NDFrame):
 
     agg = aggregate
 
-    def apply(self, func, axis=0, broadcast=False, raw=False, reduce=None,
-              args=(), **kwds):
-        """Applies function along input axis of DataFrame.
+    def apply(self, func, axis=0, broadcast=None, raw=False, reduce=None,
+              result_type=None, args=(), **kwds):
+        """Applies function along an axis of the DataFrame.
 
         Objects passed to functions are Series objects having index
         either the DataFrame's index (axis=0) or the columns (axis=1).
-        Return type depends on whether passed function aggregates, or the
-        reduce argument if the DataFrame is empty.
+        Final return type depends on the return type of the applied function,
+        or on the `result_type` argument.
 
         Parameters
         ----------
@@ -4841,9 +4830,14 @@ class DataFrame(NDFrame):
         axis : {0 or 'index', 1 or 'columns'}, default 0
             * 0 or 'index': apply function to each column
             * 1 or 'columns': apply function to each row
-        broadcast : boolean, default False
+        broadcast : boolean, optional
             For aggregation functions, return object of same size with values
             propagated
+
+            .. deprecated:: 0.23.0
+               This argument will be removed in a future version, replaced
+               by result_type='broadcast'.
+
         raw : boolean, default False
             If False, convert each row or column into a Series. If raw=True the
             passed function will receive ndarray objects instead. If you are
@@ -4857,6 +4851,27 @@ class DataFrame(NDFrame):
             while guessing, exceptions raised by func will be ignored). If
             reduce is True a Series will always be returned, and if False a
             DataFrame will always be returned.
+
+            .. deprecated:: 0.23.0
+               This argument will be removed in a future version, replaced
+               by result_type='reduce'.
+
+        result_type : {'expand', 'reduce', 'broadcast, None}
+            These only act when axis=1 {columns}:
+
+            * 'expand' : list-like results will be turned into columns.
+            * 'reduce' : return a Series if possible rather than expanding
+              list-like results. This is the opposite to 'expand'.
+            * 'broadcast' : results will be broadcast to the original shape
+              of the frame, the original index & columns will be retained.
+
+            The default behaviour (None) depends on the return value of the
+            applied function: list-like results will be returned as a Series
+            of those. However if the apply function returns a Series these
+            are expanded to columns.
+
+            .. versionadded:: 0.23.0
+
         args : tuple
             Positional arguments to pass to function in addition to the
             array/series
@@ -4872,9 +4887,97 @@ class DataFrame(NDFrame):
 
         Examples
         --------
-        >>> df.apply(numpy.sqrt) # returns DataFrame
-        >>> df.apply(numpy.sum, axis=0) # equiv to df.sum(0)
-        >>> df.apply(numpy.sum, axis=1) # equiv to df.sum(1)
+
+        We use this DataFrame to illustrate
+
+        >>> df = pd.DataFrame(np.tile(np.arange(3), 6).reshape(6, -1) + 1,
+        ...                   columns=['A', 'B', 'C'])
+        >>> df
+           A  B  C
+        0  1  2  3
+        1  1  2  3
+        2  1  2  3
+        3  1  2  3
+        4  1  2  3
+        5  1  2  3
+
+        Using a numpy universal function (in this case the same as
+        ``np.sqrt(df)``):
+
+        >>> df.apply(np.sqrt)
+             A         B         C
+        0  1.0  1.414214  1.732051
+        1  1.0  1.414214  1.732051
+        2  1.0  1.414214  1.732051
+        3  1.0  1.414214  1.732051
+        4  1.0  1.414214  1.732051
+        5  1.0  1.414214  1.732051
+
+        Using a reducing function on either axis
+
+        >>> df.apply(np.sum, axis=0)
+        A     6
+        B    12
+        C    18
+        dtype: int64
+
+        >>> df.apply(np.sum, axis=1)
+        0    6
+        1    6
+        2    6
+        3    6
+        4    6
+        5    6
+        dtype: int64
+
+        Retuning a list-like will result in a Series
+
+        >>> df.apply(lambda x: [1, 2], axis=1)
+        0    [1, 2]
+        1    [1, 2]
+        2    [1, 2]
+        3    [1, 2]
+        4    [1, 2]
+        5    [1, 2]
+
+        Passing result_type='expand' will expand list-like results
+        to columns of a Dataframe
+
+        >>> df.apply(lambda x: [1, 2], axis=1, result_type='expand')
+           0  1
+        0  1  2
+        1  1  2
+        2  1  2
+        3  1  2
+        4  1  2
+        5  1  2
+
+        Returning a Series inside the function is similar to passing
+        ``result_type='expand'``. The resulting column names
+        will be the Series index.
+
+        >>> df.apply(lambda x: Series([1, 2], index=['foo', 'bar']), axis=1)
+           foo  bar
+        0    1    2
+        1    1    2
+        2    1    2
+        3    1    2
+        4    1    2
+        5    1    2
+
+        Passing ``result_type='broadcast'`` will ensure the same shape
+        result, whether list-like or scalar is returned by the function,
+        and broadcast it along the axis. The resulting column names will
+        be the originals.
+
+        >>> df.apply(lambda x: [1, 2, 3], axis=1, result_type='broadcast')
+           A  B  C
+        0  1  2  3
+        1  1  2  3
+        2  1  2  3
+        3  1  2  3
+        4  1  2  3
+        5  1  2  3
 
         See also
         --------
@@ -4893,7 +4996,9 @@ class DataFrame(NDFrame):
                          broadcast=broadcast,
                          raw=raw,
                          reduce=reduce,
-                         args=args, **kwds)
+                         result_type=result_type,
+                         args=args,
+                         kwds=kwds)
         return op.get_result()
 
     def applymap(self, func):
@@ -5211,18 +5316,17 @@ class DataFrame(NDFrame):
                 raise ValueError('Joining multiple DataFrames only supported'
                                  ' for joining on index')
 
-            # join indexes only using concat
-            if how == 'left':
-                how = 'outer'
-                join_axes = [self.index]
-            else:
-                join_axes = None
-
             frames = [self] + list(other)
 
             can_concat = all(df.index.is_unique for df in frames)
 
+            # join indexes only using concat
             if can_concat:
+                if how == 'left':
+                    how = 'outer'
+                    join_axes = [self.index]
+                else:
+                    join_axes = None
                 return concat(frames, axis=1, join=how, join_axes=join_axes,
                               verify_integrity=True)
 
@@ -5597,12 +5701,16 @@ class DataFrame(NDFrame):
                         # numeric_only and yet we have tried a
                         # column-by-column reduction, where we have mixed type.
                         # So let's just do what we can
-                        result = self.apply(f, reduce=False,
-                                            ignore_failures=True)
+                        from pandas.core.apply import frame_apply
+                        opa = frame_apply(self,
+                                          func=f,
+                                          result_type='expand',
+                                          ignore_failures=True)
+                        result = opa.get_result()
                         if result.ndim == self.ndim:
                             result = result.iloc[0]
                         return result
-                    except:
+                    except Exception:
                         pass
 
                 if filter_type is None or filter_type == 'numeric':

@@ -5,7 +5,7 @@ import operator
 import numpy as np
 from pandas._libs import (lib, index as libindex, tslib as libts,
                           algos as libalgos, join as libjoin,
-                          Timestamp)
+                          Timestamp, Timedelta)
 from pandas._libs.lib import is_datetime_array
 
 from pandas.compat import range, u, set_function_name
@@ -16,7 +16,7 @@ from pandas.core.accessor import CachedAccessor
 from pandas.core.dtypes.generic import (
     ABCSeries, ABCDataFrame,
     ABCMultiIndex,
-    ABCPeriodIndex,
+    ABCPeriodIndex, ABCTimedeltaIndex,
     ABCDateOffset)
 from pandas.core.dtypes.missing import isna, array_equivalent
 from pandas.core.dtypes.common import (
@@ -31,12 +31,14 @@ from pandas.core.dtypes.common import (
     is_object_dtype,
     is_categorical_dtype,
     is_interval_dtype,
+    is_period_dtype,
     is_bool,
     is_bool_dtype,
     is_signed_integer_dtype,
     is_unsigned_integer_dtype,
     is_integer_dtype, is_float_dtype,
     is_datetime64_any_dtype,
+    is_datetime64tz_dtype,
     is_timedelta64_dtype,
     needs_i8_conversion,
     is_iterator, is_list_like,
@@ -53,7 +55,7 @@ import pandas.core.missing as missing
 import pandas.core.algorithms as algos
 import pandas.core.sorting as sorting
 from pandas.io.formats.printing import pprint_thing
-from pandas.core.ops import _comp_method_OBJECT_ARRAY
+from pandas.core.ops import _comp_method_OBJECT_ARRAY, make_invalid_op
 from pandas.core.config import get_option
 from pandas.core.strings import StringMethods
 
@@ -392,7 +394,7 @@ class Index(IndexOpsMixin, PandasObject):
                 values = np.array(values, copy=False)
                 if is_object_dtype(values):
                     values = cls(values, name=name, dtype=dtype,
-                                 **kwargs)._values
+                                 **kwargs)._ndarray_values
 
         result = object.__new__(cls)
         result._data = values
@@ -574,6 +576,40 @@ class Index(IndexOpsMixin, PandasObject):
         """ return the underlying data as an ndarray """
         return self._data.view(np.ndarray)
 
+    @property
+    def _values(self):
+        # type: () -> Union[ExtensionArray, Index]
+        # TODO(EA): remove index types as they become extension arrays
+        """The best array representation.
+
+        This is an ndarray, ExtensionArray, or Index subclass. This differs
+        from ``_ndarray_values``, which always returns an ndarray.
+
+        Both ``_values`` and ``_ndarray_values`` are consistent between
+        ``Series`` and ``Index``.
+
+        It may differ from the public '.values' method.
+
+        index             | values          | _values     | _ndarray_values |
+        ----------------- | -------------- -| ----------- | --------------- |
+        CategoricalIndex  | Categorical     | Categorical | codes           |
+        DatetimeIndex[tz] | ndarray[M8ns]   | DTI[tz]     | ndarray[M8ns]   |
+
+        For the following, the ``._values`` is currently ``ndarray[object]``,
+        but will soon be an ``ExtensionArray``
+
+        index             | values          | _values      | _ndarray_values |
+        ----------------- | --------------- | ------------ | --------------- |
+        PeriodIndex       | ndarray[object] | ndarray[obj] | ndarray[int]    |
+        IntervalIndex     | ndarray[object] | ndarray[obj] | ndarray[object] |
+
+        See Also
+        --------
+        values
+        _ndarray_values
+        """
+        return self.values
+
     def get_values(self):
         """ return the underlying data as an ndarray """
         return self.values
@@ -644,7 +680,7 @@ class Index(IndexOpsMixin, PandasObject):
         --------
         numpy.ndarray.ravel
         """
-        return self._values.ravel(order=order)
+        return self._ndarray_values.ravel(order=order)
 
     # construction helpers
     @classmethod
@@ -1577,7 +1613,7 @@ class Index(IndexOpsMixin, PandasObject):
     @cache_readonly
     def _engine(self):
         # property, for now, slow to look up
-        return self._engine_type(lambda: self._values, len(self))
+        return self._engine_type(lambda: self._ndarray_values, len(self))
 
     def _validate_index_level(self, level):
         """
@@ -2042,7 +2078,7 @@ class Index(IndexOpsMixin, PandasObject):
         try:
             loc = self.get_loc(label, method='pad')
         except KeyError:
-            return _get_na_value(self.dtype)
+            return self._na_value
         else:
             if isinstance(loc, slice):
                 loc = loc.indices(len(self))[-1]
@@ -2208,27 +2244,37 @@ class Index(IndexOpsMixin, PandasObject):
             other = other.astype('O')
             return this.union(other)
 
+        # TODO(EA): setops-refactor, clean all this up
+        if is_period_dtype(self) or is_datetime64tz_dtype(self):
+            lvals = self._ndarray_values
+        else:
+            lvals = self._values
+        if is_period_dtype(other) or is_datetime64tz_dtype(other):
+            rvals = other._ndarray_values
+        else:
+            rvals = other._values
+
         if self.is_monotonic and other.is_monotonic:
             try:
-                result = self._outer_indexer(self._values, other._values)[0]
+                result = self._outer_indexer(lvals, rvals)[0]
             except TypeError:
                 # incomparable objects
-                result = list(self._values)
+                result = list(lvals)
 
                 # worth making this faster? a very unusual case
-                value_set = set(self._values)
-                result.extend([x for x in other._values if x not in value_set])
+                value_set = set(lvals)
+                result.extend([x for x in rvals if x not in value_set])
         else:
             indexer = self.get_indexer(other)
             indexer, = (indexer == -1).nonzero()
 
             if len(indexer) > 0:
-                other_diff = algos.take_nd(other._values, indexer,
+                other_diff = algos.take_nd(rvals, indexer,
                                            allow_fill=False)
-                result = _concat._concat_compat((self._values, other_diff))
+                result = _concat._concat_compat((lvals, other_diff))
 
                 try:
-                    self._values[0] < other_diff[0]
+                    lvals[0] < other_diff[0]
                 except TypeError as e:
                     warnings.warn("%s, sort order is undefined for "
                                   "incomparable objects" % e, RuntimeWarning,
@@ -2240,7 +2286,7 @@ class Index(IndexOpsMixin, PandasObject):
                         result.sort()
 
             else:
-                result = self._values
+                result = lvals
 
                 try:
                     result = np.sort(result)
@@ -2291,20 +2337,30 @@ class Index(IndexOpsMixin, PandasObject):
             other = other.astype('O')
             return this.intersection(other)
 
+        # TODO(EA): setops-refactor, clean all this up
+        if is_period_dtype(self):
+            lvals = self._ndarray_values
+        else:
+            lvals = self._values
+        if is_period_dtype(other):
+            rvals = other._ndarray_values
+        else:
+            rvals = other._values
+
         if self.is_monotonic and other.is_monotonic:
             try:
-                result = self._inner_indexer(self._values, other._values)[0]
+                result = self._inner_indexer(lvals, rvals)[0]
                 return self._wrap_union_result(other, result)
             except TypeError:
                 pass
 
         try:
-            indexer = Index(other._values).get_indexer(self._values)
+            indexer = Index(rvals).get_indexer(lvals)
             indexer = indexer.take((indexer != -1).nonzero()[0])
         except Exception:
             # duplicates
             indexer = algos.unique1d(
-                Index(other._values).get_indexer_non_unique(self._values)[0])
+                Index(rvals).get_indexer_non_unique(lvals)[0])
             indexer = indexer[indexer != -1]
 
         taken = other.take(indexer)
@@ -2680,7 +2736,7 @@ class Index(IndexOpsMixin, PandasObject):
                 raise ValueError('limit argument only valid if doing pad, '
                                  'backfill or nearest reindexing')
 
-            indexer = self._engine.get_indexer(target._values)
+            indexer = self._engine.get_indexer(target._ndarray_values)
 
         return _ensure_platform_int(indexer)
 
@@ -2696,12 +2752,13 @@ class Index(IndexOpsMixin, PandasObject):
         if self.is_monotonic_increasing and target.is_monotonic_increasing:
             method = (self._engine.get_pad_indexer if method == 'pad' else
                       self._engine.get_backfill_indexer)
-            indexer = method(target._values, limit)
+            indexer = method(target._ndarray_values, limit)
         else:
             indexer = self._get_fill_indexer_searchsorted(target, method,
                                                           limit)
         if tolerance is not None:
-            indexer = self._filter_indexer_tolerance(target._values, indexer,
+            indexer = self._filter_indexer_tolerance(target._ndarray_values,
+                                                     indexer,
                                                      tolerance)
         return indexer
 
@@ -2792,7 +2849,7 @@ class Index(IndexOpsMixin, PandasObject):
             self = Index(self.asi8)
             tgt_values = target.asi8
         else:
-            tgt_values = target._values
+            tgt_values = target._ndarray_values
 
         indexer, missing = self._engine.get_indexer_non_unique(tgt_values)
         return _ensure_platform_int(indexer), missing
@@ -3227,16 +3284,17 @@ class Index(IndexOpsMixin, PandasObject):
     def _join_non_unique(self, other, how='left', return_indexers=False):
         from pandas.core.reshape.merge import _get_join_indexers
 
-        left_idx, right_idx = _get_join_indexers([self._values],
-                                                 [other._values], how=how,
+        left_idx, right_idx = _get_join_indexers([self._ndarray_values],
+                                                 [other._ndarray_values],
+                                                 how=how,
                                                  sort=True)
 
         left_idx = _ensure_platform_int(left_idx)
         right_idx = _ensure_platform_int(right_idx)
 
-        join_index = np.asarray(self._values.take(left_idx))
+        join_index = np.asarray(self._ndarray_values.take(left_idx))
         mask = left_idx == -1
-        np.putmask(join_index, mask, other._values.take(right_idx))
+        np.putmask(join_index, mask, other._ndarray_values.take(right_idx))
 
         join_index = self._wrap_joined_index(join_index, other)
 
@@ -3383,8 +3441,8 @@ class Index(IndexOpsMixin, PandasObject):
             else:
                 return ret_index
 
-        sv = self._values
-        ov = other._values
+        sv = self._ndarray_values
+        ov = other._ndarray_values
 
         if self.is_unique and other.is_unique:
             # We can perform much better than the general case
@@ -3736,7 +3794,7 @@ class Index(IndexOpsMixin, PandasObject):
             item = self._na_value
 
         _self = np.asarray(self)
-        item = self._coerce_scalar_to_index(item)._values
+        item = self._coerce_scalar_to_index(item)._ndarray_values
         idx = np.concatenate((_self[:loc], item, _self[loc:]))
         return self._shallow_copy_with_infer(idx)
 
@@ -3860,13 +3918,27 @@ class Index(IndexOpsMixin, PandasObject):
         return self._shallow_copy()
 
     def _evaluate_with_timedelta_like(self, other, op, opstr, reversed=False):
-        raise TypeError("can only perform ops with timedelta like values")
+        # Timedelta knows how to operate with np.array, so dispatch to that
+        # operation and then wrap the results
+        other = Timedelta(other)
+        values = self.values
+        if reversed:
+            values, other = other, values
+
+        with np.errstate(all='ignore'):
+            result = op(values, other)
+
+        attrs = self._get_attributes_dict()
+        attrs = self._maybe_update_attributes(attrs)
+        if op == divmod:
+            return Index(result[0], **attrs), Index(result[1], **attrs)
+        return Index(result, **attrs)
 
     def _evaluate_with_datetime_like(self, other, op, opstr):
         raise TypeError("can only perform ops with datetime like values")
 
-    def _evaluate_compare(self, op):
-        raise base.AbstractMethodError(self)
+    def _evaluate_compare(self, other, op):
+        raise com.AbstractMethodError(self)
 
     @classmethod
     def _add_comparison_methods(cls):
@@ -3916,40 +3988,23 @@ class Index(IndexOpsMixin, PandasObject):
     @classmethod
     def _add_numeric_methods_add_sub_disabled(cls):
         """ add in the numeric add/sub methods to disable """
-
-        def _make_invalid_op(name):
-            def invalid_op(self, other=None):
-                raise TypeError("cannot perform {name} with this index type: "
-                                "{typ}".format(name=name, typ=type(self)))
-
-            invalid_op.__name__ = name
-            return invalid_op
-
-        cls.__add__ = cls.__radd__ = __iadd__ = _make_invalid_op('__add__')  # noqa
-        cls.__sub__ = __isub__ = _make_invalid_op('__sub__')  # noqa
+        cls.__add__ = cls.__radd__ = __iadd__ = make_invalid_op('__add__')  # noqa
+        cls.__sub__ = __isub__ = make_invalid_op('__sub__')  # noqa
 
     @classmethod
     def _add_numeric_methods_disabled(cls):
         """ add in numeric methods to disable other than add/sub """
-
-        def _make_invalid_op(name):
-            def invalid_op(self, other=None):
-                raise TypeError("cannot perform {name} with this index type: "
-                                "{typ}".format(name=name, typ=type(self)))
-
-            invalid_op.__name__ = name
-            return invalid_op
-
-        cls.__pow__ = cls.__rpow__ = _make_invalid_op('__pow__')
-        cls.__mul__ = cls.__rmul__ = _make_invalid_op('__mul__')
-        cls.__floordiv__ = cls.__rfloordiv__ = _make_invalid_op('__floordiv__')
-        cls.__truediv__ = cls.__rtruediv__ = _make_invalid_op('__truediv__')
+        cls.__pow__ = make_invalid_op('__pow__')
+        cls.__rpow__ = make_invalid_op('__rpow__')
+        cls.__mul__ = cls.__rmul__ = make_invalid_op('__mul__')
+        cls.__floordiv__ = cls.__rfloordiv__ = make_invalid_op('__floordiv__')
+        cls.__truediv__ = cls.__rtruediv__ = make_invalid_op('__truediv__')
         if not compat.PY3:
-            cls.__div__ = cls.__rdiv__ = _make_invalid_op('__div__')
-        cls.__neg__ = _make_invalid_op('__neg__')
-        cls.__pos__ = _make_invalid_op('__pos__')
-        cls.__abs__ = _make_invalid_op('__abs__')
-        cls.__inv__ = _make_invalid_op('__inv__')
+            cls.__div__ = cls.__rdiv__ = make_invalid_op('__div__')
+        cls.__neg__ = make_invalid_op('__neg__')
+        cls.__pos__ = make_invalid_op('__pos__')
+        cls.__abs__ = make_invalid_op('__abs__')
+        cls.__inv__ = make_invalid_op('__inv__')
 
     def _maybe_update_attributes(self, attrs):
         """ Update Index attributes (e.g. freq) depending on op """
@@ -4020,6 +4075,9 @@ class Index(IndexOpsMixin, PandasObject):
             def _evaluate_numeric_binop(self, other):
                 if isinstance(other, (ABCSeries, ABCDataFrame)):
                     return NotImplemented
+                elif isinstance(other, ABCTimedeltaIndex):
+                    # Defer to subclass implementation
+                    return NotImplemented
 
                 other = self._validate_for_numeric_binop(other, op, opstr)
 
@@ -4040,6 +4098,8 @@ class Index(IndexOpsMixin, PandasObject):
                 attrs = self._maybe_update_attributes(attrs)
                 with np.errstate(all='ignore'):
                     result = op(values, other)
+
+                result = missing.dispatch_missing(op, values, other, result)
                 return constructor(result, **attrs)
 
             return _evaluate_numeric_binop
@@ -4145,17 +4205,8 @@ class Index(IndexOpsMixin, PandasObject):
     @classmethod
     def _add_logical_methods_disabled(cls):
         """ add in logical methods to disable """
-
-        def _make_invalid_op(name):
-            def invalid_op(self, other=None):
-                raise TypeError("cannot perform {name} with this index type: "
-                                "{typ}".format(name=name, typ=type(self)))
-
-            invalid_op.__name__ = name
-            return invalid_op
-
-        cls.all = _make_invalid_op('all')
-        cls.any = _make_invalid_op('any')
+        cls.all = make_invalid_op('all')
+        cls.any = make_invalid_op('any')
 
 
 Index._add_numeric_methods_disabled()
@@ -4261,12 +4312,6 @@ def _ensure_index(index_like, copy=False):
             index_like = copy(index_like)
 
     return Index(index_like)
-
-
-def _get_na_value(dtype):
-    if is_datetime64_any_dtype(dtype) or is_timedelta64_dtype(dtype):
-        return libts.NaT
-    return np.nan
 
 
 def _ensure_has_len(seq):

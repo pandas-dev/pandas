@@ -270,6 +270,14 @@ class TestMerge(object):
         df2 = DataFrame({'y': ['b', 'c']}, index=[dt, dt])
         pytest.raises(MergeError, merge, df1, df2)
 
+        msg = ('No common columns to perform merge on. '
+               'Merge options: left_on={lon}, right_on={ron}, '
+               'left_index={lidx}, right_index={ridx}'
+               .format(lon=None, ron=None, lidx=False, ridx=False))
+
+        with tm.assert_raises_regex(MergeError, msg):
+            merge(df1, df2)
+
     def test_merge_non_unique_indexes(self):
 
         dt = datetime(2012, 5, 1)
@@ -1634,6 +1642,25 @@ class TestMergeCategorical(object):
         cleft['b'] = cleft['b'].astype('category')
         result = pd.merge(cleft, cright, how='left', left_on='b', right_on='c')
         tm.assert_frame_equal(result, expected)
+
+    def tests_merge_categorical_unordered_equal(self):
+        # GH-19551
+        df1 = DataFrame({
+            'Foo': Categorical(['A', 'B', 'C'], categories=['A', 'B', 'C']),
+            'Left': ['A0', 'B0', 'C0'],
+        })
+
+        df2 = DataFrame({
+            'Foo': Categorical(['C', 'B', 'A'], categories=['C', 'B', 'A']),
+            'Right': ['C1', 'B1', 'A1'],
+        })
+        result = pd.merge(df1, df2, on=['Foo'])
+        expected = DataFrame({
+            'Foo': pd.Categorical(['A', 'B', 'C']),
+            'Left': ['A0', 'B0', 'C0'],
+            'Right': ['A1', 'B1', 'C1'],
+        })
+        assert_frame_equal(result, expected)
 
     def test_other_columns(self, left, right):
         # non-merge columns should preserve if possible

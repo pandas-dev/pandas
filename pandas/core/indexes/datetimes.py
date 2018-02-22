@@ -55,7 +55,7 @@ import pandas.core.tools.datetimes as tools
 from pandas._libs import (lib, index as libindex, tslib as libts,
                           join as libjoin, Timestamp)
 from pandas._libs.tslibs import (timezones, conversion, fields, parsing,
-                                 period as libperiod)
+                                 resolution as libresolution)
 
 # -------- some conversion wrapper functions
 
@@ -679,11 +679,41 @@ class DatetimeIndex(DatelikeOps, TimelikeOps, DatetimeIndexOpsMixin,
                             'datetime-like objects')
 
     @property
+    def _values(self):
+        # tz-naive -> ndarray
+        # tz-aware -> DatetimeIndex
+        if self.tz is not None:
+            return self
+        else:
+            return self.values
+
+    @property
     def tzinfo(self):
         """
         Alias for tz attribute
         """
         return self.tz
+
+    @property
+    def size(self):
+        # TODO: Remove this when we have a DatetimeTZArray
+        # Necessary to avoid recursion error since DTI._values is a DTI
+        # for TZ-aware
+        return self._ndarray_values.size
+
+    @property
+    def shape(self):
+        # TODO: Remove this when we have a DatetimeTZArray
+        # Necessary to avoid recursion error since DTI._values is a DTI
+        # for TZ-aware
+        return self._ndarray_values.shape
+
+    @property
+    def nbytes(self):
+        # TODO: Remove this when we have a DatetimeTZArray
+        # Necessary to avoid recursion error since DTI._values is a DTI
+        # for TZ-aware
+        return self._ndarray_values.nbytes
 
     @cache_readonly
     def _timezone(self):
@@ -856,7 +886,7 @@ class DatetimeIndex(DatelikeOps, TimelikeOps, DatetimeIndexOpsMixin,
         else:
             raise TypeError("cannot subtract DatetimeIndex and {typ}"
                             .format(typ=type(other).__name__))
-        return TimedeltaIndex(result, name=self.name, copy=False)
+        return TimedeltaIndex(result)
 
     def _sub_datelike_dti(self, other):
         """subtraction of two DatetimeIndexes"""
@@ -880,20 +910,31 @@ class DatetimeIndex(DatelikeOps, TimelikeOps, DatetimeIndexOpsMixin,
         return attrs
 
     def _add_delta(self, delta):
-        if isinstance(delta, ABCSeries):
-            return NotImplemented
+        """
+        Add a timedelta-like, DateOffset, or TimedeltaIndex-like object
+        to self.
 
+        Parameters
+        ----------
+        delta : {timedelta, np.timedelta64, DateOffset,
+                 TimedelaIndex, ndarray[timedelta64]}
+
+        Returns
+        -------
+        result : DatetimeIndex
+
+        Notes
+        -----
+        The result's name is set outside of _add_delta by the calling
+        method (__add__ or __sub__)
+        """
         from pandas import TimedeltaIndex
-        name = self.name
 
         if isinstance(delta, (Tick, timedelta, np.timedelta64)):
             new_values = self._add_delta_td(delta)
         elif is_timedelta64_dtype(delta):
             if not isinstance(delta, TimedeltaIndex):
                 delta = TimedeltaIndex(delta)
-            else:
-                # update name when delta is Index
-                name = com._maybe_match_name(self, delta)
             new_values = self._add_delta_tdi(delta)
         elif isinstance(delta, DateOffset):
             new_values = self._add_offset(delta).asi8
@@ -901,7 +942,7 @@ class DatetimeIndex(DatelikeOps, TimelikeOps, DatetimeIndexOpsMixin,
             new_values = self.astype('O') + delta
 
         tz = 'UTC' if self.tz is not None else None
-        result = DatetimeIndex(new_values, tz=tz, name=name, freq='infer')
+        result = DatetimeIndex(new_values, tz=tz, freq='infer')
         if self.tz is not None and self.tz is not utc:
             result = result.tz_convert(self.tz)
         return result
@@ -924,22 +965,19 @@ class DatetimeIndex(DatelikeOps, TimelikeOps, DatetimeIndexOpsMixin,
 
     def _add_offset_array(self, other):
         # Array/Index of DateOffset objects
-        if isinstance(other, ABCSeries):
-            return NotImplemented
-        elif len(other) == 1:
+        if len(other) == 1:
             return self + other[0]
         else:
             warnings.warn("Adding/subtracting array of DateOffsets to "
                           "{} not vectorized".format(type(self)),
                           PerformanceWarning)
             return self.astype('O') + np.array(other)
+            # TODO: pass freq='infer' like we do in _sub_offset_array?
             # TODO: This works for __add__ but loses dtype in __sub__
 
     def _sub_offset_array(self, other):
         # Array/Index of DateOffset objects
-        if isinstance(other, ABCSeries):
-            return NotImplemented
-        elif len(other) == 1:
+        if len(other) == 1:
             return self - other[0]
         else:
             warnings.warn("Adding/subtracting array of DateOffsets to "
@@ -1085,6 +1123,19 @@ class DatetimeIndex(DatelikeOps, TimelikeOps, DatetimeIndexOpsMixin,
 
         # we know it conforms; skip check
         return DatetimeIndex(snapped, freq=freq, verify_integrity=False)
+
+    def unique(self, level=None):
+        # Override here since IndexOpsMixin.unique uses self._values.unique
+        # For DatetimeIndex with TZ, that's a DatetimeIndex -> recursion error
+        # So we extract the tz-naive DatetimeIndex, unique that, and wrap the
+        # result with out TZ.
+        if self.tz is not None:
+            naive = type(self)(self._ndarray_values, copy=False)
+        else:
+            naive = self
+        result = super(DatetimeIndex, naive).unique(level=level)
+        return self._simple_new(result, name=self.name, tz=self.tz,
+                                freq=self.freq)
 
     def union(self, other):
         """
@@ -1795,7 +1846,7 @@ class DatetimeIndex(DatelikeOps, TimelikeOps, DatetimeIndexOpsMixin,
 
     @cache_readonly
     def _resolution(self):
-        return libperiod.resolution(self.asi8, self.tz)
+        return libresolution.resolution(self.asi8, self.tz)
 
     def insert(self, loc, item):
         """

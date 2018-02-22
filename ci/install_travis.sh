@@ -50,12 +50,6 @@ conda config --set ssl_verify false || exit 1
 conda config --set quiet true --set always_yes true --set changeps1 false || exit 1
 conda update -q conda
 
-if [ "$CONDA_BUILD_TEST" ]; then
-    echo
-    echo "[installing conda-build]"
-    conda install conda-build
-fi
-
 echo
 echo "[add channels]"
 conda config --remove channels defaults || exit 1
@@ -110,7 +104,7 @@ if [ -e ${REQ} ]; then
 fi
 
 time conda install -n pandas pytest>=3.1.0
-time pip install pytest-xdist moto
+time pip install -q pytest-xdist moto
 
 if [ "$LINT" ]; then
    conda install flake8=3.4.1
@@ -119,15 +113,6 @@ fi
 
 if [ "$COVERAGE" ]; then
     pip install coverage pytest-cov
-fi
-
-echo
-if [ -z "$PIP_BUILD_TEST" ] && [ -z "$CONDA_BUILD_TEST" ]; then
-
-    # build but don't install
-    echo "[build em]"
-    time python setup.py build_ext --inplace || exit 1
-
 fi
 
 # we may have run installations
@@ -167,32 +152,8 @@ conda list pandas
 pip list --format columns |grep pandas
 
 # build and install
-echo
-
-if [ "$PIP_BUILD_TEST" ]; then
-
-    # build & install testing
-    echo "[building release]"
-    time bash scripts/build_dist_for_release.sh || exit 1
-    conda uninstall -y cython
-    time pip install dist/*tar.gz || exit 1
-
-elif [ "$CONDA_BUILD_TEST" ]; then
-
-    # build & install testing
-    echo "[building conda recipe]"
-    time conda build ./conda.recipe --numpy 1.13 --python 3.5 -q --no-test
-
-    echo "[installing]"
-    conda install pandas --use-local
-
-else
-
-    # install our pandas
-    echo "[running setup.py develop]"
-    python setup.py develop  || exit 1
-
-fi
+echo "[running setup.py develop]"
+python setup.py develop  || exit 1
 
 echo
 echo "[show pandas]"

@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 
 import numpy as np
+import pytest
 
 import pandas.util.testing as tm
 from pandas import (Categorical, Index, isna)
@@ -53,3 +54,18 @@ class TestCategoricalMissing(object):
 
         exp = Categorical([1, np.nan, 3], categories=[1, 2, 3])
         tm.assert_categorical_equal(cat, exp)
+
+    @pytest.mark.parametrize('fillna_kwargs, msg', [
+        (dict(value=1, method='ffill'),
+         "Cannot specify both 'value' and 'method'."),
+        (dict(),
+         "Must specify a fill 'value' or 'method'."),
+        (dict(method='bad'),
+         "Invalid fill method. Expecting .* bad"),
+    ])
+    def test_fillna_raises(self, fillna_kwargs, msg):
+        # https://github.com/pandas-dev/pandas/issues/19682
+        cat = Categorical([1, 2, 3])
+
+        with tm.assert_raises_regex(ValueError, msg):
+            cat.fillna(**fillna_kwargs)

@@ -4,13 +4,15 @@ from datetime import datetime
 import pytest
 import pytz
 from pytz import utc
+from dateutil.tz import gettz
 
 import pandas.util.testing as tm
 import pandas.util._test_decorators as td
 
 from pandas.compat import PY3
+from pandas._libs import tslib
 from pandas._libs.tslibs.frequencies import _INVALID_FREQ_ERROR
-from pandas import Timestamp
+from pandas import Timestamp, NaT
 
 
 class TestTimestampUnaryOps(object):
@@ -92,6 +94,29 @@ class TestTimestampUnaryOps(object):
 
         result = stamp.round(freq=freq)
         assert result == expected
+
+    @pytest.mark.parametrize('test_input, rounder, freq, expected', [
+        ('2117-01-01 00:00:45', 'floor', '15s', '2117-01-01 00:00:45'),
+        ('2117-01-01 00:00:45', 'ceil', '15s', '2117-01-01 00:00:45'),
+        ('2117-01-01 00:00:45.000000012', 'floor', '10ns',
+         '2117-01-01 00:00:45.000000010'),
+        ('1823-01-01 00:00:01.000000012', 'ceil', '10ns',
+         '1823-01-01 00:00:01.000000020'),
+        ('1823-01-01 00:00:01', 'floor', '1s', '1823-01-01 00:00:01'),
+        ('1823-01-01 00:00:01', 'ceil', '1s', '1823-01-01 00:00:01'),
+        ('NaT', 'floor', '1s', 'NaT'),
+        ('NaT', 'ceil', '1s', 'NaT')
+    ])
+    def test_ceil_floor_edge(self, test_input, rounder, freq, expected):
+        dt = Timestamp(test_input)
+        func = getattr(dt, rounder)
+        result = func(freq)
+
+        if dt is NaT:
+            assert result is NaT
+        else:
+            expected = Timestamp(expected)
+            assert result == expected
 
     def test_ceil(self):
         dt = Timestamp('20130101 09:10:11')
@@ -191,6 +216,28 @@ class TestTimestampUnaryOps(object):
 
         assert result_dt == result_pd
         assert result_dt == result_pd.to_pydatetime()
+
+    @pytest.mark.parametrize('tz, normalize', [
+        (pytz.timezone('US/Eastern'), lambda x: x.tzinfo.normalize(x)),
+        (gettz('US/Eastern'), lambda x: x)])
+    def test_replace_across_dst(self, tz, normalize):
+        # GH#18319 check that 1) timezone is correctly normalized and
+        # 2) that hour is not incorrectly changed by this normalization
+        ts_naive = Timestamp('2017-12-03 16:03:30')
+        ts_aware = tslib._localize_pydatetime(ts_naive, tz)
+
+        # Preliminary sanity-check
+        assert ts_aware == normalize(ts_aware)
+
+        # Replace across DST boundary
+        ts2 = ts_aware.replace(month=6)
+
+        # Check that `replace` preserves hour literal
+        assert (ts2.hour, ts2.minute) == (ts_aware.hour, ts_aware.minute)
+
+        # Check that post-replace object is appropriately normalized
+        ts2b = normalize(ts2)
+        assert ts2 == ts2b
 
     # --------------------------------------------------------------
 

@@ -12,6 +12,7 @@ import pandas.compat as compat
 
 from pandas import (Categorical, DataFrame,
                     Index, MultiIndex, Timedelta)
+from pandas.core.arrays.categorical import _recode_for_categories
 from pandas.core.frame import _merge_doc
 from pandas.core.dtypes.common import (
     is_datetime64tz_dtype,
@@ -456,8 +457,8 @@ def merge_asof(left, right, on=None,
                          time ticker   price  quantity     bid     ask
     0 2016-05-25 13:30:00.023   MSFT   51.95        75     NaN     NaN
     1 2016-05-25 13:30:00.038   MSFT   51.95       155   51.97   51.98
-    2 2016-05-25 13:30:00.048   GOOG  720.77       100  720.50  720.93
-    3 2016-05-25 13:30:00.048   GOOG  720.92       100  720.50  720.93
+    2 2016-05-25 13:30:00.048   GOOG  720.77       100     NaN     NaN
+    3 2016-05-25 13:30:00.048   GOOG  720.92       100     NaN     NaN
     4 2016-05-25 13:30:00.048   AAPL   98.00       100     NaN     NaN
 
     See also
@@ -1021,7 +1022,12 @@ class _MergeOperation(object):
                 common_cols = self.left.columns.intersection(
                     self.right.columns)
                 if len(common_cols) == 0:
-                    raise MergeError('No common columns to perform merge on')
+                    raise MergeError(
+                        'No common columns to perform merge on. '
+                        'Merge options: left_on={lon}, right_on={ron}, '
+                        'left_index={lidx}, right_index={ridx}'
+                        .format(lon=self.left_on, ron=self.right_on,
+                                lidx=self.left_index, ridx=self.right_index))
                 if not common_cols.is_unique:
                     raise MergeError("Data columns not unique: {common!r}"
                                      .format(common=common_cols))
@@ -1535,8 +1541,15 @@ def _factorize_keys(lk, rk, sort=True):
             is_categorical_dtype(rk) and
             lk.is_dtype_equal(rk)):
         klass = libhashtable.Int64Factorizer
+
+        if lk.categories.equals(rk.categories):
+            rk = rk.codes
+        else:
+            # Same categories in different orders -> recode
+            rk = _recode_for_categories(rk.codes, rk.categories, lk.categories)
+
         lk = _ensure_int64(lk.codes)
-        rk = _ensure_int64(rk.codes)
+        rk = _ensure_int64(rk)
     elif is_int_or_datetime_dtype(lk) and is_int_or_datetime_dtype(rk):
         klass = libhashtable.Int64Factorizer
         lk = _ensure_int64(com._values_from_object(lk))

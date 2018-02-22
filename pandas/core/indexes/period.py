@@ -44,6 +44,7 @@ from pandas import compat
 from pandas.util._decorators import (Appender, Substitution, cache_readonly,
                                      deprecate_kwarg)
 from pandas.compat import zip, u
+from pandas.errors import PerformanceWarning
 
 import pandas.core.indexes.base as ibase
 _index_doc_kwargs = dict(ibase._index_doc_kwargs)
@@ -54,7 +55,7 @@ _index_doc_kwargs.update(
 def _field_accessor(name, alias, docstring=None):
     def f(self):
         base, mult = _gfc(self.freq)
-        result = get_period_field_arr(alias, self._values, base)
+        result = get_period_field_arr(alias, self._ndarray_values, base)
         return Index(result, name=self.name)
     f.__name__ = name
     f.__doc__ = docstring
@@ -82,7 +83,7 @@ def _period_index_cmp(opname, cls, nat_result=False):
 
     def wrapper(self, other):
         if isinstance(other, Period):
-            func = getattr(self._values, opname)
+            func = getattr(self._ndarray_values, opname)
             other_base, _ = _gfc(other.freq)
             if other.freq != self.freq:
                 msg = _DIFFERENT_FREQ_INDEX.format(self.freqstr, other.freqstr)
@@ -94,7 +95,8 @@ def _period_index_cmp(opname, cls, nat_result=False):
                 msg = _DIFFERENT_FREQ_INDEX.format(self.freqstr, other.freqstr)
                 raise IncompatibleFrequency(msg)
 
-            result = getattr(self._values, opname)(other._values)
+            op = getattr(self._ndarray_values, opname)
+            result = op(other._ndarray_values)
 
             mask = self._isnan | other._isnan
             if mask.any():
@@ -102,11 +104,11 @@ def _period_index_cmp(opname, cls, nat_result=False):
 
             return result
         elif other is tslib.NaT:
-            result = np.empty(len(self._values), dtype=bool)
+            result = np.empty(len(self._ndarray_values), dtype=bool)
             result.fill(nat_result)
         else:
             other = Period(other, freq=self.freq)
-            func = getattr(self._values, opname)
+            func = getattr(self._ndarray_values, opname)
             result = func(other.ordinal)
 
         if self.hasnans:
@@ -275,11 +277,11 @@ class PeriodIndex(DatelikeOps, DatetimeIndexOpsMixin, Int64Index):
         if isinstance(data, PeriodIndex):
             if freq is None or freq == data.freq:  # no freq change
                 freq = data.freq
-                data = data._values
+                data = data._ndarray_values
             else:
                 base1, _ = _gfc(data.freq)
                 base2, _ = _gfc(freq)
-                data = period.period_asfreq_arr(data._values,
+                data = period.period_asfreq_arr(data._ndarray_values,
                                                 base1, base2, 1)
             return cls._simple_new(data, name=name, freq=freq)
 
@@ -374,7 +376,7 @@ class PeriodIndex(DatelikeOps, DatetimeIndexOpsMixin, Int64Index):
         if freq is None:
             freq = self.freq
         if values is None:
-            values = self._values
+            values = self._ndarray_values
         return super(PeriodIndex, self)._shallow_copy(values=values,
                                                       freq=freq, **kwargs)
 
@@ -407,7 +409,7 @@ class PeriodIndex(DatelikeOps, DatetimeIndexOpsMixin, Int64Index):
 
     @property
     def asi8(self):
-        return self._values.view('i8')
+        return self._ndarray_values.view('i8')
 
     @cache_readonly
     def _int64index(self):
@@ -418,7 +420,8 @@ class PeriodIndex(DatelikeOps, DatetimeIndexOpsMixin, Int64Index):
         return self.astype(object).values
 
     @property
-    def _values(self):
+    def _ndarray_values(self):
+        # Ordinals
         return self._data
 
     def __array__(self, dtype=None):
@@ -476,6 +479,16 @@ class PeriodIndex(DatelikeOps, DatetimeIndexOpsMixin, Int64Index):
         return self.astype(object).values
 
     @property
+    def size(self):
+        # Avoid materializing self._values
+        return self._ndarray_values.size
+
+    @property
+    def shape(self):
+        # Avoid materializing self._values
+        return self._ndarray_values.shape
+
+    @property
     def _formatter_func(self):
         return lambda x: "'%s'" % x
 
@@ -489,13 +502,15 @@ class PeriodIndex(DatelikeOps, DatetimeIndexOpsMixin, Int64Index):
         if isinstance(where_idx, DatetimeIndex):
             where_idx = PeriodIndex(where_idx.values, freq=self.freq)
 
-        locs = self._values[mask].searchsorted(where_idx._values, side='right')
+        locs = self._ndarray_values[mask].searchsorted(
+            where_idx._ndarray_values, side='right')
 
         locs = np.where(locs > 0, locs - 1, 0)
         result = np.arange(len(self))[mask].take(locs)
 
         first = mask.argmax()
-        result[(locs == 0) & (where_idx._values < self._values[first])] = -1
+        result[(locs == 0) & (where_idx._ndarray_values <
+                              self._ndarray_values[first])] = -1
 
         return result
 
@@ -523,7 +538,8 @@ class PeriodIndex(DatelikeOps, DatetimeIndexOpsMixin, Int64Index):
         elif isinstance(value, compat.string_types):
             value = Period(value, freq=self.freq).ordinal
 
-        return self._values.searchsorted(value, side=side, sorter=sorter)
+        return self._ndarray_values.searchsorted(value, side=side,
+                                                 sorter=sorter)
 
     @property
     def is_all_dates(self):
@@ -664,7 +680,7 @@ class PeriodIndex(DatelikeOps, DatetimeIndexOpsMixin, Int64Index):
         base, mult = _gfc(freq)
         new_data = self.asfreq(freq, how)
 
-        new_data = period.periodarr_to_dt64arr(new_data._values, base)
+        new_data = period.periodarr_to_dt64arr(new_data._ndarray_values, base)
         return DatetimeIndex(new_data, freq='infer', name=self.name)
 
     def _maybe_convert_timedelta(self, other):
@@ -714,7 +730,7 @@ class PeriodIndex(DatelikeOps, DatetimeIndexOpsMixin, Int64Index):
         if other is tslib.NaT:
             new_data = np.empty(len(self), dtype=np.int64)
             new_data.fill(tslib.iNaT)
-            return TimedeltaIndex(new_data, name=self.name)
+            return TimedeltaIndex(new_data)
         return NotImplemented
 
     def _sub_period(self, other):
@@ -729,7 +745,29 @@ class PeriodIndex(DatelikeOps, DatetimeIndexOpsMixin, Int64Index):
             new_data = new_data.astype(np.float64)
             new_data[self._isnan] = np.nan
         # result must be Int64Index or Float64Index
-        return Index(new_data, name=self.name)
+        return Index(new_data)
+
+    def _add_offset_array(self, other):
+        # Array/Index of DateOffset objects
+        if len(other) == 1:
+            return self + other[0]
+        else:
+            warnings.warn("Adding/subtracting array of DateOffsets to "
+                          "{cls} not vectorized"
+                          .format(cls=type(self).__name__), PerformanceWarning)
+            res_values = self.astype('O').values + np.array(other)
+            return self.__class__(res_values)
+
+    def _sub_offset_array(self, other):
+        # Array/Index of DateOffset objects
+        if len(other) == 1:
+            return self - other[0]
+        else:
+            warnings.warn("Adding/subtracting array of DateOffsets to "
+                          "{cls} not vectorized"
+                          .format(cls=type(self).__name__), PerformanceWarning)
+            res_values = self.astype('O').values - np.array(other)
+            return self.__class__(res_values)
 
     def shift(self, n):
         """
@@ -744,7 +782,7 @@ class PeriodIndex(DatelikeOps, DatetimeIndexOpsMixin, Int64Index):
         -------
         shifted : PeriodIndex
         """
-        values = self._values + n * self.freq.n
+        values = self._ndarray_values + n * self.freq.n
         if self.hasnans:
             values[self._isnan] = tslib.iNaT
         return self._shallow_copy(values=values)
@@ -775,7 +813,7 @@ class PeriodIndex(DatelikeOps, DatetimeIndexOpsMixin, Int64Index):
                 grp = resolution.Resolution.get_freq_group(reso)
                 freqn = resolution.get_freq_group(self.freq)
 
-                vals = self._values
+                vals = self._ndarray_values
 
                 # if our data is higher resolution than requested key, slice
                 if grp < freqn:
@@ -786,7 +824,7 @@ class PeriodIndex(DatelikeOps, DatetimeIndexOpsMixin, Int64Index):
                     if ord2 < vals[0] or ord1 > vals[-1]:
                         raise KeyError(key)
 
-                    pos = np.searchsorted(self._values, [ord1, ord2])
+                    pos = np.searchsorted(self._ndarray_values, [ord1, ord2])
                     key = slice(pos[0], pos[1] + 1)
                     return series[key]
                 elif grp == freqn:

@@ -1,4 +1,6 @@
 """An interface for extending pandas with custom arrays."""
+import numpy as np
+
 from pandas.errors import AbstractMethodError
 
 _not_implemented_message = "{} does not implement {}."
@@ -138,6 +140,25 @@ class ExtensionArray(object):
     # ------------------------------------------------------------------------
     # Additional Methods
     # ------------------------------------------------------------------------
+    def astype(self, dtype, copy=True):
+        """Cast to a NumPy array with 'dtype'.
+
+        Parameters
+        ----------
+        dtype : str or dtype
+            Typecode or data-type to which the array is cast.
+        copy : bool, default True
+            Whether to copy the data, even if not necessary. If False,
+            a copy is made only if the old dtype does not match the
+            new dtype.
+
+        Returns
+        -------
+        array : ndarray
+            NumPy ndarray with 'dtype' for its dtype.
+        """
+        return np.array(self, dtype=dtype, copy=copy)
+
     def isna(self):
         # type: () -> np.ndarray
         """Boolean NumPy array indicating if each value is missing.
@@ -245,3 +266,15 @@ class ExtensionArray(object):
         Setting this to false will optimize some operations like fillna.
         """
         return True
+
+    @property
+    def _ndarray_values(self):
+        # type: () -> np.ndarray
+        """Internal pandas method for lossy conversion to a NumPy ndarray.
+
+        This method is not part of the pandas interface.
+
+        The expectation is that this is cheap to compute, and is primarily
+        used for interacting with our indexers.
+        """
+        return np.array(self)

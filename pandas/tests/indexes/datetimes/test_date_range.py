@@ -222,16 +222,13 @@ class TestDateRanges(TestData):
         with tm.assert_raises_regex(ValueError, msg):
             date_range()
 
-    def test_compat_replace(self):
+    @pytest.mark.parametrize('f', [compat.long, int])
+    def test_compat_replace(self, f):
         # https://github.com/statsmodels/statsmodels/issues/3349
         # replace should take ints/longs for compat
-
-        for f in [compat.long, int]:
-            result = date_range(Timestamp('1960-04-01 00:00:00',
-                                          freq='QS-JAN'),
-                                periods=f(76),
-                                freq='QS-JAN')
-            assert len(result) == 76
+        result = date_range(Timestamp('1960-04-01 00:00:00', freq='QS-JAN'),
+                            periods=f(76), freq='QS-JAN')
+        assert len(result) == 76
 
     def test_catch_infinite_loop(self):
         offset = offsets.DateOffset(minute=5)
@@ -484,24 +481,24 @@ class TestBusinessDateRange(object):
         assert dr[0] == start
         assert dr[2] == end
 
-    def test_range_closed(self):
+    @pytest.mark.parametrize('freq', ["1D", "3D", "2M", "7W", "3H", "A"])
+    def test_range_closed(self, freq):
         begin = datetime(2011, 1, 1)
         end = datetime(2014, 1, 1)
 
-        for freq in ["1D", "3D", "2M", "7W", "3H", "A"]:
-            closed = date_range(begin, end, closed=None, freq=freq)
-            left = date_range(begin, end, closed="left", freq=freq)
-            right = date_range(begin, end, closed="right", freq=freq)
-            expected_left = left
-            expected_right = right
+        closed = date_range(begin, end, closed=None, freq=freq)
+        left = date_range(begin, end, closed="left", freq=freq)
+        right = date_range(begin, end, closed="right", freq=freq)
+        expected_left = left
+        expected_right = right
 
-            if end == closed[-1]:
-                expected_left = closed[:-1]
-            if begin == closed[0]:
-                expected_right = closed[1:]
+        if end == closed[-1]:
+            expected_left = closed[:-1]
+        if begin == closed[0]:
+            expected_right = closed[1:]
 
-            tm.assert_index_equal(expected_left, left)
-            tm.assert_index_equal(expected_right, right)
+        tm.assert_index_equal(expected_left, left)
+        tm.assert_index_equal(expected_right, right)
 
     def test_range_closed_with_tz_aware_start_end(self):
         # GH12409, GH12684
@@ -546,28 +543,28 @@ class TestBusinessDateRange(object):
             tm.assert_index_equal(expected_left, left)
             tm.assert_index_equal(expected_right, right)
 
-    def test_range_closed_boundary(self):
-        # GH 11804
-        for closed in ['right', 'left', None]:
-            right_boundary = date_range('2015-09-12', '2015-12-01',
-                                        freq='QS-MAR', closed=closed)
-            left_boundary = date_range('2015-09-01', '2015-09-12',
-                                       freq='QS-MAR', closed=closed)
-            both_boundary = date_range('2015-09-01', '2015-12-01',
-                                       freq='QS-MAR', closed=closed)
-            expected_right = expected_left = expected_both = both_boundary
+    @pytest.mark.parametrize('closed', ['right', 'left', None])
+    def test_range_closed_boundary(self, closed):
+        # GH#11804
+        right_boundary = date_range('2015-09-12', '2015-12-01',
+                                    freq='QS-MAR', closed=closed)
+        left_boundary = date_range('2015-09-01', '2015-09-12',
+                                   freq='QS-MAR', closed=closed)
+        both_boundary = date_range('2015-09-01', '2015-12-01',
+                                   freq='QS-MAR', closed=closed)
+        expected_right = expected_left = expected_both = both_boundary
 
-            if closed == 'right':
-                expected_left = both_boundary[1:]
-            if closed == 'left':
-                expected_right = both_boundary[:-1]
-            if closed is None:
-                expected_right = both_boundary[1:]
-                expected_left = both_boundary[:-1]
+        if closed == 'right':
+            expected_left = both_boundary[1:]
+        if closed == 'left':
+            expected_right = both_boundary[:-1]
+        if closed is None:
+            expected_right = both_boundary[1:]
+            expected_left = both_boundary[:-1]
 
-            tm.assert_index_equal(right_boundary, expected_right)
-            tm.assert_index_equal(left_boundary, expected_left)
-            tm.assert_index_equal(both_boundary, expected_both)
+        tm.assert_index_equal(right_boundary, expected_right)
+        tm.assert_index_equal(left_boundary, expected_left)
+        tm.assert_index_equal(both_boundary, expected_both)
 
     def test_years_only(self):
         # GH 6961

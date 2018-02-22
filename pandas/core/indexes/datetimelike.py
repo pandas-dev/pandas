@@ -29,13 +29,14 @@ from pandas.core.dtypes.common import (
 from pandas.core.dtypes.generic import (
     ABCIndex, ABCSeries, ABCPeriodIndex, ABCIndexClass)
 from pandas.core.dtypes.missing import isna
-from pandas.core import common as com, algorithms
+from pandas.core import common as com, algorithms, ops
 from pandas.core.algorithms import checked_add_with_arr
 from pandas.errors import NullFrequencyError
 import pandas.io.formats.printing as printing
 from pandas._libs import lib, iNaT, NaT
 from pandas._libs.tslibs.period import Period
 from pandas._libs.tslibs.timedeltas import delta_to_nanoseconds
+from pandas._libs.tslibs.timestamps import round_ns
 
 from pandas.core.indexes.base import Index, _index_shared_docs
 from pandas.util._decorators import Appender, cache_readonly
@@ -90,23 +91,9 @@ class TimelikeOps(object):
         """)
 
     def _round(self, freq, rounder):
-
-        from pandas.tseries.frequencies import to_offset
-        unit = to_offset(freq).nanos
         # round the local times
         values = _ensure_datetimelike_to_i8(self)
-        if unit < 1000 and unit % 1000 != 0:
-            # for nano rounding, work with the last 6 digits separately
-            # due to float precision
-            buff = 1000000
-            result = (buff * (values // buff) + unit *
-                      (rounder((values % buff) / float(unit))).astype('i8'))
-        elif unit >= 1000 and unit % 1000 != 0:
-            msg = 'Precision will be lost using frequency: {}'
-            warnings.warn(msg.format(freq))
-            result = (unit * rounder(values / float(unit)).astype('i8'))
-        else:
-            result = (unit * rounder(values / float(unit)).astype('i8'))
+        result = round_ns(values, rounder, freq)
         result = self._maybe_mask_results(result, fill_value=NaT)
 
         attribs = self._get_attributes_dict()
@@ -389,7 +376,7 @@ class DatetimeIndexOpsMixin(object):
             sorted_index = self.take(_as)
             return sorted_index, _as
         else:
-            sorted_values = np.sort(self._values)
+            sorted_values = np.sort(self._ndarray_values)
             attribs = self._get_attributes_dict()
             freq = attribs['freq']
 
@@ -674,28 +661,36 @@ class DatetimeIndexOpsMixin(object):
             if isinstance(other, ABCSeries):
                 return NotImplemented
             elif is_timedelta64_dtype(other):
-                return self._add_delta(other)
+                result = self._add_delta(other)
             elif isinstance(other, (DateOffset, timedelta)):
-                return self._add_delta(other)
+                result = self._add_delta(other)
             elif is_offsetlike(other):
                 # Array/Index of DateOffset objects
-                return self._add_offset_array(other)
+                result = self._add_offset_array(other)
             elif isinstance(self, TimedeltaIndex) and isinstance(other, Index):
                 if hasattr(other, '_add_delta'):
-                    return other._add_delta(self)
-                raise TypeError("cannot add TimedeltaIndex and {typ}"
-                                .format(typ=type(other)))
+                    result = other._add_delta(self)
+                else:
+                    raise TypeError("cannot add TimedeltaIndex and {typ}"
+                                    .format(typ=type(other)))
             elif is_integer(other):
-                return self.shift(other)
+                # This check must come after the check for timedelta64_dtype
+                # or else it will incorrectly catch np.timedelta64 objects
+                result = self.shift(other)
             elif isinstance(other, (datetime, np.datetime64)):
-                return self._add_datelike(other)
+                result = self._add_datelike(other)
             elif isinstance(other, Index):
-                return self._add_datelike(other)
+                result = self._add_datelike(other)
             elif is_integer_dtype(other) and self.freq is None:
                 # GH#19123
                 raise NullFrequencyError("Cannot shift with no freq")
             else:  # pragma: no cover
                 return NotImplemented
+
+            if result is not NotImplemented:
+                res_name = ops.get_op_result_name(self, other)
+                result.name = res_name
+            return result
 
         cls.__add__ = __add__
         cls.__radd__ = __add__
@@ -710,25 +705,27 @@ class DatetimeIndexOpsMixin(object):
             if isinstance(other, ABCSeries):
                 return NotImplemented
             elif is_timedelta64_dtype(other):
-                return self._add_delta(-other)
+                result = self._add_delta(-other)
             elif isinstance(other, (DateOffset, timedelta)):
-                return self._add_delta(-other)
+                result = self._add_delta(-other)
             elif is_offsetlike(other):
                 # Array/Index of DateOffset objects
-                return self._sub_offset_array(other)
+                result = self._sub_offset_array(other)
             elif isinstance(self, TimedeltaIndex) and isinstance(other, Index):
                 if not isinstance(other, TimedeltaIndex):
                     raise TypeError("cannot subtract TimedeltaIndex and {typ}"
                                     .format(typ=type(other).__name__))
-                return self._add_delta(-other)
+                result = self._add_delta(-other)
             elif isinstance(other, DatetimeIndex):
-                return self._sub_datelike(other)
+                result = self._sub_datelike(other)
             elif is_integer(other):
-                return self.shift(-other)
+                # This check must come after the check for timedelta64_dtype
+                # or else it will incorrectly catch np.timedelta64 objects
+                result = self.shift(-other)
             elif isinstance(other, (datetime, np.datetime64)):
-                return self._sub_datelike(other)
+                result = self._sub_datelike(other)
             elif isinstance(other, Period):
-                return self._sub_period(other)
+                result = self._sub_period(other)
             elif isinstance(other, Index):
                 raise TypeError("cannot subtract {typ1} and {typ2}"
                                 .format(typ1=type(self).__name__,
@@ -738,6 +735,11 @@ class DatetimeIndexOpsMixin(object):
                 raise NullFrequencyError("Cannot shift with no freq")
             else:  # pragma: no cover
                 return NotImplemented
+
+            if result is not NotImplemented:
+                res_name = ops.get_op_result_name(self, other)
+                result.name = res_name
+            return result
 
         cls.__sub__ = __sub__
 
