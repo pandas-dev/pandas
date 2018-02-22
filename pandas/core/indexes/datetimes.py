@@ -887,7 +887,7 @@ class DatetimeIndex(DatelikeOps, TimelikeOps, DatetimeIndexOpsMixin,
         else:
             raise TypeError("cannot subtract DatetimeIndex and {typ}"
                             .format(typ=type(other).__name__))
-        return TimedeltaIndex(result, name=self.name, copy=False)
+        return TimedeltaIndex(result)
 
     def _sub_datelike_dti(self, other):
         """subtraction of two DatetimeIndexes"""
@@ -911,20 +911,31 @@ class DatetimeIndex(DatelikeOps, TimelikeOps, DatetimeIndexOpsMixin,
         return attrs
 
     def _add_delta(self, delta):
-        if isinstance(delta, ABCSeries):
-            return NotImplemented
+        """
+        Add a timedelta-like, DateOffset, or TimedeltaIndex-like object
+        to self.
 
+        Parameters
+        ----------
+        delta : {timedelta, np.timedelta64, DateOffset,
+                 TimedelaIndex, ndarray[timedelta64]}
+
+        Returns
+        -------
+        result : DatetimeIndex
+
+        Notes
+        -----
+        The result's name is set outside of _add_delta by the calling
+        method (__add__ or __sub__)
+        """
         from pandas import TimedeltaIndex
-        name = self.name
 
         if isinstance(delta, (Tick, timedelta, np.timedelta64)):
             new_values = self._add_delta_td(delta)
         elif is_timedelta64_dtype(delta):
             if not isinstance(delta, TimedeltaIndex):
                 delta = TimedeltaIndex(delta)
-            else:
-                # update name when delta is Index
-                name = com._maybe_match_name(self, delta)
             new_values = self._add_delta_tdi(delta)
         elif isinstance(delta, DateOffset):
             new_values = self._add_offset(delta).asi8
@@ -932,7 +943,7 @@ class DatetimeIndex(DatelikeOps, TimelikeOps, DatetimeIndexOpsMixin,
             new_values = self.astype('O') + delta
 
         tz = 'UTC' if self.tz is not None else None
-        result = DatetimeIndex(new_values, tz=tz, name=name, freq='infer')
+        result = DatetimeIndex(new_values, tz=tz, freq='infer')
         if self.tz is not None and self.tz is not utc:
             result = result.tz_convert(self.tz)
         return result
@@ -955,22 +966,19 @@ class DatetimeIndex(DatelikeOps, TimelikeOps, DatetimeIndexOpsMixin,
 
     def _add_offset_array(self, other):
         # Array/Index of DateOffset objects
-        if isinstance(other, ABCSeries):
-            return NotImplemented
-        elif len(other) == 1:
+        if len(other) == 1:
             return self + other[0]
         else:
             warnings.warn("Adding/subtracting array of DateOffsets to "
                           "{} not vectorized".format(type(self)),
                           PerformanceWarning)
             return self.astype('O') + np.array(other)
+            # TODO: pass freq='infer' like we do in _sub_offset_array?
             # TODO: This works for __add__ but loses dtype in __sub__
 
     def _sub_offset_array(self, other):
         # Array/Index of DateOffset objects
-        if isinstance(other, ABCSeries):
-            return NotImplemented
-        elif len(other) == 1:
+        if len(other) == 1:
             return self - other[0]
         else:
             warnings.warn("Adding/subtracting array of DateOffsets to "

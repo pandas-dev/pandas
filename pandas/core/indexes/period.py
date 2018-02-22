@@ -727,7 +727,7 @@ class PeriodIndex(DatelikeOps, DatetimeIndexOpsMixin, Int64Index):
         if other is tslib.NaT:
             new_data = np.empty(len(self), dtype=np.int64)
             new_data.fill(tslib.iNaT)
-            return TimedeltaIndex(new_data, name=self.name)
+            return TimedeltaIndex(new_data)
         return NotImplemented
 
     def _sub_period(self, other):
@@ -742,7 +742,7 @@ class PeriodIndex(DatelikeOps, DatetimeIndexOpsMixin, Int64Index):
             new_data = new_data.astype(np.float64)
             new_data[self._isnan] = np.nan
         # result must be Int64Index or Float64Index
-        return Index(new_data, name=self.name)
+        return Index(new_data)
 
     def shift(self, n):
         """
