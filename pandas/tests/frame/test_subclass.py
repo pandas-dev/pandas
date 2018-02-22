@@ -514,3 +514,20 @@ class TestDataFrameSubclassing(TestData):
         long_frame = pd.wide_to_long(df, ["A", "B"], i="id", j="year")
 
         tm.assert_frame_equal(long_frame, expected)
+
+    def test_subclassed_apply(self):
+        #GH 19822
+
+        def check_row_subclass( row ):
+            assert isinstance(row, tm.SubclassedSeries)
+
+        df = tm.SubclassedDataFrame({
+            ['John', 'Doe', 'height', 5.5],
+            ['Mary', 'Bo', 'height', 6.0],
+            ['John', 'Doe', 'weight', 130],
+            ['Mary', 'Bo', 'weight', 150]],
+            columns=['first', 'last', 'variable', 'value']
+        })
+
+        df.apply(lambda x: check_row_subclass(x))
+        df.apply(lambda x: check_row_subclass(x), axis=1)

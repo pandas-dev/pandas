@@ -153,6 +153,7 @@ class FrameApply(object):
 
         from pandas import Series
         if not reduce:
+
             EMPTY_SERIES = Series([])
             try:
                 r = self.f(EMPTY_SERIES, *self.args, **self.kwds)
