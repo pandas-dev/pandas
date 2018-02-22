@@ -75,10 +75,6 @@ cdef extern from "period_helper.h":
     int FR_BUS
     int FR_UND
 
-    int ORD_OFFSET
-    int WEEK_OFFSET
-    int BDAY_OFFSET
-
     ctypedef struct date_info:
         double second
         int minute
@@ -181,7 +177,7 @@ cdef int64_t get_period_ordinal(int year, int month, int day,
     period_ordinal : int64_t
     """
     cdef:
-        int64_t absdays, unix_date, seconds, delta
+        int64_t unix_date, seconds, delta
         int64_t weeks
         int64_t day_adj
         int freq_group, fmonth, mdiff
@@ -215,8 +211,7 @@ cdef int64_t get_period_ordinal(int year, int month, int day,
     elif freq == FR_MTH:
         return (year - 1970) * 12 + month - 1
 
-    absdays = absdate_from_ymd(year, month, day)
-    unix_date = absdays - ORD_OFFSET
+    unix_date = unix_date_from_ymd(year, month, day)
 
     if freq >= FR_SEC:
         seconds = unix_date * 86400 + hour * 3600 + minute * 60 + second
@@ -247,48 +242,48 @@ cdef int64_t get_period_ordinal(int year, int month, int day,
         return unix_date
 
     elif freq == FR_BUS:
-        # calculate the current week assuming sunday as last day of a week
-        # Jan 1 0001 is a Monday, so subtract 1 to get to end-of-week
-        weeks = (unix_date + ORD_OFFSET - 1) // 7
+        # calculate the current week (counting from 1970-01-01) treating
+        # sunday as last day of a week
+        weeks = (unix_date + 3) // 7
         # calculate the current weekday (in range 1 .. 7)
-        delta = (unix_date + ORD_OFFSET - 1) % 7 + 1
+        delta = (unix_date + 3) % 7 + 1
         # return the number of business days in full weeks plus the business
         # days in the last - possible partial - week
         if delta <= 5:
-            return (weeks * 5) + delta - BDAY_OFFSET
+            return (5 * weeks) + delta - 4
         else:
-            return (weeks * 5) + (5 + 1) - BDAY_OFFSET
+            return (5 * weeks) + (5 + 1) - 4
 
     elif freq_group == FR_WK:
         day_adj = freq - FR_WK
-        return (unix_date + ORD_OFFSET - (1 + day_adj)) // 7 + 1 - WEEK_OFFSET
+        return (unix_date + 3 - day_adj) // 7 + 1
 
     # raise ValueError
 
 
 cdef void get_date_info(int64_t ordinal, int freq, date_info *dinfo) nogil:
     cdef:
-        int64_t absdate
+        int64_t unix_date
         double abstime
 
-    absdate = get_python_ordinal(ordinal, freq);
-    abstime = get_abs_time(freq, absdate - ORD_OFFSET, ordinal)
+    unix_date = get_unix_date(ordinal, freq)
+    abstime = get_abs_time(freq, unix_date, ordinal)
 
     while abstime < 0:
         abstime += 86400
-        absdate -= 1
+        unix_date -= 1
 
     while abstime >= 86400:
         abstime -= 86400
-        absdate += 1
+        unix_date += 1
 
-    dInfoCalc_SetFromAbsDateTime(dinfo, absdate, abstime)
+    date_info_from_days_and_time(dinfo, unix_date, abstime)
 
 
-cdef int64_t get_python_ordinal(int64_t period_ordinal, int freq) nogil:
+cdef int64_t get_unix_date(int64_t period_ordinal, int freq) nogil:
     """
     Returns the proleptic Gregorian ordinal of the date, as an integer.
-    This corresponds to the number of days since Jan., 1st, 1AD.
+    This corresponds to the number of days since Jan., 1st, 1970 AD.
     When the instance has a frequency less than daily, the proleptic date
     is calculated for the last day of the period.
 
@@ -299,33 +294,32 @@ cdef int64_t get_python_ordinal(int64_t period_ordinal, int freq) nogil:
 
     Returns
     -------
-    absdate : int64_t number of days since datetime(1, 1, 1)
+    unix_date : int64_t number of days since datetime(1970, 1, 1)
     """
     cdef:
         asfreq_info af_info
         freq_conv_func toDaily = NULL
 
     if freq == FR_DAY:
-        return period_ordinal + ORD_OFFSET
+        return period_ordinal
 
     toDaily = get_asfreq_func(freq, FR_DAY)
     get_asfreq_info(freq, FR_DAY, 'E', &af_info)
-    return toDaily(period_ordinal, &af_info) + ORD_OFFSET
+    return toDaily(period_ordinal, &af_info)
 
 
-cdef void dInfoCalc_SetFromAbsDateTime(date_info *dinfo,
-                                       int64_t absdate, double abstime) nogil:
+cdef void date_info_from_days_and_time(date_info *dinfo,
+                                       int64_t unix_date, double abstime) nogil:
     """
     Set the instance's value using the given date and time.
-    Assumes GREGORIAN_CALENDAR.
 
     Parameters
     ----------
     dinfo : date_info*
-    absdate : int64_t
-        days elapsed since datetime(1, 1, 1)
+    unix_date : int64_t
+        days elapsed since datetime(1970, 1, 1)
     abstime : double
-        seconds elapsed since beginning of day described by absdate
+        seconds elapsed since beginning of day described by unix_date
 
     Notes
     -----
@@ -336,13 +330,13 @@ cdef void dInfoCalc_SetFromAbsDateTime(date_info *dinfo,
     # abstime >= 0.0 and abstime <= 86400
 
     # Calculate the date
-    dInfoCalc_SetFromAbsDate(dinfo, absdate)
+    set_date_info_ymd(dinfo, unix_date)
 
     # Calculate the time
-    dInfoCalc_SetFromAbsTime(dinfo, abstime)
+    set_date_info_hms(dinfo, abstime)
 
 
-cdef void dInfoCalc_SetFromAbsDate(date_info *dinfo, int64_t absdate) nogil:
+cdef void set_date_info_ymd(date_info *dinfo, int64_t unix_date) nogil:
     """
     Sets the date part of the date_info struct
     Assumes GREGORIAN_CALENDAR
@@ -351,6 +345,7 @@ cdef void dInfoCalc_SetFromAbsDate(date_info *dinfo, int64_t absdate) nogil:
     ----------
     dinfo : date_info*
     unix_date : int64_t
+        days elapsed since datetime(1970, 1, 1)
 
     Notes
     -----
@@ -359,14 +354,14 @@ cdef void dInfoCalc_SetFromAbsDate(date_info *dinfo, int64_t absdate) nogil:
     cdef:
         pandas_datetimestruct dts
 
-    pandas_datetime_to_datetimestruct(absdate - ORD_OFFSET, PANDAS_FR_D, &dts)
+    pandas_datetime_to_datetimestruct(unix_date, PANDAS_FR_D, &dts)
     dinfo.year = dts.year
     dinfo.month = dts.month
     dinfo.day = dts.day
 
 
 @cython.cdivision
-cdef void dInfoCalc_SetFromAbsTime(date_info *dinfo, double abstime) nogil:
+cdef void set_date_info_hms(date_info *dinfo, double abstime) nogil:
     """
     Sets the time part of the DateTime object.
 
@@ -374,7 +369,7 @@ cdef void dInfoCalc_SetFromAbsTime(date_info *dinfo, double abstime) nogil:
     ----------
     dinfo : date_info*
     abstime : double
-        seconds elapsed since beginning of day described by absdate
+        seconds elapsed since beginning of day described by unix_date
 
     Notes
     -----
@@ -396,8 +391,7 @@ cdef void dInfoCalc_SetFromAbsTime(date_info *dinfo, double abstime) nogil:
 
 
 @cython.cdivision
-cdef double get_abs_time(int freq, int64_t date_ordinal,
-                         int64_t ordinal) nogil:
+cdef double get_abs_time(int freq, int64_t unix_date, int64_t ordinal) nogil:
     cdef:
         int freq_index, day_index, base_index
         int64_t per_day, start_ord
@@ -416,16 +410,15 @@ cdef double get_abs_time(int freq, int64_t date_ordinal,
     if base_index < freq_index:
         unit = 1 / unit
 
-    start_ord = date_ordinal * per_day
+    start_ord = unix_date * per_day
     result = <double>(unit * (ordinal - start_ord))
     return result
 
 
-cdef int64_t absdate_from_ymd(int year, int month, int day) nogil:
+cdef int64_t unix_date_from_ymd(int year, int month, int day) nogil:
     """
-    Find the absdate (days elapsed since datetime(1, 1, 1)
+    Find the unix_date (days elapsed since datetime(1970, 1, 1)
     for the given year/month/day.
-    Assumes GREGORIAN_CALENDAR
 
     Parameters
     ----------
@@ -435,11 +428,9 @@ cdef int64_t absdate_from_ymd(int year, int month, int day) nogil:
 
     Returns
     -------
-    absdate : int
-        days elapsed since datetime(1, 1, 1)
+    unix_date : int
+        days elapsed since datetime(1970, 1, 1)
     """
-
-    # /* Calculate the absolute date
     cdef:
         pandas_datetimestruct dts
         int64_t unix_date
@@ -449,7 +440,7 @@ cdef int64_t absdate_from_ymd(int year, int month, int day) nogil:
     dts.month = month
     dts.day = day
     unix_date = pandas_datetimestruct_to_datetime(PANDAS_FR_D, &dts)
-    return ORD_OFFSET + unix_date
+    return unix_date
 
 
 cdef int get_yq(int64_t ordinal, int freq, int *quarter, int *year):
@@ -475,9 +466,9 @@ cdef int get_yq(int64_t ordinal, int freq, int *quarter, int *year):
     cdef:
         asfreq_info af_info
         int qtr_freq
-        int64_t daily_ord
+        int64_t unix_date
 
-    daily_ord = get_python_ordinal(ordinal, freq) - ORD_OFFSET
+    unix_date = get_unix_date(ordinal, freq)
 
     if get_freq_group(freq) == FR_QTR:
         qtr_freq = freq
@@ -486,16 +477,16 @@ cdef int get_yq(int64_t ordinal, int freq, int *quarter, int *year):
 
     get_asfreq_info(FR_DAY, qtr_freq, 'E', &af_info)
 
-    DtoQ_yq(daily_ord, &af_info, year, quarter)
+    DtoQ_yq(unix_date, &af_info, year, quarter)
     return qtr_freq
 
 
-cdef void DtoQ_yq(int64_t ordinal, asfreq_info *af_info,
+cdef void DtoQ_yq(int64_t unix_date, asfreq_info *af_info,
                   int *year, int *quarter):
     cdef:
         date_info dinfo
 
-    dInfoCalc_SetFromAbsDate(&dinfo, ordinal + ORD_OFFSET)
+    set_date_info_ymd(&dinfo, unix_date)
 
     if af_info.to_q_year_end != 12:
         dinfo.month -= af_info.to_q_year_end
