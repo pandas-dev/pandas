@@ -555,7 +555,7 @@ class TestDataFrameSubclassing(TestData):
         assert isinstance(result1, tm.SubclassedDataFrame)
         tm.assert_frame_equal(result1, expected1)
 
-        result2 = df.apply(lambda x: DesignSeries([1, 2, 3]), axis=1)
+        result2 = df.apply(lambda x: tm.SubclassedSeries([1, 2, 3]), axis=1)
         assert isinstance(result2, tm.SubclassedDataFrame)
         tm.assert_frame_equal(result2, expected2)
 
