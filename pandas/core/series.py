@@ -213,11 +213,11 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
 
             elif is_extension_array_dtype(data) and dtype is not None:
                 # GH12574: Allow dtype=category only, otherwise error
-                if not data.dtype.is_dtype(dtype):
-                    raise ValueError("Cannot specify a dtype '{}' with an "
-                                     "extension array of a different "
-                                     "dtype ('{}').".format(dtype,
-                                                            data.dtype))
+                if ((dtype is not None) and
+                        not is_categorical_dtype(dtype)):
+                    raise ValueError("cannot specify a dtype with a "
+                                     "Categorical unless "
+                                     "dtype='category'")
 
             elif (isinstance(data, types.GeneratorType) or
                   (compat.PY3 and isinstance(data, map))):
@@ -235,6 +235,11 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
                 if not is_list_like(data):
                     data = [data]
                 index = com._default_index(len(data))
+            else:
+                if not is_scalar(data) and len(index) != len(data):
+                    raise ValueError('Length of passed values is {val}, '
+                                     'index implies {ind}'
+                                     .format(val=len(data), ind=len(index)))
 
             # create/copy the manager
             if isinstance(data, SingleBlockManager):

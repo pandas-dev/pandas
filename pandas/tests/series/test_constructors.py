@@ -400,6 +400,20 @@ class TestSeriesConstructors(TestData):
         s = Series([0, 1, 2])
         tm.assert_index_equal(s.index, pd.Index(np.arange(3)))
 
+    @pytest.mark.parametrize('input', [[1, 2, 3],
+                                       (1, 2, 3),
+                                       list(range(3)),
+                                       pd.Categorical(['a', 'b', 'a']),
+                                       (i for i in range(3)),
+                                       map(lambda x: x, range(3))])
+    def test_constructor_index_mismatch(self, input):
+        # GH 19342
+        # test that construction of a Series with an index of different length
+        # raises an error
+        msg = 'Length of passed values is 3, index implies 4'
+        with pytest.raises(ValueError, message=msg):
+            Series(input, index=np.arange(4))
+
     def test_constructor_corner(self):
         df = tm.makeTimeDataFrame()
         objs = [df, df]
