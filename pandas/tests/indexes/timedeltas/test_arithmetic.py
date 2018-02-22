@@ -499,12 +499,13 @@ class TestTimedeltaIndexArithmetic(object):
         tdi = dti - dti.shift(1)
         dtarr = dti.values
 
+        with pytest.raises(TypeError):
+            tdi - dtarr
+
+        # TimedeltaIndex.__rsub__
         expected = pd.DatetimeIndex(dtarr) - tdi
         result = dtarr - tdi
         tm.assert_index_equal(result, expected)
-
-        with pytest.raises(TypeError):
-            tdi - dtarr
 
     # -------------------------------------------------------------
 
