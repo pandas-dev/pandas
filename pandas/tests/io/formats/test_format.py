@@ -1016,7 +1016,7 @@ class TestDataFrameFormatting(object):
             midx = MultiIndex.from_arrays(tm.rands_array(5, size=(2, 10)))
             max_cols = get_option('display.max_columns')
             df = DataFrame(tm.rands_array(25, size=(10, max_cols - 1)),
-                            index=midx)
+                           index=midx)
             df.index.names = ['Level 0', 'Level 1']
             set_option('display.expand_frame_repr', False)
             rep_str = repr(df)
