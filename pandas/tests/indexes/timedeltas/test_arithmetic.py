@@ -494,6 +494,9 @@ class TestTimedeltaIndexArithmetic(object):
         expected = DatetimeIndex(['2011-01-02', '2011-01-03'])
         tm.assert_index_equal(result, expected)
 
+    # -------------------------------------------------------------
+    # __add__/__sub__ with ndarray[datetime64] and ndarray[timedelta64]
+
     def test_tdi_sub_dt64_array(self):
         dti = pd.date_range('2016-01-01', periods=3)
         tdi = dti - dti.shift(1)
@@ -505,6 +508,39 @@ class TestTimedeltaIndexArithmetic(object):
         # TimedeltaIndex.__rsub__
         expected = pd.DatetimeIndex(dtarr) - tdi
         result = dtarr - tdi
+        tm.assert_index_equal(result, expected)
+
+    def test_tdi_add_dt64_array(self):
+        dti = pd.date_range('2016-01-01', periods=3)
+        tdi = dti - dti.shift(1)
+        dtarr = dti.values
+
+        expected = pd.DatetimeIndex(dtarr) + tdi
+        result = tdi + dtarr
+        tm.assert_index_equal(result, expected)
+        result = dtarr + tdi
+        tm.assert_index_equal(result, expected)
+
+    def test_tdi_add_td64_array(self):
+        dti = pd.date_range('2016-01-01', periods=3)
+        tdi = dti - dti.shift(1)
+        tdarr = tdi.values
+
+        expected = 2 * tdi
+        result = tdi + tdarr
+        tm.assert_index_equal(result, expected)
+        result = tdarr + tdi
+        tm.assert_index_equal(result, expected)
+
+    def test_tdi_sub_td64_array(self):
+        dti = pd.date_range('2016-01-01', periods=3)
+        tdi = dti - dti.shift(1)
+        tdarr = tdi.values
+
+        expected = 0 * tdi
+        result = tdi - tdarr
+        tm.assert_index_equal(result, expected)
+        result = tdarr - tdi
         tm.assert_index_equal(result, expected)
 
     # -------------------------------------------------------------

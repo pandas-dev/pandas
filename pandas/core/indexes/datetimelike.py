@@ -655,6 +655,7 @@ class DatetimeIndexOpsMixin(object):
 
         def __add__(self, other):
             from pandas.core.index import Index
+            from pandas.core.indexes.datetimes import DatetimeIndex
             from pandas.core.indexes.timedeltas import TimedeltaIndex
             from pandas.tseries.offsets import DateOffset
 
@@ -682,6 +683,9 @@ class DatetimeIndexOpsMixin(object):
                 result = self._add_datelike(other)
             elif isinstance(other, Index):
                 result = self._add_datelike(other)
+            elif is_datetime64_dtype(other):
+                # ndarray[datetime64]; note DatetimeIndex is caught above
+                return self + DatetimeIndex(other)
             elif is_integer_dtype(other) and self.freq is None:
                 # GH#19123
                 raise NullFrequencyError("Cannot shift with no freq")
@@ -727,6 +731,9 @@ class DatetimeIndexOpsMixin(object):
                 result = self._sub_datelike(other)
             elif isinstance(other, Period):
                 result = self._sub_period(other)
+            elif is_datetime64_dtype(other):
+                # ndarray[datetime64]; note we caught DatetimeIndex earlier
+                return self - DatetimeIndex(other)
             elif isinstance(other, Index):
                 raise TypeError("cannot subtract {typ1} and {typ2}"
                                 .format(typ1=type(self).__name__,
