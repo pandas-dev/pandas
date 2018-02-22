@@ -1,5 +1,6 @@
 from sys import getsizeof
 import operator
+from datetime import timedelta
 
 import numpy as np
 from pandas._libs import index as libindex
@@ -8,7 +9,7 @@ from pandas.core.dtypes.common import (
     is_integer,
     is_scalar,
     is_int64_dtype)
-from pandas.core.dtypes.generic import ABCSeries
+from pandas.core.dtypes.generic import ABCSeries, ABCTimedeltaIndex
 
 from pandas import compat
 from pandas.compat import lrange, range, get_range_parameters
@@ -587,6 +588,15 @@ class RangeIndex(Int64Index):
             def _evaluate_numeric_binop(self, other):
                 if isinstance(other, ABCSeries):
                     return NotImplemented
+                elif isinstance(other, ABCTimedeltaIndex):
+                    # Defer to TimedeltaIndex implementation
+                    return NotImplemented
+                elif isinstance(other, (timedelta, np.timedelta64)):
+                    # GH#19333 is_integer evaluated True on timedelta64,
+                    # so we need to catch these explicitly
+                    if reversed:
+                        return op(other, self._int64index)
+                    return op(self._int64index, other)
 
                 other = self._validate_for_numeric_binop(other, op, opstr)
                 attrs = self._get_attributes_dict()
