@@ -521,13 +521,12 @@ class TestDataFrameSubclassing(TestData):
         def check_row_subclass( row ):
             assert isinstance(row, tm.SubclassedSeries)
 
-        df = tm.SubclassedDataFrame({
+        df = tm.SubclassedDataFrame([
             ['John', 'Doe', 'height', 5.5],
             ['Mary', 'Bo', 'height', 6.0],
             ['John', 'Doe', 'weight', 130],
             ['Mary', 'Bo', 'weight', 150]],
-            columns=['first', 'last', 'variable', 'value']
-        })
+            columns=['first', 'last', 'variable', 'value'])
 
         df.apply(lambda x: check_row_subclass(x))
         df.apply(lambda x: check_row_subclass(x), axis=1)
