@@ -1612,7 +1612,7 @@ class DataFrame(NDFrame):
         time_stamp : datetime
             A datetime to use as file creation date.  Default is the current
             time.
-        dataset_label : str
+        data_label : str
             A label for the data set.  Must be 80 characters or smaller.
         variable_labels : dict
             Dictionary containing columns as keys and variable labels as
@@ -1635,10 +1635,18 @@ class DataFrame(NDFrame):
 
         Examples
         --------
+        >>> data.to_stata('./data_file.dta')
+
+        Or with dates
+
+        >>> data.to_stata('./date_data_file.dta', {2 : 'tw'})
+
+        Alternatively you can create an instance of the StataWriter class
+
         >>> writer = StataWriter('./data_file.dta', data)
         >>> writer.write_file()
 
-        Or with dates
+        With dates:
 
         >>> writer = StataWriter('./date_data_file.dta', data, {2 : 'tw'})
         >>> writer.write_file()
