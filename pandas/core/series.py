@@ -1015,7 +1015,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         >>> s = pd.Series([1, 2, 3, 4], index=pd.Index(['a', 'b', 'c', 'd'],
         ...                                            name = 'idx'))
         >>> s.reset_index()
-           index  0
+             idx  0
         0      0  1
         1      1  2
         2      2  3
