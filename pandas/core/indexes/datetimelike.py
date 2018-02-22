@@ -681,9 +681,19 @@ class DatetimeIndexOpsMixin(object):
             other = lib.item_from_zerodim(other)
             if isinstance(other, ABCSeries):
                 return NotImplemented
-            elif is_timedelta64_dtype(other):
+
+            # scalar others
+            elif isinstance(other, (DateOffset, timedelta, np.timedelta64)):
                 result = self._add_delta(other)
-            elif isinstance(other, (DateOffset, timedelta)):
+            elif isinstance(other, (datetime, np.datetime64)):
+                result = self._add_datelike(other)
+            elif is_integer(other):
+                # This check must come after the check for np.timedelta64
+                # as is_integer returns True for these
+                result = self.shift(other)
+
+            # array-like others
+            elif is_timedelta64_dtype(other):
                 result = self._add_delta(other)
             elif is_offsetlike(other):
                 # Array/Index of DateOffset objects
@@ -694,12 +704,6 @@ class DatetimeIndexOpsMixin(object):
                 else:
                     raise TypeError("cannot add TimedeltaIndex and {typ}"
                                     .format(typ=type(other)))
-            elif is_integer(other):
-                # This check must come after the check for timedelta64_dtype
-                # or else it will incorrectly catch np.timedelta64 objects
-                result = self.shift(other)
-            elif isinstance(other, (datetime, np.datetime64)):
-                result = self._add_datelike(other)
             elif isinstance(other, Index):
                 result = self._add_datelike(other)
             elif is_integer_dtype(other) and self.freq is None:
@@ -725,9 +729,21 @@ class DatetimeIndexOpsMixin(object):
             other = lib.item_from_zerodim(other)
             if isinstance(other, ABCSeries):
                 return NotImplemented
-            elif is_timedelta64_dtype(other):
+
+            # scalar others
+            elif isinstance(other, (DateOffset, timedelta, np.timedelta64)):
                 result = self._add_delta(-other)
-            elif isinstance(other, (DateOffset, timedelta)):
+            elif isinstance(other, (datetime, np.datetime64)):
+                result = self._sub_datelike(other)
+            elif is_integer(other):
+                # This check must come after the check for np.timedelta64
+                # as is_integer returns True for these
+                result = self.shift(-other)
+            elif isinstance(other, Period):
+                result = self._sub_period(other)
+
+            # array-like others
+            elif is_timedelta64_dtype(other):
                 result = self._add_delta(-other)
             elif is_offsetlike(other):
                 # Array/Index of DateOffset objects
@@ -739,14 +755,6 @@ class DatetimeIndexOpsMixin(object):
                 result = self._add_delta(-other)
             elif isinstance(other, DatetimeIndex):
                 result = self._sub_datelike(other)
-            elif is_integer(other):
-                # This check must come after the check for timedelta64_dtype
-                # or else it will incorrectly catch np.timedelta64 objects
-                result = self.shift(-other)
-            elif isinstance(other, (datetime, np.datetime64)):
-                result = self._sub_datelike(other)
-            elif isinstance(other, Period):
-                result = self._sub_period(other)
             elif isinstance(other, Index):
                 raise TypeError("cannot subtract {typ1} and {typ2}"
                                 .format(typ1=type(self).__name__,
