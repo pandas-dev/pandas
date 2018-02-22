@@ -85,7 +85,7 @@ def _generate_temp_docstring_file(methods):
     #
     # # generate docstring pages
     # print("Running sphinx-autogen to generate docstring stub pages")
-    # os.system("sphinx-autogen -t _templates -o source/generated source/*.rst")
+    # os.system("sphinx-autogen -o source/generated source/*.rst")
 
     # create the temporary directory in which we will link the target file
     try:
@@ -113,11 +113,11 @@ def _generate_temp_docstring_file(methods):
 ================
 
 .. autosummary::
-    {toctree}
+    :toctree: generated_temp/
+
     {name}
 
-    """.format(name='\n    '.join(methods),
-               toctree=':toctree: generated_temp/\n' if not linked else '')
+    """.format(name='\n    '.join(methods))
 
     with open(os.path.join(SOURCE_PATH, "temp.rst"), 'w') as f:
         f.write(s)
