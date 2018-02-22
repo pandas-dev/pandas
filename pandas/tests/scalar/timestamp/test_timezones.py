@@ -28,17 +28,15 @@ class TestTimestampTZOperations(object):
         pac = Timestamp.min.tz_localize('US/Pacific')
         assert pac.value > Timestamp.min.value
         pac.tz_convert('Asia/Tokyo')  # tz_convert doesn't change value
-        with tm.assert_produces_warning(RuntimeWarning):
-            with pytest.raises(OutOfBoundsDatetime):
-                Timestamp.min.tz_localize('Asia/Tokyo')
+        with pytest.raises(OutOfBoundsDatetime):
+            Timestamp.min.tz_localize('Asia/Tokyo')
 
         # tz_localize that pushes away from the boundary is OK
         tokyo = Timestamp.max.tz_localize('Asia/Tokyo')
         assert tokyo.value < Timestamp.max.value
         tokyo.tz_convert('US/Pacific')  # tz_convert doesn't change value
-        with tm.assert_produces_warning(RuntimeWarning):
-            with pytest.raises(OutOfBoundsDatetime):
-                Timestamp.max.tz_localize('US/Pacific')
+        with pytest.raises(OutOfBoundsDatetime):
+            Timestamp.max.tz_localize('US/Pacific')
 
     def test_tz_localize_ambiguous_bool(self):
         # make sure that we are correctly accepting bool values as ambiguous
