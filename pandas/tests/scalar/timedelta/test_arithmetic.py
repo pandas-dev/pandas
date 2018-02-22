@@ -216,6 +216,16 @@ class TestTimedeltaMultiplicationDivision(object):
     # ---------------------------------------------------------------
     # Timedelta.__mul__, __rmul__
 
+    @pytest.mark.parametrize('td_nat', [pd.NaT,
+                                        np.timedelta64('NaT', 'ns'),
+                                        np.timedelta64('NaT')])
+    @pytest.mark.parametrize('op', [operator.mul, ops.rmul])
+    def test_td_mul_nat(self, op, td_nat):
+        # GH#19819
+        td = Timedelta(10, unit='d')
+        with pytest.raises(TypeError):
+            op(td, td_nat)
+
     @pytest.mark.parametrize('op', [operator.mul, ops.rmul])
     def test_td_mul_scalar(self, op):
         # GH#19738
