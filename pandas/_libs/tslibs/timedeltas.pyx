@@ -448,7 +448,7 @@ cdef inline timedelta_from_spec(object number, object frac, object unit):
 # ----------------------------------------------------------------------
 # Timedelta ops utilities
 
-cdef bint _validate_ops_compat(other):
+cdef bint _validate_ops_compat(other) except -1:
     # return True if we are compat with operating
     if checknull_with_nat(other):
         return True
@@ -1268,9 +1268,9 @@ cdef _require_td64_has_unit(value):
         if util.is_array(value) or (value.view('i8') != NPY_NAT):
             # If it is timedelta64('NaT') then its meaning is unambigous
             # even though it does not have a unit.
-            raise ValueError('Cannot operate on timedelta64 value without a '
-                             'unit specified.  Try casting to "m8[ns]" to '
-                             'explicitly specify nanosecond unit.')
+            raise TypeError('Cannot operate on timedelta64 value without a '
+                            'unit specified.  Try casting to "m8[ns]" to '
+                            'explicitly specify nanosecond unit.')
 
 
 # resolution in ns

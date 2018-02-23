@@ -621,7 +621,7 @@ def test_require_td64_unit():
     td64 = np.timedelta64(86401)
     nat64 = np.timedelta64('NaT')
 
-    with pytest.raises(ValueError):
+    with pytest.raises(TypeError):
         # Timedelta constructor should not allow unit-less timedelta64
         Timedelta(td64)
 
@@ -637,9 +637,9 @@ def test_require_td64_unit():
                                 divmod, ops.rdivmod])
 @pytest.mark.parametrize('other', [
     np.timedelta64(86401),
-    np.array([np.timedelta64(86401)])])
+    np.array([86401], dtype='timedelta64')])
 def test_require_td64_unit_ops(op, other):
     # GH#19388
     td = Timedelta(days=3, hours=4, minutes=5)
-    with pytest.raises(ValueError):
+    with pytest.raises(TypeError):
         op(td, other)

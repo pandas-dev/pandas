@@ -83,7 +83,7 @@ class TestSeriesMissingData(TestData):
                            timedelta(days=1, seconds=9 * 3600 + 60 + 1)])
         assert_series_equal(result, expected)
 
-        result = td.fillna(np.timedelta64(int(1e9)))
+        result = td.fillna(np.timedelta64(int(1e9), 'ns'))
         expected = Series([timedelta(seconds=1), timedelta(0), timedelta(1),
                            timedelta(days=1, seconds=9 * 3600 + 60 + 1)])
         assert_series_equal(result, expected)
