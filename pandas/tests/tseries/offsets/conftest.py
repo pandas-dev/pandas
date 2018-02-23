@@ -15,7 +15,7 @@ def offset_types(request):
                         and o != 'MonthOffset'])
 def month_classes(request):
     """
-    Fixture for all the month based datetime offsets available for a time series.
+    Fixture for month based datetime offsets available for a time series.
     """
     return request.param
 
@@ -24,7 +24,7 @@ def month_classes(request):
                         issubclass(getattr(offsets, o), offsets.Tick)])
 def tick_classes(request):
     """
-    Fixture for all the Tick (day, hour, ..., nano) based datetime offsets available for a time series.
+    Fixture for Tick based datetime offsets available for a time series.
     """
     return request.param
 
