@@ -156,6 +156,7 @@ if [ "$LINT" ]; then
         RET=1
     fi
     echo "Check for deprecated messages without sphinx directive DONE"
+    
 else
     echo "NOT Linting"
 fi
