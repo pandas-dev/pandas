@@ -63,6 +63,8 @@ class Styler(object):
         a unique identifier to avoid CSS collisons; generated automatically
     caption: str, default None
         caption to attach to the table
+    disabled_mathjax: bool, default False
+        prevent MathJax from processing table contents
 
     Attributes
     ----------
@@ -111,7 +113,7 @@ class Styler(object):
     template = env.get_template("html.tpl")
 
     def __init__(self, data, precision=None, table_styles=None, uuid=None,
-                 caption=None, table_attributes=None):
+                 caption=None, disabled_mathjax=False, table_attributes=None):
         self.ctx = defaultdict(list)
         self._todo = []
 
@@ -129,6 +131,7 @@ class Styler(object):
         self.uuid = uuid
         self.table_styles = table_styles
         self.caption = caption
+        self.disabled_mathjax = disabled_mathjax
         if precision is None:
             precision = get_option('display.precision')
         self.precision = precision
@@ -181,6 +184,7 @@ class Styler(object):
         """
         table_styles = self.table_styles or []
         caption = self.caption
+        disabled_mathjax = self.disabled_mathjax
         ctx = self.ctx
         precision = self.precision
         hidden_index = self.hidden_index
@@ -327,7 +331,8 @@ class Styler(object):
 
         return dict(head=head, cellstyle=cellstyle, body=body, uuid=uuid,
                     precision=precision, table_styles=table_styles,
-                    caption=caption, table_attributes=self.table_attributes)
+                    caption=caption, disabled_mathjax=disabled_mathjax,
+                    table_attributes=self.table_attributes)
 
     def format(self, formatter, subset=None):
         """
@@ -431,6 +436,7 @@ class Styler(object):
         * precision
         * table_styles
         * caption
+        * disabled_mathjax
         * table_attributes
         """
         self._compute()
@@ -465,6 +471,7 @@ class Styler(object):
     def _copy(self, deepcopy=False):
         styler = Styler(self.data, precision=self.precision,
                         caption=self.caption, uuid=self.uuid,
+                        disabled_mathjax=self.disabled_mathjax,
                         table_styles=self.table_styles)
         if deepcopy:
             styler.ctx = copy.deepcopy(self.ctx)
@@ -792,6 +799,17 @@ class Styler(object):
         ... )
         """
         self.table_styles = table_styles
+        return self
+
+    def disable_mathjax(self):
+        """
+        Prevent MathJax from processing table contents.
+
+        Returns
+        -------
+        self : Styler
+        """
+        self.disabled_mathjax = True
         return self
 
     def hide_index(self):
