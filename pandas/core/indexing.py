@@ -2107,10 +2107,9 @@ def is_nested_tuple(tup, labels):
     if not isinstance(tup, tuple):
         return False
 
-    # are we nested tuple of: tuple,list,slice
     for i, k in enumerate(tup):
 
-        if isinstance(k, (tuple, list, slice)):
+        if is_list_like(k) or isinstance(k, slice):
             return isinstance(labels, MultiIndex)
 
     return False
