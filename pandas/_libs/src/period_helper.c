@@ -95,8 +95,6 @@ PANDAS_INLINE int min_value(int a, int b) { return a < b ? a : b; }
 
 PANDAS_INLINE int get_freq_group(int freq) { return (freq / 1000) * 1000; }
 
-PANDAS_INLINE int get_freq_group_index(int freq) { return freq / 1000; }
-
 
 npy_int64 get_daytime_conversion_factor(int from_index, int to_index) {
     int row = min_value(from_index, to_index);
@@ -227,16 +225,6 @@ static npy_int64 asfreq_DTtoB(npy_int64 ordinal, asfreq_info *af_info) {
     return DtoB(&dinfo, roll_back, ordinal);
 }
 
-// all intra day calculations are now done within one function
-static npy_int64 asfreq_DownsampleWithinDay(npy_int64 ordinal,
-                                            asfreq_info *af_info) {
-    return downsample_daytime(ordinal, af_info);
-}
-
-static npy_int64 asfreq_UpsampleWithinDay(npy_int64 ordinal,
-                                          asfreq_info *af_info) {
-    return upsample_daytime(ordinal, af_info);
-}
 //************ FROM BUSINESS ***************
 
 static npy_int64 asfreq_BtoDT(npy_int64 ordinal, asfreq_info *af_info) {
@@ -295,19 +283,19 @@ static npy_int64 asfreq_WtoB(npy_int64 ordinal, asfreq_info *af_info) {
 }
 
 //************ FROM MONTHLY ***************
-static void MtoD_ym(npy_int64 ordinal, int *y, int *m) {
-    *y = floordiv(ordinal, 12) + 1970;
-    *m = mod_compat(ordinal, 12) + 1;
+static void MtoD_ym(npy_int64 ordinal, int *year, int *month) {
+    *year = floordiv(ordinal, 12) + 1970;
+    *month = mod_compat(ordinal, 12) + 1;
 }
 
 static npy_int64 asfreq_MtoDT(npy_int64 ordinal, asfreq_info *af_info) {
     npy_int64 unix_date;
-    int y, m;
+    int year, month;
 
     ordinal += af_info->is_end;
-    MtoD_ym(ordinal, &y, &m);
-    unix_date = unix_date_from_ymd(y, m, 1);
+    MtoD_ym(ordinal, &year, &month);
 
+    unix_date = unix_date_from_ymd(year, month, 1);
     unix_date -= af_info->is_end;
     return upsample_daytime(unix_date, af_info);
 }
@@ -336,29 +324,29 @@ static npy_int64 asfreq_MtoB(npy_int64 ordinal, asfreq_info *af_info) {
 
 //************ FROM QUARTERLY ***************
 
-static void QtoD_ym(npy_int64 ordinal, int *y, int *m, asfreq_info *af_info) {
-    *y = floordiv(ordinal, 4) + 1970;
-    *m = mod_compat(ordinal, 4) * 3 + 1;
+static void QtoD_ym(npy_int64 ordinal, int *year, int *month,
+                    asfreq_info *af_info) {
+    *year = floordiv(ordinal, 4) + 1970;
+    *month = mod_compat(ordinal, 4) * 3 + 1;
 
     if (af_info->from_q_year_end != 12) {
-        *m += af_info->from_q_year_end;
-        if (*m > 12) {
-            *m -= 12;
+        *month += af_info->from_q_year_end;
+        if (*month > 12) {
+            *month -= 12;
         } else {
-            *y -= 1;
+            *year -= 1;
         }
     }
 }
 
 static npy_int64 asfreq_QtoDT(npy_int64 ordinal, asfreq_info *af_info) {
     npy_int64 unix_date;
-    int y, m;
+    int year, month;
 
     ordinal += af_info->is_end;
-    QtoD_ym(ordinal, &y, &m, af_info);
+    QtoD_ym(ordinal, &year, &month, af_info);
 
-    unix_date = unix_date_from_ymd(y, m, 1);
-
+    unix_date = unix_date_from_ymd(year, month, 1);
     unix_date -= af_info->is_end;
     return upsample_daytime(unix_date, af_info);
 }
@@ -391,20 +379,31 @@ static npy_int64 asfreq_QtoB(npy_int64 ordinal, asfreq_info *af_info) {
 
 //************ FROM ANNUAL ***************
 
+static void AtoD_ym(npy_int64 ordinal, int *year, int *month,
+                    asfreq_info *af_info) {
+    *year = ordinal + 1970;
+    *month = 1;
+
+    if (af_info->from_a_year_end != 12) {
+        *month += af_info->from_a_year_end;
+        if (*month > 12) {
+            // This case is never reached, but is kept for symmetry
+            // with QtoD_ym
+            *month -= 12;
+        } else {
+            *year -= 1;
+        }
+    }
+}
+
 static npy_int64 asfreq_AtoDT(npy_int64 ordinal, asfreq_info *af_info) {
     npy_int64 unix_date;
+    int year, month;
 
-    // start from 1970
-    npy_int64 year = ordinal + 1970;
+    ordinal += af_info->is_end;
+    AtoD_ym(ordinal, &year, &month, af_info);
 
-    int month = (af_info->from_a_year_end % 12) + 1;
-    if (af_info->from_a_year_end != 12) {
-        year -= 1;
-    }
-
-    year += af_info->is_end;
     unix_date = unix_date_from_ymd(year, month, 1);
-
     unix_date -= af_info->is_end;
     return upsample_daytime(unix_date, af_info);
 }
@@ -442,57 +441,6 @@ static npy_int64 no_op(npy_int64 ordinal, asfreq_info *af_info) {
 }
 
 // end of frequency specific conversion routines
-
-static int calc_a_year_end(int freq, int group) {
-    int result = (freq - group) % 12;
-    if (result == 0) {
-        return 12;
-    } else {
-        return result;
-    }
-}
-
-static int calc_week_end(int freq, int group) { return freq - group; }
-
-void get_asfreq_info(int fromFreq, int toFreq, char relation,
-                     asfreq_info *af_info) {
-    int fromGroup = get_freq_group(fromFreq);
-    int toGroup = get_freq_group(toFreq);
-
-    if (relation == 'E') {
-        af_info->is_end = 1;
-    } else {
-        af_info->is_end = 0;
-    }
-
-    af_info->intraday_conversion_factor = get_daytime_conversion_factor(
-        get_freq_group_index(max_value(fromGroup, FR_DAY)),
-        get_freq_group_index(max_value(toGroup, FR_DAY)));
-
-    switch (fromGroup) {
-        case FR_WK:
-            af_info->from_week_end = calc_week_end(fromFreq, fromGroup);
-            break;
-        case FR_ANN:
-            af_info->from_a_year_end = calc_a_year_end(fromFreq, fromGroup);
-            break;
-        case FR_QTR:
-            af_info->from_q_year_end = calc_a_year_end(fromFreq, fromGroup);
-            break;
-    }
-
-    switch (toGroup) {
-        case FR_WK:
-            af_info->to_week_end = calc_week_end(toFreq, toGroup);
-            break;
-        case FR_ANN:
-            af_info->to_a_year_end = calc_a_year_end(toFreq, toGroup);
-            break;
-        case FR_QTR:
-            af_info->to_q_year_end = calc_a_year_end(toFreq, toGroup);
-            break;
-    }
-}
 
 freq_conv_func get_asfreq_func(int fromFreq, int toFreq) {
     int fromGroup = get_freq_group(fromFreq);
@@ -650,9 +598,9 @@ freq_conv_func get_asfreq_func(int fromFreq, int toFreq) {
                 case FR_US:
                 case FR_NS:
                     if (fromGroup > toGroup) {
-                        return &asfreq_DownsampleWithinDay;
+                        return &downsample_daytime;
                     } else {
-                        return &asfreq_UpsampleWithinDay;
+                        return &upsample_daytime;
                     }
                 default:
                     return &nofunc;

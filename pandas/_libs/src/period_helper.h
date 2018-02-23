@@ -109,8 +109,6 @@ typedef npy_int64 (*freq_conv_func)(npy_int64, asfreq_info *af_info);
  */
 
 freq_conv_func get_asfreq_func(int fromFreq, int toFreq);
-void get_asfreq_info(int fromFreq, int toFreq, char relation,
-                     asfreq_info *af_info);
 
 npy_int64 get_daytime_conversion_factor(int from_index, int to_index);
 
