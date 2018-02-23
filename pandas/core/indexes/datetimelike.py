@@ -654,10 +654,7 @@ class DatetimeIndexOpsMixin(object):
         """
 
         def __add__(self, other):
-            from pandas.core.index import Index
-            from pandas.core.indexes.datetimes import DatetimeIndex
-            from pandas.core.indexes.timedeltas import TimedeltaIndex
-            from pandas.tseries.offsets import DateOffset
+            from pandas import Index, DatetimeIndex, TimedeltaIndex, DateOffset
 
             other = lib.item_from_zerodim(other)
             if isinstance(other, ABCSeries):
@@ -701,10 +698,7 @@ class DatetimeIndexOpsMixin(object):
         cls.__radd__ = __add__
 
         def __sub__(self, other):
-            from pandas.core.index import Index
-            from pandas.core.indexes.datetimes import DatetimeIndex
-            from pandas.core.indexes.timedeltas import TimedeltaIndex
-            from pandas.tseries.offsets import DateOffset
+            from pandas import Index, DatetimeIndex, TimedeltaIndex, DateOffset
 
             other = lib.item_from_zerodim(other)
             if isinstance(other, ABCSeries):
@@ -755,7 +749,7 @@ class DatetimeIndexOpsMixin(object):
             if is_datetime64_dtype(other) and is_timedelta64_dtype(self):
                 # ndarray[datetime64] cannot be subtracted from self, so
                 # we need to wrap in DatetimeIndex and flip the operation
-                from pandas.core.indexes.datetimes import DatetimeIndex
+                from pandas import DatetimeIndex
                 return DatetimeIndex(other) - self
             return -(self - other)
         cls.__rsub__ = __rsub__
