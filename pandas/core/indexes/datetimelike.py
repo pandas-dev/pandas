@@ -664,7 +664,7 @@ class DatetimeIndexOpsMixin(object):
         kwargs = {}
         if not is_period_dtype(self):
             kwargs['freq'] = 'infer'
-        return self.__class__(res_values, **kwargs)
+        return self._constructor(res_values, **kwargs)
 
     @classmethod
     def _add_datetimelike_methods(cls):
