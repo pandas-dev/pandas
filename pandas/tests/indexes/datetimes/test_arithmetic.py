@@ -614,19 +614,19 @@ class TestDatetimeIndexArithmetic(object):
         result = dti2 - dti1
         tm.assert_index_equal(result, expected)
 
-    def test_sub_period(self):
-        # GH 13078
+    @pytest.mark.parametrize('freq', [None, 'D'])
+    def test_sub_period(self, freq):
+        # GH#13078
         # not supported, check TypeError
         p = pd.Period('2011-01-01', freq='D')
 
-        for freq in [None, 'D']:
-            idx = pd.DatetimeIndex(['2011-01-01', '2011-01-02'], freq=freq)
+        idx = pd.DatetimeIndex(['2011-01-01', '2011-01-02'], freq=freq)
 
-            with pytest.raises(TypeError):
-                idx - p
+        with pytest.raises(TypeError):
+            idx - p
 
-            with pytest.raises(TypeError):
-                p - idx
+        with pytest.raises(TypeError):
+            p - idx
 
     def test_ufunc_coercions(self):
         idx = date_range('2011-01-01', periods=3, freq='2D', name='x')
@@ -721,11 +721,10 @@ class TestDatetimeIndexArithmetic(object):
         result4 = index + ser.values
         tm.assert_index_equal(result4, expected)
 
-    @pytest.mark.parametrize('box', [np.array, pd.Index])
-    def test_dti_add_offset_array(self, tz, box):
+    def test_dti_add_offset_array(self, tz):
         # GH#18849
         dti = pd.date_range('2017-01-01', periods=2, tz=tz)
-        other = box([pd.offsets.MonthEnd(), pd.offsets.Day(n=2)])
+        other = np.array([pd.offsets.MonthEnd(), pd.offsets.Day(n=2)])
 
         with tm.assert_produces_warning(PerformanceWarning):
             res = dti + other
@@ -737,16 +736,49 @@ class TestDatetimeIndexArithmetic(object):
             res2 = other + dti
         tm.assert_index_equal(res2, expected)
 
-    @pytest.mark.parametrize('box', [np.array, pd.Index])
-    def test_dti_sub_offset_array(self, tz, box):
+    @pytest.mark.parametrize('names', [(None, None, None),
+                                       ('foo', 'bar', None),
+                                       ('foo', 'foo', 'foo')])
+    def test_dti_add_offset_index(self, tz, names):
+        # GH#18849, GH#19744
+        dti = pd.date_range('2017-01-01', periods=2, tz=tz, name=names[0])
+        other = pd.Index([pd.offsets.MonthEnd(), pd.offsets.Day(n=2)],
+                         name=names[1])
+
+        with tm.assert_produces_warning(PerformanceWarning):
+            res = dti + other
+        expected = DatetimeIndex([dti[n] + other[n] for n in range(len(dti))],
+                                 name=names[2], freq='infer')
+        tm.assert_index_equal(res, expected)
+
+        with tm.assert_produces_warning(PerformanceWarning):
+            res2 = other + dti
+        tm.assert_index_equal(res2, expected)
+
+    def test_dti_sub_offset_array(self, tz):
         # GH#18824
         dti = pd.date_range('2017-01-01', periods=2, tz=tz)
-        other = box([pd.offsets.MonthEnd(), pd.offsets.Day(n=2)])
+        other = np.array([pd.offsets.MonthEnd(), pd.offsets.Day(n=2)])
 
         with tm.assert_produces_warning(PerformanceWarning):
             res = dti - other
         expected = DatetimeIndex([dti[n] - other[n] for n in range(len(dti))],
                                  name=dti.name, freq='infer')
+        tm.assert_index_equal(res, expected)
+
+    @pytest.mark.parametrize('names', [(None, None, None),
+                                       ('foo', 'bar', None),
+                                       ('foo', 'foo', 'foo')])
+    def test_dti_sub_offset_index(self, tz, names):
+        # GH#18824, GH#19744
+        dti = pd.date_range('2017-01-01', periods=2, tz=tz, name=names[0])
+        other = pd.Index([pd.offsets.MonthEnd(), pd.offsets.Day(n=2)],
+                         name=names[1])
+
+        with tm.assert_produces_warning(PerformanceWarning):
+            res = dti - other
+        expected = DatetimeIndex([dti[n] - other[n] for n in range(len(dti))],
+                                 name=names[2], freq='infer')
         tm.assert_index_equal(res, expected)
 
     @pytest.mark.parametrize('names', [(None, None, None),

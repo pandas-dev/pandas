@@ -5,6 +5,7 @@ from pandas._libs.tslibs.period import period_ordinal, period_asfreq
 
 
 class TestPeriodFreqConversion(object):
+
     def test_intraday_conversion_factors(self):
         assert period_asfreq(1, get_freq('D'), get_freq('H'), False) == 24
         assert period_asfreq(1, get_freq('D'), get_freq('T'), False) == 1440

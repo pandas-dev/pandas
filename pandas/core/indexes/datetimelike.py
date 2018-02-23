@@ -29,7 +29,7 @@ from pandas.core.dtypes.common import (
 from pandas.core.dtypes.generic import (
     ABCIndex, ABCSeries, ABCPeriodIndex, ABCIndexClass)
 from pandas.core.dtypes.missing import isna
-from pandas.core import common as com, algorithms
+from pandas.core import common as com, algorithms, ops
 from pandas.core.algorithms import checked_add_with_arr
 from pandas.errors import NullFrequencyError
 import pandas.io.formats.printing as printing
@@ -661,31 +661,44 @@ class DatetimeIndexOpsMixin(object):
             if isinstance(other, ABCSeries):
                 return NotImplemented
             elif is_timedelta64_dtype(other):
-                return self._add_delta(other)
+                result = self._add_delta(other)
             elif isinstance(other, (DateOffset, timedelta)):
-                return self._add_delta(other)
+                result = self._add_delta(other)
             elif is_offsetlike(other):
                 # Array/Index of DateOffset objects
-                return self._add_offset_array(other)
+                result = self._add_offset_array(other)
             elif isinstance(self, TimedeltaIndex) and isinstance(other, Index):
                 if hasattr(other, '_add_delta'):
-                    return other._add_delta(self)
-                raise TypeError("cannot add TimedeltaIndex and {typ}"
-                                .format(typ=type(other)))
+                    # i.e. DatetimeIndex, TimedeltaIndex, or PeriodIndex
+                    result = other._add_delta(self)
+                else:
+                    raise TypeError("cannot add TimedeltaIndex and {typ}"
+                                    .format(typ=type(other)))
             elif is_integer(other):
-                return self.shift(other)
+                # This check must come after the check for timedelta64_dtype
+                # or else it will incorrectly catch np.timedelta64 objects
+                result = self.shift(other)
             elif isinstance(other, (datetime, np.datetime64)):
-                return self._add_datelike(other)
+                result = self._add_datelike(other)
             elif isinstance(other, Index):
-                return self._add_datelike(other)
+                result = self._add_datelike(other)
             elif is_integer_dtype(other) and self.freq is None:
                 # GH#19123
                 raise NullFrequencyError("Cannot shift with no freq")
             else:  # pragma: no cover
                 return NotImplemented
 
+            if result is not NotImplemented:
+                res_name = ops.get_op_result_name(self, other)
+                result.name = res_name
+            return result
+
         cls.__add__ = __add__
-        cls.__radd__ = __add__
+
+        def __radd__(self, other):
+            # alias for __add__
+            return self.__add__(other)
+        cls.__radd__ = __radd__
 
         def __sub__(self, other):
             from pandas.core.index import Index
@@ -697,25 +710,27 @@ class DatetimeIndexOpsMixin(object):
             if isinstance(other, ABCSeries):
                 return NotImplemented
             elif is_timedelta64_dtype(other):
-                return self._add_delta(-other)
+                result = self._add_delta(-other)
             elif isinstance(other, (DateOffset, timedelta)):
-                return self._add_delta(-other)
+                result = self._add_delta(-other)
             elif is_offsetlike(other):
                 # Array/Index of DateOffset objects
-                return self._sub_offset_array(other)
+                result = self._sub_offset_array(other)
             elif isinstance(self, TimedeltaIndex) and isinstance(other, Index):
-                if not isinstance(other, TimedeltaIndex):
-                    raise TypeError("cannot subtract TimedeltaIndex and {typ}"
-                                    .format(typ=type(other).__name__))
-                return self._add_delta(-other)
+                # We checked above for timedelta64_dtype(other) so this
+                # must be invalid.
+                raise TypeError("cannot subtract TimedeltaIndex and {typ}"
+                                .format(typ=type(other).__name__))
             elif isinstance(other, DatetimeIndex):
-                return self._sub_datelike(other)
+                result = self._sub_datelike(other)
             elif is_integer(other):
-                return self.shift(-other)
+                # This check must come after the check for timedelta64_dtype
+                # or else it will incorrectly catch np.timedelta64 objects
+                result = self.shift(-other)
             elif isinstance(other, (datetime, np.datetime64)):
-                return self._sub_datelike(other)
+                result = self._sub_datelike(other)
             elif isinstance(other, Period):
-                return self._sub_period(other)
+                result = self._sub_period(other)
             elif isinstance(other, Index):
                 raise TypeError("cannot subtract {typ1} and {typ2}"
                                 .format(typ1=type(self).__name__,
@@ -726,14 +741,26 @@ class DatetimeIndexOpsMixin(object):
             else:  # pragma: no cover
                 return NotImplemented
 
+            if result is not NotImplemented:
+                res_name = ops.get_op_result_name(self, other)
+                result.name = res_name
+            return result
+
         cls.__sub__ = __sub__
 
         def __rsub__(self, other):
             return -(self - other)
         cls.__rsub__ = __rsub__
 
-        cls.__iadd__ = __add__
-        cls.__isub__ = __sub__
+        def __iadd__(self, other):
+            # alias for __add__
+            return self.__add__(other)
+        cls.__iadd__ = __iadd__
+
+        def __isub__(self, other):
+            # alias for __sub__
+            return self.__sub__(other)
+        cls.__isub__ = __isub__
 
     def _add_delta(self, other):
         return NotImplemented
