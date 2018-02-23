@@ -34,5 +34,6 @@ def tick_classes(request):
 def tz(request):
     """
     Fixture for different timezones strings.
+    # TODO: repeated fixture
     """
     return request.param
