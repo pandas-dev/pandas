@@ -34,7 +34,7 @@ See `How to use this cookbook <https://github.com/jvns/pandas-cookbook#how-to-us
 -  `Chapter 2: <http://nbviewer.ipython.org/github/jvns/pandas-cookbook/blob/v0.2/cookbook/Chapter%202%20-%20Selecting%20data%20&%20finding%20the%20most%20common%20complaint%20type.ipynb>`_
    It's not totally obvious how to select data from a pandas dataframe.
    Here we explain the basics (how to take slices and get columns)
--  `Chapter 3: <http://nbviewer.ipython.org/github/jvns/pandas-cookbook/blob/v0.2/cookbook/Chapter%203%20-%20Which%20borough%20has%20the%20most%20noise%20complaints%3F%20%28or%2C%20more%20selecting%20data%29.ipynb>`_
+-  `Chapter 3: <http://nbviewer.ipython.org/github/jvns/pandas-cookbook/blob/v0.1/cookbook/Chapter%203%20-%20Which%20borough%20has%20the%20most%20noise%20complaints%3F%20%28or%2C%20more%20selecting%20data%29.ipynb>`_
    Here we get into serious slicing and dicing and learn how to filter
    dataframes in complicated ways, really fast.
 -  `Chapter 4: <http://nbviewer.ipython.org/github/jvns/pandas-cookbook/blob/v0.2/cookbook/Chapter%204%20-%20Find%20out%20on%20which%20weekday%20people%20bike%20the%20most%20with%20groupby%20and%20aggregate.ipynb>`_
@@ -43,7 +43,7 @@ See `How to use this cookbook <https://github.com/jvns/pandas-cookbook#how-to-us
 -  `Chapter 5:  <http://nbviewer.ipython.org/github/jvns/pandas-cookbook/blob/v0.2/cookbook/Chapter%205%20-%20Combining%20dataframes%20and%20scraping%20Canadian%20weather%20data.ipynb>`_
    Here you get to find out if it's cold in Montreal in the winter
    (spoiler: yes). Web scraping with pandas is fun! Here we combine dataframes.
--  `Chapter 6:  <http://nbviewer.ipython.org/github/jvns/pandas-cookbook/blob/v0.2/cookbook/Chapter%206%20-%20String%20operations%21%20Which%20month%20was%20the%20snowiest%3F.ipynb>`_
+-  `Chapter 6:  <http://nbviewer.ipython.org/github/jvns/pandas-cookbook/blob/v0.1/cookbook/Chapter%206%20-%20String%20operations%21%20Which%20month%20was%20the%20snowiest%3F.ipynb>`_
    Strings with pandas are great. It has all these vectorized string
    operations and they're the best. We will turn a bunch of strings
    containing "Snow" into vectors of numbers in a trice.
