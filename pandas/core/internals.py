@@ -65,7 +65,7 @@ import pandas.core.common as com
 import pandas.core.algorithms as algos
 
 from pandas.core.index import Index, MultiIndex, _ensure_index
-from pandas.core.indexing import maybe_convert_indices, length_of_indexer
+from pandas.core.indexing import maybe_convert_indices
 from pandas.core.arrays import Categorical
 from pandas.core.indexes.datetimes import DatetimeIndex
 from pandas.core.indexes.timedeltas import TimedeltaIndex
@@ -79,7 +79,8 @@ from pandas._libs.internals import BlockPlacement
 from pandas._libs.tslibs import conversion
 
 from pandas.util._decorators import cache_readonly
-from pandas.util._validators import validate_bool_kwarg
+from pandas.util._validators import (
+    validate_bool_kwarg, validate_setitem_lengths)
 from pandas import compat
 from pandas.compat import range, map, zip, u
 
@@ -874,22 +875,7 @@ class Block(PandasObject):
         values = transf(values)
 
         # length checking
-        # boolean with truth values == len of the value is ok too
-        if isinstance(indexer, (np.ndarray, list)):
-            if is_list_like(value) and len(indexer) != len(value):
-                if not (isinstance(indexer, np.ndarray) and
-                        indexer.dtype == np.bool_ and
-                        len(indexer[indexer]) == len(value)):
-                    raise ValueError("cannot set using a list-like indexer "
-                                     "with a different length than the value")
-
-        # slice
-        elif isinstance(indexer, slice):
-
-            if is_list_like(value) and len(values):
-                if len(value) != length_of_indexer(indexer, values):
-                    raise ValueError("cannot set using a slice indexer with a "
-                                     "different length than the value")
+        validate_setitem_lengths(indexer, value, values)
 
         def _is_scalar_indexer(indexer):
             # return True if we are all scalar indexers
@@ -1897,6 +1883,15 @@ class ExtensionBlock(NonConsolidatableMixIn, Block):
     def is_view(self):
         """Extension arrays are never treated as views."""
         return False
+
+    def setitem(self, indexer, value, mgr=None):
+        if isinstance(indexer, tuple):
+            # we are always 1-D
+            indexer = indexer[0]
+
+        validate_setitem_lengths(indexer, value, self.values)
+        self.values[indexer] = value
+        return self
 
     def get_values(self, dtype=None):
         # ExtensionArrays must be iterable, so this works.
@@ -3489,7 +3484,8 @@ class BlockManager(PandasObject):
         # with a .values attribute.
         aligned_args = dict((k, kwargs[k])
                             for k in align_keys
-                            if hasattr(kwargs[k], 'values'))
+                            if hasattr(kwargs[k], 'values') and
+                            not isinstance(kwargs[k], ABCExtensionArray))
 
         for b in self.blocks:
             if filter is not None:
@@ -5190,7 +5186,7 @@ def _safe_reshape(arr, new_shape):
     If possible, reshape `arr` to have shape `new_shape`,
     with a couple of exceptions (see gh-13012):
 
-    1) If `arr` is a Categorical or Index, `arr` will be
+    1) If `arr` is a ExtensionArray or Index, `arr` will be
        returned as is.
     2) If `arr` is a Series, the `_values` attribute will
        be reshaped and returned.

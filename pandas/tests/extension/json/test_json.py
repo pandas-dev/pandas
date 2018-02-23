@@ -71,3 +71,6 @@ class TestMethods(base.BaseMethodsTests):
 
 class TestCasting(base.BaseCastingTests):
     pass
+
+# We intentionally don't run base.BaseSetitemTests because pandas'
+# internals has trouble setting sequences of values into scalar positions.

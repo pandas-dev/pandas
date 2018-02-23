@@ -116,6 +116,10 @@ class TestCasting(base.BaseCastingTests):
     pass
 
 
+class TestDecimal(base.BaseSetitemTests):
+    pass
+
+
 def test_series_constructor_coerce_data_to_extension_dtype_raises():
     xpr = ("Cannot cast data to extension dtype 'decimal'. Pass the "
            "extension array directly.")
