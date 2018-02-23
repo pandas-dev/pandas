@@ -1241,7 +1241,7 @@ def _bool_method_SERIES(cls, op, special):
         else:
             # scalars, list, tuple, np.array
             is_other_int_dtype = is_integer_dtype(np.asarray(other))
-            if isinstance(other, list):
+            if is_list_like(other) and not isinstance(other, np.ndarray):
                 # TODO: Can we do this before the is_integer_dtype check?
                 # could the is_integer_dtype check be checking the wrong
                 # thing?  e.g. other = [[0, 1], [2, 3], [4, 5]]?
