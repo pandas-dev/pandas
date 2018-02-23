@@ -10,7 +10,7 @@ from pandas.core.dtypes.cast import (
     maybe_promote, construct_1d_object_array_from_listlike)
 from pandas.core.dtypes.generic import (
     ABCSeries, ABCIndex,
-    ABCIndexClass, ABCCategorical)
+    ABCIndexClass)
 from pandas.core.dtypes.common import (
     is_array_like,
     is_unsigned_integer_dtype, is_signed_integer_dtype,
