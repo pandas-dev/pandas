@@ -646,7 +646,7 @@ class TestInferOutputShape(object):
                         'datetime': [pd.Timestamp('2017-11-29 03:30:00'),
                                      pd.Timestamp('2017-11-29 03:45:00')]})
         result = df.apply(lambda row: (row.number, row.string), axis=1)
-        expected = Series([t[2:] for t in df.itertuples()])
+        expected = Series([(t.number, t.string) for t in df.itertuples()])
         assert_series_equal(result, expected)
 
     def test_infer_output_shape_listlike_columns(self):

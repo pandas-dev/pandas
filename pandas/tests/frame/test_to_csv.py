@@ -1054,10 +1054,10 @@ class TestDataFrameToCSV(TestData):
 
     def test_to_csv_quoting(self):
         df = DataFrame({
-            'c_string': ['a', 'b,c'],
-            'c_int': [42, np.nan],
-            'c_float': [1.0, 3.2],
             'c_bool': [True, False],
+            'c_float': [1.0, 3.2],
+            'c_int': [42, np.nan],
+            'c_string': ['a', 'b,c'],
         })
 
         expected = """\

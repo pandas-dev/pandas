@@ -2430,8 +2430,8 @@ class TestDataFrameIndexing(TestData):
 
         # upcasting case (GH # 2794)
         df = DataFrame(dict((c, Series([1] * 3, dtype=c))
-                            for c in ['int64', 'int32',
-                                      'float32', 'float64']))
+                            for c in ['float32', 'float64',
+                                      'int32', 'int64']))
         df.iloc[1, :] = 0
         result = df.where(df >= 0).get_dtype_counts()
 

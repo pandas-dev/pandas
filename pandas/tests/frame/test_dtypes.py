@@ -725,9 +725,9 @@ class TestDataFrameDataTypes(TestData):
         df = DataFrame(dict(A=Series(date_range('2012-1-1', periods=3,
                                                 freq='D')),
                             B=Series([timedelta(days=i) for i in range(3)])))
-        result = df.get_dtype_counts().sort_values()
+        result = df.get_dtype_counts().sort_index()
         expected = Series(
-            {'datetime64[ns]': 1, 'timedelta64[ns]': 1}).sort_values()
+            {'datetime64[ns]': 1, 'timedelta64[ns]': 1}).sort_index()
         assert_series_equal(result, expected)
 
         df['C'] = df['A'] + df['B']
