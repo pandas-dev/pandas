@@ -353,11 +353,8 @@ def unique(values):
 
     values = _ensure_arraylike(values)
 
-    # categorical is a fast-path
-    # this will coerce Categorical, CategoricalIndex,
-    # and category dtypes Series to same return of Category
     if is_extension_array_dtype(values):
-        values = getattr(values, '.values', values)
+        # Dispatch to extension dtype's unique.
         return values.unique()
 
     original = values
