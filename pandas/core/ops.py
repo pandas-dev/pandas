@@ -567,10 +567,10 @@ def mask_cmp_op(x, y, op, allowed_types):
 # Functions that add arithmetic methods to objects, given arithmetic factory
 # methods
 
-def _get_flex_wrappers(cls):
+def _get_method_wrappers(cls):
     """
-    Find the appropriate operation-wrappers to use when defining flex
-    arithmetic or boolean operations with the given class.
+    Find the appropriate operation-wrappers to use when defining flex/special
+    arithmetic, boolean, and comparison operations with the given class.
 
     Parameters
     ----------
@@ -578,72 +578,52 @@ def _get_flex_wrappers(cls):
 
     Returns
     -------
-    arith_method : function or None
-    comp_method : function or None
+    arith_flex : function or None
+    comp_flex : function or None
+    arith_special : function
+    comp_special : function
+    bool_special : function
 
     Notes
     -----
     None is only returned for SparseArray
     """
-    if issubclass(cls, ABCSeries):
-        # Same for Series and SparseSeries
-        # Note this check must come before check for ABCSparseArray
-        # or else if will incorrectly catch SparseSeries.
-        arith_method = _flex_method_SERIES
-        comp_method = _flex_method_SERIES
-    elif issubclass(cls, ABCSparseArray):
-        arith_method = None
-        comp_method = None
-    elif issubclass(cls, ABCPanel):
-        arith_method = _flex_method_PANEL
-        comp_method = _comp_method_PANEL
-    elif issubclass(cls, ABCDataFrame):
-        # Same for DataFrame and SparseDataFrame
-        arith_method = _arith_method_FRAME
-        comp_method = _flex_comp_method_FRAME
-    return arith_method, comp_method
-
-
-def _get_special_wrappers(cls):
-    """
-    Find the appropriate operation-wrappers to use when defining special
-    arithmetic, comparison, or boolean operations with the given class.
-
-    Parameters
-    ----------
-    cls : class
-
-    Returns
-    -------
-    arith_method : function
-    comp_method : function
-    bool_method : function
-    """
     if issubclass(cls, ABCSparseSeries):
         # Be sure to catch this before ABCSeries and ABCSparseArray,
         # as they will both come see SparseSeries as a subclass
-        arith_method = _arith_method_SPARSE_SERIES
-        comp_method = _arith_method_SPARSE_SERIES
-        bool_method = _bool_method_SERIES
+        arith_flex = _flex_method_SERIES
+        comp_flex = _flex_method_SERIES
+        arith_special = _arith_method_SPARSE_SERIES
+        comp_special = _arith_method_SPARSE_SERIES
+        bool_special = _bool_method_SERIES
         # TODO: I don't think the functions defined by bool_method are tested
+    elif issubclass(cls, ABCSeries):
+        # Just Series; SparseSeries is caught above
+        arith_flex = _flex_method_SERIES
+        comp_flex = _flex_method_SERIES
+        arith_special = _arith_method_SERIES
+        comp_special = _comp_method_SERIES
+        bool_special = _bool_method_SERIES
     elif issubclass(cls, ABCSparseArray):
-        arith_method = _arith_method_SPARSE_ARRAY
-        comp_method = _arith_method_SPARSE_ARRAY
-        bool_method = _arith_method_SPARSE_ARRAY
+        arith_flex = None
+        comp_flex = None
+        arith_special = _arith_method_SPARSE_ARRAY
+        comp_special = _arith_method_SPARSE_ARRAY
+        bool_special = _arith_method_SPARSE_ARRAY
     elif issubclass(cls, ABCPanel):
-        arith_method = _arith_method_PANEL
-        comp_method = _comp_method_PANEL
-        bool_method = _arith_method_PANEL
+        arith_flex = _flex_method_PANEL
+        comp_flex = _comp_method_PANEL
+        arith_special = _arith_method_PANEL
+        comp_special = _comp_method_PANEL
+        bool_special = _arith_method_PANEL
     elif issubclass(cls, ABCDataFrame):
         # Same for DataFrame and SparseDataFrame
-        arith_method = _arith_method_FRAME
-        comp_method = _comp_method_FRAME
-        bool_method = _arith_method_FRAME
-    elif issubclass(cls, ABCSeries):
-        arith_method = _arith_method_SERIES
-        comp_method = _comp_method_SERIES
-        bool_method = _bool_method_SERIES
-    return arith_method, comp_method, bool_method
+        arith_flex = _arith_method_FRAME
+        comp_flex = _flex_comp_method_FRAME
+        arith_special = _arith_method_FRAME
+        comp_special = _comp_method_FRAME
+        bool_special = _arith_method_FRAME
+    return arith_flex, comp_flex, arith_special, comp_special, bool_special
 
 
 def _create_methods(cls, arith_method, comp_method, bool_method,
@@ -731,7 +711,7 @@ def add_special_arithmetic_methods(cls):
     cls : class
         special methods will be defined and pinned to this class
     """
-    arith_method, comp_method, bool_method = _get_special_wrappers(cls)
+    arith_method, comp_method, bool_method = _get_method_wrappers(cls)[2:]
     new_methods = _create_methods(cls, arith_method, comp_method, bool_method,
                                   special=True)
     # inplace operators (I feel like these should get passed an `inplace=True`
@@ -783,7 +763,7 @@ def add_flex_arithmetic_methods(cls):
     cls : class
         flex methods will be defined and pinned to this class
     """
-    flex_arith_method, flex_comp_method = _get_flex_wrappers(cls)
+    flex_arith_method, flex_comp_method = _get_method_wrappers(cls)[:2]
     new_methods = _create_methods(cls, flex_arith_method,
                                   flex_comp_method, bool_method=None,
                                   special=False)
