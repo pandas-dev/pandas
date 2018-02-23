@@ -105,10 +105,16 @@ def _convert_and_box_cache(arg, cache_array, box, errors, name=None):
 
 def to_datetime(arg, errors='raise', dayfirst=False, yearfirst=False,
                 utc=None, box=True, format=None, exact=True,
-                unit=None, infer_datetime_format=False, require_iso8601=False,
-                origin='unix', cache=False):
+                unit=None, infer_datetime_format=False, origin='unix',
+                cache=False, _require_iso8601=False):
     """
     Convert argument to datetime.
+
+    Passing _require_iso8601=True will only parse datetime strings similar to
+    `ISO8601 <https://en.wikipedia.org/wiki/ISO_8601>`_ and treat others as
+    non-parseable dates.
+
+    .. versionadded:: 0.23.0
 
     Parameters
     ----------
@@ -167,10 +173,6 @@ def to_datetime(arg, errors='raise', dayfirst=False, yearfirst=False,
         datetime strings, and if it can be inferred, switch to a faster
         method of parsing them. In some cases this can increase the parsing
         speed by ~5-10x.
-    require_iso8601 : boolean, default False
-        If True, only try to infer ISO8601-compliant datetime strings.
-
-        .. versionadded:: 0.23.0
     origin : scalar, default is 'unix'
         Define the reference date. The numeric values would be parsed as number
         of units (defined by `unit`) since this reference date.
@@ -250,24 +252,6 @@ def to_datetime(arg, errors='raise', dayfirst=False, yearfirst=False,
     >>> %timeit pd.to_datetime(s,infer_datetime_format=False)
     1 loop, best of 3: 471 ms per loop
 
-    Passing require_iso8601=True will only parse datetime strings compliant to
-    `ISO8601 <https://en.wikipedia.org/wiki/ISO_8601>`_ and treat others as
-    non-parseable dates.
-
-    >>> s = pd.Series(['M1809', 'M1701', pd.Timestamp('20130101')])
-
-    >>> pd.to_datetime(s, require_iso8601=False, errors='raise')
-    0   1809-01-01
-    1   1701-01-01
-    2   2013-01-01
-    dtype: datetime64[ns]
-
-    >>> pd.to_datetime(s, require_iso8601=True, errors='coerce')
-    0          NaT
-    1          NaT
-    2   2013-01-01
-    dtype: datetime64[ns]
-
     Using a unix epoch time
 
     >>> pd.to_datetime(1490195805, unit='s')
@@ -296,7 +280,7 @@ def to_datetime(arg, errors='raise', dayfirst=False, yearfirst=False,
     tz = 'utc' if utc else None
 
     def _convert_listlike(arg, box, format, name=None, tz=tz,
-                          require_iso8601=require_iso8601):
+                          require_iso8601=_require_iso8601):
 
         if isinstance(arg, (list, tuple)):
             arg = np.array(arg, dtype='O')
