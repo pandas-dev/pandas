@@ -14,12 +14,14 @@ import numpy as np
 import numpy.ma as ma
 
 from pandas.core.accessor import CachedAccessor
+from pandas.core.arrays import ExtensionArray
 from pandas.core.dtypes.common import (
     is_categorical_dtype,
     is_bool,
     is_integer, is_integer_dtype,
     is_float_dtype,
     is_extension_type,
+    is_extension_array_dtype,
     is_datetime64tz_dtype,
     is_timedelta64_dtype,
     is_list_like,
@@ -173,12 +175,17 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
                 raise NotImplementedError("initializing a Series from a "
                                           "MultiIndex is not supported")
             elif isinstance(data, Index):
-                # need to copy to avoid aliasing issues
                 if name is None:
                     name = data.name
 
-                data = data._to_embed(keep_tz=True, dtype=dtype)
+                if dtype is not None:
+                    # astype copies
+                    data = data.astype(dtype)
+                else:
+                    # need to copy to avoid aliasing issues
+                    data = data._values.copy()
                 copy = False
+
             elif isinstance(data, np.ndarray):
                 pass
             elif isinstance(data, Series):
@@ -203,13 +210,15 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
                                          '`data` argument and a different '
                                          '`index` argument.  `copy` must '
                                          'be False.')
-            elif isinstance(data, Categorical):
+
+            elif is_extension_array_dtype(data) and dtype is not None:
                 # GH12574: Allow dtype=category only, otherwise error
-                if ((dtype is not None) and
-                        not is_categorical_dtype(dtype)):
-                    raise ValueError("cannot specify a dtype with a "
-                                     "Categorical unless "
-                                     "dtype='category'")
+                if not data.dtype.is_dtype(dtype):
+                    raise ValueError("Cannot specify a dtype '{}' with an "
+                                     "extension array of a different "
+                                     "dtype ('{}').".format(dtype,
+                                                            data.dtype))
+
             elif (isinstance(data, types.GeneratorType) or
                   (compat.PY3 and isinstance(data, map))):
                 data = list(data)
@@ -2556,8 +2565,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
                 return self.copy()
             return self
 
-        # be subclass-friendly
-        new_values = algorithms.take_1d(self.get_values(), indexer)
+        new_values = algorithms.take_1d(self._values, indexer)
         return self._constructor(new_values, index=new_index)
 
     def _needs_reindex_multi(self, axes, method, level):
@@ -3113,10 +3121,11 @@ def _sanitize_index(data, index, copy=False):
 
     if isinstance(data, ABCIndexClass) and not copy:
         pass
-    elif isinstance(data, PeriodIndex):
-        data = data.astype(object).values
-    elif isinstance(data, DatetimeIndex):
-        data = data._to_embed(keep_tz=True)
+    elif isinstance(data, (PeriodIndex, DatetimeIndex)):
+        data = data._values
+        if copy:
+            data = data.copy()
+
     elif isinstance(data, np.ndarray):
 
         # coerce datetimelike types
@@ -3156,8 +3165,17 @@ def _sanitize_array(data, index, dtype=None, copy=False,
                 subarr = np.array(subarr, dtype=dtype, copy=copy)
         except (ValueError, TypeError):
             if is_categorical_dtype(dtype):
+                # We *do* allow casting to categorical, since we know
+                # that Categorical is the only array type for 'category'.
                 subarr = Categorical(arr, dtype.categories,
                                      ordered=dtype.ordered)
+            elif is_extension_array_dtype(dtype):
+                # We don't allow casting to third party dtypes, since we don't
+                # know what array belongs to which type.
+                msg = ("Cannot cast data to extension dtype '{}'. "
+                       "Pass the extension array directly.".format(dtype))
+                raise ValueError(msg)
+
             elif dtype is not None and raise_cast_failure:
                 raise
             else:
@@ -3189,8 +3207,14 @@ def _sanitize_array(data, index, dtype=None, copy=False,
             # we will try to copy be-definition here
             subarr = _try_cast(data, True)
 
-    elif isinstance(data, Categorical):
+    elif isinstance(data, ExtensionArray):
         subarr = data
+
+        if dtype is not None and not data.dtype.is_dtype(dtype):
+            msg = ("Cannot coerce extension array to dtype '{typ}'. "
+                   "Do the coercion before passing to the constructor "
+                   "instead.".format(typ=dtype))
+            raise ValueError(msg)
 
         if copy:
             subarr = data.copy()

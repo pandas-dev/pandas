@@ -1,4 +1,7 @@
 """Extend pandas with custom array types"""
+import numpy as np
+
+from pandas import compat
 from pandas.errors import AbstractMethodError
 
 
@@ -22,6 +25,32 @@ class ExtensionDtype(object):
 
     def __str__(self):
         return self.name
+
+    def __eq__(self, other):
+        """Check whether 'other' is equal to self.
+
+        By default, 'other' is considered equal if
+
+        * it's a string matching 'self.name'.
+        * it's an instance of this type.
+
+        Parameters
+        ----------
+        other : Any
+
+        Returns
+        -------
+        bool
+        """
+        if isinstance(other, compat.string_types):
+            return other == self.name
+        elif isinstance(other, type(self)):
+            return True
+        else:
+            return False
+
+    def __ne__(self, other):
+        return not self.__eq__(other)
 
     @property
     def type(self):
@@ -102,11 +131,12 @@ class ExtensionDtype(object):
 
     @classmethod
     def is_dtype(cls, dtype):
-        """Check if we match 'dtype'
+        """Check if we match 'dtype'.
 
         Parameters
         ----------
-        dtype : str or dtype
+        dtype : object
+            The object to check.
 
         Returns
         -------
@@ -118,12 +148,19 @@ class ExtensionDtype(object):
 
         1. ``cls.construct_from_string(dtype)`` is an instance
            of ``cls``.
-        2. 'dtype' is ``cls`` or a subclass of ``cls``.
+        2. ``dtype`` is an object and is an instance of ``cls``
+        3. ``dtype`` has a ``dtype`` attribute, and any of the above
+           conditions is true for ``dtype.dtype``.
         """
-        if isinstance(dtype, str):
-            try:
-                return isinstance(cls.construct_from_string(dtype), cls)
-            except TypeError:
-                return False
-        else:
-            return issubclass(dtype, cls)
+        dtype = getattr(dtype, 'dtype', dtype)
+
+        if isinstance(dtype, np.dtype):
+            return False
+        elif dtype is None:
+            return False
+        elif isinstance(dtype, cls):
+            return True
+        try:
+            return cls.construct_from_string(dtype) is not None
+        except TypeError:
+            return False

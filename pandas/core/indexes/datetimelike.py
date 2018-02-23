@@ -703,6 +703,7 @@ class DatetimeIndexOpsMixin(object):
                 result = self._addsub_offset_array(other, operator.add)
             elif isinstance(self, TimedeltaIndex) and isinstance(other, Index):
                 if hasattr(other, '_add_delta'):
+                    # i.e. DatetimeIndex, TimedeltaIndex, or PeriodIndex
                     result = other._add_delta(self)
                 else:
                     raise TypeError("cannot add TimedeltaIndex and {typ}"
@@ -721,7 +722,11 @@ class DatetimeIndexOpsMixin(object):
             return result
 
         cls.__add__ = __add__
-        cls.__radd__ = __add__
+
+        def __radd__(self, other):
+            # alias for __add__
+            return self.__add__(other)
+        cls.__radd__ = __radd__
 
         def __sub__(self, other):
             from pandas.core.index import Index
@@ -753,10 +758,10 @@ class DatetimeIndexOpsMixin(object):
                 # Array/Index of DateOffset objects
                 result = self._addsub_offset_array(other, operator.sub)
             elif isinstance(self, TimedeltaIndex) and isinstance(other, Index):
-                if not isinstance(other, TimedeltaIndex):
-                    raise TypeError("cannot subtract TimedeltaIndex and {typ}"
-                                    .format(typ=type(other).__name__))
-                result = self._add_delta(-other)
+                # We checked above for timedelta64_dtype(other) so this
+                # must be invalid.
+                raise TypeError("cannot subtract TimedeltaIndex and {typ}"
+                                .format(typ=type(other).__name__))
             elif isinstance(other, DatetimeIndex):
                 result = self._sub_datelike(other)
             elif isinstance(other, Index):
@@ -780,8 +785,15 @@ class DatetimeIndexOpsMixin(object):
             return -(self - other)
         cls.__rsub__ = __rsub__
 
-        cls.__iadd__ = __add__
-        cls.__isub__ = __sub__
+        def __iadd__(self, other):
+            # alias for __add__
+            return self.__add__(other)
+        cls.__iadd__ = __iadd__
+
+        def __isub__(self, other):
+            # alias for __sub__
+            return self.__sub__(other)
+        cls.__isub__ = __isub__
 
     def _add_delta(self, other):
         return NotImplemented
