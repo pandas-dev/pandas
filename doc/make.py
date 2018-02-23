@@ -14,117 +14,18 @@ Usage
 import sys
 import os
 import shutil
-import subprocess
+# import subprocess
 import argparse
 from contextlib import contextmanager
-import jinja2
-import shutil
 import webbrowser
+import jinja2
+import pandas
 
 
 DOC_PATH = os.path.dirname(os.path.abspath(__file__))
 SOURCE_PATH = os.path.join(DOC_PATH, 'source')
 BUILD_PATH = os.path.join(DOC_PATH, 'build')
 BUILD_DIRS = ['doctrees', 'html', 'latex', 'plots', '_static', '_templates']
-
-
-def _generate_index(include_api=True, single_doc=None):
-    """Create index.rst file with the specified sections.
-
-    Parameters
-    ----------
-    include_api : bool
-        Whether API documentation will be built.
-    single_doc : str or None
-        If provided, this single documentation page will be generated.
-    """
-    if single_doc is not None:
-        single_doc = os.path.splitext(os.path.basename(single_doc))[0]
-        include_api = False
-
-    with open(os.path.join(SOURCE_PATH, 'index.rst.template')) as f:
-        t = jinja2.Template(f.read())
-
-    with open(os.path.join(SOURCE_PATH, 'index.rst'), 'w') as f:
-        f.write(t.render(include_api=include_api,
-                         single_doc=single_doc))
-
-
-def _generate_exclude_pattern(include_api=True, single_doc=None):
-    """
-
-    """
-    if not include_api:
-        rst_files = ['api.rst', 'generated/*.rst']
-    elif single_doc is not None:
-        rst_files = [f for f in os.listdir(SOURCE_PATH)
-                     if ((f.endswith('.rst') or f.endswith('.ipynb'))
-                         and (f != 'index.rst') and (f != single_doc))]
-        rst_files += ['generated/*.rst']
-    else:
-        rst_files = []
-
-    exclude_patterns = ",".join(
-        ['{!r}'.format(i) for i in ['**.ipynb_checkpoints'] + rst_files])
-
-    return exclude_patterns
-
-
-def _generate_temp_docstring_file(methods):
-    """
-    """
-    fnames = [os.path.join(SOURCE_PATH, 'generated', '{}.rst'.format(method))
-              for method in methods]
-
-    # # remove the target file to make sure it is updated again (to build
-    # # latest version)
-    # try:
-    #     os.remove(fname)
-    # except OSError:
-    #     pass
-    #
-    # # generate docstring pages
-    # print("Running sphinx-autogen to generate docstring stub pages")
-    # os.system("sphinx-autogen -o source/generated source/*.rst")
-
-    # create the temporary directory in which we will link the target file
-    try:
-        os.makedirs(os.path.join(SOURCE_PATH, 'generated_temp'))
-    except OSError:
-        pass
-
-    for fname in fnames:
-        if os.path.exists(fname):
-            # link the target file
-            try:
-                # os.symlink(fname, os.path.join(SOURCE_PATH, 'generated_temp',
-                #                                '{}.rst'.format(method)),
-                #            target_is_directory=False)
-                # copying to make sure sphinx always thinks it is new
-                # and needs to be re-generated (to pick source code changes)
-                shutil.copy(fname, os.path.join(SOURCE_PATH, 'generated_temp'))
-                linked = True
-            except:  # noqa
-                linked = False
-        else:
-            linked = False
-
-    s = """Built docstrings
-================
-
-.. autosummary::
-    :toctree: generated_temp/
-
-    {name}
-
-    """.format(name='\n    '.join(methods))
-
-    with open(os.path.join(SOURCE_PATH, "temp.rst"), 'w') as f:
-        f.write(s)
-
-    if not linked:
-        print("Running sphinx-autogen on manually created file")
-        os.system("sphinx-autogen -o source/generated_temp source/temp.rst")
 
 
 @contextmanager
@@ -137,6 +38,7 @@ def _maybe_exclude_notebooks():
     1. nbconvert isn't installed, or
     2. nbconvert is installed, but pandoc isn't
     """
+    # TODO move to exclude_pattern
     base = os.path.dirname(__file__)
     notebooks = [os.path.join(base, 'source', nb)
                  for nb in ['style.ipynb']]
@@ -175,9 +77,73 @@ class DocBuilder:
     All public methods of this class can be called as parameters of the
     script.
     """
-    def __init__(self, num_jobs=1, exclude_patterns=None):
+    def __init__(self, num_jobs=1, include_api=True, single_doc=None):
         self.num_jobs = num_jobs
-        self.exclude_patterns = exclude_patterns
+        self.include_api = include_api
+        self.single_doc = single_doc
+        self.single_doc_type = self._single_doc_type
+        self.exclude_patterns = self._exclude_patterns
+
+        self._generate_index()
+        if self.single_doc_type == 'api':
+            self._run_os('sphinx-autogen', '-o',
+                         'source/generated_single', 'source/index.rst')
+
+    @property
+    def _exclude_patterns(self):
+        """Docs source files that will be excluded from building."""
+        # TODO move maybe_exclude_notebooks here
+        if self.single_doc is not None:
+            rst_files = [f for f in os.listdir(SOURCE_PATH)
+                         if ((f.endswith('.rst') or f.endswith('.ipynb'))
+                             and (f != 'index.rst')
+                             and (f != self.single_doc))]
+            rst_files += ['generated/*.rst']
+        elif not self.include_api:
+            rst_files = ['api.rst', 'generated/*.rst']
+        else:
+            rst_files = ['generated_single/*.rst']
+
+        exclude_patterns = ','.join(
+            '{!r}'.format(i) for i in ['**.ipynb_checkpoints'] + rst_files)
+
+        return exclude_patterns
+
+    @property
+    def _single_doc_type(self):
+        if self.single_doc:
+            if os.path.exists(os.path.join(SOURCE_PATH, self.single_doc)):
+                return 'rst'
+            try:
+                obj = pandas
+                for name in self.single_doc.split('.'):
+                    obj = getattr(obj, name)
+            except AttributeError:
+                raise ValueError('Single document not understood, it should '
+                                 'be a file in doc/source/*.rst (e.g. '
+                                 '"contributing.rst" or a pandas function or '
+                                 'method (e.g. "pandas.DataFrame.head")')
+            else:
+                return 'api'
+
+    def _generate_index(self):
+        """Create index.rst file with the specified sections."""
+        if self.single_doc_type == 'rst':
+            single_doc = os.path.splitext(os.path.basename(self.single_doc))[0]
+            self.include_api = False
+        elif self.single_doc_type == 'api' and \
+                self.single_doc.startswith('pandas.'):
+            single_doc = self.single_doc[len('pandas.'):]
+        else:
+            single_doc = self.single_doc
+
+        with open(os.path.join(SOURCE_PATH, 'index.rst.template')) as f:
+            t = jinja2.Template(f.read())
+
+        with open(os.path.join(SOURCE_PATH, 'index.rst'), 'w') as f:
+            f.write(t.render(include_api=self.include_api,
+                             single_doc=single_doc,
+                             single_doc_type=self.single_doc_type))
 
     @staticmethod
     def _create_build_structure():
@@ -201,7 +167,10 @@ class DocBuilder:
         --------
         >>> DocBuilder()._run_os('python', '--version')
         """
-        subprocess.check_call(args, stderr=subprocess.STDOUT)
+        # TODO check_call should be more safe, but it fails with
+        # exclude patterns, needs investigation
+        # subprocess.check_call(args, stderr=subprocess.STDOUT)
+        os.system(' '.join(args))
 
     def _sphinx_build(self, kind):
         """Call sphinx to build documentation.
@@ -223,9 +192,15 @@ class DocBuilder:
                      '-j{}'.format(self.num_jobs),
                      '-b{}'.format(kind),
                      '-d{}'.format(os.path.join(BUILD_PATH, 'doctrees')),
-                     # TODO integrate exclude_patterns
+                     '-Dexclude_patterns={}'.format(self.exclude_patterns),
                      SOURCE_PATH,
                      os.path.join(BUILD_PATH, kind))
+
+    def _open_browser(self):
+        url = os.path.join(
+            'file://', DOC_PATH, 'build', 'html',
+            'generated_single', '{}.html'.format(self.single_doc))
+        webbrowser.open(url, new=2)
 
     def html(self):
         """Build HTML documentation."""
@@ -235,6 +210,9 @@ class DocBuilder:
             zip_fname = os.path.join(BUILD_PATH, 'html', 'pandas.zip')
             if os.path.exists(zip_fname):
                 os.remove(zip_fname)
+
+        if self.single_doc is not None:
+            self._open_browser()
 
     def latex(self, force=False):
         """Build PDF documentation."""
@@ -278,24 +256,6 @@ class DocBuilder:
                      '-r',
                      '-q',
                      *fnames)
-
-    def build_docstring(self):
-        """Build single docstring page"""
-        self._create_build_structure()
-
-        args = ('sphinx-build',
-                '-bhtml',
-                '-d{}'.format(os.path.join(BUILD_PATH, 'doctrees')),
-                '-Dexclude_patterns={}'.format(self.exclude_patterns),
-                SOURCE_PATH,
-                os.path.join(BUILD_PATH, 'html'),
-                os.path.join(SOURCE_PATH, 'temp.rst'),
-                os.path.join(SOURCE_PATH, 'generated_temp/*.rst'),
-                )
-        # for some reason it does not work with run_os, but it does if I
-        # directly call the joined command
-        # self._run_os(*args)
-        os.system(" ".join(args))
 
 
 def main():
@@ -341,32 +301,9 @@ def main():
 
     os.environ['PYTHONPATH'] = args.python_path
 
-    if args.docstring is not None:
-        shutil.rmtree(os.path.join(BUILD_PATH, 'html', 'generated_temp'),
-                      ignore_errors=True)
-        _generate_temp_docstring_file(args.docstring)
-        exclude_patterns = _generate_exclude_pattern(single_doc='temp.rst')
-        _generate_index(single_doc='temp.rst')
-        DocBuilder(args.num_jobs, exclude_patterns).build_docstring()
-        # open generated page in new browser tab
-        if len(args.docstring) == 1:
-            url = os.path.join(
-                "file://", DOC_PATH, "build", "html",
-                "generated_temp", "{}.html".format(args.docstring[0]))
-        else:
-            url = os.path.join(
-                "file://", DOC_PATH, "build", "html", "temp.html")
-        webbrowser.open(url, new=2)
-        # clean-up generated files
-        os.remove('source/temp.rst')
-        shutil.rmtree(os.path.join(SOURCE_PATH, 'generated_temp'),
-                      ignore_errors=True)
-
-    else:
-        _generate_index(not args.no_api, args.single)
-        exclude_patterns = _generate_exclude_pattern(
-            not args.no_api, args.single)
-        getattr(DocBuilder(args.num_jobs, exclude_patterns), args.command)()
+    getattr(DocBuilder(args.num_jobs,
+                       args.no_api,
+                       args.single), args.command)()
 
 
 if __name__ == '__main__':
