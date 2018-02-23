@@ -62,11 +62,6 @@ class TestTimedeltaArithmetic(object):
         assert abs(-td) == td
         assert abs(-td) == Timedelta('10d')
 
-    def test_binary_ops_nat(self):
-        td = Timedelta(10, unit='d')
-        # FIXME: The next test is wrong: td * NaT should raise
-        assert (td * pd.NaT) is pd.NaT
-
 
 class TestTimedeltaComparison(object):
     def test_comparison_object_array(self):
