@@ -53,10 +53,11 @@ def _field_accessor(name, alias, docstring=None):
     return property(f)
 
 
-def _td_index_cmp(opname, cls, nat_result=False):
+def _td_index_cmp(opname, cls):
     """
     Wrap comparison operations to convert timedelta-like to timedelta64
     """
+    nat_result = True if opname == '__ne__' else False
 
     def wrapper(self, other):
         msg = "cannot compare a TimedeltaIndex with type {0}"
@@ -184,7 +185,7 @@ class TimedeltaIndex(DatetimeIndexOpsMixin, TimelikeOps, Int64Index):
     def _add_comparison_methods(cls):
         """ add in comparison methods """
         cls.__eq__ = _td_index_cmp('__eq__', cls)
-        cls.__ne__ = _td_index_cmp('__ne__', cls, nat_result=True)
+        cls.__ne__ = _td_index_cmp('__ne__', cls)
         cls.__lt__ = _td_index_cmp('__lt__', cls)
         cls.__gt__ = _td_index_cmp('__gt__', cls)
         cls.__le__ = _td_index_cmp('__le__', cls)
@@ -383,11 +384,12 @@ class TimedeltaIndex(DatetimeIndexOpsMixin, TimelikeOps, Int64Index):
 
         return TimedeltaIndex(new_values, freq='infer')
 
-    def _evaluate_with_timedelta_like(self, other, op, opstr, reversed=False):
+    def _evaluate_with_timedelta_like(self, other, op):
         if isinstance(other, ABCSeries):
             # GH#19042
             return NotImplemented
 
+        opstr = '__{opname}__'.format(opname=op.__name__).replace('__r', '__')
         # allow division by a timedelta
         if opstr in ['__div__', '__truediv__', '__floordiv__']:
             if _is_convertible_to_td(other):
@@ -398,11 +400,9 @@ class TimedeltaIndex(DatetimeIndexOpsMixin, TimelikeOps, Int64Index):
 
                 i8 = self.asi8
                 left, right = i8, other.value
-                if reversed:
-                    left, right = right, left
 
                 if opstr in ['__floordiv__']:
-                    result = left // right
+                    result = op(left, right)
                 else:
                     result = op(left, np.float64(right))
                 result = self._maybe_mask_results(result, convert='float64')

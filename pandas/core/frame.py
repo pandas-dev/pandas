@@ -39,6 +39,7 @@ from pandas.core.dtypes.common import (
     is_categorical_dtype,
     is_object_dtype,
     is_extension_type,
+    is_extension_array_dtype,
     is_datetimetz,
     is_datetime64_any_dtype,
     is_datetime64tz_dtype,
@@ -71,7 +72,7 @@ from pandas.core.internals import (BlockManager,
                                    create_block_manager_from_arrays,
                                    create_block_manager_from_blocks)
 from pandas.core.series import Series
-from pandas.core.arrays import Categorical
+from pandas.core.arrays import Categorical, ExtensionArray
 import pandas.core.algorithms as algorithms
 from pandas.compat import (range, map, zip, lrange, lmap, lzip, StringIO, u,
                            OrderedDict, raise_with_traceback)
@@ -251,11 +252,11 @@ class DataFrame(NDFrame):
     data : numpy ndarray (structured or homogeneous), dict, or DataFrame
         Dict can contain Series, arrays, constants, or list-like objects
     index : Index or array-like
-        Index to use for resulting frame. Will default to np.arange(n) if
+        Index to use for resulting frame. Will default to RangeIndex if
         no indexing information part of input data and no index provided
     columns : Index or array-like
         Column labels to use for resulting frame. Will default to
-        np.arange(n) if no column labels are provided
+        RangeIndex (0, 1, 2, ..., n) if no column labels are provided
     dtype : dtype, default None
         Data type to force. Only a single dtype is allowed. If None, infer
     copy : boolean, default False
@@ -511,7 +512,7 @@ class DataFrame(NDFrame):
             index, columns = _get_axes(len(values), 1)
             return _arrays_to_mgr([values], columns, index, columns,
                                   dtype=dtype)
-        elif is_datetimetz(values):
+        elif (is_datetimetz(values) or is_extension_array_dtype(values)):
             # GH19157
             if columns is None:
                 columns = [0]
@@ -876,7 +877,7 @@ class DataFrame(NDFrame):
     # IO methods (to / from other formats)
 
     @classmethod
-    def from_dict(cls, data, orient='columns', dtype=None):
+    def from_dict(cls, data, orient='columns', dtype=None, columns=None):
         """
         Construct DataFrame from dict of array-like or dicts
 
@@ -890,12 +891,17 @@ class DataFrame(NDFrame):
             (default). Otherwise if the keys should be rows, pass 'index'.
         dtype : dtype, default None
             Data type to force, otherwise infer
+        columns: list, default None
+            Column labels to use when orient='index'. Raises a ValueError
+            if used with orient='columns'
+
+            .. versionadded:: 0.23.0
 
         Returns
         -------
         DataFrame
         """
-        index, columns = None, None
+        index = None
         orient = orient.lower()
         if orient == 'index':
             if len(data) > 0:
@@ -904,7 +910,11 @@ class DataFrame(NDFrame):
                     data = _from_nested_dict(data)
                 else:
                     data, index = list(data.values()), list(data.keys())
-        elif orient != 'columns':  # pragma: no cover
+        elif orient == 'columns':
+            if columns is not None:
+                raise ValueError("cannot use columns parameter with "
+                                 "orient='columns'")
+        else:  # pragma: no cover
             raise ValueError('only recognize index or columns for orient')
 
         return cls(data, index=index, columns=columns, dtype=dtype)
@@ -1612,7 +1622,7 @@ class DataFrame(NDFrame):
         time_stamp : datetime
             A datetime to use as file creation date.  Default is the current
             time.
-        dataset_label : str
+        data_label : str
             A label for the data set.  Must be 80 characters or smaller.
         variable_labels : dict
             Dictionary containing columns as keys and variable labels as
@@ -1635,10 +1645,18 @@ class DataFrame(NDFrame):
 
         Examples
         --------
+        >>> data.to_stata('./data_file.dta')
+
+        Or with dates
+
+        >>> data.to_stata('./date_data_file.dta', {2 : 'tw'})
+
+        Alternatively you can create an instance of the StataWriter class
+
         >>> writer = StataWriter('./data_file.dta', data)
         >>> writer.write_file()
 
-        Or with dates
+        With dates:
 
         >>> writer = StataWriter('./date_data_file.dta', data, {2 : 'tw'})
         >>> writer.write_file()
@@ -2820,7 +2838,7 @@ class DataFrame(NDFrame):
             # now align rows
             value = reindexer(value).T
 
-        elif isinstance(value, Categorical):
+        elif isinstance(value, ExtensionArray):
             value = value.copy()
 
         elif isinstance(value, Index) or is_sequence(value):
@@ -2850,7 +2868,7 @@ class DataFrame(NDFrame):
             value = maybe_cast_to_datetime(value, value.dtype)
 
         # return internal types directly
-        if is_extension_type(value):
+        if is_extension_type(value) or is_extension_array_dtype(value):
             return value
 
         # broadcast across multiple columns if necessary
@@ -3387,12 +3405,8 @@ class DataFrame(NDFrame):
             new_obj = self.copy()
 
         def _maybe_casted_values(index, labels=None):
-            if isinstance(index, PeriodIndex):
-                values = index.astype(object).values
-            elif isinstance(index, DatetimeIndex) and index.tz is not None:
-                values = index
-            else:
-                values = index.values
+            values = index._values
+            if not isinstance(index, (PeriodIndex, DatetimeIndex)):
                 if values.dtype == np.object_:
                     values = lib.maybe_convert_objects(values)
 
@@ -5604,7 +5618,9 @@ class DataFrame(NDFrame):
         if len(frame._get_axis(axis)) == 0:
             result = Series(0, index=frame._get_agg_axis(axis))
         else:
-            if frame._is_mixed_type:
+            if frame._is_mixed_type or frame._data.any_extension_types:
+                # the or any_extension_types is really only hit for single-
+                # column frames with an extension array
                 result = notna(frame).sum(axis=axis)
             else:
                 counts = notna(frame.values).sum(axis=axis)
