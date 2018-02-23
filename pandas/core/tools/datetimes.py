@@ -106,15 +106,9 @@ def _convert_and_box_cache(arg, cache_array, box, errors, name=None):
 def to_datetime(arg, errors='raise', dayfirst=False, yearfirst=False,
                 utc=None, box=True, format=None, exact=True,
                 unit=None, infer_datetime_format=False, origin='unix',
-                cache=False, _require_iso8601=False):
+                cache=False, **kwargs):
     """
     Convert argument to datetime.
-
-    Passing _require_iso8601=True will only parse datetime strings similar to
-    `ISO8601 <https://en.wikipedia.org/wiki/ISO_8601>`_ and treat others as
-    non-parseable dates.
-
-    .. versionadded:: 0.23.0
 
     Parameters
     ----------
@@ -278,9 +272,10 @@ def to_datetime(arg, errors='raise', dayfirst=False, yearfirst=False,
     from pandas.core.indexes.datetimes import DatetimeIndex
 
     tz = 'utc' if utc else None
+    require_iso8601 = kwargs.get('require_iso8601', None)
 
     def _convert_listlike(arg, box, format, name=None, tz=tz,
-                          require_iso8601=_require_iso8601):
+                          require_iso8601=require_iso8601):
 
         if isinstance(arg, (list, tuple)):
             arg = np.array(arg, dtype='O')

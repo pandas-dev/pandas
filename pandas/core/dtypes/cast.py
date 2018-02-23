@@ -916,7 +916,7 @@ def maybe_infer_to_datetimelike(value, convert_dates=False):
             try:
                 from pandas import to_datetime
                 # GH19671
-                return to_datetime(v, _require_iso8601=True)
+                return to_datetime(v, require_iso8601=True)
             except Exception:
                 pass
 
