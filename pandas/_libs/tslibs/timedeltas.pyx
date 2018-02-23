@@ -86,6 +86,7 @@ cpdef int64_t delta_to_nanoseconds(delta) except? -1:
     if hasattr(delta, 'delta'):
         delta = delta.delta
     if is_timedelta64_object(delta):
+        _require_td64_has_unit(delta)
         return delta.astype("timedelta64[ns]").item()
     if is_integer_object(delta):
         return delta
@@ -451,7 +452,10 @@ cdef bint _validate_ops_compat(other):
     # return True if we are compat with operating
     if checknull_with_nat(other):
         return True
-    elif PyDelta_Check(other) or is_timedelta64_object(other):
+    elif is_timedelta64_object(other):
+        _require_td64_has_unit(other)
+        return True
+    elif PyDelta_Check(other) :
         return True
     elif is_string_object(other):
         return True
@@ -497,6 +501,7 @@ def _binary_op_method_timedeltalike(op, name):
             if other.dtype.kind not in ['m', 'M']:
                 # raise rathering than letting numpy return wrong answer
                 return NotImplemented
+            _require_td64_has_unit(other)
             return op(self.to_timedelta64(), other)
 
         elif not _validate_ops_compat(other):
@@ -956,6 +961,8 @@ class Timedelta(_Timedelta):
         elif is_timedelta64_object(value):
             if unit is not None:
                 value = value.astype('timedelta64[{0}]'.format(unit))
+            else:
+                _require_td64_has_unit(value)
             value = value.astype('timedelta64[ns]')
         elif hasattr(value, 'delta'):
             value = np.timedelta64(delta_to_nanoseconds(value.delta), 'ns')
@@ -1054,6 +1061,7 @@ class Timedelta(_Timedelta):
     def __mul__(self, other):
         if hasattr(other, 'dtype'):
             # ndarray-like
+            _require_td64_has_unit(other)
             return other * self.to_timedelta64()
 
         elif other is NaT:
@@ -1069,6 +1077,7 @@ class Timedelta(_Timedelta):
 
     def __truediv__(self, other):
         if hasattr(other, 'dtype'):
+            _require_td64_has_unit(other)
             return self.to_timedelta64() / other
 
         elif is_integer_object(other) or is_float_object(other):
@@ -1085,6 +1094,7 @@ class Timedelta(_Timedelta):
 
     def __rtruediv__(self, other):
         if hasattr(other, 'dtype'):
+            _require_td64_has_unit(other)
             return other / self.to_timedelta64()
 
         elif not _validate_ops_compat(other):
@@ -1116,6 +1126,7 @@ class Timedelta(_Timedelta):
         elif hasattr(other, 'dtype'):
             if other.dtype.kind == 'm':
                 # also timedelta-like
+                _require_td64_has_unit(other)
                 return _broadcast_floordiv_td64(self.value, other, _floordiv)
             elif other.dtype.kind in ['i', 'u', 'f']:
                 if other.ndim == 0:
@@ -1155,6 +1166,7 @@ class Timedelta(_Timedelta):
         elif hasattr(other, 'dtype'):
             if other.dtype.kind == 'm':
                 # also timedelta-like
+                _require_td64_has_unit(other)
                 return _broadcast_floordiv_td64(self.value, other, _rfloordiv)
             raise TypeError('Invalid dtype {dtype} for '
                             '{op}'.format(dtype=other.dtype,
@@ -1235,6 +1247,30 @@ cdef _broadcast_floordiv_td64(int64_t value, object other,
             res = res.astype('f8')
             res[mask] = np.nan
         return res
+
+
+cdef _require_td64_has_unit(value):
+    """
+    Require that a timedelta64 scalar have a unit specified,
+    i.e. 'timedelta64[ns]'' is OK but 'timedelta64' is not.
+
+    Parameters
+    ----------
+    value : np.timedelta64 or ndarray[timedelta64]
+
+    Raises
+    ------
+    ValueError
+    """
+    # GH#19388
+    if value.dtype == 'm8':
+        # i.e. has no unit
+        if util.is_array(value) or (value.view('i8') != NPY_NAT):
+            # If it is timedelta64('NaT') then its meaning is unambigous
+            # even though it does not have a unit.
+            raise ValueError('Cannot operate on timedelta64 value without a '
+                             'unit specified.  Try casting to "m8[ns]" to '
+                             'explicitly specify nanosecond unit.')
 
 
 # resolution in ns
