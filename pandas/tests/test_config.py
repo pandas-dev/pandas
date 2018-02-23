@@ -431,4 +431,6 @@ class TestConfig(object):
 
     def test_dictwrapper_getattr(self):
         options = self.cf.options
+        # GH 19789
+        pytest.raises(self.cf.OptionError, getattr, options, 'bananas')
         assert not hasattr(options, 'bananas')
