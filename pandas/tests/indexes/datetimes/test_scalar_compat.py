@@ -17,6 +17,7 @@ from pandas import date_range, Timestamp, DatetimeIndex
                         'US/Eastern', 'dateutil/Asia/Singapore',
                         'dateutil/US/Pacific'])
 def tz(request):
+    # TODO: repeated fixture
     return request.param
 
 
