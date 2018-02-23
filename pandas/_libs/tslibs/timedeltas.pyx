@@ -1252,7 +1252,7 @@ cdef _broadcast_floordiv_td64(int64_t value, object other,
 cdef _require_td64_has_unit(value):
     """
     Require that a timedelta64 scalar have a unit specified,
-    i.e. 'timedelta64[ns]'' is OK but 'timedelta64' is not.
+    i.e. 'timedelta64[ns]' is OK but 'timedelta64' is not.
 
     Parameters
     ----------
