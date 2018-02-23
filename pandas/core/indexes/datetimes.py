@@ -100,10 +100,11 @@ def _field_accessor(name, field, docstring=None):
     return property(f)
 
 
-def _dt_index_cmp(opname, cls, nat_result=False):
+def _dt_index_cmp(opname, cls):
     """
     Wrap comparison operations to convert datetime-like to datetime64
     """
+    nat_result = True if opname == '__ne__' else False
 
     def wrapper(self, other):
         func = getattr(super(DatetimeIndex, self), opname)
@@ -291,7 +292,7 @@ class DatetimeIndex(DatelikeOps, TimelikeOps, DatetimeIndexOpsMixin,
     def _add_comparison_methods(cls):
         """ add in comparison methods """
         cls.__eq__ = _dt_index_cmp('__eq__', cls)
-        cls.__ne__ = _dt_index_cmp('__ne__', cls, nat_result=True)
+        cls.__ne__ = _dt_index_cmp('__ne__', cls)
         cls.__lt__ = _dt_index_cmp('__lt__', cls)
         cls.__gt__ = _dt_index_cmp('__gt__', cls)
         cls.__le__ = _dt_index_cmp('__le__', cls)
