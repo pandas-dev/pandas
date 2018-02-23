@@ -1,10 +1,9 @@
 # -*- coding: utf-8 -*-
-
 import numpy as np
 import pytest
 
 import pandas.util.testing as tm
-from pandas import (Categorical, Index, isna)
+from pandas import Categorical, Index, isna
 from pandas.compat import lrange
 from pandas.core.dtypes.dtypes import CategoricalDtype
 

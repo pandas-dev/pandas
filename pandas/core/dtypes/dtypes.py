@@ -66,13 +66,6 @@ class PandasExtensionDtype(ExtensionDtype):
         raise NotImplementedError("sub-classes should implement an __hash__ "
                                   "method")
 
-    def __eq__(self, other):
-        raise NotImplementedError("sub-classes should implement an __eq__ "
-                                  "method")
-
-    def __ne__(self, other):
-        return not self.__eq__(other)
-
     def __getstate__(self):
         # pickle support; we don't want to pickle the cache
         return {k: getattr(self, k, None) for k in self._metadata}
@@ -81,24 +74,6 @@ class PandasExtensionDtype(ExtensionDtype):
     def reset_cache(cls):
         """ clear the cache """
         cls._cache = {}
-
-    @classmethod
-    def is_dtype(cls, dtype):
-        """ Return a boolean if the passed type is an actual dtype that
-        we can match (via string or type)
-        """
-        if hasattr(dtype, 'dtype'):
-            dtype = dtype.dtype
-        if isinstance(dtype, np.dtype):
-            return False
-        elif dtype is None:
-            return False
-        elif isinstance(dtype, cls):
-            return True
-        try:
-            return cls.construct_from_string(dtype) is not None
-        except:
-            return False
 
 
 class CategoricalDtypeType(type):

@@ -13,6 +13,7 @@ from pandas.compat.numpy import function as nv
 from pandas import compat
 
 from pandas.core.accessor import CachedAccessor
+from pandas.core.arrays import ExtensionArray
 from pandas.core.dtypes.generic import (
     ABCSeries, ABCDataFrame,
     ABCMultiIndex,
@@ -2051,6 +2052,7 @@ class Index(IndexOpsMixin, PandasObject):
 
         if is_categorical_dtype(values.dtype):
             values = np.array(values)
+
         elif is_object_dtype(values.dtype):
             values = lib.maybe_convert_objects(values, safe=1)
 
@@ -2652,7 +2654,7 @@ class Index(IndexOpsMixin, PandasObject):
         # if we have something that is Index-like, then
         # use this, e.g. DatetimeIndex
         s = getattr(series, '_values', None)
-        if isinstance(s, Index) and is_scalar(key):
+        if isinstance(s, (ExtensionArray, Index)) and is_scalar(key):
             try:
                 return s[key]
             except (IndexError, ValueError):

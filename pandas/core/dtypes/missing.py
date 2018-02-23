@@ -5,14 +5,16 @@ import numpy as np
 from pandas._libs import lib, missing as libmissing
 from pandas._libs.tslib import NaT, iNaT
 from .generic import (ABCMultiIndex, ABCSeries,
-                      ABCIndexClass, ABCGeneric)
+                      ABCIndexClass, ABCGeneric,
+                      ABCExtensionArray)
 from .common import (is_string_dtype, is_datetimelike,
                      is_datetimelike_v_numeric, is_float_dtype,
                      is_datetime64_dtype, is_datetime64tz_dtype,
                      is_timedelta64_dtype, is_interval_dtype,
-                     is_complex_dtype, is_categorical_dtype,
+                     is_complex_dtype,
                      is_string_like_dtype, is_bool_dtype,
                      is_integer_dtype, is_dtype_equal,
+                     is_extension_array_dtype,
                      needs_i8_conversion, _ensure_object,
                      pandas_dtype,
                      is_scalar,
@@ -57,7 +59,8 @@ def _isna_new(obj):
     # hack (for now) because MI registers as ndarray
     elif isinstance(obj, ABCMultiIndex):
         raise NotImplementedError("isna is not defined for MultiIndex")
-    elif isinstance(obj, (ABCSeries, np.ndarray, ABCIndexClass)):
+    elif isinstance(obj, (ABCSeries, np.ndarray, ABCIndexClass,
+                          ABCExtensionArray)):
         return _isna_ndarraylike(obj)
     elif isinstance(obj, ABCGeneric):
         return obj._constructor(obj._data.isna(func=isna))
@@ -124,30 +127,31 @@ def _use_inf_as_na(key):
 
 
 def _isna_ndarraylike(obj):
-
     values = getattr(obj, 'values', obj)
     dtype = values.dtype
 
-    if is_string_dtype(dtype):
-        if is_categorical_dtype(values):
-            from pandas import Categorical
-            if not isinstance(values, Categorical):
-                values = values.values
-            result = values.isna()
-        elif is_interval_dtype(values):
-            from pandas import IntervalIndex
-            result = IntervalIndex(obj).isna()
+    if is_extension_array_dtype(obj):
+        if isinstance(obj, (ABCIndexClass, ABCSeries)):
+            values = obj._values
         else:
+            values = obj
+        result = values.isna()
+    elif is_interval_dtype(values):
+        # TODO(IntervalArray): remove this if block
+        from pandas import IntervalIndex
+        result = IntervalIndex(obj).isna()
+    elif is_string_dtype(dtype):
+        # Working around NumPy ticket 1542
+        shape = values.shape
 
-            # Working around NumPy ticket 1542
-            shape = values.shape
-
-            if is_string_like_dtype(dtype):
-                result = np.zeros(values.shape, dtype=bool)
-            else:
-                result = np.empty(shape, dtype=bool)
-                vec = libmissing.isnaobj(values.ravel())
-                result[...] = vec.reshape(shape)
+        if is_string_like_dtype(dtype):
+            # object array of strings
+            result = np.zeros(values.shape, dtype=bool)
+        else:
+            # object array of non-strings
+            result = np.empty(shape, dtype=bool)
+            vec = libmissing.isnaobj(values.ravel())
+            result[...] = vec.reshape(shape)
 
     elif needs_i8_conversion(obj):
         # this is the NaT pattern
@@ -406,4 +410,7 @@ def remove_na_arraylike(arr):
     """
     Return array-like containing only true/non-NaN values, possibly empty.
     """
-    return arr[notna(lib.values_from_object(arr))]
+    if is_extension_array_dtype(arr):
+        return arr[notna(arr)]
+    else:
+        return arr[notna(lib.values_from_object(arr))]
