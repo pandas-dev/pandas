@@ -455,7 +455,7 @@ cdef bint _validate_ops_compat(other) except -1:
     elif is_timedelta64_object(other):
         _require_td64_has_unit(other)
         return True
-    elif PyDelta_Check(other) :
+    elif PyDelta_Check(other):
         return True
     elif is_string_object(other):
         return True
