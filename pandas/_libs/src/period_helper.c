@@ -662,20 +662,3 @@ freq_conv_func get_asfreq_func(int fromFreq, int toFreq) {
             return &nofunc;
     }
 }
-
-/* ------------------------------------------------------------------
- * New pandas API-helper code, to expose to cython
- * ------------------------------------------------------------------*/
-
-npy_int64 asfreq(npy_int64 period_ordinal, int freq1, int freq2,
-                 char relation) {
-    npy_int64 val;
-    freq_conv_func func;
-    asfreq_info finfo;
-
-    func = get_asfreq_func(freq1, freq2);
-
-    get_asfreq_info(freq1, freq2, relation, &finfo);
-    val = (*func)(period_ordinal, &finfo);
-    return val;
-}

@@ -97,8 +97,6 @@ cdef extern from "period_helper.h":
 
     ctypedef int64_t (*freq_conv_func)(int64_t, asfreq_info*) nogil
 
-    int64_t asfreq(int64_t dtordinal, int freq1, int freq2,
-                   char relation) except INT32_MIN
     freq_conv_func get_asfreq_func(int fromFreq, int toFreq) nogil
     void get_asfreq_info(int fromFreq, int toFreq, char relation,
                          asfreq_info *af_info) nogil
@@ -539,14 +537,21 @@ cpdef int64_t period_asfreq(int64_t ordinal, int freq1, int freq2, bint end):
     """
     cdef:
         int64_t retval
+        char relation
+        freq_conv_func func
+        asfreq_info af_info
 
     if ordinal == iNaT:
         return iNaT
 
     if end:
-        retval = asfreq(ordinal, freq1, freq2, END)
+        relation = END
     else:
-        retval = asfreq(ordinal, freq1, freq2, START)
+        relation = START
+
+    func = get_asfreq_func(freq1, freq2)
+    get_asfreq_info(freq1, freq2, relation, &af_info)
+    retval = func(ordinal, &af_info)
 
     if retval == INT32_MIN:
         raise ValueError('Frequency conversion failed')

@@ -108,8 +108,6 @@ typedef npy_int64 (*freq_conv_func)(npy_int64, asfreq_info *af_info);
  * new pandas API helper functions here
  */
 
-npy_int64 asfreq(npy_int64 period_ordinal, int freq1, int freq2, char relation);
-
 freq_conv_func get_asfreq_func(int fromFreq, int toFreq);
 void get_asfreq_info(int fromFreq, int toFreq, char relation,
                      asfreq_info *af_info);
