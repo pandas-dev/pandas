@@ -855,7 +855,7 @@ def add_special_arithmetic_methods(cls):
     cls : class
         special methods will be defined and pinned to this class
     """
-    arith_method, comp_method, bool_method = _get_method_wrappers(cls)[2:]
+    _, _, arith_method, comp_method, bool_method = _get_method_wrappers(cls)
     new_methods = _create_methods(cls, arith_method, comp_method, bool_method,
                                   special=True)
     # inplace operators (I feel like these should get passed an `inplace=True`
@@ -907,7 +907,7 @@ def add_flex_arithmetic_methods(cls):
     cls : class
         flex methods will be defined and pinned to this class
     """
-    flex_arith_method, flex_comp_method = _get_method_wrappers(cls)[:2]
+    flex_arith_method, flex_comp_method, _, _, _ = _get_method_wrappers(cls)
     new_methods = _create_methods(cls, flex_arith_method,
                                   flex_comp_method, bool_method=None,
                                   special=False)
