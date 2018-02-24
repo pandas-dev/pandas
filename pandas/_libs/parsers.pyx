@@ -1362,7 +1362,10 @@ _NA_VALUES = _ensure_encoded(list(com._NA_VALUES))
 
 def _maybe_upcast(arr):
     """
-
+    If the dtype argument is set to type str, when a NaN 
+    is inserted into the column it will also be treated as 
+    str. It is important to pay attention to this point, 
+    since a NaN is in its specification a float.
     """
     if issubclass(arr.dtype.type, np.integer):
         na_value = na_values[arr.dtype]
@@ -1372,7 +1375,9 @@ def _maybe_upcast(arr):
         mask = arr.view(np.uint8) == na_values[np.uint8]
         arr = arr.astype(object)
         np.putmask(arr, mask, np.nan)
-
+    elif arr.dtype.kind == 'O':
+        arr = arr.astype(str)
+        np.putmask(arr, True, np.nan)
     return arr
 
 
