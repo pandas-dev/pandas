@@ -4651,7 +4651,7 @@ class DataFrameGroupBy(NDFrameGroupBy):
         output = collections.OrderedDict(
             (grp.name, grp.grouper) for grp in self.grouper.groupings)
 
-        from pandas.core.reshape.concat import concat
+        from pandas import concat
         return concat((self._wrap_transformed_output(output), res), axis=1)
 
     def count(self):
