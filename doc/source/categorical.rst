@@ -44,10 +44,25 @@ The categorical data type is useful in the following cases:
 * As a signal to other Python libraries that this column should be treated as a categorical
   variable (e.g. to use suitable statistical methods or plot types).
 
+.. note::
+
+    In contrast to R's `factor` function, categorical data is not converting input values to
+    strings and categories will end up the same data type as the original values.
+
+.. note::
+
+    In contrast to R's `factor` function, there is currently no way to assign/change labels at
+    creation time. Use `categories` to change the categories after creation time.
+
 See also the :ref:`API docs on categoricals<api.categorical>`.
+
+.. _categorical.objectcreation:
 
 Object Creation
 ---------------
+
+Series Creation
+~~~~~~~~~~~~~~~
 
 Categorical ``Series`` or columns in a ``DataFrame`` can be created in several ways:
 
@@ -77,7 +92,7 @@ discrete bins. See the :ref:`example on tiling <reshaping.tile.cut>` in the docs
     df['group'] = pd.cut(df.value, range(0, 105, 10), right=False, labels=labels)
     df.head(10)
 
-By passing a :class:`pandas.Categorical` object to a `Series` or assigning it to a `DataFrame`.
+By passing a :class:`pandas.Categorical` object to a ``Series`` or assigning it to a ``DataFrame``.
 
 .. ipython:: python
 
@@ -88,6 +103,56 @@ By passing a :class:`pandas.Categorical` object to a `Series` or assigning it to
     df = pd.DataFrame({"A":["a","b","c","a"]})
     df["B"] = raw_cat
     df
+
+Categorical data has a specific ``category`` :ref:`dtype <basics.dtypes>`:
+
+.. ipython:: python
+
+    df.dtypes
+
+DataFrame Creation
+~~~~~~~~~~~~~~~~~~
+
+Columns in a ``DataFrame`` can be batch converted to categorical, either at the time of construction
+or after construction.  The conversion to categorical is done on a column by column basis; labels present
+in a one column will not be carried over and used as categories in another column.
+
+Columns can be batch converted by specifying ``dtype="category"`` when constructing a ``DataFrame``:
+
+.. ipython:: python
+
+    df = pd.DataFrame({'A': list('abca'), 'B': list('bccd')}, dtype="category")
+    df.dtypes
+
+Note that the categories present in each column differ; since the conversion is done on a column by column
+basis, only labels present in a given column are categories:
+
+.. ipython:: python
+
+    df['A']
+    df['B']
+
+
+.. versionadded:: 0.23.0
+
+Similarly, columns in an existing ``DataFrame`` can be batch converted using :meth:`DataFrame.astype`:
+
+.. ipython:: python
+
+    df = pd.DataFrame({'A': list('abca'), 'B': list('bccd')})
+    df_cat = df.astype('category')
+    df_cat.dtypes
+
+This conversion is likewise done on a column by column basis:
+
+.. ipython:: python
+
+    df_cat['A']
+    df_cat['B']
+
+
+Controlling Behavior
+~~~~~~~~~~~~~~~~~~~~
 
 In the examples above where we passed ``dtype='category'``, we used the default 
 behavior:
@@ -108,21 +173,30 @@ of :class:`~pandas.api.types.CategoricalDtype`.
     s_cat = s.astype(cat_type)
     s_cat
 
-Categorical data has a specific ``category`` :ref:`dtype <basics.dtypes>`:
+Similarly, a ``CategoricalDtype`` can be used with a ``DataFrame`` to ensure that categories
+are consistent among all columns.
 
 .. ipython:: python
 
-    df.dtypes
+    df = pd.DataFrame({'A': list('abca'), 'B': list('bccd')})
+    cat_type = CategoricalDtype(categories=list('abcd'),
+                                ordered=True)
+    df_cat = df.astype(cat_type)
+    df_cat['A']
+    df_cat['B']
 
-.. note::
+If you already have `codes` and `categories`, you can use the 
+:func:`~pandas.Categorical.from_codes` constructor to save the factorize step 
+during normal constructor mode:
 
-    In contrast to R's `factor` function, categorical data is not converting input values to
-    strings and categories will end up the same data type as the original values.
+.. ipython:: python
 
-.. note::
+    splitter = np.random.choice([0,1], 5, p=[0.5,0.5])
+    s = pd.Series(pd.Categorical.from_codes(splitter, categories=["train", "test"]))
 
-    In contrast to R's `factor` function, there is currently no way to assign/change labels at
-    creation time. Use `categories` to change the categories after creation time.
+
+Regaining Original Data
+~~~~~~~~~~~~~~~~~~~~~~~
 
 To get back to the original ``Series`` or NumPy array, use 
 ``Series.astype(original_dtype)`` or ``np.asarray(categorical)``:
@@ -135,15 +209,6 @@ To get back to the original ``Series`` or NumPy array, use
     s2
     s2.astype(str)
     np.asarray(s2)
-
-If you already have `codes` and `categories`, you can use the 
-:func:`~pandas.Categorical.from_codes` constructor to save the factorize step 
-during normal constructor mode:
-
-.. ipython:: python
-
-    splitter = np.random.choice([0,1], 5, p=[0.5,0.5])
-    s = pd.Series(pd.Categorical.from_codes(splitter, categories=["train", "test"]))
 
 .. _categorical.categoricaldtype:
 
