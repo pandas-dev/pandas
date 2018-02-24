@@ -2732,11 +2732,10 @@ def _non_reducing_slice(slice_):
         slice_ = IndexSlice[:, slice_]
 
     def pred(part):
-        # true when slice does *not* reduce False when part is a tuple,
+        # true when slice does *not* reduce, False when part is a tuple,
         # i.e. MultiIndex slice
-        if isinstance(part, tuple):
-            return False
-        return isinstance(part, slice) or is_list_like(part)
+        return (isinstance(part, slice) or is_list_like(part))\
+            and not isinstance(part, tuple)
 
     if not is_list_like(slice_):
         if not isinstance(slice_, slice):
