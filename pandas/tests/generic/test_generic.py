@@ -619,6 +619,7 @@ class Generic(object):
             res.name = None
         tm.assert_series_equal(res, pd.Series(exp))
 
+
 class TestNDFrame(object):
     # tests that don't fit elsewhere
 
