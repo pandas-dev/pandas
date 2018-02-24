@@ -79,6 +79,8 @@ Thumbs.db
 pandas/io/*.dat
 pandas/io/*.json
 scikits
+#cache files
+*.pytest_cache
 
 # Generated Sources #
 #####################
