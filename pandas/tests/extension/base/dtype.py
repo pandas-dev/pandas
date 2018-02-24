@@ -1,8 +1,10 @@
 import numpy as np
 import pandas as pd
 
+from .base import BaseExtensionTests
 
-class BaseDtypeTests(object):
+
+class BaseDtypeTests(BaseExtensionTests):
     """Base class for ExtensionDtype classes"""
 
     def test_name(self, dtype):
