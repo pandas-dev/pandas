@@ -90,7 +90,8 @@ class TestSeriesComparison(object):
 class TestTimestampSeriesComparison(object):
     def test_dt64ser_cmp_date_invalid(self):
         # GH#19800 datetime.date comparison raises to
-        # match DatetimeIndex/Timestamp/datetime
+        # match DatetimeIndex/Timestamp.  This also matches the behavior
+        # of stdlib datetime.datetime
         ser = pd.Series(pd.date_range('20010101', periods=10), name='dates')
         date = ser.iloc[0].to_pydatetime().date()
         assert not (ser == date).any()
