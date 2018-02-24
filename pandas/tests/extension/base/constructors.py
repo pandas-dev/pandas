@@ -4,8 +4,10 @@ import pandas as pd
 import pandas.util.testing as tm
 from pandas.core.internals import ExtensionBlock
 
+from .base import BaseExtensionTests
 
-class BaseConstructorsTests(object):
+
+class BaseConstructorsTests(BaseExtensionTests):
 
     def test_series_constructor(self, data):
         result = pd.Series(data)
