@@ -1189,7 +1189,7 @@ def construct_1d_arraylike_from_scalar(value, length, dtype):
         subarr = DatetimeIndex([value] * length, dtype=dtype)
     elif is_categorical_dtype(dtype):
         from pandas import Categorical
-        subarr = Categorical([value] * length)
+        subarr = Categorical([value] * length, dtype=dtype)
     else:
         if not isinstance(dtype, (np.dtype, type(np.dtype))):
             dtype = dtype.dtype

@@ -155,14 +155,14 @@ class TestDataFrameNonuniqueIndexes(TestData):
 
         # rename, GH 4403
         df4 = DataFrame(
-            {'TClose': [22.02],
-             'RT': [0.0454],
+            {'RT': [0.0454],
+             'TClose': [22.02],
              'TExg': [0.0422]},
             index=MultiIndex.from_tuples([(600809, 20130331)],
                                          names=['STK_ID', 'RPT_Date']))
 
-        df5 = DataFrame({'STK_ID': [600809] * 3,
-                         'RPT_Date': [20120930, 20121231, 20130331],
+        df5 = DataFrame({'RPT_Date': [20120930, 20121231, 20130331],
+                         'STK_ID': [600809] * 3,
                          'STK_Name': [u('饡驦'), u('饡驦'), u('饡驦')],
                          'TClose': [38.05, 41.66, 30.01]},
                         index=MultiIndex.from_tuples(
