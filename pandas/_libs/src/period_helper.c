@@ -89,7 +89,7 @@ static npy_int64 daytime_conversion_factor_matrix[7][7] = {
     {0,  0,   0,      0,        0,           1,           1000},
     {0,  0,   0,      0,        0,           0,              1}};
 
-PANDAS_INLINE int max_value(int a, int b) { return a > b ? a : b; }
+int max_value(int a, int b) { return a > b ? a : b; }
 
 PANDAS_INLINE int min_value(int a, int b) { return a < b ? a : b; }
 
@@ -276,9 +276,9 @@ static npy_int64 asfreq_WtoW(npy_int64 ordinal, asfreq_info *af_info) {
 static npy_int64 asfreq_WtoB(npy_int64 ordinal, asfreq_info *af_info) {
     struct date_info dinfo;
     npy_int64 unix_date = asfreq_WtoDT(ordinal, af_info);
+
     int roll_back = af_info->is_end;
     dInfoCalc_SetFromAbsDate(&dinfo, unix_date);
-
     return DtoB(&dinfo, roll_back, unix_date);
 }
 
@@ -315,10 +315,9 @@ static npy_int64 asfreq_MtoW(npy_int64 ordinal, asfreq_info *af_info) {
 static npy_int64 asfreq_MtoB(npy_int64 ordinal, asfreq_info *af_info) {
     struct date_info dinfo;
     npy_int64 unix_date = asfreq_MtoDT(ordinal, af_info);
+
     int roll_back = af_info->is_end;
-
     dInfoCalc_SetFromAbsDate(&dinfo, unix_date);
-
     return DtoB(&dinfo, roll_back, unix_date);
 }
 
@@ -370,10 +369,9 @@ static npy_int64 asfreq_QtoW(npy_int64 ordinal, asfreq_info *af_info) {
 static npy_int64 asfreq_QtoB(npy_int64 ordinal, asfreq_info *af_info) {
     struct date_info dinfo;
     npy_int64 unix_date = asfreq_QtoDT(ordinal, af_info);
+
     int roll_back = af_info->is_end;
-
     dInfoCalc_SetFromAbsDate(&dinfo, unix_date);
-
     return DtoB(&dinfo, roll_back, unix_date);
 }
 
@@ -427,9 +425,9 @@ static npy_int64 asfreq_AtoW(npy_int64 ordinal, asfreq_info *af_info) {
 static npy_int64 asfreq_AtoB(npy_int64 ordinal, asfreq_info *af_info) {
     struct date_info dinfo;
     npy_int64 unix_date = asfreq_AtoDT(ordinal, af_info);
+
     int roll_back = af_info->is_end;
     dInfoCalc_SetFromAbsDate(&dinfo, unix_date);
-
     return DtoB(&dinfo, roll_back, unix_date);
 }
 

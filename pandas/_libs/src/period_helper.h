@@ -111,5 +111,6 @@ typedef npy_int64 (*freq_conv_func)(npy_int64, asfreq_info *af_info);
 freq_conv_func get_asfreq_func(int fromFreq, int toFreq);
 
 npy_int64 get_daytime_conversion_factor(int from_index, int to_index);
+int max_value(int a, int b);
 
 #endif  // PANDAS__LIBS_SRC_PERIOD_HELPER_H_

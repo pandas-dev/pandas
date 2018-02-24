@@ -93,6 +93,7 @@ cdef extern from "period_helper.h":
     freq_conv_func get_asfreq_func(int fromFreq, int toFreq) nogil
 
     int64_t get_daytime_conversion_factor(int from_index, int to_index) nogil
+    int max_value(int left, int right) nogil
 
 
 @cython.cdivision
@@ -348,7 +349,6 @@ cdef void date_info_from_days_and_time(pandas_datetimestruct *dts,
     dts.ps = int(((subsecond_fraction) * 1e6 - dts.us) * 1e6)
 
 
-
 @cython.cdivision
 cdef double get_abs_time(int freq, int64_t unix_date, int64_t ordinal) nogil:
     cdef:
@@ -584,13 +584,6 @@ cdef void get_asfreq_info(int from_freq, int to_freq,
         af_info.to_a_year_end = calc_a_year_end(to_freq, to_group)
     elif to_group == FR_QTR:
         af_info.to_q_year_end = calc_a_year_end(to_freq, to_group)
-
-
-cdef inline int max_value(int left, int right) nogil:
-    # Cython doesn't support "max(...)" in nogil blocks
-    if left >= right:
-        return left
-    return right
 
 
 @cython.cdivision
