@@ -123,10 +123,10 @@ def item_from_zerodim(object val):
     array([1])
 
     """
-    if cnp.PyArray_IsZeroDim(arr):
-        return cnp.PyArray_ToScalar(cnp.PyArray_DATA(arr), arr)
+    if cnp.PyArray_IsZeroDim(val):
+        return cnp.PyArray_ToScalar(cnp.PyArray_DATA(val), val)
     else:
-        return arr
+        return val
 
 
 @cython.wraparound(False)
