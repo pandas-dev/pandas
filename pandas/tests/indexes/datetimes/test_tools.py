@@ -467,7 +467,6 @@ class TestToDatetime(object):
                                              NaT,
                                              to_datetime(0, cache=cache)]))
 
-
     def test_datetime_invalid_datatype(self):
         # GH13176
 
