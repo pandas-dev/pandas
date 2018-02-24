@@ -299,7 +299,7 @@ cdef int64_t get_unix_date(int64_t period_ordinal, int freq) nogil:
         return period_ordinal
 
     toDaily = get_asfreq_func(freq, FR_DAY)
-    get_asfreq_info(freq, FR_DAY, 'E', &af_info)
+    get_asfreq_info(freq, FR_DAY, True, &af_info)
     return toDaily(period_ordinal, &af_info)
 
 
@@ -434,7 +434,7 @@ cdef int get_yq(int64_t ordinal, int freq, int *quarter, int *year):
     else:
         qtr_freq = FR_QTR
 
-    get_asfreq_info(FR_DAY, qtr_freq, 'E', &af_info)
+    get_asfreq_info(FR_DAY, qtr_freq, True, &af_info)
 
     quarter[0] = DtoQ_yq(unix_date, &af_info, year)
     return qtr_freq
@@ -523,10 +523,6 @@ def periodarr_to_dt64arr(ndarray[int64_t] periodarr, int freq):
     return out
 
 
-cdef char START = 'S'
-cdef char END = 'E'
-
-
 cpdef int64_t period_asfreq(int64_t ordinal, int freq1, int freq2, bint end):
     """
     Convert period ordinal from one frequency to another, and if upsampling,
@@ -534,20 +530,14 @@ cpdef int64_t period_asfreq(int64_t ordinal, int freq1, int freq2, bint end):
     """
     cdef:
         int64_t retval
-        char relation
         freq_conv_func func
         asfreq_info af_info
 
     if ordinal == iNaT:
         return iNaT
 
-    if end:
-        relation = END
-    else:
-        relation = START
-
     func = get_asfreq_func(freq1, freq2)
-    get_asfreq_info(freq1, freq2, relation, &af_info)
+    get_asfreq_info(freq1, freq2, end, &af_info)
     retval = func(ordinal, &af_info)
 
     if retval == INT32_MIN:
@@ -557,15 +547,23 @@ cpdef int64_t period_asfreq(int64_t ordinal, int freq1, int freq2, bint end):
 
 
 cdef void get_asfreq_info(int from_freq, int to_freq,
-                          char relation, asfreq_info *af_info) nogil:
+                          bint is_end, asfreq_info *af_info) nogil:
+    """
+    Construct the `asfreq_info` object used to convert an ordinal from
+    `from_freq` to `to_freq`.
+
+    Parameters
+    ----------
+    from_freq : int
+    to_freq int
+    is_end : bool
+    af_info : *asfreq_info
+    """
     cdef:
         int from_group = get_freq_group(from_freq)
         int to_group = get_freq_group(to_freq)
 
-    if relation == 'E':
-        af_info.is_end = 1
-    else:
-        af_info.is_end = 0
+    af_info.is_end = is_end
 
     af_info.intraday_conversion_factor = get_daytime_conversion_factor(
         get_freq_group_index(max_value(from_group, FR_DAY)),
@@ -611,18 +609,12 @@ def period_asfreq_arr(ndarray[int64_t] arr, int freq1, int freq2, bint end):
         freq_conv_func func
         asfreq_info af_info
         int64_t val
-        char relation
 
     n = len(arr)
     result = np.empty(n, dtype=np.int64)
 
-    if end:
-        relation = END
-    else:
-        relation = START
-
     func = get_asfreq_func(freq1, freq2)
-    get_asfreq_info(freq1, freq2, relation, &af_info)
+    get_asfreq_info(freq1, freq2, end, &af_info)
 
     mask = arr == iNaT
     if mask.any():      # NaT process
