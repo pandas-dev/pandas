@@ -68,7 +68,7 @@ class DecimalArray(ExtensionArray):
     def take(self, indexer, allow_fill=True, fill_value=None):
         mask = indexer == -1
 
-        out = self.values.take(indexer.astype(np.intp))
+        out = self.values.take(indexer)
         out[mask] = self._na_value
 
         return type(self)(out)
