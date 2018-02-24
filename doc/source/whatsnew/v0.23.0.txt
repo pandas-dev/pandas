@@ -212,25 +212,25 @@ Please note that the string `index` is not supported with the round trip format,
 
 .. ipython:: python
    :okwarning:
-   import io
 
    df.index.name = 'index'
 
-   test_json_buf = io.StringIO()
-
    # Write the serialized JSON object to the buffer.
-   df.to_json(test_json_buf, orient='table')
+   df.to_json('test.json', orient='table')
    
-   # Reset the file pointer.
-   test_json_buf.seek(0)
-
-   new_df = pd.read_json(test_json_buf, orient='table')
+   new_df = pd.read_json('test.json', orient='table')
    new_df
    print(new_df.index.name)
 
-   # Close the file descriptor.
-   test_json_buf.close()
+.. ipython:: python
+   :suppress:
+
+   import os
+   os.remove('test.json')
+
+
 .. _whatsnew_0230.enhancements.assign_dependent:
+
 
 ``.assign()`` accepts dependent arguments
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
