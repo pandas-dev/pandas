@@ -426,7 +426,7 @@ def group_rank_{{name}}(ndarray[float64_t, ndim=2] out,
     labels : array containing unique label for each group, with its ordering
         matching up to the corresponding record in `values`
     is_datetimelike : bool
-        unused in this method but provided for call compatability with other
+        unused in this method but provided for call compatibility with other
         Cython transformations
     ties_method :  {'keep', 'top', 'bottom'}
         * keep: leave NA values where they are
