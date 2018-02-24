@@ -39,6 +39,7 @@ from pandas.core.dtypes.common import (
     is_categorical_dtype,
     is_object_dtype,
     is_extension_type,
+    is_extension_array_dtype,
     is_datetimetz,
     is_datetime64_any_dtype,
     is_datetime64tz_dtype,
@@ -71,7 +72,7 @@ from pandas.core.internals import (BlockManager,
                                    create_block_manager_from_arrays,
                                    create_block_manager_from_blocks)
 from pandas.core.series import Series
-from pandas.core.arrays import Categorical
+from pandas.core.arrays import Categorical, ExtensionArray
 import pandas.core.algorithms as algorithms
 from pandas.compat import (range, map, zip, lrange, lmap, lzip, StringIO, u,
                            OrderedDict, raise_with_traceback)
@@ -511,7 +512,7 @@ class DataFrame(NDFrame):
             index, columns = _get_axes(len(values), 1)
             return _arrays_to_mgr([values], columns, index, columns,
                                   dtype=dtype)
-        elif is_datetimetz(values):
+        elif (is_datetimetz(values) or is_extension_array_dtype(values)):
             # GH19157
             if columns is None:
                 columns = [0]
@@ -1254,12 +1255,14 @@ class DataFrame(NDFrame):
 
     @classmethod
     def from_items(cls, items, columns=None, orient='columns'):
-        """
+        """Construct a dataframe from a list of tuples
+
         .. deprecated:: 0.23.0
-            from_items is deprecated and will be removed in a
-            future version. Use :meth:`DataFrame.from_dict(dict())`
-            instead. :meth:`DataFrame.from_dict(OrderedDict(...))` may be used
-            to preserve the key order.
+          `from_items` is deprecated and will be removed in a future version.
+          Use :meth:`DataFrame.from_dict(dict(items)) <DataFrame.from_dict>`
+          instead.
+          :meth:`DataFrame.from_dict(OrderedDict(items)) <DataFrame.from_dict>`
+          may be used to preserve the key order.
 
         Convert (key, value) pairs to DataFrame. The keys will be the axis
         index (usually the columns, but depends on the specified
@@ -1283,8 +1286,8 @@ class DataFrame(NDFrame):
         """
 
         warnings.warn("from_items is deprecated. Please use "
-                      "DataFrame.from_dict(dict()) instead. "
-                      "DataFrame.from_dict(OrderedDict()) may be used to "
+                      "DataFrame.from_dict(dict(items), ...) instead. "
+                      "DataFrame.from_dict(OrderedDict(items)) may be used to "
                       "preserve the key order.",
                       FutureWarning, stacklevel=2)
 
@@ -2837,7 +2840,7 @@ class DataFrame(NDFrame):
             # now align rows
             value = reindexer(value).T
 
-        elif isinstance(value, Categorical):
+        elif isinstance(value, ExtensionArray):
             value = value.copy()
 
         elif isinstance(value, Index) or is_sequence(value):
@@ -2867,7 +2870,7 @@ class DataFrame(NDFrame):
             value = maybe_cast_to_datetime(value, value.dtype)
 
         # return internal types directly
-        if is_extension_type(value):
+        if is_extension_type(value) or is_extension_array_dtype(value):
             return value
 
         # broadcast across multiple columns if necessary
@@ -3404,12 +3407,8 @@ class DataFrame(NDFrame):
             new_obj = self.copy()
 
         def _maybe_casted_values(index, labels=None):
-            if isinstance(index, PeriodIndex):
-                values = index.astype(object).values
-            elif isinstance(index, DatetimeIndex) and index.tz is not None:
-                values = index
-            else:
-                values = index.values
+            values = index._values
+            if not isinstance(index, (PeriodIndex, DatetimeIndex)):
                 if values.dtype == np.object_:
                     values = lib.maybe_convert_objects(values)
 
@@ -5621,7 +5620,9 @@ class DataFrame(NDFrame):
         if len(frame._get_axis(axis)) == 0:
             result = Series(0, index=frame._get_agg_axis(axis))
         else:
-            if frame._is_mixed_type:
+            if frame._is_mixed_type or frame._data.any_extension_types:
+                # the or any_extension_types is really only hit for single-
+                # column frames with an extension array
                 result = notna(frame).sum(axis=axis)
             else:
                 counts = notna(frame.values).sum(axis=axis)

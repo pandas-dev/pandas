@@ -99,9 +99,9 @@ class TestGroupBy(MixIn):
 
         applied = df.groupby('A').apply(max_value)
         result = applied.get_dtype_counts().sort_values()
-        expected = Series({'object': 2,
-                           'float64': 2,
-                           'int64': 1}).sort_values()
+        expected = Series({'float64': 2,
+                           'int64': 1,
+                           'object': 2}).sort_values()
         assert_series_equal(result, expected)
 
     def test_groupby_return_type(self):
@@ -244,7 +244,7 @@ class TestGroupBy(MixIn):
             return pd.Series({'c': 2})
 
         def func_with_date(batch):
-            return pd.Series({'c': 2, 'b': datetime(2015, 1, 1)})
+            return pd.Series({'b': datetime(2015, 1, 1), 'c': 2})
 
         dfg_no_conversion = df.groupby(by=['a']).apply(func_with_no_date)
         dfg_no_conversion_expected = pd.DataFrame({'c': 2}, index=[1])
@@ -1628,8 +1628,8 @@ class TestGroupBy(MixIn):
 
     def test_apply_with_mixed_dtype(self):
         # GH3480, apply with mixed dtype on axis=1 breaks in 0.11
-        df = DataFrame({'foo1': ['one', 'two', 'two', 'three', 'one', 'two'],
-                        'foo2': np.random.randn(6)})
+        df = DataFrame({'foo1': np.random.randn(6),
+                        'foo2': ['one', 'two', 'two', 'three', 'one', 'two']})
         result = df.apply(lambda x: x, axis=1)
         assert_series_equal(df.get_dtype_counts(), result.get_dtype_counts())
 
@@ -2113,10 +2113,10 @@ class TestGroupBy(MixIn):
 
     def test_handle_dict_return_value(self):
         def f(group):
-            return {'min': group.min(), 'max': group.max()}
+            return {'max': group.max(), 'min': group.min()}
 
         def g(group):
-            return Series({'min': group.min(), 'max': group.max()})
+            return Series({'max': group.max(), 'min': group.min()})
 
         result = self.df.groupby('A')['C'].apply(f)
         expected = self.df.groupby('A')['C'].apply(g)

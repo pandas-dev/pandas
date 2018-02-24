@@ -44,7 +44,6 @@ from pandas import compat
 from pandas.util._decorators import (Appender, Substitution, cache_readonly,
                                      deprecate_kwarg)
 from pandas.compat import zip, u
-from pandas.errors import PerformanceWarning
 
 import pandas.core.indexes.base as ibase
 _index_doc_kwargs = dict(ibase._index_doc_kwargs)
@@ -76,26 +75,25 @@ def dt64arr_to_periodarr(data, freq, tz):
 _DIFFERENT_FREQ_INDEX = period._DIFFERENT_FREQ_INDEX
 
 
-def _period_index_cmp(opname, cls, nat_result=False):
+def _period_index_cmp(opname, cls):
     """
-    Wrap comparison operations to convert datetime-like to datetime64
+    Wrap comparison operations to convert Period-like to PeriodDtype
     """
+    nat_result = True if opname == '__ne__' else False
 
     def wrapper(self, other):
+        op = getattr(self._ndarray_values, opname)
         if isinstance(other, Period):
-            func = getattr(self._ndarray_values, opname)
-            other_base, _ = _gfc(other.freq)
             if other.freq != self.freq:
                 msg = _DIFFERENT_FREQ_INDEX.format(self.freqstr, other.freqstr)
                 raise IncompatibleFrequency(msg)
 
-            result = func(other.ordinal)
+            result = op(other.ordinal)
         elif isinstance(other, PeriodIndex):
             if other.freq != self.freq:
                 msg = _DIFFERENT_FREQ_INDEX.format(self.freqstr, other.freqstr)
                 raise IncompatibleFrequency(msg)
 
-            op = getattr(self._ndarray_values, opname)
             result = op(other._ndarray_values)
 
             mask = self._isnan | other._isnan
@@ -108,8 +106,7 @@ def _period_index_cmp(opname, cls, nat_result=False):
             result.fill(nat_result)
         else:
             other = Period(other, freq=self.freq)
-            func = getattr(self._ndarray_values, opname)
-            result = func(other.ordinal)
+            result = op(other.ordinal)
 
         if self.hasnans:
             result[self._isnan] = nat_result
@@ -231,7 +228,7 @@ class PeriodIndex(DatelikeOps, DatetimeIndexOpsMixin, Int64Index):
     def _add_comparison_methods(cls):
         """ add in comparison methods """
         cls.__eq__ = _period_index_cmp('__eq__', cls)
-        cls.__ne__ = _period_index_cmp('__ne__', cls, nat_result=True)
+        cls.__ne__ = _period_index_cmp('__ne__', cls)
         cls.__lt__ = _period_index_cmp('__lt__', cls)
         cls.__gt__ = _period_index_cmp('__gt__', cls)
         cls.__le__ = _period_index_cmp('__le__', cls)
@@ -746,28 +743,6 @@ class PeriodIndex(DatelikeOps, DatetimeIndexOpsMixin, Int64Index):
             new_data[self._isnan] = np.nan
         # result must be Int64Index or Float64Index
         return Index(new_data)
-
-    def _add_offset_array(self, other):
-        # Array/Index of DateOffset objects
-        if len(other) == 1:
-            return self + other[0]
-        else:
-            warnings.warn("Adding/subtracting array of DateOffsets to "
-                          "{cls} not vectorized"
-                          .format(cls=type(self).__name__), PerformanceWarning)
-            res_values = self.astype('O').values + np.array(other)
-            return self.__class__(res_values)
-
-    def _sub_offset_array(self, other):
-        # Array/Index of DateOffset objects
-        if len(other) == 1:
-            return self - other[0]
-        else:
-            warnings.warn("Adding/subtracting array of DateOffsets to "
-                          "{cls} not vectorized"
-                          .format(cls=type(self).__name__), PerformanceWarning)
-            res_values = self.astype('O').values - np.array(other)
-            return self.__class__(res_values)
 
     def shift(self, n):
         """

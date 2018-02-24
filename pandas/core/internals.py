@@ -56,7 +56,11 @@ from pandas.core.dtypes.missing import (
     is_null_datelike_scalar)
 import pandas.core.dtypes.concat as _concat
 
-from pandas.core.dtypes.generic import ABCSeries, ABCDatetimeIndex
+from pandas.core.dtypes.generic import (
+    ABCSeries,
+    ABCDatetimeIndex,
+    ABCExtensionArray,
+    ABCIndexClass)
 import pandas.core.common as com
 import pandas.core.algorithms as algos
 
@@ -99,6 +103,7 @@ class Block(PandasObject):
     is_object = False
     is_categorical = False
     is_sparse = False
+    is_extension = False
     _box_to_block_values = True
     _can_hold_na = False
     _can_consolidate = True
@@ -1854,10 +1859,39 @@ class ExtensionBlock(NonConsolidatableMixIn, Block):
 
     ExtensionArrays are limited to 1-D.
     """
+    is_extension = True
+
+    def __init__(self, values, placement, ndim=None):
+        values = self._maybe_coerce_values(values)
+        super(ExtensionBlock, self).__init__(values, placement, ndim)
+
+    def _maybe_coerce_values(self, values):
+        """Unbox to an extension array.
+
+        This will unbox an ExtensionArray stored in an Index or Series.
+        ExtensionArrays pass through. No dtype coercion is done.
+
+        Parameters
+        ----------
+        values : Index, Series, ExtensionArray
+
+        Returns
+        -------
+        ExtensionArray
+        """
+        if isinstance(values, (ABCIndexClass, ABCSeries)):
+            values = values._values
+        return values
+
     @property
     def _holder(self):
         # For extension blocks, the holder is values-dependent.
         return type(self.values)
+
+    @property
+    def _can_hold_na(self):
+        # The default ExtensionArray._can_hold_na is True
+        return self._holder._can_hold_na
 
     @property
     def is_view(self):
@@ -2566,12 +2600,12 @@ class DatetimeBlock(DatetimeLikeBlockMixin, Block):
 
     def _maybe_coerce_values(self, values):
         """Input validation for values passed to __init__. Ensure that
-        we have datetime64ns, coercing if nescessary.
+        we have datetime64ns, coercing if necessary.
 
         Parametetrs
         -----------
         values : array-like
-            Must be convertable to datetime64
+            Must be convertible to datetime64
 
         Returns
         -------
@@ -2726,12 +2760,12 @@ class DatetimeTZBlock(NonConsolidatableMixIn, DatetimeBlock):
 
     def _maybe_coerce_values(self, values, dtype=None):
         """Input validation for values passed to __init__. Ensure that
-        we have datetime64TZ, coercing if nescessary.
+        we have datetime64TZ, coercing if necessary.
 
         Parametetrs
         -----------
         values : array-like
-            Must be convertable to datetime64
+            Must be convertible to datetime64
         dtype : string or DatetimeTZDtype, optional
             Does a shallow copy to this tz
 
@@ -3451,6 +3485,8 @@ class BlockManager(PandasObject):
         else:
             align_keys = []
 
+        # TODO(EA): may interfere with ExtensionBlock.setitem for blocks
+        # with a .values attribute.
         aligned_args = dict((k, kwargs[k])
                             for k in align_keys
                             if hasattr(kwargs[k], 'values'))
@@ -3695,6 +3731,11 @@ class BlockManager(PandasObject):
         # Warning, consolidation needs to get checked upstairs
         self._consolidate_inplace()
         return any(block.is_datelike for block in self.blocks)
+
+    @property
+    def any_extension_types(self):
+        """Whether any of the blocks in this manager are extension blocks"""
+        return any(block.is_extension for block in self.blocks)
 
     @property
     def is_view(self):
@@ -4101,7 +4142,10 @@ class BlockManager(PandasObject):
         # FIXME: refactor, clearly separate broadcasting & zip-like assignment
         #        can prob also fix the various if tests for sparse/categorical
 
-        value_is_extension_type = is_extension_type(value)
+        # TODO(EA): Remove an is_extension_ when all extension types satisfy
+        # the interface
+        value_is_extension_type = (is_extension_type(value) or
+                                   is_extension_array_dtype(value))
 
         # categorical/spares/datetimetz
         if value_is_extension_type:
@@ -4833,15 +4877,11 @@ def form_blocks(arrays, names, axes):
 
     if len(items_dict['ExtensionBlock']):
 
-        external_blocks = []
-        for i, _, array in items_dict['ExtensionBlock']:
-            if isinstance(array, ABCSeries):
-                array = array.values
-            # Allow our internal arrays to chose their block type.
-            block_type = getattr(array, '_block_type', ExtensionBlock)
-            external_blocks.append(
-                make_block(array, klass=block_type,
-                           fastpath=True, placement=[i]))
+        external_blocks = [
+            make_block(array, klass=ExtensionBlock, placement=[i])
+            for i, _, array in items_dict['ExtensionBlock']
+        ]
+
         blocks.extend(external_blocks)
 
     if len(extra_locs):
@@ -5162,7 +5202,7 @@ def _safe_reshape(arr, new_shape):
     """
     if isinstance(arr, ABCSeries):
         arr = arr._values
-    if not isinstance(arr, Categorical):
+    if not isinstance(arr, ABCExtensionArray):
         arr = arr.reshape(new_shape)
     return arr
 
@@ -5673,6 +5713,8 @@ class JoinUnit(object):
             if not values._null_fill_value and values.sp_index.ngaps > 0:
                 return False
             values_flat = values.ravel(order='K')
+        elif isinstance(self.block, ExtensionBlock):
+            values_flat = values
         else:
             values_flat = values.ravel(order='K')
         total_len = values_flat.shape[0]

@@ -100,10 +100,11 @@ def _field_accessor(name, field, docstring=None):
     return property(f)
 
 
-def _dt_index_cmp(opname, cls, nat_result=False):
+def _dt_index_cmp(opname, cls):
     """
     Wrap comparison operations to convert datetime-like to datetime64
     """
+    nat_result = True if opname == '__ne__' else False
 
     def wrapper(self, other):
         func = getattr(super(DatetimeIndex, self), opname)
@@ -291,7 +292,7 @@ class DatetimeIndex(DatelikeOps, TimelikeOps, DatetimeIndexOpsMixin,
     def _add_comparison_methods(cls):
         """ add in comparison methods """
         cls.__eq__ = _dt_index_cmp('__eq__', cls)
-        cls.__ne__ = _dt_index_cmp('__ne__', cls, nat_result=True)
+        cls.__ne__ = _dt_index_cmp('__ne__', cls)
         cls.__lt__ = _dt_index_cmp('__lt__', cls)
         cls.__gt__ = _dt_index_cmp('__gt__', cls)
         cls.__le__ = _dt_index_cmp('__le__', cls)
@@ -962,29 +963,6 @@ class DatetimeIndex(DatelikeOps, TimelikeOps, DatetimeIndexOpsMixin,
             warnings.warn("Non-vectorized DateOffset being applied to Series "
                           "or DatetimeIndex", PerformanceWarning)
             return self.astype('O') + offset
-
-    def _add_offset_array(self, other):
-        # Array/Index of DateOffset objects
-        if len(other) == 1:
-            return self + other[0]
-        else:
-            warnings.warn("Adding/subtracting array of DateOffsets to "
-                          "{} not vectorized".format(type(self)),
-                          PerformanceWarning)
-            return self.astype('O') + np.array(other)
-            # TODO: pass freq='infer' like we do in _sub_offset_array?
-            # TODO: This works for __add__ but loses dtype in __sub__
-
-    def _sub_offset_array(self, other):
-        # Array/Index of DateOffset objects
-        if len(other) == 1:
-            return self - other[0]
-        else:
-            warnings.warn("Adding/subtracting array of DateOffsets to "
-                          "{} not vectorized".format(type(self)),
-                          PerformanceWarning)
-            res_values = self.astype('O').values - np.array(other)
-            return self.__class__(res_values, freq='infer')
 
     def _format_native_types(self, na_rep='NaT', date_format=None, **kwargs):
         from pandas.io.formats.format import _get_format_datetime64_from_values

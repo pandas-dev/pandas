@@ -405,8 +405,8 @@ starting,ending,measure
         result = df.get_dtype_counts()
         expected = Series({'int64': 1, 'float64': 1,
                            datetime64name: 1, objectname: 1})
-        result.sort_index()
-        expected.sort_index()
+        result = result.sort_index()
+        expected = expected.sort_index()
         assert_series_equal(result, expected)
 
         df = DataFrame({'a': 1., 'b': 2, 'c': 'foo',
