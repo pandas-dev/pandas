@@ -414,6 +414,14 @@ class TestSeriesConstructors(TestData):
         with pytest.raises(ValueError, message=msg):
             Series(input, index=np.arange(4))
 
+    def test_constructor_numpy_scalar(self):
+        # GH 19342
+        # construction with a numpy scalar
+        # should not raise
+        result = Series(np.array(100), index=np.arange(4))
+        expected = Series(100, index=np.arange(4))
+        tm.assert_series_equal(result, expected)
+
     def test_constructor_corner(self):
         df = tm.makeTimeDataFrame()
         objs = [df, df]
