@@ -1100,7 +1100,7 @@ cdef class TextReader:
                 self._free_na_set(na_hashset)
 
             if upcast_na and na_count > 0:
-                col_res = _maybe_upcast(col_res)
+                col_res = _maybe_upcast(self, col_res)
 
             if col_res is None:
                 raise ParserError('Unable to parse column %d' % i)
@@ -1360,7 +1360,7 @@ cdef asbytes(object o):
 _NA_VALUES = _ensure_encoded(list(com._NA_VALUES))
 
 
-def _maybe_upcast(arr):
+def _maybe_upcast(self, arr):
     """
     If the dtype argument is set to type str, when a NaN 
     is inserted into the column it will also be treated as 
@@ -1375,7 +1375,7 @@ def _maybe_upcast(arr):
         mask = arr.view(np.uint8) == na_values[np.uint8]
         arr = arr.astype(object)
         np.putmask(arr, mask, np.nan)
-    elif arr.dtype.kind == 'O':
+    elif arr.dtype.kind == 'O' and arr == np.nan and arr.dtype == np.object_:
         na_value = na_values[arr.dtype]
         arr = arr.astype(str)
         np.putmask(arr, arr == na_value, np.nan)
