@@ -40,7 +40,7 @@ from pandas.util._decorators import (
     Appender, cache_readonly, deprecate_kwarg, Substitution)
 
 from pandas.io.formats.terminal import get_terminal_size
-from pandas.util._validators import validate_bool_kwarg
+from pandas.util._validators import validate_bool_kwarg, validate_fillna_kwargs
 from pandas.core.config import get_option
 
 from .base import ExtensionArray
@@ -521,7 +521,7 @@ class Categorical(ExtensionArray, PandasObject):
                 cats = to_timedelta(inferred_categories, errors='coerce')
 
         if known_categories:
-            # recode from observation oder to dtype.categories order
+            # recode from observation order to dtype.categories order
             categories = dtype.categories
             codes = _recode_for_categories(inferred_codes, cats, categories)
         elif not cats.is_monotonic_increasing:
@@ -1610,6 +1610,9 @@ class Categorical(ExtensionArray, PandasObject):
         -------
         filled : Categorical with NA/NaN filled
         """
+        value, method = validate_fillna_kwargs(
+            value, method, validate_scalar_dict_value=False
+        )
 
         if value is None:
             value = np.nan

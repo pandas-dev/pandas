@@ -968,6 +968,7 @@ class XlrdTests(ReadingTestsBase):
     def test_read_excel_parse_dates(self):
         # GH 11544, 12051
         _skip_if_no_openpyxl()
+        _skip_if_no_xlwt()  # for df2.to_excel
 
         df = DataFrame(
             {'col': [1, 2, 3],
@@ -1785,7 +1786,7 @@ class ExcelWriterBase(SharedItems):
         nrows = 5
         ncols = 3
         for use_headers in (True, False):
-            for i in range(1, 4):  # row multindex upto nlevel=3
+            for i in range(1, 4):  # row multindex up to nlevel=3
                 for j in range(1, 4):  # col ""
                     df = mkdf(nrows, ncols, r_idx_nlevels=i, c_idx_nlevels=j)
 

@@ -5,7 +5,7 @@ import numpy as np
 import pandas as pd
 import pandas.util._test_decorators as td
 from pandas.util import testing as tm
-from pandas import (PeriodIndex, period_range, notna, DatetimeIndex, NaT,
+from pandas import (PeriodIndex, period_range, DatetimeIndex, NaT,
                     Index, Period, Series, DataFrame, date_range,
                     offsets)
 
@@ -27,44 +27,15 @@ class TestPeriodIndex(DatetimeLike):
     def test_pickle_compat_construction(self):
         pass
 
-    def test_pickle_round_trip(self):
-        for freq in ['D', 'M', 'A']:
-            idx = PeriodIndex(['2016-05-16', 'NaT', NaT, np.NaN], freq=freq)
-            result = tm.round_trip_pickle(idx)
-            tm.assert_index_equal(result, idx)
+    @pytest.mark.parametrize('freq', ['D', 'M', 'A'])
+    def test_pickle_round_trip(self, freq):
+        idx = PeriodIndex(['2016-05-16', 'NaT', NaT, np.NaN], freq=freq)
+        result = tm.round_trip_pickle(idx)
+        tm.assert_index_equal(result, idx)
 
-    @pytest.mark.parametrize('klass', [list, tuple, np.array, Series])
-    def test_where(self, klass):
-        i = self.create_index()
-        cond = [True] * len(i)
-        expected = i
-        result = i.where(klass(cond))
-        tm.assert_index_equal(result, expected)
-
-        cond = [False] + [True] * (len(i) - 1)
-        expected = PeriodIndex([NaT] + i[1:].tolist(), freq='D')
-        result = i.where(klass(cond))
-        tm.assert_index_equal(result, expected)
-
-    def test_where_other(self):
-
-        i = self.create_index()
-        for arr in [np.nan, pd.NaT]:
-            result = i.where(notna(i), other=np.nan)
-            expected = i
-            tm.assert_index_equal(result, expected)
-
-        i2 = i.copy()
-        i2 = pd.PeriodIndex([pd.NaT, pd.NaT] + i[2:].tolist(),
-                            freq='D')
-        result = i.where(notna(i2), i2)
-        tm.assert_index_equal(result, i2)
-
-        i2 = i.copy()
-        i2 = pd.PeriodIndex([pd.NaT, pd.NaT] + i[2:].tolist(),
-                            freq='D')
-        result = i.where(notna(i2), i2.values)
-        tm.assert_index_equal(result, i2)
+    def test_where(self):
+        # This is handled in test_indexing
+        pass
 
     def test_repeat(self):
         # GH10183
