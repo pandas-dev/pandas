@@ -1090,7 +1090,7 @@ def maybe_convert_numeric(ndarray[object] values, set na_values,
     cdef:
         int status, maybe_int
         Py_ssize_t i, n = values.size
-        Seen seen = Seen(coerce_numeric);
+        Seen seen = Seen(coerce_numeric)
         ndarray[float64_t] floats = np.empty(n, dtype='f8')
         ndarray[complex128_t] complexes = np.empty(n, dtype='c16')
         ndarray[int64_t] ints = np.empty(n, dtype='i8')
@@ -1224,7 +1224,7 @@ def maybe_convert_objects(ndarray[object] objects, bint try_float=0,
         ndarray[uint8_t] bools
         ndarray[int64_t] idatetimes
         ndarray[int64_t] itimedeltas
-        Seen seen = Seen();
+        Seen seen = Seen()
         object val, onan
         float64_t fval, fnan
 
