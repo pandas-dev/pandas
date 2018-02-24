@@ -37,8 +37,6 @@ cimport util
 cdef int64_t NPY_NAT = util.get_nat()
 from util cimport is_array, _checknull
 
-from ops import maybe_convert_bool  # noqa
-
 
 def values_from_object(object o):
     """ return my values or the object if we are say an ndarray """
