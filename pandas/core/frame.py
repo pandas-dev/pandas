@@ -1255,7 +1255,7 @@ class DataFrame(NDFrame):
 
     @classmethod
     def from_items(cls, items, columns=None, orient='columns'):
-        """DEPRECATED: Use from_dict instead.
+        """Construct a dataframe from a list of tuples
 
         .. deprecated:: 0.23.0
           `from_items` is deprecated and will be removed in a future version.
