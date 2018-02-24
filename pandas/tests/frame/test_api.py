@@ -214,6 +214,14 @@ class SharedWithSparse(object):
             exp = self.mixed_frame.loc[k]
             self._assert_series_equal(v, exp)
 
+        # GH19671
+        s = DataFrame(
+            {'non_iso8601': ['M1701', 'M1802', 'M1903', 'M2004'],
+             'iso8601': date_range('2000-01-01', periods=4, freq='M')})
+        for k, v in s.iterrows():
+            exp = s.loc[k]
+            self._assert_series_equal(v, exp)
+
     def test_itertuples(self):
         for i, tup in enumerate(self.frame.itertuples()):
             s = self.klass._constructor_sliced(tup[1:])
