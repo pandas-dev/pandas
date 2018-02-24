@@ -209,7 +209,7 @@ html.border has been deprecated, use display.html.border instead
 
 pc_html_use_mathjax_doc = """\
 : boolean
-    When True, IPython notebook will process table contents using MathJax,
+    When True, Jupyter notebook will process table contents using MathJax,
     rendering mathematical expressions enclosed by the dollar symbol.
     (default: True)
 """

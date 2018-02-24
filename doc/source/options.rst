@@ -402,7 +402,7 @@ display.html.table_schema               False        Whether to publish a Table 
 display.html.border                     1            A ``border=value`` attribute is
                                                      inserted in the ``<table>`` tag
                                                      for the DataFrame HTML repr.
-display.html.use_mathjax                True         When True, IPython notebook will process 
+display.html.use_mathjax                True         When True, Jupyter notebook will process 
                                                      table contents using MathJax, rendering 
                                                      mathematical expressions enclosed by the 
                                                      dollar symbol.
