@@ -604,8 +604,6 @@ class Generic(object):
     ])
     def test_pct_change(self, periods, fill_method, limit, exp):
         obj = self._construct(0)
-        if type(obj) is Panel:
-            pytest.skip("Not testing deprecated Panel")
         is_frame = type(obj) is DataFrame
         ser = pd.Series([np.nan, np.nan, 1, 2, 4, 10, np.nan, np.nan])
         obj = pd.concat((obj, ser))
