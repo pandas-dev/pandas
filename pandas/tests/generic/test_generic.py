@@ -603,19 +603,14 @@ class Generic(object):
         (-1, "bfill", 1, [np.nan, 0, -.5, -.5, -.6, np.nan, np.nan, np.nan])
     ])
     def test_pct_change(self, periods, fill_method, limit, exp):
-        obj = self._construct(0)
-        is_frame = type(obj) is DataFrame
-        ser = pd.Series([np.nan, np.nan, 1, 2, 4, 10, np.nan, np.nan])
-        obj = pd.concat((obj, ser))
-
+        vals = [np.nan, np.nan, 1, 2, 4, 10, np.nan, np.nan]
+        obj = self._typ(vals)
         func = getattr(obj, 'pct_change')
         res = func(periods=periods, fill_method=fill_method, limit=limit)
-
-        # Convert output into Series, regardless of input type
-        if is_frame:
-            res = res[0]
-            res.name = None
-        tm.assert_series_equal(res, pd.Series(exp))
+        if type(obj) is DataFrame:
+            tm.assert_frame_equal(res, DataFrame(exp))
+        else:
+            tm.assert_series_equal(res, Series(exp))
 
 
 class TestNDFrame(object):
