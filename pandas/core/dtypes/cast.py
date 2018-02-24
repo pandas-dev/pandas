@@ -913,10 +913,17 @@ def maybe_infer_to_datetimelike(value, convert_dates=False):
             # we might have a sequence of the same-datetimes with tz's
             # if so coerce to a DatetimeIndex; if they are not the same,
             # then these stay as object dtype
+
+            # GH19671
+            # replaced to_datetime call with
+            # tslibs.conversion.datetime_to_datetime64
+            # in order to avoid changes to public to_datetime API
             try:
-                from pandas import to_datetime
-                # GH19671
-                return to_datetime(v, require_iso8601=True)
+                from pandas._libs.tslibs import conversion
+                from pandas.core.indexes.datetimes import DatetimeIndex
+
+                values, tz = conversion.datetime_to_datetime64(v)
+                return DatetimeIndex._simple_new(values, tz=tz)
             except Exception:
                 pass
 
