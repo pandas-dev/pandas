@@ -588,18 +588,18 @@ class TestMerge(object):
         result = pd.merge(left, right, on='key', how='outer')
         assert_frame_equal(result, expected)
 
-        left = pd.DataFrame({'value': pd.date_range('20151010', periods=2,
-                                                    tz='US/Eastern'),
-                             'key': [1, 2]})
-        right = pd.DataFrame({'value': pd.date_range('20151011', periods=2,
-                                                     tz='US/Eastern'),
-                              'key': [2, 3]})
+        left = pd.DataFrame({'key': [1, 2],
+                             'value': pd.date_range('20151010', periods=2,
+                                                    tz='US/Eastern')})
+        right = pd.DataFrame({'key': [2, 3],
+                              'value': pd.date_range('20151011', periods=2,
+                                                     tz='US/Eastern')})
         expected = DataFrame({
+            'key': [1, 2, 3],
             'value_x': list(pd.date_range('20151010', periods=2,
                                           tz='US/Eastern')) + [pd.NaT],
             'value_y': [pd.NaT] + list(pd.date_range('20151011', periods=2,
-                                                     tz='US/Eastern')),
-            'key': [1, 2, 3]})
+                                                     tz='US/Eastern'))})
         result = pd.merge(left, right, on='key', how='outer')
         assert_frame_equal(result, expected)
         assert result['value_x'].dtype == 'datetime64[ns, US/Eastern]'
@@ -632,18 +632,18 @@ class TestMerge(object):
         result = pd.merge(left, right, on='key', how='outer')
         assert_frame_equal(result, expected)
 
-        left = pd.DataFrame({'value': pd.period_range('20151010', periods=2,
-                                                      freq='D'),
-                             'key': [1, 2]})
-        right = pd.DataFrame({'value': pd.period_range('20151011', periods=2,
-                                                       freq='D'),
-                              'key': [2, 3]})
+        left = pd.DataFrame({'key': [1, 2],
+                             'value': pd.period_range('20151010', periods=2,
+                                                      freq='D')})
+        right = pd.DataFrame({'key': [2, 3],
+                              'value': pd.period_range('20151011', periods=2,
+                                                       freq='D')})
 
         exp_x = pd.period_range('20151010', periods=2, freq='D')
         exp_y = pd.period_range('20151011', periods=2, freq='D')
-        expected = DataFrame({'value_x': list(exp_x) + [pd.NaT],
-                              'value_y': [pd.NaT] + list(exp_y),
-                              'key': [1, 2, 3]})
+        expected = DataFrame({'key': [1, 2, 3],
+                              'value_x': list(exp_x) + [pd.NaT],
+                              'value_y': [pd.NaT] + list(exp_y)})
         result = pd.merge(left, right, on='key', how='outer')
         assert_frame_equal(result, expected)
         assert result['value_x'].dtype == 'object'
@@ -651,12 +651,13 @@ class TestMerge(object):
 
     def test_indicator(self):
         # PR #10054. xref #7412 and closes #8790.
-        df1 = DataFrame({'col1': [0, 1], 'col_left': [
-                        'a', 'b'], 'col_conflict': [1, 2]})
+        df1 = DataFrame({'col1': [0, 1], 'col_conflict': [1, 2],
+                         'col_left': ['a', 'b']})
         df1_copy = df1.copy()
 
-        df2 = DataFrame({'col1': [1, 2, 3, 4, 5], 'col_right': [2, 2, 2, 2, 2],
-                         'col_conflict': [1, 2, 3, 4, 5]})
+        df2 = DataFrame({'col1': [1, 2, 3, 4, 5],
+                         'col_conflict': [1, 2, 3, 4, 5],
+                         'col_right': [2, 2, 2, 2, 2]})
         df2_copy = df2.copy()
 
         df_result = DataFrame({
