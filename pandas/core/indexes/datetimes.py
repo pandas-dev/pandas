@@ -137,6 +137,8 @@ def _dt_index_cmp(opname, cls, nat_result=False):
             result = func(np.asarray(other))
             result = com._values_from_object(result)
 
+            # Make sure to pass an array to result[...]; indexing with
+            # Series breaks with older version of numpy
             o_mask = np.array(isna(other))
             if o_mask.any():
                 result[o_mask] = nat_result

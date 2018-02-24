@@ -987,6 +987,8 @@ def _comp_method_SERIES(cls, op, special):
                                      name=res_name)
 
         if is_datetime64_dtype(self) or is_datetime64tz_dtype(self):
+            # Dispatch to DatetimeIndex to ensure identical
+            # Series/Index behavior
             res_values = dispatch_to_index_op(op, self, other,
                                               pd.DatetimeIndex)
             return self._constructor(res_values, index=self.index,
