@@ -307,7 +307,7 @@ class TestDataFrameReprInfoEtc(TestData):
         res = buf.getvalue().splitlines()
         assert "memory usage: " in res[-1]
 
-        # do not display memory usage cas
+        # do not display memory usage case
         df.info(buf=buf, memory_usage=False)
         res = buf.getvalue().splitlines()
         assert "memory usage: " not in res[-1]

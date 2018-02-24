@@ -1786,7 +1786,7 @@ class ExcelWriterBase(SharedItems):
         nrows = 5
         ncols = 3
         for use_headers in (True, False):
-            for i in range(1, 4):  # row multindex upto nlevel=3
+            for i in range(1, 4):  # row multindex up to nlevel=3
                 for j in range(1, 4):  # col ""
                     df = mkdf(nrows, ncols, r_idx_nlevels=i, c_idx_nlevels=j)
 

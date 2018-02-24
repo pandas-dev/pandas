@@ -473,7 +473,7 @@ class TestConcatAppendCommon(ConcatenateBase):
         tm.assert_series_equal(pd.concat([s1, s2], ignore_index=True), exp)
         tm.assert_series_equal(s1.append(s2, ignore_index=True), exp)
 
-        # completelly different categories (same dtype) => not-category
+        # completely different categories (same dtype) => not-category
         s1 = pd.Series([10, 11, np.nan], dtype='category')
         s2 = pd.Series([np.nan, 1, 3, 2], dtype='category')
 
@@ -518,7 +518,7 @@ class TestConcatAppendCommon(ConcatenateBase):
         tm.assert_series_equal(pd.concat([s2, s1], ignore_index=True), exp)
         tm.assert_series_equal(s2.append(s1, ignore_index=True), exp)
 
-        # completelly different categories => not-category
+        # completely different categories => not-category
         s1 = pd.Series([10, 11, np.nan], dtype='category')
         s2 = pd.Series([1, 3, 2])
 

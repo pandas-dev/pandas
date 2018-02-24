@@ -95,7 +95,7 @@ class TestDataFrameMutateColumns(TestData):
     def test_assign_dependent_old_python(self):
         df = DataFrame({'A': [1, 2, 3], 'B': [4, 5, 6]})
 
-        # Key C does not exist at defition time of df
+        # Key C does not exist at definition time of df
         with pytest.raises(KeyError):
             df.assign(C=lambda df: df.A,
                       D=lambda df: df['A'] + df['C'])

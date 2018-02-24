@@ -539,7 +539,7 @@ To write code compatible with all versions of Python, split the assignment in tw
    you'll need to take care when passing ``assign`` expressions that
 
    * Updating an existing column
-   * Refering to the newly updated column in the same ``assign``
+   * Referring to the newly updated column in the same ``assign``
 
    For example, we'll update column "A" and then refer to it when creating "B".
 

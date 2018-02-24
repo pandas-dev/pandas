@@ -60,7 +60,7 @@ class TestReshaping(base.BaseReshapingTests):
 
 
 class TestGetitem(base.BaseGetitemTests):
-    @pytest.mark.skip(reason="Backwards compatability")
+    @pytest.mark.skip(reason="Backwards compatibility")
     def test_getitem_scalar(self):
         # CategoricalDtype.type isn't "correct" since it should
         # be a parent of the elements (object). But don't want

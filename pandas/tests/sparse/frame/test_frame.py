@@ -247,10 +247,10 @@ class TestSparseDataFrame(SharedWithSparse):
     def test_constructor_nan_dataframe(self):
         # GH 10079
         trains = np.arange(100)
-        tresholds = [10, 20, 30, 40, 50, 60]
-        tuples = [(i, j) for i in trains for j in tresholds]
+        thresholds = [10, 20, 30, 40, 50, 60]
+        tuples = [(i, j) for i in trains for j in thresholds]
         index = pd.MultiIndex.from_tuples(tuples,
-                                          names=['trains', 'tresholds'])
+                                          names=['trains', 'thresholds'])
         matrix = np.empty((len(index), len(trains)))
         matrix.fill(np.nan)
         df = pd.DataFrame(matrix, index=index, columns=trains, dtype=float)
