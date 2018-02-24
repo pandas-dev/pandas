@@ -37,7 +37,7 @@ def na_cmp():
     Should return a function of two arguments that returns
     True if both arguments are (scalar) NA for your type.
 
-    By defult, uses ``operator.or``
+    By default, uses ``operator.or``
     """
     return operator.is_
 

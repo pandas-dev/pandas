@@ -2,10 +2,11 @@ import pytest
 import numpy as np
 
 import pandas as pd
-import pandas.util.testing as tm
+
+from .base import BaseExtensionTests
 
 
-class BaseMethodsTests(object):
+class BaseMethodsTests(BaseExtensionTests):
     """Various Series and DataFrame methods."""
 
     @pytest.mark.parametrize('dropna', [True, False])
@@ -19,13 +20,13 @@ class BaseMethodsTests(object):
         result = pd.Series(all_data).value_counts(dropna=dropna).sort_index()
         expected = pd.Series(other).value_counts(dropna=dropna).sort_index()
 
-        tm.assert_series_equal(result, expected)
+        self.assert_series_equal(result, expected)
 
     def test_count(self, data_missing):
         df = pd.DataFrame({"A": data_missing})
         result = df.count(axis='columns')
         expected = pd.Series([0, 1])
-        tm.assert_series_equal(result, expected)
+        self.assert_series_equal(result, expected)
 
     def test_apply_simple_series(self, data):
         result = pd.Series(data).apply(id)

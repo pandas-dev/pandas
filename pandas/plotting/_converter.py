@@ -197,7 +197,7 @@ class TimeFormatter(Formatter):
         ----------
         x : float
             The time of day specified as seconds since 00:00 (midnight),
-            with upto microsecond precision.
+            with up to microsecond precision.
         pos
             Unused
 

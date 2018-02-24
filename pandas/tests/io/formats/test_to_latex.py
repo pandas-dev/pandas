@@ -115,17 +115,18 @@ Index: Index([], dtype='object') \\
         assert result == expected
 
     def test_to_latex_with_formatters(self):
-        df = DataFrame({'int': [1, 2, 3],
-                        'float': [1.0, 2.0, 3.0],
-                        'object': [(1, 2), True, False],
-                        'datetime64': [datetime(2016, 1, 1),
+        df = DataFrame({'datetime64': [datetime(2016, 1, 1),
                                        datetime(2016, 2, 5),
-                                       datetime(2016, 3, 3)]})
+                                       datetime(2016, 3, 3)],
+                        'float': [1.0, 2.0, 3.0],
+                        'int': [1, 2, 3],
+                        'object': [(1, 2), True, False],
+                        })
 
-        formatters = {'int': lambda x: '0x{x:x}'.format(x=x),
+        formatters = {'datetime64': lambda x: x.strftime('%Y-%m'),
                       'float': lambda x: '[{x: 4.1f}]'.format(x=x),
+                      'int': lambda x: '0x{x:x}'.format(x=x),
                       'object': lambda x: '-{x!s}-'.format(x=x),
-                      'datetime64': lambda x: x.strftime('%Y-%m'),
                       '__index__': lambda x: 'index: {x}'.format(x=x)}
         result = df.to_latex(formatters=dict(formatters))
 
@@ -347,10 +348,10 @@ c3 & 0 &  0 &  1 &  2 &  3 &  4 \\
         a = 'a'
         b = 'b'
 
-        test_dict = {u('co^l1'): {a: "a",
-                                  b: "b"},
-                     u('co$e^x$'): {a: "a",
-                                    b: "b"}}
+        test_dict = {u('co$e^x$'): {a: "a",
+                                    b: "b"},
+                     u('co^l1'): {a: "a",
+                                  b: "b"}}
 
         unescaped_result = DataFrame(test_dict).to_latex(escape=False)
         escaped_result = DataFrame(test_dict).to_latex(

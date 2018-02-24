@@ -44,7 +44,6 @@ from pandas import compat
 from pandas.util._decorators import (Appender, Substitution, cache_readonly,
                                      deprecate_kwarg)
 from pandas.compat import zip, u
-from pandas.errors import PerformanceWarning
 
 import pandas.core.indexes.base as ibase
 _index_doc_kwargs = dict(ibase._index_doc_kwargs)
@@ -744,28 +743,6 @@ class PeriodIndex(DatelikeOps, DatetimeIndexOpsMixin, Int64Index):
             new_data[self._isnan] = np.nan
         # result must be Int64Index or Float64Index
         return Index(new_data)
-
-    def _add_offset_array(self, other):
-        # Array/Index of DateOffset objects
-        if len(other) == 1:
-            return self + other[0]
-        else:
-            warnings.warn("Adding/subtracting array of DateOffsets to "
-                          "{cls} not vectorized"
-                          .format(cls=type(self).__name__), PerformanceWarning)
-            res_values = self.astype('O').values + np.array(other)
-            return self.__class__(res_values)
-
-    def _sub_offset_array(self, other):
-        # Array/Index of DateOffset objects
-        if len(other) == 1:
-            return self - other[0]
-        else:
-            warnings.warn("Adding/subtracting array of DateOffsets to "
-                          "{cls} not vectorized"
-                          .format(cls=type(self).__name__), PerformanceWarning)
-            res_values = self.astype('O').values - np.array(other)
-            return self.__class__(res_values)
 
     def shift(self, n):
         """
