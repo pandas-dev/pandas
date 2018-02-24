@@ -1376,8 +1376,9 @@ def _maybe_upcast(arr):
         arr = arr.astype(object)
         np.putmask(arr, mask, np.nan)
     elif arr.dtype.kind == 'O':
+        na_value = na_values[arr.dtype]
         arr = arr.astype(str)
-        np.putmask(arr, True, np.nan)
+        np.putmask(arr, arr == na_value, np.nan)
     return arr
 
 
