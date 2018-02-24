@@ -54,6 +54,9 @@ def _get_fill(arr):
 
 
 def _sparse_array_op(left, right, op, name, series=False):
+    if name.startswith('__'):
+        # For lookups in _libs.sparse we need non-dunder op name
+        name = name[2:-2]
 
     if series and is_integer_dtype(left) and is_integer_dtype(right):
         # series coerces to float64 if result should have NaN/inf
@@ -119,6 +122,10 @@ def _sparse_array_op(left, right, op, name, series=False):
 
 def _wrap_result(name, data, sparse_index, fill_value, dtype=None):
     """ wrap op result to have correct dtype """
+    if name.startswith('__'):
+        # e.g. __eq__ --> eq
+        name = name[2:-2]
+
     if name in ('eq', 'ne', 'lt', 'gt', 'le', 'ge'):
         dtype = np.bool
 
@@ -844,6 +851,4 @@ def _make_index(length, indices, kind):
 
 
 ops.add_special_arithmetic_methods(SparseArray,
-                                   arith_method=ops._arith_method_SPARSE_ARRAY,
-                                   comp_method=ops._arith_method_SPARSE_ARRAY,
-                                   bool_method=ops._arith_method_SPARSE_ARRAY)
+                                   **ops.sparse_array_special_funcs)

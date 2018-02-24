@@ -1,11 +1,11 @@
-import datetime
+from datetime import datetime, timedelta
 import warnings
 import operator
 
 import numpy as np
 from pandas._libs import (lib, index as libindex, tslib as libts,
                           algos as libalgos, join as libjoin,
-                          Timestamp)
+                          Timedelta)
 from pandas._libs.lib import is_datetime_array
 
 from pandas.compat import range, u, set_function_name
@@ -13,10 +13,11 @@ from pandas.compat.numpy import function as nv
 from pandas import compat
 
 from pandas.core.accessor import CachedAccessor
+from pandas.core.arrays import ExtensionArray
 from pandas.core.dtypes.generic import (
     ABCSeries, ABCDataFrame,
     ABCMultiIndex,
-    ABCPeriodIndex,
+    ABCPeriodIndex, ABCTimedeltaIndex,
     ABCDateOffset)
 from pandas.core.dtypes.missing import isna, array_equivalent
 from pandas.core.dtypes.common import (
@@ -47,6 +48,7 @@ from pandas.core.dtypes.common import (
 from pandas.core.base import PandasObject, IndexOpsMixin
 import pandas.core.common as com
 import pandas.core.base as base
+from pandas.core import ops
 from pandas.util._decorators import (
     Appender, Substitution, cache_readonly, deprecate_kwarg)
 from pandas.core.indexes.frozen import FrozenList
@@ -55,7 +57,7 @@ import pandas.core.missing as missing
 import pandas.core.algorithms as algos
 import pandas.core.sorting as sorting
 from pandas.io.formats.printing import pprint_thing
-from pandas.core.ops import _comp_method_OBJECT_ARRAY, make_invalid_op
+from pandas.core.ops import make_invalid_op
 from pandas.core.config import get_option
 from pandas.core.strings import StringMethods
 
@@ -80,6 +82,74 @@ def _try_get_item(x):
         return x.item()
     except AttributeError:
         return x
+
+
+def _make_comparison_op(op, cls):
+    def cmp_method(self, other):
+        if isinstance(other, (np.ndarray, Index, ABCSeries)):
+            if other.ndim > 0 and len(self) != len(other):
+                raise ValueError('Lengths must match to compare')
+
+        # we may need to directly compare underlying
+        # representations
+        if needs_i8_conversion(self) and needs_i8_conversion(other):
+            return self._evaluate_compare(other, op)
+
+        if is_object_dtype(self) and self.nlevels == 1:
+            # don't pass MultiIndex
+            with np.errstate(all='ignore'):
+                result = ops._comp_method_OBJECT_ARRAY(op, self.values, other)
+        else:
+            with np.errstate(all='ignore'):
+                result = op(self.values, np.asarray(other))
+
+        # technically we could support bool dtyped Index
+        # for now just return the indexing array directly
+        if is_bool_dtype(result):
+            return result
+        try:
+            return Index(result)
+        except TypeError:
+            return result
+
+    name = '__{name}__'.format(name=op.__name__)
+    # TODO: docstring?
+    return set_function_name(cmp_method, name, cls)
+
+
+def _make_arithmetic_op(op, cls):
+    def index_arithmetic_method(self, other):
+        if isinstance(other, (ABCSeries, ABCDataFrame)):
+            return NotImplemented
+        elif isinstance(other, ABCTimedeltaIndex):
+            # Defer to subclass implementation
+            return NotImplemented
+
+        other = self._validate_for_numeric_binop(other, op)
+
+        # handle time-based others
+        if isinstance(other, (ABCDateOffset, np.timedelta64, timedelta)):
+            return self._evaluate_with_timedelta_like(other, op)
+        elif isinstance(other, (datetime, np.datetime64)):
+            return self._evaluate_with_datetime_like(other, op)
+
+        values = self.values
+        with np.errstate(all='ignore'):
+            result = op(values, other)
+
+        result = missing.dispatch_missing(op, values, other, result)
+
+        attrs = self._get_attributes_dict()
+        attrs = self._maybe_update_attributes(attrs)
+        if op is divmod:
+            result = (Index(result[0], **attrs), Index(result[1], **attrs))
+        else:
+            result = Index(result, **attrs)
+        return result
+
+    name = '__{name}__'.format(name=op.__name__)
+    # TODO: docstring?
+    return set_function_name(index_arithmetic_method, name, cls)
 
 
 class InvalidIndexError(Exception):
@@ -1982,6 +2052,7 @@ class Index(IndexOpsMixin, PandasObject):
 
         if is_categorical_dtype(values.dtype):
             values = np.array(values)
+
         elif is_object_dtype(values.dtype):
             values = lib.maybe_convert_objects(values, safe=1)
 
@@ -2175,11 +2246,13 @@ class Index(IndexOpsMixin, PandasObject):
     def __radd__(self, other):
         return Index(other + np.array(self))
 
-    __iadd__ = __add__
+    def __iadd__(self, other):
+        # alias for __add__
+        return self + other
 
     def __sub__(self, other):
         raise TypeError("cannot perform __sub__ with this index type: "
-                        "{typ}".format(typ=type(self)))
+                        "{typ}".format(typ=type(self).__name__))
 
     def __and__(self, other):
         return self.intersection(other)
@@ -2581,7 +2654,7 @@ class Index(IndexOpsMixin, PandasObject):
         # if we have something that is Index-like, then
         # use this, e.g. DatetimeIndex
         s = getattr(series, '_values', None)
-        if isinstance(s, Index) and is_scalar(key):
+        if isinstance(s, (ExtensionArray, Index)) and is_scalar(key):
             try:
                 return s[key]
             except (IndexError, ValueError):
@@ -3917,10 +3990,22 @@ class Index(IndexOpsMixin, PandasObject):
             return self._shallow_copy(self.values[~self._isnan])
         return self._shallow_copy()
 
-    def _evaluate_with_timedelta_like(self, other, op, opstr, reversed=False):
-        raise TypeError("can only perform ops with timedelta like values")
+    def _evaluate_with_timedelta_like(self, other, op):
+        # Timedelta knows how to operate with np.array, so dispatch to that
+        # operation and then wrap the results
+        other = Timedelta(other)
+        values = self.values
 
-    def _evaluate_with_datetime_like(self, other, op, opstr):
+        with np.errstate(all='ignore'):
+            result = op(values, other)
+
+        attrs = self._get_attributes_dict()
+        attrs = self._maybe_update_attributes(attrs)
+        if op == divmod:
+            return Index(result[0], **attrs), Index(result[1], **attrs)
+        return Index(result, **attrs)
+
+    def _evaluate_with_datetime_like(self, other, op):
         raise TypeError("can only perform ops with datetime like values")
 
     def _evaluate_compare(self, other, op):
@@ -3929,64 +4014,39 @@ class Index(IndexOpsMixin, PandasObject):
     @classmethod
     def _add_comparison_methods(cls):
         """ add in comparison methods """
-
-        def _make_compare(op):
-            def _evaluate_compare(self, other):
-                if isinstance(other, (np.ndarray, Index, ABCSeries)):
-                    if other.ndim > 0 and len(self) != len(other):
-                        raise ValueError('Lengths must match to compare')
-
-                # we may need to directly compare underlying
-                # representations
-                if needs_i8_conversion(self) and needs_i8_conversion(other):
-                    return self._evaluate_compare(other, op)
-
-                if (is_object_dtype(self) and
-                        self.nlevels == 1):
-
-                    # don't pass MultiIndex
-                    with np.errstate(all='ignore'):
-                        result = _comp_method_OBJECT_ARRAY(
-                            op, self.values, other)
-                else:
-                    with np.errstate(all='ignore'):
-                        result = op(self.values, np.asarray(other))
-
-                # technically we could support bool dtyped Index
-                # for now just return the indexing array directly
-                if is_bool_dtype(result):
-                    return result
-                try:
-                    return Index(result)
-                except TypeError:
-                    return result
-
-            name = '__{name}__'.format(name=op.__name__)
-            return set_function_name(_evaluate_compare, name, cls)
-
-        cls.__eq__ = _make_compare(operator.eq)
-        cls.__ne__ = _make_compare(operator.ne)
-        cls.__lt__ = _make_compare(operator.lt)
-        cls.__gt__ = _make_compare(operator.gt)
-        cls.__le__ = _make_compare(operator.le)
-        cls.__ge__ = _make_compare(operator.ge)
+        cls.__eq__ = _make_comparison_op(operator.eq, cls)
+        cls.__ne__ = _make_comparison_op(operator.ne, cls)
+        cls.__lt__ = _make_comparison_op(operator.lt, cls)
+        cls.__gt__ = _make_comparison_op(operator.gt, cls)
+        cls.__le__ = _make_comparison_op(operator.le, cls)
+        cls.__ge__ = _make_comparison_op(operator.ge, cls)
 
     @classmethod
     def _add_numeric_methods_add_sub_disabled(cls):
         """ add in the numeric add/sub methods to disable """
-        cls.__add__ = cls.__radd__ = __iadd__ = make_invalid_op('__add__')  # noqa
-        cls.__sub__ = __isub__ = make_invalid_op('__sub__')  # noqa
+        cls.__add__ = make_invalid_op('__add__')
+        cls.__radd__ = make_invalid_op('__radd__')
+        cls.__iadd__ = make_invalid_op('__iadd__')
+        cls.__sub__ = make_invalid_op('__sub__')
+        cls.__rsub__ = make_invalid_op('__rsub__')
+        cls.__isub__ = make_invalid_op('__isub__')
 
     @classmethod
     def _add_numeric_methods_disabled(cls):
         """ add in numeric methods to disable other than add/sub """
         cls.__pow__ = make_invalid_op('__pow__')
         cls.__rpow__ = make_invalid_op('__rpow__')
-        cls.__mul__ = cls.__rmul__ = make_invalid_op('__mul__')
-        cls.__floordiv__ = cls.__rfloordiv__ = make_invalid_op('__floordiv__')
-        cls.__truediv__ = cls.__rtruediv__ = make_invalid_op('__truediv__')
+        cls.__mul__ = make_invalid_op('__mul__')
+        cls.__rmul__ = make_invalid_op('__rmul__')
+        cls.__floordiv__ = make_invalid_op('__floordiv__')
+        cls.__rfloordiv__ = make_invalid_op('__rfloordiv__')
+        cls.__truediv__ = make_invalid_op('__truediv__')
+        cls.__rtruediv__ = make_invalid_op('__rtruediv__')
         if not compat.PY3:
-            cls.__div__ = cls.__rdiv__ = make_invalid_op('__div__')
+            cls.__div__ = make_invalid_op('__div__')
+            cls.__rdiv__ = make_invalid_op('__rdiv__')
+        cls.__mod__ = make_invalid_op('__mod__')
+        cls.__divmod__ = make_invalid_op('__divmod__')
         cls.__neg__ = make_invalid_op('__neg__')
         cls.__pos__ = make_invalid_op('__pos__')
         cls.__abs__ = make_invalid_op('__abs__')
@@ -4001,34 +4061,29 @@ class Index(IndexOpsMixin, PandasObject):
 
         if not self._is_numeric_dtype:
             raise TypeError("cannot evaluate a numeric op "
-                            "{opstr} for type: {typ}".format(
-                                opstr=opstr,
-                                typ=type(self))
-                            )
+                            "{opstr} for type: {typ}"
+                            .format(opstr=opstr, typ=type(self).__name__))
 
-    def _validate_for_numeric_binop(self, other, op, opstr):
+    def _validate_for_numeric_binop(self, other, op):
         """
         return valid other, evaluate or raise TypeError
         if we are not of the appropriate type
 
         internal method called by ops
         """
+        opstr = '__{opname}__'.format(opname=op.__name__)
         # if we are an inheritor of numeric,
         # but not actually numeric (e.g. DatetimeIndex/PeriodIndex)
         if not self._is_numeric_dtype:
             raise TypeError("cannot evaluate a numeric op {opstr} "
-                            "for type: {typ}".format(
-                                opstr=opstr,
-                                typ=type(self))
-                            )
+                            "for type: {typ}"
+                            .format(opstr=opstr, typ=type(self).__name__))
 
         if isinstance(other, Index):
             if not other._is_numeric_dtype:
                 raise TypeError("cannot evaluate a numeric op "
-                                "{opstr} with type: {typ}".format(
-                                    opstr=type(self),
-                                    typ=type(other))
-                                )
+                                "{opstr} with type: {typ}"
+                                .format(opstr=opstr, typ=type(other)))
         elif isinstance(other, np.ndarray) and not other.ndim:
             other = other.item()
 
@@ -4040,11 +4095,10 @@ class Index(IndexOpsMixin, PandasObject):
             if other.dtype.kind not in ['f', 'i', 'u']:
                 raise TypeError("cannot evaluate a numeric op "
                                 "with a non-numeric dtype")
-        elif isinstance(other, (ABCDateOffset, np.timedelta64,
-                                datetime.timedelta)):
+        elif isinstance(other, (ABCDateOffset, np.timedelta64, timedelta)):
             # higher up to handle
             pass
-        elif isinstance(other, (Timestamp, np.datetime64)):
+        elif isinstance(other, (datetime, np.datetime64)):
             # higher up to handle
             pass
         else:
@@ -4056,70 +4110,24 @@ class Index(IndexOpsMixin, PandasObject):
     @classmethod
     def _add_numeric_methods_binary(cls):
         """ add in numeric methods """
-
-        def _make_evaluate_binop(op, opstr, reversed=False, constructor=Index):
-            def _evaluate_numeric_binop(self, other):
-                if isinstance(other, (ABCSeries, ABCDataFrame)):
-                    return NotImplemented
-
-                other = self._validate_for_numeric_binop(other, op, opstr)
-
-                # handle time-based others
-                if isinstance(other, (ABCDateOffset, np.timedelta64,
-                                      datetime.timedelta)):
-                    return self._evaluate_with_timedelta_like(other, op, opstr,
-                                                              reversed)
-                elif isinstance(other, (Timestamp, np.datetime64)):
-                    return self._evaluate_with_datetime_like(other, op, opstr)
-
-                # if we are a reversed non-commutative op
-                values = self.values
-                if reversed:
-                    values, other = other, values
-
-                attrs = self._get_attributes_dict()
-                attrs = self._maybe_update_attributes(attrs)
-                with np.errstate(all='ignore'):
-                    result = op(values, other)
-
-                result = missing.dispatch_missing(op, values, other, result)
-                return constructor(result, **attrs)
-
-            return _evaluate_numeric_binop
-
-        cls.__add__ = cls.__radd__ = _make_evaluate_binop(
-            operator.add, '__add__')
-        cls.__sub__ = _make_evaluate_binop(
-            operator.sub, '__sub__')
-        cls.__rsub__ = _make_evaluate_binop(
-            operator.sub, '__sub__', reversed=True)
-        cls.__mul__ = cls.__rmul__ = _make_evaluate_binop(
-            operator.mul, '__mul__')
-        cls.__rpow__ = _make_evaluate_binop(
-            operator.pow, '__pow__', reversed=True)
-        cls.__pow__ = _make_evaluate_binop(
-            operator.pow, '__pow__')
-        cls.__mod__ = _make_evaluate_binop(
-            operator.mod, '__mod__')
-        cls.__floordiv__ = _make_evaluate_binop(
-            operator.floordiv, '__floordiv__')
-        cls.__rfloordiv__ = _make_evaluate_binop(
-            operator.floordiv, '__floordiv__', reversed=True)
-        cls.__truediv__ = _make_evaluate_binop(
-            operator.truediv, '__truediv__')
-        cls.__rtruediv__ = _make_evaluate_binop(
-            operator.truediv, '__truediv__', reversed=True)
+        cls.__add__ = _make_arithmetic_op(operator.add, cls)
+        cls.__radd__ = _make_arithmetic_op(ops.radd, cls)
+        cls.__sub__ = _make_arithmetic_op(operator.sub, cls)
+        cls.__rsub__ = _make_arithmetic_op(ops.rsub, cls)
+        cls.__mul__ = _make_arithmetic_op(operator.mul, cls)
+        cls.__rmul__ = _make_arithmetic_op(ops.rmul, cls)
+        cls.__rpow__ = _make_arithmetic_op(ops.rpow, cls)
+        cls.__pow__ = _make_arithmetic_op(operator.pow, cls)
+        cls.__mod__ = _make_arithmetic_op(operator.mod, cls)
+        cls.__floordiv__ = _make_arithmetic_op(operator.floordiv, cls)
+        cls.__rfloordiv__ = _make_arithmetic_op(ops.rfloordiv, cls)
+        cls.__truediv__ = _make_arithmetic_op(operator.truediv, cls)
+        cls.__rtruediv__ = _make_arithmetic_op(ops.rtruediv, cls)
         if not compat.PY3:
-            cls.__div__ = _make_evaluate_binop(
-                operator.div, '__div__')
-            cls.__rdiv__ = _make_evaluate_binop(
-                operator.div, '__div__', reversed=True)
+            cls.__div__ = _make_arithmetic_op(operator.div, cls)
+            cls.__rdiv__ = _make_arithmetic_op(ops.rdiv, cls)
 
-        cls.__divmod__ = _make_evaluate_binop(
-            divmod,
-            '__divmod__',
-            constructor=lambda result, **attrs: (Index(result[0], **attrs),
-                                                 Index(result[1], **attrs)))
+        cls.__divmod__ = _make_arithmetic_op(divmod, cls)
 
     @classmethod
     def _add_numeric_methods_unary(cls):
@@ -4136,8 +4144,8 @@ class Index(IndexOpsMixin, PandasObject):
 
             return _evaluate_numeric_unary
 
-        cls.__neg__ = _make_evaluate_unary(lambda x: -x, '__neg__')
-        cls.__pos__ = _make_evaluate_unary(lambda x: x, '__pos__')
+        cls.__neg__ = _make_evaluate_unary(operator.neg, '__neg__')
+        cls.__pos__ = _make_evaluate_unary(operator.pos, '__pos__')
         cls.__abs__ = _make_evaluate_unary(np.abs, '__abs__')
         cls.__inv__ = _make_evaluate_unary(lambda x: -x, '__inv__')
 

@@ -40,7 +40,7 @@ from pandas.util._decorators import (
     Appender, cache_readonly, deprecate_kwarg, Substitution)
 
 from pandas.io.formats.terminal import get_terminal_size
-from pandas.util._validators import validate_bool_kwarg
+from pandas.util._validators import validate_bool_kwarg, validate_fillna_kwargs
 from pandas.core.config import get_option
 
 from .base import ExtensionArray
@@ -53,6 +53,9 @@ def _cat_compare_op(op):
         # results depending whether categories are the same or not is kind of
         # insane, so be a bit stricter here and use the python3 idea of
         # comparing only things of equal type.
+        if isinstance(other, ABCSeries):
+            return NotImplemented
+
         if not self.ordered:
             if op in ['__lt__', '__gt__', '__le__', '__ge__']:
                 raise TypeError("Unordered Categoricals can only compare "
@@ -1607,6 +1610,9 @@ class Categorical(ExtensionArray, PandasObject):
         -------
         filled : Categorical with NA/NaN filled
         """
+        value, method = validate_fillna_kwargs(
+            value, method, validate_scalar_dict_value=False
+        )
 
         if value is None:
             value = np.nan

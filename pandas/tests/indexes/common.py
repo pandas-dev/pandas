@@ -127,16 +127,17 @@ class Base(object):
         idx = self.create_index()
         tm.assert_raises_regex(TypeError, "cannot perform __mul__",
                                lambda: idx * 1)
-        tm.assert_raises_regex(TypeError, "cannot perform __mul__",
+        tm.assert_raises_regex(TypeError, "cannot perform __rmul__",
                                lambda: 1 * idx)
 
         div_err = "cannot perform __truediv__" if PY3 \
             else "cannot perform __div__"
         tm.assert_raises_regex(TypeError, div_err, lambda: idx / 1)
+        div_err = div_err.replace(' __', ' __r')
         tm.assert_raises_regex(TypeError, div_err, lambda: 1 / idx)
         tm.assert_raises_regex(TypeError, "cannot perform __floordiv__",
                                lambda: idx // 1)
-        tm.assert_raises_regex(TypeError, "cannot perform __floordiv__",
+        tm.assert_raises_regex(TypeError, "cannot perform __rfloordiv__",
                                lambda: 1 // idx)
 
     def test_logical_compat(self):
@@ -790,6 +791,7 @@ class Base(object):
         series_d = Series(array_d)
         with tm.assert_raises_regex(ValueError, "Lengths must match"):
             index_a == series_b
+
         tm.assert_numpy_array_equal(index_a == series_a, expected1)
         tm.assert_numpy_array_equal(index_a == series_c, expected2)
 
