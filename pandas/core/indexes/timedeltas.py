@@ -1,7 +1,6 @@
 """ implement the TimedeltaIndex """
 
 from datetime import timedelta
-import warnings
 
 import numpy as np
 from pandas.core.dtypes.common import (
@@ -433,43 +432,16 @@ class TimedeltaIndex(DatetimeIndexOpsMixin, TimelikeOps, Int64Index):
         else:
             raise TypeError("cannot subtract a datelike from a TimedeltaIndex")
 
-    def _add_offset_array(self, other):
-        # Array/Index of DateOffset objects
+    def _addsub_offset_array(self, other, op):
+        # Add or subtract Array-like of DateOffset objects
         try:
             # TimedeltaIndex can only operate with a subset of DateOffset
             # subclasses.  Incompatible classes will raise AttributeError,
             # which we re-raise as TypeError
-            if len(other) == 1:
-                return self + other[0]
-            else:
-                from pandas.errors import PerformanceWarning
-                warnings.warn("Adding/subtracting array of DateOffsets to "
-                              "{} not vectorized".format(type(self)),
-                              PerformanceWarning)
-                return self.astype('O') + np.array(other)
-                # TODO: pass freq='infer' like we do in _sub_offset_array?
-                # TODO: This works for __add__ but loses dtype in __sub__
+            return DatetimeIndexOpsMixin._addsub_offset_array(self, other, op)
         except AttributeError:
-            raise TypeError("Cannot add non-tick DateOffset to TimedeltaIndex")
-
-    def _sub_offset_array(self, other):
-        # Array/Index of DateOffset objects
-        try:
-            # TimedeltaIndex can only operate with a subset of DateOffset
-            # subclasses.  Incompatible classes will raise AttributeError,
-            # which we re-raise as TypeError
-            if len(other) == 1:
-                return self - other[0]
-            else:
-                from pandas.errors import PerformanceWarning
-                warnings.warn("Adding/subtracting array of DateOffsets to "
-                              "{} not vectorized".format(type(self)),
-                              PerformanceWarning)
-                res_values = self.astype('O').values - np.array(other)
-                return self.__class__(res_values, freq='infer')
-        except AttributeError:
-            raise TypeError("Cannot subtrack non-tick DateOffset from"
-                            " TimedeltaIndex")
+            raise TypeError("Cannot add/subtract non-tick DateOffset to {cls}"
+                            .format(cls=type(self).__name__))
 
     def _format_native_types(self, na_rep=u('NaT'),
                              date_format=None, **kwargs):
