@@ -48,7 +48,8 @@ class BaseGetitemTests(object):
         tm.assert_series_equal(result, expected)
 
     def test_loc_frame(self, data):
-        df = pd.DataFrame({"A": data, 'B': np.arange(len(data))})
+        df = pd.DataFrame({"A": data, 'B': np.arange(len(data),
+                                                     dtype='int64')})
         expected = pd.DataFrame({"A": data[:4]})
 
         # slice -> frame
