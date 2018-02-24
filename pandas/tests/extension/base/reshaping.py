@@ -1,11 +1,12 @@
 import pytest
 
 import pandas as pd
-import pandas.util.testing as tm
 from pandas.core.internals import ExtensionBlock
 
+from .base import BaseExtensionTests
 
-class BaseReshapingTests(object):
+
+class BaseReshapingTests(BaseExtensionTests):
     """Tests for reshaping and concatenation."""
     @pytest.mark.parametrize('in_frame', [True, False])
     def test_concat(self, data, in_frame):
@@ -32,8 +33,8 @@ class BaseReshapingTests(object):
         # Assumes that the ctor can take a list of scalars of the type
         e1 = pd.Series(type(data)(list(a) + [na_value]))
         e2 = pd.Series(type(data)([na_value] + list(b)))
-        tm.assert_series_equal(r1, e1)
-        tm.assert_series_equal(r2, e2)
+        self.assert_series_equal(r1, e1)
+        self.assert_series_equal(r2, e2)
 
     def test_align_frame(self, data, na_value):
         a = data[:3]
@@ -45,17 +46,17 @@ class BaseReshapingTests(object):
         # Assumes that the ctor can take a list of scalars of the type
         e1 = pd.DataFrame({'A': type(data)(list(a) + [na_value])})
         e2 = pd.DataFrame({'A': type(data)([na_value] + list(b))})
-        tm.assert_frame_equal(r1, e1)
-        tm.assert_frame_equal(r2, e2)
+        self.assert_frame_equal(r1, e1)
+        self.assert_frame_equal(r2, e2)
 
     def test_set_frame_expand_regular_with_extension(self, data):
         df = pd.DataFrame({"A": [1] * len(data)})
         df['B'] = data
         expected = pd.DataFrame({"A": [1] * len(data), "B": data})
-        tm.assert_frame_equal(df, expected)
+        self.assert_frame_equal(df, expected)
 
     def test_set_frame_expand_extension_with_regular(self, data):
         df = pd.DataFrame({'A': data})
         df['B'] = [1] * len(data)
         expected = pd.DataFrame({"A": data, "B": [1] * len(data)})
-        tm.assert_frame_equal(df, expected)
+        self.assert_frame_equal(df, expected)

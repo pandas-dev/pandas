@@ -5,8 +5,10 @@ from pandas.compat import StringIO
 from pandas.core.dtypes.common import is_extension_array_dtype
 from pandas.core.dtypes.dtypes import ExtensionDtype
 
+from .base import BaseExtensionTests
 
-class BaseInterfaceTests(object):
+
+class BaseInterfaceTests(BaseExtensionTests):
     """Tests that the basic interface is satisfied."""
     # ------------------------------------------------------------------------
     # Interface
