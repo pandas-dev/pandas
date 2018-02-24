@@ -553,7 +553,7 @@ class TestPandasContainer(object):
 
     def test_label_overflow(self):
         # GH14256: buffer length not checked when writing label
-        df = pd.DataFrame({'foo': [1337], 'bar' * 100000: [1]})
+        df = pd.DataFrame({'bar' * 100000: [1], 'foo': [1337]})
         assert df.to_json() == \
             '{{"{bar}":{{"0":1}},"foo":{{"0":1337}}}}'.format(
                 bar=('bar' * 100000))

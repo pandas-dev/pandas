@@ -589,11 +589,11 @@ class TestWideToLong(object):
 
     def test_mixed_type_suffix(self):
         df = pd.DataFrame({
-            'treatment_1': [1.0, 2.0],
-            'treatment_foo': [3.0, 4.0],
-            'result_foo': [5.0, 6.0],
+            'A': ['X1', 'X2'],
             'result_1': [0, 9],
-            'A': ['X1', 'X2']})
+            'result_foo': [5.0, 6.0],
+            'treatment_1': [1.0, 2.0],
+            'treatment_foo': [3.0, 4.0]})
         expected = pd.DataFrame({
             'A': ['X1', 'X2', 'X1', 'X2'],
             'colname': ['1', '1', 'foo', 'foo'],

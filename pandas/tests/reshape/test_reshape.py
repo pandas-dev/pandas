@@ -100,8 +100,8 @@ class TestGetDummies(object):
         expected_counts = {'int64': 1, 'object': 1}
         expected_counts[dtype_name] = 3 + expected_counts.get(dtype_name, 0)
 
-        expected = Series(expected_counts).sort_values()
-        tm.assert_series_equal(result.get_dtype_counts().sort_values(),
+        expected = Series(expected_counts).sort_index()
+        tm.assert_series_equal(result.get_dtype_counts().sort_index(),
                                expected)
 
     def test_just_na(self, sparse):
@@ -212,10 +212,10 @@ class TestGetDummies(object):
     def test_dataframe_dummies_subset(self, df, sparse):
         result = get_dummies(df, prefix=['from_A'], columns=['A'],
                              sparse=sparse)
-        expected = DataFrame({'from_A_a': [1, 0, 1],
-                              'from_A_b': [0, 1, 0],
-                              'B': ['b', 'b', 'c'],
-                              'C': [1, 2, 3]}, dtype=np.uint8)
+        expected = DataFrame({'B': ['b', 'b', 'c'],
+                              'C': [1, 2, 3],
+                              'from_A_a': [1, 0, 1],
+                              'from_A_b': [0, 1, 0]}, dtype=np.uint8)
         expected[['C']] = df[['C']]
         assert_frame_equal(result, expected)
 
@@ -249,16 +249,16 @@ class TestGetDummies(object):
 
     def test_dataframe_dummies_prefix_dict(self, sparse):
         prefixes = {'A': 'from_A', 'B': 'from_B'}
-        df = DataFrame({'A': ['a', 'b', 'a'],
-                        'B': ['b', 'b', 'c'],
-                        'C': [1, 2, 3]})
+        df = DataFrame({'C': [1, 2, 3],
+                        'A': ['a', 'b', 'a'],
+                        'B': ['b', 'b', 'c']})
         result = get_dummies(df, prefix=prefixes, sparse=sparse)
 
-        expected = DataFrame({'from_A_a': [1, 0, 1],
+        expected = DataFrame({'C': [1, 2, 3],
+                              'from_A_a': [1, 0, 1],
                               'from_A_b': [0, 1, 0],
                               'from_B_b': [1, 1, 0],
-                              'from_B_c': [0, 0, 1],
-                              'C': [1, 2, 3]})
+                              'from_B_c': [0, 0, 1]})
 
         columns = ['from_A_a', 'from_A_b', 'from_B_b', 'from_B_c']
         expected[columns] = expected[columns].astype(np.uint8)
