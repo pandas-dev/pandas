@@ -514,3 +514,59 @@ class TestDataFrameSubclassing(TestData):
         long_frame = pd.wide_to_long(df, ["A", "B"], i="id", j="year")
 
         tm.assert_frame_equal(long_frame, expected)
+
+    def test_subclassed_apply(self):
+        # GH 19822
+
+        def check_row_subclass(row):
+            assert isinstance(row, tm.SubclassedSeries)
+
+        def strech(row):
+            if row["variable"] == "height":
+                row["value"] += 0.5
+            return row
+
+        df = tm.SubclassedDataFrame([
+            ['John', 'Doe', 'height', 5.5],
+            ['Mary', 'Bo', 'height', 6.0],
+            ['John', 'Doe', 'weight', 130],
+            ['Mary', 'Bo', 'weight', 150]],
+            columns=['first', 'last', 'variable', 'value'])
+
+        df.apply(lambda x: check_row_subclass(x))
+        df.apply(lambda x: check_row_subclass(x), axis=1)
+
+        expected = tm.SubclassedDataFrame([
+            ['John', 'Doe', 'height', 6.0],
+            ['Mary', 'Bo', 'height', 6.5],
+            ['John', 'Doe', 'weight', 130],
+            ['Mary', 'Bo', 'weight', 150]],
+            columns=['first', 'last', 'variable', 'value'])
+
+        result = df.apply(lambda x: strech(x), axis=1)
+        assert isinstance(result, tm.SubclassedDataFrame)
+        tm.assert_frame_equal(result, expected)
+
+        expected = tm.SubclassedDataFrame([
+            [1, 2, 3],
+            [1, 2, 3],
+            [1, 2, 3],
+            [1, 2, 3]])
+
+        result = df.apply(lambda x: tm.SubclassedSeries([1, 2, 3]), axis=1)
+        assert isinstance(result, tm.SubclassedDataFrame)
+        tm.assert_frame_equal(result, expected)
+
+        result = df.apply(lambda x: [1, 2, 3], axis=1, result_type="expand")
+        assert isinstance(result, tm.SubclassedDataFrame)
+        tm.assert_frame_equal(result, expected)
+
+        expected = tm.SubclassedSeries([
+            [1, 2, 3],
+            [1, 2, 3],
+            [1, 2, 3],
+            [1, 2, 3]])
+
+        result = df.apply(lambda x: [1, 2, 3], axis=1)
+        assert not isinstance(result, tm.SubclassedDataFrame)
+        tm.assert_series_equal(result, expected)

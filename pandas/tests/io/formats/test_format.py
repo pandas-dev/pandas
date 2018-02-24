@@ -539,8 +539,8 @@ class TestDataFrameFormatting(object):
         assert _rep(df) == expected
 
         # column name
-        df = DataFrame({u'あああああ': [1, 222, 33333, 4],
-                        'b': [u'あ', u'いいい', u'う', u'ええええええ']},
+        df = DataFrame({'b': [u'あ', u'いいい', u'う', u'ええええええ'],
+                        u'あああああ': [1, 222, 33333, 4]},
                        index=['a', 'bb', 'c', 'ddd'])
         expected = (u"          b  あああああ\na         あ      1\n"
                     u"bb      いいい    222\nc         う  33333\n"
@@ -647,8 +647,8 @@ class TestDataFrameFormatting(object):
             assert _rep(df) == expected
 
             # column name
-            df = DataFrame({u'あああああ': [1, 222, 33333, 4],
-                            'b': [u'あ', u'いいい', u'う', u'ええええええ']},
+            df = DataFrame({'b': [u'あ', u'いいい', u'う', u'ええええええ'],
+                            u'あああああ': [1, 222, 33333, 4]},
                            index=['a', 'bb', 'c', 'ddd'])
             expected = (u"                b  あああああ\n"
                         u"a              あ           1\n"
@@ -733,8 +733,8 @@ class TestDataFrameFormatting(object):
                 assert _rep(df) == expected
 
             # ambiguous unicode
-            df = DataFrame({u'あああああ': [1, 222, 33333, 4],
-                            'b': [u'あ', u'いいい', u'¡¡', u'ええええええ']},
+            df = DataFrame({'b': [u'あ', u'いいい', u'¡¡', u'ええええええ'],
+                            u'あああああ': [1, 222, 33333, 4]},
                            index=['a', 'bb', 'c', '¡¡¡'])
             expected = (u"                b  あああああ\n"
                         u"a              あ           1\n"
