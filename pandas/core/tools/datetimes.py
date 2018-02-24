@@ -106,7 +106,7 @@ def _convert_and_box_cache(arg, cache_array, box, errors, name=None):
 def to_datetime(arg, errors='raise', dayfirst=False, yearfirst=False,
                 utc=None, box=True, format=None, exact=True,
                 unit=None, infer_datetime_format=False, origin='unix',
-                cache=False, **kwargs):
+                cache=False):
     """
     Convert argument to datetime.
 
@@ -272,10 +272,8 @@ def to_datetime(arg, errors='raise', dayfirst=False, yearfirst=False,
     from pandas.core.indexes.datetimes import DatetimeIndex
 
     tz = 'utc' if utc else None
-    require_iso8601 = kwargs.get('require_iso8601', None)
 
-    def _convert_listlike(arg, box, format, name=None, tz=tz,
-                          require_iso8601=require_iso8601):
+    def _convert_listlike(arg, box, format, name=None, tz=tz):
 
         if isinstance(arg, (list, tuple)):
             arg = np.array(arg, dtype='O')
@@ -315,8 +313,11 @@ def to_datetime(arg, errors='raise', dayfirst=False, yearfirst=False,
                             '1-d array, or Series')
 
         arg = _ensure_object(arg)
+        require_iso8601 = False
+
         if infer_datetime_format and format is None:
             format = _guess_datetime_format_for_array(arg, dayfirst=dayfirst)
+
         if format is not None:
             # There is a special fast-path for iso8601 formatted
             # datetime strings, so in those cases don't use the inferred
