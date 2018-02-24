@@ -5,10 +5,8 @@ import datetime
 import numpy as np
 import pandas as pd
 from pandas import (Series, DataFrame, Timestamp, compat, date_range)
-from pandas.tests.io.pytables.common import (ensure_clean_store, _maybe_remove,
-                                             ensure_clean_path,
-                                             _check_roundtrip)
-from pandas.util.testing import assert_frame_equal
+from .common import (ensure_clean_store, _maybe_remove, ensure_clean_path,
+                     _check_roundtrip)
 
 import pandas.util.testing as tm
 from pandas.compat import (text_type, lrange, u)
@@ -78,7 +76,7 @@ def test_store_index_types():
 
             _maybe_remove(store, 'df')
             store.put('df', df, format=format)
-            assert_frame_equal(df, store['df'])
+            tm.assert_frame_equal(df, store['df'])
 
         for index in [tm.makeFloatIndex, tm.makeStringIndex,
                       tm.makeIntIndex, tm.makeDateIndex]:
@@ -156,7 +154,7 @@ def test_store_index_name_numpy_str(table_format):
         df.to_hdf(path, 'df', format=table_format)
         df2 = read_hdf(path, 'df')
 
-        assert_frame_equal(df, df2, check_names=True)
+        tm.assert_frame_equal(df, df2, check_names=True)
 
         assert type(df2.index.name) == text_type
         assert type(df2.columns.name) == text_type

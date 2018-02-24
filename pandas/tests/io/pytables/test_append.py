@@ -7,11 +7,9 @@ import numpy as np
 import pandas as pd
 from pandas import (Series, DataFrame, date_range, Timestamp,
                     concat, MultiIndex, Panel)
-from pandas.tests.io.pytables.common import (ensure_clean_store,
-                                             ensure_clean_path, _maybe_remove)
+from .common import ensure_clean_store, ensure_clean_path, _maybe_remove
 
 import pandas.util.testing as tm
-from pandas.util.testing import assert_panel_equal, assert_frame_equal
 from pandas.io.pytables import read_hdf
 
 
@@ -49,7 +47,7 @@ def test_append():
             _maybe_remove(store, 'wp1')
             store.append('wp1', wp.iloc[:, :10, :])
             store.append('wp1', wp.iloc[:, 10:, :])
-            assert_panel_equal(store['wp1'], wp)
+            tm.assert_panel_equal(store['wp1'], wp)
 
             # test using differt order of items on the non-index axes
             _maybe_remove(store, 'wp1')
@@ -57,7 +55,7 @@ def test_append():
             store.append('wp1', wp_append1)
             wp_append2 = wp.iloc[:, 10:, :].reindex(items=wp.items[::-1])
             store.append('wp1', wp_append2)
-            assert_panel_equal(store['wp1'], wp)
+            tm.assert_panel_equal(store['wp1'], wp)
 
             # dtype issues - mizxed type in a single object column
             df = DataFrame(data=[[1, 2], [0, 1], [1, 2], [0, 0]])
@@ -352,7 +350,7 @@ def test_append_with_strings():
             expected = concat([wp, wp2], axis=2)
             expected = expected.reindex(
                 minor_axis=sorted(expected.minor_axis))
-            assert_panel_equal(store['s1'], expected)
+            tm.assert_panel_equal(store['s1'], expected)
             check_col('s1', 'minor_axis', 20)
 
             # test dict format
@@ -361,7 +359,7 @@ def test_append_with_strings():
             expected = concat([wp, wp2], axis=2)
             expected = expected.reindex(
                 minor_axis=sorted(expected.minor_axis))
-            assert_panel_equal(store['s2'], expected)
+            tm.assert_panel_equal(store['s2'], expected)
             check_col('s2', 'minor_axis', 20)
 
             # apply the wrong field (similar to #1)
@@ -723,7 +721,7 @@ def test_append_misc():
 
     with catch_warnings(record=True):
         p = tm.makePanel()
-        check(p, assert_panel_equal)
+        check(p, tm.assert_panel_equal)
 
     # empty frame, GH4273
     with ensure_clean_store() as store:
@@ -735,14 +733,14 @@ def test_append_misc():
         # repeated append of 0/non-zero frames
         df = DataFrame(np.random.rand(10, 3), columns=list('ABC'))
         store.append('df', df)
-        assert_frame_equal(store.select('df'), df)
+        tm.assert_frame_equal(store.select('df'), df)
         store.append('df', df_empty)
-        assert_frame_equal(store.select('df'), df)
+        tm.assert_frame_equal(store.select('df'), df)
 
         # store
         df = DataFrame(columns=list('ABC'))
         store.put('df2', df)
-        assert_frame_equal(store.select('df2'), df)
+        tm.assert_frame_equal(store.select('df2'), df)
 
         with catch_warnings(record=True):
             # 0 len
@@ -753,13 +751,13 @@ def test_append_misc():
             # repeated append of 0/non-zero frames
             p = Panel(np.random.randn(3, 4, 5), items=list('ABC'))
             store.append('p', p)
-            assert_panel_equal(store.select('p'), p)
+            tm.assert_panel_equal(store.select('p'), p)
             store.append('p', p_empty)
-            assert_panel_equal(store.select('p'), p)
+            tm.assert_panel_equal(store.select('p'), p)
 
             # store
             store.put('p2', p_empty)
-            assert_panel_equal(store.select('p2'), p_empty)
+            tm.assert_panel_equal(store.select('p2'), p_empty)
 
 
 def test_append_raise():
@@ -813,32 +811,32 @@ def test_append_with_timedelta():
         _maybe_remove(store, 'df')
         store.append('df', df, data_columns=True)
         result = store.select('df')
-        assert_frame_equal(result, df)
+        tm.assert_frame_equal(result, df)
 
         result = store.select('df', where="C<100000")
-        assert_frame_equal(result, df)
+        tm.assert_frame_equal(result, df)
 
         result = store.select('df', where="C<pd.Timedelta('-3D')")
-        assert_frame_equal(result, df.iloc[3:])
+        tm.assert_frame_equal(result, df.iloc[3:])
 
         result = store.select('df', "C<'-3D'")
-        assert_frame_equal(result, df.iloc[3:])
+        tm.assert_frame_equal(result, df.iloc[3:])
 
         # a bit hacky here as we don't really deal with the NaT properly
 
         result = store.select('df', "C<'-500000s'")
         result = result.dropna(subset=['C'])
-        assert_frame_equal(result, df.iloc[6:])
+        tm.assert_frame_equal(result, df.iloc[6:])
 
         result = store.select('df', "C<'-3.5D'")
         result = result.iloc[1:]
-        assert_frame_equal(result, df.iloc[4:])
+        tm.assert_frame_equal(result, df.iloc[4:])
 
         # fixed
         _maybe_remove(store, 'df2')
         store.put('df2', df)
         result = store.select('df2')
-        assert_frame_equal(result, df)
+        tm.assert_frame_equal(result, df)
 
 
 def test_append_with_diff_col_name_types_raises_value_error():

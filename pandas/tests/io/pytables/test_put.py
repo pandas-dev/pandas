@@ -4,9 +4,7 @@ import datetime
 
 import numpy as np
 from pandas import (Series, DataFrame, Index, Timestamp)
-from pandas.tests.io.pytables.common import (ensure_clean_store,
-                                             _maybe_remove, _check_roundtrip)
-
+from .common import ensure_clean_store, _maybe_remove, _check_roundtrip
 import pandas.util.testing as tm
 import pandas.util._test_decorators as td
 from pandas.compat import range

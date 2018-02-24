@@ -4,7 +4,7 @@ import numpy as np
 import pandas as pd
 from pandas import DataFrame
 import pandas.util.testing as tm
-from pandas.tests.io.pytables.common import ensure_clean_path
+from .common import ensure_clean_path
 
 tables = pytest.importorskip('tables')
 

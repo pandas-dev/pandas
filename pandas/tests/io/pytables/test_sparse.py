@@ -2,8 +2,7 @@ import numpy as np
 
 from pandas import DataFrame
 import pandas.util.testing as tm
-from pandas.tests.io.pytables.common import (_check_roundtrip,
-                                             _check_double_roundtrip)
+from .common import _check_roundtrip, _check_double_roundtrip
 
 
 def test_sparse_series():

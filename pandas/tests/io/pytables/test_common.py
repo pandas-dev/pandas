@@ -1,31 +1,20 @@
 import pytest
-import os
 from warnings import catch_warnings
-from distutils.version import LooseVersion
 import tempfile
 import datetime
 
 import numpy as np
 import pandas as pd
 from pandas import (Series, DataFrame, date_range, Index, Timestamp,
-                    DatetimeIndex, compat, concat, isna)
-tables = pytest.importorskip('tables')
-from pandas.tests.io.pytables.common import (ensure_clean_store, safe_close,
-                                             _check_roundtrip, safe_remove,
-                                             _check_roundtrip_table,
-                                             create_tempfile, _maybe_remove,
-                                             ensure_clean_path)
+                    DatetimeIndex, compat, concat, Term)
+from .common import (ensure_clean_store, safe_close, _check_roundtrip,
+                     safe_remove, _check_roundtrip_table, create_tempfile,
+                     _maybe_remove, ensure_clean_path)
 
 import pandas.util.testing as tm
 import pandas.util._test_decorators as td
-from pandas.util.testing import (assert_panel_equal,
-                                 assert_frame_equal,
-                                 assert_series_equal)
-
-from pandas.compat import range, lrange, u
-from pandas.io.formats.printing import pprint_thing
-from pandas.io.pytables import (HDFStore, get_store,
-                                read_hdf, PossibleDataLossError)
+from pandas.compat import lrange, u
+from pandas.io.pytables import HDFStore, get_store, read_hdf
 
 
 def test_factory_fun():
@@ -81,23 +70,23 @@ def test_conv_read_write():
             return read_hdf(path, key)
 
         o = tm.makeTimeSeries()
-        assert_series_equal(o, roundtrip('series', o))
+        tm.assert_series_equal(o, roundtrip('series', o))
 
         o = tm.makeStringSeries()
-        assert_series_equal(o, roundtrip('string_series', o))
+        tm.assert_series_equal(o, roundtrip('string_series', o))
 
         o = tm.makeDataFrame()
-        assert_frame_equal(o, roundtrip('frame', o))
+        tm.assert_frame_equal(o, roundtrip('frame', o))
 
         with catch_warnings(record=True):
             o = tm.makePanel()
-            assert_panel_equal(o, roundtrip('panel', o))
+            tm.assert_panel_equal(o, roundtrip('panel', o))
 
         # table
         df = DataFrame(dict(A=lrange(5), B=lrange(5)))
         df.to_hdf(path, 'table', append=True)
         result = read_hdf(path, 'table', where=['index>2'])
-        assert_frame_equal(df[df.index > 2], result)
+        tm.assert_frame_equal(df[df.index > 2], result)
 
     finally:
         safe_remove(path)
@@ -113,7 +102,7 @@ def test_long_strings():
     with ensure_clean_store() as store:
         store.append('df', df, data_columns=['a'])
         result = store.select('df')
-        assert_frame_equal(df, result)
+        tm.assert_frame_equal(df, result)
 
 
 def test_api():
@@ -123,37 +112,37 @@ def test_api():
         df = tm.makeDataFrame()
         df.iloc[:10].to_hdf(path, 'df', append=True, format='table')
         df.iloc[10:].to_hdf(path, 'df', append=True, format='table')
-        assert_frame_equal(read_hdf(path, 'df'), df)
+        tm.assert_frame_equal(read_hdf(path, 'df'), df)
 
         # append to False
         df.iloc[:10].to_hdf(path, 'df', append=False, format='table')
         df.iloc[10:].to_hdf(path, 'df', append=True, format='table')
-        assert_frame_equal(read_hdf(path, 'df'), df)
+        tm.assert_frame_equal(read_hdf(path, 'df'), df)
 
     with ensure_clean_path() as path:
         df = tm.makeDataFrame()
         df.iloc[:10].to_hdf(path, 'df', append=True)
         df.iloc[10:].to_hdf(path, 'df', append=True, format='table')
-        assert_frame_equal(read_hdf(path, 'df'), df)
+        tm.assert_frame_equal(read_hdf(path, 'df'), df)
 
         # append to False
         df.iloc[:10].to_hdf(path, 'df', append=False, format='table')
         df.iloc[10:].to_hdf(path, 'df', append=True)
-        assert_frame_equal(read_hdf(path, 'df'), df)
+        tm.assert_frame_equal(read_hdf(path, 'df'), df)
 
     with ensure_clean_path() as path:
         df = tm.makeDataFrame()
         df.to_hdf(path, 'df', append=False, format='fixed')
-        assert_frame_equal(read_hdf(path, 'df'), df)
+        tm.assert_frame_equal(read_hdf(path, 'df'), df)
 
         df.to_hdf(path, 'df', append=False, format='f')
-        assert_frame_equal(read_hdf(path, 'df'), df)
+        tm.assert_frame_equal(read_hdf(path, 'df'), df)
 
         df.to_hdf(path, 'df', append=False)
-        assert_frame_equal(read_hdf(path, 'df'), df)
+        tm.assert_frame_equal(read_hdf(path, 'df'), df)
 
         df.to_hdf(path, 'df')
-        assert_frame_equal(read_hdf(path, 'df'), df)
+        tm.assert_frame_equal(read_hdf(path, 'df'), df)
 
     with ensure_clean_store() as store:
         path = store._path
@@ -162,24 +151,24 @@ def test_api():
         _maybe_remove(store, 'df')
         store.append('df', df.iloc[:10], append=True, format='table')
         store.append('df', df.iloc[10:], append=True, format='table')
-        assert_frame_equal(store.select('df'), df)
+        tm.assert_frame_equal(store.select('df'), df)
 
         # append to False
         _maybe_remove(store, 'df')
         store.append('df', df.iloc[:10], append=False, format='table')
         store.append('df', df.iloc[10:], append=True, format='table')
-        assert_frame_equal(store.select('df'), df)
+        tm.assert_frame_equal(store.select('df'), df)
 
         # formats
         _maybe_remove(store, 'df')
         store.append('df', df.iloc[:10], append=False, format='table')
         store.append('df', df.iloc[10:], append=True, format='table')
-        assert_frame_equal(store.select('df'), df)
+        tm.assert_frame_equal(store.select('df'), df)
 
         _maybe_remove(store, 'df')
         store.append('df', df.iloc[:10], append=False, format='table')
         store.append('df', df.iloc[10:], append=True, format=None)
-        assert_frame_equal(store.select('df'), df)
+        tm.assert_frame_equal(store.select('df'), df)
 
     with ensure_clean_path() as path:
         # invalid
@@ -311,25 +300,6 @@ def test_repr():
         str(s)
 
 
-def test_contains():
-    with ensure_clean_store() as store:
-        store['a'] = tm.makeTimeSeries()
-        store['b'] = tm.makeDataFrame()
-        store['foo/bar'] = tm.makeDataFrame()
-        assert 'a' in store
-        assert 'b' in store
-        assert 'c' not in store
-        assert 'foo/bar' in store
-        assert '/foo/bar' in store
-        assert '/foo/b' not in store
-        assert 'bar' not in store
-
-        # gh-2694: tables.NaturalNameWarning
-        with catch_warnings(record=True):
-            store['node())'] = tm.makeDataFrame()
-        assert 'node())' in store
-
-
 def test_versioning():
     with ensure_clean_store() as store:
         store['a'] = tm.makeTimeSeries()
@@ -392,14 +362,14 @@ def test_mode():
                               path, 'df', mode=mode)
             else:
                 result = read_hdf(path, 'df', mode=mode)
-                assert_frame_equal(result, df)
+                tm.assert_frame_equal(result, df)
 
     def check_default_mode():
         # read_hdf uses default mode
         with ensure_clean_path() as path:
             df.to_hdf(path, 'df', mode='w')
             result = read_hdf(path, 'df')
-            assert_frame_equal(result, df)
+            tm.assert_frame_equal(result, df)
 
     check('r')
     check('r+')
@@ -408,89 +378,11 @@ def test_mode():
     check_default_mode()
 
 
-def test_reopen_handle():
-    with ensure_clean_path() as path:
-        store = HDFStore(path, mode='a')
-        store['a'] = tm.makeTimeSeries()
-
-        # invalid mode change
-        pytest.raises(PossibleDataLossError, store.open, 'w')
-        store.close()
-        assert not store.is_open
-
-        # truncation ok here
-        store.open('w')
-        assert store.is_open
-        assert len(store) == 0
-        store.close()
-        assert not store.is_open
-
-        store = HDFStore(path, mode='a')
-        store['a'] = tm.makeTimeSeries()
-
-        # reopen as read
-        store.open('r')
-        assert store.is_open
-        assert len(store) == 1
-        assert store._mode == 'r'
-        store.close()
-        assert not store.is_open
-
-        # reopen as append
-        store.open('a')
-        assert store.is_open
-        assert len(store) == 1
-        assert store._mode == 'a'
-        store.close()
-        assert not store.is_open
-
-        # reopen as append (again)
-        store.open('a')
-        assert store.is_open
-        assert len(store) == 1
-        assert store._mode == 'a'
-        store.close()
-        assert not store.is_open
-
-
-def test_open_args():
-    with ensure_clean_path() as path:
-        df = tm.makeDataFrame()
-
-        # create an in memory store
-        store = HDFStore(path, mode='a', driver='H5FD_CORE',
-                         driver_core_backing_store=0)
-        store['df'] = df
-        store.append('df2', df)
-
-        tm.assert_frame_equal(store['df'], df)
-        tm.assert_frame_equal(store['df2'], df)
-
-        store.close()
-
-        # the file should not have actually been written
-        assert not os.path.exists(path)
-
-
 def test_flush():
     with ensure_clean_store() as store:
         store['a'] = tm.makeTimeSeries()
         store.flush()
         store.flush(fsync=True)
-
-
-def test_get():
-    with ensure_clean_store() as store:
-        store['a'] = tm.makeTimeSeries()
-        left = store.get('a')
-        right = store['a']
-        tm.assert_series_equal(left, right)
-
-        left = store.get('/a')
-        right = store['/a']
-        tm.assert_series_equal(left, right)
-
-        pytest.raises(KeyError, store.get, 'b')
 
 
 def test_getattr():
@@ -552,11 +444,11 @@ def test_table_values_dtypes_roundtrip():
     with ensure_clean_store() as store:
         df1 = DataFrame({'a': [1, 2, 3]}, dtype='f8')
         store.append('df_f8', df1)
-        assert_series_equal(df1.dtypes, store['df_f8'].dtypes)
+        tm.assert_series_equal(df1.dtypes, store['df_f8'].dtypes)
 
         df2 = DataFrame({'a': [1, 2, 3]}, dtype='i8')
         store.append('df_i8', df2)
-        assert_series_equal(df2.dtypes, store['df_i8'].dtypes)
+        tm.assert_series_equal(df2.dtypes, store['df_i8'].dtypes)
 
         # incompatible dtype
         pytest.raises(ValueError, store.append, 'df_i8', df1)
@@ -566,7 +458,7 @@ def test_table_values_dtypes_roundtrip():
         df1 = DataFrame(
             np.array([[1], [2], [3]], dtype='f4'), columns=['A'])
         store.append('df_f4', df1)
-        assert_series_equal(df1.dtypes, store['df_f4'].dtypes)
+        tm.assert_series_equal(df1.dtypes, store['df_f4'].dtypes)
         assert df1.dtypes[0] == 'float32'
 
         # check with mixed dtypes
@@ -625,7 +517,7 @@ def test_table_mixed_dtypes():
     with catch_warnings(record=True):
         with ensure_clean_store() as store:
             store.append('p1_mixed', wp)
-            assert_panel_equal(store.select('p1_mixed'), wp)
+            tm.assert_panel_equal(store.select('p1_mixed'), wp)
 
 
 def test_unimplemented_dtypes_table_columns():
@@ -663,14 +555,14 @@ def test_same_name_scoping():
         expected = df[df.index > pd.Timestamp('20130105')]
 
         result = store.select('df', 'index>datetime.datetime(2013,1,5)')
-        assert_frame_equal(result, expected)
+        tm.assert_frame_equal(result, expected)
 
         # technically an error, but allow it
         result = store.select('df', 'index>datetime.datetime(2013,1,5)')
-        assert_frame_equal(result, expected)
+        tm.assert_frame_equal(result, expected)
 
         result = store.select('df', 'index>datetime.datetime(2013,1,5)')
-        assert_frame_equal(result, expected)
+        tm.assert_frame_equal(result, expected)
 
 
 def test_series():
@@ -757,53 +649,6 @@ def test_invalid_filtering():
         # in theory we could deal with this
         pytest.raises(NotImplementedError, store.select,
                       'df', "columns=['A','B'] & columns=['C']")
-
-
-def test_string_select():
-    # GH 2973
-    with ensure_clean_store() as store:
-        df = tm.makeTimeDataFrame()
-
-        # test string ==/!=
-        df['x'] = 'none'
-        df.loc[2:7, 'x'] = ''
-
-        store.append('df', df, data_columns=['x'])
-
-        result = store.select('df', 'x=none')
-        expected = df[df.x == 'none']
-        assert_frame_equal(result, expected)
-
-        try:
-            result = store.select('df', 'x!=none')
-            expected = df[df.x != 'none']
-            assert_frame_equal(result, expected)
-        except Exception as detail:
-            pprint_thing("[{0}]".format(detail))
-            pprint_thing(store)
-            pprint_thing(expected)
-
-        df2 = df.copy()
-        df2.loc[df2.x == '', 'x'] = np.nan
-
-        store.append('df2', df2, data_columns=['x'])
-        result = store.select('df2', 'x!=none')
-        expected = df2[isna(df2.x)]
-        assert_frame_equal(result, expected)
-
-        # int ==/!=
-        df['int'] = 1
-        df.loc[2:7, 'int'] = 2
-
-        store.append('df3', df, data_columns=['int'])
-
-        result = store.select('df3', 'int=2')
-        expected = df[df.int == 2]
-        assert_frame_equal(result, expected)
-
-        result = store.select('df3', 'int!=2')
-        expected = df[df.int != 2]
-        assert_frame_equal(result, expected)
 
 
 def test_coordinates():
@@ -904,26 +749,6 @@ def test_coordinates():
         tm.assert_frame_equal(result, expected)
 
 
-@pytest.mark.skipif(
-    LooseVersion(tables.__version__) < LooseVersion('3.1.0'),
-    reason=("tables version does not support fix for nan selection "
-            "bug: GH 4858"))
-def test_nan_selection_bug_4858():
-    with ensure_clean_store() as store:
-        df = DataFrame(dict(cols=range(6), values=range(6)),
-                       dtype='float64')
-        df['cols'] = (df['cols'] + 10).apply(str)
-        df.iloc[0] = np.nan
-
-        expected = DataFrame(dict(cols=['13.0', '14.0', '15.0'], values=[
-                             3., 4., 5.]), index=[3, 4, 5])
-
-        # write w/o the index on that particular column
-        store.append('df', df, data_columns=True, index=['cols'])
-        result = store.select('df', where='values>2.0')
-        assert_frame_equal(result, expected)
-
-
 @pytest.mark.parametrize('start, stop', [(0, 2), (1, 2), (None, None)])
 def test_contiguous_mixed_data_table(start, stop):
     # GH 17021
@@ -935,7 +760,7 @@ def test_contiguous_mixed_data_table(start, stop):
         store.append('test_dataset', df)
 
         result = store.select('test_dataset', start=start, stop=stop)
-        assert_frame_equal(df[start:stop], result)
+        tm.assert_frame_equal(df[start:stop], result)
 
 
 def test_copy():
@@ -988,17 +813,6 @@ def test_copy():
             do_copy(f=path, propindexes=False)
         finally:
             safe_remove(path)
-
-
-def test_query_with_nested_special_character():
-    df = DataFrame({'a': ['a', 'a', 'c', 'b',
-                          'test & test', 'c', 'b', 'e'],
-                    'b': [1, 2, 3, 4, 5, 6, 7, 8]})
-    expected = df[df.a == 'test & test']
-    with ensure_clean_store() as store:
-        store.append('test', df, format='table', data_columns=True)
-        result = store.select('test', 'a = "test & test"')
-    tm.assert_frame_equal(expected, result)
 
 
 def test_duplicate_column_name():
@@ -1062,70 +876,131 @@ def test_to_hdf_with_object_column_names():
                 assert(len(result))
 
 
-def test_query_long_float_literal():
-    # GH 14241
-    df = pd.DataFrame({'A': [1000000000.0009,
-                             1000000000.0011,
-                             1000000000.0015]})
+def test_store_series_name():
+    df = tm.makeDataFrame()
+    series = df['A']
 
     with ensure_clean_store() as store:
-        store.append('test', df, format='table', data_columns=True)
-
-        cutoff = 1000000000.0006
-        result = store.select('test', "A < %.4f" % cutoff)
-        assert result.empty
-
-        cutoff = 1000000000.0010
-        result = store.select('test', "A > %.4f" % cutoff)
-        expected = df.loc[[1, 2], :]
-        tm.assert_frame_equal(expected, result)
-
-        exact = 1000000000.0011
-        result = store.select('test', 'A == %.4f' % exact)
-        expected = df.loc[[1], :]
-        tm.assert_frame_equal(expected, result)
+        store['series'] = series
+        recons = store['series']
+        tm.assert_series_equal(recons, series)
 
 
-def test_query_compare_column_type():
-    # GH 15492
-    df = pd.DataFrame({'date': ['2014-01-01', '2014-01-02'],
-                       'real_date': date_range('2014-01-01', periods=2),
-                       'float': [1.1, 1.2],
-                       'int': [1, 2]},
-                      columns=['date', 'real_date', 'float', 'int'])
+@pytest.mark.parametrize("compression", [
+    False, pytest.param(True, marks=td.skip_if_windows_python_3)
+])
+def test_store_mixed(compression):
+    def _make_one():
+        df = tm.makeDataFrame()
+        df['obj1'] = 'foo'
+        df['obj2'] = 'bar'
+        df['bool1'] = df['A'] > 0
+        df['bool2'] = df['B'] > 0
+        df['int1'] = 1
+        df['int2'] = 2
+        return df._consolidate()
+
+    df1 = _make_one()
+    df2 = _make_one()
+
+    _check_roundtrip(df1, tm.assert_frame_equal)
+    _check_roundtrip(df2, tm.assert_frame_equal)
 
     with ensure_clean_store() as store:
-        store.append('test', df, format='table', data_columns=True)
+        store['obj'] = df1
+        tm.assert_frame_equal(store['obj'], df1)
+        store['obj'] = df2
+        tm.assert_frame_equal(store['obj'], df2)
 
-        ts = pd.Timestamp('2014-01-01')  # noqa
-        result = store.select('test', where='real_date > ts')
-        expected = df.loc[[1], :]
-        tm.assert_frame_equal(expected, result)
+    # check that can store Series of all of these types
+    _check_roundtrip(df1['obj1'], tm.assert_series_equal,
+                     compression=compression)
+    _check_roundtrip(df1['bool1'], tm.assert_series_equal,
+                     compression=compression)
+    _check_roundtrip(df1['int1'], tm.assert_series_equal,
+                     compression=compression)
 
-        for op in ['<', '>', '==']:
-            # non strings to string column always fail
-            for v in [2.1, True, pd.Timestamp('2014-01-01'),
-                      pd.Timedelta(1, 's')]:
-                query = 'date {op} v'.format(op=op)
-                with pytest.raises(TypeError):
-                    result = store.select('test', where=query)
 
-            # strings to other columns must be convertible to type
-            v = 'a'
-            for col in ['int', 'float', 'real_date']:
-                query = '{col} {op} v'.format(op=op, col=col)
-                with pytest.raises(ValueError):
-                    result = store.select('test', where=query)
+def test_remove():
+    with ensure_clean_store() as store:
+        ts = tm.makeTimeSeries()
+        df = tm.makeDataFrame()
+        store['a'] = ts
+        store['b'] = df
+        _maybe_remove(store, 'a')
+        assert len(store) == 1
+        tm.assert_frame_equal(df, store['b'])
 
-            for v, col in zip(['1', '1.1', '2014-01-01'],
-                              ['int', 'float', 'real_date']):
-                query = '{col} {op} v'.format(op=op, col=col)
-                result = store.select('test', where=query)
+        _maybe_remove(store, 'b')
+        assert len(store) == 0
 
-                if op == '==':
-                    expected = df.loc[[0], :]
-                elif op == '>':
-                    expected = df.loc[[1], :]
-                else:
-                    expected = df.loc[[], :]
-                tm.assert_frame_equal(expected, result)
+        # nonexistence
+        pytest.raises(KeyError, store.remove, 'a_nonexistent_store')
+
+        # pathing
+        store['a'] = ts
+        store['b/foo'] = df
+        _maybe_remove(store, 'foo')
+        _maybe_remove(store, 'b/foo')
+        assert len(store) == 1
+
+        store['a'] = ts
+        store['b/foo'] = df
+        _maybe_remove(store, 'b')
+        assert len(store) == 1
+
+        # __delitem__
+        store['a'] = ts
+        store['b'] = df
+        del store['a']
+        del store['b']
+        assert len(store) == 0
+
+
+def test_invalid_terms():
+    with ensure_clean_store() as store:
+        with catch_warnings(record=True):
+            df = tm.makeTimeDataFrame()
+            df['string'] = 'foo'
+            df.loc[0:4, 'string'] = 'bar'
+            wp = tm.makePanel()
+
+            store.put('df', df, format='table')
+            store.put('wp', wp, format='table')
+
+            # some invalid terms
+            pytest.raises(ValueError, store.select,
+                          'wp', "minor=['A', 'B']")
+            pytest.raises(ValueError, store.select,
+                          'wp', ["index=['20121114']"])
+            pytest.raises(ValueError, store.select, 'wp', [
+                "index=['20121114', '20121114']"])
+            pytest.raises(TypeError, Term)
+
+            # more invalid
+            pytest.raises(
+                ValueError, store.select, 'df', 'df.index[3]')
+            pytest.raises(SyntaxError, store.select, 'df', 'index>')
+            pytest.raises(
+                ValueError, store.select, 'wp',
+                "major_axis<'20000108' & minor_axis['A', 'B']")
+
+    # from the docs
+    with ensure_clean_path() as path:
+        dfq = DataFrame(np.random.randn(10, 4), columns=list(
+            'ABCD'), index=date_range('20130101', periods=10))
+        dfq.to_hdf(path, 'dfq', format='table', data_columns=True)
+
+        # check ok
+        read_hdf(path, 'dfq',
+                 where="index>Timestamp('20130104') & columns=['A', 'B']")
+        read_hdf(path, 'dfq', where="A>0 or C>0")
+
+    # catch the invalid reference
+    with ensure_clean_path() as path:
+        dfq = DataFrame(np.random.randn(10, 4), columns=list(
+            'ABCD'), index=date_range('20130101', periods=10))
+        dfq.to_hdf(path, 'dfq', format='table')
+
+        pytest.raises(ValueError, read_hdf, path,
+                      'dfq', where="A>0 or C>0")

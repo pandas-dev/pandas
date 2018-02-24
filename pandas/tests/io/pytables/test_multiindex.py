@@ -5,11 +5,9 @@ import numpy as np
 import pandas as pd
 from pandas import (Series, DataFrame, date_range, Index,
                     concat, MultiIndex, RangeIndex, Int64Index)
-from pandas.tests.io.pytables.common import (ensure_clean_store,
-                                             ensure_clean_path, _maybe_remove)
-
+from .common import (ensure_clean_store, ensure_clean_path,
+                     _maybe_remove, _check_roundtrip)
 import pandas.util.testing as tm
-from pandas.util.testing import assert_frame_equal
 from pandas.compat import range
 from pandas.io.pytables import HDFStore, read_hdf
 
@@ -172,39 +170,59 @@ def test_frame_select_complex2():
         l = selection.index.tolist()  # noqa
         store = HDFStore(hh)
         result = store.select('df', where='l1=l')
-        assert_frame_equal(result, expected)
+        tm.assert_frame_equal(result, expected)
         store.close()
 
         result = read_hdf(hh, 'df', where='l1=l')
-        assert_frame_equal(result, expected)
+        tm.assert_frame_equal(result, expected)
 
         # index
         index = selection.index  # noqa
         result = read_hdf(hh, 'df', where='l1=index')
-        assert_frame_equal(result, expected)
+        tm.assert_frame_equal(result, expected)
 
         result = read_hdf(hh, 'df', where='l1=selection.index')
-        assert_frame_equal(result, expected)
+        tm.assert_frame_equal(result, expected)
 
         result = read_hdf(hh, 'df', where='l1=selection.index.tolist()')
-        assert_frame_equal(result, expected)
+        tm.assert_frame_equal(result, expected)
 
         result = read_hdf(hh, 'df', where='l1=list(selection.index)')
-        assert_frame_equal(result, expected)
+        tm.assert_frame_equal(result, expected)
 
         # sccope with index
         store = HDFStore(hh)
 
         result = store.select('df', where='l1=index')
-        assert_frame_equal(result, expected)
+        tm.assert_frame_equal(result, expected)
 
         result = store.select('df', where='l1=selection.index')
-        assert_frame_equal(result, expected)
+        tm.assert_frame_equal(result, expected)
 
         result = store.select('df', where='l1=selection.index.tolist()')
-        assert_frame_equal(result, expected)
+        tm.assert_frame_equal(result, expected)
 
         result = store.select('df', where='l1=list(selection.index)')
-        assert_frame_equal(result, expected)
+        tm.assert_frame_equal(result, expected)
 
         store.close()
+
+
+def test_store_hierarchical():
+    index = MultiIndex(levels=[['foo', 'bar', 'baz', 'qux'],
+                               ['one', 'two', 'three']],
+                       labels=[[0, 0, 0, 1, 1, 2, 2, 3, 3, 3],
+                               [0, 1, 2, 0, 1, 1, 2, 0, 1, 2]],
+                       names=['foo', 'bar'])
+    frame = DataFrame(np.random.randn(10, 3), index=index,
+                      columns=['A', 'B', 'C'])
+
+    _check_roundtrip(frame, tm.assert_frame_equal)
+    _check_roundtrip(frame.T, tm.assert_frame_equal)
+    _check_roundtrip(frame['A'], tm.assert_series_equal)
+
+    # check that the names are stored
+    with ensure_clean_store() as store:
+        store['frame'] = frame
+        recons = store['frame']
+        tm.assert_frame_equal(recons, frame)

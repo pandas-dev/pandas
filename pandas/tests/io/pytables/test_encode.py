@@ -4,12 +4,10 @@ from warnings import catch_warnings
 import numpy as np
 import pandas as pd
 from pandas import (Series, DataFrame, compat)
-from pandas.tests.io.pytables.common import (ensure_clean_store,
-                                             ensure_clean_path,
-                                             _check_roundtrip, _maybe_remove)
+from .common import (ensure_clean_store, ensure_clean_path,
+                     _check_roundtrip, _maybe_remove)
 
 import pandas.util.testing as tm
-from pandas.util.testing import assert_series_equal
 from pandas.compat import is_platform_little_endian, range, u
 from pandas.io.pytables import Term, read_hdf
 from pandas.core.dtypes.common import is_categorical_dtype
@@ -68,10 +66,10 @@ def test_latin_encoding():
             s_nan = s.replace(nan_rep, np.nan)
             if is_categorical_dtype(s_nan):
                 assert is_categorical_dtype(retr)
-                assert_series_equal(s_nan, retr, check_dtype=False,
-                                    check_categorical=False)
+                tm.assert_series_equal(s_nan, retr, check_dtype=False,
+                                       check_categorical=False)
             else:
-                assert_series_equal(s_nan, retr)
+                tm.assert_series_equal(s_nan, retr)
 
     for s in examples:
         roundtrip(s)

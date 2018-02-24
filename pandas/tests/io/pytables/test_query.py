@@ -1,16 +1,277 @@
 import pytest
 from warnings import catch_warnings
+from distutils.version import LooseVersion
 
 import numpy as np
-from pandas import (Series, DataFrame, date_range, Index, Timestamp,
-                    concat, MultiIndex, bdate_range, Panel)
-from pandas.tests.io.pytables.common import (ensure_clean_store,
-                                             ensure_clean_path, _maybe_remove)
-
+import pandas as pd
+from pandas import (Series, DataFrame, MultiIndex, Timestamp, date_range,
+                    Index, concat, bdate_range, Panel, isna)
+from .common import (ensure_clean_store, _maybe_remove,
+                     ensure_clean_path)
+tables = pytest.importorskip('tables')
+from pandas.util.testing import assert_frame_equal
+from pandas.compat import (BytesIO, range, PY35, is_platform_windows)
 import pandas.util.testing as tm
-from pandas.util.testing import assert_panel_equal, assert_frame_equal
-from pandas.compat import range
-from pandas.io.pytables import read_hdf, Term
+import pandas.util._test_decorators as td
+from pandas.io.pytables import read_hdf, HDFStore, TableIterator, Term
+from pandas.io.formats.printing import pprint_thing
+
+
+def test_read_hdf_open_store():
+    # GH10330
+    # No check for non-string path_or-buf, and no test of open store
+    df = DataFrame(np.random.rand(4, 5),
+                   index=list('abcd'),
+                   columns=list('ABCDE'))
+    df.index.name = 'letters'
+    df = df.set_index(keys='E', append=True)
+
+    with ensure_clean_path() as path:
+        df.to_hdf(path, 'df', mode='w')
+        direct = read_hdf(path, 'df')
+        store = HDFStore(path, mode='r')
+        indirect = read_hdf(store, 'df')
+        tm.assert_frame_equal(direct, indirect)
+        assert store.is_open
+        store.close()
+
+
+def test_read_hdf_iterator():
+    df = DataFrame(np.random.rand(4, 5),
+                   index=list('abcd'),
+                   columns=list('ABCDE'))
+    df.index.name = 'letters'
+    df = df.set_index(keys='E', append=True)
+
+    with ensure_clean_path() as path:
+        df.to_hdf(path, 'df', mode='w', format='t')
+        direct = read_hdf(path, 'df')
+        iterator = read_hdf(path, 'df', iterator=True)
+        assert isinstance(iterator, TableIterator)
+        indirect = next(iterator.__iter__())
+        tm.assert_frame_equal(direct, indirect)
+        iterator.store.close()
+
+
+def test_read_hdf_errors():
+    df = DataFrame(np.random.rand(4, 5),
+                   index=list('abcd'),
+                   columns=list('ABCDE'))
+
+    with ensure_clean_path() as path:
+        pytest.raises(IOError, read_hdf, path, 'key')
+        df.to_hdf(path, 'df')
+        store = HDFStore(path, mode='r')
+        store.close()
+        pytest.raises(IOError, read_hdf, store, 'df')
+
+
+def test_read_hdf_generic_buffer_errors():
+    pytest.raises(NotImplementedError, read_hdf, BytesIO(b''), 'df')
+
+
+def test_read_nokey():
+    df = DataFrame(np.random.rand(4, 5),
+                   index=list('abcd'),
+                   columns=list('ABCDE'))
+
+    # Categorical dtype not supported for "fixed" format. So no need
+    # to test with that dtype in the dataframe here.
+    with ensure_clean_path() as path:
+        df.to_hdf(path, 'df', mode='a')
+        reread = read_hdf(path)
+        assert_frame_equal(df, reread)
+        df.to_hdf(path, 'df2', mode='a')
+        pytest.raises(ValueError, read_hdf, path)
+
+
+def test_read_nokey_table():
+    # GH13231
+    df = DataFrame({'i': range(5),
+                    'c': Series(list('abacd'), dtype='category')})
+
+    with ensure_clean_path() as path:
+        df.to_hdf(path, 'df', mode='a', format='table')
+        reread = read_hdf(path)
+        assert_frame_equal(df, reread)
+        df.to_hdf(path, 'df2', mode='a', format='table')
+        pytest.raises(ValueError, read_hdf, path)
+
+
+def test_read_nokey_empty():
+    with ensure_clean_path() as path:
+        store = HDFStore(path)
+        store.close()
+        pytest.raises(ValueError, read_hdf, path)
+
+
+@td.skip_if_no('pathlib')
+def test_read_from_pathlib_path():
+    # GH11773
+    Path = pytest.importorskip('pathlib').Path
+    expected = DataFrame(np.random.rand(4, 5),
+                         index=list('abcd'),
+                         columns=list('ABCDE'))
+    with ensure_clean_path() as filename:
+        path_obj = Path(filename)
+
+        expected.to_hdf(path_obj, 'df', mode='a')
+        actual = read_hdf(path_obj, 'df')
+
+    tm.assert_frame_equal(expected, actual)
+
+
+@td.skip_if_no('py.path')
+def test_read_from_py_localpath():
+    # GH11773
+    LocalPath = pytest.importorskip('py.path').local
+    expected = DataFrame(np.random.rand(4, 5),
+                         index=list('abcd'),
+                         columns=list('ABCDE'))
+    with ensure_clean_path() as filename:
+        path_obj = LocalPath(filename)
+
+        expected.to_hdf(path_obj, 'df', mode='a')
+        actual = read_hdf(path_obj, 'df')
+
+    tm.assert_frame_equal(expected, actual)
+
+
+@pytest.mark.parametrize('format', ['fixed', 'table'])
+def test_read_hdf_series_mode_r(format):
+    # GH 16583
+    # Tests that reading a Series saved to an HDF file
+    # still works if a mode='r' argument is supplied
+    series = tm.makeFloatSeries()
+    with ensure_clean_path() as path:
+        series.to_hdf(path, key='data', format=format)
+        result = pd.read_hdf(path, key='data', mode='r')
+    tm.assert_series_equal(result, series)
+
+
+def test_read_py2_hdf_file_in_py3():
+    # GH 16781
+    # tests reading a PeriodIndex DataFrame written in Python2 in Python3
+    # the file was generated in Python 2.7 like so:
+    # df = pd.DataFrame([1.,2,3], index=pd.PeriodIndex(
+    #              ['2015-01-01', '2015-01-02', '2015-01-05'], freq='B'))
+    # df.to_hdf('periodindex_0.20.1_x86_64_darwin_2.7.13.h5', 'p')
+    expected = pd.DataFrame([1., 2, 3], index=pd.PeriodIndex(
+        ['2015-01-01', '2015-01-02', '2015-01-05'], freq='B'))
+
+    with ensure_clean_store(
+            tm.get_data_path(
+                'legacy_hdf/periodindex_0.20.1_x86_64_darwin_2.7.13.h5'),
+            mode='r') as store:
+        result = store['p']
+        assert_frame_equal(result, expected)
+
+
+def test_read_column():
+    df = tm.makeTimeDataFrame()
+    with ensure_clean_store() as store:
+        _maybe_remove(store, 'df')
+        store.append('df', df)
+
+        # error
+        pytest.raises(KeyError, store.select_column, 'df', 'foo')
+
+        def f():
+            store.select_column('df', 'index', where=['index>5'])
+        pytest.raises(Exception, f)
+
+        # valid
+        result = store.select_column('df', 'index')
+        tm.assert_almost_equal(result.values, Series(df.index).values)
+        assert isinstance(result, Series)
+
+        # not a data indexable column
+        pytest.raises(
+            ValueError, store.select_column, 'df', 'values_block_0')
+
+        # a data column
+        df2 = df.copy()
+        df2['string'] = 'foo'
+        store.append('df2', df2, data_columns=['string'])
+        result = store.select_column('df2', 'string')
+        tm.assert_almost_equal(result.values, df2['string'].values)
+
+        # a data column with NaNs, result excludes the NaNs
+        df3 = df.copy()
+        df3['string'] = 'foo'
+        df3.loc[4:6, 'string'] = np.nan
+        store.append('df3', df3, data_columns=['string'])
+        result = store.select_column('df3', 'string')
+        tm.assert_almost_equal(result.values, df3['string'].values)
+
+        # start/stop
+        result = store.select_column('df3', 'string', start=2)
+        tm.assert_almost_equal(result.values, df3['string'].values[2:])
+
+        result = store.select_column('df3', 'string', start=-2)
+        tm.assert_almost_equal(result.values, df3['string'].values[-2:])
+
+        result = store.select_column('df3', 'string', stop=2)
+        tm.assert_almost_equal(result.values, df3['string'].values[:2])
+
+        result = store.select_column('df3', 'string', stop=-2)
+        tm.assert_almost_equal(result.values, df3['string'].values[:-2])
+
+        result = store.select_column('df3', 'string', start=2, stop=-2)
+        tm.assert_almost_equal(result.values, df3['string'].values[2:-2])
+
+        result = store.select_column('df3', 'string', start=-2, stop=2)
+        tm.assert_almost_equal(result.values, df3['string'].values[-2:2])
+
+        # GH 10392 - make sure column name is preserved
+        df4 = DataFrame({'A': np.random.randn(10), 'B': 'foo'})
+        store.append('df4', df4, data_columns=True)
+        expected = df4['B']
+        result = store.select_column('df4', 'B')
+        tm.assert_series_equal(result, expected)
+
+
+def test_pytables_native_read():
+    with ensure_clean_store(
+            tm.get_data_path('legacy_hdf/pytables_native.h5'),
+            mode='r') as store:
+        d2 = store['detector/readout']
+        assert isinstance(d2, DataFrame)
+
+
+@pytest.mark.skipif(PY35 and is_platform_windows(),
+                    reason="native2 read fails oddly on windows / 3.5")
+def test_pytables_native2_read():
+    with ensure_clean_store(
+            tm.get_data_path('legacy_hdf/pytables_native2.h5'),
+            mode='r') as store:
+        str(store)
+        d1 = store['detector']
+        assert isinstance(d1, DataFrame)
+
+
+def test_legacy_table_read():
+    # legacy table types
+    with ensure_clean_store(
+            tm.get_data_path('legacy_hdf/legacy_table.h5'),
+            mode='r') as store:
+
+        with catch_warnings(record=True):
+            store.select('df1')
+            store.select('df2')
+            store.select('wp1')
+
+            # force the frame
+            store.select('df2', typ='legacy_frame')
+
+            # old version warning
+            pytest.raises(
+                Exception, store.select, 'wp1', 'minor_axis=B')
+
+            df2 = store.select('df2')
+            result = store.select('df2', 'index>df2.index[2]')
+            expected = df2[df2.index > df2.index[2]]
+            assert_frame_equal(expected, result)
 
 
 def test_select_columns_in_where():
@@ -129,7 +390,7 @@ def test_select():
             items = ['Item%03d' % i for i in range(80)]
             result = store.select('wp', 'items=items')
             expected = wp.reindex(items=items)
-            assert_panel_equal(expected, result)
+            tm.assert_panel_equal(expected, result)
 
             # selectin non-table with a where
             # pytest.raises(ValueError, store.select,
@@ -658,14 +919,14 @@ def test_panel_select():
 
             result = store.select('wp', [crit1, crit2])
             expected = wp.truncate(before=date).reindex(minor=['A', 'D'])
-            assert_panel_equal(result, expected)
+            tm.assert_panel_equal(result, expected)
 
             result = store.select(
                 'wp', ['major_axis>="20000124"',
                        ("minor_axis=['A', 'B']")])
             expected = wp.truncate(
                 before='20000124').reindex(minor=['A', 'B'])
-            assert_panel_equal(result, expected)
+            tm.assert_panel_equal(result, expected)
 
 
 def test_frame_select():
@@ -744,3 +1005,261 @@ def test_frame_select_complex():
         expected = df.loc[df.index > df.index[3]].reindex(columns=[
                                                           'A', 'B'])
         tm.assert_frame_equal(result, expected)
+
+
+def test_start_stop_table():
+    with ensure_clean_store() as store:
+        # table
+        df = DataFrame(dict(A=np.random.rand(20), B=np.random.rand(20)))
+        store.append('df', df)
+
+        result = store.select(
+            'df', "columns=['A']", start=0, stop=5)
+        expected = df.loc[0:4, ['A']]
+        tm.assert_frame_equal(result, expected)
+
+        # out of range
+        result = store.select(
+            'df', "columns=['A']", start=30, stop=40)
+        assert len(result) == 0
+        expected = df.loc[30:40, ['A']]
+        tm.assert_frame_equal(result, expected)
+
+
+def test_start_stop_multiple():
+    # GH 16209
+    with ensure_clean_store() as store:
+        df = DataFrame({"foo": [1, 2], "bar": [1, 2]})
+
+        store.append_to_multiple({'selector': ['foo'], 'data': None}, df,
+                                 selector='selector')
+        result = store.select_as_multiple(['selector', 'data'],
+                                          selector='selector', start=0,
+                                          stop=1)
+        expected = df.loc[[0], ['foo', 'bar']]
+        tm.assert_frame_equal(result, expected)
+
+
+def test_start_stop_fixed():
+    with ensure_clean_store() as store:
+        # fixed, GH 8287
+        df = DataFrame(dict(A=np.random.rand(20),
+                            B=np.random.rand(20)),
+                       index=pd.date_range('20130101', periods=20))
+        store.put('df', df)
+
+        result = store.select(
+            'df', start=0, stop=5)
+        expected = df.iloc[0:5, :]
+        tm.assert_frame_equal(result, expected)
+
+        result = store.select(
+            'df', start=5, stop=10)
+        expected = df.iloc[5:10, :]
+        tm.assert_frame_equal(result, expected)
+
+        # out of range
+        result = store.select(
+            'df', start=30, stop=40)
+        expected = df.iloc[30:40, :]
+        tm.assert_frame_equal(result, expected)
+
+        # series
+        s = df.A
+        store.put('s', s)
+        result = store.select('s', start=0, stop=5)
+        expected = s.iloc[0:5]
+        tm.assert_series_equal(result, expected)
+
+        result = store.select('s', start=5, stop=10)
+        expected = s.iloc[5:10]
+        tm.assert_series_equal(result, expected)
+
+        # sparse; not implemented
+        df = tm.makeDataFrame()
+        df.iloc[3:5, 1:3] = np.nan
+        df.iloc[8:10, -2] = np.nan
+        dfs = df.to_sparse()
+        store.put('dfs', dfs)
+        with pytest.raises(NotImplementedError):
+            store.select('dfs', start=0, stop=5)
+
+
+def test_contains():
+    with ensure_clean_store() as store:
+        store['a'] = tm.makeTimeSeries()
+        store['b'] = tm.makeDataFrame()
+        store['foo/bar'] = tm.makeDataFrame()
+        assert 'a' in store
+        assert 'b' in store
+        assert 'c' not in store
+        assert 'foo/bar' in store
+        assert '/foo/bar' in store
+        assert '/foo/b' not in store
+        assert 'bar' not in store
+
+        # gh-2694: tables.NaturalNameWarning
+        with catch_warnings(record=True):
+            store['node())'] = tm.makeDataFrame()
+        assert 'node())' in store
+
+
+def test_get():
+    with ensure_clean_store() as store:
+        store['a'] = tm.makeTimeSeries()
+        left = store.get('a')
+        right = store['a']
+        tm.assert_series_equal(left, right)
+
+        left = store.get('/a')
+        right = store['/a']
+        tm.assert_series_equal(left, right)
+
+        pytest.raises(KeyError, store.get, 'b')
+
+
+def test_query_with_nested_special_character():
+    df = DataFrame({'a': ['a', 'a', 'c', 'b',
+                          'test & test', 'c', 'b', 'e'],
+                    'b': [1, 2, 3, 4, 5, 6, 7, 8]})
+    expected = df[df.a == 'test & test']
+    with ensure_clean_store() as store:
+        store.append('test', df, format='table', data_columns=True)
+        result = store.select('test', 'a = "test & test"')
+    tm.assert_frame_equal(expected, result)
+
+
+def test_query_long_float_literal():
+    # GH 14241
+    df = pd.DataFrame({'A': [1000000000.0009,
+                             1000000000.0011,
+                             1000000000.0015]})
+
+    with ensure_clean_store() as store:
+        store.append('test', df, format='table', data_columns=True)
+
+        cutoff = 1000000000.0006
+        result = store.select('test', "A < %.4f" % cutoff)
+        assert result.empty
+
+        cutoff = 1000000000.0010
+        result = store.select('test', "A > %.4f" % cutoff)
+        expected = df.loc[[1, 2], :]
+        tm.assert_frame_equal(expected, result)
+
+        exact = 1000000000.0011
+        result = store.select('test', 'A == %.4f' % exact)
+        expected = df.loc[[1], :]
+        tm.assert_frame_equal(expected, result)
+
+
+def test_query_compare_column_type():
+    # GH 15492
+    df = pd.DataFrame({'date': ['2014-01-01', '2014-01-02'],
+                       'real_date': date_range('2014-01-01', periods=2),
+                       'float': [1.1, 1.2],
+                       'int': [1, 2]},
+                      columns=['date', 'real_date', 'float', 'int'])
+
+    with ensure_clean_store() as store:
+        store.append('test', df, format='table', data_columns=True)
+
+        ts = pd.Timestamp('2014-01-01')  # noqa
+        result = store.select('test', where='real_date > ts')
+        expected = df.loc[[1], :]
+        tm.assert_frame_equal(expected, result)
+
+        for op in ['<', '>', '==']:
+            # non strings to string column always fail
+            for v in [2.1, True, pd.Timestamp('2014-01-01'),
+                      pd.Timedelta(1, 's')]:
+                query = 'date {op} v'.format(op=op)
+                with pytest.raises(TypeError):
+                    result = store.select('test', where=query)
+
+            # strings to other columns must be convertible to type
+            v = 'a'
+            for col in ['int', 'float', 'real_date']:
+                query = '{col} {op} v'.format(op=op, col=col)
+                with pytest.raises(ValueError):
+                    result = store.select('test', where=query)
+
+            for v, col in zip(['1', '1.1', '2014-01-01'],
+                              ['int', 'float', 'real_date']):
+                query = '{col} {op} v'.format(op=op, col=col)
+                result = store.select('test', where=query)
+
+                if op == '==':
+                    expected = df.loc[[0], :]
+                elif op == '>':
+                    expected = df.loc[[1], :]
+                else:
+                    expected = df.loc[[], :]
+                tm.assert_frame_equal(expected, result)
+
+
+def test_string_select():
+    # GH 2973
+    with ensure_clean_store() as store:
+        df = tm.makeTimeDataFrame()
+
+        # test string ==/!=
+        df['x'] = 'none'
+        df.loc[2:7, 'x'] = ''
+
+        store.append('df', df, data_columns=['x'])
+
+        result = store.select('df', 'x=none')
+        expected = df[df.x == 'none']
+        assert_frame_equal(result, expected)
+
+        try:
+            result = store.select('df', 'x!=none')
+            expected = df[df.x != 'none']
+            assert_frame_equal(result, expected)
+        except Exception as detail:
+            pprint_thing("[{0}]".format(detail))
+            pprint_thing(store)
+            pprint_thing(expected)
+
+        df2 = df.copy()
+        df2.loc[df2.x == '', 'x'] = np.nan
+
+        store.append('df2', df2, data_columns=['x'])
+        result = store.select('df2', 'x!=none')
+        expected = df2[isna(df2.x)]
+        assert_frame_equal(result, expected)
+
+        # int ==/!=
+        df['int'] = 1
+        df.loc[2:7, 'int'] = 2
+
+        store.append('df3', df, data_columns=['int'])
+
+        result = store.select('df3', 'int=2')
+        expected = df[df.int == 2]
+        assert_frame_equal(result, expected)
+
+        result = store.select('df3', 'int!=2')
+        expected = df[df.int != 2]
+        assert_frame_equal(result, expected)
+
+
+@pytest.mark.skipif(
+    LooseVersion(tables.__version__) < LooseVersion('3.1.0'),
+    reason=("tables version does not support fix for nan selection "
+            "bug: GH 4858"))
+def test_nan_selection_bug_4858():
+    with ensure_clean_store() as store:
+        df = DataFrame(dict(cols=range(6), values=range(6)),
+                       dtype='float64')
+        df['cols'] = (df['cols'] + 10).apply(str)
+        df.iloc[0] = np.nan
+
+        expected = DataFrame(dict(cols=['13.0', '14.0', '15.0'], values=[
+                             3., 4., 5.]), index=[3, 4, 5])
+
+        # write w/o the index on that particular column
+        store.append('df', df, data_columns=True, index=['cols'])
+        result = store.select('df', where='values>2.0')
+        assert_frame_equal(result, expected)

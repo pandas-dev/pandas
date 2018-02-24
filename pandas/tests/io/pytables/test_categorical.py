@@ -3,8 +3,7 @@ import pytest
 import numpy as np
 import pandas as pd
 from pandas import (Series, DataFrame, Categorical, concat)
-from pandas.tests.io.pytables.common import (ensure_clean_store,
-                                             ensure_clean_path, _maybe_remove)
+from .common import ensure_clean_store, ensure_clean_path, _maybe_remove
 
 import pandas.util.testing as tm
 from pandas.io.pytables import read_hdf
