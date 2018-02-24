@@ -1375,7 +1375,7 @@ def _maybe_upcast(self, arr):
         mask = arr.view(np.uint8) == na_values[np.uint8]
         arr = arr.astype(object)
         np.putmask(arr, mask, np.nan)
-    elif arr.dtype.kind == 'O' and arr == np.nan and arr.dtype == np.object_:
+    elif arr.dtype.kind == 'O' and arr == np.nan:
         na_value = na_values[arr.dtype]
         arr = arr.astype(str)
         np.putmask(arr, arr == na_value, np.nan)
