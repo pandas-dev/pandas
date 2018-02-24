@@ -467,21 +467,6 @@ class TestToDatetime(object):
                                              NaT,
                                              to_datetime(0, cache=cache)]))
 
-    def test_datetime_require_iso8601(self):
-        # GH19671
-        s = Series(['M1809', 'M1701', Timestamp('20130101')])
-        with pytest.raises(ValueError):
-            to_datetime(s, require_iso8601=True, errors='raise')
-        tm.assert_series_equal(
-            to_datetime(s, require_iso8601=True, errors='ignore'),
-            Series(['M1809', 'M1701', Timestamp('20130101')]))
-        tm.assert_series_equal(
-            to_datetime(s, require_iso8601=True, errors='coerce'),
-            Series([NaT, NaT, Timestamp('20130101')]))
-        tm.assert_series_equal(
-            to_datetime(s, require_iso8601=False, errors='raise'),
-            Series([Timestamp('18090101'), Timestamp('17010101'),
-                    Timestamp('20130101')]))
 
     def test_datetime_invalid_datatype(self):
         # GH13176
