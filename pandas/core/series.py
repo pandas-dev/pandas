@@ -212,12 +212,11 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
                                          'be False.')
 
             elif is_extension_array_dtype(data) and dtype is not None:
-                # GH12574: Allow dtype=category only, otherwise error
-                if ((dtype is not None) and
-                        not is_categorical_dtype(dtype)):
-                    raise ValueError("cannot specify a dtype with a "
-                                     "Categorical unless "
-                                     "dtype='category'")
+                if not data.dtype.is_dtype(dtype):
+                    raise ValueError("Cannot specify a dtype '{}' with an "
+                                     "extension array of a different "
+                                     "dtype ('{}').".format(dtype,
+                                                            data.dtype))
 
             elif (isinstance(data, types.GeneratorType) or
                   (compat.PY3 and isinstance(data, map))):
