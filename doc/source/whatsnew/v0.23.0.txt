@@ -212,6 +212,7 @@ Please note that the string `index` is not supported with the round trip format,
 
 .. ipython:: python
    :okwarning:
+   import io
 
    df.index.name = 'index'
 
@@ -222,7 +223,7 @@ Please note that the string `index` is not supported with the round trip format,
    
    # Reset the file pointer.
    test_json_buf.seek(0)
-   
+
    new_df = pd.read_json(test_json_buf, orient='table')
    new_df
    print(new_df.index.name)
