@@ -1,0 +1,11 @@
+{
+  "pandas/tests/io/parser/test_network.py::TestS3::()::test_infer_s3_compression": true,
+  "pandas/tests/io/parser/test_network.py::TestS3::()::test_parse_public_s3_bucket_chunked": true,
+  "pandas/tests/io/parser/test_network.py::TestS3::()::test_parse_public_s3_bucket_chunked_python": true,
+  "pandas/tests/io/parser/test_network.py::TestS3::()::test_parse_public_s3_bucket_nrows": true,
+  "pandas/tests/io/parser/test_network.py::TestS3::()::test_parse_public_s3_bucket_nrows_python": true,
+  "pandas/tests/io/parser/test_network.py::TestS3::()::test_parse_public_s3_bucket_python": true,
+  "pandas/tests/io/parser/test_network.py::TestS3::()::test_parse_public_s3a_bucket": true,
+  "pandas/tests/io/parser/test_network.py::TestS3::()::test_parse_public_s3n_bucket": true,
+  "pandas/tests/io/parser/test_network.py::TestS3::()::test_s3_fails": true
+}

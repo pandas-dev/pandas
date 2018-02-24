@@ -1621,7 +1621,7 @@ class Categorical(ExtensionArray, PandasObject):
                                       "been implemented yet")
 
         values = self._codes
-
+        """
         # Make sure that we also get NA in categories
         if self.categories.dtype.kind in ['S', 'O', 'f']:
             if np.nan in self.categories:
@@ -1629,7 +1629,7 @@ class Categorical(ExtensionArray, PandasObject):
                 nan_pos = np.where(isna(self.categories))[0]
                 # we only have one NA in categories
                 values[values == nan_pos] = -1
-
+        """
         # pad / bfill
         if method is not None:
 
