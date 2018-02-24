@@ -338,7 +338,7 @@ Other Enhancements
 - For subclassed ``DataFrames``, :func:`DataFrame.apply` will now preserve the ``Series`` subclass (if defined) when passing the data to the applied function (:issue:`19822`)
 - :func:`DataFrame.from_dict` now accepts a ``columns`` argument that can be used to specify the column names when ``orient='index'`` is used (:issue:`18529`)
 - Added option ``display.html.use_mathjax`` so `MathJax <https://www.mathjax.org/>`_ can be disabled when rendering tables in ``Jupyter`` notebooks (:issue:`19856`, :issue:`19824`)
-
+- :func:`DataFrame.replace` now supports the ``method`` parameter which can be used to specify the replacement method when ``to_replace`` is a scalar, list or tuple and ``value`` is None (:issue:`19632`)
 
 .. _whatsnew_0230.api_breaking:
 

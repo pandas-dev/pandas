@@ -4887,7 +4887,7 @@ class NDFrame(PandasObject, SelectionMixin):
             ``to_replace`` must be ``None``.
         method : string, optional, {'pad', 'ffill', 'bfill'}
             The method to use when for replacement, when ``to_replace`` is a
-            ``list``.
+            scalar, list or tuple and ``value`` is None.
 
         See Also
         --------
@@ -5056,6 +5056,10 @@ class NDFrame(PandasObject, SelectionMixin):
                 to_replace = [to_replace]
 
             if isinstance(to_replace, (tuple, list)):
+                if isinstance(self, pd.DataFrame):
+                    return self.apply(_single_replace,
+                                      args=(to_replace, method, inplace,
+                                            limit))
                 return _single_replace(self, to_replace, method, inplace,
                                        limit)
 
