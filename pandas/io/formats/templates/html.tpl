@@ -23,11 +23,7 @@
 {%- endblock cellstyle %}
 </style>
 {%- endblock style %}
-{%- block before_table %}
-{%- if disabled_mathjax -%} 
-    <div class="tex2jax_ignore">
-{%- endif -%} 
-{% endblock before_table %} 
+{%- block before_table %}{% endblock before_table %} 
 {%- block table %}  
 <table id="T_{{uuid}}" {% if table_attributes %}{{ table_attributes }}{% endif %}> 
 {%- block caption %} 
@@ -71,8 +67,4 @@
 {%- endblock tbody %} 
 </table> 
 {%- endblock table %} 
-{%- block after_table %}
-{%- if disabled_mathjax -%} 
-    </div>
-{%- endif -%} 
-{% endblock after_table %} 
+{%- block after_table %}{% endblock after_table %} 
