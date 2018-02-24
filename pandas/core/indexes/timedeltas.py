@@ -1,7 +1,6 @@
 """ implement the TimedeltaIndex """
 
 from datetime import timedelta
-import warnings
 
 import numpy as np
 from pandas.core.dtypes.common import (
@@ -53,10 +52,11 @@ def _field_accessor(name, alias, docstring=None):
     return property(f)
 
 
-def _td_index_cmp(opname, cls, nat_result=False):
+def _td_index_cmp(opname, cls):
     """
     Wrap comparison operations to convert timedelta-like to timedelta64
     """
+    nat_result = True if opname == '__ne__' else False
 
     def wrapper(self, other):
         msg = "cannot compare a TimedeltaIndex with type {0}"
@@ -184,7 +184,7 @@ class TimedeltaIndex(DatetimeIndexOpsMixin, TimelikeOps, Int64Index):
     def _add_comparison_methods(cls):
         """ add in comparison methods """
         cls.__eq__ = _td_index_cmp('__eq__', cls)
-        cls.__ne__ = _td_index_cmp('__ne__', cls, nat_result=True)
+        cls.__ne__ = _td_index_cmp('__ne__', cls)
         cls.__lt__ = _td_index_cmp('__lt__', cls)
         cls.__gt__ = _td_index_cmp('__gt__', cls)
         cls.__le__ = _td_index_cmp('__le__', cls)
@@ -356,25 +356,39 @@ class TimedeltaIndex(DatetimeIndexOpsMixin, TimelikeOps, Int64Index):
         return attrs
 
     def _add_delta(self, delta):
+        """
+        Add a timedelta-like, Tick, or TimedeltaIndex-like object
+        to self.
+
+        Parameters
+        ----------
+        delta : {timedelta, np.timedelta64, Tick, TimedeltaIndex}
+
+        Returns
+        -------
+        result : TimedeltaIndex
+
+        Notes
+        -----
+        The result's name is set outside of _add_delta by the calling
+        method (__add__ or __sub__)
+        """
         if isinstance(delta, (Tick, timedelta, np.timedelta64)):
             new_values = self._add_delta_td(delta)
-            name = self.name
         elif isinstance(delta, TimedeltaIndex):
             new_values = self._add_delta_tdi(delta)
-            # update name when delta is index
-            name = com._maybe_match_name(self, delta)
         else:
             raise TypeError("cannot add the type {0} to a TimedeltaIndex"
                             .format(type(delta)))
 
-        result = TimedeltaIndex(new_values, freq='infer', name=name)
-        return result
+        return TimedeltaIndex(new_values, freq='infer')
 
-    def _evaluate_with_timedelta_like(self, other, op, opstr, reversed=False):
+    def _evaluate_with_timedelta_like(self, other, op):
         if isinstance(other, ABCSeries):
             # GH#19042
             return NotImplemented
 
+        opstr = '__{opname}__'.format(opname=op.__name__).replace('__r', '__')
         # allow division by a timedelta
         if opstr in ['__div__', '__truediv__', '__floordiv__']:
             if _is_convertible_to_td(other):
@@ -385,11 +399,9 @@ class TimedeltaIndex(DatetimeIndexOpsMixin, TimelikeOps, Int64Index):
 
                 i8 = self.asi8
                 left, right = i8, other.value
-                if reversed:
-                    left, right = right, left
 
                 if opstr in ['__floordiv__']:
-                    result = left // right
+                    result = op(left, right)
                 else:
                     result = op(left, np.float64(right))
                 result = self._maybe_mask_results(result, convert='float64')
@@ -409,7 +421,7 @@ class TimedeltaIndex(DatetimeIndexOpsMixin, TimelikeOps, Int64Index):
             result = checked_add_with_arr(i8, other.value,
                                           arr_mask=self._isnan)
             result = self._maybe_mask_results(result, fill_value=iNaT)
-        return DatetimeIndex(result, name=self.name, copy=False)
+            return DatetimeIndex(result)
 
     def _sub_datelike(self, other):
         # GH#19124 Timedelta - datetime is not in general well-defined.
@@ -420,46 +432,16 @@ class TimedeltaIndex(DatetimeIndexOpsMixin, TimelikeOps, Int64Index):
         else:
             raise TypeError("cannot subtract a datelike from a TimedeltaIndex")
 
-    def _add_offset_array(self, other):
-        # Array/Index of DateOffset objects
+    def _addsub_offset_array(self, other, op):
+        # Add or subtract Array-like of DateOffset objects
         try:
             # TimedeltaIndex can only operate with a subset of DateOffset
             # subclasses.  Incompatible classes will raise AttributeError,
             # which we re-raise as TypeError
-            if isinstance(other, ABCSeries):
-                return NotImplemented
-            elif len(other) == 1:
-                return self + other[0]
-            else:
-                from pandas.errors import PerformanceWarning
-                warnings.warn("Adding/subtracting array of DateOffsets to "
-                              "{} not vectorized".format(type(self)),
-                              PerformanceWarning)
-                return self.astype('O') + np.array(other)
-                # TODO: This works for __add__ but loses dtype in __sub__
+            return DatetimeIndexOpsMixin._addsub_offset_array(self, other, op)
         except AttributeError:
-            raise TypeError("Cannot add non-tick DateOffset to TimedeltaIndex")
-
-    def _sub_offset_array(self, other):
-        # Array/Index of DateOffset objects
-        try:
-            # TimedeltaIndex can only operate with a subset of DateOffset
-            # subclasses.  Incompatible classes will raise AttributeError,
-            # which we re-raise as TypeError
-            if isinstance(other, ABCSeries):
-                return NotImplemented
-            elif len(other) == 1:
-                return self - other[0]
-            else:
-                from pandas.errors import PerformanceWarning
-                warnings.warn("Adding/subtracting array of DateOffsets to "
-                              "{} not vectorized".format(type(self)),
-                              PerformanceWarning)
-                res_values = self.astype('O').values - np.array(other)
-                return self.__class__(res_values, freq='infer')
-        except AttributeError:
-            raise TypeError("Cannot subtrack non-tick DateOffset from"
-                            " TimedeltaIndex")
+            raise TypeError("Cannot add/subtract non-tick DateOffset to {cls}"
+                            .format(cls=type(self).__name__))
 
     def _format_native_types(self, na_rep=u('NaT'),
                              date_format=None, **kwargs):
@@ -928,7 +910,7 @@ class TimedeltaIndex(DatetimeIndexOpsMixin, TimelikeOps, Int64Index):
 
     def delete(self, loc):
         """
-        Make a new DatetimeIndex with passed location(s) deleted.
+        Make a new TimedeltaIndex with passed location(s) deleted.
 
         Parameters
         ----------

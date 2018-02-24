@@ -471,9 +471,12 @@ def _binary_op_method_timedeltalike(op, name):
     # define a binary operation that only works if the other argument is
     # timedelta like or an array of timedeltalike
     def f(self, other):
-        if hasattr(other, 'delta') and not PyDelta_Check(other):
-            # offsets.Tick
-            return op(self, other.delta)
+        if hasattr(other, '_typ'):
+            # Series, DataFrame, ...
+            if other._typ == 'dateoffset' and hasattr(other, 'delta'):
+                # Tick offset
+                return op(self, other.delta)
+            return NotImplemented
 
         elif other is NaT:
             return NaT
@@ -1052,12 +1055,19 @@ class Timedelta(_Timedelta):
     __rsub__ = _binary_op_method_timedeltalike(lambda x, y: y - x, '__rsub__')
 
     def __mul__(self, other):
-        if hasattr(other, 'dtype'):
+        if hasattr(other, '_typ'):
+            # Series, DataFrame, ...
+            if other._typ == 'dateoffset' and hasattr(other, 'delta'):
+                # Tick offset; this op will raise TypeError
+                return other.delta * self
+            return NotImplemented
+
+        elif hasattr(other, 'dtype'):
             # ndarray-like
             return other * self.to_timedelta64()
 
         elif other is NaT:
-            return NaT
+            raise TypeError('Cannot multiply Timedelta with NaT')
 
         elif not (is_integer_object(other) or is_float_object(other)):
             # only integers and floats allowed
@@ -1068,7 +1078,18 @@ class Timedelta(_Timedelta):
     __rmul__ = __mul__
 
     def __truediv__(self, other):
-        if hasattr(other, 'dtype'):
+        if hasattr(other, '_typ'):
+            # Series, DataFrame, ...
+            if other._typ == 'dateoffset' and hasattr(other, 'delta'):
+                # Tick offset
+                return self / other.delta
+            return NotImplemented
+
+        elif is_timedelta64_object(other):
+            # convert to Timedelta below
+            pass
+
+        elif hasattr(other, 'dtype'):
             return self.to_timedelta64() / other
 
         elif is_integer_object(other) or is_float_object(other):
@@ -1084,7 +1105,18 @@ class Timedelta(_Timedelta):
         return self.value / float(other.value)
 
     def __rtruediv__(self, other):
-        if hasattr(other, 'dtype'):
+        if hasattr(other, '_typ'):
+            # Series, DataFrame, ...
+            if other._typ == 'dateoffset' and hasattr(other, 'delta'):
+                # Tick offset
+                return other.delta / self
+            return NotImplemented
+
+        elif is_timedelta64_object(other):
+            # convert to Timedelta below
+            pass
+
+        elif hasattr(other, 'dtype'):
             return other / self.to_timedelta64()
 
         elif not _validate_ops_compat(other):
@@ -1109,7 +1141,11 @@ class Timedelta(_Timedelta):
                 return self // other.delta
             return NotImplemented
 
-        if hasattr(other, 'dtype'):
+        elif is_timedelta64_object(other):
+            # convert to Timedelta below
+            pass
+
+        elif hasattr(other, 'dtype'):
             if other.dtype.kind == 'm':
                 # also timedelta-like
                 return _broadcast_floordiv_td64(self.value, other, _floordiv)
@@ -1144,7 +1180,11 @@ class Timedelta(_Timedelta):
                 return other.delta // self
             return NotImplemented
 
-        if hasattr(other, 'dtype'):
+        elif is_timedelta64_object(other):
+            # convert to Timedelta below
+            pass
+
+        elif hasattr(other, 'dtype'):
             if other.dtype.kind == 'm':
                 # also timedelta-like
                 return _broadcast_floordiv_td64(self.value, other, _rfloordiv)
@@ -1152,9 +1192,10 @@ class Timedelta(_Timedelta):
                             '{op}'.format(dtype=other.dtype,
                                           op='__floordiv__'))
 
-        if is_float_object(other) and util._checknull(other):
+        elif is_float_object(other) and util._checknull(other):
             # i.e. np.nan
             return NotImplemented
+
         elif not _validate_ops_compat(other):
             return NotImplemented
 

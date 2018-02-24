@@ -20,21 +20,21 @@ from pandas import Period, Timestamp, offsets
 class TestPeriodProperties(object):
     "Test properties such as year, month, weekday, etc...."
 
-    def test_is_leap_year(self):
+    @pytest.mark.parametrize('freq', ['A', 'M', 'D', 'H'])
+    def test_is_leap_year(self, freq):
         # GH 13727
-        for freq in ['A', 'M', 'D', 'H']:
-            p = Period('2000-01-01 00:00:00', freq=freq)
-            assert p.is_leap_year
-            assert isinstance(p.is_leap_year, bool)
+        p = Period('2000-01-01 00:00:00', freq=freq)
+        assert p.is_leap_year
+        assert isinstance(p.is_leap_year, bool)
 
-            p = Period('1999-01-01 00:00:00', freq=freq)
-            assert not p.is_leap_year
+        p = Period('1999-01-01 00:00:00', freq=freq)
+        assert not p.is_leap_year
 
-            p = Period('2004-01-01 00:00:00', freq=freq)
-            assert p.is_leap_year
+        p = Period('2004-01-01 00:00:00', freq=freq)
+        assert p.is_leap_year
 
-            p = Period('2100-01-01 00:00:00', freq=freq)
-            assert not p.is_leap_year
+        p = Period('2100-01-01 00:00:00', freq=freq)
+        assert not p.is_leap_year
 
     def test_quarterly_negative_ordinals(self):
         p = Period(ordinal=-1, freq='Q-DEC')
@@ -52,40 +52,40 @@ class TestPeriodProperties(object):
         assert p.month == 11
         assert isinstance(p, Period)
 
-    def test_period_cons_quarterly(self):
+    @pytest.mark.parametrize('month', MONTHS)
+    def test_period_cons_quarterly(self, month):
         # bugs in scikits.timeseries
-        for month in MONTHS:
-            freq = 'Q-%s' % month
-            exp = Period('1989Q3', freq=freq)
-            assert '1989Q3' in str(exp)
-            stamp = exp.to_timestamp('D', how='end')
-            p = Period(stamp, freq=freq)
-            assert p == exp
+        freq = 'Q-%s' % month
+        exp = Period('1989Q3', freq=freq)
+        assert '1989Q3' in str(exp)
+        stamp = exp.to_timestamp('D', how='end')
+        p = Period(stamp, freq=freq)
+        assert p == exp
 
-            stamp = exp.to_timestamp('3D', how='end')
-            p = Period(stamp, freq=freq)
-            assert p == exp
+        stamp = exp.to_timestamp('3D', how='end')
+        p = Period(stamp, freq=freq)
+        assert p == exp
 
-    def test_period_cons_annual(self):
+    @pytest.mark.parametrize('month', MONTHS)
+    def test_period_cons_annual(self, month):
         # bugs in scikits.timeseries
-        for month in MONTHS:
-            freq = 'A-%s' % month
-            exp = Period('1989', freq=freq)
-            stamp = exp.to_timestamp('D', how='end') + timedelta(days=30)
-            p = Period(stamp, freq=freq)
-            assert p == exp + 1
-            assert isinstance(p, Period)
+        freq = 'A-%s' % month
+        exp = Period('1989', freq=freq)
+        stamp = exp.to_timestamp('D', how='end') + timedelta(days=30)
+        p = Period(stamp, freq=freq)
+        assert p == exp + 1
+        assert isinstance(p, Period)
 
-    def test_period_cons_weekly(self):
-        for num in range(10, 17):
-            daystr = '2011-02-%d' % num
-            for day in DAYS:
-                freq = 'W-%s' % day
+    @pytest.mark.parametrize('day', DAYS)
+    @pytest.mark.parametrize('num', range(10, 17))
+    def test_period_cons_weekly(self, num, day):
+        daystr = '2011-02-%d' % num
+        freq = 'W-%s' % day
 
-                result = Period(daystr, freq=freq)
-                expected = Period(daystr, freq='D').asfreq(freq)
-                assert result == expected
-                assert isinstance(result, Period)
+        result = Period(daystr, freq=freq)
+        expected = Period(daystr, freq='D').asfreq(freq)
+        assert result == expected
+        assert isinstance(result, Period)
 
     def test_period_from_ordinal(self):
         p = pd.Period('2011-01', freq='M')
@@ -212,58 +212,59 @@ class TestPeriodProperties(object):
         with tm.assert_raises_regex(ValueError, msg):
             Period('2011-01', freq='1D1W')
 
-    def test_timestamp_tz_arg(self):
-        for case in ['Europe/Brussels', 'Asia/Tokyo', 'US/Pacific']:
-            p = Period('1/1/2005', freq='M').to_timestamp(tz=case)
-            exp = Timestamp('1/1/2005', tz='UTC').tz_convert(case)
-            exp_zone = pytz.timezone(case).normalize(p)
+    @pytest.mark.parametrize('tzstr', ['Europe/Brussels',
+                                       'Asia/Tokyo', 'US/Pacific'])
+    def test_timestamp_tz_arg(self, tzstr):
+        p = Period('1/1/2005', freq='M').to_timestamp(tz=tzstr)
+        exp = Timestamp('1/1/2005', tz='UTC').tz_convert(tzstr)
+        exp_zone = pytz.timezone(tzstr).normalize(p)
 
-            assert p == exp
-            assert p.tz == exp_zone.tzinfo
-            assert p.tz == exp.tz
+        assert p == exp
+        assert p.tz == exp_zone.tzinfo
+        assert p.tz == exp.tz
 
-            p = Period('1/1/2005', freq='3H').to_timestamp(tz=case)
-            exp = Timestamp('1/1/2005', tz='UTC').tz_convert(case)
-            exp_zone = pytz.timezone(case).normalize(p)
+        p = Period('1/1/2005', freq='3H').to_timestamp(tz=tzstr)
+        exp = Timestamp('1/1/2005', tz='UTC').tz_convert(tzstr)
+        exp_zone = pytz.timezone(tzstr).normalize(p)
 
-            assert p == exp
-            assert p.tz == exp_zone.tzinfo
-            assert p.tz == exp.tz
+        assert p == exp
+        assert p.tz == exp_zone.tzinfo
+        assert p.tz == exp.tz
 
-            p = Period('1/1/2005', freq='A').to_timestamp(freq='A', tz=case)
-            exp = Timestamp('31/12/2005', tz='UTC').tz_convert(case)
-            exp_zone = pytz.timezone(case).normalize(p)
+        p = Period('1/1/2005', freq='A').to_timestamp(freq='A', tz=tzstr)
+        exp = Timestamp('31/12/2005', tz='UTC').tz_convert(tzstr)
+        exp_zone = pytz.timezone(tzstr).normalize(p)
 
-            assert p == exp
-            assert p.tz == exp_zone.tzinfo
-            assert p.tz == exp.tz
+        assert p == exp
+        assert p.tz == exp_zone.tzinfo
+        assert p.tz == exp.tz
 
-            p = Period('1/1/2005', freq='A').to_timestamp(freq='3H', tz=case)
-            exp = Timestamp('1/1/2005', tz='UTC').tz_convert(case)
-            exp_zone = pytz.timezone(case).normalize(p)
+        p = Period('1/1/2005', freq='A').to_timestamp(freq='3H', tz=tzstr)
+        exp = Timestamp('1/1/2005', tz='UTC').tz_convert(tzstr)
+        exp_zone = pytz.timezone(tzstr).normalize(p)
 
-            assert p == exp
-            assert p.tz == exp_zone.tzinfo
-            assert p.tz == exp.tz
+        assert p == exp
+        assert p.tz == exp_zone.tzinfo
+        assert p.tz == exp.tz
 
-    def test_timestamp_tz_arg_dateutil(self):
+    @pytest.mark.parametrize('tzstr', ['dateutil/Europe/Brussels',
+                                       'dateutil/Asia/Tokyo',
+                                       'dateutil/US/Pacific'])
+    def test_timestamp_tz_arg_dateutil(self, tzstr):
         from pandas._libs.tslibs.timezones import dateutil_gettz
         from pandas._libs.tslibs.timezones import maybe_get_tz
-        for case in ['dateutil/Europe/Brussels', 'dateutil/Asia/Tokyo',
-                     'dateutil/US/Pacific']:
-            p = Period('1/1/2005', freq='M').to_timestamp(
-                tz=maybe_get_tz(case))
-            exp = Timestamp('1/1/2005', tz='UTC').tz_convert(case)
-            assert p == exp
-            assert p.tz == dateutil_gettz(case.split('/', 1)[1])
-            assert p.tz == exp.tz
+        tz = maybe_get_tz(tzstr)
+        p = Period('1/1/2005', freq='M').to_timestamp(tz=tz)
+        exp = Timestamp('1/1/2005', tz='UTC').tz_convert(tzstr)
+        assert p == exp
+        assert p.tz == dateutil_gettz(tzstr.split('/', 1)[1])
+        assert p.tz == exp.tz
 
-            p = Period('1/1/2005',
-                       freq='M').to_timestamp(freq='3H', tz=maybe_get_tz(case))
-            exp = Timestamp('1/1/2005', tz='UTC').tz_convert(case)
-            assert p == exp
-            assert p.tz == dateutil_gettz(case.split('/', 1)[1])
-            assert p.tz == exp.tz
+        p = Period('1/1/2005', freq='M').to_timestamp(freq='3H', tz=tz)
+        exp = Timestamp('1/1/2005', tz='UTC').tz_convert(tzstr)
+        assert p == exp
+        assert p.tz == dateutil_gettz(tzstr.split('/', 1)[1])
+        assert p.tz == exp.tz
 
     def test_timestamp_tz_arg_dateutil_from_string(self):
         from pandas._libs.tslibs.timezones import dateutil_gettz
@@ -1403,14 +1404,14 @@ class TestMethods(object):
                       timedelta(hours=23, minutes=30)]:
                 assert p - o is tslib.NaT
 
-    def test_nat_ops(self):
-        for freq in ['M', '2M', '3M']:
-            p = Period('NaT', freq=freq)
-            assert p + 1 is tslib.NaT
-            assert 1 + p is tslib.NaT
-            assert p - 1 is tslib.NaT
-            assert p - Period('2011-01', freq=freq) is tslib.NaT
-            assert Period('2011-01', freq=freq) - p is tslib.NaT
+    @pytest.mark.parametrize('freq', ['M', '2M', '3M'])
+    def test_nat_ops(self, freq):
+        p = Period('NaT', freq=freq)
+        assert p + 1 is tslib.NaT
+        assert 1 + p is tslib.NaT
+        assert p - 1 is tslib.NaT
+        assert p - Period('2011-01', freq=freq) is tslib.NaT
+        assert Period('2011-01', freq=freq) - p is tslib.NaT
 
     def test_period_ops_offset(self):
         p = Period('2011-04-01', freq='D')
@@ -1439,3 +1440,10 @@ def test_period_immutable():
     freq = per.freq
     with pytest.raises(AttributeError):
         per.freq = 2 * freq
+
+
+@pytest.mark.xfail(reason='GH#19834 Period parsing error')
+def test_small_year_parsing():
+    per1 = Period('0001-01-07', 'D')
+    assert per1.year == 1
+    assert per1.day == 7
