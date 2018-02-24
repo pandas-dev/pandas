@@ -1289,7 +1289,8 @@ cdef _require_td64_has_unit(value):
 
     Parameters
     ----------
-    value : np.timedelta64 or ndarray[timedelta64]
+    value : object
+        assumed to have a `dtype` attribute
 
     Raises
     ------
