@@ -306,6 +306,30 @@ class TestIndex(Base):
         result = idx._simple_new(idx, 'obj')
         tm.assert_index_equal(result, idx)
 
+    def test_constructor_names(self):
+        # test both `name` and `names` provided
+        with pytest.raises(TypeError):
+            idx = Index([1, 2, 3], name='a', names=('a',))
+
+        # test non-list-like `names`
+        with pytest.raises(TypeError):
+            idx = Index([1, 2, 3], names='a')
+
+        # test using `name` for a flat `Index`
+        idx = Index([1, 2, 3], name='a')
+        assert idx.name == 'a'
+        assert idx.names == ('a',)
+
+        # test using `names` for a flat `Index`
+        idx = Index([1, 2, 3], names=('a',))
+        assert idx.name == 'a'
+        assert idx.names == ('a',)
+
+        # test using `names` for `MultiIndex` creation
+        idx = Index([('A', 1), ('A', 2)], names=('a', 'b'))
+        midx = MultiIndex.from_tuples([('A', 1), ('A', 2)], names=('a', 'b'))
+        tm.assert_index_equal(idx, midx, check_names=True)
+
     def test_constructor_dtypes(self):
 
         for idx in [Index(np.array([1, 2, 3], dtype=int)),

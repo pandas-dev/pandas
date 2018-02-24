@@ -183,14 +183,18 @@ class Index(IndexOpsMixin, PandasObject):
     dtype : NumPy dtype (default: object)
     copy : bool
         Make a copy of input ndarray
-    name : object
+    name : object, optional
         Name to be stored in the index
+    names : sequence of objects, optional
+        Names for the index levels
     tupleize_cols : bool (default: True)
         When True, attempt to create a MultiIndex if possible
 
     Notes
     -----
-    An Index instance can **only** contain hashable objects
+    An Index instance can **only** contain hashable objects.
+
+    Only one of `name` and `names` can be specified at the same time.
 
     Examples
     --------
@@ -241,10 +245,25 @@ class Index(IndexOpsMixin, PandasObject):
     str = CachedAccessor("str", StringMethods)
 
     def __new__(cls, data=None, dtype=None, copy=False, name=None,
-                fastpath=False, tupleize_cols=True, **kwargs):
+                fastpath=False, tupleize_cols=True, names=None,
+                **kwargs):
 
-        if name is None and hasattr(data, 'name'):
-            name = data.name
+        # The main purpose of `names` is to use it with a `MultiIndex`.
+        # Although for consistency it's also used to retrieve `name` for a
+        # one-level indices if `name` is not provided (see GH 19082).
+
+        if names is not None and name is not None:
+            raise TypeError("Can provide only one of names and name arguments")
+
+        if names is not None and not is_list_like(names):
+            raise TypeError("names must be list-like")
+
+        if name is None:
+            if hasattr(data, 'name'):
+                name = data.name
+            # extract `name` from `names` in case MultiIndex cannot be created
+            elif names:
+                name = names[0]
 
         if fastpath:
             return cls._simple_new(data, name)
@@ -424,8 +443,7 @@ class Index(IndexOpsMixin, PandasObject):
                 # 10697
                 if all(isinstance(e, tuple) for e in data):
                     from .multi import MultiIndex
-                    return MultiIndex.from_tuples(
-                        data, names=name or kwargs.get('names'))
+                    return MultiIndex.from_tuples(data, names=names or name)
             # other iterable of some kind
             subarr = com._asarray_tuplesafe(data, dtype=object)
             return Index(subarr, dtype=dtype, copy=copy, name=name, **kwargs)
