@@ -474,7 +474,7 @@ def _binary_op_method_timedeltalike(op, name):
         if hasattr(other, '_typ'):
             # Series, DataFrame, ...
             if other._typ == 'dateoffset' and hasattr(other, 'delta'):
-                # Tick offset; this op will raise TypeError
+                # Tick offset
                 return op(self, other.delta)
             return NotImplemented
 
