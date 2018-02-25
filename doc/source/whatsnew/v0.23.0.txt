@@ -766,7 +766,7 @@ Datetimelike
 - Bug in :func:`to_datetime` where passing an out-of-bounds datetime with ``errors='coerce'`` and ``utc=True`` would raise ``OutOfBoundsDatetime`` instead of parsing to ``NaT`` (:issue:`19612`)
 - Bug in :class:`DatetimeIndex` and :class:`TimedeltaIndex` addition and subtraction where name of the returned object was not always set consistently. (:issue:`19744`)
 - Bug in :class:`DatetimeIndex` and :class:`TimedeltaIndex` addition and subtraction where operations with numpy arrays raised ``TypeError`` (:issue:`19847`)
--
+- Bug in :func:`iterrows` infers strings not compliant to `ISO8601 <https://en.wikipedia.org/wiki/ISO_8601>`_  (:issue:`19671`)
 
 Timedelta
 ^^^^^^^^^
