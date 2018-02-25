@@ -305,6 +305,9 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         warnings.warn("'from_array' is deprecated and will be removed in a "
                       "future version. Please use the pd.Series(..) "
                       "constructor instead.", FutureWarning, stacklevel=2)
+        if isinstance(values, ABCSparseArray):
+            from pandas.core.sparse.series import SparseSeries
+            cls = SparseSeries
         return cls(arr, index=index, name=name, dtype=dtype,
                    copy=copy, fastpath=fastpath)
 
