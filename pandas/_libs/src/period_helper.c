@@ -138,7 +138,7 @@ PANDAS_INLINE npy_int64 transform_via_day(npy_int64 ordinal,
 }
 
 static npy_int64 DtoB_weekday(npy_int64 absdate) {
-    return (((absdate) / 7) * 5) + (absdate) % 7 - BDAY_OFFSET;
+    return floordiv(absdate, 7) * 5 + mod_compat(absdate, 7) - BDAY_OFFSET;
 }
 
 static npy_int64 DtoB(struct date_info *dinfo,
@@ -245,7 +245,8 @@ static npy_int64 asfreq_UpsampleWithinDay(npy_int64 ordinal,
 static npy_int64 asfreq_BtoDT(npy_int64 ordinal, asfreq_info *af_info) {
     ordinal += BDAY_OFFSET;
     ordinal =
-        (((ordinal - 1) / 5) * 7 + mod_compat(ordinal - 1, 5) + 1 - ORD_OFFSET);
+        (floordiv(ordinal - 1, 5) * 7 + mod_compat(ordinal - 1, 5) + 1 -
+         ORD_OFFSET);
 
     return upsample_daytime(ordinal, af_info);
 }

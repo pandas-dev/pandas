@@ -1682,6 +1682,16 @@ MultiIndex Components
    MultiIndex.reorder_levels
    MultiIndex.remove_unused_levels
 
+MultiIndex Selecting
+~~~~~~~~~~~~~~~~~~~~
+
+.. autosummary::
+   :toctree: generated/
+
+   MultiIndex.get_loc
+   MultiIndex.get_indexer
+   MultiIndex.get_level_values
+
 .. _api.datetimeindex:
 
 DatetimeIndex
@@ -2378,15 +2388,23 @@ Style Export and Import
    Styler.to_excel
 
 Plotting
-~~~~~~~~
+--------
 
-.. currentmodule:: pandas
+.. currentmodule:: pandas.plotting
+
+The following functions are contained in the `pandas.plotting` module.
 
 .. autosummary::
    :toctree: generated/
 
-   plotting.register_matplotlib_converters
-   plotting.deregister_matplotlib_converters
+   andrews_curves
+   bootstrap_plot
+   deregister_matplotlib_converters
+   lag_plot
+   parallel_coordinates
+   radviz
+   register_matplotlib_converters
+   scatter_matrix
 
 .. currentmodule:: pandas
 
