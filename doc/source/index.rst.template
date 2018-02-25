@@ -106,7 +106,7 @@ Some other notes
 See the package overview for more detail about what's in the library.
 
 
-{% if single_doc_type == 'api' -%}
+{% if single_doc_type == 'docstring' -%}
 .. autosummary::
     :toctree: generated_single/
 {% else -%}

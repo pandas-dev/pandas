@@ -85,7 +85,7 @@ class DocBuilder:
         self.exclude_patterns = self._exclude_patterns
 
         self._generate_index()
-        if self.single_doc_type == 'api':
+        if self.single_doc_type == 'docstring':
             self._run_os('sphinx-autogen', '-o',
                          'source/generated_single', 'source/index.rst')
 
@@ -98,7 +98,8 @@ class DocBuilder:
                          if ((f.endswith('.rst') or f.endswith('.ipynb'))
                              and (f != 'index.rst')
                              and (f != self.single_doc))]
-            rst_files += ['generated/*.rst']
+            if self.single_doc_type != 'api':
+                rst_files += ['generated/*.rst']
         elif not self.include_api:
             rst_files = ['api.rst', 'generated/*.rst']
         else:
@@ -112,6 +113,8 @@ class DocBuilder:
     @property
     def _single_doc_type(self):
         if self.single_doc:
+            if self.single_doc == 'api.rst':
+                return 'api'
             if os.path.exists(os.path.join(SOURCE_PATH, self.single_doc)):
                 return 'rst'
             try:
@@ -124,7 +127,7 @@ class DocBuilder:
                                  '"contributing.rst" or a pandas function or '
                                  'method (e.g. "pandas.DataFrame.head")')
             else:
-                return 'api'
+                return 'docstring'
 
     def _copy_generated_docstring(self, method):
         """Copy existing generated (from api.rst) docstring page because
@@ -154,14 +157,15 @@ class DocBuilder:
         if self.single_doc_type == 'rst':
             single_doc = os.path.splitext(os.path.basename(self.single_doc))[0]
             self.include_api = False
-        elif self.single_doc_type == 'api' and \
-                self.single_doc.startswith('pandas.'):
-            single_doc = self.single_doc[len('pandas.'):]
-        else:
-            single_doc = self.single_doc
-
-        if self.single_doc_type == 'api':
+        elif self.single_doc_type == 'docstring':
+            if self.single_doc.startswith('pandas.'):
+                single_doc = self.single_doc[len('pandas.'):]
+            else:
+                single_doc = self.single_doc
+            self.include_api = False
             self._copy_generated_docstring(single_doc)
+        elif self.single_doc_type == 'api':
+            single_doc = 'api'
 
         with open(os.path.join(SOURCE_PATH, 'index.rst.template')) as f:
             t = jinja2.Template(f.read())
