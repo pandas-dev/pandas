@@ -214,6 +214,14 @@ class SharedWithSparse(object):
             exp = self.mixed_frame.loc[k]
             self._assert_series_equal(v, exp)
 
+    def test_iterrows_iso8601(self):
+        s = self.klass(
+            {'non_iso8601': ['M1701', 'M1802', 'M1903', 'M2004'],
+             'iso8601': date_range('2000-01-01', periods=4, freq='M')})
+        for k, v in s.iterrows():
+            exp = s.loc[k]
+            self._assert_series_equal(v, exp)
+
     def test_itertuples(self):
         for i, tup in enumerate(self.frame.itertuples()):
             s = self.klass._constructor_sliced(tup[1:])
@@ -504,12 +512,3 @@ class TestDataFrameMisc(SharedWithSparse, TestData):
         with tm.assert_produces_warning(None):
             with provisionalcompleter('ignore'):
                 list(ip.Completer.completions('df.', 1))
-
-    def test_iterrows_iso8601(self):
-        # GH19671, SparseBlock cannot be tested due to lack of implementation.
-        s = self.klass(
-            {'non_iso8601': ['M1701', 'M1802', 'M1903', 'M2004'],
-             'iso8601': date_range('2000-01-01', periods=4, freq='M')})
-        for k, v in s.iterrows():
-            exp = s.loc[k]
-            self._assert_series_equal(v, exp)

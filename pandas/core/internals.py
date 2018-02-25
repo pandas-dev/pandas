@@ -2603,7 +2603,7 @@ class DatetimeBlock(DatetimeLikeBlockMixin, Block):
         we have datetime64ns, coercing if necessary.
 
         Parameters
-        -----------
+        ----------
         values : array-like
             Must be convertible to datetime64
 
