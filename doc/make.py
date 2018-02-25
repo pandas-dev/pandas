@@ -19,7 +19,6 @@ import argparse
 from contextlib import contextmanager
 import webbrowser
 import jinja2
-import shutil
 
 import pandas
 
@@ -82,8 +81,10 @@ class DocBuilder:
     def __init__(self, num_jobs=1, include_api=True, single_doc=None):
         self.num_jobs = num_jobs
         self.include_api = include_api
-        self.single_doc = single_doc
-        self.single_doc_type = self._single_doc_type
+        self.single_doc = None
+        self.single_doc_type = None
+        if single_doc is not None:
+            self._process_single_doc(single_doc)
         self.exclude_patterns = self._exclude_patterns
 
         self._generate_index()
@@ -99,7 +100,7 @@ class DocBuilder:
             rst_files = [f for f in os.listdir(SOURCE_PATH)
                          if ((f.endswith('.rst') or f.endswith('.ipynb'))
                              and (f != 'index.rst')
-                             and (f != self.single_doc))]
+                             and (f != '{0}.rst'.format(self.single_doc)))]
             if self.single_doc_type != 'api':
                 rst_files += ['generated/*.rst']
         elif not self.include_api:
@@ -112,16 +113,23 @@ class DocBuilder:
 
         return exclude_patterns
 
-    @property
-    def _single_doc_type(self):
-        if self.single_doc:
-            if self.single_doc == 'api.rst':
-                return 'api'
-            if os.path.exists(os.path.join(SOURCE_PATH, self.single_doc)):
-                return 'rst'
+    def _process_single_doc(self, single_doc):
+        """Extract self.single_doc (base name) and self.single_doc_type from
+        passed single_doc kwarg.
+
+        """
+        self.include_api = False
+
+        if single_doc == 'api.rst':
+            self.single_doc_type = 'api'
+            self.single_doc = 'api'
+        elif os.path.exists(os.path.join(SOURCE_PATH, single_doc)):
+            self.single_doc_type = 'rst'
+            self.single_doc = os.path.splitext(os.path.basename(single_doc))[0]
+        elif single_doc is not None:
             try:
                 obj = pandas
-                for name in self.single_doc.split('.'):
+                for name in single_doc.split('.'):
                     obj = getattr(obj, name)
             except AttributeError:
                 raise ValueError('Single document not understood, it should '
@@ -129,16 +137,20 @@ class DocBuilder:
                                  '"contributing.rst" or a pandas function or '
                                  'method (e.g. "pandas.DataFrame.head")')
             else:
-                return 'docstring'
+                self.single_doc_type = 'docstring'
+                if single_doc.startswith('pandas.'):
+                    self.single_doc = single_doc[len('pandas.'):]
+                else:
+                    self.single_doc = single_doc
 
-    def _copy_generated_docstring(self, method):
+    def _copy_generated_docstring(self):
         """Copy existing generated (from api.rst) docstring page because
         this is more correct in certain cases (where a custom autodoc
         template is used).
 
         """
         fname = os.path.join(SOURCE_PATH, 'generated',
-                             'pandas.{}.rst'.format(method))
+                             'pandas.{}.rst'.format(self.single_doc))
         temp_dir = os.path.join(SOURCE_PATH, 'generated_single')
 
         try:
@@ -156,25 +168,15 @@ class DocBuilder:
 
     def _generate_index(self):
         """Create index.rst file with the specified sections."""
-        if self.single_doc_type == 'rst':
-            single_doc = os.path.splitext(os.path.basename(self.single_doc))[0]
-            self.include_api = False
-        elif self.single_doc_type == 'docstring':
-            if self.single_doc.startswith('pandas.'):
-                single_doc = self.single_doc[len('pandas.'):]
-            else:
-                single_doc = self.single_doc
-            self.include_api = False
-            self._copy_generated_docstring(single_doc)
-        elif self.single_doc_type == 'api':
-            single_doc = 'api'
+        if self.single_doc_type == 'docstring':
+            self._copy_generated_docstring()
 
         with open(os.path.join(SOURCE_PATH, 'index.rst.template')) as f:
             t = jinja2.Template(f.read())
 
         with open(os.path.join(SOURCE_PATH, 'index.rst'), 'w') as f:
             f.write(t.render(include_api=self.include_api,
-                             single_doc=single_doc,
+                             single_doc=self.single_doc,
                              single_doc_type=self.single_doc_type))
 
     @staticmethod
@@ -229,9 +231,13 @@ class DocBuilder:
                      os.path.join(BUILD_PATH, kind))
 
     def _open_browser(self):
-        url = os.path.join(
-            'file://', DOC_PATH, 'build', 'html',
-            'generated_single', '{}.html'.format(self.single_doc))
+        base_url = os.path.join('file://', DOC_PATH, 'build', 'html')
+        if self.single_doc_type == 'docstring':
+            url = os.path.join(
+                base_url,
+                'generated_single', 'pandas.{}.html'.format(self.single_doc))
+        else:
+            url = os.path.join(base_url, '{}.html'.format(self.single_doc))
         webbrowser.open(url, new=2)
 
     def html(self):
