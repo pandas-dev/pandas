@@ -352,7 +352,7 @@ class TestTimeSeries(TestData):
         s = Series([1., 1.5, np.nan, 2.5, 3.])
 
         chg = s.pct_change()
-        expected = Series([np.nan, 0.5, np.nan, 2.5 / 1.5 - 1, .2])
+        expected = Series([np.nan, 0.5, 0., 2.5 / 1.5 - 1, .2])
         assert_series_equal(chg, expected)
 
     def test_pct_change_periods_freq(self):
