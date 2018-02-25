@@ -570,3 +570,59 @@ class TestDataFrameSubclassing(TestData):
         result = df.apply(lambda x: [1, 2, 3], axis=1)
         assert not isinstance(result, tm.SubclassedDataFrame)
         tm.assert_series_equal(result, expected)
+
+    def test_frame_subclassing_and_inherit(self):
+        # Subclass frame and series and ensure that data can be transfered between them
+        # on slicing GH#19883
+
+        class CustomSeries(Series):
+
+            def __init__(self, *args, **kw):
+                super(CustomSeries, self).__init__(*args, **kw)
+                self.extra_data = None
+
+            @property
+            def _constructor(self):
+                return CustomSeries
+
+            def __finalize__(self, other, method=None, **kwargs):
+                if method == "_inherit":
+                    self.extra_data = other.extra_data
+                return self
+
+        class CustomDataFrame(DataFrame):
+            """
+            Subclasses pandas DF, fills DF with simulation results, adds some
+            custom temporal data.
+            """
+
+            def __init__(self, *args, **kw):
+                super(CustomDataFrame, self).__init__(*args, **kw)
+                self.extra_data = None
+
+            @property
+            def _constructor(self):
+                return CustomDataFrame
+
+            @property
+            def _constructor_sliced(self):
+                def f(*args, **kwargs):
+                    return CustomSeries(*args, **kwargs).__finalize__(self, method='_inherit')
+                return f
+
+        data = {'col1': range(10),
+                'col2': range(10)}
+        cdf = CustomDataFrame(data)
+        cdf.extra_data = range(3)
+
+        # column
+        cdf_series = cdf.col1
+        assert cdf_series.extra_data == cdf.extra_data
+
+        # row
+        cdf_series = cdf.iloc[0]
+        assert cdf_series.extra_data == cdf.extra_data
+
+
+
+
