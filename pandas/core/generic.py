@@ -7488,7 +7488,7 @@ class NDFrame(PandasObject, SelectionMixin):
                                   **kwargs)) - 1)
         rs = rs.reindex_like(data)
         if freq is None:
-            mask = isna(com._values_from_object(self))
+            mask = isna(com._values_from_object(data))
             np.putmask(rs.values, mask, np.nan)
         return rs
 
