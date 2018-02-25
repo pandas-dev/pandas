@@ -508,9 +508,9 @@ This is one of the most important sections of a docstring, even if it is
 placed in the last position. As often, people understand concepts better
 with examples, than with accurate explanations.
 
-Examples in docstrings are also unit tests, and besides illustrating the
-usage of the function or method, they need to be valid Python code, that in a
-deterministic way returns the presented output.
+Examples in docstrings, besides illustrating the usage of the function or
+method, they must be valid Python code, that in a deterministic way returns
+the presented output, and that can be copied and run by users.
 
 They are presented as a session in the Python terminal. `>>>` is used to
 present code. `...` is used for code continuing from the previous line.
