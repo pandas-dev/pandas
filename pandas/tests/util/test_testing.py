@@ -739,3 +739,15 @@ class TestLocale(object):
         # GH9744
         locales = tm.get_locales()
         assert len(locales) >= 1
+
+
+def test_datapath_missing(datapath, request):
+    if not request.config.getoption("--strict-data-files"):
+        pytest.skip("Need to set '--strict-data-files'")
+
+    with pytest.raises(ValueError):
+        datapath('not_a_file')
+
+    result = datapath('data/iris.csv')
+    expected = 'pandas/tests/data/iris.csv'
+    assert result == expected

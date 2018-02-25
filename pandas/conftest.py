@@ -16,6 +16,8 @@ def pytest_addoption(parser):
                      help="run high memory tests")
     parser.addoption("--only-slow", action="store_true",
                      help="run only slow tests")
+    parser.addoption("--strict-data-files", action="store_true",
+                     help="Fail if a test is skipped for missing data file.")
 
 
 def pytest_runtest_setup(item):

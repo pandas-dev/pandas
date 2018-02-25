@@ -11,11 +11,14 @@ def parser_data(request):
 
 
 @pytest.fixture
-def tips_file(parser_data):
+def tips_file(request, parser_data):
     """Path to the tips dataset"""
     path = os.path.join(parser_data, 'tips.csv')
     if not os.path.exists(path):
-        pytest.skip("Data files not included in pandas distribution.")
+        if request.config.getoption("--strict-data-files"):
+            raise ValueError("Failed.")
+        else:
+            pytest.skip("Data files not included in pandas distribution.")
 
     return path
 
