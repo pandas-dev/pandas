@@ -1009,17 +1009,32 @@ class TestXlrdReader(ReadingTestsBase):
 
 
 class _WriterBase(SharedItems):
-    """Provides fixture to set / reset options for all writer tests"""
 
     @pytest.fixture(autouse=True)
-    def set_options(self, request, merge_cells, engine, ext):
+    def set_engine_and_path(self, request, merge_cells, engine, ext):
+        """Fixture to set engine and open file for use in each test case
+
+        Rather than requiring `engine=...` to be provided explictly as an
+        argument in each test, this fixture sets a global option to dictate
+        which engine should be used to write Excel files. After executing
+        the test it rolls back said change to the global option.
+
+        It also uses a context manager to open a temporary excel file for
+        the function to write to, accessible via `self.path`
+
+        Notes
+        -----
+        This fixture will run as part of each test method defined in the
+        class and any subclasses, on account of the `autouse=True`
+        argument
+        """
         option_name = 'io.excel.{ext}.writer'.format(ext=ext.strip('.'))
         prev_engine = get_option(option_name)
         set_option(option_name, engine)
         with ensure_clean(ext) as path:
             self.path = path
             yield
-        set_option(option_name, prev_engine)
+        set_option(option_name, prev_engine)  # Roll back option change
 
 
 @pytest.mark.parametrize("merge_cells", [True, False])
