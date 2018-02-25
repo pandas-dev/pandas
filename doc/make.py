@@ -326,13 +326,6 @@ def main():
                            type=str,
                            default=os.path.join(DOC_PATH, '..'),
                            help='path')
-    argparser.add_argument('--docstring',
-                           metavar='FILENAME',
-                           type=str,
-                           nargs='*',
-                           default=None,
-                           help=('method or function name to compile, '
-                                 'e.g. "DataFrame.join"'))
     args = argparser.parse_args()
 
     if args.command not in cmds:
