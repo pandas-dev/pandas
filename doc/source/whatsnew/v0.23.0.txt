@@ -214,12 +214,21 @@ Please note that the string `index` is not supported with the round trip format,
    :okwarning:
 
    df.index.name = 'index'
+
    df.to_json('test.json', orient='table')
    new_df = pd.read_json('test.json', orient='table')
    new_df
-   print(new_df.index.name)
+   new_df.dtypes
+
+.. ipython:: python
+   :suppress:
+
+   import os
+   os.remove('test.json')
+
 
 .. _whatsnew_0230.enhancements.assign_dependent:
+
 
 ``.assign()`` accepts dependent arguments
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
