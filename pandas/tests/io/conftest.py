@@ -11,36 +11,21 @@ def parser_data(request):
 
 
 @pytest.fixture
-def tips_file(request, parser_data):
+def tips_file(datapath):
     """Path to the tips dataset"""
-    path = os.path.join(parser_data, 'tips.csv')
-    if not os.path.exists(path):
-        if request.config.getoption("--strict-data-files"):
-            raise ValueError("Failed.")
-        else:
-            pytest.skip("Data files not included in pandas distribution.")
-
-    return path
+    return datapath(os.path.join('io', 'parser', 'data', 'tips.csv'))
 
 
 @pytest.fixture
-def jsonl_file(parser_data):
+def jsonl_file(datapath):
     """Path a JSONL dataset"""
-    path = os.path.join(parser_data, 'items.jsonl')
-    if not os.path.exists(path):
-        pytest.skip("Data files not included in pandas distribution.")
-
-    return path
+    return datapath(os.path.join('io', 'parser', 'data', 'items.jsonl'))
 
 
 @pytest.fixture
-def salaries_table(parser_data):
+def salaries_table(datapath):
     """DataFrame with the salaries dataset"""
-    path = os.path.join(parser_data, 'salaries.csv')
-    if not os.path.exists(path):
-        pytest.skip("Data files not included in pandas distribution.")
-
-    return read_table(path)
+    return datapath(os.path.join('io', 'parser', 'data', 'salaries.csv'))
 
 
 @pytest.fixture
@@ -71,9 +56,6 @@ def s3_resource(tips_file, jsonl_file):
 
     def add_tips_files(bucket_name):
         for s3_key, file_name in test_s3_files:
-            if not os.path.exists(file_name):
-                pytest.skip("Data files not included in pandas distribution.")
-
             with open(file_name, 'rb') as f:
                 conn.Bucket(bucket_name).put_object(
                     Key=s3_key,

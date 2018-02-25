@@ -234,13 +234,14 @@ bar2,12,13,14,15
         tm.assert_frame_equal(result, expected)
 
 
+@pytest.fixture
+def mmap_file(datapath):
+    return datapath(os.path.join('io', 'data', 'test_mmap.csv'))
+
+
 class TestMMapWrapper(object):
 
-    def setup_method(self, method):
-        self.mmap_file = os.path.join(tm.get_data_path(),
-                                      'test_mmap.csv')
-
-    def test_constructor_bad_file(self):
+    def test_constructor_bad_file(self, mmap_file):
         non_file = StringIO('I am not a file')
         non_file.fileno = lambda: -1
 
@@ -254,15 +255,15 @@ class TestMMapWrapper(object):
 
         tm.assert_raises_regex(err, msg, common.MMapWrapper, non_file)
 
-        target = open(self.mmap_file, 'r')
+        target = open(mmap_file, 'r')
         target.close()
 
         msg = "I/O operation on closed file"
         tm.assert_raises_regex(
             ValueError, msg, common.MMapWrapper, target)
 
-    def test_get_attr(self):
-        with open(self.mmap_file, 'r') as target:
+    def test_get_attr(self, mmap_file):
+        with open(mmap_file, 'r') as target:
             wrapper = common.MMapWrapper(target)
 
         attrs = dir(wrapper.mmap)
@@ -275,8 +276,8 @@ class TestMMapWrapper(object):
 
         assert not hasattr(wrapper, 'foo')
 
-    def test_next(self):
-        with open(self.mmap_file, 'r') as target:
+    def test_next(self, mmap_file):
+        with open(mmap_file, 'r') as target:
             wrapper = common.MMapWrapper(target)
             lines = target.readlines()
 
