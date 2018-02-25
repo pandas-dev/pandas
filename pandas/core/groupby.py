@@ -1,5 +1,5 @@
 import types
-from functools import wraps
+from functools import wraps, partial
 import numpy as np
 import datetime
 import collections
@@ -38,7 +38,7 @@ from pandas.core.dtypes.common import (
     _ensure_float)
 from pandas.core.dtypes.cast import maybe_downcast_to_dtype
 from pandas.core.dtypes.generic import ABCSeries
-from pandas.core.dtypes.missing import isna, notna, _maybe_fill
+from pandas.core.dtypes.missing import isna, isnull, notna, _maybe_fill
 
 from pandas.core.base import (PandasObject, SelectionMixin, GroupByError,
                               DataError, SpecificationError)
@@ -1457,6 +1457,36 @@ class GroupBy(_GroupBy):
         from pandas.core.window import ExpandingGroupby
         return ExpandingGroupby(self, *args, **kwargs)
 
+    def _fill(self, direction, limit=None):
+        """Shared function for `pad` and `backfill` to call Cython method
+
+        Parameters
+        ----------
+        direction : {'ffill', 'bfill'}
+            Direction passed to underlying Cython function. `bfill` will cause
+            values to be filled backwards. `ffill` and any other values will
+            default to a forward fill
+        limit : int, default None
+            Maximum number of consecutive values to fill. If `None`, this
+            method will convert to -1 prior to passing to Cython
+
+        Returns
+        -------
+        `Series` or `DataFrame` with filled values
+
+        See Also
+        --------
+        pad
+        backfill
+        """
+        # Need int value for Cython
+        if limit is None:
+            limit = -1
+
+        return self._get_cythonized_result('group_fillna_indexer',
+                                           self.grouper, needs_mask=True,
+                                           direction=direction, limit=limit)
+
     @Substitution(name='groupby')
     def pad(self, limit=None):
         """
@@ -1474,7 +1504,7 @@ class GroupBy(_GroupBy):
         Series.fillna
         DataFrame.fillna
         """
-        return self.apply(lambda x: x.ffill(limit=limit))
+        return self._fill('ffill', limit=limit)
     ffill = pad
 
     @Substitution(name='groupby')
@@ -1494,7 +1524,7 @@ class GroupBy(_GroupBy):
         Series.fillna
         DataFrame.fillna
         """
-        return self.apply(lambda x: x.bfill(limit=limit))
+        return self._fill('bfill', limit=limit)
     bfill = backfill
 
     @Substitution(name='groupby')
@@ -1843,6 +1873,45 @@ class GroupBy(_GroupBy):
 
         return self._cython_transform('cummax', numeric_only=False)
 
+    def _get_cythonized_result(self, how, grouper, needs_mask=False,
+                               needs_ngroups=False, **kwargs):
+        """Get result for Cythonized functions
+
+        Parameters
+        ----------
+        how : str, Cythonized function name to be called
+        grouper : Grouper object containing pertinent group info
+        needs_mask : bool, default False
+            Whether boolean mask needs to be part of the Cython call signature
+        needs_ngroups : bool, default False
+            Whether number of groups part of the Cython call signature
+        **kwargs : dict
+            Extra arguments to be passed back to Cython funcs
+
+        Returns
+        -------
+        `Series` or `DataFrame`  with filled values
+        """
+
+        labels, _, ngroups = grouper.group_info
+        output = collections.OrderedDict()
+        base_func = getattr(libgroupby, how)
+
+        for name, obj in self._iterate_slices():
+            indexer = np.zeros_like(labels, dtype=np.int64)
+            func = partial(base_func, indexer, labels)
+            if needs_mask:
+                mask = isnull(obj.values).view(np.uint8)
+                func = partial(func, mask)
+
+            if needs_ngroups:
+                func = partial(func, ngroups)
+
+            func(**kwargs)  # Call func to modify indexer values in place
+            output[name] = algorithms.take_nd(obj.values, indexer)
+
+        return self._wrap_transformed_output(output)
+
     @Substitution(name='groupby')
     @Appender(_doc_template)
     def shift(self, periods=1, freq=None, axis=0):
@@ -1860,17 +1929,9 @@ class GroupBy(_GroupBy):
         if freq is not None or axis != 0:
             return self.apply(lambda x: x.shift(periods, freq, axis))
 
-        labels, _, ngroups = self.grouper.group_info
-
-        # filled in by Cython
-        indexer = np.zeros_like(labels)
-        libgroupby.group_shift_indexer(indexer, labels, ngroups, periods)
-
-        output = {}
-        for name, obj in self._iterate_slices():
-            output[name] = algorithms.take_nd(obj.values, indexer)
-
-        return self._wrap_transformed_output(output)
+        return self._get_cythonized_result('group_shift_indexer',
+                                           self.grouper, needs_ngroups=True,
+                                           periods=periods)
 
     @Substitution(name='groupby')
     @Appender(_doc_template)
@@ -3577,7 +3638,6 @@ class SeriesGroupBy(GroupBy):
     def value_counts(self, normalize=False, sort=True, ascending=False,
                      bins=None, dropna=True):
 
-        from functools import partial
         from pandas.core.reshape.tile import cut
         from pandas.core.reshape.merge import _get_join_indexers
 
@@ -4585,9 +4645,17 @@ class DataFrameGroupBy(NDFrameGroupBy):
              in self._iterate_column_groupbys()),
             keys=self._selected_obj.columns, axis=1)
 
+    def _fill(self, direction, limit=None):
+        """Overriden method to join grouped columns in output"""
+        res = super(DataFrameGroupBy, self)._fill(direction, limit=limit)
+        output = collections.OrderedDict(
+            (grp.name, grp.grouper) for grp in self.grouper.groupings)
+
+        from pandas import concat
+        return concat((self._wrap_transformed_output(output), res), axis=1)
+
     def count(self):
         """ Compute count of group, excluding missing values """
-        from functools import partial
         from pandas.core.dtypes.missing import _isna_ndarraylike as isna
 
         data, _ = self._get_data_to_aggregate()
