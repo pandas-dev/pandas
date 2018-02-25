@@ -75,15 +75,8 @@ cdef extern from "period_helper.h":
     int FR_BUS
     int FR_UND
 
-    ctypedef struct date_info:
-        double second
-        int minute
-        int hour
-        int day
-        int month
-        int year
-
     ctypedef struct asfreq_info:
+        int64_t intraday_conversion_factor
         int is_end
 
         int from_week_end
@@ -97,24 +90,21 @@ cdef extern from "period_helper.h":
 
     ctypedef int64_t (*freq_conv_func)(int64_t, asfreq_info*) nogil
 
-    int64_t asfreq(int64_t dtordinal, int freq1, int freq2,
-                   char relation) except INT32_MIN
     freq_conv_func get_asfreq_func(int fromFreq, int toFreq) nogil
-    void get_asfreq_info(int fromFreq, int toFreq, char relation,
-                         asfreq_info *af_info) nogil
 
     int64_t get_daytime_conversion_factor(int from_index, int to_index) nogil
+    int max_value(int left, int right) nogil
 
 
 @cython.cdivision
-cdef char* c_strftime(date_info *dinfo, char *fmt):
+cdef char* c_strftime(pandas_datetimestruct *dts, char *fmt):
     """
     Generate a nice string representation of the period
     object, originally from DateObject_strftime
 
     Parameters
     ----------
-    dinfo : date_info*
+    dts : pandas_datetimestruct*
     fmt : char*
 
     Returns
@@ -126,14 +116,14 @@ cdef char* c_strftime(date_info *dinfo, char *fmt):
         char *result
         int result_len = strlen(fmt) + 50
 
-    c_date.tm_sec = <int>dinfo.second
-    c_date.tm_min = dinfo.minute
-    c_date.tm_hour = dinfo.hour
-    c_date.tm_mday = dinfo.day
-    c_date.tm_mon = dinfo.month - 1
-    c_date.tm_year = dinfo.year - 1900
-    c_date.tm_wday = (dayofweek(dinfo.year, dinfo.month, dinfo.day) + 1) % 7
-    c_date.tm_yday = get_day_of_year(dinfo.year, dinfo.month, dinfo.day) - 1
+    c_date.tm_sec = dts.sec
+    c_date.tm_min = dts.min
+    c_date.tm_hour = dts.hour
+    c_date.tm_mday = dts.day
+    c_date.tm_mon = dts.month - 1
+    c_date.tm_year = dts.year - 1900
+    c_date.tm_wday = (dayofweek(dts.year, dts.month, dts.day) + 1) % 7
+    c_date.tm_yday = get_day_of_year(dts.year, dts.month, dts.day) - 1
     c_date.tm_isdst = -1
 
     result = <char*>malloc(result_len * sizeof(char))
@@ -148,6 +138,10 @@ cdef char* c_strftime(date_info *dinfo, char *fmt):
 
 cdef inline int get_freq_group(int freq) nogil:
     return (freq // 1000) * 1000
+
+
+cdef inline int get_freq_group_index(int freq) nogil:
+    return freq // 1000
 
 
 # specifically _dont_ use cdvision or else ordinals near -1 are assigned to
@@ -261,7 +255,8 @@ cdef int64_t get_period_ordinal(int year, int month, int day,
     # raise ValueError
 
 
-cdef void get_date_info(int64_t ordinal, int freq, date_info *dinfo) nogil:
+cdef void get_date_info(int64_t ordinal, int freq,
+                        pandas_datetimestruct *dts) nogil:
     cdef:
         int64_t unix_date
         double abstime
@@ -277,7 +272,7 @@ cdef void get_date_info(int64_t ordinal, int freq, date_info *dinfo) nogil:
         abstime -= 86400
         unix_date += 1
 
-    date_info_from_days_and_time(dinfo, unix_date, abstime)
+    date_info_from_days_and_time(dts, unix_date, abstime)
 
 
 cdef int64_t get_unix_date(int64_t period_ordinal, int freq) nogil:
@@ -304,12 +299,12 @@ cdef int64_t get_unix_date(int64_t period_ordinal, int freq) nogil:
         return period_ordinal
 
     toDaily = get_asfreq_func(freq, FR_DAY)
-    get_asfreq_info(freq, FR_DAY, 'E', &af_info)
+    get_asfreq_info(freq, FR_DAY, True, &af_info)
     return toDaily(period_ordinal, &af_info)
 
 
 @cython.cdivision
-cdef void date_info_from_days_and_time(date_info *dinfo,
+cdef void date_info_from_days_and_time(pandas_datetimestruct *dts,
                                        int64_t unix_date,
                                        double abstime) nogil:
     """
@@ -317,7 +312,7 @@ cdef void date_info_from_days_and_time(date_info *dinfo,
 
     Parameters
     ----------
-    dinfo : date_info*
+    dts : pandas_datetimestruct*
     unix_date : int64_t
         days elapsed since datetime(1970, 1, 1)
     abstime : double
@@ -325,23 +320,19 @@ cdef void date_info_from_days_and_time(date_info *dinfo,
 
     Notes
     -----
-    Updates dinfo inplace
+    Updates dts inplace
     """
     cdef:
-        pandas_datetimestruct dts
         int inttime
         int hour, minute
-        double second
+        double second, subsecond_fraction
 
     # Bounds check
     # The calling function is responsible for ensuring that
     # abstime >= 0.0 and abstime <= 86400
 
     # Calculate the date
-    pandas_datetime_to_datetimestruct(unix_date, PANDAS_FR_D, &dts)
-    dinfo.year = dts.year
-    dinfo.month = dts.month
-    dinfo.day = dts.day
+    pandas_datetime_to_datetimestruct(unix_date, PANDAS_FR_D, dts)
 
     # Calculate the time
     inttime = <int>abstime
@@ -349,9 +340,13 @@ cdef void date_info_from_days_and_time(date_info *dinfo,
     minute = (inttime % 3600) / 60
     second = abstime - <double>(hour * 3600 + minute * 60)
 
-    dinfo.hour = hour
-    dinfo.minute = minute
-    dinfo.second = second
+    dts.hour = hour
+    dts.min = minute
+    dts.sec = <int>second
+
+    subsecond_fraction = second - dts.sec
+    dts.us = int((subsecond_fraction) * 1e6)
+    dts.ps = int(((subsecond_fraction) * 1e6 - dts.us) * 1e6)
 
 
 @cython.cdivision
@@ -439,7 +434,7 @@ cdef int get_yq(int64_t ordinal, int freq, int *quarter, int *year):
     else:
         qtr_freq = FR_QTR
 
-    get_asfreq_info(FR_DAY, qtr_freq, 'E', &af_info)
+    get_asfreq_info(FR_DAY, qtr_freq, True, &af_info)
 
     quarter[0] = DtoQ_yq(unix_date, &af_info, year)
     return qtr_freq
@@ -447,20 +442,20 @@ cdef int get_yq(int64_t ordinal, int freq, int *quarter, int *year):
 
 cdef int DtoQ_yq(int64_t unix_date, asfreq_info *af_info, int *year):
     cdef:
-        date_info dinfo
+        pandas_datetimestruct dts
         int quarter
 
-    date_info_from_days_and_time(&dinfo, unix_date, 0)
+    date_info_from_days_and_time(&dts, unix_date, 0)
 
     if af_info.to_q_year_end != 12:
-        dinfo.month -= af_info.to_q_year_end
-        if dinfo.month <= 0:
-            dinfo.month += 12
+        dts.month -= af_info.to_q_year_end
+        if dts.month <= 0:
+            dts.month += 12
         else:
-            dinfo.year += 1
+            dts.year += 1
 
-    year[0] = dinfo.year
-    quarter = month_to_quarter(dinfo.month)
+    year[0] = dts.year
+    quarter = month_to_quarter(dts.month)
     return quarter
 
 
@@ -528,10 +523,6 @@ def periodarr_to_dt64arr(ndarray[int64_t] periodarr, int freq):
     return out
 
 
-cdef char START = 'S'
-cdef char END = 'E'
-
-
 cpdef int64_t period_asfreq(int64_t ordinal, int freq1, int freq2, bint end):
     """
     Convert period ordinal from one frequency to another, and if upsampling,
@@ -539,19 +530,72 @@ cpdef int64_t period_asfreq(int64_t ordinal, int freq1, int freq2, bint end):
     """
     cdef:
         int64_t retval
+        freq_conv_func func
+        asfreq_info af_info
 
     if ordinal == iNaT:
         return iNaT
 
-    if end:
-        retval = asfreq(ordinal, freq1, freq2, END)
-    else:
-        retval = asfreq(ordinal, freq1, freq2, START)
+    func = get_asfreq_func(freq1, freq2)
+    get_asfreq_info(freq1, freq2, end, &af_info)
+    retval = func(ordinal, &af_info)
 
     if retval == INT32_MIN:
         raise ValueError('Frequency conversion failed')
 
     return retval
+
+
+cdef void get_asfreq_info(int from_freq, int to_freq,
+                          bint is_end, asfreq_info *af_info) nogil:
+    """
+    Construct the `asfreq_info` object used to convert an ordinal from
+    `from_freq` to `to_freq`.
+
+    Parameters
+    ----------
+    from_freq : int
+    to_freq int
+    is_end : bool
+    af_info : *asfreq_info
+    """
+    cdef:
+        int from_group = get_freq_group(from_freq)
+        int to_group = get_freq_group(to_freq)
+
+    af_info.is_end = is_end
+
+    af_info.intraday_conversion_factor = get_daytime_conversion_factor(
+        get_freq_group_index(max_value(from_group, FR_DAY)),
+        get_freq_group_index(max_value(to_group, FR_DAY)))
+
+    if from_group == FR_WK:
+        af_info.from_week_end = calc_week_end(from_freq, from_group)
+    elif from_group == FR_ANN:
+        af_info.from_a_year_end = calc_a_year_end(from_freq, from_group)
+    elif from_group == FR_QTR:
+        af_info.from_q_year_end = calc_a_year_end(from_freq, from_group)
+
+    if to_group == FR_WK:
+        af_info.to_week_end = calc_week_end(to_freq, to_group)
+    elif to_group == FR_ANN:
+        af_info.to_a_year_end = calc_a_year_end(to_freq, to_group)
+    elif to_group == FR_QTR:
+        af_info.to_q_year_end = calc_a_year_end(to_freq, to_group)
+
+
+@cython.cdivision
+cdef int calc_a_year_end(int freq, int group) nogil:
+    cdef:
+        int result = (freq - group) % 12
+    if result == 0:
+        return 12
+    else:
+        return result
+
+
+cdef inline int calc_week_end(int freq, int group) nogil:
+    return freq - group
 
 
 def period_asfreq_arr(ndarray[int64_t] arr, int freq1, int freq2, bint end):
@@ -565,18 +609,12 @@ def period_asfreq_arr(ndarray[int64_t] arr, int freq1, int freq2, bint end):
         freq_conv_func func
         asfreq_info af_info
         int64_t val
-        char relation
 
     n = len(arr)
     result = np.empty(n, dtype=np.int64)
 
-    if end:
-        relation = END
-    else:
-        relation = START
-
     func = get_asfreq_func(freq1, freq2)
-    get_asfreq_info(freq1, freq2, relation, &af_info)
+    get_asfreq_info(freq1, freq2, end, &af_info)
 
     mask = arr == iNaT
     if mask.any():      # NaT process
@@ -605,24 +643,12 @@ def period_ordinal(int y, int m, int d, int h, int min,
 cpdef int64_t period_ordinal_to_dt64(int64_t ordinal, int freq) nogil:
     cdef:
         pandas_datetimestruct dts
-        date_info dinfo
         float subsecond_fraction
 
     if ordinal == NPY_NAT:
         return NPY_NAT
 
-    get_date_info(ordinal, freq, &dinfo)
-
-    dts.year = dinfo.year
-    dts.month = dinfo.month
-    dts.day = dinfo.day
-    dts.hour = dinfo.hour
-    dts.min = dinfo.minute
-    dts.sec = int(dinfo.second)
-    subsecond_fraction = dinfo.second - dts.sec
-    dts.us = int((subsecond_fraction) * 1e6)
-    dts.ps = int(((subsecond_fraction) * 1e6 - dts.us) * 1e6)
-
+    get_date_info(ordinal, freq, &dts)
     return dtstruct_to_dt64(&dts)
 
 
@@ -680,7 +706,7 @@ cdef list str_extra_fmts = ["^`AB`^", "^`CD`^", "^`EF`^",
 cdef object _period_strftime(int64_t value, int freq, object fmt):
     cdef:
         Py_ssize_t i
-        date_info dinfo
+        pandas_datetimestruct dts
         char *formatted
         object pat, repl, result
         list found_pat = [False] * len(extra_fmts)
@@ -689,7 +715,7 @@ cdef object _period_strftime(int64_t value, int freq, object fmt):
     if PyUnicode_Check(fmt):
         fmt = fmt.encode('utf-8')
 
-    get_date_info(value, freq, &dinfo)
+    get_date_info(value, freq, &dts)
     for i in range(len(extra_fmts)):
         pat = extra_fmts[i][0]
         repl = extra_fmts[i][1]
@@ -697,7 +723,7 @@ cdef object _period_strftime(int64_t value, int freq, object fmt):
             fmt = fmt.replace(pat, repl)
             found_pat[i] = True
 
-    formatted = c_strftime(&dinfo, <char*> fmt)
+    formatted = c_strftime(&dts, <char*> fmt)
 
     result = util.char_to_string(formatted)
     free(formatted)
@@ -736,9 +762,9 @@ ctypedef int (*accessor)(int64_t ordinal, int freq) except INT32_MIN
 
 cdef int pyear(int64_t ordinal, int freq):
     cdef:
-        date_info dinfo
-    get_date_info(ordinal, freq, &dinfo)
-    return dinfo.year
+        pandas_datetimestruct dts
+    get_date_info(ordinal, freq, &dts)
+    return dts.year
 
 
 @cython.cdivision
@@ -762,65 +788,65 @@ cdef int pquarter(int64_t ordinal, int freq):
 
 cdef int pmonth(int64_t ordinal, int freq):
     cdef:
-        date_info dinfo
-    get_date_info(ordinal, freq, &dinfo)
-    return dinfo.month
+        pandas_datetimestruct dts
+    get_date_info(ordinal, freq, &dts)
+    return dts.month
 
 
 cdef int pday(int64_t ordinal, int freq):
     cdef:
-        date_info dinfo
-    get_date_info(ordinal, freq, &dinfo)
-    return dinfo.day
+        pandas_datetimestruct dts
+    get_date_info(ordinal, freq, &dts)
+    return dts.day
 
 
 cdef int pweekday(int64_t ordinal, int freq):
     cdef:
-        date_info dinfo
-    get_date_info(ordinal, freq, &dinfo)
-    return dayofweek(dinfo.year, dinfo.month, dinfo.day)
+        pandas_datetimestruct dts
+    get_date_info(ordinal, freq, &dts)
+    return dayofweek(dts.year, dts.month, dts.day)
 
 
 cdef int pday_of_year(int64_t ordinal, int freq):
     cdef:
-        date_info dinfo
-    get_date_info(ordinal, freq, &dinfo)
-    return get_day_of_year(dinfo.year, dinfo.month, dinfo.day)
+        pandas_datetimestruct dts
+    get_date_info(ordinal, freq, &dts)
+    return get_day_of_year(dts.year, dts.month, dts.day)
 
 
 cdef int pweek(int64_t ordinal, int freq):
     cdef:
-        date_info dinfo
-    get_date_info(ordinal, freq, &dinfo)
-    return ccalendar.get_week_of_year(dinfo.year, dinfo.month, dinfo.day)
+        pandas_datetimestruct dts
+    get_date_info(ordinal, freq, &dts)
+    return ccalendar.get_week_of_year(dts.year, dts.month, dts.day)
 
 
 cdef int phour(int64_t ordinal, int freq):
     cdef:
-        date_info dinfo
-    get_date_info(ordinal, freq, &dinfo)
-    return dinfo.hour
+        pandas_datetimestruct dts
+    get_date_info(ordinal, freq, &dts)
+    return dts.hour
 
 
 cdef int pminute(int64_t ordinal, int freq):
     cdef:
-        date_info dinfo
-    get_date_info(ordinal, freq, &dinfo)
-    return dinfo.minute
+        pandas_datetimestruct dts
+    get_date_info(ordinal, freq, &dts)
+    return dts.min
 
 
 cdef int psecond(int64_t ordinal, int freq):
     cdef:
-        date_info dinfo
-    get_date_info(ordinal, freq, &dinfo)
-    return <int>dinfo.second
+        pandas_datetimestruct dts
+    get_date_info(ordinal, freq, &dts)
+    return <int>dts.sec
 
 
 cdef int pdays_in_month(int64_t ordinal, int freq):
     cdef:
-        date_info dinfo
-    get_date_info(ordinal, freq, &dinfo)
-    return ccalendar.get_days_in_month(dinfo.year, dinfo.month)
+        pandas_datetimestruct dts
+    get_date_info(ordinal, freq, &dts)
+    return ccalendar.get_days_in_month(dts.year, dts.month)
 
 
 def get_period_field_arr(int code, ndarray[int64_t] arr, int freq):
