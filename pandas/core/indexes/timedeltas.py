@@ -377,6 +377,10 @@ class TimedeltaIndex(DatetimeIndexOpsMixin, TimelikeOps, Int64Index):
             new_values = self._add_delta_td(delta)
         elif isinstance(delta, TimedeltaIndex):
             new_values = self._add_delta_tdi(delta)
+        elif is_timedelta64_dtype(delta):
+            # ndarray[timedelta64] --> wrap in TimedeltaIndex
+            delta = TimedeltaIndex(delta)
+            new_values = self._add_delta_tdi(delta)
         else:
             raise TypeError("cannot add the type {0} to a TimedeltaIndex"
                             .format(type(delta)))

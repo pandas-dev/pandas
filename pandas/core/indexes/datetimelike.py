@@ -31,6 +31,7 @@ from pandas.core.dtypes.common import (
     is_integer_dtype,
     is_object_dtype,
     is_string_dtype,
+    is_datetime64_dtype,
     is_period_dtype,
     is_timedelta64_dtype)
 from pandas.core.dtypes.generic import (
@@ -676,9 +677,7 @@ class DatetimeIndexOpsMixin(object):
         """
 
         def __add__(self, other):
-            from pandas.core.index import Index
-            from pandas.core.indexes.timedeltas import TimedeltaIndex
-            from pandas.tseries.offsets import DateOffset
+            from pandas import Index, DatetimeIndex, TimedeltaIndex, DateOffset
 
             other = lib.item_from_zerodim(other)
             if isinstance(other, ABCSeries):
@@ -710,6 +709,9 @@ class DatetimeIndexOpsMixin(object):
                                     .format(typ=type(other)))
             elif isinstance(other, Index):
                 result = self._add_datelike(other)
+            elif is_datetime64_dtype(other):
+                # ndarray[datetime64]; note DatetimeIndex is caught above
+                return self + DatetimeIndex(other)
             elif is_integer_dtype(other) and self.freq is None:
                 # GH#19123
                 raise NullFrequencyError("Cannot shift with no freq")
@@ -729,10 +731,7 @@ class DatetimeIndexOpsMixin(object):
         cls.__radd__ = __radd__
 
         def __sub__(self, other):
-            from pandas.core.index import Index
-            from pandas.core.indexes.datetimes import DatetimeIndex
-            from pandas.core.indexes.timedeltas import TimedeltaIndex
-            from pandas.tseries.offsets import DateOffset
+            from pandas import Index, DatetimeIndex, TimedeltaIndex, DateOffset
 
             other = lib.item_from_zerodim(other)
             if isinstance(other, ABCSeries):
@@ -764,6 +763,9 @@ class DatetimeIndexOpsMixin(object):
                                 .format(typ=type(other).__name__))
             elif isinstance(other, DatetimeIndex):
                 result = self._sub_datelike(other)
+            elif is_datetime64_dtype(other):
+                # ndarray[datetime64]; note we caught DatetimeIndex earlier
+                return self - DatetimeIndex(other)
             elif isinstance(other, Index):
                 raise TypeError("cannot subtract {typ1} and {typ2}"
                                 .format(typ1=type(self).__name__,
@@ -782,6 +784,11 @@ class DatetimeIndexOpsMixin(object):
         cls.__sub__ = __sub__
 
         def __rsub__(self, other):
+            if is_datetime64_dtype(other) and is_timedelta64_dtype(self):
+                # ndarray[datetime64] cannot be subtracted from self, so
+                # we need to wrap in DatetimeIndex and flip the operation
+                from pandas import DatetimeIndex
+                return DatetimeIndex(other) - self
             return -(self - other)
         cls.__rsub__ = __rsub__
 
