@@ -328,7 +328,7 @@ def main():
     os.environ['PYTHONPATH'] = args.python_path
 
     getattr(DocBuilder(args.num_jobs,
-                       args.no_api,
+                       not args.no_api,
                        args.single), args.command)()
 
 
