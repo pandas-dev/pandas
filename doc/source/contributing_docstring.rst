@@ -221,12 +221,19 @@ required to have a line with the parameter description, which is indented, and
 can have multiple lines. The description must start with a capital letter, and
 finish with a dot.
 
+Keyword arguments with a default value, the default will be listed in brackets
+at the end of the description (before the dot). The exact form of the
+description in this case would be "Description of the arg (default is X).". In
+some cases it may be useful to explain what the default argument means, which
+can be added after a comma "Description of the arg (default is -1, which means
+all cpus).".
+
 **Good:**
 
 .. code-block:: python
 
     class Series:
-        def plot(self, kind, **kwargs):
+        def plot(self, kind, color='blue', **kwargs):
             """Generate a plot.
 
             Render the data in the Series as a matplotlib plot of the
@@ -236,6 +243,8 @@ finish with a dot.
             ----------
             kind : str
                 Kind of matplotlib plot.
+            color : str
+                Color name or rgb code (default is 'blue').
             **kwargs
                 These parameters will be passed to the matplotlib plotting
                 function.
@@ -288,7 +297,8 @@ For complex types, define the subtypes:
 - set of {str}
 
 In case there are just a set of values allowed, list them in curly brackets
-and separated by commas (followed by a space):
+and separated by commas (followed by a space). If one of them is the default
+value of a keyword argument, it should be listed first.:
 
 - {0, 10, 25}
 - {'simple', 'advanced'}
@@ -304,10 +314,21 @@ If the type is in a package, the module must be also specified:
 - numpy.ndarray
 - scipy.sparse.coo_matrix
 
-If the type is a pandas type, also specify pandas:
+If the type is a pandas type, also specify pandas except for Series and
+DataFrame:
 
-- pandas.Series
-- pandas.DataFrame
+- Series
+- DataFrame
+- pandas.Index
+- pandas.Categorical
+- pandas.SparseArray
+
+If the exact type is not relevant, but must be compatible with a numpy
+array, array-like can be specified. If Any type that can be iterated is
+accepted, iterable can be used:
+
+- array-like
+- iterable
 
 If more than one type is accepted, separate them by commas, except the
 last two types, that need to be separated by the word 'or':
@@ -398,7 +419,8 @@ Section 5: See also
 ~~~~~~~~~~~~~~~~~~~
 
 This is an optional section, used to let users know about pandas functionality
-related to the one being documented.
+related to the one being documented. While optional, this section should exist
+in most cases, unless no related methods or functions can be found at all.
 
 An obvious example would be the `head()` and `tail()` methods. As `tail()` does
 the equivalent as `head()` but at the end of the `Series` or `DataFrame`
@@ -419,22 +441,30 @@ examples:
 * `astype` and `pandas.to_datetime`, as users may be reading the documentation
   of `astype` to know how to cast as a date, and the way to do it is with
   `pandas.to_datetime`
+* `where` is related to `numpy.where`, as its functionality is based on it
 
 When deciding what is related, you should mainly use your common sense and
 think about what can be useful for the users reading the documentation,
 especially the less experienced ones.
+
+When relating to other methods (mainly `numpy`), use the name of the module
+first (not an alias like `np`). If the function is in a module which is not
+the main one, like `scipy.sparse`, list the full module (e.g.
+`scipy.sparse.coo_matrix`).
 
 This section, as the previous, also has a header, "See Also" (note the capital
 S and A). Also followed by the line with hyphens, and preceded by a blank line.
 
 After the header, we will add a line for each related method or function,
 followed by a space, a colon, another space, and a short description that
-illustrated what this method or function does, and why is it relevant in
-this context. The description must also finish with a dot.
+illustrated what this method or function does, why is it relevant in this
+context, and what are the key differences between the documented function and
+the one referencing. The description must also finish with a dot.
 
 Note that in "Returns" and "Yields", the description is located in the
 following line than the type. But in this section it is located in the same
-line, with a colon in between.
+line, with a colon in between. If the description does not fit in the same
+line, it can continue in the next ones, but it has to be indenteted in them.
 
 For example:
 
@@ -489,14 +519,14 @@ be added with blank lines before and after them.
 
 The way to present examples is as follows:
 
-1. Import required libraries
+1. Import required libraries (except `numpy` and `pandas`)
 
 2. Create the data required for the example
 
 3. Show a very basic example that gives an idea of the most common use case
 
-4. Add commented examples that illustrate how the parameters can be used for
-   extended functionality
+4. Add examples with explanations that illustrate how the parameters can be
+   used for extended functionality
 
 A simple example could be:
 
@@ -525,9 +555,8 @@ A simple example could be:
 
             Examples
             --------
-            >>> import pandas
-            >>> s = pandas.Series(['Ant', 'Bear', 'Cow', 'Dog', 'Falcon',
-            ...                    'Lion', 'Monkey', 'Rabbit', 'Zebra'])
+            >>> s = pd.Series(['Ant', 'Bear', 'Cow', 'Dog', 'Falcon',
+            ...                'Lion', 'Monkey', 'Rabbit', 'Zebra'])
             >>> s.head()
             0   Ant
             1   Bear
@@ -549,29 +578,20 @@ A simple example could be:
 Conventions for the examples
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-.. note::
-   numpydoc recommends avoiding "obvious" imports and importing them with
-   aliases, so for example `import numpy as np`. While this is now an standard
-   in the data ecosystem of Python, it doesn't seem a good practise, for the
-   next reasons:
+Code in examples is assumed to always start with these two lines which are not
+shown:
 
-   * The code is not executable anymore (as doctests for example)
+.. code-block:: python
 
-   * New users not familiar with the convention can't simply copy and run it
+    import numpy as np
+    import pandas as pd
 
-   * Users may use aliases (even if it is a bad Python practise except
-     in rare cases), but if maintainers want to use `pd` instead of `pandas`,
-     why do not name the module `pd` directly?
 
-   * As this is becoming more standard, there are an increasing number of
-     aliases in scientific Python code, including `np`, `pd`, `plt`, `sp`,
-     `pm`... which makes reading code harder
-
-All examples must start with the required imports, one per line (as
+Any other module used in the examples must be explicitly imported, one per line (as
 recommended in `PEP-8 <https://www.python.org/dev/peps/pep-0008/#imports>`_)
 and avoiding aliases. Avoid excessive imports, but if needed, imports from
 the standard library go first, followed by third-party libraries (like
-numpy) and importing pandas in the last place.
+matplotlib).
 
 When illustrating examples with a single `Series` use the name `s`, and if
 illustrating with a single `DataFrame` use the name `df`. If a set of
@@ -603,11 +623,9 @@ positional arguments `head(3)`.
 
         Examples
         --------
-        >>> import numpy
-        >>> import pandas
-        >>> df = pandas.DataFrame([389., 24., 80.5, numpy.nan]
-        ...                       columns=('max_speed'),
-        ...                       index=['falcon', 'parrot', 'lion', 'monkey'])
+        >>> df = pd.DataFrame([389., 24., 80.5, numpy.nan]
+        ...                   columns=('max_speed'),
+        ...                   index=['falcon', 'parrot', 'lion', 'monkey'])
         """
         pass
 
@@ -620,10 +638,10 @@ positional arguments `head(3)`.
 
         Examples
         --------
-        >>> import numpy
-        >>> import pandas
-        >>> df = pandas.DataFrame(numpy.random.randn(3, 3),
-        ...                       columns=('a', 'b', 'c'))
+        >>> import numpy as np
+        >>> import pandas as pd
+        >>> df = pd.DataFrame(numpy.random.randn(3, 3),
+        ...                   columns=('a', 'b', 'c'))
         """
         pass
 
