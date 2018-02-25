@@ -1129,48 +1129,49 @@ class TestExcelWriter(_WriterBase):
             self.frame.to_excel(path, 'test1', header=False)
             self.frame.to_excel(path, 'test1', index=False)
 
-    def test_int_types(self, merge_cells, engine, ext):
-        for np_type in (np.int8, np.int16, np.int32, np.int64):
+    @pytest.mark.parametrize("np_type", [
+        np.int8, np.int16, np.int32, np.int64])
+    def test_int_types(self, merge_cells, engine, ext, np_type):
+        with ensure_clean(ext) as path:
+            # Test np.int values read come back as int (rather than float
+            # which is Excel's format).
+            frame = DataFrame(np.random.randint(-10, 10, size=(10, 2)),
+                              dtype=np_type)
+            frame.to_excel(path, 'test1')
+            reader = ExcelFile(path)
+            recons = read_excel(reader, 'test1')
+            int_frame = frame.astype(np.int64)
+            tm.assert_frame_equal(int_frame, recons)
+            recons2 = read_excel(path, 'test1')
+            tm.assert_frame_equal(int_frame, recons2)
 
-            with ensure_clean(ext) as path:
-                # Test np.int values read come back as int (rather than float
-                # which is Excel's format).
-                frame = DataFrame(np.random.randint(-10, 10, size=(10, 2)),
-                                  dtype=np_type)
-                frame.to_excel(path, 'test1')
-                reader = ExcelFile(path)
-                recons = read_excel(reader, 'test1')
-                int_frame = frame.astype(np.int64)
-                tm.assert_frame_equal(int_frame, recons)
-                recons2 = read_excel(path, 'test1')
-                tm.assert_frame_equal(int_frame, recons2)
+            # test with convert_float=False comes back as float
+            float_frame = frame.astype(float)
+            recons = read_excel(path, 'test1', convert_float=False)
+            tm.assert_frame_equal(recons, float_frame,
+                                  check_index_type=False,
+                                  check_column_type=False)
 
-                # test with convert_float=False comes back as float
-                float_frame = frame.astype(float)
-                recons = read_excel(path, 'test1', convert_float=False)
-                tm.assert_frame_equal(recons, float_frame,
-                                      check_index_type=False,
-                                      check_column_type=False)
+    @pytest.mark.parametrize("np_type", [
+        np.float16, np.float32, np.float64])
+    def test_float_types(self, merge_cells, engine, ext, np_type):
+        with ensure_clean(ext) as path:
+            # Test np.float values read come back as float.
+            frame = DataFrame(np.random.random_sample(10), dtype=np_type)
+            frame.to_excel(path, 'test1')
+            reader = ExcelFile(path)
+            recons = read_excel(reader, 'test1').astype(np_type)
+            tm.assert_frame_equal(frame, recons, check_dtype=False)
 
-    def test_float_types(self, merge_cells, engine, ext):
-        for np_type in (np.float16, np.float32, np.float64):
-            with ensure_clean(ext) as path:
-                # Test np.float values read come back as float.
-                frame = DataFrame(np.random.random_sample(10), dtype=np_type)
-                frame.to_excel(path, 'test1')
-                reader = ExcelFile(path)
-                recons = read_excel(reader, 'test1').astype(np_type)
-                tm.assert_frame_equal(frame, recons, check_dtype=False)
-
-    def test_bool_types(self, merge_cells, engine, ext):
-        for np_type in (np.bool8, np.bool_):
-            with ensure_clean(ext) as path:
-                # Test np.bool values read come back as float.
-                frame = (DataFrame([1, 0, True, False], dtype=np_type))
-                frame.to_excel(path, 'test1')
-                reader = ExcelFile(path)
-                recons = read_excel(reader, 'test1').astype(np_type)
-                tm.assert_frame_equal(frame, recons)
+    @pytest.mark.parametrize("np_type", [np.bool8, np.bool_])
+    def test_bool_types(self, merge_cells, engine, ext, np_type):
+        with ensure_clean(ext) as path:
+            # Test np.bool values read come back as float.
+            frame = (DataFrame([1, 0, True, False], dtype=np_type))
+            frame.to_excel(path, 'test1')
+            reader = ExcelFile(path)
+            recons = read_excel(reader, 'test1').astype(np_type)
+            tm.assert_frame_equal(frame, recons)
 
     def test_inf_roundtrip(self, merge_cells, engine, ext):
         frame = DataFrame([(1, np.inf), (2, 3), (5, -np.inf)])
