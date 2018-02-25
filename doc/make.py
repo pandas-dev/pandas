@@ -19,6 +19,8 @@ import argparse
 from contextlib import contextmanager
 import webbrowser
 import jinja2
+import shutil
+
 import pandas
 
 
@@ -243,6 +245,8 @@ class DocBuilder:
 
         if self.single_doc is not None:
             self._open_browser()
+            shutil.rmtree(os.path.join(SOURCE_PATH, 'generated_single'),
+                          ignore_errors=True)
 
     def latex(self, force=False):
         """Build PDF documentation."""
