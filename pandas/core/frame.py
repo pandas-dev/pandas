@@ -2562,14 +2562,8 @@ class DataFrame(NDFrame):
 
     def _box_col_values(self, values, items):
         """ provide boxed values for a column """
-        # This check here was previously performed in Series._from_array
-        # By doing it here there is no need for that function anymore
-        # GH#19883.
-        from pandas.core.dtypes.generic import ABCSparseArray
-        this_constructor_sliced = self._constructor_sliced
-        if isinstance(values, ABCSparseArray):
-            from pandas.core.sparse.series import SparseSeries
-            this_constructor_sliced = SparseSeries
+        from pandas.core.dtypes.concat import _get_sliced_frame_result_type
+        this_constructor_sliced = _get_sliced_frame_result_type(values, self)
         return this_constructor_sliced(values, index=self.index,
                                        name=items, fastpath=True)
 
