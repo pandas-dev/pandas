@@ -2312,4 +2312,4 @@ All NumPy dtypes are subclasses of ``numpy.generic``:
 .. note::
 
     Pandas also defines the types ``category``, and ``datetime64[ns, tz]``, which are not integrated into the normal
-    NumPy hierarchy and wont show up with the above function.
+    NumPy hierarchy and won't show up with the above function.
