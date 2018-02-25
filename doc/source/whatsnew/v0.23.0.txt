@@ -214,12 +214,21 @@ Please note that the string `index` is not supported with the round trip format,
    :okwarning:
 
    df.index.name = 'index'
+
    df.to_json('test.json', orient='table')
    new_df = pd.read_json('test.json', orient='table')
    new_df
-   print(new_df.index.name)
+   new_df.dtypes
+
+.. ipython:: python
+   :suppress:
+
+   import os
+   os.remove('test.json')
+
 
 .. _whatsnew_0230.enhancements.assign_dependent:
+
 
 ``.assign()`` accepts dependent arguments
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -689,6 +698,7 @@ Performance Improvements
 - Improved performance of pairwise ``.rolling()`` and ``.expanding()`` with ``.cov()`` and ``.corr()`` operations (:issue:`17917`)
 - Improved performance of :func:`DataFrameGroupBy.rank` (:issue:`15779`)
 - Improved performance of variable ``.rolling()`` on ``.min()`` and ``.max()`` (:issue:`19521`)
+- Improved performance of ``GroupBy.ffill`` and ``GroupBy.bfill`` (:issue:`11296`)
 
 .. _whatsnew_0230.docs:
 
@@ -755,6 +765,7 @@ Datetimelike
 - Bug in :func:`Timestamp.floor` :func:`DatetimeIndex.floor` where time stamps far in the future and past were not rounded correctly (:issue:`19206`)
 - Bug in :func:`to_datetime` where passing an out-of-bounds datetime with ``errors='coerce'`` and ``utc=True`` would raise ``OutOfBoundsDatetime`` instead of parsing to ``NaT`` (:issue:`19612`)
 - Bug in :class:`DatetimeIndex` and :class:`TimedeltaIndex` addition and subtraction where name of the returned object was not always set consistently. (:issue:`19744`)
+- Bug in :class:`DatetimeIndex` and :class:`TimedeltaIndex` addition and subtraction where operations with numpy arrays raised ``TypeError`` (:issue:`19847`)
 -
 
 Timedelta
@@ -807,6 +818,7 @@ Numeric
 - Bug in :class:`Index` constructor with ``dtype='uint64'`` where int-like floats were not coerced to :class:`UInt64Index` (:issue:`18400`)
 - Bug in :class:`DataFrame` flex arithmetic (e.g. ``df.add(other, fill_value=foo)``) with a ``fill_value`` other than ``None`` failed to raise ``NotImplementedError`` in corner cases where either the frame or ``other`` has length zero (:issue:`19522`)
 - Multiplication and division of numeric-dtyped :class:`Index` objects with timedelta-like scalars returns ``TimedeltaIndex`` instead of raising ``TypeError`` (:issue:`19333`)
+- Bug where ``NaN`` was returned instead of 0 by :func:`Series.pct_change` and :func:`DataFrame.pct_change` when ``fill_method`` is not ``None`` (provided) (:issue:`19873`)
 
 
 Indexing
