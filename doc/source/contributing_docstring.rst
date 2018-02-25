@@ -54,11 +54,12 @@ The first conventions every Python docstring should follow are defined in
 `PEP-257 <https://www.python.org/dev/peps/pep-0257/>`_.
 
 As PEP-257 is quite open, and some other standards exist on top of it. In the
-case of pandas, the numpy docstring convention is followed. There are two main
-documents that explain this convention:
+case of pandas, the numpy docstring convention is followed. The conventions is
+explained in this document:
 
-- `Guide to NumPy/SciPy documentation <https://github.com/numpy/numpy/blob/master/doc/HOWTO_DOCUMENT.rst.txt>`_
 - `numpydoc docstring guide <http://numpydoc.readthedocs.io/en/latest/format.html>`_
+  (which is based in the original `Guide to NumPy/SciPy documentation
+  <https://github.com/numpy/numpy/blob/master/doc/HOWTO_DOCUMENT.rst.txt>`_)
 
 numpydoc is a Sphinx extension to support the numpy docstring convention.
 
