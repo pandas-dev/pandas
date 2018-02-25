@@ -301,6 +301,10 @@ class TestMaybe(object):
                                      [NaT, 'b', 1]]))
         assert result.size == 6
 
+        # GH19671
+        result = Series(['M1701', Timestamp('20130101')])
+        assert result.dtype.kind == 'O'
+
 
 class TestConvert(object):
 
