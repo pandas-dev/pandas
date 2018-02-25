@@ -572,8 +572,8 @@ class TestDataFrameSubclassing(TestData):
         tm.assert_series_equal(result, expected)
 
     def test_frame_subclassing_and_inherit(self):
-        # Subclass frame and series and ensure that data can be transfered between them
-        # on slicing GH#19883
+        # Subclass frame and series and ensure that data can be transfered
+        # between them on slicing GH#19883
 
         class CustomSeries(Series):
 
@@ -607,7 +607,8 @@ class TestDataFrameSubclassing(TestData):
             @property
             def _constructor_sliced(self):
                 def f(*args, **kwargs):
-                    return CustomSeries(*args, **kwargs).__finalize__(self, method='_inherit')
+                    return CustomSeries(*args, **kwargs).__finalize__(
+                        self, method='_inherit')
                 return f
 
         data = {'col1': range(10),
@@ -622,7 +623,3 @@ class TestDataFrameSubclassing(TestData):
         # row
         cdf_series = cdf.iloc[0]
         assert cdf_series.extra_data == cdf.extra_data
-
-
-
-
