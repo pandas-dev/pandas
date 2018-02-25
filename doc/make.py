@@ -126,6 +126,10 @@ class DocBuilder:
         elif os.path.exists(os.path.join(SOURCE_PATH, single_doc)):
             self.single_doc_type = 'rst'
             self.single_doc = os.path.splitext(os.path.basename(single_doc))[0]
+        elif os.path.exists(
+                os.path.join(SOURCE_PATH, '{}.rst'.format(single_doc))):
+            self.single_doc_type = 'rst'
+            self.single_doc = single_doc
         elif single_doc is not None:
             try:
                 obj = pandas
@@ -320,8 +324,8 @@ def main():
                            metavar='FILENAME',
                            type=str,
                            default=None,
-                           help=('filename of section to compile, '
-                                 'e.g. "indexing"'))
+                           help=('filename of section or method name to '
+                                 'compile, e.g. "indexing", "DataFrame.join"'))
     argparser.add_argument('--python-path',
                            type=str,
                            default=os.path.join(DOC_PATH, '..'),
