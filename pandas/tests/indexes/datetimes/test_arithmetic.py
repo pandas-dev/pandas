@@ -572,6 +572,62 @@ class TestDatetimeIndexArithmetic(object):
             addend + dti_tz
 
     # -------------------------------------------------------------
+    # __add__/__sub__ with ndarray[datetime64] and ndarray[timedelta64]
+
+    def test_dti_add_dt64_array_raises(self, tz):
+        dti = pd.date_range('2016-01-01', periods=3, tz=tz)
+        dtarr = dti.values
+
+        with pytest.raises(TypeError):
+            dti + dtarr
+        with pytest.raises(TypeError):
+            dtarr + dti
+
+    def test_dti_sub_dt64_array_naive(self):
+        dti = pd.date_range('2016-01-01', periods=3, tz=None)
+        dtarr = dti.values
+
+        expected = dti - dti
+        result = dti - dtarr
+        tm.assert_index_equal(result, expected)
+        result = dtarr - dti
+        tm.assert_index_equal(result, expected)
+
+    def test_dti_sub_dt64_array_aware_raises(self, tz):
+        if tz is None:
+            return
+        dti = pd.date_range('2016-01-01', periods=3, tz=tz)
+        dtarr = dti.values
+
+        with pytest.raises(TypeError):
+            dti - dtarr
+        with pytest.raises(TypeError):
+            dtarr - dti
+
+    def test_dti_add_td64_array(self, tz):
+        dti = pd.date_range('2016-01-01', periods=3, tz=tz)
+        tdi = dti - dti.shift(1)
+        tdarr = tdi.values
+
+        expected = dti + tdi
+        result = dti + tdarr
+        tm.assert_index_equal(result, expected)
+        result = tdarr + dti
+        tm.assert_index_equal(result, expected)
+
+    def test_dti_sub_td64_array(self, tz):
+        dti = pd.date_range('2016-01-01', periods=3, tz=tz)
+        tdi = dti - dti.shift(1)
+        tdarr = tdi.values
+
+        expected = dti - tdi
+        result = dti - tdarr
+        tm.assert_index_equal(result, expected)
+
+        with pytest.raises(TypeError):
+            tdarr - dti
+
+    # -------------------------------------------------------------
 
     def test_sub_dti_dti(self):
         # previously performed setop (deprecated in 0.16.0), now changed to
