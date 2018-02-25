@@ -126,6 +126,29 @@ class DocBuilder:
             else:
                 return 'api'
 
+    def _copy_generated_docstring(self, method):
+        """Copy existing generated (from api.rst) docstring page because
+        this is more correct in certain cases (where a custom autodoc
+        template is used).
+
+        """
+        fname = os.path.join(SOURCE_PATH, 'generated',
+                             'pandas.{}.rst'.format(method))
+        temp_dir = os.path.join(SOURCE_PATH, 'generated_single')
+
+        try:
+            os.makedirs(temp_dir)
+        except OSError:
+            pass
+
+        if os.path.exists(fname):
+            try:
+                # copying to make sure sphinx always thinks it is new
+                # and needs to be re-generated (to pick source code changes)
+                shutil.copy(fname, temp_dir)
+            except:  # noqa
+                pass
+
     def _generate_index(self):
         """Create index.rst file with the specified sections."""
         if self.single_doc_type == 'rst':
@@ -136,6 +159,9 @@ class DocBuilder:
             single_doc = self.single_doc[len('pandas.'):]
         else:
             single_doc = self.single_doc
+
+        if self.single_doc_type == 'api':
+            self._copy_generated_docstring(single_doc)
 
         with open(os.path.join(SOURCE_PATH, 'index.rst.template')) as f:
             t = jinja2.Template(f.read())
