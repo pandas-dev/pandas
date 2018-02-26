@@ -149,8 +149,8 @@ def _get_marker_compat(marker):
 def radviz(frame, class_column, ax=None, color=None, colormap=None, **kwds):
     """RadViz - a multivariate data visualization algorithm
 
-    Parameters:
-    -----------
+    Parameters
+    ----------
     frame: DataFrame
     class_column: str
         Column name containing class names
@@ -163,8 +163,8 @@ def radviz(frame, class_column, ax=None, color=None, colormap=None, **kwds):
     kwds: keywords
         Options to pass to matplotlib scatter plotting method
 
-    Returns:
-    --------
+    Returns
+    -------
     ax: Matplotlib axis object
     """
     import matplotlib.pyplot as plt
@@ -247,8 +247,8 @@ def andrews_curves(frame, class_column, ax=None, samples=200, color=None,
     linearly spaced between -pi and +pi. Each row of frame then corresponds to
     a single curve.
 
-    Parameters:
-    -----------
+    Parameters
+    ----------
     frame : DataFrame
         Data to be plotted, preferably normalized to (0.0, 1.0)
     class_column : Name of the column containing class names
@@ -262,8 +262,8 @@ def andrews_curves(frame, class_column, ax=None, samples=200, color=None,
     kwds: keywords
         Options to pass to matplotlib plotting method
 
-    Returns:
-    --------
+    Returns
+    -------
     ax: Matplotlib axis object
 
     """
@@ -325,8 +325,8 @@ def andrews_curves(frame, class_column, ax=None, samples=200, color=None,
 def bootstrap_plot(series, fig=None, size=50, samples=500, **kwds):
     """Bootstrap plot.
 
-    Parameters:
-    -----------
+    Parameters
+    ----------
     series: Time series
     fig: matplotlib figure object, optional
     size: number of data points to consider during each sampling
@@ -334,8 +334,8 @@ def bootstrap_plot(series, fig=None, size=50, samples=500, **kwds):
     kwds: optional keyword arguments for plotting commands, must be accepted
         by both hist and plot
 
-    Returns:
-    --------
+    Returns
+    -------
     fig: matplotlib figure
     """
     import random
@@ -503,15 +503,15 @@ def parallel_coordinates(frame, class_column, cols=None, ax=None, color=None,
 def lag_plot(series, lag=1, ax=None, **kwds):
     """Lag plot for time series.
 
-    Parameters:
-    -----------
+    Parameters
+    ----------
     series: Time series
     lag: lag of the scatter plot, default 1
     ax: Matplotlib axis object, optional
     kwds: Matplotlib scatter method keyword arguments, optional
 
-    Returns:
-    --------
+    Returns
+    -------
     ax: Matplotlib axis object
     """
     import matplotlib.pyplot as plt
