@@ -185,6 +185,12 @@ are consistent among all columns.
     df_cat['A']
     df_cat['B']
 
+.. note::
+
+    To perform table-wise conversion, where all labels in the entire ``DataFrame`` are used as
+    categories for each column, the ``categories`` parameter can be determined programatically by
+    ``categories = pd.unique(df.values.ravel())``.
+
 If you already have `codes` and `categories`, you can use the 
 :func:`~pandas.Categorical.from_codes` constructor to save the factorize step 
 during normal constructor mode:

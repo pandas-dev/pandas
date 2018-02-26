@@ -271,13 +271,14 @@ The :func:`DataFrame.assign` now accepts dependent keyword arguments for python 
 
 .. _whatsnew_0230.enhancements.astype_category:
 
-``DataFrame.astype`` performs columnwise conversion to ``Categorical``
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+``DataFrame.astype`` performs column-wise conversion to ``Categorical``
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-:meth:`DataFrame.astype` can now perform columnwise conversion to ``Categorical`` by supplying the string ``'category'`` or a :class:`~pandas.api.types.CategoricalDtype`.
-Previously, attempting this would raise a ``NotImplementedError``. (:issue:`18099`)
+:meth:`DataFrame.astype` can now perform column-wise conversion to ``Categorical`` by supplying the string ``'category'`` or
+a :class:`~pandas.api.types.CategoricalDtype`. Previously, attempting this would raise a ``NotImplementedError``. See the
+:ref:`categorical.objectcreation` section of the documentation for more details and examples. (:issue:`12860`, :issue:`18099`)
 
-Supplying the string ``'category'`` performs columnwise conversion, with only labels appearing in a given column set as categories:
+Supplying the string ``'category'`` performs column-wise conversion, with only labels appearing in a given column set as categories:
 
 .. ipython:: python
 
@@ -297,8 +298,6 @@ Supplying a ``CategoricalDtype`` will make the categories in each column consist
     df = df.astype(cdt)
     df['A'].dtype
     df['B'].dtype
-
-See the :ref:`categorical.objectcreation` section of the documentation for more details and examples.
 
 .. _whatsnew_0230.enhancements.other:
 
