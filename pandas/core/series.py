@@ -239,7 +239,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
                 # a scalar numpy array is list-like but doesn't
                 # have a proper length
                 try:
-                    if len(data) != 1 and len(index) != len(data):
+                    if len(index) != len(data):
                         raise ValueError(
                             'Length of passed values is {val}, '
                             'index implies {ind}'

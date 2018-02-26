@@ -425,10 +425,8 @@ class TestSeriesConstructors(TestData):
     def test_constructor_broadcast_list(self):
         # GH 19342
         # construction with single-element container and index
-        # should not raise
-        result = Series(['foo'], index=['a', 'b', 'c'])
-        expected = Series(['foo'] * 3, index=['a', 'b', 'c'])
-        tm.assert_series_equal(result, expected)
+        # should raise
+        pytest.raises(ValueError, Series, ['foo'], index=['a', 'b', 'c'])
 
     def test_constructor_corner(self):
         df = tm.makeTimeDataFrame()
