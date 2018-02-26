@@ -21,6 +21,22 @@ from missing cimport checknull
 @cython.wraparound(False)
 @cython.boundscheck(False)
 def scalar_compare(ndarray[object] values, object val, object op):
+    """
+    Compare each element of `values` array with the scalar `val`, with
+    the comparison operation described by `op`.
+
+    Parameters
+    ----------
+    values : ndarray[object]
+    val : object
+    op : {operator.eq, operator.ne,
+          operator.le, operator.lt,
+          operator.ge, operator.gt}
+
+    Returns
+    -------
+    result : ndarray[bool]
+    """
     cdef:
         Py_ssize_t i, n = len(values)
         ndarray[uint8_t, cast=True] result
@@ -87,6 +103,22 @@ def scalar_compare(ndarray[object] values, object val, object op):
 @cython.wraparound(False)
 @cython.boundscheck(False)
 def vec_compare(ndarray[object] left, ndarray[object] right, object op):
+    """
+    Compare the elements of `left` with the elements of `right` pointwise,
+    with the comparison operation described by `op`.
+
+    Parameters
+    ----------
+    left : ndarray[object]
+    right : ndarray[object]
+    op : {operator.eq, operator.ne,
+          operator.le, operator.lt,
+          operator.ge, operator.gt}
+
+    Returns
+    -------
+    result : ndarray[bool]
+    """
     cdef:
         Py_ssize_t i, n = len(left)
         ndarray[uint8_t, cast=True] result
@@ -138,6 +170,20 @@ def vec_compare(ndarray[object] left, ndarray[object] right, object op):
 @cython.wraparound(False)
 @cython.boundscheck(False)
 def scalar_binop(ndarray[object] values, object val, object op):
+    """
+    Apply the given binary operator `op` between each element of the array
+    `values` and the scalar `val`.
+
+    Parameters
+    ----------
+    values : ndarray[object]
+    val : object
+    op : binary operator
+
+    Returns
+    -------
+    result : ndarray[object]
+    """
     cdef:
         Py_ssize_t i, n = len(values)
         ndarray[object] result
@@ -161,6 +207,20 @@ def scalar_binop(ndarray[object] values, object val, object op):
 @cython.wraparound(False)
 @cython.boundscheck(False)
 def vec_binop(ndarray[object] left, ndarray[object] right, object op):
+    """
+    Apply the given binary operator `op` pointwise to the elements of
+    arrays `left` and `right`.
+
+    Parameters
+    ----------
+    left : ndarray[object]
+    right : ndarray[object]
+    op : binary operator
+
+    Returns
+    -------
+    result : ndarray[object]
+    """
     cdef:
         Py_ssize_t i, n = len(left)
         ndarray[object] result
