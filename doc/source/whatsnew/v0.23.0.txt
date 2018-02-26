@@ -794,6 +794,7 @@ Performance Improvements
 - Improved performance of variable ``.rolling()`` on ``.min()`` and ``.max()`` (:issue:`19521`)
 - Improved performance of :func:`pandas.core.groupby.GroupBy.ffill` and :func:`pandas.core.groupby.GroupBy.bfill` (:issue:`11296`)
 - Improved performance of :func:`pandas.core.groupby.GroupBy.any` and :func:`pandas.core.groupby.GroupBy.all` (:issue:`15435`)
+- Improved performance of :func:`pandas.core.groupby.GroupBy.pct_change` (:issue:`19165`)
 
 .. _whatsnew_0230.docs:
 
