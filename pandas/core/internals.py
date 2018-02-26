@@ -2906,7 +2906,23 @@ class DatetimeTZBlock(NonConsolidatableMixIn, DatetimeBlock):
                                            placement=self.mgr_locs)]
 
     def diff(self, n, axis=0, mgr=None):
-        """1st discrete difference"""
+        """1st discrete difference
+
+        Parameters
+        ----------
+        n : int, number of periods to diff
+        axis : int, axis to diff upon. default 0
+        mgr : default None
+
+        Return
+        ------
+        A list with a new TimeDeltaBlock.
+
+        Note
+        ----
+        The arguments here are mimicking shift so they are called correctly
+        by apply.
+        """
         if axis == 0:
             # Cannot currently calculate diff across multiple blocks since this
             # function is invoked via apply
