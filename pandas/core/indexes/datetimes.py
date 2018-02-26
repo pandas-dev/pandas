@@ -865,12 +865,10 @@ class DatetimeIndex(DatelikeOps, TimelikeOps, DatetimeIndexOpsMixin,
         # subtract a datetime from myself, yielding a TimedeltaIndex
         from pandas import TimedeltaIndex
 
-        if isinstance(other, np.ndarray):
-            # wrap in DatetimeIndex for op
-            assert is_datetime64_dtype(other)
+        if isinstance(other, (DatetimeIndex, np.ndarray)):
+            # if other is an ndarray, we assume it is datetime64-dtype
             other = DatetimeIndex(other)
 
-        if isinstance(other, DatetimeIndex):
             # require tz compat
             if not self._has_same_tz(other):
                 raise TypeError("{cls} subtraction must have the same "

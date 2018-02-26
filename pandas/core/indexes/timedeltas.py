@@ -414,14 +414,14 @@ class TimedeltaIndex(DatetimeIndexOpsMixin, TimelikeOps, Int64Index):
     def _add_datelike(self, other):
         # adding a timedeltaindex to a datetimelike
         from pandas import Timestamp, DatetimeIndex
-        if isinstance(other, np.ndarray):
-            other = DatetimeIndex(other)
 
         if other is NaT:
             # GH#19124 pd.NaT is treated like a timedelta
             return self._nat_new()
-        elif isinstance(other, DatetimeIndex):
+        elif isinstance(other, (DatetimeIndex, np.ndarray)):
+            # if other is an ndarray, we assume it is datetime64-dtype
             # defer to implementation in DatetimeIndex
+            other = DatetimeIndex(other)
             return other + self
         else:
             other = Timestamp(other)
