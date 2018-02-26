@@ -5,7 +5,6 @@ cimport numpy as cnp
 import numpy as np
 
 cimport cython
-cimport util
 
 cnp.import_array()
 
@@ -165,8 +164,12 @@ def group_cumprod_float64(float64_t[:, :] out,
                 if val == val:
                     accum[lab, j] *= val
                     out[i, j] = accum[lab, j]
-                if val != val and skipna:
-                    out[i, j] = accum[lab, j]
+                if val != val:
+                    if skipna:
+                        out[i, j] = NaN
+                    else:
+                        accum[lab, j] = NaN
+                        out[i, j] = accum[lab, j]
 
 
 @cython.boundscheck(False)
@@ -201,8 +204,12 @@ def group_cumsum(numeric[:, :] out,
                     if val == val:
                         accum[lab, j] += val
                         out[i, j] = accum[lab, j]
-                    if val != val and skipna == True:
-                        out[i, j] = accum[lab, j]
+                    if val != val:
+                        if skipna:
+                            out[i, j] = NaN
+                        else:
+                            accum[lab, j] = NaN
+                            out[i, j] = accum[lab, j]
                 else:
                     accum[lab, j] += val
                     out[i, j] = accum[lab, j]
