@@ -59,30 +59,28 @@ def _td_index_cmp(opname, cls):
     nat_result = True if opname == '__ne__' else False
 
     def wrapper(self, other):
-        msg = "cannot compare a TimedeltaIndex with type {0}"
+        msg = "cannot compare a {cls} with type {typ}"
         func = getattr(super(TimedeltaIndex, self), opname)
         if _is_convertible_to_td(other) or other is NaT:
             try:
                 other = _to_m8(other)
             except ValueError:
                 # failed to parse as timedelta
-                raise TypeError(msg.format(type(other)))
+                raise TypeError(msg.format(cls=type(self).__name__,
+                                           typ=type(other).__name__))
             result = func(other)
             if isna(other):
                 result.fill(nat_result)
-        else:
-            if not is_list_like(other):
-                raise TypeError(msg.format(type(other)))
 
+        elif not is_list_like(other):
+            raise TypeError(msg.format(cls=type(self).__name__,
+                                       typ=type(other).__name__))
+        else:
             other = TimedeltaIndex(other).values
             result = func(other)
             result = com._values_from_object(result)
 
-            if isinstance(other, Index):
-                o_mask = other.values.view('i8') == iNaT
-            else:
-                o_mask = other.view('i8') == iNaT
-
+            o_mask = np.array(isna(other))
             if o_mask.any():
                 result[o_mask] = nat_result
 
@@ -416,9 +414,15 @@ class TimedeltaIndex(DatetimeIndexOpsMixin, TimelikeOps, Int64Index):
     def _add_datelike(self, other):
         # adding a timedeltaindex to a datetimelike
         from pandas import Timestamp, DatetimeIndex
+
         if other is NaT:
             # GH#19124 pd.NaT is treated like a timedelta
             return self._nat_new()
+        elif isinstance(other, (DatetimeIndex, np.ndarray)):
+            # if other is an ndarray, we assume it is datetime64-dtype
+            # defer to implementation in DatetimeIndex
+            other = DatetimeIndex(other)
+            return other + self
         else:
             other = Timestamp(other)
             i8 = self.asi8
@@ -434,7 +438,8 @@ class TimedeltaIndex(DatetimeIndexOpsMixin, TimelikeOps, Int64Index):
         if other is NaT:
             return self._nat_new()
         else:
-            raise TypeError("cannot subtract a datelike from a TimedeltaIndex")
+            raise TypeError("cannot subtract a datelike from a {cls}"
+                            .format(cls=type(self).__name__))
 
     def _addsub_offset_array(self, other, op):
         # Add or subtract Array-like of DateOffset objects
@@ -962,8 +967,7 @@ def _is_convertible_to_index(other):
 
 
 def _is_convertible_to_td(key):
-    # TODO: Not all DateOffset objects are convertible to Timedelta
-    return isinstance(key, (DateOffset, timedelta, Timedelta,
+    return isinstance(key, (Tick, timedelta,
                             np.timedelta64, compat.string_types))
 
 

@@ -508,7 +508,7 @@ class TestDatetimeIndexArithmetic(object):
         result = dti - tdi
         tm.assert_index_equal(result, expected)
 
-        msg = 'cannot subtract TimedeltaIndex and DatetimeIndex'
+        msg = 'cannot subtract .*TimedeltaIndex'
         with tm.assert_raises_regex(TypeError, msg):
             tdi - dti
 
@@ -531,7 +531,7 @@ class TestDatetimeIndexArithmetic(object):
         result -= tdi
         tm.assert_index_equal(result, expected)
 
-        msg = 'cannot subtract TimedeltaIndex and DatetimeIndex'
+        msg = 'cannot subtract .*TimedeltaIndex'
         with tm.assert_raises_regex(TypeError, msg):
             tdi -= dti
 
