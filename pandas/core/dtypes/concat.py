@@ -109,7 +109,7 @@ def _get_sliced_frame_result_type(data, obj):
 
     Parameters
     ----------
-    data : ndarray
+    data : array-like
     obj : DataFrame
 
     Returns
@@ -117,7 +117,7 @@ def _get_sliced_frame_result_type(data, obj):
     Series or SparseSeries
     """
     if is_sparse(data):
-        from pandas.core.sparse.api import SparseSeries
+        from pandas import SparseSeries
         return SparseSeries
     return obj._constructor_sliced
 
