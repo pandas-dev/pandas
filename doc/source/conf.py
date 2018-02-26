@@ -18,7 +18,6 @@ import inspect
 import importlib
 import warnings
 
-from pandas.compat import u, PY3
 
 try:
     raw_input          # Python 2
@@ -99,8 +98,8 @@ source_encoding = 'utf-8'
 master_doc = 'index'
 
 # General information about the project.
-project = u('pandas')
-copyright = u('2008-2014, the pandas development team')
+project = u'pandas'
+copyright = u'2008-2014, the pandas development team'
 
 # The version info for the project you're documenting, acts as replacement for
 # |version| and |release|, also used in various other places throughout the
@@ -311,8 +310,8 @@ nbsphinx_allow_errors = True
 # file, target name, title, author, documentclass [howto/manual]).
 latex_documents = [
     ('index', 'pandas.tex',
-     u('pandas: powerful Python data analysis toolkit'),
-     u('Wes McKinney\n\& PyData Development Team'), 'manual'),
+     u'pandas: powerful Python data analysis toolkit',
+     u'Wes McKinney\n\& PyData Development Team', 'manual'),
 ]
 
 # The name of an image file (relative to this directory) to place at the top of
