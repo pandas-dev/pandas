@@ -24,7 +24,8 @@ import pandas.tseries.frequencies as frequencies
 from pandas.tseries.frequencies import get_freq_code as _gfc
 from pandas.core.indexes.datetimes import DatetimeIndex, Int64Index, Index
 from pandas.core.indexes.timedeltas import TimedeltaIndex
-from pandas.core.indexes.datetimelike import DatelikeOps, DatetimeIndexOpsMixin
+from pandas.core.indexes.datetimelike import (
+    DatelikeOps, DatetimeIndexOpsMixin, DatetimeLikeArray)
 from pandas.core.tools.datetimes import parse_time_string
 import pandas.tseries.offsets as offsets
 
@@ -123,7 +124,26 @@ def _new_PeriodIndex(cls, **d):
     return cls._from_ordinals(values=values, **d)
 
 
-class PeriodIndex(DatelikeOps, DatetimeIndexOpsMixin, Int64Index):
+class PeriodArray(DatetimeLikeArray):
+    @property
+    def _box_func(self):
+        return lambda x: Period._from_ordinal(ordinal=x, freq=self.freq)
+
+    @cache_readonly
+    def dtype(self):
+        return PeriodDtype.construct_from_string(self.freq)
+
+    @property
+    def _ndarray_values(self):
+        # Ordinals
+        return self._data
+
+    @property
+    def asi8(self):
+        return self._ndarray_values.view('i8')
+
+
+class PeriodIndex(PeriodArray, DatelikeOps, DatetimeIndexOpsMixin, Int64Index):
     """
     Immutable ndarray holding ordinal values indicating regular periods in
     time such as particular years, quarters, months, etc.
@@ -404,10 +424,6 @@ class PeriodIndex(DatelikeOps, DatetimeIndexOpsMixin, Int64Index):
 
     contains = __contains__
 
-    @property
-    def asi8(self):
-        return self._ndarray_values.view('i8')
-
     @cache_readonly
     def _int64index(self):
         return Int64Index(self.asi8, name=self.name, fastpath=True)
@@ -415,11 +431,6 @@ class PeriodIndex(DatelikeOps, DatetimeIndexOpsMixin, Int64Index):
     @property
     def values(self):
         return self.astype(object).values
-
-    @property
-    def _ndarray_values(self):
-        # Ordinals
-        return self._data
 
     def __array__(self, dtype=None):
         if is_integer_dtype(dtype):
@@ -460,10 +471,6 @@ class PeriodIndex(DatelikeOps, DatetimeIndexOpsMixin, Int64Index):
         # the result is object dtype array of Period
         # cannot pass _simple_new as it is
         return self._shallow_copy(result, freq=self.freq, name=self.name)
-
-    @property
-    def _box_func(self):
-        return lambda x: Period._from_ordinal(ordinal=x, freq=self.freq)
 
     def _to_embed(self, keep_tz=False, dtype=None):
         """
@@ -761,10 +768,6 @@ class PeriodIndex(DatelikeOps, DatetimeIndexOpsMixin, Int64Index):
         if self.hasnans:
             values[self._isnan] = tslib.iNaT
         return self._shallow_copy(values=values)
-
-    @cache_readonly
-    def dtype(self):
-        return PeriodDtype.construct_from_string(self.freq)
 
     @property
     def inferred_type(self):
