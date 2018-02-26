@@ -117,7 +117,7 @@ def _get_sliced_frame_result_type(data, obj):
     Series or SparseSeries
     """
     if is_sparse(data):
-        from pandas import SparseSeries
+        from pandas.core.sparse.api import SparseSeries
         return SparseSeries
     return obj._constructor_sliced
 
