@@ -265,7 +265,7 @@ class TestPeriodIndexArithmetic(object):
     @pytest.mark.parametrize('other', [3.14, np.array([2.0, 3.0])])
     @pytest.mark.parametrize('op', [operator.add, ops.radd,
                                     operator.sub, ops.rsub])
-    def test_tdi_add_sub_float(self, op, other):
+    def test_pi_add_sub_float(self, op, other):
         dti = pd.DatetimeIndex(['2011-01-01', '2011-01-02'])
         pi = dti.to_period('D')
         with pytest.raises(TypeError):
