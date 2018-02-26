@@ -231,5 +231,5 @@ def test_require_td64_unit():
         # Timedelta constructor should not allow unit-less timedelta64
         Timedelta(td64)
 
-    assert Timedelta(nat64) is NaT
+    assert Timedelta(nat64) is pd.NaT
     assert Timedelta(td64, unit='s').total_seconds() == 86401
