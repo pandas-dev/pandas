@@ -33,13 +33,21 @@ class JSONArray(ExtensionArray):
                 raise TypeError
         self.data = values
 
+    @classmethod
+    def _from_extension_array(cls, array, copy=True):
+        return cls(array)
+
+    @classmethod
+    def _from_scalars(cls, scalars):
+        return cls(scalars)
+
     def __getitem__(self, item):
         if isinstance(item, numbers.Integral):
             return self.data[item]
         elif isinstance(item, np.ndarray) and item.dtype == 'bool':
-            return type(self)([x for x, m in zip(self, item) if m])
+            return self._from_scalars([x for x, m in zip(self, item) if m])
         else:
-            return type(self)(self.data[item])
+            return self._from_extension_array(self.data[item])
 
     def __setitem__(self, key, value):
         if isinstance(key, numbers.Integral):
@@ -77,10 +85,10 @@ class JSONArray(ExtensionArray):
     def take(self, indexer, allow_fill=True, fill_value=None):
         output = [self.data[loc] if loc != -1 else self._na_value
                   for loc in indexer]
-        return type(self)(output)
+        return self._from_scalars(output)
 
     def copy(self, deep=False):
-        return type(self)(self.data[:])
+        return self._from_extension_array(self.data[:])
 
     @property
     def _na_value(self):

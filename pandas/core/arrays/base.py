@@ -18,6 +18,8 @@ class ExtensionArray(object):
     The interface includes the following abstract methods that must be
     implemented by subclasses:
 
+    * _from_extension_array
+    * _from_scalars
     * __getitem__
     * __len__
     * dtype
@@ -56,6 +58,53 @@ class ExtensionArray(object):
     # '_typ' is for pandas.core.dtypes.generic.ABCExtensionArray.
     # Don't override this.
     _typ = 'extension'
+
+    # ------------------------------------------------------------------------
+    # Constructors
+    # ------------------------------------------------------------------------
+    @classmethod
+    def _from_extension_array(cls, array, copy=True):
+        """Construct a new ExtensionArray from an existing instance.
+
+        Parameters
+        ----------
+        array : ExtensionArray
+            An extension array of the same type as cls.
+        copy : bool, default True
+            Whether a copy should be made using ``array.copy``. Note that
+            even if ``copy=False`` there's no guarantee that the underlying
+            data of the two arrays is the same.
+
+        Returns
+        -------
+        ExtensionArray
+
+        See Also
+        --------
+        _from_scalars
+        """
+        raise AbstractMethodError(cls)
+
+    @classmethod
+    def _from_scalars(cls, scalars):
+        """Construct a new ExtensionArray from a sequence of scalars.
+
+        Parameters
+        ----------
+        scalars : Sequence
+            Each element will be an instance of the scalar type for this
+            array, ``cls.dtype.type``.
+
+        Returns
+        -------
+        ExtensionArray
+
+        See Also
+        --------
+        _from_extension_array
+        """
+        raise AbstractMethodError(cls)
+
     # ------------------------------------------------------------------------
     # Must be a Sequence
     # ------------------------------------------------------------------------
