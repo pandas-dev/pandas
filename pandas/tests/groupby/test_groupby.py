@@ -2532,11 +2532,13 @@ class TestGroupBy(MixIn):
             [pd.DataFrame({'x': [1.0, 2.0, np.NaN], 'gp': 'a'}),
              pd.DataFrame({'x': [2.0, 5.0, 6.0], 'gp': 'b'})])
         result = df.groupby('gp')['x'].cumprod(skipna=False)
-        expected = pd.Series([1.0, 2.0, np.NaN, 2.0, 10.0, 60.0], name='x', index=(0, 1, 2, 0, 1, 2))
+        expected = pd.Series([1.0, 2.0, np.NaN, 2.0, 10.0, 60.0],
+                             name='x', index=(0, 1, 2, 0, 1, 2))
         tm.assert_series_equal(result, expected)
 
         result = df.groupby('gp')['x'].cumprod()
-        expected = pd.Series([1.0, 2.0, 2.0, 2.0, 10.0, 60.0], name='x', index=(0, 1, 2, 0, 1, 2))
+        expected = pd.Series([1.0, 2.0, 2.0, 2.0, 10.0, 60.0],
+                             name='x', index=(0, 1, 2, 0, 1, 2))
         tm.assert_series_equal(result, expected)
 
     def test_ops_general(self):
