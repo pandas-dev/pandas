@@ -314,18 +314,20 @@ def group_fillna_indexer(ndarray[int64_t] out, ndarray[int64_t] labels,
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
-def group_any(ndarray[int64_t] out,
-              ndarray values,
+def group_any(ndarray[uint8_t] out,
               ndarray[int64_t] labels,
+              ndarray[uint8_t] values,
+              ndarray[uint8_t] mask,
               bint skipna):
     """Aggregated boolean values to show if any group element is truthful
 
     Parameters
     ----------
-    out : array of int64_t values which this method will write its results to
-    values : array of values to be truth-tested
+    out : array of values which this method will write its results to
     labels : array containing unique label for each group, with its ordering
         matching up to the corresponding record in `values`
+    values : array containing the truth value of each element
+    mask : array indicating whether a value is na or not
     skipna : boolean
         Flag to ignore nan values during truth testing
 
@@ -337,40 +339,33 @@ def group_any(ndarray[int64_t] out,
     cdef:
         Py_ssize_t i, N=len(labels)
         int64_t lab
-        ndarray[int64_t] bool_mask
-        ndarray[uint8_t] isna_mask
-
-    if values.dtype == 'object':
-        bool_mask = np.array([bool(x) for x in values]).astype(np.int64)
-        isna_mask = missing.isnaobj(values).astype(np.uint8)
-    else:
-        bool_mask = values.astype(np.bool).astype(np.int64)
-        isna_mask = np.isnan(values).astype(np.uint8)
 
     with nogil:
         for i in range(N):
             lab = labels[i]
-            if lab < 0 or (skipna and isna_mask[i]):
+            if lab < 0 or (skipna and mask[i]):
                 continue
 
-            if bool_mask[i]:
+            if values[i]:
                 out[lab] = 1
 
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
-def group_all(ndarray[int64_t] out,
-              ndarray values,
+def group_all(ndarray[uint8_t] out,
               ndarray[int64_t] labels,
+              ndarray[uint8_t] values,
+              ndarray[uint8_t] mask,
               bint skipna):
     """Aggregated boolean values to show if all group elements are truthful
 
     Parameters
     ----------
-    out : array of int64_t values which this method will write its results to
-    values : array of values to be truth-tested
+    out : array of values which this method will write its results to
     labels : array containing unique label for each group, with its ordering
         matching up to the corresponding record in `values`
+    values : array containing the truth value of each element
+    mask : array indicating whether a value is na or not
     skipna : boolean
         Flag to ignore nan values during truth testing
 
