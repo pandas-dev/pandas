@@ -2138,7 +2138,7 @@ class TestGroupBy(MixIn):
         exp = getattr(bltins, agg_func)(vals)
 
         # edge case for missing data with skipna and 'any'
-        if skipna and all(isna(vals)) and agg_func=='any':
+        if skipna and all(isna(vals)) and agg_func == 'any':
             exp = False
 
         exp_df = DataFrame([exp] * 2, columns=['val'], index=pd.Index(
