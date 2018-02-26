@@ -175,6 +175,12 @@ def _new_DatetimeIndex(cls, d):
 
 
 class DatetimeArray(DatetimeLikeArray):
+    """
+    Assumes that subclass __new__/__init__ defines:
+        tz
+        offset
+        _data
+    """
 
     # -----------------------------------------------------------------
     # Descriptive Properties
