@@ -416,25 +416,17 @@ class TimedeltaIndex(DatetimeIndexOpsMixin, TimelikeOps, Int64Index):
     def _add_datelike(self, other):
         # adding a timedeltaindex to a datetimelike
         from pandas import Timestamp, DatetimeIndex
-        if other is NaT:
-            # GH#19124 pd.NaT is treated like a timedelta
-            return self._nat_new()
-        else:
-            other = Timestamp(other)
-            i8 = self.asi8
-            result = checked_add_with_arr(i8, other.value,
-                                          arr_mask=self._isnan)
-            result = self._maybe_mask_results(result, fill_value=iNaT)
-            return DatetimeIndex(result)
+        assert other is not NaT
+        other = Timestamp(other)
+        i8 = self.asi8
+        result = checked_add_with_arr(i8, other.value,
+                                      arr_mask=self._isnan)
+        result = self._maybe_mask_results(result, fill_value=iNaT)
+        return DatetimeIndex(result)
 
     def _sub_datelike(self, other):
-        # GH#19124 Timedelta - datetime is not in general well-defined.
-        # We make an exception for pd.NaT, which in this case quacks
-        # like a timedelta.
-        if other is NaT:
-            return self._nat_new()
-        else:
-            raise TypeError("cannot subtract a datelike from a TimedeltaIndex")
+        assert other is not NaT
+        raise TypeError("cannot subtract a datelike from a TimedeltaIndex")
 
     def _addsub_offset_array(self, other, op):
         # Add or subtract Array-like of DateOffset objects
