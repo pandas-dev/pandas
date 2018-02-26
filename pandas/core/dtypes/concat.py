@@ -103,14 +103,23 @@ def _get_frame_result_type(result, objs):
 
 def _get_sliced_frame_result_type(data, obj):
     """
-    return appropriate class of Series depending on whether
-    the data is sparse or not.
+    return appropriate class of Series. When data is sparse
+    it will return a SparseSeries, otherwise it will return
+    the Series.
+
+    Parameters
+    ----------
+    data : ndarray
+    obj : DataFrame
+
+    Returns
+    -------
+    Series or SparseSeries
     """
     if is_sparse(data):
         from pandas.core.sparse.api import SparseSeries
         return SparseSeries
-    else:
-        return obj._constructor_sliced
+    return obj._constructor_sliced
 
 
 def _concat_compat(to_concat, axis=0):

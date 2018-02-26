@@ -60,6 +60,7 @@ from pandas.core.dtypes.common import (
     is_iterator,
     is_sequence,
     is_named_tuple)
+from pandas.core.dtypes.concat import _get_sliced_frame_result_type
 from pandas.core.dtypes.missing import isna, notna
 
 
@@ -2562,10 +2563,8 @@ class DataFrame(NDFrame):
 
     def _box_col_values(self, values, items):
         """ provide boxed values for a column """
-        from pandas.core.dtypes.concat import _get_sliced_frame_result_type
-        this_constructor_sliced = _get_sliced_frame_result_type(values, self)
-        return this_constructor_sliced(values, index=self.index,
-                                       name=items, fastpath=True)
+        klass = _get_sliced_frame_result_type(values, self)
+        return klass(values, index=self.index, name=items, fastpath=True)
 
     def __setitem__(self, key, value):
         key = com._apply_if_callable(key, self)
