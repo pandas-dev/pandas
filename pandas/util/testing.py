@@ -2165,7 +2165,7 @@ def network(t, url="http://www.google.com",
     from pytest import skip
     t.network = True
 
-    @wraps(t)
+    @compat.wraps(t)
     def wrapper(*args, **kwargs):
         if check_before_test and not raise_on_error:
             if not can_connect(url, error_classes):

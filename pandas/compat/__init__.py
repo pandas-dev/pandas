@@ -365,6 +365,20 @@ except NameError:
         return any("__call__" in klass.__dict__ for klass in type(obj).__mro__)
 
 
+if sys.version_info[0] < 3:
+    # In PY2 functools.wraps doesn't provide metadata pytest needs to generate
+    # decorated tests using parametrization. See pytest GH issue #2782
+    def wraps(wrapped, assigned=functools.WRAPPER_ASSIGNMENTS,
+              updated=functools.WRAPPER_UPDATES):
+        def wrapper(f):
+            f = functools.wraps(wrapped, assigned, updated)(f)
+            f.__wrapped__ = wrapped
+            return f
+        return wrapper
+else:
+    wraps = functools.wraps
+
+
 def add_metaclass(metaclass):
     """Class decorator for creating a class with a metaclass."""
     def wrapper(cls):
