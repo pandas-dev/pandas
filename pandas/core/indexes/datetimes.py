@@ -943,8 +943,6 @@ class DatetimeIndex(DatelikeOps, TimelikeOps, DatetimeIndexOpsMixin,
             if not isinstance(delta, TimedeltaIndex):
                 delta = TimedeltaIndex(delta)
             new_values = self._add_delta_tdi(delta)
-        elif isinstance(delta, DateOffset):
-            new_values = self._add_offset(delta).asi8
         else:
             new_values = self.astype('O') + delta
 
@@ -955,6 +953,7 @@ class DatetimeIndex(DatelikeOps, TimelikeOps, DatetimeIndexOpsMixin,
         return result
 
     def _add_offset(self, offset):
+        assert not isinstance(offset, Tick)
         try:
             if self.tz is not None:
                 values = self.tz_localize(None)
@@ -963,12 +962,13 @@ class DatetimeIndex(DatelikeOps, TimelikeOps, DatetimeIndexOpsMixin,
             result = offset.apply_index(values)
             if self.tz is not None:
                 result = result.tz_localize(self.tz)
-            return result
 
         except NotImplementedError:
             warnings.warn("Non-vectorized DateOffset being applied to Series "
                           "or DatetimeIndex", PerformanceWarning)
-            return self.astype('O') + offset
+            result = self.astype('O') + offset
+
+        return DatetimeIndex(result, freq='infer')
 
     def _format_native_types(self, na_rep='NaT', date_format=None, **kwargs):
         from pandas.io.formats.format import _get_format_datetime64_from_values

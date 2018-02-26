@@ -22,11 +22,12 @@ from pandas.core.dtypes.generic import ABCSeries
 
 import pandas.tseries.frequencies as frequencies
 from pandas.tseries.frequencies import get_freq_code as _gfc
+from pandas.tseries.offsets import Tick, DateOffset
+
 from pandas.core.indexes.datetimes import DatetimeIndex, Int64Index, Index
 from pandas.core.indexes.timedeltas import TimedeltaIndex
 from pandas.core.indexes.datetimelike import DatelikeOps, DatetimeIndexOpsMixin
 from pandas.core.tools.datetimes import parse_time_string
-import pandas.tseries.offsets as offsets
 
 from pandas._libs.lib import infer_dtype
 from pandas._libs import tslib, index as libindex
@@ -682,9 +683,9 @@ class PeriodIndex(DatelikeOps, DatetimeIndexOpsMixin, Int64Index):
 
     def _maybe_convert_timedelta(self, other):
         if isinstance(
-                other, (timedelta, np.timedelta64, offsets.Tick, np.ndarray)):
+                other, (timedelta, np.timedelta64, Tick, np.ndarray)):
             offset = frequencies.to_offset(self.freq.rule_code)
-            if isinstance(offset, offsets.Tick):
+            if isinstance(offset, Tick):
                 if isinstance(other, np.ndarray):
                     nanos = np.vectorize(delta_to_nanoseconds)(other)
                 else:
@@ -693,7 +694,7 @@ class PeriodIndex(DatelikeOps, DatetimeIndexOpsMixin, Int64Index):
                 check = np.all(nanos % offset_nanos == 0)
                 if check:
                     return nanos // offset_nanos
-        elif isinstance(other, offsets.DateOffset):
+        elif isinstance(other, DateOffset):
             freqstr = other.rule_code
             base = frequencies.get_base_alias(freqstr)
             if base == self.freq.rule_code:
@@ -705,7 +706,7 @@ class PeriodIndex(DatelikeOps, DatetimeIndexOpsMixin, Int64Index):
                 return other
             elif is_timedelta64_dtype(other):
                 offset = frequencies.to_offset(self.freq)
-                if isinstance(offset, offsets.Tick):
+                if isinstance(offset, Tick):
                     nanos = delta_to_nanoseconds(other)
                     offset_nanos = delta_to_nanoseconds(offset)
                     if (nanos % offset_nanos).all() == 0:
@@ -718,6 +719,30 @@ class PeriodIndex(DatelikeOps, DatetimeIndexOpsMixin, Int64Index):
         # raise when input doesn't have freq
         msg = "Input has different freq from PeriodIndex(freq={0})"
         raise IncompatibleFrequency(msg.format(self.freqstr))
+
+    def _add_offset(self, other):
+        assert not isinstance(other, Tick)
+        base = frequencies.get_base_alias(other.rule_code)
+        if base != self.freq.rule_code:
+            msg = _DIFFERENT_FREQ_INDEX.format(self.freqstr, other.freqstr)
+            raise IncompatibleFrequency(msg)
+        return self.shift(other.n)
+
+    def _add_delta_td(self, other):
+        assert isinstance(other, (timedelta, np.timedelta64, Tick))
+        nanos = delta_to_nanoseconds(other)
+        own_offset = frequencies.to_offset(self.freq.rule_code)
+
+        if isinstance(own_offset, Tick):
+            offset_nanos = delta_to_nanoseconds(own_offset)
+            if np.all(nanos % offset_nanos == 0):
+                return self.shift(nanos // offset_nanos)
+
+        # raise when input doesn't have freq
+        raise IncompatibleFrequency("Input has different freq from "
+                                    "{cls}(freq={freqstr})"
+                                    .format(cls=type(self).__name__,
+                                            freqstr=self.freqstr))
 
     def _add_delta(self, other):
         ordinal_delta = self._maybe_convert_timedelta(other)

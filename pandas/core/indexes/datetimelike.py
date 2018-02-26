@@ -36,7 +36,7 @@ from pandas.core.dtypes.common import (
     is_period_dtype,
     is_timedelta64_dtype)
 from pandas.core.dtypes.generic import (
-    ABCIndex, ABCSeries, ABCPeriodIndex, ABCIndexClass)
+    ABCIndex, ABCSeries, ABCDataFrame, ABCPanel, ABCPeriodIndex, ABCIndexClass)
 from pandas.core.dtypes.missing import isna
 from pandas.core import common as com, algorithms, ops
 from pandas.core.algorithms import checked_add_with_arr
@@ -47,6 +47,7 @@ from pandas.core.indexes.base import Index, _index_shared_docs
 from pandas.util._decorators import Appender, cache_readonly
 import pandas.core.dtypes.concat as _concat
 import pandas.tseries.frequencies as frequencies
+from pandas.tseries.offsets import Tick, DateOffset
 
 import pandas.core.indexes.base as ibase
 _index_doc_kwargs = dict(ibase._index_doc_kwargs)
@@ -643,6 +644,9 @@ class DatetimeIndexOpsMixin(object):
     def _sub_period(self, other):
         return NotImplemented
 
+    def _add_offset(self, offset):
+        raise com.AbstractMethodError(self)
+
     def _addsub_offset_array(self, other, op):
         """
         Add or subtract array-like of DateOffset objects
@@ -682,12 +686,15 @@ class DatetimeIndexOpsMixin(object):
             from pandas import DateOffset
 
             other = lib.item_from_zerodim(other)
-            if isinstance(other, ABCSeries):
+            if isinstance(other, (ABCSeries, ABCDataFrame, ABCPanel)):
                 return NotImplemented
 
             # scalar others
-            elif isinstance(other, (DateOffset, timedelta, np.timedelta64)):
+            elif isinstance(other, (Tick, timedelta, np.timedelta64)):
                 result = self._add_delta(other)
+            elif isinstance(other, DateOffset):
+                # specifically _not_ a Tick
+                result = self._add_offset(other)
             elif isinstance(other, (datetime, np.datetime64)):
                 result = self._add_datelike(other)
             elif is_integer(other):
@@ -708,6 +715,12 @@ class DatetimeIndexOpsMixin(object):
             elif is_integer_dtype(other) and self.freq is None:
                 # GH#19123
                 raise NullFrequencyError("Cannot shift with no freq")
+            elif is_float_dtype(other):
+                # Explicitly catch invalid dtypes
+                raise TypeError("cannot add {dtype}-dtype to {cls}"
+                                .format(dtype=other.dtype,
+                                        cls=type(self).__name__))
+
             else:  # pragma: no cover
                 return NotImplemented
 
@@ -724,15 +737,18 @@ class DatetimeIndexOpsMixin(object):
         cls.__radd__ = __radd__
 
         def __sub__(self, other):
-            from pandas import Index, DateOffset
+            from pandas import Index
 
             other = lib.item_from_zerodim(other)
-            if isinstance(other, ABCSeries):
+            if isinstance(other, (ABCSeries, ABCDataFrame, ABCPanel)):
                 return NotImplemented
 
             # scalar others
-            elif isinstance(other, (DateOffset, timedelta, np.timedelta64)):
+            elif isinstance(other, (Tick, timedelta, np.timedelta64)):
                 result = self._add_delta(-other)
+            elif isinstance(other, DateOffset):
+                # specifically _not_ a Tick
+                result = self._add_offset(-other)
             elif isinstance(other, (datetime, np.datetime64)):
                 result = self._sub_datelike(other)
             elif is_integer(other):
@@ -759,6 +775,12 @@ class DatetimeIndexOpsMixin(object):
             elif is_integer_dtype(other) and self.freq is None:
                 # GH#19123
                 raise NullFrequencyError("Cannot shift with no freq")
+
+            elif is_float_dtype(other):
+                # Explicitly catch invalid dtypes
+                raise TypeError("cannot subtract {dtype}-dtype from {cls}"
+                                .format(dtype=other.dtype,
+                                        cls=type(self).__name__))
             else:  # pragma: no cover
                 return NotImplemented
 
