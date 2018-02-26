@@ -1353,11 +1353,17 @@ class TestGroupBy(MixIn):
              ], columns=['A', 'B', 'C'])
         expected = DataFrame(
             [[2, np.nan], [np.nan, 9], [4, 9]], columns=['B', 'C'])
-        result = df.groupby('A').cumsum()
+        result = df.groupby('A').cumsum(skipna=False)
         assert_frame_equal(result, expected)
 
+        # check cumsum with the default skipna value of True
+        skipna_expected = DataFrame(
+            [[2., 0.], [2., 9.], [4., 9.]], columns=['B', 'C'])
+        result = df.groupby('A').cumsum()
+        assert_frame_equal(result, skipna_expected)
+
         # GH 5755 - cumsum is a transformer and should ignore as_index
-        result = df.groupby('A', as_index=False).cumsum()
+        result = df.groupby('A', as_index=False).cumsum(skipna=False)
         assert_frame_equal(result, expected)
 
         # GH 13994
@@ -2520,6 +2526,18 @@ class TestGroupBy(MixIn):
         expected = df.groupby('key')['value'].apply(lambda x: x.cumprod())
         expected.name = 'value'
         tm.assert_series_equal(actual, expected)
+
+        # make sure that skipna works
+        df = pd.concat(
+            [pd.DataFrame({'x': [1.0, 2.0, np.NaN], 'gp': 'a'}),
+             pd.DataFrame({'x': [2.0, 5.0, 6.0], 'gp': 'b'})])
+        result = df.groupby('gp')['x'].cumprod(skipna=False)
+        expected = pd.Series([1.0, 2.0, np.NaN, 2.0, 10.0, 60.0], name='x', index=(0, 1, 2, 0, 1, 2))
+        tm.assert_series_equal(result, expected)
+
+        result = df.groupby('gp')['x'].cumprod()
+        expected = pd.Series([1.0, 2.0, 2.0, 2.0, 10.0, 60.0], name='x', index=(0, 1, 2, 0, 1, 2))
+        tm.assert_series_equal(result, expected)
 
     def test_ops_general(self):
         ops = [('mean', np.mean),

@@ -5,6 +5,7 @@ cimport numpy as cnp
 import numpy as np
 
 cimport cython
+cimport util
 
 cnp.import_array()
 
@@ -139,7 +140,8 @@ def group_median_float64(ndarray[float64_t, ndim=2] out,
 def group_cumprod_float64(float64_t[:, :] out,
                           float64_t[:, :] values,
                           int64_t[:] labels,
-                          bint is_datetimelike):
+                          bint is_datetimelike,
+                          bint skipna=True):
     """
     Only transforms on axis=0
     """
@@ -163,6 +165,8 @@ def group_cumprod_float64(float64_t[:, :] out,
                 if val == val:
                     accum[lab, j] *= val
                     out[i, j] = accum[lab, j]
+                if val != val and skipna:
+                    out[i, j] = accum[lab, j]
 
 
 @cython.boundscheck(False)
@@ -170,7 +174,8 @@ def group_cumprod_float64(float64_t[:, :] out,
 def group_cumsum(numeric[:, :] out,
                  numeric[:, :] values,
                  int64_t[:] labels,
-                 is_datetimelike):
+                 is_datetimelike,
+                 bint skipna=True):
     """
     Only transforms on axis=0
     """
@@ -195,6 +200,8 @@ def group_cumsum(numeric[:, :] out,
                 if numeric == float32_t or numeric == float64_t:
                     if val == val:
                         accum[lab, j] += val
+                        out[i, j] = accum[lab, j]
+                    if val != val and skipna == True:
                         out[i, j] = accum[lab, j]
                 else:
                     accum[lab, j] += val
