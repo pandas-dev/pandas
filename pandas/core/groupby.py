@@ -1440,7 +1440,7 @@ class GroupBy(_GroupBy):
     def rolling(self, *args, **kwargs):
         """
         Return a rolling grouper, providing rolling
-        functionaility per group
+        functionality per group
 
         """
         from pandas.core.window import RollingGroupby
@@ -1451,7 +1451,7 @@ class GroupBy(_GroupBy):
     def expanding(self, *args, **kwargs):
         """
         Return an expanding grouper, providing expanding
-        functionaility per group
+        functionality per group
 
         """
         from pandas.core.window import ExpandingGroupby
