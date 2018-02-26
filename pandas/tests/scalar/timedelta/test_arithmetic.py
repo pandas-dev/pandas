@@ -616,19 +616,6 @@ class TestTimedeltaMultiplicationDivision(object):
             divmod(np.array([22, 24]), td)
 
 
-def test_require_td64_unit():
-    # GH#19388
-    td64 = np.timedelta64(86401)
-    nat64 = np.timedelta64('NaT')
-
-    with pytest.raises(TypeError):
-        # Timedelta constructor should not allow unit-less timedelta64
-        Timedelta(td64)
-
-    assert Timedelta(nat64) is NaT
-    assert Timedelta(td64, unit='s').total_seconds() == 86401
-
-
 @pytest.mark.parametrize('op', [operator.add, ops.radd,
                                 operator.sub, ops.rsub,
                                 operator.mul, ops.rmul,

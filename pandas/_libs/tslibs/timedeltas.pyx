@@ -1296,7 +1296,6 @@ cdef _require_td64_has_unit(value):
     ------
     ValueError
     """
-    # GH#19388
     if value.dtype == 'm8':
         # i.e. has no unit
         if util.is_array(value) or (value.view('i8') != NPY_NAT):
