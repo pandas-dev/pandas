@@ -621,3 +621,25 @@ AA &  BB \\
 \end{tabular}
 """ % tuple(list(col_names) + [idx_names_row])
         assert observed == expected
+
+    @pytest.mark.parametrize('one_row', [True, False])
+    def test_to_latex_multiindex_nans(self, one_row):
+        # GH 14249
+        df = pd.DataFrame({'a': [None, 1], 'b': [2, 3], 'c': [4, 5]})
+        if one_row:
+            df = df.iloc[[0]]
+        observed = df.set_index(['a', 'b']).to_latex()
+        expected = r"""\begin{tabular}{llr}
+\toprule
+    &   &  c \\
+a & b &    \\
+\midrule
+NaN & 2 &  4 \\
+"""
+        if not one_row:
+            expected += r"""1.0 & 3 &  5 \\
+"""
+        expected += r"""\bottomrule
+\end{tabular}
+"""
+        assert observed == expected
