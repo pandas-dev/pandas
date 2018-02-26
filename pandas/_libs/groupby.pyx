@@ -350,11 +350,61 @@ def group_any(ndarray[int64_t] out,
     with nogil:
         for i in range(N):
             lab = labels[i]
-            if lab < 0:
+            if lab < 0 or (skipna and isna_mask[i]):
                 continue
 
-            if bool_mask[i] and not (skipna and isna_mask[i]):
+            if bool_mask[i]:
                 out[lab] = 1
+
+
+@cython.boundscheck(False)
+@cython.wraparound(False)
+def group_all(ndarray[int64_t] out,
+              ndarray values,
+              ndarray[int64_t] labels,
+              bint skipna):
+    """Aggregated boolean values to show if all group elements are truthful
+
+    Parameters
+    ----------
+    out : array of int64_t values which this method will write its results to
+    values : array of values to be truth-tested
+    labels : array containing unique label for each group, with its ordering
+        matching up to the corresponding record in `values`
+    skipna : boolean
+        Flag to ignore nan values during truth testing
+
+    Notes
+    -----
+    This method modifies the `out` parameter rather than returning an object.
+    The returned values will either be 0 or 1 (False or True, respectively).
+    """
+    cdef:
+        Py_ssize_t i, N=len(labels)
+        int64_t lab
+        ndarray[int64_t] bool_mask
+        ndarray[uint8_t] isna_mask
+
+    if values.dtype == 'object':
+        bool_mask = np.array([bool(x) for x in values]).astype(np.int64)
+        isna_mask = missing.isnaobj(values).astype(np.uint8)
+    else:
+        bool_mask = values.astype(np.bool).astype(np.int64)
+        isna_mask = np.isnan(values).astype(np.uint8)
+
+    # Because the 'all' value of an empty iterable in Python is True we can
+    # start with an array full of ones and set to zero when a False value is
+    # encountered
+    out.fill(1)
+
+    with nogil:
+        for i in range(N):
+            lab = labels[i]
+            if lab < 0 or (skipna and isna_mask[i]):
+                continue
+
+            if not bool_mask[i]:
+                out[lab] = 0
 
 
 # generated from template
