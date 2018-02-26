@@ -7,6 +7,7 @@ from pandas import read_csv, read_table, DataFrame
 import pandas.core.common as com
 from pandas._libs.tslib import Timestamp
 from pandas.compat import StringIO
+import pandas as pd
 
 from .common import ParserTests
 from .header import HeaderTests
@@ -150,3 +151,17 @@ class TestUnsortedUsecols(object):
         df = parser.read()
 
         tm.assert_frame_equal(df, expected)
+
+    def test_NaN_conversion(object):
+        t1 = """column
+        0
+        """
+        t2 = """column
+        NaN
+        """
+
+        df1 = pd.read_csv(StringIO(t1), dtype={'column': str})
+        df2 = pd.read_csv(StringIO(t2), dtype={'column': str})
+
+        assert(type(df1['column'][0]) == str)
+        assert(type(df2['column'][0]) == str)
