@@ -1041,6 +1041,8 @@ class _WriterBase(SharedItems):
 @pytest.mark.parametrize("engine,ext", [
     pytest.param('openpyxl', '.xlsx', marks=pytest.mark.skipif(
         not td.safe_import('openpyxl'), reason='No openpyxl')),
+    pytest.param('openpyxl', '.xlsm', marks=pytest.mark.skipif(
+        not td.safe_import('openpyxl'), reason='No openpyxl')),
     pytest.param('xlwt', '.xls', marks=pytest.mark.skipif(
         not td.safe_import('xlwt'), reason='No xlwt')),
     pytest.param('xlsxwriter', '.xlsx', marks=pytest.mark.skipif(
