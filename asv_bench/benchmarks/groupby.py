@@ -370,11 +370,11 @@ class GroupByMethods(object):
 
     param_names = ['dtype', 'method']
     params = [['int', 'float'],
-              ['all', 'any', 'count', 'cumcount', 'cummax', 'cummin',
-               'cumprod', 'cumsum', 'describe', 'first', 'head', 'last', 'mad',
-               'max', 'min', 'median', 'mean', 'nunique', 'pct_change', 'prod',
-               'rank', 'sem', 'shift', 'size', 'skew', 'std', 'sum', 'tail',
-               'unique', 'value_counts', 'var']]
+              ['all', 'any', 'bfill', 'count', 'cumcount', 'cummax', 'cummin',
+               'cumprod', 'cumsum', 'describe', 'ffill', 'first', 'head',
+               'last', 'mad', 'max', 'min', 'median', 'mean', 'nunique',
+               'pct_change', 'prod', 'rank', 'sem', 'shift', 'size', 'skew',
+               'std', 'sum', 'tail', 'unique', 'value_counts', 'var']]
 
     def setup(self, dtype, method):
         ngroups = 1000

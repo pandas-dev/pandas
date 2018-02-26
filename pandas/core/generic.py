@@ -7488,7 +7488,7 @@ class NDFrame(PandasObject, SelectionMixin):
                                   **kwargs)) - 1)
         rs = rs.reindex_like(data)
         if freq is None:
-            mask = isna(com._values_from_object(self))
+            mask = isna(com._values_from_object(data))
             np.putmask(rs.values, mask, np.nan)
         return rs
 
@@ -7855,7 +7855,7 @@ empty series identically.
 >>> pd.Series([np.nan]).prod()
 1.0
 
->>> pd.Series([np.nan]).sum(min_count=1)
+>>> pd.Series([np.nan]).prod(min_count=1)
 nan
 """
 
@@ -7867,8 +7867,9 @@ min_count : int, default 0
 
     .. versionadded :: 0.22.0
 
-       Added with the default being 1. This means the sum or product
-       of an all-NA or empty series is ``NaN``.
+       Added with the default being 0. This means the sum of an all-NA
+       or empty Series is 0, and the product of an all-NA or empty
+       Series is 1.
 """
 
 

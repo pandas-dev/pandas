@@ -20,31 +20,7 @@ frequency conversion routines.
 #include "limits.h"
 #include "numpy/ndarraytypes.h"
 
-/*
- * declarations from period here
- */
-
-#define Py_Error(errortype, errorstr)         \
-    {                                         \
-        PyErr_SetString(errortype, errorstr); \
-        goto onError;                         \
-    }
-
 /*** FREQUENCY CONSTANTS ***/
-
-// HIGHFREQ_ORIG is the datetime ordinal from which to begin the second
-// frequency ordinal sequence
-
-// #define HIGHFREQ_ORIG 62135683200LL
-#define BASE_YEAR 1970
-#define ORD_OFFSET 719163LL   // days until 1970-01-01
-#define BDAY_OFFSET 513689LL  // days until 1970-01-01
-#define WEEK_OFFSET 102737LL
-#define BASE_WEEK_TO_DAY_OFFSET \
-    1  // difference between day 0 and end of week in days
-#define DAYS_PER_WEEK 7
-#define BUSINESS_DAYS_PER_WEEK 5
-#define HIGHFREQ_ORIG 0  // ORD_OFFSET * 86400LL // days until 1970-01-01
 
 #define FR_ANN 1000      /* Annual */
 #define FR_ANNDEC FR_ANN /* Annual - December year end*/
@@ -132,12 +108,9 @@ typedef npy_int64 (*freq_conv_func)(npy_int64, asfreq_info *af_info);
  * new pandas API helper functions here
  */
 
-npy_int64 asfreq(npy_int64 period_ordinal, int freq1, int freq2, char relation);
-
 freq_conv_func get_asfreq_func(int fromFreq, int toFreq);
-void get_asfreq_info(int fromFreq, int toFreq, char relation,
-                     asfreq_info *af_info);
 
 npy_int64 get_daytime_conversion_factor(int from_index, int to_index);
+int max_value(int a, int b);
 
 #endif  // PANDAS__LIBS_SRC_PERIOD_HELPER_H_
