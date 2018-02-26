@@ -12,7 +12,7 @@ cross platform distribution for data analysis and scientific computing.
 This is the recommended installation method for most users.
 
 Instructions for installing from source,
-`PyPI <http://pypi.python.org/pypi/pandas>`__, various Linux distributions, or a
+`PyPI <http://pypi.python.org/pypi/pandas>`__, `ActivePython <https://www.activestate.com/activepython/downloads>`__, various Linux distributions, or a
 `development version <http://github.com/pandas-dev/pandas>`__ are also provided.
 
 Python version support
@@ -134,6 +134,10 @@ pandas can be installed via pip from
 
     pip install pandas
 
+Installing pandas with ActivePython
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Installation instructions for ActivePython can be found `here <https://www.activestate.com/activepython/downloads>`__.
 
 Installing using your Linux distribution's package manager.
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -299,5 +303,5 @@ Optional Dependencies
 
    Without the optional dependencies, many useful features will not
    work. Hence, it is highly recommended that you install these. A packaged
-   distribution like `Anaconda <http://docs.continuum.io/anaconda/>`__, or `Enthought Canopy
+   distribution like `Anaconda <http://docs.continuum.io/anaconda/>`__, `ActivePython <https://www.activestate.com/activepython/downloads>`__, or `Enthought Canopy
    <http://enthought.com/products/canopy>`__ may be worth considering.
