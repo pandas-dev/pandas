@@ -40,7 +40,7 @@ class BaseSetitemTests(BaseExtensionTests):
         ser = pd.Series(data)
         original = ser.copy()
         ser[[]] = []
-        tm.assert_series_equal(ser, original)
+        self.assert_series_equal(ser, original)
 
     def test_setitem_sequence_broadcasts(self, data):
         arr = pd.Series(data)
