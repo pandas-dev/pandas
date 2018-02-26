@@ -2523,16 +2523,22 @@ class TestGroupBy(MixIn):
 
         # make sure that skipna works
         df = pd.concat(
-            [pd.DataFrame({'x': [1.0, 2.0, np.nan, np.nan, 3.0, 2.0], 'gp': 'a'}),
-             pd.DataFrame({'x': [2.0, 5.0, 6.0, 1.0, np.nan, 1.0], 'gp': 'b'})])
+            [pd.DataFrame({'x': [1.0, 2.0, np.nan, np.nan, 3.0, 2.0],
+                           'gp': 'a'}),
+             pd.DataFrame({'x': [2.0, 5.0, 6.0, 1.0, np.nan, 1.0],
+                           'gp': 'b'})])
         result = df.groupby('gp')['x'].cumprod(skipna=False)
-        expected = pd.Series([1.0, 2.0, np.nan, np.nan, np.nan, np.nan, 2.0, 10.0, 60.0, 60.0, np.nan, np.nan],
-                             name='x', index=(0, 1, 2, 3, 4, 5, 0, 1, 2, 3, 4, 5))
+        expected = pd.Series([1.0, 2.0, np.nan, np.nan, np.nan, np.nan,
+                              2.0, 10.0, 60.0, 60.0, np.nan, np.nan],
+                             name='x', index=(0, 1, 2, 3, 4, 5,
+                                              0, 1, 2, 3, 4, 5))
         tm.assert_series_equal(result, expected)
 
         result = df.groupby('gp')['x'].cumprod()
-        expected = pd.Series([1.0, 2.0, np.nan, np.nan, 6.0, 12.0, 2.0, 10.0, 60.0, 60.0, np.nan, 60.0],
-                             name='x', index=(0, 1, 2, 3, 4, 5, 0, 1, 2, 3, 4, 5))
+        expected = pd.Series([1.0, 2.0, np.nan, np.nan, 6.0, 12.0,
+                              2.0, 10.0, 60.0, 60.0, np.nan, 60.0],
+                             name='x', index=(0, 1, 2, 3, 4, 5,
+                                              0, 1, 2, 3, 4, 5))
         tm.assert_series_equal(result, expected)
 
     def test_ops_general(self):
