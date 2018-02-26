@@ -6131,8 +6131,8 @@ DataFrame._setup_axes(['index', 'columns'], info_axis=1, stat_axis=0,
 DataFrame._add_numeric_operations()
 DataFrame._add_series_or_dataframe_operations()
 
-ops.add_flex_arithmetic_methods(DataFrame, **ops.frame_flex_funcs)
-ops.add_special_arithmetic_methods(DataFrame, **ops.frame_special_funcs)
+ops.add_flex_arithmetic_methods(DataFrame)
+ops.add_special_arithmetic_methods(DataFrame)
 
 
 def _arrays_to_mgr(arrays, arr_names, index, columns, dtype=None):

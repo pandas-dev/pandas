@@ -812,6 +812,5 @@ class SparseSeries(Series):
 
 
 # overwrite series methods with unaccelerated Sparse-specific versions
-ops.add_flex_arithmetic_methods(SparseSeries, **ops.series_flex_funcs)
-ops.add_special_arithmetic_methods(SparseSeries,
-                                   **ops.sparse_series_special_funcs)
+ops.add_flex_arithmetic_methods(SparseSeries)
+ops.add_special_arithmetic_methods(SparseSeries)
