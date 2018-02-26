@@ -315,7 +315,7 @@ class TestDatetimeIndexArithmetic(object):
     @pytest.mark.parametrize('op', [operator.add, ops.radd,
                                     operator.sub, ops.rsub])
     def test_dti_add_sub_float(self, op, other):
-        dti = DatetimeIndex(['2011-01-01', '2011-01-02'])
+        dti = DatetimeIndex(['2011-01-01', '2011-01-02'], freq='D')
         with pytest.raises(TypeError):
             op(dti, other)
 
