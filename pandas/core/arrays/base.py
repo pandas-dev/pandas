@@ -27,11 +27,11 @@ class ExtensionArray(object):
     * copy
     * _concat_same_type
 
-    Some additional methods are available to satisfy pandas' internals.
+    Some additional methods are available to satisfy pandas' internal, private
+    block API.
 
     * _can_hold_na
     * _formatting_values
-    * _constructor
 
     This class does not inherit from 'abc.ABCMeta' for performance reasons.
     Methods and properties required by the interface raise
@@ -49,32 +49,13 @@ class ExtensionArray(object):
     assumptions on how the data are stored, just that it can be converted
     to a NumPy array.
 
-    There are a few restrictions on how ExtensionArrays are created.
-
-    * An ExtensionArray should be valid, i.e.
-      ``ExtensionArray(extension_array)`` should return an instance
-    * A sequence of the scalar type should be valid, i.e.
-      ``ExtensionArray(Sequence[ExtensionDtype.type]])`` should return
-      an instance, not error.
+    Extension arrays should be able to be constructed with instances of
+    the class, i.e. ``ExtensionArray(extension_array)`` should return
+    an instance, not error.
     """
     # '_typ' is for pandas.core.dtypes.generic.ABCExtensionArray.
     # Don't override this.
     _typ = 'extension'
-
-    @classmethod
-    def _constructor(cls, data):
-        """Construct a new instance of of the extension array.
-
-        Parameters
-        ----------
-        data : Sequence
-
-        Returns
-        -------
-        ExtensionArray
-        """
-        return cls(data)
-
     # ------------------------------------------------------------------------
     # Must be a Sequence
     # ------------------------------------------------------------------------
@@ -245,7 +226,7 @@ class ExtensionArray(object):
         from pandas import unique
 
         uniques = unique(self.astype(object))
-        return self._constructor(uniques)
+        return type(self)(uniques)
 
     # ------------------------------------------------------------------------
     # Indexing methods
