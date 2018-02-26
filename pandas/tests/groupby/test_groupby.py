@@ -2129,13 +2129,8 @@ class TestGroupBy(MixIn):
     def test_groupby_bool_aggs(self, agg_func, skipna, vals):
         df = DataFrame({'key': ['a'] * 3 + ['b'] * 3, 'val': vals * 2})
 
-        if compat.PY3:
-            import builtins as bltins
-        else:
-            import __builtins__ as bltins
-
         # Figure out expectation using Python builtin
-        exp = getattr(bltins, agg_func)(vals)
+        exp = getattr(compat.builtins, agg_func)(vals)
 
         # edge case for missing data with skipna and 'any'
         if skipna and all(isna(vals)) and agg_func == 'any':
