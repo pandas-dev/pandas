@@ -20,8 +20,6 @@ from algos cimport (swap, TiebreakEnumType, TIEBREAK_AVERAGE, TIEBREAK_MIN,
                     TIEBREAK_MAX, TIEBREAK_FIRST, TIEBREAK_DENSE)
 from algos import take_2d_axis1_float64_float64, groupsort_indexer, tiebreakers
 
-import missing
-
 cdef int64_t iNaT = get_nat()
 
 cdef double NaN = <double> np.NaN
@@ -380,13 +378,6 @@ def group_all(ndarray[uint8_t] out,
         ndarray[int64_t] bool_mask
         ndarray[uint8_t] isna_mask
 
-    if values.dtype == 'object':
-        bool_mask = np.array([bool(x) for x in values]).astype(np.int64)
-        isna_mask = missing.isnaobj(values).astype(np.uint8)
-    else:
-        bool_mask = values.astype(np.bool).astype(np.int64)
-        isna_mask = np.isnan(values).astype(np.uint8)
-
     # Because the 'all' value of an empty iterable in Python is True we can
     # start with an array full of ones and set to zero when a False value is
     # encountered
@@ -395,10 +386,10 @@ def group_all(ndarray[uint8_t] out,
     with nogil:
         for i in range(N):
             lab = labels[i]
-            if lab < 0 or (skipna and isna_mask[i]):
+            if lab < 0 or (skipna and mask[i]):
                 continue
 
-            if not bool_mask[i]:
+            if not values[i]:
                 out[lab] = 0
 
 
