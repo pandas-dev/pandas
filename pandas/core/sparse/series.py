@@ -216,12 +216,6 @@ class SparseSeries(Series):
         warnings.warn("'from_array' is deprecated and will be removed in a "
                       "future version. Please use the pd.SparseSeries(..) "
                       "constructor instead.", FutureWarning, stacklevel=2)
-        return cls._from_array(arr, index=index, name=name, copy=copy,
-                               fill_value=fill_value, fastpath=fastpath)
-
-    @classmethod
-    def _from_array(cls, arr, index=None, name=None, copy=False,
-                    fill_value=None, fastpath=False):
         return cls(arr, index=index, name=name, copy=copy,
                    fill_value=fill_value, fastpath=fastpath)
 
@@ -812,6 +806,5 @@ class SparseSeries(Series):
 
 
 # overwrite series methods with unaccelerated Sparse-specific versions
-ops.add_flex_arithmetic_methods(SparseSeries, **ops.series_flex_funcs)
-ops.add_special_arithmetic_methods(SparseSeries,
-                                   **ops.sparse_series_special_funcs)
+ops.add_flex_arithmetic_methods(SparseSeries)
+ops.add_special_arithmetic_methods(SparseSeries)

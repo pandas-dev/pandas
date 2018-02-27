@@ -32,6 +32,7 @@ from pandas.core.dtypes.common import (
     is_object_dtype,
     is_string_dtype,
     is_datetime64_dtype,
+    is_datetime64tz_dtype,
     is_period_dtype,
     is_timedelta64_dtype)
 from pandas.core.dtypes.generic import (
@@ -338,8 +339,9 @@ class DatetimeIndexOpsMixin(DatetimeLikeArray):
         if is_bool_dtype(result):
             result[mask] = False
             return result
+
+        result[mask] = iNaT
         try:
-            result[mask] = iNaT
             return Index(result)
         except TypeError:
             return result
@@ -459,7 +461,7 @@ class DatetimeIndexOpsMixin(DatetimeLikeArray):
             return result
 
         attribs = self._get_attributes_dict()
-        if not isinstance(self, ABCPeriodIndex):
+        if not is_period_dtype(self):
             attribs['freq'] = None
         return self._simple_new(result, **attribs)
 
@@ -746,7 +748,7 @@ class DatetimeIndexOpsMixin(DatetimeLikeArray):
         """
 
         def __add__(self, other):
-            from pandas import Index, DatetimeIndex, TimedeltaIndex, DateOffset
+            from pandas import DateOffset
 
             other = lib.item_from_zerodim(other)
             if isinstance(other, ABCSeries):
@@ -769,18 +771,9 @@ class DatetimeIndexOpsMixin(DatetimeLikeArray):
             elif is_offsetlike(other):
                 # Array/Index of DateOffset objects
                 result = self._addsub_offset_array(other, operator.add)
-            elif isinstance(self, TimedeltaIndex) and isinstance(other, Index):
-                if hasattr(other, '_add_delta'):
-                    # i.e. DatetimeIndex, TimedeltaIndex, or PeriodIndex
-                    result = other._add_delta(self)
-                else:
-                    raise TypeError("cannot add TimedeltaIndex and {typ}"
-                                    .format(typ=type(other)))
-            elif isinstance(other, Index):
-                result = self._add_datelike(other)
-            elif is_datetime64_dtype(other):
-                # ndarray[datetime64]; note DatetimeIndex is caught above
-                return self + DatetimeIndex(other)
+            elif is_datetime64_dtype(other) or is_datetime64tz_dtype(other):
+                # DatetimeIndex, ndarray[datetime64]
+                return self._add_datelike(other)
             elif is_integer_dtype(other) and self.freq is None:
                 # GH#19123
                 raise NullFrequencyError("Cannot shift with no freq")
@@ -800,7 +793,7 @@ class DatetimeIndexOpsMixin(DatetimeLikeArray):
         cls.__radd__ = __radd__
 
         def __sub__(self, other):
-            from pandas import Index, DatetimeIndex, TimedeltaIndex, DateOffset
+            from pandas import Index, DateOffset
 
             other = lib.item_from_zerodim(other)
             if isinstance(other, ABCSeries):
@@ -825,20 +818,13 @@ class DatetimeIndexOpsMixin(DatetimeLikeArray):
             elif is_offsetlike(other):
                 # Array/Index of DateOffset objects
                 result = self._addsub_offset_array(other, operator.sub)
-            elif isinstance(self, TimedeltaIndex) and isinstance(other, Index):
-                # We checked above for timedelta64_dtype(other) so this
-                # must be invalid.
-                raise TypeError("cannot subtract TimedeltaIndex and {typ}"
-                                .format(typ=type(other).__name__))
-            elif isinstance(other, DatetimeIndex):
+            elif is_datetime64_dtype(other) or is_datetime64tz_dtype(other):
+                # DatetimeIndex, ndarray[datetime64]
                 result = self._sub_datelike(other)
-            elif is_datetime64_dtype(other):
-                # ndarray[datetime64]; note we caught DatetimeIndex earlier
-                return self - DatetimeIndex(other)
             elif isinstance(other, Index):
-                raise TypeError("cannot subtract {typ1} and {typ2}"
-                                .format(typ1=type(self).__name__,
-                                        typ2=type(other).__name__))
+                raise TypeError("cannot subtract {cls} and {typ}"
+                                .format(cls=type(self).__name__,
+                                        typ=type(other).__name__))
             elif is_integer_dtype(other) and self.freq is None:
                 # GH#19123
                 raise NullFrequencyError("Cannot shift with no freq")

@@ -792,7 +792,7 @@ class TestTimedeltaIndexArithmetic(object):
         pytest.raises(ValueError, lambda: tdi[0:1] + dti)
 
         # random indexes
-        pytest.raises(TypeError, lambda: tdi + Int64Index([1, 2, 3]))
+        pytest.raises(NullFrequencyError, lambda: tdi + Int64Index([1, 2, 3]))
 
         # this is a union!
         # pytest.raises(TypeError, lambda : Int64Index([1,2,3]) + tdi)
