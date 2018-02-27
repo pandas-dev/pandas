@@ -12,7 +12,6 @@ from pandas.core.dtypes.common import (
     is_scalar,
     is_datetime64_dtype,
     is_datetime64_any_dtype,
-    is_timedelta64_dtype,
     is_period_dtype,
     is_bool_dtype,
     pandas_dtype,
@@ -25,7 +24,6 @@ from pandas.tseries.frequencies import get_freq_code as _gfc
 from pandas.tseries.offsets import Tick, DateOffset
 
 from pandas.core.indexes.datetimes import DatetimeIndex, Int64Index, Index
-from pandas.core.indexes.timedeltas import TimedeltaIndex
 from pandas.core.indexes.datetimelike import DatelikeOps, DatetimeIndexOpsMixin
 from pandas.core.tools.datetimes import parse_time_string
 
@@ -701,16 +699,6 @@ class PeriodIndex(DatelikeOps, DatetimeIndexOpsMixin, Int64Index):
                 return other.n
             msg = _DIFFERENT_FREQ_INDEX.format(self.freqstr, other.freqstr)
             raise IncompatibleFrequency(msg)
-        elif isinstance(other, np.ndarray):
-            if is_integer_dtype(other):
-                return other
-            elif is_timedelta64_dtype(other):
-                offset = frequencies.to_offset(self.freq)
-                if isinstance(offset, Tick):
-                    nanos = delta_to_nanoseconds(other)
-                    offset_nanos = delta_to_nanoseconds(offset)
-                    if (nanos % offset_nanos).all() == 0:
-                        return nanos // offset_nanos
         elif is_integer(other):
             # integer is passed to .shift via
             # _add_datetimelike_methods basically
@@ -749,10 +737,7 @@ class PeriodIndex(DatelikeOps, DatetimeIndexOpsMixin, Int64Index):
         return self.shift(ordinal_delta)
 
     def _sub_datelike(self, other):
-        if other is tslib.NaT:
-            new_data = np.empty(len(self), dtype=np.int64)
-            new_data.fill(tslib.iNaT)
-            return TimedeltaIndex(new_data)
+        assert other is not tslib.NaT
         return NotImplemented
 
     def _sub_period(self, other):
