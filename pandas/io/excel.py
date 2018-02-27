@@ -387,7 +387,10 @@ class ExcelFile(object):
             self.book = io
         elif not isinstance(io, xlrd.Book) and hasattr(io, "read"):
             # N.B. xlrd.Book has a read attribute too
-            io.seek(0)  # GH 19779
+            if hasattr(io, 'seek'):
+                # GH 19779
+                io.seek(0)
+
             data = io.read()
             self.book = xlrd.open_workbook(file_contents=data)
         elif isinstance(self._io, compat.string_types):
