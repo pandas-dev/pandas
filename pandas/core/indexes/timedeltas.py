@@ -17,6 +17,7 @@ from pandas.core.dtypes.common import (
 from pandas.core.dtypes.missing import isna
 from pandas.core.dtypes.generic import ABCSeries
 
+from pandas.core.arrays.timedeltas import TimedeltaArray
 from pandas.core.indexes.base import Index
 from pandas.core.indexes.numeric import Int64Index
 import pandas.compat as compat
@@ -29,7 +30,7 @@ import pandas.core.common as com
 import pandas.core.dtypes.concat as _concat
 from pandas.util._decorators import Appender, Substitution, deprecate_kwarg
 from pandas.core.indexes.datetimelike import (
-    TimelikeOps, DatetimeIndexOpsMixin, DatetimeLikeArray)
+    TimelikeOps, DatetimeIndexOpsMixin)
 from pandas.core.tools.timedeltas import (
     to_timedelta, _coerce_scalar_to_timedelta_type)
 from pandas.tseries.offsets import Tick, DateOffset
@@ -94,16 +95,6 @@ def _td_index_cmp(opname, cls):
         return Index(result)
 
     return compat.set_function_name(wrapper, opname, cls)
-
-
-class TimedeltaArray(DatetimeLikeArray):
-    @property
-    def _box_func(self):
-        return lambda x: Timedelta(x, unit='ns')
-
-    @property
-    def dtype(self):
-        return _TD_DTYPE
 
 
 class TimedeltaIndex(TimedeltaArray, DatetimeIndexOpsMixin,

@@ -25,7 +25,7 @@ from pandas.tseries.frequencies import get_freq_code as _gfc
 from pandas.core.indexes.datetimes import DatetimeIndex, Int64Index, Index
 from pandas.core.indexes.timedeltas import TimedeltaIndex
 from pandas.core.indexes.datetimelike import (
-    DatelikeOps, DatetimeIndexOpsMixin, DatetimeLikeArray)
+    DatelikeOps, DatetimeIndexOpsMixin)
 from pandas.core.tools.datetimes import parse_time_string
 import pandas.tseries.offsets as offsets
 
@@ -38,6 +38,7 @@ from pandas._libs.tslibs.fields import isleapyear_arr
 from pandas._libs.tslibs import resolution, period
 from pandas._libs.tslibs.timedeltas import delta_to_nanoseconds
 
+from pandas.core.arrays.periods import PeriodArray
 from pandas.core.base import _shared_docs
 from pandas.core.indexes.base import _index_shared_docs, _ensure_index
 
@@ -122,25 +123,6 @@ def _new_PeriodIndex(cls, **d):
     if d['data'].dtype == 'int64':
         values = d.pop('data')
     return cls._from_ordinals(values=values, **d)
-
-
-class PeriodArray(DatetimeLikeArray):
-    @property
-    def _box_func(self):
-        return lambda x: Period._from_ordinal(ordinal=x, freq=self.freq)
-
-    @cache_readonly
-    def dtype(self):
-        return PeriodDtype.construct_from_string(self.freq)
-
-    @property
-    def _ndarray_values(self):
-        # Ordinals
-        return self._data
-
-    @property
-    def asi8(self):
-        return self._ndarray_values.view('i8')
 
 
 class PeriodIndex(PeriodArray, DatelikeOps, DatetimeIndexOpsMixin, Int64Index):
