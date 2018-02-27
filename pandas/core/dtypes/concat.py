@@ -101,6 +101,27 @@ def _get_frame_result_type(result, objs):
                                                           ABCSparseDataFrame))
 
 
+def _get_sliced_frame_result_type(data, obj):
+    """
+    return appropriate class of Series. When data is sparse
+    it will return a SparseSeries, otherwise it will return
+    the Series.
+
+    Parameters
+    ----------
+    data : array-like
+    obj : DataFrame
+
+    Returns
+    -------
+    Series or SparseSeries
+    """
+    if is_sparse(data):
+        from pandas.core.sparse.api import SparseSeries
+        return SparseSeries
+    return obj._constructor_sliced
+
+
 def _concat_compat(to_concat, axis=0):
     """
     provide concatenation of an array of arrays each of which is a single
