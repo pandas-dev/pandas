@@ -5,7 +5,7 @@ cimport cython
 from cython cimport Py_ssize_t
 
 import time
-from cpython.datetime cimport (PyDateTime_Check, PyDateTime_CheckExact,
+from cpython.datetime cimport (PyDateTime_Check,
                                PyDateTime_IMPORT,
                                datetime, timedelta, time as dt_time)
 PyDateTime_IMPORT
@@ -101,7 +101,7 @@ def as_datetime(obj):
     return obj
 
 
-cpdef datetime as_timestamp(datetime obj):
+cpdef datetime as_timestamp(obj):
     """
     If obj is not already a Timestamp, wrap it in one.
 
@@ -113,8 +113,7 @@ cpdef datetime as_timestamp(datetime obj):
     -------
     result : Timestamp
     """
-    if not PyDateTime_CheckExact(obj):
-        # already a Timestamp
+    if isinstance(obj, Timestamp):
         return obj
     try:
         return Timestamp(obj)
@@ -364,14 +363,14 @@ class _BaseOffset(object):
         else:  # pragma: no cover
             return NotImplemented
 
-    def rollback(self, datetime dt):
+    def rollback(self, dt):
         """Roll provided date backward to next offset only if not on offset"""
         dt = as_timestamp(dt)
         if not self.onOffset(dt):
             dt = dt - self.__class__(1, normalize=self.normalize, **self.kwds)
         return dt
 
-    def rollforward(self, datetime dt):
+    def rollforward(self, dt):
         """Roll provided date forward to next offset only if not on offset"""
         dt = as_timestamp(dt)
         if not self.onOffset(dt):
