@@ -1380,6 +1380,12 @@ class _OpenpyxlWriter(ExcelWriter):
             )
             xcell.value = _conv_value(cell.val)
 
+            if isinstance(cell.val, timedelta):
+                delta = cell.val
+                xcell.value = delta.total_seconds() / float(86400)
+                # Set format to prevent conversion to datetime
+                xcell.number_format = '0'
+
             style_kwargs = {}
             if cell.style:
                 key = str(cell.style)
@@ -1748,6 +1754,9 @@ class _XlsxWriter(ExcelWriter):
                 num_format_str = self.datetime_format
             elif isinstance(cell.val, date):
                 num_format_str = self.date_format
+            elif isinstance(cell.val, timedelta):
+                delta = cell.val
+                val = delta.total_seconds() / float(86400)
 
             stylekey = json.dumps(cell.style)
             if num_format_str:
