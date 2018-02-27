@@ -5,7 +5,10 @@ cimport cython
 from cython cimport Py_ssize_t
 
 import time
-from cpython.datetime cimport datetime, timedelta, time as dt_time
+from cpython.datetime cimport (PyDateTime_Check, PyDateTime_CheckExact,
+                               PyDateTime_IMPORT,
+                               datetime, timedelta, time as dt_time)
+PyDateTime_IMPORT
 
 from dateutil.relativedelta import relativedelta
 
@@ -24,6 +27,9 @@ from nattype cimport NPY_NAT
 from np_datetime cimport (pandas_datetimestruct,
                           dtstruct_to_dt64, dt64_to_dtstruct,
                           is_leapyear, days_per_month_table, dayofweek)
+from np_datetime import OutOfBoundsDatetime
+from timestamps import Timestamp
+from ..tslib import _localize_pydatetime
 
 # ---------------------------------------------------------------------
 # Constants
@@ -92,6 +98,28 @@ def as_datetime(obj):
     f = getattr(obj, 'to_pydatetime', None)
     if f is not None:
         obj = f()
+    return obj
+
+
+cpdef datetime as_timestamp(datetime obj):
+    """
+    If obj is not already a Timestamp, wrap it in one.
+
+    Parameters
+    ----------
+    obj: datetime or Timestamp
+
+    Returns
+    -------
+    result : Timestamp
+    """
+    if not PyDateTime_CheckExact(obj):
+        # already a Timestamp
+        return obj
+    try:
+        return Timestamp(obj)
+    except OutOfBoundsDatetime:
+        pass
     return obj
 
 
@@ -311,8 +339,44 @@ class _BaseOffset(object):
                 if name not in ['n', 'normalize']}
         return {name: kwds[name] for name in kwds if kwds[name] is not None}
 
+    def apply(self, other):
+        from pandas.errors import AbstractMethodError
+        raise AbstractMethodError(self)
+
     def __call__(self, other):
         return self.apply(other)
+
+    def __add__(self, other):
+        typ = getattr(other, '_typ', None)
+        if typ in ['series', 'datetimeindex', 'period']:
+            return other + self
+        try:
+            return self.apply(other)
+        except ApplyTypeError:
+            return NotImplemented
+
+    def __sub__(self, other):
+        if PyDateTime_Check(other):
+            raise TypeError('Cannot subtract datetime from offset.')
+        elif type(other) == type(self):
+            return self.__class__(self.n - other.n, normalize=self.normalize,
+                                  **self.kwds)
+        else:  # pragma: no cover
+            return NotImplemented
+
+    def rollback(self, datetime dt):
+        """Roll provided date backward to next offset only if not on offset"""
+        dt = as_timestamp(dt)
+        if not self.onOffset(dt):
+            dt = dt - self.__class__(1, normalize=self.normalize, **self.kwds)
+        return dt
+
+    def rollforward(self, datetime dt):
+        """Roll provided date forward to next offset only if not on offset"""
+        dt = as_timestamp(dt)
+        if not self.onOffset(dt):
+            dt = dt + self.__class__(1, normalize=self.normalize, **self.kwds)
+        return dt
 
     def __mul__(self, other):
         return self.__class__(n=other * self.n, normalize=self.normalize,
@@ -332,6 +396,9 @@ class _BaseOffset(object):
     def _should_cache(self):
         return self.isAnchored() and self._cacheable
 
+    # ----------------------------------------------------------------
+    # repr-related methods and properties
+
     def __repr__(self):
         className = getattr(self, '_outputName', type(self).__name__)
 
@@ -346,6 +413,31 @@ class _BaseOffset(object):
 
         out = '<%s' % n_str + className + plural + self._repr_attrs() + '>'
         return out
+
+    @property
+    def freqstr(self):
+        try:
+            code = self.rule_code
+        except NotImplementedError:
+            return repr(self)
+
+        if self.n != 1:
+            fstr = '{n}{code}'.format(n=self.n, code=code)
+        else:
+            fstr = code
+
+        fstr += self._offset_str()
+        return fstr
+
+    def _offset_str(self):
+        # overriden by BusinessDay
+        return ''
+
+    @property
+    def rule_code(self):
+        raise NotImplementedError
+
+    # ----------------------------------------------------------------
 
     def _get_offset_day(self, datetime other):
         # subclass must implement `_day_opt`; calling from the base class
@@ -416,6 +508,31 @@ cdef inline int month_add_months(pandas_datetimestruct dts, int months) nogil:
     """
     cdef int new_month = (dts.month + months) % 12
     return 12 if new_month == 0 else new_month
+
+
+def shift_day(datetime other, int days):
+    """
+    Increment the datetime `other` by the given number of days, retaining
+    the time-portion of the datetime.  For tz-naive datetimes this is
+    equivalent to adding a timedelta.  For tz-aware datetimes it is similar to
+    dateutil's relativedelta.__add__, but handles pytz tzinfo objects.
+
+    Parameters
+    ----------
+    other : datetime or Timestamp
+    days : int
+
+    Returns
+    -------
+    shifted: datetime or Timestamp
+    """
+    if other.tzinfo is None:
+        return other + timedelta(days=days)
+
+    tz = other.tzinfo
+    naive = other.replace(tzinfo=None)
+    shifted = naive + timedelta(days=days)
+    return _localize_pydatetime(shifted, tz)
 
 
 @cython.wraparound(False)
