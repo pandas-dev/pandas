@@ -1219,7 +1219,7 @@ class GroupBy(_GroupBy):
     """
     _apply_whitelist = _common_apply_whitelist
 
-    def _bool_agg(self, how, skipna):
+    def _bool_agg(self, val_test, skipna):
         """Shared func to call any / all Cython GroupBy implementations"""
 
         def objs_to_bool(vals):
@@ -1233,14 +1233,14 @@ class GroupBy(_GroupBy):
         def result_to_bool(result):
             return result.astype(np.bool, copy=False)
 
-        return self._get_cythonized_result(how, self.grouper,
+        return self._get_cythonized_result('group_any_all', self.grouper,
                                            aggregate=True,
                                            cython_dtype=np.uint8,
                                            needs_values=True,
                                            needs_mask=True,
                                            pre_processing=objs_to_bool,
                                            post_processing=result_to_bool,
-                                           skipna=skipna)
+                                           val_test=val_test, skipna=skipna)
 
     @Substitution(name='groupby')
     @Appender(_doc_template)
@@ -1252,7 +1252,7 @@ class GroupBy(_GroupBy):
         skipna : bool, default True
             Flag to ignore nan values during truth testing
         """
-        return self._bool_agg('group_any', skipna)
+        return self._bool_agg('any', skipna)
 
     @Substitution(name='groupby')
     @Appender(_doc_template)
@@ -1264,7 +1264,7 @@ class GroupBy(_GroupBy):
         skipna : bool, default True
             Flag to ignore nan values during truth testing
         """
-        return self._bool_agg('group_all', skipna)
+        return self._bool_agg('all', skipna)
 
     @Substitution(name='groupby')
     @Appender(_doc_template)
