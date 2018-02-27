@@ -34,10 +34,6 @@ class JSONArray(ExtensionArray):
         self.data = values
 
     @classmethod
-    def _from_extension_array(cls, array, copy=True):
-        return cls(array)
-
-    @classmethod
     def _from_scalars(cls, scalars):
         return cls(scalars)
 
@@ -47,7 +43,7 @@ class JSONArray(ExtensionArray):
         elif isinstance(item, np.ndarray) and item.dtype == 'bool':
             return self._from_scalars([x for x, m in zip(self, item) if m])
         else:
-            return self._from_extension_array(self.data[item])
+            return type(self)(self.data[item])
 
     def __setitem__(self, key, value):
         if isinstance(key, numbers.Integral):
@@ -88,7 +84,7 @@ class JSONArray(ExtensionArray):
         return self._from_scalars(output)
 
     def copy(self, deep=False):
-        return self._from_extension_array(self.data[:])
+        return type(self)(self.data[:])
 
     @property
     def _na_value(self):

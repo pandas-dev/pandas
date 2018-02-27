@@ -33,10 +33,6 @@ class DecimalArray(ExtensionArray):
         self.values = values
 
     @classmethod
-    def _from_extension_array(cls, array, copy=True):
-        return cls(array)
-
-    @classmethod
     def _from_scalars(cls, scalars):
         return cls(scalars)
 
