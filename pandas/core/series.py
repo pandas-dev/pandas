@@ -212,7 +212,6 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
                                          'be False.')
 
             elif is_extension_array_dtype(data) and dtype is not None:
-                # GH12574: Allow dtype=category only, otherwise error
                 if not data.dtype.is_dtype(dtype):
                     raise ValueError("Cannot specify a dtype '{}' with an "
                                      "extension array of a different "
@@ -235,6 +234,18 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
                 if not is_list_like(data):
                     data = [data]
                 index = com._default_index(len(data))
+            elif is_list_like(data):
+
+                # a scalar numpy array is list-like but doesn't
+                # have a proper length
+                try:
+                    if len(index) != len(data):
+                        raise ValueError(
+                            'Length of passed values is {val}, '
+                            'index implies {ind}'
+                            .format(val=len(data), ind=len(index)))
+                except TypeError:
+                    pass
 
             # create/copy the manager
             if isinstance(data, SingleBlockManager):

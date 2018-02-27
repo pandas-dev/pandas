@@ -400,6 +400,34 @@ class TestSeriesConstructors(TestData):
         s = Series([0, 1, 2])
         tm.assert_index_equal(s.index, pd.Index(np.arange(3)))
 
+    @pytest.mark.parametrize('input', [[1, 2, 3],
+                                       (1, 2, 3),
+                                       list(range(3)),
+                                       pd.Categorical(['a', 'b', 'a']),
+                                       (i for i in range(3)),
+                                       map(lambda x: x, range(3))])
+    def test_constructor_index_mismatch(self, input):
+        # GH 19342
+        # test that construction of a Series with an index of different length
+        # raises an error
+        msg = 'Length of passed values is 3, index implies 4'
+        with pytest.raises(ValueError, message=msg):
+            Series(input, index=np.arange(4))
+
+    def test_constructor_numpy_scalar(self):
+        # GH 19342
+        # construction with a numpy scalar
+        # should not raise
+        result = Series(np.array(100), index=np.arange(4), dtype='int64')
+        expected = Series(100, index=np.arange(4), dtype='int64')
+        tm.assert_series_equal(result, expected)
+
+    def test_constructor_broadcast_list(self):
+        # GH 19342
+        # construction with single-element container and index
+        # should raise
+        pytest.raises(ValueError, Series, ['foo'], index=['a', 'b', 'c'])
+
     def test_constructor_corner(self):
         df = tm.makeTimeDataFrame()
         objs = [df, df]
