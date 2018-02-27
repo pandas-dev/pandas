@@ -8,7 +8,8 @@ from numpy import nan
 from datetime import datetime
 from itertools import permutations
 from pandas import (Series, Categorical, CategoricalIndex,
-                    Timestamp, DatetimeIndex, Index, IntervalIndex)
+                    Timestamp, DatetimeIndex, Index, IntervalIndex,
+                    SparseArray)
 import pandas as pd
 
 from pandas import compat
@@ -276,6 +277,16 @@ class TestUnique(object):
         lst = ['A', 'B', 'C', 'D', 'E']
         for i in range(1000):
             len(algos.unique(lst))
+
+    @pytest.mark.parametrize('fill_value', [0, 1, np.nan, None])
+    def test_sparse(self, fill_value):
+        # GH 19595
+        arr = SparseArray([0, 1, np.nan, None], fill_value=fill_value)
+
+        result = algos.unique(arr)
+
+        assert isinstance(result, np.ndarray)
+        assert len(result) == 3
 
     def test_on_index_object(self):
 
