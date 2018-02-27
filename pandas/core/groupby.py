@@ -162,8 +162,8 @@ _apply_docs = dict(
     a    5
     b    2
     dtype: int64
-    
-    When GroupBy object has group_keys=False changes are made to 
+
+    When GroupBy object has group_keys=False changes are made to
     rows of a group.
 
     >>> df = pd.DataFrame({'A': 'a a b'.split(), 'B': [1,2,3], 'C': [4,6, 5]})
