@@ -29,7 +29,7 @@ from np_datetime cimport (pandas_datetimestruct,
                           is_leapyear, days_per_month_table, dayofweek)
 from np_datetime import OutOfBoundsDatetime
 from timestamps import Timestamp
-from ..tslib import _localize_pydatetime
+from pandas._libs.tslib import _localize_pydatetime
 
 # ---------------------------------------------------------------------
 # Constants
