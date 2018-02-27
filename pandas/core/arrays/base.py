@@ -18,7 +18,6 @@ class ExtensionArray(object):
     The interface includes the following abstract methods that must be
     implemented by subclasses:
 
-    * _from_extension_array
     * _from_scalars
     * __getitem__
     * __len__
@@ -63,29 +62,6 @@ class ExtensionArray(object):
     # Constructors
     # ------------------------------------------------------------------------
     @classmethod
-    def _from_extension_array(cls, array, copy=True):
-        """Construct a new ExtensionArray from an existing instance.
-
-        Parameters
-        ----------
-        array : ExtensionArray
-            An extension array of the same type as cls.
-        copy : bool, default True
-            Whether a copy should be made using ``array.copy``. Note that
-            even if ``copy=False`` there's no guarantee that the underlying
-            data of the two arrays is the same.
-
-        Returns
-        -------
-        ExtensionArray
-
-        See Also
-        --------
-        _from_scalars
-        """
-        raise AbstractMethodError(cls)
-
-    @classmethod
     def _from_scalars(cls, scalars):
         """Construct a new ExtensionArray from a sequence of scalars.
 
@@ -98,10 +74,6 @@ class ExtensionArray(object):
         Returns
         -------
         ExtensionArray
-
-        See Also
-        --------
-        _from_extension_array
         """
         raise AbstractMethodError(cls)
 
