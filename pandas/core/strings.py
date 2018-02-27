@@ -356,23 +356,23 @@ def str_replace(arr, pat, repl, n=-1, case=None, flags=0, regex=True):
 
     Examples
     --------
-    When `pat` is a string and `regex` is False, every `pat` is replaced with
-    `repl` as with :meth:`str.replace`. NaN value(s) in the Series are left as
-    is.
-
-    >>> pd.Series(['f.o', 'fuz', np.nan]).str.replace('f.', 'ba', regex=False)
-    0    bao
-    1    fuz
-    2    NaN
-    dtype: object
-
-    When `pat` is a string and `regex` is True, the given `pat` is compiled
-    as a regex. When `repl` is a string, it replaces matching regex patterns
-    as with :meth:`re.sub`:
+    When `pat` is a string and `regex` is True (the default), the given `pat`
+    is compiled as a regex. When `repl` is a string, it replaces matching
+    regex patterns as with :meth:`re.sub`. NaN value(s) in the Series are
+    left as is:
 
     >>> pd.Series(['foo', 'fuz', np.nan]).str.replace('f.', 'ba', regex=True)
     0    bao
     1    baz
+    2    NaN
+    dtype: object
+
+    When `pat` is a string and `regex` is False, every `pat` is replaced with
+    `repl` as with :meth:`str.replace`:
+
+    >>> pd.Series(['f.o', 'fuz', np.nan]).str.replace('f.', 'ba', regex=False)
+    0    bao
+    1    fuz
     2    NaN
     dtype: object
 
@@ -414,6 +414,13 @@ def str_replace(arr, pat, repl, n=-1, case=None, flags=0, regex=True):
     1    bar
     2    NaN
     dtype: object
+
+    Raises
+    ------
+    ValueError
+        * if `regex` is False and `repl` is a callable or `pat` is a compiled
+          regex
+        * if `pat` is a compiled regex and `case` or `flags` is set
     """
 
     # Check whether repl is valid (GH 13438, GH 15055)
