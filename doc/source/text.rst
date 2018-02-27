@@ -157,7 +157,7 @@ and ``repl`` must be strings:
 
     # These lines are equivalent
     dollars.str.replace(r'-\$', '-')
-    dollars.str.replace('-$', '-', regex=False)  
+    dollars.str.replace('-$', '-', regex=False)
 
 .. versionadded:: 0.20.0
 
