@@ -919,6 +919,7 @@ Reshaping
 - Comparisons between :class:`Series` and :class:`Index` would return a ``Series`` with an incorrect name, ignoring the ``Index``'s name attribute (:issue:`19582`)
 - Bug in :func:`qcut` where datetime and timedelta data with ``NaT`` present raised a ``ValueError`` (:issue:`19768`)
 - Bug in :func:`DataFrame.iterrows`, which would infers strings not compliant to `ISO8601 <https://en.wikipedia.org/wiki/ISO_8601>`_ to datetimes (:issue:`19671`)
+- Bug in :class:`Series` constructor with ``Categorical`` where a ```ValueError`` is not raised when an index of different length is given (:issue:`19342`)
 
 Other
 ^^^^^
