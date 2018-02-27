@@ -100,4 +100,4 @@ class DatetimeArray(DatetimeLikeArray):
         if self.hasnans or other.hasnans:
             mask = (self._isnan) | (other._isnan)
             new_values[mask] = iNaT
-        return new_values.view('i8')
+        return new_values.view('timedelta64[ns]')
