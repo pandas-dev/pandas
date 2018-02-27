@@ -614,3 +614,19 @@ class TestTimedeltaMultiplicationDivision(object):
 
         with pytest.raises(TypeError):
             divmod(np.array([22, 24]), td)
+
+
+@pytest.mark.parametrize('op', [operator.add, ops.radd,
+                                operator.sub, ops.rsub,
+                                operator.mul, ops.rmul,
+                                operator.floordiv, ops.rfloordiv,
+                                operator.mod, ops.rmod,
+                                divmod, ops.rdivmod])
+@pytest.mark.parametrize('other', [
+    np.timedelta64(86401),
+    np.array([86401], dtype='timedelta64')])
+def test_require_td64_unit_ops(op, other):
+    # GH#19388
+    td = Timedelta(days=3, hours=4, minutes=5)
+    with pytest.raises(TypeError):
+        op(td, other)

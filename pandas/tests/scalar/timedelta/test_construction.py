@@ -220,3 +220,16 @@ def test_td_constructor_on_nanoseconds():
 
     with pytest.raises(TypeError):
         Timedelta(nanoseconds='abc')
+
+
+def test_require_td64_unit():
+    # GH#19388
+    td64 = np.timedelta64(86401)
+    nat64 = np.timedelta64('NaT')
+
+    with pytest.raises(TypeError):
+        # Timedelta constructor should not allow unit-less timedelta64
+        Timedelta(td64)
+
+    assert Timedelta(nat64) is pd.NaT
+    assert Timedelta(td64, unit='s').total_seconds() == 86401
