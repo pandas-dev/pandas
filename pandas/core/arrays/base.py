@@ -251,35 +251,51 @@ class ExtensionArray(object):
         """
         from pandas.api.types import is_scalar
         from pandas.util._validators import validate_fillna_kwargs
-        from pandas.core.missing import pad_1d, backfill_1d
 
         value, method = validate_fillna_kwargs(value, method)
-
-        mask = self.isna()
 
         if not is_scalar(value):
             if len(value) != len(self):
                 raise ValueError("Length of 'value' does not match. Got ({}) "
                                  " expected {}".format(len(value), len(self)))
-            value = value[mask]
+        else:
+            value = itertools.cycle([value])
 
         if limit is not None:
             msg = ("Specifying 'limit' for 'fillna' has not been implemented "
                    "yet for {} typed data".format(self.dtype))
             raise NotImplementedError(msg)
 
+        mask = self.isna()
+
         if mask.any():
             # ffill / bfill
-            if method == 'pad':
-                values = self.astype(object)
-                new_values = pad_1d(values, mask=mask)
-            elif method == 'backfill':
-                values = self.astype(object)
-                new_values = backfill_1d(values, mask=mask)
+            if method is not None:
+                if method == 'backfill':
+                    data = reversed(self)
+                    mask = reversed(mask)
+                    last_valid = self[len(self) - 1]
+                else:
+                    last_valid = self[0]
+                    data = self
+
+                new_values = []
+
+                for is_na, val in zip(mask, data):
+                    if is_na:
+                        new_values.append(last_valid)
+                    else:
+                        new_values.append(val)
+                        last_valid = val
+
+                if method in {'bfill', 'backfill'}:
+                    new_values = list(reversed(new_values))
             else:
                 # fill with value
-                new_values = self.copy()
-                new_values[mask] = value
+                new_values = [
+                    val if is_na else original
+                    for is_na, original, val in zip(mask, self, value)
+                ]
         else:
             new_values = self
         return type(self)(new_values)
