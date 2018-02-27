@@ -1021,11 +1021,11 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         >>> s = pd.Series([1, 2, 3, 4], index=pd.Index(['a', 'b', 'c', 'd'],
         ...                                            name = 'idx'))
         >>> s.reset_index()
-             idx  0
-        0      0  1
-        1      1  2
-        2      2  3
-        3      3  4
+          idx  0
+        0   a  1
+        1   b  2
+        2   c  3
+        3   d  4
 
         >>> arrays = [np.array(['bar', 'bar', 'baz', 'baz', 'foo',
         ...                     'foo', 'qux', 'qux']),
