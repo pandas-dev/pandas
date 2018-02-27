@@ -270,6 +270,13 @@ class TestSeriesConstructors(TestData):
         tm.assert_index_equal(result.cat.categories, pd.Index(['b', 'a']))
         assert result.cat.ordered is False
 
+        # GH 19565 - Check broadcasting of scalar with Categorical dtype
+        result = Series('a', index=[0, 1],
+                        dtype=CategoricalDtype(['a', 'b'], ordered=True))
+        expected = Series(['a', 'a'], index=[0, 1],
+                          dtype=CategoricalDtype(['a', 'b'], ordered=True))
+        tm.assert_series_equal(result, expected, check_categorical=True)
+
     def test_categorical_sideeffects_free(self):
         # Passing a categorical to a Series and then changing values in either
         # the series or the categorical should not change the values in the
@@ -392,6 +399,34 @@ class TestSeriesConstructors(TestData):
     def test_constructor_default_index(self):
         s = Series([0, 1, 2])
         tm.assert_index_equal(s.index, pd.Index(np.arange(3)))
+
+    @pytest.mark.parametrize('input', [[1, 2, 3],
+                                       (1, 2, 3),
+                                       list(range(3)),
+                                       pd.Categorical(['a', 'b', 'a']),
+                                       (i for i in range(3)),
+                                       map(lambda x: x, range(3))])
+    def test_constructor_index_mismatch(self, input):
+        # GH 19342
+        # test that construction of a Series with an index of different length
+        # raises an error
+        msg = 'Length of passed values is 3, index implies 4'
+        with pytest.raises(ValueError, message=msg):
+            Series(input, index=np.arange(4))
+
+    def test_constructor_numpy_scalar(self):
+        # GH 19342
+        # construction with a numpy scalar
+        # should not raise
+        result = Series(np.array(100), index=np.arange(4), dtype='int64')
+        expected = Series(100, index=np.arange(4), dtype='int64')
+        tm.assert_series_equal(result, expected)
+
+    def test_constructor_broadcast_list(self):
+        # GH 19342
+        # construction with single-element container and index
+        # should raise
+        pytest.raises(ValueError, Series, ['foo'], index=['a', 'b', 'c'])
 
     def test_constructor_corner(self):
         df = tm.makeTimeDataFrame()
@@ -552,10 +587,6 @@ class TestSeriesConstructors(TestData):
         s.iloc[0] = np.nan
         assert s.dtype == 'M8[ns]'
 
-        # invalid astypes
-        for t in ['s', 'D', 'us', 'ms']:
-            pytest.raises(TypeError, s.astype, 'M8[%s]' % t)
-
         # GH3414 related
         pytest.raises(TypeError, lambda x: Series(
             Series(dates).astype('int') / 1000000, dtype='M8[ms]'))
@@ -706,6 +737,28 @@ class TestSeriesConstructors(TestData):
         s = Series(pd.NaT, index=[0, 1], dtype='datetime64[ns, US/Eastern]')
         expected = Series(pd.DatetimeIndex(['NaT', 'NaT'], tz='US/Eastern'))
         assert_series_equal(s, expected)
+
+    @pytest.mark.parametrize("arr_dtype", [np.int64, np.float64])
+    @pytest.mark.parametrize("dtype", ["M8", "m8"])
+    @pytest.mark.parametrize("unit", ['ns', 'us', 'ms', 's', 'h', 'm', 'D'])
+    def test_construction_to_datetimelike_unit(self, arr_dtype, dtype, unit):
+        # tests all units
+        # gh-19223
+        dtype = "{}[{}]".format(dtype, unit)
+        arr = np.array([1, 2, 3], dtype=arr_dtype)
+        s = Series(arr)
+        result = s.astype(dtype)
+        expected = Series(arr.astype(dtype))
+
+        tm.assert_series_equal(result, expected)
+
+    @pytest.mark.parametrize('arg',
+                             ['2013-01-01 00:00:00', pd.NaT, np.nan, None])
+    def test_constructor_with_naive_string_and_datetimetz_dtype(self, arg):
+        # GH 17415: With naive string
+        result = Series([arg], dtype='datetime64[ns, CET]')
+        expected = Series(pd.Timestamp(arg)).dt.tz_localize('CET')
+        assert_series_equal(result, expected)
 
     def test_construction_interval(self):
         # construction from interval & array of intervals

@@ -20,9 +20,9 @@ from pandas import (Series, DataFrame, Panel, Index, isna,
 
 from pandas.core.dtypes.generic import ABCSeries, ABCDataFrame
 from pandas.compat import range, lrange, zip, product, OrderedDict
-from pandas.core.base import SpecificationError, AbstractMethodError
 from pandas.errors import UnsupportedFunctionCall
 from pandas.core.groupby import DataError
+import pandas.core.common as com
 
 from pandas.tseries.frequencies import to_offset
 from pandas.core.indexes.datetimes import date_range
@@ -613,7 +613,7 @@ class TestResampleAPI(object):
                     t[['A']].agg({'A': ['sum', 'std'],
                                   'B': ['mean', 'std']})
 
-            pytest.raises(SpecificationError, f)
+            pytest.raises(KeyError, f)
 
     def test_agg_nested_dicts(self):
 
@@ -657,6 +657,21 @@ class TestResampleAPI(object):
                 result = t.agg({'A': {'ra': ['mean', 'std']},
                                 'B': {'rb': ['mean', 'std']}})
             assert_frame_equal(result, expected, check_like=True)
+
+    def test_try_aggregate_non_existing_column(self):
+        # GH 16766
+        data = [
+            {'dt': datetime(2017, 6, 1, 0), 'x': 1.0, 'y': 2.0},
+            {'dt': datetime(2017, 6, 1, 1), 'x': 2.0, 'y': 2.0},
+            {'dt': datetime(2017, 6, 1, 2), 'x': 3.0, 'y': 1.5}
+        ]
+        df = DataFrame(data).set_index('dt')
+
+        # Error as we don't have 'z' column
+        with pytest.raises(KeyError):
+            df.resample('30T').agg({'x': ['mean'],
+                                    'y': ['median'],
+                                    'z': ['sum']})
 
     def test_selection_api_validation(self):
         # GH 13500
@@ -726,7 +741,7 @@ class Base(object):
 
     @pytest.fixture
     def _series_name(self):
-        raise AbstractMethodError(self)
+        raise com.AbstractMethodError(self)
 
     @pytest.fixture
     def _static_values(self, index):
@@ -963,6 +978,7 @@ class TestDatetimeIndex(Base):
         rng = date_range('1/1/2000 00:00:00', '1/1/2000 00:13:00', freq='min',
                          name='index')
         s = Series(np.random.randn(14), index=rng)
+
         result = s.resample('5min', closed='right', label='right').mean()
 
         exp_idx = date_range('1/1/2000', periods=4, freq='5min', name='index')
@@ -984,6 +1000,20 @@ class TestDatetimeIndex(Base):
         grouper = TimeGrouper(Minute(5), closed='left', label='left')
         expect = s.groupby(grouper).agg(lambda x: x[-1])
         assert_series_equal(result, expect)
+
+    def test_resample_string_kwargs(self):
+        # Test for issue #19303
+        rng = date_range('1/1/2000 00:00:00', '1/1/2000 00:13:00', freq='min',
+                         name='index')
+        s = Series(np.random.randn(14), index=rng)
+
+        # Check that wrong keyword argument strings raise an error
+        with pytest.raises(ValueError):
+            s.resample('5min', label='righttt').mean()
+        with pytest.raises(ValueError):
+            s.resample('5min', closed='righttt').mean()
+        with pytest.raises(ValueError):
+            s.resample('5min', convention='starttt').mean()
 
     def test_resample_how(self):
         rng = date_range('1/1/2000 00:00:00', '1/1/2000 00:13:00', freq='min',
@@ -3060,6 +3090,15 @@ class TestResamplerGrouper(object):
 
         result = r['buyer'].count()
         assert_series_equal(result, expected)
+
+    def test_groupby_resample_on_api_with_getitem(self):
+        # GH 17813
+        df = pd.DataFrame({'id': list('aabbb'),
+                           'date': pd.date_range('1-1-2016', periods=5),
+                           'data': 1})
+        exp = df.set_index('date').groupby('id').resample('2D')['data'].sum()
+        result = df.groupby('id').resample('2D', on='date')['data'].sum()
+        assert_series_equal(result, exp)
 
     def test_nearest(self):
 

@@ -6,7 +6,7 @@ from pandas import (
     Interval, IntervalIndex, Index, isna, notna, interval_range, Timestamp,
     Timedelta, date_range, timedelta_range)
 from pandas.compat import lzip
-from pandas.core.common import _asarray_tuplesafe
+import pandas.core.common as com
 from pandas.tests.indexes.common import Base
 import pandas.util.testing as tm
 import pandas as pd
@@ -39,208 +39,6 @@ class TestIntervalIndex(Base):
         return IntervalIndex.from_arrays(
             np.where(mask, np.arange(10), np.nan),
             np.where(mask, np.arange(1, 11), np.nan), closed=closed)
-
-    @pytest.mark.parametrize('data', [
-        Index([0, 1, 2, 3, 4]),
-        Index(list('abcde')),
-        date_range('2017-01-01', periods=5),
-        date_range('2017-01-01', periods=5, tz='US/Eastern'),
-        timedelta_range('1 day', periods=5)])
-    def test_constructors(self, data, closed, name):
-        left, right = data[:-1], data[1:]
-        ivs = [Interval(l, r, closed=closed) for l, r in lzip(left, right)]
-        expected = IntervalIndex._simple_new(
-            left=left, right=right, closed=closed, name=name)
-
-        # validate expected
-        assert expected.closed == closed
-        assert expected.name == name
-        assert expected.dtype.subtype == data.dtype
-        tm.assert_index_equal(expected.left, data[:-1])
-        tm.assert_index_equal(expected.right, data[1:])
-
-        # validated constructors
-        result = IntervalIndex(ivs, name=name)
-        tm.assert_index_equal(result, expected)
-
-        result = IntervalIndex.from_intervals(ivs, name=name)
-        tm.assert_index_equal(result, expected)
-
-        result = IntervalIndex.from_breaks(data, closed=closed, name=name)
-        tm.assert_index_equal(result, expected)
-
-        result = IntervalIndex.from_arrays(
-            left, right, closed=closed, name=name)
-        tm.assert_index_equal(result, expected)
-
-        result = IntervalIndex.from_tuples(
-            lzip(left, right), closed=closed, name=name)
-        tm.assert_index_equal(result, expected)
-
-        result = Index(ivs, name=name)
-        assert isinstance(result, IntervalIndex)
-        tm.assert_index_equal(result, expected)
-
-        # idempotent
-        tm.assert_index_equal(Index(expected), expected)
-        tm.assert_index_equal(IntervalIndex(expected), expected)
-
-        result = IntervalIndex.from_intervals(expected)
-        tm.assert_index_equal(result, expected)
-
-        result = IntervalIndex.from_intervals(
-            expected.values, name=expected.name)
-        tm.assert_index_equal(result, expected)
-
-        left, right = expected.left, expected.right
-        result = IntervalIndex.from_arrays(
-            left, right, closed=expected.closed, name=expected.name)
-        tm.assert_index_equal(result, expected)
-
-        result = IntervalIndex.from_tuples(
-            expected.to_tuples(), closed=expected.closed, name=expected.name)
-        tm.assert_index_equal(result, expected)
-
-        breaks = expected.left.tolist() + [expected.right[-1]]
-        result = IntervalIndex.from_breaks(
-            breaks, closed=expected.closed, name=expected.name)
-        tm.assert_index_equal(result, expected)
-
-    @pytest.mark.parametrize('data', [[np.nan], [np.nan] * 2, [np.nan] * 50])
-    def test_constructors_nan(self, closed, data):
-        # GH 18421
-        expected_values = np.array(data, dtype=object)
-        expected_idx = IntervalIndex(data, closed=closed)
-
-        # validate the expected index
-        assert expected_idx.closed == closed
-        tm.assert_numpy_array_equal(expected_idx.values, expected_values)
-
-        result = IntervalIndex.from_tuples(data, closed=closed)
-        tm.assert_index_equal(result, expected_idx)
-        tm.assert_numpy_array_equal(result.values, expected_values)
-
-        result = IntervalIndex.from_breaks([np.nan] + data, closed=closed)
-        tm.assert_index_equal(result, expected_idx)
-        tm.assert_numpy_array_equal(result.values, expected_values)
-
-        result = IntervalIndex.from_arrays(data, data, closed=closed)
-        tm.assert_index_equal(result, expected_idx)
-        tm.assert_numpy_array_equal(result.values, expected_values)
-
-        if closed == 'right':
-            # Can't specify closed for IntervalIndex.from_intervals
-            result = IntervalIndex.from_intervals(data)
-            tm.assert_index_equal(result, expected_idx)
-            tm.assert_numpy_array_equal(result.values, expected_values)
-
-    @pytest.mark.parametrize('data', [
-        [],
-        np.array([], dtype='int64'),
-        np.array([], dtype='float64'),
-        np.array([], dtype=object)])
-    def test_constructors_empty(self, data, closed):
-        # GH 18421
-        expected_dtype = data.dtype if isinstance(data, np.ndarray) else object
-        expected_values = np.array([], dtype=object)
-        expected_index = IntervalIndex(data, closed=closed)
-
-        # validate the expected index
-        assert expected_index.empty
-        assert expected_index.closed == closed
-        assert expected_index.dtype.subtype == expected_dtype
-        tm.assert_numpy_array_equal(expected_index.values, expected_values)
-
-        result = IntervalIndex.from_tuples(data, closed=closed)
-        tm.assert_index_equal(result, expected_index)
-        tm.assert_numpy_array_equal(result.values, expected_values)
-
-        result = IntervalIndex.from_breaks(data, closed=closed)
-        tm.assert_index_equal(result, expected_index)
-        tm.assert_numpy_array_equal(result.values, expected_values)
-
-        result = IntervalIndex.from_arrays(data, data, closed=closed)
-        tm.assert_index_equal(result, expected_index)
-        tm.assert_numpy_array_equal(result.values, expected_values)
-
-        if closed == 'right':
-            # Can't specify closed for IntervalIndex.from_intervals
-            result = IntervalIndex.from_intervals(data)
-            tm.assert_index_equal(result, expected_index)
-            tm.assert_numpy_array_equal(result.values, expected_values)
-
-    def test_constructors_errors(self):
-
-        # scalar
-        msg = (r'IntervalIndex\(...\) must be called with a collection of '
-               'some kind, 5 was passed')
-        with tm.assert_raises_regex(TypeError, msg):
-            IntervalIndex(5)
-
-        # not an interval
-        msg = ("type <(class|type) 'numpy.int64'> with value 0 "
-               "is not an interval")
-        with tm.assert_raises_regex(TypeError, msg):
-            IntervalIndex([0, 1])
-
-        with tm.assert_raises_regex(TypeError, msg):
-            IntervalIndex.from_intervals([0, 1])
-
-        # invalid closed
-        msg = "invalid options for 'closed': invalid"
-        with tm.assert_raises_regex(ValueError, msg):
-            IntervalIndex.from_arrays([0, 1], [1, 2], closed='invalid')
-
-        # mismatched closed within intervals
-        msg = 'intervals must all be closed on the same side'
-        with tm.assert_raises_regex(ValueError, msg):
-            IntervalIndex.from_intervals([Interval(0, 1),
-                                          Interval(1, 2, closed='left')])
-
-        with tm.assert_raises_regex(ValueError, msg):
-            IntervalIndex([Interval(0, 1), Interval(2, 3, closed='left')])
-
-        with tm.assert_raises_regex(ValueError, msg):
-            Index([Interval(0, 1), Interval(2, 3, closed='left')])
-
-        # mismatched closed inferred from intervals vs constructor.
-        msg = 'conflicting values for closed'
-        with tm.assert_raises_regex(ValueError, msg):
-            iv = [Interval(0, 1, closed='both'), Interval(1, 2, closed='both')]
-            IntervalIndex(iv, closed='neither')
-
-        # no point in nesting periods in an IntervalIndex
-        msg = 'Period dtypes are not supported, use a PeriodIndex instead'
-        with tm.assert_raises_regex(ValueError, msg):
-            IntervalIndex.from_breaks(
-                pd.period_range('2000-01-01', periods=3))
-
-        # decreasing breaks/arrays
-        msg = 'left side of interval must be <= right side'
-        with tm.assert_raises_regex(ValueError, msg):
-            IntervalIndex.from_breaks(range(10, -1, -1))
-
-        with tm.assert_raises_regex(ValueError, msg):
-            IntervalIndex.from_arrays(range(10, -1, -1), range(9, -2, -1))
-
-    @pytest.mark.parametrize('tz_left, tz_right', [
-        (None, 'UTC'), ('UTC', None), ('UTC', 'US/Eastern')])
-    def test_constructors_errors_tz(self, tz_left, tz_right):
-        # GH 18537
-        left = date_range('2017-01-01', periods=4, tz=tz_left)
-        right = date_range('2017-01-02', periods=4, tz=tz_right)
-
-        # don't need to check IntervalIndex(...) or from_intervals, since
-        # mixed tz are disallowed at the Interval level
-        with pytest.raises(ValueError):
-            IntervalIndex.from_arrays(left, right)
-
-        with pytest.raises(ValueError):
-            IntervalIndex.from_tuples(lzip(left, right))
-
-        with pytest.raises(ValueError):
-            breaks = left.tolist() + [right[-1]]
-            IntervalIndex.from_breaks(breaks)
 
     def test_properties(self, closed):
         index = self.create_index(closed=closed)
@@ -298,18 +96,6 @@ class TestIntervalIndex(Base):
         expected = Index(iv.length if notna(iv) else iv for iv in index)
         tm.assert_index_equal(result, expected)
 
-    @pytest.mark.parametrize('breaks', [
-        list('abcdefgh'),
-        lzip(range(10), range(1, 11)),
-        [['A', 'B'], ['a', 'b'], ['c', 'd'], ['e', 'f']],
-        [Interval(0, 1), Interval(1, 2), Interval(3, 4), Interval(4, 5)]])
-    def test_length_errors(self, closed, breaks):
-        # GH 18789
-        index = IntervalIndex.from_breaks(breaks)
-        msg = 'IntervalIndex contains Intervals without defined length'
-        with tm.assert_raises_regex(TypeError, msg):
-            index.length
-
     def test_with_nans(self, closed):
         index = self.create_index(closed=closed)
         assert not index.hasnans
@@ -355,7 +141,7 @@ class TestIntervalIndex(Base):
                                     check_same='same')
 
         # by-definition make a copy
-        result = IntervalIndex.from_intervals(index.values, copy=False)
+        result = IntervalIndex(index.values, copy=False)
         tm.assert_numpy_array_equal(index.left.values, result.left.values,
                                     check_same='copy')
         tm.assert_numpy_array_equal(index.right.values, result.right.values,
@@ -386,26 +172,6 @@ class TestIntervalIndex(Base):
                 np.arange(5), closed=other_closed)
             assert not expected.equals(expected_other_closed)
 
-    def test_astype(self, closed):
-        idx = self.create_index(closed=closed)
-        result = idx.astype(object)
-        tm.assert_index_equal(result, Index(idx.values, dtype='object'))
-        assert not idx.equals(result)
-        assert idx.equals(IntervalIndex.from_intervals(result))
-
-        result = idx.astype('interval')
-        tm.assert_index_equal(result, idx)
-        assert result.equals(idx)
-
-    @pytest.mark.parametrize('dtype', [
-        np.int64, np.float64, 'period[M]', 'timedelta64', 'datetime64[ns]',
-        'datetime64[ns, US/Eastern]'])
-    def test_astype_errors(self, closed, dtype):
-        idx = self.create_index(closed=closed)
-        msg = 'Cannot cast IntervalIndex to dtype'
-        with tm.assert_raises_regex(TypeError, msg):
-            idx.astype(dtype)
-
     @pytest.mark.parametrize('klass', [list, tuple, np.array, pd.Series])
     def test_where(self, closed, klass):
         idx = self.create_index(closed=closed)
@@ -428,9 +194,7 @@ class TestIntervalIndex(Base):
         interval_range(0, periods=10, closed='neither'),
         interval_range(1.7, periods=8, freq=2.5, closed='both'),
         interval_range(Timestamp('20170101'), periods=12, closed='left'),
-        interval_range(Timedelta('1 day'), periods=6, closed='right'),
-        IntervalIndex.from_tuples([('a', 'd'), ('e', 'j'), ('w', 'z')]),
-        IntervalIndex.from_tuples([(1, 2), ('a', 'z'), (3.14, 6.28)])])
+        interval_range(Timedelta('1 day'), periods=6, closed='right')])
     def test_insert(self, data):
         item = data[0]
         idx_item = IntervalIndex([item])
@@ -502,15 +266,6 @@ class TestIntervalIndex(Base):
         # duplicate
         idx = IntervalIndex.from_tuples(
             [(0, 1), (0, 1), (2, 3)], closed=closed)
-        assert not idx.is_unique
-
-        # unique mixed
-        idx = IntervalIndex.from_tuples([(0, 1), ('a', 'b')], closed=closed)
-        assert idx.is_unique
-
-        # duplicate mixed
-        idx = IntervalIndex.from_tuples(
-            [(0, 1), ('a', 'b'), (0, 1)], closed=closed)
         assert not idx.is_unique
 
         # empty
@@ -862,6 +617,16 @@ class TestIntervalIndex(Base):
         tm.assert_index_equal(index.union(index), index)
         tm.assert_index_equal(index.union(index[:1]), index)
 
+        # GH 19101: empty result, same dtype
+        index = IntervalIndex(np.array([], dtype='int64'), closed=closed)
+        result = index.union(index)
+        tm.assert_index_equal(result, index)
+
+        # GH 19101: empty result, different dtypes
+        other = IntervalIndex(np.array([], dtype='float64'), closed=closed)
+        result = index.union(other)
+        tm.assert_index_equal(result, index)
+
     def test_intersection(self, closed):
         index = self.create_index(closed=closed)
         other = IntervalIndex.from_breaks(range(5, 13), closed=closed)
@@ -875,14 +640,48 @@ class TestIntervalIndex(Base):
 
         tm.assert_index_equal(index.intersection(index), index)
 
+        # GH 19101: empty result, same dtype
+        other = IntervalIndex.from_breaks(range(300, 314), closed=closed)
+        expected = IntervalIndex(np.array([], dtype='int64'), closed=closed)
+        result = index.intersection(other)
+        tm.assert_index_equal(result, expected)
+
+        # GH 19101: empty result, different dtypes
+        breaks = np.arange(300, 314, dtype='float64')
+        other = IntervalIndex.from_breaks(breaks, closed=closed)
+        result = index.intersection(other)
+        tm.assert_index_equal(result, expected)
+
     def test_difference(self, closed):
         index = self.create_index(closed=closed)
         tm.assert_index_equal(index.difference(index[:1]), index[1:])
 
+        # GH 19101: empty result, same dtype
+        result = index.difference(index)
+        expected = IntervalIndex(np.array([], dtype='int64'), closed=closed)
+        tm.assert_index_equal(result, expected)
+
+        # GH 19101: empty result, different dtypes
+        other = IntervalIndex.from_arrays(index.left.astype('float64'),
+                                          index.right, closed=closed)
+        result = index.difference(other)
+        tm.assert_index_equal(result, expected)
+
     def test_symmetric_difference(self, closed):
-        idx = self.create_index(closed=closed)
-        result = idx[1:].symmetric_difference(idx[:-1])
-        expected = IntervalIndex([idx[0], idx[-1]])
+        index = self.create_index(closed=closed)
+        result = index[1:].symmetric_difference(index[:-1])
+        expected = IntervalIndex([index[0], index[-1]])
+        tm.assert_index_equal(result, expected)
+
+        # GH 19101: empty result, same dtype
+        result = index.symmetric_difference(index)
+        expected = IntervalIndex(np.array([], dtype='int64'), closed=closed)
+        tm.assert_index_equal(result, expected)
+
+        # GH 19101: empty result, different dtypes
+        other = IntervalIndex.from_arrays(index.left.astype('float64'),
+                                          index.right, closed=closed)
+        result = index.symmetric_difference(other)
         tm.assert_index_equal(result, expected)
 
     @pytest.mark.parametrize('op_name', [
@@ -891,16 +690,26 @@ class TestIntervalIndex(Base):
         index = self.create_index(closed=closed)
         set_op = getattr(index, op_name)
 
-        # test errors
-        msg = ('can only do set operations between two IntervalIndex objects '
-               'that are closed on the same side')
-        with tm.assert_raises_regex(ValueError, msg):
+        # non-IntervalIndex
+        msg = ('the other index needs to be an IntervalIndex too, but '
+               'was type Int64Index')
+        with tm.assert_raises_regex(TypeError, msg):
             set_op(Index([1, 2, 3]))
 
+        # mixed closed
+        msg = ('can only do set operations between two IntervalIndex objects '
+               'that are closed on the same side')
         for other_closed in {'right', 'left', 'both', 'neither'} - {closed}:
             other = self.create_index(closed=other_closed)
             with tm.assert_raises_regex(ValueError, msg):
                 set_op(other)
+
+        # GH 19016: incompatible dtypes
+        other = interval_range(Timestamp('20180101'), periods=9, closed=closed)
+        msg = ('can only do {op} between two IntervalIndex objects that have '
+               'compatible dtypes').format(op=op_name)
+        with tm.assert_raises_regex(TypeError, msg):
+            set_op(other)
 
     def test_isin(self, closed):
         index = self.create_index(closed=closed)
@@ -1127,7 +936,7 @@ class TestIntervalIndex(Base):
         # GH 18756
         idx = IntervalIndex.from_tuples(tuples)
         result = idx.to_tuples()
-        expected = Index(_asarray_tuplesafe(tuples))
+        expected = Index(com._asarray_tuplesafe(tuples))
         tm.assert_index_equal(result, expected)
 
     @pytest.mark.parametrize('tuples', [
@@ -1143,7 +952,7 @@ class TestIntervalIndex(Base):
         result = idx.to_tuples(na_tuple=na_tuple)
 
         # check the non-NA portion
-        expected_notna = Index(_asarray_tuplesafe(tuples[:-1]))
+        expected_notna = Index(com._asarray_tuplesafe(tuples[:-1]))
         result_notna = result[:-1]
         tm.assert_index_equal(result_notna, expected_notna)
 

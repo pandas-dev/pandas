@@ -43,6 +43,8 @@ ABCIndexClass = create_pandas_abc_type("ABCIndexClass", "_typ",
 
 ABCSeries = create_pandas_abc_type("ABCSeries", "_typ", ("series", ))
 ABCDataFrame = create_pandas_abc_type("ABCDataFrame", "_typ", ("dataframe", ))
+ABCSparseDataFrame = create_pandas_abc_type("ABCSparseDataFrame", "_subtyp",
+                                            ("sparse_frame", ))
 ABCPanel = create_pandas_abc_type("ABCPanel", "_typ", ("panel",))
 ABCSparseSeries = create_pandas_abc_type("ABCSparseSeries", "_subtyp",
                                          ('sparse_series',
@@ -54,6 +56,9 @@ ABCCategorical = create_pandas_abc_type("ABCCategorical", "_typ",
 ABCPeriod = create_pandas_abc_type("ABCPeriod", "_typ", ("period", ))
 ABCDateOffset = create_pandas_abc_type("ABCDateOffset", "_typ",
                                        ("dateoffset",))
+ABCInterval = create_pandas_abc_type("ABCInterval", "_typ", ("interval", ))
+ABCExtensionArray = create_pandas_abc_type("ABCExtensionArray", "_typ",
+                                           ("extension", "categorical",))
 
 
 class _ABCGeneric(type):

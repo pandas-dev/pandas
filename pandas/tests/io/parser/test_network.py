@@ -15,15 +15,17 @@ from pandas.compat import BytesIO
 
 @pytest.mark.network
 @pytest.mark.parametrize(
-    "compression,extension", [
+    "compress_type, extension", [
         ('gzip', '.gz'), ('bz2', '.bz2'), ('zip', '.zip'),
         pytest.param('xz', '.xz', marks=td.skip_if_no_lzma)
     ]
 )
 @pytest.mark.parametrize('mode', ['explicit', 'infer'])
 @pytest.mark.parametrize('engine', ['python', 'c'])
-def test_compressed_urls(salaries_table, compression, extension, mode, engine):
-    check_compressed_urls(salaries_table, compression, extension, mode, engine)
+def test_compressed_urls(salaries_table, compress_type, extension, mode,
+                         engine):
+    check_compressed_urls(salaries_table, compress_type, extension, mode,
+                          engine)
 
 
 @tm.network
@@ -44,6 +46,7 @@ def check_compressed_urls(salaries_table, compression, extension, mode,
 
 
 class TestS3(object):
+
     @tm.network
     def test_parse_public_s3_bucket(self):
         pytest.importorskip('s3fs')
@@ -63,7 +66,8 @@ class TestS3(object):
         assert not df.empty
         tm.assert_frame_equal(read_csv(tm.get_data_path('tips.csv')), df)
 
-    def test_parse_public_s3n_bucket(self, s3_resource):
+    @tm.network
+    def test_parse_public_s3n_bucket(self):
 
         # Read from AWS s3 as "s3n" URL
         df = read_csv('s3n://pandas-test/tips.csv', nrows=10)
@@ -72,7 +76,8 @@ class TestS3(object):
         tm.assert_frame_equal(read_csv(
             tm.get_data_path('tips.csv')).iloc[:10], df)
 
-    def test_parse_public_s3a_bucket(self, s3_resource):
+    @tm.network
+    def test_parse_public_s3a_bucket(self):
         # Read from AWS s3 as "s3a" URL
         df = read_csv('s3a://pandas-test/tips.csv', nrows=10)
         assert isinstance(df, DataFrame)
@@ -80,7 +85,8 @@ class TestS3(object):
         tm.assert_frame_equal(read_csv(
             tm.get_data_path('tips.csv')).iloc[:10], df)
 
-    def test_parse_public_s3_bucket_nrows(self, s3_resource):
+    @tm.network
+    def test_parse_public_s3_bucket_nrows(self):
         for ext, comp in [('', None), ('.gz', 'gzip'), ('.bz2', 'bz2')]:
             df = read_csv('s3://pandas-test/tips.csv' +
                           ext, nrows=10, compression=comp)
@@ -89,7 +95,8 @@ class TestS3(object):
             tm.assert_frame_equal(read_csv(
                 tm.get_data_path('tips.csv')).iloc[:10], df)
 
-    def test_parse_public_s3_bucket_chunked(self, s3_resource):
+    @tm.network
+    def test_parse_public_s3_bucket_chunked(self):
         # Read with a chunksize
         chunksize = 5
         local_tips = read_csv(tm.get_data_path('tips.csv'))
@@ -107,7 +114,8 @@ class TestS3(object):
                     chunksize * i_chunk: chunksize * (i_chunk + 1)]
                 tm.assert_frame_equal(true_df, df)
 
-    def test_parse_public_s3_bucket_chunked_python(self, s3_resource):
+    @tm.network
+    def test_parse_public_s3_bucket_chunked_python(self):
         # Read with a chunksize using the Python parser
         chunksize = 5
         local_tips = read_csv(tm.get_data_path('tips.csv'))
@@ -125,7 +133,8 @@ class TestS3(object):
                     chunksize * i_chunk: chunksize * (i_chunk + 1)]
                 tm.assert_frame_equal(true_df, df)
 
-    def test_parse_public_s3_bucket_python(self, s3_resource):
+    @tm.network
+    def test_parse_public_s3_bucket_python(self):
         for ext, comp in [('', None), ('.gz', 'gzip'), ('.bz2', 'bz2')]:
             df = read_csv('s3://pandas-test/tips.csv' + ext, engine='python',
                           compression=comp)
@@ -134,7 +143,8 @@ class TestS3(object):
             tm.assert_frame_equal(read_csv(
                 tm.get_data_path('tips.csv')), df)
 
-    def test_infer_s3_compression(self, s3_resource):
+    @tm.network
+    def test_infer_s3_compression(self):
         for ext in ['', '.gz', '.bz2']:
             df = read_csv('s3://pandas-test/tips.csv' + ext,
                           engine='python', compression='infer')
@@ -143,7 +153,8 @@ class TestS3(object):
             tm.assert_frame_equal(read_csv(
                 tm.get_data_path('tips.csv')), df)
 
-    def test_parse_public_s3_bucket_nrows_python(self, s3_resource):
+    @tm.network
+    def test_parse_public_s3_bucket_nrows_python(self):
         for ext, comp in [('', None), ('.gz', 'gzip'), ('.bz2', 'bz2')]:
             df = read_csv('s3://pandas-test/tips.csv' + ext, engine='python',
                           nrows=10, compression=comp)
@@ -152,7 +163,8 @@ class TestS3(object):
             tm.assert_frame_equal(read_csv(
                 tm.get_data_path('tips.csv')).iloc[:10], df)
 
-    def test_s3_fails(self, s3_resource):
+    @tm.network
+    def test_s3_fails(self):
         with pytest.raises(IOError):
             read_csv('s3://nyqpug/asdf.csv')
 

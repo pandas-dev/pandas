@@ -62,6 +62,14 @@ You can construct a ``Timedelta`` scalar through various arguments:
    pd.Timedelta('nan')
    pd.Timedelta('nat')
 
+   # ISO 8601 Duration strings
+   pd.Timedelta('P0DT0H1M0S')
+   pd.Timedelta('P0DT0H0M0.000000123S')
+
+.. versionadded:: 0.23.0
+
+   Added constructor for `ISO 8601 Duration`_ strings
+
 :ref:`DateOffsets<timeseries.offsets>` (``Day, Hour, Minute, Second, Milli, Micro, Nano``) can also be used in construction.
 
 .. ipython:: python
@@ -274,6 +282,20 @@ Rounded division (floor-division) of a ``timedelta64[ns]`` Series by a scalar
 
    td // pd.Timedelta(days=3, hours=4)
    pd.Timedelta(days=3, hours=4) // td
+
+.. _timedeltas.mod_divmod:
+
+The mod (%) and divmod operations are defined for ``Timedelta`` when operating with another timedelta-like or with a numeric argument.
+
+.. ipython:: python
+
+   pd.Timedelta(hours=37) % datetime.timedelta(hours=2)
+
+   # divmod against a timedelta-like returns a pair (int, Timedelta)
+   divmod(datetime.timedelta(hours=2), pd.Timedelta(minutes=11))
+
+   # divmod against a numeric returns a pair (Timedelta, Timedelta)
+   divmod(pd.Timedelta(hours=25), 86400000000000)
 
 Attributes
 ----------

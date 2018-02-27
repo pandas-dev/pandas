@@ -14,12 +14,10 @@ from pandas.core.dtypes.missing import isna, notna
 from pandas.core.dtypes.cast import maybe_upcast, find_common_type
 from pandas.core.dtypes.common import _ensure_platform_int, is_scipy_sparse
 
-from pandas.core.common import _try_sort
 from pandas.compat.numpy import function as nv
 from pandas.core.index import Index, MultiIndex, _ensure_index
 from pandas.core.series import Series
-from pandas.core.frame import (DataFrame, extract_index, _prep_ndarray,
-                               _default_index)
+from pandas.core.frame import DataFrame, extract_index, _prep_ndarray
 import pandas.core.algorithms as algos
 from pandas.core.internals import (BlockManager,
                                    create_block_manager_from_arrays)
@@ -28,7 +26,7 @@ from pandas.core.sparse.series import SparseSeries, SparseArray
 from pandas._libs.sparse import BlockIndex, get_blocks
 from pandas.util._decorators import Appender
 import pandas.core.ops as ops
-
+import pandas.core.common as com
 
 _shared_doc_kwargs = dict(klass='SparseDataFrame')
 
@@ -97,6 +95,9 @@ class SparseDataFrame(DataFrame):
                                  dtype=dtype, copy=copy)
         elif isinstance(data, DataFrame):
             mgr = self._init_dict(data, data.index, data.columns, dtype=dtype)
+        elif isinstance(data, Series):
+            mgr = self._init_dict(data.to_frame(), data.index,
+                                  columns=None, dtype=dtype)
         elif isinstance(data, BlockManager):
             mgr = self._init_mgr(data, axes=dict(index=index, columns=columns),
                                  dtype=dtype, copy=copy)
@@ -118,6 +119,10 @@ class SparseDataFrame(DataFrame):
             mgr = to_manager(data, columns, index)
             if dtype is not None:
                 mgr = mgr.astype(dtype)
+        else:
+            msg = ('SparseDataFrame called with unknown type "{data_type}" '
+                   'for data argument')
+            raise TypeError(msg.format(data_type=type(data).__name__))
 
         generic.NDFrame.__init__(self, mgr)
 
@@ -133,7 +138,7 @@ class SparseDataFrame(DataFrame):
             columns = _ensure_index(columns)
             data = {k: v for k, v in compat.iteritems(data) if k in columns}
         else:
-            columns = Index(_try_sort(list(data.keys())))
+            columns = Index(com._try_sort(list(data.keys())))
 
         if index is None:
             index = extract_index(list(data.values()))
@@ -208,9 +213,9 @@ class SparseDataFrame(DataFrame):
     def _prep_index(self, data, index, columns):
         N, K = data.shape
         if index is None:
-            index = _default_index(N)
+            index = com._default_index(N)
         if columns is None:
-            columns = _default_index(K)
+            columns = com._default_index(K)
 
         if len(columns) != K:
             raise ValueError('Column length mismatch: {columns} vs. {K}'
@@ -535,8 +540,7 @@ class SparseDataFrame(DataFrame):
     # ----------------------------------------------------------------------
     # Arithmetic-related methods
 
-    def _combine_frame(self, other, func, fill_value=None, level=None,
-                       try_cast=True):
+    def _combine_frame(self, other, func, fill_value=None, level=None):
         this, other = self.align(other, join='outer', level=level, copy=False)
         new_index, new_columns = this.index, this.columns
 
@@ -547,7 +551,6 @@ class SparseDataFrame(DataFrame):
             return self._constructor(index=new_index).__finalize__(self)
 
         new_data = {}
-        new_fill_value = None
         if fill_value is not None:
             # TODO: be a bit more intelligent here
             for col in new_columns:
@@ -564,6 +567,7 @@ class SparseDataFrame(DataFrame):
                     new_data[col] = func(this[col], other[col])
 
         # if the fill values are the same use them? or use a valid one
+        new_fill_value = None
         other_fill_value = getattr(other, 'default_fill_value', np.nan)
         if self.default_fill_value == other_fill_value:
             new_fill_value = self.default_fill_value
@@ -579,12 +583,9 @@ class SparseDataFrame(DataFrame):
                                  default_fill_value=new_fill_value
                                  ).__finalize__(self)
 
-    def _combine_match_index(self, other, func, level=None, fill_value=None,
-                             try_cast=True):
+    def _combine_match_index(self, other, func, level=None):
         new_data = {}
 
-        if fill_value is not None:
-            raise NotImplementedError("'fill_value' argument is not supported")
         if level is not None:
             raise NotImplementedError("'level' argument is not supported")
 
@@ -600,6 +601,7 @@ class SparseDataFrame(DataFrame):
             new_data[col] = func(series.values, other.values)
 
         # fill_value is a function of our operator
+        fill_value = None
         if isna(other.fill_value) or isna(self.default_fill_value):
             fill_value = np.nan
         else:
@@ -610,15 +612,12 @@ class SparseDataFrame(DataFrame):
             new_data, index=new_index, columns=self.columns,
             default_fill_value=fill_value).__finalize__(self)
 
-    def _combine_match_columns(self, other, func, level=None, fill_value=None,
-                               try_cast=True):
+    def _combine_match_columns(self, other, func, level=None, try_cast=True):
         # patched version of DataFrame._combine_match_columns to account for
         # NumPy circumventing __rsub__ with float64 types, e.g.: 3.0 - series,
         # where 3.0 is numpy.float64 and series is a SparseSeries. Still
         # possible for this to happen, which is bothersome
 
-        if fill_value is not None:
-            raise NotImplementedError("'fill_value' argument is not supported")
         if level is not None:
             raise NotImplementedError("'level' argument is not supported")
 
@@ -820,17 +819,18 @@ class SparseDataFrame(DataFrame):
 
         return self.apply(lambda x: x.cumsum(), axis=axis)
 
-    @Appender(generic._shared_docs['isna'])
+    @Appender(generic._shared_docs['isna'] % _shared_doc_kwargs)
     def isna(self):
         return self._apply_columns(lambda x: x.isna())
     isnull = isna
 
-    @Appender(generic._shared_docs['notna'])
+    @Appender(generic._shared_docs['notna'] % _shared_doc_kwargs)
     def notna(self):
         return self._apply_columns(lambda x: x.notna())
     notnull = notna
 
-    def apply(self, func, axis=0, broadcast=False, reduce=False):
+    def apply(self, func, axis=0, broadcast=None, reduce=None,
+              result_type=None):
         """
         Analogous to DataFrame.apply, for SparseDataFrame
 
@@ -842,6 +842,39 @@ class SparseDataFrame(DataFrame):
         broadcast : bool, default False
             For aggregation functions, return object of same size with values
             propagated
+
+            .. deprecated:: 0.23.0
+               This argument will be removed in a future version, replaced
+               by result_type='broadcast'.
+
+        reduce : boolean or None, default None
+            Try to apply reduction procedures. If the DataFrame is empty,
+            apply will use reduce to determine whether the result should be a
+            Series or a DataFrame. If reduce is None (the default), apply's
+            return value will be guessed by calling func an empty Series (note:
+            while guessing, exceptions raised by func will be ignored). If
+            reduce is True a Series will always be returned, and if False a
+            DataFrame will always be returned.
+
+            .. deprecated:: 0.23.0
+               This argument will be removed in a future version, replaced
+               by result_type='reduce'.
+
+        result_type : {'expand', 'reduce', 'broadcast, None}
+            These only act when axis=1 {columns}:
+
+            * 'expand' : list-like results will be turned into columns.
+            * 'reduce' : return a Series if possible rather than expanding
+              list-like results. This is the opposite to 'expand'.
+            * 'broadcast' : results will be broadcast to the original shape
+              of the frame, the original index & columns will be retained.
+
+            The default behaviour (None) depends on the return value of the
+            applied function: list-like results will be returned as a Series
+            of those. However if the apply function returns a Series these
+            are expanded to columns.
+
+            .. versionadded:: 0.23.0
 
         Returns
         -------
@@ -866,12 +899,10 @@ class SparseDataFrame(DataFrame):
         op = frame_apply(self,
                          func=func,
                          axis=axis,
-                         reduce=reduce)
-
-        if broadcast:
-            return op.apply_broadcast()
-
-        return op.apply_standard()
+                         reduce=reduce,
+                         broadcast=broadcast,
+                         result_type=result_type)
+        return op.get_result()
 
     def applymap(self, func):
         """
@@ -983,7 +1014,5 @@ def homogenize(series_dict):
 
 
 # use unaccelerated ops for sparse objects
-ops.add_flex_arithmetic_methods(SparseDataFrame, use_numexpr=False,
-                                **ops.frame_flex_funcs)
-ops.add_special_arithmetic_methods(SparseDataFrame, use_numexpr=False,
-                                   **ops.frame_special_funcs)
+ops.add_flex_arithmetic_methods(SparseDataFrame)
+ops.add_special_arithmetic_methods(SparseDataFrame)

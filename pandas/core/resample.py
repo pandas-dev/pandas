@@ -5,7 +5,7 @@ import copy
 from textwrap import dedent
 
 import pandas as pd
-from pandas.core.base import AbstractMethodError, GroupByMixin
+from pandas.core.base import GroupByMixin
 
 from pandas.core.groupby import (BinGrouper, Grouper, _GroupBy, GroupBy,
                                  SeriesGroupBy, groupby, PanelGroupBy,
@@ -16,7 +16,7 @@ from pandas.core.indexes.datetimes import DatetimeIndex, date_range
 from pandas.core.indexes.timedeltas import TimedeltaIndex
 from pandas.tseries.offsets import DateOffset, Tick, Day, delta_to_nanoseconds
 from pandas.core.indexes.period import PeriodIndex
-import pandas.core.common as com
+from pandas.errors import AbstractMethodError
 import pandas.core.algorithms as algos
 from pandas.core.dtypes.generic import ABCDataFrame, ABCSeries
 
@@ -24,7 +24,7 @@ import pandas.compat as compat
 from pandas.compat.numpy import function as nv
 
 from pandas._libs import lib, tslib
-from pandas._libs.lib import Timestamp
+from pandas._libs.tslib import Timestamp
 from pandas._libs.tslibs.period import IncompatibleFrequency
 
 from pandas.util._decorators import Appender, Substitution
@@ -205,10 +205,10 @@ class Resampler(_GroupBy):
     def __getitem__(self, key):
         try:
             return super(Resampler, self).__getitem__(key)
-        except (KeyError, com.AbstractMethodError):
+        except (KeyError, AbstractMethodError):
 
             # compat for deprecated
-            if isinstance(self.obj, com.ABCSeries):
+            if isinstance(self.obj, ABCSeries):
                 return self._deprecated('__getitem__')[key]
 
             raise
@@ -464,7 +464,7 @@ one pass, you can do
 
     def _wrap_result(self, result):
         """ potentially wrap any results """
-        if isinstance(result, com.ABCSeries) and self._selection is not None:
+        if isinstance(result, ABCSeries) and self._selection is not None:
             result.name = self._selection
 
         if isinstance(result, ABCSeries) and result.empty:
@@ -557,7 +557,8 @@ one pass, you can do
 
     @Appender(_shared_docs['interpolate'] % _shared_docs_kwargs)
     def interpolate(self, method='linear', axis=0, limit=None, inplace=False,
-                    limit_direction='forward', downcast=None, **kwargs):
+                    limit_direction='forward', limit_area=None,
+                    downcast=None, **kwargs):
         """
         Interpolate values according to different methods.
 
@@ -567,6 +568,7 @@ one pass, you can do
         return result.interpolate(method=method, axis=axis, limit=limit,
                                   inplace=inplace,
                                   limit_direction=limit_direction,
+                                  limit_area=limit_area,
                                   downcast=downcast, **kwargs)
 
     def asfreq(self, fill_value=None):
@@ -1061,6 +1063,17 @@ class TimeGrouper(Grouper):
     def __init__(self, freq='Min', closed=None, label=None, how='mean',
                  axis=0, fill_method=None, limit=None, loffset=None,
                  kind=None, convention=None, base=0, **kwargs):
+        # Check for correctness of the keyword arguments which would
+        # otherwise silently use the default if misspelled
+        if label not in {None, 'left', 'right'}:
+            raise ValueError('Unsupported value {} for `label`'.format(label))
+        if closed not in {None, 'left', 'right'}:
+            raise ValueError('Unsupported value {} for `closed`'.format(
+                closed))
+        if convention not in {None, 'start', 'end', 'e', 's'}:
+            raise ValueError('Unsupported value {} for `convention`'
+                             .format(convention))
+
         freq = to_offset(freq)
 
         end_types = set(['M', 'A', 'Q', 'BM', 'BA', 'BQ', 'W'])

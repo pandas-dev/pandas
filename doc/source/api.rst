@@ -6,19 +6,18 @@ API Reference
 *************
 
 This page gives an overview of all public pandas objects, functions and
-methods. In general, all classes and functions exposed in the top-level
-``pandas.*`` namespace are regarded as public.
+methods. All classes and functions exposed in ``pandas.*`` namespace are public.
 
-Further some of the subpackages are public, including ``pandas.errors``,
-``pandas.plotting``, and ``pandas.testing``. Certain functions in the
-``pandas.io`` and ``pandas.tseries`` submodules are public as well (those
-mentioned in the documentation). Further, the ``pandas.api.types`` subpackage
-holds some public functions related to data types in pandas.
+Some subpackages are public which include ``pandas.errors``,
+``pandas.plotting``, and ``pandas.testing``. Public functions in
+``pandas.io`` and ``pandas.tseries`` submodules are mentioned in
+the documentation. ``pandas.api.types`` subpackage holds some
+public functions related to data types in pandas.
 
 
 .. warning::
 
-    The ``pandas.core``, ``pandas.compat``, and ``pandas.util`` top-level modules are considered to be PRIVATE. Stability of functionality in those modules in not guaranteed.
+    The ``pandas.core``, ``pandas.compat``, and ``pandas.util`` top-level modules are PRIVATE. Stable functionality in such modules is not guaranteed.
 
 
 .. _api.functions:
@@ -1617,7 +1616,6 @@ IntervalIndex Components
    IntervalIndex.from_arrays
    IntervalIndex.from_tuples
    IntervalIndex.from_breaks
-   IntervalIndex.from_intervals
    IntervalIndex.contains
    IntervalIndex.left
    IntervalIndex.right
@@ -1682,6 +1680,16 @@ MultiIndex Components
    MultiIndex.swaplevel
    MultiIndex.reorder_levels
    MultiIndex.remove_unused_levels
+
+MultiIndex Selecting
+~~~~~~~~~~~~~~~~~~~~
+
+.. autosummary::
+   :toctree: generated/
+
+   MultiIndex.get_loc
+   MultiIndex.get_indexer
+   MultiIndex.get_level_values
 
 .. _api.datetimeindex:
 
@@ -2241,6 +2249,8 @@ The following methods are available only for ``SeriesGroupBy`` objects.
    SeriesGroupBy.nunique
    SeriesGroupBy.unique
    SeriesGroupBy.value_counts
+   SeriesGroupBy.is_monotonic_increasing
+   SeriesGroupBy.is_monotonic_decreasing
 
 The following methods are available only for ``DataFrameGroupBy`` objects.
 
@@ -2377,15 +2387,23 @@ Style Export and Import
    Styler.to_excel
 
 Plotting
-~~~~~~~~
+--------
 
-.. currentmodule:: pandas
+.. currentmodule:: pandas.plotting
+
+The following functions are contained in the `pandas.plotting` module.
 
 .. autosummary::
    :toctree: generated/
 
-   plotting.register_matplotlib_converters
-   plotting.deregister_matplotlib_converters
+   andrews_curves
+   bootstrap_plot
+   deregister_matplotlib_converters
+   lag_plot
+   parallel_coordinates
+   radviz
+   register_matplotlib_converters
+   scatter_matrix
 
 .. currentmodule:: pandas
 
@@ -2498,6 +2516,20 @@ Scalar introspection
     api.types.is_re_compilable
     api.types.is_scalar
 
+Extensions
+----------
+
+These are primarily intended for library authors looking to extend pandas
+objects.
+
+.. currentmodule:: pandas
+
+.. autosummary::
+   :toctree: generated/
+
+   api.extensions.register_dataframe_accessor
+   api.extensions.register_series_accessor
+   api.extensions.register_index_accessor
 
 .. This is to prevent warnings in the doc build. We don't want to encourage
 .. these methods.

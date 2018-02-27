@@ -28,9 +28,9 @@ from pandas.core.index import (Index, MultiIndex, RangeIndex,
                                _ensure_index_from_sequences)
 from pandas.core.series import Series
 from pandas.core.frame import DataFrame
-from pandas.core.categorical import Categorical
+from pandas.core.arrays import Categorical
 from pandas.core import algorithms
-from pandas.core.common import AbstractMethodError
+import pandas.core.common as com
 from pandas.io.date_converters import generic_parser
 from pandas.errors import ParserWarning, ParserError, EmptyDataError
 from pandas.io.common import (get_filepath_or_buffer, is_file_like,
@@ -102,7 +102,12 @@ usecols : array-like or callable, default None
     that correspond to column names provided either by the user in `names` or
     inferred from the document header row(s). For example, a valid array-like
     `usecols` parameter would be [0, 1, 2] or ['foo', 'bar', 'baz']. Element
-    order is ignored, so usecols=[1,0] is the same as [0,1].
+    order is ignored, so ``usecols=[0, 1]`` is the same as ``[1, 0]``.
+    To instantiate a DataFrame from ``data`` with element order preserved use
+    ``pd.read_csv(data, usecols=['foo', 'bar'])[['foo', 'bar']]`` for columns
+    in ``['foo', 'bar']`` order or
+    ``pd.read_csv(data, usecols=['foo', 'bar'])[['bar', 'foo']]``
+    for ``['bar', 'foo']`` order.
 
     If callable, the callable function will be evaluated against the column
     names, returning names where the callable function evaluates to True. An
@@ -114,7 +119,7 @@ squeeze : boolean, default False
 prefix : str, default None
     Prefix to add to column numbers when no header, e.g. 'X' for X0, X1, ...
 mangle_dupe_cols : boolean, default True
-    Duplicate columns will be specified as 'X.0'...'X.N', rather than
+    Duplicate columns will be specified as 'X', 'X.1', ...'X.N', rather than
     'X'...'X'. Passing in False will cause data to be overwritten if there
     are duplicate names in the columns.
 dtype : Type name or dict of column -> type, default None
@@ -149,8 +154,20 @@ na_values : scalar, str, list-like, or dict, default None
     NaN: '""" + fill("', '".join(sorted(_NA_VALUES)),
                      70, subsequent_indent="    ") + """'.
 keep_default_na : bool, default True
-    If na_values are specified and keep_default_na is False the default NaN
-    values are overridden, otherwise they're appended to.
+    Whether or not to include the default NaN values when parsing the data.
+    Depending on whether `na_values` is passed in, the behavior is as follows:
+
+    * If `keep_default_na` is True, and `na_values` are specified, `na_values`
+      is appended to the default NaN values used for parsing.
+    * If `keep_default_na` is True, and `na_values` are not specified, only
+      the default NaN values are used for parsing.
+    * If `keep_default_na` is False, and `na_values` are specified, only
+      the NaN values specified `na_values` are used for parsing.
+    * If `keep_default_na` is False, and `na_values` are not specified, no
+      strings will be parsed as NaN.
+
+    Note that if `na_filter` is passed in as False, the `keep_default_na` and
+    `na_values` parameters will be ignored.
 na_filter : boolean, default True
     Detect missing value markers (empty strings and the value of na_values). In
     data without any NAs, passing na_filter=False can improve the performance
@@ -401,7 +418,7 @@ def _read(filepath_or_buffer, kwds):
 
     compression = kwds.get('compression')
     compression = _infer_compression(filepath_or_buffer, compression)
-    filepath_or_buffer, _, compression = get_filepath_or_buffer(
+    filepath_or_buffer, _, compression, should_close = get_filepath_or_buffer(
         filepath_or_buffer, encoding, compression)
     kwds['compression'] = compression
 
@@ -427,6 +444,13 @@ def _read(filepath_or_buffer, kwds):
         data = parser.read(nrows)
     finally:
         parser.close()
+
+    if should_close:
+        try:
+            filepath_or_buffer.close()
+        except:  # noqa: flake8
+            pass
+
     return data
 
 
@@ -910,9 +934,6 @@ class TextFileReader(BaseIterator):
         na_values = options['na_values']
         skiprows = options['skiprows']
 
-        # really delete this one
-        keep_default_na = result.pop('keep_default_na')
-
         _validate_header_arg(options['header'])
 
         depr_warning = ''
@@ -957,6 +978,7 @@ class TextFileReader(BaseIterator):
             converters = {}
 
         # Converting values to NA
+        keep_default_na = options['keep_default_na']
         na_values, na_fvalues = _clean_na_values(na_values, keep_default_na)
 
         # handle skiprows; this is internally handled by the
@@ -1000,7 +1022,7 @@ class TextFileReader(BaseIterator):
             self._engine = klass(self.f, **self.options)
 
     def _failover_to_python(self):
-        raise AbstractMethodError(self)
+        raise com.AbstractMethodError(self)
 
     def read(self, nrows=None):
         nrows = _validate_integer('nrows', nrows)
@@ -1225,6 +1247,7 @@ class ParserBase(object):
         self.na_values = kwds.get('na_values')
         self.na_fvalues = kwds.get('na_fvalues')
         self.na_filter = kwds.get('na_filter', False)
+        self.keep_default_na = kwds.get('keep_default_na', True)
 
         self.true_values = kwds.get('true_values')
         self.false_values = kwds.get('false_values')
@@ -1487,7 +1510,8 @@ class ParserBase(object):
                 col_name = self.index_names[i]
                 if col_name is not None:
                     col_na_values, col_na_fvalues = _get_na_values(
-                        col_name, self.na_values, self.na_fvalues)
+                        col_name, self.na_values, self.na_fvalues,
+                        self.keep_default_na)
 
             arr, _ = self._infer_types(arr, col_na_values | col_na_fvalues)
             arrays.append(arr)
@@ -1510,7 +1534,7 @@ class ParserBase(object):
 
             if self.na_filter:
                 col_na_values, col_na_fvalues = _get_na_values(
-                    c, na_values, na_fvalues)
+                    c, na_values, na_fvalues, self.keep_default_na)
             else:
                 col_na_values, col_na_fvalues = set(), set()
 
@@ -1584,11 +1608,12 @@ class ParserBase(object):
             except Exception:
                 result = values
                 if values.dtype == np.object_:
-                    na_count = lib.sanitize_objects(result, na_values, False)
+                    na_count = parsers.sanitize_objects(result, na_values,
+                                                        False)
         else:
             result = values
             if values.dtype == np.object_:
-                na_count = lib.sanitize_objects(values, na_values, False)
+                na_count = parsers.sanitize_objects(values, na_values, False)
 
         if result.dtype == np.object_ and try_num_bool:
             result = lib.maybe_convert_bool(values,
@@ -3097,16 +3122,23 @@ def _clean_na_values(na_values, keep_default_na=True):
             na_values = set()
         na_fvalues = set()
     elif isinstance(na_values, dict):
-        na_values = na_values.copy()  # Prevent aliasing.
-        if keep_default_na:
-            for k, v in compat.iteritems(na_values):
-                if not is_list_like(v):
-                    v = [v]
+        old_na_values = na_values.copy()
+        na_values = {}  # Prevent aliasing.
+
+        # Convert the values in the na_values dictionary
+        # into array-likes for further use. This is also
+        # where we append the default NaN values, provided
+        # that `keep_default_na=True`.
+        for k, v in compat.iteritems(old_na_values):
+            if not is_list_like(v):
+                v = [v]
+
+            if keep_default_na:
                 v = set(v) | _NA_VALUES
-                na_values[k] = v
-        na_fvalues = dict(
-            (k, _floatify_na_values(v)) for k, v in na_values.items()  # noqa
-        )
+
+            na_values[k] = v
+        na_fvalues = dict((k, _floatify_na_values(v))
+                          for k, v in na_values.items())
     else:
         if not is_list_like(na_values):
             na_values = [na_values]
@@ -3225,12 +3257,38 @@ def _stringify_na_values(na_values):
     return set(result)
 
 
-def _get_na_values(col, na_values, na_fvalues):
+def _get_na_values(col, na_values, na_fvalues, keep_default_na):
+    """
+    Get the NaN values for a given column.
+
+    Parameters
+    ----------
+    col : str
+        The name of the column.
+    na_values : array-like, dict
+        The object listing the NaN values as strings.
+    na_fvalues : array-like, dict
+        The object listing the NaN values as floats.
+    keep_default_na : bool
+        If `na_values` is a dict, and the column is not mapped in the
+        dictionary, whether to return the default NaN values or the empty set.
+
+    Returns
+    -------
+    nan_tuple : A length-two tuple composed of
+
+        1) na_values : the string NaN values for that column.
+        2) na_fvalues : the float NaN values for that column.
+    """
+
     if isinstance(na_values, dict):
         if col in na_values:
             return na_values[col], na_fvalues[col]
         else:
-            return _NA_VALUES, set()
+            if keep_default_na:
+                return _NA_VALUES, set()
+
+            return set(), set()
     else:
         return na_values, na_fvalues
 

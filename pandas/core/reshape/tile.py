@@ -279,17 +279,21 @@ def _trim_zeros(x):
 def _coerce_to_type(x):
     """
     if the passed data is of datetime/timedelta type,
-    this method converts it to integer so that cut method can
+    this method converts it to numeric so that cut method can
     handle it
     """
     dtype = None
 
     if is_timedelta64_dtype(x):
-        x = to_timedelta(x).view(np.int64)
+        x = to_timedelta(x)
         dtype = np.timedelta64
     elif is_datetime64_dtype(x):
-        x = to_datetime(x).view(np.int64)
+        x = to_datetime(x)
         dtype = np.datetime64
+
+    if dtype is not None:
+        # GH 19768: force NaT to NaN during integer conversion
+        x = np.where(x.notna(), x.view(np.int64), np.nan)
 
     return x, dtype
 
@@ -348,8 +352,7 @@ def _format_labels(bins, precision, right=True,
         # account that we are all right closed
         v = adjust(labels[0].left)
 
-        i = IntervalIndex.from_intervals(
-            [Interval(v, labels[0].right, closed='right')])
+        i = IntervalIndex([Interval(v, labels[0].right, closed='right')])
         labels = i.append(labels[1:])
 
     return labels

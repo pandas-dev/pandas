@@ -539,8 +539,8 @@ class TestDataFrameFormatting(object):
         assert _rep(df) == expected
 
         # column name
-        df = DataFrame({u'あああああ': [1, 222, 33333, 4],
-                        'b': [u'あ', u'いいい', u'う', u'ええええええ']},
+        df = DataFrame({'b': [u'あ', u'いいい', u'う', u'ええええええ'],
+                        u'あああああ': [1, 222, 33333, 4]},
                        index=['a', 'bb', 'c', 'ddd'])
         expected = (u"          b  あああああ\na         あ      1\n"
                     u"bb      いいい    222\nc         う  33333\n"
@@ -647,8 +647,8 @@ class TestDataFrameFormatting(object):
             assert _rep(df) == expected
 
             # column name
-            df = DataFrame({u'あああああ': [1, 222, 33333, 4],
-                            'b': [u'あ', u'いいい', u'う', u'ええええええ']},
+            df = DataFrame({'b': [u'あ', u'いいい', u'う', u'ええええええ'],
+                            u'あああああ': [1, 222, 33333, 4]},
                            index=['a', 'bb', 'c', 'ddd'])
             expected = (u"                b  あああああ\n"
                         u"a              あ           1\n"
@@ -733,8 +733,8 @@ class TestDataFrameFormatting(object):
                 assert _rep(df) == expected
 
             # ambiguous unicode
-            df = DataFrame({u'あああああ': [1, 222, 33333, 4],
-                            'b': [u'あ', u'いいい', u'¡¡', u'ええええええ']},
+            df = DataFrame({'b': [u'あ', u'いいい', u'¡¡', u'ええええええ'],
+                            u'あああああ': [1, 222, 33333, 4]},
                            index=['a', 'bb', 'c', '¡¡¡'])
             expected = (u"                b  あああああ\n"
                         u"a              あ           1\n"
@@ -882,6 +882,29 @@ class TestDataFrameFormatting(object):
                         '9   2011-01-01 00:00:00-05:00  10\n\n'
                         '[10 rows x 2 columns]')
             assert repr(df) == expected
+
+    @pytest.mark.parametrize('start_date', [
+        '2017-01-01 23:59:59.999999999',
+        '2017-01-01 23:59:59.99999999',
+        '2017-01-01 23:59:59.9999999',
+        '2017-01-01 23:59:59.999999',
+        '2017-01-01 23:59:59.99999',
+        '2017-01-01 23:59:59.9999',
+    ])
+    def test_datetimeindex_highprecision(self, start_date):
+        # GH19030
+        # Check that high-precision time values for the end of day are
+        # included in repr for DatetimeIndex
+        df = DataFrame({'A': date_range(start=start_date,
+                                        freq='D', periods=5)})
+        result = str(df)
+        assert start_date in result
+
+        dti = date_range(start=start_date,
+                         freq='D', periods=5)
+        df = DataFrame({'A': range(5)}, index=dti)
+        result = str(df.index)
+        assert start_date in result
 
     def test_nonunicode_nonascii_alignment(self):
         df = DataFrame([["aa\xc3\xa4\xc3\xa4", 1], ["bbbb", 2]])
@@ -1469,7 +1492,7 @@ c  10  11  12  13  14\
                             'B': np.arange(41, 41 + h)}).set_index('idx')
             reg_repr = df._repr_html_()
             assert '..' not in reg_repr
-            assert str(40 + h) in reg_repr
+            assert '<td>{val}</td>'.format(val=str(40 + h)) in reg_repr
 
             h = max_rows + 1
             df = DataFrame({'idx': np.linspace(-10, 10, h),
@@ -1477,7 +1500,7 @@ c  10  11  12  13  14\
                             'B': np.arange(41, 41 + h)}).set_index('idx')
             long_repr = df._repr_html_()
             assert '..' in long_repr
-            assert '31' not in long_repr
+            assert '<td>{val}</td>'.format(val='31') not in long_repr
             assert u('{h} rows ').format(h=h) in long_repr
             assert u('2 columns') in long_repr
 
@@ -1913,6 +1936,27 @@ class TestSeriesFormatting(object):
         # nat in summary
         result = str(s2.index)
         assert 'NaT' in result
+
+    @pytest.mark.parametrize('start_date', [
+        '2017-01-01 23:59:59.999999999',
+        '2017-01-01 23:59:59.99999999',
+        '2017-01-01 23:59:59.9999999',
+        '2017-01-01 23:59:59.999999',
+        '2017-01-01 23:59:59.99999',
+        '2017-01-01 23:59:59.9999'
+    ])
+    def test_datetimeindex_highprecision(self, start_date):
+        # GH19030
+        # Check that high-precision time values for the end of day are
+        # included in repr for DatetimeIndex
+        s1 = Series(date_range(start=start_date, freq='D', periods=5))
+        result = str(s1)
+        assert start_date in result
+
+        dti = date_range(start=start_date, freq='D', periods=5)
+        s2 = Series(3, index=dti)
+        result = str(s2.index)
+        assert start_date in result
 
     def test_timedelta64(self):
 
@@ -2487,7 +2531,7 @@ class TestDatetimeIndexFormat(object):
             [datetime(2013, 1, 1), pd.NaT], utc=True).format()
         assert formatted[0] == "2013-01-01 00:00:00+00:00"
 
-    def test_date_explict_date_format(self):
+    def test_date_explicit_date_format(self):
         formatted = pd.to_datetime([datetime(2003, 2, 1), pd.NaT]).format(
             date_format="%m-%d-%Y", na_rep="UT")
         assert formatted[0] == "02-01-2003"

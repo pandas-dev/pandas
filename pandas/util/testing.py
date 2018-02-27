@@ -32,7 +32,7 @@ from pandas.core.dtypes.common import (
     is_list_like)
 from pandas.io.formats.printing import pprint_thing
 from pandas.core.algorithms import take_1d
-from pandas.core.common import _all_not_none
+import pandas.core.common as com
 
 import pandas.compat as compat
 from pandas.compat import (
@@ -160,6 +160,52 @@ def round_trip_localpath(writer, reader, path=None):
         writer(LocalPath(path))
         obj = reader(LocalPath(path))
     return obj
+
+
+@contextmanager
+def decompress_file(path, compression):
+    """
+    Open a compressed file and return a file object
+
+    Parameters
+    ----------
+    path : str
+        The path where the file is read from
+
+    compression : {'gzip', 'bz2', 'xz', None}
+        Name of the decompression to use
+
+    Returns
+    -------
+    f : file object
+    """
+
+    if compression is None:
+        f = open(path, 'rb')
+    elif compression == 'gzip':
+        import gzip
+        f = gzip.open(path, 'rb')
+    elif compression == 'bz2':
+        import bz2
+        f = bz2.BZ2File(path, 'rb')
+    elif compression == 'xz':
+        lzma = compat.import_lzma()
+        f = lzma.LZMAFile(path, 'rb')
+    elif compression == 'zip':
+        import zipfile
+        zip_file = zipfile.ZipFile(path)
+        zip_names = zip_file.namelist()
+        if len(zip_names) == 1:
+            f = zip_file.open(zip_names.pop())
+        else:
+            raise ValueError('ZIP file {} error. Only one file per ZIP.'
+                             .format(path))
+    else:
+        msg = 'Unrecognized compression type: {}'.format(compression)
+        raise ValueError(msg)
+
+    yield f
+    f.close()
 
 
 def assert_almost_equal(left, right, check_exact=False,
@@ -449,7 +495,7 @@ def set_locale(new_locale, lc_var=locale.LC_ALL):
         except ValueError:
             yield new_locale
         else:
-            if _all_not_none(*normalized_locale):
+            if com._all_not_none(*normalized_locale):
                 yield '.'.join(normalized_locale)
             else:
                 yield new_locale
@@ -2119,7 +2165,7 @@ def network(t, url="http://www.google.com",
     from pytest import skip
     t.network = True
 
-    @wraps(t)
+    @compat.wraps(t)
     def wrapper(*args, **kwargs):
         if check_before_test and not raise_on_error:
             if not can_connect(url, error_classes):
@@ -2339,12 +2385,44 @@ class _AssertRaisesContextmanager(object):
 def assert_produces_warning(expected_warning=Warning, filter_level="always",
                             clear=None, check_stacklevel=True):
     """
-    Context manager for running code that expects to raise (or not raise)
-    warnings.  Checks that code raises the expected warning and only the
-    expected warning. Pass ``False`` or ``None`` to check that it does *not*
-    raise a warning. Defaults to ``exception.Warning``, baseclass of all
-    Warnings. (basically a wrapper around ``warnings.catch_warnings``).
+    Context manager for running code expected to either raise a specific
+    warning, or not raise any warnings. Verifies that the code raises the
+    expected warning, and that it does not raise any other unexpected
+    warnings. It is basically a wrapper around ``warnings.catch_warnings``.
 
+    Parameters
+    ----------
+    expected_warning : {Warning, False, None}, default Warning
+        The type of Exception raised. ``exception.Warning`` is the base
+        class for all warnings. To check that no warning is returned,
+        specify ``False`` or ``None``.
+    filter_level : str, default "always"
+        Specifies whether warnings are ignored, displayed, or turned
+        into errors.
+        Valid values are:
+
+        * "error" - turns matching warnings into exceptions
+        * "ignore" - discard the warning
+        * "always" - always emit a warning
+        * "default" - print the warning the first time it is generated
+          from each location
+        * "module" - print the warning the first time it is generated
+          from each module
+        * "once" - print the warning the first time it is generated
+
+    clear : str, default None
+        If not ``None`` then remove any previously raised warnings from
+        the ``__warningsregistry__`` to ensure that no warning messages are
+        suppressed by this context manager. If ``None`` is specified,
+        the ``__warningsregistry__`` keeps track of which warnings have been
+         shown, and does not show them again.
+    check_stacklevel : bool, default True
+        If True, displays the line that called the function containing
+        the warning to show were the function is called. Otherwise, the
+        line that implements the function is displayed.
+
+    Examples
+    --------
     >>> import warnings
     >>> with assert_produces_warning():
     ...     warnings.warn(UserWarning())

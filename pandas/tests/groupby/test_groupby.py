@@ -99,9 +99,9 @@ class TestGroupBy(MixIn):
 
         applied = df.groupby('A').apply(max_value)
         result = applied.get_dtype_counts().sort_values()
-        expected = Series({'object': 2,
-                           'float64': 2,
-                           'int64': 1}).sort_values()
+        expected = Series({'float64': 2,
+                           'int64': 1,
+                           'object': 2}).sort_values()
         assert_series_equal(result, expected)
 
     def test_groupby_return_type(self):
@@ -244,7 +244,7 @@ class TestGroupBy(MixIn):
             return pd.Series({'c': 2})
 
         def func_with_date(batch):
-            return pd.Series({'c': 2, 'b': datetime(2015, 1, 1)})
+            return pd.Series({'b': datetime(2015, 1, 1), 'c': 2})
 
         dfg_no_conversion = df.groupby(by=['a']).apply(func_with_no_date)
         dfg_no_conversion_expected = pd.DataFrame({'c': 2}, index=[1])
@@ -1628,8 +1628,8 @@ class TestGroupBy(MixIn):
 
     def test_apply_with_mixed_dtype(self):
         # GH3480, apply with mixed dtype on axis=1 breaks in 0.11
-        df = DataFrame({'foo1': ['one', 'two', 'two', 'three', 'one', 'two'],
-                        'foo2': np.random.randn(6)})
+        df = DataFrame({'foo1': np.random.randn(6),
+                        'foo2': ['one', 'two', 'two', 'three', 'one', 'two']})
         result = df.apply(lambda x: x, axis=1)
         assert_series_equal(df.get_dtype_counts(), result.get_dtype_counts())
 
@@ -1895,6 +1895,227 @@ class TestGroupBy(MixIn):
         expected = expected.reindex(result.index)
         assert_series_equal(result, expected)
 
+    @pytest.mark.parametrize("grps", [
+        ['qux'], ['qux', 'quux']])
+    @pytest.mark.parametrize("vals", [
+        [2, 2, 8, 2, 6],
+        [pd.Timestamp('2018-01-02'), pd.Timestamp('2018-01-02'),
+         pd.Timestamp('2018-01-08'), pd.Timestamp('2018-01-02'),
+         pd.Timestamp('2018-01-06')]])
+    @pytest.mark.parametrize("ties_method,ascending,pct,exp", [
+        ('average', True, False, [2., 2., 5., 2., 4.]),
+        ('average', True, True, [0.4, 0.4, 1.0, 0.4, 0.8]),
+        ('average', False, False, [4., 4., 1., 4., 2.]),
+        ('average', False, True, [.8, .8, .2, .8, .4]),
+        ('min', True, False, [1., 1., 5., 1., 4.]),
+        ('min', True, True, [0.2, 0.2, 1.0, 0.2, 0.8]),
+        ('min', False, False, [3., 3., 1., 3., 2.]),
+        ('min', False, True, [.6, .6, .2, .6, .4]),
+        ('max', True, False, [3., 3., 5., 3., 4.]),
+        ('max', True, True, [0.6, 0.6, 1.0, 0.6, 0.8]),
+        ('max', False, False, [5., 5., 1., 5., 2.]),
+        ('max', False, True, [1., 1., .2, 1., .4]),
+        ('first', True, False, [1., 2., 5., 3., 4.]),
+        ('first', True, True, [0.2, 0.4, 1.0, 0.6, 0.8]),
+        ('first', False, False, [3., 4., 1., 5., 2.]),
+        ('first', False, True, [.6, .8, .2, 1., .4]),
+        ('dense', True, False, [1., 1., 3., 1., 2.]),
+        ('dense', True, True, [0.2, 0.2, 0.6, 0.2, 0.4]),
+        ('dense', False, False, [3., 3., 1., 3., 2.]),
+        ('dense', False, True, [.6, .6, .2, .6, .4]),
+    ])
+    def test_rank_args(self, grps, vals, ties_method, ascending, pct, exp):
+        key = np.repeat(grps, len(vals))
+        vals = vals * len(grps)
+        df = DataFrame({'key': key, 'val': vals})
+        result = df.groupby('key').rank(method=ties_method,
+                                        ascending=ascending, pct=pct)
+
+        exp_df = DataFrame(exp * len(grps), columns=['val'])
+        assert_frame_equal(result, exp_df)
+
+    @pytest.mark.parametrize("grps", [
+        ['qux'], ['qux', 'quux']])
+    @pytest.mark.parametrize("vals", [
+        [2, 2, np.nan, 8, 2, 6, np.nan, np.nan],  # floats
+        [pd.Timestamp('2018-01-02'), pd.Timestamp('2018-01-02'), np.nan,
+         pd.Timestamp('2018-01-08'), pd.Timestamp('2018-01-02'),
+         pd.Timestamp('2018-01-06'), np.nan, np.nan]
+    ])
+    @pytest.mark.parametrize("ties_method,ascending,na_option,pct,exp", [
+        ('average', True, 'keep', False,
+            [2., 2., np.nan, 5., 2., 4., np.nan, np.nan]),
+        ('average', True, 'keep', True,
+            [0.4, 0.4, np.nan, 1.0, 0.4, 0.8, np.nan, np.nan]),
+        ('average', False, 'keep', False,
+            [4., 4., np.nan, 1., 4., 2., np.nan, np.nan]),
+        ('average', False, 'keep', True,
+            [.8, 0.8, np.nan, 0.2, 0.8, 0.4, np.nan, np.nan]),
+        ('min', True, 'keep', False,
+            [1., 1., np.nan, 5., 1., 4., np.nan, np.nan]),
+        ('min', True, 'keep', True,
+            [0.2, 0.2, np.nan, 1.0, 0.2, 0.8, np.nan, np.nan]),
+        ('min', False, 'keep', False,
+            [3., 3., np.nan, 1., 3., 2., np.nan, np.nan]),
+        ('min', False, 'keep', True,
+            [.6, 0.6, np.nan, 0.2, 0.6, 0.4, np.nan, np.nan]),
+        ('max', True, 'keep', False,
+            [3., 3., np.nan, 5., 3., 4., np.nan, np.nan]),
+        ('max', True, 'keep', True,
+            [0.6, 0.6, np.nan, 1.0, 0.6, 0.8, np.nan, np.nan]),
+        ('max', False, 'keep', False,
+            [5., 5., np.nan, 1., 5., 2., np.nan, np.nan]),
+        ('max', False, 'keep', True,
+            [1., 1., np.nan, 0.2, 1., 0.4, np.nan, np.nan]),
+        ('first', True, 'keep', False,
+            [1., 2., np.nan, 5., 3., 4., np.nan, np.nan]),
+        ('first', True, 'keep', True,
+            [0.2, 0.4, np.nan, 1.0, 0.6, 0.8, np.nan, np.nan]),
+        ('first', False, 'keep', False,
+            [3., 4., np.nan, 1., 5., 2., np.nan, np.nan]),
+        ('first', False, 'keep', True,
+            [.6, 0.8, np.nan, 0.2, 1., 0.4, np.nan, np.nan]),
+        ('dense', True, 'keep', False,
+            [1., 1., np.nan, 3., 1., 2., np.nan, np.nan]),
+        ('dense', True, 'keep', True,
+            [0.2, 0.2, np.nan, 0.6, 0.2, 0.4, np.nan, np.nan]),
+        ('dense', False, 'keep', False,
+            [3., 3., np.nan, 1., 3., 2., np.nan, np.nan]),
+        ('dense', False, 'keep', True,
+            [.6, 0.6, np.nan, 0.2, 0.6, 0.4, np.nan, np.nan]),
+        ('average', True, 'no_na', False, [2., 2., 7., 5., 2., 4., 7., 7.]),
+        ('average', True, 'no_na', True,
+            [0.25, 0.25, 0.875, 0.625, 0.25, 0.5, 0.875, 0.875]),
+        ('average', False, 'no_na', False, [4., 4., 7., 1., 4., 2., 7., 7.]),
+        ('average', False, 'no_na', True,
+            [0.5, 0.5, 0.875, 0.125, 0.5, 0.25, 0.875, 0.875]),
+        ('min', True, 'no_na', False, [1., 1., 6., 5., 1., 4., 6., 6.]),
+        ('min', True, 'no_na', True,
+            [0.125, 0.125, 0.75, 0.625, 0.125, 0.5, 0.75, 0.75]),
+        ('min', False, 'no_na', False, [3., 3., 6., 1., 3., 2., 6., 6.]),
+        ('min', False, 'no_na', True,
+            [0.375, 0.375, 0.75, 0.125, 0.375, 0.25, 0.75, 0.75]),
+        ('max', True, 'no_na', False, [3., 3., 8., 5., 3., 4., 8., 8.]),
+        ('max', True, 'no_na', True,
+            [0.375, 0.375, 1., 0.625, 0.375, 0.5, 1., 1.]),
+        ('max', False, 'no_na', False, [5., 5., 8., 1., 5., 2., 8., 8.]),
+        ('max', False, 'no_na', True,
+            [0.625, 0.625, 1., 0.125, 0.625, 0.25, 1., 1.]),
+        ('first', True, 'no_na', False, [1., 2., 6., 5., 3., 4., 7., 8.]),
+        ('first', True, 'no_na', True,
+            [0.125, 0.25, 0.75, 0.625, 0.375, 0.5, 0.875, 1.]),
+        ('first', False, 'no_na', False, [3., 4., 6., 1., 5., 2., 7., 8.]),
+        ('first', False, 'no_na', True,
+            [0.375, 0.5, 0.75, 0.125, 0.625, 0.25, 0.875, 1.]),
+        ('dense', True, 'no_na', False, [1., 1., 4., 3., 1., 2., 4., 4.]),
+        ('dense', True, 'no_na', True,
+            [0.125, 0.125, 0.5, 0.375, 0.125, 0.25, 0.5, 0.5]),
+        ('dense', False, 'no_na', False, [3., 3., 4., 1., 3., 2., 4., 4.]),
+        ('dense', False, 'no_na', True,
+            [0.375, 0.375, 0.5, 0.125, 0.375, 0.25, 0.5, 0.5])
+    ])
+    def test_rank_args_missing(self, grps, vals, ties_method, ascending,
+                               na_option, pct, exp):
+        key = np.repeat(grps, len(vals))
+        vals = vals * len(grps)
+        df = DataFrame({'key': key, 'val': vals})
+        result = df.groupby('key').rank(method=ties_method,
+                                        ascending=ascending,
+                                        na_option=na_option, pct=pct)
+
+        exp_df = DataFrame(exp * len(grps), columns=['val'])
+        assert_frame_equal(result, exp_df)
+
+    @pytest.mark.parametrize("pct,exp", [
+        (False, [3., 3., 3., 3., 3.]),
+        (True, [.6, .6, .6, .6, .6])])
+    def test_rank_resets_each_group(self, pct, exp):
+        df = DataFrame(
+            {'key': ['a', 'a', 'a', 'a', 'a', 'b', 'b', 'b', 'b', 'b'],
+             'val': [1] * 10}
+        )
+        result = df.groupby('key').rank(pct=pct)
+        exp_df = DataFrame(exp * 2, columns=['val'])
+        assert_frame_equal(result, exp_df)
+
+    def test_rank_avg_even_vals(self):
+        df = DataFrame({'key': ['a'] * 4, 'val': [1] * 4})
+        result = df.groupby('key').rank()
+        exp_df = DataFrame([2.5, 2.5, 2.5, 2.5], columns=['val'])
+        assert_frame_equal(result, exp_df)
+
+    @pytest.mark.parametrize("ties_method", [
+        'average', 'min', 'max', 'first', 'dense'])
+    @pytest.mark.parametrize("ascending", [True, False])
+    @pytest.mark.parametrize("na_option", ["keep", "top", "bottom"])
+    @pytest.mark.parametrize("pct", [True, False])
+    @pytest.mark.parametrize("vals", [
+        ['bar', 'bar', 'foo', 'bar', 'baz'],
+        ['bar', np.nan, 'foo', np.nan, 'baz']
+    ])
+    def test_rank_object_raises(self, ties_method, ascending, na_option,
+                                pct, vals):
+        df = DataFrame({'key': ['foo'] * 5, 'val': vals})
+        with tm.assert_raises_regex(TypeError, "not callable"):
+            df.groupby('key').rank(method=ties_method,
+                                   ascending=ascending,
+                                   na_option=na_option, pct=pct)
+
+    @pytest.mark.parametrize("mix_groupings", [True, False])
+    @pytest.mark.parametrize("as_series", [True, False])
+    @pytest.mark.parametrize("val1,val2", [
+        ('foo', 'bar'), (1, 2), (1., 2.)])
+    @pytest.mark.parametrize("fill_method,limit,exp_vals", [
+        ("ffill", None,
+         [np.nan, np.nan, 'val1', 'val1', 'val1', 'val2', 'val2', 'val2']),
+        ("ffill", 1,
+         [np.nan, np.nan, 'val1', 'val1', np.nan, 'val2', 'val2', np.nan]),
+        ("bfill", None,
+         ['val1', 'val1', 'val1', 'val2', 'val2', 'val2', np.nan, np.nan]),
+        ("bfill", 1,
+         [np.nan, 'val1', 'val1', np.nan, 'val2', 'val2', np.nan, np.nan])
+    ])
+    def test_group_fill_methods(self, mix_groupings, as_series, val1, val2,
+                                fill_method, limit, exp_vals):
+        vals = [np.nan, np.nan, val1, np.nan, np.nan, val2, np.nan, np.nan]
+        _exp_vals = list(exp_vals)
+        # Overwrite placeholder values
+        for index, exp_val in enumerate(_exp_vals):
+            if exp_val == 'val1':
+                _exp_vals[index] = val1
+            elif exp_val == 'val2':
+                _exp_vals[index] = val2
+
+        # Need to modify values and expectations depending on the
+        # Series / DataFrame that we ultimately want to generate
+        if mix_groupings:  # ['a', 'b', 'a, 'b', ...]
+            keys = ['a', 'b'] * len(vals)
+
+            def interweave(list_obj):
+                temp = list()
+                for x in list_obj:
+                    temp.extend([x, x])
+
+                return temp
+
+            _exp_vals = interweave(_exp_vals)
+            vals = interweave(vals)
+        else:  # ['a', 'a', 'a', ... 'b', 'b', 'b']
+            keys = ['a'] * len(vals) + ['b'] * len(vals)
+            _exp_vals = _exp_vals * 2
+            vals = vals * 2
+
+        df = DataFrame({'key': keys, 'val': vals})
+        if as_series:
+            result = getattr(
+                df.groupby('key')['val'], fill_method)(limit=limit)
+            exp = Series(_exp_vals, name='val')
+            assert_series_equal(result, exp)
+        else:
+            result = getattr(df.groupby('key'), fill_method)(limit=limit)
+            exp = DataFrame({'key': keys, 'val': _exp_vals})
+            assert_frame_equal(result, exp)
+
     def test_dont_clobber_name_column(self):
         df = DataFrame({'key': ['a', 'a', 'a', 'b', 'b', 'b'],
                         'name': ['foo', 'bar', 'baz'] * 2})
@@ -1947,10 +2168,10 @@ class TestGroupBy(MixIn):
 
     def test_handle_dict_return_value(self):
         def f(group):
-            return {'min': group.min(), 'max': group.max()}
+            return {'max': group.max(), 'min': group.min()}
 
         def g(group):
-            return Series({'min': group.min(), 'max': group.max()})
+            return Series({'max': group.max(), 'min': group.min()})
 
         result = self.df.groupby('A')['C'].apply(f)
         expected = self.df.groupby('A')['C'].apply(g)
@@ -2086,7 +2307,19 @@ class TestGroupBy(MixIn):
         expected = df.groupby(bins).agg(lambda x: x.median())
         assert_frame_equal(result, expected)
 
-    def test_groupby_non_arithmetic_agg_types(self):
+    @pytest.mark.parametrize("dtype", [
+        'int8', 'int16', 'int32', 'int64', 'float32', 'float64'])
+    @pytest.mark.parametrize("method,data", [
+        ('first', {'df': [{'a': 1, 'b': 1}, {'a': 2, 'b': 3}]}),
+        ('last', {'df': [{'a': 1, 'b': 2}, {'a': 2, 'b': 4}]}),
+        ('min', {'df': [{'a': 1, 'b': 1}, {'a': 2, 'b': 3}]}),
+        ('max', {'df': [{'a': 1, 'b': 2}, {'a': 2, 'b': 4}]}),
+        ('nth', {'df': [{'a': 1, 'b': 2}, {'a': 2, 'b': 4}],
+                 'args': [1]}),
+        ('count', {'df': [{'a': 1, 'b': 2}, {'a': 2, 'b': 2}],
+                   'out_type': 'int64'})
+    ])
+    def test_groupby_non_arithmetic_agg_types(self, dtype, method, data):
         # GH9311, GH6620
         df = pd.DataFrame(
             [{'a': 1, 'b': 1},
@@ -2094,39 +2327,25 @@ class TestGroupBy(MixIn):
              {'a': 2, 'b': 3},
              {'a': 2, 'b': 4}])
 
-        dtypes = ['int8', 'int16', 'int32', 'int64', 'float32', 'float64']
+        df['b'] = df.b.astype(dtype)
 
-        grp_exp = {'first': {'df': [{'a': 1, 'b': 1}, {'a': 2, 'b': 3}]},
-                   'last': {'df': [{'a': 1, 'b': 2}, {'a': 2, 'b': 4}]},
-                   'min': {'df': [{'a': 1, 'b': 1}, {'a': 2, 'b': 3}]},
-                   'max': {'df': [{'a': 1, 'b': 2}, {'a': 2, 'b': 4}]},
-                   'nth': {'df': [{'a': 1, 'b': 2}, {'a': 2, 'b': 4}],
-                           'args': [1]},
-                   'count': {'df': [{'a': 1, 'b': 2}, {'a': 2, 'b': 2}],
-                             'out_type': 'int64'}}
+        if 'args' not in data:
+            data['args'] = []
 
-        for dtype in dtypes:
-            df_in = df.copy()
-            df_in['b'] = df_in.b.astype(dtype)
+        if 'out_type' in data:
+            out_type = data['out_type']
+        else:
+            out_type = dtype
 
-            for method, data in compat.iteritems(grp_exp):
-                if 'args' not in data:
-                    data['args'] = []
+        exp = data['df']
+        df_out = pd.DataFrame(exp)
 
-                if 'out_type' in data:
-                    out_type = data['out_type']
-                else:
-                    out_type = dtype
+        df_out['b'] = df_out.b.astype(out_type)
+        df_out.set_index('a', inplace=True)
 
-                exp = data['df']
-                df_out = pd.DataFrame(exp)
-
-                df_out['b'] = df_out.b.astype(out_type)
-                df_out.set_index('a', inplace=True)
-
-                grpd = df_in.groupby('a')
-                t = getattr(grpd, method)(*data['args'])
-                assert_frame_equal(t, df_out)
+        grpd = df.groupby('a')
+        t = getattr(grpd, method)(*data['args'])
+        assert_frame_equal(t, df_out)
 
     def test_groupby_non_arithmetic_agg_intlike_precision(self):
         # GH9311, GH6620
@@ -2475,7 +2694,7 @@ class TestGroupBy(MixIn):
         # Generate a moderately large dataframe with occasional missing
         # values in column `B`, and then group by [`A`, `B`]. This should
         # force `-1` in `labels` array of `g.grouper.group_info` exactly
-        # at those places, where the group-by key is partilly missing.
+        # at those places, where the group-by key is partially missing.
         df = DataFrame([(i % 12, i % 3 if i % 3 else np.nan, i)
                         for i in range(n_rows)], dtype=float,
                        columns=["A", "B", "Z"], index=None)
@@ -2598,6 +2817,65 @@ class TestGroupBy(MixIn):
         df = pd.DataFrame(dict(a=[1, 2, 1], b=[1, 2, 2]))
         result = df.groupby('a').b.cummin()
         expected = pd.Series([1, 2, 1], name='b')
+        tm.assert_series_equal(result, expected)
+
+    @pytest.mark.parametrize('in_vals, out_vals', [
+
+        # Basics: strictly increasing (T), strictly decreasing (F),
+        # abs val increasing (F), non-strictly increasing (T)
+        ([1, 2, 5, 3, 2, 0, 4, 5, -6, 1, 1],
+         [True, False, False, True]),
+
+        # Test with inf vals
+        ([1, 2.1, np.inf, 3, 2, np.inf, -np.inf, 5, 11, 1, -np.inf],
+         [True, False, True, False]),
+
+        # Test with nan vals; should always be False
+        ([1, 2, np.nan, 3, 2, np.nan, np.nan, 5, -np.inf, 1, np.nan],
+         [False, False, False, False]),
+    ])
+    def test_is_monotonic_increasing(self, in_vals, out_vals):
+        # GH 17015
+        source_dict = {
+            'A': ['1', '2', '3', '4', '5', '6', '7', '8', '9', '10', '11'],
+            'B': ['a', 'a', 'a', 'b', 'b', 'b', 'c', 'c', 'c', 'd', 'd'],
+            'C': in_vals}
+        df = pd.DataFrame(source_dict)
+        result = df.groupby('B').C.is_monotonic_increasing
+        index = Index(list('abcd'), name='B')
+        expected = pd.Series(index=index, data=out_vals, name='C')
+        tm.assert_series_equal(result, expected)
+
+        # Also check result equal to manually taking x.is_monotonic_increasing.
+        expected = (
+            df.groupby(['B']).C.apply(lambda x: x.is_monotonic_increasing))
+        tm.assert_series_equal(result, expected)
+
+    @pytest.mark.parametrize('in_vals, out_vals', [
+        # Basics: strictly decreasing (T), strictly increasing (F),
+        # abs val decreasing (F), non-strictly increasing (T)
+        ([10, 9, 7, 3, 4, 5, -3, 2, 0, 1, 1],
+         [True, False, False, True]),
+
+        # Test with inf vals
+        ([np.inf, 1, -np.inf, np.inf, 2, -3, -np.inf, 5, -3, -np.inf, -np.inf],
+         [True, True, False, True]),
+
+        # Test with nan vals; should always be False
+        ([1, 2, np.nan, 3, 2, np.nan, np.nan, 5, -np.inf, 1, np.nan],
+         [False, False, False, False]),
+    ])
+    def test_is_monotonic_decreasing(self, in_vals, out_vals):
+        # GH 17015
+        source_dict = {
+            'A': ['1', '2', '3', '4', '5', '6', '7', '8', '9', '10', '11'],
+            'B': ['a', 'a', 'a', 'b', 'b', 'b', 'c', 'c', 'c', 'd', 'd'],
+            'C': in_vals}
+
+        df = pd.DataFrame(source_dict)
+        result = df.groupby('B').C.is_monotonic_decreasing
+        index = Index(list('abcd'), name='B')
+        expected = pd.Series(index=index, data=out_vals, name='C')
         tm.assert_series_equal(result, expected)
 
     def test_apply_numeric_coercion_when_datetime(self):

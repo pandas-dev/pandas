@@ -19,7 +19,7 @@ from pandas.errors import PerformanceWarning, UnsortedIndexError
 from pandas.core.dtypes.dtypes import CategoricalDtype
 from pandas.core.indexes.base import InvalidIndexError
 from pandas.core.dtypes.cast import construct_1d_object_array_from_listlike
-from pandas._libs.lib import Timestamp
+from pandas._libs.tslib import Timestamp
 
 import pandas.util.testing as tm
 
@@ -326,6 +326,21 @@ class TestMultiIndex(Base):
         assert inplace_return is None
         assert_matching(ind2.labels, new_labels)
         assert_matching(self.index.labels, labels)
+
+        # label changing for levels of different magnitude of categories
+        ind = pd.MultiIndex.from_tuples([(0, i) for i in range(130)])
+        new_labels = range(129, -1, -1)
+        expected = pd.MultiIndex.from_tuples(
+            [(0, i) for i in new_labels])
+
+        # [w/o mutation]
+        result = ind.set_labels(labels=new_labels, level=1)
+        assert result.equals(expected)
+
+        # [w/ mutation]
+        result = ind.copy()
+        result.set_labels(labels=new_labels, level=1, inplace=True)
+        assert result.equals(expected)
 
     def test_set_levels_labels_names_bad_input(self):
         levels, labels = self.index.levels, self.index.labels
@@ -947,6 +962,53 @@ class TestMultiIndex(Base):
         # Check that code branches for boxed values produce identical results
         tm.assert_numpy_array_equal(result.values[:4], result[:4].values)
 
+    def test_values_multiindex_datetimeindex(self):
+        # Test to ensure we hit the boxing / nobox part of MI.values
+        ints = np.arange(10**18, 10**18 + 5)
+        naive = pd.DatetimeIndex(ints)
+        aware = pd.DatetimeIndex(ints, tz='US/Central')
+
+        idx = pd.MultiIndex.from_arrays([naive, aware])
+        result = idx.values
+
+        outer = pd.DatetimeIndex([x[0] for x in result])
+        tm.assert_index_equal(outer, naive)
+
+        inner = pd.DatetimeIndex([x[1] for x in result])
+        tm.assert_index_equal(inner, aware)
+
+        # n_lev > n_lab
+        result = idx[:2].values
+
+        outer = pd.DatetimeIndex([x[0] for x in result])
+        tm.assert_index_equal(outer, naive[:2])
+
+        inner = pd.DatetimeIndex([x[1] for x in result])
+        tm.assert_index_equal(inner, aware[:2])
+
+    def test_values_multiindex_periodindex(self):
+        # Test to ensure we hit the boxing / nobox part of MI.values
+        ints = np.arange(2007, 2012)
+        pidx = pd.PeriodIndex(ints, freq='D')
+
+        idx = pd.MultiIndex.from_arrays([ints, pidx])
+        result = idx.values
+
+        outer = pd.Int64Index([x[0] for x in result])
+        tm.assert_index_equal(outer, pd.Int64Index(ints))
+
+        inner = pd.PeriodIndex([x[1] for x in result])
+        tm.assert_index_equal(inner, pidx)
+
+        # n_lev > n_lab
+        result = idx[:2].values
+
+        outer = pd.Int64Index([x[0] for x in result])
+        tm.assert_index_equal(outer, pd.Int64Index(ints[:2]))
+
+        inner = pd.PeriodIndex([x[1] for x in result])
+        tm.assert_index_equal(inner, pidx[:2])
+
     def test_append(self):
         result = self.index[:3].append(self.index[3:])
         assert result.equals(self.index)
@@ -1243,6 +1305,17 @@ class TestMultiIndex(Base):
         assert result == expected
         assert new_index.equals(index.droplevel(0))
 
+    @pytest.mark.parametrize('level', [0, 1])
+    @pytest.mark.parametrize('null_val', [np.nan, pd.NaT, None])
+    def test_get_loc_nan(self, level, null_val):
+        # GH 18485 : NaN in MultiIndex
+        levels = [['a', 'b'], ['c', 'd']]
+        key = ['b', 'd']
+        levels[level] = np.array([0, null_val], dtype=type(null_val))
+        key[level] = null_val
+        idx = MultiIndex.from_product(levels)
+        assert idx.get_loc(tuple(key)) == 3
+
     def test_get_loc_missing_nan(self):
         # GH 8569
         idx = MultiIndex.from_arrays([[1.0, 2.0], [3.0, 4.0]])
@@ -1250,6 +1323,38 @@ class TestMultiIndex(Base):
         pytest.raises(KeyError, idx.get_loc, 3)
         pytest.raises(KeyError, idx.get_loc, np.nan)
         pytest.raises(KeyError, idx.get_loc, [np.nan])
+
+    @pytest.mark.parametrize('dtype1', [int, float, bool, str])
+    @pytest.mark.parametrize('dtype2', [int, float, bool, str])
+    def test_get_loc_multiple_dtypes(self, dtype1, dtype2):
+        # GH 18520
+        levels = [np.array([0, 1]).astype(dtype1),
+                  np.array([0, 1]).astype(dtype2)]
+        idx = pd.MultiIndex.from_product(levels)
+        assert idx.get_loc(idx[2]) == 2
+
+    @pytest.mark.parametrize('level', [0, 1])
+    @pytest.mark.parametrize('dtypes', [[int, float], [float, int]])
+    def test_get_loc_implicit_cast(self, level, dtypes):
+        # GH 18818, GH 15994 : as flat index, cast int to float and vice-versa
+        levels = [['a', 'b'], ['c', 'd']]
+        key = ['b', 'd']
+        lev_dtype, key_dtype = dtypes
+        levels[level] = np.array([0, 1], dtype=lev_dtype)
+        key[level] = key_dtype(1)
+        idx = MultiIndex.from_product(levels)
+        assert idx.get_loc(tuple(key)) == 3
+
+    def test_get_loc_cast_bool(self):
+        # GH 19086 : int is casted to bool, but not vice-versa
+        levels = [[False, True], np.arange(2, dtype='int64')]
+        idx = MultiIndex.from_product(levels)
+
+        assert idx.get_loc((0, 1)) == 1
+        assert idx.get_loc((1, 0)) == 2
+
+        pytest.raises(KeyError, idx.get_loc, (False, True))
+        pytest.raises(KeyError, idx.get_loc, (True, False))
 
     def test_slice_locs(self):
         df = tm.makeTimeDataFrame()

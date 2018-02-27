@@ -4,53 +4,7 @@ import numpy as np
 import pandas as pd
 import pandas.util.testing as tm
 from pandas import (Index, DatetimeIndex, datetime, offsets,
-                    Float64Index, date_range, Timestamp)
-
-
-class TestDateTimeIndexToJulianDate(object):
-
-    def test_1700(self):
-        r1 = Float64Index([2345897.5, 2345898.5, 2345899.5, 2345900.5,
-                           2345901.5])
-        r2 = date_range(start=Timestamp('1710-10-01'), periods=5,
-                        freq='D').to_julian_date()
-        assert isinstance(r2, Float64Index)
-        tm.assert_index_equal(r1, r2)
-
-    def test_2000(self):
-        r1 = Float64Index([2451601.5, 2451602.5, 2451603.5, 2451604.5,
-                           2451605.5])
-        r2 = date_range(start=Timestamp('2000-02-27'), periods=5,
-                        freq='D').to_julian_date()
-        assert isinstance(r2, Float64Index)
-        tm.assert_index_equal(r1, r2)
-
-    def test_hour(self):
-        r1 = Float64Index(
-            [2451601.5, 2451601.5416666666666666, 2451601.5833333333333333,
-             2451601.625, 2451601.6666666666666666])
-        r2 = date_range(start=Timestamp('2000-02-27'), periods=5,
-                        freq='H').to_julian_date()
-        assert isinstance(r2, Float64Index)
-        tm.assert_index_equal(r1, r2)
-
-    def test_minute(self):
-        r1 = Float64Index(
-            [2451601.5, 2451601.5006944444444444, 2451601.5013888888888888,
-             2451601.5020833333333333, 2451601.5027777777777777])
-        r2 = date_range(start=Timestamp('2000-02-27'), periods=5,
-                        freq='T').to_julian_date()
-        assert isinstance(r2, Float64Index)
-        tm.assert_index_equal(r1, r2)
-
-    def test_second(self):
-        r1 = Float64Index(
-            [2451601.5, 2451601.500011574074074, 2451601.5000231481481481,
-             2451601.5000347222222222, 2451601.5000462962962962])
-        r2 = date_range(start=Timestamp('2000-02-27'), periods=5,
-                        freq='S').to_julian_date()
-        assert isinstance(r2, Float64Index)
-        tm.assert_index_equal(r1, r2)
+                    date_range, Timestamp)
 
 
 class TestTimeSeries(object):
@@ -128,46 +82,6 @@ class TestTimeSeries(object):
         exp = DatetimeIndex(['1970-01-01', '1970-01-02',
                              '1970-01-03', '1970-01-04'])
         tm.assert_index_equal(idx, exp)
-
-    def test_datetimeindex_integers_shift(self):
-        rng = date_range('1/1/2000', periods=20)
-
-        result = rng + 5
-        expected = rng.shift(5)
-        tm.assert_index_equal(result, expected)
-
-        result = rng - 5
-        expected = rng.shift(-5)
-        tm.assert_index_equal(result, expected)
-
-    def test_datetimeindex_repr_short(self):
-        dr = date_range(start='1/1/2012', periods=1)
-        repr(dr)
-
-        dr = date_range(start='1/1/2012', periods=2)
-        repr(dr)
-
-        dr = date_range(start='1/1/2012', periods=3)
-        repr(dr)
-
-    def test_normalize(self):
-        rng = date_range('1/1/2000 9:30', periods=10, freq='D')
-
-        result = rng.normalize()
-        expected = date_range('1/1/2000', periods=10, freq='D')
-        tm.assert_index_equal(result, expected)
-
-        rng_ns = pd.DatetimeIndex(np.array([1380585623454345752,
-                                            1380585612343234312]).astype(
-                                                "datetime64[ns]"))
-        rng_ns_normalized = rng_ns.normalize()
-        expected = pd.DatetimeIndex(np.array([1380585600000000000,
-                                              1380585600000000000]).astype(
-                                                  "datetime64[ns]"))
-        tm.assert_index_equal(rng_ns_normalized, expected)
-
-        assert result.is_normalized
-        assert not rng.is_normalized
 
 
 class TestDatetime64(object):

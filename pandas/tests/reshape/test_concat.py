@@ -473,13 +473,22 @@ class TestConcatAppendCommon(ConcatenateBase):
         tm.assert_series_equal(pd.concat([s1, s2], ignore_index=True), exp)
         tm.assert_series_equal(s1.append(s2, ignore_index=True), exp)
 
-        # completelly different categories (same dtype) => not-category
+        # completely different categories (same dtype) => not-category
         s1 = pd.Series([10, 11, np.nan], dtype='category')
         s2 = pd.Series([np.nan, 1, 3, 2], dtype='category')
 
         exp = pd.Series([10, 11, np.nan, np.nan, 1, 3, 2])
         tm.assert_series_equal(pd.concat([s1, s2], ignore_index=True), exp)
         tm.assert_series_equal(s1.append(s2, ignore_index=True), exp)
+
+    def test_union_categorical_same_categories_different_order(self):
+        # https://github.com/pandas-dev/pandas/issues/19096
+        a = pd.Series(Categorical(['a', 'b', 'c'], categories=['a', 'b', 'c']))
+        b = pd.Series(Categorical(['a', 'b', 'c'], categories=['b', 'a', 'c']))
+        result = pd.concat([a, b], ignore_index=True)
+        expected = pd.Series(Categorical(['a', 'b', 'c', 'a', 'b', 'c'],
+                                         categories=['a', 'b', 'c']))
+        tm.assert_series_equal(result, expected)
 
     def test_concat_categorical_coercion(self):
         # GH 13524
@@ -509,7 +518,7 @@ class TestConcatAppendCommon(ConcatenateBase):
         tm.assert_series_equal(pd.concat([s2, s1], ignore_index=True), exp)
         tm.assert_series_equal(s2.append(s1, ignore_index=True), exp)
 
-        # completelly different categories => not-category
+        # completely different categories => not-category
         s1 = pd.Series([10, 11, np.nan], dtype='category')
         s2 = pd.Series([1, 3, 2])
 
@@ -1533,10 +1542,10 @@ class TestConcatenate(ConcatenateBase):
     def test_concat_bug_3602(self):
 
         # GH 3602, duplicate columns
-        df1 = DataFrame({'firmNo': [0, 0, 0, 0], 'stringvar': [
-                        'rrr', 'rrr', 'rrr', 'rrr'], 'prc': [6, 6, 6, 6]})
-        df2 = DataFrame({'misc': [1, 2, 3, 4], 'prc': [
-                        6, 6, 6, 6], 'C': [9, 10, 11, 12]})
+        df1 = DataFrame({'firmNo': [0, 0, 0, 0], 'prc': [6, 6, 6, 6],
+                         'stringvar': ['rrr', 'rrr', 'rrr', 'rrr']})
+        df2 = DataFrame({'C': [9, 10, 11, 12], 'misc': [1, 2, 3, 4],
+                         'prc': [6, 6, 6, 6]})
         expected = DataFrame([[0, 6, 'rrr', 9, 1, 6],
                               [0, 6, 'rrr', 10, 2, 6],
                               [0, 6, 'rrr', 11, 3, 6],
@@ -2064,6 +2073,45 @@ bar2,12,13,14,15
         if PY2:
             expected = expected.sort_values()
         tm.assert_index_equal(result, expected)
+
+    def test_concat_datetime_timezone(self):
+        # GH 18523
+        idx1 = pd.date_range('2011-01-01', periods=3, freq='H',
+                             tz='Europe/Paris')
+        idx2 = pd.date_range(start=idx1[0], end=idx1[-1], freq='H')
+        df1 = pd.DataFrame({'a': [1, 2, 3]}, index=idx1)
+        df2 = pd.DataFrame({'b': [1, 2, 3]}, index=idx2)
+        result = pd.concat([df1, df2], axis=1)
+
+        exp_idx = DatetimeIndex(['2011-01-01 00:00:00+01:00',
+                                 '2011-01-01 01:00:00+01:00',
+                                 '2011-01-01 02:00:00+01:00'],
+                                freq='H'
+                                ).tz_localize('UTC').tz_convert('Europe/Paris')
+
+        expected = pd.DataFrame([[1, 1], [2, 2], [3, 3]],
+                                index=exp_idx, columns=['a', 'b'])
+
+        tm.assert_frame_equal(result, expected)
+
+        idx3 = pd.date_range('2011-01-01', periods=3,
+                             freq='H', tz='Asia/Tokyo')
+        df3 = pd.DataFrame({'b': [1, 2, 3]}, index=idx3)
+        result = pd.concat([df1, df3], axis=1)
+
+        exp_idx = DatetimeIndex(['2010-12-31 15:00:00+00:00',
+                                 '2010-12-31 16:00:00+00:00',
+                                 '2010-12-31 17:00:00+00:00',
+                                 '2010-12-31 23:00:00+00:00',
+                                 '2011-01-01 00:00:00+00:00',
+                                 '2011-01-01 01:00:00+00:00']
+                                ).tz_localize('UTC')
+
+        expected = pd.DataFrame([[np.nan, 1], [np.nan, 2], [np.nan, 3],
+                                 [1, np.nan], [2, np.nan], [3, np.nan]],
+                                index=exp_idx, columns=['a', 'b'])
+
+        tm.assert_frame_equal(result, expected)
 
 
 @pytest.mark.parametrize('pdt', [pd.Series, pd.DataFrame, pd.Panel])

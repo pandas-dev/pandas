@@ -19,7 +19,7 @@ from pandas.core.dtypes.common import (
     _TD_DTYPE)
 from pandas.core.dtypes.generic import (
     ABCDatetimeIndex, ABCTimedeltaIndex,
-    ABCPeriodIndex, ABCRangeIndex)
+    ABCPeriodIndex, ABCRangeIndex, ABCSparseDataFrame)
 
 
 def get_dtype_kinds(l):
@@ -89,14 +89,37 @@ def _get_series_result_type(result, objs=None):
 def _get_frame_result_type(result, objs):
     """
     return appropriate class of DataFrame-like concat
-    if any block is SparseBlock, return SparseDataFrame
+    if all blocks are SparseBlock, return SparseDataFrame
     otherwise, return 1st obj
     """
-    if any(b.is_sparse for b in result.blocks):
+
+    if result.blocks and all(b.is_sparse for b in result.blocks):
         from pandas.core.sparse.api import SparseDataFrame
         return SparseDataFrame
     else:
-        return objs[0]
+        return next(obj for obj in objs if not isinstance(obj,
+                                                          ABCSparseDataFrame))
+
+
+def _get_sliced_frame_result_type(data, obj):
+    """
+    return appropriate class of Series. When data is sparse
+    it will return a SparseSeries, otherwise it will return
+    the Series.
+
+    Parameters
+    ----------
+    data : array-like
+    obj : DataFrame
+
+    Returns
+    -------
+    Series or SparseSeries
+    """
+    if is_sparse(data):
+        from pandas.core.sparse.api import SparseSeries
+        return SparseSeries
+    return obj._constructor_sliced
 
 
 def _concat_compat(to_concat, axis=0):
@@ -314,7 +337,7 @@ def union_categoricals(to_union, sort_categories=False, ignore_order=False):
     Categories (3, object): [b, c, a]
     """
     from pandas import Index, Categorical, CategoricalIndex, Series
-    from pandas.core.categorical import _recode_for_categories
+    from pandas.core.arrays.categorical import _recode_for_categories
 
     if len(to_union) == 0:
         raise ValueError('No Categoricals to union')
@@ -339,7 +362,16 @@ def union_categoricals(to_union, sort_categories=False, ignore_order=False):
         # identical categories - fastpath
         categories = first.categories
         ordered = first.ordered
-        new_codes = np.concatenate([c.codes for c in to_union])
+
+        if all(first.categories.equals(other.categories)
+               for other in to_union[1:]):
+            new_codes = np.concatenate([c.codes for c in to_union])
+        else:
+            codes = [first.codes] + [_recode_for_categories(other.codes,
+                                                            other.categories,
+                                                            first.categories)
+                                     for other in to_union[1:]]
+            new_codes = np.concatenate(codes)
 
         if sort_categories and not ignore_order and ordered:
             raise TypeError("Cannot use sort_categories=True with "
@@ -477,12 +509,14 @@ def _concat_index_asobject(to_concat, name=None):
     concat all inputs as object. DatetimeIndex, TimedeltaIndex and
     PeriodIndex are converted to object dtype before concatenation
     """
+    from pandas import Index
+    from pandas.core.arrays import ExtensionArray
 
-    klasses = ABCDatetimeIndex, ABCTimedeltaIndex, ABCPeriodIndex
+    klasses = (ABCDatetimeIndex, ABCTimedeltaIndex, ABCPeriodIndex,
+               ExtensionArray)
     to_concat = [x.astype(object) if isinstance(x, klasses) else x
                  for x in to_concat]
 
-    from pandas import Index
     self = to_concat[0]
     attribs = self._get_attributes_dict()
     attribs['name'] = name

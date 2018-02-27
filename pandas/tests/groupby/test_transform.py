@@ -519,7 +519,9 @@ class TestGroupBy(MixIn):
                         'timedelta': pd.timedelta_range(1, freq='s',
                                                         periods=1000),
                         'string': strings * 50,
-                        'string_missing': strings_missing * 50})
+                        'string_missing': strings_missing * 50},
+                       columns=['float', 'float_missing', 'int', 'datetime',
+                                'timedelta', 'string', 'string_missing'])
         df['cat'] = df['string'].astype('category')
 
         df2 = df.copy()
@@ -552,7 +554,9 @@ class TestGroupBy(MixIn):
                 tm.assert_frame_equal(expected,
                                       gb.transform(op, *args).sort_index(
                                           axis=1))
-                tm.assert_frame_equal(expected, getattr(gb, op)(*args))
+                tm.assert_frame_equal(
+                    expected,
+                    getattr(gb, op)(*args).sort_index(axis=1))
                 # individual columns
                 for c in df:
                     if c not in ['float', 'int', 'float_missing'
@@ -582,3 +586,28 @@ class TestGroupBy(MixIn):
                                'group.*',
                                df.groupby(axis=1, level=1).transform,
                                lambda z: z.div(z.sum(axis=1), axis=0))
+
+    @pytest.mark.parametrize('cols,exp,comp_func', [
+        ('a', pd.Series([1, 1, 1], name='a'), tm.assert_series_equal),
+        (['a', 'c'], pd.DataFrame({'a': [1, 1, 1], 'c': [1, 1, 1]}),
+         tm.assert_frame_equal)
+    ])
+    @pytest.mark.parametrize('agg_func', [
+        'count', 'rank', 'size'])
+    def test_transform_numeric_ret(self, cols, exp, comp_func, agg_func):
+        if agg_func == 'size' and isinstance(cols, list):
+            pytest.xfail("'size' transformation not supported with "
+                         "NDFrameGroupy")
+
+        # GH 19200
+        df = pd.DataFrame(
+            {'a': pd.date_range('2018-01-01', periods=3),
+             'b': range(3),
+             'c': range(7, 10)})
+
+        result = df.groupby('b')[cols].transform(agg_func)
+
+        if agg_func == 'rank':
+            exp = exp.astype('float')
+
+        comp_func(result, exp)

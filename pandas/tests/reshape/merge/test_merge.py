@@ -270,6 +270,14 @@ class TestMerge(object):
         df2 = DataFrame({'y': ['b', 'c']}, index=[dt, dt])
         pytest.raises(MergeError, merge, df1, df2)
 
+        msg = ('No common columns to perform merge on. '
+               'Merge options: left_on={lon}, right_on={ron}, '
+               'left_index={lidx}, right_index={ridx}'
+               .format(lon=None, ron=None, lidx=False, ridx=False))
+
+        with tm.assert_raises_regex(MergeError, msg):
+            merge(df1, df2)
+
     def test_merge_non_unique_indexes(self):
 
         dt = datetime(2012, 5, 1)
@@ -523,25 +531,23 @@ class TestMerge(object):
                                columns=['entity_id', 'days'])
             tm.assert_frame_equal(result, exp)
 
-    def test_other_timedelta_unit(self):
+    @pytest.mark.parametrize("unit", ['D', 'h', 'm', 's', 'ms', 'us', 'ns'])
+    def test_other_timedelta_unit(self, unit):
         # GH 13389
         df1 = pd.DataFrame({'entity_id': [101, 102]})
         s = pd.Series([None, None], index=[101, 102], name='days')
 
-        for dtype in ['timedelta64[D]', 'timedelta64[h]', 'timedelta64[m]',
-                      'timedelta64[s]', 'timedelta64[ms]', 'timedelta64[us]',
-                      'timedelta64[ns]']:
+        dtype = "m8[{}]".format(unit)
+        df2 = s.astype(dtype).to_frame('days')
+        assert df2['days'].dtype == 'm8[ns]'
 
-            df2 = s.astype(dtype).to_frame('days')
-            assert df2['days'].dtype == dtype
+        result = df1.merge(df2, left_on='entity_id', right_index=True)
 
-            result = df1.merge(df2, left_on='entity_id', right_index=True)
-
-            exp = pd.DataFrame({'entity_id': [101, 102],
-                                'days': np.array(['nat', 'nat'],
-                                                 dtype=dtype)},
-                               columns=['entity_id', 'days'])
-            tm.assert_frame_equal(result, exp)
+        exp = pd.DataFrame({'entity_id': [101, 102],
+                            'days': np.array(['nat', 'nat'],
+                                             dtype=dtype)},
+                           columns=['entity_id', 'days'])
+        tm.assert_frame_equal(result, exp)
 
     def test_overlapping_columns_error_message(self):
         df = DataFrame({'key': [1, 2, 3],
@@ -582,18 +588,18 @@ class TestMerge(object):
         result = pd.merge(left, right, on='key', how='outer')
         assert_frame_equal(result, expected)
 
-        left = pd.DataFrame({'value': pd.date_range('20151010', periods=2,
-                                                    tz='US/Eastern'),
-                             'key': [1, 2]})
-        right = pd.DataFrame({'value': pd.date_range('20151011', periods=2,
-                                                     tz='US/Eastern'),
-                              'key': [2, 3]})
+        left = pd.DataFrame({'key': [1, 2],
+                             'value': pd.date_range('20151010', periods=2,
+                                                    tz='US/Eastern')})
+        right = pd.DataFrame({'key': [2, 3],
+                              'value': pd.date_range('20151011', periods=2,
+                                                     tz='US/Eastern')})
         expected = DataFrame({
+            'key': [1, 2, 3],
             'value_x': list(pd.date_range('20151010', periods=2,
                                           tz='US/Eastern')) + [pd.NaT],
             'value_y': [pd.NaT] + list(pd.date_range('20151011', periods=2,
-                                                     tz='US/Eastern')),
-            'key': [1, 2, 3]})
+                                                     tz='US/Eastern'))})
         result = pd.merge(left, right, on='key', how='outer')
         assert_frame_equal(result, expected)
         assert result['value_x'].dtype == 'datetime64[ns, US/Eastern]'
@@ -626,18 +632,18 @@ class TestMerge(object):
         result = pd.merge(left, right, on='key', how='outer')
         assert_frame_equal(result, expected)
 
-        left = pd.DataFrame({'value': pd.period_range('20151010', periods=2,
-                                                      freq='D'),
-                             'key': [1, 2]})
-        right = pd.DataFrame({'value': pd.period_range('20151011', periods=2,
-                                                       freq='D'),
-                              'key': [2, 3]})
+        left = pd.DataFrame({'key': [1, 2],
+                             'value': pd.period_range('20151010', periods=2,
+                                                      freq='D')})
+        right = pd.DataFrame({'key': [2, 3],
+                              'value': pd.period_range('20151011', periods=2,
+                                                       freq='D')})
 
         exp_x = pd.period_range('20151010', periods=2, freq='D')
         exp_y = pd.period_range('20151011', periods=2, freq='D')
-        expected = DataFrame({'value_x': list(exp_x) + [pd.NaT],
-                              'value_y': [pd.NaT] + list(exp_y),
-                              'key': [1, 2, 3]})
+        expected = DataFrame({'key': [1, 2, 3],
+                              'value_x': list(exp_x) + [pd.NaT],
+                              'value_y': [pd.NaT] + list(exp_y)})
         result = pd.merge(left, right, on='key', how='outer')
         assert_frame_equal(result, expected)
         assert result['value_x'].dtype == 'object'
@@ -645,12 +651,13 @@ class TestMerge(object):
 
     def test_indicator(self):
         # PR #10054. xref #7412 and closes #8790.
-        df1 = DataFrame({'col1': [0, 1], 'col_left': [
-                        'a', 'b'], 'col_conflict': [1, 2]})
+        df1 = DataFrame({'col1': [0, 1], 'col_conflict': [1, 2],
+                         'col_left': ['a', 'b']})
         df1_copy = df1.copy()
 
-        df2 = DataFrame({'col1': [1, 2, 3, 4, 5], 'col_right': [2, 2, 2, 2, 2],
-                         'col_conflict': [1, 2, 3, 4, 5]})
+        df2 = DataFrame({'col1': [1, 2, 3, 4, 5],
+                         'col_conflict': [1, 2, 3, 4, 5],
+                         'col_right': [2, 2, 2, 2, 2]})
         df2_copy = df2.copy()
 
         df_result = DataFrame({
@@ -1370,6 +1377,32 @@ class TestMergeMulti(object):
             household.join(log_return, how='outer')
         pytest.raises(NotImplementedError, f)
 
+    @pytest.mark.parametrize("klass", [None, np.asarray, Series, Index])
+    def test_merge_datetime_index(self, klass):
+        # see gh-19038
+        df = DataFrame([1, 2, 3],
+                       ["2016-01-01", "2017-01-01", "2018-01-01"],
+                       columns=["a"])
+        df.index = pd.to_datetime(df.index)
+        on_vector = df.index.year
+
+        if klass is not None:
+            on_vector = klass(on_vector)
+
+        expected = DataFrame({"a": [1, 2, 3]})
+
+        if klass == np.asarray:
+            # The join key is added for ndarray.
+            expected["key_1"] = [2016, 2017, 2018]
+
+        result = df.merge(df, on=["a", on_vector], how="inner")
+        tm.assert_frame_equal(result, expected)
+
+        expected = DataFrame({"a_x": [1, 2, 3],
+                              "a_y": [1, 2, 3]})
+        result = df.merge(df, on=[df.index.year], how="inner")
+        tm.assert_frame_equal(result, expected)
+
 
 class TestMergeDtypes(object):
 
@@ -1488,11 +1521,13 @@ class TestMergeDtypes(object):
                                                           '2011-01-02']),
         (pd.date_range('1/1/2011', periods=2, freq='D'), [0, 1]),
         (pd.date_range('1/1/2011', periods=2, freq='D'), [0.0, 1.0]),
+        (pd.date_range('20130101', periods=3),
+            pd.date_range('20130101', periods=3, tz='US/Eastern')),
         ([0, 1, 2], Series(['a', 'b', 'a']).astype('category')),
         ([0.0, 1.0, 2.0], Series(['a', 'b', 'a']).astype('category')),
     ])
     def test_merge_incompat_dtypes(self, df1_vals, df2_vals):
-        # GH 9780
+        # GH 9780, GH 15800
         # Raise a ValueError when a user tries to merge on
         # dtypes that are incompatible (e.g., obj and int/float)
 
@@ -1608,6 +1643,25 @@ class TestMergeCategorical(object):
         cleft['b'] = cleft['b'].astype('category')
         result = pd.merge(cleft, cright, how='left', left_on='b', right_on='c')
         tm.assert_frame_equal(result, expected)
+
+    def tests_merge_categorical_unordered_equal(self):
+        # GH-19551
+        df1 = DataFrame({
+            'Foo': Categorical(['A', 'B', 'C'], categories=['A', 'B', 'C']),
+            'Left': ['A0', 'B0', 'C0'],
+        })
+
+        df2 = DataFrame({
+            'Foo': Categorical(['C', 'B', 'A'], categories=['C', 'B', 'A']),
+            'Right': ['C1', 'B1', 'A1'],
+        })
+        result = pd.merge(df1, df2, on=['Foo'])
+        expected = DataFrame({
+            'Foo': pd.Categorical(['A', 'B', 'C']),
+            'Left': ['A0', 'B0', 'C0'],
+            'Right': ['A1', 'B1', 'C1'],
+        })
+        assert_frame_equal(result, expected)
 
     def test_other_columns(self, left, right):
         # non-merge columns should preserve if possible

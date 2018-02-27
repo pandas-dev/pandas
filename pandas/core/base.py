@@ -13,10 +13,11 @@ from pandas.core.dtypes.common import (
     is_list_like,
     is_scalar,
     is_datetimelike,
-    is_extension_type)
+    is_extension_type,
+    is_extension_array_dtype)
 
 from pandas.util._validators import validate_bool_kwarg
-
+from pandas.errors import AbstractMethodError
 from pandas.core import common as com, algorithms
 import pandas.core.nanops as nanops
 import pandas._libs.lib as lib
@@ -24,7 +25,6 @@ from pandas.compat.numpy import function as nv
 from pandas.compat import PYPY
 from pandas.util._decorators import (Appender, cache_readonly,
                                      deprecate_kwarg, Substitution)
-from pandas.core.common import AbstractMethodError, _maybe_box_datetimelike
 
 from pandas.core.accessor import DirNamesMixin
 
@@ -145,10 +145,14 @@ class NoNewAttributesMixin(object):
     # prevent adding any attribute via s.xxx.new_attribute = ...
     def __setattr__(self, key, value):
         # _cache is used by a decorator
-        # dict lookup instead of getattr as getattr is false for getter
-        # which error
-        if getattr(self, "__frozen", False) and not \
-                (key in type(self).__dict__ or key == "_cache"):
+        # We need to check both 1.) cls.__dict__ and 2.) getattr(self, key)
+        # because
+        # 1.) getattr is false for attributes that raise errors
+        # 2.) cls.__dict__ doesn't traverse into base classes
+        if (getattr(self, "__frozen", False) and not
+                (key == "_cache" or
+                 key in type(self).__dict__ or
+                 getattr(self, key, None) is not None)):
             raise AttributeError("You cannot add any new attribute '{key}'".
                                  format(key=key))
         object.__setattr__(self, key, value)
@@ -389,6 +393,10 @@ class SelectionMixin(object):
 
                     elif isinstance(obj, ABCSeries):
                         nested_renaming_depr()
+                    elif isinstance(obj, ABCDataFrame) and \
+                            k not in obj.columns:
+                        raise KeyError(
+                            "Column '{col}' does not exist!".format(col=k))
 
                 arg = new_arg
 
@@ -731,7 +739,7 @@ class IndexOpsMixin(object):
     @property
     def itemsize(self):
         """ return the size of the dtype of the item of the underlying data """
-        return self._values.itemsize
+        return self._ndarray_values.itemsize
 
     @property
     def nbytes(self):
@@ -741,7 +749,7 @@ class IndexOpsMixin(object):
     @property
     def strides(self):
         """ return the strides of the underlying data """
-        return self._values.strides
+        return self._ndarray_values.strides
 
     @property
     def size(self):
@@ -761,8 +769,17 @@ class IndexOpsMixin(object):
         return self.values.base
 
     @property
-    def _values(self):
-        """ the internal implementation """
+    def _ndarray_values(self):
+        """The data as an ndarray, possibly losing information.
+
+        The expectation is that this is cheap to compute, and is primarily
+        used for interacting with our indexers.
+
+        - categorical -> codes
+        """
+        # type: () -> np.ndarray
+        if is_extension_array_dtype(self):
+            return self.values._ndarray_values
         return self.values
 
     @property
@@ -811,7 +828,7 @@ class IndexOpsMixin(object):
         """
 
         if is_datetimelike(self):
-            return [_maybe_box_datetimelike(x) for x in self._values]
+            return [com._maybe_box_datetimelike(x) for x in self._values]
         else:
             return self._values.tolist()
 
@@ -972,6 +989,7 @@ class IndexOpsMixin(object):
         values = self._values
 
         if hasattr(values, 'unique'):
+
             result = values.unique()
         else:
             from pandas.core.algorithms import unique1d
@@ -1045,7 +1063,7 @@ class IndexOpsMixin(object):
 
     def memory_usage(self, deep=False):
         """
-        Memory usage of my values
+        Memory usage of the values
 
         Parameters
         ----------
@@ -1147,21 +1165,16 @@ class IndexOpsMixin(object):
         >>> x.searchsorted([1, 3], side='right')
         array([1, 3])
 
-        >>> x = pd.Categorical(['apple', 'bread', 'bread', 'cheese', 'milk' ])
+        >>> x = pd.Categorical(['apple', 'bread', 'bread',
+                                'cheese', 'milk'], ordered=True)
         [apple, bread, bread, cheese, milk]
         Categories (4, object): [apple < bread < cheese < milk]
 
         >>> x.searchsorted('bread')
         array([1])     # Note: an array, not a scalar
 
-        >>> x.searchsorted(['bread'])
-        array([1])
-
-        >>> x.searchsorted(['bread', 'eggs'])
-        array([1, 4])
-
-        >>> x.searchsorted(['bread', 'eggs'], side='right')
-        array([3, 4])    # eggs before milk
+        >>> x.searchsorted(['bread'], side='right')
+        array([3])
         """)
 
     @Substitution(klass='IndexOpsMixin')
