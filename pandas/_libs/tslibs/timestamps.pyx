@@ -597,8 +597,6 @@ class Timestamp(_Timestamp):
         if is_string_object(ts_input):
             # User passed a date string to parse.
             # Check that the user didn't also pass a date attribute kwarg.
-            #date_attrs = [year, month, day, hour, minute, second, microsecond,
-            #              nanosecond]
             if any(arg is not None for arg in _date_attributes):
                 raise ValueError('Cannot pass a date attribute keyword '
                                  'argument when passing a date string')

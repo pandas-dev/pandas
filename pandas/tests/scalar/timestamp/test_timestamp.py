@@ -404,7 +404,7 @@ class TestTimestampConstructors(object):
     def test_invalid_date_kwarg_with_string_input(self, arg):
         kwarg = {arg: 1}
         with pytest.raises(ValueError):
-            ts = Timestamp('2010-10-10 12:59:59.999999999', **kwarg)
+            Timestamp('2010-10-10 12:59:59.999999999', **kwarg)
 
     def test_out_of_bounds_value(self):
         one_us = np.timedelta64(1).astype('timedelta64[us]')
