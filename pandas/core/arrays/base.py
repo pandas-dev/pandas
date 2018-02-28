@@ -322,6 +322,7 @@ class ExtensionArray(object):
         .. code-block:: python
 
            def take(self, indexer, allow_fill=True, fill_value=None):
+               indexer = np.asarray(indexer)
                mask = indexer == -1
                result = self.data.take(indexer)
                result[mask] = np.nan  # NA for this type
