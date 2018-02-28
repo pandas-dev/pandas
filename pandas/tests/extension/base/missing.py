@@ -47,13 +47,11 @@ class BaseMissingTests(BaseExtensionTests):
         expected = df.iloc[:0]
         self.assert_frame_equal(result, expected)
 
-    def test_fillna_limit_raises(self, data_missing):
-        ser = pd.Series(data_missing)
-        fill_value = data_missing[1]
-        xpr = "Specifying 'limit' for 'fillna'.*{}".format(data_missing.dtype)
-
-        with tm.assert_raises_regex(NotImplementedError, xpr):
-            ser.fillna(fill_value, limit=2)
+    def test_fillna_limit(self, data_missing):
+        arr = data_missing.take([1, 0, 0, 0, 1])
+        result = pd.Series(arr).fillna(method='ffill', limit=2)
+        expected = pd.Series(data_missing.take([1, 1, 1, 0, 1]))
+        self.assert_series_equal(result, expected)
 
     def test_fillna_series(self, data_missing):
         fill_value = data_missing[1]

@@ -226,16 +226,15 @@ class ExtensionArray(object):
 
         Parameters
         ----------
-        method : {'backfill', 'bfill', 'pad', 'ffill', None}, default None
-            Method to use for filling holes in reindexed Series
-            pad / ffill: propagate last valid observation forward to next valid
-            backfill / bfill: use NEXT valid observation to fill gap
         value : scalar, array-like
             If a scalar value is passed it is used to fill all missing values.
             Alternatively, an array-like 'value' can be given. It's expected
             that the array-like have the same length as 'self'.
+        method : {'backfill', 'bfill', 'pad', 'ffill', None}, default None
+            Method to use for filling holes in reindexed Series
+            pad / ffill: propagate last valid observation forward to next valid
+            backfill / bfill: use NEXT valid observation to fill gap
         limit : int, default None
-            (Not implemented yet for ExtensionArray!)
             If method is specified, this is the maximum number of consecutive
             NaN values to forward/backward fill. In other words, if there is
             a gap with more than this number of consecutive NaNs, it will only
@@ -250,6 +249,8 @@ class ExtensionArray(object):
         from pandas.api.types import is_scalar
         from pandas.util._validators import validate_fillna_kwargs
         from pandas.core.missing import pad_1d, backfill_1d
+        from pandas.core.dtypes.common import _ensure_platform_int
+        from pandas._libs.tslib import iNaT
 
         value, method = validate_fillna_kwargs(value, method)
 
@@ -261,18 +262,20 @@ class ExtensionArray(object):
                                  " expected {}".format(len(value), len(self)))
             value = value[mask]
 
-        if limit is not None:
-            msg = ("Specifying 'limit' for 'fillna' has not been implemented "
-                   "yet for {} typed data".format(self.dtype))
-            raise NotImplementedError(msg)
-
         if mask.any():
             if method is not None:
                 # ffill / bfill
+                # The basic idea is to create an array of integer positions.
+                # Internally, we use iNaT and the datetime filling routines
+                # to avoid floating-point NaN. Once filled, we take on `self`
+                # to get the actual values.
                 func = pad_1d if method == 'pad' else backfill_1d
-                idx = np.arange(len(self), dtype=np.float64)
-                idx[mask] = np.nan
-                idx = func(idx, mask=mask).astype(np.int64)
+                idx = np.arange(len(self), dtype='int64')
+                idx[mask] = iNaT
+                idx = _ensure_platform_int(func(idx, mask=mask,
+                                                limit=limit,
+                                                dtype='datetime64[ns]'))
+                idx[idx == iNaT] = -1  # missing value marker for take.
                 new_values = self.take(idx)
             else:
                 # fill with value
@@ -280,7 +283,7 @@ class ExtensionArray(object):
                 new_values[mask] = value
         else:
             new_values = self.copy()
-        return type(self)(new_values)
+        return new_values
 
     # ------------------------------------------------------------------------
     # Indexing methods

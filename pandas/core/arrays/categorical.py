@@ -1587,16 +1587,16 @@ class Categorical(ExtensionArray, PandasObject):
 
         Parameters
         ----------
-        method : {'backfill', 'bfill', 'pad', 'ffill', None}, default None
-            Method to use for filling holes in reindexed Series
-            pad / ffill: propagate last valid observation forward to next valid
-            backfill / bfill: use NEXT valid observation to fill gap
         value : scalar, dict, Series
             If a scalar value is passed it is used to fill all missing values.
             Alternatively, a Series or dict can be used to fill in different
             values for each index. The value should not be a list. The
             value(s) passed should either be in the categories or should be
             NaN.
+        method : {'backfill', 'bfill', 'pad', 'ffill', None}, default None
+            Method to use for filling holes in reindexed Series
+            pad / ffill: propagate last valid observation forward to next valid
+            backfill / bfill: use NEXT valid observation to fill gap
         limit : int, default None
             (Not implemented yet for Categorical!)
             If method is specified, this is the maximum number of consecutive

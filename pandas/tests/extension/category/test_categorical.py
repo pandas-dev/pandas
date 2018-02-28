@@ -70,9 +70,9 @@ class TestGetitem(base.BaseGetitemTests):
 
 class TestMissing(base.BaseMissingTests):
 
-    @pytest.mark.skip(reason="Backwards compatability")
-    def test_fillna_limit_raises(self):
-        """Has a different error message."""
+    @pytest.mark.skip(reason="Not implemented")
+    def test_fillna_limit(self):
+        pass
 
 
 class TestMethods(base.BaseMethodsTests):
