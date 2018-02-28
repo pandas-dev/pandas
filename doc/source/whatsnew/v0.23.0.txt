@@ -867,7 +867,7 @@ I/O
 - Bug in :func:`read_json` where large numeric values were causing an ``OverflowError`` (:issue:`18842`)
 - Bug in :func:`DataFrame.to_parquet` where an exception was raised if the write destination is S3 (:issue:`19134`)
 - :class:`Interval` now supported in :func:`DataFrame.to_excel` for all Excel file types (:issue:`19242`)
-- :class:`Timedelta` now supported in :func:`DataFrame.to_excel` for xls file type (:issue:`19242`, :issue:`9155`)
+- :class:`Timedelta` now supported in :func:`DataFrame.to_excel` for all Excel file types (:issue:`19242`, :issue:`9155`, :issue:`19900`)
 - Bug in :meth:`pandas.io.stata.StataReader.value_labels` raising an ``AttributeError`` when called on very old files. Now returns an empty dict (:issue:`19417`)
 
 Plotting
