@@ -348,6 +348,13 @@ def str_replace(arr, pat, repl, n=-1, case=None, flags=0, regex=True):
     -------
     replaced : Series/Index of objects
 
+    Raises
+    ------
+    ValueError
+        * if `regex` is False and `repl` is a callable or `pat` is a compiled
+          regex
+        * if `pat` is a compiled regex and `case` or `flags` is set
+
     Notes
     -----
     When `pat` is a compiled regex, all flags should be included in the
@@ -415,12 +422,6 @@ def str_replace(arr, pat, repl, n=-1, case=None, flags=0, regex=True):
     2    NaN
     dtype: object
 
-    Raises
-    ------
-    ValueError
-        * if `regex` is False and `repl` is a callable or `pat` is a compiled
-          regex
-        * if `pat` is a compiled regex and `case` or `flags` is set
     """
 
     # Check whether repl is valid (GH 13438, GH 15055)
