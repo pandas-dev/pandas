@@ -71,21 +71,6 @@ class BaseMissingTests(BaseExtensionTests):
         result = ser.fillna(ser)
         self.assert_series_equal(result, ser)
 
-    @pytest.mark.xfail(reason="Too magical?")
-    def test_fillna_series_with_dict(self, data_missing):
-        fill_value = data_missing[1]
-        ser = pd.Series(data_missing)
-        expected = pd.Series(type(data_missing)([fill_value, fill_value]))
-
-        # Fill with a dict
-        result = ser.fillna({0: fill_value})
-        self.assert_series_equal(result, expected)
-
-        # Fill with a dict not affecting the missing values
-        result = ser.fillna({1: fill_value})
-        ser = pd.Series(data_missing)
-        self.assert_series_equal(result, ser)
-
     @pytest.mark.parametrize('method', ['ffill', 'bfill'])
     def test_fillna_series_method(self, data_missing, method):
         fill_value = data_missing[1]
