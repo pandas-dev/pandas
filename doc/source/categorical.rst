@@ -44,16 +44,6 @@ The categorical data type is useful in the following cases:
 * As a signal to other Python libraries that this column should be treated as a categorical
   variable (e.g. to use suitable statistical methods or plot types).
 
-.. note::
-
-    In contrast to R's `factor` function, categorical data is not converting input values to
-    strings and categories will end up the same data type as the original values.
-
-.. note::
-
-    In contrast to R's `factor` function, there is currently no way to assign/change labels at
-    creation time. Use `categories` to change the categories after creation time.
-
 See also the :ref:`API docs on categoricals<api.categorical>`.
 
 .. _categorical.objectcreation:
@@ -113,19 +103,18 @@ Categorical data has a specific ``category`` :ref:`dtype <basics.dtypes>`:
 DataFrame Creation
 ~~~~~~~~~~~~~~~~~~
 
-Columns in a ``DataFrame`` can be batch converted to categorical, either at the time of construction
-or after construction.  The conversion to categorical is done on a column by column basis; labels present
-in a one column will not be carried over and used as categories in another column.
+Similar to the previous section where a single column was converted to categorical, all columns in a
+``DataFrame`` can be batch converted to categorical either during or after construction.
 
-Columns can be batch converted by specifying ``dtype="category"`` when constructing a ``DataFrame``:
+This can be done during construction by specifying ``dtype="category"`` in the ``DataFrame`` constructor:
 
 .. ipython:: python
 
     df = pd.DataFrame({'A': list('abca'), 'B': list('bccd')}, dtype="category")
     df.dtypes
 
-Note that the categories present in each column differ; since the conversion is done on a column by column
-basis, only labels present in a given column are categories:
+Note that the categories present in each column differ; the conversion is done column by column, so
+only labels present in a given column are categories:
 
 .. ipython:: python
 
@@ -135,7 +124,7 @@ basis, only labels present in a given column are categories:
 
 .. versionadded:: 0.23.0
 
-Similarly, columns in an existing ``DataFrame`` can be batch converted using :meth:`DataFrame.astype`:
+Analogously, all columns in an existing ``DataFrame`` can be batch converted using :meth:`DataFrame.astype`:
 
 .. ipython:: python
 
@@ -143,7 +132,7 @@ Similarly, columns in an existing ``DataFrame`` can be batch converted using :me
     df_cat = df.astype('category')
     df_cat.dtypes
 
-This conversion is likewise done on a column by column basis:
+This conversion is likewise done column by column:
 
 .. ipython:: python
 
@@ -191,7 +180,7 @@ are consistent among all columns.
     categories for each column, the ``categories`` parameter can be determined programatically by
     ``categories = pd.unique(df.values.ravel())``.
 
-If you already have `codes` and `categories`, you can use the 
+If you already have ``codes`` and ``categories``, you can use the 
 :func:`~pandas.Categorical.from_codes` constructor to save the factorize step 
 during normal constructor mode:
 
@@ -215,6 +204,16 @@ To get back to the original ``Series`` or NumPy array, use
     s2
     s2.astype(str)
     np.asarray(s2)
+
+.. note::
+
+    In contrast to R's `factor` function, categorical data is not converting input values to
+    strings; categories will end up the same data type as the original values.
+
+.. note::
+
+    In contrast to R's `factor` function, there is currently no way to assign/change labels at
+    creation time. Use `categories` to change the categories after creation time.
 
 .. _categorical.categoricaldtype:
 
