@@ -11,7 +11,7 @@ import numpy as np
 import pandas as pd
 
 from pandas._libs import (lib, index as libindex,
-                          algos as libalgos)
+                          algos as libalgos, ops as libops)
 
 from pandas import compat
 from pandas.util._decorators import Appender
@@ -1090,9 +1090,9 @@ def _comp_method_OBJECT_ARRAY(op, x, y):
         if isinstance(y, (ABCSeries, ABCIndex)):
             y = y.values
 
-        result = lib.vec_compare(x, y, op)
+        result = libops.vec_compare(x, y, op)
     else:
-        result = lib.scalar_compare(x, y, op)
+        result = libops.scalar_compare(x, y, op)
     return result
 
 
@@ -1255,13 +1255,13 @@ def _bool_method_SERIES(cls, op, special):
                 else:
                     x = _ensure_object(x)
                     y = _ensure_object(y)
-                    result = lib.vec_binop(x, y, op)
+                    result = libops.vec_binop(x, y, op)
             else:
                 # let null fall thru
                 if not isna(y):
                     y = bool(y)
                 try:
-                    result = lib.scalar_binop(x, y, op)
+                    result = libops.scalar_binop(x, y, op)
                 except:
                     raise TypeError("cannot compare a dtyped [{dtype}] array "
                                     "with a scalar of type [{typ}]"

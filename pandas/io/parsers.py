@@ -43,6 +43,7 @@ from pandas.util._decorators import Appender
 
 import pandas._libs.lib as lib
 import pandas._libs.parsers as parsers
+import pandas._libs.ops as libops
 from pandas._libs.tslibs import parsing
 
 # BOM character (byte order mark)
@@ -1616,9 +1617,9 @@ class ParserBase(object):
                 na_count = parsers.sanitize_objects(values, na_values, False)
 
         if result.dtype == np.object_ and try_num_bool:
-            result = lib.maybe_convert_bool(values,
-                                            true_values=self.true_values,
-                                            false_values=self.false_values)
+            result = libops.maybe_convert_bool(values,
+                                               true_values=self.true_values,
+                                               false_values=self.false_values)
 
         return result, na_count
 

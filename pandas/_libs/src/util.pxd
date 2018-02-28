@@ -164,22 +164,3 @@ cdef inline bint _checknan(object val):
 
 cdef inline bint is_period_object(object val):
     return getattr(val, '_typ', '_typ') == 'period'
-
-
-cdef inline object unbox_if_zerodim(object arr):
-    """
-    If arr is zerodim array, return a proper array scalar (e.g. np.int64).
-    Otherwise, return arr as is.
-
-    Parameters
-    ----------
-    arr : object
-
-    Returns
-    -------
-    result : object
-    """
-    if cnp.PyArray_IsZeroDim(arr):
-        return cnp.PyArray_ToScalar(cnp.PyArray_DATA(arr), arr)
-    else:
-        return arr
