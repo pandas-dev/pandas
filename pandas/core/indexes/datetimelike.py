@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 """
 Base and utility classes for tseries type pandas objects.
 """
@@ -32,6 +33,7 @@ from pandas.core.dtypes.common import (
     is_object_dtype,
     is_string_dtype,
     is_datetime64_dtype,
+    is_datetime64tz_dtype,
     is_period_dtype,
     is_timedelta64_dtype)
 from pandas.core.dtypes.generic import (
@@ -200,8 +202,9 @@ class DatetimeIndexOpsMixin(object):
         if is_bool_dtype(result):
             result[mask] = False
             return result
+
+        result[mask] = iNaT
         try:
-            result[mask] = iNaT
             return Index(result)
         except TypeError:
             return result
@@ -349,7 +352,7 @@ class DatetimeIndexOpsMixin(object):
             return result
 
         attribs = self._get_attributes_dict()
-        if not isinstance(self, ABCPeriodIndex):
+        if not is_period_dtype(self):
             attribs['freq'] = None
         return self._simple_new(result, **attribs)
 
@@ -631,12 +634,34 @@ class DatetimeIndexOpsMixin(object):
                 ._convert_scalar_indexer(key, kind=kind))
 
     def _add_datelike(self, other):
-        raise TypeError("cannot add {0} and {1}"
-                        .format(type(self).__name__,
-                                type(other).__name__))
+        raise TypeError("cannot add {cls} and {typ}"
+                        .format(cls=type(self).__name__,
+                                typ=type(other).__name__))
 
     def _sub_datelike(self, other):
         raise com.AbstractMethodError(self)
+
+    def _add_nat(self):
+        """Add pd.NaT to self"""
+        if is_period_dtype(self):
+            raise TypeError('Cannot add {cls} and {typ}'
+                            .format(cls=type(self).__name__,
+                                    typ=type(NaT).__name__))
+
+        # GH#19124 pd.NaT is treated like a timedelta for both timedelta
+        # and datetime dtypes
+        return self._nat_new(box=True)
+
+    def _sub_nat(self):
+        """Subtract pd.NaT from self"""
+        # GH#19124 Timedelta - datetime is not in general well-defined.
+        # We make an exception for pd.NaT, which in this case quacks
+        # like a timedelta.
+        # For datetime64 dtypes by convention we treat NaT as a datetime, so
+        # this subtraction returns a timedelta64 dtype.
+        # For period dtype, timedelta64 is a close-enough return dtype.
+        result = self._nat_new(box=False)
+        return result.view('timedelta64[ns]')
 
     def _sub_period(self, other):
         return NotImplemented
@@ -677,13 +702,15 @@ class DatetimeIndexOpsMixin(object):
         """
 
         def __add__(self, other):
-            from pandas import Index, DatetimeIndex, TimedeltaIndex, DateOffset
+            from pandas import DateOffset
 
             other = lib.item_from_zerodim(other)
             if isinstance(other, ABCSeries):
                 return NotImplemented
 
             # scalar others
+            elif other is NaT:
+                result = self._add_nat()
             elif isinstance(other, (DateOffset, timedelta, np.timedelta64)):
                 result = self._add_delta(other)
             elif isinstance(other, (datetime, np.datetime64)):
@@ -700,27 +727,22 @@ class DatetimeIndexOpsMixin(object):
             elif is_offsetlike(other):
                 # Array/Index of DateOffset objects
                 result = self._addsub_offset_array(other, operator.add)
-            elif isinstance(self, TimedeltaIndex) and isinstance(other, Index):
-                if hasattr(other, '_add_delta'):
-                    # i.e. DatetimeIndex, TimedeltaIndex, or PeriodIndex
-                    result = other._add_delta(self)
-                else:
-                    raise TypeError("cannot add TimedeltaIndex and {typ}"
-                                    .format(typ=type(other)))
-            elif isinstance(other, Index):
-                result = self._add_datelike(other)
-            elif is_datetime64_dtype(other):
-                # ndarray[datetime64]; note DatetimeIndex is caught above
-                return self + DatetimeIndex(other)
+            elif is_datetime64_dtype(other) or is_datetime64tz_dtype(other):
+                # DatetimeIndex, ndarray[datetime64]
+                return self._add_datelike(other)
             elif is_integer_dtype(other) and self.freq is None:
                 # GH#19123
                 raise NullFrequencyError("Cannot shift with no freq")
             else:  # pragma: no cover
                 return NotImplemented
 
-            if result is not NotImplemented:
-                res_name = ops.get_op_result_name(self, other)
-                result.name = res_name
+            if result is NotImplemented:
+                return NotImplemented
+            elif not isinstance(result, Index):
+                # Index.__new__ will choose appropriate subclass for dtype
+                result = Index(result)
+            res_name = ops.get_op_result_name(self, other)
+            result.name = res_name
             return result
 
         cls.__add__ = __add__
@@ -731,13 +753,15 @@ class DatetimeIndexOpsMixin(object):
         cls.__radd__ = __radd__
 
         def __sub__(self, other):
-            from pandas import Index, DatetimeIndex, TimedeltaIndex, DateOffset
+            from pandas import Index, DateOffset
 
             other = lib.item_from_zerodim(other)
             if isinstance(other, ABCSeries):
                 return NotImplemented
 
             # scalar others
+            elif other is NaT:
+                result = self._sub_nat()
             elif isinstance(other, (DateOffset, timedelta, np.timedelta64)):
                 result = self._add_delta(-other)
             elif isinstance(other, (datetime, np.datetime64)):
@@ -756,29 +780,26 @@ class DatetimeIndexOpsMixin(object):
             elif is_offsetlike(other):
                 # Array/Index of DateOffset objects
                 result = self._addsub_offset_array(other, operator.sub)
-            elif isinstance(self, TimedeltaIndex) and isinstance(other, Index):
-                # We checked above for timedelta64_dtype(other) so this
-                # must be invalid.
-                raise TypeError("cannot subtract TimedeltaIndex and {typ}"
-                                .format(typ=type(other).__name__))
-            elif isinstance(other, DatetimeIndex):
+            elif is_datetime64_dtype(other) or is_datetime64tz_dtype(other):
+                # DatetimeIndex, ndarray[datetime64]
                 result = self._sub_datelike(other)
-            elif is_datetime64_dtype(other):
-                # ndarray[datetime64]; note we caught DatetimeIndex earlier
-                return self - DatetimeIndex(other)
             elif isinstance(other, Index):
-                raise TypeError("cannot subtract {typ1} and {typ2}"
-                                .format(typ1=type(self).__name__,
-                                        typ2=type(other).__name__))
+                raise TypeError("cannot subtract {cls} and {typ}"
+                                .format(cls=type(self).__name__,
+                                        typ=type(other).__name__))
             elif is_integer_dtype(other) and self.freq is None:
                 # GH#19123
                 raise NullFrequencyError("Cannot shift with no freq")
             else:  # pragma: no cover
                 return NotImplemented
 
-            if result is not NotImplemented:
-                res_name = ops.get_op_result_name(self, other)
-                result.name = res_name
+            if result is NotImplemented:
+                return NotImplemented
+            elif not isinstance(result, Index):
+                # Index.__new__ will choose appropriate subclass for dtype
+                result = Index(result)
+            res_name = ops.get_op_result_name(self, other)
+            result.name = res_name
             return result
 
         cls.__sub__ = __sub__

@@ -212,7 +212,6 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
                                          'be False.')
 
             elif is_extension_array_dtype(data) and dtype is not None:
-                # GH12574: Allow dtype=category only, otherwise error
                 if not data.dtype.is_dtype(dtype):
                     raise ValueError("Cannot specify a dtype '{}' with an "
                                      "extension array of a different "
@@ -235,6 +234,18 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
                 if not is_list_like(data):
                     data = [data]
                 index = com._default_index(len(data))
+            elif is_list_like(data):
+
+                # a scalar numpy array is list-like but doesn't
+                # have a proper length
+                try:
+                    if len(index) != len(data):
+                        raise ValueError(
+                            'Length of passed values is {val}, '
+                            'index implies {ind}'
+                            .format(val=len(data), ind=len(index)))
+                except TypeError:
+                    pass
 
             # create/copy the manager
             if isinstance(data, SingleBlockManager):
@@ -305,25 +316,11 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         warnings.warn("'from_array' is deprecated and will be removed in a "
                       "future version. Please use the pd.Series(..) "
                       "constructor instead.", FutureWarning, stacklevel=2)
-        return cls._from_array(arr, index=index, name=name, dtype=dtype,
-                               copy=copy, fastpath=fastpath)
-
-    @classmethod
-    def _from_array(cls, arr, index=None, name=None, dtype=None, copy=False,
-                    fastpath=False):
-        """
-        Internal method used in DataFrame.__setitem__/__getitem__.
-        Difference with Series(..) is that this method checks if a sparse
-        array is passed.
-
-        """
-        # return a sparse series here
         if isinstance(arr, ABCSparseArray):
             from pandas.core.sparse.series import SparseSeries
             cls = SparseSeries
-
-        return cls(arr, index=index, name=name, dtype=dtype, copy=copy,
-                   fastpath=fastpath)
+        return cls(arr, index=index, name=name, dtype=dtype,
+                   copy=copy, fastpath=fastpath)
 
     @property
     def _constructor(self):
@@ -1024,31 +1021,31 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         >>> s = pd.Series([1, 2, 3, 4], index=pd.Index(['a', 'b', 'c', 'd'],
         ...                                            name = 'idx'))
         >>> s.reset_index()
-             idx  0
-        0      0  1
-        1      1  2
-        2      2  3
-        3      3  4
+          idx  0
+        0   a  1
+        1   b  2
+        2   c  3
+        3   d  4
 
         >>> arrays = [np.array(['bar', 'bar', 'baz', 'baz', 'foo',
         ...                     'foo', 'qux', 'qux']),
         ...           np.array(['one', 'two', 'one', 'two', 'one', 'two',
         ...                     'one', 'two'])]
         >>> s2 = pd.Series(
-        ...     np.random.randn(8),
+        ...     range(8),
         ...     index=pd.MultiIndex.from_arrays(arrays,
         ...                                     names=['a', 'b']))
         >>> s2.reset_index(level='a')
-               a         0
+               a  0
         b
-        one  bar -0.286320
-        two  bar -0.587934
-        one  baz  0.710491
-        two  baz -1.429006
-        one  foo  0.790700
-        two  foo  0.824863
-        one  qux -0.718963
-        two  qux -0.055028
+        one  bar  0
+        two  bar  1
+        one  baz  2
+        two  baz  3
+        one  foo  4
+        two  foo  5
+        one  qux  6
+        two  qux  7
         """
         inplace = validate_bool_kwarg(inplace, 'inplace')
         if drop:
@@ -3100,8 +3097,8 @@ Series._add_series_only_operations()
 Series._add_series_or_dataframe_operations()
 
 # Add arithmetic!
-ops.add_flex_arithmetic_methods(Series, **ops.series_flex_funcs)
-ops.add_special_arithmetic_methods(Series, **ops.series_special_funcs)
+ops.add_flex_arithmetic_methods(Series)
+ops.add_special_arithmetic_methods(Series)
 
 
 # -----------------------------------------------------------------------------

@@ -586,6 +586,7 @@ Datetimelike API Changes
 - Operations between a :class:`Series` with dtype ``dtype='datetime64[ns]'`` and a :class:`PeriodIndex` will correctly raises ``TypeError`` (:issue:`18850`)
 - Subtraction of :class:`Series` with timezone-aware ``dtype='datetime64[ns]'`` with mis-matched timezones will raise ``TypeError`` instead of ``ValueError`` (:issue:`18817`)
 - :func:`pandas.merge` provides a more informative error message when trying to merge on timezone-aware and timezone-naive columns (:issue:`15800`)
+- For :class:`DatetimeIndex` and :class:`TimedeltaIndex` with ``freq=None``, addition or subtraction of integer-dtyped array or ``Index`` will raise ``NullFrequencyError`` instead of ``TypeError`` (:issue:`19895`)
 
 .. _whatsnew_0230.api.other:
 
@@ -619,6 +620,7 @@ Other API Changes
 - Set operations (union, difference...) on :class:`IntervalIndex` with incompatible index types will now raise a ``TypeError`` rather than a ``ValueError`` (:issue:`19329`)
 - :class:`DateOffset` objects render more simply, e.g. ``<DateOffset: days=1>`` instead of ``<DateOffset: kwds={'days': 1}>`` (:issue:`19403`)
 - ``Categorical.fillna`` now validates its ``value`` and ``method`` keyword arguments. It now raises when both or none are specified, matching the behavior of :meth:`Series.fillna` (:issue:`19682`)
+- :func:`Series.str.replace` now takes an optional `regex` keyword which, when set to ``False``, uses literal string replacement rather than regex replacement (:issue:`16808`)
 
 .. _whatsnew_0230.deprecations:
 
@@ -766,7 +768,6 @@ Datetimelike
 - Bug in :func:`to_datetime` where passing an out-of-bounds datetime with ``errors='coerce'`` and ``utc=True`` would raise ``OutOfBoundsDatetime`` instead of parsing to ``NaT`` (:issue:`19612`)
 - Bug in :class:`DatetimeIndex` and :class:`TimedeltaIndex` addition and subtraction where name of the returned object was not always set consistently. (:issue:`19744`)
 - Bug in :class:`DatetimeIndex` and :class:`TimedeltaIndex` addition and subtraction where operations with numpy arrays raised ``TypeError`` (:issue:`19847`)
--
 
 Timedelta
 ^^^^^^^^^
@@ -867,7 +868,7 @@ I/O
 - Bug in :func:`read_json` where large numeric values were causing an ``OverflowError`` (:issue:`18842`)
 - Bug in :func:`DataFrame.to_parquet` where an exception was raised if the write destination is S3 (:issue:`19134`)
 - :class:`Interval` now supported in :func:`DataFrame.to_excel` for all Excel file types (:issue:`19242`)
-- :class:`Timedelta` now supported in :func:`DataFrame.to_excel` for xls file type (:issue:`19242`, :issue:`9155`)
+- :class:`Timedelta` now supported in :func:`DataFrame.to_excel` for all Excel file types (:issue:`19242`, :issue:`9155`, :issue:`19900`)
 - Bug in :meth:`pandas.io.stata.StataReader.value_labels` raising an ``AttributeError`` when called on very old files. Now returns an empty dict (:issue:`19417`)
 
 Plotting
@@ -918,6 +919,8 @@ Reshaping
 - :func:`Series.rename` now accepts ``axis`` as a kwarg (:issue:`18589`)
 - Comparisons between :class:`Series` and :class:`Index` would return a ``Series`` with an incorrect name, ignoring the ``Index``'s name attribute (:issue:`19582`)
 - Bug in :func:`qcut` where datetime and timedelta data with ``NaT`` present raised a ``ValueError`` (:issue:`19768`)
+- Bug in :func:`DataFrame.iterrows`, which would infers strings not compliant to `ISO8601 <https://en.wikipedia.org/wiki/ISO_8601>`_ to datetimes (:issue:`19671`)
+- Bug in :class:`Series` constructor with ``Categorical`` where a ```ValueError`` is not raised when an index of different length is given (:issue:`19342`)
 
 Other
 ^^^^^
