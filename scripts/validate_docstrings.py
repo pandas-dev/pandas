@@ -17,18 +17,37 @@ import os
 import sys
 import csv
 import re
+import functools
 import argparse
 import inspect
-import types
 import importlib
 import doctest
 import numpy
-import pandas
 
 BASE_PATH = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
-sys.path.insert(0, os.path.join(BASE_PATH, 'doc', 'sphinxext'))
+sys.path.insert(0, os.path.join(BASE_PATH))
+import pandas
+
+sys.path.insert(1, os.path.join(BASE_PATH, 'doc', 'sphinxext'))
 from numpydoc.docscrape import NumpyDocString
+
+
+def _to_original_callable(obj):
+    while True:
+        if inspect.isfunction(obj) or inspect.isclass(obj):
+            f = inspect.getfile(obj)
+            if f.startswith('<') and f.endswith('>'):
+                return None
+            return obj
+        if inspect.ismethod(obj):
+            obj = obj.__func__
+        elif isinstance(obj, functools.partial):
+            obj = obj.func
+        elif isinstance(obj, property):
+            obj = obj.fget
+        else:
+            return None
 
 
 class Docstring:
@@ -40,6 +59,27 @@ class Docstring:
 
     def __len__(self):
         return len(self.raw_doc)
+
+    @property
+    def source_file_name(self):
+        fname = inspect.getsourcefile(self.method_obj)
+        if fname:
+            fname = os.path.relpath(fname, BASE_PATH)
+            return fname
+
+    @property
+    def source_file_def_line(self):
+        try:
+            return inspect.getsourcelines(self.method_obj)[-1]
+        except OSError:
+            pass
+
+    @property
+    def github_url(self):
+        url = 'https://github.com/pandas-dev/pandas/blob/master/'
+        url += '{}#L{}'.format(self.source_file_name,
+                               self.source_file_def_line)
+        return url
 
     @property
     def first_line_blank(self):
@@ -64,8 +104,7 @@ class Docstring:
 
     @property
     def signature_parameters(self):
-        # skip properties and C functions
-        if not isinstance(self.method_obj, types.FunctionType):
+        if not inspect.isfunction(self.method_obj):
             return tuple()
         params = tuple(inspect.signature(self.method_obj).parameters.keys())
         if params and params[0] in ('self', 'cls'):
@@ -109,10 +148,9 @@ class Docstring:
             print(runner.run(test))
 
 
-def get_api_items(remove_duplicates=True):
+def get_api_items():
     api_fname = os.path.join(BASE_PATH, 'doc', 'source', 'api.rst')
 
-    seen = set()
     position = None
     with open(api_fname) as f:
         for line in f:
@@ -138,25 +176,13 @@ def get_api_items(remove_duplicates=True):
                 for part in item.split('.'):
                     func = getattr(func, part)
 
-                # skip properties and C functions
-                code_line = ''
-                fname = ''
-                if isinstance(func, types.FunctionType):
-                    fname = inspect.getsourcefile(func)
-                    fname = os.path.relpath(fname, BASE_PATH)
-                    code_line = inspect.getsourcelines(func)[-1]
-                    key = fname, code_line
-                    if remove_duplicates and key in seen:
-                        continue
-                    else:
-                        seen.add(key)
-
-                yield '.'.join([current_module, item]), func, fname, code_line
+                yield '.'.join([current_module, item]), func
 
 
 def validate_all():
     writer = csv.writer(sys.stdout)
     writer.writerow(['Function or method',
+                     'Type',
                      'File',
                      'Code line',
                      'GitHub link',
@@ -164,22 +190,30 @@ def validate_all():
                      'Has summary',
                      'Has extended summary',
                      'Parameters ok',
-                     'Has examples'])
-    for func_name, func_obj, fname, code_line in get_api_items():
-        doc = Docstring(func_name, func_obj)
-        url = ''
-        if fname:
-            url = 'https://github.com/pandas-dev/pandas/blob/master/'
-            url += '{}#L{}'.format(fname, code_line)
-        writer.writerow([func_name,
-                         fname,
-                         code_line,
-                         url,
-                         int(doc.deprecated),
-                         int(bool(doc.summary)),
-                         int(bool(doc.extended_summary)),
-                         int(doc.correct_parameters),
-                         int(bool(doc.examples))])
+                     'Has examples',
+                     'Shared code with'])
+    seen = {}
+    for func_name, func in get_api_items():
+        obj_type = type(func).__name__
+        original_callable = _to_original_callable(func)
+        if original_callable is None:
+            writer.writerow([func_name, obj_type] + [''] * 9)
+        else:
+            doc = Docstring(func_name, original_callable)
+            key = doc.source_file_name, doc.source_file_def_line
+            shared_code = seen.get(key, '')
+            seen[key] = func_name
+            writer.writerow([func_name,
+                             obj_type,
+                             doc.source_file_name,
+                             doc.source_file_def_line,
+                             doc.github_url,
+                             int(doc.deprecated),
+                             int(bool(doc.summary)),
+                             int(bool(doc.extended_summary)),
+                             int(doc.correct_parameters),
+                             int(bool(doc.examples)),
+                             shared_code])
 
     return 0
 
