@@ -202,12 +202,13 @@ static npy_int64 asfreq_DTtoW(npy_int64 ordinal, asfreq_info *af_info) {
 }
 
 static npy_int64 asfreq_DTtoB(npy_int64 ordinal, asfreq_info *af_info) {
+    int roll_back;
     pandas_datetimestruct dts;
     npy_int64 unix_date = downsample_daytime(ordinal, af_info);
     pandas_datetime_to_datetimestruct(unix_date, PANDAS_FR_D, &dts);
 
     // This usage defines roll_back the opposite way from the others
-    int roll_back = 1 - af_info->is_end;
+    roll_back = 1 - af_info->is_end;
     return DtoB(&dts, roll_back, unix_date);
 }
 
@@ -260,11 +261,12 @@ static npy_int64 asfreq_WtoW(npy_int64 ordinal, asfreq_info *af_info) {
 }
 
 static npy_int64 asfreq_WtoB(npy_int64 ordinal, asfreq_info *af_info) {
+    int roll_back;
     pandas_datetimestruct dts;
     npy_int64 unix_date = asfreq_WtoDT(ordinal, af_info);
 
     pandas_datetime_to_datetimestruct(unix_date, PANDAS_FR_D, &dts);
-    int roll_back = af_info->is_end;
+    roll_back = af_info->is_end;
     return DtoB(&dts, roll_back, unix_date);
 }
 
@@ -299,11 +301,12 @@ static npy_int64 asfreq_MtoW(npy_int64 ordinal, asfreq_info *af_info) {
 }
 
 static npy_int64 asfreq_MtoB(npy_int64 ordinal, asfreq_info *af_info) {
+    int roll_back;
     pandas_datetimestruct dts;
     npy_int64 unix_date = asfreq_MtoDT(ordinal, af_info);
 
     pandas_datetime_to_datetimestruct(unix_date, PANDAS_FR_D, &dts);
-    int roll_back = af_info->is_end;
+    roll_back = af_info->is_end;
     return DtoB(&dts, roll_back, unix_date);
 }
 
@@ -353,11 +356,12 @@ static npy_int64 asfreq_QtoW(npy_int64 ordinal, asfreq_info *af_info) {
 }
 
 static npy_int64 asfreq_QtoB(npy_int64 ordinal, asfreq_info *af_info) {
+    int roll_back;
     pandas_datetimestruct dts;
     npy_int64 unix_date = asfreq_QtoDT(ordinal, af_info);
 
     pandas_datetime_to_datetimestruct(unix_date, PANDAS_FR_D, &dts);
-    int roll_back = af_info->is_end;
+    roll_back = af_info->is_end;
     return DtoB(&dts, roll_back, unix_date);
 }
 
@@ -365,7 +369,7 @@ static npy_int64 asfreq_QtoB(npy_int64 ordinal, asfreq_info *af_info) {
 
 static void AtoD_ym(npy_int64 ordinal, int *year, int *month,
                     asfreq_info *af_info) {
-    *year = ordinal + 1970;
+    *year = (int)ordinal + 1970;
     *month = 1;
 
     if (af_info->from_end != 12) {
@@ -381,7 +385,7 @@ static void AtoD_ym(npy_int64 ordinal, int *year, int *month,
 }
 
 static npy_int64 asfreq_AtoDT(npy_int64 ordinal, asfreq_info *af_info) {
-    npy_int64 unix_date;
+    npy_int64 unix_date, year;
     int year, month;
 
     ordinal += af_info->is_end;
