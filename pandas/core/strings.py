@@ -20,6 +20,7 @@ from pandas.core.base import NoNewAttributesMixin
 from pandas.util._decorators import Appender
 import re
 import pandas._libs.lib as lib
+import pandas._libs.ops as libops
 import warnings
 import textwrap
 import codecs
@@ -493,7 +494,7 @@ def str_repeat(arr, repeats):
                 return compat.text_type.__mul__(x, r)
 
         repeats = np.asarray(repeats, dtype=object)
-        result = lib.vec_binop(com._values_from_object(arr), repeats, rep)
+        result = libops.vec_binop(com._values_from_object(arr), repeats, rep)
         return result
 
 
