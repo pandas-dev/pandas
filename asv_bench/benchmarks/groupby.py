@@ -15,7 +15,7 @@ method_blacklist = {
     'object': {'median', 'prod', 'sem', 'cumsum', 'sum', 'cummin', 'mean',
                'max', 'skew', 'cumprod', 'cummax', 'rank', 'pct_change', 'min',
                'var', 'mad', 'describe', 'std'}
-    }
+}
 
 
 class ApplyDictReturn(object):
