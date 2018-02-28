@@ -594,6 +594,25 @@ def period_asfreq_arr(ndarray[int64_t] arr, int freq1, int freq2, bint end):
 
 cpdef int64_t period_ordinal(int y, int m, int d, int h, int min,
                              int s, int us, int ps, int freq):
+    """
+    Find the ordinal representation of the given datetime components at the
+    frequency `freq`.
+
+    Parameters
+    ----------
+    y : int
+    m : int
+    d : int
+    h : int
+    min : int
+    s : int
+    us : int
+    ps : int
+
+    Returns
+    -------
+    ordinal : int64_t
+    """
     cdef:
         pandas_datetimestruct dts
     dts.year = y
