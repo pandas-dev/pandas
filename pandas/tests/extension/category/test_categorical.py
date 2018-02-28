@@ -71,7 +71,11 @@ class TestGetitem(base.BaseGetitemTests):
 class TestMissing(base.BaseMissingTests):
 
     @pytest.mark.skip(reason="Not implemented")
-    def test_fillna_limit(self):
+    def test_fillna_limit_pad(self):
+        pass
+
+    @pytest.mark.skip(reason="Not implemented")
+    def test_fillna_limit_backfill(self):
         pass
 
 
