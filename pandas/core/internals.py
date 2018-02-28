@@ -2928,6 +2928,7 @@ class DatetimeTZBlock(NonConsolidatableMixIn, DatetimeBlock):
             # function is invoked via apply
             raise NotImplementedError
         new_values = (self.values - self.shift(n, axis=axis)[0].values).asi8
+
         # Reshape the new_values like how algos.diff does for timedelta data
         new_values = new_values.reshape(1, len(new_values))
         new_values = new_values.astype('timedelta64[ns]')
