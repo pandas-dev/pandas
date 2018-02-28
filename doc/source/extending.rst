@@ -52,17 +52,23 @@ This can be a convenient way to extend pandas objects without subclassing them.
 If you write a custom accessor, make a pull request adding it to our
 :ref:`ecosystem` page.
 
-Extension Arrays
-----------------
+.. _extending.extension-types:
+
+Extension Types
+---------------
 
 Pandas defines an interface for implementing data types and arrays that *extend*
-NumPy's type system. Pandas uses itself for some types that aren't built into
-NumPy (categorical, period, interval, datetime with timezone).
+NumPy's type system. Pandas iteself uses the extension system for some types
+that aren't built into NumPy (categorical, period, interval, datetime with
+timezone).
 
 Libraries can define an custom array and data type. When pandas encounters these
 objects, they will be handled properly (i.e. not converted to an ndarray of
 objects). Many methods like :func:`pandas.isna` will dispatch to the extension
 type's implementation.
+
+If you're building a library that implements the interface, please publicize it
+on :ref:`ecosystem.extensions`.
 
 The interface consists of two classes.
 
@@ -81,10 +87,24 @@ See ``pandas/core/dtypes/base.py`` for interface definition.
 ``ExtensionArray``
 """"""""""""""""""
 
-This is the main object.
+This class provides all the array-like functionality. ExtensionArrays are
+limited to 1 dimension. An ExtensionArray is linked to an ExtensionDtype via the
+``dtype`` attribute.
 
+Pandas makes no restrictions on how an extension array is created via its
+``__new__`` or ``__init__``, and puts no restrictions on how you store your
+data. We do require that your array be convertible to a NumPy array, even if
+this is relatively expensive (as it is for ``Categorical``).
 
-See ``pandas/core/arrays/base.py`` for the interface definition.
+They may be backed by none, one, or many NumPy ararys. For example,
+``pandas.Categorical`` is an extension array backed by two arrays,
+one for codes and one for categories. An array of IPv6 address may
+be backed by a NumPy structured array with two fields, one for the
+lower 64 bits and one for the upper 64 bits. Or they may be backed
+by some other storage type, like Python lists.
+
+See ``pandas/core/arrays/base.py`` for the interface definition. The docstrings
+and comments contain guidance for properly implementing the interface.
 
 .. _ref-subclassing-pandas:
 

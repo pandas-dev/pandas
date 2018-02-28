@@ -262,3 +262,30 @@ Data validation
 
 Engarde is a lightweight library used to explicitly state your assumptions abour your datasets
 and check that they're *actually* true.
+
+.. _ecosystem.extensions:
+
+Extension Data Types
+--------------------
+
+`cyberpandas`_
+~~~~~~~~~~~~~~
+
+Cyberpandas provides an extension type for storing arrays of IP Addresses. These
+arrays can be stored inside pandas' Series and DataFrame.
+
+.. _ecosystem.accessors:
+------------------------
+
+A directory of projects providing extension accessors. This is for users to
+discover new accessors and for libraries authors to coordinate on the namespace.
+
+============== ========== =================
+Library        Accessor   Classes
+============== ========== =================
+`cyberpandas`_ ``ip``     Series
+`pdvega`_      ``vgplot`` Series, DataFrame
+============== ========== =================
+
+.. _cyberpandas: https://cyberpandas.readthedocs.io/en/latest
+.. _pdvega: https://jakevdp.github.io/pdvega/
