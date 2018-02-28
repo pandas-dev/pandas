@@ -1021,31 +1021,31 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         >>> s = pd.Series([1, 2, 3, 4], index=pd.Index(['a', 'b', 'c', 'd'],
         ...                                            name = 'idx'))
         >>> s.reset_index()
-             idx  0
-        0      0  1
-        1      1  2
-        2      2  3
-        3      3  4
+          idx  0
+        0   a  1
+        1   b  2
+        2   c  3
+        3   d  4
 
         >>> arrays = [np.array(['bar', 'bar', 'baz', 'baz', 'foo',
         ...                     'foo', 'qux', 'qux']),
         ...           np.array(['one', 'two', 'one', 'two', 'one', 'two',
         ...                     'one', 'two'])]
         >>> s2 = pd.Series(
-        ...     np.random.randn(8),
+        ...     range(8),
         ...     index=pd.MultiIndex.from_arrays(arrays,
         ...                                     names=['a', 'b']))
         >>> s2.reset_index(level='a')
-               a         0
+               a  0
         b
-        one  bar -0.286320
-        two  bar -0.587934
-        one  baz  0.710491
-        two  baz -1.429006
-        one  foo  0.790700
-        two  foo  0.824863
-        one  qux -0.718963
-        two  qux -0.055028
+        one  bar  0
+        two  bar  1
+        one  baz  2
+        two  baz  3
+        one  foo  4
+        two  foo  5
+        one  qux  6
+        two  qux  7
         """
         inplace = validate_bool_kwarg(inplace, 'inplace')
         if drop:
