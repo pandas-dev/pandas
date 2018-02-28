@@ -890,7 +890,7 @@ Groupby/Resample/Rolling
 - Bug in :func:`DataFrame.groupby` passing the `on=` kwarg, and subsequently using ``.apply()`` (:issue:`17813`)
 - Bug in :func:`DataFrame.resample().aggregate` not raising a ``KeyError`` when aggregating a non-existent column (:issue:`16766`, :issue:`19566`)
 - Fixed a performance regression for ``GroupBy.nth`` and ``GroupBy.last`` with some object columns (:issue:`19283`)
-- Bug in :func:`DataFrame.groupby.cumsum` and :func:`DataFrame.groupby.cumprod` where skipna is not an option
+- Bug in :func:`DataFrameGroupBy.cumsum` and :func:`DataFrameGroupBy.cumprod` where `skipna` is not an option (:issue:`19806`)
 
 Sparse
 ^^^^^^

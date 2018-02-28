@@ -164,12 +164,11 @@ def group_cumprod_float64(float64_t[:, :] out,
                 if val == val:
                     accum[lab, j] *= val
                     out[i, j] = accum[lab, j]
-                if val != val:
-                    if skipna:
-                        out[i, j] = NaN
-                    else:
+                else:
+                    out[i, j] = NaN
+                    if not skipna:
                         accum[lab, j] = NaN
-                        out[i, j] = accum[lab, j]
+                        break
 
 
 @cython.boundscheck(False)
@@ -204,12 +203,11 @@ def group_cumsum(numeric[:, :] out,
                     if val == val:
                         accum[lab, j] += val
                         out[i, j] = accum[lab, j]
-                    if val != val:
-                        if skipna:
-                            out[i, j] = NaN
-                        else:
+                    else:
+                        out[i, j] = NaN
+                        if not skipna:
                             accum[lab, j] = NaN
-                            out[i, j] = accum[lab, j]
+                            break
                 else:
                     accum[lab, j] += val
                     out[i, j] = accum[lab, j]
