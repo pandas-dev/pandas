@@ -268,6 +268,11 @@ and check that they're *actually* true.
 Extension Data Types
 --------------------
 
+Pandas provides an interface for defining
+:ref:`extending.extension-types <extension types>` to extend NumPy's type
+system. The following libraries implement that interface to provide types not
+found in NumPy or pandas, which work well with pandas' data containers.
+
 `cyberpandas`_
 ~~~~~~~~~~~~~~
 
@@ -275,9 +280,12 @@ Cyberpandas provides an extension type for storing arrays of IP Addresses. These
 arrays can be stored inside pandas' Series and DataFrame.
 
 .. _ecosystem.accessors:
-------------------------
 
-A directory of projects providing extension accessors. This is for users to
+Accessors
+---------
+
+A directory of projects providing
+:ref:`extending.register-accessors <extension accessors>`. This is for users to
 discover new accessors and for libraries authors to coordinate on the namespace.
 
 ============== ========== =================
