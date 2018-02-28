@@ -141,11 +141,14 @@ class Docstring:
 
     @property
     def examples_pass_tests(self):
+        flags = doctest.NORMALIZE_WHITESPACE
         finder = doctest.DocTestFinder()
-        runner = doctest.DocTestRunner()
+        runner = doctest.DocTestRunner(optionflags=flags)
         context = {'np': numpy, 'pd': pandas}
+        total_failed = 0
         for test in finder.find(self.raw_doc, self.method_name, globs=context):
-            print(runner.run(test))
+            total_failed += runner.run(test).failed
+        return total_failed == 0
 
 
 def get_api_items():
@@ -258,6 +261,9 @@ def validate_one(func_name):
         errs.append('Documented parameters do not match the signature')
     if not doc.examples:
         errs.append('No examples')
+    else:
+        if not doc.examples_pass_tests:
+            errs.append('Examples do not pass test')
 
     if errs:
         sys.stderr.write('Errors for "{}" docstring:\n'.format(func_name))
