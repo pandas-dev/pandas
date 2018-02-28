@@ -339,7 +339,8 @@ def group_any_all(ndarray[uint8_t] out,
     """
     cdef:
         Py_ssize_t i, N=len(labels)
-        int64_t lab, flag_val
+        int64_t lab
+        uint8_t flag_val
 
     if val_test == 'all':
         # Because the 'all' value of an empty iterable in Python is True we can
