@@ -24,7 +24,7 @@ class TestStyler(object):
 
         def h(x, foo='bar'):
             return pd.Series(
-                ['color: {foo}'.format(foo=foo)], index=x.index, name=x.name)
+                'color: {foo}'.format(foo=foo), index=x.index, name=x.name)
 
         self.h = h
         self.styler = Styler(self.df)
