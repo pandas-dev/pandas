@@ -117,7 +117,7 @@ Subclassing pandas Data Structures
 
   2. Use *composition*. See `here <http://en.wikipedia.org/wiki/Composition_over_inheritance>`_.
 
-  3. Extending by :ref:`registering an accessor <internals.register-accessors>`
+  3. Extending by :ref:`registering an accessor <extending.register-accessors>`
 
 This section describes how to subclass ``pandas`` data structures to meet more specific needs. There are 2 points which need attention:
 

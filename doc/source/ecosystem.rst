@@ -269,7 +269,7 @@ Extension Data Types
 --------------------
 
 Pandas provides an interface for defining
-:ref:`extending.extension-types <extension types>` to extend NumPy's type
+:ref:`extension types <extending.extension-types>` to extend NumPy's type
 system. The following libraries implement that interface to provide types not
 found in NumPy or pandas, which work well with pandas' data containers.
 
@@ -285,7 +285,7 @@ Accessors
 ---------
 
 A directory of projects providing
-:ref:`extending.register-accessors <extension accessors>`. This is for users to
+:ref:`extension accessors <extending.register-accessors>`. This is for users to
 discover new accessors and for libraries authors to coordinate on the namespace.
 
 ============== ========== =================
