@@ -212,7 +212,6 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
                                          'be False.')
 
             elif is_extension_array_dtype(data) and dtype is not None:
-                # GH12574: Allow dtype=category only, otherwise error
                 if not data.dtype.is_dtype(dtype):
                     raise ValueError("Cannot specify a dtype '{}' with an "
                                      "extension array of a different "
@@ -235,6 +234,18 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
                 if not is_list_like(data):
                     data = [data]
                 index = com._default_index(len(data))
+            elif is_list_like(data):
+
+                # a scalar numpy array is list-like but doesn't
+                # have a proper length
+                try:
+                    if len(index) != len(data):
+                        raise ValueError(
+                            'Length of passed values is {val}, '
+                            'index implies {ind}'
+                            .format(val=len(data), ind=len(index)))
+                except TypeError:
+                    pass
 
             # create/copy the manager
             if isinstance(data, SingleBlockManager):
@@ -305,25 +316,11 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         warnings.warn("'from_array' is deprecated and will be removed in a "
                       "future version. Please use the pd.Series(..) "
                       "constructor instead.", FutureWarning, stacklevel=2)
-        return cls._from_array(arr, index=index, name=name, dtype=dtype,
-                               copy=copy, fastpath=fastpath)
-
-    @classmethod
-    def _from_array(cls, arr, index=None, name=None, dtype=None, copy=False,
-                    fastpath=False):
-        """
-        Internal method used in DataFrame.__setitem__/__getitem__.
-        Difference with Series(..) is that this method checks if a sparse
-        array is passed.
-
-        """
-        # return a sparse series here
         if isinstance(arr, ABCSparseArray):
             from pandas.core.sparse.series import SparseSeries
             cls = SparseSeries
-
-        return cls(arr, index=index, name=name, dtype=dtype, copy=copy,
-                   fastpath=fastpath)
+        return cls(arr, index=index, name=name, dtype=dtype,
+                   copy=copy, fastpath=fastpath)
 
     @property
     def _constructor(self):
