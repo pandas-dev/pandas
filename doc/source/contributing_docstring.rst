@@ -1,3 +1,5 @@
+.. _docstring:
+
 ======================
 pandas docstring guide
 ======================
@@ -35,6 +37,10 @@ Next example gives an idea on how a docstring looks like:
     -------
     int
         The sum of `num1` and `num2`
+
+    See Also
+    --------
+    subtract : Subtract one integer from another
 
     Examples
     --------
@@ -74,8 +80,12 @@ about reStructuredText can be found in:
 The rest of this document will summarize all the above guides, and will
 provide additional convention specific to the pandas project.
 
+.. _docstring.tutorial:
+
 Writing a docstring
 -------------------
+
+.. _docstring.general:
 
 General rules
 ~~~~~~~~~~~~~
@@ -122,6 +132,8 @@ opening quotes (not in the next line). The closing quotes have their own line
         foo = 1
         bar = 2
         return foo + bar
+
+.. _docstring.short_summary:
 
 Section 1: Short summary
 ~~~~~~~~~~~~~~~~~~~~~~~~
@@ -177,6 +189,8 @@ details.
         """
         pass
 
+.. _docstring.extended_summary:
+
 Section 2: Extended summary
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
@@ -201,6 +215,8 @@ every paragraph in the extended summary is finished by a dot.
         as columns.
         """
         pass
+
+.. _docstring.parameters:
 
 Section 3: Parameters
 ~~~~~~~~~~~~~~~~~~~~~
@@ -280,6 +296,8 @@ all cpus).".
             """
             pass
 
+.. _docstring.parameter_types:
+
 Parameter types
 ^^^^^^^^^^^^^^^
 
@@ -289,6 +307,7 @@ directly:
 - int
 - float
 - str
+- bool
 
 For complex types, define the subtypes:
 
@@ -340,6 +359,8 @@ last two types, that need to be separated by the word 'or':
 
 If None is one of the accepted values, it always needs to be the last in
 the list.
+
+.. _docstring.returns:
 
 Section 4: Returns or Yields
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -415,8 +436,9 @@ If the method yields its value:
         while True:
             yield random.random()
 
+.. _docstring.see_also:
 
-Section 5: See also
+Section 5: See Also
 ~~~~~~~~~~~~~~~~~~~
 
 This is an optional section, used to let users know about pandas functionality
@@ -448,7 +470,7 @@ When deciding what is related, you should mainly use your common sense and
 think about what can be useful for the users reading the documentation,
 especially the less experienced ones.
 
-When relating to other methods (mainly `numpy`), use the name of the module
+When relating to other libraries (mainly `numpy`), use the name of the module
 first (not an alias like `np`). If the function is in a module which is not
 the main one, like `scipy.sparse`, list the full module (e.g.
 `scipy.sparse.coo_matrix`).
@@ -478,9 +500,9 @@ For example:
             This function is mainly useful to preview the values of the
             Series without displaying the whole of it.
 
-            Return
-            ------
-            pandas.Series
+            Returns
+            -------
+            Series
                 Subset of the original series with the 5 first values.
 
             See Also
@@ -488,6 +510,8 @@ For example:
             tail : Return the last 5 elements of the Series.
             """
             return self.iloc[:5]
+
+.. _docstring.notes:
 
 Section 6: Notes
 ~~~~~~~~~~~~~~~~
@@ -500,6 +524,8 @@ algorithm, or you discover some counter-intuitive behavior while writing the
 examples for the function.
 
 This section follows the same format as the extended summary section.
+
+.. _docstring.examples:
 
 Section 7: Examples
 ~~~~~~~~~~~~~~~~~~~
@@ -576,6 +602,8 @@ A simple example could be:
             """
             return self.iloc[:n]
 
+.. _docstring.example_conventions:
+
 Conventions for the examples
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
@@ -645,9 +673,3 @@ positional arguments `head(3)`.
         ...                   columns=('a', 'b', 'c'))
         """
         pass
-
-Once you finished the docstring
--------------------------------
-
-When you finished the changes to the docstring, go to the
-:ref:`instructions to submit your changes <pandas_pr>` to continue.
