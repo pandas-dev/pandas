@@ -35,8 +35,6 @@ class DecimalArray(ExtensionArray):
         # these
         self._values = self._items = self._data = self.data = self.values
 
-
-
     def __getitem__(self, item):
         if isinstance(item, numbers.Integral):
             return self.values[item]
