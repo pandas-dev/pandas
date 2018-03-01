@@ -552,6 +552,45 @@ def remove_flags_docstring(app, what, name, obj, options, lines):
         del lines[:]
 
 
+def process_class_docstrings(app, what, name, obj, options, lines):
+    """
+    For those classes for which we use ::
+
+    :template: autosummary/class_without_autosummary.rst
+
+    the documented attributes/methods have to be listed in the class
+    docstring. However, if one of those lists is empty, we use 'None',
+    which then generates warnings in sphinx / ugly html output.
+    This "autodoc-process-docstring" event connector removes that part
+    from the processed docstring.
+
+    """
+    if what == "class":
+        joined = '\n'.join(lines)
+
+        templates =
+            [""".. rubric:: Attributes
+
+.. autosummary::
+   :toctree:
+
+   None
+""",
+             """.. rubric:: Methods
+
+.. autosummary::
+   :toctree:
+
+   None
+"""
+            ]
+
+        for template in templates:
+            if template in joined:
+                joined = joined.replace(template, '')
+        lines[:] = joined.split('\n')
+
+
 suppress_warnings = [
     # We "overwrite" autosummary with our PandasAutosummary, but
     # still want the regular autosummary setup to run. So we just
@@ -562,6 +601,7 @@ suppress_warnings = [
 
 def setup(app):
     app.connect("autodoc-process-docstring", remove_flags_docstring)
+    app.connect("autodoc-process-docstring", process_class_docstrings)
     app.add_autodocumenter(AccessorDocumenter)
     app.add_autodocumenter(AccessorAttributeDocumenter)
     app.add_autodocumenter(AccessorMethodDocumenter)
