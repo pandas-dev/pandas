@@ -419,15 +419,15 @@ class TestPivotTable(object):
         expected = DataFrame(data)
         tm.assert_frame_equal(result, expected)
 
-    @pytest.mark.xfail(reason='tuple is seen as a single column name')
     def test_pivot_with_tuple_of_values(self):
         # issue #17160
         df = pd.DataFrame({'foo': ['one', 'one', 'one', 'two', 'two', 'two'],
                            'bar': ['A', 'B', 'C', 'A', 'B', 'C'],
                            'baz': [1, 2, 3, 4, 5, 6],
                            'zoo': ['x', 'y', 'z', 'q', 'w', 't']})
-
-        result = df.pivot(index='zoo', columns='foo', values=('bar', 'baz'))
+        with pytest.raises(KeyError):
+            # tuple is seen as a single column name
+            result = df.pivot(index='zoo', columns='foo', values=('bar', 'baz'))
 
         data = [[np.nan, 'A', np.nan, 4],
                 [np.nan, 'C', np.nan, 6],
