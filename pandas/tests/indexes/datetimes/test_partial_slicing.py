@@ -2,7 +2,7 @@
 
 import pytest
 
-from datetime import datetime, date
+from datetime import datetime
 import numpy as np
 import pandas as pd
 import operator as op
@@ -349,7 +349,7 @@ class TestSlicing(object):
 
     @pytest.mark.parametrize('datetimelike', [
         Timestamp('20130101'), datetime(2013, 1, 1),
-        date(2013, 1, 1), np.datetime64('2013-01-01T00:00', 'ns')])
+        np.datetime64('2013-01-01T00:00', 'ns')])
     @pytest.mark.parametrize('op,expected', [
         (op.lt, [True, False, False, False]),
         (op.le, [True, True, False, False]),

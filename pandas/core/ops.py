@@ -10,8 +10,7 @@ import operator
 import numpy as np
 import pandas as pd
 
-from pandas._libs import (lib, index as libindex,
-                          algos as libalgos, ops as libops)
+from pandas._libs import algos as libalgos, ops as libops
 
 from pandas import compat
 from pandas.util._decorators import Appender
@@ -1127,24 +1126,20 @@ def _comp_method_SERIES(cls, op, special):
             # integer comparisons
 
             # we have a datetime/timedelta and may need to convert
+            assert not needs_i8_conversion(x)
             mask = None
-            if (needs_i8_conversion(x) or
-                    (not is_scalar(y) and needs_i8_conversion(y))):
-
-                if is_scalar(y):
-                    mask = isna(x)
-                    y = libindex.convert_scalar(x, com._values_from_object(y))
-                else:
-                    mask = isna(x) | isna(y)
-                    y = y.view('i8')
+            if not is_scalar(y) and needs_i8_conversion(y):
+                mask = isna(x) | isna(y)
+                y = y.view('i8')
                 x = x.view('i8')
 
-            try:
+            method = getattr(x, name, None)
+            if method is not None:
                 with np.errstate(all='ignore'):
-                    result = getattr(x, name)(y)
+                    result = method(y)
                 if result is NotImplemented:
                     raise TypeError("invalid type comparison")
-            except AttributeError:
+            else:
                 result = op(x, y)
 
             if mask is not None and mask.any():
@@ -1174,6 +1169,14 @@ def _comp_method_SERIES(cls, op, special):
             return self._constructor(res_values, index=self.index,
                                      name=res_name)
 
+        if is_datetime64_dtype(self) or is_datetime64tz_dtype(self):
+            # Dispatch to DatetimeIndex to ensure identical
+            # Series/Index behavior
+            res_values = dispatch_to_index_op(op, self, other,
+                                              pd.DatetimeIndex)
+            return self._constructor(res_values, index=self.index,
+                                     name=res_name)
+
         elif is_timedelta64_dtype(self):
             res_values = dispatch_to_index_op(op, self, other,
                                               pd.TimedeltaIndex)
@@ -1191,8 +1194,7 @@ def _comp_method_SERIES(cls, op, special):
         elif isinstance(other, (np.ndarray, pd.Index)):
             # do not check length of zerodim array
             # as it will broadcast
-            if (not is_scalar(lib.item_from_zerodim(other)) and
-                    len(self) != len(other)):
+            if other.ndim != 0 and len(self) != len(other):
                 raise ValueError('Lengths must match to compare')
 
             res_values = na_op(self.values, np.asarray(other))
