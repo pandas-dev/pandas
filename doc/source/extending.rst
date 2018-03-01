@@ -62,7 +62,7 @@ NumPy's type system. Pandas itself uses the extension system for some types
 that aren't built into NumPy (categorical, period, interval, datetime with
 timezone).
 
-Libraries can define an custom array and data type. When pandas encounters these
+Libraries can define a custom array and data type. When pandas encounters these
 objects, they will be handled properly (i.e. not converted to an ndarray of
 objects). Many methods like :func:`pandas.isna` will dispatch to the extension
 type's implementation.
@@ -106,11 +106,10 @@ by some other storage type, like Python lists.
 See the `extension array source`_ for the interface definition. The docstrings
 and comments contain guidance for properly implementing the interface.
 
-
 .. _extension dtype source: https://github.com/pandas-dev/pandas/blob/master/pandas/core/dtypes/base.py
 .. _extension array source: https://github.com/pandas-dev/pandas/blob/master/pandas/core/arrays/base.py
 
-.. _ref-subclassing-pandas:
+.. _extending.subclassing-pandas:
 
 Subclassing pandas Data Structures
 ----------------------------------

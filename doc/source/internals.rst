@@ -108,7 +108,9 @@ containers (``Index`` classes and ``Series``) we have the following convention:
 So, for example, ``Series[category]._values`` is a ``Categorical``, while
 ``Series[category]._ndarray_values`` is the underlying codes.
 
+.. _ref-subclassing-pandas:
+
 Subclassing pandas Data Structures
 ----------------------------------
 
-This section has been moved to :ref:`ref-subclassing-pandas`.
+This section has been moved to :ref:`extending.subclassing-pandas`.
