@@ -4436,17 +4436,21 @@ class NDFrame(PandasObject, SelectionMixin):
                     results.append(col.astype(dtype[col_name], copy=copy))
                 else:
                     results.append(results.append(col.copy() if copy else col))
-            return pd.concat(results, axis=1, copy=False)
 
         elif is_categorical_dtype(dtype) and self.ndim > 1:
             # GH 18099: columnwise conversion to categorical
             results = (self[col].astype(dtype, copy=copy) for col in self)
-            return pd.concat(results, axis=1, copy=False)
 
-        # else, only a single dtype is given
-        new_data = self._data.astype(dtype=dtype, copy=copy, errors=errors,
-                                     **kwargs)
-        return self._constructor(new_data).__finalize__(self)
+        else:
+            # else, only a single dtype is given
+            new_data = self._data.astype(dtype=dtype, copy=copy, errors=errors,
+                                         **kwargs)
+            return self._constructor(new_data).__finalize__(self)
+
+        # GH 19920: retain column metadata after concat
+        result = pd.concat(results, axis=1, copy=False)
+        result.columns = self.columns
+        return result
 
     def copy(self, deep=True):
         """
