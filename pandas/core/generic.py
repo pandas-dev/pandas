@@ -18,6 +18,7 @@ from pandas.core.dtypes.common import (
     is_number,
     is_integer, is_bool,
     is_bool_dtype,
+    is_categorical_dtype,
     is_numeric_dtype,
     is_datetime64_dtype,
     is_timedelta64_dtype,
@@ -4429,14 +4430,18 @@ class NDFrame(PandasObject, SelectionMixin):
                 if col_name not in self:
                     raise KeyError('Only a column name can be used for the '
                                    'key in a dtype mappings argument.')
-            from pandas import concat
             results = []
             for col_name, col in self.iteritems():
                 if col_name in dtype:
                     results.append(col.astype(dtype[col_name], copy=copy))
                 else:
                     results.append(results.append(col.copy() if copy else col))
-            return concat(results, axis=1, copy=False)
+            return pd.concat(results, axis=1, copy=False)
+
+        elif is_categorical_dtype(dtype) and self.ndim > 1:
+            # GH 18099: columnwise conversion to categorical
+            results = (self[col].astype(dtype, copy=copy) for col in self)
+            return pd.concat(results, axis=1, copy=False)
 
         # else, only a single dtype is given
         new_data = self._data.astype(dtype=dtype, copy=copy, errors=errors,
