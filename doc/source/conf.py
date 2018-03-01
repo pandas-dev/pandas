@@ -18,7 +18,6 @@ import inspect
 import importlib
 import warnings
 
-from pandas.compat import u, PY3
 
 try:
     raw_input          # Python 2
@@ -86,38 +85,6 @@ autosummary_generate = False
 if any(re.match("\s*api\s*", l) for l in index_rst_lines):
     autosummary_generate = True
 
-files_to_delete = []
-for f in os.listdir(os.path.dirname(__file__)):
-    if (not f.endswith(('.ipynb', '.rst')) or
-            f.startswith('.') or os.path.basename(f) == 'index.rst'):
-        continue
-
-    _file_basename = os.path.splitext(f)[0]
-    _regex_to_match = "\s*{}\s*$".format(_file_basename)
-    if not any(re.match(_regex_to_match, line) for line in index_rst_lines):
-        files_to_delete.append(f)
-
-if files_to_delete:
-    print("I'm about to DELETE the following:\n{}\n".format(
-        list(sorted(files_to_delete))))
-    sys.stdout.write("WARNING: I'd like to delete those "
-                     "to speed up processing (yes/no)? ")
-    if PY3:
-        answer = input()
-    else:
-        answer = raw_input()
-
-    if answer.lower().strip() in ('y', 'yes'):
-        for f in files_to_delete:
-            f = os.path.join(os.path.join(os.path.dirname(__file__), f))
-            f = os.path.abspath(f)
-            try:
-                print("Deleting {}".format(f))
-                os.unlink(f)
-            except:
-                print("Error deleting {}".format(f))
-                pass
-
 # Add any paths that contain templates here, relative to this directory.
 templates_path = ['../_templates']
 
@@ -131,8 +98,8 @@ source_encoding = 'utf-8'
 master_doc = 'index'
 
 # General information about the project.
-project = u('pandas')
-copyright = u('2008-2014, the pandas development team')
+project = u'pandas'
+copyright = u'2008-2014, the pandas development team'
 
 # The version info for the project you're documenting, acts as replacement for
 # |version| and |release|, also used in various other places throughout the
@@ -343,8 +310,8 @@ nbsphinx_allow_errors = True
 # file, target name, title, author, documentclass [howto/manual]).
 latex_documents = [
     ('index', 'pandas.tex',
-     u('pandas: powerful Python data analysis toolkit'),
-     u('Wes McKinney\n\& PyData Development Team'), 'manual'),
+     u'pandas: powerful Python data analysis toolkit',
+     u'Wes McKinney\n\& PyData Development Team', 'manual'),
 ]
 
 # The name of an image file (relative to this directory) to place at the top of

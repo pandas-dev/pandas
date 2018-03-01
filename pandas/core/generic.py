@@ -4436,17 +4436,21 @@ class NDFrame(PandasObject, SelectionMixin):
                     results.append(col.astype(dtype[col_name], copy=copy))
                 else:
                     results.append(results.append(col.copy() if copy else col))
-            return pd.concat(results, axis=1, copy=False)
 
         elif is_categorical_dtype(dtype) and self.ndim > 1:
             # GH 18099: columnwise conversion to categorical
             results = (self[col].astype(dtype, copy=copy) for col in self)
-            return pd.concat(results, axis=1, copy=False)
 
-        # else, only a single dtype is given
-        new_data = self._data.astype(dtype=dtype, copy=copy, errors=errors,
-                                     **kwargs)
-        return self._constructor(new_data).__finalize__(self)
+        else:
+            # else, only a single dtype is given
+            new_data = self._data.astype(dtype=dtype, copy=copy, errors=errors,
+                                         **kwargs)
+            return self._constructor(new_data).__finalize__(self)
+
+        # GH 19920: retain column metadata after concat
+        result = pd.concat(results, axis=1, copy=False)
+        result.columns = self.columns
+        return result
 
     def copy(self, deep=True):
         """
@@ -4711,7 +4715,7 @@ class NDFrame(PandasObject, SelectionMixin):
         if axis is None:
             axis = 0
         axis = self._get_axis_number(axis)
-        method = missing.clean_fill_method(method)
+
         from pandas import DataFrame
         if value is None:
 
@@ -4732,7 +4736,6 @@ class NDFrame(PandasObject, SelectionMixin):
 
             # 3d
             elif self.ndim == 3:
-
                 # fill in 2d chunks
                 result = {col: s.fillna(method=method, value=value)
                           for col, s in self.iteritems()}
@@ -4742,7 +4745,6 @@ class NDFrame(PandasObject, SelectionMixin):
 
             else:
                 # 2d or less
-                method = missing.clean_fill_method(method)
                 new_data = self._data.interpolate(method=method, axis=axis,
                                                   limit=limit, inplace=inplace,
                                                   coerce=True,
