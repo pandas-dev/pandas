@@ -367,9 +367,9 @@ static npy_int64 asfreq_QtoB(npy_int64 ordinal, asfreq_info *af_info) {
 
 //************ FROM ANNUAL ***************
 
-static void AtoD_ym(npy_int64 ordinal, int *year, int *month,
+static void AtoD_ym(npy_int64 ordinal, npy_int64 *year, int *month,
                     asfreq_info *af_info) {
-    *year = (int)ordinal + 1970;
+    *year = ordinal + 1970;
     *month = 1;
 
     if (af_info->from_end != 12) {
@@ -386,7 +386,7 @@ static void AtoD_ym(npy_int64 ordinal, int *year, int *month,
 
 static npy_int64 asfreq_AtoDT(npy_int64 ordinal, asfreq_info *af_info) {
     npy_int64 unix_date, year;
-    int year, month;
+    int month;
 
     ordinal += af_info->is_end;
     AtoD_ym(ordinal, &year, &month, af_info);
