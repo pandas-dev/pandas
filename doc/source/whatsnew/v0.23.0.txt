@@ -337,6 +337,7 @@ Other Enhancements
 - Added :func:`SeriesGroupBy.is_monotonic_increasing` and :func:`SeriesGroupBy.is_monotonic_decreasing` (:issue:`17015`)
 - For subclassed ``DataFrames``, :func:`DataFrame.apply` will now preserve the ``Series`` subclass (if defined) when passing the data to the applied function (:issue:`19822`)
 - :func:`DataFrame.from_dict` now accepts a ``columns`` argument that can be used to specify the column names when ``orient='index'`` is used (:issue:`18529`)
+- Added sample datasets in ``pandas.io.samples`` to be used mainly in the documentation (:issue:`19710`)
 
 
 .. _whatsnew_0230.api_breaking:
