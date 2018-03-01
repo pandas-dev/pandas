@@ -4711,7 +4711,7 @@ class NDFrame(PandasObject, SelectionMixin):
         if axis is None:
             axis = 0
         axis = self._get_axis_number(axis)
-        method = missing.clean_fill_method(method)
+
         from pandas import DataFrame
         if value is None:
 
@@ -4732,7 +4732,6 @@ class NDFrame(PandasObject, SelectionMixin):
 
             # 3d
             elif self.ndim == 3:
-
                 # fill in 2d chunks
                 result = {col: s.fillna(method=method, value=value)
                           for col, s in self.iteritems()}
@@ -4742,7 +4741,6 @@ class NDFrame(PandasObject, SelectionMixin):
 
             else:
                 # 2d or less
-                method = missing.clean_fill_method(method)
                 new_data = self._data.interpolate(method=method, axis=axis,
                                                   limit=limit, inplace=inplace,
                                                   coerce=True,
