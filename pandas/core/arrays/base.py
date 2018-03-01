@@ -216,11 +216,6 @@ class ExtensionArray(object):
         """
         raise AbstractMethodError(self)
 
-    def tolist(self):
-        # type: () -> list
-        """Convert the array to a list of scalars."""
-        return list(self)
-
     def fillna(self, value=None, method=None, limit=None):
         """ Fill NA/NaN values using the specified method.
 

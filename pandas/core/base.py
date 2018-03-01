@@ -8,11 +8,11 @@ import numpy as np
 
 from pandas.core.dtypes.missing import isna
 from pandas.core.dtypes.generic import ABCDataFrame, ABCSeries, ABCIndexClass
+from pandas.core.dtypes.cast import tolist
 from pandas.core.dtypes.common import (
     is_object_dtype,
     is_list_like,
     is_scalar,
-    is_datetimelike,
     is_extension_type,
     is_extension_array_dtype)
 
@@ -826,11 +826,7 @@ class IndexOpsMixin(object):
         --------
         numpy.ndarray.tolist
         """
-
-        if is_datetimelike(self):
-            return [com._maybe_box_datetimelike(x) for x in self._values]
-        else:
-            return self._values.tolist()
+        return tolist(self._values)
 
     def __iter__(self):
         """

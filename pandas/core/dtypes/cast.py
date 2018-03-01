@@ -11,7 +11,8 @@ from pandas.compat import string_types, text_type, PY3
 from .common import (_ensure_object, is_bool, is_integer, is_float,
                      is_complex, is_datetimetz, is_categorical_dtype,
                      is_datetimelike,
-                     is_extension_type, is_object_dtype,
+                     is_extension_type, is_extension_array_dtype,
+                     is_object_dtype,
                      is_datetime64tz_dtype, is_datetime64_dtype,
                      is_datetime64_ns_dtype,
                      is_timedelta64_dtype, is_timedelta64_ns_dtype,
@@ -1222,3 +1223,32 @@ def construct_1d_object_array_from_listlike(values):
     result = np.empty(len(values), dtype='object')
     result[:] = values
     return result
+
+
+def tolist(values):
+    """Convert an array-like to a list of scalar types.
+
+    Parameters
+    ----------
+    values : ndarray or ExtensionArray
+
+    Returns
+    -------
+    list
+        Each element of the list is a Python scalar (stor, int float)
+        or a pandas scalar (Timestamp / Timedelta / Interval / Period) or
+        the scalar type for 3rd party Extension Arrays.
+
+    See Also
+    --------
+    Series.tolist
+    numpy.ndarray.tolist
+    """
+    from pandas.core.common import _maybe_box_datetimelike
+
+    if is_datetimelike(values):
+        return [_maybe_box_datetimelike(x) for x in values]
+    elif is_extension_array_dtype(values):
+        return list(values)
+    else:
+        return values.tolist()
