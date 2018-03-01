@@ -131,7 +131,7 @@ _num_index_shared_docs['class_descr'] = """
 
     Attributes
     ----------
-    inferred_type
+    None
 
     Methods
     -------
