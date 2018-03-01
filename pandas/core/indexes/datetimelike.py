@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 """
 Base and utility classes for tseries type pandas objects.
 """
@@ -640,6 +641,28 @@ class DatetimeIndexOpsMixin(object):
     def _sub_datelike(self, other):
         raise com.AbstractMethodError(self)
 
+    def _add_nat(self):
+        """Add pd.NaT to self"""
+        if is_period_dtype(self):
+            raise TypeError('Cannot add {cls} and {typ}'
+                            .format(cls=type(self).__name__,
+                                    typ=type(NaT).__name__))
+
+        # GH#19124 pd.NaT is treated like a timedelta for both timedelta
+        # and datetime dtypes
+        return self._nat_new(box=True)
+
+    def _sub_nat(self):
+        """Subtract pd.NaT from self"""
+        # GH#19124 Timedelta - datetime is not in general well-defined.
+        # We make an exception for pd.NaT, which in this case quacks
+        # like a timedelta.
+        # For datetime64 dtypes by convention we treat NaT as a datetime, so
+        # this subtraction returns a timedelta64 dtype.
+        # For period dtype, timedelta64 is a close-enough return dtype.
+        result = self._nat_new(box=False)
+        return result.view('timedelta64[ns]')
+
     def _sub_period(self, other):
         return NotImplemented
 
@@ -686,6 +709,8 @@ class DatetimeIndexOpsMixin(object):
                 return NotImplemented
 
             # scalar others
+            elif other is NaT:
+                result = self._add_nat()
             elif isinstance(other, (DateOffset, timedelta, np.timedelta64)):
                 result = self._add_delta(other)
             elif isinstance(other, (datetime, np.datetime64)):
@@ -711,9 +736,13 @@ class DatetimeIndexOpsMixin(object):
             else:  # pragma: no cover
                 return NotImplemented
 
-            if result is not NotImplemented:
-                res_name = ops.get_op_result_name(self, other)
-                result.name = res_name
+            if result is NotImplemented:
+                return NotImplemented
+            elif not isinstance(result, Index):
+                # Index.__new__ will choose appropriate subclass for dtype
+                result = Index(result)
+            res_name = ops.get_op_result_name(self, other)
+            result.name = res_name
             return result
 
         cls.__add__ = __add__
@@ -731,6 +760,8 @@ class DatetimeIndexOpsMixin(object):
                 return NotImplemented
 
             # scalar others
+            elif other is NaT:
+                result = self._sub_nat()
             elif isinstance(other, (DateOffset, timedelta, np.timedelta64)):
                 result = self._add_delta(-other)
             elif isinstance(other, (datetime, np.datetime64)):
@@ -762,9 +793,13 @@ class DatetimeIndexOpsMixin(object):
             else:  # pragma: no cover
                 return NotImplemented
 
-            if result is not NotImplemented:
-                res_name = ops.get_op_result_name(self, other)
-                result.name = res_name
+            if result is NotImplemented:
+                return NotImplemented
+            elif not isinstance(result, Index):
+                # Index.__new__ will choose appropriate subclass for dtype
+                result = Index(result)
+            res_name = ops.get_op_result_name(self, other)
+            result.name = res_name
             return result
 
         cls.__sub__ = __sub__

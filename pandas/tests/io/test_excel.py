@@ -1373,11 +1373,6 @@ class TestExcelWriter(_WriterBase):
 
     def test_to_excel_timedelta(self, merge_cells, engine, ext):
         # GH 19242, GH9155 - test writing timedelta to xls
-        if engine == 'openpyxl':
-            pytest.xfail('Timedelta roundtrip broken with openpyxl')
-        if engine == 'xlsxwriter' and (sys.version_info[0] == 2 and
-                                       sys.platform.startswith('linux')):
-            pytest.xfail('Not working on linux with Py2 and xlsxwriter')
         frame = DataFrame(np.random.randint(-10, 10, size=(20, 1)),
                           columns=['A'],
                           dtype=np.int64
