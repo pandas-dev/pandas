@@ -16,6 +16,7 @@ if [ "$?" != "0" ]; then
     exit 0
 fi
 
+RET=0
 
 if [ "$DOC" ]; then
 
@@ -68,6 +69,8 @@ if [ "$DOC" ]; then
            pandas/core/reshape/reshape.py \
            pandas/core/reshape/tile.py
 
+    RET="$?"
+
 fi
 
-exit 0
+exit "$RET"
