@@ -310,5 +310,62 @@ def group_fillna_indexer(ndarray[int64_t] out, ndarray[int64_t] labels,
                 filled_vals = 0
 
 
+@cython.boundscheck(False)
+@cython.wraparound(False)
+def group_any_all(ndarray[uint8_t] out,
+                  ndarray[int64_t] labels,
+                  ndarray[uint8_t] values,
+                  ndarray[uint8_t] mask,
+                  object val_test,
+                  bint skipna):
+    """Aggregated boolean values to show truthfulness of group elements
+
+    Parameters
+    ----------
+    out : array of values which this method will write its results to
+    labels : array containing unique label for each group, with its
+        ordering matching up to the corresponding record in `values`
+    values : array containing the truth value of each element
+    mask : array indicating whether a value is na or not
+    val_test : str {'any', 'all'}
+        String object dictating whether to use any or all truth testing
+    skipna : boolean
+        Flag to ignore nan values during truth testing
+
+    Notes
+    -----
+    This method modifies the `out` parameter rather than returning an object.
+    The returned values will either be 0 or 1 (False or True, respectively).
+    """
+    cdef:
+        Py_ssize_t i, N=len(labels)
+        int64_t lab
+        uint8_t flag_val
+
+    if val_test == 'all':
+        # Because the 'all' value of an empty iterable in Python is True we can
+        # start with an array full of ones and set to zero when a False value
+        # is encountered
+        flag_val = 0
+    elif val_test == 'any':
+        # Because the 'any' value of an empty iterable in Python is False we
+        # can start with an array full of zeros and set to one only if any
+        # value encountered is True
+        flag_val = 1
+    else:
+        raise ValueError("'bool_func' must be either 'any' or 'all'!")
+
+    out.fill(1 - flag_val)
+
+    with nogil:
+        for i in range(N):
+            lab = labels[i]
+            if lab < 0 or (skipna and mask[i]):
+                continue
+
+            if values[i] == flag_val:
+                out[lab] = flag_val
+
+
 # generated from template
 include "groupby_helper.pxi"

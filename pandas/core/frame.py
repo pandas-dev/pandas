@@ -60,6 +60,7 @@ from pandas.core.dtypes.common import (
     is_iterator,
     is_sequence,
     is_named_tuple)
+from pandas.core.dtypes.concat import _get_sliced_frame_result_type
 from pandas.core.dtypes.missing import isna, notna
 
 
@@ -957,8 +958,8 @@ class DataFrame(NDFrame):
                 {'col1': [1, 2], 'col2': [0.5, 0.75]}, index=['a', 'b'])
         >>> df
            col1  col2
-        a     1   0.1
-        b     2   0.2
+        a     1   0.50
+        b     2   0.75
         >>> df.to_dict()
         {'col1': {'a': 1, 'b': 2}, 'col2': {'a': 0.5, 'b': 0.75}}
 
@@ -2166,8 +2167,7 @@ class DataFrame(NDFrame):
 
                 if index_len and not len(values):
                     values = np.array([np.nan] * index_len, dtype=object)
-                result = self._constructor_sliced._from_array(
-                    values, index=self.index, name=label, fastpath=True)
+                result = self._box_col_values(values, label)
 
                 # this is a cached value, mark it so
                 result._set_as_cached(label, self)
@@ -2563,8 +2563,8 @@ class DataFrame(NDFrame):
 
     def _box_col_values(self, values, items):
         """ provide boxed values for a column """
-        return self._constructor_sliced._from_array(values, index=self.index,
-                                                    name=items, fastpath=True)
+        klass = _get_sliced_frame_result_type(values, self)
+        return klass(values, index=self.index, name=items, fastpath=True)
 
     def __setitem__(self, key, value):
         key = com._apply_if_callable(key, self)
@@ -6131,8 +6131,8 @@ DataFrame._setup_axes(['index', 'columns'], info_axis=1, stat_axis=0,
 DataFrame._add_numeric_operations()
 DataFrame._add_series_or_dataframe_operations()
 
-ops.add_flex_arithmetic_methods(DataFrame, **ops.frame_flex_funcs)
-ops.add_special_arithmetic_methods(DataFrame, **ops.frame_special_funcs)
+ops.add_flex_arithmetic_methods(DataFrame)
+ops.add_special_arithmetic_methods(DataFrame)
 
 
 def _arrays_to_mgr(arrays, arr_names, index, columns, dtype=None):
