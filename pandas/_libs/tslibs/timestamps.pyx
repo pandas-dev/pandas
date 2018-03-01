@@ -107,6 +107,7 @@ cdef class _Timestamp(datetime):
     cdef readonly:
         int64_t value, nanosecond
         object freq       # frequency reference
+        list _date_attributes
 
     def __hash__(_Timestamp self):
         if self.nanosecond:
@@ -425,6 +426,8 @@ class Timestamp(_Timestamp):
         .. versionadded:: 0.19.0
     hour, minute, second, microsecond : int, optional, default 0
         .. versionadded:: 0.19.0
+    nanosecond : int, optional, default 0
+        .. versionadded:: 0.23.0
     tzinfo : datetime.tzinfo, optional, default None
         .. versionadded:: 0.19.0
 
@@ -556,7 +559,7 @@ class Timestamp(_Timestamp):
                 object freq=None, tz=None, unit=None,
                 year=None, month=None, day=None,
                 hour=None, minute=None, second=None, microsecond=None,
-                tzinfo=None):
+                nanosecond=None, tzinfo=None):
         # The parameter list folds together legacy parameter names (the first
         # four) and positional and keyword parameter names from pydatetime.
         #
@@ -580,6 +583,9 @@ class Timestamp(_Timestamp):
 
         cdef _TSObject ts
 
+        _date_attributes = [year, month, day, hour, minute, second,
+                            microsecond, nanosecond]
+
         if tzinfo is not None:
             if not PyTZInfo_Check(tzinfo):
                 # tzinfo must be a datetime.tzinfo object, GH#17690
@@ -588,7 +594,14 @@ class Timestamp(_Timestamp):
             elif tz is not None:
                 raise ValueError('Can provide at most one of tz, tzinfo')
 
-        if ts_input is _no_input:
+        if is_string_object(ts_input):
+            # User passed a date string to parse.
+            # Check that the user didn't also pass a date attribute kwarg.
+            if any(arg is not None for arg in _date_attributes):
+                raise ValueError('Cannot pass a date attribute keyword '
+                                 'argument when passing a date string')
+
+        elif ts_input is _no_input:
             # User passed keyword arguments.
             if tz is None:
                 # Handle the case where the user passes `tz` and not `tzinfo`
@@ -596,20 +609,20 @@ class Timestamp(_Timestamp):
             return Timestamp(datetime(year, month, day, hour or 0,
                                       minute or 0, second or 0,
                                       microsecond or 0, tzinfo),
-                             tz=tz)
+                             nanosecond=nanosecond, tz=tz)
         elif is_integer_object(freq):
             # User passed positional arguments:
             # Timestamp(year, month, day[, hour[, minute[, second[,
-            # microsecond[, tzinfo]]]]])
+            # microsecond[, nanosecond[, tzinfo]]]]]])
             return Timestamp(datetime(ts_input, freq, tz, unit or 0,
                                       year or 0, month or 0, day or 0,
-                                      hour), tz=hour)
+                                      minute), nanosecond=hour, tz=minute)
 
         if tzinfo is not None:
             # User passed tzinfo instead of tz; avoid silently ignoring
             tz, tzinfo = tzinfo, None
 
-        ts = convert_to_tsobject(ts_input, tz, unit, 0, 0)
+        ts = convert_to_tsobject(ts_input, tz, unit, 0, 0, nanosecond or 0)
 
         if ts.value == NPY_NAT:
             return NaT
