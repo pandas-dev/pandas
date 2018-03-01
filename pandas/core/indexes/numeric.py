@@ -129,14 +129,6 @@ _num_index_shared_docs['class_descr'] = """
     name : object
         Name to be stored in the index
 
-    Attributes
-    ----------
-    inferred_type
-
-    Methods
-    -------
-    None
-
     Notes
     -----
     An Index instance can **only** contain hashable objects.
