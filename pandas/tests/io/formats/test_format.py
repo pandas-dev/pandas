@@ -1434,6 +1434,13 @@ c  10  11  12  13  14\
 
         tm.reset_display_options()
 
+    def test_repr_html_mathjax(self):
+        df = DataFrame([[1, 2], [3, 4]])
+        assert 'tex2jax_ignore' not in df._repr_html_()
+
+        with pd.option_context('display.html.use_mathjax', False):
+            assert 'tex2jax_ignore' in df._repr_html_()
+
     def test_repr_html_wide(self):
         max_cols = get_option('display.max_columns')
         df = DataFrame(tm.rands_array(25, size=(10, max_cols - 1)))
