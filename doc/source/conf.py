@@ -583,7 +583,7 @@ def process_class_docstrings(app, what, name, obj, options, lines):
 
    None
 """
-                    ]
+        ]
 
         for template in templates:
             if template in joined:
