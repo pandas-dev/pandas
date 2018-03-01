@@ -37,7 +37,7 @@ from pandas.core.dtypes.common import (
     is_period_dtype,
     is_timedelta64_dtype)
 from pandas.core.dtypes.generic import (
-    ABCIndex, ABCSeries, ABCDataFrame, ABCPanel, ABCPeriodIndex, ABCIndexClass)
+    ABCIndex, ABCSeries, ABCDataFrame, ABCPeriodIndex, ABCIndexClass)
 from pandas.core.dtypes.missing import isna
 from pandas.core import common as com, algorithms, ops
 from pandas.core.algorithms import checked_add_with_arr
@@ -709,7 +709,7 @@ class DatetimeIndexOpsMixin(object):
             from pandas import DateOffset
 
             other = lib.item_from_zerodim(other)
-            if isinstance(other, (ABCSeries, ABCDataFrame, ABCPanel)):
+            if isinstance(other, (ABCSeries, ABCDataFrame)):
                 return NotImplemented
 
             # scalar others
@@ -769,7 +769,7 @@ class DatetimeIndexOpsMixin(object):
             from pandas import Index
 
             other = lib.item_from_zerodim(other)
-            if isinstance(other, (ABCSeries, ABCDataFrame, ABCPanel)):
+            if isinstance(other, (ABCSeries, ABCDataFrame)):
                 return NotImplemented
 
             # scalar others
