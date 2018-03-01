@@ -161,3 +161,8 @@ class TestCategoricalDtypes(object):
             result = cat.astype('category')
             expected = cat
             tm.assert_categorical_equal(result, expected)
+
+    def test_iter_python_types(self):
+        # GH-19909
+        cat = Categorical([1, 2])
+        assert isinstance(list(cat)[0], int)

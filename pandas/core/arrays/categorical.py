@@ -13,7 +13,8 @@ from pandas.core.dtypes.generic import (
 from pandas.core.dtypes.missing import isna, notna
 from pandas.core.dtypes.cast import (
     maybe_infer_to_datetimelike,
-    coerce_indexer_dtype)
+    coerce_indexer_dtype,
+    tolist)
 from pandas.core.dtypes.dtypes import CategoricalDtype
 from pandas.core.dtypes.common import (
     _ensure_int64,
@@ -475,9 +476,7 @@ class Categorical(ExtensionArray, PandasObject):
         (for str, int, float) or a pandas scalar
         (for Timestamp/Timedelta/Interval/Period)
         """
-        if is_datetimelike(self.categories):
-            return [com._maybe_box_datetimelike(x) for x in self]
-        return np.array(self).tolist()
+        return tolist(self)
 
     @property
     def base(self):
@@ -1712,7 +1711,7 @@ class Categorical(ExtensionArray, PandasObject):
 
     def __iter__(self):
         """Returns an Iterator over the values of this Categorical."""
-        return iter(self.get_values())
+        return iter(self.get_values().tolist())
 
     def _tidy_repr(self, max_vals=10, footer=True):
         """ a short repr displaying only max_vals and an optional (but default
