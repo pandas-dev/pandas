@@ -2,7 +2,7 @@
 .. _compare_with_stata:
 
 Comparison with Stata
-********************
+*********************
 For potential users coming from `Stata <https://en.wikipedia.org/wiki/Stata>`__
 this page is meant to demonstrate how different Stata operations would be
 performed in pandas.
