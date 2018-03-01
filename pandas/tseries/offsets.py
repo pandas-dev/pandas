@@ -7,7 +7,7 @@ from pandas.compat import range
 from pandas import compat
 import numpy as np
 
-from pandas.core.dtypes.generic import ABCSeries, ABCDatetimeIndex, ABCPeriod
+from pandas.core.dtypes.generic import ABCPeriod
 from pandas.core.tools.datetimes import to_datetime
 import pandas.core.common as com
 
@@ -46,16 +46,6 @@ __all__ = ['Day', 'BusinessDay', 'BDay', 'CustomBusinessDay', 'CDay',
 # pass thru
 
 
-def as_timestamp(obj):
-    if isinstance(obj, Timestamp):
-        return obj
-    try:
-        return Timestamp(obj)
-    except (OutOfBoundsDatetime):
-        pass
-    return obj
-
-
 def apply_wraps(func):
     @functools.wraps(func)
     def wrapper(self, other):
@@ -65,7 +55,7 @@ def apply_wraps(func):
             # timedelta path
             return func(self, other)
         elif isinstance(other, (np.datetime64, datetime, date)):
-            other = as_timestamp(other)
+            other = liboffsets.as_timestamp(other)
 
         tz = getattr(other, 'tzinfo', None)
         nano = getattr(other, 'nanosecond', 0)
@@ -109,31 +99,6 @@ def apply_wraps(func):
 
         return result
     return wrapper
-
-
-def shift_day(other, days):
-    """
-    Increment the datetime `other` by the given number of days, retaining
-    the time-portion of the datetime.  For tz-naive datetimes this is
-    equivalent to adding a timedelta.  For tz-aware datetimes it is similar to
-    dateutil's relativedelta.__add__, but handles pytz tzinfo objects.
-
-    Parameters
-    ----------
-    other : datetime or Timestamp
-    days : int
-
-    Returns
-    -------
-    shifted: datetime or Timestamp
-    """
-    if other.tzinfo is None:
-        return other + timedelta(days=days)
-
-    tz = other.tzinfo
-    naive = other.replace(tzinfo=None)
-    shifted = naive + timedelta(days=days)
-    return tslib._localize_pydatetime(shifted, tz)
 
 
 # ---------------------------------------------------------------------
@@ -220,7 +185,7 @@ class DateOffset(BaseOffset):
                 # bring tz back from UTC calculation
                 other = tslib._localize_pydatetime(other, tzinfo)
 
-            return as_timestamp(other)
+            return liboffsets.as_timestamp(other)
         else:
             return other + timedelta(self.n)
 
@@ -339,39 +304,6 @@ class DateOffset(BaseOffset):
     def __hash__(self):
         return hash(self._params())
 
-    def __add__(self, other):
-        if isinstance(other, (ABCDatetimeIndex, ABCSeries)):
-            return other + self
-        elif isinstance(other, ABCPeriod):
-            return other + self
-        try:
-            return self.apply(other)
-        except ApplyTypeError:
-            return NotImplemented
-
-    def __sub__(self, other):
-        if isinstance(other, datetime):
-            raise TypeError('Cannot subtract datetime from offset.')
-        elif type(other) == type(self):
-            return self.__class__(self.n - other.n, normalize=self.normalize,
-                                  **self.kwds)
-        else:  # pragma: no cover
-            return NotImplemented
-
-    def rollback(self, dt):
-        """Roll provided date backward to next offset only if not on offset"""
-        dt = as_timestamp(dt)
-        if not self.onOffset(dt):
-            dt = dt - self.__class__(1, normalize=self.normalize, **self.kwds)
-        return dt
-
-    def rollforward(self, dt):
-        """Roll provided date forward to next offset only if not on offset"""
-        dt = as_timestamp(dt)
-        if not self.onOffset(dt):
-            dt = dt + self.__class__(1, normalize=self.normalize, **self.kwds)
-        return dt
-
     def onOffset(self, dt):
         if self.normalize and not _is_normalized(dt):
             return False
@@ -394,30 +326,6 @@ class DateOffset(BaseOffset):
     @property
     def rule_code(self):
         return self._prefix
-
-    @property
-    def freqstr(self):
-        try:
-            code = self.rule_code
-        except NotImplementedError:
-            return repr(self)
-
-        if self.n != 1:
-            fstr = '{n}{code}'.format(n=self.n, code=code)
-        else:
-            fstr = code
-
-        try:
-            if self._offset:
-                fstr += self._offset_str()
-        except AttributeError:
-            # TODO: standardize `_offset` vs `offset` naming convention
-            pass
-
-        return fstr
-
-    def _offset_str(self):
-        return ''
 
     @property
     def nanos(self):
@@ -544,7 +452,9 @@ class BusinessDay(BusinessMixin, SingleConstructorOffset):
                 off_str += str(td.microseconds) + 'us'
             return off_str
 
-        if isinstance(self.offset, timedelta):
+        if not self.offset:
+            return ''
+        elif isinstance(self.offset, timedelta):
             zero = timedelta(0, 0, 0)
             if self.offset >= zero:
                 off_str = '+' + get_str(self.offset)
@@ -1425,7 +1335,7 @@ class _WeekOfMonthMixin(object):
 
         shifted = shift_month(other, months, 'start')
         to_day = self._get_offset_day(shifted)
-        return shift_day(shifted, to_day - shifted.day)
+        return liboffsets.shift_day(shifted, to_day - shifted.day)
 
     def onOffset(self, dt):
         if self.normalize and not _is_normalized(dt):
@@ -2062,7 +1972,7 @@ class FY5253Quarter(DateOffset):
             qtr_lens = self.get_weeks(norm)
 
             # check thet qtr_lens is consistent with self._offset addition
-            end = shift_day(start, days=7 * sum(qtr_lens))
+            end = liboffsets.shift_day(start, days=7 * sum(qtr_lens))
             assert self._offset.onOffset(end), (start, end, qtr_lens)
 
             tdelta = norm - start
@@ -2102,7 +2012,7 @@ class FY5253Quarter(DateOffset):
         # Note: we always have 0 <= n < 4
         weeks = sum(qtr_lens[:n])
         if weeks:
-            res = shift_day(res, days=weeks * 7)
+            res = liboffsets.shift_day(res, days=weeks * 7)
 
         return res
 
@@ -2139,7 +2049,7 @@ class FY5253Quarter(DateOffset):
 
         current = next_year_end
         for qtr_len in qtr_lens:
-            current = shift_day(current, days=qtr_len * 7)
+            current = liboffsets.shift_day(current, days=qtr_len * 7)
             if dt == current:
                 return True
         return False
@@ -2294,7 +2204,7 @@ class Tick(SingleConstructorOffset):
                 raise OverflowError
             return result
         elif isinstance(other, (datetime, np.datetime64, date)):
-            return as_timestamp(other) + self
+            return liboffsets.as_timestamp(other) + self
 
         if isinstance(other, timedelta):
             return other + self.delta
