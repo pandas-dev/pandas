@@ -44,7 +44,7 @@ class TestIndex(Base):
                             tdIndex=tm.makeTimedeltaIndex(100),
                             intIndex=tm.makeIntIndex(100),
                             uintIndex=tm.makeUIntIndex(100),
-                            rangeIndex=tm.makeIntIndex(100),
+                            rangeIndex=tm.makeRangeIndex(100),
                             floatIndex=tm.makeFloatIndex(100),
                             boolIndex=Index([True, False]),
                             catIndex=tm.makeCategoricalIndex(100),
@@ -707,6 +707,98 @@ class TestIndex(Base):
 
         assert len(res) == 0
 
+    def create_empty_index(self, id):
+        """
+        Given an index, create an empty index of the
+        same class.  Use drop to create it
+        to avoid worrying about extra args in
+        constructor
+        """
+        return id.drop(id)
+
+    def test_corner_union(self):
+        # GH 9943 9862
+        # Test unions with various name combinations
+        # Do not test MultiIndex
+
+        skip_index_keys = ['tuples', 'repeats']
+        for key, id in self.indices.items():
+            if key not in skip_index_keys:
+                first = id.copy().set_names('A')
+                second = id.copy().set_names('A')
+                union = first.union(second)
+                expected = id.copy().set_names('A')
+                tm.assert_index_equal(union, expected)
+
+                first = id.copy().set_names('A')
+                second = id.copy().set_names('B')
+                union = first.union(second)
+                expected = id.copy().set_names(None)
+                tm.assert_index_equal(union, expected)
+
+                first = id.copy().set_names('A')
+                second = self.create_empty_index(id).set_names('B')
+                union = first.union(second)
+                expected = id.copy().set_names(None)
+                tm.assert_index_equal(union, expected)
+
+                first = self.create_empty_index(id).set_names('A')
+                second = id.copy().set_names('B')
+                union = first.union(second)
+                expected = id.copy().set_names(None)
+                tm.assert_index_equal(union, expected)
+
+                first = id.copy().set_names(None)
+                second = id.copy().set_names('B')
+                union = first.union(second)
+                expected = id.copy().set_names(None)
+                tm.assert_index_equal(union, expected)
+
+                first = self.create_empty_index(id).set_names(None)
+                second = id.copy().set_names('B')
+                union = first.union(second)
+                expected = id.copy().set_names(None)
+                tm.assert_index_equal(union, expected)
+
+                first = id.copy().set_names(None)
+                second = self.create_empty_index(id).set_names('B')
+                union = first.union(second)
+                expected = id.copy().set_names(None)
+                tm.assert_index_equal(union, expected)
+
+                first = id.copy().set_names('A')
+                second = id.copy().set_names(None)
+                union = first.union(second)
+                expected = id.copy().set_names(None)
+                tm.assert_index_equal(union, expected)
+
+                first = id.copy().set_names('A')
+                second = self.create_empty_index(id).set_names(None)
+                union = first.union(second)
+                expected = id.copy().set_names(None)
+                tm.assert_index_equal(union, expected)
+
+                first = self.create_empty_index(id).set_names('A')
+                second = id.copy().set_names(None)
+                union = first.union(second)
+                expected = id.copy().set_names(None)
+                tm.assert_index_equal(union, expected)
+
+        # Chained unions handles names correctly
+        i1 = Index([1, 2], name='i1')
+        i2 = Index([3, 4], name='i2')
+        i3 = Index([5, 6], name='i3')
+        union = i1.union(i2.union(i3))
+        expected = i1.union(i2).union(i3)
+        tm.assert_index_equal(union, expected)
+
+        j1 = Index([1, 2], name='j1')
+        j2 = Index([], name='j2')
+        j3 = Index([], name='j3')
+        union = j1.union(j2.union(j3))
+        expected = j1.union(j2).union(j3)
+        tm.assert_index_equal(union, expected)
+
     def test_union(self):
         first = self.strIndex[5:20]
         second = self.strIndex[:10]
@@ -729,98 +821,6 @@ class TestIndex(Base):
 
         union = Index([]).union(first)
         assert union is first
-
-        # preserve names only when they are the same
-        # GH 9943 9862
-
-        first = Index(list('ab'), name='A')
-        second = Index(list('abc'), name='A')
-        union = first.union(second)
-        expected = Index(list('abc'), name='A')
-        tm.assert_index_equal(union, expected)
-
-        first = Index(list('ab'), name='A')
-        second = Index(list('ab'), name='B')
-        union = first.union(second)
-        expected = Index(list('ab'), name=None)
-        tm.assert_index_equal(union, expected)
-
-        first = Index(list('ab'), name='A')
-        second = Index([], name='B')
-        union = first.union(second)
-        expected = Index(list('ab'), name=None)
-        tm.assert_index_equal(union, expected)
-
-        first = Index([], name='A')
-        second = Index(list('ab'), name='B')
-        union = first.union(second)
-        expected = Index(list('ab'), name=None)
-        tm.assert_index_equal(union, expected)
-
-        first = Index(list('ab'))
-        second = Index(list('ab'), name='B')
-        union = first.union(second)
-        expected = Index(list('ab'), name=None)
-        tm.assert_index_equal(union, expected)
-
-        # GH 9943 9862
-        first = Index(list('abc'))
-        second = Index(list('ab'), name='B')
-        union = first.union(second)
-        expected = Index(list('abc'), name=None)
-        tm.assert_index_equal(union, expected)
-
-        first = Index([])
-        second = Index(list('ab'), name='B')
-        union = first.union(second)
-        expected = Index(list('ab'), name=None)
-        tm.assert_index_equal(union, expected)
-
-        first = Index(list('ab'))
-        second = Index([], name='B')
-        union = first.union(second)
-        expected = Index(list('ab'), name=None)
-        tm.assert_index_equal(union, expected)
-
-        first = Index(list('ab'), name='A')
-        second = Index(list('ab'))
-        union = first.union(second)
-        expected = Index(list('ab'), name=None)
-        tm.assert_index_equal(union, expected)
-
-        # GH 9943 9862
-        first = Index(list('ab'), name='A')
-        second = Index(list('abc'))
-        union = first.union(second)
-        expected = Index(list('abc'), name=None)
-        tm.assert_index_equal(union, expected)
-
-        first = Index(list('ab'), name='A')
-        second = Index([])
-        union = first.union(second)
-        expected = Index(list('ab'), name=None)
-        tm.assert_index_equal(union, expected)
-
-        first = Index([], name='A')
-        second = Index(list('ab'))
-        union = first.union(second)
-        expected = Index(list('ab'), name=None)
-        tm.assert_index_equal(union, expected)
-
-        # Chained unions handles names correctly
-        i1 = Index([1, 2], name='i1')
-        i2 = Index([3, 4], name='i2')
-        i3 = Index([5, 6], name='i3')
-        union = i1.union(i2.union(i3))
-        expected = i1.union(i2).union(i3)
-        tm.assert_index_equal(union, expected)
-
-        j1 = Index([1, 2], name='j1')
-        j2 = Index([], name='j2')
-        j3 = Index([], name='j3')
-        union = j1.union(j2.union(j3))
-        expected = j1.union(j2).union(j3)
-        tm.assert_index_equal(union, expected)
 
         with tm.assert_produces_warning(RuntimeWarning):
             firstCat = self.strIndex.union(self.dateIndex)
@@ -997,6 +997,17 @@ class TestIndex(Base):
         index += '_x'
         assert 'a_x' in index
 
+    def test_difference_type(self):
+        # GH 9943 9862
+        # If taking difference of a set and itself, it
+        # needs to preserve the type of the index
+        skip_index_keys = ['repeats']
+        for key, id in self.indices.items():
+            if key not in skip_index_keys:
+                result = id.difference(id)
+                expected = self.create_empty_index(id)
+                tm.assert_index_equal(result, expected)
+
     def test_difference(self):
 
         first = self.strIndex[5:20]
@@ -1071,6 +1082,17 @@ class TestIndex(Base):
         result = idx1.symmetric_difference(idx2, result_name='new_name')
         assert tm.equalContents(result, expected)
         assert result.name == 'new_name'
+
+    def test_intersection_difference(self):
+        # Test that the intersection of an index with an
+        # empty index produces the same index as the difference
+        # of an index with itself.  Test for all types
+        skip_index_keys = ['repeats']
+        for key, id in self.indices.items():
+            if key not in skip_index_keys:
+                inter = id.intersection(self.create_empty_index(id))
+                diff = id.difference(id)
+                tm.assert_index_equal(inter, diff)
 
     def test_is_numeric(self):
         assert not self.dateIndex.is_numeric()

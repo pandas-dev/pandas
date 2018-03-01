@@ -1240,9 +1240,9 @@ class Index(IndexOpsMixin, PandasObject):
         Examples
         --------
         >>> Index([1, 2, 3, 4]).set_names('foo')
-        Int64Index([1, 2, 3, 4], dtype='int64')
+        Int64Index([1, 2, 3, 4], dtype='int64', name='foo')
         >>> Index([1, 2, 3, 4]).set_names(['foo'])
-        Int64Index([1, 2, 3, 4], dtype='int64')
+        Int64Index([1, 2, 3, 4], dtype='int64', name='foo')
         >>> idx = MultiIndex.from_tuples([(1, u'one'), (1, u'two'),
                                           (2, u'one'), (2, u'two')],
                                           names=['foo', 'bar'])
@@ -2263,16 +2263,36 @@ class Index(IndexOpsMixin, PandasObject):
     def __xor__(self, other):
         return self.symmetric_difference(other)
 
-    def _get_setop_name_object(self, other):
+    def _get_reconciled_name_object(self, other):
         """
-        Given 2 indexes, give a setop name and object, meaning
-        we use get_op_result_name to return the name, and then
-        return a new object if we are resetting the name
+        If the result of a set operation will be self,
+        return self, unless the name changes, in which
+        case make a shallow copy of self.
         """
         name = get_op_result_name(self, other)
         if self.name != name:
             return self._shallow_copy(name=name)
         return self
+
+    def _union_corner_case(self, other):
+        """
+        If self or other have no length, or self and other
+        are the same, then return self, after reconciling names
+
+        Returns
+        -------
+        Tuple of (is_corner, result), where is_corner is True if
+        it is a corner case, and result is the reconciled result
+
+        """
+        # GH 9943 9862
+        if len(other) == 0 or self.equals(other):
+            return (True, self._get_reconciled_name_object(other))
+
+        if len(self) == 0:
+            return (True, other._get_reconciled_name_object(self))
+
+        return (False, None)
 
     def union(self, other):
         """
@@ -2298,11 +2318,9 @@ class Index(IndexOpsMixin, PandasObject):
         self._assert_can_do_setop(other)
         other = _ensure_index(other)
 
-        if len(other) == 0 or self.equals(other):
-            return self._get_setop_name_object(other)
-
-        if len(self) == 0:
-            return other._get_setop_name_object(self)
+        is_corner_case, corner_result = self._union_corner_case(other)
+        if is_corner_case:
+            return corner_result
 
         # TODO: is_dtype_union_equal is a hack around
         # 1. buggy set ops with duplicates (GH #13432)
@@ -2398,7 +2416,7 @@ class Index(IndexOpsMixin, PandasObject):
         other = _ensure_index(other)
 
         if self.equals(other):
-            return self._get_setop_name_object(other)
+            return self._get_reconciled_name_object(other)
 
         if not is_dtype_equal(self.dtype, other.dtype):
             this = self.astype('O')
@@ -2436,6 +2454,13 @@ class Index(IndexOpsMixin, PandasObject):
             taken.name = None
         return taken
 
+    def _create_empty_index(self, name):
+        """
+        Returns an empty index.  Overridden as necessary by
+        subclasses that have different constructors.
+        """
+        return self.__class__([], name=name)
+
     def difference(self, other):
         """
         Return a new Index with elements from the index that are not in
@@ -2464,7 +2489,7 @@ class Index(IndexOpsMixin, PandasObject):
         self._assert_can_do_setop(other)
 
         if self.equals(other):
-            return Index([], name=self.name)
+            return self._create_empty_index(get_op_result_name(self, other))
 
         other, result_name = self._convert_can_do_setop(other)
 

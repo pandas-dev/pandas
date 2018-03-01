@@ -256,7 +256,8 @@ class RangeIndex(Int64Index):
     @Appender(_index_shared_docs['_shallow_copy'])
     def _shallow_copy(self, values=None, **kwargs):
         if values is None:
-            return RangeIndex(name=self.name, fastpath=True,
+            name = kwargs.get("name", self.name)
+            return RangeIndex(name=name, fastpath=True,
                               **dict(self._get_data_as_items()))
         else:
             kwargs.setdefault('name', self.name)
@@ -337,6 +338,10 @@ class RangeIndex(Int64Index):
         -------
         intersection : Index
         """
+
+        if self.equals(other):
+            return self._get_reconciled_name_object(other)
+
         if not isinstance(other, RangeIndex):
             return super(RangeIndex, self).intersection(other)
 
@@ -417,10 +422,10 @@ class RangeIndex(Int64Index):
         union : Index
         """
         self._assert_can_do_setop(other)
-        if len(other) == 0 or self.equals(other):
-            return self
-        if len(self) == 0:
-            return other
+        is_corner_case, corner_result = self._union_corner_case(other)
+        if is_corner_case:
+            return corner_result
+
         if isinstance(other, RangeIndex):
             start_s, step_s = self._start, self._step
             end_s = self._start + self._step * (len(self) - 1)
@@ -473,6 +478,12 @@ class RangeIndex(Int64Index):
 
     def _concat_same_dtype(self, indexes, name):
         return _concat._concat_rangeindex_same_dtype(indexes).rename(name)
+
+    def _create_empty_index(self, name):
+        """
+        Returns an empty index using step size of self
+        """
+        return RangeIndex(start=None, stop=None, step=self._step, name=name)
 
     def __len__(self):
         """

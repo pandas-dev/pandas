@@ -25,6 +25,7 @@ import pandas.core.common as com
 import pandas.core.base as base
 import pandas.core.missing as missing
 import pandas.core.indexes.base as ibase
+from pandas.core.ops import get_op_result_name
 
 _index_doc_kwargs = dict(ibase._index_doc_kwargs)
 _index_doc_kwargs.update(dict(target_klass='CategoricalIndex'))
@@ -299,6 +300,12 @@ class CategoricalIndex(Index, accessor.PandasDelegate):
     def itemsize(self):
         # Size of the items in categories, not codes.
         return self.values.itemsize
+
+    def _wrap_setop_result(self, other, result):
+        name = get_op_result_name(self, other)
+        return self._simple_new(result, name=name,
+                                categories=self.categories,
+                                ordered=self.ordered)
 
     def get_values(self):
         """ return the underlying data as an ndarray """
@@ -715,6 +722,13 @@ class CategoricalIndex(Index, accessor.PandasDelegate):
         codes = self.codes
         codes = np.concatenate((codes[:loc], code, codes[loc:]))
         return self._create_from_codes(codes)
+
+    def _create_empty_index(self, name):
+        """
+        Returns an empty index using categories and ordered of self
+        """
+        return CategoricalIndex([], categories=self.categories,
+                                ordered=self.ordered, name=name)
 
     def _concat(self, to_concat, name):
         # if calling index is category, don't check dtype of others

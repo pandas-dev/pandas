@@ -1137,6 +1137,11 @@ class DatetimeIndex(DatelikeOps, TimelikeOps, DatetimeIndexOpsMixin,
         y : Index or DatetimeIndex
         """
         self._assert_can_do_setop(other)
+
+        is_corner_case, corner_result = self._union_corner_case(other)
+        if is_corner_case:
+            return corner_result
+
         if not isinstance(other, DatetimeIndex):
             try:
                 other = DatetimeIndex(other)
@@ -1354,6 +1359,10 @@ class DatetimeIndex(DatelikeOps, TimelikeOps, DatetimeIndexOpsMixin,
         y : Index or DatetimeIndex
         """
         self._assert_can_do_setop(other)
+
+        if self.equals(other):
+            return self._get_reconciled_name_object(other)
+
         if not isinstance(other, DatetimeIndex):
             try:
                 other = DatetimeIndex(other)
