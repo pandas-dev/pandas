@@ -2521,34 +2521,6 @@ class TestGroupBy(MixIn):
         expected.name = 'value'
         tm.assert_series_equal(actual, expected)
 
-    def test_groupby_cum_skipna(self):
-        # GH 19806
-        # make sure that skipna works for both cumsum and cumprod
-        df = pd.DataFrame({'key': ['b'] * 10 + ['a'] * 2, 'value': 3})
-        df.at[3] = np.nan
-        df.at[3, 'key'] = 'b'
-
-        result = df.groupby('key')['value'].cumprod(skipna=False)
-        expected = pd.Series([3.0, 9.0, 27.0, np.nan, np.nan, np.nan, np.nan,
-                              np.nan, np.nan, np.nan, 3.0, 9.0],
-                             name='value', index=range(12))
-        tm.assert_series_equal(result, expected)
-
-        result = df.groupby('key')['value'].cumsum(skipna=False)
-        expected = pd.Series([3.0, 6.0, 9.0, np.nan, np.nan, np.nan, np.nan,
-                              np.nan, np.nan, np.nan, 3.0, 6.0],
-                             name='value', index=range(12))
-        tm.assert_series_equal(result, expected)
-
-        df = pd.DataFrame({'key': ['b'] * 10, 'value': np.nan})
-        result = df.groupby('key')['value'].cumprod(skipna=False)
-        expected = pd.Series([np.nan] * 10, name='value', index=range(10))
-        tm.assert_series_equal(result, expected)
-
-        result = df.groupby('key')['value'].cumsum(skipna=False)
-        expected = pd.Series([np.nan] * 10, name='value', index=range(10))
-        tm.assert_series_equal(result, expected)
-
     def test_ops_general(self):
         ops = [('mean', np.mean),
                ('median', np.median),
