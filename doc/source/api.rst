@@ -2179,8 +2179,12 @@ Computations / Descriptive Stats
 .. autosummary::
    :toctree: generated/
 
+   GroupBy.all
+   GroupBy.any
+   GroupBy.bfill
    GroupBy.count
    GroupBy.cumcount
+   GroupBy.ffill
    GroupBy.first
    GroupBy.head
    GroupBy.last
@@ -2192,6 +2196,7 @@ Computations / Descriptive Stats
    GroupBy.nth
    GroupBy.ohlc
    GroupBy.prod
+   GroupBy.rank
    GroupBy.size
    GroupBy.sem
    GroupBy.std

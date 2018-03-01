@@ -11,6 +11,13 @@ import pandas.util.testing as tm
 from .pandas_vb_common import setup  # noqa
 
 
+method_blacklist = {
+    'object': {'median', 'prod', 'sem', 'cumsum', 'sum', 'cummin', 'mean',
+               'max', 'skew', 'cumprod', 'cummax', 'rank', 'pct_change', 'min',
+               'var', 'mad', 'describe', 'std'}
+}
+
+
 class ApplyDictReturn(object):
     goal_time = 0.2
 
@@ -152,6 +159,7 @@ class Nth(object):
 
     def time_frame_nth(self, df):
         df.groupby(0).nth(0)
+
 
     def time_series_nth_any(self, df):
         df[1].groupby(df[0]).nth(0, dropna='any')
@@ -369,7 +377,7 @@ class GroupByMethods(object):
     goal_time = 0.2
 
     param_names = ['dtype', 'method']
-    params = [['int', 'float'],
+    params = [['int', 'float', 'object'],
               ['all', 'any', 'bfill', 'count', 'cumcount', 'cummax', 'cummin',
                'cumprod', 'cumsum', 'describe', 'ffill', 'first', 'head',
                'last', 'mad', 'max', 'min', 'median', 'mean', 'nunique',
@@ -377,15 +385,19 @@ class GroupByMethods(object):
                'std', 'sum', 'tail', 'unique', 'value_counts', 'var']]
 
     def setup(self, dtype, method):
+        if method in method_blacklist.get(dtype, {}):
+            raise NotImplementedError  # skip benchmark
         ngroups = 1000
         size = ngroups * 2
         rng = np.arange(ngroups)
         values = rng.take(np.random.randint(0, ngroups, size=size))
         if dtype == 'int':
             key = np.random.randint(0, size, size=size)
-        else:
+        elif dtype == 'float':
             key = np.concatenate([np.random.random(ngroups) * 0.1,
                                   np.random.random(ngroups) * 10.0])
+        elif dtype == 'object':
+            key = ['foo'] * size
 
         df = DataFrame({'values': values, 'key': key})
         self.df_groupby_method = getattr(df.groupby('key')['values'], method)
