@@ -508,7 +508,7 @@ class TestDatetimeIndexArithmetic(object):
         result = dti - tdi
         tm.assert_index_equal(result, expected)
 
-        msg = 'cannot subtract TimedeltaIndex and DatetimeIndex'
+        msg = 'cannot subtract .*TimedeltaIndex'
         with tm.assert_raises_regex(TypeError, msg):
             tdi - dti
 
@@ -531,7 +531,7 @@ class TestDatetimeIndexArithmetic(object):
         result -= tdi
         tm.assert_index_equal(result, expected)
 
-        msg = 'cannot subtract TimedeltaIndex and DatetimeIndex'
+        msg = 'cannot subtract .*TimedeltaIndex'
         with tm.assert_raises_regex(TypeError, msg):
             tdi -= dti
 
@@ -570,6 +570,62 @@ class TestDatetimeIndexArithmetic(object):
             dti_tz + addend
         with tm.assert_raises_regex(TypeError, msg):
             addend + dti_tz
+
+    # -------------------------------------------------------------
+    # __add__/__sub__ with ndarray[datetime64] and ndarray[timedelta64]
+
+    def test_dti_add_dt64_array_raises(self, tz):
+        dti = pd.date_range('2016-01-01', periods=3, tz=tz)
+        dtarr = dti.values
+
+        with pytest.raises(TypeError):
+            dti + dtarr
+        with pytest.raises(TypeError):
+            dtarr + dti
+
+    def test_dti_sub_dt64_array_naive(self):
+        dti = pd.date_range('2016-01-01', periods=3, tz=None)
+        dtarr = dti.values
+
+        expected = dti - dti
+        result = dti - dtarr
+        tm.assert_index_equal(result, expected)
+        result = dtarr - dti
+        tm.assert_index_equal(result, expected)
+
+    def test_dti_sub_dt64_array_aware_raises(self, tz):
+        if tz is None:
+            return
+        dti = pd.date_range('2016-01-01', periods=3, tz=tz)
+        dtarr = dti.values
+
+        with pytest.raises(TypeError):
+            dti - dtarr
+        with pytest.raises(TypeError):
+            dtarr - dti
+
+    def test_dti_add_td64_array(self, tz):
+        dti = pd.date_range('2016-01-01', periods=3, tz=tz)
+        tdi = dti - dti.shift(1)
+        tdarr = tdi.values
+
+        expected = dti + tdi
+        result = dti + tdarr
+        tm.assert_index_equal(result, expected)
+        result = tdarr + dti
+        tm.assert_index_equal(result, expected)
+
+    def test_dti_sub_td64_array(self, tz):
+        dti = pd.date_range('2016-01-01', periods=3, tz=tz)
+        tdi = dti - dti.shift(1)
+        tdarr = tdi.values
+
+        expected = dti - tdi
+        result = dti - tdarr
+        tm.assert_index_equal(result, expected)
+
+        with pytest.raises(TypeError):
+            tdarr - dti
 
     # -------------------------------------------------------------
 

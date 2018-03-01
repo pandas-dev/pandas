@@ -8,11 +8,11 @@ from datetime import timedelta
 
 import numpy as np
 from pandas import (DataFrame, Series, date_range, Timedelta, Timestamp,
-                    compat, concat, option_context)
+                    Categorical, compat, concat, option_context)
 from pandas.compat import u
 from pandas import _np_version_under1p14
 
-from pandas.core.dtypes.dtypes import DatetimeTZDtype
+from pandas.core.dtypes.dtypes import DatetimeTZDtype, CategoricalDtype
 from pandas.tests.frame.common import TestData
 from pandas.util.testing import (assert_series_equal,
                                  assert_frame_equal,
@@ -619,12 +619,21 @@ class TestDataFrameDataTypes(TestData):
         expected = concat([a1_str, b, a2_str], axis=1)
         assert_frame_equal(result, expected)
 
-    @pytest.mark.parametrize('columns', [['x'], ['x', 'y'], ['x', 'y', 'z']])
-    def test_categorical_astype_ndim_raises(self, columns):
-        # GH 18004
-        msg = '> 1 ndim Categorical are not supported at this time'
-        with tm.assert_raises_regex(NotImplementedError, msg):
-            DataFrame(columns=columns).astype('category')
+    @pytest.mark.parametrize('dtype', [
+        'category',
+        CategoricalDtype(),
+        CategoricalDtype(ordered=True),
+        CategoricalDtype(ordered=False),
+        CategoricalDtype(categories=list('abcdef')),
+        CategoricalDtype(categories=list('edba'), ordered=False),
+        CategoricalDtype(categories=list('edcb'), ordered=True)], ids=repr)
+    def test_astype_categorical(self, dtype):
+        # GH 18099
+        d = {'A': list('abbc'), 'B': list('bccd'), 'C': list('cdde')}
+        df = DataFrame(d)
+        result = df.astype(dtype)
+        expected = DataFrame({k: Categorical(d[k], dtype=dtype) for k in d})
+        tm.assert_frame_equal(result, expected)
 
     @pytest.mark.parametrize("cls", [
         pd.api.types.CategoricalDtype,

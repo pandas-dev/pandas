@@ -255,6 +255,64 @@ class TestPeriodIndexComparisons(object):
 
 
 class TestPeriodIndexArithmetic(object):
+
+    # -----------------------------------------------------------------
+    # __add__/__sub__ with ndarray[datetime64] and ndarray[timedelta64]
+
+    def test_pi_add_sub_dt64_array_raises(self):
+        rng = pd.period_range('1/1/2000', freq='D', periods=3)
+        dti = pd.date_range('2016-01-01', periods=3)
+        dtarr = dti.values
+
+        with pytest.raises(TypeError):
+            rng + dtarr
+        with pytest.raises(TypeError):
+            dtarr + rng
+
+        with pytest.raises(TypeError):
+            rng - dtarr
+        with pytest.raises(TypeError):
+            dtarr - rng
+
+    def test_pi_add_sub_td64_array_non_tick_raises(self):
+        rng = pd.period_range('1/1/2000', freq='Q', periods=3)
+        dti = pd.date_range('2016-01-01', periods=3)
+        tdi = dti - dti.shift(1)
+        tdarr = tdi.values
+
+        with pytest.raises(period.IncompatibleFrequency):
+            rng + tdarr
+        with pytest.raises(period.IncompatibleFrequency):
+            tdarr + rng
+
+        with pytest.raises(period.IncompatibleFrequency):
+            rng - tdarr
+        with pytest.raises(period.IncompatibleFrequency):
+            tdarr - rng
+
+    @pytest.mark.xfail(reason='op with TimedeltaIndex raises, with ndarray OK')
+    def test_pi_add_sub_td64_array_tick(self):
+        rng = pd.period_range('1/1/2000', freq='Q', periods=3)
+        dti = pd.date_range('2016-01-01', periods=3)
+        tdi = dti - dti.shift(1)
+        tdarr = tdi.values
+
+        expected = rng + tdi
+        result = rng + tdarr
+        tm.assert_index_equal(result, expected)
+        result = tdarr + rng
+        tm.assert_index_equal(result, expected)
+
+        expected = rng - tdi
+        result = rng - tdarr
+        tm.assert_index_equal(result, expected)
+
+        with pytest.raises(TypeError):
+            tdarr - rng
+
+    # -----------------------------------------------------------------
+    # operations with array/Index of DateOffset objects
+
     @pytest.mark.parametrize('box', [np.array, pd.Index])
     def test_pi_add_offset_array(self, box):
         # GH#18849

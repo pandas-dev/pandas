@@ -11,7 +11,7 @@ import numpy as np
 import pandas as pd
 
 from pandas._libs import (lib, index as libindex,
-                          algos as libalgos)
+                          algos as libalgos, ops as libops)
 
 from pandas import compat
 from pandas.util._decorators import Appender
@@ -37,7 +37,7 @@ from pandas.core.dtypes.cast import (
     construct_1d_object_array_from_listlike)
 from pandas.core.dtypes.generic import (
     ABCSeries,
-    ABCDataFrame,
+    ABCDataFrame, ABCPanel,
     ABCIndex,
     ABCSparseSeries, ABCSparseArray)
 
@@ -711,6 +711,64 @@ def mask_cmp_op(x, y, op, allowed_types):
 # Functions that add arithmetic methods to objects, given arithmetic factory
 # methods
 
+def _get_method_wrappers(cls):
+    """
+    Find the appropriate operation-wrappers to use when defining flex/special
+    arithmetic, boolean, and comparison operations with the given class.
+
+    Parameters
+    ----------
+    cls : class
+
+    Returns
+    -------
+    arith_flex : function or None
+    comp_flex : function or None
+    arith_special : function
+    comp_special : function
+    bool_special : function
+
+    Notes
+    -----
+    None is only returned for SparseArray
+    """
+    if issubclass(cls, ABCSparseSeries):
+        # Be sure to catch this before ABCSeries and ABCSparseArray,
+        # as they will both come see SparseSeries as a subclass
+        arith_flex = _flex_method_SERIES
+        comp_flex = _flex_method_SERIES
+        arith_special = _arith_method_SPARSE_SERIES
+        comp_special = _arith_method_SPARSE_SERIES
+        bool_special = _bool_method_SERIES
+        # TODO: I don't think the functions defined by bool_method are tested
+    elif issubclass(cls, ABCSeries):
+        # Just Series; SparseSeries is caught above
+        arith_flex = _flex_method_SERIES
+        comp_flex = _flex_method_SERIES
+        arith_special = _arith_method_SERIES
+        comp_special = _comp_method_SERIES
+        bool_special = _bool_method_SERIES
+    elif issubclass(cls, ABCSparseArray):
+        arith_flex = None
+        comp_flex = None
+        arith_special = _arith_method_SPARSE_ARRAY
+        comp_special = _arith_method_SPARSE_ARRAY
+        bool_special = _arith_method_SPARSE_ARRAY
+    elif issubclass(cls, ABCPanel):
+        arith_flex = _flex_method_PANEL
+        comp_flex = _comp_method_PANEL
+        arith_special = _arith_method_PANEL
+        comp_special = _comp_method_PANEL
+        bool_special = _arith_method_PANEL
+    elif issubclass(cls, ABCDataFrame):
+        # Same for DataFrame and SparseDataFrame
+        arith_flex = _arith_method_FRAME
+        comp_flex = _flex_comp_method_FRAME
+        arith_special = _arith_method_FRAME
+        comp_special = _comp_method_FRAME
+        bool_special = _arith_method_FRAME
+    return arith_flex, comp_flex, arith_special, comp_special, bool_special
+
 
 def _create_methods(cls, arith_method, comp_method, bool_method,
                     special=False):
@@ -743,16 +801,18 @@ def _create_methods(cls, arith_method, comp_method, bool_method,
     # yapf: enable
     new_methods['div'] = new_methods['truediv']
     new_methods['rdiv'] = new_methods['rtruediv']
+    if have_divmod:
+        # divmod doesn't have an op that is supported by numexpr
+        new_methods['divmod'] = arith_method(cls, divmod, special)
 
-    # Comp methods never had a default axis set
-    if comp_method:
-        new_methods.update(dict(
-            eq=comp_method(cls, operator.eq, special),
-            ne=comp_method(cls, operator.ne, special),
-            lt=comp_method(cls, operator.lt, special),
-            gt=comp_method(cls, operator.gt, special),
-            le=comp_method(cls, operator.le, special),
-            ge=comp_method(cls, operator.ge, special)))
+    new_methods.update(dict(
+        eq=comp_method(cls, operator.eq, special),
+        ne=comp_method(cls, operator.ne, special),
+        lt=comp_method(cls, operator.lt, special),
+        gt=comp_method(cls, operator.gt, special),
+        le=comp_method(cls, operator.le, special),
+        ge=comp_method(cls, operator.ge, special)))
+
     if bool_method:
         new_methods.update(
             dict(and_=bool_method(cls, operator.and_, special),
@@ -762,9 +822,6 @@ def _create_methods(cls, arith_method, comp_method, bool_method,
                  rand_=bool_method(cls, rand_, special),
                  ror_=bool_method(cls, ror_, special),
                  rxor=bool_method(cls, rxor, special)))
-    if have_divmod:
-        # divmod doesn't have an op that is supported by numexpr
-        new_methods['divmod'] = arith_method(cls, divmod, special)
 
     if special:
         dunderize = lambda x: '__{name}__'.format(name=x.strip('_'))
@@ -788,22 +845,17 @@ def add_methods(cls, new_methods):
 
 # ----------------------------------------------------------------------
 # Arithmetic
-def add_special_arithmetic_methods(cls, arith_method=None,
-                                   comp_method=None, bool_method=None):
+def add_special_arithmetic_methods(cls):
     """
     Adds the full suite of special arithmetic methods (``__add__``,
     ``__sub__``, etc.) to the class.
 
     Parameters
     ----------
-    arith_method : function (optional)
-        factory for special arithmetic methods:
-        f(cls, op, special)
-    comp_method : function (optional)
-        factory for rich comparison - signature: f(cls, op, special)
-    bool_method : function (optional)
-        factory for boolean methods - signature: f(cls, op, special)
+    cls : class
+        special methods will be defined and pinned to this class
     """
+    _, _, arith_method, comp_method, bool_method = _get_method_wrappers(cls)
     new_methods = _create_methods(cls, arith_method, comp_method, bool_method,
                                   special=True)
     # inplace operators (I feel like these should get passed an `inplace=True`
@@ -836,28 +888,26 @@ def add_special_arithmetic_methods(cls, arith_method=None,
              __ipow__=_wrap_inplace_method(new_methods["__pow__"])))
     if not compat.PY3:
         new_methods["__idiv__"] = _wrap_inplace_method(new_methods["__div__"])
-    if bool_method:
-        new_methods.update(
-            dict(__iand__=_wrap_inplace_method(new_methods["__and__"]),
-                 __ior__=_wrap_inplace_method(new_methods["__or__"]),
-                 __ixor__=_wrap_inplace_method(new_methods["__xor__"])))
+
+    new_methods.update(
+        dict(__iand__=_wrap_inplace_method(new_methods["__and__"]),
+             __ior__=_wrap_inplace_method(new_methods["__or__"]),
+             __ixor__=_wrap_inplace_method(new_methods["__xor__"])))
 
     add_methods(cls, new_methods=new_methods)
 
 
-def add_flex_arithmetic_methods(cls, flex_arith_method, flex_comp_method=None):
+def add_flex_arithmetic_methods(cls):
     """
     Adds the full suite of flex arithmetic methods (``pow``, ``mul``, ``add``)
     to the class.
 
     Parameters
     ----------
-    flex_arith_method : function
-        factory for flex arithmetic methods:
-        f(cls, op, special)
-    flex_comp_method : function, optional,
-        factory for rich comparison - signature: f(cls, op, special)
+    cls : class
+        flex methods will be defined and pinned to this class
     """
+    flex_arith_method, flex_comp_method, _, _, _ = _get_method_wrappers(cls)
     new_methods = _create_methods(cls, flex_arith_method,
                                   flex_comp_method, bool_method=None,
                                   special=False)
@@ -1040,9 +1090,9 @@ def _comp_method_OBJECT_ARRAY(op, x, y):
         if isinstance(y, (ABCSeries, ABCIndex)):
             y = y.values
 
-        result = lib.vec_compare(x, y, op)
+        result = libops.vec_compare(x, y, op)
     else:
-        result = lib.scalar_compare(x, y, op)
+        result = libops.scalar_compare(x, y, op)
     return result
 
 
@@ -1203,14 +1253,14 @@ def _bool_method_SERIES(cls, op, special):
                 assert not (is_bool_dtype(x) and is_bool_dtype(y))
                 x = _ensure_object(x)
                 y = _ensure_object(y)
-                result = lib.vec_binop(x, y, op)
+                result = libops.vec_binop(x, y, op)
             else:
                 # let null fall thru
                 assert is_scalar(y)
                 if not isna(y):
                     y = bool(y)
                 try:
-                    result = lib.scalar_binop(x, y, op)
+                    result = libops.scalar_binop(x, y, op)
                 except:
                     raise TypeError("cannot compare a dtyped [{dtype}] array "
                                     "with a scalar of type [{typ}]"
@@ -1288,14 +1338,6 @@ def _flex_method_SERIES(cls, op, special):
 
     flex_wrapper.__name__ = name
     return flex_wrapper
-
-
-series_flex_funcs = dict(flex_arith_method=_flex_method_SERIES,
-                         flex_comp_method=_flex_method_SERIES)
-
-series_special_funcs = dict(arith_method=_arith_method_SERIES,
-                            comp_method=_comp_method_SERIES,
-                            bool_method=_bool_method_SERIES)
 
 
 # -----------------------------------------------------------------------------
@@ -1539,14 +1581,6 @@ def _comp_method_FRAME(cls, func, special):
     return f
 
 
-frame_flex_funcs = dict(flex_arith_method=_arith_method_FRAME,
-                        flex_comp_method=_flex_comp_method_FRAME)
-
-frame_special_funcs = dict(arith_method=_arith_method_FRAME,
-                           comp_method=_comp_method_FRAME,
-                           bool_method=_arith_method_FRAME)
-
-
 # -----------------------------------------------------------------------------
 # Panel
 
@@ -1635,15 +1669,37 @@ def _flex_method_PANEL(cls, op, special):
     return f
 
 
-panel_special_funcs = dict(arith_method=_arith_method_PANEL,
-                           comp_method=_comp_method_PANEL,
-                           bool_method=_arith_method_PANEL)
-
-panel_flex_funcs = dict(flex_arith_method=_flex_method_PANEL,
-                        flex_comp_method=_comp_method_PANEL)
-
 # -----------------------------------------------------------------------------
 # Sparse
+
+def _cast_sparse_series_op(left, right, opname):
+    """
+    For SparseSeries operation, coerce to float64 if the result is expected
+    to have NaN or inf values
+
+    Parameters
+    ----------
+    left : SparseArray
+    right : SparseArray
+    opname : str
+
+    Returns
+    -------
+    left : SparseArray
+    right : SparseArray
+    """
+    opname = opname.strip('_')
+
+    if is_integer_dtype(left) and is_integer_dtype(right):
+        # series coerces to float64 if result should have NaN/inf
+        if opname in ('floordiv', 'mod') and (right.values == 0).any():
+            left = left.astype(np.float64)
+            right = right.astype(np.float64)
+        elif opname in ('rfloordiv', 'rmod') and (left.values == 0).any():
+            left = left.astype(np.float64)
+            right = right.astype(np.float64)
+
+    return left, right
 
 
 def _arith_method_SPARSE_SERIES(cls, op, special):
@@ -1680,8 +1736,8 @@ def _sparse_series_op(left, right, op, name):
     new_name = get_op_result_name(left, right)
 
     from pandas.core.sparse.array import _sparse_array_op
-    result = _sparse_array_op(left.values, right.values, op, name,
-                              series=True)
+    lvalues, rvalues = _cast_sparse_series_op(left.values, right.values, name)
+    result = _sparse_array_op(lvalues, rvalues, op, name)
     return left._constructor(result, index=new_index, name=new_name)
 
 
@@ -1703,7 +1759,7 @@ def _arith_method_SPARSE_ARRAY(cls, op, special):
                 dtype = getattr(other, 'dtype', None)
                 other = SparseArray(other, fill_value=self.fill_value,
                                     dtype=dtype)
-            return _sparse_array_op(self, other, op, name, series=False)
+            return _sparse_array_op(self, other, op, name)
         elif is_scalar(other):
             with np.errstate(all='ignore'):
                 fill = op(_get_fill(self), np.asarray(other))
@@ -1716,13 +1772,3 @@ def _arith_method_SPARSE_ARRAY(cls, op, special):
 
     wrapper.__name__ = name
     return wrapper
-
-
-sparse_array_special_funcs = dict(arith_method=_arith_method_SPARSE_ARRAY,
-                                  comp_method=_arith_method_SPARSE_ARRAY,
-                                  bool_method=_arith_method_SPARSE_ARRAY)
-
-sparse_series_special_funcs = dict(arith_method=_arith_method_SPARSE_SERIES,
-                                   comp_method=_arith_method_SPARSE_SERIES,
-                                   bool_method=_bool_method_SERIES)
-# TODO: I don't think the functions defined by bool_method are tested

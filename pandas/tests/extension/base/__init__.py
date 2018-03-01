@@ -31,6 +31,14 @@ file.
 Your class ``TestDtype`` will inherit all the tests defined on
 ``BaseDtypeTests``. pytest's fixture discover will supply your ``dtype``
 wherever the test requires it. You're free to implement additional tests.
+
+All the tests in these modules use ``self.assert_frame_equal`` or
+``self.assert_series_equal`` for dataframe or series comparisons. By default,
+they use the usual ``pandas.testing.assert_frame_equal`` and
+``pandas.testing.assert_series_equal``. You can override the checks used
+by defining the staticmethods ``assert_frame_equal`` and
+``assert_series_equal`` on your base test class.
+
 """
 from .casting import BaseCastingTests  # noqa
 from .constructors import BaseConstructorsTests  # noqa
