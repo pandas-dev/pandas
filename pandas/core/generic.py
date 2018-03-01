@@ -18,6 +18,7 @@ from pandas.core.dtypes.common import (
     is_number,
     is_integer, is_bool,
     is_bool_dtype,
+    is_categorical_dtype,
     is_numeric_dtype,
     is_datetime64_dtype,
     is_timedelta64_dtype,
@@ -4429,19 +4430,27 @@ class NDFrame(PandasObject, SelectionMixin):
                 if col_name not in self:
                     raise KeyError('Only a column name can be used for the '
                                    'key in a dtype mappings argument.')
-            from pandas import concat
             results = []
             for col_name, col in self.iteritems():
                 if col_name in dtype:
                     results.append(col.astype(dtype[col_name], copy=copy))
                 else:
                     results.append(results.append(col.copy() if copy else col))
-            return concat(results, axis=1, copy=False)
 
-        # else, only a single dtype is given
-        new_data = self._data.astype(dtype=dtype, copy=copy, errors=errors,
-                                     **kwargs)
-        return self._constructor(new_data).__finalize__(self)
+        elif is_categorical_dtype(dtype) and self.ndim > 1:
+            # GH 18099: columnwise conversion to categorical
+            results = (self[col].astype(dtype, copy=copy) for col in self)
+
+        else:
+            # else, only a single dtype is given
+            new_data = self._data.astype(dtype=dtype, copy=copy, errors=errors,
+                                         **kwargs)
+            return self._constructor(new_data).__finalize__(self)
+
+        # GH 19920: retain column metadata after concat
+        result = pd.concat(results, axis=1, copy=False)
+        result.columns = self.columns
+        return result
 
     def copy(self, deep=True):
         """
@@ -4706,7 +4715,7 @@ class NDFrame(PandasObject, SelectionMixin):
         if axis is None:
             axis = 0
         axis = self._get_axis_number(axis)
-        method = missing.clean_fill_method(method)
+
         from pandas import DataFrame
         if value is None:
 
@@ -4727,7 +4736,6 @@ class NDFrame(PandasObject, SelectionMixin):
 
             # 3d
             elif self.ndim == 3:
-
                 # fill in 2d chunks
                 result = {col: s.fillna(method=method, value=value)
                           for col, s in self.iteritems()}
@@ -4737,7 +4745,6 @@ class NDFrame(PandasObject, SelectionMixin):
 
             else:
                 # 2d or less
-                method = missing.clean_fill_method(method)
                 new_data = self._data.interpolate(method=method, axis=axis,
                                                   limit=limit, inplace=inplace,
                                                   coerce=True,
@@ -7488,7 +7495,7 @@ class NDFrame(PandasObject, SelectionMixin):
                                   **kwargs)) - 1)
         rs = rs.reindex_like(data)
         if freq is None:
-            mask = isna(com._values_from_object(self))
+            mask = isna(com._values_from_object(data))
             np.putmask(rs.values, mask, np.nan)
         return rs
 
@@ -7855,7 +7862,7 @@ empty series identically.
 >>> pd.Series([np.nan]).prod()
 1.0
 
->>> pd.Series([np.nan]).sum(min_count=1)
+>>> pd.Series([np.nan]).prod(min_count=1)
 nan
 """
 
@@ -7867,8 +7874,9 @@ min_count : int, default 0
 
     .. versionadded :: 0.22.0
 
-       Added with the default being 1. This means the sum or product
-       of an all-NA or empty series is ``NaN``.
+       Added with the default being 0. This means the sum of an all-NA
+       or empty Series is 0, and the product of an all-NA or empty
+       Series is 1.
 """
 
 

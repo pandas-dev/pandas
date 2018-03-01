@@ -53,13 +53,15 @@ class TestIX(object):
 
         # GH 8607
         # ix setitem consistency
-        df = DataFrame({'timestamp': [1413840976, 1413842580, 1413760580],
-                        'delta': [1174, 904, 161],
-                        'elapsed': [7673, 9277, 1470]})
-        expected = DataFrame({'timestamp': pd.to_datetime(
-            [1413840976, 1413842580, 1413760580], unit='s'),
-            'delta': [1174, 904, 161],
-            'elapsed': [7673, 9277, 1470]})
+        df = DataFrame({'delta': [1174, 904, 161],
+                        'elapsed': [7673, 9277, 1470],
+                        'timestamp': [1413840976, 1413842580, 1413760580]})
+        expected = DataFrame({'delta': [1174, 904, 161],
+                              'elapsed': [7673, 9277, 1470],
+                              'timestamp': pd.to_datetime(
+                                  [1413840976, 1413842580, 1413760580],
+                                  unit='s')
+                              })
 
         df2 = df.copy()
         df2['timestamp'] = pd.to_datetime(df['timestamp'], unit='s')

@@ -519,7 +519,9 @@ class TestGroupBy(MixIn):
                         'timedelta': pd.timedelta_range(1, freq='s',
                                                         periods=1000),
                         'string': strings * 50,
-                        'string_missing': strings_missing * 50})
+                        'string_missing': strings_missing * 50},
+                       columns=['float', 'float_missing', 'int', 'datetime',
+                                'timedelta', 'string', 'string_missing'])
         df['cat'] = df['string'].astype('category')
 
         df2 = df.copy()
@@ -552,7 +554,9 @@ class TestGroupBy(MixIn):
                 tm.assert_frame_equal(expected,
                                       gb.transform(op, *args).sort_index(
                                           axis=1))
-                tm.assert_frame_equal(expected, getattr(gb, op)(*args))
+                tm.assert_frame_equal(
+                    expected,
+                    getattr(gb, op)(*args).sort_index(axis=1))
                 # individual columns
                 for c in df:
                     if c not in ['float', 'int', 'float_missing'

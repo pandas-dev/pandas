@@ -1941,12 +1941,9 @@ class TestDataFrameAnalytics(TestData):
         pnl.iat[1, 1] = np.nan
         pnl.iat[2, 3] = 60
 
-        mask = pnl.isnull()
-
         for axis in range(2):
             expected = pnl.ffill(axis=axis) / pnl.ffill(axis=axis).shift(
                 axis=axis) - 1
-            expected[mask] = np.nan
             result = pnl.pct_change(axis=axis, fill_method='pad')
 
             tm.assert_frame_equal(result, expected)

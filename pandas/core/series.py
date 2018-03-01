@@ -14,12 +14,14 @@ import numpy as np
 import numpy.ma as ma
 
 from pandas.core.accessor import CachedAccessor
+from pandas.core.arrays import ExtensionArray
 from pandas.core.dtypes.common import (
     is_categorical_dtype,
     is_bool,
     is_integer, is_integer_dtype,
     is_float_dtype,
     is_extension_type,
+    is_extension_array_dtype,
     is_datetime64tz_dtype,
     is_timedelta64_dtype,
     is_list_like,
@@ -173,12 +175,17 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
                 raise NotImplementedError("initializing a Series from a "
                                           "MultiIndex is not supported")
             elif isinstance(data, Index):
-                # need to copy to avoid aliasing issues
                 if name is None:
                     name = data.name
 
-                data = data._to_embed(keep_tz=True, dtype=dtype)
+                if dtype is not None:
+                    # astype copies
+                    data = data.astype(dtype)
+                else:
+                    # need to copy to avoid aliasing issues
+                    data = data._values.copy()
                 copy = False
+
             elif isinstance(data, np.ndarray):
                 pass
             elif isinstance(data, Series):
@@ -203,13 +210,14 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
                                          '`data` argument and a different '
                                          '`index` argument.  `copy` must '
                                          'be False.')
-            elif isinstance(data, Categorical):
-                # GH12574: Allow dtype=category only, otherwise error
-                if ((dtype is not None) and
-                        not is_categorical_dtype(dtype)):
-                    raise ValueError("cannot specify a dtype with a "
-                                     "Categorical unless "
-                                     "dtype='category'")
+
+            elif is_extension_array_dtype(data) and dtype is not None:
+                if not data.dtype.is_dtype(dtype):
+                    raise ValueError("Cannot specify a dtype '{}' with an "
+                                     "extension array of a different "
+                                     "dtype ('{}').".format(dtype,
+                                                            data.dtype))
+
             elif (isinstance(data, types.GeneratorType) or
                   (compat.PY3 and isinstance(data, map))):
                 data = list(data)
@@ -226,6 +234,18 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
                 if not is_list_like(data):
                     data = [data]
                 index = com._default_index(len(data))
+            elif is_list_like(data):
+
+                # a scalar numpy array is list-like but doesn't
+                # have a proper length
+                try:
+                    if len(index) != len(data):
+                        raise ValueError(
+                            'Length of passed values is {val}, '
+                            'index implies {ind}'
+                            .format(val=len(data), ind=len(index)))
+                except TypeError:
+                    pass
 
             # create/copy the manager
             if isinstance(data, SingleBlockManager):
@@ -296,25 +316,11 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         warnings.warn("'from_array' is deprecated and will be removed in a "
                       "future version. Please use the pd.Series(..) "
                       "constructor instead.", FutureWarning, stacklevel=2)
-        return cls._from_array(arr, index=index, name=name, dtype=dtype,
-                               copy=copy, fastpath=fastpath)
-
-    @classmethod
-    def _from_array(cls, arr, index=None, name=None, dtype=None, copy=False,
-                    fastpath=False):
-        """
-        Internal method used in DataFrame.__setitem__/__getitem__.
-        Difference with Series(..) is that this method checks if a sparse
-        array is passed.
-
-        """
-        # return a sparse series here
         if isinstance(arr, ABCSparseArray):
             from pandas.core.sparse.series import SparseSeries
             cls = SparseSeries
-
-        return cls(arr, index=index, name=name, dtype=dtype, copy=copy,
-                   fastpath=fastpath)
+        return cls(arr, index=index, name=name, dtype=dtype,
+                   copy=copy, fastpath=fastpath)
 
     @property
     def _constructor(self):
@@ -1015,31 +1021,31 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         >>> s = pd.Series([1, 2, 3, 4], index=pd.Index(['a', 'b', 'c', 'd'],
         ...                                            name = 'idx'))
         >>> s.reset_index()
-             idx  0
-        0      0  1
-        1      1  2
-        2      2  3
-        3      3  4
+          idx  0
+        0   a  1
+        1   b  2
+        2   c  3
+        3   d  4
 
         >>> arrays = [np.array(['bar', 'bar', 'baz', 'baz', 'foo',
         ...                     'foo', 'qux', 'qux']),
         ...           np.array(['one', 'two', 'one', 'two', 'one', 'two',
         ...                     'one', 'two'])]
         >>> s2 = pd.Series(
-        ...     np.random.randn(8),
+        ...     range(8),
         ...     index=pd.MultiIndex.from_arrays(arrays,
         ...                                     names=['a', 'b']))
         >>> s2.reset_index(level='a')
-               a         0
+               a  0
         b
-        one  bar -0.286320
-        two  bar -0.587934
-        one  baz  0.710491
-        two  baz -1.429006
-        one  foo  0.790700
-        two  foo  0.824863
-        one  qux -0.718963
-        two  qux -0.055028
+        one  bar  0
+        two  bar  1
+        one  baz  2
+        two  baz  3
+        one  foo  4
+        two  foo  5
+        one  qux  6
+        two  qux  7
         """
         inplace = validate_bool_kwarg(inplace, 'inplace')
         if drop:
@@ -2556,8 +2562,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
                 return self.copy()
             return self
 
-        # be subclass-friendly
-        new_values = algorithms.take_1d(self.get_values(), indexer)
+        new_values = algorithms.take_1d(self._values, indexer)
         return self._constructor(new_values, index=new_index)
 
     def _needs_reindex_multi(self, axes, method, level):
@@ -3092,8 +3097,8 @@ Series._add_series_only_operations()
 Series._add_series_or_dataframe_operations()
 
 # Add arithmetic!
-ops.add_flex_arithmetic_methods(Series, **ops.series_flex_funcs)
-ops.add_special_arithmetic_methods(Series, **ops.series_special_funcs)
+ops.add_flex_arithmetic_methods(Series)
+ops.add_special_arithmetic_methods(Series)
 
 
 # -----------------------------------------------------------------------------
@@ -3113,10 +3118,11 @@ def _sanitize_index(data, index, copy=False):
 
     if isinstance(data, ABCIndexClass) and not copy:
         pass
-    elif isinstance(data, PeriodIndex):
-        data = data.astype(object).values
-    elif isinstance(data, DatetimeIndex):
-        data = data._to_embed(keep_tz=True)
+    elif isinstance(data, (PeriodIndex, DatetimeIndex)):
+        data = data._values
+        if copy:
+            data = data.copy()
+
     elif isinstance(data, np.ndarray):
 
         # coerce datetimelike types
@@ -3156,8 +3162,17 @@ def _sanitize_array(data, index, dtype=None, copy=False,
                 subarr = np.array(subarr, dtype=dtype, copy=copy)
         except (ValueError, TypeError):
             if is_categorical_dtype(dtype):
+                # We *do* allow casting to categorical, since we know
+                # that Categorical is the only array type for 'category'.
                 subarr = Categorical(arr, dtype.categories,
                                      ordered=dtype.ordered)
+            elif is_extension_array_dtype(dtype):
+                # We don't allow casting to third party dtypes, since we don't
+                # know what array belongs to which type.
+                msg = ("Cannot cast data to extension dtype '{}'. "
+                       "Pass the extension array directly.".format(dtype))
+                raise ValueError(msg)
+
             elif dtype is not None and raise_cast_failure:
                 raise
             else:
@@ -3189,8 +3204,14 @@ def _sanitize_array(data, index, dtype=None, copy=False,
             # we will try to copy be-definition here
             subarr = _try_cast(data, True)
 
-    elif isinstance(data, Categorical):
+    elif isinstance(data, ExtensionArray):
         subarr = data
+
+        if dtype is not None and not data.dtype.is_dtype(dtype):
+            msg = ("Cannot coerce extension array to dtype '{typ}'. "
+                   "Do the coercion before passing to the constructor "
+                   "instead.".format(typ=dtype))
+            raise ValueError(msg)
 
         if copy:
             subarr = data.copy()
