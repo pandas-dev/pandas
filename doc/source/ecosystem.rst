@@ -286,14 +286,14 @@ Accessors
 
 A directory of projects providing
 :ref:`extension accessors <extending.register-accessors>`. This is for users to
-discover new accessors and for libraries authors to coordinate on the namespace.
+discover new accessors and for library authors to coordinate on the namespace.
 
-============== ========== =================
+============== ========== =========================
 Library        Accessor   Classes
-============== ========== =================
-`cyberpandas`_ ``ip``     Series
-`pdvega`_      ``vgplot`` Series, DataFrame
-============== ========== =================
+============== ========== =========================
+`cyberpandas`_ ``ip``     ``Series``
+`pdvega`_      ``vgplot`` ``Series``, ``DataFrame``
+============== ========== =========================
 
 .. _cyberpandas: https://cyberpandas.readthedocs.io/en/latest
 .. _pdvega: https://jakevdp.github.io/pdvega/

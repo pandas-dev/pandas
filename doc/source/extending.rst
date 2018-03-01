@@ -18,8 +18,8 @@ Libraries can use the decorators
 :func:`pandas.api.extensions.register_series_accessor`, and
 :func:`pandas.api.extensions.register_index_accessor`, to add additional
 "namespaces" to pandas objects. All of these follow a similar convention: you
-decorate a class, providing the name of attribute to add. The class's `__init__`
-method gets the object being decorated. For example:
+decorate a class, providing the name of attribute to add. The class's
+``__init__`` method gets the object being decorated. For example:
 
 .. code-block:: python
 
@@ -30,16 +30,16 @@ method gets the object being decorated. For example:
 
        @property
        def center(self):
-           # return the geographic center point of this DataFarme
-           lon = self._obj.latitude
-           lat = self._obj.longitude
+           # return the geographic center point of this DataFrame
+           lat = self._obj.latitude
+           lon = self._obj.longitude
            return (float(lon.mean()), float(lat.mean()))
 
        def plot(self):
            # plot this array's data on a map, e.g., using Cartopy
            pass
 
-Now users can access your methods using the `geo` namespace:
+Now users can access your methods using the ``geo`` namespace:
 
       >>> ds = pd.DataFrame({'longitude': np.linspace(0, 10),
       ...                    'latitude': np.linspace(0, 20)})
@@ -58,7 +58,7 @@ Extension Types
 ---------------
 
 Pandas defines an interface for implementing data types and arrays that *extend*
-NumPy's type system. Pandas iteself uses the extension system for some types
+NumPy's type system. Pandas itself uses the extension system for some types
 that aren't built into NumPy (categorical, period, interval, datetime with
 timezone).
 
@@ -82,7 +82,7 @@ One particularly important item is the ``type`` property. This should be the
 class that is the scalar type for your data. For example, if you were writing an
 extension array for IP Address data, this might be ``ipaddress.IPv4Address``.
 
-See ``pandas/core/dtypes/base.py`` for interface definition.
+See the `extension dtype source`_ for interface definition.
 
 ``ExtensionArray``
 """"""""""""""""""
@@ -96,15 +96,19 @@ Pandas makes no restrictions on how an extension array is created via its
 data. We do require that your array be convertible to a NumPy array, even if
 this is relatively expensive (as it is for ``Categorical``).
 
-They may be backed by none, one, or many NumPy ararys. For example,
+They may be backed by none, one, or many NumPy arrays. For example,
 ``pandas.Categorical`` is an extension array backed by two arrays,
-one for codes and one for categories. An array of IPv6 address may
+one for codes and one for categories. An array of IPv6 addresses may
 be backed by a NumPy structured array with two fields, one for the
 lower 64 bits and one for the upper 64 bits. Or they may be backed
 by some other storage type, like Python lists.
 
-See ``pandas/core/arrays/base.py`` for the interface definition. The docstrings
+See the `extension array source`_ for the interface definition. The docstrings
 and comments contain guidance for properly implementing the interface.
+
+
+.. _extension dtype source: https://github.com/pandas-dev/pandas/blob/master/pandas/core/dtypes/base.py
+.. _extension array source: https://github.com/pandas-dev/pandas/blob/master/pandas/core/arrays/base.py
 
 .. _ref-subclassing-pandas:
 
@@ -119,7 +123,9 @@ Subclassing pandas Data Structures
 
   3. Extending by :ref:`registering an accessor <extending.register-accessors>`
 
-This section describes how to subclass ``pandas`` data structures to meet more specific needs. There are 2 points which need attention:
+  4. Extending by :ref:`extension type <extending.extension-types>`
+
+This section describes how to subclass ``pandas`` data structures to meet more specific needs. There are two points that need attention:
 
 1. Override constructor properties.
 2. Define original properties
@@ -129,9 +135,11 @@ This section describes how to subclass ``pandas`` data structures to meet more s
 Override Constructor Properties
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-Each data structure has constructor properties to specifying data constructors. By overriding these properties, you can retain defined-classes through ``pandas`` data manipulations.
+Each data structure has several *constructor properties* for returning a new
+data structure as the result of an operation. By overriding these properties,
+you can retain subclasses through ``pandas`` data manipulations.
 
-There are 3 constructors to be defined:
+There are 3 constructor properties to be defined:
 
 - ``_constructor``: Used when a manipulation result has the same dimesions as the original.
 - ``_constructor_sliced``: Used when a manipulation result has one lower dimension(s) as the original, such as ``DataFrame`` single columns slicing.
@@ -139,13 +147,13 @@ There are 3 constructors to be defined:
 
 Following table shows how ``pandas`` data structures define constructor properties by default.
 
-===========================  ======================= =================== =======================
-Property Attributes          ``Series``              ``DataFrame``       ``Panel``
-===========================  ======================= =================== =======================
-``_constructor``             ``Series``              ``DataFrame``       ``Panel``
-``_constructor_sliced``      ``NotImplementedError`` ``Series``          ``DataFrame``
-``_constructor_expanddim``   ``DataFrame``           ``Panel``           ``NotImplementedError``
-===========================  ======================= =================== =======================
+===========================  ======================= =============
+Property Attributes          ``Series``              ``DataFrame``      
+===========================  ======================= =============
+``_constructor``             ``Series``              ``DataFrame``      
+``_constructor_sliced``      ``NotImplementedError`` ``Series``         
+``_constructor_expanddim``   ``DataFrame``           ``Panel``          
+===========================  ======================= =============
 
 Below example shows how to define ``SubclassedSeries`` and ``SubclassedDataFrame`` overriding constructor properties.
 
@@ -217,7 +225,7 @@ To let original data structures have additional properties, you should let ``pan
 1. Define ``_internal_names`` and ``_internal_names_set`` for temporary properties which WILL NOT be passed to manipulation results.
 2. Define ``_metadata`` for normal properties which will be passed to manipulation results.
 
-Below is an example to define 2 original properties, "internal_cache" as a temporary property and "added_property" as a normal property
+Below is an example to define two original properties, "internal_cache" as a temporary property and "added_property" as a normal property
 
 .. code-block:: python
 
