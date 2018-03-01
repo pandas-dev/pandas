@@ -429,20 +429,6 @@ class TestPivotTable(object):
             # tuple is seen as a single column name
             result = df.pivot(index='zoo', columns='foo', values=('bar', 'baz'))
 
-        data = [[np.nan, 'A', np.nan, 4],
-                [np.nan, 'C', np.nan, 6],
-                [np.nan, 'B', np.nan, 5],
-                ['A', np.nan, 1, np.nan],
-                ['B', np.nan, 2, np.nan],
-                ['C', np.nan, 3, np.nan]]
-        index = Index(data=['q', 't', 'w', 'x', 'y', 'z'], name='zoo')
-        columns = MultiIndex(levels=[['bar', 'baz'], ['one', 'two']],
-                             labels=[[0, 0, 1, 1], [0, 1, 0, 1]],
-                             names=[None, 'foo'])
-        expected = DataFrame(data=data, index=index,
-                             columns=columns, dtype='object')
-        tm.assert_frame_equal(result, expected)
-
     def test_margins(self):
         def _check_output(result, values_col, index=['A', 'B'],
                           columns=['C'],
