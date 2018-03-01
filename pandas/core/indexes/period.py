@@ -16,7 +16,6 @@ from pandas.core.dtypes.common import (
     is_bool_dtype,
     pandas_dtype,
     _ensure_object)
-from pandas.core.dtypes.dtypes import PeriodDtype
 from pandas.core.dtypes.generic import ABCSeries
 
 import pandas.tseries.frequencies as frequencies
