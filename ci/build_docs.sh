@@ -8,14 +8,6 @@ fi
 cd "$TRAVIS_BUILD_DIR"
 echo "inside $0"
 
-git show --pretty="format:" --name-only HEAD~5.. --first-parent | grep -P "rst|txt|doc"
-
-if [ "$?" != "0" ]; then
-    echo "Skipping doc build, none were modified"
-    # nope, skip docs build
-    exit 0
-fi
-
 RET=0
 
 if [ "$DOC" ]; then
