@@ -139,7 +139,8 @@ def group_median_float64(ndarray[float64_t, ndim=2] out,
 def group_cumprod_float64(float64_t[:, :] out,
                           float64_t[:, :] values,
                           int64_t[:] labels,
-                          bint is_datetimelike):
+                          bint is_datetimelike,
+                          bint skipna=True):
     """
     Only transforms on axis=0
     """
@@ -163,6 +164,11 @@ def group_cumprod_float64(float64_t[:, :] out,
                 if val == val:
                     accum[lab, j] *= val
                     out[i, j] = accum[lab, j]
+                else:
+                    out[i, j] = NaN
+                    if not skipna:
+                        accum[lab, j] = NaN
+                        break
 
 
 @cython.boundscheck(False)
@@ -170,7 +176,8 @@ def group_cumprod_float64(float64_t[:, :] out,
 def group_cumsum(numeric[:, :] out,
                  numeric[:, :] values,
                  int64_t[:] labels,
-                 is_datetimelike):
+                 is_datetimelike,
+                 bint skipna=True):
     """
     Only transforms on axis=0
     """
@@ -196,6 +203,11 @@ def group_cumsum(numeric[:, :] out,
                     if val == val:
                         accum[lab, j] += val
                         out[i, j] = accum[lab, j]
+                    else:
+                        out[i, j] = NaN
+                        if not skipna:
+                            accum[lab, j] = NaN
+                            break
                 else:
                     accum[lab, j] += val
                     out[i, j] = accum[lab, j]
