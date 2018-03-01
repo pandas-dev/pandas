@@ -47,6 +47,7 @@ class TestStyler(object):
         self.styler._repr_html_()
 
     def test_repr_html_mathjax(self):
+        # gh-19824
         assert 'tex2jax_ignore' not in self.styler._repr_html_()
 
         with pd.option_context('display.html.use_mathjax', False):
