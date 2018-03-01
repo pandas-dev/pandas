@@ -2,7 +2,6 @@ import numpy as np
 
 import pandas as pd
 from pandas.compat import StringIO
-from pandas.core.dtypes.cast import tolist
 from pandas.core.dtypes.common import is_extension_array_dtype
 from pandas.core.dtypes.dtypes import ExtensionDtype
 
@@ -54,8 +53,3 @@ class BaseInterfaceTests(BaseExtensionTests):
         assert is_extension_array_dtype(data.dtype)
         assert is_extension_array_dtype(pd.Series(data))
         assert isinstance(data.dtype, ExtensionDtype)
-
-    def test_tolist(self, data):
-        result = tolist(data)
-        expected = list(data)
-        assert result == expected
