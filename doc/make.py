@@ -122,7 +122,7 @@ class DocBuilder:
         """
         self.include_api = False
 
-        if single_doc == 'api.rst':
+        if single_doc == 'api.rst' or single_doc == 'api':
             self.single_doc_type = 'api'
             self.single_doc = 'api'
         elif os.path.exists(os.path.join(SOURCE_PATH, single_doc)):
