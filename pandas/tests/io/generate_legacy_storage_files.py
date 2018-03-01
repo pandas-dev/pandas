@@ -286,7 +286,7 @@ def create_msgpack_data():
     del data['frame']['cat_onecol']
     del data['frame']['cat_and_float']
     del data['scalars']['period']
-#    del data['index']['interval']
+    del data['index']['interval']
     del data['offsets']
     return _u(data)
 
