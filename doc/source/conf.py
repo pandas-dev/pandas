@@ -568,22 +568,22 @@ def process_class_docstrings(app, what, name, obj, options, lines):
     if what == "class":
         joined = '\n'.join(lines)
 
-        templates =
-            [""".. rubric:: Attributes
+        templates = [
+            """.. rubric:: Attributes
 
 .. autosummary::
    :toctree:
 
    None
 """,
-             """.. rubric:: Methods
+            """.. rubric:: Methods
 
 .. autosummary::
    :toctree:
 
    None
 """
-            ]
+                    ]
 
         for template in templates:
             if template in joined:
