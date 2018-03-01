@@ -499,10 +499,11 @@ class TestGroupBy(MixIn):
                 data.groupby(labels), op)(*args))
 
     @pytest.mark.parametrize("op", ['cumprod', 'cumsum'])
-    @pytest.mark.parametrize("kwargs", [{'skipna': False}, {'skipna': True}])
+    @pytest.mark.parametrize("skipna", [False, True])
     @pytest.mark.parametrize('input, exp', [
         # When everything is NaN
-        ({'key': ['b'] * 10, 'value': np.nan}, [np.nan] * 10),
+        ({'key': ['b'] * 10, 'value': np.nan},
+         pd.Series([np.nan] * 10, name='value')),
         # When there is a single NaN
         ({'key': ['b'] * 10 + ['a'] * 2,
           'value': [3] * 3 + [np.nan] + [3] * 8},
@@ -512,14 +513,14 @@ class TestGroupBy(MixIn):
           ('cumsum', False): [3.0, 6.0, 9.0] + [np.nan] * 7 + [3.0, 6.0],
           ('cumsum', True): [3.0, 6.0, 9.0, np.nan, 12., 15., 18.,
                              21., 24., 27., 3.0, 6.0]})])
-    def test_groupby_cum_skip(self, op, kwargs, input, exp):
+    def test_groupby_cum_skipna(self, op, skipna, input, exp):
         df = pd.DataFrame(input)
-        result = df.groupby('key')['value'].transform(op, **kwargs)
+        result = df.groupby('key')['value'].transform(op, skipna=skipna)
         if isinstance(exp, dict):
-            expected = pd.Series(exp[(op, kwargs['skipna'])],
-                                 name='value', index=range(12))
+            expected = exp[(op, skipna)]
         else:
-            expected = pd.Series(exp, name='value', index=range(10))
+            expected = exp
+        expected = pd.Series(expected, name='value')
         tm.assert_series_equal(expected, result)
 
     @pytest.mark.parametrize(
