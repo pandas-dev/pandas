@@ -3,7 +3,7 @@
 v0.23.0
 -------
 
-This is a major release from 0.21.1 and includes a number of API changes,
+This is a major release from 0.22.0 and includes a number of API changes,
 deprecations, new features, enhancements, and performance improvements along
 with a large number of bug fixes. We recommend that all users upgrade to this
 version.
@@ -117,7 +117,7 @@ resetting indexes. See the :ref:`Sorting by Indexes and Values
    # Sort by 'second' (index) and 'A' (column)
    df_multi.sort_values(by=['second', 'A'])
 
-.. _whatsnew_0230.enhancements.timedelta_mod
+.. _whatsnew_0230.enhancements.timedelta_mod:
 
 Timedelta mod method
 ^^^^^^^^^^^^^^^^^^^^
@@ -249,7 +249,7 @@ The :func:`DataFrame.assign` now accepts dependent keyword arguments for python 
   using ``.assign()`` to update an existing column. Previously, callables
   referring to other variables being updated would get the "old" values
 
-  Previous Behaviour:
+  Previous Behavior:
 
   .. code-block:: ipython
 
@@ -262,7 +262,7 @@ The :func:`DataFrame.assign` now accepts dependent keyword arguments for python 
       1  3 -2
       2  4 -3
 
-  New Behaviour:
+  New Behavior:
 
   .. ipython:: python
 
@@ -337,6 +337,7 @@ Other Enhancements
 - Added :func:`SeriesGroupBy.is_monotonic_increasing` and :func:`SeriesGroupBy.is_monotonic_decreasing` (:issue:`17015`)
 - For subclassed ``DataFrames``, :func:`DataFrame.apply` will now preserve the ``Series`` subclass (if defined) when passing the data to the applied function (:issue:`19822`)
 - :func:`DataFrame.from_dict` now accepts a ``columns`` argument that can be used to specify the column names when ``orient='index'`` is used (:issue:`18529`)
+- Added option ``display.html.use_mathjax`` so `MathJax <https://www.mathjax.org/>`_ can be disabled when rendering tables in ``Jupyter`` notebooks (:issue:`19856`, :issue:`19824`)
 
 
 .. _whatsnew_0230.api_breaking:
@@ -359,6 +360,57 @@ If installed, we now require:
 +-----------------+-----------------+----------+
 | openpyxl        | 2.4.0           |          |
 +-----------------+-----------------+----------+
+
+.. _whatsnew_0230.api_breaking.dict_insertion_order:
+
+Instantation from dicts preserves dict insertion order for python 3.6+
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+Until Python 3.6, dicts in Python had no formally defined ordering. For Python
+version 3.6 and later, dicts are ordered by insertion order, see
+`PEP 468 <https://www.python.org/dev/peps/pep-0468/>`_.
+Pandas will use the dict's insertion order, when creating a ``Series`` or
+``DataFrame`` from a dict and you're using Python version 3.6 or
+higher. (:issue:`19884`)
+
+Previous Behavior (and current behavior if on Python < 3.6):
+
+.. code-block:: ipython
+
+   In [1]: pd.Series({'Income': 2000,
+   ...                'Expenses': -1500,
+   ...                'Taxes': -200,
+   ...                'Net result': 300})
+   Expenses     -1500
+   Income        2000
+   Net result     300
+   Taxes         -200
+   dtype: int64
+
+Note the Series above is ordered alphabetically by the index values.
+
+New Behavior (for Python >= 3.6):
+
+.. ipython:: python
+
+    pd.Series({'Income': 2000,
+               'Expenses': -1500,
+               'Taxes': -200,
+               'Net result': 300})
+
+Notice that the Series is now ordered by insertion order. This new behavior is
+used for all relevant pandas types (``Series``, ``DataFrame``, ``SparseSeries``
+and ``SparseDataFrame``).
+
+If you wish to retain the old behavior while using Python >= 3.6, you can use
+``.sort_index()``:
+
+.. ipython:: python
+
+    pd.Series({'Income': 2000,
+               'Expenses': -1500,
+               'Taxes': -200,
+               'Net result': 300}).sort_index()
 
 .. _whatsnew_0230.api_breaking.deprecate_panel:
 
@@ -652,6 +704,7 @@ Other API Changes
 - Set operations (union, difference...) on :class:`IntervalIndex` with incompatible index types will now raise a ``TypeError`` rather than a ``ValueError`` (:issue:`19329`)
 - :class:`DateOffset` objects render more simply, e.g. ``<DateOffset: days=1>`` instead of ``<DateOffset: kwds={'days': 1}>`` (:issue:`19403`)
 - ``Categorical.fillna`` now validates its ``value`` and ``method`` keyword arguments. It now raises when both or none are specified, matching the behavior of :meth:`Series.fillna` (:issue:`19682`)
+- ``pd.to_datetime('today')`` now returns a datetime, consistent with ``pd.Timestamp('today')``; previously ``pd.to_datetime('today')`` returned a ``.normalized()`` datetime (:issue:`19935`)
 - :func:`Series.str.replace` now takes an optional `regex` keyword which, when set to ``False``, uses literal string replacement rather than regex replacement (:issue:`16808`)
 
 .. _whatsnew_0230.deprecations:
@@ -703,7 +756,7 @@ Removal of prior version deprecations/changes
 - The ``Panel4D`` and ``PanelND`` classes have been removed (:issue:`13776`)
 - The ``Panel`` class has dropped the ``to_long`` and ``toLong`` methods (:issue:`19077`)
 - The options ``display.line_with`` and ``display.height`` are removed in favor of ``display.width`` and ``display.max_rows`` respectively (:issue:`4391`, :issue:`19107`)
-- The ``labels`` attribute of the ``Categorical`` class has been removed in favor of :attribute:`Categorical.codes` (:issue:`7768`)
+- The ``labels`` attribute of the ``Categorical`` class has been removed in favor of :attr:`Categorical.codes` (:issue:`7768`)
 - The ``flavor`` parameter have been removed from func:`to_sql` method (:issue:`13611`)
 - The modules ``pandas.tools.hashing`` and ``pandas.util.hashing`` have been removed (:issue:`16223`)
 - The top-level functions ``pd.rolling_*``, ``pd.expanding_*`` and ``pd.ewm*`` have been removed (Deprecated since v0.18).
@@ -833,6 +886,7 @@ Timezones
 - Bug in the :class:`DataFrame` constructor, where tz-aware Datetimeindex and a given column name will result in an empty ``DataFrame`` (:issue:`19157`)
 - Bug in :func:`Timestamp.tz_localize` where localizing a timestamp near the minimum or maximum valid values could overflow and return a timestamp with an incorrect nanosecond value (:issue:`12677`)
 - Bug when iterating over :class:`DatetimeIndex` that was localized with fixed timezone offset that rounded nanosecond precision to microseconds (:issue:`19603`)
+- Bug in :func:`DataFrame.diff` that raised an ``IndexError`` with tz-aware values (:issue:`18578`)
 
 Offsets
 ^^^^^^^
@@ -924,6 +978,7 @@ Groupby/Resample/Rolling
 - Bug in :func:`DataFrame.groupby` passing the `on=` kwarg, and subsequently using ``.apply()`` (:issue:`17813`)
 - Bug in :func:`DataFrame.resample().aggregate` not raising a ``KeyError`` when aggregating a non-existent column (:issue:`16766`, :issue:`19566`)
 - Fixed a performance regression for ``GroupBy.nth`` and ``GroupBy.last`` with some object columns (:issue:`19283`)
+- Bug in :func:`DataFrameGroupBy.cumsum` and :func:`DataFrameGroupBy.cumprod` when ``skipna`` was passed (:issue:`19806`)
 
 Sparse
 ^^^^^^

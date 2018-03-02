@@ -19,6 +19,7 @@ class ExtensionArray(object):
     The interface includes the following abstract methods that must be
     implemented by subclasses:
 
+    * _constructor_from_sequence
     * __getitem__
     * __len__
     * dtype
@@ -57,6 +58,25 @@ class ExtensionArray(object):
     # '_typ' is for pandas.core.dtypes.generic.ABCExtensionArray.
     # Don't override this.
     _typ = 'extension'
+
+    # ------------------------------------------------------------------------
+    # Constructors
+    # ------------------------------------------------------------------------
+    @classmethod
+    def _constructor_from_sequence(cls, scalars):
+        """Construct a new ExtensionArray from a sequence of scalars.
+
+        Parameters
+        ----------
+        scalars : Sequence
+            Each element will be an instance of the scalar type for this
+            array, ``cls.dtype.type``.
+        Returns
+        -------
+        ExtensionArray
+        """
+        raise AbstractMethodError(cls)
+
     # ------------------------------------------------------------------------
     # Must be a Sequence
     # ------------------------------------------------------------------------
