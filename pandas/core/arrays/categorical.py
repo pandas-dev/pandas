@@ -13,8 +13,7 @@ from pandas.core.dtypes.generic import (
 from pandas.core.dtypes.missing import isna, notna
 from pandas.core.dtypes.cast import (
     maybe_infer_to_datetimelike,
-    coerce_indexer_dtype,
-    tolist)
+    coerce_indexer_dtype)
 from pandas.core.dtypes.dtypes import CategoricalDtype
 from pandas.core.dtypes.common import (
     _ensure_int64,
@@ -476,7 +475,7 @@ class Categorical(ExtensionArray, PandasObject):
         (for str, int, float) or a pandas scalar
         (for Timestamp/Timedelta/Interval/Period)
         """
-        return tolist(self)
+        return list(self)
 
     @property
     def base(self):
