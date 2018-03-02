@@ -23,6 +23,7 @@ import contextlib
 import inspect
 import importlib
 import doctest
+import textwrap
 try:
     from io import StringIO
 except ImportError:
@@ -72,6 +73,7 @@ class Docstring:
         self.method_name = method_name
         self.method_obj = method_obj
         self.raw_doc = method_obj.__doc__ or ''
+        self.raw_doc = textwrap.dedent(self.raw_doc)
         self.doc = NumpyDocString(self.raw_doc)
 
     def __len__(self):
