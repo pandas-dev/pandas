@@ -137,7 +137,10 @@ pandas can be installed via pip from
 Installing with ActivePython
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-Installation instructions for `ActivePython <https://www.activestate.com/activepython>`__ can be found `here <https://www.activestate.com/activepython/downloads>`__.
+Installation instructions for 
+`ActivePython <https://www.activestate.com/activepython>`__ can be found 
+`here <https://www.activestate.com/activepython/downloads>`__. Versions
+2.7 and 3.5 include pandas.
 
 Installing using your Linux distribution's package manager.
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -303,5 +306,5 @@ Optional Dependencies
 
    Without the optional dependencies, many useful features will not
    work. Hence, it is highly recommended that you install these. A packaged
-   distribution like `Anaconda <http://docs.continuum.io/anaconda/>`__, `ActivePython <https://www.activestate.com/activepython/downloads>`__, or `Enthought Canopy
+   distribution like `Anaconda <http://docs.continuum.io/anaconda/>`__, `ActivePython <https://www.activestate.com/activepython/downloads>`__  (version 2.7 or 3.5), or `Enthought Canopy
    <http://enthought.com/products/canopy>`__ may be worth considering.
