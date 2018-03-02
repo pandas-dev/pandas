@@ -21,7 +21,7 @@ from pandas.errors import AbstractMethodError
 from pandas.core import common as com, algorithms
 import pandas.core.nanops as nanops
 import pandas._libs.lib as lib
-from pandas.compat.numpy import function as nv
+from pandas.compat.numpy import function as nv, _np_version_under1p10
 from pandas.compat import PYPY
 from pandas.util._decorators import (Appender, cache_readonly,
                                      deprecate_kwarg, Substitution)
@@ -208,11 +208,8 @@ class SelectionMixin(object):
         np.nancumsum: 'cumsum'
     }
 
-    # np.nanprod was added in np version 1.10.0, we currently support >= 1.9
-    try:
+    if not _np_version_under1p10:
         _cython_table[np.nanprod] = 'prod'
-    except AttributeError:
-        pass
 
     @property
     def _selection_name(self):
