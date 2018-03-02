@@ -187,6 +187,11 @@ class Docstring:
                 bool(pattern.search(self.extended_summary)))
 
     @property
+    def mentioned_private_classes(self):
+        private_classes = ['NDFrame', 'IndexOpsMixin']
+        return [klass for klass in private_classes if klass in self.raw_doc]
+
+    @property
     def examples_errors(self):
         flags = doctest.NORMALIZE_WHITESPACE | doctest.IGNORE_EXCEPTION_DETAIL
         finder = doctest.DocTestFinder()
@@ -316,6 +321,10 @@ def validate_one(func_name):
         errs.append('Errors in parameters section')
         for param_err in param_errs:
             errs.append('\t{}'.format(param_err))
+
+    mentioned_errs = doc.mentioned_private_classes
+    if mentioned_errs:
+        errs.append('Private classes mentioned: {}'.format(mentioned_errs))
 
     examples_errs = ''
     if not doc.examples:
