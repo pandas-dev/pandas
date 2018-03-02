@@ -1011,7 +1011,6 @@ class TestNumpyNaNFunctions(object):
     methods_to_test = [
         (np.sum, np.nansum),
         (np.mean, np.nanmean),
-        (np.prod, np.nanprod),
         (np.std, np.nanstd),
         (np.var, np.nanvar),
         (np.median, np.nanmedian),
@@ -1021,17 +1020,24 @@ class TestNumpyNaNFunctions(object):
         (np.cumsum, np.nancumsum)
     ]
 
-    def test_np_nan_functions(self):
-        test_series = pd.Series([1, 2, 3, 4, 5, 6])
-        test_df = pd.DataFrame([[1, 2, 3], [4, 5, 6]])
+    def setup_method(self, method):
+        self.test_series = pd.Series([1, 2, 3, 4, 5, 6])
+        self.test_df = pd.DataFrame([[1, 2, 3], [4, 5, 6]])
 
+    def compare_method_output(self, data, method, nan_method):
+        tm.assert_almost_equal(data.agg(method),
+                               data.agg(nan_method),
+                               check_exact=True)
+
+    def test_np_nan_functions(self):
         for standard, nan_method in self.methods_to_test:
-            tm.assert_almost_equal(test_series.agg(standard),
-                                   test_series.agg(nan_method),
-                                   check_exact=True)
-            tm.assert_almost_equal(test_df.agg(standard),
-                                   test_df.agg(nan_method),
-                                   check_exact=True)
+            self.compare_method_output(self.test_series, standard, nan_method)
+            self.compare_method_output(self.test_df, standard, nan_method)
+
+    @td.skip_if_no("numpy", min_version="1.10.0")
+    def test_np_nanprod(self):
+        self.compare_method_output(self.test_series, np.prod, np.nanprod)
+        self.compare_method_output(self.test_df, np.prod, np.nanprod)
 
 
 def test_use_bottleneck():
