@@ -1007,90 +1007,30 @@ class TestNankurtFixedValues(object):
 class TestNumpyNaNFunctions(object):
 
     # xref GH 19629
+    methods_to_test = [
+        (np.sum, np.nansum),
+        (np.mean, np.nanmean),
+        (np.prod, np.nanprod),
+        (np.std, np.nanstd),
+        (np.var, np.nanvar),
+        (np.median, np.nanmedian),
+        (np.max, np.nanmax),
+        (np.min, np.nanmin),
+        (np.cumprod, np.nancumprod),
+        (np.cumsum, np.nancumsum)
+    ]
 
-    def setup_method(self, method):
-        self.test_series = pd.Series([1, 2, 3, 4, 5, 6])
-        self.test_df = pd.DataFrame([[1, 2, 3], [4, 5, 6]])
+    def test_np_nan_functions(self):
+        test_series = pd.Series([1, 2, 3, 4, 5, 6])
+        test_df = pd.DataFrame([[1, 2, 3], [4, 5, 6]])
 
-    def test_np_sum(self):
-        tm.assert_almost_equal(self.test_series.agg(np.sum),
-                               self.test_series.agg(np.nansum),
-                               check_exact=True)
-        tm.assert_almost_equal(self.test_df.agg(np.sum),
-                               self.test_df.agg(np.nansum),
-                               check_exact=True)
-
-    def test_np_mean(self):
-        tm.assert_almost_equal(self.test_series.agg(np.mean),
-                               self.test_series.agg(np.nanmean),
-                               check_exact=True)
-        tm.assert_almost_equal(self.test_df.agg(np.mean),
-                               self.test_df.agg(np.nanmean),
-                               check_exact=True)
-
-    def test_np_prod(self):
-        tm.assert_almost_equal(self.test_series.agg(np.prod),
-                               self.test_series.agg(np.nanprod),
-                               check_exact=True)
-        tm.assert_almost_equal(self.test_df.agg(np.prod),
-                               self.test_df.agg(np.nanprod),
-                               check_exact=True)
-
-    def test_np_std(self):
-        tm.assert_almost_equal(self.test_series.agg(np.std),
-                               self.test_series.agg(np.nanstd),
-                               check_exact=True)
-        tm.assert_almost_equal(self.test_df.agg(np.std),
-                               self.test_df.agg(np.nanstd),
-                               check_exact=True)
-
-    def test_np_var(self):
-        tm.assert_almost_equal(self.test_series.agg(np.var),
-                               self.test_series.agg(np.nanvar),
-                               check_exact=True)
-        tm.assert_almost_equal(self.test_df.agg(np.var),
-                               self.test_df.agg(np.nanvar),
-                               check_exact=True)
-
-    def test_np_median(self):
-        tm.assert_almost_equal(self.test_series.agg(np.median),
-                               self.test_series.agg(np.nanmedian),
-                               check_exact=True)
-        tm.assert_almost_equal(self.test_df.agg(np.median),
-                               self.test_df.agg(np.nanmedian),
-                               check_exact=True)
-
-    def test_np_max(self):
-        tm.assert_almost_equal(self.test_series.agg(np.max),
-                               self.test_series.agg(np.nanmax),
-                               check_exact=True)
-        tm.assert_almost_equal(self.test_df.agg(np.max),
-                               self.test_df.agg(np.nanmax),
-                               check_exact=True)
-
-    def test_np_min(self):
-        tm.assert_almost_equal(self.test_series.agg(np.min),
-                               self.test_series.agg(np.nanmin),
-                               check_exact=True)
-        tm.assert_almost_equal(self.test_df.agg(np.min),
-                               self.test_df.agg(np.nanmin),
-                               check_exact=True)
-
-    def test_np_cumprod(self):
-        tm.assert_almost_equal(self.test_series.agg(np.cumprod),
-                               self.test_series.agg(np.nancumprod),
-                               check_exact=True)
-        tm.assert_almost_equal(self.test_df.agg(np.cumprod),
-                               self.test_df.agg(np.nancumprod),
-                               check_exact=True)
-
-    def test_np_cumsum(self):
-        tm.assert_almost_equal(self.test_series.agg(np.cumsum),
-                               self.test_series.agg(np.nancumsum),
-                               check_exact=True)
-        tm.assert_almost_equal(self.test_df.agg(np.cumsum),
-                               self.test_df.agg(np.nancumsum),
-                               check_exact=True)
+        for standard, nan_method in self.methods_to_test:
+            tm.assert_almost_equal(test_series.agg(standard),
+                                   test_series.agg(nan_method),
+                                   check_exact=True)
+            tm.assert_almost_equal(test_df.agg(standard),
+                                   test_df.agg(nan_method),
+                                   check_exact=True)
 
 
 def test_use_bottleneck():

@@ -191,7 +191,6 @@ class SelectionMixin(object):
         np.mean: 'mean',
         np.nanmean: 'mean',
         np.prod: 'prod',
-        np.nanprod: 'prod',
         np.std: 'std',
         np.nanstd: 'std',
         np.var: 'var',
@@ -207,6 +206,12 @@ class SelectionMixin(object):
         np.cumsum: 'cumsum',
         np.nancumsum: 'cumsum'
     }
+
+    # np.nanprod was added in np version 1.10.0, we currently support >= 1.9
+    try:
+        _cython_table[np.nanprod] = 'prod'
+    except AttributeError:
+        pass
 
     @property
     def _selection_name(self):
