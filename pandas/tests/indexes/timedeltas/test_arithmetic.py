@@ -535,6 +535,7 @@ class TestTimedeltaIndexArithmetic(object):
 
     @pytest.mark.parametrize('box', [np.array, pd.Index])
     def test_tdi_add_integer_array(self, box):
+        # GH#19959
         rng = timedelta_range('1 days 09:00:00', freq='H', periods=3)
         other = box([4, 3, 2])
         expected = TimedeltaIndex(['1 day 13:00:00'] * 3)
@@ -545,6 +546,7 @@ class TestTimedeltaIndexArithmetic(object):
 
     @pytest.mark.parametrize('box', [np.array, pd.Index])
     def test_tdi_sub_integer_array(self, box):
+        # GH#19959
         rng = timedelta_range('9H', freq='H', periods=3)
         other = box([4, 3, 2])
         expected = TimedeltaIndex(['5H', '7H', '9H'])
@@ -555,6 +557,7 @@ class TestTimedeltaIndexArithmetic(object):
 
     @pytest.mark.parametrize('box', [np.array, pd.Index])
     def test_tdi_addsub_integer_array_no_freq(self, box):
+        # GH#19959
         tdi = TimedeltaIndex(['1 Day', 'NaT', '3 Hours'])
         other = box([14, -1, 16])
         with pytest.raises(NullFrequencyError):

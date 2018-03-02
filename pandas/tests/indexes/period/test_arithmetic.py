@@ -443,6 +443,7 @@ class TestPeriodIndexArithmetic(object):
     @pytest.mark.parametrize('box', [np.array, pd.Index])
     @pytest.mark.parametrize('op', [operator.add, ops.radd])
     def test_pi_add_intarray(self, box, op):
+        # GH#19959
         pi = pd.PeriodIndex([pd.Period('2015Q1'), pd.Period('NaT')])
         other = box([4, -1])
         result = op(pi, other)
@@ -451,6 +452,7 @@ class TestPeriodIndexArithmetic(object):
 
     @pytest.mark.parametrize('box', [np.array, pd.Index])
     def test_pi_sub_intarray(self, box):
+        # GH#19959
         pi = pd.PeriodIndex([pd.Period('2015Q1'), pd.Period('NaT')])
         other = box([4, -1])
         result = pi - other

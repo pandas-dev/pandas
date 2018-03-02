@@ -361,6 +361,7 @@ class TestDatetimeIndexArithmetic(object):
     @pytest.mark.parametrize('freq', ['H', 'D'])
     @pytest.mark.parametrize('box', [np.array, pd.Index])
     def test_dti_add_intarray_tick(self, box, freq):
+        # GH#19959
         dti = pd.date_range('2016-01-01', periods=2, freq=freq)
         other = box([4, -1])
         expected = DatetimeIndex([dti[n] + other[n] for n in range(len(dti))])
@@ -372,6 +373,7 @@ class TestDatetimeIndexArithmetic(object):
     @pytest.mark.parametrize('freq', ['W', 'M', 'MS', 'Q'])
     @pytest.mark.parametrize('box', [np.array, pd.Index])
     def test_dti_add_intarray_non_tick(self, box, freq):
+        # GH#19959
         dti = pd.date_range('2016-01-01', periods=2, freq=freq)
         other = box([4, -1])
         expected = DatetimeIndex([dti[n] + other[n] for n in range(len(dti))])
@@ -384,6 +386,7 @@ class TestDatetimeIndexArithmetic(object):
 
     @pytest.mark.parametrize('box', [np.array, pd.Index])
     def test_dti_add_intarray_no_freq(self, box):
+        # GH#19959
         dti = pd.DatetimeIndex(['2016-01-01', 'NaT', '2017-04-05 06:07:08'])
         other = box([9, 4, -1])
         with pytest.raises(NullFrequencyError):
