@@ -18,7 +18,7 @@ class ExtensionArray(object):
     The interface includes the following abstract methods that must be
     implemented by subclasses:
 
-    * _from_scalars
+    * _constructor_from_sequence
     * __getitem__
     * __len__
     * dtype
@@ -70,7 +70,6 @@ class ExtensionArray(object):
         scalars : Sequence
             Each element will be an instance of the scalar type for this
             array, ``cls.dtype.type``.
-
         Returns
         -------
         ExtensionArray
