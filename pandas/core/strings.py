@@ -898,8 +898,10 @@ def str_join(arr, sep):
 
 def str_findall(arr, pat, flags=0):
     """
-    Find all occurrences of pattern or regular expression in the
-    Series/Index. Equivalent to :func:`re.findall`.
+    Find all occurrences of pattern or regular expression in the Series/Index.
+
+    Equivalent to apply :func:`re.findall` to all the elements in the
+    Series/Index. Empty matches are included in the result.
 
     Parameters
     ----------
@@ -910,11 +912,60 @@ def str_findall(arr, pat, flags=0):
 
     Returns
     -------
-    matches : Series/Index of lists
+    matches : Series/Index of lists of strings, with all non-overlapping
+    matches of pattern or regular expression in each string of this
+    Series/Index
 
     See Also
     --------
-    extractall : returns DataFrame with one column per capture group
+    Series.str.extractall : For each subject string in the Series, extract \
+    groups from all matches of regular expression pat
+    Series.str.count : Count occurrences of pattern in each string of the \
+    Series/Index
+    re.findall: Return all non-overlapping matches of pattern in string, \
+    as a list of strings
+
+    Examples
+    --------
+
+    >>> s = pd.Series(['Lion', 'Monkey', 'Rabbit'])
+    >>> s.str.findall('Monkey')
+    0          []
+    1    [Monkey]
+    2          []
+    dtype: object
+
+    >>> s.str.findall('MONKEY')
+    0    []
+    1    []
+    2    []
+    dtype: object
+
+    >>> s.str.findall('MONKEY', flags=re.IGNORECASE)
+    0          []
+    1    [Monkey]
+    2          []
+    dtype: object
+
+    >>> s.str.findall('on')
+    0    [on]
+    1    [on]
+    2      []
+    dtype: object
+
+    >>> s.str.findall('on$')
+    0    [on]
+    1      []
+    2      []
+    dtype: object
+
+    >>> s.str.findall('b')
+    0        []
+    1        []
+    2    [b, b]
+    dtype: object
+
+
     """
     regex = re.compile(pat, flags=flags)
     return _na_map(regex.findall, arr)
