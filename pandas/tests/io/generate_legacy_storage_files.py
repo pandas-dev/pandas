@@ -124,9 +124,10 @@ def create_data():
     if _loose_version >= LooseVersion('0.18'):
         from pandas import RangeIndex
         index['range'] = RangeIndex(10)
-        if _loose_version >= '0.21':
-            from pandas import interval_range
-            index['interval'] = interval_range(0, periods=10)
+
+    if _loose_version >= LooseVersion('0.21'):
+        from pandas import interval_range
+        index['interval'] = interval_range(0, periods=10)
 
     mi = dict(reg2=MultiIndex.from_tuples(
         tuple(zip(*[[u'bar', u'bar', u'baz', u'baz', u'foo',
