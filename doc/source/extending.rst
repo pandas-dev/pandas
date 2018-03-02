@@ -73,7 +73,7 @@ on :ref:`ecosystem.extensions`.
 The interface consists of two classes.
 
 ``ExtensionDtype``
-""""""""""""""""""
+^^^^^^^^^^^^^^^^^^
 
 An ``ExtensionDtype`` is similar to a ``numpy.dtype`` object. It describes the
 data type. Implementors are responsible for a few unique items like the name.
@@ -85,7 +85,7 @@ extension array for IP Address data, this might be ``ipaddress.IPv4Address``.
 See the `extension dtype source`_ for interface definition.
 
 ``ExtensionArray``
-""""""""""""""""""
+^^^^^^^^^^^^^^^^^^
 
 This class provides all the array-like functionality. ExtensionArrays are
 limited to 1 dimension. An ExtensionArray is linked to an ExtensionDtype via the
