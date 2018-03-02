@@ -149,7 +149,8 @@ class Docstring:
         extra = set(doc_params) - set(signature_params)
         if extra:
             errs.append('Unknown parameters {!r}'.format(extra))
-        if not missing and not extra and signature_params != doc_params:
+        if (not missing and not extra and signature_params != doc_params
+                and not (not signature_params and not doc_params)):
             errs.append('Wrong parameters order. ' +
                         'Actual: {!r}. '.format(signature_params) +
                         'Documented: {!r}'.format(doc_params))
