@@ -348,7 +348,7 @@ def read_json(path_or_buf=None, orient=None, typ='frame', dtype=True,
     to denote a missing :class:`Index` name, and the subsequent
     :func:`read_json` operation cannot distinguish between the two. The same
     limitation is encountered with a :class:`MultiIndex` and any names
-    beginning with 'level_'.
+    beginning with ``'level_'``.
 
     See Also
     --------
