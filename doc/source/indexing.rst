@@ -312,27 +312,6 @@ Selection By Label
 
 .. warning::
 
-   ``.loc`` is strict when you present slicers that are not compatible (or convertible) with the index type. For example
-   using integers in a ``DatetimeIndex``. These will raise a ``TypeError``.
-
-  .. ipython:: python
-
-     dfl = pd.DataFrame(np.random.randn(5,4), columns=list('ABCD'), index=pd.date_range('20130101',periods=5))
-     dfl
-
-  .. code-block:: ipython
-
-     In [4]: dfl.loc[2:3]
-     TypeError: cannot do slice indexing on <class 'pandas.tseries.index.DatetimeIndex'> with these indexers [2] of <type 'int'>
-
-  String likes in slicing *can* be convertible to the type of the index and lead to natural slicing.
-
-  .. ipython:: python
-
-     dfl.loc['20130102':'20130104']
-
-.. warning::
-
    Starting in 0.21.0, pandas will show a ``FutureWarning`` if indexing with a list with missing labels. In the future
    this will raise a ``KeyError``. See :ref:`list-like Using loc with missing keys in a list is Deprecated <indexing.deprecate_loc_reindex_listlike>`.
 
@@ -429,6 +408,29 @@ However, if at least one of the two is absent *and* the index is not sorted, an
 error will be raised (since doing otherwise would be computationally expensive,
 as well as potentially ambiguous for mixed type indexes). For instance, in the
 above example, ``s.loc[1:6]`` would raise ``KeyError``.
+
+.. warning::
+
+   ``.loc`` is strict when you present slicers that are not compatible
+   (or convertible) with the index type. For example using integers in a
+   ``DatetimeIndex``. These will raise a ``TypeError``.
+
+  .. ipython:: python
+
+     dfl = pd.DataFrame(np.random.randn(5,4), columns=list('ABCD'),
+                        index=pd.date_range('20130101',periods=5))
+     dfl
+
+  .. code-block:: ipython
+
+     In [4]: dfl.loc[2:3]
+     TypeError: cannot do slice indexing on <class 'pandas.tseries.index.DatetimeIndex'> with these indexers [2] of <type 'int'>
+
+  String likes in slicing *can* be convertible to the type of the index and lead to natural slicing.
+
+  .. ipython:: python
+
+     dfl.loc['20130102':'20130104']
 
 .. _indexing.integer:
 

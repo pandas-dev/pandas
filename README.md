@@ -106,9 +106,8 @@ Here are just a few of the things that pandas does well:
   - Make it [**easy to convert**][conversion] ragged,
     differently-indexed data in other Python and NumPy data structures
     into DataFrame objects
-  - Intelligent label-based [**slicing**][slicing], [**fancy
-    indexing**][fancy-indexing], and [**subsetting**][subsetting] of
-    large data sets
+  - Intelligent label-based [**slicing**][slicing], [**selecting**][selecting],
+    and [**subsetting**][subsetting] of large data sets
   - Intuitive [**merging**][merging] and [**joining**][joining] data
     sets
   - Flexible [**reshaping**][reshape] and [**pivoting**][pivot-table] of
@@ -129,7 +128,7 @@ Here are just a few of the things that pandas does well:
    [groupby]: https://pandas.pydata.org/pandas-docs/stable/groupby.html#group-by-split-apply-combine
    [conversion]: https://pandas.pydata.org/pandas-docs/stable/dsintro.html#dataframe
    [slicing]: https://pandas.pydata.org/pandas-docs/stable/indexing.html#slicing-ranges
-   [fancy-indexing]: https://pandas.pydata.org/pandas-docs/stable/indexing.html#advanced-indexing-with-ix
+   [selecting]: https://pandas.pydata.org/pandas-docs/stable/indexing.html#selection-by-label
    [subsetting]: https://pandas.pydata.org/pandas-docs/stable/indexing.html#boolean-indexing
    [merging]: https://pandas.pydata.org/pandas-docs/stable/merging.html#database-style-dataframe-joining-merging
    [joining]: https://pandas.pydata.org/pandas-docs/stable/merging.html#joining-on-index
