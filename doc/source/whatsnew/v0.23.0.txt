@@ -3,7 +3,7 @@
 v0.23.0
 -------
 
-This is a major release from 0.21.1 and includes a number of API changes,
+This is a major release from 0.22.0 and includes a number of API changes,
 deprecations, new features, enhancements, and performance improvements along
 with a large number of bug fixes. We recommend that all users upgrade to this
 version.
@@ -249,7 +249,7 @@ The :func:`DataFrame.assign` now accepts dependent keyword arguments for python 
   using ``.assign()`` to update an existing column. Previously, callables
   referring to other variables being updated would get the "old" values
 
-  Previous Behaviour:
+  Previous Behavior:
 
   .. code-block:: ipython
 
@@ -262,7 +262,7 @@ The :func:`DataFrame.assign` now accepts dependent keyword arguments for python 
       1  3 -2
       2  4 -3
 
-  New Behaviour:
+  New Behavior:
 
   .. ipython:: python
 
@@ -360,6 +360,57 @@ If installed, we now require:
 +-----------------+-----------------+----------+
 | openpyxl        | 2.4.0           |          |
 +-----------------+-----------------+----------+
+
+.. _whatsnew_0230.api_breaking.dict_insertion_order:
+
+Instantation from dicts preserves dict insertion order for python 3.6+
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+Until Python 3.6, dicts in Python had no formally defined ordering. For Python
+version 3.6 and later, dicts are ordered by insertion order, see
+`PEP 468 <https://www.python.org/dev/peps/pep-0468/>`_.
+Pandas will use the dict's insertion order, when creating a ``Series`` or
+``DataFrame`` from a dict and you're using Python version 3.6 or
+higher. (:issue:`19884`)
+
+Previous Behavior (and current behavior if on Python < 3.6):
+
+.. code-block:: ipython
+
+   In [1]: pd.Series({'Income': 2000,
+   ...                'Expenses': -1500,
+   ...                'Taxes': -200,
+   ...                'Net result': 300})
+   Expenses     -1500
+   Income        2000
+   Net result     300
+   Taxes         -200
+   dtype: int64
+
+Note the Series above is ordered alphabetically by the index values.
+
+New Behavior (for Python >= 3.6):
+
+.. ipython:: python
+
+    pd.Series({'Income': 2000,
+               'Expenses': -1500,
+               'Taxes': -200,
+               'Net result': 300})
+
+Notice that the Series is now ordered by insertion order. This new behavior is
+used for all relevant pandas types (``Series``, ``DataFrame``, ``SparseSeries``
+and ``SparseDataFrame``).
+
+If you wish to retain the old behavior while using Python >= 3.6, you can use
+``.sort_index()``:
+
+.. ipython:: python
+
+    pd.Series({'Income': 2000,
+               'Expenses': -1500,
+               'Taxes': -200,
+               'Net result': 300}).sort_index()
 
 .. _whatsnew_0230.api_breaking.deprecate_panel:
 
