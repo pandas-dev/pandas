@@ -3045,19 +3045,17 @@ class TestDataFrameIndexingDatetimeWithTZ(TestData):
         assert_frame_equal(result, expected)
 
     def test_scalar_assignment(self):
+        # issue #19843
         df = pd.DataFrame(index=(0, 1, 2))
-
         df['now'] = pd.Timestamp('20130101', tz='UTC')
-
         assert isinstance(df.dtypes[0], DatetimeTZDtype)
 
     def test_datetime_index_assignment(self):
+        # issue #19843
         df = pd.DataFrame(index=(0, 1, 2))
-
         di = pd.DatetimeIndex(
             [pd.Timestamp('20130101', tz='UTC')]).repeat(len(df))
         df['now'] = di
-
         assert isinstance(df.dtypes[0], DatetimeTZDtype)
 
 
