@@ -12,7 +12,7 @@ cross platform distribution for data analysis and scientific computing.
 This is the recommended installation method for most users.
 
 Instructions for installing from source,
-`PyPI <http://pypi.python.org/pypi/pandas>`__, various Linux distributions, or a
+`PyPI <http://pypi.python.org/pypi/pandas>`__, `ActivePython <https://www.activestate.com/activepython/downloads>`__, various Linux distributions, or a
 `development version <http://github.com/pandas-dev/pandas>`__ are also provided.
 
 Python version support
@@ -25,8 +25,8 @@ Installing pandas
 
 .. _install.anaconda:
 
-Installing pandas with Anaconda
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+Installing with Anaconda
+~~~~~~~~~~~~~~~~~~~~~~~~
 
 Installing pandas and the rest of the `NumPy <http://www.numpy.org/>`__ and
 `SciPy <http://www.scipy.org/>`__ stack can be a little
@@ -58,8 +58,8 @@ that folder).
 
 .. _install.miniconda:
 
-Installing pandas with Miniconda
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+Installing with Miniconda
+~~~~~~~~~~~~~~~~~~~~~~~~~
 
 The previous section outlined how to get pandas installed as part of the
 `Anaconda <http://docs.continuum.io/anaconda/>`__ distribution.
@@ -134,6 +134,10 @@ pandas can be installed via pip from
 
     pip install pandas
 
+Installing with ActivePython
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Installation instructions for `ActivePython <https://www.activestate.com/activepython>`__ can be found `here <https://www.activestate.com/activepython/downloads>`__.
 
 Installing using your Linux distribution's package manager.
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -164,7 +168,7 @@ Installing from source
 See the :ref:`contributing documentation <contributing>` for complete instructions on building from the git source tree. Further, see :ref:`creating a development environment <contributing.dev_env>` if you wish to create a *pandas* development environment.
 
 Running the test suite
-~~~~~~~~~~~~~~~~~~~~~~
+----------------------
 
 pandas is equipped with an exhaustive set of unit tests, covering about 97% of
 the codebase as of this writing. To run it on your machine to verify that
@@ -299,5 +303,5 @@ Optional Dependencies
 
    Without the optional dependencies, many useful features will not
    work. Hence, it is highly recommended that you install these. A packaged
-   distribution like `Anaconda <http://docs.continuum.io/anaconda/>`__, or `Enthought Canopy
+   distribution like `Anaconda <http://docs.continuum.io/anaconda/>`__, `ActivePython <https://www.activestate.com/activepython/downloads>`__, or `Enthought Canopy
    <http://enthought.com/products/canopy>`__ may be worth considering.
