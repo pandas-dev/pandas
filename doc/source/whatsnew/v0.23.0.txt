@@ -369,9 +369,9 @@ Instantation from dicts preserves dict insertion order for python 3.6+
 Until Python 3.6, dicts in Python had no formally defined ordering. For Python
 version 3.6 and later, dicts are ordered by insertion order, see
 `PEP 468 <https://www.python.org/dev/peps/pep-0468/>`_.
-Pandas will use the dict's insertion order, when creating Series or
-DataFrames from dicts (:issue:`19018`) and you're using Python version 3.6 or
-higher.
+Pandas will use the dict's insertion order, when creating a ``Series`` or
+``DataFrame`` from a dict and you're using Python version 3.6 or
+higher. (:issue:`19884`)
 
 Previous Behavior (and current behavior if on Python < 3.6):
 
@@ -403,7 +403,7 @@ used for all relevant pandas types (``Series``, ``DataFrame``, ``SparseSeries``
 and ``SparseDataFrame``).
 
 If you wish to retain the old behavior while using Python >= 3.6, you can use
-``sort_index``:
+``.sort_index()``:
 
 .. ipython:: python
 
