@@ -25,8 +25,8 @@ Installing pandas
 
 .. _install.anaconda:
 
-Installing pandas with Anaconda
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+Installing with Anaconda
+~~~~~~~~~~~~~~~~~~~~~~~~
 
 Installing pandas and the rest of the `NumPy <http://www.numpy.org/>`__ and
 `SciPy <http://www.scipy.org/>`__ stack can be a little
@@ -58,8 +58,8 @@ that folder).
 
 .. _install.miniconda:
 
-Installing pandas with Miniconda
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+Installing with Miniconda
+~~~~~~~~~~~~~~~~~~~~~~~~~
 
 The previous section outlined how to get pandas installed as part of the
 `Anaconda <http://docs.continuum.io/anaconda/>`__ distribution.
@@ -134,10 +134,10 @@ pandas can be installed via pip from
 
     pip install pandas
 
-Installing pandas with ActivePython
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+Installing with ActivePython
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-Installation instructions for ActivePython can be found `here <https://www.activestate.com/activepython/downloads>`__.
+Installation instructions for `ActivePython <https://www.activestate.com/activepython>`__ can be found `here <https://www.activestate.com/activepython/downloads>`__.
 
 Installing using your Linux distribution's package manager.
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -168,7 +168,7 @@ Installing from source
 See the :ref:`contributing documentation <contributing>` for complete instructions on building from the git source tree. Further, see :ref:`creating a development environment <contributing.dev_env>` if you wish to create a *pandas* development environment.
 
 Running the test suite
-~~~~~~~~~~~~~~~~~~~~~~
+----------------------
 
 pandas is equipped with an exhaustive set of unit tests, covering about 97% of
 the codebase as of this writing. To run it on your machine to verify that
