@@ -1244,11 +1244,3 @@ def tolist(values):
     Series.tolist
     numpy.ndarray.tolist
     """
-    from pandas.core.common import _maybe_box_datetimelike
-
-    if is_datetimelike(values):
-        return [_maybe_box_datetimelike(x) for x in values]
-    elif is_extension_array_dtype(values):
-        return list(values)
-    else:
-        return values.tolist()
