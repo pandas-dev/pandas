@@ -34,14 +34,16 @@ class JSONArray(ExtensionArray):
         self.data = values
 
     @classmethod
-    def _from_scalars(cls, scalars):
+    def _constructor_from_sequence(cls, scalars):
         return cls(scalars)
 
     def __getitem__(self, item):
         if isinstance(item, numbers.Integral):
             return self.data[item]
         elif isinstance(item, np.ndarray) and item.dtype == 'bool':
-            return self._from_scalars([x for x, m in zip(self, item) if m])
+            return self._constructor_from_sequence([
+                x for x, m in zip(self, item) if m
+            ])
         else:
             return type(self)(self.data[item])
 
@@ -81,7 +83,7 @@ class JSONArray(ExtensionArray):
     def take(self, indexer, allow_fill=True, fill_value=None):
         output = [self.data[loc] if loc != -1 else self._na_value
                   for loc in indexer]
-        return self._from_scalars(output)
+        return self._constructor_from_sequence(output)
 
     def copy(self, deep=False):
         return type(self)(self.data[:])

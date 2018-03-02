@@ -62,7 +62,7 @@ class ExtensionArray(object):
     # Constructors
     # ------------------------------------------------------------------------
     @classmethod
-    def _from_scalars(cls, scalars):
+    def _constructor_from_sequence(cls, scalars):
         """Construct a new ExtensionArray from a sequence of scalars.
 
         Parameters
