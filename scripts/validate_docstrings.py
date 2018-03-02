@@ -19,9 +19,14 @@ import csv
 import re
 import functools
 import argparse
+import contextlib
 import inspect
 import importlib
 import doctest
+try:
+    from io import StringIO
+except ImportError:
+    from cStringIO import StringIO
 import numpy
 
 BASE_PATH = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -48,6 +53,18 @@ def _to_original_callable(obj):
             obj = obj.fget
         else:
             return None
+
+
+def _output_header(title, width=80, char='#'):
+    full_line = char * width
+    side_len = (width - len(title) - 2) // 2
+    adj = '' if len(title) % 2 == 0 else ' '
+    title_line = '{side} {title}{adj} {side}'.format(side=char * side_len,
+                                                     title=title,
+                                                     adj=adj)
+
+    return '\n{full_line}\n{title_line}\n{full_line}\n\n'.format(
+        full_line=full_line, title_line=title_line)
 
 
 class Docstring:
@@ -88,10 +105,14 @@ class Docstring:
 
     @property
     def summary(self):
+        if not self.doc['Extended Summary'] and len(self.doc['Summary']) > 1:
+            return ''
         return ' '.join(self.doc['Summary'])
 
     @property
     def extended_summary(self):
+        if not self.doc['Extended Summary'] and len(self.doc['Summary']) > 1:
+            return ' '.join(self.doc['Summary'])
         return ' '.join(self.doc['Extended Summary'])
 
     @property
@@ -112,12 +133,30 @@ class Docstring:
         return params
 
     @property
-    def correct_parameters(self):
+    def parameter_mismatches(self):
+        errs = []
+        signature_params = self.signature_parameters
         if self.doc_parameters:
-            doc_param_names = list(zip(*self.doc_parameters))[0]
-            return doc_param_names == self.signature_parameters
+            doc_params = list(zip(*self.doc_parameters))[0]
+        else:
+            doc_params = []
 
-        return not bool(self.signature_parameters)
+        missing = set(signature_params) - set(doc_params)
+        if missing:
+            errs.append('Parameters {!r} not documented'.format(missing))
+        extra = set(doc_params) - set(signature_params)
+        if extra:
+            errs.append('Unknown parameters {!r}'.format(extra))
+        if not missing and not extra and signature_params != doc_params:
+            errs.append('Wrong parameters order. ' +
+                        'Actual: {!r}. '.format(signature_params) +
+                        'Documented: {!r}'.format(doc_params))
+
+        return errs
+
+    @property
+    def correct_parameters(self):
+        return not bool(self.parameter_mismatches)
 
     @property
     def see_also(self):
@@ -140,15 +179,18 @@ class Docstring:
                 bool(pattern.search(self.extended_summary)))
 
     @property
-    def examples_pass_tests(self):
-        flags = doctest.NORMALIZE_WHITESPACE
+    def examples_errors(self):
+        flags = doctest.NORMALIZE_WHITESPACE | doctest.IGNORE_EXCEPTION_DETAIL
         finder = doctest.DocTestFinder()
         runner = doctest.DocTestRunner(optionflags=flags)
         context = {'np': numpy, 'pd': pandas}
-        total_failed = 0
+        error_msgs = ''
         for test in finder.find(self.raw_doc, self.method_name, globs=context):
-            total_failed += runner.run(test).failed
-        return total_failed == 0
+            f = StringIO()
+            with contextlib.redirect_stdout(f):
+                runner.run(test)
+            error_msgs += f.getvalue()
+        return error_msgs
 
 
 def get_api_items():
@@ -243,6 +285,9 @@ def validate_one(func_name):
 
     doc = Docstring(func_name, func_obj)
 
+    sys.stderr.write(_output_header('Docstring ({})'.format(func_name)))
+    sys.stderr.write('{}\n'.format(doc.raw_doc))
+
     errs = []
     if not doc.summary:
         errs.append('No summary found')
@@ -257,20 +302,32 @@ def validate_one(func_name):
                         '"Generates")')
     if not doc.extended_summary:
         errs.append('No extended summary found')
-    if not doc.correct_parameters:
-        errs.append('Documented parameters do not match the signature')
-    if not doc.examples:
-        errs.append('No examples')
-    else:
-        if not doc.examples_pass_tests:
-            errs.append('Examples do not pass test')
 
+    param_errs = doc.parameter_mismatches
+    if param_errs:
+        errs.append('Errors in parameters section')
+        for param_err in param_errs:
+            errs.append('\t{}'.format(param_err))
+
+    examples_errs = ''
+    if not doc.examples:
+        errs.append('No examples section found')
+    else:
+        examples_errs = doc.examples_errors
+        if examples_errs:
+            errs.append('Examples do not pass tests')
+
+    sys.stderr.write(_output_header('Validation'))
     if errs:
-        sys.stderr.write('Errors for "{}" docstring:\n'.format(func_name))
+        sys.stderr.write('Errors found:\n')
         for err in errs:
-            sys.stderr.write('\t* {}\n'.format(err))
+            sys.stderr.write('\t{}\n'.format(err))
     else:
         sys.stderr.write('Docstring for "{}" correct. :)\n'.format(func_name))
+
+    if examples_errs:
+        sys.stderr.write(_output_header('Doctests'))
+        sys.stderr.write(examples_errs)
 
     return len(errs)
 
