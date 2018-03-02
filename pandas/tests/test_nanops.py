@@ -1008,18 +1008,6 @@ class TestNankurtFixedValues(object):
 class TestNumpyNaNFunctions(object):
 
     # xref GH 19629
-    methods_to_test = [
-        (np.sum, np.nansum),
-        (np.mean, np.nanmean),
-        (np.std, np.nanstd),
-        (np.var, np.nanvar),
-        (np.median, np.nanmedian),
-        (np.max, np.nanmax),
-        (np.min, np.nanmin),
-        (np.cumprod, np.nancumprod),
-        (np.cumsum, np.nancumsum)
-    ]
-
     def setup_method(self, method):
         self.test_series = pd.Series([1, 2, 3, 4, 5, 6])
         self.test_df = pd.DataFrame([[1, 2, 3], [4, 5, 6]])
@@ -1029,10 +1017,20 @@ class TestNumpyNaNFunctions(object):
                                data.agg(nan_method),
                                check_exact=True)
 
-    def test_np_nan_functions(self):
-        for standard, nan_method in self.methods_to_test:
-            self.compare_method_output(self.test_series, standard, nan_method)
-            self.compare_method_output(self.test_df, standard, nan_method)
+    @pytest.mark.parametrize("standard, nan_method", [
+        (np.sum, np.nansum),
+        (np.mean, np.nanmean),
+        (np.std, np.nanstd),
+        (np.var, np.nanvar),
+        (np.median, np.nanmedian),
+        (np.max, np.nanmax),
+        (np.min, np.nanmin),
+        (np.cumprod, np.nancumprod),
+        (np.cumsum, np.nancumsum)
+    ])
+    def test_np_nan_functions(self, standard, nan_method):
+        self.compare_method_output(self.test_series, standard, nan_method)
+        self.compare_method_output(self.test_df, standard, nan_method)
 
     @td.skip_if_no("numpy", min_version="1.10.0")
     def test_np_nanprod(self):
