@@ -400,6 +400,7 @@ def pivot(self, index=None, columns=None, values=None):
         index = MultiIndex.from_arrays([index, self[columns]])
 
         if is_list_like(values) and not isinstance(values, tuple):
+            # Exclude tuple because it is seen as a single column name
             indexed = self._constructor(self[values].values, index=index,
                                         columns=values)
         else:

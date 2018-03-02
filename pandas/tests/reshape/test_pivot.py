@@ -427,7 +427,7 @@ class TestPivotTable(object):
                            'zoo': ['x', 'y', 'z', 'q', 'w', 't']})
         with pytest.raises(KeyError):
             # tuple is seen as a single column name
-            result = df.pivot(index='zoo', columns='foo', values=('bar', 'baz'))
+            df.pivot(index='zoo', columns='foo', values=('bar', 'baz'))
 
     def test_margins(self):
         def _check_output(result, values_col, index=['A', 'B'],
