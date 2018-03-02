@@ -1235,7 +1235,7 @@ def tolist(values):
     Returns
     -------
     list
-        Each element of the list is a Python scalar (stor, int float)
+        Each element of the list is a Python scalar (str, int, float)
         or a pandas scalar (Timestamp / Timedelta / Interval / Period) or
         the scalar type for 3rd party Extension Arrays.
 
