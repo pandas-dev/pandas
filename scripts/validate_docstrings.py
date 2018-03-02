@@ -39,6 +39,9 @@ sys.path.insert(1, os.path.join(BASE_PATH, 'doc', 'sphinxext'))
 from numpydoc.docscrape import NumpyDocString
 
 
+PRIVATE_CLASSES = ['NDFrame', 'IndexOpsMixin']
+
+
 def _to_original_callable(obj):
     while True:
         if inspect.isfunction(obj) or inspect.isclass(obj):
@@ -187,8 +190,7 @@ class Docstring:
 
     @property
     def mentioned_private_classes(self):
-        private_classes = ['NDFrame', 'IndexOpsMixin']
-        return [klass for klass in private_classes if klass in self.raw_doc]
+        return [klass for klass in PRIVATE_CLASSES if klass in self.raw_doc]
 
     @property
     def examples_errors(self):
@@ -323,7 +325,8 @@ def validate_one(func_name):
 
     mentioned_errs = doc.mentioned_private_classes
     if mentioned_errs:
-        errs.append('Private classes mentioned: {}'.format(mentioned_errs))
+        errs.append('Private classes ({}) should not be mentioned in public '
+                    'docstring.'.format(mentioned_errs))
 
     examples_errs = ''
     if not doc.examples:
