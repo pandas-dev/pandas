@@ -1393,17 +1393,21 @@ class Categorical(ExtensionArray, PandasObject):
     def _values_for_argsort(self):
         return self._codes.copy()
 
-    def argsort(self, ascending=True, kind='quicksort', *args, **kwargs):
-        """
-        Returns the indices that would sort the Categorical instance if
-        'sort_values' was called. This function is implemented to provide
-        compatibility with numpy ndarray objects.
+    def argsort(self, *args, **kwargs):
+        # TODO(PY2): use correct signature
+        # We have to do *args, **kwargs to avoid a a py2-only signature
+        # issue since np.argsort differs from argsort.
+        """Return the indicies that would sort the Categorical.
 
-        While an ordering is applied to the category values, arg-sorting
-        in this context refers more to organizing and grouping together
-        based on matching category values. Thus, this function can be
-        called on an unordered Categorical instance unlike the functions
-        'Categorical.min' and 'Categorical.max'.
+        Parameters
+        ----------
+        ascending : bool, default True
+            Whether the indices should result in an ascending
+            or descending sort.
+        kind : {'quicksort', 'mergesort', 'heapsort'}, optional
+            Sorting algorithm.
+        args, kwargs:
+            passed through to :func:`numpy.argsort`.
 
         Returns
         -------
@@ -1412,10 +1416,28 @@ class Categorical(ExtensionArray, PandasObject):
         See also
         --------
         numpy.ndarray.argsort
+
+        Notes
+        -----
+        While an ordering is applied to the category values, arg-sorting
+        in this context refers more to organizing and grouping together
+        based on matching category values. Thus, this function can be
+        called on an unordered Categorical instance unlike the functions
+        'Categorical.min' and 'Categorical.max'.
+
+        Examples
+        --------
+        >>> pd.Categorical(['b', 'b', 'a', 'c']).argsort()
+        array([2, 0, 1, 3])
+
+        >>> cat = pd.Categorical(['b', 'b', 'a', 'c'],
+        ...                      categories=['c', 'b', 'a'],
+        ...                      ordered=True)
+        >>> cat.argsort()
+        array([3, 0, 1, 2])
         """
         # Keep the implementation here just for the docstring.
-        return super(Categorical, self).argsort(ascending=ascending, kind=kind,
-                                                *args, **kwargs)
+        return super(Categorical, self).argsort(*args, **kwargs)
 
     def sort_values(self, inplace=False, ascending=True, na_position='last'):
         """ Sorts the Categorical by category value returning a new
