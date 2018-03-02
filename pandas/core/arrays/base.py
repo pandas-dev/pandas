@@ -235,18 +235,21 @@ class ExtensionArray(object):
         Parameters
         ----------
         ascending : bool, default True
-        axis : int or None, optional
-            Axis along which to sort. ExtensionArrays are 1-dimensional,
-            so this is only included for compatibility with NumPy.
+            Whether the indices should result in an ascending
+            or descending sort.
         kind : {'quicksort', 'mergesort', 'heapsort'}, optional
             Sorting algorithm.
-        order : str or list of str, optional
-            Included for NumPy compatibility.
+        args, kwargs:
+            passed through to :func:`numpy.argsort`.
 
         Returns
         -------
         index_array : ndarray
             Array of indices that sort ``self``.
+
+        See Also
+        --------
+        numpy.argsort
         """
         # Implementor note: You have two places to override the behavior of
         # argsort.
