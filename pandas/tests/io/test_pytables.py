@@ -2034,7 +2034,7 @@ class TestHDFStore(Base):
                                'bool': 1, 'int16': 1, 'int8': 1,
                                'int64': 1, 'object': 1, 'datetime64[ns]': 2})
             result = result.sort_index()
-            result = expected.sort_index()
+            expected = expected.sort_index()
             tm.assert_series_equal(result, expected)
 
     def test_table_mixed_dtypes(self):

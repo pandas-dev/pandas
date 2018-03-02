@@ -81,9 +81,28 @@ index is passed, one will be created having values ``[0, ..., len(data) - 1]``.
 
 **From dict**
 
-If ``data`` is a dict, if **index** is passed the values in data corresponding
-to the labels in the index will be pulled out. Otherwise, an index will be
-constructed from the sorted keys of the dict, if possible.
+Series can be instantiated from dicts:
+
+.. ipython:: python
+
+   d = {'b' : 1, 'a' : 0, 'c' : 2}
+   pd.Series(d)
+
+.. note::
+
+   When the data is a dict, and an index is not passed, the ``Series`` index
+   will be ordered by the dict's insertion order, if you're using Python
+   version >= 3.6 and Pandas version >= 0.23.
+
+   If you're using Python < 3.6 or Pandas < 0.23, and an index is not passed,
+   the ``Series`` index will be the lexically ordered list of dict keys.
+
+In the example above, if you were on a Python version lower than 3.6 or a
+Pandas version lower than 0.23, the ``Series`` would be ordered by the lexical
+order of the dict keys (i.e. ``['a', 'b', 'c']`` rather than ``['b', 'a', 'c']``).
+
+If an index is passed, the values in data corresponding to the labels in the
+index will be pulled out.
 
 .. ipython:: python
 
@@ -243,12 +262,22 @@ not matching up to the passed index.
 If axis labels are not passed, they will be constructed from the input data
 based on common sense rules.
 
+.. note::
+
+   When the data is a dict, and ``columns`` is not specified, the ``DataFrame``
+   columns will be ordered by the dict's insertion order, if you are using
+   Python version >= 3.6 and Pandas >= 0.23.
+
+   If you are using Python < 3.6 or Pandas < 0.23, and ``columns`` is not
+   specified, the ``DataFrame`` columns will be the lexically ordered list of dict
+   keys.
+
 From dict of Series or dicts
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 The resulting **index** will be the **union** of the indexes of the various
 Series. If there are any nested dicts, these will first be converted to
-Series. If no columns are passed, the columns will be the sorted list of dict
+Series. If no columns are passed, the columns will be the ordered list of dict
 keys.
 
 .. ipython:: python

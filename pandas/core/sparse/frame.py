@@ -39,6 +39,10 @@ class SparseDataFrame(DataFrame):
     Parameters
     ----------
     data : same types as can be passed to DataFrame or scipy.sparse.spmatrix
+        .. versionchanged :: 0.23.0
+           If data is a dict, argument order is maintained for Python 3.6
+           and later.
+
     index : array-like, optional
     column : array-like, optional
     default_kind : {'block', 'integer'}, default 'block'
@@ -138,7 +142,8 @@ class SparseDataFrame(DataFrame):
             columns = _ensure_index(columns)
             data = {k: v for k, v in compat.iteritems(data) if k in columns}
         else:
-            columns = Index(com._try_sort(list(data.keys())))
+            keys = com._dict_keys_to_ordered_list(data)
+            columns = Index(keys)
 
         if index is None:
             index = extract_index(list(data.values()))

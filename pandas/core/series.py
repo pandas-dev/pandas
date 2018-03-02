@@ -54,7 +54,7 @@ from pandas.core.indexes.period import PeriodIndex
 from pandas import compat
 from pandas.io.formats.terminal import get_terminal_size
 from pandas.compat import (
-    zip, u, OrderedDict, StringIO, range, get_range_parameters)
+    zip, u, OrderedDict, StringIO, range, get_range_parameters, PY36)
 from pandas.compat.numpy import function as nv
 
 import pandas.core.ops as ops
@@ -130,6 +130,11 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
     ----------
     data : array-like, dict, or scalar value
         Contains data stored in Series
+
+        .. versionchanged :: 0.23.0
+           If data is a dict, argument order is maintained for Python 3.6
+           and later.
+
     index : array-like or Index (1d)
         Values must be hashable and have the same length as `data`.
         Non-unique index values are allowed. Will default to
@@ -297,7 +302,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         # Now we just make sure the order is respected, if any
         if index is not None:
             s = s.reindex(index, copy=False)
-        elif not isinstance(data, OrderedDict):
+        elif not PY36 and not isinstance(data, OrderedDict):
             try:
                 s = s.sort_index()
             except TypeError:
