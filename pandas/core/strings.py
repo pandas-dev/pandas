@@ -901,29 +901,31 @@ def str_findall(arr, pat, flags=0):
     Find all occurrences of pattern or regular expression in the Series/Index.
 
     Equivalent to apply :func:`re.findall` to all the elements in the
-    Series/Index. Empty matches are included in the result.
+    Series/Index.
 
     Parameters
     ----------
-    pat : string
-        Pattern or regular expression
-    flags : int, default 0 (no flags)
-        re module flags, e.g. re.IGNORECASE
+    pat : str
+        Pattern or regular expression.
+    flags : int
+        re module flags, e.g. re.IGNORECASE (default is 0, which means
+        no flags).
+    kwargs
+        These parameters will be ignored.
 
     Returns
     -------
-    matches : Series/Index of lists of strings, with all non-overlapping
-    matches of pattern or regular expression in each string of this
-    Series/Index
+    Series/Index of lists of strings
+        All non-overlapping matches of pattern or regular expression in each
+        string of this Series/Index.
 
     See Also
     --------
-    Series.str.extractall : For each subject string in the Series, extract \
-    groups from all matches of regular expression pat
-    Series.str.count : Count occurrences of pattern in each string of the \
-    Series/Index
+    extractall : For each subject string in the Series, extract groups \
+    from all matches of regular expression pat.
+    count : Count occurrences of pattern in each string of the Series/Index.
     re.findall: Return all non-overlapping matches of pattern in string, \
-    as a list of strings
+    as a list of strings.
 
     Examples
     --------
@@ -941,6 +943,7 @@ def str_findall(arr, pat, flags=0):
     2    []
     dtype: object
 
+    >>> import re
     >>> s.str.findall('MONKEY', flags=re.IGNORECASE)
     0          []
     1    [Monkey]
@@ -964,7 +967,6 @@ def str_findall(arr, pat, flags=0):
     1        []
     2    [b, b]
     dtype: object
-
 
     """
     regex = re.compile(pat, flags=flags)
