@@ -524,9 +524,9 @@ def encode(obj):
                 u'freq': u_safe(obj.freqstr)}
     elif isinstance(obj, Interval):
         return {u'typ': u'interval',
-                u'left':obj.left,
-                u'right':obj.right,
-                u'closed':obj.closed}
+                u'left': obj.left,
+                u'right': obj.right,
+                u'closed': obj.closed}
     elif isinstance(obj, BlockIndex):
         return {u'typ': u'block_index',
                 u'klass': u(obj.__class__.__name__),

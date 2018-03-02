@@ -320,14 +320,14 @@ class TestBasic(TestPackers):
 
     def test_periods(self):
         # 13463
-        for i in [Period('2010-09', 'M'), Period('2014-Q1', 'Q')]: 
+        for i in [Period('2010-09', 'M'), Period('2014-Q1', 'Q')]:
             i_rec = self.encode_decode(i)
             assert i == i_rec
 
     def test_intervals(self):
         # 19967
         for i in [Interval(0, 1), Interval(0, 1, 'left'),
-                  Interval(10, 25., 'right')]: 
+                  Interval(10, 25., 'right')]:
             i_rec = self.encode_decode(i)
             assert i == i_rec
 
@@ -349,8 +349,8 @@ class TestIndex(TestPackers):
             'date2': Index(date_range('2013-01-1', periods=10)),
             'bdate': Index(bdate_range('2013-01-02', periods=10)),
             'cat': tm.makeCategoricalIndex(100),
-            'interval':tm.makeIntervalIndex(100),
-            'timedelta':tm.makeTimedeltaIndex(100, 'H')
+            'interval': tm.makeIntervalIndex(100),
+            'timedelta': tm.makeTimedeltaIndex(100, 'H')
         }
 
         self.mi = {
