@@ -127,7 +127,12 @@ class Docstring:
 
     @property
     def signature_parameters(self):
-        if not inspect.isfunction(self.method_obj):
+        if not (inspect.isfunction(self.method_obj)
+                or inspect.isclass(self.method_obj)):
+            return tuple()
+        if (inspect.isclass(self.method_obj)
+                and self.method_name.split('.')[-1] in {'dt', 'str', 'cat'}):
+            # accessor classes have a signature, but don't want to show this
             return tuple()
         params = tuple(inspect.signature(self.method_obj).parameters.keys())
         if params and params[0] in ('self', 'cls'):
