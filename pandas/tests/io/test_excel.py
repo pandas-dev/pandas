@@ -762,17 +762,17 @@ class TestXlrdReader(ReadingTestsBase):
         # GH 12453
         with ensure_clean('.xlsx') as path:
             df = DataFrame({
-                ('Zero', ''): {0: 0},
                 ('One', 'x'): {0: 1},
                 ('Two', 'X'): {0: 3},
-                ('Two', 'Y'): {0: 7}
+                ('Two', 'Y'): {0: 7},
+                ('Zero', ''): {0: 0}
             })
 
             expected = DataFrame({
-                ('Zero', 'Unnamed: 3_level_1'): {0: 0},
                 ('One', u'x'): {0: 1},
                 ('Two', u'X'): {0: 3},
-                ('Two', u'Y'): {0: 7}
+                ('Two', u'Y'): {0: 7},
+                ('Zero', 'Unnamed: 3_level_1'): {0: 0}
             })
 
             df.to_excel(path)
