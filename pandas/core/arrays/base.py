@@ -217,20 +217,8 @@ class ExtensionArray(object):
         """
         raise AbstractMethodError(self)
 
-    def _values_for_argsort(self):
-        # type: () -> ndarray
-        """Get the ndarray to be passed to np.argsort.
-
-        This is called from within 'ExtensionArray.argsort'.
-
-        Returns
-        -------
-        values : ndarray
-        """
-        return np.array(self)
-
     def argsort(self, ascending=True, kind='quicksort', *args, **kwargs):
-        """Returns the indices that would sort this array.
+        """Return the indices that would sort this array.
 
         Parameters
         ----------
@@ -251,13 +239,8 @@ class ExtensionArray(object):
         --------
         numpy.argsort
         """
-        # Implementor note: You have two places to override the behavior of
-        # argsort.
-        # 1. _values_for_argsort : construct the values passed to np.argsort
-        # 2. argsort : total control over sorting.
-
         ascending = nv.validate_argsort_with_ascending(ascending, args, kwargs)
-        values = self._values_for_argsort()
+        values = self.astype(object)
         result = np.argsort(values, kind=kind, **kwargs)
         if not ascending:
             result = result[::-1]
