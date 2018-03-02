@@ -2,6 +2,7 @@
 import numpy as np
 
 from pandas.errors import AbstractMethodError
+from pandas.compat.numpy import function as nv
 
 _not_implemented_message = "{} does not implement {}."
 
@@ -216,11 +217,24 @@ class ExtensionArray(object):
         """
         raise AbstractMethodError(self)
 
-    def argsort(self, axis=-1, kind='quicksort', order=None):
+    def _values_for_argsort(self):
+        # type: () -> ndarray
+        """Get the ndarray to be passed to np.argsort.
+
+        This is called from within 'ExtensionArray.argsort'.
+
+        Returns
+        -------
+        values : ndarray
+        """
+        return np.array(self)
+
+    def argsort(self, ascending=True, kind='quicksort', *args, **kwargs):
         """Returns the indices that would sort this array.
 
         Parameters
         ----------
+        ascending : bool, default True
         axis : int or None, optional
             Axis along which to sort. ExtensionArrays are 1-dimensional,
             so this is only included for compatibility with NumPy.
@@ -233,9 +247,18 @@ class ExtensionArray(object):
         -------
         index_array : ndarray
             Array of indices that sort ``self``.
-
         """
-        return np.array(self).argsort(kind=kind)
+        # Implementor note: You have two places to override the behavior of
+        # argsort.
+        # 1. _values_for_argsort : construct the values passed to np.argsort
+        # 2. argsort : total control over sorting.
+
+        ascending = nv.validate_argsort_with_ascending(ascending, args, kwargs)
+        values = self._values_for_argsort()
+        result = np.argsort(values, kind=kind, **kwargs)
+        if not ascending:
+            result = result[::-1]
+        return result
 
     # ------------------------------------------------------------------------
     # Indexing methods

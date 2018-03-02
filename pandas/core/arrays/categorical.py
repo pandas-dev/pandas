@@ -1386,6 +1386,9 @@ class Categorical(ExtensionArray, PandasObject):
                             "you can use .as_ordered() to change the "
                             "Categorical to an ordered one\n".format(op=op))
 
+    def _values_for_argsort(self):
+        return self._codes.copy()
+
     def argsort(self, ascending=True, kind='quicksort', *args, **kwargs):
         """
         Returns the indices that would sort the Categorical instance if
@@ -1406,11 +1409,9 @@ class Categorical(ExtensionArray, PandasObject):
         --------
         numpy.ndarray.argsort
         """
-        ascending = nv.validate_argsort_with_ascending(ascending, args, kwargs)
-        result = np.argsort(self._codes.copy(), kind=kind, **kwargs)
-        if not ascending:
-            result = result[::-1]
-        return result
+        # Keep the implementation here just for the docstring.
+        return super(Categorical, self).argsort(ascending=ascending, kind=kind,
+                                                *args, **kwargs)
 
     def sort_values(self, inplace=False, ascending=True, na_position='last'):
         """ Sorts the Categorical by category value returning a new
