@@ -100,10 +100,11 @@ def _field_accessor(name, field, docstring=None):
     return property(f)
 
 
-def _dt_index_cmp(opname, cls, nat_result=False):
+def _dt_index_cmp(opname, cls):
     """
     Wrap comparison operations to convert datetime-like to datetime64
     """
+    nat_result = True if opname == '__ne__' else False
 
     def wrapper(self, other):
         func = getattr(super(DatetimeIndex, self), opname)
@@ -137,11 +138,9 @@ def _dt_index_cmp(opname, cls, nat_result=False):
             result = func(np.asarray(other))
             result = com._values_from_object(result)
 
-            if isinstance(other, Index):
-                o_mask = other.values.view('i8') == libts.iNaT
-            else:
-                o_mask = other.view('i8') == libts.iNaT
-
+            # Make sure to pass an array to result[...]; indexing with
+            # Series breaks with older version of numpy
+            o_mask = np.array(isna(other))
             if o_mask.any():
                 result[o_mask] = nat_result
 
@@ -291,7 +290,7 @@ class DatetimeIndex(DatelikeOps, TimelikeOps, DatetimeIndexOpsMixin,
     def _add_comparison_methods(cls):
         """ add in comparison methods """
         cls.__eq__ = _dt_index_cmp('__eq__', cls)
-        cls.__ne__ = _dt_index_cmp('__ne__', cls, nat_result=True)
+        cls.__ne__ = _dt_index_cmp('__ne__', cls)
         cls.__lt__ = _dt_index_cmp('__lt__', cls)
         cls.__gt__ = _dt_index_cmp('__gt__', cls)
         cls.__le__ = _dt_index_cmp('__le__', cls)
@@ -679,11 +678,41 @@ class DatetimeIndex(DatelikeOps, TimelikeOps, DatetimeIndexOpsMixin,
                             'datetime-like objects')
 
     @property
+    def _values(self):
+        # tz-naive -> ndarray
+        # tz-aware -> DatetimeIndex
+        if self.tz is not None:
+            return self
+        else:
+            return self.values
+
+    @property
     def tzinfo(self):
         """
         Alias for tz attribute
         """
         return self.tz
+
+    @property
+    def size(self):
+        # TODO: Remove this when we have a DatetimeTZArray
+        # Necessary to avoid recursion error since DTI._values is a DTI
+        # for TZ-aware
+        return self._ndarray_values.size
+
+    @property
+    def shape(self):
+        # TODO: Remove this when we have a DatetimeTZArray
+        # Necessary to avoid recursion error since DTI._values is a DTI
+        # for TZ-aware
+        return self._ndarray_values.shape
+
+    @property
+    def nbytes(self):
+        # TODO: Remove this when we have a DatetimeTZArray
+        # Necessary to avoid recursion error since DTI._values is a DTI
+        # for TZ-aware
+        return self._ndarray_values.nbytes
 
     @cache_readonly
     def _timezone(self):
@@ -822,27 +851,22 @@ class DatetimeIndex(DatelikeOps, TimelikeOps, DatetimeIndexOpsMixin,
             raise Exception("invalid pickle state")
     _unpickle_compat = __setstate__
 
-    def _add_datelike(self, other):
-        # adding a timedeltaindex to a datetimelike
-        if other is libts.NaT:
-            return self._nat_new(box=True)
-        raise TypeError("cannot add {0} and {1}"
-                        .format(type(self).__name__,
-                                type(other).__name__))
-
     def _sub_datelike(self, other):
-        # subtract a datetime from myself, yielding a TimedeltaIndex
-        from pandas import TimedeltaIndex
-        if isinstance(other, DatetimeIndex):
+        # subtract a datetime from myself, yielding a ndarray[timedelta64[ns]]
+        if isinstance(other, (DatetimeIndex, np.ndarray)):
+            # if other is an ndarray, we assume it is datetime64-dtype
+            other = DatetimeIndex(other)
             # require tz compat
             if not self._has_same_tz(other):
-                raise TypeError("DatetimeIndex subtraction must have the same "
-                                "timezones or no timezones")
+                raise TypeError("{cls} subtraction must have the same "
+                                "timezones or no timezones"
+                                .format(cls=type(self).__name__))
             result = self._sub_datelike_dti(other)
         elif isinstance(other, (datetime, np.datetime64)):
+            assert other is not libts.NaT
             other = Timestamp(other)
             if other is libts.NaT:
-                result = self._nat_new(box=False)
+                return self - libts.NaT
             # require tz compat
             elif not self._has_same_tz(other):
                 raise TypeError("Timestamp subtraction must have the same "
@@ -854,9 +878,10 @@ class DatetimeIndex(DatelikeOps, TimelikeOps, DatetimeIndexOpsMixin,
                 result = self._maybe_mask_results(result,
                                                   fill_value=libts.iNaT)
         else:
-            raise TypeError("cannot subtract DatetimeIndex and {typ}"
-                            .format(typ=type(other).__name__))
-        return TimedeltaIndex(result, name=self.name, copy=False)
+            raise TypeError("cannot subtract {cls} and {typ}"
+                            .format(cls=type(self).__name__,
+                                    typ=type(other).__name__))
+        return result.view('timedelta64[ns]')
 
     def _sub_datelike_dti(self, other):
         """subtraction of two DatetimeIndexes"""
@@ -869,7 +894,7 @@ class DatetimeIndex(DatelikeOps, TimelikeOps, DatetimeIndexOpsMixin,
         if self.hasnans or other.hasnans:
             mask = (self._isnan) | (other._isnan)
             new_values[mask] = libts.iNaT
-        return new_values.view('i8')
+        return new_values.view('timedelta64[ns]')
 
     def _maybe_update_attributes(self, attrs):
         """ Update Index attributes (e.g. freq) depending on op """
@@ -880,20 +905,31 @@ class DatetimeIndex(DatelikeOps, TimelikeOps, DatetimeIndexOpsMixin,
         return attrs
 
     def _add_delta(self, delta):
-        if isinstance(delta, ABCSeries):
-            return NotImplemented
+        """
+        Add a timedelta-like, DateOffset, or TimedeltaIndex-like object
+        to self.
 
+        Parameters
+        ----------
+        delta : {timedelta, np.timedelta64, DateOffset,
+                 TimedelaIndex, ndarray[timedelta64]}
+
+        Returns
+        -------
+        result : DatetimeIndex
+
+        Notes
+        -----
+        The result's name is set outside of _add_delta by the calling
+        method (__add__ or __sub__)
+        """
         from pandas import TimedeltaIndex
-        name = self.name
 
         if isinstance(delta, (Tick, timedelta, np.timedelta64)):
             new_values = self._add_delta_td(delta)
         elif is_timedelta64_dtype(delta):
             if not isinstance(delta, TimedeltaIndex):
                 delta = TimedeltaIndex(delta)
-            else:
-                # update name when delta is Index
-                name = com._maybe_match_name(self, delta)
             new_values = self._add_delta_tdi(delta)
         elif isinstance(delta, DateOffset):
             new_values = self._add_offset(delta).asi8
@@ -901,7 +937,7 @@ class DatetimeIndex(DatelikeOps, TimelikeOps, DatetimeIndexOpsMixin,
             new_values = self.astype('O') + delta
 
         tz = 'UTC' if self.tz is not None else None
-        result = DatetimeIndex(new_values, tz=tz, name=name, freq='infer')
+        result = DatetimeIndex(new_values, tz=tz, freq='infer')
         if self.tz is not None and self.tz is not utc:
             result = result.tz_convert(self.tz)
         return result
@@ -921,32 +957,6 @@ class DatetimeIndex(DatelikeOps, TimelikeOps, DatetimeIndexOpsMixin,
             warnings.warn("Non-vectorized DateOffset being applied to Series "
                           "or DatetimeIndex", PerformanceWarning)
             return self.astype('O') + offset
-
-    def _add_offset_array(self, other):
-        # Array/Index of DateOffset objects
-        if isinstance(other, ABCSeries):
-            return NotImplemented
-        elif len(other) == 1:
-            return self + other[0]
-        else:
-            warnings.warn("Adding/subtracting array of DateOffsets to "
-                          "{} not vectorized".format(type(self)),
-                          PerformanceWarning)
-            return self.astype('O') + np.array(other)
-            # TODO: This works for __add__ but loses dtype in __sub__
-
-    def _sub_offset_array(self, other):
-        # Array/Index of DateOffset objects
-        if isinstance(other, ABCSeries):
-            return NotImplemented
-        elif len(other) == 1:
-            return self - other[0]
-        else:
-            warnings.warn("Adding/subtracting array of DateOffsets to "
-                          "{} not vectorized".format(type(self)),
-                          PerformanceWarning)
-            res_values = self.astype('O').values - np.array(other)
-            return self.__class__(res_values, freq='infer')
 
     def _format_native_types(self, na_rep='NaT', date_format=None, **kwargs):
         from pandas.io.formats.format import _get_format_datetime64_from_values
@@ -1085,6 +1095,19 @@ class DatetimeIndex(DatelikeOps, TimelikeOps, DatetimeIndexOpsMixin,
 
         # we know it conforms; skip check
         return DatetimeIndex(snapped, freq=freq, verify_integrity=False)
+
+    def unique(self, level=None):
+        # Override here since IndexOpsMixin.unique uses self._values.unique
+        # For DatetimeIndex with TZ, that's a DatetimeIndex -> recursion error
+        # So we extract the tz-naive DatetimeIndex, unique that, and wrap the
+        # result with out TZ.
+        if self.tz is not None:
+            naive = type(self)(self._ndarray_values, copy=False)
+        else:
+            naive = self
+        result = super(DatetimeIndex, naive).unique(level=level)
+        return self._simple_new(result, name=self.name, tz=self.tz,
+                                freq=self.freq)
 
     def union(self, other):
         """

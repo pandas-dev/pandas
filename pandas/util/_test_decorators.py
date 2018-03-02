@@ -57,7 +57,11 @@ def safe_import(mod_name, min_version=None):
         return mod
     else:
         import sys
-        version = getattr(sys.modules[mod_name], '__version__')
+        try:
+            version = getattr(sys.modules[mod_name], '__version__')
+        except AttributeError:
+            # xlrd uses a capitalized attribute name
+            version = getattr(sys.modules[mod_name], '__VERSION__')
         if version:
             from distutils.version import LooseVersion
             if LooseVersion(version) >= LooseVersion(min_version):

@@ -34,7 +34,7 @@ from pandas.core.config import get_option
 
 from pandas.core.indexes.base import (
     Index, _ensure_index,
-    _get_na_value, InvalidIndexError,
+    InvalidIndexError,
     _index_shared_docs)
 from pandas.core.indexes.frozen import (
     FrozenNDArray, FrozenList, _ensure_frozen)
@@ -799,10 +799,12 @@ class MultiIndex(Index):
             box = hasattr(lev, '_box_values')
             # Try to minimize boxing.
             if box and len(lev) > len(lab):
-                taken = lev._box_values(algos.take_1d(lev._values, lab))
+                taken = lev._box_values(algos.take_1d(lev._ndarray_values,
+                                                      lab))
             elif box:
-                taken = algos.take_1d(lev._box_values(lev._values), lab,
-                                      fill_value=_get_na_value(lev.dtype.type))
+                taken = algos.take_1d(lev._box_values(lev._ndarray_values),
+                                      lab,
+                                      fill_value=lev._na_value)
             else:
                 taken = algos.take_1d(np.asarray(lev._values), lab)
             values.append(taken)
@@ -2410,7 +2412,7 @@ class MultiIndex(Index):
                 mapper = Series(indexer)
                 indexer = labels.take(_ensure_platform_int(indexer))
                 result = Series(Index(indexer).isin(r).nonzero()[0])
-                m = result.map(mapper)._values
+                m = result.map(mapper)._ndarray_values
 
             else:
                 m = np.zeros(len(labels), dtype=bool)
@@ -2505,6 +2507,7 @@ class MultiIndex(Index):
         MultiIndex.slice_locs : Get slice location given start label(s) and
                                 end label(s).
         """
+        from .numeric import Int64Index
 
         # must be lexsorted to at least as many levels
         true_slices = [i for (i, s) in enumerate(com.is_true_slices(seq)) if s]
@@ -2530,7 +2533,6 @@ class MultiIndex(Index):
                                      "that is not the same length as the "
                                      "index")
                 r = r.nonzero()[0]
-            from .numeric import Int64Index
             return Int64Index(r)
 
         def _update_indexer(idxr, indexer=indexer):
@@ -2567,9 +2569,8 @@ class MultiIndex(Index):
                 if indexers is not None:
                     indexer = _update_indexer(indexers, indexer=indexer)
                 else:
-                    from .numeric import Int64Index
                     # no matches we are done
-                    return Int64Index([])._values
+                    return Int64Index([])._ndarray_values
 
             elif com.is_null_slice(k):
                 # empty slice
@@ -2589,8 +2590,8 @@ class MultiIndex(Index):
 
         # empty indexer
         if indexer is None:
-            return Int64Index([])._values
-        return indexer._values
+            return Int64Index([])._ndarray_values
+        return indexer._ndarray_values
 
     def truncate(self, before=None, after=None):
         """
@@ -2639,7 +2640,7 @@ class MultiIndex(Index):
 
         if not isinstance(other, MultiIndex):
             other_vals = com._values_from_object(_ensure_index(other))
-            return array_equivalent(self._values, other_vals)
+            return array_equivalent(self._ndarray_values, other_vals)
 
         if self.nlevels != other.nlevels:
             return False
@@ -2655,8 +2656,9 @@ class MultiIndex(Index):
 
             olabels = other.labels[i]
             olabels = olabels[olabels != -1]
-            ovalues = algos.take_nd(np.asarray(other.levels[i]._values),
-                                    olabels, allow_fill=False)
+            ovalues = algos.take_nd(
+                np.asarray(other.levels[i]._values),
+                olabels, allow_fill=False)
 
             # since we use NaT both datetime64 and timedelta64
             # we can have a situation where a level is typed say
@@ -2704,7 +2706,8 @@ class MultiIndex(Index):
         if len(other) == 0 or self.equals(other):
             return self
 
-        uniq_tuples = lib.fast_unique_multiple([self._values, other._values])
+        uniq_tuples = lib.fast_unique_multiple([self._ndarray_values,
+                                                other._ndarray_values])
         return MultiIndex.from_arrays(lzip(*uniq_tuples), sortorder=0,
                                       names=result_names)
 
@@ -2726,8 +2729,8 @@ class MultiIndex(Index):
         if self.equals(other):
             return self
 
-        self_tuples = self._values
-        other_tuples = other._values
+        self_tuples = self._ndarray_values
+        other_tuples = other._ndarray_values
         uniq_tuples = sorted(set(self_tuples) & set(other_tuples))
         if len(uniq_tuples) == 0:
             return MultiIndex(levels=[[]] * self.nlevels,
@@ -2756,7 +2759,8 @@ class MultiIndex(Index):
                               labels=[[]] * self.nlevels,
                               names=result_names, verify_integrity=False)
 
-        difference = sorted(set(self._values) - set(other._values))
+        difference = sorted(set(self._ndarray_values) -
+                            set(other._ndarray_values))
 
         if len(difference) == 0:
             return MultiIndex(levels=[[]] * self.nlevels,

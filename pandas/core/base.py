@@ -13,10 +13,11 @@ from pandas.core.dtypes.common import (
     is_list_like,
     is_scalar,
     is_datetimelike,
-    is_extension_type)
+    is_extension_type,
+    is_extension_array_dtype)
 
 from pandas.util._validators import validate_bool_kwarg
-
+from pandas.errors import AbstractMethodError
 from pandas.core import common as com, algorithms
 import pandas.core.nanops as nanops
 import pandas._libs.lib as lib
@@ -45,7 +46,7 @@ class StringMixin(object):
     # Formatting
 
     def __unicode__(self):
-        raise com.AbstractMethodError(self)
+        raise AbstractMethodError(self)
 
     def __str__(self):
         """
@@ -292,10 +293,10 @@ class SelectionMixin(object):
             subset to act on
 
         """
-        raise com.AbstractMethodError(self)
+        raise AbstractMethodError(self)
 
     def aggregate(self, func, *args, **kwargs):
-        raise com.AbstractMethodError(self)
+        raise AbstractMethodError(self)
 
     agg = aggregate
 
@@ -753,7 +754,7 @@ class IndexOpsMixin(object):
     @property
     def itemsize(self):
         """ return the size of the dtype of the item of the underlying data """
-        return self._values.itemsize
+        return self._ndarray_values.itemsize
 
     @property
     def nbytes(self):
@@ -763,7 +764,7 @@ class IndexOpsMixin(object):
     @property
     def strides(self):
         """ return the strides of the underlying data """
-        return self._values.strides
+        return self._ndarray_values.strides
 
     @property
     def size(self):
@@ -783,8 +784,17 @@ class IndexOpsMixin(object):
         return self.values.base
 
     @property
-    def _values(self):
-        """ the internal implementation """
+    def _ndarray_values(self):
+        """The data as an ndarray, possibly losing information.
+
+        The expectation is that this is cheap to compute, and is primarily
+        used for interacting with our indexers.
+
+        - categorical -> codes
+        """
+        # type: () -> np.ndarray
+        if is_extension_array_dtype(self):
+            return self.values._ndarray_values
         return self.values
 
     @property
@@ -994,6 +1004,7 @@ class IndexOpsMixin(object):
         values = self._values
 
         if hasattr(values, 'unique'):
+
             result = values.unique()
         else:
             from pandas.core.algorithms import unique1d
@@ -1169,21 +1180,16 @@ class IndexOpsMixin(object):
         >>> x.searchsorted([1, 3], side='right')
         array([1, 3])
 
-        >>> x = pd.Categorical(['apple', 'bread', 'bread', 'cheese', 'milk' ])
+        >>> x = pd.Categorical(['apple', 'bread', 'bread',
+                                'cheese', 'milk'], ordered=True)
         [apple, bread, bread, cheese, milk]
         Categories (4, object): [apple < bread < cheese < milk]
 
         >>> x.searchsorted('bread')
         array([1])     # Note: an array, not a scalar
 
-        >>> x.searchsorted(['bread'])
-        array([1])
-
-        >>> x.searchsorted(['bread', 'eggs'])
-        array([1, 4])
-
-        >>> x.searchsorted(['bread', 'eggs'], side='right')
-        array([3, 4])    # eggs before milk
+        >>> x.searchsorted(['bread'], side='right')
+        array([3])
         """)
 
     @Substitution(klass='IndexOpsMixin')
@@ -1256,4 +1262,4 @@ class IndexOpsMixin(object):
     # abstracts
 
     def _update_inplace(self, result, **kwargs):
-        raise com.AbstractMethodError(self)
+        raise AbstractMethodError(self)

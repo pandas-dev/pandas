@@ -6,7 +6,8 @@ from pandas.compat import zip
 
 from pandas import (Series, isna, to_datetime, DatetimeIndex,
                     Timestamp, Interval, IntervalIndex, Categorical,
-                    cut, qcut, date_range)
+                    cut, qcut, date_range, NaT, TimedeltaIndex)
+from pandas.tseries.offsets import Nano, Day
 import pandas.util.testing as tm
 from pandas.api.types import CategoricalDtype as CDT
 
@@ -249,6 +250,18 @@ class TestCut(object):
 
         result = qcut(arr, 4)
         assert isna(result[:20]).all()
+
+    @pytest.mark.parametrize('s', [
+        Series(DatetimeIndex(['20180101', NaT, '20180103'])),
+        Series(TimedeltaIndex(['0 days', NaT, '2 days']))],
+        ids=lambda x: str(x.dtype))
+    def test_qcut_nat(self, s):
+        # GH 19768
+        intervals = IntervalIndex.from_tuples(
+            [(s[0] - Nano(), s[2] - Day()), np.nan, (s[2] - Day(), s[2])])
+        expected = Series(Categorical(intervals, ordered=True))
+        result = qcut(s, 2)
+        tm.assert_series_equal(result, expected)
 
     def test_qcut_index(self):
         result = qcut([0, 2], 2)

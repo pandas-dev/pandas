@@ -17,7 +17,7 @@ import pandas.util._test_decorators as td
 import pandas as pd
 from pandas._libs import tslib
 from pandas._libs.tslibs import timezones
-from pandas.compat import lrange, zip
+from pandas.compat import lrange, zip, PY3
 from pandas import (DatetimeIndex, date_range, bdate_range,
                     Timestamp, isna, to_datetime, Index)
 
@@ -170,17 +170,17 @@ class TestDatetimeIndexTimezones(object):
         expected = Index([9, 9, 9])
         tm.assert_index_equal(ut.hour, expected)
 
-    def test_dti_tz_convert_trans_pos_plus_1__bug(self):
+    @pytest.mark.parametrize('freq, n', [('H', 1), ('T', 60), ('S', 3600)])
+    def test_dti_tz_convert_trans_pos_plus_1__bug(self, freq, n):
         # Regression test for tslib.tz_convert(vals, tz1, tz2).
         # See https://github.com/pandas-dev/pandas/issues/4496 for details.
-        for freq, n in [('H', 1), ('T', 60), ('S', 3600)]:
-            idx = date_range(datetime(2011, 3, 26, 23),
-                             datetime(2011, 3, 27, 1), freq=freq)
-            idx = idx.tz_localize('UTC')
-            idx = idx.tz_convert('Europe/Moscow')
+        idx = date_range(datetime(2011, 3, 26, 23),
+                         datetime(2011, 3, 27, 1), freq=freq)
+        idx = idx.tz_localize('UTC')
+        idx = idx.tz_convert('Europe/Moscow')
 
-            expected = np.repeat(np.array([3, 4, 5]), np.array([n, n, 1]))
-            tm.assert_index_equal(idx.hour, Index(expected))
+        expected = np.repeat(np.array([3, 4, 5]), np.array([n, n, 1]))
+        tm.assert_index_equal(idx.hour, Index(expected))
 
     def test_dti_tz_convert_dst(self):
         for freq, n in [('H', 1), ('T', 60), ('S', 3600)]:
@@ -700,20 +700,20 @@ class TestDatetimeIndexTimezones(object):
     # -------------------------------------------------------------
     # Unsorted
 
-    def test_join_utc_convert(self):
+    @pytest.mark.parametrize('how', ['inner', 'outer', 'left', 'right'])
+    def test_join_utc_convert(self, how):
         rng = date_range('1/1/2011', periods=100, freq='H', tz='utc')
 
         left = rng.tz_convert('US/Eastern')
         right = rng.tz_convert('Europe/Berlin')
 
-        for how in ['inner', 'outer', 'left', 'right']:
-            result = left.join(left[:-5], how=how)
-            assert isinstance(result, DatetimeIndex)
-            assert result.tz == left.tz
+        result = left.join(left[:-5], how=how)
+        assert isinstance(result, DatetimeIndex)
+        assert result.tz == left.tz
 
-            result = left.join(right[:-5], how=how)
-            assert isinstance(result, DatetimeIndex)
-            assert result.tz.zone == 'UTC'
+        result = left.join(right[:-5], how=how)
+        assert isinstance(result, DatetimeIndex)
+        assert result.tz.zone == 'UTC'
 
     def test_dti_drop_dont_lose_tz(self):
         # GH#2621
@@ -948,6 +948,17 @@ class TestDatetimeIndexTimezones(object):
 
         result = rng.union(rng2)
         assert result.tz.zone == 'UTC'
+
+    @pytest.mark.parametrize('tz', [None, 'UTC', "US/Central",
+                                    dateutil.tz.tzoffset(None, -28800)])
+    @pytest.mark.usefixtures("datetime_tz_utc")
+    @pytest.mark.skipif(not PY3, reason="datetime.timezone not in PY2")
+    def test_iteration_preserves_nanoseconds(self, tz):
+        # GH 19603
+        index = DatetimeIndex(["2018-02-08 15:00:00.168456358",
+                               "2018-02-08 15:00:00.168456359"], tz=tz)
+        for i, ts in enumerate(index):
+            assert ts == index[i]
 
 
 class TestDateRange(object):

@@ -207,6 +207,12 @@ html.border has been deprecated, use display.html.border instead
 (currently both are identical)
 """
 
+pc_html_use_mathjax_doc = """\
+: boolean
+    When True, Jupyter notebook will process table contents using MathJax,
+    rendering mathematical expressions enclosed by the dollar symbol.
+    (default: True)
+"""
 
 pc_width_doc = """
 : int
@@ -358,6 +364,8 @@ with cf.config_prefix('display'):
                        validator=is_bool, cb=table_schema_cb)
     cf.register_option('html.border', 1, pc_html_border_doc,
                        validator=is_int)
+    cf.register_option('html.use_mathjax', True, pc_html_use_mathjax_doc,
+                       validator=is_bool)
 
 with cf.config_prefix('html'):
     cf.register_option('border', 1, pc_html_border_doc,

@@ -1,7 +1,7 @@
 ipython
 ipykernel
 ipywidgets
-sphinx=1.5*
+sphinx
 nbconvert
 nbformat
 notebook

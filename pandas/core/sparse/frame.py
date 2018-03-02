@@ -551,7 +551,6 @@ class SparseDataFrame(DataFrame):
             return self._constructor(index=new_index).__finalize__(self)
 
         new_data = {}
-        new_fill_value = None
         if fill_value is not None:
             # TODO: be a bit more intelligent here
             for col in new_columns:
@@ -568,6 +567,7 @@ class SparseDataFrame(DataFrame):
                     new_data[col] = func(this[col], other[col])
 
         # if the fill values are the same use them? or use a valid one
+        new_fill_value = None
         other_fill_value = getattr(other, 'default_fill_value', np.nan)
         if self.default_fill_value == other_fill_value:
             new_fill_value = self.default_fill_value
@@ -1014,5 +1014,5 @@ def homogenize(series_dict):
 
 
 # use unaccelerated ops for sparse objects
-ops.add_flex_arithmetic_methods(SparseDataFrame, **ops.frame_flex_funcs)
-ops.add_special_arithmetic_methods(SparseDataFrame, **ops.frame_special_funcs)
+ops.add_flex_arithmetic_methods(SparseDataFrame)
+ops.add_special_arithmetic_methods(SparseDataFrame)

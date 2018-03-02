@@ -1708,9 +1708,9 @@ def is_extension_array_dtype(arr_or_dtype):
     """
     from pandas.core.arrays import ExtensionArray
 
-    # we want to unpack series, anything else?
-    if isinstance(arr_or_dtype, ABCSeries):
+    if isinstance(arr_or_dtype, (ABCIndexClass, ABCSeries)):
         arr_or_dtype = arr_or_dtype._values
+
     return isinstance(arr_or_dtype, (ExtensionDtype, ExtensionArray))
 
 

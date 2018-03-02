@@ -904,16 +904,23 @@ def maybe_infer_to_datetimelike(value, convert_dates=False):
     def try_datetime(v):
         # safe coerce to datetime64
         try:
-            v = tslib.array_to_datetime(v, errors='raise')
+            # GH19671
+            v = tslib.array_to_datetime(v,
+                                        require_iso8601=True,
+                                        errors='raise')
         except ValueError:
 
             # we might have a sequence of the same-datetimes with tz's
             # if so coerce to a DatetimeIndex; if they are not the same,
-            # then these stay as object dtype
+            # then these stay as object dtype, xref GH19671
             try:
-                from pandas import to_datetime
-                return to_datetime(v)
-            except Exception:
+                from pandas._libs.tslibs import conversion
+                from pandas import DatetimeIndex
+
+                values, tz = conversion.datetime_to_datetime64(v)
+                return DatetimeIndex(values).tz_localize(
+                    'UTC').tz_convert(tz=tz)
+            except (ValueError, TypeError):
                 pass
 
         except Exception:
@@ -927,7 +934,7 @@ def maybe_infer_to_datetimelike(value, convert_dates=False):
         # will try first with a string & object conversion
         from pandas import to_timedelta
         try:
-            return to_timedelta(v)._values.reshape(shape)
+            return to_timedelta(v)._ndarray_values.reshape(shape)
         except Exception:
             return v.reshape(shape)
 
@@ -1178,7 +1185,7 @@ def construct_1d_arraylike_from_scalar(value, length, dtype):
         subarr = DatetimeIndex([value] * length, dtype=dtype)
     elif is_categorical_dtype(dtype):
         from pandas import Categorical
-        subarr = Categorical([value] * length)
+        subarr = Categorical([value] * length, dtype=dtype)
     else:
         if not isinstance(dtype, (np.dtype, type(np.dtype))):
             dtype = dtype.dtype

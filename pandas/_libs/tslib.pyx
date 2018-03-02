@@ -46,7 +46,8 @@ from tslibs.timezones cimport (is_utc, is_tzlocal, is_fixed_offset,
                                treat_tz_as_pytz, get_dst_info)
 from tslibs.conversion cimport (tz_convert_single, _TSObject,
                                 convert_datetime_to_tsobject,
-                                get_datetime64_nanos)
+                                get_datetime64_nanos,
+                                tz_convert_utc_to_tzlocal)
 from tslibs.conversion import tz_convert_single
 
 from tslibs.nattype import NaT, nat_strings, iNaT
@@ -144,12 +145,12 @@ def ints_to_pydatetime(ndarray[int64_t] arr, tz=None, freq=None,
                 if value == NPY_NAT:
                     result[i] = NaT
                 else:
-                    dt64_to_dtstruct(value, &dts)
-                    dt = create_datetime_from_ts(value, dts, tz, freq)
-                    dt = dt + tz.utcoffset(dt)
-                    if box:
-                        dt = Timestamp(dt)
-                    result[i] = dt
+                    # Python datetime objects do not support nanosecond
+                    # resolution (yet, PEP 564). Need to compute new value
+                    # using the i8 representation.
+                    local_value = tz_convert_utc_to_tzlocal(value, tz)
+                    dt64_to_dtstruct(local_value, &dts)
+                    result[i] = func_create(value, dts, tz, freq)
         else:
             trans, deltas, typ = get_dst_info(tz)
 
@@ -754,8 +755,7 @@ cdef inline bint _parse_today_now(str val, int64_t* iresult):
         iresult[0] = Timestamp.utcnow().value
         return True
     elif val == 'today':
-        # Note: this is *not* the same as Timestamp('today')
-        iresult[0] = Timestamp.now().normalize().value
+        iresult[0] = Timestamp.today().value
         return True
     return False
 

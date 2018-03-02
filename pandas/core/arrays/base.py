@@ -25,14 +25,13 @@ class ExtensionArray(object):
     * isna
     * take
     * copy
-    * _formatting_values
     * _concat_same_type
 
-    Some additional methods are required to satisfy pandas' internal, private
+    Some additional methods are available to satisfy pandas' internal, private
     block API.
 
-    * _concat_same_type
     * _can_hold_na
+    * _formatting_values
 
     This class does not inherit from 'abc.ABCMeta' for performance reasons.
     Methods and properties required by the interface raise
@@ -53,13 +52,14 @@ class ExtensionArray(object):
     Extension arrays should be able to be constructed with instances of
     the class, i.e. ``ExtensionArray(extension_array)`` should return
     an instance, not error.
-
-    Additionally, certain methods and interfaces are required for proper
-    this array to be properly stored inside a ``DataFrame`` or ``Series``.
     """
+    # '_typ' is for pandas.core.dtypes.generic.ABCExtensionArray.
+    # Don't override this.
+    _typ = 'extension'
     # ------------------------------------------------------------------------
     # Must be a Sequence
     # ------------------------------------------------------------------------
+
     def __getitem__(self, item):
         # type (Any) -> Any
         """Select a subset of self.
@@ -92,7 +92,46 @@ class ExtensionArray(object):
         raise AbstractMethodError(self)
 
     def __setitem__(self, key, value):
-        # type: (Any, Any) -> None
+        # type: (Union[int, np.ndarray], Any) -> None
+        """Set one or more values inplace.
+
+        This method is not required to satisfy the pandas extension array
+        interface.
+
+        Parameters
+        ----------
+        key : int, ndarray, or slice
+            When called from, e.g. ``Series.__setitem__``, ``key`` will be
+            one of
+
+            * scalar int
+            * ndarray of integers.
+            * boolean ndarray
+            * slice object
+
+        value : ExtensionDtype.type, Sequence[ExtensionDtype.type], or object
+            value or values to be set of ``key``.
+
+        Returns
+        -------
+        None
+        """
+        # Some notes to the ExtensionArray implementor who may have ended up
+        # here. While this method is not required for the interface, if you
+        # *do* choose to implement __setitem__, then some semantics should be
+        # observed:
+        #
+        # * Setting multiple values : ExtensionArrays should support setting
+        #   multiple values at once, 'key' will be a sequence of integers and
+        #  'value' will be a same-length sequence.
+        #
+        # * Broadcasting : For a sequence 'key' and a scalar 'value',
+        #   each position in 'key' should be set to 'value'.
+        #
+        # * Coercion : Most users will expect basic coercion to work. For
+        #   example, a string like '2018-01-01' is coerced to a datetime
+        #   when setting on a datetime64ns array. In general, if the
+        #   __init__ method coerces that value, then so should __setitem__
         raise NotImplementedError(_not_implemented_message.format(
             type(self), '__setitem__')
         )
@@ -106,6 +145,16 @@ class ExtensionArray(object):
         """
         # type: () -> int
         raise AbstractMethodError(self)
+
+    def __iter__(self):
+        """Iterate over elements of the array.
+
+        """
+        # This needs to be implemented so that pandas recognizes extension
+        # arrays as list-like. The default implementation makes successive
+        # calls to ``__getitem__``, which may be slower than necessary.
+        for i in range(len(self)):
+            yield self[i]
 
     # ------------------------------------------------------------------------
     # Required attributes
@@ -132,9 +181,9 @@ class ExtensionArray(object):
         # type: () -> int
         """The number of bytes needed to store this object in memory.
 
-        If this is expensive to compute, return an approximate lower bound
-        on the number of bytes needed.
         """
+        # If this is expensive to compute, return an approximate lower bound
+        # on the number of bytes needed.
         raise AbstractMethodError(self)
 
     # ------------------------------------------------------------------------
@@ -184,8 +233,8 @@ class ExtensionArray(object):
             will be done. This short-circuits computation of a mask. Result is
             undefined if allow_fill == False and -1 is present in indexer.
         fill_value : any, default None
-            Fill value to replace -1 values with. By default, this uses
-            the missing value sentinel for this type, ``self._fill_value``.
+            Fill value to replace -1 values with. If applicable, this should
+            use the sentinel missing value for this type.
 
         Notes
         -----
@@ -198,17 +247,20 @@ class ExtensionArray(object):
 
         Examples
         --------
-        Suppose the extension array somehow backed by a NumPy structured array
-        and that the underlying structured array is stored as ``self.data``.
-        Then ``take`` may be written as
+        Suppose the extension array is backed by a NumPy array stored as
+        ``self.data``. Then ``take`` may be written as
 
         .. code-block:: python
 
            def take(self, indexer, allow_fill=True, fill_value=None):
                mask = indexer == -1
                result = self.data.take(indexer)
-               result[mask] = self._fill_value
+               result[mask] = np.nan  # NA for this type
                return type(self)(result)
+
+        See Also
+        --------
+        numpy.take
         """
         raise AbstractMethodError(self)
 
@@ -230,17 +282,12 @@ class ExtensionArray(object):
     # ------------------------------------------------------------------------
     # Block-related methods
     # ------------------------------------------------------------------------
-    @property
-    def _fill_value(self):
-        # type: () -> Any
-        """The missing value for this type, e.g. np.nan"""
-        return None
 
     def _formatting_values(self):
         # type: () -> np.ndarray
         # At the moment, this has to be an array since we use result.dtype
         """An array of values to be printed in, e.g. the Series repr"""
-        raise AbstractMethodError(self)
+        return np.array(self)
 
     @classmethod
     def _concat_same_type(cls, to_concat):
@@ -257,6 +304,7 @@ class ExtensionArray(object):
         """
         raise AbstractMethodError(cls)
 
+    @property
     def _can_hold_na(self):
         # type: () -> bool
         """Whether your array can hold missing values. True by default.
@@ -266,3 +314,15 @@ class ExtensionArray(object):
         Setting this to false will optimize some operations like fillna.
         """
         return True
+
+    @property
+    def _ndarray_values(self):
+        # type: () -> np.ndarray
+        """Internal pandas method for lossy conversion to a NumPy ndarray.
+
+        This method is not part of the pandas interface.
+
+        The expectation is that this is cheap to compute, and is primarily
+        used for interacting with our indexers.
+        """
+        return np.array(self)

@@ -9,6 +9,7 @@ from datetime import datetime
 from pandas import (date_range, bdate_range, Timestamp,
                     Index, MultiIndex, DataFrame, Series,
                     concat, Panel, DatetimeIndex, read_csv)
+from pandas.core.dtypes.missing import isna
 from pandas.errors import UnsupportedFunctionCall, PerformanceWarning
 from pandas.util.testing import (assert_frame_equal, assert_index_equal,
                                  assert_series_equal, assert_almost_equal)
@@ -99,9 +100,9 @@ class TestGroupBy(MixIn):
 
         applied = df.groupby('A').apply(max_value)
         result = applied.get_dtype_counts().sort_values()
-        expected = Series({'object': 2,
-                           'float64': 2,
-                           'int64': 1}).sort_values()
+        expected = Series({'float64': 2,
+                           'int64': 1,
+                           'object': 2}).sort_values()
         assert_series_equal(result, expected)
 
     def test_groupby_return_type(self):
@@ -244,7 +245,7 @@ class TestGroupBy(MixIn):
             return pd.Series({'c': 2})
 
         def func_with_date(batch):
-            return pd.Series({'c': 2, 'b': datetime(2015, 1, 1)})
+            return pd.Series({'b': datetime(2015, 1, 1), 'c': 2})
 
         dfg_no_conversion = df.groupby(by=['a']).apply(func_with_no_date)
         dfg_no_conversion_expected = pd.DataFrame({'c': 2}, index=[1])
@@ -1628,8 +1629,8 @@ class TestGroupBy(MixIn):
 
     def test_apply_with_mixed_dtype(self):
         # GH3480, apply with mixed dtype on axis=1 breaks in 0.11
-        df = DataFrame({'foo1': ['one', 'two', 'two', 'three', 'one', 'two'],
-                        'foo2': np.random.randn(6)})
+        df = DataFrame({'foo1': np.random.randn(6),
+                        'foo2': ['one', 'two', 'two', 'three', 'one', 'two']})
         result = df.apply(lambda x: x, axis=1)
         assert_series_equal(df.get_dtype_counts(), result.get_dtype_counts())
 
@@ -2061,6 +2062,85 @@ class TestGroupBy(MixIn):
                                    ascending=ascending,
                                    na_option=na_option, pct=pct)
 
+    @pytest.mark.parametrize("mix_groupings", [True, False])
+    @pytest.mark.parametrize("as_series", [True, False])
+    @pytest.mark.parametrize("val1,val2", [
+        ('foo', 'bar'), (1, 2), (1., 2.)])
+    @pytest.mark.parametrize("fill_method,limit,exp_vals", [
+        ("ffill", None,
+         [np.nan, np.nan, 'val1', 'val1', 'val1', 'val2', 'val2', 'val2']),
+        ("ffill", 1,
+         [np.nan, np.nan, 'val1', 'val1', np.nan, 'val2', 'val2', np.nan]),
+        ("bfill", None,
+         ['val1', 'val1', 'val1', 'val2', 'val2', 'val2', np.nan, np.nan]),
+        ("bfill", 1,
+         [np.nan, 'val1', 'val1', np.nan, 'val2', 'val2', np.nan, np.nan])
+    ])
+    def test_group_fill_methods(self, mix_groupings, as_series, val1, val2,
+                                fill_method, limit, exp_vals):
+        vals = [np.nan, np.nan, val1, np.nan, np.nan, val2, np.nan, np.nan]
+        _exp_vals = list(exp_vals)
+        # Overwrite placeholder values
+        for index, exp_val in enumerate(_exp_vals):
+            if exp_val == 'val1':
+                _exp_vals[index] = val1
+            elif exp_val == 'val2':
+                _exp_vals[index] = val2
+
+        # Need to modify values and expectations depending on the
+        # Series / DataFrame that we ultimately want to generate
+        if mix_groupings:  # ['a', 'b', 'a, 'b', ...]
+            keys = ['a', 'b'] * len(vals)
+
+            def interweave(list_obj):
+                temp = list()
+                for x in list_obj:
+                    temp.extend([x, x])
+
+                return temp
+
+            _exp_vals = interweave(_exp_vals)
+            vals = interweave(vals)
+        else:  # ['a', 'a', 'a', ... 'b', 'b', 'b']
+            keys = ['a'] * len(vals) + ['b'] * len(vals)
+            _exp_vals = _exp_vals * 2
+            vals = vals * 2
+
+        df = DataFrame({'key': keys, 'val': vals})
+        if as_series:
+            result = getattr(
+                df.groupby('key')['val'], fill_method)(limit=limit)
+            exp = Series(_exp_vals, name='val')
+            assert_series_equal(result, exp)
+        else:
+            result = getattr(df.groupby('key'), fill_method)(limit=limit)
+            exp = DataFrame({'key': keys, 'val': _exp_vals})
+            assert_frame_equal(result, exp)
+
+    @pytest.mark.parametrize("agg_func", ['any', 'all'])
+    @pytest.mark.parametrize("skipna", [True, False])
+    @pytest.mark.parametrize("vals", [
+        ['foo', 'bar', 'baz'], ['foo', '', ''], ['', '', ''],
+        [1, 2, 3], [1, 0, 0], [0, 0, 0],
+        [1., 2., 3.], [1., 0., 0.], [0., 0., 0.],
+        [True, True, True], [True, False, False], [False, False, False],
+        [np.nan, np.nan, np.nan]
+    ])
+    def test_groupby_bool_aggs(self, agg_func, skipna, vals):
+        df = DataFrame({'key': ['a'] * 3 + ['b'] * 3, 'val': vals * 2})
+
+        # Figure out expectation using Python builtin
+        exp = getattr(compat.builtins, agg_func)(vals)
+
+        # edge case for missing data with skipna and 'any'
+        if skipna and all(isna(vals)) and agg_func == 'any':
+            exp = False
+
+        exp_df = DataFrame([exp] * 2, columns=['val'], index=pd.Index(
+            ['a', 'b'], name='key'))
+        result = getattr(df.groupby('key'), agg_func)(skipna=skipna)
+        assert_frame_equal(result, exp_df)
+
     def test_dont_clobber_name_column(self):
         df = DataFrame({'key': ['a', 'a', 'a', 'b', 'b', 'b'],
                         'name': ['foo', 'bar', 'baz'] * 2})
@@ -2113,10 +2193,10 @@ class TestGroupBy(MixIn):
 
     def test_handle_dict_return_value(self):
         def f(group):
-            return {'min': group.min(), 'max': group.max()}
+            return {'max': group.max(), 'min': group.min()}
 
         def g(group):
-            return Series({'min': group.min(), 'max': group.max()})
+            return Series({'max': group.max(), 'min': group.min()})
 
         result = self.df.groupby('A')['C'].apply(f)
         expected = self.df.groupby('A')['C'].apply(g)
@@ -2639,7 +2719,7 @@ class TestGroupBy(MixIn):
         # Generate a moderately large dataframe with occasional missing
         # values in column `B`, and then group by [`A`, `B`]. This should
         # force `-1` in `labels` array of `g.grouper.group_info` exactly
-        # at those places, where the group-by key is partilly missing.
+        # at those places, where the group-by key is partially missing.
         df = DataFrame([(i % 12, i % 3 if i % 3 else np.nan, i)
                         for i in range(n_rows)], dtype=float,
                        columns=["A", "B", "Z"], index=None)
@@ -2762,6 +2842,65 @@ class TestGroupBy(MixIn):
         df = pd.DataFrame(dict(a=[1, 2, 1], b=[1, 2, 2]))
         result = df.groupby('a').b.cummin()
         expected = pd.Series([1, 2, 1], name='b')
+        tm.assert_series_equal(result, expected)
+
+    @pytest.mark.parametrize('in_vals, out_vals', [
+
+        # Basics: strictly increasing (T), strictly decreasing (F),
+        # abs val increasing (F), non-strictly increasing (T)
+        ([1, 2, 5, 3, 2, 0, 4, 5, -6, 1, 1],
+         [True, False, False, True]),
+
+        # Test with inf vals
+        ([1, 2.1, np.inf, 3, 2, np.inf, -np.inf, 5, 11, 1, -np.inf],
+         [True, False, True, False]),
+
+        # Test with nan vals; should always be False
+        ([1, 2, np.nan, 3, 2, np.nan, np.nan, 5, -np.inf, 1, np.nan],
+         [False, False, False, False]),
+    ])
+    def test_is_monotonic_increasing(self, in_vals, out_vals):
+        # GH 17015
+        source_dict = {
+            'A': ['1', '2', '3', '4', '5', '6', '7', '8', '9', '10', '11'],
+            'B': ['a', 'a', 'a', 'b', 'b', 'b', 'c', 'c', 'c', 'd', 'd'],
+            'C': in_vals}
+        df = pd.DataFrame(source_dict)
+        result = df.groupby('B').C.is_monotonic_increasing
+        index = Index(list('abcd'), name='B')
+        expected = pd.Series(index=index, data=out_vals, name='C')
+        tm.assert_series_equal(result, expected)
+
+        # Also check result equal to manually taking x.is_monotonic_increasing.
+        expected = (
+            df.groupby(['B']).C.apply(lambda x: x.is_monotonic_increasing))
+        tm.assert_series_equal(result, expected)
+
+    @pytest.mark.parametrize('in_vals, out_vals', [
+        # Basics: strictly decreasing (T), strictly increasing (F),
+        # abs val decreasing (F), non-strictly increasing (T)
+        ([10, 9, 7, 3, 4, 5, -3, 2, 0, 1, 1],
+         [True, False, False, True]),
+
+        # Test with inf vals
+        ([np.inf, 1, -np.inf, np.inf, 2, -3, -np.inf, 5, -3, -np.inf, -np.inf],
+         [True, True, False, True]),
+
+        # Test with nan vals; should always be False
+        ([1, 2, np.nan, 3, 2, np.nan, np.nan, 5, -np.inf, 1, np.nan],
+         [False, False, False, False]),
+    ])
+    def test_is_monotonic_decreasing(self, in_vals, out_vals):
+        # GH 17015
+        source_dict = {
+            'A': ['1', '2', '3', '4', '5', '6', '7', '8', '9', '10', '11'],
+            'B': ['a', 'a', 'a', 'b', 'b', 'b', 'c', 'c', 'c', 'd', 'd'],
+            'C': in_vals}
+
+        df = pd.DataFrame(source_dict)
+        result = df.groupby('B').C.is_monotonic_decreasing
+        index = Index(list('abcd'), name='B')
+        expected = pd.Series(index=index, data=out_vals, name='C')
         tm.assert_series_equal(result, expected)
 
     def test_apply_numeric_coercion_when_datetime(self):

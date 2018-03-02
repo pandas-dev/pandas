@@ -224,27 +224,34 @@ class TestToDatetime(object):
         # this both of these timezones _and_ UTC will all be in the same day,
         # so this test will not detect the regression introduced in #18666.
         with tm.set_timezone('Pacific/Auckland'):  # 12-13 hours ahead of UTC
-            nptoday = np.datetime64('today').astype('datetime64[ns]')
+            nptoday = np.datetime64('today')\
+                .astype('datetime64[ns]').astype(np.int64)
             pdtoday = pd.to_datetime('today')
             pdtoday2 = pd.to_datetime(['today'])[0]
 
+            tstoday = pd.Timestamp('today')
+            tstoday2 = pd.Timestamp.today()
+
             # These should all be equal with infinite perf; this gives
             # a generous margin of 10 seconds
-            assert abs(pdtoday.value - nptoday.astype(np.int64)) < 1e10
-            assert abs(pdtoday2.value - nptoday.astype(np.int64)) < 1e10
+            assert abs(pdtoday.normalize().value - nptoday) < 1e10
+            assert abs(pdtoday2.normalize().value - nptoday) < 1e10
+            assert abs(pdtoday.value - tstoday.value) < 1e10
+            assert abs(pdtoday.value - tstoday2.value) < 1e10
 
             assert pdtoday.tzinfo is None
             assert pdtoday2.tzinfo is None
 
         with tm.set_timezone('US/Samoa'):  # 11 hours behind UTC
-            nptoday = np.datetime64('today').astype('datetime64[ns]')
+            nptoday = np.datetime64('today')\
+                .astype('datetime64[ns]').astype(np.int64)
             pdtoday = pd.to_datetime('today')
             pdtoday2 = pd.to_datetime(['today'])[0]
 
             # These should all be equal with infinite perf; this gives
             # a generous margin of 10 seconds
-            assert abs(pdtoday.value - nptoday.astype(np.int64)) < 1e10
-            assert abs(pdtoday2.value - nptoday.astype(np.int64)) < 1e10
+            assert abs(pdtoday.normalize().value - nptoday) < 1e10
+            assert abs(pdtoday2.normalize().value - nptoday) < 1e10
 
             assert pdtoday.tzinfo is None
             assert pdtoday2.tzinfo is None
@@ -1013,18 +1020,20 @@ class TestToDatetimeMisc(object):
         assert_series_equal(dresult, expected, check_names=False)
         assert dresult.name == 'foo'
 
+    @pytest.mark.parametrize('dtype', [
+        'datetime64[h]', 'datetime64[m]',
+        'datetime64[s]', 'datetime64[ms]',
+        'datetime64[us]', 'datetime64[ns]'])
     @pytest.mark.parametrize('cache', [True, False])
-    def test_dti_constructor_numpy_timeunits(self, cache):
+    def test_dti_constructor_numpy_timeunits(self, cache, dtype):
         # GH 9114
         base = pd.to_datetime(['2000-01-01T00:00', '2000-01-02T00:00', 'NaT'],
                               cache=cache)
 
-        for dtype in ['datetime64[h]', 'datetime64[m]', 'datetime64[s]',
-                      'datetime64[ms]', 'datetime64[us]', 'datetime64[ns]']:
-            values = base.values.astype(dtype)
+        values = base.values.astype(dtype)
 
-            tm.assert_index_equal(DatetimeIndex(values), base)
-            tm.assert_index_equal(to_datetime(values, cache=cache), base)
+        tm.assert_index_equal(DatetimeIndex(values), base)
+        tm.assert_index_equal(to_datetime(values, cache=cache), base)
 
     @pytest.mark.parametrize('cache', [True, False])
     def test_dayfirst(self, cache):
