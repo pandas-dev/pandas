@@ -1452,9 +1452,6 @@ class TestIndex(Base):
             pytest.raises(KeyError, removed.drop, drop_me)
 
     def test_tuple_union_bug(self):
-        import pandas
-        import numpy as np
-
         aidx1 = np.array([(1, 'A'), (2, 'A'), (1, 'B'), (2, 'B')],
                          dtype=[('num', int), ('let', 'a1')])
         aidx2 = np.array([(1, 'A'), (2, 'A'), (1, 'B'),
