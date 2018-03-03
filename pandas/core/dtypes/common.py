@@ -12,7 +12,8 @@ from .dtypes import (CategoricalDtype, CategoricalDtypeType,
                      ExtensionDtype)
 from .generic import (ABCCategorical, ABCPeriodIndex,
                       ABCDatetimeIndex, ABCSeries,
-                      ABCSparseArray, ABCSparseSeries, ABCCategoricalIndex,
+                      ABCSparseArray, ABCSparseSeries, ABCSparseDataFrame,
+                      ABCCategoricalIndex,
                       ABCIndexClass, ABCDateOffset)
 from .inference import is_string_like, is_list_like
 from .inference import *  # noqa
@@ -149,7 +150,8 @@ def is_sparse(arr):
     False
     """
 
-    return isinstance(arr, (ABCSparseArray, ABCSparseSeries))
+    return isinstance(arr, (ABCSparseArray, ABCSparseSeries,
+                            ABCSparseDataFrame))
 
 
 def is_scipy_sparse(arr):
