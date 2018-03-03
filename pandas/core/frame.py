@@ -1311,7 +1311,7 @@ class DataFrame(NDFrame):
 
         return cls(mgr)
 
-    def to_records(self, index=True, convert_datetime64=None):
+    def to_records(self, index=True, convert_datetime64=False):
         """
         Convert DataFrame to a NumPy record array.
 
@@ -1379,13 +1379,11 @@ class DataFrame(NDFrame):
                   dtype=[('index', '<M8[ns]'), ('A', '<i8'), ('B', '<f8')])
         """
 
-        if convert_datetime64 is not None:
+        if convert_datetime64:
             warnings.warn("The 'convert_datetime64' parameter is "
                           "deprecated and will be removed in a future "
                           "version",
                           FutureWarning, stacklevel=2)
-        else:
-            convert_datetime64 = True
 
         if index:
             if is_datetime64_any_dtype(self.index) and convert_datetime64:
