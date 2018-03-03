@@ -1223,24 +1223,3 @@ def construct_1d_object_array_from_listlike(values):
     result = np.empty(len(values), dtype='object')
     result[:] = values
     return result
-
-
-def tolist(values):
-    """Convert an array-like to a list of scalar types.
-
-    Parameters
-    ----------
-    values : ndarray or ExtensionArray
-
-    Returns
-    -------
-    list
-        Each element of the list is a Python scalar (str, int, float)
-        or a pandas scalar (Timestamp / Timedelta / Interval / Period) or
-        the scalar type for 3rd party Extension Arrays.
-
-    See Also
-    --------
-    Series.tolist
-    numpy.ndarray.tolist
-    """

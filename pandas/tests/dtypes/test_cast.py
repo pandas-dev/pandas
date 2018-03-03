@@ -23,8 +23,7 @@ from pandas.core.dtypes.cast import (
     maybe_convert_scalar,
     find_common_type,
     construct_1d_object_array_from_listlike,
-    construct_1d_arraylike_from_scalar,
-    tolist)
+    construct_1d_arraylike_from_scalar)
 from pandas.core.dtypes.dtypes import (
     CategoricalDtype,
     DatetimeTZDtype,
@@ -324,18 +323,6 @@ class TestConvert(object):
 
         out = maybe_convert_objects(values, copy=True)
         assert values is not out
-
-    @pytest.mark.parametrize('values, expected', [
-        (pd.date_range('2017', periods=1), [pd.Timestamp('2017')]),
-        (pd.period_range('2017', periods=1, freq='D'),
-         [pd.Period('2017', freq='D')]),
-        (pd.timedelta_range(0, periods=1), [pd.Timedelta('0')]),
-        (pd.interval_range(0, periods=1), [pd.Interval(0, 1)]),
-        (np.array([0, 1]), [0, 1]),
-    ])
-    def test_tolist(self, values, expected):
-        result = tolist(values)
-        assert result == expected
 
 
 class TestCommonTypes(object):
