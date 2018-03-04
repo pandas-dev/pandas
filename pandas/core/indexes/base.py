@@ -709,7 +709,7 @@ class Index(IndexOpsMixin, PandasObject):
 
         See also
         --------
-        numpy.ndarray.repeat
+        numpy.repeat
 
         Examples
         --------
