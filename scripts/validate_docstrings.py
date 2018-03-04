@@ -23,7 +23,7 @@ import contextlib
 import inspect
 import importlib
 import doctest
-import textwrap
+import pydoc
 try:
     from io import StringIO
 except ImportError:
@@ -37,6 +37,9 @@ import pandas
 
 sys.path.insert(1, os.path.join(BASE_PATH, 'doc', 'sphinxext'))
 from numpydoc.docscrape import NumpyDocString
+
+
+PRIVATE_CLASSES = ['NDFrame', 'IndexOpsMixin']
 
 
 def _to_original_callable(obj):
@@ -72,8 +75,7 @@ class Docstring:
     def __init__(self, method_name, method_obj):
         self.method_name = method_name
         self.method_obj = method_obj
-        self.raw_doc = method_obj.__doc__ or ''
-        self.raw_doc = textwrap.dedent(self.raw_doc)
+        self.raw_doc = pydoc.getdoc(method_obj)
         self.doc = NumpyDocString(self.raw_doc)
 
     def __len__(self):
@@ -127,7 +129,12 @@ class Docstring:
 
     @property
     def signature_parameters(self):
-        if not inspect.isfunction(self.method_obj):
+        if not (inspect.isfunction(self.method_obj)
+                or inspect.isclass(self.method_obj)):
+            return tuple()
+        if (inspect.isclass(self.method_obj)
+                and self.method_name.split('.')[-1] in {'dt', 'str', 'cat'}):
+            # accessor classes have a signature, but don't want to show this
             return tuple()
         params = tuple(inspect.signature(self.method_obj).parameters.keys())
         if params and params[0] in ('self', 'cls'):
@@ -149,7 +156,8 @@ class Docstring:
         extra = set(doc_params) - set(signature_params)
         if extra:
             errs.append('Unknown parameters {!r}'.format(extra))
-        if not missing and not extra and signature_params != doc_params:
+        if (not missing and not extra and signature_params != doc_params
+                and not (not signature_params and not doc_params)):
             errs.append('Wrong parameters order. ' +
                         'Actual: {!r}. '.format(signature_params) +
                         'Documented: {!r}'.format(doc_params))
@@ -179,6 +187,10 @@ class Docstring:
         return (self.method_name.startswith('pandas.Panel') or
                 bool(pattern.search(self.summary)) or
                 bool(pattern.search(self.extended_summary)))
+
+    @property
+    def mentioned_private_classes(self):
+        return [klass for klass in PRIVATE_CLASSES if klass in self.raw_doc]
 
     @property
     def examples_errors(self):
@@ -310,6 +322,11 @@ def validate_one(func_name):
         errs.append('Errors in parameters section')
         for param_err in param_errs:
             errs.append('\t{}'.format(param_err))
+
+    mentioned_errs = doc.mentioned_private_classes
+    if mentioned_errs:
+        errs.append('Private classes ({}) should not be mentioned in public '
+                    'docstring.'.format(mentioned_errs))
 
     examples_errs = ''
     if not doc.examples:
