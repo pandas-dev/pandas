@@ -113,6 +113,12 @@ _class_locations_map = {
     # 19269, arrays moving
     ('pandas.core.categorical', 'Categorical'):
         ('pandas.core.arrays', 'Categorical'),
+
+    # 19939, add timedeltaindex, float64index compat from 15998 move
+    ('pandas.tseries.tdi', 'TimedeltaIndex'):
+        ('pandas.core.indexes.timedeltas', 'TimedeltaIndex'),
+    ('pandas.indexes.numeric', 'Float64Index'):
+        ('pandas.core.indexes.numeric', 'Float64Index'),
 }
 
 
