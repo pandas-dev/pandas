@@ -13,7 +13,7 @@ cimport numpy as cnp
 from numpy cimport ndarray, int64_t, int32_t, int8_t
 cnp.import_array()
 
-
+from ccalendar import get_locale_names, MONTHS_FULL, DAYS_FULL
 from ccalendar cimport (get_days_in_month, is_leapyear, dayofweek,
                         get_week_of_year, get_day_of_year)
 from np_datetime cimport (pandas_datetimestruct, pandas_timedeltastruct,
@@ -85,26 +85,27 @@ def build_field_sarray(ndarray[int64_t] dtindex):
 
 @cython.wraparound(False)
 @cython.boundscheck(False)
-def get_date_name_field(ndarray[int64_t] dtindex, object field):
+def get_date_name_field(ndarray[int64_t] dtindex, object field,
+                        object locale=None):
     """
     Given a int64-based datetime index, return array of strings of date
     name based on requested field (e.g. weekday_name)
     """
     cdef:
         Py_ssize_t i, count = 0
-        ndarray[object] out
+        ndarray[object] out, names
         pandas_datetimestruct dts
         int dow
-
-    _dayname = np.array(
-        ['Monday', 'Tuesday', 'Wednesday', 'Thursday',
-            'Friday', 'Saturday', 'Sunday'],
-        dtype=np.object_)
 
     count = len(dtindex)
     out = np.empty(count, dtype=object)
 
-    if field == 'weekday_name':
+    if field == 'day_name' or field == 'weekday_name':
+        if locale is None:
+            names = np.array(DAYS_FULL, dtype=np.object_)
+        else:
+            names = np.array(get_locale_names('f_weekday', locale),
+                             dtype=np.object_)
         for i in range(count):
             if dtindex[i] == NPY_NAT:
                 out[i] = np.nan
@@ -112,7 +113,21 @@ def get_date_name_field(ndarray[int64_t] dtindex, object field):
 
             dt64_to_dtstruct(dtindex[i], &dts)
             dow = dayofweek(dts.year, dts.month, dts.day)
-            out[i] = _dayname[dow]
+            out[i] = names[dow].capitalize()
+        return out
+    elif field == 'month_name':
+        if locale is None:
+            names = np.array(MONTHS_FULL, dtype=np.object_)
+        else:
+            names = np.array(get_locale_names('f_month', locale),
+                             dtype=np.object_)
+        for i in range(count):
+            if dtindex[i] == NPY_NAT:
+                out[i] = np.nan
+                continue
+
+            dt64_to_dtstruct(dtindex[i], &dts)
+            out[i] = names[dts.month].capitalize()
         return out
 
     raise ValueError("Field %s not supported" % field)

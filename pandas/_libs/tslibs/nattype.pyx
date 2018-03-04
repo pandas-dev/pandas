@@ -1,6 +1,5 @@
 # -*- coding: utf-8 -*-
 # cython: profile=False
-import warnings
 
 from cpython cimport (
     PyFloat_Check, PyComplex_Check,
@@ -39,24 +38,19 @@ _nat_scalar_rules[Py_GE] = False
 # ----------------------------------------------------------------------
 
 
-def _make_nan_func(func_name, cls):
+def _make_nan_func(func_name, doc):
     def f(*args, **kwargs):
         return np.nan
     f.__name__ = func_name
-    f.__doc__ = getattr(cls, func_name).__doc__
+    f.__doc__ = doc
     return f
 
 
-def _make_nat_func(func_name, cls):
+def _make_nat_func(func_name, doc):
     def f(*args, **kwargs):
         return NaT
-
     f.__name__ = func_name
-    if isinstance(cls, str):
-        # passed the literal docstring directly
-        f.__doc__ = cls
-    else:
-        f.__doc__ = getattr(cls, func_name).__doc__
+    f.__doc__ = doc
     return f
 
 
@@ -318,11 +312,40 @@ class NaTType(_NaT):
     # These are the ones that can get their docstrings from datetime.
 
     # nan methods
-    weekday = _make_nan_func('weekday', datetime)
-    isoweekday = _make_nan_func('isoweekday', datetime)
+    weekday = _make_nan_func('weekday', datetime.weekday.__doc__)
+    isoweekday = _make_nan_func('isoweekday', datetime.isoweekday.__doc__)
+    month_name = _make_nan_func('month_name',  # noqa:E128
+        """
+        Return the month name of the Timestamp with specified locale.
 
+        Parameters
+        ----------
+        locale : string, default None (English locale)
+            locale determining the language in which to return the month name
+
+        Returns
+        -------
+        month_name : string
+
+        .. versionadded:: 0.23.0
+        """)
+    day_name = _make_nan_func('day_name', # noqa:E128
+        """
+        Return the day name of the Timestamp with specified locale.
+
+        Parameters
+        ----------
+        locale : string, default None (English locale)
+            locale determining the language in which to return the day name
+
+        Returns
+        -------
+        day_name : string
+
+        .. versionadded:: 0.23.0
+        """)
     # _nat_methods
-    date = _make_nat_func('date', datetime)
+    date = _make_nat_func('date', datetime.date.__doc__)
 
     utctimetuple = _make_error_func('utctimetuple', datetime)
     timetz = _make_error_func('timetz', datetime)
