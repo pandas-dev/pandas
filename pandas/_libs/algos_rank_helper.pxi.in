@@ -153,7 +153,7 @@ def rank_1d_{{dtype}}(object in_arr, ties_method='average', ascending=True,
 
         if (i == n - 1 or
                 are_diff(util.get_value_at(sorted_data, i + 1), val) or
-                i == non_na_idx - 1):
+                i == non_na_idx):
             if tiebreak == TIEBREAK_AVERAGE:
                 for j in range(i - dups + 1, i + 1):
                     ranks[argsorted[j]] = sum_ranks / dups
@@ -190,7 +190,7 @@ def rank_1d_{{dtype}}(object in_arr, ties_method='average', ascending=True,
             count += 1.0
 
             if (i == n - 1 or sorted_data[i + 1] != val or
-                i == non_na_idx - 1):
+                i == non_na_idx):
                 if tiebreak == TIEBREAK_AVERAGE:
                     for j in range(i - dups + 1, i + 1):
                         ranks[argsorted[j]] = sum_ranks / dups
