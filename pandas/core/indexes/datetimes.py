@@ -231,7 +231,6 @@ class DatetimeIndex(DatelikeOps, TimelikeOps, DatetimeIndexOpsMixin,
     week
     dayofweek
     weekday
-    weekday_name
     quarter
     tz
     freq
@@ -260,6 +259,8 @@ class DatetimeIndex(DatelikeOps, TimelikeOps, DatetimeIndexOpsMixin,
     to_pydatetime
     to_series
     to_frame
+    month_name
+    day_name
 
     Notes
     -----
@@ -318,7 +319,7 @@ class DatetimeIndex(DatelikeOps, TimelikeOps, DatetimeIndexOpsMixin,
     _datetimelike_methods = ['to_period', 'tz_localize',
                              'tz_convert',
                              'normalize', 'strftime', 'round', 'floor',
-                             'ceil']
+                             'ceil', 'month_name', 'day_name']
 
     _is_numeric_dtype = False
     _infer_as_myclass = True
@@ -1713,7 +1714,7 @@ class DatetimeIndex(DatelikeOps, TimelikeOps, DatetimeIndexOpsMixin,
     weekday_name = _field_accessor(
         'weekday_name',
         'weekday_name',
-        "The name of day in a week (ex: Friday)\n\n.. versionadded:: 0.18.1")
+        "The name of day in a week (ex: Friday)\n\n.. deprecated:: 0.23.0")
 
     dayofyear = _field_accessor('dayofyear', 'doy',
                                 "The ordinal day of the year")
@@ -2096,6 +2097,58 @@ class DatetimeIndex(DatelikeOps, TimelikeOps, DatetimeIndexOpsMixin,
                              self.microsecond / 3600.0 / 1e+6 +
                              self.nanosecond / 3600.0 / 1e+9
                              ) / 24.0)
+
+    def month_name(self, locale=None):
+        """
+        Return the month names of the DateTimeIndex with specified locale.
+
+        Parameters
+        ----------
+        locale : string, default None (English locale)
+            locale determining the language in which to return the month name
+
+        Returns
+        -------
+        month_names : Index
+            Index of month names
+
+        .. versionadded:: 0.23.0
+        """
+        values = self.asi8
+        if self.tz is not None:
+            if self.tz is not utc:
+                values = self._local_timestamps()
+
+        result = fields.get_date_name_field(values, 'month_name',
+                                            locale=locale)
+        result = self._maybe_mask_results(result)
+        return Index(result, name=self.name)
+
+    def day_name(self, locale=None):
+        """
+        Return the day names of the DateTimeIndex with specified locale.
+
+        Parameters
+        ----------
+        locale : string, default None (English locale)
+            locale determining the language in which to return the day name
+
+        Returns
+        -------
+        month_names : Index
+            Index of day names
+
+        .. versionadded:: 0.23.0
+        """
+        values = self.asi8
+        if self.tz is not None:
+            if self.tz is not utc:
+                values = self._local_timestamps()
+
+        result = fields.get_date_name_field(values, 'day_name',
+                                            locale=locale)
+        result = self._maybe_mask_results(result)
+        return Index(result, name=self.name)
 
 
 DatetimeIndex._add_comparison_methods()
