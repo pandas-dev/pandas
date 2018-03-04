@@ -1243,23 +1243,22 @@ def _bool_method_SERIES(cls, op, special):
     Wrapper function for Series arithmetic operations, to avoid
     code duplication.
     """
+    name = _get_op_name(op, special)
 
     def na_op(x, y):
         try:
             result = op(x, y)
         except TypeError:
-            if isinstance(y, list):
-                y = construct_1d_object_array_from_listlike(y)
-
-            if isinstance(y, (np.ndarray, ABCSeries)):
-                if (is_bool_dtype(x.dtype) and is_bool_dtype(y.dtype)):
-                    result = op(x, y)  # when would this be hit?
-                else:
-                    x = _ensure_object(x)
-                    y = _ensure_object(y)
-                    result = libops.vec_binop(x, y, op)
+            assert not isinstance(y, (list, ABCSeries, pd.Index))
+            if isinstance(y, np.ndarray):
+                # bool-bool dtype operations should be OK, should not get here
+                assert not (is_bool_dtype(x) and is_bool_dtype(y))
+                x = _ensure_object(x)
+                y = _ensure_object(y)
+                result = libops.vec_binop(x, y, op)
             else:
                 # let null fall thru
+                assert is_scalar(y)
                 if not isna(y):
                     y = bool(y)
                 try:
@@ -1280,32 +1279,39 @@ def _bool_method_SERIES(cls, op, special):
 
         self, other = _align_method_SERIES(self, other, align_asobject=True)
 
+        res_name = get_op_result_name(self, other)
+
         if isinstance(other, ABCDataFrame):
             # Defer to DataFrame implementation; fail early
             return NotImplemented
 
-        elif isinstance(other, ABCSeries):
-            name = get_op_result_name(self, other)
+        elif isinstance(other, (ABCSeries, pd.Index)):
             is_other_int_dtype = is_integer_dtype(other.dtype)
             other = fill_int(other) if is_other_int_dtype else fill_bool(other)
-
-            filler = (fill_int if is_self_int_dtype and is_other_int_dtype
-                      else fill_bool)
-
-            res_values = na_op(self.values, other.values)
-            unfilled = self._constructor(res_values,
-                                         index=self.index, name=name)
-            return filler(unfilled)
+            ovalues = other.values
 
         else:
             # scalars, list, tuple, np.array
-            filler = (fill_int if is_self_int_dtype and
-                      is_integer_dtype(np.asarray(other)) else fill_bool)
+            is_other_int_dtype = is_integer_dtype(np.asarray(other))
+            if is_list_like(other) and not isinstance(other, np.ndarray):
+                # TODO: Can we do this before the is_integer_dtype check?
+                # could the is_integer_dtype check be checking the wrong
+                # thing?  e.g. other = [[0, 1], [2, 3], [4, 5]]?
+                other = construct_1d_object_array_from_listlike(other)
+            ovalues = other
 
-            res_values = na_op(self.values, other)
-            unfilled = self._constructor(res_values, index=self.index)
-            return filler(unfilled).__finalize__(self)
+        filler = (fill_int if is_self_int_dtype and is_other_int_dtype
+                  else fill_bool)
 
+        res_values = na_op(self.values, ovalues)
+        unfilled = self._constructor(res_values, index=self.index,
+                                     name=res_name)
+        result = filler(unfilled)
+        if not isinstance(other, ABCSeries):
+            result = result.__finalize__(self)
+        return result
+
+    wrapper.__name__ = name
     return wrapper
 
 
