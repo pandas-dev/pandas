@@ -177,6 +177,10 @@ class Docstring:
         return self.doc['Examples']
 
     @property
+    def returns(self):
+        return self.doc['Returns']
+
+    @property
     def first_line_ends_in_dot(self):
         if self.doc:
             return self.doc.split('\n')[0][-1] == '.'
@@ -322,6 +326,9 @@ def validate_one(func_name):
         errs.append('Errors in parameters section')
         for param_err in param_errs:
             errs.append('\t{}'.format(param_err))
+
+    if not doc.returns:
+        errs.append('No returns section found')
 
     mentioned_errs = doc.mentioned_private_classes
     if mentioned_errs:
