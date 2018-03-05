@@ -2211,13 +2211,32 @@ class Index(IndexOpsMixin, PandasObject):
         return self.sort_values(return_indexer=True, ascending=ascending)
 
     def shift(self, periods=1, freq=None):
-        """
-        Shift Index containing datetime objects by input number of periods and
-        DateOffset
+        """Shift index by desired number of time frequency increments.
 
-        Returns
-        -------
-        shifted : Index
+        This method is for shifting the values of datetime-like indexes
+        by a specified time increment a given number of times.
+
+        Parameters
+        ----------
+        periods : int
+            Number of periods (or increments) to shift by,
+            can be positive or negative (default is 1).
+        freq : pandas.DateOffset, pandas.Timedelta or string
+            Frequency increment to shift by (default is None).
+            Offset aliases are valid strings, e.g., 'EOM'.
+
+        See Also
+        --------
+        DatetimeIndex.shift : an implementation of shift.
+        PeriodIndex.shift : an implementation of shift.
+        TimedeltaIndex.shift : an implementation of shift.
+
+        Notes
+        -----
+        Must be overridden in child classes.
+        h
+        Implemented in datetime-like index classes,
+        e.g., DatetimeIndex, PeriodIndex and TimedeltaIndex.
         """
         raise NotImplementedError("Not supported for type %s" %
                                   type(self).__name__)
