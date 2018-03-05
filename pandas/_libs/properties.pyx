@@ -9,17 +9,19 @@ from cpython cimport (
 cdef class cache_readonly(object):
 
     cdef readonly:
-        object func, name, allow_setting
+        object func, name, doc, allow_setting
 
     def __init__(self, func=None, allow_setting=False):
         if func is not None:
             self.func = func
             self.name = func.__name__
+            self.doc = getattr(func, '__doc__', None)
         self.allow_setting = allow_setting
 
     def __call__(self, func, doc=None):
         self.func = func
         self.name = func.__name__
+        self.doc = getattr(func, '__doc__', None)
         return self
 
     def __get__(self, obj, typ):
@@ -30,7 +32,7 @@ cdef class cache_readonly(object):
             try:
                 cache = obj._cache = {}
             except (AttributeError):
-                return
+                return type('cached', (object, ), {'__doc__': self.doc})
 
         if PyDict_Contains(cache, self.name):
             # not necessary to Py_INCREF
