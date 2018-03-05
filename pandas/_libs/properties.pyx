@@ -6,22 +6,22 @@ from cpython cimport (
     PyDict_Contains, PyDict_GetItem, PyDict_SetItem)
 
 
-cdef class cache_readonly(object):
+cdef class CachedProperty(object):
 
     cdef readonly:
-        object func, name, doc, allow_setting
+        object func, name, __doc__, allow_setting
 
     def __init__(self, func=None, allow_setting=False):
         if func is not None:
             self.func = func
             self.name = func.__name__
-            self.doc = getattr(func, '__doc__', None)
+            self.__doc__ = getattr(func, '__doc__', None)
         self.allow_setting = allow_setting
 
     def __call__(self, func, doc=None):
         self.func = func
         self.name = func.__name__
-        self.doc = getattr(func, '__doc__', None)
+        self.__doc__ = getattr(func, '__doc__', None)
         return self
 
     def __get__(self, obj, typ):
@@ -32,7 +32,7 @@ cdef class cache_readonly(object):
             try:
                 cache = obj._cache = {}
             except (AttributeError):
-                return type('cached', (object, ), {'__doc__': self.doc})
+                return self
 
         if PyDict_Contains(cache, self.name):
             # not necessary to Py_INCREF
@@ -56,6 +56,10 @@ cdef class cache_readonly(object):
                 return
 
         PyDict_SetItem(cache, self.name, value)
+
+
+cache_readonly = CachedProperty
+
 
 cdef class AxisProperty(object):
     cdef:
