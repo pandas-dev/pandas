@@ -1227,7 +1227,7 @@ def test_values_consistent(array, expected_type, dtype):
     pytest.param(
         pd.PeriodIndex(['2017', '2018'], freq='D'),
         np.array([17167, 17532]),
-        marks=pytest.mark.xfail(reason="Not implemented")
+        marks=pytest.mark.xfail(reason="PeriodArray Not implemented")
     ),
 ])
 def test_ndarray_values(array, expected):
