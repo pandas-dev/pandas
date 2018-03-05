@@ -6,19 +6,18 @@ API Reference
 *************
 
 This page gives an overview of all public pandas objects, functions and
-methods. In general, all classes and functions exposed in the top-level
-``pandas.*`` namespace are regarded as public.
+methods. All classes and functions exposed in ``pandas.*`` namespace are public.
 
-Further some of the subpackages are public, including ``pandas.errors``,
-``pandas.plotting``, and ``pandas.testing``. Certain functions in the
-``pandas.io`` and ``pandas.tseries`` submodules are public as well (those
-mentioned in the documentation). Further, the ``pandas.api.types`` subpackage
-holds some public functions related to data types in pandas.
+Some subpackages are public which include ``pandas.errors``,
+``pandas.plotting``, and ``pandas.testing``. Public functions in
+``pandas.io`` and ``pandas.tseries`` submodules are mentioned in
+the documentation. ``pandas.api.types`` subpackage holds some
+public functions related to data types in pandas.
 
 
 .. warning::
 
-    The ``pandas.core``, ``pandas.compat``, and ``pandas.util`` top-level modules are considered to be PRIVATE. Stability of functionality in those modules in not guaranteed.
+    The ``pandas.core``, ``pandas.compat``, and ``pandas.util`` top-level modules are PRIVATE. Stable functionality in such modules is not guaranteed.
 
 
 .. _api.functions:
@@ -552,7 +551,6 @@ These can be accessed like ``Series.dt.<property>``.
    Series.dt.weekofyear
    Series.dt.dayofweek
    Series.dt.weekday
-   Series.dt.weekday_name
    Series.dt.dayofyear
    Series.dt.quarter
    Series.dt.is_month_start
@@ -582,6 +580,8 @@ These can be accessed like ``Series.dt.<property>``.
    Series.dt.round
    Series.dt.floor
    Series.dt.ceil
+   Series.dt.month_name
+   Series.dt.day_name
 
 **Timedelta Properties**
 
@@ -1724,7 +1724,6 @@ Time/Date Components
    DatetimeIndex.week
    DatetimeIndex.dayofweek
    DatetimeIndex.weekday
-   DatetimeIndex.weekday_name
    DatetimeIndex.quarter
    DatetimeIndex.tz
    DatetimeIndex.freq
@@ -1760,6 +1759,8 @@ Time-specific operations
    DatetimeIndex.round
    DatetimeIndex.floor
    DatetimeIndex.ceil
+   DatetimeIndex.month_name
+   DatetimeIndex.day_name
 
 Conversion
 ~~~~~~~~~~
@@ -1941,7 +1942,6 @@ Properties
     Timestamp.tzinfo
     Timestamp.value
     Timestamp.week
-    Timestamp.weekday_name
     Timestamp.weekofyear
     Timestamp.year
 
@@ -1955,6 +1955,7 @@ Methods
     Timestamp.combine
     Timestamp.ctime
     Timestamp.date
+    Timestamp.day_name
     Timestamp.dst
     Timestamp.floor
     Timestamp.freq
@@ -1964,6 +1965,7 @@ Methods
     Timestamp.isocalendar
     Timestamp.isoformat
     Timestamp.isoweekday
+    Timestamp.month_name
     Timestamp.normalize
     Timestamp.now
     Timestamp.replace
@@ -2180,8 +2182,12 @@ Computations / Descriptive Stats
 .. autosummary::
    :toctree: generated/
 
+   GroupBy.all
+   GroupBy.any
+   GroupBy.bfill
    GroupBy.count
    GroupBy.cumcount
+   GroupBy.ffill
    GroupBy.first
    GroupBy.head
    GroupBy.last
@@ -2193,6 +2199,7 @@ Computations / Descriptive Stats
    GroupBy.nth
    GroupBy.ohlc
    GroupBy.prod
+   GroupBy.rank
    GroupBy.size
    GroupBy.sem
    GroupBy.std

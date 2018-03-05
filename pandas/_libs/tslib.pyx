@@ -755,8 +755,7 @@ cdef inline bint _parse_today_now(str val, int64_t* iresult):
         iresult[0] = Timestamp.utcnow().value
         return True
     elif val == 'today':
-        # Note: this is *not* the same as Timestamp('today')
-        iresult[0] = Timestamp.now().normalize().value
+        iresult[0] = Timestamp.today().value
         return True
     return False
 

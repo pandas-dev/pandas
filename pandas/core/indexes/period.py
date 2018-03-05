@@ -12,7 +12,6 @@ from pandas.core.dtypes.common import (
     is_scalar,
     is_datetime64_dtype,
     is_datetime64_any_dtype,
-    is_timedelta64_dtype,
     is_period_dtype,
     is_bool_dtype,
     pandas_dtype,
@@ -23,7 +22,6 @@ from pandas.core.dtypes.generic import ABCSeries
 import pandas.tseries.frequencies as frequencies
 from pandas.tseries.frequencies import get_freq_code as _gfc
 from pandas.core.indexes.datetimes import DatetimeIndex, Int64Index, Index
-from pandas.core.indexes.timedeltas import TimedeltaIndex
 from pandas.core.indexes.datetimelike import DatelikeOps, DatetimeIndexOpsMixin
 from pandas.core.tools.datetimes import parse_time_string
 import pandas.tseries.offsets as offsets
@@ -44,7 +42,6 @@ from pandas import compat
 from pandas.util._decorators import (Appender, Substitution, cache_readonly,
                                      deprecate_kwarg)
 from pandas.compat import zip, u
-from pandas.errors import PerformanceWarning
 
 import pandas.core.indexes.base as ibase
 _index_doc_kwargs = dict(ibase._index_doc_kwargs)
@@ -701,16 +698,6 @@ class PeriodIndex(DatelikeOps, DatetimeIndexOpsMixin, Int64Index):
                 return other.n
             msg = _DIFFERENT_FREQ_INDEX.format(self.freqstr, other.freqstr)
             raise IncompatibleFrequency(msg)
-        elif isinstance(other, np.ndarray):
-            if is_integer_dtype(other):
-                return other
-            elif is_timedelta64_dtype(other):
-                offset = frequencies.to_offset(self.freq)
-                if isinstance(offset, offsets.Tick):
-                    nanos = delta_to_nanoseconds(other)
-                    offset_nanos = delta_to_nanoseconds(offset)
-                    if (nanos % offset_nanos).all() == 0:
-                        return nanos // offset_nanos
         elif is_integer(other):
             # integer is passed to .shift via
             # _add_datetimelike_methods basically
@@ -725,10 +712,7 @@ class PeriodIndex(DatelikeOps, DatetimeIndexOpsMixin, Int64Index):
         return self.shift(ordinal_delta)
 
     def _sub_datelike(self, other):
-        if other is tslib.NaT:
-            new_data = np.empty(len(self), dtype=np.int64)
-            new_data.fill(tslib.iNaT)
-            return TimedeltaIndex(new_data)
+        assert other is not tslib.NaT
         return NotImplemented
 
     def _sub_period(self, other):
@@ -744,28 +728,6 @@ class PeriodIndex(DatelikeOps, DatetimeIndexOpsMixin, Int64Index):
             new_data[self._isnan] = np.nan
         # result must be Int64Index or Float64Index
         return Index(new_data)
-
-    def _add_offset_array(self, other):
-        # Array/Index of DateOffset objects
-        if len(other) == 1:
-            return self + other[0]
-        else:
-            warnings.warn("Adding/subtracting array of DateOffsets to "
-                          "{cls} not vectorized"
-                          .format(cls=type(self).__name__), PerformanceWarning)
-            res_values = self.astype('O').values + np.array(other)
-            return self.__class__(res_values)
-
-    def _sub_offset_array(self, other):
-        # Array/Index of DateOffset objects
-        if len(other) == 1:
-            return self - other[0]
-        else:
-            warnings.warn("Adding/subtracting array of DateOffsets to "
-                          "{cls} not vectorized"
-                          .format(cls=type(self).__name__), PerformanceWarning)
-            res_values = self.astype('O').values - np.array(other)
-            return self.__class__(res_values)
 
     def shift(self, n):
         """
