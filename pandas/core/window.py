@@ -923,7 +923,7 @@ class _Rolling_and_Expanding(_Rolling):
     >>> arr = [1, 2, 3, 4, 5]
     >>> import scipy.stats
     >>> scipy.stats.kurtosis(arr, bias=False)
-    -1.200000000000000
+    -1.2000000000000004
 
     >>> df = pd.DataFrame(arr)
     >>> df.rolling(5).kurt()
