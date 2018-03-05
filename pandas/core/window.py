@@ -899,11 +899,45 @@ class _Rolling_and_Expanding(_Rolling):
         return self._apply('roll_skew', 'skew',
                            check_minp=_require_min_periods(3), **kwargs)
 
-    _shared_docs['kurt'] = """Unbiased %(name)s kurtosis"""
+    _shared_docs['kurt'] = dedent("""Calculate unbiased %(name)s kurtosis.
 
-    def kurt(self, **kwargs):
+This function uses Fisher's definition of kurtosis (kurtosis of normal
+== 0.0) without bias.
+
+Returns
+-------
+same type as input
+
+See Also
+--------
+scipy.stats.kurtosis
+pandas.DataFrame.kurtosis
+pandas.Series.kurtosis
+
+Notes
+-----
+A minimum of 4 periods is required for the rolling calculation
+
+Examples
+--------
+>>> arr = [1, 2, 3, 4, 5]
+>>> import scipy.stats
+>>> scipy.stats.kurtosis(arr, bias=False)
+-1.200000000000000
+
+>>> df = pd.DataFrame(arr)
+>>> df.rolling(5).kurt()
+    0
+0  NaN
+1  NaN
+2  NaN
+3  NaN
+4 -1.2
+""")
+
+    def kurt(self):
         return self._apply('roll_kurt', 'kurt',
-                           check_minp=_require_min_periods(4), **kwargs)
+                           check_minp=_require_min_periods(4))
 
     _shared_docs['quantile'] = dedent("""
     %(name)s quantile
@@ -1221,7 +1255,6 @@ class Rolling(_Rolling_and_Expanding):
         return super(Rolling, self).skew(**kwargs)
 
     @Substitution(name='rolling')
-    @Appender(_doc_template)
     @Appender(_shared_docs['kurt'])
     def kurt(self, **kwargs):
         return super(Rolling, self).kurt(**kwargs)
@@ -1461,7 +1494,6 @@ class Expanding(_Rolling_and_Expanding):
         return super(Expanding, self).skew(**kwargs)
 
     @Substitution(name='expanding')
-    @Appender(_doc_template)
     @Appender(_shared_docs['kurt'])
     def kurt(self, **kwargs):
         return super(Expanding, self).kurt(**kwargs)
