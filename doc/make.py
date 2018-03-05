@@ -133,7 +133,7 @@ class DocBuilder:
             self.single_doc = single_doc
         elif single_doc is not None:
             try:
-                obj = pandas
+                obj = pandas  # noqa: F821
                 for name in single_doc.split('.'):
                     obj = getattr(obj, name)
             except AttributeError:
