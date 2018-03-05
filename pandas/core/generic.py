@@ -212,9 +212,8 @@ class NDFrame(PandasObject, SelectionMixin):
         """ add the string-like attributes from the info_axis.
         If info_axis is a MultiIndex, it's first level values are used.
         """
-        additions = set(
-            [c for c in self._info_axis.unique(level=0)[:100]
-             if isinstance(c, string_types) and isidentifier(c)])
+        additions = {c for c in self._info_axis.unique(level=0)[:100]
+                     if isinstance(c, string_types) and isidentifier(c)}
         return super(NDFrame, self)._dir_additions().union(additions)
 
     @property

@@ -38,9 +38,9 @@ def load_reduce(self):
 
         # try to re-encode the arguments
         if getattr(self, 'encoding', None) is not None:
-            args = tuple([arg.encode(self.encoding)
-                          if isinstance(arg, string_types)
-                          else arg for arg in args])
+            args = tuple(arg.encode(self.encoding)
+                         if isinstance(arg, string_types)
+                         else arg for arg in args)
             try:
                 stack[-1] = func(*args)
                 return
