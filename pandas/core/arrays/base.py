@@ -246,7 +246,7 @@ class ExtensionArray(object):
         from pandas import unique
 
         uniques = unique(self.astype(object))
-        return type(self)(uniques)
+        return self._constructor_from_sequence(uniques)
 
     # ------------------------------------------------------------------------
     # Indexing methods
