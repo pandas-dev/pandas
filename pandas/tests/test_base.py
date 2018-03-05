@@ -1224,10 +1224,11 @@ def test_values_consistent(array, expected_type, dtype):
     (pd.DatetimeIndex(['2017-01-01T00:00:00'], tz="US/Eastern"),
      np.array(['2017-01-01T05:00:00'], dtype='M8[ns]')),
     (pd.TimedeltaIndex([10**10]), np.array([10**10], dtype='m8[ns]')),
-    pytest.mark.xfail(reason='PeriodArray not implemented')((
+    pytest.param(
         pd.PeriodIndex(['2017', '2018'], freq='D'),
         np.array([17167, 17532]),
-    )),
+        marks=pytest.mark.xfail(reason="Not implemented")
+    ),
 ])
 def test_ndarray_values(array, expected):
     l_values = pd.Series(array)._ndarray_values
