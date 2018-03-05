@@ -2172,23 +2172,32 @@ class TestDataFramePlots(TestPlotBase):
 
     @pytest.mark.parametrize("x,y", [
         (['B', 'C'], 'A'),
-        ('A', ['B', 'C'])
+        (['A'], ['B', 'C'])
     ])
     def test_invalid_xy_args(self, x, y):
-        # GH 18671
+        # GH 18671, 19699 allows y to be list-like but not x
         df = DataFrame({"A": [1, 2], 'B': [3, 4], 'C': [5, 6]})
         with pytest.raises(ValueError):
             df.plot(x=x, y=y)
 
     @pytest.mark.parametrize("x,y", [
         ('A', 'B'),
-        ('B', 'A')
+        (['A'], 'B')
     ])
     def test_invalid_xy_args_dup_cols(self, x, y):
-        # GH 18671
+        # GH 18671, 19699 allows y to be list-like but not x
         df = DataFrame([[1, 3, 5], [2, 4, 6]], columns=list('AAB'))
         with pytest.raises(ValueError):
             df.plot(x=x, y=y)
+
+    @pytest.mark.parametrize("y,lbl", [
+        (['B'], ['b']),
+        (['B', 'C'], ['b', 'c'])
+    ])
+    def test_y_listlike(self, y, lbl):
+        # GH 19699
+        df = DataFrame({"A": [1, 2], 'B': [3, 4], 'C': [5, 6]})
+        _check_plot_works(df.plot, x='A', y=y, label=lbl)
 
     @pytest.mark.slow
     def test_hexbin_basic(self):

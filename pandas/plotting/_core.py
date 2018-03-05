@@ -1714,13 +1714,28 @@ def _plot(data, x=None, y=None, subplots=False,
                 data = data.set_index(x)
 
             if y is not None:
-                if is_integer(y) and not data.columns.holds_integer():
+                int_cols = is_integer(y) or any(is_integer(col) for col in y)
+                if int_cols and not data.columns.holds_integer():
                     y = data.columns[y]
-                elif not isinstance(data[y], ABCSeries):
-                    raise ValueError("y must be a label or position")
-                label = kwds['label'] if 'label' in kwds else y
-                series = data[y].copy()  # Don't modify
-                series.name = label
+                elif not isinstance(data[y], (ABCSeries, ABCDataFrame)):
+                    raise ValueError(
+                        "y must be a label or position or list of them"
+                    )
+
+                label_kw = kwds['label'] if 'label' in kwds else False
+                new_data = data[y].copy()  # Don't modify
+
+                if isinstance(data[y], ABCSeries):
+                    label_name = label_kw or y
+                    new_data.name = label_name
+                else:
+                    match = is_list_like(label_kw) and len(label_kw) == len(y)
+                    if label_kw and not match:
+                        raise ValueError(
+                            "label should be list-like and same length as y"
+                        )
+                    label_name = label_kw or data[y].columns
+                    new_data.columns = label_name
 
                 for kw in ['xerr', 'yerr']:
                     if (kw in kwds) and \
@@ -1730,7 +1745,7 @@ def _plot(data, x=None, y=None, subplots=False,
                             kwds[kw] = data[kwds[kw]]
                         except (IndexError, KeyError, TypeError):
                             pass
-                data = series
+                data = new_data
         plot_obj = klass(data, subplots=subplots, ax=ax, kind=kind, **kwds)
 
     plot_obj.generate()
