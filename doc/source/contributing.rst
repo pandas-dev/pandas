@@ -964,32 +964,6 @@ Now you can commit your changes in your local repository::
 
     git commit -m
 
-Combining commits
------------------
-
-If you have multiple commits, you may want to combine them into one commit, often
-referred to as "squashing" or "rebasing".  This is a common request by package maintainers
-when submitting a pull request as it maintains a more compact commit history.  To rebase
-your commits::
-
-    git rebase -i HEAD~#
-
-Where # is the number of commits you want to combine.  Then you can pick the relevant
-commit message and discard others.
-
-To squash to the master branch do::
-
-    git rebase -i master
-
-Use the ``s`` option on a commit to ``squash``, meaning to keep the commit messages,
-or ``f`` to ``fixup``, meaning to merge the commit messages.
-
-Then you will need to push the branch (see below) forcefully to replace the current
-commits with the new ones::
-
-    git push origin shiny-new-feature -f
-
-
 Pushing your changes
 --------------------
 
@@ -1045,15 +1019,43 @@ release.  To submit a pull request:
 #. Click ``Send Pull Request``.
 
 This request then goes to the repository maintainers, and they will review
-the code. If you need to make more changes, you can make them in
-your branch, push them to GitHub, and the pull request will be automatically
-updated.  Pushing them to GitHub again is done by::
+the code. 
 
-    git push -f origin shiny-new-feature
+Updating your pull request
+--------------------------
+
+Based on the review you get on your pull request, you will probably need to make
+some changes to the code. In that case, you can make them in your branch, 
+add a new commit to that branch, push it to GitHub, and the pull request will be
+automatically updated.  Pushing them to GitHub again is done by::
+
+    git push origin shiny-new-feature
 
 This will automatically update your pull request with the latest code and restart the
 :ref:`Continuous Integration <contributing.ci>` tests.
 
+Another reason you might need to update your pull request is to solve conflicts
+with changes that have been merged into the master branch since you opened your
+pull request. 
+
+To do this, you need to "merge upstream master" in your branch::
+
+    git checkout shiny-new-feature
+    git fetch upstream
+    git merge upstream/master
+
+If there are no conflicts (or they could be fixed automatically), a file with a
+default commit message will open, and you can simply save and quit this file.
+
+If there are merge conflicts, you need to solve those conflicts. See for
+example at https://help.github.com/articles/resolving-a-merge-conflict-using-the-command-line/
+for an explanation on how to do this.
+Once the conflicts are merged and the files where the conflicts were solved are
+added, you can run ``git commit`` to save those fixes.
+
+Now you can update your pull request by pushing to the branch on GitHub::
+
+    git push origin shiny-new-feature
 
 Delete your merged branch (optional)
 ------------------------------------
