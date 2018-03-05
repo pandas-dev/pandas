@@ -17,8 +17,11 @@ cdef class CachedProperty(object):
         self.__doc__ = getattr(func, '__doc__', None)
 
     def __get__(self, obj, typ):
-        # Get the cache or set a default one if needed
+        if obj is None:
+            # accessed on the class, not the instance
+            return self
 
+        # Get the cache or set a default one if needed
         cache = getattr(obj, '_cache', None)
         if cache is None:
             try:
