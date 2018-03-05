@@ -1049,7 +1049,7 @@ class DatetimeIndexOpsMixin(object):
         return self._shallow_copy(result,
                                   **self._get_attributes_dict())
 
-    def summary(self, name=None):
+    def _summary(self, name=None):
         """
         return a summarized representation
         """
@@ -1070,6 +1070,15 @@ class DatetimeIndexOpsMixin(object):
         # display as values, not quoted
         result = result.replace("'", "")
         return result
+
+    def summary(self, name=None):
+        """
+        .. deprecated:: 0.23.0
+           No longer supported
+        """
+        warnings.warn("'summary' is deprecated and will be removed in a "
+                      "future version.", FutureWarning, stacklevel=2)
+        return self._summary(name)
 
     def _concat_same_dtype(self, to_concat, name):
         """

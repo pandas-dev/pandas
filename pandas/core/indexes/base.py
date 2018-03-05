@@ -1385,7 +1385,7 @@ class Index(IndexOpsMixin, PandasObject):
         # to disable groupby tricks in MultiIndex
         return False
 
-    def summary(self, name=None):
+    def _summary(self, name=None):
         if len(self) > 0:
             head = self[0]
             if (hasattr(head, 'format') and
@@ -1403,6 +1403,15 @@ class Index(IndexOpsMixin, PandasObject):
         if name is None:
             name = type(self).__name__
         return '%s: %s entries%s' % (name, len(self), index_summary)
+
+    def summary(self, name=None):
+        """
+        .. deprecated:: 0.23.0
+           No longer supported
+        """
+        warnings.warn("'summary' is deprecated and will be removed in a "
+                      "future version.", FutureWarning, stacklevel=2)
+        return self._summary(name)
 
     def _mpl_repr(self):
         # how to represent ourselves to matplotlib

@@ -2005,7 +2005,7 @@ class DataFrame(NDFrame):
         lines = []
 
         lines.append(str(type(self)))
-        lines.append(self.index.summary())
+        lines.append(self.index._summary())
 
         if len(self.columns) == 0:
             lines.append('Empty %s' % type(self).__name__)
@@ -2341,7 +2341,7 @@ class DataFrame(NDFrame):
         try:
             if key in self.columns and not is_mi_columns:
                 return self._getitem_column(key)
-        except:
+        except Exception:
             pass
 
         # see if we can slice the rows
@@ -2843,7 +2843,7 @@ class DataFrame(NDFrame):
         if not len(self.index) and is_list_like(value):
             try:
                 value = Series(value)
-            except:
+            except Exception:
                 raise ValueError('Cannot set a frame with no defined index '
                                  'and a value that cannot be converted to a '
                                  'Series')
@@ -6828,7 +6828,7 @@ def _prep_ndarray(values, copy=True):
                 values = np.array([convert(v) for v in values])
             else:
                 values = convert(values)
-        except:
+        except Exception:
             values = convert(values)
 
     else:

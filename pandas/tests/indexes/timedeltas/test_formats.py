@@ -5,6 +5,8 @@ import pytest
 import pandas as pd
 from pandas import TimedeltaIndex
 
+import pandas.util.testing as tm
+
 
 class TestTimedeltaIndexRendering(object):
     @pytest.mark.parametrize('method', ['__repr__', '__unicode__', '__str__'])
@@ -67,6 +69,11 @@ class TestTimedeltaIndexRendering(object):
                 result = repr(pd.Series(idx))
                 assert result == expected
 
+    def test_summary_deprecated(self):
+        idx = TimedeltaIndex([], freq='D')
+        with tm.assert_produces_warning(FutureWarning):
+            idx.summary()
+
     def test_summary(self):
         # GH#9116
         idx1 = TimedeltaIndex([], freq='D')
@@ -92,5 +99,5 @@ class TestTimedeltaIndexRendering(object):
 
         for idx, expected in zip([idx1, idx2, idx3, idx4, idx5],
                                  [exp1, exp2, exp3, exp4, exp5]):
-            result = idx.summary()
+            result = idx._summary()
             assert result == expected

@@ -1055,13 +1055,20 @@ class TestIndex(Base):
         assert not self.intIndex.is_all_dates
 
     def test_summary(self):
-        self._check_method_works(Index.summary)
+        self._check_method_works(Index._summary)
         # GH3869
         ind = Index(['{other}%s', "~:{range}:0"], name='A')
-        result = ind.summary()
+        result = ind._summary()
         # shouldn't be formatted accidentally.
         assert '~:{range}:0' in result
         assert '{other}%s' in result
+
+    # GH18217
+    def test_summary_deprecated(self):
+        ind = Index(['{other}%s', "~:{range}:0"], name='A')
+
+        with tm.assert_produces_warning(FutureWarning):
+            ind.summary()
 
     def test_format(self):
         self._check_method_works(Index.format)
