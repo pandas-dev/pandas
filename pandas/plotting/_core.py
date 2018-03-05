@@ -1758,7 +1758,7 @@ df_kind = """- 'scatter' : scatter plot
 series_kind = ""
 
 df_coord = """x : label or position, default None
-    y : label or position, default None
+    y : label, position or list of label, positions, default None
         Allows plotting of one column versus another"""
 series_coord = ""
 
