@@ -111,12 +111,15 @@ class TestTSPlot(TestPlotBase):
 
     @pytest.mark.slow
     def test_tsplot(self):
+
         from pandas.tseries.plotting import tsplot
 
         _, ax = self.plt.subplots()
         ts = tm.makeTimeSeries()
 
-        f = lambda *args, **kwds: tsplot(s, self.plt.Axes.plot, *args, **kwds)
+        def f(*args, **kwds):
+            with tm.assert_produces_warning(FutureWarning):
+                return tsplot(s, self.plt.Axes.plot, *args, **kwds)
 
         for s in self.period_ser:
             _check_plot_works(f, s.index.freq, ax=ax, series=s)
@@ -188,11 +191,13 @@ class TestTSPlot(TestPlotBase):
         tm.close()
 
         # tsplot
-        _, ax = self.plt.subplots()
         from pandas.tseries.plotting import tsplot
-        tsplot(annual, self.plt.Axes.plot, ax=ax)
+        _, ax = self.plt.subplots()
+        with tm.assert_produces_warning(FutureWarning):
+            tsplot(annual, self.plt.Axes.plot, ax=ax)
         check_format_of_first_point(ax, 't = 2014  y = 1.000000')
-        tsplot(daily, self.plt.Axes.plot, ax=ax)
+        with tm.assert_produces_warning(FutureWarning):
+            tsplot(daily, self.plt.Axes.plot, ax=ax)
         check_format_of_first_point(ax, 't = 2014-01-01  y = 1.000000')
 
     @pytest.mark.slow
@@ -879,12 +884,12 @@ class TestTSPlot(TestPlotBase):
         for l in ax.get_lines():
             assert PeriodIndex(data=l.get_xdata()).freq == idxh.freq
 
-        # tsplot
-        from pandas.tseries.plotting import tsplot
-
         _, ax = self.plt.subplots()
-        tsplot(high, self.plt.Axes.plot, ax=ax)
-        lines = tsplot(low, self.plt.Axes.plot, ax=ax)
+        from pandas.tseries.plotting import tsplot
+        with tm.assert_produces_warning(FutureWarning):
+            tsplot(high, self.plt.Axes.plot, ax=ax)
+        with tm.assert_produces_warning(FutureWarning):
+            lines = tsplot(low, self.plt.Axes.plot, ax=ax)
         for l in lines:
             assert PeriodIndex(data=l.get_xdata()).freq == idxh.freq
 
@@ -910,12 +915,12 @@ class TestTSPlot(TestPlotBase):
                 tm.assert_numpy_array_equal(xdata, expected_h)
         tm.close()
 
-        # tsplot
-        from pandas.tseries.plotting import tsplot
-
         _, ax = self.plt.subplots()
-        tsplot(low, self.plt.Axes.plot, ax=ax)
-        lines = tsplot(high, self.plt.Axes.plot, ax=ax)
+        from pandas.tseries.plotting import tsplot
+        with tm.assert_produces_warning(FutureWarning):
+            tsplot(low, self.plt.Axes.plot, ax=ax)
+        with tm.assert_produces_warning(FutureWarning):
+            lines = tsplot(high, self.plt.Axes.plot, ax=ax)
         for l in lines:
             assert PeriodIndex(data=l.get_xdata()).freq == idxh.freq
             xdata = l.get_xdata(orig=False)
@@ -1351,9 +1356,11 @@ class TestTSPlot(TestPlotBase):
         values = [datetime(1677, 1, 1, 12), datetime(1677, 1, 2, 12)]
         ax.plot(values)
 
+    @pytest.mark.skip(
+        is_platform_mac(),
+        "skip on mac for precision display issue on older mpl")
+    @pytest.mark.xfail(reason="suspect on mpl 2.2.2")
     def test_format_timedelta_ticks_narrow(self):
-        if is_platform_mac():
-            pytest.skip("skip on mac for precision display issue on older mpl")
 
         if self.mpl_ge_2_0_0:
             expected_labels = [''] + [
@@ -1374,9 +1381,11 @@ class TestTSPlot(TestPlotBase):
         for l, l_expected in zip(labels, expected_labels):
             assert l.get_text() == l_expected
 
+    @pytest.mark.skip(
+        is_platform_mac(),
+        "skip on mac for precision display issue on older mpl")
+    @pytest.mark.xfail(reason="suspect on mpl 2.2.2")
     def test_format_timedelta_ticks_wide(self):
-        if is_platform_mac():
-            pytest.skip("skip on mac for precision display issue on older mpl")
 
         if self.mpl_ge_2_0_0:
             expected_labels = [
