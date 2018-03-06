@@ -36,7 +36,7 @@ import pandas.core.dtypes.concat as _concat
 from pandas.errors import PerformanceWarning
 from pandas.core.algorithms import checked_add_with_arr
 
-from pandas.core.indexes.base import Index, _index_shared_docs
+from pandas.core.indexes.base import Index
 from pandas.core.indexes.numeric import Int64Index, Float64Index
 import pandas.compat as compat
 from pandas.tseries.frequencies import to_offset, get_period_alias, Resolution
@@ -968,7 +968,7 @@ class DatetimeIndex(DatelikeOps, TimelikeOps, DatetimeIndexOpsMixin,
                                                 format=format,
                                                 na_rep=na_rep)
 
-    @Appender(_index_shared_docs['astype'])
+    @Appender(Index.astype.__doc__)
     def astype(self, dtype, copy=True):
         dtype = pandas_dtype(dtype)
         if (is_datetime64_ns_dtype(dtype) and

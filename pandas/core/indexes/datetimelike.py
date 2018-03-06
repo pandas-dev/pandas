@@ -44,14 +44,11 @@ from pandas.core.algorithms import checked_add_with_arr
 from pandas.errors import NullFrequencyError, PerformanceWarning
 import pandas.io.formats.printing as printing
 
-from pandas.core.indexes.base import Index, _index_shared_docs
+from pandas.core.indexes.base import Index
 from pandas.util._decorators import Appender, cache_readonly
 import pandas.core.dtypes.concat as _concat
 import pandas.tseries.frequencies as frequencies
 from pandas.tseries.offsets import Tick, DateOffset
-
-import pandas.core.indexes.base as ibase
-_index_doc_kwargs = dict(ibase._index_doc_kwargs)
 
 
 class DatelikeOps(object):
@@ -256,7 +253,7 @@ class DatetimeIndexOpsMixin(object):
     def _format_with_header(self, header, **kwargs):
         return header + list(self._format_native_types(**kwargs))
 
-    @Appender(_index_shared_docs['__contains__'] % _index_doc_kwargs)
+    @Appender(Index.__contains__.__doc__)
     def __contains__(self, key):
         try:
             res = self.get_loc(key)
@@ -400,7 +397,7 @@ class DatetimeIndexOpsMixin(object):
 
             return self._simple_new(sorted_values, **attribs)
 
-    @Appender(_index_shared_docs['take'] % _index_doc_kwargs)
+    @Appender(Index.take.__doc__)
     def take(self, indices, axis=0, allow_fill=True,
              fill_value=None, **kwargs):
         nv.validate_take(tuple(), kwargs)
@@ -953,7 +950,7 @@ class DatetimeIndexOpsMixin(object):
         return self._shallow_copy(self.asi8.repeat(repeats),
                                   freq=freq)
 
-    @Appender(_index_shared_docs['where'] % _index_doc_kwargs)
+    @Appender(Index.where.__doc__)
     def where(self, cond, other=None):
         other = _ensure_datetimelike_to_i8(other)
         values = _ensure_datetimelike_to_i8(self)

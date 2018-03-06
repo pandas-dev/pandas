@@ -17,7 +17,7 @@ from pandas.compat.numpy import function as nv
 
 import pandas.core.common as com
 from pandas.core import ops
-from pandas.core.indexes.base import Index, _index_shared_docs
+from pandas.core.indexes.base import Index
 from pandas.util._decorators import Appender, cache_readonly
 import pandas.core.dtypes.concat as _concat
 import pandas.core.indexes.base as ibase
@@ -257,7 +257,7 @@ class RangeIndex(Int64Index):
     def tolist(self):
         return lrange(self._start, self._stop, self._step)
 
-    @Appender(_index_shared_docs['_shallow_copy'])
+    @Appender(Index._shallow_copy.__doc__)
     def _shallow_copy(self, values=None, **kwargs):
         if values is None:
             return RangeIndex(name=self.name, fastpath=True,
@@ -266,7 +266,7 @@ class RangeIndex(Int64Index):
             kwargs.setdefault('name', self.name)
             return self._int64index._shallow_copy(values, **kwargs)
 
-    @Appender(ibase._index_shared_docs['copy'])
+    @Appender(Index.copy.__doc__)
     def copy(self, name=None, deep=False, dtype=None, **kwargs):
         self._validate_dtype(dtype)
         if name is None:
@@ -464,7 +464,7 @@ class RangeIndex(Int64Index):
 
         return self._int64index.union(other)
 
-    @Appender(_index_shared_docs['join'])
+    @Appender(Index.join.__doc__)
     def join(self, other, how='left', level=None, return_indexers=False,
              sort=False):
         if how == 'outer' and self is not other:

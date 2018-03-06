@@ -19,15 +19,12 @@ from pandas.core.algorithms import take_1d
 
 from pandas.util._decorators import Appender, cache_readonly
 from pandas.core.config import get_option
-from pandas.core.indexes.base import Index, _index_shared_docs
+from pandas.core.indexes.base import Index
 from pandas.core import accessor
 import pandas.core.common as com
 import pandas.core.base as base
 import pandas.core.missing as missing
 import pandas.core.indexes.base as ibase
-
-_index_doc_kwargs = dict(ibase._index_doc_kwargs)
-_index_doc_kwargs.update(dict(target_klass='CategoricalIndex'))
 
 
 class CategoricalIndex(Index, accessor.PandasDelegate):
@@ -191,7 +188,7 @@ class CategoricalIndex(Index, accessor.PandasDelegate):
         result._reset_identity()
         return result
 
-    @Appender(_index_shared_docs['_shallow_copy'])
+    @Appender(Index._shallow_copy.__doc__)
     def _shallow_copy(self, values=None, categories=None, ordered=None,
                       dtype=None, **kwargs):
         # categories and ordered can't be part of attributes,
@@ -322,7 +319,7 @@ class CategoricalIndex(Index, accessor.PandasDelegate):
     def _reverse_indexer(self):
         return self._data._reverse_indexer()
 
-    @Appender(_index_shared_docs['__contains__'] % _index_doc_kwargs)
+    @Appender(Index.__contains__.__doc__)
     def __contains__(self, key):
         hash(key)
 
@@ -331,7 +328,7 @@ class CategoricalIndex(Index, accessor.PandasDelegate):
 
         return key in self.values
 
-    @Appender(_index_shared_docs['contains'] % _index_doc_kwargs)
+    @Appender(Index.contains.__doc__)
     def contains(self, key):
         hash(key)
 
@@ -344,7 +341,7 @@ class CategoricalIndex(Index, accessor.PandasDelegate):
         """ the array interface, return my values """
         return np.array(self._data, dtype=dtype)
 
-    @Appender(_index_shared_docs['astype'])
+    @Appender(Index.astype.__doc__)
     def astype(self, dtype, copy=True):
         if is_interval_dtype(dtype):
             from pandas import IntervalIndex
@@ -362,7 +359,7 @@ class CategoricalIndex(Index, accessor.PandasDelegate):
         """ return if each value is nan"""
         return self._data.codes == -1
 
-    @Appender(ibase._index_shared_docs['fillna'])
+    @Appender(Index.fillna.__doc__)
     def fillna(self, value, downcast=None):
         self._assert_can_do_op(value)
         return CategoricalIndex(self._data.fillna(value), name=self.name)
@@ -389,7 +386,7 @@ class CategoricalIndex(Index, accessor.PandasDelegate):
     def is_monotonic_decreasing(self):
         return Index(self.codes).is_monotonic_decreasing
 
-    @Appender(_index_shared_docs['index_unique'] % _index_doc_kwargs)
+    @Appender(Index.unique.__doc__)
     def unique(self, level=None):
         if level is not None:
             self._validate_index_level(level)
@@ -399,7 +396,7 @@ class CategoricalIndex(Index, accessor.PandasDelegate):
         return self._shallow_copy(result, categories=result.categories,
                                   ordered=result.ordered)
 
-    @Appender(base._shared_docs['duplicated'] % _index_doc_kwargs)
+    @Appender(Index.duplicated.__doc__)
     def duplicated(self, keep='first'):
         from pandas._libs.hashtable import duplicated_int64
         codes = self.codes.astype('i8')
@@ -462,7 +459,7 @@ class CategoricalIndex(Index, accessor.PandasDelegate):
         """ always allow reindexing """
         pass
 
-    @Appender(_index_shared_docs['where'])
+    @Appender(Index.where.__doc__)
     def where(self, cond, other=None):
         if other is None:
             other = self._na_value
@@ -558,7 +555,7 @@ class CategoricalIndex(Index, accessor.PandasDelegate):
 
         return new_target, indexer, new_indexer
 
-    @Appender(_index_shared_docs['get_indexer'] % _index_doc_kwargs)
+    @Appender(Index.get_indexer.__doc__)
     def get_indexer(self, target, method=None, limit=None, tolerance=None):
         from pandas.core.arrays.categorical import _recode_for_categories
 
@@ -594,7 +591,7 @@ class CategoricalIndex(Index, accessor.PandasDelegate):
         indexer, _ = self._engine.get_indexer_non_unique(codes)
         return _ensure_platform_int(indexer)
 
-    @Appender(_index_shared_docs['get_indexer_non_unique'] % _index_doc_kwargs)
+    @Appender(Index.get_indexer_non_unique.__doc__)
     def get_indexer_non_unique(self, target):
         target = ibase._ensure_index(target)
 
@@ -605,7 +602,7 @@ class CategoricalIndex(Index, accessor.PandasDelegate):
         indexer, missing = self._engine.get_indexer_non_unique(codes)
         return _ensure_platform_int(indexer), missing
 
-    @Appender(_index_shared_docs['_convert_scalar_indexer'])
+    @Appender(Index._convert_scalar_indexer.__doc__)
     def _convert_scalar_indexer(self, key, kind=None):
         if self.categories._defer_to_indexing:
             return self.categories._convert_scalar_indexer(key, kind=kind)
@@ -613,7 +610,7 @@ class CategoricalIndex(Index, accessor.PandasDelegate):
         return super(CategoricalIndex, self)._convert_scalar_indexer(
             key, kind=kind)
 
-    @Appender(_index_shared_docs['_convert_list_indexer'])
+    @Appender(Index._convert_list_indexer.__doc__)
     def _convert_list_indexer(self, keyarr, kind=None):
         # Return our indexer or raise if all of the values are not included in
         # the categories
@@ -631,7 +628,7 @@ class CategoricalIndex(Index, accessor.PandasDelegate):
 
         return self.get_indexer(keyarr)
 
-    @Appender(_index_shared_docs['_convert_arr_indexer'])
+    @Appender(Index._convert_arr_indexer.__doc__)
     def _convert_arr_indexer(self, keyarr):
         keyarr = com._asarray_tuplesafe(keyarr)
 
@@ -640,11 +637,11 @@ class CategoricalIndex(Index, accessor.PandasDelegate):
 
         return self._shallow_copy(keyarr)
 
-    @Appender(_index_shared_docs['_convert_index_indexer'])
+    @Appender(Index._convert_index_indexer.__doc__)
     def _convert_index_indexer(self, keyarr):
         return self._shallow_copy(keyarr)
 
-    @Appender(_index_shared_docs['take'] % _index_doc_kwargs)
+    @Appender(Index.take.__doc__)
     def take(self, indices, axis=0, allow_fill=True,
              fill_value=None, **kwargs):
         nv.validate_take(tuple(), kwargs)

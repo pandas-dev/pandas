@@ -24,8 +24,7 @@ from pandas.core.dtypes.common import (
     is_integer,
     pandas_dtype)
 from pandas.core.indexes.base import (
-    Index, _ensure_index,
-    default_pprint, _index_shared_docs)
+    Index, _ensure_index, default_pprint)
 
 from pandas._libs import Timestamp, Timedelta
 from pandas._libs.interval import (
@@ -41,12 +40,6 @@ from pandas.util._decorators import cache_readonly, Appender
 from pandas.core.config import get_option
 from pandas.tseries.frequencies import to_offset
 from pandas.tseries.offsets import DateOffset
-
-import pandas.core.indexes.base as ibase
-_index_doc_kwargs = dict(ibase._index_doc_kwargs)
-_index_doc_kwargs.update(
-    dict(klass='IntervalIndex',
-         target_klass='IntervalIndex or list of Intervals'))
 
 
 _VALID_CLOSED = set(['left', 'right', 'both', 'neither'])
@@ -302,7 +295,7 @@ class IntervalIndex(IntervalMixin, Index):
         result._reset_identity()
         return result
 
-    @Appender(_index_shared_docs['_shallow_copy'])
+    @Appender(Index._shallow_copy.__doc__)
     def _shallow_copy(self, left=None, right=None, **kwargs):
         if left is None:
 
@@ -729,7 +722,7 @@ class IntervalIndex(IntervalMixin, Index):
         d.update(self._get_attributes_dict())
         return _new_IntervalIndex, (self.__class__, d), None
 
-    @Appender(_index_shared_docs['copy'])
+    @Appender(Index.copy.__doc__)
     def copy(self, deep=False, name=None):
         left = self.left.copy(deep=True) if deep else self.left
         right = self.right.copy(deep=True) if deep else self.right
@@ -737,7 +730,7 @@ class IntervalIndex(IntervalMixin, Index):
         closed = self.closed
         return type(self).from_arrays(left, right, closed=closed, name=name)
 
-    @Appender(_index_shared_docs['astype'])
+    @Appender(Index.astype.__doc__)
     def astype(self, dtype, copy=True):
         dtype = pandas_dtype(dtype)
         if is_interval_dtype(dtype) and dtype != self.dtype:
@@ -832,7 +825,7 @@ class IntervalIndex(IntervalMixin, Index):
         return bool((self.right[:-1] <= self.left[1:]).all() or
                     (self.left[:-1] >= self.right[1:]).all())
 
-    @Appender(_index_shared_docs['_convert_scalar_indexer'])
+    @Appender(Index._convert_scalar_indexer.__doc__)
     def _convert_scalar_indexer(self, key, kind=None):
         if kind == 'iloc':
             return super(IntervalIndex, self)._convert_scalar_indexer(
@@ -842,7 +835,7 @@ class IntervalIndex(IntervalMixin, Index):
     def _maybe_cast_slice_bound(self, label, side, kind):
         return getattr(self, side)._maybe_cast_slice_bound(label, side, kind)
 
-    @Appender(_index_shared_docs['_convert_list_indexer'])
+    @Appender(Index._convert_list_indexer.__doc__)
     def _convert_list_indexer(self, keyarr, kind=None):
         """
         we are passed a list-like indexer. Return the
@@ -1034,7 +1027,7 @@ class IntervalIndex(IntervalMixin, Index):
             loc = self.get_loc(key)
         return series.iloc[loc]
 
-    @Appender(_index_shared_docs['get_indexer'] % _index_doc_kwargs)
+    @Appender(Index.get_indexer.__doc__)
     def get_indexer(self, target, method=None, limit=None, tolerance=None):
 
         self._check_method(method)
@@ -1135,12 +1128,12 @@ class IntervalIndex(IntervalMixin, Index):
 
         return np.concatenate(indexer)
 
-    @Appender(_index_shared_docs['get_indexer_non_unique'] % _index_doc_kwargs)
+    @Appender(Index.get_indexer_non_unique.__doc__)
     def get_indexer_non_unique(self, target):
         target = self._maybe_cast_indexed(_ensure_index(target))
         return super(IntervalIndex, self).get_indexer_non_unique(target)
 
-    @Appender(_index_shared_docs['where'])
+    @Appender(Index.where.__doc__)
     def where(self, cond, other=None):
         if other is None:
             other = self._na_value
@@ -1215,7 +1208,7 @@ class IntervalIndex(IntervalMixin, Index):
             raise ValueError(msg)
         return super(IntervalIndex, self)._concat_same_dtype(to_concat, name)
 
-    @Appender(_index_shared_docs['take'] % _index_doc_kwargs)
+    @Appender(Index.take.__doc__)
     def take(self, indices, axis=0, allow_fill=True,
              fill_value=None, **kwargs):
         nv.validate_take(tuple(), kwargs)

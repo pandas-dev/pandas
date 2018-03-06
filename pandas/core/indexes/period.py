@@ -37,17 +37,12 @@ from pandas._libs.tslibs import resolution, period
 from pandas._libs.tslibs.timedeltas import delta_to_nanoseconds
 
 from pandas.core.base import _shared_docs
-from pandas.core.indexes.base import _index_shared_docs, _ensure_index
+from pandas.core.indexes.base import Index, _ensure_index
 
 from pandas import compat
 from pandas.util._decorators import (Appender, Substitution, cache_readonly,
                                      deprecate_kwarg)
 from pandas.compat import zip, u
-
-import pandas.core.indexes.base as ibase
-_index_doc_kwargs = dict(ibase._index_doc_kwargs)
-_index_doc_kwargs.update(
-    dict(target_klass='PeriodIndex or list of Periods'))
 
 
 def _field_accessor(name, alias, docstring=None):
@@ -386,7 +381,7 @@ class PeriodIndex(DatelikeOps, DatetimeIndexOpsMixin, Int64Index):
         """
         return PeriodIndex([item], **self._get_attributes_dict())
 
-    @Appender(_index_shared_docs['__contains__'])
+    @Appender(Index.__contains__.__doc__)
     def __contains__(self, key):
         if isinstance(key, Period):
             if key.freq != self.freq:
@@ -510,7 +505,7 @@ class PeriodIndex(DatelikeOps, DatetimeIndexOpsMixin, Int64Index):
 
         return result
 
-    @Appender(_index_shared_docs['astype'])
+    @Appender(Index.astype.__doc__)
     def astype(self, dtype, copy=True, how='start'):
         dtype = pandas_dtype(dtype)
         if is_integer_dtype(dtype):
@@ -825,7 +820,7 @@ class PeriodIndex(DatelikeOps, DatetimeIndexOpsMixin, Int64Index):
             return com._maybe_box(self, self._engine.get_value(s, key),
                                   series, key)
 
-    @Appender(_index_shared_docs['get_indexer'] % _index_doc_kwargs)
+    @Appender(Index.get_indexer.__doc__)
     def get_indexer(self, target, method=None, limit=None, tolerance=None):
         target = _ensure_index(target)
 

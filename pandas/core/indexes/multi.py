@@ -23,7 +23,6 @@ from pandas.core.dtypes.common import (
 from pandas.core.dtypes.missing import isna, array_equivalent
 from pandas.errors import PerformanceWarning, UnsortedIndexError
 
-import pandas.core.base as base
 from pandas.util._decorators import Appender, cache_readonly, deprecate_kwarg
 import pandas.core.common as com
 import pandas.core.missing as missing
@@ -33,16 +32,10 @@ from pandas.io.formats.printing import pprint_thing
 from pandas.core.config import get_option
 
 from pandas.core.indexes.base import (
-    Index, _ensure_index,
-    InvalidIndexError,
-    _index_shared_docs)
+    Index, _ensure_index, InvalidIndexError)
 from pandas.core.indexes.frozen import (
     FrozenNDArray, FrozenList, _ensure_frozen)
 import pandas.core.indexes.base as ibase
-_index_doc_kwargs = dict(ibase._index_doc_kwargs)
-_index_doc_kwargs.update(
-    dict(klass='MultiIndex',
-         target_klass='MultiIndex or list of tuples'))
 
 
 class MultiIndexUIntEngine(libindex.BaseMultiIndexCodesEngine,
@@ -540,7 +533,7 @@ class MultiIndex(Index):
                               **kwargs)
         return self._shallow_copy(values, **kwargs)
 
-    @Appender(_index_shared_docs['__contains__'] % _index_doc_kwargs)
+    @Appender(Index.__contains__.__doc__)
     def __contains__(self, key):
         hash(key)
         try:
@@ -551,7 +544,7 @@ class MultiIndex(Index):
 
     contains = __contains__
 
-    @Appender(_index_shared_docs['_shallow_copy'])
+    @Appender(Index._shallow_copy.__doc__)
     def _shallow_copy(self, values=None, **kwargs):
         if values is not None:
             if 'name' in kwargs:
@@ -697,7 +690,7 @@ class MultiIndex(Index):
 
         return mi.values
 
-    @Appender(_index_shared_docs['_get_grouper_for_level'])
+    @Appender(Index._get_grouper_for_level.__doc__)
     def _get_grouper_for_level(self, mapper, level):
         indexer = self.labels[level]
         level_index = self.levels[level]
@@ -916,7 +909,7 @@ class MultiIndex(Index):
                      for k, stringify in zip(key, self._have_mixed_levels)])
         return hash_tuple(key)
 
-    @Appender(base._shared_docs['duplicated'] % _index_doc_kwargs)
+    @Appender(Index.duplicated.__doc__)
     def duplicated(self, keep='first'):
         from pandas.core.sorting import get_group_index
         from pandas._libs.hashtable import duplicated_int64
@@ -932,7 +925,7 @@ class MultiIndex(Index):
         """
         raise NotImplementedError('isna is not defined for MultiIndex')
 
-    @Appender(_index_shared_docs['dropna'])
+    @Appender(Index.dropna.__doc__)
     def dropna(self, how='any'):
         nans = [label == -1 for label in self.labels]
         if how == 'any':
@@ -1067,7 +1060,7 @@ class MultiIndex(Index):
         values = self._get_level_values(level)
         return values
 
-    @Appender(_index_shared_docs['index_unique'] % _index_doc_kwargs)
+    @Appender(Index.unique.__doc__)
     def unique(self, level=None):
 
         if level is None:
@@ -1577,7 +1570,7 @@ class MultiIndex(Index):
                               names=self.names, sortorder=sortorder,
                               verify_integrity=False)
 
-    @Appender(_index_shared_docs['take'] % _index_doc_kwargs)
+    @Appender(Index.take.__doc__)
     def take(self, indices, axis=0, allow_fill=True,
              fill_value=None, **kwargs):
         nv.validate_take(tuple(), kwargs)
@@ -1948,7 +1941,7 @@ class MultiIndex(Index):
 
         return indexer, keyarr
 
-    @Appender(_index_shared_docs['get_indexer'] % _index_doc_kwargs)
+    @Appender(Index.get_indexer.__doc__)
     def get_indexer(self, target, method=None, limit=None, tolerance=None):
         method = missing.clean_reindex_fill_method(method)
         target = _ensure_index(target)
@@ -1986,7 +1979,7 @@ class MultiIndex(Index):
 
         return _ensure_platform_int(indexer)
 
-    @Appender(_index_shared_docs['get_indexer_non_unique'] % _index_doc_kwargs)
+    @Appender(Index.get_indexer_non_unique.__doc__)
     def get_indexer_non_unique(self, target):
         return super(MultiIndex, self).get_indexer_non_unique(target)
 
@@ -2770,7 +2763,7 @@ class MultiIndex(Index):
             return MultiIndex.from_tuples(difference, sortorder=0,
                                           names=result_names)
 
-    @Appender(_index_shared_docs['astype'])
+    @Appender(Index.astype.__doc__)
     def astype(self, dtype, copy=True):
         dtype = pandas_dtype(dtype)
         if is_categorical_dtype(dtype):
