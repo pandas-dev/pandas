@@ -1,4 +1,6 @@
 # -*- coding: utf-8 -*-
+import operator
+
 import pytest
 import numpy as np
 from datetime import timedelta
@@ -11,6 +13,7 @@ from pandas import (DatetimeIndex, TimedeltaIndex, Float64Index, Int64Index,
                     Series,
                     Timestamp, Timedelta)
 from pandas.errors import PerformanceWarning, NullFrequencyError
+from pandas.core import ops
 
 
 @pytest.fixture(params=[pd.offsets.Hour(2), timedelta(hours=2),
@@ -269,6 +272,15 @@ class TestTimedeltaIndexArithmetic(object):
 
     # -------------------------------------------------------------
     # Invalid Operations
+
+    @pytest.mark.parametrize('other', [3.14, np.array([2.0, 3.0])])
+    @pytest.mark.parametrize('op', [operator.add, ops.radd,
+                                    operator.sub, ops.rsub])
+    def test_tdi_add_sub_float(self, op, other):
+        dti = DatetimeIndex(['2011-01-01', '2011-01-02'], freq='D')
+        tdi = dti - dti.shift(1)
+        with pytest.raises(TypeError):
+            op(tdi, other)
 
     def test_tdi_add_str_invalid(self):
         # GH 13624
