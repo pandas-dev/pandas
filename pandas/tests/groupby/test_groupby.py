@@ -2131,15 +2131,15 @@ class TestGroupBy(MixIn):
         result = getattr(df.groupby('key'), agg_func)(skipna=skipna)
         assert_frame_equal(result, exp_df)
 
-    @pytest.mark.parametrize("obj", [Series, DataFrame])
+    @pytest.mark.parametrize("klass", [Series, DataFrame])
     @pytest.mark.parametrize("test_mi", [True, False])
     @pytest.mark.parametrize("dtype", ['int', 'float'])
-    def test_groupby_mad(self, obj, test_mi, dtype):
+    def test_groupby_mad(self, klass, test_mi, dtype):
         vals = np.array(range(10)).astype(dtype)
         df = DataFrame({'key': ['a'] * 5 + ['b'] * 5, 'val': vals})
 
         idx = pd.Index(['a', 'b'], name='key')
-        exp = obj([1.2, 1.2], index=idx)
+        exp = klass([1.2, 1.2], index=idx)
         grping = ['key']
 
         if test_mi:
@@ -2153,7 +2153,7 @@ class TestGroupBy(MixIn):
             exp = exp.append(exp)
             exp.index = mi
 
-        if obj is Series:
+        if klass is Series:
             exp.name = 'val'
             result = df.groupby(grping)['val'].mad()
             tm.assert_series_equal(result, exp)

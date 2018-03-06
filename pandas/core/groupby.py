@@ -1362,17 +1362,14 @@ class GroupBy(_GroupBy):
         if self.axis != 0:
             return self.apply(lambda x: x.mad(axis=self.axis))
 
-        # Wrap in a try..except. Ideally this wouldn't be required here but
-        # rather be moved to the underlying function calls
+        # Wrap in a try..except to catch a TypeError with bool data
+        # Ideally this would be implemented in `mean` instead of here
         try:
             demeaned = np.abs(self.shift(0) - self.transform('mean'))
-            demeaned.index = self.grouper.labels
-            agg = demeaned.groupby(demeaned.index)
+            result = demeaned.groupby(self.grouper.labels).mean()
+            result.index = self.grouper.result_index
         except TypeError:
             raise DataError('No numeric types to aggregate')
-
-        result = agg.mean()
-        result.index = self.grouper.result_index
 
         return result
 
