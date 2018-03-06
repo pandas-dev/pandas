@@ -2141,6 +2141,30 @@ class TestGroupBy(MixIn):
         result = getattr(df.groupby('key'), agg_func)(skipna=skipna)
         assert_frame_equal(result, exp_df)
 
+    @pytest.mark.parametrize("dtype", ['int', 'float'])
+    def test_groupby_mad(self, dtype):
+        vals = np.array(range(10)).astype(dtype)
+        df = DataFrame({'key': ['a'] * 5 + ['b'] * 5, 'val': vals})
+        exp_df = DataFrame({'val': [1.2, 1.2]}, index=pd.Index(['a', 'b'],
+                                                               name='key'))
+
+        result = df.groupby('key').mad()
+        tm.assert_frame_equal(result, exp_df)
+
+    @pytest.mark.parametrize("vals", [
+        ['foo'] * 10, [True] * 10])
+    def test_groupby_mad_raises(self, vals):
+        df = DataFrame({'key': ['a'] * 5 + ['b'] * 5, 'val': vals})
+
+        with tm.assert_raises_regex(TypeError, "Invalid type for mad"):
+            df.groupby('key').mad()
+
+    def test_groupby_mad_skipna(self):
+        df = DataFrame({'key': ['a'] * 5 + ['b'] * 5, 'val': vals})
+        with tm.assert_raises_regex(
+                NotImplementedError, "'skipna=False' not yet implemented"):
+            df.groupby('key').mad(skipna=False)
+
     def test_dont_clobber_name_column(self):
         df = DataFrame({'key': ['a', 'a', 'a', 'b', 'b', 'b'],
                         'name': ['foo', 'bar', 'baz'] * 2})
