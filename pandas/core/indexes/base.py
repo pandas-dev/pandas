@@ -1401,7 +1401,7 @@ class Index(IndexOpsMixin, PandasObject):
     def is_lexsorted_for_tuple(self, tup):
         return True
 
-    @cache_readonly(allow_setting=True)
+    @cache_readonly
     def is_unique(self):
         """ return if the index has unique values """
         return self._engine.is_unique

@@ -519,7 +519,6 @@ class TestIndex(Base):
         assert not ind.is_(ind.copy())
         assert not ind.is_(ind.copy(deep=False))
         assert not ind.is_(ind[:])
-        assert not ind.is_(ind.view(np.ndarray).view(Index))
         assert not ind.is_(np.array(range(10)))
 
         # quasi-implementation dependent
